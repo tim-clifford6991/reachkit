@@ -30,6 +30,7 @@ import { SetupForm } from "@/app/(account)/setup/SetupForm";
 import { MarketCard } from "@/app/(account)/setup/MarketCard";
 import { onMarketStated } from "@/lib/market/setup/state";
 import { RivalsCard } from "@/app/(account)/setup/RivalsCard";
+import { PublishingCard } from "@/app/(account)/setup/PublishingCard";
 import { assembleSetup, type SetupFacts } from "@/app/(account)/setup/_setup/facts";
 import { FIXTURE_SETUP_FACTS } from "@/app/(account)/setup/_setup/fixture";
 import { SETUP_STEPS, type SetupStepId } from "@/app/(account)/setup/steps";
@@ -92,17 +93,16 @@ describe("SPEC §5 (docs/spec/decisions/2026-10-22-1737.md) — three saved step
     expect(COPY["meta.app.setup.connect.title"]).toMatch(/^Connect\b/);
   });
 
-  it("the Connect step's panel and Overview's connect title never call it a blog", () => {
-    const panelTitle =
-      screenFor("publishing").querySelector('[data-testid="setup-panel-title"]')?.textContent ?? "";
-    expect(panelTitle).toMatch(/\bwebsite\b/);
-    expect(panelTitle).not.toMatch(/\bblog/i);
+  it("the Connect step's heading and Overview's connect title never call it a blog", () => {
+    const heading = screenFor("publishing").querySelector("h1")?.textContent ?? "";
+    expect(heading).toMatch(/\bwebsite\b/);
+    expect(heading).not.toMatch(/\bblog/i);
     expect(COPY["overview.connect.title"]).not.toMatch(/\bblog/i);
   });
 
   it("the Connect step says the first page waits for the connection, and names no hour a site may change", () => {
     const line = screenFor("publishing").querySelector('[data-testid="setup-step-line"]')?.textContent ?? "";
-    expect(line).toMatch(/\bconnected\b/);
+    expect(line).toMatch(/\bconnect\b/);
     expect(line).not.toMatch(/\d/);
   });
 
@@ -130,8 +130,8 @@ describe("SPEC §5 (docs/spec/decisions/2026-10-22-1737.md) — three saved step
       const back = [...screenFor(step).querySelectorAll("button")].find(
         (b) => (b.textContent ?? "").trim() === COPY["setup.back"],
       );
-      expect(back, step).toBeDefined();
-      expect(back?.hasAttribute("disabled"), step).toBe(step === "site");
+      if (step === "site") expect(back, step).toBeUndefined();
+      else expect(back?.hasAttribute("disabled"), step).toBe(false);
     }
   });
 
@@ -143,11 +143,11 @@ describe("SPEC §5 (docs/spec/decisions/2026-10-22-1737.md) — three saved step
     expect(labels).toEqual(["Continue", "Looks right", "Finish"]);
   });
 
-  it("each step says where the founder is, out of three, and the time their own part takes", () => {
-    expect(SETUP_STEPS.map((step) => screenFor(step).querySelector('[data-testid="setup-step-count"]')?.textContent)).toEqual([
-      "Step 1 of 3about 10 minutes of your time",
-      "Step 2 of 3about 10 minutes of your time",
-      "Step 3 of 3about 10 minutes of your time",
+  it("the first step alone says the time the founder's own part takes", () => {
+    expect(SETUP_STEPS.map((step) => screenFor(step).querySelector('[data-testid="setup-step-time"]')?.textContent ?? null)).toEqual([
+      "About 10 minutes, once",
+      null,
+      null,
     ]);
   });
 
@@ -240,15 +240,13 @@ describe("REQ-025 c1 — nothing on any step states how long anything takes", ()
    * REQ-025 c1 is about **ReachKit's own work**: the founder is never told
    * how long the pass, the scan or the first page will take, because the
    * product does not know and a number it invented would be a promise. The
-   * connect step's eyebrow estimates something else — how long *the
-   * founder's* own visit to their DNS provider takes — which is their work,
-   * not ours, and is the drafted sentence the owner wrote for it twice
-   * (#924's drafted sentences and the `R4-02` board's own eyebrow).
+   * first step's line estimates something else — how long *the founder's*
+   * own part of setup takes — which is their work, not ours.
    *
    * It is listed rather than pattern-excused: a second key that states a
    * duration fails here, which is what this test is for.
    */
-  const STATES_THE_FOUNDERS_OWN_TIME = ["setup.step.time", "setup.connect.eyebrow"];
+  const STATES_THE_FOUNDERS_OWN_TIME = ["setup.step.time"];
 
   it("no setup key states one, but for the founder's own task", () => {
     const spoken = (Object.keys(COPY) as (keyof typeof COPY)[]).filter((key) =>
@@ -279,16 +277,10 @@ describe("Site — the address, where the buyers are, and the place (REQ-021 c6/
     }
   });
 
-  it("the measured state still asks where the buyers are and where the business serves, and says what that means", () => {
+  it("the measured state still asks where the buyers are and where the business serves", () => {
     const tree = screenFor("site");
     expect(tree.querySelector('select[name="locale"]')).not.toBeNull();
     expect(tree.querySelector('input[name="place"]')).not.toBeNull();
-    expect(tree.querySelector('[data-testid="setup-place-preview"]')?.textContent).toBe(
-      "United States · in EnglishWe check what buyers here search, and who they find instead of you.",
-    );
-    expect(
-      screenFor("site", { place: "Austin, TX" }).querySelector('[data-testid="setup-place-preview"]')?.textContent,
-    ).toMatch(/^Austin, TX · in EnglishWe check/);
   });
 
   it("the market is Check's, not Site's, and its section names it once, inferred or stated, with no chip", () => {
@@ -388,9 +380,9 @@ describe("Site — the address, where the buyers are, and the place (REQ-021 c6/
 });
 
 describe("Check — here's what we read, one section to open per part (docs/spec/decisions/2026-10-22-1737.md)", () => {
-  it("states the pages actually read, from the site to every page, and says so differently when none were", () => {
+  it("states the pages actually read in one line beside the site, and says so differently when none were", () => {
     const read = screenFor("check").querySelector('[data-testid="setup-check-read"]');
-    expect(read?.textContent).toBe("example.com5 pages readYour siteWhat we readEvery page");
+    expect(read?.querySelector(":scope > span:last-child")?.textContent).toBe("example.com · 5 pages read");
     expect(screenFor("check").querySelector('[data-testid="setup-check-unread"]')).toBeNull();
     const unread = screenFor("check", SCANLESS);
     expect(unread.querySelector('[data-testid="setup-check-read"]')).toBeNull();
@@ -407,12 +399,12 @@ describe("Check — here's what we read, one section to open per part (docs/spec
     ]);
     expect(sections.every((d) => !d.hasAttribute("open"))).toBe(true);
     expect(sections.map((d) => d.querySelector("summary")?.textContent)).toEqual([
-      `Your businessread${model().business.job?.text}`,
-      `Your market and competitorsread${FIXTURE_SETUP_FACTS.concluded?.category} · ${FIXTURE_SETUP_FACTS.concluded?.rivals.length} competitors`,
-      `How your pages soundread${(FIXTURE_SETUP_FACTS.profile?.voice?.text ?? "").split(/(?<=[.!?])\s/)[0]}`,
-      "Five things only you knowoptionalAnswer any, or none.",
+      `Your business${model().business.job?.text}`,
+      `Your market and competitors${FIXTURE_SETUP_FACTS.concluded?.category} · ${FIXTURE_SETUP_FACTS.concluded?.rivals.length} competitors`,
+      `How your pages sound${(FIXTURE_SETUP_FACTS.profile?.voice?.text ?? "").split(/(?<=[.!?])\s/)[0]}`,
+      "Five things only you knowAnswer any, or none.",
     ]);
-    // A section nothing was read for carries no "read" pill.
+    // A section nothing was read for says nothing under its name.
     const bare = screenFor("check", { ...SCANLESS }).querySelector('[data-testid="setup-check-business"] summary');
     expect(bare?.textContent).toBe("Your business");
   });
@@ -663,10 +655,20 @@ describe("Connect — where the pages go live (REQ-028 c2, SPEC §7 #476)", () =
     expect(["—", "-", "n/a", "TBD", ""]).not.toContain(text);
   });
 
-  it("the WordPress card names what connecting will ask for, and asks for none of it here", () => {
-    const card = screenFor("publishing").querySelector(
-      '[data-testid="setup-destination-wordpress"]',
-    );
+  it("choosing WordPress names what connecting will ask for, in the box under the pair, and asks for none of it here", () => {
+    const m = model();
+    const card = render(
+      <PublishingCard
+        cards={m.cards}
+        siteDomain="example.com"
+        cnameTarget={m.cnameTarget}
+        destination="wordpress"
+        onDestination={() => {}}
+        label="content"
+        onLabel={() => {}}
+      />,
+    ).querySelector('[data-testid="setup-wordpress-asks"]');
+    expect(screenFor("publishing").querySelector('[data-testid="setup-wordpress-asks"]')).toBeNull();
     expect(card?.querySelector('[data-testid="setup-wordpress-site"]')?.textContent).toBe(
       "example.com",
     );
@@ -678,43 +680,6 @@ describe("Connect — where the pages go live (REQ-028 c2, SPEC §7 #476)", () =
 
   it("SPEC §5 — the subdomain label is a value, so the field is in the numeral face", () => {
     expect(screenFor("publishing").querySelector('input[name="label"]')?.className).toContain("num");
-  });
-});
-
-describe("the panel beside the question (docs/spec/decisions/2026-10-22-1737.md)", () => {
-  it("Site and Check show what happens next: the three steps, where the founder is, and nothing to do after", () => {
-    const rail = (step: SetupStepId) =>
-      [...(screenFor(step).querySelectorAll('[data-testid="setup-next"] li') ?? [])].map((li) => li.textContent);
-    expect(rail("site")).toEqual([
-      "1Confirm your siteyou are hereWhere your buyers are.",
-      "2Confirm what we foundFix anything wrong, or carry on.",
-      "3Connect your websiteOne line, pasted where you bought your address.",
-      "After this, nothing to doPages go live on their day. Your Monday mail shows what moved.",
-    ]);
-    expect(rail("check").slice(0, 2)).toEqual([
-      "Confirm your siteWhere your buyers are.",
-      "2Confirm what we foundyou are hereFix anything wrong, or carry on.",
-    ]);
-    for (const step of ["site", "check"] as const) {
-      const panel = screenFor(step).querySelector('[data-testid="setup-panel"]');
-      expect(panel?.querySelector('[data-testid="setup-panel-blog"]'), step).toBeNull();
-      expect(panel?.querySelector('[aria-current="step"]')?.textContent, step).toContain(COPY["setup.next.here"]);
-    }
-  });
-
-  it("Connect shows the customer's own blog address, and nothing pretends to be written yet", () => {
-    const panel = screenFor("publishing").querySelector('[data-testid="setup-panel"]');
-    expect(panel?.querySelector('[data-testid="setup-next"]')).toBeNull();
-    expect(panel?.querySelector('[data-testid="setup-panel-blog-address"]')?.textContent).toBe("content.example.com");
-    expect(panel?.querySelectorAll(".skeleton").length).toBeGreaterThan(0);
-    expect(panel?.querySelector('[data-testid="setup-panel-awaiting"]')?.textContent).toBe(COPY["setup.panel.awaiting"]);
-    expect(panel?.querySelector('[data-testid="setup-panel-note"]')?.textContent).toBe(COPY["setup.panel.note"]);
-  });
-
-  it("before an address is given there is a line where the blog address sits, never a blank", () => {
-    const panel = screenFor("publishing", SCANLESS).querySelector('[data-testid="setup-panel"]');
-    expect(panel?.querySelector('[data-testid="setup-panel-blog-address"]')).toBeNull();
-    expect(panel?.textContent).toContain(COPY["setup.panel.address.pending"]);
   });
 });
 

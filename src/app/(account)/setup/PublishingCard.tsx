@@ -21,7 +21,7 @@
 
 import type React from "react";
 import { useId, useRef, useState } from "react";
-import { Circle, CircleCheck, Globe, Layers, type LucideIcon } from "lucide-react";
+import { Circle, CircleDot, Globe, Layers, type LucideIcon } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import {
   dnsRecordFor,
@@ -39,7 +39,8 @@ const LABEL_REFUSAL_COPY = {
 } as const satisfies Record<LabelRefusal, string>;
 
 const TEST_ID = "setup-publishing";
-const QUIET = "block text-sm text-base-content/70";
+const QUIET = "block text-(length:--t-sm) text-base-content/70";
+const BOX = "card border border-base-300 bg-base-100 shadow-(--shadow-card)";
 const TILE = "grid shrink-0 place-items-center rounded-box";
 
 /** Board Setup's mark for each place pages can live. */
@@ -89,11 +90,10 @@ export function PublishingCard(p: {
   const host = p.siteDomain === null || p.label.trim() === "" ? null : `${p.label}.${p.siteDomain}`;
 
   return (
-    <section className="card bg-base-100 shadow-sm" data-testid={TEST_ID}>
-      <div className="card-body gap-4">
-        <h2 className="card-title text-base">{copy("setup.destination.where")}</h2>
-
-        <div className="grid gap-3 sm:grid-cols-2" data-testid="setup-destination">
+    <section className="grid min-w-0 gap-6" data-testid={TEST_ID}>
+      <div className="grid min-w-0 gap-3">
+        <h2 className="text-(length:--t-body) font-bold">{copy("setup.destination.where")}</h2>
+        <div className="grid gap-3" data-testid="setup-destination">
           {p.cards.destination.map((option) => (
             <Option
               key={option.kind}
@@ -106,24 +106,25 @@ export function PublishingCard(p: {
               testId={`setup-destination-${option.kind}`}
             >
               {option.kind === "hosted" && "pending" in dns ? <DnsPendingLine dns={dns} /> : null}
-              {option.kind === "wordpress" ? <WordPressAsks domain={p.siteDomain} /> : null}
             </Option>
           ))}
         </div>
+      </div>
 
-        {/* The label sits under the pair, not inside the hosted option:
-            that option is a button, and a field nested in a button is
-            neither valid markup nor operable by keyboard. */}
-        {p.destination === "hosted" ? (
-          <div className="flex flex-col gap-1.5" data-testid="setup-destination-label">
-            <label className="text-sm text-base-content/70" htmlFor={labelId}>
+      {/* The box under the pair follows the choice, as board Setup's note draws it. The label is
+          here, not inside the hosted option: that option is a button, and a field nested in a
+          button is neither valid markup nor operable by keyboard. */}
+      {p.destination === "hosted" ? (
+        <div className={BOX} data-testid="setup-destination-label">
+          <div className="card-body gap-1.5 p-5">
+            <label className="text-sm font-semibold" htmlFor={labelId}>
               {copy("setup.destination.label.label")}
             </label>
             <input
               id={labelId}
               type="text"
               name="label"
-              className={`input num w-full ${refusal === null ? "" : "input-error"}`}
+              className={`input num h-11 w-full ${refusal === null ? "" : "input-error"}`}
               value={p.label}
               aria-invalid={refusal !== null}
               onChange={(event) => {
@@ -135,17 +136,17 @@ export function PublishingCard(p: {
                 {copy(LABEL_REFUSAL_COPY[refusal])}
               </div>
             )}
-            {/* The record and its check are `/setup/connect`'s now (#924).
-                What stands here is the one line saying the address is
-                theirs and that connecting it comes next. */}
+            {/* The record and its check are `/setup/connect`'s (#924); this line says connecting comes next. */}
             {"pending" in dns ? null : (
-              <p className="mt-2 text-sm text-base-content/70" data-testid="setup-dns-next">
+              <p className={`mt-2 ${QUIET}`} data-testid="setup-dns-next">
                 {copy("setup.destination.connect-next")}
               </p>
             )}
           </div>
-        ) : null}
-      </div>
+        </div>
+      ) : (
+        <WordPressAsks domain={p.siteDomain} />
+      )}
     </section>
   );
 }
@@ -164,31 +165,29 @@ function Option(p: {
   testId: string;
   children?: React.ReactNode;
 }): React.JSX.Element {
-  const Mark = p.chosen ? CircleCheck : Circle;
+  const Mark = p.chosen ? CircleDot : Circle;
   return (
     <button
       type="button"
-      className={`card card-border text-left transition-colors ${
-        p.chosen ? "border-primary bg-primary/5" : "hover:border-base-content/30"
+      className={`flex min-w-0 items-start gap-3 rounded-box border p-4 text-left transition-colors ${
+        p.chosen ? "border-primary bg-(--accent-bg)" : "border-base-300 bg-base-100 hover:border-base-content/30"
       }`}
       aria-pressed={p.chosen}
       onClick={p.onChoose}
       data-testid={p.testId}
     >
-      <span className="card-body gap-1 p-4">
-        <span className="flex items-center gap-2 font-medium">
-          <Mark
-            aria-hidden
-            size={20}
-            strokeWidth={1.75}
-            className={p.chosen ? "text-primary" : "text-base-content/40"}
-          />
-          <span className={`${TILE} size-8 bg-base-200`} aria-hidden>
-            <p.icon size={16} strokeWidth={1.75} />
-          </span>
-          {p.title}
-        </span>
-        {p.detail === null ? null : <span className="num text-sm wrap-anywhere">{p.detail}</span>}
+      <Mark
+        aria-hidden
+        size={20}
+        strokeWidth={1.75}
+        className={`mt-0.5 shrink-0 ${p.chosen ? "text-primary" : "text-base-content/40"}`}
+      />
+      <span className={`${TILE} size-8 bg-(--accent-bg) text-primary`} aria-hidden>
+        <p.icon size={16} strokeWidth={1.75} />
+      </span>
+      <span className="flex min-w-0 flex-col">
+        <strong className="text-(length:--t-body)">{p.title}</strong>
+        {p.detail === null ? null : <span className="num text-(length:--t-sm) wrap-anywhere">{p.detail}</span>}
         <span className={QUIET} data-testid="setup-option-line">
           {p.line}
         </span>
@@ -208,26 +207,28 @@ function DnsPendingLine(p: { dns: DnsPending }): React.JSX.Element {
   );
 }
 
-/** What connecting WordPress will ask for, shown on the option that offers
- *  it. Shown, never asked here: SPEC §5 keeps the connect for later. */
+/** What connecting WordPress will ask for, in the box under the pair. Shown, never asked
+ *  here: SPEC §5 keeps the connect for later, in Settings › Publishing. */
 function WordPressAsks(p: { domain: string | null }): React.JSX.Element {
   return (
-    <>
-      <span className="mt-2 flex min-w-0 flex-col">
-        <span className={QUIET}>{copy("settings.destination.site-url")}</span>
-        {p.domain === null ? null : (
-          <span className="num text-sm wrap-anywhere" data-testid="setup-wordpress-site">
-            {p.domain}
-          </span>
-        )}
-      </span>
-      <span className={`mt-2 ${QUIET}`}>{copy("settings.destination.username")}</span>
-      <span className="mt-2 flex min-w-0 flex-col">
-        <span className={QUIET}>{copy("settings.destination.app-password")}</span>
-        <span className="text-sm" data-testid="setup-wordpress-help">
-          {copy("settings.destination.app-password.help")}
+    <div className={BOX} data-testid="setup-wordpress-asks">
+      <div className="card-body gap-3 p-5">
+        <span className="flex min-w-0 flex-col">
+          <span className="text-sm font-semibold">{copy("settings.destination.site-url")}</span>
+          {p.domain === null ? null : (
+            <span className="num text-sm wrap-anywhere" data-testid="setup-wordpress-site">
+              {p.domain}
+            </span>
+          )}
         </span>
-      </span>
-    </>
+        <span className="text-sm font-semibold">{copy("settings.destination.username")}</span>
+        <span className="flex min-w-0 flex-col">
+          <span className="text-sm font-semibold">{copy("settings.destination.app-password")}</span>
+          <span className={QUIET} data-testid="setup-wordpress-help">
+            {copy("settings.destination.app-password.help")}
+          </span>
+        </span>
+      </div>
+    </div>
   );
 }

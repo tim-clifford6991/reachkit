@@ -36,33 +36,18 @@ async function mount(step: "site" | "check"): Promise<HTMLElement> {
 const icons = (el: Element | null | undefined): string[] =>
   [...(el?.querySelectorAll("svg.lucide") ?? [])].map((svg) => [...svg.classList].filter((c) => c.startsWith("lucide-")).at(-1)!.slice("lucide-".length));
 
-/** The element whose own words are `text`. */
-function holding(root: HTMLElement, selector: string, text: string): Element | undefined {
-  return [...root.querySelectorAll(selector)].find((el) => el.textContent?.trim() === text);
-}
-
 describe("Setup's steps carry their board icons", () => {
-  it("step 1 draws clock, coffee, monitor-check and the map-pin band", async () => {
+  it("step 1 draws clock-4 beside the time, and the site's own mark, not an icon, beside its domain", async () => {
     const root = await mount("site");
 
-    expect(icons(holding(root, ".badge", COPY["setup.step.time"]))).toEqual(["clock"]);
-
-    const after = [...root.querySelectorAll('[data-testid="setup-next"] li')].at(-1)!;
-    expect(after.textContent).toContain(COPY["setup.next.after"]);
-    expect(icons(after)).toEqual(["coffee"]);
-    expect(after.querySelector(".status")).toBeNull();
+    expect(icons(root.querySelector('[data-testid="setup-step-time"]'))).toEqual(["clock-4"]);
 
     const well = root.querySelector('[data-testid="setup-address-value"]')!.parentElement;
-    expect(icons(well)).toEqual(["monitor-check"]);
-
-    const preview = root.querySelector('[data-testid="setup-place-preview"]')!;
-    const band = preview.querySelector('[aria-hidden="true"].bg-base-200');
-    expect(icons(band)).toEqual(["map-pin"]);
-    expect(band?.textContent).toBe("");
-    expect(preview.textContent).toContain(COPY["setup.place.preview.line"]);
+    expect(icons(well)).toEqual([]);
+    expect(well?.querySelector('[aria-hidden="true"]')?.textContent).toBe("E");
   });
 
-  it("step 2's tiles and flows", async () => {
+  it("step 2's tiles", async () => {
     const root = await mount("check");
 
     const tiles = [...root.querySelectorAll('[data-testid^="setup-check-"] > summary')].map((summary) => ({
@@ -70,15 +55,12 @@ describe("Setup's steps carry their board icons", () => {
       icons: icons(summary.querySelector('[aria-hidden="true"]')),
     }));
     expect(tiles).toEqual([
-      { title: COPY["setup.check.business"], icons: ["building-2"] },
+      { title: COPY["setup.check.business"], icons: ["building"] },
       { title: COPY["setup.check.market"], icons: ["users"] },
       { title: COPY["setup.check.voice"], icons: ["message-circle"] },
       { title: COPY["setup.business.questions"], icons: ["circle-question-mark"] },
     ]);
 
     expect(icons(root.querySelector('[data-testid="setup-business-assurance"]'))).toEqual(["shield-check"]);
-
-    const flow = root.querySelector('[data-testid="setup-check-read"] figcaption');
-    expect(icons(flow).filter((name) => name !== "arrow-right")).toEqual(["monitor-check", "eye", "file-text"]);
   });
 });

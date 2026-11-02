@@ -589,7 +589,7 @@ describe("three decisions → deep pass → the first page already on the calend
       );
 
     // Each step's own, and only that step's.
-    expect(onStep("site")).toContain("setup.address.title");
+    expect(onStep("site")).toContain("setup.address.label");
     expect(onStep("site")).not.toContain("setup.competitors.title");
     expect(onStep("check")).toContain("setup.competitors.title");
     const publishing = onStep("publishing");

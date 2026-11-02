@@ -57,18 +57,18 @@ describe("the record, on its own step", () => {
     expect(record?.getAttribute("data-host")).toBe("guides.example.com");
   });
 
-  it("names the host the record is for, as a value", async () => {
-    const host = (await render()).querySelector('[data-testid="setup-connect-host"]');
-    expect(host?.textContent).toBe("guides.example.com");
-    expect(host?.className).toContain("num");
+  it("names the host the record is for, as values: the address in its heading and the label in its Name row", async () => {
+    const tree = await render();
+    expect(tree.querySelector('[data-testid="setup-connect"]')?.getAttribute("data-host")).toBe("guides.example.com");
+    expect(tree.querySelector('[data-testid="setup-dns"] h2')?.textContent).toBe(
+      COPY["setup.connect.record.title"].replace("{domain}", "example.com"),
+    );
+    const values = [...tree.querySelectorAll('[data-testid="setup-record"] .num')].map((el) => el.textContent);
+    expect(values).toContain("guides");
   });
 
-  it("says how long it takes and that the first page is being written meanwhile", async () => {
-    const tree = await render();
-    expect(tree.querySelector('[data-testid="setup-connect-eyebrow"]')?.textContent).toBe(
-      COPY["setup.connect.eyebrow"],
-    );
-    expect(tree.textContent).toContain(COPY["setup.connect.lead"]);
+  it("says that the first page is being written meanwhile", async () => {
+    expect((await render()).textContent).toContain(COPY["setup.step.publishing.line"]);
   });
 });
 

@@ -11,8 +11,9 @@
 import { COUNTRIES, LANGUAGES, SUPPORTED_LOCALES, localeKey } from "@/lib/locale/locales";
 import type React from "react";
 import { useId, useMemo, useState, useTransition, type Dispatch, type KeyboardEvent, type SetStateAction } from "react";
-import { Globe, ListOrdered, MapPin, MonitorCheck } from "lucide-react";
+import { ListOrdered } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
+import { SiteMark } from "@/ui/SiteMark";
 import { fromStored, renderQuestion } from "@/lib/presentation/generated";
 import { rederiveQuestions } from "@/lib/market/questions/rederive";
 import {
@@ -31,10 +32,14 @@ const ADDRESS_REFUSAL_COPY = {
 } as const satisfies Record<AddressRefusal, string>;
 
 const ICON = { strokeWidth: 1.75, size: 20, "aria-hidden": true } as const;
-const CARD = "card bg-base-100 shadow-sm";
+const CARD = "card border border-base-300 bg-base-100 shadow-(--shadow-card)";
 const ROW = "flex min-w-0 flex-wrap items-center justify-between gap-3";
 const QUIET = "text-sm text-base-content/70";
 const CHANGE = "btn btn-sm btn-ghost";
+/** A field's own label, as board Setup1 draws it: the ink, not the quiet line under it. */
+const LABEL = "text-sm font-semibold";
+const NOTE = "text-(length:--t-sm) text-base-content/70";
+const FIELD = "flex flex-col gap-1.5";
 
 const ADDRESS_TEST_ID = "setup-address";
 const MARKET_TEST_ID = "setup-market";
@@ -43,6 +48,8 @@ export function SiteCard(p: {
   state: SetupState;
   setState: Dispatch<SetStateAction<SetupState>>;
   resolveDomain: (host: string) => Promise<ResolveDomainResponse>;
+  /** Whether the profile read for this address kept the site's own logo. */
+  hasLogo: boolean;
   /** D66: the country and language, as `localeKey` spells it. */
   locale: string;
   setLocale: (locale: string) => void;
@@ -83,35 +90,30 @@ export function SiteCard(p: {
     if (typeof answer.place === "string") p.setPlace(answer.place, "read");
   }
 
-  const chosen = SUPPORTED_LOCALES.find((each) => localeKey(each) === p.locale) ?? null;
-
   return (
     <section className={CARD} data-testid={ADDRESS_TEST_ID}>
-      <div className="card-body gap-4">
-        <h2 className="card-title text-base">
-          <Globe {...ICON} />
-          {copy("setup.address.title")}
-        </h2>
+      <div className="card-body gap-5 p-5">
         {state.address.state === "measured" && !editingAddress ? (
-          <div className="flex flex-col gap-1.5">
-            <p className={QUIET}>{copy("setup.address.label")}</p>
-            <div className={`${ROW} rounded-box bg-base-200 py-1 pr-1 pl-3`}>
-              <MonitorCheck {...ICON} className="shrink-0 text-base-content/70" />
-              <p className="num min-w-0 flex-1 wrap-anywhere" data-testid="setup-address-value">
+          <div className={FIELD}>
+            <p className={LABEL}>{copy("setup.address.label")}</p>
+            <div className="flex min-h-13 min-w-0 items-center gap-3 rounded-field bg-base-200 py-1 pr-1 pl-3">
+              <SiteMark domain={state.address.domain} hasLogo={p.hasLogo} size={36} />
+              <p className="num min-w-0 flex-1 text-(length:--t-body) wrap-anywhere" data-testid="setup-address-value">
                 {state.address.domain}
               </p>
-              <button type="button" className={CHANGE} onClick={() => setEditingAddress(true)}>
+              <button
+                type="button"
+                className="btn btn-ghost h-11 text-(length:--t-body) text-primary"
+                onClick={() => setEditingAddress(true)}
+              >
                 {copy("setup.address.change")}
               </button>
             </div>
-            <p className={QUIET} data-testid="setup-address-measured">
-              {copy("setup.address.measured")}
-            </p>
           </div>
         ) : (
           <>
-            <div className="flex flex-col gap-1.5">
-              <label className={QUIET} htmlFor={addressId}>
+            <div className={FIELD}>
+              <label className={LABEL} htmlFor={addressId}>
                 {copy("setup.address.label")}
               </label>
               <div className="flex gap-2">
@@ -119,7 +121,7 @@ export function SiteCard(p: {
                   id={addressId}
                   type="text"
                   name="domain"
-                  className={`input num w-full ${addressRefusal === null ? "" : "input-error"}`}
+                  className={`input num h-11 w-full ${addressRefusal === null ? "" : "input-error"}`}
                   placeholder={copy("setup.address.placeholder")}
                   value={addressDraft}
                   aria-invalid={addressRefusal !== null}
@@ -131,7 +133,7 @@ export function SiteCard(p: {
                 />
                 <button
                   type="button"
-                  className="btn btn-soft btn-primary"
+                  className="btn btn-soft btn-primary h-11"
                   disabled={resolving}
                   onClick={commitAddress}
                 >
@@ -147,7 +149,7 @@ export function SiteCard(p: {
             )}
             {/* REQ-021 c7: the address they paid with is not assumed to
                 be the site, said where the field is. */}
-            <p className={QUIET} data-testid="setup-address-assurance">
+            <p className={NOTE} data-testid="setup-address-assurance">
               {copy("setup.address.assurance")}
             </p>
           </>
@@ -155,14 +157,14 @@ export function SiteCard(p: {
         {/* D66: one question, filled with what was read of the site. The
             founder's answer wins. The list is the closed one every vendor
             read is made from. */}
-        <div className="flex flex-col gap-1.5">
-          <label className={QUIET} htmlFor={localeId}>
+        <div className={FIELD}>
+          <label className={LABEL} htmlFor={localeId}>
             {copy("setup.locale.label")}
           </label>
           <select
             id={localeId}
             name="locale"
-            className="select w-full"
+            className="select h-11 w-full"
             value={p.locale}
             data-testid="setup-locale"
             onChange={(event) => p.setLocale(event.target.value)}
@@ -176,43 +178,26 @@ export function SiteCard(p: {
               </option>
             ))}
           </select>
-          <p className={QUIET}>{copy("setup.locale.note")}</p>
+          <p className={NOTE}>{copy("setup.locale.note")}</p>
         </div>
         {/* D67: asked with the question above. A place here is where
             every search, rival and AI question is then measured. */}
-        <div className="flex flex-col gap-1.5">
-          <label className={QUIET} htmlFor={placeId}>
+        <div className={FIELD}>
+          <label className={LABEL} htmlFor={placeId}>
             {copy("setup.place.label")}
           </label>
           <input
             id={placeId}
             name="place"
             type="text"
-            className="input w-full"
+            className="input h-11 w-full"
             maxLength={80}
             value={p.place}
             data-testid="setup-place"
             onChange={(event) => p.setPlace(event.target.value, "founder")}
           />
-          <p className={QUIET}>{copy("setup.place.note")}</p>
+          <p className={NOTE}>{copy("setup.place.note")}</p>
         </div>
-        {chosen === null ? null : (
-          <div className="flex min-w-0 items-center gap-3 text-sm" data-testid="setup-place-preview">
-            {/* Ruling 2026-10-24 E30: an icon band, never a map; the place is the words beside it. */}
-            <span aria-hidden className="grid h-14 w-20 shrink-0 place-items-center rounded-box bg-base-200 text-primary" data-testid="setup-place-band">
-              <MapPin {...ICON} />
-            </span>
-            <p className="flex min-w-0 flex-col">
-              <span className="font-medium">
-                {copy("setup.place.preview", {
-                  area: p.place.trim() === "" ? COUNTRIES[chosen.country].location : p.place.trim(),
-                  language: LANGUAGES[chosen.language].name,
-                })}
-              </span>
-              <span className="text-base-content/70">{copy("setup.place.preview.line")}</span>
-            </p>
-          </div>
-        )}
       </div>
     </section>
   );

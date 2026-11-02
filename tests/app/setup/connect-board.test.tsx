@@ -79,16 +79,16 @@ describe("Connect matches board Setup string for string", () => {
       "Site",
       "Details",
       "Connect",
-      "Step 3 of 3 about 10 minutes of your time",
       "Connect your website",
+      "We’re already writing your first page. It goes live once you connect.",
       "Where should pages live?",
       `On your web address, run by us ${HOST} One setting, once. Recommended.`,
-      "On my WordPress site Pages go live on your WordPress. You create an app password for us.",
+      "On my WordPress site You create an app password for us.",
     ]);
     expect(step.join("\n")).not.toContain("How it connects");
   });
 
-  it("the connect screen: the record, the steps, doing it later, then the week, with no list of what happens after", () => {
+  it("the connect screen: the record, the steps, doing it later, the week, then the press in the bar, with no list of what happens after", () => {
     const screen = textOf(connectScreen());
     expect(screen.join("\n")).not.toContain("After you add it");
     inOrder(screen, [
@@ -106,16 +106,14 @@ describe("Connect matches board Setup string for string", () => {
       "Pick the type CNAME, then paste the name and the value above.",
       "Save. Come back here and press I’ve added it, check now.",
       "Steps for where you bought your address",
-      "I’ve added it, check now",
       "Do this later",
-      "If you do it later, we’ll email you a reminder. Your first page waits for it.",
+      "We’ll email you a reminder. Your first page waits for it.",
       "After this, nothing to do",
-      "Mon",
-      "Sun",
-      "Every Monday we plan up to 7 pages, new or updated. Never filler.",
+      "Every Monday we plan up to 7 pages, new or updated.",
       "Each page goes live on its day, by itself.",
-      "You can edit or stop any page before it goes live. You never have to.",
-      "You can cancel or export in Settings at any time.",
+      "You can edit or stop any page first. You never have to.",
+      "Cancel or export in Settings at any time.",
+      "I’ve added it, check now",
     ]);
   });
 
@@ -147,15 +145,13 @@ describe("the time-zone screen matches board SetupZone", () => {
     expectStateParity("SetupZone", [root.innerHTML]);
   });
 
-  it("the head without a full stop, the line, why it matters, and nothing to press", async () => {
+  it("the head without a full stop, then the one status line, and nothing to press", async () => {
     inOrder(textOf(await zone()), [
+      "ReachKit",
       "Setting your time zone",
-      COPY["setup.zone.line"],
-      "Why it matters",
-      COPY["setup.zone.example"],
-      COPY["setup.zone.example.not"],
-      "This takes a few seconds and happens once. Nothing to press.",
+      "So every date shows in your time. A few seconds, once. Nothing to press.",
     ]);
+    expect((await zone()).querySelector("button")).toBeNull();
     expect((await zone()).querySelector("h1")?.textContent).toBe("Setting your time zone");
   });
 

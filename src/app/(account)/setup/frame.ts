@@ -3,54 +3,55 @@
 //
 // The layout classes of setup's page frame, written once. `SetupForm` draws
 // the step with them and `SetupSkeleton` draws the wait with them, so the
-// regions — the step indicator, the question, the panel beside or under it,
-// and the bar at the foot — are the same boxes before and after the step
-// arrives. Why each rule is what it is stays where it is used, in
-// `SetupForm.tsx` and `SetupPanel.tsx`.
+// regions — the header with the step bar, the question, and the bar at the
+// foot — are the same boxes before and after the step arrives.
 import type { Arm, Band } from "@/ui/layout";
 
-/** The screen root's arms: one column, two from the medium band. */
+/** The screen root's arms: one reading column at every width, as boards Setup1, Setup2 and Setup draw it. */
 export const SETUP_ARMS: Record<Band, Arm> = {
   compact: { kind: "columns", count: 1 },
-  medium: { kind: "columns", count: 2 },
+  medium: { kind: "same-as-below" },
   wide: { kind: "same-as-below" },
 };
 
-/** At least the viewport tall, with the bar as the last row. */
-export const FRAME = "grid min-h-svh grid-rows-[1fr_auto]";
+/** At least the viewport tall: the header, the step, and the bar as the last row. */
+export const FRAME = "grid min-h-svh grid-rows-[auto_1fr_auto]";
 
-/** Everything above the bar. `pb-28` clears the pinned bar. */
-export const BODY = "grid min-w-0 grid-cols-1 content-start gap-6 p-4 pb-28";
+/** The white band at the top, edge to edge, with one hairline under it. */
+export const HEADER = "border-b border-base-300 bg-base-100";
 
-/** The five equal columns of the step indicator. */
-export const STEPS = "steps w-full text-xs";
+/** The header's measure: the brand, the step bar and the pass's status line. */
+export const HEADER_INNER = "mx-auto grid w-full max-w-[calc(var(--w-read)+2rem)] min-w-0 gap-3 px-4 pt-4 pb-3";
 
-/** The question and the panel: one column, side by side from `lg`. */
-export const COLUMNS = "grid min-w-0 grid-cols-1 gap-6 lg:grid-cols-2";
+/** The brand's row: a 44px target, as the boards draw it. */
+export const BRAND_ROW = "flex min-h-11 items-center";
+
+/** The three equal columns of the step bar. */
+export const STEPS = "grid grid-cols-3 gap-2";
+
+/** One step: its bar above its one-word label. */
+export const STEP = "grid min-w-0 justify-items-center gap-2";
+
+/** Everything between the header and the bar. The bar is sticky, so it stays in the flow and needs no clearance. */
+export const BODY = "grid min-w-0 grid-cols-1 content-start gap-6 pt-1 pb-2";
 
 /** The question, its line and its control. */
-export const QUESTION = "grid min-w-0 grid-cols-1 content-start gap-4";
+export const QUESTION = "grid min-w-0 grid-cols-1 content-start gap-6";
 
 /** The question's heading and the line under it. */
 export const QUESTION_HEAD = "grid gap-2";
 
-/** The panel: its title, a body that grows, and its note. */
-export const PANEL = "flex min-w-0 flex-col gap-4";
+/** The bar at the foot, edge to edge, pinned to the bottom of the viewport. */
+export const BAR = "sticky bottom-0 z-10 border-t border-base-300 bg-base-100";
 
-/** The panel's title and body. */
-export const PANEL_BODY = "flex min-w-0 grow flex-col gap-4";
+/** Back on the left, the step's action on the right, on the header's measure. */
+export const BAR_INNER = "mx-auto flex w-full max-w-[calc(var(--w-read)+2rem)] min-w-0 items-center justify-between gap-3 px-4 py-3";
 
-/** The bar at the foot, edge to edge. */
-export const BAR = "sticky bottom-0 border-t border-base-300 bg-base-100 px-8 lg:px-10 xl:px-12";
-
-/** The bar's ruled measure. */
-export const BAR_INNER = "mx-auto grid w-full max-w-(--w-wide) gap-3 py-3";
-
-/** Back on the left, the step's action on the right. */
-export const BAR_ACTIONS = "flex min-w-0 flex-wrap items-center justify-between gap-3";
+/** The step's one primary: 44px tall and at least as wide as the board draws it. */
+export const PRIMARY = "btn btn-primary h-11 min-w-38 text-(length:--t-body)";
 
 /** The quiet ink of a line that explains. */
-export const QUIET = "text-sm text-base-content/70";
+export const QUIET = "text-(length:--t-sm) text-base-content/70";
 
 /** The regions the layout gate measures twice — on the first paint and
  *  once the step has arrived — at 390 and 1280 (issue 1484,

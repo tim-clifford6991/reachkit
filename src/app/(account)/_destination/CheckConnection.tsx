@@ -126,6 +126,8 @@ export function CheckConnection(p: {
   onAnswer?: (answer: ConnectionCheck) => void;
   /** The screen's own words; Settings' where absent. */
   words?: CheckWords;
+  /** The press's classes where the screen draws it as its primary; Settings' soft button where absent. */
+  pressClass?: string;
 }): React.JSX.Element {
   const words = p.words ?? SETTINGS_WORDS;
   const Mark = words.icon ?? RefreshCw;
@@ -181,7 +183,7 @@ export function CheckConnection(p: {
     <div className="flex min-w-0 flex-col gap-2" data-testid="check-connection">
       <button
         type="button"
-        className={`btn btn-soft btn-primary btn-sm self-start${waiting ? " btn-disabled" : ""}`}
+        className={`${p.pressClass ?? "btn btn-soft btn-primary btn-sm self-start"}${waiting ? " btn-disabled" : ""}`}
         disabled={running || waiting}
         onClick={() => {
           void press();

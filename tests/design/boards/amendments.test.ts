@@ -18,7 +18,6 @@ const PEN_LINE = "M12 20h9M16.5 3.5";
 const BUILDING_2 = 'd="M6 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16"';
 const MAP = "M15 5.8v15M9 3.2v15";
 const MAP_PIN = 'd="M20 10c0 4.993';
-const CLOCK = 'd="M12 6v6l4 2"';
 const BOOK_OPEN = 'd="M12 5v16"';
 const FLAME = "M8.5 14.5A2.5";
 const MESSAGE_CIRCLE_WARNING = 'd="M2.992 16.342';
@@ -183,23 +182,6 @@ describe("icons are structural only (E26, E27, E29)", () => {
     expect(html).toContain(MAP_PIN);
     expect(html.indexOf(MAP_PIN)).toBeLessThan(html.indexOf("Serves"));
     expect(compact.text).toContain("24-hour emergency calls. Serves Austin, TX.Sample");
-  });
-
-  it("Setup1's Where your buyers are is a MapPin band beside its words, not a map drawing (E30)", () => {
-    const figure = board("Setup1").querySelector('figure[aria-label^="Where your buyers are"]')!;
-    expect(figure.querySelectorAll("svg")).toHaveLength(1);
-    const band = figure.querySelector('.well[aria-hidden="true"]')!;
-    expect(band.innerHTML).toContain(MAP_PIN);
-    expect(band.text).toBe("");
-    expect(figure.text).toContain(copy("setup.place.preview.line"));
-  });
-  it("SetupZone's Why it matters draws lucide Clock beside its example, not a clock drawing (E29)", () => {
-    const figure = board("SetupZone").querySelector('figure[aria-label^="Why it matters"]')!;
-    const svgs = figure.querySelectorAll("svg");
-    expect(svgs).toHaveLength(1);
-    expect(svgs[0]!.getAttribute("viewBox")).toBe("0 0 24 24");
-    expect(svgs[0]!.innerHTML).toContain(CLOCK);
-    expect(svgs[0]!.parentNode!.querySelector("strong")).toBe(figure.querySelector("strong"));
   });
 
   it("PubReport's We read you as draws Tag, MapPin and Languages, and the buyer chip no icon (E44)", () => {
