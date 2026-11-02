@@ -25,6 +25,7 @@ const { readLiveSettingsFacts } = await import("@/app/(account)/app/settings/sto
 const { default: AccountTab } = await import("@/app/(account)/app/settings/account/page");
 const { default: BillingTab } = await import("@/app/(account)/app/settings/billing/page");
 const { default: PublishingTab } = await import("@/app/(account)/app/settings/publishing/page");
+const { default: BusinessTab } = await import("@/app/(account)/app/settings/page");
 
 const ACCOUNT = { ...LIVE_ACCOUNT, timeZone: "America/New_York" };
 
@@ -62,6 +63,7 @@ beforeEach(() => {
   ]);
 });
 afterEach(() => {
+  vi.useRealTimers();
   resetAccount();
   vi.restoreAllMocks();
 });
@@ -117,5 +119,47 @@ describe("billing reads only billing", () => {
     const doc = await render(BillingTab);
     expect(has(doc, "action-cancel")).toBe(true);
     expect(has(doc, "billing-month-skeleton")).toBe(false);
+  });
+});
+
+describe("Your business: the facts card is its own read, so only it says when that read fails or stalls", () => {
+  const OTHERS = ["settings-business-knowledge", "settings-known-content"];
+  const failed = (warn: { mock: { calls: unknown[][] } }, read: string) =>
+    warn.mock.calls.map(([line]) => JSON.parse(String(line))).filter((line) => line.event === "settings_read_failed" && line.read === read);
+  // A measured scan, so the facts read reaches the page text.
+  beforeEach(() => db.seed("scans", [{ id: "scan-1", site_id: LIVE_ACCOUNT.siteId, domain: LIVE_ACCOUNT.domain, tier: "deep" }]));
+
+  it("a facts read that rejects puts only the facts card on the plain line", async () => {
+    db.unreadable.add("fetches");
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const doc = await render(BusinessTab);
+    expect(doc.querySelector('[data-testid="settings-unread-facts"]')?.textContent).toBe(copy("settings.panel.unread"));
+    expect([has(doc, "settings-business-facts"), has(doc, "settings-unread-business"), ...OTHERS.map((id) => has(doc, id))]).toEqual([false, false, true, true]);
+    expect([failed(warn, "businessFacts").length, failed(warn, "business").length]).toEqual([1, 0]);
+  });
+
+  it("a facts read that never answers times out at 4,000 ms, and only its card says so", async () => {
+    stalled.add("fetches");
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const rendering = render(BusinessTab);
+    // Real ticks until the boundary's read has started, before the fake clock moves.
+    for (let turn = 0; turn < 200 && !db.queries.some((query) => query.table === "scans" && query.columns === "id, domain"); turn++) await new Promise((resolve) => setImmediate(resolve));
+    await vi.advanceTimersByTimeAsync(3_999);
+    expect(failed(warn, "businessFacts")).toHaveLength(0);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(failed(warn, "businessFacts")).toEqual([{ event: "settings_read_failed", read: "businessFacts", detail: "Error: settings read timed out: businessFacts" }]);
+    const doc = await rendering;
+    expect([has(doc, "settings-unread-facts"), has(doc, "settings-unread-business"), ...OTHERS.map((id) => has(doc, id))]).toEqual([true, false, true, true]);
+  });
+
+  it("when the business read itself stalls, the whole tab is the one plain line, as before", async () => {
+    stalled.add("site_profile_edits");
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const rendering = render(BusinessTab);
+    await vi.advanceTimersByTimeAsync(4_000);
+    const doc = await rendering;
+    expect([has(doc, "settings-unread-business"), has(doc, "settings-unread-facts"), failed(warn, "business").length]).toEqual([true, false, 1]);
   });
 });

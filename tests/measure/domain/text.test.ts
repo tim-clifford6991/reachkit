@@ -4,17 +4,18 @@
 // bought (BUILD §6.5: "one `fetches` table is ledger + cache + raw
 // store"). It fetches nothing, stores nothing, and returns each page's
 // prose (`prose.ts`).
+import "../../generate/env";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@/lib/db", () => ({
-  dbAdmin: vi.fn(),
-}));
+const { dbAdminMock } = vi.hoisted(() => ({ dbAdminMock: vi.fn() }));
+vi.mock("@/lib/db", () => ({ dbAdmin: dbAdminMock }));
 
 import { dbAdmin } from "@/lib/db";
-import { OWN_FETCH_SOURCE, RENDERED_FETCH_SOURCE, toStoredDocument } from "../../../src/lib/measure/own-fetch.ts";
-import { readMeasuredText } from "../../../src/lib/measure/text.ts";
+import { OWN_FETCH_SOURCE, RENDERED_FETCH_SOURCE, renderedDocumentOf, siteDocumentOf, toStoredDocument } from "../../../src/lib/measure/own-fetch.ts";
+import { prose } from "../../../src/lib/measure/prose.ts";
+import { readMeasuredText, type MeasuredText } from "../../../src/lib/measure/text.ts";
 
 const SOURCE_PATH = path.resolve(import.meta.dirname, "../../../src/lib/measure/text.ts");
 const SOURCE = readFileSync(SOURCE_PATH, "utf8");
@@ -78,11 +79,13 @@ function fakeDb(a: { scans: ScanRow[]; fetches: FetchRow[]; error?: { table: str
         inFilters.push({ column, values });
         return self;
       },
+      not: () => self,
+      is: () => self,
       then(resolve: (r: { data: unknown[] | null; error: { message: string } | null }) => unknown) {
         if (a.error && a.error.table === table) {
           return Promise.resolve(resolve({ data: null, error: { message: a.error.message } }));
         }
-        const rows = (table === "scans" ? [...a.scans] : [...a.fetches]) as unknown as Record<string, unknown>[];
+        const rows = (table === "scans" ? a.scans : table === "fetches" ? a.fetches : []) as unknown as Record<string, unknown>[];
         const kept = rows.filter(
           (row) =>
             filters.every((f) => row[f.column] === f.value) &&
@@ -298,5 +301,71 @@ describe("#1130 — the re-read text is the page's prose, never its chrome or it
     });
     const rows = await readMeasuredText({ siteId: SITE });
     expect(only(rows).text).toBe("How ReachKit measures a site\nIt reads the page & counts what is there.");
+  });
+});
+
+describe("every stored read is a page: re-reads, refusals and rendered reads, row for row", () => {
+  const SITE_URL = "https://harborplumbing.example";
+  const [T1, T2, T3] = ["2026-09-01", "2026-09-08", "2026-09-15"].map((day) => new Date(`${day}T08:00:00.000Z`)) as [Date, Date, Date];
+  // Every page carries the same paragraph, which grounding's chrome threshold weighs against the row count.
+  const page = (title: string, body: string) =>
+    `<html><body><main><h1>${title}</h1><p>${body}</p><p>Call Harbor Plumbing any day of the week for a same-day visit from a licensed plumber.</p></main></body></html>`;
+  const own = (scan: string, path: string, html: string, at: Date, status = 200): FetchRow => ({
+    scan_id: scan,
+    source: OWN_FETCH_SOURCE,
+    payload: toStoredDocument({ ok: true, status, url: `${SITE_URL}${path}`, html, bytes: html.length, readAt: at, headers: { server: "nginx" } }),
+  });
+  const HOME = page("Harbor Plumbing in Austin", "We replace tankless water heaters in one day and quote the price before work starts.");
+  const SHELL = '<html><body><div id="root"></div></body></html>';
+  // A free scan, a deep pass and two weekly re-reads: repeated reads, a 403, a rate-limit body, an empty shell after real text.
+  const SCANS: ScanRow[] = ["free-1", "deep-1", "week-1", "week-2"].map((id) => ({ id, site_id: id === "free-1" ? null : SITE, domain: "harborplumbing.example", tier: id === "free-1" ? "free" : "deep" }));
+  const FETCHES: FetchRow[] = [
+    own("free-1", "/", HOME, T1),
+    own("week-1", "/", HOME, T2),
+    own("week-2", "/", page("Harbor Plumbing in Austin", "Tankless water heaters replaced in one day, priced before we start."), T3),
+    own("deep-1", "/services", page("Drain cleaning", "Every drain call includes a camera inspection so you see the blockage we clear."), T1),
+    own("week-2", "/services", "<html><body>Forbidden</body></html>", T3, 403),
+    own("deep-1", "/about", page("About Harbor", "The company was started by two licensed plumbers who grew up on the east side of town."), T1),
+    own("week-2", "/about", "local_rate_limited", T3),
+    own("deep-1", "/emergency", page("Emergency repairs", "A plumber reaches most Austin addresses within ninety minutes of your call."), T1),
+    own("week-1", "/emergency", SHELL, T2),
+    { scan_id: "week-1", source: RENDERED_FETCH_SOURCE, payload: [storedDocument(`${SITE_URL}/emergency`, page("Emergency repairs", "Burst pipe? A plumber reaches most Austin addresses within ninety minutes."), T2)] },
+    { scan_id: "deep-1", source: RENDERED_FETCH_SOURCE, payload: { vendorFailure: "timeout", endpoint: RENDERED_FETCH_SOURCE, billed: true } },
+    { scan_id: "deep-1", source: OWN_FETCH_SOURCE, payload: null },
+  ];
+
+  /** The reference, written out: every row whose document passes the check is a page. */
+  const fullPayloadText = (rows: readonly FetchRow[]): MeasuredText[] =>
+    rows
+      .flatMap((row) => {
+        const rendered = row.source === RENDERED_FETCH_SOURCE;
+        const document = rendered ? renderedDocumentOf(row.payload) : siteDocumentOf(row.payload);
+        const read = document === null ? null : prose(document.html);
+        return document === null || read === null ? [] : [{ url: document.url, text: read.text, measuredAt: new Date(document.readAt), examples: read.examples, questions: read.questions, ...(rendered ? { rendered: true as const } : {}) }];
+      })
+      .sort((a, b) => a.measuredAt.getTime() - b.measuredAt.getTime() || (a.url < b.url ? -1 : a.url > b.url ? 1 : 0));
+
+  it("readMeasuredText keeps every re-read, skips each refused one and flags each rendered one", async () => {
+    useDb({ scans: SCANS, fetches: FETCHES });
+    const before = fullPayloadText(FETCHES);
+    expect(before.filter((row) => row.url === `${SITE_URL}/`)).toHaveLength(3);
+    expect(await readMeasuredText({ siteId: SITE })).toEqual(before);
+  });
+
+  it("readAllFacts quotes the same passages, pages and dates, with the same chrome threshold", async () => {
+    useDb({ scans: SCANS, fetches: FETCHES });
+    const now = await (await import("../../../src/lib/generate/pipeline/grounding")).readAllFacts({ siteId: SITE });
+    vi.resetModules();
+    vi.doMock("@/lib/measure/text", () => ({ readMeasuredText: async () => fullPayloadText(FETCHES) }));
+    try {
+      const before = await (await import("../../../src/lib/generate/pipeline/grounding")).readAllFacts({ siteId: SITE });
+      expect(before.length).toBeGreaterThan(0);
+      // Four of eight rows carry it: not over half, so it is quoted; counting each URL once would drop it.
+      expect(now.some((fact) => fact.fact.passage.includes("same-day visit"))).toBe(true);
+      expect(now).toEqual(before);
+    } finally {
+      vi.doUnmock("@/lib/measure/text");
+      vi.resetModules();
+    }
   });
 });

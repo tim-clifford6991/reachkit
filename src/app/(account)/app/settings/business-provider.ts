@@ -1,7 +1,9 @@
 // Issue #926 — the one read Settings › Your business makes.
 //
 // The shape `./provider.ts` sets for the rest of Settings: resolve the
-// signed-in account, take the one fixture branch, otherwise read live.
+// signed-in account, take the one fixture branch, otherwise read live. The
+// quotable passages are a second read, `readBusinessQuotable`, drawn in
+// their own boundary.
 //
 // **A read of its own, not a member of `readSettings`.** Every one of the
 // seven tabs calls `readSettings`, and this read is the expensive one — the
@@ -42,7 +44,6 @@ export interface BusinessModel {
    *  names the business, and says so in general terms where it has none. */
   readonly siteName: string | null;
   readonly profile: BusinessProfile;
-  readonly facts: readonly QuotableFact[];
   /** Whether the customer has ever corrected anything. The screen's lead
    *  line differs: a first read is "learned from your site", and after an
    *  edit the same card is partly theirs. */
@@ -63,8 +64,9 @@ export const readBusiness = cache(async function readBusiness(): Promise<Busines
   const account = await requireSetUpAccount();
 
   if (isReservedFixtureAccount(account)) {
-    const { FIXTURE_BUSINESS_PROFILE, FIXTURE_KNOWLEDGE, FIXTURE_LIVE_PAGES, FIXTURE_MARKET_READING, FIXTURE_QUOTABLE } =
-      await import("./business-fixture");
+    const { FIXTURE_BUSINESS_PROFILE, FIXTURE_KNOWLEDGE, FIXTURE_LIVE_PAGES, FIXTURE_MARKET_READING } = await import(
+      "./business-fixture"
+    );
     const { NO_EDITS } = await import("@/lib/site-profile/business/types");
     const profile = confirmedProfile({
       profile: FIXTURE_BUSINESS_PROFILE,
@@ -74,7 +76,6 @@ export const readBusiness = cache(async function readBusiness(): Promise<Busines
     return {
       siteName: FIXTURE_BUSINESS_PROFILE.siteName,
       profile,
-      facts: quotableFacts({ facts: FIXTURE_QUOTABLE, edits: NO_EDITS }),
       edited: false,
       // The reserved account's own index: four pages we wrote, six posts on
       // its WordPress and the nine pages the crawl read.
@@ -99,13 +100,28 @@ export const readBusiness = cache(async function readBusiness(): Promise<Busines
   return {
     siteName: facts.profile?.siteName ?? null,
     profile,
-    facts: quotableFacts({ facts: facts.quotable, edits: facts.edits }),
     known,
     edited: facts.edited,
     knowledge: knowledgeBase({ stored: facts.knowledge, answers: facts.edits.answers }),
     answers: facts.edits.answers,
     onAPage: live === null ? null : onAPageOf(profile, live.pages, live.lang),
   };
+});
+
+/** The facts card's own read: every passage parsed off the measured pages,
+ *  the slowest read on the tab, so nothing else on it waits for this one. */
+export const readBusinessQuotable = cache(async function readBusinessQuotable(): Promise<readonly QuotableFact[]> {
+  const account = await requireSetUpAccount();
+  if (isReservedFixtureAccount(account)) {
+    const [{ FIXTURE_QUOTABLE }, { NO_EDITS }] = await Promise.all([
+      import("./business-fixture"),
+      import("@/lib/site-profile/business/types"),
+    ]);
+    return quotableFacts({ facts: FIXTURE_QUOTABLE, edits: NO_EDITS });
+  }
+  const { readQuotablePassages } = await import("./business-store");
+  const { quotable, edits } = await readQuotablePassages(account);
+  return quotableFacts({ facts: quotable, edits });
 });
 
 function onAPageOf(profile: BusinessProfile, pages: readonly LivePage[], lang: string): OnAPage | null {
