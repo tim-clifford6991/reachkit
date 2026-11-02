@@ -505,7 +505,14 @@ describe("a topic the customer stopped is told apart from one a gate dismissed",
 });
 
 describe("a topic a rule stop rested since 2026-10-17 is offered again, and no other row moves", () => {
-  const unrest = () => psql(["-v", "ON_ERROR_STOP=1", "-f", path.join(MIGRATIONS, UNREST_RULE_STOPS)]);
+  // The migration's window is fixed and it reads now(), so seeds and migration share one pinned instant.
+  const NOW = "timestamptz '2026-11-01 12:00:00+00'";
+  const unrest = () =>
+    psql(["-v", "ON_ERROR_STOP=1",
+      "-c", `create schema if not exists test_clock; create or replace function test_clock.now() returns timestamptz language sql as $$ select ${NOW} $$;`,
+      "-c", "set search_path = test_clock, public, pg_catalog",
+      "-f", path.join(MIGRATIONS, UNREST_RULE_STOPS),
+      "-c", "drop schema test_clock cascade"]);
   const restOf = (id: string) => psqlRows(`select rest_until is null from opportunities where id = '${id}';`)[0]?.[0];
   /** Every row the migration may not change, as one digest. */
   const untouched = (except: string) =>
@@ -516,10 +523,10 @@ describe("a topic a rule stop rested since 2026-10-17 is offered again, and no o
     )[0];
   /** A topic rested until `until` by a move into `needs_attention` at `at`, for `reason` (both SQL timestamps). */
   const rested = (ref: string, a: { reason: string; at?: string; until?: string; status?: string }) => {
-    const at = a.at ?? "now() - interval '2 days'";
+    const at = a.at ?? `${NOW} - interval '2 days'`;
     const id = insert(familyRow("answer_page", { targetRef: ref, targetQuery: `search ${ref}`, status: a.status ?? "open" }));
     psql(["-v", "ON_ERROR_STOP=1", "-c",
-      `update opportunities set ready = false, unready_reason = 'resting', rest_until = ${a.until ?? "now() + interval '26 days'"} where id = '${id}';`]);
+      `update opportunities set ready = false, unready_reason = 'resting', rest_until = ${a.until ?? `${NOW} + interval '26 days'`} where id = '${id}';`]);
     const [draft] = psqlRows(
       `insert into drafts (opportunity_id, site_id, state, title, transitions) values ('${id}', '${SITE_ID}', 'needs_attention', 't', ` +
         `jsonb_build_array(jsonb_build_object('from', 'generating', 'to', 'needs_attention', 'reason', '${a.reason}', ` +
@@ -531,7 +538,7 @@ describe("a topic a rule stop rested since 2026-10-17 is offered again, and no o
   it("clears the rest a rules stop set, leaves every other rest, dismissed and done row, draft and publication as it was, and a second run changes nothing", () => {
     const ruled = rested("unrest-ruled", { reason: "rules:no_demo_text,title" });
     const step = rested("unrest-step", { reason: "step_failed:write" });
-    const reRested = rested("unrest-skipped-later", { reason: "rules:title", until: "now() + interval '28 days'" });
+    const reRested = rested("unrest-skipped-later", { reason: "rules:title", until: `${NOW} + interval '28 days'` });
     const before17 = "timestamptz '2026-10-16 18:00:00+00'";
     const early = rested("unrest-before-17", { reason: "rules:title", at: before17, until: `${before17} + interval '28 days'` });
     const afterFix = "timestamptz '2026-10-31 14:30:00+00'";
