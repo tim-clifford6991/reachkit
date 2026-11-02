@@ -181,12 +181,34 @@ const REVIEWED: readonly State[] = Object.freeze([
  *  layout sweep non-deterministic. */
 const CHECKED_AT = new Date(Date.UTC(2026, 8, 15, 9, 0, 0));
 
+/** Each scheduled day's own title, in SCHEDULE's order, so no two days read alike. */
+const TITLES: readonly string[] = [
+  "What a CRM does for a five-person team",
+  "Signs you have outgrown your spreadsheet",
+  "How to import contacts without duplicates",
+  "Setting up a sales pipeline in an afternoon",
+  "CRM fields worth keeping, and the rest",
+  "Logging calls without slowing down",
+  "How to tag customers so you can find them",
+  "Following up on a quote, step by step",
+  "Reports a small team actually reads",
+  "Sharing one inbox with a CRM",
+  "Cleaning a contact list before you switch",
+  "Who on the team should own the CRM",
+  "How to choose a CRM for a small team",
+  "CRM pricing, compared",
+  "Moving from spreadsheets to a CRM",
+  "Free CRMs and what they leave out",
+  "Getting the team to use the CRM",
+  "Connecting your CRM to Gmail",
+];
+
 const DRAFTS: readonly DraftOnDay[] = Object.entries(SCHEDULE).map(([day, state], index) => {
   const specimen = SPECIMENS[index % SPECIMENS.length] as Specimen;
   const [y, m, d] = day.split("-").map(Number);
   return {
     draftId: `draft-${day}`,
-    title: specimen.title,
+    title: TITLES[index] ?? specimen.title,
     state,
     scheduledFor: day,
     why: whyOf(index),
@@ -250,7 +272,7 @@ export const FIXTURE_CALENDAR_FACTS: CalendarFacts = Object.freeze({
   spares: Object.freeze(["crm onboarding checklist", "crm for freelancers"]),
   // REQ-047 c5: while an instruction stands against a date, it is that
   // date's one account — outranking even ReachKit's own stop (ADR-061 point 3).
-  instructions: Object.freeze({ "2026-09-19": "opportunity-19" }),
+  instructions: Object.freeze({ "2026-09-19": "noindex_pages" as const }),
   // REQ-092 c1: a day ReachKit did not do the work. It carries the
   // stopped-work line, never the exhausted-supply one.
   stoppedDays: Object.freeze(["2026-09-13"] as const),

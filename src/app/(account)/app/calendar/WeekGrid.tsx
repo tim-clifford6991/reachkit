@@ -43,6 +43,8 @@ function DayRow(p: {
   const { cell } = p;
   const page = pageShownBy(cell, ALL);
   const line = cardLineFor(cell, ALL);
+  // A day waiting on the customer's own fix links to it in Issues.
+  const fix = line !== null && cell.empty?.cause === "instruction" ? cell.empty.check : null;
   const stop = p.next ? stopOf(cell, p.destination) : null;
   const [busy, startTransition] = useTransition();
   const [stopped, setStopped] = useState(false);
@@ -118,6 +120,11 @@ function DayRow(p: {
           </span>
         ) : (
           <DayStateBadge cell={cell} filter={ALL} />
+        )}
+        {fix === null ? null : (
+          <Link href={`/app/issues#${fix}`} className="link link-primary link-hover inline-flex min-h-11 items-center text-sm" data-testid="cell-fix-link">
+            {copy("calendar.day.held-for-fix.link")}
+          </Link>
         )}
         {stop === null || stopped ? null : (
           <span className="flex gap-1">

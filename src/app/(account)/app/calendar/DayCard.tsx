@@ -10,6 +10,7 @@ import type React from "react";
 import { Calendar, CircleStop, Plus, RefreshCw, type LucideIcon } from "lucide-react";
 import { PageSketch } from "@/ui/PageSketch";
 import { copy } from "@/lib/presentation/copy";
+import { SITE_CHECK_TITLE } from "@/lib/presentation/site-issues";
 import { horizonShortFor, shortCauseFor } from "./card-lines";
 import { dayNumber, weekdayShort } from "./dates";
 import { dayStateOf, type DayCell, type PageOnDay } from "./month";
@@ -33,7 +34,10 @@ export function pageShownBy(cell: DayCell, filter: StageFilter): PageOnDay | nul
  *  reason. */
 export function cardLineFor(cell: DayCell, filter: StageFilter): string | null {
   if (filter !== "all" || cell.page !== null) return null;
-  return shortCauseFor(cell) ?? horizonShortFor(cell);
+  const short = shortCauseFor(cell);
+  // A day waiting on the customer's own fix names that fix, in place of its two words.
+  if (short !== null && cell.empty?.cause === "instruction") return copy("calendar.day.held-for-fix", { fix: copy(SITE_CHECK_TITLE[cell.empty.check]) });
+  return short ?? horizonShortFor(cell);
 }
 
 /** What a page is, as the board's chip: New, or Update. */

@@ -228,6 +228,21 @@ describe("Live pages: each page's steps as dots, its standing and its label", ()
 });
 
 describe("the states board Plan names", () => {
+  it("a day waiting on the customer's fix is not stopped: it names the fix and links to it in Issues", async () => {
+    const day = (await fixturePage()).querySelector('[data-testid="calendar-cell-2026-09-19"]')!;
+    expect(day.querySelector('[data-testid="day-state"]')).toBeNull();
+    expect(text(day.querySelector('[data-testid="cell-empty-line"]'))).toBe("Waiting on your fix: Pages hidden from search.");
+    const link = day.querySelector('[data-testid="cell-fix-link"]');
+    expect(link?.getAttribute("href")).toBe("/app/issues#noindex_pages");
+    expect(text(link)).toBe(COPY["calendar.day.held-for-fix.link"]);
+  });
+
+  it("no two pages in the week share a title", async () => {
+    const titles = [...(await fixturePage()).querySelectorAll('[data-testid="calendar-week"] [data-testid="cell-label"]')].map(text);
+    expect(titles.length).toBeGreaterThan(1);
+    expect(new Set(titles).size).toBe(titles.length);
+  });
+
   it("only the next page's row offers Edit and Stop; every other row opens its day", async () => {
     const week = (await fixturePage()).querySelector('[data-testid="calendar-week"]')!;
     const offering = [...week.querySelectorAll("li")].filter((li) => li.querySelector('[data-testid="cell-edit"], [data-testid="cell-stop"]') !== null);

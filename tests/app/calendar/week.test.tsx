@@ -121,11 +121,11 @@ describe("condition 1 — seven cells, each with its page, its state and the sto
   });
 
   it("the short week: six pages, a day stopped and a day skipped, each said in its own word", () => {
-    // A live page, three written, one planned, a day an instruction stopped and a day supply left empty.
+    // A live page, three written, one planned, a day waiting on the customer's fix and a day supply left empty.
     const root = render(withNuqs(<CalendarView {...shown(assembleMonth(ALL_ARMS, FIXTURE_MONTH))} />));
     const days = cells(root);
     expect(days).toHaveLength(7);
-    expect(days.map(stateOf)).toEqual(["live", "written", "written", "written", "planned", "stopped", "skipped"]);
+    expect(days.map(stateOf)).toEqual(["live", "written", "written", "written", "planned", null, "skipped"]);
     expect(days[5]?.querySelector('[data-testid="cell-label"]')).toBeNull();
     expect(days[6]?.className).toContain("border-dashed");
   });
@@ -206,7 +206,9 @@ describe("each page day draws the board's icons", () => {
     const badges = cells(root).map((cell) => cell.querySelector('[data-testid="day-state"]'));
     expect(badges.map(icon)).toEqual([null, null, null, "calendar", "calendar", "calendar", "calendar"]);
     // The stopped badge carries the board's stop icon; a skipped day draws none.
-    const fixture = render(withNuqs(<CalendarView {...shown(assembleMonth(ALL_ARMS, FIXTURE_MONTH))} />));
-    expect(cells(fixture).slice(5).map((cell) => icon(cell.querySelector('[data-testid="day-state"]')))).toEqual(["circle-stop", null]);
+    const stoppedDrafts = ALL_ARMS.drafts.map((d) => (d.scheduledFor === "2026-09-15" ? { ...d, state: "skipped" as const } : d));
+    const fixture = render(withNuqs(<CalendarView {...shown(assembleMonth({ ...ALL_ARMS, drafts: stoppedDrafts }, FIXTURE_MONTH))} />));
+    const stoppedAndSkipped = [cells(fixture)[1], cells(fixture)[6]];
+    expect(stoppedAndSkipped.map((cell) => icon(cell?.querySelector('[data-testid="day-state"]') ?? null))).toEqual(["circle-stop", null]);
   });
 });
