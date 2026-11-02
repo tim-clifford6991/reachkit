@@ -42,3 +42,24 @@ it("issue 1377 — /scans at 390×844 shows a card on load and while scrolling, 
   // *All* and one chip per kind of business.
   expect(load.chips).toBe(BUSINESS_KIND_NAMES.length + 1);
 }, 60_000);
+
+it("from sm the kind filter wraps under its label and the search shows its own, as the board draws them; a phone keeps issue 1377's one row", async () => {
+  const read = () => {
+    const list = document.querySelector('[data-testid="gallery-toolbar"] nav ul')!;
+    const label = document.querySelector('[data-testid="gallery-toolbar"] nav .eyebrow')!;
+    const search = document.querySelector('[data-testid="gallery-toolbar"] form[role="search"] > span')!;
+    const shown = (el: Element) => getComputedStyle(el).display !== "none" && el.getBoundingClientRect().width > 0;
+    return { scrolls: list.scrollWidth > list.clientWidth + 1, wraps: getComputedStyle(list).flexWrap === "wrap", label: shown(label), search: shown(search) };
+  };
+  const [phone, desk] = await Promise.all(
+    [PHONE.width, 1280].map((width) =>
+      withPage(width, async (page) => {
+        await page.goto(`${getBaseURL()}/scans`);
+        return page.evaluate(read);
+      })
+    )
+  );
+  expect(phone).toEqual({ scrolls: true, wraps: false, label: false, search: false });
+  expect(desk).toEqual({ scrolls: false, wraps: true, label: true, search: true });
+}, 60_000);
+

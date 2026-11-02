@@ -371,13 +371,13 @@ export default async function ScansPage(props: {
             <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-2 sm:gap-3 sm:py-3">
               <nav
                 aria-label={copy("gallery.filter.label")}
-                className="-m-1 flex min-w-0 items-center gap-2"
+                className="-m-1 flex min-w-0 items-center gap-2 sm:flex-col sm:items-start sm:gap-1"
               >
                 <span className="eyebrow hidden flex-none pl-1 sm:inline">{copy("gallery.filter.label")}</span>
-                {/* One row that scrolls sideways and never wraps. Its padding
-                    keeps a pill's focus ring inside the scrolling box, and
-                    the `nav` gives the same four pixels back. */}
-                <ul className="flex min-w-0 flex-1 gap-1 overflow-x-auto p-1">
+                {/* On a phone one row that scrolls sideways and never wraps (issue 1377); from sm
+                    the pills wrap under their label, as the board draws them. The padding keeps a
+                    pill's focus ring inside the scrolling box, and the `nav` gives it back. */}
+                <ul className="flex min-w-0 flex-1 gap-1 overflow-x-auto p-1 sm:flex-wrap sm:overflow-visible">
                   {pills.map((pill) => {
                     const current = pill.kind === view.kind;
                     return (
@@ -395,13 +395,17 @@ export default async function ScansPage(props: {
                   })}
                 </ul>
               </nav>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 sm:items-end">
                 <form
                   action="/scans"
                   method="get"
                   role="search"
                   className="min-w-0 flex-1 sm:max-w-md"
                 >
+                  {/* From sm the field carries its visible label, as the board draws it; on a phone its placeholder says it (issue 1377). */}
+                  <span aria-hidden className="mb-1 hidden text-sm font-semibold sm:block">
+                    {copy("gallery.search.label")}
+                  </span>
                   <label className="input w-full">
                     <Search
                       size={16}
