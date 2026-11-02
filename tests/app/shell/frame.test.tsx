@@ -67,8 +67,7 @@ const ZONE = "America/New_York";
 const MONDAY = (day: number): Date => new Date(Date.UTC(2026, 8, day, 6, 0, 0));
 
 const SCHEDULED: ShellModel = {
-  domain: "example.com",
-  hasLogo: false,
+  domain: "example.com", hasLogo: false,
   timeZone: ZONE,
   weeks: { kind: "counted", weeks: 3, lastMeasuredOn: MONDAY(14) },
   waiting: 2,
