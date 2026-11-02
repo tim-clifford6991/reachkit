@@ -25,7 +25,6 @@
 // four empty tracks would say the second. The card states its written line
 // instead — REQ-004, at the card level.
 import type React from "react";
-import Link from "next/link";
 import { Info } from "lucide-react";
 import { PresenceBars, type PresenceBar } from "@/ui/charts";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
@@ -42,7 +41,7 @@ const TITLE = {
 function Card(p: {
   titleKey: CopyKey;
   testId: string;
-  lead: string;
+  lead: string | null;
   /** `null` where the pass read nothing for it: its written line, and no bars. */
   bars: { you: PresenceBar; rivals: readonly PresenceBar[]; of: number } | null;
   children?: React.ReactNode;
@@ -51,9 +50,11 @@ function Card(p: {
     <section className="card card-border min-w-0 bg-base-100" data-testid={p.testId}>
       <div className="flex min-w-0 flex-col gap-3 p-4">
         <h2 className="card-title text-base">{copy(p.titleKey)}</h2>
-        <p className={`max-w-prose text-sm ${INK}`} data-testid={`${p.testId}-lead`}>
-          {p.lead}
-        </p>
+        {p.lead === null ? null : (
+          <p className={`max-w-prose text-sm ${INK}`} data-testid={`${p.testId}-lead`}>
+            {p.lead}
+          </p>
+        )}
         {p.bars === null ? (
           <p className={`text-sm ${INK}`} data-testid={`${p.testId}-unmeasured`}>
             {copy("overview.rivals.card.unmeasured")}
@@ -88,13 +89,12 @@ export function RivalPresence(p: {
   named: PresenceCard;
   namedLead: string;
   noRivalNamed: string;
-  answersHref: string;
 }): React.JSX.Element {
   const of = formatCount(p.top.of);
   const top = (name: string, value: number): PresenceBar => ({ name, value, text: copy("overview.rivals.first.of", { n: formatCount(value), of }) });
   const topLine = [
     p.top.you === 0
-      ? copy("overview.rivals.first.line", { of, n: formatCount(p.firstPage.you.count) })
+      ? copy("overview.rivals.first.line", { n: formatCount(p.firstPage.you.count) })
       : copy("overview.rivals.first.you", { of, n: formatCount(p.top.you) }),
     ...(p.after === 0 ? [] : [copy("overview.rivals.first.after", { m: formatCount(p.after) })]),
   ].join(" ");
@@ -129,7 +129,7 @@ export function RivalPresence(p: {
         <Card
           titleKey={TITLE.firstPage}
           testId="rivals-card-first-page"
-          lead={copy("overview.rivals.first-page.lead", { of: formatCount(p.firstPage.of) })}
+          lead={null}
           bars={barsOf(p.firstPage)}
         >
           {p.firstPage.noRival ? (
@@ -150,10 +150,6 @@ export function RivalPresence(p: {
               {p.noRivalNamed}
             </p>
           ) : null}
-          {/* The count and the answers it was counted from are one reading, and this is the way through to them. */}
-          <Link href={p.answersHref} prefetch={true} className="link link-primary text-xs" data-testid="rivals-see-answers">
-            {copy("overview.rivals.named.see-all")}
-          </Link>
         </Card>
       </div>
     </div>

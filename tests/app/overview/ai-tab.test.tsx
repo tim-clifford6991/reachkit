@@ -25,6 +25,7 @@ const { readAnswers } = await import("@/app/(account)/app/_overview/answers-prov
 const { readPublished } = await import("@/app/(account)/app/_overview/content-provider");
 const { readBlogReads } = await import("@/app/(account)/app/_overview/blog-reads-provider");
 const { readPromptsAt } = await import("@/app/(account)/app/_overview/prompts-provider");
+const { percent } = await import("@/app/(account)/app/_overview/prompts-model");
 const { readOverview } = await import("@/app/(account)/app/_overview/provider");
 const { readShell } = await import("@/app/(account)/app/_shell/provider");
 const { aiPagesOf } = await import("@/lib/measure/figures");
@@ -84,19 +85,17 @@ describe("board AppAI, on the account the layout sweep reads", () => {
     }
     expect(text(dom.querySelector('[data-testid="ai-tile-linked-value"]'))).toBe(String(ai.linked.length));
     expect(text(dom.querySelector('[data-testid="ai-tile-linked"]'))).toContain(copy("overview.answers.pages-cited.of", { of: String(ai.asked.length) }));
-    expect(text(dom.querySelector('[data-testid="ai-tile-linked-split"]'))).toBe(
-      `${copy("overview.answers.linked.line")} ${copy("overview.answers.linked.mentioned", { n: "2" })}`
-    );
+    expect(text(dom.querySelector('[data-testid="ai-tile-linked-split"]'))).toBe(copy("overview.answers.linked.mentioned", { n: "2" }));
     expect(blog.fetches.kind).toBe("measured");
     expect(text(dom.querySelector('[data-testid="ai-tile-reads-value"]'))).toBe(blog.fetches.kind === "unmeasured" ? "" : formatCount(blog.fetches.value));
     expect(text(dom.querySelector('[data-testid="ai-tile-visits-value"]'))).toBe(blog.referrals.kind === "unmeasured" ? "" : formatCount(blog.referrals.value));
   });
 
-  it("each page in AI answers: its question, its step and one mark per engine, the linked page first", async () => {
+  it("each page in AI answers: its question, its step and one flat row per engine, the linked page first, with no legend or counter", async () => {
     const dom = await render();
     const card = dom.querySelector('[data-testid="ai-pages"]');
     expect(text(card?.querySelector("h2"))).toBe(copy("overview.answers.pages.title"));
-    expect(text(card?.querySelector('[data-testid="answers-legend"]'))).toContain(copy("overview.answers.mark.not-measured"));
+    expect(card?.querySelector('[data-testid="answers-legend"], [data-testid="ai-pages-lead"]')).toBeNull();
     const rows = [...(card?.querySelectorAll('[data-testid="ai-page"]') ?? [])];
     expect(rows.map((row) => text(row.querySelector('[data-testid="ai-page-step"]')))).toEqual([
       copy("draft.ladder.linked"),
@@ -112,10 +111,12 @@ describe("board AppAI, on the account the layout sweep reads", () => {
     ]);
     // An AI Overview Google did not show is the search's own fact.
     expect(text(rows[1])).toContain(copy("overview.answers.engine.none"));
-    expect(text(card?.querySelector('[data-testid="ai-pages-shown"]'))).toBe(copy("overview.answers.pages.shown", { shown: "4", total: "4" }));
+    for (const li of rows[0]!.querySelectorAll("li")) expect(li.className).toContain("min-h-11");
+    // Four pages fit the first six, so nothing is folded away.
+    expect(card?.querySelector('[data-testid="ai-pages-all"]')).toBeNull();
   });
 
-  it("each mark draws its E29 icon, in the cells and in the legend", async () => {
+  it("each mark draws its E29 icon", async () => {
     const dom = await render();
     const glyph = (el: Element | null | undefined) => (el?.querySelector("svg")?.getAttribute("class") ?? "").split(" ").filter((c) => c.startsWith("lucide-"));
     const icon: Readonly<Record<AnswerMark, string>> = {
@@ -129,19 +130,14 @@ describe("board AppAI, on the account the layout sweep reads", () => {
     const cells = [...dom.querySelectorAll("[data-mark]")];
     for (const mark of ["links_to_you", "names_you", "no_answer"] as const) expect(cells.some((cell) => cell.getAttribute("data-mark") === mark)).toBe(true);
     for (const cell of cells) expect(glyph(cell)).toEqual([icon[cell.getAttribute("data-mark") as AnswerMark]]);
-    const legend = [...(dom.querySelector('[data-testid="answers-legend"]')?.children ?? [])].map(glyph).flat();
-    expect(legend).toEqual(expect.arrayContaining(["lucide-link", "lucide-message-square", "lucide-circle-minus"]));
     expect(dom.querySelector(".lucide-link-2, .lucide-tag, .lucide-slash")).toBeNull();
   });
 
-  it("which AI read and sent visits, closed, summed as the reads tile counts them", async () => {
-    const [dom, blog] = await Promise.all([render(), readBlogReads()]);
+  it("which AI read and sent visits, closed under its title alone", async () => {
+    const dom = await render();
     const who = dom.querySelector('[data-testid="ai-who"]');
     expect(who?.hasAttribute("open")).toBe(false);
-    const value = (m: typeof blog.fetches) => (m.kind === "unmeasured" ? "" : formatCount(m.value));
-    expect(text(who?.querySelector('[data-testid="ai-who-sum"]'))).toBe(
-      copy("overview.answers.who.sum", { reads: value(blog.fetches), visits: value(blog.referrals) })
-    );
+    expect(text(who?.querySelector("summary"))).toBe(copy("overview.answers.who.title"));
     expect([...(who?.querySelectorAll("h3") ?? [])].map(text)).toEqual([copy("overview.answers.who.reads"), copy("overview.answers.visits.label")]);
   });
 
@@ -151,9 +147,11 @@ describe("board AppAI, on the account the layout sweep reads", () => {
     expect(model.kind).toBe("measured");
     if (model.kind !== "measured") return;
     const card = dom.querySelector('[data-testid="ai-reputation"]');
-    expect(text(card?.querySelector("h2"))).toBe(copy("overview.prompts.rate.title"));
-    expect(text(card?.querySelector('[data-testid="ai-reputation-count"]'))).toBe(
-      copy("overview.prompts.rate.count", { n: String(model.rate.linked + model.rate.named), m: String(model.rate.samples), weeks: "4" })
+    expect(text(card?.querySelector("h2"))).toBe(copy("overview.prompts.rate.count", { n: String(model.rate.linked + model.rate.named), m: String(model.rate.samples) }));
+    // The honesty range is the stored reading's own bounds, never typed.
+    expect(model.rateShown).toBe(true);
+    expect(text(card?.querySelector('[data-testid="ai-reputation-band"]'))).toBe(
+      copy("overview.prompts.rate.band", { low: formatCount(percent(model.rate.low)), high: formatCount(percent(model.rate.high)) })
     );
     // R6: no "Share of voice" title; the competitor bars open on their lead line.
     expect([...(card?.querySelectorAll("h3") ?? [])].map(text)).toEqual([
@@ -227,9 +225,8 @@ describe("what is not measured is never 0", () => {
     const q = { n: 1, wording: fromStored("questions.wording", "Is it good?"), search: "is it good", marks: ["links_to_you", "no_answer", "not_measured"] as const, page: { title: "Page a", url: "https://example.com/a" } };
     const pages = aiPagesFor([page("a", reading({ linkedBy: ["ai_overview"], reached: { linkedByAi: NOW.toISOString() } })), page("b", reading()), page("c", reading({ linkedBy: null }))], [{ ...q, marks: [...q.marks] }], NOW)!;
     expect(pages.rows.map((row) => row.id)).toEqual(["a", "b"]);
-    const dom = new DOMParser().parseFromString(renderToStaticMarkup(<AiPagesCard pages={pages} place={null} />), "text/html");
+    const dom = new DOMParser().parseFromString(renderToStaticMarkup(<AiPagesCard pages={pages} />), "text/html");
     const steps = [...dom.querySelectorAll('[data-testid="ai-page-step"]')].map(text);
     expect(steps).toEqual([copy("draft.ladder.linked"), copy("overview.answers.pages.unread")]);
-    expect(text(dom.querySelector('[data-testid="ai-pages-lead"]'))).toBe(copy("overview.answers.pages.lead.anywhere"));
   });
 });

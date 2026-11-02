@@ -18,13 +18,14 @@ export function TabHead(p: {
   measured: React.ReactNode;
 }): React.JSX.Element {
   return (
-    <header className="flex min-w-0 flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+    // Drawn above the tab bar, as Overview's head is (`HEAD` in frame.ts).
+    <header className="-order-1 flex min-w-0 flex-col gap-1.5">
       {p.eyebrow == null ? null : (
-        <p className="eyebrow w-full" data-testid={`${p.testId}-eyebrow`}>
+        <p className="eyebrow" data-testid={`${p.testId}-eyebrow`}>
           {p.eyebrow}
         </p>
       )}
-      <h1 className="card-title text-base" data-testid={`${p.testId}-title`}>
+      <h1 className="min-w-0" data-testid={`${p.testId}-title`}>
         {p.title}
       </h1>
       {p.measured}

@@ -34,7 +34,7 @@ function table(searchParams: Record<string, string> = {}, model: SearchModel = M
   const container = document.createElement("div");
   container.innerHTML = renderToStaticMarkup(
     <NuqsTestingAdapter searchParams={searchParams}>
-      <SearchTable model={model} doing={{}} lead={copy("overview.search.table.lead.anywhere")} />
+      <SearchTable model={model} doing={{}} />
     </NuqsTestingAdapter>
   );
   return container;
@@ -46,12 +46,6 @@ describe("the table", () => {
     expect(el.querySelectorAll('[data-testid="search-row"]')).toHaveLength(9);
     expect(el.querySelector('[data-testid="search-show-all"]')?.textContent).toBe(
       copy("overview.search.show-all", { total: String(MODEL.counts.all) })
-    );
-  });
-
-  it("says how much of it is on screen and in what order", () => {
-    expect(el(table(), "search-showing")?.textContent).toBe(
-      copy("overview.search.showing", { shown: "9", total: String(MODEL.counts.all) })
     );
   });
 
@@ -73,7 +67,6 @@ describe("the table", () => {
     const node = table();
     const wrap = node.querySelector('[data-testid="search-table-scroll"]');
     expect(wrap?.className).toBe("min-w-0 sm:overflow-x-auto");
-    expect(node.querySelector("thead")?.className).toContain("hidden");
     const row = node.querySelector('[data-testid="search-row"]');
     expect(row?.className).toContain("max-sm:grid");
     expect(row?.className).toContain("sm:table-row");
@@ -88,16 +81,11 @@ describe("the table", () => {
     expect(wrap?.getAttribute("aria-label")).toBe(copy("overview.search.table.label"));
   });
 
-  it("says what each value is on the phone shape, in the column's own word", () => {
-    // The heads are not drawn below `sm`, so `#14` would not say "where you
-    // stand". Every label is the column's own key — no new sentence.
-    const row = table().querySelector('[data-testid="search-row"]');
-    const spoken = [...(row?.querySelectorAll("td > span.sm\\:hidden") ?? [])].map(
-      (el) => el.textContent
-    );
-    expect(spoken).toEqual([
+  it("keeps the Search and You heads over the phone shape, as the board draws them", () => {
+    const heads = [...table().querySelectorAll("thead th")];
+    expect(heads.filter((th) => !th.className.includes("max-sm:hidden")).map((th) => th.textContent)).toEqual([
+      copy("overview.search.column.search"),
       copy("overview.search.column.you"),
-      copy("overview.search.column.rival"),
     ]);
   });
 

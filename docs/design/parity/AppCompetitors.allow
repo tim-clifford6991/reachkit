@@ -20,11 +20,9 @@ austinpipeworks.example 3 of 12	sample data
 capitolrooter.example 2 of 12	sample data
 a home-improvement store 1 of 12	sample data
 You 0 of 12	sample data: the count is the account's own top results
-You’re not the top result on any of the 12 yet. You’re on Google’s first page for 1. This week’s pages go after 3 of them.	sample data: the fixture account holds one top result, so its line is "You're the top result on 1 of the 12" (#1747)
 austinpipeworks.example 5	sample data
 capitolrooter.example 4	sample data
 You were on 0 of 12 when you started.	sample data: the count is the account's own first week
-From 184 AI answers to 23 buyer questions, over the last 4 weeks.	sample data: the counts are the account's own month reading
 You 11	sample data
 austinpipeworks.example 41	sample data
 capitolrooter.example 29	sample data
@@ -37,3 +35,6 @@ Page Fri 23	sample data: the day is the account's own Plan week
 Too hard for now	sample data: the fixture's too-big rows sit past the first nine, behind Show all (#1747)
 4.2× your size from 4.6×	sample data: the ratios are the account's own competitors
 2.8× your size no clear change	sample data: the ratios are the account's own competitors
+You’re top on none yet, and on Google’s first page for 1. This week’s pages go after 3.	sample data: the fixture account holds one top result, so its line is "You’re the top result on 1 of the 12"
+184 AI answers, last 4 weeks.	sample data: the count is the account’s own month reading
+Size is how many searches a site shows up for. Far larger sites, like a national plumbing chain, are left out.	sample data: the leaders are the account’s own far competitors

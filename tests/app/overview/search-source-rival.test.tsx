@@ -25,7 +25,7 @@ describe("a stored source rival on the Overview search table", () => {
     const container = document.createElement("div");
     container.innerHTML = renderToStaticMarkup(
       <NuqsTestingAdapter>
-        <SearchTable model={model} doing={{}} lead={copy("overview.search.table.lead.anywhere")} />
+        <SearchTable model={model} doing={{}} />
       </NuqsTestingAdapter>
     );
     const rows = [...container.querySelectorAll('[data-testid="search-row"]')].map((row) => row.textContent ?? "");

@@ -318,7 +318,7 @@ describe.each([
     // Overview no longer repeats it (O6): the AI answers tab is the one place it is drawn.
     const ai = new DOMParser().parseFromString(renderToStaticMarkup(await AiAnswersTabPage()), "text/html");
     expect(dom.querySelector('[data-testid="overview-tile-reputation"]')).toBeNull();
-    expect(text(ai.querySelector('[data-testid="ai-reputation-count"]'))).toBe(copy("overview.prompts.rate.count", { n: "11", m: "46", weeks: "4" }));
+    expect(text(ai.querySelector('[data-testid="ai-reputation-count"]'))).toBe(copy("overview.prompts.rate.count", { n: "11", m: "46" }));
   });
 });
 

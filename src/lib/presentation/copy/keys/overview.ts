@@ -127,8 +127,8 @@ export const OVERVIEW_COPY = Object.freeze({
   // removing them — the customer changes the set from the competitors card.
   // Drafted (issue 759); the owner corrects the wording.
   "overview.rivals.leaders": [
-    "We don’t compare you with far larger sites for now, like {rivals}.",
-    { slots: { rivals: "text" }, fixedBy: "issue 858" },
+    "Far larger sites, like {rivals}, are left out.",
+    { slots: { rivals: "text" }, fixedBy: "board AppCompetitors v36, issue 2278 (drafted)" },
   ],
   // The same sentence for the Rivals tab, where the line sits under bars
   // that **do** show the leaders (owner ruling, 2026-09-21, #983). On the
@@ -393,6 +393,8 @@ export const OVERVIEW_COPY = Object.freeze({
   // The column heads.
   "overview.search.column.search": ["Search", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
   "overview.search.column.volume": ["Searches a month", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+  // The phone shape has no column heads, so a volume says what it counts.
+  "overview.search.a-month": ["a month", { slots: {}, fixedBy: "board AppCompetitors v36, issue 2278 (drafted)" }],
   "overview.search.column.you": ["You", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
   "overview.search.column.rival": ["Best competitor", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
   "overview.search.column.status": ["What we’re doing", { slots: {}, fixedBy: "board AppGoogle (drafted)" }],
@@ -428,11 +430,7 @@ export const OVERVIEW_COPY = Object.freeze({
 
   // The foot of the table: how much of it is on screen, in what order, and
   // the one control that shows the rest.
-  "overview.search.showing": [
-    "{shown} of {total} · closest to Google’s first page first",
-    { slots: { shown: "text", total: "text" }, fixedBy: "board AppGoogle (drafted)" },
-  ],
-  "overview.search.show-all": ["Show all {total}", { slots: { total: "text" }, fixedBy: "SPEC §4 2026-09-20" }],
+  "overview.search.show-all": ["Show all {total} searches", { slots: { total: "text" }, fixedBy: "board AppGoogle v36, issue 2278 (drafted)" }],
   // Nothing on file at all — a site whose first pass has not finished, or
   // one whose market was too small. It claims neither: it says what is
   // true of the list, and the Overview's own supply statement says why.
@@ -454,54 +452,37 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: {}, fixedBy: "board AppGoogle (drafted)" },
   ],
   "overview.search.pages.title": ["Each page in Google", { slots: {}, fixedBy: "board AppGoogle (drafted)" }],
-  "overview.search.pages.caption": ["place 1 is the top result, not counting maps", { slots: {}, fixedBy: "board AppGoogle (drafted)" }],
-  "overview.search.pages.where": ["Where your pages sit this week", { slots: {}, fixedBy: "board AppGoogle (drafted)" }],
-  "overview.search.pages.chart": ["Each live page’s place in Google this week", { slots: {}, fixedBy: "board AppGoogle (drafted)" }],
-  "overview.search.pages.band": ["Google’s first page, places 1 to 10", { slots: {}, fixedBy: "board AppGoogle (drafted)" }],
-  "overview.search.pages.now": ["a page this week", { slots: {}, fixedBy: "board AppGoogle (drafted)" }],
-  "overview.search.pages.before": ["where it was before", { slots: {}, fixedBy: "board AppGoogle (drafted)" }],
-  "overview.search.pages.shown": [
-    "{shown} of {total} live pages",
-    { slots: { shown: "text", total: "text" }, fixedBy: "board AppGoogle (drafted)" },
-  ],
+  "overview.search.pages.caption": ["place 1 is the top result, maps not counted", { slots: {}, fixedBy: "board AppGoogle v36, issue 2278 (drafted)" }],
+  "overview.search.pages.all": ["Show all {total} pages", { slots: { total: "text" }, fixedBy: "board AppGoogle v36, issue 2278 (drafted)" }],
   "overview.search.pages.none": [
-    "No page is live yet. Each page shows here once it’s live, with its place in Google.",
-    { slots: {}, fixedBy: "board AppGoogle (drafted)" },
+    "No page is live yet. Each shows here once it’s live, with its place in Google.",
+    { slots: {}, fixedBy: "board AppGoogle v36, issue 2278 (drafted)" },
   ],
   "overview.search.place.up": [
-    "Place {n} for “{search}”, up {gain} since {date}.",
-    { slots: { n: "text", search: "text", gain: "text", date: "date" }, fixedBy: "board AppGoogle (drafted)" },
+    "Place {n}, up {gain} since {date}.",
+    { slots: { n: "text", gain: "text", date: "date" }, fixedBy: "board AppGoogle v36, issue 2278 (drafted)" },
   ],
   "overview.search.place.flat": [
-    "Place {n} for “{search}”, no gain in {weeks} weeks.",
-    { slots: { n: "text", search: "text", weeks: "text" }, fixedBy: "board AppGoogle (drafted)" },
+    "Place {n}, flat for {weeks} weeks.",
+    { slots: { n: "text", weeks: "text" }, fixedBy: "board AppGoogle v36, issue 2278 (drafted)" },
   ],
   "overview.search.place.now": [
-    "Place {n} for “{search}”.",
-    { slots: { n: "text", search: "text" }, fixedBy: "board AppGoogle (drafted)" },
+    "Place {n}.",
+    { slots: { n: "text" }, fixedBy: "board AppGoogle v36, issue 2278 (drafted)" },
   ],
-  "overview.search.place.update": ["An update goes live {day}.", { slots: { day: "date" }, fixedBy: "board AppGoogle (drafted)" }],
+  "overview.search.place.update": ["Update goes live {day}.", { slots: { day: "date" }, fixedBy: "board AppGoogle v36, issue 2278 (drafted)" }],
   "overview.search.place.found": [
-    "Found by Google on {date}. Not in results yet.",
-    { slots: { date: "date" }, fixedBy: "board AppGoogle (drafted)" },
+    "Found by Google {date}. Not in results yet.",
+    { slots: { date: "date" }, fixedBy: "board AppGoogle v36, issue 2278 (drafted)" },
   ],
   "overview.search.place.unseen": ["Not in results yet.", { slots: {}, fixedBy: "board AppGoogle (drafted)" }],
-  "overview.search.place.out": ["not in results yet", { slots: {}, fixedBy: "board AppGoogle (drafted)" }],
   // D8: a place read from the keyword database is an estimate, and says so.
   "overview.search.place.estimate": [
     "Based on Google’s estimate, not this week’s check.",
     { slots: {}, fixedBy: "D8 (drafted)" },
   ],
   "overview.search.table.title": ["Your market’s searches", { slots: {}, fixedBy: "board AppGoogle (drafted)" }],
-  "overview.search.table.lead": [
-    "What buyers in {place} search, who Google shows, and what we’re doing.",
-    { slots: { place: "text" }, fixedBy: "board AppGoogle (drafted)" },
-  ],
   // A business that sells beyond one place: the lead names none.
-  "overview.search.table.lead.anywhere": [
-    "What buyers search, who Google shows, and what we’re doing.",
-    { slots: {}, fixedBy: "board AppGoogle (drafted)" },
-  ],
   "overview.search.doing.today": ["Goes live today", { slots: {}, fixedBy: "board AppGoogle (drafted)" }],
   "overview.search.doing.page": ["Page {day}", { slots: { day: "date" }, fixedBy: "board AppGoogle (drafted)" }],
   "overview.search.doing.update": ["Update {day}", { slots: { day: "date" }, fixedBy: "board AppGoogle (drafted)" }],
@@ -527,21 +508,17 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: {}, fixedBy: "board AppAI (drafted)" },
   ],
   "overview.answers.pages-cited.none": [
-    "Shows once one of your pages is live and we’ve asked its question.",
-    { slots: {}, fixedBy: "issue 1551 (drafted)" },
+    "Shows once a page is live and we’ve asked its question.",
+    { slots: {}, fixedBy: "board AppAI v36, issue 2278 (drafted)" },
   ],
   // Board AppAI: the tiles, each page in AI answers, and which AI read and sent visits. Drafted (#759).
-  "overview.answers.linked.line": [
-    "Linked on their own question this week.",
-    { slots: {}, fixedBy: "board AppAI (drafted)" },
-  ],
   "overview.answers.linked.mentioned.one": [
-    "1 more was mentioned without a link.",
-    { slots: {}, fixedBy: "board AppAI (drafted)" },
+    "1 more mentioned you without a link.",
+    { slots: {}, fixedBy: "board AppAI v36, issue 2278 (drafted)" },
   ],
   "overview.answers.linked.mentioned": [
-    "{n} more were mentioned without a link.",
-    { slots: { n: "text" }, fixedBy: "board AppAI (drafted)" },
+    "{n} more mentioned you without a link.",
+    { slots: { n: "text" }, fixedBy: "board AppAI v36, issue 2278 (drafted)" },
   ],
   "overview.answers.reads.label": [
     "Read by AI",
@@ -575,21 +552,9 @@ export const OVERVIEW_COPY = Object.freeze({
     "Each page in AI answers",
     { slots: {}, fixedBy: "board AppAI (drafted)" },
   ],
-  "overview.answers.pages.lead": [
-    "We ask each page’s question in {place} every Monday. Dots show read, linked and visit.",
-    { slots: { place: "text" }, fixedBy: "board AppAI (drafted)" },
-  ],
-  "overview.answers.pages.lead.anywhere": [
-    "We ask each page’s question every Monday. Dots show read, linked and visit.",
-    { slots: {}, fixedBy: "board AppAI (drafted)" },
-  ],
   "overview.answers.pages.unread": [
     "not read by AI yet",
     { slots: {}, fixedBy: "board AppAI (drafted)" },
-  ],
-  "overview.answers.pages.shown": [
-    "{shown} of {total} pages asked",
-    { slots: { shown: "text", total: "text" }, fixedBy: "board AppAI (drafted)" },
   ],
   "overview.answers.pages.engines": [
     "Answers by engine",
@@ -603,20 +568,8 @@ export const OVERVIEW_COPY = Object.freeze({
     "Which AI read and sent visits",
     { slots: {}, fixedBy: "board AppAI (drafted)" },
   ],
-  "overview.answers.who.sum": [
-    "{reads} reads · {visits} visits this week",
-    { slots: { reads: "text", visits: "text" }, fixedBy: "board AppAI (drafted)" },
-  ],
   "overview.answers.who.reads": [
     "Reads",
-    { slots: {}, fixedBy: "board AppAI (drafted)" },
-  ],
-  "overview.answers.who.reads.means": [
-    "An AI app opening a page to answer someone.",
-    { slots: {}, fixedBy: "board AppAI (drafted)" },
-  ],
-  "overview.answers.who.visits.means": [
-    "A person arriving from an AI answer.",
     { slots: {}, fixedBy: "board AppAI (drafted)" },
   ],
   // The four-week rate over the twelve, its denominator, the split the
@@ -632,8 +585,8 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: {}, fixedBy: "SPEC §6 2026-09-20" },
   ],
   "overview.answers.grid.lead": [
-    "Your {of} searches, asked of each AI. Opens as a grid.",
-    { slots: { of: "text" }, fixedBy: "board AppAI (drafted)" },
+    "Your {of} searches, asked of each AI.",
+    { slots: { of: "text" }, fixedBy: "board AppAI v36, issue 2278 (drafted)" },
   ],
   "overview.answers.grid.label": [
     "Each search, and what each AI engine said",
@@ -700,35 +653,27 @@ export const OVERVIEW_COPY = Object.freeze({
   // The AI answers tab: the rate's own card. Issue 1551 (SEO review R5.1)
   // labels it as what it measures. Drafted (#759).
   "overview.prompts.rate.reputation": [
-    "How often AI mentions you when buyers ask for a business like yours. It moves over months.",
-    { slots: {}, fixedBy: "board AppAI (drafted)" },
-  ],
-  "overview.prompts.rate.title": [
-    "Mentioned by AI",
-    { slots: {}, fixedBy: "board AppAI (drafted)" },
+    "How often AI names you when buyers ask for a business like yours. It moves over months.",
+    { slots: {}, fixedBy: "board AppAI v36, issue 2278 (drafted)" },
   ],
   "overview.prompts.rate.count": [
-    "mentioned in {n} of {m} AI answers, last {weeks} weeks",
-    { slots: { n: "text", m: "text", weeks: "text" }, fixedBy: "board AppAI (drafted)" },
+    "Mentioned by AI: {n} of {m} answers",
+    { slots: { n: "text", m: "text" }, fixedBy: "board AppAI v36, issue 2278 (drafted)" },
   ],
   "overview.prompts.rate.first": [
-    "first reading · checked monthly",
-    { slots: {}, fixedBy: "board AppAI (drafted)" },
+    "last {weeks} weeks · first reading",
+    { slots: { weeks: "text" }, fixedBy: "board AppAI v36, issue 2278 (drafted)" },
   ],
   "overview.prompts.rate.monthly": [
-    "checked monthly",
-    { slots: {}, fixedBy: "board AppAI (drafted)" },
+    "last {weeks} weeks · checked monthly",
+    { slots: { weeks: "text" }, fixedBy: "board AppAI v36, issue 2278 (drafted)" },
   ],
   "overview.prompts.rate.band": [
-    "{n} of {m} AI answers mentioned you in the last {weeks} weeks. Answers vary, so the true rate is {low}% to {high}%.",
-    { slots: { n: "text", m: "text", weeks: "text", low: "text", high: "text" }, fixedBy: "board AppAI (drafted)" },
+    "Answers vary, so the true rate is {low}% to {high}%.",
+    { slots: { low: "text", high: "text" }, fixedBy: "board AppAI v36, issue 2278 (drafted)" },
   ],
 
   // The site beside its rivals, by answers that named each; the lead heads the block (owner R6).
-  "overview.prompts.share.lead": [
-    "How many of those {m} answers mentioned you, and each competitor.",
-    { slots: { m: "text" }, fixedBy: "board AppAI (drafted)" },
-  ],
   "overview.prompts.share.label": [
     "You and your competitors, by AI answers that mentioned each",
     { slots: {}, fixedBy: "SPEC §4 2026-10-02 D22" },
@@ -745,8 +690,8 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: {}, fixedBy: "board AppAI (drafted)" },
   ],
   "overview.prompts.list.count": [
-    "{n} of the {m} questions buyers in your market might ask. We leave out questions with your name.",
-    { slots: { n: "text", m: "text" }, fixedBy: "board AppAI (drafted)" },
+    "{n} of {m} questions. We leave out questions with your name.",
+    { slots: { n: "text", m: "text" }, fixedBy: "board AppAI v36, issue 2278 (drafted)" },
   ],
 
   // ── 2026-09-20 (#908, #921): the AI engines that read the hosted pages.
@@ -774,10 +719,6 @@ export const OVERVIEW_COPY = Object.freeze({
     "Who’s on Google’s first page",
     { slots: {}, fixedBy: "SPEC §4 2026-09-20" },
   ],
-  "overview.rivals.first-page.lead": [
-    "Of the {of} searches your buyers make most.",
-    { slots: { of: "text" }, fixedBy: "SPEC §4 2026-09-20" },
-  ],
   "overview.rivals.first-page.started": [
     "You were on {count} of {of} when you started.",
     { slots: { count: "text", of: "text" }, fixedBy: "SPEC §4 2026-09-20" },
@@ -787,8 +728,8 @@ export const OVERVIEW_COPY = Object.freeze({
   // answers tab draws it, with the link to that tab beneath.
   "overview.rivals.named.title": ["Who AI answers mention", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
   "overview.rivals.named.lead": [
-    "From {answers} AI answers to {questions} buyer questions, over the last {weeks} weeks.",
-    { slots: { answers: "text", questions: "text", weeks: "text" }, fixedBy: "board AppCompetitors (drafted)" },
+    "{answers} AI answers, last {weeks} weeks.",
+    { slots: { answers: "text", weeks: "text" }, fixedBy: "board AppCompetitors v36, issue 2278 (drafted)" },
   ],
   "overview.rivals.named.lead.none": [
     "From the AI answers to your buyers’ questions.",
@@ -799,8 +740,8 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: {}, fixedBy: "board AppCompetitors (drafted)" },
   ],
   "overview.rivals.first.lead": [
-    "The top Google result on each of the {of} searches your buyers make most.",
-    { slots: { of: "text" }, fixedBy: "board AppCompetitors (drafted)" },
+    "The top Google result on your {of} main searches.",
+    { slots: { of: "text" }, fixedBy: "board AppCompetitors v36, issue 2278 (drafted)" },
   ],
   "overview.rivals.first.of": [
     "{n} of {of}",
@@ -811,30 +752,29 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: {}, fixedBy: "board AppCompetitors (drafted)" },
   ],
   "overview.rivals.first.line": [
-    "You’re not the top result on any of the {of} yet. You’re on Google’s first page for {n}.",
-    { slots: { of: "text", n: "text" }, fixedBy: "board AppCompetitors (drafted)" },
+    "You’re top on none yet, and on Google’s first page for {n}.",
+    { slots: { n: "text" }, fixedBy: "board AppCompetitors v36, issue 2278 (drafted)" },
   ],
   "overview.rivals.first.you": [
     "You’re the top result on {n} of the {of}.",
     { slots: { n: "text", of: "text" }, fixedBy: "board AppCompetitors (drafted)" },
   ],
   "overview.rivals.first.after": [
-    "This week’s pages go after {m} of them.",
-    { slots: { m: "text" }, fixedBy: "board AppCompetitors (drafted)" },
+    "This week’s pages go after {m}.",
+    { slots: { m: "text" }, fixedBy: "board AppCompetitors v36, issue 2278 (drafted)" },
   ],
-  "overview.rivals.named.see-all": ["See every answer", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
 
   // A card that was measured and counted no tracked rival anywhere says so
   // once, in place of a row of empty bars, and the rivals neither card
   // counted are named under them (SPEC §4, 2026-10-09). Drafted (issue
   // 759); the owner corrects the wording.
   "overview.rivals.first-page.none": [
-    "None of your competitors is on Google’s first page for these searches.",
-    { slots: {}, fixedBy: "SPEC §4 2026-10-09" },
+    "None of your competitors is on Google’s first page here.",
+    { slots: {}, fixedBy: "board AppCompetitors v36, issue 2278 (drafted)" },
   ],
   "overview.rivals.first-page.none.holders": [
-    "None of your competitors is on Google’s first page for these searches. Sites seen there most often include {holders}.",
-    { slots: { holders: "text" }, fixedBy: "SPEC §4 2026-10-09" },
+    "None of your competitors is on Google’s first page here. Most often there: {holders}.",
+    { slots: { holders: "text" }, fixedBy: "board AppCompetitors v36, issue 2278 (drafted)" },
   ],
   "overview.rivals.named.none": [
     "None of these answers mentioned one of your competitors.",
@@ -857,18 +797,19 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: {}, fixedBy: "SPEC §4 2026-09-20" },
   ],
   "overview.rivals.table.lead": [
-    "From every search your competitors rank for. This week’s pages come from this list.",
-    { slots: {}, fixedBy: "SPEC §4 2026-09-20" },
+    "This week’s pages come from this list.",
+    { slots: {}, fixedBy: "board AppCompetitors v36, issue 2278 (drafted)" },
   ],
   "overview.rivals.table.label": [
     "Searches competitors win and you don’t",
     { slots: {}, fixedBy: "SPEC §4 2026-09-20" },
   ],
   "overview.rivals.table.empty": [
-    "No competitor wins a search you’re missing. The next Monday check may find one.",
-    { slots: {}, fixedBy: "SPEC §4 2026-09-20" },
+    "No competitor wins a search you’re missing.",
+    { slots: {}, fixedBy: "board AppCompetitors v36, issue 2278 (drafted)" },
   ],
   "overview.rivals.column.winner": ["Who wins it", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+  "overview.rivals.won-by": ["Won by", { slots: {}, fixedBy: "board AppCompetitors v36, issue 2278 (drafted)" }],
   "overview.rivals.column.doing": ["What we’re doing", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
 
   // SPEC §4's four words for what ReachKit is doing about a search a rival
@@ -885,21 +826,9 @@ export const OVERVIEW_COPY = Object.freeze({
   ],
   "overview.rivals.status.too-big": ["Too hard for now", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
 
-  // The chips over the table, and the foot under it.
+  // The filter over the table.
   "overview.rivals.filter.label": ["Show one competitor", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
   "overview.rivals.filter.all": ["All competitors", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
-  "overview.rivals.chip": [
-    "{rival}, {count} searches",
-    { slots: { rival: "text", count: "text" }, fixedBy: "SPEC §4 2026-09-20" },
-  ],
-  "overview.rivals.showing": [
-    "{shown} of {total} searches",
-    { slots: { shown: "text", total: "text" }, fixedBy: "SPEC §4 2026-09-20" },
-  ],
-  "overview.rivals.show-all": [
-    "Show all {total}",
-    { slots: { total: "text" }, fixedBy: "SPEC §4 2026-09-20" },
-  ],
   // SPEC §5 (2026-09-20): Overview while the address waits for its DNS
   // record, as board OverviewDNS draws it. No line names a go-live time:
   // none is true until it is live (Q11). Drafted (#759); the PR names each.

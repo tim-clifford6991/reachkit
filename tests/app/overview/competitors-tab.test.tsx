@@ -67,11 +67,7 @@ describe("board AppCompetitors, on the account the layout sweep reads", () => {
     if (reputation.kind !== "measured") return;
     const card = dom.querySelector('[data-testid="rivals-card-named"]');
     expect(text(card)).toContain(
-      copy("overview.rivals.named.lead", {
-        answers: String(reputation.rate.samples),
-        questions: String(reputation.prompts.filter((p) => p.kind !== "branded").length),
-        weeks: "4",
-      })
+      copy("overview.rivals.named.lead", { answers: String(reputation.rate.samples), weeks: "4" })
     );
     expect(text(card)).toContain(`${copy("overview.prompts.share.you")} · ${reputation.rate.linked + reputation.rate.named}`);
   });

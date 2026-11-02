@@ -21,23 +21,22 @@ import { readBlogReads } from "../../_overview/blog-reads-provider";
 import { readPublished } from "../../_overview/content-provider";
 import { readOverview } from "../../_overview/provider";
 import { readPromptsAt } from "../../_overview/prompts-provider";
-import { readUnderstanding } from "../../_overview/understanding-provider";
 import { aiPagesFor } from "../../_overview/ai-pages";
 import { AnswerGrid } from "../../_overview/AnswerGrid";
 import { AiPagesCard, AiTiles, Reputation, WhoReads } from "../../_overview/AiTab";
+import { OVERVIEW } from "../../_overview/frame";
 import { TabHead } from "../../_overview/TabHead";
 
 /** /app/ai-answers's own `<title>` (#945). */
 export const metadata: Metadata = { title: copy("meta.app.ai-answers.title") };
 
 export default async function AiAnswersTabPage(): Promise<React.JSX.Element> {
-  const [shell, model, reads, published, overview, understanding] = await Promise.all([
+  const [shell, model, reads, published, overview] = await Promise.all([
     readShell(),
     readAnswers(),
     readBlogReads(),
     readPublished(),
     readOverview(),
-    readUnderstanding(),
   ]);
   const reputation = await readPromptsAt(overview.months?.reading?.week ?? null);
   const content = contentOf(published);
@@ -45,14 +44,14 @@ export default async function AiAnswersTabPage(): Promise<React.JSX.Element> {
   const grid = model.questions.length === 0 ? null : <AnswerGrid model={model} />;
 
   return (
-    <div className="flex min-w-0 flex-col gap-6" data-testid="ai-answers-tab">
+    <div className={OVERVIEW} data-testid="ai-answers-tab">
       <TabHead
         eyebrow={shell.weeks.kind === "counted" ? copy("overview.tab.eyebrow", { n: String(shell.weeks.weeks) }) : null}
         title={copy("overview.tile.ai-answers.label")}
         testId="ai-answers"
         measured={
           model.measuredAt === null ? null : (
-            <p className="text-xs text-base-content/70" data-testid="ai-answers-measured">
+            <p className="text-base-content/70" data-testid="ai-answers-measured">
               {copy("overview.search.measured", { on: formatDay(model.measuredAt, shell.timeZone) })}
             </p>
           )
@@ -61,7 +60,7 @@ export default async function AiAnswersTabPage(): Promise<React.JSX.Element> {
 
       <AiTiles pages={pages} reads={reads} />
 
-      <AiPagesCard pages={pages} place={understanding.where.place?.name ?? null} />
+      <AiPagesCard pages={pages} />
 
       <WhoReads reads={reads} />
 

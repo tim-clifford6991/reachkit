@@ -60,7 +60,7 @@ const ROUTES = [
     // Board AppCompetitors: the week over the name; its cards hold no tiles, so their leads stand open.
     lines: ["rivals-eyebrow", "rivals-measured"],
     loaded: ["rivals-presence", "rivals-table"],
-    open: ["rivals-card-top-lead", "rivals-top-line", "rivals-card-first-page-lead", "rivals-started", "rivals-card-named-lead"],
+    open: ["rivals-card-top-lead", "rivals-top-line", "rivals-started", "rivals-card-named-lead"],
     waiting: ["rival-top-skeleton", "rival-presence-skeleton", "rival-table-skeleton"],
   },
 ];

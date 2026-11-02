@@ -24,15 +24,14 @@
 // the component working rather than a departure from the board.
 //
 // **Two shapes, one DOM** (#963). The columns do not fit a 390px card, so
-// below `sm` the row is a three-line grid — the search and its demand, then
-// where you stand against the best competitor, then what we are doing — and
+// below `sm` the row is a three-line grid — the search and where you stand,
+// then its demand and who shows, then what we are doing — and
 // the box does not scroll at all. From `sm` up it is the daisyUI `table`,
 // scrolling sideways inside its own box so the page never does.
 //
 // The cells are rendered **once**. `SEARCH_CELL_CLASS` places each one
-// on the phone shape (the table's column order is not the reading order) and
-// `SEARCH_CELL_LABEL` gives the two that do not say what they are the
-// column's own word beside them. No second markup, no content written twice.
+// on the phone shape (the table's column order is not the reading order), under
+// the two heads `PHONE_HEADS` keeps. No second markup, no content written twice.
 //
 // **Nothing is clamped and nothing is cut.** The search wraps and the row
 // grows; every numeric cell is `whitespace-nowrap`, so the column changes
@@ -58,9 +57,10 @@ import { SEARCH_FILTERS, rowsFor, type Doing, type SearchModel, type SearchRow }
 import {
   COLUMN_COPY_KEY,
   DOING_BADGE,
+  DOING_ICON,
   FILTER_COPY_KEY,
   SEARCH_CELL_CLASS,
-  SEARCH_CELL_LABEL,
+  PHONE_HEADS,
   STATUS_BADGE,
   STATUS_COPY_KEY,
   STATUS_ICON,
@@ -98,10 +98,11 @@ function VolumeCell(p: { row: SearchRow; table: Table<SearchRow> }): React.JSX.E
     ...p.table.getRowModel().rows.map(({ original }) => (original.target.volume.kind === "unmeasured" ? 0 : original.target.volume.value))
   );
   return (
-    <span className="flex flex-col items-end gap-1">
+    <span className="flex items-baseline gap-1 sm:flex-col sm:items-end">
       <Value value={volume} subject={COLUMN_COPY_KEY.volume} />
+      {volume.kind === "unmeasured" ? null : <span className="sm:hidden">{copy("overview.search.a-month")}</span>}
       {volume.kind === "unmeasured" || largest === 0 ? null : (
-        <progress className="progress w-16" value={volume.value} max={largest} aria-hidden />
+        <progress className="progress w-16 max-sm:hidden" value={volume.value} max={largest} aria-hidden />
       )}
     </span>
   );
@@ -180,14 +181,19 @@ function DoingCell(p: { row: SearchRow; doing: Doing }): React.JSX.Element {
       : doing.kind === "climbing"
         ? copy("overview.search.doing.climbing")
         : copy(doing.kind === "update" ? "overview.search.doing.update" : "overview.search.doing.page", { day: doing.day });
-  return <span className={`${DOING_BADGE[doing.kind]} ${NOWRAP}`}>{text}</span>;
+  const Icon = DOING_ICON[doing.kind];
+  return (
+    <span className={`${DOING_BADGE[doing.kind]} ${NOWRAP}`}>
+      <Icon className="size-3.5" aria-hidden />
+      {text}
+    </span>
+  );
 }
 
 export function SearchTable(p: {
   model: SearchModel;
   /** Per row id; a row absent here shows its status word. */
   doing: Readonly<Record<string, Doing>>;
-  lead: string;
 }): React.JSX.Element {
   const [filter, setFilter] = useQueryState(
     SHOW,
@@ -201,10 +207,7 @@ export function SearchTable(p: {
       column.accessor((row) => row.target.search, {
         id: "search",
         header: () => copy(COLUMN_COPY_KEY.search),
-        // **The UI face, not the mono one** (owner's review of #948).
-        // docs/DESIGN.md reserves JetBrains Mono for numerals, domains and
-        // code; a search phrase is none of those, and the approved board
-        // draws it in Plus Jakarta Sans at semibold.
+        // A search is mono (docs/DESIGN.md › type) and breaks between its words, never inside one.
         //
         // **It no longer clamps** (#963). On the phone shape there is no
         // scroller to reach the rest of a clipped value through, and
@@ -214,7 +217,7 @@ export function SearchTable(p: {
         // its cap and the cell keeps its `title`.
         cell: (ctx) => (
           <span
-            className="block max-w-[14rem] font-semibold"
+            className="block max-w-[14rem] font-mono text-sm break-words"
             title={ctx.getValue()}
             data-testid="search-query"
           >
@@ -271,14 +274,7 @@ export function SearchTable(p: {
 
   const shown = table.getRowModel().rows.length;
   const total = rows.length;
-  const head = (
-    <div className="flex min-w-0 flex-col gap-1">
-      <h2 className="text-lg font-semibold">{copy("overview.search.table.title")}</h2>
-      <p className="text-sm text-base-content/70" data-testid="search-lead">
-        {p.lead}
-      </p>
-    </div>
-  );
+  const head = <h2 className="text-lg font-semibold">{copy("overview.search.table.title")}</h2>;
 
   if (p.model.rows.length === 0) {
     return (
@@ -342,15 +338,12 @@ export function SearchTable(p: {
         data-testid="search-table-scroll"
       >
         <table className="table table-sm" aria-label={copy("overview.search.table.label")}>
-          {/* The heads belong to the table shape. On the phone shape
-              each value carries the head's own word beside it instead, so
-              they are not drawn rather than drawn and read out over a list
-              that no longer has columns. */}
-          <thead className="hidden sm:table-header-group text-base-content/70">
+          {/* On the phone shape only the Search and You heads are drawn, over the stacked rows. */}
+          <thead className="text-base-content/70">
             {table.getHeaderGroups().map((group) => (
-              <tr key={group.id}>
+              <tr key={group.id} className="max-sm:flex max-sm:justify-between max-sm:px-1">
                 {group.headers.map((header) => (
-                  <th key={header.id} scope="col" className="whitespace-nowrap">
+                  <th key={header.id} scope="col" className={`whitespace-nowrap ${PHONE_HEADS.has(header.column.id as SearchColumn) ? "" : "max-sm:hidden"}`}>
                     {flexRender(header.column.columnDef.header, header.getContext())}
                   </th>
                 ))}
@@ -366,21 +359,15 @@ export function SearchTable(p: {
                 // that draws lines across the middle of a row that is one
                 // block, so below `sm` the cells carry none and the row
                 // itself carries one.
-                className="max-sm:grid max-sm:grid-cols-[minmax(0,1fr)_minmax(0,10rem)] max-sm:items-baseline max-sm:gap-x-3 max-sm:gap-y-1 max-sm:border-b max-sm:border-base-300 max-sm:p-3 max-sm:[&>td]:border-0 sm:table-row"
+                className="max-sm:grid max-sm:grid-cols-[auto_minmax(0,1fr)_auto] max-sm:items-baseline max-sm:gap-x-1.5 max-sm:gap-y-1 max-sm:border-b max-sm:border-base-300 max-sm:px-4 max-sm:py-3.5 max-sm:[&>td]:border-0 sm:table-row"
               >
                 {row.getVisibleCells().map((cell) => {
                   const id = cell.column.id as SearchColumn;
-                  const label = SEARCH_CELL_LABEL[id];
                   return (
                     <td
                       key={cell.id}
                       className={`flex items-baseline gap-1.5 p-0 align-middle sm:table-cell sm:px-3 sm:py-2 ${SEARCH_CELL_CLASS[id]}`}
                     >
-                      {label === null ? null : (
-                        <span className="shrink-0 text-xs text-base-content/70 sm:hidden">
-                          {copy(label)}
-                        </span>
-                      )}
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </td>
                   );
@@ -391,26 +378,13 @@ export function SearchTable(p: {
         </table>
       </div>
 
-      <div className="flex min-w-0 flex-wrap items-center gap-3 border-t border-base-300 p-4">
-        {/* A sentence, not a value: it folds. `.num` is `white-space:
-            nowrap` — "a value has no boundaries" — and a line of nine words
-            is not one value, so mono here is a line that cannot fold and is
-            clipped at 390 (`src/ui/type.css` records the same reasoning for
-            the editor's textarea and for `pre`). */}
-        <p className="min-w-0 flex-1 text-xs text-base-content/70" data-testid="search-showing">
-          {copy("overview.search.showing", { shown: formatCount(shown), total: formatCount(total) })}
-        </p>
-        {shown < total ? (
-          <button
-            type="button"
-            className="btn btn-sm btn-ghost"
-            data-testid="search-show-all"
-            onClick={() => setShowAll(true)}
-          >
+      {shown < total ? (
+        <div className="border-t border-base-300 px-4 py-1">
+          <button type="button" className="btn btn-link min-h-11 px-0 no-underline" data-testid="search-show-all" onClick={() => setShowAll(true)}>
             {copy("overview.search.show-all", { total: formatCount(total) })}
           </button>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
     </section>
   );
 }

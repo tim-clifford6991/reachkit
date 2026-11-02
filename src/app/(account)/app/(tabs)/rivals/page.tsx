@@ -33,8 +33,8 @@ import { RivalModule } from "../../_overview/RivalModule";
 import { RivalPresence } from "../../_overview/RivalPresence";
 import { RivalTable } from "../../_overview/RivalTable";
 import { RivalTableSkeleton } from "../../_overview/skeletons";
+import { OVERVIEW } from "../../_overview/frame";
 import { TabHead } from "../../_overview/TabHead";
-import { TAB_HREF } from "../../_overview/tabs";
 
 /** /app/rivals's own `<title>` (#945). */
 export const metadata: Metadata = { title: copy("meta.app.rivals.title") };
@@ -51,11 +51,7 @@ export default async function RivalsTabPage(): Promise<React.JSX.Element> {
   const named = namedOf(reputation);
   const namedLead =
     reputation.kind === "measured"
-      ? copy("overview.rivals.named.lead", {
-          answers: formatCount(reputation.rate.samples),
-          questions: formatCount(reputation.prompts.filter((prompt) => prompt.kind !== "branded").length),
-          weeks: formatCount(ANSWER_RATE_WEEKS),
-        })
+      ? copy("overview.rivals.named.lead", { answers: formatCount(reputation.rate.samples), weeks: formatCount(ANSWER_RATE_WEEKS) })
       : copy("overview.rivals.named.lead.none");
   // SPEC §4 (2026-10-09, issue 1365): a card on which no tracked rival was
   // counted says so, and names who holds those first pages where it can.
@@ -68,14 +64,14 @@ export default async function RivalsTabPage(): Promise<React.JSX.Element> {
   }
 
   return (
-    <div className="flex min-w-0 flex-col gap-6" data-testid="rivals-tab">
+    <div className={OVERVIEW} data-testid="rivals-tab">
       <TabHead
         eyebrow={shell.weeks.kind === "counted" ? copy("overview.tab.eyebrow", { n: String(shell.weeks.weeks) }) : null}
         title={copy("overview.tab.rivals")}
         testId="rivals"
         measured={
           model.measuredAt === null ? null : (
-            <p className="text-xs text-base-content/70" data-testid="rivals-measured">
+            <p className="text-base-content/70" data-testid="rivals-measured">
               {copy("overview.search.measured", { on: formatDay(model.measuredAt, shell.timeZone) })}
             </p>
           )
@@ -91,7 +87,6 @@ export default async function RivalsTabPage(): Promise<React.JSX.Element> {
         named={named}
         namedLead={namedLead}
         noRivalNamed={copy("overview.rivals.named.none")}
-        answersHref={TAB_HREF.ai_answers}
       />
 
       <Suspense fallback={<RivalTableSkeleton />}>

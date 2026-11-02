@@ -105,14 +105,13 @@ describe("board AppGoogle, on the account the layout sweep reads", () => {
     expect(text(dom.querySelector('[data-testid="search-tile-market-means"]'))).toBe(copy("overview.search.tile.market.means"));
   });
 
-  it("each page in Google: the chart's well, then the pages by label, six at first and the rest behind Show all", async () => {
+  it("each page in Google: the pages by label with no dot strip, six at first and the rest behind Show all N pages", async () => {
     const [{ dom }, published] = await Promise.all([render(), readPublished()]);
     const pages = googlePagesOf(published.pages!, published.now);
     const card = dom.querySelector('[data-testid="search-pages"]');
     expect(text(card?.querySelector("h2"))).toBe(copy("overview.search.pages.title"));
     expect(text(card)).toContain(copy("overview.search.pages.caption"));
-    expect(text(card)).toContain(copy("overview.search.pages.where"));
-    expect(card?.querySelector("figure")?.getAttribute("aria-label")).toBe(copy("overview.search.pages.chart"));
+    expect(card?.querySelector("figure")).toBeNull();
     const rows = [...(card?.querySelectorAll('[data-testid="search-page"]') ?? [])];
     expect(rows.map((row) => text(row.querySelector('[data-testid="search-page-title"]')))).toEqual(pages.rows.map((row) => row.title));
     const labels = rows.map((row) => text(row.querySelector('[data-testid="search-page-label"]')));
@@ -127,10 +126,10 @@ describe("board AppGoogle, on the account the layout sweep reads", () => {
       const label = row.querySelector('[data-testid="search-page-label"]')!;
       expect(label.querySelector(`svg.${icon.get(text(label))}`)).not.toBeNull();
     }
-    expect(text(card?.querySelector('[data-testid="search-pages-shown"]'))).toBe(
-      copy("overview.search.pages.shown", { shown: "6", total: String(pages.live) })
-    );
-    expect(text(card?.querySelector('[data-testid="search-pages-all"]'))).toBe(copy("overview.search.show-all", { total: String(pages.live) }));
+    expect(pages.live).toBeGreaterThan(6);
+    expect(rows.slice(0, 6).every((row) => row.closest("details") === null)).toBe(true);
+    expect(rows.slice(6).every((row) => row.closest("details") !== null)).toBe(true);
+    expect(text(card?.querySelector('[data-testid="search-pages-all"]'))).toBe(copy("overview.search.pages.all", { total: String(pages.live) }));
   });
 
   it("the pages tile counts what Overview's Google ladder counts: showing, over the pages a reading reached", async () => {
@@ -144,15 +143,16 @@ describe("board AppGoogle, on the account the layout sweep reads", () => {
     expect(text(tile)).toContain(copy("overview.ladder.unread", { k: String(ladder.unread) }));
   });
 
-  it("your market's searches: the name and lead, the board's columns and what is done about each", async () => {
+  it("your market's searches: the name with no lead, the board's columns, and Show all N searches", async () => {
     const { dom } = await render();
     const table = dom.querySelector('[data-testid="search-table"]');
     expect(text(table?.querySelector("h2"))).toBe(copy("overview.search.table.title"));
-    expect(text(table?.querySelector('[data-testid="search-lead"]'))).toBe(copy("overview.search.table.lead.anywhere"));
+    expect(table?.querySelector('[data-testid="search-lead"]')).toBeNull();
     expect([...(table?.querySelectorAll("thead th") ?? [])].map(text)).toEqual(
       (["search", "volume", "you", "rival", "status"] as const).map((c) => copy(`overview.search.column.${c}`))
     );
-    expect(text(table)).toContain(copy("overview.search.showing", { shown: "9", total: String(FIXTURE_SEARCH_FACTS.targets.length) }));
+    expect(table?.querySelectorAll('[data-testid="search-row"]')).toHaveLength(9);
+    expect(text(table?.querySelector('[data-testid="search-show-all"]'))).toBe(copy("overview.search.show-all", { total: String(FIXTURE_SEARCH_FACTS.targets.length) }));
   });
 
   it("every board string is on the screen but for sample data, rulings and the shell's own chrome", async () => {
@@ -167,7 +167,7 @@ describe("board AppGoogle, on the account the layout sweep reads", () => {
 describe("a page with no reading", () => {
   const pages = googlePagesOf([page("a", placed(8, "boiler repair")), page("b", null)], NOW);
 
-  it("says not measured, wears no label and draws no dot, and the tile counts only read pages", () => {
+  it("says not measured, wears no label, and the tile counts only read pages", () => {
     const dom = new DOMParser().parseFromString(
       renderToStaticMarkup(<GooglePages pages={pages} planned={new Map()} timeZone="UTC" />),
       "text/html"
@@ -176,7 +176,6 @@ describe("a page with no reading", () => {
     expect(text(unread?.querySelector('[data-testid="search-page-line"]'))).toBe(copy("draft.ladder.unmeasured"));
     expect(unread?.querySelector('[data-testid="search-page-label"]')).toBeNull();
     expect(text(unread)).not.toMatch(/\b0\b/);
-    expect([...dom.querySelectorAll("figure li")].map(text)).toEqual(["8"]);
 
     const tiles = new DOMParser().parseFromString(
       renderToStaticMarkup(<SearchTiles pages={pages} visits={null} market={null} />),
@@ -283,9 +282,9 @@ describe("each page's place line, read from its stored reading", () => {
     );
     const dom = new DOMParser().parseFromString(html, "text/html");
     const lines = [...dom.querySelectorAll('[data-testid="search-page-line"]')].map(text);
-    expect(lines).toContain("Place 11 for “shut off water”, up 30 since Oct 5.");
-    expect(lines).toContain("Place 48 for “sewer camera”, no gain in 3 weeks. An update goes live Sun 25.");
-    expect(lines).toContain("Found by Google on Oct 14. Not in results yet.");
+    expect(lines).toContain("Place 11, up 30 since Oct 5.");
+    expect(lines).toContain("Place 48, flat for 3 weeks. Update goes live Sun 25.");
+    expect(lines).toContain("Found by Google Oct 14. Not in results yet.");
   });
 });
 
