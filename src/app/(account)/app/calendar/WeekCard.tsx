@@ -51,12 +51,12 @@ export function WeekFoot(p: { next: string }): React.JSX.Element {
         <span className="min-w-0">{copy("calendar.next", { date: p.next, n })}</span>
       </p>
       {/* A quiet link that opens in place, as the board draws it: no box, a chevron that turns. */}
-      <details className="group min-w-0" data-testid="plan-chosen">
-        <summary className="link link-primary flex min-h-11 w-fit cursor-pointer list-none items-center gap-1.5 text-sm font-semibold no-underline [&::-webkit-details-marker]:hidden">
+      <details className="collapse group min-w-0 rounded-none" data-testid="plan-chosen">
+        <summary className="collapse-title link link-primary flex min-h-11 w-fit cursor-pointer list-none items-center gap-1.5 p-0 text-sm font-semibold no-underline [&::-webkit-details-marker]:hidden">
           <ChevronDown aria-hidden className="size-4 shrink-0 transition-transform group-open:rotate-180" />
           {copy("calendar.chosen.title")}
         </summary>
-        <p className="text-sm">
+        <p className="collapse-content p-0 text-sm">
           {copy("calendar.chosen.body", { n })} {copy("calendar.chosen.stored")}
         </p>
       </details>

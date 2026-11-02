@@ -102,7 +102,7 @@ function DayRow(p: {
               </span>
               {page.whyLine === null ? null : (
                 <span className="min-w-0 text-sm text-base-content/70 wrap-anywhere" data-testid="cell-why">
-                  <span className="eyebrow me-1.5">{copy("calendar.week.why")}</span>
+                  <span className="me-1.5 text-xs font-semibold uppercase tracking-wide">{copy("calendar.week.why")}</span>
                   <span data-testid="cell-why-line">{page.whyLine}</span>
                 </span>
               )}

@@ -37,8 +37,9 @@ export function TopBar(p: { shell: ShellModel }): React.JSX.Element {
         <span className="shrink-0">
           <Brand href="/app" />
         </span>
-        <span className="flex-1" />
-        <ThemeToggle names={themeNames()} />
+        <span className="ms-auto">
+          <ThemeToggle names={themeNames()} />
+        </span>
       </div>
       <p className="flex min-w-0 items-center gap-3 text-xs">
         <span className="num min-w-0 shrink truncate text-base-content/70" title={p.shell.domain}>
