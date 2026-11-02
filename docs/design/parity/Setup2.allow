@@ -34,3 +34,4 @@ The cheapest invoicing app	sample data
 Remove The cheapest invoicing app	sample data
 844	sample data
 Competitors 4 of 5	sample data
+component:icon:x 7	#2270: a remove x ships on every chip, and the seeded account reads fewer chips than the board draws

@@ -101,21 +101,22 @@ export function ConnectScreen(p: { hostname: string; record: DnsRecord }): React
                   </div>
                 ))}
               </div>
-              <details className="group border-t border-base-300 pt-1" data-testid="setup-connect-steps">
-                <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 text-sm font-semibold text-primary">
+              {/* daisyUI `collapse`, so a closed section lays out nothing that could escape it. */}
+              <details className="group collapse min-w-0 rounded-none border-t border-base-300" data-testid="setup-connect-steps">
+                <summary className="collapse-title flex min-h-11 items-center gap-2 p-0 text-sm font-semibold text-primary">
                   <ChevronDown {...ICON} size={16} className="transition-transform group-open:rotate-180" />
                   {copy("setup.connect.steps")}
                 </summary>
-                <div className="grid min-w-0 gap-2.5 pt-1 pb-2 text-(length:--t-sm)">
+                <div className="collapse-content grid min-w-0 gap-2.5 p-0 pb-2 text-(length:--t-sm)">
                   <ol className="grid list-decimal gap-2 ps-5">
                     {STEPS.map((step) => (
                       <li key={step}>{copy(step)}</li>
                     ))}
                   </ol>
                   {/* The provider's own steps, looked up from the address's nameservers. */}
-                  <details className="min-w-0">
-                    <summary className="link link-primary cursor-pointer list-none">{copy("setup.connect.steps.guide")}</summary>
-                    <div className="min-w-0 pt-2">
+                  <details className="collapse min-w-0">
+                    <summary className="collapse-title link link-primary min-h-0 px-0 py-1">{copy("setup.connect.steps.guide")}</summary>
+                    <div className="collapse-content min-w-0 px-0">
                       <CnameRecord record={p.record} {...(state === undefined ? {} : { state })} />
                     </div>
                   </details>
