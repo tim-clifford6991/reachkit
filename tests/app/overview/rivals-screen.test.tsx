@@ -269,14 +269,9 @@ describe("the table", () => {
     expect(box?.getAttribute("aria-label")).toBe(copy("overview.rivals.table.label"));
   });
 
-  it("shows a rival's place only where the pass measured one", () => {
-    const node = table();
-    const withPlace = MODEL.rows
-      .slice(0, 9)
-      .filter((row) => row.position.kind !== "unmeasured").length;
-    const places = [
-      ...node.querySelectorAll('[data-testid="rivals-row"]'),
-    ].filter((row) => /#\d/.test(row.textContent ?? ""));
-    expect(places).toHaveLength(withPlace);
+  it("draws no place after the winner, as the Rivals tab asks for none (SPEC §4)", () => {
+    const rows = [...table().querySelectorAll('[data-testid="rivals-row"]')];
+    expect(MODEL.rows.slice(0, 9).some((row) => row.position.kind !== "unmeasured")).toBe(true);
+    expect(rows.filter((row) => /#\d/.test(row.textContent ?? ""))).toEqual([]);
   });
 });

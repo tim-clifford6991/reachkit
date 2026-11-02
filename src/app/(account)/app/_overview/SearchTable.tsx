@@ -19,9 +19,7 @@
 //
 // **The chip is in the URL** (`?show=`, held by `nuqs` — the same library
 // and the same reason as setup's `?step=`): a filtered view of this screen
-// is a thing a founder can keep open in a tab and come back to. daisyUI's
-// `filter` collapses to the chosen chip with a reset beside it, which is
-// the component working rather than a departure from the board.
+// is a thing a founder can keep open in a tab and come back to.
 //
 // **Two shapes, one DOM** (#963). The columns do not fit a 390px card, so
 // below `sm` the row is a three-line grid — the search and where you stand,
@@ -128,13 +126,14 @@ function YouCell(p: { row: SearchRow }): React.JSX.Element {
       ) : (
         placeText
       )}
+      {/* SPEC §4 2026-09-20 asks for the site's change beside its place; it is quiet text, not a badge. */}
       {change.kind === "moved" ? (
-        <span className={change.better ? "badge badge-success badge-soft" : "badge badge-ghost"}>
-          <span className="num">{copy(change.better ? "overview.delta.up" : "overview.delta.down")}</span>
-          <span className="num">{formatCount(change.places)}</span>
+        <span className="num text-xs text-base-content/70">
+          {copy(change.better ? "overview.delta.up" : "overview.delta.down")}
+          {formatCount(change.places)}
         </span>
       ) : change.kind === "first" && !place.isDash ? (
-        <span className="badge badge-ghost">{copy("overview.search.you.first")}</span>
+        <span className="text-xs text-base-content/70">{copy("overview.search.you.first")}</span>
       ) : null}
     </span>
   );
@@ -291,14 +290,9 @@ export function SearchTable(p: {
     <section className="card card-border min-w-0 overflow-hidden bg-base-100" data-testid="search-table">
       <div className="flex min-w-0 flex-col gap-3 p-4">
         {head}
-        {/* daisyUI `filter`: the four statuses with their counts, and a
-            reset beside the chosen one. `all` is that reset — it is the
-            state in which no chip is chosen, which is what the component
-            already means by unchecked, so there is no extra chip standing
-            for "no filter". Its accessible name is still the registry's
-            word; the × over it is daisyUI's own. */}
+        {/* The board's pills, All first and filled while no status is chosen. */}
         <div
-          className="filter"
+          className="flex flex-wrap gap-2"
           role="radiogroup"
           aria-label={copy("overview.search.filter.label")}
           data-testid="search-filters"
@@ -308,7 +302,7 @@ export function SearchTable(p: {
               key={id}
               type="radio"
               name={SHOW}
-              className={`${FILTER_PILL} ${id === "all" ? "filter-reset" : ""}`}
+              className={FILTER_PILL}
               data-testid={`search-chip-${id}`}
               aria-label={
                 id === "all"

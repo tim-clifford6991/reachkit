@@ -14,7 +14,6 @@ import { renderQuestion } from "@/lib/presentation/generated";
 import type { BlogEngine } from "@/lib/publish/reads/classify";
 import type { BlogReadsModel } from "@/lib/publish/reads/model";
 import { ReadsBars } from "@/ui/charts/ReadsBars";
-import { ENGINE_LABEL } from "../_shell/page-target-words";
 import { shortDay } from "./Figures";
 import { MARK_COPY_KEY, MARK_ICON } from "./answers-words";
 import type { AnswerMark } from "./answers-model";
@@ -39,10 +38,11 @@ const BLOG_ENGINE: Readonly<Record<BlogEngine, CopyKey>> = Object.freeze({
 
 /** The board's order of a page's engines: the two asked directly, then the Overview. */
 const PAGE_ENGINES = [
-  { engine: "chatgpt", index: 2 },
-  { engine: "ai_mode", index: 1 },
-  { engine: "ai_overview", index: 0 },
-] as const;
+  { engine: "chatgpt", index: 2, label: "ai-answers.engine.chatgpt" },
+  { engine: "ai_mode", index: 1, label: "ai-answers.engine.ai-mode" },
+  // The board's short name, so a phone row keeps the answer beside it.
+  { engine: "ai_overview", index: 0, label: "overview.answers.engine.ai-overview" },
+] as const satisfies readonly { engine: string; index: number; label: CopyKey }[];
 
 /** Counted reads and visits, or `null` where none can be (no hosted page, or the counts could not be read). */
 function countedReads(reads: BlogReadsModel): { fetches: number; referrals: number } | null {
@@ -175,7 +175,7 @@ function PageRow(p: { row: AiPageRow }): React.JSX.Element {
       {row.question === null ? null : (
         // One 44px row per engine on a phone, three tinted boxes from `sm`.
         <ul className="grid min-w-0 sm:grid-cols-3 sm:gap-2" aria-label={copy("overview.answers.pages.engines")}>
-          {PAGE_ENGINES.map(({ engine, index }) => {
+          {PAGE_ENGINES.map(({ engine, index, label }) => {
             const mark = row.question!.marks[index] ?? "not_measured";
             const Glyph = MARK_ICON[mark];
             return (
@@ -183,8 +183,8 @@ function PageRow(p: { row: AiPageRow }): React.JSX.Element {
                 <span className={`grid size-7 shrink-0 place-items-center rounded-full ${MARK_TILE[mark]}`} aria-hidden>
                   <Glyph className="size-4" strokeWidth={1.75} />
                 </span>
-                <span className="flex min-w-0 flex-wrap items-baseline gap-x-2 sm:flex-col sm:gap-0">
-                  <span className="min-w-28 sm:min-w-0 sm:text-xs">{copy(ENGINE_LABEL[engine])}</span>
+                <span className="grid min-w-0 flex-1 grid-cols-[7rem_minmax(0,1fr)] items-baseline gap-x-2 sm:flex sm:flex-col sm:gap-0">
+                  <span className="sm:text-xs">{copy(label)}</span>
                   <span className="font-semibold">{engineWord(engine, mark)}</span>
                 </span>
               </li>

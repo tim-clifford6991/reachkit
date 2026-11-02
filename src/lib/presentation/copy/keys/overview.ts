@@ -560,6 +560,7 @@ export const OVERVIEW_COPY = Object.freeze({
     "Answers by engine",
     { slots: {}, fixedBy: "board AppAI (drafted)" },
   ],
+  "overview.answers.engine.ai-overview": ["AI Overview", { slots: {}, fixedBy: "board AppAI v36, issue 2278 (drafted)" }],
   "overview.answers.engine.none": [
     "None on this search",
     { slots: {}, fixedBy: "board AppAI (drafted)" },

@@ -191,6 +191,20 @@ describe("what each row draws beside its words", () => {
     const eleventh = [...(rowsOf()[1]?.querySelectorAll("span.num") ?? [])].find((n) => n.textContent === "#11");
     expect(eleventh?.parentElement?.classList.contains("badge")).toBe(false);
   });
+
+  it("the week's change is quiet text beside the place, never a badge (SPEC §4 2026-09-20)", () => {
+    const you = [...table().querySelectorAll('[data-testid="search-row"]')].map((row) => row.querySelectorAll("td")[2]);
+    const marks = you.flatMap((cell) => [...(cell?.querySelectorAll("span") ?? [])]).filter((s) => /^[▲▼]/u.test(s.textContent ?? "") || s.textContent === copy("overview.search.you.first"));
+    expect(marks.length).toBeGreaterThan(0);
+    for (const mark of marks) expect(mark.className).not.toContain("badge");
+  });
+
+  it("draws the board's All pill first, chosen while no status is", () => {
+    const pills = [...table().querySelectorAll('[data-testid="search-filters"] input')];
+    expect(pills[0]?.getAttribute("aria-label")).toBe(copy("overview.search.status.all"));
+    expect((pills[0] as HTMLInputElement).checked).toBe(true);
+    for (const pill of pills) expect(pill.className).not.toContain("filter-reset");
+  });
 });
 
 /** One element by its test id. */

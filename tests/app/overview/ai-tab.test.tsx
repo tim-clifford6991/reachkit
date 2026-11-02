@@ -107,7 +107,7 @@ describe("board AppAI, on the account the layout sweep reads", () => {
     expect([...rows[0]!.querySelectorAll("li")].map(text)).toEqual([
       `${copy("ai-answers.engine.chatgpt")}${copy("overview.answers.mark.links")}`,
       `${copy("ai-answers.engine.ai-mode")}${copy("overview.answers.mark.others")}`,
-      `${copy("ai-answers.engine.ai-overview")}${copy("overview.answers.mark.others")}`,
+      `${copy("overview.answers.engine.ai-overview")}${copy("overview.answers.mark.others")}`,
     ]);
     // An AI Overview Google did not show is the search's own fact.
     expect(text(rows[1])).toContain(copy("overview.answers.engine.none"));
