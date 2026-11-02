@@ -135,15 +135,18 @@ async function waiting(siteId: string): Promise<{ count: number; review: Waiting
     .in("state", WAITING_STATES);
   if (error !== null || data === null) return { count: 0, review: null };
 
-  // The count is Overview's: a page in review, or one whose cause is critical (owner O7).
-  const rows = data.filter((row) => row.state === "in_review" || critical(needsYouOf({ state: row.state as State, transitions: row.transitions, meta: row.meta }), clock()));
+  // The card holds the page in review or one whose cause is critical (owner O7);
+  // the count only the latter, the pages that wait on the customer (SPEC §4 2026-10-17, #1477).
+  const needsYou = (row: WaitingDraftRow): boolean =>
+    row.state !== "in_review" && critical(needsYouOf({ state: row.state as State, transitions: row.transitions, meta: row.meta }), clock());
+  const rows = data.filter((row) => row.state === "in_review" || needsYou(row));
   const pages = rows.map(waitingPage);
   // A page with no time yet sorts last: a time the customer can act before
   // is more urgent than one nobody has set.
   const soonest = [...pages].sort(
     (a, b) => (a.goesLiveAt?.getTime() ?? Infinity) - (b.goesLiveAt?.getTime() ?? Infinity)
   )[0];
-  return { count: rows.length, review: soonest ?? null };
+  return { count: data.filter(needsYou).length, review: soonest ?? null };
 }
 
 function waitingPage(row: WaitingDraftRow): WaitingPage {

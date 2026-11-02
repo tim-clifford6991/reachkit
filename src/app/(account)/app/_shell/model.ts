@@ -49,13 +49,13 @@ export interface ShellModel {
    *  (REQ-073 c1: captured once, stored as one preference). */
   timeZone: string;
   weeks: WeekCount;
-  /** REQ-040 c2. `0` renders no count at all — the renderer's rule, but the
-   *  number is stated here rather than being an absent field. SPEC §4
-   *  (2026-09-20) moves the count to Overview; it is the same count. */
+  /** The pages that need the customer, beside Overview's menu item (SPEC §4,
+   *  2026-10-17, #1477): a page in review is on its way and is not one. `0`
+   *  renders no count at all — the renderer's rule, but the number is stated
+   *  here rather than being an absent field. */
   waiting: number;
   /** SPEC §4 (2026-09-20) — the one page the *Waiting for you* card is
-   *  about, or `null`. It is drawn from the same drafts `waiting` counts,
-   *  so the card and the count cannot state different facts. */
+   *  about, or `null`: the page in review, or one that needs the customer. */
   review: WaitingPage | null;
   /** SPEC §4 (2026-09-20) — where *Visit your blog* goes, or `null` where
    *  this site has no live blog of ours to visit and the shortcut is
@@ -80,12 +80,11 @@ export interface ShellFacts {
   /** REQ-065's own clock (#41): when this domain's first weekly measurement
    *  is due. Read, never computed here. */
   firstDueOn: Date;
-  /** The count of calendar items waiting on the customer — §9's `in_review`
-   *  and `needs_attention` drafts (#45). */
+  /** The `needs_attention` drafts whose cause is critical for the customer
+   *  (SPEC §4 2026-10-17, #1477; owner O7). A page in review is not counted. */
   waiting: number;
-  /** The first of those, for the side panel's card (SPEC §4, 2026-09-20).
-   *  Read, never counted from: `waiting` is the count and this is the one
-   *  the customer is sent to. */
+  /** The soonest page in review or needing the customer, for the side
+   *  panel's card (SPEC §4, 2026-09-20). Read, never counted from. */
   review: WaitingPage | null;
   /** §9's hosted blog, where it is live, as an address a browser can open;
    *  `null` otherwise. */

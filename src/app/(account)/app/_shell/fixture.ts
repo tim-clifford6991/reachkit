@@ -42,10 +42,10 @@ export const FIXTURE_SHELL_FACTS: ShellFacts = Object.freeze({
     { domain: FIXTURE_DOMAIN, weekStart: MONDAY(31), measured: true },
   ]),
   firstDueOn: MONDAY(17),
-  waiting: 2,
+  // Nothing needs the customer: the page below is in review and on its way (SPEC §4 2026-10-17, #1477).
+  waiting: 0,
   // SPEC §4 (2026-09-20): the page the side panel's *Waiting for you* card
-  // is about — one of the two `waiting` counts, so the card and the count
-  // agree on the owner's preview exactly as they do for a customer.
+  // is about.
   review: Object.freeze({
     draftId: "draft-fixture-1",
     title: "How much does a bike service cost in 2026?",

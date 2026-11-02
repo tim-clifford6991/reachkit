@@ -178,7 +178,9 @@ describe("the provider is the one read, and it reads the fixture", () => {
     const shell = assembleShell(FIXTURE_SHELL_FACTS);
     expect(shell.weeks.kind).toBe("counted");
     expect(shell.publishing.next).not.toBeNull();
-    expect(shell.waiting).toBeGreaterThan(0);
+    // Its page is in review, on its way: nothing needs the customer, so no count (#1477).
+    expect(shell.review).not.toBeNull();
+    expect(shell.waiting).toBe(0);
   });
 
   it("the fixture does not move: two reads return the same values", async () => {
