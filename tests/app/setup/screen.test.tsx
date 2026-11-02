@@ -643,7 +643,7 @@ describe("Connect — where the pages go live (REQ-028 c2, SPEC §7 #476)", () =
     expect(["—", "-", "n/a", "TBD", ""]).not.toContain(text);
   });
 
-  it("choosing WordPress names what connecting will ask for, in the box under the pair, and asks for none of it here", () => {
+  it("choosing WordPress says where it is connected later, with the app-password help, and asks for none of it here", () => {
     const m = model();
     const page = render(
       <PublishingCard
@@ -663,9 +663,9 @@ describe("Connect — where the pages go live (REQ-028 c2, SPEC §7 #476)", () =
     expect(page.querySelector('[data-testid="setup-dns"]')).toBeNull();
     expect(page.querySelector('[data-testid="setup-connect-later-action"]')).toBeNull();
     expect(screenFor("publishing").querySelector('[data-testid="setup-wordpress-asks"]')).toBeNull();
-    expect(card?.querySelector('[data-testid="setup-wordpress-site"]')?.textContent).toBe(
-      "example.com",
-    );
+    expect(card?.querySelector('[data-testid="setup-wordpress-later"]')?.textContent).toBe(COPY["setup.wordpress.later"]);
+    // No field label stands without its field.
+    expect(card?.textContent).not.toContain(COPY["settings.destination.username"]);
     expect(card?.querySelector('[data-testid="setup-wordpress-help"]')?.textContent).toBe(
       COPY["settings.destination.app-password.help"],
     );

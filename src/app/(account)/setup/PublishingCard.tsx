@@ -112,7 +112,7 @@ export function PublishingCard(p: {
       </fieldset>
 
       {p.destination === "wordpress" ? (
-        <WordPressAsks domain={p.siteDomain} />
+        <WordPressAsks />
       ) : record === null ? (
         "pending" in dns ? <DnsPendingLine dns={dns} /> : null
       ) : (
@@ -203,27 +203,16 @@ function DnsPendingLine(p: { dns: DnsPending }): React.JSX.Element {
   );
 }
 
-/** What connecting WordPress will ask for, in the box under the pair. Shown, never asked
- *  here: SPEC §5 keeps the connect for later, in Settings › Publishing. */
-function WordPressAsks(p: { domain: string | null }): React.JSX.Element {
+/** Where WordPress is connected, in the box under the pair: said, never asked here,
+ *  because SPEC §5 connects it later in Settings › Publishing. */
+function WordPressAsks(): React.JSX.Element {
   return (
     <div className={BOX} data-testid="setup-wordpress-asks">
-      <div className="card-body gap-3 p-5">
-        <span className="flex min-w-0 flex-col">
-          <span className="text-sm font-semibold">{copy("settings.destination.site-url")}</span>
-          {p.domain === null ? null : (
-            <span className="num text-sm wrap-anywhere" data-testid="setup-wordpress-site">
-              {p.domain}
-            </span>
-          )}
-        </span>
-        <span className="text-sm font-semibold">{copy("settings.destination.username")}</span>
-        <span className="flex min-w-0 flex-col">
-          <span className="text-sm font-semibold">{copy("settings.destination.app-password")}</span>
-          <span className={QUIET} data-testid="setup-wordpress-help">
-            {copy("settings.destination.app-password.help")}
-          </span>
-        </span>
+      <div className="card-body gap-2 p-5">
+        <p data-testid="setup-wordpress-later">{copy("setup.wordpress.later")}</p>
+        <p className={QUIET} data-testid="setup-wordpress-help">
+          {copy("settings.destination.app-password.help")}
+        </p>
       </div>
     </div>
   );
