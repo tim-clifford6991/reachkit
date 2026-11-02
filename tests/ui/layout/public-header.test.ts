@@ -94,21 +94,35 @@ describe("owner 2026-10-20 (Q1) — three header links on every public route", (
 const BOARD_WIDTHS = [390, 768, 1280] as const;
 
 describe("board v36 — the full wordmark on every public route, signed out", () => {
-  const cases = [...PUBLIC_PATHS, "/signin"].flatMap((path) => BOARD_WIDTHS.map((width) => [path, width] as const));
+  // The web font at each board width with room to spare, and the fallback font a slow or blocked font load shows at 390.
+  const cases = [...PUBLIC_PATHS, "/signin"].flatMap((path) => [
+    ...BOARD_WIDTHS.map((width) => [path, width, "web font", 4] as const),
+    [path, 390, "fallback font", 0] as const,
+  ]);
 
-  it.each(cases)("wordmark not truncated: %s at %ipx", async (path, width) => {
+  it.each(cases)("wordmark not truncated: %s at %ipx in the %s", async (path, width, font, spare) => {
     const baseURL = getBaseURL();
     if (!baseURL) throw new Error("tests/ui/layout/public-header.test.ts: no app server is running.");
     const word = await withPage(width, async (page) => {
+      if (font === "fallback font") await page.route(/\.woff2(\?.*)?$/, (route) => route.abort());
       await page.goto(baseURL + path, { waitUntil: "load" });
       await page.evaluate(() => document.fonts.ready);
       return page.evaluate(() => {
         const span = document.querySelector<HTMLElement>('[data-testid="public-brand"] span:last-child')!;
+        const column = span.closest("nav > div")!.getBoundingClientRect();
+        const text = document.createRange();
+        text.selectNodeContents(span);
         const bar = document.querySelector<HTMLElement>('[data-testid="public-header"] nav')!;
-        return { text: span.textContent, fits: span.scrollWidth <= span.clientWidth, oneRow: bar.scrollHeight <= bar.clientHeight };
+        return {
+          text: span.textContent,
+          fits: span.scrollWidth <= span.clientWidth,
+          spare: column.right - (span.getBoundingClientRect().left + text.getBoundingClientRect().width),
+          oneRow: bar.scrollHeight <= bar.clientHeight,
+        };
       });
     });
-    expect(word).toEqual({ text: COPY["chrome.wordmark"], fits: true, oneRow: true });
+    expect({ ...word, spare: undefined }).toEqual({ text: COPY["chrome.wordmark"], fits: true, spare: undefined, oneRow: true });
+    expect(word.spare).toBeGreaterThanOrEqual(spare);
   }, 60_000);
 });
 

@@ -20,8 +20,8 @@ import { copy } from "@/lib/presentation/copy";
 import { Brand } from "@/app/_brand/Brand";
 import { readOwnArticles } from "./own-articles";
 
-/** Every footer link is a 44px target (board PubLanding v34). */
-const LINK = "link link-hover inline-flex min-h-11 items-center";
+/** Every footer link is a 44px target in the board's muted ink (board PubLanding v36). */
+const LINK = "link link-hover inline-flex min-h-11 items-center text-base-content/70 hover:text-primary";
 
 const LEGAL: readonly { href: string; key: "legal.privacy.title" | "legal.terms.title" | "legal.imprint.title" }[] = [
   { href: "/privacy", key: "legal.privacy.title" },

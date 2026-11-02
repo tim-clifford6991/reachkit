@@ -127,8 +127,9 @@ export function Header(p: { entry?: AppEntry }): React.JSX.Element {
     <header className="border-base-300 sticky top-0 z-30 border-b" data-testid="public-header">
       <div aria-hidden className="bg-base-100/78 absolute inset-0 -z-10 backdrop-blur-md" />
       {/* No `flex-wrap`: a bar that wraps is a bar that grew instead of
-          one that chose. What does not fit is in the drawer. */}
-      <nav className="navbar mx-auto max-w-6xl gap-2 px-4">
+          one that chose. What does not fit is in the drawer. Below `sm` the
+          gaps close up so the whole wordmark fits even in the fallback font. */}
+      <nav className="navbar mx-auto max-w-6xl gap-1 px-4 sm:gap-2">
         <div className="flex min-w-0 flex-1 items-center gap-6">
           <Brand href="/" testId="public-brand" />
           <ul className="hidden items-center gap-1 lg:flex">
@@ -141,7 +142,7 @@ export function Header(p: { entry?: AppEntry }): React.JSX.Element {
             ))}
           </ul>
         </div>
-        <div className="flex flex-none items-center gap-2">
+        <div className="flex flex-none items-center gap-1 sm:gap-2">
           <HeaderCopyLink place={PLACE.bar} label={copy("copy-link.label")} />
           <span className="hidden sm:inline-flex" data-testid="public-header-theme">
             <ThemeSwitch names={switchNames()} />

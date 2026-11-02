@@ -58,9 +58,9 @@ function ToField(p: { className: string; children: React.ReactNode }): React.JSX
   );
 }
 
-/** The header's *Start free*: a solid primary, with no arrow (board PubLanding v36). */
+/** The header's *Start free*: a solid primary, with no arrow (board PubLanding v36), and narrower on a phone so the wordmark fits. */
 export function HeaderCta(p: { label: string }): React.JSX.Element {
-  return <ToField className="btn btn-primary">{p.label}</ToField>;
+  return <ToField className="btn btn-primary px-3 sm:px-4">{p.label}</ToField>;
 }
 
 /** The primary ink a header link takes on the page it names (boards PubLanding, AuthSignIn v36). */
