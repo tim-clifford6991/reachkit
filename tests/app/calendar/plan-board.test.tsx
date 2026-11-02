@@ -206,7 +206,9 @@ describe("Live pages: each page's steps as dots, its standing and its label", ()
     for (const row of rows(await fixturePage())) {
       const label = row.querySelector('[data-testid="plan-live-label"]');
       expect(label?.closest(".list-col-grow")).not.toBeNull();
-      expect(row.querySelector("a.link")?.classList.contains("link-primary") ?? true).toBe(true);
+      const title = row.querySelector(".list-col-grow > a");
+      expect(title?.classList.contains("link-primary")).toBe(true);
+      expect(title?.getAttribute("href")).toMatch(/^\/app\/draft\//);
     }
   });
 });
