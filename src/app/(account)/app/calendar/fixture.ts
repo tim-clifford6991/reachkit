@@ -125,10 +125,9 @@ function whyOf(index: number): WhyThisPage {
   };
 }
 
-/** date → state. Every state the calendar can draw appears, and both
- *  weekend columns carry a page (§4.6: "weekends included"). The dates with
- *  no row here are the empty ones, and each is emptied by a different arm
- *  of `EMPTY_PRECEDENCE`. */
+/** date → state. Every stage appears, and both weekend columns carry a page
+ *  (§4.6: "weekends included"). This week is full, as board Plan draws it; the
+ *  dates with no row here are emptied by an arm of `EMPTY_PRECEDENCE`. */
 const SCHEDULE: Readonly<Record<DayKey, State>> = {
   "2026-09-01": "published",
   "2026-09-02": "published",
@@ -147,7 +146,8 @@ const SCHEDULE: Readonly<Record<DayKey, State>> = {
   "2026-09-16": "approved",
   "2026-09-17": "approved",
   "2026-09-18": "planned",
-  // 2026-09-19 holds an instruction and 2026-09-20 is emptied by supply.
+  // 2026-09-19 holds an instruction.
+  "2026-09-20": "planned", // Sunday
   // Nothing after 2026-09-20: the plan stops the day before the next weekly
   // pass (issue 857).
 };
@@ -181,12 +181,34 @@ const REVIEWED: readonly State[] = Object.freeze([
  *  layout sweep non-deterministic. */
 const CHECKED_AT = new Date(Date.UTC(2026, 8, 15, 9, 0, 0));
 
+/** Each scheduled day's own title, in SCHEDULE's order, so no two days read alike. */
+const TITLES: readonly string[] = [
+  "What a CRM does for a five-person team",
+  "Signs you have outgrown your spreadsheet",
+  "How to import contacts without duplicates",
+  "Setting up a sales pipeline in an afternoon",
+  "CRM fields worth keeping, and the rest",
+  "Logging calls without slowing down",
+  "How to tag customers so you can find them",
+  "Following up on a quote, step by step",
+  "Reports a small team actually reads",
+  "Sharing one inbox with a CRM",
+  "Cleaning a contact list before you switch",
+  "Who on the team should own the CRM",
+  "How to choose a CRM for a small team",
+  "CRM pricing, compared",
+  "Moving from spreadsheets to a CRM",
+  "Free CRMs and what they leave out",
+  "Getting the team to use the CRM",
+  "Connecting your CRM to Gmail",
+];
+
 const DRAFTS: readonly DraftOnDay[] = Object.entries(SCHEDULE).map(([day, state], index) => {
   const specimen = SPECIMENS[index % SPECIMENS.length] as Specimen;
   const [y, m, d] = day.split("-").map(Number);
   return {
     draftId: `draft-${day}`,
-    title: specimen.title,
+    title: TITLES[index] ?? specimen.title,
     state,
     scheduledFor: day,
     why: whyOf(index),
@@ -235,32 +257,22 @@ const DRAFTS: readonly DraftOnDay[] = Object.entries(SCHEDULE).map(([day, state]
     // Every third specimen is an update of a page the site already has, so
     // the mark and its absence are both on the owner's own preview.
     update: index % 3 === 2,
-    // A planned page states why the week holds it, so the preview shows the line.
-    whyLine: state === "planned" ? whySentenceOf({ points: 5, parts: [{ part: "fit", n: 3 }, { part: "demand", n: 2 }], rule: "best" }) : null,
+    // Every page states why the week holds it, as the store does for every chosen draft.
+    whyLine: whySentenceOf({ points: 5, parts: [{ part: "fit", n: 3 }, { part: index % 2 === 0 ? "demand" : "ai_gap", n: 2 }], rule: "best" }),
   };
-});
-
-/** REQ-092's stop, as the fixture account's own. The stopped day below is
- *  what the owner reviews the three lines on: c1's line, c2's `needs
- *  nothing` and c4's `no time promised` — the two arms a day with no record
- *  behind it truthfully takes (issue #113). */
-const FIXTURE_STOP = Object.freeze({
-  since: new Date(Date.UTC(2026, 8, 13, 0, 0, 0)),
-  resumes: { promised: false } as const,
-  needs: { kind: "nothing" } as const,
-  partial: false,
 });
 
 export const FIXTURE_CALENDAR_FACTS: CalendarFacts = Object.freeze({
   timeZone: FIXTURE_TIME_ZONE,
   now: FIXTURE_NOW,
-  stop: FIXTURE_STOP,
+  // ReachKit is running, as board Plan draws the week.
+  stop: null,
   drafts: Object.freeze(DRAFTS),
   // The committed week's spares, by the search each targets.
   spares: Object.freeze(["crm onboarding checklist", "crm for freelancers"]),
   // REQ-047 c5: while an instruction stands against a date, it is that
   // date's one account — outranking even ReachKit's own stop (ADR-061 point 3).
-  instructions: Object.freeze({ "2026-09-19": "opportunity-19" }),
+  instructions: Object.freeze({ "2026-09-19": "noindex_pages" as const }),
   // REQ-092 c1: a day ReachKit did not do the work. It carries the
   // stopped-work line, never the exhausted-supply one.
   stoppedDays: Object.freeze(["2026-09-13"] as const),
@@ -276,13 +288,9 @@ export const FIXTURE_CALENDAR_FACTS: CalendarFacts = Object.freeze({
   customerChangeHoldsPages: null,
   // REQ-071 c11: the fixture account is replacing nothing.
   changeHoldsGeneration: null,
-  // Read, and zero: the one condition ADR-061 point 1 lets the
-  // exhausted-supply arm fire on. `null` here would send every remaining
-  // date to `unattributed` instead, which is the behaviour that ADR's
-  // mutation check pins.
-  unusedSupply: 0,
-  // #765: the fixture account's market was measured and used up, so its
-  // empty dates keep the exhausted line.
+  // Supply left for the two spares, so the week draws no supply notice.
+  unusedSupply: 2,
+  // #765: the fixture account's market was measured.
   supplyMeasured: true,
 });
 

@@ -1,4 +1,4 @@
-// SPEC §7 — Plan, at `/app/calendar`: the committed week as seven days
+// SPEC §7 — Plan, at `/app/calendar`: the committed week as one row per day
 // (E5, 2026-10-19), its spares under it, and every page published.
 //
 // The screen reads the week once — `readWeek`, request-cached — and hands
@@ -17,10 +17,8 @@ import type React from "react";
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import { copy } from "@/lib/presentation/copy";
-import { writtenLine } from "../_shell/written";
 import { CalendarView } from "./CalendarView";
 import { PlanHead, planHeadWords } from "./PlanHead";
-import { PlanNumbers } from "./PlanNumbers";
 import { WeekFoot, WeekHead, weekGoesLive } from "./WeekCard";
 import { addDays, longDate, weekRange } from "./dates";
 import { zonePlace } from "../settings/format";
@@ -57,23 +55,9 @@ export default async function CalendarPage(): Promise<React.JSX.Element> {
   const [supplyNotice, stalled] = await Promise.all([readSupplyNotice(), readStalledWeek()]);
   const stalledStatement = stalledLine(stalled);
   const supplyStatement = supplyLine(supplyNotice, week.timeZone);
-
-  // The footnote's two halves are owner-owed keys; an unwritten half renders
-  // as nothing, never as a placeholder sentence.
-  const plannedNote = writtenLine("calendar.footnote.planned");
-  const supplyNote = writtenLine("calendar.footnote.supply");
   return (
     <div className={PLAN}>
       <PlanHead words={planHeadWords(head, week.counts.all)} />
-
-      <PlanNumbers
-        figures={{
-          week: week.counts.all,
-          live: content === null ? null : content.pages.length,
-          spares: week.spares.length,
-          stopped: week.cells.filter((cell) => cell.empty?.cause === "page_cannot_go_live").length,
-        }}
-      />
 
       <FirstPageNotice state={onboarding} />
       {/* §7's one statement of supply, at the calendar's top and nowhere
@@ -102,14 +86,6 @@ export default async function CalendarPage(): Promise<React.JSX.Element> {
       {/* Every page published (issue 1457): what Overview's Content tile
           counts, and where it opens. */}
       <PublishedList content={content} timeZone={week.timeZone} now={published.now} updates={updateDays(week)} />
-
-      {/* One footnote under the grid: the rule. What supply is doing right
-          now is stated at the top. */}
-      <footer className="flex flex-col gap-1 text-sm opacity-70" data-testid="calendar-footnote">
-        {plannedNote === null && supplyNote === null ? null : (
-          <p>{[plannedNote, supplyNote].filter((line) => line !== null).join(" ")}</p>
-        )}
-      </footer>
     </div>
   );
 }

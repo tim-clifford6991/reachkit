@@ -111,6 +111,8 @@ export const FIXTURE_PUBLISHED: readonly PublishedPage[] = Object.freeze(
     publishedAt: new Date(LAST - index * 2 * 86_400_000),
     ladder: ladderAt(index),
     reading: readingAt(index),
+    // The draft fixture's published page, so each title opens a page screen as a real row's does.
+    draftId: "draft-2026-09-14",
     wordpress: false,
   }))
 );

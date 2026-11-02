@@ -2,6 +2,7 @@
 //
 // WO-164 `## Test plan`: one page per date, weekends, the counts, the
 // site-local day boundary, and that nothing here creates a page.
+import { ALL_ARMS } from "./arms";
 import { describe, expect, it } from "vitest";
 import { measured } from "@/lib/measure/measured";
 import {
@@ -235,7 +236,7 @@ describe("REQ-043 c7 — today is the site-local day, not the server's", () => {
 
 describe("the fixture states every arm the screen can draw", () => {
   it("carries all five stages and four of the seven empty causes", () => {
-    const model = assembleMonth(FIXTURE_CALENDAR_FACTS, FIXTURE_MONTH);
+    const model = assembleMonth(ALL_ARMS, FIXTURE_MONTH);
     const stages = new Set(model.cells.map((c) => c.page?.stage).filter(Boolean));
     expect([...stages].sort()).toEqual(["live", "needs_you", "planned", "scheduled", "your_review"]);
     const causes = new Set(model.cells.map((c) => c.empty?.cause).filter(Boolean));
