@@ -275,11 +275,13 @@ export function VerdictStrip(p: {
 
         <div id="read-as" className="flex scroll-mt-20 flex-col items-start gap-2" data-testid="report-read-as">
           <span className="text-base-content/70 text-sm">{copy("report.read.as.title")}</span>
-          <ul className="flex flex-wrap gap-1.5">
+          {/* The market measured takes its own line, as the board draws it: then the line
+              a chip falls to does not hang on whether the 600 face has arrived yet. */}
+          <ul className="flex flex-wrap gap-1.5 after:order-1 after:basis-full">
             {p.readAs.map(({ kind, text }) => {
               const Icon = READ_AS_ICON[kind];
               return (
-                <li key={text} className="badge border-base-300 bg-base-100 h-auto min-h-7 px-3 py-0.5 font-semibold whitespace-normal">
+                <li key={text} className={`badge border-base-300 bg-base-100 h-auto min-h-7 px-3 py-0.5 font-semibold whitespace-normal ${kind === "measured" ? "order-2" : ""}`}>
                   {Icon === null ? null : <Icon size={14} strokeWidth={1.75} className="shrink-0" aria-hidden />}
                   {text}
                 </li>
