@@ -66,6 +66,12 @@ describe("board Pricing — the head and the price card", () => {
   it("the card names the plan beside its mark, the price with tax, its five ticks, Start, the cancel line and the free path", () => {
     expect(root.querySelector("#top .card-title [data-testid=brand-mark]")).not.toBeNull();
     expect(root.querySelector("#top .card-title")?.text.trim()).toBe(copy("chrome.wordmark"));
+    expect(root.querySelector("#top .card-title + .badge")?.classNames).toContain("font-semibold");
+    // The cancel line is words only, on the pricing card and the report's.
+    for (const card of [root.querySelector("#top")!, parse(renderToStaticMarkup(<PricingCard />))]) {
+      const cancel = card.querySelectorAll("p").find((line) => line.text.trim() === "Cancel any time from Settings.");
+      expect(cancel?.querySelector("svg")).toBeNull();
+    }
     expectInOrder(section("top"), [
       copy("pricing.plan.badge"),
       `${price} ${copy("price.interval")}`,

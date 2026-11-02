@@ -32,7 +32,7 @@
 // identical either way; only where Start goes differs — the report screen
 // passes its own report-origin action (issue #785).
 import type React from "react";
-import { ArrowRight, Check, ShieldCheck } from "lucide-react";
+import { ArrowRight, Check } from "lucide-react";
 import { VETO, WEEK_PLAN } from "@/lib/config/constants";
 import { copy } from "@/lib/presentation/copy";
 import { HOW_FACTS } from "@/app/(public)/_how/facts";
@@ -102,10 +102,7 @@ function PriceBox(p: {
         </div>
       ) : null}
       {p.start}
-      <p className="text-base-content/70 flex grow-0 items-center justify-center gap-1.5 text-xs">
-        <ShieldCheck size={14} strokeWidth={1.75} aria-hidden />
-        {p.cancel}
-      </p>
+      <p className="text-base-content/70 text-center text-xs">{p.cancel}</p>
       {p.free ?? null}
     </div>
   );
@@ -187,7 +184,7 @@ export function PricingCard(
               <BrandMark />
               {copy("chrome.wordmark")}
             </h2>
-            <span className="badge badge-soft badge-primary">{copy("pricing.plan.badge")}</span>
+            <span className="badge badge-soft badge-primary font-semibold">{copy("pricing.plan.badge")}</span>
           </div>
         ) : null}
         <PriceBox
