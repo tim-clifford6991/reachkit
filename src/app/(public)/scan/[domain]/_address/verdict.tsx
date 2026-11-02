@@ -161,7 +161,7 @@ function ScoreRing(p: { score: number; tone: Tone }): React.JSX.Element {
 function GapCard(p: { factor: ShownFactor }): React.JSX.Element {
   const lines = LIMITING_LINES[p.factor];
   return (
-    <section className="card card-border border-l-warning/50 bg-base-100 border-l-4" data-testid="report-gap">
+    <section className="card card-border border-l-(--warn-rule) bg-base-100 border-l-4" data-testid="report-gap">
       <div className="card-body flex-row items-start gap-3 p-5">
         <TrendingUp aria-hidden className="text-warning mt-1 size-5 shrink-0" strokeWidth={1.75} />
         <div className="flex min-w-0 flex-col gap-1">

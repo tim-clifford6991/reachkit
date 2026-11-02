@@ -16,10 +16,10 @@ const REPORTS = { preview: FIXTURE_REPORT, saas: panelReport("saas"), local: pan
 describe.each(Object.entries(REPORTS))("the %s report", (_, report) => {
   const page = parse(renderReport(report));
 
-  it("the biggest gap leads with TrendingUp on a light amber rule", () => {
+  it("the biggest gap leads with TrendingUp on the board's amber rule, at full strength", () => {
     const gap = page.querySelector('[data-testid="report-gap"]')!;
     expect(gap.querySelector("svg.lucide-trending-up")).not.toBeNull();
-    expect(gap.classList.contains("border-l-warning/50")).toBe(true);
+    expect(gap.classList.contains("border-l-(--warn-rule)")).toBe(true);
   });
 
   it("the ring and its badge are the band's colour, the badge a soft tint", () => {
