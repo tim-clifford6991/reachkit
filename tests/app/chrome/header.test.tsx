@@ -1,8 +1,9 @@
-// BUILD §3 — the public chrome: the banner and the header.
+// BUILD §3 — the public chrome: the header.
 //
-// Boards `PubLanding` / `PubLandingPhone` (owner 2026-10-20): the banner in
-// its two widths, the three links, the one theme button, and *Free scan*
-// solid. The history that follows describes the shapes those rows replaced.
+// Boards `PubLanding` / `PubLandingPhone` (v36, owner 2026-11-01): no strip
+// above the bar, the three links with the current page marked, the one theme
+// button, and *Free scan* solid with no arrow. The history that follows
+// describes the shapes those rows replaced.
 // tests/app/chrome/header.test.tsx
 //
 // The header is applied by `(public)/layout.tsx`, and the cold-start and
@@ -120,6 +121,14 @@ const START = `>${COPY["chrome.cta.start"]}<`;
 const LANDING_ACTION: HeaderAction = { kind: "landing" };
 const ELSEWHERE_ACTION: HeaderAction = { kind: "cta" };
 
+/** Each text link in a part of the header, read by attribute, so their order in the markup never matters. */
+function links(part: string): { cls: string; href: string; current: boolean; text: string }[] {
+  return [...part.matchAll(/<a ([^>]*)>([^<]*)<\/a>/g)].map((m) => {
+    const attr = (name: string) => new RegExp(`${name}="([^"]*)"`).exec(m[1] ?? "")?.[1] ?? "";
+    return { cls: attr("class"), href: attr("href"), current: attr("aria-current") === "page", text: m[2] ?? "" };
+  });
+}
+
 function primaries(html: string): string[] {
   return [...html.matchAll(/class="([^"]*\bbtn-primary\b[^"]*)"/g)].map((m) => m[1] ?? "").filter((c) => !c.includes("btn-soft"));
 }
@@ -140,22 +149,31 @@ describe("SPEC §1, owner 2026-09-15 (issue 714) — the same chrome on the repo
   });
 });
 
-describe("SPEC §1, 2026-09-24 (#1066) — the banner and the nav", () => {
-  it("the banner sits above the header: its tag, the board's line and Scan my site, the phone's shorter link, and a dismiss button", () => {
-    const html = markup(ELSEWHERE);
-    expect(html.indexOf('data-testid="public-banner"')).toBeLessThan(html.indexOf('data-testid="public-header"'));
-    const banner = html.slice(html.indexOf('data-testid="public-banner"'), html.indexOf('data-testid="public-header"'));
-    expect(COPY["chrome.banner"]).toBe("Your first page is free. We’ll email it to you.");
-    const at = [COPY["chrome.banner.tag"], COPY["chrome.banner"], COPY["landing.submit.label"], COPY["chrome.banner.short"]].map((w) => banner.indexOf(`>${w}<`));
-    expect(at.every((i) => i > 0)).toBe(true);
-    expect([...at].sort((x, y) => x - y)).toEqual(at);
-    expect(banner.match(/href="\/#landing-field"/g)).toHaveLength(2);
-    expect(banner).toContain(`aria-label="${COPY["chrome.banner.dismiss"]}"`);
+describe("board PubLanding v36 — no top bar, and the nav", () => {
+  it("no route draws a strip above the header", () => {
+    for (const path of [LANDING, ELSEWHERE, REPORT, "/signin"]) {
+      const html = markup(path);
+      expect(html.startsWith("<header")).toBe(true);
+      expect(html).not.toContain('data-testid="public-banner"');
+      expect(html).not.toContain("Your first page, written for you");
+    }
+  });
+
+  it("signed out, Free scan carries no arrow on any arm", () => {
+    for (const path of [LANDING, ELSEWHERE, REPORT]) {
+      const bar = withoutDrawer(markup(path));
+      const cta = bar.slice(bar.lastIndexOf("<", bar.indexOf(START)), bar.indexOf(START) + START.length + 20);
+      expect(bar).toContain(START);
+      expect(bar).not.toContain("lucide-arrow-right");
+      expect(cta).toContain("btn-primary");
+    }
   });
 
   it("the nav is How it works · Pricing · Free scans, then Sign in and Free scan (owner 2026-10-20, Q1)", () => {
     const bar = withoutDrawer(markup(ELSEWHERE));
-    const nav = [...bar.matchAll(/<li><a class="btn btn-ghost btn-sm font-medium" href="([^"]*)">([^<]*)<\/a><\/li>/g)].map((m) => [m[1], m[2]]);
+    const nav = links(bar)
+      .filter((a) => a.cls.startsWith("btn btn-ghost btn-sm font-medium"))
+      .map((a) => [a.href, a.text]);
     expect(nav).toEqual([
       ["/how-it-works", "How it works"],
       ["/pricing", "Pricing"],
@@ -202,14 +220,49 @@ describe("SPEC §1, 2026-09-24 (#1066) — the banner and the nav", () => {
   it("the drawer holds the same three links, the switch and Sign in; its toggle is Open menu; Free scan stays in the bar", () => {
     const html = markup(ELSEWHERE);
     const menu = drawer(html);
-    const links = [...menu.matchAll(/<li><a href="([^"]*)">([^<]*)<\/a><\/li>/g)].map((m) => m[1]);
-    expect(links).toEqual(["/how-it-works", "/pricing", "/scans"]);
+    const menuLinks = links(menu.slice(0, menu.indexOf("</ul>"))).map((a) => a.href);
+    expect(menuLinks).toEqual(["/how-it-works", "/pricing", "/scans"]);
     expect(menu).toContain('href="/signin"');
     expect(menu).toContain('data-testid="theme-switch"');
     expect(html).toContain(`aria-label="${COPY["chrome.nav.menu"]}"`);
     expect(COPY["chrome.nav.menu"]).toBe("Open menu");
     expect(menu).not.toContain(START);
     expect(withoutDrawer(html)).toContain(START);
+  });
+});
+
+describe("board v36 — the link to the page you are on is marked", () => {
+  /** Every header link marked current, as `[where, href, text]`, each in the primary ink. */
+  function current(path: string): [string, string, string][] {
+    const html = markup(path);
+    const marked = (where: string, part: string) =>
+      links(part)
+        .filter((a) => a.current)
+        .map((a): [string, string, string] => {
+          expect(a.cls.split(" ")).toContain("text-primary");
+          return [where, a.href, a.text];
+        });
+    return [...marked("bar", withoutDrawer(html)), ...marked("drawer", drawer(html))];
+  }
+
+  it.each([
+    ["/how-it-works", COPY["chrome.nav.works"]],
+    ["/pricing", COPY["chrome.nav.pricing"]],
+    ["/scans", COPY["chrome.nav.scans"]],
+    ["/signin", COPY["chrome.nav.signin"]],
+  ])("on %s exactly its own link is current, in the bar and in the drawer", (path, text) => {
+    expect(current(path)).toEqual([
+      ["bar", path, text],
+      ["drawer", path, text],
+    ]);
+  });
+
+  it("Sign in stays current on the step its link lands on", () => {
+    expect(current("/auth/confirm").map(([, href]) => href)).toEqual(["/signin", "/signin"]);
+  });
+
+  it.each([LANDING, REPORT, "/privacy", "/scans/kinds", "/pricing/extra"])("on %s no link is current", (path) => {
+    expect(markup(path)).not.toContain("aria-current");
   });
 });
 
@@ -229,6 +282,10 @@ describe("owner 2026-09-26 (#1125) — signed in, one button into the app", () =
       expect(html).not.toContain(START);
       expect(html).not.toContain('href="/signin"');
     }
+  });
+
+  it("the button into the app keeps its arrow", () => {
+    expect(withoutDrawer(signedIn(ELSEWHERE, "/app"))).toContain("lucide-arrow-right");
   });
 
   it("an account still in setup is sent to /setup", () => {

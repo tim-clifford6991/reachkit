@@ -3,16 +3,10 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { copy } from "@/lib/presentation/copy";
-import { PARITY_DIR, boardFile, segments } from "../../../scripts/design/parity.mjs";
+import { PARITY_DIR, boardFile } from "../../../scripts/design/parity.mjs";
+import { partOf } from "./chrome-parts";
 
 const rows = JSON.parse(readFileSync(path.join(PARITY_DIR, "boards.json"), "utf8")) as Record<string, { read: string; chrome?: string }>;
-
-/** The text of a board's first `<tag>` before or after its `<main>`, so a header inside the screen is not the bar. */
-function partOf(html: string, tag: "header" | "footer"): string[] {
-  const from = tag === "header" ? html.indexOf("<header") : html.indexOf("<footer", html.indexOf("</main>"));
-  const to = html.indexOf(`</${tag}>`, from);
-  return from === -1 || to === -1 ? [] : segments(html.slice(from, to), { board: true });
-}
 
 // The one header text that follows the route: the report address adds its Copy link beside the CTA (headerActionFor's copy-link arm).
 const ARM = new Set([copy("copy-link.label")]);

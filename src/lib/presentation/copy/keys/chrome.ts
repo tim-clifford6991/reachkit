@@ -57,20 +57,6 @@ export const CHROME_COPY = Object.freeze({
    *  *Sign in* and *Start free* (owner 2026-09-26, #1125). Drafted; the
    *  owner's word is "dashboard". The arrow is the button's icon. */
   "chrome.cta.app": ["Your dashboard", { slots: {}, fixedBy: "issue 1125" }],
-  /** The dismissible banner above every public header (#1066). The one
-   *  line the owner edits is `chrome.banner`; the tag, the region's name
-   *  and the close button's name are the board's words. Its link is the
-   *  hero's own `landing.submit.label`. */
-  "chrome.banner": [
-    "Your first page is free. We’ll email it to you.",
-    { slots: {}, fixedBy: "board PubLanding · owner 2026-10-20" },
-  ],
-  /** The banner below `sm`, where the whole line is the link (board `PubLandingPhone`). */
-  "chrome.banner.short": ["Your first page, written for you", { slots: {}, fixedBy: "board PubLandingPhone · owner 2026-10-20" }],
-  "chrome.banner.tag": ["Free", { slots: {}, fixedBy: "issue 1066" }],
-  "chrome.banner.label": ["Announcement", { slots: {}, fixedBy: "issue 1066" }],
-  "chrome.banner.dismiss": ["Dismiss", { slots: {}, fixedBy: "issue 1066" }],
-
   /* ── The footer ──────────────────────────────────────────────────── */
   "chrome.footer.product": ["Product", { slots: {}, fixedBy: "the approved screen set · 3a" }],
   "chrome.footer.legal": ["Legal", { slots: {}, fixedBy: "the approved screen set · 3a" }],
@@ -85,6 +71,8 @@ export const CHROME_COPY = Object.freeze({
     "Want your site’s report removed? {address}",
     { slots: { address: "text" }, fixedBy: "board PubLanding v36 · owner 2026-11-01" },
   ],
+  /** The way out of a subscription, from every public page; signed out the app sends it to sign-in first. */
+  "chrome.footer.cancel": ["Cancel your contract", { slots: {}, fixedBy: "board PubLanding v36 · owner 2026-11-01" }],
   "chrome.footer.rights": ["© 2026 ReachKit", { slots: {}, fixedBy: "board PubLanding v36 · owner 2026-11-01" }],
 
   /* ── The pricing page (board Pricing) ─────────────────────────────── */

@@ -89,3 +89,50 @@ describe("owner 2026-10-20 (Q1) — three header links on every public route", (
     expect(found).toEqual({ bar: LINKS, menu: LINKS });
   }, 60_000);
 });
+
+/** The widths board v36 is drawn at: the phone, the tablet and the desk. */
+const BOARD_WIDTHS = [390, 768, 1280] as const;
+
+describe("board v36 — the full wordmark on every public route, signed out", () => {
+  const cases = [...PUBLIC_PATHS, "/signin"].flatMap((path) => BOARD_WIDTHS.map((width) => [path, width] as const));
+
+  it.each(cases)("wordmark not truncated: %s at %ipx", async (path, width) => {
+    const baseURL = getBaseURL();
+    if (!baseURL) throw new Error("tests/ui/layout/public-header.test.ts: no app server is running.");
+    const word = await withPage(width, async (page) => {
+      await page.goto(baseURL + path, { waitUntil: "load" });
+      await page.evaluate(() => document.fonts.ready);
+      return page.evaluate(() => {
+        const span = document.querySelector<HTMLElement>('[data-testid="public-brand"] span:last-child')!;
+        const bar = document.querySelector<HTMLElement>('[data-testid="public-header"] nav')!;
+        return { text: span.textContent, fits: span.scrollWidth <= span.clientWidth, oneRow: bar.scrollHeight <= bar.clientHeight };
+      });
+    });
+    expect(word).toEqual({ text: COPY["chrome.wordmark"], fits: true, oneRow: true });
+  }, 60_000);
+});
+
+describe("board v36 — the current page's link is in the primary ink", () => {
+  it.each([
+    [1280, '[data-testid="public-header"] nav > div > ul'],
+    [390, '[data-testid="public-header-menu"] .drawer-side'],
+  ] as const)("Pricing at %ipx, in %s, takes --color-primary", async (width, scope) => {
+    const baseURL = getBaseURL();
+    if (!baseURL) throw new Error("tests/ui/layout/public-header.test.ts: no app server is running.");
+    const inks = await withPage(width, async (page) => {
+      await page.emulateMedia({ colorScheme: "light" });
+      await page.goto(baseURL + "/pricing", { waitUntil: "domcontentloaded" });
+      if (width === 390) {
+        await page.locator('[data-testid="public-header-menu"] label.btn').click();
+        await page.locator(`${scope} a[aria-current]`).waitFor({ state: "visible" });
+      }
+      return page.evaluate((where) => {
+        const probe = document.body.appendChild(document.createElement("span"));
+        probe.style.color = "var(--color-primary)";
+        const links = [...document.querySelectorAll(`${where} a[aria-current="page"]`)];
+        return { current: links.map((a) => getComputedStyle(a).color), primary: [getComputedStyle(probe).color] };
+      }, scope);
+    });
+    expect(inks.current).toEqual(inks.primary);
+  }, 60_000);
+});

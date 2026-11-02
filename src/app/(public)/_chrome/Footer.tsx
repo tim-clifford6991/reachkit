@@ -1,7 +1,8 @@
 // BUILD §3, §4.2 — the public footer, a daisyUI footer.
 // src/app/(public)/_chrome/Footer.tsx
 //
-// Board `PubLanding`: brand, then Product · Learn · Legal · Contact, then
+// Board `PubLanding` v36: brand, then Product · Learn · Legal · Contact — two
+// across on a phone, four from `sm`, and beside the brand from `lg` — then
 // one wrapping line with the rights and the removal address as a mail link,
 // named so a person who never opened an email can still find the way out.
 // **The column titles are not headings** (#328). They were level-six
@@ -48,6 +49,9 @@ async function ArticlesLink(): Promise<React.JSX.Element | null> {
   );
 }
 
+/** The way out of a subscription. It is the billing screen's own cancel: signed out, the app asks for sign-in first. */
+export const CANCEL_HREF = "/app/settings/billing";
+
 /** Not a character any sentence holds, so the split is the slot's own boundary. */
 const SENTINEL = "\u0000";
 
@@ -56,8 +60,8 @@ export function Footer(): React.JSX.Element {
   const [before = "", after = ""] = copy("chrome.footer.opt-out", { address: SENTINEL }).split(SENTINEL);
   return (
     <footer className="border-t border-base-300 bg-base-100" data-testid="public-footer">
-      <div className="footer mx-auto max-w-6xl px-4 pt-10 pb-8 text-sm sm:footer-horizontal">
-        <aside>
+      <div className="footer mx-auto max-w-6xl grid-cols-2 px-4 pt-10 pb-8 text-sm sm:grid-cols-4 lg:grid-cols-[1.4fr_repeat(4,1fr)]">
+        <aside className="col-span-2 sm:col-span-4 lg:col-span-1">
           <Brand href="/" />
         </aside>
 
@@ -105,6 +109,9 @@ export function Footer(): React.JSX.Element {
               {copy(link.key)}
             </Link>
           ))}
+          <Link href={CANCEL_HREF} prefetch={true} className={LINK}>
+            {copy("chrome.footer.cancel")}
+          </Link>
         </nav>
 
         <nav aria-label={copy("chrome.footer.contact")}>

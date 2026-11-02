@@ -167,12 +167,11 @@ describe("S8 — the line each screen writes", () => {
 });
 
 /** The chrome's own controls, lifted out of a screen's markup: they are
- *  the frame's, on every public route, not the screen's one control. Since
- *  #1066 that is the banner's dismiss button and the header's theme switch
- *  (in the bar and in the drawer), so the banner and the header are lifted
- *  out whole. */
+ *  the frame's, on every public route, not the screen's one control. That
+ *  is the header's theme switch (in the bar and in the drawer), so the
+ *  header is lifted out whole. */
 function withoutHeaderControls(markup: string): string {
-  return markup.replace(/<div role="region"[^>]*data-testid="public-banner"[\s\S]*?<\/header>/g, "");
+  return markup.replace(/<header[^>]*data-testid="public-header"[\s\S]*?<\/header>/g, "");
 }
 
 describe("S8 — one control per screen, and it is the route group's own", () => {

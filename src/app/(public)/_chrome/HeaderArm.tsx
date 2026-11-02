@@ -21,12 +21,10 @@
 import type React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowRight, X } from "lucide-react";
 import { CopyLink } from "../scan/[domain]/_address/copy-link";
 import { focusField } from "../_landing/FieldCta";
 import { FIELD_SECTION_ID } from "../_landing/sections";
 import { headerActionFor, type HeaderAction } from "./action";
-import { dismissBanner } from "./banner";
 
 /**
  * The arm this render is at.
@@ -46,7 +44,7 @@ function armHere(pathname: string | null): HeaderAction {
  * takes: on the landing it is a button that brings the field into view with
  * the cursor in it, so the page keeps exactly one submit control; everywhere
  * else it is a link to that field on the landing. The header's *Start free*
- * and the banner's link are both this (SPEC §1, 2026-09-24).
+ * is this (SPEC §1, 2026-09-24).
  */
 function ToField(p: { className: string; children: React.ReactNode }): React.JSX.Element {
   return armHere(usePathname()).kind === "landing" ? (
@@ -60,40 +58,31 @@ function ToField(p: { className: string; children: React.ReactNode }): React.JSX
   );
 }
 
-/**
- * The header's *Start free*: a solid primary with an arrow on every public
- * route (SPEC §1, 2026-09-24 — outside DESIGN's one-loud-button count).
- */
+/** The header's *Start free*: a solid primary, with no arrow (board PubLanding v36). */
 export function HeaderCta(p: { label: string }): React.JSX.Element {
-  return (
-    <ToField className="btn btn-primary">
-      {p.label}
-      <ArrowRight aria-hidden size={16} strokeWidth={1.75} />
-    </ToField>
-  );
+  return <ToField className="btn btn-primary">{p.label}</ToField>;
 }
 
-/** The banner's link to the field. */
-export function BannerLink(p: { label: string }): React.JSX.Element {
-  return (
-    <ToField className="link inline-flex items-center gap-1 font-semibold whitespace-nowrap">
-      {p.label}
-      <ArrowRight aria-hidden size={14} strokeWidth={1.75} />
-    </ToField>
-  );
-}
+/** The primary ink a header link takes on the page it names (boards PubLanding, AuthSignIn v36). */
+const CURRENT = "text-primary";
 
-/** The banner's close button; the dismissal is remembered (`./banner.ts`). */
-export function BannerDismiss(p: { label: string }): React.JSX.Element {
+/**
+ * A header link that marks itself as the page the reader is on, with
+ * `aria-current="page"` and the primary ink. `at` lists the addresses it
+ * names: its own, and for *Sign in* the confirm step the boards mark too.
+ */
+export function NavLink(p: {
+  href: string;
+  at?: readonly string[];
+  className?: string;
+  children: React.ReactNode;
+}): React.JSX.Element {
+  const current = (p.at ?? [p.href]).includes(usePathname() ?? "");
+  const className = [p.className, current ? CURRENT : null].filter(Boolean).join(" ");
   return (
-    <button
-      type="button"
-      className="btn btn-ghost btn-square btn-xs text-primary-content hover:bg-primary-content/15"
-      aria-label={p.label}
-      onClick={dismissBanner}
-    >
-      <X aria-hidden size={16} strokeWidth={1.75} />
-    </button>
+    <Link href={p.href} className={className === "" ? undefined : className} aria-current={current ? "page" : undefined}>
+      {p.children}
+    </Link>
   );
 }
 
