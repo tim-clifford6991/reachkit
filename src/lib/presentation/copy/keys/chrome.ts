@@ -621,7 +621,6 @@ export const CHROME_COPY = Object.freeze({
   "library.close.onpage.3.them": ["A tidy page still has to be found", { slots: {}, fixedBy: "board PubToolOnPage · issue 1728" }],
   "library.close.onpage.3.us": ["New pages answer what buyers ask, up to {weekPages} a week", { slots: { weekPages: "text" }, fixedBy: "board PubToolOnPage · issue 1728" }],
   "library.close.onpage.cta.lead": ["Your whole site has more to check. The free scan reads up to {pages} pages and {searches} searches in under a minute.", { slots: { pages: "text", searches: "text" }, fixedBy: "board PubToolOnPage · issue 1728" }],
-  "library.close.scans.eyebrow": ["After the report", { slots: {}, fixedBy: "board PubScans · issue 1728" }],
   "library.close.scans.title": ["Reports look once. ReachKit keeps going.", { slots: {}, fixedBy: "board PubScans · issue 1728" }],
   "library.close.scans.lead": ["The free report shows where you stand today. With ReachKit, we check every Monday and write the pages you’re missing.", { slots: {}, fixedBy: "board PubScans · issue 1728" }],
   "library.close.scans.them": ["The free report", { slots: {}, fixedBy: "board PubScans · issue 1728" }],

@@ -27,11 +27,11 @@
 import type React from "react";
 import { Copy } from "lucide-react";
 
-export function CopyLink(p: { canonicalUrl: string; label: string }): React.JSX.Element {
+export function CopyLink(p: { canonicalUrl: string; label: string; className?: string }): React.JSX.Element {
   return (
     <button
       type="button"
-      className="btn btn-ghost btn-sm"
+      className={p.className ?? "btn btn-ghost btn-sm"}
       onClick={() => {
         void navigator.clipboard?.writeText(p.canonicalUrl);
       }}

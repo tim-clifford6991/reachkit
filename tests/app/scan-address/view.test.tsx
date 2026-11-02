@@ -178,7 +178,7 @@ describe("SPEC §2, 2026-09-20 — the report's sections are held in place, so t
 
   it("the stages still stand beside them, and the waiting line with them", () => {
     const html = render(ARMS[3]![1]);
-    expect(html).toContain("steps steps-vertical");
+    expect(html).toContain(`data-testid="scan-stages"`);
     expect(html).toContain("scan.waiting.line");
   });
 });

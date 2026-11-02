@@ -1,9 +1,9 @@
 "use client";
 // One dot per report along the score axis, in the context series colour: filled
 // where the score is findable, a ring below it, so the band is never colour
-// alone. Reports too close to read apart are stacked. The written caption
-// beside it is what a screen reader and a server render get, so the drawing
-// is hidden and takes no focus.
+// alone, and both drawn the same size. Reports too close to read apart are
+// stacked. The written caption beside it is what a screen reader and a server
+// render get, so the drawing is hidden and takes no focus.
 import type React from "react";
 import { Cell, Scatter, ScatterChart, XAxis, YAxis, ZAxis } from "recharts";
 import { SERIES_COLOR } from "@/ui/charts/series";
@@ -15,6 +15,8 @@ const TICK = { fontSize: 12, fill: "currentColor" } as const;
 /** Dots closer than this share of the axis are stacked rather than drawn over each other. */
 const APART = 1 / 25;
 const DOT_AREA = 180;
+/** A filled dot's own-colour edge, as wide as the thickest ring, so the two read as one size. */
+const FILLED_STROKE = 3;
 
 export interface StripPoint {
   readonly name: string;
@@ -42,8 +44,8 @@ export function ScoreStrip(p: { points: readonly StripPoint[]; low: number; high
             <Cell
               key={point.name}
               fill={point.ring === 0 ? SERIES_COLOR.rival : GROUND}
-              stroke={point.ring === 0 ? GROUND : SERIES_COLOR.rival}
-              strokeWidth={point.ring === 0 ? 2 : point.ring}
+              stroke={SERIES_COLOR.rival}
+              strokeWidth={point.ring === 0 ? FILLED_STROKE : point.ring}
             />
           ))}
         </Scatter>

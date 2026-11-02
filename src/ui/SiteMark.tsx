@@ -16,8 +16,24 @@ const BOX = {
   56: "size-14 rounded-box text-2xl",
 } as const;
 export type SiteMarkSize = keyof typeof BOX;
+/** The frame's padding around a logo, as the boards draw it. */
+const PAD: Record<SiteMarkSize, string> = { 20: "p-0.5", 32: "p-1", 36: "p-1", 40: "p-1", 44: "p-1.5", 48: "p-1.5", 56: "p-2" };
+/** A logo that fails to load paints its own letter tile: a broken image draws its
+ *  `::after`, a loaded one never does, so no script and no flash of a broken icon. */
+const BROKEN =
+  "after:absolute after:-inset-px after:grid after:place-items-center after:bg-base-100 after:ring-[6rem] after:ring-inset after:content-[attr(data-letter)]";
+const BROKEN_TINT: Record<(typeof TINTS)[number], string> = {
+  "badge-primary": "after:ring-primary/12 after:text-primary",
+  "badge-success": "after:ring-success/12 after:text-success",
+  "badge-warning": "after:ring-warning/12 after:text-warning",
+};
 /** Attribute values, never sentences: the copy rule reads a bare attribute string as voice. */
 const IMG = { alt: "", lazy: "lazy", eager: "eager" } as const;
+
+/** Where the stored logo is served from our own origin. */
+export function siteLogoSrc(domain: string): string {
+  return `/scans/logo/${encodeURIComponent(domain)}`;
+}
 
 /** The same domain always gets the same tint. */
 export function tintOf(domain: string): (typeof TINTS)[number] {
@@ -28,25 +44,28 @@ export function tintOf(domain: string): (typeof TINTS)[number] {
 export function SiteMark(p: { domain: string; hasLogo: boolean; size?: SiteMarkSize }): React.JSX.Element {
   const size = p.size ?? 40;
   const box = `${BOX[size]} shrink-0`;
+  const letter = Array.from(p.domain)[0]?.toUpperCase();
+  const tint = tintOf(p.domain);
   if (p.hasLogo) {
     return (
-      <span aria-hidden className={`${box} border-base-300 bg-base-100 grid place-items-center border p-1`}>
+      <span aria-hidden className={`${box} ${PAD[size]} border-base-300 bg-base-100 relative grid place-items-center overflow-hidden border font-extrabold`}>
         {/* A plain <img>: the logo route already serves a small stored file. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={`/scans/logo/${encodeURIComponent(p.domain)}`}
+          src={siteLogoSrc(p.domain)}
           alt={IMG.alt}
           loading={size >= 48 ? IMG.eager : IMG.lazy}
           width={size}
           height={size}
-          className="size-full object-contain"
+          data-letter={letter}
+          className={`size-full object-contain ${BROKEN} ${BROKEN_TINT[tint]}`}
         />
       </span>
     );
   }
   return (
-    <span aria-hidden className={`badge badge-soft ${tintOf(p.domain)} ${box} p-0 font-extrabold`}>
-      {Array.from(p.domain)[0]?.toUpperCase()}
+    <span aria-hidden className={`badge badge-soft ${tint} ${box} p-0 font-extrabold`}>
+      {letter}
     </span>
   );
 }

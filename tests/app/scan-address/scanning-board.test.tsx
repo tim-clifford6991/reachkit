@@ -9,13 +9,26 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { segments } from "../../../scripts/design/parity.mjs";
 import { expectStateParity } from "../../ui/layout/state-parity";
 
+// The public origin is bound at build; the copy-link line is drawn only where it is.
+process.env.NEXT_PUBLIC_APP_URL = "https://reachkit.app";
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 const { ScanningView } = await import("@/app/(public)/scan/[domain]/_address/scanning");
 const { copy } = await import("@/lib/presentation/copy");
-const { BATTERY } = await import("@/lib/config/constants");
+const { BATTERY, SITE_PROFILE } = await import("@/lib/config/constants");
 type StageSummary = import("@/lib/scan/stages").StageSummary;
+
+/** The browser's image loader: answers once the logo route would serve the file. */
+class FakeImage {
+  static served = false;
+  static asked: string[] = [];
+  onload: (() => void) | null = null;
+  set src(value: string) {
+    FakeImage.asked.push(value);
+    if (FakeImage.served) queueMicrotask(() => this.onload?.());
+  }
+}
 
 class FakeEventSource {
   static opened: FakeEventSource[] = [];
@@ -30,7 +43,7 @@ class FakeEventSource {
 }
 
 const START = new Date("2026-10-23T14:02:00");
-const DOMAIN = "harborplumbing.example" as Parameters<typeof ScanningView>[0]["domain"];
+const DOMAIN = "fernwoodtea.example" as Parameters<typeof ScanningView>[0]["domain"];
 const roots: Root[] = [];
 
 beforeEach(() => {
@@ -38,6 +51,9 @@ beforeEach(() => {
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(START);
   vi.stubGlobal("EventSource", FakeEventSource);
+  FakeImage.served = false;
+  FakeImage.asked = [];
+  vi.stubGlobal("Image", FakeImage);
 });
 
 afterEach(() => {
@@ -60,7 +76,8 @@ async function at(seconds: number, event: { stage: string; done: boolean; summar
   await act(async () => FakeEventSource.opened[0]!.emit(event));
 }
 
-const BUYER = "homeowners and businesses in Austin needing plumbing work";
+const BUYER = "tea drinkers and gift buyers across the US";
+const CATEGORY = "loose leaf tea";
 
 /** The board's moment: three stages done in 4, 2 and 6 seconds, the fourth started at 0:12. */
 async function partWay(): Promise<HTMLElement> {
@@ -71,7 +88,7 @@ async function partWay(): Promise<HTMLElement> {
   await at(6, { stage: "reading_access_rules", done: true, summary: { readers: { google: "in", ai: "out" } } });
   await at(6, { stage: "reading_your_market", done: false });
   // The crawl ends beside the market, so its count rides on the market's exit.
-  await at(12, { stage: "reading_your_market", done: true, summary: { pagesRead: 38, category: "Plumber", buyer: BUYER, place: "Austin" } });
+  await at(12, { stage: "reading_your_market", done: true, summary: { pagesRead: 38, category: CATEGORY, kind: "shop", buyer: BUYER, reach: "national", country: "US" } });
   await at(12, { stage: "checking_your_presence", done: false });
   return screen;
 }
@@ -87,14 +104,14 @@ function inOrder(screen: HTMLElement, wanted: string[]): void {
   }
 }
 
-const rows = (screen: HTMLElement): HTMLElement[] => [...screen.querySelectorAll<HTMLElement>(".steps > li")];
+const rows = (screen: HTMLElement): HTMLElement[] => [...screen.querySelectorAll<HTMLElement>('[data-testid="scan-stages"] > li')];
 const cards = (screen: HTMLElement): HTMLElement[] => [...screen.querySelectorAll<HTMLElement>('[data-testid="scan-section"]')];
 const searches = { searches: String(BATTERY.QUESTIONS) };
 const card = (screen: HTMLElement, title: string): HTMLElement =>
   cards(screen).find((c) => c.querySelector("h3")?.textContent?.startsWith(title))!;
 const TWELVE: StageSummary["searches"] = [
-  { words: "emergency plumber austin", onPageOne: false },
-  { words: "drain cleaning austin", onPageOne: true },
+  { words: "loose leaf tea gift set", onPageOne: false },
+  { words: "matcha starter kit", onPageOne: true },
 ];
 
 /** Every stage after the board's moment finishes, scoring included, carrying the summaries a pass writes. */
@@ -116,6 +133,17 @@ describe("the scan in progress matches board PubScanning", () => {
     inOrder(await partWay(), [copy("scan.eyebrow"), copy("scan.head", { domain: DOMAIN }), copy("scan.waiting.line")]);
   });
 
+  it("under the waiting line, the report's lasting address and a Copy link button that copies it", async () => {
+    const writeText = vi.fn(async () => undefined);
+    vi.stubGlobal("navigator", { clipboard: { writeText } });
+    const line = (await partWay()).querySelector("header p.mt-2")!;
+    expect(line.querySelector(".num")?.textContent).toBe("reachkit.app/scan/fernwoodtea.example");
+    const button = line.querySelector("button")!;
+    expect(button.textContent).toBe(copy("copy-link.label"));
+    await act(async () => button.click());
+    expect(writeText).toHaveBeenCalledWith("https://reachkit.app/scan/fernwoodtea.example");
+  });
+
   it("Progress: started at the visitor's clock, six stages in plain words with their sub-lines, then the caption", async () => {
     const screen = await partWay();
     const time = new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit" }).format(START);
@@ -128,23 +156,15 @@ describe("the scan in progress matches board PubScanning", () => {
       `${copy("stage.checking_your_presence", searches)} ${copy("stage.checking_your_presence.line")} ${copy("stage.status.working")} started 0:12`,
       `${copy("stage.asking_the_twelve")} ${copy("stage.asking_the_twelve.line")} ${copy("stage.status.next")}`,
       `${copy("stage.scoring")} ${copy("stage.scoring.line")} ${copy("stage.status.next")}`,
-      copy("scan.get.title"),
+      copy("scan.filling.title"),
     ]);
   });
 
-  it("What you'll get: four items and the line to How it works, with no second telling of the steps", async () => {
+  it("the board's cut: no What you'll get card and no link out to How it works", async () => {
     const screen = await partWay();
-    expect(screen.querySelector('[aria-labelledby="scan-get"] ol')).toBeNull();
-    inOrder(screen, [
-      copy("scan.get.title"),
-      `${copy("scan.get.score")} ${copy("scan.get.score.line")}`,
-      `${copy("scan.get.rivals")} ${copy("scan.get.rivals.line")}`,
-      `${copy("scan.get.held")} ${copy("scan.get.held.line")}`,
-      `${copy("scan.get.first-page")} ${copy("scan.get.first-page.line")}`,
-      copy("scan.get.after"),
-      copy("chrome.nav.works"),
-    ]);
-    expect(screen.querySelector('a[href="/how-it-works"]')).not.toBeNull();
+    expect(screen.querySelector('[aria-labelledby="scan-get"]')).toBeNull();
+    expect(screen.querySelector('a[href="/how-it-works"]')).toBeNull();
+    expect([...screen.querySelectorAll("main h2")].map((h) => h.textContent)).toEqual([copy("scan.progress.title"), copy("scan.filling.title")]);
   });
 
   it("Your report so far: six cards in the board's order, each saying whether its stage has run", async () => {
@@ -202,7 +222,10 @@ describe("the cards fill in from what each finished stage found", () => {
     const screen = await partWay();
     const read = card(screen, copy("report.read.title"));
     expect(read.textContent).toContain(copy("scan.filling.pages", { pages: "38" }));
-    expect(read.textContent).toContain("Plumber");
+    // The pages read as a bar against the most a scan reads.
+    const bar = read.querySelector("progress")!;
+    expect([bar.getAttribute("value"), bar.getAttribute("max")]).toEqual(["38", String(SITE_PROFILE.MAX_PAGES)]);
+    expect(read.textContent).toContain(CATEGORY);
     expect(read.querySelector(".skeleton")).toBeNull();
     inOrder(card(screen, copy("scan.filling.readers")), [
       `${copy("scan.filling.reader.google")} ${copy("scan.filling.reader.in")} ${copy("scan.filling.reader.ai")} ${copy("scan.filling.reader.out")}`,
@@ -215,17 +238,17 @@ describe("the cards fill in from what each finished stage found", () => {
 
     await toTheEnd(screen);
     inOrder(card(screen, copy("scan.filling.searches", searches)), [
-      `emergency plumber austin ${copy("scan.filling.search.out")}`,
-      `drain cleaning austin ${copy("scan.filling.search.in")}`,
+      `loose leaf tea gift set ${copy("scan.filling.search.out")}`,
+      `matcha starter kit ${copy("scan.filling.search.in")}`,
     ]);
   });
 
-  it("what we read: the category under Tag, the town under MapPin, and who buys in full on its own line", async () => {
+  it("what we read: kind · industry under Tag, how far it sells under MapPin, and who buys in full on its own line", async () => {
     const read = card(await partWay(), copy("report.read.title"));
     const chips = [...read.querySelectorAll("li")];
     expect(chips.map((li) => [li.querySelector("svg")?.classList.contains("lucide-tag"), li.querySelector("svg")?.classList.contains("lucide-map-pin"), li.textContent])).toEqual([
-      [true, false, "Plumber"],
-      [false, true, copy("report.read.where.local", { place: "Austin" })],
+      [true, false, copy("report.read.as.what", { kind: copy("report.read.as.kind.shop"), category: CATEGORY })],
+      [false, true, copy("report.read.where.national", { country: "United States" })],
     ]);
     expect(read.querySelector(".lucide-users, .lucide-wrench")).toBeNull();
     const buyer = [...read.querySelectorAll("p")].find((p) => p.textContent?.startsWith("Who buys:"));
@@ -236,7 +259,7 @@ describe("the cards fill in from what each finished stage found", () => {
   it("a 200-character buyer is drawn whole, never cut", async () => {
     const screen = await mount();
     const long = `${"homeowners, landlords and property managers ".repeat(5)}`.slice(0, 200);
-    await at(1, { stage: "reading_your_market", done: true, summary: { category: "Plumber", buyer: long } });
+    await at(1, { stage: "reading_your_market", done: true, summary: { category: CATEGORY, buyer: long } });
     const read = card(screen, copy("report.read.title"));
     expect(read.textContent).toContain(copy("scan.filling.buyer", { buyer: long }));
     expect(read.textContent).not.toContain("…");
@@ -264,17 +287,63 @@ describe("the cards fill in from what each finished stage found", () => {
   it("a missing summary is never drawn as 0: no summary, or one without pages read, keeps the done badge over a skeleton", async () => {
     const screen = await mount();
     await at(1, { stage: "reading_access_rules", done: true });
-    await at(2, { stage: "reading_your_market", done: true, summary: { category: "Plumber" } });
+    await at(2, { stage: "reading_your_market", done: true, summary: { category: CATEGORY } });
     const readers = card(screen, copy("scan.filling.readers"));
     expect(readers.dataset.state).toBe("done");
     expect(readers.querySelector(".skeleton")).not.toBeNull();
     const read = card(screen, copy("report.read.title"));
-    expect(read.textContent).toContain("Plumber");
+    expect(read.textContent).toContain(CATEGORY);
     expect(read.textContent).not.toContain(copy("scan.filling.pages", { pages: "0" }));
     // An old event, or a site that sells wider than a town: no town chip, no buyer line, no empty chip.
     expect(read.querySelector(".lucide-map-pin")).toBeNull();
     expect(read.textContent).not.toContain("Who buys:");
-    expect([...read.querySelectorAll("li")].map((li) => li.textContent)).toEqual(["Plumber"]);
+    expect([...read.querySelectorAll("li")].map((li) => li.textContent)).toEqual([CATEGORY]);
     for (const c of cards(screen)) expect(c.textContent).not.toMatch(/(^|\D)0(\D|$)/);
+  });
+});
+
+describe("the kind of business beside the industry, once the market read lands", () => {
+  it.each([
+    ["kind and industry", { kind: "software", category: "invoicing" }, (): string => copy("report.read.as.what", { kind: copy("report.read.as.kind.software"), category: "invoicing" })],
+    ["the kind alone", { kind: "hospitality" }, (): string => copy("report.read.as.kind.hospitality")],
+    ["the industry alone", { category: "invoicing" }, (): string => "invoicing"],
+  ] as const)("%s", async (_name, summary, want) => {
+    const screen = await mount();
+    await at(1, { stage: "reading_your_market", done: true, summary });
+    expect(card(screen, copy("report.read.title")).querySelector("li")?.textContent).toBe(want());
+  });
+});
+
+describe("the site's mark beside Scanning {domain}", () => {
+  const head = (screen: HTMLElement): HTMLElement => screen.querySelector("h1")!.parentElement!;
+
+  it("with no logo stored: the 48px letter tile on its tint, from the server's first frame", async () => {
+    const served = document.createElement("div");
+    served.innerHTML = renderToStaticMarkup(<ScanningView domain={DOMAIN} scanId="scan-1" />);
+    const tile = head(served).querySelector("h1")!.previousElementSibling!;
+    expect([tile.textContent, tile.classList.contains("size-12"), tile.classList.contains("badge-soft")]).toEqual(["F", true, true]);
+    const screen = await partWay();
+    expect(head(screen).querySelector("img")).toBeNull();
+    expect(head(screen).querySelector(".size-12")?.textContent).toBe("F");
+    // Asked on the first frame and again as each stage finished.
+    expect(FakeImage.asked.length).toBeGreaterThan(1);
+    expect(new Set(FakeImage.asked)).toEqual(new Set(["/scans/logo/fernwoodtea.example"]));
+  });
+
+  it("with a logo stored: the logo itself at 48px, from our own origin", async () => {
+    FakeImage.served = true;
+    const screen = await mount();
+    const img = head(screen).querySelector("img")!;
+    expect(img.getAttribute("src")).toBe("/scans/logo/fernwoodtea.example");
+    expect([img.getAttribute("width"), img.getAttribute("height")]).toEqual(["48", "48"]);
+    expect(head(screen).querySelector("h1")?.textContent).toBe(copy("scan.head", { domain: DOMAIN }));
+  });
+
+  it("a logo stored part-way through the scan replaces the letter as the next stage finishes", async () => {
+    const screen = await mount();
+    expect(head(screen).querySelector("img")).toBeNull();
+    FakeImage.served = true;
+    await at(4, { stage: "reading_your_site", done: true });
+    expect(head(screen).querySelector("img")?.getAttribute("src")).toBe("/scans/logo/fernwoodtea.example");
   });
 });

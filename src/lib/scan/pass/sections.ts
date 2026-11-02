@@ -545,9 +545,14 @@ export function summaryAt(stage: StageName, a: Pick<StageArgs, "domain" | "secti
         market: s.market === null ? null : { ...EMPTY_STORED_MARKET, current: s.market },
         edits: { buyers: s.founderBuyer },
       });
+      if (read.kind !== null) summary.kind = read.kind;
       const buyer = read.buyers[0];
       if (buyer !== undefined) summary.buyer = buyer;
       if (read.where.place !== null) summary.place = read.where.place.name;
+      else if (read.where.reach === "national" || read.where.reach === "international") {
+        summary.reach = read.where.reach;
+        summary.country = read.where.country;
+      }
     }
   }
   if (stage === "asking_the_twelve") {

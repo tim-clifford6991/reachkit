@@ -1,14 +1,12 @@
-reachkit.app/scan/harborplumbing.com	sample data
-emergency plumber austin not on first page	sample data
-water heater repair austin not on first page	sample data
-drain cleaning austin not on first page	sample data
-slab leak repair austin not on first page	sample data
-tankless water heater installation austin checking	sample data
+loose leaf tea gift set not on first page	sample data
+matcha starter kit not on first page	sample data
+best green tea for beginners not on first page	sample data
+how to brew loose leaf tea not on first page	sample data
+tea subscription box checking	sample data
 started 14:02	sample data
 Your competitors 3 found	owner R27, 2026-10-23: the competitors card stays grey until the report arrives
-austinpipeworks.example	owner R27, 2026-10-23: the competitors card stays grey until the report arrives
-capitolrooter.example	owner R27, 2026-10-23: the competitors card stays grey until the report arrives
+leafandkettle.example	owner R27, 2026-10-23: the competitors card stays grey until the report arrives
+steepco.example	owner R27, 2026-10-23: the competitors card stays grey until the report arrives
 12 searches buyers make working on it	owner R27, 2026-10-23: the board's part-way twelve is not a stage boundary, so the card waits on Next
-Sample: a scan of Harbor Plumbing, Austin, part way through. Each section of the report fills in as its stage finishes; grey shapes hold the place of what’s still coming.	#1725: the board's own caption on its sample, a designer's note
-Copy link	SPEC 2026-09-15: the report keeps its copy-link beside the CTA, in the public header around this screen
-a national plumbing chain	owner R27, 2026-10-23: the competitors card stays grey until the report arrives
+a national tea retailer	owner R27, 2026-10-23: the competitors card stays grey until the report arrives
+Sells online, across the US	SPEC §2 (issue 1454): the where chip reads "Across United States", as on the report (docs/spec/decisions/2026-11-02-2269.md)

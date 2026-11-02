@@ -22,7 +22,17 @@ const BOOK_OPEN = 'd="M12 5v16"';
 const FLAME = "M8.5 14.5A2.5";
 const MESSAGE_CIRCLE_WARNING = 'd="M2.992 16.342';
 const LOADER = "M21 12a9 9 0 1 1-6.219-8.56";
-const GLANCE = ["PubAnswer", "PubCompare", "PubCompareTool", "PubHowItWorks", "PubTeardown", "PubTeardowns", "PubToolMeta", "PubToolOnPage", "PubTools", "PubScans"];
+const GLANCE = [
+  "PubAnswer",
+  "PubCompare",
+  "PubCompareTool",
+  "PubHowItWorks",
+  "PubTeardown",
+  "PubTeardowns",
+  "PubToolMeta",
+  "PubToolOnPage",
+  "PubTools",
+];
 
 /** A row of squares: an element whose children are all empty spans, `min` or more. */
 function squareRows(root: HTMLElement, min: number): HTMLElement[] {

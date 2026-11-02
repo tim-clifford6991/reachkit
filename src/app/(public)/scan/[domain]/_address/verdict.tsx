@@ -15,7 +15,7 @@
 // measurement of zero.
 import type React from "react";
 import { Languages, MapPin, Tag, TrendingUp, type LucideIcon } from "lucide-react";
-import { BAND_TONE } from "@/ui/bands";
+import { BAND_TONE, RING_TONE } from "@/ui/bands";
 import type { Tone } from "@/ui/types";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { LIMITING_LINES, SCORE_BANDS } from "@/lib/presentation/bands";
@@ -68,14 +68,6 @@ const BADGE_TONE: Readonly<Record<Tone, string>> = Object.freeze({
   neutral: "badge-ghost",
 });
 
-/** The ring is drawn in its band's colour, as the badge under it is. */
-const RING_TONE: Readonly<Record<Tone, string>> = Object.freeze({
-  accent: "text-primary",
-  ok: "text-success",
-  warn: "text-warning",
-  bad: "text-error",
-  neutral: "text-base-content/70",
-});
 
 
 /** One line per factor with no value, naming which of the two reasons
