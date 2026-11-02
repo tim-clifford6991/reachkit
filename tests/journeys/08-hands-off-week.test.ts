@@ -56,8 +56,7 @@ const db: FakeDb = fakeDb();
  *  rest of the week reads — journey 05's builder, for the same reason. */
 function fetchesBuilder() {
   const filters: { op: string; column: string; value: unknown }[] = [];
-  let verb: "select" | "insert" = "select";
-  let columns = "";
+  let [verb, columns]: ["select" | "insert", string] = ["select", ""];
   const self = {
     select: (selected: string) => ((columns = selected), self),
     insert(values: Row) {

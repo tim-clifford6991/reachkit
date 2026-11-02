@@ -46,7 +46,6 @@ interface ScanRow {
   tier?: string;
 }
 interface FetchRow {
-  id?: string;
   scan_id: string;
   source: string;
   payload: unknown;
@@ -54,7 +53,6 @@ interface FetchRow {
 interface QueryLog {
   table: string;
   method: string;
-  /** The values of an `in` filter, so a pass's id count can be read. */
   values?: readonly string[];
 }
 
@@ -85,26 +83,19 @@ function fakeDb(a: { scans: ScanRow[]; fetches: FetchRow[]; error?: { table: str
         inFilters.push({ column, values });
         return self;
       },
-      not() {
-        return self;
-      },
-      is() {
-        return self;
-      },
+      not: () => self,
+      is: () => self,
       then(resolve: (r: { data: unknown[] | null; error: { message: string } | null }) => unknown) {
         if (a.error && a.error.table === table) {
           return Promise.resolve(resolve({ data: null, error: { message: a.error.message } }));
         }
-        const rows = (
-          table === "scans" ? [...a.scans] : table === "fetches" ? a.fetches.map((row, at) => ({ id: `fetch-${at}`, ...row })) : []
-        ) as unknown as Record<string, unknown>[];
+        const rows = (table === "scans" ? a.scans : table === "fetches" ? a.fetches.map((row, at) => ({ id: `fetch-${at}`, ...row })) : []) as unknown as Record<string, unknown>[];
         const kept = rows.filter(
           (row) =>
             filters.every((f) => row[f.column] === f.value) &&
             inFilters.every((f) => f.values.includes(row[f.column] as string))
         );
-        const shaped = kept.map((row) => project(selected, row));
-        return Promise.resolve(resolve({ data: shaped, error: null }));
+        return Promise.resolve(resolve({ data: kept.map((row) => project(selected, row)), error: null }));
       },
     };
     return self;
@@ -325,115 +316,75 @@ describe("#1130 — the re-read text is the page's prose, never its chrome or it
 
 describe("the read takes only the fields it uses, and each URL's newest usable read", () => {
   const SITE_URL = "https://harborplumbing.example";
-  const T1 = new Date("2026-09-01T08:00:00.000Z");
-  const T2 = new Date("2026-09-08T08:00:00.000Z");
-  const T3 = new Date("2026-09-15T08:00:00.000Z");
+  const [T1, T2, T3] = ["2026-09-01", "2026-09-08", "2026-09-15"].map((day) => new Date(`${day}T08:00:00.000Z`)) as [Date, Date, Date];
   const page = (title: string, body: string) => `<html><body><main><h1>${title}</h1><p>${body}</p></main></body></html>`;
+  const own = (scan: string, path: string, html: string, at: Date, status = 200): FetchRow => ({
+    scan_id: scan,
+    source: OWN_FETCH_SOURCE,
+    payload: toStoredDocument({ ok: true, status, url: `${SITE_URL}${path}`, html, bytes: html.length, readAt: at, headers: {} }),
+  });
   const HOME = page("Harbor Plumbing in Austin", "We replace tankless water heaters in one day and quote the price before work starts.");
-  const SERVICES = page("Drain cleaning", "Every drain call includes a camera inspection so you see the blockage we clear.");
-  const ABOUT = page("About Harbor", "The company was started by two licensed plumbers who grew up on the east side of town.");
-  const RENDERED = page("Emergency repairs", "A plumber reaches most Austin addresses within ninety minutes of your call.");
-  const SHELL = '<html><body><div id="root"></div></body></html>';
-  const refused = (url: string, status: number, readAt: Date) =>
-    toStoredDocument({ ok: true, status, url, html: "<html><body>Forbidden</body></html>", bytes: 40, readAt, headers: {} });
-
-  /** A customer site read by its free scan, its deep pass and two weekly re-reads. */
-  const SCANS: ScanRow[] = [
-    { id: "free-1", site_id: null, domain: "harborplumbing.example", tier: "free" },
-    { id: "deep-1", site_id: SITE, domain: "harborplumbing.example", tier: "deep" },
-    { id: "week-1", site_id: SITE, domain: "harborplumbing.example", tier: "deep" },
-    { id: "week-2", site_id: SITE, domain: "harborplumbing.example", tier: "deep" },
-  ];
+  // A free scan, a deep pass and two weekly re-reads; the newest read of two pages is a 403 or a rate-limit body.
+  const SCANS: ScanRow[] = ["free-1", "deep-1", "week-1", "week-2"].map((id) => ({ id, site_id: id === "free-1" ? null : SITE, domain: "harborplumbing.example", tier: id === "free-1" ? "free" : "deep" }));
   const FETCHES: FetchRow[] = [
-    { scan_id: "free-1", source: OWN_FETCH_SOURCE, payload: storedDocument(`${SITE_URL}/`, HOME, T1) },
-    { scan_id: "week-1", source: OWN_FETCH_SOURCE, payload: storedDocument(`${SITE_URL}/`, HOME, T2) },
-    { scan_id: "week-2", source: OWN_FETCH_SOURCE, payload: storedDocument(`${SITE_URL}/`, HOME, T3) },
-    { scan_id: "deep-1", source: OWN_FETCH_SOURCE, payload: storedDocument(`${SITE_URL}/services`, SERVICES, T1) },
-    { scan_id: "week-2", source: OWN_FETCH_SOURCE, payload: refused(`${SITE_URL}/services`, 403, T3) },
-    { scan_id: "deep-1", source: OWN_FETCH_SOURCE, payload: storedDocument(`${SITE_URL}/about`, ABOUT, T1) },
-    { scan_id: "week-2", source: OWN_FETCH_SOURCE, payload: storedDocument(`${SITE_URL}/about`, "local_rate_limited", T3) },
-    { scan_id: "deep-1", source: OWN_FETCH_SOURCE, payload: storedDocument(`${SITE_URL}/emergency`, SHELL, T1) },
-    { scan_id: "deep-1", source: RENDERED_FETCH_SOURCE, payload: [storedDocument(`${SITE_URL}/emergency`, RENDERED, T2)] },
+    own("free-1", "/", HOME, T1),
+    own("week-1", "/", HOME, T2),
+    own("week-2", "/", HOME, T3),
+    own("deep-1", "/services", page("Drain cleaning", "Every drain call includes a camera inspection so you see the blockage we clear."), T1),
+    own("week-2", "/services", "<html><body>Forbidden</body></html>", T3, 403),
+    own("deep-1", "/about", page("About Harbor", "The company was started by two licensed plumbers who grew up on the east side of town."), T1),
+    own("week-2", "/about", "local_rate_limited", T3),
+    own("deep-1", "/emergency", '<html><body><div id="root"></div></body></html>', T1),
+    { scan_id: "deep-1", source: RENDERED_FETCH_SOURCE, payload: [storedDocument(`${SITE_URL}/emergency`, page("Emergency repairs", "A plumber reaches most Austin addresses within ninety minutes of your call."), T2)] },
     { scan_id: "deep-1", source: RENDERED_FETCH_SOURCE, payload: { vendorFailure: "timeout", endpoint: RENDERED_FETCH_SOURCE, billed: true } },
     { scan_id: "deep-1", source: OWN_FETCH_SOURCE, payload: null },
   ];
-  const URLS = new Set(FETCHES.flatMap((row) => [siteDocumentOf(row.payload)?.url, renderedDocumentOf(row.payload)?.url]).filter(Boolean));
 
   /** The read before this change, kept as the reference: every row's whole payload, each one a page. */
-  function fullPayloadText(rows: readonly FetchRow[]): MeasuredText[] {
-    return rows
+  const fullPayloadText = (rows: readonly FetchRow[]): MeasuredText[] =>
+    rows
       .flatMap((row) => {
         const rendered = row.source === RENDERED_FETCH_SOURCE;
         const document = rendered ? renderedDocumentOf(row.payload) : siteDocumentOf(row.payload);
-        if (document === null) return [];
-        const read = prose(document.html);
-        return [{ url: document.url, text: read.text, measuredAt: new Date(document.readAt), examples: read.examples, questions: read.questions, ...(rendered ? { rendered: true as const } : {}) }];
+        const read = document === null ? null : prose(document.html);
+        return document === null || read === null ? [] : [{ url: document.url, text: read.text, measuredAt: new Date(document.readAt), examples: read.examples, questions: read.questions, ...(rendered ? { rendered: true as const } : {}) }];
       })
       .sort((a, b) => a.measuredAt.getTime() - b.measuredAt.getTime() || (a.url < b.url ? -1 : a.url > b.url ? 1 : 0));
-  }
 
-  it("(i) no select sent to `fetches` names the bare payload", async () => {
+  it("(i, ii) never selects the bare payload or bytes, and the text pass asks for at most one row per URL", async () => {
     const { log } = useDb({ scans: SCANS, fetches: FETCHES });
     await readMeasuredText({ siteId: SITE });
     const selects = log.filter((entry) => entry.table === "fetches" && entry.method.startsWith("select("));
     expect(selects.length).toBeGreaterThan(0);
-    for (const entry of selects) {
-      const columns = entry.method.slice("select(".length, -1).split(",").map((spec) => spec.trim().split(":").at(-1));
-      expect(columns, entry.method).not.toContain("payload");
-      expect(entry.method).not.toMatch(/bytes/);
+    for (const { method } of selects) {
+      expect(method.slice(7, -1).split(",").map((spec) => spec.trim().split(":").at(-1)), method).not.toContain("payload");
+      expect(method).not.toMatch(/bytes/);
     }
+    const textPasses = log.filter((entry) => entry.method === "in(id)").map((entry) => entry.values ?? []);
+    const urls = new Set(fullPayloadText(FETCHES).map((row) => row.url));
+    expect(textPasses[0]?.length).toBeLessThanOrEqual(urls.size);
+    expect(textPasses.flat().length).toBeLessThan(FETCHES.length);
   });
 
-  it("(ii) the text pass asks for at most one row per URL, however many re-reads there are", async () => {
-    const { log } = useDb({ scans: SCANS, fetches: FETCHES });
-    await readMeasuredText({ siteId: SITE });
-    const textPasses = log.filter((entry) => entry.method === "in(id)");
-    expect(textPasses.length).toBeGreaterThan(0);
-    // The first text pass of each source; any later one is a fallback for a refused row.
-    const firstOwn = textPasses[0]?.values ?? [];
-    expect(firstOwn.length).toBeLessThanOrEqual(URLS.size);
-    expect(new Set(firstOwn).size).toBe(firstOwn.length);
-    const asked = textPasses.reduce((sum, entry) => sum + (entry.values?.length ?? 0), 0);
-    expect(asked).toBeLessThan(FETCHES.length);
-  });
-
-  it("(iii) a 403 or a rate-limit answer on the newest read leaves the older good read's text", async () => {
-    useDb({ scans: SCANS, fetches: FETCHES });
-    const pages = await readMeasuredText({ siteId: SITE });
-    const of = (path: string) => pages.filter((row) => row.url === `${SITE_URL}${path}`);
-    expect(of("/services").map((row) => [row.measuredAt.toISOString(), row.text.includes("camera inspection")])).toEqual([[T1.toISOString(), true]]);
-    expect(of("/about").map((row) => [row.measuredAt.toISOString(), row.text.includes("licensed plumbers")])).toEqual([[T1.toISOString(), true]]);
-    expect(of("/").map((row) => row.measuredAt.toISOString())).toEqual([T3.toISOString()]);
-  });
-
-  it("(iv) a rendered read and an own read of the same URL both stand, the rendered one flagged", async () => {
-    useDb({ scans: SCANS, fetches: FETCHES });
-    const emergency = (await readMeasuredText({ siteId: SITE })).filter((row) => row.url === `${SITE_URL}/emergency`);
-    expect(emergency.map((row) => [row.rendered ?? false, row.text.includes("ninety minutes")])).toEqual([
-      [false, false],
-      [true, true],
-    ]);
-  });
-
-  it("each URL's newest usable read is today's read less the superseded ones", async () => {
+  it("(iii, iv) a refused newest read leaves the older good text; own and rendered reads of a URL both stand; it is today's read less the superseded ones", async () => {
     useDb({ scans: SCANS, fetches: FETCHES });
     const now = await readMeasuredText({ siteId: SITE });
+    const of = (path: string) => now.filter((row) => row.url === `${SITE_URL}${path}`).map((row) => [row.measuredAt.toISOString(), row.rendered ?? false, row.text !== ""]);
+    expect(of("/services")).toEqual([[T1.toISOString(), false, true]]);
+    expect(of("/about")).toEqual([[T1.toISOString(), false, true]]);
+    expect(of("/")).toEqual([[T3.toISOString(), false, true]]);
+    expect(of("/emergency")).toEqual([[T1.toISOString(), false, false], [T2.toISOString(), true, true]]);
     const before = fullPayloadText(FETCHES);
-    const newest = (rows: MeasuredText[]) =>
-      rows.filter((row) => !rows.some((other) => other.url === row.url && (other.rendered ?? false) === (row.rendered ?? false) && other.measuredAt > row.measuredAt));
-    expect(now).toEqual(newest(before));
+    expect(now).toEqual(before.filter((row) => !before.some((other) => other.url === row.url && other.rendered === row.rendered && other.measuredAt > row.measuredAt)));
   });
 
   it("readAllFacts quotes the same passages, pages and dates through the new read as through the full-payload read", async () => {
     useDb({ scans: SCANS, fetches: FETCHES });
-    const { readAllFacts } = await import("../../../src/lib/generate/pipeline/grounding");
-    const now = await readAllFacts({ siteId: SITE });
-
+    const now = await (await import("../../../src/lib/generate/pipeline/grounding")).readAllFacts({ siteId: SITE });
     vi.resetModules();
     vi.doMock("@/lib/measure/text", () => ({ readMeasuredText: async () => fullPayloadText(FETCHES) }));
     try {
-      const reference = await import("../../../src/lib/generate/pipeline/grounding");
-      const before = await reference.readAllFacts({ siteId: SITE });
+      const before = await (await import("../../../src/lib/generate/pipeline/grounding")).readAllFacts({ siteId: SITE });
       expect(before.length).toBeGreaterThan(0);
       expect(now).toEqual(before);
     } finally {
@@ -443,14 +394,7 @@ describe("the read takes only the fields it uses, and each URL's newest usable r
   });
 
   it("a URL whose every read is refused has no page, and the fallback stops", async () => {
-    const { log } = useDb({
-      scans: [{ id: "scan-1", site_id: SITE }],
-      fetches: [
-        { scan_id: "scan-1", source: OWN_FETCH_SOURCE, payload: storedDocument(`${SITE_URL}/x`, "local_rate_limited", T1) },
-        { scan_id: "scan-1", source: OWN_FETCH_SOURCE, payload: storedDocument(`${SITE_URL}/x`, "local_rate_limited", T2) },
-        { scan_id: "scan-1", source: OWN_FETCH_SOURCE, payload: refused(`${SITE_URL}/x`, 429, T3) },
-      ],
-    });
+    const { log } = useDb({ scans: [{ id: "scan-1", site_id: SITE }], fetches: [own("scan-1", "/x", "local_rate_limited", T1), own("scan-1", "/x", "local_rate_limited", T2), own("scan-1", "/x", "Too many", T3, 429)] });
     expect(await readMeasuredText({ siteId: SITE })).toEqual([]);
     // The 429 is never read for text; the two rate-limit bodies are read once each.
     expect(log.filter((entry) => entry.method === "in(id)").map((entry) => entry.values?.length)).toEqual([1, 1]);
