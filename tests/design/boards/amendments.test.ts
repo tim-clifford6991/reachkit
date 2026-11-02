@@ -22,7 +22,6 @@ const BOOK_OPEN = 'd="M12 5v16"';
 const FLAME = "M8.5 14.5A2.5";
 const MESSAGE_CIRCLE_WARNING = 'd="M2.992 16.342';
 const LOADER = "M21 12a9 9 0 1 1-6.219-8.56";
-const GLOBE = ["M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20", "M2 12h20"];
 const GLANCE = ["PubAnswer", "PubCompare", "PubCompareTool", "PubHowItWorks", "PubTeardown", "PubTeardowns", "PubToolMeta", "PubToolOnPage", "PubTools", "PubScans"];
 
 /** A row of squares: an element whose children are all empty spans, `min` or more. */
@@ -225,15 +224,15 @@ describe("the loader is drawn only inside a button (DESIGN.md › Busy and done,
     const outside = BOARDS.flatMap((name) =>
       board(name)
         .querySelectorAll(`path[d="${LOADER}"]`)
-        .filter((p) => !p.closest("button, .btn"))
+        // SetupZone's waiting card is the one screen that is itself the wait (#2270).
+        .filter((p) => !p.closest("button, .btn") && !(name === "SetupZone" && p.closest('[role="status"]')))
         .map(() => name),
     );
     expect(outside).toEqual([]);
   });
 
-  it("SetupZone's status card draws Globe", () => {
+  it("SetupZone's status card draws the loader, the one screen that is itself the wait", () => {
     const icon = board("SetupZone").querySelector('[role="status"] svg')!;
-    expect(icon.querySelector('circle[r="10"]')).not.toBeNull();
-    expect(icon.querySelectorAll("path").map((p) => p.getAttribute("d"))).toEqual(GLOBE);
+    expect(icon.querySelectorAll("path").map((p) => p.getAttribute("d"))).toEqual([LOADER]);
   });
 });

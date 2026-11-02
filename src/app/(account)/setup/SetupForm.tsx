@@ -36,7 +36,7 @@
 "use client";
 
 import type React from "react";
-import { useEffect, useState, useSyncExternalStore, useTransition } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { parseAsStringLiteral, useQueryState } from "nuqs";
 import { Clock4 } from "lucide-react";
@@ -69,7 +69,6 @@ import {
 } from "./frame";
 import { SetupHeader } from "./SetupHeader";
 import {
-  isLastStep,
   nextStep,
   previousStep,
   SETUP_STEPS,
@@ -79,6 +78,9 @@ import {
 import type { SetupScreenModel } from "./_setup/facts";
 import type { SetupRefusal, SetupResult, SetupStepResult, SetupSubmission } from "./submit";
 import type { ResolveDomainResponse } from "@/app/api/setup/domain/route";
+import type { HostnameState } from "@/lib/publish/destinations/hosted/hostname";
+import { CheckConnection } from "../_destination/CheckConnection";
+import { CHECK_WORDS } from "./connect/parts";
 import type { SeekRivalsResponse } from "@/app/api/setup/rivals/route";
 
 /** Every refusal the founder can be shown, as a written line. `SetupResult`'s
@@ -109,17 +111,11 @@ const STEP_COPY = {
 const TIME_LOCALE = "en-US";
 const subscribeNever = () => () => {};
 
-/** Where the finish leads. Internal route names, not customer-visible
- *  strings.
- *
- *  Straight into the app, the pass already running (issue #782) — except
- *  for a founder publishing to the hosted blog, who is carried to the one
- *  step that comes after setup: the DNS record (#924, SPEC §5 2026-09-20).
- *  That screen sends them on itself for a host that is already live or has
- *  no record to make, so this never lands anybody on a screen about
- *  nothing, and *Do this later* on it leads here. */
+/** The step's one primary, whichever control it is: a test hook, not a sentence. */
+const ONWARDS_TEST_ID = "setup-onwards";
+
+/** Where leaving setup leads: the app, the pass already running (issue #782). An internal route name. */
 const APP_PATH = "/app";
-const CONNECT_PATH = "/setup/connect";
 
 const ICON = { strokeWidth: 1.75, "aria-hidden": true } as const;
 
@@ -178,6 +174,10 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
   // Issue 1196: React's pending state, so the step's button is disabled and
   // spins from the press until the step answers or the screen moves on.
   const [saving, startSaving] = useTransition();
+  // Whether the last step is saved, so a second check does not save it again.
+  const finished = useRef(false);
+  // What the founder's last check said of the hosted address; `undefined` is "not asked".
+  const [connection, setConnection] = useState<HostnameState | undefined>(undefined);
 
   // The address given and the market known, as the server is asked about
   // them. The screen opens settled — a free upgrade's rivals came with the
@@ -288,35 +288,41 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
     return (await response.json()) as T;
   }
 
-  /** Leaving the step forward: the step's own save, then the next step — or,
-   *  on the last, the finish. */
+  /** The last step's save: the whole submission (REQ-025 c1). `true` once
+   *  setup is complete, or was already (REQ-025 c4); a refusal is said under the step. */
+  async function finish(): Promise<boolean> {
+    if (finished.current) return true;
+    const carried = submission();
+    if (!carried.ok) {
+      setRefusal(carried.because);
+      return false;
+    }
+    try {
+      const answer = await post<SetupResult>({ step: "finish", ...carried.submission });
+      if (answer.ok || answer.refused === "already_complete") {
+        finished.current = true;
+        setRefusal(null);
+        return true;
+      }
+      setRefusal(answer.refused);
+    } catch {
+      // The request never came back: said, not swallowed.
+      setRefusal("could_not_ask");
+    }
+    return false;
+  }
+
+  /** Saving the last step and going into the app: WordPress's Continue, and the hosted address's *Do this later*. */
+  async function finishAndLeave(): Promise<void> {
+    if (await finish()) router.push(APP_PATH);
+  }
+
+  /** Leaving the step forward: the step's own save, then the next step. */
   async function onwards(): Promise<void> {
     const after = nextStep(step);
 
     if (after === null) {
-      const carried = submission();
-      if (!carried.ok) {
-        setRefusal(carried.because);
-        return;
-      }
-      try {
-        const answer = await post<SetupResult>({ step: "finish", ...carried.submission });
-        // Issue #782: the finish leads straight into the app, where the side
-        // panel says which step of the pass is under way. A founder who had
-        // already completed setup goes to the same place (REQ-025 c4).
-        if (answer.ok || answer.refused === "already_complete") {
-          // #924: the hosted blog's address still needs one DNS record, and
-          // that is its own step now rather than a control on the step
-          // before. Every other destination goes straight into the app, as
-          // it always did.
-          router.push(destination === "hosted" ? CONNECT_PATH : APP_PATH);
-          return;
-        }
-        setRefusal(answer.refused);
-      } catch {
-        // The request never came back: said, not swallowed.
-        setRefusal("could_not_ask");
-      }
+      await finishAndLeave();
       return;
     }
 
@@ -380,7 +386,9 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
             {copy("setup.check.status", { time: started })}
           </p>
         ) : null}
-        {step === "publishing" ? <PassStatusLine stage={p.model.passStage} channel={p.model.passChannel} /> : null}
+        {step === "publishing" ? (
+          <PassStatusLine stage={p.model.passStage} channel={p.model.passChannel} started={started} />
+        ) : null}
       </SetupHeader>
 
       <Surface arms={SETUP_ARMS}>
@@ -443,6 +451,9 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
                 onDestination={setDestination}
                 label={label}
                 onLabel={setLabel}
+                onLater={() => startSaving(finishAndLeave)}
+                busy={saving}
+                {...(connection === undefined ? {} : { connection })}
               />
             ) : null}
           </div>
@@ -469,28 +480,42 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
               {copy("setup.back")}
             </button>
           )}
-          {/* The screen's one solid primary. */}
-          <button
-            type="button"
-            className={`${PRIMARY} ms-auto`}
-            disabled={saving}
-            aria-busy={saving}
-            data-testid="setup-onwards"
-            onClick={() => startSaving(onwards)}
-          >
-            {saving ? <span className="loading loading-spinner loading-sm" aria-hidden /> : null}
-            {copy(onwardsLabel(step))}
-          </button>
+          {/* The screen's one solid primary. On the hosted address it is the check, which saves the step first. */}
+          {step === "publishing" && destination === "hosted" ? (
+            <div className="grid min-w-0 flex-1">
+              <CheckConnection
+                draft={null}
+                words={CHECK_WORDS}
+                pressClass={`${PRIMARY} self-end`}
+                prepare={finish}
+                pressTestId={ONWARDS_TEST_ID}
+                onAnswer={(answer) => {
+                  if (answer.outcome === "asked") setConnection(answer.state);
+                }}
+              />
+            </div>
+          ) : (
+            <button
+              type="button"
+              className={`${PRIMARY} ms-auto`}
+              disabled={saving}
+              aria-busy={saving}
+              data-testid={ONWARDS_TEST_ID}
+              onClick={() => startSaving(onwards)}
+            >
+              {saving ? <span className="loading loading-spinner loading-sm" aria-hidden /> : null}
+              {copy(onwardsLabel(step))}
+            </button>
+          )}
         </div>
       </footer>
     </div>
   );
 }
 
-/** What the one primary reads: "Looks right" leaves Check; the last step finishes. */
+/** What the one primary reads: "Looks right" leaves Check; every other step continues. */
 function onwardsLabel(step: SetupStepId): CopyKey {
-  if (step === "check") return "setup.check.confirm";
-  return isLastStep(step) ? "setup.finish" : "setup.continue";
+  return step === "check" ? "setup.check.confirm" : "setup.continue";
 }
 
 /** The label the hosted card was composed with — the founder's own, or the

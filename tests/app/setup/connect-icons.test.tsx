@@ -63,7 +63,7 @@ describe("Setup's Connect step carries board Setup's icons", () => {
   });
 
   it("Where should pages live? carries no icon: a hosting choice is not AI", async () => {
-    const heading = [...(await publishingStep()).querySelectorAll("h2")].find((h) => h.textContent === COPY["setup.destination.where"]);
+    const heading = [...(await publishingStep()).querySelectorAll("legend")].find((h) => h.textContent === COPY["setup.destination.where"]);
     expect(heading).toBeDefined();
     expect(heading!.querySelector("svg")).toBeNull();
   });
@@ -99,11 +99,11 @@ describe("Setup's Connect step carries board Setup's icons", () => {
 });
 
 describe("the time-zone screen", () => {
-  it("zone draws one status card with globe beside its line, no spinner, and no figure", async () => {
+  it("zone draws one status card with the spinner beside its line, and no figure", async () => {
     const root = await mount(<ZoneScreen />);
     const card = root.querySelector('[data-testid="setup-zone"]')!;
-    expect(icons(card)).toEqual(["globe"]);
-    expect(card.querySelector(".loading")).toBeNull();
+    expect(icons(card)).toEqual([]);
+    expect(card.querySelector(".loading-spinner")?.getAttribute("aria-hidden")).toBe("true");
     expect(card.textContent).toBe(`${COPY["setup.zone.line"]} ${COPY["setup.zone.once"]}`);
     expect(root.querySelector("figure")).toBeNull();
   });

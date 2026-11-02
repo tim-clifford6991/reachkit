@@ -1,7 +1,6 @@
 // Board SetupZone: the heading, one status card saying why the zone is
 // needed, and the line that follows if the browser stays silent.
 import type React from "react";
-import { Globe } from "lucide-react";
 import { Brand } from "@/app/_brand/Brand";
 import { Surface } from "@/ui/layout";
 import { copy } from "@/lib/presentation/copy";
@@ -34,8 +33,8 @@ export function ZoneScreen(): React.JSX.Element {
             className="card flex-row items-start gap-3 border border-base-300 bg-base-100 p-5 shadow-(--shadow-card)"
             data-testid={ZONE_TEST_ID}
           >
-            {/* Globe, not a spinner: the spinner is only ever inside a pressed button (DESIGN › Busy and done). */}
-            <Globe aria-hidden size={20} strokeWidth={1.75} className="mt-0.5 shrink-0 text-primary" />
+            {/* The one spinner outside a pressed button: the screen itself is the wait (DESIGN › Busy and done). */}
+            <span className="loading loading-spinner loading-sm mt-0.5 shrink-0 text-primary" aria-hidden />
             <p>
               {copy("setup.zone.line")} {copy("setup.zone.once")}
             </p>

@@ -117,13 +117,36 @@ describe("Connect matches board Setup string for string", () => {
     ]);
   });
 
+  it("board Setup — the record is on this step, its Name row is the label, and it points at the deployment's own edge (#2270)", async () => {
+    const m = assembleSetup(FIXTURE_SETUP_FACTS);
+    const tree = await connectStep();
+    const rows = [...tree.querySelectorAll('[data-testid="setup-record"] > div')];
+    expect(rows).toHaveLength(3);
+    expect(rows[1]?.querySelector<HTMLInputElement>('input[name="label"]')?.value).toBe("content");
+    // The Value is the deployment's binding, never the customer's own host.
+    expect(rows[2]?.textContent).toContain(m.cnameTarget);
+    expect(rows[2]?.textContent).not.toContain("content.example.com");
+    expect(tree.querySelector('[data-testid="setup-connect-later-action"]')?.textContent).toBe(COPY["setup.connect.later"]);
+    expect(tree.querySelector('[data-testid="setup-connect-week"]')).not.toBeNull();
+  });
+
+  it("the hosted address's primary is the check, and there is no Finish", async () => {
+    const tree = await connectStep();
+    expect(tree.querySelector('footer [data-testid="setup-onwards"]')?.textContent).toBe(COPY["setup.connect.check"]);
+    expect(tree.querySelector('[data-testid="check-connection-press"]')).toBeNull();
+    expect(tree.textContent).not.toContain("Finish");
+  });
+
   it("the per-provider guide stays behind the steps' one link", () => {
     const steps = connectScreen().querySelector('[data-testid="setup-connect-steps"]');
     expect(steps?.querySelector('[data-testid="dns-guide"]')).not.toBeNull();
   });
 
   it("names no go-live hour while the address is not connected (Q11)", async () => {
-    const texts = [...textOf(await connectStep()), ...textOf(connectScreen())].join("\n");
+    // The status line's clock is when the pass started, not an hour a page goes live.
+    const step = await connectStep();
+    step.querySelector('[data-testid="setup-pass-status"]')?.remove();
+    const texts = [...textOf(step), ...textOf(connectScreen())].join("\n");
     expect(texts).not.toMatch(/\d:\d\d/);
   });
 

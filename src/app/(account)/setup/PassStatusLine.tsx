@@ -15,10 +15,10 @@
 // names. The old `GET /api/setup/progress` heartbeat is still the shell's
 // (`_shell/OnboardingPanel.tsx`) and is untouched by this file.
 //
-// **It names a step, never a time.** `PassProgress` carries no estimate,
-// countdown, clock or percentage, and neither does the pushed message: a
-// stage handle and nothing else. The row it is drawn on and the sentence
-// that row speaks are `_setup/stages.ts`'s, so this file composes nothing.
+// **It names a step and when the pass began, never how long is left.**
+// `PassProgress` carries no estimate, countdown or percentage, and neither
+// does the pushed message: a stage handle and nothing else. The start is the
+// caller's, already written on the reader's clock (DESIGN › Busy and done).
 "use client";
 
 import type React from "react";
@@ -53,6 +53,8 @@ export function PassStatusLine(p: {
   /** The founder's own channel name, composed on the server from the
    *  session's site. `null` where there is no site row yet. */
   channel: string | null;
+  /** When the pass began, already written on the reader's clock; `null` names the step alone. */
+  started?: string | null;
 }): React.JSX.Element | null {
   // A stable factory: `useRealtime` calls it when it needs a token, and a
   // new function identity on every render would have it re-subscribe.
@@ -92,7 +94,9 @@ export function PassStatusLine(p: {
           on *Live* and *Your review* (#1059), and the words already say the
           pass is under way. */}
       <span className="status status-primary shrink-0" aria-hidden />
-      {copy(ROW_COPY_KEY[row])}
+      {p.started == null
+        ? copy(ROW_COPY_KEY[row])
+        : copy("setup.pass.started", { step: copy(ROW_COPY_KEY[row]), time: p.started })}
     </p>
   );
 }

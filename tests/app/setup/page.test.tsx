@@ -172,14 +172,13 @@ describe("/setup", () => {
     expect(waiting.querySelector('[role="status"][aria-busy="true"]')).not.toBeNull();
   });
 
-  it("the publishing step shows no record — it is its own step after setup (#924)", async () => {
-    // Owner, 2026-09-20, reversing #757. The record's own screen, and the
-    // property that its target is the deployment's binding rather than a
-    // literal in a card, are `tests/app/setup/connect.test.tsx`'s.
+  it("the Connect step carries the record, its Value the deployment's own edge binding (#2270)", async () => {
+    // The fixture env's target and the fixture customer's host happen to read alike;
+    // tests/app/setup/screen.test.tsx holds the two apart with a target unlike the host.
     const tree = await renderPage(() => import("@/app/(account)/setup/page"), {
       step: "publishing",
     });
-    expect(tree.querySelector('[data-testid="dns-record"]')).toBeNull();
-    expect(tree.querySelector('[data-testid="setup-dns-next"]')).not.toBeNull();
+    const value = [...tree.querySelectorAll('[data-testid="setup-record"] > div')][2];
+    expect(value?.querySelector(".num")?.textContent).toBe(process.env.HOSTED_EDGE_CNAME_TARGET);
   });
 });

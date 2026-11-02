@@ -135,12 +135,10 @@ describe("SPEC §5 (docs/spec/decisions/2026-10-22-1737.md) — three saved step
     }
   });
 
-  it("the one primary reads Continue, then “Looks right”, then Finish on the last step", () => {
-    const labels = SETUP_STEPS.map(
-      (step) =>
-        screenFor(step).querySelector('[data-testid="setup-onwards"]')?.textContent ?? "",
-    );
-    expect(labels).toEqual(["Continue", "Looks right", "Finish"]);
+  it("the one primary reads Continue, then “Looks right”, then the check on the hosted address", () => {
+    const primary = (step: SetupStepId) =>
+      screenFor(step).querySelector('footer .btn-primary:not(.btn-soft, .btn-outline, .btn-ghost)')?.textContent ?? "";
+    expect(SETUP_STEPS.map(primary)).toEqual(["Continue", "Looks right", COPY["setup.connect.check"]]);
   });
 
   it("the first step alone says the time the founder's own part takes", () => {
@@ -180,13 +178,13 @@ describe('REQ-025 c3 — "when they look for anything that tunes the engine ... 
     }
   });
 
-  it("the only named fields the three steps can show are the place, one rival box, the voice and the subdomain label", () => {
+  it("the only named fields the three steps can show are the place, one rival box, the voice, where pages live and the subdomain label", () => {
     const named = SETUP_STEPS.flatMap((step) =>
       [...screenFor(step).querySelectorAll("input[name], textarea[name]")].map((i) =>
         i.getAttribute("name"),
       ),
     );
-    expect([...new Set(named)].sort()).toEqual(["competitor", "label", "place", "voice_text"]);
+    expect([...new Set(named)].sort()).toEqual(["competitor", "destination", "label", "place", "voice_text"]);
 
     // The no-report arm asks for the site as well; the market's own field
     // arrives with it (UI-SPEC S10: "Suggested once your site is given").
@@ -198,16 +196,17 @@ describe('REQ-025 c3 — "when they look for anything that tunes the engine ... 
     expect(scanless.sort()).toEqual(["domain", "place"]);
   });
 
-  it("the one select is D66's country and language; no checkbox or radio — the two card pairs are buttons", () => {
+  it("the one select is D66's country and language; no checkbox, and the one radio pair is where pages live", () => {
     for (const step of SETUP_STEPS) {
       const tree = screenFor(step);
       expect([...tree.querySelectorAll("select")].map((el) => el.getAttribute("name")), step).toEqual(
         step === "site" ? ["locale"] : [],
       );
+      expect(tree.querySelectorAll('input[type="checkbox"]'), step).toHaveLength(0);
       expect(
-        tree.querySelectorAll('input[type="checkbox"], input[type="radio"]'),
+        [...tree.querySelectorAll('input[type="radio"]')].map((el) => el.getAttribute("name")),
         step,
-      ).toHaveLength(0);
+      ).toEqual(step === "publishing" ? ["destination", "destination"] : []);
     }
   });
 });
@@ -604,7 +603,7 @@ describe("Connect — where the pages go live (REQ-028 c2, SPEC §7 #476)", () =
 
   it("both destinations render, each with its own written line", () => {
     const tree = screenFor("publishing");
-    expect(tree.querySelectorAll('[data-testid="setup-destination"] button')).toHaveLength(2);
+    expect(tree.querySelectorAll('[data-testid="setup-destination"] input[type="radio"]')).toHaveLength(2);
     for (const id of ["setup-destination-hosted", "setup-destination-wordpress"]) {
       const option = tree.querySelector(`[data-testid="${id}"]`);
       expect(option, id).not.toBeNull();
@@ -615,12 +614,13 @@ describe("Connect — where the pages go live (REQ-028 c2, SPEC §7 #476)", () =
     }
   });
 
-  it("the hosted blog is selected on arrival", () => {
-    const destinations = [
-      ...screenFor("publishing").querySelectorAll('[data-testid="setup-destination"] button'),
+  it("the hosted address is selected on arrival, as one group of daisyUI radios", () => {
+    const radios = [
+      ...screenFor("publishing").querySelectorAll<HTMLInputElement>('[data-testid="setup-destination"] input[type="radio"]'),
     ];
-    expect(destinations[0]?.getAttribute("aria-pressed")).toBe("true");
-    expect(destinations[1]?.getAttribute("aria-pressed")).toBe("false");
+    expect(radios.map((radio) => radio.checked)).toEqual([true, false]);
+    expect(new Set(radios.map((radio) => radio.name)).size).toBe(1);
+    expect(radios.every((radio) => radio.classList.contains("radio-primary"))).toBe(true);
   });
 
   it("board Setup — the hosted choice names its address and says it is recommended; WordPress does neither", () => {
@@ -631,18 +631,6 @@ describe("Connect — where the pages go live (REQ-028 c2, SPEC §7 #476)", () =
     expect(hosted).toContain(COPY["setup.destination.hosted"]);
     expect(wordpress).not.toContain("content.example.com");
     expect(wordpress).not.toContain(COPY["setup.destination.hosted"]);
-  });
-
-  it("the record is not on this step any more — it is its own step after setup (#924)", () => {
-    // Owner, 2026-09-20, reversing #757: the founder finishes setup without
-    // touching DNS. What stands here is the line that says the address will
-    // be theirs and that connecting it is the next screen;
-    // `tests/app/setup/connect.test.tsx` holds the record itself.
-    const tree = screenFor("publishing");
-    expect(tree.querySelector('[data-testid="dns-record"]')).toBeNull();
-    expect(tree.querySelector('[data-testid="setup-dns-next"]')?.textContent).toBe(
-      COPY["setup.destination.connect-next"],
-    );
   });
 
   it("c2 — with no address given, one written line stands where the record will sit; no blank, dash or placeholder", () => {
@@ -657,7 +645,7 @@ describe("Connect — where the pages go live (REQ-028 c2, SPEC §7 #476)", () =
 
   it("choosing WordPress names what connecting will ask for, in the box under the pair, and asks for none of it here", () => {
     const m = model();
-    const card = render(
+    const page = render(
       <PublishingCard
         cards={m.cards}
         siteDomain="example.com"
@@ -666,8 +654,14 @@ describe("Connect — where the pages go live (REQ-028 c2, SPEC §7 #476)", () =
         onDestination={() => {}}
         label="content"
         onLabel={() => {}}
+        onLater={() => {}}
+        busy={false}
       />,
-    ).querySelector('[data-testid="setup-wordpress-asks"]');
+    );
+    const card = page.querySelector('[data-testid="setup-wordpress-asks"]');
+    // The WordPress box replaces the record, so there is nothing to paste and nothing to do later.
+    expect(page.querySelector('[data-testid="setup-dns"]')).toBeNull();
+    expect(page.querySelector('[data-testid="setup-connect-later-action"]')).toBeNull();
     expect(screenFor("publishing").querySelector('[data-testid="setup-wordpress-asks"]')).toBeNull();
     expect(card?.querySelector('[data-testid="setup-wordpress-site"]')?.textContent).toBe(
       "example.com",

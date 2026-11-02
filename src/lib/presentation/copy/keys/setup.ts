@@ -441,11 +441,12 @@ export const SETUP_COPY = Object.freeze({
   "setup.back": ["Back", { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" }],
   "setup.continue": ["Continue", { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" }],
   "setup.check.confirm": ["Looks right", { slots: {}, fixedBy: "SPEC §5 · board Setup2 · issue 1737" }],
-  "setup.finish": ["Finish", { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" }],
 
   // ── Check: here's what we read ─────────────────────────────────────
   /** `{time}` is when the running pass began, on the founder's clock. Shown only while a pass runs. */
   "setup.check.status": ["Checking your buyers and competitors · started {time}", { slots: { time: "text" }, fixedBy: "SPEC §5 · board Setup2 · issue 1737" }],
+  /** The pass's step and when the pass began, on the founder's clock: `{step}` is the step's own line. */
+  "setup.pass.started": ["{step} · started {time}", { slots: { step: "text", time: "text" }, fixedBy: "board Setup v36 · issue 2270" }],
   /** `{n}` is the inventory's own row count — what was read, never a target. */
   "setup.check.pages": ["{n} pages read", { slots: { n: "text" }, fixedBy: "SPEC §5 · board Setup2 · issue 1737" }],
   "setup.check.business": ["Your business", { slots: {}, fixedBy: "SPEC §5 · board Setup2 · issue 1737" }],
@@ -574,13 +575,6 @@ export const SETUP_COPY = Object.freeze({
     { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" },
   ],
 
-  // The line that stands where the record used to, on the publishing step
-  // (#924). It says the address is theirs and that connecting it is the
-  // next thing, rather than asking them to do it here.
-  "setup.destination.connect-next": [
-    "We’ll keep this address for you. You connect it on the next screen.",
-    { slots: {}, fixedBy: "SPEC §5 2026-09-20" },
-  ],
 
   // ── SPEC §5 (2026-09-20, #908, #924): the DNS record as its own step
   // after setup. This supersedes the 2026-09-16 ruling (#757) that it be

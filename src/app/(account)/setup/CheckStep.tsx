@@ -6,7 +6,7 @@
 
 import type React from "react";
 import type { Dispatch, SetStateAction } from "react";
-import { Building, CircleQuestionMark, MessageCircle, ShieldCheck, Users, type LucideIcon } from "lucide-react";
+import { Building, ChevronDown, CircleQuestionMark, MessageCircle, ShieldCheck, Users, type LucideIcon } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import { SiteMark } from "@/ui/SiteMark";
 import { settledCategory, type SetupState } from "@/lib/market/setup/state";
@@ -21,7 +21,8 @@ import { RivalsCard } from "./RivalsCard";
 import { VoiceCard } from "./VoiceCard";
 import { QUIET } from "./frame";
 
-const SECTION = "collapse collapse-arrow min-w-0 border border-base-300 bg-base-100 shadow-(--shadow-card)";
+// The board's thin, muted chevron (lucide), not daisyUI's heavier drawn arrow.
+const SECTION = "group collapse min-w-0 border border-base-300 bg-base-100 shadow-(--shadow-card)";
 const ICON = { strokeWidth: 1.75, size: 16, "aria-hidden": true } as const;
 /** Punctuation between the domain and its count, not a sentence. */
 const SEP = " · ";
@@ -131,6 +132,12 @@ function Section(p: {
           <strong className="text-(length:--t-body) font-bold">{p.title}</strong>
           {summary === "" ? null : <span className={`wrap-anywhere ${QUIET}`}>{summary}</span>}
         </span>
+        <ChevronDown
+          aria-hidden
+          size={20}
+          strokeWidth={1.75}
+          className="ms-auto mt-1.5 shrink-0 text-base-content/70 transition-transform group-open:rotate-180"
+        />
       </summary>
       <div className="collapse-content grid min-w-0 grid-cols-1 gap-4">{p.children}</div>
     </details>

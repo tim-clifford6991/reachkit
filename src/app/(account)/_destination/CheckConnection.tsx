@@ -128,6 +128,10 @@ export function CheckConnection(p: {
   words?: CheckWords;
   /** The press's classes where the screen draws it as its primary; Settings' soft button where absent. */
   pressClass?: string;
+  /** Runs before the press asks; `false` asks nothing. Setup saves its last step here. */
+  prepare?: () => Promise<boolean>;
+  /** The press's test hook where the screen names it as its own primary. */
+  pressTestId?: string;
 }): React.JSX.Element {
   const words = p.words ?? SETTINGS_WORDS;
   const Mark = words.icon ?? RefreshCw;
@@ -156,6 +160,7 @@ export function CheckConnection(p: {
   async function press(): Promise<void> {
     setRunning(true);
     try {
+      if (p.prepare !== undefined && !(await p.prepare())) return;
       const next = await checkConnection({ draft: p.draft });
       if (next.outcome === "too_soon") {
         const at = Date.now();
@@ -188,7 +193,7 @@ export function CheckConnection(p: {
         onClick={() => {
           void press();
         }}
-        data-testid="check-connection-press"
+        data-testid={p.pressTestId ?? PRESS_TEST_ID}
       >
         {running ? (
           <span className="loading loading-spinner loading-xs" aria-hidden />
@@ -222,3 +227,6 @@ export function CheckConnection(p: {
     </div>
   );
 }
+
+/** The press's default test hook. Not a sentence. */
+const PRESS_TEST_ID = "check-connection-press";
