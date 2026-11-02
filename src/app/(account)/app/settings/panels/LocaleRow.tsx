@@ -54,7 +54,7 @@ export function LocaleRow(p: { locale: SettingsModel["locale"] }): React.JSX.Ele
                 );
               })}
             </select>
-            <button type="submit" className="btn btn-soft btn-primary btn-sm" disabled={saving}>
+            <button type="submit" className="btn btn-soft btn-primary min-h-11" disabled={saving}>
               {saving ? <span className="loading loading-spinner loading-xs" aria-hidden /> : null}
               {copy("settings.save")}
             </button>

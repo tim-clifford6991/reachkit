@@ -30,8 +30,7 @@
 "use client";
 
 import type React from "react";
-import Link from "next/link";
-import { Calendar, MapPin, RefreshCw, Search, Sparkles, Users, Zap } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { useState, useTransition } from "react";
 import { say } from "@/app/_toast/say";
 import { copy } from "@/lib/presentation/copy";
@@ -52,9 +51,22 @@ import {
 } from "../market-state";
 import { marketChange, type SettingsModel } from "../model";
 
-const WELL = "flex min-w-0 items-center gap-2 rounded-box bg-base-200 px-3 py-2 text-sm";
-const WELL_ICON = { size: 20, strokeWidth: 1.75, className: "shrink-0 text-primary", "aria-hidden": true } as const;
-const LINE_ICON = { size: 16, strokeWidth: 1.75, className: "mt-0.5 shrink-0 text-base-content/70", "aria-hidden": true } as const;
+/** The board's bordered secondary button, at the 44px target. */
+const OUTLINE = "btn btn-outline border-base-300 bg-base-100 text-primary min-h-11 shrink-0";
+
+/** A line whose stored count reads bold, as the board draws it; the sentence stays the registry's. */
+function Counted(p: { line: string; n: number }): React.JSX.Element {
+  const n = String(p.n);
+  const at = p.line.indexOf(n);
+  if (at === -1) return <li className="min-w-0 wrap-anywhere">{p.line}</li>;
+  return (
+    <li className="min-w-0 wrap-anywhere">
+      {p.line.slice(0, at)}
+      <strong>{n}</strong>
+      {p.line.slice(at + n.length)}
+    </li>
+  );
+}
 
 /** The two answers this card changes. `../model`'s own union — the same
  *  one `marketChange` and `CHANGE_COPY_KEY` are keyed by — so a third
@@ -113,11 +125,7 @@ export function MarketPanel(p: {
 
   // D28 (#1185): why ReachKit measures this market, and whether it keeps it
   // current or the founder's own category stands.
-  const concluded = p.concluded ?? null;
-  const reasonLine =
-    concluded === null || concluded.categoryOverridden || concluded.categoryReason === "" ? null : (
-      <p className="text-sm text-base-content/70 wrap-anywhere">{concluded.categoryReason}</p>
-    );
+  const overridden = p.concluded?.categoryOverridden === true;
 
   function open(next: Answer): void {
     setEditing(next);
@@ -218,8 +226,7 @@ export function MarketPanel(p: {
    *  press was refused. A started pass is answered once, by a toast, and
    *  from then on the side panel is its one status line (issue 1196) — a
    *  "we're measuring" line kept here would outlive the pass it named. */
-  const remeasureLine =
-    remeasure.answer === "refused" ? remeasure.line : writtenLine("settings.market.remeasure.effect");
+  const remeasureLine = remeasure.answer === "refused" ? remeasure.line : null;
 
   function pressRemeasure(): void {
     startMeasuring(async () => {
@@ -259,11 +266,11 @@ export function MarketPanel(p: {
         </label>
         {refusalLine === null ? null : <p className="text-xs text-error wrap-anywhere">{refusalLine}</p>}
         <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <button type="submit" className="btn btn-primary btn-sm" disabled={saving}>
+          <button type="submit" className="btn btn-primary min-h-11" disabled={saving}>
             {saving ? <span className="loading loading-spinner loading-xs" aria-hidden /> : null}
             {copy("settings.save")}
           </button>
-          <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditing(null)}>
+          <button type="button" className="btn btn-ghost min-h-11" onClick={() => setEditing(null)}>
             {copy("settings.cancel-edit")}
           </button>
         </div>
@@ -271,26 +278,29 @@ export function MarketPanel(p: {
     );
   }
 
+  const note = (key: "settings.market.consequence.website" | "settings.market.consequence.market" | "settings.market.overridden") => (
+    <p className="text-sm text-base-content/70 wrap-anywhere" data-testid={`market-note-${key.split(".").pop()}`}>
+      {copy(key)}
+    </p>
+  );
+
   return (
     <section className="card card-border min-w-0 bg-base-100">
-      <div className="card-body gap-4">
-        <div className="flex min-w-0 flex-col gap-1">
-          <h2 className="card-title text-base">{copy("settings.market.title")}</h2>
-          <p className="text-sm text-base-content/70 wrap-anywhere">{copy("settings.market.lead")}</p>
-        </div>
+      <div className="card-body gap-5">
+        <h2 className="card-title text-(length:--h3)">{copy("settings.market.title")}</h2>
 
-        {/* The site first, the market second: the market is derived for the
-            domain. An open field sits under its row. */}
+        {/* The site first, the market second: the market is derived for the domain. What a change does sits
+            under its own field, and gives way to the dated line while a change stands (REQ-071). */}
         <div className="flex min-w-0 flex-col">
           <SettingRow
             name={copy("settings.market.domain")}
             testId="setting-domain"
-            below={editing === "domain" ? editingField("domain") : null}
+            below={editing === "domain" ? editingField("domain") : standing ? note("settings.market.consequence.website") : null}
           >
             {editing === "domain" ? null : (
               <>
                 <span className="num min-w-0 wrap-anywhere">{p.domain}</span>
-                <button type="button" className="btn btn-ghost btn-sm" onClick={() => open("domain")}>
+                <button type="button" className={OUTLINE} onClick={() => open("domain")}>
                   {copy("settings.change")}
                 </button>
               </>
@@ -298,79 +308,45 @@ export function MarketPanel(p: {
           </SettingRow>
 
           {p.locale === undefined ? null : <LocaleRow locale={p.locale} />}
-        </div>
 
-        <div className="flex min-w-0 flex-col gap-2" data-testid="setting-category">
-          <div className="flex min-w-0 flex-wrap items-center gap-4">
-            <span className="grid size-11 shrink-0 place-items-center rounded-box bg-primary/10 text-primary">
-              <MapPin size={24} strokeWidth={1.75} aria-hidden />
-            </span>
-            <div className="flex min-w-0 flex-1 basis-64 flex-col gap-0.5">
-              <span className="text-xl font-bold wrap-anywhere">{p.market.category}</span>
-              {concluded === null ? null : (
-                <span className="text-sm text-base-content/70 wrap-anywhere" data-testid="market-concluded">
-                  {copy(concluded.categoryOverridden ? "settings.market.overridden" : "settings.market.concluded")}
-                </span>
-              )}
-            </div>
+          <SettingRow
+            name={copy("settings.market.your-market")}
+            testId="setting-category"
+            below={
+              editing === "category"
+                ? editingField("category")
+                : overridden
+                  ? note("settings.market.overridden")
+                  : standing
+                    ? note("settings.market.consequence.market")
+                    : null
+            }
+          >
             {editing === "category" ? null : (
-              <button type="button" className="btn btn-ghost btn-sm" onClick={() => open("category")}>
-                {copy("settings.change")}
-              </button>
+              <>
+                <span className="min-w-0 font-semibold wrap-anywhere">{p.market.category}</span>
+                <button type="button" className={OUTLINE} onClick={() => open("category")}>
+                  {copy("settings.change")}
+                </button>
+              </>
             )}
-          </div>
-          {editing === "category" ? editingField("category") : reasonLine}
+          </SettingRow>
+
+          <SettingRow name={copy("settings.market.sets.title")} testId="market-sets" below={
+            <ul className="flex min-w-0 flex-col gap-1">
+              {p.sets.searches === null ? null : <Counted line={copy("settings.market.sets.searches", { n: String(p.sets.searches) })} n={p.sets.searches} />}
+              {p.sets.questions === null ? null : <Counted line={copy("settings.market.sets.questions", { n: String(p.sets.questions) })} n={p.sets.questions} />}
+              <Counted line={copy("settings.market.sets.competitors", { n: String(p.sets.competitors) })} n={p.sets.competitors} />
+            </ul>
+          } />
         </div>
 
-        <div className="flex min-w-0 flex-col gap-2" data-testid="market-sets">
-          <p className="eyebrow">{copy("settings.market.sets.title")}</p>
-          <ul className="grid min-w-0 grid-cols-[repeat(auto-fit,minmax(min(100%,180px),1fr))] gap-2" data-layout="wells">
-            {p.sets.searches === null ? null : (
-              <li className={WELL}>
-                <Search {...WELL_ICON} />
-                <span className="min-w-0 wrap-anywhere">{copy("settings.market.sets.searches", { n: String(p.sets.searches) })}</span>
-              </li>
-            )}
-            {p.sets.questions === null ? null : (
-              <li className={WELL}>
-                <Sparkles {...WELL_ICON} />
-                <span className="min-w-0 wrap-anywhere">{copy("settings.market.sets.questions", { n: String(p.sets.questions) })}</span>
-              </li>
-            )}
-            <li className={WELL}>
-              <Users {...WELL_ICON} />
-              <span className="min-w-0 wrap-anywhere">{copy("settings.market.sets.competitors", { n: String(p.sets.competitors) })}</span>
-            </li>
-          </ul>
-          <p className="flex flex-wrap gap-1 text-xs text-base-content/70">
-            {copy("settings.market.sets.plan")}
-            <Link className="link link-primary" href="/app/calendar">
-              {copy("settings.market.sets.plan-link")}
-            </Link>
-          </p>
-        </div>
-
-        {standing ? (
-          <ul className="flex min-w-0 flex-col gap-2 border-t border-base-300 pt-3 text-sm" data-testid="market-consequences">
-            <li className="flex min-w-0 items-start gap-2">
-              <Calendar {...LINE_ICON} />
-              <span className="min-w-0 wrap-anywhere">{copy("settings.market.consequence.website")}</span>
-            </li>
-            <li className="flex min-w-0 items-start gap-2">
-              <Zap {...LINE_ICON} />
-              <span className="min-w-0 wrap-anywhere">{copy("settings.market.consequence.market")}</span>
-            </li>
-          </ul>
-        ) : null}
-
-        {/* Issue 866: the plain way to measure the market again — the same
-            pass the thin-market choice starts, under the same daily bound.
-            Outline rather than solid: this screen's one fill is a Save. */}
-        <div className="flex min-w-0 flex-col gap-2" data-testid="market-remeasure">
+        {/* Issue 866: the plain way to measure the market again, under the same daily bound. */}
+        <div className="flex min-w-0 flex-col gap-2 border-t border-base-300 pt-5" data-testid="market-remeasure">
           <form action={pressRemeasure}>
             <button
               type="submit"
-              className="btn btn-soft btn-primary btn-sm"
+              className="btn btn-soft btn-primary min-h-11"
               disabled={measuring}
               data-testid="market-remeasure-press"
             >
@@ -383,11 +359,7 @@ export function MarketPanel(p: {
             </button>
           </form>
           {remeasureLine === null ? null : (
-            <p
-              className={`text-xs wrap-anywhere ${remeasure.answer === "refused" ? "text-error" : "text-base-content/70"}`}
-              role={remeasure.answer === "refused" ? "alert" : undefined}
-              data-testid="market-remeasure-line"
-            >
+            <p className="text-xs text-error wrap-anywhere" role="alert" data-testid="market-remeasure-line">
               {remeasureLine}
             </p>
           )}

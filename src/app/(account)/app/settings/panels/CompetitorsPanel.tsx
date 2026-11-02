@@ -13,8 +13,8 @@
 // list, so none is rendered here.
 //
 // Each card states its figures from the Competitors tab's own readers
-// (`../market-figures.ts`), and one that joined after the last scan says when
-// it is measured from rather than drawing a zero.
+// (`../market-figures.ts`) in a label/figure grid (canvas v36), and one that joined after the last scan says when
+// it is measured from rather than drawing a zero. Only a rival the customer added carries a badge: found is the default.
 //
 // Cold start (§6.6): an empty set renders the add control and no chips —
 // and, since issue #204, REQ-071 c16's one line where the chips would be.
@@ -48,13 +48,11 @@
 "use client";
 
 import type React from "react";
-import Link from "next/link";
-import { Sparkles, User, Users, X } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { useState, useTransition } from "react";
 import { copy } from "@/lib/presentation/copy";
 import { ANSWER_RATE_WEEKS, BATTERY } from "@/lib/config/constants";
 import { writtenLine } from "../../_shell/written";
-import { TAB_HREF } from "../../_overview/tabs";
 import { addRivalAction, removeRivalAction } from "../change-actions";
 import {
   MARKET_CHANGE_INITIAL,
@@ -82,29 +80,25 @@ const rivalInitials = (domain: string): string => {
   return (words.length > 1 ? words[0]!.charAt(0) + words[1]!.charAt(0) : (words[0] ?? domain).slice(0, 2)).toUpperCase();
 };
 
-function Avatar(p: { domain: string; you?: boolean }): React.JSX.Element {
+function Avatar(p: { domain: string }): React.JSX.Element {
   return (
     <span className="avatar avatar-placeholder" aria-hidden>
-      <span className={`${p.you ? "w-7 bg-primary text-primary-content" : "w-10 bg-base-200"} rounded-field font-semibold`}>
-        {p.you ? p.domain.charAt(0).toUpperCase() : rivalInitials(p.domain)}
-      </span>
+      <span className="size-11 rounded-field bg-base-200 font-bold">{rivalInitials(p.domain)}</span>
     </span>
   );
 }
 
-/** One figure line: its label, `n of m` and a bar, or what stands in for an unread half. */
-function FigureLine(p: { label: string; half: Half; pending: string | null; testId: string }): React.JSX.Element {
+/** The board's bordered secondary button, at the 44px target. */
+const OUTLINE = "btn btn-outline border-base-300 bg-base-100 text-primary min-h-11 self-start";
+
+/** One figure row of the label/figure grid: `n of m`, or what stands in for an unread half. */
+function FigureRow(p: { label: string; half: Half; pending: string | null; testId: string }): React.JSX.Element {
   const value =
     p.pending ?? (p.half === null ? copy("settings.competitors.not-measured") : copy("settings.competitors.figure", { n: String(p.half.n), of: String(p.half.of) }));
   return (
-    <div className="flex min-w-0 flex-col gap-1" data-testid={p.testId}>
-      <span className="flex min-w-0 flex-wrap justify-between gap-2">
-        <span className="text-base-content/70">{p.label}</span>
-        <strong className="num">{value}</strong>
-      </span>
-      {p.pending !== null || p.half === null ? null : (
-        <progress className="progress w-full" value={p.half.n} max={p.half.of} aria-hidden />
-      )}
+    <div className="contents" data-testid={p.testId}>
+      <dt className="min-w-0 text-base-content/70 wrap-anywhere">{p.label}</dt>
+      <dd className="min-w-0 text-right font-bold wrap-anywhere">{value}</dd>
     </div>
   );
 }
@@ -117,14 +111,10 @@ export function CompetitorsPanel(p: {
   figures: MarketFigures;
   /** When a competitor added now is first measured, written in the site's zone. */
   measuredFrom: string;
-  ownDomain: string;
   /** Far larger competitors, kept apart from the comparison (issue 858). */
   leaders: readonly string[];
-  /** The footnote's facts; `null` where that half was not read. */
-  detail: { googleOn: string | null; searches: number | null; questions: number | null };
 }): React.JSX.Element {
   const concluded = p.concluded ?? null;
-  const reasons = concluded === null || concluded.rivalsOverridden ? null : concluded.reasons;
   const more = BATTERY.COMPETITORS_MAX - p.competitors.length;
   // The typed domain, kept across a refusal, and the answer the last press
   // gave. Neither is a copy of the set: the set is the model's, re-read
@@ -153,28 +143,19 @@ export function CompetitorsPanel(p: {
   const refusalLine = refusal === null ? null : writtenLine(refusal);
   const pending = copy("settings.competitors.measured-from", { date: p.measuredFrom });
   const you = p.figures.you;
-  const detail = [
-    p.detail.googleOn === null || p.detail.searches === null
-      ? null
-      : copy("settings.competitors.detail.google", { date: p.detail.googleOn, n: String(p.detail.searches) }),
-    p.detail.questions === null
-      ? null
-      : copy("settings.competitors.detail.ai", { weeks: String(ANSWER_RATE_WEEKS), n: String(p.detail.questions) }),
-  ].filter((line): line is string => line !== null);
-
   return (
     <section className="card card-border min-w-0 bg-base-100">
-      <div className="card-body gap-4">
+      <div className="card-body gap-5">
         <div className="flex min-w-0 flex-wrap items-start justify-between gap-2">
-          <div className="flex min-w-0 flex-1 basis-80 flex-col gap-1">
-            <h2 className="card-title text-base">{copy("settings.competitors.title")}</h2>
+          <div className="flex min-w-0 flex-1 basis-60 flex-col gap-1">
+            <h2 className="card-title text-(length:--h3)">{copy("settings.competitors.title")}</h2>
             {concluded === null ? null : (
               <p className="text-sm text-base-content/70 wrap-anywhere" data-testid="competitors-concluded">
                 {copy(concluded.rivalsOverridden ? "settings.competitors.overridden" : "settings.competitors.concluded")}
               </p>
             )}
           </div>
-          <span className="num text-sm text-base-content/70" data-testid="competitor-count">
+          <span className="text-sm text-base-content/70" data-testid="competitor-count">
             {copy("settings.competitors.count", {
               taken: String(p.competitors.length),
               max: String(BATTERY.COMPETITORS_MAX),
@@ -190,34 +171,26 @@ export function CompetitorsPanel(p: {
               const found = concluded !== null && concluded.reasons[domain] !== undefined;
               return (
                 <li className="card card-border min-w-0" key={domain} data-testid={`competitor-${domain}`}>
-                  <div className="card-body gap-3 p-4">
-                    <div className="flex min-w-0 items-center gap-3">
+                  <div className="card-body gap-4 p-5">
+                    <div className="flex min-w-0 flex-wrap items-center gap-3">
                       <Avatar domain={domain} />
-                      <span className="flex min-w-0 flex-col items-start gap-1">
-                        <span className="num min-w-0 text-sm wrap-anywhere">{domain}</span>
-                        <span className="badge badge-ghost badge-sm gap-1">
-                          {found ? <Sparkles size={14} strokeWidth={1.75} aria-hidden /> : <User size={14} strokeWidth={1.75} aria-hidden />}
-                          {copy(found ? "settings.competitors.found" : "settings.competitors.added")}
-                        </span>
-                      </span>
+                      <span className="num min-w-0 text-sm wrap-anywhere">{domain}</span>
+                      {found ? null : <span className="badge badge-soft badge-primary badge-sm">{copy("settings.competitors.added")}</span>}
                     </div>
-                    {reasons?.[domain] === undefined ? null : (
-                      <p className="text-xs text-base-content/70 wrap-anywhere">{reasons[domain]}</p>
-                    )}
-                    <div className="flex min-w-0 flex-col gap-2 text-sm">
-                      <FigureLine
+                    <dl className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-2 text-sm">
+                      <FigureRow
                         label={copy("settings.competitors.google")}
                         half={figures?.google ?? null}
                         pending={figures === null ? pending : null}
                         testId={`competitor-google-${domain}`}
                       />
-                      <FigureLine
+                      <FigureRow
                         label={copy("settings.competitors.ai")}
                         half={figures?.ai ?? null}
                         pending={figures === null ? pending : null}
                         testId={`competitor-ai-${domain}`}
                       />
-                    </div>
+                    </dl>
                     {/* Each rival is its own form's submit: pressing it removes that one rival on the server. */}
                     <form
                       action={(form) => {
@@ -229,7 +202,7 @@ export function CompetitorsPanel(p: {
                       <input type="hidden" name={RIVAL_FIELD} value={domain} readOnly />
                       <button
                         type="submit"
-                        className="btn btn-ghost btn-sm"
+                        className={OUTLINE}
                         aria-label={copy("setup.competitors.remove", { rival: domain })}
                         disabled={busy}
                       >
@@ -247,28 +220,18 @@ export function CompetitorsPanel(p: {
             })}
 
             {more <= 0 ? null : (
-              <li className="flex min-w-0 flex-col gap-2 rounded-box border border-dashed border-base-300 p-4">
+              <li className="flex min-w-0 flex-col gap-2 rounded-box border border-dashed border-base-300 p-5">
                 <form
                   action={(form) => {
                     setRemoving(null);
                     startWriting(() => add(form));
                   }}
-                  className="flex min-w-0 flex-col gap-2"
+                  className="flex min-w-0 flex-col gap-3"
                   data-testid="add-competitor"
                 >
-                  <div className="flex min-w-0 items-center gap-3">
-                    <span className="grid size-11 shrink-0 place-items-center rounded-box bg-base-200 text-base-content/70">
-                      <Users size={20} strokeWidth={1.75} aria-hidden />
-                    </span>
-                    <span className="flex min-w-0 flex-col">
-                      <label htmlFor="add-competitor-field" className="text-sm font-bold">
-                        {copy("settings.competitors.add-label")}
-                      </label>
-                      <span className="text-xs text-base-content/70" data-testid="competitors-more">
-                        {copy("settings.competitors.more", { n: String(more) })}
-                      </span>
-                    </span>
-                  </div>
+                  <label htmlFor="add-competitor-field" className="font-bold">
+                    {copy("settings.competitors.add-label")}
+                  </label>
                   <input
                     id="add-competitor-field"
                     className={refusalLine === null ? "input num w-full" : "input input-error num w-full"}
@@ -279,8 +242,12 @@ export function CompetitorsPanel(p: {
                     aria-invalid={refusalLine !== null}
                   />
                   {refusalLine === null ? null : <p className="text-xs text-error wrap-anywhere">{refusalLine}</p>}
-                  <button type="submit" className="btn btn-ghost btn-sm self-start" disabled={busy}>
-                    {busy && removing === null ? <span className="loading loading-spinner loading-xs" aria-hidden /> : null}
+                  <button type="submit" className={OUTLINE} disabled={busy}>
+                    {busy && removing === null ? (
+                      <span className="loading loading-spinner loading-xs" aria-hidden />
+                    ) : (
+                      <Plus size={16} strokeWidth={1.75} aria-hidden />
+                    )}
                     {copy("settings.competitors.add")}
                   </button>
                 </form>
@@ -288,27 +255,17 @@ export function CompetitorsPanel(p: {
             )}
           </ul>
 
-          <div className="flex min-w-0 flex-wrap items-center gap-x-5 gap-y-2 rounded-box bg-base-200 px-4 py-3 text-sm" data-testid="competitors-you">
-            <span className="flex items-center gap-2 font-bold">
-              <Avatar domain={p.ownDomain} you />
-              {copy("settings.competitors.you")}
-            </span>
-            <span className="inline-flex flex-wrap gap-1" data-testid="competitors-you-google">
-              {copy("settings.competitors.google")}
-              <strong className="num">
-                {you.google === null
-                  ? copy("settings.competitors.not-measured")
-                  : copy("settings.competitors.figure", { n: String(you.google.n), of: String(you.google.of) })}
-              </strong>
-            </span>
-            <span data-testid="competitors-you-ai">
-              {you.ai === null
-                ? `${copy("settings.competitors.ai")} ${copy("settings.competitors.not-measured")}`
-                : copy("settings.competitors.you.ai", { n: String(you.ai.n), of: String(you.ai.of), weeks: String(ANSWER_RATE_WEEKS) })}
-            </span>
-            <Link className="link link-primary sm:ml-auto" href={TAB_HREF.rivals}>
-              {copy("settings.competitors.see")}
-            </Link>
+          <div className="flex min-w-0 flex-col gap-2 rounded-box bg-base-200 px-4 py-3 text-sm" data-testid="competitors-you">
+            <span className="font-bold">{copy("settings.competitors.you")}</span>
+            <dl className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-2">
+              <FigureRow label={copy("settings.competitors.google")} half={you.google} pending={null} testId="competitors-you-google" />
+              <FigureRow
+                label={copy("settings.competitors.you.ai", { weeks: String(ANSWER_RATE_WEEKS) })}
+                half={you.ai}
+                pending={null}
+                testId="competitors-you-ai"
+              />
+            </dl>
           </div>
 
           {p.leaders.length === 0 ? null : (
@@ -316,14 +273,6 @@ export function CompetitorsPanel(p: {
               {copy("settings.competitors.leaders", { names: p.leaders.join(", ") })}
             </p>
           )}
-
-          <details className="collapse collapse-arrow card-border min-w-0" data-testid="settings-competitors-detail">
-            <summary className="collapse-title text-sm font-semibold">{copy("settings.competitors.detail")}</summary>
-            <div className="collapse-content flex min-w-0 flex-col gap-2 text-sm text-base-content/70">
-              {detail.length === 0 ? null : <p className="wrap-anywhere">{detail.join(" ")}</p>}
-              <p className="wrap-anywhere">{copy("settings.competitors.detail.change")}</p>
-            </div>
-          </details>
         </div>
       </div>
     </section>

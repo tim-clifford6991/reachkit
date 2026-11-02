@@ -190,7 +190,7 @@ describe("Edit opens the field it belongs to", () => {
     const root = await market();
     expect(root.querySelector('[data-testid="edit-domain"]')).toBeNull();
     expect(root.querySelector('[data-testid="edit-category"]')).toBeNull();
-    expect(root.querySelector('[data-testid="market-consequences"]')).not.toBeNull();
+    expect(root.querySelector('[data-testid="market-note-website"]')).not.toBeNull();
   });
 
   it("Edit on the domain opens a field holding the domain the site is measured under", async () => {
@@ -223,7 +223,7 @@ describe("Edit opens the field it belongs to", () => {
     await press(button(root, "settings.cancel-edit"));
     expect(root.querySelector('[data-testid="edit-domain"]')).toBeNull();
     expect(pressed).toEqual([]);
-    expect(root.querySelector('[data-testid="market-consequences"]')).not.toBeNull();
+    expect(root.querySelector('[data-testid="market-note-website"]')).not.toBeNull();
   });
 
   it("REQ-070 c1 — the closed offer of controls is the same with a field open", async () => {
@@ -265,7 +265,7 @@ describe("REQ-071 c1 — the consequence is stated before the button is pressed"
   it("the standing consequences give way to it, so the card states one dated sentence", async () => {
     const root = await market();
     await press(edit(root, "setting-domain"));
-    expect(root.querySelector('[data-testid="market-consequences"]')).toBeNull();
+    expect(root.querySelector('[data-testid="market-note-website"]')).toBeNull();
     expect(root.querySelectorAll('[data-testid="market-change-line"]')).toHaveLength(1);
   });
 });
@@ -275,10 +275,10 @@ describe("issue 866 — the standalone 'measure again now'", () => {
   const answerLine = (root: HTMLElement): string =>
     root.querySelector('[data-testid="market-remeasure-line"]')?.textContent ?? "";
 
-  it("says what it will do before it is pressed", async () => {
+  it("stands alone before it is pressed: the button, and no line under it", async () => {
     const root = await market();
     expect(remeasure(root).textContent).toContain("settings.market.remeasure.action");
-    expect(answerLine(root)).toBe("settings.market.remeasure.effect");
+    expect(answerLine(root)).toBe("");
     expect(pressed).toEqual([]);
   });
 
@@ -287,7 +287,7 @@ describe("issue 866 — the standalone 'measure again now'", () => {
     await press(root.querySelector('[data-testid="market-remeasure-press"]'));
     expect(pressed).toEqual([{ action: "remeasure", value: "" }]);
     expect(said).toEqual([["settings.market.remeasure.started", "ok"]]);
-    expect(answerLine(root)).toBe("settings.market.remeasure.effect");
+    expect(answerLine(root)).toBe("");
   });
 
   it("a refused press states the refusal it was given, and nothing about Monday", async () => {

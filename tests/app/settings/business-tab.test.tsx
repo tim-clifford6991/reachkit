@@ -1,24 +1,18 @@
 /** @vitest-environment jsdom */
-// Settings › Your business against board SettingsIndex: each section's words, in
+// Settings › Your business against board SettingsIndex (canvas v36): each section's words, in
 // order, drawing each customer's own values. A plumber and a SaaS, same labels.
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { applyEnvFixture } from "../../mail/env-fixture";
-import { CUSTOMERS, PLUMBER, SAAS, type Customer } from "./business-fixtures";
+import { CUSTOMERS, PLUMBER, type Customer } from "./business-fixtures";
 
 applyEnvFixture();
 
-const { assembleShell } = await import("@/app/(account)/app/_shell/model");
-const { FIXTURE_SHELL_FACTS } = await import("@/app/(account)/app/_shell/fixture");
 const { formatDate } = await import("@/app/(account)/app/_shell/format");
-const { formatMoment } = await import("@/app/(account)/app/settings/next-page");
-const { showsOnAPage } = await import("@/app/(account)/app/settings/on-a-page");
-const { FlowPanel } = await import("@/app/(account)/app/settings/panels/FlowPanel");
 const { BusinessPanel } = await import("@/app/(account)/app/settings/panels/BusinessPanel");
 const { KnowledgePanel } = await import("@/app/(account)/app/settings/panels/KnowledgePanel");
 const { FactsPanel } = await import("@/app/(account)/app/settings/panels/FactsPanel");
 const { KnownContentPanel } = await import("@/app/(account)/app/settings/panels/KnownContentPanel");
-const { WrittenFromPanel } = await import("@/app/(account)/app/settings/panels/WrittenFromPanel");
 const { UNREAD_INDEX } = await import("@/app/(account)/app/settings/business-provider");
 
 const TZ = "America/Chicago";
@@ -33,171 +27,74 @@ function mount(element: React.JSX.Element): HTMLElement {
 
 const text = (el: Element | null | undefined): string => (el?.textContent ?? "").replace(/\s+/g, " ").trim();
 
-function exampleOf(c: Customer, pages = c.livePages) {
-  return showsOnAPage({
-    pages,
-    claims: c.profile.lists.claims.map((item) => item.text),
-    vocabulary: c.profile.lists.vocabulary.map((item) => item.text),
-    lang: "en-US",
-  });
+function business(c: Customer): HTMLElement {
+  return mount(<BusinessPanel profile={c.profile} empty={false} timeZone={TZ} />);
 }
 
-function business(c: Customer, example = exampleOf(c)): HTMLElement {
-  return mount(<BusinessPanel profile={c.profile} siteName={c.name} empty={false} example={example} timeZone={TZ} />);
-}
+const { BUSINESS_ITEM_FIELD, BUSINESS_JOB_FIELD, BUSINESS_LIST_FIELD } = await import("@/app/(account)/app/settings/panel-state");
 
-function flow(next: Date | null, c: Customer = PLUMBER): HTMLElement {
-  return mount(<FlowPanel pagesRead={c.profile.pagesRead} readAt={c.profile.readAt} next={next} timeZone={TZ} />);
-}
-
-describe.each(CUSTOMERS)("$name: How this tab shapes your pages", (c) => {
-  const next = new Date("2026-10-20T21:00:00.000Z");
-
-  it("draws three steps, the first stating this site's own read", () => {
-    const root = flow(next, c);
-    expect(text(root.querySelector("h2"))).toBe("How this tab shapes your pages");
-    expect([...root.querySelectorAll("li strong")].map(text)).toEqual([
-      "We read your site",
-      "You check what we learned",
-      "Every page is written from it",
-    ]);
-    expect(text(root.querySelector('[data-testid="settings-flow-read"]'))).toBe(
-      `We read your site ${c.profile.pagesRead} pages of your site, last on ${formatDate(c.profile.readAt!, TZ)}`
-    );
-    expect(root.textContent).toContain("Change any line below. Nothing here is required.");
-    expect(text(root.querySelector('[data-testid="settings-flow-next"]'))).toBe(`Next: ${formatMoment(next, TZ)}.`);
-    const plan = root.querySelector('a[href="/app/calendar"]');
-    expect(text(plan)).toBe("See this week’s pages");
-  });
-});
-
-describe("Next: is the shell's next publish, and is not drawn while there is none", () => {
-  const due = new Date("2026-10-20T21:00:00.000Z");
-  const causes = FIXTURE_SHELL_FACTS.noPublishCauses;
-  const cases = {
-    // The store reads no next publish while the address waits or publishing is off.
-    unconnected: { next: null, noPublishCauses: { ...causes, address_waiting: true } },
-    paused: { next: null, noPublishCauses: { ...causes, publishing_paused: true } },
-    // A stop outranks a time still on the row.
-    stopped: { next: due, noPublishCauses: { ...causes, reachkit_stopped: true } },
-  };
-
-  it.each(Object.entries(cases))("%s: no time is named, the plan link stays", (_, facts) => {
-    const shell = assembleShell({ ...FIXTURE_SHELL_FACTS, ...facts });
-    const root = flow(shell.publishing.next);
-    expect(root.querySelector('[data-testid="settings-flow-next"]')).toBeNull();
-    expect(root.textContent).not.toContain("Next:");
-    expect(text(root.querySelector('a[href="/app/calendar"]'))).toBe("See this week’s pages");
-  });
-
-  it("scheduled: the time is the shell's, in the site's zone", () => {
-    const shell = assembleShell({ ...FIXTURE_SHELL_FACTS, next: due });
-    expect(text(flow(shell.publishing.next).querySelector('[data-testid="settings-flow-next"]'))).toBe(
-      `Next: ${formatMoment(due, TZ)}.`
-    );
-  });
-
-  it("a site never read says so rather than a count", () => {
-    const root = mount(<FlowPanel pagesRead={null} readAt={null} next={null} timeZone={TZ} />);
-    expect(text(root.querySelector('[data-testid="settings-flow-read"]'))).toBe("We read your site Not read yet");
-  });
-});
-
-describe.each(CUSTOMERS)("$name: What we know about the business", (c) => {
-  it("heads the card with the business's own name and the lead", () => {
+describe.each(CUSTOMERS)("$name: What we read from your site", (c) => {
+  it("heads the card with the board's title and sub-line", () => {
     const root = business(c);
-    expect(text(root.querySelector("h2"))).toBe(`What we know about ${c.name}`);
-    expect(root.textContent).toContain(
-      "We read this from your site. Your next page follows any change you make."
-    );
+    expect(text(root.querySelector("h2"))).toBe("What we read from your site");
+    expect(root.textContent).toContain("Change any line. Your next page follows it.");
   });
 
-  it("draws each field's label with its hint in one line, in the board's order", () => {
-    const labels = [...business(c).querySelectorAll("h3")].map(text);
-    expect(labels).toEqual([
-      "What you do one sentence",
+  it("each field is a row with its bare label, in the board's order, and Tone and self-reference are not drawn", () => {
+    const rows = [...business(c).querySelectorAll('[data-testid="business-job"], [data-testid="business-offering"], [data-testid^="business-group-"]')];
+    expect(rows.map((row) => text(row.firstElementChild))).toEqual([
+      "What you do",
       "Kind of business",
       "What you sell",
       "Who you serve",
-      "What you promise we may repeat these",
-      "Words you use so pages sound like you",
+      "What you promise",
+      "Words you use",
     ]);
-    const rows = [...business(c).querySelectorAll('[data-testid^="business-row-"]')].map(text);
-    expect(rows).toEqual([`Tone${c.profile.tone}`, `How you refer to yourself${c.profile.person}`]);
+    const root = business(c);
+    expect(c.profile.tone).not.toBeNull();
+    expect(root.textContent).not.toContain("Tone");
+    expect(root.textContent).not.toContain("How you refer to yourself");
+    expect(root.textContent).not.toContain(c.profile.tone!);
   });
 
-  it("every item, promises included, is a chip with its own Remove button", () => {
+  it("Kind of business is the report's closed word where one is stored, else the read's own text; the voice summary's claim lists are not drawn", () => {
+    const kinded = mount(<BusinessPanel profile={c.profile} kind="Agency or firm" empty={false} timeZone={TZ} />);
+    expect(text(kinded.querySelector('[data-testid="business-offering"] p'))).toBe("Agency or firm");
+    expect(text(business(c).querySelector('[data-testid="business-offering"] p'))).toBe(c.profile.offeringType ?? "");
+    const item = c.profile.lists.claims[0]!;
+    const withClaims = { ...c.profile, lists: { ...c.profile.lists, claimsToKeep: [item], claimsToAvoid: [item] } };
+    const root = mount(<BusinessPanel profile={withClaims} empty={false} timeZone={TZ} />);
+    for (const list of ["claimsToKeep", "claimsToAvoid"]) expect(root.querySelector(`[data-testid="business-group-${list}"]`)).toBeNull();
+  });
+
+  it("writes only what it draws: no field on the card can reach the tone or the self-reference", () => {
+    const names = new Set([...business(c).querySelectorAll("[name]")].map((el) => el.getAttribute("name")));
+    for (const name of names) expect([BUSINESS_LIST_FIELD, BUSINESS_ITEM_FIELD, BUSINESS_JOB_FIELD]).toContain(name);
+  });
+
+  it("every item, promises included, is a 44px chip with its own Remove button, and each list keeps an Add", () => {
     const root = business(c);
     for (const value of [c.product, c.promise, c.word]) {
-      expect(root.querySelector(`button[aria-label="Remove ${value}"]`)).not.toBeNull();
+      expect(root.querySelector(`button[aria-label="Remove ${value}"]`)?.classList.contains("size-11")).toBe(true);
     }
     const promises = root.querySelector('[data-testid="business-group-claims"]');
-    expect(promises?.querySelectorAll(".badge")).toHaveLength(c.profile.lists.claims.length);
-    expect(promises?.querySelector("li")).toBeNull();
+    expect(promises?.querySelectorAll('[data-testid="business-item"]')).toHaveLength(c.profile.lists.claims.length);
+    expect(text(promises?.querySelector('[data-testid="business-open-add-claims"]'))).toBe("Add");
   });
 
   it("closes on the last read and the existing re-read", () => {
     const root = business(c);
     expect(text(root.querySelector('[data-testid="business-read-line"]'))).toBe(
-      `Last read ${formatDate(c.profile.readAt!, TZ)} · ${c.profile.pagesRead} pages read`
+      `Last read ${formatDate(c.profile.readAt!, TZ)} · ${c.profile.pagesRead} pages`
     );
     expect(text(root.querySelector('[data-testid="business-read-again"]'))).toBe("Read my site again now");
   });
-});
 
-describe("How it shows on a page: a sentence quoted from a live page, never invented", () => {
-  it("(a) the plumber's live page uses \"tankless\": that sentence, the word marked", () => {
-    const root = business(PLUMBER);
-    const figure = root.querySelector('[data-testid="business-example"]');
-    expect(text(figure?.querySelector(".eyebrow"))).toBe("How it shows on a page");
-    expect(text(figure?.querySelector('[data-testid="business-example-quote"]'))).toBe("Most tankless swaps take one day.");
-    expect([...(figure?.querySelectorAll("mark") ?? [])].map(text)).toEqual(["tankless"]);
-    expect(text(figure?.querySelector("figcaption"))).toBe(
-      "from Words you use Example. Change a line above and your next page follows it."
-    );
-    const title = figure?.querySelector("a");
-    expect(title?.getAttribute("href")).toBe(PLUMBER.livePages[0]!.url);
-    expect(text(title)).toBe("Tankless water heater installation in Austin");
-    expect(text(figure?.querySelector(".badge"))).toBe(formatDate(PLUMBER.livePages[0]!.publishedAt, TZ));
-    expect(figure?.querySelector("[lang]")?.getAttribute("lang")).toBe("en-US");
-  });
-
-  it("names both lists when the sentence uses a promise and a word", () => {
-    const example = exampleOf(PLUMBER, [
-      { ...PLUMBER.livePages[0]!, markdown: "A tankless swap with upfront prices before work starts.\n" },
-    ]);
-    const figure = business(PLUMBER, example).querySelector('[data-testid="business-example"]');
-    expect([...(figure?.querySelectorAll("mark") ?? [])].map(text)).toEqual([
-      "tankless",
-      "upfront prices before work starts",
-    ]);
-    expect(text(figure?.querySelector("figcaption"))).toContain("from What you promise and Words you use");
-  });
-
-  it("the SaaS's own page and its own word", () => {
-    const figure = business(SAAS).querySelector('[data-testid="business-example"]');
-    expect(text(figure?.querySelector('[data-testid="business-example-quote"]'))).toBe(
-      "A payment reminder that goes out on day one halves that."
-    );
-    expect([...(figure?.querySelectorAll("mark") ?? [])].map(text)).toEqual(["payment reminder"]);
-  });
-
-  it("the newest live page that matches is the one quoted", () => {
-    const older = { ...PLUMBER.livePages[0]!, url: "https://harborplumbing.example/old", publishedAt: new Date("2026-09-01T00:00:00Z") };
-    const newer = { ...PLUMBER.livePages[0]!, markdown: "Our tankless team is in Austin.\n" };
-    expect(exampleOf(PLUMBER, [older, newer])?.parts.map((p) => p.text).join("")).toBe("Our tankless team is in Austin.");
-  });
-
-  it("(b) live pages that use no stored promise or word: not drawn", () => {
-    const pages = [{ ...PLUMBER.livePages[0]!, markdown: "# Tankless heaters\n\nWater heaters wear out; tanklessly is not a word.\n" }];
-    expect(exampleOf(PLUMBER, pages)).toBeNull();
-    expect(business(PLUMBER, exampleOf(PLUMBER, pages)).querySelector('[data-testid="business-example"]')).toBeNull();
-    expect(business(PLUMBER, null).textContent).not.toContain("How it shows on a page");
-  });
-
-  it("(c) no live page: not drawn", () => {
-    expect(exampleOf(PLUMBER, [])).toBeNull();
-    expect(exampleOf(SAAS, [])).toBeNull();
+  it("draws no strip, no example and no written-from card (canvas v36)", () => {
+    const root = business(c);
+    for (const gone of ["How this tab shapes your pages", "How it shows on a page", "What every page is written from"]) {
+      expect(root.textContent).not.toContain(gone);
+    }
   });
 });
 
@@ -322,25 +219,20 @@ describe("Content we already know about: three places, and a blog not read is ne
 });
 
 describe("icons (ux 2026-10-24 E24, E28, S1)", () => {
-  it("the strip's three tiles are Globe, Building2 and FileText", () => {
-    const icons = [...flow(null).querySelectorAll("li svg")];
-    expect(icons).toHaveLength(3);
-    ["lucide-globe", "lucide-building-2", "lucide-file-text"].forEach((name, at) => expect(icons[at]?.classList.contains(name)).toBe(true));
-  });
-
-  it("Read my site again now carries RefreshCw", () => {
-    expect(business(PLUMBER).querySelector('[data-testid="business-read-again"] svg.lucide-refresh-cw')).not.toBeNull();
+  it("Read my site again now carries RefreshCw and Reword carries Pencil", () => {
+    const root = business(PLUMBER);
+    expect(root.querySelector('[data-testid="business-read-again"] svg.lucide-refresh-cw')).not.toBeNull();
+    expect(root.querySelector('[data-testid="business-job"] svg.lucide-pencil')).not.toBeNull();
   });
 
   it("no card title on this tab carries an icon", () => {
     const titles = [
       business(PLUMBER),
-      mount(<WrittenFromPanel profile={PLUMBER.profile} />),
       mount(<KnowledgePanel knowledge={PLUMBER.knowledge} answers={{}} />),
       mount(<FactsPanel facts={PLUMBER.facts} />),
       mount(<KnownContentPanel known={{ ours: 1, site: 1, wordpress: 0, total: 2 }} />),
     ].flatMap((root) => [...root.querySelectorAll("h2, summary")]);
-    expect(titles).toHaveLength(5);
+    expect(titles).toHaveLength(4);
     for (const title of titles) expect(title.querySelector("svg")).toBeNull();
   });
 });

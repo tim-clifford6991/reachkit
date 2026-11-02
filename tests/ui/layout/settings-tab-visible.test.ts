@@ -7,7 +7,8 @@
 // the marked tab could sit past the right edge (#925). Scrolling it into
 // view fixed that, but four of the seven tabs were still off-screen with
 // nothing to say they existed (#1101, the 2026-09-25 shell review). Below
-// `sm` the bar now wraps, so there is nothing to scroll and nothing hidden.
+// `sm` the bar is now a 2-column grid of 44px boxes in the page's flow (canvas
+// v36), so there is nothing to scroll, nothing hidden and nothing stuck under the top bar.
 //
 // Every check the layout suite already ran passed on both defects: nothing
 // overflowed the screen, the row contained its content perfectly and simply
@@ -45,6 +46,10 @@ interface Seen {
   readonly scrolling: readonly string[];
   /** Tabs shorter than the target, with their height. */
   readonly short: readonly string[];
+  /** How many distinct left edges the tabs start at: the grid's columns. */
+  readonly columns: number;
+  /** The bar's computed `position`. */
+  readonly position: string;
 }
 
 /** Read in the page. Closure-free — `page.evaluate` serialises this
@@ -52,7 +57,7 @@ interface Seen {
 function measureBar(targetPx: number): Seen {
   const bar = document.querySelector('[data-testid="settings-tabs"]');
   if (bar === null) {
-    return { current: null, tabs: 0, outside: [], scrolling: [], short: [] };
+    return { current: null, tabs: 0, outside: [], scrolling: [], short: [], columns: 0, position: "" };
   }
   const barBox = bar.getBoundingClientRect();
   const tabs = Array.from(bar.querySelectorAll("a"));
@@ -82,6 +87,8 @@ function measureBar(targetPx: number): Seen {
     outside,
     scrolling,
     short,
+    columns: new Set(tabs.map((tab) => Math.round(tab.getBoundingClientRect().left))).size,
+    position: getComputedStyle(bar).position,
   };
 }
 
@@ -100,7 +107,7 @@ for (const width of PHONE_BANDS_PX) {
     for (const tab of SETTINGS_TABS) {
       const href = SETTINGS_TAB_HREF[tab];
       it(
-        `${href}: all ${SETTINGS_TABS.length} tabs inside the bar, none scrolled, its own tab marked, each ${TARGET_PX}px tall`,
+        `${href}: all ${SETTINGS_TABS.length} tabs in a 2-column grid inside the bar, none scrolled, not sticky, its own tab marked, each ${TARGET_PX}px tall`,
         async () => {
           const seen = await withPage(
             width,
@@ -117,6 +124,8 @@ for (const width of PHONE_BANDS_PX) {
           expect(seen.outside, `${href} at ${width}px: tabs outside the bar`).toEqual([]);
           expect(seen.scrolling, `${href} at ${width}px: the bar scrolls sideways`).toEqual([]);
           expect(seen.short, `${href} at ${width}px: tabs under ${TARGET_PX}px`).toEqual([]);
+          expect(seen.columns, `${href} at ${width}px: the tabs' columns`).toBe(2);
+          expect(seen.position, `${href} at ${width}px: the bar stays in the page's flow`).toBe("static");
         },
         PER_ROUTE_BROWSER_MS
       );

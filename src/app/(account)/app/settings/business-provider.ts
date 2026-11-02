@@ -24,8 +24,6 @@ import { confirmedProfile, quotableFacts } from "@/lib/site-profile/business/con
 import type { BusinessProfile, QuotableFact } from "@/lib/site-profile/business/types";
 import { knowledgeBase } from "@/lib/site-profile/knowledge/merge";
 import type { FounderAnswers, KnowledgeBase } from "@/lib/site-profile/knowledge/types";
-import { DEFAULT_LOCALE, localeTag } from "@/lib/locale/locales";
-import { showsOnAPage, type LivePage, type OnAPage } from "./on-a-page";
 
 /** SPEC §7 (2026-09-20, #928) — "Content we already know about": how many
  *  pages this site has, per source. Three numbers and a total, because the
@@ -40,9 +38,6 @@ export interface KnownContentCounts {
 }
 
 export interface BusinessModel {
-  /** What the site is called, where the crawl read a name. The heading
-   *  names the business, and says so in general terms where it has none. */
-  readonly siteName: string | null;
   readonly profile: BusinessProfile;
   /** Whether the customer has ever corrected anything. The screen's lead
    *  line differs: a first read is "learned from your site", and after an
@@ -56,15 +51,13 @@ export interface BusinessModel {
   readonly knowledge: KnowledgeBase;
   /** The five answers as stored, which the fields open on. */
   readonly answers: FounderAnswers;
-  /** "How it shows on a page", or `null` where no live page uses a promise or word. */
-  readonly onAPage: OnAPage | null;
 }
 
 export const readBusiness = cache(async function readBusiness(): Promise<BusinessModel> {
   const account = await requireSetUpAccount();
 
   if (isReservedFixtureAccount(account)) {
-    const { FIXTURE_BUSINESS_PROFILE, FIXTURE_KNOWLEDGE, FIXTURE_LIVE_PAGES, FIXTURE_MARKET_READING } = await import(
+    const { FIXTURE_BUSINESS_PROFILE, FIXTURE_KNOWLEDGE, FIXTURE_MARKET_READING } = await import(
       "./business-fixture"
     );
     const { NO_EDITS } = await import("@/lib/site-profile/business/types");
@@ -74,7 +67,6 @@ export const readBusiness = cache(async function readBusiness(): Promise<Busines
       edits: NO_EDITS,
     });
     return {
-      siteName: FIXTURE_BUSINESS_PROFILE.siteName,
       profile,
       edited: false,
       // The reserved account's own index: four pages we wrote, six posts on
@@ -82,29 +74,22 @@ export const readBusiness = cache(async function readBusiness(): Promise<Busines
       known: { ours: 4, wordpress: 6, site: 9, total: 19 },
       knowledge: knowledgeBase({ stored: FIXTURE_KNOWLEDGE, answers: {} }),
       answers: {},
-      onAPage: onAPageOf(profile, FIXTURE_LIVE_PAGES, localeTag(DEFAULT_LOCALE)),
     };
   }
 
   const { readBusinessFacts } = await import("./business-store");
-  const [facts, known, live] = await Promise.all([
-    readBusinessFacts(account),
-    knownCountsFor(account.siteId),
-    liveBodiesOf(account.siteId),
-  ]);
+  const [facts, known] = await Promise.all([readBusinessFacts(account), knownCountsFor(account.siteId)]);
   const profile = confirmedProfile({
     profile: facts.profile,
     market: facts.market,
     edits: facts.edits,
   });
   return {
-    siteName: facts.profile?.siteName ?? null,
     profile,
     known,
     edited: facts.edited,
     knowledge: knowledgeBase({ stored: facts.knowledge, answers: facts.edits.answers }),
     answers: facts.edits.answers,
-    onAPage: live === null ? null : onAPageOf(profile, live.pages, live.lang),
   };
 });
 
@@ -123,30 +108,6 @@ export const readBusinessQuotable = cache(async function readBusinessQuotable():
   const { quotable, edits } = await readQuotablePassages(account);
   return quotableFacts({ facts: quotable, edits });
 });
-
-function onAPageOf(profile: BusinessProfile, pages: readonly LivePage[], lang: string): OnAPage | null {
-  return showsOnAPage({
-    pages,
-    claims: profile.lists.claims.map((item) => item.text),
-    vocabulary: profile.lists.vocabulary.map((item) => item.text),
-    lang,
-  });
-}
-
-/** The site's live pages and the language they are written in; `null` where
- *  they could not be read, so the block is not drawn. */
-async function liveBodiesOf(siteId: string): Promise<{ pages: LivePage[]; lang: string } | null> {
-  try {
-    const [{ readOurLiveBodies }, { siteLocale }] = await Promise.all([
-      import("@/lib/known-content/store"),
-      import("@/lib/locale/site"),
-    ]);
-    const [pages, locale] = await Promise.all([readOurLiveBodies(siteId), siteLocale(siteId)]);
-    return { pages, lang: localeTag(locale) };
-  } catch {
-    return null;
-  }
-}
 
 /** What a failed index read draws: nothing known yet, never a 0 for a blog not read. */
 export const UNREAD_INDEX: KnownContentCounts = { ours: 0, wordpress: null, site: 0, total: 0 };

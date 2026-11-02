@@ -7,3 +7,4 @@ Billing period Wed 7 Oct to Sat 7 Nov. Everything is included in €49.	sample d
 2 Monday mails 12 Oct and 19 Oct	sample data
 Wed 7 Oct Today Sat 7 Nov	sample data: the account's own period
 Billed in euros. Cancel any time, and it all runs until the period ends.	D4 (#1707): the specimen account is inside its first 14 days, so the refund line stands in its place
+What you’re measured as, how pages go out, and your account.	cut from the Settings shell (canvas v36, docs/spec/decisions/2026-11-02-2276.md)

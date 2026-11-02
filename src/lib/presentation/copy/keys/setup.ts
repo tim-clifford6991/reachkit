@@ -321,13 +321,6 @@ export const SETUP_COPY = Object.freeze({
   // §5's "The site profile is confirmed here": the page inventory, the site
   // name and the editable brand voice, drawn on the Check board
   // (`docs/design/boards/canvas/Setup2.dc.html`).
-  //
-  // The eight purpose words are keys and not raw tokens for the same
-  // reason the band words are: `pricing` is an identifier the engine
-  // classifies by, and what a customer reads beside a count is a word the
-  // owner chooses.
-  /** The line above the purpose chips — what each page is for. */
-  "setup.profile.purposes": ["What these pages are for", { slots: {}, fixedBy: "SPEC.md §5 (2026-09-12)" }],
   "setup.profile.voice.label": ["How your pages sound", { slots: {}, fixedBy: "SPEC.md §5 (2026-09-12)" }],
   /** Above an empty voice box, where no voice has been read of the site
    *  yet — the free scan does not read one, and the deep pass that does
@@ -343,14 +336,6 @@ export const SETUP_COPY = Object.freeze({
     "You can change this later in Settings.",
     { slots: {}, fixedBy: "SPEC.md §5 (2026-09-12)" },
   ],
-  "setup.profile.purpose.pricing": ["Pricing", { slots: {}, fixedBy: "SPEC.md §2 (2026-09-12)" }],
-  "setup.profile.purpose.about": ["About", { slots: {}, fixedBy: "SPEC.md §2 (2026-09-12)" }],
-  "setup.profile.purpose.features": ["Features", { slots: {}, fixedBy: "SPEC.md §2 (2026-09-12)" }],
-  "setup.profile.purpose.product": ["Product", { slots: {}, fixedBy: "SPEC.md §2 (2026-09-12)" }],
-  "setup.profile.purpose.blog": ["Blog", { slots: {}, fixedBy: "SPEC.md §2 (2026-09-12)" }],
-  "setup.profile.purpose.contact": ["Contact", { slots: {}, fixedBy: "SPEC.md §2 (2026-09-12)" }],
-  "setup.profile.purpose.legal": ["Legal", { slots: {}, fixedBy: "SPEC.md §2 (2026-09-12)" }],
-  "setup.profile.purpose.other": ["Other", { slots: {}, fixedBy: "SPEC.md §2 (2026-09-12)" }],
 
   // ── The release notice (issue #36) ──────────────────────────────────
   //

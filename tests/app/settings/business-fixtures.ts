@@ -5,14 +5,12 @@ import { NO_EDITS, type BusinessProfile, type QuotableFact } from "@/lib/site-pr
 import { knowledgeBase } from "@/lib/site-profile/knowledge/merge";
 import type { KnowledgeBase, StoredKnowledge } from "@/lib/site-profile/knowledge/types";
 import type { SiteProfile } from "@/lib/site-profile/types";
-import type { LivePage } from "@/app/(account)/app/settings/on-a-page";
 
 export interface Customer {
   name: string;
   profile: BusinessProfile;
   facts: QuotableFact[];
   knowledge: KnowledgeBase;
-  livePages: LivePage[];
   /** One stored promise and one stored word, as the screen should draw them. */
   promise: string;
   word: string;
@@ -30,7 +28,6 @@ function customer(a: {
   market: MarketReading;
   quotable: { passage: string; url: string }[];
   knowledge: StoredKnowledge;
-  livePages: LivePage[];
   promise: string;
   word: string;
   product: string;
@@ -40,7 +37,6 @@ function customer(a: {
     profile: confirmedProfile({ profile: a.site, market: a.market, edits: NO_EDITS }),
     facts: quotableFacts({ facts: a.quotable, edits: NO_EDITS }),
     knowledge: knowledgeBase({ stored: a.knowledge, answers: {} }),
-    livePages: a.livePages,
     promise: a.promise,
     word: a.word,
     product: a.product,
@@ -93,15 +89,6 @@ export const PLUMBER = customer({
     readAt: READ_AT.toISOString(),
     demoPhrases: [],
   },
-  livePages: [
-    {
-      url: "https://harborplumbing.example/blog/tankless-water-heater-installation",
-      title: "Tankless water heater installation in Austin",
-      markdown:
-        "# Tankless water heater installation in Austin\n\nMost tankless swaps take one day. Upfront prices before work starts, always.\n",
-      publishedAt: new Date("2026-10-20T21:00:00.000Z"),
-    },
-  ],
   promise: "Upfront prices before work starts",
   word: "tankless",
   product: "Repiping",
@@ -148,14 +135,6 @@ export const SAAS = customer({
     readAt: "2026-09-30T08:00:00.000Z",
     demoPhrases: [],
   },
-  livePages: [
-    {
-      url: "https://blog.ledgerly.example/late-invoices",
-      title: "How to stop chasing late invoices",
-      markdown: "Late invoices cost agencies a week a year. A payment reminder that goes out on day one halves that.\n",
-      publishedAt: new Date("2026-10-01T12:00:00.000Z"),
-    },
-  ],
   promise: "Set up in ten minutes",
   word: "payment reminder",
   product: "Expense tracking",

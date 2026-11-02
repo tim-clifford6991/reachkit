@@ -121,120 +121,98 @@ function competitors(c: Customer, over: { leaders?: readonly string[]; figures?:
       concluded={model.concluded}
       figures={over.figures ?? c.figures}
       measuredFrom={model.market.wouldTakeEffectOn}
-      ownDomain={c.domain}
       leaders={over.leaders ?? []}
-      detail={{ googleOn: "Monday 19 October", searches: c.sets.searches, questions: c.sets.questions }}
     />
   );
 }
 
 describe.each([PLUMBER, SAAS])("$name: Your site and market, in the board's order and words", (c) => {
-  it("the title and lead, the website, then the market Found by ReachKit", () => {
+  it("the title, then three rows: the website, the market and what is checked, each consequence under its own field", () => {
     const root = market(c);
     expect(text(root.querySelector("h2"))).toBe("Your site and market");
-    expect(root.textContent).toContain("Where we check you, and against whom.");
-    expect(text(root.querySelector('[data-testid="setting-domain"]'))).toContain(`Your website${c.domain}`);
-    const line = root.querySelector('[data-testid="setting-category"]');
-    expect(text(line)).toBe(`${c.category}Found by ReachKit from your site. Checked again every Monday.Change`);
-  });
-
-  it("what your market sets: three wells from this account's stored counts, then the plan", () => {
-    const sets = market(c).querySelector('[data-testid="market-sets"]');
-    expect(text(sets?.querySelector(".eyebrow"))).toBe("What we check every Monday");
-    expect([...(sets?.querySelectorAll("li") ?? [])].map(text)).toEqual([
-      `${c.sets.searches} searches your buyers make most`,
-      `${c.sets.questions} questions we ask AI for you`,
-      `${c.competitors.length} competitors to compare`,
-    ]);
-    expect(text(sets?.querySelector("p:last-child"))).toBe("This week’s pages are chosen from these.See this week’s pages");
-    expect(sets?.querySelector("a")?.getAttribute("href")).toBe("/app/calendar");
-  });
-
-  it("the two consequences, then Check again now with its line", () => {
-    const root = market(c);
-    expect([...root.querySelectorAll('[data-testid="market-consequences"] li')].map(text)).toEqual([
-      "If you change your website, your searches restart next Monday.",
-      "If you change your market, we check it again right away.",
-    ]);
-    expect(text(root.querySelector('[data-testid="market-remeasure-press"]'))).toBe("Check again now");
-    expect(text(root.querySelector('[data-testid="market-remeasure-line"]'))).toBe(
-      "Checks your market again now. Your searches and pages follow."
+    expect(root.textContent).not.toContain("Where we check you, and against whom.");
+    expect(text(root.querySelector('[data-testid="setting-domain"]'))).toBe(`Your website${c.domain}ChangeChange it and your searches restart next Monday.`);
+    expect(text(root.querySelector('[data-testid="setting-category"]'))).toBe(
+      `Your market${c.category}ChangeRead from your site. Change it and we check it again at once.`
     );
   });
 
-  it("competitors: the lead, then one card per competitor with its own figures and its Remove", () => {
+  it("checked every Monday: one row of this account's stored counts, each count bold, and no plan link", () => {
+    const sets = market(c).querySelector('[data-testid="market-sets"]');
+    expect(text(sets?.firstElementChild)).toBe("Checked every Monday");
+    expect([...(sets?.querySelectorAll("li") ?? [])].map(text)).toEqual([
+      `${c.sets.searches} searches your buyers make`,
+      `${c.sets.questions} questions we ask AI`,
+      `${c.competitors.length} competitors`,
+    ]);
+    expect([...(sets?.querySelectorAll("li strong") ?? [])].map(text)).toEqual([String(c.sets.searches), String(c.sets.questions), String(c.competitors.length)]);
+    expect(sets?.querySelector("a")).toBeNull();
+  });
+
+  it("Check again now stands alone until a press is refused", () => {
+    const root = market(c);
+    expect(text(root.querySelector('[data-testid="market-remeasure-press"]'))).toBe("Check again now");
+    expect(root.querySelector('[data-testid="market-remeasure-line"]')).toBeNull();
+  });
+
+  it("competitors: the lead, then one card per competitor with its figures in a label/figure grid and its Remove", () => {
     const root = competitors(c);
     expect(text(root.querySelector("h2"))).toBe("Competitors");
-    expect(text(root.querySelector('[data-testid="competitors-concluded"]'))).toBe(
-      "Found by ReachKit in your market and checked every Monday. Remove or add any if you like."
-    );
+    expect(text(root.querySelector('[data-testid="competitors-concluded"]'))).toBe("Found in your market. Remove or add any.");
     for (const domain of c.competitors) {
       const card = root.querySelector(`[data-testid="competitor-${domain}"]`);
       const figures = c.figures.cards[domain];
-      expect(text(card)).toContain(`${domain.slice(0, 2).toUpperCase()}${domain}${c.found.includes(domain) ? "Found by ReachKit" : "Added by you"}`);
+      expect(text(card)).toContain(`${domain.slice(0, 2).toUpperCase()}${domain}${c.found.includes(domain) ? "" : "Added by you"}On Google`);
       if (figures !== null && figures !== undefined && figures.google !== null && figures.ai !== null) {
-        expect(text(card?.querySelector(`[data-testid="competitor-google-${domain}"]`))).toBe(`On Google’s first page${figures.google.n} of ${figures.google.of}`);
-        expect(text(card?.querySelector(`[data-testid="competitor-ai-${domain}"]`))).toBe(`Mentioned in AI answers${figures.ai.n} of ${figures.ai.of}`);
+        const google = card?.querySelector(`[data-testid="competitor-google-${domain}"]`);
+        expect([text(google?.querySelector("dt")), text(google?.querySelector("dd"))]).toEqual(["On Google’s first page", `${figures.google.n} of ${figures.google.of}`]);
+        expect(text(card?.querySelector(`[data-testid="competitor-ai-${domain}"]`))).toBe(`In AI answers${figures.ai.n} of ${figures.ai.of}`);
       }
       expect(card?.querySelector("button")?.getAttribute("aria-label")).toBe(`Remove ${domain}`);
       expect(text(card?.querySelector("button"))).toBe("Remove");
     }
   });
 
-  it("add a competitor, how many more, and You, for comparison", () => {
+  it("add a competitor, then You with its two figures, and no link away", () => {
     const root = competitors(c);
     const add = root.querySelector('[data-testid="add-competitor"]');
     expect(text(add?.querySelector("label"))).toBe("Add a competitor");
-    expect(text(add?.querySelector('[data-testid="competitors-more"]'))).toBe(`${BATTERY.COMPETITORS_MAX - c.competitors.length} more can be added`);
     expect(add?.querySelector("input")?.getAttribute("placeholder")).toBe("competitor.com");
     expect(text(add?.querySelector("button"))).toBe("Add");
-    const you = root.querySelector('[data-testid="competitors-you"]');
-    expect(text(you)).toBe(
-      `${c.domain.charAt(0).toUpperCase()}You, for comparisonOn Google’s first page${c.figures.you.google?.n} of ${c.figures.you.google?.of}` +
-        `Mentioned in ${c.figures.you.ai?.n} of ${c.figures.you.ai?.of} AI answers, last 4 weeksSee Competitors →`
+    expect(root.textContent).not.toContain("more can be added");
+    expect(text(root.querySelector('[data-testid="competitors-you"]'))).toBe(
+      `YouOn Google’s first page${c.figures.you.google?.n} of ${c.figures.you.google?.of}` +
+        `In AI answers, last 4 weeks${c.figures.you.ai?.n} of ${c.figures.you.ai?.of}`
     );
-    expect(you?.querySelector("a")?.getAttribute("href")).toBe("/app/rivals");
+    expect(root.querySelector("a")).toBeNull();
   });
 
-  it("the far larger line where one is stored, and the detail's two footnotes", () => {
+  it("the far larger line where one is stored, and no detail fold", () => {
     const none = competitors(c);
     expect(none.querySelector('[data-testid="competitors-leaders"]')).toBeNull();
     const root = competitors(c, { leaders: ["nationalchain.example"] });
     expect(text(root.querySelector('[data-testid="competitors-leaders"]'))).toBe(
       "For now we don’t compare you with nationalchain.example. They’re far larger."
     );
-    const detail = root.querySelector('[data-testid="settings-competitors-detail"]');
-    expect(text(detail?.querySelector("summary"))).toBe("Show the detail");
-    expect([...(detail?.querySelectorAll("p") ?? [])].map(text)).toEqual([
-      `Google figures from Monday 19 October, for your buyers’ ${c.sets.searches} top searches. ` +
-        `AI figures cover 4 weeks of answers to ${c.sets.questions} buyer questions.`,
-      "A competitor you add shows from the next Monday check. Pages already planned stay planned.",
-    ]);
+    expect(root.querySelector("details")).toBeNull();
   });
 });
 
-describe("the market tab's board icons and bars", () => {
-  it("MapPin on the market line; Search, Sparkles, Users wells; Calendar and Zap on the consequences", () => {
-    const root = market(PLUMBER);
-    expect(icons(root.querySelector('[data-testid="setting-category"]'))).toEqual(["lucide-map-pin"]);
-    expect(icons(root.querySelector('[data-testid="market-sets"]'))).toEqual(["lucide-search", "lucide-sparkles", "lucide-users"]);
-    expect(icons(root.querySelector('[data-testid="market-consequences"]'))).toEqual(["lucide-calendar", "lucide-zap"]);
+describe("the market tab's board icons", () => {
+  it("only Check again now carries an icon on the market card: RefreshCw", () => {
+    expect(icons(market(PLUMBER))).toEqual(["lucide-refresh-cw"]);
   });
 
-  it("each measured card: an initials avatar, the Sparkles badge, two bars at its figures, X on Remove", () => {
+  it("each card: an initials avatar, no badge on a found rival, no bar, X on Remove; Plus on Add", () => {
     const root = competitors(PLUMBER);
     for (const domain of PLUMBER.competitors) {
       const card = root.querySelector(`[data-testid="competitor-${domain}"]`);
-      const figures = PLUMBER.figures.cards[domain]!;
       expect(text(card?.querySelector(".avatar.avatar-placeholder"))).toBe(domain.slice(0, 2).toUpperCase());
-      expect(icons(card?.querySelector(".badge") ?? null)).toEqual(["lucide-sparkles"]);
-      const bars = [...(card?.querySelectorAll("progress") ?? [])];
-      expect(bars.map((bar) => [bar.getAttribute("value"), bar.getAttribute("max"), bar.getAttribute("aria-hidden")])).toEqual([
-        [String(figures.google!.n), String(figures.google!.of), "true"],
-        [String(figures.ai!.n), String(figures.ai!.of), "true"],
-      ]);
+      if (PLUMBER.found.includes(domain)) expect(card?.querySelector(".badge")).toBeNull();
+      expect(card?.querySelectorAll("progress")).toHaveLength(0);
       expect(icons(card?.querySelector("form button") ?? null)).toEqual(["lucide-x"]);
     }
+    expect(icons(root.querySelector('[data-testid="add-competitor"] button') ?? null)).toEqual(["lucide-plus"]);
   });
 
   it("a two-word rival is drawn by its words' initials, a one-word rival by its first two letters", () => {
@@ -244,19 +222,8 @@ describe("the market tab's board icons and bars", () => {
     expect(avatar("rooter.example")).toBe("RO");
   });
 
-  it("the add card is dashed with a Users tile, and You opens with the account's initial", () => {
-    const root = competitors(PLUMBER);
-    const add = root.querySelector('[data-testid="add-competitor"]')?.closest("li");
-    expect(add?.className).toContain("border-dashed");
-    expect(icons(add ?? null)).toEqual(["lucide-users"]);
-    expect(text(root.querySelector('[data-testid="competitors-you"] .avatar.avatar-placeholder'))).toBe("H");
-  });
-
-  it("a card added since the last scan draws no bar and no 0", () => {
-    const root = competitors(SAAS);
-    const card = root.querySelector('[data-testid="competitor-ledgerly.example"]');
-    expect(card?.querySelectorAll("progress")).toHaveLength(0);
-    expect(text(card)).not.toMatch(/\b0 of\b/);
+  it("the add card is dashed", () => {
+    expect(competitors(PLUMBER).querySelector('[data-testid="add-competitor"]')?.closest("li")?.className).toContain("border-dashed");
   });
 });
 
@@ -267,7 +234,8 @@ describe("not measured is never 0", () => {
     const card = competitors(SAAS).querySelector('[data-testid="competitor-ledgerly.example"]');
     const from = `Checked from ${model.market.wouldTakeEffectOn}.`;
     expect(text(card?.querySelector('[data-testid="competitor-google-ledgerly.example"]'))).toBe(`On Google’s first page${from}`);
-    expect(text(card?.querySelector('[data-testid="competitor-ai-ledgerly.example"]'))).toBe(`Mentioned in AI answers${from}`);
+    expect(text(card?.querySelector('[data-testid="competitor-ai-ledgerly.example"]'))).toBe(`In AI answers${from}`);
+    expect(text(card)).not.toMatch(/\b0 of\b/);
   });
 
   it("marketFigures leaves a competitor the last scan did not measure without figures", () => {
@@ -278,38 +246,36 @@ describe("not measured is never 0", () => {
     expect(marketFigures({ competitors: ["billwise.example"], measured: null, firstPage: card, named: card }).cards["billwise.example"]).toBeNull();
   });
 
-  it("an unread half reads not measured, with no bar, on the card and on You", () => {
+  it("an unread half reads not checked yet, on the card and on You", () => {
     const unread = { rivals: [], you: { domain: "", count: 0 }, of: 0, noRival: false };
     const read = { rivals: [{ domain: "billwise.example", count: 7 }], you: { domain: "", count: 2 }, of: 12, noRival: false };
     const figures = marketFigures({ competitors: ["billwise.example"], measured: ["billwise.example"], firstPage: read, named: unread });
     const root = competitors(SAAS, { list: ["billwise.example"], figures });
     const card = root.querySelector('[data-testid="competitor-billwise.example"]');
-    expect(text(card?.querySelector('[data-testid="competitor-ai-billwise.example"]'))).toBe("Mentioned in AI answersnot checked yet");
-    expect(card?.querySelectorAll("progress")).toHaveLength(1);
-    expect(text(root.querySelector('[data-testid="competitors-you-ai"]'))).toBe("Mentioned in AI answers not checked yet");
+    expect(text(card?.querySelector('[data-testid="competitor-ai-billwise.example"]'))).toBe("In AI answersnot checked yet");
+    expect(text(root.querySelector('[data-testid="competitors-you-ai"]'))).toBe("In AI answers, last 4 weeksnot checked yet");
   });
 
-  it("an unread count draws no well rather than a 0", () => {
+  it("an unread count draws no line rather than a 0", () => {
     const model_ = settingsOf(PLUMBER);
     const root = mount(
       <MarketPanel market={model_.market} domain={model_.domain} timeZone={TZ} sets={{ searches: null, questions: null, competitors: 2 }} />
     );
-    expect([...root.querySelectorAll('[data-testid="market-sets"] li')].map(text)).toEqual(["2 competitors to compare"]);
+    expect([...root.querySelectorAll('[data-testid="market-sets"] li')].map(text)).toEqual(["2 competitors"]);
   });
 });
 
-describe("{n} more can be added: the limit minus the set", () => {
+describe("the count is the set against the competitor cap constant", () => {
   const list = (n: number) => Array.from({ length: n }, (_, i) => `rival-${i}.example`);
 
-  it("one below the limit, one more can be added", () => {
-    const root = competitors(PLUMBER, { list: list(BATTERY.COMPETITORS_MAX - 1) });
-    expect(text(root.querySelector('[data-testid="competitors-more"]'))).toBe("1 more can be added");
+  it.each([1, BATTERY.COMPETITORS_MAX - 1])("%i in the set reads %i of the cap", (n) => {
+    const root = competitors(PLUMBER, { list: list(n) });
+    expect(text(root.querySelector('[data-testid="competitor-count"]'))).toBe(`${n} of ${BATTERY.COMPETITORS_MAX}`);
   });
 
-  it("at the limit the add card is not drawn", () => {
+  it("at the cap the add card is not drawn", () => {
     const root = competitors(PLUMBER, { list: list(BATTERY.COMPETITORS_MAX) });
     expect(root.querySelector('[data-testid="add-competitor"]')).toBeNull();
-    expect(root.textContent).not.toContain("more can be added");
   });
 });
 
@@ -340,7 +306,7 @@ describe("board SettingsMarket, on the account the layout sweep reads", () => {
       `${copy("settings.competitors.google")}${rivals.firstPage.you.count} of ${rivals.firstPage.of}`
     );
     expect(text(root.querySelector('[data-testid="competitors-you-ai"]'))).toBe(
-      copy("settings.competitors.you.ai", { n: String(named.you.count), of: String(named.of), weeks: "4" })
+      `${copy("settings.competitors.you.ai", { weeks: "4" })}${named.you.count} of ${named.of}`
     );
   });
 
@@ -358,7 +324,6 @@ describe("board SettingsMarket, on the account the layout sweep reads", () => {
     // Drawn by the shell and the Settings layout, not by this tab.
     const frame = [
       "ReachKit", "Overview", "This week", "Settings", "Publishing on",
-      "What you’re measured as, how pages go out, and your account.",
       "Your business", "Market and competitors", "Publishing", "Your voice", "Mail", "Billing", "Account",
     ];
     expect(missing.filter((s: string) => !frame.includes(s))).toEqual([]);
