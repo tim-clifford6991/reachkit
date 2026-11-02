@@ -23,7 +23,7 @@ interface Seen {
   readonly nested: readonly string[];
   /** Mail's week, in grid tracks, or null where the tab draws none. */
   readonly weekTracks: number | null;
-  /** Market's competitor tiles and wells, in occupied-or-open grid tracks, or null where the tab draws none. */
+  /** Market's competitor tiles and Your business's wells, in occupied-or-open grid tracks, or null where the tab draws none. */
   readonly tilesTracks: number | null;
   readonly wellsTracks: number | null;
 }
@@ -72,9 +72,8 @@ function offences(seen: Seen, width: number, tab: string): string[] {
       out.push(`the tiles have ${seen.tilesTracks} tracks at ${width}px`);
   }
   if (seen.wellsTracks !== null) {
-    // Market's three wells sit on three tracks; Your business's lists need only to sit side by side.
-    const holds =
-      width < 768 ? seen.wellsTracks === 1 : tab === "business" ? seen.wellsTracks >= 2 : width === 1023 || seen.wellsTracks === 3;
+    // Your business's lists sit side by side from 768 up; Market's sets are one row of lines (canvas v36).
+    const holds = width < 768 ? seen.wellsTracks === 1 : seen.wellsTracks >= 2;
     if (!holds) out.push(`the wells have ${seen.wellsTracks} tracks at ${width}px`);
   }
   return out;
@@ -113,7 +112,6 @@ for (const tab of SETTINGS_TABS) {
             if (tab === "business") expect(measured.wellsTracks, `${href} @ ${width}px ${theme}`).not.toBeNull();
             if (tab === "market") {
               expect(measured.tilesTracks, `${href} @ ${width}px ${theme}`).not.toBeNull();
-              expect(measured.wellsTracks, `${href} @ ${width}px ${theme}`).not.toBeNull();
             }
           }
         },

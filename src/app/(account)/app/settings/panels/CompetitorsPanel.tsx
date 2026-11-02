@@ -96,7 +96,7 @@ function FigureRow(p: { label: string; half: Half; pending: string | null; testI
   const value =
     p.pending ?? (p.half === null ? copy("settings.competitors.not-measured") : copy("settings.competitors.figure", { n: String(p.half.n), of: String(p.half.of) }));
   return (
-    <div className="contents" data-testid={p.testId}>
+    <div className="flex min-w-0 justify-between gap-4" data-testid={p.testId}>
       <dt className="min-w-0 text-base-content/70 wrap-anywhere">{p.label}</dt>
       <dd className="min-w-0 text-right font-bold wrap-anywhere">{value}</dd>
     </div>
@@ -177,7 +177,7 @@ export function CompetitorsPanel(p: {
                       <span className="num min-w-0 text-sm wrap-anywhere">{domain}</span>
                       {found ? null : <span className="badge badge-soft badge-primary badge-sm">{copy("settings.competitors.added")}</span>}
                     </div>
-                    <dl className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-2 text-sm">
+                    <dl className="flex min-w-0 flex-col gap-2 text-sm">
                       <FigureRow
                         label={copy("settings.competitors.google")}
                         half={figures?.google ?? null}
@@ -257,7 +257,7 @@ export function CompetitorsPanel(p: {
 
           <div className="flex min-w-0 flex-col gap-2 rounded-box bg-base-200 px-4 py-3 text-sm" data-testid="competitors-you">
             <span className="font-bold">{copy("settings.competitors.you")}</span>
-            <dl className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-2">
+            <dl className="flex min-w-0 flex-col gap-2">
               <FigureRow label={copy("settings.competitors.google")} half={you.google} pending={null} testId="competitors-you-google" />
               <FigureRow
                 label={copy("settings.competitors.you.ai", { weeks: String(ANSWER_RATE_WEEKS) })}

@@ -1,6 +1,6 @@
 // SPEC §4 (2026-09-20, #908): the seven tabs, drawn once for all seven routes.
 // Links, not a widget, so the browser's back button moves between them; `aria-current` marks the one open.
-// Below `sm` the tabs are a 2-column grid of 44px boxes in the page's flow (canvas v36), so all seven are on
+// Below `sm` the bar wraps into two 44px boxes a row, in the page's flow (canvas v36), so all seven are on
 // screen; from `sm` up they are one row that scrolls sideways rather than widen the screen (#1101).
 // Where the row scrolls, the current tab is brought into view on mount, and again once the web font is in,
 // because the faces load with `display: swap` and the row is measured in the fallback face first (#976).
@@ -37,7 +37,7 @@ export function SettingsTabs(): React.JSX.Element {
       aria-label={copy("settings.tabs.label")}
       data-testid="settings-tabs"
     >
-      <div className="tabs tabs-border max-sm:grid max-sm:grid-cols-2 max-sm:gap-2 sm:w-max sm:flex-nowrap">
+      <div className="tabs tabs-border max-sm:flex-wrap max-sm:gap-2 sm:w-max sm:flex-nowrap">
         {SETTINGS_TABS.map((tab) => {
           const onThisTab = tab === current;
           return (
@@ -46,7 +46,7 @@ export function SettingsTabs(): React.JSX.Element {
               ref={onThisTab ? here : undefined}
               href={SETTINGS_TAB_HREF[tab]}
               prefetch={true}
-              className={`tab sm:whitespace-nowrap max-sm:h-auto max-sm:min-h-11 max-sm:justify-start max-sm:rounded-field max-sm:border max-sm:border-base-300 max-sm:bg-base-100 max-sm:px-3 max-sm:py-1 max-sm:text-left max-sm:before:hidden ${
+              className={`tab sm:whitespace-nowrap max-sm:h-11 max-sm:basis-[calc(50%-0.25rem)] max-sm:leading-tight max-sm:justify-start max-sm:rounded-field max-sm:border max-sm:border-base-300 max-sm:bg-base-100 max-sm:px-3 max-sm:py-1 max-sm:text-left max-sm:before:hidden ${
                 onThisTab ? "tab-active text-primary max-sm:border-primary/30 max-sm:bg-primary/10" : ""
               }`}
               data-testid={`settings-tab-${tab}`}

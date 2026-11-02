@@ -289,3 +289,11 @@ body {
     animation-delay: 0s !important;
   }
 }
+
+/* Below `lg` the app's dock floats over the page's foot, so a control reached by keyboard
+ * stops above it rather than under it (WCAG 2.4.11). */
+@media (width < 64rem) {
+  html:has(.dock) {
+    scroll-padding-bottom: 6rem;
+  }
+}
