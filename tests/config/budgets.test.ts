@@ -11,6 +11,22 @@ afterEach(() => {
   for (const d of dirs.splice(0)) rmSync(d, { recursive: true, force: true });
 });
 
+// The seeded repo carries every module hygiene imports and the directories it reads, so a crash is never read as a clean run.
+const HYGIENE_FILES = ["scripts/hygiene.mjs", "scripts/lib", "scripts/design/baseline.mjs"];
+const HYGIENE_DIRS = ["docs/design/boards/canvas", "docs/design/parity"];
+function seedHygiene(dir: string) {
+  for (const rel of HYGIENE_FILES) cpSync(path.join(ROOT, rel), path.join(dir, rel), { recursive: true });
+  for (const rel of HYGIENE_DIRS) {
+    mkdirSync(path.join(dir, rel), { recursive: true });
+    writeFileSync(path.join(dir, rel, ".keep"), "");
+  }
+}
+function runHygiene(dir: string) {
+  const child = spawnSync(process.execPath, [path.join(dir, "scripts/hygiene.mjs")], { encoding: "utf8" });
+  if (child.stderr) throw new Error(`hygiene crashed: ${child.stderr}`);
+  return child.stdout;
+}
+
 describe("unresolvedCitations", () => {
   it("counts each citation that no heading of a docs page names", () => {
     const files = [
@@ -69,14 +85,13 @@ describe("hygiene reads scripts/budgets.json", () => {
   function repo() {
     const dir = mkdtempSync(path.join(tmpdir(), "hygiene-budgets-"));
     dirs.push(dir);
-    cpSync(path.join(ROOT, "scripts/hygiene.mjs"), path.join(dir, "scripts/hygiene.mjs"));
-    cpSync(path.join(ROOT, "scripts/lib"), path.join(dir, "scripts/lib"), { recursive: true });
+    seedHygiene(dir);
     mkdirSync(path.join(dir, "src"));
     const write = (rel: string, text: string) => writeFileSync(path.join(dir, rel), text);
     const git = (...args: string[]) =>
       execFileSync("git", ["-C", dir, "-c", "user.name=t", "-c", "user.email=t@t", ...args], { encoding: "utf8" });
     git("init", "-q", "-b", "main");
-    const hygiene = () => spawnSync(process.execPath, [path.join(dir, "scripts/hygiene.mjs")], { encoding: "utf8" }).stdout;
+    const hygiene = () => runHygiene(dir);
     return { write, git, hygiene };
   }
 
@@ -107,9 +122,8 @@ describe("hygiene holds the line budgets against the pull request's base", () =>
   function seeded() {
     const dir = mkdtempSync(path.join(tmpdir(), "hygiene-lines-"));
     dirs.push(dir);
-    for (const rel of ["scripts/hygiene.mjs", "scripts/lib", "scripts/budgets.json"]) {
-      cpSync(path.join(ROOT, rel), path.join(dir, rel), { recursive: true });
-    }
+    seedHygiene(dir);
+    cpSync(BUDGETS, path.join(dir, "scripts/budgets.json"));
     const write = (rel: string, text: string) => {
       mkdirSync(path.dirname(path.join(dir, rel)), { recursive: true });
       writeFileSync(path.join(dir, rel), text);
@@ -129,7 +143,7 @@ describe("hygiene holds the line budgets against the pull request's base", () =>
       change();
       git("add", "-A");
       git("commit", "-q", "--allow-empty", "-m", "pr");
-      return findings(spawnSync(process.execPath, [path.join(dir, "scripts/hygiene.mjs")], { encoding: "utf8" }).stdout);
+      return findings(runHygiene(dir));
     };
     return { write, git, pr };
   }
