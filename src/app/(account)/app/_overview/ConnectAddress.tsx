@@ -18,8 +18,8 @@ const DAY_MS = 86_400_000;
 const QUIET = "text-sm text-base-content/70";
 /** A step's number tile; the last step's is the success check. */
 const MARKER = "grid size-7 shrink-0 place-items-center rounded-field text-sm font-extrabold tabular-nums";
-/** The needs-you ground the board tints this card with, and its inner boxes. */
-const NEEDS_YOU = "card border border-warning/25 min-w-0 bg-[color-mix(in_oklab,var(--color-warning)_8%,var(--color-base-100))]";
+/** The needs-you ground: the warning tint laid on a white card, so the page's ground does not show through. */
+const NEEDS_YOU = "card border border-warning/25 min-w-0 overflow-hidden bg-base-100";
 const INNER = "rounded-box border border-warning/25 bg-base-100";
 
 /** The site-local day the screen is on, counted from the day the address was
@@ -78,7 +78,7 @@ export function ConnectAddress(p: {
       </header>
 
       <section className={NEEDS_YOU} data-testid="overview-connect">
-        <div className="card-body min-w-0 gap-4 p-4 sm:p-6">
+        <div className="card-body min-w-0 gap-4 bg-warning/8 p-4 sm:p-6">
           <div className="flex min-w-0 flex-col gap-1">
             <p className="text-xs font-bold tracking-[0.1em] text-warning uppercase">{copy("overview.connect.eyebrow")}</p>
             <h2 className="text-xl font-bold tracking-tight">{copy("overview.connect.title")}</h2>
