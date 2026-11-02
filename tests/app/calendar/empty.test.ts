@@ -89,7 +89,7 @@ describe("REQ-043 c3 — the exhausted-supply line is a proven arm, never the fa
 
   it("no other cause ever returns the exhausted-supply key", () => {
     const others: EmptyFacts[] = [
-      { ...NOTHING, instruction: { opportunityId: "o1" }, unusedSupply: 0 },
+      { ...NOTHING, instruction: { check: "noindex_pages" }, unusedSupply: 0 },
       { ...NOTHING, reachkitStopped: true, unusedSupply: 0 },
       { ...NOTHING, pageCannotGoLive: "skipped", unusedSupply: 0 },
       { ...NOTHING, customerChangeHoldsPages: "publishing_off", unusedSupply: 0 },
@@ -190,7 +190,7 @@ describe("REQ-043 c5 — one account per date, and the instruction outranks ever
   it("an outstanding instruction outranks every other cause, including ReachKit's stop", () => {
     expect(
       accountFor({
-        instruction: { opportunityId: "o9" },
+        instruction: { check: "noindex_pages" },
         reachkitStopped: true,
         pageCannotGoLive: "skipped",
         customerChangeHoldsPages: "publishing_off",
@@ -199,11 +199,11 @@ describe("REQ-043 c5 — one account per date, and the instruction outranks ever
         unusedSupply: 0,
         supplyMeasured: false,
       })
-    ).toEqual({ cause: "instruction", opportunityId: "o9" });
+    ).toEqual({ cause: "instruction", check: "noindex_pages" });
   });
 
   it("once the instruction is carried out the date falls through to the account c3 or c4 gives it", () => {
-    const withInstruction: EmptyFacts = { ...NOTHING, reachkitStopped: true, instruction: { opportunityId: "o9" } };
+    const withInstruction: EmptyFacts = { ...NOTHING, reachkitStopped: true, instruction: { check: "noindex_pages" } };
     expect(accountFor(withInstruction).cause).toBe("instruction");
     expect(accountFor({ ...withInstruction, instruction: null }).cause).toBe("reachkit_stopped");
   });
@@ -218,7 +218,7 @@ describe("REQ-043 c5 — one account per date, and the instruction outranks ever
     // 2 × 2 × 3 × 3 × 2 × 3 = 216 fact sets, every one resolved, every one
     // to a cause the precedence names and to nothing else.
     const values = {
-      instruction: [null, { opportunityId: "o" }],
+      instruction: [null, { check: "noindex_pages" }],
       reachkitStopped: [false, true],
       pageCannotGoLive: [null, "skipped", "unpublished"],
       customerChangeHoldsPages: [null, "publishing_off", "destination_disconnected"],

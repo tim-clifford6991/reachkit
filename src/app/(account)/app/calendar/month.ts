@@ -17,6 +17,7 @@
 // draft, and there must not be: §4.6's supply rule and DECISIONS 2026-08-28
 // ("Supply is the cap: never invent an opportunity to fill a day; the
 // calendar is never padded") are kept by a read that cannot pad.
+import type { SiteCheck } from "@/lib/site-issues/types";
 import type { TargetFacts } from "./target";
 import type { DestinationKind, UnpublishOutcome, VerifyDisposition } from "@/lib/publish/types";
 import type { NeedsYouCause } from "@/lib/publish/record/needs-you";
@@ -198,8 +199,8 @@ export interface CalendarFacts {
   /** The committed week's spares: the search each targets, in place order. */
   spares: readonly string[];
   /** REQ-047 c5's outstanding instructions, by the date each stands
-   *  against. */
-  instructions: Readonly<Record<DayKey, string>>;
+   *  against: the site check whose fix only the customer can make. */
+  instructions: Readonly<Record<DayKey, SiteCheck>>;
   /** The dates on which ReachKit stopped its own work (REQ-092 c1). */
   stoppedDays: readonly DayKey[];
   /**
@@ -258,7 +259,7 @@ function emptyFactsFor(day: DayKey, facts: CalendarFacts, draft: DraftOnDay | un
   const cannotGoLive: State | null = draft?.state ?? null;
   const instruction = facts.instructions[day];
   return {
-    instruction: instruction === undefined ? null : { opportunityId: instruction },
+    instruction: instruction === undefined ? null : { check: instruction },
     reachkitStopped: facts.stoppedDays.includes(day),
     // Only the two states `STAGE_OF` sends to `null` reach here, and the
     // narrowing is by that table rather than by a second list of state
@@ -402,8 +403,8 @@ export function cellFor(model: MonthModel, day: DayKey): DayCell | undefined {
 }
 
 /** A day's state, or `null` where its own line says more (a page held, a
- *  day no commit covers yet, a past day with nothing on it). A page someone
- *  stopped, and a day ReachKit or an instruction stopped, is `stopped`; a
+ *  day waiting on the customer's fix, a day no commit covers yet, a past day
+ *  with nothing on it). A page someone stopped, and a day ReachKit stopped, is `stopped`; a
  *  day supply had nothing worth writing for is `skipped`. */
 export function dayStateOf(cell: DayCell): DayState | null {
   if (cell.page !== null) {
@@ -411,7 +412,7 @@ export function dayStateOf(cell: DayCell): DayState | null {
   }
   const cause = cell.empty?.cause;
   if (cause === "page_set_aside") return "set_aside";
-  if (cause === "page_cannot_go_live" || cause === "reachkit_stopped" || cause === "instruction") return "stopped";
+  if (cause === "page_cannot_go_live" || cause === "reachkit_stopped") return "stopped";
   if (cause === "supply_exhausted" || cause === "supply_unmeasured") return "skipped";
   return null;
 }

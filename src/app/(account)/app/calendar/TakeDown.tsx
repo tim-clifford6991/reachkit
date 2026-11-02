@@ -23,12 +23,16 @@ export interface ControlWords {
   refused: string;
 }
 
+const QUIET = "link link-warning link-hover inline-flex min-h-11 items-center gap-1.5 self-start text-sm no-underline";
+
 export function TakeDownControl(p: {
   draftId: string;
   mode: "stop" | "put_back";
   words: ControlWords;
   /** The id of the line that says what the press does. */
   describedBy?: string;
+  /** A quiet link under a list row, rather than a button. */
+  quiet?: boolean;
 }): React.JSX.Element {
   const [busy, startTransition] = useTransition();
 
@@ -48,7 +52,7 @@ export function TakeDownControl(p: {
   return (
     <button
       type="button"
-      className={p.mode === "stop" ? "btn btn-sm btn-ghost btn-warning" : "btn btn-sm btn-soft"}
+      className={p.quiet === true ? QUIET : p.mode === "stop" ? "btn btn-sm btn-ghost btn-warning" : "btn btn-sm btn-soft"}
       data-testid={p.mode === "stop" ? "take-down" : "put-back"}
       aria-describedby={p.describedBy}
       disabled={busy}

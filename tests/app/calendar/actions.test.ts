@@ -375,7 +375,7 @@ describe("REQ-043 c11 — an empty day offers nothing that publishes or approves
 
   it("and it is empty for every cause, not only the proven one", () => {
     for (const empty of [
-      { cause: "instruction", opportunityId: "o1" },
+      { cause: "instruction", check: "noindex_pages" },
       { cause: "reachkit_stopped" },
       { cause: "page_cannot_go_live", state: "skipped" },
       { cause: "customer_change_holds_pages", setting: "publishing_off" },

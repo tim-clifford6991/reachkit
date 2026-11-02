@@ -20,6 +20,7 @@
 // and ADR-061 point 4 requires the two orders to agree: ReachKit's own stop
 // outranks every cause that is also true.
 import type { CopyKey } from "@/lib/presentation/copy";
+import type { SiteCheck } from "@/lib/site-issues/types";
 import type { WorkStop } from "@/lib/presentation/stopped";
 
 /** The saved setting holding pages back (REQ-043 c4). A hosted host still
@@ -31,7 +32,7 @@ export type HeldBySetting = "publishing_off" | "destination_pending_dns" | "dest
 /** REQ-043 criteria 3, 4 and 5. One account per date, resolved in one fixed
  *  order, total. */
 export type EmptyAccount =
-  | { cause: "instruction"; opportunityId: string }
+  | { cause: "instruction"; check: SiteCheck }
   | { cause: "reachkit_stopped" }
   | { cause: "page_cannot_go_live"; state: "skipped" | "unpublished" }
   /** The daily re-check set the date's page aside (owner O7): told once, plainly, with nothing asked. */
@@ -118,7 +119,7 @@ export const EMPTY_PRECEDENCE: readonly EmptyCause[] = Object.freeze([
  */
 export interface EmptyFacts {
   /** REQ-047 c5's outstanding instruction against this date, or `null`. */
-  instruction: { opportunityId: string } | null;
+  instruction: { check: SiteCheck } | null;
   /** REQ-092 c1: the kill switch or the day's spend ceiling (issue 841 —
    *  a pass that ended degraded or failed is not a stop). */
   reachkitStopped: boolean;
@@ -288,7 +289,7 @@ export function accountFor(facts: EmptyFacts): EmptyAccount {
     switch (cause) {
       case "instruction":
         if (facts.instruction !== null) {
-          return { cause: "instruction", opportunityId: facts.instruction.opportunityId };
+          return { cause: "instruction", check: facts.instruction.check };
         }
         break;
       case "reachkit_stopped":
