@@ -9,12 +9,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { segments } from "../../../scripts/design/parity.mjs";
 import { expectStateParity } from "../../ui/layout/state-parity";
 
+// The public origin is bound at build; the copy-link line is drawn only where it is.
+process.env.NEXT_PUBLIC_APP_URL = "https://reachkit.app";
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 const { ScanningView } = await import("@/app/(public)/scan/[domain]/_address/scanning");
 const { copy } = await import("@/lib/presentation/copy");
-const { BATTERY } = await import("@/lib/config/constants");
+const { BATTERY, SITE_PROFILE } = await import("@/lib/config/constants");
 type StageSummary = import("@/lib/scan/stages").StageSummary;
 
 /** The browser's image loader: answers once the logo route would serve the file. */
@@ -131,6 +133,17 @@ describe("the scan in progress matches board PubScanning", () => {
     inOrder(await partWay(), [copy("scan.eyebrow"), copy("scan.head", { domain: DOMAIN }), copy("scan.waiting.line")]);
   });
 
+  it("under the waiting line, the report's lasting address and a Copy link button that copies it", async () => {
+    const writeText = vi.fn(async () => undefined);
+    vi.stubGlobal("navigator", { clipboard: { writeText } });
+    const line = (await partWay()).querySelector("header p.mt-2")!;
+    expect(line.querySelector(".num")?.textContent).toBe("reachkit.app/scan/fernwoodtea.example");
+    const button = line.querySelector("button")!;
+    expect(button.textContent).toBe(copy("copy-link.label"));
+    await act(async () => button.click());
+    expect(writeText).toHaveBeenCalledWith("https://reachkit.app/scan/fernwoodtea.example");
+  });
+
   it("Progress: started at the visitor's clock, six stages in plain words with their sub-lines, then the caption", async () => {
     const screen = await partWay();
     const time = new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit" }).format(START);
@@ -209,6 +222,9 @@ describe("the cards fill in from what each finished stage found", () => {
     const screen = await partWay();
     const read = card(screen, copy("report.read.title"));
     expect(read.textContent).toContain(copy("scan.filling.pages", { pages: "38" }));
+    // The pages read as a bar against the most a scan reads.
+    const bar = read.querySelector("progress")!;
+    expect([bar.getAttribute("value"), bar.getAttribute("max")]).toEqual(["38", String(SITE_PROFILE.MAX_PAGES)]);
     expect(read.textContent).toContain(CATEGORY);
     expect(read.querySelector(".skeleton")).toBeNull();
     inOrder(card(screen, copy("scan.filling.readers")), [

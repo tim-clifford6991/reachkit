@@ -21,6 +21,7 @@ import type React from "react";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { Ban, Check, CircleCheck, Globe, MapPin, Search, ShieldCheck, Sparkles, Tag, TrendingUp, Users, type LucideIcon } from "lucide-react";
 import { Surface } from "@/ui/layout";
+import { SITE_PROFILE } from "@/lib/config/constants";
 import { SiteMark, siteLogoSrc } from "@/ui/SiteMark";
 import { SKELETON_EXIT, ViewTransition } from "@/ui/motion";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
@@ -29,6 +30,8 @@ import type { CanonicalDomain } from "@/lib/scan/domain";
 import { ScanProgress, SEARCHES, stageState, useScanStages, type StageState } from "./progress";
 import { whereLine } from "@/app/_business/WhatWeRead";
 import { kindAndIndustry } from "./read-as";
+import { CopyLink } from "./copy-link";
+import { canonicalUrl } from "@/app/(public)/_chrome/canonical";
 
 const CARD = "card bg-base-100 min-w-0 shadow-(--shadow-card)";
 
@@ -64,7 +67,12 @@ function whatWeRead(found: StageSummary): React.ReactNode {
   ];
   return (
     <div className="flex flex-col gap-2.5">
-      {found.pagesRead === undefined ? null : <p className="text-sm font-semibold">{copy("scan.filling.pages", { pages: String(found.pagesRead) })}</p>}
+      {found.pagesRead === undefined ? null : (
+        <p className="flex items-center gap-2.5">
+          <progress aria-hidden className="progress progress-primary flex-1" value={Math.min(found.pagesRead, SITE_PROFILE.MAX_PAGES)} max={SITE_PROFILE.MAX_PAGES} />
+          <span className="text-sm font-semibold whitespace-nowrap">{copy("scan.filling.pages", { pages: String(found.pagesRead) })}</span>
+        </p>
+      )}
       {chips.length === 0 ? null : (
         <ul className="flex flex-wrap gap-1.5">
           {chips.map(({ Icon, text }) => (
@@ -201,6 +209,9 @@ export function ScanningView(p: {
   // The domain is a value, drawn in the mono face inside the sentence that carries it.
   const [before = "", after = ""] = copy("scan.head", { domain: DOMAIN_SLOT }).split(DOMAIN_SLOT);
   const head = { before, after };
+  // The address this report keeps, as the board writes it: host and path, no scheme.
+  const url = canonicalUrl(`/scan/${p.domain}`);
+  const address = url === null ? null : { url, shown: `${new URL(url).host}${new URL(url).pathname}` };
   // The start is the visitor's own clock, so it is drawn only in the browser.
   const inBrowser = useSyncExternalStore(subscribeNever, () => true, () => false);
   const started = inBrowser
@@ -230,6 +241,12 @@ export function ScanningView(p: {
             </h1>
           </div>
           <p className="text-base-content/70">{copy("scan.waiting.line")}</p>
+          {address === null ? null : (
+            <p className="mt-2 flex min-w-0 flex-wrap items-center gap-2">
+              <span className="num rounded-field bg-base-200 min-w-0 px-2.5 py-1.5 text-sm break-all">{address.shown}</span>
+              <CopyLink canonicalUrl={address.url} label={copy("copy-link.label")} className="btn btn-outline btn-primary h-11" />
+            </p>
+          )}
         </header>
 
         <div className="flex min-w-0 flex-col gap-4">

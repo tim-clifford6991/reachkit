@@ -16,7 +16,7 @@ const ENTRIES: readonly GalleryEntry[] = [
   { domain: "harborplumbing.example", company: "Harbor Plumbing", score: 27, category: "emergency plumbing", kind: "local-service", scannedAt: new Date("2026-10-19T09:00:00Z"), hasLogo: false },
   { domain: "tidyslot.example", company: "Tidyslot", score: 56, category: "booking software", kind: "software", scannedAt: new Date("2026-10-19T08:00:00Z"), hasLogo: true },
   { domain: "cedar-yoga.example", company: "cedar-yoga.example", score: null, category: null, kind: null, scannedAt: new Date("2026-10-18T08:00:00Z"), hasLogo: false },
-  ...Array.from({ length: 9 }, (_, i) => ({
+  ...Array.from({ length: 8 }, (_, i) => ({
     domain: `older-${i}.example`,
     company: `Older ${i}`,
     score: 40 + 2 * i,
@@ -25,6 +25,8 @@ const ENTRIES: readonly GalleryEntry[] = [
     scannedAt: new Date(Date.UTC(2026, 9, 17 - i, 8)),
     hasLogo: false,
   })),
+  // A report whose industry only says its kind again.
+  { domain: "ledgerly.example", company: "Ledgerly", score: 49, category: "Software", kind: "software", scannedAt: new Date("2026-10-09T07:00:00Z"), hasLogo: false },
 ];
 /** More reports are listed than one page shows. */
 const MORE = 100;
@@ -108,7 +110,7 @@ describe("the kind of business", () => {
     ]);
     const software = parse(await render({ kind: "software" }));
     const cards = software.querySelectorAll('[data-testid="gallery-cards"] a').map((a) => a.getAttribute("href"));
-    expect(cards).toEqual(["/scan/tidyslot.example"]);
+    expect(cards).toEqual(["/scan/tidyslot.example", "/scan/ledgerly.example"]);
     expect(software.querySelector('a[aria-current="true"]')?.getAttribute("href")).toBe("/scans?kind=software");
   });
 
@@ -148,6 +150,8 @@ describe("each card's mark and the 44px targets", () => {
       if (entry.hasLogo) {
         const img = mark.querySelector("img")!;
         expect([img.getAttribute("src"), img.getAttribute("width")]).toEqual([`/scans/logo/${entry.domain}`, "44"]);
+        // A logo that fails to load paints this letter instead (tests/ui/layout/site-mark-fallback.test.ts).
+        expect(img.getAttribute("data-letter")).toBe(entry.domain[0]!.toUpperCase());
       } else {
         expect(mark.text).toBe(entry.domain[0]!.toUpperCase());
         expect(mark.classList.contains("badge-soft")).toBe(true);
@@ -168,6 +172,19 @@ describe("each card's mark and the 44px targets", () => {
       expect(view.classList.contains("min-h-11")).toBe(true);
       expect(view.classList.contains("hidden")).toBe(false);
     }
+  });
+});
+
+describe("each card's line: kind · industry · day", () => {
+  it("opens with an icon on every card, the kind's where one was read, and never says the kind twice", async () => {
+    const cards = parse(await render()).querySelectorAll('[data-testid="gallery-cards"] > li');
+    for (const card of cards) {
+      const line = card.querySelectorAll("p").find((p) => /· \w{3} \d{1,2}$|^\w{3} \d{1,2}$/.test(p.text.trim()))!;
+      expect(line.querySelector("svg"), card.text).not.toBeNull();
+    }
+    const ledgerly = cards.find((card) => card.text.includes("Ledgerly"))!;
+    expect(segments(ledgerly.outerHTML)).toContain(`${copy("gallery.kind.software")} · Oct 9`);
+    expect(ledgerly.querySelector("svg.lucide-laptop")).not.toBeNull();
   });
 });
 

@@ -25,9 +25,9 @@ import {
   ArrowUpDown,
   ChartColumn,
   ChevronDown,
-  FileText,
   LayoutGrid,
   Search,
+  Tag,
   type LucideIcon,
 } from "lucide-react";
 import { Surface } from "@/ui/layout";
@@ -35,8 +35,6 @@ import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { SCORE_BANDS } from "@/lib/presentation/bands";
 import { bandOf, type BandHandle } from "@/lib/measure/bands";
 import { BUSINESS_KIND_NAMES, isBusinessKind, type BusinessKind } from "@/lib/market/kinds";
-import { BAND_TONE, RING_TONE } from "@/ui/bands";
-import { BADGE } from "@/app/(account)/app/_overview/badges";
 import {
   GALLERY_MOST as MOST,
   GALLERY_PAGE as PAGE,
@@ -50,13 +48,13 @@ import {
 import { ScoreStrip } from "@/ui/charts/ScoreStrip";
 import { ScanForm } from "../_landing/ScanForm";
 import { scanFormWords } from "../_landing/scan-form-words";
-import { EXAMPLES } from "../_how/specimen";
-import { RING_TRACK } from "../_how/visuals";
 import { LearnClose, ScanJump } from "../_library/parts";
 import { PUBLIC_ROUTE_SEO } from "../_seo/routes";
 import { staticMetadata } from "../_seo/metadata";
 import { SiteMark } from "@/ui/SiteMark";
 import { KIND_ICON, KIND_WORD } from "./kinds";
+import { SCORE_MAX, ScoreLine } from "./score";
+import { InsideReport } from "./inside";
 
 export const metadata: Metadata = staticMetadata(PUBLIC_ROUTE_SEO.scans);
 
@@ -67,15 +65,10 @@ export const dynamic = "force-dynamic";
 
 /** An attribute value, never a sentence: the copy sweep reads a bare JSX attribute string as product voice. */
 const SEARCH_AUTOCOMPLETE = "off";
-/** Where the score sits in "{score} of {max}", so the figure is drawn large and the rest small. */
-const SCORE_SLOT = "\u0000";
-/** Where a free report lives, as the example report's address bar reads it. */
-const REPORT_HOST = "reachkit.app";
 /** The strip holds the newest reports, at most this many. */
 const STRIP = 12;
 /** The strip's axis is drawn in steps of this many points. */
 const STEP = 5;
-const SCORE_MAX = 100;
 const BAND_ORDER: readonly BandHandle[] = ["invisible", "hard-to-find", "findable", "dominant"];
 /** A band's dot in the strip's legend, drawn as the chart draws it: a
  *  findable score is filled, a lower one a ring. */
@@ -144,43 +137,21 @@ function formatDay(at: Date): string {
   });
 }
 
-/** A score in its band's ring, the figure large over its band, or "Not scored": a report with no score never reads 0 and draws no ring. */
-function ScoreLine(p: { score: number | null }): React.JSX.Element {
-  if (p.score === null) {
-    return <p className="text-base-content/70 text-sm">{copy("gallery.card.no-score")}</p>;
-  }
-  return <ScoreFigure score={p.score} />;
-}
-
-function ScoreFigure(p: { score: number }): React.JSX.Element {
-  const band = bandOf(p.score);
-  const max = String(SCORE_MAX);
-  const [, rest = ""] = copy("gallery.card.score", { score: SCORE_SLOT, max }).split(SCORE_SLOT);
-  return (
-    <div className="flex items-center gap-3">
-      <div
-        role="img"
-        aria-label={copy("gallery.card.score", { score: String(p.score), max })}
-        className={`${RING_TRACK} ${RING_TONE[BAND_TONE[band]]} flex-none [--size:3rem]`}
-        style={{ "--value": p.score } as React.CSSProperties}
-      />
-      <p className="flex flex-col items-start gap-0.5">
-        <span>
-          <span className="text-2xl font-extrabold">{p.score}</span>
-          <span className="text-base-content/70 text-xs font-semibold">{rest}</span>
-        </span>
-        <span className={`${BADGE[BAND_TONE[band]]} badge-sm`}>{copy(SCORE_BANDS[band])}</span>
-      </p>
-    </div>
-  );
+/** An industry that only says the kind again ("Software · Software") is left out. */
+function repeatsKind(entry: GalleryEntry): boolean {
+  if (entry.kind === null || entry.category === null) return false;
+  const said = entry.category.trim().toLowerCase();
+  return [copy(KIND_WORD[entry.kind]), copy(`report.read.as.kind.${entry.kind}`)].some((word) => word.toLowerCase() === said);
 }
 
 function Card(p: { entry: GalleryEntry }): React.JSX.Element {
   const { entry } = p;
-  const meta = [entry.kind === null ? null : copy(KIND_WORD[entry.kind]), entry.category, formatDay(entry.scannedAt)]
+  const kind = entry.kind === null ? null : copy(KIND_WORD[entry.kind]);
+  const meta = [kind, repeatsKind(entry) ? null : entry.category, formatDay(entry.scannedAt)]
     .filter((part) => part !== null)
     .join(" · ");
-  const Kind = entry.kind === null ? null : KIND_ICON[entry.kind];
+  // A report whose kind was not read still opens its line with an icon, as every card does.
+  const Kind = entry.kind === null ? Tag : KIND_ICON[entry.kind];
   return (
     <li className="min-w-0">
       <Link
@@ -200,7 +171,7 @@ function Card(p: { entry: GalleryEntry }): React.JSX.Element {
           </div>
           <ScoreLine score={entry.score} />
           <p className="text-base-content/70 flex min-w-0 items-start gap-1.5 text-xs">
-            {Kind === null ? null : <Kind size={16} strokeWidth={1.75} aria-hidden className="flex-none" />}
+            <Kind size={16} strokeWidth={1.75} aria-hidden className="flex-none" />
             <span className="min-w-0 break-words">{meta}</span>
           </p>
           <span className="text-primary mt-auto inline-flex min-h-11 items-center gap-1 self-start text-sm font-semibold">
@@ -298,7 +269,9 @@ function NewestStrip(p: { entries: readonly GalleryEntry[] }): React.JSX.Element
       <div className="card-body gap-3 p-5">
         <p className="flex flex-wrap items-center justify-between gap-2">
           <span className="flex items-center gap-2 font-semibold">
-            <ChartColumn size={16} strokeWidth={1.75} aria-hidden className="text-primary" />
+            <span aria-hidden className="rounded-field bg-primary/10 text-primary grid size-7 flex-none place-items-center">
+              <ChartColumn size={16} strokeWidth={1.75} />
+            </span>
             {copy("gallery.strip.title", { n })}
           </span>
           <span className="text-base-content/70 flex flex-wrap gap-3 text-xs">
@@ -319,75 +292,6 @@ function NewestStrip(p: { entries: readonly GalleryEntry[] }): React.JSX.Element
         <figcaption className="text-base-content/70 text-sm">{caption}</figcaption>
       </div>
     </figure>
-  );
-}
-
-const INSIDE = [1, 2, 3, 4] as const;
-
-/** The four questions every free report answers, on the example business's report. */
-function InsideReport(): React.JSX.Element {
-  const e = EXAMPLES.plumber;
-  const well = "rounded-box bg-base-200 flex min-w-0 items-start gap-2.5 p-3";
-  const step = "badge badge-primary size-6 flex-none rounded-full p-0 text-xs font-extrabold";
-  return (
-    <section aria-labelledby="inside-h" className="mx-auto flex w-full max-w-6xl min-w-0 flex-col gap-6 px-4 py-12">
-      <div className="flex min-w-0 flex-col gap-2">
-        <h2 id="inside-h">{copy("gallery.inside.heading")}</h2>
-        <p className="text-base-content/70 max-w-2xl">{copy("gallery.inside.lead")}</p>
-      </div>
-      <figure className="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-        <div className="mockup-browser border-base-300 bg-base-100 min-w-0 border">
-          <div className="mockup-browser-toolbar min-w-0">
-            <div className="input w-full min-w-0">
-              <span className="truncate">{`${REPORT_HOST}/scan/${e.site}`}</span>
-            </div>
-          </div>
-          <div className="grid min-w-0 grid-cols-1 gap-2 p-4 sm:grid-cols-2">
-            <div className={`${well} items-center`}>
-              <span className={step} aria-hidden>{INSIDE[0]}</span>
-              <ScoreFigure score={e.report.score} />
-            </div>
-            <div className={well}>
-              <span className={step} aria-hidden>{INSIDE[1]}</span>
-              <span className="flex min-w-0 flex-col gap-1">
-                <span className="text-sm font-semibold">{copy("gallery.inside.rivals")}</span>
-                {e.watched.map((rival) => (
-                  <span key={rival} className="text-base-content/70 font-mono text-xs break-all">{rival}</span>
-                ))}
-              </span>
-            </div>
-            <div className={well}>
-              <span className={step} aria-hidden>{INSIDE[2]}</span>
-              <span className="flex min-w-0 flex-1 flex-col gap-2">
-                <span className="text-sm font-semibold">{copy("how.rivals.tally", { n: e.tally.n, total: e.tally.total })}</span>
-                <progress aria-hidden className="progress progress-primary" value={e.tally.n} max={e.tally.total} />
-              </span>
-            </div>
-            <div className={well}>
-              <span className={step} aria-hidden>{INSIDE[3]}</span>
-              <span className="flex min-w-0 flex-col gap-1">
-                <span className="text-sm font-semibold">{copy("how.start.missing", { n: e.report.missing })}</span>
-                <span className="text-base-content/70 flex min-w-0 items-start gap-1.5 text-sm">
-                  <FileText size={16} strokeWidth={1.75} aria-hidden className="mt-0.5 flex-none" />
-                  <span className="min-w-0 break-words">{e.page.title}</span>
-                </span>
-              </span>
-            </div>
-          </div>
-        </div>
-        <ol className="card bg-base-100 shadow-(--shadow-card) divide-base-300 flex min-w-0 flex-col divide-y px-5 py-2">
-          {INSIDE.map((n) => (
-            <li key={n} className="flex min-w-0 gap-2.5 py-2.5">
-              <span className={step} aria-hidden>{n}</span>
-              <span className="flex min-w-0 flex-col">
-                <strong className="text-sm">{copy(`gallery.inside.${n}.title` as CopyKey)}</strong>
-                <span className="text-base-content/70 text-sm">{copy(`gallery.inside.${n}.line` as CopyKey)}</span>
-              </span>
-            </li>
-          ))}
-        </ol>
-      </figure>
-    </section>
   );
 }
 

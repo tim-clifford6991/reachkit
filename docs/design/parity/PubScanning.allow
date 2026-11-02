@@ -1,4 +1,3 @@
-reachkit.app/scan/fernwoodtea.example	sample data
 loose leaf tea gift set not on first page	sample data
 matcha starter kit not on first page	sample data
 best green tea for beginners not on first page	sample data
@@ -9,6 +8,5 @@ Your competitors 3 found	owner R27, 2026-10-23: the competitors card stays grey 
 leafandkettle.example	owner R27, 2026-10-23: the competitors card stays grey until the report arrives
 steepco.example	owner R27, 2026-10-23: the competitors card stays grey until the report arrives
 12 searches buyers make working on it	owner R27, 2026-10-23: the board's part-way twelve is not a stage boundary, so the card waits on Next
-Copy link	SPEC 2026-09-15: the report keeps its copy-link beside the CTA, in the public header around this screen
 a national tea retailer	owner R27, 2026-10-23: the competitors card stays grey until the report arrives
 Sells online, across the US	SPEC §2 (issue 1454): the where chip reads "Across United States", as on the report (docs/spec/decisions/2026-11-02-2269.md)
