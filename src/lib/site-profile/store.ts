@@ -61,9 +61,11 @@ interface ProfileRow {
   inventory: unknown;
   pages_read: number;
   refreshed_at: string;
+  logo_type?: string | null;
 }
 
-const COLUMNS = "domain, site_name, products, claims, voice, inventory, pages_read, refreshed_at";
+// `logo_type` stands for the kept logo: the table holds it null exactly when `logo_image` is null.
+const COLUMNS = "domain, site_name, products, claims, voice, inventory, pages_read, refreshed_at, logo_type";
 
 /** A jsonb column read back as `unknown`, narrowed to a list of strings.
  *  Structural, never thrown on: a row written by an older shape is read as
@@ -124,6 +126,7 @@ export async function readSiteProfile(domain: string): Promise<SiteProfile | nul
     inventory: inventoryOf(row.inventory),
     pagesRead: row.pages_read,
     refreshedAt: new Date(row.refreshed_at),
+    hasLogo: row.logo_type != null,
   };
 }
 

@@ -6,8 +6,9 @@
 
 import type React from "react";
 import type { Dispatch, SetStateAction } from "react";
-import { ArrowRight, Building2, CircleQuestionMark, Eye, FileText, MessageCircle, MonitorCheck, ShieldCheck, Users, type LucideIcon } from "lucide-react";
+import { Building, ChevronDown, CircleQuestionMark, MessageCircle, ShieldCheck, Users, type LucideIcon } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
+import { SiteMark } from "@/ui/SiteMark";
 import { settledCategory, type SetupState } from "@/lib/market/setup/state";
 import type { FounderAnswers } from "@/lib/site-profile/knowledge/types";
 import type { SiteProfile } from "@/lib/site-profile/types";
@@ -20,8 +21,11 @@ import { RivalsCard } from "./RivalsCard";
 import { VoiceCard } from "./VoiceCard";
 import { QUIET } from "./frame";
 
-const SECTION = "collapse collapse-arrow min-w-0 border border-base-300 bg-base-100";
+// The board's thin, muted chevron (lucide), not daisyUI's heavier drawn arrow.
+const SECTION = "group collapse min-w-0 border border-base-300 bg-base-100 shadow-(--shadow-card)";
 const ICON = { strokeWidth: 1.75, size: 16, "aria-hidden": true } as const;
+/** Punctuation between the domain and its count, not a sentence. */
+const SEP = " · ";
 
 export function CheckStep(p: {
   state: SetupState;
@@ -30,6 +34,8 @@ export function CheckStep(p: {
   competitorsMax: number;
   resolveDomain: (host: string) => Promise<ResolveDomainResponse>;
   pagesRead: number;
+  /** Whether the profile read for this address kept the site's own logo. */
+  hasLogo: boolean;
   draft: BusinessDraft;
   onDraft: (next: BusinessDraft) => void;
   job: string;
@@ -49,33 +55,20 @@ export function CheckStep(p: {
           {copy("setup.check.unread")}
         </p>
       ) : (
-        <figure className="card card-border m-0 bg-base-100" data-testid="setup-check-read">
-          <div className="card-body gap-3 p-4">
-            <p className="flex min-w-0 flex-wrap items-baseline justify-between gap-2">
-              <span className="num min-w-0 wrap-anywhere">{p.state.siteDomain}</span>
-              <span className="text-sm font-medium">{copy("setup.check.pages", { n: String(p.pagesRead) })}</span>
-            </p>
-            <figcaption className="flex min-w-0 flex-wrap items-center gap-2 text-sm">
-              <span className="badge badge-ghost">
-                <MonitorCheck {...ICON} />
-                {copy("setup.check.figure.site")}
-              </span>
-              <ArrowRight {...ICON} />
-              <span className="flex items-center gap-1">
-                <Eye {...ICON} />
-                {copy("setup.check.figure.read")}
-              </span>
-              <ArrowRight {...ICON} />
-              <span className="badge badge-ghost">
-                <FileText {...ICON} />
-                {copy("setup.check.figure.pages")}
-              </span>
-            </figcaption>
-          </div>
-        </figure>
+        <p
+          className="flex min-w-0 items-center gap-2.5 rounded-field bg-base-200 px-4 py-3 text-sm"
+          data-testid="setup-check-read"
+        >
+          {p.state.siteDomain === null ? null : <SiteMark domain={p.state.siteDomain} hasLogo={p.hasLogo} size={36} />}
+          <span className="min-w-0 wrap-anywhere">
+            <span className="num">{p.state.siteDomain}</span>
+            {SEP}
+            <strong>{copy("setup.check.pages", { n: String(p.pagesRead) })}</strong>
+          </span>
+        </p>
       )}
 
-      <Section id="business" icon={Building2} title={copy("setup.check.business")} summary={p.job}>
+      <Section id="business" icon={Building} title={copy("setup.check.business")} summary={p.job}>
         <p className="flex items-start gap-2 rounded-box bg-base-200 px-3 py-2 text-sm" data-testid="setup-business-assurance">
           <ShieldCheck {...ICON} size={20} className="shrink-0 text-base-content/70" />
           <span>{copy("setup.business.assurance")}</span>
@@ -112,7 +105,6 @@ export function CheckStep(p: {
         id="asks"
         icon={CircleQuestionMark}
         title={copy("setup.business.questions")}
-        pill={copy("setup.check.optional")}
         summary={copy("setup.check.asks.summary")}
       >
         <Questions answers={p.answers} onAnswers={p.onAnswers} />
@@ -127,27 +119,25 @@ function Section(p: {
   icon: LucideIcon;
   title: string;
   summary: string;
-  /** The pill before the summary: "read" where ReachKit filled it in. */
-  pill?: string;
   children: React.ReactNode;
 }): React.JSX.Element {
   const summary = p.summary.trim();
-  const pill = p.pill ?? (summary === "" ? null : copy("setup.check.read"));
   return (
     <details className={SECTION} data-testid={`setup-check-${p.id}`}>
       <summary className="collapse-title flex min-w-0 items-start gap-3">
-        <span className="grid size-9 shrink-0 place-items-center rounded-box bg-primary/10 text-primary" aria-hidden>
-          <p.icon strokeWidth={1.75} size={20} />
+        <span className="grid size-8 shrink-0 place-items-center rounded-field bg-(--accent-bg) text-primary" aria-hidden>
+          <p.icon strokeWidth={1.75} size={18} />
         </span>
         <span className="flex min-w-0 flex-col gap-1">
-          <strong className="font-medium">{p.title}</strong>
-          {pill === null ? null : (
-            <span className={`flex min-w-0 flex-wrap items-center gap-x-2 wrap-anywhere ${QUIET}`}>
-              <span className="badge badge-ghost badge-sm">{pill}</span>
-              {summary}
-            </span>
-          )}
+          <strong className="text-(length:--t-body) font-bold">{p.title}</strong>
+          {summary === "" ? null : <span className={`wrap-anywhere ${QUIET}`}>{summary}</span>}
         </span>
+        <ChevronDown
+          aria-hidden
+          size={20}
+          strokeWidth={1.75}
+          className="ms-auto mt-1.5 shrink-0 text-base-content/70 transition-transform group-open:rotate-180"
+        />
       </summary>
       <div className="collapse-content grid min-w-0 grid-cols-1 gap-4">{p.children}</div>
     </details>

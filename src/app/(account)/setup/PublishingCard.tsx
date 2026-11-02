@@ -1,27 +1,19 @@
-// SPEC §5 — the publishing step of `/setup`: where pages publish — the
-// hosted subdomain label they choose (default), or WordPress connected
-// later. No mode pair: Autopilot is the only mode (SPEC §7, #476). daisyUI
-// classes in the route (DESIGN.md rule 1): `card`, `badge`, `input`,
-// `alert`; lucide glyphs at 1.75. No option is a solid primary: the
-// screen's one primary is the submit.
+// SPEC §5 — setup's Connect step, as board Setup draws it on one screen:
+// where pages live, then for the hosted address the record to paste (its
+// Name row is the label the founder chooses), doing it later and the week
+// after; for WordPress, what connecting it will ask for. No mode pair:
+// Autopilot is the only mode (SPEC §7, #476). The record no longer waits for
+// a screen of its own after setup (#2270, superseding #924's separate step);
+// `/setup/connect` stays the way back to it from Overview and Settings.
 //
-// The destination and the label are the form's, because the one
-// submit stores them. This card holds whether the label is refused, and
-// asks the server whether anyone else already serves at it.
-//
-// **The record is not here any more** (owner, 2026-09-20, #924, reversing
-// #757). It was completed and verified on this step; it is its own step
-// after setup now — `/setup/connect` — with *Do this later*, and it stays
-// reachable from Overview's needs-you and from Settings until the host is
-// live. What is left on this step is the one decision it is for: where
-// pages publish, and under what label. A founder who never opens the
-// connect step still finishes setup, and their pages are still written and
-// wait in review (2026-09-16).
+// The destination and the label are the form's, because the step's save
+// stores them. This card holds whether the label is refused, and asks the
+// server whether anyone else already serves at it.
 "use client";
 
 import type React from "react";
 import { useId, useRef, useState } from "react";
-import { Circle, CircleCheck, Globe, Layers, type LucideIcon } from "lucide-react";
+import { Globe, Layers, type LucideIcon } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import {
   dnsRecordFor,
@@ -30,7 +22,9 @@ import {
   type SetupCards,
 } from "@/lib/publish/setup/cards";
 import { checkLabel, type LabelRefusal } from "@/lib/publish/destinations/hosted/label";
+import type { HostnameState } from "@/lib/publish/destinations/hosted/hostname";
 import { checkSubdomainLabel } from "./label-actions";
+import { DnsCard, Later, WeekCard } from "./connect/parts";
 
 /** SPEC §5's two refusals, the same two keys the submit's own resolve to. */
 const LABEL_REFUSAL_COPY = {
@@ -39,7 +33,8 @@ const LABEL_REFUSAL_COPY = {
 } as const satisfies Record<LabelRefusal, string>;
 
 const TEST_ID = "setup-publishing";
-const QUIET = "block text-sm text-base-content/70";
+const QUIET = "block text-(length:--t-sm) text-base-content/70";
+const BOX = "card border border-base-300 bg-base-100 shadow-(--shadow-card)";
 const TILE = "grid shrink-0 place-items-center rounded-box";
 
 /** Board Setup's mark for each place pages can live. */
@@ -53,6 +48,12 @@ export function PublishingCard(p: {
   onDestination: (destination: DestinationKind) => void;
   label: string;
   onLabel: (label: string) => void;
+  /** Doing it later: the caller saves the step and leaves for the app. */
+  onLater: () => void;
+  /** Whether the step is saving, so doing it later cannot be pressed twice. */
+  busy: boolean;
+  /** What the founder's last check said of the host; `undefined` is "not asked". */
+  connection?: HostnameState;
 }): React.JSX.Element {
   const labelId = useId();
   const [refusal, setRefusal] = useState<LabelRefusal | null>(null);
@@ -75,7 +76,7 @@ export function PublishingCard(p: {
     setRefusal(null);
     asked.current += 1;
     const mine = asked.current;
-    // A check that does not complete refuses nothing: the submit asks the
+    // A check that does not complete refuses nothing: the save asks the
     // same question against the canonical domain and decides.
     let answer: LabelRefusal | null = null;
     try {
@@ -87,13 +88,14 @@ export function PublishingCard(p: {
   }
 
   const host = p.siteDomain === null || p.label.trim() === "" ? null : `${p.label}.${p.siteDomain}`;
+  // The record names `<label>.<domain>`, so a blank label draws the record with no name yet.
+  const record = "pending" in dns ? null : dns;
 
   return (
-    <section className="card bg-base-100 shadow-sm" data-testid={TEST_ID}>
-      <div className="card-body gap-4">
-        <h2 className="card-title text-base">{copy("setup.destination.where")}</h2>
-
-        <div className="grid gap-3 sm:grid-cols-2" data-testid="setup-destination">
+    <section className="grid min-w-0 gap-6" data-testid={TEST_ID}>
+      <fieldset className="grid min-w-0 gap-3">
+        <legend className="pb-3 text-(length:--t-body) font-bold">{copy("setup.destination.where")}</legend>
+        <div className="grid gap-3" data-testid="setup-destination">
           {p.cards.destination.map((option) => (
             <Option
               key={option.kind}
@@ -104,55 +106,52 @@ export function PublishingCard(p: {
               chosen={p.destination === option.kind}
               onChoose={() => p.onDestination(option.kind)}
               testId={`setup-destination-${option.kind}`}
-            >
-              {option.kind === "hosted" && "pending" in dns ? <DnsPendingLine dns={dns} /> : null}
-              {option.kind === "wordpress" ? <WordPressAsks domain={p.siteDomain} /> : null}
-            </Option>
+            />
           ))}
         </div>
+      </fieldset>
 
-        {/* The label sits under the pair, not inside the hosted option:
-            that option is a button, and a field nested in a button is
-            neither valid markup nor operable by keyboard. */}
-        {p.destination === "hosted" ? (
-          <div className="flex flex-col gap-1.5" data-testid="setup-destination-label">
-            <label className="text-sm text-base-content/70" htmlFor={labelId}>
-              {copy("setup.destination.label.label")}
-            </label>
-            <input
-              id={labelId}
-              type="text"
-              name="label"
-              className={`input num w-full ${refusal === null ? "" : "input-error"}`}
-              value={p.label}
-              aria-invalid={refusal !== null}
-              onChange={(event) => {
-                void draftLabel(event.target.value);
-              }}
-            />
-            {refusal === null ? null : (
-              <div role="alert" className="alert alert-error alert-soft text-sm">
-                {copy(LABEL_REFUSAL_COPY[refusal])}
-              </div>
-            )}
-            {/* The record and its check are `/setup/connect`'s now (#924).
-                What stands here is the one line saying the address is
-                theirs and that connecting it comes next. */}
-            {"pending" in dns ? null : (
-              <p className="mt-2 text-sm text-base-content/70" data-testid="setup-dns-next">
-                {copy("setup.destination.connect-next")}
-              </p>
-            )}
-          </div>
-        ) : null}
-      </div>
+      {p.destination === "wordpress" ? (
+        <WordPressAsks />
+      ) : record === null ? (
+        "pending" in dns ? <DnsPendingLine dns={dns} /> : null
+      ) : (
+        <>
+          <DnsCard
+            record={record}
+            {...(p.connection === undefined ? {} : { state: p.connection })}
+            name={
+              <span className="grid min-w-0 grow gap-1" data-testid="setup-destination-label">
+                <input
+                  id={labelId}
+                  type="text"
+                  name="label"
+                  aria-label={copy("setup.destination.label.label")}
+                  className={`input num input-sm h-11 w-full ${refusal === null ? "" : "input-error"}`}
+                  value={p.label}
+                  aria-invalid={refusal !== null}
+                  onChange={(event) => {
+                    void draftLabel(event.target.value);
+                  }}
+                />
+                {refusal === null ? null : (
+                  <span role="alert" className="text-(length:--t-sm) text-error">
+                    {copy(LABEL_REFUSAL_COPY[refusal])}
+                  </span>
+                )}
+              </span>
+            }
+          />
+          <Later live={p.connection === "live"} onLater={p.onLater} busy={p.busy} />
+        </>
+      )}
+
+      <WeekCard />
     </section>
   );
 }
 
-/** One choice of a pair: a bordered card that is a toggle button. Chosen
- *  is the primary edge and tint plus `aria-pressed` — never the solid
- *  primary, which is the submit's. */
+/** One choice of a pair: a bordered row with daisyUI's radio. Chosen is the primary edge and tint. */
 function Option(p: {
   icon: LucideIcon;
   title: string;
@@ -162,72 +161,59 @@ function Option(p: {
   chosen: boolean;
   onChoose: () => void;
   testId: string;
-  children?: React.ReactNode;
 }): React.JSX.Element {
-  const Mark = p.chosen ? CircleCheck : Circle;
   return (
-    <button
-      type="button"
-      className={`card card-border text-left transition-colors ${
-        p.chosen ? "border-primary bg-primary/5" : "hover:border-base-content/30"
+    <label
+      className={`flex min-w-0 cursor-pointer items-start gap-3 rounded-box border p-4 transition-colors ${
+        p.chosen ? "border-primary bg-(--accent-bg)" : "border-base-300 bg-base-100 hover:border-base-content/30"
       }`}
-      aria-pressed={p.chosen}
-      onClick={p.onChoose}
       data-testid={p.testId}
     >
-      <span className="card-body gap-1 p-4">
-        <span className="flex items-center gap-2 font-medium">
-          <Mark
-            aria-hidden
-            size={20}
-            strokeWidth={1.75}
-            className={p.chosen ? "text-primary" : "text-base-content/40"}
-          />
-          <span className={`${TILE} size-8 bg-base-200`} aria-hidden>
-            <p.icon size={16} strokeWidth={1.75} />
-          </span>
-          {p.title}
-        </span>
-        {p.detail === null ? null : <span className="num text-sm wrap-anywhere">{p.detail}</span>}
+      <input
+        type="radio"
+        name={RADIO_NAME}
+        className="radio radio-primary radio-sm mt-0.5 shrink-0"
+        checked={p.chosen}
+        onChange={p.onChoose}
+      />
+      <span className={`${TILE} size-8 bg-(--accent-bg) text-primary`} aria-hidden>
+        <p.icon size={16} strokeWidth={1.75} />
+      </span>
+      <span className="flex min-w-0 flex-col">
+        <strong className="text-(length:--t-body)">{p.title}</strong>
+        {p.detail === null ? null : <span className="num text-(length:--t-sm) wrap-anywhere">{p.detail}</span>}
         <span className={QUIET} data-testid="setup-option-line">
           {p.line}
         </span>
-        {p.children}
       </span>
-    </button>
+    </label>
   );
 }
+
+/** The radios' group name: a form handle, not a sentence. */
+const RADIO_NAME = "destination";
 
 /** REQ-028 c2: one written line where the record will sit until the site
- *  address is known — never a blank. A span: it sits inside a button. */
+ *  address is known — never a blank. */
 function DnsPendingLine(p: { dns: DnsPending }): React.JSX.Element {
   return (
-    <span className={`mt-2 ${QUIET}`} data-testid="setup-dns-pending">
+    <p className={QUIET} data-testid="setup-dns-pending">
       {copy(p.dns.copy)}
-    </span>
+    </p>
   );
 }
 
-/** What connecting WordPress will ask for, shown on the option that offers
- *  it. Shown, never asked here: SPEC §5 keeps the connect for later. */
-function WordPressAsks(p: { domain: string | null }): React.JSX.Element {
+/** Where WordPress is connected, in the box under the pair: said, never asked here,
+ *  because SPEC §5 connects it later in Settings › Publishing. */
+function WordPressAsks(): React.JSX.Element {
   return (
-    <>
-      <span className="mt-2 flex min-w-0 flex-col">
-        <span className={QUIET}>{copy("settings.destination.site-url")}</span>
-        {p.domain === null ? null : (
-          <span className="num text-sm wrap-anywhere" data-testid="setup-wordpress-site">
-            {p.domain}
-          </span>
-        )}
-      </span>
-      <span className={`mt-2 ${QUIET}`}>{copy("settings.destination.username")}</span>
-      <span className="mt-2 flex min-w-0 flex-col">
-        <span className={QUIET}>{copy("settings.destination.app-password")}</span>
-        <span className="text-sm" data-testid="setup-wordpress-help">
+    <div className={BOX} data-testid="setup-wordpress-asks">
+      <div className="card-body gap-2 p-5">
+        <p data-testid="setup-wordpress-later">{copy("setup.wordpress.later")}</p>
+        <p className={QUIET} data-testid="setup-wordpress-help">
           {copy("settings.destination.app-password.help")}
-        </span>
-      </span>
-    </>
+        </p>
+      </div>
+    </div>
   );
 }
