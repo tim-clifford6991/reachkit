@@ -70,4 +70,9 @@ export const LANDING_COPY = Object.freeze({
   "landing.plan.time.line": ["Answer a few questions and connect your site. That’s your part.", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
   "landing.plan.one": ["One plan, everything in it", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
   "landing.plan.terms": ["VAT included. Cancel any time.", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
+  // The short Learn close (canvas v36): your part and the price, each with its label in bold.
+  "library.close.part.label": ["Your part:", { slots: {}, fixedBy: "board PubScans v36 · issue 2269" }],
+  "library.close.part.once": ["about {minutes} minutes, once.", { slots: { minutes: "text" }, fixedBy: "board PubScans v36 · issue 2269" }],
+  "library.close.price.lead": ["{price} a month.", { slots: { price: "text" }, fixedBy: "board PubScans v36 · issue 2269" }],
+  "library.close.price.rest": ["One plan. Cancel any time.", { slots: {}, fixedBy: "board PubScans v36 · issue 2269" }],
 }) satisfies CopyPartition;
