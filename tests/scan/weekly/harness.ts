@@ -16,6 +16,8 @@ export interface Statement {
   verb: "select" | "insert" | "update" | "delete";
   values?: Record<string, unknown>;
   filters: [string, unknown][];
+  /** What the select named, for a suite that answers a column path. */
+  columns?: string;
 }
 
 export interface FakeDb {
@@ -50,7 +52,8 @@ export function fakeDb(): FakeDb {
     const statement: Statement = { table, verb: "select", filters: [] };
     db.statements.push(statement);
     const self = {
-      select() {
+      select(columns?: string) {
+        if (columns !== undefined) statement.columns = columns;
         return self;
       },
       insert(values: Record<string, unknown>) {

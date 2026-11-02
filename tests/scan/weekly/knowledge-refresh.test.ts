@@ -11,6 +11,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DB, captureLog } from "./harness";
 import { cachedCostContext, type FakeContext } from "../../vendors/harness";
 import { OWN_FETCH_SOURCE } from "@/lib/measure/own-fetch";
+import { project, withIds } from "../../publish/select";
 
 const runScan = vi.fn();
 const spendOnStoredReport = vi.fn();
@@ -113,13 +114,15 @@ function site(s: Site): {
     refreshed_at: at(MONDAYS[0]!).toISOString(),
     knowledge: null,
   };
-  const ledger: { scan_id: string; source: string; payload: unknown }[] = [];
+  const ledger: { id?: string; scan_id: string; source: string; payload: unknown }[] = [];
   DB.rows.set("sites", [{ id: "site-1", domain: s.domain, zone: "UTC", category: "the market" }]);
   DB.answer = (statement) => {
     if (statement.table === "site_profiles") return statement.verb === "update" ? (Object.assign(profile, statement.values), []) : [profile];
     if (statement.table === "fetches" && statement.verb === "select") {
-      const sources = statement.filters.find(([column]) => column === "source")?.[1];
-      return Array.isArray(sources) && sources.includes(OWN_FETCH_SOURCE) ? ledger : [];
+      const source = statement.filters.find(([column]) => column === "source")?.[1];
+      const ids = statement.filters.find(([column]) => column === "id")?.[1] as readonly unknown[] | undefined;
+      const own = source === undefined || source === OWN_FETCH_SOURCE ? withIds(ledger) : [];
+      return own.filter((row) => ids === undefined || ids.includes(row.id)).map((row) => project(statement.columns ?? "", row));
     }
     return statement.table === "scans" && statement.verb === "select" ? [scan] : null;
   };

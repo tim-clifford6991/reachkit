@@ -22,12 +22,14 @@
 // seven; every rule this tab needs is a stock daisyUI class or one of the
 // type roles `src/ui/type.css` registers.
 import type React from "react";
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { copy } from "@/lib/presentation/copy";
 import { profileIsEmpty } from "@/lib/site-profile/business/confirm";
 import { readShell } from "../_shell/provider";
 import { requireSetUpAccount } from "../_session/account";
-import { readBusiness } from "./business-provider";
+import { CardSkeleton } from "../_shell/skeletons";
+import { readBusiness, readBusinessQuotable } from "./business-provider";
 import { landed, Unread } from "./Unread";
 import { BusinessPanel } from "./panels/BusinessPanel";
 import { FactsPanel } from "./panels/FactsPanel";
@@ -51,9 +53,9 @@ export const metadata: Metadata = { title: copy("meta.app.settings.title") };
 
 export default async function SettingsBusinessTab(): Promise<React.JSX.Element> {
   // `readBusiness` is this tab's alone — the site profile, the market
-  // reading, the customer's corrections and the grounding passages, which no
-  // other tab draws and none should pay for (`./business-provider.ts`). The
-  // zone is the session's own, so this tab needs no settings read.
+  // reading and the customer's corrections, which no other tab draws and none
+  // should pay for (`./business-provider.ts`). The passages are `Facts`'s own
+  // read. The zone is the session's own, so this tab needs no settings read.
   const [account, business, shell] = await Promise.all([requireSetUpAccount(), landed(readBusiness(), "business"), landed(readShell(), "shell")]);
   const timeZone = account.timeZone;
   if (business === null) {
@@ -85,10 +87,18 @@ export default async function SettingsBusinessTab(): Promise<React.JSX.Element> 
       />
       <section className="flex min-w-0 flex-col gap-3" aria-label={copy("settings.business.more")}>
         <KnowledgePanel knowledge={business.knowledge} answers={business.answers} />
-        <FactsPanel facts={business.facts} />
+        <Suspense fallback={<CardSkeleton testId="settings-business-facts-skeleton" rows={0} />}>
+          <Facts />
+        </Suspense>
         <KnownContentPanel known={business.known} />
       </section>
       <WrittenFromPanel profile={business.profile} />
     </div>
   );
+}
+
+/** The facts card, which parses every measured page: when it fails or stalls, only this card says so. */
+async function Facts(): Promise<React.JSX.Element> {
+  const facts = await landed(readBusinessQuotable(), "businessFacts");
+  return facts === null ? <Unread testId="settings-unread-facts" /> : <FactsPanel facts={facts} />;
 }

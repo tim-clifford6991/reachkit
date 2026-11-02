@@ -21,12 +21,20 @@ const html = [
 ].join("\n");
 
 function storedSite(): void {
+  // The own read's fields as the light and the text pass select them; no rendered read.
+  const document = toStoredDocument({ ok: true, status: 200, url: "https://reachkit.app/", html, bytes: html.length, readAt: new Date("2026-10-31T09:00:00Z"), headers: {} });
   const rows = {
     scans: [{ id: "scan-1", domain: "reachkit.app" }],
-    fetches: [{ scan_id: "scan-1", source: OWN_FETCH_SOURCE, payload: toStoredDocument({ ok: true, status: 200, url: "https://reachkit.app/", html, bytes: html.length, readAt: new Date("2026-10-31T09:00:00Z"), headers: {} }) }],
+    fetches: [{ id: "fetch-1", ...document }],
   };
   const query = (table: keyof typeof rows) => {
-    const self = { select: () => self, eq: () => self, in: () => self, then: (resolve: (r: unknown) => unknown) => Promise.resolve(resolve({ data: rows[table], error: null })) };
+    let data: unknown[] = rows[table];
+    const self = {
+      select: () => self,
+      eq: (column: string, value: unknown) => ((data = column === "source" && value !== OWN_FETCH_SOURCE ? [] : data), self),
+      in: () => self,
+      then: (resolve: (r: unknown) => unknown) => Promise.resolve(resolve({ data, error: null })),
+    };
     return self;
   };
   vi.mocked(dbAdmin).mockReturnValue({ from: query } as unknown as ReturnType<typeof dbAdmin>);

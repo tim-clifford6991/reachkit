@@ -1,12 +1,25 @@
 /** @vitest-environment jsdom */
 // Settings › Your business against board SettingsIndex: each section's words, in
 // order, drawing each customer's own values. A plumber and a SaaS, same labels.
-import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { renderToReadableStream, renderToStaticMarkup } from "react-dom/server";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { applyEnvFixture } from "../../mail/env-fixture";
+import { fakeDb } from "../../publish/harness";
 import { CUSTOMERS, PLUMBER, SAAS, type Customer } from "./business-fixtures";
 
 applyEnvFixture();
+
+const db = fakeDb();
+/** Tables whose queries never answer, the way a database past its deadline does. */
+const stalled = new Set<string>();
+const never = (): unknown =>
+  new Proxy(() => undefined, { get: (_t, key) => (key === "then" ? () => undefined : never()), apply: () => never() });
+const client = (): unknown =>
+  new Proxy(db.client as Record<string, unknown>, {
+    get: (target, key) =>
+      key === "from" ? (table: string) => (stalled.has(table) ? never() : (target.from as (t: string) => unknown)(table)) : target[key as string],
+  });
+vi.mock("@/lib/db", () => ({ dbAdmin: client, db: client }));
 
 const { assembleShell } = await import("@/app/(account)/app/_shell/model");
 const { FIXTURE_SHELL_FACTS } = await import("@/app/(account)/app/_shell/fixture");
@@ -342,5 +355,104 @@ describe("icons (ux 2026-10-24 E24, E28, S1)", () => {
     ].flatMap((root) => [...root.querySelectorAll("h2, summary")]);
     expect(titles).toHaveLength(5);
     for (const title of titles) expect(title.querySelector("svg")).toBeNull();
+  });
+});
+
+const { LIVE_ACCOUNT, resetAccount, signedInAs } = await import("../account-door");
+const { default: BusinessTab } = await import("@/app/(account)/app/settings/page");
+const { copy } = await import("@/lib/presentation/copy");
+
+describe("the facts card is its own read: when it fails or stalls only that card says so", () => {
+  const OTHER_CARDS = ["settings-business-knowledge", "settings-known-content"];
+  const DOMAIN = "harborplumbing.example";
+  const has = (doc: Document, id: string): boolean => doc.querySelector(`[data-testid="${id}"]`) !== null;
+
+  async function settled(tree: React.ReactNode): Promise<Document> {
+    const stream = await renderToReadableStream(tree, { onError: () => undefined });
+    await stream.allReady;
+    return new DOMParser().parseFromString(await new Response(stream).text(), "text/html");
+  }
+
+  /** Real ticks, so the boundary's read starts before the fake clock moves. */
+  async function until(done: () => boolean): Promise<void> {
+    for (let turn = 0; turn < 200 && !done(); turn++) await new Promise((resolve) => setImmediate(resolve));
+    expect(done()).toBe(true);
+  }
+
+  function seed(): void {
+    db.reset();
+    stalled.clear();
+    signedInAs({ ...LIVE_ACCOUNT, domain: DOMAIN });
+    db.seed("sites", [
+      { id: LIVE_ACCOUNT.siteId, user_id: LIVE_ACCOUNT.userId, domain: DOMAIN, mode: "autopilot", veto_hours: 24, publish_time: "09:00", timezone: "America/Chicago", publishing_enabled: true },
+    ]);
+    db.seed("users", [
+      { id: LIVE_ACCOUNT.userId, email: "owner@harborplumbing.example", name: "A Plumber", pending_email: null, pending_email_sent_at: null, deleted_at: null, notify: {}, created_at: "2026-01-01T00:00:00.000Z", paid_through: "2026-12-01T00:00:00.000Z", cancelled_at: null, plan_status: "active" },
+    ]);
+    // A measured scan, so the facts read reaches the page text.
+    db.seed("scans", [{ id: "scan-1", site_id: LIVE_ACCOUNT.siteId, domain: DOMAIN, tier: "deep", created_at: "2026-10-01T00:00:00.000Z" }]);
+  }
+  const failures = (warn: { mock: { calls: unknown[][] } }, read: string) =>
+    warn.mock.calls.map(([line]) => JSON.parse(String(line))).filter((line) => line.event === "settings_read_failed" && line.read === read);
+
+  afterEach(() => {
+    vi.useRealTimers();
+    resetAccount();
+    vi.restoreAllMocks();
+  });
+
+  it("answers every card while every read answers", async () => {
+    seed();
+    const doc = await settled(await BusinessTab());
+    expect(has(doc, "settings-unread-business")).toBe(false);
+    expect(has(doc, "settings-unread-facts")).toBe(false);
+    for (const id of ["settings-business-facts", ...OTHER_CARDS]) expect(has(doc, id), id).toBe(true);
+  });
+
+  it("a facts read that rejects leaves only the facts card on the plain line", async () => {
+    seed();
+    db.unreadable.add("fetches");
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const doc = await settled(await BusinessTab());
+    expect(doc.querySelector('[data-testid="settings-unread-facts"]')?.textContent).toBe(copy("settings.panel.unread"));
+    expect(has(doc, "settings-business-facts")).toBe(false);
+    expect(has(doc, "settings-unread-business")).toBe(false);
+    for (const id of OTHER_CARDS) expect(has(doc, id), id).toBe(true);
+    expect(doc.querySelector("h2")).not.toBeNull();
+    expect(failures(warn, "businessFacts")).toHaveLength(1);
+    expect(failures(warn, "business")).toHaveLength(0);
+  });
+
+  it("a facts read that never answers times out at 4,000 ms, and only its card says so", async () => {
+    seed();
+    stalled.add("fetches");
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const tree = await BusinessTab();
+    const rendering = settled(tree);
+    await until(() => db.queries.some((query) => query.table === "scans" && query.columns === "id, domain"));
+    await vi.advanceTimersByTimeAsync(3_999);
+    expect(failures(warn, "businessFacts")).toHaveLength(0);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(failures(warn, "businessFacts")).toEqual([
+      { event: "settings_read_failed", read: "businessFacts", detail: "Error: settings read timed out: businessFacts" },
+    ]);
+    const doc = await rendering;
+    expect(has(doc, "settings-unread-facts")).toBe(true);
+    expect(has(doc, "settings-unread-business")).toBe(false);
+    for (const id of OTHER_CARDS) expect(has(doc, id), id).toBe(true);
+  });
+
+  it("when the business read itself stalls, the whole tab is the one plain line, as before", async () => {
+    seed();
+    stalled.add("site_profile_edits");
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const page = BusinessTab();
+    await vi.advanceTimersByTimeAsync(4_000);
+    const doc = await settled(await page);
+    expect(has(doc, "settings-unread-business")).toBe(true);
+    expect(has(doc, "settings-unread-facts")).toBe(false);
+    expect(failures(warn, "business")).toHaveLength(1);
   });
 });

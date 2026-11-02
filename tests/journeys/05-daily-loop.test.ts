@@ -71,7 +71,7 @@
 // `COPY` itself is left real.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { captureMail } from "./harness";
-import { fakeDb, installTransitionRpc, type FakeDb, type Row, installSiteSpendRpc } from "../publish/harness";
+import { fakeDb, installTransitionRpc, project, withIds, type FakeDb, type Row, installSiteSpendRpc } from "../publish/harness";
 
 const db: FakeDb = fakeDb();
 
@@ -85,8 +85,9 @@ const db: FakeDb = fakeDb();
 function fetchesBuilder() {
   const filters: { op: string; column: string; value: unknown }[] = [];
   let verb: "select" | "insert" = "select";
+  let columns = "";
   const self = {
-    select: () => self,
+    select: (selected: string) => ((columns = selected), self),
     insert(values: Row) {
       verb = "insert";
       db.tables.get("fetches")?.push({ ...values });
@@ -110,7 +111,7 @@ function fetchesBuilder() {
     single: () => Promise.resolve({ data: null, error: null }),
     then(resolve: (value: { data: unknown[]; error: null }) => unknown) {
       if (verb === "insert") return Promise.resolve({ data: [], error: null }).then(resolve);
-      const rows = (db.tables.get("fetches") ?? []).filter((row) =>
+      const rows = withIds(db.tables.get("fetches") ?? []).filter((row) =>
         filters.every((f) => {
           const value = row[f.column];
           if (f.op === "eq") return value === f.value;
@@ -120,7 +121,7 @@ function fetchesBuilder() {
           return false;
         })
       );
-      return Promise.resolve({ data: rows, error: null }).then(resolve);
+      return Promise.resolve({ data: rows.map((row) => project(columns, row)), error: null }).then(resolve);
     },
   };
   return self;

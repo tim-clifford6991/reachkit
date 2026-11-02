@@ -14,6 +14,7 @@ vi.mock("@/lib/db", () => ({ dbAdmin: vi.fn() }));
 import { dbAdmin } from "@/lib/db";
 import { isOurPage, readOurPages } from "@/lib/known-content/ours";
 import { OWN_FETCH_SOURCE, toStoredDocument } from "../../src/lib/measure/own-fetch.ts";
+import { project, withIds } from "../publish/select";
 import { readMeasuredText } from "../../src/lib/measure/text.ts";
 
 const SITE = "site-1";
@@ -25,14 +26,17 @@ type Row = Record<string, unknown>;
 function useDb(tables: Record<string, Row[]>): void {
   const from = (table: string) => {
     const keep: ((row: Row) => boolean)[] = [];
+    let columns = "";
     const self = {
-      select: () => self,
+      select: (selected: string) => ((columns = selected), self),
       eq: (column: string, value: unknown) => (keep.push((row) => row[column] === value), self),
       in: (column: string, values: readonly unknown[]) => (keep.push((row) => values.includes(row[column])), self),
       is: (column: string, value: unknown) => (keep.push((row) => row[column] === value), self),
       not: (column: string, _op: string, value: unknown) => (keep.push((row) => row[column] !== value), self),
       then: (resolve: (r: { data: Row[]; error: null }) => unknown) =>
-        Promise.resolve(resolve({ data: (tables[table] ?? []).filter((row) => keep.every((test) => test(row))), error: null })),
+        Promise.resolve(
+          resolve({ data: withIds(tables[table] ?? []).filter((row) => keep.every((test) => test(row))).map((row) => project(columns, row)), error: null })
+        ),
     };
     return self;
   };

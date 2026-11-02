@@ -24,7 +24,7 @@
 // it, a deep pass run inside the own-document window has no text at all,
 // and a paid site grounds no fact and starts no draft.
 import { dbAdmin } from "@/lib/db";
-import { OWN_FETCH_SOURCE, RENDERED_FETCH_SOURCE, renderedDocumentOf, siteDocumentOf } from "./own-fetch";
+import { OWN_FETCH_SOURCE, RENDERED_FETCH_SOURCE, siteDocumentOf, type StoredDocument } from "./own-fetch";
 import { prose } from "./prose";
 
 export interface MeasuredText {
@@ -46,10 +46,21 @@ export interface MeasuredText {
 // `src/lib/costs/ledger.ts` names and works around); the narrow builder
 // below is the cast boundary — nothing else in this file bypasses the
 // generated client.
-interface OwnFetchRow {
-  scan_id: string;
-  source: string;
-  payload: unknown;
+/** What the light pass reads of a row: enough to choose, never the page. */
+interface FetchGlance {
+  id: string;
+  url: unknown;
+  readAt: unknown;
+  status: unknown;
+}
+/** The fields the document check and `prose()` read, and nothing else. */
+interface FetchDocument {
+  id: string;
+  url: unknown;
+  status: unknown;
+  html: unknown;
+  readAt: unknown;
+  headers: unknown;
 }
 interface QueryResult<T> {
   data: T[] | null;
@@ -63,6 +74,15 @@ interface MinimalQueryBuilder<T> extends PromiseLike<QueryResult<T>> {
 interface MinimalClient {
   from<T>(table: string): MinimalQueryBuilder<T>;
 }
+
+/** Where each source keeps its document: own reads at the top, a rendered read as the vendor's one-row list. */
+const DOCUMENT_AT: Readonly<Record<string, string>> = {
+  [OWN_FETCH_SOURCE]: "payload",
+  [RENDERED_FETCH_SOURCE]: "payload->0",
+};
+
+/** Keeps each `in` list well inside PostgREST's URL length. */
+const IDS_PER_READ = 100;
 
 /** Fixed, locale-free ordering: by read date, then by URL as code units.
  *  A comparison set that comes back in a different order on a different
@@ -148,33 +168,92 @@ export async function readDomainText(domain: string, read?: TextRead): Promise<M
 }
 
 async function textOfScans(scanIds: readonly string[]): Promise<MeasuredText[]> {
-  const client = dbAdmin();
-  const rows = await (client as unknown as MinimalClient)
-    .from<OwnFetchRow>("fetches")
-    .select("scan_id, source, payload")
-    .in("source", [OWN_FETCH_SOURCE, RENDERED_FETCH_SOURCE])
-    .in("scan_id", scanIds);
-  if (rows.error) {
-    throw new Error(`text.ts: read from fetches failed: ${rows.error.message}`);
-  }
-
+  const client = dbAdmin() as unknown as MinimalClient;
   const out: MeasuredText[] = [];
-  for (const row of rows.data ?? []) {
-    // A `null` payload is a ledgered failed read (`own-fetch.ts`) — no
-    // text was measured, so none is returned. Any other shape under this
-    // source is skipped the same way, never thrown on.
-    const rendered = row.source === RENDERED_FETCH_SOURCE;
-    const document = rendered ? renderedDocumentOf(row.payload) : siteDocumentOf(row.payload);
-    if (document === null) continue;
-    const read = prose(document.html);
-    out.push({
-      url: document.url,
-      text: read.text,
-      measuredAt: new Date(document.readAt),
-      examples: read.examples,
-      questions: read.questions,
-      ...(rendered ? { rendered: true as const } : {}),
-    });
+  for (const source of [OWN_FETCH_SOURCE, RENDERED_FETCH_SOURCE]) {
+    const rendered = source === RENDERED_FETCH_SOURCE;
+    for (const document of await newestDocuments(client, source, scanIds)) {
+      const read = prose(document.html);
+      out.push({
+        url: document.url,
+        text: read.text,
+        measuredAt: new Date(document.readAt),
+        examples: read.examples,
+        questions: read.questions,
+        ...(rendered ? { rendered: true as const } : {}),
+      });
+    }
   }
   return out.sort(compareMeasuredText);
+}
+
+/** Each URL's newest read the document check accepts. A refused, challenged
+ *  or error re-read falls back to the URL's next newest, so a page never
+ *  loses its text to a failed re-read; only the chosen rows' html is read. */
+async function newestDocuments(client: MinimalClient, source: string, scanIds: readonly string[]): Promise<StoredDocument[]> {
+  const at = DOCUMENT_AT[source];
+  const glances = await client
+    .from<FetchGlance>("fetches")
+    .select(`id, url:${at}->url, readAt:${at}->readAt, status:${at}->status`)
+    .eq("source", source)
+    .in("scan_id", scanIds);
+  if (glances.error) {
+    throw new Error(`text.ts: read from fetches failed: ${glances.error.message}`);
+  }
+
+  // A row with no document (a refusal, a failed vendor read) or an error status is one the check would refuse.
+  const candidates = (glances.data ?? [])
+    .flatMap((row) =>
+      typeof row.url === "string" && typeof row.readAt === "string" && typeof row.status === "number" && row.status < 400
+        ? [{ id: row.id, url: row.url, at: new Date(row.readAt).getTime() }]
+        : []
+    )
+    .filter((row) => !Number.isNaN(row.at))
+    .sort((a, b) => b.at - a.at || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+  const byUrl = new Map<string, string[]>();
+  for (const row of candidates) byUrl.set(row.url, [...(byUrl.get(row.url) ?? []), row.id]);
+
+  const found: StoredDocument[] = [];
+  let waiting = [...byUrl.entries()];
+  while (waiting.length > 0) {
+    const turn = new Map(waiting.map(([url, ids]) => [ids[0]!, url]));
+    const read = new Set<string>();
+    for (const row of await readDocuments(client, source, [...turn.keys()])) {
+      const document = siteDocumentOf(storedDocumentOf(row));
+      const url = turn.get(row.id);
+      if (document === null || url === undefined) continue;
+      found.push(document);
+      read.add(url);
+    }
+    waiting = waiting.flatMap(([url, ids]) => (read.has(url) || ids.length === 1 ? [] : [[url, ids.slice(1)] as [string, string[]]]));
+  }
+  return found;
+}
+
+async function readDocuments(client: MinimalClient, source: string, ids: readonly string[]): Promise<FetchDocument[]> {
+  const at = DOCUMENT_AT[source];
+  const out: FetchDocument[] = [];
+  for (let from = 0; from < ids.length; from += IDS_PER_READ) {
+    const rows = await client
+      .from<FetchDocument>("fetches")
+      .select(`id, url:${at}->url, status:${at}->status, html:${at}->html, readAt:${at}->readAt, headers:${at}->headers`)
+      .in("id", ids.slice(from, from + IDS_PER_READ));
+    if (rows.error) {
+      throw new Error(`text.ts: read from fetches failed: ${rows.error.message}`);
+    }
+    out.push(...(rows.data ?? []));
+  }
+  return out;
+}
+
+/** The stored shape back from its read fields; `bytes` is not read, so it is the html's own length. */
+function storedDocumentOf(row: FetchDocument): unknown {
+  return {
+    url: row.url,
+    status: row.status,
+    html: row.html,
+    bytes: typeof row.html === "string" ? row.html.length : null,
+    readAt: row.readAt,
+    ...(row.headers !== null && row.headers !== undefined ? { headers: row.headers } : {}),
+  };
 }

@@ -47,7 +47,7 @@
 // against the real registry.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { captureMail } from "./harness";
-import { fakeDb, installTransitionRpc, type FakeDb, type Row, installSiteSpendRpc } from "../publish/harness";
+import { fakeDb, installTransitionRpc, project, withIds, type FakeDb, type Row, installSiteSpendRpc } from "../publish/harness";
 
 const db: FakeDb = fakeDb();
 
@@ -57,8 +57,9 @@ const db: FakeDb = fakeDb();
 function fetchesBuilder() {
   const filters: { op: string; column: string; value: unknown }[] = [];
   let verb: "select" | "insert" = "select";
+  let columns = "";
   const self = {
-    select: () => self,
+    select: (selected: string) => ((columns = selected), self),
     insert(values: Row) {
       verb = "insert";
       db.rows("fetches").push({ ...values });
@@ -82,7 +83,7 @@ function fetchesBuilder() {
     single: () => Promise.resolve({ data: null, error: null }),
     then(resolve: (value: { data: unknown[]; error: null }) => unknown) {
       if (verb === "insert") return Promise.resolve({ data: [], error: null }).then(resolve);
-      const rows = db.rows("fetches").filter((row) =>
+      const rows = withIds(db.rows("fetches")).filter((row) =>
         filters.every((f) => {
           if (f.op === "eq") return row[f.column] === f.value;
           if (f.op === "in") return (f.value as unknown[]).includes(row[f.column]);
@@ -91,7 +92,7 @@ function fetchesBuilder() {
           return false;
         })
       );
-      return Promise.resolve({ data: rows, error: null }).then(resolve);
+      return Promise.resolve({ data: rows.map((row) => project(columns, row)), error: null }).then(resolve);
     },
   };
   return self;
