@@ -467,7 +467,8 @@ export function DraftScreen(p: {
   const stageBadge =
     chip === null ? null : (
       <span
-        className={`badge badge-soft ${TONE_BADGE[chip.tone]}`}
+        // Ready is the board's primary pill here: nothing is asked of the reader, so it is no warning.
+        className={`badge badge-soft ${stage === "your_review" ? "badge-primary" : TONE_BADGE[chip.tone]}`}
         data-testid={`draft-stage-${stage}`}
       >
         {/* Ready draws the board's tick; every other stage keeps its dot. */}
@@ -824,47 +825,48 @@ export function DraftScreen(p: {
           page, then the Decide panel, then the notes. From `xl` the panel
           is sticky beside both; below it the panel stands between the
           article and the notes (`shape.ts`). */}
+      {/* The header: the title, then the status badges and one meta
+          line. The title is drawn twice on purpose — here as the
+          screen's heading, and in the frame as the page publishes it. */}
+      <header className="flex min-w-0 flex-col gap-2" data-testid="draft-head">
+        <h1 className="min-w-0 wrap-anywhere" data-testid="draft-title">
+          {view.title}
+        </h1>
+        <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
+          <span
+            className="flex min-w-0 flex-wrap items-center gap-2"
+            data-testid="draft-claim"
+          >
+            {stageBadge}
+            {kind === null ? null : (
+              <span className="badge badge-ghost gap-1" data-testid="draft-kind">
+                <KindIcon className="size-3.5 shrink-0" strokeWidth={1.75} aria-hidden />
+                {kind}
+              </span>
+            )}
+            {claimBadge}
+            {claim.state === "failed" ? (
+              // c11: the customer is told which entry held the draft.
+              // The entry is their own recorded text and renders as a
+              // value, whether or not the sentence beside it is written.
+              <span className="num text-sm" data-testid="draft-claim-entry">
+                {claim.matchedEntry}
+              </span>
+            ) : null}
+          </span>
+          {/* One meta line: when it was written, how long it is, and
+              REQ-093 c2's label, bound to the text it speaks for. */}
+          <p className="min-w-0 text-sm text-base-content/70">
+            <span data-testid="draft-written">{written}</span>
+            <span aria-hidden>{META_SEPARATOR}</span>
+            <span data-testid="draft-generated-label">{p.generatedLabel}</span>
+          </p>
+        </div>
+        {matchedLine === null ? null : <p className="text-sm">{matchedLine}</p>}
+      </header>
+
       <div className={SHAPE.grid}>
         <div className={SHAPE.page} data-testid="draft-page">
-          {/* The header: the title, then the status badges and one meta
-              line. The title is drawn twice on purpose — here as the
-              screen's heading, and in the frame as the page publishes it. */}
-          <header className="flex min-w-0 flex-col gap-2" data-testid="draft-head">
-            <h1 className="min-w-0 wrap-anywhere" data-testid="draft-title">
-              {view.title}
-            </h1>
-            <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
-              <span
-                className="flex min-w-0 flex-wrap items-center gap-2"
-                data-testid="draft-claim"
-              >
-                {stageBadge}
-                {kind === null ? null : (
-                  <span className="badge badge-ghost gap-1" data-testid="draft-kind">
-                    <KindIcon className="size-3.5 shrink-0" strokeWidth={1.75} aria-hidden />
-                    {kind}
-                  </span>
-                )}
-                {claimBadge}
-                {claim.state === "failed" ? (
-                  // c11: the customer is told which entry held the draft.
-                  // The entry is their own recorded text and renders as a
-                  // value, whether or not the sentence beside it is written.
-                  <span className="num text-sm" data-testid="draft-claim-entry">
-                    {claim.matchedEntry}
-                  </span>
-                ) : null}
-              </span>
-              {/* One meta line: when it was written, how long it is, and
-                  REQ-093 c2's label, bound to the text it speaks for. */}
-              <p className="min-w-0 text-sm text-base-content/70">
-                <span data-testid="draft-written">{written}</span>
-                <span aria-hidden>{META_SEPARATOR}</span>
-                <span data-testid="draft-generated-label">{p.generatedLabel}</span>
-              </p>
-            </div>
-            {matchedLine === null ? null : <p className="text-sm">{matchedLine}</p>}
-          </header>
 
           <WhyThisPage target={view.target} />
 
@@ -886,6 +888,7 @@ export function DraftScreen(p: {
             </p>
           ) : null}
         </div>
+
 
         <DecidePanel
           view={view}

@@ -37,8 +37,8 @@ const NEXT: Readonly<Record<Label, CopyKey>> = {
 
 const PAUSE_HREF = "/app/settings/publishing";
 const LADDER = {
-  google: { title: "draft.ladder.google", testId: "live-ladder-google", icon: Check, reached: "step-success" },
-  ai: { title: "draft.ladder.ai", testId: "live-ladder-ai", icon: Sparkles, reached: "step-primary" },
+  google: { title: "draft.ladder.google", testId: "live-ladder-google", icon: Check, reached: "bg-success text-success-content" },
+  ai: { title: "draft.ladder.ai", testId: "live-ladder-ai", icon: Sparkles, reached: "bg-primary text-primary-content" },
 } as const satisfies Record<string, { title: CopyKey; testId: string; icon: LucideIcon; reached: string }>;
 const STOP_NOTE_ID = "live-stop-note";
 // Full width on a phone, side by side from `sm`, each a 44px target.
@@ -97,29 +97,38 @@ function aiSteps(live: LiveFacts, timeZone: string): Step[] {
 function Ladder(p: { title: CopyKey; steps: readonly Step[]; measured: boolean; testId: string; icon: LucideIcon; reached: string }): React.JSX.Element {
   const Icon = p.icon;
   return (
-    <div className="flex min-w-0 flex-col gap-2" data-testid={p.testId}>
+    <div className="flex min-w-0 flex-col gap-2.5" data-testid={p.testId}>
       <h3 className="text-base font-semibold">{copy(p.title)}</h3>
-      <ul className="steps steps-vertical md:steps-horizontal min-w-0 text-sm">
-        {p.steps.map((step) => {
+      {/* No rail: a reached step is a filled circle with its icon, a step not reached its number in a dashed ring. */}
+      <ol className="flex min-w-0 flex-col gap-2.5 text-sm md:flex-row md:gap-1">
+        {p.steps.map((step, at) => {
           const reached = step.at !== null;
           return (
-            <li key={step.key} className={`step max-md:min-h-11 ${reached ? p.reached : ""}`} data-reached={reached ? "yes" : "not-yet"}>
+            <li
+              key={step.key}
+              className="flex min-w-0 items-center gap-3 md:flex-1 md:flex-col md:gap-1.5 md:text-center"
+              data-reached={reached ? "yes" : "not-yet"}
+            >
               {reached ? (
-                <span className="step-icon">
+                <span className={`grid size-7.5 shrink-0 place-items-center rounded-full ${p.reached}`} data-testid="live-step-icon">
                   <Icon size={16} strokeWidth={1.75} aria-hidden />
                 </span>
-              ) : null}
-              {/* A phone reads each step as a row, its date at the end; from `md` the date sits under the step. */}
-              <span className="flex w-full min-w-0 items-center justify-between gap-3 md:flex-col md:gap-0">
-                <span className="font-semibold">{copy(step.key)}</span>
-                <span className="text-xs text-base-content/70" data-testid="live-step-at">
-                  {step.detail ?? step.at ?? copy(p.measured ? "draft.ladder.not-yet" : "draft.ladder.unmeasured")}
+              ) : (
+                <span
+                  className="border-base-content/40 text-base-content/70 grid size-7.5 shrink-0 place-items-center rounded-full border-[1.5px] border-dashed text-xs font-bold"
+                  aria-hidden
+                >
+                  {at + 1}
                 </span>
+              )}
+              <span className="min-w-0 font-semibold" data-testid="live-step-name">{copy(step.key)}</span>
+              <span className="ms-auto text-end text-xs text-base-content/70 md:ms-0 md:text-center" data-testid="live-step-at">
+                {step.detail ?? step.at ?? copy(p.measured ? "draft.ladder.not-yet" : "draft.ladder.unmeasured")}
               </span>
             </li>
           );
         })}
-      </ul>
+      </ol>
     </div>
   );
 }
@@ -293,8 +302,9 @@ export function LivePage(p: { view: DraftView; live: LiveFacts; onEdit: () => vo
               <TakeDownControl draftId={view.draftId} mode="stop" words={stopWords()} describedBy={STOP_NOTE_ID} />
             </div>
             <p id={STOP_NOTE_ID} className="text-sm text-base-content/70" data-testid="live-stop-note">
-              {copy("draft.live.stop-note")}
-              <Link href={PAUSE_HREF} className="link link-primary ms-1">
+              {copy("draft.live.stop-note")} {copy("draft.live.pause-lead")}
+              {/* Underlined because it sits in a sentence: colour alone does not mark a link (WCAG 1.4.1, axe link-in-text-block). */}
+              <Link href={PAUSE_HREF} className="link link-primary ms-1 decoration-1 underline-offset-2">
                 {copy("draft.live.pause-link")}
               </Link>
             </p>

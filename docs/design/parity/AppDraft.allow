@@ -40,3 +40,5 @@ Checks: 14 of 14 passed	E10: the check count comes from code (docs/spec/decision
 It won’t go live. Tomorrow’s page is not affected.	owner Q6 2026-10-20 (docs/spec/decisions/2026-10-20-1716.md): a stop drops the topic for good, and every screen that tells a stop says so; docs/spec/decisions/2026-11-02-2274.md
 After Edit is pressed	#1110: the board's own caption over the edit arm, not a string of the screen
 This edit breaks a page rule, so the page won’t go live until it passes. Your words are saved.	#789: the edit arm, drawn only while the edit breaks a rule; tests/app/draft/board.test.tsx renders it
+component:icon:link 1	#1748, E31: the editor toolbar's Link, behind Edit this page, which the route reading never presses; tests/app/draft/board.test.tsx opens the edit arm
+component:icon:quote 1	#1748, E31: the editor toolbar's Quote, behind Edit this page, which the route reading never presses; tests/app/draft/board.test.tsx opens the edit arm

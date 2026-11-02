@@ -282,9 +282,9 @@ describe("REQ-045 c3 and c11 — the claim outcome, in every case", () => {
 describe("REQ-045 c4 — told when the page goes live on its own, and able to edit or stop it here", () => {
   it("an untouched page in review shows its go-live time and Stop, and nothing asks for an approval", () => {
     const root = markup();
-    // The go-live time, in the site's zone: on the rail and on the phone bar.
+    // The go-live time, in the site's zone, at every width: the phone bar no longer repeats it.
     expect(textOf(root, "draft-goes-live")).toContain("Sep 16, 2026");
-    expect(textOf(root, "draft-do-nothing-bar")).toContain("Sep 16, 2026");
+    expect(root.querySelector('[data-testid="draft-goes-live"]')?.className).not.toMatch(/hidden/);
     // Stop is there; Approve is not.
     expect(textOf(root, "draft-action-draft.action.veto")).toBe(copy("draft.action.veto"));
     expect(root.querySelector('[data-testid*="approve"]')).toBeNull();
@@ -323,7 +323,8 @@ describe("REQ-045 c4 — told when the page goes live on its own, and able to ed
 
     const edit = button("draft.action.edit");
     expect(edit?.className).toContain("btn-soft");
-    expect(edit?.className).not.toContain("btn-primary");
+    // Soft primary, as on the live page: a tint, never a solid fill.
+    expect(edit?.className).toContain("btn-primary");
   });
 
   it("the panel states the time it goes live, in a neutral box", () => {
@@ -333,8 +334,6 @@ describe("REQ-045 c4 — told when the page goes live on its own, and able to ed
     const box = root.querySelector('[data-testid="draft-goes-live"]');
     expect(box?.textContent).toBe(`${copy("draft.decide.goes-live")}${formatDateTime(at, VIEW.timeZone)}`);
     expect(box?.className).not.toMatch(/warning|error/);
-    // The phone bar has no countdown, so its one line carries the time.
-    expect(textOf(root, "draft-do-nothing-bar")).toContain("Sep 16, 2026");
   });
 
   it("a page past review offers no control at all, and still renders whole", () => {
@@ -439,12 +438,10 @@ describe("the Decide bar — one DOM, pinned only below `md`", () => {
         `${key} must exist exactly once in the document`
       ).toBe(1);
     }
-    // The bar carries its own one-line do-nothing sentence above the
-    // controls; the panel's sentence is outside it, below the checks.
+    // The bar holds the controls only; the go-live tile above it says when.
     const bar = root.querySelector('[data-testid="draft-decide-bar"]');
-    expect(bar).not.toBeNull();
     expect(bar?.querySelector('[data-testid="draft-actions"]')).not.toBeNull();
-    expect(bar?.querySelector('[data-testid="draft-do-nothing-bar"]')).not.toBeNull();
+    expect(bar?.querySelector('[data-testid="draft-do-nothing-bar"]')).toBeNull();
     expect(bar?.querySelector('[data-testid="draft-do-nothing"]')).toBeNull();
   });
 

@@ -3,7 +3,7 @@
 // search, how often it is searched and who answers it today. Every value was
 // stored on the opportunity when the page was chosen; nothing is re-measured.
 import type React from "react";
-import { Search } from "lucide-react";
+import { ChevronDown, Search } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import { whyLineOf } from "../../calendar/card-lines";
 import { targetReadings } from "../../calendar/TargetRows";
@@ -32,9 +32,13 @@ function SearchRows(p: { target: Target }): React.JSX.Element {
   const { volume } = targetReadings(facts);
   const rival = p.target.why?.rival ?? null;
   return (
-    <details className="collapse collapse-arrow bg-base-200 min-w-0" data-testid="draft-search">
-      <summary className="collapse-title min-h-0 text-sm font-medium">{copy("draft.search.title")}</summary>
-      <dl className="collapse-content grid min-w-0 grid-cols-[max-content_minmax(0,1fr)] gap-x-4 gap-y-1.5 text-sm">
+    // A quiet link that opens in place, as Plan's: no box, a chevron that turns.
+    <details className="collapse group min-w-0 rounded-none" data-testid="draft-search">
+      <summary className="collapse-title link link-primary flex min-h-11 w-fit cursor-pointer list-none items-center gap-1.5 p-0 text-sm font-semibold no-underline [&::-webkit-details-marker]:hidden">
+        <ChevronDown aria-hidden className="size-4 shrink-0 transition-transform group-open:rotate-180" />
+        {copy("draft.search.title")}
+      </summary>
+      <dl className="collapse-content grid min-w-0 grid-cols-[max-content_minmax(0,1fr)] gap-x-4 gap-y-1.5 p-0 text-sm">
         <dt className="text-base-content/70">{copy("draft.search.query")}</dt>
         <dd className="num min-w-0 wrap-anywhere">{facts.search}</dd>
         <dt className="text-base-content/70">{copy("draft.search.volume")}</dt>

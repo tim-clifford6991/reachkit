@@ -67,7 +67,8 @@ describe("board AppDraft: every string it draws is on the screen", () => {
 
   it("each allow line names a string the board draws, so none excuses nothing", () => {
     const { allowed } = compare(BOARD, [], readAllow("AppDraft"));
-    expect(allowed.length).toBe(readAllow("AppDraft").length);
+    // A component line is read by the route's component count, not by this string reading.
+    expect(allowed.length).toBe(readAllow("AppDraft").filter((a: { string: string }) => !a.string.startsWith("component:")).length);
   });
 });
 
@@ -161,11 +162,27 @@ describe("the draft's board icons", () => {
     expect(toolbar?.textContent).toContain(new URL(VIEW.publisher.url).host);
   });
 
-  it("the links card is headed by the link, never the retired link-2 (E29)", () => {
+  it("each closed note is named by its title alone: sentence case, no leading icon (v36)", () => {
     const linked = readHost({ ...VIEW, bodyMd: `${VIEW.bodyMd}\n\nSee [the full study](https://example.org/study).\n` });
-    const head = at(linked, "draft-links").querySelector("h2");
-    expect(head?.querySelector("svg.lucide-link")).not.toBeNull();
-    expect(linked.querySelector("svg.lucide-link-2")).toBeNull();
+    const heads = [...at(linked, "draft-notes").querySelectorAll("summary h2")];
+    expect(heads.length).toBeGreaterThanOrEqual(5);
+    expect(heads.every((h) => h.querySelector("svg") === null && !h.className.includes("eyebrow"))).toBe(true);
+  });
+
+  it("the page's day: done steps filled success, going live filled primary, the first reading an empty ring", () => {
+    const day = at(readHost(), "draft-day");
+    const dot = (step: string) => at(day, `draft-day-${step}`).querySelector(".timeline-middle")!;
+    expect(dot("written").className).toContain("bg-success");
+    expect(dot("live").className).toContain("bg-primary");
+    expect(dot("reading").className).toContain("border-base-300");
+    expect(dot("reading").querySelector("svg")).toBeNull();
+  });
+
+  it("the header's Ready is the primary pill, and the AI label and the claim outcome stay (REQ-093 c2, REQ-045 c3)", () => {
+    const host = readHost();
+    expect(at(host, "draft-stage-your_review").className).toContain("badge-primary");
+    expect(at(host, "draft-generated-label").textContent).toBe("Written by ReachKit");
+    expect(host.querySelector('[data-testid^="draft-claim-"]')).not.toBeNull();
   });
 
   it("a page that broke a rule says so behind the warning sign", () => {

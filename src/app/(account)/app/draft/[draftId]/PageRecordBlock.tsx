@@ -163,7 +163,7 @@ export function PageRecordBlock(p: {
         ) : (
           <details className={CLOSED.root}>
             <summary className={CLOSED.head}>
-              <h2 className="eyebrow">{title}</h2>
+              <h2 className="text-sm font-semibold">{title}</h2>
             </summary>
             <div className={CLOSED.body}>
               <div className={NOTE.inner}>{rows}</div>
