@@ -80,6 +80,8 @@ const PURGE_ORDER: readonly {
   // What the re-score read off those rows (`fetch_facts`): keyed to its
   // read with no cascade, so it goes first, by the scan its read is under.
   { table: "fetch_facts", column: "scan_id", from: "scanIds" },
+  // The text the grounding read off those rows (`fetch_text`), the same way.
+  { table: "fetch_text", column: "scan_id", from: "scanIds" },
   { table: "fetches", column: "scan_id", from: "scanIds" },
   // The pages themselves — body and `grounded_fact` alike. REQ-050 c1 keeps
   // a grounding passage "unchanged from then on"; its retention ends here,
