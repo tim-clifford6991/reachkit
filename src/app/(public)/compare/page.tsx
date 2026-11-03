@@ -167,9 +167,9 @@ function ComparisonCard(p: { c: Comparison }): React.JSX.Element {
         <span className="avatar avatar-placeholder self-start" aria-hidden>
           <span className="bg-base-200 rounded-field w-9 font-semibold">{c.name.charAt(0)}</span>
         </span>
-        <span className="flex min-w-0 flex-1 flex-col items-start gap-1">
+        <span className="flex min-w-0 flex-1 flex-col gap-1">
           <h3 className="card-title min-w-0 text-base break-words">{c.title}</h3>
-          {c.badge === undefined ? null : <span className="badge badge-ghost badge-sm">{c.badge}</span>}
+          {c.badge === undefined ? null : <span className="badge badge-ghost badge-sm self-start">{c.badge}</span>}
           <span className="text-base-content/70 text-sm">{cardLines(c.summary).them}</span>
         </span>
         <ArrowRight {...ICON} className="text-primary shrink-0" />
