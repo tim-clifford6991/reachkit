@@ -32,7 +32,7 @@ describe("every chosen page is linked", () => {
   });
 
   it("appends nothing where the body already links every chosen page", () => {
-    const body = "See [plans](https://example.com/pricing), [us](https://example.com/about) and [before](https://content.example.com/first-page).";
+    const body = "See [plans](https://example.com/pricing), [who we are](https://example.com/about) and [the first page](https://content.example.com/first-page).";
     expect(apply(body)).toBe(body);
   });
 
