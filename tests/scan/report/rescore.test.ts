@@ -55,7 +55,8 @@ describe("gusto.com's scan of 8 October (issue 1418): measured off Cloudflare's 
 
 describe("stored placeholders, names and dates, read again at 0¢ (issue 1479)", () => {
   it("gusto.com's stored category <UNKNOWN> is written as none, and a second apply changes nothing", async () => {
-    const db = storeOf([fixture("gusto.com")]);
+    // Without its home read, which was Cloudflare's page and would withdraw the whole market.
+    const db = storeOf([{ ...fixture("gusto.com"), home: null }]);
     await rescoreStored(db.store, apply);
     const profile = db.written[0]!.changes.find((c) => c.path.join(".") === "market.value.profile");
     expect(profile?.value).toEqual({ category: "" });
@@ -459,7 +460,8 @@ describe("issue 1504: a free scan's town its profile no longer reads stands wher
   // 16 October: a CRM read as software, sold internationally, whose
   // searches were bought in Austin off the town its footer gave.
   const withPlace = (profile: Record<string, unknown>): FixtureScan => {
-    const s = fixture("gusto.com");
+    // Without its home read, which was Cloudflare's page and would withdraw the market.
+    const s = { ...fixture("gusto.com"), home: null };
     const report = structuredClone(s.report) as Record<string, unknown> & { market: { value: { profile: Record<string, unknown> } } };
     report.locale = { country: "US", language: "en", place: { name: "Austin", region: "Texas", location: "Austin,Texas,United States" }, placeFrom: "page_text" };
     report.market.value.profile = { ...report.market.value.profile, category: "sales CRM software", ...profile };

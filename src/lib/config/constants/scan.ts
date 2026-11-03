@@ -84,6 +84,14 @@ export const SEARCH_FOOTPRINT = Object.freeze({
   snippetChars: 320,
 } as const);
 
+/** The fewest visible characters a home page holds for its market to be
+ *  read from it. Under this the page says nothing of what the business
+ *  sells, so the market is read from its listing in search, as for a home
+ *  behind bot protection (`src/lib/scan/pass/market.ts`). A shell whose
+ *  only words are a title naming the business is over it: the panel's
+ *  baeckerei-hinkel.de holds 46. */
+export const HOME_TEXT_FLOOR_CHARS = 20;
+
 /** The most of the customer's own page text one `profile` call may carry,
  *  in characters of the prompt it is serialised into — home first, the
  *  pricing page in what remains, cut at a word boundary
