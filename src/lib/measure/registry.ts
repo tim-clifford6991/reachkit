@@ -127,14 +127,6 @@ const LIST = (
       cadence: "Monthly, in the first Monday mail of the month.",
     },
     {
-      id: "mail-market-month",
-      shown: { on: "mail", key: "mail.weekly.month.market" },
-      definition:
-        "The overview-market-month figure, in the first mail of a month only, with its change since the customer's scan.",
-      source: "src/lib/measure/figures.ts#monthFiguresOf",
-      cadence: "Monthly, in the first Monday mail of the month.",
-    },
-    {
       id: "mail-reputation",
       shown: { on: "mail", key: "mail.weekly.month.reputation" },
       definition:

@@ -296,12 +296,11 @@ describe("the thirteen keys the owner ruled 2026-09-04 (WO-041 `## Log`, this da
   });
 
   it("mail — the two opt-out surface lines, one carrying a literal quoted \"stop\"", () => {
-    // The confirmation is the OptOut board's own sentence (canvas V22), with
+    // The confirmation is the OptOut board's own sentence (canvas v36), with
     // the address in the slot the board draws it in: the drawing is the
     // later word on the 2026-09-04 ruling's line.
     expect(copy("optout.confirmed", { address: "you@example.com" })).toBe(
-      "No more follow-up mail will go to you@example.com, about any site. " +
-        "Sign-in and account mail, if you have an account, still arrive."
+      "No more follow-up mail will go to you@example.com, about any site."
     );
     expect(copy("optout.invalid")).toBe(
       "That unsubscribe link isn’t valid any more. Reply to any ReachKit email with \"stop\" and we’ll stop by hand."

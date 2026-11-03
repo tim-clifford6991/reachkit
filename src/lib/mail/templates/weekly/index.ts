@@ -4,7 +4,6 @@
 // since each carries a token only it can sign.
 // A page is named by its address and an opportunity by its search: titles are model text, which REQ-093 keeps out (§8, ADR-012; decision 2026-10-19-1581).
 import { env } from "@/lib/config/env";
-import { WEEK_PLAN } from "@/lib/config/constants";
 import type { Measured } from "@/lib/measure/measured";
 import { shownKey } from "@/lib/measure/registry";
 import type { IndexState, WeekStanding } from "@/lib/opportunities";
@@ -49,13 +48,10 @@ const CLIMB_CLIMBING = "mail.weekly.google.climb.climbing" satisfies CopyKey;
 const CLIMB_NONE = "mail.weekly.google.climb.none" satisfies CopyKey;
 const AI = "mail.weekly.ai.title" satisfies CopyKey;
 const AI_LINKED = shownKey("mail-ai-linked") satisfies CopyKey;
-const AI_ASKED = "mail.weekly.ai.asked" satisfies CopyKey;
 const AI_EARLY = "mail.weekly.ai.early" satisfies CopyKey;
 const AI_READS = shownKey("mail-ai-reads") satisfies CopyKey;
 const MONTH = "mail.weekly.month" satisfies CopyKey;
-const MONTH_INTRO = "mail.weekly.month.intro" satisfies CopyKey;
 const SCORE = shownKey("mail-score-month") satisfies CopyKey;
-const MARKET = shownKey("mail-market-month") satisfies CopyKey;
 const REPUTATION = shownKey("mail-reputation") satisfies CopyKey;
 const OF = "mail.weekly.month.of" satisfies CopyKey;
 const UP = "mail.weekly.month.up" satisfies CopyKey;
@@ -66,17 +62,13 @@ const NOW_NAMED_ITEM = "mail.weekly.nowNamed.item" satisfies CopyKey;
 const VERDICTS = "mail.weekly.verdicts" satisfies CopyKey;
 const VERDICTS_NONE = "mail.weekly.verdicts.none" satisfies CopyKey;
 const NEXT = "mail.weekly.next" satisfies CopyKey;
-const NEXT_INTRO = "mail.weekly.next.intro" satisfies CopyKey;
 const NEXT_NONE = "mail.weekly.next.none" satisfies CopyKey;
 const NEXT_ITEM = "mail.weekly.next.item" satisfies CopyKey;
 const NEXT_WHY = "mail.weekly.next.why" satisfies CopyKey;
 const NEXT_STOP = "mail.weekly.next.stop" satisfies CopyKey;
 const NEXT_EDIT = "mail.weekly.next.edit" satisfies CopyKey;
-const NEXT_MORE = "mail.weekly.next.more" satisfies CopyKey;
-const NEXT_MORE_SPAN = "mail.weekly.next.more.span" satisfies CopyKey;
 const NEXT_ALL = "mail.weekly.next.all" satisfies CopyKey;
 const NEXT_SKIPPED = "mail.weekly.next.skipped" satisfies CopyKey;
-const STRIP_DAY = "mail.weekly.strip.day" satisfies CopyKey;
 const PACE = "mail.weekly.pace" satisfies CopyKey;
 const SPARES = "mail.weekly.spares" satisfies CopyKey;
 const PAGE = "mail.weekly.page" satisfies CopyKey;
@@ -90,7 +82,7 @@ const DAY_LINE = {
   update: { today: "mail.weekly.next.day.update.today", later: "mail.weekly.next.day.update" },
 } as const satisfies Record<string, Record<string, CopyKey>>;
 
-/** The board writes out the first three pages and counts the rest. */
+/** The board writes out the first three pages and links the rest to Plan. */
 const WRITTEN_OUT = 3;
 
 /** One judged page; `standing` is the week's stored verdict, never recomputed. */
@@ -114,10 +106,8 @@ export interface WeeklyNext {
   readonly editHref?: string;
 }
 
-/** The week the strip draws: its seven dates, the mail's own date, the site's
- *  publish time as the clock writes it, and Plan's address. */
+/** The mail's own date, the site's publish time as the clock writes it, and Plan's address. */
 export interface WeeklyCalendar {
-  readonly days: readonly string[];
   readonly today: string;
   readonly time: string;
   readonly planHref: string;
@@ -175,7 +165,6 @@ export interface WeeklyNumbers {
   /** Only in the first mail of a month (M-b); each figure absent where that pass stored none. */
   readonly month?: {
     readonly score?: { readonly value: Measured<number>; readonly change?: Measured<number> };
-    readonly market?: { readonly value: Measured<number>; readonly of: number; readonly change?: Measured<number> };
     readonly reputation?: { readonly value: Measured<number>; readonly answers: number; readonly weeks: number };
   };
 }
@@ -322,10 +311,7 @@ function numberBlocks(n: WeeklyNumbers): readonly MailBlock[] {
     if (n.ai.linked.kind === "unmeasured") blocks.push({ block: "paragraph", text: AI_EARLY });
     else {
       const linked = formatStat(n.ai.linked, "integer");
-      blocks.push(
-        { block: "paragraph", text: AI_LINKED, vars: { n: linked, of: String(n.ai.asked) } },
-        { block: "paragraph", text: AI_ASKED }
-      );
+      blocks.push({ block: "paragraph", text: AI_LINKED, vars: { n: linked, of: String(n.ai.asked) } });
     }
     if (n.ai.reads !== undefined && n.ai.reads.kind !== "unmeasured") {
       blocks.push({ block: "paragraph", text: AI_READS, vars: { n: formatStat(n.ai.reads, "integer") } });
@@ -335,11 +321,10 @@ function numberBlocks(n: WeeklyNumbers): readonly MailBlock[] {
   if (m !== undefined) {
     const rows: FactRow[] = [
       ...monthRow(SCORE, undefined, m.score?.value, undefined, m.score?.change),
-      ...monthRow(MARKET, undefined, m.market?.value, m.market?.of, m.market?.change),
       ...monthRow(REPUTATION, { weeks: String(m.reputation?.weeks ?? "") }, m.reputation?.value, m.reputation?.answers),
     ];
     if (rows.length > 0) {
-      blocks.push({ block: "heading", text: MONTH }, { block: "paragraph", text: MONTH_INTRO }, { block: "facts", items: rows });
+      blocks.push({ block: "heading", text: MONTH }, { block: "facts", items: rows });
     }
   }
   return blocks;
@@ -369,63 +354,38 @@ function monthRow(
   return [{ label, ...(labelVars === undefined ? {} : { labelVars }), value: written }];
 }
 
-/** "This week's pages": title, promise, the strip, the first pages with why and two links, and a count leading to Plan; uncommitted omits it. */
+/** "This week's pages": title, the first pages with why and two links, and a link to Plan; uncommitted omits it. */
 function weekBlocks(next: Measured<readonly WeeklyNext[]>, calendar: WeeklyCalendar | undefined): readonly MailBlock[] {
   if (next.kind === "unmeasured") return [];
-  const strip: FactRow[] =
-    calendar === undefined
-      ? []
-      : calendar.days.map((day) => {
-          const page = next.value.find((p) => p.day === day);
-          const word: CopyKey =
-            page === undefined
-              ? "mail.weekly.strip.none"
-              : day === calendar.today
-                ? "mail.weekly.strip.today"
-                : page.update === true
-                  ? "mail.weekly.strip.update"
-                  : "mail.weekly.strip.new";
-          return { label: STRIP_DAY, labelVars: { day: formatMailWeekday(day) }, value: copy(word) };
-        });
   return [
     { block: "heading", text: NEXT },
-    { block: "paragraph", text: NEXT_INTRO, vars: { weekPages: String(WEEK_PLAN.days) } },
-    ...(strip.length === 0 ? [] : [{ block: "facts", items: strip } as const]),
     { block: "list", items: mapMeasuredRows(next, (pages) => nextRows(pages, calendar)), emptyLine: NEXT_NONE },
   ];
 }
 
-/** The first pages written out, then the rest as one row that leads to Plan. */
+/** The first pages written out, each as its day, its search, why, and Stop and Edit; then one link to Plan for the rest. */
 function nextRows(next: readonly WeeklyNext[], calendar: WeeklyCalendar | undefined): readonly ListRow[] {
   const shown = calendar === undefined ? next : next.slice(0, WRITTEN_OUT);
-  const rest = next.slice(shown.length);
   const rows = shown.map((page): ListRow => {
     if (page.day === undefined || calendar === undefined) return { label: NEXT_ITEM, vars: { search: page.targetQuery } };
     const kind = DAY_LINE[page.update === true ? "update" : "new"];
     const today = page.day === calendar.today;
     return {
-      label: today ? kind.today : kind.later,
-      vars: { day: formatMailWeekday(page.day), time: calendar.time, ...(today ? {} : { date: formatMailDayMonth(page.day) }) },
-      detail: [
-        { text: NEXT_ITEM, vars: { search: page.targetQuery } },
-        ...(page.why === undefined ? [] : [{ text: NEXT_WHY as CopyKey, vars: { reason: page.why } }]),
-      ],
+      lead: {
+        text: today ? kind.today : kind.later,
+        vars: { day: formatMailWeekday(page.day), time: calendar.time, ...(today ? {} : { date: formatMailDayMonth(page.day) }) },
+      },
+      label: NEXT_ITEM,
+      vars: { search: page.targetQuery },
+      ...(page.why === undefined ? {} : { detail: [{ text: NEXT_WHY, vars: { reason: page.why } }] }),
       links: [
         ...(page.stopHref === undefined ? [] : [{ label: NEXT_STOP as CopyKey, href: page.stopHref }]),
         ...(page.editHref === undefined ? [] : [{ label: NEXT_EDIT as CopyKey, href: page.editHref }]),
       ],
     };
   });
-  if (rest.length === 0 || calendar === undefined) return rows;
-  const named = rest.flatMap((page) => (page.day === undefined ? [] : [formatMailWeekday(page.day)]));
-  return [
-    ...rows,
-    {
-      label: named.length < 2 ? NEXT_MORE : NEXT_MORE_SPAN,
-      vars: { from: named[0] ?? "", to: named.at(-1) ?? "", n: String(rest.length) },
-      links: [{ label: NEXT_ALL, vars: { n: String(next.length) }, href: calendar.planHref }],
-    },
-  ];
+  if (shown.length === next.length || calendar === undefined) return rows;
+  return [...rows, { links: [{ label: NEXT_ALL, vars: { n: String(next.length) }, href: calendar.planHref }] }];
 }
 
 /** A spare is named by its search alone. */

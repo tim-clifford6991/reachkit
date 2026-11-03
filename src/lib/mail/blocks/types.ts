@@ -9,13 +9,16 @@ export type CopyVars = Readonly<Record<string, string | number>>;
 
 /** One `list` row. It carries no format of its own, which would be a second numeral formatter. */
 export interface ListRow {
-  readonly label: CopyKey;
+  /** Absent on a row that is only its links. */
+  readonly label?: CopyKey;
   readonly vars?: CopyVars;
+  /** A small line above the row's own, such as a page's day. */
+  readonly lead?: { readonly text: CopyKey; readonly vars?: CopyVars };
   /** The HTML body links the row; the twin writes the address beside it. */
   readonly href?: string;
   /** Lines under the row's own, in order. */
   readonly detail?: readonly { readonly text: CopyKey; readonly vars?: CopyVars }[];
-  /** Links on one line under the row, where it offers more than one thing to do. */
+  /** Bordered link buttons on one line under the row: text, so they work with images off. */
   readonly links?: readonly { readonly label: CopyKey; readonly vars?: CopyVars; readonly href: string }[];
 }
 

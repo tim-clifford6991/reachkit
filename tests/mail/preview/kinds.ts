@@ -16,7 +16,7 @@
 // Hard to find, 0 of 9, 0 of 12 on the report, and the digest's ▲8, ▲1 and
 // its two judged pages — because a preview that showed different numbers
 // from the screen it is checked against would be checking nothing.
-import { measured } from "../../../src/lib/measure/measured";
+import { measured, unmeasured as notRead } from "../../../src/lib/measure/measured";
 import type { ReactNode } from "react";
 import type { MailKind } from "../../../src/lib/mail/kinds";
 import type { ComposedMail, ComposeInput } from "../../../src/lib/mail/shell/compose";
@@ -134,7 +134,7 @@ const WEEKLY_PAGES: readonly WeeklyPage[] = [
 /** The board's sample week: Monday to Sunday from the Monday it is sent, the
  *  first three written out with why, and the publish time Plan states. */
 const WEEK_DAYS = ["2026-10-19", "2026-10-20", "2026-10-21", "2026-10-22", "2026-10-23", "2026-10-24", "2026-10-25"];
-const WEEKLY_CALENDAR = { days: WEEK_DAYS, today: WEEK_DAYS[0]!, time: "4:00 PM", planHref: `${APP}/app/calendar` };
+const WEEKLY_CALENDAR = { today: WEEK_DAYS[0]!, time: "4:00 PM", planHref: `${APP}/app/calendar` };
 const WEEKLY_NEXT = [
   ["emergency plumber austin", false, "calendar.reason.ai-gap"],
   ["toilet repair austin", true, "calendar.reason.near-page-one"],
@@ -263,49 +263,8 @@ export async function composePreview(kind: PreviewKind): Promise<PreviewMail> {
         optOut: UNSUBSCRIBE,
       });
     }
-    case "weekly": {
-      const { buildWeekly } = await import("../../../src/lib/mail/templates/weekly");
-      const mail = buildWeekly({
-        greeting: { name: "Dana", week: 3, business: "harborplumbing.example" },
-        calendar: WEEKLY_CALENDAR,
-        // Overview's numbers, on a hosted blog, in the first mail of a month.
-        numbers: {
-          live: measured(12, AT),
-          planned: measured(7, AT),
-          setAside: { n: 1, replaced: true },
-          google: {
-            steps: (["draft.ladder.found", "draft.ladder.showing", "draft.ladder.first-page"] as const).map((name, i) => ({
-              name,
-              count: measured([11, 5, 1][i]!, AT),
-              of: 12,
-            })),
-            early: false,
-            climbing: 2,
-            visits: measured(9, AT),
-            visitsBefore: measured(4, AT),
-            climb: { search: "tankless water heater austin", from: 62, to: 24, climbing: true },
-          },
-          ai: { linked: measured(2, AT), asked: 12, reads: measured(14, AT) },
-          month: {
-            score: { value: measured(31, AT), change: measured(4, AT) },
-            market: { value: measured(1, AT), of: 12, change: measured(1, AT) },
-            reputation: { value: measured(11, AT), answers: 184, weeks: 4 },
-          },
-        },
-        pages: measured(WEEKLY_PAGES, AT),
-        next: measured(WEEKLY_NEXT, AT),
-      });
-      return composeMail({
-        kind,
-        subject: mail.subject,
-        preheader: mail.preheader,
-        blocks: mail.blocks,
-        reason: mail.reason,
-        measurement: { state: "complete" },
-        optOut: UNSUBSCRIBE,
-        footerLinks: WEEKLY_FOOTER,
-      });
-    }
+    case "weekly":
+      return composeWeekly();
     case "nurture": {
       const { buildNurture } = await import("../../../src/lib/mail/templates/nurture");
       const mail = buildNurture({ email: "you@example.com", domain: "example.com", touch: 1 });
@@ -325,6 +284,51 @@ export async function composePreview(kind: PreviewKind): Promise<PreviewMail> {
  *  `weekly` card the set draws. Every section drops out and the whole-mail
  *  line says when the next measurement is due (§8's "a mail that still
  *  arrives when there was nothing to report"). */
+/** Board MondayMail's sample week; `unmeasured` names the Google steps nobody read this week. */
+export async function composeWeekly(unmeasured: readonly string[] = []): Promise<PreviewMail> {
+  const composeMail = await composer();
+  const { buildWeekly } = await import("../../../src/lib/mail/templates/weekly");
+  const mail = buildWeekly({
+    greeting: { name: "Dana", week: 3, business: "harborplumbing.example" },
+    calendar: WEEKLY_CALENDAR,
+    // Overview's numbers, on a hosted blog, in the first mail of a month.
+    numbers: {
+      live: measured(12, AT),
+      planned: measured(7, AT),
+      setAside: { n: 1, replaced: true },
+      google: {
+        steps: (["draft.ladder.found", "draft.ladder.showing", "draft.ladder.first-page"] as const).map((name, i) => ({
+          name,
+          count: unmeasured.includes(name) ? notRead<number>("not_attempted", AT) : measured([11, 5, 1][i]!, AT),
+          of: 12,
+        })),
+        early: false,
+        climbing: 2,
+        visits: measured(9, AT),
+        visitsBefore: measured(4, AT),
+        climb: { search: "tankless water heater austin", from: 62, to: 24, climbing: true },
+      },
+      ai: { linked: measured(2, AT), asked: 12, reads: measured(14, AT) },
+      month: {
+        score: { value: measured(31, AT), change: measured(4, AT) },
+        reputation: { value: measured(11, AT), answers: 184, weeks: 4 },
+      },
+    },
+    pages: measured(WEEKLY_PAGES, AT),
+    next: measured(WEEKLY_NEXT, AT),
+  });
+  return composeMail({
+    kind: "weekly",
+    subject: mail.subject,
+    preheader: mail.preheader,
+    blocks: mail.blocks,
+    reason: mail.reason,
+    measurement: { state: "complete" },
+    optOut: UNSUBSCRIBE,
+    footerLinks: WEEKLY_FOOTER,
+  });
+}
+
 export async function composeUnmeasuredWeek(): Promise<PreviewMail> {
   const composeMail = await composer();
   const { buildWeekly } = await import("../../../src/lib/mail/templates/weekly");

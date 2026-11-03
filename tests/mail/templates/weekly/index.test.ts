@@ -114,11 +114,9 @@ describe("the numbers are Pages, Google and AI, then the pages, the week and the
       "mail.weekly.google.climb.climbing",
       "mail.weekly.ai.title",
       "mail.weekly.ai.linked",
-      "mail.weekly.ai.asked",
       "mail.weekly.ai.reads",
       "verdicts",
       "mail.weekly.next",
-      "mail.weekly.next.intro",
       "list",
       "mail.weekly.pace",
       "action",
@@ -167,10 +165,7 @@ describe("the numbers are Pages, Google and AI, then the pages, the week and the
       { label: "mail.weekly.month.score", value: "31 up from 27" },
       { label: "mail.weekly.month.reputation", labelVars: { weeks: "4" }, value: "11 of 184" },
     ]);
-    expect(blocks.slice(blocks.indexOf(last) - 2, blocks.indexOf(last))).toMatchObject([
-      { block: "heading", text: "mail.weekly.month" },
-      { block: "paragraph", text: "mail.weekly.month.intro" },
-    ]);
+    expect(blocks[blocks.indexOf(last) - 1]).toMatchObject({ block: "heading", text: "mail.weekly.month" });
     expect(JSON.stringify(full().blocks)).not.toContain("mail.weekly.month");
   });
 
@@ -183,7 +178,7 @@ describe("the numbers are Pages, Google and AI, then the pages, the week and the
   });
 
   it("a month's figure that fell says down from, and one with no stored change says only the figure", () => {
-    const month = { score: { value: measured(25, AT), change: measured(-3, AT) }, market: { value: measured(1, AT), of: 12 } };
+    const month = { score: { value: measured(25, AT), change: measured(-3, AT) }, reputation: { value: measured(1, AT), answers: 12, weeks: 4 } };
     const blocks = buildWeekly({ numbers: numbers({ month }), pages: measured([], AT), next: measured([], AT) }).blocks;
     const facts = blocks.find((block): block is Extract<MailBlock, { block: "facts" }> => block.block === "facts")!;
     expect(facts.items.map((item) => item.value)).toEqual(["25 down from 28", "1 of 12"]);
@@ -539,7 +534,7 @@ describe("#639 — the composed digest, as an inbox receives it", () => {
 
 describe("board MondayMail — the greeting, the calm line and the week's pages", () => {
   const DAYS = ["2026-10-19", "2026-10-20", "2026-10-21", "2026-10-22", "2026-10-23", "2026-10-24", "2026-10-25"];
-  const calendar = { days: DAYS, today: DAYS[0]!, time: "4:00 PM", planHref: "https://reachkit.example/app/calendar" };
+  const calendar = { today: DAYS[0]!, time: "4:00 PM", planHref: "https://reachkit.example/app/calendar" };
   const page = (i: number, over: Record<string, unknown> = {}) => ({
     targetQuery: `search ${i}`,
     day: DAYS[i]!,
@@ -567,41 +562,41 @@ describe("board MondayMail — the greeting, the calm line and the week's pages"
     expect(unconnected).toContain("mail.weekly.connect");
   });
 
-  it("the strip says Today, Update or New for each day, and No page for a day with none", () => {
-    const blocks = week([page(0), page(1, { update: true }), page(2), page(4)]);
-    const strip = blocks.find((block): block is Extract<MailBlock, { block: "facts" }> => block.block === "facts")!;
-    expect(strip.items.map((item) => [item.labelVars?.day, item.value])).toEqual([
-      ["Mon", COPY["mail.weekly.strip.today"]],
-      ["Tue", COPY["mail.weekly.strip.update"]],
-      ["Wed", COPY["mail.weekly.strip.new"]],
-      ["Thu", COPY["mail.weekly.strip.none"]],
-      ["Fri", COPY["mail.weekly.strip.new"]],
-      ["Sat", COPY["mail.weekly.strip.none"]],
-      ["Sun", COPY["mail.weekly.strip.none"]],
-    ]);
-  });
-
-  it("the first three pages are written out with their search, why and two links; the rest are counted and lead to Plan", () => {
+  it("the first three pages are written out with their day, search, why and two links; the rest are one link to Plan", () => {
     const rows = nextRows(week([page(0, { why: "Buyers ask this." }), page(1, { update: true }), page(2), page(6)]));
     expect(rows[0]).toEqual({
-      label: "mail.weekly.next.day.new.today",
-      vars: { day: "Mon", time: "4:00 PM" },
-      detail: [
-        { text: "mail.weekly.next.item", vars: { search: "search 0" } },
-        { text: "mail.weekly.next.why", vars: { reason: "Buyers ask this." } },
-      ],
+      lead: { text: "mail.weekly.next.day.new.today", vars: { day: "Mon", time: "4:00 PM" } },
+      label: "mail.weekly.next.item",
+      vars: { search: "search 0" },
+      detail: [{ text: "mail.weekly.next.why", vars: { reason: "Buyers ask this." } }],
       links: [
         { label: "mail.weekly.next.stop", href: "https://reachkit.example/veto/t0" },
         { label: "mail.weekly.next.edit", href: "https://reachkit.example/app/calendar" },
       ],
     });
-    expect(rows[1]).toMatchObject({ label: "mail.weekly.next.day.update", vars: { day: "Tue", date: "Tue 20 Oct", time: "4:00 PM" } });
-    expect(rows[1]!.detail).toEqual([{ text: "mail.weekly.next.item", vars: { search: "search 1" } }]);
-    expect(rows[3]).toEqual({
-      label: "mail.weekly.next.more",
-      vars: { from: "Sun", to: "Sun", n: "1" },
-      links: [{ label: "mail.weekly.next.all", vars: { n: "4" }, href: calendar.planHref }],
-    });
+    expect(rows[1]).toMatchObject({ lead: { text: "mail.weekly.next.day.update", vars: { day: "Tue", date: "Tue 20 Oct", time: "4:00 PM" } } });
+    expect(rows[1]!.detail).toBeUndefined();
+    expect(rows[3]).toEqual({ links: [{ label: "mail.weekly.next.all", vars: { n: "4" }, href: calendar.planHref }] });
     expect(rows).toHaveLength(4);
+  });
+
+  it("Stop and Edit are bordered text links of at least 44px, each with its own link, so they work with images off", async () => {
+    const mail = buildWeekly({ greeting: GREETING, calendar, pages: measured([], AT), next: measured([page(0), page(1), page(2), page(3)], AT) });
+    const { html, text } = await composeMail({ kind: "weekly", subject: mail.subject, blocks: mail.blocks, reason: mail.reason, measurement: { state: "complete" } });
+    const controls = [...html.matchAll(/<a href="([^"]+)" style="([^"]*)"[^>]*>(.*?)<\/a>/gs)].filter(([, , , inner]) =>
+      [COPY["mail.weekly.next.stop"], COPY["mail.weekly.next.edit"], "See all 4 in This week"].some((label) => inner!.includes(label))
+    );
+    expect(controls.map(([, href]) => href)).toEqual([
+      ...[0, 1, 2].flatMap((i) => [`https://reachkit.example/veto/t${i}`, "https://reachkit.example/app/calendar"]),
+      calendar.planHref,
+    ]);
+    for (const [, , style, inner] of controls) {
+      expect(inner).not.toMatch(/<img/);
+      expect(style).toMatch(/border:1px solid/);
+      expect(style).toMatch(/padding-top:12px/);
+      expect(style).toMatch(/padding-bottom:12px/);
+      expect(style).toMatch(/line-height:20px/);
+    }
+    for (const i of [0, 1, 2]) expect(text).toContain(`${COPY["mail.weekly.next.stop"]}: https://reachkit.example/veto/t${i}`);
   });
 });

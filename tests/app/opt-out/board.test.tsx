@@ -1,5 +1,5 @@
-// `/opt-out/{token}` against board OptOut: each arm rendered, read with the parity
-// check's own reader, and its follow-up timeline read from the address's stored rows.
+// `/opt-out/{token}` against board OptOut: each arm rendered and read with the parity
+// check's own reader.
 import { readFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { parse } from "node-html-parser";
@@ -14,7 +14,6 @@ applyEnvFixture();
 const OptOutPage = (await import("../../../src/app/(public)/opt-out/[token]/page")).default;
 const { optOutTokenFor } = await import("../../../src/lib/mail/leads/optout");
 const { setLeadStore } = await import("../../../src/lib/mail/leads/store");
-const { NURTURE_H } = await import("../../../src/lib/config/constants");
 
 const ADDRESS = "dana@harborplumbing.example";
 let state: MemoryState;
@@ -54,11 +53,6 @@ function boardCard(selector: string, index = 0): string[] {
 
 const normalised = (texts: string[]) => texts.map((s) => words(s).join(" "));
 
-/** The timeline's cells, as "{hours} hours {state}". */
-function timeline(texts: string[]): string[] {
-  return texts.filter((s) => /^\d+ hours /.test(s));
-}
-
 describe("each arm is the board's card: its sections, order and words", () => {
   it("the confirmed arm, with the 24-hour follow-up already sent", async () => {
     state.leads = [report("harbor", "2026-10-19T09:00:00.000Z", 1)];
@@ -86,38 +80,29 @@ it("parity: OptOut reads its rendered arms", async () => {
   expectStateParity("OptOut", [confirmed, invalid, await markup(optOutTokenFor(ADDRESS))]);
 });
 
-describe("the timeline is true for the address", () => {
-  const cells = (sent: number) =>
-    NURTURE_H.map((hours, i) => `${hours} hours ${i < sent ? "Sent" : "Won’t be sent"}`);
-
-  for (const sent of [0, 1, 2, 3]) {
-    it(`${sent} follow-up${sent === 1 ? "" : "s"} already sent`, async () => {
-      state.leads = [report("harbor", "2026-10-19T09:00:00.000Z", sent)];
-      const texts = await rendered(optOutTokenFor(ADDRESS));
-      expect(timeline(texts)).toEqual(cells(sent));
-      expect(texts.includes("All follow-ups were already sent. No more will come.")).toBe(sent === 3);
-    });
-  }
-
-  it("an address with no report rows: none was sent, so none will be", async () => {
+describe("what this changes is said once, with Still sent rows", () => {
+  it("follow-ups are Stopped; sign-in and account mail are Still sent, each row naming the account condition once", async () => {
+    state.leads = [report("harbor", "2026-10-19T09:00:00.000Z", 1)];
     const texts = await rendered(optOutTokenFor(ADDRESS));
-    expect(timeline(texts)).toEqual(cells(0));
-  });
-
-  it("the latest report's sequence is the one shown, not an older one's", async () => {
-    state.leads = [
-      report("older", "2026-09-01T09:00:00.000Z", 3),
-      report("latest", "2026-10-19T09:00:00.000Z", 1),
-    ];
-    const texts = await rendered(optOutTokenFor(ADDRESS));
-    expect(timeline(texts)).toEqual(cells(1));
-  });
-
-  it("a schedule that cannot be read draws no timeline rather than a false one", async () => {
-    state.failLeadRead = true;
-    const texts = await rendered(optOutTokenFor(ADDRESS));
-    expect(texts[0]).toBe("Unsubscribed");
-    expect(timeline(texts)).toEqual([]);
     expect(texts).not.toContain("Follow-ups after your free report");
+    expect(texts).toEqual(
+      expect.arrayContaining([
+        "Follow-up emails about your free report Stopped",
+        "Sign-in links, if you have an account Still sent",
+        "Receipts and account emails, if you have an account Still sent",
+      ])
+    );
+    expect(texts.filter((s) => s.includes("if you have an account"))).toHaveLength(2);
+    expect(texts.some((s) => /\d+ hours/.test(s))).toBe(false);
+  });
+
+  it("a refusal states the by-hand way once, in its one line", async () => {
+    const invalid = await rendered("not-a-token");
+    state.failSuppressionWrite = true;
+    const unavailable = await rendered(optOutTokenFor(ADDRESS));
+    for (const texts of [invalid, unavailable]) {
+      expect(texts.filter((s) => /stop/i.test(s))).toHaveLength(1);
+      expect(texts).not.toContain("A person stops it by hand");
+    }
   });
 });

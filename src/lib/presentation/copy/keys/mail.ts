@@ -27,7 +27,7 @@ export const MAIL_COPY = Object.freeze({
   // same line. It carries the `{address}` slot because the set writes the
   // address inside the sentence, in mono, and a sentence with a value in
   // it has a slot rather than two half-sentences.
-  "optout.confirmed": ["No more follow-up mail will go to {address}, about any site. Sign-in and account mail, if you have an account, still arrive.", { slots: { address: "text" }, fixedBy: "REQ-011 c3 · OptOut board (V22)" }],
+  "optout.confirmed": ["No more follow-up mail will go to {address}, about any site.", { slots: { address: "text" }, fixedBy: "REQ-011 c3 · OptOut board (v36)" }],
   "optout.invalid": ["That unsubscribe link isn’t valid any more. Reply to any ReachKit email with \"stop\" and we’ll stop by hand.", { slots: {}, fixedBy: "REQ-011 c3" }],
 
   // The card's own head (UI-SPEC S7, 11a). The set draws one eyebrow over
@@ -46,18 +46,11 @@ export const MAIL_COPY = Object.freeze({
   // were sent, where the report stays, and the by-hand way when a link fails.
   "optout.changes.title": ["What this changes", { slots: {}, fixedBy: "REQ-010 c11 · OptOut board (V22)" }],
   "optout.changes.followups": ["Follow-up emails about your free report", { slots: {}, fixedBy: "REQ-010 c11 · OptOut board (V22)" }],
-  "optout.changes.signin": ["Sign-in links", { slots: {}, fixedBy: "REQ-010 c11 · OptOut board (V22)" }],
-  "optout.changes.account": ["Receipts and account emails", { slots: {}, fixedBy: "REQ-010 c11 · OptOut board (V22)" }],
+  "optout.changes.signin": ["Sign-in links, if you have an account", { slots: {}, fixedBy: "REQ-010 c11 · OptOut board (v36)" }],
+  "optout.changes.account": ["Receipts and account emails, if you have an account", { slots: {}, fixedBy: "REQ-010 c11 · OptOut board (v36)" }],
   "optout.changes.stopped": ["Stopped", { slots: {}, fixedBy: "REQ-010 c11 · OptOut board (V22)" }],
-  "optout.changes.still": ["Still sent, if you have an account", { slots: {}, fixedBy: "REQ-010 c11 · OptOut board (V22)" }],
-  "optout.timeline.title": ["Follow-ups after your free report", { slots: {}, fixedBy: "REQ-010 c9 · OptOut board (V22)" }],
-  "optout.timeline.hours": ["{hours} hours", { slots: { hours: "text" }, fixedBy: "REQ-010 c9 · OptOut board (V22)" }],
-  "optout.timeline.sent": ["Sent", { slots: {}, fixedBy: "REQ-010 c9 · OptOut board (V22)" }],
-  "optout.timeline.not": ["Won’t be sent", { slots: {}, fixedBy: "REQ-010 c9 · OptOut board (V22)" }],
-  "optout.timeline.done": ["All follow-ups were already sent. No more will come.", { slots: {}, fixedBy: "REQ-010 c9 · OptOut board (V22)" }],
+  "optout.changes.still": ["Still sent", { slots: {}, fixedBy: "REQ-010 c11 · OptOut board (v36)" }],
   "optout.report": ["The page you asked for stays yours, and your free report stays at its address. To take the report down, write to {address}.", { slots: { address: "text" }, fixedBy: "REQ-002 c1 · OptOut board (V22)" }],
-  "optout.reply.row": ["Reply to any ReachKit email with \"stop\"", { slots: {}, fixedBy: "REQ-011 c3 · OptOut board (V22)" }],
-  "optout.reply.how": ["A person stops it by hand", { slots: {}, fixedBy: "REQ-011 c3 · OptOut board (V22)" }],
 
   // 2026-09-05, issue #30 (the mail seam, BUILD §12). Six keys the shell
   // and the whole-mail line need. Five are sentences the product speaks in
@@ -268,19 +261,16 @@ export const MAIL_COPY = Object.freeze({
     { slots: { search: "text", from: "text", to: "text" }, fixedBy: "issue 1616 (drafted)" },
   ],
   "mail.weekly.google.climb.climbing": [
-    "Biggest move up: {search}, from place {from} to {to} on Google. It's still rising, so we leave it alone.",
-    { slots: { search: "text", from: "text", to: "text" }, fixedBy: "issue 1616 (drafted)" },
+    "Biggest move up: {search}, from place {from} to {to} on Google. Still rising, so we leave it alone.",
+    { slots: { search: "text", from: "text", to: "text" }, fixedBy: "board MondayMail (v36) · issue 1616 (drafted)" },
   ],
   "mail.weekly.google.climb.none": ["No page moved up on Google this week.", { slots: {}, fixedBy: "issue 1616 (drafted)" }],
   "mail.weekly.ai.title": ["AI", { slots: {}, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
   "mail.weekly.ai.linked": ["Linked by AI: {n} of {of} pages", { slots: { n: "text", of: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
-  "mail.weekly.ai.asked": ["We asked AI the question each page answers.", { slots: {}, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
   "mail.weekly.ai.early": ["Too early for AI. We haven't asked your pages' questions yet.", { slots: {}, fixedBy: "issue 1616 (drafted)" }],
   "mail.weekly.ai.reads": ["Read by AI: {n} times this week", { slots: { n: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
   "mail.weekly.month": ["This month", { slots: {}, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
-  "mail.weekly.month.intro": ["We check these once a month. They change slowly.", { slots: {}, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
   "mail.weekly.month.score": ["Visibility Score", { slots: {}, fixedBy: "issue 1616 (drafted)" }],
-  "mail.weekly.month.market": ["Your market on Google's first page", { slots: {}, fixedBy: "issue 1616 (drafted)" }],
   "mail.weekly.month.reputation": ["Mentioned by AI, last {weeks} weeks", { slots: { weeks: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
   "mail.weekly.month.of": ["{n} of {of}", { slots: { n: "text", of: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
   "mail.weekly.month.up": ["{now} up from {before}", { slots: { now: "text", before: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
@@ -311,16 +301,10 @@ export const MAIL_COPY = Object.freeze({
   // SPEC §7 (issue 1559): the week this Monday committed, and its spares.
   // Drafted (#759).
   "mail.weekly.next": ["This week’s pages", { slots: {}, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
-  "mail.weekly.next.intro": ["Up to {weekPages} pages a week, new or updated. Never filler.", { slots: { weekPages: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
   "mail.weekly.spares": ["Backup pages, if a day's page can't be written", { slots: {}, fixedBy: "SPEC §7 2026-10-19 (drafted)" }],
   "mail.weekly.next.none": ["No new pages this week, as we found nothing worth writing. We look again next Monday.", { slots: {}, fixedBy: "SPEC §8 2026-09-20" }],
   "mail.weekly.next.item": ["{search}", { slots: { search: "text" }, fixedBy: "§12" }],
   // The week strip, Monday to Sunday, and one row per page: its day, its search, why, and its two links.
-  "mail.weekly.strip.day": ["{day}", { slots: { day: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
-  "mail.weekly.strip.today": ["Today", { slots: {}, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
-  "mail.weekly.strip.new": ["New", { slots: {}, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
-  "mail.weekly.strip.update": ["Update", { slots: {}, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
-  "mail.weekly.strip.none": ["No page", { slots: {}, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
   "mail.weekly.next.day.new.today": ["{day} · New page · goes live today, {time}", { slots: { day: "text", time: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
   "mail.weekly.next.day.new": ["{day} · New page · goes live {date}, {time}", { slots: { day: "text", date: "text", time: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
   "mail.weekly.next.day.update.today": ["{day} · Update · goes live today, {time}", { slots: { day: "text", time: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
@@ -328,8 +312,6 @@ export const MAIL_COPY = Object.freeze({
   "mail.weekly.next.why": ["Why: {reason}", { slots: { reason: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
   "mail.weekly.next.stop": ["Stop this page", { slots: {}, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
   "mail.weekly.next.edit": ["Edit", { slots: {}, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
-  "mail.weekly.next.more": ["{from} · {n} more", { slots: { from: "text", n: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
-  "mail.weekly.next.more.span": ["{from}–{to} · {n} more", { slots: { from: "text", to: "text", n: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
   "mail.weekly.next.all": ["See all {n} in This week", { slots: { n: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
   "mail.weekly.calm": ["Nothing needs you this week. Each page goes live at {time} on its day.", { slots: { time: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
   "mail.weekly.hi": ["Hi {name}, here’s week {week} for {business}.", { slots: { name: "text", week: "text", business: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],

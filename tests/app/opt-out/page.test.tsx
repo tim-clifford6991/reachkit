@@ -221,8 +221,8 @@ describe("the set's card, and nothing else on the page", () => {
       const types = nodes(tree).map((node) => node.type);
       expect(types).not.toContain("input");
       expect(types).not.toContain("form");
-      // Nothing here asks the reader to act, so nothing is solid.
-      expect(nodes(tree).filter((node) => classOf(node).includes("btn-primary"))).toEqual([]);
+      // Nothing here asks the reader to act, so nothing is solid: the way back is soft primary, as the board draws it.
+      expect(nodes(tree).filter((node) => classOf(node).includes("btn-primary") && !classOf(node).includes("btn-soft"))).toEqual([]);
     }
   });
 

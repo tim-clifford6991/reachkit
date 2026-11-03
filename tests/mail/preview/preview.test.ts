@@ -26,6 +26,7 @@ const {
   composeRetentionPreview,
   composeUnmeasuredWeek,
   composeWaitingForAddress,
+  composeWeekly,
   EVERY_MAIL_KIND,
   NOT_PREVIEWABLE,
   PREVIEW_KINDS,
@@ -193,18 +194,14 @@ describe("issue #376 — the shell renders S20, and every kind the set draws wea
       COPY["mail.weekly.google.title"],
       "Showing on Google · 2 moving up",
       "9 visits from Google this week, up from 4.",
+      "Biggest move up: tankless water heater austin, from place 62 to 24 on Google. Still rising, so we leave it alone.",
       COPY["mail.weekly.ai.title"],
       "Linked by AI: 2 of 12 pages",
-      "We asked AI the question each page answers.",
       "Read by AI: 14 times this week",
       COPY["mail.weekly.month"],
-      COPY["mail.weekly.month.intro"],
       "31 up from 27",
-      "1 of 12 up from 0",
       "Mentioned by AI, last 4 weeks",
       COPY["mail.weekly.next"],
-      "Up to 7 pages a week, new or updated. Never filler.",
-      COPY["mail.weekly.strip.today"],
       "Mon · New page · goes live today, 4:00 PM",
       "emergency plumber austin",
       `Why: ${COPY["calendar.reason.ai-gap"]}`,
@@ -212,7 +209,6 @@ describe("issue #376 — the shell renders S20, and every kind the set draws wea
       COPY["mail.weekly.next.edit"],
       "Tue · Update · goes live Tue 20 Oct, 4:00 PM",
       "Wed · New page · goes live Wed 21 Oct, 4:00 PM",
-      "Thu–Sun · 4 more",
       "See all 7 in This week",
       COPY["mail.weekly.pace"],
       COPY["mail.weekly.action"],
@@ -228,8 +224,23 @@ describe("issue #376 — the shell renders S20, and every kind the set draws wea
       for (const [i, part] of sections.entries()) expect(at[i], part).toBeGreaterThan(-1);
       expect(at, "the board's order").toEqual([...at].sort((x, y) => x - y));
     }
-    // The fifth to seventh pages are counted, not written out.
+    // The fourth to seventh pages are behind the link to Plan, not written out or counted.
     expect(mail.text).not.toContain("sewer line repair cost austin");
+    for (const cut of ["We asked AI the question", "We check these once a month", "Up to 7 pages a week", "4 more", "Your market on Google"]) {
+      expect(shown, cut).not.toContain(cut);
+      expect(mail.text, cut).not.toContain(cut);
+    }
+  });
+
+  it("a Google step nobody read this week says not checked, in both bodies, and never a stored zero", async () => {
+    const mail = await composeWeekly(["draft.ladder.showing"]);
+    const measuredMail = await composeWeekly();
+    const notChecked = COPY["mail.weekly.number.unmeasured"];
+    for (const body of [mail.html, mail.text]) expect(body.split(notChecked).length - 1).toBe(1);
+    for (const body of [measuredMail.html, measuredMail.text]) expect(body).not.toContain(notChecked);
+    // The other figures are still the week's own.
+    expect(mail.text).toContain("11");
+    expect(mail.text).not.toMatch(/Showing on Google · 2 moving up: 0\b/);
   });
 
   for (const kind of previewable) {

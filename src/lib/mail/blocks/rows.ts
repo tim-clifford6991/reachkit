@@ -7,7 +7,8 @@ import type { MailBlock } from "./types";
 
 /** One `list` or `verdicts` row. A verdict stays two cells, since a joiner here would be an authored sentence. */
 export interface RenderedRow {
-  left: string;
+  left?: string;
+  lead?: string;
   right?: string;
   href?: string;
   detail?: readonly string[];
@@ -25,7 +26,8 @@ export function rowsOf(
   }
   if (block.block === "list") {
     return block.items.value.map((item) => ({
-      left: copy(item.label, item.vars),
+      ...(item.label === undefined ? {} : { left: copy(item.label, item.vars) }),
+      ...(item.lead === undefined ? {} : { lead: copy(item.lead.text, item.lead.vars) }),
       ...(item.href === undefined ? {} : { href: item.href }),
       ...(item.detail === undefined ? {} : { detail: item.detail.map((line) => copy(line.text, line.vars)) }),
       ...(item.links === undefined ? {} : { links: item.links.map((link) => ({ label: copy(link.label, link.vars), href: link.href })) }),
