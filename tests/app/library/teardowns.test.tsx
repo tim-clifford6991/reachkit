@@ -19,6 +19,10 @@ const { default: TeardownPage } = await import("@/app/(public)/teardowns/[site]/
 const { TEARDOWNS } = await import("@/app/(public)/_library");
 const { TEARDOWN_PARTS } = await import("@/app/(public)/_library/types");
 const { copy } = await import("@/lib/presentation/copy");
+const { SiteMark } = await import("@/ui/SiteMark");
+
+/** The letter tile SiteMark draws for a domain with no stored logo. */
+const tile = (domain: string, size: 36 | 56): string => renderToStaticMarkup(<SiteMark domain={domain} hasLogo={false} size={size} />);
 
 function board(name: string): HTMLElement {
   return parse(readFileSync(boardFile(name), "utf8"));
@@ -34,9 +38,9 @@ function missing(boardName: string, boardPart: HTMLElement, shipPart: HTMLElemen
   return compare(boardPart.toString(), segments(shipPart!.toString()), readAllow(boardName)).missing;
 }
 
-/** The page's opening: its eyebrow, its heading, and the section under them. */
+/** The page's opening: its trail or eyebrow, its heading, and the section under them. */
 function opening(page: HTMLElement): HTMLElement {
-  const parts = ["main article > span", "main h1", "main section"].map((q) => page.querySelector(q)?.toString() ?? "");
+  const parts = ["main article > nav", "main article > span", "main h1", "main section"].map((q) => page.querySelector(q)?.toString() ?? "");
   return parse(`<div>${parts.join("")}</div>`);
 }
 
@@ -50,7 +54,7 @@ describe("/teardowns follows board PubTeardowns", () => {
   const page = parse(renderToStaticMarkup(index.default()));
   const [top, all] = boardSections(board("PubTeardowns"));
 
-  it("the opening: the lead, the note and what every teardown reads, with its sketch", () => {
+  it("the opening: the lead and what every teardown reads, with its sketch", () => {
     expect(missing("PubTeardowns", top!, opening(page))).toEqual([]);
   });
 
@@ -75,6 +79,14 @@ describe("/teardowns follows board PubTeardowns", () => {
     }
   });
 
+  it("each card draws one letter tile, its product's, beside the name", () => {
+    const cards = page.querySelectorAll('section[aria-labelledby="all"] li a');
+    for (const [i, t] of TEARDOWNS.entries()) {
+      expect(cards[i]!.toString().split(tile(t.domain, 36)).length - 1, t.slug).toBe(1);
+      expect(cards[i]!.querySelector("h3")!.parentNode!.toString(), t.slug).toContain(tile(t.domain, 36));
+    }
+  });
+
   it("draws no RSS link, and still announces the feed in the head", () => {
     expect(page.querySelector('a[href="/teardowns/rss.xml"]')).toBeNull();
     expect(index.metadata.alternates?.types).toEqual({ "application/rss+xml": "/teardowns/rss.xml" });
@@ -95,6 +107,13 @@ describe("/teardowns/plausible follows board PubTeardown", () => {
     expect(missing("PubTeardown", body!, page.querySelector('[data-testid="teardown-body"]'))).toEqual([]);
   });
 
+  it("the product's 56px tile sits in the opening, before the h1", async () => {
+    const page = await teardown("plausible");
+    const article = page.querySelector("main article")!.toString();
+    expect(article.indexOf(tile("plausible.io", 56))).toBeGreaterThan(-1);
+    expect(article.indexOf(tile("plausible.io", 56))).toBeLessThan(article.indexOf("<h1"));
+  });
+
   it("the headings and On this page run in the board's order", async () => {
     const page = await teardown("plausible");
     const shipped = page.querySelectorAll('[data-testid="teardown-body"] h2').map(text);
@@ -108,7 +127,7 @@ describe("every teardown numbers the reads it makes, and its contents reach each
   for (const t of TEARDOWNS) {
     it(t.slug, async () => {
       const page = await teardown(t.slug);
-      const eyebrows = page.querySelectorAll('[data-testid="teardown-body"] article section[aria-labelledby] > div > p:first-child').map((p) => p.text);
+      const eyebrows = page.querySelectorAll('[data-testid="teardown-body"] article section[aria-labelledby] > p:first-child').map((p) => p.text);
       const parts = t.sections.flatMap((s) => (s.part === undefined ? [] : [s.part]));
       expect(eyebrows).toEqual(
         parts.map((part) =>

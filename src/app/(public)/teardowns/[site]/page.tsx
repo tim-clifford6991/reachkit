@@ -2,13 +2,15 @@
 // when it was last read against the live site; its reads are numbered parts.
 import type React from "react";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
+import { SiteMark } from "@/ui/SiteMark";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { PUBLIC_ROUTE_SEO } from "../../_seo/routes";
 import { publicMetadata } from "../../_seo/metadata";
 import { JsonLd, articleSchemas, homeCrumb } from "../../_seo/structured";
 import { TEARDOWNS, longDate, teardownOf } from "../../_library";
-import { BackLink, BODY, CARD, LearnClose, LibraryPage, Trademarks } from "../../_library/parts";
+import { BackLink, BAND, CARD, LearnClose, LibraryPage, Trademarks } from "../../_library/parts";
 import { Sources } from "../../_library/sources";
 import { anchorOf, OnThisPage, PartSection, Sketch } from "../../_library/teardown-parts";
 
@@ -32,7 +34,6 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   });
 }
 
-const EYEBROW: CopyKey = "teardowns.eyebrow";
 const MORE: CopyKey = "teardowns.item.more";
 const PAGE_TEST_ID = "teardown";
 const INDEX = "/teardowns";
@@ -45,7 +46,26 @@ export default async function TeardownPage({ params }: Params): Promise<React.JS
   if (t === undefined) notFound();
 
   return (
-    <LibraryPage testId={PAGE_TEST_ID} eyebrow={EYEBROW} title={t.title} wide>
+    <LibraryPage
+      testId={PAGE_TEST_ID}
+      title={t.title}
+      wide
+      trail={
+        <>
+          <nav aria-label={copy("compare.item.trail")} className="breadcrumbs text-base-content/70 py-0 text-sm">
+            <ul>
+              <li>
+                <Link href={INDEX} className="link link-primary inline-flex min-h-11 items-center font-semibold">
+                  {copy("chrome.nav.teardowns")}
+                </Link>
+              </li>
+              <li className="num">{t.domain}</li>
+            </ul>
+          </nav>
+          <SiteMark domain={t.domain} hasLogo={false} size={56} />
+        </>
+      }
+    >
       {/* Issue 1512: the two dates the page prints, and the links it draws. */}
       <JsonLd
         blocks={articleSchemas({
@@ -58,7 +78,7 @@ export default async function TeardownPage({ params }: Params): Promise<React.JS
       />
       <section className="grid min-w-0 items-start gap-6 lg:grid-cols-2">
         <div className="flex min-w-0 flex-col gap-3">
-          <p className="text-base-content/70 font-mono text-xs">
+          <p className="text-base-content/70 text-sm">
             {t.checked === undefined
               ? copy("teardowns.item.dates", { written: longDate(t.written), revised: longDate(t.revised) })
               : copy("teardowns.item.dates.checked", { written: longDate(t.written), checked: longDate(t.checked) })}
@@ -73,22 +93,25 @@ export default async function TeardownPage({ params }: Params): Promise<React.JS
           />
         )}
       </section>
-      <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_14rem]" data-testid="teardown-body">
+      <div className={`grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_14rem] ${BAND}`} data-testid="teardown-body">
         <article className="flex min-w-0 flex-col gap-4">
           {t.sections.map((section) => (
             <PartSection key={section.heading} section={section} />
           ))}
-          <section className={CARD} aria-labelledby={TAKEAWAYS_ID}>
-            <div className={BODY}>
-              <h2 id={TAKEAWAYS_ID} className="scroll-mt-24">
-                {copy("teardowns.item.takeaways")}
-              </h2>
-              <ol className="list-decimal ps-6">
-                {t.takeaways.map((line) => (
-                  <li key={line}>{line}</li>
-                ))}
-              </ol>
-            </div>
+          <section className="rounded-box border-primary/20 bg-primary/10 flex min-w-0 flex-col gap-3 border p-5" aria-labelledby={TAKEAWAYS_ID}>
+            <h2 id={TAKEAWAYS_ID} className="text-base-content scroll-mt-24">
+              {copy("teardowns.item.takeaways")}
+            </h2>
+            <ol className="grid min-w-0 gap-3 sm:grid-cols-2">
+              {t.takeaways.map((line, i) => (
+                <li key={line} className={`${CARD} flex min-w-0 flex-col items-start gap-2.5 p-4`}>
+                  <span className="rounded-field bg-primary text-primary-content grid size-8 place-items-center font-extrabold" aria-hidden>
+                    {i + 1}
+                  </span>
+                  <span className="text-base-content font-semibold">{line}</span>
+                </li>
+              ))}
+            </ol>
           </section>
           <div id={SOURCES_ID} className="scroll-mt-24">
             <Sources checked={t.checked ?? t.revised} sources={t.sources} />

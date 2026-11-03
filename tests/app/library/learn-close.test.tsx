@@ -113,7 +113,7 @@ describe("the scans close draws its own icons", () => {
 });
 
 /** The closes canvas v36 drew without the glance: the field alone, under its heading. */
-const SHORT = ["about", "scans", "compare", "compare-tool", "answer"] as const;
+const SHORT = ["about", "scans", "compare", "compare-tool", "answer", "teardowns", "teardown"] as const;
 
 describe("every close with the glance draws its ring, icon tiles and AI bar", () => {
   const e = EXAMPLES.plumber.report;

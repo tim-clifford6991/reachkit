@@ -8,6 +8,7 @@
 // Every title is at most six words, one idea and no dash (SPEC §0,
 // 2026-10-15). A fact about another company carries the page it was read
 // from and the date it was read.
+import type { LucideIcon } from "lucide-react";
 
 /** A page another company publishes about itself, read on `checked`. */
 export interface Source {
@@ -94,8 +95,14 @@ export interface TeardownSection extends Section {
   readonly chips?: readonly string[];
   /** How many similar tools describe themselves, beside the concrete outcome the buyer wants. */
   readonly promise?: { readonly crowd: string; readonly wants: string; readonly outcomes: readonly string[] };
-  /** Two buyers side by side: who they are and what they want. */
-  readonly buyers?: readonly { readonly name: string; readonly line: string; readonly wants: string }[];
+  /** Two buyers side by side: who they are and what they want; the buyer with a deadline is drawn in the primary colour. */
+  readonly buyers?: readonly {
+    readonly name: string;
+    readonly line: string;
+    readonly wants: string;
+    readonly icon?: LucideIcon;
+    readonly deadline?: true;
+  }[];
   /** Pages it could add, drawn as ideas, and what we read about them. */
   readonly ideas?: {
     readonly pages: readonly { readonly kind: string; readonly reader: string; readonly title: string }[];

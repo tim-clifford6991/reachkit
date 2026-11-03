@@ -70,9 +70,9 @@ describe("/about follows board PubAbout", () => {
     expect(page.querySelector("svg.lucide-bot")).toBeNull();
   });
 
-  it("contact and the who-builds-it card reach the same address", () => {
-    expect(page.querySelector("section#contact a")?.getAttribute("href")).toBe(`mailto:${copy("about.contact.address")}`);
-    expect(page.querySelector('section#top a[href="#contact"]')).not.toBeNull();
+  it("the who-builds-it card writes to the address, and no separate contact section repeats it", () => {
+    expect(page.querySelector(`section#top a[href="mailto:${copy("about.contact.address")}"]`)).not.toBeNull();
+    expect(page.querySelector("section#contact")).toBeNull();
   });
 });
 
@@ -82,6 +82,20 @@ describe("/about draws stored rows only where they are stored", () => {
     expect(text).toContain(copy("about.who.founder.place", { name: "Ada", place: "Lisbon" }));
     expect(page.querySelector('section#proof a[href="https://content.example.com/a-page"]')).not.toBeNull();
     expect(page.querySelector('section#proof a[href="/scan/reachkit.app"]')).not.toBeNull();
+  });
+
+  it("the listed report is ReachKit's own, under our mark, linked, and states no score", () => {
+    const card = page.querySelector('[data-testid="about-report"]');
+    expect(card?.getAttribute("href")).toBe("/scan/reachkit.app");
+    expect(card?.querySelector('[data-testid="brand-mark"]')).not.toBeNull();
+    expect(card?.text).toContain(copy("about.proof.report"));
+    expect(card?.text.replace("reachkit.app", "")).not.toMatch(/\d/);
+  });
+
+  it("an unlisted report draws no card, never a placeholder, while the stored page still shows", async () => {
+    const unlisted = await render({ ...STORED, report: null });
+    expect(unlisted.querySelector('[data-testid="about-report"]')).toBeNull();
+    expect(unlisted.querySelector('section#proof a[href="https://content.example.com/a-page"]')).not.toBeNull();
   });
 
   it("names no one and links nothing when nothing is stored, and still names the imprint", async () => {

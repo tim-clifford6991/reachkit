@@ -288,7 +288,8 @@ describe("/about reads the founder from stored rows", () => {
     const unnamed = await renderAbout(NOTHING);
     expect(text(unnamed)).not.toContain("built by");
     expect(unnamed).toContain('href="/imprint"');
-    expect(unnamed).toContain('href="/how-it-works"');
+    // The four steps open How it works at the section that tells each one.
+    expect(unnamed).toMatch(/href="\/how-it-works[#"]/);
   });
 });
 
