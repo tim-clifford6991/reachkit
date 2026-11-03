@@ -296,3 +296,35 @@ export const LONG_READ_AS = Object.freeze({
   category: "emergency plumbing, boiler servicing and central heating repair",
   town: "Kingston upon Hull and the villages of the East Riding coast",
 });
+
+/**
+ * Two of the live site's own pages as the scan read them, so the facts card on a live page's detail (board
+ * PageDetail) draws passages from the database, as a customer's does. Paths only: the seed puts the domain in front.
+ */
+export const LIVE_OWN_PAGES: readonly { path: string; html: string }[] = Object.freeze([
+  {
+    path: "/about",
+    html:
+      "<html><head><title>About Acme</title></head><body><main><h1>About Acme</h1>" +
+      "<p>Acme has helped more than 120 small teams move their onboarding out of spreadsheets since 2019.</p>" +
+      "<p>Every new account gets a named person who answers questions within one working day.</p>" +
+      "</main></body></html>",
+  },
+  {
+    path: "/pricing",
+    html:
+      "<html><head><title>Acme pricing</title></head><body><main><h1>Pricing</h1>" +
+      "<p>Plans start at 29 euros a month and you can cancel from your account page at any time.</p>" +
+      "<p>We set up your first checklist with you on a call before you pay anything.</p>" +
+      "</main></body></html>",
+  },
+]);
+
+/** The insert that puts `LIVE_OWN_PAGES` on a scan as the site's own reads, at the evidence's measured time. */
+export function ownPagesInsert(scanId: string, domain: string): string {
+  const reads = LIVE_OWN_PAGES.map(({ path, html }, i) => {
+    const payload = { url: `https://${domain}${path}`, status: 200, html, bytes: html.length, readAt: EVIDENCE_MEASURED_AT };
+    return `('${scanId}', 'egress.safeFetch', 'sweep-own-${i}', 1, 0, 0, null, '${JSON.stringify(payload).replaceAll("'", "''")}'::jsonb, timestamptz '${EVIDENCE_MEASURED_AT}')`;
+  });
+  return `insert into fetches (scan_id, source, cache_key, policy_version, reserved_cents, cost_cents, billed_cents, payload, created_at) values ${reads.join(", ")};`;
+}

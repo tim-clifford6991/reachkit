@@ -30,6 +30,7 @@ import { fromStored, renderGenerated } from "@/lib/presentation/generated";
 import { DESTINATION_HREF } from "../../_shell/destinations";
 import { writtenLine } from "../../_shell/written";
 import { DraftScreen } from "./DraftScreen";
+import { PageFacts } from "./PageFacts";
 import { readDraft } from "./provider";
 
 /**
@@ -108,7 +109,10 @@ export default async function DraftPage(p: {
     body: fromStored("drafts.body", view.bodyMdGenerated),
   });
 
+  // Only the live arm draws the facts, so only it starts their read.
+  const facts = view.takeDown !== null && view.live !== null ? <PageFacts /> : null;
+
   return (
-    <DraftScreen view={view} generatedLabel={generated.label} />
+    <DraftScreen view={view} generatedLabel={generated.label} facts={facts} />
   );
 }

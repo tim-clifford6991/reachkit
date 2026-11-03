@@ -131,9 +131,9 @@ function ask(
 
 export function DraftScreen(p: {
   view: DraftView;
-  /** REQ-093 c2's label, resolved on the server by the one sink for model
-   *  text (`renderGenerated`) and carried here as a plain string. */
+  /** REQ-093 c2's label, resolved on the server by `renderGenerated`, the one sink for model text, as a plain string. */
   generatedLabel: string;
+  facts?: React.ReactNode; // Facts we can quote: a server boundary the live arm draws.
 }): React.JSX.Element {
   const { view } = p;
   const [editing, setEditing] = useState(false);
@@ -794,7 +794,7 @@ export function DraftScreen(p: {
   if (view.takeDown !== null && view.live !== null)
     return (
       <>
-        <LivePage view={view} live={view.live} onEdit={() => setEditing(true)} />
+        <LivePage view={view} live={view.live} onEdit={() => setEditing(true)} facts={p.facts} />
         {openVersion}
       </>
     );

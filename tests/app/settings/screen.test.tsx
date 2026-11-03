@@ -342,11 +342,10 @@ describe("REQ-070 c3 — no control over an engine or spend parameter renders", 
 
   it("and none is hidden behind a flag — a folded control is still an offered one", async () => {
     const root = await mountScreen();
-    // The boards fold the danger zone and Your business's three cards, and a
+    // The boards fold the danger zone and Your business's two cards, and a
     // closed fold keeps its controls in the document: every control counted
     // above exists, and no `hidden` subtree withholds one.
     expect([...root.querySelectorAll("details")].map((d) => d.getAttribute("data-testid")).sort()).toEqual([
-      "settings-business-facts",
       "settings-business-knowledge",
       "settings-danger",
       "settings-known-content",
@@ -359,7 +358,7 @@ describe("REQ-070 c3 — no control over an engine or spend parameter renders", 
 
 describe("E28 — a card title states its subject in words", () => {
   it.each([
-    ["business", 8],
+    ["business", 7],
     ["pages", 3],
     ["account", 3],
   ] as const)("no settings card title carries an icon (E28): %s", async (tab, least) => {

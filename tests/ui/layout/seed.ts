@@ -64,7 +64,7 @@ import {
   acceptanceFor,
   ACCESS_ENDS_ON,
   LIVE_DRAFTS,
-  LONG_READ_AS,
+  LONG_READ_AS, ownPagesInsert,
   PUBLISHER_PAGE,
   scheduledFor,
   seededVolume,
@@ -435,12 +435,10 @@ export function seedAccount(): void {
 /**
  * The second account, and the one the live branch is measured as (#206).
  *
- * `LIVE_ACCOUNT`'s domain is one no fixture answers for, so every `/app`
- * provider takes its database read rather than its fixture — which is the
- * whole point: until now no provider's live read was ever rendered under a
- * browser at any width. It gets drafts in three states, a publication and
- * a destination so each of those reads returns rows rather than an empty
- * arm.
+ * `LIVE_ACCOUNT`'s domain is one no fixture answers for, so every `/app` provider takes its database read rather
+ * than its fixture — which is the whole point: until now no provider's live read was ever rendered under a browser
+ * at any width. It gets drafts in three states, a publication, a destination and two pages of its own (the facts
+ * read) so each of those reads returns rows rather than an empty arm.
  */
 export function seedLiveAccount(): void {
   seedSite(LIVE_ACCOUNT, {
@@ -451,6 +449,7 @@ export function seedLiveAccount(): void {
   });
   seedMeasuredWeeks(LIVE_ACCOUNT);
   seedGoogleVisits(LIVE_ACCOUNT.siteId, [2, 4, 9]);
+  sql(ownPagesInsert(rows(`select id from scans where site_id = '${LIVE_ACCOUNT.siteId}' order by created_at desc limit 1;`)[0]!, LIVE_ACCOUNT.domain));
 }
 
 /** Visits from Google on the site's live hosted page, one day in each of the last weeks, oldest first, so the Google tab draws its chart from the database. */

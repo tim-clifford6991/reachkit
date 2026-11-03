@@ -224,7 +224,7 @@ function EditControl(p: { edit: LiveFacts["edit"]; onEdit: () => void }): React.
   );
 }
 
-export function LivePage(p: { view: DraftView; live: LiveFacts; onEdit: () => void }): React.JSX.Element {
+export function LivePage(p: { view: DraftView; live: LiveFacts; onEdit: () => void; facts?: React.ReactNode }): React.JSX.Element {
   const { view, live } = p;
   const standing = view.takeDown;
   const stopped = standing?.kind === "stopped";
@@ -311,6 +311,7 @@ export function LivePage(p: { view: DraftView; live: LiveFacts; onEdit: () => vo
           </div>
         )}
       </WhyThisPage>
+      {p.facts}
     </div>
   );
 }

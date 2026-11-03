@@ -7,8 +7,8 @@
 //
 // daisyUI classes in the route; each field is a `SettingRow`, the row every Settings board draws (canvas v36).
 // Only groups that have something in them are drawn (#926), and a group that is drawn keeps its Add, because
-// the customer adds or takes out a buyer term or word (SPEC §4, 2026-10-15, issue 1454). Tone and how the
-// business refers to itself are not drawn here, nor the voice summary's two claim lists: Your voice owns them.
+// the customer adds or takes out a buyer term (SPEC §4, 2026-10-15, issue 1454). Words you use is drawn in the
+// voice card (`ListEditor`); tone, how the business refers to itself and the voice summary's claim lists are not drawn.
 "use client";
 
 import type React from "react";
@@ -38,14 +38,14 @@ import {
 import { SAVED_BADGE_CLASS, useSetting } from "./useSetting";
 import { SettingRow } from "./SettingRow";
 
-/** The four lists the board draws, in its order. The voice summary's claim lists are Your voice's to state. */
+/** The lists the business card draws, in the board's order, and Words you use, which the voice card draws. */
 const GROUP_COPY: Readonly<Partial<Record<BusinessList, CopyKey>>> = {
   products: "settings.business.products",
   audienceTerms: "settings.business.audienceTerms",
   claims: "settings.business.claims",
   vocabulary: "settings.business.vocabulary",
 };
-const LIST_ORDER = Object.keys(GROUP_COPY) as BusinessList[];
+const LIST_ORDER: readonly BusinessList[] = ["products", "audienceTerms", "claims"];
 
 /** An item's remove control, named for the item it removes. */
 function RemoveButton(p: {
@@ -110,50 +110,58 @@ function Chip(p: {
   );
 }
 
-/** One group: its head, its chips, and an Add at the end of them that opens its field. */
-function Group(p: {
+/** One list's chips, and an Add at the end of them that opens its field. */
+function Chips(p: {
   list: BusinessList;
   items: readonly BusinessItem[];
   writer: ReturnType<typeof useSetting>;
 }): React.JSX.Element {
   const [adding, setAdding] = useState(false);
   const [entry, setEntry] = useState("");
-  const head = copy(GROUP_COPY[p.list]!);
-  const label = copy("settings.business.add.label", { group: head });
+  const label = copy("settings.business.add.label", { group: copy(GROUP_COPY[p.list]!) });
 
   return (
-    <SettingRow name={head} testId={`business-group-${p.list}`} below={
-      <div className="flex min-w-0 flex-wrap items-center gap-2">
-        {p.items.map((item) => (
-          <Chip key={`${item.source}:${item.text}`} list={p.list} item={item} writer={p.writer} />
-        ))}
-        {adding ? (
-          <form
-            action={(form) => {
-              p.writer.press(addBusinessItemAction, form);
-              setEntry("");
-              setAdding(false);
-            }}
-            className="flex w-full min-w-0 items-center gap-2 sm:w-auto"
-            data-testid={`business-add-${p.list}`}
-          >
-            <input type="hidden" name={BUSINESS_LIST_FIELD} value={p.list} />
-            {/* `aria-label`, not an `sr-only` label: a one-pixel box of text reads as overflow. */}
-            <input name={BUSINESS_ITEM_FIELD} className="input min-w-0 grow" aria-label={label} value={entry} onChange={(e) => setEntry(e.target.value)} autoFocus />
-            <button type="submit" className={OUTLINE} aria-label={label} disabled={p.writer.busy || entry.trim() === ""}>
-              {p.writer.busy ? <span className="loading loading-spinner loading-xs" aria-hidden /> : null}
-              {copy("settings.business.add")}
-            </button>
-          </form>
-        ) : (
-          <button type="button" className="btn btn-ghost min-h-11 px-3 text-primary" aria-label={label} onClick={() => setAdding(true)} data-testid={`business-open-add-${p.list}`}>
-            <Plus size={16} strokeWidth={1.75} aria-hidden />
+    <div className="flex min-w-0 flex-wrap items-center gap-2">
+      {p.items.map((item) => (
+        <Chip key={`${item.source}:${item.text}`} list={p.list} item={item} writer={p.writer} />
+      ))}
+      {adding ? (
+        <form
+          action={(form) => {
+            p.writer.press(addBusinessItemAction, form);
+            setEntry("");
+            setAdding(false);
+          }}
+          className="flex w-full min-w-0 items-center gap-2 sm:w-auto"
+          data-testid={`business-add-${p.list}`}
+        >
+          <input type="hidden" name={BUSINESS_LIST_FIELD} value={p.list} />
+          {/* `aria-label`, not an `sr-only` label: a one-pixel box of text reads as overflow. */}
+          <input name={BUSINESS_ITEM_FIELD} className="input min-w-0 grow" aria-label={label} value={entry} onChange={(e) => setEntry(e.target.value)} autoFocus />
+          <button type="submit" className={OUTLINE} aria-label={label} disabled={p.writer.busy || entry.trim() === ""}>
+            {p.writer.busy ? <span className="loading loading-spinner loading-xs" aria-hidden /> : null}
             {copy("settings.business.add")}
           </button>
-        )}
-      </div>
-    } />
+        </form>
+      ) : (
+        <button type="button" className="btn btn-ghost min-h-11 px-3 text-primary" aria-label={label} onClick={() => setAdding(true)} data-testid={`business-open-add-${p.list}`}>
+          <Plus size={16} strokeWidth={1.75} aria-hidden />
+          {copy("settings.business.add")}
+        </button>
+      )}
+    </div>
   );
+}
+
+/** One group of the business card: its head beside its chips. */
+function Group(p: { list: BusinessList; items: readonly BusinessItem[]; writer: ReturnType<typeof useSetting> }): React.JSX.Element {
+  return <SettingRow name={copy(GROUP_COPY[p.list]!)} testId={`business-group-${p.list}`} below={<Chips {...p} />} />;
+}
+
+/** One list edited on another card, with a writer of its own. */
+export function ListEditor(p: { list: BusinessList; items: readonly BusinessItem[] }): React.JSX.Element {
+  const writer = useSetting();
+  return <Chips list={p.list} items={p.items} writer={writer} />;
 }
 
 /** The board's bordered secondary button, at the 44px target. */
