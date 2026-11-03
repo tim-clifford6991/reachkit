@@ -42,6 +42,8 @@ import { copy } from "@/lib/presentation/copy";
 import { token } from "@/lib/mail/shell/tokens";
 import { SCORE_BANDS } from "@/lib/presentation/bands";
 import { parseDomain } from "@/lib/scan/domain";
+import type { StoredReport } from "@/lib/scan/report";
+import { shownReading } from "@/lib/scan/shown-score";
 import { OG_CONTENT_TYPE, OG_SIZE, OgAddress, OgCard } from "../../_seo/og-card";
 import { fixtureStateFor } from "./_fixture/states";
 
@@ -78,6 +80,12 @@ function withDeadline<T>(work: Promise<T>): Promise<T> {
   ]);
 }
 
+/** The score and band the report shows, or `null` where it shows none. */
+function shownVerdict(report: StoredReport | null): Verdict | null {
+  const reading = shownReading(report, new Date());
+  return reading.kind === "unmeasured" ? null : { score: reading.value.score, band: reading.value.band };
+}
+
 /** The stored report's score and band, or `null` — for every reason this
  *  file's header lists, plus a read that failed or did not answer. */
 async function verdictFor(rawSegment: string): Promise<Verdict | null> {
@@ -88,10 +96,7 @@ async function verdictFor(rawSegment: string): Promise<Verdict | null> {
   const fixture = fixtureStateFor(domain);
   if (fixture !== null) {
     if (fixture.kind !== "report") return null;
-    const measured = fixture.report.verdict.scoreAndBand;
-    return measured.kind === "unmeasured"
-      ? null
-      : { score: measured.value.score, band: measured.value.band };
+    return shownVerdict(fixture.report);
   }
 
   try {
@@ -104,10 +109,7 @@ async function verdictFor(rawSegment: string): Promise<Verdict | null> {
     ]);
     if (await withDeadline(isDomainRemoved(domain))) return null;
     const report = await withDeadline(readShownReport(domain));
-    if (report === null) return null;
-    const measured = report.verdict.scoreAndBand;
-    if (measured.kind === "unmeasured") return null;
-    return { score: measured.value.score, band: measured.value.band };
+    return shownVerdict(report);
   } catch {
     return null;
   }

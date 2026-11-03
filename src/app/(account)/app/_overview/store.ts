@@ -83,6 +83,7 @@ import type { RivalSize } from "@/lib/market/rivals/rival-size";
 import { trackedRivals } from "@/lib/market/rivals/tracked";
 import { readDeepReport } from "@/lib/scan/deep/report";
 import type { StoredReport } from "@/lib/scan/report";
+import { shownReading, shownScore } from "@/lib/scan/shown-score";
 import { shownLimitingOf } from "@/lib/measure/verdict";
 import {
   nextDueOn,
@@ -694,8 +695,8 @@ async function weeklySeries(
       ? { weekStart: mondayOf(weekZero.weekStart), present: presentInAnswers(weekZero.report) }
       : undefined;
 
-  const score = scoreOf(latest, now);
-  const scorePrevious = previousWeek === null ? undefined : scoreOf(previousWeek, now);
+  const score = shownReading(latest, now);
+  const scorePrevious = previousWeek === null ? undefined : shownReading(previousWeek, now);
   const monthWeek = monthWeekOf(measured);
   const scan = monthFiguresOf(deep?.report ?? null);
   const months: MonthsFacts = {
@@ -730,10 +731,7 @@ async function weeklySeries(
   // The header's trend: the score each of those weeks measured, read off the
   // same stored verdict every other figure on this screen comes from. A week
   // with no report contributes `null`, never a floor it never sat on.
-  const scorePoints = measuredWeeks.map((week) => {
-    const reading = scoreOf(scans.get(week)?.report ?? null, now);
-    return reading.kind === "unmeasured" ? null : reading.value.score;
-  });
+  const scorePoints = measuredWeeks.map((week) => shownScore(scans.get(week)?.report));
 
   // The dates the series breaks at (REQ-071 c12/c13). Derived from the
   // scans themselves — this screen states no change of its own — and
@@ -758,25 +756,6 @@ async function weeklySeries(
     ...(aiWeekZero === undefined ? {} : { aiWeekZero }),
     ...(searchesWeekZero === undefined ? {} : { searchesWeekZero }),
   };
-}
-
-/** One week's score and the band it falls in, straight off the stored
- *  report's own verdict. Nothing is recomputed here: `scoreAndBand` is the
- *  reading the pass took, and a screen that re-derived a band from a score
- *  would be a second opinion on a measurement (ADR-010). */
-function scoreOf(
-  report: StoredReport | null,
-  at: Date
-): Measured<{ score: number; band: BandHandle }> {
-  // A report whose verdict carries no reading is a week that did not reach
-  // the score — the same fact as no report at all, and stated the same way.
-  // Never left as the absent value itself: a caller that read `.kind` off it
-  // would be reading a property of nothing.
-  const reading = report?.verdict?.scoreAndBand;
-  if (reading === undefined || reading === null) {
-    return unmeasured<{ score: number; band: BandHandle }>("not_attempted", at);
-  }
-  return reading;
 }
 
 /** §6.6's sizing for one rival in one week, or nothing. The entries are

@@ -21,6 +21,7 @@ import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { LIMITING_LINES, SCORE_BANDS } from "@/lib/presentation/bands";
 import { shownLimitingOf, type ShownFactor, type Verdict } from "@/lib/measure/verdict";
 import type { Measured } from "@/lib/measure/measured";
+import { shownReading } from "@/lib/scan/shown-score";
 import type { CorrectionOffer } from "@/lib/market/coherence/offer";
 import { SiteMark } from "@/ui/SiteMark";
 import { CategoryCorrection } from "./correction";
@@ -169,7 +170,7 @@ function GapCard(p: { factor: ShownFactor }): React.JSX.Element {
  *  and, closed, what it is made of and the parts as `n/10`. */
 function ScoreCard(p: { verdict: Verdict; limiting: ShownFactor | null; rescored?: { on: string; before: number } }): React.JSX.Element {
   const { verdict } = p;
-  const scoreAndBand = verdict.scoreAndBand;
+  const scoreAndBand = shownReading({ verdict }, verdict.measuredAt);
   const bars = barsOf(verdict);
   return (
     <section className="card bg-base-100 shadow-(--shadow-card) min-w-0" data-testid="report-score">
