@@ -71,10 +71,7 @@ function store(fetches: Row[], scans: Row[] = [], failing: readonly string[] = [
   return { client: client as unknown as TextClient, tables, log };
 }
 
-/** The pages a stored read returns, in listing order. */
-async function storedText(...args: Parameters<typeof storedById>) {
-  return [...(await storedById(...args)).values()].filter((page) => page !== null);
-}
+const storedText = async (...args: Parameters<typeof storedById>) => [...(await storedById(...args)).values()].filter((page) => page !== null);
 
 const downloads = (log: readonly string[]) => log.filter((line) => line.includes("payload")).length;
 
@@ -147,15 +144,9 @@ describe("shadow parity: the payload text is served, the stored text is only com
   const SCANS = [{ id: "s1", tier: "free", domain: "plumb.example" }];
   const stale = { fetch_id: "f-about", scan_id: "s1", text_version: "v1", url: "https://plumb.example/about", read_at: READ_AT.toISOString(), rendered: false, document: true, text: "stale", examples: [], questions: [] };
 
-  async function served(db: ReturnType<typeof store>) {
-    dbAdminMock.mockReturnValue(db.client);
-    return readDomainText("plumb.example");
-  }
+  const served = (db: ReturnType<typeof store>) => (dbAdminMock.mockReturnValue(db.client), readDomainText("plumb.example"));
 
-  afterEach(() => {
-    vi.unstubAllEnvs();
-    vi.restoreAllMocks();
-  });
+  afterEach(() => void (vi.unstubAllEnvs(), vi.restoreAllMocks()));
 
   it("serves exactly the payload path's text when the stored rows differ and when the stored read fails", async () => {
     vi.stubEnv("RK_TEXT_VERSION", "");
