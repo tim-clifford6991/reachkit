@@ -15,7 +15,7 @@ vi.mock("@/lib/db", () => ({ dbAdmin: dbAdminMock }));
 import { dbAdmin } from "@/lib/db";
 import { OWN_FETCH_SOURCE, RENDERED_FETCH_SOURCE, renderedDocumentOf, siteDocumentOf, toStoredDocument } from "../../../src/lib/measure/own-fetch.ts";
 import { prose } from "../../../src/lib/measure/prose.ts";
-import { readMeasuredText, type MeasuredText } from "../../../src/lib/measure/text.ts";
+import { LATEST_TEXT_ROWS, readLatestMeasuredText, readMeasuredText, type MeasuredText } from "../../../src/lib/measure/text.ts";
 
 const SOURCE_PATH = path.resolve(import.meta.dirname, "../../../src/lib/measure/text.ts");
 const SOURCE = readFileSync(SOURCE_PATH, "utf8");
@@ -43,8 +43,10 @@ interface ScanRow {
   site_id: string | null;
   domain?: string;
   tier?: string;
+  created_at?: string;
 }
 interface FetchRow {
+  created_at?: string;
   scan_id: string;
   source: string;
   payload: unknown;
@@ -64,6 +66,8 @@ function fakeDb(a: { scans: ScanRow[]; fetches: FetchRow[]; error?: { table: str
   function builder(table: string) {
     const filters: { column: string; value: unknown }[] = [];
     const inFilters: { column: string; values: readonly string[] }[] = [];
+    let sort: { column: string; ascending: boolean } | undefined;
+    let cap: number | undefined;
     const self = {
       select(columns: string) {
         log.push({ table, method: `select(${columns})` });
@@ -79,6 +83,16 @@ function fakeDb(a: { scans: ScanRow[]; fetches: FetchRow[]; error?: { table: str
         inFilters.push({ column, values });
         return self;
       },
+      order(column: string, options: { ascending: boolean }) {
+        log.push({ table, method: `order(${column})` });
+        sort = { column, ascending: options.ascending };
+        return self;
+      },
+      limit(count: number) {
+        log.push({ table, method: `limit(${count})` });
+        cap = count;
+        return self;
+      },
       not: () => self,
       is: () => self,
       then(resolve: (r: { data: unknown[] | null; error: { message: string } | null }) => unknown) {
@@ -91,7 +105,11 @@ function fakeDb(a: { scans: ScanRow[]; fetches: FetchRow[]; error?: { table: str
             filters.every((f) => row[f.column] === f.value) &&
             inFilters.every((f) => f.values.includes(row[f.column] as string))
         );
-        return Promise.resolve(resolve({ data: kept, error: null }));
+        if (sort !== undefined) {
+          const { column, ascending } = sort;
+          kept.sort((x, y) => String(x[column]).localeCompare(String(y[column])) * (ascending ? 1 : -1));
+        }
+        return Promise.resolve(resolve({ data: cap === undefined ? kept : kept.slice(0, cap), error: null }));
       },
     };
     return self;
@@ -367,5 +385,65 @@ describe("every stored read is a page: re-reads, refusals and rendered reads, ro
       vi.doUnmock("@/lib/measure/text");
       vi.resetModules();
     }
+  });
+});
+
+describe("Settings' facts read: the latest own scan and the latest free scan of the domain, never every payload", () => {
+  const DOMAIN = "a.example";
+  const at = (day: string) => `2026-09-${day}T08:00:00.000Z`;
+  const SCANS: ScanRow[] = [
+    { id: "free-old", site_id: null, domain: DOMAIN, tier: "free", created_at: at("01") },
+    { id: "free-new", site_id: null, domain: DOMAIN, tier: "free", created_at: at("02") },
+    { id: "deep-1", site_id: SITE, domain: DOMAIN, tier: "deep", created_at: at("03") },
+    { id: "week-1", site_id: SITE, domain: DOMAIN, tier: "weekly", created_at: at("10") },
+    { id: "week-2", site_id: SITE, domain: DOMAIN, tier: "weekly", created_at: at("17") },
+    { id: "free-9", site_id: null, domain: "elsewhere.example", tier: "free", created_at: at("20") },
+  ];
+  const read = (scan: string, path: string, day: string): FetchRow => ({
+    scan_id: scan,
+    source: OWN_FETCH_SOURCE,
+    created_at: at(day),
+    payload: storedDocument(`https://${DOMAIN}${path}`, `<main><h1>Page ${path}</h1><p>The ${path.slice(1)} page explains how the ${scan} team replaces a water heater in a single visit.</p></main>`, new Date(at(day))),
+  });
+  const FETCHES: FetchRow[] = [
+    read("free-old", "/old-free", "01"),
+    read("free-new", "/new-free", "02"),
+    read("deep-1", "/deep", "03"),
+    read("week-1", "/week-1", "10"),
+    read("week-2", "/week-2", "17"),
+    read("free-9", "/elsewhere", "20"),
+  ];
+
+  it("reads the pages of only those two scans, in one capped fetches select", async () => {
+    const { log } = useDb({ scans: SCANS, fetches: FETCHES });
+    const rows = await readLatestMeasuredText(SITE);
+    expect(rows.map((row) => row.url)).toEqual([`https://${DOMAIN}/new-free`, `https://${DOMAIN}/week-2`]);
+    expect(log.filter((entry) => entry.table === "fetches").map((entry) => entry.method)).toEqual([
+      "select(id, scan_id, source, payload)",
+      "in(source)",
+      "in(scan_id)",
+      "order(created_at)",
+      `limit(${LATEST_TEXT_ROWS})`,
+    ]);
+  });
+
+  it("keeps the freshest reads when a scan holds more than the cap", async () => {
+    const many = Array.from({ length: LATEST_TEXT_ROWS + 5 }, (_, i) => read("week-2", `/p${String(i).padStart(3, "0")}`, "17"));
+    useDb({ scans: SCANS, fetches: many });
+    expect(await readLatestMeasuredText(SITE)).toHaveLength(LATEST_TEXT_ROWS);
+  });
+
+  it("a site with no scan has no facts", async () => {
+    useDb({ scans: SCANS.filter((scan) => scan.site_id !== SITE), fetches: FETCHES });
+    expect(await readLatestMeasuredText(SITE)).toEqual([]);
+  });
+
+  it("the Settings facts are the latest two scans' passages, while the generation read still gets every scan's", async () => {
+    const { readAllFacts } = await import("../../../src/lib/generate/pipeline/grounding");
+    useDb({ scans: SCANS, fetches: FETCHES });
+    const urls = async (latest: boolean) =>
+      new Set((await readAllFacts({ siteId: SITE, ...(latest ? { latest: true as const } : {}) })).map((fact) => fact.fact.url));
+    expect(await urls(true)).toEqual(new Set([`https://${DOMAIN}/new-free`, `https://${DOMAIN}/week-2`]));
+    expect(await urls(false)).toEqual(new Set(["/old-free", "/new-free", "/deep", "/week-1", "/week-2"].map((p) => `https://${DOMAIN}${p}`)));
   });
 });
