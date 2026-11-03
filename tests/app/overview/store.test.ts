@@ -578,18 +578,19 @@ describe("Technical issues read from the stored report", () => {
 });
 
 describe("the months-scale figures are the first Monday's weekly pass, against the scan", () => {
-  function scored(at: string, score: number, top10: number): Row {
+  function scored(at: string, score: number, top10: number, measuredSearches = 12): Row {
     return {
       ...report({ ownRanked: 40, citations: 1, at }),
       verdict: {
         measuredAt: `${at}T09:00:00.000Z`,
         scoreAndBand: { kind: "measured", value: { score, band: "hard-to-find" }, at: `${at}T09:00:00.000Z` },
       },
-      presence: { measuredSearches: 12, you: { domain: "example.com", top10Count: top10 }, rivals: [], absentFrom: [], framing: "shown" },
+      presence: { measuredSearches, you: { domain: "example.com", top10Count: top10 }, rivals: [], absentFrom: [], framing: "shown" },
+      serps: Array.from({ length: 12 }, () => ({ kind: "unmeasured", reason: "not_attempted", at: `${at}T09:00:00.000Z` })),
     };
   }
-  const deep = (at: string, score: number, top10: number): Row => ({
-    ...weeklyScan(at, { report: scored(at, score, top10) }),
+  const deep = (at: string, score: number, top10: number, measuredSearches = 12): Row => ({
+    ...weeklyScan(at, { report: scored(at, score, top10, measuredSearches) }),
     id: "scan-deep",
     tier: "deep",
     week_start: null,
@@ -603,7 +604,16 @@ describe("the months-scale figures are the first Monday's weekly pass, against t
     ]);
     expect((await facts()).months).toEqual({
       reading: { week: WEEKS.sep07, score: 31, market: { top10: 1, of: 12 } },
-      scan: { score: 27, market: 0 },
+      scan: { score: 27, market: { top10: 0, of: 12 } },
+      next: "2026-10-05",
+    });
+  });
+
+  it("a first Monday or a scan that measured fewer searches than it selected gives no market, and keeps its score", async () => {
+    db.seed("scans", [deep("2026-08-12", 27, 3, 11), weeklyScan(WEEKS.sep07, { report: scored(WEEKS.sep07, 31, 0, 2) })]);
+    expect((await facts()).months).toEqual({
+      reading: { week: WEEKS.sep07, score: 31, market: null },
+      scan: { score: 27, market: null },
       next: "2026-10-05",
     });
   });

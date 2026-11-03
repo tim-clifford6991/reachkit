@@ -24,7 +24,10 @@ vi.mock("next/navigation", () => ({
 import { SearchTable } from "@/app/(account)/app/_overview/SearchTable";
 import { assembleSearch, type SearchModel, type SearchRow } from "@/app/(account)/app/_overview/search-model";
 import { FIXTURE_SEARCH_FACTS } from "@/app/(account)/app/_overview/search-fixture";
+import { SearchTiles } from "@/app/(account)/app/_overview/SearchTiles";
+import { monthFiguresOf } from "@/lib/measure/figures";
 import { measured, unmeasured } from "@/lib/measure/measured";
+import { CURRENT, FIRST_MONDAY } from "./partial-month";
 import { copy } from "@/lib/presentation/copy";
 
 const AT = FIXTURE_SEARCH_FACTS.measuredAt ?? new Date(0);
@@ -204,6 +207,19 @@ describe("what each row draws beside its words", () => {
     expect(pills[0]?.getAttribute("aria-label")).toBe(copy("overview.search.status.all"));
     expect((pills[0] as HTMLInputElement).checked).toBe(true);
     for (const pill of pills) expect(pill.className).not.toContain("filter-reset");
+  });
+});
+
+describe("your market on the Google tab", () => {
+  it("reads the current report's 12 while the month's first Monday measured 2 of them", () => {
+    // Overview's month card hides FIRST_MONDAY's partial count; this tab reads the current report.
+    expect(monthFiguresOf(FIRST_MONDAY).market).toBeNull();
+    const { presence } = CURRENT;
+    const model = assembleSearch({ ...FIXTURE_SEARCH_FACTS, market: { top10: presence.you.top10Count, measured: presence.measuredSearches } }, AT);
+    const container = document.createElement("div");
+    container.innerHTML = renderToStaticMarkup(<SearchTiles pages={null} visits={null} market={model.market} />);
+    expect(el(container, "search-tile-market-value")?.textContent).toBe("0");
+    expect(el(container, "search-tile-market")?.textContent).toContain(copy("overview.search.tile.searches.of", { of: "12" }));
   });
 });
 
