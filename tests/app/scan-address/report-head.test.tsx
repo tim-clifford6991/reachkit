@@ -370,7 +370,7 @@ describe("Site fixes lists only what needs work (owner 2026-11-03)", () => {
 
   it("a measured zero draws no card, and only a found problem carries its fix chip", () => {
     const fixes = holds(panelReport("saas"))!;
-    const cards = fixes.querySelectorAll("a.card");
+    const cards = fixes.querySelectorAll("li.card");
     expect(cards.map((card) => card.querySelector("h3")!.text)).toEqual([copy("problem.missing-pages.title"), copy("problem.unquotable-pages.title")]);
     expect(cards.map((card) => card.querySelectorAll(".badge-primary").map((badge) => badge.text))).toEqual([[copy("problem.missing-pages.doer")], []]);
     expect(fixes.querySelector("summary")!.text).toContain(copy("problem.section.sub", { problems: "2", checks: "2" }));

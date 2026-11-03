@@ -8,6 +8,8 @@ import { describe, expect, it } from "vitest";
 import { measured, measuredZero, unmeasured } from "@/lib/measure/measured";
 import { copy } from "@/lib/presentation/copy";
 import { CheckCards, fixesOf } from "@/app/(public)/scan/[domain]/_problems/cards";
+import { cardsOf } from "@/app/(public)/scan/[domain]/_problems/model";
+import { FIXTURE_COLD_START_REPORT } from "@/app/(public)/scan/[domain]/_fixture/states";
 import {
   CHECK_ORDER,
   checkCardsOf,
@@ -113,5 +115,20 @@ describe("the report reads the stored checks (#570), the same counts the dashboa
     expect(readings.broken_links?.count.kind).toBe("zero");
     expect(readings.sitemap).toBeUndefined();
     expect(readingsOf(null, AT)).toEqual({});
+  });
+});
+
+describe("Site fixes with nothing to list keeps its place in one line", () => {
+  const zeros = cardsOf(FIXTURE_COLD_START_REPORT, []);
+  const allPass = Object.fromEntries(CHECK_ORDER.map((c) => [c, { count: measuredZero(0, AT), severity: measured("low", AT) }]));
+
+  it("counts what ran and passed: the problems measured and the checks that ran", () => {
+    expect(zeros.every((card) => card.fix.kind === "none_needed")).toBe(true);
+    expect(fixesOf(zeros, checkCardsOf(allPass)).line).toBe(copy("problem.section.none", { n: String(zeros.length + CHECK_ORDER.length) }));
+  });
+
+  it("a check that couldn't run is listed under its grey dot instead, and with nothing run there is no line", () => {
+    expect(fixesOf(zeros, checkCardsOf({})).line).toBe(copy("problem.section.sub.checks", { checks: String(CHECK_ORDER.length) }));
+    expect(fixesOf([], []).line).toBeNull();
   });
 });

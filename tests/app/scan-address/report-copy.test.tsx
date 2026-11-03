@@ -80,6 +80,7 @@ const SCREEN_KEYS: readonly CopyKey[] = [
   "report.missing.rest",
   "problem.section.sub.problems",
   "problem.section.sub.checks",
+  "problem.section.none",
   "report.independent",
   "verdict.score.split",
   "verdict.factor.foundations",

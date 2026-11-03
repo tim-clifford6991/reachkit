@@ -125,8 +125,9 @@ function ProblemCardView(p: { card: ProblemCard; firstPage: boolean }): React.JS
   const tone = card.severity.kind === "unmeasured" ? "bg-base-200 text-base-content/70" : ICON_TONE[card.severity.value];
   const link = linkOf(card, p.firstPage);
   return (
-    <a href={link.href} className={`card bg-base-100 shadow-(--shadow-card) h-full min-w-0 ${CARD_LIFT}`}>
-      <div className="card-body gap-3 p-5">
+    // A row of Site fixes, as the board draws them: the section is the module, each problem one of its rows.
+    <li className={`card bg-base-100 shadow-(--shadow-card) h-full min-w-0 ${CARD_LIFT}`}>
+      <a href={link.href} className="card-body rounded-box gap-3 p-5">
         <div className="flex items-center justify-between gap-3">
           <span className={`rounded-field grid size-9 place-items-center ${tone}`}>
             <Icon size={18} strokeWidth={1.75} aria-hidden />
@@ -145,8 +146,8 @@ function ProblemCardView(p: { card: ProblemCard; firstPage: boolean }): React.JS
           {copy(link.label)}
           <ArrowRight size={16} strokeWidth={1.75} aria-hidden className={ARROW_NUDGE} />
         </span>
-      </div>
-    </a>
+      </a>
+    </li>
   );
 }
 
@@ -161,14 +162,18 @@ function checkFailed(card: CheckCard): boolean {
 }
 
 /** What Site fixes lists, a found problem or one that could not be measured and never a measured zero,
- *  and its sub-line naming only the halves that list something; `null` where nothing is listed. */
+ *  and its sub-line naming only the halves that list something. With nothing listed, the line counts
+ *  what ran and passed; `null` only where nothing ran at all. */
 export function fixesOf(all: readonly ProblemCard[], allChecks: readonly CheckCard[]): { cards: readonly ProblemCard[]; checks: readonly CheckCard[]; line: string | null } {
   const cards = all.filter((card) => card.fix.kind !== "none_needed");
   const checks = allChecks.filter((card) => card.fix.kind !== "none_needed");
   const [problems, quick] = [String(cards.length), String(checks.length)];
+  const passed = all.length - cards.length + allChecks.length - checks.length;
   const line =
     cards.length === 0 && checks.length === 0
-      ? null
+      ? passed === 0
+        ? null
+        : copy("problem.section.none", { n: String(passed) })
       : checks.length === 0
         ? copy("problem.section.sub.problems", { problems })
         : cards.length === 0
@@ -184,13 +189,13 @@ export function fixesOf(all: readonly ProblemCard[], allChecks: readonly CheckCa
 export function ProblemCards(p: {
   cards: readonly ProblemCard[];
   firstPage?: boolean;
-}): React.JSX.Element {
-  return (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+}): React.JSX.Element | null {
+  return p.cards.length === 0 ? null : (
+    <ol role="list" className="grid list-none grid-cols-1 gap-4 lg:grid-cols-3">
       {p.cards.map((card) => (
         <ProblemCardView key={card.problem} card={card} firstPage={p.firstPage === true} />
       ))}
-    </div>
+    </ol>
   );
 }
 

@@ -439,6 +439,8 @@ export const REPORT_COPY = Object.freeze({
   "problem.section.sub": ["The {problems} that cost you most, then {checks} quick checks", { slots: { problems: "text", checks: "text" }, fixedBy: "issue 1068" }],
   "problem.section.sub.problems": ["The {problems} that cost you most", { slots: { problems: "text" }, fixedBy: "issue 1068 · issue 2123 · drafted" }],
   "problem.section.sub.checks": ["{checks} quick checks", { slots: { checks: "text" }, fixedBy: "issue 1068 · issue 2123 · drafted" }],
+  // With nothing to list: the problems measured and the checks that ran, all passed. Owner-owed wording (#1034).
+  "problem.section.none": ["All {n} checks passed.", { slots: { n: "text" }, fixedBy: "issue 2123 · drafted" }],
   "problem.blocked-readers.cause": ["Your site blocks AI, or asks Google and AI to skip pages.", { slots: {}, fixedBy: "board PubReport · issue 1724" }],
   "problem.missing-pages.cause": ["Questions your buyers ask that no page on your site answers.", { slots: {}, fixedBy: "issue 1068" }],
   "problem.unquotable-pages.cause": ["These pages have no clear answer AI can quote.", { slots: {}, fixedBy: "issue 1068" }],
@@ -447,9 +449,7 @@ export const REPORT_COPY = Object.freeze({
   "problem.show.method": ["Show me how", { slots: {}, fixedBy: "issue 1068" }],
 
   // ── Module 3, the technical checks (SPEC §9, issue 571) ──────────────
-  // The doer words are SPEC §9’s own; the eight
-  // card titles and the line for a check the scan does not run yet are
-  // owner-owed.
+  // The doer words are SPEC §9’s own; the eight card titles and the not-run line are owner-owed.
   "check.doer.free-fix": ["Free fix · 10 min", { slots: {}, fixedBy: "SPEC §9" }],
   "check.doer.reachkit-writes": ["ReachKit writes", { slots: {}, fixedBy: "SPEC §9" }],
   "check.doer.reachkit-rewrites": ["ReachKit rewrites on WordPress", { slots: {}, fixedBy: "SPEC §9" }],
