@@ -1,7 +1,7 @@
 // tests/app/issues/page.test.tsx — issue 1550: a needs-you technical issue
 // opens the account's own view, which names the pages and says what to do,
-// and is never the public report with its checkout. Issue 1752: its sections
-// are board `AppIssues`' — lead, summary, problem cards, and the empty arm.
+// and is never the public report with its checkout. Its sections are board
+// `AppIssues`' — lead, summary, problem cards, and the empty arm.
 import "../../generate/env";
 import { afterEach, describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -63,7 +63,7 @@ describe("Technical issues, where a needs-you item lands", () => {
       ],
     };
     const markup = renderToStaticMarkup(
-      <IssuesView reading={issuesReading(section, FIXTURE_MEASURED_AT, null)} timeZone="America/New_York" />
+      <IssuesView reading={issuesReading(section, FIXTURE_MEASURED_AT)} timeZone="America/New_York" />
     );
     expect(markup).toContain("No page list for Google");
     expect(markup).toContain("AI shut out of your site");
@@ -81,35 +81,36 @@ function textOf(markup: string, testId: string): string {
 }
 
 describe("Technical issues, as board AppIssues lays it out", () => {
-  it("leads with what these are, that fixing is optional, and the day the scan found them", async () => {
+  it("leads with what these are, who can fix them, said once, and the day the scan found them", async () => {
     const markup = await rendered();
-    const lead = textOf(markup, "issues-lead");
-    expect(lead).toContain(copy("overview.issues.lead"));
-    expect(lead).toContain(copy("overview.issues.found", { date: "Monday, October 19" }));
+    expect(textOf(markup, "issues-lead")).toBe(
+      "Optional. Whoever runs your website can make them; ReachKit can’t. Found Monday, October 19."
+    );
+    expect(markup.split("Whoever runs your website")).toHaveLength(2);
     expect(markup).toContain(copy("chrome.back-to-overview"));
   });
 
-  it("sums up the pages read, the pages with nothing to fix, and that ReachKit's pages are not affected", async () => {
+  it("sums up the pages read, the pages with nothing to fix, and that ReachKit's pages are checked, with no bar or legend", async () => {
     const markup = await rendered();
-    expect(markup).toContain(copy("overview.issues.read", { count: "40" }));
-    expect(textOf(markup, "issues-fine")).toBe(`31${copy("overview.issues.fine")}`);
-    expect(markup).toContain(copy("overview.issues.affected", { pages: "9", problems: "3" }));
-    expect(markup).toContain(copy("overview.issues.ours.hosted", { host: "blog.example.com" }));
-    expect(textOf(markup, "issues-legend")).toBe("3 hard to use on a phone4 slow2 broken links31 fine");
+    expect(textOf(markup, "issues-summary")).toBe(
+      "Your site, 40 pages read31pages with nothing to fix9 pages have a problem. Your ReachKit pages are checked before they go live."
+    );
     // The summary stands above the first problem card.
     expect(markup.indexOf('data-testid="issues-summary"')).toBeLessThan(markup.indexOf('data-testid="issue"'));
   });
 
-  it("gives each problem its severity, its share of the pages read, the fix, who can do it, and its pages behind one control", async () => {
+  it("gives each problem its severity, its share of the pages read, the fix, and its pages behind one control, with no track", async () => {
     const markup = await rendered();
     const order = [...markup.matchAll(/data-check="(\w+)"/g)].map((m) => m[1]);
     expect(order).toEqual(["phone_usability", "slow_pages", "broken_links", "ai_readers_blocked"]);
     const phone = markup.slice(markup.indexOf('data-check="phone_usability"'), markup.indexOf('data-check="slow_pages"'));
     expect(phone).toContain(copy("severity.high"));
-    expect(phone).toContain(copy("overview.issues.share", { count: "3", over: "40" }));
+    expect(textOf(phone, "issue-share")).toBe("3 of 40 pages");
     expect(phone).toContain(`<strong>${copy("overview.issues.fix")}</strong> ${copy("check.phone-usability.fix")}`);
-    expect(phone).toContain(copy("overview.issues.who"));
-    expect(phone).toMatch(new RegExp(`<summary[^>]*>${copy("overview.issues.show", { count: "3" })}</summary>`));
+    expect(phone).toMatch(new RegExp(`<summary[^>]*><svg[^>]*lucide-chevron-down[^>]*>.*?</svg>${copy("overview.issues.show", { count: "3" })}</summary>`));
+    expect(markup).not.toContain("<progress");
+    const slow = markup.slice(markup.indexOf('data-check="slow_pages"'), markup.indexOf('data-check="broken_links"'));
+    expect(slow).toContain(">Each took 3 seconds or more, twice.</p>");
     // A fault of the whole site names no share and no list.
     const site = markup.slice(markup.indexOf('data-check="ai_readers_blocked"'));
     expect(site).toContain(copy("overview.issues.site"));
@@ -127,7 +128,7 @@ describe("Technical issues, as board AppIssues lays it out", () => {
       ],
     };
     const markup = renderToStaticMarkup(
-      <IssuesView reading={issuesReading(section, FIXTURE_MEASURED_AT, null)} timeZone="America/New_York" />
+      <IssuesView reading={issuesReading(section, FIXTURE_MEASURED_AT)} timeZone="America/New_York" />
     );
     expect(textOf(markup, "issues-fine")).toBe(`11${copy("overview.issues.fine")}`);
     expect(markup).toContain(copy("overview.issues.affected.one-page"));
@@ -142,14 +143,14 @@ describe("Technical issues, as board AppIssues lays it out", () => {
       ),
     };
     const markup = renderToStaticMarkup(
-      <IssuesView reading={issuesReading(clean, FIXTURE_MEASURED_AT, null)} timeZone="America/New_York" />
+      <IssuesView reading={issuesReading(clean, FIXTURE_MEASURED_AT)} timeZone="America/New_York" />
     );
     expect(textOf(markup, "issues-empty")).toBe(copy("overview.issues.empty"));
     expect(markup).not.toContain('data-testid="issues-summary"');
   });
 
   it("with no stored reading, states no day, no count, and never that nothing needs fixing", () => {
-    const markup = renderToStaticMarkup(<IssuesView reading={issuesReading(null, null, null)} timeZone="America/New_York" />);
+    const markup = renderToStaticMarkup(<IssuesView reading={issuesReading(null, null)} timeZone="America/New_York" />);
     expect(textOf(markup, "issues-lead")).toBe(copy("overview.issues.lead"));
     expect(textOf(markup, "issues-unscanned")).toBe(copy("overview.issues.unscanned"));
     expect(markup).not.toContain('data-testid="issues-empty"');
@@ -161,21 +162,12 @@ describe("Technical issues, as board AppIssues lays it out", () => {
       ...FIXTURE_SITE_ISSUES,
       issues: FIXTURE_SITE_ISSUES.issues.map((issue) => ({ check: issue.check, ran: false, because: "crawl_not_run" })),
     };
-    for (const reading of [issuesReading(null, FIXTURE_MEASURED_AT, null), issuesReading(ranNothing, FIXTURE_MEASURED_AT, null)]) {
+    for (const reading of [issuesReading(null, FIXTURE_MEASURED_AT), issuesReading(ranNothing, FIXTURE_MEASURED_AT)]) {
       const markup = renderToStaticMarkup(<IssuesView reading={reading} timeZone="America/New_York" />);
       expect(textOf(markup, "issues-lead")).toBe(copy("overview.issues.lead"));
       expect(textOf(markup, "issues-unscanned")).toBe(copy("overview.issues.unscanned"));
       expect(markup).not.toContain('data-testid="issues-empty"');
     }
-  });
-
-  it("names the hosted address ReachKit's pages live on, and no address for a site they publish into", () => {
-    const view = (host: string | null): string =>
-      renderToStaticMarkup(<IssuesView reading={issuesReading(FIXTURE_SITE_ISSUES, FIXTURE_MEASURED_AT, host)} timeZone="UTC" />);
-    expect(view("help.acmecrm.com")).toContain(copy("overview.issues.ours.hosted", { host: "help.acmecrm.com" }));
-    const wordpress = view(null);
-    expect(wordpress).toContain(copy("overview.issues.ours"));
-    expect(wordpress).not.toContain(" live on ");
   });
 
   it("with a report that could not be read, says so and draws no arm", () => {
@@ -202,7 +194,7 @@ const EVERY_CARD: SiteIssuesSection = {
 };
 
 function everyCard() {
-  return parse(renderToStaticMarkup(<IssuesView reading={issuesReading(EVERY_CARD, FIXTURE_MEASURED_AT, null)} timeZone="UTC" />));
+  return parse(renderToStaticMarkup(<IssuesView reading={issuesReading(EVERY_CARD, FIXTURE_MEASURED_AT)} timeZone="UTC" />));
 }
 
 describe("Technical issues, the cards' marks as board AppIssues draws them", () => {
@@ -225,19 +217,21 @@ describe("Technical issues, the cards' marks as board AppIssues draws them", () 
       expect(tile.getAttribute("aria-hidden"), check).toBe("true");
       expect(tile.querySelector("svg")!.classList.contains(`lucide-${icon[check]}`), check).toBe(true);
       const critical = check === "phone_usability";
-      expect(tile.classList.contains("bg-error/10"), check).toBe(critical);
-      expect(tile.classList.contains("text-error"), check).toBe(critical);
+      // Critical in the warning tone, never red; the rest quiet.
+      expect(tile.getAttribute("class")!.includes("--warn-bg"), check).toBe(critical);
+      expect(tile.classList.contains("text-warning"), check).toBe(critical);
       expect(tile.classList.contains("bg-base-200"), check).toBe(!critical);
+      expect(tile.getAttribute("class")!.includes("error"), check).toBe(false);
     }
   });
 
-  it("only the critical card carries the left accent, in the critical tone", () => {
+  it("only the critical card carries the left accent, in the warning tone", () => {
     const cards = everyCard().querySelectorAll('[data-testid="issue"]');
     expect(cards.length).toBeGreaterThan(1);
     for (const card of cards) {
       const critical = card.getAttribute("data-check") === "phone_usability";
       expect(card.classList.contains("border-l-4"), card.getAttribute("data-check")!).toBe(critical);
-      expect(card.classList.contains("border-l-error"), card.getAttribute("data-check")!).toBe(critical);
+      expect(card.getAttribute("class")!.includes("--warn-rule"), card.getAttribute("data-check")!).toBe(critical);
     }
   });
 
@@ -253,6 +247,8 @@ describe("Technical issues, the cards' marks as board AppIssues draws them", () 
       expect(svg.getAttribute("aria-hidden"), check).toBe("true");
       expect(badge(check).text.trim(), check).toBe(copy(word));
     }
+    expect(badge("phone_usability").classList.contains("badge-warning")).toBe(true);
+    expect(badge("slow_pages").getAttribute("class")).not.toMatch(/badge-(warning|error)/);
     expect(root.querySelectorAll("svg.lucide-signal-low")).toHaveLength(0);
   });
 

@@ -11,10 +11,11 @@
 // screen root (`../layout.tsx`).
 import type React from "react";
 import type { Metadata } from "next";
+import { ChevronDown } from "lucide-react";
 import { notFound } from "next/navigation";
 import { PLAN_NET_EUR_CENTS, PRICE_EUR_CENTS, TEST_DAY_EUR } from "@/lib/config/constants";
 import { now } from "@/lib/config/now";
-import { readCostPage, usdCentsToEur, type Activity, type Cell, type CostPage, type Who } from "@/lib/costs/site-day";
+import { readCostPage, usdCentsToEur, WEEKS_A_MONTH, type Activity, type Cell, type CostPage, type Who } from "@/lib/costs/site-day";
 import type { FixedVendor } from "@/lib/costs/vendor-days";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { CapDays } from "@/ui/charts";
@@ -115,11 +116,14 @@ function Head(p: { cols: readonly string[]; opt?: readonly string[] }): React.JS
   );
 }
 
+/** Card padding as the board draws it: 16px a side on a phone. */
+const CARD_BODY = "card-body min-w-0 p-5 max-sm:px-4";
+
 function Section(p: { title: string; testId: string; children: React.ReactNode }): React.JSX.Element {
   return (
     <section className="card card-border min-w-0 bg-base-100" data-testid={p.testId}>
-      <div className="card-body min-w-0 gap-3 p-4">
-        <h2 className="card-title text-base">{p.title}</h2>
+      <div className={`${CARD_BODY} gap-3`}>
+        <h2 className="card-title text-(length:--h3)">{p.title}</h2>
         {p.children}
       </div>
     </section>
@@ -154,43 +158,50 @@ function Scroll(p: { label: string; children: React.ReactNode }): React.JSX.Elem
 
 const NUM = "tabular-nums";
 
+/** A row the site table draws not applying, as the board marks it. */
+const NONE = "—";
+
+/** A stacked row's cell a phone drops: important, so the stack's `block` does not bring it back. */
+const STACKED_OFF = "max-sm:hidden!";
+
+/** Below 640px the site table is stacked rows, its heads dropped. */
+const STACKED =
+  "max-sm:block max-sm:[&_thead]:hidden max-sm:[&_tbody]:block max-sm:[&_tr]:block max-sm:[&_tr]:px-0 max-sm:[&_tr]:py-3 max-sm:[&_td]:block max-sm:[&_td]:px-0 max-sm:[&_td]:py-0.5";
+
 function Figures(p: { page: CostPage }): React.JSX.Element {
   const today = p.page.capDays[0];
   const total = p.page.total;
-  const tiles: { key: string; label: string; figure: string; of?: string; meter?: { value: number; max: number }; under: string }[] = [
-    {
-      key: "today",
-      label: copy("overview.costs.stat.today"),
-      figure: eur(today?.judgedEur ?? 0),
-      of: copy("overview.costs.stat.today.cap", { cap: euros(TEST_DAY_EUR.cap) }),
-      meter: { value: Math.min(today?.judgedEur ?? 0, TEST_DAY_EUR.cap), max: TEST_DAY_EUR.cap },
-      under: copy("overview.costs.stat.today.of", { warn: euros(TEST_DAY_EUR.warn) }),
-    },
-    { key: "estimated", label: copy("overview.costs.stat.estimated"), figure: cents(total.estimatedCents), under: copy("overview.costs.stat.estimated.of") },
-    {
-      key: "billed",
-      label: copy("overview.costs.stat.billed"),
-      figure: billed(total),
-      meter: total.calls === 0 ? undefined : { value: total.billedCalls, max: total.calls },
-      under: copy("overview.costs.stat.billed.of", { billed: WHOLE.format(total.billedCalls), calls: WHOLE.format(total.calls) }),
-    },
-  ];
   return (
-    <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-3" data-testid="costs-figures">
-      {tiles.map((tile) => (
-        <div key={tile.key} className="card card-border min-w-0 bg-base-100">
-          <div className="card-body gap-2 p-4">
-            <span className="min-w-0 text-xs font-semibold uppercase tracking-wide text-base-content/70">{tile.label}</span>
-            <span className="figure text-3xl leading-none tabular-nums">
-              {tile.figure}
-              {tile.of === undefined ? null : <span className="text-base text-base-content/70"> {tile.of}</span>}
-            </span>
-            {tile.meter === undefined ? null : <progress className="progress progress-primary" value={tile.meter.value} max={tile.meter.max} aria-hidden="true" />}
-            <span className="min-w-0 text-sm text-base-content/70">{tile.under}</span>
+    <section className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-3" aria-label={copy("overview.costs.stat.week")} data-testid="costs-figures">
+      <div className="card card-border min-w-0 bg-base-100">
+        <div className={`${CARD_BODY} gap-2`}>
+          <p className="eyebrow">{copy("overview.costs.stat.today")}</p>
+          <p className="figure text-4xl leading-none">
+            {eur(today?.judgedEur ?? 0)}
+            <span className="text-base font-medium text-base-content/70"> {copy("overview.costs.stat.today.cap", { cap: euros(TEST_DAY_EUR.cap) })}</span>
+          </p>
+          <progress className="progress progress-primary" value={Math.min(today?.judgedEur ?? 0, TEST_DAY_EUR.cap)} max={TEST_DAY_EUR.cap} aria-hidden="true" />
+          <p className="text-sm text-base-content/70">{copy("overview.costs.stat.today.of", { warn: euros(TEST_DAY_EUR.warn) })}</p>
+        </div>
+      </div>
+      <div className="card card-border min-w-0 bg-base-100 sm:col-span-2" data-testid="costs-week-figures">
+        <div className={`${CARD_BODY} gap-2`}>
+          <p className="eyebrow">{copy("overview.costs.stat.week")}</p>
+          <div className="flex min-w-0 flex-wrap gap-x-10 gap-y-3">
+            <div className="flex min-w-0 flex-col gap-1">
+              <p className="figure text-4xl leading-none">{cents(total.estimatedCents)}</p>
+              <p className="text-sm text-base-content/70">{copy("overview.costs.stat.estimated.of")}</p>
+            </div>
+            <div className="flex min-w-0 flex-col gap-1">
+              <p className="figure text-4xl leading-none">{billed(total)}</p>
+              <p className="text-sm text-base-content/70">
+                {copy("overview.costs.stat.billed.of", { billed: WHOLE.format(total.billedCalls), calls: WHOLE.format(total.calls) })}
+              </p>
+            </div>
           </div>
         </div>
-      ))}
-    </div>
+      </div>
+    </section>
   );
 }
 
@@ -200,9 +211,9 @@ function Cap(p: { page: CostPage }): React.JSX.Element {
   const count = (state: "warn" | "over") => p.page.capDays.filter((day) => day.state === state).length;
   return (
     <section className="card card-border min-w-0 bg-base-100" data-testid="costs-cap">
-      <div className="card-body min-w-0 gap-3 p-4">
-        <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
-          <h2 className="card-title text-base">{copy("overview.costs.cap.title")}</h2>
+      <div className={`${CARD_BODY} gap-3`}>
+        <div className="flex min-w-0 flex-wrap items-baseline justify-between gap-x-3 gap-y-1.5">
+          <h2 className="card-title text-(length:--h3)">{copy("overview.costs.cap.title")}</h2>
           <span className="text-xs text-base-content/70">
             {copy("overview.costs.cap.summary", { over: days("overview.costs.cap.over-days", count("over")), warn: days("overview.costs.cap.warn-days", count("warn")) })}
           </span>
@@ -217,9 +228,12 @@ function Cap(p: { page: CostPage }): React.JSX.Element {
           <span>{copy("overview.costs.cap.key.line", { cap })}</span>
           <span>{copy("overview.costs.cap.key.warn-line", { warn })}</span>
         </p>
-        <details className="collapse collapse-arrow min-w-0">
-          <summary className="collapse-title px-0 text-sm font-semibold text-primary">{copy("overview.costs.cap.table")}</summary>
-          <div className="collapse-content min-w-0 px-0">
+        <details className="collapse group min-w-0 rounded-none">
+          <summary className="collapse-title link link-primary flex min-h-11 w-fit cursor-pointer list-none items-center gap-2 p-0 text-sm font-semibold no-underline [&::-webkit-details-marker]:hidden">
+            <ChevronDown aria-hidden className="size-4 shrink-0 transition-transform group-open:rotate-180" />
+            {copy("overview.costs.cap.table")}
+          </summary>
+          <div className="collapse-content min-w-0 p-0">
             <Scroll label={copy("overview.costs.cap.title")}>
               <table className={TABLE}>
                 <Head cols={[copy("overview.costs.col.day"), copy("overview.costs.col.judged"), copy("overview.costs.col.cap")]} />
@@ -251,7 +265,7 @@ export default async function CostsPage(): Promise<React.JSX.Element> {
   if (page === null) {
     return (
       <div className="flex min-w-0 flex-col gap-6" data-testid="costs">
-        <h1 className="text-2xl font-semibold">{copy("overview.costs.title")}</h1>
+        <h1>{copy("overview.costs.title")}</h1>
         <div role="alert" className="alert alert-soft alert-warning">
           {copy("overview.costs.unreadable")}
         </div>
@@ -259,13 +273,14 @@ export default async function CostsPage(): Promise<React.JSX.Element> {
     );
   }
   const net = TWO_PLACES.format(PLAN_NET_EUR_CENTS / 100);
+  const price = euros(PRICE_EUR_CENTS / 100);
 
   return (
     <div className="flex min-w-0 flex-col gap-6" data-testid="costs">
-      <header className="flex min-w-0 flex-col gap-1">
-        <span className="text-xs font-semibold uppercase tracking-wide text-base-content/70">{copy("overview.costs.eyebrow")}</span>
-        <h1 className="text-2xl font-semibold">{copy("overview.costs.title")}</h1>
-        <p className="text-sm text-base-content/70">{copy("overview.costs.lead", { today: page.days[0] === undefined ? "" : dayIn(LONG_DAY, page.days[0]) })}</p>
+      <header className="flex min-w-0 flex-col gap-1.5">
+        <p className="eyebrow">{copy("overview.costs.eyebrow")}</p>
+        <h1>{copy("overview.costs.title")}</h1>
+        <p className="min-w-0 text-base-content/70">{copy("overview.costs.lead", { today: page.days[0] === undefined ? "" : dayIn(LONG_DAY, page.days[0]) })}</p>
       </header>
 
       <Figures page={page} />
@@ -277,9 +292,9 @@ export default async function CostsPage(): Promise<React.JSX.Element> {
           <p className="text-sm text-base-content/70">{copy("overview.costs.week.empty")}</p>
         ) : (
           <Scroll label={copy("overview.costs.week.title")}>
-            <table className={TABLE}>
+            <table className={`${TABLE} ${STACKED}`}>
               <Head
-                cols={[copy("overview.costs.col.site"), copy("overview.costs.col.estimated"), copy("overview.costs.col.billed"), copy("overview.costs.col.month", { price: euros(PRICE_EUR_CENTS / 100) })]}
+                cols={[copy("overview.costs.col.site"), copy("overview.costs.col.estimated"), copy("overview.costs.col.billed"), copy("overview.costs.col.month", { price })]}
                 opt={[copy("overview.costs.col.estimated"), copy("overview.costs.col.billed")]}
               />
               <tbody>
@@ -295,23 +310,26 @@ export default async function CostsPage(): Promise<React.JSX.Element> {
                         </span>
                       </span>
                     </td>
-                    <td className={`${NUM} ${OPT}`}>{cents(line.cell.estimatedCents)}</td>
-                    <td className={`${NUM} ${OPT}`}>{billed(line.cell)}</td>
-                    <td className={NUM}>
-                      {line.monthEurCents === null || line.shareOfNet === null ? null : (
-                        <span className="flex min-w-24 flex-col gap-1">
-                          <progress className="progress progress-primary" value={Math.min(line.shareOfNet, 1)} max={1} aria-hidden="true" />
-                          <span>{copy("overview.costs.share", { eur: TWO_PLACES.format(line.monthEurCents / 100), share: WHOLE.format(line.shareOfNet * 100) })}</span>
+                    <td className={`${NUM} ${STACKED_OFF}`}>{cents(line.cell.estimatedCents)}</td>
+                    <td className={`${NUM} ${STACKED_OFF}`}>{billed(line.cell)}</td>
+                    {line.monthEurCents === null || line.shareOfNet === null ? (
+                      <td className={`text-base-content/70 ${STACKED_OFF}`}>{NONE}</td>
+                    ) : (
+                      <td className={NUM}>
+                        <span className="flex min-w-0 items-center gap-2.5 max-sm:mt-1.5">
+                          <span className="text-sm whitespace-nowrap text-base-content/70 sm:hidden">{copy("overview.costs.week.month", { price })}</span>
+                          <progress className="progress progress-primary w-30 shrink" value={Math.min(line.shareOfNet, 1)} max={1} aria-hidden="true" />
+                          <span className="whitespace-nowrap">{copy("overview.costs.share", { eur: TWO_PLACES.format(line.monthEurCents / 100), share: WHOLE.format(line.shareOfNet * 100) })}</span>
                         </span>
-                      )}
-                    </td>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
             </table>
           </Scroll>
         )}
-        <p className="text-xs text-base-content/70">{copy("overview.costs.week.note", { net })}</p>
+        <p className="text-xs text-base-content/70">{copy("overview.costs.week.note", { weeks: TWO_PLACES.format(WEEKS_A_MONTH), net })}</p>
       </Section>
 
       <Closed title={copy("overview.costs.days.title")} sub={copy("overview.costs.days.sub")} testId="costs-days">

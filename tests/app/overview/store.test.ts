@@ -568,22 +568,12 @@ describe("the hosted address waiting for its record is read from the destination
   });
 });
 
-describe("Technical issues read from the stored report and the destination row", () => {
+describe("Technical issues read from the stored report", () => {
   it("a stored report with no site-issue section states no day and no count", async () => {
     const stored = { ...report({ ownRanked: 40, citations: 1, at: WEEKS.sep07 }), siteIssues: null };
     db.seed("scans", [weeklyScan(WEEKS.sep07, { report: stored })]);
-    db.seed("destinations", []);
     vi.setSystemTime(NOW);
-    expect(await readWaitingIssues(SITE)).toEqual({ issues: [], pagesChecked: null, measuredAt: null, hostedHost: null });
-  });
-
-  // A SaaS help centre and a local plumber's guides: the read is the same.
-  it.each(["help.acmecrm.com", "guides.harborplumbing.com"])("a hosted site names %s, live or waiting", async (hostname) => {
-    db.seed("destinations", [
-      { id: "dest-1", site_id: SITE_ID, kind: "hosted", hostname, hostname_state: "pending_dns", deleted_at: null },
-    ]);
-    vi.setSystemTime(NOW);
-    expect((await readWaitingIssues(SITE)).hostedHost).toBe(hostname);
+    expect(await readWaitingIssues(SITE)).toEqual({ issues: [], pagesChecked: null, measuredAt: null });
   });
 });
 
