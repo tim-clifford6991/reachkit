@@ -56,6 +56,8 @@ export const LIVE_SCHEMA_TESTS = [
   "tests/publish/daily/days-schema.test.ts",
   // Issue 1958: one owner mail per failing job, error class and Berlin day.
   "tests/jobs/error-mails-schema.test.ts",
+  // The durable count of failed Settings reads the daily check reads.
+  "tests/db/ops-events.test.ts",
   // Issue 1483: no `public` function a session can execute unless
   // allow-listed, the closed default, and every policy's `(select auth.uid())`.
   "tests/db/function-privileges.test.ts",
