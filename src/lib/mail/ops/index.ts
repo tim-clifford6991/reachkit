@@ -5,4 +5,4 @@ export {
   sendOpsAlert,
 } from "./spend-ceiling";
 // The owner's incident alert: a job failed or was dead-lettered, or a deploy refused to boot.
-export { errorNameOf, reportIncident } from "./incident";
+export { claimOwnerMail, errorNameOf, releaseOwnerMail, reportIncident } from "./incident";
