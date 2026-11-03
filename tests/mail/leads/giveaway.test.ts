@@ -23,7 +23,7 @@ const { buildFirstPageUnavailable } = await import(
   "../../../src/lib/mail/templates/first-page-unavailable"
 );
 const { composeMail } = await import("../../../src/lib/mail/shell/compose");
-const { escapeHtml } = await import("../../../src/lib/mail/blocks/html");
+const { escapeHtml } = await import("../escape");
 
 let state: MemoryState;
 let draftCalls: number;

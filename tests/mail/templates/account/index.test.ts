@@ -11,7 +11,7 @@ const { MAIL_KINDS } = await import("../../../../src/lib/mail/kinds");
 const { COPY } = await import("../../../../src/lib/presentation/copy");
 const { COPY_META, OWNER_OWED } = await import("../../../../src/lib/presentation/copy/registry");
 const { composeMail } = await import("../../../../src/lib/mail/shell/compose");
-const { escapeHtml } = await import("../../../../src/lib/mail/blocks/html");
+const { escapeHtml } = await import("../../escape");
 
 const HREF = "https://reachkit.example/signin?t=tok";
 

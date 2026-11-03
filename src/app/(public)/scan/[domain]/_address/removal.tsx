@@ -63,6 +63,7 @@ import { CircleSlash } from "lucide-react";
 import { QuietPage } from "@/app/_quiet/QuietCard";
 import { REPORT_REMOVED_STATUS } from "@/lib/config/constants";
 import { copy } from "@/lib/presentation/copy";
+import { plainDocument } from "@/lib/publish/render/plain-document";
 import type { CanonicalDomain } from "@/lib/scan/domain";
 
 /** The one call site of `removal.address` in the product. Never composed
@@ -99,7 +100,7 @@ export function RemovedView(p: { domain: CanonicalDomain }): React.JSX.Element {
  * arm (`410 Gone`, owner ruling 2026-09-05) and only a route handler can
  * set one; Next refuses `react-dom/server` inside the app router, so a
  * route handler cannot render a component. The document is therefore
- * written out here — in the same module, beside the view, reading the same
+ * built here with `plainDocument` — in the same module, beside the view, reading the same
  * two copy keys through the same `removalAddress()` call site, so the two
  * forms cannot say different things.
  *
@@ -120,38 +121,11 @@ export function RemovedView(p: { domain: CanonicalDomain }): React.JSX.Element {
  * promise that #936 did not change, and the half its suite still proves.
  */
 export function removedDocument(domain: CanonicalDomain): string {
-  const head = copy("quiet.removed.head");
-  const line = copy("removal.line.removed", { domain, address: removalAddress() });
-  const onward = copy("control.scan-another");
-  return [
-    "<!doctype html>",
-    '<html lang="en">',
-    "<head>",
-    '<meta charset="utf-8">',
-    '<meta name="viewport" content="width=device-width, initial-scale=1">',
-    '<meta name="robots" content="noindex">',
-    `<title>${escapeHtml(head)}</title>`,
-    "</head>",
-    "<body><main>",
-    `<h1>${escapeHtml(head)}</h1>`,
-    `<p>${escapeHtml(line)}</p>`,
-    // The way onward #936 asks for, at the status the ruling asks for.
-    // An `<a>` and not a control: there is nothing here to submit.
-    `<p><a href="/">${escapeHtml(onward)}</a></p>`,
-    "</main></body>",
-    "</html>",
-  ].join("");
-}
-
-/** The line is the owner's sentence and the domain is a visitor-supplied
- *  segment that has been through `parseDomain`; neither should be able to
- *  close a tag, and this is the one place either becomes markup. */
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+  return plainDocument({
+    head: copy("quiet.removed.head"),
+    line: copy("removal.line.removed", { domain, address: removalAddress() }),
+    onward: copy("control.scan-another"),
+  });
 }
 
 /** The status, the robots directive and the cache policy a removed
