@@ -1002,14 +1002,16 @@ a paid pass inside the seam. The line to look for is
 `{"event":"cap_hit","reason":"scan_cap"|"daily_ceiling",…}`, logged once per context.
 
 **The guard fails closed.** If the day's total cannot be read the ledger logs
-`{"event":"daily_spend_unreadable"}` and the paid call is skipped, and a free scan is refused
-(issue 792). So an unreachable database stops spend until it answers.
+`{"event":"daily_spend_unreadable"}` (a site's, `site_spend_unreadable`) and the paid call is
+skipped, and a free scan is refused (issue 792). So an unreachable database stops spend until it
+answers. The owner gets one spend alert per reason and UTC day saying the ledger could not be read,
+claimed in `job_error_mails` as job `spend-ledger`; each report logs
+`{"event":"ops_ledger_unreadable","reason":…,"outcome":…}`.
 
-**Two known imprecisions, both erring the same way.** `cost_cents` is an integer while the
-cheapest vendor rows cost fractions of a cent, so the stored day total is a floor: the ceiling can
-be crossed slightly rather than triggered early. And the alerts at 80% and 100% of the ceiling
-(`SPEND_ALERT_AT`) are mailed through the same ops template whose copy keys are empty (§6), so
-**they are logged and not delivered.**
+**One known imprecision.** `cost_cents` is an integer while the cheapest vendor rows cost
+fractions of a cent, so the stored day total is a floor: the ceiling can be crossed slightly rather
+than triggered early. The alerts at 80% and 100% of the ceiling (`SPEND_ALERT_AT`) are mailed
+through the ops template; each send logs `{"event":"ops_spend_alert"}`.
 
 ### Reading spend
 
