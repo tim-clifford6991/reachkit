@@ -113,7 +113,7 @@ function YouCell(p: { row: SearchRow }): React.JSX.Element {
   const change = p.row.change;
   const placeText = (
     <span className="num" title={place.line} aria-label={place.isDash ? place.line : undefined}>
-      {place.isDash ? place.text : copy("overview.search.position", { position: place.text })}
+      {place.text}
     </span>
   );
   return (

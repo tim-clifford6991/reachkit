@@ -187,8 +187,8 @@ describe("what each row draws beside its words", () => {
     const badge = rowsOf()[0]?.querySelector("svg.lucide-trophy")?.parentElement;
     expect(badge?.className).toBe("badge badge-success badge-soft");
     expect(badge?.firstElementChild?.matches("svg.lucide-trophy")).toBe(true);
-    expect(badge?.children[1]?.textContent).toBe("#7");
-    const eleventh = [...(rowsOf()[1]?.querySelectorAll("span.num") ?? [])].find((n) => n.textContent === "#11");
+    expect(badge?.children[1]?.textContent).toBe("7");
+    const eleventh = [...(rowsOf()[1]?.querySelectorAll("span.num") ?? [])].find((n) => n.textContent === "11");
     expect(eleventh?.parentElement?.classList.contains("badge")).toBe(false);
   });
 
