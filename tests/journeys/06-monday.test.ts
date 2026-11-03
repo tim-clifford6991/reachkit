@@ -809,7 +809,7 @@ describe("Monday: the week is re-measured, judged, and told (JN-005)", () => {
       next: measured([{ targetQuery: "agency capacity planning tool" }], MONDAY),
     });
     expect(whole.subject).toBe("mail.weekly.subject");
-    expect(whole.blocks.map((block) => block.block)).toEqual(["stats", "verdicts", "heading", "paragraph", "list", "paragraph", "action"]);
+    expect(whole.blocks.map((block) => block.block)).toEqual(["stats", "verdicts", "heading", "list", "paragraph", "action"]);
     expect(omittedIndexes(whole.blocks)).toEqual([]);
 
     // A week that measured nothing states no number, omits the judged pages

@@ -24,12 +24,6 @@ describe("each changed slot is filled by its template", () => {
     );
   });
 
-  it("the Monday mail states the week's pages, and the AI line no longer repeats the count", async () => {
-    const { text } = await composeAnyKind("weekly");
-    expect(text).toContain(`Up to ${WEEK_PLAN.days} pages a week`);
-    expect(text).toContain(`${COPY["mail.weekly.ai.asked"]}\n`);
-  });
-
   it("the nurture and win-back mails state the week's pages, as the Monday mail does", async () => {
     const week = new RegExp(`up to ${WEEK_PLAN.days} pages a week, new or updated`, "i");
     for (const mail of [await composeAnyKind("nurture"), await composeRetentionPreview("win-back")]) {

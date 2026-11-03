@@ -29,7 +29,7 @@ import type React from "react";
 import { applyEnvFixture } from "../../mail/env-fixture";
 import { blankLead, memoryStore, newMemoryState, type MemoryState } from "../../mail/leads/memory-store";
 import { codeOf } from "../../mail/leads/source";
-import { CircleCheck, TriangleAlert } from "lucide-react";
+import { CircleCheck, MailX } from "lucide-react";
 
 applyEnvFixture();
 
@@ -194,7 +194,7 @@ describe("the set's card, and nothing else on the page", () => {
 
     const unresolved = await OptOutPage({ params: { token: "not-a-token" } });
     expect(quietPage(unresolved).props.tone).toBe("warn");
-    expect(quietPage(unresolved).props.icon).toBe(TriangleAlert);
+    expect(quietPage(unresolved).props.icon).toBe(MailX); // the board draws mail-x on a warning tile
     // The two arms do not share a glyph, which is what makes it a signal.
     expect(quietPage(applied).props.icon).not.toBe(quietPage(unresolved).props.icon);
 
@@ -221,8 +221,8 @@ describe("the set's card, and nothing else on the page", () => {
       const types = nodes(tree).map((node) => node.type);
       expect(types).not.toContain("input");
       expect(types).not.toContain("form");
-      // Nothing here asks the reader to act, so nothing is solid.
-      expect(nodes(tree).filter((node) => classOf(node).includes("btn-primary"))).toEqual([]);
+      // Nothing here asks the reader to act, so nothing is solid: the way back is soft primary, as the board draws it.
+      expect(nodes(tree).filter((node) => classOf(node).includes("btn-primary") && !classOf(node).includes("btn-soft"))).toEqual([]);
     }
   });
 

@@ -128,6 +128,8 @@ describe("the Monday digest goes out for a week that was measured", () => {
     // The greeting and the calm line, then Overview's numbers; the pages, the
     // week and the one button follow. No page is live, so there is no Google
     // or AI group. A three-page week also says how many of its days have no page.
+    // Board MondayMail v36 cut the week's intro line and its 7-day strip (docs/spec/decisions/2026-11-03-2284.md);
+    // §12's four sections stand: the numbers, the pages' verdicts, the week, and the one action.
     const said = sent[0]!.blocks.map((b) => (b as { text?: string }).text ?? b.block);
     expect(said).toEqual([
       "mail.weekly.hi",
@@ -135,8 +137,6 @@ describe("the Monday digest goes out for a week that was measured", () => {
       "stats",
       "verdicts",
       "mail.weekly.next",
-      "mail.weekly.next.intro",
-      "facts",
       "list",
       "mail.weekly.next.skipped",
       "mail.weekly.pace",
@@ -190,19 +190,20 @@ describe("the Monday digest goes out for a week that was measured", () => {
     await sendWeeklyDigest({ siteId: "site-1", weekStart: WEEK, now: NOW });
     const lists = sent[0]!.blocks.filter((b) => b.block === "list") as unknown as {
       label?: string;
-      items: { kind: string; value: { label: string; vars: Record<string, string>; detail?: { vars: { search: string } }[] }[] };
+      items: { kind: string; value: { label?: string; vars?: Record<string, string>; lead?: { text: string }; links?: { vars?: { n: string } }[] }[] };
     }[];
     const week = lists.find((list) => list.label === undefined)!;
     const spares = lists.find((list) => list.label === "mail.weekly.spares")!;
-    // The first three written out in date order, an update said as one, and the other four counted.
-    expect(week.items.value.map((row) => row.detail?.[0]?.vars.search ?? row.vars.n)).toEqual(["search d0", "search d1", "search d2", "4"]);
-    expect(week.items.value.map((row) => row.label)).toEqual([
+    expect(lists.indexOf(week)).toBeLessThan(lists.indexOf(spares));
+    // The first three written out in date order, an update said as one, and the whole week of seven one link to Plan.
+    expect(week.items.value.map((row) => row.vars?.search ?? row.links?.[0]?.vars?.n)).toEqual(["search d0", "search d1", "search d2", "7"]);
+    expect(week.items.value.map((row) => row.lead?.text)).toEqual([
       "mail.weekly.next.day.new.today",
       "mail.weekly.next.day.update",
       "mail.weekly.next.day.new",
-      "mail.weekly.next.more.span",
+      undefined,
     ]);
-    expect(spares.items.value.map((row) => row.vars.search)).toEqual(["search s1", "search s2", "search s3"]);
+    expect(spares.items.value.map((row) => row.vars?.search)).toEqual(["search s1", "search s2", "search s3"]);
   });
 });
 

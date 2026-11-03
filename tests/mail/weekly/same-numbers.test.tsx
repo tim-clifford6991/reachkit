@@ -292,7 +292,7 @@ describe.each([
     expect(bars).toEqual([line?.before, line?.n]);
   });
 
-  it("the score, the market and AI mentions are in the first Monday mail of a month only, as the app reads them", async () => {
+  it("the score and AI mentions are in the first Monday mail of a month only, as the app reads them", async () => {
     seed(site, FIVE);
     db.seed("scans", [...db.rows("scans"), deepScan(27, 0)]);
     await mail(WEEK, NOW);
@@ -300,20 +300,18 @@ describe.each([
 
     await mail(FIRST, new Date(Date.UTC(2026, 9, 5, 7)));
     const month = monthFacts();
-    expect(Object.keys(month)).toEqual(["mail.weekly.month.score", "mail.weekly.month.market", "mail.weekly.month.reputation"]);
+    expect(Object.keys(month)).toEqual(["mail.weekly.month.score", "mail.weekly.month.reputation"]);
     const dom = await overview();
     const of = (n: string) => copy("overview.months.of", { of: n });
     // Each change is taken against the customer's scan, as Overview's line states it: "33 up from 27".
     const read = (label: string) => {
-      const found = /^(\d+)(?: of \d+)? up from (\d+)$/u.exec(month[label] ?? "");
+      const found = /^(\d+) up from (\d+)$/u.exec(month[label] ?? "");
       if (found === null) throw new Error(`${label} has no change: ${month[label]}`);
       return { now: found[1]!, was: found[2]! };
     };
     expect(text(dom.querySelector('[data-testid="overview-tile-score"]'))).toContain(copy("overview.months.score.up", { n: read("mail.weekly.month.score").was }));
-    expect(text(dom.querySelector('[data-testid="overview-tile-market"]'))).toContain(copy("overview.months.market.up", { n: read("mail.weekly.month.market").was }));
-    expect([read("mail.weekly.month.score").was, read("mail.weekly.month.market").was]).toEqual(["27", "0"]);
+    expect(read("mail.weekly.month.score").was).toBe("27");
     expect(text(dom.querySelector('[data-testid="overview-tile-score"] [data-testid="overview-months-figure"]')).replace(/ /gu, "")).toBe(`${read("mail.weekly.month.score").now}${of("100")}`.replace(/ /gu, ""));
-    expect(text(dom.querySelector('[data-testid="overview-tile-market"]'))).toContain(`${read("mail.weekly.month.market").now} ${of("12")}`);
     expect(month["mail.weekly.month.reputation"]).toBe("11 of 46");
     // Overview no longer repeats it (O6): the AI answers tab is the one place it is drawn.
     const ai = new DOMParser().parseFromString(renderToStaticMarkup(await AiAnswersTabPage()), "text/html");

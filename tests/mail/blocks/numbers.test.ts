@@ -121,8 +121,9 @@ describe("#933 — a mail may offer two buttons, and only one of them is solid",
 
     expect(html).toContain("https://example.com/read");
     expect(html).toContain("https://example.com/stop");
-    // One fill, one outline.
-    expect(html.split("border:1px solid").length - 1).toBe(1);
+    // One fill, one outline: the solid one's border is its own fill, so it reads as one shape.
+    expect(html.split("border:1px solid #e8e9f3").length - 1).toBe(1);
+    expect(html.split("border:1px solid #5b4be0").length - 1).toBe(1);
 
     // The twin names both, each with its label — never a bare URL.
     const { text } = renderBlocksText([primary, secondary]);
@@ -132,6 +133,9 @@ describe("#933 — a mail may offer two buttons, and only one of them is solid",
 
   it("an action with no variant is the solid one, exactly as before #933", async () => {
     const { html } = await renderBlocksHtml([f.ACTION]);
-    expect(html).not.toContain("border:1px solid");
+    // Its border is its own fill, which an inbox that forces dark keeps when it strips the fill.
+    expect(html).toContain("background:#5b4be0");
+    expect(html).toContain("border:1px solid #5b4be0");
+    expect(html).not.toContain("border:1px solid #e8e9f3");
   });
 });

@@ -118,7 +118,6 @@ export async function sendWeeklyDigest(a: {
     settings === null
       ? undefined
       : {
-          days: weekDates(a.weekStart),
           today: dayIn(now, zone),
           time: formatMailClock(settings.publishTime),
           planHref: appHref("/app/calendar"),
@@ -214,6 +213,7 @@ async function measuredWeek(
   const movement = await weekMovement({ siteId: a.siteId, weekStart: a.weekStart, at });
   const pages: readonly WeeklyPage[] = digest.standings.map((standing) => ({
     liveUrl: standing.liveUrl,
+    search: standing.targetQuery,
     standing: standing.standing,
     ...(standing.indexState === undefined ? {} : { indexState: standing.indexState }),
   }));
@@ -360,7 +360,7 @@ async function blogReadsOf(
   }
 }
 
-/** The month's first mail: the first-Monday pass's score and market against the scan, and reputation; `undefined` where none was stored. */
+/** The month's first mail: the first-Monday pass's score against the scan, and reputation; `undefined` where none was stored. */
 async function monthNumbers(siteId: string, weekStart: string, now: Date): Promise<WeeklyNumbers["month"]> {
   const [reading, scan, rate] = await Promise.all([
     readWeekScans({ siteId, weekStarts: [weekStart] })
@@ -376,15 +376,6 @@ async function monthNumbers(siteId: string, weekStart: string, now: Date): Promi
   const change = (value: number, before: number | null) => (before === null ? {} : { change: counted(value - before, now) });
   const month = {
     ...(reading.score === null ? {} : { score: { value: counted(reading.score, now), ...change(reading.score, scan.score) } }),
-    ...(reading.market === null
-      ? {}
-      : {
-          market: {
-            value: counted(reading.market.top10, now),
-            of: reading.market.of,
-            ...change(reading.market.top10, scan.market?.top10 ?? null),
-          },
-        }),
     ...(rate === null
       ? {}
       : { reputation: { value: counted(rate.linked + rate.named, now), answers: rate.samples, weeks: ANSWER_RATE_WEEKS } }),

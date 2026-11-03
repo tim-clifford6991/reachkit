@@ -91,13 +91,15 @@ describe("a read is scoped to the week it was asked about", () => {
 });
 
 describe("the digest — REQ-063 c4's four things", () => {
-  it("carries each page's standing, the address it is served at, and the week's measurement date", async () => {
+  it("carries each page's standing, the address it is served at, its search, and the week's measurement date", async () => {
     const report = reportWithOwnPlace(3);
-    fakeStore({ report });
+    fakeStore({ report, pages: [pageOf({ targetQuery: "drain cleaning cost" })] });
     await judgeWeek({ siteId: SITE_ID, week: WEEK });
     const digest = await weeklyDigest({ siteId: SITE_ID, week: WEEK });
     expect(digest.weekMeasuredAt).toEqual(report.verdict.measuredAt);
     expect(digest.standings[0]?.liveUrl).toBe(pageOf().liveUrl);
+    // The search names the page in the Monday mail, never its raw address.
+    expect(digest.standings[0]?.targetQuery).toBe("drain cleaning cost");
     expect(digest.standings[0]?.standing.kind).toBe("verdict");
   });
 
