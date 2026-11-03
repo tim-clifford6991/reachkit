@@ -36,6 +36,7 @@ import type { RankedRow, SerpResult } from "@/lib/vendors/dataforseo/types";
 import type { CanonicalDomain } from "./domain";
 import type { AI_READER_AGENTS } from "@/lib/config/constants";
 import { REPORT_VERSION } from "./report";
+import { shownScore } from "./shown-score";
 import type {
   AiAnswersSection,
   PageQuestionsSection,
@@ -193,7 +194,7 @@ export async function storeCurrentReport(a: {
     p_site_id: a.siteId ?? null,
     p_tier: a.report.tier,
     p_status: status,
-    p_score: a.report.verdict.scoreAndBand.kind === "unmeasured" ? null : a.report.verdict.scoreAndBand.value.score,
+    p_score: shownScore(a.report),
     p_drivers: a.drivers,
     p_report: a.report,
     // The figure the seam settled, not a cent it was rounded up to:

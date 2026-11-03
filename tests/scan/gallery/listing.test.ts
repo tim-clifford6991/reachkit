@@ -8,6 +8,7 @@ import { readdirSync } from "node:fs";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { psql, psqlRows } from "../../db/substrate";
+import { shownScore } from "@/lib/scan/shown-score";
 
 const MIGRATIONS = path.resolve(
   import.meta.dirname,
@@ -32,36 +33,41 @@ function raises(sql: string): boolean {
   }
 }
 
-function report(category: string | null, scored: boolean): string {
+function report(category: string | null, score: number | null): string {
   const market =
     category === null
       ? { kind: "unmeasured" }
       : { kind: "measured", value: { profile: { category } } };
-  return JSON.stringify({
-    verdict: { scoreAndBand: { kind: scored ? "measured" : "unmeasured" } },
-    market,
-  });
+  const scoreAndBand =
+    score === null
+      ? { kind: "unmeasured", reason: "not_attempted", at: "2026-09-20T10:00:00Z" }
+      : { kind: "measured", value: { score, band: "hard-to-find" }, at: "2026-09-20T10:00:00Z" };
+  return JSON.stringify({ verdict: { scoreAndBand }, market });
 }
 
+/** A finished pass as `store_current_report` writes it: a report that is not `failed` becomes the domain's current one. */
 function scan(a: {
   domain: string;
   score: number | null;
   finished: string;
+  tier?: string;
   status?: string;
   stopped?: string;
   category?: string | null;
 }): void {
-  const body =
-    a.status === "failed"
-      ? "null"
-      : `'${report(a.category === undefined ? "Bike repair" : a.category, a.score !== null)}'::jsonb`;
+  const failed = a.status === "failed";
+  const body = failed
+    ? "null"
+    : `'${report(a.category === undefined ? "Bike repair" : a.category, a.score)}'::jsonb`;
+  const flip = failed ? "" : `update scans set is_current = false where domain = '${a.domain}' and is_current;`;
   psql([
     "-v",
     "ON_ERROR_STOP=1",
     "-c",
-    `insert into scans (domain, tier, status, score, report, finished_at, stopped_reason)
-     values ('${a.domain}', 'free', '${a.status ?? "done"}', ${a.score ?? "null"}, ${body},
-             timestamptz '${a.finished}', '${a.stopped ?? "complete"}');`,
+    `${flip}
+     insert into scans (domain, tier, status, score, report, finished_at, stopped_reason, is_current)
+     values ('${a.domain}', '${a.tier ?? "free"}', '${a.status ?? "done"}', ${a.score ?? "null"}, ${body},
+             timestamptz '${a.finished}', '${a.stopped ?? "complete"}', ${!failed});`,
   ]);
 }
 
@@ -107,6 +113,19 @@ beforeAll(() => {
     finished: "2026-09-23T10:00:00Z",
     status: "failed",
     stopped: "failed",
+  });
+  // A free scan read 40; the weekly pass after it reads 33 and is what the report shows.
+  scan({ domain: "moved.example", score: 40, finished: "2026-09-20T10:00:00Z" });
+  scan({ domain: "moved.example", score: 33, finished: "2026-09-27T06:00:00Z", tier: "weekly" });
+  // A scored free scan, then a deep pass a ceiling cut off before it scored.
+  scan({ domain: "unscored.example", score: 52, finished: "2026-09-20T10:00:00Z" });
+  scan({
+    domain: "unscored.example",
+    score: null,
+    finished: "2026-09-26T10:00:00Z",
+    tier: "deep",
+    status: "degraded",
+    stopped: "time_ceiling",
   });
   scan({
     domain: "cutoff.example",
@@ -157,7 +176,21 @@ describe("free_scan_listing — what the gallery and the strip may show", () => 
 
   it("never lists a removed, an unreadable or a failed site", () => {
     const domains = listing().map(([domain]) => domain);
-    expect(domains).toEqual(["cutoff.example", "harbour.example"]);
+    expect(domains).toEqual(["cutoff.example", "harbour.example", "moved.example", "unscored.example"]);
+  });
+
+  it("states, for every card, the score of the report its address shows, including one a later scan moved", () => {
+    const current = new Map(
+      psqlRows("select domain, report::text from scans where is_current;").map(([domain, body]) => [domain, shownScore(JSON.parse(body!))]),
+    );
+    const cards = listing().map(([domain, , score]) => [domain, score === "" ? null : Number(score)] as const);
+    expect(cards.length).toBeGreaterThan(0);
+    for (const [domain, score] of cards) expect(score, domain).toBe(current.get(domain!) ?? null);
+    expect(cards).toContainEqual(["moved.example", 33]);
+  });
+
+  it("states no score, never 0 and never the free scan's, where the scan the report shows reached none", () => {
+    expect(listing()).toContainEqual(["unscored.example", "unscored.example", "", "Bike repair", "f"]);
   });
 
   it("reads its category from the stored column, never by unpacking a report", () => {
