@@ -30,6 +30,7 @@ import type { DestinationView } from "@/lib/publish/types";
 import { now as clock } from "@/lib/config/now";
 import type { AppAccount } from "../_session/account";
 import { ACCOUNT_NOTE_KEYS } from "@/lib/account/identity/notes";
+import { recordSettingsReadFailed } from "@/lib/ops/events";
 import type { AccountFacts, BillingFacts, SettingsFacts, SettingsRead } from "./model";
 
 /** How long any one read may take before it is abandoned — for the two
@@ -57,13 +58,14 @@ function withDeadline<T>(work: Promise<T>, name: string): Promise<T> {
  * promptly as one that could not be reached. The deadline exists to bound
  * *the database*, so it starts where the database call does.
  */
-async function bounded<M, T>(name: string, load: () => Promise<M>, call: (loaded: M) => Promise<T>): Promise<T> {
+async function bounded<M, T>(name: string, load: () => Promise<M>, call: (loaded: M) => Promise<T>, siteId: string | null = null): Promise<T> {
   try {
     const loaded = await load();
     return await withDeadline(call(loaded), name);
   } catch (error) {
     // Named, so a slow database shows which read it starved.
     console.warn(JSON.stringify({ event: "settings_read_failed", read: name, detail: String(error) }));
+    void recordSettingsReadFailed(name, error, siteId);
     throw error;
   }
 }
@@ -76,10 +78,11 @@ export type Read<T> = { ok: true; value: T } | { ok: false };
 async function read<M, T>(
   name: string,
   load: () => Promise<M>,
-  call: (loaded: M) => Promise<T>
+  call: (loaded: M) => Promise<T>,
+  siteId: string | null = null
 ): Promise<Read<T>> {
   try {
-    return { ok: true, value: await bounded(name, load, call) };
+    return { ok: true, value: await bounded(name, load, call, siteId) };
   } catch {
     return { ok: false };
   }
@@ -126,7 +129,8 @@ async function readDestinations(siteId: string): Promise<DestinationsFacts> {
   const list = await read(
     "destinations",
     () => import("@/lib/publish/destinations"),
-    ({ listDestinations }) => listDestinations(siteId)
+    ({ listDestinations }) => listDestinations(siteId),
+    siteId
   );
   return list.ok ? { list: list.value, readable: true } : { list: [], readable: false };
 }
@@ -190,13 +194,13 @@ export async function readLiveSettingsFacts(
 
   const [answers, measured, publishing, publishingOn, site, notify, pages, billing, destinations, card] =
     await Promise.all([
-      settle("answers", bounded("answers", () => import("@/lib/market/changes"), (m) => m.declaredAnswers(siteId))),
-      settle("measured", bounded("measured", () => import("@/lib/market/changes"), (m) => m.measuredAnswers(siteId))),
-      settle("publishing", bounded("publishing", () => import("@/lib/publish/settings"), (m) => m.readPublishingSettings(siteId))),
-      settle("publishingOn", bounded("publishingOn", () => import("@/lib/publish/switch"), (m) => m.isPublishingOn(siteId))),
-      settle("site", bounded("site", () => import("@/lib/generate/store"), (m) => m.generateStore().siteFacts(siteId))),
-      settle("notify", bounded("notify", () => import("@/lib/mail/notifications"), (m) => m.readNotifyPrefs(userId))),
-      settle("pages", bounded("pages", () => import("./pages"), (m) => m.livePageCount(siteId))),
+      settle("answers", bounded("answers", () => import("@/lib/market/changes"), (m) => m.declaredAnswers(siteId), siteId)),
+      settle("measured", bounded("measured", () => import("@/lib/market/changes"), (m) => m.measuredAnswers(siteId), siteId)),
+      settle("publishing", bounded("publishing", () => import("@/lib/publish/settings"), (m) => m.readPublishingSettings(siteId), siteId)),
+      settle("publishingOn", bounded("publishingOn", () => import("@/lib/publish/switch"), (m) => m.isPublishingOn(siteId), siteId)),
+      settle("site", bounded("site", () => import("@/lib/generate/store"), (m) => m.generateStore().siteFacts(siteId), siteId)),
+      settle("notify", bounded("notify", () => import("@/lib/mail/notifications"), (m) => m.readNotifyPrefs(userId), siteId)),
+      settle("pages", bounded("pages", () => import("./pages"), (m) => m.livePageCount(siteId), siteId)),
       readBilling(userId),
       readDestinations(siteId),
       settle("card", readAccountFacts(userId)),
@@ -269,7 +273,7 @@ export async function readLiveSettingsFacts(
     voiceText: site?.voiceText ?? "",
     // Issue 1390. A read that fails is "not chosen": the select then shows
     // what ReachKit does, which is choose.
-    writingVoice: await bounded("writingVoice", () => import("@/lib/generate/store"), async (m) => m.generateStore().writingVoice(siteId)).catch(() => null),
+    writingVoice: await bounded("writingVoice", () => import("@/lib/generate/store"), async (m) => m.generateStore().writingVoice(siteId), siteId).catch(() => null),
     doNotClaim: site?.doNotClaim ?? [],
 
     destinations: destinations.list,
