@@ -8,29 +8,10 @@
 // route can set the status, and a route cannot render a component. It says
 // what happened and gives one way on.
 import { copy } from "@/lib/presentation/copy";
-
-function escapeHtml(value: string): string {
-  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-}
+import { plainDocument } from "@/lib/publish/render/plain-document";
 
 function goneDocument(): string {
-  const head = copy("gone.head");
-  return [
-    "<!doctype html>",
-    '<html lang="en">',
-    "<head>",
-    '<meta charset="utf-8">',
-    '<meta name="viewport" content="width=device-width, initial-scale=1">',
-    '<meta name="robots" content="noindex">',
-    `<title>${escapeHtml(head)}</title>`,
-    "</head>",
-    "<body><main>",
-    `<h1>${escapeHtml(head)}</h1>`,
-    `<p>${escapeHtml(copy("gone.line"))}</p>`,
-    `<p><a href="/">${escapeHtml(copy("landing.start.cta"))}</a></p>`,
-    "</main></body>",
-    "</html>",
-  ].join("");
+  return plainDocument({ head: copy("gone.head"), line: copy("gone.line"), onward: copy("landing.start.cta") });
 }
 
 export function GET(): Response {
