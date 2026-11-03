@@ -436,17 +436,9 @@ describe("the done arm, and the refusals that wear its shape", () => {
       previewAnswer = async () => ({ ok: false, reason });
       const tree = await ask();
       const headings = nodes(tree).filter((node) => node.type === "h1");
-      // **No draft title**, which is what this row has always been about: a
-      // bare `<h1>` here would be the page claiming a name it does not
-      // have. A title `<h1>` carries no class; the head carries `EYEBROW`.
-      expect(headings.filter((node) => classOf(node) === "")).toHaveLength(0);
-      // **But the screen still names itself** (owner ruling 2026-09-23,
-      // #328). With no draft title, the eyebrow is the only line naming
-      // this screen, so it is the `<h1>` — a reader moving by headings had
-      // nothing to land on before, and `page-has-heading-one` reported the
-      // route. The class is unchanged, so nothing on screen moved.
+      // The screen names itself by its head (#328), drawn as a heading, never an eyebrow.
       expect(headings).toHaveLength(1);
-      expect(classOf(headings[0] as Node)).toContain("uppercase");
+      expect(classOf(headings[0] as Node)).not.toContain("uppercase");
       expect(nodes(tree).filter((node) => node.type === "aside")).toHaveLength(0);
     }
   });
@@ -841,7 +833,9 @@ describe("each arm carries the board's marks", () => {
   it("the failed arm: a warning-edged message-circle-warning chip, clock on still goes live, no success tint", async () => {
     const tree = await ask({ done: "1" });
     const failed = byTestId(tree, "veto-failed");
-    expect(iconsOf(failed).map((i) => i.name)).toEqual(["message-circle-warning", "clock"]);
+    // Stop sits inside the card, as the board draws it.
+    expect(iconsOf(failed).map((i) => i.name)).toEqual(["message-circle-warning", "clock", "circle-stop"]);
+    expect(linksOf(failed as unknown as React.ReactNode).map((link) => link.props.href)).toEqual(["/signin"]);
     const chip = byTestId(tree, "veto-failed-chip") as Node;
     expect(classOf(chip)).toContain("border-warning");
     expect(classOf(chip)).not.toMatch(/\bbg-/);

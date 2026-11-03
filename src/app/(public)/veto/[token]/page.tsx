@@ -406,6 +406,13 @@ function Ask(p: { token: string; it: Omit<VetoPreview, "draftId">; failed?: bool
   const why = writeReason(p.it.reason);
   const span = publishes === null || restated ? null : timeline(p.it.mailedAt, publishes);
   const short = p.failed === true || p.planned === true;
+  const stopForm = (
+    <form action={stop} className="flex flex-col gap-2">
+      {/* The screen's one solid button. */}
+      <StopButton label={copy("publish.veto.ask.action")} block={!short} />
+      {short ? null : <p className="text-base-content/70 text-sm">{copy("publish.veto.consequence")}</p>}
+    </form>
+  );
 
   return split(
     <>
@@ -448,22 +455,24 @@ function Ask(p: { token: string; it: Omit<VetoPreview, "draftId">; failed?: bool
           <span className={`${CHIP} border-warning text-warning border`} data-tone="warn" data-testid="veto-failed-chip">
             <MessageCircleWarning size={20} strokeWidth={1.75} aria-hidden />
           </span>
-          <h2 className="text-base">{copy("publish.veto.failed.head")}</h2>
-          <p className="text-sm">{copy("publish.veto.failed")}</p>
+          <h2 className="text-xl">{copy("publish.veto.failed.head")}</h2>
+          <p>{copy("publish.veto.failed")}</p>
           {when === null ? null : (
             <p className="rounded-box bg-base-200 flex items-center gap-2 px-3 py-2 text-sm">
               <Clock size={16} strokeWidth={1.75} className="flex-none" aria-hidden />
               <span>{copy("publish.veto.failed.still", { when })}</span>
             </p>
           )}
+          {/* The board puts the retry and the way to the plan inside the card. */}
+          <div className="flex flex-wrap gap-3">
+            {stopForm}
+            {signInLink()}
+          </div>
         </div>
-      ) : null}
-      <form action={stop} className="flex flex-col gap-2">
-        {/* The screen's one solid button. */}
-        <StopButton label={copy("publish.veto.ask.action")} block={!short} />
-        {short ? null : <p className="text-base-content/70 text-sm">{copy("publish.veto.consequence")}</p>}
-      </form>
-      {short ? (
+      ) : (
+        stopForm
+      )}
+      {p.failed ? null : p.planned ? (
         signInLink()
       ) : (
         <p className="text-base-content/70 border-base-300 border-t pt-3 text-sm">
@@ -522,7 +531,7 @@ function Told(p: {
               <Icon size={20} strokeWidth={1.75} aria-hidden />
             </span>
           )}
-          <h1 className={EYEBROW}>{p.head}</h1>
+          <h1 className="text-xl">{p.head}</h1>
         </>
       )}
       <p data-testid="veto-message">
