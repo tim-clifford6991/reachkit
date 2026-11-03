@@ -434,7 +434,7 @@ export const SETTINGS_COPY = Object.freeze({
   "settings.publishing.on": ["On", { slots: {}, fixedBy: "issue 1751 · board SettingsPublishing · drafted" }],
   "settings.publishing.off": ["Off", { slots: {}, fixedBy: "issue 1751 · board SettingsPublishing · drafted" }],
   "settings.publishing.on.lead": ["On. A page goes live on each planned day.", { slots: {}, fixedBy: "issue 1751 · board SettingsPublishing · drafted" }],
-  "settings.publishing.off.lead": ["Paused. No page goes live until you turn publishing on. Your pages are kept.", { slots: {}, fixedBy: "issue 2277 · board SettingsPublishing" }],
+  "settings.publishing.off.lead": ["Paused: no page goes live until you turn publishing on. Your pages are kept.", { slots: {}, fixedBy: "issue 2277 · board SettingsPublishing" }],
   "settings.publishing.flow.title": ["How each page goes out", { slots: {}, fixedBy: "issue 1751 · board SettingsPublishing · drafted" }],
   "settings.publishing.flow.written": ["Written and emailed", { slots: {}, fixedBy: "issue 2277 · board SettingsPublishing" }],
   "settings.publishing.flow.window": ["{window} to edit or stop it", { slots: { window: "text" }, fixedBy: "issue 1751 · board SettingsPublishing · drafted" }],

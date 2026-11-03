@@ -158,7 +158,7 @@ export function AccountPanel(p: { account: SettingsModel["account"]; pages: numb
           </SettingRow>
         </div>
 
-        <span className="flex min-w-0" data-testid="action-sign_out">
+        <span className="border-base-300 flex min-w-0 border-t pt-4" data-testid="action-sign_out">
           <button
             type="button"
             className="btn btn-ghost min-h-11"

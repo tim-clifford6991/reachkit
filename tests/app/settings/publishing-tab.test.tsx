@@ -73,6 +73,7 @@ describe("Settings › Publishing, on", () => {
     const where = doc.querySelector('[data-testid="setting-destinations"]')!;
     expect(text(where)).toBe("Where pages go live blog.example.com Live Your website stays as it is. Check connection");
     expect(where.querySelector(".num")?.textContent).toBe("blog.example.com");
+    expect(where.querySelector('[data-testid="check-connection"] button svg')).toBeNull();
     expect(text(doc.querySelector('[data-testid="setting-veto_hours"]'))).toBe("Time to stop a page 1 day");
     expect([...doc.querySelectorAll('[data-testid="setting-veto_hours"] button')].map((b) => b.getAttribute("aria-label"))).toEqual(["One day less", "One day more"]);
     expect(text(doc.querySelector('[data-testid="time-zone-note"]'))).toBe("From your browser.");
@@ -103,7 +104,7 @@ it("a two-day time to stop a page says so and moves Written and emailed two days
 
 it("paused, the card says so, the last step reads that nothing goes live, and no moment is stated", () => {
   const doc = tab({ enabled: false });
-  expect(text(doc.querySelector('[data-testid="publishing-lead"]'))).toBe("Paused. No page goes live until you turn publishing on. Your pages are kept.");
+  expect(text(doc.querySelector('[data-testid="publishing-lead"]'))).toBe("Paused: no page goes live until you turn publishing on. Your pages are kept.");
   expect(text(doc.querySelector('[data-testid="setting-publishing_enabled"]'))).toBe("Off");
   expect(steps(doc)).toEqual(["Written and emailed", "1 day to edit or stop it From the mail or This week", "Paused: nothing goes live"]);
 });

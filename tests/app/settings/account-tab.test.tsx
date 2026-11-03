@@ -70,6 +70,12 @@ describe("the danger zone", () => {
     expect(pause.querySelector("a")?.getAttribute("href")).toBe("/app/settings/publishing");
   });
 
+  it("is a calm fold: only the two confirming presses are red", () => {
+    expect([...zone.querySelectorAll(".btn-error")].map(text)).toEqual(["Take every page down", "Delete my account"]);
+    expect(zone.querySelectorAll('[class*="text-error"], [class*="border-error"]')).toHaveLength(0);
+    expect(zone.className).not.toContain("error");
+  });
+
   it("then each action, its consequence and the word it is confirmed with, and no comparison grid", () => {
     expect(zone.querySelector('[data-testid="danger-compare"]')).toBeNull();
     for (const [action, title, word, consequence] of [

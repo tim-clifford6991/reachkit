@@ -63,11 +63,11 @@ export function DangerZone(): React.JSX.Element {
   const action = useAction();
 
   return (
-    // The one card whose controls destroy something: error edge before anything is pressed.
-    <details className="card collapse collapse-arrow border border-error/40 min-w-0 bg-base-100" data-testid="settings-danger">
+    // A plain fold in the calm layer; only the two confirming presses are red.
+    <details className="card card-border collapse collapse-arrow min-w-0 bg-base-100" data-testid="settings-danger">
       <summary className="collapse-title min-w-0">
         <span className="flex min-w-0 flex-col gap-1">
-          <span className="text-base font-semibold text-error">{copy("danger.zone.title")}</span>
+          <span className="text-base font-semibold">{copy("danger.zone.title")}</span>
           <span className="text-sm text-base-content/70 wrap-anywhere">{copy("danger.zone.lead")}</span>
         </span>
       </summary>
