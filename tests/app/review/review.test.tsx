@@ -83,8 +83,8 @@ describe("the board's cuts and its 390 shape", () => {
     }
   });
 
-  it("the title takes the board's h1 step at every width", () => {
-    expect(html).toMatch(/<h1 class="text-\(length:--h1\)">/);
+  it("the title is a size-bearing rung: the narrow one below sm, the board's size above", () => {
+    expect(html).toMatch(/<h1 class="text-2xl sm:text-4xl">/);
   });
 
   it("heads the why column Why, with no caption saying who reads it", () => {
