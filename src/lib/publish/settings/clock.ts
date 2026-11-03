@@ -1,86 +1,34 @@
 // BUILD §9 · REQ-073 c3 — the publish hour in the customer's own zone, the two ambiguous days a year included: the one
 // implementation of "when does the next page go out", read by `becomesPublishable` and the calendar.
 // No path falls back to the server's zone: no zone throws (REQ-073 c1), since the wrong zone is the wrong day.
-// The ceilings' day and week boundaries are a different question, in `../ceilings/local-week.ts`.
+import { TZDate, tzOffset } from "@date-fns/tz";
+import { format } from "date-fns";
+import { inZone } from "@/lib/scan/weekly/week";
 import type { PublishingSettings } from "./settings";
 
-const MINUTES_PER_HOUR = 60;
 const MS_PER_MINUTE = 60_000;
 const MS_PER_DAY = 86_400_000;
 /** Local days the search may walk; a publish time occurs on every local day, so three is ample. */
 const MAX_DAYS_FORWARD = 3;
-/** How far a walk across a spring-forward gap may run; no IANA gap exceeds a couple of hours. */
-const GAP_SEARCH_HOURS = 6;
+/** How far either side of a spring-forward gap the search reaches; no IANA gap exceeds a couple of hours. */
+const GAP_SEARCH_MS = 6 * 60 * MS_PER_MINUTE;
 
-/** The zone's offset in minutes at an instant, via `Intl`, the product's only zone source. */
-function offsetMinutesAt(instant: Date, zone: string): number {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: zone,
-    hour12: false,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  }).formatToParts(instant);
+/** The instant `hh:mm` occurs on a local day. A time that occurs twice is the first; a time a spring-forward skips is
+ *  the first instant the clock has passed it, found by halving since the wall clock only moves forward near a gap. */
+function instantOfWallTime(zone: string, day: TZDate, hh: number, mm: number): Date {
+  const at = new TZDate(day.getFullYear(), day.getMonth(), day.getDate(), hh, mm, zone);
+  if (at.getHours() === hh && at.getMinutes() === mm) return new Date(+at);
 
-  const read = (type: string): number => Number(parts.find((p) => p.type === type)?.value ?? "0");
-  // Some runtimes render midnight as 24.
-  const hour = read("hour") % 24;
-  const asUtc = Date.UTC(read("year"), read("month") - 1, read("day"), hour, read("minute"), read("second"));
-  return (asUtc - instant.getTime()) / MS_PER_MINUTE;
-}
-
-/** The instant a wall time occurs in the zone, in two passes, or `null` inside a spring-forward gap, where the round
- *  trip never agrees. */
-function instantOfWallTime(
-  zone: string,
-  y: number,
-  m: number,
-  d: number,
-  hh: number,
-  mm: number
-): Date | null {
-  const naive = Date.UTC(y, m, d, hh, mm, 0);
-  let guess = new Date(naive - offsetMinutesAt(new Date(naive), zone) * MS_PER_MINUTE);
-  guess = new Date(naive - offsetMinutesAt(guess, zone) * MS_PER_MINUTE);
-
-  const back = offsetMinutesAt(guess, zone);
-  const wall = guess.getTime() + back * MS_PER_MINUTE;
-  return wall === naive ? guess : null;
-}
-
-/** The first instant the wall clock has reached `hh:mm` on the day: a skipped hour resolves to just after the gap.
- *  `wall(t)` is non-decreasing across a spring-forward, so overshoot once and walk back, both walks bounded. */
-function firstInstantAfterGap(
-  zone: string,
-  y: number,
-  m: number,
-  d: number,
-  hh: number,
-  mm: number
-): Date {
-  const naive = Date.UTC(y, m, d, hh, mm, 0);
-  const wallAt = (t: number): number => t + offsetMinutesAt(new Date(t), zone) * MS_PER_MINUTE;
-  const bound = MINUTES_PER_HOUR * GAP_SEARCH_HOURS;
-
-  let t = naive - offsetMinutesAt(new Date(naive), zone) * MS_PER_MINUTE;
-  for (let step = 0; step < bound && wallAt(t) < naive; step++) t += MS_PER_MINUTE;
-  for (let step = 0; step < bound && wallAt(t - MS_PER_MINUTE) >= naive; step++) t -= MS_PER_MINUTE;
-  return new Date(t);
-}
-
-/** The local calendar date at an instant, in the zone. */
-function localDate(instant: Date, zone: string): { y: number; m: number; d: number } {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: zone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(instant);
-  const read = (type: string): number => Number(parts.find((p) => p.type === type)?.value ?? "0");
-  return { y: read("year"), m: read("month") - 1, d: read("day") };
+  const naive = Date.UTC(day.getFullYear(), day.getMonth(), day.getDate(), hh, mm);
+  const wallAt = (t: number): number => t + tzOffset(zone, new Date(t)) * MS_PER_MINUTE;
+  let before = +at - GAP_SEARCH_MS;
+  let after = +at + GAP_SEARCH_MS;
+  while (after - before > MS_PER_MINUTE) {
+    const mid = before + Math.floor((after - before) / 2 / MS_PER_MINUTE) * MS_PER_MINUTE;
+    if (wallAt(mid) >= naive) after = mid;
+    else before = mid;
+  }
+  return new Date(after);
 }
 
 /** The first publish time at or after `instant` in the customer's zone, inclusive at the boundary.
@@ -103,11 +51,7 @@ export function nextPublishTimeAtOrAfter(instant: Date, s: PublishingSettings): 
   }
 
   for (let dayOffset = 0; dayOffset <= MAX_DAYS_FORWARD; dayOffset++) {
-    const probe = new Date(instant.getTime() + dayOffset * MS_PER_DAY);
-    const { y, m, d } = localDate(probe, zone);
-    const exact = instantOfWallTime(zone, y, m, d, hh, mm);
-    // `null` is the spring-forward gap.
-    const candidate = exact ?? firstInstantAfterGap(zone, y, m, d, hh, mm);
+    const candidate = instantOfWallTime(zone, inZone(instant.getTime() + dayOffset * MS_PER_DAY, zone), hh, mm);
     if (candidate.getTime() >= instant.getTime()) return candidate;
   }
 
@@ -120,9 +64,7 @@ export function nextPublishTimeAtOrAfter(instant: Date, s: PublishingSettings): 
 /** The site-local date of the first publish time at or after `instant`. Asked with a window's end, it is the only date
  *  the row, calendar and mail may name, and the draft tick and `enterReview` both ask here. */
 export function publishDateAtOrAfter(instant: Date, s: PublishingSettings): string {
-  const zone = s.timezone;
-  const { y, m, d } = localDate(nextPublishTimeAtOrAfter(instant, s), zone ?? "UTC");
-  return new Date(Date.UTC(y, m, d)).toISOString().slice(0, 10);
+  return format(inZone(nextPublishTimeAtOrAfter(instant, s), s.timezone ?? "UTC"), "yyyy-MM-dd");
 }
 
 function resolvable(zone: string): boolean {
