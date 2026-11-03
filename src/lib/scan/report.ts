@@ -1087,47 +1087,6 @@ interface CurrentReportRow {
   report: unknown;
 }
 
-interface CurrentStampRow {
-  status: string;
-  report_md5: string | null;
-}
-
-async function currentRow<T>(domain: string, columns: string): Promise<T | undefined> {
-  const { dbAdmin } = await import("@/lib/db");
-  const { data, error } = await untyped(dbAdmin())
-    .from<T>("scans")
-    .select(columns)
-    .eq("domain", domain)
-    .is("is_current", true)
-    .limit(1);
-  if (error) throw new Error(`readCurrentReport: ${error.message}`);
-  return data?.[0];
-}
-
-/** What the report page renders of a blob: the re-score's kept copy only as
- *  the score its line names, so the cached item stays under 2 MB. */
-function shownOf(blob: unknown): unknown {
-  if (!isRecord(blob) || blob.previous === undefined) return blob;
-  try {
-    const scoreAndBand = readStoredReport(blob.previous).verdict.scoreAndBand;
-    // Back to jsonb's shape: a cache miss hands this on before any round trip.
-    return { ...blob, previous: JSON.parse(JSON.stringify({ version: REPORT_VERSION, verdict: { scoreAndBand } })) };
-  } catch {
-    return { ...blob, previous: undefined };
-  }
-}
-
-async function shownBlob(domain: string): Promise<unknown> {
-  const fresh = async () => shownOf((await currentRow<CurrentReportRow>(domain, "report"))?.report ?? null);
-  const stamp = await currentRow<CurrentStampRow>(domain, "status, report_md5");
-  if (stamp === undefined) return null;
-  // A running scan, or a row with no checksum to key on, is read fresh.
-  if (stamp.status === "running" || typeof stamp.report_md5 !== "string") return fresh();
-  const { unstable_cache } = await import("next/cache");
-  // The key changes with the report, so no writer has to invalidate it.
-  return unstable_cache(fresh, ["shown-report", domain, stamp.report_md5])();
-}
-
 /**
  * The domain's one current report, or `null` where it has none.
  *
@@ -1136,16 +1095,22 @@ async function shownBlob(domain: string): Promise<unknown> {
  * query, which would make a failed re-scan the report. Writes nothing,
  * opens no transaction, and takes no tier and no `forFree` parameter:
  * there is one report and everyone sees all of it.
- *
- * `cached` is the public report's read: a visit reads the row's status and
- * checksum, and the blob only when that checksum is new.
  */
-export async function readCurrentReport(domain: string, a: { cached?: boolean } = {}): Promise<StoredReport | null> {
-  const blob = a.cached === true ? await shownBlob(domain) : (await currentRow<CurrentReportRow>(domain, "report"))?.report;
-  if (blob === null || blob === undefined) return null;
+export async function readCurrentReport(domain: string): Promise<StoredReport | null> {
+  const { dbAdmin } = await import("@/lib/db");
+  const { data, error } = await untyped(dbAdmin())
+    .from<CurrentReportRow>("scans")
+    .select("report")
+    .eq("domain", domain)
+    .is("is_current", true)
+    .limit(1);
+  if (error) throw new Error(`readCurrentReport: ${error.message}`);
+
+  const row = data?.[0];
+  if (!row || row.report === null || row.report === undefined) return null;
   // Issue 1383: a report measured off a bot-protection page is read as
   // unmeasured there, by every reader of the current report.
-  return readPastProtection(readStoredReport(blob));
+  return readPastProtection(readStoredReport(row.report));
 }
 
 /** One scan's own stored report, or `null` where the row has none — read

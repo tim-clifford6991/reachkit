@@ -21,10 +21,7 @@ vi.mock("@/lib/scan/admission", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/scan/admission")>()),
   admitFreeScan: () => admitFreeScan(),
 }));
-vi.mock("@/lib/scan/report", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@/lib/scan/report")>()),
-  readCurrentReport: () => readCurrentReport(),
-}));
+vi.mock("@/lib/scan/shown-report", () => ({ readShownReport: () => readCurrentReport() }));
 
 vi.mock("@/lib/scan/derivation", () => ({ readsDifferently: (scanId: string) => readsDifferently(scanId) }));
 

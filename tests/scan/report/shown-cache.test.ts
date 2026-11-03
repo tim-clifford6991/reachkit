@@ -1,4 +1,4 @@
-// The public report's read (`readCurrentReport(domain, { cached: true })`):
+// The public report's read (`readShownReport`):
 // a repeat visit to a finished report reads only its status and checksum,
 // and the blob again only when the checksum moves. A running scan and a
 // domain with no report are never held. What it caches is what the screen
@@ -72,6 +72,7 @@ const { IncrementalCache } = await import("next/dist/server/lib/incremental-cach
 } as never);
 
 const { readCurrentReport } = await import("@/lib/scan/report");
+const { readShownReport } = await import("@/lib/scan/shown-report");
 const { renderReport } = await import("../../app/scan-address/panel-report");
 
 type Blob = Record<string, unknown> & { verdict: Record<string, unknown> };
@@ -105,7 +106,7 @@ function rescoredBlob(previous: unknown = scored(storedBlob(), 53, 100)): Blob {
 }
 
 const DOMAIN = "savvycal.com";
-const shown = () => readCurrentReport(DOMAIN, { cached: true });
+const shown = () => readShownReport(DOMAIN);
 
 beforeEach(() => {
   MemoryHandler.store.clear();
