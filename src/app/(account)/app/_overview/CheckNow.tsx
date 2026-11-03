@@ -80,7 +80,7 @@ export function CheckNow(p: {
           <RefreshCw aria-hidden size={16} strokeWidth={1.75} />
           {copy("overview.connect.check")}
         </button>
-        <Link className="link link-primary link-hover inline-flex min-h-11 items-center text-sm font-semibold no-underline" href={SETTINGS_TAB_HREF.publishing} data-testid="connect-guide">
+        <Link className="link link-primary link-hover inline-flex min-h-11 items-center text-sm font-semibold no-underline" href={SETTINGS_TAB_HREF.pages} data-testid="connect-guide">
           {copy("overview.connect.guide")}
         </Link>
       </div>

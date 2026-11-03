@@ -1,5 +1,5 @@
 /** @vitest-environment jsdom */
-// Settings › Your voice against board SettingsVoice (canvas v36): its three cards in the board's order,
+// Settings › Your business, the voice cards (board SettingsIndex, canvas v36): its three cards in the board's order,
 // and the voice options as two radio cards saved on choice.
 import React from "react";
 import { act } from "react";
@@ -53,7 +53,7 @@ function inOrder(root: HTMLElement, strings: string[]): void {
 
 const cards = (root: HTMLElement) => [...root.querySelectorAll("section.card")] as HTMLElement[];
 
-describe("board SettingsVoice: each section in the board's order and words", () => {
+describe("board SettingsIndex's voice cards: each section in the board's order and words", () => {
   it("draws three cards: the note, who speaks, and never claim", async () => {
     const root = await mount();
     expect(cards(root).map((card) => card.querySelector("h2, legend")?.textContent)).toEqual([

@@ -144,7 +144,7 @@ describe("Unsubscribe: a signed link to the Monday mail's own toggle, and the on
     expect(writes("users")).toBe(0);
   });
 
-  it("the button turns off the Monday mail only, once, says so with a way to Settings › Mail, and the next Monday is not sent", async () => {
+  it("the button turns off the Monday mail only, once, says so with a way to Settings › Pages, and the next Monday is not sent", async () => {
     const token = tokenIn((await monday()).href("/unsubscribe/"), "/unsubscribe/");
     await press(UnsubscribePage({ params: { token } }), `/unsubscribe/${token}`);
     expect(notify()).toEqual({ weekly: false });
@@ -152,7 +152,7 @@ describe("Unsubscribe: a signed link to the Monday mail's own toggle, and the on
     const html = await page(UnsubscribePage({ params: { token }, searchParams: { done: "1" } }));
     expect(html).toContain(COPY["unsubscribe.head"]);
     expect(html).toContain(COPY["unsubscribe.done"].replace("{mail}", COPY["settings.notifications.weekly"]));
-    expect(html).toContain('href="/app/settings/mail"');
+    expect(html).toContain('href="/app/settings/pages#mail"');
     expect(writes("users")).toBe(1);
     // The next Monday is not sent; the toggle is the seam's to read.
     db.rows("scans")[0]!.digest_sent_at = null;
@@ -218,7 +218,7 @@ describe("Pause all pages: a signed, single-purpose link that pauses publishing 
       const html = await page(PausePage({ params: { token }, searchParams: { done: "1" } }));
       expect(html, `press ${press_}`).toContain(COPY["pause.head"]);
       expect(html).toContain(COPY["pause.done"]);
-      expect(html).toContain('href="/app/settings/publishing"');
+      expect(html).toContain('href="/app/settings/pages"');
     }
     expect(db.rows("sites")[0]).toMatchObject({ publishing_enabled: false, publishing_changed_by: "customer" });
     expect(siteWrites()).toBe(1);

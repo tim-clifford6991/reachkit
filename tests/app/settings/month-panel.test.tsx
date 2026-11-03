@@ -1,4 +1,4 @@
-// Billing's "This month" (board SettingsBilling), rendered in each state it has.
+// Billing's "This month" (board SettingsAccount), rendered in each state it has.
 /** @vitest-environment jsdom */
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";

@@ -1,17 +1,16 @@
 /** @vitest-environment jsdom */
-// Settings › Market against board SettingsMarket: each section's words in the
+// The market and competitors cards on Settings › Your business (board SettingsIndex): each section's words in the
 // board's order for a plumber and a SaaS, figures from the Competitors tab's own
 // readers, and an unread half never drawn as 0.
-import { readFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { applyEnvFixture } from "../../mail/env-fixture";
-import { boardFile, compare, readAllow, segments } from "../../../scripts/design/parity.mjs";
+import { settledMarkup } from "../shell/settled";
 import type { MarketFigures } from "@/app/(account)/app/settings/market-figures";
 
 applyEnvFixture();
 
-const { default: SettingsMarketTab } = await import("@/app/(account)/app/settings/market/page");
+const { default: SettingsBusinessTab } = await import("@/app/(account)/app/settings/page");
 const { MarketPanel } = await import("@/app/(account)/app/settings/panels/MarketPanel");
 const { CompetitorsPanel } = await import("@/app/(account)/app/settings/panels/CompetitorsPanel");
 const { assembleSettings } = await import("@/app/(account)/app/settings/model");
@@ -279,12 +278,12 @@ describe("the count is the set against the competitor cap constant", () => {
   });
 });
 
-describe("board SettingsMarket, on the account the layout sweep reads", () => {
+describe("Your business's market cards, on the account the layout sweep reads", () => {
   beforeEach(() => signedInAs());
   afterEach(() => resetAccount());
 
   async function route(): Promise<{ html: string; root: HTMLElement }> {
-    const html = renderToStaticMarkup(await SettingsMarketTab());
+    const html = await settledMarkup(await SettingsBusinessTab());
     const root = document.createElement("div");
     root.innerHTML = html;
     return { html, root };
@@ -316,16 +315,5 @@ describe("board SettingsMarket, on the account the layout sweep reads", () => {
     expect(text(root.querySelector('[data-testid="competitors-leaders"]'))).toBe(
       copy("settings.competitors.leaders", { names: overview.rivals.leaders.domains.join(", ") })
     );
-  });
-
-  it("every board string is on the screen but for sample data, rulings and the Settings frame", async () => {
-    const { html } = await route();
-    const { missing } = compare(readFileSync(boardFile("SettingsMarket"), "utf8"), segments(html), readAllow("SettingsMarket"));
-    // Drawn by the shell and the Settings layout, not by this tab.
-    const frame = [
-      "ReachKit", "Overview", "This week", "Settings", "Publishing on",
-      "Your business", "Market and competitors", "Publishing", "Your voice", "Mail", "Billing", "Account",
-    ];
-    expect(missing.filter((s: string) => !frame.includes(s))).toEqual([]);
   });
 });

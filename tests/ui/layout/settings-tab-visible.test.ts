@@ -2,13 +2,11 @@
 //
 // **On a phone, every Settings tab is on screen and the current one is marked.**
 //
-// Settings' bar is seven words, 626px of tabs, and a 390px phone's row is
-// 358px. First the row was a scroll container that opened at its start, so
-// the marked tab could sit past the right edge (#925). Scrolling it into
-// view fixed that, but four of the seven tabs were still off-screen with
-// nothing to say they existed (#1101, the 2026-09-25 shell review). Below
-// `sm` the bar wraps two 44px boxes to a row (canvas v36), so there is nothing to
-// scroll and nothing hidden, and it still sticks under the top bar (#1339).
+// First the row was a scroll container that opened at its start, so the
+// marked tab could sit past the right edge (#925), and later tabs were
+// off-screen with nothing to say they existed (#1101). Below `sm` the three
+// tabs (owner R7) are 44px boxes in one row, so there is nothing to scroll
+// and nothing hidden, and it still sticks under the top bar (#1339).
 //
 // Every check the layout suite already ran passed on both defects: nothing
 // overflowed the screen, the row contained its content perfectly and simply
@@ -17,7 +15,7 @@
 // and each tab is a 44px target — rendered and hydrated, at 390 and at 320.
 //
 // The enumerator is `tabs.ts` — the tuple the bar is built from — so an
-// eighth tab is in scope by construction rather than by being listed here.
+// fourth tab is in scope by construction rather than by being listed here.
 import { describe, expect, it } from "vitest";
 import {
   SETTINGS_TABS,
@@ -107,7 +105,7 @@ for (const width of PHONE_BANDS_PX) {
     for (const tab of SETTINGS_TABS) {
       const href = SETTINGS_TAB_HREF[tab];
       it(
-        `${href}: all ${SETTINGS_TABS.length} tabs two to a row inside the bar, none scrolled, sticky, its own tab marked, each ${TARGET_PX}px tall`,
+        `${href}: all ${SETTINGS_TABS.length} tabs in one row inside the bar, none scrolled, sticky, its own tab marked, each ${TARGET_PX}px tall`,
         async () => {
           const seen = await withPage(
             width,
@@ -124,7 +122,7 @@ for (const width of PHONE_BANDS_PX) {
           expect(seen.outside, `${href} at ${width}px: tabs outside the bar`).toEqual([]);
           expect(seen.scrolling, `${href} at ${width}px: the bar scrolls sideways`).toEqual([]);
           expect(seen.short, `${href} at ${width}px: tabs under ${TARGET_PX}px`).toEqual([]);
-          expect(seen.columns, `${href} at ${width}px: the tabs' columns`).toBe(2);
+          expect(seen.columns, `${href} at ${width}px: the tabs' columns`).toBe(SETTINGS_TABS.length);
           expect(seen.position, `${href} at ${width}px: the bar sticks under the top bar (#1339)`).toBe("sticky");
         },
         PER_ROUTE_BROWSER_MS

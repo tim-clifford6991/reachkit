@@ -1,66 +1,37 @@
-// SPEC §4 (2026-09-20, #908) — Settings' seven tabs, as one tuple.
+// SPEC §4, owner R7 (2026-10-31, docs/spec/decisions/2026-11-03-2127.md): Settings' three tabs, as one tuple.
 //
-// "Settings is tabs: Your business, Market and rivals, Publishing, Your
-// voice, Mail, Billing, Account. The danger zone lives in Account." The same
-// shape `_overview/tabs.ts` gives the Overview's four and
-// `_shell/destinations.ts` gives the three menu items, and for the same
-// reason: the tuple is the set, the two maps below are keyed by it, so an
-// eighth tab is a compile error in two places at once rather than a link
-// with no address or an address with no name.
-//
-// **Your business is `/app/settings` itself**, not an eighth address it
-// redirects to — the tab the customer lands on from the menu, so *Settings*
-// in the side panel keeps the address it has always had and no link
-// anywhere in the product moves.
-//
-// **Three of the seven words are already in the registry** and are reused —
-// `settings.publishing.title`, `settings.billing.title` and
-// `settings.account.title` are "Publishing", "Billing" and "Account", the
-// words §4.7 prints and the product already speaks. A second spelling of a
-// word the product already says is a second place to change it, which is
-// the rule `_overview/tabs.ts` states for the same three of its four. The
-// other four are drafted (#759): the two the canvas names that no card is
-// titled with ("Your business", "Market and rivals"), the voice tab, whose
-// card title "How your pages sound" a tab bar has no room for, and the mail
-// tab, whose card says "Mail" too.
+// The tuple is the set and both maps are keyed by it, so a fourth tab is a compile error here rather than a link
+// with no address or an address with no name. Your business is `/app/settings` itself, the menu's own link.
 import type { CopyKey } from "@/lib/presentation/copy";
 
-export const SETTINGS_TABS = [
-  "business",
-  "market",
-  "publishing",
-  "voice",
-  "mail",
-  "billing",
-  "account",
-] as const;
+export const SETTINGS_TABS = ["business", "pages", "account"] as const;
 export type SettingsTab = (typeof SETTINGS_TABS)[number];
 
 export const SETTINGS_TAB_HREF: Readonly<Record<SettingsTab, string>> = Object.freeze({
   business: "/app/settings",
-  market: "/app/settings/market",
-  publishing: "/app/settings/publishing",
-  voice: "/app/settings/voice",
-  mail: "/app/settings/mail",
-  billing: "/app/settings/billing",
+  pages: "/app/settings/pages",
   account: "/app/settings/account",
 });
 
 export const SETTINGS_TAB_COPY_KEY: Readonly<Record<SettingsTab, CopyKey>> = Object.freeze({
   business: "settings.tab.business",
-  market: "settings.tab.market",
-  publishing: "settings.publishing.title",
-  voice: "settings.tab.voice",
-  mail: "settings.tab.mail",
-  billing: "settings.billing.title",
+  pages: "settings.tab.pages",
   account: "settings.account.title",
 });
 
-/** Which tab a pathname is on, or `undefined` for a path under
- *  `/app/settings` that is none of the seven. Business is matched
- *  **exactly** and never by prefix, because its address `/app/settings` is
- *  the prefix of all six others — the same rule, and the same reason, as
- *  `tabOf`'s and `destinationOf`'s. */
+/** The anchor each moved card stands under, so a link or a redirect lands on the card, not the tab's top. */
+export const SETTINGS_ANCHOR = Object.freeze({
+  market: "market",
+  voice: "voice",
+  publishing: "publishing",
+  mail: "mail",
+  billing: "billing",
+} as const);
+
+/** An anchored card's box; its scroll margin clears the sticky top bar and tab bar a landing scrolls under. */
+export const ANCHORED = "flex min-w-0 scroll-mt-48 flex-col gap-6 lg:scroll-mt-16";
+
+/** Which tab a pathname is on. Business is matched exactly, never by prefix: its address prefixes the others. */
 export function settingsTabOf(pathname: string): SettingsTab | undefined {
   return SETTINGS_TABS.find((tab) => pathname === SETTINGS_TAB_HREF[tab]);
 }

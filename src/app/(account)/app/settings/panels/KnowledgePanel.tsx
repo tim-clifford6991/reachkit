@@ -195,7 +195,7 @@ export function KnowledgePanel(p: { knowledge: KnowledgeBase; answers: FounderAn
             ))}
           </ol>
           <div>
-            <button type="submit" className="btn btn-primary btn-sm" disabled={writer.busy}>
+            <button type="submit" className="btn btn-soft btn-primary btn-sm" disabled={writer.busy}>
               {copy("settings.save")}
             </button>
           </div>

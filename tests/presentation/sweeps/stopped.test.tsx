@@ -253,7 +253,7 @@ describe("REQ-092 c3 — the screen the customer lands on states it", () => {
 
 // The billing card's one control names its destination, and the cancel line names that
 // control (owner R24); only that exact name is taken out, on that one screen, before matching.
-const BILLING = "/app/settings/billing";
+const BILLING = "/app/settings/account";
 const BILLING_CONTROL = copy("settings.billing.manage");
 function billingSwept(screen: HTMLElement): HTMLElement {
   const body = screen.cloneNode(true) as HTMLElement;

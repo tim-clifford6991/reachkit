@@ -37,7 +37,7 @@ import { MonthsFigure, MoverFigure } from "../_overview/Figures";
 export const metadata: Metadata = { title: copy("meta.app.overview.title") };
 
 /** Where publishing is turned back on. */
-const PUBLISHING_SETTINGS = "/app/settings/publishing";
+const PUBLISHING_SETTINGS = "/app/settings/pages";
 
 /** "Monday": the day a week's pages are chosen on, as a value. */
 function weekdayOf(day: string): string {
