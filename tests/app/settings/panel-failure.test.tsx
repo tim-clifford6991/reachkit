@@ -15,7 +15,9 @@ const never = (): unknown =>
 const client = (): unknown =>
   new Proxy(db.client as Record<string, unknown>, {
     get: (target, key) =>
-      key === "from" ? (table: string) => (stalled.has(table) ? never() : (target.from as (t: string) => unknown)(table)) : target[key as string],
+      key === "from"
+        ? (table: string) => (stalled.has(table) ? (db.queries.push({ table, verb: "select", filters: [] }), never()) : (target.from as (t: string) => unknown)(table))
+        : target[key as string],
   });
 vi.mock("@/lib/db", () => ({ dbAdmin: client, db: client }));
 
@@ -157,6 +159,9 @@ describe("Your business: the facts card is its own read, so only it says when th
     const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     const rendering = render(BusinessTab);
+    // Real ticks until the business read reaches its stalled table and Market's and Voice's settings reads reach their last step.
+    const started = () => db.queries.some((query) => query.table === "site_profile_edits") && db.queries.filter((query) => query.columns === "writing_voice").length >= 2;
+    for (let turn = 0; turn < 200 && !started(); turn++) await new Promise((resolve) => setImmediate(resolve));
     await vi.advanceTimersByTimeAsync(4_000);
     const doc = await rendering;
     expect([has(doc, "settings-unread-business"), has(doc, "settings-unread-facts"), failed(warn, "business").length]).toEqual([true, false, 1]);
