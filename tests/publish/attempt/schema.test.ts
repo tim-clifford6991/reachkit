@@ -24,7 +24,7 @@ import {
   psql,
   psqlRows,
 } from "../../db/substrate";
-import "../../generate/env";
+import "../../opportunities/env";
 
 const MIGRATIONS = path.resolve(import.meta.dirname, "../../../supabase/migrations");
 const APPLIED = [
