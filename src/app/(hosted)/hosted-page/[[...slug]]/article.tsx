@@ -39,6 +39,7 @@ import {
   type HostedPage,
 } from "@/lib/publish/destinations/hosted";
 import { slugOf } from "@/lib/publish/destinations/hosted/moved";
+import { unlinkedHere } from "@/lib/publish/render/anchor-guard";
 import { movedSlugsForSite } from "@/lib/publish/destinations/hosted/store";
 import { topicSimilarity } from "@/lib/known-content/similarity";
 import { Surface } from "@/ui/layout";
@@ -320,19 +321,6 @@ export async function articleDocument(host: string, slug: string): Promise<strin
   });
 }
 
-/** Whether `href` is an address of the page's own host that answers 410. */
-function retiredHere(href: string, canonical: string, retired: ReadonlySet<string> | undefined): boolean {
-  if (retired === undefined || retired.size === 0) return false;
-  try {
-    const target = new URL(href, canonical);
-    if (target.host !== new URL(canonical).host) return false;
-    const slug = slugOf(target.href);
-    return slug !== null && retired.has(slug);
-  } catch {
-    return false;
-  }
-}
-
 /** Where `href` answers now, when it is an address of the page's own host
  *  that moved (issue 1511); `null` for every other link. */
 function movedHere(href: string, canonical: string, moved: ReadonlyMap<string, string> | undefined): string | null {
@@ -363,11 +351,11 @@ export function HostedArticle({ resolved }: { resolved: Resolved }): React.JSX.E
     page.faq,
     copy
   );
-  // A link to a page of this host that was taken down is unwrapped, its
-  // words kept (issue 1506); one to a page that moved is drawn at the page's
-  // address now (issue 1511), so no link waits on a redirect.
+  // A link to a page of this host that was taken down, or a figure linked
+  // into the site, is unwrapped, its words kept (`anchor-guard.ts`); one to a
+  // page that moved is drawn at its address now, so no link waits on a redirect.
   const levelled = withLinksMoved(
-    withoutLinksTo(headingsUnderTitle(asked.blocks), (href) => retiredHere(href, canonical, resolved.retired)),
+    withoutLinksTo(headingsUnderTitle(asked.blocks), (href, text) => unlinkedHere(href, text, { canonical, retired: resolved.retired, domain: business.domain })),
     (href) => movedHere(href, canonical, resolved.moved)
   );
   const offering = page.offering === true;

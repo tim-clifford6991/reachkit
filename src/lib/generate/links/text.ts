@@ -40,7 +40,10 @@ const GENERIC = new Set([
   "saiba mais",
 ]);
 
-const BARE_NUMBER_RE = /^[\d\s.,]+%?$/;
+/** A figure and nothing else: a count, a share, or an amount with its
+ *  currency ("$29", "€1.597", "29 USD", "10k+"). Words beside it ("€49 a
+ *  month") make it a name, judged as one. */
+const FIGURE_RE = /^(?:\p{Sc}|(?:USD|EUR|GBP|CHF|CAD|AUD)\s)?\s*[~≈±+−-]?\s*\p{Sc}?\s*\d[\d\s.,'’]*\s*(?:%|\p{Sc}|[kKmM]|bn|(?:USD|EUR|GBP|CHF|CAD|AUD))?\s*\+?$/u;
 const ADDRESS_RE = /^(https?:\/\/|www\.)\S+$/i;
 
 export type LinkTextProblem = "empty" | "number" | "address" | "generic";
@@ -53,7 +56,7 @@ function squash(text: string): string {
 export function linkTextProblem(label: string): LinkTextProblem | null {
   const text = squash(label);
   if (text === "") return "empty";
-  if (BARE_NUMBER_RE.test(text)) return "number";
+  if (FIGURE_RE.test(text)) return "number";
   if (ADDRESS_RE.test(text)) return "address";
   if (GENERIC.has(text.toLowerCase().replace(/[.!:→»>]+$/u, "").trim())) return "generic";
   return null;
