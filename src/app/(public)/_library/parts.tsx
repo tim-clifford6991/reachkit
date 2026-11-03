@@ -20,13 +20,14 @@ export const CARD = "card bg-base-100 shadow-(--shadow-card)";
 export const BODY = "card-body gap-3";
 export const LIST = "list-disc ps-6";
 const NEW_TAB = { target: "_blank", rel: "noopener" } as const;
+const SOURCE_LINK = "link inline-flex min-h-11 items-center";
 const HOW_HREF = "/how-it-works";
 const START_ID = "start";
 
-/** The page: an eyebrow, the heading, and the column under it. */
+/** The page: an eyebrow where the board draws one, the heading, and the column under it. */
 export function LibraryPage(p: {
   testId: string;
-  eyebrow: CopyKey;
+  eyebrow?: CopyKey;
   /** Where the page sits, drawn in place of the eyebrow. */
   trail?: React.ReactNode;
   title: string;
@@ -46,11 +47,10 @@ export function LibraryPage(p: {
         <article
           className={`text-base-content/80 mx-auto flex w-full min-w-0 flex-col gap-3 leading-relaxed ${p.wide === true ? "" : "max-w-(--w-read)"}`}
         >
-          {p.trail ?? (
-            <span className="text-base-content/70 text-xs font-semibold tracking-wide uppercase">
-              {copy(p.eyebrow)}
-            </span>
-          )}
+          {p.trail ??
+            (p.eyebrow === undefined ? null : (
+              <span className="text-base-content/70 text-xs font-semibold tracking-wide uppercase">{copy(p.eyebrow)}</span>
+            ))}
           <h1 className="break-words">{p.title}</h1>
           <div className="mt-3 flex min-w-0 flex-col gap-4">{p.children}</div>
         </article>
@@ -65,7 +65,7 @@ type Row = readonly [CopyKey, CopyKey];
 interface Weekly {
   readonly eyebrow?: CopyKey;
   readonly title: CopyKey;
-  readonly lead: CopyKey;
+  readonly lead?: CopyKey;
   readonly them: CopyKey;
   readonly us: CopyKey;
   readonly rows: readonly Row[];
@@ -104,9 +104,7 @@ const CLOSE = {
   about: { lead: "library.close.about.lead", glance: false },
   compare: {
     weekly: {
-      eyebrow: "library.close.compare.eyebrow",
       title: "library.close.compare.title",
-      lead: "library.close.compare.lead",
       them: "library.close.compare.them",
       us: "library.close.compare.us",
       rows: [
@@ -117,11 +115,12 @@ const CLOSE = {
         ["library.close.compare.5.them", "library.close.compare.5.us"],
       ],
     },
-    lead: "how.start.body",
-    glance: true,
+    glance: false,
+    short: true,
+    icons: { them: User, us: Sparkles },
   },
-  "compare-tool": { lead: "how.start.body", glance: true },
-  answer: { lead: "how.start.body", glance: true },
+  "compare-tool": { glance: false, short: true },
+  answer: { glance: false, short: true },
   teardowns: {
     weekly: {
       eyebrow: "library.close.teardown.eyebrow",
@@ -295,12 +294,8 @@ export function ScanJump(): React.JSX.Element {
   );
 }
 
-/** The weekly loop ReachKit runs, and your part in it. Compare and Answer
- *  pages draw it beside their own "what ReachKit does" section; `detail`
- *  opens the whole loop in one paragraph. */
-export function LearnLoop(
-  p: { detail?: { summary: string; body: string }; steps?: Icons["steps"] } = {}
-): React.JSX.Element {
+/** The weekly loop ReachKit runs, and your part in it. */
+function LearnLoop(p: { steps?: Icons["steps"] } = {}): React.JSX.Element {
   return (
     <div className="flex min-w-0 flex-col gap-4" data-testid="learn-loop">
       <figure className="flex min-w-0 flex-col gap-3">
@@ -325,14 +320,6 @@ export function LearnLoop(
         </p>
         <figcaption className={SMALL}>{copy("library.close.example", { business: EXAMPLES.plumber.business })}</figcaption>
       </figure>
-      {p.detail === undefined ? null : (
-        <details className="collapse-arrow border-base-300 collapse min-w-0 border">
-          <summary className="collapse-title font-semibold">{p.detail.summary}</summary>
-          <div className="collapse-content">
-            <p>{p.detail.body}</p>
-          </div>
-        </details>
-      )}
       <div className="rounded-box bg-base-200 flex min-w-0 flex-col gap-1 p-4 text-sm">
         <p>{copy("library.close.part", FIGURES)}</p>
         <p className="flex flex-wrap items-center gap-x-1">
@@ -348,7 +335,7 @@ export function LearnLoop(
 }
 
 /** Your part and the price, without the loop's figure. */
-function YourPart(): React.JSX.Element {
+export function YourPart(): React.JSX.Element {
   const line = "flex min-w-0 flex-[1_1_17rem] items-start gap-2.5";
   const icon = "text-primary mt-0.5 flex-none";
   return (
@@ -377,11 +364,10 @@ function YourPart(): React.JSX.Element {
 export interface WeeklyWords {
   readonly eyebrow?: string;
   readonly title: string;
-  readonly lead: string;
+  readonly lead?: string;
   readonly them: string;
   readonly us: string;
   readonly rows: readonly (readonly [string, string])[];
-  readonly detail?: { summary: string; body: string };
 }
 
 /** A compare row's side, opening with its icon where the close has one. */
@@ -395,8 +381,8 @@ function Side(p: { text: string; className: string; Icon?: LucideIcon }): React.
   );
 }
 
-/** What this page gives beside what ReachKit gives, the weekly loop, and your part. */
-export function WeeklyLoop(p: { w: WeeklyWords; icons?: Icons; short?: true }): React.JSX.Element {
+/** What this page gives beside what ReachKit gives, anything the page sets under it, then the weekly loop or only your part. */
+export function WeeklyLoop(p: { w: WeeklyWords; icons?: Icons; short?: true; children?: React.ReactNode }): React.JSX.Element {
   const w = p.w;
   return (
     <section className="flex min-w-0 flex-col gap-4">
@@ -405,7 +391,7 @@ export function WeeklyLoop(p: { w: WeeklyWords; icons?: Icons; short?: true }): 
           <span className="text-base-content/70 text-xs font-semibold tracking-wide uppercase">{w.eyebrow}</span>
         )}
         <h2 className="break-words">{w.title}</h2>
-        <p>{w.lead}</p>
+        {w.lead === undefined ? null : <p>{w.lead}</p>}
       </div>
       <div className={CARD}>
         <div className={BODY}>
@@ -425,7 +411,8 @@ export function WeeklyLoop(p: { w: WeeklyWords; icons?: Icons; short?: true }): 
           </ul>
         </div>
       </div>
-      {p.short ? <YourPart /> : <LearnLoop detail={w.detail} steps={p.icons?.steps} />}
+      {p.children}
+      {p.short ? <YourPart /> : <LearnLoop steps={p.icons?.steps} />}
     </section>
   );
 }
@@ -434,7 +421,7 @@ function wordsOf(w: Weekly): WeeklyWords {
   return {
     ...(w.eyebrow === undefined ? {} : { eyebrow: copy(w.eyebrow) }),
     title: copy(w.title),
-    lead: copy(w.lead, FIGURES),
+    ...(w.lead === undefined ? {} : { lead: copy(w.lead, FIGURES) }),
     them: copy(w.them),
     us: copy(w.us),
     rows: w.rows.map(([them, us]) => [copy(them, FIGURES), copy(us, FIGURES)] as const),
@@ -510,11 +497,11 @@ export function Sources(p: { checked: string; sources: readonly Source[]; id?: s
             {p.sources.map((source) => (
               <li key={source.href} className="break-words">
                 {source.href.startsWith("/") ? (
-                  <Link href={source.href} className="link">
+                  <Link href={source.href} className={SOURCE_LINK}>
                     {source.label}
                   </Link>
                 ) : (
-                  <a href={source.href} className="link" {...NEW_TAB}>
+                  <a href={source.href} className={SOURCE_LINK} {...NEW_TAB}>
                     {copy("library.source", { label: source.label, host: new URL(source.href).hostname })}
                   </a>
                 )}

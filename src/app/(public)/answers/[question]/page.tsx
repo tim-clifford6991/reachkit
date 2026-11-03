@@ -5,8 +5,8 @@
 import type React from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { CalendarCheck, Check, MessageSquareText, RefreshCw, Search, Users } from "lucide-react";
-import { copy, type CopyKey } from "@/lib/presentation/copy";
+import { CalendarCheck, Check, RefreshCw, Search, Sparkles, User, Users, Zap } from "lucide-react";
+import { copy } from "@/lib/presentation/copy";
 import { CostBars } from "@/ui/charts";
 import { PUBLIC_ROUTE_SEO } from "../../_seo/routes";
 import { publicMetadata } from "../../_seo/metadata";
@@ -34,13 +34,13 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   });
 }
 
-const EYEBROW: CopyKey = "answers.eyebrow";
 const PAGE_TEST_ID = "answer";
 const SOURCES_ID = "src";
 const LABEL = "text-base-content/70 text-xs font-semibold tracking-wide uppercase";
 const SMALL = "text-base-content/70 text-sm";
 const ICON = { size: 16, strokeWidth: 1.75, "aria-hidden": true } as const;
 const UNIT_ICONS = [Users, Search, RefreshCw] as const;
+const FITS_ICONS = { them: User, us: Sparkles } as const;
 
 function Eyebrow(p: { children: React.ReactNode }): React.JSX.Element {
   return <span className={LABEL}>{p.children}</span>;
@@ -68,10 +68,9 @@ export default async function AnswerPage({ params }: Params): Promise<React.JSX.
   const { question } = await params;
   const a = answerOf(question);
   if (a === undefined) notFound();
-  const [first, ...rest] = a.answer;
 
   return (
-    <LibraryPage testId={PAGE_TEST_ID} eyebrow={EYEBROW} title={a.title}>
+    <LibraryPage testId={PAGE_TEST_ID} title={a.title}>
       {/* Issue 1512: the date the page prints. It has no index, so the
           trail is home and the page. */}
       <JsonLd
@@ -86,11 +85,11 @@ export default async function AnswerPage({ params }: Params): Promise<React.JSX.
         <div className={BODY}>
           <Eyebrow>
             <span className="flex items-center gap-1">
-              <MessageSquareText {...ICON} />
+              <Zap {...ICON} />
               {copy("answers.short")}
             </span>
           </Eyebrow>
-          <p className="text-lg">{first}</p>
+          <p className="text-lg">{a.answer}</p>
           <Eyebrow>{a.units.title}</Eyebrow>
           <ol className="grid min-w-0 gap-2 sm:grid-cols-3">
             {a.units.items.map(([head, tail], i) => {
@@ -109,22 +108,18 @@ export default async function AnswerPage({ params }: Params): Promise<React.JSX.
               );
             })}
           </ol>
-          {rest.map((text) => (
-            <p key={text}>{text}</p>
-          ))}
         </div>
       </section>
       <p className={`${SMALL} flex flex-wrap items-center gap-x-2`}>
         <CalendarCheck {...ICON} />
         <span>{copy("library.checked", { date: longDate(a.checked) })}</span>
-        <a href={`#${SOURCES_ID}`} className="link">
+        <a href={`#${SOURCES_ID}`} className="link inline-flex min-h-11 items-center">
           {copy("library.sources")}
         </a>
       </p>
 
       <section className="flex min-w-0 flex-col gap-4">
         <div className="flex min-w-0 flex-col gap-2">
-          <Eyebrow>{copy("compare.item.table")}</Eyebrow>
           <h2>{a.tiers.title}</h2>
           <p>{a.tiers.lead}</p>
         </div>
@@ -166,27 +161,19 @@ export default async function AnswerPage({ params }: Params): Promise<React.JSX.
         </section>
       ))}
 
-      <section className="flex min-w-0 flex-col gap-4">
-        <WeeklyLoop
-          w={{
-            eyebrow: copy("answers.fits.eyebrow"),
-            title: a.fits.title,
-            lead: a.fits.lead,
-            them: a.fits.them,
-            us: copy("library.close.weekly"),
-            rows: a.fits.rows,
-            detail: { summary: copy("how.detail"), body: a.fits.detail },
-          }}
-        />
+      <WeeklyLoop
+        w={{ title: a.fits.title, lead: a.fits.lead, them: a.fits.them, us: copy("library.close.weekly"), rows: a.fits.rows }}
+        icons={FITS_ICONS}
+        short
+      >
         <div className="grid min-w-0 gap-3 sm:grid-cols-2">
           <Pick title={copy("compare.item.pick.them", { name: a.fits.pickThem.name })} items={a.fits.pickThem.items} />
           <Pick title={copy("compare.item.pick.us")} items={a.fits.pickUs} />
         </div>
-      </section>
+      </WeeklyLoop>
 
       <section className={CARD}>
         <div className={BODY}>
-          <Eyebrow>{copy("answers.faq.eyebrow")}</Eyebrow>
           <h2>{copy("answers.faq")}</h2>
           {a.faq.map((item) => (
             <div key={item.q} className="flex flex-col gap-1">

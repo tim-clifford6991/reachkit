@@ -80,26 +80,39 @@ describe("the index: the five jobs, the fork, and a chip and a heading per kind 
     }
   });
 
-  it("each card says what the other tool is, then what ReachKit does, and reads on", () => {
+  it("each card is one row: its title, then what the other tool is, and no second line about ReachKit", () => {
     for (const c of COMPARISONS) {
       const { them, us } = cardLines(c.summary);
-      expect(us.startsWith("ReachKit "), c.slug).toBe(true);
       const card = root.querySelector(`a[href="/compare/${c.slug}"]`)!;
-      expect(segments(card.outerHTML).join(" "), c.slug).toContain(`${c.name} ${them} ReachKit ${us} ${copy("compare.read")}`);
+      const text = segments(card.outerHTML).join(" ");
+      expect(text, c.slug).toBe([c.name.charAt(0), c.title, ...(c.badge === undefined ? [] : [c.badge]), them].join(" "));
+      expect(text, c.slug).not.toContain(us);
     }
   });
 });
 
+describe("one scan form per page, and no hero button on either compare page", () => {
+  it.each([
+    ["/compare", (): Promise<string> | string => renderToStaticMarkup(ComparePage())],
+    ["/compare/chatgpt", (): Promise<string> => tool(BOARD_TOOL)],
+  ] as const)("%s", async (_path, render) => {
+    const root = parse(await render());
+    expect(root.querySelectorAll("form")).toHaveLength(1);
+    expect(root.querySelectorAll('a[href="#start"]')).toHaveLength(0);
+  });
+});
+
 describe("every comparison follows the tool page's pattern", () => {
-  it.each(COMPARISONS.map((c) => [c.slug, c] as const))("%s: who does each job, what is left to you, what ReachKit does instead", async (slug, c) => {
+  it.each(COMPARISONS.map((c) => [c.slug, c] as const))("%s: who does each job, once, then what ReachKit does instead", async (slug, c) => {
     const root = parse(await tool(slug));
     const yours = JOBS.filter((job) => !c.does.includes(job));
     const rows = root.querySelectorAll('[data-testid="comparison-jobs"] [role="row"]');
     expect(rows).toHaveLength(1 + JOBS.length);
     const doer = rows.slice(1).map((row) => row.querySelectorAll('[role="cell"]')[0]!.text.trim());
     expect(doer).toEqual(JOBS.map((job) => (yours.includes(job) ? copy("compare.item.jobs.you") : c.name)));
-    const still = root.querySelectorAll('[data-testid="comparison-still"] li');
-    expect(still).toHaveLength(yours.length);
+    // The jobs table is the one list of what is left to you: no second card, no second table.
+    expect(root.querySelector('[data-testid="comparison-still"]')).toBeNull();
+    expect(root.querySelectorAll("table")).toHaveLength(1);
     expect(root.text).toContain(copy("compare.item.jobs.count", { count: yours.length }));
     expect(root.querySelector("h1")?.text).toBe(c.heading ?? c.title);
   });

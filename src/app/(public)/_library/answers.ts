@@ -11,10 +11,8 @@ export const ANSWERS: readonly Answer[] = [
     title: "Free SEO competitor analysis tool",
     description:
       "Seobility's free plan tracks 3 competitors and 10 keywords, updated weekly. Moz's Keyword Gap takes up to 3. What each free tier gives you.",
-    answer: [
+    answer:
       "A free SEO competitor analysis tool shows you, at no cost, which businesses Google puts above you, and for which searches. Every free tier of this kind has limits.",
-      "Seobility's free Basic plan follows 3 competitors and shows where they appear on Google for 10 searches, updated weekly. Moz lists Competitive Research among its free tools, and its Keyword Gap tool compares you with up to 3 competitors.",
-    ],
     units: {
       title: "The limits come in three units",
       items: [
@@ -25,7 +23,7 @@ export const ANSWERS: readonly Answer[] = [
     },
     tiers: {
       title: "What each free tier gives you",
-      lead: "The same three limits, drawn to scale. A dashed bar means the page gives a different kind of answer, or no number.",
+      lead: "Drawn to scale. A dashed bar means no number is given.",
       charts: [
         {
           title: "1 · Competitors you can follow",
@@ -71,17 +69,13 @@ export const ANSWERS: readonly Answer[] = [
         chips: ["Basic: free", "3 competitors", "10 searches, weekly", "5 look-ups a day", "Premium: 20 · 300 · daily", "14-day trial"],
         paragraphs: [
           "Seobility calls its Basic plan free. It follows 3 competitors and shows where they appear on Google for 10 searches, updated weekly. It allows 5 look-ups a day in its Keyword Research Tool.",
-          "The paid Premium plan follows 20 competitors and shows where they appear for 300 searches, updated daily, with 50 Keyword Research look-ups a day. It adds a list of the other sites that link to your competitors, updated weekly.",
-          "Seobility offers a 14-day free trial of Premium and says you can cancel at any time. The competitor analysis page gives no prices.",
         ],
       },
       {
         heading: "What Moz's free research includes",
         chips: ["Keyword Gap: up to 3", "Campaigns: up to 3, weekly", "True Competitor", "Free trial, no price stated"],
         paragraphs: [
-          "Moz's page is titled 'Free SEO Competitive Analysis Tool' and invites you to enter any web address to see how Moz Pro helps with competitor analysis. Competitive Research sits in Moz's 'Free SEO Tools' menu with Domain Analysis, Keyword Explorer, Link Explorer and MozBar.",
           "True Competitor lists your competitors from the Google results where your site appears, with two measures called Overlap and Rivalry. Keyword Gap takes up to 3 competitors and finds searches where you are on Google's first two pages but a competitor sits higher, and searches where they appear and you do not.",
-          "Moz Pro Campaigns follow up to 3 competitors side by side and show where they appear on Google each week. Domain Overview shows Domain Authority and Brand Authority. Moz says Keyword Explorer draws on more than 1.25 billion search terms and Link Explorer on more than 40 trillion links. The page offers a free trial of Moz Pro but states no price and no trial length.",
         ],
       },
     ],
@@ -102,7 +96,6 @@ export const ANSWERS: readonly Answer[] = [
         "you want to see who gets your buyers on Google and in AI answers",
         "you want the pages written and live, not a list of things to do",
       ],
-      detail: `ReachKit is not a tool for researching search terms. Its free scan reads your site, works out who your buyers are, and checks ${P.searches} searches they make. It shows the competitors on Google's first page instead of you, checks whether AI answers mention you, and lists what's holding your site back across up to ${P.pages} pages. It's free, takes under a minute, and needs no account. The paid plan, ${P.price} a month, writes up to ${P.weekPages} pages a week, new or updated, and they go live on your website. Never filler. If you need lists of search terms, or of the sites that link to your competitors, Seobility or Moz is the better choice.`,
     },
     faq: [
       {

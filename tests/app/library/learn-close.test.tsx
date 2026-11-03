@@ -8,7 +8,7 @@ import { readFileSync } from "node:fs";
 import { createElement } from "react";
 import type React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { parse } from "node-html-parser";
+import { parse, type HTMLElement } from "node-html-parser";
 import { describe, expect, it, vi } from "vitest";
 import { boardFile, compare, readAllow, segments } from "../../../scripts/design/parity.mjs";
 
@@ -112,9 +112,12 @@ describe("the scans close draws its own icons", () => {
   );
 });
 
+/** The closes canvas v36 drew without the glance: the field alone, under its heading. */
+const SHORT = ["about", "scans", "compare", "compare-tool", "answer"] as const;
+
 describe("every close with the glance draws its ring, icon tiles and AI bar", () => {
   const e = EXAMPLES.plumber.report;
-  it.each(PAGES.map((page) => page.variant).filter((variant) => variant !== "about" && variant !== "scans"))("%s", (variant) => {
+  it.each(PAGES.map((page) => page.variant).filter((variant) => !(SHORT as readonly string[]).includes(variant)))("%s", (variant) => {
     const page = parse(renderToStaticMarkup(createElement(LearnClose, { variant: variant as "about" })));
     const glance = page.querySelector(`figure[aria-label="${copy("how.start.glance")}"]`);
     expect(glance?.querySelector(".radial-progress")?.getAttribute("style")).toContain(`--value:${e.score}`);
@@ -128,9 +131,25 @@ describe("every close with the glance draws its ring, icon tiles and AI bar", ()
     ]);
   });
 
-  it.each(["about", "scans"] as const)("%s ends without the glance", (variant) => {
+  it.each(SHORT)("%s ends without the glance", (variant) => {
     const page = parse(renderToStaticMarkup(createElement(LearnClose, { variant })));
     expect(page.querySelector(`figure[aria-label="${copy("how.start.glance")}"]`)).toBeNull();
+  });
+});
+
+describe("Compare, a comparison and an answer carry no repeated module, and close on the heading, the field and its line", () => {
+  it.each(PAGES.filter((page) => ["compare", "compare-tool", "answer"].includes(page.variant)))("$board", async ({ render }) => {
+    const root = parse(await html(render));
+    const text = segments(root.toString());
+    expect(root.querySelector('[data-testid="learn-loop"]')).toBeNull();
+    expect(root.querySelector("details")).toBeNull();
+    expect(text).not.toContain(copy("how.steps.loop"));
+    expect(text).not.toContain(copy("how.detail"));
+    expect(root.querySelector(`figure[aria-label="${copy("how.start.glance")}"]`)).toBeNull();
+    const start = root.querySelector("#start")!;
+    expect(start.childNodes.filter((n) => n.nodeType === 1).map((n) => (n as HTMLElement).rawTagName)).toEqual(["h2", "div", "p"]);
+    expect(start.querySelectorAll("form")).toHaveLength(1);
+    expect(segments(start.querySelector("p")!.toString())).toEqual([copy("landing.hero.assurance")]);
   });
 });
 
