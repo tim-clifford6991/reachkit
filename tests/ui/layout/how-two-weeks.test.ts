@@ -1,5 +1,5 @@
 // How it works' head card, "Two weeks, side by side", as board PubHowItWorks draws it: each
-// week's rows start under its heading, and ReachKit's page titles keep a readable width.
+// week's rows start under its heading, ReachKit's page titles keep a readable width, and the four step cards share one head.
 import { describe, expect, it } from "vitest";
 import { getBaseURL, withPage } from "./browser";
 import { settleForMeasurement, STILL } from "./no-overflow";
@@ -8,6 +8,8 @@ interface Head {
   weeks: Week[];
   /** Each step chip: how many lines its words take, and whether they overflow it. */
   chips: { lines: number; overflows: boolean }[];
+  /** Each step card's title top: its head is number, icon tile, then chip. */
+  stepTitleTops: number[];
 }
 
 interface Week {
@@ -42,6 +44,7 @@ async function measure(width: number): Promise<Head> {
           overflows: chip.scrollWidth > chip.clientWidth + 1,
         };
       }),
+      stepTitleTops: [...document.querySelectorAll("#top ol a .card-body > :nth-child(2)")].map((t) => t.getBoundingClientRect().top),
     }));
   });
 }
@@ -63,5 +66,11 @@ describe("how it works: the two weeks side by side", () => {
     const { chips } = await measure(1280);
     expect(chips).toHaveLength(4);
     for (const [i, chip] of chips.entries()) expect(chip, `step ${i + 1}`).toEqual({ lines: 1, overflows: false });
+  }, 120_000);
+
+  it.each([1024, 1280])("at %ipx the four step titles share a top", async (width) => {
+    const { stepTitleTops: tops } = await measure(width);
+    expect(tops).toHaveLength(4);
+    expect(Math.max(...tops) - Math.min(...tops)).toBeLessThanOrEqual(2);
   }, 120_000);
 });

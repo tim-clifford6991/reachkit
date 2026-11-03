@@ -178,14 +178,14 @@ function Head(): React.JSX.Element {
             <li key={step.n} className="min-w-0">
               <Link href={step.href} className="card card-border bg-base-100 h-full transition-transform hover:-translate-y-0.5">
                 <span className="card-body gap-2">
-                  <span className="flex flex-wrap items-center gap-2">
+                  <span className="flex flex-wrap items-center gap-2 sm:grid sm:grid-cols-[auto_1fr]">
                     <span className="bg-primary text-primary-content grid size-7 shrink-0 place-items-center rounded-full text-sm font-semibold">
                       {step.n}
                     </span>
                     <span className="rounded-field bg-primary/10 text-primary grid size-8 shrink-0 place-items-center">
                       <step.icon {...ICON} />
                     </span>
-                    <span className="badge badge-soft badge-primary badge-sm whitespace-nowrap">
+                    <span className="badge badge-soft badge-primary badge-sm whitespace-nowrap sm:col-span-2 sm:justify-self-start">
                       {copy(stepKey(step.n, "when"), step.when)}
                     </span>
                   </span>
