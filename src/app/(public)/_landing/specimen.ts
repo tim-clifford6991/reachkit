@@ -10,10 +10,8 @@
 // drawn, without a source date or an example line.
 //
 // The owner's ruling of **2026-09-21** (#935) then replaced the hero
-// itself with Round 11's *one week, one card*, which does carry a written
-// example line — because it names a business, and a named business has to
-// say it is an example. `SPECIMEN_HERO` at the foot of this file is that
-// card's, and `landing.hero.example` is its line.
+// itself with Round 11's *one week, one card*. `SPECIMEN_HERO` at the foot
+// of this file is that card.
 //
 // It is a `const`, not a generator: a specimen that varied per call would
 // make the layout sweep and its pixel baselines non-deterministic.
