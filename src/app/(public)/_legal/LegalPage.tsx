@@ -1,4 +1,4 @@
-// UI-SPEC S5 — the legal screen: "Header · eyebrow Legal · title (owed) ·
+// UI-SPEC S5 — the legal screen: "Header · title (owed) ·
 // 'updated [date]' · one card with the Markdown body (owed) · footer. One
 // renderer for the three routes."
 // src/app/(public)/_legal/LegalPage.tsx
@@ -322,9 +322,6 @@ export function LegalPage(p: { document: LegalDocument }): React.JSX.Element {
           already selects for a read arm; this is not a second measure. */}
       <main className="mx-auto flex w-full min-w-0 max-w-5xl flex-col gap-4 px-4 py-12">
         <div className="flex flex-col gap-3">
-          <span className="text-base-content/70 text-xs font-semibold tracking-wide uppercase">
-            {copy("legal.eyebrow")}
-          </span>
           <h1>{copy(p.document.title)}</h1>
           {/* The whole line is a date with one word in front of it, so the
               whole line is in the mono face. */}
@@ -332,7 +329,7 @@ export function LegalPage(p: { document: LegalDocument }): React.JSX.Element {
             {copy("legal.updated", { date: copy(p.document.updated) })}
           </p>
           <nav aria-label={copy("legal.tabs.label")}>
-            <div className="tabs tabs-box w-fit">
+            <div className="tabs tabs-box w-fit [--tab-height:2.75rem]">
               {LEGAL_DOCUMENTS.map((d) => (
                 <Link
                   key={d.path}

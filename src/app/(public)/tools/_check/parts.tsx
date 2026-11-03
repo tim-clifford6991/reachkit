@@ -1,25 +1,17 @@
-// The pieces both tools and their index draw: the line under the form, a
-// result's heading with the example's caption, a Google result, and a
-// status badge. daisyUI classes in place.
+// The pieces both tools and their index draw: a result's heading, a Google
+// result, and a status badge. daisyUI classes in place.
 import type React from "react";
 import { CircleAlert, CircleCheck } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
-import { EXAMPLE_BUSINESS, EXAMPLE_CITY } from "./example";
 import type { PageTags } from "./read";
 
 export const RESULT_ID = "res";
-const SMALL = "text-base-content/70 text-sm";
 const CALLOUT = "badge badge-primary badge-sm shrink-0";
 
 /** `https://host/path` as a reader names it: `host/path`. */
 export function pagePlace(url: string): string {
   const u = new URL(url);
   return `${u.hostname}${u.pathname === "/" ? "" : u.pathname}`;
-}
-
-/** What a check costs the visitor, under each tool's field and on each card. */
-export function MicroLine(): React.JSX.Element {
-  return <p className={SMALL}>{copy("tools.micro")}</p>;
 }
 
 export function Status(p: { fine: boolean }): React.JSX.Element {
@@ -32,17 +24,21 @@ export function Status(p: { fine: boolean }): React.JSX.Element {
   );
 }
 
-/** The result's heading, and on the example the line saying it measures no site. */
-export function ResultHead(p: { heading: string; example: boolean }): React.JSX.Element {
+/** The result's heading, with the page it read in mono. */
+export function ResultHead(p: { heading: string; place: string }): React.JSX.Element {
+  const at = p.heading.indexOf(p.place);
   return (
-    <div className="flex min-w-0 flex-col gap-1">
-      <h2 id={RESULT_ID} className="break-words">
-        {p.heading}
-      </h2>
-      {p.example ? (
-        <p className={SMALL}>{copy("tools.example", { business: EXAMPLE_BUSINESS, city: EXAMPLE_CITY })}</p>
-      ) : null}
-    </div>
+    <h2 id={RESULT_ID} className="break-words">
+      {at < 0 ? (
+        p.heading
+      ) : (
+        <>
+          {p.heading.slice(0, at)}
+          <span className="font-mono break-all">{p.place}</span>
+          {p.heading.slice(at + p.place.length)}
+        </>
+      )}
+    </h2>
   );
 }
 

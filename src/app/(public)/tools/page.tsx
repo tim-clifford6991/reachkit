@@ -13,14 +13,13 @@ import { staticMetadata } from "../_seo/metadata";
 import { FIELD_SECTION_ID } from "../_landing/sections";
 import { HOW_FACTS } from "../_how/facts";
 import { EXAMPLES } from "../_how/specimen";
-import { LearnClose, LibraryPage } from "../_library/parts";
+import { BAND, LearnClose, LibraryPage, Tile } from "../_library/parts";
 import { onPageChecks } from "./_check/checks";
 import { EXAMPLE_META, EXAMPLE_ON_PAGE } from "./_check/example";
-import { GoogleResult, MicroLine, Status } from "./_check/parts";
+import { GoogleResult, Status } from "./_check/parts";
 
 export const metadata: Metadata = staticMetadata(PUBLIC_ROUTE_SEO.tools);
 
-const EYEBROW: CopyKey = "tools.eyebrow";
 const PAGE_TEST_ID = "tools";
 const CARD = "card bg-base-100 shadow-(--shadow-card) w-full min-w-0";
 const TILE = `${CARD} motion-safe:transition-transform motion-safe:duration-200 hover:-translate-y-0.5`;
@@ -43,11 +42,11 @@ function Squares(p: { filled: number }): React.JSX.Element {
   );
 }
 
-function Reach(p: { icon: typeof Search; name: CopyKey; reach: string; filled: number }): React.JSX.Element {
+function Reach(p: { icon: typeof Search; name: CopyKey; reach: string; filled: number; ours?: true }): React.JSX.Element {
   return (
     <div className="flex min-w-0 flex-col gap-2">
-      <span className="flex items-center gap-2 font-semibold">
-        <p.icon {...ICON} />
+      <span className={`flex items-center gap-2 font-semibold ${p.ours ? "text-primary" : "text-base-content"}`}>
+        <Tile Icon={p.icon} tone={p.ours ? "primary" : "muted"} />
         {copy(p.name)}
       </span>
       <Squares filled={p.filled} />
@@ -56,11 +55,11 @@ function Reach(p: { icon: typeof Search; name: CopyKey; reach: string; filled: n
   );
 }
 
-function CardHead(p: { icon: typeof Search; name: CopyKey }): React.JSX.Element {
+function CardHead(p: { icon: typeof Search; name: CopyKey; solid?: boolean }): React.JSX.Element {
   return (
-    <div className="flex items-center gap-2">
-      <p.icon {...ICON} />
-      <h2 className="card-title text-base">{copy(p.name)}</h2>
+    <div className="flex items-center gap-3">
+      <Tile Icon={p.icon} tone={p.solid ? "solid" : "primary"} />
+      <h2 className="card-title text-lg">{copy(p.name)}</h2>
     </div>
   );
 }
@@ -139,7 +138,6 @@ function ToolCard(p: Tool): React.JSX.Element {
           <CardHead icon={p.icon} name={p.name} />
           <p.example />
           <span>{copy(p.line)}</span>
-          <MicroLine />
           <span className="text-primary mt-auto flex items-center gap-1 font-semibold">
             {copy(p.cta)}
             <ArrowRight {...ICON} />
@@ -152,9 +150,11 @@ function ToolCard(p: Tool): React.JSX.Element {
 
 export default function ToolsPage(): React.JSX.Element {
   return (
-    <LibraryPage testId={PAGE_TEST_ID} eyebrow={EYEBROW} title={copy("tools.title")} wide>
-      <div className="grid min-w-0 gap-6 md:grid-cols-2 md:items-center">
-        <p className="max-w-(--w-read)">{copy("tools.lead")}</p>
+    <LibraryPage
+      testId={PAGE_TEST_ID}
+      title={copy("tools.title")}
+      lead={<p className="text-lg">{copy("tools.lead")}</p>}
+      aside={
         <figure className={`${CARD} card-body gap-4`} aria-label={copy("tools.figure.label")}>
           <Reach icon={FileText} name="tools.figure.tool" reach={copy("tools.figure.tool.reach")} filled={1} />
           <Reach
@@ -162,18 +162,22 @@ export default function ToolsPage(): React.JSX.Element {
             name="tools.figure.scan"
             reach={copy("tools.figure.scan.reach", { pages: SITE_PROFILE.MAX_PAGES, searches: HOW_FACTS.searches })}
             filled={SITE_PROFILE.MAX_PAGES}
+            ours
           />
           <figcaption className={SMALL}>{copy("tools.figure.caption")}</figcaption>
         </figure>
-      </div>
+      }
+      wide
+    >
+      <section aria-label={copy("tools.list.label")} className={BAND}>
       <ul className="grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {TOOLS.map((tool) => (
           <ToolCard key={tool.href} {...tool} />
         ))}
         <li className="flex min-w-0">
-          <div className={CARD}>
+          <div className={`${CARD} border-primary/30 bg-primary/5 border-[1.5px]`}>
             <div className="card-body gap-3">
-              <CardHead icon={Search} name="tools.scan.name" />
+              <CardHead icon={Search} name="tools.scan.name" solid />
               <ScanExample />
               <p>{copy("tools.scan.line")}</p>
               <p className={SMALL}>{copy("landing.hero.assurance")}</p>
@@ -185,6 +189,7 @@ export default function ToolsPage(): React.JSX.Element {
           </div>
         </li>
       </ul>
+      </section>
       <LearnClose variant="tools" />
     </LibraryPage>
   );
