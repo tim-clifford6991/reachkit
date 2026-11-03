@@ -8,33 +8,19 @@ import { generatedLabel } from "@/lib/presentation/generated";
 import { token } from "../shell/tokens";
 import { formatStat } from "./format";
 import { isMeasuredEmpty, omittedIndexes } from "./omit";
+import { BOX_RADIUS, Bars, FULL, GAP, Mono, PRESENTATION, RIGHT, SMALL_SIZE, Tiles } from "./figures";
 import { factRowsOf, rowsOf, statRowsOf, type RenderedRow, type StatRowText } from "./rows";
 import type { MailBlock } from "./types";
 
-/** Layout tokens bound to names, since the string-literal sweep reads a bare JSX attribute literal as voice. */
-const RIGHT = "right" as const;
-/** A layout table, which a screen reader reads past. Layout, not voice. */
-const PRESENTATION = "presentation" as const;
-/** The gap between two link buttons, held by a no-break space so the cell does not collapse. */
+/** The gap between two link buttons, in px; the cell holds `GAP` so it does not collapse. */
 const GAP_PX = 8;
-const GAP = "\u00a0" as const;
 const HALF = "50%" as const;
-/** `h3`, because the card's head carries the wordmark (S20). */
-const HEADING_LEVEL = "h3" as const;
+/** `h3` by default, because the card's head carries the wordmark (S20); a mail that names its title takes `h1` and `h2`. */
+const HEADING_TAG = { 1: "h1", 2: "h2", default: "h3" } as const;
 
-/** The only size off the type ladder: S20 draws the headline figure above `--h2`, and no rung is named there. */
+/** Sizes off the type ladder, each where a board draws one and no rung is named: the headline figure and the title. */
 const HERO_SIZE = "36px";
-
-/** BUILD §2.3's numerals, inline: every number, date, domain and URL in a mail. */
-function Mono({ children }: { children: string }): ReactNode {
-  return (
-    <span
-      style={{ fontFamily: token("--font-mono-mail"), fontVariantNumeric: "tabular-nums" }}
-    >
-      {children}
-    </span>
-  );
-}
+const TITLE_SIZE = "22px";
 
 /** One block's cell; the styles sit on the `<td>`, where Outlook reads a font from. */
 function Block({ children, marker }: { children: ReactNode; marker: string }): ReactNode {
@@ -45,13 +31,41 @@ function Block({ children, marker }: { children: ReactNode; marker: string }): R
           padding: "0 0 16px 0",
           fontFamily: token("--font-ui-mail"),
           fontSize: token("--t-body"),
-          lineHeight: 1.55,
+          lineHeight: 1.5,
           color: token("--color-base-content"),
         }}
       >
         {children}
       </Column>
     </Row>
+  );
+}
+
+/** A tinted box as a one-cell table, since inboxes keep a cell's background where they drop a `div`'s. Its 1px line keeps the edge
+ *  where a forced-dark inbox strips the fill. */
+function TintBox({ tone, children }: { tone: "ok" | "quiet"; children: ReactNode }): ReactNode {
+  const ok = tone === "ok";
+  return (
+    <table role={PRESENTATION} width={FULL} cellPadding={0} cellSpacing={0} border={0} style={{ borderCollapse: "separate" }}>
+      <tbody>
+        <tr>
+          <td
+            data-rk-tone={tone}
+            style={{
+              padding: "14px 16px",
+              background: token(ok ? "--ok-bg" : "--color-base-200"),
+              border: `1px solid ${token(ok ? "--ok-line" : "--color-base-300")}`,
+              borderRadius: BOX_RADIUS,
+              fontSize: SMALL_SIZE,
+              lineHeight: 1.5,
+              color: token("--color-base-content"),
+            }}
+          >
+            {children}
+          </td>
+        </tr>
+      </tbody>
+    </table>
   );
 }
 
@@ -150,18 +164,18 @@ function RuledRows({
         <Row key={index}>
           <Column style={{ ...RULED_CELL, ...(item.links === undefined ? {} : { padding: "16px 0" }), color: token("--color-base-content") }}>
             {item.lead === undefined ? null : (
-              <div style={{ fontSize: token("--t-sm"), color: token("--ink-2"), paddingBottom: "4px" }}>{item.lead}</div>
+              <div style={{ fontSize: SMALL_SIZE, lineHeight: 1.5, color: token("--ink-2"), paddingBottom: "6px" }}>{item.lead}</div>
             )}
             {item.left === undefined ? null : item.href === undefined ? (
               // A row under a lead is a page: its search is the row's title.
-              item.lead === undefined ? item.left : <div style={{ fontWeight: 700 }}>{item.left}</div>
+              item.lead === undefined ? item.left : <div style={{ fontSize: token("--h4"), fontWeight: 700, lineHeight: 1.35 }}>{item.left}</div>
             ) : (
               <Link href={item.href} style={{ color: token("--color-primary") }}>
                 {item.left}
               </Link>
             )}
             {(item.detail ?? []).map((line, at) => (
-              <div key={at} style={{ paddingTop: "4px", fontSize: token("--t-sm"), color: token("--ink-2") }}>
+              <div key={at} style={{ paddingTop: "6px", fontSize: item.lead === undefined ? token("--t-sm") : SMALL_SIZE, lineHeight: 1.5, color: token("--ink-2") }}>
                 {line}
               </div>
             ))}
@@ -396,12 +410,13 @@ function arm(block: MailBlock): ReactNode {
     case "heading":
       return (
         <Heading
-          as={HEADING_LEVEL}
+          as={HEADING_TAG[block.level ?? "default"]}
           style={{
-            margin: 0,
-            fontSize: token("--h3"),
-            fontWeight: 700,
-            letterSpacing: "-0.02em",
+            margin: block.level === 2 ? "8px 0 0" : 0,
+            fontSize: block.level === 1 ? TITLE_SIZE : block.level === 2 ? token("--h4") : token("--h3"),
+            fontWeight: block.level === 1 ? 800 : 700,
+            lineHeight: 1.3,
+            letterSpacing: block.level === 2 ? "normal" : "-0.02em",
             color: token("--color-base-content"),
           }}
         >
@@ -409,10 +424,12 @@ function arm(block: MailBlock): ReactNode {
         </Heading>
       );
     case "paragraph":
-      return (
-        <Text style={{ margin: 0, fontSize: token("--t-body"), lineHeight: 1.55 }}>
+      return block.tone === undefined ? (
+        <Text style={{ margin: 0, fontSize: token("--t-body"), lineHeight: 1.5 }}>
           {copy(block.text, block.vars)}
         </Text>
+      ) : (
+        <TintBox tone={block.tone}>{copy(block.text, block.vars)}</TintBox>
       );
     case "stat":
       return (
@@ -450,7 +467,13 @@ function arm(block: MailBlock): ReactNode {
         />
       );
     case "stats":
-      return <Stats items={statRowsOf(block)} />;
+      return block.shape === "tiles" ? (
+        <Tiles items={statRowsOf(block)} />
+      ) : block.shape === "bars" ? (
+        <Bars items={statRowsOf(block)} />
+      ) : (
+        <Stats items={statRowsOf(block)} />
+      );
     case "action":
       return (
         <Action label={copy(block.label)} href={block.href} variant={block.variant ?? "primary"} />

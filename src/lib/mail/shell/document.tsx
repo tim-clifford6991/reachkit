@@ -42,6 +42,11 @@ const BAND_SEPARATOR = " · ";
 /** An empty cell collapses in several inboxes, so the gap holds a named no-break space (a bare JSX literal reads as voice). */
 const SPACER = "\u00a0";
 
+/** A light-only mail says so, so an inbox that honours it leaves the colours alone instead of half-inverting them. */
+const COLOR_SCHEME = "color-scheme" as const;
+const SUPPORTED_SCHEMES = "supported-color-schemes" as const;
+const LIGHT_ONLY = "light only" as const;
+
 /** The 96px render, so a 3× screen gets a sharp mark. */
 const MAIL_MARK_PX = 28;
 
@@ -142,7 +147,10 @@ function Footer(parts: DocumentParts): ReactNode {
 export function MailDocument(parts: DocumentParts): ReactNode {
   return (
     <Html>
-      <Head />
+      <Head>
+        <meta name={COLOR_SCHEME} content={LIGHT_ONLY} />
+        <meta name={SUPPORTED_SCHEMES} content={LIGHT_ONLY} />
+      </Head>
       {parts.preheader === null ? null : <Preview>{parts.preheader}</Preview>}
       <Body style={{ background: token("--bg"), margin: 0, padding: PAGE_INSET }}>
         <Container style={{ maxWidth: CARD_WIDTH }}>
