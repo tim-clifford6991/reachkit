@@ -22,11 +22,11 @@ import {
   LearnClose,
   LibraryPage,
   Pick,
-  Sources,
   Tile,
   Trademarks,
   YourPart,
 } from "../../_library/parts";
+import { Sources } from "../../_library/sources";
 
 /** Every comparison is known at build; any other address is a 404. */
 export const dynamicParams = false;

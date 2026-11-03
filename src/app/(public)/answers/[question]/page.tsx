@@ -12,7 +12,8 @@ import { PUBLIC_ROUTE_SEO } from "../../_seo/routes";
 import { publicMetadata } from "../../_seo/metadata";
 import { JsonLd, articleSchemas, homeCrumb } from "../../_seo/structured";
 import { ANSWERS, answerOf, longDate } from "../../_library";
-import { BAND, BODY, CARD, LearnClose, LibraryPage, Pick, Sources, Tile, WeeklyLoop } from "../../_library/parts";
+import { BAND, BODY, CARD, LearnClose, LibraryPage, Pick, Tile, WeeklyLoop } from "../../_library/parts";
+import { Sources } from "../../_library/sources";
 
 /** Every answer is known at build; any other address is a 404. */
 export const dynamicParams = false;

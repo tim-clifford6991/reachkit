@@ -8,7 +8,8 @@ import { PUBLIC_ROUTE_SEO } from "../../_seo/routes";
 import { publicMetadata } from "../../_seo/metadata";
 import { JsonLd, articleSchemas, homeCrumb } from "../../_seo/structured";
 import { TEARDOWNS, longDate, teardownOf } from "../../_library";
-import { BackLink, BODY, CARD, LearnClose, LibraryPage, Sources, Trademarks } from "../../_library/parts";
+import { BackLink, BODY, CARD, LearnClose, LibraryPage, Trademarks } from "../../_library/parts";
+import { Sources } from "../../_library/sources";
 import { anchorOf, OnThisPage, PartSection, Sketch } from "../../_library/teardown-parts";
 
 /** Every teardown is known at build; any other address is a 404. */
