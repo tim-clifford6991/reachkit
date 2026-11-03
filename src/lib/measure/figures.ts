@@ -82,7 +82,7 @@ export interface MonthsFacts {
   /** `null` before the first month's reading. */
   reading: MonthReading | null;
   /** The same two figures at the customer's own scan, where it scored them. */
-  scan: { score: number | null; market: number | null };
+  scan: { score: number | null; market: { top10: number; of: number } | null };
   /** The first Monday the next reading is taken on. */
   next: string;
 }
@@ -114,13 +114,22 @@ export function monthWeekOf(measured: readonly string[]): string | null {
 export interface MonthReport {
   verdict?: { scoreAndBand?: Measured<{ score: number }> | null } | null;
   presence?: { measuredSearches: number; you: { top10Count: number } } | null;
+  /** One slot per search the pass selected, measured or not. */
+  serps?: readonly unknown[];
 }
 
 /** The two months-scale figures one stored report holds: its score, and the
- *  presence card's count of the twelve on Google's first page. */
+ *  presence card's count of the twelve on Google's first page. A pass that
+ *  measured fewer searches than it selected stopped early, so it gives no
+ *  market figure. */
 export function monthFiguresOf(report: MonthReport | null): Omit<MonthReading, "week"> {
+  const presence = report?.presence;
+  const selected = report?.serps?.length;
   return {
     score: shownScore(report),
-    market: report?.presence == null ? null : { top10: report.presence.you.top10Count, of: report.presence.measuredSearches },
+    market:
+      presence == null || selected === undefined || presence.measuredSearches < selected
+        ? null
+        : { top10: presence.you.top10Count, of: presence.measuredSearches },
   };
 }

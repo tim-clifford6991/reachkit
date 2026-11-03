@@ -89,7 +89,7 @@ export const FIXTURE_OVERVIEW_FACTS: OverviewFacts = Object.freeze({
   // The month's reading, from August's first Monday, against the scan.
   months: Object.freeze({
     reading: Object.freeze({ week: "2026-08-03", score: 31, market: Object.freeze({ top10: 1, of: 12 }) }),
-    scan: Object.freeze({ score: 27, market: 0 }),
+    scan: Object.freeze({ score: 27, market: Object.freeze({ top10: 0, of: 12 }) }),
     next: "2026-09-07",
   }),
   pagesPublished: measured(FIXTURE_PUBLISHED.length, MONDAY(31)),
