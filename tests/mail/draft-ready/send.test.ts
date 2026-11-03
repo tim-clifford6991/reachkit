@@ -457,7 +457,7 @@ describe("issue #183 — the mail names the page, and says why §7 chose it", ()
     const { COPY, copy, TODO_COPY_MARKER } = await import("@/lib/presentation/copy");
     const { OWNER_OWED } = await import("@/lib/presentation/copy/registry");
     const { composeMail } = await import("@/lib/mail/shell/compose");
-    const { escapeHtml } = await import("@/lib/mail/blocks/html");
+    const { escapeHtml } = await import("../escape");
     // The tests above swap and purge §7's evidence; this one needs the
     // write-family evidence that carries both why-lines.
     choice.answer = WRITE_CHOICE;
