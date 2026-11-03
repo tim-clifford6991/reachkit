@@ -113,7 +113,7 @@ export default async function AboutPage(): Promise<React.JSX.Element> {
       <main className="mx-auto flex w-full min-w-0 max-w-5xl flex-col px-4 py-12" data-testid={PAGE_TEST_ID}>
         <article className="text-base-content/80 mx-auto flex w-full min-w-0 max-w-(--w-read) flex-col gap-10 leading-relaxed">
           <section id="top" aria-labelledby="top-h" className={SECTION}>
-            <h1 id="top-h" className={INK}>{copy("about.title")}</h1>
+            <h1 id="top-h" className={`${INK} t-hero`}>{copy("about.title")}</h1>
             <p>{copy("about.lead")}</p>
             <section aria-labelledby="who-h" className={CARD}>
               <div className={BODY}>
