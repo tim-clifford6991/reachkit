@@ -18,7 +18,7 @@ const REFRESH_MS = 5_000;
 
 export function StillReading(p: { line: string; untilMs: number; scanId: string }): React.JSX.Element {
   const url = `/api/scan/${encodeURIComponent(p.scanId)}/reads`;
-  useRefreshWhenMoved(url, REFRESH_MS, (body) => (body as { finishing?: boolean }).finishing === false, p.untilMs);
+  useRefreshWhenMoved({ url, everyMs: REFRESH_MS, field: "finishing", waiting: true, untilMs: p.untilMs });
   return (
     <p role="status" className="col-span-full text-sm text-base-content/70" data-testid="report-finishing-reads">
       {p.line}

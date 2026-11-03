@@ -932,7 +932,7 @@ export function DraftScreen(p: {
  */
 function Rewriting(p: { draftId: string }): React.JSX.Element {
   const url = `/api/draft-state/${encodeURIComponent(p.draftId)}`;
-  useRefreshWhenMoved(url, TIMING.progressHeartbeatS * 1000, (body) => (body as { state?: string }).state !== "generating");
+  useRefreshWhenMoved({ url, everyMs: TIMING.progressHeartbeatS * 1000, field: "state", waiting: "generating" });
   return (
     <div role="status" aria-live="polite" className="alert text-sm" data-testid="draft-rewriting">
       <LoaderCircle size={20} strokeWidth={1.75} aria-hidden />
