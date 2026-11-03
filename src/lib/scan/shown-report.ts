@@ -34,27 +34,72 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-/** What the report page renders of a blob: the re-score's kept copy only as
- *  the score its line names, so the cached item stays under 2 MB. */
-function shownOf(blob: unknown): unknown {
-  if (!isRecord(blob) || blob.previous === undefined) return blob;
+/** Next's data cache refuses an item over 2 MB, measured as it stores it. */
+const CACHE_ITEM_MAX_CHARS = 1.9 * 1024 * 1024;
+const warnedOversized = new Set<string>();
+
+/** The kept copy as the one score the re-scored line names, or nothing where it cannot be read. */
+function keptScoreOf(previous: unknown): unknown {
+  if (previous === undefined) return undefined;
   try {
-    const scoreAndBand = readStoredReport(blob.previous).verdict.scoreAndBand;
-    // Back to jsonb's shape: a cache miss hands this on before any round trip.
-    return { ...blob, previous: JSON.parse(JSON.stringify({ version: REPORT_VERSION, verdict: { scoreAndBand } })) };
+    return { version: REPORT_VERSION, verdict: { scoreAndBand: readStoredReport(previous).verdict.scoreAndBand } };
   } catch {
-    return { ...blob, previous: undefined };
+    return undefined;
   }
 }
 
+/**
+ * What the page, its resolver and its share image read of a report. The
+ * engine's members they never read go: the re-score's kept copy, the raw
+ * robots rules and sitemaps, the crawl's page list, the ranked rows, the
+ * page questions and the market prompts. The SERPs, sources and sizes stay,
+ * because the free page and its holder are derived from them. Back in
+ * jsonb's shape, because a cache miss hands this on before any round trip.
+ */
+export function shownView(report: StoredReport): unknown {
+  const robots = report.robots.kind === "unmeasured" ? report.robots : { ...report.robots, value: { ...report.robots.value, rules: undefined, sitemaps: [] } };
+  return JSON.parse(
+    JSON.stringify({
+      ...report,
+      robots,
+      siteIssues: report.siteIssues === null ? null : { ...report.siteIssues, checkedPages: null },
+      ownRankedRows: [],
+      pageQuestions: null,
+      marketPrompts: undefined,
+      previous: keptScoreOf(report.previous),
+    })
+  );
+}
+
+const OVERSIZED = { oversized: true } as const;
+
 async function shownBlob(domain: string): Promise<unknown> {
-  const fresh = async () => shownOf((await currentRow<{ report: unknown }>(domain, "report"))?.report ?? null);
+  const fresh = async () => {
+    const blob = (await currentRow<{ report: unknown }>(domain, "report"))?.report;
+    return blob === null || blob === undefined ? null : shownView(readStoredReport(blob));
+  };
   const stamp = await currentRow<{ status: string; report_md5: string | null }>(domain, "status, report_md5");
   if (stamp === undefined) return null;
   // A running scan, or a row with no checksum to key on, is read fresh.
   if (stamp.status === "running" || typeof stamp.report_md5 !== "string") return fresh();
+  let missed: unknown = OVERSIZED;
   // The key changes with the report, so no writer has to invalidate it.
-  return unstable_cache(fresh, ["shown-report", domain, stamp.report_md5])();
+  const held = await unstable_cache(
+    async () => {
+      missed = await fresh();
+      // Next stores the item as a JSON string inside JSON, so it measures it escaped.
+      const chars = JSON.stringify(JSON.stringify(missed)).length;
+      if (chars <= CACHE_ITEM_MAX_CHARS) return missed;
+      if (!warnedOversized.has(domain)) {
+        warnedOversized.add(domain);
+        console.warn(`readShownReport: ${domain}'s report is ${chars} chars as shown, over the cache's bound; it is read uncached`);
+      }
+      return OVERSIZED;
+    },
+    ["shown-report", domain, stamp.report_md5]
+  )();
+  if (!isRecord(held) || held.oversized !== true) return held;
+  return missed === OVERSIZED ? fresh() : missed;
 }
 
 /** The domain's current report as the public page shows it, or `null`. The

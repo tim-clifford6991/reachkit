@@ -1,13 +1,14 @@
 // The public report's read (`readShownReport`):
 // a repeat visit to a finished report reads only its status and checksum,
 // and the blob again only when the checksum moves. A running scan and a
-// domain with no report are never held. What it caches is what the screen
-// renders, so the screen reads the same.
+// domain with no report are never held. What it caches is the view-model the
+// screen, the resolver and the share image read, so they read the same, and
+// a view still too big for Next's 2 MB item is read uncached.
 //
 // `unstable_cache` runs for real, against Next's own `IncrementalCache` over
 // an in-memory store; only the database is a double, which counts its reads.
 import "../../generate/env";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -71,8 +72,10 @@ const { IncrementalCache } = await import("next/dist/server/lib/incremental-cach
   prerenderManifest: { version: 4, routes: {}, dynamicRoutes: {}, notFoundRoutes: [] } as never,
 } as never);
 
-const { readCurrentReport } = await import("@/lib/scan/report");
-const { readShownReport } = await import("@/lib/scan/shown-report");
+const { readCurrentReport, readStoredReport } = await import("@/lib/scan/report");
+const { readShownReport, shownView } = await import("@/lib/scan/shown-report");
+const { unreadByProtection } = await import("@/lib/scan/challenged");
+const { trainingOptOutOf } = await import("@/lib/scan/sections");
 const { renderReport } = await import("../../app/scan-address/panel-report");
 
 type Blob = Record<string, unknown> & { verdict: Record<string, unknown> };
@@ -163,11 +166,78 @@ describe("the public report's read", () => {
     expect(html).toBe(renderReport(full!));
   });
 
-  it("holds the kept copy only as the score its line names", async () => {
-    db.row = { status: "done", report: rescoredBlob() };
+  it("caches nothing, and warns once, for a report still over the bound as shown", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    db.row = { status: "done", report: { ...storedBlob(), shownButHuge: "x".repeat(2 * 1024 * 1024) } };
+    const first = await shown();
+    const again = await shown();
+    expect(db.blobReads).toBe(2);
+    expect(again?.domain).toBe(DOMAIN);
+    expect(again).toEqual(first);
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(JSON.stringify([...MemoryHandler.store.values()]).length).toBeLessThan(10_000);
+    warn.mockRestore();
+  });
+});
+
+/** Every stored report in the free walks' evidence, SaaS and local alike. */
+function walkBlobs(): [string, Blob][] {
+  const dir = path.resolve(import.meta.dirname, "../../../docs/walk/free");
+  return readdirSync(dir)
+    .filter((file) => file.endsWith(".json"))
+    .flatMap((file) =>
+      (JSON.parse(readFileSync(path.join(dir, file), "utf8")) as { sites?: { domain: string; stored: { scan: { report: Blob } } | null }[] }).sites
+        ?.filter((site) => site.stored?.scan.report)
+        .map((site): [string, Blob] => [`${file} ${site.domain}`, site.stored!.scan.report]) ?? []
+    );
+}
+
+/** A report shaped like the largest current one: a big site's raw robots rules,
+ *  crawl list and ranked rows, with the whole original kept beside it. */
+function largestShaped(): Blob {
+  const base = rescoredBlob();
+  const robots = base.robots as { value: Record<string, unknown> };
+  const siteIssues = base.siteIssues as Record<string, unknown>;
+  const url = (n: number) => `https://www.example-design-tool.com/community/file/${n}/a-long-community-file-slug-${n}`;
+  const inflated: Blob = {
+    ...base,
+    robots: { ...robots, value: { ...robots.value, rules: { "*": Array.from({ length: 26_000 }, (_, n) => ({ allow: false, path: `/file/${n}/*` })) }, sitemaps: Array.from({ length: 2_000 }, (_, n) => url(n)) } },
+    siteIssues: { ...siteIssues, checkedPages: Array.from({ length: 8_000 }, (_, n) => url(n)) },
+    ownRankedRows: Array.from({ length: 6_000 }, (_, n) => ({ url: url(n), keyword: `design keyword number ${n}`, position: 1 + (n % 90), difficulty: 40, searchVolume: 1_000 })),
+  };
+  return { ...inflated, previous: { ...inflated, previous: undefined, rescoredAt: undefined } };
+}
+
+describe("the view-model the cache holds", () => {
+  it("renders, resolves and unfurls every stored report exactly as the full report does", () => {
+    const blobs = walkBlobs();
+    expect(blobs.length).toBeGreaterThan(20);
+    for (const [name, blob] of [...blobs, ["rescored", rescoredBlob()] as [string, Blob]]) {
+      const full = readStoredReport(blob);
+      const view = readStoredReport(shownView(full));
+      expect(renderReport(view), name).toBe(renderReport(full));
+      expect(renderReport(unreadByProtection(view)), name).toBe(renderReport(unreadByProtection(full)));
+      expect(trainingOptOutOf(view.robots), name).toEqual(trainingOptOutOf(full.robots));
+      expect(view.robots.kind, name).toBe(full.robots.kind);
+      expect({ ...view.siteIssues, checkedPages: null }, name).toEqual({ ...full.siteIssues, checkedPages: null });
+      for (const key of ["scanId", "domain", "complete", "fromIncompleteRescan", "stoppedReason", "verdict", "onPage", "market", "correctionState", "freePage", "blockedAgents", "aiAnswers", "presence", "supply", "questions", "rivals", "rivalSizes", "sources", "serps", "coherence", "finishingReads", "rescoredAt", "previousColumns"] as const) {
+        expect(view[key], `${name} ${key}`).toEqual(full[key]);
+      }
+    }
+  });
+
+  it("holds a report shaped like the largest current one under 1.9 MB as Next measures it", async () => {
+    const blob = largestShaped();
+    expect(JSON.stringify(blob).length).toBeGreaterThan(6_000_000);
+    expect(JSON.stringify({ ...blob, previous: undefined }).length).toBeGreaterThan(3_000_000);
+    const full = readStoredReport(blob);
+    const view = shownView(full);
+    expect(JSON.stringify(JSON.stringify(view)).length).toBeLessThan(1.9 * 1024 * 1024);
+    expect(renderReport(readStoredReport(view))).toBe(renderReport(full));
+
+    db.row = { status: "done", report: blob };
     await shown();
-    const [entry] = [...MemoryHandler.store.values()];
-    const held = JSON.stringify(entry?.value);
-    expect(held.length).toBeLessThan(JSON.stringify(rescoredBlob()).length * 0.6);
+    await shown();
+    expect(db.blobReads).toBe(1);
   });
 });
