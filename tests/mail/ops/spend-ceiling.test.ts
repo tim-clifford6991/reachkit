@@ -31,6 +31,7 @@ const OPS_MAIL_KEYS = [
   "mail.ops.spend-ceiling.site-reached",
   "mail.ops.spend-ceiling.free-scan-bound",
   "mail.ops.spend-ceiling.kill-switch-engaged",
+  "mail.ops.spend-ceiling.ledger-unreadable",
   "mail.ops.spend-ceiling.fact.spent",
   "mail.ops.spend-ceiling.fact.ceiling",
   "mail.ops.spend-ceiling.fact.site",
@@ -107,7 +108,7 @@ describe("the template — five occasions, one shape", () => {
   });
 
   it("a value that is not a closed one is written `unknown` — never a domain, an address or a message (issue 885)", () => {
-    const facts = (subject: Parameters<typeof buildSpendCeilingAlert>[0]["subject"]) =>
+    const facts = (subject: import("../../../src/lib/mail/templates/ops").OpsSubject | undefined) =>
       buildSpendCeilingAlert({ occasion: "site-reached", spentCents: 1, ceilingCents: 1, subject })
         .blocks.find((b) => b.block === "facts");
     expect(facts({ kind: "site", siteId: "acme.example.com" })).toMatchObject({
@@ -181,6 +182,7 @@ describe("sending — one send per owner address, and nothing that can fail a sc
       readDaySpendCents: readDaySpendCentsMock,
       readDayCeilingCents: async () => 5000,
       registerSpendAlertSink: registerSpendAlertSinkMock,
+      registerLedgerUnreadableSink: vi.fn(),
     }));
     return import("../../../src/lib/mail/ops/spend-ceiling");
   }
@@ -203,7 +205,7 @@ describe("sending — one send per owner address, and nothing that can fail a sc
     const ops = await loadOps();
     await expect(
       ops.sendOpsAlert({ occasion: "warn", spentCents: 4000, ceilingCents: 5000 })
-    ).resolves.toBeUndefined();
+    ).resolves.toBe(false);
     expect(sendEmailMock).toHaveBeenCalledTimes(1);
   });
 
@@ -213,7 +215,7 @@ describe("sending — one send per owner address, and nothing that can fail a sc
     sendEmailMock.mockRejectedValueOnce(new Error("vendor is down"));
     await expect(
       ops.sendOpsAlert({ occasion: "warn", spentCents: 4000, ceilingCents: 5000 })
-    ).resolves.toBeUndefined();
+    ).resolves.toBe(false);
     expect(sendEmailMock).toHaveBeenCalledTimes(2);
   });
 

@@ -22,6 +22,7 @@
 //
 // **Nothing here throws.** The same rule as every alert beside it: a
 // heartbeat that failed must not fail the job it is reporting on.
+import type { ErrorMailKey } from "@/lib/mail/ops/incident";
 import type { LoggedOutcome } from "./observability";
 import type { JobDefinition, JobId } from "./types";
 
@@ -46,12 +47,7 @@ export interface HeartbeatStore {
   releaseErrorMail(key: ErrorMailKey): Promise<void>;
 }
 
-export interface ErrorMailKey {
-  readonly jobId: string;
-  readonly errorName: string;
-  /** The Europe/Berlin calendar day, `YYYY-MM-DD`. */
-  readonly day: string;
-}
+export type { ErrorMailKey };
 
 /** A scheduled job and how often it is due. */
 export interface ScheduledJob {
@@ -242,7 +238,6 @@ interface MinimalResult<T> {
 interface MinimalQuery<T> extends PromiseLike<MinimalResult<T>> {
   select(columns: string): MinimalQuery<T>;
   upsert(values: Record<string, unknown>, options: { onConflict: string; ignoreDuplicates?: boolean }): MinimalQuery<T>;
-  delete(): MinimalQuery<T>;
   update(values: Record<string, unknown>): MinimalQuery<T>;
   eq(column: string, value: unknown): MinimalQuery<T>;
   or(filters: string): MinimalQuery<T>;
@@ -294,23 +289,10 @@ function databaseHeartbeatStore(): HeartbeatStore {
       return (data ?? []).length === 1;
     },
     async claimErrorMail(key, at) {
-      // `ignoreDuplicates` is `insert … on conflict do nothing returning`: only the inserting tick gets a row back.
-      const { data, error } = await (await client()).from<Row>("job_error_mails")
-        .upsert(
-          { job_id: key.jobId, error_name: key.errorName, day: key.day, mailed_at: at.toISOString() },
-          { onConflict: "job_id,error_name,day", ignoreDuplicates: true }
-        )
-        .select("job_id");
-      if (error !== null) throw new Error(error.message);
-      return (data ?? []).length === 1;
+      return (await import("@/lib/mail/ops")).claimOwnerMail(key, at);
     },
     async releaseErrorMail(key) {
-      const { error } = await (await client()).from<Row>("job_error_mails")
-        .delete()
-        .eq("job_id", key.jobId)
-        .eq("error_name", key.errorName)
-        .eq("day", key.day);
-      if (error !== null) throw new Error(error.message);
+      await (await import("@/lib/mail/ops")).releaseOwnerMail(key);
     },
   };
 }
