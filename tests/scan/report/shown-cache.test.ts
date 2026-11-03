@@ -1,28 +1,13 @@
-// The public report's read (`readShownReport`):
-// a repeat visit to a finished report reads only its status and checksum,
-// and the blob again only when the checksum moves. A running scan and a
-// domain with no report are never held. What it caches is the view-model the
-// screen, the resolver and the share image read, so they read the same, and
-// a view still too big for Next's 2 MB item is read uncached.
-//
-// `unstable_cache` runs for real, against Next's own `IncrementalCache` over
-// an in-memory store; only the database is a double, which counts its reads.
+// The public report's read (`readShownReport`) over real `unstable_cache` and
+// a counting database double: a repeat visit reads only the checksum, and the
+// cached view-model renders as the full report does and fits Next's 2 MB item.
 import "../../generate/env";
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { cacheStore } from "../next-cache";
 
-// What Next's server sets before any of its modules load.
-await vi.hoisted(async () => {
-  const { AsyncLocalStorage } = await import("node:async_hooks");
-  (globalThis as { AsyncLocalStorage?: unknown }).AsyncLocalStorage = AsyncLocalStorage;
-});
-
-const db = vi.hoisted(() => ({
-  row: null as { status: string; report: unknown } | null,
-  blobReads: 0,
-  stampReads: 0,
-}));
+const db = vi.hoisted(() => ({ row: null as { status: string; report: unknown } | null, blobReads: 0, stampReads: 0 }));
 
 vi.mock("@/lib/db", async () => {
   const { createHash } = await import("node:crypto");
@@ -30,10 +15,7 @@ vi.mock("@/lib/db", async () => {
     let columns = "";
     const self = {
       select: (c: string) => ((columns = c), self),
-      eq: () => self,
-      is: () => self,
-      in: () => self,
-      limit: () => self,
+      eq: () => self, is: () => self, in: () => self, limit: () => self,
       then: (resolve: (r: unknown) => unknown, reject?: (e: unknown) => unknown) => {
         if (table !== "scans" || db.row === null) return Promise.resolve({ data: [], error: null }).then(resolve, reject);
         const md5 = db.row.report === null ? null : createHash("md5").update(JSON.stringify(db.row.report)).digest("hex");
@@ -48,30 +30,6 @@ vi.mock("@/lib/db", async () => {
   return { dbAdmin: () => ({ from: query }) };
 });
 
-/** Next's cache handler contract, held in memory. */
-class MemoryHandler {
-  static store = new Map<string, { value: unknown; lastModified: number }>();
-  async get(key: string) {
-    return MemoryHandler.store.get(key) ?? null;
-  }
-  async set(key: string, value: unknown) {
-    MemoryHandler.store.set(key, { value, lastModified: Date.now() });
-  }
-  async revalidateTag() {}
-  resetRequestCache() {}
-}
-
-const { IncrementalCache } = await import("next/dist/server/lib/incremental-cache");
-(globalThis as { __incrementalCache?: unknown }).__incrementalCache = new IncrementalCache({
-  dev: false,
-  minimalMode: false,
-  requestHeaders: {},
-  fetchCacheKeyPrefix: "",
-  CurCacheHandler: MemoryHandler as never,
-  previewProps: { previewModeId: "test" } as never,
-  prerenderManifest: { version: 4, routes: {}, dynamicRoutes: {}, notFoundRoutes: [] } as never,
-} as never);
-
 const { readCurrentReport, readStoredReport } = await import("@/lib/scan/report");
 const { readShownReport, shownView } = await import("@/lib/scan/shown-report");
 const { unreadByProtection } = await import("@/lib/scan/challenged");
@@ -80,12 +38,20 @@ const { renderReport } = await import("../../app/scan-address/panel-report");
 
 type Blob = Record<string, unknown> & { verdict: Record<string, unknown> };
 
-/** The SaaS panel site's stored report, as its row holds it. */
-function storedBlob(): Blob {
-  const file = path.resolve(import.meta.dirname, "../../../docs/walk/free/2026-10-15-1449-after.json");
-  const sites = (JSON.parse(readFileSync(file, "utf8")) as { sites: { domain: string; stored: { scan: { report: Blob } } | null }[] }).sites;
-  return structuredClone(sites.find((s) => s.domain === "savvycal.com" && s.stored !== null)!.stored!.scan.report);
+/** Every stored report in the free walks' evidence, SaaS and local alike. */
+function walkBlobs(): [string, Blob][] {
+  const dir = path.resolve(import.meta.dirname, "../../../docs/walk/free");
+  return readdirSync(dir)
+    .filter((file) => file.endsWith(".json"))
+    .flatMap((file) =>
+      (JSON.parse(readFileSync(path.join(dir, file), "utf8")) as { sites?: { domain: string; stored: { scan: { report: Blob } } | null }[] }).sites
+        ?.filter((site) => site.stored?.scan.report)
+        .map((site): [string, Blob] => [`${file} ${site.domain}`, site.stored!.scan.report]) ?? []
+    );
 }
+
+/** The SaaS panel site's stored report, as its row holds it. */
+const storedBlob = (): Blob => structuredClone(walkBlobs().find(([name]) => name === "2026-10-15-1449-after.json savvycal.com")![1]);
 
 const AT = "2026-10-15T12:00:00.000Z";
 const half = (value: number) => ({ kind: "measured", value, at: AT });
@@ -112,7 +78,7 @@ const DOMAIN = "savvycal.com";
 const shown = () => readShownReport(DOMAIN);
 
 beforeEach(() => {
-  MemoryHandler.store.clear();
+  cacheStore.clear();
   db.row = { status: "done", report: storedBlob() };
   db.blobReads = 0;
   db.stampReads = 0;
@@ -175,22 +141,10 @@ describe("the public report's read", () => {
     expect(again?.domain).toBe(DOMAIN);
     expect(again).toEqual(first);
     expect(warn).toHaveBeenCalledTimes(1);
-    expect(JSON.stringify([...MemoryHandler.store.values()]).length).toBeLessThan(10_000);
+    expect(JSON.stringify([...cacheStore.values()]).length).toBeLessThan(10_000);
     warn.mockRestore();
   });
 });
-
-/** Every stored report in the free walks' evidence, SaaS and local alike. */
-function walkBlobs(): [string, Blob][] {
-  const dir = path.resolve(import.meta.dirname, "../../../docs/walk/free");
-  return readdirSync(dir)
-    .filter((file) => file.endsWith(".json"))
-    .flatMap((file) =>
-      (JSON.parse(readFileSync(path.join(dir, file), "utf8")) as { sites?: { domain: string; stored: { scan: { report: Blob } } | null }[] }).sites
-        ?.filter((site) => site.stored?.scan.report)
-        .map((site): [string, Blob] => [`${file} ${site.domain}`, site.stored!.scan.report]) ?? []
-    );
-}
 
 /** A report shaped like the largest current one: a big site's raw robots rules,
  *  crawl list and ranked rows, with the whole original kept beside it. */
