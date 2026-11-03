@@ -157,8 +157,8 @@ describe("one example business, with no switch (board v36)", () => {
     expect(count(html, "aria-pressed")).toBe(0);
   });
 
-  it("the head card carries no example caveat (owner 2026-11-01)", () => {
-    expect(text(section("top"))).not.toContain(copy("landing.hero.example"));
+  it("no card carries the example caveat (owner 2026-11-01)", () => {
+    expect(text(html)).not.toContain("Not a promise");
   });
 });
 

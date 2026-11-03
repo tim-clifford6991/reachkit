@@ -650,10 +650,6 @@ export const REPORT_COPY = Object.freeze({
   /** The AI answer the week earned. `{you}` is the example business's own
    *  name, so the card can draw it as the reader's own and the sentence
    *  still reads whole without the drawing. */
-  /** Under the card. `landing.hero.specimen.caption` above says the same
-   *  thing of a card that named `example.com` and no business; this card
-   *  names a business, so it says so of a business. */
-  "landing.hero.example": ["Example. Not a promise.", { slots: {}, fixedBy: "board Landing · issue 1596" }],
 
   /* ── The landing in its 2026-09-24 order (#1067) ─────────────────────
      Boards `R12-1-Landing`, `R12-8-Phone-landing`, `R12-10-Dark-landing`
