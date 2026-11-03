@@ -57,11 +57,14 @@ cd "$(dirname "$0")"
 #
 # `--run` with no value takes the caller's directory name; `--run <id>` takes
 # what it is given. No flag at all is the shared substrate CI uses.
+# `--print-env` first prints the bindings this call would export and starts nothing.
+PRINT_ENV=""
+if [[ "${1:-}" == "--print-env" ]]; then PRINT_ENV=1; shift; fi
 RUN_ID=""
 if [[ "${1:-}" == "--run" ]]; then
   RUN_ID="${2:-$CALLER_DIR}"
 elif [[ $# -gt 0 ]]; then
-  echo "db-substrate: unknown argument '$1' (expected --run [id])" >&2
+  echo "db-substrate: unknown argument '$1' (expected [--print-env] --run [id])" >&2
   exit 2
 fi
 
@@ -103,7 +106,7 @@ PGMETA_PACKAGE="@supabase/postgres-meta@0.99.0"
 PGMETA_HOME="${PGMETA_HOME:-${RUNNER_TEMP:-/tmp}/reachkit-pgmeta}"
 
 DB_HOST="${DB_HOST:-127.0.0.1}"
-DB_PORT="${DB_PORT:-5432}"
+DB_PORT="${RK_DB_PORT:-${DB_PORT:-5432}}"
 DB_USER="${DB_USER:-reachkit}"
 DB_PASSWORD="${DB_PASSWORD:-reachkit}"
 if [[ -n "$RUN_ID" ]]; then
@@ -127,6 +130,11 @@ PGMETA_ADMIN_PORT=$(( PGMETA_PORT + 1 ))
 
 DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
 ADMIN_URL="postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/postgres"
+
+if [[ -n "$PRINT_ENV" ]]; then
+  printf 'export RK_DB_PORT=%s\nexport REACHKIT_DB_NAME=%s\nexport DATABASE_URL=%s\n' "$DB_PORT" "$DB_NAME" "$DATABASE_URL"
+  exit 0
+fi
 
 # --- Where a run records what it started (issue #273) -----------------------
 #
@@ -288,6 +296,7 @@ if [[ -f "$STATE_FILE" ]]; then
       } >> "$GITHUB_ENV"
     fi
     cat <<EOF
+export RK_DB_PORT=${STATE_DB_PORT:-$DB_PORT}
 export REACHKIT_DB_NAME=${STATE_DB_NAME}
 export PGMETA_PORT=${STATE_PGMETA_PORT}
 export DATABASE_URL=${STATE_DATABASE_URL}
@@ -456,6 +465,7 @@ cat > "$STATE_FILE" <<EOF
 STATE_RUN_ID=${RUN_ID:-shared}
 STATE_CALLER_PATH=${CALLER_PATH}
 STATE_DB_NAME=${DB_NAME}
+STATE_DB_PORT=${DB_PORT}
 STATE_DATABASE_URL=${DATABASE_URL}
 STATE_ADMIN_URL=${ADMIN_URL}
 STATE_POSTGREST_PORT=${POSTGREST_PORT}
@@ -490,6 +500,7 @@ fi
 # database name and the three ports are what differ between runs, so they
 # travel here rather than being re-derived by whoever reads them.
 cat <<EOF
+export RK_DB_PORT=${DB_PORT}
 export REACHKIT_DB_NAME=${DB_NAME}
 export PGMETA_PORT=${PGMETA_PORT}
 export DATABASE_URL=${DATABASE_URL}
