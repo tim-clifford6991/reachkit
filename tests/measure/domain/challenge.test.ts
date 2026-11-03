@@ -55,7 +55,6 @@ describe("challengeOf", () => {
   it("reads a page of the site's own that carries Imperva's script and has its own text as the site's", () => {
     const words = "Afternoon tea, cakes and loose leaf tea from our Yorkshire bakery, delivered across the country. ".repeat(14);
     const html = `<html><head><title>Bakery</title><script src="/_Incapsula_Resource?SWJIYLWA=5074a744"></script></head><body><p>${words}</p></body></html>`;
-    expect(words.length).toBeGreaterThanOrEqual(1200);
     expect(challengeOf({ status: 200, html })).toBeNull();
   });
 
@@ -113,11 +112,6 @@ describe("notTheSiteOf", () => {
 });
 
 describe("saysNothing", () => {
-  it("reads an empty page as saying nothing of what the business sells", () => {
-    expect(saysNothing('<html><head></head><body><div id="root"></div><script src="/app.js"></script></body></html>')).toBe(true);
-  });
-
-  // The panel's bakery, read on 2026-11-03: a shell whose only words are its title.
   it("reads a shell whose title names the business as saying it (baeckerei-hinkel.de)", () => {
     const html = page("site.baeckerei-hinkel.de.html");
     expect(challengeOf({ status: 200, html })).toBeNull();

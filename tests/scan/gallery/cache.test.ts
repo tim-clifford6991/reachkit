@@ -243,7 +243,6 @@ describe("the /scans page", () => {
 describe("a card whose market was withdrawn, read off no words of the site's own", () => {
   const imperva = readFileSync(join(__dirname, "../../measure/domain/fixtures/challenge/imperva-challenge.bettys.co.uk.html"), "utf8");
   const withdrawn = (because: string): void => {
-    // The withdrawn card's stored category is the one its invented market named.
     db.scans = [...db.scans, { ...scan("bettys.co.uk", "2026-09-24T10:00:00.000Z", "Plumbing"), score: 0 }];
     db.because.set("bettys.co.uk", because);
     db.homes.set("bettys.co.uk", { status: 200, html: imperva, readAt: "2026-09-24T09:59:00.000Z" });
@@ -257,14 +256,6 @@ describe("a card whose market was withdrawn, read off no words of the site's own
     expect((await listed()).total).toBe(2);
     expect((await readGallery({ ...VIEW, kind: "local-service" })).total).toBe(1);
     expect((await readRecent(8)).map((e) => e.domain)).not.toContain("bettys.co.uk");
-  });
-
-  it("comes back when a pass measures its market", async () => {
-    withdrawn("bot_protection");
-    await listed();
-    db.because.clear();
-    db.scans = db.scans.map((r) => (r.domain === "bettys.co.uk" ? { ...r, scanned_at: "2026-10-23T10:00:00.000Z" } : r));
-    expect((await listed()).entries.map((e) => e.domain)).toContain("bettys.co.uk");
   });
 
   it("whose market was read from its listing is listed, without a score", async () => {

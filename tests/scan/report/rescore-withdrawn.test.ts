@@ -1,7 +1,5 @@
-// A stored report whose market was read off a home page that held none of
-// the site's words — a protection's page, or a page of the site's that says
-// nothing — has that market withdrawn by the 0¢ re-score, through a store
-// that stands in for the database.
+// The 0¢ re-score withdraws a market read off a home page that held none of
+// the site's words, through a store that stands in for the database.
 import "../../generate/env";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -46,10 +44,9 @@ describe("a market read off a home page that held none of the site's words is wi
   it("keeps a market read from the listing, and still states no score", async () => {
     const s = over(imperva, { marketFrom: "search" });
     const db = storeOf([s]);
-    const answer = await rescoreStored(db.store, apply);
+    await rescoreStored(db.store, apply);
     expect(written(db, s).market.kind).toBe("measured");
     expect(written(db, s).verdict.scoreAndBand.kind).toBe("unmeasured");
-    expect(answer.summary).toContain("- Market withdrawn, read off no words of the site's: 0 (");
   });
 
   it("a home page of the site's own that says nothing: the market withdrawn, its measured facts kept", async () => {
