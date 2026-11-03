@@ -71,9 +71,10 @@ export const HEAD_SIGNALS = {
 } satisfies Metadata;
 
 /** The index's title, which is also the feed's name in a reader. A route
- *  that draws no page (the feed) names the site's language itself. */
-export function indexTitle(business: HostedBusiness, language: Language = readerLanguage()): string {
-  return `${copyInto(language, "hosted.index.heading")} · ${business.name}`;
+ *  that draws no page (the feed) names the site's language itself; a later
+ *  page names itself, so no two pages of the list share one title. */
+export function indexTitle(business: HostedBusiness, language: Language = readerLanguage(), paging = ""): string {
+  return [copyInto(language, "hosted.index.heading"), paging, business.name].filter((part) => part !== "").join(" · ");
 }
 
 /** How long a description is (SPEC §7, D51 and D53): a search result shows
@@ -97,16 +98,19 @@ function sentenceOf(line: string): string {
  * long for a result is cut at a word; a business with no line has the one
  * sentence it can honestly have, and nothing is padded to reach the length.
  */
-export function indexDescription(business: HostedBusiness, language: Language = readerLanguage()): string {
+export function indexDescription(business: HostedBusiness, language: Language = readerLanguage(), paging = ""): string {
+  // A later page's sentence is kept whole, so the rest gives up its room.
+  const tail = paging === "" ? "" : ` ${sentenceOf(paging)}`;
+  const max = DESCRIPTION.max - tail.length;
   const lead = copyInto(language, "hosted.index.description", { publisher: business.name });
   const does = sentenceOf(business.line ?? "");
-  if (does === "") return lead;
-  if (does.length > DESCRIPTION.max) {
-    const cut = does.slice(0, DESCRIPTION.max - ELLIPSIS.length);
-    return `${cut.slice(0, cut.lastIndexOf(" ")).replace(/[,;:.]$/, "")}${ELLIPSIS}`;
+  if (does === "") return `${lead}${tail}`;
+  if (does.length > max) {
+    const cut = does.slice(0, max - ELLIPSIS.length);
+    return `${cut.slice(0, cut.lastIndexOf(" ")).replace(/[,;:.]$/, "")}${ELLIPSIS}${tail}`;
   }
   const both = `${does} ${lead}`;
-  return does.length < DESCRIPTION.min && both.length <= DESCRIPTION.max ? both : does;
+  return `${does.length < DESCRIPTION.min && both.length <= max ? both : does}${tail}`;
 }
 
 /** A schema object as a script body. Next's own JSON-LD guidance:
@@ -352,10 +356,16 @@ export function indexMetadata(a: {
   business: HostedBusiness;
   query?: string;
   page?: number;
+  /** How many pages the list runs to. */
+  pageCount: number;
 }): Metadata {
-  const title = indexTitle(a.business);
-  const description = indexDescription(a.business);
-  const canonical = indexCanonical(a.canonical, a.query ?? "", a.page ?? 1);
+  const page = a.page ?? 1;
+  // A search names the index, as its canonical does.
+  const paging =
+    (a.query ?? "") === "" && page > 1 ? copy("hosted.index.pageOf", { page: String(page), pages: String(a.pageCount) }) : "";
+  const title = indexTitle(a.business, readerLanguage(), paging);
+  const description = indexDescription(a.business, readerLanguage(), paging);
+  const canonical = indexCanonical(a.canonical, a.query ?? "", page);
   const share = shareTags({
     canonical,
     title,

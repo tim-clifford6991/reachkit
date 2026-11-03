@@ -14,13 +14,17 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { applyEnvFixture } from "../../mail/env-fixture";
 
+import { readFileSync } from "node:fs";
+import type { HostedBusiness } from "@/app/(hosted)/hosted-page/[[...slug]]/chrome";
+import { copyInto, readIn, readingIn } from "@/lib/presentation/copy/reader";
 import { readPageFacts } from "@/lib/site-issues/facts";
 
 applyEnvFixture();
 
-const state: { host: string; page: unknown; logoType: string | null; line: string | null; mainSite: unknown } = {
+const state: { host: string; page: unknown; pages: unknown[] | null; logoType: string | null; line: string | null; mainSite: unknown } = {
   host: "content.example.com",
   page: null,
+  pages: null,
   logoType: null,
   line: null,
   mainSite: null,
@@ -52,7 +56,7 @@ vi.mock("@/lib/publish/destinations/hosted", async () => {
     // the default-label lookup beside it is what serves them.
     hostedSiteForHostname: async () => null,
     livePageBySlug: async () => (state.page === null ? null : { page: state.page, others: [] }),
-    livePagesForSite: async () => (state.page === null ? [] : [state.page]),
+    livePagesForSite: async () => state.pages ?? (state.page === null ? [] : [state.page]),
     hostedIdentity: async (a: { domain: string }) => ({
       name: a.domain,
       logoType: state.logoType,
@@ -67,6 +71,7 @@ vi.mock("@/lib/publish/destinations/hosted", async () => {
 const Page = (await import("@/app/(hosted)/hosted-page/[[...slug]]/page")).default;
 const { generateMetadata } = await import("@/app/(hosted)/hosted-page/[[...slug]]/page");
 const { GET } = await import("@/app/(hosted)/hosted-article/[slug]/route");
+const { indexMetadata, indexTitle } = await import("@/app/(hosted)/hosted-page/[[...slug]]/seo");
 
 function livePage(faq: { question: string; answer: string }[]): unknown {
   return {
@@ -120,6 +125,7 @@ async function said(selector: string): Promise<string | null> {
 
 beforeEach(() => {
   state.host = "content.example.com";
+  state.pages = null;
   state.logoType = null;
   state.line = null;
   state.mainSite = null;
@@ -780,5 +786,88 @@ describe("issue 1509 — the author is a person the main site shows, and no more
     state.page = livePage([]);
     doc = new DOMParser().parseFromString(await render(), "text/html");
     expect(doc.querySelector("aside")?.textContent).not.toContain("Written by");
+  });
+});
+
+/** A customer-panel business as its stored run reads it: its site name and
+ *  its market's job, which is the hosted line (`hostedIdentity`). */
+function panelBusiness(run: string, domain: string): HostedBusiness {
+  const stored: { sites: { site: { domain: string }; siteName: string; market: { job: string } }[] } = JSON.parse(
+    readFileSync(`docs/walk/panel/${run}.json`, "utf8")
+  );
+  const site = stored.sites.find((entry) => entry.site.domain === domain)!;
+  return { domain, name: site.siteName, logoType: null, line: site.market.job };
+}
+
+const PANEL_BUSINESSES = [
+  ["software", panelBusiness("2026-10-14-1423", "savvycal.com")],
+  ["local plumber", panelBusiness("2026-10-09", "austinplumbery.com")],
+  ["local accountant", panelBusiness("2026-10-09", "alexander.co.uk")],
+] as const;
+
+function headIn(language: "en" | "de", business: HostedBusiness, at: { page: number; query?: string }) {
+  return readingIn(() => {
+    readIn(language);
+    const metadata = indexMetadata({ canonical: `https://content.${business.domain}/`, business, pageCount: 3, ...at });
+    return {
+      metadata,
+      title: String(metadata.title),
+      description: String(metadata.description),
+      today: indexTitle(business, language),
+      pageOf: copyInto(language, "hosted.index.pageOf", { page: "2", pages: "3" }),
+    };
+  });
+}
+
+describe("issue 2292 — each later page of the index names itself in the head", () => {
+  for (const language of ["en", "de"] as const) {
+    for (const [kind, business] of PANEL_BUSINESSES) {
+      it(`${kind}, ${language}: page 2 has its own title, share titles and description; page 1 is unchanged`, () => {
+        const first = headIn(language, business, { page: 1 });
+        const second = headIn(language, business, { page: 2 });
+
+        expect(first.title).toBe(first.today);
+        expect(second.title).not.toBe(first.title);
+        expect(second.title).toContain(second.pageOf);
+        expect(second.title).toContain(business.name);
+        expect(second.metadata.openGraph).toMatchObject({ title: second.title });
+        expect(second.metadata.twitter).toMatchObject({ title: second.title });
+
+        expect(second.description).not.toBe(first.description);
+        expect(second.description).toContain(second.pageOf);
+        expect(second.description.length).toBeLessThanOrEqual(155);
+        expect(first.description.length).toBeLessThanOrEqual(155);
+        if (first.description.length >= 120) expect(second.description.length).toBeGreaterThanOrEqual(120);
+      });
+    }
+  }
+
+  it("a line long enough to fill a result still leaves room for the page's sentence", () => {
+    const business = { ...PANEL_BUSINESSES[0][1], line: `${"Onboarding checklists that customers finish, ".repeat(5)}every time` };
+    const second = headIn("en", business, { page: 2 });
+    expect(second.description.length).toBeLessThanOrEqual(155);
+    expect(second.description.endsWith(`… ${second.pageOf}.`)).toBe(true);
+  });
+
+  it("a search's second page keeps page 1's title, description and canonical", () => {
+    for (const language of ["en", "de"] as const) {
+      const [, business] = PANEL_BUSINESSES[0];
+      const first = headIn(language, business, { page: 1 });
+      const search = headIn(language, business, { page: 2, query: "x" });
+      expect(search.title).toBe(first.title);
+      expect(search.description).toBe(first.description);
+      expect(search.metadata.alternates?.canonical).toBe(first.metadata.alternates?.canonical);
+    }
+  });
+
+  it("the route counts the list's own pages: page 2 of a 2-page index says so, and its feed keeps the index's name", async () => {
+    // The newest page leads page 1, and twelve more fill it, so a fourteenth spills onto page 2.
+    state.pages = Array.from({ length: 14 }, (_, n) => ({ ...(livePage([]) as object), publicationId: `pub-${n}`, slug: `page-${n}` }));
+    const first = await generateMetadata({ params: Promise.resolve({}), searchParams: Promise.resolve({}) });
+    const second = await generateMetadata({ params: Promise.resolve({}), searchParams: Promise.resolve({ page: "2" }) });
+    expect(first.title).toBe("Articles · example.com");
+    expect(second.title).toBe("Articles · Page 2 of 2 · example.com");
+    expect(second.alternates?.canonical).toBe("https://content.example.com/?page=2");
+    expect(second.alternates?.types).toEqual(first.alternates?.types);
   });
 });
