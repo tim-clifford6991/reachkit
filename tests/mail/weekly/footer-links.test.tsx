@@ -115,7 +115,7 @@ describe("Unsubscribe: a signed link to the Monday mail's own toggle, and the on
       "List-Unsubscribe": `<${APP}/api/unsubscribe/${encodeURIComponent(token)}>`,
       "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
     });
-    expect(mail.href("/app/settings/mail")).toBe(`${APP}/app/settings/mail`);
+    expect(mail.href("/app/settings/pages#mail")).toBe(`${APP}/app/settings/pages#mail`);
   });
 
   it("the reason, the three links and the address are each their own line, and each link is a 44px target", async () => {

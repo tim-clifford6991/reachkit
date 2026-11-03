@@ -159,7 +159,7 @@ describe("owner D10 · E2 — the first-renewal refund mail states the amount, t
     expect(text({ kind: "renewing", date: "November 30, 2026" })).toBe(
       [
         REFUNDED,
-        "ReachKit keeps running, and your next payment is taken as usual on November 30, 2026. To stop it, use Cancel plan in Settings › Billing.",
+        "ReachKit keeps running, and your next payment is taken as usual on November 30, 2026. To stop it, use Cancel plan in Settings › Account.",
         PERSON,
       ].join("\n\n")
     );
