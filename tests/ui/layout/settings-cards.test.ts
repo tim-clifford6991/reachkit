@@ -108,9 +108,9 @@ for (const tab of SETTINGS_TABS) {
           for (const [theme, measured] of seen) {
             expect(offences(measured, width), `${href} @ ${width}px ${theme}`).toEqual([]);
             // The month is what Billing is checked for; a tab that lost it would pass vacuously.
-            if (tab === "billing") expect(measured.monthTracks, `${href} @ ${width}px ${theme}`).not.toBeNull();
-            if (tab === "business") expect(measured.wellsTracks, `${href} @ ${width}px ${theme}`).not.toBeNull();
-            if (tab === "market") {
+            if (tab === "account") expect(measured.monthTracks, `${href} @ ${width}px ${theme}`).not.toBeNull();
+            if (tab === "business") {
+              expect(measured.wellsTracks, `${href} @ ${width}px ${theme}`).not.toBeNull();
               expect(measured.tilesTracks, `${href} @ ${width}px ${theme}`).not.toBeNull();
             }
           }

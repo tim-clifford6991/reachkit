@@ -140,7 +140,7 @@ export async function sendWeeklyDigest(a: {
     measurement,
     footerLinks: [
       { label: "mail.weekly.footer.pause", href: appHref(`/pause/${encodeURIComponent(pauseTokenFor(a.siteId))}`) },
-      { label: "mail.weekly.footer.settings", href: appHref("/app/settings/mail") },
+      { label: "mail.weekly.footer.settings", href: appHref("/app/settings/pages#mail") },
     ],
     optOut: { href: appHref(`/unsubscribe/${unsubscribe}`), oneClickHref: appHref(`/api/unsubscribe/${unsubscribe}`), mechanism: "unsubscribe" },
   });

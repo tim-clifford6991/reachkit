@@ -827,7 +827,7 @@ export const DRAFT_COPY = Object.freeze({
   "draft.next.unmeasured": ["we check it on Google and in AI answers every Monday.", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
   "draft.live.stop-note": ["Stop takes this page off your site and drops its topic. Tomorrow’s page is not affected.", { slots: {}, fixedBy: "issue 1749 · R9 (drafted)" }],
   "draft.live.pause-lead": ["To pause every page:", { slots: {}, fixedBy: "issue 1749 · R9 (drafted)" }],
-  "draft.live.pause-link": ["Settings › Publishing", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
+  "draft.live.pause-link": ["Settings › Pages", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
   "draft.stop.done": ["Stopped. This page is off your site.", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
   "draft.stop.refused": ["That didn’t work, so the page is still live. Try again.", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
   "draft.stopped.badge": ["Stopped", { slots: {}, fixedBy: "issue 1749 (drafted)" }],

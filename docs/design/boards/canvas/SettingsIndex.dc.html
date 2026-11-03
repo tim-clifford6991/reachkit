@@ -166,7 +166,7 @@ label.sw{display:inline-flex;align-items:center;gap:12px;min-height:44px;cursor:
 .stepper button{width:44px;height:44px;border-radius:9px;border:1px solid #ddd8fa;background:#ffffff;color:#5b4be0;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
 @media (max-width:900px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:640px){
- .tabs{position:static !important;display:grid !important;grid-template-columns:1fr 1fr;gap:8px !important;border-bottom:0 !important}
+ .tabs{position:static !important;display:grid !important;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px !important;border-bottom:0 !important}
  .tabs a{display:flex;align-items:center;min-height:44px;padding:4px 12px !important;border:1px solid #e8e9f3 !important;border-radius:9px;background:#ffffff;margin:0 !important;font-size:14px;line-height:1.3;box-sizing:border-box}
  .tabs a[aria-current="page"]{background:#eeecfd;border-color:#ddd8fa !important}
  .set{padding:20px;gap:16px}
@@ -177,7 +177,7 @@ label.sw{display:inline-flex;align-items:center;gap:12px;min-height:44px;cursor:
 }
 </style>
 </helmet>
-<div style="min-height: 1575px; display: flex; flex-wrap: wrap; font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif; color: #1e2233; font-size: 15px; line-height: 1.55; word-spacing: .06em; background: #f3f4fb">
+<div style="min-height: 4170px; display: flex; flex-wrap: wrap; font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif; color: #1e2233; font-size: 15px; line-height: 1.55; word-spacing: .06em; background: #f3f4fb">
   <nav class="nav" aria-label="Main" style="flex: 1 1 220px; max-width: 240px; box-sizing: border-box; padding: 24px 16px; background: #ffffff; border-right: 1px solid #e8e9f3; display: flex; flex-direction: column; gap: 4px">
     <a href="Main.dc.html" style="display: flex; align-items: center; gap: 8px; padding: 0 12px 20px; color: #1e2233; font-weight: 800; font-size: 18px; letter-spacing: -0.01em">
       <svg viewBox="0 0 64 64" style="width: 28px; height: 28px; stroke: none" aria-hidden="true"><defs><linearGradient id="mf" x1="0.15" y1="1" x2="0.95" y2="0.1"><stop offset="0.38" stop-color="#ffffff"></stop><stop offset="1" stop-color="#ffffff" stop-opacity="0.12"></stop></linearGradient><clipPath id="mc"><rect width="64" height="64" rx="15"></rect></clipPath></defs><g clip-path="url(#mc)"><rect width="64" height="64" fill="#5b4be0"></rect><path d="M8 50 A24 24 0 0 1 56 50 Z" fill="url(#mf)"></path></g></svg>ReachKit</a>
@@ -196,7 +196,7 @@ label.sw{display:inline-flex;align-items:center;gap:12px;min-height:44px;cursor:
 
   <main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 40px; display: flex; flex-direction: column; gap: 28px; max-width: 1040px">
     <h1 class="h1">Settings</h1>
-    <nav class="tabs stabs" aria-label="Settings sections"><a href="#" aria-current="page">Your business</a><a href="SettingsMarket.dc.html">Market and competitors</a><a href="SettingsPublishing.dc.html">Publishing</a><a href="SettingsVoice.dc.html">Your voice</a><a href="SettingsMail.dc.html">Mail</a><a href="SettingsBilling.dc.html">Billing</a><a href="SettingsAccount.dc.html">Account</a></nav>
+    <nav class="tabs stabs" aria-label="Settings sections"><a href="#" aria-current="page">Your business</a><a href="SettingsPublishing.dc.html">Pages</a><a href="SettingsAccount.dc.html">Account</a></nav>
 
     <section class="card set" aria-labelledby="biz">
       <div class="hd"><div><h2 id="biz" class="h2">What we read from your site</h2><p class="sub">Change any line. Your next page follows it.</p></div></div>
@@ -240,24 +240,67 @@ label.sw{display:inline-flex;align-items:center;gap:12px;min-height:44px;cursor:
           <li style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; padding-top: 10px; border-top: 1px solid #e8e9f3"><span style="display: flex; gap: 8px; align-items: flex-start; min-width: 0; flex: 1 1 300px"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px; color: #646579; margin-top: 3px" aria-hidden="true"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.76-2.02-2-2H4c-1.25 0-2 .75-2 1.97V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .01-1 1.03V20c0 1 0 1 1 1z"></path><path d="M15 21c3 0 7-1 7-8V5c0-1.25-.76-2.02-2-2h-4c-1.25 0-2 .75-2 1.97V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z"></path></svg><span>“You get a fixed quote before we start.” <span class="muted">· on 3 pages</span></span></span><button type="button" class="btn btn-ghost btn-sm">Don’t quote this</button></li>
         </ul></div>
     </details>
-    <details class="card fold">
-      <summary><span>Content we already know about</span><svg class="ic chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></summary>
-      <div style="padding: 0 20px 20px; display: flex; flex-direction: column; gap: 14px"><p class="muted" style="margin: 0; font-size: 14px">Checked before every page, so we link to what exists and never write it twice.</p><div style="display: flex; flex-direction: column; gap: 8px">
-          <p style="margin: 0; font-size: 14px"><strong>46 pages</strong>, from three places:</p>
-          <span class="meter" aria-hidden="true"><span style="width: 26%; background: #5b4be0"></span></span>
-          <ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 6px 20px; font-size: 14px">
-            <li style="display: inline-flex; gap: 6px; align-items: center"><span style="width: 10px; height: 10px; border-radius: 3px; background: #5b4be0; display: inline-block"></span>12 pages we wrote</li>
-            <li style="display: inline-flex; gap: 6px; align-items: center"><span style="width: 10px; height: 10px; border-radius: 3px; background: #b9bbd0; display: inline-block"></span>34 pages on your site</li>
-            <li class="muted">0 posts on your blog</li>
-          </ul>
-        </div></div>
-    </details>
     </section><aside class="dnote note" aria-label="Designer note"><p class="dnl">Designer note: other states</p><div class="dgrid"><div class="st"><p class="sl">Site not read yet</p><p>We haven’t read your site yet. The next read fills this in.</p></div><div class="st"><p class="sl">Facts we can quote, none found</p><p>No page of your site has given us a fact to quote yet.</p></div><div class="st"><p class="sl">Read my site again now, pressed</p><button type="button" class="btn btn-soft" style="align-self: flex-start" disabled><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 20px; height: 20px;" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>Read my site again now</button><p class="sub">Reading your site · started 10:42 AM</p></div><div class="st"><p class="sl">After a save</p><p class="okline"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span>Saved. It takes effect straight away.</span></p><p class="errline"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 16px; height: 16px;" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg><span>That didn’t save. Nothing changed.</span></p></div></div></aside>
+
+    <section class="card set" aria-labelledby="mkt">
+      <h2 id="mkt" class="h2">Your site and market</h2>
+      <div>
+        <div class="row"><div class="k">Your website</div><div class="v"><div class="vr"><span class="num" style="font-size: 15px">northlinestudio.example</span><button type="button" class="btn btn-ghost btn-sm">Change</button></div><p class="sub">Change it and your searches restart next Monday.</p></div></div>
+        <div class="row"><div class="k">Your market</div><div class="v"><div class="vr"><span style="font-weight: 600">Web design agencies in Leeds</span><button type="button" class="btn btn-ghost btn-sm">Change</button></div><p class="sub">Read from your site. Change it and we check it again at once.</p></div></div>
+        <div class="row"><div class="k">Checked every Monday</div><div class="v"><ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px"><li><strong>12</strong> searches your buyers make</li><li><strong>23</strong> questions we ask AI</li><li><strong>2</strong> competitors</li></ul></div></div>
+      </div>
+      <div style="padding-top: 20px; border-top: 1px solid #e8e9f3"><button type="button" class="btn btn-soft"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 20px; height: 20px;" aria-hidden="true"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>Check again now</button></div>
+    </section>
+    <section class="card set" aria-labelledby="comp">
+      <div class="hd"><div><h2 id="comp" class="h2">Competitors</h2><p class="sub">Found in your market. Remove or add any.</p></div><span class="muted" style="font-size: 14px; font-variant-numeric: tabular-nums">2 of 5</span></div>
+      <ul style="list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: 16px">
+        <li class="card" style="padding: 20px; display: flex; flex-direction: column; gap: 14px; min-width: 0; box-shadow: none">
+          <div style="display: flex; gap: 12px; align-items: center; min-width: 0"><span class="mono-tile" aria-hidden="true" style="background: #e9ebf5; color: #3a3d52">PP</span><span class="num" style="font-size: 14px; color: #1e2233; min-width: 0">pixelandpine.example</span></div>
+          <dl style="margin: 0; display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 8px 12px; font-size: 14px"><dt class="muted">On Google’s first page</dt><dd style="margin: 0; font-weight: 700; font-variant-numeric: tabular-nums">5 of 12</dd><dt class="muted">In AI answers</dt><dd style="margin: 0; font-weight: 700; font-variant-numeric: tabular-nums">41 of 184</dd></dl>
+          <button type="button" class="btn btn-ghost btn-sm" style="align-self: flex-start; margin-top: auto" aria-label="Remove pixelandpine.example"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>Remove</button>
+        </li>
+        <li class="card" style="padding: 20px; display: flex; flex-direction: column; gap: 14px; min-width: 0; box-shadow: none">
+          <div style="display: flex; gap: 12px; align-items: center; min-width: 0"><span class="mono-tile" aria-hidden="true" style="background: #e9ebf5; color: #3a3d52">BF</span><span class="num" style="font-size: 14px; color: #1e2233; min-width: 0">brightforge.example</span></div>
+          <dl style="margin: 0; display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 8px 12px; font-size: 14px"><dt class="muted">On Google’s first page</dt><dd style="margin: 0; font-weight: 700; font-variant-numeric: tabular-nums">4 of 12</dd><dt class="muted">In AI answers</dt><dd style="margin: 0; font-weight: 700; font-variant-numeric: tabular-nums">29 of 184</dd></dl>
+          <button type="button" class="btn btn-ghost btn-sm" style="align-self: flex-start; margin-top: auto" aria-label="Remove brightforge.example"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>Remove</button>
+        </li>
+        <li style="border: 1.5px dashed #d4d6e4; border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 12px; min-width: 0">
+          <label for="addc" style="font-size: 15px; font-weight: 700">Add a competitor</label>
+          <input id="addc" class="field" placeholder="competitor.com" style="width: 100%">
+          <button type="button" class="btn btn-ghost btn-sm" style="align-self: flex-start"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M5 12h14M12 5v14"/></svg>Add</button>
+        </li>
+      </ul>
+      <div class="well" style="padding: 16px; display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 8px 12px; font-size: 14px">
+        <p style="grid-column: 1 / -1; margin: 0; font-weight: 700">You</p>
+        <p class="muted" style="margin: 0">On Google’s first page</p><p style="margin: 0; font-weight: 700; font-variant-numeric: tabular-nums">1 of 12</p>
+        <p class="muted" style="margin: 0">In AI answers, last 4 weeks</p><p style="margin: 0; font-weight: 700; font-variant-numeric: tabular-nums">11 of 184</p>
+      </div>
+      <p class="sub">For now we don’t compare you with a national agency group. They’re far larger.</p>
+    </section><aside class="dnote note" aria-label="Designer note"><p class="dnl">Designer note: other states</p><div class="dgrid"><div class="st"><p class="sl">Check again now, pressed</p><button type="button" class="btn btn-soft" style="align-self: flex-start" disabled><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 20px; height: 20px;" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>Check again now</button><p>We’re checking your market again. Your pages follow when it’s done.</p></div><div class="st"><p class="sl">Market you set yourself</p><p>This is the market you set. We use it until you change it.</p></div><div class="st"><p class="sl">Competitors you set yourself</p><span class="badge" style="background: #eeecfd; color: #5b4be0; align-self: flex-start">Added by you</span><p>These are the competitors you set. ReachKit keeps your list as it is.</p></div><div class="st"><p class="sl">Just added, not measured yet</p><p>Both figures read: “Measured from Monday 26 Oct.”</p></div><div class="st"><p class="sl">No competitors</p><p>No competitors yet. Comparison begins when you add one.</p></div></div></aside>
+
+    <section class="card set" aria-labelledby="vh">
+      <div class="hd"><div><h2 id="vh" class="h2">How your pages sound</h2><p class="sub">In your own words. Every new page follows it.</p></div></div>
+      <label for="vt" style="font-weight: 600; margin-bottom: -10px">Your note</label>
+      <textarea id="vt" class="field" rows="4" style="padding: 12px; resize: vertical; width: 100%">Plain and friendly, like a designer explaining a plan over coffee. We say “your website”, never “your digital presence”.</textarea>
+      <button type="button" class="btn btn-primary" style="align-self: flex-start">Save</button>
+    </section>
+    <section class="card set" aria-labelledby="wa">
+      <h2 id="wa" class="h2">Write as</h2>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 12px">
+        <label style="display: flex; gap: 12px; align-items: flex-start; padding: 16px; border-radius: 12px; border: 1.5px solid #5b4be0; background: #eeecfd; cursor: pointer; min-width: 0"><input type="radio" name="wa" checked style="margin-top: 3px; accent-color: #5b4be0; width: 20px; height: 20px; flex: none"><span style="display: flex; flex-direction: column; gap: 4px; min-width: 0"><strong style="font-size: 15px">Your business, as “we”</strong><span class="muted" style="font-size: 14px">“We answer every question the same day.”</span></span></label>
+        <label style="display: flex; gap: 12px; align-items: flex-start; padding: 16px; border-radius: 12px; border: 1px solid #e8e9f3; background: #ffffff; cursor: pointer; min-width: 0"><input type="radio" name="wa" style="margin-top: 3px; accent-color: #5b4be0; width: 20px; height: 20px; flex: none"><span style="display: flex; flex-direction: column; gap: 4px; min-width: 0"><strong style="font-size: 15px">A neutral guide, naming your business</strong><span class="muted" style="font-size: 14px">“Northline Studio answers every question the same day.”</span></span></label>
+      </div>
+    </section>
+    <section class="card set" aria-labelledby="ns">
+      <div class="hd"><div><h2 id="ns" class="h2">Never say</h2><p class="sub">A page that says one of these doesn’t go live. We show you which one it matched.</p></div></div>
+      <div class="chips"><span class="chip">Cheapest in town<button type="button" class="icon-btn" aria-label="Remove Cheapest in town"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button></span><span class="chip">Guaranteed first place on Google<button type="button" class="icon-btn" aria-label="Remove Guaranteed first place on Google"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button></span><span class="chip">Results overnight<button type="button" class="icon-btn" aria-label="Remove Results overnight"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button></span></div>
+      <div style="display: flex; flex-direction: column; gap: 8px"><label for="nsadd" style="font-weight: 600; font-size: 14px">Add something your pages must never say</label><div class="addrow"><input id="nsadd" class="field"><button type="button" class="btn btn-ghost btn-sm"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M5 12h14M12 5v14"/></svg>Add</button></div></div>
+    </section><aside class="dnote note" aria-label="Designer note"><p class="dnl">Designer note: other states</p><div class="dgrid"><div class="st"><p class="sl">Save, pressed</p><button type="button" class="btn btn-primary" style="align-self: flex-start" disabled><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 20px; height: 20px;" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>Save</button></div><div class="st"><p class="sl">After Save</p><p class="okline"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span>Saved. It takes effect straight away.</span></p><p class="errline"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 16px; height: 16px;" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg><span>That didn’t save. Nothing changed.</span></p></div></div></aside>
   </main>
   <nav class="dock" aria-label="Main"><a href="Main.dc.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10l9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg>Overview</a><a href="Plan.dc.html"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg>This week</a><a href="#" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"></path></svg>Settings</a></nav>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1575}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":4170}}'>
 class Component extends DCLogic {
   renderVals() { return {}; }
 }

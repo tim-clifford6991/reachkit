@@ -50,7 +50,7 @@ async function ArticlesLink(): Promise<React.JSX.Element | null> {
 }
 
 /** The way out of a subscription. It is the billing screen's own cancel: signed out, the app asks for sign-in first. */
-export const CANCEL_HREF = "/app/settings/billing";
+export const CANCEL_HREF = "/app/settings/account";
 
 /** Not a character any sentence holds, so the split is the slot's own boundary. */
 const SENTINEL = "\u0000";

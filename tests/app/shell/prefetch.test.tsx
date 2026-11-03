@@ -77,7 +77,7 @@ describe("SPEC §4 (2026-10-08) — a link to another screen of the app prefetch
     expect(anchors(tree)).toEqual(DESTINATIONS.map((d) => prefetched(DESTINATION_HREF[d])));
   });
 
-  it("Settings' seven tabs are client links that prefetch nothing", () => {
+  it("Settings' three tabs are client links that prefetch nothing", () => {
     at.pathname = SETTINGS_TAB_HREF.business;
     expect(anchors(<SettingsTabs />)).toEqual(SETTINGS_TABS.map((t) => ({ href: SETTINGS_TAB_HREF[t], link: true, prefetch: "false" })));
   });

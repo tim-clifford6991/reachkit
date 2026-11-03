@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Settings, publishing</title>
+<title>Settings, pages</title>
 <script src="./support.js"></script>
 </head>
 <body>
@@ -166,7 +166,7 @@ label.sw{display:inline-flex;align-items:center;gap:12px;min-height:44px;cursor:
 .stepper button{width:44px;height:44px;border-radius:9px;border:1px solid #ddd8fa;background:#ffffff;color:#5b4be0;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
 @media (max-width:900px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:640px){
- .tabs{position:static !important;display:grid !important;grid-template-columns:1fr 1fr;gap:8px !important;border-bottom:0 !important}
+ .tabs{position:static !important;display:grid !important;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px !important;border-bottom:0 !important}
  .tabs a{display:flex;align-items:center;min-height:44px;padding:4px 12px !important;border:1px solid #e8e9f3 !important;border-radius:9px;background:#ffffff;margin:0 !important;font-size:14px;line-height:1.3;box-sizing:border-box}
  .tabs a[aria-current="page"]{background:#eeecfd;border-color:#ddd8fa !important}
  .set{padding:20px;gap:16px}
@@ -177,7 +177,7 @@ label.sw{display:inline-flex;align-items:center;gap:12px;min-height:44px;cursor:
 }
 </style>
 </helmet>
-<div style="min-height: 1584px; display: flex; flex-wrap: wrap; font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif; color: #1e2233; font-size: 15px; line-height: 1.55; word-spacing: .06em; background: #f3f4fb">
+<div style="min-height: 2388px; display: flex; flex-wrap: wrap; font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif; color: #1e2233; font-size: 15px; line-height: 1.55; word-spacing: .06em; background: #f3f4fb">
   <nav class="nav" aria-label="Main" style="flex: 1 1 220px; max-width: 240px; box-sizing: border-box; padding: 24px 16px; background: #ffffff; border-right: 1px solid #e8e9f3; display: flex; flex-direction: column; gap: 4px">
     <a href="Main.dc.html" style="display: flex; align-items: center; gap: 8px; padding: 0 12px 20px; color: #1e2233; font-weight: 800; font-size: 18px; letter-spacing: -0.01em">
       <svg viewBox="0 0 64 64" style="width: 28px; height: 28px; stroke: none" aria-hidden="true"><defs><linearGradient id="mf" x1="0.15" y1="1" x2="0.95" y2="0.1"><stop offset="0.38" stop-color="#ffffff"></stop><stop offset="1" stop-color="#ffffff" stop-opacity="0.12"></stop></linearGradient><clipPath id="mc"><rect width="64" height="64" rx="15"></rect></clipPath></defs><g clip-path="url(#mc)"><rect width="64" height="64" fill="#5b4be0"></rect><path d="M8 50 A24 24 0 0 1 56 50 Z" fill="url(#mf)"></path></g></svg>ReachKit</a>
@@ -196,7 +196,7 @@ label.sw{display:inline-flex;align-items:center;gap:12px;min-height:44px;cursor:
 
   <main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 40px; display: flex; flex-direction: column; gap: 28px; max-width: 1040px">
     <h1 class="h1">Settings</h1>
-    <nav class="tabs stabs" aria-label="Settings sections"><a href="SettingsIndex.dc.html">Your business</a><a href="SettingsMarket.dc.html">Market and competitors</a><a href="#" aria-current="page">Publishing</a><a href="SettingsVoice.dc.html">Your voice</a><a href="SettingsMail.dc.html">Mail</a><a href="SettingsBilling.dc.html">Billing</a><a href="SettingsAccount.dc.html">Account</a></nav>
+    <nav class="tabs stabs" aria-label="Settings sections"><a href="SettingsIndex.dc.html">Your business</a><a href="#" aria-current="page">Pages</a><a href="SettingsAccount.dc.html">Account</a></nav>
 
     <section class="card set" aria-labelledby="pub">
       <div class="hd"><div><h2 id="pub" class="h2">Publishing</h2><p class="sub">On. A page goes live on each planned day.</p></div><label class="sw"><span>On</span><input type="checkbox" role="switch" class="switch" checked aria-label="Publishing"></label></div>
@@ -214,11 +214,34 @@ label.sw{display:inline-flex;align-items:center;gap:12px;min-height:44px;cursor:
         <div class="row"><div class="k">Time zone</div><div class="v"><span class="num" style="font-size: 15px">Europe/London</span><p class="sub">From your browser.</p></div></div>
       </div>
     </section><aside class="dnote note" aria-label="Designer note"><p class="dnl">Designer note: other states</p><div class="dgrid"><div class="st"><p class="sl">Publishing paused</p><label class="sw" style="align-self: flex-start"><span>Off</span><input type="checkbox" role="switch" class="switch" aria-label="Publishing"></label><p>Paused. No page goes live until you turn publishing on. Your pages are kept.</p><p class="sub">The last step reads “Paused: nothing goes live”.</p></div><div class="st"><p class="sl">Time to stop set to 2 days</p><p>The middle step reads “2 days to edit or stop it”; the first moves to Sat 17 Oct, 4:00 PM.</p></div><div class="st"><p class="sl">Waiting to connect</p><p style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px"><span class="num" style="font-size: 15px">help.northlinestudio.example</span><span class="badge" style="background: #fff3e6; color: #945c22">Waiting to connect</span></p><p style="font-weight: 600">Add one setting where your web address is managed:</p><div class="cnm"><span class="muted">Type</span><span class="num">CNAME</span><span class="muted">Name</span><span class="num">help</span><span class="muted">Value</span><span class="num">hosted.reachkit.app</span></div><p class="waitline"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 16px; height: 16px;" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg><span>Not connected yet. We check every hour; this page updates when it works.</span></p></div><div class="st"><p class="sl">Check connection, after the press</p><p class="okline"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span>Connected. Your pages will publish to this address.</span></p><p class="errline"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 16px; height: 16px;" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg><span>We couldn’t check just now. Try again in a moment.</span></p></div><div class="st"><p class="sl">After changing the publish time</p><p class="okline"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span>Saved. Your next page goes live at the new time.</span></p></div></div></aside>
+
+    <section class="card set" aria-labelledby="mail">
+      <div class="hd"><div><h2 id="mail" class="h2">Mail</h2><p class="sub">Sent to <span class="num">dana@northlinestudio.example</span></p></div></div>
+      <div>
+        <div class="row" style="align-items: center; flex-wrap: nowrap; flex-direction: row"><div class="v" style="flex: 1 1 auto"><label for="m1" style="font-weight: 600">Monday mail</label><p class="sub">Mondays, 8:00 AM. What went live, what moved, and the next 7 pages.</p></div><label class="sw"><input id="m1" type="checkbox" role="switch" class="switch" checked></label></div>
+        <div class="row" style="align-items: center; flex-wrap: nowrap; flex-direction: row"><div class="v" style="flex: 1 1 auto"><label for="m2" style="font-weight: 600">A page is ready</label><p class="sub">One mail per page, 1 day before it goes live, until your first Monday mail. Turn on to keep getting them.</p></div><label class="sw"><input id="m2" type="checkbox" role="switch" class="switch" checked></label></div>
+      </div>
+      <p class="sub" style="padding-top: 16px; border-top: 1px solid #e8e9f3">Sign-in and account mail can’t be switched off.</p>
+    </section><aside class="dnote note" aria-label="Designer note"><p class="dnl">Designer note: other states</p><div class="dgrid"><div class="st"><p class="sl">“A page is ready” off</p><p style="display: flex; gap: 8px; align-items: flex-start"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 16px; height: 16px;margin-top: 3px; color: #5b4be0" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg><span>Pages still go live on their day. You can stop them from <a href="Plan.dc.html">This week</a>.</span></p></div><div class="st"><p class="sl">Both off</p><p>You get no ReachKit mail except sign-in and account mail. Pages still go live on their day.</p></div><div class="st"><p class="sl">After a change</p><p class="okline"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span>Saved. It takes effect straight away.</span></p><p class="errline"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 16px; height: 16px;" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg><span>That didn’t save. Nothing changed.</span></p></div></div></aside>
+    <section aria-label="What the writer knows" style="display: flex; flex-direction: column; gap: 12px">
+    <details class="card fold">
+      <summary><span>Content we already know about</span><svg class="ic chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></summary>
+      <div style="padding: 0 20px 20px; display: flex; flex-direction: column; gap: 14px"><p class="muted" style="margin: 0; font-size: 14px">Checked before every page, so we link to what exists and never write it twice.</p><div style="display: flex; flex-direction: column; gap: 8px">
+          <p style="margin: 0; font-size: 14px"><strong>46 pages</strong>, from three places:</p>
+          <span class="meter" aria-hidden="true"><span style="width: 26%; background: #5b4be0"></span></span>
+          <ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 6px 20px; font-size: 14px">
+            <li style="display: inline-flex; gap: 6px; align-items: center"><span style="width: 10px; height: 10px; border-radius: 3px; background: #5b4be0; display: inline-block"></span>12 pages we wrote</li>
+            <li style="display: inline-flex; gap: 6px; align-items: center"><span style="width: 10px; height: 10px; border-radius: 3px; background: #b9bbd0; display: inline-block"></span>34 pages on your site</li>
+            <li class="muted">0 posts on your blog</li>
+          </ul>
+        </div></div>
+    </details>
+    </section>
   </main>
   <nav class="dock" aria-label="Main"><a href="Main.dc.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10l9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg>Overview</a><a href="Plan.dc.html"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg>This week</a><a href="#" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"></path></svg>Settings</a></nav>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1584}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":2388}}'>
 class Component extends DCLogic {
   renderVals() { return {}; }
 }

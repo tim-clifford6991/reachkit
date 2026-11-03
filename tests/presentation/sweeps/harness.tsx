@@ -172,18 +172,14 @@ export const ROUTE_HARNESS: Readonly<Record<string, HarnessRow>> = Object.freeze
     async: true,
   },
   "(account)/app/settings/page.tsx": { props: () => ({}), shell: true, async: true },
-  // SPEC §4 (2026-09-20), #925: Settings is seven addresses. Each takes the
+  // SPEC §4, owner R7: Settings is three addresses. Each takes the
   // same row as the screen it was cut out of — no params, inside the shell,
   // and async because each awaits `readSettings` (request-cached, so the
-  // seven reads in this sweep are one read per render). The heading, the
+  // reads in this sweep are one read per render). The heading, the
   // written line and the tab bar are the sub-layout's, which this sweep
   // does not mount: what each row renders is the tab's own cards, which is
   // what a cold start and a stopped account are about.
-  "(account)/app/settings/market/page.tsx": { props: () => ({}), shell: true, async: true },
-  "(account)/app/settings/publishing/page.tsx": { props: () => ({}), shell: true, async: true },
-  "(account)/app/settings/voice/page.tsx": { props: () => ({}), shell: true, async: true },
-  "(account)/app/settings/mail/page.tsx": { props: () => ({}), shell: true, async: true },
-  "(account)/app/settings/billing/page.tsx": { props: () => ({}), shell: true, async: true },
+  "(account)/app/settings/pages/page.tsx": { props: () => ({}), shell: true, async: false },
   "(account)/app/settings/account/page.tsx": { props: () => ({}), shell: true, async: true },
   // Issue 1478: the owner's cost page reads its own rows, and answers the
   // 404 to an account that is not an owner's.

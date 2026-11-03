@@ -16,7 +16,7 @@ export function buildPaymentFailed(): RetentionMail {
     blocks: [
       { block: "heading", text: SUBJECT },
       { block: "paragraph", text: LINE, vars: { price: `€${PRICE_EUR_CENTS / 100}` } },
-      { block: "action", label: ACTION, href: appHref("/app/settings/billing") },
+      { block: "action", label: ACTION, href: appHref("/app/settings/account#billing") },
     ],
   };
 }

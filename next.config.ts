@@ -106,8 +106,16 @@ const nextConfig: NextConfig = {
   // Issue #782: the waiting screen is gone — a founder waits for their pass
   // inside the app, where the side panel says which step is running. An old
   // tab or a saved link still reaches the app.
+  // Owner R7: Settings' retired tabs answer 308 to the card that took them in, so links in sent mail keep landing.
   async redirects() {
-    return [{ source: "/setup/waiting", destination: "/app", permanent: false }];
+    return [
+      { source: "/setup/waiting", destination: "/app", permanent: false },
+      { source: "/app/settings/market", destination: "/app/settings#market", permanent: true },
+      { source: "/app/settings/voice", destination: "/app/settings#voice", permanent: true },
+      { source: "/app/settings/publishing", destination: "/app/settings/pages#publishing", permanent: true },
+      { source: "/app/settings/mail", destination: "/app/settings/pages#mail", permanent: true },
+      { source: "/app/settings/billing", destination: "/app/settings/account#billing", permanent: true },
+    ];
   },
   async headers() {
     return [

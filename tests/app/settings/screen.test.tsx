@@ -112,11 +112,7 @@ vi.mock("@/app/(account)/app/settings/billing-actions", () => ({
 }));
 
 import SettingsBusinessTab from "@/app/(account)/app/settings/page";
-import SettingsMarketTab from "@/app/(account)/app/settings/market/page";
-import SettingsPublishingTab from "@/app/(account)/app/settings/publishing/page";
-import SettingsVoiceTab from "@/app/(account)/app/settings/voice/page";
-import SettingsMailTab from "@/app/(account)/app/settings/mail/page";
-import SettingsBillingTab from "@/app/(account)/app/settings/billing/page";
+import SettingsPagesTab from "@/app/(account)/app/settings/pages/page";
 import SettingsAccountTab from "@/app/(account)/app/settings/account/page";
 import { SETTINGS_TABS, SETTINGS_TAB_HREF, settingsTabOf } from "@/app/(account)/app/settings/tabs";
 import { BillingPanel } from "@/app/(account)/app/settings/panels/BillingPanel";
@@ -151,19 +147,15 @@ async function mount(node: React.ReactNode): Promise<HTMLElement> {
   return container;
 }
 
-/** Every tab's own Server Component, keyed by the tab it draws — the seven
+/** Every tab's own Server Component, keyed by the tab it draws — the
  *  addresses `tabs.ts` names, so a tab added to that tuple without a screen
  *  here is a hole this file's last test reports rather than a control that
  *  quietly stops being offered. */
 const TAB_SCREEN: Readonly<
-  Record<(typeof SETTINGS_TABS)[number], () => Promise<React.JSX.Element>>
+  Record<(typeof SETTINGS_TABS)[number], () => Promise<React.JSX.Element> | React.JSX.Element>
 > = {
   business: SettingsBusinessTab,
-  market: SettingsMarketTab,
-  publishing: SettingsPublishingTab,
-  voice: SettingsVoiceTab,
-  mail: SettingsMailTab,
-  billing: SettingsBillingTab,
+  pages: SettingsPagesTab,
   account: SettingsAccountTab,
 };
 
@@ -171,8 +163,8 @@ const TAB_SCREEN: Readonly<
  * The screen, awaited to a tree (each tab is an async Server Component) and
  * then mounted, so its client panels are live.
  *
- * **All seven tabs at once, and that is what "the screen" now means**
- * (#925). Settings is seven addresses since the redesign, and the promise
+ * **Every tab at once, and that is what "the screen" means** (#925).
+ * Settings is several addresses, and the promise
  * these tests read is a *closed offer* — exactly the thirteen settings and
  * exactly the seven actions, across the whole of Settings. A suite that
  * mounted one tab would assert that one tab's subset and call the offer
@@ -180,7 +172,7 @@ const TAB_SCREEN: Readonly<
  * off the union, exactly as REQ-076 c6's cancel/resume pair is already read
  * off the union of two plan states below.
  *
- * The seven trees share one container, so every assertion about *which*
+ * The trees share one container, so every assertion about *which*
  * control exists, what it calls and what it says reads unchanged; the tests
  * that care which tab a card is on look for that tab's own panel wrapper.
  */
@@ -223,43 +215,6 @@ describe("REQ-070 c1 — the rendered control set is exactly the SETTABLE keys",
     expect(testIds(root, "setting-")).toEqual([...SETTABLE].sort());
   });
 
-  // SPEC §4 (2026-09-20): "Settings is tabs: Your business, Market and
-  // rivals, Publishing, Your voice, Mail, Billing, Account. The danger zone
-  // lives in Account." Every one of the nine cards §4.7 names still exists
-  // and each is on exactly one tab — which is what "moved as they are"
-  // means, and what makes the union above the whole offer rather than most
-  // of it.
-  it("each of §4.7's nine cards is on exactly one tab, and the danger zone is in Account", async () => {
-    const where: Readonly<Record<string, (typeof SETTINGS_TABS)[number]>> = {
-      "settings.content.export": "account",
-      "settings.market.title": "market",
-      "settings.competitors.title": "market",
-      "settings.publishing.title": "publishing",
-      "settings.voice.title": "voice",
-      "settings.notifications.title": "mail",
-      "settings.billing.title": "billing",
-      "settings.account.title": "account",
-      "danger.zone.title": "account",
-    };
-    const drawn = new Map<(typeof SETTINGS_TABS)[number], string>();
-    // A link that names a tab (Mail's "Change it under Account") is a pointer, not the card.
-    for (const tab of SETTINGS_TABS) {
-      const root = await mountTab(tab);
-      root.querySelectorAll("a").forEach((a) => a.remove());
-      drawn.set(tab, root.textContent ?? "");
-    }
-
-    for (const [title, tab] of Object.entries(where)) {
-      expect(drawn.get(tab), `${title} belongs on the ${tab} tab`).toContain(title);
-      // And nowhere else: a card drawn twice is two places to change it,
-      // and two cards that can disagree about the same setting.
-      for (const other of SETTINGS_TABS) {
-        if (other === tab) continue;
-        expect(drawn.get(other), `${title} must not also be on ${other}`).not.toContain(title);
-      }
-    }
-  });
-
   it("the danger zone is the foot of Account, below the account card", async () => {
     // #925: "keep the danger zone out of the way": below the two ordinary
     // things a customer came for, and folded shut (board SettingsAccount).
@@ -267,16 +222,8 @@ describe("REQ-070 c1 — the rendered control set is exactly the SETTABLE keys",
     expect(text.indexOf("settings.account.title")).toBeLessThan(text.indexOf("danger.zone.title"));
   });
 
-  it("the bar offers the seven tabs, each its own address, and no tab is its own prefix", async () => {
-    expect([...SETTINGS_TABS]).toEqual([
-      "business",
-      "market",
-      "publishing",
-      "voice",
-      "mail",
-      "billing",
-      "account",
-    ]);
+  it("the bar offers the three tabs (owner R7), each its own address, and no tab is its own prefix", async () => {
+    expect([...SETTINGS_TABS]).toEqual(["business", "pages", "account"]);
     // Business is `/app/settings` itself, so the menu's own link does not
     // move; every other tab is a sub-path of it, and each address resolves
     // back to exactly the tab that owns it.
@@ -290,7 +237,7 @@ describe("REQ-070 c1 — the rendered control set is exactly the SETTABLE keys",
   });
 
   it("the market card states each consequence §4.7 gives it, and states it once", async () => {
-    const root = await mountTab("market");
+    const root = await mountTab("business");
     for (const key of ["settings.market.consequence.website", "settings.market.consequence.market"]) {
       expect((root.textContent ?? "").split(key).length - 1, key).toBe(1);
     }
@@ -412,8 +359,9 @@ describe("REQ-070 c3 — no control over an engine or spend parameter renders", 
 
 describe("E28 — a card title states its subject in words", () => {
   it.each([
-    ["business", 4],
-    ["voice", 3],
+    ["business", 8],
+    ["pages", 3],
+    ["account", 3],
   ] as const)("no settings card title carries an icon (E28): %s", async (tab, least) => {
     const root = await mountTab(tab);
     const titles = [...root.querySelectorAll("h2, summary, legend, .card-title")];
@@ -530,7 +478,7 @@ describe("REQ-097 — the Billing card renders no number ReachKit computed", () 
     // destination." Until #925 this card drew three pills onto that one
     // action, which reads as three destinations; there is one now, and the
     // three things behind it are named in writing instead.
-    const root = await mountTab("billing");
+    const root = await mountTab("account");
     const card = root.querySelector('[data-testid="action-invoices"]')?.closest(".card");
     const buttons = Array.from(card?.querySelectorAll("button") ?? []);
     expect(buttons).toHaveLength(1);
@@ -554,7 +502,7 @@ describe("REQ-097 — the Billing card renders no number ReachKit computed", () 
     // customer cancels — on Stripe's surface, which is where cancelling has
     // always happened (REQ-097 c1, and this card shows no confirmation step
     // of its own).
-    const root = await mountTab("billing");
+    const root = await mountTab("account");
     const cancel = root.querySelector('[data-testid="action-cancel"] button');
     const invoices = root.querySelector('[data-testid="action-invoices"] button');
     expect(cancel).not.toBeNull();
@@ -614,26 +562,10 @@ describe("REQ-097 c6 — a billing surface that cannot be produced is written on
   });
 });
 
-describe("Settings › Market against board SettingsMarket", () => {
-  it("no settings card title carries an icon (E28): market", async () => {
-    const root = await mountTab("market");
-    const titles = [...root.querySelectorAll("h2, summary, .card-title")];
-    expect(titles.length).toBeGreaterThanOrEqual(2);
-    for (const title of titles) expect(title.querySelector("svg")).toBeNull();
-  });
-
-  it("the market tab draws no process timeline: board SettingsMarket has none", async () => {
-    const root = await mountTab("market");
+describe("Settings carries its board icons, never in a card title", () => {
+  it("Your business draws no process timeline: the market card on board SettingsIndex has none", async () => {
+    const root = await mountTab("business");
     expect(root.querySelector('[data-testid="process-timeline"]')).toBeNull();
-  });
-});
-
-describe("Publishing, Mail, Billing and Account carry their board icons, never in a card title", () => {
-  it.each(["publishing", "mail", "billing", "account"] as const)("no settings card title carries an icon (E28): %s", async (tab) => {
-    const root = await mountTab(tab);
-    const titles = [...root.querySelectorAll("h2, summary, .card-title")];
-    expect(titles.length).toBeGreaterThanOrEqual(1);
-    for (const title of titles) expect(title.querySelector("svg")).toBeNull();
   });
 
   it("account's board icons: Export and Sign out, and none in the danger zone", async () => {

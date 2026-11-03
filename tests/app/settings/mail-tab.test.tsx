@@ -1,4 +1,4 @@
-// Settings › Mail (board SettingsMail; SPEC §8, decision 2026-10-19-1593, Q10):
+// The Mail card on Settings › Pages (board SettingsPublishing; SPEC §8, decision 2026-10-19-1593, Q10):
 // the Monday mail and page-ready switches, each with what it sends, and the
 // page-ready switch read off once the first Monday mail is sent. Rendered from stored rows.
 /** @vitest-environment jsdom */
@@ -41,17 +41,17 @@ const switches = (doc: Document) => [...doc.querySelectorAll('[data-testid^="not
 
 beforeEach(() => db.reset());
 
-describe("Settings › Mail", () => {
-  it("the card is titled with the tab's own word, and says where mail goes, the address in mono", async () => {
+describe("Settings › Pages, the Mail card", () => {
+  it("the card is titled Mail, and says where mail goes, the address in mono", async () => {
     const doc = await mailTab();
-    expect(text(doc.querySelector("h2"))).toBe("Mail");
-    expect(text(doc.querySelector("h2"))).toBe(COPY[SETTINGS_TAB_COPY_KEY.mail]);
+    expect(text(doc.querySelector("h2"))).toBe(COPY["settings.notifications.title"]);
     expect(text(doc.querySelector('[data-testid="notifications-to"]'))).toBe("Sent to dana@example.com");
     expect(doc.querySelector('[data-testid="notifications-to"] .num')?.textContent).toBe("dana@example.com");
   });
 
-  it("every customer sentence that points into Settings names a tab that exists", () => {
+  it("every customer sentence that points into Settings names one of the three tabs (owner R7)", () => {
     const tabs = new Set(Object.values(SETTINGS_TAB_COPY_KEY).map((key) => COPY[key]));
+    expect([...tabs]).toEqual(["Your business", "Pages", "Account"]);
     const pointers = Object.entries(COPY as Record<string, string>).flatMap(([key, value]) =>
       [...value.matchAll(/Settings › ([^.,;:]+)/g)].map((m) => [key, m[1]?.trim()] as const)
     );

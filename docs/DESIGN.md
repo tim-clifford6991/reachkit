@@ -36,7 +36,7 @@ The current look of every screen, drawn on board [`Calm`](design/boards/R12-0-Ca
 
 ## The shell
 
-- 2026-09-25  `/app` is a daisyUI `drawer` (owner, #1110). From `lg` the sidebar is fixed to the left edge, full viewport height, and only the content scrolls, with a 40px gutter; the sidebar scrolls inside itself only when its own contents are taller than the screen, never horizontally, and the collapsed 72px rail behaves the same. Cards may grow with the screen, while a paragraph or a form keeps its own measure. Below `lg` there is no drawer (owner, 2026-10-08, #1339; `docs/SPEC.md` §4 of that date): the `dock` is the navigation, and a daisyUI `navbar` sticks to the top of the viewport with the brand, the domain, the theme control and the publishing line. Settings' and Overview's `tabs` stick directly under it, and a running pass's status line sits under the bar. The `drawer` applies from `lg` only. `Surface` (`src/ui/layout/`) is the centred column for marketing and quiet pages; it is not the app shell. Settings is daisyUI `tabs` that wrap, or a `select` below `sm`, so all seven tabs are reachable at 390 and 320. No new stylesheet, wrapper or scroller for any of it.
+- 2026-09-25  `/app` is a daisyUI `drawer` (owner, #1110). From `lg` the sidebar is fixed to the left edge, full viewport height, and only the content scrolls, with a 40px gutter; the sidebar scrolls inside itself only when its own contents are taller than the screen, never horizontally, and the collapsed 72px rail behaves the same. Cards may grow with the screen, while a paragraph or a form keeps its own measure. Below `lg` there is no drawer (owner, 2026-10-08, #1339; `docs/SPEC.md` §4 of that date): the `dock` is the navigation, and a daisyUI `navbar` sticks to the top of the viewport with the brand, the domain, the theme control and the publishing line. Settings' and Overview's `tabs` stick directly under it, and a running pass's status line sits under the bar. The `drawer` applies from `lg` only. `Surface` (`src/ui/layout/`) is the centred column for marketing and quiet pages; it is not the app shell. Settings is daisyUI `tabs` that wrap, or a `select` below `sm`, so all three tabs are reachable at 390 and 320. No new stylesheet, wrapper or scroller for any of it.
 
 ## Busy and done
 
@@ -139,11 +139,7 @@ The owner looks at `dev.reachkit.app` for taste: voice, and an asset only the ow
 | Costs (owner only) | `/app/costs` | [board](design/boards/canvas/AppCosts.dc.html) · [render](design/boards/canvas/renders/AppCosts.jpg) |
 | Review (owner only) | `/app/review` | [board](design/boards/canvas/Review.dc.html) · [render](design/boards/canvas/renders/Review.jpg) |
 | Settings, Your business | `/app/settings` | [board](design/boards/canvas/SettingsIndex.dc.html) · [render](design/boards/canvas/renders/SettingsIndex.jpg) |
-| Settings, Market and competitors | `/app/settings/market` | [board](design/boards/canvas/SettingsMarket.dc.html) · [render](design/boards/canvas/renders/SettingsMarket.jpg) |
-| Settings, Publishing | `/app/settings/publishing` | [board](design/boards/canvas/SettingsPublishing.dc.html) · [render](design/boards/canvas/renders/SettingsPublishing.jpg) |
-| Settings, Your voice | `/app/settings/voice` | [board](design/boards/canvas/SettingsVoice.dc.html) · [render](design/boards/canvas/renders/SettingsVoice.jpg) |
-| Settings, Mail | `/app/settings/mail` | [board](design/boards/canvas/SettingsMail.dc.html) · [render](design/boards/canvas/renders/SettingsMail.jpg) |
-| Settings, Billing | `/app/settings/billing` | [board](design/boards/canvas/SettingsBilling.dc.html) · [render](design/boards/canvas/renders/SettingsBilling.jpg) |
+| Settings, Pages | `/app/settings/pages` | [board](design/boards/canvas/SettingsPublishing.dc.html) · [render](design/boards/canvas/renders/SettingsPublishing.jpg) |
 | Settings, Account | `/app/settings/account` | [board](design/boards/canvas/SettingsAccount.dc.html) · [render](design/boards/canvas/renders/SettingsAccount.jpg) |
 | Mail: Monday, phone | Resend | [board](design/boards/canvas/MondayMail.dc.html) · [render](design/boards/canvas/renders/MondayMail.jpg) |
 | Hosted index | `<label>.<customer-domain>/` | [board](design/boards/canvas/HostedIndex.dc.html) · [render](design/boards/canvas/renders/HostedIndex.jpg) |

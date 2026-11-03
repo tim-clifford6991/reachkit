@@ -1,84 +1,74 @@
-// SPEC §4 (2026-09-20, #908) — Settings › **Your business**, at
-// `/app/settings`.
-//
-// The first of the seven tabs, and the address the menu's *Settings* has
-// always pointed at — so nothing in the product has to learn a new link for
-// the screen to become seven (`./tabs.ts`).
-//
-// **What stands here**, in board SettingsIndex's order (canvas v36): what we read of the business, then
-// three folds (what buyers ask, the facts we may quote, what the writer already knows about).
-//
-// This file is the composition and nothing else. It makes the tab's reads,
-// each settling on its own, and hands each card the slice it states —
-// ARCHITECTURE rule 1: "Route handlers and server components are thin
-// adapters over a module's exported interface."
-//
-// **It ships no stylesheet and declares no `Surface`.** The heading and the
-// tab bar are `./layout.tsx`'s, drawn once for all
-// seven; every rule this tab needs is a stock daisyUI class or one of the
-// type roles `src/ui/type.css` registers.
+// SPEC §4, owner R7 (docs/spec/decisions/2026-11-03-2127.md): Settings › Your business, at `/app/settings`, in
+// board SettingsIndex's order: what we read of the business and its folds, then the market and its competitors,
+// then how the pages sound. Each section is its own boundary over its own reads, so one slow or failed read
+// leaves only its section on the plain line. No stylesheet and no `Surface`: the layout draws the heading and bar.
 import type React from "react";
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import { copy } from "@/lib/presentation/copy";
 import { profileIsEmpty } from "@/lib/site-profile/business/confirm";
+import { AlsoServesNote } from "@/app/_business/WhatWeRead";
 import { requireSetUpAccount } from "../_session/account";
 import { readUnderstanding } from "../_overview/understanding-provider";
+import { readOverview } from "../_overview/provider";
+import { readPromptsAt } from "../_overview/prompts-provider";
+import { readRivals } from "../_overview/rivals-provider";
+import { namedOf } from "../_overview/rivals-model";
+import { aiSearchesOf } from "../_overview/prompts-model";
 import { CardSkeleton } from "../_shell/skeletons";
 import { readBusiness, readBusinessQuotable } from "./business-provider";
+import { readSettings } from "./provider";
+import { readsLanded } from "./model";
+import { marketFigures } from "./market-figures";
+import { ANCHORED, SETTINGS_ANCHOR } from "./tabs";
 import { landed, Unread } from "./Unread";
+import { readBusinessName } from "./voice/name";
 import { BusinessPanel } from "./panels/BusinessPanel";
+import { CompetitorsPanel } from "./panels/CompetitorsPanel";
 import { FactsPanel } from "./panels/FactsPanel";
 import { KnowledgePanel } from "./panels/KnowledgePanel";
-import { KnownContentPanel } from "./panels/KnownContentPanel";
+import { MarketPanel } from "./panels/MarketPanel";
+import { VoicePanel } from "./panels/VoicePanel";
 
-/** /app/settings's own `<title>` (#945). Without it this screen announced
- *  nothing at all — the `(account)` layout's fallback is the floor, not
- *  the name of this screen.
- *
- *  **This address keeps "Settings — ReachKit"** though it is now the first
- *  of seven tabs: it *is* the address Settings, the one the menu points at,
- *  so that is the screen a reader holding twenty tabs is on. The six
- *  siblings name themselves inside it — "Billing — Settings — ReachKit" —
- *  which is what `tests/app/seo/account-title.test.ts` asks of every named
- *  screen and what its "no two screens announce the same thing" forbids
- *  solving by sharing one title. */
+/** `/app/settings` keeps "Settings · ReachKit": it is the address the menu points at (#945). */
 export const metadata: Metadata = { title: copy("meta.app.settings.title") };
 
 export default async function SettingsBusinessTab(): Promise<React.JSX.Element> {
-  // `readBusiness` is this tab's alone (`./business-provider.ts`); the passages are `Facts`'s own read.
-  // The kind is the market conclusion's closed word, as the free report says it (REVIEW4 §2).
-  const [account, business, understanding] = await Promise.all([
-    requireSetUpAccount(),
-    landed(readBusiness(), "business"),
-    landed(readUnderstanding(), "understanding"),
-  ]);
-  const kind = understanding?.kind == null ? null : copy(`report.read.as.kind.${understanding.kind}`);
-  const timeZone = account.timeZone;
-  if (business === null) {
-    return (
-      <div className="flex min-w-0 flex-col gap-6" data-testid="settings-tab-panel-business">
-        <Unread testId="settings-unread-business" />
-      </div>
-    );
-  }
-
+  const account = await requireSetUpAccount();
   return (
     <div className="flex min-w-0 flex-col gap-6" data-testid="settings-tab-panel-business">
-      <BusinessPanel
-        profile={business.profile}
-        kind={kind}
-        empty={profileIsEmpty(business.profile)}
-        timeZone={timeZone}
-      />
+      <Suspense fallback={<CardSkeleton testId="settings-business-skeleton" />}>
+        <Business timeZone={account.timeZone} />
+      </Suspense>
+      <div id={SETTINGS_ANCHOR.market} className={ANCHORED}>
+        <Suspense fallback={<CardSkeleton testId="settings-market-skeleton" />}>
+          <Market />
+        </Suspense>
+      </div>
+      <div id={SETTINGS_ANCHOR.voice} className={ANCHORED}>
+        <Suspense fallback={<CardSkeleton testId="settings-voice-skeleton" />}>
+          <Voice />
+        </Suspense>
+      </div>
+    </div>
+  );
+}
+
+/** What we read of the business, and its two folds. The kind is the market conclusion's closed word (REVIEW4 §2). */
+async function Business({ timeZone }: { timeZone: string }): Promise<React.JSX.Element> {
+  const [business, understanding] = await Promise.all([landed(readBusiness(), "business"), landed(readUnderstanding(), "understanding")]);
+  if (business === null) return <Unread testId="settings-unread-business" />;
+  const kind = understanding?.kind == null ? null : copy(`report.read.as.kind.${understanding.kind}`);
+  return (
+    <>
+      <BusinessPanel profile={business.profile} kind={kind} empty={profileIsEmpty(business.profile)} timeZone={timeZone} />
       <section className="flex min-w-0 flex-col gap-3" aria-label={copy("settings.business.more")}>
         <KnowledgePanel knowledge={business.knowledge} answers={business.answers} />
         <Suspense fallback={<CardSkeleton testId="settings-business-facts-skeleton" rows={0} />}>
           <Facts />
         </Suspense>
-        <KnownContentPanel known={business.known} />
       </section>
-    </div>
+    </>
   );
 }
 
@@ -86,4 +76,62 @@ export default async function SettingsBusinessTab(): Promise<React.JSX.Element> 
 async function Facts(): Promise<React.JSX.Element> {
   const facts = await landed(readBusinessQuotable(), "businessFacts");
   return facts === null ? <Unread testId="settings-unread-facts" /> : <FactsPanel facts={facts} />;
+}
+
+/** What is measured, then who it is measured against; every figure is the Competitors tab's own stored reading. */
+async function Market(): Promise<React.JSX.Element> {
+  const [all, understanding, rivals, overview] = await Promise.all([
+    landed(readSettings(), "settings"),
+    landed(readUnderstanding(), "understanding"),
+    landed(readRivals(), "rivals"),
+    landed(readOverview(), "overview"),
+  ]);
+  const settings = readsLanded(all, "answers", "measured");
+  // The month's questions are read at the overview's week, so they wait on it.
+  const reputation = overview === null ? null : await landed(readPromptsAt(overview.months?.reading?.week ?? null), "reputation");
+  const alsoServes = understanding === null ? null : <AlsoServesNote n={understanding.where.alsoServes} />;
+  // Both cards state the measured sets, so a set that did not load leaves both on their error line.
+  if (settings === null || rivals === null || overview === null || reputation === null) {
+    return (
+      <>
+        <Unread testId="settings-unread-market" />
+        {alsoServes}
+        <Unread testId="settings-unread-competitors" />
+      </>
+    );
+  }
+  const searches = rivals.firstPage.of === 0 ? null : rivals.firstPage.of;
+  const questions = reputation.kind === "measured" ? aiSearchesOf(reputation.prompts).asked.length : null;
+  return (
+    <>
+      <MarketPanel
+        market={settings.market}
+        concluded={settings.concluded}
+        domain={settings.domain}
+        locale={settings.locale}
+        timeZone={settings.publishing.timeZone}
+        sets={{ searches, questions, competitors: settings.competitors.length }}
+      />
+      {alsoServes}
+      <CompetitorsPanel
+        competitors={settings.competitors}
+        concluded={settings.concluded}
+        figures={marketFigures({
+          competitors: settings.competitors,
+          measured: settings.measuredRivals,
+          firstPage: rivals.firstPage,
+          named: namedOf(reputation),
+        })}
+        measuredFrom={settings.market.wouldTakeEffectOn}
+        leaders={overview.rivals.leaders.domains}
+      />
+    </>
+  );
+}
+
+/** How the pages sound. The examples read as unnamed where the name did not load, as where none is stored. */
+async function Voice(): Promise<React.JSX.Element> {
+  const [all, business] = await Promise.all([landed(readSettings(), "settings"), landed(readBusinessName(), "businessName")]);
+  const settings = readsLanded(all, "site", "pages");
+  return settings === null ? <Unread testId="settings-unread-voice" /> : <VoicePanel settings={settings} business={business} />;
 }

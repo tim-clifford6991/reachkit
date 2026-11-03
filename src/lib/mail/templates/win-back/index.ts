@@ -18,7 +18,7 @@ export function buildWinback(a: { email: string }): RetentionMail {
     blocks: [
       { block: "heading", text: SUBJECT },
       { block: "paragraph", text: LINE, vars: { weekPages: String(WEEK_PLAN.days) } },
-      { block: "action", label: ACTION, href: appHref("/app/settings/billing") },
+      { block: "action", label: ACTION, href: appHref("/app/settings/account#billing") },
     ],
     reason: REASON,
     reasonVars: { days: RETENTION_MAIL.winbackAfterAccessDays },

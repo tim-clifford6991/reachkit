@@ -16,7 +16,7 @@ import { staticMetadata } from "../../_seo/metadata";
 type TokenParams = { token: string };
 type Query = { done?: string | string[] };
 
-const SETTINGS = "/app/settings/publishing";
+const SETTINGS = "/app/settings/pages";
 
 /** `noindex` and no canonical: the path is the credential. */
 export const metadata: Metadata = staticMetadata(PUBLIC_ROUTE_SEO.pause);

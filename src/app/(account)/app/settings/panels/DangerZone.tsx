@@ -73,7 +73,7 @@ export function DangerZone(): React.JSX.Element {
       </summary>
       <div className="collapse-content flex min-w-0 flex-col gap-4">
         <p className="min-w-0 text-sm wrap-anywhere" data-testid="danger-pause-line">
-          <Linked sentence={copy("danger.pause.line")} word={copy("danger.pause.link")} href={SETTINGS_TAB_HREF.publishing} />
+          <Linked sentence={copy("danger.pause.line")} word={copy("danger.pause.link")} href={SETTINGS_TAB_HREF.pages} />
         </p>
 
         {DANGER.map((row) => (

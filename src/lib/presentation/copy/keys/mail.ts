@@ -91,19 +91,19 @@ export const MAIL_COPY = Object.freeze({
   "mail.unsubscribe.label": ["Unsubscribe", { slots: {}, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
   // The pages behind the Monday mail's Unsubscribe and Pause all pages links.
   "unsubscribe.head": ["Unsubscribed", { slots: {}, fixedBy: "issue 1741 (drafted)" }],
-  "unsubscribe.done": ["You won’t get this mail any more: {mail}. Turn it back on in Settings › Mail.", { slots: { mail: "text" }, fixedBy: "issue 1741 (drafted)" }],
+  "unsubscribe.done": ["You won’t get this mail any more: {mail}. Turn it back on in Settings › Pages.", { slots: { mail: "text" }, fixedBy: "issue 1741 (drafted)" }],
   "unsubscribe.changes.still": ["Still sent", { slots: {}, fixedBy: "issue 1741 (drafted)" }],
-  "unsubscribe.invalid": ["That link isn’t valid, so nothing has changed. You can switch any ReachKit mail off in Settings › Mail.", { slots: {}, fixedBy: "issue 1741 (drafted)" }],
-  "unsubscribe.unavailable": ["That couldn’t go through just now, so nothing has changed. Try the link again in a few minutes, or switch the mail off in Settings › Mail.", { slots: {}, fixedBy: "issue 1741 (drafted)" }],
+  "unsubscribe.invalid": ["That link isn’t valid, so nothing has changed. You can switch any ReachKit mail off in Settings › Pages.", { slots: {}, fixedBy: "issue 1741 (drafted)" }],
+  "unsubscribe.unavailable": ["That couldn’t go through just now, so nothing has changed. Try the link again in a few minutes, or switch the mail off in Settings › Pages.", { slots: {}, fixedBy: "issue 1741 (drafted)" }],
   "unsubscribe.settings": ["Mail settings", { slots: {}, fixedBy: "issue 1741 (drafted)" }],
   "unsubscribe.ask": ["Press Unsubscribe to stop this mail: {mail}. Sign-in links and account mail still arrive.", { slots: { mail: "text" }, fixedBy: "issue 1741 (drafted)" }],
   "pause.head": ["Publishing is paused", { slots: {}, fixedBy: "issue 1741 (drafted)" }],
-  "pause.done": ["No page goes live until you turn publishing on again in Settings › Publishing. Pages already written wait there, and nothing is deleted.", { slots: {}, fixedBy: "issue 1741 (drafted)" }],
+  "pause.done": ["No page goes live until you turn publishing on again in Settings › Pages. Pages already written wait there, and nothing is deleted.", { slots: {}, fixedBy: "issue 1741 (drafted)" }],
   "pause.head.unresolved": ["Not paused", { slots: {}, fixedBy: "issue 1741 (drafted)" }],
-  "pause.invalid": ["That link isn’t valid, so nothing has changed. You can pause publishing in Settings › Publishing.", { slots: {}, fixedBy: "issue 1741 (drafted)" }],
-  "pause.unavailable": ["That couldn’t go through just now, so nothing has changed. Try the link again in a few minutes, or pause publishing in Settings › Publishing.", { slots: {}, fixedBy: "issue 1741 (drafted)" }],
+  "pause.invalid": ["That link isn’t valid, so nothing has changed. You can pause publishing in Settings › Pages.", { slots: {}, fixedBy: "issue 1741 (drafted)" }],
+  "pause.unavailable": ["That couldn’t go through just now, so nothing has changed. Try the link again in a few minutes, or pause publishing in Settings › Pages.", { slots: {}, fixedBy: "issue 1741 (drafted)" }],
   "pause.settings": ["Publishing settings", { slots: {}, fixedBy: "issue 1741 (drafted)" }],
-  "pause.ask": ["Press Pause all pages and no page goes live until you turn publishing on again in Settings › Publishing. Nothing is deleted.", { slots: {}, fixedBy: "issue 1741 (drafted)" }],
+  "pause.ask": ["Press Pause all pages and no page goes live until you turn publishing on again in Settings › Pages. Nothing is deleted.", { slots: {}, fixedBy: "issue 1741 (drafted)" }],
   "mail.optout.label": ["Opt out of all follow-up mail", { slots: {}, fixedBy: "§12" }],
 
   // 2026-09-05, issue #31 (lead capture, the giveaway page and the nurture
@@ -427,7 +427,7 @@ export const MAIL_COPY = Object.freeze({
   "mail.draftReady.record.value": ["Value", { slots: {}, fixedBy: "R20 2026-10-22 (drafted)" }],
   "mail.draftReady.waiting.subject": ["Your page waits for your website", { slots: {}, fixedBy: "SPEC §5 2026-09-20 (drafted)" }],
   "mail.draftReady.waiting.preheader": ["Connect your website and it goes live.", { slots: {}, fixedBy: "O6 · issue 2172 (drafted)" }],
-  "mail.draftReady.dest.cannotPublish": ["We can't publish to {site} right now. See what to change in Settings › Publishing.", { slots: { site: "text" }, fixedBy: "REQ-057 c9" }],
+  "mail.draftReady.dest.cannotPublish": ["We can't publish to {site} right now. See what to change in Settings › Pages.", { slots: { site: "text" }, fixedBy: "REQ-057 c9" }],
 
   // 2026-09-07, issue #174. The two the mail itself owed, beside the seven
   // the telling already had: §12's `draft-ready` had a decision and no
@@ -657,11 +657,11 @@ export const MAIL_COPY = Object.freeze({
     { slots: {}, fixedBy: "S20 (11a)" },
   ],
   "mail.reason.draftReady": [
-    "Sent for new pages in your first week. Turn it off in Settings › Mail.",
+    "Sent for new pages in your first week. Turn it off in Settings › Pages.",
     { slots: {}, fixedBy: "S20 (11a)" },
   ],
   "mail.reason.published": [
-    "Sent once, when your first page goes live. Turn it off in Settings › Mail.",
+    "Sent once, when your first page goes live. Turn it off in Settings › Pages.",
     { slots: {}, fixedBy: "S20 (11a)" },
   ],
   "mail.reason.weekly": ["You get this one mail each Monday.", { slots: {}, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
@@ -854,7 +854,7 @@ export const MAIL_COPY = Object.freeze({
    *  customer's zone — SPEC §8's "cancellation (end date)". */
   "mail.cancellation.subject": ["Your subscription is cancelled", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
   "mail.cancellation.preheader": ["Nothing more is charged.", { slots: {}, fixedBy: "O6 · issue 2172 (drafted)" }],
-  "mail.cancellation.resume": ["Changed your mind? Press Resume my plan in Settings › Billing.", { slots: {}, fixedBy: "O6 · issue 2172 (drafted)" }],
+  "mail.cancellation.resume": ["Changed your mind? Press Resume my plan in Settings › Account.", { slots: {}, fixedBy: "O6 · issue 2172 (drafted)" }],
   "mail.cancellation.line": [
     "You keep full access until {accessEndsOn}, and nothing more is charged.",
     { slots: { accessEndsOn: "date" }, fixedBy: "SPEC §8 · issue 569" },
@@ -872,7 +872,7 @@ export const MAIL_COPY = Object.freeze({
     { slots: { amount: "text" }, fixedBy: "issue 1957 · E2 (2026-10-24)" },
   ],
   "mail.account.renewal_refunded.renewing": [
-    "ReachKit keeps running, and your next payment is taken as usual on {date}. To stop it, use Cancel plan in Settings › Billing.",
+    "ReachKit keeps running, and your next payment is taken as usual on {date}. To stop it, use Cancel plan in Settings › Account.",
     { slots: { date: "date" }, fixedBy: "issue 1957 · E2 (2026-10-24)" },
   ],
   "mail.account.renewal_refunded.ending": ["ReachKit keeps running until {date}.", { slots: { date: "date" }, fixedBy: "issue 1957 · E2 (2026-10-24)" }],

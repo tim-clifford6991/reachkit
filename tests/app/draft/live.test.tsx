@@ -116,7 +116,7 @@ describe("board PageDetail: the sections, in its order and words", () => {
     expect(before(at(host, "live-week"), next) && before(next, why)).toBe(true);
     expect(before(search, controls) && before(at(controls, "live-edit"), stop) && before(stop, note)).toBe(true);
     expect(note.textContent).toBe(`${copy("draft.live.stop-note")} ${copy("draft.live.pause-lead")}${copy("draft.live.pause-link")}`);
-    expect(note.querySelector("a")?.getAttribute("href")).toBe("/app/settings/publishing");
+    expect(note.querySelector("a")?.getAttribute("href")).toBe("/app/settings/pages");
     expect(stop.getAttribute("aria-describedby")).toBe(note.id);
   });
 

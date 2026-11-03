@@ -67,7 +67,7 @@ describe("the danger zone", () => {
     );
     const pause = zone.querySelector(".collapse-content > p")!;
     expect(text(pause)).toBe("To stop new pages without taking any down, pause publishing instead.");
-    expect(pause.querySelector("a")?.getAttribute("href")).toBe("/app/settings/publishing");
+    expect(pause.querySelector("a")?.getAttribute("href")).toBe("/app/settings/pages");
   });
 
   it("is a calm fold: only the two confirming presses are red", () => {
