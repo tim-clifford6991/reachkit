@@ -33,6 +33,7 @@
 import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
 import { issueChanges, type IssueChange } from "@/lib/site-issues/changes";
 import type { StoredReport } from "../report";
+import { shownScore } from "../shown-score";
 import { readWeekScan } from "./store";
 
 /** §12's two opening figures. Both `Measured<number>`, so the mail's
@@ -74,15 +75,6 @@ export function previousWeekStart(weekStart: string): string {
   const [y, m, d] = weekStart.split("-").map(Number);
   const midday = Date.UTC(y ?? 1970, (m ?? 1) - 1, d ?? 1, 12, 0, 0);
   return new Date(midday - 7 * MS_PER_DAY).toISOString().slice(0, 10);
-}
-
-/** The score this report reached, or `null` where the pass did not reach
- *  one. A score is `Measured` on the report itself, so an unmeasured week
- *  is not a zero here either. */
-function scoreOf(report: StoredReport | null): number | null {
-  if (report === null) return null;
-  const band = report.verdict.scoreAndBand;
-  return band.kind === "unmeasured" ? null : band.value.score;
 }
 
 /**
@@ -147,12 +139,12 @@ export async function weekMovement(a: {
   const before = lastWeek?.report ?? null;
 
   return {
-    scoreDelta: deltaOf(scoreOf(now), scoreOf(before), a.at),
+    scoreDelta: deltaOf(shownScore(now), shownScore(before), a.at),
     aiAnswersDelta: deltaOf(aiAnswersOf(now), aiAnswersOf(before), a.at),
     // #933's levels, off the same two weeks. `levelOf` is `deltaOf`'s
     // one-sided twin: a week that did not reach the figure has none, and
     // says so rather than standing a zero in its place.
-    score: levelOf(scoreOf(now), a.at),
+    score: levelOf(shownScore(now), a.at),
     aiAnswers: levelOf(aiAnswersOf(now), a.at),
     searches: levelOf(searchesOf(now), a.at),
     searchesDelta: deltaOf(searchesOf(now), searchesOf(before), a.at),

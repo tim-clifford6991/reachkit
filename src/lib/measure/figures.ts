@@ -4,6 +4,7 @@
 // a figure nothing measured is `null`, never 0.
 import { FIRST_PAGE_PLACES, type PageReading } from "@/lib/measure/page-reading";
 import { climbing } from "@/lib/opportunities/verdicts/verdict";
+import { shownScore } from "@/lib/scan/shown-score";
 import type { Measured } from "./measured";
 import type { PublishedPage } from "./published";
 
@@ -118,9 +119,8 @@ export interface MonthReport {
 /** The two months-scale figures one stored report holds: its score, and the
  *  presence card's count of the twelve on Google's first page. */
 export function monthFiguresOf(report: MonthReport | null): Omit<MonthReading, "week"> {
-  const score = report?.verdict?.scoreAndBand;
   return {
-    score: score == null || score.kind === "unmeasured" ? null : score.value.score,
+    score: shownScore(report),
     market: report?.presence == null ? null : { top10: report.presence.you.top10Count, of: report.presence.measuredSearches },
   };
 }
