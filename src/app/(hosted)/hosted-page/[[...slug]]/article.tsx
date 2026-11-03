@@ -429,7 +429,7 @@ export function HostedArticle({ resolved }: { resolved: Resolved }): React.JSX.E
     if (node !== null) parts.push({ card: cardOf(after) === cardOf(after + 1) ? cardOf(after) : -1, node });
     from = after + 1;
   }
-  const bodyParts = parts.flatMap(({ card, node }, i) => {
+  const bodyParts = parts.flatMap(({ card, node }, i): React.ReactNode[] => {
     if (card < 0) return [node];
     if (parts[i - 1]?.card === card) return [];
     const held: React.ReactNode[] = [];
