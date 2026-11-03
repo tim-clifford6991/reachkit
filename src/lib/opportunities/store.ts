@@ -435,6 +435,7 @@ export interface MinimalQueryBuilder<T> extends PromiseLike<QueryResult<T>> {
   not(column: string, operator: string, value: null): MinimalQueryBuilder<T>;
   in(column: string, values: readonly unknown[]): MinimalQueryBuilder<T>;
   like(column: string, pattern: string): MinimalQueryBuilder<T>;
+  or(filters: string): MinimalQueryBuilder<T>;
   gte(column: string, value: string): MinimalQueryBuilder<T>;
   order(column: string, options: { ascending: boolean }): MinimalQueryBuilder<T>;
   limit(count: number): MinimalQueryBuilder<T>;
@@ -717,6 +718,8 @@ export function supabaseOpportunityStore(): OpportunityStore {
       const { data, error } = await untyped()
         .from<{ cache_key: string; payload: unknown; created_at: string }>("fetches")
         .select("cache_key, payload, created_at")
+        // A free provisioning scan's rows carry no site_id yet; both branches use idx_fetches_site_day.
+        .or(`site_id.eq.${siteId},site_id.is.null`)
         .like("cache_key", `%|site:${siteId}|paa`)
         .gte("created_at", since);
       if (error) throw new Error(`opportunities.askedBeside: ${error.message}`);
