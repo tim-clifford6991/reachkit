@@ -209,6 +209,11 @@ describe("the hosted index", () => {
     // The share card's address is the page's own canonical too.
     const meta = await generateMetadata({ params: Promise.resolve({}), searchParams: Promise.resolve({ page: "2" }) });
     expect((meta.openGraph as { url?: string }).url).toBe("https://content.example.com/?page=2");
+    // Its title counts the list's own pages, and the feed keeps the index's name.
+    const first = await generateMetadata({ params: Promise.resolve({}), searchParams: Promise.resolve({}) });
+    expect(first.title).toBe("Articles · example.com");
+    expect(meta.title).toBe("Articles · Page 2 of 3 · example.com");
+    expect(meta.alternates?.types).toEqual(first.alternates?.types);
   });
 
   it("carries nothing of ReachKit's", async () => {
