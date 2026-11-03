@@ -24,13 +24,13 @@ const APPLIED = [
   "20261014130000_scans_rescore.sql",
   "20261017140000_scans_rescore_auto.sql",
   "20261101130000_scans_rescore_reads.sql",
-  "20261103180000_rescore_reports_ids_first.sql",
+  "20261103180000_scans_rescore_reads_ids_first.sql",
   "20260903080000_fetches.sql",
   "20261101140000_fetches_facts.sql",
   "20261102120000_fetches_text.sql",
 ];
 const FACTS = "20261101140000_fetches_facts.sql";
-const IDS_FIRST = "20261103180000_rescore_reports_ids_first.sql";
+const IDS_FIRST = "20261103180000_scans_rescore_reads_ids_first.sql";
 
 const readsCatalog = () =>
   psqlRows(

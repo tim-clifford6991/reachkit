@@ -1,4 +1,4 @@
--- supabase/migrations/20261103180000_rescore_reports_ids_first.sql
+-- supabase/migrations/20261103180000_scans_rescore_reads_ids_first.sql
 --
 -- Expand-only: one function replaced, same signature, return table, volatility,
 -- security, search_path and grants. No table, column, index, policy or row.
