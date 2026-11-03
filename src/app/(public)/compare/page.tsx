@@ -1,10 +1,10 @@
 // The comparisons index, at the address v1 and v2 published: who does each of
-// the five jobs by kind of tool, the fork, then one card per comparison under
+// the five jobs by kind of tool, the fork, then one row per comparison under
 // its kind. Static: the articles are data in `_library/`.
 import type React from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, CircleQuestionMark, Scale, Sparkles, type LucideIcon } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { PUBLIC_ROUTE_SEO } from "../_seo/routes";
 import { staticMetadata } from "../_seo/metadata";
@@ -18,11 +18,10 @@ import {
   type Comparison,
   type MatrixJob,
 } from "../_library";
-import { CARD, LearnClose, LibraryPage, ScanJump, Trademarks } from "../_library/parts";
+import { BAND, CARD, GROUP_ICON, LearnClose, LibraryPage, Tile, Trademarks } from "../_library/parts";
 
 export const metadata: Metadata = staticMetadata(PUBLIC_ROUTE_SEO.compare);
 
-const EYEBROW: CopyKey = "compare.eyebrow";
 const PAGE_TEST_ID = "compare";
 const JUMP_ID = "compare-jump";
 const JOBS_NAME_ID = "compare-jobs-name";
@@ -30,9 +29,12 @@ const JOBS_NAME_ID = "compare-jobs-name";
 const READ_ON = COMPARISONS.map((c) => c.checked).sort().at(-1) ?? "";
 const TILE =
   "card bg-base-100 shadow-(--shadow-card) motion-safe:transition-transform motion-safe:duration-200 hover:-translate-y-0.5";
-const GRID = "grid min-w-0 grid-cols-[minmax(0,1.9fr)_repeat(5,minmax(0,1fr))] items-center gap-1.5";
+// The name column keeps room for its icon and a word per line, as the board sizes it.
+const GRID = "grid min-w-0 grid-cols-[minmax(8.5rem,1.9fr)_repeat(5,minmax(0,1fr))] items-center gap-1.5";
 const SMALL = "text-base-content/70 text-sm";
-
+const ICON = { size: 16, strokeWidth: 1.75, "aria-hidden": true } as const;
+const BADGE_TONE = { warning: "badge-warning", success: "badge-success" } as const;
+const OPTION = "rounded-field flex items-center gap-3 border px-3.5 py-2.5 text-sm";
 type Mark = "done" | "helps" | "you";
 const MARKS: readonly Mark[] = ["done", "helps", "you"];
 const SWATCH: Record<Mark, string> = {
@@ -46,11 +48,12 @@ const MARK_KEY: Record<Mark, CopyKey> = {
   you: "compare.jobs.you",
 };
 
-function MatrixRow(p: { name: string; marks: readonly Mark[] }): React.JSX.Element {
+function MatrixRow(p: { name: string; marks: readonly Mark[]; Icon: LucideIcon; ours?: boolean }): React.JSX.Element {
   return (
     <div role="row" className={GRID}>
-      <span role="rowheader" className="min-w-0 text-sm break-words">
-        {p.name}
+      <span role="rowheader" className={`flex min-w-0 items-center gap-2 text-sm break-words ${p.ours ? "text-primary font-semibold" : ""}`}>
+        <Tile Icon={p.Icon} tone={p.ours ? "solid" : "primary"} />
+        <span className="min-w-0">{p.name}</span>
       </span>
       {p.marks.map((mark, i) => (
         <span key={MATRIX_JOBS[i]} role="cell" className={`block h-3 rounded-sm ${SWATCH[mark]}`}>
@@ -68,7 +71,8 @@ function JobsMatrix(): React.JSX.Element {
   return (
     <figure className={`${CARD} min-w-0`} data-testid="compare-jobs">
       <div className="card-body gap-3">
-        <p className="font-semibold" id={JOBS_NAME_ID}>
+        <p className="flex items-center gap-3 font-semibold" id={JOBS_NAME_ID}>
+          <Tile Icon={Scale} />
           {copy("compare.jobs.name")}
         </p>
         <div role="table" aria-labelledby={JOBS_NAME_ID} className="flex min-w-0 flex-col gap-2">
@@ -83,9 +87,9 @@ function JobsMatrix(): React.JSX.Element {
             ))}
           </div>
           {COMPARISON_GROUPS.map((g) => (
-            <MatrixRow key={g.group} name={copy(g.name)} marks={marksOf(g.leaves)} />
+            <MatrixRow key={g.group} name={copy(g.name)} marks={marksOf(g.leaves)} Icon={GROUP_ICON[g.group]} />
           ))}
-          <MatrixRow name={copy("chrome.wordmark")} marks={MATRIX_JOBS.map(() => "done")} />
+          <MatrixRow name={copy("chrome.wordmark")} marks={MATRIX_JOBS.map(() => "done")} Icon={Sparkles} ours />
         </div>
         <p className={`${SMALL} md:hidden`}>{MATRIX_JOBS.map((job, i) => `${i + 1} ${label(job)}`).join(" · ")}</p>
         <div className={`${SMALL} flex flex-wrap gap-x-4 gap-y-1`}>
@@ -107,14 +111,17 @@ function JobsMatrix(): React.JSX.Element {
 /** Do the work yourself, or have it done. */
 function Fork(): React.JSX.Element {
   return (
-    <div className="rounded-box bg-base-200 flex min-w-0 flex-col gap-2 p-4" data-testid="compare-fork">
-      <p className="font-semibold">{copy("compare.fork.ask")}</p>
-      <p className="flex flex-wrap items-baseline gap-2">
-        <span className="badge badge-ghost badge-sm">{copy("compare.fork.yes")}</span>
+    <div className="rounded-box bg-base-200 flex min-w-0 flex-col gap-3 p-4" data-testid="compare-fork">
+      <p className="text-base-content flex items-center gap-3 font-bold">
+        <Tile Icon={CircleQuestionMark} tone="plain" />
+        {copy("compare.fork.ask")}
+      </p>
+      <p className={`${OPTION} border-base-300 bg-base-100`}>
+        <span className="badge badge-sm bg-base-200 shrink-0 border-0 font-bold">{copy("compare.fork.yes")}</span>
         <span>{copy("compare.fork.yes.line")}</span>
       </p>
-      <p className="flex flex-wrap items-baseline gap-2">
-        <span className="badge badge-soft badge-primary badge-sm">{copy("compare.fork.no")}</span>
+      <p className={`${OPTION} border-primary/20 bg-primary/10`}>
+        <span className="badge badge-primary badge-sm shrink-0 font-bold">{copy("compare.fork.no")}</span>
         <span>
           <strong>{copy("compare.fork.no.pick")}</strong> {copy("compare.fork.no.line")}
         </span>
@@ -123,31 +130,23 @@ function Fork(): React.JSX.Element {
   );
 }
 
+/** One comparison as one row: its title, what the other tool is, and the way in. */
 function ComparisonCard(p: { c: Comparison }): React.JSX.Element {
   const { c } = p;
-  const lines = cardLines(c.summary);
   return (
     <Link href={`/compare/${c.slug}`} className={`${TILE} w-full min-w-0`}>
-      <span className="card-body gap-2">
-        <span className="flex min-w-0 items-center gap-3">
-          <span className="avatar avatar-placeholder" aria-hidden>
-            <span className="bg-base-200 w-9 rounded-full font-semibold">{c.name.charAt(0)}</span>
-          </span>
+      <span className="card-body flex-row items-center gap-3 p-4">
+        <span className="avatar avatar-placeholder self-start" aria-hidden>
+          <span className="bg-base-200 rounded-field grid size-9 place-items-center font-semibold">{c.name.charAt(0)}</span>
+        </span>
+        <span className="flex min-w-0 flex-1 flex-col gap-1">
           <h3 className="card-title min-w-0 text-base break-words">{c.title}</h3>
+          {c.badge === undefined ? null : (
+            <span className={`badge badge-soft badge-sm self-start ${c.badgeTone === undefined ? "" : BADGE_TONE[c.badgeTone]}`}>{c.badge}</span>
+          )}
+          <span className="text-base-content/70 text-sm">{cardLines(c.summary).them}</span>
         </span>
-        {c.badge === undefined ? null : <span className="badge badge-ghost badge-sm">{c.badge}</span>}
-        <span className="flex min-w-0 flex-col items-start gap-1 text-sm">
-          <span className="badge badge-ghost badge-sm h-auto max-w-full whitespace-normal">{c.name}</span>
-          <span className="text-base-content/70">{lines.them}</span>
-        </span>
-        <span className="flex min-w-0 flex-col items-start gap-1 text-sm">
-          <span className="badge badge-soft badge-primary badge-sm">{copy("chrome.wordmark")}</span>
-          <span>{lines.us}</span>
-        </span>
-        <span className="text-primary mt-auto inline-flex items-center gap-1 text-sm font-semibold">
-          {copy("compare.read")}
-          <ArrowRight size={14} strokeWidth={1.75} aria-hidden />
-        </span>
+        <ArrowRight {...ICON} className="text-primary shrink-0" />
       </span>
     </Link>
   );
@@ -158,9 +157,8 @@ export default function ComparePage(): React.JSX.Element {
     (g) => g.entries.length > 0
   );
   return (
-    <LibraryPage testId={PAGE_TEST_ID} eyebrow={EYEBROW} title={copy("compare.title")} wide>
+    <LibraryPage testId={PAGE_TEST_ID} title={copy("compare.title")} wide>
       <p className="max-w-(--w-read)">{copy("compare.lead")}</p>
-      <ScanJump />
       <JobsMatrix />
       <Fork />
       <nav aria-labelledby={JUMP_ID} className="flex min-w-0 flex-col gap-2" data-testid="compare-jump">
@@ -168,20 +166,32 @@ export default function ComparePage(): React.JSX.Element {
           {copy("compare.jump", { count: COMPARISONS.length })}
         </p>
         <div className="flex min-w-0 flex-wrap gap-2">
-          {groups.map((g) => (
-            <a key={g.group} href={`#${g.group}`} className="btn btn-sm btn-outline">
-              {copy(g.name)} <span className="text-base-content/70">{g.entries.length}</span>
-            </a>
-          ))}
+          {groups.map((g) => {
+            const Icon = GROUP_ICON[g.group];
+            return (
+              <a key={g.group} href={`#${g.group}`} className="btn btn-ghost border-base-300 bg-base-100 min-h-11 rounded-full border text-sm">
+                <Icon {...ICON} />
+                {copy(g.name)} <span className="text-base-content/70">{g.entries.length}</span>
+              </a>
+            );
+          })}
         </div>
       </nav>
-      {groups.map((g) => (
-        <section key={g.group} id={g.group} aria-labelledby={`${g.group}-h`} className="flex min-w-0 scroll-mt-20 flex-col gap-3">
-          <div className="flex min-w-0 flex-col gap-1">
-            <h2 id={`${g.group}-h`}>
-              {copy(g.name)} <span className="text-base-content/70">{g.entries.length}</span>
-            </h2>
-            <p className={SMALL}>{copy(g.line)}</p>
+      {groups.map((g, i) => (
+        <section
+          key={g.group}
+          id={g.group}
+          aria-labelledby={`${g.group}-h`}
+          className={`flex min-w-0 scroll-mt-20 flex-col gap-3 ${i % 2 === 0 ? BAND : ""}`}
+        >
+          <div className="flex min-w-0 items-center gap-3">
+            <Tile Icon={GROUP_ICON[g.group]} />
+            <div className="flex min-w-0 flex-col gap-1">
+              <h2 id={`${g.group}-h`}>
+                {copy(g.name)} <span className="text-base-content/70 text-sm font-semibold">{g.entries.length}</span>
+              </h2>
+              <p className={SMALL}>{copy(g.line)}</p>
+            </div>
           </div>
           <ul className="grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {g.entries.map((c) => (

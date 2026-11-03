@@ -57,6 +57,7 @@ export const OTHERS: readonly Comparison[] = [
     group: "audience",
     title: "ReachKit vs GummySearch",
     badge: "Closed Nov 2025",
+    badgeTone: "warning",
     description:
       "GummySearch, a Reddit research tool, closed on 30 November 2025. ReachKit checks whether buyers find your site on Google and in AI answers.",
     summary: "GummySearch closed in November 2025. ReachKit checks and grows how buyers find your site.",
@@ -147,25 +148,24 @@ export const OTHERS: readonly Comparison[] = [
       "ChatGPT answers questions and writes. ReachKit checks whether ChatGPT and Google AI Mode mention your site, then puts pages live, written from your own facts.",
     summary: "ChatGPT is an assistant. ReachKit checks whether ChatGPT mentions you, and puts pages live to change it.",
     intro:
-      "Many owners ask ChatGPT to write their blog posts. It writes fast, but you still choose the topic, give it the facts, check every claim, put the page live and find out whether it worked. ReachKit does all of that every week, from facts on your own site, and then checks whether ChatGPT and Google's AI answers mention you. If you enjoy writing with an assistant, use ChatGPT. If nobody on your team has the time, use ReachKit.",
+      "Many owners ask ChatGPT to write their blog posts. It writes fast, but you still do the rest. ReachKit does all of it every week, from facts on your own site.",
     theirs: {
       heading: "What ChatGPT does well",
       paragraphs: [
         "ChatGPT can explain almost anything, at the depth you ask for. It rewrites a headline ten ways, drafts an email and talks an idea through with you. For a founder learning how search works, it is a patient tutor.",
-        "OpenAI says ChatGPT can search the web, including on its free plan, and that answers which use search show their sources. OpenAI also says those sources can be incomplete or wrong, so it is worth opening them.",
       ],
     },
     ask: "Rewrite this headline ten ways.",
     does: ["write"],
     rows: [
       { label: "Chooses topics from what buyers search", reachkit: true, them: false },
-      { label: "Writes from your site's facts, each linked", reachkit: true, them: "Partly: from what you paste in" },
-      { label: "Checks every page before it goes live", reachkit: `Yes, up to ${P.checks} checks`, them: false },
+      { label: "Writes from your site's facts, each linked", reachkit: true, them: "Partly" },
+      { label: "Checks every page before it goes live", reachkit: `Yes, up to ${P.checks}`, them: false },
       { label: "Puts pages live on your website", reachkit: true, them: false },
       { label: "Checks whether ChatGPT mentions you", reachkit: true, them: false },
       { label: "Answers any question you ask", reachkit: false, them: true },
       { label: "Price", reachkit: `${P.price} a month, one plan`, them: "Free plan and paid plans" },
-      { label: "Free to start", reachkit: "Yes, the free scan", them: true },
+      { label: "Free to start", reachkit: "Yes, free scan", them: true },
     ],
     pickThem: [
       "you like writing and want a fast first draft",
@@ -231,6 +231,7 @@ export const OTHERS: readonly Comparison[] = [
     group: "data",
     title: "ReachKit vs Google Search Console",
     badge: "Free · keep using it",
+    badgeTone: "success",
     description:
       "Search Console is Google's free view of your site in Search. ReachKit adds competitors and AI answers, then puts pages live to grow your reach.",
     summary: "Use Search Console, it is free. ReachKit adds competitors, AI answers and pages every week.",

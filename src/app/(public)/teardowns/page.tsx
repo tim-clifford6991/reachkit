@@ -55,7 +55,9 @@ function EveryRead(): React.JSX.Element {
       <div className="card-body gap-4">
         <div className={FRAME}>
           <div className="mockup-browser-toolbar">
-            <div className="input min-w-0 truncate font-mono text-xs">{ANY_SITE}</div>
+            <div className="input bg-base-100 w-full min-w-0 rounded-full">
+              <span className="min-w-0 truncate font-mono text-xs">{ANY_SITE}</span>
+            </div>
           </div>
           <div className="bg-base-100 flex min-w-0 flex-col gap-3 p-4">
             <span className="flex min-w-0 items-center gap-3">

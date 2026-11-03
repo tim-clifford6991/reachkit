@@ -81,3 +81,19 @@ describe.each(PAGES)("$board", ({ board, render }) => {
     expect([...at].sort((x, y) => x - y)).toEqual(at);
   });
 });
+
+describe("PubAnswer: the charts drawn to scale keep the caption true", () => {
+  it("a row with no number draws a dashed track, and every other row its bar", async () => {
+    const { ANSWERS } = await import("@/app/(public)/_library");
+    const a = ANSWERS[0]!;
+    const page = parse(renderToStaticMarkup((await PAGES[0]!.render()) as React.ReactElement));
+    for (const chart of a.tiers.charts) {
+      const figure = page.querySelector(`figure[aria-label="${chart.title}"]`)!;
+      const unscaled = chart.rows.filter((row) => row.amount === null).length;
+      expect(figure.querySelectorAll(".border-dashed"), chart.title).toHaveLength(unscaled);
+      expect(figure.querySelectorAll(".recharts-responsive-container, .recharts-wrapper").length, chart.title).toBeGreaterThanOrEqual(
+        chart.rows.length - unscaled
+      );
+    }
+  });
+});

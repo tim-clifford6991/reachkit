@@ -47,6 +47,8 @@ export interface Comparison {
   readonly heading?: string;
   /** A word on the card the reader needs before clicking, e.g. the product closed. */
   readonly badge?: string;
+  /** The badge's tone: a closed product warns, a free tool to keep is good news; none is grey. */
+  readonly badgeTone?: "warning" | "success";
   /** The meta description, at most 160 characters. */
   readonly description: string;
   /** One line on the index card, at most 20 words: theirs, then ". ReachKit …". */
@@ -144,8 +146,8 @@ export interface Answer {
   /** The question in the words people search it: the page's heading. */
   readonly title: string;
   readonly description: string;
-  /** The answer, before any product is named: its first line, then the rest after the units. */
-  readonly answer: readonly string[];
+  /** The answer, before any product is named. */
+  readonly answer: string;
   /** The units every limit in the answer is counted in: a head and its rest. */
   readonly units: { readonly title: string; readonly items: readonly (readonly [string, string])[] };
   /** The same limits, each unit drawn to one scale. */
@@ -157,7 +159,7 @@ export interface Answer {
   };
   /** One card per product the answer names, with its limits as chips. */
   readonly sections: readonly (Section & { readonly chips: readonly string[] })[];
-  /** Where ReachKit fits: the lead, a free tool against ReachKit row by row, when to pick which, and the detail. */
+  /** Where ReachKit fits: the lead, a free tool against ReachKit row by row, and when to pick which. */
   readonly fits: {
     readonly title: string;
     readonly lead: string;
@@ -165,7 +167,6 @@ export interface Answer {
     readonly rows: readonly (readonly [string, string])[];
     readonly pickThem: { readonly name: string; readonly items: readonly string[] };
     readonly pickUs: readonly string[];
-    readonly detail: string;
   };
   readonly faq: readonly { readonly q: string; readonly a: string }[];
   readonly checked: string;

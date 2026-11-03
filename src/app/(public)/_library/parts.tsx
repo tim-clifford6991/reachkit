@@ -3,7 +3,21 @@
 // classes in place, no wrapper of a daisyUI part.
 import type React from "react";
 import Link from "next/link";
-import { ArrowRight, RefreshCw, Sparkles, User, Wallet, type LucideIcon } from "lucide-react";
+import {
+  ArrowRight,
+  ChartColumn,
+  Check,
+  Compass,
+  Database,
+  List,
+  PenLine,
+  RefreshCw,
+  Sparkles,
+  User,
+  Users,
+  Wallet,
+  type LucideIcon,
+} from "lucide-react";
 import { Surface } from "@/ui/layout";
 import { SITE_PROFILE } from "@/lib/config/constants";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
@@ -13,20 +27,72 @@ import { scanFormWords } from "../_landing/scan-form-words";
 import { HOW_FACTS } from "../_how/facts";
 import { EXAMPLES } from "../_how/specimen";
 import { ICON_TILE, ReportGlance } from "../_how/visuals";
-import { longDate, type Source } from ".";
+import { type ComparisonGroup } from ".";
 
 /** Attribute values, never sentences (the copy sweep). */
 export const CARD = "card bg-base-100 shadow-(--shadow-card)";
 export const BODY = "card-body gap-3";
 export const LIST = "list-disc ps-6";
-const NEW_TAB = { target: "_blank", rel: "noopener" } as const;
+/** A white band the full width of the viewport behind a section, over the tinted ground, as the boards alternate them. */
+export const BAND = "bg-base-100 py-10 shadow-[0_0_0_100vmax_var(--color-base-100)] [clip-path:inset(0_-100vmax)]";
+/** The heading ink: near-black over the column's softer body text. */
+const HEADINGS = "[&_:is(h1,h2,h3)]:text-base-content";
+
+/** Each kind of tool's icon, wherever the board names the kind. */
+export const GROUP_ICON: Record<ComparisonGroup, LucideIcon> = {
+  ai: PenLine,
+  suite: Database,
+  checker: List,
+  competitors: Users,
+  audience: Compass,
+  data: ChartColumn,
+};
+
+const TILE_TONE = {
+  primary: "bg-primary/10 text-primary",
+  muted: "bg-base-200 text-base-content/70",
+  solid: "bg-primary text-primary-content",
+  success: "bg-success/10 text-success",
+  plain: "bg-base-100 text-primary",
+} as const;
+
+/** A tinted square holding one icon, as the boards draw beside a heading or a row. */
+export function Tile(p: { Icon: LucideIcon; tone?: keyof typeof TILE_TONE }): React.JSX.Element {
+  return (
+    <span aria-hidden className={`rounded-field grid size-9 flex-none place-items-center ${TILE_TONE[p.tone ?? "primary"]}`}>
+      <p.Icon size={18} strokeWidth={1.75} />
+    </span>
+  );
+}
+
+/** When to pick which: a tile and a title, then check bullets; ReachKit's card carries the primary edge. */
+export function Pick(p: { title: React.ReactNode; items: readonly string[]; Icon: LucideIcon; ours?: boolean }): React.JSX.Element {
+  return (
+    <div className={`${CARD} ${p.ours ? "border-primary border-[1.5px]" : ""}`}>
+      <div className={BODY}>
+        <div className="flex min-w-0 items-center gap-3">
+          <Tile Icon={p.Icon} tone={p.ours ? "solid" : "muted"} />
+          {p.title}
+        </div>
+        <ul className="flex flex-col gap-2">
+          {p.items.map((item) => (
+            <li key={item} className="flex items-start gap-2.5">
+              <Check size={16} strokeWidth={2} aria-hidden className={`mt-1 shrink-0 ${p.ours ? "text-primary" : "text-base-content/70"}`} />
+              <span>{item}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
 const HOW_HREF = "/how-it-works";
 const START_ID = "start";
 
-/** The page: an eyebrow, the heading, and the column under it. */
+/** The page: an eyebrow where the board draws one, the heading, and the column under it. */
 export function LibraryPage(p: {
   testId: string;
-  eyebrow: CopyKey;
+  eyebrow?: CopyKey;
   /** Where the page sits, drawn in place of the eyebrow. */
   trail?: React.ReactNode;
   title: string;
@@ -37,21 +103,20 @@ export function LibraryPage(p: {
   return (
     <Surface
       arms={{
-        compact: { kind: "columns", count: 1 },
+        compact: { kind: "declared", note: "one reading column with its own 16px gutter, as the v36 boards draw it" },
         medium: { kind: "same-as-below" },
         wide: { kind: "same-as-below" },
       }}
     >
       <main className="mx-auto flex w-full min-w-0 max-w-5xl flex-col px-4 py-12" data-testid={p.testId}>
         <article
-          className={`text-base-content/80 mx-auto flex w-full min-w-0 flex-col gap-3 leading-relaxed ${p.wide === true ? "" : "max-w-(--w-read)"}`}
+          className={`text-base-content/80 ${HEADINGS} mx-auto flex w-full min-w-0 flex-col gap-3 leading-relaxed ${p.wide === true ? "" : "max-w-(--w-read)"}`}
         >
-          {p.trail ?? (
-            <span className="text-base-content/70 text-xs font-semibold tracking-wide uppercase">
-              {copy(p.eyebrow)}
-            </span>
-          )}
-          <h1 className="break-words">{p.title}</h1>
+          {p.trail ??
+            (p.eyebrow === undefined ? null : (
+              <span className="text-base-content/70 text-xs font-semibold tracking-wide uppercase">{copy(p.eyebrow)}</span>
+            ))}
+          <h1 className="t-hero break-words">{p.title}</h1>
           <div className="mt-3 flex min-w-0 flex-col gap-4">{p.children}</div>
         </article>
       </main>
@@ -65,7 +130,7 @@ type Row = readonly [CopyKey, CopyKey];
 interface Weekly {
   readonly eyebrow?: CopyKey;
   readonly title: CopyKey;
-  readonly lead: CopyKey;
+  readonly lead?: CopyKey;
   readonly them: CopyKey;
   readonly us: CopyKey;
   readonly rows: readonly Row[];
@@ -89,6 +154,8 @@ interface Close {
   readonly glance: boolean;
   /** The close as canvas v36 draws it: no 4-step figure, only your part and the price, and the field alone in a tinted band. */
   readonly short?: true;
+  /** The weekly section sits on a white band. */
+  readonly band?: true;
 }
 
 const TEARDOWN_ROW_1: Row = ["library.close.teardown.1.them", "library.close.teardown.1.us"];
@@ -104,9 +171,7 @@ const CLOSE = {
   about: { lead: "library.close.about.lead", glance: false },
   compare: {
     weekly: {
-      eyebrow: "library.close.compare.eyebrow",
       title: "library.close.compare.title",
-      lead: "library.close.compare.lead",
       them: "library.close.compare.them",
       us: "library.close.compare.us",
       rows: [
@@ -117,11 +182,13 @@ const CLOSE = {
         ["library.close.compare.5.them", "library.close.compare.5.us"],
       ],
     },
-    lead: "how.start.body",
-    glance: true,
+    glance: false,
+    short: true,
+    band: true,
+    icons: { them: User, us: Sparkles },
   },
-  "compare-tool": { lead: "how.start.body", glance: true },
-  answer: { lead: "how.start.body", glance: true },
+  "compare-tool": { glance: false, short: true },
+  answer: { glance: false, short: true },
   teardowns: {
     weekly: {
       eyebrow: "library.close.teardown.eyebrow",
@@ -266,8 +333,9 @@ function LoopSample(p: { step: (typeof LOOP)[number] }): React.JSX.Element {
 
 /** A loop step's number, and its icon tile where the close has one. */
 function StepMark(p: { step: number; Icon?: LucideIcon }): React.JSX.Element {
+  // The last step is the result, so it takes the success tone.
   const badge = (
-    <span className="badge badge-soft badge-primary badge-sm" aria-hidden>
+    <span className={`badge badge-sm font-bold ${p.step === LOOP.length ? "badge-success" : "badge-primary"}`} aria-hidden>
       {p.step}
     </span>
   );
@@ -295,12 +363,8 @@ export function ScanJump(): React.JSX.Element {
   );
 }
 
-/** The weekly loop ReachKit runs, and your part in it. Compare and Answer
- *  pages draw it beside their own "what ReachKit does" section; `detail`
- *  opens the whole loop in one paragraph. */
-export function LearnLoop(
-  p: { detail?: { summary: string; body: string }; steps?: Icons["steps"] } = {}
-): React.JSX.Element {
+/** The weekly loop ReachKit runs, and your part in it. */
+function LearnLoop(p: { steps?: Icons["steps"] } = {}): React.JSX.Element {
   return (
     <div className="flex min-w-0 flex-col gap-4" data-testid="learn-loop">
       <figure className="flex min-w-0 flex-col gap-3">
@@ -325,14 +389,6 @@ export function LearnLoop(
         </p>
         <figcaption className={SMALL}>{copy("library.close.example", { business: EXAMPLES.plumber.business })}</figcaption>
       </figure>
-      {p.detail === undefined ? null : (
-        <details className="collapse-arrow border-base-300 collapse min-w-0 border">
-          <summary className="collapse-title font-semibold">{p.detail.summary}</summary>
-          <div className="collapse-content">
-            <p>{p.detail.body}</p>
-          </div>
-        </details>
-      )}
       <div className="rounded-box bg-base-200 flex min-w-0 flex-col gap-1 p-4 text-sm">
         <p>{copy("library.close.part", FIGURES)}</p>
         <p className="flex flex-wrap items-center gap-x-1">
@@ -348,7 +404,7 @@ export function LearnLoop(
 }
 
 /** Your part and the price, without the loop's figure. */
-function YourPart(): React.JSX.Element {
+export function YourPart(): React.JSX.Element {
   const line = "flex min-w-0 flex-[1_1_17rem] items-start gap-2.5";
   const icon = "text-primary mt-0.5 flex-none";
   return (
@@ -377,11 +433,10 @@ function YourPart(): React.JSX.Element {
 export interface WeeklyWords {
   readonly eyebrow?: string;
   readonly title: string;
-  readonly lead: string;
+  readonly lead?: string;
   readonly them: string;
   readonly us: string;
   readonly rows: readonly (readonly [string, string])[];
-  readonly detail?: { summary: string; body: string };
 }
 
 /** A compare row's side, opening with its icon where the close has one. */
@@ -395,24 +450,24 @@ function Side(p: { text: string; className: string; Icon?: LucideIcon }): React.
   );
 }
 
-/** What this page gives beside what ReachKit gives, the weekly loop, and your part. */
-export function WeeklyLoop(p: { w: WeeklyWords; icons?: Icons; short?: true }): React.JSX.Element {
+/** What this page gives beside what ReachKit gives, anything the page sets under it, then the weekly loop or only your part. */
+export function WeeklyLoop(p: { w: WeeklyWords; icons?: Icons; short?: true; band?: true; children?: React.ReactNode }): React.JSX.Element {
   const w = p.w;
   return (
-    <section className="flex min-w-0 flex-col gap-4">
+    <section className={`flex min-w-0 flex-col gap-4 ${p.band ? BAND : ""}`}>
       <div className="flex min-w-0 flex-col gap-2">
         {w.eyebrow === undefined ? null : (
           <span className="text-base-content/70 text-xs font-semibold tracking-wide uppercase">{w.eyebrow}</span>
         )}
         <h2 className="break-words">{w.title}</h2>
-        <p>{w.lead}</p>
+        {w.lead === undefined ? null : <p>{w.lead}</p>}
       </div>
       <div className={CARD}>
         <div className={BODY}>
-          <div className="text-base-content/70 hidden grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-3 text-xs font-semibold tracking-wide uppercase sm:grid">
+          <div aria-hidden className="text-base-content/70 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-3 text-xs font-semibold tracking-wide uppercase">
             <span>{w.them}</span>
-            <span aria-hidden className="w-4" />
-            <span>{w.us}</span>
+            <ArrowRight size={14} strokeWidth={1.75} className="mt-0.5" />
+            <span className="text-primary">{w.us}</span>
           </div>
           <ul className="divide-base-300 flex min-w-0 flex-col divide-y">
             {w.rows.map(([them, us]) => (
@@ -425,7 +480,8 @@ export function WeeklyLoop(p: { w: WeeklyWords; icons?: Icons; short?: true }): 
           </ul>
         </div>
       </div>
-      {p.short ? <YourPart /> : <LearnLoop detail={w.detail} steps={p.icons?.steps} />}
+      {p.children}
+      {p.short ? <YourPart /> : <LearnLoop steps={p.icons?.steps} />}
     </section>
   );
 }
@@ -434,7 +490,7 @@ function wordsOf(w: Weekly): WeeklyWords {
   return {
     ...(w.eyebrow === undefined ? {} : { eyebrow: copy(w.eyebrow) }),
     title: copy(w.title),
-    lead: copy(w.lead, FIGURES),
+    ...(w.lead === undefined ? {} : { lead: copy(w.lead, FIGURES) }),
     them: copy(w.them),
     us: copy(w.us),
     rows: w.rows.map(([them, us]) => [copy(them, FIGURES), copy(us, FIGURES)] as const),
@@ -456,12 +512,14 @@ export function LearnClose(p: { variant: LearnCloseVariant; domain?: string }): 
     p.domain === undefined ? copy("landing.start.cta") : copy("library.close.scan.domain", { domain: p.domain });
   return (
     <div className="mt-6 flex min-w-0 flex-col gap-6" data-testid="learn-close" data-variant={p.variant}>
-      {close.weekly === undefined ? null : <WeeklyLoop w={wordsOf(close.weekly)} icons={close.icons} short={close.short} />}
+      {close.weekly === undefined ? null : (
+        <WeeklyLoop w={wordsOf(close.weekly)} icons={close.icons} short={close.short} band={close.band} />
+      )}
       {close.short ? (
         <section id={START_ID} aria-labelledby="start-h" className="rounded-box border-primary/20 bg-primary/10 flex scroll-mt-20 flex-col items-center gap-3.5 border px-5 py-8 text-center sm:px-10 sm:py-12">
           <h2 id="start-h">{copy(close.heading ?? "landing.close.heading")}</h2>
           <div className="w-full max-w-xl text-start">
-            <ScanForm words={scanFormWords(submit)} searchParams={p.domain === undefined ? undefined : { value: p.domain }} />
+            <ScanForm words={scanFormWords(submit)} searchParams={p.domain === undefined ? undefined : { value: p.domain }} inline />
           </div>
           <p className={SMALL}>{copy("landing.hero.assurance")}</p>
         </section>
@@ -489,41 +547,6 @@ export function LearnClose(p: { variant: LearnCloseVariant; domain?: string }): 
         </section>
       )}
     </div>
-  );
-}
-
-/** Where the facts about another company were read, and when. */
-export function Sources(p: { checked: string; sources: readonly Source[]; id?: string }): React.JSX.Element {
-  return (
-    <section
-      aria-labelledby={p.id}
-      className="text-base-content/70 flex min-w-0 scroll-mt-20 flex-col gap-2 text-sm"
-      data-testid="library-sources"
-    >
-      <p>{copy("library.checked", { date: longDate(p.checked) })}</p>
-      {p.sources.length === 0 ? null : (
-        <>
-          <h2 id={p.id} className="text-base">
-            {copy("library.sources")}
-          </h2>
-          <ul className={LIST}>
-            {p.sources.map((source) => (
-              <li key={source.href} className="break-words">
-                {source.href.startsWith("/") ? (
-                  <Link href={source.href} className="link">
-                    {source.label}
-                  </Link>
-                ) : (
-                  <a href={source.href} className="link" {...NEW_TAB}>
-                    {copy("library.source", { label: source.label, host: new URL(source.href).hostname })}
-                  </a>
-                )}
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
-    </section>
   );
 }
 
