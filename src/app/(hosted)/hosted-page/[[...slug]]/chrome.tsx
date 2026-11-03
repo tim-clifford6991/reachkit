@@ -9,7 +9,8 @@ import { createElement } from "react";
 import { copy } from "@/lib/presentation/copy/reader";
 import type { HostedIdentity } from "@/lib/publish/destinations/hosted";
 import type { BookKind } from "@/lib/site-profile/main-site-row";
-import { FEED_PATH, QUIET_LINE } from "./present";
+import { SiteMark } from "@/ui/SiteMark";
+import { FEED_PATH, QUIET_LINE, TARGET } from "./present";
 
 /** lucide's own drawings, inlined as its `[tag, attributes]` pairs: its `Icon`
  *  is a client module, and the 410 route renders this chrome outside React
@@ -100,8 +101,6 @@ export const LOGO_PATH = "/logo.img";
 /** The blog's index on the customer's own host. A plain anchor, not a
  *  `Link`: this surface ships no script, and `/` here is not the app's. */
 export const INDEX_PATH = "/";
-/** Decorative: the name is written beside the logo wherever it is drawn. */
-const LOGO_ALT = "";
 
 /** Who the page is drawn for: the identity, and their main site. */
 export interface HostedBusiness extends HostedIdentity {
@@ -128,18 +127,17 @@ function mainSiteName(business: HostedBusiness): string {
 }
 
 
-/** The kept logo, or the first letter of the name on a tile. Decorative
- *  either way: the name is written beside it. */
+/** The kept logo from the customer's own host, or the name's first letter on a tile in no colour of ours. */
 function Logo({ business, large = false }: { business: HostedBusiness; large?: boolean }): React.JSX.Element {
-  const frame = `${large ? "size-12 text-lg" : "size-8 text-sm"} rounded-field flex-none`;
-  if (business.logoType !== null) {
-    // eslint-disable-next-line @next/next/no-img-element -- a stored picture of unknown size on a host with no image optimiser.
-    return <img src={LOGO_PATH} alt={LOGO_ALT} className={`${frame} object-contain`} />;
-  }
   return (
-    <span aria-hidden className={`${frame} bg-base-200 text-base-content/70 grid place-items-center font-semibold`}>
-      {business.name.trim().charAt(0).toUpperCase()}
-    </span>
+    <SiteMark
+      domain={business.domain}
+      hasLogo={business.logoType !== null}
+      size={large ? 48 : 36}
+      src={LOGO_PATH}
+      letter={business.name.trim()}
+      accent={false}
+    />
   );
 }
 
@@ -147,7 +145,7 @@ function Logo({ business, large = false }: { business: HostedBusiness; large?: b
  *  with an ellipsis rather than pushing its neighbour off the row. */
 function VisitButton({ business, width }: { business: HostedBusiness; width: string }): React.JSX.Element {
   return (
-    <a href={mainSiteOf(business)} className={`btn btn-sm min-w-0 ${width}`}>
+    <a href={mainSiteOf(business)} className={`btn btn-sm min-h-11 min-w-0 ${width}`}>
       <span className="truncate">{copy("hosted.visit", { site: business.name })}</span>
       <Glyph name="arrow-up-right" />
     </a>
@@ -191,30 +189,28 @@ export function actionsOf(business: HostedBusiness): { primary: Action | null; q
 
 function PrimaryButton({ action, text, width }: { action: Action; text: string; width: string }): React.JSX.Element {
   return (
-    <a href={action.href} className={`btn btn-sm min-w-0 ${width}`}>
+    <a href={action.href} className={`btn btn-sm min-h-11 min-w-0 ${width}`}>
       <Glyph name={action.glyph} />
       <span className="truncate">{text}</span>
     </a>
   );
 }
 
-/** Half the header at most, so the name beside it keeps the other half;
- *  beside the primary action, the two share a little more than that. */
-const HEADER_BUTTON = "max-w-[50%]";
-const HEADER_PAIR = "max-w-[35%]";
+/** On a phone the name has its own row and the buttons wrap under it; from `sm` each button is capped so the name keeps its share. */
+const HEADER_BUTTON = "max-w-full sm:max-w-[16rem]";
 const CARD_BUTTON = "max-w-full";
 
 export function HostedHeader({ business }: { business: HostedBusiness }): React.JSX.Element {
   const { primary } = actionsOf(business);
   return (
     <header className="border-base-300 border-b">
-      <div className="navbar mx-auto w-full max-w-5xl flex-nowrap gap-3 px-4">
-        <a href={INDEX_PATH} className="text-base-content flex min-w-0 flex-1 items-center gap-2 font-extrabold tracking-tight">
+      <div className="navbar mx-auto w-full max-w-5xl flex-wrap gap-3 px-4 sm:flex-nowrap">
+        <a href={INDEX_PATH} className="text-base-content flex min-h-11 min-w-0 basis-full items-center gap-2 font-extrabold tracking-tight sm:basis-auto sm:flex-1">
           <Logo business={business} />
           <span className="truncate">{business.name}</span>
         </a>
-        {primary === null ? null : <PrimaryButton action={primary} text={primary.short} width={HEADER_PAIR} />}
-        <VisitButton business={business} width={primary === null ? HEADER_BUTTON : HEADER_PAIR} />
+        {primary === null ? null : <PrimaryButton action={primary} text={primary.short} width={HEADER_BUTTON} />}
+        <VisitButton business={business} width={HEADER_BUTTON} />
       </div>
     </header>
   );
@@ -317,7 +313,7 @@ export function AboutCard({
           {written === null ? null : (
             <p className="text-base-content/70 text-sm">
               {author === null || author.url === null ? written : (
-                <a href={author.url} className="link link-hover">
+                <a href={author.url} className={`link link-hover ${TARGET}`}>
                   {written}
                 </a>
               )}
@@ -330,7 +326,7 @@ export function AboutCard({
           <ul role="list" className="flex flex-wrap gap-x-5 gap-y-1 text-sm">
             {quiet.map(({ kind, href, label, glyph }) => (
               <li key={kind}>
-                <a href={href} className="link link-hover inline-flex items-center gap-1.5">
+                <a href={href} className={`link link-hover gap-1.5 ${TARGET}`}>
                   <Glyph name={glyph} />
                   {label}
                 </a>
@@ -355,12 +351,12 @@ export function HostedFooter({ business }: { business: HostedBusiness }): React.
         {/* Issue 1511: a plain link back to the main site, so the two hosts
             read as one business. */}
         <span className={FOOTER_PART}>
-          <a href={mainSiteOf(business)} className="link link-hover font-mono break-all">
+          <a href={mainSiteOf(business)} className={`link link-hover font-mono break-all ${TARGET}`}>
             {mainSiteName(business)}
           </a>
         </span>
         <span className={FOOTER_PART}>
-          <a href={FEED_PATH} className="link link-hover inline-flex items-center gap-1.5">
+          <a href={FEED_PATH} className={`link link-hover gap-1.5 ${TARGET}`}>
             <Glyph name="rss" />
             {copy("hosted.footer.rss")}
           </a>

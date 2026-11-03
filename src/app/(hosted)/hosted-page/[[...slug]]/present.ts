@@ -26,4 +26,6 @@ export function indexHref(query: string, page: number): string {
 /** A footer line or a date that stands alone: mono because it is a date
  *  or a domain, quiet because it is not the page, and free to fold anywhere
  *  because a domain is one long token at 320. */
+/** A standalone link a thumb can hit: 44px tall. */
+export const TARGET = "inline-flex min-h-11 items-center";
 export const QUIET_LINE = "num num-phrase text-base-content/70 m-0 text-sm wrap-anywhere";

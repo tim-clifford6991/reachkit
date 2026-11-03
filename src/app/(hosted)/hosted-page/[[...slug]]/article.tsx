@@ -47,7 +47,7 @@ import { AboutCard, actionsOf, CompactAction, Glyph, HostedFooter, HostedHeader,
 import { bylineLine, datedLine } from "@/lib/publish/render/byline";
 import { withFaq, type FaqEntry } from "@/lib/publish/render/faq";
 import { isSourcesHeading, madeLine } from "@/lib/publish/render/made";
-import { writeDate } from "./present";
+import { TARGET, writeDate } from "./present";
 import {
   alternatesOf,
   blogPostingSchema,
@@ -244,7 +244,7 @@ function Contents({ headings }: { headings: readonly HeadingEntry[] }): React.JS
     <ul className="menu menu-sm w-full p-0">
       {headings.map((heading) => (
         <li key={heading.id} className={heading.level === 3 ? "pl-3" : undefined}>
-          <a href={`#${heading.id}`} className="text-base-content/70 whitespace-normal">
+          <a href={`#${heading.id}`} className="text-base-content/70 min-h-11 items-center whitespace-normal">
             {heading.text}
           </a>
         </li>
@@ -586,10 +586,10 @@ export function HostedArticle({ resolved }: { resolved: Resolved }): React.JSX.E
           <nav className="breadcrumbs mt-10 overflow-visible text-sm" aria-label={copy("hosted.breadcrumb")}>
             <ul className="flex-wrap whitespace-normal">
               <li>
-                <a href={mainSiteOf(business)}>{business.name}</a>
+                <a href={mainSiteOf(business)} className={TARGET}>{business.name}</a>
               </li>
               <li>
-                <a href={INDEX_PATH}>{copy("hosted.index.heading")}</a>
+                <a href={INDEX_PATH} className={TARGET}>{copy("hosted.index.heading")}</a>
               </li>
               <li aria-current="page" className="text-base-content/70 min-w-0">
                 {page.title}

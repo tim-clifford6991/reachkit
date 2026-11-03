@@ -124,6 +124,13 @@ describe("the hosted index lists every live guide by topic", () => {
     }
   });
 
+  it("every guide title, in a card or a list, is a 44px target", () => {
+    const pages = Array.from({ length: 20 }, (_, i) => guide(i, { cluster: i % 2 === 0 ? "topic" : null }));
+    const titles = [...render(pages).querySelectorAll("main h2 a, main h3 a, main li a")];
+    expect(titles.length).toBeGreaterThanOrEqual(20);
+    for (const a of titles) expect(a.className, a.textContent ?? "").toContain("min-h-11");
+  });
+
   it("a site with no pages still says so, and a search shows its matches only", () => {
     const empty = render([]);
     expect(empty.body.textContent).toContain("Nothing has been published here yet.");

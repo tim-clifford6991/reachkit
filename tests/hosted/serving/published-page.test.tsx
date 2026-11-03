@@ -140,6 +140,22 @@ describe("S19 — the customer is the publisher, and the page says so", () => {
     expect(bar).not.toContain("primary");
   });
 
+  it("on a phone every standalone link is a 44px target, and the mark keeps its size in no colour of ours", async () => {
+    state.identity = { name: "Example Co" };
+    state.page = livePage({ bodyMd: "Intro.\n\n## What to look for\n\nText.\n\n## What it costs\n\nText." });
+    const doc = new DOMParser().parseFromString(await render(), "text/html");
+    expect(doc.querySelectorAll('nav[aria-label="On this page"] a').length).toBeGreaterThanOrEqual(4);
+    const links = [...doc.querySelectorAll('header a, nav[aria-label="Breadcrumb"] a, nav[aria-label="On this page"] a, aside a, footer a')];
+    expect(links.length).toBeGreaterThanOrEqual(6);
+    for (const a of links) expect(a.className, a.textContent ?? "").toContain("min-h-11");
+    const marks = [...doc.querySelectorAll("header span[aria-hidden], aside span[aria-hidden]")];
+    expect(marks.map((mark) => [mark.textContent, mark.classList.contains("shrink-0"), /primary/.test(mark.className)])).toEqual([
+      ["E", true, false],
+      ["E", true, false],
+    ]);
+    expect(marks.map((mark) => mark.className.match(/size-\d+/)?.[0])).toEqual(["size-9", "size-12"]);
+  });
+
   it("a site with a kept logo draws it from its own host, not from ours or the main site", async () => {
     state.identity = { logoType: "image/png" };
     const html = await render();
@@ -297,7 +313,7 @@ describe("S19 — the customer is the publisher, and the page says so", () => {
     const html = await render();
     const crumbs = html.slice(html.indexOf('aria-label="Breadcrumb"'));
     expect(crumbs).toMatch(
-      /href="https:\/\/example\.com\/">example\.com<.*href="\/">Articles<.*aria-current="page"[^>]*>The best onboarding tools/s
+      /href="https:\/\/example\.com\/"[^>]*>example\.com<.*href="\/"[^>]*>Articles<.*aria-current="page"[^>]*>The best onboarding tools/s
     );
   });
 

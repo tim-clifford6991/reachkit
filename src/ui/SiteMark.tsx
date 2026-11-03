@@ -35,24 +35,36 @@ export function siteLogoSrc(domain: string): string {
   return `/scans/logo/${encodeURIComponent(domain)}`;
 }
 
+/** Where the product's own colour would be our branding, as on a customer's hosted page. */
+const UNBRANDED = TINTS.filter((tint) => tint !== "badge-primary");
+
 /** The same domain always gets the same tint. */
-export function tintOf(domain: string): (typeof TINTS)[number] {
+export function tintOf(domain: string, accent = true): (typeof TINTS)[number] {
+  const pool = accent ? TINTS : UNBRANDED;
   const sum = [...domain].reduce((n, ch) => n + ch.charCodeAt(0), 0);
-  return TINTS[sum % TINTS.length]!;
+  return pool[sum % pool.length]!;
 }
 
-export function SiteMark(p: { domain: string; hasLogo: boolean; size?: SiteMarkSize }): React.JSX.Element {
+/** `src`, `letter` and `accent: false` let a hosted page draw its own logo, its name's letter and no colour of ours. */
+export function SiteMark(p: {
+  domain: string;
+  hasLogo: boolean;
+  size?: SiteMarkSize;
+  src?: string;
+  letter?: string;
+  accent?: boolean;
+}): React.JSX.Element {
   const size = p.size ?? 40;
   const box = `${BOX[size]} shrink-0`;
-  const letter = Array.from(p.domain)[0]?.toUpperCase();
-  const tint = tintOf(p.domain);
+  const letter = Array.from(p.letter ?? p.domain)[0]?.toUpperCase();
+  const tint = tintOf(p.domain, p.accent);
   if (p.hasLogo) {
     return (
       <span aria-hidden className={`${box} ${PAD[size]} border-base-300 bg-base-100 relative grid place-items-center overflow-hidden border font-extrabold`}>
         {/* A plain <img>: the logo route already serves a small stored file. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={siteLogoSrc(p.domain)}
+          src={p.src ?? siteLogoSrc(p.domain)}
           alt={IMG.alt}
           loading={size >= 48 ? IMG.eager : IMG.lazy}
           width={size}

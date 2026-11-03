@@ -22,7 +22,7 @@ import { copy } from "@/lib/presentation/copy/reader";
 import type { HostedListing } from "@/lib/publish/destinations/hosted";
 import { Surface } from "@/ui/layout";
 import { actionsOf, BusinessLine, CompactAction, Glyph, HostedFooter, HostedHeader, type HostedBusiness } from "./chrome";
-import { indexHref, writeDate } from "./present";
+import { TARGET, indexHref, writeDate } from "./present";
 import { blogSchema } from "./seo";
 
 /** The query as the address carries it: the first `q`, trimmed, or empty. */
@@ -107,7 +107,7 @@ function GuideLinks({ pages }: { pages: readonly IndexedPage[] }): React.JSX.Ele
     <ul className="list-disc space-y-1 pl-5 text-sm">
       {pages.map((entry) => (
         <li key={entry.publicationId}>
-          <a href={`/${entry.slug}`} className="link">
+          <a href={`/${entry.slug}`} className={`link ${TARGET}`}>
             {entry.title}
           </a>
         </li>
@@ -135,7 +135,7 @@ function AllGuides({ pages }: { pages: readonly IndexedPage[] }): React.JSX.Elem
                     <Glyph name="book-open" />
                   </span>
                   <h3 className="min-w-0 text-base font-bold tracking-tight">
-                    <a href={`/${lead.slug}`} className="link link-hover text-base-content">
+                    <a href={`/${lead.slug}`} className={`link link-hover text-base-content ${TARGET}`}>
                       {lead.title}
                     </a>
                   </h3>
@@ -247,7 +247,7 @@ export function HostedIndex({
                 <div className="card-body gap-2 sm:p-8">
                   <p className="eyebrow">{copy("hosted.index.latest")}</p>
                   <h2 id="featured" className="text-2xl font-extrabold tracking-tight text-balance">
-                    <a href={`/${featured.slug}`} className="link link-hover text-base-content">
+                    <a href={`/${featured.slug}`} className={`link link-hover text-base-content ${TARGET}`}>
                       {featured.title}
                     </a>
                   </h2>
@@ -269,7 +269,7 @@ export function HostedIndex({
                     <li key={entry.publicationId} className="card card-border bg-base-100">
                       <div className="card-body gap-2 p-5">
                         <h3 className="text-base font-bold tracking-tight">
-                          <a href={`/${entry.slug}`} className="link link-hover text-base-content">
+                          <a href={`/${entry.slug}`} className={`link link-hover text-base-content ${TARGET}`}>
                             {entry.title}
                           </a>
                         </h3>
