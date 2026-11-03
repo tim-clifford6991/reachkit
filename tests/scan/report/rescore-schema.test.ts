@@ -24,11 +24,19 @@ const APPLIED = [
   "20261014130000_scans_rescore.sql",
   "20261017140000_scans_rescore_auto.sql",
   "20261101130000_scans_rescore_reads.sql",
+  "20261103180000_rescore_reports_ids_first.sql",
   "20260903080000_fetches.sql",
   "20261101140000_fetches_facts.sql",
   "20261102120000_fetches_text.sql",
 ];
 const FACTS = "20261101140000_fetches_facts.sql";
+const IDS_FIRST = "20261103180000_rescore_reports_ids_first.sql";
+
+const readsCatalog = () =>
+  psqlRows(
+    "select pg_get_function_identity_arguments(p.oid), pg_get_function_result(p.oid), p.provolatile, p.prosecdef, array_to_string(p.proconfig, ','), array_to_string(p.proacl, ',') from pg_proc p where p.proname = 'rescore_reports';"
+  );
+let readsBefore: string[][] = [];
 
 const fetchesColumns = () => psqlRows("select column_name, data_type, is_nullable, coalesce(column_default, '') from information_schema.columns where table_name = 'fetches' order by ordinal_position;");
 let fetchesBefore: string[][] = [];
@@ -91,6 +99,7 @@ beforeAll(() => {
   resetSchema();
   for (const file of APPLIED) {
     if (file === FACTS) fetchesBefore = fetchesColumns();
+    if (file === IDS_FIRST) readsBefore = readsCatalog();
     psql(["-v", "ON_ERROR_STOP=1", "-f", path.join(MIGRATIONS, file)]);
   }
 });
@@ -228,6 +237,113 @@ describe("rescore_reports — the re-score's read, without the kept copy", () =>
     const [id, at] = all[0]!;
     const page = psqlRows(`select id from rescore_reports('${at}', '${id}', 1);`);
     expect(page.map((r) => r[0])).toEqual([all[1]![0]]);
+  });
+});
+
+/** `rescore_reports` as `20261101130000_scans_rescore_reads.sql` wrote it:
+ *  the trim and checksum in the same select as the order and limit. */
+const BEFORE_BODY = `
+  select s.id, s.domain, s.created_at, s.status, s.score, s.drivers,
+         s.report - 'previous' - 'previousColumns' - 'rescoredAt' - 'rescoredBy',
+         md5(s.report::text), s.site_id, s.is_current
+    from public.scans s
+   where s.report is not null
+     and (p_after_created_at is null or (s.created_at, s.id) > (p_after_created_at, p_after_id))
+   order by s.created_at, s.id
+   limit p_limit`;
+
+type PlanNode = { "Node Type": string; Output?: string[]; "Sort Key"?: string[]; "Actual Rows": number; "Actual Loops": number; Plans?: PlanNode[] };
+
+/** A body's executed plan for the first page of 25, its parameters left
+ *  generic as the function's own cached plan has them. */
+function planOf(body: string): PlanNode {
+  const sql = body.replace(/\bp_after_created_at\b/g, "$1").replace(/\bp_after_id\b/g, "$2").replace(/\bp_limit\b/g, "$3");
+  const out = psql([
+    "-v",
+    "ON_ERROR_STOP=1",
+    "-At",
+    "-c",
+    `set plan_cache_mode = force_generic_plan; prepare page(timestamptz, uuid, integer) as ${sql}; explain (analyze, verbose, format json) execute page(null, null, 25);`,
+  ]);
+  return (JSON.parse(out) as { Plan: PlanNode }[])[0]!.Plan;
+}
+
+function nodes(node: PlanNode, under: PlanNode[] = []): { node: PlanNode; under: PlanNode[] }[] {
+  return [{ node, under }, ...(node.Plans ?? []).flatMap((child) => nodes(child, [...under, node]))];
+}
+
+const hashes = (node: PlanNode) => (node.Output ?? []).some((o) => o.includes("md5("));
+
+/** Every node that checksums a report sees at most a page of rows, above a
+ *  limit that carries no report and sorts on `(created_at, id)` alone. */
+function hashesOnlyThePage(plan: PlanNode): boolean {
+  const all = nodes(plan);
+  const hashing = all.filter(({ node }) => hashes(node));
+  const keysetLimit = all.some(
+    ({ node, under }) =>
+      node["Node Type"] === "Limit" &&
+      !(node.Output ?? []).some((o) => o.includes("report")) &&
+      under.some(hashes) &&
+      nodes(node).some(({ node: sort }) => sort["Sort Key"]?.every((k) => /\.(created_at|id)$/.test(k)) === true)
+  );
+  return hashing.length > 0 && hashing.every(({ node }) => node["Actual Rows"] * node["Actual Loops"] <= 25) && keysetLimit;
+}
+
+describe("rescore_reports — a page's ids first, then its reports", () => {
+  const page = (fn: string, after: string[] | undefined, limit: number) =>
+    psqlRows(`select * from ${fn}(${after ? `'${after[2]}', '${after[0]}'` : "null, null"}, ${limit});`);
+
+  function walk(fn: string, limit: number): string[][][] {
+    const pages: string[][][] = [];
+    for (let rows = page(fn, undefined, limit); rows.length > 0; rows = page(fn, rows.at(-1), limit)) pages.push(rows);
+    return pages;
+  }
+
+  beforeAll(() => {
+    run("delete from scans;");
+    // Sixty scans, three to a timestamp; every seventh has no report and every fourth carries a re-score's kept copy.
+    run(`insert into scans (domain, tier, status, score, created_at, report)
+      select 'site' || g || '.example', 'free', 'done', g,
+             '2026-11-01T00:00:00Z'::timestamptz + (g / 3) * interval '1 second',
+             case when g % 7 = 0 then null
+                  else jsonb_build_object('domain', 'site' || g || '.example', 'n', g, 'body', repeat(md5(g::text), 200))
+                       || case when g % 4 = 0 then '{"previous": {"n": 0}, "previousColumns": {"score": 1}, "rescoredAt": "2026-11-01T12:00:00.000Z", "rescoredBy": "abc1234"}'::jsonb else '{}'::jsonb end
+             end
+        from generate_series(1, 60) g;`);
+    run(`create function rescore_reports_before(p_after_created_at timestamptz default null, p_after_id uuid default null, p_limit integer default 25)
+      returns table (id uuid, domain text, created_at timestamptz, status text, score integer, drivers jsonb, report jsonb, report_md5 text, site_id uuid, is_current boolean)
+      language sql stable set search_path = '' as $$${BEFORE_BODY}$$;`);
+  });
+
+  afterAll(() => run("drop function rescore_reports_before(timestamptz, uuid, integer);"));
+
+  it("returns byte-identical pages to the body it replaced, report and checksum included", () => {
+    for (const limit of [25, 2]) {
+      const now = walk("rescore_reports", limit);
+      expect(now.length).toBeGreaterThan(2);
+      expect(now).toEqual(walk("rescore_reports_before", limit));
+    }
+    expect(psqlRows("select count(*) from rescore_reports(null, null, 100) where report ? 'previous' or report ? 'rescoredAt';")).toEqual([["0"]]);
+  });
+
+  it("pages every scan with a report exactly once in (created_at, id) order, ties broken by id, from the first row on null", () => {
+    const expected = psqlRows("select id from scans where report is not null order by created_at, id;").map((r) => r[0]);
+    expect(value("select count(*) > count(distinct created_at) from scans where report is not null;")).toBe("t");
+    for (const limit of [25, 2]) {
+      expect(walk("rescore_reports", limit).flat().map((r) => r[0])).toEqual(expected);
+      expect(page("rescore_reports", undefined, limit)[0]![0]).toBe(expected[0]);
+    }
+  });
+
+  it("checksums and trims only the page's rows, after a limit sorted on (created_at, id)", () => {
+    expect(hashesOnlyThePage(planOf(BEFORE_BODY))).toBe(false);
+    expect(hashesOnlyThePage(planOf(psql(["-v", "ON_ERROR_STOP=1", "-At", "-c", "select prosrc from pg_proc where proname = 'rescore_reports';"])))).toBe(true);
+  });
+
+  it("keeps the signature, result, volatility, security, search_path and grants of the function it replaced", () => {
+    expect(readsBefore).toHaveLength(1);
+    expect(readsCatalog()).toEqual(readsBefore);
+    expect(readsBefore[0]!.slice(2, 5)).toEqual(["s", "f", 'search_path=""']);
   });
 });
 
