@@ -10,7 +10,7 @@ import { copy } from "@/lib/presentation/copy/reader";
 import type { HostedIdentity } from "@/lib/publish/destinations/hosted";
 import type { BookKind } from "@/lib/site-profile/main-site-row";
 import { SiteMark } from "@/ui/SiteMark";
-import { FEED_PATH, QUIET_LINE, TARGET } from "./present";
+import { FEED_PATH, TARGET } from "./present";
 
 /** lucide's own drawings, inlined as its `[tag, attributes]` pairs: its `Icon`
  *  is a client module, and the 410 route renders this chrome outside React
@@ -145,8 +145,8 @@ function Logo({ business, large = false }: { business: HostedBusiness; large?: b
  *  with an ellipsis rather than pushing its neighbour off the row. */
 function VisitButton({ business, width }: { business: HostedBusiness; width: string }): React.JSX.Element {
   return (
-    <a href={mainSiteOf(business)} className={`btn btn-sm min-h-11 min-w-0 ${width}`}>
-      <span className="truncate">{copy("hosted.visit", { site: business.name })}</span>
+    <a href={mainSiteOf(business)} className={`btn btn-sm btn-outline min-h-11 min-w-0 ${width}`}>
+      <span className="truncate">{copy("hosted.visit", { site: mainSiteName(business) })}</span>
       <Glyph name="arrow-up-right" />
     </a>
   );
@@ -189,7 +189,7 @@ export function actionsOf(business: HostedBusiness): { primary: Action | null; q
 
 function PrimaryButton({ action, text, width }: { action: Action; text: string; width: string }): React.JSX.Element {
   return (
-    <a href={action.href} className={`btn btn-sm min-h-11 min-w-0 ${width}`}>
+    <a href={action.href} className={`btn btn-sm border-base-content bg-base-content text-base-100 min-h-11 min-w-0 ${width}`}>
       <Glyph name={action.glyph} />
       <span className="truncate">{text}</span>
     </a>
@@ -261,7 +261,7 @@ function compactHeading(business: HostedBusiness): string {
     : copy("hosted.compact.heading.place", { category: offer.category, place: offer.place });
 }
 
-/** The compact block: one question and the primary action, never a quiet
+/** The compact block: one question, the primary action and Visit, never a quiet
  *  link. Nothing where no action is stored. Where it draws the business
  *  (`described`), its line and place follow the question in one sentence. */
 export function CompactAction({ business, described = false }: { business: HostedBusiness; described?: boolean }): React.JSX.Element | null {
@@ -286,6 +286,7 @@ export function CompactAction({ business, described = false }: { business: Hoste
           </div>
         )}
         <PrimaryButton action={primary} text={primary.label} width={CARD_BUTTON} />
+        <VisitButton business={business} width={CARD_BUTTON} />
       </div>
     </aside>
   );
@@ -326,7 +327,7 @@ export function AboutCard({
           <ul role="list" className="flex flex-wrap gap-x-5 gap-y-1 text-sm">
             {quiet.map(({ kind, href, label, glyph }) => (
               <li key={kind}>
-                <a href={href} className={`link link-hover gap-1.5 ${TARGET}`}>
+                <a href={href} className={`link gap-1.5 ${TARGET}`}>
                   <Glyph name={glyph} />
                   {label}
                 </a>
@@ -347,11 +348,11 @@ export function HostedFooter({ business }: { business: HostedBusiness }): React.
   return (
     <footer className="border-base-300 border-t">
       <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center gap-x-2.5 gap-y-2 px-4 py-6">
-        <span className={QUIET_LINE}>{copy("hosted.footer", { publisher: business.name })}</span>
+        <span className="text-base-content/70 text-sm">{copy("hosted.footer", { publisher: business.name })}</span>
         {/* Issue 1511: a plain link back to the main site, so the two hosts
             read as one business. */}
         <span className={FOOTER_PART}>
-          <a href={mainSiteOf(business)} className={`link link-hover font-mono break-all ${TARGET}`}>
+          <a href={mainSiteOf(business)} className={`link font-mono break-all ${TARGET}`}>
             {mainSiteName(business)}
           </a>
         </span>

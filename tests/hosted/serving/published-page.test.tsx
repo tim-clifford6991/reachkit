@@ -135,7 +135,7 @@ describe("S19 — the customer is the publisher, and the page says so", () => {
     const html = await render();
     const bar = html.slice(html.indexOf("<header"), html.indexOf("</header>"));
     expect(bar).toMatch(/<a href="\/"[^>]*>.*>E<\/span>.*Example Co/s);
-    expect(bar).toMatch(/<a href="https:\/\/example\.com\/"[^>]*>.*Visit Example Co/s);
+    expect(bar).toMatch(/<a href="https:\/\/example\.com\/"[^>]*>.*Visit example\.com/s);
     expect(bar).not.toContain("<img");
     expect(bar).not.toContain("primary");
   });

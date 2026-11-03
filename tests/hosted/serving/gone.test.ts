@@ -142,6 +142,7 @@ function expectVariantA(doc: Document, words: { heading: string; line: string; i
   expect(doc.body.textContent).toContain(words.line);
   const index = [...doc.querySelectorAll("a")].find((a) => a.textContent === words.index);
   expect(index?.getAttribute("href")).toBe("/");
+  expect(index?.classList.contains("btn-outline")).toBe(true);
   for (const a of doc.querySelectorAll("header a, main a, footer a")) expect(a.className, a.textContent ?? "").toContain("min-h-11");
   // The business block as it ships: the about card with the main site's own book and quote pages.
   const card = doc.querySelector("aside");

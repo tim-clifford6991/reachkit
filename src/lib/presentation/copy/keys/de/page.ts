@@ -76,4 +76,5 @@ export const PAGE_COPY_DE = {
   "hosted.index.all": "Alle Ratgeber",
   "hosted.index.allLead": "Jeder Ratgeber dieser Website, nach Thema.",
   "hosted.index.topicCount": "{count} Ratgeber",
+  "hosted.index.other": "Weitere Ratgeber",
 } as const satisfies CopyTranslation;

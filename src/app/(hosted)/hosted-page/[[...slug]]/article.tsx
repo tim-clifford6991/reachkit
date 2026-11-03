@@ -12,6 +12,7 @@
 // What the page holds and why is `page.tsx`'s header, beside this file.
 import type React from "react";
 import { HOSTED_BODY_CLASSES, HOSTED_GUIDES_CLASSES } from "../body-classes";
+import { sectionAt, titleKey, whereWhenOf } from "./sections";
 import { copy, readIn, readerLanguage, readerTag, readingIn } from "@/lib/presentation/copy/reader";
 import { localeTag } from "@/lib/locale/locales";
 import { siteLocale } from "@/lib/locale/site";
@@ -192,12 +193,6 @@ function sourceLineFor(page: HostedPage): { text: string; href: string | null } 
 /** The id of the sources heading the page draws where its body has none. */
 const SOURCES_ID = "sources";
 
-/** The words of a heading or title, for comparing the two: case, spacing
- *  and a trailing full stop or colon do not make them different. */
-function titleKey(text: string): string {
-  return text.replace(/\s+/g, " ").trim().replace(/[.:]$/, "").toLowerCase();
-}
-
 /** The body without a leading heading that repeats the page's title (SPEC
  *  §7, 2026-09-29): the title is the page's one `<h1>`, printed above the
  *  body, and a writer that also opens the body with it prints it twice. */
@@ -251,22 +246,6 @@ function Contents({ headings }: { headings: readonly HeadingEntry[] }): React.JS
       ))}
     </ul>
   );
-}
-
-/** An offering page's "Where and when" (E10): its list of places, by its
- *  index in `blocks`, found under the heading generation recorded. `null`
- *  where the page records none or the section lists no place. */
-function whereWhenOf(blocks: readonly Block[], heading: string | null | undefined): { list: number; places: string[] } | null {
-  if (heading === null || heading === undefined) return null;
-  const at = blocks.findIndex((block) => block.kind === "heading" && titleKey(inlineText(block.children)) === titleKey(heading));
-  const top = blocks[at];
-  if (top?.kind !== "heading") return null;
-  const next = blocks.findIndex((block, i) => i > at && block.kind === "heading" && block.level <= top.level);
-  const within = (i: number): boolean => i > at && (next < 0 || i < next);
-  const list = blocks.findIndex((block, i) => within(i) && block.kind === "list" && !block.ordered);
-  const listed = blocks[list];
-  if (listed?.kind !== "list") return null;
-  return { list, places: listed.items.map((item) => inlineText(item).replace(/\s+/g, " ").trim()) };
 }
 
 /** One `<meta>`: the attribute that names it, its name, and its content where it has one. */
@@ -409,13 +388,13 @@ export function HostedArticle({ resolved }: { resolved: Resolved }): React.JSX.E
   ];
   // The business's action inside the body (owner R1, 2026-10-22), only
   // where one is stored: on an offering page the full block under the short
-  // answer, and where the page's search is its own offering (fit 3) the
+  // answer, and on a guide whose search is its own offering (fit 3) the
   // compact block after the takeaways, else after the short answer. Both sit
   // between top-level blocks, so no question section holds one.
   const stored = actionsOf(business).primary !== null;
   const answerAt = blocks.findIndex((block) => block.kind === "answer");
   const takeawaysAt = blocks.findIndex((block) => block.kind === "takeaways");
-  const compactAt = stored && page.businessFit === 3 ? (takeawaysAt >= 0 ? takeawaysAt : answerAt) : -1;
+  const compactAt = stored && !offering && page.businessFit === 3 ? (takeawaysAt >= 0 ? takeawaysAt : answerAt) : -1;
   // "Where and when" draws lucide's map-pin on each place (E41: no clock until an hours fact exists).
   const whereParts = where === null ? [] : [
     {
@@ -433,19 +412,30 @@ export function HostedArticle({ resolved }: { resolved: Resolved }): React.JSX.E
     },
   ];
   const drawnHere = new Set(where === null ? [] : [where.list]);
-  const inserts = [
+  // The service board's cards (E10): what is included, the price and where, each a section of the stored body.
+  const cards = offering ? (page.carded ?? []).flatMap((heading) => sectionAt(blocks, heading) ?? []) : [];
+  const cardOf = (i: number): number => cards.findIndex((card) => i >= card.from && i < card.to);
+  const inserts: { after: number; node: React.ReactNode }[] = [
     ...(stored && offering && answerAt >= 0 ? [{ after: answerAt, node: <AboutCard key="full" business={business} /> }] : []),
     ...(compactAt >= 0 ? [{ after: compactAt, node: <CompactAction key="compact" business={business} /> }] : []),
     ...whereParts,
+    ...cards.flatMap((card) => [{ after: card.from - 1, node: null }, { after: card.to - 1, node: null }]).filter((split) => split.after >= 0),
   ].sort((a, b) => a.after - b.after);
-  const bodyParts: React.ReactNode[] = [];
+  const parts: { card: number; node: React.ReactNode }[] = [];
   let from = 0;
   for (const { after, node } of [...inserts, { after: blocks.length - 1, node: null }]) {
     const html = toHtml(blocks.slice(from, after + 1).filter((_, i) => !drawnHere.has(from + i)), HOSTED_BODY_CLASSES);
-    if (html !== "" || from === 0) bodyParts.push(<div key={`body-${from}`} className="prose prose-lg max-w-none" dangerouslySetInnerHTML={{ __html: html }} />);
-    if (node !== null) bodyParts.push(node);
+    if (html !== "" || from === 0) parts.push({ card: cardOf(from), node: <div key={`body-${from}`} className="prose prose-lg max-w-none" dangerouslySetInnerHTML={{ __html: html }} /> });
+    if (node !== null) parts.push({ card: cardOf(after) === cardOf(after + 1) ? cardOf(after) : -1, node });
     from = after + 1;
   }
+  const bodyParts = parts.flatMap(({ card, node }, i) => {
+    if (card < 0) return [node];
+    if (parts[i - 1]?.card === card) return [];
+    const held: React.ReactNode[] = [];
+    for (let j = i; parts[j]?.card === card; j++) held.push(parts[j]!.node);
+    return [<section key={`card-${card}`} className="card card-border bg-base-100 my-6"><div className="card-body">{held}</div></section>];
+  });
   const sourceLine = sourceLineFor(page);
   // The page ends with its sources: the body's own list where it has one,
   // else a heading over the line naming what the page is grounded in.
@@ -454,7 +444,7 @@ export function HostedArticle({ resolved }: { resolved: Resolved }): React.JSX.E
     listed === undefined && sourceLine !== null ? { id: SOURCES_ID, level: 2, text: copy("body.sources.heading") } : null;
   const sources = drawn ?? listed;
   const listedContents = contentsOf(headings);
-  const contents = drawn === null || listedContents.length === 0 ? listedContents : [...listedContents, drawn];
+  const contents = offering ? [] : drawn === null || listedContents.length === 0 ? listedContents : [...listedContents, drawn];
   // SPEC §7 (2026-10-11, issue 1397): how the page was made, and the way to
   // its sources.
   const madeText = page.made === null ? null : madeLine({ counts: page.made, site: business.domain, say: copy });
