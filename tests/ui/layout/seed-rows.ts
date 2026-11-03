@@ -319,3 +319,12 @@ export const LIVE_OWN_PAGES: readonly { path: string; html: string }[] = Object.
       "</main></body></html>",
   },
 ]);
+
+/** The insert that puts `LIVE_OWN_PAGES` on a scan as the site's own reads, at the evidence's measured time. */
+export function ownPagesInsert(scanId: string, domain: string): string {
+  const reads = LIVE_OWN_PAGES.map(({ path, html }, i) => {
+    const payload = { url: `https://${domain}${path}`, status: 200, html, bytes: html.length, readAt: EVIDENCE_MEASURED_AT };
+    return `('${scanId}', 'egress.safeFetch', 'sweep-own-${i}', 1, 0, 0, null, '${JSON.stringify(payload).replaceAll("'", "''")}'::jsonb, timestamptz '${EVIDENCE_MEASURED_AT}')`;
+  });
+  return `insert into fetches (scan_id, source, cache_key, policy_version, reserved_cents, cost_cents, billed_cents, payload, created_at) values ${reads.join(", ")};`;
+}
