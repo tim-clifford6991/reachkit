@@ -67,4 +67,5 @@ export const LIVE_SCHEMA_TESTS = [
   // The shared abuse-limit count, its windows, sweep and grants.
   "tests/db/rate-limits.test.ts",
   "tests/opportunities/asked-beside.test.ts",
+  "tests/scan/report/challenged-facts.test.ts",
 ];

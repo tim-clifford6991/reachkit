@@ -24,6 +24,7 @@ import {
   psql,
   psqlRows,
 } from "../../db/substrate";
+import "../../generate/env";
 
 const MIGRATIONS = path.resolve(import.meta.dirname, "../../../supabase/migrations");
 const APPLIED = [
@@ -186,6 +187,11 @@ describe("the attempt's own columns", () => {
   it("failure_reason and remote_id are nullable", () => {
     expect(columnOf("publications", "failure_reason")).toEqual(["text", "YES", "no default"]);
     expect(columnOf("publications", "remote_id")).toEqual(["text", "YES", "no default"]);
+  });
+
+  it("every column a take-down and an unpublish name is one of the table's", async () => {
+    const { PUBLICATION_COLUMNS } = await import("../../../src/lib/publish/attempt/unpublish");
+    expect(raises(`select ${PUBLICATION_COLUMNS} from publications limit 0;`)).toBe(false);
   });
 
   it("verify_due_at accepts null — a delivery with no address is due for no check", () => {

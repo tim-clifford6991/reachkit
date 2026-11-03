@@ -226,7 +226,7 @@ describe("ADR-084 Decision 2 — the liveness branch is the adapter's, and not t
   });
 
   it("made_live_by_us is carried across once, in the row mapping, and compared with nothing", () => {
-    expect(code.split("made_live_by_us")).toHaveLength(3); // the row shape and the mapping
+    expect(code.split("made_live_by_us")).toHaveLength(4); // the row shape, the columns it is read with, and the mapping
     expect(code).not.toMatch(/if\s*\([^)]*made_live_by_us/);
     expect(code).not.toMatch(/if\s*\([^)]*madeLiveByUs/);
   });
