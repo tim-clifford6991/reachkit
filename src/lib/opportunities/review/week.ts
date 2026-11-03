@@ -1,6 +1,4 @@
-// The owner's review of a site's week (`/app/review`): each committed row
-// with its points and rule, and each row left out with its reason, in the
-// columns the golden plans print. Pure.
+// The owner's review of a site's week (`/app/review`): committed rows and the rows left out, as the golden plans print. Pure.
 import type { PageReading } from "@/lib/measure/page-reading";
 import { contentTypeOf, type ContentType } from "../content-type";
 import { readOpportunity, type OpportunityRow, type PlanEntry } from "../store";
@@ -22,6 +20,7 @@ export interface CommittedRow {
   /** `YYYY-MM-DD`; `null` for a spare. */
   day: string | null;
   search: string | null;
+  title: string | null;
   type: string;
   /** The page it publishes; `null` only for an unblock. */
   page: ContentType | null;
@@ -57,6 +56,7 @@ export function reviewWeek(rows: readonly OpportunityRow[], choice: WeekChoice):
         place: entry.place,
         day: entry.plannedFor,
         search: row.target_query,
+        title: row.title,
         type: row.type,
         page: contentTypeOf(readOpportunity(row)),
         fit: row.business_fit ?? null,

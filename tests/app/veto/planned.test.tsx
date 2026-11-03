@@ -22,7 +22,6 @@ vi.mock("next/navigation", () => ({
 const VetoPage = (await import("../../../src/app/(public)/veto/[token]/page")).default;
 const { COPY } = await import("../../../src/lib/presentation/copy");
 const { plannedStopToken } = await import("../../../src/lib/opportunities/stop");
-const { formatMailDay } = await import("../../../src/lib/mail/blocks/format");
 
 // Far enough ahead that the link has not run out whenever this suite runs.
 const DAY = "2099-01-06";
@@ -85,9 +84,11 @@ describe("the stop link to a page not written yet", () => {
   it("arriving shows the planned page by its day and search, and stops nothing", async () => {
     const tree = await VetoPage({ params: { token: TOKEN } });
     const seen = strings(tree);
-    expect(seen).toContain(COPY["publish.veto.planned.title"].replace("{day}", formatMailDay(DAY)));
+    // The board's day-date, as the failed state writes it: no comma, day before month.
+    expect(seen).toContain(COPY["publish.veto.planned.title"].replace("{day}", "Tue 6 Jan"));
     expect(seen.some((s) => s.startsWith("slab leak repair cost"))).toBe(true);
-    expect(seen).toContain("harbor-plumbing.example");
+    // The board's short card: no page half, since nothing is written to show.
+    expect(nodes(tree).some((node) => node.type === "aside")).toBe(false);
     expect(status()).toBe("open");
   });
 

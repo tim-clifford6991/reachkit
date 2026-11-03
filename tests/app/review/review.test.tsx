@@ -21,21 +21,28 @@ const render = (sites: readonly ReviewSite[] | null) => renderToStaticMarkup(Rea
 
 /** The committed week's table. */
 const weekTable = (html: string) => html.split('data-testid="review-week"')[1]?.split("</table>")[0] ?? "";
-const committedRows = (html: string) => (weekTable(html).match(/<tbody>[\s\S]*<\/tbody>/)?.[0].match(/<tr/g) ?? []).length;
+const committedRows = (html: string) => (weekTable(html).match(/<tbody[^>]*>[\s\S]*<\/tbody>/)?.[0].match(/<tr/g) ?? []).length;
 const text = (html: string) => html.replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/\s+/g, " ");
 
 describe("a site with a committed week", () => {
   const saas = site("savvycal.com");
   const html = render([saas]);
 
-  it("shows the committed 7 and the spares, each with its points and rule", () => {
+  it("shows the committed 7 and the spares, each by its title and search, as the board draws a row", () => {
     expect(committedRows(html)).toBe(saas.week.committed.length);
     expect(saas.week.committed.filter((row) => row.day === null).length).toBeGreaterThan(0);
     expect(html).toContain(`>${copy("review.spare")}<`);
     for (const row of saas.week.committed) {
       expect(html).toContain(row.search!);
-      expect(html).toContain(row.rule!.replaceAll("&", "&amp;"));
+      if (row.title !== null) expect(html).toContain(`<strong>${row.title.replaceAll("&", "&amp;")}</strong>`);
+      // The store's internal type and the placing rule stay in reviewWeek, off the screen.
+      expect(html).not.toContain(`>${row.type}<`);
+      if (row.rule !== null) expect(html).not.toContain(row.rule.replaceAll("&", "&amp;"));
     }
+    const [first, ...rest] = saas.week.committed;
+    const titled = render([{ ...saas, week: { ...saas.week, committed: [{ ...first!, title: "Toilet repair in Austin" }, ...rest] } }]);
+    expect(text(weekTable(titled))).toContain("Toilet repair in Austin");
+    expect(html).not.toMatch(/Placed by|Fit [\d—]/);
     expect(html).not.toContain(copy("review.week.empty"));
   });
 
@@ -55,8 +62,43 @@ describe("a site with a committed week", () => {
     const title = copy("review.rejected.title", { count: String(saas.week.rejected.length) });
     const summary = html.match(/<summary[^>]*>([\s\S]*?)<\/summary>/)?.[1] ?? "";
     expect(summary).not.toMatch(/<(p|div)[\s>]/);
-    expect(text(summary).trim()).toBe(`${title} ${copy("review.rejected.lead")}`);
+    expect(text(summary).trim()).toBe(title);
+    expect(title).toBe(`Not chosen (${saas.week.rejected.length}), and why`);
     for (const row of saas.week.rejected) expect(text(html)).toContain(`${row.search!} : ${row.reason}`);
+  });
+});
+
+describe("the board's cuts and its 390 shape", () => {
+  const html = render([site("savvycal.com")]);
+
+  it("Not chosen is a primary link whose chevron leads, and a checked tab is primary", () => {
+    const summary = html.match(/<summary class="([^"]*)"[^>]*>([\s\S]*?)<\/summary>/)!;
+    expect(summary[1]).toContain("link-primary");
+    expect(summary[2]).toMatch(/^<svg[^>]*lucide-chevron-down/);
+    const tabs = html.match(/<label class="tab [^"]*"/g)!;
+    expect(tabs).toHaveLength(2);
+    for (const tab of tabs) {
+      expect(tab).toContain("has-checked:text-primary!");
+      expect(tab).toContain("has-checked:border-current!");
+    }
+  });
+
+  it("the title takes the type scale's h1 step, with no text-* class of its own", () => {
+    expect(html).toMatch(/<h1>/);
+    expect(html).not.toMatch(/<h1[^>]*class="[^"]*\btext-/);
+  });
+
+  it("heads the why column Why, with no caption saying who reads it", () => {
+    expect(copy("review.col.why")).toBe("Why");
+    expect(html).not.toContain("as the customer reads it");
+  });
+
+  it("each row stacks below sm, and from sm the Page column keeps a minimum width", () => {
+    expect(weekTable(html)).toMatch(/<thead class="[^"]*max-sm:hidden/);
+    const pages = [...weekTable(html).matchAll(/<td class="([^"]*)" data-testid="review-page"/g)].map((m) => m[1]!);
+    expect(pages).toHaveLength(committedRows(html));
+    for (const cls of pages) expect(cls).toMatch(/\bsm:min-w-\d+/);
+    expect(html).toMatch(/<tr class="max-sm:block max-sm:border-b/);
   });
 });
 

@@ -2,6 +2,7 @@
 // week and what was left out and why; the Pages tab, how each live page
 // stands. Read-only.
 import type React from "react";
+import { ChevronDown } from "lucide-react";
 import type { ContentType } from "@/lib/opportunities/content-type";
 import type { CommittedRow, NotChosenRow } from "@/lib/opportunities/review/week";
 import type { PointPart } from "@/lib/opportunities/types";
@@ -16,9 +17,16 @@ const SEP = ": ";
 const TABS = "review-tab";
 const WEEK = "week";
 const PAGES = "pages";
-const TABLE = "table table-sm";
+// Below `sm` each row stacks, as the board draws it at 390; from `sm` the Page column keeps its width.
+const TABLE = "table table-sm max-sm:block";
+const STACK = "max-sm:block";
+const ROW = "max-sm:block max-sm:border-b max-sm:border-base-300 max-sm:py-2";
+const CELL = "max-sm:block max-sm:border-0 max-sm:py-1";
 const NUM = "tabular-nums";
 const MUTED = "text-sm text-base-content/70";
+// The checked tab is primary and underlined, as the board draws it. A radio draws no
+// daisyUI bar of its own, so the bar is the label's border; `!` outranks the tab's own colours.
+const TAB = "tab min-h-11 rounded-none! border-b-3! border-transparent! has-checked:border-current! has-checked:text-primary!";
 
 const LABEL: Record<Label, { key: CopyKey; badge: string }> = {
   working: { key: "review.label.working", badge: "badge badge-soft badge-success" },
@@ -65,7 +73,7 @@ function pageWord(row: CommittedRow): string {
 
 function Head(p: { cols: readonly CopyKey[] }): React.JSX.Element {
   return (
-    <thead className="text-base-content/70">
+    <thead className="text-base-content/70 max-sm:hidden">
       <tr>
         {p.cols.map((key) => (
           <th key={key} scope={COL}>
@@ -91,35 +99,29 @@ function Committed(p: { domain: string; rows: readonly CommittedRow[] }): React.
     <Scroll label={p.domain}>
       <table className={TABLE} data-testid="review-week">
         <Head cols={["review.col.day", "review.col.page", "review.col.search", "review.col.points", "review.col.why"]} />
-        <tbody>
+        <tbody className={STACK}>
           {p.rows.map((row) => (
-            <tr key={row.place}>
-              <td className="whitespace-nowrap">{row.day === null ? copy("review.spare") : WEEKDAY.format(dateOf(row.day))}</td>
-              <td>
+            <tr key={row.place} className={ROW}>
+              <td className={`${CELL} whitespace-nowrap max-sm:text-xs max-sm:font-semibold max-sm:uppercase max-sm:text-base-content/70`}>
+                {row.day === null ? copy("review.spare") : WEEKDAY.format(dateOf(row.day))}
+              </td>
+              <td className={`${CELL} sm:min-w-40`} data-testid="review-page">
                 <span className="flex flex-col">
-                  <strong>{pageWord(row)}</strong>
-                  <span className="font-mono text-xs text-base-content/70">{row.type}</span>
+                  {row.title === null ? null : <strong>{row.title}</strong>}
+                  <span className="text-sm text-base-content/70">{pageWord(row)}</span>
                 </span>
               </td>
-              <td className="font-mono break-words">{cell(row.search)}</td>
-              <td>
-                <span className="flex flex-col gap-1">
+              <td className={`${CELL} font-mono break-words`}>{cell(row.search)}</td>
+              <td className={CELL}>
+                <span className="flex flex-wrap items-center gap-1">
                   <strong className={NUM}>{cell(row.points)}</strong>
-                  <span className="flex flex-wrap gap-1">
-                    {row.parts.map((part) => (
-                      <span key={part.part} className="badge badge-soft badge-primary badge-sm">{`${copy(PART[part.part])} ${part.n}`}</span>
-                    ))}
-                  </span>
-                  <span className="text-xs text-base-content/70">
-                    {copy("review.points.measures", { fit: cell(row.fit), volume: cell(row.volume) })}
-                  </span>
+                  {row.parts.map((part) => (
+                    <span key={part.part} className="badge badge-soft badge-primary badge-sm">{`${copy(PART[part.part])} ${part.n}`}</span>
+                  ))}
                 </span>
               </td>
-              <td>
-                <span className="flex flex-col gap-1">
-                  <span>{whyLineOf({ points: row.points ?? 0, parts: [...row.parts], rule: null }) ?? NONE}</span>
-                  <span className="text-xs text-base-content/70">{copy("review.why.rule", { rule: cell(row.rule) })}</span>
-                </span>
+              <td className={`${CELL} sm:min-w-50`}>
+                {whyLineOf({ points: row.points ?? 0, parts: [...row.parts], rule: null }) ?? NONE}
               </td>
             </tr>
           ))}
@@ -131,11 +133,11 @@ function Committed(p: { domain: string; rows: readonly CommittedRow[] }): React.
 
 function NotChosen(p: { rows: readonly NotChosenRow[] }): React.JSX.Element {
   return (
-    <details className="collapse collapse-arrow min-w-0 rounded-none">
-      <summary className="collapse-title min-h-0 p-0 pe-10 text-sm font-medium">
-        {/* Inline spans keep the board's sentence one run for the parity reading. */}
-        <span>{copy("review.rejected.title", { count: String(p.rows.length) })}</span>
-        <span className="block text-xs font-normal">{copy("review.rejected.lead")}</span>
+    // A quiet link that opens in place, as Plan draws it: the chevron leads and turns.
+    <details className="collapse group min-w-0 rounded-none">
+      <summary className="collapse-title link link-primary flex min-h-11 w-fit cursor-pointer list-none items-center gap-1.5 p-0 text-sm font-semibold no-underline [&::-webkit-details-marker]:hidden">
+        <ChevronDown aria-hidden className="size-4 shrink-0 transition-transform group-open:rotate-180" />
+        {copy("review.rejected.title", { count: String(p.rows.length) })}
       </summary>
       <ul className="collapse-content min-w-0 list-disc px-0 ps-5 pt-2 text-sm">
         {p.rows.map((row, n) => (
@@ -210,8 +212,14 @@ function Tabs(p: { sites: readonly ReviewSite[] }): React.JSX.Element {
   return (
     <div className="group flex min-w-0 flex-col gap-4">
       <div role="radiogroup" aria-label={copy("review.tabs")} className="tabs tabs-border min-w-0">
-        <input type="radio" name={TABS} value={WEEK} className="tab" aria-label={copy("review.tab.week")} defaultChecked />
-        <input type="radio" name={TABS} value={PAGES} className="tab" aria-label={copy("review.tab.pages")} />
+        <label className={TAB}>
+          <input type="radio" name={TABS} value={WEEK} className="sr-only" defaultChecked />
+          {copy("review.tab.week")}
+        </label>
+        <label className={TAB}>
+          <input type="radio" name={TABS} value={PAGES} className="sr-only" />
+          {copy("review.tab.pages")}
+        </label>
       </div>
       <div className="flex min-w-0 flex-col gap-4 group-has-[[value=pages]:checked]:hidden" data-testid="review-tab-week">
         {p.sites.map((site) => (
@@ -234,7 +242,7 @@ export function Review(p: { sites: readonly ReviewSite[] | null }): React.JSX.El
     <div className="flex min-w-0 flex-col gap-6" data-testid="review">
       <header className="flex min-w-0 flex-col gap-1">
         <span className="eyebrow">{week === null ? copy("review.eyebrow") : copy("review.eyebrow.week", { date: WEEK_OF.format(dateOf(week)) })}</span>
-        <h1 className="text-2xl font-semibold">{copy("review.title")}</h1>
+        <h1>{copy("review.title")}</h1>
       </header>
       {p.sites === null ? (
         <div role="alert" className="alert alert-soft alert-warning">
