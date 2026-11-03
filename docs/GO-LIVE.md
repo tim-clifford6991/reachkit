@@ -242,26 +242,31 @@ The render check ran the day before DMARC was published. DMARC is the dated line
 Everything else that must be true before a stranger pays. **This table is the only launch status.**
 `README.md` points here and does not keep its own. Rewritten 2026-09-23, after #885, #887, #888,
 #889, #339, #542, #1019 and #1043 had closed and the table still described them as in flight.
+Rows 1, 3, 4, 7, 9 and 10 refreshed and row 11 added 2026-11-03.
 
 | # | Must be true | State | Whose |
 |---|---|---|---|
-| 1 | **Stripe is live** | Half done. Production is on live Stripe (§1.1, checked 2026-10-02), but no live payment has completed. Open: the Customer emails setting (§1.3 step 7), one real payment, which also proves the webhook secret (§1.6), and its refund (§1.7). **#1042**, `blocked-on-owner`. | **[owner]** |
+| 1 | **Stripe is live** | Half done. Production is on live Stripe (§1.1, checked 2026-10-02), but no live payment has completed. Open: the Customer emails setting (§1.3 step 7), one real payment, which also proves the webhook secret (§1.6), and its refund (§1.7). **#1042**, `blocked-on-owner`; money spend is not approved, so no live payment has been made as of 2026-11-03. | **[owner]** |
 | 2 | **Mail reaches a real inbox** | Rendering is done (#339, closed 2026-09-22, §2.3). DMARC is published, report-only (#1043, closed 2026-09-23, §2.1). Tightening to `p=quarantine` is #1048 and is not on the launch queue. | **[protected]**, except #1048 |
-| 3 | **The legal pages carry real bodies** | `/privacy` and `/terms` have full written bodies. All three still carry `[[imprint: owner fills legal entity, address, VAT id]]`, and `/imprint` is little more than that placeholder. The same placeholder was in the footer of the mail the owner read on 2026-09-22. **#335**, `blocked-on-owner`. | **[owner]** |
-| 4 | **There is a way back from data loss** | **Accepted risk for the first rollout** (owner R18, 2026-10-22): Supabase Free, no PITR and no restore drill. Migrations are expand-only; data fixes are reversible and reviewed by release-qa; recovery is roll-forward (`docs/RUNBOOK.md` §9). #334 is closed as not planned and is reopened before scale. | — (ruled) |
+| 3 | **The legal pages carry real bodies** | `/privacy` and `/terms` have full written bodies. All three still carry `[[imprint: owner fills legal entity, address, VAT id]]`, and `/imprint` is little more than that placeholder. The same placeholder was in the footer of the mail the owner read on 2026-09-22. On 2026-11-03 it is still live on all three pages on `reachkit.app`. **#335**, `blocked-on-owner`. | **[owner]** |
+| 4 | **There is a way back from data loss** | **Accepted risk for the first rollout** (owner R18, 2026-10-22): Supabase Free, no PITR and no restore drill. Migrations are expand-only; data fixes are reversible and reviewed by release-qa; recovery is roll-forward (`docs/RUNBOOK.md` §9). #334 is closed as not planned and is reopened before scale. Free has no SLA. Statement timeouts under load were seen on 2026-11-03 (#2336) and fixed by PR #2337. | — (ruled) |
 | 5 | **A hosted page is reachable on the internet** | **Done 2026-10-02 (#1045).** The publish chain was proved with doubles first (#888, closed). On 2026-10-02 the dogfood's hosted host became `content.reachkit.app` (owner ruling, `docs/RUNBOOK.md` §2). It was attached by the product's own Check on production, with a team-scoped `VERCEL_API_TOKEN` and `VERCEL_TEAM_ID` (#1167). The attach line at 20:00:25 UTC is `{"host":"api.vercel.com","status":200}`. The project's domain list shows `content.reachkit.app` verified, and the destination row reads `live`. `curl -sI https://content.reachkit.app/` answers `200`. The hosted index, titled "Articles · reachkit.app", lists the dogfood's three live pages, and each answers `200`. | **[protected]** |
 | 6 | **One site cannot spend the whole product's day** | **[protected].** The per-site cap and the free-scan bounds are on `main` (#885, closed). The numbers are drafted defaults the owner may correct; that correction is not an open defect. | — |
-| 7 | **A paying customer can get in** | A magic link was walked on `dev.reachkit.app` on 2026-09-22: it arrived, signed in, and a second use was refused (#542, closed). Dev and production share one Supabase project and one sending domain. The production host has not been walked; that is part of **#1044**. The mail's "15 minutes" sentence was wrong and is fixed on `main` (#1019, #1014, both closed by #1022). | **[owner]** for the production host |
+| 7 | **A paying customer can get in** | A magic link was walked on `dev.reachkit.app` on 2026-09-22: it arrived, signed in, and a second use was refused (#542, closed). Dev and production share one Supabase project and one sending domain. The production host has not been walked as of 2026-11-03; that is part of **#1044**, `blocked-on-owner`. The mail's "15 minutes" sentence was wrong and is fixed on `main` (#1019, #1014, both closed by #1022). | **[owner]** for the production host |
 | 8 | **No `TODO(copy)` renders on the paying path** | **[protected].** No registry value is the marker (`TODO_COPY_MARKER` remains the string the audit refuses). `sendEmail` refuses a mail that contains it. | — |
-| 9 | **The buyer consents and the Terms match the offer** | PR #1641 (#1590) after the Stripe Terms URL (#1663); #1795 (Terms §1/§4/§5, the 14-day refund) with #1707. | **[code]** + **[owner]** #1663 |
-| 10 | **Every screen on the paying path matches its board** | `/root/projects/reports/golive-map-2026-10-22.md` Part 3 A3; CI parity is 0 on each Must board. | **[code]** |
+| 9 | **The buyer consents and the Terms match the offer** | PR #1641 (#1590) is green and held for the Stripe Terms URL (#1663, owner). #1664 (the consent confirmed on a durable medium) follows #1641. The Terms state the 14-day refund (#1795, closed 2026-10-23) and the automatic refund is on `main` (PR #1707). | **[code]** + **[owner]** #1663 |
+| 10 | **Every screen on the paying path matches its board** | Partial. The canvas v36 wave (`/root/projects/reports/delivery-status.md`) has 18 of its 19 issues closed on 2026-11-03; #2271 (PubHowItWorks) is open. Every board's `missing` count in `docs/design/parity/` is 0 except Review (owner only, 39); several boards still carry a `components` gap. | **[code]** |
+| 11 | **Supabase stays within the Free egress quota (5 GB a month, about 166 MB a day)** | The project is on Free (Nano compute); the Fair Use Policy applies to it from 2026-11-25. Shipped 2026-11-01 to 11-03: #2251, #2252, #2253, #2254, #2103 (PR #2333), #2104 (PR #2334), #2107 (PR #2338, which also makes `select("*")` a lint error), #2336 (PR #2337) and the stored-text shadow read (PR #2310). Open: the stored-text switch (#2340, the PR #2310 follow-up), #2106 (dev and preview share the production project) and the measured daily figure, **not measured since 2026-11-01**. Due 2026-11-25. | **[code]** |
 
 Vercel Hobby for the first rollout (R18): Hobby's commercial-use clause is an owner-accepted risk;
 at most 100 API deploys per rolling day, with production batched every 2 h. Vercel Pro (#1632) is
 closed as not planned and is not a precondition to sell.
 
-The open Launch issues are the rows still marked not done: #1042, #335, #1663, #1590, #1044, and
-the A3 parity issues in the go-live map.
+Accepted risk: no session inactivity timeout (it needs Supabase Pro); accepted for the first rollout
+under R18.
+
+The open Launch issues are the rows still marked not done: #1042, #335, #1663, #1590/#1641, #1664
+and #1044, and the egress row (11: #2340, #2106) until it is done.
 
 The stranger walk itself (#1044) is prepared in `docs/walk/README.md`: the tester's script, the
 findings form, what to watch in production, the refund as a runbook, and which of the rows above
