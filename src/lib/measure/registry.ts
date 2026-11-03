@@ -218,7 +218,7 @@ const LIST = (
       id: "overview-market-month",
       shown: { on: "tile", key: "overview-tile-market" },
       definition:
-        "x of N: of the market's biggest searches the month's first Monday pass measured, how many show the site on Google's first page, beside the count at the customer's own scan.",
+        "x of N: of the market's biggest searches the month's first Monday pass measured, how many show the site on Google's first page, beside the count at the customer's own scan. A pass that measured fewer searches than it selected shows no figure.",
       source: "src/lib/measure/figures.ts#monthFiguresOf",
       cadence: "Monthly, on the first Monday.",
     },
