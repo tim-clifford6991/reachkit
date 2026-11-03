@@ -168,6 +168,7 @@ export const PROFILE_FIELDS: Readonly<Record<Exclude<keyof Profile, "language">,
 
 export const PROFILE_TASK =
   "Describe the business whose home page (and pricing page, when given) follow, the way a buyer would. " +
+  "Where the pages do not say what the business sells, answer `category` with \"<UNKNOWN>\" and do not guess. " +
   "Answer with one JSON object and nothing else: no prose, no code fence. It has exactly the fields " +
   "listed under `fields` and no other; each entry says what goes in that field.";
 

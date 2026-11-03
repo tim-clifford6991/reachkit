@@ -7,7 +7,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { challengeOf, isProtectionName, notTheSiteOf } from "@/lib/measure/challenge";
+import { challengeOf, isProtectionName, notTheSiteOf, saysNothing } from "@/lib/measure/challenge";
 
 const page = (name: string): string => readFileSync(join(__dirname, "fixtures/challenge", name), "utf8");
 
@@ -43,6 +43,19 @@ describe("challengeOf", () => {
     ["a page behind Akamai (nike.com)", { server: "AkamaiGHost" }, "site.nike.com.html"],
   ] as const)("reads %s as the site's own", (_what, headers, file) => {
     expect(challengeOf({ status: 200, headers, html: page(file) })).toBeNull();
+  });
+
+  // Imperva's JavaScript challenge, served with a 200 to a non-browser
+  // reader: a noindex, the challenge's script and an empty body.
+  it("reads Imperva's empty challenge page served with a 200 as Imperva's (bettys.co.uk)", () => {
+    expect(challengeOf({ status: 200, html: page("imperva-challenge.bettys.co.uk.html") })).toBe("Imperva");
+  });
+
+  it("reads a page of the site's own that carries Imperva's script and has its own text as the site's", () => {
+    const words = "Afternoon tea, cakes and loose leaf tea from our Yorkshire bakery, delivered across the country. ".repeat(14);
+    const html = `<html><head><title>Bakery</title><script src="/_Incapsula_Resource?SWJIYLWA=5074a744"></script></head><body><p>${words}</p></body></html>`;
+    expect(words.length).toBeGreaterThanOrEqual(1200);
+    expect(challengeOf({ status: 200, html })).toBeNull();
   });
 
   it("does not call a site's own error page a challenge", () => {
@@ -95,6 +108,19 @@ describe("notTheSiteOf", () => {
     expect(notTheSiteOf({ status: 200, headers: { server: "cloudflare" }, html: page("site.crunchbase.com.html") })).toBeNull();
     const app = `<html><body><h1>Design together</h1><script>${'{"modal_error_rate_limit_exceeded":"Signup attempt rate limit exceeded"}'.repeat(2000)}</script></body></html>`;
     expect(notTheSiteOf({ status: 200, html: app })).toBeNull();
+  });
+});
+
+describe("saysNothing", () => {
+  it("reads an empty page as saying nothing of what the business sells", () => {
+    expect(saysNothing('<html><head></head><body><div id="root"></div><script src="/app.js"></script></body></html>')).toBe(true);
+  });
+
+  // The panel's bakery, read on 2026-11-03: a shell whose only words are its title.
+  it("reads a shell whose title names the business as saying it (baeckerei-hinkel.de)", () => {
+    const html = page("site.baeckerei-hinkel.de.html");
+    expect(challengeOf({ status: 200, html })).toBeNull();
+    expect(saysNothing(html)).toBe(false);
   });
 });
 

@@ -26,6 +26,7 @@ import type { RivalConclusion } from "@/lib/market/infer/types";
 import { promptSiteName } from "@/lib/market/prompts/generate";
 import { rewrittenSiteName, storedSiteName } from "@/lib/site-profile/site-name";
 import { AI_ANSWER_SOURCES, AI_OVERVIEW_TEXT_MAX_CHARS } from "@/lib/vendors/dataforseo/types";
+import { BOT_PROTECTION, HOME_WORDLESS } from "@/lib/measure/challenge";
 import { OWN_FETCH_SOURCE } from "@/lib/measure/own-fetch";
 import { checked, factsLoader, type MinimalClient, type MinimalResult } from "./fetch-facts";
 import { readStoredReport } from "./report";
@@ -400,7 +401,20 @@ function totals(rows: readonly Row[], unreadable: readonly { id: string; because
     `- Rivals change: ${count(touched("rivals"))}; presence card: ${count(touched("presence"))}; AI answers: ${count(touched("aiAnswers"))}; coherence: ${count(touched("coherence"))}; free page re-picked: ${count(touched("freePage"))}`,
     `- Verdict rewritten without a score move (factors, limiting factor or unread inputs): ${count((row) => touched("verdict")(row) && scoreText(row.result.before) === scoreText(row.result.after))}`,
     `- Status changes: ${count((row) => row.scan.status !== row.result.status)}`,
+    `- Market withdrawn, read off no words of the site's: ${count(withdrawn())} (a protection's page: ${count(withdrawn(BOT_PROTECTION))}; a home page that says nothing: ${count(withdrawn(HOME_WORDLESS))})${withdrawnDomains(rows)}`,
   ];
+}
+
+/** Whether a row's market is withdrawn, for `because` where given. */
+function withdrawn(because?: string): (row: Row) => boolean {
+  return (row) =>
+    row.result.changes.some((c) => c.path.length === 1 && c.path[0] === "market" && (because === undefined || (c.value as { because?: unknown } | null)?.because === because));
+}
+
+/** The domains whose market is withdrawn, so a dry run names them. */
+function withdrawnDomains(rows: readonly Row[]): string {
+  const domains = [...new Set(rows.filter(withdrawn()).map((row) => row.report.domain))].sort();
+  return domains.length === 0 ? "" : `: ${domains.join(", ")}`;
 }
 
 /** Issue 1470: how many stored profiles gain each part of the business's

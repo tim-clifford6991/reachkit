@@ -1,6 +1,9 @@
 // Issues 1426 and 1433 — stored scans and a stored rival set, read again by
 // the current code from what was stored, as the `scan/rescore` job reads
 // them: the rows whole, through a store that stands in for the database.
+import "../../generate/env";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { offline } from "../../../src/lib/egress/offline";
 import { KEPT_CONTENT_PAGES, KEPT_NO_OVERVIEW_TEXT, KEPT_TOWN_BOUGHT, rehomeSite } from "../../../src/lib/scan/rescore";
@@ -16,6 +19,8 @@ import {
   type StoredSiteRow,
 } from "../../../src/lib/scan/rescore-run";
 import type { RivalConclusion } from "../../../src/lib/market/infer/types";
+import { awaitsMarketFromSearch } from "../../../src/lib/scan/pass/market";
+import type { StoredReport } from "../../../src/lib/scan/report";
 import { apply, dry, fixture, md5, ownOf, read, readOf, storeOf, type FixtureScan } from "./rescore-store";
 
 describe("gusto.com's scan of 8 October (issue 1418): measured off Cloudflare's page, read again", () => {
@@ -53,9 +58,64 @@ describe("gusto.com's scan of 8 October (issue 1418): measured off Cloudflare's 
   });
 });
 
+describe("a market read off a home page that held none of the site's words is withdrawn at 0¢", () => {
+  const imperva = readFileSync(join(__dirname, "../../measure/domain/fixtures/challenge/imperva-challenge.bettys.co.uk.html"), "utf8");
+  /** gusto.com's stored scan, its market read from the home page, over another stored home read. */
+  const over = (html: string, report: Record<string, unknown> = {}): FixtureScan => {
+    const s = fixture("gusto.com");
+    const home = s.home!;
+    const payload = { ...(home.payload as Record<string, unknown>), status: 200, headers: {}, html, bytes: html.length };
+    return { ...s, report: { ...s.report, ...report }, home: { ...home, payload } };
+  };
+  const written = (db: ReturnType<typeof storeOf>, s: FixtureScan) => db.rows.get(s.id)!.report as unknown as StoredReport;
+
+  it("Imperva's empty challenge, served with a 200: unscored, the market withdrawn, the next scan reads it from the listing, and nothing is bought", async () => {
+    const fetched = vi.fn();
+    vi.stubGlobal("fetch", fetched);
+    try {
+      const s = over(imperva);
+      const db = storeOf([s]);
+      const answer = await rescoreStored(db.store, apply);
+      const report = written(db, s);
+      expect(report.verdict.scoreAndBand.kind).toBe("unmeasured");
+      expect(report.onPage).toMatchObject({ kind: "unmeasured", because: "bot_protection" });
+      expect(report.market).toMatchObject({ kind: "unmeasured", because: "bot_protection" });
+      expect(report.freePage).toBeNull();
+      expect(awaitsMarketFromSearch(report, new Date())).toBe(true);
+      expect(answer.summary).toContain("- Market withdrawn, read off no words of the site's: 1 (a protection's page: 1; a home page that says nothing: 0): gusto.com");
+      expect(fetched).not.toHaveBeenCalled();
+      expect(await rescoreStored(db.store, apply)).toMatchObject({ scansChanged: 0, scansWritten: 0 });
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("keeps a market read from the listing, and still states no score", async () => {
+    const s = over(imperva, { marketFrom: "search" });
+    const db = storeOf([s]);
+    const answer = await rescoreStored(db.store, apply);
+    expect(written(db, s).market.kind).toBe("measured");
+    expect(written(db, s).verdict.scoreAndBand.kind).toBe("unmeasured");
+    expect(answer.summary).toContain("- Market withdrawn, read off no words of the site's: 0 (");
+  });
+
+  it("a home page of the site's own that says nothing: the market withdrawn, its measured facts kept", async () => {
+    const shell = '<html lang="en"><head><title>Gusto</title></head><body><div id="root"></div><script src="/app.js"></script></body></html>';
+    const s = over(shell);
+    const db = storeOf([s]);
+    const answer = await rescoreStored(db.store, apply);
+    const report = written(db, s);
+    expect(report.market).toMatchObject({ kind: "unmeasured", because: "home_wordless" });
+    expect(report.onPage.kind).toBe("measured");
+    expect(awaitsMarketFromSearch(report, new Date())).toBe(true);
+    expect(answer.summary).toContain("(a protection's page: 0; a home page that says nothing: 1): gusto.com");
+  });
+});
+
 describe("stored placeholders, names and dates, read again at 0¢ (issue 1479)", () => {
   it("gusto.com's stored category <UNKNOWN> is written as none, and a second apply changes nothing", async () => {
-    const db = storeOf([fixture("gusto.com")]);
+    // Without its home read, which was Cloudflare's page and would withdraw the whole market.
+    const db = storeOf([{ ...fixture("gusto.com"), home: null }]);
     await rescoreStored(db.store, apply);
     const profile = db.written[0]!.changes.find((c) => c.path.join(".") === "market.value.profile");
     expect(profile?.value).toEqual({ category: "" });
@@ -459,7 +519,8 @@ describe("issue 1504: a free scan's town its profile no longer reads stands wher
   // 16 October: a CRM read as software, sold internationally, whose
   // searches were bought in Austin off the town its footer gave.
   const withPlace = (profile: Record<string, unknown>): FixtureScan => {
-    const s = fixture("gusto.com");
+    // Without its home read, which was Cloudflare's page and would withdraw the market.
+    const s = { ...fixture("gusto.com"), home: null };
     const report = structuredClone(s.report) as Record<string, unknown> & { market: { value: { profile: Record<string, unknown> } } };
     report.locale = { country: "US", language: "en", place: { name: "Austin", region: "Texas", location: "Austin,Texas,United States" }, placeFrom: "page_text" };
     report.market.value.profile = { ...report.market.value.profile, category: "sales CRM software", ...profile };

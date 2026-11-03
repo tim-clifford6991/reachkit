@@ -11,6 +11,7 @@ import { marketSeeds, measuredMarketOf, unjudged } from "@/lib/market/questions/
 import type { Locale, Place } from "@/lib/locale/locales";
 import { localSearch } from "@/lib/locale/place";
 import { BOT_PROTECTION, type DomainMeasurement } from "@/lib/measure";
+import { HOME_WORDLESS } from "@/lib/measure/challenge";
 import { unmeasured } from "@/lib/measure/measured";
 import { STAGE_BUDGETS, affordsSeed, questionsAffordable } from "../budgets";
 import type { Bounds } from "../ceilings";
@@ -26,7 +27,8 @@ import { sizeTrackedRivals } from "./rivals";
  *
  * **A site its bot protection kept the reader off** (SPEC §2, owner
  * 2026-10-10, issue 1387), or whose home page did not answer in time
- * (issue 1449), has no text of its own, and only then is its
+ * (issue 1449), has no text of its own, and neither has one whose home
+ * page says nothing of what it sells; only then is its
  * listing in search read in its place: the ranked rows stage one already
  * bought, with the title and snippet Google shows for each page. A listing
  * too thin to name a market from is not read, and the reason is kept.
@@ -35,14 +37,14 @@ function marketReadingOf(
   a: StageArgs,
   measurement: DomainMeasurement
 ): { home: string; pricing?: string } | { search: string } | null {
-  if (measurement.text.home !== null) {
+  if (measurement.text.home !== null && measurement.homeWordless !== true) {
     return {
       home: measurement.text.home,
       ...(measurement.text.pricing === null ? {} : { pricing: measurement.text.pricing }),
     };
   }
   // Issue 1449: and so is one whose home page did not answer in time.
-  if (measurement.protection === undefined && measurement.homeTimedOut !== true) return null;
+  if (measurement.protection === undefined && measurement.homeTimedOut !== true && measurement.homeWordless !== true) return null;
   return listingReadingOf(a, measurement);
 }
 
@@ -81,7 +83,10 @@ function logMarketFromSearch(fields: { read: boolean; because?: ThinFootprint; s
  * carries that reason, and is served as any other.
  */
 export function awaitsMarketFromSearch(report: StoredReport, now: Date): boolean {
-  if (report.market.kind !== "unmeasured" || report.market.because !== undefined) return false;
+  if (report.market.kind !== "unmeasured") return false;
+  // A market the re-score withdrew, read off a page that was not the site's words.
+  if (report.market.because === BOT_PROTECTION || report.market.because === HOME_WORDLESS) return true;
+  if (report.market.because !== undefined) return false;
   if (report.onPage.kind === "unmeasured" && report.onPage.because === BOT_PROTECTION) return true;
   // Issue 1450: a site that ranks, whose market a vendor or the model did
   // not answer for. This build reads one from its ranked rows instead —
@@ -106,11 +111,11 @@ export async function readMarket(a: StageArgs, abandoned: () => boolean): Promis
   let profile = await attempt("reading_your_market", () => deriveProfile(cost, { locale: localeOfPass(a), ...pages }));
   if (abandoned()) return;
   // Issue 1450: the site's pages were read and the model gave no profile of
-  // them (trello.com's call came back `http_400`). A site that ranks has a
+  // them (trello.com's call came back `http_400`), or named no category. A site that ranks has a
   // listing in search, and that is read in their place, as for a site its
   // bot protection kept the reader off — but only where the pass still has
   // the time for this call and the phrasing after it.
-  if ((failed(profile) || profile.kind === "unmeasured") && "home" in reading && roomForAnotherProfile(bounds)) {
+  if ((failed(profile) || profile.kind === "unmeasured" || profile.value.category === "") && "home" in reading && roomForAnotherProfile(bounds)) {
     const listing = listingReadingOf(a, measurement);
     if (listing !== null) {
       reading = listing;
@@ -119,17 +124,15 @@ export async function readMarket(a: StageArgs, abandoned: () => boolean): Promis
     }
   }
   if (failed(profile)) return;
-  if ("search" in reading) {
-    // The model was told to name no category the listing does not support
-    // (issue 1387). Where it named none, there is no market, and none is
-    // guessed: the pass goes on as it did before the listing was read.
-    if (profile.kind !== "unmeasured" && profile.value.category === "") {
-      sections.marketThin = "market_not_named";
-      logMarketFromSearch({ read: false, because: "market_not_named" });
-      return;
-    }
-    if (profile.kind !== "unmeasured") sections.marketFrom = "search";
+  // The model was told to name no category the pages or the listing do not
+  // support (issue 1387). Where it named none, there is no market, and none
+  // is guessed.
+  if (profile.kind !== "unmeasured" && profile.value.category === "") {
+    sections.marketThin = "market_not_named";
+    logMarketFromSearch({ read: false, because: "market_not_named" });
+    return;
   }
+  if ("search" in reading && profile.kind !== "unmeasured") sections.marketFrom = "search";
   sections.profile = profile;
   if (profile.kind === "unmeasured") return;
   // Issue 1454: on a paying site the customer's corrections to who buys

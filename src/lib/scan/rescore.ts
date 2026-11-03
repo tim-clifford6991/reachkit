@@ -24,7 +24,7 @@
 // carries it without a new pass.
 import { retrofitReading, type Retrofit } from "@/lib/business/retrofit";
 import { aiPresenceOf, aiPresenceRangeOf, aiSampleOf, classifyReferences, foundationsOf, searchPresenceOf, searchPresenceRangeOf } from "@/lib/measure/drivers";
-import { isProtectionName } from "@/lib/measure/challenge";
+import { BOT_PROTECTION, HOME_WORDLESS, isProtectionName } from "@/lib/measure/challenge";
 import { contentOf, measuredPagesOf } from "@/lib/measure/pages";
 import { marketsServedFrom } from "@/lib/locale/read";
 import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
@@ -92,6 +92,7 @@ export interface RescoreReport extends Pick<
   | "marketPrompts"
   | "locale"
   | "prompts"
+  | "marketFrom"
 > {
   /** The page questions beside the twelve (#919), whose AI-Overview cells
    *  count toward AI presence (issue 1551). Absent or `null`: none. */
@@ -418,9 +419,11 @@ export function rescoreScan(scan: RescoreScan): Rescored {
 
   // A home read that was a protection's page is no reading of the site
   // (issue 1383): the report says what a new scan of it would say.
+  let unread = r.onPage.kind === "unmeasured" && r.onPage.because === BOT_PROTECTION;
   if (r.onPage.kind !== "unmeasured") {
     if (scan.home === null) kept.push("home page: its stored read is gone, so it was not checked for a protection's page");
     else if (readAsProtection({ home: scan.home, rendered: scan.rendered })) {
+      unread = true;
       after = { ...after, ...unreadByProtection({ ...after, robots: r.robots, blockedAgents: r.blockedAgents }) };
       drivers.foundations = after.verdict.factors.foundations;
       drivers.answerability = after.verdict.factors.answerability;
@@ -428,15 +431,40 @@ export function rescoreScan(scan: RescoreScan): Rescored {
   }
 
   const before = membersOf(r);
+  const withdrawn = withdrawnMarketOf(r, scan, unread, at);
   // The run hands over the whole stored report; its type names only what a score reads.
-  const freePage = freePageChanges({ ...read, ...after, scanId: scan.id } as unknown as StoredReport);
-  const changes = [...changesOf(before, after), ...profileChanges(r, profile, reading), ...promptChanges(r, scan), ...servedChanges(r, scan), ...freePage];
+  const freePage = withdrawn ?? freePageChanges({ ...read, ...after, scanId: scan.id } as unknown as StoredReport);
+  const changes = [...changesOf(before, after), ...(withdrawn === null ? profileChanges(r, profile, reading) : []), ...promptChanges(r, scan), ...servedChanges(r, scan), ...freePage];
   // A new date is a change though `same` reads past dates: the whole
   // verdict is written again, every member of it carrying that date.
   if (at.getTime() !== new Date(r.verdict.measuredAt).getTime() && !changes.some((c) => c.path.length === 1 && c.path[0] === "verdict")) {
     changes.unshift({ path: ["verdict"], value: after.verdict });
   }
   return { before, after, changes, drivers, score: shownScore(after), status: statusAfter(scan.status, before.verdict, after.verdict), kept, stale, reading };
+}
+
+/**
+ * A market read off a home page that held none of the site's words — a
+ * protection's page, or a page of the site's that says nothing — is no
+ * reading of its market. It is withdrawn with why, and so is the page
+ * proposed from it, so the domain's next requested scan reads its market
+ * from its listing (`awaitsMarketFromSearch`). One read from the listing
+ * stands. `null` where nothing is withdrawn.
+ */
+function withdrawnMarketOf(r: RescoreReport, scan: Pick<RescoreScan, "home" | "rendered">, unread: boolean, at: Date): ReportChange[] | null {
+  if (r.market.kind === "unmeasured" || r.marketFrom === "search") return null;
+  const wordless = !unread && scan.home?.facts.wordless === true && !readAsDrawn(scan.home, scan.rendered);
+  if (!unread && !wordless) return null;
+  const changes: ReportChange[] = [{ path: ["market"], value: unmeasured("undeterminable", at, unread ? BOT_PROTECTION : HOME_WORDLESS) }];
+  if ((r as Partial<Pick<StoredReport, "freePage">>).freePage !== null) changes.push({ path: ["freePage"], value: null });
+  return changes;
+}
+
+/** Whether a rendered read since this home read drew the site, whose text the
+ *  profile was then read from. */
+function readAsDrawn(home: { created_at: string }, rendered: RescoreScan["rendered"]): boolean {
+  const since = new Date(home.created_at).getTime();
+  return rendered.some((row) => new Date(row.created_at).getTime() >= since && row.facts.drawn);
 }
 
 /** The other markets the stored home read declares (`marketsServed`),

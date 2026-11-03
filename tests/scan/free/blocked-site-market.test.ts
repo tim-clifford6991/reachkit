@@ -414,6 +414,61 @@ describe("a site its bot protection kept the reader off (SPEC §2, issue 1387)",
     expect(measured.measured).toBe(true);
     expect(labsRequests.some((request) => request.url.includes("ranked_keywords"))).toBe(true);
   }, PASS_TIMEOUT_MS);
+
+  it("Imperva's empty challenge served with a 200 is the protection's page: no score, and the market read from the listing", async () => {
+    served = { status: 200, headers: {}, html: challenge("imperva-challenge.bettys.co.uk.html") };
+    recording = loadRecording("sage.com");
+    const { report } = await scan("sage.com");
+
+    expect(report.onPage).toMatchObject({ kind: "unmeasured", because: "bot_protection" });
+    expect(report.verdict.scoreAndBand.kind).toBe("unmeasured");
+    expect(report.verdict.factors.foundations.kind).toBe("unmeasured");
+    expect(profileInputs()).toHaveLength(1);
+    expect(JSON.parse(profileInputs()[0] as string)).not.toHaveProperty("home");
+    expect(report.marketFrom).toBe("search");
+  }, PASS_TIMEOUT_MS);
+
+  /** A page of the site's own that renders its words in the browser only. */
+  const WORDLESS: Served = { status: 200, headers: {}, html: '<!doctype html><html><head><title>Sage</title></head><body><div id="root"></div><script src="/app.js"></script></body></html>' };
+
+  it("a home page of the site's own with no words is never profiled: the market is read from the listing the pass already bought", async () => {
+    served = WORDLESS;
+    recording = loadRecording("sage.com");
+    const { report, ledger } = await scan("sage.com");
+
+    expect(profileInputs()).toHaveLength(1);
+    const asked = JSON.parse(profileInputs()[0] as string) as { search?: string; home?: string };
+    expect(asked.home).toBeUndefined();
+    expect(asked.search).toContain("Site: sage.com");
+    expect(ledger.filter((row) => row.source.endsWith("ranked_keywords")).map((row) => row.cacheKey)).toEqual([expect.stringMatching(/\|listing$/)]);
+    expect(report.marketFrom).toBe("search");
+    expect(report.market.kind).not.toBe("unmeasured");
+    // The page is the site's: it is measured as it is.
+    expect(report.onPage.kind).not.toBe("unmeasured");
+  }, PASS_TIMEOUT_MS);
+
+  it("a home page with no words and a listing too thin guesses no market, and keeps why", async () => {
+    served = WORDLESS;
+    labsDouble = fewRows(6);
+    const { report } = await scan("sage.com");
+
+    expect(modelCalls).toHaveLength(0);
+    expect(suggestionsBought()).toBe(0);
+    expect(report.market).toMatchObject({ kind: "unmeasured", because: "few_ranked_searches" });
+  }, PASS_TIMEOUT_MS);
+
+  it("a home page whose profile names nothing it sells, nor its listing, gives no market and no category", async () => {
+    served = READABLE;
+    recording = loadRecording("sage.com");
+    scripted = (input) =>
+      echoPhrasing(input) ??
+      { category: "<UNKNOWN>", job: "", offeringType: "", audienceTerms: ["unknown", "unknown"], namedRivals: [], vocabulary: [], brandTokens: [] };
+    const { report } = await scan("sage.com");
+
+    expect(JSON.parse(profileInputs()[0] as string)).toHaveProperty("home");
+    expect(suggestionsBought()).toBe(0);
+    expect(report.market).toMatchObject({ kind: "unmeasured", because: "market_not_named" });
+  }, PASS_TIMEOUT_MS);
 });
 
 describe("a site that ranks, whose market a vendor or the model did not answer for (issue 1450)", () => {
