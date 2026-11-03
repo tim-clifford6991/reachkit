@@ -34,10 +34,10 @@
 import { execFileSync } from "node:child_process";
 import { createHmac } from "node:crypto";
 
-/** Where the substrate listens. Fixed rather than read: `up.sh` gives each
- *  run its own *database* on one server, not its own server. */
+/** Where the substrate listens. `RK_DB_PORT` lets two engineers each run
+ *  their own server; unset, it is the shared one CI uses. */
 export const DB_HOST = "127.0.0.1";
-export const DB_PORT = "5432";
+export const DB_PORT = process.env.RK_DB_PORT ?? "5432";
 export const DB_USER = "reachkit";
 export const DB_PASSWORD = "reachkit";
 

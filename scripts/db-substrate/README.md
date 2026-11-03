@@ -110,7 +110,7 @@ stops the stack and drops the database when the job ends.
 ### What `up.sh` starts
 
 PostgreSQL must already be listening (the shared box's native PostgreSQL 18
-on `127.0.0.1:5432`, which is also what CI uses). PostgREST comes from Docker, pinned to
+on `127.0.0.1:5432`, which is also what CI uses; set `RK_DB_PORT` to point `up.sh` and `tests/db/substrate.ts` at your own cluster instead, and `up.sh --print-env --run` shows the result without starting anything). PostgREST comes from Docker, pinned to
 `ghcr.io/postgrest/postgrest:v16.2` (`pull-postgrest.sh` retries it with backoff, then
 falls back to Docker Hub's `postgrest/postgrest:v16.2`, which refuses anonymous pulls from
 hosted runners), **or** from a native binary where there is no
