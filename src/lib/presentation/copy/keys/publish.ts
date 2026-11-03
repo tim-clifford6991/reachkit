@@ -523,6 +523,7 @@ export const PUBLISH_COPY = Object.freeze({
   "hosted.index.all": ["All guides", { slots: {}, fixedBy: "board HostedIndex · issue 1789" }],
   "hosted.index.allLead": ["Every guide on this site, by topic.", { slots: {}, fixedBy: "board HostedIndex · issue 1789" }],
   "hosted.index.topicCount": ["{count} guides", { slots: { count: "text" }, fixedBy: "board HostedIndex · issue 1789" }],
+  "hosted.index.other": ["Other guides", { slots: {}, fixedBy: "ux review of PR 2322 · drafted" }],
 
   "publish.wordpress.noSeoPlugin": ["No SEO plugin was found on your site, so the title and description weren’t written into one. The page is live all the same.", { slots: {}, fixedBy: "REQ-060 c4" }],
 }) satisfies CopyPartition;

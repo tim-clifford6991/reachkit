@@ -60,6 +60,7 @@ function stored({ pack, parts }: OfferingFixture, template: Template = fittedTem
     faq: laid.faq,
     offering: true,
     whereWhen: laid.sections.find((section) => section.key === "where_when")?.heading ?? null,
+    carded: laid.sections.filter((section) => ["included", "price", "where_when"].includes(section.key)).map((section) => section.heading),
   });
 }
 
@@ -104,6 +105,19 @@ describe("E10: the hosted offering page draws the draft's sections in the fixed 
     expect(marks.every((mark) => mark !== undefined)).toBe(true);
     for (let i = 1; i < marks.length; i++) expect(before(marks[i - 1]!, marks[i]!)).toBe(true);
     expect(ofType(doc, "FAQPage")).toHaveLength(1);
+    // The service board draws no contents list.
+    expect(doc.querySelector('nav[aria-label="On this page"]')).toBeNull();
+  });
+
+  it("(a) what is included, the price and where each sit in a card, and the body's own HTML is unchanged", () => {
+    const page = stored(PLUMBER);
+    const doc = render(page);
+    const cards = [...doc.querySelectorAll("article section.card")].map((card) => card.querySelector("h2")?.textContent);
+    const carded = PLUMBER.parts.sections.filter((section) => ["included", "price", "where_when"].includes(section.key));
+    expect(carded).toHaveLength(3);
+    expect(cards).toEqual(carded.map((section) => section.heading));
+    const prose = (d: Document): string => [...d.querySelectorAll(".prose")].map((div) => div.innerHTML).join("").replace(/>\s+</g, "><");
+    expect(prose(doc)).toBe(prose(render({ ...page, carded: [] })));
   });
 
   it("(a) Service.areaServed is the visible Where and when list, exactly; Organization carries none", () => {

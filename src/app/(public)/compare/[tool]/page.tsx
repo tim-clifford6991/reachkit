@@ -4,7 +4,6 @@
 // call to scan.
 import type React from "react";
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CircleCheck, CircleX, Contrast, MessageSquare, Scale, Sparkles, User } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
@@ -24,6 +23,7 @@ import {
   Pick,
   Tile,
   Trademarks,
+  Trail,
   YourPart,
 } from "../../_library/parts";
 import { Sources } from "../../_library/sources";
@@ -210,16 +210,7 @@ export default async function ComparisonPage({ params }: Params): Promise<React.
       testId={PAGE_TEST_ID}
       title={c.heading ?? c.title}
       trail={
-        <nav aria-label={copy("compare.item.trail")} className="breadcrumbs text-base-content/70 py-0 text-sm">
-          <ul>
-            <li>
-              <Link href={INDEX} className="link link-primary link-hover inline-flex min-h-11 items-center font-semibold">
-                {copy(EYEBROW)}
-              </Link>
-            </li>
-            {group === undefined ? null : <li>{copy(group.name)}</li>}
-          </ul>
-        </nav>
+        <Trail label={copy("compare.item.trail")} href={INDEX} index={copy(EYEBROW)} here={group === undefined ? undefined : copy(group.name)} />
       }
     >
       {/* The date the page prints, and the links it draws. */}

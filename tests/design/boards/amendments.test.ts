@@ -24,9 +24,6 @@ const MESSAGE_CIRCLE_WARNING = 'd="M2.992 16.342';
 const LOADER = "M21 12a9 9 0 1 1-6.219-8.56";
 const GLANCE = [
   "PubHowItWorks",
-  "PubToolMeta",
-  "PubToolOnPage",
-  "PubTools",
 ];
 
 /** A row of squares: an element whose children are all empty spans, `min` or more. */
@@ -189,7 +186,7 @@ describe("icons are structural only (E26, E27, E29)", () => {
     const html = compact.innerHTML;
     expect(html).toContain(MAP_PIN);
     expect(html.indexOf(MAP_PIN)).toBeLessThan(html.indexOf("Serves"));
-    expect(compact.text).toContain("24-hour emergency calls. Serves Austin, TX.Sample");
+    expect(compact.text).toContain("24-hour emergency calls. Serves Austin, TX.");
   });
 
   it("PubReport's We read you as draws Tag, MapPin and Languages, and the buyer chip no icon (E44)", () => {

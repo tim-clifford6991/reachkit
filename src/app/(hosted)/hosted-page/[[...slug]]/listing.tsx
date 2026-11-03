@@ -22,7 +22,7 @@ import { copy } from "@/lib/presentation/copy/reader";
 import type { HostedListing } from "@/lib/publish/destinations/hosted";
 import { Surface } from "@/ui/layout";
 import { actionsOf, BusinessLine, CompactAction, Glyph, HostedFooter, HostedHeader, type HostedBusiness } from "./chrome";
-import { indexHref, writeDate } from "./present";
+import { TARGET, indexHref, writeDate } from "./present";
 import { blogSchema } from "./seo";
 
 /** The query as the address carries it: the first `q`, trimmed, or empty. */
@@ -107,7 +107,7 @@ function GuideLinks({ pages }: { pages: readonly IndexedPage[] }): React.JSX.Ele
     <ul className="list-disc space-y-1 pl-5 text-sm">
       {pages.map((entry) => (
         <li key={entry.publicationId}>
-          <a href={`/${entry.slug}`} className="link">
+          <a href={`/${entry.slug}`} className={`link ${TARGET}`}>
             {entry.title}
           </a>
         </li>
@@ -135,7 +135,7 @@ function AllGuides({ pages }: { pages: readonly IndexedPage[] }): React.JSX.Elem
                     <Glyph name="book-open" />
                   </span>
                   <h3 className="min-w-0 text-base font-bold tracking-tight">
-                    <a href={`/${lead.slug}`} className="link link-hover text-base-content">
+                    <a href={`/${lead.slug}`} className={`link link-hover text-base-content ${TARGET}`}>
                       {lead.title}
                     </a>
                   </h3>
@@ -149,7 +149,18 @@ function AllGuides({ pages }: { pages: readonly IndexedPage[] }): React.JSX.Elem
           ))}
         </div>
       )}
-      {loose.length === 0 ? null : <GuideLinks pages={loose} />}
+      {loose.length === 0 ? null : (
+        <section aria-labelledby={topics.length === 0 ? undefined : "other-guides"} className="card card-border bg-base-100">
+          <div className="card-body gap-2 p-5">
+            {topics.length === 0 ? null : (
+              <h3 id="other-guides" className="text-base font-bold tracking-tight">
+                {copy("hosted.index.other")}
+              </h3>
+            )}
+            <GuideLinks pages={loose} />
+          </div>
+        </section>
+      )}
     </section>
   );
 }
@@ -221,19 +232,17 @@ export function HostedIndex({
         </h1>
         <BusinessLine business={business} className="text-base-content/70 mt-3 max-w-2xl text-lg" />
 
-        <form method="get" action="/" role="search" className="join my-8 w-full max-w-2xl">
-          <input
-            type="search"
-            name="q"
-            defaultValue={query}
-            aria-label={copy("hosted.index.searchLabel")}
-            placeholder={copy("hosted.index.searchLabel")}
-            className="input join-item w-full"
-          />
-          <button type="submit" className="btn join-item">
-            <Glyph name="search" />
-            {copy("hosted.index.searchSubmit")}
-          </button>
+        <form method="get" action="/" role="search" className="my-8 w-full max-w-2xl">
+          <label htmlFor="q" className="mb-2 block text-sm font-semibold">
+            {copy("hosted.index.searchLabel")}
+          </label>
+          <div className="join w-full">
+            <input id="q" type="search" name="q" defaultValue={query} className="input join-item w-full" />
+            <button type="submit" className="btn btn-outline join-item">
+              <Glyph name="search" />
+              {copy("hosted.index.searchSubmit")}
+            </button>
+          </div>
         </form>
 
         {pages.length === 0 ? (
@@ -246,12 +255,12 @@ export function HostedIndex({
               <section className="card card-border bg-base-100 mb-10" aria-labelledby="featured">
                 <div className="card-body gap-2 sm:p-8">
                   <p className="eyebrow">{copy("hosted.index.latest")}</p>
+                  <CardDate page={featured} />
                   <h2 id="featured" className="text-2xl font-extrabold tracking-tight text-balance">
-                    <a href={`/${featured.slug}`} className="link link-hover text-base-content">
+                    <a href={`/${featured.slug}`} className={`link link-hover text-base-content ${TARGET}`}>
                       {featured.title}
                     </a>
                   </h2>
-                  <CardDate page={featured} />
                   {featured.description === null ? null : (
                     <p className="text-base-content/80 max-w-2xl">{featured.description}</p>
                   )}
@@ -268,12 +277,12 @@ export function HostedIndex({
                   {shown.map((entry) => (
                     <li key={entry.publicationId} className="card card-border bg-base-100">
                       <div className="card-body gap-2 p-5">
+                        <CardDate page={entry} />
                         <h3 className="text-base font-bold tracking-tight">
-                          <a href={`/${entry.slug}`} className="link link-hover text-base-content">
+                          <a href={`/${entry.slug}`} className={`link link-hover text-base-content ${TARGET}`}>
                             {entry.title}
                           </a>
                         </h3>
-                        <CardDate page={entry} />
                         {entry.description === null ? null : (
                           <p className="text-base-content/80 line-clamp-3 text-sm">{entry.description}</p>
                         )}
@@ -287,7 +296,7 @@ export function HostedIndex({
             {pageCount === 1 ? null : (
               <nav className="join mt-10" aria-label={copy("hosted.index.pages")}>
                 {current === 1 ? null : (
-                  <a href={indexHref(query, current - 1)} rel="prev" className="btn join-item">
+                  <a href={indexHref(query, current - 1)} rel="prev" className="btn btn-outline join-item">
                     {copy("hosted.index.newer")}
                   </a>
                 )}
@@ -295,7 +304,7 @@ export function HostedIndex({
                   {copy("hosted.index.pageOf", { page: String(current), pages: String(pageCount) })}
                 </span>
                 {current === pageCount ? null : (
-                  <a href={indexHref(query, current + 1)} rel="next" className="btn join-item">
+                  <a href={indexHref(query, current + 1)} rel="next" className="btn btn-outline join-item">
                     {copy("hosted.index.older")}
                   </a>
                 )}

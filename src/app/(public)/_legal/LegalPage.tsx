@@ -1,4 +1,4 @@
-// UI-SPEC S5 — the legal screen: "Header · eyebrow Legal · title (owed) ·
+// UI-SPEC S5 — the legal screen: "Header · title (owed) ·
 // 'updated [date]' · one card with the Markdown body (owed) · footer. One
 // renderer for the three routes."
 // src/app/(public)/_legal/LegalPage.tsx
@@ -101,13 +101,7 @@ export function legalBodyHtml(md: string): string {
   return legalBodyWithIds(headingsUnderTitle(parseMarkdown(md)), LEGAL_BODY_CLASSES);
 }
 
-/** The contents list, from the document's own headings (#936).
- *
- *  Two shapes and one list: a daisyUI `collapse` above the text below
- *  `lg`, where a 220px column beside a 704px measure does not fit on a
- *  phone, and a column beside it from `lg`. The `<nav>` and its links are
- *  written once — the two shapes are which wrapper is displayed, never two
- *  lists that could come to name different sections. */
+/** The contents list, from the document's own headings: open above the text on a phone, as the board draws it, and a column beside it from `lg`. */
 export function OnThisPage(p: { headings: readonly Pick<LegalHeading, "id" | "number" | "title">[] }): React.JSX.Element | null {
   const headings = p.headings;
   // A body with no headings of its own gets no list and no room kept for
@@ -118,9 +112,10 @@ export function OnThisPage(p: { headings: readonly Pick<LegalHeading, "id" | "nu
 
   const list = (
     <ol className="menu w-full p-0">
-      {headings.map((h) => (
+      {headings.map((h, i) => (
         <li key={h.id}>
-          <a href={`#${h.id}`}>
+          {/* The page opens at its first section, so that row reads as current, as the board draws it. */}
+          <a href={`#${h.id}`} className={`flex min-h-14 w-fit items-center ${i === 0 ? "bg-primary/10 text-primary font-semibold" : ""}`}>
             {h.number === null ? null : (
               <span className="text-base-content/70 font-mono text-xs">{h.number.padStart(2, "0")}</span>
             )}
@@ -132,24 +127,10 @@ export function OnThisPage(p: { headings: readonly Pick<LegalHeading, "id" | "nu
   );
 
   return (
-    <>
-      <details className="collapse-arrow bg-base-100 collapse shadow-(--shadow-card) lg:hidden" data-testid="legal-toc-phone">
-        <summary className="collapse-title text-sm font-semibold">{copy("chrome.on-this-page")}</summary>
-        <nav className="collapse-content" aria-label={copy("chrome.on-this-page")}>
-          {list}
-        </nav>
-      </details>
-      <nav
-        className="hidden w-56 shrink-0 lg:block"
-        aria-label={copy("chrome.on-this-page")}
-        data-testid="legal-toc"
-      >
-        <p className="text-base-content/70 px-4 pb-1 text-xs font-semibold tracking-wide uppercase">
-          {copy("chrome.on-this-page")}
-        </p>
-        {list}
-      </nav>
-    </>
+    <nav className="w-full shrink-0 lg:sticky lg:top-6 lg:w-56" aria-label={copy("chrome.on-this-page")} data-testid="legal-toc">
+      <p className="text-base-content/70 px-4 pb-1 text-xs font-semibold tracking-wide uppercase">{copy("chrome.on-this-page")}</p>
+      {list}
+    </nav>
   );
 }
 
@@ -228,15 +209,15 @@ function Providers(p: { list: Extract<Block, { kind: "list" }> }): React.JSX.Ele
 function Summary(p: { summary: CopyKey; icons: readonly LucideIcon[] }): React.JSX.Element {
   const list = parseMarkdown(copy(p.summary)).find((b) => b.kind === "list");
   return (
-    <section className="rounded-box bg-base-200 flex flex-col gap-3 p-4" data-testid="legal-summary">
+    <section className="rounded-box bg-base-100 border-base-300 flex flex-col gap-3 border p-4" data-testid="legal-summary">
       <p className="text-base-content/70 text-xs font-semibold tracking-wide uppercase">{copy("legal.summary.title")}</p>
       <ul className="flex flex-wrap gap-3">
         {(list?.kind === "list" ? list.items : []).map((item, i) => {
           const Icon = p.icons[i];
           return (
-            <li key={inlineText(item)} className="rounded-box bg-base-100 flex min-w-0 flex-[1_1_12.5rem] items-start gap-3 p-4">
+            <li key={inlineText(item)} className="rounded-box bg-base-200 flex min-w-0 flex-[1_1_12.5rem] items-start gap-3 p-4">
               {Icon === undefined ? null : (
-                <span className="rounded-box bg-primary/10 text-primary grid size-9 flex-none place-items-center">
+                <span className="rounded-box bg-base-100 text-primary grid size-9 flex-none place-items-center">
                   <Icon size={16} strokeWidth={1.75} aria-hidden />
                 </span>
               )}
@@ -311,7 +292,7 @@ export function LegalPage(p: { document: LegalDocument }): React.JSX.Element {
   return (
     <Surface
       arms={{
-        compact: { kind: "columns", count: 1 },
+        compact: { kind: "declared", note: "one column with its own 16px gutter, as the v36 board draws it" },
         medium: { kind: "same-as-below" },
         wide: { kind: "same-as-below" },
       }}
@@ -322,22 +303,19 @@ export function LegalPage(p: { document: LegalDocument }): React.JSX.Element {
           already selects for a read arm; this is not a second measure. */}
       <main className="mx-auto flex w-full min-w-0 max-w-5xl flex-col gap-4 px-4 py-12">
         <div className="flex flex-col gap-3">
-          <span className="text-base-content/70 text-xs font-semibold tracking-wide uppercase">
-            {copy("legal.eyebrow")}
-          </span>
-          <h1>{copy(p.document.title)}</h1>
+          <h1 className="t-hero">{copy(p.document.title)}</h1>
           {/* The whole line is a date with one word in front of it, so the
               whole line is in the mono face. */}
           <p className="text-base-content/70 font-mono text-xs">
             {copy("legal.updated", { date: copy(p.document.updated) })}
           </p>
           <nav aria-label={copy("legal.tabs.label")}>
-            <div className="tabs tabs-box w-fit">
+            <div className="tabs tabs-box w-fit [--tab-height:2.75rem]">
               {LEGAL_DOCUMENTS.map((d) => (
                 <Link
                   key={d.path}
                   href={d.path}
-                  className={d === p.document ? "tab tab-active" : "tab"}
+                  className={d === p.document ? "tab tab-active bg-primary/10! text-primary! font-semibold" : "tab"}
                   aria-current={d === p.document ? "page" : undefined}
                 >
                   {copy(d.title)}
