@@ -9,13 +9,16 @@ export type CopyVars = Readonly<Record<string, string | number>>;
 
 /** One `list` row. It carries no format of its own, which would be a second numeral formatter. */
 export interface ListRow {
-  readonly label: CopyKey;
+  /** Absent on a row that is only its links. */
+  readonly label?: CopyKey;
   readonly vars?: CopyVars;
+  /** A small line above the row's own, such as a page's day. */
+  readonly lead?: { readonly text: CopyKey; readonly vars?: CopyVars };
   /** The HTML body links the row; the twin writes the address beside it. */
   readonly href?: string;
   /** Lines under the row's own, in order. */
   readonly detail?: readonly { readonly text: CopyKey; readonly vars?: CopyVars }[];
-  /** Links on one line under the row, where it offers more than one thing to do. */
+  /** Bordered link buttons on one line under the row: text, so they work with images off. */
   readonly links?: readonly { readonly label: CopyKey; readonly vars?: CopyVars; readonly href: string }[];
 }
 
@@ -83,6 +86,8 @@ export type MailBlock =
        *  row that depends on a measurement is left out by the template that knows it. */
       readonly block: "facts";
       readonly items: readonly FactRow[];
+      /** `body` sets a row in the mail's text face, where the rows are figures a reader scans rather than data. */
+      readonly face?: "body";
     }
   | {
       /** SPEC §8's one headline number up top. Unmeasured omits the block and its change with it. */

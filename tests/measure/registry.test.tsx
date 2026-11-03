@@ -63,7 +63,7 @@ function shownMailRows(visitsBefore?: number): string[] {
       ...(visitsBefore === undefined ? {} : { visitsBefore: v(visitsBefore) }),
     },
     ai: { linked: v(17), asked: 5, reads: v(18) },
-    month: { score: { value: v(19) }, market: { value: v(20), of: 12 }, reputation: { value: v(21), answers: 40, weeks: 4 } },
+    month: { score: { value: v(19) }, reputation: { value: v(21), answers: 40, weeks: 4 } },
   };
   const mail = buildWeekly({ numbers, pages: measured([], AT), next: measured([], AT) });
   // A row is the first block to state a figure: a number tile, a line of the month's table, or a sentence.

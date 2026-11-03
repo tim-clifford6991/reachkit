@@ -22,7 +22,8 @@ function rowLines(labelText: string | null, rows: readonly RenderedRow[], emptyL
   const lines = rows.map((item) => {
     const side = item.right ?? item.href;
     return [
-      side === undefined ? item.left : `${item.left}: ${side}`,
+      ...(item.lead === undefined ? [] : [item.lead]),
+      ...(item.left === undefined ? [] : [side === undefined ? item.left : `${item.left}: ${side}`]),
       ...(item.detail ?? []),
       ...(item.links ?? []).map((link) => actionLine(link.label, link.href)),
     ].join("\n");

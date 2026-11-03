@@ -31,7 +31,10 @@ const CARD_WIDTH = "600px";
 const PAGE_INSET = "24px 12px";
 
 /** `Text` ships its own size and leading, so each footer line restates the band's. */
-const FOOTER_LINE = { margin: 0, fontSize: token("--t-xs"), lineHeight: 1.5 } as const;
+const FOOTER_LINE = { margin: 0, fontSize: token("--t-sm"), lineHeight: 1.5 } as const;
+
+/** A footer link's own box: 20px of line and 12px above and below make a 44px target on a phone. */
+const FOOTER_LINK = { display: "inline-block", padding: "12px 0", lineHeight: "20px", color: token("--color-primary"), textDecoration: "underline" } as const;
 
 /** The separator between the imprint band's parts. */
 const BAND_SEPARATOR = " · ";
@@ -105,31 +108,31 @@ function Footer(parts: DocumentParts): ReactNode {
   const footerLinks = parts.optOut === null ? parts.links : [...parts.links, parts.optOut];
   const band = [parts.wordmark, parts.imprint].filter((piece): piece is string => piece !== null && piece !== "").join(BAND_SEPARATOR);
   return (
-    // S20 sets the whole footer in mono, the reason line included.
+    // The reason, the links and the imprint band each on their own line, as board MondayMail draws them.
     <Row>
       <Column
         style={{
-          padding: "14px 0 0 0",
-          fontFamily: token("--font-mono-mail"),
-          fontSize: token("--t-xs"),
+          padding: "16px 4px 0 4px",
+          fontFamily: token("--font-ui-mail"),
+          fontSize: token("--t-sm"),
           lineHeight: 1.5,
           color: token("--ink-3"),
         }}
       >
         {parts.reason === null ? null : <Text style={FOOTER_LINE}>{parts.reason}</Text>}
         {footerLinks.length === 0 ? null : (
-          <Text style={{ ...FOOTER_LINE, paddingTop: "8px" }}>
+          <Text style={{ ...FOOTER_LINE, lineHeight: "20px" }}>
             {footerLinks.map((link, at) => (
               <span key={at}>
                 {at === 0 ? null : BAND_SEPARATOR}
-                <Link href={link.href} style={{ color: token("--ink-3"), textDecoration: "underline" }}>
+                <Link href={link.href} style={FOOTER_LINK}>
                   {link.label}
                 </Link>
               </span>
             ))}
           </Text>
         )}
-        <Text style={{ ...FOOTER_LINE, paddingTop: "8px" }}>{band}</Text>
+        <Text style={{ ...FOOTER_LINE, paddingTop: footerLinks.length === 0 ? "8px" : 0 }}>{band}</Text>
       </Column>
     </Row>
   );

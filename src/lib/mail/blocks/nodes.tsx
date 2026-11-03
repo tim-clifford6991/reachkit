@@ -13,8 +13,11 @@ import type { MailBlock } from "./types";
 
 /** Layout tokens bound to names, since the string-literal sweep reads a bare JSX attribute literal as voice. */
 const RIGHT = "right" as const;
-/** Between two links on one row. Layout, not voice. */
-const LINK_SEPARATOR = " · " as const;
+/** A layout table, which a screen reader reads past. Layout, not voice. */
+const PRESENTATION = "presentation" as const;
+/** The gap between two link buttons, held by a no-break space so the cell does not collapse. */
+const GAP_PX = 8;
+const GAP = "\u00a0" as const;
 const HALF = "50%" as const;
 /** `h3`, because the card's head carries the wordmark (S20). */
 const HEADING_LEVEL = "h3" as const;
@@ -89,6 +92,38 @@ const FACT_CELL = {
   fontSize: token("--t-sm"),
 } as const;
 
+/** A row's controls as bordered text buttons in a layout table: no image, so they work with images off, and at least 44px tall. */
+function LinkButtons({ links, spaced }: { links: readonly { label: string; href: string }[]; spaced: boolean }): ReactNode {
+  return (
+    <table role={PRESENTATION} cellPadding={0} cellSpacing={0} border={0} style={{ marginTop: spaced ? "12px" : "4px" }}>
+      <tbody>
+        <tr>
+          {links.flatMap((link, at) => [
+            ...(at === 0 ? [] : [<td key={`gap-${at}`} width={GAP_PX} style={{ fontSize: 0 }}>{GAP}</td>]),
+            <td key={at}>
+              <Button
+                href={link.href}
+                style={{
+                  padding: "12px 16px",
+                  border: `1px solid ${token("--accent-line")}`,
+                  borderRadius: token("--r-field"),
+                  color: token("--color-primary"),
+                  fontFamily: token("--font-ui-mail"),
+                  fontSize: token("--t-body"),
+                  fontWeight: 600,
+                  lineHeight: "20px",
+                }}
+              >
+                {link.label}
+              </Button>
+            </td>,
+          ])}
+        </tr>
+      </tbody>
+    </table>
+  );
+}
+
 function RuledRows({
   label,
   rows,
@@ -113,31 +148,24 @@ function RuledRows({
       {label === null ? null : <Eyebrow>{label}</Eyebrow>}
       {rows.map((item, index) => (
         <Row key={index}>
-          <Column style={{ ...RULED_CELL, color: token("--color-base-content") }}>
-            {item.href === undefined ? (
-              item.left
+          <Column style={{ ...RULED_CELL, ...(item.links === undefined ? {} : { padding: "16px 0" }), color: token("--color-base-content") }}>
+            {item.lead === undefined ? null : (
+              <div style={{ fontSize: token("--t-sm"), color: token("--ink-2"), paddingBottom: "4px" }}>{item.lead}</div>
+            )}
+            {item.left === undefined ? null : item.href === undefined ? (
+              // A row under a lead is a page: its search is the row's title.
+              item.lead === undefined ? item.left : <div style={{ fontWeight: 700 }}>{item.left}</div>
             ) : (
               <Link href={item.href} style={{ color: token("--color-primary") }}>
                 {item.left}
               </Link>
             )}
             {(item.detail ?? []).map((line, at) => (
-              <div key={at} style={{ paddingTop: "2px", color: token("--ink-2") }}>
+              <div key={at} style={{ paddingTop: "4px", fontSize: token("--t-sm"), color: token("--ink-2") }}>
                 {line}
               </div>
             ))}
-            {item.links === undefined ? null : (
-              <div style={{ paddingTop: "4px" }}>
-                {item.links.map((link, at) => (
-                  <span key={at}>
-                    {at === 0 ? null : LINK_SEPARATOR}
-                    <Link href={link.href} style={{ color: token("--color-primary") }}>
-                      {link.label}
-                    </Link>
-                  </span>
-                ))}
-              </div>
-            )}
+            {item.links === undefined || item.links.length === 0 ? null : <LinkButtons links={item.links} spaced={item.left !== undefined} />}
           </Column>
           {item.right === undefined ? null : (
             <Column align={RIGHT} style={{ ...RULED_CELL, color: token("--ink-2") }}>
@@ -151,16 +179,17 @@ function RuledRows({
 }
 
 /** S20's hairline-ruled mono `dl`; its rows are `Row`/`Column`, since inboxes lay out a `dl`'s own display least predictably. */
-function Facts({ rows }: { rows: readonly { label: string; value: string }[] }): ReactNode {
+function Facts({ rows, body }: { rows: readonly { label: string; value: string }[]; body: boolean }): ReactNode {
+  const face = token(body ? "--font-ui-mail" : "--font-mono-mail");
   return (
     <dl style={{ margin: 0 }}>
       {rows.map((item, index) => (
         <Row key={index}>
-          <Column style={{ ...FACT_CELL, fontFamily: token("--font-mono-mail"), color: token("--ink-2") }}>
+          <Column style={{ ...FACT_CELL, fontFamily: face, color: token("--ink-2") }}>
             {item.label}
           </Column>
           <Column align={RIGHT} style={{ ...FACT_CELL, color: token("--color-base-content") }}>
-            <Mono>{item.value}</Mono>
+            {body ? <strong>{item.value}</strong> : <Mono>{item.value}</Mono>}
           </Column>
         </Row>
       ))}
@@ -305,12 +334,15 @@ function Action({
       style={{
         background: outlined ? token("--color-base-100") : token("--color-primary"),
         color: outlined ? token("--color-base-content") : token("--color-primary-content"),
-        ...(outlined ? { border: `1px solid ${token("--color-base-300")}` } : {}),
-        padding: "11px 18px",
+        // The solid one keeps a border of its own fill, so an inbox that forces dark and strips the fill still draws its edge.
+        border: `1px solid ${outlined ? token("--color-base-300") : token("--color-primary")}`,
+        // 12px above and below a 20px line: a 44px target.
+        padding: "12px 18px",
         borderRadius: token("--r-pill"),
         fontFamily: token("--font-ui-mail"),
         fontSize: token("--t-body"),
         fontWeight: 700,
+        lineHeight: "20px",
       }}
     >
       {label}
@@ -403,7 +435,7 @@ function arm(block: MailBlock): ReactNode {
       );
     }
     case "facts":
-      return <Facts rows={factRowsOf(block)} />;
+      return <Facts rows={factRowsOf(block)} body={block.face === "body"} />;
     case "hero":
       return (
         <Hero

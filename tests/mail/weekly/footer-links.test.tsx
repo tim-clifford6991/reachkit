@@ -118,6 +118,18 @@ describe("Unsubscribe: a signed link to the Monday mail's own toggle, and the on
     expect(mail.href("/app/settings/mail")).toBe(`${APP}/app/settings/mail`);
   });
 
+  it("the reason, the three links and the address are each their own line, and each link is a 44px target", async () => {
+    const { html } = await monday();
+    const footer = html.slice(html.lastIndexOf("<p", html.lastIndexOf(COPY["mail.reason.weekly"])));
+    const links = [...footer.matchAll(/<a [^>]*style="([^"]*)"[^>]*>([^<]+)<\/a>/g)];
+    expect(links.map(([, , label]) => label)).toEqual([COPY["mail.weekly.footer.pause"], COPY["mail.weekly.footer.settings"], COPY["mail.unsubscribe.label"]]);
+    for (const [, style] of links) expect(style).toMatch(/display:inline-block;padding:12px 0;line-height:20px/);
+    const lines = [...footer.matchAll(/<p [^>]*>(.*?)<\/p>/gs)].map(([, inner]) => inner!.replace(/<[^>]+>/g, ""));
+    expect(lines[0]).toBe(COPY["mail.reason.weekly"]);
+    expect(lines[1]).toBe([COPY["mail.weekly.footer.pause"], COPY["mail.weekly.footer.settings"], COPY["mail.unsubscribe.label"]].join(" · "));
+    expect(lines[2]).toMatch(/^ReachKit/);
+  });
+
   it("opening the link changes nothing: it asks, with one button, and writes no setting", async () => {
     const token = tokenIn((await monday()).href("/unsubscribe/"), "/unsubscribe/");
     for (const query of [{}, { done: "1" }]) {

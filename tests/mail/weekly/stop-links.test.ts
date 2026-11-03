@@ -1,7 +1,7 @@
 // Issue 1674 — the Monday mail tells the committed week, its first pages
 // written out each with its own signed stop link, and that link stops the
 // planned page before it is written: the row leaves the week and the day
-// falls to a spare. Board MondayMail counts the rest and leads to Plan.
+// falls to a spare. Board MondayMail leads the rest to Plan.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { applyEnvFixture } from "../env-fixture";
 import { fakeDb, type Row } from "../../publish/harness";
@@ -73,8 +73,9 @@ function seed(days: readonly number[]): void {
 }
 
 type WeekRow = {
-  label: string;
-  vars: Record<string, string>;
+  lead?: { text: string; vars: Record<string, string> };
+  label?: string;
+  vars?: Record<string, string>;
   detail?: { text: string; vars?: Record<string, string> }[];
   links?: { label: string; href: string; vars?: Record<string, string> }[];
 };
@@ -90,8 +91,6 @@ async function mondayMail(): Promise<{ week: WeekList; blocks: readonly Block[] 
 }
 
 const stopOf = (row: WeekRow) => row.links!.find((link) => link.label === "mail.weekly.next.stop")!.href;
-const strip = (blocks: readonly Block[]) =>
-  (blocks.find((b) => b.block === "facts") as unknown as { items: { labelVars: { day: string }; value: string }[] }).items.map((item) => item.value);
 
 const tokenOf = (href: string) => decodeURIComponent(new URL(href).pathname.replace(/^\/veto\//, ""));
 
@@ -100,41 +99,33 @@ describe("the Monday mail tells the whole week with a stop link per page", () =>
     sent.length = 0;
   });
 
-  it("a 7-page week writes out three, each with its day, why and its own signed link, and counts the other four", async () => {
+  it("a 7-page week writes out three, each with its day, why and its own signed link, and links the other four to Plan", async () => {
     seed([0, 1, 2, 3, 4, 5, 6]);
     const { week, blocks } = await mondayMail();
     const rows = week.items.value;
-    expect(rows.map((row) => row.label)).toEqual([
+    expect(rows.map((row) => row.lead?.text)).toEqual([
       "mail.weekly.next.day.new.today",
       "mail.weekly.next.day.new",
       "mail.weekly.next.day.new",
-      "mail.weekly.next.more.span",
+      undefined,
     ]);
-    expect(rows[1]!.vars).toMatchObject({ day: "Tue", date: "Tue 20 Oct" });
-    expect(rows[0]!.detail).toEqual([
-      { text: "mail.weekly.next.item", vars: { search: "search o0" } },
-      { text: "mail.weekly.next.why", vars: { reason: COPY["calendar.reason.ai-gap"] } },
-    ]);
-    expect(rows[1]!.detail).toEqual([{ text: "mail.weekly.next.item", vars: { search: "search o1" } }]);
+    expect(rows[1]!.lead!.vars).toMatchObject({ day: "Tue", date: "Tue 20 Oct" });
+    expect(rows.slice(0, 3).map((row) => row.vars)).toEqual([0, 1, 2].map((n) => ({ search: `search o${n}` })));
+    expect(rows[0]!.detail).toEqual([{ text: "mail.weekly.next.why", vars: { reason: COPY["calendar.reason.ai-gap"] } }]);
+    expect(rows[1]!.detail).toBeUndefined();
     expect(new Set(rows.slice(0, 3).map(stopOf)).size).toBe(3);
     for (const [n, row] of rows.slice(0, 3).entries()) {
       const read = await previewPlannedStop(tokenOf(stopOf(row)), NOW);
       expect(read).toMatchObject({ ok: true, planned: { query: `search o${n}`, volume: 90, domain: "harbor-plumbing.example", day: day(n) } });
     }
-    expect(rows[3]).toEqual({
-      label: "mail.weekly.next.more.span",
-      vars: { from: "Thu", to: "Sun", n: "4" },
-      links: [{ label: "mail.weekly.next.all", vars: { n: "7" }, href: "https://reachkit.example/app/calendar" }],
-    });
-    expect(strip(blocks)).toEqual([COPY["mail.weekly.strip.today"], ...Array(6).fill(COPY["mail.weekly.strip.new"])]);
+    expect(rows[3]).toEqual({ links: [{ label: "mail.weekly.next.all", vars: { n: "7" }, href: "https://reachkit.example/app/calendar" }] });
     expect(blocks.some((b) => b.text === "mail.weekly.next.skipped")).toBe(false);
   });
 
-  it("a short week marks its empty day on the strip and says one day has no page", async () => {
+  it("a short week says one day has no page", async () => {
     seed([0, 1, 2, 4, 5, 6]);
     const { week, blocks } = await mondayMail();
-    expect(week.items.value.at(-1)).toMatchObject({ vars: { from: "Fri", to: "Sun", n: "3" } });
-    expect(strip(blocks)[3]).toBe(COPY["mail.weekly.strip.none"]);
+    expect(week.items.value.at(-1)).toEqual({ links: [expect.objectContaining({ vars: { n: "6" } })] });
     expect(blocks.find((b) => b.text === "mail.weekly.next.skipped")?.vars).toEqual({ count: "1" });
   });
 
