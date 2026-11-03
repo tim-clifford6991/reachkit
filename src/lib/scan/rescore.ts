@@ -24,13 +24,11 @@
 // carries it without a new pass.
 import { retrofitReading, type Retrofit } from "@/lib/business/retrofit";
 import { aiPresenceOf, aiPresenceRangeOf, aiSampleOf, classifyReferences, foundationsOf, searchPresenceOf, searchPresenceRangeOf } from "@/lib/measure/drivers";
-import { BOT_PROTECTION, HOME_WORDLESS, isProtectionName } from "@/lib/measure/challenge";
 import { contentOf, measuredPagesOf } from "@/lib/measure/pages";
 import { marketsServedFrom } from "@/lib/locale/read";
 import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
 import { foldSerps, outcomeOf, type InputOutcome, type ScanInput } from "@/lib/measure/partition";
 import type { OnPageFacts } from "@/lib/measure/parse";
-import { isPlaceholder, withoutPlaceholders } from "@/lib/measure/placeholder";
 import type { Drivers } from "@/lib/measure/score";
 import { verdictOf, type Verdict } from "@/lib/measure/verdict";
 import type { CoherenceVerdict } from "@/lib/market/coherence/check";
@@ -43,12 +41,12 @@ import { brandOf } from "@/lib/market/questions/select";
 import { citedPagesOf } from "@/lib/market/prompts/answer";
 import { freePageChanges } from "@/lib/opportunities/free-page";
 import { statementsOf } from "@/lib/market/prompts/misstated";
-import type { Profile } from "@/lib/market/questions/profile-types";
 import type { PresenceCard } from "@/lib/market/rivals/presence";
 import type { MarketSerp, QuestionView } from "@/lib/market/views";
 import { AI_ANSWER_SOURCES, type RankedRow } from "@/lib/vendors/dataforseo/types";
 import { cardsOf, placeStands, reachOfReport } from "./cards";
 import { readAsProtection, unreadByProtection } from "./challenged";
+import { clearedProfileOf, withdrawnMarketOf } from "./rescore-blank";
 import { marketEvidence, type EvidenceReport } from "./market-evidence";
 import { onPageOf, type PageFacts } from "./page-facts";
 import { localeOfReport, type AnswerCell, type EngineCell, type PromptAnswer, type StoredReport } from "./report";
@@ -92,7 +90,6 @@ export interface RescoreReport extends Pick<
   | "marketPrompts"
   | "locale"
   | "prompts"
-  | "marketFrom"
 > {
   /** The page questions beside the twelve (#919), whose AI-Overview cells
    *  count toward AI presence (issue 1551). Absent or `null`: none. */
@@ -419,11 +416,9 @@ export function rescoreScan(scan: RescoreScan): Rescored {
 
   // A home read that was a protection's page is no reading of the site
   // (issue 1383): the report says what a new scan of it would say.
-  let unread = r.onPage.kind === "unmeasured" && r.onPage.because === BOT_PROTECTION;
   if (r.onPage.kind !== "unmeasured") {
     if (scan.home === null) kept.push("home page: its stored read is gone, so it was not checked for a protection's page");
     else if (readAsProtection({ home: scan.home, rendered: scan.rendered })) {
-      unread = true;
       after = { ...after, ...unreadByProtection({ ...after, robots: r.robots, blockedAgents: r.blockedAgents }) };
       drivers.foundations = after.verdict.factors.foundations;
       drivers.answerability = after.verdict.factors.answerability;
@@ -431,7 +426,7 @@ export function rescoreScan(scan: RescoreScan): Rescored {
   }
 
   const before = membersOf(r);
-  const withdrawn = withdrawnMarketOf(r, scan, unread, at);
+  const withdrawn = withdrawnMarketOf(r, scan, at);
   // The run hands over the whole stored report; its type names only what a score reads.
   const freePage = withdrawn ?? freePageChanges({ ...read, ...after, scanId: scan.id } as unknown as StoredReport);
   const changes = [...changesOf(before, after), ...(withdrawn === null ? profileChanges(r, profile, reading) : []), ...promptChanges(r, scan), ...servedChanges(r, scan), ...freePage];
@@ -441,30 +436,6 @@ export function rescoreScan(scan: RescoreScan): Rescored {
     changes.unshift({ path: ["verdict"], value: after.verdict });
   }
   return { before, after, changes, drivers, score: shownScore(after), status: statusAfter(scan.status, before.verdict, after.verdict), kept, stale, reading };
-}
-
-/**
- * A market read off a home page that held none of the site's words — a
- * protection's page, or a page of the site's that says nothing — is no
- * reading of its market. It is withdrawn with why, and so is the page
- * proposed from it, so the domain's next requested scan reads its market
- * from its listing (`awaitsMarketFromSearch`). One read from the listing
- * stands. `null` where nothing is withdrawn.
- */
-function withdrawnMarketOf(r: RescoreReport, scan: Pick<RescoreScan, "home" | "rendered">, unread: boolean, at: Date): ReportChange[] | null {
-  if (r.market.kind === "unmeasured" || r.marketFrom === "search") return null;
-  const wordless = !unread && scan.home?.facts.wordless === true && !readAsDrawn(scan.home, scan.rendered);
-  if (!unread && !wordless) return null;
-  const changes: ReportChange[] = [{ path: ["market"], value: unmeasured("undeterminable", at, unread ? BOT_PROTECTION : HOME_WORDLESS) }];
-  if ((r as Partial<Pick<StoredReport, "freePage">>).freePage !== null) changes.push({ path: ["freePage"], value: null });
-  return changes;
-}
-
-/** Whether a rendered read since this home read drew the site, whose text the
- *  profile was then read from. */
-function readAsDrawn(home: { created_at: string }, rendered: RescoreScan["rendered"]): boolean {
-  const since = new Date(home.created_at).getTime();
-  return rendered.some((row) => new Date(row.created_at).getTime() >= since && row.facts.drawn);
 }
 
 /** The other markets the stored home read declares (`marketsServed`),
@@ -525,16 +496,6 @@ function scanDate(stored: Date | string, startedAt: string | undefined): Date {
   if (startedAt === undefined) return measured;
   const started = new Date(startedAt);
   return Number.isNaN(started.getTime()) || measured.getTime() >= started.getTime() ? measured : started;
-}
-
-/** The stored profile with every field that names nothing taken out
- *  (issue 1479): a placeholder, or a protection page's words where the scan
- *  read one. `null` where no profile is stored. */
-function clearedProfileOf(r: RescoreReport): Record<string, unknown> | null {
-  if (r.market.kind === "unmeasured") return null;
-  const profile: unknown = r.market.value.profile;
-  if (profile === null || typeof profile !== "object") return null;
-  return withoutPlaceholders(profile as Profile, (text) => isPlaceholder(text) || isProtectionName(text, r.domain)) as unknown as Record<string, unknown>;
 }
 
 /** Issue 1470: the lines, kind and reach a stored profile lacks, read from

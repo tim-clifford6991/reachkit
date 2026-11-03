@@ -18,7 +18,6 @@
 // Under-report, never over-report: a real page read as a challenge would
 // leave a customer's site unmeasured, so every rule needs the protection's
 // own words or headers, and a status alone decides nothing.
-import { HOME_TEXT_FLOOR_CHARS } from "@/lib/config/constants/scan";
 import { visibleText } from "./parse";
 
 /** The `because` of an on-page read that met a protection's page: the
@@ -30,16 +29,6 @@ export const BOT_PROTECTION = "bot_protection";
  *  own pages are unmeasured, as behind a protection, and its market is read
  *  from its listing in search. */
 export const HOME_TIMEOUT = "home_timeout";
-
-/** The `because` of a stored market read off a home page with no words of
- *  the site's own: its next pass reads the market from its listing. */
-export const HOME_WORDLESS = "home_wordless";
-
-/** Whether a home page's visible text is too little to say what the
- *  business sells. */
-export function saysNothing(html: string): boolean {
-  return visibleText(html).length < HOME_TEXT_FLOOR_CHARS;
-}
 
 export type ProtectionVendor =
   | "Cloudflare"

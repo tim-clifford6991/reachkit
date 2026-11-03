@@ -53,7 +53,8 @@ import { readRobots } from "@/lib/egress/robots";
 import type { FetchOutcome, RobotsPolicy } from "@/lib/egress/types";
 import { rankedKeywords } from "@/lib/vendors/dataforseo";
 import type { RankedResult, RankedRow } from "@/lib/vendors/dataforseo/types";
-import { BOT_PROTECTION, challengeOf, HOME_TIMEOUT, notTheSiteOf, saysNothing, type ProtectionVendor } from "./challenge";
+import { blankHomeOf, listingWanted, type BlankHome } from "./blank-page";
+import { BOT_PROTECTION, challengeOf, HOME_TIMEOUT, notTheSiteOf, type ProtectionVendor } from "./challenge";
 import { answerabilityOf, foundationsOf, ownRankedOf } from "./drivers";
 import { measured, measuredZero, unmeasured, type Measured } from "./measured";
 import { OWN_FETCH_OPTS, OWN_FETCH_SOURCE, isStoredDocument, toStoredDocument, type StoredDocument } from "./own-fetch";
@@ -277,7 +278,7 @@ async function renderedHome(
 
 
 
-export interface DomainMeasurement {
+export interface DomainMeasurement extends BlankHome {
   drivers: Drivers;
   /** The rendered text of the documents this call read. Handed over rather
    *  than re-fetched: BUILD §6.7 step 1 derives the business profile "from
@@ -342,9 +343,6 @@ export interface DomainMeasurement {
    *  return it (issue 1449): the site's own pages are unmeasured, the
    *  vendor reads still run, and its market is read from its listing. */
   homeTimedOut?: true;
-  /** The home page is the site's own and says nothing of what it sells
-   *  (`saysNothing`): its market is read from its listing. */
-  homeWordless?: true;
 }
 
 /** Reads a domain — home document, detected pricing page, robots policy, the customer's own ranked
@@ -415,7 +413,6 @@ export async function measureDomain(
     ...(drawn === null ? {} : { renderedHome: drawn.html }),
   };
   let onPage = home.facts;
-  const wordless = home.html !== null && saysNothing(home.html);
   const read: ResolvedLocale =
     a.locale === undefined ? readLocale({ domain: a.domain, html: home.html }) : { locale: a.locale, fellBack: null };
 
@@ -475,9 +472,7 @@ export async function measureDomain(
         rows: RANKED_ROWS_BY_TIER[a.tier],
         locale,
         ...(a.ownWindowDays === undefined ? {} : { windowDays }),
-        // Issue 1387: a site whose own pages stay unread, or say nothing, has its market
-        // read from these rows, so they carry what Google shows for each.
-        ...((plain.protection !== null && drawn === null) || slow || wordless ? { listing: true } : {}),
+        ...listingWanted({ unread: (plain.protection !== null && drawn === null) || slow, html: home.html }),
         onFailure: (failure) => {
           heard.failure = failure;
         },
@@ -626,7 +621,7 @@ export async function measureDomain(
     stated: readPlaceSignals(home.html),
     homeRefusal: null,
     ...guarded,
-    ...(home.html !== null && saysNothing(home.html) ? { homeWordless: true as const } : {}),
+    ...blankHomeOf(home.html),
   };
 }
 

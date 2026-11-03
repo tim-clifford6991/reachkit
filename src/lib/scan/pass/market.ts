@@ -11,7 +11,7 @@ import { marketSeeds, measuredMarketOf, unjudged } from "@/lib/market/questions/
 import type { Locale, Place } from "@/lib/locale/locales";
 import { localSearch } from "@/lib/locale/place";
 import { BOT_PROTECTION, type DomainMeasurement } from "@/lib/measure";
-import { HOME_WORDLESS } from "@/lib/measure/challenge";
+import { HOME_WORDLESS } from "@/lib/measure/blank-page";
 import { unmeasured } from "@/lib/measure/measured";
 import { STAGE_BUDGETS, affordsSeed, questionsAffordable } from "../budgets";
 import type { Bounds } from "../ceilings";
@@ -33,7 +33,7 @@ import { sizeTrackedRivals } from "./rivals";
  * bought, with the title and snippet Google shows for each page. A listing
  * too thin to name a market from is not read, and the reason is kept.
  */
-function marketReadingOf(
+export function marketReadingOf(
   a: StageArgs,
   measurement: DomainMeasurement
 ): { home: string; pricing?: string } | { search: string } | null {

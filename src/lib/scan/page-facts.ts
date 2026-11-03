@@ -7,7 +7,7 @@
 // again.
 import { servedSignalsOf, type ServedSignals } from "@/lib/locale/read";
 import type { Measured } from "@/lib/measure/measured";
-import { saysNothing } from "@/lib/measure/challenge";
+import { saysNothing } from "@/lib/measure/blank-page";
 import { isStoredDocument, renderedDocumentOf, siteDocumentOf } from "@/lib/measure/own-fetch";
 import { detectPricingUrl, storedFactsOf } from "@/lib/measure/pages";
 import type { OnPageFacts } from "@/lib/measure/parse";

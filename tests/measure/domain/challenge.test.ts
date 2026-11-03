@@ -7,7 +7,8 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { challengeOf, isProtectionName, notTheSiteOf, saysNothing } from "@/lib/measure/challenge";
+import { saysNothing } from "@/lib/measure/blank-page";
+import { challengeOf, isProtectionName, notTheSiteOf } from "@/lib/measure/challenge";
 
 const page = (name: string): string => readFileSync(join(__dirname, "fixtures/challenge", name), "utf8");
 

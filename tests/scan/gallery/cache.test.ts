@@ -8,6 +8,8 @@
 // an in-memory store; only the database is a double, which counts its reads
 // and answers the view as the migration defines it.
 import "../../generate/env";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { cacheStore } from "../next-cache";
 
@@ -25,6 +27,10 @@ const db = vi.hoisted(() => ({
   blocks: [] as { domain: string; blocked_at: string }[],
   reads: new Map<string, number>(),
   rowsSent: 0,
+  /** Each domain's current report's `market.because`, where it has one. */
+  because: new Map<string, string>(),
+  /** The stored plain read of a domain's home address. */
+  homes: new Map<string, { status: number; html: string; readAt: string }>(),
 }));
 
 vi.mock("@/lib/db", () => {
@@ -32,21 +38,23 @@ vi.mock("@/lib/db", () => {
     const eq = new Map<string, unknown>();
     let term = "";
     let among: readonly unknown[] | null = null;
+    const asked = new Map<string, readonly unknown[]>();
+    let columns = "";
     let head = false;
     let without: readonly string[] = [];
     const self = {
-      select: (_columns: string, options?: { head?: boolean }) => ((head = options?.head === true), self),
+      select: (c: string, options?: { head?: boolean }) => ((columns = c), (head = options?.head === true), self),
       not: (column: string, operator: string, list: string) =>
         (column === "domain" && operator === "in" ? (without = list.slice(1, -1).split(",")) : null, self),
       or: (filter: string) => ((term = /\*(.*?)\*/.exec(filter)?.[1] ?? ""), self),
       order: () => self,
-      in: (column: string, values: readonly unknown[]) => (column === "category" ? (among = values) : null, self),
+      in: (column: string, values: readonly unknown[]) => (column === "category" ? (among = values) : asked.set(column, values), self),
       range: () => self,
       limit: () => self,
       eq: (column: string, value: unknown) => (eq.set(column, value), self),
       then: (resolve: (r: unknown) => unknown, reject?: (e: unknown) => unknown) => {
         db.reads.set(table, (db.reads.get(table) ?? 0) + 1);
-        const result = answer(table, eq, term, among, without);
+        const result = answer(table, eq, term, among, without, asked, columns);
         const sent = head ? { ...result, data: null } : result;
         db.rowsSent += sent.data?.length ?? 0;
         return Promise.resolve(sent).then(resolve, reject);
@@ -54,7 +62,7 @@ vi.mock("@/lib/db", () => {
     };
     return self;
   }
-  function answer(table: string, eq: Map<string, unknown>, term: string, among: readonly unknown[] | null, without: readonly string[]) {
+  function answer(table: string, eq: Map<string, unknown>, term: string, among: readonly unknown[] | null, without: readonly string[], asked: Map<string, readonly unknown[]>, columns: string) {
     if (table === "free_scan_listing") {
       const blocked = new Set(db.blocks.map((b) => b.domain));
       const rows = db.scans
@@ -68,6 +76,15 @@ vi.mock("@/lib/db", () => {
     if (table === "domain_blocks") {
       const newest = [...db.blocks].sort((x, y) => y.blocked_at.localeCompare(x.blocked_at));
       return { data: newest.slice(0, 1), error: null, count: db.blocks.length };
+    }
+    if (table === "scans" && asked.has("report->market->>because")) {
+      const withdrawn = [...db.because].filter(([, because]) => asked.get("report->market->>because")!.includes(because));
+      return { data: eq.get("is_current") === true ? withdrawn.map(([domain]) => ({ domain })) : [], error: null };
+    }
+    if (table === "fetches") {
+      const homes = [...db.homes].map(([domain, home]) => ({ id: domain, cache_key: `https://${domain}/`, created_at: home.readAt, ...home, bytes: home.html.length, headers: {} }));
+      if (columns === "id, payload") return { data: homes.filter((h) => asked.get("id")?.includes(h.id)).map((h) => ({ id: h.id, payload: { url: h.cache_key, ...h } })), error: null };
+      return { data: eq.get("source") === "egress.safeFetch" ? homes.filter((h) => asked.get("cache_key")?.includes(h.cache_key)) : [], error: null };
     }
     if (table === "scans") {
       const newest = db.scans.map((r) => r.scanned_at).sort().at(-1);
@@ -90,6 +107,8 @@ beforeEach(() => {
   db.reads.clear();
   db.rowsSent = 0;
   db.blocks = [];
+  db.because.clear();
+  db.homes.clear();
   db.scans = [scan("harbour.example", "2026-09-23T10:00:00.000Z"), scan("quay.example", "2026-09-22T10:00:00.000Z", "Plumbing")];
 });
 
@@ -218,5 +237,39 @@ describe("the /scans page", () => {
     await render({ utm_source: "x", fbclid: "y" });
     await render({ shown: "17" });
     expect(listingReads()).toBe(1);
+  });
+});
+
+describe("a card whose market was withdrawn, read off no words of the site's own", () => {
+  const imperva = readFileSync(join(__dirname, "../../measure/domain/fixtures/challenge/imperva-challenge.bettys.co.uk.html"), "utf8");
+  const withdrawn = (because: string): void => {
+    // The withdrawn card's stored category is the one its invented market named.
+    db.scans = [...db.scans, { ...scan("bettys.co.uk", "2026-09-24T10:00:00.000Z", "Plumbing"), score: 0 }];
+    db.because.set("bettys.co.uk", because);
+    db.homes.set("bettys.co.uk", { status: 200, html: imperva, readAt: "2026-09-24T09:59:00.000Z" });
+  };
+  const listed = async () => (await import("@/lib/scan/gallery")).readGallery(VIEW);
+
+  it.each(["bot_protection", "home_wordless"])("(%s) is absent from /scans, from its category's count and from the landing's strip", async (because) => {
+    const { readGallery, readRecent } = await import("@/lib/scan/gallery");
+    withdrawn(because);
+    expect((await listed()).entries.map((e) => e.domain)).toEqual(["harbour.example", "quay.example"]);
+    expect((await listed()).total).toBe(2);
+    expect((await readGallery({ ...VIEW, kind: "local-service" })).total).toBe(1);
+    expect((await readRecent(8)).map((e) => e.domain)).not.toContain("bettys.co.uk");
+  });
+
+  it("comes back when a pass measures its market", async () => {
+    withdrawn("bot_protection");
+    await listed();
+    db.because.clear();
+    db.scans = db.scans.map((r) => (r.domain === "bettys.co.uk" ? { ...r, scanned_at: "2026-10-23T10:00:00.000Z" } : r));
+    expect((await listed()).entries.map((e) => e.domain)).toContain("bettys.co.uk");
+  });
+
+  it("whose market was read from its listing is listed, without a score", async () => {
+    withdrawn("bot_protection");
+    db.because.clear();
+    expect((await listed()).entries.find((e) => e.domain === "bettys.co.uk")).toMatchObject({ score: null });
   });
 });
