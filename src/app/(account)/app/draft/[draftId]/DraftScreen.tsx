@@ -49,6 +49,7 @@ import { useCallback, useEffect, useMemo, useOptimistic, useRef, useState, useTr
 import { AUTOSAVE_DEBOUNCE_MS, TIMING } from "@/lib/config/constants";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useRefreshWhenMoved } from "@/app/_poll/useRefreshWhenMoved";
 import { copy } from "@/lib/presentation/copy";
 import { ArrowLeft, Check, CircleCheck, LoaderCircle, Plus, RefreshCw, TriangleAlert } from "lucide-react";
 import {
@@ -819,7 +820,7 @@ export function DraftScreen(p: {
         </Link>
       </nav>
 
-      {state === "generating" ? <Rewriting /> : null}
+      {state === "generating" ? <Rewriting draftId={view.draftId} /> : null}
 
       {/* SPEC §7 (2026-10-07, issue 1325; board `R12-6-Page`, #1072): the
           page, then the Decide panel, then the notes. From `xl` the panel
@@ -923,17 +924,15 @@ export function DraftScreen(p: {
 
 /**
  * Issue 1196: a page being written again is rewritten by the draft tick,
- * not by the press. While it is, the screen says so and re-reads itself at
- * the heartbeat, so the new draft appears when it lands rather than on the
- * next navigation. Mounted only in that state, so no other state of the
- * screen holds a router or a timer.
+ * not by the press. While it is, the screen says so and asks the draft's
+ * state at the heartbeat, re-reading itself only once that state has moved,
+ * so the new draft appears when it lands rather than on the next navigation.
+ * Mounted only in that state, so no other state of the screen holds a router
+ * or a timer.
  */
-function Rewriting(): React.JSX.Element {
-  const router = useRouter();
-  useEffect(() => {
-    const timer = setInterval(() => router.refresh(), TIMING.progressHeartbeatS * 1000);
-    return () => clearInterval(timer);
-  }, [router]);
+function Rewriting(p: { draftId: string }): React.JSX.Element {
+  const url = `/api/draft-state/${encodeURIComponent(p.draftId)}`;
+  useRefreshWhenMoved({ url, everyMs: TIMING.progressHeartbeatS * 1000, field: "state", waiting: "generating" });
   return (
     <div role="status" aria-live="polite" className="alert text-sm" data-testid="draft-rewriting">
       <LoaderCircle size={20} strokeWidth={1.75} aria-hidden />
