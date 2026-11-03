@@ -784,9 +784,10 @@ export function seedFreeScans(): void {
     });
     const finished = new Date(Date.UTC(2026, 8, 23 - index, 10)).toISOString();
     sql(
-      `insert into scans (domain, tier, status, score, report, finished_at, stopped_reason) values ` +
+      // Current, as `store_current_report` leaves a finished pass: the listing states the current scan's score.
+      `insert into scans (domain, tier, status, score, report, finished_at, stopped_reason, is_current) values ` +
         `('${row.domain}', 'free', '${row.score === null ? "degraded" : "done"}', ${row.score ?? "null"}, ` +
-        `'${report.replace(/'/g, "''")}'::jsonb, timestamptz '${finished}', '${row.score === null ? "time_ceiling" : "complete"}');`
+        `'${report.replace(/'/g, "''")}'::jsonb, timestamptz '${finished}', '${row.score === null ? "time_ceiling" : "complete"}', true);`
     );
     if (row.name !== null || row.logo) {
       sql(

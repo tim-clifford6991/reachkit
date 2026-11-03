@@ -8,7 +8,6 @@ import { readdirSync } from "node:fs";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { psql, psqlRows } from "../../db/substrate";
-import { shownScore } from "@/lib/scan/shown-score";
 
 const MIGRATIONS = path.resolve(
   import.meta.dirname,
@@ -181,7 +180,7 @@ describe("free_scan_listing — what the gallery and the strip may show", () => 
 
   it("states, for every card, the score of the report its address shows, including one a later scan moved", () => {
     const current = new Map(
-      psqlRows("select domain, report::text from scans where is_current;").map(([domain, body]) => [domain, shownScore(JSON.parse(body!))]),
+      psqlRows("select domain, report #>> '{verdict,scoreAndBand,value,score}' from scans where is_current;").map(([domain, score]) => [domain, score === "" ? null : Number(score)]),
     );
     const cards = listing().map(([domain, , score]) => [domain, score === "" ? null : Number(score)] as const);
     expect(cards.length).toBeGreaterThan(0);
