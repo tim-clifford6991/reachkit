@@ -147,7 +147,7 @@ export async function generateMetadata({
   if (!isIndex(slug)) return {};
   const list = await listOf(searchParams);
   if (list === null) return {};
-  return indexMetadata(list);
+  return indexMetadata({ ...list, pageCount: indexPageCount(list.pages, list.query) });
 }
 
 export default async function HostedPageRoute({
