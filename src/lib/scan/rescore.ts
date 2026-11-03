@@ -24,13 +24,11 @@
 // carries it without a new pass.
 import { retrofitReading, type Retrofit } from "@/lib/business/retrofit";
 import { aiPresenceOf, aiPresenceRangeOf, aiSampleOf, classifyReferences, foundationsOf, searchPresenceOf, searchPresenceRangeOf } from "@/lib/measure/drivers";
-import { isProtectionName } from "@/lib/measure/challenge";
 import { contentOf, measuredPagesOf } from "@/lib/measure/pages";
 import { marketsServedFrom } from "@/lib/locale/read";
 import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
 import { foldSerps, outcomeOf, type InputOutcome, type ScanInput } from "@/lib/measure/partition";
 import type { OnPageFacts } from "@/lib/measure/parse";
-import { isPlaceholder, withoutPlaceholders } from "@/lib/measure/placeholder";
 import type { Drivers } from "@/lib/measure/score";
 import { verdictOf, type Verdict } from "@/lib/measure/verdict";
 import type { CoherenceVerdict } from "@/lib/market/coherence/check";
@@ -43,12 +41,12 @@ import { brandOf } from "@/lib/market/questions/select";
 import { citedPagesOf } from "@/lib/market/prompts/answer";
 import { freePageChanges } from "@/lib/opportunities/free-page";
 import { statementsOf } from "@/lib/market/prompts/misstated";
-import type { Profile } from "@/lib/market/questions/profile-types";
 import type { PresenceCard } from "@/lib/market/rivals/presence";
 import type { MarketSerp, QuestionView } from "@/lib/market/views";
 import { AI_ANSWER_SOURCES, type RankedRow } from "@/lib/vendors/dataforseo/types";
 import { cardsOf, placeStands, reachOfReport } from "./cards";
 import { readAsProtection, unreadByProtection } from "./challenged";
+import { clearedProfileOf, withdrawnMarketOf } from "./rescore-blank";
 import { marketEvidence, type EvidenceReport } from "./market-evidence";
 import { onPageOf, type PageFacts } from "./page-facts";
 import { localeOfReport, type AnswerCell, type EngineCell, type PromptAnswer, type StoredReport } from "./report";
@@ -428,9 +426,10 @@ export function rescoreScan(scan: RescoreScan): Rescored {
   }
 
   const before = membersOf(r);
+  const withdrawn = withdrawnMarketOf(r, scan, at);
   // The run hands over the whole stored report; its type names only what a score reads.
-  const freePage = freePageChanges({ ...read, ...after, scanId: scan.id } as unknown as StoredReport);
-  const changes = [...changesOf(before, after), ...profileChanges(r, profile, reading), ...promptChanges(r, scan), ...servedChanges(r, scan), ...freePage];
+  const freePage = withdrawn ?? freePageChanges({ ...read, ...after, scanId: scan.id } as unknown as StoredReport);
+  const changes = [...changesOf(before, after), ...(withdrawn === null ? profileChanges(r, profile, reading) : []), ...promptChanges(r, scan), ...servedChanges(r, scan), ...freePage];
   // A new date is a change though `same` reads past dates: the whole
   // verdict is written again, every member of it carrying that date.
   if (at.getTime() !== new Date(r.verdict.measuredAt).getTime() && !changes.some((c) => c.path.length === 1 && c.path[0] === "verdict")) {
@@ -497,16 +496,6 @@ function scanDate(stored: Date | string, startedAt: string | undefined): Date {
   if (startedAt === undefined) return measured;
   const started = new Date(startedAt);
   return Number.isNaN(started.getTime()) || measured.getTime() >= started.getTime() ? measured : started;
-}
-
-/** The stored profile with every field that names nothing taken out
- *  (issue 1479): a placeholder, or a protection page's words where the scan
- *  read one. `null` where no profile is stored. */
-function clearedProfileOf(r: RescoreReport): Record<string, unknown> | null {
-  if (r.market.kind === "unmeasured") return null;
-  const profile: unknown = r.market.value.profile;
-  if (profile === null || typeof profile !== "object") return null;
-  return withoutPlaceholders(profile as Profile, (text) => isPlaceholder(text) || isProtectionName(text, r.domain)) as unknown as Record<string, unknown>;
 }
 
 /** Issue 1470: the lines, kind and reach a stored profile lacks, read from

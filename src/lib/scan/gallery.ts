@@ -16,7 +16,8 @@ import { kindOfProfile } from "@/lib/business/retrofit";
 import { PREVIEW_HOST_SUFFIX } from "@/lib/config/constants";
 import { dbAdmin } from "@/lib/db";
 import type { BusinessKind } from "@/lib/market/kinds";
-import { isProtectionName } from "@/lib/measure/challenge";
+import { HOME_WORDLESS } from "@/lib/measure/blank-page";
+import { BOT_PROTECTION, isProtectionName } from "@/lib/measure/challenge";
 import { isPlaceholder } from "@/lib/measure/placeholder";
 import { brandName, domainBrand } from "@/lib/site-profile/site-name";
 import { challengedHomes } from "./challenged";
@@ -168,6 +169,25 @@ function toEntry(row: Row, homeTitle?: string): GalleryEntry {
   };
 }
 
+/**
+ * The domains whose current report's market was withdrawn, read off a page
+ * that held none of the site's words (`rescore.ts`): no card lists the
+ * market it was given until a pass measures one.
+ */
+async function withdrawnMarkets(): Promise<readonly string[]> {
+  const { data, error } = await untyped()
+    .from<{ domain: string }>("scans")
+    .select("domain")
+    .eq("is_current", true)
+    .in("report->market->>because", [BOT_PROTECTION, HOME_WORDLESS]);
+  if (error) throw new Error(`gallery: could not read the withdrawn markets: ${error.message}`);
+  return [...new Set((data ?? []).map((row) => row.domain))];
+}
+
+function listed<T>(query: MinimalQuery<T>, withdrawn: readonly string[]): MinimalQuery<T> {
+  return withdrawn.length === 0 ? query : query.not("domain", "in", `(${withdrawn.join(",")})`);
+}
+
 function searched<T>(query: MinimalQuery<T>, term: string): MinimalQuery<T> {
   return term === ""
     ? query
@@ -206,14 +226,18 @@ interface GalleryView {
 }
 
 async function readListing(a: GalleryView): Promise<GalleryPage> {
-  let cards = searched(
-    untyped()
-      .from<Row>("free_scan_listing")
-      .select(COLUMNS, { count: "exact" }),
-    a.search,
+  const withdrawn = await withdrawnMarkets();
+  let cards = listed(
+    searched(
+      untyped()
+        .from<Row>("free_scan_listing")
+        .select(COLUMNS, { count: "exact" }),
+      a.search,
+    ),
+    withdrawn,
   );
   if (a.kind !== null) {
-    const categories = await categoriesOf(a.kind, a.search);
+    const categories = await categoriesOf(a.kind, a.search, withdrawn);
     if (categories.length === 0) return { entries: [], total: 0 };
     cards = cards.in("category", categories);
   }
@@ -238,12 +262,15 @@ async function readListing(a: GalleryView): Promise<GalleryPage> {
 
 /** The stored categories, among the scans the search matches, that name
  *  this kind: the view stores a category, never a kind. */
-async function categoriesOf(kind: BusinessKind, search: string): Promise<string[]> {
-  const { data, error } = await searched(
-    untyped()
-      .from<{ category: string | null }>("free_scan_listing")
-      .select("category"),
-    search,
+async function categoriesOf(kind: BusinessKind, search: string, withdrawn: readonly string[]): Promise<string[]> {
+  const { data, error } = await listed(
+    searched(
+      untyped()
+        .from<{ category: string | null }>("free_scan_listing")
+        .select("category"),
+      search,
+    ),
+    withdrawn,
   );
   if (error) throw new Error(`gallery: could not read the categories: ${error.message}`);
   const stored = new Set((data ?? []).flatMap((row) => (row.category === null ? [] : [row.category])));
@@ -295,9 +322,12 @@ export type StripEntry = Pick<GalleryEntry, "domain" | "company" | "hasLogo">;
  *  *Recently scanned* strip — the same view as `/scans`, so a removed site
  *  leaves both at once. */
 export async function readRecent(n: number): Promise<readonly StripEntry[]> {
-  const { data, error } = await untyped()
-    .from<Pick<Row, "domain" | "company" | "has_logo">>("free_scan_listing")
-    .select("domain, company, has_logo")
+  const { data, error } = await listed(
+    untyped()
+      .from<Pick<Row, "domain" | "company" | "has_logo">>("free_scan_listing")
+      .select("domain, company, has_logo"),
+    await withdrawnMarkets(),
+  )
     .order("scanned_at", { ascending: false })
     .order("domain", { ascending: true })
     .limit(n);

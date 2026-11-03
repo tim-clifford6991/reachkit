@@ -393,13 +393,10 @@
             ],
             "domain": "gusto.com",
             "market": {
+              "kind": "unmeasured",
+              "reason": "undeterminable",
               "at": "2026-10-08T13:52:02.178Z",
-              "kind": "measured",
-              "value": {
-                "profile": {
-                  "category": ""
-                }
-              }
+              "because": "bot_protection"
             },
             "onPage": {
               "kind": "unmeasured",
@@ -1182,13 +1179,10 @@
             ],
             "domain": "gusto.com",
             "market": {
+              "kind": "unmeasured",
+              "reason": "undeterminable",
               "at": "2026-10-08T13:52:02.178Z",
-              "kind": "measured",
-              "value": {
-                "profile": {
-                  "category": ""
-                }
-              }
+              "because": "bot_protection"
             },
             "onPage": {
               "kind": "unmeasured",
