@@ -38,7 +38,8 @@ import { isDomainRemoved } from "@/lib/scan/removal";
 import { leadStore } from "@/lib/mail/leads/store";
 import { RUNNING_ROW_BOUND_S } from "@/lib/scan/stuck";
 import { parseDomain, type CanonicalDomain } from "@/lib/scan/domain";
-import { readCurrentReport, type StoredReport } from "@/lib/scan/report";
+import type { StoredReport } from "@/lib/scan/report";
+import { readShownReport } from "@/lib/scan/shown-report";
 import { hasSiteLogo } from "@/lib/site-profile/store";
 import { readsDifferently } from "@/lib/scan/derivation";
 import { correctionOffer, type CorrectionOffer } from "@/lib/market/coherence/offer";
@@ -252,7 +253,7 @@ export async function resolveAddress(a: {
   // visitor did not cause it, which is our own stop.
   let report: StoredReport | null;
   try {
-    report = await readCurrentReport(domain);
+    report = await readShownReport(domain);
   } catch {
     return { kind: "refused", domain, refusal: { reason: "stopped" } };
   }

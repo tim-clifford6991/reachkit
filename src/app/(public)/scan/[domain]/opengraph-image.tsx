@@ -98,12 +98,12 @@ async function verdictFor(rawSegment: string): Promise<Verdict | null> {
     // Imported at the call and not at module scope: both modules reach the
     // admin client, and a share image that is never requested should not
     // pull the store into this route's cold start.
-    const [{ isDomainRemoved }, { readCurrentReport }] = await Promise.all([
+    const [{ isDomainRemoved }, { readShownReport }] = await Promise.all([
       import("@/lib/scan/removal"),
-      import("@/lib/scan/report"),
+      import("@/lib/scan/shown-report"),
     ]);
     if (await withDeadline(isDomainRemoved(domain))) return null;
-    const report = await withDeadline(readCurrentReport(domain));
+    const report = await withDeadline(readShownReport(domain));
     if (report === null) return null;
     const measured = report.verdict.scoreAndBand;
     if (measured.kind === "unmeasured") return null;

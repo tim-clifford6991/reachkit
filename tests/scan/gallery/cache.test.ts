@@ -9,6 +9,7 @@
 // and answers the view as the migration defines it.
 import "../../generate/env";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { cacheStore } from "../next-cache";
 
 interface ListingRow {
   domain: string;
@@ -18,12 +19,6 @@ interface ListingRow {
   scanned_at: string;
   has_logo: boolean;
 }
-
-// What Next's server sets before any of its modules load.
-await vi.hoisted(async () => {
-  const { AsyncLocalStorage } = await import("node:async_hooks");
-  (globalThis as { AsyncLocalStorage?: unknown }).AsyncLocalStorage = AsyncLocalStorage;
-});
 
 const db = vi.hoisted(() => ({
   scans: [] as ListingRow[],
@@ -83,30 +78,6 @@ vi.mock("@/lib/db", () => {
   return { dbAdmin: () => ({ from: query }) };
 });
 
-/** Next's cache handler contract, held in memory. */
-class MemoryHandler {
-  static store = new Map<string, { value: unknown; lastModified: number }>();
-  async get(key: string) {
-    return MemoryHandler.store.get(key) ?? null;
-  }
-  async set(key: string, value: unknown) {
-    MemoryHandler.store.set(key, { value, lastModified: Date.now() });
-  }
-  async revalidateTag() {}
-  resetRequestCache() {}
-}
-
-const { IncrementalCache } = await import("next/dist/server/lib/incremental-cache");
-(globalThis as { __incrementalCache?: unknown }).__incrementalCache = new IncrementalCache({
-  dev: false,
-  minimalMode: false,
-  requestHeaders: {},
-  fetchCacheKeyPrefix: "",
-  CurCacheHandler: MemoryHandler as never,
-  previewProps: { previewModeId: "test" } as never,
-  prerenderManifest: { version: 4, routes: {}, dynamicRoutes: {}, notFoundRoutes: [] } as never,
-} as never);
-
 function scan(domain: string, at: string, category = "Bike repair"): ListingRow {
   return { domain, company: domain, score: 47, category, scanned_at: at, has_logo: false };
 }
@@ -115,7 +86,7 @@ const listingReads = () => db.reads.get("free_scan_listing") ?? 0;
 const VIEW = { search: "", kind: null, sort: "newest", shown: 16 } as const;
 
 beforeEach(() => {
-  MemoryHandler.store.clear();
+  cacheStore.clear();
   db.reads.clear();
   db.rowsSent = 0;
   db.blocks = [];
