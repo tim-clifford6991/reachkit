@@ -29,6 +29,7 @@ import type { ThinFootprint } from "../search-footprint";
 import type { PageQuestionsSection, RetiredPageQuestion, AiAnswersSection, MarketPromptAnswer, PromptsSection, StoredReport, Tier } from "../report";
 import { blockedAgentsOf, categoryOf } from "../sections";
 import type { CrawlReading } from "@/lib/site-issues/checks";
+import type { CrawledPage } from "@/lib/site-profile/crawl";
 import type { StageSummary, StageName } from "../stages";
 import type { TierParameters } from "./tier";
 
@@ -99,7 +100,7 @@ export interface Sections {
   siteCrawl: CrawlReading | null;
   /** The pages that crawl read, as the market conclusion reads them
    *  (#1185). `null` until the crawl has run. */
-  pagesRead: readonly { url: string; title: string; h1: string; text: string }[] | null;
+  pagesRead: readonly Pick<CrawledPage, "url" | "title" | "h1" | "text" | "unread">[] | null;
   /** The category this pass concluded and measured under (#1185), where it
    *  concluded one; the report records it as `measuredCategory`. */
   concludedCategory: string | undefined;

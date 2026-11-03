@@ -176,6 +176,7 @@ export function parseStoredMarket(value: unknown): StoredMarketWithChange {
     ...(areaOf(value.area) === null ? {} : { area: areaOf(value.area)! }),
     ...(str(value.rivalsCheckedAt) === null ? {} : { rivalsCheckedAt: str(value.rivalsCheckedAt)! }),
     lastChange: changeOf(value.lastChange),
+    ...(isRecord(value.withdrawn) ? { withdrawn: value.withdrawn } : {}),
   };
 }
 
