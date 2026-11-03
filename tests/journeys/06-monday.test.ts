@@ -437,7 +437,7 @@ const { sendWeeklyDigest } = await import("../../src/lib/mail/weekly");
 const { copy } = await import("../../src/lib/presentation/copy");
 const { COPY, COPY_META, OWNER_OWED } = await import("../../src/lib/presentation/copy/registry");
 const { PAGE_VERDICTS } = await import("../../src/lib/presentation/bands");
-const { escapeHtml } = await import("../../src/lib/mail/blocks/html");
+const { escapeHtml } = await import("../mail/escape");
 const { readWeek: weekStrip, CALENDAR_HREF } = await import(
   "../../src/app/(account)/app/_overview/week"
 );

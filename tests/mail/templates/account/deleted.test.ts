@@ -13,7 +13,7 @@ const { buildAccountDeleted } = await import("../../../../src/lib/mail/templates
 const { COPY, copy } = await import("../../../../src/lib/presentation/copy");
 const { OWNER_OWED } = await import("../../../../src/lib/presentation/copy/registry");
 const { composeMail } = await import("../../../../src/lib/mail/shell/compose");
-const { escapeHtml } = await import("../../../../src/lib/mail/blocks/html");
+const { escapeHtml } = await import("../../escape");
 
 /** The ten sentences this mail can speak. Every one was owner-owed and
  *  empty — the send seam refused to compose rather than ship a blank line —
