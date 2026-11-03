@@ -33,7 +33,7 @@ export interface UnpublishArgs {
   announceAddress?: boolean;
 }
 
-interface PublicationRow {
+export interface PublicationRow {
   id: string;
   draft_id: string;
   site_id: string;
@@ -51,6 +51,12 @@ interface PublicationRow {
   made_live_by_us: boolean;
   verify_due_at: string | null;
 }
+
+/** Exactly the row's fields, so its jsonb columns stay in the database: a field added to the row and not here does not compile. */
+export const PUBLICATION_COLUMNS = Object.keys({
+  id: 1, draft_id: 1, site_id: 1, destination: 1, delivery_state: 1, attempt_no: 1, claimed_at: 1, published_at: 1,
+  unpublished_at: 1, live_url: 1, remote_id: 1, failure_reason: 1, mode: 1, unpublish_outcome: 1, made_live_by_us: 1, verify_due_at: 1,
+} satisfies Record<keyof PublicationRow, 1>).join(", ");
 
 export async function unpublish(a: UnpublishArgs): Promise<UnpublishResult> {
   const at = a.at ?? new Date();
@@ -112,7 +118,7 @@ async function takenDown(
 async function readPublication(draftId: string): Promise<PublicationRow | null> {
   const { data, error } = await publishDb()
     .from<PublicationRow>("publications")
-    .select("*")
+    .select(PUBLICATION_COLUMNS)
     .eq("draft_id", draftId)
     .limit(1);
   if (error !== null || data === null) return null;

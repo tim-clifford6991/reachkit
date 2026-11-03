@@ -86,8 +86,18 @@ export async function moveAddress(a: {
 
 interface RetargetRow extends Row {
   drafts: {
-    opportunities: { family: string | null; target_ref: string | null; target_query: string | null; evidence: unknown } | null;
+    opportunities: ({ family: string | null; target_ref: string | null; target_query: string | null } & RetargetPaths) | null;
   } | null;
+}
+
+/** The two evidence paths `isRetarget` reads, so a row's evidence never leaves the database whole. */
+export const RETARGET_PATHS = "evidence_family:evidence->family, shortfall_kind:evidence->shortfall->kind";
+export interface RetargetPaths {
+  evidence_family?: unknown;
+  shortfall_kind?: unknown;
+}
+export function evidenceOf(o: RetargetPaths): { evidence: never } {
+  return { evidence: { family: o.evidence_family, shortfall: { kind: o.shortfall_kind } } as never };
 }
 
 /** The repair's actor: it runs inside the hourly publish tick. */
@@ -103,7 +113,7 @@ export async function repairMoves(a: { now: Date; by?: Actor }): Promise<{ moved
   const { siteLocale } = await import("@/lib/locale/site");
   const { data, error } = await publishDb()
     .from<RetargetRow>("publications")
-    .select("id, site_id, draft_id, live_url, published_at, unpublished_at, drafts(opportunities(family, target_ref, target_query, evidence))")
+    .select(`id, site_id, draft_id, live_url, published_at, unpublished_at, drafts(opportunities(family, target_ref, target_query, ${RETARGET_PATHS}))`)
     .eq("destination", "hosted")
     .not("published_at", "is", null)
     .is("unpublished_at", null);
@@ -113,7 +123,7 @@ export async function repairMoves(a: { now: Date; by?: Actor }): Promise<{ moved
   for (const row of data) {
     const opportunity = row.drafts?.opportunities ?? null;
     if (!isLive(row) || opportunity === null || opportunity.target_ref === null) continue;
-    if (!isRetarget({ evidence: opportunity.evidence as never })) continue;
+    if (!isRetarget(evidenceOf(opportunity))) continue;
     // The new address in the site's language; a page already moved elsewhere is left alone below.
     const to = slugify(opportunity.target_query ?? "", (await siteLocale(row.site_id)).language);
     const from = slugOf(opportunity.target_ref);

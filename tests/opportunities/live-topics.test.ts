@@ -249,20 +249,20 @@ describe("the hourly run acts through unpublish and the refresh path, never a ro
 
 describe("what the run reads", () => {
   it("a page the customer edited is never read; an address is read at its newest version, the older ones beside it", () => {
-    const live = (id: string, url: string, at: string, meta: Record<string, unknown> = {}) => ({
+    const live = (id: string, url: string, at: string, edited?: string) => ({
       id,
       draft_id: `draft-${id}`,
       destination: "hosted",
       live_url: url,
       published_at: at,
       site_id: "site",
-      drafts: { meta, opportunities: stored.pages[0]!.row },
+      drafts: { first_edited_at: edited, opportunities: stored.pages[0]!.row },
     });
     const read = liveAddressesOf(
       [
         live("a1", "https://content.example/a", "2026-10-03T07:00:00Z"),
         live("a2", "https://content.example/a", "2026-10-10T07:00:00Z"),
-        live("b", "https://content.example/b", "2026-10-05T07:00:00Z", { first_edited_at: "2026-10-06T09:00:00Z" }),
+        live("b", "https://content.example/b", "2026-10-05T07:00:00Z", "2026-10-06T09:00:00Z"),
       ],
       (row) => readOpportunity(row as OpportunityRow)
     );
@@ -284,7 +284,7 @@ describe("what the run reads", () => {
       live_url: url,
       published_at: "2026-10-03T07:00:00Z",
       site_id: "site",
-      drafts: { meta: {}, transitions: moves, opportunities: stored.pages[0]!.row },
+      drafts: { transitions: moves, opportunities: stored.pages[0]!.row },
     });
     const read = liveAddressesOf(
       [row("a", "https://content.example/a", transitions), row("b", "https://content.example/b", [])],
