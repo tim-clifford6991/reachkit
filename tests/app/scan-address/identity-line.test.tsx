@@ -28,11 +28,17 @@ function withIdentity(report: StoredReport, identity: SiteIssuesSection["identit
   return { ...report, siteIssues: { ...report.siteIssues!, identity } };
 }
 
+/** Site fixes lists the row only where the check found pages to fix. */
+function failing(report: StoredReport): StoredReport {
+  const issues = report.siteIssues!.issues.map((issue) => (issue.check === "structured_data" && issue.ran ? { ...issue, count: 1, severity: "worth_fixing" as const } : issue));
+  return { ...report, siteIssues: { ...report.siteIssues!, issues } };
+}
+
 const FOUND = copy("check.identity.found", { type: "\u0000" }).split("\u0000")[0]!;
 
 describe("who runs the site, under the page labels row", () => {
   it("a plumber's new scan names the plumber", () => {
-    const report = withIdentity(panelReport("local"), { kind: "local_business", type: "Plumber", page: "https://austinplumbery.com/" });
+    const report = withIdentity(failing(panelReport("local")), { kind: "local_business", type: "Plumber", page: "https://austinplumbery.com/" });
     expect(structuredRow(report)).toContain(copy("check.identity.found", { type: "a plumber" }));
   });
 
@@ -43,7 +49,7 @@ describe("who runs the site, under the page labels row", () => {
   });
 
   it("a stored report retrofits from its home page's labels", () => {
-    expect(structuredRow(panelReport("local"))).toContain(copy("check.identity.found", { type: "a local business" }));
+    expect(structuredRow(failing(panelReport("local")))).toContain(copy("check.identity.found", { type: "a local business" }));
   });
 
   it("a stored report whose home page names no one shows no line", () => {

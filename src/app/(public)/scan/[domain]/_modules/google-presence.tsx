@@ -25,6 +25,7 @@ import { LinkSummary } from "../_address/link-summary";
 import { dash, MonoIn, Num, SLOT } from "../_address/measured";
 import { RetryPartControl } from "../_address/retry-part";
 import { AnswerMatrix, type MatrixRow } from "./ai-answers";
+import { WaffleLead } from "./buyers";
 
 /** This card's retry part, bound rather than inline — see
  *  `ai-answers.tsx` for why the sweep requires it. */
@@ -120,7 +121,7 @@ export function GooglePresenceCard(p: { section: PresenceSection }): React.JSX.E
           <p className="grow-0 text-sm">{copy("presence.no-rivals")}</p>
         ) : (
           <div className="flex min-w-0 flex-col gap-1">
-            <p className="eyebrow grow-0">{copy("report.google.waffle")}</p>
+            <WaffleLead rows={rows} total={section.measuredSearches} />
             <AnswerMatrix rows={rows} label={copy("presence.title")} testId={PRESENCE_WAFFLE_TEST_ID} />
           </div>
         )}

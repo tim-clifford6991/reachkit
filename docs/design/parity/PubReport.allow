@@ -8,17 +8,14 @@ Hard to find likely 22 to 32	sample data
 Website basics 6/10	sample data
 Answers questions 1/10	sample data
 Google 2/10	sample data
-You came up 3 times in 24 Google results and AI answers.	sample data
-We found 14 pages your site is missing. The first one is free.	sample data: Fernwood Tea's 14; the fixture counts its own 7
+Buyers who ask Google or its AI about loose leaf tea are sent to a national tea retailer most. You came up in 3 of 24: 2 of 12 Google searches, 1 of 12 AI answers.	sample data
+We found 14 questions your buyers ask that no page of yours answers.	sample data: Fernwood Tea's 14; the fixture counts its own 7
+Topics 6 to 14: the search each one answers	sample data: Fernwood Tea's 14; the fixture counts its own 7
 1 of 12 AI answers that mention you	sample data
-AI is shut out of your site	SPEC §0 2026-10-15: a title is at most six words; owner R12 2026-10-22 B2 ships "AI shut out of your site"
-Links between your pages that go nowhere Nothing to fix	SPEC §0 2026-10-15: a title is at most six words; owner R12 2026-10-22 B2 ships "Links between pages that go nowhere"; the status is sample data
 Missing or duplicate titles 3 pages	sample data: the statuses are Fernwood Tea's; the sample report ran no checks
 Missing or duplicate descriptions 5 pages	sample data: the statuses are Fernwood Tea's; the sample report ran no checks
-Pages hidden from search Nothing to fix	sample data: the statuses are Fernwood Tea's; the sample report ran no checks
 No page list for Google Free fix · 10 min	sample data: the statuses are Fernwood Tea's; the sample report ran no checks
 Slow pages 2 pages	sample data: the statuses are Fernwood Tea's; the sample report ran no checks
-Hard to use on a phone Nothing to fix	sample data: the statuses are Fernwood Tea's; the sample report ran no checks
 The first lines, written by AI from your site. We email you the full page.	owner R26 2026-10-23: stored first lines once written (tests/app/scan-address/first-page-preview.test.tsx)
 480 times a month	sample data: the page's search volume is Fernwood Tea's
 Articles	#1512: the footer links the content host's index only where stored rows name one; the sweep seeds none
@@ -28,7 +25,9 @@ An independent report by ReachKit. Fernwood Tea has not endorsed it.	sample data
 Shop · loose leaf tea	sample data: the kind and the industry are Fernwood Tea's (owner 2026-11-01, REVIEW4 §2)
 Tea drinkers and gift buyers	sample data
 Sells online, across the US	sample data
-Buyers are sent to a national tea retailer	sample data
+fernwoodtea.example: 27/100, hard to find	sample data
+AI named a national tea retailer in 7 of 12 answers, and you in 1.	sample data
+a national tea retailer is on Google’s first page for 9 of 12 searches. You are on 2.	sample data
 a national tea retailer 7	sample data
 leafandkettle.example 5	sample data
 steepco.example 2	sample data
@@ -82,3 +81,4 @@ How to brew loose leaf tea: times and temperatures	sample data
 Fernwood Tea brews its green teas at 80°C for two minutes, and its black teas at 95°C for four. from fernwoodtea.example/brewing The right time depends on the leaf and how hot the water is…	sample data
 How-to	sample data
 component:icon:shield-check 1	owner 2026-10-20 Q13: the money-back pill is shown once the launch gate opens
+The 3 that cost you most, then 5 quick checks	sample data: Fernwood Tea's five checks to fix; the fixture lists its own eight, none run

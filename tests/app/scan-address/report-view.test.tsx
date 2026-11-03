@@ -556,7 +556,7 @@ describe("REQ-004 c10/c11 — an absent section is named, and the rest stays usa
   });
 
   it("the modules that could be produced are still there", () => {
-    expect(html).toContain("problem.missing-pages.title");
+    expect(html).toContain("problem.blocked-readers.title");
     expect(html).toContain("price.amount");
   });
 
@@ -621,7 +621,7 @@ describe("REQ-091/092 — cold start: a domain that ranks for nothing still read
   });
 
   it("the rest of the report is still there — nothing is suppressed by the emptiness", () => {
-    for (const key of ["problem.blocked-readers.title", "method.missing-pages.title", "price.amount"]) {
+    for (const key of ["problem.section.title", "method.missing-pages.title", "price.amount"]) {
       expect(html).toContain(key);
     }
   });

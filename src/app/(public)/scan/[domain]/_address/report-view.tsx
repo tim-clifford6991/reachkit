@@ -42,9 +42,8 @@ import { beatsOf } from "@/lib/opportunities/free-page";
 import { FreePageAbsent, FreePageCard } from "../_modules/free-page";
 import { PricingCard } from "../_modules/pricing";
 import { MissingPagesList } from "../_modules/missing-pages";
-import { CheckCards, ProblemCards } from "../_problems/cards";
-import { checkCardsOf, readingsOf } from "../_problems/checks";
-import { identityReading } from "@/lib/site-issues/checks";
+import { CheckCards, fixesOf, ProblemCards } from "../_problems/cards";
+import { reportChecksOf } from "../_problems/checks";
 import { MethodSections } from "../_problems/method";
 import { answerReadersOf, cardsOf, missingPagesOf, PROBLEM_ORDER, type MissingPage, type ProblemCard, type ProblemName } from "../_problems/model";
 import { unblockLines } from "../_problems/unblock";
@@ -470,10 +469,7 @@ export function ReportView(p: {
   const measurement = measurementLine(report);
   const rescored = rescoredOf(report);
   const cards = cardsOf(report, unblockLines(report.blockedAgents));
-  const checks = checkCardsOf(
-    readingsOf(report.siteIssues, report.verdict.measuredAt),
-    identityReading(report.siteIssues, report.onPage.kind === "unmeasured" ? null : report.onPage.value.schemaTypes)
-  );
+  const fixes = fixesOf(cards, reportChecksOf(report));
   const cutOff = cutByCeiling(report);
   const missingPages = missingPagesOf(report);
   const profile = profileOfReport(report);
@@ -553,7 +549,7 @@ export function ReportView(p: {
                 <MarketFromSearchLine report={report} />
               </>
             }
-            top={<HeadlineBlock ai={report.aiAnswers} presence={report.presence} serps={report.serps} missing={missingPages?.length ?? 0} free={report.freePage !== null} />}
+            top={<HeadlineBlock report={report} missing={missingPages?.length ?? 0} free={report.freePage !== null} />}
             independent={copy("report.independent", { company: understanding?.name ?? report.domain })}
             hasLogo={p.state.hasLogo === true}
           />
@@ -594,11 +590,12 @@ export function ReportView(p: {
 
         <p className="eyebrow col-span-full">{copy("report.rest.eyebrow")}</p>
 
-        {/* What holds you back (#1068): the three that cost most as cards,
-            then SPEC §9's eight checks as one list (#570) — a check that
-            could not run has a grey dot and its why-line. Closed under its
+        {/* What holds you back (#1068): the problems as cards, then SPEC
+            §9's checks as one list (#570), neither listing a measured zero;
+            a check that could not run has a grey dot and its why-line. Closed under its
             own name since issue 1328: daisyUI `collapse` on a `details`, so
             it is in the first response and opens with no script. */}
+        {fixes.line === null ? null : (
         <details id="holds" className="collapse collapse-arrow card-border bg-base-100 col-span-full scroll-mt-20" data-testid="report-problems">
           <summary className="collapse-title">
             <div className="flex items-center gap-3">
@@ -607,15 +604,16 @@ export function ReportView(p: {
               </span>
               <div className="min-w-0">
                 <h2 className="text-xl font-bold">{copy("problem.section.title")}</h2>
-                <p className="text-base-content/70 text-sm font-normal">{copy("problem.section.sub", { problems: String(cards.length), checks: String(checks.length) })}</p>
+                <p className="text-base-content/70 text-sm font-normal">{fixes.line}</p>
               </div>
             </div>
           </summary>
           <div className="collapse-content flex min-w-0 flex-col gap-3">
-            <ProblemCards cards={cards} firstPage={report.freePage !== null} />
-            <CheckCards cards={checks} />
+            <ProblemCards cards={fixes.cards} firstPage={report.freePage !== null} />
+            <CheckCards cards={fixes.checks} />
           </div>
         </details>
+        )}
         {/* The method: three sections, each closed, where each problem
             card's link lands — following one opens the section it is in. */}
         <div className="col-span-full">

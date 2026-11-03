@@ -1,12 +1,13 @@
 /** @vitest-environment jsdom */
 // SPEC §9 on the free report: the eight technical checks beside the three
-// problem cards. What a customer sees before the engine reports a check, on
-// a measured zero, and the exact lines they paste.
+// problem cards, as Site fixes lists them: only what needs work or could not
+// run. What a customer sees before the engine reports a check, on a measured
+// zero, and the exact lines they paste.
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { measured, measuredZero, unmeasured } from "@/lib/measure/measured";
 import { copy } from "@/lib/presentation/copy";
-import { CheckCards } from "@/app/(public)/scan/[domain]/_problems/cards";
+import { CheckCards, fixesOf } from "@/app/(public)/scan/[domain]/_problems/cards";
 import {
   CHECK_ORDER,
   checkCardsOf,
@@ -28,21 +29,20 @@ const dashes = (markup: string): number => {
   return [...root.querySelectorAll("*")].filter((el) => el.children.length === 0 && el.textContent === copy("unmeasured.dash")).length;
 };
 const html = (readings: Parameters<typeof checkCardsOf>[0]): string =>
-  renderToStaticMarkup(<CheckCards cards={checkCardsOf(readings)} />);
+  renderToStaticMarkup(<CheckCards cards={fixesOf([], checkCardsOf(readings)).checks} />);
+const DOERS = [copy("check.doer.free-fix"), copy("check.doer.reachkit-rewrites"), copy("check.doer.reachkit-writes")];
 
 describe("a check the scan has not reported", () => {
   const markup = html({});
 
-  it("every one of the eight has a card, with who fixes it", () => {
+  it("every one of the eight has a row and the grey-dot legend, and no fix chip: nothing was found to fix", () => {
     expect(markup.split("data-check=").length - 1).toBe(CHECK_ORDER.length);
-    expect(markup).toContain(copy("check.doer.free-fix"));
-    expect(markup).toContain(copy("check.doer.reachkit-rewrites"));
-    expect(markup).toContain(copy("check.doer.reachkit-writes"));
+    expect(markup).toContain(copy("check.legend"));
+    for (const doer of DOERS) expect(markup).not.toContain(doer);
   });
 
-  it("is absent with its why-line: no count, no dash, never 'Nothing to fix'", () => {
+  it("is absent with its why-line: no count, no dash", () => {
     expect(dashes(markup)).toBe(0);
-    expect(markup).not.toContain(copy("check.none-needed"));
     expect(markup).not.toContain("<pre");
   });
 
@@ -55,10 +55,18 @@ describe("a check the scan has not reported", () => {
 });
 
 describe("a measured check", () => {
-  it("a zero says there is nothing to fix and offers no lines", () => {
-    const markup = html({ broken_links: { count: measuredZero(0, AT), severity: measured("low", AT) } });
-    expect(markup).toContain(copy("check.none-needed"));
-    expect(markup).not.toContain("<pre");
+  it("a zero is not listed, and where every check ran there is no grey-dot legend", () => {
+    const every = Object.fromEntries(CHECK_ORDER.map((c) => [c, found(2)]));
+    const markup = html({ ...every, broken_links: { count: measuredZero(0, AT), severity: measured("low", AT) } });
+    expect(markup).not.toContain('data-check="broken_links"');
+    expect(markup.split("data-check=").length - 1).toBe(CHECK_ORDER.length - 1);
+    expect(markup).not.toContain(copy("check.legend"));
+  });
+
+  it("a check that found something carries who fixes it", () => {
+    const root = document.createElement("div");
+    root.innerHTML = html({ slow_pages: found(3) });
+    expect(root.querySelector('[data-check="slow_pages"]')?.textContent).toContain(copy("check.doer.free-fix"));
   });
 
   it("phone: the viewport line pastes verbatim, with its copy control", () => {
