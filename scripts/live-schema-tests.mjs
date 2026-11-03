@@ -66,4 +66,5 @@ export const LIVE_SCHEMA_TESTS = [
   "tests/account/identity/signin-links-schema.test.ts",
   // The shared abuse-limit count, its windows, sweep and grants.
   "tests/db/rate-limits.test.ts",
+  "tests/opportunities/asked-beside.test.ts",
 ];
