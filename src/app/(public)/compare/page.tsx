@@ -18,7 +18,7 @@ import {
   type Comparison,
   type MatrixJob,
 } from "../_library";
-import { CARD, GROUP_ICON, LearnClose, LibraryPage, Tile, Trademarks } from "../_library/parts";
+import { BAND, CARD, GROUP_ICON, LearnClose, LibraryPage, Tile, Trademarks } from "../_library/parts";
 
 export const metadata: Metadata = staticMetadata(PUBLIC_ROUTE_SEO.compare);
 
@@ -174,8 +174,13 @@ export default function ComparePage(): React.JSX.Element {
           })}
         </div>
       </nav>
-      {groups.map((g) => (
-        <section key={g.group} id={g.group} aria-labelledby={`${g.group}-h`} className="flex min-w-0 scroll-mt-20 flex-col gap-3">
+      {groups.map((g, i) => (
+        <section
+          key={g.group}
+          id={g.group}
+          aria-labelledby={`${g.group}-h`}
+          className={`flex min-w-0 scroll-mt-20 flex-col gap-3 ${i % 2 === 0 ? BAND : ""}`}
+        >
           <div className="flex min-w-0 items-center gap-3">
             <Tile Icon={GROUP_ICON[g.group]} />
             <div className="flex min-w-0 flex-col gap-1">

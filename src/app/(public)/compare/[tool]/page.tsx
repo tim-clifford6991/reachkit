@@ -14,6 +14,7 @@ import { JsonLd, articleSchemas, homeCrumb } from "../../_seo/structured";
 import { COMPARISONS, COMPARISON_GROUPS, comparisonOf, JOBS, type Cell, type Comparison, type Job } from "../../_library";
 import {
   BackLink,
+  BAND,
   BODY,
   CARD,
   FIGURES,
@@ -232,7 +233,9 @@ export default async function ComparisonPage({ params }: Params): Promise<React.
       />
       <p className="text-lg">{c.intro}</p>
       <WhoDoesEachJob c={c} yours={yours} />
-      <DoesWell c={c} />
+      <div className={BAND}>
+        <DoesWell c={c} />
+      </div>
       <section className="flex min-w-0 flex-col gap-4" aria-labelledby="comparison-instead">
         <div className="flex min-w-0 flex-col gap-2">
           <h2 id="comparison-instead">{copy("compare.item.instead")}</h2>
@@ -241,7 +244,7 @@ export default async function ComparisonPage({ params }: Params): Promise<React.
         <YourPart />
       </section>
 
-      <section className="flex min-w-0 flex-col gap-3" aria-labelledby="comparison-side">
+      <section className={`flex min-w-0 flex-col gap-3 ${BAND}`} aria-labelledby="comparison-side">
         <h2 id="comparison-side">{copy("compare.item.table")}</h2>
         <div className={`${CARD} overflow-hidden`}>
           <table className="table w-full table-fixed">

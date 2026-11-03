@@ -12,7 +12,7 @@ import { PUBLIC_ROUTE_SEO } from "../../_seo/routes";
 import { publicMetadata } from "../../_seo/metadata";
 import { JsonLd, articleSchemas, homeCrumb } from "../../_seo/structured";
 import { ANSWERS, answerOf, longDate } from "../../_library";
-import { BODY, CARD, LearnClose, LibraryPage, Pick, Sources, Tile, WeeklyLoop } from "../../_library/parts";
+import { BAND, BODY, CARD, LearnClose, LibraryPage, Pick, Sources, Tile, WeeklyLoop } from "../../_library/parts";
 
 /** Every answer is known at build; any other address is a 404. */
 export const dynamicParams = false;
@@ -105,7 +105,7 @@ export default async function AnswerPage({ params }: Params): Promise<React.JSX.
         </a>
       </p>
 
-      <section className="flex min-w-0 flex-col gap-4">
+      <section className={`flex min-w-0 flex-col gap-4 ${BAND}`}>
         <div className="flex min-w-0 flex-col gap-2">
           <h2>{a.tiers.title}</h2>
           <p>{a.tiers.lead}</p>
@@ -158,6 +158,7 @@ export default async function AnswerPage({ params }: Params): Promise<React.JSX.
         w={{ title: a.fits.title, lead: a.fits.lead, them: a.fits.them, us: copy("library.close.weekly"), rows: a.fits.rows }}
         icons={FITS_ICONS}
         short
+        band
       >
         <div className="grid min-w-0 gap-3 sm:grid-cols-2">
           <Pick

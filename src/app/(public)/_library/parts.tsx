@@ -33,6 +33,8 @@ import { longDate, type ComparisonGroup, type Source } from ".";
 export const CARD = "card bg-base-100 shadow-(--shadow-card)";
 export const BODY = "card-body gap-3";
 export const LIST = "list-disc ps-6";
+/** A white band the full width of the viewport behind a section, over the tinted ground, as the boards alternate them. */
+export const BAND = "bg-base-100 py-10 shadow-[0_0_0_100vmax_var(--color-base-100)] [clip-path:inset(0_-100vmax)]";
 /** The heading ink: near-black over the column's softer body text. */
 const HEADINGS = "[&_:is(h1,h2,h3)]:text-base-content";
 
@@ -154,6 +156,8 @@ interface Close {
   readonly glance: boolean;
   /** The close as canvas v36 draws it: no 4-step figure, only your part and the price, and the field alone in a tinted band. */
   readonly short?: true;
+  /** The weekly section sits on a white band. */
+  readonly band?: true;
 }
 
 const TEARDOWN_ROW_1: Row = ["library.close.teardown.1.them", "library.close.teardown.1.us"];
@@ -182,6 +186,7 @@ const CLOSE = {
     },
     glance: false,
     short: true,
+    band: true,
     icons: { them: User, us: Sparkles },
   },
   "compare-tool": { glance: false, short: true },
@@ -330,8 +335,9 @@ function LoopSample(p: { step: (typeof LOOP)[number] }): React.JSX.Element {
 
 /** A loop step's number, and its icon tile where the close has one. */
 function StepMark(p: { step: number; Icon?: LucideIcon }): React.JSX.Element {
+  // The last step is the result, so it takes the success tone.
   const badge = (
-    <span className="badge badge-soft badge-primary badge-sm" aria-hidden>
+    <span className={`badge badge-sm font-bold ${p.step === LOOP.length ? "badge-success" : "badge-primary"}`} aria-hidden>
       {p.step}
     </span>
   );
@@ -447,10 +453,10 @@ function Side(p: { text: string; className: string; Icon?: LucideIcon }): React.
 }
 
 /** What this page gives beside what ReachKit gives, anything the page sets under it, then the weekly loop or only your part. */
-export function WeeklyLoop(p: { w: WeeklyWords; icons?: Icons; short?: true; children?: React.ReactNode }): React.JSX.Element {
+export function WeeklyLoop(p: { w: WeeklyWords; icons?: Icons; short?: true; band?: true; children?: React.ReactNode }): React.JSX.Element {
   const w = p.w;
   return (
-    <section className="flex min-w-0 flex-col gap-4">
+    <section className={`flex min-w-0 flex-col gap-4 ${p.band ? BAND : ""}`}>
       <div className="flex min-w-0 flex-col gap-2">
         {w.eyebrow === undefined ? null : (
           <span className="text-base-content/70 text-xs font-semibold tracking-wide uppercase">{w.eyebrow}</span>
@@ -508,7 +514,9 @@ export function LearnClose(p: { variant: LearnCloseVariant; domain?: string }): 
     p.domain === undefined ? copy("landing.start.cta") : copy("library.close.scan.domain", { domain: p.domain });
   return (
     <div className="mt-6 flex min-w-0 flex-col gap-6" data-testid="learn-close" data-variant={p.variant}>
-      {close.weekly === undefined ? null : <WeeklyLoop w={wordsOf(close.weekly)} icons={close.icons} short={close.short} />}
+      {close.weekly === undefined ? null : (
+        <WeeklyLoop w={wordsOf(close.weekly)} icons={close.icons} short={close.short} band={close.band} />
+      )}
       {close.short ? (
         <section id={START_ID} aria-labelledby="start-h" className="rounded-box border-primary/20 bg-primary/10 flex scroll-mt-20 flex-col items-center gap-3.5 border px-5 py-8 text-center sm:px-10 sm:py-12">
           <h2 id="start-h">{copy(close.heading ?? "landing.close.heading")}</h2>

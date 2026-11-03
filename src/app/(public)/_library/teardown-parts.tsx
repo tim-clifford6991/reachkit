@@ -19,7 +19,9 @@ export function Sketch(p: { domain: string; marks: readonly SketchMark[]; captio
     <figure className="flex min-w-0 flex-col gap-3" data-testid="teardown-sketch">
       <div className={FRAME}>
         <div className="mockup-browser-toolbar">
-          <div className="input min-w-0 truncate font-mono text-xs">{p.domain}</div>
+          <div className="input bg-base-100 w-full min-w-0 rounded-full">
+            <span className="min-w-0 truncate font-mono text-xs">{p.domain}</span>
+          </div>
         </div>
         <ol className="bg-base-100 flex min-w-0 flex-col gap-3 p-4">
           {p.marks.map((mark, i) => (
