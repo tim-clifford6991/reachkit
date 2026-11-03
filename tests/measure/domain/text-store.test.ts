@@ -1,4 +1,4 @@
-// tests/measure/domain/text-store.test.ts — a read's text kept in `fetch_text` reads back as the payload's, and stays a shadow.
+// tests/measure/domain/text-store.test.ts — a read's text kept in `fetch_text` reads back as the payload's and is served in production.
 import "../../generate/env";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -7,7 +7,7 @@ vi.mock("@/lib/db", () => ({ dbAdmin: dbAdminMock }));
 
 import { OWN_FETCH_SOURCE, RENDERED_FETCH_SOURCE, toStoredDocument } from "../../../src/lib/measure/own-fetch.ts";
 import { prose } from "../../../src/lib/measure/prose.ts";
-import { storedText as storedById, type FetchRead, type TextClient } from "../../../src/lib/measure/text-store.ts";
+import { storedText as storedById, textRowOf, type FetchRead, type TextClient } from "../../../src/lib/measure/text-store.ts";
 import { readDomainText } from "../../../src/lib/measure/text.ts";
 
 const READ_AT = new Date("2026-09-05T09:30:00.123Z");
@@ -23,6 +23,7 @@ type Row = Record<string, unknown>;
 function store(fetches: Row[], scans: Row[] = [], failing: Record<string, "down" | "hang"> = {}) {
   const tables: Record<string, Row[]> = { fetches, fetch_text: [], scans };
   const log: string[] = [];
+  const ids: string[][] = [];
   const client = {
     from(table: string) {
       const filters: ((row: Row) => boolean)[] = [];
@@ -33,6 +34,7 @@ function store(fetches: Row[], scans: Row[] = [], failing: Record<string, "down"
         eq: (column: string, value: string) => (filters.push((row) => row[column] === value), self),
         in(column: string, values: readonly string[]) {
           if (values.length > 100) throw new Error("more than 100 ids in one filter");
+          if (table === "fetches" && column === "id") ids.push([...values]);
           filters.push((row) => values.includes(row[column] as string));
           return self;
         },
@@ -54,11 +56,11 @@ function store(fetches: Row[], scans: Row[] = [], failing: Record<string, "down"
       return self;
     },
   };
-  return { client: client as unknown as TextClient, tables, log };
+  return { client: client as unknown as TextClient, tables, log, ids };
 }
 
 const reads = (db: ReturnType<typeof store>) => (db.tables.fetches ?? []).filter((row) => row.scan_id === "s1") as unknown as FetchRead[];
-const storedText = async (db: ReturnType<typeof store>, version: string) => [...(await storedById(db.client, reads(db), version)).values()].filter((page) => page !== null);
+const storedText = async (db: ReturnType<typeof store>, version: string) => [...((await storedById(db.client, reads(db), version)) ?? []).values()].filter((page) => page !== null);
 const upserts = (log: readonly string[]) => log.filter((line) => line.startsWith("upsert")).length;
 
 describe("fetch_text: a read's text is derived once, kept, and read back the same", () => {
@@ -81,11 +83,13 @@ describe("fetch_text: a read's text is derived once, kept, and read back the sam
       ["f-rendered", "v1", true],
     ]);
 
+    expect(db.ids).toEqual([["f-own", "f-rendered"]]);
+
     const kept = await storedText(db, "v1");
     expect(kept).toStrictEqual(expected);
     expect(kept[0]?.measuredAt.getTime()).toBe(READ_AT.getTime());
     expect(upserts(db.log)).toBe(1);
-    expect(db.log.filter((line) => line.startsWith("fetches"))).toEqual([]);
+    expect(db.ids).toHaveLength(1);
   });
 
   it("a null or unreadable payload is kept once with document = false and returns nothing", async () => {
@@ -119,49 +123,70 @@ describe("fetch_text: a read's text is derived once, kept, and read back the sam
   });
 });
 
-describe("shadow parity: the payload text is served, the stored text is only compared", () => {
+describe("production serves the kept text and downloads a payload only for a read not kept yet", () => {
   const FETCHES = () => [
     { id: "f-home", scan_id: "s1", source: OWN_FETCH_SOURCE, payload: payload("https://plumb.example/", HTML) },
     { id: "f-about", scan_id: "s1", source: OWN_FETCH_SOURCE, payload: payload("https://plumb.example/about", HTML) },
     { id: "f-null", scan_id: "s1", source: OWN_FETCH_SOURCE, payload: null },
   ];
   const SCANS = [{ id: "s1", tier: "free", domain: "plumb.example" }];
-  const stale = { fetch_id: "f-about", scan_id: "s1", text_version: "v1", url: "https://plumb.example/about", read_at: READ_AT.toISOString(), rendered: false, document: true, text: "stale", examples: [], questions: [] };
 
   const served = (db: ReturnType<typeof store>) => (dbAdminMock.mockReturnValue(db.client), readDomainText("plumb.example"));
+  const payloadPath = (fetches: Row[]) => (vi.stubEnv("RK_TEXT_VERSION", ""), served(store(fetches, SCANS)));
+  const fetchLines = (log: readonly string[]) => log.filter((line) => line.startsWith("fetches"));
 
   beforeEach(() => vi.stubEnv("VERCEL_ENV", "production"));
   afterEach(() => void (vi.useRealTimers(), vi.unstubAllEnvs(), vi.restoreAllMocks()));
 
-  it("serves exactly the payload path's text when the stored rows differ, the stored read fails or it outlasts its 1.5 s", async () => {
-    vi.stubEnv("RK_TEXT_VERSION", "");
-    const payloadPath = await served(store(FETCHES(), SCANS));
-    expect(payloadPath.map((page) => page.url)).toEqual(["https://plumb.example/", "https://plumb.example/about"]);
-
+  it("serves the stored text: lists fetches without payload, reads fetch_text once, downloads only the missing ids", async () => {
     vi.stubEnv("RK_TEXT_VERSION", "v1");
-    vi.spyOn(console, "info").mockImplementation(() => {});
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const differing = store(FETCHES(), SCANS);
-    differing.tables.fetch_text = [stale];
-    expect(await served(differing)).toStrictEqual(payloadPath);
-    expect(await served(store(FETCHES(), SCANS, { fetch_text: "down" }))).toStrictEqual(payloadPath);
-    expect(warn).toHaveBeenCalledWith("text parity: shadow read failed: text.ts: read from fetch_text failed: down");
-    vi.useFakeTimers();
-    const hanging = served(store(FETCHES(), SCANS, { fetch_text: "hang" }));
-    await vi.advanceTimersByTimeAsync(1500);
-    expect(await hanging).toStrictEqual(payloadPath);
-    expect(warn).toHaveBeenLastCalledWith("text parity: shadow timed out");
+    const db = store(FETCHES(), SCANS);
+    const home = { fetch_id: "f-home", scan_id: "s1", text_version: "v1", ...textRowOf(OWN_FETCH_SOURCE, FETCHES()[0]?.payload) };
+    db.tables.fetch_text = [home];
+    await served(db);
+    expect(fetchLines(db.log)).toEqual(["fetches id, scan_id, source", "fetches id, payload"]);
+    expect(db.log.filter((line) => line.startsWith("fetch_text"))).toHaveLength(1);
+    expect(db.ids).toEqual([["f-about", "f-null"]]);
+
+    db.log.length = 0;
+    await served(db);
+    expect(fetchLines(db.log)).toEqual(["fetches id, scan_id, source"]);
+    expect(db.log.filter((line) => line.startsWith("fetch_text"))).toHaveLength(1);
+    expect(db.ids).toHaveLength(1);
   });
 
-  it("logs one line per read that counts each match and mismatch, and derives a miss from the payloads already read", async () => {
+  it("serves exactly what the payload path serves, on the first read and the kept one", async () => {
+    const fixtures: Row[][] = [
+      [{ id: "f-own", scan_id: "s1", source: OWN_FETCH_SOURCE, payload: payload("https://plumb.example/", HTML) }],
+      [{ id: "f-rendered", scan_id: "s1", source: RENDERED_FETCH_SOURCE, payload: [payload("https://plumb.example/app", HTML)] }],
+      [{ id: "f-null", scan_id: "s1", source: OWN_FETCH_SOURCE, payload: null }, ...FETCHES()],
+      [{ id: "f-junk", scan_id: "s1", source: RENDERED_FETCH_SOURCE, payload: { vendorFailure: "timeout", endpoint: RENDERED_FETCH_SOURCE, billed: true } }, ...FETCHES()],
+      Array.from({ length: 230 }, (_, i) => ({ id: `f-${i}`, scan_id: "s1", source: i % 3 === 0 ? RENDERED_FETCH_SOURCE : OWN_FETCH_SOURCE, payload: i % 5 === 0 ? null : i % 3 === 0 ? [payload(`https://plumb.example/${i % 7}`, HTML)] : payload(`https://plumb.example/${i % 7}`, i % 2 ? HTML : SHELL) })),
+    ];
+    for (const fetches of fixtures) {
+      const expected = await payloadPath(fetches);
+      vi.stubEnv("RK_TEXT_VERSION", "v1");
+      const db = store(fetches, SCANS);
+      expect(await served(db)).toStrictEqual(expected);
+      expect(await served(db)).toStrictEqual(expected);
+      expect(db.ids.flat()).toHaveLength(fetches.length);
+    }
+  });
+
+  it("serves the payload path, never an empty set, when the fetch_text read fails or outlasts its 1.5 s", async () => {
+    const expected = await payloadPath(FETCHES());
+    expect(expected).toHaveLength(2);
     vi.stubEnv("RK_TEXT_VERSION", "v1");
-    const info = vi.spyOn(console, "info").mockImplementation(() => {});
-    const db = store(FETCHES(), SCANS);
-    await served(db);
-    expect(db.log.filter((line) => line.includes("payload"))).toEqual(["fetches id, scan_id, source, payload"]);
-    db.tables.fetch_text = (db.tables.fetch_text ?? []).map((row) => (row.fetch_id === "f-about" ? stale : row));
-    await served(db);
-    expect(info.mock.calls).toEqual([["text parity: match=3 mismatch=0"], ["text parity: match=2 mismatch=1 first=f-about"]]);
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    expect(await served(store(FETCHES(), SCANS, { fetch_text: "down" }))).toStrictEqual(expected);
+    expect(warn.mock.calls).toEqual([["text: stored read failed, served payloads", "text.ts: read from fetch_text failed: down"]]);
+
+    vi.useFakeTimers();
+    const db = store(FETCHES(), SCANS, { fetch_text: "hang" });
+    const hanging = served(db);
+    await vi.advanceTimersByTimeAsync(1500);
+    expect(await hanging).toStrictEqual(expected);
+    expect(fetchLines(db.log)).toEqual(["fetches id, scan_id, source", "fetches id, scan_id, source, payload"]);
   });
 
   it("dev and preview, which share production's database, never read or write fetch_text", async () => {
