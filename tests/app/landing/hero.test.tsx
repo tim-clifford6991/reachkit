@@ -268,7 +268,7 @@ describe("the story card: four frames, the board's words and no footer", () => {
     const card = (await render()).querySelector('[data-testid="landing-story"]')!;
     expect(card.querySelector("h2.sr-only")!.text).toBe(copy("landing.story.title"));
     expect(flat(card).endsWith(flat(card.querySelectorAll("ol > li")[3]!))).toBe(true);
-    expect(flat(card)).not.toContain(copy("landing.hero.example"));
+    expect(flat(card)).not.toContain("Not a promise");
     expect(flat(card)).not.toMatch(/SEO/);
   });
 
