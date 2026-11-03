@@ -1,6 +1,6 @@
 // tests/ui/recharts-charts.test.tsx
 //
-// The growth line, presence bars and rival sparkline, drawn by Recharts
+// The growth line, presence bars, rival sparkline and cap days, drawn by Recharts
 // (#550). Recharts paints on the client after measuring its box, so each
 // chart is mounted in jsdom with a box to measure, and the assertions read
 // what a viewer sees: which series carries which colour, where the line
@@ -8,6 +8,7 @@
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { CapDays } from "@/ui/charts/CapDays";
 import { GrowthLine, type GrowthWeek } from "@/ui/charts/GrowthLine";
 import { PresenceBars } from "@/ui/charts/PresenceBars";
 import { RivalSparkline } from "@/ui/charts/RivalSparkline";
@@ -276,5 +277,44 @@ describe("RivalSparkline", () => {
     const figure = host.querySelector("figure");
     expect(figure?.className).toContain("w-full");
     expect(figure?.className).not.toContain("w-32");
+  });
+});
+
+describe("CapDays", () => {
+  const days = [
+    { name: "Tue 13", value: 0.88, figure: "€0.88" },
+    { name: "Wed 14", value: 2.31, figure: "€2.31" },
+    { name: "Fri 16", value: 1.58, figure: "€1.58" },
+  ];
+  const chart = (): Promise<HTMLElement> =>
+    draw(<CapDays label="The €2 a day" days={days} cap={{ value: 2, label: "cap €2" }} warn={{ value: 1.5, label: "warning €1.50" }} />);
+
+  it("paints every bar in the series colour, never a status colour, whatever day crossed the lines", async () => {
+    const bars = [...(await chart()).querySelectorAll(".recharts-bar-rectangle path")];
+    expect(bars).toHaveLength(3);
+    for (const bar of bars) expect(bar.getAttribute("fill")).toBe("var(--chart-you)");
+  });
+
+  it("draws the cap a solid error line and the warning a dashed warning line: thresholds are state (BUILD §2.4)", async () => {
+    const lines = [...(await chart()).querySelectorAll(".recharts-reference-line line")];
+    expect(lines.map((l) => [l.getAttribute("stroke"), l.getAttribute("stroke-dasharray")])).toEqual([
+      ["var(--color-error)", null],
+      ["var(--color-warning)", "4 4"],
+    ]);
+  });
+
+  it("labels each line on it only from sm, in its line's colour, and writes days and values in mono", async () => {
+    const host = await chart();
+    const labels = [...host.querySelectorAll("svg.recharts-surface text")].filter((t) => /^(cap|warning) /.test(t.textContent ?? ""));
+    expect(labels.map((t) => [t.textContent, t.getAttribute("fill")])).toEqual([
+      ["cap €2", "var(--color-error)"],
+      ["warning €1.50", "var(--color-warning)"],
+    ]);
+    for (const label of labels) expect(label.getAttribute("class")).toContain("max-sm:hidden");
+    const values = [...host.querySelectorAll("svg.recharts-surface text")].filter((t) => (t.textContent ?? "").startsWith("€"));
+    const ticks = [...host.querySelectorAll(".recharts-cartesian-axis-tick-value")];
+    expect(values.map((t) => t.textContent)).toEqual(["€0.88", "€2.31", "€1.58"]);
+    expect(ticks).toHaveLength(3);
+    for (const t of [...values, ...ticks]) expect(t.getAttribute("font-family"), t.textContent ?? "").toBe("var(--font-mono)");
   });
 });

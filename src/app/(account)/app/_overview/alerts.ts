@@ -185,21 +185,14 @@ export interface IssuesReading {
   issues: readonly WaitingIssue[];
   pagesChecked: number | null;
   measuredAt: Date | null;
-  /** The hosted address ReachKit's pages live on; `null` where they live on
-   *  the customer's own site. */
-  hostedHost: string | null;
 }
 
-export function issuesReading(
-  section: SiteIssuesSection | null,
-  measuredAt: Date | null,
-  hostedHost: string | null
-): IssuesReading {
+export function issuesReading(section: SiteIssuesSection | null, measuredAt: Date | null): IssuesReading {
   // A scan with no section, or with no check that ran, measured nothing.
   if (measuredAt === null || section === null || !section.issues.some((issue) => issue.ran)) {
-    return { issues: [], pagesChecked: null, measuredAt: null, hostedHost };
+    return { issues: [], pagesChecked: null, measuredAt: null };
   }
-  return { issues: waitingIssues(section, { measuredAt }), pagesChecked: section.pagesChecked, measuredAt, hostedHost };
+  return { issues: waitingIssues(section, { measuredAt }), pagesChecked: section.pagesChecked, measuredAt };
 }
 
 export function readAlerts(

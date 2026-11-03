@@ -16,7 +16,7 @@ import { FIXED_VENDORS, previousMonth, utcDay } from "./vendor-days";
 export const COST_DAYS = 7;
 const DAY_MS = 24 * 60 * 60 * 1000;
 /** A month is this many weeks: 365.25 / 12 / 7. */
-const WEEKS_A_MONTH = 4.348;
+export const WEEKS_A_MONTH = 4.348;
 
 export type Segment = "free" | "smoke" | "test" | "box";
 export type CostVendor = "dataforseo" | "anthropic" | "own";

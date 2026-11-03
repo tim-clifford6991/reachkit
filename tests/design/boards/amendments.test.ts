@@ -106,9 +106,11 @@ describe("rows of squares are bars (E18, E20–E25)", () => {
     }
   });
 
-  it("AppIssues draws one proportional bar, not a waffle (E21)", () => {
-    const bar = board("AppIssues").querySelector('div[role="img"]')!;
-    expect(bar.childNodes.filter((n) => n.nodeType === 1)).toHaveLength(4);
+  it("AppIssues draws no waffle (E21); v36 cut its summary bar, which repeated the cards (#2279)", () => {
+    const issues = board("AppIssues");
+    expect(issues.querySelector('[role="img"]')).toBeNull();
+    // A badge's 3-bar severity glyph is not a waffle; a strip of 5 or more squares would be.
+    expect(squareRows(issues, 5)).toEqual([]);
   });
 
   it("SettingsIndex' Written from meter is one bar (E24)", () => {
