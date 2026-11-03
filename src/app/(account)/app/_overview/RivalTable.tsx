@@ -41,9 +41,10 @@ import {
   type ColumnFiltersState,
 } from "@tanstack/react-table";
 import { copy } from "@/lib/presentation/copy";
-import { CLOSED, FILTER_PILL, formatCount, renderValue } from "./present";
+import { formatCount, renderValue } from "./present";
 import { ALL_RIVALS, type RivalSearchRow, type RivalsModel } from "./rivals-model";
 import type { Planned } from "./search-model";
+import { DOING_ICON } from "./search-words";
 import {
   RIVAL_CELL_CLASS,
   RIVAL_COLUMN_COPY_KEY,
@@ -63,24 +64,12 @@ const RIVAL = "rival";
 
 const column = createColumnHelper<RivalSearchRow>();
 
-/** Who wins the search, and where they stand on it where the pass bought a
- *  top ten. The domain is set in the mono face — docs/DESIGN.md reserves it
- *  for numerals, domains and code, and this is a domain.
- *
- *  A domain is never broken mid-word (`type.css`, `.num`), so on the phone
- *  shape the cell has the row's whole width (`RIVAL_CELL_CLASS`) and the
- *  place folds under the domain rather than pushing it out of the cell
- *  (#1040). From `sm` the pair stays on one line, as before. */
+/** Who wins the search: a domain, in mono, never broken mid-word. The Rivals tab draws no place for it (SPEC §4). */
 function WinnerCell(p: { row: RivalSearchRow }): React.JSX.Element {
-  const place = renderValue(p.row.position, RIVAL_COLUMN_COPY_KEY.winner);
   return (
     <span className="flex items-baseline gap-x-2 whitespace-nowrap max-sm:flex-wrap">
+      <span className="text-sm text-base-content/70 sm:hidden">{copy("overview.rivals.won-by")}</span>
       <span className="num text-sm">{p.row.rival}</span>
-      {place.isDash ? null : (
-        <span className="num text-xs text-base-content/70">
-          {copy("overview.search.position", { position: place.text })}
-        </span>
-      )}
     </span>
   );
 }
@@ -99,9 +88,7 @@ export function RivalTable(p: {
       column.accessor((row) => row.search, {
         id: "search",
         header: () => copy(RIVAL_COLUMN_COPY_KEY.search),
-        // The UI face, not the mono one: a search phrase is not a numeral,
-        // a domain or code, and the approved board draws it in Plus Jakarta
-        // Sans at semibold.
+        // A search is mono (docs/DESIGN.md › type) and breaks between its words, never inside one.
         //
         // **It is not clamped at any width.** It was, inside the scroller,
         // until the phone shape made that wrap `sm:overflow-x-auto` — and
@@ -113,7 +100,7 @@ export function RivalTable(p: {
         // changing rather than the value.
         cell: (ctx) => (
           <span
-            className="block font-semibold sm:max-w-[16rem]"
+            className="block font-mono text-sm break-words sm:max-w-[16rem]"
             title={ctx.getValue()}
             data-testid="rivals-search"
           >
@@ -133,6 +120,7 @@ export function RivalTable(p: {
               aria-label={value.isDash ? value.line : undefined}
             >
               {value.text}
+              {value.isDash ? null : <span className="font-sans sm:hidden"> {copy("overview.search.a-month")}</span>}
             </span>
           );
         },
@@ -152,12 +140,12 @@ export function RivalTable(p: {
         header: () => copy(RIVAL_COLUMN_COPY_KEY.doing),
         cell: (ctx) => {
           const week = planned[ctx.row.original.search];
-          const Icon = RIVAL_STATUS_ICON[ctx.getValue()];
+          const Icon = week === undefined ? RIVAL_STATUS_ICON[ctx.getValue()] : DOING_ICON[week.today ? "today" : week.update ? "update" : "page"];
           return (
             <span
               className={`${week === undefined ? RIVAL_STATUS_BADGE[ctx.getValue()] : "badge badge-primary badge-soft"} h-auto whitespace-normal sm:whitespace-nowrap`}
             >
-              {week === undefined ? <Icon className="size-3.5" aria-hidden /> : null}
+              <Icon className="size-3.5" aria-hidden />
               {week === undefined
                 ? copy(RIVAL_STATUS_COPY_KEY[ctx.getValue()])
                 : week.today
@@ -222,64 +210,33 @@ export function RivalTable(p: {
       data-testid="rivals-table"
     >
       <div className="flex min-w-0 flex-col gap-3 p-4">
-        {/* What the table lists, closed under its own name (SPEC §4,
-            2026-10-07, issue 1324). */}
-        <details className={CLOSED.root}>
-          <summary className={CLOSED.head}>
-            <h2 className="card-title text-base">{copy("overview.rivals.table.title")}</h2>
-          </summary>
-          <div className={CLOSED.body}>
-            <p className="max-w-prose text-sm text-base-content/70">
-              {copy("overview.rivals.table.lead")}
-            </p>
+        <div className="flex min-w-0 flex-wrap items-end justify-between gap-3">
+          <div className="flex min-w-0 flex-1 basis-72 flex-col gap-1">
+            <h2 className="card-title text-lg">{copy("overview.rivals.table.title")}</h2>
+            <p className="max-w-prose text-sm text-base-content/70">{copy("overview.rivals.table.lead")}</p>
           </div>
-        </details>
-
-        {/* daisyUI `filter`: one chip per rival with its count, and a reset
-            beside the chosen one. `All rivals` is that reset — it is the
-            state in which no chip is chosen, which is what the component
-            already means by unchecked. Its accessible name is still the
-            registry's word; the × over it is daisyUI's own. */}
-        <span id="rivals-filter-label" className="text-xs font-semibold text-base-content/70">
-          {copy("overview.rivals.filter.label")}
-        </span>
-        <div
-          className="filter"
-          role="radiogroup"
-          aria-labelledby="rivals-filter-label"
-          data-testid="rivals-filters"
-        >
-          <input
-            type="radio"
-            name={RIVAL}
-            className={`${FILTER_PILL} filter-reset`}
-            data-testid="rivals-chip-all"
-            aria-label={copy("overview.rivals.filter.all")}
-            checked={rival === ALL_RIVALS}
-            onChange={() => void setRival(null)}
-          />
-          {p.model.rivals.map((domain) => (
-            <input
-              key={domain}
-              type="radio"
-              name={RIVAL}
-              className={FILTER_PILL}
-              data-testid={`rivals-chip-${domain}`}
-              aria-label={copy("overview.rivals.chip", {
-                rival: domain,
-                count: formatCount(p.model.counts[domain] ?? 0),
-              })}
-              checked={rival === domain}
-              onChange={() => void setRival(domain)}
-            />
-          ))}
+          <label className="flex flex-col gap-1">
+            <span className="text-sm font-semibold">{copy("overview.rivals.filter.label")}</span>
+            <select
+              className="select min-h-11 w-full sm:w-56"
+              value={rival}
+              onChange={(event) => void setRival(event.target.value === ALL_RIVALS ? null : event.target.value)}
+              data-testid="rivals-filter"
+            >
+              <option value={ALL_RIVALS}>{copy("overview.rivals.filter.all")}</option>
+              {p.model.rivals.map((domain) => (
+                <option key={domain} value={domain}>
+                  {domain}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
       </div>
 
       {/* **Two shapes, one DOM** (owner's review of #958).
-          Below `sm` the row is a two-column grid — the search and its
-          demand, then the winner and the status on a second line — and this
-          box does not scroll at all, because four columns do not fit 390px
+          Below `sm` the row is one stacked column — the search, its demand,
+          what we're doing, then who wins it — and this box does not scroll at all, because four columns do not fit 390px
           and the two that fell off the scroller's right edge are the whole
           point of the table. From `sm` it is the four-column daisyUI
           `table` again, scrolling sideways inside this box so the page
@@ -325,7 +282,7 @@ export function RivalTable(p: {
                 // that draws a line across the middle of a row that is one
                 // block. Below `sm` the cells carry none and the row itself
                 // carries one. `sm:` and above is untouched.
-                className="grid grid-cols-[minmax(0,1fr)_minmax(0,9rem)] items-baseline gap-x-3 gap-y-1 p-3 max-sm:border-b max-sm:border-base-300 max-sm:[&>td]:border-0 sm:table-row sm:p-0"
+                className="flex flex-col gap-1 px-4 py-3.5 max-sm:border-t max-sm:border-base-300 max-sm:[&>td]:border-0 sm:table-row sm:p-0"
               >
                 {row.getVisibleCells().map((cell) => (
                   <td
@@ -343,26 +300,13 @@ export function RivalTable(p: {
         </table>
       </div>
 
-      <div className="flex min-w-0 flex-wrap items-center gap-3 border-t border-base-300 p-4">
-        {/* A sentence, not a value: it folds. `.num` is `white-space:
-            nowrap`, and a line of five words is not one value. */}
-        <p className="min-w-0 flex-1 text-xs text-base-content/70" data-testid="rivals-showing">
-          {copy("overview.rivals.showing", {
-            shown: formatCount(shown),
-            total: formatCount(total),
-          })}
-        </p>
-        {shown < total ? (
-          <button
-            type="button"
-            className="btn btn-sm btn-ghost"
-            data-testid="rivals-show-all"
-            onClick={() => setShowAll(true)}
-          >
-            {copy("overview.rivals.show-all", { total: formatCount(total) })}
+      {shown < total ? (
+        <div className="border-t border-base-300 px-4 py-1">
+          <button type="button" className="btn btn-link min-h-11 px-0 no-underline" data-testid="rivals-show-all" onClick={() => setShowAll(true)}>
+            {copy("overview.search.show-all", { total: formatCount(total) })}
           </button>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
     </section>
   );
 }

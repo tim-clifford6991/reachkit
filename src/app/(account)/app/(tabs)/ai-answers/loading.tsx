@@ -5,11 +5,12 @@ import { copy } from "@/lib/presentation/copy";
 import { CardSkeleton } from "../../_shell/skeletons";
 import { TILE_GRID } from "../../_overview/present";
 import { MeasuredSkeleton, NumberTilesSkeleton } from "../../_overview/skeletons";
+import { OVERVIEW } from "../../_overview/frame";
 import { TabHead } from "../../_overview/TabHead";
 
 export default function AiAnswersLoading(): React.JSX.Element {
   return (
-    <div className="flex min-w-0 flex-col gap-6" data-testid="ai-answers-waiting">
+    <div className={OVERVIEW} data-testid="ai-answers-waiting">
       <TabHead title={copy("overview.tile.ai-answers.label")} testId="ai-answers" measured={<MeasuredSkeleton />} />
       <NumberTilesSkeleton count={3} grid={TILE_GRID.answers} />
       <CardSkeleton testId="ai-pages-skeleton" rows={6} />

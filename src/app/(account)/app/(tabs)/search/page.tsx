@@ -22,7 +22,6 @@ import { readShell } from "../../_shell/provider";
 import { readSearch } from "../../_overview/search-provider";
 import { readPublished } from "../../_overview/content-provider";
 import { readGoogleVisitWeeks } from "../../_overview/blog-reads-provider";
-import { readUnderstanding } from "../../_overview/understanding-provider";
 import { doingOf, type Doing } from "../../_overview/search-model";
 import { climbingSearches, googlePagesOf, readPlanned } from "../../_overview/google-pages";
 import { contentOf } from "@/lib/measure/published";
@@ -30,6 +29,7 @@ import { GooglePages } from "../../_overview/GooglePages";
 import { SearchTable } from "../../_overview/SearchTable";
 import { SearchTiles } from "../../_overview/SearchTiles";
 import { SearchTableSkeleton } from "../../_overview/skeletons";
+import { OVERVIEW } from "../../_overview/frame";
 import { TabHead } from "../../_overview/TabHead";
 
 /** /app/search's own `<title>` (#945). Without it this screen announced
@@ -38,12 +38,11 @@ import { TabHead } from "../../_overview/TabHead";
 export const metadata: Metadata = { title: copy("meta.app.search.title") };
 
 export default async function SearchTabPage(): Promise<React.JSX.Element> {
-  const [shell, model, published, visits, understanding, planned] = await Promise.all([
+  const [shell, model, published, visits, planned] = await Promise.all([
     readShell(),
     readSearch(),
     readPublished(),
     readGoogleVisitWeeks(),
-    readUnderstanding(),
     readPlanned(),
   ]);
   const content = contentOf(published);
@@ -51,19 +50,16 @@ export default async function SearchTabPage(): Promise<React.JSX.Element> {
   const climbing = pages === null ? new Set<string>() : climbingSearches(pages);
   const doing: Record<string, Doing> = {};
   for (const row of model.rows) doing[row.id] = doingOf(row, planned, climbing);
-  // A local business is bought from in its place; one that sells further names none.
-  const place = understanding.where.place?.name ?? null;
-  const lead = place === null ? copy("overview.search.table.lead.anywhere") : copy("overview.search.table.lead", { place });
 
   return (
-    <div className="flex min-w-0 flex-col gap-6" data-testid="search-tab">
+    <div className={OVERVIEW} data-testid="search-tab">
       <TabHead
         eyebrow={shell.weeks.kind === "counted" ? copy("overview.tab.eyebrow", { n: String(shell.weeks.weeks) }) : null}
         title={copy("overview.tab.search")}
         testId="search"
         measured={
           model.measuredAt === null ? null : (
-            <p className="text-xs text-base-content/70" data-testid="search-measured">
+            <p className="text-base-content/70" data-testid="search-measured">
               {copy("overview.search.measured", { on: formatDay(model.measuredAt, shell.timeZone) })}
             </p>
           )
@@ -75,7 +71,7 @@ export default async function SearchTabPage(): Promise<React.JSX.Element> {
       <GooglePages pages={pages} planned={planned} timeZone={shell.timeZone} />
 
       <Suspense fallback={<SearchTableSkeleton />}>
-        <SearchTable model={model} doing={doing} lead={lead} />
+        <SearchTable model={model} doing={doing} />
       </Suspense>
     </div>
   );

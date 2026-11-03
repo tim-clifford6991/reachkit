@@ -59,26 +59,10 @@ export const RIVAL_COLUMN_COPY_KEY: Readonly<Record<RivalColumn, CopyKey>> = Obj
   doing: "overview.rivals.column.doing",
 });
 
-/**
- * Where each cell sits **below `sm`**, when the row is a two-column grid
- * rather than a table row (owner's review of #958).
- *
- * Four columns do not fit a 390px card, and the two that were pushed off
- * the right edge of the scroller — who wins it, and what we're doing — are
- * the whole point of the table. A value off the edge of a scroller is one a
- * phone never shows, which is the argument #952 makes about its own grid.
- *
- * So the row stacks: the search and its demand on the first line, the
- * winner across the whole of the second, and the status under the demand.
- * The winner takes both columns because it is a domain, which is never
- * broken mid-word: in the first column alone it ran 30px out of its cell at
- * 320px (#1040). No `order`, no second markup, no content written twice.
- * From `sm` every one of them is `table-cell` again and the four-column
- * table is untouched.
- */
+/** Below `sm` the row is one column, as the board stacks it: the search, its demand, what we're doing, then who wins it. */
 export const RIVAL_CELL_CLASS: Readonly<Record<RivalColumn, string>> = Object.freeze({
   search: "min-w-0",
-  volume: "justify-self-end text-end",
-  winner: "min-w-0 max-sm:col-span-2",
-  doing: "justify-self-end text-end max-sm:col-start-2",
+  volume: "text-sm max-sm:text-base-content/70 sm:text-end",
+  winner: "min-w-0 max-sm:order-last",
+  doing: "",
 });

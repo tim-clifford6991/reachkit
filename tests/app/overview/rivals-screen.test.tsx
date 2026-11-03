@@ -70,7 +70,6 @@ const presence = (model: RivalsModel = MODEL, startedLine: string | null = copy(
       named={NAMED}
       namedLead="the named lead"
       {...NO_RIVAL}
-      answersHref="/app/ai-answers"
     />,
   );
 
@@ -103,7 +102,7 @@ describe("the counting cards", () => {
   it("holding no top result, the line says so and counts the first page instead; with no page going after one, it stops there", () => {
     const model: RivalsModel = { ...MODEL, top: { ...MODEL.top, you: 0 } };
     const line = presence(model, null, 0).querySelector('[data-testid="rivals-top-line"]')?.textContent;
-    expect(line).toBe(copy("overview.rivals.first.line", { of: String(MODEL.top.of), n: String(MODEL.firstPage.you.count) }));
+    expect(line).toBe(copy("overview.rivals.first.line", { n: String(MODEL.firstPage.you.count) }));
   });
 
   it("who AI answers mention: the counts it is handed, and its lead", () => {
@@ -112,12 +111,10 @@ describe("the counting cards", () => {
     expect(card?.textContent).toContain("billwise.example · 7");
   });
 
-  it("says what each count is of", () => {
-    expect(presence().textContent).toContain(
-      copy("overview.rivals.first-page.lead", {
-        of: String(MODEL.firstPage.of),
-      }),
-    );
+  it("the first-page card has no lead and no link to the AI tab, as the board cuts them", () => {
+    const node = presence();
+    expect(node.querySelector('[data-testid="rivals-card-first-page-lead"]')).toBeNull();
+    expect(node.querySelector('a[href="/app/ai-answers"]')).toBeNull();
   });
 
   it("says where the customer started", () => {
@@ -126,12 +123,6 @@ describe("the counting cards", () => {
     ).toBe(
       copy("overview.rivals.first-page.started", { count: "1", of: "12" }),
     );
-  });
-
-  it("offers the way through to the answers it counted", () => {
-    const link = presence().querySelector('[data-testid="rivals-see-answers"]');
-    expect(link?.getAttribute("href")).toBe("/app/ai-answers");
-    expect(link?.textContent).toBe(copy("overview.rivals.named.see-all"));
   });
 
   it("a card the pass never reached states its line and draws no bars", () => {
@@ -170,7 +161,7 @@ describe("the table", () => {
     expect(
       node.querySelector('[data-testid="rivals-show-all"]')?.textContent,
     ).toBe(
-      copy("overview.rivals.show-all", { total: String(MODEL.rows.length) }),
+      copy("overview.search.show-all", { total: String(MODEL.rows.length) }),
     );
   });
 
@@ -186,7 +177,7 @@ describe("the table", () => {
     ]);
   });
 
-  it("filters to one rival from the URL, and the chip's name carries its count", () => {
+  it("filters to one rival from the URL, chosen in a labelled select", () => {
     const only = MODEL.rivals[0] as string;
     const node = table({ rival: only });
     const rows = [...node.querySelectorAll('[data-testid="rivals-row"]')];
@@ -194,16 +185,10 @@ describe("the table", () => {
     for (const row of rows) {
       expect(row.textContent).toContain(only);
     }
-    expect(
-      node
-        .querySelector(`[data-testid="rivals-chip-${only}"]`)
-        ?.getAttribute("aria-label"),
-    ).toBe(
-      copy("overview.rivals.chip", {
-        rival: only,
-        count: String(MODEL.counts[only]),
-      }),
-    );
+    const select = node.querySelector<HTMLSelectElement>('[data-testid="rivals-filter"]');
+    expect(select?.closest("label")?.textContent).toContain(copy("overview.rivals.filter.label"));
+    expect([...(select?.options ?? [])].map((o) => o.value)).toEqual(["all", ...MODEL.rivals]);
+    expect(select?.querySelector("option[selected]")?.getAttribute("value")).toBe(only);
   });
 
   it("says what it is doing about every row, in words and never by colour", () => {
@@ -260,14 +245,14 @@ describe("the table", () => {
   it("is two shapes in one DOM: stacked rows below `sm`, four columns above", () => {
     const node = table();
     // The owner's review of #958: at 390 the two columns that matter were
-    // off the right edge of the scroller. Below `sm` the row is a grid and
-    // the box does not scroll at all; nothing is written twice.
+    // off the right edge of the scroller. Below `sm` the row is one stacked
+    // column and the box does not scroll at all; nothing is written twice.
     expect(node.querySelector('[data-testid="rivals-table-scroll"]')?.className).toBe(
       "min-w-0 sm:overflow-x-auto"
     );
     expect(node.querySelector("thead")?.className).toContain("hidden");
     const row = node.querySelector('[data-testid="rivals-row"]');
-    expect(row?.className).toContain("grid");
+    expect(row?.className).toContain("flex-col");
     expect(row?.className).toContain("sm:table-row");
     // Four cells, once — the phone shape re-flows them, it does not add any.
     expect(row?.querySelectorAll("td")).toHaveLength(4);
@@ -284,14 +269,9 @@ describe("the table", () => {
     expect(box?.getAttribute("aria-label")).toBe(copy("overview.rivals.table.label"));
   });
 
-  it("shows a rival's place only where the pass measured one", () => {
-    const node = table();
-    const withPlace = MODEL.rows
-      .slice(0, 9)
-      .filter((row) => row.position.kind !== "unmeasured").length;
-    const places = [
-      ...node.querySelectorAll('[data-testid="rivals-row"]'),
-    ].filter((row) => /#\d/.test(row.textContent ?? ""));
-    expect(places).toHaveLength(withPlace);
+  it("draws no place after the winner, as the Rivals tab asks for none (SPEC §4)", () => {
+    const rows = [...table().querySelectorAll('[data-testid="rivals-row"]')];
+    expect(MODEL.rows.slice(0, 9).some((row) => row.position.kind !== "unmeasured")).toBe(true);
+    expect(rows.filter((row) => /#\d/.test(row.textContent ?? ""))).toEqual([]);
   });
 });

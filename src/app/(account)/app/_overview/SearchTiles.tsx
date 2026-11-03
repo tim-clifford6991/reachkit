@@ -51,7 +51,7 @@ export function Tile(p: TileText): React.JSX.Element {
             >
               {p.figure}
             </span>
-            {p.against === null ? null : <span className={`num num-phrase min-w-0 text-sm ${INK}`}>{p.against}</span>}
+            {p.against === null ? null : <span className={`min-w-0 text-sm ${INK}`}>{p.against}</span>}
           </div>
           {p.spark}
           {p.split === null ? null : (
@@ -59,7 +59,7 @@ export function Tile(p: TileText): React.JSX.Element {
               {p.split}
             </span>
           )}
-          <span className="text-xs font-semibold">{copy("overview.means")}</span>
+          <span className="text-sm font-semibold text-primary">{copy("overview.means")}</span>
         </summary>
         <div className={CLOSED.tileBody}>
           <p className={`text-xs ${INK}`} data-testid={`${p.testId}-means`}>
@@ -102,6 +102,7 @@ export function SearchTiles(p: {
             figure: formatCount(pages.showing),
             quiet: pages.showing === 0,
             against: copy("overview.search.tile.your-pages.of", { of: formatCount(pages.read) }),
+            spark: <progress className="progress progress-primary w-full" value={pages.showing} max={pages.read} aria-hidden />,
             split: [
               copy("overview.search.tile.your-pages.split", {
                 first: formatCount(pages.firstPage),
@@ -138,6 +139,7 @@ export function SearchTiles(p: {
             figure: formatCount(market.top10),
             quiet: market.top10 === 0,
             against: copy("overview.search.tile.searches.of", { of: formatCount(market.of) }),
+            spark: market.of === 0 ? null : <progress className="progress progress-primary w-full" value={market.top10} max={market.of} aria-hidden />,
             split: copy("overview.search.tile.market.split", {
               first: formatCount(market.top10),
               rest: formatCount(market.of - market.top10),

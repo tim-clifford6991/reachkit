@@ -10,7 +10,7 @@
 // file. The one thing this module decides that is not a word is which
 // daisyUI badge a status wears — see below for why that is not `BADGE`'s
 // job.
-import { CircleCheck, CircleMinus, Clock, List, type LucideIcon } from "lucide-react";
+import { Calendar, CircleCheck, CircleMinus, Clock, Clock4, List, RefreshCw, TrendingUp, type LucideIcon } from "lucide-react";
 import type { CopyKey } from "@/lib/presentation/copy";
 import type { Doing, SearchFilter, SearchStatus } from "./search-model";
 
@@ -68,6 +68,14 @@ export const DOING_BADGE: Readonly<Record<Exclude<Doing["kind"], "status">, stri
   climbing: STATUS_BADGE.live,
 });
 
+/** The icon each badge for what is done this week wears, as the board draws it. */
+export const DOING_ICON: Readonly<Record<Exclude<Doing["kind"], "status">, LucideIcon>> = Object.freeze({
+  today: Clock4,
+  page: Calendar,
+  update: RefreshCw,
+  climbing: TrendingUp,
+});
+
 /** The table's five columns, in the board's order. The tuple is
  *  the set: the header row, the cells and the table's own column model all
  *  read it, so a column is added in one place. */
@@ -88,52 +96,14 @@ export const COLUMN_COPY_KEY: Readonly<Record<SearchColumn, CopyKey>> = Object.f
   status: "overview.search.column.status",
 });
 
-/**
- * Where each cell sits **below `sm`**, when the row is a three-line grid
- * rather than a table row (#963).
- *
- * Six columns do not fit a 390px card — measured while proving #958, the
- * card is 358px and the table 802px, so *Difficulty*, *You*, *Best rival*
- * and *Status* all sat off the right edge of the scroller and a phone user
- * saw a search and its volume. A value off the edge of a scroller is one a
- * phone never shows.
- *
- * So the row stacks, in the order #963 asks for: the search and its demand,
- * then where you stand against the best competitor, then what we are doing.
- * Each cell is placed explicitly rather than left to the grid's flow. Every
- * class is `max-sm:`, so the table from `sm` up is untouched.
- */
-/** A labelled cell puts its word **above** the value on the phone shape,
- *  not beside it. Beside it, the label and the value share one 10rem
- *  column, and `Best rival capterra.com #2` is 200px of it — measured, the
- *  value then escaped its own cell seven rows over. Above it, the value has
- *  the whole column. */
-const STACKED = "max-sm:flex-col max-sm:items-start max-sm:gap-0";
-
+/** Below `sm` the row is the board's three lines: the search and your place, its demand and who shows, then what we're doing. */
 export const SEARCH_CELL_CLASS: Readonly<Record<SearchColumn, string>> = Object.freeze({
-  search: "min-w-0 max-sm:col-start-1 max-sm:row-start-1",
-  volume: "max-sm:col-start-2 max-sm:row-start-1 max-sm:justify-self-end max-sm:text-end",
-  you: `min-w-0 max-sm:col-start-1 max-sm:row-start-2 ${STACKED}`,
-  rival: `min-w-0 max-sm:col-start-2 max-sm:row-start-2 ${STACKED}`,
-  status: "max-sm:col-start-2 max-sm:row-start-3",
+  search: "min-w-0 max-sm:col-span-2 max-sm:row-start-1",
+  volume: "max-sm:col-start-1 max-sm:row-start-2 max-sm:text-sm max-sm:text-base-content/70 max-sm:after:content-['·']",
+  you: "max-sm:col-start-3 max-sm:row-start-1 max-sm:justify-self-end",
+  rival: "min-w-0 max-sm:col-span-2 max-sm:col-start-2 max-sm:row-start-2 max-sm:text-base-content/70",
+  status: "max-sm:col-span-3 max-sm:row-start-3",
 });
 
-/**
- * The word that says what a value is, on the phone shape only.
- *
- * The column heads belong to the table and are not drawn below `sm`, so a
- * value that does not say what it is needs the head beside it instead:
- * `#14` alone is not "where you stand" and `#2` alone is not "where the
- * best rival stands". The search is the row's own subject and the status is
- * a word already, so neither is labelled twice.
- *
- * Every one of these is the column's **own** key. No new sentence is minted
- * for the phone — the screen says the same words in a different shape.
- */
-export const SEARCH_CELL_LABEL: Readonly<Record<SearchColumn, CopyKey | null>> = Object.freeze({
-  search: null,
-  volume: null,
-  you: COLUMN_COPY_KEY.you,
-  rival: COLUMN_COPY_KEY.rival,
-  status: null,
-});
+/** The heads a phone still draws over the stacked rows, as the board does. */
+export const PHONE_HEADS: ReadonlySet<SearchColumn> = new Set(["search", "you"]);

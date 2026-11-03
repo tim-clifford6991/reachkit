@@ -32,9 +32,6 @@ import AccountNotFound from "@/app/(account)/not-found";
 import DraftPage from "@/app/(account)/app/draft/[draftId]/page";
 import { FIXTURE_DRAFT_ID } from "@/app/(account)/app/draft/[draftId]/fixture";
 import { OverviewTabs } from "@/app/(account)/app/_overview/OverviewTabs";
-import { RivalPresence } from "@/app/(account)/app/_overview/RivalPresence";
-import { assembleRivals } from "@/app/(account)/app/_overview/rivals-model";
-import { FIXTURE_RIVALS_FACTS } from "@/app/(account)/app/_overview/rivals-fixture";
 import { OVERVIEW_TABS, TAB_HREF } from "@/app/(account)/app/_overview/tabs";
 import { AppDock } from "@/app/(account)/app/_shell/AppDock";
 import { DESTINATIONS, DESTINATION_HREF } from "@/app/(account)/app/_shell/destinations";
@@ -70,7 +67,6 @@ function anchors(tree: React.ReactNode): Drawn[] {
 const prefetched = (href: string): Drawn => ({ href, link: true, prefetch: "true" });
 
 const NO_WAIT = Promise.resolve(0);
-const RIVALS = assembleRivals(FIXTURE_RIVALS_FACTS);
 
 describe("SPEC §4 (2026-10-08) — a link to another screen of the app prefetches the full route", () => {
   it.each([
@@ -94,23 +90,6 @@ describe("SPEC §4 (2026-10-08) — a link to another screen of the app prefetch
   it("the Waiting for you card opens its draft", () => {
     const review = { draftId: "draft-1", title: "A page", goesLiveAt: null };
     expect(anchors(<WaitingCard review={review} timeZone="UTC" />)).toEqual([prefetched("/app/draft/draft-1")]);
-  });
-
-  it("Rivals' way through to AI answers", () => {
-    const drawn = anchors(
-      <RivalPresence
-        top={RIVALS.top}
-        after={0}
-        firstPage={RIVALS.firstPage}
-        startedLine={null}
-        named={RIVALS.firstPage}
-        namedLead=""
-        noRivalOnFirstPage=""
-        noRivalNamed=""
-        answersHref={TAB_HREF.ai_answers}
-      />
-    );
-    expect(drawn).toContainEqual(prefetched(TAB_HREF.ai_answers));
   });
 
   it("the draft's back to Plan, on the draft and where there is none", async () => {

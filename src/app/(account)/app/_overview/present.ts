@@ -86,12 +86,12 @@ export function renderValue(m: Measured<number>, subjectKey: CopyKey): RenderedV
     : { text: rendered.text, isDash: rendered.isDash, line: rendered.line };
 }
 
-/** A filter chip on the Search and Rivals tables, as the calm layer draws it
+/** A filter chip on the Search table, as the calm layer draws it
  *  (docs/DESIGN.md, 2026-09-24, #1063): a pill, and the chosen one solid ink
  *  — the Plan's stage filter wears the same classes. The chips are daisyUI
  *  `filter` radios, so `checked:` is the chosen state. */
 export const FILTER_PILL =
-  "btn btn-sm btn-ghost rounded-full checked:border-base-content checked:bg-base-content checked:text-base-100";
+  "btn btn-sm min-h-11 rounded-full border-base-300 bg-base-100 font-medium checked:border-base-content checked:bg-base-content checked:text-base-100";
 
 /** A sentence that explains a number, closed until the founder opens it
  *  (SPEC §4, 2026-10-07, issue 1324). daisyUI `collapse` on a `details`:

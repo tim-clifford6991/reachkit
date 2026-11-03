@@ -34,7 +34,7 @@ function Card(p: { children: React.ReactNode }): React.JSX.Element {
     <details className={`card card-border min-w-0 bg-base-100 ${CLOSED.root}`} data-testid={TEST_ID}>
       <summary className="collapse-title flex min-h-0 min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1 p-4 pe-10">
         <h2 className="text-base font-semibold">
-          {copy(RIVAL_LABEL)} <span className="text-sm font-normal text-base-content/70">{copy("overview.rivals.ahead.sub")}</span>
+          {copy(RIVAL_LABEL)} <span className="block text-sm font-normal text-base-content/70 sm:inline">{copy("overview.rivals.ahead.sub")}</span>
         </h2>
       </summary>
       <div className="collapse-content flex min-w-0 flex-col gap-4 px-4">{p.children}</div>
