@@ -108,6 +108,8 @@ const PUBLISHED_TELLING: PublishedTelling = {
 
 /** The digest's own two judged pages: the first is named by its search and carries the set's movement,
  *  the second has no stored search, so its address's last words name it, and no movement to state. */
+/** The sample week's Monday, when its pages were last checked. */
+const WEEK_AT = new Date("2026-10-19T07:00:00.000Z");
 const WEEKLY_PAGES: readonly WeeklyPage[] = [
   {
     liveUrl: "https://example.com/water-heater-repair",
@@ -115,7 +117,7 @@ const WEEKLY_PAGES: readonly WeeklyPage[] = [
     standing: {
       kind: "verdict",
       verdict: "working",
-      measuredAt: AT,
+      measuredAt: WEEK_AT,
       movement: {
         previousWeek: "2026-09-01",
         spansWeeks: 1,

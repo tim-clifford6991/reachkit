@@ -398,7 +398,7 @@ describe("no sentence is written here, and no model text reaches the mail", () =
               ? []
               : block.block === "verdicts"
                 ? block.items.value.flatMap((row) => [row.subject, row.verdict])
-                : block.items.value.map((row) => row.label);
+                : block.items.value.flatMap((row) => [row.label, row.lead?.text]).filter((key): key is CopyKey => key !== undefined);
           return [...(block.label === undefined ? [] : [block.label]), block.emptyLine, ...rows];
         }
         return [];
