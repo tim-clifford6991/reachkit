@@ -28,10 +28,11 @@ import { whySentenceOf } from "./card-lines";
 import type { CalendarFacts, DraftOnDay, WhyThisPage } from "./month";
 import type { DayKey } from "./dates";
 import type { State } from "./stages";
+import { CONTENT_FIXTURE_NOW, FIXTURE_PUBLISHED } from "../_overview/content-fixture";
 
 export const FIXTURE_TIME_ZONE = "America/New_York";
 /** 10:00 in the site's zone on 2026-09-15. */
-export const FIXTURE_NOW = new Date(Date.UTC(2026, 8, 15, 14, 0, 0));
+export const FIXTURE_NOW = CONTENT_FIXTURE_NOW;
 export const FIXTURE_MONTH = "2026-09";
 
 /** The date the fixture's one measurement was taken — REQ-043 c10's single
@@ -181,39 +182,32 @@ const REVIEWED: readonly State[] = Object.freeze([
  *  layout sweep non-deterministic. */
 const CHECKED_AT = new Date(Date.UTC(2026, 8, 15, 9, 0, 0));
 
-/** Each scheduled day's own title, in SCHEDULE's order, so no two days read alike. */
-const TITLES: readonly string[] = [
-  "What a CRM does for a five-person team",
-  "Signs you have outgrown your spreadsheet",
-  "How to import contacts without duplicates",
-  "Setting up a sales pipeline in an afternoon",
-  "CRM fields worth keeping, and the rest",
-  "Logging calls without slowing down",
-  "How to tag customers so you can find them",
-  "Following up on a quote, step by step",
-  "Reports a small team actually reads",
-  "Sharing one inbox with a CRM",
-  "Cleaning a contact list before you switch",
-  "Who on the team should own the CRM",
-  "How to choose a CRM for a small team",
-  "CRM pricing, compared",
-  "Moving from spreadsheets to a CRM",
-  "Free CRMs and what they leave out",
-  "Getting the team to use the CRM",
-  "Connecting your CRM to Gmail",
-];
+/** A live day's title is the page Overview's fixture published that day,
+ *  so both screens name one page alike; every other day has its own. */
+const LIVE_TITLES: ReadonlyMap<string, string> = new Map(FIXTURE_PUBLISHED.map((page) => [page.url ?? "", page.title]));
+const TITLES: Readonly<Record<DayKey, string>> = {
+  "2026-09-08": "Following up on a quote, step by step",
+  "2026-09-10": "Sharing one inbox with a CRM",
+  "2026-09-12": "Who on the team should own the CRM",
+  "2026-09-15": "CRM pricing, compared",
+  "2026-09-16": "Moving from spreadsheets to a CRM",
+  "2026-09-17": "Free CRMs and what they leave out",
+  "2026-09-18": "Getting the team to use the CRM",
+  "2026-09-20": "Connecting your CRM to Gmail",
+};
 
 const DRAFTS: readonly DraftOnDay[] = Object.entries(SCHEDULE).map(([day, state], index) => {
   const specimen = SPECIMENS[index % SPECIMENS.length] as Specimen;
   const [y, m, d] = day.split("-").map(Number);
+  const liveUrl = `https://content.example.com/${day}`;
   return {
     draftId: `draft-${day}`,
-    title: TITLES[index] ?? specimen.title,
+    title: (state === "published" ? LIVE_TITLES.get(liveUrl) : TITLES[day]) ?? specimen.title,
     state,
     scheduledFor: day,
     why: whyOf(index),
     measuredAt: MEASURED_AT,
-    liveUrl: state === "published" ? `https://content.example.com/${day}` : null,
+    liveUrl: state === "published" ? liveUrl : null,
     vetoDeadline: state === "in_review" ? new Date(Date.UTC(2026, 8, 16, 14, 0, 0)) : null,
     publishAt:
       state === "approved" || state === "publishing"
