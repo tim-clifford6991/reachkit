@@ -131,11 +131,9 @@ function ask(
 
 export function DraftScreen(p: {
   view: DraftView;
-  /** REQ-093 c2's label, resolved on the server by the one sink for model
-   *  text (`renderGenerated`) and carried here as a plain string. */
+  /** REQ-093 c2's label, resolved on the server by `renderGenerated`, the one sink for model text, as a plain string. */
   generatedLabel: string;
-  /** Facts we can quote, drawn by the live arm in its own boundary. */
-  facts?: React.ReactNode;
+  facts?: React.ReactNode; // Facts we can quote: a server boundary the live arm draws.
 }): React.JSX.Element {
   const { view } = p;
   const [editing, setEditing] = useState(false);
