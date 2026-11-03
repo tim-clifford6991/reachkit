@@ -130,11 +130,7 @@ describe(`live-branch sweep — ${routes.length} route(s) × ${sweepWidths().len
       "/app/search",
       "/app/settings",
       "/app/settings/account",
-      "/app/settings/billing",
-      "/app/settings/mail",
-      "/app/settings/market",
-      "/app/settings/publishing",
-      "/app/settings/voice",
+      "/app/settings/pages",
     ]);
   });
 
@@ -260,18 +256,18 @@ describe(`live-branch sweep — ${routes.length} route(s) × ${sweepWidths().len
       }
 
       // Chosen, and seeded as such: the veto window, and the publish time the select shows in the boards' form (its text lists every hour).
-      const publishing = await textOf("/app/settings/publishing");
+      const publishing = await textOf("/app/settings/pages");
       expect(publishing).toContain(String(LIVE_PUBLISHING.vetoHours));
       const publishTime = await withPage(
         widths()[0],
         async (page) => {
-          await page.goto(`${getBaseURL()}/app/settings/publishing`, { timeout: LIVE_NAVIGATION_MS });
+          await page.goto(`${getBaseURL()}/app/settings/pages`, { timeout: LIVE_NAVIGATION_MS });
           return page.$eval('[data-testid="publish-time"]', (el) => {
             const select = el as HTMLSelectElement;
             return { value: select.value, shown: select.selectedOptions[0]?.textContent ?? "" };
           });
         },
-        headersFor({ path: "/app/settings/publishing", cookie: getLiveAccountCookie() })
+        headersFor({ path: "/app/settings/pages", cookie: getLiveAccountCookie() })
       );
       expect(publishTime).toEqual({ value: LIVE_PUBLISHING.publishTime, shown: "7:30 AM" });
       // And not the fixture's, which is what a spread put here for every account.
@@ -281,7 +277,7 @@ describe(`live-branch sweep — ${routes.length} route(s) × ${sweepWidths().len
       // the fixture — this account's *address* is at `example.com` by
       // design (the sweep mails nobody, and the domain it is measured under
       // is its own) — so it is asserted as present, not as different.
-      expect(await textOf("/app/settings/market")).toContain(LIVE_ACCOUNT.domain);
+      expect(await textOf("/app/settings")).toContain(LIVE_ACCOUNT.domain);
 
       // The address we would mail, which is the fixture's other giveaway.
       expect(await textOf("/app/settings/account")).not.toContain(

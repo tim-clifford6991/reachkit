@@ -166,7 +166,7 @@ const UNSUBSCRIBE = {
 /** The Monday mail's other two footer links. */
 const WEEKLY_FOOTER = [
   { label: "mail.weekly.footer.pause", href: `${APP}/pause/preview-token` },
-  { label: "mail.weekly.footer.settings", href: `${APP}/app/settings/mail` },
+  { label: "mail.weekly.footer.settings", href: `${APP}/app/settings/pages#mail` },
 ] as const;
 
 /** The seven the set draws, in its own order. */

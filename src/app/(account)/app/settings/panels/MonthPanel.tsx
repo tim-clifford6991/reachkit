@@ -1,5 +1,5 @@
 // SPEC §4 (owner, 2026-10-19, E3) — Billing's "This month": the period and
-// four tiles, as board SettingsBilling draws them.
+// four tiles, as board SettingsAccount draws them.
 import type React from "react";
 import { Fragment } from "react";
 import { copy } from "@/lib/presentation/copy";

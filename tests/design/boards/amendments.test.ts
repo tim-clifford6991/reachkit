@@ -105,8 +105,8 @@ describe("rows of squares are bars (E18, E20–E25)", () => {
     expect(squareRows(issues, 5)).toEqual([]);
   });
 
-  it("SettingsIndex' Written from meter is one bar (E24)", () => {
-    expect(board("SettingsIndex").querySelector(".meter")!.querySelectorAll("span")).toHaveLength(1);
+  it("SettingsPublishing' Written from meter is one bar (E24)", () => {
+    expect(board("SettingsPublishing").querySelector(".meter")!.querySelectorAll("span")).toHaveLength(1);
   });
 
   it("AppCompetitors draws a bar per row, not a stacked bar (E25)", () => {

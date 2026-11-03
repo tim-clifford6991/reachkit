@@ -123,7 +123,7 @@ export function ConnectAddress(p: {
             <div className={`collapse-content flex flex-col gap-2 px-0 ${QUIET}`}>
               <p>
                 <span className="me-1">{copy("overview.connect.wordpress")}</span>
-                <Link className="link link-primary" href={SETTINGS_TAB_HREF.publishing}>
+                <Link className="link link-primary" href={SETTINGS_TAB_HREF.pages}>
                   {copy("overview.connect.wordpress.link")}
                 </Link>
               </p>

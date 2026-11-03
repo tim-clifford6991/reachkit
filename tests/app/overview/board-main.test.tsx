@@ -357,7 +357,7 @@ describe("the head and the states, for a live account over stored rows", () => {
     const card = dom.querySelector('[data-testid="overview-paused"]');
     expect(text(card)).toContain(copy("overview.paused.line"));
     expect(text(card?.querySelector("a"))).toBe(copy("overview.paused.action"));
-    expect(card?.querySelector("a")?.getAttribute("href")).toBe("/app/settings/publishing");
+    expect(card?.querySelector("a")?.getAttribute("href")).toBe("/app/settings/pages");
     expect(dom.querySelector('[data-testid="overview-waiting"]')).toBeNull();
   });
 

@@ -34,11 +34,8 @@ import { sweepWidths as widths } from "./matrix";
  *  `browser.ts` put in the database (#193), through the same header builder
  *  the sweep uses, so a change to how an `(account)` route is reached moves
  *  this file with it. */
-// 2026-09-21, #976: the redesign (#908) split Settings into seven tabbed
-// addresses, and the domain moved to Market and rivals with `MarketPanel`.
-// This file kept pressing Edit on `/app/settings`, where the button no
-// longer is, and waited thirty seconds for it on every run since.
-const SETTINGS = { path: "/app/settings/market", cookie: getAccountCookie() };
+// The domain's Edit is `MarketPanel`'s, on Your business since Settings became three tabs (owner R7).
+const SETTINGS = { path: "/app/settings", cookie: getAccountCookie() };
 
 /** Long enough for the field to appear once the press lands. */
 const HYDRATED_MS = 15_000;

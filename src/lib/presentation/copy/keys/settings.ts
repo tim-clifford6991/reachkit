@@ -222,27 +222,10 @@ export const SETTINGS_COPY = Object.freeze({
     { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
   ],
 
-  // ── The tab bar (SPEC §4, 2026-09-20 · #925) ───────────────────────────
-  // "Settings is tabs: Your business, Market and rivals, Publishing, Your
-  // voice, Mail, Billing, Account."
-  //
-  // Only four words are here. Three of the seven are already in this file
-  // under the name the product speaks them by — `settings.publishing.title`,
-  // `settings.billing.title` and `settings.account.title` — and a second
-  // spelling of a word the product already says is a second place to change
-  // it (the rule `overview.ts` states for three of its own four tabs).
-  //
-  // Each of the four is **drafted** under the owner's 2026-09-16 ruling
-  // (#759): written here in the registry's voice and shipped, never left as
-  // a marker, and named in the PR so the owner can correct it. Two are the
-  // redesign's own words for a tab no card is titled with; the voice tab's
-  // card title is a sentence a bar has no room for ("How your pages sound"),
-  // and the mail tab and its card share one word, "Mail".
+  // ── The tab bar (owner R7, 2026-10-31): Your business · Pages · Account. Account reuses `settings.account.title`.
   "settings.tabs.label": ["Settings sections", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
   "settings.tab.business": ["Your business", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
-  "settings.tab.market": ["Market and competitors", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
-  "settings.tab.voice": ["Your voice", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
-  "settings.tab.mail": ["Mail", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+  "settings.tab.pages": ["Pages", { slots: {}, fixedBy: "owner R7 · issue 2127" }],
 
   "settings.market.title": ["Your site and market", { slots: {}, fixedBy: "BUILD §4.7" }],
   "settings.market.category": ["market", { slots: {}, fixedBy: "REQ-070 c1" }],

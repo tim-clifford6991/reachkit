@@ -25,7 +25,7 @@ const NAME: Readonly<Record<NotifyKind, CopyKey>> = {
   "draft-ready": "settings.notifications.draft-ready",
 };
 
-const SETTINGS = "/app/settings/mail";
+const SETTINGS = "/app/settings/pages#mail";
 
 function Changes(p: { kind: NotifyKind }): React.JSX.Element {
   const rows = [

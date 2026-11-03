@@ -602,7 +602,7 @@ export const SETUP_COPY = Object.freeze({
   // The week after setup. No go-live hour: the address is not connected yet (Q11).
   "setup.connect.week.1": ["Every Monday we plan up to 7 pages, new or updated.", { slots: {}, fixedBy: "board Setup · issue 1738" }],
   "setup.connect.week.2": ["Each page goes live on its day, by itself.", { slots: {}, fixedBy: "board Setup · issue 1738" }],
-  "setup.wordpress.later": ["You’ll connect it in Settings › Publishing, with your site address, username and an app password.", { slots: {}, fixedBy: "SPEC §5 · board Setup v36 · issue 2270" }],
+  "setup.wordpress.later": ["You’ll connect it in Settings › Pages, with your site address, username and an app password.", { slots: {}, fixedBy: "SPEC §5 · board Setup v36 · issue 2270" }],
   "setup.connect.week.3": ["You can edit or stop any page first. You never have to.", { slots: {}, fixedBy: "board Setup · issue 1738" }],
   "setup.connect.week.4": ["Cancel or export in Settings at any time.", { slots: {}, fixedBy: "board Setup v36 · issue 2270" }],
 

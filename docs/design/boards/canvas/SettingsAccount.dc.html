@@ -166,7 +166,7 @@ label.sw{display:inline-flex;align-items:center;gap:12px;min-height:44px;cursor:
 .stepper button{width:44px;height:44px;border-radius:9px;border:1px solid #ddd8fa;background:#ffffff;color:#5b4be0;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
 @media (max-width:900px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:640px){
- .tabs{position:static !important;display:grid !important;grid-template-columns:1fr 1fr;gap:8px !important;border-bottom:0 !important}
+ .tabs{position:static !important;display:grid !important;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px !important;border-bottom:0 !important}
  .tabs a{display:flex;align-items:center;min-height:44px;padding:4px 12px !important;border:1px solid #e8e9f3 !important;border-radius:9px;background:#ffffff;margin:0 !important;font-size:14px;line-height:1.3;box-sizing:border-box}
  .tabs a[aria-current="page"]{background:#eeecfd;border-color:#ddd8fa !important}
  .set{padding:20px;gap:16px}
@@ -177,7 +177,7 @@ label.sw{display:inline-flex;align-items:center;gap:12px;min-height:44px;cursor:
 }
 </style>
 </helmet>
-<div style="min-height: 1492px; display: flex; flex-wrap: wrap; font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif; color: #1e2233; font-size: 15px; line-height: 1.55; word-spacing: .06em; background: #f3f4fb">
+<div style="min-height: 2743px; display: flex; flex-wrap: wrap; font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif; color: #1e2233; font-size: 15px; line-height: 1.55; word-spacing: .06em; background: #f3f4fb">
   <nav class="nav" aria-label="Main" style="flex: 1 1 220px; max-width: 240px; box-sizing: border-box; padding: 24px 16px; background: #ffffff; border-right: 1px solid #e8e9f3; display: flex; flex-direction: column; gap: 4px">
     <a href="Main.dc.html" style="display: flex; align-items: center; gap: 8px; padding: 0 12px 20px; color: #1e2233; font-weight: 800; font-size: 18px; letter-spacing: -0.01em">
       <svg viewBox="0 0 64 64" style="width: 28px; height: 28px; stroke: none" aria-hidden="true"><defs><linearGradient id="mf" x1="0.15" y1="1" x2="0.95" y2="0.1"><stop offset="0.38" stop-color="#ffffff"></stop><stop offset="1" stop-color="#ffffff" stop-opacity="0.12"></stop></linearGradient><clipPath id="mc"><rect width="64" height="64" rx="15"></rect></clipPath></defs><g clip-path="url(#mc)"><rect width="64" height="64" fill="#5b4be0"></rect><path d="M8 50 A24 24 0 0 1 56 50 Z" fill="url(#mf)"></path></g></svg>ReachKit</a>
@@ -196,7 +196,25 @@ label.sw{display:inline-flex;align-items:center;gap:12px;min-height:44px;cursor:
 
   <main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 40px; display: flex; flex-direction: column; gap: 28px; max-width: 1040px">
     <h1 class="h1">Settings</h1>
-    <nav class="tabs stabs" aria-label="Settings sections"><a href="SettingsIndex.dc.html">Your business</a><a href="SettingsMarket.dc.html">Market and competitors</a><a href="SettingsPublishing.dc.html">Publishing</a><a href="SettingsVoice.dc.html">Your voice</a><a href="SettingsMail.dc.html">Mail</a><a href="SettingsBilling.dc.html">Billing</a><a href="#" aria-current="page">Account</a></nav>
+    <nav class="tabs stabs" aria-label="Settings sections"><a href="SettingsIndex.dc.html">Your business</a><a href="SettingsPublishing.dc.html">Pages</a><a href="#" aria-current="page">Account</a></nav>
+    <section class="card set" aria-labelledby="bill">
+      <h2 id="bill" class="h2">Billing</h2>
+      <div>
+        <div class="row"><div class="k">Status</div><div class="v"><span class="badge" style="background: #e7f6f0; color: #1b765b; align-self: flex-start"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 14px; height: 14px;" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Active</span></div></div>
+        <div class="row"><div class="k">Plan</div><div class="v"><p style="margin: 0; font-weight: 600">€49 a month</p><p class="sub">Billed in euros. Cancel any time, and it all runs until the period ends.</p></div></div>
+        <div class="row"><div class="k">Next invoice</div><div class="v"><span class="num nw" style="font-size: 15px">Sat 7 Nov 2026 · €49.00</span></div></div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px; padding-top: 20px; border-top: 1px solid #e8e9f3">
+        <button type="button" class="btn btn-primary" style="align-self: flex-start">Manage billing in Stripe</button>
+        <p class="sub">Update your card, download invoices, or cancel.</p>
+      </div>
+    </section>
+
+    <section class="card set" aria-labelledby="got">
+      <div class="hd"><div><h2 id="got" class="h2">This month</h2><p class="sub">7 Oct to 7 Nov. All included in €49.</p></div></div>
+      <ul class="tiles"><li class="well"><span style="font-size: 36px; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums">12</span><span style="font-size: 14px; font-weight: 600">pages went live</span></li><li class="well"><span style="font-size: 36px; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums">2</span><span style="font-size: 14px; font-weight: 600">Monday mails</span></li><li class="well"><span style="font-size: 36px; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums">35</span><span style="font-size: 14px; font-weight: 600">searches and AI questions checked</span></li><li class="well"><span style="font-size: 36px; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums">7</span><span style="font-size: 14px; font-weight: 600">pages planned this week</span></li></ul>
+    </section>
+    <aside class="dnote note" aria-label="Designer note"><p class="dnl">Designer note: other states</p><div class="dgrid"><div class="st"><p class="sl">Opening Stripe</p><button type="button" class="btn btn-primary" style="align-self: flex-start" disabled><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 20px; height: 20px;" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>Manage billing in Stripe</button></div><div class="st"><p class="sl">Cancelled, still running</p><span class="badge" style="background: #fff3e6; color: #945c22; align-self: flex-start">Cancelled</span><p>Everything keeps running until <span class="num nw">Sat 7 Nov 2026</span>.</p><button type="button" class="btn btn-soft" style="align-self: flex-start">Resume my subscription</button></div><div class="st"><p class="sl">First 14 days: replaces the Plan line</p><p>Billed in euros. Cancel by {date} for a full, automatic refund, and ReachKit stops at once.</p><p class="muted" style="font-size: 13px">Only if this web address has not had a refund.</p></div><div class="st"><p class="sl">First week, nothing live yet</p><p>Tiles show 0 in quiet grey, never a warning, plus one line: “Your first page goes live Tue 20 Oct, 4:00 PM.”</p></div><div class="st"><p class="sl">Billing didn’t load</p><p class="errline"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 16px; height: 16px;" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg><span>Billing didn’t load. Your subscription hasn’t changed. Try again in a moment, or write to <a href="mailto:hello@reachkit.app">hello@reachkit.app</a>.</span></p></div></div></aside>
 
     <section class="card set" aria-labelledby="acct">
       <h2 id="acct" class="h2">Account</h2>
@@ -243,7 +261,7 @@ label.sw{display:inline-flex;align-items:center;gap:12px;min-height:44px;cursor:
   <nav class="dock" aria-label="Main"><a href="Main.dc.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10l9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg>Overview</a><a href="Plan.dc.html"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg>This week</a><a href="#" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"></path></svg>Settings</a></nav>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1492}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":2743}}'>
 class Component extends DCLogic {
   renderVals() { return {}; }
 }

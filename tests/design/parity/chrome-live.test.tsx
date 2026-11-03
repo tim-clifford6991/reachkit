@@ -66,6 +66,6 @@ describe("board PubLanding v36 — the shared chrome as shipped", () => {
     const cancel = parse(await footer())
       .querySelectorAll("a")
       .filter((a) => a.text === copy("chrome.footer.cancel"));
-    expect(cancel.map((a) => a.getAttribute("href"))).toEqual(["/app/settings/billing"]);
+    expect(cancel.map((a) => a.getAttribute("href"))).toEqual(["/app/settings/account"]);
   });
 });

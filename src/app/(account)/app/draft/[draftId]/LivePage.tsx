@@ -35,7 +35,7 @@ const NEXT: Readonly<Record<Label, CopyKey>> = {
   not_moving: "draft.next.not_moving",
 };
 
-const PAUSE_HREF = "/app/settings/publishing";
+const PAUSE_HREF = "/app/settings/pages";
 const LADDER = {
   google: { title: "draft.ladder.google", testId: "live-ladder-google", icon: Check, reached: "bg-success text-success-content" },
   ai: { title: "draft.ladder.ai", testId: "live-ladder-ai", icon: Sparkles, reached: "bg-primary text-primary-content" },

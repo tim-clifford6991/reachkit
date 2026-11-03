@@ -126,7 +126,7 @@ describe("issue #376 — S20's footer, in both bodies", () => {
 
   it("the reason line is the one place a mail says why it arrived", () => {
     // S20 puts the stop instruction inside the reason for a togglable
-    // kind — "Turn it off in Settings › Mail" — so these toggle kinds say how
+    // kind — "Turn it off in Settings › Pages" — so these toggle kinds say how
     // to stop without needing a second control. The Monday mail carries its
     // own Mail settings and Unsubscribe links instead
     // (`tests/mail/weekly/footer-links.test.tsx`).
@@ -134,7 +134,7 @@ describe("issue #376 — S20's footer, in both bodies", () => {
       "mail.reason.draftReady",
       "mail.reason.published",
     ] as const) {
-      expect(COPY[key]).toContain("Turn it off in Settings › Mail.");
+      expect(COPY[key]).toContain("Turn it off in Settings › Pages.");
     }
     expect(COPY["mail.reason.nurture"]).toContain("Opt out");
   });

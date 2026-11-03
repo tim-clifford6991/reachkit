@@ -362,7 +362,7 @@ describe("REQ-040 c5 / SPEC §4 (2026-09-20) — a viewport too narrow keeps all
     for (const pathname of ["/app/calendar", "/app/calendar/2026-09"] as const) {
       expect(destinationOf(pathname), pathname).toBe("calendar");
     }
-    for (const pathname of ["/app/settings", "/app/settings/mail"] as const) {
+    for (const pathname of ["/app/settings", "/app/settings/pages"] as const) {
       expect(destinationOf(pathname), pathname).toBe("settings");
     }
     // The draft view is reached from a card, not the menu, so it claims none.

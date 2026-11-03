@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
 // Settings on a slow database: a read that fails or times out leaves only the panels that state it on
-// one plain line, and the billing tab draws its cancel control while every other read is stalled.
+// one plain line, and Account draws its cancel control while every other read is stalled.
 import "../../generate/env";
 import { renderToReadableStream } from "react-dom/server";
 import type React from "react";
@@ -23,14 +23,13 @@ const { copy } = await import("@/lib/presentation/copy");
 const { LIVE_ACCOUNT, resetAccount, signedInAs } = await import("../account-door");
 const { readLiveSettingsFacts } = await import("@/app/(account)/app/settings/store");
 const { default: AccountTab } = await import("@/app/(account)/app/settings/account/page");
-const { default: BillingTab } = await import("@/app/(account)/app/settings/billing/page");
-const { default: PublishingTab } = await import("@/app/(account)/app/settings/publishing/page");
+const { default: PagesTab } = await import("@/app/(account)/app/settings/pages/page");
 const { default: BusinessTab } = await import("@/app/(account)/app/settings/page");
 
 const ACCOUNT = { ...LIVE_ACCOUNT, timeZone: "America/New_York" };
 
 /** The document once every boundary has settled, or, with `first`, what streams before a stalled boundary. */
-async function render(page: () => Promise<React.JSX.Element>, first = false): Promise<Document> {
+async function render(page: () => Promise<React.JSX.Element> | React.JSX.Element, first = false): Promise<Document> {
   const stream = await renderToReadableStream(await page(), { onError: () => undefined });
   if (!first) await stream.allReady;
   let html = "";
@@ -70,7 +69,7 @@ afterEach(() => {
 
 describe("one read that times out", () => {
   it("is not the line while every read answers", async () => {
-    for (const page of [AccountTab, PublishingTab, BillingTab]) {
+    for (const page of [AccountTab, PagesTab]) {
       expect((await render(page)).querySelector('[data-testid^="settings-unread-"]')).toBeNull();
     }
   });
@@ -97,18 +96,18 @@ describe("one read that times out", () => {
     expect(has(account, "settings-shortcuts")).toBe(true);
     expect(has(account, "settings-danger")).toBe(true);
 
-    const publishing = await render(PublishingTab);
-    expect(has(publishing, "settings-unread-publishing")).toBe(false);
-    expect(publishing.querySelector("h2")?.textContent).toBe(copy("settings.publishing.title"));
+    expect(has(account, "action-cancel")).toBe(true);
 
-    expect(has(await render(BillingTab), "action-cancel")).toBe(true);
+    const pages = await render(PagesTab);
+    expect(has(pages, "settings-unread-publishing")).toBe(false);
+    expect(pages.querySelector("h2")?.textContent).toBe(copy("settings.publishing.title"));
   });
 });
 
 describe("billing reads only billing", () => {
   it("draws the cancel control in the first flush while every other table is stalled", async () => {
     for (const table of ["sites", "publications", "drafts", "destinations", "scans", "pages", "market_readings"]) stalled.add(table);
-    const doc = await render(BillingTab, true);
+    const doc = await render(AccountTab, true);
     expect(has(doc, "action-cancel")).toBe(true);
     expect(has(doc, "billing-month-skeleton")).toBe(true);
   });
@@ -116,14 +115,14 @@ describe("billing reads only billing", () => {
   it("draws it settled while every other read rejects, the month on its own line", async () => {
     for (const table of ["sites", "publications", "drafts", "destinations", "scans"]) db.unreadable.add(table);
     vi.spyOn(console, "warn").mockImplementation(() => undefined);
-    const doc = await render(BillingTab);
+    const doc = await render(AccountTab);
     expect(has(doc, "action-cancel")).toBe(true);
     expect(has(doc, "billing-month-skeleton")).toBe(false);
   });
 });
 
 describe("Your business: the facts card is its own read, so only it says when that read fails or stalls", () => {
-  const OTHERS = ["settings-business-knowledge", "settings-known-content"];
+  const OTHERS = ["settings-business-knowledge"];
   const failed = (warn: { mock: { calls: unknown[][] } }, read: string) =>
     warn.mock.calls.map(([line]) => JSON.parse(String(line))).filter((line) => line.event === "settings_read_failed" && line.read === read);
   // A measured scan, so the facts read reaches the page text.
@@ -134,7 +133,7 @@ describe("Your business: the facts card is its own read, so only it says when th
     const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     const doc = await render(BusinessTab);
     expect(doc.querySelector('[data-testid="settings-unread-facts"]')?.textContent).toBe(copy("settings.panel.unread"));
-    expect([has(doc, "settings-business-facts"), has(doc, "settings-unread-business"), ...OTHERS.map((id) => has(doc, id))]).toEqual([false, false, true, true]);
+    expect([has(doc, "settings-business-facts"), has(doc, "settings-unread-business"), ...OTHERS.map((id) => has(doc, id))]).toEqual([false, false, true]);
     expect([failed(warn, "businessFacts").length, failed(warn, "business").length]).toEqual([1, 0]);
   });
 
@@ -150,10 +149,10 @@ describe("Your business: the facts card is its own read, so only it says when th
     await vi.advanceTimersByTimeAsync(1);
     expect(failed(warn, "businessFacts")).toEqual([{ event: "settings_read_failed", read: "businessFacts", detail: "Error: settings read timed out: businessFacts" }]);
     const doc = await rendering;
-    expect([has(doc, "settings-unread-facts"), has(doc, "settings-unread-business"), ...OTHERS.map((id) => has(doc, id))]).toEqual([true, false, true, true]);
+    expect([has(doc, "settings-unread-facts"), has(doc, "settings-unread-business"), ...OTHERS.map((id) => has(doc, id))]).toEqual([true, false, true]);
   });
 
-  it("when the business read itself stalls, the whole tab is the one plain line, as before", async () => {
+  it("when the business read itself stalls, only its card is the plain line; market and voice still draw", async () => {
     stalled.add("site_profile_edits");
     const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
@@ -161,5 +160,6 @@ describe("Your business: the facts card is its own read, so only it says when th
     await vi.advanceTimersByTimeAsync(4_000);
     const doc = await rendering;
     expect([has(doc, "settings-unread-business"), has(doc, "settings-unread-facts"), failed(warn, "business").length]).toEqual([true, false, 1]);
+    expect([has(doc, "setting-category"), has(doc, "setting-voice_text")]).toEqual([true, true]);
   });
 });

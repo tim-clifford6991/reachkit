@@ -75,11 +75,7 @@ const OWNER: Readonly<Record<string, string>> = {
   // Settings' six sibling tabs (#925). Each is its own address and each
   // exports its own title, so each is a named screen here rather than a
   // route the group's fallback carries.
-  "/app/settings/market": "@/app/(account)/app/settings/market/page",
-  "/app/settings/publishing": "@/app/(account)/app/settings/publishing/page",
-  "/app/settings/voice": "@/app/(account)/app/settings/voice/page",
-  "/app/settings/mail": "@/app/(account)/app/settings/mail/page",
-  "/app/settings/billing": "@/app/(account)/app/settings/billing/page",
+  "/app/settings/pages": "@/app/(account)/app/settings/pages/page",
   "/app/settings/account": "@/app/(account)/app/settings/account/page",
   // Issue 1478: the owner's cost page.
   "/app/costs": "@/app/(account)/app/costs/page",
@@ -154,11 +150,7 @@ const NAMED: Readonly<Record<string, string>> = {
   // inside it, which is what the distinctness rule below requires — six
   // tabs sharing one title would fail it, and would tell a reader on
   // Billing only that they are somewhere in Settings.
-  "/app/settings/market": "meta.app.settings.market.title",
-  "/app/settings/publishing": "meta.app.settings.publishing.title",
-  "/app/settings/voice": "meta.app.settings.voice.title",
-  "/app/settings/mail": "meta.app.settings.mail.title",
-  "/app/settings/billing": "meta.app.settings.billing.title",
+  "/app/settings/pages": "meta.app.settings.pages.title",
   "/app/settings/account": "meta.app.settings.account.title",
   "/app/costs": "meta.app.costs.title",
   "/app/issues": "meta.app.issues.title",
