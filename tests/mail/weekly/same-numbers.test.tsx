@@ -13,7 +13,9 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { fakeDb, type FakeDb, type Row } from "../../publish/harness";
 import { LOCAL, SAAS, stored, weekWith } from "../../measure/reading-fixture";
 import { assembleReading, type PageReading } from "@/lib/measure/page-reading";
-import { REPORT_VERSION } from "@/lib/scan/report";
+import { readStoredReport, REPORT_VERSION, type StoredReport } from "@/lib/scan/report";
+import { shownView } from "@/lib/scan/shown-report";
+import { PANEL, panelReport, renderReport } from "../../app/scan-address/panel-report";
 import type { MailBlock, StatRow } from "@/lib/mail/blocks/types";
 
 const db: FakeDb = fakeDb();
@@ -42,6 +44,7 @@ const { LIVE_ACCOUNT, resetAccount, signedInAs } = await import("../../app/accou
 const { default: OverviewPage } = await import("@/app/(account)/app/(tabs)/page");
 const { default: AiAnswersTabPage } = await import("@/app/(account)/app/(tabs)/ai-answers/page");
 const { sendWeeklyDigest } = await import("@/lib/mail/weekly");
+const { storeCurrentReport } = await import("@/lib/scan/store");
 const { copy } = await import("@/lib/presentation/copy");
 const { readGoogleVisitWeeks } = await import("@/app/(account)/app/_overview/blog-reads-provider");
 const { SearchTiles } = await import("@/app/(account)/app/_overview/SearchTiles");
@@ -317,6 +320,58 @@ describe.each([
     const ai = new DOMParser().parseFromString(renderToStaticMarkup(await AiAnswersTabPage()), "text/html");
     expect(dom.querySelector('[data-testid="overview-tile-reputation"]')).toBeNull();
     expect(text(ai.querySelector('[data-testid="ai-reputation-count"]'))).toBe(copy("overview.prompts.rate.count", { n: "11", m: "46" }));
+  });
+});
+
+/** A customer panel's stored report as `rescore_scan` leaves it: the score moved from 40 to `score`, the original kept under `previous`. */
+function rescoredPanel(which: keyof typeof PANEL, score: number | null): StoredReport {
+  const stored = panelReport(which);
+  const at = stored.verdict.measuredAt;
+  const reading = (value: number) => ({ kind: "measured" as const, value: { score: value, band: "hard-to-find" as const }, at });
+  const original = { ...stored, verdict: { ...stored.verdict, scoreAndBand: reading(40) } };
+  return readStoredReport(
+    JSON.parse(
+      JSON.stringify({
+        ...stored,
+        verdict: { ...stored.verdict, scoreAndBand: score === null ? { kind: "unmeasured", reason: "undeterminable", at } : reading(score) },
+        previous: original,
+        previousColumns: { score: 40, status: "done", drivers: {} },
+        rescoredAt: "2026-10-24T09:00:00.000Z",
+      })
+    )
+  );
+}
+
+/** The one scan's score on each surface: the report's ring, the column the gallery lists, the Monday mail's line and Overview's tile. */
+async function everySurface(report: StoredReport) {
+  const ring = /data-testid="report-score".*?--value:(\d+)/su.exec(renderReport(readStoredReport(shownView(report))))?.[1];
+  db.rpcs.set("store_current_report", () => null);
+  await storeCurrentReport({ report, drivers: {} as never, degraded: false, costCents: 0 });
+  const column = db.rpcCalls.find((call) => call.fn === "store_current_report")?.args.p_score;
+  db.seed("scans", [{ ...pass(FIRST, { score: 0, top10: 1, named: 0, answers: 0 }), report: JSON.parse(JSON.stringify(report)) }]);
+  await mail(FIRST, new Date(Date.UTC(2026, 9, 5, 7)));
+  const line = monthFacts()["mail.weekly.month.score"];
+  const tile = text((await overview()).querySelector('[data-testid="overview-tile-score"] [data-testid="overview-months-figure"]'));
+  return {
+    report: ring === undefined ? null : Number(ring),
+    gallery: column ?? null,
+    mail: line === undefined ? null : Number(/^\d+/u.exec(line)?.[0]),
+    overview: tile === "" ? null : Number(/^\d+/u.exec(tile)?.[0]),
+  };
+}
+
+describe.each([
+  ["a SaaS site", SAAS, "saas"],
+  ["a local business", LOCAL, "local"],
+] as const)("one scan's Visibility Score is one integer on every surface, on %s", (_, site, panel) => {
+  it("a re-scored report states its new score on the report, the gallery, the Monday mail and Overview, never the kept one", async () => {
+    seed(site, FIVE);
+    expect(await everySurface(rescoredPanel(panel, 33))).toEqual({ report: 33, gallery: 33, mail: 33, overview: 33 });
+  });
+
+  it("a report that reached no score states none anywhere, never 0 and never the kept one", async () => {
+    seed(site, FIVE);
+    expect(await everySurface(rescoredPanel(panel, null))).toEqual({ report: null, gallery: null, mail: null, overview: null });
   });
 });
 

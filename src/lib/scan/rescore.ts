@@ -53,6 +53,7 @@ import { marketEvidence, type EvidenceReport } from "./market-evidence";
 import { onPageOf, type PageFacts } from "./page-facts";
 import { localeOfReport, type AnswerCell, type EngineCell, type PromptAnswer, type StoredReport } from "./report";
 import { rivalCellsOf } from "./sections";
+import { shownScore } from "./shown-score";
 import type { ScanStatus } from "./store";
 
 /** The AI-answers section as far as a score reads it and the re-score
@@ -435,8 +436,7 @@ export function rescoreScan(scan: RescoreScan): Rescored {
   if (at.getTime() !== new Date(r.verdict.measuredAt).getTime() && !changes.some((c) => c.path.length === 1 && c.path[0] === "verdict")) {
     changes.unshift({ path: ["verdict"], value: after.verdict });
   }
-  const score = after.verdict.scoreAndBand.kind === "unmeasured" ? null : after.verdict.scoreAndBand.value.score;
-  return { before, after, changes, drivers, score, status: statusAfter(scan.status, before.verdict, after.verdict), kept, stale, reading };
+  return { before, after, changes, drivers, score: shownScore(after), status: statusAfter(scan.status, before.verdict, after.verdict), kept, stale, reading };
 }
 
 /** The other markets the stored home read declares (`marketsServed`),
