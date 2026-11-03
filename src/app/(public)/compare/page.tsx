@@ -4,19 +4,7 @@
 import type React from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import {
-  ArrowRight,
-  ChartColumn,
-  CircleQuestionMark,
-  Compass,
-  Database,
-  List,
-  PenLine,
-  Scale,
-  Sparkles,
-  Users,
-  type LucideIcon,
-} from "lucide-react";
+import { ArrowRight, CircleQuestionMark, Scale, Sparkles, type LucideIcon } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { PUBLIC_ROUTE_SEO } from "../_seo/routes";
 import { staticMetadata } from "../_seo/metadata";
@@ -28,11 +16,9 @@ import {
   MATRIX_CHECKED,
   MATRIX_JOBS,
   type Comparison,
-  type ComparisonGroup,
   type MatrixJob,
 } from "../_library";
-import { CARD, LearnClose, LibraryPage, Trademarks } from "../_library/parts";
-import { ICON_TILE } from "../_how/visuals";
+import { CARD, GROUP_ICON, LearnClose, LibraryPage, Tile, Trademarks } from "../_library/parts";
 
 export const metadata: Metadata = staticMetadata(PUBLIC_ROUTE_SEO.compare);
 
@@ -47,23 +33,7 @@ const TILE =
 const GRID = "grid min-w-0 grid-cols-[minmax(8.5rem,1.9fr)_repeat(5,minmax(0,1fr))] items-center gap-1.5";
 const SMALL = "text-base-content/70 text-sm";
 const ICON = { size: 16, strokeWidth: 1.75, "aria-hidden": true } as const;
-const GROUP_ICON: Record<ComparisonGroup, LucideIcon> = {
-  ai: PenLine,
-  suite: Database,
-  checker: List,
-  competitors: Users,
-  audience: Compass,
-  data: ChartColumn,
-};
-
-function Tile(p: { Icon: LucideIcon; primary?: boolean }): React.JSX.Element {
-  return (
-    <span aria-hidden className={`${ICON_TILE} ${p.primary ? "bg-primary text-primary-content" : "text-primary"}`}>
-      <p.Icon {...ICON} />
-    </span>
-  );
-}
-
+const OPTION = "rounded-field flex items-center gap-3 border px-3.5 py-2.5 text-sm";
 type Mark = "done" | "helps" | "you";
 const MARKS: readonly Mark[] = ["done", "helps", "you"];
 const SWATCH: Record<Mark, string> = {
@@ -81,7 +51,7 @@ function MatrixRow(p: { name: string; marks: readonly Mark[]; Icon: LucideIcon; 
   return (
     <div role="row" className={GRID}>
       <span role="rowheader" className={`flex min-w-0 items-center gap-2 text-sm break-words ${p.ours ? "text-primary font-semibold" : ""}`}>
-        <Tile Icon={p.Icon} primary={p.ours} />
+        <Tile Icon={p.Icon} tone={p.ours ? "solid" : "primary"} />
         <span className="min-w-0">{p.name}</span>
       </span>
       {p.marks.map((mark, i) => (
@@ -140,17 +110,17 @@ function JobsMatrix(): React.JSX.Element {
 /** Do the work yourself, or have it done. */
 function Fork(): React.JSX.Element {
   return (
-    <div className="rounded-box bg-base-200 flex min-w-0 flex-col gap-2 p-4" data-testid="compare-fork">
-      <p className="flex items-center gap-3 font-semibold">
-        <Tile Icon={CircleQuestionMark} />
+    <div className="rounded-box bg-base-200 flex min-w-0 flex-col gap-3 p-4" data-testid="compare-fork">
+      <p className="text-base-content flex items-center gap-3 font-bold">
+        <Tile Icon={CircleQuestionMark} tone="plain" />
         {copy("compare.fork.ask")}
       </p>
-      <p className="flex flex-wrap items-baseline gap-2">
-        <span className="badge badge-ghost badge-sm">{copy("compare.fork.yes")}</span>
+      <p className={`${OPTION} border-base-300 bg-base-100`}>
+        <span className="badge badge-sm bg-base-200 shrink-0 border-0 font-bold">{copy("compare.fork.yes")}</span>
         <span>{copy("compare.fork.yes.line")}</span>
       </p>
-      <p className="flex flex-wrap items-baseline gap-2">
-        <span className="badge badge-soft badge-primary badge-sm">{copy("compare.fork.no")}</span>
+      <p className={`${OPTION} border-primary/20 bg-primary/10`}>
+        <span className="badge badge-primary badge-sm shrink-0 font-bold">{copy("compare.fork.no")}</span>
         <span>
           <strong>{copy("compare.fork.no.pick")}</strong> {copy("compare.fork.no.line")}
         </span>
@@ -170,7 +140,7 @@ function ComparisonCard(p: { c: Comparison }): React.JSX.Element {
         </span>
         <span className="flex min-w-0 flex-1 flex-col gap-1">
           <h3 className="card-title min-w-0 text-base break-words">{c.title}</h3>
-          {c.badge === undefined ? null : <span className="badge badge-ghost badge-sm self-start">{c.badge}</span>}
+          {c.badge === undefined ? null : <span className="badge badge-soft badge-sm self-start">{c.badge}</span>}
           <span className="text-base-content/70 text-sm">{cardLines(c.summary).them}</span>
         </span>
         <ArrowRight {...ICON} className="text-primary shrink-0" />
@@ -196,7 +166,7 @@ export default function ComparePage(): React.JSX.Element {
           {groups.map((g) => {
             const Icon = GROUP_ICON[g.group];
             return (
-              <a key={g.group} href={`#${g.group}`} className="btn btn-outline min-h-11 rounded-full">
+              <a key={g.group} href={`#${g.group}`} className="btn btn-ghost border-base-300 bg-base-100 min-h-11 rounded-full border text-sm">
                 <Icon {...ICON} />
                 {copy(g.name)} <span className="text-base-content/70">{g.entries.length}</span>
               </a>
@@ -210,7 +180,7 @@ export default function ComparePage(): React.JSX.Element {
             <Tile Icon={GROUP_ICON[g.group]} />
             <div className="flex min-w-0 flex-col gap-1">
               <h2 id={`${g.group}-h`}>
-                {copy(g.name)} <span className="text-base-content/70">{g.entries.length}</span>
+                {copy(g.name)} <span className="text-base-content/70 text-sm font-semibold">{g.entries.length}</span>
               </h2>
               <p className={SMALL}>{copy(g.line)}</p>
             </div>

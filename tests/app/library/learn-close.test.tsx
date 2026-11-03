@@ -142,7 +142,8 @@ describe("Compare, a comparison and an answer carry no repeated module, and clos
     const root = parse(await html(render));
     const text = segments(root.toString());
     expect(root.querySelector('[data-testid="learn-loop"]')).toBeNull();
-    expect(root.querySelector("details")).toBeNull();
+    // The answer's questions fold as the board draws them; no other fold remains.
+    expect(root.querySelectorAll("details").filter((d) => d.querySelector("h3") === null)).toEqual([]);
     expect(text).not.toContain(copy("how.steps.loop"));
     expect(text).not.toContain(copy("how.detail"));
     expect(root.querySelector(`figure[aria-label="${copy("how.start.glance")}"]`)).toBeNull();

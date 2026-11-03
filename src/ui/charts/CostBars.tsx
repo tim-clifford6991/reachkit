@@ -17,8 +17,8 @@ export interface CostRow {
   readonly name: string;
   /** The terms beside the name, in a quieter line. */
   readonly note?: string;
-  /** The price as written, never converted. */
-  readonly value: string;
+  /** The price as written, never converted; a page that sets its figure in the reading face passes the node. */
+  readonly value: string | React.ReactNode;
   /** Low and high end on the scale; `null` where the cost is not money. */
   readonly span: readonly [number, number] | null;
   readonly you?: boolean;
@@ -37,7 +37,7 @@ export function CostBars(p: { rows: readonly CostRow[]; max: number }): React.JS
               </span>
               {row.note === undefined ? null : <span className="text-base-content/70"> {row.note}</span>}
             </span>
-            <span className="num num-phrase text-sm">{row.value}</span>
+            <span className={typeof row.value === "string" ? "num num-phrase text-sm" : "text-sm"}>{row.value}</span>
           </div>
           <BarChart
             responsive

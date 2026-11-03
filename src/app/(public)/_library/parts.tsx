@@ -3,7 +3,21 @@
 // classes in place, no wrapper of a daisyUI part.
 import type React from "react";
 import Link from "next/link";
-import { ArrowRight, RefreshCw, Sparkles, User, Wallet, type LucideIcon } from "lucide-react";
+import {
+  ArrowRight,
+  ChartColumn,
+  Check,
+  Compass,
+  Database,
+  List,
+  PenLine,
+  RefreshCw,
+  Sparkles,
+  User,
+  Users,
+  Wallet,
+  type LucideIcon,
+} from "lucide-react";
 import { Surface } from "@/ui/layout";
 import { SITE_PROFILE } from "@/lib/config/constants";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
@@ -13,14 +27,65 @@ import { scanFormWords } from "../_landing/scan-form-words";
 import { HOW_FACTS } from "../_how/facts";
 import { EXAMPLES } from "../_how/specimen";
 import { ICON_TILE, ReportGlance } from "../_how/visuals";
-import { longDate, type Source } from ".";
+import { longDate, type ComparisonGroup, type Source } from ".";
 
 /** Attribute values, never sentences (the copy sweep). */
 export const CARD = "card bg-base-100 shadow-(--shadow-card)";
 export const BODY = "card-body gap-3";
 export const LIST = "list-disc ps-6";
+/** The heading ink: near-black over the column's softer body text. */
+const HEADINGS = "[&_:is(h1,h2,h3)]:text-base-content";
+
+/** Each kind of tool's icon, wherever the board names the kind. */
+export const GROUP_ICON: Record<ComparisonGroup, LucideIcon> = {
+  ai: PenLine,
+  suite: Database,
+  checker: List,
+  competitors: Users,
+  audience: Compass,
+  data: ChartColumn,
+};
+
+const TILE_TONE = {
+  primary: "bg-primary/10 text-primary",
+  muted: "bg-base-200 text-base-content/70",
+  solid: "bg-primary text-primary-content",
+  success: "bg-success/10 text-success",
+  plain: "bg-base-100 text-primary",
+} as const;
+
+/** A tinted square holding one icon, as the boards draw beside a heading or a row. */
+export function Tile(p: { Icon: LucideIcon; tone?: keyof typeof TILE_TONE }): React.JSX.Element {
+  return (
+    <span aria-hidden className={`rounded-field grid size-9 flex-none place-items-center ${TILE_TONE[p.tone ?? "primary"]}`}>
+      <p.Icon size={18} strokeWidth={1.75} />
+    </span>
+  );
+}
+
+/** When to pick which: a tile and a title, then check bullets; ReachKit's card carries the primary edge. */
+export function Pick(p: { title: React.ReactNode; items: readonly string[]; Icon: LucideIcon; ours?: boolean }): React.JSX.Element {
+  return (
+    <div className={`${CARD} ${p.ours ? "border-primary border-[1.5px]" : ""}`}>
+      <div className={BODY}>
+        <div className="flex min-w-0 items-center gap-3">
+          <Tile Icon={p.Icon} tone={p.ours ? "solid" : "muted"} />
+          {p.title}
+        </div>
+        <ul className="flex flex-col gap-2">
+          {p.items.map((item) => (
+            <li key={item} className="flex items-start gap-2.5">
+              <Check size={16} strokeWidth={2} aria-hidden className={`mt-1 shrink-0 ${p.ours ? "text-primary" : "text-base-content/70"}`} />
+              <span>{item}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
 const NEW_TAB = { target: "_blank", rel: "noopener" } as const;
-const SOURCE_LINK = "link inline-flex min-h-11 items-center";
+const SOURCE_LINK = "link link-primary link-hover inline-flex min-h-11 items-center";
 const HOW_HREF = "/how-it-works";
 const START_ID = "start";
 
@@ -38,20 +103,20 @@ export function LibraryPage(p: {
   return (
     <Surface
       arms={{
-        compact: { kind: "columns", count: 1 },
+        compact: { kind: "declared", note: "one reading column with its own 16px gutter, as the v36 boards draw it" },
         medium: { kind: "same-as-below" },
         wide: { kind: "same-as-below" },
       }}
     >
       <main className="mx-auto flex w-full min-w-0 max-w-5xl flex-col px-4 py-12" data-testid={p.testId}>
         <article
-          className={`text-base-content/80 mx-auto flex w-full min-w-0 flex-col gap-3 leading-relaxed ${p.wide === true ? "" : "max-w-(--w-read)"}`}
+          className={`text-base-content/80 ${HEADINGS} mx-auto flex w-full min-w-0 flex-col gap-3 leading-relaxed ${p.wide === true ? "" : "max-w-(--w-read)"}`}
         >
           {p.trail ??
             (p.eyebrow === undefined ? null : (
               <span className="text-base-content/70 text-xs font-semibold tracking-wide uppercase">{copy(p.eyebrow)}</span>
             ))}
-          <h1 className="break-words">{p.title}</h1>
+          <h1 className="t-hero break-words">{p.title}</h1>
           <div className="mt-3 flex min-w-0 flex-col gap-4">{p.children}</div>
         </article>
       </main>
@@ -395,10 +460,10 @@ export function WeeklyLoop(p: { w: WeeklyWords; icons?: Icons; short?: true; chi
       </div>
       <div className={CARD}>
         <div className={BODY}>
-          <div className="text-base-content/70 hidden grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-3 text-xs font-semibold tracking-wide uppercase sm:grid">
+          <div aria-hidden className="text-base-content/70 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-3 text-xs font-semibold tracking-wide uppercase">
             <span>{w.them}</span>
-            <span aria-hidden className="w-4" />
-            <span>{w.us}</span>
+            <ArrowRight size={14} strokeWidth={1.75} className="mt-0.5" />
+            <span className="text-primary">{w.us}</span>
           </div>
           <ul className="divide-base-300 flex min-w-0 flex-col divide-y">
             {w.rows.map(([them, us]) => (
@@ -480,18 +545,25 @@ export function LearnClose(p: { variant: LearnCloseVariant; domain?: string }): 
 }
 
 /** Where the facts about another company were read, and when. */
-export function Sources(p: { checked: string; sources: readonly Source[]; id?: string }): React.JSX.Element {
+export function Sources(p: {
+  checked: string;
+  sources: readonly Source[];
+  id?: string;
+  /** The date and "Sources" as one heading, each host in the code face (canvas v36 PubCompareTool, PubAnswer). */
+  oneLine?: true;
+}): React.JSX.Element {
+  const checked = copy("library.checked", { date: longDate(p.checked) });
   return (
     <section
       aria-labelledby={p.id}
       className="text-base-content/70 flex min-w-0 scroll-mt-20 flex-col gap-2 text-sm"
       data-testid="library-sources"
     >
-      <p>{copy("library.checked", { date: longDate(p.checked) })}</p>
+      {p.oneLine && p.sources.length > 0 ? null : <p>{checked}</p>}
       {p.sources.length === 0 ? null : (
         <>
           <h2 id={p.id} className="text-base">
-            {copy("library.sources")}
+            {p.oneLine ? `${checked} ${copy("library.sources")}` : copy("library.sources")}
           </h2>
           <ul className={LIST}>
             {p.sources.map((source) => (
@@ -501,9 +573,18 @@ export function Sources(p: { checked: string; sources: readonly Source[]; id?: s
                     {source.label}
                   </Link>
                 ) : (
-                  <a href={source.href} className={SOURCE_LINK} {...NEW_TAB}>
-                    {copy("library.source", { label: source.label, host: new URL(source.href).hostname })}
-                  </a>
+                  p.oneLine ? (
+                    <span className="inline-flex flex-wrap items-center gap-x-2">
+                      <a href={source.href} className={SOURCE_LINK} {...NEW_TAB}>
+                        {source.label}
+                      </a>
+                      <span className="font-mono text-xs">{new URL(source.href).hostname}</span>
+                    </span>
+                  ) : (
+                    <a href={source.href} className={SOURCE_LINK} {...NEW_TAB}>
+                      {copy("library.source", { label: source.label, host: new URL(source.href).hostname })}
+                    </a>
+                  )
                 )}
               </li>
             ))}

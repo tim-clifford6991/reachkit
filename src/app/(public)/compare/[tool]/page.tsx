@@ -6,14 +6,26 @@ import type React from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CircleCheck, CircleX, Contrast, Scale, Sparkles, User } from "lucide-react";
+import { CircleCheck, CircleX, Contrast, MessageSquare, Scale, Sparkles, User } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { PUBLIC_ROUTE_SEO } from "../../_seo/routes";
 import { publicMetadata } from "../../_seo/metadata";
 import { JsonLd, articleSchemas, homeCrumb } from "../../_seo/structured";
 import { COMPARISONS, COMPARISON_GROUPS, comparisonOf, JOBS, type Cell, type Comparison, type Job } from "../../_library";
-import { BackLink, BODY, CARD, FIGURES, LIST, LearnClose, LibraryPage, Sources, Trademarks, YourPart } from "../../_library/parts";
-import { ICON_TILE } from "../../_how/visuals";
+import {
+  BackLink,
+  BODY,
+  CARD,
+  FIGURES,
+  GROUP_ICON,
+  LearnClose,
+  LibraryPage,
+  Pick,
+  Sources,
+  Tile,
+  Trademarks,
+  YourPart,
+} from "../../_library/parts";
 
 /** Every comparison is known at build; any other address is a 404. */
 export const dynamicParams = false;
@@ -42,10 +54,14 @@ const INDEX = "/compare";
 const JOBS_ID = "comparison-jobs";
 // The last track never shrinks below the wordmark badge, which stays on one line so the brand reads whole.
 const ROW = "grid min-w-0 grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(min-content,1fr)] items-center gap-2";
-const WELL = "rounded-box bg-base-200 flex items-start gap-2 p-3 text-sm";
+const WELL = "rounded-box flex items-start gap-2 p-3 text-sm";
 const ICON = { size: 16, strokeWidth: 1.75, "aria-hidden": true } as const;
 const SMALL = "text-base-content/70 text-sm";
 const PARTLY = /^partly\b/i;
+const YES = /^yes\b/i;
+const EYEBROW_TEXT = "text-xs font-semibold tracking-wide uppercase";
+/** The four grey lines standing for the assistant's answer. */
+const ANSWER_LINES = ["w-11/12", "w-4/5", "w-5/6", "w-3/5"] as const;
 
 function CellText(p: { cell: Cell }): React.JSX.Element {
   if (p.cell === true) {
@@ -61,6 +77,14 @@ function CellText(p: { cell: Cell }): React.JSX.Element {
       <span className="text-base-content/70 inline-flex items-center gap-1">
         <CircleX {...ICON} />
         {copy("compare.item.no")}
+      </span>
+    );
+  }
+  if (YES.test(p.cell)) {
+    return (
+      <span className="inline-flex items-start gap-1">
+        <CircleCheck {...ICON} className="text-success mt-0.5 shrink-0" />
+        {p.cell}
       </span>
     );
   }
@@ -87,38 +111,38 @@ function WhoDoesEachJob(p: { c: Comparison; yours: readonly Job[] }): React.JSX.
   return (
     <figure className={`${CARD} min-w-0`} data-testid="comparison-jobs">
       <div className={BODY}>
-        <p className="flex items-center gap-3 font-semibold" id={JOBS_ID}>
-          <span aria-hidden className={`${ICON_TILE} text-primary`}>
-            <Scale {...ICON} />
-          </span>
+        <p className="text-base-content flex items-center gap-3 font-bold" id={JOBS_ID}>
+          <Tile Icon={Scale} />
           {copy("compare.item.jobs")}
         </p>
         <div role="table" aria-labelledby={JOBS_ID} className="flex min-w-0 flex-col gap-2">
-          <div role="row" className={`${ROW} text-base-content/70 text-xs font-semibold tracking-wide uppercase`}>
+          <div role="row" className={`${ROW} text-base-content/70 ${EYEBROW_TEXT}`}>
             <span role="columnheader">{copy("compare.item.jobs.job")}</span>
             <span role="columnheader">{copy("compare.item.jobs.with", { name: c.name })}</span>
-            <span role="columnheader">{copy("compare.item.jobs.with", { name: wordmark })}</span>
+            <span role="columnheader" className="text-primary">
+              {copy("compare.item.jobs.with", { name: wordmark })}
+            </span>
           </div>
           {JOBS.map((job) => (
             <div key={job} role="row" className={`${ROW} border-base-300 border-t pt-2`}>
-              <span role="rowheader" className="min-w-0 text-sm break-words">
+              <span role="rowheader" className="text-base-content min-w-0 text-sm font-semibold break-words">
                 {copy(jobKey(c, job))}
               </span>
               <span role="cell" className="min-w-0">
-                <span className={`badge badge-sm h-auto max-w-full whitespace-normal ${p.yours.includes(job) ? "badge-ghost" : "badge-outline"}`}>
+                <span className={`badge badge-soft badge-sm h-auto max-w-full font-bold whitespace-normal ${p.yours.includes(job) ? "badge-warning" : ""}`}>
                   {p.yours.includes(job) ? copy("compare.item.jobs.you") : c.name}
                 </span>
               </span>
               <span role="cell" className="min-w-0">
-                <span className="badge badge-soft badge-primary badge-sm">{wordmark}</span>
+                <span className="badge badge-primary badge-sm font-bold">{wordmark}</span>
               </span>
             </div>
           ))}
         </div>
         <div className="grid min-w-0 gap-2 sm:grid-cols-2">
           <YouDo count={p.yours.length} />
-          <p className={WELL}>
-            <Sparkles {...ICON} className="text-primary mt-0.5 shrink-0" />
+          <p className={`${WELL} bg-primary/10 text-primary`}>
+            <Sparkles {...ICON} className="mt-0.5 shrink-0" />
             <span>
               <strong>{copy("compare.item.jobs.none")}</strong> {copy("compare.item.jobs.none.line")}
             </span>
@@ -131,7 +155,7 @@ function WhoDoesEachJob(p: { c: Comparison; yours: readonly Job[] }): React.JSX.
 
 function YouDo(p: { count: number }): React.JSX.Element {
   return (
-    <p className={WELL}>
+    <p className={`${WELL} bg-warning/10 text-warning`}>
       <User {...ICON} className="mt-0.5 shrink-0" />
       <span>
         <strong>{copy("compare.item.jobs.count", { count: p.count })}</strong> {copy("compare.item.jobs.every")}
@@ -146,15 +170,21 @@ function DoesWell(p: { c: Comparison }): React.JSX.Element {
   return (
     <section className={CARD}>
       <div className={BODY}>
-        <h2>{c.theirs.heading}</h2>
+        <div className="flex min-w-0 items-center gap-3">
+          <Tile Icon={CircleCheck} tone="success" />
+          <h2 className="text-xl">{c.theirs.heading}</h2>
+        </div>
         {c.ask === undefined ? null : (
-          <div aria-hidden className="rounded-box bg-base-200 flex min-w-0 flex-col p-3">
-            <span className="chat chat-end">
-              <span className="chat-bubble chat-bubble-primary">{c.ask}</span>
-            </span>
-            <span className="chat chat-start">
-              <span className="chat-header text-xs">{copy("compare.item.assistant")}</span>
-              <span className="chat-bubble w-14" aria-hidden />
+          <div aria-hidden className="rounded-box bg-base-200 flex min-w-0 flex-col gap-2 p-3.5">
+            <span className="rounded-box border-base-300 bg-base-100 max-w-4/5 self-end border px-3 py-2 text-sm">{c.ask}</span>
+            <span className="rounded-box border-base-300 bg-base-100 flex max-w-[88%] flex-col gap-1.5 border px-3 py-2.5">
+              <span className="text-base-content/70 flex items-center gap-1.5 text-xs font-bold">
+                <MessageSquare size={14} strokeWidth={1.75} />
+                {copy("compare.item.assistant")}
+              </span>
+              {ANSWER_LINES.map((w) => (
+                <span key={w} className={`bg-base-300 block h-1.5 rounded-full ${w}`} />
+              ))}
             </span>
           </div>
         )}
@@ -182,7 +212,7 @@ export default async function ComparisonPage({ params }: Params): Promise<React.
         <nav aria-label={copy("compare.item.trail")} className="breadcrumbs text-base-content/70 py-0 text-sm">
           <ul>
             <li>
-              <Link href={INDEX} className="link">
+              <Link href={INDEX} className="link link-primary link-hover inline-flex min-h-11 items-center font-semibold">
                 {copy(EYEBROW)}
               </Link>
             </li>
@@ -213,39 +243,37 @@ export default async function ComparisonPage({ params }: Params): Promise<React.
 
       <section className="flex min-w-0 flex-col gap-3" aria-labelledby="comparison-side">
         <h2 id="comparison-side">{copy("compare.item.table")}</h2>
-        <div className={CARD}>
-          <div className={BODY}>
-            <table className="table table-sm w-full table-fixed">
-              <thead className="text-base-content/70">
-                <tr>
-                  <th scope="col" className="w-1/3 whitespace-normal break-words">
-                    {copy("compare.item.feature")}
+        <div className={`${CARD} overflow-hidden`}>
+          <table className="table w-full table-fixed">
+            <thead>
+              <tr className={EYEBROW_TEXT}>
+                <th scope="col" className="text-base-content/70 w-[36%] whitespace-normal break-words">
+                  {copy("compare.item.feature")}
+                </th>
+                <th scope="col" className="bg-primary/10 text-primary whitespace-normal break-words">
+                  {wordmark}
+                </th>
+                <th scope="col" className="text-base-content whitespace-normal break-words">
+                  {c.name}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {c.rows.map((row) => (
+                <tr key={row.label}>
+                  <th scope="row" className="text-base-content font-semibold break-words">
+                    {row.label}
                   </th>
-                  <th scope="col" className="whitespace-normal break-words">
-                    {wordmark}
-                  </th>
-                  <th scope="col" className="whitespace-normal break-words">
-                    {c.name}
-                  </th>
+                  <td className="bg-primary/5 break-words">
+                    <CellText cell={row.reachkit} />
+                  </td>
+                  <td className="break-words">
+                    <CellText cell={row.them} />
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {c.rows.map((row) => (
-                  <tr key={row.label}>
-                    <th scope="row" className="font-normal break-words">
-                      {row.label}
-                    </th>
-                    <td className="break-words">
-                      <CellText cell={row.reachkit} />
-                    </td>
-                    <td className="break-words">
-                      <CellText cell={row.them} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </table>
         </div>
         <p className={`${SMALL} flex flex-wrap gap-x-4`}>
           <span className="inline-flex items-center gap-1">
@@ -264,29 +292,11 @@ export default async function ComparisonPage({ params }: Params): Promise<React.
       </section>
 
       <div className="grid min-w-0 gap-4 sm:grid-cols-2">
-        <section className={CARD}>
-          <div className={BODY}>
-            <h2>{copy("compare.item.pick.them", { name: c.name })}</h2>
-            <ul className={LIST}>
-              {c.pickThem.map((line) => (
-                <li key={line}>{line}</li>
-              ))}
-            </ul>
-          </div>
-        </section>
-        <section className={CARD}>
-          <div className={BODY}>
-            <h2>{copy("compare.item.pick.us")}</h2>
-            <ul className={LIST}>
-              {c.pickUs.map((line) => (
-                <li key={line}>{line}</li>
-              ))}
-            </ul>
-          </div>
-        </section>
+        <Pick title={<h2 className="text-xl">{copy("compare.item.pick.them", { name: c.name })}</h2>} items={c.pickThem} Icon={GROUP_ICON[c.group]} />
+        <Pick title={<h2 className="text-xl">{copy("compare.item.pick.us")}</h2>} items={c.pickUs} Icon={Sparkles} ours />
       </div>
 
-      <Sources checked={c.checked} sources={c.sources} />
+      <Sources checked={c.checked} sources={c.sources} oneLine />
       <LearnClose variant="compare-tool" />
       <Trademarks />
       <BackLink href={INDEX} label={MORE} />
