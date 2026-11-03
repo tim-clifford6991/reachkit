@@ -160,7 +160,7 @@ function Section(p: {
 function Head(): React.JSX.Element {
   return (
     <section id="top" aria-labelledby="top-h" className="scroll-mt-16 pt-12 pb-12 lg:pt-16">
-      <div className={`${INNER} grid grid-cols-1 items-start gap-10 lg:grid-cols-2 lg:gap-12`}>
+      <div className={`${INNER} grid grid-cols-1 items-start gap-10 lg:grid-cols-[5fr_7fr] lg:gap-12`}>
         <div className="flex min-w-0 flex-col items-start gap-4">
           <p className={LABEL}>{copy("how.eyebrow")}</p>
           <h1 id="top-h" className="t-hero">
@@ -178,14 +178,14 @@ function Head(): React.JSX.Element {
             <li key={step.n} className="min-w-0">
               <Link href={step.href} className="card card-border bg-base-100 h-full transition-transform hover:-translate-y-0.5">
                 <span className="card-body gap-2">
-                  <span className="flex items-center gap-2">
+                  <span className="flex flex-wrap items-center gap-2 sm:grid sm:grid-cols-[auto_1fr]">
                     <span className="bg-primary text-primary-content grid size-7 shrink-0 place-items-center rounded-full text-sm font-semibold">
                       {step.n}
                     </span>
                     <span className="rounded-field bg-primary/10 text-primary grid size-8 shrink-0 place-items-center">
                       <step.icon {...ICON} />
                     </span>
-                    <span className="badge badge-soft badge-primary badge-sm h-auto whitespace-normal">
+                    <span className="badge badge-soft badge-primary badge-sm whitespace-nowrap sm:col-span-2 sm:justify-self-start">
                       {copy(stepKey(step.n, "when"), step.when)}
                     </span>
                   </span>

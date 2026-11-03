@@ -63,9 +63,9 @@ function ExampleLine(): React.JSX.Element {
   return <p className={SMALL}>{copy("landing.hero.example")}</p>;
 }
 
-function LiveBadge(p: { at?: string }): React.JSX.Element {
+function LiveBadge(p: { at?: string; className?: string }): React.JSX.Element {
   return (
-    <span className="badge badge-success badge-sm shrink-0 gap-1">
+    <span className={`badge badge-success badge-sm shrink-0 gap-1 ${p.className ?? ""}`}>
       <CircleCheck size={12} strokeWidth={1.75} aria-hidden />
       {copy("calendar.stage.live")}
       {p.at === undefined ? null : <Num>{p.at}</Num>}
@@ -73,22 +73,22 @@ function LiveBadge(p: { at?: string }): React.JSX.Element {
   );
 }
 
-/** The head: the owner's week beside ReachKit's. */
+/** The head: the owner's week beside ReachKit's. Its headings are divs: daisyUI grows a `p` in `.card-body`. */
 export function TwoWeeks(e: Example): React.JSX.Element {
   const days = weekDays();
   return (
     <figure className={CARD}>
       <div className="card-body gap-4">
         <p className={LABEL}>{copy("how.top.visual")}</p>
-        <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-[2fr_3fr]">
           <div className="flex min-w-0 flex-col gap-2">
-            <p className="flex flex-col">
+            <div className="flex flex-col">
               <span className="flex items-center gap-2 text-base font-semibold">
                 <User {...ICON} />
                 {copy("how.top.yours")}
               </span>
               <span className={SMALL}>{copy("how.top.yours.line", { business: e.business })}</span>
-            </p>
+            </div>
             <ol className="flex flex-col gap-1">
               {e.jobs.map((job, i) => (
                 <li key={days[i]} className="flex min-w-0 items-center gap-2 text-sm">
@@ -100,13 +100,13 @@ export function TwoWeeks(e: Example): React.JSX.Element {
             </ol>
           </div>
           <div className="flex min-w-0 flex-col gap-2">
-            <p className="flex flex-col">
+            <div className="flex flex-col">
               <span className="flex items-center gap-2 text-base font-semibold">
                 <Sparkles {...ICON} />
                 {copy("how.top.ours")}
               </span>
               <span className={SMALL}>{copy("how.top.ours.line", { business: e.business })}</span>
-            </p>
+            </div>
             <ol className="flex flex-col gap-1">
               <li className="flex min-w-0 items-center gap-2 text-sm">
                 <span className="num text-base-content/70 w-14 shrink-0">{days[0]}</span>
@@ -116,20 +116,19 @@ export function TwoWeeks(e: Example): React.JSX.Element {
                 <span className="min-w-0">{copy("how.top.monday", { buyers: e.buyers })}</span>
               </li>
               {e.live.map((title, i) => (
-                <li key={title} className="flex min-w-0 flex-wrap items-start gap-2 text-sm">
+                <li key={title} className="grid min-w-0 grid-cols-[auto_auto_minmax(0,1fr)_auto] items-start gap-2 text-sm sm:grid-cols-[auto_auto_minmax(0,1fr)] xl:grid-cols-[auto_auto_minmax(0,1fr)_auto]">
                   <span className="num text-base-content/70 w-14 shrink-0">{days[i + 1]}</span>
                   <span className={TILE}>
                     <FileText {...SMALL_ICON} />
                   </span>
-                  <span className="min-w-0 flex-1">{title}</span>
-                  <LiveBadge />
+                  <span className="min-w-0">{title}</span>
+                  <LiveBadge className="sm:col-start-3 sm:justify-self-end xl:col-start-auto" />
                 </li>
               ))}
             </ol>
           </div>
         </div>
         <p className="text-sm font-semibold">{copy("how.top.split", { minutes: HOW_FACTS.setupMinutes })}</p>
-        <ExampleLine />
       </div>
     </figure>
   );
