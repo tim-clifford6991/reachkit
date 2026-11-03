@@ -103,7 +103,7 @@ async function verdictFor(rawSegment: string): Promise<Verdict | null> {
       import("@/lib/scan/report"),
     ]);
     if (await withDeadline(isDomainRemoved(domain))) return null;
-    const report = await withDeadline(readCurrentReport(domain));
+    const report = await withDeadline(readCurrentReport(domain, { cached: true }));
     if (report === null) return null;
     const measured = report.verdict.scoreAndBand;
     if (measured.kind === "unmeasured") return null;

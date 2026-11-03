@@ -252,7 +252,7 @@ export async function resolveAddress(a: {
   // visitor did not cause it, which is our own stop.
   let report: StoredReport | null;
   try {
-    report = await readCurrentReport(domain);
+    report = await readCurrentReport(domain, { cached: true });
   } catch {
     return { kind: "refused", domain, refusal: { reason: "stopped" } };
   }
