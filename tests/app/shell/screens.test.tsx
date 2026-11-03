@@ -27,22 +27,18 @@
 // *Plan* the calendar's on-screen name, so the screen heads itself with the
 // destination's nav word again — `shell.nav.plan` — and `calendar.head`
 // (the owner's sentence of 2026-09-11, #516) is the subordinate line under
-// it, exactly as `settings.head` is under Settings. What still keeps it out
+// it. What still keeps it out
 // of the shared table is its `searchParams` prop for the month switcher.
 // The contract it inherits is unchanged and is asserted for it below, in
 // its own block.
 //
 // **Settings left it on 2026-09-05 too (issue #18).** Same reason, one
-// difference: §4.7 gives the screen no head line of its own, so it keeps
-// naming itself with the destination's nav word and keeps `settings.head` as
-// the subordinate line — what it can no longer do is share the table's
+// difference: it names itself with the destination's nav word and nothing
+// under it (canvas v36) — what it can no longer do is share the table's
 // rendering, because it is an async Server Component (it awaits `readSettings`)
 // and the table renders its rows synchronously. Its block below therefore
 // awaits the page to a tree and renders it second, exactly as
-// `frame.test.tsx` already does for the layout. The head-line assertion also
-// stops reading "the document contains no `<p>` at all" as "no placeholder
-// paragraph": that was a fair proxy on a screen whose whole body was one line,
-// and is false on one with eight cards. It now says what it meant.
+// `frame.test.tsx` already does for the layout.
 //
 // **Overview left it on 2026-09-05 as well (issue #15), and it was the
 // last one.** §4.5 gives the screen five modules and an async read, so it
@@ -139,17 +135,15 @@ describe("calendar — the built screen keeps the three contracts the frame set"
 // ── Settings, which is no longer a placeholder (issue #18, BUILD §4.7) ────
 describe("settings — the built screen keeps the three contracts the frame set", () => {
   /** The screen as a customer reaches it: the sub-layout that draws the
-   *  heading, the written line and the seven-tab bar (#925), around the tab
+   *  heading and the seven-tab bar (#925), around the tab
    *  that address lands on. Rendering the page alone would assert against
    *  two thirds of the screen and report the heading missing. */
   async function settingsMarkup(): Promise<string> {
     return markup(<SettingsLayout>{await SettingsPage()}</SettingsLayout>);
   }
 
-  it("renders, and names itself from the destination's own registry key", async () => {
-    // Unlike Calendar, §4.7 gives this screen no head line of its own, so the
-    // nav word is still its name.
-    expect(await settingsMarkup()).toContain("<h1>shell.nav.settings</h1>");
+  it("renders, names itself from the destination's own registry key, and the tabs follow with no line between (canvas v36)", async () => {
+    expect(await settingsMarkup()).toMatch(/<h1>shell\.nav\.settings<\/h1><nav[^>]*data-testid="settings-tabs"/);
   });
 
   it("declares no Surface — the shell's layout owns this route's screen root", async () => {
@@ -162,23 +156,6 @@ describe("settings — the built screen keeps the three contracts the frame set"
       expect(source, file).not.toContain("<Surface");
     }
     expect(await settingsMarkup()).not.toContain("data-surface");
-  });
-
-  it("speaks only through the registry: the head line resolves from its key, or not at all", async () => {
-    const html = await settingsMarkup();
-    if (COPY["settings.head" satisfies CopyKey] === "") {
-      // Owner-owed: nothing is written in its place. Not a placeholder, not
-      // the key, and not an empty paragraph — which is the assertion the
-      // placeholder-era "no `<p>` at all" was standing in for.
-      expect(html).not.toContain("settings.head");
-      expect(html).not.toContain("<p></p>");
-    } else {
-      expect(html).toContain("<p>settings.head</p>");
-    }
-  });
-
-  it("its head key exists in the registry, so filling it is the whole change", () => {
-    expect(Object.keys(COPY)).toContain("settings.head" satisfies CopyKey);
   });
 });
 

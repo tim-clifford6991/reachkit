@@ -20,7 +20,6 @@ import { readPromptsAt } from "../../_overview/prompts-provider";
 import { readRivals } from "../../_overview/rivals-provider";
 import { namedOf } from "../../_overview/rivals-model";
 import { aiSearchesOf } from "../../_overview/prompts-model";
-import { formatDay } from "../../_shell/format";
 import { AlsoServesNote } from "@/app/_business/WhatWeRead";
 
 /** This tab's own `<title>` (#945, #925). */
@@ -71,13 +70,7 @@ export default async function SettingsMarketTab(): Promise<React.JSX.Element> {
           named: namedOf(reputation),
         })}
         measuredFrom={settings.market.wouldTakeEffectOn}
-        ownDomain={settings.domain}
         leaders={overview.rivals.leaders.domains}
-        detail={{
-          googleOn: rivals.measuredAt === null ? null : formatDay(rivals.measuredAt, timeZone),
-          searches,
-          questions,
-        }}
       />
     </div>
   );

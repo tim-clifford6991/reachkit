@@ -402,7 +402,6 @@ describe("REQ-070 c3 — no control over an engine or spend parameter renders", 
       "billing-month-detail",
       "settings-business-facts",
       "settings-business-knowledge",
-      "settings-competitors-detail",
       "settings-danger",
       "settings-known-content",
     ]);
@@ -414,7 +413,7 @@ describe("REQ-070 c3 — no control over an engine or spend parameter renders", 
 
 describe("E28 — a card title states its subject in words", () => {
   it.each([
-    ["business", 5],
+    ["business", 4],
     ["voice", 3],
   ] as const)("no settings card title carries an icon (E28): %s", async (tab, least) => {
     const root = await mountTab(tab);
@@ -620,7 +619,7 @@ describe("Settings › Market against board SettingsMarket", () => {
   it("no settings card title carries an icon (E28): market", async () => {
     const root = await mountTab("market");
     const titles = [...root.querySelectorAll("h2, summary, .card-title")];
-    expect(titles.length).toBeGreaterThanOrEqual(3);
+    expect(titles.length).toBeGreaterThanOrEqual(2);
     for (const title of titles) expect(title.querySelector("svg")).toBeNull();
   });
 
