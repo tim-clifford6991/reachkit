@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import { titleRuleFor } from "../../../src/lib/generate/pipeline/title";
 import { pickTitle, titleNotes } from "../../../src/lib/generate/rules/title";
 import { pack } from "../fixtures";
+import STORED from "../fixtures/titles-ecf4f99d-2026-11.json";
 
 describe.each([
   ["generative engine optimization examples", "en", "Generative engine optimization examples: 4 AI engines compared", "engine", "Generative engine optimization examples from ChatGPT to Perplexity"],
@@ -18,4 +19,10 @@ describe.each([
     expect(titleNotes(stopped, rule, ["banned"]).join(" ")).toContain(`"${word}" twice`);
     expect(pickTitle([stopped, passing], rule).chosen).toBe(passing);
   });
+});
+
+it("ecf4f99d's stored candidates each had a fault that stops it, so the pick could not help; the note names the word", () => {
+  expect(STORED.map((each) => each.faults.filter((fault) => fault !== "specific"))).toEqual([["figure_owner"], ["figure_owner"], ["banned"]]);
+  const rule = titleRuleFor(pack({ type: "listicle", target: { question: "generative engine optimization examples", searches: ["generative engine optimization examples"] } }), { description: "x".repeat(140) });
+  expect(titleNotes(STORED[2]!.title, rule, ["banned"]).join(" ")).toContain('"engine" twice');
 });

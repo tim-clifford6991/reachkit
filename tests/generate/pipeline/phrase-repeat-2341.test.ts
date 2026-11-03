@@ -10,7 +10,7 @@ import { repairMechanical } from "../../../src/lib/generate/pipeline/repair";
 import { runHardRules, type BatteryOutcome } from "../../../src/lib/generate/rules";
 import { checkProse } from "../../../src/lib/generate/rules/prose";
 import { setGenerateStore } from "../../../src/lib/generate/store";
-import { SITE_ID, emptyComparison, fakeCost, memoryStore, opportunity } from "../fixtures";
+import { FACTS, SITE_ID, emptyComparison, fakeCost, memoryStore, opportunity, pack } from "../fixtures";
 
 const STORED = new URL("../../../docs/walk/prose-gate/", import.meta.url);
 const failedRules = (outcome: BatteryOutcome): string[] => (outcome.passed ? [] : outcome.failed.map((failure) => failure.rule).sort());
@@ -60,4 +60,17 @@ it("the repair drops a later saying, never the opening's, and the check then pas
   const repaired = repairMechanical(markdown, ["plain_prose"], { brief: { facts: [], queries: [] }, sources: [], prose });
   expect([repaired.startsWith(opening), repaired.includes("here too."), repaired.includes("whatever the fee"), repaired.includes("Fees start at £150.")]).toEqual([true, true, false, true]);
   expect(checkProse({ markdown: repaired, prose })).toBeNull();
+});
+
+it("0f95686d's stored body: both phrases said three times are repaired, the opening stays, and no other rule moves", async () => {
+  const markdown = readFileSync(new URL("../fixtures/stopped-0f95686d-2026-11.md", import.meta.url), "utf8");
+  const site = { businessName: "ReachKit", domain: "reachkit.app", doNotClaim: [], rivals: [] };
+  const basis = batteryBasis({ pack: pack({ business: { ...pack().business, name: "ReachKit", domain: "reachkit.app" } }), opportunity: opportunity(), site, facts: FACTS, grounding: FACTS[0]! });
+  const page = { title: "5 AI search visibility tools for founders (2026)", heading: "", description: "", sections: [], faq: [] };
+  const battery = (text: string) => runHardRules(fakeCost(), batteryInputs(basis, page, text, emptyComparison(), false, { state: "passed" }));
+  const before = await battery(markdown);
+  expect(before.passed ? [] : before.failed.find((failure) => failure.rule === "plain_prose")?.detail).toMatchObject({ faults: [{ tell: "repeated_phrase", found: ["up to 7 pages a week new or updated", "its page does not publish a price"] }] });
+  const repaired = repairMechanical(markdown, ["plain_prose"], { brief: basis.brief, sources: [], prose: batteryInputs(basis, page, markdown, emptyComparison()).prose });
+  expect(failedRules(await battery(repaired))).toEqual(failedRules(before).filter((rule) => rule !== "plain_prose"));
+  expect(repaired.split("\n\n")[0]).toBe(markdown.split("\n\n")[0]);
 });
