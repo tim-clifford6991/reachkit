@@ -87,12 +87,12 @@ function EveryRead(): React.JSX.Element {
             <span className="flex min-w-0 items-start gap-3">
               <Mark n={1} />
               <span className="flex min-w-0 flex-1 flex-col gap-2" aria-hidden>
-                <span className="bg-base-content/70 block h-3 w-5/6 rounded-full" />
-                <span className="bg-base-content/70 block h-3 w-1/2 rounded-full" />
-                <span className={`${LINE} w-2/3`} />
+                <span aria-hidden="true" className="bg-base-content/70 block h-3 w-5/6 rounded-full" />
+                <span aria-hidden="true" className="bg-base-content/70 block h-3 w-1/2 rounded-full" />
+                <span aria-hidden="true" className={`${LINE} w-2/3`} />
                 <span className="flex gap-2">
-                  <span className="bg-primary/30 rounded-field block h-5 w-16" />
-                  <span className="border-base-300 rounded-field block h-5 w-12 border" />
+                  <span aria-hidden="true" className="bg-primary/30 rounded-field block h-5 w-16" />
+                  <span aria-hidden="true" className="border-base-300 rounded-field block h-5 w-12 border" />
                 </span>
               </span>
             </span>
@@ -154,7 +154,7 @@ function Card(p: { t: Teardown }): React.JSX.Element {
   return (
     <Link href={`/teardowns/${t.slug}`} className={`${TILE} w-full min-w-0 overflow-hidden`}>
       <span className="bg-base-200 block px-3 pt-3" aria-hidden>
-        <span className={`${FRAME} rounded-b-none border-b-0`}>
+        <span className={`${FRAME} block rounded-b-none border-b-0`}>
           <span className="mockup-browser-toolbar">
             <Address domain={t.domain} />
           </span>

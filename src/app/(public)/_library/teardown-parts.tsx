@@ -48,9 +48,9 @@ export function Sketch(p: { domain: string; marks: readonly SketchMark[]; captio
                     </p>
                   ))}
                   {i === 0 ? (
-                    <span aria-hidden className="flex gap-2">
-                      <span className="bg-base-300 rounded-field h-6 w-24" />
-                      <span className="border-base-300 rounded-field h-6 w-18 border" />
+                    <span aria-hidden="true" className="flex gap-2">
+                      <span aria-hidden="true" className="bg-base-300 rounded-field h-6 w-24" />
+                      <span aria-hidden="true" className="border-base-300 rounded-field h-6 w-18 border" />
                     </span>
                   ) : null}
                   {mark.shows === undefined ? null : (
@@ -130,14 +130,15 @@ function PartFigure(p: { section: TeardownSection }): React.JSX.Element | null {
                 <span key={letter} className="rounded-field bg-base-200 flex min-w-0 flex-col gap-1.5 p-2.5">
                   <span className="text-base-content/70 font-mono text-xs">{copy("teardowns.promise.tool", { letter })}</span>
                   <span className="text-sm break-words">{s.promise!.crowd}</span>
-                  <span aria-hidden className={`${SKELETON} w-3/4`} />
+                  <span aria-hidden="true" className={`${SKELETON} w-full`} />
+                  <span aria-hidden="true" className={`${SKELETON} w-2/3`} />
                 </span>
               ))}
             </div>
           </div>
           <div className="flex min-w-0 flex-col gap-2">
             <p className="text-success text-xs font-semibold tracking-wide uppercase">{s.promise.wants}</p>
-            <div className="rounded-box border-success/30 bg-success/10 flex min-w-0 flex-col gap-2 border p-4">
+            <div className="rounded-box border-success bg-success/10 flex min-w-0 flex-col gap-2 border p-4">
               {s.promise.outcomes.map((outcome) => (
                 <span key={outcome} className="text-base-content flex min-w-0 items-start gap-2 font-semibold break-words">
                   <CircleCheck size={16} strokeWidth={1.75} aria-hidden className="text-success mt-1 shrink-0" />
@@ -190,8 +191,8 @@ function PartFigure(p: { section: TeardownSection }): React.JSX.Element | null {
                 <span className={SMALL}>{idea.reader}</span>
               </span>
               <strong className="break-words">{idea.title}</strong>
-              <span aria-hidden className={`${SKELETON} w-full`} />
-              <span aria-hidden className={`${SKELETON} w-2/3`} />
+              <span aria-hidden="true" className={`${SKELETON} w-full`} />
+              <span aria-hidden="true" className={`${SKELETON} w-2/3`} />
             </div>
           ))}
         </div>

@@ -173,7 +173,7 @@ export default async function AboutPage(): Promise<React.JSX.Element> {
                           <span className="text-sm font-semibold">{r.name}</span>
                           <span className="num text-base-content/70 text-xs break-all">{`${r.site} › ${r.path}`}</span>
                           <span className="text-primary text-sm">{r.title}</span>
-                          <span className="bg-base-300 mt-1.5 block h-2 w-3/4 rounded-full" />
+                          <span aria-hidden="true" className="bg-base-300 mt-1.5 block h-2 w-3/4 rounded-full" />
                         </span>
                       </li>
                     ))}
