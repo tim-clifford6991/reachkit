@@ -19,11 +19,20 @@ const PRESENTATION = "presentation" as const;
 const GAP_PX = 8;
 const GAP = "\u00a0" as const;
 const HALF = "50%" as const;
-/** `h3`, because the card's head carries the wordmark (S20). */
-const HEADING_LEVEL = "h3" as const;
+/** `h3` by default, because the card's head carries the wordmark (S20); a mail that names its title takes `h1` and `h2`. */
+const HEADING_TAG = { 1: "h1", 2: "h2", default: "h3" } as const;
 
-/** The only size off the type ladder: S20 draws the headline figure above `--h2`, and no rung is named there. */
+/** Sizes off the type ladder, each where a board draws one and no rung is named: the headline figure, the title, a tile's figure, small text. */
 const HERO_SIZE = "36px";
+const TITLE_SIZE = "22px";
+const TILE_SIZE = "30px";
+const SMALL_SIZE = "14px";
+const BOX_RADIUS = "10px";
+const BAR_HEIGHT = "10px";
+const TILE_GAP = "2%";
+const TILE_WIDTH = "49%";
+const FULL = "100%";
+const TWO = 2;
 
 /** BUILD §2.3's numerals, inline: every number, date, domain and URL in a mail. */
 function Mono({ children }: { children: string }): ReactNode {
@@ -45,13 +54,41 @@ function Block({ children, marker }: { children: ReactNode; marker: string }): R
           padding: "0 0 16px 0",
           fontFamily: token("--font-ui-mail"),
           fontSize: token("--t-body"),
-          lineHeight: 1.55,
+          lineHeight: 1.5,
           color: token("--color-base-content"),
         }}
       >
         {children}
       </Column>
     </Row>
+  );
+}
+
+/** A tinted box as a one-cell table, since inboxes keep a cell's background where they drop a `div`'s. Its 1px line keeps the edge
+ *  where a forced-dark inbox strips the fill. */
+function TintBox({ tone, children }: { tone: "ok" | "quiet"; children: ReactNode }): ReactNode {
+  const ok = tone === "ok";
+  return (
+    <table role={PRESENTATION} width={FULL} cellPadding={0} cellSpacing={0} border={0} style={{ borderCollapse: "separate" }}>
+      <tbody>
+        <tr>
+          <td
+            data-rk-tone={tone}
+            style={{
+              padding: "14px 16px",
+              background: token(ok ? "--ok-bg" : "--color-base-200"),
+              border: `1px solid ${token(ok ? "--ok-line" : "--color-base-300")}`,
+              borderRadius: BOX_RADIUS,
+              fontSize: SMALL_SIZE,
+              lineHeight: 1.5,
+              color: token("--color-base-content"),
+            }}
+          >
+            {children}
+          </td>
+        </tr>
+      </tbody>
+    </table>
   );
 }
 
@@ -150,18 +187,18 @@ function RuledRows({
         <Row key={index}>
           <Column style={{ ...RULED_CELL, ...(item.links === undefined ? {} : { padding: "16px 0" }), color: token("--color-base-content") }}>
             {item.lead === undefined ? null : (
-              <div style={{ fontSize: token("--t-sm"), color: token("--ink-2"), paddingBottom: "4px" }}>{item.lead}</div>
+              <div style={{ fontSize: SMALL_SIZE, lineHeight: 1.5, color: token("--ink-2"), paddingBottom: "6px" }}>{item.lead}</div>
             )}
             {item.left === undefined ? null : item.href === undefined ? (
               // A row under a lead is a page: its search is the row's title.
-              item.lead === undefined ? item.left : <div style={{ fontWeight: 700 }}>{item.left}</div>
+              item.lead === undefined ? item.left : <div style={{ fontSize: token("--h4"), fontWeight: 700, lineHeight: 1.35 }}>{item.left}</div>
             ) : (
               <Link href={item.href} style={{ color: token("--color-primary") }}>
                 {item.left}
               </Link>
             )}
             {(item.detail ?? []).map((line, at) => (
-              <div key={at} style={{ paddingTop: "4px", fontSize: token("--t-sm"), color: token("--ink-2") }}>
+              <div key={at} style={{ paddingTop: "6px", fontSize: item.lead === undefined ? token("--t-sm") : SMALL_SIZE, lineHeight: 1.5, color: token("--ink-2") }}>
                 {line}
               </div>
             ))}
@@ -229,6 +266,90 @@ function Hero(a: {
       </Row>
       {a.note === null ? null : <Note>{a.note}</Note>}
     </>
+  );
+}
+
+/** Each number in its own tinted box, two to a row; the first takes the accent tint, as board MondayMail draws it. */
+function Tiles({ items }: { items: readonly StatRowText[] }): ReactNode {
+  const tile = (item: StatRowText, at: number): ReactNode => (
+    <td
+      key={at}
+      width={TILE_WIDTH}
+      style={{
+        width: TILE_WIDTH,
+        verticalAlign: "top",
+        padding: "14px",
+        background: token(at % TWO === 0 ? "--accent-bg" : "--color-base-200"),
+        border: `1px solid ${token(at % TWO === 0 ? "--accent-line" : "--color-base-300")}`,
+        borderRadius: BOX_RADIUS,
+      }}
+    >
+      {item.value === null ? null : (
+        <div style={{ fontSize: TILE_SIZE, fontWeight: 600, lineHeight: 1.1, color: token("--color-base-content") }}>
+          <Mono>{item.value}</Mono>
+        </div>
+      )}
+      <div style={{ paddingTop: "4px", fontSize: SMALL_SIZE, lineHeight: 1.3, color: token("--color-base-content") }}>{item.label}</div>
+      {item.line === null ? null : <div style={{ paddingTop: "2px", fontSize: token("--t-sm"), color: token("--ink-2") }}>{item.line}</div>}
+    </td>
+  );
+  const rows: ReactNode[] = [];
+  for (let at = 0; at < items.length; at += TWO) {
+    const pair = items.slice(at, at + TWO);
+    rows.push(
+      <table key={at} role={PRESENTATION} width={FULL} cellPadding={0} cellSpacing={0} border={0} style={{ borderCollapse: "separate", marginTop: at === 0 ? 0 : "8px" }}>
+        <tbody>
+          <tr>
+            {tile(pair[0]!, at)}
+            <td width={TILE_GAP} style={{ fontSize: 0 }}>{GAP}</td>
+            {pair[1] === undefined ? <td width={TILE_WIDTH} /> : tile(pair[1], at + 1)}
+          </tr>
+        </tbody>
+      </table>
+    );
+  }
+  return <>{rows}</>;
+}
+
+/** Each number as a bar against its whole: label above, the count at the bar's end. Cell backgrounds, never an image, so images-off keeps it. */
+function Bars({ items }: { items: readonly StatRowText[] }): ReactNode {
+  const ruled = { borderBottom: `1px solid ${token("--color-base-200")}` } as const;
+  const fill = (width: string, colour: string, key: string): ReactNode => (
+    <td key={key} width={width} style={{ width, height: BAR_HEIGHT, background: colour, fontSize: 0, lineHeight: 0 }}>{GAP}</td>
+  );
+  return (
+    <table role={PRESENTATION} width={FULL} cellPadding={0} cellSpacing={0} border={0}>
+      <tbody>
+        {items.flatMap((item, at) => {
+          const filled = item.share === null ? null : Math.round(item.share * 100);
+          return [
+            <tr key={`label-${at}`}>
+              <td colSpan={TWO} style={{ padding: "8px 0 0", fontSize: SMALL_SIZE, color: token("--color-base-content") }}>{item.label}</td>
+            </tr>,
+            <tr key={`bar-${at}`}>
+              <td width={FULL} style={{ ...ruled, padding: "4px 12px 8px 0" }}>
+                {filled === null ? null : (
+                  <table role={PRESENTATION} width={FULL} cellPadding={0} cellSpacing={0} border={0} style={{ borderCollapse: "separate", borderRadius: "5px", overflow: "hidden" }}>
+                    <tbody>
+                      <tr>
+                        {[
+                          ...(filled > 0 ? [fill(`${filled}%`, token("--color-primary"), "fill")] : []),
+                          ...(filled < 100 ? [fill(`${100 - filled}%`, token("--color-base-200"), "track")] : []),
+                        ]}
+                      </tr>
+                    </tbody>
+                  </table>
+                )}
+                {item.line === null ? null : <div style={{ paddingTop: "4px", fontSize: token("--t-sm"), color: token("--ink-2") }}>{item.line}</div>}
+              </td>
+              <td align={RIGHT} style={{ ...ruled, padding: "0 0 8px", verticalAlign: "top", fontSize: token("--t-body"), lineHeight: "18px", fontWeight: 700, whiteSpace: "nowrap", color: token("--color-base-content") }}>
+                {item.value === null ? null : <Mono>{item.value}</Mono>}
+              </td>
+            </tr>,
+          ];
+        })}
+      </tbody>
+    </table>
   );
 }
 
@@ -396,12 +517,13 @@ function arm(block: MailBlock): ReactNode {
     case "heading":
       return (
         <Heading
-          as={HEADING_LEVEL}
+          as={HEADING_TAG[block.level ?? "default"]}
           style={{
-            margin: 0,
-            fontSize: token("--h3"),
-            fontWeight: 700,
-            letterSpacing: "-0.02em",
+            margin: block.level === 2 ? "8px 0 0" : 0,
+            fontSize: block.level === 1 ? TITLE_SIZE : block.level === 2 ? token("--h4") : token("--h3"),
+            fontWeight: block.level === 1 ? 800 : 700,
+            lineHeight: 1.3,
+            letterSpacing: block.level === 2 ? "normal" : "-0.02em",
             color: token("--color-base-content"),
           }}
         >
@@ -409,10 +531,12 @@ function arm(block: MailBlock): ReactNode {
         </Heading>
       );
     case "paragraph":
-      return (
-        <Text style={{ margin: 0, fontSize: token("--t-body"), lineHeight: 1.55 }}>
+      return block.tone === undefined ? (
+        <Text style={{ margin: 0, fontSize: token("--t-body"), lineHeight: 1.5 }}>
           {copy(block.text, block.vars)}
         </Text>
+      ) : (
+        <TintBox tone={block.tone}>{copy(block.text, block.vars)}</TintBox>
       );
     case "stat":
       return (
@@ -450,7 +574,13 @@ function arm(block: MailBlock): ReactNode {
         />
       );
     case "stats":
-      return <Stats items={statRowsOf(block)} />;
+      return block.shape === "tiles" ? (
+        <Tiles items={statRowsOf(block)} />
+      ) : block.shape === "bars" ? (
+        <Bars items={statRowsOf(block)} />
+      ) : (
+        <Stats items={statRowsOf(block)} />
+      );
     case "action":
       return (
         <Action label={copy(block.label)} href={block.href} variant={block.variant ?? "primary"} />

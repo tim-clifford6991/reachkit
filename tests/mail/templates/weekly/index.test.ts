@@ -537,7 +537,7 @@ describe("board MondayMail — the greeting, the calm line and the week's pages"
 
   it("a customer with no name is greeted by the week and the site alone", () => {
     const blocks = buildWeekly({ greeting: { name: null, week: 1, business: "example.com" }, pages: measured([], AT), next: measured([], AT) }).blocks;
-    expect(blocks[0]).toEqual({ block: "heading", text: "mail.weekly.hi.unnamed", vars: { week: "1", business: "example.com" } });
+    expect(blocks[0]).toEqual({ block: "heading", level: 1, text: "mail.weekly.hi.unnamed", vars: { week: "1", business: "example.com" } });
   });
 
   it("the calm line states the publish time where nothing waits, and gives way to the one page that needs them", () => {

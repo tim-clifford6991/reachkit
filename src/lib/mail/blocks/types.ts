@@ -54,11 +54,25 @@ export interface StatRow {
   readonly note?: { readonly text: CopyKey; readonly vars?: CopyVars };
   /** SPEC §8: an unmeasured row with this line is kept and says so; without it the row is omitted. Never a zero. */
   readonly unmeasuredLine?: CopyKey;
+  /** The whole a `bars` row is drawn against. */
+  readonly of?: number;
 }
 
 export type MailBlock =
-  | { readonly block: "heading"; readonly text: CopyKey; readonly vars?: CopyVars }
-  | { readonly block: "paragraph"; readonly text: CopyKey; readonly vars?: CopyVars }
+  | {
+      readonly block: "heading";
+      readonly text: CopyKey;
+      readonly vars?: CopyVars;
+      /** 1 is the mail's own title, 2 a section under it; absent keeps the shell's one heading step. */
+      readonly level?: 1 | 2;
+    }
+  | {
+      readonly block: "paragraph";
+      readonly text: CopyKey;
+      readonly vars?: CopyVars;
+      /** A tinted box: `ok` for good news, `quiet` for a line to keep in mind. The text twin ignores it. */
+      readonly tone?: "ok" | "quiet";
+    }
   | {
       readonly block: "stat";
       readonly label: CopyKey;
@@ -102,6 +116,8 @@ export type MailBlock =
       /** SPEC §8's four Overview numbers with change, as one group laid two to a row so a dropped number leaves no gap. */
       readonly block: "stats";
       readonly items: readonly StatRow[];
+      /** `tiles` draws each number in its own tinted box; `bars` draws each against its `of`. The text twin ignores it. */
+      readonly shape?: "tiles" | "bars";
     }
   | {
       readonly block: "action";

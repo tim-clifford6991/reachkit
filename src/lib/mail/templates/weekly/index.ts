@@ -208,8 +208,8 @@ export function buildWeekly(a: {
         ? []
         : [
             g.name === null || g.name.trim() === ""
-              ? ({ block: "heading", text: HI_UNNAMED, vars: { week: String(g.week), business: g.business } } as const)
-              : ({ block: "heading", text: HI, vars: { name: g.name.trim(), week: String(g.week), business: g.business } } as const),
+              ? ({ block: "heading", level: 1, text: HI_UNNAMED, vars: { week: String(g.week), business: g.business } } as const)
+              : ({ block: "heading", level: 1, text: HI, vars: { name: g.name.trim(), week: String(g.week), business: g.business } } as const),
           ]),
       // The calm line, only where nothing waits on the customer and pages can go live.
       ...(a.needsYou !== undefined || a.connect !== undefined || a.calendar === undefined
@@ -257,7 +257,7 @@ export function buildWeekly(a: {
             { block: "notice", text: a.needsYou.line, ...(a.needsYou.vars === undefined ? {} : { vars: a.needsYou.vars }) },
             { block: "action", label: NEEDS_YOU_ACTION, href: a.needsYou.href, variant: "secondary" },
           ] as const)),
-      { block: "paragraph", text: PACE },
+      { block: "paragraph", text: PACE, tone: "quiet" },
       // S20's one solid button, absolute: an inbox resolves no relative path.
       { block: "action", label: ACTION, href: overviewHref() },
     ],
@@ -270,6 +270,7 @@ function numberBlocks(n: WeeklyNumbers): readonly MailBlock[] {
   const blocks: MailBlock[] = [
     {
       block: "stats",
+      shape: "tiles",
       items: [
         { label: LIVE, value: n.live, format: "integer", unmeasuredLine: NOT_MEASURED },
         { label: PLANNED, value: n.planned, format: "integer", unmeasuredLine: NOT_MEASURED },
@@ -283,10 +284,11 @@ function numberBlocks(n: WeeklyNumbers): readonly MailBlock[] {
   const g = n.google;
   if (g !== undefined) {
     const steps = g.early ? g.steps.filter((step) => step.name === "draft.ladder.found") : g.steps;
-    blocks.push({ block: "heading", text: GOOGLE });
+    blocks.push({ block: "heading", level: 2, text: GOOGLE });
     if (steps.length > 0) {
       blocks.push({
         block: "stats",
+        shape: "bars",
         items: steps.map((step): StatRow => ({
           ...(step.name === "draft.ladder.showing" && (g.climbing ?? 0) > 0
             ? { label: SHOWING_CLIMBING, labelVars: { n: String(g.climbing) } }
@@ -294,6 +296,7 @@ function numberBlocks(n: WeeklyNumbers): readonly MailBlock[] {
           value: step.count,
           format: "integer",
           note: { text: OF_LIVE, vars: { n: String(step.of) } },
+          of: step.of,
           unmeasuredLine: NOT_MEASURED,
         })),
       });
@@ -305,11 +308,11 @@ function numberBlocks(n: WeeklyNumbers): readonly MailBlock[] {
     if (g.climb === null) blocks.push({ block: "paragraph", text: CLIMB_NONE });
     else if (g.climb !== undefined) {
       const vars = { search: g.climb.search, from: String(g.climb.from), to: String(g.climb.to) };
-      blocks.push({ block: "paragraph", text: g.climb.climbing ? CLIMB_CLIMBING : CLIMB, vars });
+      blocks.push({ block: "paragraph", text: g.climb.climbing ? CLIMB_CLIMBING : CLIMB, vars, tone: "ok" });
     }
   }
   if (n.ai !== undefined) {
-    blocks.push({ block: "heading", text: AI });
+    blocks.push({ block: "heading", level: 2, text: AI });
     if (n.ai.linked.kind === "unmeasured") blocks.push({ block: "paragraph", text: AI_EARLY });
     else {
       const linked = formatStat(n.ai.linked, "integer");
@@ -326,7 +329,7 @@ function numberBlocks(n: WeeklyNumbers): readonly MailBlock[] {
       ...monthRow(REPUTATION, { weeks: String(m.reputation?.weeks ?? "") }, m.reputation?.value, m.reputation?.answers),
     ];
     if (rows.length > 0) {
-      blocks.push({ block: "heading", text: MONTH }, { block: "facts", items: rows, face: "body" });
+      blocks.push({ block: "heading", level: 2, text: MONTH }, { block: "facts", items: rows, face: "body" });
     }
   }
   return blocks;
@@ -360,7 +363,7 @@ function monthRow(
 function weekBlocks(next: Measured<readonly WeeklyNext[]>, calendar: WeeklyCalendar | undefined): readonly MailBlock[] {
   if (next.kind === "unmeasured") return [];
   return [
-    { block: "heading", text: NEXT },
+    { block: "heading", level: 2, text: NEXT },
     { block: "list", items: mapMeasuredRows(next, (pages) => nextRows(pages, calendar)), emptyLine: NEXT_NONE },
   ];
 }

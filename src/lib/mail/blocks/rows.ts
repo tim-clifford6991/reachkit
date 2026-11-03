@@ -54,6 +54,8 @@ export interface StatRowText {
   readonly before: string | null;
   readonly change: string | null;
   readonly line: string | null;
+  /** The measured value over its `of`, clamped to 0–1; `null` with no whole to draw it against. */
+  readonly share: number | null;
 }
 
 /** A kept `stats` group's rows. An unmeasured change is not stated and an unmeasured number is its line, never a zero. */
@@ -67,6 +69,7 @@ export function statRowsOf(block: Extract<MailBlock, { block: "stats" }>): reado
         before: null,
         change: null,
         line: item.unmeasuredLine === undefined ? null : copy(item.unmeasuredLine),
+        share: null,
       };
     }
     return {
@@ -78,6 +81,7 @@ export function statRowsOf(block: Extract<MailBlock, { block: "stats" }>): reado
           ? null
           : formatStat(item.change, "delta"),
       line: item.note === undefined ? null : copy(item.note.text, item.note.vars),
+      share: item.of === undefined || item.of <= 0 ? null : Math.min(1, Math.max(0, item.value.value / item.of)),
     };
   });
 }
