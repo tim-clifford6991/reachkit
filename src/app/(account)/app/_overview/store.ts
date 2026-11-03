@@ -701,7 +701,7 @@ async function weeklySeries(
   const scan = monthFiguresOf(deep?.report ?? null);
   const months: MonthsFacts = {
     reading: monthWeek === null ? null : { week: monthWeek, ...monthFiguresOf(scans.get(monthWeek)?.report ?? null) },
-    scan: { score: scan.score, market: scan.market?.top10 ?? null },
+    scan: { score: scan.score, market: scan.market },
     next: nextFirstMonday(weeks.at(-1) as string),
   };
   const searchesWeekZero = weekZero === null ? undefined : weekZero.report.ownRanked;
