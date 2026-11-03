@@ -4,7 +4,7 @@
 //
 // The day is UTC: one figure for the whole product has no customer to be local to. Each ledger is `fetches`,
 // summed exactly in `numeric` cents by the database. A ledger that cannot be read is not room to spend: the call
-// degrades and `*_spend_unreadable` says why. The alert leaves through a port the mail side registers at boot,
+// degrades, `*_spend_unreadable` says why, and the owner is told once a day. The alerts leave through a port the mail side registers at boot,
 // since `src/lib/costs` sits below `src/lib/mail`; nothing registered means nothing is told, never a throw.
 import { CAPS, DAILY_PRODUCT_CEILING, SPEND_ALERT_AT } from "@/lib/config/constants";
 import { dbAdmin } from "@/lib/db";
@@ -36,16 +36,40 @@ export interface SpendAlert {
 
 export type SpendAlertSink = (alert: SpendAlert) => void;
 
+/** A ledger that could not be read, in closed words: the owner's mail is keyed by them, never by a site or a message. */
+export interface LedgerUnreadable {
+  readonly ledger: "product" | "site";
+  readonly cause: "read-failed" | "not-a-number" | "threw";
+  readonly at: Date;
+}
+
+export type LedgerUnreadableSink = (unreadable: LedgerUnreadable) => void;
+
 /** On `globalThis`, not a module variable: Next bundles `src/instrumentation.ts`
  *  apart from the routes, and each bundle has its own copy of this module. */
 const SINK = Symbol.for("reachkit.costs.spendAlertSink");
-const slot = globalThis as { [SINK]?: SpendAlertSink | null };
+const UNREADABLE_SINK = Symbol.for("reachkit.costs.ledgerUnreadableSink");
+const slot = globalThis as { [SINK]?: SpendAlertSink | null; [UNREADABLE_SINK]?: LedgerUnreadableSink | null };
 
 /** Registered once, at boot, by the side that can send mail. `null`
  *  unregisters — the shape every other port in this codebase uses, and
  *  what lets a test put its own sink in and take it out again. */
 export function registerSpendAlertSink(next: SpendAlertSink | null): void {
   slot[SINK] = next;
+}
+
+/** Registered at boot beside the crossing sink; `null` unregisters. */
+export function registerLedgerUnreadableSink(next: LedgerUnreadableSink | null): void {
+  slot[UNREADABLE_SINK] = next;
+}
+
+/** Told on every unreadable read; the sink decides once a day. Never throws into the read. */
+function publishLedgerUnreadable(unreadable: LedgerUnreadable): void {
+  try {
+    slot[UNREADABLE_SINK]?.(unreadable);
+  } catch (error) {
+    console.warn(JSON.stringify({ event: "spend_alert_failed", crossed: "unreadable", detail: String(error) }));
+  }
 }
 
 /** The two figures in cents, derived from the day's ceiling so the
@@ -216,23 +240,24 @@ export async function readDaySpendCents(now: Date): Promise<number | null> {
       p_since: dayStartedAt(now).toISOString(),
     });
     if (error) {
-      logUnreadable(error.message);
+      logUnreadable(error.message, "read-failed", now);
       return null;
     }
     const spent = Number(data);
     if (!Number.isFinite(spent)) {
-      logUnreadable(`fetches_spend_since returned ${String(data)}`);
+      logUnreadable(`fetches_spend_since returned ${String(data)}`, "not-a-number", now);
       return null;
     }
     return spent;
   } catch (error) {
-    logUnreadable(String(error));
+    logUnreadable(String(error), "threw", now);
     return null;
   }
 }
 
-function logUnreadable(reason: string): void {
+function logUnreadable(reason: string, cause: LedgerUnreadable["cause"], at: Date): void {
   console.warn(JSON.stringify({ event: "daily_spend_unreadable", reason }));
+  publishLedgerUnreadable({ ledger: "product", cause, at });
 }
 
 /**
@@ -329,23 +354,24 @@ export async function readSiteDaySpendCents(siteId: string, now: Date): Promise<
       p_since: dayStartedAt(now).toISOString(),
     });
     if (error) {
-      logSiteUnreadable(siteId, error.message);
+      logSiteUnreadable(siteId, error.message, "read-failed", now);
       return null;
     }
     const spent = Number(data);
     if (!Number.isFinite(spent)) {
-      logSiteUnreadable(siteId, `fetches_site_spend_since returned ${String(data)}`);
+      logSiteUnreadable(siteId, `fetches_site_spend_since returned ${String(data)}`, "not-a-number", now);
       return null;
     }
     return spent;
   } catch (error) {
-    logSiteUnreadable(siteId, String(error));
+    logSiteUnreadable(siteId, String(error), "threw", now);
     return null;
   }
 }
 
-function logSiteUnreadable(siteId: string, reason: string): void {
+function logSiteUnreadable(siteId: string, reason: string, cause: LedgerUnreadable["cause"], at: Date): void {
   console.warn(JSON.stringify({ event: "site_spend_unreadable", siteId, reason }));
+  publishLedgerUnreadable({ ledger: "site", cause, at });
 }
 
 /** One site's day, as one pass sees it. The shape of `DayLedger`, minus
