@@ -15,7 +15,6 @@ Sat 24 New Water softener or filter: which an Austin home needs Why AI answers l
 Sun 25 Update Sewer line camera inspection: what it shows and costs Why Your page has not moved in 8 weeks. This rewrite matches what Google now shows for it. Planned	sample data
 Garbage disposal repair or replace	sample data
 How to shut off water to a house in an emergency	sample data
-Not moving	sample data: no fixture page has stopped moving; the label ships from review.label.not_moving
 Chosen Monday 19 October. Each goes live on its day unless you stop it.	sample data: the date is the stored week's own
 Each goes live at 4:00 PM, Austin time	sample data: the time and place are the site's own publish time and zone, and none is named while ReachKit is stopped (REQ-092 c7)
 Mon 19 New Emergency plumber in Austin: what to do in the first hour Why Your core service, and AI answers link to a competitor’s service page for it. Goes live today, 4:00 PM	sample data: the time is the site's own publish time, and none is named while ReachKit is stopped (REQ-092 c7)
@@ -28,4 +27,3 @@ Show all 12 live pages	sample data
 component:icon:calendar 3	#2273: the icon ships on every Planned day, and the fixture week holds fewer than the board's
 component:icon:plus 1	#2273: the icon ships on every new page, and the fixture week holds fewer than the board's
 component:icon:clock-4 1	#2273: Too early draws the shared verdict badge's Clock, read the same on Overview and the page screen
-component:icon:minus 1	#2273: the icon ships on a Not moving live page, and no fixture page among the first four is one

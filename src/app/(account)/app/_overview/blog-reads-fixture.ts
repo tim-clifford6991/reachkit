@@ -13,12 +13,11 @@
 // looks like and what the "at least" line is about.
 import type { BlogReadRow } from "@/lib/publish/reads/store";
 import type { BlogReadsFacts } from "@/lib/publish/reads/model";
+import { FIXTURE_PUBLISHED } from "./content-fixture";
 
-/** Two of the fixture account's own live pages. The ids are opaque to the
- *  card — it counts rows, it does not link to a page — so they are spelled
- *  as plain handles rather than borrowed from another fixture. */
-const PAGE_A = "fixture-publication-a";
-const PAGE_B = "fixture-publication-b";
+/** Two of the fixture account's own live pages, the two AI has linked and visited. */
+const PAGE_A = FIXTURE_PUBLISHED[12]!.id;
+const PAGE_B = FIXTURE_PUBLISHED[11]!.id;
 
 /** The seven days `search-fixture.ts` measures its Monday on and the six
  *  before it. */
@@ -76,6 +75,6 @@ const ROWS: readonly BlogReadRow[] = Object.freeze([
 
 export const FIXTURE_BLOG_READS_FACTS: BlogReadsFacts = Object.freeze({
   hosted: true,
-  livePages: 2,
+  livePages: FIXTURE_PUBLISHED.length,
   rows: ROWS,
 });

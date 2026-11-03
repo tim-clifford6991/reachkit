@@ -1,64 +1,53 @@
-// The reserved fixture account's published pages (issue 1457): seventeen,
-// one every other day up to the Overview fixture's own last page, so the
-// Content tile has a total, a last-four-weeks count below it and a newest.
+// The reserved fixture account's published pages: seventeen, the newest ten
+// on the days Plan's fixture month shows live and the rest over July and
+// August, so the Content tile has a total, a last-four-weeks count below it
+// and a newest, and every label a live page can wear is drawn.
 import type { Ladder } from "@/lib/measure/ladder";
 import type { PageReading } from "@/lib/measure/page-reading";
 import type { PublishedPage } from "@/lib/measure/published";
 
-/** Each page is read on one of `search-fixture.ts`'s live searches, in its
- *  order, so the Google tab names one page by one search. Written out: that
+/** Plan's fixture today (`calendar/fixture.ts` reads it from here), so both
+ *  screens judge the same pages on the same day. */
+export const CONTENT_FIXTURE_NOW = new Date(Date.UTC(2026, 8, 15, 14, 0, 0));
+
+/** Each page, newest first: the day it went live, its title, and the one
+ *  of `search-fixture.ts`'s live searches it is read on. Written out: that
  *  fixture's module graph reaches the market's, and Overview's does not. */
-const SEARCHES = [
-  "best crm for small teams",
-  "crm pricing comparison",
-  "spreadsheet to crm migration",
-  "crm for a two person business",
-  "how much does a crm cost per user",
-  "free crm with unlimited contacts",
-  "crm that works with gmail",
-  "what is a sales pipeline",
-  "crm onboarding checklist",
-  "crm vs spreadsheet",
-  "best crm for consultants",
-  "crm data import mistakes",
-  "simple crm for tradespeople",
-  "crm contact deduplication",
-  "how to move customers off a spreadsheet",
-  "crm for a small accountancy practice",
-  "do i really need a crm",
-] as const;
+const PAGES: readonly (readonly [day: string, title: string, search: string])[] = [
+  ["2026-09-14", "How to choose a CRM for a small team", "best crm for small teams"],
+  ["2026-09-11", "Cleaning a contact list before you switch", "crm contact deduplication"],
+  ["2026-09-09", "A first CRM for a two-person business", "crm for a two person business"],
+  ["2026-09-07", "What a CRM really costs per user", "how much does a crm cost per user"],
+  ["2026-09-06", "Unlimited contacts on a free CRM: the catch", "free crm with unlimited contacts"],
+  ["2026-09-05", "Working from Gmail with a CRM beside it", "crm that works with gmail"],
+  ["2026-09-04", "Setting up a sales pipeline in an afternoon", "what is a sales pipeline"],
+  ["2026-09-03", "How to import contacts without duplicates", "crm data import mistakes"],
+  ["2026-09-02", "Signs you have outgrown your spreadsheet", "crm vs spreadsheet"],
+  ["2026-09-01", "What to put in a CRM onboarding checklist", "crm onboarding checklist"],
+  ["2026-08-26", "A CRM for consultants who bill by the hour", "best crm for consultants"],
+  ["2026-08-19", "Moving customers off a spreadsheet in a weekend", "how to move customers off a spreadsheet"],
+  ["2026-08-12", "A simple CRM for plumbers and electricians", "simple crm for tradespeople"],
+  ["2026-08-05", "What a CRM does for a five-person team", "do i really need a crm"],
+  ["2026-07-29", "Spreadsheet to CRM: a migration plan", "spreadsheet to crm migration"],
+  ["2026-07-15", "Client records for a small accountancy practice", "crm for a small accountancy practice"],
+  ["2026-07-08", "What small teams pay for a CRM", "crm pricing comparison"],
+];
 
-/** The Overview fixture's own today (`fixture.ts`). */
-export const CONTENT_FIXTURE_NOW = new Date(Date.UTC(2026, 8, 4, 14, 30, 0));
+const DAY_MS = 86_400_000;
 
-const TITLES = [
-  "What an onboarding checklist should hold",
-  "How to send a first invoice",
-  "Late payment reminders that work",
-  "Invoice terms for freelancers",
-  "When to charge a deposit",
-  "Recurring invoices, step by step",
-  "What to put on a quote",
-  "Paying contractors abroad",
-  "How to price a small project",
-  "Chasing an unpaid invoice",
-  "Invoice numbering rules",
-  "VAT on a freelance invoice",
-  "Choosing payment terms",
-  "Billing by the hour or the project",
-  "A simple refund policy",
-  "Keeping client records tidy",
-  "Year-end paperwork for small teams",
-] as const;
+/** The weekly pass every reading below is from: the Monday before today. */
+const READ_AT = "2026-09-14T06:00:00.000Z";
 
-const LAST = Date.UTC(2026, 8, 4, 13, 0, 0);
+/** The page whose best place is from a pass eight weeks back, so it is not moving. */
+const STALLED = 15;
+const STALLED_BEST_AT = "2026-07-20T06:00:00.000Z";
 
-/** Issue 1553: the older a page, the further it has got. The newest two
- *  are not crawled yet; Search Console has shown the oldest ones. */
+/** The older a page, the further it has got. The newest is not read yet;
+ *  Search Console has shown the oldest ones. */
 function ladderAt(index: number): Ladder {
   const shown = index >= 6;
   return {
-    crawled: index >= 2,
+    crawled: index >= 1,
     indexed: index >= 4,
     impressions: shown ? (index - 5) * 9 : 0,
     showing: shown,
@@ -68,31 +57,31 @@ function ladderAt(index: number): Ladder {
   };
 }
 
-const READ_AT = "2026-08-31T06:00:00.000Z";
-
 /** The pages whose own question the weekly pass asked; `answers-fixture.ts`
  *  holds those questions, by these pages' addresses. */
 export const ASKED: ReadonlySet<number> = new Set([2, 10, 11, 12]);
 
-/** The weekly reading behind that ladder; the newest two were never read. */
-function readingAt(index: number): PageReading | null {
-  if (index < 2) return null;
+/** The weekly reading behind that ladder; the newest page went live after the pass. */
+function readingAt(index: number, publishedAt: Date, search: string): PageReading | null {
+  if (index < 1) return null;
   const shown = index >= 6;
   const place = shown ? 52 - index * 2 : null;
-  const at = (days: number): string => new Date(LAST - (index * 2 - days) * 86_400_000).toISOString();
+  const at = (days: number): string => new Date(publishedAt.getTime() + days * DAY_MS).toISOString();
+  const bestAt = index === STALLED ? STALLED_BEST_AT : READ_AT;
   return {
     at: READ_AT,
     crawled: true,
-    place: place === null ? null : { value: place, source: "serp", query: SEARCHES[index] ?? `fixture search ${index + 1}` },
-    first: place === null ? null : { at: at(9), place: place + (index === 8 || index === 9 ? 14 : 0) },
-    best: place === null ? null : { at: READ_AT, place },
+    place: place === null ? null : { value: place, source: "serp", query: search },
+    // Two pages rose fourteen places since first seen, so they are climbing.
+    first: place === null ? null : { at: index === STALLED ? bestAt : at(9), place: place + (index === 8 || index === 9 ? 14 : 0) },
+    best: place === null ? null : { at: bestAt, place },
     // One page moved up this week: the best mover.
     prev: place === null ? null : place + (index === 8 ? 9 : 0),
     linkedBy: index === 12 ? ["chatgpt"] : ASKED.has(index) ? [] : null,
     aiReads: index >= 3 ? index : 0,
     variants: [],
     reached: {
-      found: at(3),
+      found: at(2),
       ...(shown ? { showing: at(9) } : {}),
       ...(index >= 3 ? { readByAi: at(4) } : {}),
       ...(index === 12 ? { linkedByAi: at(12) } : {}),
@@ -104,15 +93,20 @@ function readingAt(index: number): PageReading | null {
 }
 
 export const FIXTURE_PUBLISHED: readonly PublishedPage[] = Object.freeze(
-  TITLES.map((title, index) => ({
-    id: `fixture-published-${index + 1}`,
-    title,
-    url: `https://content.example.com/p/${index + 1}`,
-    publishedAt: new Date(LAST - index * 2 * 86_400_000),
-    ladder: ladderAt(index),
-    reading: readingAt(index),
-    // The draft fixture's published page, so each title opens a page screen as a real row's does.
-    draftId: "draft-2026-09-14",
-    wordpress: false,
-  }))
+  PAGES.map(([day, title, search], index) => {
+    // 13:00 UTC, the hour Plan's fixture pages go live.
+    const publishedAt = new Date(`${day}T13:00:00.000Z`);
+    return {
+      id: `fixture-published-${index + 1}`,
+      title,
+      // The address Plan's fixture gives the page live on that day.
+      url: `https://content.example.com/${day}`,
+      publishedAt,
+      ladder: ladderAt(index),
+      reading: readingAt(index, publishedAt, search),
+      // The draft fixture's published page, so each title opens a page screen as a real row's does.
+      draftId: "draft-2026-09-14",
+      wordpress: false,
+    };
+  })
 );

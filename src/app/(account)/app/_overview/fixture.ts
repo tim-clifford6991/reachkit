@@ -37,6 +37,7 @@ import { measured, measuredZero, unmeasured } from "@/lib/measure/measured";
 import { SITE_CHECK_FIX } from "@/lib/presentation/site-issues";
 import type { OverviewFacts } from "./model";
 import { FIXTURE_SHELL_FACTS } from "../_shell/fixture";
+import { FIXTURE_PUBLISHED } from "./content-fixture";
 
 /** A fixed instant, so the fixture's dates do not move with the clock.
  *  Every date below is a site-local Monday (`WEEK_START`) in August 2026. */
@@ -74,9 +75,9 @@ export const FIXTURE_OVERVIEW_FACTS: OverviewFacts = Object.freeze({
 
   // UI-SPEC S12's own tiles. The score is 62 in the band "Hard to find",
   // eight points up on the week before — the set's `62 ▲ 8` — and the
-  // pages count carries the six of its seventeen that are already ranking:
-  // the set's `17  6 already ranking`, which is the whole of that tile's
-  // row and carries no goal chip (issue #536).
+  // pages count carries how many of `content-fixture.ts`'s pages are
+  // already ranking, the ones its readings judge working; that is the
+  // whole of the tile's row and carries no goal chip.
   score: measured({ score: 62, band: "hard-to-find" as const }, MONDAY(31)),
   scorePrevious: measured({ score: 54, band: "hard-to-find" as const }, MONDAY(17)),
   // Issue 1457: the score's range and the bar holding it down.
@@ -91,8 +92,8 @@ export const FIXTURE_OVERVIEW_FACTS: OverviewFacts = Object.freeze({
     scan: Object.freeze({ score: 27, market: 0 }),
     next: "2026-09-07",
   }),
-  pagesPublished: measured(17, MONDAY(31)),
-  pagesRanking: measured(6, MONDAY(31)),
+  pagesPublished: measured(FIXTURE_PUBLISHED.length, MONDAY(31)),
+  pagesRanking: measured(2, MONDAY(31)),
 
   rivals: Object.freeze({
     own: measured(81, MONDAY(31)),
@@ -215,12 +216,8 @@ export const FIXTURE_OVERVIEW_FACTS: OverviewFacts = Object.freeze({
     readerHost: "content.example.com",
   }),
 
-  // Issue 1362: what went live last, so the head's quiet line is drawn on
-  // the owner's preview and measured by the layout gate.
-  lastLive: Object.freeze({
-    title: "What an onboarding checklist should hold",
-    at: new Date(Date.UTC(2026, 8, 4, 13, 0, 0)),
-  }),
+  // What went live last, the newest of `content-fixture.ts`'s pages.
+  lastLive: Object.freeze({ title: FIXTURE_PUBLISHED[0]!.title, at: FIXTURE_PUBLISHED[0]!.publishedAt }),
 
   // SPEC §4 (2026-09-20): what each day of the fixture's week holds. Friday
   // is today, Sunday carries the page in review, and Wednesday holds none —

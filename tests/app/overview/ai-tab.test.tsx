@@ -103,7 +103,7 @@ describe("board AppAI, on the account the layout sweep reads", () => {
       copy("draft.ladder.read"),
       copy("overview.answers.pages.unread"),
     ]);
-    expect(text(rows[0])).toContain("Which payment terms should a small business offer?");
+    expect(text(rows[0])).toContain("Which CRM is simple enough for a tradesperson?");
     expect([...rows[0]!.querySelectorAll("li")].map(text)).toEqual([
       `${copy("ai-answers.engine.chatgpt")}${copy("overview.answers.mark.links")}`,
       `${copy("ai-answers.engine.ai-mode")}${copy("overview.answers.mark.others")}`,
