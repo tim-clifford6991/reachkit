@@ -12,7 +12,7 @@ describe.each([
   ["sauerteigbrot düsseldorf", "de", "Sauerteigbrot Düsseldorf: Brot backen, Brot kaufen in Bilk", "brot", "Sauerteigbrot Düsseldorf: 3 Sorten aus der Backstube in Bilk"],
 ] as const)("%s", (search, language, stopped, word, passing) => {
   it("is `banned`, its note names the word said twice, and a candidate free of it is picked", () => {
-    const locale = language === "en" ? {} : { locale: { country: "DE", language } };
+    const locale = language === "en" ? {} : { locale: { country: "DE" as const, language } };
     const rule = titleRuleFor(pack({ type: "listicle", target: { question: search, searches: [search] }, ...locale }), { description: "x".repeat(140) });
     expect(pickTitle([stopped], rule).candidates[0]?.faults).toContain("banned");
     expect(titleNotes(stopped, rule, ["banned"]).join(" ")).toContain(`"${word}" twice`);

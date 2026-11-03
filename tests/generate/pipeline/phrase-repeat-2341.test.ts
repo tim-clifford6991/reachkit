@@ -47,7 +47,7 @@ describe.each([
     expect(failedRules(checked.outcome)).toEqual(failedRules(before).filter((rule) => rule !== "plain_prose"));
     expect(checked.repairs).toContainEqual({ rule: "plain_prose", cleared: true });
     // The first saying stays and the third goes (the seller's shorter core, said five times already, takes the second).
-    expect([checked.markdown.includes(carriers[0]), checked.markdown.includes(carriers[2])]).toEqual([true, false]);
+    expect([checked.markdown.includes(carriers[0]!), checked.markdown.includes(carriers[2]!)]).toEqual([true, false]);
   });
 });
 
