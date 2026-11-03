@@ -12,8 +12,10 @@
 //     production `fetches` ledger and the box's test spend log.
 //
 // They are warned about when they differ by more than 10% or by more than
-// 10¢. The testing budget's €2 a day is judged on billed spend where it is
-// known and on recorded spend where it is not.
+// 10¢, and not compared where the production ledger was not read. The
+// testing budget's €2 a day is judged on the box's own spend log, at the
+// vendor's charge where a row carries one; billed is account-wide, so it
+// includes production and is printed beside the cap, never against it.
 //
 // Pure: it reads no file and calls nothing. `scripts/costs.mjs` hands it the
 // rows.
@@ -71,7 +73,8 @@ export interface VendorDay {
   billed: number | null;
   /** How `billed` was read: `null` where it is not known. */
   billedFrom: "balance" | "vendor day" | "cost report" | null;
-  /** Set where billed and recorded differ by more than 10% or 10¢. */
+  /** Set where billed and recorded differ by more than 10% or 10¢; never
+   *  where the production ledger was not read. */
   gap: { cents: number; share: number } | null;
   /** Calls whose own row carries the vendor's charge: that charge, and the
    *  estimate recorded for the same calls. */
@@ -82,7 +85,7 @@ export interface DayLine {
   day: string;
   dataforseo: VendorDay;
   ai: VendorDay;
-  /** The day's spend as the cap sees it: billed where known, else recorded. */
+  /** The box's own spend that day, from its spend log: what D34 caps. */
   judgedCents: number;
   state: "ok" | "warn" | "over";
 }
@@ -176,13 +179,14 @@ export function reconcile(a: { spend: readonly SpendRow[]; ledger: readonly Ledg
         production: productionCents,
         recorded,
         ...billed,
-        gap: gapOf(billed.billed, recorded),
+        // Without production's side, recorded is not the bill's counterpart.
+        gap: productionCents === null ? null : gapOf(billed.billed, recorded),
         calls: { billed: charged.reduce((total, row) => total + (row.billed ?? 0), 0), estimated: sum(charged), count: charged.length },
       };
     };
     const dataforseo = line("dataforseo");
     const ai = line("ai");
-    const judgedCents = (dataforseo.billed ?? dataforseo.recorded) + (ai.billed ?? ai.recorded);
+    const judgedCents = tests.reduce((total, row) => total + (row.billed ?? row.cents), 0);
     days.push({ day, dataforseo, ai, judgedCents, state: judgedCents >= capCents ? "over" : judgedCents >= warnCents ? "warn" : "ok" });
   }
 
@@ -220,6 +224,8 @@ function gapWords(line: VendorDay): string {
   return line.gap === null ? "" : `differ by ${money(line.gap.cents)} (${Math.round(line.gap.share * 100)}%)`;
 }
 
+const UNCOMPARED = "not compared, production ledger unread";
+
 /** What `npm run costs` prints. */
 export function render(report: CostsReport): string {
   const { today } = report;
@@ -230,17 +236,18 @@ export function render(report: CostsReport): string {
   ];
   for (const vendor of ["dataforseo", "ai"] as const) {
     const line = today[vendor];
-    lines.push(`  ${NAMES[vendor].padEnd(11)} ${billedWords(line, report.vendorDayZone)}; ${recordedWords(line)}`);
+    lines.push(`  ${NAMES[vendor].padEnd(11)} ${billedWords(line, report.vendorDayZone)}; ${recordedWords(line)}${line.billed !== null && line.production === null ? `; ${UNCOMPARED}` : ""}`);
     if (line.gap !== null) lines.push(`  WARNING: ${NAMES[vendor]} billed and recorded ${gapWords(line)}.`);
     if (line.calls.count > 0) lines.push(`              Calls that carry the vendor's own charge: ${line.calls.count}, ${money(line.calls.billed)} billed against ${money(line.calls.estimated)} estimated`);
   }
   if (!report.adminKey) lines.push("  AI spend: estimated from tokens; no admin key");
   if (!report.ledgerRead) lines.push("  Production ledger: not read (no database key on the box, and no --ledger file). Recorded is test spend only.");
 
-  const on = (line: VendorDay): string => (line.billed === null ? "recorded" : "billed");
+  const billedOnly = (line: VendorDay): string => (line.billed === null ? "not known" : money(line.billed));
   lines.push(
     "",
-    `  Against the €${DAY_CAP_EUR} a day D34 allows (${money(report.capCents)}): ${both(today.judgedCents)}, on DataForSEO ${on(today.dataforseo)} and AI ${on(today.ai)}`
+    `  Against the €${DAY_CAP_EUR} a day D34 allows (${money(report.capCents)}): ${both(today.judgedCents)}, the box's spend log`,
+    `  Billed, account-wide, includes production: DataForSEO ${billedOnly(today.dataforseo)}, AI ${billedOnly(today.ai)}. Not held against D34.`
   );
   if (today.state === "over") lines.push(`  OVER: today's spend has reached €${DAY_CAP_EUR}. Stop and ask the owner before another live call (D34).`);
   if (today.state === "warn") lines.push(`  WARNING: today's spend is past €${DAY_WARN_EUR.toFixed(2)} of the €${DAY_CAP_EUR} a day D34 allows.`);
@@ -251,10 +258,13 @@ export function render(report: CostsReport): string {
   }
 
   const cell = (line: VendorDay): string => `${line.billed === null ? "—" : money(line.billed)} / ${money(line.recorded)}`.padEnd(22);
-  lines.push("", "Today and the last 7 days: billed / recorded", `  ${"day".padEnd(11)} ${"DataForSEO".padEnd(22)} ${"AI".padEnd(22)} against the cap`);
+  lines.push("", "Today and the last 7 days: billed / recorded", `  ${"day".padEnd(11)} ${"DataForSEO".padEnd(22)} ${"AI".padEnd(22)} box, against the cap`);
   for (const day of [...report.days].reverse()) {
     const notes = [
       ...(["dataforseo", "ai"] as const).filter((vendor) => day[vendor].gap !== null).map((vendor) => `WARNING ${NAMES[vendor]} ${gapWords(day[vendor])}`),
+      ...(["dataforseo", "ai"] as const)
+        .filter((vendor) => day[vendor].billed !== null && day[vendor].production === null)
+        .map((vendor) => `${NAMES[vendor]} billed ${money(day[vendor].billed!)}; ${UNCOMPARED}`),
       ...(day.state === "over" ? [`over €${DAY_CAP_EUR}`] : []),
     ];
     lines.push(`  ${day.day.padEnd(11)} ${cell(day.dataforseo)} ${cell(day.ai)} ${both(day.judgedCents)}${notes.length === 0 ? "" : `  ${notes.join("; ")}`}`);

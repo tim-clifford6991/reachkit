@@ -1174,9 +1174,12 @@ snapshot file is not rotated; a line is about 200 bytes.
   `AI spend: estimated from tokens; no admin key`.
 - *Recorded*: the spend log plus production's `fetches`.
 
-It warns when billed and recorded differ by more than 10% or by more than 10¢. It then judges
-the day against D34's €2 (`docs/PROCESS.md`, *Testing budget*), on billed spend where it is
-known and recorded spend where it is not, warns past €1.50 and says stop at €2. Everything is in
+It warns when billed and recorded differ by more than 10% or by more than 10¢. Where the
+production ledger was not read it does not compare them and prints `not compared, production
+ledger unread`. It then judges the day against D34's €2 (`docs/PROCESS.md`, *Testing budget*)
+on the box's spend log, at the vendor's own charge where a row carries one, warns past €1.50 and
+says stop at €2. Billed is account-wide and includes production, so it prints on its own line,
+`Billed, account-wide, includes production`, and is never held against the cap. Everything is in
 US cents; €2 is converted with `USD_PER_EUR` in `src/lib/config/constants.ts`, the ECB reference
 rate with its date. Change the rate there when the dollar has moved a few per cent.
 
