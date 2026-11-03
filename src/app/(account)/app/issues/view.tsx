@@ -158,7 +158,7 @@ export function IssuesView(p: { reading: IssuesReading | null; timeZone: string 
   return (
     <div className="flex min-w-0 flex-col gap-6" data-testid="issues">
       <header className="flex min-w-0 flex-col gap-1.5">
-        <Link href={OVERVIEW} className="link link-primary link-hover -my-3 inline-flex w-fit items-center gap-1.5 py-3 text-sm font-semibold no-underline">
+        <Link href={OVERVIEW} className="link link-primary link-hover inline-flex min-h-11 w-fit items-center gap-1.5 text-sm font-semibold no-underline">
           <ArrowLeft size={16} strokeWidth={1.75} aria-hidden />
           {copy("chrome.back-to-overview")}
         </Link>
