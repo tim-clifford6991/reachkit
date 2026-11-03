@@ -436,8 +436,7 @@ export function rescoreScan(scan: RescoreScan): Rescored {
   if (at.getTime() !== new Date(r.verdict.measuredAt).getTime() && !changes.some((c) => c.path.length === 1 && c.path[0] === "verdict")) {
     changes.unshift({ path: ["verdict"], value: after.verdict });
   }
-  const score = shownScore(after);
-  return { before, after, changes, drivers, score, status: statusAfter(scan.status, before.verdict, after.verdict), kept, stale, reading };
+  return { before, after, changes, drivers, score: shownScore(after), status: statusAfter(scan.status, before.verdict, after.verdict), kept, stale, reading };
 }
 
 /** The other markets the stored home read declares (`marketsServed`),
