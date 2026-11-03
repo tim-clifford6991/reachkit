@@ -3,6 +3,7 @@
 // says what its positioning tells a buyer. Facts about each product were read
 // on its own site on 2026-10-15. v1's scores and search volumes were assigned,
 // not measured, so they are gone; nothing here says ReachKit scanned these sites.
+import { Briefcase, Code } from "lucide-react";
 import type { Teardown } from "./types";
 
 export const TEARDOWNS: readonly Teardown[] = [
@@ -326,11 +327,14 @@ export const TEARDOWNS: readonly Teardown[] = [
             name: "Already knows Plausible",
             line: "Developers who dislike Google Analytics.",
             wants: "Comparing dashboards",
+            icon: Code,
           },
           {
             name: "The buyer with a deadline",
             line: "A marketing or compliance lead with EU visitors, told to fix the banner or the data transfer.",
             wants: "Wants the problem gone",
+            icon: Briefcase,
+            deadline: true,
           },
         ],
         paragraphs: [],

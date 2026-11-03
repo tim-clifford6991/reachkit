@@ -2,15 +2,18 @@
 // reads with what each draws, and the list of what is on the page. daisyUI
 // classes in place, greyscale, no logo and no brand colour.
 import type React from "react";
-import { Check } from "lucide-react";
+import { Check, CircleCheck, Clock4, User } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { TEARDOWN_PARTS, type SketchMark, type TeardownSection } from "./types";
-import { BODY, CARD } from "./parts";
+import { CARD } from "./parts";
 
 const SMALL = "text-base-content/70 text-sm";
 const EYEBROW = "text-base-content/70 text-xs font-semibold tracking-wide uppercase";
 const FRAME = "mockup-browser border-base-300 bg-base-200 min-w-0 border";
 const TOOLS = ["A", "B", "C"] as const;
+const ICON = { size: 14, strokeWidth: 1.75, "aria-hidden": true } as const;
+/** A label the page shows in its own quote marks: the promise the sketch points at. */
+const isQuoted = (label: string): boolean => /^['‘]/.test(label);
 
 /** A greyscale wireframe of another company's page, numbered where the
  *  article points, with the page's own words; what each number marks is
@@ -30,16 +33,25 @@ export function Sketch(p: { domain: string; marks: readonly SketchMark[]; captio
               {mark.lower === true ? <p className={`${SMALL} text-center`}>{copy("teardowns.sketch.lower")}</p> : null}
               <div className="flex min-w-0 items-start gap-3">
                 <span className="badge badge-outline badge-sm shrink-0">{i + 1}</span>
-                <div className="flex min-w-0 flex-col gap-1">
-                  {mark.quotes.map((quote) => (
-                    <p key={quote} className="break-words">
+                <div className="flex min-w-0 flex-col gap-2">
+                  {mark.quotes.map((quote, q) => (
+                    <p key={quote} className={i === 0 && q === 0 ? "text-base-content text-lg font-extrabold break-words" : "text-sm break-words"}>
                       <q>{quote}</q>
                     </p>
                   ))}
+                  {i === 0 ? (
+                    <span aria-hidden className="flex gap-2">
+                      <span className="bg-base-300 rounded-field h-6 w-24" />
+                      <span className="border-base-300 rounded-field h-6 w-18 border" />
+                    </span>
+                  ) : null}
                   {mark.shows === undefined ? null : (
                     <div className="flex min-w-0 flex-wrap gap-1">
                       {mark.shows.map((label) => (
-                        <span key={label} className="badge badge-ghost h-auto max-w-full break-words">
+                        <span
+                          key={label}
+                          className={`badge h-auto max-w-full break-words ${isQuoted(label) ? "badge-outline text-base-content border-dashed font-bold" : "badge-ghost"}`}
+                        >
                           {label}
                         </span>
                       ))}
@@ -87,11 +99,11 @@ function PartFigure(p: { section: TeardownSection }): React.JSX.Element | null {
   const s = p.section;
   if (s.chips !== undefined) {
     return (
-      <ul className="grid min-w-0 gap-x-6 gap-y-2 sm:grid-cols-2">
+      <ul className="flex min-w-0 flex-wrap gap-2">
         {s.chips.map((chip) => (
-          <li key={chip} className="flex min-w-0 items-start gap-2">
-            <Check size={16} strokeWidth={1.75} aria-hidden className="text-success mt-1 shrink-0" />
-            <span className="min-w-0 break-words">{chip}</span>
+          <li key={chip} className="badge badge-outline h-auto max-w-full gap-1.5 py-1 break-words">
+            <Check {...ICON} className="text-success shrink-0" />
+            {chip}
           </li>
         ))}
       </ul>
@@ -101,19 +113,22 @@ function PartFigure(p: { section: TeardownSection }): React.JSX.Element | null {
     return (
       <figure className="flex min-w-0 flex-col gap-3">
         <div className="grid min-w-0 gap-3 sm:grid-cols-2">
-          <div className="rounded-box bg-base-200 flex min-w-0 flex-col gap-2 p-4">
+          <div className="flex min-w-0 flex-col gap-2">
             <p className={EYEBROW}>{copy("teardowns.promise.crowd")}</p>
-            {TOOLS.map((letter) => (
-              <span key={letter} className="flex min-w-0 flex-wrap items-baseline gap-2">
-                <span className="text-base-content/70 font-mono text-xs">{copy("teardowns.promise.tool", { letter })}</span>
-                <span className="break-words">{s.promise!.crowd}</span>
-              </span>
-            ))}
+            <div className="grid min-w-0 grid-cols-3 gap-2">
+              {TOOLS.map((letter) => (
+                <span key={letter} className={`${CARD} flex min-w-0 flex-col gap-1 p-2.5`}>
+                  <span className="text-base-content/70 font-mono text-xs">{copy("teardowns.promise.tool", { letter })}</span>
+                  <span className="text-sm break-words">{s.promise!.crowd}</span>
+                </span>
+              ))}
+            </div>
           </div>
-          <div className="rounded-box border-base-300 flex min-w-0 flex-col gap-2 border p-4">
+          <div className="rounded-box border-success/30 bg-success/10 flex min-w-0 flex-col gap-2 border p-4">
             <p className={EYEBROW}>{s.promise.wants}</p>
             {s.promise.outcomes.map((outcome) => (
-              <span key={outcome} className="font-semibold break-words">
+              <span key={outcome} className="text-base-content flex min-w-0 items-start gap-2 font-semibold break-words">
+                <CircleCheck size={16} strokeWidth={1.75} aria-hidden className="text-success mt-1 shrink-0" />
                 {outcome}
               </span>
             ))}
@@ -126,13 +141,25 @@ function PartFigure(p: { section: TeardownSection }): React.JSX.Element | null {
   if (s.buyers !== undefined) {
     return (
       <div className="grid min-w-0 gap-3 sm:grid-cols-2">
-        {s.buyers.map((buyer) => (
-          <div key={buyer.name} className="rounded-box border-base-300 flex min-w-0 flex-col items-start gap-2 border p-4">
-            <strong>{buyer.name}</strong>
-            <span className={SMALL}>{buyer.line}</span>
-            <span className="badge badge-ghost h-auto max-w-full break-words">{buyer.wants}</span>
-          </div>
-        ))}
+        {s.buyers.map((buyer) => {
+          const Icon = buyer.icon ?? User;
+          return (
+            <div
+              key={buyer.name}
+              className={`rounded-box flex min-w-0 flex-col items-start gap-2 border p-4 ${buyer.deadline === true ? "border-primary border-2" : "border-base-300"}`}
+            >
+              <span className={`rounded-field grid size-10 place-items-center ${buyer.deadline === true ? "bg-primary/10 text-primary" : "bg-base-200"}`}>
+                <Icon size={20} strokeWidth={1.75} aria-hidden />
+              </span>
+              <strong className="text-base-content">{buyer.name}</strong>
+              <span className={SMALL}>{buyer.line}</span>
+              <span className={`badge h-auto max-w-full gap-1.5 break-words ${buyer.deadline === true ? "badge-primary" : "badge-ghost"}`}>
+                {buyer.deadline === true ? <Clock4 {...ICON} /> : null}
+                {buyer.wants}
+              </span>
+            </div>
+          );
+        })}
       </div>
     );
   }
@@ -141,9 +168,9 @@ function PartFigure(p: { section: TeardownSection }): React.JSX.Element | null {
       <figure className="flex min-w-0 flex-col gap-3">
         <div className="grid min-w-0 gap-3 sm:grid-cols-2">
           {s.ideas.pages.map((idea) => (
-            <div key={idea.title} className="rounded-box border-base-300 flex min-w-0 flex-col gap-2 border border-dashed p-4">
+            <div key={idea.title} className="rounded-box border-success flex min-w-0 flex-col gap-2 border-2 border-dashed p-4">
               <span className="flex min-w-0 flex-wrap items-center gap-2">
-                <span className="badge badge-ghost">{idea.kind}</span>
+                <span className="badge badge-success badge-soft">{idea.kind}</span>
                 <span className={SMALL}>{idea.reader}</span>
               </span>
               <strong className="break-words">{idea.title}</strong>
@@ -161,17 +188,15 @@ function PartFigure(p: { section: TeardownSection }): React.JSX.Element | null {
 export function PartSection(p: { section: TeardownSection }): React.JSX.Element {
   const s = p.section;
   return (
-    <section className={CARD} aria-labelledby={anchorOf(s.heading)}>
-      <div className={BODY}>
-        {s.part === undefined ? null : <p className={EYEBROW}>{partEyebrow(s.part)}</p>}
-        <h2 id={anchorOf(s.heading)} className="scroll-mt-24">
-          {s.heading}
-        </h2>
-        <PartFigure section={s} />
-        {s.paragraphs.map((text) => (
-          <p key={text}>{text}</p>
-        ))}
-      </div>
+    <section className="border-base-300 flex min-w-0 flex-col gap-3 border-t pt-6" aria-labelledby={anchorOf(s.heading)}>
+      {s.part === undefined ? null : <p className={EYEBROW}>{partEyebrow(s.part)}</p>}
+      <h2 id={anchorOf(s.heading)} className="text-base-content scroll-mt-24">
+        {s.heading}
+      </h2>
+      <PartFigure section={s} />
+      {s.paragraphs.map((text) => (
+        <p key={text}>{text}</p>
+      ))}
     </section>
   );
 }

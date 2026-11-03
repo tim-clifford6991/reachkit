@@ -2,3 +2,4 @@ ReachKit is built by in . The company that runs it is named on the imprint.	SPEC
 The newest page on ReachKit’s own blog	SPEC §1: drawn only where ReachKit's own site has a live page (issue 1396); the sweep seeds none
 Our own free report reachkit.app Open the report →	docs/spec/decisions/2026-11-01-2265.md: drawn only while reachkit.app's free report is listed with a stored score; the sweep seeds none
 Articles	#1512: the footer links the content host's index only where stored rows name one; the sweep seeds none
+See it on a real site	SPEC §1: drawn only where ReachKit's own site has a live page or a listed report (issue 1396, docs/spec/decisions/2026-11-01-2265.md); the sweep seeds none

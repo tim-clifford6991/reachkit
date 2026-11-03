@@ -34,10 +34,17 @@ const SMALL_ICON = { size: 12, strokeWidth: 1.75, "aria-hidden": true } as const
 const TILE =
   "card bg-base-100 shadow-(--shadow-card) motion-safe:transition-transform motion-safe:duration-200 hover:-translate-y-0.5";
 
-/** The number a sketch marks a place with. */
-function Mark(p: { n: number }): React.JSX.Element {
-  return <span className="badge badge-outline badge-sm shrink-0">{p.n}</span>;
+/** The solid number a sketch marks a place with; the page it could add is green, a changed site warm. */
+const MARK_TONE = { primary: "badge-primary", success: "badge-success", warning: "badge-warning" } as const;
+function Mark(p: { n: number; tone?: keyof typeof MARK_TONE }): React.JSX.Element {
+  return <span className={`badge badge-sm shrink-0 font-extrabold ${MARK_TONE[p.tone ?? "primary"]}`}>{p.n}</span>;
 }
+
+/** Where a card's promise sits: dashed and tinted, warm where the site changed. */
+const PROMISE = {
+  primary: "border-primary bg-primary/10",
+  warning: "border-warning bg-warning/10",
+} as const;
 
 /** Two grey lines where a sketch has text it does not quote. */
 function Lines(): React.JSX.Element {
@@ -69,13 +76,28 @@ function EveryRead(): React.JSX.Element {
             <Address domain={ANY_SITE} />
           </div>
           <div className="bg-base-100 flex min-w-0 flex-col gap-3 p-4">
-            <span className="flex min-w-0 items-center gap-3">
+            <span className="flex min-w-0 items-start gap-3">
               <Mark n={1} />
-              <Lines />
+              <span className="flex min-w-0 flex-1 flex-col gap-2" aria-hidden>
+                <span className="bg-base-content/70 block h-3 w-5/6 rounded-full" />
+                <span className={`${LINE} w-2/3`} />
+                <span className="flex gap-2">
+                  <span className="bg-primary/30 rounded-field block h-5 w-16" />
+                  <span className="border-base-300 rounded-field block h-5 w-12 border" />
+                </span>
+              </span>
             </span>
-            <span className="flex min-w-0 items-center gap-3">
-              <Mark n={2} />
-              <Lines />
+            <span className="grid min-w-0 grid-cols-3 gap-2" aria-hidden>
+              <span className="rounded-field bg-base-200 flex p-2">
+                <Lines />
+              </span>
+              <span className="rounded-field border-primary bg-primary/10 flex items-center gap-1.5 border border-dashed p-2">
+                <Mark n={2} />
+                <Lines />
+              </span>
+              <span className="rounded-field bg-base-200 flex p-2">
+                <Lines />
+              </span>
             </span>
             <span className="flex min-w-0 flex-wrap items-center gap-2">
               <Mark n={3} />
@@ -86,9 +108,9 @@ function EveryRead(): React.JSX.Element {
               <span className="badge badge-ghost">{copy("teardowns.reads.side")}</span>
             </span>
             <span className="flex min-w-0 flex-wrap items-center gap-2">
-              <Mark n={4} />
-              <span className="badge badge-outline border-dashed">
-                <FileText {...SMALL_ICON} />
+              <Mark n={4} tone="success" />
+              <span className="rounded-field border-success bg-success/10 text-base-content flex min-w-0 flex-1 items-center gap-1.5 border border-dashed px-3 py-2 text-xs font-semibold">
+                <FileText {...SMALL_ICON} className="text-success shrink-0" />
                 {copy("teardowns.reads.page")}
               </span>
             </span>
@@ -98,7 +120,7 @@ function EveryRead(): React.JSX.Element {
         <ol className="flex min-w-0 flex-col gap-3">
           {TEARDOWN_PARTS.map((part, i) => (
             <li key={part} className="flex min-w-0 items-start gap-3">
-              <Mark n={i + 1} />
+              <Mark n={i + 1} tone={i === TEARDOWN_PARTS.length - 1 ? "success" : "primary"} />
               <span className="flex min-w-0 flex-col">
                 <strong>{copy(`teardowns.reads.${part}` as CopyKey)}</strong>
                 <span className={SMALL}>{copy(`teardowns.reads.${part}.line` as CopyKey)}</span>
@@ -121,27 +143,29 @@ function badgeOf(t: Teardown): string {
 function Card(p: { t: Teardown }): React.JSX.Element {
   const t = p.t;
   return (
-    <Link href={`/teardowns/${t.slug}`} className={`${TILE} w-full min-w-0`}>
-      <span className="card-body gap-3">
-        <span className={FRAME} aria-hidden>
+    <Link href={`/teardowns/${t.slug}`} className={`${TILE} w-full min-w-0 overflow-hidden`}>
+      <span className="bg-base-200 block px-3 pt-3" aria-hidden>
+        <span className={`${FRAME} rounded-b-none border-b-0`}>
           <span className="mockup-browser-toolbar">
             <Address domain={t.domain} />
           </span>
           <span className="bg-base-100 flex min-w-0 flex-col gap-2 p-3">
             <Lines />
-            <span className="flex min-w-0 items-start gap-2">
-              <Mark n={1} />
-              <span className="min-w-0 text-sm font-semibold break-words">{t.hook}</span>
+            <span className={`rounded-field flex min-w-0 items-start gap-2 border border-dashed p-2 ${PROMISE[t.change === "site" ? "warning" : "primary"]}`}>
+              <Mark n={1} tone={t.change === "site" ? "warning" : "primary"} />
+              <span className="text-base-content min-w-0 text-sm font-semibold break-words">{t.hook}</span>
             </span>
           </span>
         </span>
+      </span>
+      <span className="card-body gap-3">
         <span className="badge badge-ghost badge-sm">
           {t.change === undefined ? <RefreshCw {...SMALL_ICON} /> : null}
           {badgeOf(t)}
         </span>
         <span className="flex min-w-0 items-center gap-2.5">
           <SiteMark domain={t.domain} hasLogo={false} size={36} />
-          <h3 className="card-title min-w-0 text-base break-words">{t.name}</h3>
+          <h3 className="card-title text-base-content min-w-0 text-base font-bold break-words">{t.name}</h3>
         </span>
         <span className={SMALL}>{t.summary}</span>
         <span className="text-primary mt-auto inline-flex items-center gap-1 text-sm font-semibold">

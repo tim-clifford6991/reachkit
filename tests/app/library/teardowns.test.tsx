@@ -127,7 +127,7 @@ describe("every teardown numbers the reads it makes, and its contents reach each
   for (const t of TEARDOWNS) {
     it(t.slug, async () => {
       const page = await teardown(t.slug);
-      const eyebrows = page.querySelectorAll('[data-testid="teardown-body"] article section[aria-labelledby] > div > p:first-child').map((p) => p.text);
+      const eyebrows = page.querySelectorAll('[data-testid="teardown-body"] article section[aria-labelledby] > p:first-child').map((p) => p.text);
       const parts = t.sections.flatMap((s) => (s.part === undefined ? [] : [s.part]));
       expect(eyebrows).toEqual(
         parts.map((part) =>

@@ -51,6 +51,8 @@ const BODY = "card-body gap-3";
 const SECTION = "flex min-w-0 flex-col gap-4 scroll-mt-16";
 const EYEBROW = "text-primary text-xs font-semibold tracking-wide uppercase";
 const SMALL = "text-base-content/70 text-sm";
+/** Headings read near-black over the page's softer body text. */
+const INK = "text-base-content";
 const TILE = "rounded-field bg-primary/10 text-primary grid size-10 shrink-0 place-items-center";
 const RULE_TILE = "rounded-field grid size-8 shrink-0 place-items-center";
 const ICON = { size: 16, strokeWidth: 1.75, "aria-hidden": true } as const;
@@ -71,7 +73,15 @@ const SPECIMEN = {
   ],
   question: "What’s a good invoicing app for freelancers?",
   answer: "Many freelancers use Ledgerline or Paywise.",
+  /** The businesses the answer names, drawn bold where it names them. */
+  named: ["Ledgerline", "Paywise"],
 } as const;
+
+/** The answer with each named business in bold. */
+function Answer(): React.JSX.Element {
+  const parts = SPECIMEN.answer.split(new RegExp(`(${SPECIMEN.named.join("|")})`));
+  return <>{parts.map((part, i) => ((SPECIMEN.named as readonly string[]).includes(part) ? <strong key={i}>{part}</strong> : part))}</>;
+}
 
 /** The four steps, each opening the How it works section that tells it. */
 const STEPS: readonly { n: number; href: string; title: CopyKey; line: CopyKey; Icon: LucideIcon }[] = [
@@ -103,7 +113,7 @@ export default async function AboutPage(): Promise<React.JSX.Element> {
       <main className="mx-auto flex w-full min-w-0 max-w-5xl flex-col px-4 py-12" data-testid={PAGE_TEST_ID}>
         <article className="text-base-content/80 mx-auto flex w-full min-w-0 max-w-(--w-read) flex-col gap-10 leading-relaxed">
           <section id="top" aria-labelledby="top-h" className={SECTION}>
-            <h1 id="top-h">{copy("about.title")}</h1>
+            <h1 id="top-h" className={INK}>{copy("about.title")}</h1>
             <p>{copy("about.lead")}</p>
             <section aria-labelledby="who-h" className={CARD}>
               <div className={BODY}>
@@ -111,7 +121,7 @@ export default async function AboutPage(): Promise<React.JSX.Element> {
                   <span className={TILE}>
                     <User {...TILE_ICON} />
                   </span>
-                  <h2 id="who-h" className="text-lg">
+                  <h2 id="who-h" className={`${INK} text-lg`}>
                     {copy("about.who.title")}
                   </h2>
                 </div>
@@ -123,7 +133,7 @@ export default async function AboutPage(): Promise<React.JSX.Element> {
                           ? copy("about.who.founder", { name: founder.name })
                           : copy("about.who.founder.place", { name: founder.name, place: founder.place })
                       } `}
-                  <Link href="/imprint" className="link link-primary">
+                  <Link href="/imprint" className="link-hover">
                     {copy("about.who.imprint")}
                   </Link>
                 </p>
@@ -142,7 +152,7 @@ export default async function AboutPage(): Promise<React.JSX.Element> {
           </section>
 
           <section id="why" aria-labelledby="why-h" className={SECTION}>
-            <h2 id="why-h">{copy("about.why.title")}</h2>
+            <h2 id="why-h" className={INK}>{copy("about.why.title")}</h2>
             <p>{`${copy("about.why.problem")} ${copy("about.why.answer")}`}</p>
             <div className="grid min-w-0 grid-cols-1 items-center gap-4 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
               <figure className={CARD}>
@@ -178,9 +188,11 @@ export default async function AboutPage(): Promise<React.JSX.Element> {
                       <Sparkles {...ICON} />
                       {copy("how.rivals.answer")}
                     </span>
-                    <span className="text-sm">{SPECIMEN.answer}</span>
+                    <span className="text-sm">
+                      <Answer />
+                    </span>
                   </div>
-                  <p className="text-error flex items-center gap-1 text-sm font-semibold">
+                  <p className="rounded-box bg-error/10 text-error flex items-center gap-2 px-3 py-2 text-sm font-semibold">
                     <CircleX {...ICON} />
                     {copy("about.now.absent")}
                   </p>
@@ -190,7 +202,7 @@ export default async function AboutPage(): Promise<React.JSX.Element> {
           </section>
 
           <section id="does" aria-labelledby="does-h" className={SECTION}>
-            <h2 id="does-h">{copy("about.does.title")}</h2>
+            <h2 id="does-h" className={INK}>{copy("about.does.title")}</h2>
             <ol className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
               {STEPS.map((s) => (
                 <li key={s.n} className="min-w-0">
@@ -204,7 +216,7 @@ export default async function AboutPage(): Promise<React.JSX.Element> {
                           <s.Icon {...TILE_ICON} />
                         </span>
                       </span>
-                      <h3>{copy(s.title)}</h3>
+                      <h3 className={INK}>{copy(s.title)}</h3>
                       <span className={SMALL}>{copy(s.line, { weekPages: F.weekPages })}</span>
                     </div>
                   </Link>
@@ -226,10 +238,10 @@ export default async function AboutPage(): Promise<React.JSX.Element> {
           </section>
 
           <section id="rules" aria-labelledby="rules-h" className={SECTION}>
-            <h2 id="rules-h">{copy("about.rules.title")}</h2>
+            <h2 id="rules-h" className={INK}>{copy("about.rules.title")}</h2>
             <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
               <div className="flex min-w-0 flex-col gap-2">
-                <h3 className="flex items-center gap-2">
+                <h3 className="text-error flex items-center gap-2">
                   <Ban {...ICON} />
                   {copy("about.rules.never")}
                 </h3>
@@ -239,23 +251,23 @@ export default async function AboutPage(): Promise<React.JSX.Element> {
                       <span className={`${RULE_TILE} bg-error/10 text-error`}>
                         <Ban {...ICON} />
                       </span>
-                      <span className="min-w-0">{copy(key)}</span>
+                      <span className="text-base-content min-w-0 font-semibold">{copy(key)}</span>
                     </li>
                   ))}
                 </ul>
               </div>
               <div className="flex min-w-0 flex-col gap-2">
-                <h3 className="flex items-center gap-2">
+                <h3 className="text-success flex items-center gap-2">
                   <CircleCheck {...ICON} />
                   {copy("about.rules.always")}
                 </h3>
                 <ul className="flex flex-col gap-2">
                   {ALWAYS.map(({ key, Icon }) => (
                     <li key={key} className="rounded-box bg-success/10 flex min-w-0 items-center gap-3 p-3">
-                      <span className={`${RULE_TILE} bg-success/10 text-success`}>
+                      <span className={`${RULE_TILE} bg-base-100 text-success`}>
                         <Icon {...ICON} />
                       </span>
-                      <span className="min-w-0">{copy(key)}</span>
+                      <span className="text-base-content min-w-0 font-semibold">{copy(key)}</span>
                     </li>
                   ))}
                 </ul>
@@ -263,9 +275,11 @@ export default async function AboutPage(): Promise<React.JSX.Element> {
             </div>
           </section>
 
-          <section id="proof" aria-labelledby="proof-h" className={SECTION}>
-            <h2 id="proof-h">{copy("about.proof.title")}</h2>
-            {page === null && report === null ? null : (
+          {page === null && report === null ? null : (
+            <section id="proof" aria-labelledby="proof-h" className={SECTION}>
+              <h2 id="proof-h" className={INK}>
+                {copy("about.proof.title")}
+              </h2>
               <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
                 {page === null ? null : (
                   <a href={page.url} className={ROW_CARD} {...NEW_TAB}>
@@ -294,8 +308,8 @@ export default async function AboutPage(): Promise<React.JSX.Element> {
                   </Link>
                 )}
               </div>
-            )}
-          </section>
+            </section>
+          )}
 
           <LearnClose variant="about" />
         </article>
