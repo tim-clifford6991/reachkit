@@ -46,7 +46,8 @@ export function SettingsTabs(): React.JSX.Element {
               key={tab}
               ref={onThisTab ? here : undefined}
               href={SETTINGS_TAB_HREF[tab]}
-              prefetch={true}
+              // Seven prefetched tab renders at once starve the database; a tab renders when it is opened.
+              prefetch={false}
               className={`tab sm:whitespace-nowrap max-sm:h-11 max-sm:basis-[calc(50%-0.25rem)] max-sm:leading-tight max-sm:justify-start max-sm:rounded-field max-sm:border max-sm:border-base-300 max-sm:bg-base-100 max-sm:px-3 max-sm:py-1 max-sm:text-left max-sm:before:hidden ${
                 onThisTab ? "tab-active text-primary max-sm:border-primary/30 max-sm:bg-primary/10" : ""
               }`}

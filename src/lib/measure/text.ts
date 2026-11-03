@@ -25,6 +25,7 @@
 // it, a deep pass run inside the own-document window has no text at all,
 // and a paid site grounds no fact and starts no draft.
 import { isDeepStrictEqual } from "node:util";
+import { SITE_PROFILE } from "@/lib/config/constants/scan";
 import { dbAdmin } from "@/lib/db";
 import { OWN_FETCH_SOURCE, RENDERED_FETCH_SOURCE } from "./own-fetch";
 import { measuredTextOf, storedText, textRowOf, type FetchRead, type TextClient } from "./text-store";
@@ -56,6 +57,8 @@ interface MinimalQueryBuilder<T> extends PromiseLike<QueryResult<T>> {
   select(columns: string): MinimalQueryBuilder<T>;
   eq(column: string, value: string | number): MinimalQueryBuilder<T>;
   in(column: string, values: readonly string[]): MinimalQueryBuilder<T>;
+  order(column: string, options: { ascending: boolean }): MinimalQueryBuilder<T>;
+  limit(count: number): MinimalQueryBuilder<T>;
 }
 interface MinimalClient {
   from<T>(table: string): MinimalQueryBuilder<T>;
@@ -133,6 +136,28 @@ async function measuredText(a: { siteId: string; scanId?: string }): Promise<Mea
   return wider.length === 0 ? text : textOfScans([...scanIds, ...wider]);
 }
 
+/** At most one own and one rendered read for each page a full crawl reads. */
+export const LATEST_TEXT_ROWS = SITE_PROFILE.MAX_PAGES * 2;
+
+/** The customer's pages off the site's latest scan and the latest free scan
+ *  of its domain only, freshest `LATEST_TEXT_ROWS` reads: a screen that shows
+ *  the facts cannot afford every payload the site ever stored. */
+export async function readLatestMeasuredText(siteId: string): Promise<MeasuredText[]> {
+  const client = dbAdmin();
+  const own = await client.from("scans").select("id, domain").eq("site_id", siteId).order("created_at", { ascending: false }).limit(1);
+  if (own.error) {
+    throw new Error(`text.ts: read from scans failed: ${own.error.message}`);
+  }
+  const latest = own.data?.[0];
+  if (latest === undefined) return [];
+  const free = await client.from("scans").select("id").eq("tier", "free").eq("domain", latest.domain).order("created_at", { ascending: false }).limit(1);
+  if (free.error) {
+    throw new Error(`text.ts: read from scans failed: ${free.error.message}`);
+  }
+  const scanIds = [...new Set([latest.id, ...(free.data ?? []).map((row) => row.id)])];
+  return customerPages(await textOfScans(scanIds, LATEST_TEXT_ROWS), { customerOnly: true }, { siteId });
+}
+
 /** The pages the free scans of `domain` measured (issue 787): a free report's
  *  lead has no site, so its page is grounded on the domain's own reads. */
 export async function readDomainText(domain: string, read?: TextRead): Promise<MeasuredText[]> {
@@ -144,13 +169,14 @@ export async function readDomainText(domain: string, read?: TextRead): Promise<M
   return scanIds.length === 0 ? [] : customerPages(await textOfScans(scanIds), read, { domain });
 }
 
-async function textOfScans(scanIds: readonly string[]): Promise<MeasuredText[]> {
+async function textOfScans(scanIds: readonly string[], cap?: number): Promise<MeasuredText[]> {
   const client = dbAdmin();
-  const rows = await (client as unknown as MinimalClient)
+  const query = (client as unknown as MinimalClient)
     .from<FetchRead>("fetches")
     .select("id, scan_id, source, payload")
     .in("source", [OWN_FETCH_SOURCE, RENDERED_FETCH_SOURCE])
     .in("scan_id", scanIds);
+  const rows = await (cap === undefined ? query : query.order("created_at", { ascending: false }).limit(cap));
   if (rows.error) {
     throw new Error(`text.ts: read from fetches failed: ${rows.error.message}`);
   }

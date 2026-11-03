@@ -42,7 +42,7 @@
 // page stands on is about the question rather than about the seller.
 import nlp from "compromise";
 import { BRIEF_MAX_FACTS } from "@/lib/config/constants";
-import { readMeasuredText, type MeasuredText } from "@/lib/measure/text";
+import { readLatestMeasuredText, readMeasuredText, type MeasuredText } from "@/lib/measure/text";
 import { isNeverRead } from "@/lib/site-profile/knowledge/priority";
 import { derivePurpose } from "@/lib/site-profile/purpose";
 import { readReportPage } from "./report-facts";
@@ -213,6 +213,9 @@ export interface FactRead {
    *  Only an ordering: a page that shares none of its words is still offered,
    *  after the ones that do (issue 900). */
   target?: string;
+  /** Only the site's latest scan and the latest free scan of its domain, for
+   *  a screen that shows the facts; a page is never written from this read. */
+  latest?: true;
 }
 
 /**
@@ -227,7 +230,7 @@ export interface FactRead {
  */
 export async function readAllFacts(a: FactRead): Promise<SourcedFact[]> {
   const [measured, report] = await Promise.all([
-    readMeasuredText({ siteId: a.siteId, scanId: a.scanId, customerOnly: true }),
+    a.latest ? readLatestMeasuredText(a.siteId) : readMeasuredText({ siteId: a.siteId, scanId: a.scanId, customerOnly: true }),
     readReportPage(a.siteId),
   ]);
   const own = sitePassages(aboutTheQuestionFirst(measured, a.target));

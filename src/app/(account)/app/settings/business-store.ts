@@ -72,6 +72,6 @@ export async function readQuotablePassages(account: Pick<AppAccount, "siteId">):
     import("@/lib/generate/pipeline/grounding"),
     import("@/lib/site-profile/business/edits"),
   ]);
-  const [facts, edits] = await Promise.all([readAllFacts({ siteId: account.siteId }), readBusinessEdits(account.siteId)]);
+  const [facts, edits] = await Promise.all([readAllFacts({ siteId: account.siteId, latest: true }), readBusinessEdits(account.siteId)]);
   return { quotable: facts.map((sourced) => ({ passage: sourced.fact.passage, url: sourced.fact.url })), edits };
 }
