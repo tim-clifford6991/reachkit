@@ -84,20 +84,19 @@ async function textById(client: TextClient, ids: readonly string[], version: str
   return out;
 }
 
-/** The measured text of the scans' own and rendered reads, in the order
- *  `fetches` lists them; unsorted, as the payload read is before its sort. */
-export async function storedText(client: TextClient, scanIds: readonly string[], sources: readonly string[], version: string): Promise<MeasuredText[]> {
+/** The measured text of the scans' own and rendered reads by fetch id, in
+ *  the order `fetches` lists them; null for a read that holds no document. */
+export async function storedText(client: TextClient, scanIds: readonly string[], sources: readonly string[], version: string): Promise<Map<string, MeasuredText | null>> {
   const listed = rows(await client.from<{ id: string }>("fetches").select("id, scan_id, source").in("source", sources).in("scan_id", scanIds), "fetches");
   const ids = listed.map((row) => row.id);
   const batches = [];
   for (let i = 0; i < ids.length; i += IDS) batches.push(textById(client, ids.slice(i, i + IDS), version));
   const byId = new Map<string, TextRow>();
   for (const batch of await Promise.all(batches)) for (const [id, row] of batch) byId.set(id, row);
-  const out: MeasuredText[] = [];
+  const out = new Map<string, MeasuredText | null>();
   for (const id of ids) {
     const row = byId.get(id);
-    const text = row === undefined ? null : measuredTextOf(row);
-    if (text !== null) out.push(text);
+    out.set(id, row === undefined ? null : measuredTextOf(row));
   }
   return out;
 }

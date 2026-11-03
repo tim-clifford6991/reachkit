@@ -24,6 +24,7 @@
 // paying, which belongs to no site, so it is read by its domain: without
 // it, a deep pass run inside the own-document window has no text at all,
 // and a paid site grounds no fact and starts no draft.
+import { isDeepStrictEqual } from "node:util";
 import { dbAdmin } from "@/lib/db";
 import { OWN_FETCH_SOURCE, RENDERED_FETCH_SOURCE } from "./own-fetch";
 import { measuredTextOf, storedText, textRowOf, type TextClient } from "./text-store";
@@ -48,6 +49,7 @@ export interface MeasuredText {
 // below is the cast boundary — nothing else in this file bypasses the
 // generated client.
 interface OwnFetchRow {
+  id: string;
   scan_id: string;
   source: string;
   payload: unknown;
@@ -151,13 +153,9 @@ export async function readDomainText(domain: string, read?: TextRead): Promise<M
 async function textOfScans(scanIds: readonly string[]): Promise<MeasuredText[]> {
   const client = dbAdmin();
   const sources = [OWN_FETCH_SOURCE, RENDERED_FETCH_SOURCE];
-  // The deployment carries the text version; without one every read's text comes from its payload.
-  const version = process.env.RK_TEXT_VERSION;
-  if (version) return (await storedText(client as unknown as TextClient, scanIds, sources, version)).sort(compareMeasuredText);
-
   const rows = await (client as unknown as MinimalClient)
     .from<OwnFetchRow>("fetches")
-    .select("scan_id, source, payload")
+    .select("id, scan_id, source, payload")
     .in("source", sources)
     .in("scan_id", scanIds);
   if (rows.error) {
@@ -165,12 +163,29 @@ async function textOfScans(scanIds: readonly string[]): Promise<MeasuredText[]> 
   }
 
   const out: MeasuredText[] = [];
+  const served = new Map<string, MeasuredText | null>();
   for (const row of rows.data ?? []) {
     // A `null` payload is a ledgered failed read (`own-fetch.ts`) — no
     // text was measured, so none is returned. Any other shape under this
     // source is skipped the same way, never thrown on.
     const text = measuredTextOf(textRowOf(row.source, row.payload));
+    served.set(row.id, text);
     if (text !== null) out.push(text);
   }
+  const version = process.env.RK_TEXT_VERSION;
+  if (version) await textParity(client as unknown as TextClient, scanIds, sources, version, served);
   return out.sort(compareMeasuredText);
+}
+
+// The stored text is read beside the served text and only compared, so its first deploys prove it without serving it.
+async function textParity(client: TextClient, scanIds: readonly string[], sources: readonly string[], version: string, served: ReadonlyMap<string, MeasuredText | null>): Promise<void> {
+  try {
+    const stored = await storedText(client, scanIds, sources, version);
+    const ids = new Set([...served.keys(), ...stored.keys()]);
+    const mismatched = [...ids].filter((id) => !isDeepStrictEqual(served.get(id), stored.get(id)));
+    const first = mismatched.length > 0 ? ` first=${mismatched[0]}` : "";
+    console.info(`text parity: match=${ids.size - mismatched.length} mismatch=${mismatched.length}${first}`);
+  } catch (error) {
+    console.warn(`text parity: shadow read failed: ${error instanceof Error ? error.message : String(error)}`);
+  }
 }

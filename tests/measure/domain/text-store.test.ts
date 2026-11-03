@@ -2,10 +2,16 @@
 // from its payload and kept in `fetch_text`, reads back as the same
 // `MeasuredText` the payload gives, and a read with no document is kept once
 // and never downloaded again.
-import { describe, expect, it } from "vitest";
+import "../../generate/env";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+const { dbAdminMock } = vi.hoisted(() => ({ dbAdminMock: vi.fn() }));
+vi.mock("@/lib/db", () => ({ dbAdmin: dbAdminMock }));
+
 import { OWN_FETCH_SOURCE, RENDERED_FETCH_SOURCE, toStoredDocument } from "../../../src/lib/measure/own-fetch.ts";
 import { prose } from "../../../src/lib/measure/prose.ts";
-import { storedText, type TextClient } from "../../../src/lib/measure/text-store.ts";
+import { storedText as storedById, type TextClient } from "../../../src/lib/measure/text-store.ts";
+import { readDomainText } from "../../../src/lib/measure/text.ts";
 
 const SOURCES = [OWN_FETCH_SOURCE, RENDERED_FETCH_SOURCE];
 const READ_AT = new Date("2026-09-05T09:30:00.123Z");
@@ -20,8 +26,8 @@ type Row = Record<string, unknown>;
 
 /** `fetches` and `fetch_text` in memory. A kept row goes through JSON, as a
  *  `text` and `jsonb` column does, and every request is logged. */
-function store(fetches: Row[]) {
-  const tables: Record<string, Row[]> = { fetches, fetch_text: [] };
+function store(fetches: Row[], scans: Row[] = [], failing: readonly string[] = []) {
+  const tables: Record<string, Row[]> = { fetches, fetch_text: [], scans };
   const log: string[] = [];
   const client = {
     from(table: string) {
@@ -54,6 +60,7 @@ function store(fetches: Row[]) {
             return Promise.resolve(resolve({ data: null, error: null }));
           }
           log.push(`${table} ${columns}`);
+          if (failing.includes(table)) return Promise.resolve(resolve({ data: null, error: { message: "down" } } as never));
           const data = (tables[table] ?? []).filter((row) => filters.every((f) => f(row)));
           return Promise.resolve(resolve({ data: data.map((row) => ({ ...row })), error: null }));
         },
@@ -62,6 +69,11 @@ function store(fetches: Row[]) {
     },
   };
   return { client: client as unknown as TextClient, tables, log };
+}
+
+/** The pages a stored read returns, in listing order. */
+async function storedText(...args: Parameters<typeof storedById>) {
+  return [...(await storedById(...args)).values()].filter((page) => page !== null);
 }
 
 const downloads = (log: readonly string[]) => log.filter((line) => line.includes("payload")).length;
@@ -123,5 +135,50 @@ describe("fetch_text: a read's text is derived once, kept, and read back the sam
     const pages = await storedText(db.client, ["s1"], SOURCES, "v1");
     expect(pages.map((page) => page.url)).toEqual(fetches.filter((_, i) => i % 2 === 0).map((row) => `https://plumb.example/${229 - Number(row.id.slice(2))}`));
     expect(db.log.filter((line) => line.startsWith("upsert"))).toEqual(["upsert fetch_text 100", "upsert fetch_text 100", "upsert fetch_text 30"]);
+  });
+});
+
+describe("shadow parity: the payload text is served, the stored text is only compared", () => {
+  const FETCHES = () => [
+    { id: "f-home", scan_id: "s1", source: OWN_FETCH_SOURCE, payload: payload("https://plumb.example/", HTML) },
+    { id: "f-about", scan_id: "s1", source: OWN_FETCH_SOURCE, payload: payload("https://plumb.example/about", HTML) },
+    { id: "f-null", scan_id: "s1", source: OWN_FETCH_SOURCE, payload: null },
+  ];
+  const SCANS = [{ id: "s1", tier: "free", domain: "plumb.example" }];
+  const stale = { fetch_id: "f-about", scan_id: "s1", text_version: "v1", url: "https://plumb.example/about", read_at: READ_AT.toISOString(), rendered: false, document: true, text: "stale", examples: [], questions: [] };
+
+  async function served(db: ReturnType<typeof store>) {
+    dbAdminMock.mockReturnValue(db.client);
+    return readDomainText("plumb.example");
+  }
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.restoreAllMocks();
+  });
+
+  it("serves exactly the payload path's text when the stored rows differ and when the stored read fails", async () => {
+    vi.stubEnv("RK_TEXT_VERSION", "");
+    const payloadPath = await served(store(FETCHES(), SCANS));
+    expect(payloadPath.map((page) => page.url)).toEqual(["https://plumb.example/", "https://plumb.example/about"]);
+
+    vi.stubEnv("RK_TEXT_VERSION", "v1");
+    vi.spyOn(console, "info").mockImplementation(() => {});
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const differing = store(FETCHES(), SCANS);
+    differing.tables.fetch_text = [stale];
+    expect(await served(differing)).toStrictEqual(payloadPath);
+    expect(await served(store(FETCHES(), SCANS, ["fetch_text"]))).toStrictEqual(payloadPath);
+    expect(warn).toHaveBeenCalledWith("text parity: shadow read failed: text.ts: read from fetch_text failed: down");
+  });
+
+  it("logs one line per read that counts each matching and mismatching fetch and names the first mismatch", async () => {
+    vi.stubEnv("RK_TEXT_VERSION", "v1");
+    const info = vi.spyOn(console, "info").mockImplementation(() => {});
+    const db = store(FETCHES(), SCANS);
+    await served(db);
+    db.tables.fetch_text = (db.tables.fetch_text ?? []).map((row) => (row.fetch_id === "f-about" ? stale : row));
+    await served(db);
+    expect(info.mock.calls).toEqual([["text parity: match=3 mismatch=0"], ["text parity: match=2 mismatch=1 first=f-about"]]);
   });
 });
