@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
-// Settings › Your voice against board SettingsVoice: its three cards in the board's order, the
-// voice options as a radio list saved on choice, and the fixed examples (E15, S3, E28).
+// Settings › Your voice against board SettingsVoice (canvas v36): its three cards in the board's order,
+// and the voice options as two radio cards saved on choice.
 import React from "react";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
@@ -63,23 +63,18 @@ describe("board SettingsVoice: each section in the board's order and words", () 
     ]);
   });
 
-  it("the note card: lead, Your note, the before and after example, its caption, then Save", async () => {
+  it("the note card: title, lead, Your note, then Save, with no example", async () => {
     const [note] = cards(await mount());
     inOrder(note!, [
       copy("settings.voice.title"),
       copy("settings.voice.lead"),
       copy("settings.content.voice"),
-      copy("settings.voice.example.head"),
-      copy("settings.voice.example.without"),
-      copy("settings.voice.example.without.text"),
-      copy("settings.voice.example.with"),
-      copy("settings.voice.example.with.text"),
-      copy("settings.voice.example.caption"),
       copy("settings.voice.save"),
     ]);
+    expect(note!.querySelector("figure")).toBeNull();
   });
 
-  it("write as: the two voices, each with its example, then the note; length and the choice for each page are ReachKit's", async () => {
+  it("write as: the two voices, each with its example; length and the choice for each page are ReachKit's", async () => {
     const [, who] = cards(await mount());
     expect(who!.textContent).not.toContain("Let ReachKit choose");
     expect(who!.textContent).not.toContain("Short answers");
@@ -89,25 +84,16 @@ describe("board SettingsVoice: each section in the board's order and words", () 
       copy("settings.voice.writing.ours.example"),
       copy("settings.voice.writing.guide"),
       copy("settings.voice.writing.guide.example", { business: "Harbour Bike Repair" }),
-      copy("settings.voice.writing.note"),
     ]);
   });
 
-  it("never claim: lead, the entries with Remove, the add field, the held-back example, the rule", async () => {
+  it("never say: the rule under the title, the entries with Remove, then the add field, and no held-back example", async () => {
     const [, , never] = cards(await mount({ doNotClaim: ["Open 24 hours"] }));
     expect(never!.querySelector('[data-testid="claim-Open 24 hours"] button')?.getAttribute("aria-label")).toBe(
       copy("settings.voice.remove-claim", { claim: "Open 24 hours" })
     );
-    inOrder(never!, [
-      copy("settings.voice.never-claim"),
-      copy("settings.voice.never-claim.lead"),
-      "Open 24 hours",
-      copy("settings.voice.add-claim"),
-      copy("settings.voice.held.quote", { business: "Harbour Bike Repair" }),
-      copy("settings.voice.held.badge"),
-      copy("settings.voice.held.told"),
-      copy("settings.voice.filter-note"),
-    ]);
+    inOrder(never!, [copy("settings.voice.never-claim"), copy("settings.voice.filter-note"), "Open 24 hours", copy("settings.voice.add-claim")]);
+    expect(never!.querySelector("figure")).toBeNull();
   });
 });
 
@@ -138,65 +124,22 @@ describe("the voice options are a radio list with the select's stored values, sa
   );
 });
 
-describe("the examples are fixed words, labelled as an example, never written for this customer", () => {
-  const exampleText = (root: HTMLElement) =>
-    ["voice-example", "voice-held-back"].map((id) => root.querySelector(`[data-testid="${id}"]`)?.textContent);
+describe("the voice tab's board icons and names", () => {
+  const classesIn = (el: Element | null | undefined) =>
+    [...(el?.querySelectorAll("svg") ?? [])].map((svg) => [...svg.classList].find((c) => c.startsWith("lucide-")));
 
-  it("the same words whatever note, voice and list the account has stored", async () => {
-    const a = await mount({ voiceText: "Warm and chatty.", writingVoice: "ours", doNotClaim: ["Best in the world"] });
-    const b = await mount({ voiceText: "Formal, third person.", writingVoice: "short", doNotClaim: [] });
-    expect(exampleText(a)).toEqual(exampleText(b));
-    expect(exampleText(a)[0]).toBe(
-      [
-        "settings.voice.example.head",
-        "settings.voice.example.without",
-        "settings.voice.example.without.text",
-        "settings.voice.example.with",
-        "settings.voice.example.with.text",
-        "settings.voice.example.caption",
-      ]
-        .map((key) => copy(key as Parameters<typeof copy>[0]))
-        .join("")
-    );
+  it("each never-say chip's remove carries X, and Add carries Plus", async () => {
+    const root = await mount({ doNotClaim: ["Open 24 hours", "Cheapest in town"] });
+    const removes = root.querySelectorAll('[data-testid^="claim-"] button');
+    expect(removes).toHaveLength(2);
+    removes.forEach((button) => expect(classesIn(button)).toEqual(["lucide-x"]));
+    expect(classesIn(root.querySelector('[data-testid="setting-do_not_claim"] button[type="submit"]'))).toEqual(["lucide-plus"]);
   });
 
-  it("the before and after is captioned as an example", async () => {
-    const caption = (await mount()).querySelector('[data-testid="voice-example"] figcaption');
-    expect(caption?.textContent).toBe(copy("settings.voice.example.caption"));
-  });
-
-  it("{business} is the account's own name, and its domain where none is stored", async () => {
-    const named = await mount({}, "Tally");
-    expect(named.querySelector('[data-testid="voice-held-back"]')?.textContent).toContain(
-      copy("settings.voice.held.quote", { business: "Tally" })
-    );
+  it("the guide's example names the account, and its domain where none is stored", async () => {
     const unnamed = await mount({}, null);
     expect(unnamed.querySelector('[data-testid="writing-voice-guide"]')?.textContent).toContain(
       copy("settings.voice.writing.guide.example", { business: FIXTURE_SETTINGS_FACTS.domain })
     );
-  });
-
-  it("the held-back quote strikes through its listed claim, and only that", async () => {
-    const struck = [...(await mount()).querySelectorAll('[data-testid="voice-held-back"] s')].map((s) => s.textContent);
-    expect(struck).toEqual([copy("settings.voice.held.claim")]);
-  });
-});
-
-describe("the voice tab's board icons", () => {
-  const classesIn = (el: Element | null | undefined) =>
-    [...(el?.querySelectorAll("svg") ?? [])].map((svg) => [...svg.classList].find((c) => c.startsWith("lucide-")));
-
-  it("the held-back flow is FileText → ArrowRight → Ban badge → ArrowRight → MailCheck", async () => {
-    const flow = (await mount()).querySelector('[data-testid="voice-held-back"]');
-    expect(classesIn(flow)).toEqual(["lucide-file-text", "lucide-arrow-right", "lucide-ban", "lucide-arrow-right", "lucide-mail-check"]);
-    expect(flow?.querySelector(".badge svg.lucide-ban")?.parentElement?.textContent).toBe(copy("settings.voice.held.badge"));
-  });
-
-  it("the With a note pill carries Check, and each never-say chip's remove carries X", async () => {
-    const root = await mount({ doNotClaim: ["Open 24 hours", "Cheapest in town"] });
-    expect(classesIn(root.querySelector('[data-testid="voice-example-with"]'))).toEqual(["lucide-check"]);
-    const removes = root.querySelectorAll('[data-testid^="claim-"] button');
-    expect(removes).toHaveLength(2);
-    removes.forEach((button) => expect(classesIn(button)).toEqual(["lucide-x"]));
   });
 });

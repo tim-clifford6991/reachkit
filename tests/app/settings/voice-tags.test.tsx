@@ -43,10 +43,10 @@ describe("each never-claim entry is a removable tag", () => {
     expect(tag?.getAttribute("aria-label")).toBe(`settings.voice.remove-claim(${CLAIM})`);
   });
 
-  it("a claim is a phrase: mono, and folding at its spaces", () => {
-    const value = render([CLAIM]).querySelector('[data-testid^="claim-"] button > .num');
+  it("a claim is a phrase in the body face, as the board's chip draws it, folding at its spaces", () => {
+    const value = render([CLAIM]).querySelector('[data-testid^="claim-"] button > .num-phrase');
     expect(value?.textContent).toBe(CLAIM);
-    expect(value?.classList.contains("num-phrase")).toBe(true);
+    expect(value?.classList.contains("num")).toBe(false);
   });
 
   it("one tag per entry, and no button shape of its own", () => {

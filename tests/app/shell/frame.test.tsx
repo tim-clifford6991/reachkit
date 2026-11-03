@@ -689,7 +689,6 @@ describe("the frame is the route's one screen root, and it invents no sentence",
       "next-publish.being-written",
       "next-publish.none-planned",
       "calendar.head",
-      "settings.head",
     ];
     const owed = SHELL_KEYS.filter((key) => COPY[key] === "");
     console.log(

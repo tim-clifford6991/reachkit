@@ -96,7 +96,7 @@ describe("REQ-071 c1 — the pending change, before the save", () => {
   it("replaces the card's standing consequences rather than sitting beneath them", () => {
     // Two dated sentences on one card would be the same fact pretending to be two.
     const root = market({ editing: "domain", pendingChange: null });
-    expect(root.querySelector('[data-testid="market-consequences"]')).toBeNull();
+    expect(root.querySelector('[data-testid="market-note-website"]')).toBeNull();
   });
 });
 
@@ -133,7 +133,7 @@ describe("REQ-071 c6 — the effective-on line, after the save", () => {
   it("with nothing pending and nothing being typed the card states its standing consequences", () => {
     const root = market({ editing: null, pendingChange: null });
     expect(root.querySelector('[data-testid="market-change-line"]')).toBeNull();
-    expect(root.querySelector('[data-testid="market-consequences"]')).not.toBeNull();
+    expect(root.querySelector('[data-testid="market-note-website"]')).not.toBeNull();
   });
 });
 

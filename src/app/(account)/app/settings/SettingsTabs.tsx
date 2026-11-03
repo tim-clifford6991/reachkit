@@ -1,45 +1,9 @@
-// SPEC §4 (2026-09-20, #908) — the seven tabs, drawn once for all seven
-// routes.
-//
-// daisyUI `tabs tabs-border` with links rather than a widget: each tab is
-// its own address, so the browser's own back button moves between them.
-// Each is a `next/link` with `prefetch` (SPEC §4, 2026-10-08, issue 1341):
-// the tab is loaded before the tap, and `settings/layout.tsx` — this bar
-// included — stays mounted across the change. `aria-current="page"` marks
-// the one the customer is on, which is what a screen reader reads and what
-// `tab-active` paints.
-//
-// It is a client component for two reasons, and no more than two: reading
-// the pathname that marks the current tab — the one `OverviewTabs` and
-// `SidebarNav` give — and bringing that tab into view, below.
-//
-// **It cannot overflow, and below `sm` it does not scroll either** (#1101).
-// Seven words is 626px of tabs; a 390px screen's row is 358px. A sideways
-// scroll kept the screen from widening, but on a phone it hid four of the
-// seven tabs with nothing to say they were there. So below `sm` the bar
-// wraps (`flex-wrap`): every tab is on screen, the current one keeps
-// daisyUI's `tab-active` underline, and each link is `h-11` — the 44px
-// target a thumb needs, above daisyUI's 40px tab. The links stay links, so
-// no string and no widget is added for the phone.
-//
-// From `sm` up the strip is what it was: one row that scrolls sideways
-// (`overflow-x-auto` on a `min-w-0` parent, the bar itself `w-max
-// flex-nowrap`) rather than pushing the screen wider — `docs/DESIGN.md`'s
-// no-overflow rule, where a label that cannot be clamped is a nav word. That
-// is the same construction `OverviewTabs` is proven at.
-//
-// **Where the row does scroll, it opens at its start** (owner, 2026-09-21,
-// on #925), which can leave the marked tab past the edge. So the current
-// link is scrolled into view once, on mount. `inline: "center"` puts it in
-// the middle of the row rather than flush against an edge; `block:
-// "nearest"` is what keeps this a *horizontal* move — without it the
-// browser is entitled to scroll the document vertically to reach the bar.
-// Below `sm` there is no scroll container and every tab is already in
-// view, so the same call moves nothing.
-//
-// It runs once per address: the effect's one dependency is the current tab,
-// and a tab press is a navigation, so nothing here fights a customer who
-// has scrolled the row themselves.
+// SPEC §4 (2026-09-20, #908): the seven tabs, drawn once for all seven routes.
+// Links, not a widget, so the browser's back button moves between them; `aria-current` marks the one open.
+// The bar sticks directly under the top bar (SPEC §4, 2026-10-08, #1339). Below `sm` it wraps into two 44px
+// boxes a row (canvas v36), so all seven are on screen; from `sm` up they are one row that scrolls sideways rather than widen the screen (#1101).
+// Where the row scrolls, the current tab is brought into view on mount, and again once the web font is in,
+// because the faces load with `display: swap` and the row is measured in the fallback face first (#976).
 "use client";
 
 import React, { useEffect, useRef } from "react";
@@ -64,18 +28,7 @@ export function SettingsTabs(): React.JSX.Element {
     const bring = (): void =>
       tab.scrollIntoView({ inline: "center", block: "nearest", behavior: "instant" });
     bring();
-    // And again once the web font is in. The faces load with
-    // `display: swap` and no metric adjustment (`src/ui/fonts.ts`), so the
-    // row is measured in the fallback face first and in the real one a
-    // moment later — and seven words that fit a 390px screen in one do not
-    // fit it in the other. Whichever way that race falls, the row is
-    // scrollable by the time it is read and the current tab was brought
-    // into view before it was: on the first run in a real browser Voice
-    // stood 72px past the right edge at `scrollLeft: 0` (#976). The promise
-    // is already resolved when the font was cached, so this costs a
-    // microtask and no second scroll. (`in`, because a DOM with no font
-    // loading — jsdom's — has no `fonts` at all and this file is a client
-    // component any suite may render.)
+    // `in`: jsdom has no `document.fonts`.
     if ("fonts" in document) void document.fonts.ready.then(bring);
   }, [current]);
 
@@ -85,7 +38,7 @@ export function SettingsTabs(): React.JSX.Element {
       aria-label={copy("settings.tabs.label")}
       data-testid="settings-tabs"
     >
-      <div className="tabs tabs-border max-sm:flex-wrap sm:w-max sm:flex-nowrap">
+      <div className="tabs tabs-border max-sm:flex-wrap max-sm:gap-2 sm:w-max sm:flex-nowrap">
         {SETTINGS_TABS.map((tab) => {
           const onThisTab = tab === current;
           return (
@@ -94,7 +47,9 @@ export function SettingsTabs(): React.JSX.Element {
               ref={onThisTab ? here : undefined}
               href={SETTINGS_TAB_HREF[tab]}
               prefetch={true}
-              className={`tab whitespace-nowrap max-sm:h-11 ${onThisTab ? "tab-active" : ""}`}
+              className={`tab sm:whitespace-nowrap max-sm:h-11 max-sm:basis-[calc(50%-0.25rem)] max-sm:leading-tight max-sm:justify-start max-sm:rounded-field max-sm:border max-sm:border-base-300 max-sm:bg-base-100 max-sm:px-3 max-sm:py-1 max-sm:text-left max-sm:before:hidden ${
+                onThisTab ? "tab-active text-primary max-sm:border-primary/30 max-sm:bg-primary/10" : ""
+              }`}
               data-testid={`settings-tab-${tab}`}
               aria-current={onThisTab ? "page" : undefined}
             >

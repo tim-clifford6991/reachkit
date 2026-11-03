@@ -73,7 +73,7 @@ describe("SPEC §4 — the seven tabs are a daisyUI bar of addresses that cannot
     // `docs/DESIGN.md`: no element is wider than its container at 390. A
     // nav word cannot be clamped to an ellipsis and stay a nav word. Below
     // `sm` the bar wraps so no tab is hidden off-screen (#1101), each link a
-    // 44px target; from `sm` up the row is the scroll container, the same
+    // 44px target, two to a row (canvas v36); from `sm` up the row is the scroll container, the same
     // construction `OverviewTabs` is proven at. The layout suite renders all
     // seven and measures both.
     expect(bar).toMatch(/max-sm:flex-wrap/);

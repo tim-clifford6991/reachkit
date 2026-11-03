@@ -41,11 +41,11 @@ describe("REQ-092 c1/c2/c4 — which key each of the three lines reaches", () =>
     const stop: WorkStop = {
       ...BASE,
       resumes: { on: new Date("2026-09-08T09:00:00.000Z") },
-      needs: { kind: "action", key: "settings.head" },
+      needs: { kind: "action", key: "settings.tab.business" },
     };
     expect(stoppedWorkStatement(stop, FORMAT)).toEqual({
       line: "stopped.work.line",
-      needsLine: "settings.head",
+      needsLine: "settings.tab.business",
       resumesLine: "stopped.work.resumes-on",
     });
   });

@@ -27,7 +27,7 @@
 
 import type React from "react";
 import { useState, useTransition } from "react";
-import { ArrowRight, Ban, Check, FileText, MailCheck, X } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import { writtenLine } from "../../_shell/written";
 import { saveVoiceAction, saveWritingVoiceAction } from "../change-actions";
@@ -48,7 +48,7 @@ function formWith(entry: string): FormData {
 
 export function VoicePanel(p: {
   settings: SettingsModel;
-  /** The name the guide voice and the held-back example use; the domain where the site has none. */
+  /** The name the guide voice's example uses; the domain where the site has none. */
   business?: string | null;
 }): React.JSX.Element {
   const business = p.business ?? p.settings.domain;
@@ -82,7 +82,6 @@ export function VoicePanel(p: {
       }
     });
   }
-  const filterNote = writtenLine("settings.voice.filter-note");
   const placeholder = writtenLine("settings.voice.placeholder");
   // SPEC §4 (2026-09-20, #908, issue #913): the never-claim list writes.
   // Both halves of it were inert — the × on each tag and the Add beside
@@ -104,13 +103,14 @@ export function VoicePanel(p: {
   return (
     <>
       <section className="card card-border min-w-0 bg-base-100">
-        <div className="card-body gap-4">
-          <h2 className="card-title min-w-0 wrap-anywhere text-base">{copy("settings.voice.title")}</h2>
-          <p className="text-sm text-base-content/70 wrap-anywhere">{copy("settings.voice.lead")}</p>
-          {/* SPEC §5 (2026-09-12): the summary setup showed, stored where
-              drafting reads it. One field and one press. */}
+        <div className="card-body gap-5">
+          <div className="flex min-w-0 flex-col gap-1">
+            <h2 className="card-title min-w-0 wrap-anywhere text-(length:--h3)">{copy("settings.voice.title")}</h2>
+            <p className="text-sm text-base-content/70 wrap-anywhere">{copy("settings.voice.lead")}</p>
+          </div>
+          {/* SPEC §5 (2026-09-12): the summary setup showed, stored where drafting reads it. One field and one press. */}
           <form action={saveVoice} className="flex min-w-0 flex-col gap-3">
-            <label className="flex min-w-0 flex-col gap-1" data-testid="setting-voice_text">
+            <label className="flex min-w-0 flex-col gap-2" data-testid="setting-voice_text">
               <span className="text-sm font-semibold">{copy("settings.content.voice")}</span>
               <textarea
                 className="textarea h-auto w-full"
@@ -121,9 +121,8 @@ export function VoicePanel(p: {
                 {...(placeholder === null ? {} : { placeholder })}
               />
             </label>
-            <NoteExample />
             <span>
-              <button type="submit" className="btn btn-soft btn-primary btn-sm" disabled={savingVoice}>
+              <button type="submit" className="btn btn-primary min-h-11" disabled={savingVoice}>
                 {savingVoice ? <span className="loading loading-spinner loading-xs" aria-hidden /> : null}
                 {copy("settings.voice.save")}
               </button>
@@ -133,31 +132,31 @@ export function VoicePanel(p: {
       </section>
 
       <section className="card card-border min-w-0 bg-base-100">
-        <div className="card-body gap-4">
+        <div className="card-body gap-5">
           {/* SPEC §7 (owner, 2026-10-10; issue 1390): who speaks on their pages, saved as it is chosen. */}
           <fieldset className="flex min-w-0 flex-col gap-3" data-testid="setting-writing_voice" disabled={savingWriting}>
-            <legend className="card-title mb-3 min-w-0 wrap-anywhere text-base">{copy("settings.voice.writing.label")}</legend>
-            <div className="grid min-w-0 grid-cols-1 gap-2 md:grid-cols-2" data-layout="pair">
+            <legend className="card-title mb-5 min-w-0 wrap-anywhere text-(length:--h3)">{copy("settings.voice.writing.label")}</legend>
+            <div className="grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2" data-layout="pair">
               {WRITING_VOICE_OPTIONS.map((choice) => {
                 const chosen = writing === choice.voice;
                 return (
                   <label
                     key={choice.voice}
-                    className={`flex min-w-0 cursor-pointer items-start gap-3 rounded-box border p-3 ${
+                    className={`flex min-w-0 cursor-pointer items-start gap-3 rounded-box border p-5 ${
                       chosen ? "border-primary bg-primary/10" : "border-base-300"
                     }`}
                     data-testid={`writing-voice-${choice.voice}`}
                   >
                     <input
                       type="radio"
-                      className="radio radio-primary radio-sm mt-0.5"
+                      className="radio radio-primary mt-0.5"
                       name={WRITING_VOICE_FIELD}
                       value={choice.voice}
                       checked={chosen}
                       onChange={() => chooseWriting(choice.voice)}
                     />
                     <span className="flex min-w-0 flex-col gap-1 wrap-anywhere">
-                      <span className="text-sm font-semibold">{copy(choice.key)}</span>
+                      <span className="font-semibold">{copy(choice.key)}</span>
                       <span className="text-sm text-base-content/70">
                         {choice.voice === "guide" ? copy(choice.example, { business }) : copy(choice.example)}
                       </span>
@@ -167,144 +166,77 @@ export function VoicePanel(p: {
               })}
             </div>
           </fieldset>
-          <p className="text-sm text-base-content/70 wrap-anywhere">{copy("settings.voice.writing.note")}</p>
         </div>
       </section>
 
       <section className="card card-border min-w-0 bg-base-100">
-        <div className="card-body gap-4" data-testid="setting-do_not_claim">
-          <h2 className="card-title min-w-0 flex-wrap text-base">
-            <span className="min-w-0 wrap-anywhere">{copy("settings.voice.never-claim")}</span>
-            {writer.saved ? (
-              <span className={SAVED_BADGE_CLASS} data-testid="voice-saved">
-                {copy("settings.answer.saved-badge")}
-              </span>
-            ) : null}
-          </h2>
-          <p className="text-sm text-base-content/70 wrap-anywhere">{copy("settings.voice.never-claim.lead")}</p>
-          {/* Each claim with its own way out: a filter the customer cannot
-              remove from is not theirs. A claim is a sentence, so it wraps. */}
+        <div className="card-body gap-5" data-testid="setting-do_not_claim">
+          <div className="flex min-w-0 flex-col gap-1">
+            <h2 className="card-title min-w-0 flex-wrap text-(length:--h3)">
+              <span className="min-w-0 wrap-anywhere">{copy("settings.voice.never-claim")}</span>
+              {writer.saved ? (
+                <span className={SAVED_BADGE_CLASS} data-testid="voice-saved">
+                  {copy("settings.answer.saved-badge")}
+                </span>
+              ) : null}
+            </h2>
+            {/* REQ-053: the list is a filter, not a preference, so the card says what it does. */}
+            <p className="text-sm text-base-content/70 wrap-anywhere">{copy("settings.voice.filter-note")}</p>
+          </div>
+          {/* Each claim with its own way out: a filter the customer cannot remove from is not theirs. */}
           <div className="flex min-w-0 flex-wrap gap-2">
             {p.settings.doNotClaim.map((entry) => (
               <span className="min-w-0 max-w-full" key={entry} data-testid={`claim-${entry}`}>
                 <button
                   type="button"
-                  className="badge badge-outline badge-lg h-auto max-w-full cursor-pointer gap-1 text-left"
+                  className="badge badge-ghost h-auto min-h-11 max-w-full cursor-pointer gap-2 px-3.5 text-left text-sm"
                   aria-label={copy("settings.voice.remove-claim", { claim: entry })}
                   disabled={writer.busy}
                   onClick={() => writer.press(removeClaimAction, formWith(entry))}
                 >
-                  <span className="num num-phrase min-w-0">{entry}</span>
+                  <span className="num-phrase min-w-0 wrap-anywhere">{entry}</span>
                   <X size={16} strokeWidth={1.75} aria-hidden />
                 </button>
               </span>
             ))}
           </div>
-          {/* A form, so the field submits on Enter as well as on the press,
-              and so the whole control works from a plain submit. */}
+          {/* A form, so the field submits on Enter as well as on the press. */}
           <form
             action={(form) => {
               writer.press(addClaimAction, form);
               setClaim("");
             }}
-            className="flex min-w-0 flex-wrap items-end gap-2"
+            className="flex min-w-0 flex-col gap-2"
           >
-            <label className="flex min-w-0 grow flex-col gap-1">
-              <span className="text-sm font-semibold">{copy("settings.voice.add-claim")}</span>
+            <label htmlFor="add-claim-field" className="text-sm font-semibold">
+              {copy("settings.voice.add-claim")}
+            </label>
+            <div className="flex min-w-0 gap-2">
               <input
-                className="input w-full"
+                id="add-claim-field"
+                className="input min-w-0 grow"
                 name={CLAIM_FIELD}
                 value={claim}
                 onChange={(e) => setClaim(e.target.value)}
                 data-testid="add-claim"
               />
-            </label>
-            {/* Named, for the reason #328 gives on the business panel: the
-                field's own sentence, so the control is not just "Add" in a
-                list of controls. */}
-            <button
-              type="submit"
-              className="btn btn-soft btn-primary btn-sm"
-              aria-label={copy("settings.voice.add-claim")}
-              disabled={writer.busy}
-            >
-              {writer.busy ? <span className="loading loading-spinner loading-xs" aria-hidden /> : null}
-              {copy("settings.voice.add")}
-            </button>
+              <button
+                type="submit"
+                className="btn btn-outline border-base-300 bg-base-100 text-primary min-h-11 shrink-0"
+                aria-label={copy("settings.voice.add-claim")}
+                disabled={writer.busy}
+              >
+                {writer.busy ? (
+                  <span className="loading loading-spinner loading-xs" aria-hidden />
+                ) : (
+                  <Plus size={16} strokeWidth={1.75} aria-hidden />
+                )}
+                {copy("settings.voice.add")}
+              </button>
+            </div>
           </form>
-          <HeldBackExample business={business} />
-          {filterNote === null ? null : <p className="text-sm text-base-content/70 wrap-anywhere">{filterNote}</p>}
         </div>
       </section>
     </>
-  );
-}
-
-const ICON = { size: 16, strokeWidth: 1.75, "aria-hidden": true } as const;
-
-/** The same paragraph without and with a note: fixed words, labelled as an example. */
-function NoteExample(): React.JSX.Element {
-  return (
-    <figure className="flex min-w-0 flex-col gap-3" data-testid="voice-example">
-      <p className="eyebrow">{copy("settings.voice.example.head")}</p>
-      <div className="grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2" data-layout="pair">
-        <div className="flex min-w-0 flex-col items-start gap-2 rounded-box bg-base-200 p-4">
-          <span className="badge badge-ghost">{copy("settings.voice.example.without")}</span>
-          <p className="text-sm wrap-anywhere">{copy("settings.voice.example.without.text")}</p>
-        </div>
-        <div className="flex min-w-0 flex-col items-start gap-2 rounded-box border border-primary/30 p-4">
-          <span className="badge badge-soft badge-primary gap-1" data-testid="voice-example-with">
-            <Check {...ICON} />
-            {copy("settings.voice.example.with")}
-          </span>
-          <p className="text-sm wrap-anywhere">{copy("settings.voice.example.with.text")}</p>
-        </div>
-      </div>
-      <figcaption className="text-xs text-base-content/70 wrap-anywhere">{copy("settings.voice.example.caption")}</figcaption>
-    </figure>
-  );
-}
-
-/** The quote with its listed claim struck through, as the board draws it; the whole quote where the claim is not in it. */
-function StruckClaim(p: { quote: string; claim: string }): React.JSX.Element {
-  const at = p.quote.indexOf(p.claim);
-  if (at === -1) return <>{p.quote}</>;
-  return (
-    <>
-      {p.quote.slice(0, at)}
-      <s>{p.claim}</s>
-      {p.quote.slice(at + p.claim.length)}
-    </>
-  );
-}
-
-/** What happens to a page that says an entry on the list, as one fixed example. */
-function HeldBackExample(p: { business: string }): React.JSX.Element {
-  const label = copy("settings.voice.held.example");
-  return (
-    <figure
-      className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2 rounded-box bg-base-200 p-4 text-sm"
-      aria-label={label}
-      data-testid="voice-held-back"
-    >
-      <span className="flex min-w-0 items-center gap-2">
-        <span className="grid size-8 shrink-0 place-items-center rounded-field bg-base-100 text-base-content/70">
-          <FileText {...ICON} />
-        </span>
-        <span className="min-w-0 wrap-anywhere">
-          <StruckClaim quote={copy("settings.voice.held.quote", { business: p.business })} claim={copy("settings.voice.held.claim")} />
-        </span>
-      </span>
-      <ArrowRight {...ICON} className="shrink-0 text-base-content/70" />
-      <span className="badge badge-soft badge-warning h-auto gap-1">
-        <Ban {...ICON} />
-        {copy("settings.voice.held.badge")}
-      </span>
-      <ArrowRight {...ICON} className="shrink-0 text-base-content/70" />
-      <span className="flex min-w-0 items-center gap-2">
-        <MailCheck {...ICON} className="shrink-0 text-primary" />
-        <span className="min-w-0 wrap-anywhere">{copy("settings.voice.held.told")}</span>
-      </span>
-    </figure>
   );
 }
