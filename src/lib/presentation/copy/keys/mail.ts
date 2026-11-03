@@ -754,12 +754,10 @@ export const MAIL_COPY = Object.freeze({
   /** Issue 885 — a free-path bound filled. The fact row names which bound;
    *  the network key and the domain are never written into this mail. */
   "mail.ops.spend-ceiling.free-scan-bound": ["A free-scan bound has been reached: one network, or one address, has had every free scan it gets in this window. Free scanning carries on for everyone else.", { slots: {}, fixedBy: "SPEC §2 · issue 885" }],
-  /** The switch, found engaged. There is no released twin: a release
-   *  cannot be told from an ordinary boot without durable state, so the
-   *  sentence is not owed until the telling exists. */
+  /** The switch, found engaged. No released twin: a release cannot be told
+   *  from an ordinary boot without durable state. */
   "mail.ops.spend-ceiling.kill-switch-engaged": ["The kill switch is engaged. Scanning, generating and publishing are stopped until it is released.", { slots: {}, fixedBy: "BUILD §6.5 · issue 329" }],
-  /** A spend ledger could not be read. `{reason}` is `<ledger>/<cause>`, closed words; one mail per reason and UTC day. */
-  "mail.ops.spend-ceiling.ledger-unreadable": ["The spend ledger could not be read ({reason}). Until it can, every paid call it guards is refused, and an unreadable product ledger turns free scans away too. Nothing is spent while this lasts. You are told once a day, not on every refused call.", { slots: { reason: "text" }, fixedBy: "BUILD §6.5 · issue 2090 (drafted)" }],
+  "mail.ops.spend-ceiling.ledger-unreadable": ["We could not read the spend ledger ({reason}), so paid work has stopped. We tell you once a day until it reads again.", { slots: { reason: "text" }, fixedBy: "BUILD §6.5 · issue 2090 (drafted)" }],
   /** The two mono fact rows the S20 shell draws under the line. The
    *  figures reach them as already-written values (cents, as integers);
    *  these are their labels, and the unit is the owner's word to choose. */

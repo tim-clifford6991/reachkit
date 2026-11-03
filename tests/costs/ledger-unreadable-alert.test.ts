@@ -5,11 +5,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { applyEnvFixture } from "../mail/env-fixture";
 
-const db = vi.hoisted(() => ({
-  claims: new Set<string>(),
-  ledgerReadable: false,
-  claimTableDown: false,
-}));
+const db = vi.hoisted(() => ({ claims: new Set<string>(), ledgerReadable: false, claimTableDown: false }));
 
 type Answer = { data: unknown; error: { message: string } | null };
 
@@ -85,10 +81,7 @@ async function coldProcess(): Promise<typeof import("@/lib/mail/ops/spend-ceilin
   const vendor = await import("@/lib/mail/vendor/resend");
   vendors.push(vendor);
   vendor.__setVendorTransportForTesting(async (payload) => {
-    if (refuseNext > 0) {
-      refuseNext -= 1;
-      return { status: 422, headers: {}, body: "{}" };
-    }
+    if (refuseNext-- > 0) return { status: 422, headers: {}, body: "{}" };
     mails.push(payload);
     return { status: 200, headers: {}, body: JSON.stringify({ id: `vendor-${mails.length}` }) };
   });
@@ -130,8 +123,7 @@ describe("an unreadable product ledger mails the owner once per UTC day", () => 
     await settled(3);
     expect(mails).toHaveLength(1);
     expect(mails[0]).toContain("product/read-failed");
-    // Not measured is never written as a figure.
-    expect(mails[0]).not.toContain("spent today");
+    expect(mails[0]).not.toContain("spent today"); // Not measured is never written as a figure.
 
     expect(await daily.readDaySpendCents(new Date("2026-11-04T00:01:00Z"))).toBeNull();
     await settled(4);
@@ -156,14 +148,11 @@ describe("the once-a-day claim is the database's, and needs no job runtime", () 
     const at = new Date("2026-11-03T09:00:00Z");
     await Promise.all([daily.readDaySpendCents(at), daily.readDaySpendCents(at)]);
     await settled(2);
+    // A third cold process finds today's key claimed and stays silent.
+    await coldProcess();
+    expect(await daily.readDaySpendCents(at)).toBeNull();
+    await settled(3);
     expect(mails).toHaveLength(1);
-  });
-
-  it("another process that already claimed today's key leaves this one silent", async () => {
-    db.claims.add("product/read-failed|2026-11-03");
-    expect(await daily.readDaySpendCents(new Date())).toBeNull();
-    await settled(1);
-    expect(mails).toEqual([]);
   });
 
   it("on the request path, with no heartbeat installed, 3 free-scan admissions are refused and give 1 mail", async () => {
@@ -194,10 +183,8 @@ describe("the once-a-day claim is the database's, and needs no job runtime", () 
     await settled(2);
     expect(mails).toHaveLength(1);
   });
-});
 
-describe("an unreadable site ledger is keyed by reason, not by site", () => {
-  it("2 sites unreadable on one day give 1 mail", async () => {
+  it("an unreadable site ledger is keyed by reason, not by site: 2 sites unreadable on one day give 1 mail", async () => {
     expect(await daily.readSiteDaySpendCents("11111111-1111-4111-8111-111111111111", new Date())).toBeNull();
     expect(await daily.readSiteDaySpendCents("22222222-2222-4222-8222-222222222222", new Date())).toBeNull();
     await settled(2);
