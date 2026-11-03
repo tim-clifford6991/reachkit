@@ -30,7 +30,7 @@ export function HostedGoneBody({ business }: { business: HostedBusiness }): Reac
         </h1>
         <p className="text-base-content/70 mt-3">{copy("hosted.gone.line", { publisher: business.name })}</p>
         <p className="mt-6">
-          <a href={INDEX_PATH} className="btn btn-ghost">
+          <a href={INDEX_PATH} className="btn btn-outline min-h-11">
             <Glyph name="list" />
             {copy("hosted.gone.index")}
           </a>

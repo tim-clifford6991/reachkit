@@ -35,6 +35,7 @@ vi.mock("@/lib/publish/destinations/hosted", () => ({
 }));
 
 const { GET } = await import("@/app/(hosted)/hosted-live/[host]/[slug]/route");
+const { actionsOf } = await import("@/app/(hosted)/hosted-page/[[...slug]]/chrome");
 const { HostedIndex } = await import("@/app/(hosted)/hosted-page/[[...slug]]/listing");
 const { readMainSite } = await import("@/lib/site-profile/main-site");
 type HostedBusiness = import("@/app/(hosted)/hosted-page/[[...slug]]/chrome").HostedBusiness;
@@ -241,7 +242,16 @@ describe("condition 2 — the full block and the header follow their limits", ()
         const header = doc.querySelector("header")!;
         expect([...header.querySelectorAll("a")].filter((a) => QUIET.test(a.getAttribute("href") ?? ""))).toEqual([]);
         expect(header.querySelectorAll("a.btn").length).toBe(site.stored ? 2 : 1);
-        for (const compact of compactBlocks(doc, site)) expect(compact.querySelectorAll("a")).toHaveLength(1);
+        // R1 + E8: the primary action is the one solid button, in the page's ink, never our colour; Visit is outlined.
+        const primary = actionsOf(site.business).primary?.href;
+        for (const a of doc.querySelectorAll("a.btn:not(.btn-outline)")) {
+          expect([a.getAttribute("href"), a.className.includes("bg-base-content")]).toEqual([primary, true]);
+        }
+        if (offering) expect(compactBlocks(doc, site)).toEqual([]);
+        // E8: the compact block is the primary action, then Visit.
+        for (const compact of compactBlocks(doc, site)) {
+          expect([...compact.querySelectorAll("a")].map((a) => a.getAttribute("href")).slice(1)).toEqual([site.business.mainSite?.home ?? `https://${site.business.domain}/`]);
+        }
         for (const full of fullBlocks(doc, site)) {
           // One button is Visit; at most one more is the primary action.
           expect(full.querySelectorAll("a.btn").length).toBeLessThanOrEqual(2);
@@ -260,7 +270,7 @@ describe("condition 2 — the full block and the header follow their limits", ()
       ["Call (512) 555-0142", "tel:5125550142"],
       ["Book a visit", "https://harborplumbing.example/book"],
       ["Ask for a quote", "https://harborplumbing.example/get-a-quote"],
-      ["Visit Harbor Plumbing", "https://harborplumbing.example/"],
+      ["Visit harborplumbing.example", "https://harborplumbing.example/"],
     ]);
   });
 
@@ -287,7 +297,7 @@ describe("condition 2 — the full block and the header follow their limits", ()
       const html = await article(site, { fit: 3, offering });
       const blocks = fullBlocks(parsed(html), site);
       expect(blocks).toHaveLength(1);
-      expect([...blocks[0]!.querySelectorAll("a")].map((a) => a.textContent)).toEqual(["Visit Nothing Stored"]);
+      expect([...blocks[0]!.querySelectorAll("a")].map((a) => a.textContent)).toEqual(["Visit nothing.example"]);
       await expect(html).toMatchFileSnapshot(`./__goldens__/nothing-stored-${offering ? "offering" : "guide"}.html`);
     }
   });
@@ -329,11 +339,11 @@ describe("condition 3 — the markup tells the truth", () => {
   it("the German Handwerker's blocks are labelled in German", async () => {
     const site = SITES["a German Handwerker"]!;
     const doc = parsed(await article(site, { fit: 3 }));
-    expect(compactBlocks(doc, site)[0]?.textContent).toBe("Sie suchen Sanitär-Notdienst in Düsseldorf?0211 123456 anrufen");
+    expect(compactBlocks(doc, site)[0]?.textContent).toBe("Sie suchen Sanitär-Notdienst in Düsseldorf?0211 123456 anrufenmueller-sanitaer.example besuchen");
     expect([...fullBlocks(doc, site)[0]!.querySelectorAll("a")].map((a) => a.textContent)).toEqual([
       "0211 123456 anrufen",
       "Termin vereinbaren",
-      "Müller Sanitär besuchen",
+      "mueller-sanitaer.example besuchen",
     ]);
   });
 });
@@ -355,7 +365,7 @@ describe("the index: the header phone, and the compact block where a phone is st
       expect(doc.querySelector('header a[href^="tel:"]')?.textContent ?? null).toBe(phone);
       const compact = [...doc.querySelectorAll("main aside")];
       expect(compact).toHaveLength(phone === null ? 0 : 1);
-      for (const block of compact) expect([...block.querySelectorAll("a")].map((a) => a.getAttribute("href"))).toEqual([`tel:${phone!.replace(/[^\d+]/g, "")}`]);
+      for (const block of compact) expect([...block.querySelectorAll("a")].map((a) => a.getAttribute("href"))).toEqual([`tel:${phone!.replace(/[^\d+]/g, "")}`, site.business.mainSite?.home ?? `https://${site.business.domain}/`]);
     });
   }
 

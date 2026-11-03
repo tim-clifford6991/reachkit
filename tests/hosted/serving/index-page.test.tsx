@@ -135,11 +135,14 @@ describe("the hosted index", () => {
   it("reads as board HostedIndex: guides from the business, a search of them, the recent ones, and a footer of name, site and feed", async () => {
     const doc = new DOMParser().parseFromString(await render(), "text/html");
     expect(doc.querySelector("h1")?.textContent).toBe("Guides from example.com");
-    expect(doc.querySelector('input[name="q"]')?.getAttribute("aria-label")).toBe("Search the guides");
+    expect(doc.querySelector('label[for="q"]')?.textContent).toBe("Search the guides");
+    expect(doc.querySelector("#q")?.getAttribute("name")).toBe("q");
     expect(doc.querySelector("#articles")?.textContent).toBe("Recent guides");
     const footer = doc.querySelector("footer")!;
     expect([...footer.firstElementChild!.children].map((part) => part.textContent)).toEqual(["© example.com", "example.com", "RSS"]);
     expect(footer.querySelector('a[href="/rss.xml"]')).not.toBeNull();
+    // Only the domain is mono and always underlined.
+    expect([...footer.querySelectorAll(".font-mono")].map((el) => [el.textContent, el.matches("a.link:not(.link-hover)")])).toEqual([["example.com", true]]);
   });
 
   it("opens with the newest page as the featured card, and the rest as cards under it", async () => {
@@ -147,6 +150,12 @@ describe("the hosted index", () => {
     const featured = html.slice(html.indexOf("Latest"), html.indexOf('id="articles"'));
     expect(featured).toContain("The best onboarding tools");
     expect(featured).not.toContain("How onboarding software is priced");
+    // Each card states its date above its title.
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    for (const card of doc.querySelectorAll("main .card-body:has(time)")) {
+      const [time, title] = [card.querySelector("time")!, card.querySelector("h2, h3")!];
+      expect(time.compareDocumentPosition(title) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    }
   });
 
   it("pages the cards with plain links: ?page= on the address, and the search kept", async () => {
