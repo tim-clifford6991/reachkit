@@ -37,7 +37,7 @@
 //
 // **The hard rules bind what ReachKit generates, never what the customer
 // writes.** An edit the customer saves does not come through here.
-import { HEADING_GAPS, PAGE_BLOCKS, PIPELINE } from "@/lib/config/constants";
+import { HEADING_GAPS, PAGE_BLOCKS } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import type { Tier } from "@/lib/llm/tiers";
 import type { Opportunity } from "@/lib/opportunities";
@@ -64,6 +64,7 @@ import { layoutPage, withClosing, type LaidPage } from "./compose";
 import type { SourcedFact } from "./grounding";
 import { fittedTemplate, packStatements, type ContextPack } from "./pack";
 import { batteryBasis, checkPage, scopeOf } from "./battery";
+import { tryFix, type FixStop } from "./fix-call";
 import { fixNotes, type FixNote, type RepairRecord } from "./repair";
 import { completeTables, withSources } from "./sources";
 import { withTable } from "./table";
@@ -105,6 +106,8 @@ export type GenerateOutcome =
       /** What the page was stopped for, with the sentences that failed each
        *  check (issue 1187's alert reads it). */
       fix?: FixNote[];
+      /** Why it had no fix call, where the budget or the clock is why (`./fix-call.ts`). */
+      stop?: FixStop;
     }
   | {
       ok: false;
@@ -463,28 +466,12 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
     // — code's table, its sources list — would be stopped for them again.
     const futile = checked.close === null && !checked.outcome.passed && notWritersToFix(notes, written.value);
     if (futile) logRun({ siteId: a.siteId, draftId, step: "fix", outcome: "not_writers" });
-    const canFix = !futile && !c.capHit() && Date.now() - startedAt < PIPELINE.fixBeforeMs;
-    const again = canFix
-      ? await fixPage(c, {
-          ...writing,
-          parts: written.value,
-          fix: notes,
-          ...(checked.close === null ? {} : { apart: checked.close.sentences }),
-        })
-      : null;
+    const { again, stop } = await tryFix(c, { futile, startedAt, call: () => fixPage(c, { ...writing, parts: written.value, fix: notes, ...(checked.close === null ? {} : { apart: checked.close.sentences }) }) });
     if (again === null || again.kind === "unmeasured") {
-      logRun({ siteId: a.siteId, draftId, step: "fix", outcome: again === null ? "not_started" : "step_failed" });
+      logRun({ siteId: a.siteId, draftId, step: "fix", outcome: stop ?? (again === null ? "not_started" : "step_failed") });
       if (checked.outcome.passed) return { ok: false, reason: "step_failed", draftId, step: "elsewhere" };
       if (!lacksSpecificOnly(checked.outcome)) {
-        return {
-          ok: false,
-          reason: "rules",
-          draftId,
-          failed: checked.outcome.failed,
-          attempt: attemptsBefore + 1,
-          recovery: "rest",
-          fix: notes,
-        };
+        return { ok: false, reason: "rules", draftId, failed: checked.outcome.failed, attempt: attemptsBefore + 1, recovery: "rest", fix: notes, ...(stop === null ? {} : { stop }) };
       }
     } else {
       fixed = true;
