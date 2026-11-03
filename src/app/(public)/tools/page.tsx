@@ -27,6 +27,7 @@ const WELL = "rounded-box bg-base-200 flex min-w-0 flex-col gap-2 p-3";
 const ICON = { size: 16, strokeWidth: 1.75, "aria-hidden": true } as const;
 const SCAN_HREF = `/#${FIELD_SECTION_ID}`;
 const SMALL = "text-base-content/70 text-sm";
+const SLASH = "/";
 /** The on-page card shows the first three of its example's checks. */
 const SHOWN = 3;
 const PAGES = Array.from({ length: SITE_PROFILE.MAX_PAGES }, (_, i) => i);
@@ -68,21 +69,29 @@ function OnPageExample(): React.JSX.Element {
   const checks = onPageChecks(EXAMPLE_ON_PAGE);
   const fine = checks.filter((c) => c.fine).length;
   return (
-    <div className={WELL}>
-      <span className="flex items-center gap-3">
+    <div className="rounded-box border-base-300 bg-base-100 flex min-w-0 flex-col border p-3">
+      <span className="flex items-center gap-3 pb-2">
         <span
           aria-hidden
-          className="radial-progress text-success after:hidden [--size:2.5rem] [--thickness:5px]"
+          className="radial-progress text-success text-xs font-bold after:hidden [--size:2.75rem] [--thickness:5px]"
           style={{ "--value": (fine / checks.length) * 100 } as React.CSSProperties}
-        />
+        >
+          <span className="text-base-content">
+            {fine}
+            {SLASH}
+            {checks.length}
+          </span>
+        </span>
         <strong>{copy("tools.fine.of", { fine, total: checks.length })}</strong>
       </span>
-      {checks.slice(0, SHOWN).map((c) => (
-        <span key={c.name} className="flex min-w-0 items-center justify-between gap-2 text-sm">
-          <span>{copy(c.name)}</span>
-          <Status fine={c.fine} />
-        </span>
-      ))}
+      <span className="divide-base-300 flex min-w-0 flex-col divide-y">
+        {checks.slice(0, SHOWN).map((c) => (
+          <span key={c.name} className="flex min-w-0 items-center justify-between gap-2 py-2 text-sm">
+            <span>{copy(c.name)}</span>
+            <Status fine={c.fine} />
+          </span>
+        ))}
+      </span>
     </div>
   );
 }

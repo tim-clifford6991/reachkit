@@ -567,7 +567,7 @@ export const CHROME_COPY = Object.freeze({
   "library.close.teardowns.title": ["Your site and competitors, read weekly", { slots: {}, fixedBy: "board PubTeardowns · issue 1728" }],
   "library.close.teardowns.2.them": ["An opinion on pages it could add", { slots: {}, fixedBy: "board PubTeardowns · issue 1728" }],
   "library.close.teardowns.cta.lead": ["The free scan shows where your buyers go instead, and suggests your first page.", { slots: {}, fixedBy: "board PubTeardowns · issue 1728" }],
-  "library.close.tools.title": ["One page here. Every page, weekly.", { slots: {}, fixedBy: "board PubTools · issue 1728" }],
+  "library.close.tools.title": ["One page here, every page weekly", { slots: {}, fixedBy: "board PubTools · issue 2282 (ux review)" }],
   "library.close.tools.them": ["A free tool", { slots: {}, fixedBy: "board PubTools · issue 1728" }],
   "library.close.weekly": ["ReachKit, every week", { slots: {}, fixedBy: "board PubTools · issue 1728" }],
   "library.close.tools.1.them": ["Checks one page when you ask", { slots: {}, fixedBy: "board PubTools · issue 1728" }],

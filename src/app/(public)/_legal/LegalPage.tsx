@@ -101,13 +101,7 @@ export function legalBodyHtml(md: string): string {
   return legalBodyWithIds(headingsUnderTitle(parseMarkdown(md)), LEGAL_BODY_CLASSES);
 }
 
-/** The contents list, from the document's own headings (#936).
- *
- *  Two shapes and one list: a daisyUI `collapse` above the text below
- *  `lg`, where a 220px column beside a 704px measure does not fit on a
- *  phone, and a column beside it from `lg`. The `<nav>` and its links are
- *  written once — the two shapes are which wrapper is displayed, never two
- *  lists that could come to name different sections. */
+/** The contents list, from the document's own headings: open above the text on a phone, as the board draws it, and a column beside it from `lg`. */
 export function OnThisPage(p: { headings: readonly Pick<LegalHeading, "id" | "number" | "title">[] }): React.JSX.Element | null {
   const headings = p.headings;
   // A body with no headings of its own gets no list and no room kept for
@@ -132,24 +126,10 @@ export function OnThisPage(p: { headings: readonly Pick<LegalHeading, "id" | "nu
   );
 
   return (
-    <>
-      <details className="collapse-arrow bg-base-100 collapse shadow-(--shadow-card) lg:hidden" data-testid="legal-toc-phone">
-        <summary className="collapse-title text-sm font-semibold">{copy("chrome.on-this-page")}</summary>
-        <nav className="collapse-content" aria-label={copy("chrome.on-this-page")}>
-          {list}
-        </nav>
-      </details>
-      <nav
-        className="hidden w-56 shrink-0 lg:block"
-        aria-label={copy("chrome.on-this-page")}
-        data-testid="legal-toc"
-      >
-        <p className="text-base-content/70 px-4 pb-1 text-xs font-semibold tracking-wide uppercase">
-          {copy("chrome.on-this-page")}
-        </p>
-        {list}
-      </nav>
-    </>
+    <nav className="w-full shrink-0 lg:sticky lg:top-6 lg:w-56" aria-label={copy("chrome.on-this-page")} data-testid="legal-toc">
+      <p className="text-base-content/70 px-4 pb-1 text-xs font-semibold tracking-wide uppercase">{copy("chrome.on-this-page")}</p>
+      {list}
+    </nav>
   );
 }
 
@@ -322,7 +302,7 @@ export function LegalPage(p: { document: LegalDocument }): React.JSX.Element {
           already selects for a read arm; this is not a second measure. */}
       <main className="mx-auto flex w-full min-w-0 max-w-5xl flex-col gap-4 px-4 py-12">
         <div className="flex flex-col gap-3">
-          <h1>{copy(p.document.title)}</h1>
+          <h1 className="t-hero">{copy(p.document.title)}</h1>
           {/* The whole line is a date with one word in front of it, so the
               whole line is in the mono face. */}
           <p className="text-base-content/70 font-mono text-xs">

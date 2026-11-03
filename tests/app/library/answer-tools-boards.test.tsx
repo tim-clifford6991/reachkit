@@ -52,7 +52,8 @@ function boardSections(board: string): HTMLElement[] {
 function headingOf(section: HTMLElement): string {
   const id = section.getAttribute("aria-labelledby");
   const el = (id ? section.querySelector(`#${id}`) : null) ?? section.querySelector("h1, h2, h3");
-  return el ? words(el.text).join(" ") : "";
+  // Read as the parity reader reads it, so a `<wbr>` breaks the heading on the board and the page alike.
+  return el ? words(segments(el.toString()).join(" ")).join(" ") : "";
 }
 
 const key = (text: string): string => words(text).join(" ");

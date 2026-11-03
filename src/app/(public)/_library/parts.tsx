@@ -53,6 +53,7 @@ const TILE_TONE = {
   muted: "bg-base-200 text-base-content/70",
   solid: "bg-primary text-primary-content",
   success: "bg-success/10 text-success",
+  warning: "bg-warning/10 text-warning",
   plain: "bg-base-100 text-primary",
 } as const;
 

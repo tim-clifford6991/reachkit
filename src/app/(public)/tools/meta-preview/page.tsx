@@ -5,6 +5,7 @@
 import type React from "react";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
+import { CircleCheck, Image as ImageIcon, Search, Share2, TriangleAlert } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { PUBLIC_ROUTE_SEO } from "../../_seo/routes";
 import { staticMetadata } from "../../_seo/metadata";
@@ -91,9 +92,15 @@ function Preview(p: { tags: PageTags }): React.JSX.Element {
               ))}
             </span>
             <span className="flex flex-wrap gap-x-4 text-sm">
-              <span>{copy("tools.preview.fine.count", { n: tags.length - missing.length })}</span>
+              <span className="flex items-center gap-1.5">
+                <CircleCheck size={16} strokeWidth={1.75} aria-hidden className="text-success flex-none" />
+                {copy("tools.preview.fine.count", { n: tags.length - missing.length })}
+              </span>
               {missing.length === 0 ? null : (
-                <span>{copy("tools.preview.fix.count", { n: missing.length, names: LIST.format(missing.map((row) => row.name)) })}</span>
+                <span className="flex items-start gap-1.5">
+                  <TriangleAlert size={16} strokeWidth={1.75} aria-hidden className="text-warning mt-0.5 flex-none" />
+                  {copy("tools.preview.fix.count", { n: missing.length, names: LIST.format(missing.map((row) => row.name)) })}
+                </span>
               )}
             </span>
           </span>
@@ -102,7 +109,10 @@ function Preview(p: { tags: PageTags }): React.JSX.Element {
 
       <div className={CARD} data-testid="meta-preview-google">
         <div className={BODY}>
-          <h3 className={LABEL}>{copy("tools.preview.google")}</h3>
+          <h3 className={`${LABEL} flex items-center gap-2`}>
+            <Search size={16} strokeWidth={1.75} aria-hidden />
+            {copy("tools.preview.google")}
+          </h3>
           <div className="grid min-w-0 gap-3 md:grid-cols-2">
             <GoogleResult tags={t} numbered />
             <ul className="list min-w-0">
@@ -115,12 +125,16 @@ function Preview(p: { tags: PageTags }): React.JSX.Element {
 
       <div className={CARD} data-testid="meta-preview-share">
         <div className={BODY}>
-          <h3 className={LABEL}>{copy("tools.preview.share")}</h3>
+          <h3 className={`${LABEL} flex items-center gap-2`}>
+            <Share2 size={16} strokeWidth={1.75} aria-hidden />
+            {copy("tools.preview.share")}
+          </h3>
           <div className="grid min-w-0 gap-3 md:grid-cols-2">
             <div className="border-base-300 flex min-w-0 flex-col overflow-hidden rounded-box border">
               {image === null ? (
                 <div className="bg-base-200 text-base-content/70 flex aspect-[1.91/1] items-center justify-center gap-2 text-sm">
                   <Callout n={3} />
+                  <ImageIcon size={20} strokeWidth={1.75} aria-hidden />
                   <strong>{copy("tools.preview.noimage")}</strong>
                 </div>
               ) : (
@@ -153,17 +167,15 @@ function Preview(p: { tags: PageTags }): React.JSX.Element {
       <div className={CARD} data-testid="meta-preview-tags">
         <div className={BODY}>
           <h3 className={LABEL}>{copy("tools.preview.tags")}</h3>
-          <ul className="list min-w-0">
+          <ul className="flex min-w-0 flex-col">
             {tags.map((row) => (
-              <li key={row.tag} className="list-row min-w-0 items-start">
-                <span className="w-32 shrink-0 font-mono text-sm break-words">{tagName(row.tag)}</span>
-                <span className="flex min-w-0 flex-col gap-1">
-                  <span className="text-sm break-words">
-                    {row.value === "" ? copy("tools.preview.missing") : row.value}
-                  </span>
-                  <span className={SMALL}>{row.what}</span>
+              <li key={row.tag} className="border-base-300 grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-x-2 gap-y-1 border-b py-3 last:border-b-0">
+                <span className="font-mono text-sm break-words">{tagName(row.tag)}</span>
+                <span className="col-span-2 text-sm wrap-anywhere">{row.value === "" ? copy("tools.preview.missing") : row.value}</span>
+                <span className={`col-span-2 ${SMALL}`}>{row.what}</span>
+                <span className="col-start-2 row-start-1">
+                  <Status fine={row.value !== ""} />
                 </span>
-                <Status fine={row.value !== ""} />
               </li>
             ))}
           </ul>

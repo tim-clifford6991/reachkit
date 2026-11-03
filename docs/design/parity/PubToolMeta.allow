@@ -1,6 +1,6 @@
 Preview of harborplumbing.com/ water-heater-repair	sample data
 Scan harborplumbing.com for free	sample data
-One page by hand, or all of it every week	SPEC 2026-10-15 (#1444): a title is at most six words, so it ships as "One page here. Every page, weekly." (#1728)
+One page by hand, or all of it every week	SPEC 2026-10-15 (#1444): a title is at most six words, so it ships as "One page here, every page weekly" (#1728, #2282)
 1 Title 56 characters · fits Fine	sample data
 2 Text under the link 121 characters · fits Fine	sample data
 Articles	#1512: the footer links the content host's index only where stored rows name one; the sweep seeds none
