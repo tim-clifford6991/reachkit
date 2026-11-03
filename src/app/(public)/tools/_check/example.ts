@@ -4,8 +4,7 @@
 import { SPECIMEN_HERO_BUSINESS, SPECIMEN_HERO_DOMAIN } from "../../_landing/specimen";
 import type { PageTags } from "./read";
 
-export const EXAMPLE_CITY = "Austin";
-export const EXAMPLE_BUSINESS = SPECIMEN_HERO_BUSINESS;
+const EXAMPLE_CITY = "Austin";
 
 const PAGE_URL = `https://${SPECIMEN_HERO_DOMAIN}/water-heater-repair`;
 const TITLE = `Water heater repair in ${EXAMPLE_CITY}, same day | ${SPECIMEN_HERO_BUSINESS}`;

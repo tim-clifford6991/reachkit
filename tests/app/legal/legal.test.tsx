@@ -16,6 +16,7 @@ import "../../generate/env";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { segments } from "../../../scripts/design/parity.mjs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { copy } from "@/lib/presentation/copy";
 import { VETO, WEEK_PLAN } from "@/lib/config/constants";
@@ -81,13 +82,12 @@ describe('S5 — "One renderer for the three routes"', () => {
   });
 });
 
-describe("S5 — the screen: eyebrow, title, updated line, one card", () => {
+describe("S5 — the screen: title, updated line, one card", () => {
   for (const route of ROUTES) {
     describe(route.file, () => {
       const html = renderToStaticMarkup(<route.Page />);
 
-      it("speaks the eyebrow, the title, the updated line and the body — every one a key", () => {
-        expect(html).toContain(copy("legal.eyebrow"));
+      it("speaks the title, the updated line and the body — every one a key", () => {
         expect(html).toContain(copy(route.title));
         expect(html).toContain(copy("legal.updated", { date: copy(route.updated) }));
         // Every heading and every block of the body, through the one renderer; a list the
@@ -110,8 +110,8 @@ describe("S5 — the screen: eyebrow, title, updated line, one card", () => {
         }
       });
 
-      it("the eyebrow stands above the title, and the title is the page's one h1", () => {
-        expect(html.indexOf(copy("legal.eyebrow"))).toBeLessThan(html.indexOf("<h1"));
+      it("the page opens on its title, with no eyebrow above it, and the title is the page's one h1", () => {
+        expect(segments(html.slice(0, html.indexOf("<h1")))).toEqual([]);
         expect(html.match(/<h1/g)).toHaveLength(1);
       });
 

@@ -52,7 +52,8 @@ function boardSections(board: string): HTMLElement[] {
 function headingOf(section: HTMLElement): string {
   const id = section.getAttribute("aria-labelledby");
   const el = (id ? section.querySelector(`#${id}`) : null) ?? section.querySelector("h1, h2, h3");
-  return el ? words(el.text).join(" ") : "";
+  // Read as the parity reader reads it, so a `<wbr>` breaks the heading on the board and the page alike.
+  return el ? words(segments(el.toString()).join(" ")).join(" ") : "";
 }
 
 const key = (text: string): string => words(text).join(" ");
@@ -95,5 +96,32 @@ describe("PubAnswer: the charts drawn to scale keep the caption true", () => {
         chart.rows.length - unscaled
       );
     }
+  });
+});
+
+describe("the tools read without sample captions, and each tool opens on its breadcrumb", () => {
+  const TOOLS = PAGES.filter((p) => p.board !== "PubAnswer");
+  const pageOf = async (render: Render) => parse(renderToStaticMarkup((await render()) as React.ReactElement));
+
+  it.each(TOOLS)("$board: no example caption, and what a check costs only once, under a tool's field", async ({ board, render }) => {
+    const { copy } = await import("@/lib/presentation/copy");
+    const root = await pageOf(render);
+    const text = segments(root.toString());
+    const last = copy("tools.micro").split(" · ").at(-1)!;
+    expect(text.filter((s) => /an example business/i.test(s))).toEqual([]);
+    expect(text.filter((s) => s.includes(last))).toHaveLength(board === "PubTools" ? 0 : 1);
+    expect(root.querySelectorAll('[data-testid="tool-form"] p').map((p) => segments(p.toString()).length)).toEqual(board === "PubTools" ? [] : [1]);
+  });
+
+  it("PubTools opens on its title, with no eyebrow above it", async () => {
+    const root = await pageOf(TOOLS[0]!.render);
+    expect(segments(root.querySelector("article")!.toString().split("<h1")[0]!)).toEqual([]);
+  });
+
+  it.each(TOOLS.filter((p) => p.board !== "PubTools"))("$board: the breadcrumb links Free tools, then names the tool", async ({ render }) => {
+    const root = await pageOf(render);
+    const crumbs = root.querySelector("article nav.breadcrumbs")!;
+    expect(crumbs.querySelectorAll("a").map((a) => a.getAttribute("href"))).toEqual(["/tools"]);
+    expect(segments(crumbs.toString())).toEqual([...segments(crumbs.querySelector("a")!.toString()), segments(root.querySelector("h1")!.toString())[0]]);
   });
 });

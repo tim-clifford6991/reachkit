@@ -53,6 +53,7 @@ const TILE_TONE = {
   muted: "bg-base-200 text-base-content/70",
   solid: "bg-primary text-primary-content",
   success: "bg-success/10 text-success",
+  warning: "bg-warning/10 text-warning",
   plain: "bg-base-100 text-primary",
 } as const;
 
@@ -96,6 +97,9 @@ export function LibraryPage(p: {
   /** Where the page sits, drawn in place of the eyebrow. */
   trail?: React.ReactNode;
   title: string;
+  /** The line under the heading, drawn beside `aside` where the board sets a tool's field there. */
+  lead?: React.ReactNode;
+  aside?: React.ReactNode;
   /** Wide pages (an index) use the about page's outer measure. */
   wide?: boolean;
   children: React.ReactNode;
@@ -116,11 +120,37 @@ export function LibraryPage(p: {
             (p.eyebrow === undefined ? null : (
               <span className="text-base-content/70 text-xs font-semibold tracking-wide uppercase">{copy(p.eyebrow)}</span>
             ))}
-          <h1 className="t-hero break-words">{p.title}</h1>
+          {p.aside === undefined ? (
+            <h1 className="t-hero break-words">{p.title}</h1>
+          ) : (
+            <div className="flex min-w-0 flex-wrap items-end gap-x-12 gap-y-8">
+              <div className="flex min-w-0 flex-[1_1_27.5rem] flex-col gap-3.5">
+                <h1 className="t-hero break-words">{p.title}</h1>
+                {p.lead}
+              </div>
+              <div className="min-w-0 flex-[1_1_30rem]">{p.aside}</div>
+            </div>
+          )}
           <div className="mt-3 flex min-w-0 flex-col gap-4">{p.children}</div>
         </article>
       </main>
     </Surface>
+  );
+}
+
+/** Where a page sits, drawn in place of the eyebrow: the index it belongs to as a 44px link, then its place in it. */
+export function Trail(p: { label: string; href: string; index: string; here?: string }): React.JSX.Element {
+  return (
+    <nav aria-label={p.label} className="breadcrumbs text-base-content/70 py-0 text-sm">
+      <ul>
+        <li>
+          <Link href={p.href} className="link link-primary link-hover inline-flex min-h-11 items-center font-semibold">
+            {p.index}
+          </Link>
+        </li>
+        {p.here === undefined ? null : <li>{p.here}</li>}
+      </ul>
+    </nav>
   );
 }
 
@@ -160,12 +190,9 @@ interface Close {
 
 const TEARDOWN_ROW_1: Row = ["library.close.teardown.1.them", "library.close.teardown.1.us"];
 const TEARDOWN_ROW_3: Row = ["library.close.teardown.3.them", "library.close.teardown.3.us"];
-const TOOL_WEEKLY = {
-  eyebrow: "library.close.tools.eyebrow",
-  title: "library.close.tools.title",
-  them: "library.close.tool.them",
-  us: "library.close.weekly",
-} as const;
+/** The three tool closes as canvas v36 draws them: the weekly compare without its eyebrow or lead, then your part. */
+const TOOL_CLOSE = { glance: false, short: true, icons: { them: User, us: Sparkles } } as const;
+const TOOL_WEEKLY = { title: "library.close.tools.title", them: "library.close.tool.them", us: "library.close.weekly" } as const;
 
 const CLOSE = {
   about: { glance: false, short: true },
@@ -216,7 +243,6 @@ const CLOSE = {
   tools: {
     weekly: {
       ...TOOL_WEEKLY,
-      lead: "library.close.tools.lead",
       them: "library.close.tools.them",
       rows: [
         ["library.close.tools.1.them", "library.close.tools.1.us"],
@@ -224,34 +250,29 @@ const CLOSE = {
         ["library.close.tools.3.them", "library.close.tools.3.us"],
       ],
     },
-    lead: "how.start.body",
-    glance: true,
+    ...TOOL_CLOSE,
   },
   "tool-meta": {
     weekly: {
       ...TOOL_WEEKLY,
-      lead: "library.close.meta.lead",
       rows: [
         ["library.close.tool.1.them", "library.close.meta.1.us"],
         ["library.close.meta.2.them", "library.close.tool.wordpress"],
         ["library.close.meta.3.them", "library.close.meta.3.us"],
       ],
     },
-    lead: "library.close.meta.cta.lead",
-    glance: true,
+    ...TOOL_CLOSE,
   },
   "tool-on-page": {
     weekly: {
       ...TOOL_WEEKLY,
-      lead: "library.close.onpage.lead",
       rows: [
         ["library.close.tool.1.them", "library.close.onpage.1.us"],
         ["library.close.onpage.2.them", "library.close.tool.wordpress"],
         ["library.close.onpage.3.them", "library.close.onpage.3.us"],
       ],
     },
-    lead: "library.close.onpage.cta.lead",
-    glance: true,
+    ...TOOL_CLOSE,
   },
   scans: {
     weekly: {

@@ -113,7 +113,7 @@ describe("the scans close draws its own icons", () => {
 });
 
 /** The closes canvas v36 drew without the glance: the field alone, under its heading. */
-const SHORT = ["about", "scans", "compare", "compare-tool", "answer", "teardowns", "teardown"] as const;
+const SHORT = ["about", "scans", "compare", "compare-tool", "answer", "teardowns", "teardown", "tools", "tool-meta", "tool-on-page"] as const;
 
 describe("every close with the glance draws its ring, icon tiles and AI bar", () => {
   const e = EXAMPLES.plumber.report;
@@ -137,8 +137,9 @@ describe("every close with the glance draws its ring, icon tiles and AI bar", ()
   });
 });
 
-describe("Compare, a comparison and an answer carry no repeated module, and close on the heading, the field and its line", () => {
-  it.each(PAGES.filter((page) => ["compare", "compare-tool", "answer"].includes(page.variant)))("$board", async ({ render }) => {
+describe("Compare, a comparison, an answer and the tools carry no repeated module, and close on the heading, the field and its line", () => {
+  const BARE = ["compare", "compare-tool", "answer", "tools", "tool-meta", "tool-on-page"];
+  it.each(PAGES.filter((page) => BARE.includes(page.variant)))("$board", async ({ render }) => {
     const root = parse(await html(render));
     const text = segments(root.toString());
     expect(root.querySelector('[data-testid="learn-loop"]')).toBeNull();
