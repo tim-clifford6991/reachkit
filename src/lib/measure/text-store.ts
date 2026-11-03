@@ -60,21 +60,25 @@ function rows<T>(result: Result<T>, table: string): T[] {
 // Ids per `in` filter, so a long read history never outgrows a request's address.
 const IDS = 100;
 
-/** The text of each listed read, by fetch id: kept rows at `version`, the
- *  rest derived from their payloads and kept. */
-async function textById(client: TextClient, ids: readonly string[], version: string): Promise<Map<string, TextRow>> {
+/** A `fetches` row as the reader already holds it. */
+export interface FetchRead {
+  id: string;
+  scan_id: string;
+  source: string;
+  payload: unknown;
+}
+
+/** The text of each read: kept rows at `version`, the rest derived from the
+ *  payloads already in hand and kept. */
+async function textById(client: TextClient, reads: readonly FetchRead[], version: string): Promise<Map<string, TextRow>> {
   const out = new Map<string, TextRow>();
   const kept = await client
     .from<TextRow & { fetch_id: string }>("fetch_text")
     .select("fetch_id, url, read_at, rendered, document, text, examples, questions")
     .eq("text_version", version)
-    .in("fetch_id", ids);
+    .in("fetch_id", reads.map((read) => read.id));
   for (const row of rows(kept, "fetch_text")) out.set(row.fetch_id, row);
-  const missing = ids.filter((id) => !out.has(id));
-  if (missing.length === 0) return out;
-
-  const fetched = await client.from<{ id: string; scan_id: string; source: string; payload: unknown }>("fetches").select("id, scan_id, source, payload").in("id", missing);
-  const derived = rows(fetched, "fetches").map((r) => ({ fetch_id: r.id, scan_id: r.scan_id, text_version: version, ...textRowOf(r.source, r.payload) }));
+  const derived = reads.filter((read) => !out.has(read.id)).map((r) => ({ fetch_id: r.id, scan_id: r.scan_id, text_version: version, ...textRowOf(r.source, r.payload) }));
   for (const row of derived) out.set(row.fetch_id, row);
   if (derived.length > 0) {
     // A row Postgres refuses is derived again next time; the text read now is the same.
@@ -84,19 +88,17 @@ async function textById(client: TextClient, ids: readonly string[], version: str
   return out;
 }
 
-/** The measured text of the scans' own and rendered reads by fetch id, in
- *  the order `fetches` lists them; null for a read that holds no document. */
-export async function storedText(client: TextClient, scanIds: readonly string[], sources: readonly string[], version: string): Promise<Map<string, MeasuredText | null>> {
-  const listed = rows(await client.from<{ id: string }>("fetches").select("id, scan_id, source").in("source", sources).in("scan_id", scanIds), "fetches");
-  const ids = listed.map((row) => row.id);
+/** The measured text of each read by fetch id, in the order given; null for
+ *  a read that holds no document. */
+export async function storedText(client: TextClient, reads: readonly FetchRead[], version: string): Promise<Map<string, MeasuredText | null>> {
   const batches = [];
-  for (let i = 0; i < ids.length; i += IDS) batches.push(textById(client, ids.slice(i, i + IDS), version));
+  for (let i = 0; i < reads.length; i += IDS) batches.push(textById(client, reads.slice(i, i + IDS), version));
   const byId = new Map<string, TextRow>();
   for (const batch of await Promise.all(batches)) for (const [id, row] of batch) byId.set(id, row);
   const out = new Map<string, MeasuredText | null>();
-  for (const id of ids) {
-    const row = byId.get(id);
-    out.set(id, row === undefined ? null : measuredTextOf(row));
+  for (const read of reads) {
+    const row = byId.get(read.id);
+    out.set(read.id, row === undefined ? null : measuredTextOf(row));
   }
   return out;
 }

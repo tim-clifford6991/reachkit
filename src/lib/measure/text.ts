@@ -27,7 +27,7 @@
 import { isDeepStrictEqual } from "node:util";
 import { dbAdmin } from "@/lib/db";
 import { OWN_FETCH_SOURCE, RENDERED_FETCH_SOURCE } from "./own-fetch";
-import { measuredTextOf, storedText, textRowOf, type TextClient } from "./text-store";
+import { measuredTextOf, storedText, textRowOf, type FetchRead, type TextClient } from "./text-store";
 
 export interface MeasuredText {
   url: string;
@@ -48,12 +48,6 @@ export interface MeasuredText {
 // `src/lib/costs/ledger.ts` names and works around); the narrow builder
 // below is the cast boundary — nothing else in this file bypasses the
 // generated client.
-interface OwnFetchRow {
-  id: string;
-  scan_id: string;
-  source: string;
-  payload: unknown;
-}
 interface QueryResult<T> {
   data: T[] | null;
   error: { message: string } | null;
@@ -152,11 +146,10 @@ export async function readDomainText(domain: string, read?: TextRead): Promise<M
 
 async function textOfScans(scanIds: readonly string[]): Promise<MeasuredText[]> {
   const client = dbAdmin();
-  const sources = [OWN_FETCH_SOURCE, RENDERED_FETCH_SOURCE];
   const rows = await (client as unknown as MinimalClient)
-    .from<OwnFetchRow>("fetches")
+    .from<FetchRead>("fetches")
     .select("id, scan_id, source, payload")
-    .in("source", sources)
+    .in("source", [OWN_FETCH_SOURCE, RENDERED_FETCH_SOURCE])
     .in("scan_id", scanIds);
   if (rows.error) {
     throw new Error(`text.ts: read from fetches failed: ${rows.error.message}`);
@@ -172,20 +165,30 @@ async function textOfScans(scanIds: readonly string[]): Promise<MeasuredText[]> 
     served.set(row.id, text);
     if (text !== null) out.push(text);
   }
+  // Dev and production share one database, so only production keeps rows at its text version.
   const version = process.env.RK_TEXT_VERSION;
-  if (version) await textParity(client as unknown as TextClient, scanIds, sources, version, served);
+  if (version && process.env.VERCEL_ENV === "production") await textParity(client as unknown as TextClient, rows.data ?? [], version, served);
   return out.sort(compareMeasuredText);
 }
 
-// The stored text is read beside the served text and only compared, so its first deploys prove it without serving it.
-async function textParity(client: TextClient, scanIds: readonly string[], sources: readonly string[], version: string, served: ReadonlyMap<string, MeasuredText | null>): Promise<void> {
+// The served read waits on the shadow for at most this long.
+const SHADOW_MS = 1500;
+
+// The stored text is derived beside the served text and only compared, so its first deploys prove it without serving it.
+async function textParity(client: TextClient, reads: readonly FetchRead[], version: string, served: ReadonlyMap<string, MeasuredText | null>): Promise<void> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const shadow = storedText(client, reads, version);
+  shadow.catch(() => {});
   try {
-    const stored = await storedText(client, scanIds, sources, version);
+    const stored = await Promise.race([shadow, new Promise<null>((resolve) => (timer = setTimeout(resolve, SHADOW_MS, null)))]);
+    if (stored === null) return console.warn("text parity: shadow timed out");
     const ids = new Set([...served.keys(), ...stored.keys()]);
     const mismatched = [...ids].filter((id) => !isDeepStrictEqual(served.get(id), stored.get(id)));
     const first = mismatched.length > 0 ? ` first=${mismatched[0]}` : "";
     console.info(`text parity: match=${ids.size - mismatched.length} mismatch=${mismatched.length}${first}`);
   } catch (error) {
     console.warn(`text parity: shadow read failed: ${error instanceof Error ? error.message : String(error)}`);
+  } finally {
+    clearTimeout(timer);
   }
 }
