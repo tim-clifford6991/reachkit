@@ -49,6 +49,7 @@ import { useCallback, useEffect, useMemo, useOptimistic, useRef, useState, useTr
 import { AUTOSAVE_DEBOUNCE_MS, TIMING } from "@/lib/config/constants";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useRefreshWhenMoved } from "@/app/_poll/useRefreshWhenMoved";
 import { copy } from "@/lib/presentation/copy";
 import { ArrowLeft, Check, CircleCheck, LoaderCircle, Plus, RefreshCw, TriangleAlert } from "lucide-react";
 import {
@@ -930,19 +931,8 @@ export function DraftScreen(p: {
  * or a timer.
  */
 function Rewriting(p: { draftId: string }): React.JSX.Element {
-  const router = useRouter();
-  useEffect(() => {
-    const timer = setInterval(() => {
-      if (document.hidden) return;
-      void fetch(`/api/draft-state/${encodeURIComponent(p.draftId)}`)
-        .then(async (response) => (response.status >= 500 ? null : ((await response.json()) as { state?: string })))
-        .then((body) => {
-          if (body !== null && body.state !== "generating") router.refresh();
-        })
-        .catch(() => undefined);
-    }, TIMING.progressHeartbeatS * 1000);
-    return () => clearInterval(timer);
-  }, [router, p.draftId]);
+  const url = `/api/draft-state/${encodeURIComponent(p.draftId)}`;
+  useRefreshWhenMoved(url, TIMING.progressHeartbeatS * 1000, (body) => (body as { state?: string }).state !== "generating");
   return (
     <div role="status" aria-live="polite" className="alert text-sm" data-testid="draft-rewriting">
       <LoaderCircle size={20} strokeWidth={1.75} aria-hidden />

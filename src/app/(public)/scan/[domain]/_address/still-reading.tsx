@@ -11,30 +11,14 @@
 // client would ship the whole registry.
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRefreshWhenMoved } from "@/app/_poll/useRefreshWhenMoved";
 
 /** How often the route is asked again. */
 const REFRESH_MS = 5_000;
 
 export function StillReading(p: { line: string; untilMs: number; scanId: string }): React.JSX.Element {
-  const router = useRouter();
-  useEffect(() => {
-    const timer = setInterval(() => {
-      if (Date.now() >= p.untilMs) {
-        clearInterval(timer);
-        return;
-      }
-      if (document.hidden) return;
-      void fetch(`/api/scan/${encodeURIComponent(p.scanId)}/reads`)
-        .then(async (response) => (response.ok ? ((await response.json()) as { finishing: boolean }) : null))
-        .then((body) => {
-          if (body?.finishing === false) router.refresh();
-        })
-        .catch(() => undefined);
-    }, REFRESH_MS);
-    return () => clearInterval(timer);
-  }, [router, p.untilMs, p.scanId]);
+  const url = `/api/scan/${encodeURIComponent(p.scanId)}/reads`;
+  useRefreshWhenMoved(url, REFRESH_MS, (body) => (body as { finishing?: boolean }).finishing === false, p.untilMs);
   return (
     <p role="status" className="col-span-full text-sm text-base-content/70" data-testid="report-finishing-reads">
       {p.line}

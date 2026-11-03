@@ -6,7 +6,7 @@
 // shows: an unknown, superseded or removed scan answers exactly as a finished
 // one, so the route tells a stranger nothing the address would not.
 import { adapter } from "../../../_adapter";
-import { stillFinishing } from "@/lib/scan/report";
+import { stillFinishing } from "@/lib/scan/status";
 
 export const dynamic = "force-dynamic";
 
