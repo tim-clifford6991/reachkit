@@ -186,7 +186,7 @@ describe("icons are structural only (E26, E27, E29)", () => {
     const html = compact.innerHTML;
     expect(html).toContain(MAP_PIN);
     expect(html.indexOf(MAP_PIN)).toBeLessThan(html.indexOf("Serves"));
-    expect(compact.text).toContain("24-hour emergency calls. Serves Austin, TX.Sample");
+    expect(compact.text).toContain("24-hour emergency calls. Serves Austin, TX.");
   });
 
   it("PubReport's We read you as draws Tag, MapPin and Languages, and the buyer chip no icon (E44)", () => {

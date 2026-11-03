@@ -19,6 +19,9 @@ import { mainSiteOf, type MainSite } from "@/lib/site-profile/main-site-row";
 export { readFaq, type FaqEntry } from "../../render/faq";
 export { readDescription } from "./page-fields";
 
+/** An offering page's sections drawn as cards, in the template's order. */
+const CARDED = ["included", "price", "where_when"] as const;
+
 /** A site as the edge sees it, with nothing about its owner. */
 export interface HostedSite {
   siteId: string;
@@ -97,6 +100,8 @@ export interface HostedPage extends HostedListing {
    *  generation recorded it (`drafts.meta.sections`); absent or `null` where
    *  it recorded none. */
   whereWhen?: string | null;
+  /** The headings of an offering page's sections the board draws as cards (included, price, where and when), as recorded. */
+  carded?: readonly string[];
 }
 
 interface SiteRow {
@@ -368,6 +373,7 @@ export async function livePageBySlug(
     grounded: readRecordedFact(draft.grounded_fact),
     made: madeCounts(draft.meta, listing.publisher.name),
     whereWhen: readSectionHeading(draft.meta, "where_when"),
+    carded: CARDED.flatMap((key) => readSectionHeading(draft.meta, key) ?? []),
   };
   return { page, others: pages.filter((other) => other !== listing) };
 }

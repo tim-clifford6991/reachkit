@@ -83,16 +83,18 @@ describe("the hosted index lists every live guide by topic", () => {
       guide(7, { title: "Low water pressure in the whole house" }),
     ];
     const section = allGuides(render(pages));
-    const topics = [...section.querySelectorAll("h3")].map((h) => `${h.textContent} ${h.nextElementSibling?.textContent}`);
+    const topics = [...section.querySelectorAll("h3:not(#other-guides)")].map((h) => `${h.textContent} ${h.nextElementSibling?.textContent}`);
     expect(topics).toEqual(["Water heater repair in Austin 3 guides", "Toilet keeps running 2 guides"]);
-    // One decorative book glyph per topic card, none on the A–Z list.
-    for (const card of section.querySelectorAll(".card")) {
+    // One decorative book glyph per topic card, none on the Other guides card.
+    const other = section.querySelector('[aria-labelledby="other-guides"]')!;
+    expect(other.querySelectorAll("svg")).toHaveLength(0);
+    for (const card of section.querySelectorAll(".card:not([aria-labelledby='other-guides'])")) {
       expect(card.querySelectorAll("svg")).toHaveLength(1);
       expect(card.querySelectorAll("svg[aria-hidden='true']")).toHaveLength(1);
     }
-    expect(section.querySelectorAll(":scope > ul svg")).toHaveLength(0);
-    // A topic only one page has is no topic: it joins the A–Z rest.
-    const rest = [...section.querySelectorAll(":scope > ul a")].map((a) => a.textContent);
+    // A topic only one page has is no topic: it joins the A–Z rest, in a card of its own.
+    expect(section.querySelectorAll(":scope > ul")).toHaveLength(0);
+    const rest = [...other.querySelectorAll("a")].map((a) => a.textContent);
     expect(rest).toEqual(["How to find a slab leak", "Low water pressure in the whole house"]);
     expect(linked(section).sort()).toEqual(pages.map((p) => p.slug).sort());
   });
@@ -122,6 +124,13 @@ describe("the hosted index lists every live guide by topic", () => {
       expect(titles).toEqual(pages.map((p) => p.title).sort((a, b) => a.localeCompare(b)));
       expect(doc.querySelector("[aria-current='page']")?.textContent).toBe(`Page ${n} of 3`);
     }
+  });
+
+  it("every guide title, in a card or a list, is a 44px target", () => {
+    const pages = Array.from({ length: 20 }, (_, i) => guide(i, { cluster: i % 2 === 0 ? "topic" : null }));
+    const titles = [...render(pages).querySelectorAll("main h2 a, main h3 a, main li a")];
+    expect(titles.length).toBeGreaterThanOrEqual(20);
+    for (const a of titles) expect(a.className, a.textContent ?? "").toContain("min-h-11");
   });
 
   it("a site with no pages still says so, and a search shows its matches only", () => {
