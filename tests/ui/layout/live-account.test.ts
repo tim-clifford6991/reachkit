@@ -259,14 +259,23 @@ describe(`live-branch sweep — ${routes.length} route(s) × ${sweepWidths().len
         );
       }
 
-      // Chosen, and seeded as such: the publish time and the veto window.
+      // Chosen, and seeded as such: the veto window, and the publish time the select shows in the boards' form (its text lists every hour).
       const publishing = await textOf("/app/settings/publishing");
-      expect(publishing).toContain(LIVE_PUBLISHING.publishTime);
       expect(publishing).toContain(String(LIVE_PUBLISHING.vetoHours));
-      // And not the fixture's, which is the same screen's other arm: the
-      // fixture's own publish time is what a spread put here for every
-      // account.
-      expect(publishing).not.toContain(FIXTURE_SETTINGS_FACTS.publishTime);
+      const publishTime = await withPage(
+        widths()[0],
+        async (page) => {
+          await page.goto(`${getBaseURL()}/app/settings/publishing`, { timeout: LIVE_NAVIGATION_MS });
+          return page.$eval('[data-testid="publish-time"]', (el) => {
+            const select = el as HTMLSelectElement;
+            return { value: select.value, shown: select.selectedOptions[0]?.textContent ?? "" };
+          });
+        },
+        headersFor({ path: "/app/settings/publishing", cookie: getLiveAccountCookie() })
+      );
+      expect(publishTime).toEqual({ value: LIVE_PUBLISHING.publishTime, shown: "7:30 AM" });
+      // And not the fixture's, which is what a spread put here for every account.
+      expect(publishTime.value).not.toBe(FIXTURE_SETTINGS_FACTS.publishTime);
 
       // The domain this account owns. It is not the discriminator against
       // the fixture — this account's *address* is at `example.com` by
