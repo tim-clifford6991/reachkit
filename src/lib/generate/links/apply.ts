@@ -15,7 +15,9 @@
 //      A link elsewhere with such text is named by its host.
 //   2. Every link into the customer's own site — an absolute address on
 //      their domain, or a site-relative `/path` — that is not a chosen
-//      target and not the grounded source is unwrapped to its label. A
+//      target and not the grounded source is unwrapped to its label, and so
+//      is a link to a chosen target whose words share none with that
+//      page's name, headings or address — a price is not a page. A
 //      path the model guessed is exactly the dead link the rule forbids. A
 //      chosen target written relatively is rewritten absolute: the hosted
 //      destination serves from a subdomain, where `/pricing` is not theirs.
@@ -35,7 +37,7 @@
 // destination read the same links from the same string.
 import { CROSS_LINKS } from "@/lib/config/constants";
 import { onSite, urlKey, type LinkTarget } from "./select";
-import { isSlogan, linkTextProblem, resembles, widenNumberLinks } from "./text";
+import { isSlogan, linkTextProblem, linkWords, resembles, sameWord, widenNumberLinks } from "./text";
 
 /** The renderer's inline grammar, code spans first so a link written
  *  inside backticks stays code. */
@@ -92,7 +94,7 @@ export function applyLinks(
       const key = urlKey(absolute);
       const target = key === null ? undefined : chosen.get(key);
       if (key !== null && target !== undefined) {
-        if (problem !== null || rewordsSlogan(label, target)) return problem === "empty" ? "" : label;
+        if (problem !== null || rewordsSlogan(label, target) || !namesTarget(label, target)) return problem === "empty" ? "" : label;
         linked.add(key);
         return `[${label}](${safeHref(target.url)})`;
       }
@@ -208,6 +210,21 @@ export function dedupeLinks(markdown: string): string {
 function rewordsSlogan(label: string, target: LinkTarget): boolean {
   if (target.source !== "site") return false;
   return (target.said ?? []).some((said) => isSlogan(said) && resembles(label, said));
+}
+
+/** True where a link's words share one with the page it leads to — its
+ *  name, its own headings or its address — so no sentence about something
+ *  else is pointed at it. */
+function namesTarget(label: string, target: LinkTarget): boolean {
+  let path = "";
+  try {
+    path = decodeURIComponent(new URL(target.url).pathname);
+  } catch {
+    // An address that does not parse names nothing; the label and headings still may.
+  }
+  const said = target.source === "site" ? (target.said ?? []) : [];
+  const named = linkWords([target.label, ...said, path].join(" "));
+  return linkWords(label).some((word) => named.some((name) => sameWord(word, name)));
 }
 
 function hostOf(url: string): string | null {

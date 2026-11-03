@@ -505,3 +505,25 @@ describe("lists in the body are styled, and nothing is drawn that the body does 
     expect(body.querySelectorAll("img, svg, picture, canvas")).toHaveLength(0);
   });
 });
+
+describe("a live page written before the link step refused a figure", () => {
+  it("draws a price linked into the business's site as words, and keeps every other link", async () => {
+    state.page = livePage({
+      bodyMd: [
+        "Otterly starts at [$29](https://example.com/compare/otterly)/month, as [its own page](https://otterly.ai/pricing) says.",
+        "Its plan is [$29](https://otterly.ai/pricing) and ours is on [our pricing page](https://example.com/pricing).",
+      ].join("\n\n"),
+    });
+    const body = new DOMParser().parseFromString(await render(), "text/html").querySelector(".prose")!;
+    const drawn = [...body.querySelectorAll("a")].map((a) => [a.textContent, a.getAttribute("href")]);
+    expect(drawn).not.toContainEqual(["$29", "https://example.com/compare/otterly"]);
+    expect(body.textContent).toContain("Otterly starts at $29/month");
+    expect(drawn).toEqual(
+      expect.arrayContaining([
+        ["its own page", "https://otterly.ai/pricing"],
+        ["$29", "https://otterly.ai/pricing"],
+        ["our pricing page", "https://example.com/pricing"],
+      ])
+    );
+  });
+});
