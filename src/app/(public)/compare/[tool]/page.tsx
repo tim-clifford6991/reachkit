@@ -218,7 +218,7 @@ export default async function ComparisonPage({ params }: Params): Promise<React.
             <table className="table table-sm w-full table-fixed">
               <thead className="text-base-content/70">
                 <tr>
-                  <th scope="col" className="w-2/5 whitespace-normal break-words">
+                  <th scope="col" className="w-1/3 whitespace-normal break-words">
                     {copy("compare.item.feature")}
                   </th>
                   <th scope="col" className="whitespace-normal break-words">

@@ -43,7 +43,8 @@ const JOBS_NAME_ID = "compare-jobs-name";
 const READ_ON = COMPARISONS.map((c) => c.checked).sort().at(-1) ?? "";
 const TILE =
   "card bg-base-100 shadow-(--shadow-card) motion-safe:transition-transform motion-safe:duration-200 hover:-translate-y-0.5";
-const GRID = "grid min-w-0 grid-cols-[minmax(0,1.9fr)_repeat(5,minmax(0,1fr))] items-center gap-1.5";
+// The name column keeps room for its icon and a word per line, as the board sizes it.
+const GRID = "grid min-w-0 grid-cols-[minmax(8.5rem,1.9fr)_repeat(5,minmax(0,1fr))] items-center gap-1.5";
 const SMALL = "text-base-content/70 text-sm";
 const ICON = { size: 16, strokeWidth: 1.75, "aria-hidden": true } as const;
 const GROUP_ICON: Record<ComparisonGroup, LucideIcon> = {
@@ -165,7 +166,7 @@ function ComparisonCard(p: { c: Comparison }): React.JSX.Element {
     <Link href={`/compare/${c.slug}`} className={`${TILE} w-full min-w-0`}>
       <span className="card-body flex-row items-center gap-3 p-4">
         <span className="avatar avatar-placeholder self-start" aria-hidden>
-          <span className="bg-base-200 rounded-field w-9 font-semibold">{c.name.charAt(0)}</span>
+          <span className="bg-base-200 rounded-field grid size-9 place-items-center font-semibold">{c.name.charAt(0)}</span>
         </span>
         <span className="flex min-w-0 flex-1 flex-col gap-1">
           <h3 className="card-title min-w-0 text-base break-words">{c.title}</h3>
