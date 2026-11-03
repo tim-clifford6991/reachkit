@@ -322,9 +322,9 @@ async function checkCooldown(client: Client, domain: CanonicalDomain): Promise<A
  * time it promises is honest here in a way it is nowhere else: the day's
  * ledger goes to zero at the next UTC midnight whatever anyone does.
  *
- * Unreadable ledger admits, like every other step in this handler
- * (REQ-003 c9): `readDaySpendCents` answers `null` rather than throwing,
- * and a guard that cannot see is not a reason to stop the product.
+ * An unreadable ledger refuses: `readDaySpendCents` answers `null`, this
+ * throws, and the handler answers `unreadable`, since nothing is spent on a
+ * figure nobody has. The read itself tells the owner, once a UTC day.
  */
 async function checkDailySpend(): Promise<Admission | null> {
   const at = now();

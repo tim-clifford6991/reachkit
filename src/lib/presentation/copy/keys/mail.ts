@@ -758,6 +758,8 @@ export const MAIL_COPY = Object.freeze({
    *  cannot be told from an ordinary boot without durable state, so the
    *  sentence is not owed until the telling exists. */
   "mail.ops.spend-ceiling.kill-switch-engaged": ["The kill switch is engaged. Scanning, generating and publishing are stopped until it is released.", { slots: {}, fixedBy: "BUILD §6.5 · issue 329" }],
+  /** A spend ledger could not be read. `{reason}` is `<ledger>/<cause>`, closed words; one mail per reason and UTC day. */
+  "mail.ops.spend-ceiling.ledger-unreadable": ["The spend ledger could not be read ({reason}). Until it can, every paid call it guards is refused, and an unreadable product ledger turns free scans away too. Nothing is spent while this lasts. You are told once a day, not on every refused call.", { slots: { reason: "text" }, fixedBy: "BUILD §6.5 · issue 2090 (drafted)" }],
   /** The two mono fact rows the S20 shell draws under the line. The
    *  figures reach them as already-written values (cents, as integers);
    *  these are their labels, and the unit is the owner's word to choose. */
