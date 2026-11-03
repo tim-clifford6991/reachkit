@@ -254,9 +254,14 @@ function hasBanned(title: string, a: TitleRuleInputs): boolean {
   const trope = (said: string | undefined): boolean => said !== undefined && !searched.some((term) => term.includes(said.trim()));
   if (/[[\]|]/.test(title) || pack.title.banned.some((phrase) => lower.includes(phrase) && trope(phrase))) return true;
   if ([...pack.title.tropes.map((each) => wordsPattern(each, false)), wordsPattern(pack.title.double, true)].some((each) => trope(each.exec(lower)?.[0]))) return true;
+  return saidTwice(title, language) !== null;
+}
+
+/** The first word a title says twice, a plural read as its singular. */
+function saidTwice(title: string, language: Language): string | null {
   const filler = fillerOf(language);
   const words = wordsOf(title, language).filter((word) => word.length > 2 && !filler.has(word));
-  return new Set(words).size < words.length;
+  return words.find((word, index) => words.indexOf(word) !== index) ?? null;
 }
 
 /** The share of two titles' words they have in common. */
@@ -430,6 +435,7 @@ export function pickTitle(proposed: readonly string[], a: TitleRuleInputs): { ch
 export function titleNotes(title: string, a: TitleRuleInputs, faults: readonly TitleFault[], markdown = ""): string[] {
   const close = closestTitle(title, a.titles);
   const pack = languagePack(languageOf(a));
+  const twice = saidTwice(title, languageOf(a));
   const said: Record<TitleFault, string> = {
     length: `title: "${title}" has ${[...title.trim()].length} characters and must have ${TITLE.chars.min} to ${TITLE.chars.max}`,
     term: `title: one of these searches must start within its first ${TITLE.headChars} characters, in the searcher's own words: ${a.terms.map((term) => `"${term}"`).join(", ")}`,
@@ -438,7 +444,7 @@ export function titleNotes(title: string, a: TitleRuleInputs, faults: readonly T
     year: (TITLE.yearTypes as readonly ContentType[]).includes(a.type)
       ? `title: the only year it may carry is ${a.year}, in brackets or before a colon, never as its last word`
       : "title: a page of this type carries no year in its title",
-    banned: `title: it must not use ${pack.title.banned.map((phrase) => `"${phrase}"`).join(", ")}, a filler verb or stock phrase like ${pack.title.tropeSamples.map((phrase) => `"${phrase}"`).join(", ")}, two things joined by "and" after "How to", a square bracket, a pipe, or the same word twice`,
+    banned: `title: it must not use ${pack.title.banned.map((phrase) => `"${phrase}"`).join(", ")}, a filler verb or stock phrase like ${pack.title.tropeSamples.map((phrase) => `"${phrase}"`).join(", ")}, two things joined by "and" after "How to", a square bracket, a pipe, or the same word twice${twice === null ? "" : `; it says "${twice}" twice, so say it once`}`,
     overlap: `title: it reads almost the same as this site's page "${close ?? ""}"; lead with what this page has that one does not`,
     count: `title: it counts ${countedIn(title) ?? 0} options and the page counts ${a.options ?? 0}: state ${a.options ?? 0}, the number \`options\` holds, or no count`,
     business: `title: the search compares products, and this page is the business's own: the title names it, as "${a.business?.[0] ?? ""}", beside the products the search names`,

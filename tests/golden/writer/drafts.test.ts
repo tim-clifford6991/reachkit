@@ -55,6 +55,11 @@ async function stage4(domain: string): Promise<string> {
     marketFacts: pack.claims.map((claim) => ({ url: claim.url, passage: claim.passage, kind: claim.kind })),
   };
   const grounded = pack.facts[0]!;
+  const prose = {
+    language: pack.locale?.language ?? "en",
+    passages: [...pack.facts.map((fact) => fact.passage), ...pack.claims.map((claim) => claim.passage)],
+    subjects: [...pack.target.searches, site.businessName ?? "", ...pack.links.map((link) => link.label)].filter((s) => s !== ""),
+  };
   const battery = (text: string) =>
     runHardRules(fakeCost(), {
       fit: { state: "passed" },
@@ -71,16 +76,12 @@ async function stage4(domain: string): Promise<string> {
       distinctHeadings: pack.type === "qa",
       // A pack written before outside sources were asked holds none to cite.
       ...(builtFromOutside(pack.type) && pack.claims.length > 0 ? { cites: { claimUrls: pack.claims.map((claim) => claim.url), min: citesMin(pack.type) } } : {}),
-      prose: {
-        language: pack.locale?.language ?? "en",
-        passages: [...pack.facts.map((fact) => fact.passage), ...pack.claims.map((claim) => claim.passage)],
-        subjects: [...pack.target.searches, site.businessName ?? "", ...pack.links.map((link) => link.label)].filter((s) => s !== ""),
-      },
+      prose,
     });
 
   const written = await battery(markdown);
   const tried = written.passed ? [] : repairable(written.failed);
-  const repaired = tried.length === 0 ? markdown : repairMechanical(markdown, tried, { brief, sources: pack.facts.map((fact) => ({ url: fact.url, text: fact.passage })), rivals: site.rivals });
+  const repaired = tried.length === 0 ? markdown : repairMechanical(markdown, tried, { brief, sources: pack.facts.map((fact) => ({ url: fact.url, text: fact.passage })), rivals: site.rivals, prose });
   const after = repaired === markdown ? null : await battery(repaired);
   const last = after ?? written;
   const notes = last.passed ? [] : fixNotes(repaired, last.failed, brief, site, title);

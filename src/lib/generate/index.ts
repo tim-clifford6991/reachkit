@@ -115,6 +115,8 @@ export type DayPageOutcome =
       /** The rules that stopped the last attempt and the sentences that broke
        *  them, where the run that stopped it held them (issue 1187). */
       stopped?: readonly FixNote[];
+      /** Why it had no fix call, where the budget or the clock is why. */
+      stop?: Extract<GenerateOutcome, { reason: "rules" }>["stop"];
     }
   | { ok: false; because: "step_failed"; draftId: string | null; step: string }
   /** DataForSEO refused the page's research for lack of credit. */
@@ -715,13 +717,7 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number }
     if (last.draftId !== null) draftId = last.draftId;
     if (last.ok) return { ok: true, draftId: last.draftId };
     if (last.reason === "rules") {
-      return {
-        ok: false,
-        because: "rules",
-        draftId: draftId ?? null,
-        attempts: last.attempt,
-        ...(last.fix === undefined ? {} : { stopped: last.fix }),
-      };
+      return { ok: false, because: "rules", draftId: draftId ?? null, attempts: last.attempt, ...(last.fix === undefined ? {} : { stopped: last.fix }), ...(last.stop === undefined ? {} : { stop: last.stop }) };
     }
     // SPEC §7 (D12, issue 1143): a new page whose pack adds too little is not
     // written. Where the site has a close page the destination can update,
