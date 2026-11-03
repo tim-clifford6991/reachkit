@@ -1,28 +1,6 @@
-// BUILD §4.7, REQ-055, REQ-053 — "How your pages sound".
-//
-// These two answers have a card of their own (issue #374): they constrain what
-// a page will say, and the voice is a description, so it gets a textarea.
-//
-// Two settings and no third:
-//
-//  · **the voice** (REQ-055) — ONE field, and the whole of what ReachKit
-//    knows about how a customer's pages should sound. Nothing is learned
-//    about them and no second field infers a tone: the customer writes it or
-//    it is empty. A `textarea`, because a description is a paragraph.
-//  · **the never-claim list** (REQ-053) — entries the customer adds and
-//    removes, each a claim their pages must never make, with the one written
-//    line saying what the list *does*: it is a hard filter, and a draft that
-//    matches an entry is held and returned to them naming the entry. That
-//    line is the difference between a preference and a guarantee, which is
-//    why the card states it rather than leaving the list to speak for itself.
-//
-// **Neither is an engine parameter** and that is why they may be here at all
-// (REQ-070 criterion 3). They are constraints on content published under the
-// customer's own name — §14.6 makes the customer the publisher of record —
-// not a cap, a cadence, a model choice or a weight. Both keys are in
-// `SETTABLE`, and `tests/app/settings/screen.test.tsx` reads every rendered
-// `setting-<key>` off the document and asserts the set against it, so moving
-// them between cards cannot lose one.
+// SPEC §7, REQ-055, REQ-053 (owner R7, docs/spec/decisions/2026-11-03-2127.md): one card, "How your pages sound",
+// holds who speaks, the words the business uses and its note; Never say stays its own card because it is a hard filter.
+// Neither is an engine parameter (REQ-070 criterion 3): both constrain content published under the customer's name.
 "use client";
 
 import type React from "react";
@@ -50,6 +28,8 @@ export function VoicePanel(p: {
   settings: SettingsModel;
   /** The name the guide voice's example uses; the domain where the site has none. */
   business?: string | null;
+  /** Words you use, drawn from the business read in its own boundary so a slow read leaves only that row waiting. */
+  words?: React.ReactNode;
 }): React.JSX.Element {
   const business = p.business ?? p.settings.domain;
   // Issue 1196: the voice text's own press — it answers, and spins while it
@@ -102,40 +82,15 @@ export function VoicePanel(p: {
 
   return (
     <>
-      <section className="card card-border min-w-0 bg-base-100">
+      <section className="card card-border min-w-0 bg-base-100" data-testid="settings-voice">
         <div className="card-body gap-5">
           <div className="flex min-w-0 flex-col gap-1">
             <h2 className="card-title min-w-0 wrap-anywhere text-(length:--h3)">{copy("settings.voice.title")}</h2>
             <p className="text-sm text-base-content/70 wrap-anywhere">{copy("settings.voice.lead")}</p>
           </div>
-          {/* SPEC §5 (2026-09-12): the summary setup showed, stored where drafting reads it. One field and one press. */}
-          <form action={saveVoice} className="flex min-w-0 flex-col gap-3">
-            <label className="flex min-w-0 flex-col gap-2" data-testid="setting-voice_text">
-              <span className="text-sm font-semibold">{copy("settings.content.voice")}</span>
-              <textarea
-                className="textarea h-auto w-full"
-                rows={4}
-                name={VOICE_FIELD}
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                {...(placeholder === null ? {} : { placeholder })}
-              />
-            </label>
-            <span>
-              <button type="submit" className="btn btn-primary min-h-11" disabled={savingVoice}>
-                {savingVoice ? <span className="loading loading-spinner loading-xs" aria-hidden /> : null}
-                {copy("settings.voice.save")}
-              </button>
-            </span>
-          </form>
-        </div>
-      </section>
-
-      <section className="card card-border min-w-0 bg-base-100">
-        <div className="card-body gap-5">
-          {/* SPEC §7 (owner, 2026-10-10; issue 1390): who speaks on their pages, saved as it is chosen. */}
+          {/* Saved as it is chosen: one radio list, no second press. */}
           <fieldset className="flex min-w-0 flex-col gap-3" data-testid="setting-writing_voice" disabled={savingWriting}>
-            <legend className="card-title mb-5 min-w-0 wrap-anywhere text-(length:--h3)">{copy("settings.voice.writing.label")}</legend>
+            <legend className="mb-3 text-sm font-semibold">{copy("settings.voice.writing.label")}</legend>
             <div className="grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2" data-layout="pair">
               {WRITING_VOICE_OPTIONS.map((choice) => {
                 const chosen = writing === choice.voice;
@@ -166,6 +121,31 @@ export function VoicePanel(p: {
               })}
             </div>
           </fieldset>
+          <div className="flex min-w-0 flex-col gap-2 border-t border-base-300 pt-5" data-testid="business-group-vocabulary">
+            <span className="text-sm font-semibold">{copy("settings.business.vocabulary")}</span>
+            {p.words}
+          </div>
+          <div className="border-t border-base-300 pt-5">
+            <form action={saveVoice} className="flex min-w-0 flex-col gap-3">
+              <label className="flex min-w-0 flex-col gap-2" data-testid="setting-voice_text">
+                <span className="text-sm font-semibold">{copy("settings.content.voice")}</span>
+                <textarea
+                  className="textarea h-auto w-full"
+                  rows={4}
+                  name={VOICE_FIELD}
+                  value={text}
+                  onChange={(e) => setText(e.target.value)}
+                  {...(placeholder === null ? {} : { placeholder })}
+                />
+              </label>
+              <span>
+                <button type="submit" className="btn btn-primary min-h-11" disabled={savingVoice}>
+                  {savingVoice ? <span className="loading loading-spinner loading-xs" aria-hidden /> : null}
+                  {copy("settings.voice.save")}
+                </button>
+              </span>
+            </form>
+          </div>
         </div>
       </section>
 

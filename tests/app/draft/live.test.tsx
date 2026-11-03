@@ -17,6 +17,10 @@ import { DraftScreen } from "@/app/(account)/app/draft/[draftId]/DraftScreen";
 import { assembleDraft, type DraftFacts, type LiveFacts } from "@/app/(account)/app/draft/[draftId]/model";
 import type { Label } from "@/lib/opportunities/verdicts/types";
 import { FIXTURE_DRAFTS, FIXTURE_PUBLISHED_DRAFT_ID } from "@/app/(account)/app/draft/[draftId]/fixture";
+import { FactsPanel } from "@/app/(account)/app/draft/[draftId]/FactsPanel";
+import { FIXTURE_QUOTABLE } from "@/app/(account)/app/settings/business-fixture";
+import { quotableFacts } from "@/lib/site-profile/business/confirm";
+import { NO_EDITS } from "@/lib/site-profile/business/types";
 
 const PUBLISHED = FIXTURE_DRAFTS[FIXTURE_PUBLISHED_DRAFT_ID]!;
 const LIVE = PUBLISHED.live!;
@@ -29,9 +33,12 @@ const SHELL = ["ReachKit", "Overview", "This week", "Settings", "Publishing on",
 /** A customer's live page: the reserved account's fixture draws no Edit. */
 const CUSTOMER: DraftFacts = { ...PUBLISHED, live: { ...LIVE, edit: { kind: "editor" } } };
 
+/** The facts card the route hands the live arm, over the reserved account's passages. */
+const FACTS = <FactsPanel facts={quotableFacts({ facts: FIXTURE_QUOTABLE, edits: NO_EDITS })} />;
+
 function render(facts: DraftFacts = CUSTOMER): HTMLElement {
   const host = document.createElement("div");
-  host.innerHTML = renderToStaticMarkup(<DraftScreen view={assembleDraft(facts)} generatedLabel="Written by ReachKit" />);
+  host.innerHTML = renderToStaticMarkup(<DraftScreen view={assembleDraft(facts)} generatedLabel="Written by ReachKit" facts={FACTS} />);
   return host;
 }
 
@@ -118,6 +125,13 @@ describe("board PageDetail: the sections, in its order and words", () => {
     expect(note.textContent).toBe(`${copy("draft.live.stop-note")} ${copy("draft.live.pause-lead")}${copy("draft.live.pause-link")}`);
     expect(note.querySelector("a")?.getAttribute("href")).toBe("/app/settings/pages");
     expect(stop.getAttribute("aria-describedby")).toBe(note.id);
+  });
+
+  it("then Facts we can quote, closed, after why this page", () => {
+    const facts = at(host, "settings-business-facts");
+    expect(facts.querySelector("summary")?.textContent).toBe(copy("settings.business.facts.title"));
+    expect(facts.hasAttribute("open")).toBe(false);
+    expect(before(at(host, "draft-why"), facts)).toBe(true);
   });
 
   it("the search opens from a quiet link, and a step not reached is its number in a dashed ring, with no rail", () => {
