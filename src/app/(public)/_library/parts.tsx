@@ -168,7 +168,7 @@ const TOOL_WEEKLY = {
 } as const;
 
 const CLOSE = {
-  about: { lead: "library.close.about.lead", glance: false },
+  about: { glance: false, short: true },
   compare: {
     weekly: {
       title: "library.close.compare.title",
@@ -191,28 +191,27 @@ const CLOSE = {
   answer: { glance: false, short: true },
   teardowns: {
     weekly: {
-      eyebrow: "library.close.teardown.eyebrow",
       title: "library.close.teardowns.title",
-      lead: "library.close.teardowns.lead",
       them: "library.close.teardown.them",
       us: "library.close.teardown.us",
       rows: [TEARDOWN_ROW_1, ["library.close.teardowns.2.them", "library.close.teardown.2.us"], TEARDOWN_ROW_3],
     },
     lead: "library.close.teardowns.cta.lead",
-    glance: true,
+    glance: false,
+    short: true,
+    icons: { them: User, us: Sparkles },
   },
   teardown: {
     weekly: {
-      eyebrow: "library.close.teardown.eyebrow",
       title: "library.close.teardown.title",
-      lead: "library.close.teardown.lead",
       them: "library.close.teardown.them",
       us: "library.close.teardown.us",
       rows: [TEARDOWN_ROW_1, ["library.close.teardown.2.them", "library.close.teardown.2.us"], TEARDOWN_ROW_3],
     },
     heading: "library.close.teardown.cta",
-    lead: "library.close.teardown.cta.lead",
-    glance: true,
+    glance: false,
+    short: true,
+    icons: { them: User, us: Sparkles },
   },
   tools: {
     weekly: {
@@ -518,6 +517,7 @@ export function LearnClose(p: { variant: LearnCloseVariant; domain?: string }): 
       {close.short ? (
         <section id={START_ID} aria-labelledby="start-h" className="rounded-box border-primary/20 bg-primary/10 flex scroll-mt-20 flex-col items-center gap-3.5 border px-5 py-8 text-center sm:px-10 sm:py-12">
           <h2 id="start-h">{copy(close.heading ?? "landing.close.heading")}</h2>
+          {close.lead === undefined ? null : <p className="max-w-xl">{copy(close.lead, FIGURES)}</p>}
           <div className="w-full max-w-xl text-start">
             <ScanForm words={scanFormWords(submit)} searchParams={p.domain === undefined ? undefined : { value: p.domain }} inline />
           </div>

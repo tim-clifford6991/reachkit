@@ -2,7 +2,9 @@
 // when it was last read against the live site; its reads are numbered parts.
 import type React from "react";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
+import { SiteMark } from "@/ui/SiteMark";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { PUBLIC_ROUTE_SEO } from "../../_seo/routes";
 import { publicMetadata } from "../../_seo/metadata";
@@ -32,7 +34,6 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   });
 }
 
-const EYEBROW: CopyKey = "teardowns.eyebrow";
 const MORE: CopyKey = "teardowns.item.more";
 const PAGE_TEST_ID = "teardown";
 const INDEX = "/teardowns";
@@ -45,7 +46,26 @@ export default async function TeardownPage({ params }: Params): Promise<React.JS
   if (t === undefined) notFound();
 
   return (
-    <LibraryPage testId={PAGE_TEST_ID} eyebrow={EYEBROW} title={t.title} wide>
+    <LibraryPage
+      testId={PAGE_TEST_ID}
+      title={t.title}
+      wide
+      trail={
+        <>
+          <nav aria-label={copy("compare.item.trail")} className="breadcrumbs text-base-content/70 py-0 text-sm">
+            <ul>
+              <li>
+                <Link href={INDEX} className="link inline-flex min-h-11 items-center font-semibold">
+                  {copy("chrome.nav.teardowns")}
+                </Link>
+              </li>
+              <li className="num">{t.domain}</li>
+            </ul>
+          </nav>
+          <SiteMark domain={t.domain} hasLogo={false} size={56} />
+        </>
+      }
+    >
       {/* Issue 1512: the two dates the page prints, and the links it draws. */}
       <JsonLd
         blocks={articleSchemas({
@@ -83,9 +103,14 @@ export default async function TeardownPage({ params }: Params): Promise<React.JS
               <h2 id={TAKEAWAYS_ID} className="scroll-mt-24">
                 {copy("teardowns.item.takeaways")}
               </h2>
-              <ol className="list-decimal ps-6">
-                {t.takeaways.map((line) => (
-                  <li key={line}>{line}</li>
+              <ol className="grid min-w-0 gap-3 sm:grid-cols-2">
+                {t.takeaways.map((line, i) => (
+                  <li key={line} className="rounded-box bg-base-200 flex min-w-0 flex-col items-start gap-2 p-4">
+                    <span className="badge badge-primary" aria-hidden>
+                      {i + 1}
+                    </span>
+                    <span className="font-semibold">{line}</span>
+                  </li>
                 ))}
               </ol>
             </div>

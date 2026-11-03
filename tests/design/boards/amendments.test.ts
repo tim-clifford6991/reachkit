@@ -24,8 +24,6 @@ const MESSAGE_CIRCLE_WARNING = 'd="M2.992 16.342';
 const LOADER = "M21 12a9 9 0 1 1-6.219-8.56";
 const GLANCE = [
   "PubHowItWorks",
-  "PubTeardown",
-  "PubTeardowns",
   "PubToolMeta",
   "PubToolOnPage",
   "PubTools",
@@ -64,9 +62,9 @@ describe("the boards draw a ring for every score (E17)", () => {
     expect(ring!.closest(".card")!.text).toContain("Your Visibility Score");
   });
 
-  // Decision 2026-11-01-2265: the row is ReachKit's own report, and states no score, so it draws no ring.
-  it("the landing's report row draws ReachKit's own mark beside reachkit.app, links the report, and states no score", () => {
-    for (const name of ["PubLanding", "PubLandingPhone"]) {
+  // Decisions 2026-11-01-2265 and 2026-11-03-2281: the row is ReachKit's own report, and states no score, so it draws no ring.
+  it("the landing's and About's report row draws ReachKit's own mark beside reachkit.app, links the report, and states no score", () => {
+    for (const name of ["PubLanding", "PubLandingPhone", "PubAbout"]) {
       const own = board(name).querySelectorAll('a[href="PubReport.dc.html"]').find((a) => a.text.includes("reachkit.app"))!;
       expect(own, name).toBeDefined();
       expect(own.querySelector('[data-slot="brand-mark"]'), name).not.toBeNull();

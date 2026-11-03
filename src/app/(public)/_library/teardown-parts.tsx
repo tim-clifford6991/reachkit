@@ -2,6 +2,7 @@
 // reads with what each draws, and the list of what is on the page. daisyUI
 // classes in place, greyscale, no logo and no brand colour.
 import type React from "react";
+import { Check } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { TEARDOWN_PARTS, type SketchMark, type TeardownSection } from "./types";
 import { BODY, CARD } from "./parts";
@@ -86,10 +87,11 @@ function PartFigure(p: { section: TeardownSection }): React.JSX.Element | null {
   const s = p.section;
   if (s.chips !== undefined) {
     return (
-      <ul className="flex min-w-0 flex-wrap gap-2">
+      <ul className="grid min-w-0 gap-x-6 gap-y-2 sm:grid-cols-2">
         {s.chips.map((chip) => (
-          <li key={chip} className="badge badge-outline h-auto max-w-full break-words">
-            {chip}
+          <li key={chip} className="flex min-w-0 items-start gap-2">
+            <Check size={16} strokeWidth={1.75} aria-hidden className="text-success mt-1 shrink-0" />
+            <span className="min-w-0 break-words">{chip}</span>
           </li>
         ))}
       </ul>

@@ -16,7 +16,7 @@ export const TEARDOWNS: readonly Teardown[] = [
     summary: "A symptom tracker whose real promise is finding what drives your symptoms.",
     hook: "Find what drives your symptoms",
     intro:
-      "Bearable is a symptom, mood and health tracker for iPhone and Android, made by Bearable Ltd in the UK. When we first wrote about it, the listing sold flexibility while its users came for one thing: finding out what makes their symptoms worse. The pages have moved since. The home page now says it is for any chronic health issue, and the App Store subtitle reads 'Migraine, Pain, Mental Health'. This is a read of those public pages, not a measurement.",
+      "Bearable is a symptom, mood and health tracker for iPhone and Android, made by Bearable Ltd in the UK. When we first wrote about it, the listing sold flexibility while its users came for one thing: finding out what makes their symptoms worse. The pages have moved since. The home page now says it is for any chronic health issue, and the App Store subtitle reads 'Migraine, Pain, Mental Health'.",
     sections: [
       {
         heading: "What Bearable offers",
@@ -74,7 +74,7 @@ export const TEARDOWNS: readonly Teardown[] = [
     summary: "Scheduling software that also sells itself to developers building scheduling into their own product.",
     hook: "Scheduling inside your own product",
     intro:
-      "Cal.com is scheduling software: booking pages, availability, schedule syncing and team scheduling. When we first wrote about it, the story led with being an alternative to Calendly and buried the developer who wants to build scheduling into their own app. That has changed. The home page now says it is for individuals, businesses taking calls, and developers building scheduling platforms. This is a read of the public pages, not a measurement.",
+      "Cal.com is scheduling software: booking pages, availability, schedule syncing and team scheduling. When we first wrote about it, the story led with being an alternative to Calendly and buried the developer who wants to build scheduling into their own app. That has changed. The home page now says it is for individuals, businesses taking calls, and developers building scheduling platforms.",
     sections: [
       {
         heading: "What Cal.com offers",
@@ -128,7 +128,7 @@ export const TEARDOWNS: readonly Teardown[] = [
     summary: "A rewards app whose sharpest promise is which card to use at this shop.",
     hook: "Which card to use at this shop",
     intro:
-      "CardPointers helps people with several credit cards earn more rewards. When we first wrote about it, the listing sold rewards in general while users loved one specific thing: being told which card to use at the checkout. That gap is still there. The home page says 'Earn more from your credit cards every day', and the App Store subtitle reads 'Earn more points & cashback'. This is a read of the public pages, not a measurement.",
+      "CardPointers helps people with several credit cards earn more rewards. When we first wrote about it, the listing sold rewards in general while users loved one specific thing: being told which card to use at the checkout. That gap is still there. The home page says 'Earn more from your credit cards every day', and the App Store subtitle reads 'Earn more points & cashback'.",
     sections: [
       {
         heading: "What CardPointers offers",
@@ -230,7 +230,7 @@ export const TEARDOWNS: readonly Teardown[] = [
     summary: "A focus app whose strongest feature is a block you cannot switch off.",
     hook: "A block you cannot switch off",
     intro:
-      "Opal is a screen time and focus app for iPhone, Android and Mac. Its old address, opal.so, now forwards to opalapp.com. When we first wrote about it, the listing never mentioned the thing that set it apart: a block you cannot override once a session starts. The home page now does, under the name Hard Mode. This is a read of the public pages, not a measurement.",
+      "Opal is a screen time and focus app for iPhone, Android and Mac. Its old address, opal.so, now forwards to opalapp.com. When we first wrote about it, the listing never mentioned the thing that set it apart: a block you cannot override once a session starts. The home page now does, under the name Hard Mode.",
     sections: [
       {
         heading: "What Opal offers",
@@ -287,7 +287,7 @@ export const TEARDOWNS: readonly Teardown[] = [
     summary: "Privacy-friendly analytics whose most concrete promise is no cookie banner.",
     hook: "No cookie banner",
     intro:
-      "Plausible is lightweight, open-source web analytics that sets no cookies and is made and hosted in the EU. When we first wrote about it, the pitch fought for 'Google Analytics alternative' alongside many similar tools, while its sharpest promise, no cookie banner, sat lower down. The hero still leads with the alternative. This is a read of the public pages, not a measurement.",
+      "Plausible is lightweight, open-source web analytics that sets no cookies and is made and hosted in the EU. Its sharpest promise, no cookie banner, sits below the hero.",
     sections: [
       {
         heading: "What Plausible offers",
@@ -304,10 +304,7 @@ export const TEARDOWNS: readonly Teardown[] = [
           "Custom Enterprise pricing",
           "30-day free trial, no card",
         ],
-        paragraphs: [
-          "The hero reads 'Easy to use and privacy-friendly Google Analytics alternative'. The page says Plausible uses no cookies and no persistent identifiers, does not process personal data, and needs no cookie banner.",
-          "The code is open source. Plans shown on the home page start at $9 a month for Starter, with Growth and Business tiers, custom Enterprise pricing, and a 30-day free trial with no credit card.",
-        ],
+        paragraphs: [],
       },
       {
         heading: "The promise that sells",
@@ -318,7 +315,6 @@ export const TEARDOWNS: readonly Teardown[] = [
           outcomes: ["Remove the consent banner", "Keep the numbers", "Pass the review"],
         },
         paragraphs: [
-          "Many privacy-first analytics tools describe themselves the same way. What a buyer can approve a budget for is a concrete outcome: remove the consent banner, keep the numbers, pass the review.",
           "The home page does say 'No cookie banner required'. It is one claim among several, below the comparison with Google Analytics.",
         ],
       },
@@ -337,10 +333,7 @@ export const TEARDOWNS: readonly Teardown[] = [
             wants: "Wants the problem gone",
           },
         ],
-        paragraphs: [
-          "Developers who dislike Google Analytics already know Plausible. The buyer with a deadline is a marketing or compliance lead with EU visitors, told to fix the banner or the data transfer.",
-          "That buyer is not comparing dashboards. They want the problem gone with the least work, and a page that names their problem wins them over faster.",
-        ],
+        paragraphs: [],
       },
       {
         heading: "Where the opportunity is",
@@ -352,10 +345,7 @@ export const TEARDOWNS: readonly Teardown[] = [
           ],
           caption: "Our opinion, drawn as page ideas. Neither page exists today as far as we read.",
         },
-        paragraphs: [
-          "Our opinion: a page built around removing the cookie banner would speak to the buyer with a budget, not only the one with a side project. A clear explainer on whether Google Analytics is GDPR compliant would meet the same buyer earlier.",
-          "Privacy and data protection communities and newsletters value Plausible's open code and EU hosting. Those are reasons to choose it there, not just the basics.",
-        ],
+        paragraphs: [],
       },
     ],
     takeaways: [
@@ -402,7 +392,7 @@ export const TEARDOWNS: readonly Teardown[] = [
     summary: "A keyboard launcher that has grown into an AI tool and a team standard.",
     hook: "An AI tool and a team standard",
     intro:
-      "Raycast is a keyboard-first launcher with an extension store and AI built in. When we first wrote about it, the story leaned on being a better Spotlight or Alfred, while its AI and team stories were present but not leading. The home page has moved on: it no longer mentions Spotlight, it says Raycast runs on macOS and Windows, and it gives AI a prominent place. This is a read of the public pages, not a measurement.",
+      "Raycast is a keyboard-first launcher with an extension store and AI built in. When we first wrote about it, the story leaned on being a better Spotlight or Alfred, while its AI and team stories were present but not leading. The home page has moved on: it no longer mentions Spotlight, it says Raycast runs on macOS and Windows, and it gives AI a prominent place.",
     sections: [
       {
         heading: "What Raycast offers",
@@ -458,7 +448,7 @@ export const TEARDOWNS: readonly Teardown[] = [
     hook: "Open source, local files",
     change: "direction",
     intro:
-      "When we first wrote about Reflect, it was a paid, end-to-end encrypted notes app with backlinks and AI that tied notes to your meetings, and we argued it should speak to privacy-minded people who live in meetings. In July 2026 Reflect launched Reflect Open, a separate, local-first, open-source app built on plain Markdown files, and the home page now leads with it. The original Reflect remains available and maintained. This is a read of the public pages, not a measurement.",
+      "When we first wrote about Reflect, it was a paid, end-to-end encrypted notes app with backlinks and AI that tied notes to your meetings, and we argued it should speak to privacy-minded people who live in meetings. In July 2026 Reflect launched Reflect Open, a separate, local-first, open-source app built on plain Markdown files, and the home page now leads with it. The original Reflect remains available and maintained.",
     sections: [
       {
         heading: "What Reflect offers now",
@@ -515,7 +505,7 @@ export const TEARDOWNS: readonly Teardown[] = [
     summary: "One app for everything you want to enjoy, replacing several single-purpose trackers.",
     hook: "One app for everything you enjoy",
     intro:
-      "Sofa, listed as 'Sofa: Downtime Organizer', keeps shows, films, books, games, podcasts and more in one place. Its website is sofahq.com; the address sofa.app now forwards to a domain marketplace. When we first wrote about it, the listing did not tell the story its users told: one app instead of several. This is a read of the public pages, not a measurement.",
+      "Sofa, listed as 'Sofa: Downtime Organizer', keeps shows, films, books, games, podcasts and more in one place. Its website is sofahq.com; the address sofa.app now forwards to a domain marketplace. When we first wrote about it, the listing did not tell the story its users told: one app instead of several.",
     sections: [
       {
         heading: "What Sofa offers",
