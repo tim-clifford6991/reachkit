@@ -37,7 +37,7 @@
 //
 // **The hard rules bind what ReachKit generates, never what the customer
 // writes.** An edit the customer saves does not come through here.
-import { HEADING_GAPS, PAGE_BLOCKS, PIPELINE } from "@/lib/config/constants";
+import { HEADING_GAPS, PAGE_BLOCKS } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import type { Tier } from "@/lib/llm/tiers";
 import type { Opportunity } from "@/lib/opportunities";
@@ -64,6 +64,7 @@ import { layoutPage, withClosing, type LaidPage } from "./compose";
 import type { SourcedFact } from "./grounding";
 import { fittedTemplate, packStatements, type ContextPack } from "./pack";
 import { batteryBasis, checkPage, scopeOf } from "./battery";
+import { tryFix, type FixStop } from "./fix-call";
 import { fixNotes, type FixNote, type RepairRecord } from "./repair";
 import { completeTables, withSources } from "./sources";
 import { withTable } from "./table";
@@ -85,8 +86,6 @@ export type PipelineStep =
   | "page_read"
   | "page_fix";
 
-export type FixStop = "budget" | "time";
-
 /** The state a row this function writes is left in. The edge into
  *  `in_review` — with the veto clock it starts — is the publishing engine's. */
 const GENERATING = "generating";
@@ -107,8 +106,7 @@ export type GenerateOutcome =
       /** What the page was stopped for, with the sentences that failed each
        *  check (issue 1187's alert reads it). */
       fix?: FixNote[];
-      /** Why a page stopped as written had no fix call: the cap or the day's
-       *  budget refused it, or the job had no time left for it. */
+      /** Why it had no fix call, where the budget or the clock is why (`./fix-call.ts`). */
       stop?: FixStop;
     }
   | {
@@ -468,31 +466,12 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
     // — code's table, its sources list — would be stopped for them again.
     const futile = checked.close === null && !checked.outcome.passed && notWritersToFix(notes, written.value);
     if (futile) logRun({ siteId: a.siteId, draftId, step: "fix", outcome: "not_writers" });
-    const stop: FixStop | null = futile ? null : c.capHit() ? "budget" : Date.now() - startedAt < PIPELINE.fixBeforeMs ? null : "time";
-    const again = !futile && stop === null
-      ? await fixPage(c, {
-          ...writing,
-          parts: written.value,
-          fix: notes,
-          ...(checked.close === null ? {} : { apart: checked.close.sentences }),
-        })
-      : null;
+    const { again, stop } = await tryFix(c, { futile, startedAt, call: () => fixPage(c, { ...writing, parts: written.value, fix: notes, ...(checked.close === null ? {} : { apart: checked.close.sentences }) }) });
     if (again === null || again.kind === "unmeasured") {
-      // `not_attempted` is the ledger refusing the call's reservation.
-      const held = again?.kind === "unmeasured" && again.reason === "not_attempted" ? "budget" : stop;
-      logRun({ siteId: a.siteId, draftId, step: "fix", outcome: held ?? (again === null ? "not_started" : "step_failed") });
+      logRun({ siteId: a.siteId, draftId, step: "fix", outcome: stop ?? (again === null ? "not_started" : "step_failed") });
       if (checked.outcome.passed) return { ok: false, reason: "step_failed", draftId, step: "elsewhere" };
       if (!lacksSpecificOnly(checked.outcome)) {
-        return {
-          ok: false,
-          reason: "rules",
-          draftId,
-          failed: checked.outcome.failed,
-          attempt: attemptsBefore + 1,
-          recovery: "rest",
-          fix: notes,
-          ...(held === null ? {} : { stop: held }),
-        };
+        return { ok: false, reason: "rules", draftId, failed: checked.outcome.failed, attempt: attemptsBefore + 1, recovery: "rest", fix: notes, ...(stop === null ? {} : { stop }) };
       }
     } else {
       fixed = true;
