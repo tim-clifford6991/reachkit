@@ -39,6 +39,8 @@ import {
   type HostedPage,
 } from "@/lib/publish/destinations/hosted";
 import { slugOf } from "@/lib/publish/destinations/hosted/moved";
+import { onSite } from "@/lib/generate/links/select";
+import { linkTextProblem } from "@/lib/generate/links/text";
 import { movedSlugsForSite } from "@/lib/publish/destinations/hosted/store";
 import { topicSimilarity } from "@/lib/known-content/similarity";
 import { Surface } from "@/ui/layout";
@@ -333,6 +335,18 @@ function retiredHere(href: string, canonical: string, retired: ReadonlySet<strin
   }
 }
 
+/** True where a link into the business's own site, or this host, reads as
+ *  a figure alone ("$29"): a page written before the link step refused one
+ *  draws it as text. A figure linked to its source elsewhere stands. */
+function figureIntoSite(href: string, text: string, canonical: string, domain: string): boolean {
+  if (linkTextProblem(text) !== "number") return false;
+  try {
+    return onSite(new URL(href, canonical).href, domain);
+  } catch {
+    return false;
+  }
+}
+
 /** Where `href` answers now, when it is an address of the page's own host
  *  that moved (issue 1511); `null` for every other link. */
 function movedHere(href: string, canonical: string, moved: ReadonlyMap<string, string> | undefined): string | null {
@@ -364,10 +378,14 @@ export function HostedArticle({ resolved }: { resolved: Resolved }): React.JSX.E
     copy
   );
   // A link to a page of this host that was taken down is unwrapped, its
-  // words kept (issue 1506); one to a page that moved is drawn at the page's
+  // words kept (issue 1506), and so is a figure linked into the site, which
+  // the link step refuses; one to a page that moved is drawn at the page's
   // address now (issue 1511), so no link waits on a redirect.
   const levelled = withLinksMoved(
-    withoutLinksTo(headingsUnderTitle(asked.blocks), (href) => retiredHere(href, canonical, resolved.retired)),
+    withoutLinksTo(
+      headingsUnderTitle(asked.blocks),
+      (href, text) => retiredHere(href, canonical, resolved.retired) || figureIntoSite(href, text, canonical, business.domain)
+    ),
     (href) => movedHere(href, canonical, resolved.moved)
   );
   const offering = page.offering === true;

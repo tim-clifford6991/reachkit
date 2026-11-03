@@ -507,15 +507,15 @@ export function withLinksMoved(blocks: readonly Block[], finalOf: (href: string)
 
 // ── links to a retired address ──────────────────────────────────────────
 
-function unlinkInline(nodes: readonly Inline[], gone: (href: string) => boolean): Inline[] {
+function unlinkInline(nodes: readonly Inline[], gone: Unlinked): Inline[] {
   return nodes.flatMap((node): Inline[] => {
-    if (node.kind === "link") return gone(node.href) ? unlinkInline(node.children, gone) : [{ ...node, children: unlinkInline(node.children, gone) }];
+    if (node.kind === "link") return gone(node.href, inlineText(node.children)) ? unlinkInline(node.children, gone) : [{ ...node, children: unlinkInline(node.children, gone) }];
     if (node.kind === "strong" || node.kind === "em" || node.kind === "mark") return [{ ...node, children: unlinkInline(node.children, gone) }];
     return [node];
   });
 }
 
-function unlinkBlock(block: Block, gone: (href: string) => boolean): Block {
+function unlinkBlock(block: Block, gone: Unlinked): Block {
   switch (block.kind) {
     case "code":
     case "rule":
@@ -537,9 +537,12 @@ function unlinkBlock(block: Block, gone: (href: string) => boolean): Block {
   }
 }
 
-/** SPEC §7: a link to an address answering 410 is unwrapped at render, its words kept, as the link step does
- *  (`generate/links/apply.ts`). No live page's text is edited (ADR-080). */
-export function withoutLinksTo(blocks: readonly Block[], gone: (href: string) => boolean): Block[] {
+/** Whether a link, read by its address and its words, is drawn as its words alone. */
+type Unlinked = (href: string, text: string) => boolean;
+
+/** SPEC §7: a link to an address answering 410, or one the link step would refuse, is unwrapped at render, its words
+ *  kept, as the link step does (`generate/links/apply.ts`). No live page's text is edited (ADR-080). */
+export function withoutLinksTo(blocks: readonly Block[], gone: Unlinked): Block[] {
   return blocks.map((block) => unlinkBlock(block, gone));
 }
 
