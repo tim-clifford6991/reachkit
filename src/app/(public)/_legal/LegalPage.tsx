@@ -112,9 +112,10 @@ export function OnThisPage(p: { headings: readonly Pick<LegalHeading, "id" | "nu
 
   const list = (
     <ol className="menu w-full p-0">
-      {headings.map((h) => (
+      {headings.map((h, i) => (
         <li key={h.id}>
-          <a href={`#${h.id}`}>
+          {/* The page opens at its first section, so that row reads as current, as the board draws it. */}
+          <a href={`#${h.id}`} className={`min-h-14 items-center ${i === 0 ? "bg-primary/10 text-primary font-semibold" : ""}`}>
             {h.number === null ? null : (
               <span className="text-base-content/70 font-mono text-xs">{h.number.padStart(2, "0")}</span>
             )}
@@ -208,15 +209,15 @@ function Providers(p: { list: Extract<Block, { kind: "list" }> }): React.JSX.Ele
 function Summary(p: { summary: CopyKey; icons: readonly LucideIcon[] }): React.JSX.Element {
   const list = parseMarkdown(copy(p.summary)).find((b) => b.kind === "list");
   return (
-    <section className="rounded-box bg-base-200 flex flex-col gap-3 p-4" data-testid="legal-summary">
+    <section className="rounded-box bg-base-100 border-base-300 flex flex-col gap-3 border p-4" data-testid="legal-summary">
       <p className="text-base-content/70 text-xs font-semibold tracking-wide uppercase">{copy("legal.summary.title")}</p>
       <ul className="flex flex-wrap gap-3">
         {(list?.kind === "list" ? list.items : []).map((item, i) => {
           const Icon = p.icons[i];
           return (
-            <li key={inlineText(item)} className="rounded-box bg-base-100 flex min-w-0 flex-[1_1_12.5rem] items-start gap-3 p-4">
+            <li key={inlineText(item)} className="rounded-box bg-base-200 flex min-w-0 flex-[1_1_12.5rem] items-start gap-3 p-4">
               {Icon === undefined ? null : (
-                <span className="rounded-box bg-primary/10 text-primary grid size-9 flex-none place-items-center">
+                <span className="rounded-box bg-base-100 text-primary grid size-9 flex-none place-items-center">
                   <Icon size={16} strokeWidth={1.75} aria-hidden />
                 </span>
               )}
@@ -291,7 +292,7 @@ export function LegalPage(p: { document: LegalDocument }): React.JSX.Element {
   return (
     <Surface
       arms={{
-        compact: { kind: "columns", count: 1 },
+        compact: { kind: "declared", note: "one column with its own 16px gutter, as the v36 board draws it" },
         medium: { kind: "same-as-below" },
         wide: { kind: "same-as-below" },
       }}
@@ -314,7 +315,7 @@ export function LegalPage(p: { document: LegalDocument }): React.JSX.Element {
                 <Link
                   key={d.path}
                   href={d.path}
-                  className={d === p.document ? "tab tab-active" : "tab"}
+                  className={d === p.document ? "tab tab-active bg-primary/10! text-primary! font-semibold" : "tab"}
                   aria-current={d === p.document ? "page" : undefined}
                 >
                   {copy(d.title)}
