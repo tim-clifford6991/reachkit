@@ -63,7 +63,9 @@ import {
 import {
   acceptanceFor,
   ACCESS_ENDS_ON,
+  EVIDENCE_MEASURED_AT,
   LIVE_DRAFTS,
+  LIVE_OWN_PAGES,
   LONG_READ_AS,
   PUBLISHER_PAGE,
   scheduledFor,
@@ -451,6 +453,17 @@ export function seedLiveAccount(): void {
   });
   seedMeasuredWeeks(LIVE_ACCOUNT);
   seedGoogleVisits(LIVE_ACCOUNT.siteId, [2, 4, 9]);
+  seedOwnPages(LIVE_ACCOUNT);
+}
+
+/** The site's own pages on its newest scan, the one the facts read takes, so Facts we can quote has rows. */
+function seedOwnPages(account: AppAccount): void {
+  const [scanId] = rows(`select id from scans where site_id = '${account.siteId}' order by created_at desc limit 1;`);
+  const reads = LIVE_OWN_PAGES.map(({ path: at, html }, i) => {
+    const payload = { url: `https://${account.domain}${at}`, status: 200, html, bytes: html.length, readAt: EVIDENCE_MEASURED_AT };
+    return `('${scanId}', 'egress.safeFetch', 'sweep-own-${i}', 1, 0, 0, null, '${quote(JSON.stringify(payload))}'::jsonb, timestamptz '${EVIDENCE_MEASURED_AT}')`;
+  });
+  sql(`insert into fetches (scan_id, source, cache_key, policy_version, reserved_cents, cost_cents, billed_cents, payload, created_at) values ${reads.join(", ")};`);
 }
 
 /** Visits from Google on the site's live hosted page, one day in each of the last weeks, oldest first, so the Google tab draws its chart from the database. */
