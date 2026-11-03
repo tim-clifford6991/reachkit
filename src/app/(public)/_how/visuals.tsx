@@ -63,9 +63,9 @@ function ExampleLine(): React.JSX.Element {
   return <p className={SMALL}>{copy("landing.hero.example")}</p>;
 }
 
-function LiveBadge(p: { at?: string }): React.JSX.Element {
+function LiveBadge(p: { at?: string; className?: string }): React.JSX.Element {
   return (
-    <span className="badge badge-success badge-sm shrink-0 gap-1">
+    <span className={`badge badge-success badge-sm shrink-0 gap-1 ${p.className ?? ""}`}>
       <CircleCheck size={12} strokeWidth={1.75} aria-hidden />
       {copy("calendar.stage.live")}
       {p.at === undefined ? null : <Num>{p.at}</Num>}
@@ -73,14 +73,13 @@ function LiveBadge(p: { at?: string }): React.JSX.Element {
   );
 }
 
-/** The head: the owner's week beside ReachKit's. */
+/** The head: the owner's week beside ReachKit's. Its headings are divs: daisyUI grows a `p` in `.card-body`. */
 export function TwoWeeks(e: Example): React.JSX.Element {
   const days = weekDays();
   return (
     <figure className={CARD}>
       <div className="card-body gap-4">
         <p className={LABEL}>{copy("how.top.visual")}</p>
-        {/* Each heading is a div: daisyUI grows a `p` in `.card-body`, which drops the rows to the card foot. */}
         <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-[2fr_3fr]">
           <div className="flex min-w-0 flex-col gap-2">
             <div className="flex flex-col">
@@ -123,16 +122,13 @@ export function TwoWeeks(e: Example): React.JSX.Element {
                     <FileText {...SMALL_ICON} />
                   </span>
                   <span className="min-w-0">{title}</span>
-                  <span className="flex sm:col-start-3 sm:justify-self-end xl:col-start-auto">
-                    <LiveBadge />
-                  </span>
+                  <LiveBadge className="sm:col-start-3 sm:justify-self-end xl:col-start-auto" />
                 </li>
               ))}
             </ol>
           </div>
         </div>
         <p className="text-sm font-semibold">{copy("how.top.split", { minutes: HOW_FACTS.setupMinutes })}</p>
-        <ExampleLine />
       </div>
     </figure>
   );
