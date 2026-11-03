@@ -1,6 +1,6 @@
 // Settings › Publishing (board SettingsPublishing): the switch and its line,
-// "How each page goes out" following the publish time and the time to stop a
-// page, and "Where pages go live" with the connection's own words.
+// the three steps each page goes through, then where pages go live, the
+// publish time, the time to stop a page and the time zone.
 /** @vitest-environment jsdom */
 import "../../generate/env";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -11,21 +11,22 @@ import { PublishingPanel } from "@/app/(account)/app/settings/panels/PublishingP
 import { nextPageOf } from "@/app/(account)/app/settings/next-page";
 
 const LIVE_AT = new Date("2026-10-19T21:00:00.000Z");
-const shell = {
-  timeZone: "America/Chicago",
+const shellIn = (timeZone: string) => ({
+  timeZone,
   review: { draftId: "d1", title: "Emergency plumber in Austin: what to do in the first hour", goesLiveAt: LIVE_AT },
   publishing: { mode: "autopilot" as const, next: LIVE_AT },
-};
+});
 
-function tab(a: { vetoHours?: number; enabled?: boolean; destinations?: typeof FIXTURE_SETTINGS_FACTS.destinations } = {}): Document {
+function tab(a: { vetoHours?: number; enabled?: boolean; publishTime?: string; zone?: string; destinations?: typeof FIXTURE_SETTINGS_FACTS.destinations } = {}): Document {
   const settings = assembleSettings({
     ...FIXTURE_SETTINGS_FACTS,
     vetoHours: a.vetoHours ?? 24,
     publishingEnabled: a.enabled ?? true,
+    publishTime: a.publishTime ?? "16:00",
     destinations: a.destinations ?? FIXTURE_SETTINGS_FACTS.destinations,
   });
-  const html = renderToStaticMarkup(<PublishingPanel settings={settings} next={nextPageOf(shell, settings.publishing.vetoHours)} />);
-  return new DOMParser().parseFromString(html, "text/html");
+  const next = nextPageOf(shellIn(a.zone ?? "America/Chicago"), settings.publishing.vetoHours);
+  return new DOMParser().parseFromString(renderToStaticMarkup(<PublishingPanel settings={settings} next={next} />), "text/html");
 }
 
 /** An element's text nodes, word-separated as a reader hears them. */
@@ -36,37 +37,29 @@ const text = (el: Element | null | undefined): string => {
   for (let node = walker.nextNode(); node !== null; node = walker.nextNode()) parts.push(node.textContent ?? "");
   return parts.map((part) => part.trim()).filter(Boolean).join(" ").replace(/ ([,.;:!?])/g, "$1");
 };
-const steps = (doc: Document) => [...doc.querySelectorAll('[data-testid="publishing-timeline"] ol > li')].map(text);
+const steps = (doc: Document) => [...doc.querySelectorAll('[data-testid="publishing-timeline"] > li')].map(text);
 
 describe("Settings › Publishing, on", () => {
   const doc = tab();
 
-  it("links the time-to-stop step's This week to the calendar (owner R8)", () => {
-    const link = doc.querySelector('[data-testid="publishing-timeline"] a[href="/app/calendar"]');
-    expect(link?.textContent).toBe("This week");
-  });
-
-  it("heads the card with the switch and what it means", () => {
+  it("heads the card with the switch, named Publishing, and what it means", () => {
     expect(text(doc.querySelector('[data-testid="publishing-lead"]'))).toBe("On. A page goes live on each planned day.");
     expect(text(doc.querySelector('[data-testid="setting-publishing_enabled"]'))).toBe("On");
-    const toggle = doc.querySelector('[data-testid="publishing-enabled"]')!;
-    expect(doc.querySelector(`label[for="${toggle.id}"]`)?.textContent).toBe("Publishing");
+    expect(doc.querySelector('[data-testid="publishing-enabled"]')?.getAttribute("aria-label")).toBe("Publishing");
   });
 
-  it("draws how each page goes out, step by step, for today's page", () => {
-    expect(text(doc.querySelector('[data-testid="publishing-timeline"] figcaption'))).toBe(
-      "How each page goes out Today’s page: Emergency plumber in Austin: what to do in the first hour"
-    );
+  it("draws the three steps each page goes through, the moments in mono, This week linked to the calendar", () => {
     expect(steps(doc)).toEqual([
-      "Written Sun, Oct 18, 4:00 PM Checked against your facts and your Never say list",
-      "Emailed in your first week Sun, Oct 18, 4:00 PM Then in your Monday mail",
-      "1 day to edit or stop it From the mail or from This week. Do nothing and it goes live on its own.",
-      "Goes live Mon, Oct 19, 4:00 PM blog.example.com",
+      "Written and emailed Sun 18 Oct · 4:00 PM",
+      "1 day to edit or stop it From the mail or This week",
+      "Goes live Mon 19 Oct · 4:00 PM",
     ]);
-    expect(doc.querySelector('[data-testid="publishing-timeline"] a')?.getAttribute("href")).toBe("/app/calendar");
-    expect(text(doc.querySelector('[data-testid="publishing-timeline"] > p'))).toBe(
-      "Set the publish time and time to stop below. Turn publishing off to pause every page."
-    );
+    expect([...doc.querySelectorAll('[data-testid="publishing-timeline"] .num')].map(text)).toEqual(["Sun 18 Oct · 4:00 PM", "Mon 19 Oct · 4:00 PM"]);
+    const link = doc.querySelector('[data-testid="publishing-timeline"] a');
+    expect([link?.textContent, link?.getAttribute("href")]).toEqual(["This week", "/app/calendar"]);
+    expect(
+      [...doc.querySelectorAll('[data-testid="publishing-timeline"] > li > span:first-child svg')].map((svg) => [...svg.classList].filter((c) => c.startsWith("lucide-")).pop())
+    ).toEqual(["lucide-mail", "lucide-clock-4", "lucide-globe"]);
   });
 
   it("then where pages go live, the publish time, the time to stop a page and the time zone, in that order", () => {
@@ -78,52 +71,44 @@ describe("Settings › Publishing, on", () => {
       "setting-time_zone",
     ]);
     const where = doc.querySelector('[data-testid="setting-destinations"]')!;
-    expect(text(where).startsWith("Where pages go live")).toBe(true);
-    expect(text(where.querySelector(".rounded-box"))).toBe(
-      "Your website, unchanged example.com Your pages, on your own address blog.example.com live"
-    );
-    expect([...where.querySelectorAll("button")].map(text)).toContain("Check connection");
-    expect(text(doc.querySelector('[data-testid="publishing-connected"]'))).toBe("Connected. Your pages will publish to this address.");
-    expect([...doc.querySelectorAll('[data-testid="setting-veto_hours"] button')].map((b) => b.getAttribute("aria-label"))).toEqual([
-      "Shorter time to stop a page",
-      "Longer time to stop a page",
-    ]);
-    expect(text(doc.querySelector('[data-testid="time-zone-note"]'))).toBe("Taken from your browser.");
+    expect(text(where)).toBe("Where pages go live blog.example.com Live Your website stays as it is. Check connection");
+    expect(where.querySelector(".num")?.textContent).toBe("blog.example.com");
+    expect(text(doc.querySelector('[data-testid="setting-veto_hours"]'))).toBe("Time to stop a page 1 day");
+    expect([...doc.querySelectorAll('[data-testid="setting-veto_hours"] button')].map((b) => b.getAttribute("aria-label"))).toEqual(["One day less", "One day more"]);
+    expect(text(doc.querySelector('[data-testid="time-zone-note"]'))).toBe("From your browser.");
+  });
+
+  it("the publish time is a choice of clock times, showing the stored one", () => {
+    const select = doc.querySelector<HTMLSelectElement>('[data-testid="publish-time"]')!;
+    expect(select.getAttribute("aria-label")).toBe("Publish time");
+    expect(select.querySelector("option[selected]")?.textContent).toBe("4:00 PM");
+    expect(select.options).toHaveLength(24);
+    const odd = tab({ publishTime: "09:30" }).querySelector<HTMLSelectElement>('[data-testid="publish-time"]')!;
+    expect([odd.options.length, odd.querySelector("option[selected]")?.textContent]).toEqual([25, "9:30 AM"]);
   });
 });
 
-it("a two-day time to stop a page moves Written and Emailed two days before it goes live", () => {
-  expect(steps(tab({ vetoHours: 48 })).slice(0, 3)).toEqual([
-    "Written Sat, Oct 17, 4:00 PM Checked against your facts and your Never say list",
-    "Emailed in your first week Sat, Oct 17, 4:00 PM Then in your Monday mail",
-    "2 days to edit or stop it From the mail or from This week. Do nothing and it goes live on its own.",
+it("the moments are the site's own zone: the same page reads its own clock in London", () => {
+  expect(steps(tab({ zone: "Europe/London" }))).toEqual([
+    "Written and emailed Sun 18 Oct · 10:00 PM",
+    "1 day to edit or stop it From the mail or This week",
+    "Goes live Mon 19 Oct · 10:00 PM",
   ]);
 });
 
-it("paused, the card says so and the timeline's last step reads that nothing goes live", () => {
+it("a two-day time to stop a page says so and moves Written and emailed two days before it goes live", () => {
+  expect(steps(tab({ vetoHours: 48 })).slice(0, 2)).toEqual(["Written and emailed Sat 17 Oct · 4:00 PM", "2 days to edit or stop it From the mail or This week"]);
+  expect(text(tab({ vetoHours: 48 }).querySelector('[data-testid="veto-value"]'))).toBe("2 days");
+});
+
+it("paused, the card says so, the last step reads that nothing goes live, and no moment is stated", () => {
   const doc = tab({ enabled: false });
-  expect(text(doc.querySelector('[data-testid="publishing-lead"]'))).toBe(
-    "Paused, so no page goes live. Your pages are kept."
-  );
+  expect(text(doc.querySelector('[data-testid="publishing-lead"]'))).toBe("Paused. No page goes live until you turn publishing on. Your pages are kept.");
   expect(text(doc.querySelector('[data-testid="setting-publishing_enabled"]'))).toBe("Off");
-  expect(steps(doc)[3]).toBe("Paused: nothing goes live blog.example.com");
-  expect(steps(doc)[0]).toBe("Written Checked against your facts and your Never say list");
+  expect(steps(doc)).toEqual(["Written and emailed", "1 day to edit or stop it From the mail or This week", "Paused: nothing goes live"]);
 });
 
-it("with no address of our own, Goes live names none and leaves no empty line", () => {
-  const doc = tab({ destinations: [] });
-  const last = doc.querySelector('[data-testid="publishing-timeline"] ol > li:last-child .timeline-end')!;
-  expect(text(last)).toBe("Goes live Mon, Oct 19, 4:00 PM");
-  expect([...last.querySelectorAll("span")].filter((span) => (span.textContent ?? "").trim() === "")).toEqual([]);
-});
-
-it("the window stepper draws minus and plus, and the page-ready mail step draws MailCheck", () => {
-  const doc = tab();
-  for (const [id, icon] of [["veto-less", "lucide-minus"], ["veto-more", "lucide-plus"]] as const) {
-    const button = doc.querySelector(`[data-testid="${id}"]`)!;
-    expect(button.querySelector(`svg.${icon}`)?.getAttribute("aria-hidden")).toBe("true");
-    expect(text(button)).toBe("");
-  }
-  const emailed = doc.querySelectorAll('[data-testid="publishing-timeline"] ol > li')[1]!;
-  expect(emailed.querySelector("svg.lucide-mail-check")).not.toBeNull();
+it("with no address of our own, no destination row draws an empty line", () => {
+  const where = tab({ destinations: [] }).querySelector('[data-testid="setting-destinations"]')!;
+  expect(text(where)).toBe("Where pages go live");
 });

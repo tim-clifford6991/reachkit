@@ -395,11 +395,10 @@ describe("REQ-070 c3 — no control over an engine or spend parameter renders", 
 
   it("and none is hidden behind a flag — a folded control is still an offered one", async () => {
     const root = await mountScreen();
-    // The boards fold the danger zone, Billing's detail and Your business's
-    // three cards, and a closed fold keeps its controls in the document: every
-    // control counted above exists, and no `hidden` subtree withholds one.
+    // The boards fold the danger zone and Your business's three cards, and a
+    // closed fold keeps its controls in the document: every control counted
+    // above exists, and no `hidden` subtree withholds one.
     expect([...root.querySelectorAll("details")].map((d) => d.getAttribute("data-testid")).sort()).toEqual([
-      "billing-month-detail",
       "settings-business-facts",
       "settings-business-knowledge",
       "settings-danger",
@@ -637,20 +636,12 @@ describe("Publishing, Mail, Billing and Account carry their board icons, never i
     for (const title of titles) expect(title.querySelector("svg")).toBeNull();
   });
 
-  it("account's board icons: the sign-in well, Export, Sign out, and the danger list with its line", async () => {
+  it("account's board icons: Export and Sign out, and none in the danger zone", async () => {
     const root = await mountTab("account");
     const icons = (el: Element | null) => [...(el?.querySelectorAll("svg") ?? [])].map((svg) => [...svg.classList].filter((c) => c.startsWith("lucide-")).at(-1));
-    expect(icons(root.querySelector('[data-testid="account-signin"]'))).toEqual([
-      "lucide-mail",
-      "lucide-arrow-right",
-      "lucide-link",
-      "lucide-arrow-right",
-      "lucide-circle-check",
-    ]);
     expect(icons(root.querySelector('[data-testid="action-export"]'))).toEqual(["lucide-download"]);
     expect(icons(root.querySelector('[data-testid="action-sign_out"]'))).toEqual(["lucide-log-out"]);
-    expect(icons(root.querySelector('[data-testid="danger-compare"]'))).toEqual(["lucide-pause", "lucide-file-x", "lucide-trash-2"]);
-    expect(icons(root.querySelector('[data-testid="danger-pause-line"]'))).toEqual(["lucide-info"]);
+    expect(icons(root.querySelector('[data-testid="settings-danger"]'))).toEqual([]);
     for (const svg of root.querySelectorAll("[data-testid] svg")) expect(svg.getAttribute("aria-hidden")).toBe("true");
   });
 });

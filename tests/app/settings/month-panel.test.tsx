@@ -1,4 +1,4 @@
-// Billing's "What you got this month" (board SettingsBilling), rendered in each state it has.
+// Billing's "This month" (board SettingsBilling), rendered in each state it has.
 /** @vitest-environment jsdom */
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -16,9 +16,7 @@ const GOT: MonthGot = {
 };
 const CONTEXT: MonthContext = {
   timeZone: "America/Chicago",
-  today: "2026-10-20",
   price: "€49",
-  host: "help.harborplumbing.example",
   planned: ["2026-10-21", "2026-10-22", "2026-10-23"],
   first: null,
 };
@@ -38,69 +36,47 @@ const textOf = (el: Element | null | undefined): string => {
 };
 const text = (doc: Document, testId: string): string => textOf(doc.querySelector(`[data-testid="${testId}"]`));
 
+const tiles = (doc: Document): string[] => [...doc.querySelectorAll("ul > li[data-testid]")].map(textOf);
+
 describe("a period with pages, Monday mails and a finished pass", () => {
   const doc = rendered(GOT);
 
-  it("states the period and that everything is in the price, with the way to every page", () => {
-    expect(doc.body.textContent).toContain("Billing period Wed, Oct 7, 2026 to Sat, Nov 7, 2026. Everything is included in €49.");
-    const all = [...doc.querySelectorAll("a")].find((a) => a.textContent === "See every page →");
-    expect(all?.getAttribute("href")).toBe("/app/calendar");
+  it("states the period, its ends in mono, and that everything is in the price", () => {
+    expect(text(doc, "billing-month-period")).toBe("7 Oct to 7 Nov. All included in €49.");
+    expect([...doc.querySelectorAll('[data-testid="billing-month-period"] .num')].map(textOf)).toEqual(["7 Oct", "7 Nov"]);
   });
 
-  it("draws the four tiles in the board's order and words", () => {
-    expect([...doc.querySelectorAll("ul > li[data-testid]")].map((li) => li.getAttribute("data-testid"))).toEqual([
-      "billing-month-live",
-      "billing-month-reports",
-      "billing-month-asked",
-      "billing-month-planned",
-    ]);
-    expect(text(doc, "billing-month-live")).toBe("2 pages went live on help.harborplumbing.example");
-    expect(text(doc, "billing-month-reports")).toBe("2 Monday mails Oct 12 and Oct 19");
-    expect(text(doc, "billing-month-asked")).toBe("35 searches and AI questions 12 searches and 23 AI questions, checked each week");
-    expect(text(doc, "billing-month-planned")).toBe("3 pages planned this week up to 7 a week, never filler");
+  it("the period's ends are the site's own days: a period that turns at midnight UTC reads a day earlier in Chicago", () => {
+    const midnight = { ...GOT, from: new Date("2026-10-07T00:00:00.000Z"), to: new Date("2026-11-07T00:00:00.000Z") };
+    expect(text(rendered(midnight), "billing-month-period")).toBe("6 Oct to 6 Nov. All included in €49.");
+    expect(text(rendered(midnight, { timeZone: "Europe/London" }), "billing-month-period")).toBe("7 Oct to 7 Nov. All included in €49.");
   });
 
-  it("draws the period bar with its ends, today and the legend", () => {
-    const bar = doc.querySelector('[data-testid="billing-month-bar"]')!;
-    expect(bar.getAttribute("aria-label")).toBe(
-      "This billing period, Wed, Oct 7, 2026 to Sat, Nov 7, 2026: 2 pages live so far, 3 planned this week"
-    );
-    expect(bar.textContent).toContain("Today");
-    expect(bar.textContent).toContain("A page went live");
-    expect(bar.textContent).toContain("Planned this week");
-    expect(bar.querySelectorAll("span[aria-hidden].bg-success.h-3")).toHaveLength(2);
-    expect(bar.querySelectorAll("span[aria-hidden].bg-primary.h-3")).toHaveLength(3);
-  });
-
-  it("keeps the detail behind Show the detail, pointing to Overview", () => {
-    const detail = doc.querySelector('details[data-testid="billing-month-detail"]')!;
-    expect(detail.querySelector("summary")?.textContent).toBe("Show the detail");
-    expect(detail.textContent).toContain(copy("settings.month.note"));
-    expect(detail.querySelector("a")?.getAttribute("href")).toBe("/app");
+  it("draws the four tiles in the board's order and words, a figure and what it counts, no icon", () => {
+    expect(tiles(doc)).toEqual(["2 pages went live", "2 Monday mails", "35 searches and AI questions checked", "3 pages planned this week"]);
+    expect(doc.querySelectorAll("ul svg")).toHaveLength(0);
   });
 });
 
 describe("not measured is never 0", () => {
-  const doc = rendered({ ...GOT, live: 0, liveAt: [], reports: [], asked: null }, { planned: null, first: "Tue, Oct 20, 4:00 PM" });
+  const doc = rendered({ ...GOT, live: 0, liveAt: [], reports: [], asked: null }, { planned: null, first: "Tue 20 Oct · 4:00 PM" });
 
-  it("an unread pass and an unread plan say not measured, and true zeros stay quiet zeros", () => {
-    expect(text(doc, "billing-month-asked")).toBe(`${copy("settings.month.not-measured")} searches and AI questions`);
-    expect(text(doc, "billing-month-planned")).toBe(`${copy("settings.month.not-measured")} pages planned this week up to 7 a week, never filler`);
-    expect(text(doc, "billing-month-live")).toBe("0 pages went live on help.harborplumbing.example");
+  it("an unread pass and an unread plan say not checked, and true zeros stay quiet zeros", () => {
+    expect(tiles(doc)).toEqual(["0 pages went live", "0 Monday mails", "not checked searches and AI questions checked", "not checked pages planned this week"]);
     expect(doc.querySelector('[data-testid="billing-month-reports"] .figure')?.className).toContain("text-base-content/70");
   });
 
   it("AI questions not measured: the searches are counted and the questions named in words, never 0", () => {
     const unmeasured = rendered({ ...GOT, asked: { searches: 5, questions: null } });
     expect(text(unmeasured, "billing-month-asked")).toBe(
-      "5 searches and AI questions 5 searches, checked each week. AI questions weren’t checked this time."
+      "5 searches and AI questions checked 5 searches, checked each week. AI questions weren’t checked this time."
     );
     expect(unmeasured.body.textContent).not.toMatch(/\b0 AI questions/);
   });
 
   it("in the first week it says when the first page goes live", () => {
-    expect(text(doc, "billing-month-first")).toBe("Your first page goes live Tue, Oct 20, 4:00 PM.");
-    expect(rendered(GOT, { first: "Tue, Oct 20, 4:00 PM" }).querySelector('[data-testid="billing-month-first"]')).toBeNull();
+    expect(text(doc, "billing-month-first")).toBe("Your first page goes live Tue 20 Oct · 4:00 PM.");
+    expect(rendered(GOT, { first: "Tue 20 Oct · 4:00 PM" }).querySelector('[data-testid="billing-month-first"]')).toBeNull();
   });
 });
 
@@ -109,14 +85,4 @@ it("a month that could not be read says so, with no figure", () => {
   expect(text(doc, "billing-month-unread")).toBe(copy("settings.month.unread"));
   expect(doc.querySelector('[data-testid="billing-month-live"]')).toBeNull();
   expect(doc.body.textContent).not.toMatch(/\d/);
-});
-
-it("month tiles carry their icons in board order, and an unmeasured figure still shows its words", () => {
-  const icons = (doc: Document) =>
-    [...doc.querySelectorAll("ul > li[data-testid]")].map((li) => [...(li.querySelector(":scope > svg")?.classList ?? [])].find((c) => c.startsWith("lucide-")));
-  expect(icons(rendered(GOT))).toEqual(["lucide-file-text", "lucide-inbox", "lucide-search", "lucide-calendar"]);
-  const unread = rendered({ ...GOT, asked: null }, { planned: null });
-  expect(icons(unread)).toEqual(["lucide-file-text", "lucide-inbox", "lucide-search", "lucide-calendar"]);
-  expect(text(unread, "billing-month-asked")).toContain(copy("settings.month.not-measured"));
-  expect(text(unread, "billing-month-asked")).not.toMatch(/^0\b/);
 });

@@ -94,12 +94,12 @@ describe("SPEC §4 — the seven tabs are a daisyUI bar of addresses that cannot
     expect(offenders).toEqual([]);
   });
 
-  it("the rule refuses two card columns, a week without its phone tracks, and columns on a card (E38)", () => {
+  it("the rule refuses two card columns, a month without its phone tracks, and columns on a card (E38)", () => {
     expect(columnsOffence('<div className="grid min-w-0 grid-cols-1 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">')).not.toBeNull();
-    expect(columnsOffence('<div className="grid min-w-0 grid-cols-7 gap-1" data-layout="week">')).not.toBeNull();
+    expect(columnsOffence('<ul className="grid min-w-0 grid-cols-4 gap-3" data-layout="month">')).not.toBeNull();
     expect(columnsOffence('<section className="card grid grid-cols-1 md:grid-cols-2" data-layout="pair">')).not.toBeNull();
     expect(columnsOffence('<ol className="grid grid-cols-1 md:grid-cols-3" data-layout="columns">')).not.toBeNull();
-    expect(columnsOffence('<div className="grid min-w-0 grid-cols-4 gap-1 md:grid-cols-7" data-layout="week">')).toBeNull();
+    expect(columnsOffence('<ul className="grid min-w-0 grid-cols-2 gap-3 md:grid-cols-4" data-layout="month">')).toBeNull();
   });
 
   it("a card sits inside a layout only as a tile, and every tile is a bordered card or the one dashed add slot (E39)", () => {
@@ -134,8 +134,7 @@ const LAYOUTS: Readonly<Record<string, readonly string[]>> = {
   wells: [WELLS],
   pair: ["grid-cols-1", "md:grid-cols-2"],
   steps: ["grid-cols-1", "md:grid-cols-3"],
-  compare: ["grid-cols-1", "md:grid-cols-3"],
-  week: ["grid-cols-4", "md:grid-cols-7"],
+  month: ["grid-cols-2", "md:grid-cols-4"],
 };
 const COLUMNS = /(?:^|\s)(?:[a-z0-9]+:)*grid-cols-(?:[2-9]|1[0-2]|\[|\()/;
 const GRID_COLS = /^(?:[a-z0-9]+:)*grid-cols-/;

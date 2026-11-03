@@ -2,10 +2,10 @@
 //
 // Cards stack at every width on every Settings tab: every top-level card shares one left edge,
 // columns live only inside a card on a `data-layout` grid, the only card inside one is a competitor
-// tile, Mail's week is four tracks on a phone and seven on a desktop, and Market's tiles and the
+// tile, Billing's month is two tracks on a phone and four from 768, and Market's tiles and the
 // wells of Market and Your business fold to one track on a phone. Rendered and hydrated, light and
 // dark; the canaries below prove the ruler sees two card columns, a card inside a layout grid, and a
-// week that does not fold.
+// month that does not fold.
 import { describe, expect, it } from "vitest";
 import { SETTINGS_TABS, SETTINGS_TAB_HREF } from "@/app/(account)/app/settings/tabs";
 import { getAccountCookie, getBaseURL, withPage } from "./browser";
@@ -21,8 +21,8 @@ interface Seen {
   readonly lefts: readonly number[];
   /** Cards inside a `data-layout` grid other than `tiles`, by their first words. */
   readonly nested: readonly string[];
-  /** Mail's week, in grid tracks, or null where the tab draws none. */
-  readonly weekTracks: number | null;
+  /** Billing's month tiles, in grid tracks, or null where the tab draws none. */
+  readonly monthTracks: number | null;
   /** Market's competitor tiles and Your business's wells, in occupied-or-open grid tracks, or null where the tab draws none. */
   readonly tilesTracks: number | null;
   readonly wellsTracks: number | null;
@@ -37,7 +37,7 @@ function measureCards(root: string): Seen {
   const cards = Array.from(scope.querySelectorAll(".card:not(.card .card)")).filter(
     (card) => card.getBoundingClientRect().width > 0
   );
-  const week = scope.querySelector('[data-layout="week"]');
+  const month = scope.querySelector('[data-layout="month"]');
   const tiles = scope.querySelector('[data-layout="tiles"]');
   // Five competitors, the most a site tracks, whatever the fixture holds: copies of its first tile.
   const first = tiles?.querySelector(":scope > li");
@@ -49,7 +49,7 @@ function measureCards(root: string): Seen {
     cards: cards.length,
     lefts: cards.map((card) => Math.round(card.getBoundingClientRect().left)),
     nested: Array.from(scope.querySelectorAll('[data-layout]:not([data-layout="tiles"]) .card')).map((card) => (card.textContent ?? "").trim().slice(0, 40)),
-    weekTracks: tracks(week),
+    monthTracks: tracks(month),
     tilesTracks: tracks(tiles),
     wellsTracks: tracks(scope.querySelector('[data-layout="wells"]')),
   };
@@ -63,9 +63,9 @@ function offences(seen: Seen, width: number): string[] {
   const apart = seen.lefts.filter((left) => Math.abs(left - first) > EDGE_PX);
   if (apart.length > 0) out.push(`cards off the first card's left edge ${first}px: ${apart.join(", ")}`);
   for (const card of seen.nested) out.push(`a card inside a data-layout grid: ${card}`);
-  if (seen.weekTracks !== null) {
-    const want = width < 768 ? 4 : 7;
-    if (seen.weekTracks !== want) out.push(`the week has ${seen.weekTracks} tracks at ${width}px, not ${want}`);
+  if (seen.monthTracks !== null) {
+    const want = width < 768 ? 2 : 4;
+    if (seen.monthTracks !== want) out.push(`the month has ${seen.monthTracks} tracks at ${width}px, not ${want}`);
   }
   if (seen.tilesTracks !== null) {
     if (width < 768 ? seen.tilesTracks !== 1 : width >= 1280 && seen.tilesTracks < 2)
@@ -107,8 +107,8 @@ for (const tab of SETTINGS_TABS) {
           );
           for (const [theme, measured] of seen) {
             expect(offences(measured, width), `${href} @ ${width}px ${theme}`).toEqual([]);
-            // The week is what Mail is checked for; a tab that lost it would pass vacuously.
-            if (tab === "mail") expect(measured.weekTracks, `${href} @ ${width}px ${theme}`).not.toBeNull();
+            // The month is what Billing is checked for; a tab that lost it would pass vacuously.
+            if (tab === "billing") expect(measured.monthTracks, `${href} @ ${width}px ${theme}`).not.toBeNull();
             if (tab === "business") expect(measured.wellsTracks, `${href} @ ${width}px ${theme}`).not.toBeNull();
             if (tab === "market") {
               expect(measured.tilesTracks, `${href} @ ${width}px ${theme}`).not.toBeNull();
@@ -150,15 +150,15 @@ describe("the ruler sees what it is for (canaries)", () => {
   );
 
   it(
-    "a card inside a data-layout grid, and a week of seven tracks on a phone, are refused",
+    "a card inside a data-layout grid, and a month of seven tracks on a phone, are refused",
     async () => {
       const found = await canary(
         390,
         '<div id="panel" class="stack"><section class="card"><div data-layout="pair"><div class="card">Inner</div></div>' +
-          '<div data-layout="week" class="seven"><span>M</span></div></section></div>'
+          '<div data-layout="month" class="seven"><span>M</span></div></section></div>'
       );
       expect(found.some((line) => line.startsWith("a card inside a data-layout grid"))).toBe(true);
-      expect(found).toContain("the week has 7 tracks at 390px, not 4");
+      expect(found).toContain("the month has 7 tracks at 390px, not 2");
     },
     PER_CASE_MS
   );

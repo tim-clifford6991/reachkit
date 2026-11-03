@@ -182,16 +182,12 @@ describe("REQ-097 — the model carries no billing value at all", () => {
     // REQ-076 c3's "the exact date their access ends", and REQ-073 c3's
     // zone. One instant in, one written day out — and the zone applied here
     // and nowhere else.
+    // Midnight UTC on 1 Oct is still 30 Sep in New York, and already 1 Oct in Sydney; the boards' form.
     const model = assembleSettings(FACTS);
-    const inZone = new Intl.DateTimeFormat("en-US", {
-      timeZone: FACTS.timeZone,
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    }).format(readableFacts().paidThrough);
-    expect(card(model).accessUntil).toBe(inZone);
+    expect(card(model).accessUntil).toBe("Wed 30 Sep 2026");
 
     const elsewhere = assembleSettings({ ...FACTS, timeZone: "Australia/Sydney" });
+    expect(card(elsewhere).accessUntil).toBe("Thu 1 Oct 2026");
     expect(card(elsewhere).accessUntil).not.toBe(card(model).accessUntil);
   });
 

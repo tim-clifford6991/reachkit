@@ -1,5 +1,5 @@
-// Settings › Account (board SettingsAccount): how a sign-in goes, the export,
-// and the danger zone folded shut with what each way out does.
+// Settings › Account (board SettingsAccount): the name, the address and how
+// you sign in, the export as one row, sign out, and the danger zone folded shut.
 /** @vitest-environment jsdom */
 import "../../generate/env";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -29,23 +29,31 @@ const text = (el: Element | null | undefined): string => {
 };
 
 describe("the account card", () => {
-  it("shows how you sign in, under the address it mails", () => {
-    const signin = doc.querySelector('[data-testid="account-signin"]')!;
-    expect(signin.getAttribute("aria-label")).toBe("How you sign in");
-    expect(text(signin)).toBe("We mail you a link You open it You’re in. No password.");
+  it("reads Name, Email and Your pages, the address in mono with how you sign in under it", () => {
+    expect([...doc.querySelectorAll('[data-testid^="setting-"], [data-testid="action-export"]')].map((el) => el.getAttribute("data-testid"))).toEqual([
+      "setting-name",
+      "setting-email",
+      "action-export",
+    ]);
     const email = doc.querySelector('[data-testid="setting-email"]')!;
-    expect(email.compareDocumentPosition(signin) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(email.querySelector(".num")?.textContent).toBe("dana@example.com");
+    expect(text(email)).toContain("Email dana@example.com Change email You sign in with a link sent here. No password.");
+    expect(email.querySelector('[data-testid="email-change"]')).toBeNull();
   });
 
-  it("offers the export with no condition, saying what it holds, above sign out", () => {
+  it("offers the export with no condition as one row, saying what it holds, above sign out", () => {
     const exp = doc.querySelector('[data-testid="action-export"]')!;
-    expect(text(exp.querySelector("div"))).toBe(
-      "Export everything All 14 pages we wrote for you, as files with images. You can always download them."
-    );
-    expect(text(exp.querySelector("button"))).toBe("Export everything");
+    expect(text(exp)).toBe("Your pages 14 pages, with images Export everything");
+    expect(exp.querySelector("button svg.lucide-download")).not.toBeNull();
     expect(exp.querySelector("button")?.hasAttribute("disabled")).toBe(false);
     const signOut = doc.querySelector('[data-testid="action-sign_out"]')!;
+    expect(text(signOut)).toBe("Sign out");
     expect(exp.compareDocumentPosition(signOut) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("one page is one page", () => {
+    const one = new DOMParser().parseFromString(renderToStaticMarkup(<AccountPanel account={settings.account} pages={1} />), "text/html");
+    expect(text(one.querySelector('[data-testid="action-export"]'))).toBe("Your pages 1 page, with images Export everything");
   });
 });
 
@@ -62,27 +70,15 @@ describe("the danger zone", () => {
     expect(pause.querySelector("a")?.getAttribute("href")).toBe("/app/settings/publishing");
   });
 
-  it("says what each one does", () => {
-    const compare = zone.querySelector('[data-testid="danger-compare"]')!;
-    expect(text(compare.querySelector(".eyebrow"))).toBe("What each one does");
-    const ways = [...compare.querySelectorAll(":scope > ul > li")].map((li) => [
-      text(li.querySelector(":scope > span")),
-      ...[...li.querySelectorAll("li")].map(text),
-    ]);
-    expect(ways).toEqual([
-      ["Pause publishing", "Live pages Stay up", "New pages None until you turn it on", "Account, pages and settings Kept", "Your pages exported to you Not needed", "Can you undo it? Yes, one switch"],
-      ["Take every page down", "Live pages Taken down", "New pages None, publishing is off", "Account, pages and settings Kept", "Your pages exported to you First, before anything", "Can you undo it? Yes, turn publishing on"],
-      ["Delete my account", "Live pages Taken down", "New pages None", "Account, pages and settings Closed for good", "Your pages exported to you First, before anything", "Can you undo it? No"],
-    ]);
-  });
-
-  it("then each action, its consequence and the word it is confirmed with", () => {
-    for (const [action, title, word] of [
-      ["unpublish_all", "Take every page down", "unpublish all"],
-      ["delete_account", "Delete my account", "delete account"],
+  it("then each action, its consequence and the word it is confirmed with, and no comparison grid", () => {
+    expect(zone.querySelector('[data-testid="danger-compare"]')).toBeNull();
+    for (const [action, title, word, consequence] of [
+      ["unpublish_all", "Take every page down", "unpublish all", "We send your export first, then take every page down and pause publishing. Your account stays, and you can turn publishing on again."],
+      ["delete_account", "Delete my account", "delete account", "We send your export, then take every page down. Your account closes for good, with no more charges."],
     ] as const) {
       const step = zone.querySelector(`[data-testid="danger-${action}"]`)!;
       expect(text(step.querySelector("h3"))).toBe(title);
+      expect(text(step.querySelector(`[data-testid="consequence-${action}"]`))).toBe(consequence);
       expect(text(step.querySelector("label"))).toBe(`Type “${word}” to confirm`);
       expect(text(step.querySelector(`[data-testid="confirm-${action}"] button`))).toBe(title);
     }

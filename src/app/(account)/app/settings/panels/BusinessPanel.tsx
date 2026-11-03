@@ -28,7 +28,7 @@ import {
 } from "../business-actions";
 import { remeasureNowAction } from "../change-actions";
 import { MARKET_REMEASURE_INITIAL, type MarketRemeasureState } from "../market-state";
-import { formatShortDay } from "../../_shell/format";
+import { formatDayDate } from "../../_shell/format";
 import { writtenLine } from "../../_shell/written";
 import {
   BUSINESS_ITEM_FIELD,
@@ -248,10 +248,7 @@ function ReadAgain(p: { profile: BusinessProfile; timeZone: string }): React.JSX
   const line = failed ? copy("settings.answer.could-not-ask") : remeasure.answer === "refused" ? remeasure.line : null;
   const { readAt, pagesRead } = p.profile;
   // The boards' date: "Mon 12 Oct 2026", mono.
-  const on =
-    readAt === null
-      ? null
-      : `${formatShortDay(readAt, p.timeZone)} ${new Intl.DateTimeFormat("en", { timeZone: p.timeZone, year: "numeric" }).format(readAt)}`;
+  const on = readAt === null ? null : formatDayDate(readAt, p.timeZone);
   const readLine =
     on === null
       ? copy("settings.business.read-never")

@@ -28,7 +28,6 @@
 "use client";
 
 import type React from "react";
-import { FileX, Info, Pause, Trash2, type LucideIcon } from "lucide-react";
 import { Linked } from "../Linked";
 import { useState, useTransition } from "react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
@@ -60,20 +59,12 @@ const DANGER: readonly { action: Extract<ActionKey, "unpublish_all" | "delete_ac
   },
 ];
 
-/** What each of the three ways out does, in the board's order: pausing, then the two above. */
-const COMPARE: readonly { name: CopyKey; icon: LucideIcon; values: readonly [CopyKey, CopyKey, CopyKey, CopyKey, CopyKey] }[] = [
-  { name: "danger.pause", icon: Pause, values: ["danger.value.stay-up", "danger.value.none-until-on", "danger.value.kept", "danger.value.not-needed", "danger.value.one-switch"] },
-  { name: "danger.unpublish-all", icon: FileX, values: ["danger.value.taken-down", "danger.value.none-off", "danger.value.kept", "danger.value.first", "danger.value.turn-on"] },
-  { name: "danger.delete-account", icon: Trash2, values: ["danger.value.taken-down", "danger.value.none", "danger.value.closed", "danger.value.first", "danger.value.no"] },
-];
-const FACTS: readonly CopyKey[] = ["danger.fact.live", "danger.fact.new", "danger.fact.kept", "danger.fact.export", "danger.fact.undo"];
-
 export function DangerZone(): React.JSX.Element {
   const action = useAction();
 
   return (
     // The one card whose controls destroy something: error edge before anything is pressed.
-    <details className="collapse collapse-arrow rounded-box border border-error/40 min-w-0 bg-base-100" data-testid="settings-danger">
+    <details className="card collapse collapse-arrow border border-error/40 min-w-0 bg-base-100" data-testid="settings-danger">
       <summary className="collapse-title min-w-0">
         <span className="flex min-w-0 flex-col gap-1">
           <span className="text-base font-semibold text-error">{copy("danger.zone.title")}</span>
@@ -81,34 +72,9 @@ export function DangerZone(): React.JSX.Element {
         </span>
       </summary>
       <div className="collapse-content flex min-w-0 flex-col gap-4">
-        <p className="flex min-w-0 items-start gap-2 text-sm" data-testid="danger-pause-line">
-          <Info size={16} strokeWidth={1.75} aria-hidden className="mt-0.5 shrink-0 text-primary" />
-          <span className="min-w-0 wrap-anywhere">
-            <Linked sentence={copy("danger.pause.line")} word={copy("danger.pause.link")} href={SETTINGS_TAB_HREF.publishing} />
-          </span>
+        <p className="min-w-0 text-sm wrap-anywhere" data-testid="danger-pause-line">
+          <Linked sentence={copy("danger.pause.line")} word={copy("danger.pause.link")} href={SETTINGS_TAB_HREF.publishing} />
         </p>
-
-        <div className="flex min-w-0 flex-col gap-2" data-testid="danger-compare">
-          <p className="eyebrow">{copy("danger.compare.title")}</p>
-          <ul className="grid min-w-0 grid-cols-1 gap-3 md:grid-cols-3" data-layout="compare">
-            {COMPARE.map((way) => (
-              <li key={way.name} className="bg-base-200 rounded-box flex min-w-0 flex-col gap-2 p-3">
-                <span className="inline-flex min-w-0 items-center gap-2 text-sm font-semibold">
-                  <way.icon size={20} strokeWidth={1.75} aria-hidden />
-                  {copy(way.name)}
-                </span>
-                <ul className="flex min-w-0 flex-col gap-1">
-                  {way.values.map((value, i) => (
-                    <li key={FACTS[i]} className="flex min-w-0 flex-col text-sm">
-                      <span className="text-xs text-base-content/70">{copy(FACTS[i]!)}</span>
-                      <span className="wrap-anywhere">{copy(value)}</span>
-                    </li>
-                  ))}
-                </ul>
-              </li>
-            ))}
-          </ul>
-        </div>
 
         {DANGER.map((row) => (
           <DangerStep key={row.action} row={row} action={action} />
@@ -165,7 +131,7 @@ function DangerStep(p: {
           <span>
             <button
               type="button"
-              className="btn btn-soft btn-primary btn-sm"
+              className="btn btn-soft btn-primary min-h-11"
               onClick={() => {
                 p.action.run(p.row.action);
                 void handoverState(p.row.action).then(setHandover);
@@ -179,15 +145,16 @@ function DangerStep(p: {
 
       {/* Gate 2 — c2's typed confirmation. */}
       <div className="flex min-w-0 flex-col gap-2" data-testid={`confirm-word-${p.row.action}`}>
-        <label className="flex min-w-0 flex-col gap-1">
-          <span className="text-sm text-base-content/70">{copy("danger.type-to-confirm", { word })}</span>
-          <input className="input w-full" placeholder={word} value={typed} onChange={(e) => setTyped(e.target.value)} />
+        <label htmlFor={`confirm-field-${p.row.action}`} className="text-sm font-semibold">
+          {copy("danger.type-to-confirm", { word })}
         </label>
+        <div className="flex min-w-0 flex-wrap gap-2">
+        <input id={`confirm-field-${p.row.action}`} className="input min-h-11 min-w-0 grow basis-48" value={typed} onChange={(e) => setTyped(e.target.value)} />
         <span className="flex min-w-0" data-testid={`action-${p.row.action}`}>
         <span className="flex min-w-0" data-testid={`confirm-${p.row.action}`}>
           <button
             type="button"
-            className="btn btn-error btn-sm"
+            className="btn btn-error min-h-11"
             disabled={!armed || running}
             onClick={() => {
               startRunning(async () => {
@@ -205,6 +172,7 @@ function DangerStep(p: {
           </button>
         </span>
         </span>
+        </div>
       </div>
 
       {outcome === null ? null : <DangerLine outcome={outcome} />}

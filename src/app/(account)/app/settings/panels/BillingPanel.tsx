@@ -38,7 +38,7 @@
 "use client";
 
 import type React from "react";
-import { CircleCheck, ExternalLink } from "lucide-react";
+import { Check } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { writtenLine } from "../../_shell/written";
 import { useAction } from "./useAction";
@@ -104,26 +104,24 @@ export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element 
     : null;
 
   const pill = (key: CopyKey, run: () => void): React.JSX.Element => (
-    <button type="button" className="btn btn-soft btn-primary btn-sm" onClick={run} disabled={action.pending !== null}>
+    <button type="button" className="btn btn-soft btn-primary min-h-11" onClick={run} disabled={action.pending !== null}>
       {action.pending === "resume" ? <span className="loading loading-spinner loading-xs" aria-hidden /> : null}
       {copy(key)}
     </button>
   );
 
-  /** The one way to the one destination. `btn-primary` because it is this
-   *  card's only control and `docs/DESIGN.md` allows one solid primary per
-   *  screen; the icon is the card's own, at the badge size a control takes. */
+  /** The one way to the one destination, and this card's one solid primary. */
   const manage = (run: () => void): React.JSX.Element => (
-    <button type="button" className="btn btn-primary btn-sm" onClick={run} disabled={action.pending !== null}>
-      {action.pending === "invoices" ? <span className="loading loading-spinner loading-xs" aria-hidden /> : <ExternalLink size={16} strokeWidth={1.75} aria-hidden />}
+    <button type="button" className="btn btn-primary min-h-11" onClick={run} disabled={action.pending !== null}>
+      {action.pending === "invoices" ? <span className="loading loading-spinner loading-xs" aria-hidden /> : null}
       {copy("settings.billing.manage")}
     </button>
   );
 
   return (
     <section className="card card-border min-w-0 bg-base-100">
-      <div className="card-body gap-4">
-        <h2 className="card-title text-base">{copy("settings.billing.title")}</h2>
+      <div className="card-body gap-5">
+        <h2 className="card-title text-(length:--h3)">{copy("settings.billing.title")}</h2>
 
         {/* The settable-row shape every Settings tab draws (`SettingRow`,
             #1089): the name at the near edge, the value at the far one. */}
@@ -134,7 +132,7 @@ export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element 
                 className={billing.state === "active" ? "badge badge-success badge-soft" : "badge badge-ghost"}
                 data-testid="billing-state"
               >
-                {billing.state === "active" ? <CircleCheck size={14} strokeWidth={1.75} aria-hidden /> : null}
+                {billing.state === "active" ? <Check size={14} strokeWidth={1.75} aria-hidden /> : null}
                 {copy(billing.state === "active" ? "settings.billing.active" : "settings.billing.cancelled")}
               </span>
             </SettingRow>
@@ -143,7 +141,7 @@ export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element 
             name={copy("settings.billing.plan")}
             testId="billing-row-plan"
             below={
-              <div className="flex min-w-0 flex-col gap-1 text-xs text-base-content/70">
+              <div className="flex min-w-0 flex-col gap-1 text-sm text-base-content/70">
                 {planLine === null ? null : (
                   <p
                     className="wrap-anywhere"
@@ -158,12 +156,9 @@ export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element 
               </div>
             }
           >
-            <span className="flex min-w-0 flex-wrap items-baseline gap-2" data-testid="billing-price">
-              <span className="figure text-xl wrap-anywhere">{amount}</span>
-              {interval === null ? null : (
-                <span className="num-phrase text-xs text-base-content/70 wrap-anywhere">{interval}</span>
-              )}
-            </span>
+            <p className="min-w-0 wrap-anywhere" data-testid="billing-price">
+              {[amount, interval].filter((part) => part !== null).join(" ")}
+            </p>
           </SettingRow>
           {nextInvoice === null ? null : (
             <SettingRow name={copy("settings.billing.next-invoice")} testId="billing-row-next-invoice">
@@ -192,46 +187,41 @@ export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element 
             instead of the portal (`resumePlan`), so it stays its own
             control in its own plan state, which is the position §4.7 gave
             it and REQ-076 c6's "two plan states, one position". */}
+        <div className="border-base-300 flex min-w-0 flex-col gap-2 border-t pt-4">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
           {!billing.readable || billing.state === "active" ? (
-            // `flex min-w-0` on the outer marker is load-bearing, not
-            // decoration: a flex item is blockified, so the inner marker is
-            // a box the height of the button inside it. Left inline it keeps
-            // its own line-box height — the 15px body's, shorter than a
-            // `btn-sm` — and the button stands outside its own parent at
-            // every width, which is a check-2 offender the layout sweep
-            // reports by name. Found by rendering this card at 390, 768 and
-            // 1280 in both themes before the PR was opened.
+            // Each marker is a flex box, so it is as tall as its button and the button never overflows it.
             <span className="flex min-w-0" data-testid="action-cancel">
-              <span data-testid="action-invoices">
+              <span className="flex min-w-0" data-testid="action-invoices">
                 {manage(() => action.run("invoices"))}
               </span>
             </span>
           ) : (
             <>
-              <span data-testid="action-invoices">{manage(() => action.run("invoices"))}</span>
-              <span data-testid="action-resume">
+              <span className="flex min-w-0" data-testid="action-invoices">{manage(() => action.run("invoices"))}</span>
+              <span className="flex min-w-0" data-testid="action-resume">
                 {pill("settings.billing.resume", () => action.run("resume"))}
               </span>
             </>
           )}
         </div>
-        <p className="text-xs text-base-content/70 wrap-anywhere" data-testid="billing-manage-note">
+        <p className="text-sm text-base-content/70 wrap-anywhere" data-testid="billing-manage-note">
           {copy("settings.billing.manage.note")}
         </p>
+        </div>
 
         {billing.readable ? null : (
           <div className="flex min-w-0 flex-col gap-1" data-testid="billing-unreadable">
             {BILLING_UNREADABLE_KEYS.map((key) => ({ key, line: writtenLine(key) }))
               .filter((written) => written.line !== null)
               .map((written) => (
-                <p className="text-xs text-base-content/70 wrap-anywhere" key={written.key}>
+                <p className="text-sm text-base-content/70 wrap-anywhere" key={written.key}>
                   {written.line}
                 </p>
               ))}
           </div>
         )}
-        {action.line === null ? null : <p className="text-xs text-base-content/70 wrap-anywhere">{action.line}</p>}
+        {action.line === null ? null : <p className="text-sm text-base-content/70 wrap-anywhere">{action.line}</p>}
       </div>
     </section>
   );
