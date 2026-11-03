@@ -37,7 +37,7 @@ import { PUBLIC_ROUTE_SEO } from "../_seo/routes";
 import { staticMetadata } from "../_seo/metadata";
 import { readLiveExamples } from "../_how/examples";
 import { HOW_FACTS as F } from "../_how/facts";
-import { LearnClose } from "../_library/parts";
+import { BAND, LearnClose } from "../_library/parts";
 
 export const metadata: Metadata = staticMetadata(PUBLIC_ROUTE_SEO.about);
 
@@ -51,8 +51,10 @@ const BODY = "card-body gap-3";
 const SECTION = "flex min-w-0 flex-col gap-4 scroll-mt-16";
 const EYEBROW = "text-primary text-xs font-semibold tracking-wide uppercase";
 const SMALL = "text-base-content/70 text-sm";
-/** Headings read near-black over the page's softer body text. */
-const INK = "text-base-content";
+/** Every heading reads near-black over the page's softer body text, the close's included. */
+const HEADINGS = "[&_:is(h1,h2,h3)]:text-base-content";
+/** The solid number tile the boards draw on each step. */
+const STEP_TILE = "rounded-field bg-primary text-primary-content grid size-10 shrink-0 place-items-center font-extrabold";
 const TILE = "rounded-field bg-primary/10 text-primary grid size-10 shrink-0 place-items-center";
 const RULE_TILE = "rounded-field grid size-8 shrink-0 place-items-center";
 const ICON = { size: 16, strokeWidth: 1.75, "aria-hidden": true } as const;
@@ -105,15 +107,15 @@ export default async function AboutPage(): Promise<React.JSX.Element> {
   return (
     <Surface
       arms={{
-        compact: { kind: "columns", count: 1 },
+        compact: { kind: "declared", note: "one reading column with its own 16px gutter, as the v36 boards draw it" },
         medium: { kind: "same-as-below" },
         wide: { kind: "same-as-below" },
       }}
     >
       <main className="mx-auto flex w-full min-w-0 max-w-5xl flex-col px-4 py-12" data-testid={PAGE_TEST_ID}>
-        <article className="text-base-content/80 mx-auto flex w-full min-w-0 max-w-(--w-read) flex-col gap-10 leading-relaxed">
+        <article className={`text-base-content/80 ${HEADINGS} mx-auto flex w-full min-w-0 max-w-(--w-read) flex-col gap-10 leading-relaxed`}>
           <section id="top" aria-labelledby="top-h" className={SECTION}>
-            <h1 id="top-h" className={`${INK} t-hero`}>{copy("about.title")}</h1>
+            <h1 id="top-h" className="t-hero">{copy("about.title")}</h1>
             <p>{copy("about.lead")}</p>
             <section aria-labelledby="who-h" className={CARD}>
               <div className={BODY}>
@@ -121,7 +123,7 @@ export default async function AboutPage(): Promise<React.JSX.Element> {
                   <span className={TILE}>
                     <User {...TILE_ICON} />
                   </span>
-                  <h2 id="who-h" className={`${INK} text-lg`}>
+                  <h2 id="who-h" className="text-lg">
                     {copy("about.who.title")}
                   </h2>
                 </div>
@@ -151,8 +153,8 @@ export default async function AboutPage(): Promise<React.JSX.Element> {
             </section>
           </section>
 
-          <section id="why" aria-labelledby="why-h" className={SECTION}>
-            <h2 id="why-h" className={INK}>{copy("about.why.title")}</h2>
+          <section id="why" aria-labelledby="why-h" className={`${SECTION} ${BAND}`}>
+            <h2 id="why-h">{copy("about.why.title")}</h2>
             <p>{`${copy("about.why.problem")} ${copy("about.why.answer")}`}</p>
             <div className="grid min-w-0 grid-cols-1 items-center gap-4 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
               <figure className={CARD}>
@@ -171,6 +173,7 @@ export default async function AboutPage(): Promise<React.JSX.Element> {
                           <span className="text-sm font-semibold">{r.name}</span>
                           <span className="num text-base-content/70 text-xs break-all">{`${r.site} › ${r.path}`}</span>
                           <span className="text-primary text-sm">{r.title}</span>
+                          <span className="bg-base-300 mt-1.5 block h-2 w-3/4 rounded-full" />
                         </span>
                       </li>
                     ))}
@@ -202,21 +205,21 @@ export default async function AboutPage(): Promise<React.JSX.Element> {
           </section>
 
           <section id="does" aria-labelledby="does-h" className={SECTION}>
-            <h2 id="does-h" className={INK}>{copy("about.does.title")}</h2>
+            <h2 id="does-h">{copy("about.does.title")}</h2>
             <ol className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
               {STEPS.map((s) => (
                 <li key={s.n} className="min-w-0">
                   <Link href={s.href} className={`${CARD} h-full`}>
                     <div className={BODY}>
                       <span className="flex items-center justify-between gap-2">
-                        <span className="badge badge-primary badge-sm" aria-hidden>
+                        <span className={STEP_TILE} aria-hidden>
                           {s.n}
                         </span>
                         <span className={TILE}>
                           <s.Icon {...TILE_ICON} />
                         </span>
                       </span>
-                      <h3 className={INK}>{copy(s.title)}</h3>
+                      <h3>{copy(s.title)}</h3>
                       <span className={SMALL}>{copy(s.line, { weekPages: F.weekPages })}</span>
                     </div>
                   </Link>
@@ -237,8 +240,8 @@ export default async function AboutPage(): Promise<React.JSX.Element> {
             </div>
           </section>
 
-          <section id="rules" aria-labelledby="rules-h" className={SECTION}>
-            <h2 id="rules-h" className={INK}>{copy("about.rules.title")}</h2>
+          <section id="rules" aria-labelledby="rules-h" className={`${SECTION} ${BAND}`}>
+            <h2 id="rules-h">{copy("about.rules.title")}</h2>
             <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
               <div className="flex min-w-0 flex-col gap-2">
                 <h3 className="text-error flex items-center gap-2">
@@ -277,7 +280,7 @@ export default async function AboutPage(): Promise<React.JSX.Element> {
 
           {page === null && report === null ? null : (
             <section id="proof" aria-labelledby="proof-h" className={SECTION}>
-              <h2 id="proof-h" className={INK}>
+              <h2 id="proof-h">
                 {copy("about.proof.title")}
               </h2>
               <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">

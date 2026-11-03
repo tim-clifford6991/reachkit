@@ -11,7 +11,7 @@ import { PUBLIC_ROUTE_SEO } from "../_seo/routes";
 import { staticMetadata } from "../_seo/metadata";
 import { TEARDOWNS, shortDate, type Teardown } from "../_library";
 import { TEARDOWN_PARTS } from "../_library/types";
-import { LearnClose, LibraryPage } from "../_library/parts";
+import { BAND, LearnClose, LibraryPage } from "../_library/parts";
 
 const FEED = "/teardowns/rss.xml";
 const head = staticMetadata(PUBLIC_ROUTE_SEO.teardowns);
@@ -35,9 +35,17 @@ const TILE =
   "card bg-base-100 shadow-(--shadow-card) motion-safe:transition-transform motion-safe:duration-200 hover:-translate-y-0.5";
 
 /** The solid number a sketch marks a place with; the page it could add is green, a changed site warm. */
-const MARK_TONE = { primary: "badge-primary", success: "badge-success", warning: "badge-warning" } as const;
+const MARK_TONE = {
+  primary: "bg-primary text-primary-content",
+  success: "bg-success text-success-content",
+  warning: "bg-warning text-warning-content",
+} as const;
 function Mark(p: { n: number; tone?: keyof typeof MARK_TONE }): React.JSX.Element {
-  return <span className={`badge badge-sm shrink-0 font-extrabold ${MARK_TONE[p.tone ?? "primary"]}`}>{p.n}</span>;
+  return (
+    <span aria-hidden className={`grid size-6 shrink-0 place-items-center rounded-full text-xs font-extrabold ${MARK_TONE[p.tone ?? "primary"]}`}>
+      {p.n}
+    </span>
+  );
 }
 
 /** Where a card's promise sits: dashed and tinted, warm where the site changed. */
@@ -56,10 +64,10 @@ function Lines(): React.JSX.Element {
   );
 }
 
-/** A sketch's address bar: one white pill holding the padlock and the address. */
+/** A sketch's address bar: one white pill holding the padlock and the address; daisyUI's toolbar input would paint a magnifier. */
 function Address(p: { domain: string }): React.JSX.Element {
   return (
-    <span className="input bg-base-100 flex w-full min-w-0 items-center gap-1 rounded-full">
+    <span className="bg-base-100 border-base-300 flex h-7 w-full min-w-0 items-center gap-1 rounded-full border px-3">
       <Lock {...SMALL_ICON} className="shrink-0" />
       <span className="min-w-0 truncate font-mono text-xs">{p.domain}</span>
     </span>
@@ -80,6 +88,7 @@ function EveryRead(): React.JSX.Element {
               <Mark n={1} />
               <span className="flex min-w-0 flex-1 flex-col gap-2" aria-hidden>
                 <span className="bg-base-content/70 block h-3 w-5/6 rounded-full" />
+                <span className="bg-base-content/70 block h-3 w-1/2 rounded-full" />
                 <span className={`${LINE} w-2/3`} />
                 <span className="flex gap-2">
                   <span className="bg-primary/30 rounded-field block h-5 w-16" />
@@ -117,9 +126,9 @@ function EveryRead(): React.JSX.Element {
           </div>
         </div>
         <p className={LABEL}>{copy("teardowns.reads.title")}</p>
-        <ol className="flex min-w-0 flex-col gap-3">
+        <ol className="divide-base-300 flex min-w-0 flex-col divide-y">
           {TEARDOWN_PARTS.map((part, i) => (
-            <li key={part} className="flex min-w-0 items-start gap-3">
+            <li key={part} className="flex min-w-0 items-start gap-3 py-2.5">
               <Mark n={i + 1} tone={i === TEARDOWN_PARTS.length - 1 ? "success" : "primary"} />
               <span className="flex min-w-0 flex-col">
                 <strong>{copy(`teardowns.reads.${part}` as CopyKey)}</strong>
@@ -155,6 +164,8 @@ function Card(p: { t: Teardown }): React.JSX.Element {
               <Mark n={1} tone={t.change === "site" ? "warning" : "primary"} />
               <span className="text-base-content min-w-0 text-sm font-semibold break-words">{t.hook}</span>
             </span>
+            <Lines />
+            <span aria-hidden className="bg-primary/30 rounded-field block h-5 w-16" />
           </span>
         </span>
       </span>
@@ -184,7 +195,7 @@ export default function TeardownsPage(): React.JSX.Element {
         <p className="max-w-(--w-read) text-lg">{copy("teardowns.lead")}</p>
         <EveryRead />
       </section>
-      <section className="mt-6 flex min-w-0 flex-col gap-4" aria-labelledby={ALL_ID}>
+      <section className={`mt-6 flex min-w-0 flex-col gap-4 ${BAND}`} aria-labelledby={ALL_ID}>
         <div className="flex min-w-0 flex-wrap items-end justify-between gap-3">
           <div className="flex min-w-0 flex-col gap-1">
             <p className={LABEL}>{copy("teardowns.count", { count: String(TEARDOWNS.length) })}</p>

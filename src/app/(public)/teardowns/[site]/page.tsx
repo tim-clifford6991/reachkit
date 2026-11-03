@@ -10,7 +10,7 @@ import { PUBLIC_ROUTE_SEO } from "../../_seo/routes";
 import { publicMetadata } from "../../_seo/metadata";
 import { JsonLd, articleSchemas, homeCrumb } from "../../_seo/structured";
 import { TEARDOWNS, longDate, teardownOf } from "../../_library";
-import { BackLink, CARD, LearnClose, LibraryPage, Trademarks } from "../../_library/parts";
+import { BackLink, BAND, CARD, LearnClose, LibraryPage, Trademarks } from "../../_library/parts";
 import { Sources } from "../../_library/sources";
 import { anchorOf, OnThisPage, PartSection, Sketch } from "../../_library/teardown-parts";
 
@@ -93,7 +93,7 @@ export default async function TeardownPage({ params }: Params): Promise<React.JS
           />
         )}
       </section>
-      <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_14rem]" data-testid="teardown-body">
+      <div className={`grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_14rem] ${BAND}`} data-testid="teardown-body">
         <article className="flex min-w-0 flex-col gap-4">
           {t.sections.map((section) => (
             <PartSection key={section.heading} section={section} />
