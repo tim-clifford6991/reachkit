@@ -19,8 +19,9 @@
 // its scan's (issue 1392), which a read made during the scan comes after.
 //
 // **Two reads, and the second is rare.** The first asks for no document
-// body, only what `couldBeChallenge` reads; the body is fetched for the few
-// rows that could be a protection's page.
+// body, only what `couldBeChallenge` reads; the few rows that could be a
+// protection's page are judged from the facts the re-score kept
+// (`fetch_facts`), and a body is fetched only where none is kept.
 //
 // **Not a report the vendor's browser measured.** Where the plain read met
 // a protection and the rendered read returned the site (issue 1379), the
@@ -34,6 +35,7 @@ import { unmeasured } from "@/lib/measure/measured";
 import { isStoredDocument, OWN_FETCH_SOURCE, RENDERED_FETCH_SOURCE, renderedDocumentOf } from "@/lib/measure/own-fetch";
 import { computeScore, limitingFactorOf, type ScoreFactors } from "@/lib/measure/score";
 import { checkSite } from "@/lib/site-issues/checks";
+import { deployedFactsVersion } from "./derivation";
 import type { PageFacts } from "./page-facts";
 import type { StoredReport } from "./report";
 
@@ -48,9 +50,16 @@ interface LightRow {
 }
 interface PayloadRow {
   id: string;
+  payload: unknown;
+}
+interface FactRow {
+  fetch_id: string;
+  fact: unknown;
+}
+interface RenderedRow {
+  id: string;
   cache_key: string;
   created_at: string;
-  payload: unknown;
 }
 interface QueryResult<T> {
   data: T[] | null;
@@ -88,6 +97,21 @@ async function rowsOf<T>(query: MinimalQueryBuilder<T>): Promise<T[]> {
   const { data, error } = await query;
   if (error) throw new Error(`challenged.ts: read from fetches failed: ${error.message}`);
   return data ?? [];
+}
+
+/** Each read's `fact`, as the re-score derived it at the deployed facts
+ *  version, else as `judge` reads it off the payload. */
+async function judged(db: MinimalClient, ids: readonly string[], fact: "protection" | "drawn", judge: (payload: unknown) => boolean): Promise<Map<string, boolean>> {
+  const out = new Map<string, boolean>();
+  const version = deployedFactsVersion();
+  if (version !== null && ids.length > 0) {
+    const kept = await rowsOf(db.from<FactRow>("fetch_facts").select(`fetch_id, fact:facts->${fact}`).eq("facts_version", version).in("fetch_id", ids));
+    for (const row of kept) if (typeof row.fact === "boolean") out.set(row.fetch_id, row.fact);
+  }
+  const missing = ids.filter((id) => !out.has(id));
+  if (missing.length === 0) return out;
+  for (const row of await rowsOf(db.from<PayloadRow>("fetches").select("id, payload").in("id", missing))) out.set(row.id, judge(row.payload));
+  return out;
 }
 
 /**
@@ -132,26 +156,18 @@ export async function challengedHomes(asked: readonly { domain: string; at: Date
     }
     if (candidates.size === 0) return challenged;
 
-    const documents = await rowsOf(
-      db.from<PayloadRow>("fetches").select("id, cache_key, created_at, payload").in("id", [...candidates.keys()])
-    );
+    const protection = await judged(db, [...candidates.keys()], "protection", protectionPage);
     const protectedHomes = new Map<string, { domain: string; ledgeredAt: number }>();
-    for (const row of documents) {
-      const candidate = candidates.get(row.id);
-      if (candidate === undefined || !isStoredDocument(row.payload) || challengeOf(row.payload) === null) continue;
-      protectedHomes.set(homeUrl(candidate.domain), candidate);
-    }
+    for (const [id, candidate] of candidates) if (protection.get(id) === true) protectedHomes.set(homeUrl(candidate.domain), candidate);
     if (protectedHomes.size === 0) return challenged;
 
     const rendered = await rowsOf(
-      db
-        .from<PayloadRow>("fetches")
-        .select("id, cache_key, created_at, payload")
-        .eq("source", RENDERED_FETCH_SOURCE)
-        .in("cache_key", [...protectedHomes.keys()])
+      db.from<RenderedRow>("fetches").select("id, cache_key, created_at").eq("source", RENDERED_FETCH_SOURCE).in("cache_key", [...protectedHomes.keys()])
     );
+    const drawn = await judged(db, rendered.map((row) => row.id), "drawn", (payload) => renderedDocumentOf(payload) !== null);
     for (const [url, home] of protectedHomes) {
-      if (!drawnSince(rendered.filter((row) => row.cache_key === url), home.ledgeredAt)) challenged.add(home.domain);
+      const since = rendered.filter((row) => row.cache_key === url && new Date(row.created_at).getTime() >= home.ledgeredAt);
+      if (!since.some((row) => drawn.get(row.id) === true)) challenged.add(home.domain);
     }
     return challenged;
   } catch (error: unknown) {
@@ -163,13 +179,6 @@ export async function challengedHomes(asked: readonly { domain: string; at: Date
     );
     return new Set();
   }
-}
-
-/** Whether a rendered read of the home page, ledgered at or after the plain
- *  read, drew the site itself: then the site was measured, not its
- *  protection. */
-function drawnSince(rendered: readonly { created_at: string; payload: unknown }[], ledgeredAt: number): boolean {
-  return rendered.some((row) => new Date(row.created_at).getTime() >= ledgeredAt && renderedDocumentOf(row.payload) !== null);
 }
 
 /** Whether a stored plain read was a protection's page, as `challengedHomes`

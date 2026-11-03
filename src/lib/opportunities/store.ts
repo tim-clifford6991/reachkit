@@ -716,19 +716,16 @@ export function supabaseOpportunityStore(): OpportunityStore {
     async askedBeside(siteId, days) {
       const since = new Date(Date.now() - days * 86_400_000).toISOString();
       const { data, error } = await untyped()
-        .from<{ cache_key: string; payload: unknown; created_at: string }>("fetches")
-        .select("cache_key, payload, created_at")
+        .from<{ cache_key: string; created_at: string; paa: unknown; related: unknown; listedPaa: unknown; listedRelated: unknown }>("fetches")
+        // The two lists only, from a stored SERP object or the vendor's one-row list: the rest of the SERP never leaves the database.
+        .select("cache_key, created_at, paa:payload->peopleAlsoAsk, related:payload->relatedSearches, listedPaa:payload->0->peopleAlsoAsk, listedRelated:payload->0->relatedSearches")
         .or(`site_id.eq.${siteId},site_id.is.null`) // free-scan rows have no site_id yet; both use idx_fetches_site_day
         .like("cache_key", `%|site:${siteId}|paa`).gte("created_at", since);
       if (error) throw new Error(`opportunities.askedBeside: ${error.message}`);
+      const strings = (value: unknown) => (Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : []);
       return (data ?? []).flatMap((row) => {
-        const serp = (Array.isArray(row.payload) ? row.payload[0] : row.payload) as
-          { peopleAlsoAsk?: unknown; relatedSearches?: unknown } | null | undefined;
-        const strings = (value: unknown) => (Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : []);
         const term = row.cache_key.split("|")[0] ?? "";
-        return term === ""
-          ? []
-          : [{ term, peopleAlsoAsk: strings(serp?.peopleAlsoAsk), related: strings(serp?.relatedSearches), at: new Date(row.created_at) }];
+        return term === "" ? [] : [{ term, peopleAlsoAsk: strings(row.listedPaa ?? row.paa), related: strings(row.listedRelated ?? row.related), at: new Date(row.created_at) }];
       });
     },
 

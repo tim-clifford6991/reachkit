@@ -1,4 +1,5 @@
-// `askedBeside` against a live schema: the indexed site_id read returns exactly the rows the key-only read did.
+// `askedBeside` against a live schema: the indexed site_id read returns exactly the rows the key-only read did,
+// and only the two lists it reads leave the database.
 // A `db`-project suite (`LIVE_SCHEMA_TESTS`).
 import { readdirSync } from "node:fs";
 import path from "node:path";
@@ -35,8 +36,12 @@ function scan(domain: string, tier: "free" | "deep", siteId: string | null): str
   );
 }
 
-function fetchRow(scanId: string, cacheKey: string, at = "now()"): void {
-  const payload = JSON.stringify([{ peopleAlsoAsk: [`asked of ${cacheKey.split("|")[0]}`], relatedSearches: ["related"] }]);
+/** A SERP's organic rows, which the read never needs. */
+const ITEMS = Array.from({ length: 40 }, (_, rank) => ({ type: "organic", rank, url: `https://rival.example.net/${rank}`, description: "organic row ".repeat(20) }));
+
+function fetchRow(scanId: string, cacheKey: string, at = "now()", listed = true): void {
+  const serp = { peopleAlsoAsk: [`asked of ${cacheKey.split("|")[0]}`], relatedSearches: ["related", 7], items: ITEMS };
+  const payload = JSON.stringify(listed ? [serp] : serp);
   run(
     `insert into fetches (scan_id, source, cache_key, policy_version, cost_cents, reserved_cents, payload, created_at) values ` +
       `('${scanId}', 'dataforseo_serp', '${cacheKey}', 1, 0, 0, '${payload}'::jsonb, ${at});`
@@ -65,6 +70,7 @@ beforeAll(async () => {
   fetchRow(xScan, `x plain|${place}|aio:cached|site:${X}`);
   fetchRow(xScan, `x deep|${place}|aio:cached|site:${X}|paa|depth:20`);
   fetchRow(xScan, `x old|${place}|aio:cached|site:${X}|paa`, `now() - interval '${DAYS + 1} days'`);
+  fetchRow(xScan, `x stored|${place}|aio:cached|site:${X}|paa`, "now()", false);
   run("NOTIFY pgrst, 'reload schema';");
   await new Promise((resolve) => setTimeout(resolve, 500));
   store = (await import("../../src/lib/opportunities/store")).supabaseOpportunityStore();
@@ -82,7 +88,23 @@ describe("askedBeside reads a site's People-also-ask rows", () => {
 
     const read = await store.askedBeside(X, DAYS);
     expect(read.map((row) => row.term).sort()).toEqual(oldTerms);
-    expect(oldTerms).toEqual(["x free", "x paid"]);
+    expect(oldTerms).toEqual(["x free", "x paid", "x stored"]);
     expect(read.find((row) => row.term === "x free")).toMatchObject({ peopleAlsoAsk: ["asked of x free"], related: ["related"] });
+  });
+
+  it("reads both lists from a one-row vendor list and from a stored SERP object, and downloads no organic row", async () => {
+    const bodies: string[] = [];
+    globalThis.fetch = (async (...args: Parameters<typeof fetch>) => {
+      const response = await (loopbackFetch as unknown as typeof fetch)(...args);
+      bodies.push(await response.clone().text());
+      return response;
+    }) as typeof fetch;
+    const read = await store.askedBeside(X, DAYS).finally(() => {
+      globalThis.fetch = loopbackFetch as unknown as typeof fetch;
+    });
+    expect(read.find((row) => row.term === "x paid")).toMatchObject({ peopleAlsoAsk: ["asked of x paid"], related: ["related"] });
+    expect(read.find((row) => row.term === "x stored")).toMatchObject({ peopleAlsoAsk: ["asked of x stored"], related: ["related"] });
+    expect(bodies.join("")).toContain("asked of x paid");
+    expect(bodies.join("")).not.toContain("rival.example.net");
   });
 });

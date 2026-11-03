@@ -22,7 +22,7 @@ import type {
   UnpublishOutcome,
   UnpublishResult,
 } from "../types";
-import { unpublish } from "./unpublish";
+import { PUBLICATION_COLUMNS, unpublish, type PublicationRow } from "./unpublish";
 
 export interface TakeDownDeps {
   adapterFor?: (destination: DestinationKind) => DestinationAdapter | null;
@@ -33,25 +33,6 @@ export interface TakeDownDeps {
 
 export type TakeDownResult = { ok: true } | { ok: false; refused: "not_live" | "failed" };
 export type PutBackResult = { ok: true } | { ok: false; refused: "not_open" | "address_taken" | "failed" };
-
-interface PublicationRow {
-  id: string;
-  draft_id: string;
-  site_id: string;
-  destination: string;
-  delivery_state: string;
-  attempt_no: number;
-  claimed_at: string;
-  published_at: string | null;
-  unpublished_at: string | null;
-  live_url: string | null;
-  remote_id: string | null;
-  failure_reason: string | null;
-  mode: string;
-  unpublish_outcome: string | null;
-  made_live_by_us: boolean;
-  verify_due_at: string | null;
-}
 
 /** States a refresh that has not gone out can be stopped from. */
 const STOPPABLE: readonly State[] = ["planned", "in_review", "needs_attention"];
@@ -150,7 +131,7 @@ function isLive(row: PublicationRow): boolean {
 }
 
 async function publicationsOf(column: "draft_id", value: string): Promise<PublicationRow[]> {
-  const { data, error } = await publishDb().from<PublicationRow>("publications").select("*").eq(column, value);
+  const { data, error } = await publishDb().from<PublicationRow>("publications").select(PUBLICATION_COLUMNS).eq(column, value);
   return error !== null || data === null ? [] : data;
 }
 
@@ -158,7 +139,7 @@ async function publicationsOf(column: "draft_id", value: string): Promise<Public
 async function publicationsAt(siteId: string, liveUrl: string): Promise<PublicationRow[]> {
   const { data, error } = await publishDb()
     .from<PublicationRow>("publications")
-    .select("*")
+    .select(PUBLICATION_COLUMNS)
     .eq("site_id", siteId)
     .eq("live_url", liveUrl);
   if (error !== null || data === null) return [];

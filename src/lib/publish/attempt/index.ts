@@ -22,9 +22,10 @@ import type {
 } from "../types";
 import { checkPageLinks, type AskAddress } from "../links/live";
 import { slugify } from "@/lib/opportunities/derive/candidate";
-import { isRetarget, type Evidence } from "@/lib/opportunities/types";
+import { isRetarget } from "@/lib/opportunities/types";
 import { claim, type HeldBy } from "./claim";
 import type { AnnounceSend } from "../destinations/hosted/announce";
+import type { RetargetPaths } from "./move";
 
 export type { FailureReason } from "../types";
 
@@ -254,14 +255,13 @@ interface DraftPageRow {
   attribution?: string | null;
   meta: Record<string, unknown> | null;
   sites?: { domain: string | null } | null;
-  opportunities?: {
+  opportunities?: ({
     family?: string | null;
     type?: string | null;
     proposed_slug?: string | null;
     target_ref?: string | null;
     target_query?: string | null;
-    evidence?: Evidence | null;
-  } | null;
+  } & RetargetPaths) | null;
 }
 
 /** `drafts.meta.fix`'s new values, read defensively off jsonb. */
@@ -302,9 +302,10 @@ async function siteOf(row: DraftPageRow): Promise<Pick<RenderedPage, "site">> {
 /** What the adapter is handed: the page's facts, no rendering and no sentence. A Write target publishes at its proposed
  *  slug, an Improve target changes the page it named (§7); a fix's `target_ref` is a barrier, not a page to rewrite. */
 async function renderedPage(draftId: string): Promise<RenderedPage | null> {
+  const { evidenceOf, RETARGET_PATHS } = await import("./move");
   const { data, error } = await publishDb()
     .from<DraftPageRow>("drafts")
-    .select("site_id, title, body_md, attribution, meta, sites(domain), opportunities(family, type, proposed_slug, target_ref, target_query, evidence)")
+    .select(`site_id, title, body_md, attribution, meta, sites(domain), opportunities(family, type, proposed_slug, target_ref, target_query, ${RETARGET_PATHS})`)
     .eq("id", draftId)
     .single();
   if (error !== null || data === null) return null;
@@ -333,7 +334,7 @@ async function renderedPage(draftId: string): Promise<RenderedPage | null> {
     const updateOf = (await storedAddressesNow(data.site_id))(stored);
     const slug = slugOfUrl(updateOf) ?? "";
     // SPEC §7: a retarget's address says its new search, in the site's language; a refresh keeps its address.
-    const moveTo = isRetarget(opportunity) ? slugify(opportunity.target_query ?? "", page.site?.language) : "";
+    const moveTo = isRetarget(evidenceOf(opportunity)) ? slugify(opportunity.target_query ?? "", page.site?.language) : "";
     return { ...page, slug, updateOf, ...(moveTo === "" || moveTo === slug ? {} : { moveTo }) };
   }
 

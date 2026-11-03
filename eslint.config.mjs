@@ -480,6 +480,11 @@ export const localImportRules = {
       },
     ]),
 
+    // Every jsonb column of a row leaves the database on a bare star, whatever the caller reads.
+    "no-select-star": textFenceRule([
+      { pattern: /\.select\(\s*["'`]\*["'`]\s*\)/, message: "Name the columns the caller reads: select(\"*\") also downloads every jsonb column of the row.", code: true },
+    ]),
+
     // (n) BP-002: src/lib/db alone chooses how the database is reached.
     "no-create-client-outside-db": textFenceRule([
       { pattern: /createClient\(/, message: "BP-002: only src/lib/db calls createClient( — use db() or dbAdmin() from '@/lib/db'." },
@@ -578,6 +583,7 @@ export default tseslint.config(
       "local/use-server-exports-async": "error",
       "local/no-client-constant-in-server": "error",
       "local/no-db-admin-in-client": "error",
+      "local/no-select-star": "error",
     },
   },
   {

@@ -94,14 +94,15 @@ function names(columns: string, relation: string): boolean {
   return columns.includes(`${relation}(`) || columns.includes(`${relation}!inner(`);
 }
 
-/** `alias:column->>key`, as PostgREST answers it: the key's value as text, under the alias. */
+/** `alias:column->key->>key`, as PostgREST answers it: the path's value under the alias, as text after `->>`. */
 function project(columns: string, row: Row): Row {
   const out = { ...row };
-  for (const [, alias, column, key] of columns.matchAll(/(\w+):(\w+)->>(\w+)/g)) {
-    const held = row[column as string];
-    if (held === undefined || alias! in row) continue;
-    const value = (held as Record<string, unknown> | null)?.[key as string];
-    out[alias as string] = value === undefined || value === null ? null : typeof value === "string" ? value : JSON.stringify(value);
+  for (const [, alias, column, path] of columns.matchAll(/(\w+):(\w+)((?:->>?\w+)+)/g)) {
+    if (row[column as string] === undefined || alias! in row) continue;
+    const steps = [...path!.matchAll(/->(>?)(\w+)/g)];
+    const value = steps.reduce<unknown>((held, [, , key]) => (held as Record<string, unknown> | null | undefined)?.[key!], row[column as string]);
+    const text = steps.at(-1)![1] === ">";
+    out[alias as string] = value === undefined || value === null ? null : text && typeof value !== "string" ? JSON.stringify(value) : value;
   }
   return out;
 }
@@ -120,8 +121,8 @@ function embed(db: FakeDb, table: string, columns: string, row: Row): Row {
     out.destinations = db.rows("destinations").filter((d) => d.site_id === row.id);
   }
   if (names(columns, "opportunities")) {
-    out.opportunities =
-      db.rows("opportunities").find((o) => o.id === row.opportunity_id) ?? null;
+    const opportunity = db.rows("opportunities").find((o) => o.id === row.opportunity_id);
+    out.opportunities = opportunity === undefined ? null : project(columns, opportunity);
   }
   if (names(columns, "drafts")) {
     const draft = db.rows("drafts").find((d) => d.id === row.draft_id) ?? null;

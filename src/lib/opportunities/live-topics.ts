@@ -318,7 +318,7 @@ export interface LiveRow {
   live_url: string | null;
   published_at: string;
   site_id: string;
-  drafts: { meta: unknown; transitions?: unknown; opportunities: unknown } | null;
+  drafts: { first_edited_at?: unknown; transitions?: unknown; opportunities: unknown } | null;
 }
 
 /** One address's live versions, newest first, with the row its newest was
@@ -346,9 +346,8 @@ export function liveAddressesOf(rows: readonly LiveRow[], read: (row: unknown) =
   for (const [liveUrl, held] of byUrl) {
     const versions = [...held].sort((x, y) => y.published_at.localeCompare(x.published_at));
     const newest = versions[0]!;
-    const meta = (newest.drafts?.meta ?? {}) as Record<string, unknown>;
     const stored = newest.drafts?.opportunities;
-    if (typeof meta.first_edited_at === "string" || stored == null || Array.isArray(stored)) continue;
+    if (typeof newest.drafts?.first_edited_at === "string" || stored == null || Array.isArray(stored)) continue;
     if (takenDownByCustomer(newest.drafts?.transitions)) continue;
     out.push({ siteId: newest.site_id, liveUrl, versions, opportunity: read(stored) });
   }
@@ -378,7 +377,7 @@ async function defaultDeps(): Promise<LiveTopicDeps> {
       const db = publishDb();
       const live = await db
         .from<LiveRow>("publications")
-        .select(`id, draft_id, destination, live_url, published_at, site_id, drafts(meta, transitions, opportunities(${COLUMNS}))`)
+        .select(`id, draft_id, destination, live_url, published_at, site_id, drafts(first_edited_at:meta->first_edited_at, transitions, opportunities(${COLUMNS}))`)
         .not("published_at", "is", null)
         .is("unpublished_at", null);
       if (live.error !== null || live.data === null) throw new Error(`live-topics: reading publications: ${live.error?.message ?? "no rows"}`);
