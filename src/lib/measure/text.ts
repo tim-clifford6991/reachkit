@@ -6,13 +6,14 @@
 // second read of the customer's own server at draft time, and without a
 // second copy of the text anywhere.
 //
-// **It fetches nothing and stores nothing.** No `safeFetch`, no vendor
-// call, no write. A site that serves an empty JavaScript shell has its
-// pages' rendered reads beside the shells (SPEC §6, issue 1374), marked
-// `rendered`. The extractor is `prose.ts`'s `prose`: the document
-// the measurement scored, without its navigation, header, footer, buttons
-// or example widgets (SPEC §5, 2026-09-29, #1130), because what is read
-// back here is what a page quotes as a fact about the business.
+// **It fetches nothing.** No `safeFetch`, no vendor call; its one write is
+// the derived text a deployment keeps in `fetch_text` (`text-store.ts`).
+// A site that serves an empty JavaScript shell has its pages' rendered reads
+// beside the shells (SPEC §6, issue 1374), marked `rendered`. The extractor
+// is `prose.ts`'s `prose`: the document the measurement scored, without its
+// navigation, header, footer, buttons or example widgets (SPEC §5,
+// 2026-09-29, #1130), because what is read back here is what a page quotes
+// as a fact about the business.
 //
 // The horizon is the site's own scans, plus the free scans of the same
 // domain: a site with no scans returns `[]` — a legitimate empty, not an
@@ -23,9 +24,10 @@
 // paying, which belongs to no site, so it is read by its domain: without
 // it, a deep pass run inside the own-document window has no text at all,
 // and a paid site grounds no fact and starts no draft.
+import { isDeepStrictEqual } from "node:util";
 import { dbAdmin } from "@/lib/db";
-import { OWN_FETCH_SOURCE, RENDERED_FETCH_SOURCE, renderedDocumentOf, siteDocumentOf } from "./own-fetch";
-import { prose } from "./prose";
+import { OWN_FETCH_SOURCE, RENDERED_FETCH_SOURCE } from "./own-fetch";
+import { measuredTextOf, storedText, textRowOf, type FetchRead, type TextClient } from "./text-store";
 
 export interface MeasuredText {
   url: string;
@@ -46,11 +48,6 @@ export interface MeasuredText {
 // `src/lib/costs/ledger.ts` names and works around); the narrow builder
 // below is the cast boundary — nothing else in this file bypasses the
 // generated client.
-interface OwnFetchRow {
-  scan_id: string;
-  source: string;
-  payload: unknown;
-}
 interface QueryResult<T> {
   data: T[] | null;
   error: { message: string } | null;
@@ -150,8 +147,8 @@ export async function readDomainText(domain: string, read?: TextRead): Promise<M
 async function textOfScans(scanIds: readonly string[]): Promise<MeasuredText[]> {
   const client = dbAdmin();
   const rows = await (client as unknown as MinimalClient)
-    .from<OwnFetchRow>("fetches")
-    .select("scan_id, source, payload")
+    .from<FetchRead>("fetches")
+    .select("id, scan_id, source, payload")
     .in("source", [OWN_FETCH_SOURCE, RENDERED_FETCH_SOURCE])
     .in("scan_id", scanIds);
   if (rows.error) {
@@ -159,22 +156,39 @@ async function textOfScans(scanIds: readonly string[]): Promise<MeasuredText[]> 
   }
 
   const out: MeasuredText[] = [];
+  const served = new Map<string, MeasuredText | null>();
   for (const row of rows.data ?? []) {
     // A `null` payload is a ledgered failed read (`own-fetch.ts`) — no
     // text was measured, so none is returned. Any other shape under this
     // source is skipped the same way, never thrown on.
-    const rendered = row.source === RENDERED_FETCH_SOURCE;
-    const document = rendered ? renderedDocumentOf(row.payload) : siteDocumentOf(row.payload);
-    if (document === null) continue;
-    const read = prose(document.html);
-    out.push({
-      url: document.url,
-      text: read.text,
-      measuredAt: new Date(document.readAt),
-      examples: read.examples,
-      questions: read.questions,
-      ...(rendered ? { rendered: true as const } : {}),
-    });
+    const text = measuredTextOf(textRowOf(row.source, row.payload));
+    served.set(row.id, text);
+    if (text !== null) out.push(text);
   }
+  // Dev and production share one database, so only production keeps rows at its text version.
+  const version = process.env.RK_TEXT_VERSION;
+  if (version && process.env.VERCEL_ENV === "production") await textParity(client as unknown as TextClient, rows.data ?? [], version, served);
   return out.sort(compareMeasuredText);
+}
+
+// The served read waits on the shadow for at most this long.
+const SHADOW_MS = 1500;
+
+// The stored text is derived beside the served text and only compared, so its first deploys prove it without serving it.
+async function textParity(client: TextClient, reads: readonly FetchRead[], version: string, served: ReadonlyMap<string, MeasuredText | null>): Promise<void> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const shadow = storedText(client, reads, version);
+  shadow.catch(() => {});
+  try {
+    const stored = await Promise.race([shadow, new Promise<null>((resolve) => (timer = setTimeout(resolve, SHADOW_MS, null)))]);
+    if (stored === null) return console.warn("text parity: shadow timed out");
+    const ids = new Set([...served.keys(), ...stored.keys()]);
+    const mismatched = [...ids].filter((id) => !isDeepStrictEqual(served.get(id), stored.get(id)));
+    const first = mismatched.length > 0 ? ` first=${mismatched[0]}` : "";
+    console.info(`text parity: match=${ids.size - mismatched.length} mismatch=${mismatched.length}${first}`);
+  } catch (error) {
+    console.warn(`text parity: shadow read failed: ${error instanceof Error ? error.message : String(error)}`);
+  } finally {
+    clearTimeout(timer);
+  }
 }

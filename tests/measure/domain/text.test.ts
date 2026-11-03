@@ -141,7 +141,7 @@ describe('BP-010 decision 4 — "Nothing new is stored: BP-007\'s `fetches` row 
     // select + eq(site_id), then select + eq(tier) + in(domain)
     expect(log.filter((entry) => entry.table === "scans")).toHaveLength(5);
     expect(log.filter((entry) => entry.table === "fetches").map((entry) => entry.method)).toEqual([
-      "select(scan_id, source, payload)",
+      "select(id, scan_id, source, payload)",
       "in(source)",
       "in(scan_id)",
     ]);
