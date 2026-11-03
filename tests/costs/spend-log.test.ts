@@ -51,26 +51,42 @@ describe("npm run costs — billed beside recorded, against €2 a day", () => {
     expect(render(unread)).toContain("Production ledger: not read");
   });
 
-  it("judges the cap on billed spend where it is known and on recorded spend where it is not", () => {
-    // Recorded today: 8.4¢ DataForSEO, 61.5¢ AI. No reading: both recorded.
+  it("never compares billed with recorded when the production ledger is unread", () => {
+    // 113.36¢ left the balance today and the box made no paid call: the bill is production's.
+    const report = reconcile({ spend: [], ledger: null, snapshots: [reading("2026-10-06T00:00:03.000Z", 5000), reading("2026-10-06T11:00:02.000Z", 5000 - 113.36)], adminKey: false, now: NOW });
+    expect(report.today.dataforseo.billed).toBeCloseTo(113.36);
+    expect(report.today.dataforseo.gap).toBeNull();
+    const text = render(report);
+    expect(text).not.toContain("differ");
+    expect(text).not.toContain("WARNING: DataForSEO");
+    expect(text).toContain("billed 113.36¢; not compared, production ledger unread");
+  });
+
+  it("judges the cap on the box's own spend log, and prints account-wide billed beside it", () => {
+    // The box's log today: 8.4¢ DataForSEO, 61.5¢ AI.
     const recorded = reconcile({ spend: spend(), ledger: [], snapshots: [], adminKey: false, now: NOW });
     expect(recorded.today.judgedCents).toBeCloseTo(69.9);
     expect(recorded.today.state).toBe("ok");
     expect(render(recorded)).toContain("AI spend: estimated from tokens; no admin key");
 
-    // Anthropic says 190¢, three times what the tokens came to: with the
-    // 8.4¢ that is €1.77, past the warning.
-    const billed = reconcile({ spend: spend(), ledger: [], snapshots: [{ at: "2026-10-06T11:00:00.000Z", anthropic: { days: { "2026-10-06": 190 } } }], adminKey: true, now: NOW });
-    expect(billed.today.ai).toMatchObject({ billed: 190, billedFrom: "cost report" });
-    expect(billed.today.judgedCents).toBeCloseTo(198.4);
-    expect(billed.today.state).toBe("warn");
-    expect(render(billed)).not.toContain("no admin key");
+    // Anthropic bills 500¢ account-wide and the box made no call: production spent it.
+    const billed = reconcile({ spend: [], ledger: null, snapshots: [{ at: "2026-10-06T11:00:00.000Z", anthropic: { days: { "2026-10-06": 500 } } }], adminKey: true, now: NOW });
+    expect(billed.today.ai).toMatchObject({ billed: 500, billedFrom: "cost report" });
+    expect(billed.today.state).toBe("ok");
+    const text = render(billed);
+    expect(text).not.toContain("OVER");
+    expect(text).not.toContain("ask the owner");
+    expect(text).not.toContain("no admin key");
+    expect(text).toContain("Billed, account-wide, includes production: DataForSEO not known, AI 500.00¢");
 
-    // €2 is converted at the pinned rate: 230¢ is over it, 220¢ is not.
-    const at = (cents: number) => reconcile({ spend: [], ledger: [], snapshots: [{ at: "2026-10-06T11:00:00.000Z", anthropic: { days: { "2026-10-06": cents } } }], adminKey: true, now: NOW });
-    expect(at(2 * USD_PER_EUR.rate * 100 - 1).today.state).toBe("warn");
-    expect(at(2 * USD_PER_EUR.rate * 100 + 1).today.state).toBe("over");
-    expect(render(at(230))).toContain("ask the owner");
+    // €2 is converted at the pinned rate, and a row's own vendor charge counts over its estimate.
+    const cap = 2 * USD_PER_EUR.rate * 100;
+    const row = (cents: number, charged: number | null = null): SpendRow => ({ at: "2026-10-06T10:00:00.000Z", issue: "1", script: "pass", source: "serp/google/organic", cents, billed: charged });
+    const at = (rows: SpendRow[]) => reconcile({ spend: rows, ledger: [], snapshots: [], adminKey: true, now: NOW });
+    expect(at([row(cap - 1)]).today.state).toBe("warn");
+    expect(at([row(cap + 1)]).today.state).toBe("over");
+    expect(at([row(1, cap + 1)]).today.state).toBe("over");
+    expect(render(at([row(cap + 1)]))).toContain("OVER: today's spend has reached €2. Stop and ask the owner");
   });
 
   it("falls back to the vendor's own day total where no reading stands at the day's opening", () => {
