@@ -11,15 +11,11 @@
 //    comment is not what stops the next person adding one (`CLAUDE.md`: "If you
 //    care about a rule and no check enforces it, add the check").
 //
-// 2. **The seven tabs are a daisyUI `tabs` bar of links, and it cannot
-//    overflow.** SPEC §4 (2026-09-20): "Settings is tabs: Your business,
-//    Market and rivals, Publishing, Your voice, Mail, Billing, Account."
-//    Until #925 this second claim was about §4.7's two columns and the
-//    `xl:` variant they switched at; the columns are gone — seven tabs are
-//    what replaced them — so what is pinned now is the construction that
-//    replaced them, in the same shape: the bar is stock daisyUI, every tab
-//    is an address rather than a widget, and seven words on a 390px screen
-//    scroll sideways instead of pushing the screen wider
+// 2. **The three tabs are a daisyUI `tabs` bar of links, and it cannot
+//    overflow.** Owner R7 (2026-10-31): Settings is Your business, Pages
+//    and Account. The bar is stock daisyUI, every tab is an address rather
+//    than a widget, the three words share one row on a phone, and from `sm`
+//    up the row scrolls sideways instead of pushing the screen wider
 //    (`docs/DESIGN.md`'s no-overflow rule).
 //
 // **The file keeps its name** though the columns it was named for are gone.
@@ -52,7 +48,7 @@ describe("BUILD §2.2 — Settings ships no stylesheet of its own", () => {
   });
 });
 
-describe("SPEC §4 — the seven tabs are a daisyUI bar of addresses that cannot overflow", () => {
+describe("SPEC §4, owner R7 — the three tabs are a daisyUI bar of addresses that cannot overflow", () => {
   const bar = readFileSync(path.join(SETTINGS_DIR, "SettingsTabs.tsx"), "utf8");
 
   it("the bar is stock daisyUI `tabs tabs-border` and marks the current tab with daisyUI's own class", () => {
@@ -69,19 +65,23 @@ describe("SPEC §4 — the seven tabs are a daisyUI bar of addresses that cannot
     expect(bar).toMatch(/aria-current=/);
   });
 
-  it("seven words wrap on a phone and scroll sideways from `sm` up, never widening the screen", () => {
-    // `docs/DESIGN.md`: no element is wider than its container at 390. A
-    // nav word cannot be clamped to an ellipsis and stay a nav word. Below
-    // `sm` the bar wraps so no tab is hidden off-screen (#1101), each link a
-    // 44px target, two to a row (canvas v36); from `sm` up the row is the scroll container, the same
-    // construction `OverviewTabs` is proven at. The layout suite renders all
-    // seven and measures both.
-    expect(bar).toMatch(/max-sm:flex-wrap/);
+  it("three words share one row on a phone, unwrapped, and scroll sideways from `sm` up, never widening the screen", () => {
+    // `docs/DESIGN.md`: no element is wider than its container at 390. A nav
+    // word cannot be clamped to an ellipsis and stay a nav word, so no tab
+    // shrinks below its word: below `sm` the bar never wraps and no tab is
+    // hidden off-screen (#1101), each link a 44px target as wide as its word;
+    // from `sm` up the row is the scroll container, as `OverviewTabs` is.
+    // `tests/ui/layout/settings-tab-visible.test.ts` renders all three at 390
+    // and 320 and measures one row, no wrapped word and no sideways scroll.
+    expect(bar).not.toMatch(/flex-wrap\b/);
+    expect(bar).toMatch(/\bflex-nowrap\b/);
+    expect(bar).toMatch(/\bwhitespace-nowrap\b/);
+    expect(bar).toMatch(/max-sm:flex-auto/);
+    expect(bar).not.toMatch(/max-sm:(?:min-w-0|flex-1|basis-)/);
     expect(bar).toMatch(/max-sm:h-11/);
     expect(bar).toMatch(/min-w-0/);
     expect(bar).toMatch(/sm:overflow-x-auto/);
     expect(bar).toMatch(/sm:w-max/);
-    expect(bar).toMatch(/sm:flex-nowrap/);
   });
 
   it("no tab draws two card columns — the columns are what the tabs replaced", () => {

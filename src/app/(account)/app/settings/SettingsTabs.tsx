@@ -1,7 +1,7 @@
 // SPEC §4, owner R7: the three tabs, drawn once for all three routes.
 // Links, not a widget, so the browser's back button moves between them; `aria-current` marks the one open.
-// The bar sticks directly under the top bar (SPEC §4, 2026-10-08, #1339). Below `sm` the three are 44px boxes in one row,
-// so all are on screen; from `sm` up they are one row that scrolls sideways rather than widen the screen (#1101).
+// The bar sticks directly under the top bar (SPEC §4, 2026-10-08, #1339). Below `sm` the three are 44px boxes in one row, each as wide as
+// its word and never narrower, so all are on screen at 320 with nothing wrapped; from `sm` up they are one row that scrolls sideways rather than widen the screen (#1101).
 // Where the row scrolls, the current tab is brought into view on mount, and again once the web font is in,
 // because the faces load with `display: swap` and the row is measured in the fallback face first (#976).
 "use client";
@@ -48,7 +48,7 @@ export function SettingsTabs(): React.JSX.Element {
               href={SETTINGS_TAB_HREF[tab]}
               // Prefetched tab renders at once starve the database; a tab renders when it is opened.
               prefetch={false}
-              className={`tab sm:whitespace-nowrap max-sm:h-11 max-sm:min-w-0 max-sm:flex-1 max-sm:leading-tight max-sm:justify-start max-sm:rounded-field max-sm:border max-sm:border-base-300 max-sm:bg-base-100 max-sm:px-3 max-sm:py-1 max-sm:text-left max-sm:before:hidden ${
+              className={`tab whitespace-nowrap max-sm:h-11 max-sm:flex-auto max-sm:justify-center max-sm:rounded-field max-sm:border max-sm:border-base-300 max-sm:bg-base-100 max-sm:px-2 max-sm:py-1 max-sm:before:hidden ${
                 onThisTab ? "tab-active text-primary max-sm:border-primary/30 max-sm:bg-primary/10" : ""
               }`}
               data-testid={`settings-tab-${tab}`}
