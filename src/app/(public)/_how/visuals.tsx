@@ -59,10 +59,6 @@ export const SCORE_RING = `${RING_TRACK} text-primary`;
 /** The icon tile a figure opens with. */
 export const ICON_TILE = "rounded-field grid size-9 flex-none place-items-center bg-base-200";
 
-function ExampleLine(): React.JSX.Element {
-  return <p className={SMALL}>{copy("landing.hero.example")}</p>;
-}
-
 function LiveBadge(p: { at?: string; className?: string }): React.JSX.Element {
   return (
     <span className={`badge badge-success badge-sm shrink-0 gap-1 ${p.className ?? ""}`}>
@@ -197,7 +193,6 @@ export function AsWeRead(e: Example): React.JSX.Element {
             </li>
           </ul>
         </div>
-        <ExampleLine />
       </div>
     </figure>
   );
@@ -485,7 +480,6 @@ export function PageWithSources(e: Example): React.JSX.Element {
           <ShieldCheck size={14} strokeWidth={1.75} aria-hidden />
           {copy("how.true.passed", { checks })}
         </span>
-        <ExampleLine />
       </div>
     </figure>
   );
