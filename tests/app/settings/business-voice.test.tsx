@@ -1,11 +1,12 @@
 /** @vitest-environment jsdom */
-// Settings › Your business, the voice cards (board SettingsIndex, canvas v36): its three cards in the board's order,
-// and the voice options as two radio cards saved on choice.
+// Settings › Your business, "How your pages sound" (board SettingsIndex, owner R7): one card holding Write as,
+// Words you use and Your note, and nothing else; Never say is its own card. Plumber and SaaS, same card.
 import React from "react";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { describe, expect, it, vi } from "vitest";
 import { applyEnvFixture } from "../../mail/env-fixture";
+import { CUSTOMERS } from "./business-fixtures";
 
 applyEnvFixture();
 
@@ -23,6 +24,7 @@ vi.mock("@/app/(account)/app/settings/change-actions", async (importOriginal) =>
 const { assembleSettings } = await import("@/app/(account)/app/settings/model");
 const { FIXTURE_SETTINGS_FACTS } = await import("@/app/(account)/app/settings/fixture");
 const { VoicePanel } = await import("@/app/(account)/app/settings/panels/VoicePanel");
+const { ListEditor } = await import("@/app/(account)/app/settings/panels/BusinessPanel");
 const { WRITING_VOICE_OPTIONS } = await import("@/app/(account)/app/settings/voice-state");
 const { copy } = await import("@/lib/presentation/copy");
 
@@ -30,12 +32,12 @@ const { copy } = await import("@/lib/presentation/copy");
 
 type Facts = Parameters<typeof assembleSettings>[0];
 
-async function mount(facts: Partial<Facts> = {}, business: string | null = "Harbour Bike Repair"): Promise<HTMLElement> {
+async function mount(facts: Partial<Facts> = {}, business: string | null = "Harbour Bike Repair", words?: React.ReactNode): Promise<HTMLElement> {
   const settings = assembleSettings({ ...FIXTURE_SETTINGS_FACTS, ...facts });
   const container = document.createElement("div");
   document.body.appendChild(container);
   await act(async () => {
-    createRoot(container).render(<VoicePanel settings={settings} business={business} />);
+    createRoot(container).render(<VoicePanel settings={settings} business={business} words={words} />);
   });
   return container;
 }
@@ -53,42 +55,43 @@ function inOrder(root: HTMLElement, strings: string[]): void {
 
 const cards = (root: HTMLElement) => [...root.querySelectorAll("section.card")] as HTMLElement[];
 
-describe("board SettingsIndex's voice cards: each section in the board's order and words", () => {
-  it("draws three cards: the note, who speaks, and never claim", async () => {
+describe("one card, How your pages sound: Write as, Words you use and Your note, and nothing else", () => {
+  it("draws two cards: How your pages sound, then Never say", async () => {
     const root = await mount();
-    expect(cards(root).map((card) => card.querySelector("h2, legend")?.textContent)).toEqual([
-      copy("settings.voice.title"),
-      copy("settings.voice.writing.label"),
-      copy("settings.voice.never-claim"),
-    ]);
+    expect(cards(root).map((card) => card.querySelector("h2")?.textContent)).toEqual([copy("settings.voice.title"), copy("settings.voice.never-claim")]);
   });
 
-  it("the note card: title, lead, Your note, then Save, with no example", async () => {
-    const [note] = cards(await mount());
-    inOrder(note!, [
+  it("the card holds the three controls in the board's order, under its title and lead", async () => {
+    const [voice] = cards(await mount({}, "Harbour Bike Repair", <span>the stored words</span>));
+    inOrder(voice!, [
       copy("settings.voice.title"),
       copy("settings.voice.lead"),
+      copy("settings.voice.writing.label"),
+      copy("settings.voice.writing.ours"),
+      copy("settings.voice.writing.guide.example", { business: "Harbour Bike Repair" }),
+      copy("settings.business.vocabulary"),
+      "the stored words",
       copy("settings.content.voice"),
       copy("settings.voice.save"),
     ]);
-    expect(note!.querySelector("figure")).toBeNull();
+    const controls = [...voice!.querySelectorAll("[data-testid]")].map((el) => el.getAttribute("data-testid")).filter((id) => /^(setting|business-group)-/.test(id!));
+    expect(controls).toEqual(["setting-writing_voice", "business-group-vocabulary", "setting-voice_text"]);
+    // Two radios, one note and one Save: no length, no Let ReachKit choose, no tone, no self-reference, no example figure.
+    expect([...voice!.querySelectorAll("input, textarea, select, button")].map((el) => el.getAttribute("type") ?? el.tagName.toLowerCase())).toEqual(["radio", "radio", "textarea", "submit"]);
+    for (const gone of ["Let ReachKit choose", "Short answers", "Tone", "How you refer to yourself"]) expect(voice!.textContent).not.toContain(gone);
+    expect(voice!.querySelector("figure")).toBeNull();
   });
 
-  it("write as: the two voices, each with its example; length and the choice for each page are ReachKit's", async () => {
-    const [, who] = cards(await mount());
-    expect(who!.textContent).not.toContain("Let ReachKit choose");
-    expect(who!.textContent).not.toContain("Short answers");
-    inOrder(who!, [
-      copy("settings.voice.writing.label"),
-      copy("settings.voice.writing.ours"),
-      copy("settings.voice.writing.ours.example"),
-      copy("settings.voice.writing.guide"),
-      copy("settings.voice.writing.guide.example", { business: "Harbour Bike Repair" }),
-    ]);
+  it.each(CUSTOMERS)("$name: Words you use draws each stored word as a chip with its Remove, and an Add", async (c) => {
+    const [voice] = cards(await mount({}, c.name, <ListEditor list="vocabulary" items={c.profile.lists.vocabulary} />));
+    const words = voice!.querySelector('[data-testid="business-group-vocabulary"]')!;
+    expect(words.querySelectorAll('[data-testid="business-item"]')).toHaveLength(c.profile.lists.vocabulary.length);
+    expect(words.querySelector(`button[aria-label="Remove ${c.word}"]`)?.classList.contains("size-11")).toBe(true);
+    expect(words.querySelector('[data-testid="business-open-add-vocabulary"]')?.getAttribute("aria-label")).toBe("Add to Words you use");
   });
 
   it("never say: the rule under the title, the entries with Remove, then the add field, and no held-back example", async () => {
-    const [, , never] = cards(await mount({ doNotClaim: ["Open 24 hours"] }));
+    const [, never] = cards(await mount({ doNotClaim: ["Open 24 hours"] }));
     expect(never!.querySelector('[data-testid="claim-Open 24 hours"] button')?.getAttribute("aria-label")).toBe(
       copy("settings.voice.remove-claim", { claim: "Open 24 hours" })
     );

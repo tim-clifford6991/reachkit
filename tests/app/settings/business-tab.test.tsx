@@ -11,7 +11,7 @@ applyEnvFixture();
 const { formatShortDay } = await import("@/app/(account)/app/_shell/format");
 const { BusinessPanel } = await import("@/app/(account)/app/settings/panels/BusinessPanel");
 const { KnowledgePanel } = await import("@/app/(account)/app/settings/panels/KnowledgePanel");
-const { FactsPanel } = await import("@/app/(account)/app/settings/panels/FactsPanel");
+const { FactsPanel } = await import("@/app/(account)/app/draft/[draftId]/FactsPanel");
 const { KnownContentPanel } = await import("@/app/(account)/app/settings/panels/KnownContentPanel");
 const { UNREAD_INDEX } = await import("@/app/(account)/app/settings/business-provider");
 
@@ -40,7 +40,7 @@ describe.each(CUSTOMERS)("$name: What we read from your site", (c) => {
     expect(root.textContent).toContain("Change any line. Your next page follows it.");
   });
 
-  it("each field is a row with its bare label, in the board's order, and Tone and self-reference are not drawn", () => {
+  it("each field is a row with its bare label, in the board's order; Words you use, Tone and self-reference are not drawn", () => {
     const rows = [...business(c).querySelectorAll('[data-testid="business-job"], [data-testid="business-offering"], [data-testid^="business-group-"]')];
     expect(rows.map((row) => text(row.firstElementChild))).toEqual([
       "What you do",
@@ -48,7 +48,6 @@ describe.each(CUSTOMERS)("$name: What we read from your site", (c) => {
       "What you sell",
       "Who you serve",
       "What you promise",
-      "Words you use",
     ]);
     const root = business(c);
     expect(c.profile.tone).not.toBeNull();
@@ -74,7 +73,7 @@ describe.each(CUSTOMERS)("$name: What we read from your site", (c) => {
 
   it("every item, promises included, is a 44px chip with its own Remove button, and each list keeps an Add", () => {
     const root = business(c);
-    for (const value of [c.product, c.promise, c.word]) {
+    for (const value of [c.product, c.promise]) {
       expect(root.querySelector(`button[aria-label="Remove ${value}"]`)?.classList.contains("size-11")).toBe(true);
     }
     const promises = root.querySelector('[data-testid="business-group-claims"]');
@@ -153,7 +152,7 @@ describe.each(CUSTOMERS)("$name: What buyers ask and why you", (c) => {
   });
 });
 
-describe.each(CUSTOMERS)("$name: Facts we can quote", (c) => {
+describe.each(CUSTOMERS)("$name: Facts we can quote, on the page detail", (c) => {
   it("each passage word for word in quotes, with Don't quote this and its page count", () => {
     const fold = mount(<FactsPanel facts={c.facts} />).querySelector("details");
     expect(text(fold?.querySelector("summary"))).toBe("Facts we can quote");
@@ -229,10 +228,9 @@ describe("icons (ux 2026-10-24 E24, E28, S1)", () => {
     const titles = [
       business(PLUMBER),
       mount(<KnowledgePanel knowledge={PLUMBER.knowledge} answers={{}} />),
-      mount(<FactsPanel facts={PLUMBER.facts} />),
       mount(<KnownContentPanel known={{ ours: 1, site: 1, wordpress: 0, total: 2 }} />),
     ].flatMap((root) => [...root.querySelectorAll("h2, summary")]);
-    expect(titles).toHaveLength(4);
+    expect(titles).toHaveLength(3);
     for (const title of titles) expect(title.querySelector("svg")).toBeNull();
   });
 });

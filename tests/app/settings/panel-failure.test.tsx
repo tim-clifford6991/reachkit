@@ -27,6 +27,7 @@ const { readLiveSettingsFacts } = await import("@/app/(account)/app/settings/sto
 const { default: AccountTab } = await import("@/app/(account)/app/settings/account/page");
 const { default: PagesTab } = await import("@/app/(account)/app/settings/pages/page");
 const { default: BusinessTab } = await import("@/app/(account)/app/settings/page");
+const { PageFacts } = await import("@/app/(account)/app/draft/[draftId]/PageFacts");
 
 const ACCOUNT = { ...LIVE_ACCOUNT, timeZone: "America/New_York" };
 
@@ -123,7 +124,7 @@ describe("billing reads only billing", () => {
   });
 });
 
-describe("Your business: the facts card is its own read, so only it says when that read fails or stalls", () => {
+describe("the facts card, on the live page's detail, is its own read, so only it says when that read fails or stalls", () => {
   const OTHERS = ["settings-business-knowledge"];
   const failed = (warn: { mock: { calls: unknown[][] } }, read: string) =>
     warn.mock.calls.map(([line]) => JSON.parse(String(line))).filter((line) => line.event === "settings_read_failed" && line.read === read);
@@ -133,9 +134,12 @@ describe("Your business: the facts card is its own read, so only it says when th
   it("a facts read that rejects puts only the facts card on the plain line", async () => {
     db.unreadable.add("fetches");
     const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
-    const doc = await render(BusinessTab);
-    expect(doc.querySelector('[data-testid="settings-unread-facts"]')?.textContent).toBe(copy("settings.panel.unread"));
-    expect([has(doc, "settings-business-facts"), has(doc, "settings-unread-business"), ...OTHERS.map((id) => has(doc, id))]).toEqual([false, false, true]);
+    const doc = await render(PageFacts);
+    expect(doc.querySelector('[data-testid="draft-unread-facts"]')?.textContent).toBe(copy("settings.panel.unread"));
+    expect(has(doc, "settings-business-facts")).toBe(false);
+    // Your business no longer reads the facts, so their failure leaves it whole.
+    const business = await render(BusinessTab);
+    expect([has(business, "settings-unread-business"), ...OTHERS.map((id) => has(business, id))]).toEqual([false, true]);
     expect([failed(warn, "businessFacts").length, failed(warn, "business").length]).toEqual([1, 0]);
   });
 
@@ -143,7 +147,7 @@ describe("Your business: the facts card is its own read, so only it says when th
     stalled.add("fetches");
     const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
-    const rendering = render(BusinessTab);
+    const rendering = render(PageFacts);
     // Real ticks until the boundary's read has started, before the fake clock moves.
     for (let turn = 0; turn < 200 && !db.queries.some((query) => query.table === "scans" && query.columns === "id, domain"); turn++) await new Promise((resolve) => setImmediate(resolve));
     await vi.advanceTimersByTimeAsync(3_999);
@@ -151,7 +155,7 @@ describe("Your business: the facts card is its own read, so only it says when th
     await vi.advanceTimersByTimeAsync(1);
     expect(failed(warn, "businessFacts")).toEqual([{ event: "settings_read_failed", read: "businessFacts", detail: "Error: settings read timed out: businessFacts" }]);
     const doc = await rendering;
-    expect([has(doc, "settings-unread-facts"), has(doc, "settings-unread-business"), ...OTHERS.map((id) => has(doc, id))]).toEqual([true, false, true]);
+    expect([has(doc, "draft-unread-facts"), has(doc, "settings-business-facts")]).toEqual([true, false]);
   });
 
   it("when the business read itself stalls, only its card is the plain line; market and voice still draw", async () => {
@@ -166,5 +170,25 @@ describe("Your business: the facts card is its own read, so only it says when th
     const doc = await rendering;
     expect([has(doc, "settings-unread-business"), has(doc, "settings-unread-facts"), failed(warn, "business").length]).toEqual([true, false, 1]);
     expect([has(doc, "setting-category"), has(doc, "setting-voice_text")]).toEqual([true, true]);
+  });
+});
+
+describe("How your pages sound: Words you use is drawn from the business read, so only that row waits on it", () => {
+  // Real timers: the one 4,000 ms deadline passes once, with every other read already answered.
+  it("a business read that stalls leaves the business card and the Words you use row on the plain line, and is counted once", async () => {
+    stalled.add("site_profile_edits");
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const doc = await render(BusinessTab);
+    expect([has(doc, "settings-unread-business"), has(doc, "settings-unread-words")]).toEqual([true, true]);
+    expect(doc.querySelector('[data-testid="settings-unread-words"]')?.textContent).toBe(copy("settings.panel.unread"));
+    expect([has(doc, "settings-voice"), has(doc, "setting-writing_voice"), has(doc, "setting-voice_text"), has(doc, "setting-category")]).toEqual([true, true, true, true]);
+    const business = warn.mock.calls.map(([line]) => JSON.parse(String(line))).filter((line) => line.event === "settings_read_failed" && line.read === "business");
+    expect(business).toHaveLength(1);
+  });
+
+  it("while the business read answers, the row draws its words and no plain line", async () => {
+    const doc = await render(BusinessTab);
+    expect([has(doc, "settings-unread-words"), has(doc, "settings-words-skeleton")]).toEqual([false, false]);
+    expect(doc.querySelector('[data-testid="settings-voice"] [data-testid="business-group-vocabulary"] [data-testid="business-open-add-vocabulary"]')).not.toBeNull();
   });
 });

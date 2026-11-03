@@ -14,8 +14,8 @@
 // `seenNow` takes that list off the same derived reading the screen drew.
 //
 // **`revalidatePath` on the tab, and nothing wider.** The decision changes
-// this one screen; the rest of Settings and the Overview read nothing that
-// moved.
+// this one screen (a fact's, the page detail that draws it); the rest of
+// Settings and the Overview read nothing that moved.
 //
 // SPEC §4 (2026-09-20): "Every action answers." Each returns the same three
 // arms `SettingAnswer` already carries, so the panel says *saved* or *not
@@ -188,23 +188,30 @@ export async function saveFounderAnswersAction(form: FormData): Promise<SettingA
   return write((stored) => ({ ...stored, answers }));
 }
 
+/** The live page's detail, where the facts card is drawn. */
+const PAGE_DETAIL = "/app/draft/[draftId]";
+
 /** Switches a quotable fact off — ReachKit may no longer quote it. */
 export async function switchFactOffAction(form: FormData): Promise<SettingAnswer> {
   const passage = typed(form, BUSINESS_FACT_FIELD);
   if (passage === "") return REFUSED;
-  return write((stored) =>
+  const answer = await write((stored) =>
     stored.factsOff.includes(passage)
       ? stored
       : { ...stored, factsOff: [...stored.factsOff, passage] }
   );
+  revalidatePath(PAGE_DETAIL, "page");
+  return answer;
 }
 
 /** Switches one back on. */
 export async function switchFactOnAction(form: FormData): Promise<SettingAnswer> {
   const passage = typed(form, BUSINESS_FACT_FIELD);
   if (passage === "") return REFUSED;
-  return write((stored) => ({
+  const answer = await write((stored) => ({
     ...stored,
     factsOff: stored.factsOff.filter((entry) => entry !== passage),
   }));
+  revalidatePath(PAGE_DETAIL, "page");
+  return answer;
 }

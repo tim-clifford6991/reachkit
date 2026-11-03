@@ -1,4 +1,5 @@
-// SPEC §7 (2026-09-20, #908) · issue #926 — the facts ReachKit may quote.
+// SPEC §7 (2026-09-20, #908) · issue #926 — the facts ReachKit may quote, on the live page's detail beside
+// what the page says (owner R7, docs/spec/decisions/2026-11-03-2127.md).
 //
 // #926: "Facts we can quote: the grounding passages
 // (`src/lib/generate/pipeline/grounding.ts`) with source page and how many
@@ -31,14 +32,9 @@ import type React from "react";
 import { Quote } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import type { QuotableFact } from "@/lib/site-profile/business/types";
-import {
-  switchFactOffAction,
-  switchFactOnAction,
-} from "../business-actions";
-import {
-  BUSINESS_FACT_FIELD,
-} from "../panel-state";
-import { SAVED_BADGE_CLASS, useSetting } from "./useSetting";
+import { switchFactOffAction, switchFactOnAction } from "../../settings/business-actions";
+import { BUSINESS_FACT_FIELD } from "../../settings/panel-state";
+import { SAVED_BADGE_CLASS, useSetting } from "../../settings/panels/useSetting";
 
 /** The page an address belongs to, as a reader reads it: the path, or the
  *  host where the path is the root. Not a second copy of the URL — the
@@ -91,18 +87,10 @@ function Fact(p: {
           )}
         </span>
       </div>
-      {/* **Its own line on a phone, beside the passage above it.** At 390
-          the passage takes the row's width and this control was left about
-          one character wide, so *Don't quote this* came out as a column of
-          single letters — a defect no check reports, because nothing
-          overflowed and nothing was clipped: the text simply wrapped at
-          every letter. Found by looking at this screen's own 390 render.
-          `w-full` below the small breakpoint puts the control under the
-          passage, which is where a phone wants it anyway; `sm:w-auto`
-          returns it to the end of the row where there is room. */}
+      {/* `list-row` is a grid: on a phone the control wraps under the passage, from `sm` it ends the row. */}
       <form
         action={(form) => writer.press(action, form)}
-        className="w-full shrink-0 sm:w-auto"
+        className="list-col-wrap col-start-2 w-full shrink-0 sm:col-start-3 sm:row-start-1 sm:w-auto"
       >
         <input type="hidden" name={BUSINESS_FACT_FIELD} value={fact.passage} />
         <button
