@@ -365,6 +365,15 @@ describe("deriveProfile — the prompt and the schema agree (issue #462)", () =>
     const instruction = JSON.stringify({ task: PROFILE_TASK, fields: PROFILE_FIELDS });
     expect(instruction).not.toMatch(/keyword|searchTerm/i);
   });
+
+  it("a home page that does not say what the business sells: the model is told to answer <UNKNOWN> and not guess, and that answer is no category", async () => {
+    llmMock.mockResolvedValueOnce(measuredProfile({ category: "<UNKNOWN>" }));
+    const result = await deriveProfile(fakeCostContext(), { home: "" });
+    const { task } = (llmMock.mock.calls[0]![1] as RecordedLlmCall).input as { task: string };
+    expect(task).toContain('answer `category` with "<UNKNOWN>" and do not guess');
+    if (result.kind === "unmeasured") throw new Error("the stub answered a profile");
+    expect(result.value.category).toBe("");
+  });
 });
 
 /** The page text's length inside the serialised prompt, quotes excluded. */

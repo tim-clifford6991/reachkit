@@ -7,6 +7,7 @@
 // again.
 import { servedSignalsOf, type ServedSignals } from "@/lib/locale/read";
 import type { Measured } from "@/lib/measure/measured";
+import { saysNothing } from "@/lib/measure/blank-page";
 import { isStoredDocument, renderedDocumentOf, siteDocumentOf } from "@/lib/measure/own-fetch";
 import { detectPricingUrl, storedFactsOf } from "@/lib/measure/pages";
 import type { OnPageFacts } from "@/lib/measure/parse";
@@ -29,6 +30,8 @@ export interface PageFacts {
   drawn: boolean;
   /** `protectionPage`. */
   protection: boolean;
+  /** The site's own page, and `saysNothing` of it. Absent reads as false. */
+  wordless?: boolean;
   /** `storedFactsOf`, without the date the re-score gives it. */
   onPage: Undated<Measured<OnPageFacts>>;
   /** `detectPricingUrl` against the address the read was stored under. */
@@ -66,6 +69,7 @@ export function pageFactsOf(key: string, payload: unknown): PageFacts {
     page: site !== null && !NOT_A_PAGE_RE.test(site.html),
     drawn: renderedDocumentOf(payload) !== null,
     protection: protectionPage(payload),
+    wordless: site !== null && saysNothing(site.html),
     onPage: onPage as PageFacts["onPage"],
     pricingUrl: document ? detectPricingUrl(payload.html, key) : null,
     served: document && host !== null ? servedSignalsOf({ domain: host, html: payload.html }) : null,

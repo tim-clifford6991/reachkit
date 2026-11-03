@@ -171,9 +171,9 @@ describe("the free pass's worst case, from the pins, is at most CAPS.FREE_C (iss
     const haiku = INFERENCE_PRICE_BOOK.haiku;
     const lines = freePassWorstCase({ profile: haiku, phrasing: haiku });
     expect(sum(lines)).toBeLessThanOrEqual(CAPS.FREE_C);
-    // #517's own figure: about 11 ¢, the profile input about 1.06 ¢ of it.
+    // #517's own figure: about 11 ¢; the profile input, about 1.06 ¢ then, has grown with its instruction since.
     expect(sum(lines)).toBeGreaterThan(10.5);
-    expect(lines.profile).toBeLessThan(2);
+    expect(lines.profile).toBeLessThan(2.5);
   });
 
   it("without the bound it is not: one 6 MB own document's text alone would reserve past the whole cap", () => {

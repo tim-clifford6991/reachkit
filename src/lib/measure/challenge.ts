@@ -12,9 +12,8 @@
 // on the pages it lets through (`/cdn-cgi/challenge-platform/` is injected
 // into ordinary Cloudflare pages, `_Incapsula_Resource` into ordinary
 // Imperva ones), so a body marker counts only on a response with a
-// refusing status. A header that states the mitigation, the challenge's own
-// title, and the few captcha pages served with a 200 in place of the site
-// count on any status.
+// refusing status, or on one with almost no text of its own. A header that
+// states the mitigation and the challenge's own title count on any status.
 //
 // Under-report, never over-report: a real page read as a challenge would
 // leave a customer's site unmeasured, so every rule needs the protection's
@@ -104,10 +103,11 @@ const REFUSED_BODIES: readonly (readonly [RegExp, ProtectionVendor])[] = [
   [/\/cdn-cgi\/challenge-platform\/|cf-error-details|cf_chl_opt|cf-browser-verification|checking your browser before accessing/i, "Cloudflare"],
 ];
 
-/** The few a protection serves with a 200: a captcha or an incident page in
- *  place of the site. Read only where the page has almost no text. */
+/** The few a protection serves with a 200: a captcha, an incident page or
+ *  an empty page that only loads the challenge's script, in place of the
+ *  site. Read only where the page has almost no text. */
 const SPARSE_BODIES: readonly (readonly [RegExp, ProtectionVendor])[] = [
-  [/incapsula incident id/i, "Imperva"],
+  [/incapsula incident id|_Incapsula_Resource/i, "Imperva"],
   [/captcha-delivery\.com/i, "DataDome"],
   [/px-captcha/i, "PerimeterX"],
   [/the requested url was rejected\. please consult with your administrator/i, "F5"],
