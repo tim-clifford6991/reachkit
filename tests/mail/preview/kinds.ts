@@ -106,11 +106,12 @@ const PUBLISHED_TELLING: PublishedTelling = {
   copy: "mail.published.verified",
 };
 
-/** The digest's own two judged pages: the first carries the set's movement
- *  ("was 31, now 18 · measured 8 Sep"), the second has none to state. */
+/** The digest's own two judged pages: the first is named by its search and carries the set's movement,
+ *  the second has no stored search, so its address's last words name it, and no movement to state. */
 const WEEKLY_PAGES: readonly WeeklyPage[] = [
   {
-    liveUrl: "https://example.com/holiday-pay",
+    liveUrl: "https://example.com/water-heater-repair",
+    search: "water heater repair austin",
     standing: {
       kind: "verdict",
       verdict: "working",
@@ -126,7 +127,7 @@ const WEEKLY_PAGES: readonly WeeklyPage[] = [
     },
   },
   {
-    liveUrl: "https://example.com/payroll-for-five",
+    liveUrl: "https://example.com/drain-cleaning-cost",
     standing: { kind: "verdict", verdict: "working", measuredAt: AT, movement: null, verifyNote: null },
   },
 ];

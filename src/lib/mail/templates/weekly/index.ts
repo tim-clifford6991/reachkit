@@ -2,7 +2,7 @@
 // the week's pages with why and how to stop each, the pace line, one button. A block list only (ADR-040); absent values are `Measured<T>`.
 // The numbers are Overview's, read with Overview's readers. The unmeasured-week line is `composeMail`'s (REQ-065); footer links are the caller's,
 // since each carries a token only it can sign.
-// A page is named by its address and an opportunity by its search: titles are model text, which REQ-093 keeps out (§8, ADR-012; decision 2026-10-19-1581).
+// A page and an opportunity are named by their search: titles are model text, which REQ-093 keeps out (§8, ADR-012; decision 2026-10-19-1581).
 import { env } from "@/lib/config/env";
 import type { Measured } from "@/lib/measure/measured";
 import { shownKey } from "@/lib/measure/registry";
@@ -88,6 +88,8 @@ const WRITTEN_OUT = 3;
 /** One judged page; `standing` is the week's stored verdict, never recomputed. */
 export interface WeeklyPage {
   readonly liveUrl: string | null;
+  /** The search the page was written for; absent or null, the row names the page by its address's last words. */
+  readonly search?: string | null;
   readonly standing: WeekStanding;
   /** Whether any stored search result held the page; absent where unreadable. */
   readonly indexState?: IndexState;
@@ -324,7 +326,7 @@ function numberBlocks(n: WeeklyNumbers): readonly MailBlock[] {
       ...monthRow(REPUTATION, { weeks: String(m.reputation?.weeks ?? "") }, m.reputation?.value, m.reputation?.answers),
     ];
     if (rows.length > 0) {
-      blocks.push({ block: "heading", text: MONTH }, { block: "facts", items: rows });
+      blocks.push({ block: "heading", text: MONTH }, { block: "facts", items: rows, face: "body" });
     }
   }
   return blocks;
@@ -404,42 +406,56 @@ function verdictRows(pages: readonly WeeklyPage[]): readonly VerdictRow[] {
   const rows: VerdictRow[] = [];
   for (const page of pages) {
     if (page.liveUrl === null) continue;
+    const name = nameOf(page.search, page.liveUrl);
     const standing = page.standing;
     if (standing.kind === "not_measured" || standing.kind === "no_week") continue;
     if (standing.kind === "not_judgeable") {
       rows.push({
         subject: PAGE,
-        subjectVars: { page: page.liveUrl },
+        subjectVars: { page: name },
         verdict: PAGE_VERDICTS.not_judgeable,
       });
       continue;
     }
     // Held by no stored search result: the row says not seen, never not indexed.
     if (page.indexState === "not_verified" && standing.verdict !== "working") {
-      rows.push({ subject: PAGE_NOT_VERIFIED, subjectVars: { page: page.liveUrl }, verdict: PAGE_VERDICTS[standing.verdict] });
+      rows.push({ subject: PAGE_NOT_VERIFIED, subjectVars: { page: name }, verdict: PAGE_VERDICTS[standing.verdict] });
       continue;
     }
-    rows.push({ ...subjectOf(page.liveUrl, standing), verdict: PAGE_VERDICTS[standing.verdict] });
+    rows.push({ ...subjectOf(name, standing), verdict: PAGE_VERDICTS[standing.verdict] });
   }
   return rows;
+}
+
+/** A page by its search, as the week's pages are named; with none stored, its address's last path words, never the raw URL. */
+function nameOf(search: string | null | undefined, liveUrl: string): string {
+  if (search !== null && search !== undefined && search.trim() !== "") return search.trim();
+  let path: string;
+  try {
+    path = new URL(liveUrl).pathname;
+  } catch {
+    return liveUrl;
+  }
+  const last = path.split("/").filter((part) => part !== "").at(-1);
+  return last === undefined ? new URL(liveUrl).hostname : decodeURIComponent(last).replace(/[-_]+/g, " ");
 }
 
 /** REQ-063 c3–c4: both raw figures, the measurement date, and the interval where the comparison is not last week's.
  *  Three keys chosen by what there is to say; without both figures it takes the plain form, never a placeholder (REQ-064 c1). */
 function subjectOf(
-  liveUrl: string,
+  name: string,
   standing: Extract<WeekStanding, { kind: "verdict" }>
 ): { subject: CopyKey; subjectVars: CopyVars } {
   const movement = standing.movement;
   if (movement === null || movement.from.kind === "unmeasured" || movement.to.kind === "unmeasured") {
-    return { subject: PAGE, subjectVars: { page: liveUrl } };
+    return { subject: PAGE, subjectVars: { page: name } };
   }
   const common: CopyVars = {
-    page: liveUrl,
+    page: name,
     // The shared formatter, so this figure is written as a stat block writes it.
     from: formatStat(movement.from, "integer"),
     to: formatStat(movement.to, "integer"),
-    measuredAt: standing.measuredAt.toISOString().slice(0, 10),
+    measuredAt: formatMailDayMonth(standing.measuredAt.toISOString().slice(0, 10)),
   };
   if (movement.spansWeeks === 1) return { subject: PAGE_MOVED, subjectVars: common };
   return {

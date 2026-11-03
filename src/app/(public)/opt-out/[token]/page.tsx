@@ -11,7 +11,7 @@
 import type React from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Check, CircleCheck, CircleStop, FileText, Info, Lock, MailX, TriangleAlert } from "lucide-react";
+import { Check, CircleCheck, CircleStop, FileText, Info, Lock, MailX } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import type { CopyKey } from "@/lib/presentation/copy";
 import { applyOptOutToken } from "@/lib/mail/leads";
@@ -111,7 +111,7 @@ async function arm(token: string): Promise<{
     head: "optout.head.unresolved",
     lines: [<p key="line">{copy(line)}</p>],
     tone: "warn",
-    icon: TriangleAlert,
+    icon: MailX,
   };
 }
 

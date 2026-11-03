@@ -95,24 +95,19 @@ function standingOf(row: VerdictRecord, priorRows: readonly VerdictRecord[]): We
 }
 
 /** One page in the weekly mail: its standing, the address it is served
- *  at, and what the check at 24 hours recorded beside it. The address, not
- *  a title: a page's title is model-written and a mail does not speak it
- *  in ReachKit's own voice (§8, REQ-093). */
+ *  at, its search, and what the check at 24 hours recorded beside it. The
+ *  search, not a title: a page's title is model-written and a mail does not
+ *  speak it in ReachKit's own voice (§8, REQ-093). */
 export interface DigestPage extends PageStanding {
   readonly liveUrl: string | null;
+  readonly targetQuery: string | null;
   /** Issue 1538: whether any stored SERP or ranked row held the page.
    *  Absent where the rows could not be read: nothing is then said. */
   readonly indexState?: IndexState;
 }
 
-/**
- * What the Monday mail reads — REQ-063 c4's "each page's verdict and what
- * moved since the previous measurement, every figure carrying its change,
- * the date it was measured, and … the interval that change spans".
- *
- * The same standings the surface reads, plus the week's own measurement
- * date and each page's title. It writes nothing and recomputes nothing.
- */
+/** What the Monday mail reads (REQ-063 c4): the surface's standings, each page's address and search, and the
+ *  week's own measurement date. It writes nothing and recomputes nothing. */
 export async function weeklyDigest(a: {
   siteId: string;
   week: WeekStart;
@@ -143,6 +138,7 @@ export async function weeklyDigest(a: {
         publicationId: standing.publicationId,
         standing: standingWithNote,
         liveUrl: page?.liveUrl ?? null,
+        targetQuery: page?.targetQuery ?? null,
         ...(page === undefined || seenUrls === null
           ? {}
           : { indexState: indexStateOf([page.liveUrl, ...(page.earlierUrls ?? [])], seenUrls) }),

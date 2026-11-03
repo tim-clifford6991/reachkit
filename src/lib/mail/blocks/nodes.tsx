@@ -179,16 +179,17 @@ function RuledRows({
 }
 
 /** S20's hairline-ruled mono `dl`; its rows are `Row`/`Column`, since inboxes lay out a `dl`'s own display least predictably. */
-function Facts({ rows }: { rows: readonly { label: string; value: string }[] }): ReactNode {
+function Facts({ rows, body }: { rows: readonly { label: string; value: string }[]; body: boolean }): ReactNode {
+  const face = token(body ? "--font-ui-mail" : "--font-mono-mail");
   return (
     <dl style={{ margin: 0 }}>
       {rows.map((item, index) => (
         <Row key={index}>
-          <Column style={{ ...FACT_CELL, fontFamily: token("--font-mono-mail"), color: token("--ink-2") }}>
+          <Column style={{ ...FACT_CELL, fontFamily: face, color: token("--ink-2") }}>
             {item.label}
           </Column>
           <Column align={RIGHT} style={{ ...FACT_CELL, color: token("--color-base-content") }}>
-            <Mono>{item.value}</Mono>
+            {body ? <strong>{item.value}</strong> : <Mono>{item.value}</Mono>}
           </Column>
         </Row>
       ))}
@@ -333,7 +334,8 @@ function Action({
       style={{
         background: outlined ? token("--color-base-100") : token("--color-primary"),
         color: outlined ? token("--color-base-content") : token("--color-primary-content"),
-        ...(outlined ? { border: `1px solid ${token("--color-base-300")}` } : {}),
+        // The solid one keeps a border of its own fill, so an inbox that forces dark and strips the fill still draws its edge.
+        border: `1px solid ${outlined ? token("--color-base-300") : token("--color-primary")}`,
         // 12px above and below a 20px line: a 44px target.
         padding: "12px 18px",
         borderRadius: token("--r-pill"),
@@ -433,7 +435,7 @@ function arm(block: MailBlock): ReactNode {
       );
     }
     case "facts":
-      return <Facts rows={factRowsOf(block)} />;
+      return <Facts rows={factRowsOf(block)} body={block.face === "body"} />;
     case "hero":
       return (
         <Hero

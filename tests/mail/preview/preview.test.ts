@@ -232,6 +232,19 @@ describe("issue #376 — the shell renders S20, and every kind the set draws wea
     }
   });
 
+  it("the month's rows are body text, not the mono fact face, and the pages are named by search with a mail date", async () => {
+    const { html, text } = await composePreview("weekly");
+    const { MAIL_TOKENS } = await import("@/lib/mail/shell/tokens");
+    const cell = /<td[^>]*style="([^"]*)"[^>]*>Visibility Score<\/td>/.exec(html);
+    expect(cell?.[1]?.replace(/&#x27;/g, "'")).toContain(`font-family:${MAIL_TOKENS["--font-ui-mail"]}`);
+    expect(cell?.[1]).not.toContain("monospace");
+    for (const body of [html, text]) {
+      expect(body).toContain("water heater repair austin · from place 31 to 18 on Google · checked Tue 8 Sep");
+      expect(body).not.toContain("https://example.com/water-heater-repair");
+      expect(body).not.toMatch(/checked \d{4}-/);
+    }
+  });
+
   it("a Google step nobody read this week says not checked, in both bodies, and never a stored zero", async () => {
     const mail = await composeWeekly(["draft.ladder.showing"]);
     const measuredMail = await composeWeekly();

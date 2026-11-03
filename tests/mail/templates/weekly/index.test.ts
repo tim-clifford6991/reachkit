@@ -27,6 +27,8 @@ const { PAGE_VERDICTS } = await import("../../../../src/lib/presentation/bands")
 
 const AT = new Date("2026-08-31T06:00:00.000Z");
 const URL_A = "https://content.example.com/best-onboarding-software";
+/** With no stored search, a row names the page by its address's last words. */
+const NAME_A = "best onboarding software";
 
 function standing(over: Record<string, unknown> = {}) {
   return {
@@ -246,7 +248,7 @@ describe("REQ-063 c4 — each page's verdict, what moved, the date, and the inte
   it("a page with no movement takes the plain sentence", () => {
     const rows = verdictRows(full().blocks);
     expect(rows).toEqual([
-      { subject: "mail.weekly.page", subjectVars: { page: URL_A }, verdict: PAGE_VERDICTS.working },
+      { subject: "mail.weekly.page", subjectVars: { page: NAME_A }, verdict: PAGE_VERDICTS.working },
     ]);
   });
 
@@ -263,8 +265,8 @@ describe("REQ-063 c4 — each page's verdict, what moved, the date, and the inte
       next: measured([], AT),
     });
     expect(verdictRows(mail.blocks)).toEqual([
-      { subject: "mail.weekly.page.not_verified", subjectVars: { page: URL_A }, verdict: PAGE_VERDICTS.not_working },
-      { subject: "mail.weekly.page", subjectVars: { page: URL_A }, verdict: PAGE_VERDICTS.working },
+      { subject: "mail.weekly.page.not_verified", subjectVars: { page: NAME_A }, verdict: PAGE_VERDICTS.not_working },
+      { subject: "mail.weekly.page", subjectVars: { page: NAME_A }, verdict: PAGE_VERDICTS.working },
     ]);
     expect(COPY["mail.weekly.page.not_verified"]).not.toMatch(/not indexed/i);
   });
@@ -294,30 +296,12 @@ describe("REQ-063 c4 — each page's verdict, what moved, the date, and the inte
     expect(row?.subject).toBe("mail.weekly.page.moved");
     // Both raw figures, in the order they were measured in: the decline is
     // shown and never replaced by the better earlier figure.
-    expect(row?.subjectVars).toEqual({ page: URL_A, from: "3", to: "9", measuredAt: "2026-08-31" });
+    expect(row?.subjectVars).toEqual({ page: NAME_A, from: "3", to: "9", measuredAt: "Mon 31 Aug" });
   });
 
   it("a change spanning more than a week takes the sentence that says so", () => {
-    const mail = buildWeekly({
-      pages: measured(
-        [
-          {
-            liveUrl: URL_A,
-            standing: standing({
-              movement: {
-                previousWeek: "2026-08-17",
-                spansWeeks: 2,
-                from: measured(3, AT),
-                to: measured(4, AT),
-                declined: true,
-              },
-            }),
-          },
-        ],
-        AT
-      ),
-      next: measured([], AT),
-    });
+    const movement = { previousWeek: "2026-08-17", spansWeeks: 2, from: measured(3, AT), to: measured(4, AT), declined: true };
+    const mail = buildWeekly({ pages: measured([{ liveUrl: URL_A, standing: standing({ movement }) }], AT), next: measured([], AT) });
     const [row] = verdictRows(mail.blocks);
     expect(row?.subject).toBe("mail.weekly.page.moved_over");
     expect(row?.subjectVars).toMatchObject({ weeks: "2" });
@@ -364,7 +348,7 @@ describe("ADR-071 point 3 — the two row-less standings are stated once for the
     });
     const rows = verdictRows(mail.blocks);
     expect(rows).toHaveLength(1);
-    expect(rows[0]?.subjectVars?.page).toBe(URL_A);
+    expect(rows[0]?.subjectVars?.page).toBe(NAME_A);
   });
 
   it("a page no longer judgeable carries that word in place of the three", () => {
@@ -471,12 +455,18 @@ describe("no sentence is written here, and no model text reaches the mail", () =
     }
   });
 
-  it("no page or opportunity is named by its title — a title is model-written and a mail does not speak it", () => {
+  it("no page or opportunity is named by its title or its raw address: a page by its search, a date in the mail's own words", async () => {
     const serialised = JSON.stringify(full());
-    // The two identifiers that do appear are an address and a search.
-    expect(serialised).toContain(URL_A);
     expect(serialised).toContain("onboarding checklist");
     expect(serialised).not.toMatch(/"title"/);
+    const moved = { previousWeek: "2026-08-24", spansWeeks: 1, from: measured(31, AT), to: measured(18, AT), declined: false };
+    const mail = buildWeekly({ pages: measured([{ liveUrl: URL_A, search: "onboarding software", standing: standing({ movement: moved }) }], AT), next: measured([], AT) });
+    const { html, text } = await composeMail({ kind: "weekly", subject: mail.subject, blocks: mail.blocks, reason: mail.reason, measurement: { state: "complete" } });
+    for (const body of [html, text]) {
+      expect(body).toContain("onboarding software · from place 31 to 18 on Google · checked Mon 31 Aug");
+      expect(body).not.toContain(URL_A);
+      expect(body).not.toMatch(/\d{4}-\d{2}-\d{2}/);
+    }
   });
 });
 

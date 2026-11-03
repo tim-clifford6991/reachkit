@@ -330,11 +330,11 @@ export const MAIL_COPY = Object.freeze({
   // would be one edit away from stating a span it did not have.
   "mail.weekly.page": ["{page}", { slots: { page: "text" }, fixedBy: "REQ-063 c4" }],
   "mail.weekly.page.moved": [
-    "{page} · was {from}, now {to} · checked {measuredAt}",
+    "{page} · from place {from} to {to} on Google · checked {measuredAt}",
     { slots: { page: "text", from: "text", to: "text", measuredAt: "date" }, fixedBy: "REQ-063 c3" },
   ],
   "mail.weekly.page.moved_over": [
-    "{page} · was {from}, now {to} over {weeks} weeks · checked {measuredAt}",
+    "{page} · from place {from} to {to} on Google over {weeks} weeks · checked {measuredAt}",
     {
       slots: { page: "text", from: "text", to: "text", measuredAt: "date", weeks: "text" },
       fixedBy: "REQ-063 c4",

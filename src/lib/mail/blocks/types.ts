@@ -86,6 +86,8 @@ export type MailBlock =
        *  row that depends on a measurement is left out by the template that knows it. */
       readonly block: "facts";
       readonly items: readonly FactRow[];
+      /** `body` sets a row in the mail's text face, where the rows are figures a reader scans rather than data. */
+      readonly face?: "body";
     }
   | {
       /** SPEC §8's one headline number up top. Unmeasured omits the block and its change with it. */
