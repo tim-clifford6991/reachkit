@@ -5,7 +5,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { copy } from "@/lib/presentation/copy";
 import { measured, measuredZero } from "@/lib/measure/measured";
-import { CheckCards } from "@/app/(public)/scan/[domain]/_problems/cards";
+import { CheckCards, fixesOf } from "@/app/(public)/scan/[domain]/_problems/cards";
 import { checkCardsOf } from "@/app/(public)/scan/[domain]/_problems/checks";
 import { FIXTURE_DEGRADED_REPORT, FIXTURE_REPORT } from "@/app/(public)/scan/[domain]/_fixture/states";
 import { panelReport, renderReport } from "./panel-report";
@@ -51,7 +51,8 @@ describe.each(["saas", "local"] as const)("the %s panel report, offer to consent
       "Not ready? Get your first page free ↓",
       "More in your report",
       "Site fixes",
-      "The 3 that cost you most, then 8 quick checks",
+      // Only what needs work or could not run is counted.
+      which === "saas" ? "The 2 that cost you most, then 2 quick checks" : "The 2 that cost you most, then 3 quick checks",
       "Do it yourself, free",
       "Where should we send it?",
       "Email me the full page",
@@ -70,9 +71,10 @@ describe.each(["saas", "local"] as const)("the %s panel report, offer to consent
   });
 
   it("says what holds the site back in plain words, and the method without jargon", () => {
-    expect(page).toContain("AI shut out of your site");
+    // The fixture lists every check, as none of them ran.
+    const every = text(renderReport(FIXTURE_REPORT));
     for (const name of ["No page list for Google", "Links between pages that go nowhere", "Page labels Google can read"]) {
-      expect(page).toContain(name);
+      expect(every).toContain(name);
     }
     for (const old of ["AI readers blocked", "No sitemap", "Broken internal links", "Missing structured data", "GEO", "Unblock the AI readers"]) {
       expect(page).not.toContain(old);
@@ -102,16 +104,22 @@ describe("each check row says its status in a word", () => {
   const page = text(
     renderToStaticMarkup(
       <CheckCards
-        cards={checkCardsOf({
-          page_titles: { count: measured(3, at), severity: measured("mid", at) },
-          noindex_pages: { count: measuredZero(0, at), severity: measured("low", at) },
-        })}
+        cards={
+          fixesOf(
+            [],
+            checkCardsOf({
+              page_titles: { count: measured(3, at), severity: measured("mid", at) },
+              noindex_pages: { count: measuredZero(0, at), severity: measured("low", at) },
+            })
+          ).checks
+        }
       />
     )
   );
 
-  it("a count, Nothing to fix on a zero, Couldn't run where no reading came back", () => {
-    expectInOrder(page, ["Missing or duplicate titles 3", "Pages hidden from search Nothing to fix", "No page list for Google Couldn’t run"]);
+  it("a count, Couldn't run where no reading came back, and a zero not listed at all", () => {
+    expectInOrder(page, ["Missing or duplicate titles 3", "No page list for Google Couldn’t run"]);
+    expect(page).not.toContain(copy("check.noindex-pages.title"));
     expect(page).toContain("Page labels Google can read Couldn’t run");
   });
 });

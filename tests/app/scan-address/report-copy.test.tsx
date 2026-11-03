@@ -64,16 +64,23 @@ const SCREEN_KEYS: readonly CopyKey[] = [
   "verdict.limiting.google.line",
   "verdict.limiting.ai.line",
   "verdict.limiting.presence.line",
-  // the headline: who gets the buyers, and the pages found (owner R12)
+  // the top: the score, who gets the buyers, and the questions found (owner 2026-11-03)
   "report.top.title",
-  "report.top.title.you-lead",
-  "report.top.title.none",
   "report.top.line",
   "report.top.line.one",
+  "report.top.line.you-lead",
+  "report.top.split",
+  "report.top.line.none",
   "report.top.offer",
   "report.top.offer.one",
-  "report.top.offer.no-free",
-  "report.top.offer.no-free.one",
+  "report.ai.waffle",
+  "report.ai.waffle.you-lead",
+  "report.google.waffle",
+  "report.google.waffle.you-lead",
+  "report.missing.rest",
+  "problem.section.sub.problems",
+  "problem.section.sub.checks",
+  "problem.section.none",
   "report.independent",
   "verdict.score.split",
   "verdict.factor.foundations",
@@ -125,13 +132,10 @@ const SCREEN_KEYS: readonly CopyKey[] = [
   // 3 · problem cards
   "problem.blocked-readers.title",
   "problem.blocked-readers.doer",
-  "problem.blocked-readers.none-needed",
   "problem.missing-pages.title",
   "problem.missing-pages.doer",
-  "problem.missing-pages.none-needed",
   "problem.unquotable-pages.title",
   "problem.unquotable-pages.doer",
-  "problem.unquotable-pages.none-needed",
   "problem.paste.label",
   "severity.low",
   "severity.mid",
@@ -327,12 +331,12 @@ describe("what the owner is owed, stated rather than discovered", () => {
   });
 });
 
-describe("the headline says how many pages the report found missing (owner A3, R12)", () => {
-  it.each(["saas", "local"] as const)("the %s panel report's headline carries its count, and the offer a free path", (which) => {
+describe("the top says how many questions the report found unanswered (owner A3, 2026-11-03)", () => {
+  it.each(["saas", "local"] as const)("the %s panel report's top carries its count beside the free page's button, and the offer a free path", (which) => {
     const report = panelReport(which);
     const html = renderReport(report);
     const line = copy("report.top.offer", { count: String(report.freePage!.totalPages) });
-    expect(html).toMatch(new RegExp(`<a href="#start"[^>]*data-testid="report-top-offer">${line}</a>`));
+    expect(html).toMatch(new RegExp(`data-testid="report-top-offer"><span>${line}</span><a href="#first-page"[^>]*data-testid="report-top-free">`));
     expect(html).toMatch(/<a href="#first-page"[^>]*data-testid="report-free-path"/);
   });
 });

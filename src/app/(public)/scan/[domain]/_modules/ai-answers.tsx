@@ -63,6 +63,7 @@ import type { CanonicalDomain } from "@/lib/scan/domain";
 import type { RetryPart } from "@/lib/scan/retry";
 import { dash, MonoIn, Num, SLOT } from "../_address/measured";
 import { RetryPartControl } from "../_address/retry-part";
+import { WaffleLead } from "./buyers";
 
 /** Which part this card's retry re-runs. A bound handle, not an inline
  *  attribute: the string-literal sweep (REQ-093 c1) reads every JSX
@@ -485,6 +486,7 @@ export function AiAnswersCard(p: {
   const measured = String(section.measuredSearches);
   const partial = section.measuredSearches < section.rows.length;
   const quote = answerQuoteOf(section, p.serps);
+  const matrix = matrixRows(section);
 
   return (
     <section className="card bg-base-100 shadow-(--shadow-card) min-w-0">
@@ -523,8 +525,8 @@ export function AiAnswersCard(p: {
         )}
 
         <div className="flex min-w-0 flex-col gap-1">
-          <p className="eyebrow grow-0">{copy("report.ai.waffle")}</p>
-          <AnswerMatrix rows={matrixRows(section)} questions={section.rows.map((row) => String(row.question.n))} label={copy("ai-answers.title")} />
+          <WaffleLead rows={matrix} total={section.answeredSearches} ai />
+          <AnswerMatrix rows={matrix} questions={section.rows.map((row) => String(row.question.n))} label={copy("ai-answers.title")} />
         </div>
 
         {quote === null ? null : (

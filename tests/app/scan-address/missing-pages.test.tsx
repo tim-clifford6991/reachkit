@@ -116,7 +116,7 @@ describe("the example.com fixture draws its missing pages", () => {
   it("says the count once, in the headline, and lists the free page's row first", () => {
     const html = renderReport(FIXTURE_REPORT);
     const list = html.slice(html.indexOf('data-testid="report-missing-pages"'));
-    expect(html).toContain(`>${htmlText(copy("report.top.offer", { count: "7" }))}</a>`);
+    expect(html).toContain(`<span>${htmlText(copy("report.top.offer", { count: "7" }))}</span>`);
     const first = list.slice(list.indexOf("<li"), list.indexOf("</li>"));
     expect(first).toContain(htmlText(FIXTURE_REPORT.freePage!.target.keyword));
     expect(first).toContain(htmlText(copy("report.missing.free")));
@@ -151,7 +151,8 @@ describe("pages 1 to 5 are cards, the rest dashed rows (2026-10-24 E16)", () => 
       expect(row.querySelector(".font-mono")!.textContent).toBe(`search ${i + 6}`);
     });
     expect(text(root)).toContain(copy("report.missing.all", { count: "14" }));
-    expect(text(root)).not.toContain("show their search");
+    // The rows say once what they are, numbered to the last.
+    expect(second!.previousElementSibling!.textContent).toBe(copy("report.missing.rest", { last: "14" }));
   });
 
   it("3 pages draw 3 cards and no rows", () => {
@@ -160,7 +161,7 @@ describe("pages 1 to 5 are cards, the rest dashed rows (2026-10-24 E16)", () => 
     expect(cards(root)).toHaveLength(3);
     expect(rows(root)).toHaveLength(0);
     expect(text(root)).toContain(copy("report.missing.all", { count: "3" }));
-    expect(text(root)).not.toContain("Pages 6 to");
+    expect(text(root)).not.toContain(copy("report.missing.rest", { last: "3" }));
   });
 
   it("the tally ends at nothing hidden, whatever the count, and one page carries none (board PubReport v36)", () => {
@@ -168,7 +169,7 @@ describe("pages 1 to 5 are cards, the rest dashed rows (2026-10-24 E16)", () => 
     const six = draw(listed(6));
     expect(rows(six)).toHaveLength(1);
     expect(text(six)).toContain(copy("report.missing.all", { count: "6" }));
-    expect(text(six)).not.toContain("shows its search");
+    expect(text(six)).toContain(copy("report.missing.rest", { last: "6" }));
   });
 
   it("only the free card is outlined and linked", () => {

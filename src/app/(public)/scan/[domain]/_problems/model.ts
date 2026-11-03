@@ -39,22 +39,19 @@ export const SEVERITY_INDEX: Readonly<Record<Severity, 0 | 1 | 2>> = Object.free
 /** The three cards' titles and the three "who does the work" lines, one
  *  key each. A problem with no title cannot render. */
 const PROBLEM_COPY: Readonly<
-  Record<ProblemName, { title: CopyKey; doer: CopyKey; noneNeeded: CopyKey }>
+  Record<ProblemName, { title: CopyKey; doer: CopyKey }>
 > = Object.freeze({
   blocked_readers: {
     title: "problem.blocked-readers.title",
     doer: "problem.blocked-readers.doer",
-    noneNeeded: "problem.blocked-readers.none-needed",
   },
   missing_pages: {
     title: "problem.missing-pages.title",
     doer: "problem.missing-pages.doer",
-    noneNeeded: "problem.missing-pages.none-needed",
   },
   unquotable_pages: {
     title: "problem.unquotable-pages.title",
     doer: "problem.unquotable-pages.doer",
-    noneNeeded: "problem.unquotable-pages.none-needed",
   },
 });
 
@@ -85,8 +82,6 @@ export interface ProblemCard {
   severity: Measured<Severity>;
   title: CopyKey;
   doer: CopyKey;
-  /** The line a card shows when its count is a measured zero. */
-  noneNeeded: CopyKey;
   fix: Fix;
 }
 
@@ -196,7 +191,6 @@ export function cardsOf(
       severity: severityOf(problem, count),
       title: PROBLEM_COPY[problem].title,
       doer: PROBLEM_COPY[problem].doer,
-      noneNeeded: PROBLEM_COPY[problem].noneNeeded,
       fix: fixFor(problem, count, unblockLines),
     };
   }) as [ProblemCard, ProblemCard, ProblemCard];

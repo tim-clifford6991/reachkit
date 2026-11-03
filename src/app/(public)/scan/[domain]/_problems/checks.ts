@@ -14,7 +14,8 @@
 import { measured, measuredZero, type Measured } from "@/lib/measure/measured";
 import type { CopyKey } from "@/lib/presentation/copy";
 import { SITE_CHECK_DOER, SITE_CHECK_TITLE } from "@/lib/presentation/site-issues";
-import type { IdentityReading } from "@/lib/site-issues/checks";
+import { identityReading, type IdentityReading } from "@/lib/site-issues/checks";
+import type { StoredReport } from "@/lib/scan/report";
 import { DOER_OF, type IssueSeverity, type SiteIssuesSection } from "@/lib/site-issues/types";
 import type { Severity } from "./model";
 
@@ -127,4 +128,10 @@ export function readingsOf(section: SiteIssuesSection | null, at: Date): CheckRe
     };
   }
   return readings;
+}
+
+/** The report's checks, from its stored section and its home page's labels. */
+export function reportChecksOf(report: Pick<StoredReport, "siteIssues" | "verdict" | "onPage">): readonly CheckCard[] {
+  const homeTypes = report.onPage.kind === "unmeasured" ? null : report.onPage.value.schemaTypes;
+  return checkCardsOf(readingsOf(report.siteIssues, report.verdict.measuredAt), identityReading(report.siteIssues, homeTypes));
 }

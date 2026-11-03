@@ -1,5 +1,5 @@
 // Board PubReport, the top half: the head, what we read you as, the headline
-// of who gets your buyers (owner R12), the biggest gap, the score card, and
+// of who gets your buyers (owner 2026-11-03), the biggest gap, the score card, and
 // the AI and Google panels, in the board's order and words. Against the real
 // registry, on the reserved-name fixture and the customer panel's stored
 // reports (a SaaS and a local business). 0¢: nothing is measured.
@@ -13,7 +13,8 @@ import { copy } from "@/lib/presentation/copy";
 import { FIXTURE_COLD_START_REPORT, FIXTURE_DEGRADED_REPORT, FIXTURE_REPORT } from "@/app/(public)/scan/[domain]/_fixture/states";
 import { answerQuoteOf } from "@/app/(public)/scan/[domain]/_modules/ai-answers";
 import { buyersOf, headlineOf } from "@/app/(public)/scan/[domain]/_modules/buyers";
-import type { StoredReport } from "@/lib/scan/report";
+import { readStoredReport, type StoredReport } from "@/lib/scan/report";
+import { shownView } from "@/lib/scan/shown-report";
 import { segments } from "../../../scripts/design/parity.mjs";
 import { panelReport, renderReport, walkReport } from "./panel-report";
 
@@ -40,6 +41,11 @@ function expectInOrder(lines: readonly string[], texts: readonly string[]): void
 
 const ai = FIXTURE_REPORT.aiAnswers!;
 const presence = FIXTURE_REPORT.presence!;
+/** A top line with its breakdown, the one count explained once. */
+type TopKey = "report.top.line" | "report.top.line.one" | "report.top.line.you-lead" | "report.top.line.none";
+const top = (key: TopKey, slots: Record<string, string>): string => copy(key, { ...slots, split: copy("report.top.split", slots) });
+/** The fixture's one count over both cards: 1 of 12 Google searches plus 3 of the 9 answers the AI gave. */
+const TOP = top("report.top.line", { category: "product analytics", rival: "rival-one.example.net", n: "4", m: "21", g: "1", gTotal: "12", a: "3", aTotal: "9" });
 
 describe("the head reads as the board: domain, where it was measured, what we read, the headline, the gap, the score", () => {
   const lines = shown(FIXTURE_REPORT);
@@ -66,20 +72,37 @@ describe("the head reads as the board: domain, where it was measured, what we re
     expect(head.filter((line) => line === copy("verdict.not-your-market"))).toHaveLength(1);
   });
 
-  it("leads with who gets the buyers and the pages found, before the gap and the score ring (owner R12)", () => {
+  it("leads with three lines, the score, who gets the buyers over one count, and the questions found, before the gap and the score ring", () => {
     expectInOrder(lines, [
       copy("verdict.not-your-market"),
-      copy("report.top.title", { holder: "rival-one.example.net" }),
-      copy("report.top.line", { n: "4", m: "21" }),
+      copy("report.top.title", { domain: "example.com", score: "31", verdict: "hard to find" }),
+      TOP,
       copy("report.top.offer", { count: "7" }),
+      copy("report.offer.free-path"),
       copy("verdict.limiting.answerability"),
       copy("verdict.score.label"),
       copy("report.buyers.title"),
     ]);
     const html = renderReport(FIXTURE_REPORT);
     expect(html.indexOf('data-testid="report-top"')).toBeLessThan(html.indexOf("radial-progress"));
-    expect(html).toMatch(/<a href="#start"[^>]*data-testid="report-top-offer">/);
-    expect(html).toContain('id="start"');
+    expect(html).toMatch(/<a href="#first-page"[^>]*data-testid="report-top-free">/);
+    // The domain and the rival are set in mono.
+    const top = parse(html).querySelector('[data-testid="report-top"]')!;
+    expect(top.querySelectorAll(".num").map((el) => el.text)).toEqual(["example.com", "rival-one.example.net"]);
+  });
+
+  it("the one denominator is explained once, and no line names an AI the free scan did not ask", () => {
+    expect(TOP).toBe("Buyers who ask Google or its AI about product analytics are sent to rival-one.example.net most. You came up in 4 of 21: 1 of 12 Google searches, 3 of 9 AI answers.");
+    expect(lines.filter((line) => line.includes(" of 21"))).toEqual([TOP]);
+    for (const report of [FIXTURE_REPORT, FIXTURE_COLD_START_REPORT, panelReport("saas"), panelReport("local")]) {
+      expect(renderReport(report)).not.toContain(copy("ai-answers.engine.chatgpt"));
+    }
+  });
+
+  it("a report with no first page offers the questions without the button", () => {
+    const html = renderReport({ ...FIXTURE_REPORT, freePage: null });
+    expect(segments(html)).toContain(copy("report.top.offer", { count: "7" }));
+    expect(html).not.toContain('data-testid="report-top-free"');
   });
 
   it("names the biggest gap in its title and one line, and nothing after them", () => {
@@ -119,7 +142,7 @@ describe("who gets your buyers, and its two panels", () => {
     expect(buyersOf(ai, presence, FIXTURE_REPORT.serps)).toEqual({ holder: "rival-one.example.net", ai: 3, google: 1, out: 21 });
     const i = at(lines, copy("report.buyers.title"));
     expect(lines[i + 1]).toBe(copy("ai-answers.title"));
-    expect(lines.filter((line) => line === copy("report.top.title", { holder: "rival-one.example.net" }))).toHaveLength(1);
+    expect(lines.filter((line) => line === TOP)).toHaveLength(1);
   });
 
   it("the AI panel: the figure, what it counts, the waffle, one answer quoted as written, the questions", () => {
@@ -128,7 +151,8 @@ describe("who gets your buyers, and its two panels", () => {
       copy("ai-answers.title"),
       `${copy("report.figure.of", { count: "3", total: "9" })} ${copy("ai-answers.finding")}`,
       copy("ai-answers.source", { total: "12", answered: "9" }),
-      copy("report.ai.waffle"),
+      // Each card names its own leader.
+      copy("report.ai.waffle", { leader: "rival-one.example.net", x: "6", total: "9", you: "3" }),
       copy("report.ai.quote", { search: "product analytics tools" }),
       // One sentence, as written, never the whole answer, inside its quotation marks.
       copy("report.ai.quote.said", { quote: "For a small team, many start with Rival One or Rival Two, which need no data warehouse." }),
@@ -142,13 +166,16 @@ describe("who gets your buyers, and its two panels", () => {
       copy("presence.title"),
       `${copy("report.figure.of", { count: "1", total: "12" })} ${copy("presence.finding")}`,
       copy("presence.source", { measured: "12" }),
-      copy("report.google.waffle"),
+      copy("report.google.waffle", { leader: "rival-one.example.net", x: "10", total: "12", you: "1" }),
       copy("report.google.most", { search: "product analytics tools", volume: "8,100", holder: "rival-one.example.net" }),
       `${copy("presence.absent-from.title")} 5`,
       copy("presence.absent-from.column.search"),
       copy("presence.absent-from.column.volume"),
       copy("presence.absent-from.column.holder"),
     ]);
+    // The first on Google is a domain: mono, broken anywhere, never at its hyphen in the UI face.
+    const holder = parse(renderReport(FIXTURE_REPORT)).querySelector('[data-testid="presence-most-holder"]')!;
+    expect([holder.text, holder.classList.contains("font-mono"), holder.classList.contains("break-all")]).toEqual(["rival-one.example.net", true, true]);
   });
 
   it("each waffle row is named and tallied, the customer's last and marked as theirs", () => {
@@ -204,15 +231,18 @@ describe("the states the board does not draw", () => {
   it("nobody found and the customer at zero: buyers can't find you yet, before the score", () => {
     const b = buyersOf(FIXTURE_COLD_START_REPORT.aiAnswers!, FIXTURE_COLD_START_REPORT.presence!, FIXTURE_COLD_START_REPORT.serps);
     expect(b).toMatchObject({ holder: null, ai: 0, google: 0 });
-    expectInOrder(shown(FIXTURE_COLD_START_REPORT), [copy("report.top.title.none"), copy("report.top.line", { n: "0", m: String(b.out) }), copy("verdict.score.label")]);
+    expectInOrder(shown(FIXTURE_COLD_START_REPORT), [
+      copy("report.top.title", { domain: "example.com", score: "8", verdict: "invisible" }),
+      top("report.top.line.none", { category: "invoicing software", m: String(b.out), g: "0", gTotal: "12", a: "0", aTotal: "9" }),
+      copy("verdict.score.label"),
+    ]);
   });
 
-  it("a panel not measured: no headline, so no count is summed over the missing half or shown as 0", () => {
-    expect(headlineOf(FIXTURE_DEGRADED_REPORT.aiAnswers, FIXTURE_DEGRADED_REPORT.presence, FIXTURE_DEGRADED_REPORT.serps)).toBeNull();
-    const lines = shown(FIXTURE_DEGRADED_REPORT);
-    expect(at(lines, copy("report.buyers.title"))).toBeGreaterThan(-1);
-    for (const key of ["report.top.title.none", "report.top.title.you-lead"] as const) expect(at(lines, copy(key))).toBe(-1);
-    expect(renderReport(FIXTURE_DEGRADED_REPORT)).not.toMatch(/data-testid="report-top"><h2/);
+  it("a panel not measured: no buyers line, so no count is summed over the missing half or shown as 0", () => {
+    expect(headlineOf(FIXTURE_DEGRADED_REPORT).line).toBeNull();
+    expect(headlineOf({ ...FIXTURE_REPORT, presence: null }).line).toBeNull();
+    expect(at(shown(FIXTURE_DEGRADED_REPORT), copy("report.buyers.title"))).toBeGreaterThan(-1);
+    expect(renderReport(FIXTURE_DEGRADED_REPORT)).not.toContain('data-testid="report-top-line"');
   });
 
   it("a stored report that kept Presence whole says three parts, not four", () => {
@@ -271,7 +301,9 @@ describe("who gets your buyers counts searches, each once (wrong-rival F3)", () 
       "rival-d.com": { ai: [3] },
     });
     expect(buyersOf(a, p, serps).holder).toBeNull();
-    expect(headlineOf(a, p, serps)?.title).toBe(copy("report.top.title.none"));
+    expect(headlineOf({ ...FIXTURE_REPORT, aiAnswers: a, presence: p, serps }).line?.sentence).toBe(
+      top("report.top.line.none", { category: "product analytics", m: "21", g: "0", gTotal: "12", a: "0", aTotal: "9" })
+    );
   });
 
   it("a rival on two searches is named, and only above the customer's own count", () => {
@@ -283,15 +315,13 @@ describe("who gets your buyers counts searches, each once (wrong-rival F3)", () 
 
 describe("the customer panel's stored reports, a SaaS and a local business", () => {
   it("the customer found at least as often as every competitor leads, and is never told buyers can't find it", () => {
-    for (const [walk, domain, n, m] of [
-      ["2026-10-15-1441-after", "austinplumbery.com", "4", "6"],
-      ["2026-10-15", "alexander.co.uk", "5", "9"],
+    for (const [walk, domain, slots] of [
+      ["2026-10-15-1441-after", "austinplumbery.com", { category: "plumbing services", n: "4", m: "6", g: "4", gTotal: "4", a: "0", aTotal: "2" }],
+      ["2026-10-15", "alexander.co.uk", { category: "accountants and tax advisors", n: "5", m: "9", g: "3", gTotal: "5", a: "2", aTotal: "4" }],
     ] as const) {
       const report = walkReport(walk, domain);
       expect(buyersOf(report.aiAnswers!, report.presence!, report.serps).holder, domain).toBeNull();
-      const lines = shown(report);
-      expectInOrder(lines, [copy("report.top.title.you-lead"), copy("report.top.line", { n, m }), copy("verdict.score.label")]);
-      expect(at(lines, copy("report.top.title.none")), domain).toBe(-1);
+      expectInOrder(shown(report), [top("report.top.line.you-lead", slots), copy("verdict.score.label")]);
     }
   });
 
@@ -301,7 +331,7 @@ describe("the customer panel's stored reports, a SaaS and a local business", () 
       expect(buyersOf(report.aiAnswers!, report.presence!, report.serps).out, domain).toBe(0);
       const html = renderReport(report);
       expect(html, domain).toContain(`id="buyers-h"`);
-      expect(html, domain).not.toContain(copy("report.top.title.none"));
+      expect(html, domain).not.toContain('data-testid="report-top-line"');
     }
   });
 
@@ -313,9 +343,9 @@ describe("the customer panel's stored reports, a SaaS and a local business", () 
   });
 
   // The SaaS's leader is on three searches; every local rival is on one, its top ten and AI answer counted once.
-  for (const [which, title] of [
-    ["saas", copy("report.top.title", { holder: "calendly.com" })],
-    ["local", copy("report.top.title.none")],
+  for (const [which, line] of [
+    ["saas", top("report.top.line", { category: "scheduling software", rival: "calendly.com", n: "0", m: "9", g: "0", gTotal: "5", a: "0", aTotal: "4" })],
+    ["local", top("report.top.line.none", { category: "plumbing services", m: "9", g: "0", gTotal: "7", a: "0", aTotal: "2" })],
   ] as const) {
     it(`${which}: the head, the headline and who gets your buyers draw from what was stored`, () => {
       const report = panelReport(which);
@@ -323,14 +353,38 @@ describe("the customer panel's stored reports, a SaaS and a local business", () 
       expectInOrder(lines, [
         copy("report.read.as.title"),
         copy("verdict.not-your-market"),
-        title,
+        line,
         copy("report.top.offer", { count: String(report.freePage!.totalPages) }),
+        copy("report.offer.free-path"),
         copy("verdict.score.label"),
         copy("report.buyers.title"),
         copy("ai-answers.title"),
         copy("presence.title"),
       ]);
     });
+  }
+});
+
+describe("Site fixes lists only what needs work (owner 2026-11-03)", () => {
+  const holds = (report: StoredReport) => parse(renderReport(report)).querySelector("#holds");
+
+  it("a measured zero draws no card, and only a found problem carries its fix chip", () => {
+    const fixes = holds(panelReport("saas"))!;
+    const cards = fixes.querySelectorAll("li.card");
+    expect(cards.map((card) => card.querySelector("h3")!.text)).toEqual([copy("problem.missing-pages.title"), copy("problem.unquotable-pages.title")]);
+    expect(cards.map((card) => card.querySelectorAll(".badge-primary").map((badge) => badge.text))).toEqual([[copy("problem.missing-pages.doer")], []]);
+    expect(fixes.querySelector("summary")!.text).toContain(copy("problem.section.sub", { problems: "2", checks: "2" }));
+  });
+
+  it("a half with nothing to list is left out of the count, never said as zero", () => {
+    expect(holds(FIXTURE_COLD_START_REPORT)!.querySelector("summary")!.text).toContain(copy("problem.section.sub.checks", { checks: "8" }));
+    expect(holds(walkReport("2026-10-15", "alexander.co.uk"))!.querySelector("summary")!.text).toContain(copy("problem.section.sub.problems", { problems: "2" }));
+  });
+});
+
+it("the cached view-model draws the same page as the stored report", () => {
+  for (const report of [FIXTURE_REPORT, panelReport("saas"), panelReport("local"), walkReport("2026-10-15", "alexander.co.uk")]) {
+    expect(shown(readStoredReport(shownView(report)))).toEqual(shown(report));
   }
 });
 

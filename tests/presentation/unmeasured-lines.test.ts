@@ -8,11 +8,12 @@ const AT = new Date("2026-10-26T06:00:00.000Z");
 // A search query is lower case, so a line that opened on it would open on a small letter.
 const WHAT = "emergency plumber austin";
 
+// The not-yet line names no subject: the owner approved "We couldn’t check this yet." (#2123, 2026-11-03).
 describe.each([
-  ["not checked this time", unmeasured<number>("undeterminable", AT)],
-  ["not checked, the check stopped early", unmeasured<number>("not_attempted", AT)],
-  ["not checked yet", unmeasured<number>("not_attempted", AT, NOT_BUILT)],
-] as [string, Measured<number>][])("%s", (_name, value) => {
+  ["not checked this time", unmeasured<number>("undeterminable", AT), true],
+  ["not checked, the check stopped early", unmeasured<number>("not_attempted", AT), true],
+  ["not checked yet", unmeasured<number>("not_attempted", AT, NOT_BUILT), false],
+] as [string, Measured<number>, boolean][])("%s", (_name, value, subject) => {
   const shown = measuredText(value, WHAT);
 
   it("draws the dash, never a 0", () => {
@@ -21,9 +22,9 @@ describe.each([
     expect(shown.text).not.toBe("0");
   });
 
-  it("says it in a sentence that starts with a capital and carries the subject inside it", () => {
+  it("says it in a sentence that starts with a capital, with the subject inside it where the line names one", () => {
     expect(shown.line).toMatch(/^\p{Lu}/u);
-    expect(shown.line!.indexOf(WHAT)).toBeGreaterThan(0);
+    if (subject) expect(shown.line!.indexOf(WHAT)).toBeGreaterThan(0);
     expect(shown.line).not.toMatch(/\b0\b/);
   });
 });

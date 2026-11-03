@@ -82,11 +82,14 @@ export function MissingPagesList(p: { pages: readonly MissingPage[]; freeSearch:
         ))}
       </ol>
       {pages.length <= CARDS ? null : (
-        <ol role="list" start={CARDS + 1} className="grid list-none grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-3">
-          {pages.slice(CARDS).map((page, i) => (
-            <Row key={`${i}-${page.search}`} page={page} n={CARDS + 1 + i} />
-          ))}
-        </ol>
+        <>
+          <p className="text-sm font-semibold">{copy("report.missing.rest", { last: String(pages.length) })}</p>
+          <ol role="list" start={CARDS + 1} className="grid list-none grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-3">
+            {pages.slice(CARDS).map((page, i) => (
+              <Row key={`${i}-${page.search}`} page={page} n={CARDS + 1 + i} />
+            ))}
+          </ol>
+        </>
       )}
       {line === null ? null : <p className="text-base-content/70 text-sm">{line}</p>}
     </div>
