@@ -173,6 +173,9 @@ describe("who gets your buyers, and its two panels", () => {
       copy("presence.absent-from.column.volume"),
       copy("presence.absent-from.column.holder"),
     ]);
+    // The first on Google is a domain: mono, broken anywhere, never at its hyphen in the UI face.
+    const holder = parse(renderReport(FIXTURE_REPORT)).querySelector('[data-testid="presence-most-holder"]')!;
+    expect([holder.text, holder.classList.contains("font-mono"), holder.classList.contains("break-all")]).toEqual(["rival-one.example.net", true, true]);
   });
 
   it("each waffle row is named and tallied, the customer's last and marked as theirs", () => {

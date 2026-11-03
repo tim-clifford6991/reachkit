@@ -73,17 +73,27 @@ function waffleRow(name: string, count: number, measured: number, you: boolean):
   };
 }
 
-/** The biggest search, its volume, and who is first on it, where stored. */
+/** Where the sentence's competitor sits; the search takes `SLOT`. */
+const HOLDER = "\u0001";
+
+/** The biggest search, its volume, and who is first on it, where stored. The
+ *  search is mono; the competitor is a domain, mono and broken anywhere so it
+ *  never splits at its hyphen in the UI face. */
 function MostSearched(p: { most: NonNullable<PresenceSection["mostSearched"]> }): React.JSX.Element {
   const slots = { search: SLOT, volume: volumeOf(p.most.volume) };
+  const holder = p.most.topHolder;
+  const [sentence = "", after = ""] = (holder === null ? copy("report.google.most.none", slots) : copy("report.google.most", { ...slots, holder: HOLDER })).split(HOLDER);
   return (
     <p className="bg-base-200 rounded-box flex grow-0 items-start gap-2.5 px-3.5 py-3 text-sm" data-testid="presence-most-searched">
       <Search aria-hidden className="mt-0.5 size-4 shrink-0" strokeWidth={1.75} />
       <span className="min-w-0">
-        <MonoIn
-          sentence={p.most.topHolder === null ? copy("report.google.most.none", slots) : copy("report.google.most", { ...slots, holder: p.most.topHolder })}
-          value={p.most.keyword}
-        />
+        <MonoIn sentence={sentence} value={p.most.keyword} />
+        {holder === null ? null : (
+          <>
+            <span className="font-mono break-all" data-testid="presence-most-holder">{holder}</span>
+            {after}
+          </>
+        )}
       </span>
     </p>
   );
