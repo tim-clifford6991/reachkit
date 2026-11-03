@@ -338,3 +338,12 @@ describe("an answer that really is unusable still fails, and the pass says so (i
     expect(vendorRequests.filter((r) => r.url.includes("keyword_suggestions"))).toHaveLength(0);
   }, 30_000);
 });
+
+describe("a home page whose profile names nothing it sells gives no market, and none is guessed", () => {
+  it("the market is unmeasured with why, and no suggestion is bought", async () => {
+    profileAnswer = { ...OVER_FULL_PROFILE, category: "<UNKNOWN>" };
+    const report = (await scan()).p_report as { market: { kind: string; because?: string } };
+    expect(report.market).toMatchObject({ kind: "unmeasured", because: "market_not_named" });
+    expect(vendorRequests.filter((r) => r.url.includes("keyword_suggestions"))).toHaveLength(0);
+  }, 30_000);
+});

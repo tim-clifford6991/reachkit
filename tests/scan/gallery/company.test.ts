@@ -20,7 +20,8 @@ const titles = [{ domain: "hubspot.com", home_title: "HubSpot | Software & Tools
 vi.mock("@/lib/db", () => {
   const query = { select: () => query, order: () => query, limit: () => Promise.resolve({ data: rows, error: null }) };
   const profiles = { select: () => profiles, in: () => Promise.resolve({ data: titles, error: null }) };
-  return { dbAdmin: () => ({ from: (table: string) => (table === "site_profiles" ? profiles : query) }) };
+  const withdrawn = { select: () => withdrawn, eq: () => withdrawn, in: () => Promise.resolve({ data: [], error: null }) };
+  return { dbAdmin: () => ({ from: (table: string) => (table === "site_profiles" ? profiles : table === "scans" ? withdrawn : query) }) };
 });
 
 it("shows a stored page title as the company's brand", async () => {
