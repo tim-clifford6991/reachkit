@@ -39,7 +39,7 @@ vi.mock("@/lib/opportunities", async (importOriginal) => ({
 
 const { sendDraftReadyMail } = await import("@/lib/mail/draft-ready");
 const { composeMail } = await import("@/lib/mail/shell/compose");
-const { escapeHtml } = await import("@/lib/mail/blocks/html");
+const { escapeHtml } = await import("../../escape");
 const { recordForHost } = await import("@/lib/publish/setup/cards");
 const { copy } = await import("@/lib/presentation/copy");
 const { ConnectAddress } = await import("@/app/(account)/app/_overview/ConnectAddress");
