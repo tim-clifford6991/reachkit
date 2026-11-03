@@ -115,7 +115,7 @@ export function OnThisPage(p: { headings: readonly Pick<LegalHeading, "id" | "nu
       {headings.map((h, i) => (
         <li key={h.id}>
           {/* The page opens at its first section, so that row reads as current, as the board draws it. */}
-          <a href={`#${h.id}`} className={`min-h-14 items-center ${i === 0 ? "bg-primary/10 text-primary font-semibold" : ""}`}>
+          <a href={`#${h.id}`} className={`flex min-h-14 w-fit items-center ${i === 0 ? "bg-primary/10 text-primary font-semibold" : ""}`}>
             {h.number === null ? null : (
               <span className="text-base-content/70 font-mono text-xs">{h.number.padStart(2, "0")}</span>
             )}
