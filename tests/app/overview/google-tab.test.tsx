@@ -119,7 +119,7 @@ describe("board AppGoogle, on the account the layout sweep reads", () => {
     // A page no reading reached wears no label and comes last.
     const ranks = labels.map((label) => (label === "" ? order.length : order.indexOf(label)));
     expect(ranks).toEqual([...ranks].sort((a, b) => a - b));
-    expect(new Set(labels)).toEqual(new Set([order[0], order[1], order[3], ""]));
+    expect(new Set(labels)).toEqual(new Set([...order, ""]));
     // Each label wears its board icon: Check, TrendingUp, Minus, Clock.
     const icon = new Map(order.map((word, i) => [word, ["lucide-check", "lucide-trending-up", "lucide-minus", "lucide-clock"][i]!]));
     for (const row of rows.filter((_, i) => labels[i] !== "")) {

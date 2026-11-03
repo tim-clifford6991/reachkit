@@ -173,7 +173,7 @@ describe("Live pages: each page's steps as dots, its standing and its label", ()
   });
 
   it("a page in results says its place, how far it rose and since when, never its search again, and its dots reach Showing", async () => {
-    const row = byTitle(await fixturePage(), "How to price a small project");
+    const row = byTitle(await fixturePage(), "Signs you have outgrown your spreadsheet");
     expect(row.querySelector("p")?.textContent).toMatch(/^Place 36, up 14 since \w{3} \d+, 2026\.$/);
     expect(text(row.querySelector('[data-testid="plan-live-google"]'))).toBe("Google: Showing in results");
     expect([...row.querySelectorAll('[data-testid="plan-live-google"] [data-reached]')].map((dot) => dot.getAttribute("data-reached"))).toEqual([
@@ -186,17 +186,17 @@ describe("Live pages: each page's steps as dots, its standing and its label", ()
   });
 
   it("a page found but not in results says when Google found it", async () => {
-    const row = byTitle(await fixturePage(), "Late payment reminders that work");
+    const row = byTitle(await fixturePage(), "Cleaning a contact list before you switch");
     expect(row.querySelector("p")?.textContent).toMatch(/^Found by Google \w{3} \d+, 2026\. Not in results yet\.$/);
   });
 
   it("a page an answer engine linked says which one", async () => {
-    const row = byTitle(await fixturePage(), "Choosing payment terms");
+    const row = byTitle(await fixturePage(), "A simple CRM for plumbers and electricians");
     expect(row.querySelector("p")?.textContent).toContain(copy("calendar.live.linked", { engines: COPY["ai-answers.engine.chatgpt"] }));
   });
 
   it("a page never read says when it went live, is too early, and draws both dot rows empty, not checked and not read", async () => {
-    const row = byTitle(await fixturePage(), "What an onboarding checklist should hold");
+    const row = byTitle(await fixturePage(), "How to choose a CRM for a small team");
     expect(row.querySelector("p")?.textContent).toMatch(/^Live since \w{3} \d+, 2026\. We check it on Monday\.$/);
     expect([...row.querySelectorAll("[data-reached]")].map((dot) => dot.getAttribute("data-reached"))).toEqual(expect.arrayContaining(["not-yet"]));
     expect(row.querySelector('[data-reached="yes"]')).toBeNull();
