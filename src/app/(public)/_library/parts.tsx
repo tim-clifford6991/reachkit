@@ -519,7 +519,7 @@ export function LearnClose(p: { variant: LearnCloseVariant; domain?: string }): 
         <section id={START_ID} aria-labelledby="start-h" className="rounded-box border-primary/20 bg-primary/10 flex scroll-mt-20 flex-col items-center gap-3.5 border px-5 py-8 text-center sm:px-10 sm:py-12">
           <h2 id="start-h">{copy(close.heading ?? "landing.close.heading")}</h2>
           <div className="w-full max-w-xl text-start">
-            <ScanForm words={scanFormWords(submit)} searchParams={p.domain === undefined ? undefined : { value: p.domain }} />
+            <ScanForm words={scanFormWords(submit)} searchParams={p.domain === undefined ? undefined : { value: p.domain }} inline />
           </div>
           <p className={SMALL}>{copy("landing.hero.assurance")}</p>
         </section>

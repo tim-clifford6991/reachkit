@@ -92,7 +92,7 @@ function CellText(p: { cell: Cell }): React.JSX.Element {
   if (PARTLY.test(p.cell)) {
     return (
       <span className="inline-flex items-start gap-1 wrap-anywhere">
-        <Contrast {...ICON} className="mt-0.5 shrink-0" />
+        <Contrast {...ICON} className="text-warning mt-0.5 shrink-0" />
         {p.cell}
       </span>
     );
@@ -284,7 +284,7 @@ export default async function ComparisonPage({ params }: Params): Promise<React.
             {copy("compare.item.yes")}
           </span>
           <span className="inline-flex items-center gap-1">
-            <Contrast {...ICON} size={14} />
+            <Contrast {...ICON} size={14} className="text-warning" />
             {copy("compare.item.partly")}
           </span>
           <span className="inline-flex items-center gap-1">

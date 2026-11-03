@@ -689,7 +689,7 @@ export const REPORT_COPY = Object.freeze({
   "landing.step.2.tag": ["every Monday", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
   "landing.step.3.tag": ["from week 1", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
   /** The closing band: its heading, and the line under its button. */
-  "landing.close.heading": ["See who gets your buyers today.", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
+  "landing.close.heading": ["See who gets your buyers today", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
   "landing.price.heading": ["What {price} a month gets you", { slots: { price: "text" }, fixedBy: "board Landing · issue 1596" }],
   "landing.price.month": ["a month", { slots: {}, fixedBy: "board PubLanding · issue 1727 · drafted" }],
   "landing.price.terms": ["{price} a month. One plan. Cancel any time.", { slots: { price: "text" }, fixedBy: "board Landing · issue 1596" }],

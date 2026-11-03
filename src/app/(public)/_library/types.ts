@@ -47,6 +47,8 @@ export interface Comparison {
   readonly heading?: string;
   /** A word on the card the reader needs before clicking, e.g. the product closed. */
   readonly badge?: string;
+  /** The badge's tone: a closed product warns, a free tool to keep is good news; none is grey. */
+  readonly badgeTone?: "warning" | "success";
   /** The meta description, at most 160 characters. */
   readonly description: string;
   /** One line on the index card, at most 20 words: theirs, then ". ReachKit …". */

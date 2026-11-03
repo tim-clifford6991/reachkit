@@ -119,6 +119,7 @@ export default async function AnswerPage({ params }: Params): Promise<React.JSX.
                 {chart.title}
               </p>
               <CostBars
+                tall
                 max={chart.max}
                 rows={chart.rows.map((row) => ({
                   name: row.name,

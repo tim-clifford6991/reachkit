@@ -33,6 +33,7 @@ const TILE =
 const GRID = "grid min-w-0 grid-cols-[minmax(8.5rem,1.9fr)_repeat(5,minmax(0,1fr))] items-center gap-1.5";
 const SMALL = "text-base-content/70 text-sm";
 const ICON = { size: 16, strokeWidth: 1.75, "aria-hidden": true } as const;
+const BADGE_TONE = { warning: "badge-warning", success: "badge-success" } as const;
 const OPTION = "rounded-field flex items-center gap-3 border px-3.5 py-2.5 text-sm";
 type Mark = "done" | "helps" | "you";
 const MARKS: readonly Mark[] = ["done", "helps", "you"];
@@ -140,7 +141,9 @@ function ComparisonCard(p: { c: Comparison }): React.JSX.Element {
         </span>
         <span className="flex min-w-0 flex-1 flex-col gap-1">
           <h3 className="card-title min-w-0 text-base break-words">{c.title}</h3>
-          {c.badge === undefined ? null : <span className="badge badge-soft badge-sm self-start">{c.badge}</span>}
+          {c.badge === undefined ? null : (
+            <span className={`badge badge-soft badge-sm self-start ${c.badgeTone === undefined ? "" : BADGE_TONE[c.badgeTone]}`}>{c.badge}</span>
+          )}
           <span className="text-base-content/70 text-sm">{cardLines(c.summary).them}</span>
         </span>
         <ArrowRight {...ICON} className="text-primary shrink-0" />

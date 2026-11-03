@@ -57,6 +57,7 @@ export const OTHERS: readonly Comparison[] = [
     group: "audience",
     title: "ReachKit vs GummySearch",
     badge: "Closed Nov 2025",
+    badgeTone: "warning",
     description:
       "GummySearch, a Reddit research tool, closed on 30 November 2025. ReachKit checks whether buyers find your site on Google and in AI answers.",
     summary: "GummySearch closed in November 2025. ReachKit checks and grows how buyers find your site.",
@@ -230,6 +231,7 @@ export const OTHERS: readonly Comparison[] = [
     group: "data",
     title: "ReachKit vs Google Search Console",
     badge: "Free · keep using it",
+    badgeTone: "success",
     description:
       "Search Console is Google's free view of your site in Search. ReachKit adds competitors and AI answers, then puts pages live to grow your reach.",
     summary: "Use Search Console, it is free. ReachKit adds competitors, AI answers and pages every week.",
