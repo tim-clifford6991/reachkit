@@ -267,8 +267,19 @@ describe("the Terms state the offer the product keeps", () => {
     expect(section("your-content-and-the-pages-we-write")).toContain(`anywhere from ${VETO.minDays} to ${VETO.maxDays} days`);
   });
 
-  it("§4 keeps access to the end of the paid period", () => {
+  it("§1 sells only to businesses, and no section offers a consumer withdrawal", () => {
+    expect(section("the-service")).toContain("ReachKit is sold only to businesses");
+    expect(html).not.toContain('id="withdrawal"');
+    expect(all).not.toMatch(/right of withdrawal/i);
+  });
+
+  it("§4 and §9 run month to month to the end of the paid month and promise no refund", () => {
     expect(all).not.toMatch(/in one click/i);
-    expect(section("price-billing-and-cancellation")).toContain("your access continues to the end of the period you have paid for");
+    const billing = section("price-billing-and-cancellation");
+    expect(billing).toContain("runs month to month");
+    expect(billing).toContain("Your access continues to the end of the month you have paid for");
+    expect(billing).toContain("Payments already made are not refunded.");
+    expect(all).not.toMatch(/refund that payment in full|automatic(ally)? refund|refunded automatically/i);
+    expect(section("ending-things")).toContain("Cancelling takes effect at the end of the month you have paid for.");
   });
 });

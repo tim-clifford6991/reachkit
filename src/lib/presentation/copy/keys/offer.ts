@@ -92,4 +92,10 @@ export const OFFER_COPY = Object.freeze({
     "We couldn’t start checkout. Try again in a moment.",
     { slots: {}, fixedBy: "SPEC.md §3 (2026-09-13)" },
   ],
+
+  // The Checkout tick's sentence: only businesses may buy.
+  "offer.checkout.consent": [
+    "I’m buying for my business and agree to the [Terms]({terms})",
+    { slots: { terms: "text" }, fixedBy: "issue 1590" },
+  ],
 }) satisfies CopyPartition;
