@@ -50,7 +50,6 @@ import type { PlanReason } from "@/lib/opportunities/types";
 import { whyLineOf } from "@/app/(account)/app/calendar/card-lines";
 import { formatTime } from "@/app/(account)/app/_shell/format";
 import { isPlannedStopToken, previewPlannedStop, stopPlannedPage, type PlannedPreview } from "@/lib/opportunities/stop";
-import { formatMailDay } from "@/lib/mail/blocks/format";
 import { PUBLIC_ROUTE_SEO } from "../../_seo/routes";
 import { staticMetadata } from "../../_seo/metadata";
 import { Surface } from "@/ui/layout";
@@ -140,7 +139,8 @@ function asRead(read: PlannedPreview): Read {
       ok: true,
       preview: {
         ...rest,
-        title: copy("publish.veto.planned.title", { day: formatMailDay(day) }),
+        // `Wed 21 Oct`, as the failed state writes its day; a stored date carries no zone.
+        title: copy("publish.veto.planned.title", { day: writeDay({ at: new Date(`${day}T00:00:00Z`), timeZone: "UTC" }) }),
         excerpt: null,
         publishes: null,
         unconnected: false,

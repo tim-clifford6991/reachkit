@@ -242,7 +242,8 @@ export function Review(p: { sites: readonly ReviewSite[] | null }): React.JSX.El
     <div className="flex min-w-0 flex-col gap-6" data-testid="review">
       <header className="flex min-w-0 flex-col gap-1">
         <span className="eyebrow">{week === null ? copy("review.eyebrow") : copy("review.eyebrow.week", { date: WEEK_OF.format(dateOf(week)) })}</span>
-        <h1>{copy("review.title")}</h1>
+        {/* The board's title step at every width, not the phone's smaller h1. */}
+        <h1 className="text-(length:--h1)">{copy("review.title")}</h1>
       </header>
       {p.sites === null ? (
         <div role="alert" className="alert alert-soft alert-warning">

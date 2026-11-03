@@ -83,6 +83,10 @@ describe("the board's cuts and its 390 shape", () => {
     }
   });
 
+  it("the title takes the board's h1 step at every width", () => {
+    expect(html).toMatch(/<h1 class="text-\(length:--h1\)">/);
+  });
+
   it("heads the why column Why, with no caption saying who reads it", () => {
     expect(copy("review.col.why")).toBe("Why");
     expect(html).not.toContain("as the customer reads it");
