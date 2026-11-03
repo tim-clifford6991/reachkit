@@ -203,7 +203,8 @@ describe("OR4: a promise-figure title never enters review", () => {
     ["b03e044f", true, []],
     // Its FAQ pair denying a rival is dropped and "17" clears today; no clean candidate names the business.
     ["bf8de9bf", false, [{ rule: "title", detail: { faults: ["business"] } }]],
-    ["d98284cc", false, [{ rule: "plain_prose", detail: { faults: [{ tell: "repeated_phrase" }] } }]],
+    // Issue 2341: its phrase said too often is dropped in code past the first sayings.
+    ["d98284cc", true, []],
     ["5dcc61c2", false, [{ rule: "required_blocks", detail: { block: "question_headings" } }]],
     // Its FAQ pair denying a rival is dropped. One attempt: its title is not settled, so the missing specific still
     // stops it, and its sections take a writer.
@@ -322,7 +323,6 @@ describe("OR4: a promise-figure title never enters review", () => {
   });
 
   it.each([
-    ["d98284cc", "retired:plain_prose"],
     ["5dcc61c2", "retired:required_blocks"],
     // One attempt: its unsettled title still stops it beside the sections a writer owes.
     ["f1ec6a58", "retired:required_blocks,title"],
@@ -334,6 +334,7 @@ describe("OR4: a promise-figure title never enters review", () => {
     ["b8c28f61", "retired:title"],
     ["b03e044f", null],
     ["fba1d84d", null],
+    ["d98284cc", null],
   ] as const)("%s, still failing under today's rules after the 0¢ mends, is set aside as %s", async (id, reason) => {
     arrange(SAAS_HOSTED);
     const outcome = await recheckRow(at(id), dogfood(at(id)));

@@ -62,7 +62,7 @@ import {
 } from "./links/select";
 import { withMovedLink } from "./links/moved";
 import { urlKey, type LinkTarget } from "./links/select";
-import { generateDraft, targetSearches, type GenerateOutcome } from "./pipeline";
+import { generateDraft, targetSearches, type FixStop, type GenerateOutcome } from "./pipeline";
 import { allowedFacts, readAllFacts, readDemoPhrases, type SourcedFact } from "./pipeline/grounding";
 import { siteRulesOf } from "./pipeline/battery";
 import { buildPack, builtFromOutside, questionsHeld, readPack, type ContextPack, type PackLivePage, type PackMeasurements } from "./pipeline/pack";
@@ -115,6 +115,8 @@ export type DayPageOutcome =
       /** The rules that stopped the last attempt and the sentences that broke
        *  them, where the run that stopped it held them (issue 1187). */
       stopped?: readonly FixNote[];
+      /** Why it had no fix call, where the budget or the time ended it. */
+      stop?: FixStop;
     }
   | { ok: false; because: "step_failed"; draftId: string | null; step: string }
   /** DataForSEO refused the page's research for lack of credit. */
@@ -721,6 +723,7 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number }
         draftId: draftId ?? null,
         attempts: last.attempt,
         ...(last.fix === undefined ? {} : { stopped: last.fix }),
+        ...(last.stop === undefined ? {} : { stop: last.stop }),
       };
     }
     // SPEC §7 (D12, issue 1143): a new page whose pack adds too little is not

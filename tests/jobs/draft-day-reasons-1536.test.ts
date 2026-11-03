@@ -29,6 +29,9 @@ describe("issue 1536: no due hour ends without a page silently", () => {
       [{ ok: false, because: "no_opportunity" }, "no_page", "generate:no_opportunity"],
       [{ ok: false, because: "no_scan" }, "no_page", "generate:no_scan"],
       [{ ok: false, because: "rules", draftId: "d1", attempts: 2 }, "no_page", "generate:rules"],
+      // Issue 2341: a page the budget or the clock left without its fix call is not a rules day.
+      [{ ok: false, because: "rules", draftId: "d3", attempts: 1, stop: "budget" }, "no_page", "generate:budget"],
+      [{ ok: false, because: "rules", draftId: "d4", attempts: 1, stop: "time" }, "no_page", "generate:time"],
       [{ ok: false, because: "step_failed", draftId: null, step: "pack:buyer_questions" }, "no_page", "generate:step_failed:pack:buyer_questions"],
       [{ ok: false, because: "step_failed", draftId: "d2", step: "write" }, "no_page", "generate:step_failed:write"],
       [new TypeError("boom"), "failed", "TypeError"],

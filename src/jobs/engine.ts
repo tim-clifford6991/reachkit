@@ -566,7 +566,8 @@ async function reviewWritten(
 ): Promise<EngineResult> {
   // Issue 1536: a step names itself, and a short pack what it lacked, so
   // the day's kept reason says which stage left it without a page.
-  if (!outcome.ok) return { degraded: outcome.because === "step_failed" ? `generate:step_failed:${outcome.step}` : `generate:${outcome.because}` };
+  // A page the budget or the clock left without its fix call says so, not `rules`.
+  if (!outcome.ok) return { degraded: outcome.because === "step_failed" ? `generate:step_failed:${outcome.step}` : `generate:${(outcome.because === "rules" ? outcome.stop : undefined) ?? outcome.because}` };
   const { enterReview } = await import("@/lib/publish/attempt/window");
   const entry = await enterReview({ draftId: outcome.draftId, at: now });
   if (entry.kind === "told") {

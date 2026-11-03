@@ -176,6 +176,7 @@ export async function checkPage(
         ],
         rivals: b.site.rivals,
         rivalsNamed: b.rivalsNamed,
+        prose: batteryInputs(b, page, markdown, at.comparison, settled).prose,
       }),
       b.cited
     );

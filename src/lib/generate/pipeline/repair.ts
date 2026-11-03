@@ -31,10 +31,10 @@ import {
   type BriefRuleInputs,
 } from "../rules/brief";
 import { ownMeasurementIn } from "../rules/figures";
-import { PAGE_BLOCKS } from "@/lib/config/constants";
+import { PAGE_BLOCKS, PROSE } from "@/lib/config/constants";
 import { answerBoxOf, renumberSteps } from "../rules/blocks";
 import { checkInventedPeople, checkUnsourcedTestimonial } from "../rules/people";
-import { sentenceKey } from "../rules/prose";
+import { proseScore, sentenceKey, type ProseRuleInputs } from "../rules/prose";
 import { checkRivalNegative, deniedRivals, factPageKeys, namedRivals, unsourcedRivalFigure, type NamedRival } from "../rules/rivals";
 import {
   blocksOf,
@@ -93,6 +93,8 @@ export interface RepairInputs {
   rivals?: readonly string[];
   /** The same rivals with their market names (issue 1485). */
   rivalsNamed?: readonly NamedRival[];
+  /** What the prose check reads, so a phrase it counts too often is dropped by its own count. */
+  prose?: ProseRuleInputs;
 }
 
 /** The block markers a sentence edit keeps: a quote, a heading, a list item. */
@@ -256,10 +258,17 @@ function repairFirstBlock(markdown: string): string {
 
 /** The page without a sentence's third saying and every one after it: the
  *  tagline cap (`PAGE_BLOCKS.taglineRepeats`), held in code. A heading, a
- *  table row and a pull quote are not sentences of the writer's. */
-function dropRepeats(markdown: string): string {
+ *  table row and a pull quote are not sentences of the writer's. A phrase
+ *  the prose check counts too often goes the same way: the sentences that
+ *  carry it past `PROSE.repeatedPhrase`'s count are dropped, the first ones
+ *  and the opening's kept. */
+function dropSaidAgain(markdown: string, phrases: readonly string[]): string {
   const said = new Map<string, number>();
+  const carried = new Map<string, number>();
+  const { longWords, longTimes, shortTimes } = PROSE.repeatedPhrase;
+  const allowed = (phrase: string): number => (phrase.split(" ").length >= longWords ? longTimes : shortTimes) - 1;
   const edits: Edit[] = [];
+  let opening = true;
   for (const block of sourceBlocksOf(markdown)) {
     if (block.quoted || /^[ \t]*#{1,6}[ \t]+/.test(block.raw) || block.raw.trimStart().startsWith("|")) continue;
     const marker = MARKER_RE.exec(block.raw)?.[0] ?? "";
@@ -269,11 +278,31 @@ function dropRepeats(markdown: string): string {
       if (key === null) return true;
       const count = (said.get(key) ?? 0) + 1;
       said.set(key, count);
-      return count <= PAGE_BLOCKS.taglineRepeats;
+      const over = phrases.filter((phrase) => ` ${key} `.includes(` ${phrase} `));
+      for (const phrase of over) carried.set(phrase, (carried.get(phrase) ?? 0) + 1);
+      // The opening answers the search, so a later saying goes instead.
+      if (opening) return true;
+      return count <= PAGE_BLOCKS.taglineRepeats && over.every((phrase) => carried.get(phrase)! <= allowed(phrase));
     });
+    opening = false;
     if (kept.length !== pieces.length) edits.push({ from: block.from, to: block.to, text: kept.length === 0 ? "" : marker + kept.join(" ") });
   }
   return applyEdits(markdown, edits);
+}
+
+/** A tagline's shorter core is counted only once the whole tagline is no
+ *  longer said too often, so the prose check is read again after each pass. */
+const PHRASE_PASSES = 3;
+
+function dropRepeats(markdown: string, prose: ProseRuleInputs | undefined): string {
+  let out = dropSaidAgain(markdown, []);
+  for (let pass = 0; prose !== undefined && pass < PHRASE_PASSES; pass++) {
+    const phrases = proseScore(out, prose).repeatedPhrases.map((phrase) => phrase.text);
+    const next = phrases.length === 0 ? out : dropSaidAgain(out, phrases);
+    if (next === out) break;
+    out = next;
+  }
+  return out;
 }
 
 /** The repairable rules among a battery's failures, in repair order. */
@@ -303,7 +332,7 @@ export function repairMechanical(markdown: string, rules: readonly HardRule[], i
         deniedRivals(wordsOf(piece), rivals).length > 0 && checkRivalNegative({ markdown: piece, rivals, facts: inputs.brief.marketFacts }) !== null ? null : piece
       );
     } else if (rule === "plain_prose") {
-      out = dropRepeats(out);
+      out = dropRepeats(out, inputs.prose);
     } else {
       out = repairFirstBlock(out);
     }
