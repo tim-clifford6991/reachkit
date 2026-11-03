@@ -95,6 +95,8 @@ const PURGE_ORDER: readonly {
   // no page (issue 1455). No cascade (ADR-051 point 7), so it goes here,
   // before `sites`.
   { table: "draft_days", column: "site_id", from: "siteIds" },
+  // The site's failed Settings reads, counted by the daily check; no foreign key, so it goes by value.
+  { table: "ops_events", column: "site_id", from: "siteIds" },
   // Destination credentials.
   { table: "destinations", column: "site_id", from: "siteIds" },
   { table: "sites", column: "user_id", from: "userIds" },

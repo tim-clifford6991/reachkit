@@ -195,6 +195,7 @@ describe('advisor `rls_enabled_no_policy` — the tables that are policy-less by
     // `rate_limits` is the shared abuse-limit count, reached only through `take_rate_limits`.
     // `fetch_facts` is the re-score's cache of what it reads off each `fetches` row.
     // `fetch_text` is the grounding's cache of the text it reads off each `fetches` row.
+    // `ops_events` is the daily check's durable count of failed Settings reads.
     expect(policyLess).toEqual([
       "domain_blocks",
       "draft_days",
@@ -206,6 +207,7 @@ describe('advisor `rls_enabled_no_policy` — the tables that are policy-less by
       "job_runs",
       "llm_mention_reads",
       "llm_mentions",
+      "ops_events",
       "rate_limits",
       "refunds",
       "renewal_refunds",

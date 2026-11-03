@@ -2,6 +2,7 @@
 import type React from "react";
 import { unstable_rethrow } from "next/navigation";
 import { copy } from "@/lib/presentation/copy";
+import { recordSettingsReadFailed } from "@/lib/ops/events";
 
 /** Above the four 800 ms steps `readSettings` takes in turn; a read past it is a stalled one. */
 const PANEL_DEADLINE_MS = 4_000;
@@ -29,6 +30,7 @@ export async function landed<T>(work: Promise<T>, read: string): Promise<T | nul
   } catch (error) {
     unstable_rethrow(error);
     console.warn(JSON.stringify({ event: "settings_read_failed", read, detail: String(error) }));
+    void recordSettingsReadFailed(read, error);
     return null;
   } finally {
     clearTimeout(timer);
