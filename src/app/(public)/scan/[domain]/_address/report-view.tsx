@@ -65,7 +65,7 @@ import { BOT_PROTECTION, HOME_TIMEOUT } from "@/lib/measure/challenge";
 // #103: the category has one home — the market the profile inferred.
 // `categoryOf` is the one derivation of it, and the screen reads it here
 // rather than from a second member the blob used to carry.
-import { categoryOf, trainingOptOutOf } from "@/lib/scan/sections";
+import { categoryOf, marketStands, trainingOptOutOf } from "@/lib/scan/sections";
 
 /** The report is read in English, whatever it was measured in (SPEC §6,
  *  owner 2026-10-15, issue 1443), so the names of countries and languages
@@ -226,6 +226,7 @@ function ReadsDifferentlyLine(p: { report: StoredReport; shown: boolean }): Reac
  * drawn for a report measured in what its site said.
  */
 function MeasuredInLine(p: { report: StoredReport }): React.JSX.Element | null {
+  if (!marketStands(p.report)) return null;
   const fellBack = p.report.locale?.fellBack;
   const guessed = guessedLocale(p.report);
   if (fellBack === undefined && !guessed) return null;
@@ -466,11 +467,15 @@ export function ReportView(p: {
 }): React.JSX.Element {
   const { report, notice, control, correction } = p.state;
   const measuredOn = formatMeasuredOn(report.verdict.measuredAt);
-  const measurement = measurementLine(report);
+  const stands = marketStands(report);
+  const measurement = stands ? measurementLine(report) : null;
   const rescored = rescoredOf(report);
   const cards = cardsOf(report, unblockLines(report.blockedAgents));
   const fixes = fixesOf(cards, reportChecksOf(report));
-  const cutOff = cutByCeiling(report);
+  // A part retried would be measured again in a market that no longer stands.
+  const cutOff = stands && cutByCeiling(report);
+  const aiAnswers = stands ? report.aiAnswers : null;
+  const presence = stands ? report.presence : null;
   const missingPages = missingPagesOf(report);
   const profile = profileOfReport(report);
   const understanding =
@@ -539,7 +544,7 @@ export function ReportView(p: {
             what={kind ?? categoryOf(report.market)}
             measuredOn={measuredOn}
             correction={correction}
-            {...(measurement === null ? {} : { measurement })}
+            {...(!stands ? { measurement: null } : measurement === null ? {} : { measurement })}
             {...(rescored === null ? {} : { rescored: { on: formatMeasuredOn(rescored.at), before: rescored.before } })}
             readAs={readAsOf(report, understanding)}
             notes={
@@ -560,15 +565,15 @@ export function ReportView(p: {
         {/* Issue 715: an absent card carries the address its retry posts
             to; the route asks `retryOffer` again from the row's own facts. */}
         <BuyersSection>
-          {report.aiAnswers === null ? (
+          {aiAnswers === null ? (
             <AiAnswersAbsent cutOff={cutOff} domain={report.domain} />
           ) : (
-            <AiAnswersCard section={report.aiAnswers} serps={report.serps} />
+            <AiAnswersCard section={aiAnswers} serps={report.serps} />
           )}
-          {report.presence === null ? (
+          {presence === null ? (
             <GooglePresenceAbsent cutOff={cutOff} domain={report.domain} />
           ) : (
-            <GooglePresenceCard section={report.presence} />
+            <GooglePresenceCard section={presence} />
           )}
         </BuyersSection>
 
