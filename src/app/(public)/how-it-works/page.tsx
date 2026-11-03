@@ -160,7 +160,7 @@ function Section(p: {
 function Head(): React.JSX.Element {
   return (
     <section id="top" aria-labelledby="top-h" className="scroll-mt-16 pt-12 pb-12 lg:pt-16">
-      <div className={`${INNER} grid grid-cols-1 items-start gap-10 lg:grid-cols-2 lg:gap-12`}>
+      <div className={`${INNER} grid grid-cols-1 items-start gap-10 lg:grid-cols-[5fr_7fr] lg:gap-12`}>
         <div className="flex min-w-0 flex-col items-start gap-4">
           <p className={LABEL}>{copy("how.eyebrow")}</p>
           <h1 id="top-h" className="t-hero">
