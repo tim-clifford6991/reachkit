@@ -1113,6 +1113,24 @@ export async function readCurrentReport(domain: string): Promise<StoredReport | 
   return readPastProtection(readStoredReport(row.report));
 }
 
+/** Whether an open report still says it is reading searches: the scan is its
+ *  domain's current, unremoved report and its marker is inside the window.
+ *  Reads one json path, never the blob, because the open page asks every few seconds. */
+export async function stillFinishing(scanId: string, now: Date): Promise<boolean> {
+  const { dbAdmin } = await import("@/lib/db");
+  const { isRemovedWith } = await import("@/lib/scan/removal");
+  const { data, error } = await untyped(dbAdmin())
+    .from<{ domain: string; finishing: StoredReport["finishingReads"] }>("scans")
+    .select("domain, finishing:report->finishingReads")
+    .eq("id", scanId)
+    .is("is_current", true)
+    .limit(1);
+  if (error) throw new Error(`stillFinishing: ${error.message}`);
+  const row = data?.[0];
+  if (!row || stillReading({ finishingReads: row.finishing }, now) === null) return false;
+  return !(await isRemovedWith(dbAdmin(), row.domain));
+}
+
 /** One scan's own stored report, or `null` where the row has none — read
  *  by id, for a step that runs after the pass which stored it (issue 798).
  *  Not the domain's current report: a later pass for the same domain

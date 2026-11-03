@@ -199,7 +199,7 @@ function FinishingReadsLine(p: { report: StoredReport }): React.JSX.Element | nu
   const count = String(searches);
   const line = copy(searches === 1 ? "report.finishing-reads.one" : "report.finishing-reads", { count });
   const untilMs = new Date(p.report.finishingReads.since).getTime() + TIMING.finishReadsNoticeS * 1000;
-  return <StillReading line={line} untilMs={untilMs} />;
+  return <StillReading line={line} untilMs={untilMs} scanId={p.report.scanId} />;
 }
 
 /**

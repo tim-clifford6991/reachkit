@@ -89,6 +89,7 @@ export function OnboardingPanel(p: {
 
   useEffect(() => {
     const timer = setInterval(() => {
+      if (document.hidden) return;
       void poll().catch(() => undefined);
     }, TIMING.progressHeartbeatS * 1000);
     return () => clearInterval(timer);

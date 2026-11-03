@@ -819,7 +819,7 @@ export function DraftScreen(p: {
         </Link>
       </nav>
 
-      {state === "generating" ? <Rewriting /> : null}
+      {state === "generating" ? <Rewriting draftId={view.draftId} /> : null}
 
       {/* SPEC §7 (2026-10-07, issue 1325; board `R12-6-Page`, #1072): the
           page, then the Decide panel, then the notes. From `xl` the panel
@@ -923,17 +923,26 @@ export function DraftScreen(p: {
 
 /**
  * Issue 1196: a page being written again is rewritten by the draft tick,
- * not by the press. While it is, the screen says so and re-reads itself at
- * the heartbeat, so the new draft appears when it lands rather than on the
- * next navigation. Mounted only in that state, so no other state of the
- * screen holds a router or a timer.
+ * not by the press. While it is, the screen says so and asks the draft's
+ * state at the heartbeat, re-reading itself only once that state has moved,
+ * so the new draft appears when it lands rather than on the next navigation.
+ * Mounted only in that state, so no other state of the screen holds a router
+ * or a timer.
  */
-function Rewriting(): React.JSX.Element {
+function Rewriting(p: { draftId: string }): React.JSX.Element {
   const router = useRouter();
   useEffect(() => {
-    const timer = setInterval(() => router.refresh(), TIMING.progressHeartbeatS * 1000);
+    const timer = setInterval(() => {
+      if (document.hidden) return;
+      void fetch(`/api/draft-state/${encodeURIComponent(p.draftId)}`)
+        .then(async (response) => (response.status >= 500 ? null : ((await response.json()) as { state?: string })))
+        .then((body) => {
+          if (body !== null && body.state !== "generating") router.refresh();
+        })
+        .catch(() => undefined);
+    }, TIMING.progressHeartbeatS * 1000);
     return () => clearInterval(timer);
-  }, [router]);
+  }, [router, p.draftId]);
   return (
     <div role="status" aria-live="polite" className="alert text-sm" data-testid="draft-rewriting">
       <LoaderCircle size={20} strokeWidth={1.75} aria-hidden />
