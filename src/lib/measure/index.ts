@@ -53,6 +53,7 @@ import { readRobots } from "@/lib/egress/robots";
 import type { FetchOutcome, RobotsPolicy } from "@/lib/egress/types";
 import { rankedKeywords } from "@/lib/vendors/dataforseo";
 import type { RankedResult, RankedRow } from "@/lib/vendors/dataforseo/types";
+import { blankHomeOf, listingWanted, type BlankHome } from "./blank-page";
 import { BOT_PROTECTION, challengeOf, HOME_TIMEOUT, notTheSiteOf, type ProtectionVendor } from "./challenge";
 import { answerabilityOf, foundationsOf, ownRankedOf } from "./drivers";
 import { measured, measuredZero, unmeasured, type Measured } from "./measured";
@@ -277,7 +278,7 @@ async function renderedHome(
 
 
 
-export interface DomainMeasurement {
+export interface DomainMeasurement extends BlankHome {
   drivers: Drivers;
   /** The rendered text of the documents this call read. Handed over rather
    *  than re-fetched: BUILD §6.7 step 1 derives the business profile "from
@@ -471,9 +472,7 @@ export async function measureDomain(
         rows: RANKED_ROWS_BY_TIER[a.tier],
         locale,
         ...(a.ownWindowDays === undefined ? {} : { windowDays }),
-        // Issue 1387: a site whose own pages stay unread has its market
-        // read from these rows, so they carry what Google shows for each.
-        ...((plain.protection !== null && drawn === null) || slow ? { listing: true } : {}),
+        ...listingWanted({ unread: (plain.protection !== null && drawn === null) || slow, html: home.html }),
         onFailure: (failure) => {
           heard.failure = failure;
         },
@@ -622,6 +621,7 @@ export async function measureDomain(
     stated: readPlaceSignals(home.html),
     homeRefusal: null,
     ...guarded,
+    ...blankHomeOf(home.html),
   };
 }
 
