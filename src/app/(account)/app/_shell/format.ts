@@ -43,6 +43,11 @@ export function formatShortDay(at: Date, timeZone: string): string {
   return `${part("weekday")} ${part("day")} ${part("month")}`;
 }
 
+/** A day with its year, as the boards write it: "Sat 7 Nov 2026". */
+export function formatDayDate(at: Date, timeZone: string): string {
+  return `${formatShortDay(at, timeZone)} ${new Intl.DateTimeFormat(SHELL_LOCALE, { timeZone, year: "numeric" }).format(at)}`;
+}
+
 /** REQ-040 c3's "date and time of the next scheduled publish", in the
  *  site's zone, with the zone itself named — a time with no zone beside it
  *  is a time the customer has to guess about. */

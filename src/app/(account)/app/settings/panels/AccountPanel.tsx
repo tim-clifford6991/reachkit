@@ -34,7 +34,7 @@
 "use client";
 
 import type React from "react";
-import { ArrowRight, CircleCheck, Download, Link, LogOut, Mail } from "lucide-react";
+import { Download, LogOut } from "lucide-react";
 import { useActionState, useState, useTransition } from "react";
 import { copy } from "@/lib/presentation/copy";
 import { writtenLine } from "../../_shell/written";
@@ -57,142 +57,121 @@ export function AccountPanel(p: { account: SettingsModel["account"]; pages: numb
   const refusal = refusalKeyOf(changeState);
   const refusalLine = refusal === null ? null : writtenLine(refusal);
   const pending = p.account.pending;
+  // The field opens on Change email; a refusal keeps it open with the typed address in it.
+  const [open, setOpen] = useState(false);
+  const fieldOpen = open && changeState.answer !== "sent";
+  // Split around the moment so it alone is mono.
+  const [beforeAt = "", afterAt = ""] = pending === null ? [] : copy("settings.account.email-pending-expires", { at: "\u0000" }).split("\u0000");
 
   return (
     <section className="card card-border min-w-0 bg-base-100">
-      <div className="card-body gap-4">
-        <h2 className="card-title text-base">{copy("settings.account.title")}</h2>
+      <div className="card-body gap-5">
+        <h2 className="card-title text-(length:--h3)">{copy("settings.account.title")}</h2>
 
-        {/* The settable rows every Settings tab draws (`SettingRow`): the
-            name at the near edge, the value at the far one (#1089). */}
         <div className="flex min-w-0 flex-col">
           <SettingRow name={copy("settings.account.name")} testId="setting-name">
-            {/* An account with no stated name shows an empty value, never an
-                invented one.
-                **And no Edit beside it** (SPEC §4, 2026-09-20, #908, issue
-                #913: "a control that cannot act is not drawn"). There is no
-                writer of `users.name` anywhere in this product — the column
-                is read by the card and by the mail shell and written by
-                nothing — so the press was drawn with no handler behind it
-                and could never have stored a name. It returns with its
-                writer, on the same footing as the calendar's Move. */}
+            {/* No Edit beside it: nothing in the product writes `users.name`, and a control that cannot act is not drawn. */}
             <span className="min-w-0 wrap-anywhere">{p.account.name ?? ""}</span>
           </SettingRow>
 
-          <SettingRow name={copy("settings.account.email")} testId="setting-email">
-            {/* The address the account signs in with — never the one awaiting
-                confirmation (REQ-077 c2). */}
+          <SettingRow
+            name={copy("settings.account.email")}
+            testId="setting-email"
+            below={
+              <>
+                {p.account.noteKeys.map((key) => {
+                  const note = writtenLine(key);
+                  return note === null ? null : (
+                    <p key={key} className="text-sm text-base-content/70 wrap-anywhere">
+                      {note}
+                    </p>
+                  );
+                })}
+                {/* One field whether or not a change is in flight: submitting while one is pending replaces it (REQ-077 c4). */}
+                {!fieldOpen ? null : (
+                  <form action={submitChange} className="flex min-w-0 flex-col gap-2" data-testid="email-change">
+                    <label className="flex min-w-0 flex-col gap-1">
+                      <span className="text-sm text-base-content/70">{copy("settings.account.new-email")}</span>
+                      <input
+                        className={refusalLine === null ? "input num min-h-11 w-full" : "input input-error num min-h-11 w-full"}
+                        name={NEW_EMAIL_FIELD}
+                        value={typed}
+                        onChange={(e) => setTyped(e.target.value)}
+                        aria-invalid={refusalLine !== null}
+                      />
+                    </label>
+                    {refusalLine === null ? null : <p className="text-sm text-error wrap-anywhere">{refusalLine}</p>}
+                    <div className="flex min-w-0 flex-wrap items-center gap-2">
+                      <button type="submit" className="btn btn-primary min-h-11" disabled={changing}>
+                        {changing ? <span className="loading loading-spinner loading-xs" aria-hidden /> : null}
+                        {copy("settings.save")}
+                      </button>
+                      <button type="button" className="btn btn-ghost min-h-11" onClick={() => setOpen(false)}>
+                        {copy("settings.cancel-edit")}
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </>
+            }
+          >
+            {/* The address the account signs in with, never the one awaiting confirmation (REQ-077 c2). */}
             <span className="num min-w-0 wrap-anywhere">{p.account.email}</span>
+            {fieldOpen ? null : (
+              <button type="button" className="btn btn-ghost min-h-11" onClick={() => setOpen(true)} data-testid="email-change-open">
+                {copy("settings.account.change-email")}
+              </button>
+            )}
+          </SettingRow>
+
+          {/* Beside the Email row, never in it: that row states only the address the account signs in with (REQ-077 c2). */}
+          {pending === null ? null : (
+            <div className="bg-base-200 rounded-box flex min-w-0 flex-col items-start gap-2 p-4" data-testid="email-pending">
+              <span className="flex min-w-0 flex-wrap items-center gap-2">
+                <span className="num min-w-0 wrap-anywhere" data-testid="email-pending-address">
+                  {pending.email}
+                </span>
+                <span className="badge badge-warning badge-soft">{copy("settings.account.email-pending")}</span>
+              </span>
+              <span className="text-sm wrap-anywhere">
+                {beforeAt}
+                <span className="num">{pending.expiresAt}</span>
+                {afterAt}
+              </span>
+              <form action={() => startCancelling(() => cancelEmailChangeAction())}>
+                <button type="submit" className="btn btn-ghost min-h-11" disabled={cancelling}>
+                  {cancelling ? <span className="loading loading-spinner loading-xs" aria-hidden /> : null}
+                  {copy("settings.account.cancel-change")}
+                </button>
+              </form>
+            </div>
+          )}
+          {/* REQ-078: export is always available, so nothing gates this control. */}
+          <SettingRow name={copy("settings.account.pages")} testId="action-export">
+            <span className="min-w-0 wrap-anywhere">
+              {p.pages === 1 ? copy("settings.account.pages.one") : copy("settings.account.pages.count", { pages: String(p.pages) })}
+            </span>
+            <button type="button" className="btn btn-soft btn-primary min-h-11" onClick={() => action.run("export")} disabled={action.pending !== null}>
+              {action.pending === "export" ? <span className="loading loading-spinner loading-xs" aria-hidden /> : <Download size={16} strokeWidth={1.75} aria-hidden />}
+              {copy("settings.content.export")}
+            </button>
           </SettingRow>
         </div>
 
-        {pending === null ? null : (
-          <div className="alert alert-warning alert-soft flex min-w-0 flex-col items-start gap-2" data-testid="email-pending">
-            <span className="text-sm font-semibold">{copy("settings.account.email-pending")}</span>
-            <span className="num min-w-0 wrap-anywhere" data-testid="email-pending-address">
-              {pending.email}
-            </span>
-            {/* The moment arrives formatted on the model, in the customer's
-                own zone. */}
-            <p className="text-xs wrap-anywhere">
-              {copy("settings.account.email-pending-expires", { at: pending.expiresAt })}
-            </p>
-            <form action={() => startCancelling(() => cancelEmailChangeAction())}>
-              <button type="submit" className="btn btn-ghost btn-sm" disabled={cancelling}>
-                {cancelling ? <span className="loading loading-spinner loading-xs" aria-hidden /> : null}
-                {copy("settings.account.cancel-change")}
-              </button>
-            </form>
-          </div>
-        )}
-
-        {/* One field whether or not a change is in flight: submitting while
-            one is pending replaces it (REQ-077 c4). */}
-        <form action={submitChange} className="flex min-w-0 flex-col gap-2" data-testid="email-change">
-          <label className="flex min-w-0 flex-col gap-1">
-            <span className="text-sm text-base-content/70">{copy("settings.account.new-email")}</span>
-            <input
-              className={refusalLine === null ? "input num w-full" : "input input-error num w-full"}
-              name={NEW_EMAIL_FIELD}
-              value={typed}
-              onChange={(e) => setTyped(e.target.value)}
-              aria-invalid={refusalLine !== null}
-            />
-          </label>
-          {refusalLine === null ? null : <p className="text-xs text-error wrap-anywhere">{refusalLine}</p>}
-          <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <button type="submit" className="btn btn-soft btn-primary btn-sm" disabled={changing}>
-              {changing ? <span className="loading loading-spinner loading-xs" aria-hidden /> : null}
-              {copy("settings.account.change-email")}
-            </button>
-          </div>
-        </form>
-
-        {p.account.noteKeys.map((key) => {
-          const note = writtenLine(key);
-          return note === null ? null : (
-            <p key={key} className="text-xs text-base-content/70 wrap-anywhere">
-              {note}
-            </p>
-          );
-        })}
-
-        <div
-          className="bg-base-200 rounded-box flex min-w-0 flex-wrap items-center gap-2 p-3 text-sm"
-          role="group"
-          aria-label={copy("settings.account.signin.label")}
-          data-testid="account-signin"
-        >
-          <span className="inline-flex items-center gap-1">
-            <Mail size={16} strokeWidth={1.75} aria-hidden className="text-primary" />
-            {copy("settings.account.signin.mail")}
-          </span>
-          <ArrowRight size={14} strokeWidth={1.75} aria-hidden />
-          <span className="inline-flex items-center gap-1">
-            <Link size={16} strokeWidth={1.75} aria-hidden className="text-primary" />
-            {copy("settings.account.signin.open")}
-          </span>
-          <ArrowRight size={14} strokeWidth={1.75} aria-hidden />
-          <span className="inline-flex items-center gap-1">
-            <CircleCheck size={16} strokeWidth={1.75} aria-hidden className="text-success" />
-            {copy("settings.account.signin.in")}
-          </span>
-        </div>
-
-        {/* REQ-078: export is always available, so nothing gates this control. */}
-        <div className="border-base-300 flex min-w-0 flex-wrap items-center justify-between gap-3 border-t pt-4" data-testid="action-export">
-          <div className="flex min-w-0 items-start gap-2">
-            <Download size={20} strokeWidth={1.75} aria-hidden className="shrink-0" />
-            <span className="flex min-w-0 flex-col">
-              <strong className="text-sm">{copy("settings.content.export")}</strong>
-              <span className="text-xs text-base-content/70 wrap-anywhere">
-                {copy("settings.account.export.note", { pages: String(p.pages) })}
-              </span>
-            </span>
-          </div>
-          <button type="button" className="btn btn-soft btn-primary btn-sm" onClick={() => action.run("export")} disabled={action.pending !== null}>
-            {action.pending === "export" ? <span className="loading loading-spinner loading-xs" aria-hidden /> : null}
-            {copy("settings.content.export")}
+        <span className="border-base-300 flex min-w-0 border-t pt-4" data-testid="action-sign_out">
+          <button
+            type="button"
+            className="btn btn-ghost min-h-11"
+            onClick={() => action.run("sign_out")}
+            disabled={action.pending !== null}
+          >
+            {action.pending === "sign_out" ? <span className="loading loading-spinner loading-xs" aria-hidden /> : <LogOut size={16} strokeWidth={1.75} aria-hidden />}
+            {copy("settings.account.sign-out")}
           </button>
-        </div>
+        </span>
 
-        <div className="border-base-300 flex min-w-0 flex-wrap items-center gap-2 border-t pt-4">
-          <span data-testid="action-sign_out">
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm"
-              onClick={() => action.run("sign_out")}
-              disabled={action.pending !== null}
-            >
-              {action.pending === "sign_out" ? <span className="loading loading-spinner loading-xs" aria-hidden /> : <LogOut size={16} strokeWidth={1.75} aria-hidden />}
-              {copy("settings.account.sign-out")}
-            </button>
-          </span>
-        </div>
-
-        {action.line === null ? null : <p className="text-xs text-base-content/70 wrap-anywhere">{action.line}</p>}
+        {action.line === null ? null : <p className="text-sm text-base-content/70 wrap-anywhere">{action.line}</p>}
       </div>
     </section>
   );
 }
-

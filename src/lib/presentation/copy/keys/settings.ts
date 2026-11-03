@@ -408,17 +408,7 @@ export const SETTINGS_COPY = Object.freeze({
   // the mechanism, the column and the stepper are still the veto window.
   // Drafted from the canvas under issue 759's ruling; the owner may
   // correct both sentences.
-  "settings.publishing.veto": ["time to stop a page", { slots: {}, fixedBy: "SPEC §7 2026-09-20" }],
-  "settings.publishing.veto.note": [
-    "How long you have to stop a page before it goes live.",
-    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
-  ],
-  // §4.7 asks for a "veto window stepper". A stepper's two ends are
-  // symbols, not sentences — the same footing `unmeasured.dash` sits on in
-  // `laws.ts` ("a transcription of REQ-004's own '—' character, on the same
-  // footing as the thirteen band words"). They are keys rather than JSX
-  // literals so that an owner who wants words there ("shorter" / "longer")
-  // changes two values and no code. Flagged in this issue's PR body.
+  "settings.publishing.veto": ["Time to stop a page", { slots: {}, fixedBy: "SPEC §7 2026-09-20" }],
   // The stepper's value, in whole days — the unit the control offers and
   // the approved S18 draws ("1 day"). A key rather than a symbol appended
   // in code, because the word has a plural and a plural is the product
@@ -429,36 +419,31 @@ export const SETTINGS_COPY = Object.freeze({
   "settings.publishing.veto.days": ["{days} days", { slots: { days: "text" }, fixedBy: "BUILD §4.7" }],
   /** The stepper draws lucide Minus and Plus; its buttons are named in words, in the setting's own wording. */
   "settings.publishing.veto.less.label": [
-    "Shorter time to stop a page",
+    "One day less",
     { slots: {}, fixedBy: "issue 328 · board SettingsPublishing" },
   ],
   "settings.publishing.veto.more.label": [
-    "Longer time to stop a page",
+    "One day more",
     { slots: {}, fixedBy: "issue 328 · board SettingsPublishing" },
   ],
-  "settings.publishing.publish-time": ["publish time", { slots: {}, fixedBy: "BUILD §4.7" }],
-  "settings.publishing.time-zone": ["time zone", { slots: {}, fixedBy: "REQ-070 c1" }],
+  "settings.publishing.publish-time": ["Publish time", { slots: {}, fixedBy: "BUILD §4.7" }],
+  "settings.publishing.time-zone": ["Time zone", { slots: {}, fixedBy: "REQ-070 c1" }],
   "settings.publishing.enabled": ["Publishing", { slots: {}, fixedBy: "REQ-070 c1" }],
   "settings.publishing.destinations": ["Where pages go live", { slots: {}, fixedBy: "BUILD §4.7 · board SettingsPublishing" }],
   // The card's head, the timeline and the help lines, in the board's words (issue 1751).
   "settings.publishing.on": ["On", { slots: {}, fixedBy: "issue 1751 · board SettingsPublishing · drafted" }],
   "settings.publishing.off": ["Off", { slots: {}, fixedBy: "issue 1751 · board SettingsPublishing · drafted" }],
   "settings.publishing.on.lead": ["On. A page goes live on each planned day.", { slots: {}, fixedBy: "issue 1751 · board SettingsPublishing · drafted" }],
-  "settings.publishing.off.lead": ["Paused, so no page goes live. Your pages are kept.", { slots: {}, fixedBy: "issue 1751 · board SettingsPublishing · drafted" }],
+  "settings.publishing.off.lead": ["Paused: no page goes live until you turn publishing on. Your pages are kept.", { slots: {}, fixedBy: "issue 2277 · board SettingsPublishing" }],
   "settings.publishing.flow.title": ["How each page goes out", { slots: {}, fixedBy: "issue 1751 · board SettingsPublishing · drafted" }],
-  "settings.publishing.flow.page": ["Today’s page: {title}", { slots: { title: "text" }, fixedBy: "issue 1751 · board SettingsPublishing · drafted" }],
-  "settings.publishing.flow.written": ["Written", { slots: {}, fixedBy: "issue 1751 · board SettingsPublishing · drafted" }],
-  "settings.publishing.flow.written.note": ["Checked against your facts and your Never say list", { slots: {}, fixedBy: "issue 1751 · board SettingsPublishing · drafted" }],
-  "settings.publishing.flow.emailed": ["Emailed in your first week", { slots: {}, fixedBy: "issue 1751 · board SettingsPublishing · drafted" }],
-  "settings.publishing.flow.emailed.note": ["Then in your Monday mail", { slots: {}, fixedBy: "issue 1751 · board SettingsPublishing · drafted" }],
+  "settings.publishing.flow.written": ["Written and emailed", { slots: {}, fixedBy: "issue 2277 · board SettingsPublishing" }],
   "settings.publishing.flow.window": ["{window} to edit or stop it", { slots: { window: "text" }, fixedBy: "issue 1751 · board SettingsPublishing · drafted" }],
-  "settings.publishing.flow.window.note": ["From the mail or from This week. Do nothing and it goes live on its own.", { slots: {}, fixedBy: "issue 1751 · board SettingsPublishing · drafted" }],
+  // "This week" is the link to the calendar.
+  "settings.publishing.flow.window.note": ["From the mail or This week", { slots: {}, fixedBy: "issue 2277 · board SettingsPublishing" }],
   "settings.publishing.flow.live": ["Goes live", { slots: {}, fixedBy: "issue 1751 · board SettingsPublishing · drafted" }],
   "settings.publishing.flow.paused": ["Paused: nothing goes live", { slots: {}, fixedBy: "issue 1751 · board SettingsPublishing · drafted" }],
-  "settings.publishing.flow.note": ["Set the publish time and time to stop below. Turn publishing off to pause every page.", { slots: {}, fixedBy: "issue 1751 · board SettingsPublishing · drafted" }],
-  "settings.publishing.where.site": ["Your website, unchanged", { slots: {}, fixedBy: "issue 1751 · board SettingsPublishing · drafted" }],
-  "settings.publishing.where.pages": ["Your pages, on your own address", { slots: {}, fixedBy: "issue 1751 · board SettingsPublishing · drafted" }],
-  "settings.publishing.time-zone.note": ["Taken from your browser.", { slots: {}, fixedBy: "issue 1751 · board SettingsPublishing · drafted" }],
+  "settings.publishing.where.same": ["Your website stays as it is.", { slots: {}, fixedBy: "issue 2277 · board SettingsPublishing" }],
+  "settings.publishing.time-zone.note": ["From your browser.", { slots: {}, fixedBy: "issue 2277 · board SettingsPublishing" }],
   "settings.publishing.reconnect": ["Reconnect", { slots: {}, fixedBy: "BUILD §4.7" }],
   // Issue #240 — the control on a destination that has never held a
   // credential. **Its own key, not `reconnect` reused**: a founder who
@@ -545,7 +530,7 @@ export const SETTINGS_COPY = Object.freeze({
   // customer's own record has resolved yet, and a destination can be
   // perfectly healthy with a record nobody has pointed.
   "settings.destination.hostname.live": [
-    "live",
+    "Live",
     { slots: {}, fixedBy: "SPEC §5 · §12 ruling 7 (2026-09-12)" },
   ],
   "settings.destination.hostname.waiting": [
@@ -591,34 +576,22 @@ export const SETTINGS_COPY = Object.freeze({
   // stoppable kind arrives as a missing-key compile error rather than as a
   // mail a customer cannot stop.
   "settings.notifications.title": ["Mail", { slots: {}, fixedBy: "BUILD §4.7" }],
-  "settings.notifications.draft-ready": ["A page is ready, before it goes live", { slots: {}, fixedBy: "issue 1574" }],
-  // Under the switch while it is off: turning the mail off never holds a page.
+  "settings.notifications.draft-ready": ["A page is ready", { slots: {}, fixedBy: "issue 1574 · board SettingsMail" }],
+  // Under the switch while it is off: turning the mail off never holds a page. "This week" is the link to the calendar.
   "settings.notifications.draft-ready.off": [
     "Pages still go live on their day. You can stop them from This week.",
     { slots: {}, fixedBy: "issue 1574" },
   ],
   "settings.notifications.published": ["When your first page goes live", { slots: {}, fixedBy: "decision 2026-10-19-1593 (drafted)" }],
-  "settings.notifications.weekly": ["Monday mail: your week’s pages", { slots: {}, fixedBy: "BUILD §12 · board SettingsMail" }],
-  // The card's lead, each row's help and preview, and the week strip (issue 1751; Q10 for the page-ready row).
-  // "Account" is the link to the Account tab.
-  "settings.notifications.to": ["Mail goes to {email}. Change it under Account.", { slots: { email: "text" }, fixedBy: "issue 1751 · board SettingsMail · drafted" }],
-  "settings.notifications.weekly.note": ["What went live, what moved, and the {days} pages planned next.", { slots: { days: "text" }, fixedBy: "issue 1751 · board SettingsMail · drafted" }],
-  "settings.notifications.weekly.preview": ["Your week: {days} pages planned", { slots: { days: "text" }, fixedBy: "issue 1751 · board SettingsMail · drafted" }],
-  "settings.notifications.weekly.preview.climbing": ["Your week: {days} pages planned, {n} pages climbing", { slots: { days: "text", n: "text" }, fixedBy: "issue 1911 · board SettingsMail · owner R29 2026-10-23" }],
-  "settings.notifications.weekly.preview.climbing-one": ["Your week: {days} pages planned, 1 page climbing", { slots: { days: "text" }, fixedBy: "issue 1911 · board SettingsMail · owner R29 2026-10-23" }],
-  "settings.notifications.weekly.when": ["Mondays", { slots: {}, fixedBy: "issue 1751 · board SettingsMail · drafted" }],
+  "settings.notifications.weekly": ["Monday mail", { slots: {}, fixedBy: "BUILD §12 · board SettingsMail" }],
+  // The card's lead and each row's line (issue 1751; Q10 for the page-ready row). No send time: owner R29, 2026-10-23.
+  "settings.notifications.to": ["Sent to {email}", { slots: { email: "text" }, fixedBy: "issue 2277 · board SettingsMail" }],
+  "settings.notifications.weekly.note": ["Mondays. What went live, what moved, and the next {days} pages.", { slots: { days: "text" }, fixedBy: "issue 2277 · board SettingsMail · owner R29 2026-10-23" }],
   "settings.notifications.draft-ready.note": [
-    "One mail per page, {window} before it goes live, until your first Monday mail. Turn this on to keep getting them.",
+    "One mail per page, {window} before it goes live, until your first Monday mail. Turn on to keep getting them.",
     { slots: { window: "text" }, fixedBy: "Q10 · ux-designer · issue 1751" },
   ],
-  "settings.notifications.draft-ready.preview": ["Your next page is written: {title}", { slots: { title: "text" }, fixedBy: "issue 1751 · board SettingsMail · drafted" }],
-  "settings.notifications.draft-ready.preview.when": ["{written} · goes live {live}", { slots: { written: "text", live: "text" }, fixedBy: "issue 1751 · board SettingsMail · drafted" }],
-  "settings.notifications.week.title": ["Your week of mail", { slots: {}, fixedBy: "issue 1751 · board SettingsMail · drafted" }],
-  "settings.notifications.week.label": ["The mail you get in a week", { slots: {}, fixedBy: "issue 1751 · board SettingsMail · drafted" }],
-  "settings.notifications.week.monday": ["Monday mail", { slots: {}, fixedBy: "issue 1751 · board SettingsMail · drafted" }],
-  "settings.notifications.week.ready": ["A page is ready, one per page", { slots: {}, fixedBy: "issue 1751 · board SettingsMail · drafted" }],
-  "settings.notifications.week.no-ready": ["No page-ready mail. Pages still go live.", { slots: {}, fixedBy: "issue 1751 · board SettingsMail · drafted" }],
-  "settings.notifications.week.none": ["You get no ReachKit mail except sign-in and account mail. Pages still go live on their day.", { slots: {}, fixedBy: "issue 1751 · board SettingsMail · drafted" }],
+  "settings.notifications.none": ["You get no ReachKit mail except sign-in and account mail. Pages still go live on their day.", { slots: {}, fixedBy: "issue 1751 · board SettingsMail · drafted" }],
 
   // ── Billing ────────────────────────────────────────────────────────────
   // Every word here names a value or a destination; not one of them is a
@@ -632,11 +605,11 @@ export const SETTINGS_COPY = Object.freeze({
   // `PlanState` has, so the pair is closed. There is one plan (REQ-022 c3),
   // which is why the pill states the STATE and the plan word beside it was
   // saying nothing the figure had not.
-  "settings.billing.active": ["active", { slots: {}, fixedBy: "REQ-076 c3" }],
-  "settings.billing.cancelled": ["cancelled", { slots: {}, fixedBy: "REQ-076 c3" }],
-  "settings.billing.next-invoice": ["next invoice", { slots: {}, fixedBy: "BUILD §4.7" }],
+  "settings.billing.active": ["Active", { slots: {}, fixedBy: "REQ-076 c3" }],
+  "settings.billing.cancelled": ["Cancelled", { slots: {}, fixedBy: "REQ-076 c3" }],
+  "settings.billing.next-invoice": ["Next invoice", { slots: {}, fixedBy: "BUILD §4.7" }],
   "settings.billing.status": ["Status", { slots: {}, fixedBy: "issue 1751 · board SettingsBilling · drafted" }],
-  "settings.billing.plan": ["Subscription", { slots: {}, fixedBy: "issue 1751 · board SettingsBilling · drafted" }],
+  "settings.billing.plan": ["Plan", { slots: {}, fixedBy: "issue 2277 · board SettingsBilling" }],
   "settings.billing.billed": ["Billed in euros. Cancel any time, and it all runs until the period ends.", { slots: {}, fixedBy: "issue 1751 · board SettingsBilling · drafted" }],
   // 2026-09-21, issue #925 — the three controls that all opened the same
   // Stripe surface are one control. REQ-097 c1 always said there was one
@@ -655,7 +628,7 @@ export const SETTINGS_COPY = Object.freeze({
     { slots: {}, fixedBy: "SPEC §4 2026-09-20 · REQ-097 c1" },
   ],
   "settings.billing.manage.note": [
-    "Update your card, download invoices, or cancel your subscription.",
+    "Update your card, download invoices, or cancel.",
     { slots: {}, fixedBy: "SPEC §4 2026-09-20 · REQ-097 c1" },
   ],
   "settings.billing.resume": [
@@ -699,42 +672,28 @@ export const SETTINGS_COPY = Object.freeze({
   ],
 
   // Billing's "What you got this month" (owner E3, 2026-10-19). Drafted.
-  "settings.month.title": ["What you got this month", { slots: {}, fixedBy: "E3 · drafted" }],
-  "settings.month.period": ["Billing period {from} to {to}. Everything is included in {price}.", { slots: { from: "date", to: "date", price: "text" }, fixedBy: "E3 · board SettingsBilling · drafted" }],
-  "settings.month.all": ["See every page →", { slots: {}, fixedBy: "issue 1751 · board SettingsBilling · drafted" }],
+  "settings.month.title": ["This month", { slots: {}, fixedBy: "issue 2277 · board SettingsBilling" }],
+  "settings.month.period": ["{from} to {to}. All included in {price}.", { slots: { from: "date", to: "date", price: "text" }, fixedBy: "issue 2277 · board SettingsBilling" }],
   "settings.month.live": ["pages went live", { slots: {}, fixedBy: "E3 · drafted" }],
-  "settings.month.live.where": ["on {host}", { slots: { host: "text" }, fixedBy: "issue 1751 · board SettingsBilling · drafted" }],
   "settings.month.reports": ["Monday mails", { slots: {}, fixedBy: "issue 1751 · board SettingsBilling · drafted" }],
-  "settings.month.asked": ["searches and AI questions", { slots: {}, fixedBy: "issue 1751 · board SettingsBilling · drafted" }],
-  "settings.month.asked.split": ["{searches} searches and {questions} AI questions, checked each week", { slots: { searches: "text", questions: "text" }, fixedBy: "issue 1751 · board SettingsBilling · drafted" }],
+  "settings.month.asked": ["searches and AI questions checked", { slots: {}, fixedBy: "issue 2277 · board SettingsBilling" }],
+  // Only where the AI questions were not checked, so the tile's figure is never read as including them.
   "settings.month.asked.split.unmeasured": ["{searches} searches, checked each week. AI questions weren’t checked this time.", { slots: { searches: "text" }, fixedBy: "issue 1907 · drafted" }],
   "settings.month.planned": ["pages planned this week", { slots: {}, fixedBy: "issue 1751 · board SettingsBilling · drafted" }],
-  "settings.month.planned.cap": ["up to {days} a week, never filler", { slots: { days: "text" }, fixedBy: "issue 1751 · board SettingsBilling · drafted" }],
   "settings.month.not-measured": ["not checked", { slots: {}, fixedBy: "E3 · drafted" }],
-  "settings.month.bar": ["This billing period, {from} to {to}: {live} pages live so far, {planned} planned this week", { slots: { from: "date", to: "date", live: "text", planned: "text" }, fixedBy: "issue 1751 · board SettingsBilling · drafted" }],
-  "settings.month.today": ["Today", { slots: {}, fixedBy: "issue 1751 · board SettingsBilling · drafted" }],
-  "settings.month.legend.live": ["A page went live", { slots: {}, fixedBy: "issue 1751 · board SettingsBilling · drafted" }],
-  "settings.month.legend.planned": ["Planned this week", { slots: {}, fixedBy: "issue 1751 · board SettingsBilling · drafted" }],
   "settings.month.first": ["Your first page goes live {when}.", { slots: { when: "date" }, fixedBy: "issue 1751 · board SettingsBilling · drafted" }],
-  "settings.month.detail": ["Show the detail", { slots: {}, fixedBy: "issue 1751 · board SettingsBilling · drafted" }],
   "settings.month.unread": ["This month didn’t load. Your subscription is unaffected.", { slots: {}, fixedBy: "E3 · drafted" }],
   "settings.panel.unread": ["This part didn’t load. Try again in a minute.", { slots: {}, fixedBy: "issue 2115 · drafted" }],
-  "settings.month.note": [
-    "Counted from your pages and our checks. A live page is one on your site today.",
-    { slots: {}, fixedBy: "E3 · board SettingsBilling · drafted" },
-  ],
-  // "Overview" is the link to Overview.
-  "settings.month.climb": ["Pages climb at Google’s pace, not ours. What moved is on Overview.", { slots: {}, fixedBy: "issue 1751 · board SettingsBilling · drafted" }],
 
   // ── Account ────────────────────────────────────────────────────────────
   "settings.account.title": ["Account", { slots: {}, fixedBy: "BUILD §4.7" }],
-  "settings.account.name": ["name", { slots: {}, fixedBy: "BUILD §4.7" }],
-  "settings.account.email": ["email", { slots: {}, fixedBy: "BUILD §4.7" }],
-  "settings.account.change-email": ["change email", { slots: {}, fixedBy: "BUILD §4.7" }],
-  "settings.account.sign-out": ["sign out", { slots: {}, fixedBy: "BUILD §4.7" }],
+  "settings.account.name": ["Name", { slots: {}, fixedBy: "BUILD §4.7" }],
+  "settings.account.email": ["Email", { slots: {}, fixedBy: "BUILD §4.7" }],
+  "settings.account.change-email": ["Change email", { slots: {}, fixedBy: "BUILD §4.7" }],
+  "settings.account.sign-out": ["Sign out", { slots: {}, fixedBy: "BUILD §4.7" }],
   // §4.7 names a "magic-link note" and prints no note; nothing else in the
   // spec writes one, so the words are the owner's.
-  "settings.account.magic-link": ["You sign in with a link we send to this address. There is no password.", { slots: {}, fixedBy: 'BUILD §4.7 ("magic-link note")' }],
+  "settings.account.magic-link": ["You sign in with a link sent here. No password.", { slots: {}, fixedBy: 'BUILD §4.7 ("magic-link note")' }],
 
   // 2026-09-06, issue #35 — REQ-077's four sentences on this card. Every
   // one is the owner's, like `settings.account.magic-link` two lines above.
@@ -768,16 +727,14 @@ export const SETTINGS_COPY = Object.freeze({
   "settings.account.new-email": ["New email", { slots: {}, fixedBy: "REQ-077 c2" }],
   "settings.account.email-pending": ["Unconfirmed", { slots: {}, fixedBy: "REQ-077 c4" }],
   "settings.account.email-pending-expires": [
-    "We sent a sign-in link to this address. Use it before {at}, or nothing changes.",
+    "Open the link we sent before {at}, or nothing changes.",
     { slots: { at: "date" }, fixedBy: "REQ-077 c4" },
   ],
   "settings.account.cancel-change": ["Undo change", { slots: {}, fixedBy: "REQ-077 c4" }],
-  // How a sign-in goes, and the export, in the board's words (issue 1751).
-  "settings.account.signin.label": ["How you sign in", { slots: {}, fixedBy: "issue 1751 · board SettingsAccount · drafted" }],
-  "settings.account.signin.mail": ["We mail you a link", { slots: {}, fixedBy: "issue 1751 · board SettingsAccount · drafted" }],
-  "settings.account.signin.open": ["You open it", { slots: {}, fixedBy: "issue 1751 · board SettingsAccount · drafted" }],
-  "settings.account.signin.in": ["You’re in. No password.", { slots: {}, fixedBy: "issue 1751 · board SettingsAccount · drafted" }],
-  "settings.account.export.note": ["All {pages} pages we wrote for you, as files with images. You can always download them.", { slots: { pages: "text" }, fixedBy: "REQ-078 · board SettingsAccount · drafted" }],
+  // The export row, in the board's words. Two keys: this registry does not pluralise.
+  "settings.account.pages": ["Your pages", { slots: {}, fixedBy: "issue 2277 · board SettingsAccount" }],
+  "settings.account.pages.count": ["{pages} pages, with images", { slots: { pages: "text" }, fixedBy: "REQ-078 · board SettingsAccount" }],
+  "settings.account.pages.one": ["1 page, with images", { slots: {}, fixedBy: "REQ-078 · board SettingsAccount" }],
 
   // ── Your content ───────────────────────────────────────────────────────
   // 2026-09-08, issue #374 — the approved screen set's S18 gives the two
@@ -832,7 +789,7 @@ export const SETTINGS_COPY = Object.freeze({
   // safe to offer: the mail a customer cannot lose is named, so turning all
   // three off is a decision rather than a risk. Approved (11a).
   "settings.notifications.always-on": [
-    "Sign-in and account mail cannot be switched off.",
+    "Sign-in and account mail can’t be switched off.",
     { slots: {}, fixedBy: "REQ-075" },
   ],
 

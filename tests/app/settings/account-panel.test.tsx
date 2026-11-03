@@ -67,6 +67,14 @@ async function mount(account: AccountView): Promise<HTMLElement> {
 
 const text = (root: HTMLElement): string => root.textContent ?? "";
 
+/** Change email opens the one field. */
+async function openField(root: HTMLElement): Promise<HTMLFormElement> {
+  await act(async () => {
+    (root.querySelector('[data-testid="email-change-open"]') as HTMLButtonElement).click();
+  });
+  return root.querySelector('[data-testid="email-change"]') as HTMLFormElement;
+}
+
 /** The card's own code, comments stripped — citing a rule is not reaching
  *  for the mechanism it forbids (`tests/mail/leads/source.ts`'s reason). */
 function panelSource(): string {
@@ -169,10 +177,11 @@ describe("REQ-077 c4 — a change awaiting confirmation", () => {
     expect(block.textContent).toContain("settings.account.cancel-change");
   });
 
-  it("offers replacing it — the same one field, whether or not a change is in flight", async () => {
+  it("offers replacing it — the same one field behind Change email, whether or not a change is in flight", async () => {
     for (const account of [AT_REST, PENDING]) {
       const root = await mount(account);
-      const form = root.querySelector('[data-testid="email-change"]') as HTMLFormElement;
+      expect(root.querySelector('[data-testid="email-change"]')).toBeNull();
+      const form = await openField(root);
       expect(form).not.toBeNull();
       expect(form.querySelector(`[name="new_email"]`)).not.toBeNull();
     }
@@ -182,7 +191,7 @@ describe("REQ-077 c4 — a change awaiting confirmation", () => {
 describe("the card decides nothing about an address change", () => {
   it("submitting hands the typed address to the seam, verbatim", async () => {
     const root = await mount(AT_REST);
-    const form = root.querySelector('[data-testid="email-change"]') as HTMLFormElement;
+    const form = await openField(root);
     const field = form.querySelector('[name="new_email"]') as HTMLInputElement;
 
     await act(async () => {

@@ -39,7 +39,7 @@ import type { DestinationView } from "@/lib/publish/types";
 import { recordForHost, type DnsRecord } from "@/lib/publish/setup/cards";
 import type { ACCOUNT_NOTE_KEYS } from "@/lib/account/identity/notes";
 import type { PublishingMode } from "../_shell/model";
-import { formatDate, formatDateTime } from "../_shell/format";
+import { formatDate, formatDateTime, formatDayDate } from "../_shell/format";
 import type { BillingSummary, PlanState } from "./billing";
 import { notificationRows, type NotificationRow, type NotifyKind } from "./notifications";
 
@@ -411,10 +411,10 @@ export function billingSummaryOf(billing: BillingFacts, timeZone: string): Billi
         // reads, in the zone they stated. A card that formatted it would
         // be a second formatter, and the two would disagree the day one
         // of them was corrected.
-        accessUntil: formatDate(billing.paidThrough, timeZone),
+        accessUntil: formatDayDate(billing.paidThrough, timeZone),
         surfaceHref: billing.surfaceHref,
         refundUntil:
-          billing.refundUntil === null ? null : formatDate(billing.refundUntil, timeZone),
+          billing.refundUntil === null ? null : formatDayDate(billing.refundUntil, timeZone),
       }
     : { readable: false, surfaceHref: billing.surfaceHref };
 }

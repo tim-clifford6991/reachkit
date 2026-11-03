@@ -83,9 +83,9 @@ describe("Settings › Billing — the cancel route and the first-14-days refund
     expect(line(doc, "billing-state")).toBe(copy("settings.billing.cancelled"));
   });
 
-  it("the Active badge carries CircleCheck; Cancelled carries no tick", async () => {
+  it("the Active badge carries the board's check; Cancelled carries no tick", async () => {
     const active = await billingCard(20);
-    expect(active.querySelector('[data-testid="billing-state"] > svg.lucide-circle-check')?.getAttribute("aria-hidden")).toBe("true");
+    expect(active.querySelector('[data-testid="billing-state"] > svg.lucide-check')?.getAttribute("aria-hidden")).toBe("true");
     expect(line(active, "billing-state")).toBe(copy("settings.billing.active"));
     const html = renderToStaticMarkup(
       <BillingPanel
@@ -118,6 +118,13 @@ describe("Settings › Billing — the cancel route and the first-14-days refund
     expect(line(doc, "billing-route")).toBe(route());
     expect(line(doc, "billing-refund")).toBeNull();
     expect(line(doc, "billing-billed")).not.toBeNull();
+  });
+
+  it("the Plan row states the price a month, and the one control says what is behind it", async () => {
+    const doc = await billingCard(20);
+    expect(line(doc, "billing-row-plan")?.startsWith("Plan€49 a month · tax included")).toBe(true);
+    expect(line(doc, "action-cancel")).toBe("Manage billing in Stripe");
+    expect(line(doc, "billing-manage-note")).toBe("Update your card, download invoices, or cancel.");
   });
 
   it("the route names the control the card really draws", async () => {

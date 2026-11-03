@@ -49,10 +49,7 @@ async function Month(): Promise<React.JSX.Element> {
       got={month.got}
       context={{
         timeZone: month.timeZone,
-        today,
         price: copy("price.amount"),
-        // The shell's blog is the hosted destination once it is live.
-        host: shell.blog === null ? null : new URL(shell.blog).hostname,
         planned,
         // `live` does not depend on the stop window, so no settings read is needed.
         first: nextPageOf(shell, 0).live,
