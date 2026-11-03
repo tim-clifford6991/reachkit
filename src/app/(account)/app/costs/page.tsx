@@ -180,7 +180,11 @@ function Figures(p: { page: CostPage }): React.JSX.Element {
             {eur(today?.judgedEur ?? 0)}
             <span className="text-base font-medium text-base-content/70"> {copy("overview.costs.stat.today.cap", { cap: euros(TEST_DAY_EUR.cap) })}</span>
           </p>
-          <progress className="progress progress-primary" value={Math.min(today?.judgedEur ?? 0, TEST_DAY_EUR.cap)} max={TEST_DAY_EUR.cap} aria-hidden="true" />
+          <span className="relative block" aria-hidden="true" data-testid="costs-today-bar">
+            <progress className="progress progress-primary block" value={Math.min(today?.judgedEur ?? 0, TEST_DAY_EUR.cap)} max={TEST_DAY_EUR.cap} />
+            {/* The warning's place on the bar, as the board marks it. */}
+            <span className="absolute -top-1 h-4 w-0.5 bg-warning" style={{ left: `${(TEST_DAY_EUR.warn / TEST_DAY_EUR.cap) * 100}%` }} data-testid="costs-today-warn" />
+          </span>
           <p className="text-sm text-base-content/70">{copy("overview.costs.stat.today.of", { warn: euros(TEST_DAY_EUR.warn) })}</p>
         </div>
       </div>
@@ -225,8 +229,8 @@ function Cap(p: { page: CostPage }): React.JSX.Element {
           days={[...p.page.capDays].reverse().map((day) => ({ name: dayIn(TICK_DAY, day.day), value: day.judgedEur, figure: eur(day.judgedEur) }))}
         />
         <p className="flex flex-wrap gap-x-3 text-xs text-base-content/70 sm:hidden">
-          <span>{copy("overview.costs.cap.key.line", { cap })}</span>
-          <span>{copy("overview.costs.cap.key.warn-line", { warn })}</span>
+          <span className="font-semibold text-error">{copy("overview.costs.cap.key.line", { cap })}</span>
+          <span className="font-semibold text-warning">{copy("overview.costs.cap.key.warn-line", { warn })}</span>
         </p>
         <details className="collapse group min-w-0 rounded-none">
           <summary className="collapse-title link link-primary flex min-h-11 w-fit cursor-pointer list-none items-center gap-2 p-0 text-sm font-semibold no-underline [&::-webkit-details-marker]:hidden">

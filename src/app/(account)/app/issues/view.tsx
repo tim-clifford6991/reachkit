@@ -100,7 +100,7 @@ function IssueCard(p: { issue: WaitingIssue; pagesChecked: number }): React.JSX.
           </span>
           <h2 className="card-title min-w-0 flex-1 basis-50 text-base">{copy(SITE_CHECK_TITLE[issue.check])}</h2>
           <span className={SEVERITY_BADGE[issue.severity]} data-testid="issue-severity">
-            <Signal className="size-3.5" strokeWidth={1.75} aria-hidden />
+            <Signal className="size-4 shrink-0" strokeWidth={2.75} aria-hidden data-testid="issue-signal" />
             {copy(SITE_SEVERITY_WORD[issue.severity])}
           </span>
         </div>

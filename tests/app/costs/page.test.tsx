@@ -86,6 +86,12 @@ describe("/app/costs against board AppCosts", () => {
     at("A month, against €49");
   });
 
+  it("marks the warning on the today bar at its share of the cap", () => {
+    const bar = parse(html).querySelector('[data-testid="costs-today-bar"]')!;
+    expect(bar.querySelector("progress")).not.toBeNull();
+    expect(bar.querySelector('[data-testid="costs-today-warn"]')!.getAttribute("style")).toContain("left:75%");
+  });
+
   it("puts estimated and billed in one This week card, each the sum of the ledger's rows", () => {
     const card = html.slice(at('data-testid="costs-week-figures"'), at('data-testid="costs-cap"'));
     const rows = tables.get("cost_site_day") as { estimated_cents: number; billed_cents: number | null; calls: number; billed_calls: number }[];
@@ -123,8 +129,9 @@ describe("/app/costs against board AppCosts", () => {
     for (const day of ["Mon 19 Oct", "Wed 14 Oct", "Tue 13 Oct"]) expect(cap).toContain(day);
     expect(cap).toContain("Over €2");
     expect(cap).toContain("Past €1.50");
-    expect(cap).toContain("solid line: cap €2");
-    expect(cap).toContain("dashed line: warning €1.50");
+    // The key a phone reads instead of the on-line labels, each in its line's colour.
+    expect(cap).toMatch(/<span class="[^"]*text-error[^"]*">solid line: cap €2<\/span>/);
+    expect(cap).toMatch(/<span class="[^"]*text-warning[^"]*">dashed line: warning €1.50<\/span>/);
   });
 
   it("closes the four lower sections, each with the board's line under its title", () => {

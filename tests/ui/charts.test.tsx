@@ -37,8 +37,9 @@ describe('BUILD §2.4: "Two chart colors only: --chart-you (accent) and --chart-
     expect(SERIES_COLOR).toEqual({ you: "var(--chart-you)", rival: "var(--chart-rival)" });
   });
 
-  it("no chart file names --color-success or --color-warning at all", () => {
-    for (const { file, text } of sources()) {
+  it("no chart file names --color-success or --color-warning, but CapDays' two threshold lines", () => {
+    // A threshold is state, not a series; recharts-charts.test.tsx draws CapDays and holds its bars to --chart-you.
+    for (const { file, text } of sources().filter((s) => s.file !== "CapDays.tsx")) {
       expect(count(text, "var(--color-success)"), file).toBe(0);
       expect(count(text, "var(--color-warning)"), file).toBe(0);
     }

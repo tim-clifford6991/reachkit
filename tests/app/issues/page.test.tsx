@@ -245,6 +245,11 @@ describe("Technical issues, the cards' marks as board AppIssues draws them", () 
       const svg = badge(check).querySelector("svg")!;
       expect(svg.classList.contains(`lucide-${signal}`), check).toBe(true);
       expect(svg.getAttribute("aria-hidden"), check).toBe("true");
+      // Legible at 390: 16px, a heavy stroke, in the badge's own text colour.
+      expect(svg.classList.contains("size-4"), check).toBe(true);
+      expect(Number(svg.getAttribute("stroke-width")), check).toBeGreaterThanOrEqual(2.5);
+      expect(svg.getAttribute("stroke"), check).toBe("currentColor");
+      expect(svg.getAttribute("class")!.split(/\s+/).some((c) => c.startsWith("text-")), check).toBe(false);
       expect(badge(check).text.trim(), check).toBe(copy(word));
     }
     expect(badge("phone_usability").classList.contains("badge-warning")).toBe(true);
