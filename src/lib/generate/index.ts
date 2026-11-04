@@ -46,12 +46,11 @@ import {
 } from "@/lib/opportunities";
 import type { StoredReport } from "@/lib/scan/report";
 import type { CostContext } from "@/lib/costs";
-import { CAPS, DAY_TOPICS_MAX, INFERENCE_MAX_OUTPUT_TOKENS, PIPELINE, RESEARCH } from "@/lib/config/constants";
-import { costCentsFor } from "@/lib/llm/tiers";
+import { DAY_TOPICS_MAX, PIPELINE, RESEARCH } from "@/lib/config/constants";
 import type { KnownPage } from "@/lib/known-content/types";
 import { contentTypeOf } from "@/lib/opportunities/content-type";
 import { intentFor } from "@/lib/opportunities/intent";
-import { withDraftCost } from "./cost";
+import { roomForFix, withDraftCost } from "./cost";
 import { readRecordedRules, recordedVerdictValue } from "./record";
 import { mendedInCode, repairStructure } from "./rules/structure";
 import { claimCheck } from "./claims/check";
@@ -157,9 +156,6 @@ export async function decideDayPage(a: { siteId: string; publishDate: string; no
  *  call of D41 is the pipeline's own and is not an attempt of these. */
 const MAX_AUTOMATIC_ATTEMPTS = 2;
 
-/** The least a topic's write and its one fix reserve, so a second topic starts only where its fix can still be paid. */
-const WRITE_AND_FIX_CENTS = costCentsFor("writer", 0, INFERENCE_MAX_OUTPUT_TOKENS["generate.write"] + INFERENCE_MAX_OUTPUT_TOKENS["generate.fix"]);
-
 export async function generateDayPage(a: {
   siteId: string;
   /** The site-local calendar date the page is for. */
@@ -228,7 +224,7 @@ export async function generateDayPage(a: {
         // not choose it again until the rest ends.
         if (short && stopped === null) await restTopic(opportunity.id, now);
         // And only while the job's invocation has the time for a second page.
-        if ((stopped === null && !short) || written >= DAY_TOPICS_MAX || cost.capHit() || CAPS.DRAFT_C - cost.spentCents() < WRITE_AND_FIX_CENTS || Date.now() - startedAt > PIPELINE.nextTopicBeforeMs) return outcome;
+        if ((stopped === null && !short) || written >= DAY_TOPICS_MAX || cost.capHit() || !roomForFix(cost) || Date.now() - startedAt > PIPELINE.nextTopicBeforeMs) return outcome;
         // The stopped topic rests by now, so the date's page is the week's next spare.
         const next = await pageForDay(a.siteId, a.publishDate, now);
         if (next === null || next.id === first.id || next.id === opportunity.id) return outcome;

@@ -202,8 +202,9 @@ export async function withCostContext<T>(
     return ledgeredCents + inFlightReserved;
   }
 
-  /** Whether `cents` more may be reserved now, under all three ceilings. */
-  async function admits(source: string, cents: number): Promise<boolean> {
+  /** Reserves `cents` under all three ceilings, or refuses. The last check and the reservation share one tick, so
+   *  calls in flight together never all pass the check before any of them has reserved. */
+  async function reserve(source: string, cents: number): Promise<boolean> {
     // The product's day outranks this pass's headroom. Re-read so a pass beside this one is counted, with this
     // pass's in-flight calls added; this call may still carry the day over, and that crossing is the alert.
     await day.refresh(now());
@@ -216,7 +217,9 @@ export async function withCostContext<T>(
     }
 
     // Checked against the reservation: the settlement does not exist yet.
-    return spentCents() + cents > capValue ? refuse("scan_cap", source, capValue) : true;
+    if (spentCents() + cents > capValue) return refuse("scan_cap", source, capValue);
+    inFlightReserved += cents;
+    return true;
   }
 
   const cost: CostContext = {
@@ -244,16 +247,13 @@ export async function withCostContext<T>(
         return { payload: cached.payload as P, fresh: false, costCents: 0, storedAt: cached.storedAt };
       }
 
-      if (!(await admits(call.source, call.costCents))) return { skipped: "cap" };
-
-      // Accumulated, since several calls may be in flight, and held until the settlement reaches the ledger so the
-      // money is always in one of the two figures `spentCents()` sums. The `finally` releases it on every path.
+      // Held in flight until the settlement reaches the ledger, so the money is always in one of the two figures
+      // `spentCents()` sums. The `finally` releases it on every path.
+      if (!(await reserve(call.source, call.costCents))) return { skipped: "cap" };
       let reservedCents = call.costCents;
-      inFlightReserved += reservedCents;
       const more = async (cents: number): Promise<boolean> => {
-        if (!(await admits(call.source, cents))) return false;
+        if (!(await reserve(call.source, cents))) return false;
         reservedCents += cents;
-        inFlightReserved += cents;
         return true;
       };
       // Vendor failures come back as a payload, not a raise, so one clock times both.

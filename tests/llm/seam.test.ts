@@ -675,10 +675,9 @@ describe("llm() — the output budget is the call site's own (issue #462)", () =
     await llm(ctx, { site: "profile", input: {}, schema: SCHEMA, tier: "nano" });
 
     // `{}` is two characters: one estimated input token; the output side is
-    // the site's pin. One attempt is reserved up front, and a retry reserves
-    // its own when it is due. BP-005's formula recomputed here rather than
-    // imported, at Haiku's rates — the nano tier is priced at Haiku's row
-    // since the owner's ruling (#517).
+    // the site's pin, for one attempt — a retry reserves its own when due.
+    // BP-005's formula recomputed here rather than imported, at Haiku's rates
+    // — the nano tier is priced at Haiku's row since the owner's ruling (#517).
     const expected = (1 / 1_000_000) * 100 + (INFERENCE_MAX_OUTPUT_TOKENS.profile / 1_000_000) * 500;
     expect(calls[0]!.costCents).toBeCloseTo(expected, 9);
     expect(calls[0]!.costCents).toBeLessThan((4096 / 1_000_000) * 500);

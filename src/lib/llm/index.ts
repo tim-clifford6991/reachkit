@@ -42,9 +42,8 @@
 //   capability). Both a schema-parse failure and model unavailability
 //   below resolve to `undeterminable`; `not_attempted` is reserved for
 //   the one case BP-024 defines it for — the caller's own cost ceiling
-//   stopping the call before it was ever attempted (`recordFetch`'s
-//   `{ skipped: "cap" }`), or before the retry it needed. Recorded as an
-//   open `rests-on` row on WO-026.
+//   stopping the call, or the retry it needed, before it was attempted
+//   (`recordFetch`'s `{ skipped: "cap" }`). Recorded as an open `rests-on` row on WO-026.
 import { modelInstruction } from "@/lib/locale/language";
 import type { Locale } from "@/lib/locale/locales";
 import Anthropic from "@anthropic-ai/sdk";
@@ -112,7 +111,8 @@ type TextStart = "fence" | "brace" | "bracket" | "letter" | "empty" | "other";
  *  time budget had nothing left to spend on the retry (issue #462: M3 run
  *  4b logged exactly this as `timeout`, which it was not); `deterministic`
  *  — the retry was not spent because it could not have helped (issue 898,
- *  `runAttempts`); `cap` — the cost context refused the retry's reservation. */
+ *  `runAttempts`); `cap` — the cost context refused the retry's reservation, which
+ *  is made only when the retry is due, so a call is never refused an attempt it may not need. */
 type RetryExhausted = "attempts" | "budget" | "deterministic" | "cap";
 
 /** The last unparseable answer's diagnosis. `schemaIssues` is where the
@@ -437,8 +437,7 @@ async function runAttempts<T>(
   maxOutputTokens: number,
   tool: ForcedTool | null,
   temperature: number | undefined,
-  attempts: number,
-  retryFits: () => Promise<boolean>
+  attempts: number, retryFits: () => Promise<boolean>
 ): Promise<AttemptOutcome> {
   const startedAt = Date.now();
   const deadline = startedAt + binding.timeoutMs;
@@ -475,7 +474,6 @@ async function runAttempts<T>(
         failure: "timeout",
       };
     }
-    // Each retry is reserved when it is due, so a call is never refused for an attempt it may not need.
     if (attempt > 1 && !(await retryFits())) return unparseable("cap", lastMiss ?? { parseFailure: "json" });
     let response: { answer: Answer; tokensIn: number; tokensOut: number };
     try {
@@ -641,8 +639,7 @@ export async function llm<T>(
     freshnessDays: 0,
     costCents: attemptCents,
     settleCents: (outcome) => costCentsFor(call.tier, outcome.tokensIn, outcome.tokensOut),
-    run: (more) =>
-      runAttempts(binding, call.schema, inputText, maxOutputTokens, tool, INFERENCE_TEMPERATURE[call.site], attempts, async () => more === undefined || (await more(attemptCents))),
+    run: (more) => runAttempts(binding, call.schema, inputText, maxOutputTokens, tool, INFERENCE_TEMPERATURE[call.site], attempts, async () => more === undefined || (await more(attemptCents))),
   });
 
   if ("skipped" in result) {
@@ -675,9 +672,7 @@ export async function llm<T>(
     ...(outcome.diagnosis === undefined ? {} : outcome.diagnosis),
   });
 
-  if (outcome.parseOutcome === "success") {
-    return measured(outcome.value as T, at);
-  }
+  if (outcome.parseOutcome === "success") return measured(outcome.value as T, at);
   if (outcome.retryExhausted === "cap") return unmeasured("not_attempted", at);
   // "unparseable" and "unavailable" both degrade the caller into the
   // same `UnmeasuredReason` — see file header for why this is
