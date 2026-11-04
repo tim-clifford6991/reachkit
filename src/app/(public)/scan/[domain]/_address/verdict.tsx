@@ -227,8 +227,9 @@ export function VerdictStrip(p: {
   /** Whether the category correction is on offer (SPEC §2, #786). */
   correction: CorrectionOffer;
   /** Where the report was measured, already worded, where that is not US
-   *  Google in English (D66). Absent, the line every report carried. */
-  measurement?: string;
+   *  Google in English (D66). Absent, the line every report carried;
+   *  `null` where the report's market does not stand, so no line is drawn. */
+  measurement?: string | null;
   /** What the scan read the business as, one badge each, already worded. */
   readAs: readonly ReadAsChip[];
   /** The lines that say how the market was read, under what we read. */
@@ -261,7 +262,8 @@ export function VerdictStrip(p: {
             </h1>
           </div>
           <p className="text-base-content/70 text-sm">
-            {meta} <span>{p.measurement ?? copy("report.measurement")}</span>
+            {meta}
+            {p.measurement === null ? null : <> <span>{p.measurement ?? copy("report.measurement")}</span></>}
           </p>
           <p className="text-base-content/70 text-xs">{p.independent}</p>
         </div>
