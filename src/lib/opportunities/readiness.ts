@@ -343,11 +343,13 @@ export async function assessReadiness(
   const rows = a.only === undefined ? open : open.filter((row) => a.only!.has(row.id));
   if (rows.length === 0) return { ready: 0, unready: 0 };
 
+  // Named and rethrown: a failed grounding read writes no row, and the step retries.
+  const loud = <T>(read: Promise<T>) => read.catch((error: unknown) => { console.error("readiness: grounding read failed", { siteId, error }); throw error; });
   const [verdicts, report, profile, grounded, prompts, market, topTens, asked] = await Promise.all([
     store.notWorkingVerdicts(siteId),
     store.currentReport(siteId),
     store.profileForSite(siteId),
-    store.hasGroundingFact(siteId),
+    loud(store.hasGroundingFact(siteId)),
     store.trackedPrompts(siteId),
     store.marketFor(siteId).then((read) => read.market).catch(() => null),
     store.topTenRows([...new Set(rows.map((row) => row.scan_id))]),
@@ -356,7 +358,7 @@ export async function assessReadiness(
   // Read only where there is an Earn row to answer: it re-reads the site's
   // measured pages and its profile, which nothing else here needs.
   const earnGrounding = rows.some((row) => row.family === "earn")
-    ? await store.earnGrounding(siteId)
+    ? await loud(store.earnGrounding(siteId))
     : NO_EARN_GROUNDING;
   // Read only where there is an update to deliver.
   const ownPages = rows.some((row) => row.family === "improve") ? await store.hostedOwnPages(siteId) : null;
