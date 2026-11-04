@@ -32,7 +32,7 @@ import {
 } from "../rules/brief";
 import { ownMeasurementIn } from "../rules/figures";
 import { PAGE_BLOCKS, PROSE } from "@/lib/config/constants";
-import { answerBoxOf, renumberSteps } from "../rules/blocks";
+import { answerBoxOf, missingBlock, renumberSteps, type BlockRuleInputs } from "../rules/blocks";
 import { checkInventedPeople, checkUnsourcedTestimonial } from "../rules/people";
 import { proseScore, sentenceKey, type ProseRuleInputs } from "../rules/prose";
 import { checkRivalNegative, deniedRivals, factPageKeys, namedRivals, unsourcedRivalFigure, type NamedRival } from "../rules/rivals";
@@ -59,6 +59,9 @@ export const MECHANICAL_RULES: readonly HardRule[] = Object.freeze([
   // Issue 1485: a sentence that denies a rival something no source says is
   // dropped. The FAQ is the fix call's.
   "rival_negative",
+  // Issue 2375: a sentence the fit check named is dropped, never the short
+  // answer and never one a required block needs. No word is written.
+  "fit_claim",
   // Issue 1390: a sentence said a third time is dropped. The rest of what
   // the prose check counts takes a writer, and goes to the fix call.
   "plain_prose",
@@ -82,6 +85,14 @@ export interface SiteNames {
 export interface RepairRecord {
   rule: HardRule;
   cleared: boolean;
+  /** The sentences the repair dropped, where it records them (issue 2375). */
+  dropped?: string[];
+}
+
+/** What a dropped sentence may not break: the page's required blocks as the rule reads them. */
+export interface KeptBlocks {
+  title: string;
+  blocks: BlockRuleInputs;
 }
 
 export interface RepairInputs {
@@ -95,6 +106,10 @@ export interface RepairInputs {
   rivalsNamed?: readonly NamedRival[];
   /** What the prose check reads, so a phrase it counts too often is dropped by its own count. */
   prose?: ProseRuleInputs;
+  /** The sentences the fit check named (`fit_claim`'s `detail.sentences`). */
+  fit?: readonly string[];
+  /** The blocks a dropped sentence may not leave short of the template's least. */
+  kept?: KeptBlocks;
 }
 
 /** The block markers a sentence edit keeps: a quote, a heading, a list item. */
@@ -314,6 +329,16 @@ export function repairable(failed: readonly RuleFailure[]): HardRule[] {
 /** The page with each named rule repaired in code. Returns the input
  *  unchanged where no repair applied; the caller re-runs the battery. */
 export function repairMechanical(markdown: string, rules: readonly HardRule[], inputs: RepairInputs): string {
+  return repairRecorded(markdown, rules, inputs).markdown;
+}
+
+/** `repairMechanical`, with the sentences each rule's repair dropped where it records them. */
+export function repairRecorded(
+  markdown: string,
+  rules: readonly HardRule[],
+  inputs: RepairInputs
+): { markdown: string; dropped: Partial<Record<HardRule, string[]>> } {
+  const dropped: Partial<Record<HardRule, string[]>> = {};
   let out = markdown;
   for (const rule of MECHANICAL_RULES) {
     if (!rules.includes(rule)) continue;
@@ -331,6 +356,10 @@ export function repairMechanical(markdown: string, rules: readonly HardRule[], i
       out = mapSentences(out, (piece) =>
         deniedRivals(wordsOf(piece), rivals).length > 0 && checkRivalNegative({ markdown: piece, rivals, facts: inputs.brief.marketFacts }) !== null ? null : piece
       );
+    } else if (rule === "fit_claim") {
+      const unfit = withoutUnfit(out, inputs.fit ?? [], inputs.kept);
+      out = unfit.markdown;
+      if (unfit.dropped.length > 0) dropped.fit_claim = unfit.dropped;
     } else if (rule === "plain_prose") {
       out = dropRepeats(out, inputs.prose);
     } else {
@@ -338,7 +367,7 @@ export function repairMechanical(markdown: string, rules: readonly HardRule[], i
     }
   }
   // Issue 1507: a step dropped with its sentence leaves no gap in the count.
-  return out === markdown ? out : renumberSteps(out);
+  return { markdown: out === markdown ? out : renumberSteps(out), dropped };
 }
 
 /** A stored FAQ without the pairs whose answer the rival-negative rule fails on its own: all of them go, or none where
@@ -355,13 +384,39 @@ export function withoutBrokenPairs(
 
 /** The page without each sentence that states a do-not-claim entry word for word, and the sentences dropped. */
 export function withoutClaimed(markdown: string, list: readonly string[]): { markdown: string; dropped: string[] } {
+  return withoutSentences(markdown, (words) => list.length > 0 && literalClaimMatch(words, list) !== null);
+}
+
+/** The page without each sentence `drops` takes, by the reader's words, and the sentences dropped. */
+function withoutSentences(markdown: string, drops: (words: string) => boolean): { markdown: string; dropped: string[] } {
   const dropped: string[] = [];
   const out = mapSentences(markdown, (piece) => {
-    if (list.length === 0 || literalClaimMatch(wordsOf(piece), list) === null) return piece;
+    if (!drops(wordsOf(piece))) return piece;
     dropped.push(wordsOf(piece));
     return null;
   });
   return { markdown: dropped.length === 0 ? markdown : renumberSteps(out), dropped };
+}
+
+/** Issue 2375: the page without each sentence the fit check named, and the sentences dropped. A sentence goes only
+ *  where the short answer (`:::answer`) reads as it did and, given the blocks, no required block the page held is
+ *  left short of the template's least; such a sentence stays, and `fit_claim` with it. The title and a table row are
+ *  not the body's sentences and are never dropped here. */
+export function withoutUnfit(markdown: string, sentences: readonly string[], kept?: KeptBlocks): { markdown: string; dropped: string[] } {
+  const box = answerBoxOf(markdown);
+  const missing = (text: string) => (kept === undefined ? null : missingBlock({ markdown: text, title: kept.title, blocks: kept.blocks }));
+  const before = missing(markdown);
+  let out = markdown;
+  const dropped: string[] = [];
+  for (const sentence of new Set(sentences)) {
+    const next = withoutSentences(out, (words) => words === sentence);
+    if (next.dropped.length === 0 || answerBoxOf(next.markdown) !== box) continue;
+    const after = missing(next.markdown);
+    if (after !== null && after !== before) continue;
+    out = next.markdown;
+    dropped.push(...next.dropped);
+  }
+  return { markdown: out, dropped };
 }
 
 function sentencesFor(

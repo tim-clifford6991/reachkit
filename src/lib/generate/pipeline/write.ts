@@ -22,6 +22,7 @@ import { llm } from "@/lib/llm";
 import type { Tier } from "@/lib/llm/tiers";
 import { unmeasured, type Measured } from "@/lib/measure/measured";
 import type { PageType } from "@/lib/opportunities/types";
+import { UNSUPPORTED_CLAIM } from "../claims/fit";
 import { REGISTER_FLOOR } from "../rules/figures";
 import { HONESTY_INSTRUCTION } from "../rules/honest";
 import { AVOID_LIST } from "../rules/prose-english";
@@ -122,7 +123,8 @@ const HOUSE_RULES = [
   "State a business fact word for word and link it to its `url`. A business fact used word for word may stand as a one-paragraph blockquote ending with a Markdown link to its `url` — at most three blockquotes on the page, each a whole sentence a reader can follow on its own, never a fragment of a table, a menu or a screen.",
   "State a claim from `pack.claims` in your own sentence or quote it exactly, and link its `url` in that same sentence.",
   "A source is cited by a Markdown link and in no other way: never a bare source name in brackets or parentheses after a sentence.",
-  "Never claim this business serves a use, an audience or a market that `pack.profile` does not support, and never call it \"#1\" or the best of a category.",
+  // Issue 2375: the fit check's own definition, so the page is written to what it is checked against.
+  `${UNSUPPORTED_CLAIM} What is known about this business is \`pack.profile\`. Never make an unsupported claim, and never call it "#1" or the best of a category.`,
   // Issue 1248: the market in force. It places the page; it is no fact pool.
   "Where `pack.business.market` is given, it is the market this business is in: its `category`, who buys (`buyer`) and what they hire it for (`job`). Write for that buyer and that job, and never describe the business as one of `notOurMarket`. Its `rivals` say who it competes with and are not a source.",
   "Never write any of the phrases in `pack.neverClaim`, in those words or any others.",

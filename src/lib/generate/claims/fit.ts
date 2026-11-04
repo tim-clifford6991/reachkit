@@ -46,6 +46,14 @@ export type FitVerdict =
 /** The one call site this module reaches the model at. */
 export const FIT_CHECK_CALL_SITE = "generate.fit_check";
 
+/** What an unsupported claim is: the one wording the fit check judges by and the writer is told
+ *  (`../pipeline/write.ts`), so what is written and what is checked cannot drift apart (owner, 2026-11-04,
+ *  "only generate content that complies"; issue 2375). */
+export const UNSUPPORTED_CLAIM =
+  "An unsupported claim says the business itself is a kind of product, or is for a use, an audience or a market, " +
+  "that what is known about the business does not support — for example, calling it the best software of a category " +
+  "what is known about it never places it in.";
+
 /** `claims` is the category or use the sentence puts the business in, in a
  *  few words. It is asked for because naming it is what makes the model
  *  compare it with the knowledge base; it is never kept or shown. */
@@ -118,9 +126,9 @@ export async function fitCheck(
         "`sentences` are taken from a page written for the business in `business`. `knowledge` is " +
         "everything known about that business: what it sells, who it serves, the problems it solves, " +
         "how it differs, and its proof; `market`, where given, is the market it is in, and placing " +
-        "the business in that market or among its named rivals is supported. Find the sentences that say `business` itself is a kind of " +
-        "product, or is for a use, an audience or a market, that `knowledge` does not support — for " +
-        "example one calling it the best software of a category `knowledge` never places it in. " +
+        "the business in that market or among its named rivals is supported. " +
+        UNSUPPORTED_CLAIM +
+        " What is known about `business` is `knowledge`. Find the sentences that make an unsupported claim. " +
         "Judge only what a sentence claims about `business`: what it says about any other product, " +
         "or about the market, is not your concern. A sentence that describes `business` doing what " +
         "`knowledge` says it does, in other words, is supported. Where you are not sure, do not list " +
@@ -141,4 +149,16 @@ export async function fitCheck(
     .map((index) => sentences[index])
     .filter((sentence): sentence is string => sentence !== undefined);
   return named.length === 0 ? { state: "passed" } : { state: "failed", sentences: named };
+}
+
+/** A verdict an earlier read reached, kept only for the sentences today's reading of the page still asks about: a
+ *  sentence dropped since claims nothing (issue 2375). No call is made. */
+export function stillAsked(
+  verdict: FitVerdict,
+  page: { title: string; markdown: string; businessName: string | null; domain: string; titleOwed?: boolean }
+): FitVerdict {
+  if (verdict.state !== "failed") return verdict;
+  const asked = new Set(brandSentences(page));
+  const still = verdict.sentences.filter((sentence) => asked.has(sentence));
+  return still.length === 0 ? { state: "passed" } : { state: "failed", sentences: still };
 }
