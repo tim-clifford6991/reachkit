@@ -83,10 +83,6 @@ const FACTOR_NAME_KEY: Readonly<Record<ScoreFactorName, CopyKey>> =
     presence: "verdict.factor.presence",
   });
 
-function formatMeasuredOn(at: Date): string {
-  return writePageDate(at, null);
-}
-
 /** The drivers the pass could not measure, named in the notice's own slot.
  *  The separator is `", "` and is not a sentence — the artboard draws
  *  "and", which is the owner's to say. */
@@ -208,7 +204,7 @@ function FinishingReadsLine(p: { report: StoredReport }): React.JSX.Element | nu
  */
 function ReadsDifferentlyLine(p: { report: StoredReport; shown: boolean }): React.JSX.Element | null {
   if (!p.shown) return null;
-  const readOn = formatMeasuredOn(new Date(p.report.rescoredAt ?? p.report.verdict.measuredAt));
+  const readOn = writePageDate(new Date(p.report.rescoredAt ?? p.report.verdict.measuredAt), null);
   return (
     <p className="col-span-full text-sm text-base-content/70" data-testid="report-reads-differently">
       {copy("report.reads-differently", { date: readOn })}
@@ -447,10 +443,10 @@ function offerOf(
   };
 }
 
-/** SPEC §2: a part is cut off when the pass stopped at one of its two
- *  ceilings — not when it finished, failed, or could not read the site. */
+/** SPEC §2: a part is cut off when the pass stopped at one of its two ceilings, in a market that
+ *  stands — not when it finished, failed, or could not read the site, nor when its market was withdrawn. */
 function cutByCeiling(report: StoredReport): boolean {
-  return report.stoppedReason === "time_ceiling" || report.stoppedReason === "spend_ceiling";
+  return marketStands(report) && (report.stoppedReason === "time_ceiling" || report.stoppedReason === "spend_ceiling");
 }
 
 export function ReportView(p: {
@@ -466,14 +462,13 @@ export function ReportView(p: {
   checkoutRefused?: boolean;
 }): React.JSX.Element {
   const { report, notice, control, correction } = p.state;
-  const measuredOn = formatMeasuredOn(report.verdict.measuredAt);
+  const measuredOn = writePageDate(report.verdict.measuredAt, null);
   const stands = marketStands(report);
   const measurement = stands ? measurementLine(report) : null;
   const rescored = rescoredOf(report);
   const cards = cardsOf(report, unblockLines(report.blockedAgents));
   const fixes = fixesOf(cards, reportChecksOf(report));
-  // A part retried would be measured again in a market that no longer stands.
-  const cutOff = stands && cutByCeiling(report);
+  const cutOff = cutByCeiling(report);
   const aiAnswers = stands ? report.aiAnswers : null;
   const presence = stands ? report.presence : null;
   const missingPages = missingPagesOf(report);
@@ -545,7 +540,7 @@ export function ReportView(p: {
             measuredOn={measuredOn}
             correction={correction}
             {...(!stands ? { measurement: null } : measurement === null ? {} : { measurement })}
-            {...(rescored === null ? {} : { rescored: { on: formatMeasuredOn(rescored.at), before: rescored.before } })}
+            {...(rescored === null ? {} : { rescored: { on: writePageDate(rescored.at, null), before: rescored.before } })}
             readAs={readAsOf(report, understanding)}
             notes={
               <>
