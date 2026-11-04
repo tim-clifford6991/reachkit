@@ -23,8 +23,7 @@ import { siteRulesOf } from "@/lib/generate/pipeline/battery";
 import { readAllFacts } from "@/lib/generate/pipeline/grounding";
 import { candidacy, recheckRow, recheckStopped, retiredFor, retiredUnread, type RecheckWorld } from "@/lib/generate/recheck";
 import type { ContextPack } from "@/lib/generate/pipeline/pack";
-import { promiseFigures, titleRuleFor } from "@/lib/generate/pipeline/title";
-import { pickTitle } from "@/lib/generate/rules/title";
+import { promiseFigures } from "@/lib/generate/pipeline/title";
 import { answerBoxOf } from "@/lib/generate/rules/blocks";
 import { renderOf } from "@/lib/generate/rules/text";
 import { generateStore, setGenerateStore, type DraftRow } from "@/lib/generate/store";
@@ -57,12 +56,12 @@ function arrange(live: LiveSite): void {
 }
 
 /** A page the pipeline wrote and the rules then stopped as `rest()` does; every later model call throws. */
-async function stopped(live: LiveSite, a: { topic?: string; failed?: Row[]; attempts?: number; builtAt?: Date; first?: string } = {}): Promise<string> {
+async function stopped(live: LiveSite, a: { topic?: string; failed?: Row[]; attempts?: number; builtAt?: Date; first?: string; titles?: string[]; pack?: Partial<ContextPack> } = {}): Promise<string> {
   const topic = a.topic ?? "seats";
-  llm.mockResolvedValue({ kind: "measured", value: pageParts(`${a.first ?? ""}${prose(topic, 300, 4)}\n\nTeams on the starter plan get 25 seats and unlimited projects for a flat monthly fee, per [the pricing page](${live.sourceUrl}).`, {}, topic), at: AT });
+  llm.mockResolvedValue({ kind: "measured", value: pageParts(`${a.first ?? ""}${prose(topic, 300, 4)}\n\nTeams on the starter plan get 25 seats and unlimited projects for a flat monthly fee, per [the pricing page](${live.sourceUrl}).`, a.titles === undefined ? {} : { titles: a.titles }, topic), at: AT });
   const store = generateStore();
   const world = { site: siteRulesOf((await store.siteFacts(live.siteId))!, (await store.latestReport(live.siteId))!), facts: await readAllFacts({ siteId: live.siteId, scanId: "scan-1" }), opportunity: opportunity({ siteId: live.siteId }) };
-  const outcome = await generateDraft(fakeCost(), { ...world, siteId: live.siteId, scheduledFor: "2026-09-20", pack: pack({ builtAt: (a.builtAt ?? AT).toISOString() }), links: [] });
+  const outcome = await generateDraft(fakeCost(), { ...world, siteId: live.siteId, scheduledFor: "2026-09-20", pack: pack({ builtAt: (a.builtAt ?? AT).toISOString(), ...a.pack }), links: [] });
   llm.mockReset().mockRejectedValue(new Error("the re-check asks no model"));
   const id = outcome.draftId!;
   const failed = a.failed ?? (outcome.ok ? STALE : (row(id).rule_failures as Row[]));
@@ -328,30 +327,16 @@ describe("OR4: a promise-figure title never enters review", () => {
     expect([row(other).state, lastMove(other).reason, wordsOf(other)]).toEqual(["skipped", "retired:title", before]);
   });
 
-  it("a page whose three stored candidates each stop it takes the search's own floor title and enters review, at 0¢", async () => {
+  it("where every title the writer proposes stops the page, stage 4 takes the search's own floor, and so does the re-check from the three stored, at 0¢", async () => {
     arrange(SAAS_HOSTED);
-    const id = await stopped(SAAS_HOSTED);
-    const search = "which plan fits a small design team";
-    const titles = [`${search}: the ultimate guide`, `${search} in 2026`, `${search}, plan by plan`].map((title) => ({ title }));
-    const p = pack({ target: { question: search, searches: [search] } });
-    Object.assign(row(id), { title: titles[0]!.title, meta: { ...(row(id).meta as Row), pack: p, titles } });
-    const rule = titleRuleFor(p, { description: "x".repeat(140) });
-    expect(pickTitle(titles.map((each) => each.title), rule).candidates.map((each) => each.faults.filter((fault) => fault !== "specific"))).toEqual([["banned"], ["year"], ["banned"]]);
-    await recheck(SAAS_HOSTED);
-    expect(row(id)).toMatchObject({ state: "in_review", title: "Which plan fits a small design team", meta: { recheck: { titleBefore: titles[0]!.title, title: "Which plan fits a small design team" } } });
-    expect(llm).not.toHaveBeenCalled();
-  });
-
-  it("stage 4 takes the same floor where every title the writer proposes stops the page", async () => {
-    arrange(SAAS_HOSTED);
-    const search = "which plan fits a small design team";
-    const floor = "Which plan fits a small design team";
+    const [search, floor] = ["which plan fits a small design team", "Which plan fits a small design team"];
     const titles = [`${floor}: the ultimate guide`, `${floor} in 2026`, `${floor}, plan by plan`];
-    llm.mockResolvedValue({ kind: "measured", value: { ...pageParts(`${prose("seats", 300, 4)}\n\nTeams on the starter plan get 25 seats and unlimited projects for a flat monthly fee, per [the pricing page](${SAAS_HOSTED.sourceUrl}).`), titles }, at: AT });
-    const store = generateStore();
-    const world = { site: siteRulesOf((await store.siteFacts(SAAS_HOSTED.siteId))!, (await store.latestReport(SAAS_HOSTED.siteId))!), facts: await readAllFacts({ siteId: SAAS_HOSTED.siteId, scanId: "scan-1" }), opportunity: opportunity({ siteId: SAAS_HOSTED.siteId }) };
-    const outcome = await generateDraft(fakeCost(), { ...world, siteId: SAAS_HOSTED.siteId, scheduledFor: "2026-09-20", pack: pack({ target: { question: search, searches: [search] } }), links: [] });
-    expect(row(outcome.draftId!)).toMatchObject({ title: floor, meta: { titles: [...titles, floor].map((title) => ({ title })) } });
+    const id = await stopped(SAAS_HOSTED, { titles, pack: { target: { question: search, searches: [search] } } });
+    expect(row(id)).toMatchObject({ title: floor, meta: { titles: [...titles, floor].map((title) => ({ title })) } });
+    Object.assign(row(id), { title: titles[0], meta: { ...(row(id).meta as Row), titles: titles.map((title) => ({ title })) } });
+    await recheck(SAAS_HOSTED);
+    expect(row(id)).toMatchObject({ state: "in_review", title: floor, meta: { recheck: { titleBefore: titles[0], title: floor } } });
+    expect(llm).not.toHaveBeenCalled();
   });
 
   it.each([
