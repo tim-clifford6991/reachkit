@@ -41,6 +41,8 @@
 // Guarded on `Range` existing, because the `node` project has no DOM at all
 // until a file asks for one with `@vitest-environment jsdom`.
 import { vi } from "vitest";
+// TZDate extends whichever `Date` is global when it first loads; a suite that fakes `Date` first would get a zone-less one.
+import "@date-fns/tz";
 import { refuseNetwork } from "../src/lib/egress/offline";
 import { registerSiteLocaleStore } from "../src/lib/locale/site";
 

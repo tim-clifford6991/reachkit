@@ -2,14 +2,30 @@
 // BUILD §14 guardrail 7 — autopilot rate limits, independent of the monthly cap.
 // §9: hard limits regardless of settings, so the limits come from the pins and no per-site column that could hold a
 // rate is read, and nothing here returns a rate. They hold independently. A refusal is a hold naming the ceiling and when it lifts.
+import { addDays, addWeeks, startOfDay, startOfWeek } from "date-fns";
 import { RATE_LIMITS } from "@/lib/config/constants";
+import { inZone, WEEK_STARTS_ON } from "@/lib/scan/weekly/week";
 import { publishDb } from "../db";
-import {
-  startOfLocalDay,
-  startOfLocalWeek,
-  startOfNextLocalDay,
-  startOfNextLocalWeek,
-} from "./local-week";
+
+/** The instant the customer's calendar day containing `at` begins; a skipped midnight is the day's first instant. */
+export function startOfLocalDay(at: Date, timeZone: string): Date {
+  return new Date(+startOfDay(inZone(at, timeZone)));
+}
+
+/** The instant the next local day begins: the day ceiling's `nextFreeAt`. */
+export function startOfNextLocalDay(at: Date, timeZone: string): Date {
+  return new Date(+startOfDay(addDays(startOfDay(inZone(at, timeZone)), 1)));
+}
+
+/** The instant the local week begins; a Sunday counts in the week it ends. */
+export function startOfLocalWeek(at: Date, timeZone: string): Date {
+  return new Date(+startOfWeek(inZone(at, timeZone), { weekStartsOn: WEEK_STARTS_ON }));
+}
+
+/** The instant the customer's next week begins. */
+export function startOfNextLocalWeek(at: Date, timeZone: string): Date {
+  return new Date(+startOfDay(addWeeks(startOfWeek(inZone(at, timeZone), { weekStartsOn: WEEK_STARTS_ON }), 1)));
+}
 
 /** `zone_not_set` holds with no `nextFreeAt`, as no clock clears it: REQ-073 c1 forbids a zone never stated, and the
  *  server's zone would publish on the wrong day. `unreadable` holds too, since "none known" is not "none went out";
