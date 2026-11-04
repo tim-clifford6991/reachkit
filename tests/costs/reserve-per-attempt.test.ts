@@ -6,28 +6,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { toolUseMessage } from "../llm/fixtures";
 
-const { readCacheMock, writeFetchRowMock, createMock } = vi.hoisted(() => ({
-  readCacheMock: vi.fn(),
-  writeFetchRowMock: vi.fn(),
-  createMock: vi.fn(),
-}));
+const { readCacheMock, writeFetchRowMock, createMock } = vi.hoisted(() => ({ readCacheMock: vi.fn(), writeFetchRowMock: vi.fn(), createMock: vi.fn() }));
 
-vi.mock("@/lib/db", () => ({
-  dbAdmin: () => ({
-    rpc: async () => ({ data: 0, error: null }),
-    from: () => ({
-      select: () => ({ eq: () => ({ limit: async () => ({ data: [{ cost_cents: 0, site_id: null }], error: null }) }) }),
-      update: () => ({ eq: async () => ({ error: null }) }),
-    }),
-  }),
-}));
+const scanRow = { select: () => ({ eq: () => ({ limit: async () => ({ data: [{ cost_cents: 0, site_id: null }], error: null }) }) }) };
+vi.mock("@/lib/db", () => ({ dbAdmin: () => ({ rpc: async () => ({ data: 0, error: null }), from: () => scanRow }) }));
 vi.mock("../../src/lib/costs/cache", () => ({ readCache: readCacheMock }));
 vi.mock("../../src/lib/costs/ledger", () => ({ writeFetchRow: writeFetchRowMock, nameDraftOnRows: async () => {} }));
-vi.mock("@anthropic-ai/sdk", () => ({
-  default: class {
-    messages = { create: createMock };
-  },
-}));
+vi.mock("@anthropic-ai/sdk", () => ({ default: class { messages = { create: createMock }; } }));
 
 const { withCostContext } = await import("../../src/lib/costs/index");
 const { llm } = await import("../../src/lib/llm/index");
