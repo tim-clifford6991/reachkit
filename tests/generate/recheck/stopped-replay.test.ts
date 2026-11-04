@@ -70,7 +70,17 @@ async function replay(name: string, [row, world]: [DraftRow, RecheckWorld]): Pro
   // A title short only of its specific goes on once nothing else fails (ruling 2026-10-11, `lacksSpecificOnly`).
   const unmet = (failure: RuleFailure) => failure.detail?.rule === "title" && "faults" in failure.detail && specificOnly(failure.detail.faults);
   const fails = outcome.failed.map((failure) => `- Fails ${failure.rule}: ${JSON.stringify({ ...failure.detail, rule: undefined })}${mended.includes(failure.rule) ? " (a 0¢ repair in code)" : unmet(failure) ? " (goes on at 0¢ once it is the only failure)" : ""}`);
-  return [...head, `- Today: ${verdict}, ${outcome.spentCents}¢`, ...(fixes.title === undefined ? [] : [`- Title: "${fixes.titleBefore}" → "${fixes.title}"`]), ...fails, ""].join("\n");
+  // Issue 2375: what the mend dropped, and whether a rule catches a price linked to the site's own page.
+  const dropped = (fixes.sentenceDropped ?? []).map((sentence) => `- Dropped: "${sentence}"`);
+  const body = String(outcome.patch.body_md ?? "");
+  const read = (url: string) => world.facts.filter((sourced) => sourced.fact.url === url).map((sourced) => sourced.fact.passage).join(" ");
+  const unread = [...body.matchAll(/\[[$€£]\s?(\d[\d.,]*)[^\]]*\]\((https?:\/\/[^)\s]+)\)/g)].filter((link) => new URL(link[2]!).hostname.replace(/^www\./, "") === world.site.domain && !read(link[2]!).includes(link[1]!));
+  const priced = [...new Set(unread.map((link) => link[0]))].map((link) => {
+    const url = unread.find((each) => each[0] === link)![2]!;
+    const caught = outcome.failed.filter((failure) => JSON.stringify(failure.detail ?? {}).includes(url)).map((failure) => failure.rule);
+    return `- A price linked to the site's own page, which no passage read there states, ${link}: ${caught.length === 0 ? "caught by no rule" : `caught by ${caught.join(", ")}`}`;
+  });
+  return [...head, `- Today: ${verdict}, ${outcome.spentCents}¢`, ...(fixes.title === undefined ? [] : [`- Title: "${fixes.titleBefore}" → "${fixes.title}"`]), ...dropped, ...fails, ...priced, ""].join("\n");
 }
 
 it("the morning re-check over stored stopped drafts gives each row's stored outcome and failing rules, at 0¢", async () => {
