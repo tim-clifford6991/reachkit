@@ -19,6 +19,8 @@
 // pair). This file reuses that choice rather than minting a second one, and
 // the `DayKey` itself is assembled from `formatToParts` so the key's own
 // shape is locale-independent whatever that choice later becomes.
+import { tz } from "@date-fns/tz";
+import { eachDayOfInterval, endOfISOWeek, endOfMonth, startOfISOWeek, startOfMonth } from "date-fns";
 import { SHELL_LOCALE } from "../_shell/format";
 
 /** A site-local calendar day, `YYYY-MM-DD`. */
@@ -84,38 +86,20 @@ export function planWeek(today: DayKey): readonly DayKey[] {
   return Array.from({ length: 7 }, (_, at) => addDays(monday, at));
 }
 
+// date-fns walks in UTC so a `DayKey` never picks up the server's zone.
+const IN_UTC = { in: tz("UTC") };
+
 /** Every date in a month, in order. */
 export function daysOfMonth(month: MonthKey): readonly DayKey[] {
-  const first = `${month}-01`;
-  const days: DayKey[] = [];
-  for (let day = first; monthOf(day) === month; day = addDays(day, 1)) days.push(day);
-  return days;
+  const first = utcOf(`${month}-01`);
+  return eachDayOfInterval({ start: startOfMonth(first, IN_UTC), end: endOfMonth(first, IN_UTC) }, IN_UTC).map(keyOfUtc);
 }
 
-/**
- * The cells of a Mon–Sun month grid: the month's own days, preceded and
- * followed by whatever it takes to fill the first and last weeks.
- *
- * A leading or trailing cell exists **to hold a column position** and holds
- * nothing else — it is not a date the calendar has anything to say about,
- * and it is emphatically not padding (§4.6: "the calendar is never
- * padded"). `inMonth` is what tells the two apart, and the grid renders no
- * content for a cell that is `false`.
- */
-export function monthGrid(month: MonthKey): readonly { day: DayKey; inMonth: boolean }[] {
-  const days = daysOfMonth(month);
-  const first = days[0] ?? `${month}-01`;
-  const last = days[days.length - 1] ?? first;
-
-  const cells: { day: DayKey; inMonth: boolean }[] = [];
-  for (let i = weekdayIndex(first); i > 0; i--) {
-    cells.push({ day: addDays(first, -i), inMonth: false });
-  }
-  for (const day of days) cells.push({ day, inMonth: true });
-  for (let i = 1; i <= 6 - weekdayIndex(last); i++) {
-    cells.push({ day: addDays(last, i), inMonth: false });
-  }
-  return cells;
+/** The dates of a Mon–Sun month grid; one outside `month` only holds a column (§4.6: never padded). */
+export function gridDays(month: MonthKey): readonly DayKey[] {
+  const first = utcOf(`${month}-01`);
+  const start = startOfISOWeek(startOfMonth(first, IN_UTC), IN_UTC);
+  return eachDayOfInterval({ start, end: endOfISOWeek(endOfMonth(first, IN_UTC), IN_UTC) }, IN_UTC).map(keyOfUtc);
 }
 
 // ── Rendered values ──────────────────────────────────────────────────────

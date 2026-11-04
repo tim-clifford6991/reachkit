@@ -12,7 +12,7 @@ import {
   type CalendarFacts,
   type DraftOnDay,
 } from "@/app/(account)/app/calendar/month";
-import { weekdayIndex, monthGrid } from "@/app/(account)/app/calendar/dates";
+import { addDays, weekdayIndex } from "@/app/(account)/app/calendar/dates";
 import { STAGE_OF } from "@/app/(account)/app/calendar/stages";
 import {
   FIXTURE_CALENDAR_FACTS,
@@ -71,12 +71,17 @@ const BARE: CalendarFacts = {
 };
 
 describe("BUILD §4.6 — the grid is Mon–Sun and weekends are ordinary dates", () => {
-  it("the grid starts on a Monday column and ends on a Sunday one", () => {
-    for (const month of ["2026-01", "2026-02", "2026-09", "2027-08"]) {
-      const cells = monthGrid(month);
-      expect(cells.length % 7, month).toBe(0);
-      expect(weekdayIndex(cells[0]!.day), month).toBe(0);
-      expect(weekdayIndex(cells[cells.length - 1]!.day), month).toBe(6);
+  it("the grid is whole Mon–Sun weeks of consecutive dates around every day of the month", () => {
+    const lengths = { "2026-01": 31, "2026-02": 28, "2028-02": 29, "2026-03": 31, "2026-09": 30, "2026-11": 30, "2027-08": 31 };
+    for (const [month, length] of Object.entries(lengths)) {
+      const days = assembleMonth(BARE, month).cells.map((c) => ({ day: c.day, inMonth: c.inMonth }));
+      expect(days.length % 7, month).toBe(0);
+      expect(weekdayIndex(days[0]!.day), month).toBe(0);
+      expect(weekdayIndex(days[days.length - 1]!.day), month).toBe(6);
+      days.slice(1).forEach((cell, at) => expect(cell.day, month).toBe(addDays(days[at]!.day, 1)));
+      const inside = days.filter((c) => c.inMonth).map((c) => c.day);
+      expect(inside, month).toEqual(days.map((c) => c.day).filter((d) => d.startsWith(month)));
+      expect([inside[0], inside.length], month).toEqual([`${month}-01`, length]);
     }
   });
 

@@ -345,6 +345,9 @@ describe("OR4: a promise-figure title never enters review", () => {
     ["a6d24b00", "retired:title"],
     ["bf8de9bf", "retired:title"],
     ["b8c28f61", "retired:title"],
+    // The search's own floor title passes where no writer title does.
+    ["abe42ff7", null],
+    ["a71279ff", null],
     ["b03e044f", null],
     ["fba1d84d", null],
     ["d98284cc", null],

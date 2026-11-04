@@ -160,7 +160,7 @@ A dependency is admitted only where it deletes hand-written UI code. This is the
 
 | Library | It replaces |
 |---|---|
-| `react-day-picker` 9 with `date-fns` and `@date-fns/tz` | A hand-built month grid; the day card goes in its day slot. |
+| `date-fns` with `@date-fns/tz` | Hand-built calendar and zone arithmetic: the month grid's dates, a site's local week and midnight. |
 | `@tanstack/react-table` 8 | Sorting, filtering and paging of the Search and Rivals lists, rendered as a daisyUI `table`. |
 | `nuqs` | Hand-rolled URL state: month, day, tab, filters, setup step. |
 | CodeMirror 6 — `@uiw/react-codemirror`, `@codemirror/lang-markdown`, `@codemirror/lint` | The editor textarea; rule breaks are lint marks in the text. |
