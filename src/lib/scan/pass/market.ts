@@ -165,6 +165,7 @@ export async function readMarket(a: StageArgs, abandoned: () => boolean): Promis
         scanId: a.scanId,
         cost,
         pages: sections.pagesRead,
+        ...("search" in reading ? { listing: reading.search } : {}),
         at: a.startedAt,
         ...(measurement.stated === undefined ? {} : { stated: measurement.stated }),
       });

@@ -76,18 +76,13 @@ import type { FetchOutcome, RobotsPolicy } from "@/lib/egress/types";
 import { registrableDomain } from "@/lib/market/rivals/domains";
 import { outsideMarket } from "@/lib/locale/read";
 import type { Locale } from "@/lib/locale/locales";
+import { unreadPageOf } from "@/lib/measure/blank-page";
 import { proseText } from "@/lib/measure/prose";
 import { readPageFacts, type PageIssueFacts } from "@/lib/site-issues/facts";
 import { readFirstRank } from "./knowledge/priority";
 import { profilesOn } from "./profiles";
 import { derivePurpose } from "./purpose";
-import {
-  siteDocumentOf,
-  OWN_FETCH_OPTS,
-  OWN_FETCH_SOURCE,
-  toStoredDocument,
-  type StoredDocument,
-} from "@/lib/measure/own-fetch";
+import { siteDocumentOf, OWN_FETCH_OPTS, OWN_FETCH_SOURCE, toStoredDocument, type StoredDocument } from "@/lib/measure/own-fetch";
 
 /** One page the crawl read, before anything is decided about it. `text` is
  *  the page's visible text, cut to `SITE_PROFILE.PAGE_SAMPLE_CHARS` — the
@@ -97,6 +92,9 @@ export interface CrawledPage {
   title: string;
   h1: string;
   text: string;
+  /** Why the page holds none of the site's words (`unreadPageOf`): no
+   *  market is read off it. Absent on a page of the site's own. */
+  unread?: "bot_protection" | "home_wordless";
   /** What SPEC §9's technical-issue checks read off this page. */
   facts: PageIssueFacts;
   /** The in-scope pages this page links to, as crawl identities
@@ -910,11 +908,13 @@ function pageOf(url: string, html: string, site: string | null, fetchMs: number 
   const h1 = firstText(html, H1_RE);
   const text = proseText(html);
   const about = derivePurpose({ url, title, h1 }) === "about";
+  const unread = unreadPageOf(html);
   return {
     url,
     title,
     h1,
     text: text.slice(0, SITE_PROFILE.PAGE_SAMPLE_CHARS),
+    ...(unread === null ? {} : { unread }),
     facts: readPageFacts(url, html),
     links,
     ...(unfollowed.length === 0 ? {} : { unfollowed }),

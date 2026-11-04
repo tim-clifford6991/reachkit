@@ -29,6 +29,7 @@ import { AI_ANSWER_SOURCES, AI_OVERVIEW_TEXT_MAX_CHARS } from "@/lib/vendors/dat
 import { OWN_FETCH_SOURCE } from "@/lib/measure/own-fetch";
 import { checked, factsLoader, type MinimalClient, type MinimalResult } from "./fetch-facts";
 import { readStoredReport } from "./report";
+import { withdrawnSitesOf, type SiteWithdrawal } from "./rescore-blank";
 import { readingLines } from "./rescore-reading";
 import { scanWriteOf } from "./rescore-write";
 import { homeOf, homeReadsFor, type HomeReadRow, type StoredRead } from "./home-reads";
@@ -68,6 +69,7 @@ export interface StoredScanRow {
 export interface StoredSiteRow {
   id: string;
   domain: string;
+  category?: string | null;
   competitors: readonly string[];
   market: Record<string, unknown> | null;
 }
@@ -103,6 +105,8 @@ export interface SiteWrite {
   id: string;
   market: Record<string, unknown>;
   competitors: readonly string[];
+  /** Only where the market is withdrawn. */
+  category?: null;
 }
 
 export interface RescoreStore {
@@ -167,6 +171,8 @@ export interface Row {
   scan: StoredScanRow;
   report: RescoreReport;
   result: Rescored;
+  /** The home read and rendered reads the report was scored with. */
+  read: Pick<RescoreScan, "home" | "rendered">;
 }
 
 const OFFLINE_ADVICE = "The re-score reads stored data only and buys nothing (issues 1426, 1433).";
@@ -240,21 +246,24 @@ export function rescoreRow(
   } catch (error) {
     return { id: scan.id, because: error instanceof Error ? error.message : String(error) };
   }
+  const read = {
+    home: report.onPage.kind === "unmeasured" ? null : homeOf(new Date(report.onPage.at).getTime(), reads),
+    rendered: reads.filter((r) => r.source === "on_page/instant_pages").map((r) => ({ created_at: r.created_at, facts: r.facts })),
+  };
   const result = rescoreScan({
     id: scan.id,
     status: scan.status,
     score: scan.score,
     drivers: driversOf(scan.drivers),
     report,
-    home: report.onPage.kind === "unmeasured" ? null : homeOf(new Date(report.onPage.at).getTime(), reads),
-    rendered: reads.filter((r) => r.source === "on_page/instant_pages").map((r) => ({ created_at: r.created_at, facts: r.facts })),
+    ...read,
     siteName: said.siteName,
     answers: said.answers,
     startedAt: scan.createdAt,
     ...(said.market === undefined ? {} : { market: said.market }),
     ...(said.measured === undefined ? {} : { measured: said.measured }),
   });
-  return { scan, report, result };
+  return { scan, report, result, read };
 }
 
 /** Whether a scan's row is rewritten: a member of its report moved, or its
@@ -425,6 +434,7 @@ function summaryOf(a: {
   movedSites: readonly { site: StoredSiteRow; moved: RehomedSite }[];
   profiles: readonly StoredProfileName[];
   renamed: readonly ProfileNameWrite[];
+  withdrawn: readonly SiteWithdrawal[];
   written: { scans: number; left: readonly string[]; names: number } | null;
   read: { read: number; refresh: number } | undefined;
 }): string {
@@ -453,7 +463,7 @@ function summaryOf(a: {
     "",
     "## The business's reading (issue 1470)",
     "",
-    ...readingLines(a.rows),
+    ...readingLines(a.rows, a.withdrawn),
     "",
     "## Site rival sets",
     "",
@@ -518,7 +528,10 @@ async function readAll(store: RescoreStore) {
 /** Every stored scan and site rival set scored again; on apply, each one
  *  that moves written back unless the guard holds. */
 export async function rescoreStored(store: RescoreStore, o: RescoreOptions): Promise<RescoreAnswer> {
-  const { profiles, sites, renamed, rows, unreadable, scoreMoves, moving, standing, movedSites, ...read } = await readAll(store);
+  const { profiles, sites, renamed, rows, unreadable, scoreMoves, moving, standing, ...read } = await readAll(store);
+  // A withdrawn site's rivals are its market's, kept under `withdrawn`: it is not rehomed as well.
+  const withdrawn = withdrawnSitesOf(sites, rows, { at: o.at, by: o.derivation ?? o.version });
+  const movedSites = read.movedSites.filter(({ site }) => !withdrawn.some((w) => w.id === site.id));
   let held = o.guard === undefined ? null : heldBecause({ moves: scoreMoves, unreadable: unreadable.length, unreadableBefore: o.guard.unreadableBefore, afterApply: false, changed: 0 });
   let stale = read.stale;
   let written: { scans: number; left: string[]; names: number } | null = null;
@@ -530,6 +543,7 @@ export async function rescoreStored(store: RescoreStore, o: RescoreOptions): Pro
       else written.left.push(row.scan.id);
     }
     for (const { site, moved } of movedSites) await store.writeSite(siteWrite(site, moved, o));
+    for (const w of withdrawn) await store.writeSite(w);
     for (const name of renamed) if (await store.writeProfileName(name)) written.names += 1;
     stale = standing;
     if (written.left.length > 0) {
@@ -542,14 +556,14 @@ export async function rescoreStored(store: RescoreStore, o: RescoreOptions): Pro
   return {
     scansRead: rows.length + unreadable.length,
     scansChanged: moving.length,
-    sitesMoved: movedSites.length + renamed.length,
+    sitesMoved: movedSites.length + renamed.length + withdrawn.length,
     scansWritten: written?.scans ?? 0,
     scansLeft: written?.left.length ?? 0,
     scansUnreadable: unreadable.length,
     stale,
     scoreMoves,
     held,
-    summary: quietly(() => summaryOf({ o, rows, unreadable, sites, movedSites, profiles, renamed, written, read: store.readBytes?.() })),
+    summary: quietly(() => summaryOf({ o, rows, unreadable, sites, movedSites, profiles, renamed, withdrawn, written, read: store.readBytes?.() })),
   };
 }
 
@@ -696,7 +710,7 @@ export function databaseRescore(client: () => Promise<MinimalClient> = adminClie
       return onPageAt === undefined ? load(rows.map((r) => r.id)) : homeReadsFor(rows, onPageAt, load);
     },
     async sites() {
-      const rows = got(await (await client()).from<StoredSiteRow>("sites").select("id, domain, competitors, market"));
+      const rows = got(await (await client()).from<StoredSiteRow>("sites").select("id, domain, category, competitors, market"));
       return (rows ?? []).map((s) => ({ ...s, competitors: s.competitors ?? [] }));
     },
     async profiles() {
@@ -760,17 +774,10 @@ export function databaseRescore(client: () => Promise<MinimalClient> = adminClie
       return ok === true;
     },
     async writeSite(w) {
-      checked(await (await client()).from("sites").update({ market: w.market, competitors: w.competitors }).eq("id", w.id));
+      checked(await (await client()).from("sites").update({ market: w.market, competitors: w.competitors, ...(w.category === undefined ? {} : { category: w.category }) }).eq("id", w.id));
     },
     async writeProfileName(w) {
-      const rows = checked(
-        await (await client())
-          .from<{ domain: string }>("site_profiles")
-          .update({ site_name: w.to })
-          .eq("domain", w.domain)
-          .eq("site_name", w.from)
-          .select("domain")
-      );
+      const rows = checked(await (await client()).from<{ domain: string }>("site_profiles").update({ site_name: w.to }).eq("domain", w.domain).eq("site_name", w.from).select("domain"));
       return (rows ?? []).length === 1;
     },
     async claim(at) {
@@ -798,15 +805,7 @@ export function databaseRescore(client: () => Promise<MinimalClient> = adminClie
     async runs() {
       const rows = checked(
         await (await client())
-          .from<{
-            mode: RescoreRequest["mode"];
-            derivation: string | null;
-            requested_at: string;
-            finished_at: string | null;
-            error: string | null;
-            held: string | null;
-            scans_unreadable: number | null;
-          }>("rescore_runs")
+          .from<{ mode: RescoreRequest["mode"]; derivation: string | null; requested_at: string; finished_at: string | null; error: string | null; held: string | null; scans_unreadable: number | null }>("rescore_runs")
           .select("mode, derivation, requested_at, finished_at, error, held, scans_unreadable")
           .order("requested_at", { ascending: true })
       );
