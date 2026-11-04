@@ -7,7 +7,7 @@
 // reason to read.
 import { parse } from "node-html-parser";
 import { AI_READER_AGENTS } from "@/lib/config/constants";
-import { asciiLowerCase, parseOnPage } from "@/lib/measure/parse";
+import { asciiLowerCase, MARKUP_OPTIONS, parseOnPage } from "@/lib/measure/parse";
 import { identityOf, type Identity } from "@/lib/business/identity";
 
 export interface PageIssueFacts {
@@ -68,16 +68,6 @@ function mainContentHidden(html: string): boolean {
 }
 
 const COMMENT_RE = /<!--[\s\S]*?-->/g;
-const META_RE = /<meta\b[^>]*>/gi;
-
-/** One attribute's value off a tag, either quote style; `null` where the tag
- *  does not carry it. */
-function attribute(tag: string, name: string): string | null {
-  const re = new RegExp(`\\b${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s>]+))`, "i");
-  const match = re.exec(tag);
-  if (match === null) return null;
-  return match[1] ?? match[2] ?? match[3] ?? "";
-}
 
 function decode(value: string): string {
   return value
@@ -98,18 +88,17 @@ export function readPageFacts(url: string, html: string): PageIssueFacts {
   let metaDescription = "";
   let phoneViewport = false;
   let snippetBlocked = false;
-  META_RE.lastIndex = 0;
-  let match: RegExpExecArray | null;
-  while ((match = META_RE.exec(withoutComments)) !== null) {
-    const tag = match[0];
-    const name = asciiLowerCase(attribute(tag, "name") ?? "");
-    if (SNIPPET_META_NAMES.has(name) && forbidsSnippet(attribute(tag, "content") ?? "")) {
+  for (const tag of parse(withoutComments, MARKUP_OPTIONS).querySelectorAll("meta")) {
+    const name = asciiLowerCase(tag.getAttribute("name") ?? "");
+    // As written, so a stored page reads the facts it read before the parser (issue 2293).
+    const value = Object.entries(tag.rawAttributes).find(([key]) => asciiLowerCase(key) === "content")?.[1] ?? "";
+    if (SNIPPET_META_NAMES.has(name) && forbidsSnippet(value)) {
       snippetBlocked = true;
     }
     if (name === "description" && metaDescription === "") {
-      metaDescription = decode(attribute(tag, "content") ?? "");
+      metaDescription = decode(value);
     } else if (name === "viewport") {
-      const content = asciiLowerCase(attribute(tag, "content") ?? "").replace(/\s+/g, "");
+      const content = asciiLowerCase(value).replace(/\s+/g, "");
       if (content.includes("width=device-width")) phoneViewport = true;
     }
   }

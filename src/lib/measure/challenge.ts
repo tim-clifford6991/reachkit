@@ -18,7 +18,8 @@
 // Under-report, never over-report: a real page read as a challenge would
 // leave a customer's site unmeasured, so every rule needs the protection's
 // own words or headers, and a status alone decides nothing.
-import { visibleText } from "./parse";
+import { parse } from "node-html-parser";
+import { MARKUP_OPTIONS, visibleText } from "./parse";
 
 /** The `because` of an on-page read that met a protection's page: the
  *  report reads it to say why the site's own pages are unmeasured. */
@@ -66,8 +67,6 @@ export interface ChallengeInput {
 /** A page of the protection's own carries little text. The sage.com block
  *  page of 2026-10-09 held 763 visible characters. */
 const SPARSE_CHARS = 1200;
-
-const TITLE_RE = /<title[^>]*>([\s\S]*?)<\/title>/i;
 
 /** A header that states the mitigation itself, on any status. */
 function fromHeaders(headers: Readonly<Record<string, string>>): ProtectionVendor | null {
@@ -143,7 +142,7 @@ export function challengeOf(a: ChallengeInput): ProtectionVendor | null {
   const stated = fromHeaders(headers);
   if (stated !== null) return stated;
 
-  const title = (TITLE_RE.exec(a.html)?.[1] ?? "").replace(/&#0?39;|&apos;/gi, "'").replace(/\s+/g, " ").trim();
+  const title = (parse(a.html, MARKUP_OPTIONS).querySelector("title")?.text ?? "").replace(/\s+/g, " ").trim();
   for (const [re, vendor] of TITLES) if (re.test(title)) return vendor;
 
   if (refuses(a.status)) {
