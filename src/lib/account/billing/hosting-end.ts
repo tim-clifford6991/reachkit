@@ -38,14 +38,9 @@
 // at the moment it happens and carries no notice of a day the customer
 // chose (REQ-076 c10, c11; REQ-079 c6). `hostedServingState` already
 // refuses to serve such a site, so there is nothing here left to stop.
+import { addDays } from "date-fns";
 import { HOSTED_RETENTION_DAYS, HOSTING_END_REMINDER_DAYS } from "@/lib/config/constants";
 import { billingStore, type HostingRow, type HostingNotice } from "./store";
-
-const MS_PER_DAY = 24 * 60 * 60 * 1000;
-
-function addDays(at: Date, days: number): Date {
-  return new Date(at.getTime() + days * MS_PER_DAY);
-}
 
 /** One subject of the notice queue: which site, and which of the two
  *  notices it is due. The tick hands the id back to `sendHostingEndNotice`,

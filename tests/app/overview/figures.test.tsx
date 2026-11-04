@@ -13,6 +13,9 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { fakeDb, type FakeDb, type Row } from "../../publish/harness";
 import { LOCAL, SAAS, stored, weekWith } from "../../measure/reading-fixture";
 import { assembleReading, type PageReading } from "@/lib/measure/page-reading";
+import { monthFiguresOf, type MonthsFacts } from "@/lib/measure/figures";
+import { shownKey } from "@/lib/measure/registry";
+import { CURRENT, FIRST_MONDAY, passOf } from "./partial-month";
 import { boardFile, compare, readAllow, segments } from "../../../scripts/design/parity.mjs";
 
 const db: FakeDb = fakeDb();
@@ -238,10 +241,10 @@ describe("the AI tab reads Overview's figures with the same reader", () => {
 describe("Checked monthly", () => {
   const months = {
     reading: { week: "2026-10-05", score: 31, market: { top10: 1, of: 12 } },
-    scan: { score: 27 as number | null, market: 0 as number | null },
+    scan: { score: 27 as number | null, market: { top10: 0, of: 12 } as MonthsFacts["scan"]["market"] },
     next: "2026-11-02",
   };
-  const draw = (m: typeof months | { reading: null; scan: typeof months.scan; next: string }): Document =>
+  const draw = (m: MonthsFacts): Document =>
     new DOMParser().parseFromString(renderToStaticMarkup(MonthsFigure({ months: m, timeZone: ZONE })), "text/html");
 
   it("labels each figure months-scale, against the scan, with the next first Monday", () => {
@@ -282,9 +285,36 @@ describe("Checked monthly", () => {
   });
 
   it("a figure at its scan's own value says so, and one below says down", () => {
-    const same = text(draw({ ...months, scan: { score: 31, market: 2 } }).querySelector('[data-testid="overview-months"]'));
+    const same = text(draw({ ...months, scan: { score: 31, market: { top10: 2, of: 12 } } }).querySelector('[data-testid="overview-months"]'));
     expect(same).toContain(copy("overview.months.score.same"));
     expect(same).toContain(copy("overview.months.market.down", { n: "2" }));
+  });
+
+  it("a pass that measured fewer searches than it selected gives no market figure; a full one gives its count", () => {
+    expect(monthFiguresOf(passOf(2)).market).toBeNull();
+    expect(monthFiguresOf(passOf(12, 3)).market).toEqual({ top10: 3, of: 12 });
+  });
+
+  it("a first Monday that measured 2 of its 12 draws no market tile, and keeps its score", () => {
+    const dom = draw({ reading: { week: "2026-10-05", ...monthFiguresOf(FIRST_MONDAY) }, scan: monthFiguresOf(CURRENT), next: "2026-11-02" });
+    expect(dom.querySelector(`[data-testid="${shownKey("overview-market-month")}"]`)).toBeNull();
+    expect(dom.querySelector('[data-testid="overview-tile-score"]')).not.toBeNull();
+  });
+
+  it("a month and a scan that measured different sets draw no change line and no mark", () => {
+    const dom = draw({ ...months, reading: { ...months.reading, market: { top10: 0, of: 12 } }, scan: { score: 27, market: { top10: 3, of: 11 } } });
+    const market = text(dom.querySelector('[data-testid="overview-tile-market"]'));
+    expect(market).toContain(copy("overview.months.market"));
+    expect(market).not.toContain(copy("overview.months.market.down", { n: "3" }));
+    expect(lineIn(dom, "market")).toBeNull();
+  });
+
+  it("a month with neither figure is the title and the next day alone, with no empty row of tiles", () => {
+    const dom = draw({ ...months, reading: { week: "2026-10-05", score: null, market: null } });
+    expect(text(dom.querySelector("h2"))).toBe(copy("overview.months.title"));
+    expect(text(dom.querySelector('[data-testid="overview-months-next"]'))).toBe(copy("overview.months.checked", { date: "Mon 2 Nov" }));
+    expect(dom.querySelector("section > div > div.flex.flex-wrap.gap-3")).toBeNull();
+    expect(dom.querySelector('[data-testid^="overview-tile-"]')).toBeNull();
   });
 });
 

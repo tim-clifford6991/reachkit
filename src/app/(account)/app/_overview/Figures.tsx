@@ -106,6 +106,8 @@ function Measure(p: { label: string; figure: string; of: string | null; line: st
 export function MonthsFigure(p: { months: MonthsFacts; timeZone: string }): React.JSX.Element {
   const { reading, scan } = p.months;
   const next = formatShortDay(new Date(`${p.months.next}T12:00:00Z`), "UTC");
+  // A count of one set of searches says nothing about a count of another.
+  const scanMarket = scan.market !== null && scan.market.of === reading?.market?.of ? scan.market.top10 : null;
   return (
     <section className={CARD} aria-labelledby={ID.months} data-testid={ID.months}>
       <div className={BODY}>
@@ -117,7 +119,7 @@ export function MonthsFigure(p: { months: MonthsFacts; timeZone: string }): Reac
             {reading === null ? copy("overview.months.first", { date: next }) : copy("overview.months.checked", { date: next })}
           </span>
         </div>
-        {reading === null ? null : (
+        {reading === null || (reading.score === null && reading.market === null) ? null : (
           <div className="flex min-w-0 flex-wrap gap-3">
             {reading.score === null ? null : (
               <Measure
@@ -136,10 +138,10 @@ export function MonthsFigure(p: { months: MonthsFacts; timeZone: string }): Reac
                 figure={`${formatCount(reading.market.top10)} ${copy("overview.months.of", { of: formatCount(reading.market.of) })}`}
                 of={null}
                 line={
-                  changeLine(reading.market.top10, scan.market, { up: "overview.months.market.up", down: "overview.months.market.down", same: "overview.months.market" }) ??
+                  changeLine(reading.market.top10, scanMarket, { up: "overview.months.market.up", down: "overview.months.market.down", same: "overview.months.market" }) ??
                   copy("overview.months.market")
                 }
-                mark={moveLine(scan.market, reading.market.top10)}
+                mark={moveLine(scanMarket, reading.market.top10)}
               />
             )}
           </div>
