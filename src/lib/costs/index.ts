@@ -64,8 +64,8 @@ export interface CostContext {
     cacheKey: string;
     freshnessDays: number;
     /** The **reservation**: the most this call can cost, known before it
-     *  runs. The cap is checked against this, so no call is made against
-     *  money the context has not got. */
+     *  runs, plus whatever `run` adds through `more`. The cap is checked
+     *  against each, so no call is made against money the context has not got. */
     costCents: number;
     /** Optional **settlement**, where a vendor's documented rule makes the
      *  charge a function of the response. `settled <= reserved` is enforced,
@@ -78,7 +78,9 @@ export interface CostContext {
      *  whether to call. `undefined` where the response carried no charge,
      *  which is stored as null and never as a guess. */
     billedCents?: () => number | undefined;
-    run: () => Promise<P>;
+    /** `more` adds `cents` to this call's reservation under the same three ceilings, or refuses and answers false.
+     *  A stand-in context may pass none. */
+    run: (more?: (cents: number) => Promise<boolean>) => Promise<P>;
   }): Promise<
     { payload: P; fresh: boolean; costCents: number; storedAt: Date | null } | { skipped: "cap" }
   >;
@@ -175,7 +177,7 @@ export async function withCostContext<T>(
   /** This context's rows written while no draft was named. */
   let unnamed: string[] = [];
 
-  function refuse(reason: CapReason, source: string, ceilingCents: number): { skipped: "cap" } {
+  function refuse(reason: CapReason, source: string, ceilingCents: number): false {
     isDegraded = true;
     if (!capHitLogged) {
       capHitLogged = true;
@@ -193,11 +195,28 @@ export async function withCostContext<T>(
         ...(reason === "site_cap" && site !== null ? { siteId: site.siteId } : {}),
       });
     }
-    return { skipped: "cap" };
+    return false;
   }
 
   function spentCents(): number {
     return ledgeredCents + inFlightReserved;
+  }
+
+  /** Whether `cents` more may be reserved now, under all three ceilings. */
+  async function admits(source: string, cents: number): Promise<boolean> {
+    // The product's day outranks this pass's headroom. Re-read so a pass beside this one is counted, with this
+    // pass's in-flight calls added; this call may still carry the day over, and that crossing is the alert.
+    await day.refresh(now());
+    if (day.ceilingReached(inFlightReserved)) return refuse("daily_ceiling", source, day.ceilingCents());
+
+    // Then this site's share, re-read the same way; refusing only here leaves every other site's call untouched.
+    if (site !== null) {
+      await site.refresh(now());
+      if (site.capReached(inFlightReserved)) return refuse("site_cap", source, CAPS.DAILY_SITE_C);
+    }
+
+    // Checked against the reservation: the settlement does not exist yet.
+    return spentCents() + cents > capValue ? refuse("scan_cap", source, capValue) : true;
   }
 
   const cost: CostContext = {
@@ -210,7 +229,7 @@ export async function withCostContext<T>(
       costCents: number;
       settleCents?: (payload: P) => number;
       billedCents?: () => number | undefined;
-      run: () => Promise<P>;
+      run: (more?: (cents: number) => Promise<boolean>) => Promise<P>;
     }): Promise<
       { payload: P; fresh: boolean; costCents: number; storedAt: Date | null } | { skipped: "cap" }
     > {
@@ -225,35 +244,24 @@ export async function withCostContext<T>(
         return { payload: cached.payload as P, fresh: false, costCents: 0, storedAt: cached.storedAt };
       }
 
-      // The product's day outranks this pass's headroom. Re-read so a pass beside this one is counted, with this
-      // pass's in-flight calls added; this call may still carry the day over, and that crossing is the alert.
-      await day.refresh(now());
-      if (day.ceilingReached(inFlightReserved)) {
-        return refuse("daily_ceiling", call.source, day.ceilingCents());
-      }
-
-      // Then this site's share, re-read the same way; refusing only here leaves every other site's call untouched.
-      if (site !== null) {
-        await site.refresh(now());
-        if (site.capReached(inFlightReserved)) {
-          return refuse("site_cap", call.source, CAPS.DAILY_SITE_C);
-        }
-      }
-
-      // Checked against the reservation: the settlement does not exist yet.
-      if (spentCents() + call.costCents > capValue) {
-        return refuse("scan_cap", call.source, capValue);
-      }
+      if (!(await admits(call.source, call.costCents))) return { skipped: "cap" };
 
       // Accumulated, since several calls may be in flight, and held until the settlement reaches the ledger so the
       // money is always in one of the two figures `spentCents()` sums. The `finally` releases it on every path.
-      inFlightReserved += call.costCents;
+      let reservedCents = call.costCents;
+      inFlightReserved += reservedCents;
+      const more = async (cents: number): Promise<boolean> => {
+        if (!(await admits(call.source, cents))) return false;
+        reservedCents += cents;
+        inFlightReserved += cents;
+        return true;
+      };
       // Vendor failures come back as a payload, not a raise, so one clock times both.
       const startedMs = Date.now();
       try {
-        const payload = await call.run();
+        const payload = await call.run(more);
 
-        let settledCents = call.costCents;
+        let settledCents = reservedCents;
         if (isFetchRefusal(payload)) {
           // A refused fetch bought nothing, whatever was reserved for it.
           settledCents = 0;
@@ -267,9 +275,9 @@ export async function withCostContext<T>(
           }
         } else if (call.settleCents) {
           const proposedCents = call.settleCents(payload);
-          if (proposedCents > call.costCents) {
+          if (proposedCents > reservedCents) {
             // A settlement never raises a charge.
-            logClampedSettlement(call.source, call.costCents, proposedCents);
+            logClampedSettlement(call.source, reservedCents, proposedCents);
           } else {
             settledCents = proposedCents;
           }
@@ -284,7 +292,7 @@ export async function withCostContext<T>(
           source: call.source,
           cacheKey: call.cacheKey,
           policyVersion: ctx.policyVersion,
-          reservedCents: call.costCents,
+          reservedCents,
           costCents: settledCents,
           payload,
           durationMs: Date.now() - startedMs,
@@ -306,7 +314,7 @@ export async function withCostContext<T>(
 
         return { payload, fresh: true, costCents: settledCents, storedAt: null };
       } finally {
-        inFlightReserved -= call.costCents;
+        inFlightReserved -= reservedCents;
       }
     },
 

@@ -43,7 +43,8 @@
 //   below resolve to `undeterminable`; `not_attempted` is reserved for
 //   the one case BP-024 defines it for — the caller's own cost ceiling
 //   stopping the call before it was ever attempted (`recordFetch`'s
-//   `{ skipped: "cap" }`). Recorded as an open `rests-on` row on WO-026.
+//   `{ skipped: "cap" }`), or before the retry it needed. Recorded as an
+//   open `rests-on` row on WO-026.
 import { modelInstruction } from "@/lib/locale/language";
 import type { Locale } from "@/lib/locale/locales";
 import Anthropic from "@anthropic-ai/sdk";
@@ -111,8 +112,8 @@ type TextStart = "fence" | "brace" | "bracket" | "letter" | "empty" | "other";
  *  time budget had nothing left to spend on the retry (issue #462: M3 run
  *  4b logged exactly this as `timeout`, which it was not); `deterministic`
  *  — the retry was not spent because it could not have helped (issue 898,
- *  `runAttempts`). */
-type RetryExhausted = "attempts" | "budget" | "deterministic";
+ *  `runAttempts`); `cap` — the cost context refused the retry's reservation. */
+type RetryExhausted = "attempts" | "budget" | "deterministic" | "cap";
 
 /** The last unparseable answer's diagnosis. `schemaIssues` is where the
  *  schema refused the answer and how — `path:code`, e.g.
@@ -436,7 +437,8 @@ async function runAttempts<T>(
   maxOutputTokens: number,
   tool: ForcedTool | null,
   temperature: number | undefined,
-  attempts: number
+  attempts: number,
+  retryFits: () => Promise<boolean>
 ): Promise<AttemptOutcome> {
   const startedAt = Date.now();
   const deadline = startedAt + binding.timeoutMs;
@@ -473,6 +475,8 @@ async function runAttempts<T>(
         failure: "timeout",
       };
     }
+    // Each retry is reserved when it is due, so a call is never refused for an attempt it may not need.
+    if (attempt > 1 && !(await retryFits())) return unparseable("cap", lastMiss ?? { parseFailure: "json" });
     let response: { answer: Answer; tokensIn: number; tokensOut: number };
     try {
       response = await callModel(binding, inputText, maxOutputTokens, remainingMs, tool, temperature);
@@ -624,7 +628,7 @@ export async function llm<T>(
   const tool = forcedToolFor(call.site, call.schema);
   const cacheKey = createHash("sha256").update(`${call.site}:${call.tier}:${inputText}`).digest("hex");
   const attempts = INFERENCE_ATTEMPTS[call.site] ?? MAX_ATTEMPTS;
-  const reservedCents = costCentsFor(call.tier, estimateTokens(inputText) * attempts, maxOutputTokens * attempts);
+  const attemptCents = costCentsFor(call.tier, estimateTokens(inputText), maxOutputTokens);
 
   const result = await c.recordFetch<AttemptOutcome>({
     source: call.site,
@@ -635,10 +639,10 @@ export async function llm<T>(
     // never actually serving a stale model response back (rule 1.1 —
     // parameter, reversal cost one number, this file only).
     freshnessDays: 0,
-    costCents: reservedCents,
+    costCents: attemptCents,
     settleCents: (outcome) => costCentsFor(call.tier, outcome.tokensIn, outcome.tokensOut),
-    run: () =>
-      runAttempts(binding, call.schema, inputText, maxOutputTokens, tool, INFERENCE_TEMPERATURE[call.site], attempts),
+    run: (more) =>
+      runAttempts(binding, call.schema, inputText, maxOutputTokens, tool, INFERENCE_TEMPERATURE[call.site], attempts, async () => more === undefined || (await more(attemptCents))),
   });
 
   if ("skipped" in result) {
@@ -674,6 +678,7 @@ export async function llm<T>(
   if (outcome.parseOutcome === "success") {
     return measured(outcome.value as T, at);
   }
+  if (outcome.retryExhausted === "cap") return unmeasured("not_attempted", at);
   // "unparseable" and "unavailable" both degrade the caller into the
   // same `UnmeasuredReason` — see file header for why this is
   // `undeterminable`, not the `unparseable` BP-009's prose names.

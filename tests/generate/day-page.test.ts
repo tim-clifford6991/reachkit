@@ -357,6 +357,37 @@ describe("a short pack writes nothing (SPEC §7, D41 stage 2)", () => {
   });
 });
 
+describe("a second topic starts only where its write and its fix still fit the day's CAP_DRAFT", () => {
+  const next = opportunity({ id: "44444444-4444-4444-8444-444444444444", targetQuery: "project management software plan" });
+
+  /** Topic 1 written and stopped twice, with `leftCents` of the day's 45¢ left after it. */
+  async function dayWithLeft(leftCents: number) {
+    withCostContextMock.mockImplementationOnce(async (ctx: { cap: string }, run: (c: unknown) => Promise<unknown>) =>
+      run({ cap: ctx.cap, capHit: () => false, spentCents: () => 45 - leftCents, degraded: () => false })
+    );
+    pickMock.mockResolvedValueOnce(opportunity()).mockResolvedValueOnce(next);
+    queueAttempt(STOPPED);
+    queueAttempt(STOPPED_AGAIN);
+    // Its own words, so it is not a near-duplicate of topic 1's row.
+    queueAttempt(CLEAN_MARKDOWN, "budgets");
+    return generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
+  }
+
+  it("a day with less left than a write and a fix ends on topic 1's stop, which keeps the date", async () => {
+    const outcome = await dayWithLeft(12);
+    expect(outcome).toMatchObject({ ok: false, because: "rules", attempts: 2 });
+    expect(llmMock.mock.calls.map((call) => call[1].site)).toEqual(["generate.write", "generate.fix"]);
+    expect([...store.rows.values()].map((row) => [row.opportunity_id, row.scheduled_for])).toEqual([[opportunity().id, "2026-09-07"]]);
+  });
+
+  it("a day with 11-04's 31.4¢ left writes topic 2, which takes the date", async () => {
+    const outcome = await dayWithLeft(31.4);
+    expect(outcome.ok).toBe(true);
+    expect(llmMock.mock.calls.map((call) => call[1].site)).toEqual(["generate.write", "generate.fix", "generate.write"]);
+    expect([...store.rows.values()].find((row) => row.opportunity_id === next.id)?.scheduled_for).toBe("2026-09-07");
+  });
+});
+
 describe("issue 886 — the same evening tick delivered twice", () => {
   it("the second delivery stops on the date's own row, before the cost context and before a model call", async () => {
     store.seed({ id: "draft-today", scheduled_for: "2026-09-07", state: "in_review" });
