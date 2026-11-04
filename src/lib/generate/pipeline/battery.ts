@@ -174,6 +174,8 @@ export async function checkPage(
   const tried = outcome.passed || outcome.fit.state === "unrun" ? [] : repairable(outcome.failed);
   if (tried.length > 0) {
     const inputs = batteryInputs(b, page, markdown, at.comparison, settled);
+    const reading = (text: string) => ({ title: page.title, markdown: text, businessName: b.site.businessName, domain: b.site.domain, titleOwed: (inputs.titleRule.business?.length ?? 0) > 0 });
+    const named = stillAsked(outcome.fit, reading(markdown));
     const mended = repairRecorded(markdown, tried, {
         brief: b.brief,
         sources: [
@@ -184,12 +186,12 @@ export async function checkPage(
         rivalsNamed: b.rivalsNamed,
         prose: inputs.prose,
         // Issue 2375: the sentences the fit check named, and the blocks a drop may not break.
-        ...(outcome.fit.state === "failed" ? { fit: outcome.fit.sentences } : {}),
+        ...(named.state === "failed" ? { fit: named.sentences } : {}),
         kept: { title: page.title, blocks: inputs.blocks },
       });
     const repaired = withSources(mended.markdown, b.cited);
     // The verdict stands for the sentences the repaired page still asks about; no fit call is bought again.
-    const fit = stillAsked(outcome.fit, { title: page.title, markdown: repaired, businessName: b.site.businessName, domain: b.site.domain, titleOwed: (inputs.titleRule.business?.length ?? 0) > 0 });
+    const fit = stillAsked(outcome.fit, reading(repaired));
     const again = repaired === markdown ? null : await runHardRules(c, batteryInputs(b, page, repaired, at.comparison, settled, fit));
     const still = new Set(again === null || again.passed ? [] : again.failed.map((failure) => failure.rule));
     for (const rule of tried) {

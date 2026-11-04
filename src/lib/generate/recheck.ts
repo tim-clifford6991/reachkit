@@ -7,7 +7,7 @@
 // the sentences today's reading still asks about. Before the battery, code mends what it can from the row's own words:
 // the title is re-picked from the writer's stored candidates and code's floor title, never one carrying the business's promise figure (OR4),
 // which is held where none is clean; the description is fitted; a FAQ pair or a do-not-claim sentence the rules fail
-// is dropped. What still fails, or was never a page to check, is set aside at 0¢ (`needs_attention → skipped`), the row
+// is dropped, and so is a sentence the stored fit verdict named (issue 2375). What still fails, or was never a page to check, is set aside at 0¢ (`needs_attention → skipped`), the row
 // kept and its topic's rest as the stop left it.
 import { TOPIC_REST_DAYS } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
@@ -158,8 +158,12 @@ function mend(row: DraftRow, pack: ContextPack, basis: BatteryBasis, stopped: re
   const page: CheckedPage = { title, heading: title === stored && typeof meta.heading === "string" ? meta.heading : title, description, sections, faq: faq.faq };
   const claimed = withoutClaimed(row.body_md!, basis.site.doNotClaim);
   // Issue 2375: the sentences the stored fit verdict named go as the write's repair drops them, never the short
-  // answer or one a required block needs.
-  const unfit = withoutUnfit(claimed.markdown, storedFitSentences(stopped), { title, blocks: blockInputs(basis, page) });
+  // answer or one a required block needs; only those today's reading still asks about (a link's label is not one).
+  const named = stillAsked(
+    { state: "failed", sentences: storedFitSentences(stopped) },
+    { title, markdown: claimed.markdown, businessName: basis.site.businessName, domain: basis.site.domain, titleOwed: (titleRuleFor(pack, page).business?.length ?? 0) > 0 }
+  );
+  const unfit = withoutUnfit(claimed.markdown, named.state === "failed" ? named.sentences : [], { title, blocks: blockInputs(basis, page) });
   const dropped = [...claimed.dropped, ...unfit.dropped];
   return {
     page,

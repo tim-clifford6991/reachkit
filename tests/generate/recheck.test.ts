@@ -5,7 +5,7 @@
 import "./env";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fakeDb, type Row } from "../publish/harness";
-import { AT, fakeCost, opportunity, pack, pageParts, prose } from "./fixtures";
+import { AT, CLEAN_ANSWER, fakeCost, opportunity, pack, pageParts, prose } from "./fixtures";
 import { LOCAL_WORDPRESS, SAAS_HOSTED, measuredText, seedWorld, snapshot, type LiveSite } from "./live-edit-world";
 import stored from "./fixtures/dogfood-drafts-2026-10.min.json";
 import { GERMAN_NOT, GERMAN_NOT_FITTED } from "./fixtures/german-description";
@@ -33,6 +33,8 @@ const DAY = 86_400_000;
 const NOW = new Date("2026-10-01T09:00:00.000Z");
 /** The date whose window opens at NOW: 24 hours on, at the site's 09:00 UTC. */
 const D = "2026-10-02";
+/** A short answer that opens with a claim of fit. */
+const UNFIT_ANSWER = `Example keeps every seat on one bill. ${CLEAN_ANSWER}`;
 const STALE = [
   { rule: "title", detail: { rule: "title", faults: ["description"] } },
   { rule: "fit_claim", detail: { rule: "fit_claim", sentences: ["Acme vs Rival"] } },
@@ -56,9 +58,10 @@ function arrange(live: LiveSite): void {
 }
 
 /** A page the pipeline wrote and the rules then stopped as `rest()` does; every later model call throws. */
-async function stopped(live: LiveSite, a: { topic?: string; failed?: Row[]; attempts?: number; builtAt?: Date; first?: string; titles?: string[]; pack?: Partial<ContextPack> } = {}): Promise<string> {
+async function stopped(live: LiveSite, a: { topic?: string; failed?: Row[]; attempts?: number; builtAt?: Date; first?: string; answer?: string; titles?: string[]; pack?: Partial<ContextPack> } = {}): Promise<string> {
   const topic = a.topic ?? "seats";
-  llm.mockResolvedValue({ kind: "measured", value: pageParts(`${a.first ?? ""}${prose(topic, 300, 4)}\n\nTeams on the starter plan get 25 seats and unlimited projects for a flat monthly fee, per [the pricing page](${live.sourceUrl}).`, a.titles === undefined ? {} : { titles: a.titles }, topic), at: AT });
+  const over = { ...(a.titles === undefined ? {} : { titles: a.titles }), ...(a.answer === undefined ? {} : { answer: a.answer }) };
+  llm.mockResolvedValue({ kind: "measured", value: pageParts(`${a.first ?? ""}${prose(topic, 300, 4)}\n\nTeams on the starter plan get 25 seats and unlimited projects for a flat monthly fee, per [the pricing page](${live.sourceUrl}).`, over, topic), at: AT });
   const store = generateStore();
   const world = { site: siteRulesOf((await store.siteFacts(live.siteId))!, (await store.latestReport(live.siteId))!), facts: await readAllFacts({ siteId: live.siteId, scanId: "scan-1" }), opportunity: opportunity({ siteId: live.siteId }) };
   const outcome = await generateDraft(fakeCost(), { ...world, siteId: live.siteId, scheduledFor: "2026-09-20", pack: pack({ builtAt: (a.builtAt ?? AT).toISOString(), ...a.pack }), links: [] });
@@ -94,7 +97,8 @@ describe("a page that still fails is set aside at 0¢, the row kept and its topi
 
   it("still failing rows are set aside: one move each, every row and publication kept, the topic un-rested still", async () => {
     arrange(SAAS_HOSTED);
-    const id = await stopped(SAAS_HOSTED, { first: "Example keeps every seat on one bill. ", failed: [{ rule: "fit_claim", detail: { rule: "fit_claim", sentences: ["Example keeps every seat on one bill."] } }] });
+    // Issue 2375: a claim in the short answer is never dropped, so it still fails.
+    const id = await stopped(SAAS_HOSTED, { answer: UNFIT_ANSWER, failed: [{ rule: "fit_claim", detail: { rule: "fit_claim", sentences: ["Example keeps every seat on one bill."] } }] });
     const topic = db.rows("opportunities").find((each) => each.id === row(id).opportunity_id)!;
     topic.rest_until = null;
     const before = row(id).transitions as Row[];
@@ -122,7 +126,7 @@ describe("a page that still fails is set aside at 0¢, the row kept and its topi
   it("with only failing candidates every one is set aside, and the day goes on to write its next topic", async () => {
     arrange(SAAS_HOSTED);
     const failed = [{ rule: "fit_claim", detail: { rule: "fit_claim", sentences: ["Example keeps every seat on one bill."] } }];
-    const ids = [await stopped(SAAS_HOSTED, { first: "Example keeps every seat on one bill. ", failed }), await stopped(SAAS_HOSTED, { topic: "billing", first: "Example keeps every seat on one bill. ", failed })];
+    const ids = [await stopped(SAAS_HOSTED, { answer: UNFIT_ANSWER, failed }), await stopped(SAAS_HOSTED, { topic: "billing", answer: UNFIT_ANSWER, failed })];
     expect(await recheck(SAAS_HOSTED)).toBeNull();
     expect(ids.map((id) => row(id).state)).toEqual(["skipped", "skipped"]);
     expect(llm).not.toHaveBeenCalled();

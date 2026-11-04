@@ -25,10 +25,12 @@ const FAQ = [
 ];
 const measured = (value: unknown) => ({ kind: "measured", value, at: AT });
 
-/** The fixture's parts as a listicle that passes; `faulty` adds the phrase three times and the two fit claims. */
-function listicleParts(faulty = false) {
-  const parts = pageParts();
-  const added = faulty ? [SAYINGS[0], `${SAYINGS[1]} ${FITS[0]}`, `${SAYINGS[2]} ${FITS[1]}`] : [];
+/** The fixture's parts as a listicle that passes; `faulty` adds the phrase three times and the two fit claims, in the
+ *  sections' prose, or as two of the three takeaways, where dropping one would leave them under their least (#2375). */
+function listicleParts(faulty = false, fits: "prose" | "takeaways" = "takeaways") {
+  const base = pageParts();
+  const parts = faulty && fits === "takeaways" ? { ...base, takeaways: [FITS[0]!, FITS[1]!, base.takeaways[2]!] } : base;
+  const added = !faulty ? [] : fits === "prose" ? [SAYINGS[0], `${SAYINGS[1]} ${FITS[0]}`, `${SAYINGS[2]} ${FITS[1]}`] : SAYINGS;
   const sections = parts.sections.map((section, index) => ({
     ...section,
     key: KEYS[index] ?? section.key,
@@ -39,9 +41,9 @@ function listicleParts(faulty = false) {
 
 let fitAnswered = false;
 /** The write, a fit check naming the fit claims it is handed, and `fix`. */
-function answers(fix: unknown): void {
+function answers(fix: unknown, fits: "prose" | "takeaways" = "takeaways"): void {
   llmMock.mockImplementation(async (_c: unknown, call: { site: string; input: { sentences?: { index: number; sentence: string }[] } }) => {
-    if (call.site === "generate.write") return measured(listicleParts(true));
+    if (call.site === "generate.write") return measured(listicleParts(true, fits));
     if (call.site === "generate.fix") return fix;
     fitAnswered = true;
     return measured({ unsupported: (call.input.sentences ?? []).filter((each) => FITS.includes(each.sentence)).map((each) => ({ index: each.index, claims: "an audience" })) });
@@ -69,6 +71,12 @@ beforeEach(() => {
 afterEach(() => setGenerateStore(null));
 
 describe("a page left with only claims of fit after the repair", () => {
+  it("issue 2375: fit claims in the prose are dropped in code too, and the page passes with no fix call", async () => {
+    answers(measured(listicleParts()), "prose");
+    expect(await run()).toMatchObject({ ok: true });
+    expect(fixCalls()).toEqual([]);
+  });
+
   it("is repaired in code, then its one fix call carries both fit sentences and no prose note", async () => {
     answers(measured(listicleParts()));
     expect(await run()).toMatchObject({ ok: true });
