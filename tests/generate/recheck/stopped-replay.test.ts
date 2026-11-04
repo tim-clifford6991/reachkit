@@ -17,6 +17,8 @@ vi.mock("@/lib/llm", () => ({ llm: async () => Promise.reject(new Error("the re-
 import type { ContextPack } from "@/lib/generate/pipeline/pack";
 import { repairable } from "@/lib/generate/pipeline/repair";
 import { recheckRow, type RecheckFixes, type RecheckWorld } from "@/lib/generate/recheck";
+import { specificOnly } from "@/lib/generate/rules/title";
+import type { RuleFailure } from "@/lib/generate/rules/types";
 import type { DraftRow } from "@/lib/generate/store";
 
 type Fact = { passage: string; url: string; readAt: string };
@@ -65,7 +67,10 @@ async function replay(name: string, [row, world]: [DraftRow, RecheckWorld]): Pro
   const rules = [...new Set(outcome.failed.map((failure) => failure.rule))];
   const verdict = outcome.passed ? "passes" : rules.length === 1 && rules[0] === "fit_claim" ? "fails only on fit_claim" : `fails on ${rules.join(", ") || (outcome.close ? "elsewhere" : `fit ${outcome.fit}`)}`;
   const mended = repairable(outcome.failed);
-  const fails = outcome.failed.map((failure) => `- Fails ${failure.rule}: ${JSON.stringify({ ...failure.detail, rule: undefined })}${mended.includes(failure.rule) ? " (a 0¢ repair in code)" : ""}`);
+  // A title short only of its specific goes on once nothing else fails (ruling 2026-10-11, `lacksSpecificOnly`).
+  const unmet = (failure: RuleFailure) => failure.detail?.rule === "title" && "faults" in failure.detail && specificOnly(failure.detail.faults);
+  const repair = (failure: RuleFailure) => (mended.includes(failure.rule) ? " (a 0¢ repair in code)" : unmet(failure) ? " (goes on at 0¢ once it is the only failure)" : "");
+  const fails = outcome.failed.map((failure) => `- Fails ${failure.rule}: ${JSON.stringify({ ...failure.detail, rule: undefined })}${repair(failure)}`);
   return [...head, `- Today: ${verdict}, ${outcome.spentCents}¢`, ...(fixes.title === undefined ? [] : [`- Title: "${fixes.titleBefore}" → "${fixes.title}"`]), ...fails, ""].join("\n");
 }
 
@@ -74,4 +79,13 @@ it("the morning re-check over stored stopped drafts gives each row's stored outc
   const out = ["# Stopped drafts through the morning re-check", ""];
   for (const [name, each] of rows) out.push(await replay(name, each));
   await expect(out.join("\n")).toMatchFileSnapshot("../../golden/recheck/stopped.md");
+});
+
+
+it("0f95686d with its fit_claim sentences dropped, as #2375 drops them, passes at 0¢ on the floor title, its want of a specific let go", async () => {
+  const [row, world] = dogfood("0f95686d");
+  const fit = (row.rule_failures as { rule: string; detail: { sentences?: string[] } }[]).find((each) => each.rule === "fit_claim")!.detail.sentences!;
+  expect(fit.every((sentence) => row.body_md!.includes(sentence))).toBe(true);
+  const outcome = await recheckRow({ ...row, body_md: fit.reduce((body, sentence) => body.replace(sentence, ""), row.body_md!) }, world);
+  expect(outcome).toMatchObject({ kind: "checked", passed: true, failed: [], spentCents: 0, patch: { title: "Best AI search visibility tools (2026)" } });
 });

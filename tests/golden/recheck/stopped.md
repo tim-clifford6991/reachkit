@@ -16,7 +16,7 @@
 - Stopped on: rival_negative, required_blocks, no_demo_text, title
 - Today: fails on required_blocks, title, 0¢
 - Fails required_blocks: {"block":"sections"}
-- Fails title: {"faults":["specific"]}
+- Fails title: {"faults":["specific"]} (goes on at 0¢ once it is the only failure)
 
 ## ecf4f99d: qa, "is seo dead now with ai"
 
@@ -29,7 +29,7 @@
 - Stopped on: plain_prose, fit_claim
 - Today: fails on title, fit_claim, 0¢
 - Title: "5 AI search visibility tools for founders (2026)" → "Best AI search visibility tools (2026)"
-- Fails title: {"faults":["specific"]}
+- Fails title: {"faults":["specific"]} (goes on at 0¢ once it is the only failure)
 - Fails fit_claim: {"sentences":["ReachKit and Analyze AI are the two that name writers or pages as part of what you get, which matters if your actual problem is empty pages rather than a missing dashboard.","The limit from its own description: it frames itself around measuring and improving presence, which reads as tracking plus guidance rather than ReachKit's own page publishing."]}
 
 ## baeckerei-hinkel.de: documentation, "sauerteigbrot düsseldorf"

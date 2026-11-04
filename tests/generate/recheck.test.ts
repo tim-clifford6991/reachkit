@@ -108,15 +108,16 @@ describe("a page that still fails is set aside at 0¢, the row kept and its topi
     expect(llm).not.toHaveBeenCalled();
   });
 
-  it("a title short only of its specific is set aside while unsettled, and a settled one beside it enters review in the same run", async () => {
+  // Ruling 2026-10-11: where the fix call cannot start, a title short only of its specific goes on, marked. The re-check
+  // starts none, so a page with one attempt is let go on as one with two is.
+  it.each([1, 2])("a page whose one failure is its title's want of a specific, after %i attempts, enters review, the title marked specific_unmet, at 0¢", async (attempts) => {
     arrange(SAAS_HOSTED);
     const title = "Project management software plan that fits a small team";
-    const [unsettled, settled] = [await stopped(SAAS_HOSTED, { attempts: 1, builtAt: new Date(AT.getTime() + DAY) }), await stopped(SAAS_HOSTED, { topic: "billing" })];
-    for (const id of [unsettled, settled]) Object.assign(row(id), { title, meta: { ...(row(id).meta as Row), titles: [{ title }] } });
+    const id = await stopped(SAAS_HOSTED, { attempts });
+    Object.assign(row(id), { title, meta: { ...(row(id).meta as Row), titles: [{ title }] } });
     await recheck(SAAS_HOSTED);
-    expect([row(unsettled).state, row(settled).state]).toEqual(["skipped", "in_review"]);
-    expect(row(unsettled).rule_failures).toMatchObject([{ rule: "title", detail: { faults: ["specific"] } }]);
-    retiredBy(unsettled, "retired:title");
+    expect(row(id)).toMatchObject({ state: "in_review", hard_rules_passed: true, rule_failures: [], meta: { titles: [{ title, ...(attempts === 1 ? { specific_unmet: true } : {}) }] } });
+    expect(llm).not.toHaveBeenCalled();
   });
 
   it("with only failing candidates every one is set aside, and the day goes on to write its next topic", async () => {
@@ -336,6 +337,18 @@ describe("OR4: a promise-figure title never enters review", () => {
     Object.assign(row(id), { title: titles[0], meta: { ...(row(id).meta as Row), titles: titles.map((title) => ({ title })) } });
     await recheck(SAAS_HOSTED);
     expect(row(id)).toMatchObject({ state: "in_review", title: floor, meta: { recheck: { titleBefore: titles[0], title: floor } } });
+    expect(llm).not.toHaveBeenCalled();
+  });
+
+  it("the re-check never takes a floor title that stops the page as more than a want of a specific: the stored title stays", async () => {
+    arrange(SAAS_HOSTED);
+    const search = "peec ai vs otterly vs profound comparison";
+    const twice = "Peec AI vs Otterly vs Profound comparison: the ultimate guide";
+    const id = await stopped(SAAS_HOSTED, { titles: [twice], pack: { target: { question: search, searches: [search] }, business: { ...pack().business, rivals: ["peec.ai", "otterly.ai", "tryprofound.com"] } } });
+    Object.assign(row(id), { title: twice, meta: { ...(row(id).meta as Row), titles: [{ title: twice }] } });
+    await recheck(SAAS_HOSTED);
+    expect(row(id)).toMatchObject({ state: "skipped", title: twice });
+    expect(row(id).meta).not.toHaveProperty("recheck.title");
     expect(llm).not.toHaveBeenCalled();
   });
 
