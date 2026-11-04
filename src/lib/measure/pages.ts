@@ -2,13 +2,14 @@
 // src/lib/measure/pages.ts — the pages Content reads and how a stored read
 // of one is read (issue 1551), apart from `index.ts` so the re-score, which
 // reaches no network and loads no vendor, reads them as a pass does.
+import { parse } from "node-html-parser";
 import { BATTERY } from "@/lib/config/constants";
 import { pagePathAlternation } from "@/lib/locale/language";
 import { BOT_PROTECTION, challengeOf } from "./challenge";
 import { answerabilityOf } from "./drivers";
 import { measured, measuredZero, unmeasured, type Measured } from "./measured";
 import { isStoredDocument, type StoredDocument } from "./own-fetch";
-import { parseOnPage, type OnPageFacts } from "./parse";
+import { MARKUP_OPTIONS, parseOnPage, type OnPageFacts } from "./parse";
 
 export type Tier = "free" | "deep" | "weekly";
 
@@ -39,7 +40,6 @@ export function stampedAt<T>(m: Measured<T>, at: Date): Measured<T> {
 // reads beside the home, found by its link on the home document: the
 // first same-host anchor whose path's last segment is a pricing word.
 // Deterministic — document order, first match.
-const ANCHOR_HREF_RE = /<a\b[^>]*?\bhref\s*=\s*(?:"([^"]*)"|'([^']*)')[^>]*>/gi;
 // The other supported languages name the same page in their own words (D66).
 const PRICING_PATH_RE = new RegExp(`(?:^|/)(?:pricing|prices?|plans|${pagePathAlternation("pricing")})/?$`, "i");
 
@@ -50,10 +50,8 @@ export function detectPricingUrl(html: string, homeUrl: string): string | null {
   } catch {
     return null;
   }
-  ANCHOR_HREF_RE.lastIndex = 0;
-  let match: RegExpExecArray | null;
-  while ((match = ANCHOR_HREF_RE.exec(html)) !== null) {
-    const href = match[1] ?? match[2] ?? "";
+  for (const anchor of parse(html, MARKUP_OPTIONS).querySelectorAll("a[href]")) {
+    const href = anchor.getAttribute("href") ?? "";
     if (!href) continue;
     try {
       const resolved = new URL(href, home);

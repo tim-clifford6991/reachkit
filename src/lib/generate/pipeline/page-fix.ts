@@ -18,6 +18,7 @@
 // new values, and the values they replace — so the draft view and the
 // delivery read one record and cannot disagree about what changes.
 import { siteLocale } from "@/lib/locale/site";
+import { parse, type HTMLElement } from "node-html-parser";
 import { z } from "zod";
 import { CACHE_WINDOWS_D, SITE_PROFILE } from "@/lib/config/constants";
 import { refusalOf, type CostContext, type FetchRefusal } from "@/lib/costs";
@@ -40,9 +41,6 @@ import type { GenerateOutcome } from "./index";
 
 const GENERATING = "generating";
 
-const TITLE_RE = /<title[^>]*>([\s\S]*?)<\/title>/i;
-const H1_RE = /<h1\b[^>]*>([\s\S]*?)<\/h1>/i;
-
 const FIX_SCHEMA = z.strictObject({ title: z.string(), description: z.string() });
 
 /** What a `fix_page` draft records in `drafts.meta.fix`. */
@@ -57,9 +55,9 @@ export interface PageFixRecord {
   before: { title: string; description: string };
 }
 
-function firstText(html: string, re: RegExp): string {
-  const match = re.exec(html);
-  return match === null ? "" : visibleText(match[1] ?? "").trim();
+/** The first `selector` element's words, as a reader meets them; "" where the page has none. */
+function firstText(root: HTMLElement, selector: string): string {
+  return visibleText(root.querySelector(selector)?.innerHTML ?? "").trim();
 }
 
 /** The page, cache-first under the crawl's own key. `null` where it could not
@@ -112,8 +110,9 @@ export async function generatePageFix(
     return { ok: false, reason: "step_failed", draftId: a.draftId ?? null, step: "page_read" };
   }
 
+  const root = parse(page.html);
   const before = {
-    title: firstText(page.html, TITLE_RE),
+    title: firstText(root, "title"),
     description: readPageFacts(pageUrl, page.html).metaDescription,
   };
   const fixesTitle = issues.includes("page_titles");
@@ -138,7 +137,7 @@ export async function generatePageFix(
         pageUrl,
         rewrite: { title: fixesTitle, description: fixesDescription },
         current: before,
-        heading: firstText(page.html, H1_RE),
+        heading: firstText(root, "h1"),
         text: visibleText(page.html).slice(0, SITE_PROFILE.VOICE_INPUT_MAX_CHARS),
         otherTitles: a.otherTitles,
       },

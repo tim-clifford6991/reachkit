@@ -67,6 +67,7 @@
 //
 // **Research never stops a page.** A site whose market yields no readable
 // page is written from its business facts alone, as before this step.
+import { parse, type HTMLElement } from "node-html-parser";
 import { z } from "zod";
 import { CACHE_WINDOWS_D, HEADING_GAPS, RESEARCH } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
@@ -197,20 +198,21 @@ interface Wanted {
   source?: string;
 }
 
-const PUBLISHED_RES: readonly RegExp[] = [
-  /<meta\b[^>]*\b(?:property|name|itemprop)\s*=\s*["'](?:article:published_time|datePublished|date|pubdate|publish-date|og:published_time)["'][^>]*\bcontent\s*=\s*["']([^"']+)["']/i,
-  /<meta\b[^>]*\bcontent\s*=\s*["']([^"']+)["'][^>]*\b(?:property|name|itemprop)\s*=\s*["'](?:article:published_time|datePublished)["']/i,
-  /"datePublished"\s*:\s*"([^"]+)"/i,
-  /<time\b[^>]*\bdatetime\s*=\s*["']([^"']+)["']/i,
-];
+const PUBLISHED_NAMES: ReadonlySet<string> = new Set(["article:published_time", "datepublished", "date", "pubdate", "publish-date", "og:published_time"]);
 
 /** The day a page says it was published, as its own markup states it —
  *  a meta tag, its structured data or a `<time>` — or `null` where it
  *  states none. Never read off the prose and never guessed. */
 export function publishedOf(html: string): string | null {
-  for (const pattern of PUBLISHED_RES) {
-    const found = pattern.exec(html)?.[1];
-    if (found === undefined) continue;
+  const root = parse(html);
+  const named = (meta: HTMLElement) => meta.getAttribute("property") ?? meta.getAttribute("name") ?? meta.getAttribute("itemprop") ?? "";
+  const stated = [
+    ...root.querySelectorAll("meta[content]").filter((meta) => PUBLISHED_NAMES.has(named(meta).toLowerCase())).map((meta) => meta.getAttribute("content")),
+    /"datePublished"\s*:\s*"([^"]+)"/i.exec(html)?.[1],
+    root.querySelector("time[datetime]")?.getAttribute("datetime"),
+  ];
+  for (const found of stated) {
+    if (found === undefined || found === "") continue;
     const at = new Date(found);
     if (!Number.isNaN(at.getTime())) return at.toISOString().slice(0, 10);
   }
@@ -274,7 +276,7 @@ async function fetchPage(url: string): Promise<{ page: ReadPage; html: string } 
   if (body === null) return null;
   const text = visibleText(body.html);
   if (text.split(/\s+/).length < RESEARCH.minWords) return null;
-  const title = visibleText(/<title\b[^>]*>([\s\S]*?)<\/title>/i.exec(body.html)?.[1] ?? "").trim();
+  const title = visibleText(parse(body.html).querySelector("title")?.innerHTML ?? "").trim();
   return {
     page: {
       url: body.url,
@@ -300,7 +302,11 @@ const RIVAL_LABEL_RES = {
   rival_pricing: new RegExp(`^(?:pricing|plans|${pagePathAlternation("pricing")})$`, "i"),
   rival_features: new RegExp(`^(?:features|product|platform|${pagePathAlternation("features", "product")})$`, "i"),
 } as const;
-const ANCHOR_RE = /<a\b[^>]*\bhref\s*=\s*["']([^"'#]+)["'][^>]*>([\s\S]*?)<\/a>/gi;
+/** Every `<a href>` of a page and the words it carries; an empty or in-page `#…` address goes nowhere. */
+function anchorsOf(html: string): { href: string; label: string }[] {
+  const anchors = parse(html).querySelectorAll("a[href]").map((a) => ({ href: a.getAttribute("href")?.trim() ?? "", label: visibleText(a.innerHTML).trim() }));
+  return anchors.filter((anchor) => anchor.href !== "" && !anchor.href.startsWith("#"));
+}
 const LOC_RE = /<loc>\s*(?:<!\[CDATA\[)?\s*([^<\]\s]+)/gi;
 const FILE_RE = /\.(?!html?$)[a-z0-9]{2,5}$/i;
 
@@ -319,12 +325,7 @@ export function rivalPage(
   sitemap: readonly string[]
 ): string | null {
   const hosts = new Set([domain, ...(home === null ? [] : [hostOf(home.url)])]);
-  const links: { href: string; label: string }[] = [];
-  if (home !== null) {
-    ANCHOR_RE.lastIndex = 0;
-    let match: RegExpExecArray | null;
-    while ((match = ANCHOR_RE.exec(home.html)) !== null) links.push({ href: match[1]!.replace(/&amp;/g, "&"), label: visibleText(match[2] ?? "").trim() });
-  }
+  const links = home === null ? [] : anchorsOf(home.html);
   let best: { url: string; rank: number } | null = null;
   for (const link of [...links, ...sitemap.map((href) => ({ href, label: "" }))]) {
     let url: URL;
@@ -426,18 +427,16 @@ export function namedProducts(pages: readonly { url: string; html: string }[], o
   let seen = 0;
   for (const page of pages) {
     const site = registrableDomain(page.url) ?? hostOf(page.url);
-    ANCHOR_RE.lastIndex = 0;
-    let match: RegExpExecArray | null;
-    while ((match = ANCHOR_RE.exec(page.html)) !== null) {
+    for (const link of anchorsOf(page.html)) {
       let url: URL;
       try {
-        url = new URL(match[1]!.replace(/&amp;/g, "&"), page.url);
+        url = new URL(link.href, page.url);
       } catch {
         continue;
       }
       const domain = /^https?:$/.test(url.protocol) ? registrableDomain(url.hostname) : null;
       if (domain === null || domain === site || sameSite(domain, own) || brandOf(domain).length < 3 || isPlatformDomain(domain)) continue;
-      const name = productName(visibleText(match[2] ?? "").trim(), domain);
+      const name = productName(link.label, domain);
       if (name === null) continue;
       const held = found.get(domain) ?? { name, on: new Set<string>(), first: seen++ };
       held.on.add(site);

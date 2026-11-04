@@ -6,6 +6,7 @@
 // Identity is not readability: it comes from the document's own canonical, `og:url` or `<title>`, so a JavaScript-gated
 // page stays `found` and fails the readability check. This module never imports `bodyCoverage`.
 // A CMS with none of the three reads as `not_our_page`: the safe direction, asserting nothing.
+import { parse, type HTMLElement } from "node-html-parser";
 import type { NotConfirmed } from "../types";
 
 /** One fetch of the page's own address; `status: null` is no HTTP answer at all, for whatever reason. */
@@ -44,38 +45,25 @@ function sameAddress(a: string, b: string): boolean {
   return left !== null && right !== null && left === right;
 }
 
-function attribute(tag: string, name: string): string | null {
-  const match = new RegExp(`\\b${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)')`, "i").exec(tag);
-  if (match === null) return null;
-  return match[1] ?? match[2] ?? null;
-}
-
 /** The first `<link rel="canonical">`'s `href`, or null; `rel` may carry several tokens. */
-function canonicalHref(html: string): string | null {
-  for (const [tag] of html.matchAll(/<link\b[^>]*>/gi)) {
-    const rel = attribute(tag, "rel");
-    if (rel === null) continue;
-    if (!rel.toLowerCase().split(/\s+/).includes("canonical")) continue;
-    const href = attribute(tag, "href");
-    if (href !== null && href !== "") return href;
+function canonicalHref(root: HTMLElement): string | null {
+  for (const link of root.querySelectorAll("link[rel]")) {
+    if (!(link.getAttribute("rel") ?? "").toLowerCase().split(/\s+/).includes("canonical")) continue;
+    const href = link.getAttribute("href");
+    if (href !== undefined && href !== "") return href;
   }
   return null;
 }
 
 /** The `content` of the first `<meta property="og:url">`. */
-function openGraphUrl(html: string): string | null {
-  for (const [tag] of html.matchAll(/<meta\b[^>]*>/gi)) {
-    const property = attribute(tag, "property") ?? attribute(tag, "name");
-    if (property === null || property.toLowerCase() !== "og:url") continue;
-    const content = attribute(tag, "content");
-    if (content !== null && content !== "") return content;
+function openGraphUrl(root: HTMLElement): string | null {
+  for (const meta of root.querySelectorAll("meta")) {
+    const property = meta.getAttribute("property") ?? meta.getAttribute("name");
+    if (property === undefined || property.toLowerCase() !== "og:url") continue;
+    const content = meta.getAttribute("content");
+    if (content !== undefined && content !== "") return content;
   }
   return null;
-}
-
-function documentTitle(html: string): string | null {
-  const match = /<title\b[^>]*>([\s\S]*?)<\/title>/i.exec(html);
-  return match === null ? null : (match[1] ?? null);
 }
 
 /** Lowercase words; a `<title>` usually carries the site's name, so the published title's words need only be present. */
@@ -97,14 +85,15 @@ export function isOurPage(
   html: string,
   a: { requestedUrl: string; publishedTitle: string }
 ): boolean {
-  const declared = canonicalHref(html) ?? openGraphUrl(html);
+  const root = parse(html);
+  const declared = canonicalHref(root) ?? openGraphUrl(root);
   if (declared !== null) {
     const absolute = resolve(declared, a.requestedUrl);
     return absolute !== null && sameAddress(absolute, a.requestedUrl);
   }
 
-  const title = documentTitle(html);
-  if (title === null) return false;
+  const title = root.querySelector("title")?.text;
+  if (title === undefined) return false;
   const wanted = titleWords(a.publishedTitle);
   if (wanted.length === 0) return false;
   const found = new Set(titleWords(title));
