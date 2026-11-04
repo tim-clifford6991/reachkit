@@ -5,9 +5,10 @@
 // writer proposes by it, and stage 4 checks it (`../rules/title.ts`) — from
 // this one reading, so the title a writer is asked for, the title code picks
 // and the title the check passes are one description.
-import { languagePack, SHAPES } from "@/lib/locale/language";
+import { SHAPES } from "@/lib/locale/language";
 import { TITLE } from "@/lib/config/constants";
 import { brandOf } from "@/lib/market/questions/select";
+import { briefLinesOf } from "../rules/brief-lines";
 import { namedRivals } from "../rules/rivals";
 import { numeralsOf } from "../rules/figures";
 import { addedNames, asksQuestion, closestTitle, names, pickTitle, withoutSerials, type TitleRuleInputs } from "../rules/title";
@@ -166,7 +167,6 @@ export function promiseFigures(title: string, pack: ContextPack): string[] {
 export function titleBrief(pack: ContextPack): Record<string, unknown> {
   const rule = titleRuleFor(pack, { description: "" });
   const dated = (TITLE.yearTypes as readonly string[]).includes(pack.type);
-  const words = languagePack(pack.locale?.language ?? "en").title;
   const titled = (specific: string): string => `${casedAsPack(rule.terms[0] ?? "", pack, rule)}: ${specific}`;
   const passes = (specific: string): boolean => pickTitle([titled(specific)], rule).candidates[0]?.faults.length === 0 && promiseFigures(titled(specific), pack).length === 0;
   const names = addedNames(rule).filter(passes).slice(0, TITLE.namesTold);
@@ -181,21 +181,7 @@ export function titleBrief(pack: ContextPack): Record<string, unknown> {
     figures,
     // Titles code checked against every rule below.
     titles: [...new Set([...figures, ...names].map(titled))].slice(0, TITLE.candidates).concat(floor === null ? [] : [floor]),
-    rules: [
-      `${TITLE.chars.min} to ${TITLE.chars.max} characters, counted, spaces included: write ${TITLE.aim.min} to ${TITLE.aim.max}, which is eight to ten words. A title of ${TITLE.chars.max + 1} or more is thrown away, so make the first of the titles the shortest that holds these rules: the search's own words, then one detail of at most five words, and nothing else.`,
-      `One of \`searches\`${rule.follow.length === 0 ? "" : " or of `pack.questions`"}, in the searcher's own words, starts within its first ${TITLE.headChars} characters.`,
-      "It carries one specific that `pack` holds: a number, a price or a measured result in the digits `pack` states it in (`figures` lists some), or a count of this page's own options, questions or numbered steps; or one of `names`, where it lists any. A year is not a number, neither is the number of an episode, an issue or a volume, and a question, an award, an adjective or who the page is for is not a specific.",
-      "A figure beside a product's name is one that product's own pages state, or the business's own where the title names the business too; state no figure that belongs to another.",
-      "`titles` are titles code has checked against every one of these rules: propose better ones that hold them all, or these as they are.",
-      rule.asks
-        ? "The search is a question, so it may be that question; a statement that answers it is as good."
-        : "It is a statement that answers the search, never a question: the search is not one.",
-      dated
-        ? "It may carry `year`, in brackets or before a colon, never as its last word, and no other year."
-        : "It carries no year.",
-      `Never ${words.banned.map((phrase) => `"${phrase}"`).join(", ")}, a filler verb or stock phrase like ${words.tropeSamples.map((phrase) => `"${phrase}"`).join(", ")}, two things joined by "and" after "How to", a square bracket, a pipe, or the same word twice.`,
-      "It does not read like the title of any page in `pack.pages`.",
-      ...(rule.business === undefined ? [] : [`The search compares products and this page is the business's own, so it names the business, as "${rule.business[0]}", beside the products the search names.`]),
-    ],
+    // Issue 2378: the title rule's lines, from the one list every prompt renders.
+    rules: briefLinesOf("title", { pack, template: TEMPLATES[pack.type], pageType: null, titleRule: rule }),
   };
 }
