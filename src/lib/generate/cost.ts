@@ -15,6 +15,8 @@
 //     (`drafts.cost_cents`), and writing it onto the scan would overstate
 //     what the scan cost and flip a degraded scan back to done.
 import { withCostContext, type CostContext } from "@/lib/costs";
+import { CAPS, INFERENCE_MAX_OUTPUT_TOKENS } from "@/lib/config/constants";
+import { costCentsFor } from "@/lib/llm/tiers";
 
 /** The cache-invalidation generation this engine's `recordFetch` reads are
  *  keyed against. Nothing in the product pins a "current generation policy"
@@ -41,4 +43,12 @@ export function withDraftCost<T>(
     },
     body
   );
+}
+
+/** The least a page's write and its one fix reserve: their output budgets on the writer's tier. */
+const WRITE_AND_FIX_CENTS = costCentsFor("writer", 0, INFERENCE_MAX_OUTPUT_TOKENS["generate.write"] + INFERENCE_MAX_OUTPUT_TOKENS["generate.fix"]);
+
+/** Whether the day's context can still pay for a page and its fix, so a second topic is never written unrepairable. */
+export function roomForFix(cost: CostContext): boolean {
+  return CAPS.DRAFT_C - cost.spentCents() >= WRITE_AND_FIX_CENTS;
 }
