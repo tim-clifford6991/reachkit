@@ -7,6 +7,8 @@ import { expect, it, vi } from "vitest";
 import { fakeDb } from "../../publish/harness";
 import { opportunity } from "../fixtures";
 import october from "../fixtures/dogfood-drafts-2026-10.min.json";
+import ecf4f99d from "../fixtures/q4-ecf4f99d-2026-11.json";
+import f0f95686d from "../fixtures/q4-0f95686d-2026-11.json";
 
 const db = fakeDb();
 vi.mock("@/lib/db", () => ({ dbAdmin: () => db.client, db: () => db.client }));
@@ -31,8 +33,11 @@ function replayed(row: DraftRow, site: Omit<RecheckWorld["site"], "businessName"
   return [row, world as unknown as RecheckWorld];
 }
 
+// The 11-04 export holds no state or moves: each is stopped as `rest()` stops it.
+const STORED: { id: string }[] = [...october.drafts, ...[ecf4f99d, f0f95686d].map((row) => ({ state: "needs_attention", transitions: [{ from: "generating", to: "needs_attention", at: row.meta.pack.builtAt, reason: `rules:${row.rule_failures.map((each) => each.rule).join(",")}` }], ...row }))];
+
 function dogfood(id: string): [DraftRow, RecheckWorld] {
-  const row = { site_id: "s-dogfood", ...october.drafts.find((each) => each.id.startsWith(id))! } as unknown as DraftRow;
+  const row = { site_id: "s-dogfood", ...STORED.find((each) => each.id.startsWith(id))! } as unknown as DraftRow;
   const p = (row.meta as { pack: ContextPack }).pack;
   return replayed(row, { domain: "reachkit.app", doNotClaim: [], rivals: p.business.rivals ?? [] }, [row.grounded_fact as Fact, ...p.facts], "comparison_page");
 }
@@ -65,7 +70,7 @@ async function replay(name: string, [row, world]: [DraftRow, RecheckWorld]): Pro
 }
 
 it("the morning re-check over stored stopped drafts gives each row's stored outcome and failing rules, at 0¢", async () => {
-  const rows = [...["abe42ff7", "a6d24b00", "f1ec6a58"].map((id) => [id, dogfood(id)] as const), ...Object.keys(PANEL).map((domain) => [domain, panel(domain)] as const)];
+  const rows = [...["abe42ff7", "a6d24b00", "f1ec6a58", "ecf4f99d", "0f95686d"].map((id) => [id, dogfood(id)] as const), ...Object.keys(PANEL).map((domain) => [domain, panel(domain)] as const)];
   const out = ["# Stopped drafts through the morning re-check", ""];
   for (const [name, each] of rows) out.push(await replay(name, each));
   await expect(out.join("\n")).toMatchFileSnapshot("../../golden/recheck/stopped.md");

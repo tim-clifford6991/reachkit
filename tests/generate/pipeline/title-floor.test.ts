@@ -4,6 +4,7 @@ import { expect, it } from "vitest";
 import { floorTitle } from "@/lib/generate/pipeline/title";
 import type { ContextPack } from "@/lib/generate/pipeline/pack";
 import { pack } from "../fixtures";
+import STORED from "../fixtures/q4-0f95686d-2026-11.json";
 
 const team = "which plan fits a small design team";
 const market = (searchTerm: string): Partial<ContextPack> => ({ business: { ...pack().business, market: { searchTerm } } });
@@ -16,7 +17,13 @@ it.each([
   ["a search longer than a title", `best ${"project management ".repeat(4)}software`, {}, null],
   ["a page the site has that reads almost the same", team, { pages: [{ url: "https://example.com/plans", title: "Which plan fits a small design team?" }] as never }, null],
   ["no such page", team, {}, "Which plan fits a small design team"],
+  ["the first search that fits a title, where the first is too short", "is seo dead now", { target: { question: "is seo dead now", searches: ["is seo dead now", "generative engine optimization examples"] } }, "Generative engine optimization examples"],
+  ["a brand as its business spells it, a word a passage opens with as typed", "is acme free for guests on a small team", {}, "Is Acme free for guests on a small team"],
   ["a German search, its own words and case", "sauerteigbrot aus der backstube in düsseldorf", { type: "research", locale: { country: "DE", language: "de" } }, "Sauerteigbrot aus der backstube in düsseldorf (2026)"],
 ] as const)("floorTitle: %s", (_, search, over, title) => {
   expect(floorTitle(pack({ target: { question: search, searches: [search] }, ...(over as Partial<ContextPack>) }))).toBe(title);
+});
+
+it("floorTitle: an acronym as the pack's passages case it, on 0f95686d's own pack", () => {
+  expect(floorTitle(STORED.meta.pack as unknown as ContextPack)).toBe("Best AI search visibility tools (2026)");
 });

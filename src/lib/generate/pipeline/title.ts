@@ -103,17 +103,25 @@ export function titleRuleFor(pack: ContextPack, page: TitledPage): TitleRuleInpu
   };
 }
 
-/** The search as typed, sentence-cased. */
-const searchHead = (rule: TitleRuleInputs): string => rule.terms[0]?.trim().replace(/^\p{Ll}/u, (first) => first.toUpperCase()) ?? "";
+/** A search as typed, sentence-cased, each word as the pack's names spell it, or its passages where they case it
+ *  inside the word ("AI", "ChatGPT"): a word only capitalised to open a sentence is left as typed. */
+function casedAsPack(term: string, pack: ContextPack, rule: TitleRuleInputs): string {
+  const names = [...(rule.owners?.rivals ?? []), ...(rule.owners === undefined ? [] : [rule.owners.business])].flatMap((owner) => owner.names);
+  const cased = new Map<string, string>();
+  for (const [said, inner] of [[names.join(" "), false], [[...pack.facts, ...pack.claims].map((each) => each.passage).join(" "), true]] as const) {
+    for (const [word] of said.matchAll(/[\p{L}\p{N}]+/gu)) if (/\p{Lu}/u.test(inner ? word.slice(1) : word) && !cased.has(word.toLowerCase())) cased.set(word.toLowerCase(), word);
+  }
+  return term.trim().replace(/[\p{L}\p{N}]+/gu, (word) => cased.get(word.toLowerCase()) ?? word).replace(/^\p{Ll}/u, (first) => first.toUpperCase());
+}
 
-/** The title code builds at 0¢, picked only where every writer title stops the page: the search as typed,
- *  sentence-cased, with the year on a type that carries one. `null` outside the length, or beside a site title. */
+/** The title code builds at 0¢, picked only where every writer title stops the page: the first of the searches that
+ *  fits a title's length and reads unlike the site's titles, cased as the pack cases it, with the year on a type that
+ *  carries one. `null` where none does. */
 export function floorTitle(pack: ContextPack): string | null {
   const rule = titleRuleFor(pack, { description: "" });
-  const search = searchHead(rule);
-  const title = (TITLE.yearTypes as readonly string[]).includes(pack.type) ? `${search} (${rule.year})` : search;
-  const chars = [...title].length;
-  return chars < TITLE.chars.min || chars > TITLE.chars.max || closestTitle(title, rule.titles) !== null ? null : title;
+  const dated = (TITLE.yearTypes as readonly string[]).includes(pack.type);
+  const titles = rule.terms.map((term) => (dated ? `${casedAsPack(term, pack, rule)} (${rule.year})` : casedAsPack(term, pack, rule)));
+  return titles.find((title) => [...title].length >= TITLE.chars.min && [...title].length <= TITLE.chars.max && closestTitle(title, rule.titles) === null) ?? null;
 }
 
 /** The figures the pack states, each with the words around it, so the
@@ -159,7 +167,7 @@ export function titleBrief(pack: ContextPack): Record<string, unknown> {
   const rule = titleRuleFor(pack, { description: "" });
   const dated = (TITLE.yearTypes as readonly string[]).includes(pack.type);
   const words = languagePack(pack.locale?.language ?? "en").title;
-  const titled = (specific: string): string => `${searchHead(rule)}: ${specific}`;
+  const titled = (specific: string): string => `${casedAsPack(rule.terms[0] ?? "", pack, rule)}: ${specific}`;
   const passes = (specific: string): boolean => pickTitle([titled(specific)], rule).candidates[0]?.faults.length === 0 && promiseFigures(titled(specific), pack).length === 0;
   const names = addedNames(rule).filter(passes).slice(0, TITLE.namesTold);
   const figures = figuresOf(pack).filter(passes);
