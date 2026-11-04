@@ -41,7 +41,18 @@ export function readingLines(rows: readonly Row[], sites: readonly SiteWithdrawa
     `- Reach left unread, as nothing stored decides it: ${reachUnread.length === 0 ? "none" : reachUnread.join(", ")}`,
     `- Market withdrawn, read off no words of the site's: ${count(withdrawn())} (a protection's page: ${count(withdrawn(BOT_PROTECTION))}; a home page that says nothing: ${count(withdrawn(HOME_WORDLESS))})${withdrawnDomains(rows)}`,
     `- Paid sites' market withdrawn, read off no words of the site's: ${sites.length} (a protection's page: ${of(BOT_PROTECTION)}; a home page that says nothing: ${of(HOME_WORDLESS)})${named.length === 0 ? "" : `: ${named.join(", ")}`}`,
+    ...[BOT_PROTECTION, HOME_WORDLESS].map((because) => scoreWithdrawnLine(rows, because)),
   ];
+}
+
+/** The reports whose shown score this pass withdraws, as their market was read off no words of the site's own. */
+function scoreWithdrawnLine(rows: readonly Row[], because: string): string {
+  const off = rows.filter(({ result: { before, after } }) => {
+    const presence = after.verdict.factors.presence;
+    return before.verdict.scoreAndBand.kind !== "unmeasured" && after.verdict.scoreAndBand.kind === "unmeasured" && presence.kind === "unmeasured" && presence.because === because;
+  });
+  const domains = [...new Set(off.map((row) => row.report.domain))].sort();
+  return `- Score withdrawn (market not measured: ${because}): ${off.length} — ${domains.length === 0 ? "none" : domains.join(", ")}`;
 }
 
 /** Whether a row's market is withdrawn, for `because` where given. */
