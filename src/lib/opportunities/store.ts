@@ -748,34 +748,28 @@ export function supabaseOpportunityStore(): OpportunityStore {
       if (error) throw new Error(`opportunities.setCluster: ${error.message}`);
     },
 
+    // The writer's scope; a failed read rejects, so "not read" is never written as "no fact".
     async hasGroundingFact(siteId) {
-      try {
-        const { readGroundingFact } = await import("@/lib/generate/pipeline/grounding");
-        return !("failed" in (await readGroundingFact({ siteId })));
-      } catch {
-        return false;
-      }
+      const [{ readGroundingFact }, report] = await Promise.all([import("@/lib/generate/pipeline/grounding"), currentReportOf(siteId)]);
+      return report !== null && !("failed" in (await readGroundingFact({ siteId, scanId: report.scanId })));
     },
 
     async earnGrounding(siteId) {
-      try {
-        const [{ readMeasuredText }, { sitePassages }, { readSiteProfile }, report] = await Promise.all([
-          import("@/lib/measure/text"),
-          import("@/lib/generate/pipeline/grounding"),
-          import("@/lib/site-profile/store"),
-          currentReportOf(siteId),
-        ]);
-        const [measuredPages, profile] = await Promise.all([
-          readMeasuredText({ siteId, customerOnly: true }),
-          report === null ? Promise.resolve(null) : readSiteProfile(report.domain),
-        ]);
-        return earnGroundingOf({
-          pages: sitePassages(measuredPages).map(({ page, passages }) => ({ url: page.url, passages })),
-          inventory: profile?.inventory ?? [],
-        });
-      } catch {
-        return NO_EARN_GROUNDING;
-      }
+      const [{ readMeasuredText }, { sitePassages }, { readSiteProfile }, report] = await Promise.all([
+        import("@/lib/measure/text"),
+        import("@/lib/generate/pipeline/grounding"),
+        import("@/lib/site-profile/store"),
+        currentReportOf(siteId),
+      ]);
+      if (report === null) return NO_EARN_GROUNDING;
+      const [measuredPages, profile] = await Promise.all([
+        readMeasuredText({ siteId, scanId: report.scanId, customerOnly: true }),
+        readSiteProfile(report.domain),
+      ]);
+      return earnGroundingOf({
+        pages: sitePassages(measuredPages).map(({ page, passages }) => ({ url: page.url, passages })),
+        inventory: profile?.inventory ?? [],
+      });
     },
 
     async lastStatusChangeAt(siteId) {
