@@ -8,6 +8,7 @@ import { pageTypeOf } from "@/lib/opportunities/page-type";
 import { stillAsked, type FitVerdict } from "../claims/fit";
 import { lengthRangeFor, sectionWords } from "../length";
 import { batteryCleared, runHardRules, type BatteryOutcome } from "../rules";
+import { citesMinOf } from "../rules/brief-lines";
 import { namedRivals } from "../rules/rivals";
 import { specificOnly } from "../rules/title";
 import { renderOf } from "../rules/text";
@@ -79,8 +80,8 @@ export function batteryBasis(a: {
           ],
         }),
   };
-  /** What `cites_market` holds the page to: the template's own count. */
-  const citesMin = template.packMustHold.reduce((most, need) => (need.need === "outside_sources" ? Math.max(most, need.min) : most), 0);
+  /** What `cites_market` holds the page to: the template's own count, as the writer is told it. */
+  const citesMin = citesMinOf(template);
   return { ...a, template, length, pageType, table, searches, names, passages, cited, brief, citesMin, rivalsNamed: namedRivals(site.rivals, pack.business.market) };
 }
 

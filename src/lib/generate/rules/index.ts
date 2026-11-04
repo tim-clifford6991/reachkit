@@ -62,7 +62,7 @@ export type BatteryOutcome =
  * draft screen draws a pass only for a rule named here. Each condition is
  * the input its own check asks nothing without.
  */
-export function rulesAsked(a: DeterministicInputs, verdicts: { fit: FitVerdict; fitAsked: boolean }): HardRule[] {
+export function rulesAsked(a: RuleSwitches, verdicts: { fit: FitVerdict; fitAsked: boolean }): HardRule[] {
   const on: Record<string, boolean> = {
     honest_row: a.pageType === "market_comparison",
     required_blocks: a.blocks != null,
@@ -96,6 +96,16 @@ function logBattery(a: { failed: readonly RuleFailure[]; claimState: string; fit
     })
   );
 }
+
+/** What `rulesAsked` reads: whether each switch's input is handed over, so the writer is told the same rules
+ *  (`./brief-lines.ts`, issue 2378). */
+export type RuleSwitches = Pick<DeterministicInputs, "pageType" | "demoPhrases" | "distinctHeadings"> & {
+  site: { doNotClaim: readonly string[] };
+  blocks?: unknown;
+  titleRule?: unknown;
+  prose?: unknown;
+  cites?: unknown;
+};
 
 /** Everything the deterministic rules read. */
 export interface DeterministicInputs {

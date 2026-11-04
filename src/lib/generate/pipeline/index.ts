@@ -264,6 +264,7 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
     // pack is short. The fallback keeps the type total.
     length: length ?? { floor: 0, target: 0, ceiling: Number.MAX_SAFE_INTEGER },
     ...(a.tier === undefined ? {} : { tier: a.tier }),
+    ...(a.demoPhrases === undefined ? {} : { demoPhrases: a.demoPhrases }),
   };
 
   // 3. Write: one call.
