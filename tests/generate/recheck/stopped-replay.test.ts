@@ -69,8 +69,7 @@ async function replay(name: string, [row, world]: [DraftRow, RecheckWorld]): Pro
   const mended = repairable(outcome.failed);
   // A title short only of its specific goes on once nothing else fails (ruling 2026-10-11, `lacksSpecificOnly`).
   const unmet = (failure: RuleFailure) => failure.detail?.rule === "title" && "faults" in failure.detail && specificOnly(failure.detail.faults);
-  const repair = (failure: RuleFailure) => (mended.includes(failure.rule) ? " (a 0¢ repair in code)" : unmet(failure) ? " (goes on at 0¢ once it is the only failure)" : "");
-  const fails = outcome.failed.map((failure) => `- Fails ${failure.rule}: ${JSON.stringify({ ...failure.detail, rule: undefined })}${repair(failure)}`);
+  const fails = outcome.failed.map((failure) => `- Fails ${failure.rule}: ${JSON.stringify({ ...failure.detail, rule: undefined })}${mended.includes(failure.rule) ? " (a 0¢ repair in code)" : unmet(failure) ? " (goes on at 0¢ once it is the only failure)" : ""}`);
   return [...head, `- Today: ${verdict}, ${outcome.spentCents}¢`, ...(fixes.title === undefined ? [] : [`- Title: "${fixes.titleBefore}" → "${fixes.title}"`]), ...fails, ""].join("\n");
 }
 
