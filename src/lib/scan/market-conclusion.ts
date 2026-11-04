@@ -146,22 +146,25 @@ export async function concludeMarketForPass(a: {
   domain: string;
   scanId: string;
   cost: CostContext;
-  pages: readonly (EvidencePage & { h1?: string })[];
+  pages: readonly (EvidencePage & { h1?: string; unread?: string })[];
+  /** The listing in search the pass read its market from, where it did. */
+  listing?: string;
   at: Date;
   /** What the home page's structured data states of its address (D67). */
   stated?: PlaceSignals;
 }): Promise<PassMarket | null> {
-  const [{ readSiteMarket, writeSiteMarket }, { inferMarketFields }, { settleMarket }, { readCurrentReport }] =
-    await Promise.all([
-      import("@/lib/market/infer/stored"),
-      import("@/lib/market/infer/infer"),
-      import("@/lib/market/infer/stability"),
-      import("./report"),
-    ]);
+  const [{ readSiteMarket, writeSiteMarket }, { inferMarketFields }, { settleMarket }, { readCurrentReport }] = await Promise.all([
+    import("@/lib/market/infer/stored"), import("@/lib/market/infer/infer"), import("@/lib/market/infer/stability"), import("./report"),
+  ]);
   const site = await readSiteMarket(a.siteId);
   if (site === null) return null;
   const stored = await siteLocale(a.siteId);
-  if (site.stored.categoryOverridden || a.pages.length === 0) {
+  // A page with none of the site's words is no evidence of its market; its
+  // listing seeds a market the site lacks and never displaces one standing.
+  const own = a.pages.filter((p) => p.unread === undefined);
+  const pages = own.length > 0 || site.stored.current !== null || a.listing === undefined ? own : [{ url: `https://${a.domain}/`, title: "", text: a.listing }];
+  if (site.stored.categoryOverridden || pages.length === 0) {
+    if (a.pages.length > 0 && !site.stored.categoryOverridden) log("market_conclusion_unmeasured", { siteId: a.siteId, because: a.pages[0]!.unread });
     // No market is concluded here. A founder's place is still looked up,
     // and the next pass, which reads it stored, is made from that city.
     const area = await settleArea({ siteId: a.siteId, area: site.stored.area, read: undefined, locale: stored });
@@ -174,8 +177,8 @@ export async function concludeMarketForPass(a: {
   const evidence = marketEvidence({
     domain: a.domain,
     siteName: text.siteName,
-    headline: headlineOf(a.pages),
-    pages: a.pages,
+    headline: headlineOf(pages),
+    pages,
     products: text.products,
     claims: text.claims,
     report: before,
@@ -201,7 +204,7 @@ export async function concludeMarketForPass(a: {
     stored: site.stored,
     standing: site.category,
     fresh: fresh.value,
-    siteText: [evidence.headline ?? "", ...a.pages.map((p) => `${p.title} ${p.text}`)].join(" "),
+    siteText: [evidence.headline ?? "", ...pages.map((p) => `${p.title} ${p.text}`)].join(" "),
     scanId: a.scanId,
     at: a.at,
   });
@@ -339,15 +342,8 @@ async function founderBuyer(siteId: string): Promise<string | null> {
   }
 }
 
-function passMarket(
-  market: MarketConclusion | null,
-  rivalsOverridden: boolean,
-  founderBuyer: string | null,
-  place: Place | null
-): PassMarket | null {
-  return market === null
-    ? null
-    : { category: market.category, synonyms: market.synonyms, market, rivalsOverridden, founderBuyer, place };
+function passMarket(market: MarketConclusion | null, rivalsOverridden: boolean, founderBuyer: string | null, place: Place | null): PassMarket | null {
+  return market === null ? null : { category: market.category, synonyms: market.synonyms, market, rivalsOverridden, founderBuyer, place };
 }
 
 /**

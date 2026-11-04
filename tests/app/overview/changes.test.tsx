@@ -29,7 +29,12 @@ vi.mock("@/lib/presentation/copy", async (importOriginal) => {
   };
 });
 
+const scans = vi.hoisted(() => ["payroll software", null].map((measuredCategory, i) => ({ id: `s${i}`, domain: "gusto.com", created_at: `2026-08-${17 + 7 * i}T09:00:00Z`, report: { measuredCategory } })));
+const q: object = vi.hoisted(() => new Proxy({}, { get: (_, key) => (key === "then" ? (done: (r: unknown) => unknown) => done({ data: scans, error: null }) : () => q) }));
+vi.mock("@/lib/db", () => ({ dbAdmin: () => q, db: () => q }));
+
 const { assembleOverview } = await import("@/app/(account)/app/_overview/model");
+const { changeMarkers } = await import("@/lib/market/changes/markers");
 const { readGrowth } = await import("@/app/(account)/app/_overview/growth");
 const { withBreaks, changeWithin, CHANGE_ACCOUNT_KEY } = await import(
   "@/app/(account)/app/_overview/changes"
@@ -117,6 +122,14 @@ describe("withBreaks — a marker stands between the two weeks it fell between",
       (p) => p.weekStart
     );
     expect(entries.filter((e) => e.kind === "break")).toHaveLength(2);
+  });
+
+  it("a withdrawn site's next pass, measured under no category, breaks nothing and states no category", async () => {
+    const changes = await changeMarkers({ siteId: "site-1", from: AT(1), to: TODAY });
+    expect(changes).toEqual([]);
+    const model = assembleOverview(facts({ changes }));
+    expect(model.aiAnswers.window.entries.every((e) => e.kind === "week")).toBe(true);
+    expect(JSON.stringify(model)).not.toContain("payroll software");
   });
 
   it("no change leaves the series exactly as it was — most sites never change one", () => {

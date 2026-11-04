@@ -3,6 +3,7 @@
 // words at all. Its market is read from its listing in search, as for a home
 // behind bot protection, and never from the page.
 import { HOME_TEXT_FLOOR_CHARS } from "@/lib/config/constants/scan";
+import { BOT_PROTECTION, challengeOf } from "./challenge";
 import { visibleText } from "./parse";
 
 /** The `because` of a stored market read off a home page with no words of
@@ -13,6 +14,13 @@ export const HOME_WORDLESS = "home_wordless";
  *  business sells. */
 export function saysNothing(html: string): boolean {
   return visibleText(html).length < HOME_TEXT_FLOOR_CHARS;
+}
+
+/** Why a read page holds none of the site's words — a protection's page, or
+ *  one that says nothing — or `null` where it is the site's. */
+export function unreadPageOf(html: string): typeof BOT_PROTECTION | typeof HOME_WORDLESS | null {
+  if (challengeOf({ status: 200, html }) !== null) return BOT_PROTECTION;
+  return saysNothing(html) ? HOME_WORDLESS : null;
 }
 
 export interface BlankHome {

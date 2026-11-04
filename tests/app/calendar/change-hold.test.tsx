@@ -39,6 +39,7 @@ const { DayPanelView } = await import("@/app/(account)/app/calendar/DayPanelView
 const { CHANGE_COPY_KEY } = await import("@/app/(account)/app/calendar/change-line");
 const { formatDate } = await import("@/app/(account)/app/_shell/format");
 const { COPY } = await import("@/lib/presentation/copy");
+const { generationHold, pendingChanges } = await import("@/lib/market/changes/pending");
 
 function render(el: React.ReactElement): Element {
   const container = document.createElement("div");
@@ -170,6 +171,11 @@ describe("the day panel states it, with both slots filled from the engine", () =
     expect(line).toBe("calendar.empty.change-holds-pages.category");
     expect(line).not.toContain(formatDate(RESUMES, ZONE));
     expect(COPY["calendar.empty.change-holds-pages.category"]).not.toMatch(/Monday|\{date\}/);
+  });
+
+  it("a withdrawn site's category, stored as none, holds no day and names no change", () => {
+    const measured = { domain: "gusto.com", category: "payroll software", rivals: [], at: NOW, scanId: "s1" };
+    expect(generationHold(pendingChanges({ declared: { domain: "gusto.com", category: null, rivals: [] }, measured, now: NOW, timezone: ZONE }))).toEqual({ held: false });
   });
 
   it("every date of the plan carries it, because a replacement holds the site and not a day", () => {

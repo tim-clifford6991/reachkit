@@ -227,12 +227,7 @@ async function stagesOf(a: StageArgs, crawl: SiteCrawl): Promise<void> {
         }
         if (profile !== null) sections.siteName = promptSiteName(profile.siteName, domain);
         sections.siteCrawl = readingOf(crawl);
-        sections.pagesRead = crawl.pages.map((page) => ({
-          url: page.url,
-          title: page.title,
-          h1: page.h1,
-          text: page.text,
-        }));
+        sections.pagesRead = crawl.pages.map(({ url, title, h1, text, unread }) => ({ url, title, h1, text, ...(unread === undefined ? {} : { unread }) }));
       }
     } catch (error) {
       console.log(
