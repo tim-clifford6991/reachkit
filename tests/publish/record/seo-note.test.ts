@@ -111,6 +111,9 @@ describe("#2091 — a detected plugin that did not accept is never 'no SEO plugi
   it("the not-accepted line is a registered sentence, not TODO(copy)", () => {
     expect(Object.keys(COPY)).toContain(SEO_COPY.seoNotAccepted);
     expect(COPY[SEO_COPY.seoNotAccepted]).not.toBe(TODO_COPY_MARKER);
+    expect(COPY[SEO_COPY.seoNotAccepted]).toBe(
+      "A plugin was found, and it didn’t take the title and description. The page is live all the same."
+    );
   });
 });
 
