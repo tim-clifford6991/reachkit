@@ -525,5 +525,7 @@ export const PUBLISH_COPY = Object.freeze({
   "hosted.index.topicCount": ["{count} guides", { slots: { count: "text" }, fixedBy: "board HostedIndex · issue 1789" }],
   "hosted.index.other": ["Other guides", { slots: {}, fixedBy: "ux review of PR 2322 · drafted" }],
 
+  // Issue 2091: a plugin was detected but did not take the title and description (drafted).
+  "publish.wordpress.seoNotAccepted": ["A plugin was found, and it didn’t take the title and description. The page is live all the same.", { slots: {}, fixedBy: "issue 2091 (drafted)" }],
   "publish.wordpress.noSeoPlugin": ["No SEO plugin was found on your site, so the title and description weren’t written into one. The page is live all the same.", { slots: {}, fixedBy: "REQ-060 c4" }],
 }) satisfies CopyPartition;

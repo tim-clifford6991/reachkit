@@ -44,8 +44,8 @@ export interface PageRecord {
   unpublishOutcome: UnpublishOutcome | null;
   /** REQ-062 c7: the whole `VerifyOutcome` or the disposition; not optional, not separable from `state`. */
   verification: VerifyDisposition;
-  /** REQ-060 c4's line, on this surface only: non-null exactly where a delivery recorded no SEO plugin written. A key,
-   *  never a sentence. */
+  /** REQ-060 c4's line, on this surface only: `noSeoPlugin` where none was detected, `seoNotAccepted` where one was
+   *  and nothing was read back (#2091), `null` otherwise. A key, never a sentence. */
   seoNote: CopyKey | null;
 }
 
@@ -61,8 +61,7 @@ export const ADDRESS_COPY = Object.freeze({
 export { SEO_COPY } from "./lines";
 export type { NeedsYouCause, NeedsYouKind } from "./needs-you";
 
-// Imported as well, since a re-export does not bring it into scope for `seoNoteOf`.
-import { SEO_COPY as SEO_COPY_VALUE } from "./lines";
+import { seoNoteOf } from "./lines";
 
 interface PublicationRow extends DispositionRow {
   mode: string;
@@ -71,7 +70,7 @@ interface PublicationRow extends DispositionRow {
   /** The address is re-composed from these: a hosted host is the site's, and only our destination is re-addressed. */
   site_id: string;
   destination: string | null;
-  /** REQ-060 c4: `null` is no answer; an empty array is the answer that carries the line. */
+  /** REQ-060 c4: `null` is no answer; an empty array is none detected; `<plugin>:not_accepted` is detected, not read back. */
   seo_written: string[] | null;
 }
 
@@ -124,13 +123,6 @@ function addressOf(a: {
       a.state === "unpublished" ? ADDRESS_COPY.wasPublishedAt : ADDRESS_COPY.publiclyReadableAt,
     url: a.liveUrl,
   };
-}
-
-/** REQ-060 c4's line, or nothing: the empty array is the whole condition. `null` (nothing delivered, or no plugins to
- *  find) and a non-empty array (one plugin wrote) carry no line. */
-function seoNoteOf(written: readonly string[] | null | undefined): CopyKey | null {
-  if (written === null || written === undefined) return null;
-  return written.length === 0 ? SEO_COPY_VALUE.noSeoPlugin : null;
 }
 
 /** The one read behind every surface stating a page's standing, so none re-derives liveness from a column. `null` where
