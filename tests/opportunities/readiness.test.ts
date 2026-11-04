@@ -4,7 +4,7 @@
 import "./env";
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { KEYWORD_PAGE_MIN_VOLUME } from "../../src/lib/config/constants";
 import { measured } from "../../src/lib/measure/measured";
 import { clusterKey, collapse } from "../../src/lib/opportunities/cluster";
@@ -435,6 +435,25 @@ describe("supply and next-work see only ready rows, in Improve > Earn > Write or
     expect(state.rows[0]!.unready_reason).toBe("no_grounding_fact");
     expect(await rankOpen(SITE_ID)).toEqual([]);
     expect((await supplyDepth(SITE_ID)).unused).toBe(0);
+  });
+
+  it("a grounding read error leaves every row's ready and unready_reason unchanged and rejects", async () => {
+    state.rows.push(
+      row({ id: "answer", family: "write", type: "answer_page", target_query: "what is a product tour" }),
+      row({ id: "improve", family: "improve", type: "expand_page", target_query: "user onboarding checklist", volume: 20 })
+    );
+    await assessReadiness(SITE_ID, { at: AT });
+    const readiness = () => state.rows.map(({ id, ready, unready_reason }) => ({ id, ready, unready_reason }));
+    const before = readiness();
+    expect(before.some((r) => r.ready)).toBe(true);
+
+    const timeout = new Error("canceling statement due to statement timeout (57014)");
+    setOpportunityStore({ ...memoryStore(state), hasGroundingFact: () => Promise.reject(timeout) });
+    const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+    await expect(assessReadiness(SITE_ID, { at: AT })).rejects.toBe(timeout);
+    expect(readiness()).toEqual(before);
+    expect(logged.mock.calls).toEqual([["readiness: grounding read failed", { siteId: SITE_ID, error: timeout }]]);
+    logged.mockRestore();
   });
 });
 
