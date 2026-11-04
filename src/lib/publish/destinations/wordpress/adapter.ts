@@ -40,14 +40,15 @@ import { copyIn } from "@/lib/presentation/copy/translated";
 import { readFaq, withFaq } from "../../render/faq";
 import { parseMarkdown, toHtml, type Say } from "../../render/markdown";
 import { bodyWithMarker, carriesMarker, markerToken } from "./marks";
-import { detectSeoPlugins, seoMetaFor, seoWrittenIn, type SeoPlugin } from "./seo";
+import { anySeoWritten, detectSeoPlugins, seoMetaFor, seoWrittenIn, type SeoPlugin, type SeoRecorded } from "./seo";
 import { unpublishWordPress } from "./unpublish";
 import { WORDPRESS } from "@/lib/config/constants";
 
 export type { WordPressConfig } from "./client";
-export type { SeoPlugin } from "./seo";
+export type { SeoPlugin, SeoRecorded } from "./seo";
 
-/** A WordPress delivery: live at an address the site returned. `seoWritten` may be empty (REQ-060 c4), and
+/** A WordPress delivery: live at an address the site returned. `seoWritten` is empty where no plugin was detected
+ *  (REQ-060 c4) and names `<plugin>:not_accepted` where one was and its fields were not read back (#2091), and
  *  `stampApplied: false` states that c6's list is unmet for the post (ADR-083 decision 4). */
 export type WordPressDelivery = DeliveryResult & {
   /** The permalink the site returned, never computed from the slug. */
@@ -55,7 +56,7 @@ export type WordPressDelivery = DeliveryResult & {
   madeLive: true;
   /** The WordPress post id. Opaque to us; never rendered. */
   remoteId: string;
-  seoWritten: readonly SeoPlugin[];
+  seoWritten: readonly SeoRecorded[];
   stampApplied: boolean;
   deliveredAt: Date;
 };
@@ -232,7 +233,8 @@ async function updated(
 }
 
 /** SPEC §9: only the title and/or SEO description change, and the content is never sent. Found by slug, confirmed by
- *  address. A description with no plugin is refused, as WordPress has no such field. Idempotent without a marker. */
+ *  address. A description with no plugin is refused, as WordPress has no such field, and so is a fix no detected plugin
+ *  read back (#2091). Idempotent without a marker. */
 async function metadataUpdated(
   cfg: WordPressConfig,
   page: RenderedPage,
@@ -261,6 +263,10 @@ async function metadataUpdated(
     ...(Object.keys(meta).length === 0 ? {} : { meta }),
   });
   if (!succeeded(written)) return failed(reasonFor(written));
+  // A fix that changed nothing is not delivered (#2091): a detected plugin whose fields did not come back did not take it.
+  if (plugins.length > 0 && !anySeoWritten(seoWrittenIn(plugins, written.body, seoPage))) {
+    return failed("destination_rejected");
+  }
   return updateDeliveryOf(written.body, plugins, seoPage);
 }
 

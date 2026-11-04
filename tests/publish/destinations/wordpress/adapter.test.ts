@@ -338,12 +338,12 @@ describe("REQ-060 c3 and c4 — the SEO fields ride the create, and neither plug
     expect(result.seoWritten).toEqual([]);
   });
 
-  it("a site that accepted the post and dropped the meta is a delivered page with nothing written", async () => {
+  it("a site that accepted the post and dropped the meta is a delivered page whose plugin did not accept (#2091)", async () => {
     site.namespaces = ["wp/v2", "rankmath/v1"];
     site.createdMeta = false;
     const result = (await WORDPRESS_ADAPTER.deliver(PAGE, CFG, "draft-1")) as WordPressDelivery;
     expect(result.ok).toBe(true);
-    expect(result.seoWritten).toEqual([]);
+    expect(result.seoWritten).toEqual(["rankmath:not_accepted"]);
   });
 
   it("detection happens before the create, so the fields can ride it", async () => {

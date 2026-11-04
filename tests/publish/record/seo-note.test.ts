@@ -26,7 +26,7 @@ const db = fakeDb();
 vi.mock("@/lib/db", () => ({ dbAdmin: () => db.client, db: () => db.client }));
 
 const { SEO_COPY, pageRecordFor } = await import("@/lib/publish/record");
-const { NO_SEO_PLUGIN_LINE } = await import("@/lib/publish/destinations/wordpress/seo");
+const { NO_SEO_PLUGIN_LINE, seoWrittenIn } = await import("@/lib/publish/destinations/wordpress/seo");
 
 const LIVE_URL = "https://example.com/how-long-does-a-roof-last";
 const CLAIMED_AT = new Date(Date.UTC(2026, 8, 1, 9, 0, 0));
@@ -84,6 +84,33 @@ describe("the line is carried where the delivery found no SEO plugin", () => {
     expect(COPY[SEO_COPY.noSeoPlugin]).toBe(
       "No SEO plugin was found on your site, so the title and description weren’t written into one. The page is live all the same."
     );
+  });
+});
+
+describe("#2091 — a detected plugin that did not accept is never 'no SEO plugin'", () => {
+  const PAGE = { title: "How long does a roof last", description: "Twenty to fifty years." };
+
+  it("plugins=[\"rankmath\"] with empty read-back meta gives the not-accepted line, not noSeoPlugin", async () => {
+    seed({ seo_written: [...seoWrittenIn(["rankmath"], { meta: {} }, PAGE)] });
+    const line = await note();
+    expect(line).not.toBe(SEO_COPY.noSeoPlugin);
+    expect(line).toBe(SEO_COPY.seoNotAccepted);
+  });
+
+  it("plugins=[] still gives noSeoPlugin", async () => {
+    seed({ seo_written: [...seoWrittenIn([], { meta: {} }, PAGE)] });
+    expect(await note()).toBe(SEO_COPY.noSeoPlugin);
+  });
+
+  it("a plugin read back gives no line", async () => {
+    const post = { meta: { rank_math_title: PAGE.title, rank_math_description: PAGE.description } };
+    seed({ seo_written: [...seoWrittenIn(["rankmath"], post, PAGE)] });
+    expect(await note()).toBeNull();
+  });
+
+  it("the not-accepted line is a registered sentence, not TODO(copy)", () => {
+    expect(Object.keys(COPY)).toContain(SEO_COPY.seoNotAccepted);
+    expect(COPY[SEO_COPY.seoNotAccepted]).not.toBe(TODO_COPY_MARKER);
   });
 });
 

@@ -20,6 +20,8 @@ const site = vi.hoisted(() => ({
   posts: [] as Record<string, unknown>[],
   tags: [] as Record<string, unknown>[],
   searchAnswers: true,
+  // A site whose core REST drops unregistered meta keys on an update (#2091).
+  dropsMeta: false,
   nextId: 100,
 }));
 
@@ -71,6 +73,9 @@ vi.mock("@/lib/egress", () => ({
       const sent = body as Record<string, unknown>;
       if (typeof sent.title === "string") post.title = sent.title;
       if (typeof sent.content === "string") post.content = { raw: sent.content };
+      if (typeof sent.meta === "object" && sent.meta !== null && !site.dropsMeta) {
+        post.meta = { ...(post.meta as Record<string, unknown> | undefined), ...(sent.meta as Record<string, unknown>) };
+      }
       return json(200, post);
     }
 
@@ -133,6 +138,7 @@ function theirPage(over: Record<string, unknown> = {}): Record<string, unknown> 
 
 beforeEach(() => {
   site.requests = [];
+  site.dropsMeta = false;
   site.namespaces = ["wp/v2"];
   site.posts = [];
   site.tags = [];
@@ -248,6 +254,37 @@ describe("a metadata-only update (SPEC §9, #690) changes the page's metadata an
     await WORDPRESS_ADAPTER.deliver({ ...FIX, metadataOnly: { title: null, description: "When it arrives." } }, CFG, "d1");
 
     expect(writes()[0]?.body).not.toHaveProperty("title");
+  });
+
+  it("a fix no detected plugin read back is not delivered (#2091)", async () => {
+    site.namespaces = ["wp/v2", "rankmath/v1"];
+    site.dropsMeta = true;
+    site.posts = [theirPage()];
+
+    const result = await WORDPRESS_ADAPTER.deliver(FIX, CFG, "d1");
+
+    expect(result.ok).toBe(false);
+    expect(result.madeLive).toBe(false);
+  });
+
+  it("a title-only fix no detected plugin read back is not delivered either (#2091)", async () => {
+    site.namespaces = ["wp/v2", "yoast/v1"];
+    site.dropsMeta = true;
+    site.posts = [theirPage()];
+
+    const result = await WORDPRESS_ADAPTER.deliver({ ...FIX, metadataOnly: { title: "Delivery times and costs", description: null } }, CFG, "d1");
+
+    expect(result.ok).toBe(false);
+  });
+
+  it("a fix the detected plugin read back is delivered and recorded as written", async () => {
+    site.namespaces = ["wp/v2", "yoast/v1"];
+    site.posts = [theirPage()];
+
+    const result = await WORDPRESS_ADAPTER.deliver(FIX, CFG, "d1");
+
+    expect(result.ok).toBe(true);
+    expect(result.seoWritten).toEqual(["yoast"]);
   });
 
   it("refuses a description a site with no SEO plugin has nowhere to hold — nothing is written", async () => {
