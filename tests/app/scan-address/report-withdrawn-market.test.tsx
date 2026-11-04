@@ -7,6 +7,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { measured, unmeasured } from "@/lib/measure/measured";
 import type { StoredReport } from "@/lib/scan/report";
+import { rescoreScan, type RescoreReport } from "@/lib/scan/rescore";
 import { ReportView } from "@/app/(public)/scan/[domain]/_address/report-view";
 import type { AddressNotice } from "@/app/(public)/scan/[domain]/_address/state";
 import { cardsOf } from "@/app/(public)/scan/[domain]/_problems/model";
@@ -110,6 +111,19 @@ describe("a report whose market was withdrawn draws nothing measured in it", () 
     expect(html).not.toMatch(/\b0 buyer searches/);
     expect(html).toContain(copy("ai-answers.absent"));
     expect(html).toContain(copy("presence.absent"));
+  });
+
+  it("re-scored at 0¢, the gymshark.com shape reads not scored: no figure in the verdict strip, and no 0", () => {
+    const stored = withdrawn(ASKED_NONE, "home_wordless");
+    const scan = { id: "gymshark", status: "done", score: 0, drivers: null, report: stored as unknown as RescoreReport, home: null, rendered: [], siteName: null, answers: [] } as const;
+    const html = render({ ...stored, ...rescoreScan(scan).after } as StoredReport);
+    // The score card up to its closed split: the figure, its band and range, and why none is given.
+    const start = html.indexOf('data-testid="report-score"');
+    const strip = html.slice(html.indexOf(">", start) + 1, html.indexOf("<details", start));
+    expect(strip.length).toBeGreaterThan(0);
+    expect(strip.replace(/<[^>]*>/g, "")).not.toMatch(/\d/);
+    expect(strip).not.toContain("radial-progress");
+    for (const zero of ["0/100", "0 of"]) expect(html).not.toContain(zero);
   });
 
   it("a market read from the search listing keeps both cards", () => {
