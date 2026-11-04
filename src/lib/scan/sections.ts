@@ -79,7 +79,7 @@ export function categoryOf(market: Measured<MarketSet>): string | null {
 /** Whether the report's market stands, read from the report alone. Its
  *  searches, answers and rivals were measured in that market (ADR-095), so
  *  none is drawn where the market was withdrawn or never measured. */
-export function marketStands(report: { market: Measured<MarketSet> }): boolean {
+export function marketStands(report: { market: Measured<unknown> }): boolean {
   return report.market.kind !== "unmeasured";
 }
 

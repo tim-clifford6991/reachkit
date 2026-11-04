@@ -4,13 +4,14 @@
 // withdrawn. Pure, read at 0¢ by the re-score (`rescore.ts`).
 import { HOME_WORDLESS } from "@/lib/measure/blank-page";
 import { BOT_PROTECTION, isProtectionName } from "@/lib/measure/challenge";
-import { unmeasured } from "@/lib/measure/measured";
+import { unmeasured, type Measured } from "@/lib/measure/measured";
 import { isPlaceholder, withoutPlaceholders } from "@/lib/measure/placeholder";
 import type { Profile } from "@/lib/market/questions/profile-types";
 import { readAsProtection } from "./challenged";
 import type { ReportChange, RescoreReport, RescoreScan } from "./rescore";
 import type { Row, SiteWrite, StoredSiteRow } from "./rescore-run";
 import type { StoredReport } from "./report";
+import { marketStands } from "./sections";
 
 /** The stored profile with every field that names nothing taken out
  *  (issue 1479): a placeholder, or a protection page's words where the scan
@@ -41,6 +42,20 @@ export function withdrawnMarketOf(
   const changes: ReportChange[] = [{ path: ["market"], value: unmeasured("undeterminable", at, because) }];
   if (r.freePage !== null) changes.push({ path: ["freePage"], value: null });
   return changes;
+}
+
+/**
+ * Presence, unmeasured with why, where the report's market — as stored or as
+ * withdrawn in this pass — was read off no words of the site's own: none is
+ * counted over its searches. A home read as a protection's page keeps its own
+ * rule (`unreadByProtection`). `undefined` where the market stands or was
+ * left unmeasured for another reason.
+ */
+export function withdrawnPresenceOf(r: RescoreReport, withdrawn: readonly ReportChange[] | null, protection: boolean, at: Date): Measured<number> | undefined {
+  if (protection || (r.onPage.kind === "unmeasured" && r.onPage.because === BOT_PROTECTION)) return undefined;
+  const market = (withdrawn?.find((c) => c.path[0] === "market")?.value ?? r.market) as RescoreReport["market"];
+  if (marketStands({ market }) || market.kind !== "unmeasured") return undefined;
+  return market.because === BOT_PROTECTION || market.because === HOME_WORDLESS ? unmeasured("undeterminable", at, market.because) : undefined;
 }
 
 /** A paid site's market withdrawn, with why and the site it is. */
