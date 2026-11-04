@@ -68,7 +68,7 @@ import { tryFix, type FixStop } from "./fix-call";
 import { fixNotes, type FixNote, type RepairRecord } from "./repair";
 import { completeTables, withSources } from "./sources";
 import { withTable } from "./table";
-import { titleRuleFor, unclaimedSuperlatives } from "./title";
+import { floorTitle, titleRuleFor, unclaimedSuperlatives } from "./title";
 import { fixPage, writePage, type PageParts } from "./write";
 
 /** The stages a page can stop at without a rule failing. */
@@ -298,7 +298,7 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
     const laid = layoutPage(parts, template, {
       ...tidy,
       pickTitle: (proposed, on) => {
-        const picked = pickTitle(proposed, titleRuleFor(pack, on));
+        const picked = pickTitle(proposed, titleRuleFor(pack, on), floorTitle(pack));
         titles = picked.candidates;
         return picked.chosen;
       },

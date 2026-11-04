@@ -23,7 +23,8 @@ import { siteRulesOf } from "@/lib/generate/pipeline/battery";
 import { readAllFacts } from "@/lib/generate/pipeline/grounding";
 import { candidacy, recheckRow, recheckStopped, retiredFor, retiredUnread, type RecheckWorld } from "@/lib/generate/recheck";
 import type { ContextPack } from "@/lib/generate/pipeline/pack";
-import { promiseFigures } from "@/lib/generate/pipeline/title";
+import { promiseFigures, titleRuleFor } from "@/lib/generate/pipeline/title";
+import { pickTitle } from "@/lib/generate/rules/title";
 import { answerBoxOf } from "@/lib/generate/rules/blocks";
 import { renderOf } from "@/lib/generate/rules/text";
 import { generateStore, setGenerateStore, type DraftRow } from "@/lib/generate/store";
@@ -224,31 +225,36 @@ describe("OR4: a promise-figure title never enters review", () => {
     ["fba1d84d", "What is AEO? Answer engine optimization in one page", true],
     // Its stored title carries the business's own "€49 a month"; the one clean candidate still fails its wording.
     ["b8c28f61", "Answer engine optimization vs generative engine optimization (2026)", false],
-    // "12" is in no promise, but it is the business's figure beside a rival's name: the settled title still stops.
-    ["a71279ff", "Profound answer engine optimization: 12 Google searches weekly", false],
   ] as const)("re-pick never takes a promise-figure title: %s takes %j, its H1 follows, the stored title is kept, at 0¢", async (id, title, passed) => {
     arrange(SAAS_HOSTED);
     const outcome = await checked(id);
     expect(outcome).toMatchObject({ passed, spentCents: 0, patch: { title }, meta: { recheck: { titleBefore: at(id).title, title } } });
-    if (id === "a71279ff") expect(outcome.failed).toEqual([{ rule: "title", detail: { rule: "title", faults: ["specific", "figure_owner"] } }]);
     expect(promiseFigures(title, (at(id).meta as { pack: ContextPack }).pack)).toEqual([]);
     expect(outcome.meta).not.toHaveProperty("heading");
     expect((at(id).meta as { titles: Row[] }).titles.map((each) => each.title)).toContain(title);
   });
 
   it.each([
-    ["a6d24b00", ["7"]],
-    // Both its other candidates carry a "1" #2134's classifier reads as the business's "1 email every Monday".
-    ["abe42ff7", ["7"]],
-  ] as const)("re-pick never takes a promise-figure title: %s has no clean candidate, so it is held and nothing is written", async (id, figures) => {
+    // "12" is in no promise, but it is the business's figure beside a rival's name, so every writer title stops.
+    ["a71279ff", "Profound answer engine optimization"],
+    // Its other candidates carry a "1" #2134's classifier reads as the business's "1 email every Monday".
+    ["abe42ff7", "How to answer engine optimization"],
+  ] as const)("%s, with no writer title that passes, takes the search's own floor title, its H1 follows, and passes at 0¢", async (id, title) => {
     arrange(SAAS_HOSTED);
-    expect(await recheckRow(at(id), dogfood(at(id)))).toEqual({ kind: "held", reason: "title_promise_figure", figures });
+    const outcome = await checked(id);
+    expect(outcome).toMatchObject({ passed: true, failed: [], spentCents: 0, patch: { title }, meta: { recheck: { titleBefore: at(id).title, title } } });
+    expect(outcome.meta).not.toHaveProperty("heading");
+  });
+
+  it("re-pick never takes a promise-figure title: a6d24b00 has no clean candidate and no search long enough for a floor, so it is held and nothing is written", async () => {
+    arrange(SAAS_HOSTED);
+    expect(await recheckRow(at("a6d24b00"), dogfood(at("a6d24b00")))).toEqual({ kind: "held", reason: "title_promise_figure", figures: ["7"] });
   });
 
   it("no other stored row is held", async () => {
     arrange(SAAS_HOSTED);
     const held = await Promise.all(rows.map(async (each) => ((await recheckRow(each, dogfood(each))).kind === "held" ? [each.id.slice(0, 8)] : [])));
-    expect(held.flat().sort()).toEqual(["a6d24b00", "abe42ff7"]);
+    expect(held.flat().sort()).toEqual(["a6d24b00"]);
   });
 
   it.each(["5dcc61c2", "a71279ff", "b03e044f"])("%s: its description is cut to 155 or fewer at a word, every word its own", async (id) => {
@@ -322,16 +328,43 @@ describe("OR4: a promise-figure title never enters review", () => {
     expect([row(other).state, lastMove(other).reason, wordsOf(other)]).toEqual(["skipped", "retired:title", before]);
   });
 
+  it("a page whose three stored candidates each stop it takes the search's own floor title and enters review, at 0¢", async () => {
+    arrange(SAAS_HOSTED);
+    const id = await stopped(SAAS_HOSTED);
+    const search = "which plan fits a small design team";
+    const titles = [`${search}: the ultimate guide`, `${search} in 2026`, `${search}, plan by plan`].map((title) => ({ title }));
+    const p = pack({ target: { question: search, searches: [search] } });
+    Object.assign(row(id), { title: titles[0]!.title, meta: { ...(row(id).meta as Row), pack: p, titles } });
+    const rule = titleRuleFor(p, { description: "x".repeat(140) });
+    expect(pickTitle(titles.map((each) => each.title), rule).candidates.map((each) => each.faults.filter((fault) => fault !== "specific"))).toEqual([["banned"], ["year"], ["banned"]]);
+    await recheck(SAAS_HOSTED);
+    expect(row(id)).toMatchObject({ state: "in_review", title: "Which plan fits a small design team", meta: { recheck: { titleBefore: titles[0]!.title, title: "Which plan fits a small design team" } } });
+    expect(llm).not.toHaveBeenCalled();
+  });
+
+  it("stage 4 takes the same floor where every title the writer proposes stops the page", async () => {
+    arrange(SAAS_HOSTED);
+    const search = "which plan fits a small design team";
+    const floor = "Which plan fits a small design team";
+    const titles = [`${floor}: the ultimate guide`, `${floor} in 2026`, `${floor}, plan by plan`];
+    llm.mockResolvedValue({ kind: "measured", value: { ...pageParts(`${prose("seats", 300, 4)}\n\nTeams on the starter plan get 25 seats and unlimited projects for a flat monthly fee, per [the pricing page](${SAAS_HOSTED.sourceUrl}).`), titles }, at: AT });
+    const store = generateStore();
+    const world = { site: siteRulesOf((await store.siteFacts(SAAS_HOSTED.siteId))!, (await store.latestReport(SAAS_HOSTED.siteId))!), facts: await readAllFacts({ siteId: SAAS_HOSTED.siteId, scanId: "scan-1" }), opportunity: opportunity({ siteId: SAAS_HOSTED.siteId }) };
+    const outcome = await generateDraft(fakeCost(), { ...world, siteId: SAAS_HOSTED.siteId, scheduledFor: "2026-09-20", pack: pack({ target: { question: search, searches: [search] } }), links: [] });
+    expect(row(outcome.draftId!)).toMatchObject({ title: floor, meta: { titles: [...titles, floor].map((title) => ({ title })) } });
+  });
+
   it.each([
     ["5dcc61c2", "retired:required_blocks"],
     // One attempt: its unsettled title still stops it beside the sections a writer owes.
     ["f1ec6a58", "retired:required_blocks,title"],
-    // OR4: no clean candidate, so it is never published.
+    // OR4: no clean candidate, and no search long enough for a floor title, so it is never published.
     ["a6d24b00", "retired:title"],
-    ["abe42ff7", "retired:title"],
     ["bf8de9bf", "retired:title"],
-    ["a71279ff", "retired:title"],
     ["b8c28f61", "retired:title"],
+    // The search's own floor title passes where no writer title does.
+    ["abe42ff7", null],
+    ["a71279ff", null],
     ["b03e044f", null],
     ["fba1d84d", null],
     ["d98284cc", null],

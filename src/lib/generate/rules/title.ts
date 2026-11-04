@@ -405,15 +405,19 @@ function carried(title: ReadonlySet<string>, text: string, language: Language): 
  * then the writer's own order. Where none passes, the one that fails fewest
  * of the rules that stop a page, then fewest in all — so a title that lacks
  * only its specific is kept before one that fails any other rule. Stage 4
- * then stops the page on it and the one fix call is told why.
+ * then stops the page on it and the one fix call is told why. A `floor` code
+ * built is one more candidate, ranked after every writer title that stops
+ * the page no more than it does.
  */
-export function pickTitle(proposed: readonly string[], a: TitleRuleInputs): { chosen: string; candidates: TitleCandidate[] } {
+export function pickTitle(proposed: readonly string[], a: TitleRuleInputs, floor: string | null = null): { chosen: string; candidates: TitleCandidate[] } {
   const language = languageOf(a);
   const shares = (title: string, texts: readonly string[]): number[] => {
     const words = new Set(wordsOf(title, language));
     return texts.map((text) => carried(words, text, language)).filter((share) => share !== null);
   };
-  const candidates = [...new Set(proposed.map((title) => title.trim()).filter(Boolean))].slice(0, TITLE.candidates).map((title) => {
+  const written = [...new Set(proposed.map((title) => title.trim()).filter(Boolean))].slice(0, TITLE.candidates);
+  const built = floor === null || floor.trim() === "" || written.includes(floor.trim()) ? [] : [floor.trim()];
+  const candidates = [...written, ...built].map((title) => {
     const follow = shares(title, a.follow);
     const closeness = Math.max(0, ...shares(title, a.terms)) + (follow.length === 0 ? 0 : follow.reduce((sum, share) => sum + share, 0) / follow.length);
     return { title, faults: wordingFaults(title, a), closeness: Math.round(closeness * 100) / 100 };
@@ -423,6 +427,7 @@ export function pickTitle(proposed: readonly string[], a: TitleRuleInputs): { ch
   const ranked = [...candidates].sort(
     (left, right) =>
       stopping(left) - stopping(right) ||
+      Number(built.includes(left.title)) - Number(built.includes(right.title)) ||
       left.faults.length - right.faults.length ||
       right.closeness - left.closeness ||
       aimed(left.title) - aimed(right.title) ||

@@ -5,7 +5,7 @@
 // body, and was written from a pack no older than a topic's rest. Its stored words go through the same battery a page
 // as written does (`./pipeline/battery.ts`), with every model call refused: the fit check's stored verdict stands for
 // the sentences today's reading still asks about. Before the battery, code mends what it can from the row's own words:
-// the title is re-picked from the writer's stored candidates, never one carrying the business's promise figure (OR4),
+// the title is re-picked from the writer's stored candidates and code's floor title, never one carrying the business's promise figure (OR4),
 // which is held where none is clean; the description is fitted; a FAQ pair or a do-not-claim sentence the rules fail
 // is dropped. What still fails, or was never a page to check, is set aside at 0¢ (`needs_attention → skipped`), the row
 // kept and its topic's rest as the stop left it.
@@ -22,7 +22,7 @@ import { fitDescription } from "./pipeline/compose";
 import { allowedFacts, readAllFacts, readDemoPhrases, type SourcedFact } from "./pipeline/grounding";
 import type { ContextPack } from "./pipeline/pack";
 import { withoutBrokenPairs, withoutClaimed } from "./pipeline/repair";
-import { promiseFigures, titleRuleFor } from "./pipeline/title";
+import { floorTitle, promiseFigures, titleRuleFor } from "./pipeline/title";
 import { readRecordedRules, readRecordedRun, recordedRulesValue, recordedRunValue, recordedVerdictValue } from "./record";
 import { batteryCleared } from "./rules";
 import { answerBoxOf } from "./rules/blocks";
@@ -141,7 +141,7 @@ export async function recheckRow(row: DraftRow, world: RecheckWorld): Promise<Re
 }
 
 /** The stored page with what code mends from its own words, no word added: the title the picker takes today of the
- *  writer's candidates that carry no promise figure, the description fitted (the short answer's where none was
+ *  writer's candidates and the search's own floor title that carry no promise figure, the description fitted (the short answer's where none was
  *  written), and the FAQ pairs and do-not-claim sentences the rules fail dropped. */
 function mend(row: DraftRow, pack: ContextPack, basis: BatteryBasis): { page: CheckedPage; markdown: string; fixes: RecheckFixes } {
   const meta = metaOf(row);
@@ -150,8 +150,10 @@ function mend(row: DraftRow, pack: ContextPack, basis: BatteryBasis): { page: Ch
   const before = typeof meta.description === "string" ? meta.description : "";
   const description = fitDescription(before.trim() === "" ? (answerBoxOf(row.body_md!) ?? "") : before, pack.locale?.language);
   const proposed = (Array.isArray(meta.titles) ? (meta.titles as { title?: unknown }[]) : []).flatMap((each) => (typeof each?.title === "string" ? [each.title] : []));
-  const clean = [...proposed, stored].filter((each) => promiseFigures(each, pack).length === 0);
-  const title = clean.length === 0 ? stored : pickTitle(clean, titleRuleFor(pack, { description, sections })).chosen;
+  const unpromised = (each: string | null): each is string => each !== null && promiseFigures(each, pack).length === 0;
+  const clean = [...proposed, stored].filter(unpromised);
+  const floor = [floorTitle(pack)].find(unpromised) ?? null;
+  const title = clean.length === 0 && floor === null ? stored : pickTitle(clean, titleRuleFor(pack, { description, sections }), floor).chosen;
   const faq = withoutBrokenPairs(Array.isArray(meta.faq) ? meta.faq : [], { min: basis.template.blocks.faq?.min ?? 0, rivals: basis.rivalsNamed, facts: basis.brief.marketFacts });
   const claimed = withoutClaimed(row.body_md!, basis.site.doNotClaim);
   return {

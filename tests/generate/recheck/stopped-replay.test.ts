@@ -23,7 +23,6 @@ const PANEL: Record<string, string[]> = {
   "baeckerei-hinkel.de": ["what_it_is", "how_it_works", "options_and_limits", "example", "asked", "related"],
   "wesbos.com": ["what_you_need", "steps", "check", "mistakes", "asked", "asked", "next_step"],
 };
-const NOW = new Date("2026-11-05T08:00:00.000Z");
 
 /** A stored dogfood row, and the site as its pack records it; each passage stands for the page it was read off. */
 function dogfood(id: string): { row: DraftRow; world: RecheckWorld } {

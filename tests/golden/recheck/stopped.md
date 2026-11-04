@@ -3,7 +3,8 @@
 ## abe42ff7: how_to, "how to answer engine optimization"
 
 - Stopped on: no_demo_text, title
-- Today: held (title_promise_figure 7)
+- Today: passes, 0¢
+- Title: "Answer engine optimization tool: up to 7 pages a week" → "How to answer engine optimization"
 
 ## a6d24b00: qa, "ai search visibility tool"
 
