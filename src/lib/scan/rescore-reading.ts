@@ -3,11 +3,14 @@
 // they were read off no words of the site's own (`rescore-blank.ts`).
 import { HOME_WORDLESS } from "@/lib/measure/blank-page";
 import { BOT_PROTECTION } from "@/lib/measure/challenge";
+import type { SiteWithdrawal } from "./rescore-blank";
 import type { Row } from "./rescore-run";
 
 /** Issue 1470: how many stored profiles gain each part of the business's
  *  reading, what they gain, and which stay unread. */
-export function readingLines(rows: readonly Row[]): string[] {
+export function readingLines(rows: readonly Row[], sites: readonly SiteWithdrawal[] = []): string[] {
+  const of = (because: string) => sites.filter((w) => w.because === because).length;
+  const named = [...new Set(sites.map((w) => w.domain))].sort();
   const profiled = rows.filter(({ report }) => report.market.kind !== "unmeasured" && typeof report.market.value.profile === "object" && report.market.value.profile !== null);
   const gain = (key: "offerings" | "kind" | "reach") => profiled.filter((row) => row.result.reading[key] !== undefined);
   const tally = (values: readonly string[]): string =>
@@ -37,6 +40,7 @@ export function readingLines(rows: readonly Row[]): string[] {
     `- Kind left unread, as nothing stored decides it: ${kindUnread.length === 0 ? "none" : kindUnread.join(", ")}`,
     `- Reach left unread, as nothing stored decides it: ${reachUnread.length === 0 ? "none" : reachUnread.join(", ")}`,
     `- Market withdrawn, read off no words of the site's: ${count(withdrawn())} (a protection's page: ${count(withdrawn(BOT_PROTECTION))}; a home page that says nothing: ${count(withdrawn(HOME_WORDLESS))})${withdrawnDomains(rows)}`,
+    `- Paid sites' market withdrawn, read off no words of the site's: ${sites.length} (a protection's page: ${of(BOT_PROTECTION)}; a home page that says nothing: ${of(HOME_WORDLESS)})${named.length === 0 ? "" : `: ${named.join(", ")}`}`,
   ];
 }
 

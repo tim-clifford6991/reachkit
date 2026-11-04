@@ -245,6 +245,13 @@ describe("not measured is never 0", () => {
     expect(marketFigures({ competitors: ["billwise.example"], measured: null, firstPage: card, named: card }).cards["billwise.example"]).toBeNull();
   });
 
+  it("a withdrawn site, its category and market stored as none: the market row names none and draws no 0", () => {
+    const withdrawn = assembleSettings({ ...FIXTURE_SETTINGS_FACTS, domain: SAAS.domain, category: "", competitors: SAAS.competitors, measuredRivals: null, timeZone: TZ, concluded: null });
+    const root = mount(<MarketPanel market={withdrawn.market} concluded={withdrawn.concluded} domain={withdrawn.domain} timeZone={TZ} sets={{ ...SAAS.sets, competitors: 2 }} />);
+    const row = text(root.querySelector('[data-testid="setting-category"]'));
+    expect([/^Your market/.test(row), new RegExp(`${SAAS.category}|\\b0\\b`).test(row)]).toEqual([true, false]);
+  });
+
   it("an unread half reads not checked yet, on the card and on You", () => {
     const unread = { rivals: [], you: { domain: "", count: 0 }, of: 0, noRival: false };
     const read = { rivals: [{ domain: "billwise.example", count: 7 }], you: { domain: "", count: 2 }, of: 12, noRival: false };

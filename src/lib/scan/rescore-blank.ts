@@ -9,6 +9,7 @@ import { isPlaceholder, withoutPlaceholders } from "@/lib/measure/placeholder";
 import type { Profile } from "@/lib/market/questions/profile-types";
 import { readAsProtection } from "./challenged";
 import type { ReportChange, RescoreReport, RescoreScan } from "./rescore";
+import type { Row, SiteWrite, StoredSiteRow } from "./rescore-run";
 import type { StoredReport } from "./report";
 
 /** The stored profile with every field that names nothing taken out
@@ -40,6 +41,40 @@ export function withdrawnMarketOf(
   const changes: ReportChange[] = [{ path: ["market"], value: unmeasured("undeterminable", at, because) }];
   if (r.freePage !== null) changes.push({ path: ["freePage"], value: null });
   return changes;
+}
+
+/** A paid site's market withdrawn, with why and the site it is. */
+export interface SiteWithdrawal extends SiteWrite {
+  domain: string;
+  because: string;
+}
+
+/**
+ * A paid site's market adopted off a home read that held none of the site's
+ * words, by the rule above: its market and category are withdrawn, kept as
+ * they were under `market.withdrawn`, and its next scheduled pass reads them
+ * again. The founder's category, and a market read from the listing, stand.
+ */
+export function withdrawnSitesOf(sites: readonly StoredSiteRow[], rows: readonly Row[], o: { at: Date; by: string }): SiteWithdrawal[] {
+  return sites.flatMap((site) => {
+    const market = site.market;
+    if (market === null || market.categoryOverridden === true || market.current == null) return [];
+    const row = adoptingRow(site, rows);
+    if (row === undefined || (row.report as Partial<Pick<StoredReport, "marketFrom">>).marketFrom === "search") return [];
+    const because = unreadBecause(row.report, row.read);
+    if (because === null) return [];
+    const previous = { category: site.category ?? null, current: market.current, competitors: site.competitors };
+    const withdrawn = { previous, because, at: o.at.toISOString(), by: o.by };
+    return [{ id: site.id, domain: site.domain, because, category: null, competitors: site.competitors, market: { ...market, current: null, pending: null, withdrawn } }];
+  });
+}
+
+/** The scan whose pass adopted the site's market: the one its last change of
+ *  category names, else the domain's current scan. */
+function adoptingRow(site: StoredSiteRow, rows: readonly Row[]): Row | undefined {
+  const change = site.market?.lastChange as { scanId?: unknown; category?: unknown } | null | undefined;
+  if (typeof change?.scanId === "string" && change.category != null) return rows.find((r) => r.scan.id === change.scanId);
+  return rows.find((r) => r.scan.domain === site.domain && r.scan.isCurrent);
 }
 
 /** Why the home read the market came from held none of the site's words. */

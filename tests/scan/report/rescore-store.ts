@@ -22,6 +22,14 @@ export interface FixtureScan {
 export const fixture = (domain: string): FixtureScan =>
   (read(`./fixtures/rescore/${domain}.json`) as { scans: FixtureScan[] }).scans[0]!;
 
+export const IMPERVA = readFileSync(new URL("../../measure/domain/fixtures/challenge/imperva-challenge.bettys.co.uk.html", import.meta.url), "utf8");
+/** A domain's stored scan over another stored home read where `html` is given, with its report and rendered reads as given. */
+export const over = (domain: string, html?: string, report: Record<string, unknown> = {}, rendered?: FixtureScan["rendered"]): FixtureScan => {
+  const s = fixture(domain);
+  const payload = html === undefined ? s.home!.payload : { ...(s.home!.payload as Record<string, unknown>), status: 200, headers: {}, html, bytes: html.length };
+  return { ...s, report: { ...s.report, ...report }, home: { ...s.home!, payload }, rendered: rendered ?? s.rendered };
+};
+
 export const md5 = (report: unknown): string => createHash("md5").update(JSON.stringify(report)).digest("hex");
 
 /** A stored read, or a fixture scan's stored home reads, as the re-score reads them: their facts. */

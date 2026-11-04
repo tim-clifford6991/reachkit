@@ -25,6 +25,9 @@ export interface MarketChange {
 /** `sites.market` with the change the latest pass made. */
 export interface StoredMarketWithChange extends StoredMarket {
   lastChange?: MarketChange | null;
+  /** A market the re-score withdrew as read off no words of the site's,
+   *  kept as it was; no pass reads it. */
+  withdrawn?: Readonly<Record<string, unknown>>;
 }
 
 const STOP = new Set(["and", "for", "the", "with", "software", "tool", "tools", "platform", "app", "apps", "of", "to", "a", "an"]);

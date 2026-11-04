@@ -1,23 +1,15 @@
 // The 0¢ re-score withdraws a market read off a home page that held none of
 // the site's words, through a store that stands in for the database.
 import "../../generate/env";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { rescoreStored } from "../../../src/lib/scan/rescore-run";
 import { awaitsMarketFromSearch } from "../../../src/lib/scan/pass/market";
 import type { StoredReport } from "../../../src/lib/scan/report";
-import { apply, fixture, storeOf, type FixtureScan } from "./rescore-store";
+import { apply, IMPERVA as imperva, over as overStored, storeOf, type FixtureScan } from "./rescore-store";
 
 describe("a market read off a home page that held none of the site's words is withdrawn at 0¢", () => {
-  const imperva = readFileSync(join(__dirname, "../../measure/domain/fixtures/challenge/imperva-challenge.bettys.co.uk.html"), "utf8");
   /** gusto.com's stored scan, its market read from the home page, over another stored home read. */
-  const over = (html: string, report: Record<string, unknown> = {}): FixtureScan => {
-    const s = fixture("gusto.com");
-    const home = s.home!;
-    const payload = { ...(home.payload as Record<string, unknown>), status: 200, headers: {}, html, bytes: html.length };
-    return { ...s, report: { ...s.report, ...report }, home: { ...home, payload } };
-  };
+  const over = (html: string, report: Record<string, unknown> = {}) => overStored("gusto.com", html, report);
   const written = (db: ReturnType<typeof storeOf>, s: FixtureScan) => db.rows.get(s.id)!.report as unknown as StoredReport;
 
   it("Imperva's empty challenge, served with a 200: unscored, the market withdrawn, the next scan reads it from the listing, and nothing is bought", async () => {
