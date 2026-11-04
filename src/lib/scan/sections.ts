@@ -76,6 +76,13 @@ export function categoryOf(market: Measured<MarketSet>): string | null {
   return isPlaceholder(category) ? null : category;
 }
 
+/** Whether the report's market stands, read from the report alone. Its
+ *  searches, answers and rivals were measured in that market (ADR-095), so
+ *  none is drawn where the market was withdrawn or never measured. */
+export function marketStands(report: { market: Measured<MarketSet> }): boolean {
+  return report.market.kind !== "unmeasured";
+}
+
 /**
  * One question, as the *screen* stores it: numbered, its wording gated
  * behind `GeneratedText` so no surface can reach it except through
