@@ -7,6 +7,7 @@
 // plus the place, and its rivals are the ones found there.
 //
 // Pure: it reads the text it is handed. No fetch, no model call, no clock.
+import { parse } from "node-html-parser";
 import { COUNTRIES, type Place } from "./locales";
 
 /** What on a site said it serves a place, strongest first (issue 1370;
@@ -204,8 +205,7 @@ export function readPlaceSignals(html: string | null): PlaceSignals {
   const telephone = field(html, "telephone") || text(/href="tel:([^"]{6,24})"/i.exec(html)?.[1] ?? "", 24);
   const types = [...html.matchAll(/"@type"\s*:\s*(?:"([A-Za-z]{3,40})"|\[\s*"([A-Za-z]{3,40})")/g)].map((m) => m[1] ?? m[2] ?? "");
   const type = types.find((each) => !NOT_A_BUSINESS_TYPE.test(each));
-  const meta = /<meta\b[^>]*\bname\s*=\s*["']description["'][^>]*>/i.exec(html)?.[0] ?? "";
-  const description = text((/\bcontent\s*=\s*"([^"]*)"/i.exec(meta) ?? /\bcontent\s*=\s*'([^']*)'/i.exec(meta))?.[1] ?? "", 240);
+  const description = text(parse(html).querySelector('meta[name="description" i]')?.getAttribute("content"), 240);
   const locality = field(html, "addressLocality");
   const region = field(html, "addressRegion");
   const address = text(/"address"\s*:\s*"((?:[^"\\]|\\.){4,200})"/i.exec(html)?.[1]?.replace(/\\n/g, ", ") ?? "", 200);
