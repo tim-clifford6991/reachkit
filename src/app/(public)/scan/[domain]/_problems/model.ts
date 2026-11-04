@@ -17,6 +17,7 @@ import { rankedFreePages } from "@/lib/opportunities/free-page";
 import type { CopyKey } from "@/lib/presentation/copy";
 import type { GeneratedText } from "@/lib/presentation/generated";
 import type { StoredReport } from "@/lib/scan/report";
+import { marketStands } from "@/lib/scan/sections";
 
 /** Exactly three, closed. "Three problems" is the union, not a length
  *  check on an array somebody can push to. */
@@ -142,7 +143,7 @@ export function storedQuestionOf(report: StoredReport, search: string | null): G
  *  pages "page 1 of N" counts. `null` where the report did not measure its
  *  questions or its market, so nothing can say what is missing. */
 export function missingPagesOf(report: StoredReport): readonly MissingPage[] | null {
-  if (report.questions.kind === "unmeasured" || report.market.kind === "unmeasured") return null;
+  if (report.questions.kind === "unmeasured" || !marketStands(report)) return null;
   return rankedFreePages(report).map((page) => ({
     search: page.targetQuery ?? "",
     volume: page.volume === null || page.volume.kind === "unmeasured" ? null : page.volume.value,
@@ -151,10 +152,11 @@ export function missingPagesOf(report: StoredReport): readonly MissingPage[] | n
   }));
 }
 
-/** The missing-pages card's count: the supply section's where a scan built
- *  it, else the pages listed above it, unmeasured for the reason its
- *  questions or market were. */
+/** The missing-pages card's count: unmeasured where the market does not
+ *  stand, else the supply section's where a scan built it, else the pages
+ *  listed above it, unmeasured for the reason its questions or market were. */
 function missingCountOf(report: StoredReport): Measured<number> {
+  if (!marketStands(report)) return combine([report.market], () => 0);
   if (report.supply.missingPages.kind !== "unmeasured") return report.supply.missingPages;
   const pages = missingPagesOf(report);
   if (pages === null) return combine([report.questions, report.market], () => 0);
