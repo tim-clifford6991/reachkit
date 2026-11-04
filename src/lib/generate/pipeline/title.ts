@@ -10,7 +10,7 @@ import { TITLE } from "@/lib/config/constants";
 import { brandOf } from "@/lib/market/questions/select";
 import { namedRivals } from "../rules/rivals";
 import { numeralsOf } from "../rules/figures";
-import { addedNames, asksQuestion, names, withoutSerials, type TitleRuleInputs } from "../rules/title";
+import { addedNames, asksQuestion, closestTitle, names, pickTitle, withoutSerials, type TitleRuleInputs } from "../rules/title";
 import { packStatements, type ContextPack } from "./pack";
 import { comparisonTable } from "./table";
 import { TEMPLATES } from "../templates";
@@ -103,6 +103,27 @@ export function titleRuleFor(pack: ContextPack, page: TitledPage): TitleRuleInpu
   };
 }
 
+/** A search as typed, sentence-cased, each word as the pack's names spell it, or its passages where they case it
+ *  inside the word ("AI", "ChatGPT"): a word only capitalised to open a sentence is left as typed. */
+function casedAsPack(term: string, pack: ContextPack, rule: TitleRuleInputs): string {
+  const names = [...(rule.owners?.rivals ?? []), ...(rule.owners === undefined ? [] : [rule.owners.business])].flatMap((owner) => owner.names);
+  const cased = new Map<string, string>();
+  for (const [said, inner] of [[names.join(" "), false], [[...pack.facts, ...pack.claims].map((each) => each.passage).join(" "), true]] as const) {
+    for (const [word] of said.matchAll(/[\p{L}\p{N}]+/gu)) if (/\p{Lu}/u.test(inner ? word.slice(1) : word) && !cased.has(word.toLowerCase())) cased.set(word.toLowerCase(), word);
+  }
+  return term.trim().replace(/[\p{L}\p{N}]+/gu, (word) => cased.get(word.toLowerCase()) ?? word).replace(/^\p{Ll}/u, (first) => first.toUpperCase());
+}
+
+/** The title code builds at 0¢, picked only where every writer title stops the page: the first of the searches that
+ *  fits a title's length and reads unlike the site's titles, cased as the pack cases it, with the year on a type that
+ *  carries one. `null` where none does. */
+export function floorTitle(pack: ContextPack): string | null {
+  const rule = titleRuleFor(pack, { description: "" });
+  const dated = (TITLE.yearTypes as readonly string[]).includes(pack.type);
+  const titles = rule.terms.map((term) => (dated ? `${casedAsPack(term, pack, rule)} (${rule.year})` : casedAsPack(term, pack, rule)));
+  return titles.find((title) => [...title].length >= TITLE.chars.min && [...title].length <= TITLE.chars.max && closestTitle(title, rule.titles) === null) ?? null;
+}
+
 /** The figures the pack states, each with the words around it, so the
  *  writer is shown the specifics a title may carry. A year is not one, and
  *  neither is the number of an episode or an issue. */
@@ -140,22 +161,32 @@ export function promiseFigures(title: string, pack: ContextPack): string[] {
   return [...new Set(figures(title))].filter((figure) => promised.has(figure));
 }
 
-/** The same reading, as the writer is told it. */
+/** The same reading, as the writer is told it. A figure or a name is offered only where the search with it passes
+ *  the very check stage 4 holds the title to, and those titles and the floor are handed over as already passing. */
 export function titleBrief(pack: ContextPack): Record<string, unknown> {
   const rule = titleRuleFor(pack, { description: "" });
   const dated = (TITLE.yearTypes as readonly string[]).includes(pack.type);
   const words = languagePack(pack.locale?.language ?? "en").title;
+  const titled = (specific: string): string => `${casedAsPack(rule.terms[0] ?? "", pack, rule)}: ${specific}`;
+  const passes = (specific: string): boolean => pickTitle([titled(specific)], rule).candidates[0]?.faults.length === 0 && promiseFigures(titled(specific), pack).length === 0;
+  const names = addedNames(rule).filter(passes).slice(0, TITLE.namesTold);
+  const figures = figuresOf(pack).filter(passes);
+  const floor = floorTitle(pack);
   return {
     searches: rule.terms,
     year: dated ? rule.year : null,
     // The rivals and the place that count as the title's specific.
-    names: addedNames(rule).slice(0, TITLE.namesTold),
+    names,
     // Figures `pack` states, as it words them.
-    figures: figuresOf(pack),
+    figures,
+    // Titles code checked against every rule below.
+    titles: [...new Set([...figures, ...names].map(titled))].slice(0, TITLE.candidates).concat(floor === null ? [] : [floor]),
     rules: [
       `${TITLE.chars.min} to ${TITLE.chars.max} characters, counted, spaces included: write ${TITLE.aim.min} to ${TITLE.aim.max}, which is eight to ten words. A title of ${TITLE.chars.max + 1} or more is thrown away, so make the first of the titles the shortest that holds these rules: the search's own words, then one detail of at most five words, and nothing else.`,
       `One of \`searches\`${rule.follow.length === 0 ? "" : " or of `pack.questions`"}, in the searcher's own words, starts within its first ${TITLE.headChars} characters.`,
-      "It carries one specific that `pack` holds: a number, a price or a measured result in the digits `pack` states it in (`figures` lists some), or a count of this page's own options, questions or numbered steps; one of `names`, where it lists any; or an AI engine's name the search does not already carry. A year is not a number, neither is the number of an episode, an issue or a volume, and a question, an award, an adjective or who the page is for is not a specific.",
+      "It carries one specific that `pack` holds: a number, a price or a measured result in the digits `pack` states it in (`figures` lists some), or a count of this page's own options, questions or numbered steps; or one of `names`, where it lists any. A year is not a number, neither is the number of an episode, an issue or a volume, and a question, an award, an adjective or who the page is for is not a specific.",
+      "A figure beside a product's name is one that product's own pages state, or the business's own where the title names the business too; state no figure that belongs to another.",
+      "`titles` are titles code has checked against every one of these rules: propose better ones that hold them all, or these as they are.",
       rule.asks
         ? "The search is a question, so it may be that question; a statement that answers it is as good."
         : "It is a statement that answers the search, never a question: the search is not one.",
