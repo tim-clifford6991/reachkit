@@ -23,7 +23,7 @@ import { siteRulesOf } from "@/lib/generate/pipeline/battery";
 import { readAllFacts } from "@/lib/generate/pipeline/grounding";
 import { candidacy, recheckRow, recheckStopped, retiredFor, retiredUnread, type RecheckWorld } from "@/lib/generate/recheck";
 import type { ContextPack } from "@/lib/generate/pipeline/pack";
-import { promiseFigures } from "@/lib/generate/pipeline/title";
+import { floorTitle, promiseFigures } from "@/lib/generate/pipeline/title";
 import { answerBoxOf } from "@/lib/generate/rules/blocks";
 import { renderOf } from "@/lib/generate/rules/text";
 import { generateStore, setGenerateStore, type DraftRow } from "@/lib/generate/store";
@@ -112,15 +112,16 @@ describe("a page that still fails is set aside at 0¢, the row kept and its topi
     expect(llm).not.toHaveBeenCalled();
   });
 
-  it("a title short only of its specific is set aside while unsettled, and a settled one beside it enters review in the same run", async () => {
+  // Ruling 2026-10-11: where the fix call cannot start, a title short only of its specific goes on, marked. The re-check
+  // starts none, so a page with one attempt is let go on as one with two is.
+  it.each([1, 2])("a page whose one failure is its title's want of a specific, after %i attempts, enters review, the title marked specific_unmet, at 0¢", async (attempts) => {
     arrange(SAAS_HOSTED);
     const title = "Project management software plan that fits a small team";
-    const [unsettled, settled] = [await stopped(SAAS_HOSTED, { attempts: 1, builtAt: new Date(AT.getTime() + DAY) }), await stopped(SAAS_HOSTED, { topic: "billing" })];
-    for (const id of [unsettled, settled]) Object.assign(row(id), { title, meta: { ...(row(id).meta as Row), titles: [{ title }] } });
+    const id = await stopped(SAAS_HOSTED, { attempts });
+    Object.assign(row(id), { title, meta: { ...(row(id).meta as Row), titles: [{ title }] } });
     await recheck(SAAS_HOSTED);
-    expect([row(unsettled).state, row(settled).state]).toEqual(["skipped", "in_review"]);
-    expect(row(unsettled).rule_failures).toMatchObject([{ rule: "title", detail: { faults: ["specific"] } }]);
-    retiredBy(unsettled, "retired:title");
+    expect(row(id)).toMatchObject({ state: "in_review", hard_rules_passed: true, rule_failures: [], meta: { titles: [{ title, ...(attempts === 1 ? { specific_unmet: true } : {}) }] } });
+    expect(llm).not.toHaveBeenCalled();
   });
 
   it("with only failing candidates every one is set aside, and the day goes on to write its next topic", async () => {
@@ -210,9 +211,6 @@ describe("OR4: a promise-figure title never enters review", () => {
     // Issue 2341: its phrase said too often is dropped in code past the first sayings.
     ["d98284cc", true, []],
     ["5dcc61c2", false, [{ rule: "required_blocks", detail: { block: "question_headings" } }]],
-    // Its FAQ pair denying a rival is dropped. One attempt: its title is not settled, so the missing specific still
-    // stops it, and its sections take a writer.
-    ["f1ec6a58", false, [{ rule: "required_blocks", detail: { block: "sections" } }, { rule: "title", detail: { faults: ["specific"] } }]],
   ] as const)("%s, replayed on its own stored body under today's rules: passed %s, failing exactly what it prints, at 0¢", async (id, passed, failed) => {
     arrange(SAAS_HOSTED);
     expect(await recheckRow(at(id), dogfood(at(id)))).toMatchObject({ kind: "checked", passed, failed, spentCents: 0 });
@@ -228,36 +226,24 @@ describe("OR4: a promise-figure title never enters review", () => {
     ["fba1d84d", "What is AEO? Answer engine optimization in one page", true],
     // Its stored title carries the business's own "€49 a month"; the one clean candidate still fails its wording.
     ["b8c28f61", "Answer engine optimization vs generative engine optimization (2026)", false],
-  ] as const)("re-pick never takes a promise-figure title: %s takes %j, its H1 follows, the stored title is kept, at 0¢", async (id, title, passed) => {
-    arrange(SAAS_HOSTED);
-    const outcome = await checked(id);
-    expect(outcome).toMatchObject({ passed, spentCents: 0, patch: { title }, meta: { recheck: { titleBefore: at(id).title, title } } });
-    expect(promiseFigures(title, (at(id).meta as { pack: ContextPack }).pack)).toEqual([]);
-    expect(outcome.meta).not.toHaveProperty("heading");
-    expect((at(id).meta as { titles: Row[] }).titles.map((each) => each.title)).toContain(title);
-  });
-
-  it.each([
     // "12" is in no promise, but it is the business's figure beside a rival's name, so every writer title stops.
-    ["a71279ff", "Profound answer engine optimization"],
+    ["a71279ff", "Profound answer engine optimization", true],
     // Its other candidates carry a "1" #2134's classifier reads as the business's "1 email every Monday".
-    ["abe42ff7", "How to answer engine optimization"],
-  ] as const)("%s, with no writer title that passes, takes the search's own floor title, its H1 follows, and passes at 0¢", async (id, title) => {
+    ["abe42ff7", "How to answer engine optimization", true],
+  ] as const)("re-pick never takes a promise-figure title: %s takes %j, a writer's or the search's own floor, its H1 follows, the stored title is kept, at 0¢", async (id, title, passed) => {
     arrange(SAAS_HOSTED);
     const outcome = await checked(id);
-    expect(outcome).toMatchObject({ passed: true, failed: [], spentCents: 0, patch: { title }, meta: { recheck: { titleBefore: at(id).title, title } } });
+    const p = (at(id).meta as { pack: ContextPack }).pack;
+    expect(outcome).toMatchObject({ passed, ...(passed ? { failed: [] } : {}), spentCents: 0, patch: { title }, meta: { recheck: { titleBefore: at(id).title, title } } });
+    expect(promiseFigures(title, p)).toEqual([]);
     expect(outcome.meta).not.toHaveProperty("heading");
+    expect([...(at(id).meta as { titles: Row[] }).titles.map((each) => each.title), floorTitle(p)]).toContain(title);
   });
 
-  it("re-pick never takes a promise-figure title: a6d24b00 has no clean candidate and no search long enough for a floor, so it is held and nothing is written", async () => {
+  it("re-pick never takes a promise-figure title: only a6d24b00, with no clean candidate and no search long enough for a floor, is held, and nothing is written", async () => {
     arrange(SAAS_HOSTED);
-    expect(await recheckRow(at("a6d24b00"), dogfood(at("a6d24b00")))).toEqual({ kind: "held", reason: "title_promise_figure", figures: ["7"] });
-  });
-
-  it("no other stored row is held", async () => {
-    arrange(SAAS_HOSTED);
-    const held = await Promise.all(rows.map(async (each) => ((await recheckRow(each, dogfood(each))).kind === "held" ? [each.id.slice(0, 8)] : [])));
-    expect(held.flat().sort()).toEqual(["a6d24b00"]);
+    const held = (await Promise.all(rows.map(async (each) => [each.id.slice(0, 8), await recheckRow(each, dogfood(each))] as const))).filter(([, outcome]) => outcome.kind === "held");
+    expect(held).toEqual([["a6d24b00", { kind: "held", reason: "title_promise_figure", figures: ["7"] }]]);
   });
 
   it.each(["5dcc61c2", "a71279ff", "b03e044f"])("%s: its description is cut to 155 or fewer at a word, every word its own", async (id) => {
@@ -331,15 +317,23 @@ describe("OR4: a promise-figure title never enters review", () => {
     expect([row(other).state, lastMove(other).reason, wordsOf(other)]).toEqual(["skipped", "retired:title", before]);
   });
 
-  it("where every title the writer proposes stops the page, stage 4 takes the search's own floor, and so does the re-check from the three stored, at 0¢", async () => {
+  const plan = "Which plan fits a small design team";
+  const versus = "Peec ai vs otterly vs profound comparison";
+  it.each([
+    // Every title the writer proposes stops the page: stage 4 and the re-check take the search's own floor.
+    [plan, [`${plan}: the ultimate guide`, `${plan} in 2026`, `${plan}, plan by plan`], null, "in_review"],
+    // The floor names no business beside its rivals, which stops the page as more than a want of a specific: stage 4
+    // ranks it like any other, and the re-check keeps the stored title, as nothing after it mends one.
+    [versus, ["Peec AI vs Otterly vs Profound comparison: the ultimate guide"], ["peec.ai", "otterly.ai", "tryprofound.com"], "skipped"],
+  ] as const)("stage 4 takes the floor %j over writer titles %j (rivals %j), and the re-check at 0¢ leaves the page %s", async (floor, titles, rivals, state) => {
     arrange(SAAS_HOSTED);
-    const [search, floor] = ["which plan fits a small design team", "Which plan fits a small design team"];
-    const titles = [`${floor}: the ultimate guide`, `${floor} in 2026`, `${floor}, plan by plan`];
-    const id = await stopped(SAAS_HOSTED, { titles, pack: { target: { question: search, searches: [search] } } });
+    const search = floor.toLowerCase();
+    const id = await stopped(SAAS_HOSTED, { titles: [...titles], pack: { target: { question: search, searches: [search] }, ...(rivals === null ? {} : { business: { ...pack().business, rivals: [...rivals] } }) } });
     expect(row(id)).toMatchObject({ title: floor, meta: { titles: [...titles, floor].map((title) => ({ title })) } });
     Object.assign(row(id), { title: titles[0], meta: { ...(row(id).meta as Row), titles: titles.map((title) => ({ title })) } });
     await recheck(SAAS_HOSTED);
-    expect(row(id)).toMatchObject({ state: "in_review", title: floor, meta: { recheck: { titleBefore: titles[0], title: floor } } });
+    expect(row(id)).toMatchObject(state === "in_review" ? { state, title: floor, meta: { recheck: { titleBefore: titles[0], title: floor } } } : { state, title: titles[0] });
+    if (state === "skipped") expect(row(id).meta).not.toHaveProperty("recheck.title");
     expect(llm).not.toHaveBeenCalled();
   });
 
@@ -351,9 +345,6 @@ describe("OR4: a promise-figure title never enters review", () => {
     ["a6d24b00", "retired:title"],
     ["bf8de9bf", "retired:title"],
     ["b8c28f61", "retired:title"],
-    // The search's own floor title passes where no writer title does.
-    ["abe42ff7", null],
-    ["a71279ff", null],
     ["b03e044f", null],
     ["fba1d84d", null],
     ["d98284cc", null],
