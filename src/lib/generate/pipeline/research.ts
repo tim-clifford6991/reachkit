@@ -304,10 +304,8 @@ const RIVAL_LABEL_RES = {
 } as const;
 /** Every `<a href>` of a page and the words it carries; an empty or in-page `#…` address goes nowhere. */
 function anchorsOf(html: string): { href: string; label: string }[] {
-  return parse(html).querySelectorAll("a[href]").flatMap((anchor) => {
-    const href = anchor.getAttribute("href")?.trim() ?? "";
-    return href === "" || href.startsWith("#") ? [] : [{ href, label: visibleText(anchor.innerHTML).trim() }];
-  });
+  const anchors = parse(html).querySelectorAll("a[href]").map((a) => ({ href: a.getAttribute("href")?.trim() ?? "", label: visibleText(a.innerHTML).trim() }));
+  return anchors.filter((anchor) => anchor.href !== "" && !anchor.href.startsWith("#"));
 }
 const LOC_RE = /<loc>\s*(?:<!\[CDATA\[)?\s*([^<\]\s]+)/gi;
 const FILE_RE = /\.(?!html?$)[a-z0-9]{2,5}$/i;
