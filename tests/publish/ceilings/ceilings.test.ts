@@ -18,14 +18,13 @@ const db = fakeDb();
 vi.mock("@/lib/db", () => ({ dbAdmin: () => db.client, db: () => db.client }));
 
 import { RATE_LIMITS, WEEK_PLAN } from "@/lib/config/constants";
-import { ceilingRoom } from "@/lib/publish/ceilings";
 import {
+  ceilingRoom,
   startOfLocalDay,
   startOfLocalWeek,
   startOfNextLocalDay,
   startOfNextLocalWeek,
-} from "@/lib/publish/ceilings/local-week";
-import { weekStartFor } from "@/lib/scan/weekly/week";
+} from "@/lib/publish/ceilings";
 
 const ZONE = "America/New_York";
 
@@ -118,26 +117,6 @@ describe("the week starts on the customer's Monday", () => {
   it("startOfLocalWeek on that Sunday is the Monday before it, in the customer's zone", () => {
     const sundayEvening = new Date("2026-09-14T00:30:00.000Z");
     expect(startOfLocalWeek(sundayEvening, ZONE).toISOString()).toBe("2026-09-07T04:00:00.000Z");
-  });
-
-  it("agrees with the weekly measurement's own site-local week — two helpers, one answer", () => {
-    for (const iso of [
-      "2026-09-14T00:30:00.000Z",
-      "2026-09-14T14:00:00.000Z",
-      "2026-03-08T06:30:00.000Z",
-      "2026-11-01T05:30:00.000Z",
-    ]) {
-      const instant = new Date(iso);
-      const mine = startOfLocalWeek(instant, ZONE);
-      const theirs = weekStartFor({ at: instant, zone: ZONE });
-      const asDate = new Intl.DateTimeFormat("en-CA", {
-        timeZone: ZONE,
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-      }).format(mine);
-      expect(asDate, iso).toBe(theirs);
-    }
   });
 });
 

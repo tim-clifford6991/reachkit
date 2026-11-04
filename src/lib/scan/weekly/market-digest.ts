@@ -37,6 +37,8 @@
 // lists every pass — weekly, deep or re-measure — one of its own checks
 // failed on in the seven days up to the moment this digest fell due, with
 // the check and what it found. A read that fails leaves it out too.
+import { tz } from "@date-fns/tz";
+import { addDays, format } from "date-fns";
 import { dbAdmin } from "@/lib/db";
 import { marketTooSmall, stoppedOnCeiling } from "../market-floor";
 import { readStoredReport } from "../report";
@@ -81,17 +83,17 @@ interface SiteRow {
 type StoppedWeek = NonNullable<Extract<OpsIncident, { occasion: "market-too-small-week" }>["stopped"]>;
 
 /** `day` moved by whole days, as the calendar date it lands on. */
-function addDays(day: string, delta: number): string {
-  return new Date(Date.parse(`${day}T00:00:00.000Z`) + delta * DAY_MS).toISOString().slice(0, 10);
+function shiftDay(day: string, delta: number): string {
+  return format(addDays(day, delta, { in: tz("UTC") }), "yyyy-MM-dd");
 }
 
 /** The sites with a stopped page in the week before `weekStart`, or `null`
  *  where there is none or the count could not be read. */
 async function stoppedBefore(weekStart: string): Promise<StoppedWeek | null> {
   try {
-    const from = addDays(weekStart, -7);
+    const from = shiftDay(weekStart, -7);
     const { stalledBySite } = await import("@/lib/publish/record/stalled-read");
-    const counts = [...(await stalledBySite({ from, to: addDays(weekStart, -1) }))].filter(([, count]) => count.stopped > 0);
+    const counts = [...(await stalledBySite({ from, to: shiftDay(weekStart, -1) }))].filter(([, count]) => count.stopped > 0);
     if (counts.length === 0) return null;
     const sites = await untyped()
       .from<SiteRow>("sites")
@@ -121,7 +123,7 @@ type UntoldWeek = NonNullable<Extract<OpsIncident, { occasion: "market-too-small
 async function untoldBefore(weekStart: string): Promise<UntoldWeek | null> {
   try {
     const { untoldMisses } = await import("@/lib/publish/daily");
-    const days = await untoldMisses({ from: addDays(weekStart, -7), to: addDays(weekStart, -1) });
+    const days = await untoldMisses({ from: shiftDay(weekStart, -7), to: shiftDay(weekStart, -1) });
     if (days.length === 0) return null;
     const sites = await untyped()
       .from<SiteRow>("sites")
@@ -143,7 +145,7 @@ async function untoldBefore(weekStart: string): Promise<UntoldWeek | null> {
 async function costBefore(weekStart: string): Promise<CostWeek | null> {
   try {
     const { readCostWeek } = await import("./cost-week");
-    return await readCostWeek(addDays(weekStart, -7));
+    return await readCostWeek(shiftDay(weekStart, -7));
   } catch (error) {
     console.warn(JSON.stringify({ event: "market_digest_costs_unread", error: error instanceof Error ? error.name : "unknown" }));
     return null;
