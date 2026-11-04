@@ -9,6 +9,7 @@ import { stillAsked, type FitVerdict } from "../claims/fit";
 import { lengthRangeFor, sectionWords } from "../length";
 import { batteryCleared, runHardRules, type BatteryOutcome } from "../rules";
 import { namedRivals } from "../rules/rivals";
+import { specificOnly } from "../rules/title";
 import { renderOf } from "../rules/text";
 import type { ComparisonSet, HardRule, SiteRuleInputs } from "../rules/types";
 import type { SiteFacts } from "../store";
@@ -154,6 +155,14 @@ export function batteryInputs(b: BatteryBasis, page: CheckedPage, markdown: stri
       subjects: [...b.searches, ...b.names.filter((name) => name !== ""), ...pack.claims.map((claim) => claim.title), ...pack.links.map((link) => link.label)],
     },
   };
+}
+
+/** The page failed one thing: its title lacks a specific. Stage 4 then lets it go on without one (ruling
+ *  2026-10-11), and so does the morning re-check. */
+export function lacksSpecificOnly(outcome: BatteryOutcome): boolean {
+  if (outcome.passed || outcome.failed.length !== 1) return false;
+  const detail = outcome.failed[0]?.detail;
+  return detail !== undefined && "faults" in detail && detail.rule === "title" && specificOnly(detail.faults);
 }
 
 /** One page through stage 4: the checks, the repairs code can make (#1178) kept only where the page then passes or

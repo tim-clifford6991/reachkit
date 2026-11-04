@@ -25,7 +25,7 @@ import { accountFor, isLawCause, isSupplyCause, type EmptyAccount, type EmptyFac
 import type { PageStanding } from "./day-number";
 import type { WorkStop } from "@/lib/presentation/stopped";
 import { stageOf, type DayState, type State, type Stage, type StageFilter } from "./stages";
-import { dayKeyOf, monthGrid, monthOf, planHorizonEnd, planWeek, type DayKey, type MonthKey } from "./dates";
+import { dayKeyOf, gridDays, monthOf, planHorizonEnd, planWeek, type DayKey, type MonthKey } from "./dates";
 
 /** REQ-043 criterion 8's evidence, and §7's day-panel rows.
  *
@@ -292,7 +292,8 @@ export function assembleMonth(facts: CalendarFacts, month: MonthKey): MonthModel
 
   const horizonEnd = planHorizonEnd(today);
 
-  const cells: DayCell[] = monthGrid(month).map(({ day, inMonth }) => {
+  const cells: DayCell[] = gridDays(month).map((day) => {
+    const inMonth = monthOf(day) === month;
     const when: DayWhen = day < today ? "past" : day <= horizonEnd ? "plan" : "after";
     const base = { day, inMonth, when, today: day === today, statesLine: false, horizonMarker: false };
     if (!inMonth) return { ...base, page: null, empty: null };

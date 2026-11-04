@@ -11,7 +11,7 @@ const search = "generative engine optimization examples";
 const listicle = pack({ type: "listicle", target: { question: search, searches: [search] } });
 const rule = titleRuleFor(listicle, { description: "x".repeat(140) });
 const floor = floorTitle(listicle)!;
-const stopping = (title: string) => pickTitle([title], rule).candidates[0]!.faults.filter((fault) => fault !== "specific");
+const stopping = (title: string, on = rule) => pickTitle([title], on).candidates[0]!.faults.filter((fault) => fault !== "specific");
 
 describe("pickTitle with a floor", () => {
   it("takes the floor where every writer title stops the page: ecf4f99d's three", () => {
@@ -32,10 +32,9 @@ describe("pickTitle with a floor", () => {
     const versus = pack({ type: "listicle", target: { question: compares, searches: [compares] }, business: { ...listicle.business, rivals: ["peec.ai", "otterly.ai", "tryprofound.com"] } });
     const on = titleRuleFor(versus, { description: "x".repeat(140) });
     const built = floorTitle(versus)!;
-    const faults = (title: string) => pickTitle([title], on).candidates[0]!.faults.filter((fault) => fault !== "specific");
     const once = "Peec AI vs Otterly vs Profound comparison for small teams";
     const twice = "Peec AI vs Otterly vs Profound comparison: the ultimate guide";
-    expect([faults(built), faults(once), faults(twice)]).toEqual([["business"], ["business"], ["banned", "business"]]);
+    expect([stopping(built, on), stopping(once, on), stopping(twice, on)]).toEqual([["business"], ["business"], ["banned", "business"]]);
     expect([pickTitle([once], on, built).chosen, pickTitle([twice], on, built).chosen]).toEqual([once, built]);
   });
 
