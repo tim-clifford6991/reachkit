@@ -46,7 +46,7 @@ import type { MarketSerp, QuestionView } from "@/lib/market/views";
 import { AI_ANSWER_SOURCES, type RankedRow } from "@/lib/vendors/dataforseo/types";
 import { cardsOf, placeStands, reachOfReport } from "./cards";
 import { readAsProtection, unreadByProtection } from "./challenged";
-import { clearedProfileOf, withdrawnMarketOf } from "./rescore-blank";
+import { clearedProfileOf, withdrawnMarketOf, withdrawnPresenceOf } from "./rescore-blank";
 import { marketEvidence, type EvidenceReport } from "./market-evidence";
 import { onPageOf, type PageFacts } from "./page-facts";
 import { localeOfReport, type AnswerCell, type EngineCell, type PromptAnswer, type StoredReport } from "./report";
@@ -360,9 +360,14 @@ export function rescoreScan(scan: RescoreScan): Rescored {
   const stale = read.locale?.place !== undefined && !placeStands(read);
   if (stale) kept.push(KEPT_TOWN_BOUGHT);
   const cards = cardsAfter(read, scan, kept);
+  const withdrawn = withdrawnMarketOf(r, scan, at);
+  // A home read that was a protection's page is no reading of the site: the report says what a new scan of it would say.
+  const protection = r.onPage.kind !== "unmeasured" && scan.home !== null && readAsProtection({ home: scan.home, rendered: scan.rendered });
+  // A market read off no words of the site's own: no Presence is counted over its searches.
+  const none = withdrawnPresenceOf(r, withdrawn, protection, at);
 
   const searchPresence = cards.presence === null || cards.presence.measuredSearches === 0 ? null : searchPresenceOf({ card: cards.presence, serps: r.serps, at });
-  if (searchPresence === null) kept.push("search presence: the report kept no measured search, so its stored value stands");
+  if (searchPresence === null && none === undefined) kept.push("search presence: the report kept no measured search, so its stored value stands");
   // Issue 1551: the page questions' stored AI-Overview cells count beside
   // the twelve's, read as stored. A report written before the section has
   // none.
@@ -376,12 +381,11 @@ export function rescoreScan(scan: RescoreScan): Rescored {
   const drivers: Drivers = {
     foundations,
     answerability,
-    searchPresence: searchPresence ?? dated(stored?.searchPresence ?? unmeasured("undeterminable", at), at),
-    aiPresence,
+    searchPresence: none ?? searchPresence ?? dated(stored?.searchPresence ?? unmeasured("undeterminable", at), at),
+    aiPresence: none ?? aiPresence,
   };
-  // Presence where neither the rows nor the stored drivers say what search
-  // presence was: the stored factor stands.
-  const presence = searchPresence === null && stored === null ? dated(r.verdict.factors.presence, at) : undefined;
+  // Presence where neither the rows nor the stored drivers say what search presence was: the stored factor stands.
+  const presence = none ?? (searchPresence === null && stored === null ? dated(r.verdict.factors.presence, at) : undefined);
 
   // The inputs no stored member restates are read off the stored verdict:
   // one it listed as unread is unread, any other was read.
@@ -395,9 +399,9 @@ export function rescoreScan(scan: RescoreScan): Rescored {
     pricing_document: asStored("pricing_document"),
     access_rules: outcomeOf(robots),
     business_profile: asStored("business_profile"),
-    market_suggestions: asStored("market_suggestions"),
+    market_suggestions: none === undefined ? asStored("market_suggestions") : outcomeOf(none),
     own_ranked_rows: outcomeOf(r.ownRanked),
-    question_serps: outcomeOf(foldSerps(r.serps, at)),
+    question_serps: outcomeOf(none ?? foldSerps(r.serps, at)),
   };
   const aiSample = aiSampleOf({ serps: r.serps, pageCells, ownDomain: r.domain, siteName: scan.siteName });
   const verdict = verdictOf({
@@ -414,19 +418,14 @@ export function rescoreScan(scan: RescoreScan): Rescored {
 
   let after: RescoredMembers = { ...membersOf(r), verdict, ...cards };
 
-  // A home read that was a protection's page is no reading of the site
-  // (issue 1383): the report says what a new scan of it would say.
-  if (r.onPage.kind !== "unmeasured") {
-    if (scan.home === null) kept.push("home page: its stored read is gone, so it was not checked for a protection's page");
-    else if (readAsProtection({ home: scan.home, rendered: scan.rendered })) {
-      after = { ...after, ...unreadByProtection({ ...after, robots: r.robots, blockedAgents: r.blockedAgents }) };
-      drivers.foundations = after.verdict.factors.foundations;
-      drivers.answerability = after.verdict.factors.answerability;
-    }
+  if (r.onPage.kind !== "unmeasured" && scan.home === null) kept.push("home page: its stored read is gone, so it was not checked for a protection's page");
+  if (protection) {
+    after = { ...after, ...unreadByProtection({ ...after, robots: r.robots, blockedAgents: r.blockedAgents }) };
+    drivers.foundations = after.verdict.factors.foundations;
+    drivers.answerability = after.verdict.factors.answerability;
   }
 
   const before = membersOf(r);
-  const withdrawn = withdrawnMarketOf(r, scan, at);
   // The run hands over the whole stored report; its type names only what a score reads.
   const freePage = withdrawn ?? freePageChanges({ ...read, ...after, scanId: scan.id } as unknown as StoredReport);
   const changes = [...changesOf(before, after), ...(withdrawn === null ? profileChanges(r, profile, reading) : []), ...promptChanges(r, scan), ...servedChanges(r, scan), ...freePage];
