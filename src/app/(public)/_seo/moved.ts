@@ -30,6 +30,7 @@ const EXACT: Readonly<Record<string, MovedAnswer>> = {
   // The old app and its sign-in. `/app` sends a visitor with no session on
   // to `/signin` by itself.
   "/login": to("/signin"),
+  "/sign-in": to("/signin"),
   "/signup": SCAN,
   "/dashboard": to("/app"),
   "/onboarding": to("/app"),
