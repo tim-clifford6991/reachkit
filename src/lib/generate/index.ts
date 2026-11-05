@@ -51,9 +51,9 @@ import type { KnownPage } from "@/lib/known-content/types";
 import { contentTypeOf } from "@/lib/opportunities/content-type";
 import { intentFor } from "@/lib/opportunities/intent";
 import { roomForFix, withDraftCost } from "./cost";
-import { readRecordedRules, recordedVerdictValue } from "./record";
+import { readRecordedRules } from "./record";
 import { mendedInCode, repairStructure } from "./rules/structure";
-import { claimCheck } from "./claims/check";
+import { checkStoredAt0, siteSets } from "./recheck";
 import { confirmedForWriting } from "./voice/confirmed";
 import {
   clusterLinkTargets,
@@ -449,36 +449,29 @@ function mendable(opportunity: Opportunity): boolean {
  * 0¢. It is a new version through the refresh path, never an edit of the
  * live row (ADR-080), and it is dated as the version it mends (`datedAs`):
  * a renumbered list is not a change of what the page says, so its updated
- * date, `dateModified` and `lastmod` stay. It enters review as every page
- * does, its claim checked against the customer's list.
+ * date, `dateModified` and `lastmod` stay. It enters review only where it
+ * passes today's whole battery, as a stored page re-checked does, at 0¢.
  */
 async function mendPage(a: PageInput): Promise<DayPageOutcome> {
   const store = generateStore();
-  const live = await store.liveVersionAt(a.siteId, a.opportunity.targetRef);
-  if (live === null) return { ok: false, because: "step_failed", draftId: a.draftId ?? null, step: "mend" };
+  const url = a.opportunity.targetRef;
+  const none: DayPageOutcome = { ok: false, because: "step_failed", draftId: a.draftId ?? null, step: "mend" };
+  const live = await store.liveVersionAt(a.siteId, url);
+  if (live === null) return none;
   const meta = (typeof live.draft.meta === "object" && live.draft.meta !== null ? live.draft.meta : {}) as Record<string, unknown>;
-  const title = live.draft.title ?? "";
-  const body = repairStructure(live.draft.body_md ?? "", { title });
+  const body = repairStructure(live.draft.body_md ?? "", { title: live.draft.title ?? "" });
   // Mended since it was planned: there is nothing to publish.
-  if (body === (live.draft.body_md ?? "")) return { ok: false, because: "step_failed", draftId: a.draftId ?? null, step: "mend" };
-  const datedAs = typeof meta.datedAs === "string" ? meta.datedAs : live.publishedAt.toISOString();
-  const draftId = await store.insertDraft({
-    site_id: a.siteId,
-    opportunity_id: a.opportunity.id,
-    state: "generating",
-    title: live.draft.title,
-    body_md: body,
-    grounded_fact: live.draft.grounded_fact,
-    attribution: live.draft.attribution,
-    scheduled_for: a.publishDate,
-    cost_cents: 0,
-    meta: { ...meta, datedAs, mendOf: live.draft.id },
-  });
-  const claim = claimCheck({ text: [title, body].join("\n"), list: a.site.doNotClaim });
-  const passed = claim.state === "passed";
-  await store.patchDraft(draftId, { claim_check: recordedVerdictValue(claim), rule_failures: [], cost_cents: 0, hard_rules_passed: passed });
-  console.log(JSON.stringify({ event: "page_mended", siteId: a.siteId, draftId, mendOf: live.draft.id, passed }));
-  return passed ? { ok: true, draftId } : { ok: false, because: "rules", draftId, attempts: 1 };
+  if (body === (live.draft.body_md ?? "")) return none;
+  const version = { ...live.draft, meta: { ...meta, datedAs: typeof meta.datedAs === "string" ? meta.datedAs : live.publishedAt.toISOString(), mendOf: live.draft.id } };
+  // The live text passed the rules of its own day; its new version enters review only on today's.
+  const sets = await siteSets(a.siteId, a.site, a.report);
+  const checked = await checkStoredAt0(version, body, { ...sets, opportunity: a.opportunity, now: new Date(), versionsAt: { url, draftIds: await store.versionsAt(a.siteId, url) } });
+  if (checked.kind !== "checked") return none;
+  const { title, grounded_fact, attribution } = live.draft;
+  const draftId = await store.insertDraft({ site_id: a.siteId, opportunity_id: a.opportunity.id, state: "generating", title, body_md: body, grounded_fact, attribution, scheduled_for: a.publishDate, cost_cents: 0, meta: version.meta });
+  await store.patchDraft(draftId, { ...checked.patch, cost_cents: 0 });
+  console.log(JSON.stringify({ event: "page_mended", siteId: a.siteId, draftId, mendOf: live.draft.id, passed: checked.passed, failed: checked.failed.map((failure) => failure.rule).join(",") }));
+  return checked.passed ? { ok: true, draftId } : { ok: false, because: "rules", draftId, attempts: 1 };
 }
 
 /** The page an update refreshes, as the pack holds it: ReachKit's own page
