@@ -85,6 +85,18 @@ export async function destinationWaitingOnDns(siteId: string): Promise<boolean> 
   return data.length > 0;
 }
 
+/** The site's only live destination is a WordPress set up without its credentials, so no page can publish. Read from the
+ *  health columns, never `config`; a failed read is `false`. */
+export async function destinationWaitingOnWordPress(siteId: string): Promise<boolean> {
+  const { data, error } = await publishDb()
+    .from<{ kind: string; health_reason: string | null }>("destinations")
+    .select("kind, health_reason")
+    .eq("site_id", siteId)
+    .is("deleted_at", null);
+  if (error !== null || data === null || data.length === 0) return false;
+  return data.every((row) => row.kind === "wordpress" && row.health_reason === "never_connected");
+}
+
 /** What the site publishes to and whether it works, from the stored row, never re-checked: choosing whether to draw a
  *  reconnect control may not spend a vendor call. `null` with no live destination. */
 export async function destinationStanding(

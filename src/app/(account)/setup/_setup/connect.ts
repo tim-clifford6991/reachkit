@@ -44,3 +44,11 @@ export const readConnect = cache(async function readConnect(): Promise<ConnectMo
   const record = recordForHost({ hostname: host.hostname, cnameTarget: env.HOSTED_EDGE_CNAME_TARGET });
   return record === null ? null : { hostname: host.hostname, record };
 });
+
+/** A WordPress set up without its credentials is connected in Settings › Pages, so this step sends it there. */
+export async function wordpressWaiting(): Promise<boolean> {
+  const siteId = await readSetupSiteId();
+  if (siteId === "") return false;
+  const { destinationWaitingOnWordPress } = await import("@/lib/publish/destinations");
+  return destinationWaitingOnWordPress(siteId).catch(() => false);
+}

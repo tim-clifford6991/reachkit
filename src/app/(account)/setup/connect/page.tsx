@@ -22,7 +22,8 @@ import type React from "react";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { copy } from "@/lib/presentation/copy";
-import { readConnect } from "../_setup/connect";
+import { PAGES_LANDING_PATH } from "@/lib/account/identity/addresses";
+import { readConnect, wordpressWaiting } from "../_setup/connect";
 import { ConnectScreen } from "./ConnectScreen";
 
 /** /setup/connect's own `<title>` (#945). Every named screen says which
@@ -32,9 +33,9 @@ export const metadata: Metadata = { title: copy("meta.app.setup.connect.title") 
 
 export default async function ConnectPage(): Promise<React.JSX.Element> {
   const model = await readConnect();
-  // Nothing to connect: the app is where this founder belongs. A blog that
-  // is already live is the usual reason, and it is not a refusal.
-  if (model === null) redirect("/app");
+  // No record to set: a WordPress still to connect is connected in Settings ›
+  // Pages, and anything else belongs in the app.
+  if (model === null) redirect((await wordpressWaiting()) ? PAGES_LANDING_PATH : "/app");
 
   return <ConnectScreen hostname={model.hostname} record={model.record} />;
 }

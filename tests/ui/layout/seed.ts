@@ -199,9 +199,9 @@ const EMAIL_OF: Readonly<Record<string, string>> = {
   [WEEK_ZERO_ACCOUNT.userId]: "layout-sweep-week0@example.com",
   [PUBLISHER_ACCOUNT.userId]: "layout-sweep-publisher@example.com",
   [UNCONNECTED_ACCOUNT.userId]: "layout-sweep-unconnected@example.com",
+  "00000000-0000-0000-0000-0000000000a7": "layout-sweep-wordpress@example.com", // seed-wordpress.ts
 };
 
-/** Kept for the callers that named it before there were two accounts. */
 const SEEDED_EMAIL = EMAIL_OF[RESERVED_ACCOUNT.userId] as string;
 
 /** The draft row the seeded site owns. The sweep's `[draftId]` fixture is
@@ -246,7 +246,7 @@ interface PublishingRow {
  *  which is the right arm for the live account's own screens, and the wrong
  *  picture for this one. Everything else is shared: the two accounts differ
  *  in what has been measured, not in how they are set up. */
-const WEEK_ZERO_PUBLISHING = Object.freeze({
+export const WEEK_ZERO_PUBLISHING = Object.freeze({
   mode: "autopilot",
   vetoHours: 24,
   publishTime: "07:00",
@@ -340,7 +340,7 @@ const LIVE_RIVALS: readonly { domain: string; weekly: readonly number[] }[] = Ob
   { domain: "bigcompetitor.com", weekly: Object.freeze([6500, 6400, 6318]) },
   { domain: "similar.io", weekly: Object.freeze([150, 145, 140]) },
 ]);
-function sql(statement: string): void {
+export function sql(statement: string): void {
   psql(["-v", "ON_ERROR_STOP=1", "-c", statement]);
 }
 
@@ -1055,7 +1055,7 @@ function seededPrompts(domain: string, week: number): PromptsSection {
  * the gate lets every `/app` address through, and access that has not
  * ended so `hasActiveAccess()` is true.
  */
-function seedSite(
+export function seedSite(
   account: AppAccount,
   opts: {
     /** `scheduledIn` is optional: the reserved account's single draft sits
