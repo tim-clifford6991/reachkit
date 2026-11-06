@@ -8,7 +8,8 @@
 // rivals and its pages all followed that slice.
 //
 // Pure, like `select.ts` and `widen.ts`: no context, no clock, no I/O.
-import type { Language } from "@/lib/locale/locales";
+import type { Language, Place } from "@/lib/locale/locales";
+import { namesPlace, saysNearMe, withoutPlace } from "@/lib/locale/place";
 import { OFFERINGS } from "@/lib/config/constants";
 import type { Offering, Profile } from "./profile-types";
 import { contentTokens, type SelectedSearch } from "./select";
@@ -43,6 +44,14 @@ export function offeringSeeds(profile: Pick<Profile, "category" | "offerings" | 
     seeds.push(o.category);
   }
   return seeds;
+}
+
+/** `offeringSeeds` with every place taken out of each line first: a line is
+ *  one topic, never a page per town (doorway policy). */
+export function placelessSeeds(profile: Pick<Profile, "category" | "offerings" | "language">, places: readonly Place[]): string[] {
+  const placeless = (text: string) => places.reduce((left, place) => withoutPlace(left, place), text);
+  const offerings = offeringsOf(profile).map((o) => ({ ...o, category: placeless(o.category) }));
+  return offeringSeeds({ ...profile, offerings }).filter((line) => !saysNearMe(line) && !places.some((place) => namesPlace(line, place)));
 }
 
 /** Which offering a search is about: the one whose category and name share

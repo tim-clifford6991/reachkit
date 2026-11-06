@@ -264,12 +264,12 @@ export interface OpportunityStore {
   marketFor(siteId: string): Promise<{
     market: MarketConclusion | null;
     competitors: readonly string[];
-    /** The site's tracked buyer prompts, the branded ones left out (issue
-     *  1208). Absent reads as none. */
+    /** The site's tracked buyer prompts, the branded ones left out (issue 1208). Absent reads as none. */
     prompts?: readonly string[];
-    /** The site's knowledge base as fit is shown it (issue 1133). Absent
-     *  or `null` reads as none. */
+    /** The site's knowledge base as fit is shown it (issue 1133). Absent or `null` reads as none. */
     knowledge?: KnowledgeDigest | null;
+    /** Where the business serves (`sites.market.area`, D67). Absent or `null` reads as nowhere named. */
+    area?: MarketConclusion["serves"];
   }>;
   /** SPEC §6: every `not_working` verdict for one site, each joined through
    *  its publication to the opportunity the page was written for. One read
@@ -874,7 +874,7 @@ export function supabaseOpportunityStore(): OpportunityStore {
       const { readBusinessEdits } = await import("@/lib/site-profile/business/edits");
       const buyers = current === null ? null : await readBusinessEdits(siteId).then((edits) => edits.answers.buyers ?? null).catch(() => null);
       const market = current === null ? null : spokenMarket(current, buyers);
-      return { market, competitors: site?.competitors ?? [], prompts, knowledge };
+      return { market, competitors: site?.competitors ?? [], prompts, knowledge, area: site?.stored.area?.place ?? null };
     },
 
     async commitPlan(siteId, entries) {

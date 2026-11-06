@@ -135,6 +135,8 @@ export interface LanguagePack {
    *  accent (SPEC §6, 2026-10-18, issue 1514): German writes "ä" as "ae".
    *  Lower case; a letter not here loses its accent. */
   slugLetters: Readonly<Record<string, string>>;
+  /** How a model's reading says it was given nothing to read: an alternation. */
+  unreadReading: string;
 
   /** What a page title is checked by (SPEC §7, D51). */
   title: {

@@ -2,7 +2,7 @@
 import { PLAN_DEPTH, TOPIC_FIT } from "@/lib/config/constants";
 import type { Opportunity, TopicSource } from "../types";
 
-export const LEDGER_SOURCES = ["product", "problem", "category", "best_x", "ai_gap", "asked", "cited", "written"] as const;
+export const LEDGER_SOURCES = ["product", "problem", "category", "best_x", "ai_gap", "asked", "cited", "written", "offering"] as const;
 export type LedgerSource = (typeof LEDGER_SOURCES)[number];
 
 /** The stages a topic passes, in order: offered, "would a buyer search this?", fit 3, candidate, kept by the collapse. */
@@ -20,16 +20,18 @@ export interface SupplyLedger {
   dry: LedgerSource[];
 }
 
-/** The ledger's class of a topic: where buyers were seen asking it, the rival page an answer cited, the buyer's searches the model wrote, else its own source. */
+/** The ledger's class of a topic: where buyers were seen asking it, the rival page an answer cited, the buyer's searches the model wrote, a further line the business sells, else its own source. */
 export function ledgerSourceOf(topic: {
   source?: TopicSource | null;
   asked?: unknown;
   cited?: unknown;
   written?: boolean;
+  offering?: true;
 }): LedgerSource {
   if (topic.cited !== undefined) return "cited";
   if (topic.asked !== undefined) return "asked";
   if (topic.written === true) return "written";
+  if (topic.offering === true) return "offering";
   return topic.source ?? "category";
 }
 
