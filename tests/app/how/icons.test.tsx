@@ -109,8 +109,8 @@ describe("how it works draws its board icons in every section", () => {
     sameIconsBothArms(visuals.WhatWeWorkToward);
   });
 
-  it("your part: a timer, the line, the plug, then edit and stop", () => {
-    expect(icons(within("#you-do figure"))).toEqual(["timer", "link", "plug", "arrow-down", "pencil", "circle-stop"]);
+  it("your part: a timer, the line, then edit and stop; the WordPress plug is switched off", () => {
+    expect(icons(within("#you-do figure"))).toEqual(["timer", "link", "arrow-down", "pencil", "circle-stop"]);
     sameIconsBothArms(visuals.YourPart);
   });
 

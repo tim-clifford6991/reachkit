@@ -19,7 +19,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { Surface } from "@/ui/layout";
-import { SITE_PROFILE } from "@/lib/config/constants";
+import { SITE_PROFILE, WORDPRESS_CONNECT } from "@/lib/config/constants";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { parseDomain } from "@/lib/scan/domain";
 import { ScanForm } from "../_landing/ScanForm";
@@ -257,7 +257,7 @@ const CLOSE = {
       ...TOOL_WEEKLY,
       rows: [
         ["library.close.tool.1.them", "library.close.meta.1.us"],
-        ["library.close.meta.2.them", "library.close.tool.wordpress"],
+        ["library.close.meta.2.them", WORDPRESS_CONNECT ? "library.close.tool.wordpress" : "library.close.tools.2.us"],
         ["library.close.meta.3.them", "library.close.meta.3.us"],
       ],
     },
@@ -268,7 +268,7 @@ const CLOSE = {
       ...TOOL_WEEKLY,
       rows: [
         ["library.close.tool.1.them", "library.close.onpage.1.us"],
-        ["library.close.onpage.2.them", "library.close.tool.wordpress"],
+        ["library.close.onpage.2.them", WORDPRESS_CONNECT ? "library.close.tool.wordpress" : "library.close.tools.2.us"],
         ["library.close.onpage.3.them", "library.close.onpage.3.us"],
       ],
     },

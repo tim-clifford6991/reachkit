@@ -53,12 +53,12 @@ describe("Setup's Connect step carries board Setup's icons", () => {
     expect((await publishingStep()).querySelector('[data-testid="setup-how"]')).toBeNull();
   });
 
-  it("the destination options: globe for our address, layers for WordPress", async () => {
+  it("the destination option: globe for our address, and no WordPress while it is switched off", async () => {
     const root = await publishingStep();
     const mark = (kind: string) =>
       icons(root.querySelector(`[data-testid="setup-destination-${kind}"]`)).filter((name) => !name.startsWith("circle"));
     expect(mark("hosted")).toEqual(["globe"]);
-    expect(mark("wordpress")).toEqual(["layers"]);
+    expect(root.querySelector('[data-testid="setup-destination-wordpress"]')).toBeNull();
     expect(allHidden(root.querySelector('[data-testid="setup-destination"]')!)).toBe(true);
   });
 
