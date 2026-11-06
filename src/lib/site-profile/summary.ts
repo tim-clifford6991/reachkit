@@ -37,6 +37,7 @@ import { llm } from "@/lib/llm";
 import type { Tier } from "@/lib/measure";
 import type { Measured } from "@/lib/measure/measured";
 import type { CrawledPage } from "./crawl";
+import { isEmptyShell } from "./knowledge/rendered";
 
 /** The four members of a crawled page the voice is read from — no more. */
 type PageSample = Pick<CrawledPage, "url" | "title" | "h1" | "text">;
@@ -156,6 +157,20 @@ export function boundPages(
     sent.push({ url: page.url, title: page.title, text });
   }
   return sent;
+}
+
+/** The pages the voice is read off: the knowledge read's documents, so a site
+ *  that serves an empty shell is read as a browser draws it, and never a page
+ *  that holds none of the site's words. `[]` is no reading at all. */
+export function voicePages(
+  served: readonly (PageSample & Pick<CrawledPage, "unread">)[],
+  rendered: readonly { url: string; text: string }[]
+): readonly PageSample[] {
+  const pages: readonly (PageSample & Pick<CrawledPage, "unread">)[] =
+    rendered.length > 0 && isEmptyShell(served)
+      ? rendered.map(({ url, text }) => ({ url, title: "", h1: "", text: text.slice(0, SITE_PROFILE.PAGE_SAMPLE_CHARS) }))
+      : served;
+  return pages.filter((page) => page.unread === undefined && page.text.trim() !== "");
 }
 
 /**

@@ -4,7 +4,7 @@
 import type { Locale } from "@/lib/locale/locales";
 import { siteLocale } from "@/lib/locale/site";
 import type { KnowledgeDigest } from "@/lib/site-profile/knowledge/read";
-import { ASKED_TOPICS, TOPIC_FIT } from "@/lib/config/constants";
+import { ASKED_TOPICS, PLAN_DEPTH, TOPIC_FIT } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import { ownSearched } from "@/lib/market/infer/demand";
 import type { MarketConclusion } from "@/lib/market/infer/types";
@@ -30,7 +30,7 @@ import { writeCandidates } from "./write";
 import { judgeFit, type FitSearch } from "./fit";
 import { askedOfReport, askedSupply, askedTopics, brandsOf, citedTopics, type AskedSupply, candidateFor, comparisonWithoutDemand, noLongerRelevant, productsNamed, proposedTopics, rivalBrandOnly, rivalNamesOf, rivalPriceOf, sourceOf } from "./topics";
 import { judgeTyped, writeBuyerSearches } from "./buyer-searches";
-import { ledgerSourceOf, supplyLedger, type LedgerSource, type SupplyLedger } from "./ledger";
+import { ledgerSourceOf, supplyLedger, writable, type LedgerSource, type SupplyLedger } from "./ledger";
 
 export interface DeriveInput {
   siteId: string;
@@ -88,6 +88,8 @@ export interface DeriveInput {
    *  branded ones left out: what its buyers ask answer engines, which the
    *  buyer's searches are written from (issue 1208). Absent reads as none. */
   prompts?: readonly string[];
+  /** Where the business serves (`sites.market.area`, D67), which no offering's topic may name. */
+  area?: MarketConclusion["serves"];
 }
 
 /** How many held rows one pass's judgement may also score. */
@@ -254,6 +256,8 @@ export async function deriveOpportunities(
     language: locale.language,
     asked,
     seen,
+    short: held.filter((row) => !gone.has(row.id) && writable(row)).length < PLAN_DEPTH,
+    area: a.area ?? null,
     cited: citedTopics({
       answers: a.report.prompts?.answers ?? [],
       competitors: [...business, ...(a.report.rivals.kind === "measured" ? a.report.rivals.value.map((rival) => rival.domain) : [])],

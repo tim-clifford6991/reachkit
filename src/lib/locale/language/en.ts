@@ -93,6 +93,7 @@ export const EN: LanguagePack = {
   },
   numberWords: "zero one two three four five six seven eight nine ten eleven twelve".split(" "),
   slugLetters: {},
+  unreadReading: "(?:could ?n[o']t|cannot|can't) be (?:read|loaded|accessed)|unable to (?:read|load|access)|no (?:content|text) (?:was |were )?(?:provided|available)",
   title: {
     filler: new Set(
       "a an and are as at be best but by can do does for from how i in is it my of on or our that the to top vs was we what when which who why will with you your".split(" ")
