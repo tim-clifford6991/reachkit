@@ -30,7 +30,8 @@ import { batteryCleared } from "./rules";
 import { answerBoxOf } from "./rules/blocks";
 import { pickTitle } from "./rules/title";
 import type { HardRule, RuleFailure, SiteRuleInputs } from "./rules/types";
-import { generateStore, type DraftPatch, type DraftRow } from "./store";
+import type { StoredReport } from "@/lib/scan/report";
+import { generateStore, type DraftPatch, type DraftRow, type SiteFacts } from "./store";
 import { confirmedForWriting } from "./voice/confirmed";
 
 const RECHECK: Actor = { kind: "system", job: "draft/recheck" };
@@ -55,6 +56,8 @@ export interface RecheckWorld {
   demoPhrases?: readonly string[];
   opportunity: Opportunity;
   now: Date;
+  /** A new version of a live page is not compared with the versions it replaces at its address. */
+  versionsAt?: { url: string; draftIds: readonly string[] };
 }
 
 export type RecheckOutcome =
@@ -93,22 +96,28 @@ export function candidacy(row: DraftRow, now: Date): NotCandidate | null {
  *  the pages written for other sites; writes nothing. */
 export async function recheckRow(row: DraftRow, world: RecheckWorld): Promise<RecheckOutcome> {
   const skipped = candidacy(row, world.now);
-  if (skipped !== null) return { kind: "skipped", reason: skipped };
-  const pack = packOf(row)!;
+  return skipped === null ? checkStoredAt0(row, row.body_md!, world) : { kind: "skipped", reason: skipped };
+}
+
+/** A stored page's words as `body` under today's whole battery, every model call refused: what code mends of them,
+ *  what still fails, and what to record. A row with no body, pack or grounded fact was never a page to check. */
+export async function checkStoredAt0(row: DraftRow, body: string, world: RecheckWorld): Promise<RecheckOutcome> {
+  const pack = packOf(row);
+  const recorded = readRecordedFact(row.grounded_fact);
+  if (body === "" || pack === null || recorded === null) return { kind: "skipped", reason: "no_page" };
   const meta = metaOf(row);
-  const recorded = readRecordedFact(row.grounded_fact)!;
   const grounding = world.facts.find((sourced) => sourced.fact.passage === recorded.passage) ?? {
     fact: { passage: recorded.passage, url: recorded.url, readAt: recorded.readAt ?? new Date(0) },
     sourceText: "",
   };
   const basis = batteryBasis({ pack, opportunity: world.opportunity, site: world.site, facts: world.facts, grounding, ...(world.demoPhrases === undefined ? {} : { demoPhrases: world.demoPhrases }) });
   const stopped = readRecordedRules(row.rule_failures) ?? [];
-  const { page, markdown, fixes } = mend(row, pack, basis, stopped);
+  const { page, markdown, fixes } = mend(row, body, pack, basis, stopped);
   const { title } = page;
   const figures = promiseFigures(title, pack);
   if (figures.length > 0) return { kind: "held", reason: "title_promise_figure", figures };
   const fit = storedFit(row, stopped, { title, markdown, site: world.site, titleOwed: (titleRuleFor(pack, page).business?.length ?? 0) > 0 });
-  const comparison = await buildComparisonSet({ siteId: row.site_id, exceptDraftId: row.id });
+  const comparison = await buildComparisonSet({ siteId: row.site_id, exceptDraftId: row.id, ...(world.versionsAt === undefined ? {} : { exceptVersionsAt: world.versionsAt }) });
   const broken = new Set<HardRule>();
   const at = { siteId: row.site_id, draftId: row.id, comparison, broken, ...(fit === undefined ? {} : { fit }) };
   const settled = row.hard_rule_attempts >= 2;
@@ -155,12 +164,12 @@ export async function recheckRow(row: DraftRow, world: RecheckWorld): Promise<Re
 /** The stored page with what code mends from its own words, no word added: the title the picker takes today of the
  *  writer's candidates and the search's own floor title that carry no promise figure, the description fitted (the short answer's where none was
  *  written), and the FAQ pairs and do-not-claim sentences the rules fail dropped. */
-function mend(row: DraftRow, pack: ContextPack, basis: BatteryBasis, stopped: readonly RuleFailure[]): { page: CheckedPage; markdown: string; fixes: RecheckFixes } {
+function mend(row: DraftRow, body: string, pack: ContextPack, basis: BatteryBasis, stopped: readonly RuleFailure[]): { page: CheckedPage; markdown: string; fixes: RecheckFixes } {
   const meta = metaOf(row);
   const stored = row.title ?? "";
   const sections = Array.isArray(meta.sections) ? meta.sections : [];
   const before = typeof meta.description === "string" ? meta.description : "";
-  const description = fitDescription(before.trim() === "" ? (answerBoxOf(row.body_md!) ?? "") : before, pack.locale?.language);
+  const description = fitDescription(before.trim() === "" ? (answerBoxOf(body) ?? "") : before, pack.locale?.language);
   const proposed = (Array.isArray(meta.titles) ? (meta.titles as { title?: unknown }[]) : []).flatMap((each) => (typeof each?.title === "string" ? [each.title] : []));
   const unpromised = (each: string | null): each is string => each !== null && promiseFigures(each, pack).length === 0;
   const clean = [...proposed, stored].filter(unpromised);
@@ -170,7 +179,7 @@ function mend(row: DraftRow, pack: ContextPack, basis: BatteryBasis, stopped: re
   const title = clean.length === 0 && floor === null ? stored : pickTitle(clean, rule, floor).chosen;
   const faq = withoutBrokenPairs(Array.isArray(meta.faq) ? meta.faq : [], { min: basis.template.blocks.faq?.min ?? 0, rivals: basis.rivalsNamed, facts: basis.brief.marketFacts });
   const page: CheckedPage = { title, heading: title === stored && typeof meta.heading === "string" ? meta.heading : title, description, sections, faq: faq.faq };
-  const claimed = withoutClaimed(row.body_md!, basis.site.doNotClaim);
+  const claimed = withoutClaimed(body, basis.site.doNotClaim);
   // Issue 2375: the sentences the stored fit verdict named go as the write's repair drops them, never the short
   // answer or one a required block needs; only those today's reading still asks about (a link's label is not one).
   const named = stillAsked(
@@ -240,6 +249,14 @@ export async function recheckStopped(a: { siteId: string; publishDate: string; n
   }
 }
 
+/** The site's own sets as the battery reads them: its rules, the facts it allows, and the demo text it must not repeat. */
+export async function siteSets(siteId: string, site: SiteFacts, report: StoredReport): Promise<Pick<RecheckWorld, "site" | "facts" | "demoPhrases">> {
+  const confirmed = await confirmedForWriting({ siteId, domain: site.domain });
+  const facts = allowedFacts(await readAllFacts({ siteId, scanId: report.scanId }), confirmed.factsOff);
+  const demoPhrases = [...(await readDemoPhrases({ siteId, scanId: report.scanId }).catch(() => [])), ...confirmed.factsOff];
+  return { site: siteRulesOf(site, report), facts, demoPhrases };
+}
+
 async function rescue(a: { siteId: string; publishDate: string; now: Date }): Promise<string | null> {
   const store = generateStore();
   if (await store.draftOnDate(a.siteId, a.publishDate)) return null;
@@ -256,14 +273,12 @@ async function rescue(a: { siteId: string; publishDate: string; now: Date }): Pr
   const report = await store.latestReport(a.siteId);
   if (site === null || report === null) return null;
 
-  const confirmed = await confirmedForWriting({ siteId: a.siteId, domain: site.domain });
-  const facts = allowedFacts(await readAllFacts({ siteId: a.siteId, scanId: report.scanId }), confirmed.factsOff);
-  const demoPhrases = [...(await readDemoPhrases({ siteId: a.siteId, scanId: report.scanId }).catch(() => [])), ...confirmed.factsOff];
+  const sets = await siteSets(a.siteId, site, report);
   const { opportunityById } = await import("@/lib/opportunities");
   for (const row of rows) {
     const opportunity = await opportunityById(row.opportunity_id);
     if (opportunity === null) continue;
-    const outcome = await recheckRow(row, { site: siteRulesOf(site, report), facts, demoPhrases, opportunity, now: a.now });
+    const outcome = await recheckRow(row, { ...sets, opportunity, now: a.now });
     console.log(JSON.stringify({ event: "draft_rechecked", siteId: a.siteId, draftId: row.id, outcome: outcome.kind === "checked" ? (outcome.passed ? "passed" : "failed") : outcome.reason, ...(outcome.kind === "checked" ? { failed: outcome.failed.map((failure) => failure.rule).join(",") } : {}) }));
     if (outcome.kind === "skipped") continue;
     if (outcome.kind === "checked") await store.patchDraft(row.id, outcome.patch);
