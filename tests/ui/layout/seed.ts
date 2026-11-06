@@ -148,20 +148,6 @@ export const UNCONNECTED_ACCOUNT: AppAccount = Object.freeze({
   mode: "autopilot",
 });
 
-/** A SaaS whose WordPress was set up without its credentials, with its
- *  first page in review: `/app`'s WordPress connect state. */
-export const WORDPRESS_UNCONNECTED_ACCOUNT: AppAccount = Object.freeze({
-  userId: "00000000-0000-0000-0000-0000000000a7",
-  siteId: "00000000-0000-0000-0000-0000000000b7",
-  domain: "acmecrm.test",
-  createdAt: new Date("2026-08-31T06:00:00.000Z"),
-  timeZone: "Europe/London",
-  mode: "autopilot",
-});
-
-/** The WordPress account's first page, in review. */
-export const WORDPRESS_UNCONNECTED_DRAFT_ID = "00000000-0000-0000-0000-0000000000d7";
-
 /** The unconnected account's hosted address. */
 export const UNCONNECTED_HOST = "guides.harborplumbing.test";
 
@@ -213,10 +199,9 @@ const EMAIL_OF: Readonly<Record<string, string>> = {
   [WEEK_ZERO_ACCOUNT.userId]: "layout-sweep-week0@example.com",
   [PUBLISHER_ACCOUNT.userId]: "layout-sweep-publisher@example.com",
   [UNCONNECTED_ACCOUNT.userId]: "layout-sweep-unconnected@example.com",
-  [WORDPRESS_UNCONNECTED_ACCOUNT.userId]: "layout-sweep-wordpress@example.com",
+  "00000000-0000-0000-0000-0000000000a7": "layout-sweep-wordpress@example.com", // seed-wordpress.ts
 };
 
-/** Kept for the callers that named it before there were two accounts. */
 const SEEDED_EMAIL = EMAIL_OF[RESERVED_ACCOUNT.userId] as string;
 
 /** The draft row the seeded site owns. The sweep's `[draftId]` fixture is
@@ -261,7 +246,7 @@ interface PublishingRow {
  *  which is the right arm for the live account's own screens, and the wrong
  *  picture for this one. Everything else is shared: the two accounts differ
  *  in what has been measured, not in how they are set up. */
-const WEEK_ZERO_PUBLISHING = Object.freeze({
+export const WEEK_ZERO_PUBLISHING = Object.freeze({
   mode: "autopilot",
   vetoHours: 24,
   publishTime: "07:00",
@@ -355,7 +340,7 @@ const LIVE_RIVALS: readonly { domain: string; weekly: readonly number[] }[] = Ob
   { domain: "bigcompetitor.com", weekly: Object.freeze([6500, 6400, 6318]) },
   { domain: "similar.io", weekly: Object.freeze([150, 145, 140]) },
 ]);
-function sql(statement: string): void {
+export function sql(statement: string): void {
   psql(["-v", "ON_ERROR_STOP=1", "-c", statement]);
 }
 
@@ -510,18 +495,6 @@ export function seedUnconnectedAccount(): void {
   sql(
     `insert into destinations (site_id, kind, config, health, health_reason, hostname, hostname_state) values ` +
       `('${siteId}', 'hosted', null, 'expired', 'dns_unset', '${UNCONNECTED_HOST}', 'pending_dns');`
-  );
-}
-
-export function seedWordPressUnconnectedAccount(): void {
-  const { siteId } = WORDPRESS_UNCONNECTED_ACCOUNT;
-  seedSite(WORDPRESS_UNCONNECTED_ACCOUNT, {
-    drafts: [{ id: WORDPRESS_UNCONNECTED_DRAFT_ID, state: "in_review", title: "How teams pick a CRM for a five-person sales team", scheduledIn: 0 }],
-    publishing: WEEK_ZERO_PUBLISHING,
-  });
-  sql(
-    `insert into destinations (site_id, kind, config, health, health_reason) values ` +
-      `('${siteId}', 'wordpress', null, 'expired', 'never_connected');`
   );
 }
 
@@ -1082,7 +1055,7 @@ function seededPrompts(domain: string, week: number): PromptsSection {
  * the gate lets every `/app` address through, and access that has not
  * ended so `hasActiveAccess()` is true.
  */
-function seedSite(
+export function seedSite(
   account: AppAccount,
   opts: {
     /** `scheduledIn` is optional: the reserved account's single draft sits

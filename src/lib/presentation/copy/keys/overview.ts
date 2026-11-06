@@ -834,10 +834,7 @@ export const OVERVIEW_COPY = Object.freeze({
     "They go live once your website is connected. Everything else runs on its own.",
     { slots: {}, fixedBy: "SPEC §5 2026-09-20 (drafted)" },
   ],
-  "overview.connect.lead.ready": [
-    "It goes live once your website is connected.",
-    { slots: {}, fixedBy: "board OverviewDNS v36, issue 2272 (drafted)" },
-  ],
+  "overview.connect.lead.ready": ["It goes live once your website is connected.", { slots: {}, fixedBy: "board OverviewDNS v36, issue 2272 (drafted)" }],
   "overview.connect.eyebrow": ["Needs you · about 5 minutes, once", { slots: {}, fixedBy: "SPEC §5 2026-09-20 (drafted)" }],
   "overview.connect.title": ["Add one setting to your domain", { slots: {}, fixedBy: "board OverviewDNS v36, issue 2272 (drafted) · owner 2026-10-15 six words" }],
   "overview.connect.step.open": ["Open your domain settings", { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" }],
@@ -847,10 +844,7 @@ export const OVERVIEW_COPY = Object.freeze({
   ],
   "overview.connect.step.paste": ["Paste the three values", { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" }],
   "overview.connect.step.rest": ["We do the rest", { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" }],
-  "overview.connect.step.rest.line": [
-    "Your pages appear on {host}.",
-    { slots: { host: "text" }, fixedBy: "board OverviewDNS v36, issue 2272 (drafted)" },
-  ],
+  "overview.connect.step.rest.line": ["Your pages appear on {host}.", { slots: { host: "text" }, fixedBy: "board OverviewDNS v36, issue 2272 (drafted)" }],
   "overview.connect.copy.type": ["Copy the type", { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" }],
   "overview.connect.copy.name": ["Copy the name", { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" }],
   "overview.connect.copy.value": ["Copy the value", { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" }],

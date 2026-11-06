@@ -15,6 +15,7 @@ import Link from "next/link";
 import { Wrench } from "lucide-react";
 import { readShell } from "../_shell/provider";
 import { readOverview } from "../_overview/provider";
+import { readWordPressWaiting } from "../_overview/wordpress-provider";
 import { readPublished } from "../_overview/content-provider";
 import { contentOf } from "@/lib/measure/published";
 import { pageLadderOf } from "@/lib/measure/page-ladder";
@@ -45,11 +46,12 @@ function weekdayOf(day: string): string {
 }
 
 export default async function OverviewPage(): Promise<React.JSX.Element> {
-  const [shell, overview, onboarding, published] = await Promise.all([
+  const [shell, overview, onboarding, published, wordpressWaiting] = await Promise.all([
     readShell(),
     readOverview(),
     readOnboarding(),
     readPublished(),
+    readWordPressWaiting(),
   ]);
   // Until the address is connected no page can go live: the screen is the
   // connect arm alone, and no part of it names a go-live time or the ladder.
@@ -68,7 +70,7 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
   }
 
   // A WordPress set up without its credentials holds every page the same way: the head asks for it, then the page that waits.
-  if (overview.wordpressWaiting) {
+  if (wordpressWaiting) {
     const { ConnectWaiting } = await import("../_overview/ConnectAddress");
     return (
       <div className={OVERVIEW} data-testid="overview">

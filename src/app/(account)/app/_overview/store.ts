@@ -886,7 +886,7 @@ export async function readOverviewFacts(site: OverviewSite): Promise<OverviewFac
   const { supplyDepth, supplyState } = await import("@/lib/opportunities");
 
   const deepRead = deepPassReading(site.siteId);
-  const [firstDueOn, published, depth, waiting, series, ranking, deepPass, waitingPage, connect, lastLive, wordpress] = await Promise.all([
+  const [firstDueOn, published, depth, waiting, series, ranking, deepPass, waitingPage, connect, lastLive] = await Promise.all([
     nextDueOn({ siteId: site.siteId, now }),
     pagesPublished(site.siteId, now),
     supplyDepth(site.siteId),
@@ -904,7 +904,6 @@ export async function readOverviewFacts(site: OverviewSite): Promise<OverviewFac
     // to draw may not spend one.
     addressWaiting(site.siteId),
     lastLiveOf(site.siteId),
-    wordpressWaiting(site.siteId),
   ]);
   // issue 765/issue 784: a zero is either a market used up or one never measured, and
   // only a read that answered may say which — an unreadable one says neither.
@@ -957,7 +956,6 @@ export async function readOverviewFacts(site: OverviewSite): Promise<OverviewFac
       firstArrivalShortfall: false,
     },
     connect,
-    wordpressWaiting: wordpress,
     waiting: [
       ...waiting,
       ...issuesWaiting(series.latest ?? deepPass?.report ?? null),
@@ -988,12 +986,6 @@ async function addressWaiting(siteId: string): Promise<AddressWaiting | null> {
   } catch {
     return null;
   }
-}
-
-/** A WordPress never connected holds every page as an unset record does; a failed read is not waiting. */
-async function wordpressWaiting(siteId: string): Promise<boolean> {
-  const { destinationWaitingOnWordPress } = await import("@/lib/publish/destinations");
-  return destinationWaitingOnWordPress(siteId).catch(() => false);
 }
 
 /** SPEC §9 on the dashboard (#572): the customer's own open issues from the

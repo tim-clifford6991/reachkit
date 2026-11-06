@@ -161,7 +161,7 @@ export function ConnectWaiting(p: { page: WaitingPage | null }): React.JSX.Eleme
             )}
             <div className="flex min-w-0 flex-col gap-2">
             <p className="eyebrow">{copy("overview.connect.page.eyebrow")}</p>
-            <p className="min-w-0 truncate font-semibold" title={p.page.title} data-testid="overview-waiting-title">
+            <p className="min-w-0 font-semibold wrap-anywhere" data-testid="overview-waiting-title">
               {p.page.title}
             </p>
             <Link className="link link-primary link-hover inline-flex min-h-11 items-center self-start text-sm font-semibold no-underline" href={p.page.href} data-testid="overview-waiting-read">

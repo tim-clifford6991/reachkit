@@ -20,6 +20,7 @@
 // per-test timeout so a slow read fails as a slow read.
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import type { Page } from "playwright";
 import {
   getBaseURL,
   getLiveAccountCookie,
@@ -47,9 +48,8 @@ import {
   UNCONNECTED_ACCOUNT,
   UNCONNECTED_HOST,
   WEEK_ZERO_ACCOUNT,
-  WORDPRESS_UNCONNECTED_ACCOUNT,
-  WORDPRESS_UNCONNECTED_DRAFT_ID,
 } from "./seed";
+import { WORDPRESS_UNCONNECTED_ACCOUNT, WORDPRESS_UNCONNECTED_DRAFT_ID } from "./seed-wordpress";
 import { copy } from "@/lib/presentation/copy";
 import { FIXTURE_SETTINGS_FACTS } from "@/app/(account)/app/settings/fixture";
 import { widths } from "./widths";
@@ -116,6 +116,20 @@ const LIVE_NAVIGATION_MS = 15_000;
  *  why this is far wider than the navigation bound above. */
 const PER_ROUTE_BROWSER_MS = 60_000;
 
+/** Checks 1-4 on the page as it rests, one list per check. */
+async function checksOn(page: Page) {
+  return [
+    await page.evaluate(checkNoHorizontalScroll),
+    await page.evaluate(checkContainment, { scrollContainerAllowlist: SCROLL_CONTAINER_ALLOWLIST }),
+    await page.evaluate(checkNoClippingOrTruncation, {
+      scrollContainerAllowlist: SCROLL_CONTAINER_ALLOWLIST,
+      truncationAllowlist: TRUNCATION_ALLOWLIST,
+      monoFontFamily: MONO_FONT_FAMILY,
+    }),
+    await page.evaluate(checkTypeFloor),
+  ];
+}
+
 function urlFor(route: { path: string; host?: string }): string {
   const baseURL = getBaseURL();
   if (!baseURL) {
@@ -170,18 +184,7 @@ describe(`live-branch sweep — ${routes.length} route(s) × ${sweepWidths().len
               // naming the address, instead of timing the whole `it` out
               // with nothing to say about which screen it was.
               await page.goto(urlFor(route), { timeout: LIVE_NAVIGATION_MS });
-              const results = [
-                await page.evaluate(checkNoHorizontalScroll),
-                await page.evaluate(checkContainment, {
-                  scrollContainerAllowlist: SCROLL_CONTAINER_ALLOWLIST,
-                }),
-                await page.evaluate(checkNoClippingOrTruncation, {
-                  scrollContainerAllowlist: SCROLL_CONTAINER_ALLOWLIST,
-                truncationAllowlist: TRUNCATION_ALLOWLIST,
-                  monoFontFamily: MONO_FONT_FAMILY,
-                }),
-                await page.evaluate(checkTypeFloor),
-              ];
+              const results = await checksOn(page);
               return results.flat();
             },
             headersFor(route)
@@ -339,18 +342,7 @@ describe(`week-0 sweep — S13, ${weekZeroRoutes.length} route(s) × ${sweepWidt
             width,
             async (page) => {
               await page.goto(urlFor(route), { timeout: LIVE_NAVIGATION_MS });
-              const results = [
-                await page.evaluate(checkNoHorizontalScroll),
-                await page.evaluate(checkContainment, {
-                  scrollContainerAllowlist: SCROLL_CONTAINER_ALLOWLIST,
-                }),
-                await page.evaluate(checkNoClippingOrTruncation, {
-                  scrollContainerAllowlist: SCROLL_CONTAINER_ALLOWLIST,
-                  truncationAllowlist: TRUNCATION_ALLOWLIST,
-                  monoFontFamily: MONO_FONT_FAMILY,
-                }),
-                await page.evaluate(checkTypeFloor),
-              ];
+              const results = await checksOn(page);
               return results.flat();
             },
             headersFor(route)
@@ -383,18 +375,7 @@ describe(`connect state — ${unconnectedRoutes.length} route(s) × ${sweepWidth
                 tiles: await page.locator('[data-testid="overview-tiles"]').count(),
                 when: await page.locator('[data-testid="shell-waiting-when"]').count(),
               };
-              const results = [
-                await page.evaluate(checkNoHorizontalScroll),
-                await page.evaluate(checkContainment, {
-                  scrollContainerAllowlist: SCROLL_CONTAINER_ALLOWLIST,
-                }),
-                await page.evaluate(checkNoClippingOrTruncation, {
-                  scrollContainerAllowlist: SCROLL_CONTAINER_ALLOWLIST,
-                  truncationAllowlist: TRUNCATION_ALLOWLIST,
-                  monoFontFamily: MONO_FONT_FAMILY,
-                }),
-                await page.evaluate(checkTypeFloor),
-              ];
+              const results = await checksOn(page);
               return { drawn, offenders: results.flat() };
             },
             headersFor(route)
@@ -441,18 +422,7 @@ describe(`WordPress connect state — ${wordpressRoutes.length} route(s) × ${WO
                 record: await page.locator('[data-testid="dns-record"]').count(),
                 tiles: await page.locator('[data-testid="overview-tiles"]').count(),
               };
-              const results = [
-                await page.evaluate(checkNoHorizontalScroll),
-                await page.evaluate(checkContainment, {
-                  scrollContainerAllowlist: SCROLL_CONTAINER_ALLOWLIST,
-                }),
-                await page.evaluate(checkNoClippingOrTruncation, {
-                  scrollContainerAllowlist: SCROLL_CONTAINER_ALLOWLIST,
-                  truncationAllowlist: TRUNCATION_ALLOWLIST,
-                  monoFontFamily: MONO_FONT_FAMILY,
-                }),
-                await page.evaluate(checkTypeFloor),
-              ];
+              const results = await checksOn(page);
               return { drawn, offenders: results.flat() };
             },
             headersFor(route)

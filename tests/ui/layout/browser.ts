@@ -42,12 +42,11 @@ import {
   seedLongReadAs,
   seedWeekZeroAccount,
   seedUnconnectedAccount,
-  seedWordPressUnconnectedAccount,
-  WORDPRESS_UNCONNECTED_ACCOUNT,
   UNCONNECTED_ACCOUNT,
   SETUP_ACCOUNT,
   waitForSchemaCache,
 } from "./seed";
+import { seedWordPressUnconnectedAccount, WORDPRESS_UNCONNECTED_ACCOUNT } from "./seed-wordpress";
 import { SWEEP_NOW } from "./seed-rows";
 
 const ROOT = path.resolve(__dirname, "../../..");
