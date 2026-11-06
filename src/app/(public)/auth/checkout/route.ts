@@ -7,15 +7,17 @@
 // A Route Handler, not a page, for the same reason `/auth/confirm/redeem` is:
 // the cookie has to ride on the redirect's own response.
 //
-// **A missing or unpaid session is the offer, not sign-in.** Sign-in would
-// imply they have an account. They don't, or they never finished paying.
-// Provisioned-but-unsigned-in is `/signin`, so they can ask for a link.
+// **No session id is the offer: nobody returned from a payment.** Any other
+// return that cannot sign the buyer in is `/signin`, so they can ask for a
+// link; a real id that opens nothing may still be a payment whose webhook
+// has not landed, so it never shows the price page again.
 import { NextResponse, type NextRequest } from "next/server";
 import { APP_PATH, SETUP_PATH } from "@/app/(account)/setup/gate";
 import {
   CHECKOUT_SESSION_PLACEHOLDER,
   CHECKOUT_SESSION_QUERY_KEY,
   SIGNIN_PATH,
+  checkoutSignInPath,
   type CookieToSet,
 } from "@/lib/account/identity";
 import { enterAfterPayment } from "@/lib/account/provisioning/enter";
@@ -36,7 +38,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   });
 
   if (!entered.ok) {
-    const path = entered.because === "no_session" ? SIGNIN_PATH : PRICING_PATH;
+    const path = entered.because === "no_session" ? SIGNIN_PATH : checkoutSignInPath();
     return NextResponse.redirect(new URL(path, request.url));
   }
 
