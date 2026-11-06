@@ -114,8 +114,7 @@ describe("a short day ends in a written pack or a named reason", () => {
     expect(outcome).toEqual({ ok: false, because: "no_own_facts" });
     expect(written()).toEqual([]);
     // As the due hour keeps it (`reviewWritten`), and as the Overview reads it back.
-    days.reason = `generate:${outcome.ok ? "" : outcome.because}`;
-    days.report = JSON.parse(JSON.stringify(report()));
+    Object.assign(days, { reason: `generate:${outcome.ok ? "" : outcome.because}`, report: JSON.parse(JSON.stringify(report())) });
     expect((await releaseNotice({ domain: "tattly.com", siteId: store.site!.id }))?.key).toBe("setup.release.own-facts");
   });
 
