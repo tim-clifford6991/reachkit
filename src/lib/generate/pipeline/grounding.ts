@@ -70,11 +70,13 @@ const SENTENCE_END_RE = /[.!?]["'”’)\]]?$/;
 const REPEATED_ON_PAGES = 3;
 const REPEATED_ON_SHARE = 0.5;
 
-/** A sentence carrying a skip link, a doubled search label, a cookie banner
- *  or an empty catalogue is the site's chrome run into the text, in each
- *  supported language and the ones `priority.ts` reads paths in. */
+/** A skip link or a doubled search label run into a sentence, and all before
+ *  it: what follows is still the page's own words, quotable as they stand. */
+const CHROME_LEAD_RE =
+  /^.*\b(?:skip to (?:main )?(?:content|navigation)|zum (?:haupt)?inhalt (?:springen|wechseln)|aller au contenu|saltar al contenido|(search|suche|suchen|rechercher|buscar) \1(?: clear)?)\b\s*/i;
+/** An empty catalogue or a cookie banner is chrome whole; a bakery's own cookies are not. */
 const CHROME_RE =
-  /\b(?:skip to (?:main )?(?:content|navigation)|zum (?:haupt)?inhalt (?:springen|wechseln)|aller au contenu|saltar al contenido|(search|suche|suchen|rechercher|buscar) \1\b|no products found|keine produkte gefunden|aucun produit trouv|no se encontraron productos|we use cookies|this (?:web)?site uses cookies|accept (?:all )?cookies|wir verwenden cookies|diese website verwendet cookies|nous utilisons des cookies|utilizamos cookies)/i;
+  /\b(?:no products found|keine produkte gefunden|aucun produit trouv|no se encontraron productos)|\b(?:we use|this (?:web)?site uses) cookies\b.*\b(?:to|and similar)\b.*\b(?:experience|analytics|consent|accept|privacy|browsing)/i;
 
 /** Prose, not a label: it ends in punctuation and it has a verb (SPEC §5,
  *  2026-09-29 — "keeps a sentence only where it is prose"). Menus, tiles
@@ -89,7 +91,7 @@ function candidateSentences(text: string): string[] {
   return text
     .split("\n")
     .flatMap((block) => block.split(SENTENCE_SPLIT_RE))
-    .map((sentence) => sentence.replace(/\s+/g, " ").trim())
+    .map((sentence) => sentence.replace(/\s+/g, " ").trim().replace(CHROME_LEAD_RE, ""))
     .filter(
       (sentence) =>
         sentence.length >= PASSAGE_MIN_CHARS && sentence.length <= PASSAGE_MAX_CHARS && readsAsProse(sentence) && !CHROME_RE.test(sentence)

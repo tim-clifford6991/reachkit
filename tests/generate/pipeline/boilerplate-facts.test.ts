@@ -57,13 +57,18 @@ describe("a passage that is a page's chrome is no business fact", () => {
     expect(facts()).toEqual([PRODUCT.text]);
   });
 
+  const passagesOf = (text: string) => sitePassages([{ url: "https://example.com/", text }])[0]?.passages;
+
+  it.each(["We use cookies to give you the best experience on our website.", "This site uses cookies and similar technologies for analytics."])(
+    "drops the banner %s",
+    (text) => expect(passagesOf(text)).toEqual([])
+  );
+
   it.each([
-    "Skip to main content We bake every loaf by hand in our shop since 1987.",
-    "We use cookies to give you the best experience on our website.",
-    "Diese Website verwendet Cookies, um Ihnen das beste Erlebnis zu bieten.",
-  ])("drops %s", (text) => {
-    expect(sitePassages([{ url: "https://example.com/", text }])[0]?.passages).toEqual([]);
-  });
+    ["Skip to main content We bake every loaf by hand in our shop since 1987.", "We bake every loaf by hand in our shop since 1987."],
+    ["Bakery Search Search Clear Our sourdough is proved for two days before it is baked.", "Our sourdough is proved for two days before it is baked."],
+    ["We use cookies from our own oven in every gift box we sell.", "We use cookies from our own oven in every gift box we sell."],
+  ])("keeps the business's words in %s", (text, kept) => expect(passagesOf(text)).toEqual([kept]));
 });
 
 describe("re-read from the stored fetches, a site of boilerplate alone is not grounded", () => {
