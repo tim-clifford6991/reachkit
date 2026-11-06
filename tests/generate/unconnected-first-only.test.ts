@@ -34,6 +34,7 @@ vi.mock("@/lib/publish/daily", async (importOriginal) => ({
   sitesForDailyTick: async () => ({ sites: [{ siteId: SITE_ID, timeZone: "UTC", publishTime: "09:00", vetoHours: 24 }], held: null }),
 }));
 vi.mock("@/lib/generate", () => ({
+  refreshForDay: async () => null,
   decideDayPage: async (day: { siteId: string; publishDate: string }) => {
     doubles.decided.push(day.publishDate);
     const row = db.rows("opportunities").find((r) => r.planned_for === day.publishDate && r.status === "open");
