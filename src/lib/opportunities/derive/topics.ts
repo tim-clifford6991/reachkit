@@ -216,18 +216,10 @@ export function productsNamed(query: string, a: { market: MarketConclusion | nul
   return [...new Set(named)].sort().join(" ");
 }
 
-export function rivalNamesOf(a: {
-  report: StoredReport;
-  market: MarketConclusion | null;
-}): { name: string; domain: string }[] {
-  const out: { name: string; domain: string }[] = [];
-  for (const rival of a.market?.rivals ?? []) {
-    out.push({ name: rival.name, domain: rival.domain }, { name: brandOf(rival.domain), domain: rival.domain });
-  }
-  if (a.report.rivals.kind !== "unmeasured") {
-    for (const rival of a.report.rivals.value) out.push({ name: brandOf(rival.domain), domain: rival.domain });
-  }
-  return out;
+export function rivalNamesOf(a: { report: StoredReport; market: MarketConclusion | null }): { name: string; domain: string }[] {
+  const concluded = (a.market?.rivals ?? []).flatMap(({ name, domain }) => [{ name, domain }, { name: brandOf(domain), domain }]);
+  const read = a.report.rivals.kind === "unmeasured" ? [] : a.report.rivals.value.map(({ domain }) => ({ name: brandOf(domain), domain }));
+  return [...concluded, ...read];
 }
 
 /** A search the pass proposes, before its fit is known. */
@@ -318,11 +310,7 @@ export function brandsOf(a: {
 }): { own: string[]; rivals: string[] } {
   const own = a.report.market.kind === "unmeasured" ? [] : [...ownBrandTokens(a.report.market.value.profile)];
   own.push(brandOf(a.report.domain));
-  const rivals: string[] = [];
-  for (const rival of a.market?.rivals ?? []) rivals.push(rival.name, brandOf(rival.domain));
-  if (a.report.rivals.kind !== "unmeasured") {
-    for (const rival of a.report.rivals.value) rivals.push(brandOf(rival.domain));
-  }
+  const rivals = rivalNamesOf(a).map((rival) => rival.name);
   const clean = (list: string[]) => [...new Set(list.map(normalise).filter((b) => b.length > 2))];
   return { own: clean(own), rivals: clean(rivals) };
 }
@@ -451,14 +439,21 @@ export function askedTopics(asked: readonly AskedBeside[], now: Date, max: numbe
   return out;
 }
 
+/** Whether `query` names the business itself and sets it against no rival:
+ *  a name search wants the business's own site, never a new page. */
+export function namesOwnOnly(query: string, a: { own: readonly string[]; rivals: readonly string[] }): boolean {
+  const text = normalise(query);
+  return names(text, a.own) && !(VERSUS.test(text) && names(text, a.rivals));
+}
+
 /** Whether a question buyers were seen asking is a topic for this site
- *  (issue 1519): on the market in force (D59), and never a rival's name
- *  asked about as a word (issue 1506). */
+ *  (issue 1519): on the market in force (D59), not the business's own name,
+ *  and never a rival's name asked about as a word (issue 1506). */
 export function askedOnMarket(
   query: string,
   a: { market: MarketConclusion | null; own: readonly string[]; rivals: readonly string[] }
 ): boolean {
-  if (noLongerRelevant(query, { market: a.market, own: a.own }) !== null) return false;
+  if (namesOwnOnly(query, a) || noLongerRelevant(query, { market: a.market, own: a.own }) !== null) return false;
   return !(names(normalise(query), a.rivals) && SHAPES.wordSense.test(normalise(query)));
 }
 
@@ -641,7 +636,7 @@ export function proposedTopics(a: {
   const add = (query: string, source: ProposedTopic["source"], rival: string | null, more: Pick<ProposedTopic, "asked" | "composed" | "cited" | "offering"> = {}): void => {
     const key = queryKey(query);
     if (key === "" || seen.has(key) || out.length >= a.max) return;
-    if (rivalBrandOnly(key, { market: a.market, own, rivals })) return;
+    if (rivalBrandOnly(key, { market: a.market, own, rivals }) || namesOwnOnly(key, { own, rivals })) return;
     // Issue 1314: a search nobody would type as it stands is no topic.
     if (malformedSearch(key, a.market?.rivals) !== null) return;
     // D50: a comparison of names nobody searches is no topic, unless the
