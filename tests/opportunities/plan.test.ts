@@ -218,6 +218,17 @@ describe("a week whose slot and spares are used up is committed again from the d
     expect(await pageForDay(SITE_ID, DAY(2), AT)).not.toBeNull();
     expect(state.recommits).toHaveLength(1);
   });
+
+  it("once the update fallback had its turn and wrote nothing, the day recommits though the update is still ready", async () => {
+    await weeklyPass();
+    const entries = await planWeek(SITE_ID, { now: AT });
+    setOpportunityStore({ ...memoryStore(state), setReadiness: async () => {} });
+    for (const entry of entries) Object.assign(state.rows.find((row) => row.id === entry.opportunityId)!, { ready: false });
+    Object.assign(state.rows.find((row) => row.id === entries[5]!.opportunityId)!, { family: "improve", ready: true });
+
+    expect(await pageForDay(SITE_ID, DAY(2), AT, true)).not.toBeNull();
+    expect(state.recommits).toHaveLength(1);
+  });
 });
 
 describe("setup commits a new site's first week", () => {

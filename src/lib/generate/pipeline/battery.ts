@@ -52,9 +52,9 @@ export function batteryBasis(a: {
   // Issue 1521: a refresh that may add sections on what the pages above it
   // cover may grow to the update's grown share.
   const length = lengthRangeFor(template, { questions: pack.questions.length, cap: voiceLength(pack.voice)?.ceiling, liveWords, grown: pack.gaps !== undefined });
-  // D47: a comparison written as a Q&A for want of two rivals compares
+  // D47: a comparison written as another type for want of two rivals compares
   // nobody, so it is told to answer, not to compare.
-  const becameQa = pack.type === "qa" && contentTypeOf(a.opportunity) === "listicle";
+  const becameQa = pack.type !== "listicle" && contentTypeOf(a.opportunity) === "listicle";
   const pageType = becameQa && pageTypeOf(a.opportunity) === "market_comparison" ? "answer" : pageTypeOf(a.opportunity);
   // D47: the listicle's table, laid out from the pack before a word is
   // written. The writer is handed the same one (`./write.ts`).

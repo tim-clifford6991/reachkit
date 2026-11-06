@@ -82,7 +82,7 @@ describe("issue 2388: a day without a passing page of its own takes a committed 
     if (page !== null) written(page);
     refreshForDay.mockClear();
     const { day: kept } = await day();
-    expect(refreshForDay.mock.calls).toEqual([[{ siteId: "s1", publishDate: "2026-09-08", ...input }]]);
+    expect(refreshForDay.mock.calls).toEqual([[{ siteId: "s1", publishDate: "2026-09-08", ...input, now: at }]]);
     expect(kept).toMatchObject({ outcome: "no_page", reason: input.trigger });
   });
 
@@ -127,5 +127,12 @@ describe("issue 2388: a day without a passing page of its own takes a committed 
     const { steps, day: kept } = await day();
     expect(steps).toEqual(["hold", "recheck", "select", "refresh"]);
     expect(kept).toMatchObject({ outcome: "drafted", reason: null });
+  });
+
+  it("a select whose ladder below the update ends without a page keeps the ladder's reason, never a bare no_opportunity", async () => {
+    decideDayPage.mockResolvedValueOnce({ ok: false, because: "no_opportunity" });
+    refreshForDay.mockResolvedValueOnce({ ok: false, because: "no_own_facts" });
+    const { day: kept } = await day();
+    expect(kept).toMatchObject({ outcome: "no_page", reason: "generate:no_own_facts" });
   });
 });

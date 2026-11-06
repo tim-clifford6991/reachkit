@@ -354,10 +354,8 @@ export const SETUP_COPY = Object.freeze({
   /** REQ-029 c3: the pass measured some of it. One sentence saying what
    *  could not be measured. */
   "setup.release.unmeasured": ["We couldn’t check everything the first time. The next check fills in the rest.", { slots: {}, fixedBy: "REQ-029 c3" }],
-  /** REQ-029 c5: the pass failed outright, or had not ended when the
-   *  founder was released anyway. One sentence saying the measurement did
-   *  not complete — never that it found nothing, which is a different
-   *  fact with its own line (§7). */
+  /** REQ-029 c5: the pass failed outright, or had not ended when the founder was released anyway. One sentence saying
+   *  the measurement did not complete — never that it found nothing, which is a different fact with its own line (§7). */
   "setup.release.incomplete": ["Your first check didn’t finish. The next check fills it in on its own.", { slots: {}, fixedBy: "REQ-029 c5" }],
   /** Issue #770: the pass read the market and found too few searches to
    *  plan a page from — a measurement, not a failure. Issue 837 (owner,
@@ -367,6 +365,7 @@ export const SETUP_COPY = Object.freeze({
    *  finished reading the market. Not a market too small, and nothing for
    *  the founder to change. Drafted under issue 759's ruling. */
   "setup.release.measuring": ["We’re still checking your market. Your first pages follow on their own.", { slots: {}, fixedBy: "issue 855" }],
+  "setup.release.own-facts": ["Your site doesn’t say enough about what you sell to write a new page. Add what you sell and who you serve in Settings › Your business.",{ slots: {}, fixedBy: "issue 2431 (drafted)" }], // The newest day wrote no page, not even from the site's own facts.
 
   // Issue 837 (owner ruling 2026-09-17): the choice a thin market offers —
   // two or three broader categories from the site's own profile, and the
