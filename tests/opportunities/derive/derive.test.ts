@@ -327,10 +327,11 @@ describe("the pass says how much new-page supply each source gave, at no added c
     });
     const report = defaultReport();
     if (report.market.kind === "unmeasured") throw new Error("the fixture report holds a market");
-    const offerings = [{ name: "Onboarding", category: "user onboarding software", weight: 0.6 }, { name: "Analytics", category: "product analytics", weight: 0.4 }];
+    const offerings = [{ name: "Onboarding", category: "user onboarding software", weight: 0.6 }, { name: "Analytics", category: "product analytics Leeds", weight: 0.4 }];
     const selling = { ...report, market: { ...report.market, value: { ...report.market.value, profile: { ...report.market.value.profile, offerings } } } };
     const { ctx, sources } = fakeCost();
-    const { supply } = await deriveOpportunities(ctx, { ...input(), report: selling, market });
+    const { supply } = await deriveOpportunities(ctx, { ...input(), report: selling, market, area: { name: "Leeds" } });
+    expect(state.rows.filter((one) => one.target_query?.includes("leeds"))).toEqual([]);
 
     expect(sources).toEqual([BUYER_SEARCHES_CALL_SITE, TYPED_CALL_SITE, FIT_CALL_SITE, TYPING_CALL_SITE, SAME_QUESTION_CALL_SITE]);
     for (const site of [TYPED_CALL_SITE, FIT_CALL_SITE]) expect(judged[site]).toEqual(expect.arrayContaining(["product analytics for saas product teams", "product analytics pricing"]));

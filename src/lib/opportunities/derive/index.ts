@@ -88,6 +88,8 @@ export interface DeriveInput {
    *  branded ones left out: what its buyers ask answer engines, which the
    *  buyer's searches are written from (issue 1208). Absent reads as none. */
   prompts?: readonly string[];
+  /** Where the business serves (`sites.market.area`, D67), which no offering's topic may name. */
+  area?: MarketConclusion["serves"];
 }
 
 /** How many held rows one pass's judgement may also score. */
@@ -255,6 +257,7 @@ export async function deriveOpportunities(
     asked,
     seen,
     short: held.filter((row) => !gone.has(row.id) && writable(row)).length < PLAN_DEPTH,
+    area: a.area ?? null,
     cited: citedTopics({
       answers: a.report.prompts?.answers ?? [],
       competitors: [...business, ...(a.report.rivals.kind === "measured" ? a.report.rivals.value.map((rival) => rival.domain) : [])],

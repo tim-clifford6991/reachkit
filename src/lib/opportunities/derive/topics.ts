@@ -620,8 +620,9 @@ export function proposedTopics(a: {
   seen?: readonly AskedBeside[];
   /** The competitors' pages AI answers linked (`citedTopics`). */
   cited?: readonly CitedTopic[];
-  /** The site holds under `PLAN_DEPTH` writable rows. */
+  /** The site holds under `PLAN_DEPTH` writable rows; then `area`, the place it serves, is never in an offering's topic. */
   short?: boolean;
+  area?: MarketConclusion["serves"];
 }): ProposedTopic[] {
   const { own, rivals } = brandsOf(a);
   const brands = [...own, ...rivals];
@@ -656,7 +657,7 @@ export function proposedTopics(a: {
   // A short site is offered its buyers' own searches and its further lines first, so `max` cuts a comparison instead.
   for (const search of a.short === true ? (a.written ?? []) : []) add(search, sourceOf(search, { brands }), null);
   if (a.short === true && market !== null && profile !== null) {
-    const places = [market.serves ?? null, placeOf(profile.town)].filter((place) => place !== null);
+    const places = [market.serves ?? null, a.area ?? null, placeOf(profile.town)].filter((place) => place !== null);
     for (const category of placelessSeeds({ ...profile, language }, places)) {
       const line = { category, synonyms: [], buyer: market.buyer, job: "", notOurMarket: [] };
       for (const composed of composedSearches(line, language)) add(composed.query, composed.source, null, { composed: true, offering: true });

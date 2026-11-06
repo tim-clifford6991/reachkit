@@ -20,7 +20,7 @@ function reportSelling(offerings: Offering[], over: Partial<Profile> = {}) {
 
 const line = (category: string, weight: number): Offering => ({ name: category, category, weight });
 
-function offeringsProposed(a: { report: ReturnType<typeof reportSelling>; market: MarketConclusion; short?: boolean; language?: "en" | "de" }) {
+function offeringsProposed(a: { report: ReturnType<typeof reportSelling>; market: MarketConclusion; short?: boolean; language?: "en" | "de"; area?: Place }) {
   return proposedTopics({ ...a, taken: [], ownRanked: 0, max: 40, short: a.short ?? true })
     .filter((topic) => topic.offering === true)
     .map(({ query, source, composed }) => ({ query, source, composed }));
@@ -64,6 +64,12 @@ describe("an offering's topic never carries a place (doorway policy)", () => {
   it("the site's stored town is taken out even where the market names no place", () => {
     const report = reportSelling([line("hair salon", 0.6), line("wedding makeup Leeds", 0.4)], { town: "Leeds" });
     expect(offeringsProposed({ report, market: market("brides") }).map((topic) => topic.query)).toEqual(["wedding makeup for brides", "wedding makeup pricing"]);
+  });
+
+  it("the founder's own answer for where the business serves is taken out where neither the market nor the profile names it", () => {
+    const report = reportSelling([line("dog grooming", 0.6), line("puppy training Bristol", 0.4)]);
+    const queries = offeringsProposed({ report, market: market("dog owners"), area: { name: "Bristol" } }).map((topic) => topic.query);
+    expect(queries).toEqual(["puppy training for dog owners", "puppy training pricing"]);
   });
 });
 
