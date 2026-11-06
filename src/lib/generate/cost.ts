@@ -15,6 +15,8 @@
 //     (`drafts.cost_cents`), and writing it onto the scan would overstate
 //     what the scan cost and flip a degraded scan back to done.
 import { withCostContext, type CostContext } from "@/lib/costs";
+import { untypedFetches, type FetchesRow } from "@/lib/costs/ledger";
+import { dbAdmin } from "@/lib/db";
 import { CAPS, INFERENCE_MAX_OUTPUT_TOKENS } from "@/lib/config/constants";
 import { costCentsFor } from "@/lib/llm/tiers";
 
@@ -43,6 +45,20 @@ export function withDraftCost<T>(
     },
     body
   );
+}
+
+/** The day's one `CAP_DRAFT` context, opened at what the site's drafts ledgered since the run's due hour, so a replayed
+ *  attempt spends only what its date has left. A ledger it cannot read leaves it nothing: not measured is never 0. */
+export async function openDayCost<T>(a: { scanId: string; siteId: string; since: Date }, body: (cost: CostContext) => Promise<T>): Promise<T> {
+  const priorCents = await draftSpendSince(a.siteId, a.since).catch(() => null);
+  if (priorCents === null) console.warn(JSON.stringify({ event: "draft_spend_unread", siteId: a.siteId }));
+  return withCostContext({ scanId: a.scanId, cap: "DRAFT", policyVersion: DRAFT_POLICY_VERSION, rollUp: "none", priorCents: priorCents ?? CAPS.DRAFT_C }, body);
+}
+
+async function draftSpendSince(siteId: string, since: Date): Promise<number | null> {
+  const { data, error } = await untypedFetches(dbAdmin()).from<Pick<FetchesRow, "cost_cents">>("fetches").select("cost_cents").eq("site_id", siteId).eq("activity", "draft").gte("created_at", since.toISOString());
+  const total = (data ?? []).reduce((sum, row) => sum + Number(row.cost_cents), 0);
+  return error !== null || data === null || !Number.isFinite(total) ? null : total;
 }
 
 /** The least a page's write and its one fix reserve: their output budgets on the writer's tier. */
