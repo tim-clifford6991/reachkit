@@ -45,6 +45,7 @@ import { headingLines, sameSubtopic, subtopicOf, topicWords } from "../rules/gap
 import { alikeHeadings } from "../rules/headings";
 import { renderOf } from "../rules/text";
 import { sectionBounds, TEMPLATES, type PackNeed, type PackRequirement, type SectionFacts, type Template } from "../templates";
+import { differenceHeld, ownPriceHeld } from "../templates/listicle";
 import type { WritingMarket } from "../voice/market";
 import type { PromptKnowledge, PromptProfile } from "../voice/profile-block";
 import { chooseVoice, type PageVoice, type WritingVoice } from "../voice/register";
@@ -250,8 +251,6 @@ function shares(words: ReadonlySet<string>, text: string): boolean {
 
 const fold = (text: string): string =>
   text.replace(/\s+/g, " ").trim().toLowerCase().replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[–—]/g, "-");
-
-const PRICE_RE = /(?:[$€£]\s?\d|\d\s?(?:usd|eur|gbp|€|\$|£)|\bfree\b)/i;
 
 /** Every statement the knowledge base makes, as text. */
 function knowledgeTexts(knowledge: PromptKnowledge | undefined): string[] {
@@ -583,12 +582,9 @@ function holds(requirement: PackRequirement, pack: Omit<ContextPack, "missing">,
       // business and that many rivals, each with a fact to set beside it.
       return comparisonTable(pack, requirement.min - 1) !== null;
     case "own_price":
-      return (
-        (knowledge?.offerings ?? []).some((offering) => offering.prices.length > 0) ||
-        pack.facts.some((fact) => PRICE_RE.test(fact.passage))
-      );
+      return ownPriceHeld({ profile: pack.profile, passages: pack.facts.map((fact) => fact.passage) });
     case "difference":
-      return (knowledge?.differentiators.length ?? 0) > 0 || (pack.profile?.promises.length ?? 0) > 0;
+      return differenceHeld(pack.profile);
     case "facts_on_topic": {
       // That many business facts, one of them at least in the target's own
       // words. Whether the topic is the business's at all was judged when it

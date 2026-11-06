@@ -12,6 +12,7 @@
 // 2026-09-14): it goes immediately ahead of the first Write row in its
 // cluster, and while clusters are not derived, ahead of the first Write row.
 import { CONTENT_MIX, PACE, PLAN_DEPTH } from "@/lib/config/constants";
+import { unfielded, type ListicleHeld, type ListicleNeed } from "@/lib/generate/templates/listicle";
 import type { Profile } from "@/lib/market/questions/profile";
 import type { IntentPrompt } from "../intent";
 import { opportunityStore } from "../store";
@@ -78,6 +79,8 @@ export function orderRanked(
     /** A new site's pages by cluster: what it has live or drafted. Absent
      *  opens any cluster. */
     clusters?: ReadonlyMap<string, number>;
+    /** The first need a listicle cannot field from stored rows: each is written as a Q&A. */
+    unfielded?: ListicleNeed;
   } = {}
 ): Ranked[] {
   const left = [...scored].sort(byPoints);
@@ -132,16 +135,19 @@ export function orderRanked(
       }
     }
     if (at === -1) continue;
-    const asQa = rule === qa;
     const [entry] = left.splice(at, 1);
+    const need = rule === qa || kindOf(entry!) !== "listicle" ? undefined : rotation.unfielded;
+    const unfit = need === undefined ? null : (`${need} not on file, as a Q&A` as const);
+    const asQa = rule === qa;
     out.push({
       opportunityId: entry!.opportunity.id,
-      reason: { points: entry!.points, parts: entry!.parts, rule: actionOf(entry!) ?? rule },
-      ...(asQa ? { writeAs: "qa" as const } : {}),
+      reason: { points: entry!.points, parts: entry!.parts, rule: unfit ?? actionOf(entry!) ?? rule },
+      ...(asQa || unfit !== null ? { writeAs: "qa" as const } : {}),
     });
     previous = entry!.opportunity;
     const key = clusterOf(entry!.opportunity);
     if (clusters !== null && key !== null) clusters.set(key, (clusters.get(key) ?? 0) + 1);
+    // A comparison written as a Q&A for want of a need keeps its place in the week's rules, so the order is unchanged.
     const kind = asQa ? "qa" : kindOf(entry!);
     if (kind !== null) placed.push({ day, kind, offering: !asQa && isOffering(entry!.opportunity) });
   }
@@ -198,14 +204,7 @@ const DAY_MS = 86_400_000;
 
 /** The draft states whose page holds its date in the mix: a page that was
  *  stopped, skipped or taken down did not publish that day. */
-const HOLDS_ITS_DAY: ReadonlySet<string> = new Set([
-  "planned",
-  "generating",
-  "in_review",
-  "approved",
-  "publishing",
-  "published",
-]);
+const HOLDS_ITS_DAY: ReadonlySet<string> = new Set(["planned", "generating", "in_review", "approved", "publishing", "published"]);
 
 /** The days before as the site's own drafted pages state them. The first day planned
  *  is the day after the latest date that has a draft, and never before
@@ -330,6 +329,8 @@ export interface RankLoad {
   ownRanked?: number | null;
   /** The site's live pages and their clusters. Absent holds no cluster back. */
   livePages?: readonly LivePageCluster[];
+  /** What a listicle's needs are read from; `null` fields none, and absent holds no listicle back. */
+  listicle?: ListicleHeld | null;
 }
 
 /** Why a row the store holds open takes no place in the list. */
@@ -373,12 +374,13 @@ export async function loadRanking(siteId: string, at: Date, only?: ReadonlySet<s
   const ownRanked = report === null ? null : report.ownRanked.kind === "measured" ? report.ownRanked.value : 0;
   const isNew = ownRanked !== null && ownRanked < NEW_SITE.rankedBelow;
   const livePages = !isNew ? undefined : await store.livePageClusters(siteId).catch(() => undefined);
+  const listicle = report === null ? null : await store.listicleHeld(siteId, report.scanId).catch(() => null);
   const scans = rows.filter((row) => named(row, only) && eligible(row, { profile }) === null).map((row) => row.scan_id);
   const topTens =
     scans.length === 0 ? new Map<string, readonly string[]>() : await store.topTens([...new Set([...scans, ...(latest === null ? [] : [latest.scan_id])])]);
   // A cluster that cannot be read earns no page.
   const linkedClusters = cited.length === 0 ? [] : await store.clustersAt(siteId, cited).catch(() => [] as readonly string[]);
-  return { rows, fixRows, profile, latest, drafted, cited, topTens, prompts, linkedClusters, ownRanked, ...(livePages === undefined ? {} : { livePages }) };
+  return { rows, fixRows, profile, latest, drafted, cited, topTens, prompts, linkedClusters, ownRanked, listicle, ...(livePages === undefined ? {} : { livePages }) };
 }
 
 function named(row: { id: string }, only: ReadonlySet<string> | undefined): boolean {
@@ -426,7 +428,9 @@ export function rankingOf(
   }
   const after = load.latest === null ? null : readOpportunity(load.latest);
   const clusters = isNew && load.livePages !== undefined ? clusterCounts(load.livePages, load.drafted) : undefined;
-  return { scored, fixes, rotation: { after, topTens: load.topTens, mix: mixOf(load.drafted, at), ...(clusters === undefined ? {} : { clusters }) }, rejected };
+  const unfit = load.listicle === undefined ? null : unfielded(load.listicle);
+  const rotation = { after, topTens: load.topTens, mix: mixOf(load.drafted, at), ...(clusters === undefined ? {} : { clusters }), ...(unfit === null ? {} : { unfielded: unfit }) };
+  return { scored, fixes, rotation, rejected };
 }
 
 /** A new site's pages by cluster: each live page, and each drafted one that
