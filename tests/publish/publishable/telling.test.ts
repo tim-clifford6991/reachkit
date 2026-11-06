@@ -321,6 +321,47 @@ describe('REQ-057 c9 — the destination clause', () => {
     expect(isUnsuppressible(zeroBroken)).toBe(true);
   });
 
+  it("a WordPress never connected is named by the site's own domain and told to connect, never `cannotPublish`", async () => {
+    seedDestination("wordpress", "expired", { health_reason: "never_connected", config: null });
+    db.seed("sites", [{ id: "s1", domain: "harborplumbing.example" }]);
+    const t = await tellingFor({ draft: view(), destination: "wordpress" });
+    expect(t.kind === "interval" && t.destination).toEqual({
+      says: "cannot_go_live_there",
+      site: "harborplumbing.example",
+      copy: "mail.draftReady.dest.wordpressNotConnected",
+    });
+  });
+
+  it("a WordPress that worked and broke still cannot publish to its own address", async () => {
+    seedDestination("wordpress", "error", { health_reason: "unreachable" });
+    db.seed("sites", [{ id: "s1", domain: "harborplumbing.example" }]);
+    const t = await tellingFor({ draft: view(), destination: "wordpress" });
+    expect(t.kind === "interval" && t.destination).toEqual({
+      says: "cannot_go_live_there",
+      site: "https://example.com",
+      copy: "mail.draftReady.dest.cannotPublish",
+    });
+  });
+
+  it("no clause is composed with an empty address, over every destination arm", async () => {
+    const arms: [DestinationKind, string, Row][] = [
+      ["hosted", "ok", { hostname: "help.acmecrm.com", hostname_state: "pending_dns" }],
+      ["hosted", "ok", { hostname: "help.acmecrm.com", hostname_state: "live" }],
+      ["wordpress", "expired", { health_reason: "never_connected", config: null }],
+      ["wordpress", "error", { health_reason: "unreachable" }],
+      ["wordpress", "ok", {}],
+    ];
+    for (const [kind, health, over] of arms) {
+      for (const config of [over.config, null]) {
+        seedDestination(kind, health, { ...over, config: config === undefined ? seal({ siteUrl: "https://example.com" }) : config });
+        db.seed("sites", [{ id: "s1", domain: "" }]);
+        const t = await tellingFor({ draft: view(), destination: kind });
+        const clause = t.kind === "interval" ? t.destination : null;
+        expect(clause === null || clause.site !== "", `${kind} ${health} ${JSON.stringify(over)}`).toBe(true);
+      }
+    }
+  });
+
   it("a destination this build has no adapter for carries no clause — nothing is asserted about a site nothing can answer for", async () => {
     adapters.clear();
     seedDestination("wordpress", "ok");

@@ -290,6 +290,7 @@ export const MAIL_COPY = Object.freeze({
   // The first row while the hosted address waits for its record, every
   // Monday until it is connected. Drafted (#759).
   "mail.weekly.connect": ["Your pages are written but can't go live at {host} yet. Add one line at the company you bought your address from.", { slots: { host: "text" }, fixedBy: "SPEC §5 2026-09-20 (drafted)" }],
+  "mail.weekly.connect.wordpress": ["Your pages are written but can't go live on {host} yet. Connect your WordPress in Settings › Pages.", { slots: { host: "text" }, fixedBy: "SPEC §5 2026-09-20 (drafted)" }],
   "mail.weekly.connect.action": ["Connect your website", { slots: {}, fixedBy: "SPEC §5 2026-09-20 (drafted)" }],
   // SPEC §8 2026-09-29 (D16, issue 1147): the tracked questions whose
   // answer names the site this week and did not the week before, each by
@@ -396,22 +397,10 @@ export const MAIL_COPY = Object.freeze({
     { slots: { publishesAt: "date" }, fixedBy: "SPEC §8 2026-09-20" },
   ],
 
-  // Four for REQ-057 c9's destination clause — what the telling says about
-  // a page bound for the customer's own site. `{site}` is the address the
-  // page goes live at, never a credential.
-  //
-  // Three of them differ only in what they say about *when*, which is
-  // exactly the distinction c9 draws: "it says the page goes live there
-  // then" (an interval), "goes live there only once they approve"
-  // (copilot), and the zero-window case where it goes live at the stated
-  // moment with no interval at all.
+  // REQ-057 c9's destination clause for a page bound for the customer's own site. `{site}` is where the page goes live,
+  // never a credential. The two `goesLive` keys differ only in *when*: after the interval, or at once with none.
   "mail.draftReady.dest.goesLiveThen": ["It goes live on {site} for anyone to read.", { slots: { site: "text" }, fixedBy: "REQ-057 c9" }],
   "mail.draftReady.dest.goesLiveAtOnce": ["It goes live on {site} at once, for anyone to read.", { slots: { site: "text" }, fixedBy: "REQ-057 c9" }],
-  // The site cannot be published to as things stand. It says what the
-  // customer must change — and it never says the page will not go live at
-  // the moment the mail names, because c9's final sentence keeps the date,
-  // the interval and the stop action exactly as the other criteria set
-  // them.
   // A hosted address still waiting for its record: no page goes live there
   // until it is connected, so this mail names no moment. Drafted (#759).
   "mail.draftReady.dest.addressNotConnected": [
@@ -427,6 +416,9 @@ export const MAIL_COPY = Object.freeze({
   "mail.draftReady.record.value": ["Value", { slots: {}, fixedBy: "R20 2026-10-22 (drafted)" }],
   "mail.draftReady.waiting.subject": ["Your page waits for your website", { slots: {}, fixedBy: "SPEC §5 2026-09-20 (drafted)" }],
   "mail.draftReady.waiting.preheader": ["Connect your website and it goes live.", { slots: {}, fixedBy: "O6 · issue 2172 (drafted)" }],
+  // A WordPress set up without its login is named by the site's domain, since no address is stored. Drafted (#759).
+  "mail.draftReady.dest.wordpressNotConnected": ["This page can't go live on {site} until you connect your WordPress. Connect it in Settings › Pages.", { slots: { site: "text" }, fixedBy: "SPEC §5 2026-09-20 (drafted)" }],
+  // The site cannot be published to as things stand: it says what to change, and c9 keeps the date, interval and stop.
   "mail.draftReady.dest.cannotPublish": ["We can't publish to {site} right now. See what to change in Settings › Pages.", { slots: { site: "text" }, fixedBy: "REQ-057 c9" }],
 
   // 2026-09-07, issue #174. The two the mail itself owed, beside the seven

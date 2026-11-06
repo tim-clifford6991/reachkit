@@ -332,15 +332,17 @@ export async function composeWeekly(unmeasured: readonly string[] = []): Promise
   });
 }
 
-/** A new site's first Monday: its hosted address waits for DNS, nothing is live yet, one page waits in review,
+/** A new site's first Monday: its hosted address waits for DNS (or `connect` names another), nothing is live yet, one page waits in review,
  *  one was set aside with no next page to write, Google and AI have read nothing, and the week is committed. */
-export async function composeWeeklyFirst(): Promise<PreviewMail> {
+export async function composeWeeklyFirst(
+  connect: { host: string; href: string; text?: CopyKey } = { host: "blog.harborplumbing.example", href: `${APP}/setup/connect` }
+): Promise<PreviewMail> {
   const composeMail = await composer();
   const { buildWeekly } = await import("../../../src/lib/mail/templates/weekly");
   const mail = buildWeekly({
     greeting: { name: "Dana", week: 1, business: "harborplumbing.example" },
     calendar: WEEKLY_CALENDAR,
-    connect: { host: "blog.harborplumbing.example", href: `${APP}/setup/connect` },
+    connect,
     needsYou: { line: "mail.weekly.needsYou", vars: { page: "emergency plumber austin" }, href: `${APP}/app/draft/preview` },
     numbers: {
       live: measured(0, AT),
