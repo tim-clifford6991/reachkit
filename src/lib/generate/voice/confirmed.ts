@@ -21,6 +21,7 @@
 // and `editsRead` is why it is visible here at all — see
 // `confirmedForWriting` below.
 import { confirmedProfile } from "@/lib/site-profile/business/confirm";
+import type { ListicleHeld } from "../templates/listicle";
 import { promptProfile, type PromptProfile } from "./profile-block";
 
 export interface ConfirmedForWriting {
@@ -88,6 +89,19 @@ export async function confirmedForWriting(a: {
     factsOff: [...readings.edits.factsOff, ...readings.knowledge.demoPhrases.flatMap(examplePhrases)],
     buyers: readings.edits.answers.buyers ?? null,
   };
+}
+
+/** What a listicle's needs are read from, off stored rows alone: the rivals
+ *  in force, the confirmed profile and the scan's passages less the refused
+ *  ones. `null` where the site has no row. */
+export async function listicleHeldOf(a: { siteId: string; scanId: string }): Promise<ListicleHeld | null> {
+  const { readSiteMarket } = await import("@/lib/market/infer/stored");
+  const site = await readSiteMarket(a.siteId);
+  if (site === null) return null;
+  const { allowedFacts, readAllFacts } = await import("../pipeline/grounding");
+  const confirmed = await confirmedForWriting({ siteId: a.siteId, domain: site.domain });
+  const facts = allowedFacts(await readAllFacts(a), confirmed.factsOff);
+  return { rivals: site.competitors, profile: confirmed.profile, passages: facts.map((sourced) => sourced.fact.passage) };
 }
 
 /**

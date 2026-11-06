@@ -276,7 +276,18 @@ function checkRepo() {
   }
   checkBudgets(texts);
   checkLimiterSeam(texts);
+  checkListicleNeeds();
   for (const finding of staleBaselines()) add("repo", `parity: ${finding}`);
+}
+
+// The planner commits a listicle only on what its pack must hold, so each need has a planner check beside it.
+function checkListicleNeeds() {
+  const rel = "src/lib/generate/templates/listicle.ts";
+  const text = readRel(rel) ?? "";
+  const needs = [...(text.match(/^const NEEDS = \[(.*)\]/m)?.[1] ?? "").matchAll(/need: "(\w+)"/g)].map((m) => m[1]);
+  const planned = new Set([...(text.match(/^const PLANNED[^{]*\{\n([\s\S]*?)\n\};/m)?.[1] ?? "").matchAll(/^ {2}(\w+):/gm)].map((m) => m[1]));
+  if (needs.length === 0) add("repo", `${rel} names no pack need in NEEDS`);
+  for (const need of needs) if (!planned.has(need)) add("repo", `${rel}: the pack need ${need} has no planner check in PLANNED`);
 }
 
 // One module counts abuse limits, so every rule is shared across instances and none drifts into a local copy.

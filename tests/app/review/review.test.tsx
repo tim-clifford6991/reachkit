@@ -52,7 +52,8 @@ describe("a site with a committed week", () => {
     expect(heads).toEqual((["review.col.day", "review.col.page", "review.col.search", "review.col.points", "review.col.why"] as const satisfies readonly CopyKey[]).map((key) => copy(key)));
     const body = text(weekTable(html));
     expect(body).toContain(" Mon ");
-    expect(body).toContain(copy("review.page.new", { type: copy("review.page.listicle") }));
+    // The panel stores no own price, so its comparisons are written, and shown, as Q&As.
+    expect(body).toContain(copy("review.page.new", { type: copy("review.page.qa") }));
     expect(body).toContain(`${copy("review.part.fit")} 3`);
     expect(body).toContain(copy("calendar.week.why.fit"));
   });

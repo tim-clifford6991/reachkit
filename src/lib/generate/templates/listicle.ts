@@ -1,6 +1,43 @@
 // SPEC §7 (D42, 1) — listicle / comparison.
 import { RESEARCH } from "@/lib/config/constants";
+import type { PromptProfile } from "../voice/profile-block";
 import type { Template } from "./types";
+
+const PRICE_RE = /(?:[$€£]\s?\d|\d\s?(?:usd|eur|gbp|€|\$|£)|\bfree\b)/i;
+
+/** What a listicle's needs are judged from: the rivals in force, the
+ *  confirmed profile, and the passages of the site's own pages. */
+export interface ListicleHeld {
+  rivals: readonly string[];
+  profile: Pick<PromptProfile, "promises" | "knowledge"> | null;
+  passages: readonly string[];
+}
+
+/** A price of the business's own: a priced offering, or a passage stating one. */
+export function ownPriceHeld(held: Pick<ListicleHeld, "profile" | "passages">): boolean {
+  return (held.profile?.knowledge?.offerings ?? []).some((offering) => offering.prices.length > 0) || held.passages.some((passage) => PRICE_RE.test(passage));
+}
+
+/** One point of difference: a differentiator in the knowledge base, or a promise. */
+export function differenceHeld(profile: ListicleHeld["profile"]): boolean {
+  return (profile?.knowledge?.differentiators.length ?? 0) > 0 || (profile?.promises.length ?? 0) > 0;
+}
+
+// Issue 1508: at least four counted options, the business among them.
+const NEEDS = [{ need: "options", min: RESEARCH.optionsMin }, { need: "own_price" }, { need: "difference" }] as const;
+export type ListicleNeed = (typeof NEEDS)[number]["need"];
+
+// The planner's reading of each need before research is paid for: the options are the rivals in force research reads first.
+const PLANNED: Record<ListicleNeed, (held: ListicleHeld) => boolean> = {
+  options: (held) => new Set(held.rivals).size >= RESEARCH.optionsMin - 1,
+  own_price: ownPriceHeld,
+  difference: (held) => differenceHeld(held.profile),
+};
+
+/** The first need stored rows cannot field, or `null`; nothing on file fields nothing. */
+export function unfielded(held: ListicleHeld | null): ListicleNeed | null {
+  return NEEDS.find((need) => held === null || !PLANNED[need.need](held))?.need ?? null;
+}
 
 export const listicle: Template = {
   type: "listicle",
@@ -49,6 +86,5 @@ export const listicle: Template = {
   blocks: { table: { rivals: 2 }, faq: { min: 3, max: 6 } },
   length: { floor: 1500, ceiling: 2500 },
   research: true,
-  // Issue 1508: at least four counted options, the business among them.
-  packMustHold: [{ need: "options", min: RESEARCH.optionsMin }, { need: "own_price" }, { need: "difference" }],
+  packMustHold: NEEDS,
 };
