@@ -51,7 +51,7 @@ export type { DailySelection };
 /** What one call into the engine reports back. `degraded` names the step
  *  that ran out of budget, so a job can mark its subject degraded rather
  *  than throw (§6.5 — the spend ceiling outranks the verdict). */
-export type EngineResult = { readonly done: true } | { readonly degraded: string };
+export type EngineResult = { readonly done: true; readonly instead?: string } | { readonly degraded: string };
 
 /** An engine a job calls that has not been written yet. No body in this
  *  file throws one today (#229); it is kept — and exported — because
@@ -492,28 +492,21 @@ export async function finishReads(a: { readonly scanId: string; readonly now: Da
 }
 
 // ── Generation — BUILD §8 (issue #44)
-// Built. `src/lib/generate/` owns the pipeline, the hard rules and the
-// recovery decision; the wrapper below passes the job's own `publishDate`
-// in and maps the outcome to an `EngineResult`.
-//
-// Every arm that is not a page is `degraded`, not a throw: a day with no
-// page is a state the calendar renders (§7 — "supply is the cap: never
-// invent an opportunity to fill a day"), not a job that failed.
-//
-// **A page that passed enters review in the same call** (issue 709), through
-// `publish/attempt/window.ts`. A telling that could not leave is a
-// degradation — the page is in review and held until told — never a throw.
+// `src/lib/generate/` owns the pipeline, the hard rules and the recovery decision; the wrapper below passes the job's
+// own `publishDate` in and maps the outcome to an `EngineResult`. A day with no page is `degraded`, not a throw: the
+// calendar renders it (§7 — "supply is the cap: never invent an opportunity to fill a day"). A page that passed
+// enters review in the same call (issue 709), through `publish/attempt/window.ts`; a telling that could not leave is
+// a degradation — the page is in review and held until told — never a throw.
 
 export async function generateDraft(a: {
   readonly siteId: string;
   readonly publishDate: string;
   readonly now: Date;
-  /** The per-site run's durable steps: decide, write (the rules and their
-   *  one fix inside it, in one cost context), and review. */
+  /** The per-site run's durable steps: decide, write (in one cost context) and review, then refresh where the day's own page did not pass. */
   readonly step?: StepRunner;
 }): Promise<EngineResult> {
   const step: StepRunner = a.step ?? ((_name, body) => body());
-  const { decideDayPage, generateDayPage } = await import("@/lib/generate");
+  const { decideDayPage, generateDayPage, refreshForDay } = await import("@/lib/generate");
   const day = { siteId: a.siteId, publishDate: a.publishDate, now: a.now };
   // Before the plan is read: deciding a day's page writes the week's plan.
   const { dayHold } = await import("@/lib/publish/daily");
@@ -523,12 +516,19 @@ export async function generateDraft(a: {
   const { recheckStopped } = await import("@/lib/generate/recheck");
   await step("recheck", async () => { const rescued = await recheckStopped(day); if (rescued !== null) await schedulePublish({ draftId: rescued }); return rescued; });
   const decided = await step("select", () => decideDayPage(day));
-  // A date that already holds its draft is a day already done, not a
-  // degraded tick.
-  if (!decided.ok) return decided.because === "already_drafted" ? { done: true } : { degraded: `generate:${decided.because}` };
+  // The day's page from a ready update of the committed week, in the same run, where its own did not pass.
+  const instead = async (trigger: string, from: "select" | "write", stopped: string | null): Promise<EngineResult> => {
+    const taken = trigger === "generate:no_site" || trigger === "generate:no_scan" ? null : await step("refresh", () => refreshForDay({ siteId: a.siteId, publishDate: a.publishDate, trigger, from, stopped }));
+    if (taken === null || !taken.ok) return taken === null ? { degraded: trigger } : { done: true };
+    const reviewed = await step("refresh-review", () => reviewWritten(taken, a.now));
+    return "done" in reviewed ? { done: true, instead: `refresh:${trigger}` } : reviewed;
+  };
+  // A date that already holds its draft is a day already done, not a degraded tick.
+  if (!decided.ok) return decided.because === "already_drafted" ? { done: true } : instead(`generate:${decided.because}`, "select", null);
   const outcome = await step("write", () => generateDayPage({ ...day, opportunityId: decided.opportunityId }));
   if (!outcome.ok && outcome.because === "already_drafted") return { done: true };
-  return step("review", () => reviewWritten(outcome, a.now));
+  const reviewed = await step("review", () => reviewWritten(outcome, a.now));
+  return !("degraded" in reviewed) || !reviewed.degraded.startsWith("generate:") ? reviewed : instead(reviewed.degraded, "write", !outcome.ok && "draftId" in outcome ? outcome.draftId : null);
 }
 
 /** Of these site days, the ones owed and no due hour recorded an ending for. */

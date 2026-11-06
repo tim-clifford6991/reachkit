@@ -29,6 +29,7 @@ vi.mock("@/lib/scan/weekly", async (importOriginal) => ({
 vi.mock("@/lib/generate", () => ({
   decideDayPage: doubles.decideDayPage,
   generateDayPage: doubles.generateDayPage,
+  refreshForDay: async () => null,
   restartedDrafts: async () => [],
 }));
 vi.mock("@/lib/generate/recheck", () => ({ recheckStopped: doubles.recheckStopped }));
