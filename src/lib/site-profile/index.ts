@@ -39,7 +39,9 @@ import type { Tier } from "@/lib/measure";
 import { crawlSite, type CrawlOutcome } from "./crawl";
 import { derivePurpose } from "./purpose";
 import { brandName, imageAlts, publishedNames } from "./site-name";
-import { deriveVoice } from "./summary";
+import { deriveVoice, voicePages } from "./summary";
+import { readsAsUnread } from "@/lib/locale/language";
+import { isEmptyShell } from "./knowledge/rendered";
 import { writeMainSite, writeSiteLogo, writeSiteProfile } from "./store";
 import { readMainSite } from "./main-site";
 import type { OurPages } from "@/lib/known-content/ours";
@@ -73,6 +75,9 @@ interface ProfileArgs {
   homeHtml: string | null;
   sitemaps: readonly string[];
   tier: Tier;
+  /** The site a paid pass reads for: where its pages are an empty shell, the
+   *  voice is read off the knowledge read's stored rendered pages. */
+  siteId?: string;
   /** The site's country and language (D66): what was read of the site is
    *  recorded in its own language. Absent is the United States in English. */
   locale?: Locale;
@@ -87,6 +92,18 @@ async function oursOn(domain: string): Promise<OurPages | null> {
   } catch (error) {
     console.log(JSON.stringify({ event: "site_voice_unread", domain, because: String(error) }));
     return null;
+  }
+}
+
+/** The site's pages as the knowledge read last drew them (0¢, stored reads),
+ *  or `[]` where none is held or they could not be read. */
+async function renderedReads(siteId: string, domain: string): Promise<readonly { url: string; text: string }[]> {
+  try {
+    const [{ readMeasuredText }, { ownPages }] = await Promise.all([import("@/lib/measure/text"), import("./knowledge/build")]);
+    return ownPages((await readMeasuredText({ siteId, customerOnly: true })).filter((page) => page.rendered === true), domain);
+  } catch (error) {
+    console.log(JSON.stringify({ event: "site_voice_unread", domain, because: String(error) }));
+    return [];
   }
 }
 
@@ -147,12 +164,14 @@ export async function buildSiteProfileWithCrawl(
   const reading =
     tier === "free"
       ? null
-      : await customerPages(ours, crawl.pages).then((pages) =>
-          pages === null || pages.length === 0
-            ? null
-            : deriveVoice(c, { domain: a.domain, pages, tier, ...(a.locale === undefined ? {} : { locale: a.locale }) })
-        );
-  const read = reading === null || reading.kind === "unmeasured" ? null : reading.value;
+      : await customerPages(ours, crawl.pages).then(async (served) => {
+          if (served === null) return null;
+          const rendered = a.siteId !== undefined && isEmptyShell(served) ? await renderedReads(a.siteId, a.domain) : [];
+          const pages = voicePages(served, rendered);
+          return pages.length === 0 ? null : deriveVoice(c, { domain: a.domain, pages, tier, ...(a.locale === undefined ? {} : { locale: a.locale }) });
+        });
+  // A reading of the failed read is no reading: the stored one stands.
+  const read = reading === null || reading.kind === "unmeasured" || readsAsUnread(reading.value.voice.text, reading.value.voice.tone) ? null : reading.value;
 
   const profile: SiteProfile = {
     domain: a.domain,

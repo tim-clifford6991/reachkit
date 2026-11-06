@@ -149,6 +149,7 @@ export const DE: LanguagePack = {
   // "bäckerei düsseldorf" is `baeckerei-duesseldorf`, as German writes it
   // without umlauts; "backerei" reads as a misspelling (issue 1514).
   slugLetters: { ä: "ae", ö: "oe", ü: "ue" },
+  unreadReading: "nicht (?:gelesen|geladen|abgerufen) werden|keine? (?:inhalte?|texte?) (?:bereitgestellt|vorhanden|verfügbar)",
   title: {
     filler: new Set(
       ("der die das den dem des ein eine einen einem einer und oder aber für mit ohne von vom zu zum zur in im an am auf aus bei nach " +

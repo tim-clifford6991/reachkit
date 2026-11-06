@@ -10,15 +10,20 @@ import { applyEnvFixture } from "../mail/env-fixture";
 
 applyEnvFixture();
 
-const { crawlMock, voiceMock, writeMock, mainSiteMock } = vi.hoisted(() => ({
+const { crawlMock, voiceMock, writeMock, mainSiteMock, textMock } = vi.hoisted(() => ({
   crawlMock: vi.fn(),
   voiceMock: vi.fn(),
   writeMock: vi.fn(),
   mainSiteMock: vi.fn(),
+  textMock: vi.fn(),
 }));
 
 vi.mock("../../src/lib/site-profile/crawl", () => ({ crawlSite: crawlMock }));
-vi.mock("../../src/lib/site-profile/summary", () => ({ deriveVoice: voiceMock }));
+vi.mock("../../src/lib/site-profile/summary", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../src/lib/site-profile/summary")>()),
+  deriveVoice: voiceMock,
+}));
+vi.mock("@/lib/measure/text", () => ({ readMeasuredText: textMock }));
 vi.mock("../../src/lib/site-profile/store", () => ({
   writeSiteProfile: writeMock,
   writeMainSite: mainSiteMock,
@@ -90,6 +95,7 @@ beforeEach(() => {
   voiceMock.mockReset();
   writeMock.mockReset();
   mainSiteMock.mockReset();
+  textMock.mockReset();
   vi.spyOn(console, "log").mockImplementation(() => {});
   ours.url = null;
   ours.host = null;
@@ -143,6 +149,50 @@ describe("issue 1456 — the claims, products and voice are read off the custome
     const read = voiceMock.mock.calls[0]?.[1] as { pages: { url: string }[] };
     expect(read.pages.map((page) => page.url)).toEqual([`https://${DOMAIN}/pricing`]);
     expect(profile?.inventory).toHaveLength(2);
+  });
+});
+
+describe("the voice is read only from pages that were read", () => {
+  const SHELL = { url: `https://${DOMAIN}/`, title: "Example", h1: "", text: "" };
+
+  it("a shell's voice is read off the knowledge read's rendered pages, never the shell", async () => {
+    crawlMock.mockResolvedValueOnce({ pages: [SHELL], discovered: 1, stoppedBy: "complete" as const });
+    const drawn = "Payouts in one click, for every seller on the platform. ".repeat(5);
+    textMock.mockResolvedValueOnce([
+      { url: SHELL.url, text: "", measuredAt: AT },
+      { url: SHELL.url, text: drawn, measuredAt: AT, rendered: true },
+    ]);
+    voiceMock.mockResolvedValueOnce({ kind: "measured", at: AT, value: { siteName: null, products: [], claims: [], voice: VOICE } });
+
+    const profile = await buildSiteProfile({} as never, { ...PAID, siteId: "site-1" });
+
+    const read = voiceMock.mock.calls[0]?.[1] as { pages: { url: string; text: string }[] };
+    expect(read.pages).toEqual([{ url: SHELL.url, title: "", h1: "", text: drawn.slice(0, 600) }]);
+    expect(profile?.voice).toEqual(VOICE);
+  });
+
+  it("with no readable page, no reading is asked for and the voice stays null", async () => {
+    crawlMock.mockResolvedValueOnce({
+      pages: [SHELL, { url: `https://${DOMAIN}/shop`, title: "Just a moment", h1: "", text: "Checking your browser.", unread: "bot_protection" }],
+      discovered: 2,
+      stoppedBy: "complete" as const,
+    });
+    textMock.mockResolvedValueOnce([]);
+
+    const profile = await buildSiteProfile({} as never, { ...PAID, siteId: "site-1" });
+
+    expect(voiceMock).not.toHaveBeenCalled();
+    expect(profile?.voice).toBeNull();
+  });
+
+  it("a reading that describes the failed read is dropped whole, so a stored voice stands", async () => {
+    crawlMock.mockResolvedValueOnce(crawled(["/"]));
+    const failed = { ...VOICE, text: "Die Seiten konnten nicht gelesen werden, da keine Inhalte bereitgestellt wurden." };
+    voiceMock.mockResolvedValueOnce({ kind: "measured", at: AT, value: { siteName: null, products: ["Brot"], claims: [], voice: failed } });
+
+    const profile = await buildSiteProfile({} as never, PAID);
+
+    expect(profile).toMatchObject({ voice: null, products: [], claims: [] });
   });
 });
 

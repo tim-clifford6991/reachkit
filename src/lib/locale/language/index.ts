@@ -69,6 +69,13 @@ export const SHAPES = Object.freeze({
   wordSense: new RegExp(anywhere("wordSense"), "iu"),
 });
 
+const UNREAD_READING = new RegExp(LANGUAGE_PACKS.map((pack) => pack.unreadReading).join("|"), "iu");
+
+/** Whether a model's reading says, in any language, it was given nothing to read. */
+export function readsAsUnread(...texts: readonly string[]): boolean {
+  return texts.some((text) => UNREAD_READING.test(text));
+}
+
 /** Every language's price words and price filler, for the code that reads a
  *  stored search without its site. */
 export const PRICE_WORDS: ReadonlySet<string> = new Set(LANGUAGE_PACKS.flatMap((pack) => [...pack.priceWords]));
