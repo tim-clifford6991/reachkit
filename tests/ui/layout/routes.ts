@@ -96,6 +96,8 @@ export const QUERY_FIXTURES: Readonly<Record<string, readonly string[]>> = {
     "?token_hash=layout-sweep-fixture&type=magiclink",
     "?token_hash=layout-sweep-fixture&type=email_change",
   ],
+  /** The bare screen, and a checkout return's, which adds one line above the form. */
+  "/signin": ["", "?from=checkout"],
 };
 
 /**
@@ -169,6 +171,8 @@ export const ROUTE_REFERENCE: Readonly<Record<string, `S${number}`>> = {
   "/pause/layout-sweep-fixture": "S7",
   /** REFERENCE: S9 — Sign in (§S9; REQ-098) */
   "/signin": "S9",
+  /** REFERENCE: S9 — Sign in, a checkout return that could not sign the buyer in */
+  "/signin?from=checkout": "S9",
   /** REFERENCE: S9 — Sign in, the nearest approved screen: the page a sign-in link lands on (board AuthConfirm) */
   "/auth/confirm?token_hash=layout-sweep-fixture&type=magiclink": "S9",
   /** REFERENCE: S9 — Sign in, the email-change arm of the same page */
