@@ -24,7 +24,7 @@ const { FAKE_AUTH_COOKIE, addAuthUser, fakeIdentityAuth, newFakeAuth } = await i
 const { setAccountStore } = await import("../../../src/lib/account/store");
 const { memoryAccountStore, newMemoryAccounts } = await import("../../account/memory-store");
 const { setStripe } = await import("../../../src/lib/account/stripe/client");
-const { newStripeDouble, stripeDouble } = await import("../../account/stripe-double");
+const { newStripeDouble, stripeDouble, stripeErrors } = await import("../../account/stripe-double");
 const { setLeadStore } = await import("../../../src/lib/mail/leads/store");
 const { memoryStore, newMemoryState } = await import("../../mail/leads/memory-store");
 const { registerDeepPassQueue } = await import("../../../src/lib/account/provisioning/deep-pass");
@@ -118,10 +118,38 @@ describe("a session that is not a completed payment returns to the offer", () =>
     expect(accounts.users).toEqual([]);
   });
 
-  it("an unpaid session opens nothing and returns to /pricing", async () => {
-    vendor.sessions.set(SESSION_ID, { ...paidSession(), status: "open" });
+});
+
+describe("a real session id that cannot sign the buyer in lands on sign-in, never the price page", () => {
+  const CHECKOUT_SIGNIN = "/signin?from=checkout";
+  const pathAndQuery = (response: NextResponse): string => {
+    const url = locationOf(response);
+    return url.pathname + url.search;
+  };
+
+  it.each([
+    ["an unpaid session", () => vendor.sessions.set(SESSION_ID, { ...paidSession(), status: "open" })],
+    ["a session Stripe does not hold", () => vendor.sessions.clear()],
+    ["a Stripe read that fails", () => (vendor.sessionRetrieveError = stripeErrors.connection())],
+  ])("%s opens nothing and lands on /signin?from=checkout", async (_name, arrange) => {
+    arrange();
     const response = await open(`${ORIGIN}/auth/checkout?session_id=${SESSION_ID}`);
-    expect(locationOf(response).pathname).toBe("/pricing");
+    expect(pathAndQuery(response)).toBe(CHECKOUT_SIGNIN);
+    expect(response.cookies.get(FAKE_AUTH_COOKIE)).toBeUndefined();
     expect(accounts.users).toEqual([]);
+  });
+
+  it("a paid session whose account cannot be read lands on /signin?from=checkout", async () => {
+    accounts.failAccountRead = true;
+    const response = await open(`${ORIGIN}/auth/checkout?session_id=${SESSION_ID}`);
+    expect(pathAndQuery(response)).toBe(CHECKOUT_SIGNIN);
+    expect(response.cookies.get(FAKE_AUTH_COOKIE)).toBeUndefined();
+  });
+
+  it("an account whose sign-in cannot be opened lands on the bare /signin, as before", async () => {
+    auth.failGenerate = true;
+    const response = await open(`${ORIGIN}/auth/checkout?session_id=${SESSION_ID}`);
+    expect(pathAndQuery(response)).toBe("/signin");
+    expect(response.cookies.get(FAKE_AUTH_COOKIE)).toBeUndefined();
   });
 });

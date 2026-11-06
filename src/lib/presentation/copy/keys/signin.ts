@@ -12,6 +12,11 @@ export const SIGNIN_COPY = Object.freeze({
     "Enter the email you paid with. We’ll send you a sign-in link.",
     { slots: {}, fixedBy: "board AuthSignIn" },
   ],
+  // A return from Checkout that could not sign the buyer in: true whether or not the payment went through.
+  "signin.checkout_return": [
+    "If your payment went through, your sign-in link is on its way by email. You won’t be charged twice. You can also ask for a new link here.",
+    { slots: {}, fixedBy: "issue 2399" },
+  ],
   "signin.field.label": ["Your email", { slots: {}, fixedBy: "issue 1574" }],
   "signin.field.placeholder": ["you@example.com", { slots: {}, fixedBy: "REQ-098 c2" }],
   /** Changed 2026-09-21 (#937): "Send my link" → the board's own word,
