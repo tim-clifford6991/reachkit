@@ -133,6 +133,15 @@ export function ConnectAddress(p: {
         </div>
       </section>
 
+      <ConnectWaiting page={p.page} />
+    </>
+  );
+}
+
+/** The first page waiting to go live, and the line saying progress comes once one is; every connect arm ends with these. */
+export function ConnectWaiting(p: { page: WaitingPage | null }): React.JSX.Element {
+  return (
+    <>
       {p.page === null ? null : (
         <section className="card card-border min-w-0 bg-base-100" data-testid="overview-waiting">
           <div className="card-body min-w-0 gap-4 p-4 sm:p-5 md:grid md:grid-cols-2 md:items-center">

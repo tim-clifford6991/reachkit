@@ -67,8 +67,9 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
     );
   }
 
-  // A WordPress set up without its credentials holds every page the same way: the head asks for it, and nothing else draws.
+  // A WordPress set up without its credentials holds every page the same way: the head asks for it, then the page that waits.
   if (overview.wordpressWaiting) {
+    const { ConnectWaiting } = await import("../_overview/ConnectAddress");
     return (
       <div className={OVERVIEW} data-testid="overview">
         <div className={HEAD}>
@@ -79,6 +80,7 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
             lead={copy(overview.waitingPage === null ? "overview.connect.lead" : "overview.connect.lead.ready")}
           />
         </div>
+        <ConnectWaiting page={overview.waitingPage} />
       </div>
     );
   }

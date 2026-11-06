@@ -159,6 +159,9 @@ export const WORDPRESS_UNCONNECTED_ACCOUNT: AppAccount = Object.freeze({
   mode: "autopilot",
 });
 
+/** The WordPress account's first page, in review. */
+export const WORDPRESS_UNCONNECTED_DRAFT_ID = "00000000-0000-0000-0000-0000000000d7";
+
 /** The unconnected account's hosted address. */
 export const UNCONNECTED_HOST = "guides.harborplumbing.test";
 
@@ -513,7 +516,7 @@ export function seedUnconnectedAccount(): void {
 export function seedWordPressUnconnectedAccount(): void {
   const { siteId } = WORDPRESS_UNCONNECTED_ACCOUNT;
   seedSite(WORDPRESS_UNCONNECTED_ACCOUNT, {
-    drafts: [{ id: "00000000-0000-0000-0000-0000000000d7", state: "in_review", title: "How teams pick a CRM for a five-person sales team", scheduledIn: 0 }],
+    drafts: [{ id: WORDPRESS_UNCONNECTED_DRAFT_ID, state: "in_review", title: "How teams pick a CRM for a five-person sales team", scheduledIn: 0 }],
     publishing: WEEK_ZERO_PUBLISHING,
   });
   sql(

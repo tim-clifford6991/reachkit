@@ -48,6 +48,7 @@ import {
   UNCONNECTED_HOST,
   WEEK_ZERO_ACCOUNT,
   WORDPRESS_UNCONNECTED_ACCOUNT,
+  WORDPRESS_UNCONNECTED_DRAFT_ID,
 } from "./seed";
 import { copy } from "@/lib/presentation/copy";
 import { FIXTURE_SETTINGS_FACTS } from "@/app/(account)/app/settings/fixture";
@@ -425,11 +426,18 @@ describe(`WordPress connect state — ${wordpressRoutes.length} route(s) × ${WO
             async (page) => {
               await page.goto(urlFor(route), { timeout: LIVE_NAVIGATION_MS });
               const action = page.getByRole("link", { name: copy("overview.connect.wordpress.action"), exact: true });
-              const box = await action.boundingBox();
+              const read = page.locator('[data-testid="overview-waiting-read"]');
+              const inView = async (link: typeof action) => {
+                const box = await link.boundingBox();
+                return box !== null && box.x >= 0 && box.x + box.width <= width;
+              };
               const drawn = {
                 head: await page.locator('[data-testid="overview-head"] h1').textContent(),
                 href: await action.getAttribute("href"),
-                inView: box !== null && box.x >= 0 && box.x + box.width <= width,
+                inView: await inView(action),
+                read: await read.getAttribute("href"),
+                readInView: await inView(read),
+                progress: await page.locator('[data-testid="overview-progress-later"]').count(),
                 record: await page.locator('[data-testid="dns-record"]').count(),
                 tiles: await page.locator('[data-testid="overview-tiles"]').count(),
               };
@@ -453,6 +461,9 @@ describe(`WordPress connect state — ${wordpressRoutes.length} route(s) × ${WO
             head: copy("overview.connect.head.ready"),
             href: "/app/settings/pages",
             inView: true,
+            read: `/app/draft/${WORDPRESS_UNCONNECTED_DRAFT_ID}`,
+            readInView: true,
+            progress: 1,
             record: 0,
             tiles: 0,
           });

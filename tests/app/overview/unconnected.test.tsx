@@ -216,9 +216,11 @@ describe("Overview for an address not connected yet", () => {
 });
 
 describe("Overview for a WordPress not connected yet", () => {
+  /** Where each link with these words goes. */
+  const linksTo = (html: string, words: string) =>
+    [...html.matchAll(/<a [^>]*href="([^"]+)"[^>]*>([^<]*)<\/a>/gu)].filter((m) => m[2] === words).map((m) => m[1]);
   /** Where the screen's one link with the action's words goes. */
-  const action = (html: string) =>
-    [...html.matchAll(/<a [^>]*href="([^"]+)"[^>]*>([^<]*)<\/a>/gu)].filter((m) => m[2] === copy("overview.connect.wordpress.action")).map((m) => m[1]);
+  const action = (html: string) => linksTo(html, copy("overview.connect.wordpress.action"));
 
   it("the head says the first page waits, and its one action is Settings › Pages", async () => {
     seed({ kind: "wordpress", neverConnected: true });
@@ -228,7 +230,20 @@ describe("Overview for a WordPress not connected yet", () => {
     expect(text).toContain(copy("overview.connect.lead.ready"));
     expect(action(html)).toEqual(["/app/settings/pages"]);
     expect(html).not.toContain('data-testid="dns-record"');
+    expect(html).not.toContain('data-testid="overview-tiles"');
     expect(text).not.toContain("4:00 PM");
+  });
+
+  it("the page that waits is drawn under the head, to read or edit, then the progress line", async () => {
+    seed({ kind: "wordpress", neverConnected: true });
+    const { text, html } = await screen();
+    expect(linksTo(html, copy("overview.connect.page.read"))).toEqual(["/app/draft/d1"]);
+    let at = -1;
+    for (const line of [copy("overview.connect.head.ready"), copy("overview.connect.page.eyebrow"), TITLE, copy("overview.connect.page.read"), copy("overview.connect.progress")]) {
+      const next = text.indexOf(line, at + 1);
+      expect(next, `"${line}" after position ${at}`).toBeGreaterThan(at);
+      at = next;
+    }
   });
 
   it("before the first page is written, the head says the pages wait", async () => {
@@ -238,6 +253,9 @@ describe("Overview for a WordPress not connected yet", () => {
     expect(h1).toBe(copy("overview.connect.head"));
     expect(text).toContain(copy("overview.connect.lead"));
     expect(action(html)).toEqual(["/app/settings/pages"]);
+    expect(html).not.toContain('data-testid="overview-waiting"');
+    expect(linksTo(html, copy("overview.connect.page.read"))).toEqual([]);
+    expect(text).toContain(copy("overview.connect.progress"));
   });
 
   it("a connected WordPress is the ordinary Overview", async () => {
