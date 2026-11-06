@@ -5,10 +5,12 @@
 import "../../opportunities/env";
 import { readdirSync } from "node:fs";
 import { afterEach, describe, expect, it } from "vitest";
-import { WEEK_PLAN } from "@/lib/config/constants";
+import { PLAN_DEPTH, WEEK_PLAN } from "@/lib/config/constants";
 import { measured } from "@/lib/measure/measured";
 import { choose, type Choice } from "@/lib/opportunities/choose";
 import { contentTypeOf } from "@/lib/opportunities/content-type";
+import { LEDGER_SOURCES, supplyLedger } from "@/lib/opportunities/derive/ledger";
+import { sourceOf } from "@/lib/opportunities/derive/topics";
 import { planFirstWeek } from "@/lib/opportunities/plan";
 import { readOpportunity, setOpportunityStore, type OpportunityRow } from "@/lib/opportunities/store";
 import { memoryStore, newMemoryState } from "../../opportunities/memory-store";
@@ -32,10 +34,25 @@ function render(site: PanelSite, choice: Choice): string {
     `# ${site.domain}`,
     "",
     `From \`docs/walk/panel/${site.run}.json\`: ${site.rows.length} stored topics, ${choice.committed.length} committed from ${FROM}.`,
+    "",
+    supplyLine(site, choice),
     ...(HELD[site.domain] === undefined ? [] : ["", `**Held:** ${HELD[site.domain]}.`]),
     "",
     ...week(site, choice),
   ].join("\n");
+}
+
+/** What the pass's ledger would store for these rows, and the stored topics by source. */
+function supplyLine(site: PanelSite, choice: Choice): string {
+  const { short } = supplyLedger({ stages: {}, rows: site.rows.map(readOpportunity) });
+  const brands = [...site.profile.brandTokens, ...site.market.rivals.map((rival) => rival.name)];
+  const counts = new Map<string, number>();
+  for (const row of site.rows) {
+    const source = sourceOf(row.target_query ?? "", { brands });
+    counts.set(source, (counts.get(source) ?? 0) + 1);
+  }
+  const bySource = LEDGER_SOURCES.flatMap((source) => (counts.has(source) ? [`${source} ${counts.get(source)}`] : [])).join(", ");
+  return `Supply: ${choice.committed.length} of ${PLAN_DEPTH} committed, short ${short}; stored topics ${bySource}.`;
 }
 
 function week(site: PanelSite, choice: Choice): string[] {

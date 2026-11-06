@@ -2,6 +2,8 @@
 
 From `docs/walk/panel/2026-10-10.json`: 6 stored topics, 0 committed from 2026-10-19.
 
+Supply: 0 of 10 committed, short 5; stored topics category 6.
+
 **Held:** readiness: its only stored run (2026-10-10) has every topic ready: false, reason not stored (#1127).
 
 | Place | Day | Search | Type | Page | Fit | Volume | Points | Parts | Rule | Written as |
