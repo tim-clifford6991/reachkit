@@ -278,7 +278,7 @@ describe("the Terms state the offer the product keeps", () => {
     const billing = section("price-billing-and-cancellation");
     expect(billing).toContain("runs month to month");
     expect(billing).toContain("Your access continues to the end of the month you have paid for");
-    expect(billing).toContain("Payments already made are not refunded.");
+    expect(billing).toContain("Payments already made are not refunded unless the law requires it.");
     expect(all).not.toMatch(/refund that payment in full|automatic(ally)? refund|refunded automatically/i);
     expect(section("ending-things")).toContain("Cancelling takes effect at the end of the month you have paid for.");
   });
