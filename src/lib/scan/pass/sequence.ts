@@ -216,6 +216,7 @@ async function stagesOf(a: StageArgs, crawl: SiteCrawl): Promise<void> {
         homeHtml: measurement.renderedHome ?? null,
         sitemaps: measurement.robots.kind === "unmeasured" ? [] : measurement.robots.value.sitemaps,
         tier: a.tier,
+        ...(a.siteId === undefined ? {} : { siteId: a.siteId }),
         locale: measurement.locale,
       });
       const content = await measuredContent(a, measurement, crawl.pages.map((page) => page.url));
