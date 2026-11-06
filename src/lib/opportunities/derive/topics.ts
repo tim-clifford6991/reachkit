@@ -1,32 +1,14 @@
-// SPEC §6 *Topics by business fit* (owner, 2026-09-29 and 2026-10-03; issue
-// 1134) — where a topic comes from, and the write targets a pass proposes
-// from the business outward.
-//
-// Two things, both pure:
-//
-//   `sourceOf`        the source of any search, decided in code from the
-//                     search's own words and never from an intent kind or by
-//                     the model. `ai_gap` is not decided here: it is a
-//                     measured fact (an answer that names or cites a rival
-//                     and not the site), so only `derive/write.ts` may claim
-//                     it, and a proposed topic never can.
-//   `proposedTopics`  the searches a pass proposes beside the twelve it
-//                     measured: the market's own vocabulary — the buyer, the
-//                     job, the synonyms, the not-our-market contrasts and
-//                     the rivals — what buyers were seen asking beside
-//                     the site's searches (issue 1519) — and the searches
-//                     the pass read but did not ask (its market set, below
-//                     the volume floor included).
-//
-// A proposal is not yet a candidate. The pass's one fit judgement
-// (`derive/fit.ts`) scores it, and only one at fit 3 is written down: "a
-// search at fit 3 is a write target even below the volume floor, including
-// zero-volume problem and product-anchored searches" (owner, 2026-10-03).
+// SPEC §6 *Topics by business fit*: where a topic comes from, and the write targets a pass proposes from the
+// business outward. Pure. `sourceOf` decides a search's source from its own words, never `ai_gap`, which only
+// `derive/write.ts` may claim as a measured fact. `proposedTopics` are the searches beside the twelve measured;
+// the pass's one fit judgement (`derive/fit.ts`) writes down only those at fit 3, even below the volume floor.
 import { PRICE_FILLER, SHAPES, languagePack } from "@/lib/locale/language";
 import { LANGUAGES, measuredLocale, type Language } from "@/lib/locale/locales";
 import { ASKED_TOPICS, CONTENT_MIX, EFFORT_BY_TYPE, TOPIC_FIT } from "@/lib/config/constants";
 import { comparisonsOf, ownSearched, searched } from "@/lib/market/infer/demand";
 import type { MarketConclusion } from "@/lib/market/infer/types";
+import { placeOf } from "@/lib/locale/place";
+import { placelessSeeds } from "@/lib/market/questions/offerings";
 import { brandOf, classifyIntent, contentTokens, ownBrandTokens, passesRelevanceGuard, stemKey } from "@/lib/market/questions/select";
 import { registrableDomain } from "@/lib/market/rivals/domains";
 import { malformedSearch } from "@/lib/market/questions/well-formed";
@@ -191,8 +173,6 @@ export function noLongerRelevant(
   return names(text, former) ? "former_rival" : null;
 }
 
-/** Each rival as a search may name it: its product name and its domain's
- *  label, with the domain a row points at. */
 /**
  * Is this search only a rival's brand name? (SPEC §6, owner D64, issue
  * 1301.) Someone who types "rankscale ai" is going to Rankscale: the search
@@ -265,6 +245,8 @@ export interface ProposedTopic {
   /** Issue 1520: a search ReachKit composed from the market's own words
    *  (`composedSearches`), not one anyone was seen typing. */
   composed?: true;
+  /** Composed from a further line the business sells (issue 1454). */
+  offering?: true;
   /** The competitor's page an AI answer linked, which proposed it. */
   cited?: string;
 }
@@ -614,7 +596,8 @@ export function composedSearch(
 
 /**
  * The pass's proposals, in the order SPEC §6 offers the sources: searches
- * anchored on the product, then problems, then the market set the pass read.
+ * anchored on the product, then problems, then the market set the pass read;
+ * a short site's written searches and further lines before them all.
  * Distinct by `queryKey`, never one of `taken` (the searches the pass
  * already derived a candidate for), never one naming only the site itself,
  * and at most `max`.
@@ -625,27 +608,20 @@ export function proposedTopics(a: {
   taken: readonly string[];
   ownRanked: number;
   max: number;
-  /** The comparisons that stand in for a rival's own price (`rivalPriceOf`),
-   *  first in the order. Absent reads as none. */
+  /** The comparisons standing in for a rival's own price (`rivalPriceOf`). */
   comparisons?: readonly { query: string; rival: string }[];
-  /** The buyer's own searches the pass had written
-   *  (`derive/buyer-searches.ts`), after the rival comparisons and before
-   *  the market's own names. Absent reads as none. */
+  /** The buyer's own searches the pass wrote (`derive/buyer-searches.ts`), problems first. */
   written?: readonly string[];
-  /** The language the site's searches are in (D66): the searches written
-   *  here from the market's own words are written in it. Absent is English. */
+  /** The language the searches composed here are written in (D66). Absent is English. */
   language?: Language;
-  /** What buyers were seen asking beside the site's searches
-   *  (`askedTopics`, issue 1519), after the market's own names and before
-   *  the market set it read. Absent reads as none. */
+  /** What buyers were seen asking beside the site's searches (`askedTopics`, issue 1519). */
   asked?: readonly AskedTopic[];
-  /** The SERPs buyers were seen asking beside (`AskedBeside`), which a
-   *  rival's alternatives need for a business that serves one place (issue
-   *  1520). Absent reads none. */
+  /** The SERPs buyers were seen asking beside, which a one-place business's rival alternatives need (issue 1520). */
   seen?: readonly AskedBeside[];
-  /** The competitors' pages AI answers linked (`citedTopics`), after the
-   *  rival comparisons. Absent reads none. */
+  /** The competitors' pages AI answers linked (`citedTopics`). */
   cited?: readonly CitedTopic[];
+  /** The site holds under `PLAN_DEPTH` writable rows. */
+  short?: boolean;
 }): ProposedTopic[] {
   const { own, rivals } = brandsOf(a);
   const brands = [...own, ...rivals];
@@ -661,7 +637,7 @@ export function proposedTopics(a: {
   for (const [search, volume] of Object.entries(a.market?.demand?.searches ?? {})) {
     if (volume > 0 && !volumes.has(queryKey(search))) volumes.set(queryKey(search), volume);
   }
-  const add = (query: string, source: ProposedTopic["source"], rival: string | null, more: Pick<ProposedTopic, "asked" | "composed" | "cited"> = {}): void => {
+  const add = (query: string, source: ProposedTopic["source"], rival: string | null, more: Pick<ProposedTopic, "asked" | "composed" | "cited" | "offering"> = {}): void => {
     const key = queryKey(query);
     if (key === "" || seen.has(key) || out.length >= a.max) return;
     if (rivalBrandOnly(key, { market: a.market, own, rivals })) return;
@@ -674,14 +650,25 @@ export function proposedTopics(a: {
     out.push({ query: key, source, volume: volumes.get(key) ?? null, rival, ...more });
   };
 
+  const market = a.market;
+  const language = a.language ?? "en";
+  const profile = a.report.market.kind === "unmeasured" ? null : a.report.market.value.profile;
+  // A short site is offered its buyers' own searches and its further lines first, so `max` cuts a comparison instead.
+  for (const search of a.short === true ? (a.written ?? []) : []) add(search, sourceOf(search, { brands }), null);
+  if (a.short === true && market !== null && profile !== null) {
+    const places = [market.serves ?? null, placeOf(profile.town)].filter((place) => place !== null);
+    for (const category of placelessSeeds({ ...profile, language }, places)) {
+      const line = { category, synonyms: [], buyer: market.buyer, job: "", notOurMarket: [] };
+      for (const composed of composedSearches(line, language)) add(composed.query, composed.source, null, { composed: true, offering: true });
+    }
+  }
+
   for (const comparison of a.comparisons ?? []) add(comparison.query, "product", comparison.rival);
   // A competitor's own page is the competitor's subject, never this site's.
   for (const topic of a.cited ?? []) {
     if (!namesAnyBrand(topic.query, brands)) add(topic.query, sourceOf(topic.query, { brands }), topic.rival, { cited: topic.url });
   }
 
-  const market = a.market;
-  const language = a.language ?? "en";
   if (market !== null) {
     const product = own[0] ?? null;
     // Issue 1520: a business that serves one place is offered a rival's
@@ -727,7 +714,6 @@ export function proposedTopics(a: {
   // What the pass read and did not ask: its market set, largest first, at
   // any volume the site may be offered. Its own name is never a topic.
   const ceiling = qualifyingDemand(a.ownRanked);
-  const profile = a.report.market.kind === "unmeasured" ? null : a.report.market.value.profile;
   const read = [...suggestions]
     .filter((row) => row.volume <= ceiling)
     .filter((row) => profile === null || classifyIntent(row.keyword, profile) !== "own_brand")

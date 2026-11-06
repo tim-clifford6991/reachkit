@@ -313,4 +313,30 @@ describe("the pass says how much new-page supply each source gave, at no added c
     expect(supply.dry).not.toContain("written");
     expect(supply.dry).toContain("cited");
   });
+
+  it("a short site's further line is judged by the same calls, fit 3 decides, and the ledger names it", async () => {
+    const judged: Record<string, string[]> = {};
+    createMock.mockImplementation(async (request: { messages: { content: string }[]; tools?: { name: string }[] }) => {
+      const site = request.tools?.[0]?.name ?? "";
+      const searches = (JSON.parse(request.messages[0]!.content) as { searches?: { i: number; search: string }[] }).searches ?? [];
+      judged[site] = searches.map(({ search }) => search);
+      const scores = searches.map(({ i, search }) => ({ i, fit: search === "product analytics pricing" ? 2 : 3, title: `Angle ${i}` }));
+      const answer = { [BUYER_SEARCHES_CALL_SITE]: { problems: [], solutions: [] }, [TYPED_CALL_SITE]: { typed: searches.map(({ i }) => i) }, [FIT_CALL_SITE]: { scores, strongest: [] }, [SAME_QUESTION_CALL_SITE]: { pairs: [] } }[site];
+      if (answer === undefined) throw new Error(`no model for ${site}`);
+      return toolUseMessage(answer, 100, 50, site);
+    });
+    const report = defaultReport();
+    if (report.market.kind === "unmeasured") throw new Error("the fixture report holds a market");
+    const offerings = [{ name: "Onboarding", category: "user onboarding software", weight: 0.6 }, { name: "Analytics", category: "product analytics", weight: 0.4 }];
+    const selling = { ...report, market: { ...report.market, value: { ...report.market.value, profile: { ...report.market.value.profile, offerings } } } };
+    const { ctx, sources } = fakeCost();
+    const { supply } = await deriveOpportunities(ctx, { ...input(), report: selling, market });
+
+    expect(sources).toEqual([BUYER_SEARCHES_CALL_SITE, TYPED_CALL_SITE, FIT_CALL_SITE, TYPING_CALL_SITE, SAME_QUESTION_CALL_SITE]);
+    for (const site of [TYPED_CALL_SITE, FIT_CALL_SITE]) expect(judged[site]).toEqual(expect.arrayContaining(["product analytics for saas product teams", "product analytics pricing"]));
+    const row = state.rows.find((one) => one.target_query === "product analytics for saas product teams");
+    expect([row?.source, row?.business_fit, (row?.evidence as { composed?: true }).composed]).toEqual(["product", 3, true]);
+    expect(state.rows.some((one) => one.target_query === "product analytics pricing")).toBe(false);
+    expect(supply.sources.offering).toEqual({ offered: 2, searched: 2, fit: 1, candidates: 1, added: 1 });
+  });
 });
