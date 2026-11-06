@@ -30,8 +30,6 @@ export interface MemoryBilling {
     site_id: string;
     published_at: string;
     unpublished_at: string | null;
-    /** Absent is `delivered`; a claimed or failed delivery never went live. */
-    delivery_state?: "claimed" | "delivered" | "failed";
   })[];
   scans: {
     site_id: string;
@@ -40,10 +38,6 @@ export interface MemoryBilling {
     digest_sent_at?: string | null;
     report?: unknown;
   }[];
-  /** `sites.domain` as stored, per owner. */
-  domains: { user_id: string; domain: string | null }[];
-  refunds: { invoice_id: string; user_id: string; subscription_id: string | null; domains: readonly string[]; refunded_at: string }[];
-  renewalRefunds: { invoice_id: string; user_id: string; refunded_at: string }[];
   failAccountRead: boolean;
   failHostingRead: boolean;
   failWrite: boolean;
@@ -57,9 +51,6 @@ export function newMemoryBilling(): MemoryBilling {
     sites: [],
     publications: [],
     scans: [],
-    domains: [],
-    refunds: [],
-    renewalRefunds: [],
     failAccountRead: false,
     failHostingRead: false,
     failWrite: false,
@@ -80,7 +71,6 @@ export function account(a: Partial<BillingRow> & { id: string }): BillingRow {
     cancelled_at: null,
     last_subscription_event_id: null,
     deleted_at: null,
-    created_at: new Date().toISOString(),
     ...a,
     id: a.id,
   };
@@ -274,55 +264,6 @@ export function memoryBillingStore(state: MemoryBilling): BillingStore {
           ? { hosting_end_notice_at: at.toISOString() }
           : { hosting_end_reminder_at: at.toISOString() };
       return patchSite(siteId, patch) ? { ok: true } : { ok: false };
-    },
-
-    async siteZone(userId) {
-      if (state.failHostingRead) return { ok: false };
-      return { ok: true, timezone: state.sites.find((s) => s.user_id === userId)?.timezone ?? null };
-    },
-
-    async siteDomains(userId) {
-      if (state.failHostingRead) return { ok: false };
-      return {
-        ok: true,
-        domains: state.domains.flatMap((d) => (d.user_id === userId && d.domain !== null ? [d.domain] : [])),
-      };
-    },
-
-    async refundsFor(userId, domains) {
-      if (state.failAccountRead) return { ok: false };
-      return {
-        ok: true,
-        refunds: state.refunds.filter((r) => r.user_id === userId || r.domains.some((d) => domains.includes(d))),
-      };
-    },
-
-    async recordRefund(a) {
-      if (state.failWrite) return { ok: false };
-      if (!state.refunds.some((r) => r.invoice_id === a.invoiceId)) {
-        state.refunds.push({ invoice_id: a.invoiceId, user_id: a.userId, subscription_id: a.subscriptionId, domains: a.domains, refunded_at: a.at.toISOString() });
-      }
-      return { ok: true };
-    },
-
-    async wentLive(userId, from, to) {
-      if (state.failHostingRead) return { ok: false };
-      const owned = new Set(state.sites.filter((s) => s.user_id === userId).map((s) => s.id));
-      const live = state.publications.some(
-        (p) =>
-          owned.has(p.site_id) &&
-          (p.delivery_state ?? "delivered") === "delivered" &&
-          Date.parse(p.published_at) >= from.getTime() &&
-          Date.parse(p.published_at) < to.getTime()
-      );
-      return { ok: true, live };
-    },
-
-    async recordRenewalRefund(a) {
-      if (state.failWrite) return { ok: false };
-      if (state.renewalRefunds.some((r) => r.invoice_id === a.invoiceId)) return { ok: true, inserted: false };
-      state.renewalRefunds.push({ invoice_id: a.invoiceId, user_id: a.userId, refunded_at: a.at.toISOString() });
-      return { ok: true, inserted: true };
     },
 
     async period(siteId, from, to) {

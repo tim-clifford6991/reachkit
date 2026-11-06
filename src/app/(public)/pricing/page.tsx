@@ -11,9 +11,8 @@
 // The scan field at the foot is the landing's own form, a second path that
 // asks for a website and never for an account.
 //
-// No figure is typed: counts come from `_how/facts.ts` and the constants. The
-// money-back line and the refund answer wait for the launch gate (owner
-// 2026-10-20, Q13).
+// No figure is typed: counts come from `_how/facts.ts` and the constants. There
+// is no money-back line and no refund answer: the plan is month to month.
 import React, { use } from "react";
 import type { Metadata } from "next";
 import { CircleCheck, CircleStop, Clock4, Eye, Gift, Mail, Pen, Plug, Search, Store, Timer, TrendingUp, X, type LucideIcon } from "lucide-react";

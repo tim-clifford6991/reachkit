@@ -44,10 +44,9 @@ describe("each changed slot is filled by its template", () => {
   });
 });
 
-describe("the cancellation mail offers a way back only while access runs on", () => {
-  it("the end-date arm closes on the resume line; the refund arm, which has ended, does not", () => {
-    const said = (refunded: boolean) => renderBlocksText(buildCancellation({ accessEndsOn: "2026-11-30", refunded }).blocks).text;
-    expect(said(false)).toContain(COPY["mail.cancellation.resume"]);
-    expect(said(true)).not.toContain(COPY["mail.cancellation.resume"]);
+describe("the cancellation mail offers a way back while access runs on", () => {
+  it("closes on the resume line", () => {
+    const said = renderBlocksText(buildCancellation({ accessEndsOn: "2026-11-30" }).blocks).text;
+    expect(said.endsWith(COPY["mail.cancellation.resume"])).toBe(true);
   });
 });

@@ -1,16 +1,8 @@
 # Refunding the tester
 
-**Inside the first 14 days the refund is automatic** (D4, `docs/spec/decisions/2026-10-20-1699.md`).
-When the tester cancels in Settings › Billing, ReachKit refunds the first payment, cancels the
-subscription at once and closes access by itself, once per web address. Check it with step 5 and
-`select invoice_id, refunded_at from refunds where user_id = '<id>';`. Do not refund it again in the
-dashboard.
-
-The steps below are for any other refund: after day 14, or a second account for a web address
-already refunded, or an automatic refund Stripe refused (ops alert *refund refused*, log
-`billing_refund outcome=vendor`): refund the invoice it names by hand, then let the period-end event
-end access, or follow steps 3–4. A refund that failed for a passing reason needs nothing: the webhook
-answered 500 and Stripe redelivers it for up to 3 days (Stripe emails the account if it keeps failing). They are `docs/GO-LIVE.md` §1.7, in the order it gives. Only the owner can do
+**ReachKit refunds nothing by itself** (owner, 2026-11-06, `docs/spec/decisions/2026-11-06-2448.md`):
+the plan is month to month, and a cancel keeps access to the end of the paid period. These steps are
+for a refund made by hand, such as one the law requires or the tester's own. They are `docs/GO-LIVE.md` §1.7, in the order it gives. Only the owner can do
 them, because each one is an act in a vendor dashboard. Do them after the walk has ended, including
 step 7 (the stopped page), so the refund does not cut the walk short.
 

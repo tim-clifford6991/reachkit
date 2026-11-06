@@ -643,15 +643,11 @@ export const SETTINGS_COPY = Object.freeze({
     { slots: { date: "date" }, fixedBy: "BUILD §4.7 · board SettingsBilling" },
   ],
 
-  // The cancel route and the first-14-days refund (owner E13 and D4, 2026-10-19). Drafted.
+  // The cancel route (owner E13, 2026-10-19). Drafted.
   // {control} is filled from `settings.billing.manage`, so the line names the card's real button.
   "settings.billing.route": [
     "Reply to any ReachKit email or use {control}.",
     { slots: { control: "text" }, fixedBy: "E13 · owner R24 2026-10-23 · drafted" },
-  ],
-  "settings.billing.refund-window": [
-    "Billed in euros. Cancel by {date} for a full, automatic refund, and ReachKit stops at once.",
-    { slots: { date: "date" }, fixedBy: "D4 · ux-designer · owner R5 2026-10-22" },
   ],
 
   // Billing's "What you got this month" (owner E3, 2026-10-19). Drafted.

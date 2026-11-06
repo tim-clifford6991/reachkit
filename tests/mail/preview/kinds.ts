@@ -434,7 +434,6 @@ export async function composeRetentionPreview(
       case "cancellation":
         return (await import("../../../src/lib/mail/templates/cancellation")).buildCancellation({
           accessEndsOn: "2026-10-08",
-          refunded: false,
         });
       case "win-back":
         return (await import("../../../src/lib/mail/templates/win-back")).buildWinback({ email });

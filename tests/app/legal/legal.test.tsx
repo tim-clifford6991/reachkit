@@ -20,7 +20,6 @@ import { segments } from "../../../scripts/design/parity.mjs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { copy } from "@/lib/presentation/copy";
 import { VETO, WEEK_PLAN } from "@/lib/config/constants";
-import { REFUND_WINDOW_DAYS } from "@/lib/account/billing/refund";
 import { headingsUnderTitle, parseMarkdown, toHtml } from "@/lib/publish/render/markdown";
 import { LEGAL_BODY_CLASSES, legalBodyHtml } from "@/app/(public)/_legal/LegalPage.tsx";
 import { legalSections } from "@/app/(public)/_legal/sections";
@@ -268,17 +267,8 @@ describe("the Terms state the offer the product keeps", () => {
     expect(section("your-content-and-the-pages-we-write")).toContain(`anywhere from ${VETO.minDays} to ${VETO.maxDays} days`);
   });
 
-  it("§4 and §9 state the automatic refund in the window and keep the rule after it", () => {
+  it("§4 keeps access to the end of the paid period", () => {
     expect(all).not.toMatch(/in one click/i);
-    const billing = section("price-billing-and-cancellation");
-    expect(billing).toContain(
-      `If you cancel within ${REFUND_WINDOW_DAYS} days of your first payment, we refund that payment in full, automatically`
-    );
-    expect(billing).toContain("ReachKit stops at once");
-    expect(billing).toContain("once for each web address");
-    expect(billing).toContain("Otherwise your access continues to the end of the period you have paid for");
-    expect(section("ending-things")).toContain(
-      `Cancelling takes effect at the end of your paid period, or at once when the ${REFUND_WINDOW_DAYS}-day refund in section 4 applies.`
-    );
+    expect(section("price-billing-and-cancellation")).toContain("your access continues to the end of the period you have paid for");
   });
 });

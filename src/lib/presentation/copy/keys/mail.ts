@@ -824,11 +824,6 @@ export const MAIL_COPY = Object.freeze({
   "mail.ops.incident.fact.balance": ["Balance", { slots: {}, fixedBy: "issue 1587 (drafted)" }],
   "mail.ops.incident.fact.days-left": ["Days left at last week's spend", { slots: {}, fixedBy: "issue 1587 (drafted)" }],
   "mail.ops.incident.fact.dashboard": ["Dashboard", { slots: {}, fixedBy: "issue 1587 (drafted)" }],
-  // Issue 1842: Stripe refused an automatic 14-day refund.
-  "mail.ops.incident.refund-refused": ["Stripe refused an automatic 14-day refund, so the customer still has access and has not been paid back. Refund the invoice below by hand in the Stripe dashboard; the refund walk has the steps.", { slots: {}, fixedBy: "issue 1842 (drafted)" }],
-  "mail.ops.incident.fact.invoice": ["Invoice", { slots: {}, fixedBy: "issue 1842 (drafted)" }],
-  "mail.ops.incident.fact.account": ["Account", { slots: {}, fixedBy: "issue 1842 (drafted)" }],
-  "mail.ops.incident.fact.stripe-code": ["Stripe error code", { slots: {}, fixedBy: "issue 1842 (drafted)" }],
 
   // ── SPEC §8, Retention (issue 569). Owner-owed: the copy sheet is issue
   // 568. `sendEmail` refuses a mail that still carries the marker, so none of
@@ -850,23 +845,6 @@ export const MAIL_COPY = Object.freeze({
     "You keep full access until {accessEndsOn}, and nothing more is charged.",
     { slots: { accessEndsOn: "date" }, fixedBy: "SPEC §8 · issue 569" },
   ],
-  /** In place of the line above when the cancel fell in the first 14 days
-   *  and the first payment was refunded (owner D4, E13). */
-  "mail.cancellation.refunded": [
-    "Your first payment was refunded in full, as promised for a cancel in the first 14 days. Your bank usually shows it within 5 to 10 business days. ReachKit stopped on {accessEndsOn}, and nothing more is charged.",
-    { slots: { accessEndsOn: "date" }, fixedBy: "issue 1591 (drafted)" },
-  ],
-  /** Owner D10: the first renewal is refunded when no page went live in the first month. */
-  "mail.account.renewal_refunded.subject": ["Your renewal was refunded", { slots: {}, fixedBy: "issue 1592 (drafted)" }],
-  "mail.account.renewal_refunded": [
-    "No page of yours went live in your first month, so we refunded this month’s payment of {amount} in full. Your bank usually shows it within 5 to 10 business days.",
-    { slots: { amount: "text" }, fixedBy: "issue 1957 · E2 (2026-10-24)" },
-  ],
-  "mail.account.renewal_refunded.renewing": [
-    "ReachKit keeps running, and your next payment is taken as usual on {date}. To stop it, use Cancel plan in Settings › Account.",
-    { slots: { date: "date" }, fixedBy: "issue 1957 · E2 (2026-10-24)" },
-  ],
-  "mail.account.renewal_refunded.ending": ["ReachKit keeps running until {date}.", { slots: { date: "date" }, fixedBy: "issue 1957 · E2 (2026-10-24)" }],
   "mail.winback.subject": ["Your ReachKit settings are still saved", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
   "mail.winback.preheader": ["Resume and we start writing again.", { slots: {}, fixedBy: "O6 · issue 2172 (drafted)" }],
   "mail.winback.line": [

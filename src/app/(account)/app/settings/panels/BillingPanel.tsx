@@ -63,17 +63,12 @@ export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element 
   // plan word, the price and the one control still stand, and the date and
   // the cancel/resume choice — the two things that depend on having read
   // the account — are replaced by REQ-097 c6's three sentences (#228).
-  // Inside the refund window a cancel ends access at once, so the refund line replaces "keeps running".
-  const refundWindow =
-    billing.readable && billing.refundUntil !== null
-      ? writtenLine("settings.billing.refund-window", { date: billing.refundUntil })
-      : null;
-  // Under the plan: the cancelled arm's date, else the refund window, else how billing runs.
+  // Under the plan: the cancelled arm's date, else how billing runs.
   const planLine = !billing.readable
     ? null
     : billing.state === "cancelled"
       ? writtenLine("settings.billing.cancelling", { date: billing.accessUntil })
-      : (refundWindow ?? writtenLine("settings.billing.billed"));
+      : writtenLine("settings.billing.billed");
 
   // **One of the two lines beside the figure, not both** (owner,
   // 2026-09-21, on #925). `PRICE_COPY_KEYS` is `price.amount`,
@@ -145,7 +140,7 @@ export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element 
                 {planLine === null ? null : (
                   <p
                     className="wrap-anywhere"
-                    data-testid={billing.readable && billing.state === "cancelled" ? "billing-cancelling" : refundWindow === null ? "billing-billed" : "billing-refund"}
+                    data-testid={billing.readable && billing.state === "cancelled" ? "billing-cancelling" : "billing-billed"}
                   >
                     {planLine}
                   </p>

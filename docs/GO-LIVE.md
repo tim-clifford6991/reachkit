@@ -173,9 +173,8 @@ what stops an out-of-order redelivery taking access from somebody who has it).
 Deleting the account instead does all three properly — the vendor is stopped first, then the gate
 moves — but it also purges the customer's data, which a refund does not ask for.
 
-Once #1707 is live, a cancel in Settings within 14 days of the first payment refunds
-automatically, once per web address, and ends access at once (D4). The live-payment test (#1042)
-should refund through that path; the three manual acts above remain the fallback.
+ReachKit refunds nothing by itself (owner, 2026-11-06, #2448): the plan is month to month, so the
+live-payment test (#1042) is refunded by the three manual acts above.
 
 ---
 
@@ -254,7 +253,7 @@ Rows 1, 3, 4, 7, 9 and 10 refreshed and row 11 added 2026-11-03.
 | 6 | **One site cannot spend the whole product's day** | **[protected].** The per-site cap and the free-scan bounds are on `main` (#885, closed). The numbers are drafted defaults the owner may correct; that correction is not an open defect. | — |
 | 7 | **A paying customer can get in** | A magic link was walked on `dev.reachkit.app` on 2026-09-22: it arrived, signed in, and a second use was refused (#542, closed). Dev and production share one Supabase project and one sending domain. The production host has not been walked as of 2026-11-03; that is part of **#1044**, `blocked-on-owner`. The mail's "15 minutes" sentence was wrong and is fixed on `main` (#1019, #1014, both closed by #1022). | **[owner]** for the production host |
 | 8 | **No `TODO(copy)` renders on the paying path** | **[protected].** No registry value is the marker (`TODO_COPY_MARKER` remains the string the audit refuses). `sendEmail` refuses a mail that contains it. | — |
-| 9 | **The buyer consents and the Terms match the offer** | PR #1641 (#1590) is green and held for the Stripe Terms URL (#1663, owner). #1664 (the consent confirmed on a durable medium) follows #1641. The Terms state the 14-day refund (#1795, closed 2026-10-23) and the automatic refund is on `main` (PR #1707). | **[code]** + **[owner]** #1663 |
+| 9 | **The buyer consents and the Terms match the offer** | PR #1641 (#1590) is green and held for the Stripe Terms URL (#1663, owner). #1664 (the consent confirmed on a durable medium) follows #1641. The product refunds nothing by itself (#2448); the Terms still state the 14-day refund until #1641 rewrites §4. | **[code]** + **[owner]** #1663 |
 | 10 | **Every screen on the paying path matches its board** | Partial. The canvas v36 wave (`/root/projects/reports/delivery-status.md`) has 18 of its 19 issues closed on 2026-11-03; #2271 (PubHowItWorks) is open. Every board's `missing` count in `docs/design/parity/` is 0 except Review (owner only, 39); several boards still carry a `components` gap. | **[code]** |
 | 11 | **Supabase stays within the Free egress quota (5 GB a month, about 166 MB a day)** | The project is on Free (Nano compute); the Fair Use Policy applies to it from 2026-11-25. Shipped 2026-11-01 to 11-03: #2251, #2252, #2253, #2254, #2103 (PR #2333), #2104 (PR #2334), #2107 (PR #2338, which also makes `select("*")` a lint error), #2336 (PR #2337) and the stored-text shadow read (PR #2310). Open: the stored-text switch (#2340, the PR #2310 follow-up), #2106 (dev and preview share the production project) and the measured daily figure, **not measured since 2026-11-01**. Due 2026-11-25. | **[code]** |
 
