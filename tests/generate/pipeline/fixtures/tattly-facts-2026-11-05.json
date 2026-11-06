@@ -1,5 +1,5 @@
 {
- "from": "panel proof 2026-11-05, tattly.com listicle.pack.json .facts: every stored passage, grouped by its page in stored order",
+ "from": "panel proof 2026-11-05, tattly.com listicle.pack.json .facts: every stored passage, grouped by its page in stored order; the one email address is moved to tattly.example",
  "pages": [
   {
    "url": "https://tattly.com/blogs/news",
@@ -24,7 +24,7 @@
   {
    "url": "https://tattly.com/",
    "measuredAt": "2026-11-06T00:32:11.113Z",
-   "text": "Fake Tattoos by Real Artists &ndash; Tattly Skip to content For all other inquiries, please reach out to support@tattly.com Search Search Clear No products found."
+   "text": "Fake Tattoos by Real Artists &ndash; Tattly Skip to content For all other inquiries, please reach out to support@tattly.example Search Search Clear No products found."
   }
  ]
 }
