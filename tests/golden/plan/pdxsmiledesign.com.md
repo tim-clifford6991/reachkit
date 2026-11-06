@@ -2,6 +2,8 @@
 
 From `docs/walk/panel/2026-10-10.json`: 7 stored topics, 4 committed from 2026-10-19.
 
+Supply: 4 of 10 committed, short 6; stored topics category 6, best_x 1.
+
 | Place | Day | Search | Type | Page | Fit | Volume | Points | Parts | Rule | Written as |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 0 | 2026-10-19 | dental implants in portland oregon | keyword_page | qa | 3 | 480 | 5 | fit 3 + demand 2 | best | — |

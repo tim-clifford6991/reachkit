@@ -1,4 +1,4 @@
-// A failed Settings read, kept as a row: the runtime log holds it for under an hour, so the daily check counts these.
+// Ops events kept as rows: the runtime log holds them for under an hour, so the daily check counts these.
 import { after } from "next/server";
 
 /** A write past this is abandoned, so a slow database never holds the response open longer. */
@@ -16,12 +16,15 @@ interface InsertOnly {
 
 /** Starts the write and returns at once; the promise never rejects, and a failed write is only logged. */
 export function recordSettingsReadFailed(read: string, error: unknown, siteId: string | null = null): Promise<void> {
+  return recordOpsEvent("settings_read_failed", read, failureCode(error), siteId);
+}
+
+/** One `ops_events` row, written the same way: started at once, never rejecting, a failure only logged. */
+export function recordOpsEvent(kind: string, read: string, code: string, siteId: string | null = null): Promise<void> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   const write = (async () => {
     const { dbAdmin } = await import("@/lib/db");
-    const insert = (dbAdmin() as unknown as InsertOnly)
-      .from("ops_events")
-      .insert({ kind: "settings_read_failed", read, site_id: siteId, code: failureCode(error) });
+    const insert = (dbAdmin() as unknown as InsertOnly).from("ops_events").insert({ kind, read, site_id: siteId, code });
     const { error: failed } = await Promise.race([
       insert,
       new Promise<never>((_resolve, reject) => {

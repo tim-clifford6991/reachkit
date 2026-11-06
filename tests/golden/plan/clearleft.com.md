@@ -2,6 +2,8 @@
 
 From `docs/walk/panel/2026-10-11.json`: 13 stored topics, 6 committed from 2026-10-19.
 
+Supply: 6 of 10 committed, short 0; stored topics product 4, category 8, best_x 1.
+
 | Place | Day | Search | Type | Page | Fit | Volume | Points | Parts | Rule | Written as |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 0 | 2026-10-19 | user experience research agency | listed_page | offering | 3 | 50 | 5 | fit 3 + demand 2 | best | — |
