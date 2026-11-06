@@ -131,14 +131,11 @@ async function dayReady(siteId: string, publishDate: string): Promise<NoPage | {
   const store = generateStore();
   const site = await store.siteFacts(siteId);
   if (site === null) return { ok: false, because: "no_site" };
-  // Issue 886: the tick that delivers this twice stops here, before the
-  // first paid call. The read is not the whole protection — two deliveries
-  // running together both pass it — so the day's row is unique in the
-  // database too, and the loser of that race is caught below.
+  // Issue 886: the tick that delivers this twice stops here, before the first paid call. The read is not the whole
+  // protection — two deliveries running together both pass it — so the row is unique in the database too.
   if (await store.draftOnDate(siteId, publishDate)) return { ok: false, because: "already_drafted" };
-  // §8: "the day's page is generated the evening before from the freshest
-  // scan." No scan, no measured pages — and no measured pages is no
-  // grounded fact, which §8 leaves no way around.
+  // §8: "the day's page is generated the evening before from the freshest scan." No scan, no measured pages — and no
+  // measured pages is no grounded fact, which §8 leaves no way around.
   const report = await store.latestReport(siteId);
   if (report === null) return { ok: false, because: "no_scan" };
   return { ok: true, site, report };
@@ -153,8 +150,7 @@ export async function decideDayPage(a: { siteId: string; publishDate: string; no
   return first === null ? { ok: false, because: "no_opportunity" } : { ok: true, opportunityId: first.id };
 }
 
-/** #813: a write call that did not answer is tried once more. The one fix
- *  call of D41 is the pipeline's own and is not an attempt of these. */
+/** #813: a write call that did not answer is tried once more. D41's one fix call is the pipeline's own, not one. */
 const MAX_AUTOMATIC_ATTEMPTS = 2;
 
 export async function generateDayPage(a: {
@@ -186,13 +182,11 @@ export async function generateDayPage(a: {
       let written = 0;
       for (let topic = 1; ; topic++) {
         const page = { siteId: a.siteId, site, report, opportunity, publishDate: a.publishDate };
-        // Each row carries what its own page cost, not the day's, and its
-        // own calls (issue 1478): a second topic is a page with no row yet.
+        // Each row carries its own page's cost and calls (issue 1478): a second topic is a page with no row yet.
         if (topic > 1) await cost.forDraft?.(null);
         const own = sinceNow(cost);
-        // A fix is a metadata-only update: one call, no regeneration loop —
-        // the only rule it can fail is the customer's own do-not-claim list,
-        // which a second attempt at the same page would read the same way.
+        // A fix is a metadata-only update: one call, no regeneration loop — the only rule it can fail is the customer's
+        // own do-not-claim list, which a second attempt at the same page would read the same way.
         let outcome: DayPageOutcome;
         try {
           outcome =
@@ -235,11 +229,8 @@ export async function generateDayPage(a: {
       }
     });
   } catch (error) {
-    // Issue 886: another delivery of this tick wrote the date's row while
-    // this one was writing its page. The index refused the second row, so
-    // the day has exactly one page; this run wrote nothing, moves nothing,
-    // and the store gave back its claim, so its opportunity is open the way
-    // any run that wrote no row leaves it.
+    // Issue 886: another delivery of this tick wrote the date's row while this one was writing its page. The index
+    // refused the second row, so this run wrote nothing, and the store gave back its claim: its opportunity is open.
     if (error instanceof DraftDateTaken) return { ok: false, because: "already_drafted" };
     throw error;
   }
@@ -258,8 +249,7 @@ function packShort(outcome: DayPageOutcome): boolean {
   return !outcome.ok && outcome.because === "step_failed" && (outcome.step.startsWith("pack") || (outcome.step === "mend" && outcome.draftId === null));
 }
 
-/** The day's cost context as one page sees it: the same ceiling, and a
- *  spend counted from here. */
+/** The day's cost context as one page sees it: the same ceiling, and a spend counted from here. */
 function sinceNow(cost: CostContext): CostContext {
   const before = cost.spentCents();
   return before === 0 ? cost : { ...cost, spentCents: () => cost.spentCents() - before };
@@ -310,6 +300,14 @@ export async function regenerateRestarted(a: {
     opportunity.type === "fix_page" ? fixPage(page, cost) : writePage({ ...page, attempts: 1 }, cost)
   );
   await settle(outcome, opportunity.id, a.now ?? new Date(), site.domain);
+  return outcome;
+}
+
+/** A ready update the writer refreshes from stored research alone, in the day's one cost context (SPEC §7, owner
+ *  2026-11-05): no vendor is read, and its one fix call is the pipeline's own. */
+export async function writeStoredUpdate(page: PageInput & { publishDate: string }, now: Date): Promise<DayPageOutcome> {
+  const outcome = await withDraftCost({ scanId: page.report.scanId }, (cost) => writePage({ ...page, attempts: 1, research: "stored" }, cost));
+  await settle(outcome, page.opportunity.id, now, page.site.domain);
   return outcome;
 }
 
@@ -488,7 +486,7 @@ function linkBackOf(opportunity: Opportunity): { url: string; title: string; rep
   return { url: link.url, title: link.title, ...(typeof link.replaces === "string" ? { replaces: link.replaces } : {}) };
 }
 
-async function writePage(a: PageInput & { attempts: number; startedAt?: number }, cost: CostContext): Promise<DayPageOutcome> {
+async function writePage(a: PageInput & { attempts: number; startedAt?: number; research?: "stored" }, cost: CostContext): Promise<DayPageOutcome> {
   const store = generateStore();
   const { site, report } = a;
   const startedAt = a.startedAt ?? Date.now();
@@ -604,9 +602,9 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number }
     //    A read that fails leaves the page to its business facts and never
     //    stops it. A Q&A its target's own SERP leaves short of questions is
     //    read beside the market's searched terms too (owner, D62; issue
-    //    1297): the pack says when it holds enough.
-    const market = !template.research
-      ? type === "offering"
+    //    1297): the pack says when it holds enough. `stored` reads the report alone and no vendor.
+    const market = !template.research || a.research === "stored"
+      ? template.research || type === "offering"
         ? storedAsk(report, targetSearches(o))
         : NO_RESEARCH
       : await researchMarket(cost, {
