@@ -92,6 +92,7 @@ function seed(a: {
   publishingEnabled?: boolean;
   destinationHealth?: string;
   hostnameState?: string | null;
+  destination?: Row;
 }): void {
   db.reset();
   db.seed("sites", [
@@ -113,6 +114,7 @@ function seed(a: {
       health: a.destinationHealth ?? "ok",
       config: null,
       hostname_state: a.hostnameState ?? "live",
+      ...a.destination,
     },
   ]);
   db.seed("drafts", a.drafts ?? []);
@@ -369,6 +371,15 @@ describe("the empty-date arms, from rows", () => {
       cause: "customer_change_holds_pages",
       setting: "destination_pending_dns",
     });
+  });
+
+  it.each([
+    ["never given its login asks to connect", "never_connected", "destination_pending_connect"],
+    ["that worked and broke is disconnected", "credentials_expired", "destination_disconnected"],
+  ])("customer_change_holds_pages: a WordPress %s", async (_, healthReason, setting) => {
+    seed({ destination: { kind: "wordpress", health: "expired", health_reason: healthReason, hostname_state: null } });
+    const facts = await readCalendarFacts({ site: SITE, month: MONTH, now: NOW });
+    expect(cellFor(assembleMonth(facts, MONTH), "2026-09-20")?.empty).toEqual({ cause: "customer_change_holds_pages", setting });
   });
 
   it("supply_exhausted stands only on a proven zero, with nothing of §9's true of the date", async () => {

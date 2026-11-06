@@ -273,6 +273,7 @@ export const CALENDAR_COPY = Object.freeze({
   // shipped under the owner ruling of 2026-09-16 (#759).
   "calendar.empty.customer-change-holds-pages.publishing-off": ["Publishing is off, so this page is waiting. Turn it on in Settings and pages resume.", { slots: {}, fixedBy: "REQ-043 c4" }],
   "calendar.empty.customer-change-holds-pages.destination-pending-dns": ["Your website isn’t connected yet, so this page waits. It goes live once the setting works.", { slots: {}, fixedBy: "REQ-043 c4" }],
+  "calendar.empty.customer-change-holds-pages.destination-pending-connect": ["Your WordPress isn’t connected yet, so this page waits. Connect it in Settings › Pages.", { slots: {}, fixedBy: "SPEC §5 2026-09-20 (drafted)" }],
   "calendar.empty.customer-change-holds-pages.destination-disconnected": ["Your website isn’t connected, so this page waits. Reconnect in Settings and pages resume.", { slots: {}, fixedBy: "REQ-043 c4" }],
   "calendar.empty.page-held": ["We stopped our own work, so this page waited. It goes live, in turn, once we start again.", { slots: {}, fixedBy: "REQ-092 c5" }],
   // The day panel's whole account of an exhausted supply — S15's `empty`

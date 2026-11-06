@@ -71,19 +71,6 @@ export async function destinationWorking(siteId: string): Promise<boolean> {
   return data.length > 0;
 }
 
-/** The live destination's host is `pending_dns` (SPEC §5). Asked beside `destinationWorking` so the calendar can name
- *  the record to set; a failed read is `false`, the general "not connected". */
-export async function destinationWaitingOnDns(siteId: string): Promise<boolean> {
-  const { data, error } = await publishDb()
-    .from<{ id: string }>("destinations")
-    .select("id, hostname_state")
-    .eq("site_id", siteId)
-    .eq("hostname_state", "pending_dns")
-    .is("deleted_at", null)
-    .limit(1);
-  if (error !== null || data === null) return false;
-  return data.length > 0;
-}
 
 /** The site's only live destination is a WordPress set up without its credentials, so no page can publish. Read from the
  *  health columns, never `config`; a failed read is `false`. */
@@ -95,6 +82,19 @@ export async function destinationWaitingOnWordPress(siteId: string): Promise<boo
     .is("deleted_at", null);
   if (error !== null || data === null || data.length === 0) return false;
   return data.every((row) => row.kind === "wordpress" && row.health_reason === "never_connected");
+}
+
+/** What the site still has to connect before any page can publish: a hosted address waiting for its DNS record, or a
+ *  WordPress never given its login. `null` for one that works, one that broke, none at all, and a failed read. */
+export async function destinationWaitingToConnect(siteId: string): Promise<"dns" | "wordpress" | null> {
+  // Imported on use so this module never pulls the domain-list seam onto a path that does not ask.
+  const { hostedHostFor } = await import("./hosted/hostname");
+  const [host, wordpress] = await Promise.all([
+    hostedHostFor(siteId).catch(() => null),
+    destinationWaitingOnWordPress(siteId).catch(() => false),
+  ]);
+  if (host !== null && host.state !== "live") return "dns";
+  return wordpress ? "wordpress" : null;
 }
 
 /** What the site publishes to and whether it works, from the stored row, never re-checked: choosing whether to draw a

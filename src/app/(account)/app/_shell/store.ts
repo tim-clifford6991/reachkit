@@ -222,12 +222,10 @@ function goesLiveAtOf(row: ScheduledDraftRow): Date | null {
   return Number.isNaN(moment.getTime()) ? null : moment;
 }
 
-/** Whether this site's hosted address is still waiting for its DNS record.
- *  A site with no hosted address, or a read that fails, is not waiting. */
-async function hostedAddressWaiting(siteId: string): Promise<boolean> {
-  const { hostedHostFor } = await import("@/lib/publish/destinations/hosted/hostname");
-  const host = await hostedHostFor(siteId).catch(() => null);
-  return host !== null && host.state !== "live";
+/** Whether the site still has its destination to connect, hosted or WordPress. A read that fails is not waiting. */
+async function destinationWaiting(siteId: string): Promise<boolean> {
+  const { destinationWaitingToConnect } = await import("@/lib/publish/destinations");
+  return (await destinationWaitingToConnect(siteId).catch(() => null)) !== null;
 }
 
 /** Whether the site's own logo is stored: the one column the free scan's
@@ -269,11 +267,11 @@ export async function readShellFacts(site: ShellSite): Promise<ShellFacts> {
   // signed-in baseline whatever the screen under it did.
   const now = clock();
 
-  // The switch and the address are read first: whether there is a next
+  // The switch and the destination are read first: whether there is a next
   // publish at all depends on both (see `nextScheduled`).
   const [publishingOn, addressWaiting] = await Promise.all([
     isPublishingOn(site.siteId),
-    hostedAddressWaiting(site.siteId),
+    destinationWaiting(site.siteId),
   ]);
 
   const [weeks, firstDueOn, waits, blog, next, planned, stopped, hasLogo] = await Promise.all([
@@ -295,7 +293,7 @@ export async function readShellFacts(site: ShellSite): Promise<ShellFacts> {
     weeks,
     firstDueOn,
     waiting: waits.count,
-    // The day's hold keeps every page back until the address is live, so
+    // The day's hold keeps every page back until the destination connects, so
     // no go-live time is true until then.
     review: waits.review === null || !addressWaiting ? waits.review : { ...waits.review, goesLiveAt: null },
     blog,

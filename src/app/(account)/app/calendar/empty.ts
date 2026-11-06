@@ -24,10 +24,14 @@ import type { SiteCheck } from "@/lib/site-issues/types";
 import type { WorkStop } from "@/lib/presentation/stopped";
 
 /** The saved setting holding pages back (REQ-043 c4). A hosted host still
- *  waiting for its CNAME is its own member, apart from any other destination
- *  that is not working, because it has its own remedy: the record Settings
- *  shows (#754). */
-export type HeldBySetting = "publishing_off" | "destination_pending_dns" | "destination_disconnected";
+ *  waiting for its CNAME, and a WordPress never given its login, are each
+ *  their own member, apart from a destination that broke, because each has
+ *  its own remedy (#754). */
+export type HeldBySetting =
+  | "publishing_off"
+  | "destination_pending_dns"
+  | "destination_pending_connect"
+  | "destination_disconnected";
 
 /** REQ-043 criteria 3, 4 and 5. One account per date, resolved in one fixed
  *  order, total. */
@@ -219,6 +223,7 @@ export const EMPTY_COPY_KEY: Record<OneLineCause, CopyKey> = {
 export const HELD_BY_SETTING_COPY_KEY: Record<HeldBySetting, CopyKey> = {
   publishing_off: "calendar.empty.customer-change-holds-pages.publishing-off",
   destination_pending_dns: "calendar.empty.customer-change-holds-pages.destination-pending-dns",
+  destination_pending_connect: "calendar.empty.customer-change-holds-pages.destination-pending-connect",
   destination_disconnected: "calendar.empty.customer-change-holds-pages.destination-disconnected",
 };
 
