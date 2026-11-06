@@ -37,13 +37,11 @@ describe("the confirm button", () => {
     ]);
   });
 
-  it("told to, it sends itself exactly once under StrictMode and locks as after a press", () => {
-    const { submit, button } = mount(true);
-    expect([submit.mock.calls.length, button.disabled, button.getAttribute("aria-busy")]).toEqual([1, true, "true"]);
-  });
-
-  it("not told to, it waits for the press", () => {
-    const { submit, button } = mount();
-    expect([submit.mock.calls.length, button.disabled]).toEqual([0, false]);
+  it.each([
+    [true, 1, true],
+    [undefined, 0, false],
+  ])("auto=%s: under StrictMode it sends itself %i times, and the button is locked: %s", (auto, sends, locked) => {
+    const { submit, button } = mount(auto);
+    expect([submit.mock.calls.length, button.disabled, button.getAttribute("aria-busy") === "true"]).toEqual([sends, locked, locked]);
   });
 });

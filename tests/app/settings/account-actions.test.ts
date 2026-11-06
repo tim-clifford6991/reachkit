@@ -206,21 +206,17 @@ describe('REQ-077 c2 — "a sign-in link is sent to it and the old address keeps
   });
 });
 
-describe("SPEC §3 — the browser that began a change opens its link with no press", () => {
-  it("a change begun here marks this browser; a refused one does not", async () => {
+describe("REQ-077 c2 — three refusals, each with its own line, and nothing sent", () => {
+  it("a refused change leaves this browser unmarked; an accepted one marks it, so its link needs no press (SPEC §3)", async () => {
     const user = addAccount(state, { email: "founder@example.com" });
     addAccount(state, { email: "taken@example.com" });
     signIn(user.id);
-
     await beginEmailChangeAction(EMAIL_CHANGE_INITIAL, submit("taken@example.com"));
     expect(jar.has(PENDING_COOKIE)).toBe(false);
-
     await beginEmailChangeAction(EMAIL_CHANGE_INITIAL, submit("new@example.com"));
     expect(isPendingFor(jar.get(PENDING_COOKIE), "email_change")).toBe(true);
   });
-});
 
-describe("REQ-077 c2 — three refusals, each with its own line, and nothing sent", () => {
   it("an address that already belongs to an account", async () => {
     const user = addAccount(state, { email: "founder@example.com" });
     addAccount(state, { email: "taken@example.com" });

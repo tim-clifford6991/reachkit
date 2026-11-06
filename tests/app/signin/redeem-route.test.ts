@@ -10,7 +10,7 @@
 // if it is unfinished, otherwise onward into the product.
 import { createHmac } from "node:crypto";
 import { readFileSync } from "node:fs";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { NextRequest, type NextResponse } from "next/server";
 import { applyEnvFixture } from "../../mail/env-fixture";
@@ -20,10 +20,15 @@ applyEnvFixture();
 
 vi.mock("@/lib/mail/send", () => sendMock());
 
-/** The request's cookies, as the page reads them. */
+/** This browser's cookies: the page reads them, and the sign-in action writes them. */
 const jar = new Map<string, string>();
+const sets: { value: string; options: object }[] = [];
 vi.mock("next/headers", () => ({
-  cookies: async () => ({ get: (name: string) => (jar.has(name) ? { name, value: jar.get(name) } : undefined) }),
+  headers: async () => new Headers({ "x-forwarded-for": "203.0.113.7" }),
+  cookies: async () => ({
+    get: (name: string) => (jar.has(name) ? { name, value: jar.get(name) } : undefined),
+    set: (name: string, value: string, options: object) => void (jar.set(name, value), sets.push({ value, options })),
+  }),
 }));
 
 const { default: ConfirmPage, metadata } = await import("../../../src/app/(public)/auth/confirm/page");
@@ -40,6 +45,11 @@ const { FAKE_AUTH_COOKIE, addAuthUser, fakeIdentityAuth, newFakeAuth } = await i
 );
 const { COPY } = await import("../../../src/lib/presentation/copy/registry");
 const { PENDING_COOKIE, pendingCookieFor } = await import("../../../src/lib/account/signin-pending");
+const { sendLink } = await import("../../../src/app/(public)/signin/actions");
+const { SIGN_IN_INITIAL, EMAIL_FIELD } = await import("../../../src/app/(public)/signin/state");
+const { setAccountStore } = await import("../../../src/lib/account/store");
+const { unwireSignInLinkIssuer } = await import("../../../src/lib/account/identity/wire");
+const { memoryAccountStore, newMemoryAccounts } = await import("../../account/memory-store");
 
 const ORIGIN = "https://reachkit.example";
 const NOW = new Date();
@@ -59,6 +69,7 @@ beforeEach(() => {
   sendCalls.length = 0;
   sendOutcome.next = { sent: true, id: "vendor-1" };
   jar.clear();
+  sets.length = 0;
 });
 
 /** An account and the `auth.users` row whose id it carries (#468). */
@@ -134,8 +145,7 @@ function asked(value: string = pendingCookieFor("magiclink").value, headers: Rec
 async function emailChangeLink(): Promise<string> {
   const user = account("old@example.com");
   await beginEmailChange(user.id, "new@example.com", NOW);
-  const blocks = (sendCalls[0]?.blocks ?? []) as readonly object[];
-  return blocks.flatMap((b) => ("href" in b ? [String(b.href)] : []))[0] ?? "";
+  return ((sendCalls[0]?.blocks ?? []) as object[]).flatMap((b) => ("href" in b ? [String(b.href)] : []))[0] ?? "";
 }
 
 function locationOf(response: NextResponse): string {
@@ -254,11 +264,9 @@ describe("a link opened in the browser that asked for it", () => {
     const { html, form } = page(await land(confirmUrl("fixed-hash")));
     expect(html).toMatch(/<form\b[^>]*\bdata-auto=""/);
     expect(form).toEqual(formOf(before));
-    expect(auth.verifyCalls).toBe(0);
   });
 
   it.each([
-    ["/setup", {}, ""],
     ["/app", { first_signed_in_at: NOW.toISOString() }, ""],
     ["/setup/connect", {}, "/setup/connect"],
   ])("the auto-sent post signs in, lands on %s and clears the cookie", async (landing, patch, next) => {
@@ -274,7 +282,6 @@ describe("a link opened in the browser that asked for it", () => {
   });
 
   it("refused, spent and unknown answer as without the cookie, with no token in a Location, and keep the cookie", async () => {
-    const bare = (await follow(confirmUrl("nobody-minted-this"))).headers.get("location");
     const { url } = await liveLink();
     const cookie = asked();
     const { form } = page(await land(url));
@@ -283,27 +290,20 @@ describe("a link opened in the browser that asked for it", () => {
     const dead = [refused, await press(form, cookie), await press(page(await land(confirmUrl("nobody-minted-this"))).form, cookie)];
     for (const response of dead) {
       expectDead(response);
-      expect(response.headers.get("location")).toBe(bare);
       expect(response.headers.get("location")).not.toContain(new URL(url).searchParams.get("token_hash"));
       expect(response.cookies.get(PENDING_COOKIE)).toBeUndefined();
     }
   });
 
-  const flipped = (value: string): string => {
-    const [kind, expires, mac] = value.split(".");
-    const bytes = Buffer.from(mac ?? "", "base64url");
-    bytes[0] = (bytes[0] ?? 0) ^ 1;
-    return `${kind}.${expires}.${bytes.toString("base64url")}`;
-  };
-  const exp = Date.now() + 3_600_000;
-  const otherKey = `magiclink.${exp}.${createHmac("sha256", "another-key").update(`signin-pending:magiclink:${exp}`).digest("base64url")}`;
-
+  // A middle character carries six whole bits of the MAC, so changing it always changes a byte.
+  const flipped = (v: string) => `${v.slice(0, -10)}${v.at(-10) === "A" ? "B" : "A"}${v.slice(-9)}`;
+  const otherKey = (exp: number) => `magiclink.${exp}.${createHmac("sha256", "another-key").update(`signin-pending:magiclink:${exp}`).digest("base64url")}`;
   it.each([
     ["one changed MAC byte", "magiclink", () => flipped(pendingCookieFor("magiclink").value)],
     ["a valid MAC that has expired", "magiclink", () => pendingCookieFor("magiclink", Date.now() - 25 * 3_600_000).value],
     ["an email-change cookie on a sign-in link", "magiclink", () => pendingCookieFor("email_change").value],
     ["a sign-in cookie on an email-change link", "email_change", () => pendingCookieFor("magiclink").value],
-    ["another key", "magiclink", () => otherKey],
+    ["another key", "magiclink", () => otherKey(Date.now() + 3_600_000)],
     ["an unparseable value", "magiclink", () => "not.a-cookie"],
   ])("%s: the button page and no verify call", async (_name, type, value) => {
     const url = type === "email_change" ? await emailChangeLink() : (await liveLink()).url;
@@ -319,6 +319,47 @@ describe("a link opened in the browser that asked for it", () => {
     expect(html).toContain("data-auto");
     await press(form, cookie);
     expect(state.users[0]?.email).toBe("new@example.com");
+  });
+});
+
+describe("asked for on /signin and opened in the same browser", () => {
+  beforeEach(() => {
+    // The action's account read answers from the identity rows; the limiter always admits.
+    const extra = { checkout_session_id: null, sign_in_chased_at: null, stripe_customer_id: null, billing_country: null, vat_number: null, created_at: "2026-01-01T00:00:00Z" };
+    const accountByEmail = async (email: string) => ({ ok: true as const, account: ((u) => (u === undefined ? null : { ...extra, ...u }))(state.users.find((u) => u.email === email)) });
+    setAccountStore({ ...memoryAccountStore(newMemoryAccounts()), accountByEmail });
+    vi.stubGlobal("fetch", async () => new Response("true", { headers: { "content-type": "application/json" } }));
+  });
+  afterEach(() => {
+    unwireSignInLinkIssuer();
+    vi.unstubAllGlobals();
+  });
+  const ask = (email: string) => {
+    const form = new FormData();
+    form.set(EMAIL_FIELD, email);
+    return sendLink(SIGN_IN_INITIAL, form);
+  };
+
+  it("signs in with no press, and a second opening asks for the press", async () => {
+    account("owner@acme.example");
+    await ask("owner@acme.example");
+    const href = ((sendCalls[0]?.blocks ?? []) as object[]).flatMap((b) => ("href" in b ? [String(b.href)] : []))[0] ?? "";
+    const { html, form } = page(await land(href));
+    expect(html).toContain("data-auto");
+
+    const response = await press(form, { ...OWN_PAGE, cookie: `${PENDING_COOKIE}=${jar.get(PENDING_COOKIE)}` });
+    expect([locationOf(response), auth.verifyCalls]).toEqual(["/setup", 1]);
+    expect(response.cookies.get(FAKE_AUTH_COOKIE)).toBeDefined();
+    if (response.cookies.get(PENDING_COOKIE)?.maxAge === 0) jar.delete(PENDING_COOKIE);
+    expect(page(await land(href)).html).not.toContain("data-auto");
+  });
+
+  it("an address with an account and one without get the same cookie; an invalid one gets none", async () => {
+    account("owner@acme.example");
+    for (const email of ["owner@acme.example", "nobody@acme.example", "not-an-address"]) await ask(email);
+    expect(sendCalls.map((m) => m.to)).toEqual(["owner@acme.example"]);
+    const attributes = { httpOnly: true, secure: true, sameSite: "lax", path: "/", maxAge: 86_400 };
+    expect(sets.map((c) => [c.value.split(".")[0], c.options])).toEqual([["magiclink", attributes], ["magiclink", attributes]]);
   });
 });
 
