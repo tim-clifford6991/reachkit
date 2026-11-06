@@ -1,4 +1,4 @@
-// scripts/local-run.mjs — what `npm run panel` and `npm run free-scan` share:
+// scripts/local-run.mjs — what `npm run panel`, `npm run pass` and `npm run free-scan` share:
 // a process that runs the product's own code live against the vendors, on
 // the repository's own local database (`scripts/db-substrate/`), rebuilt from
 // `supabase/migrations`, holding no production key.
@@ -114,6 +114,23 @@ export function psql(sql) {
 }
 
 /** The local database emptied and migrated from `supabase/migrations`. */
+/** The columns a table's insert trigger fills, as a loaded row takes them
+ *  where it holds none: the trigger is off, and a loaded call is a test's. */
+const TRIGGER_FILLED = { fetches: { activity: "'test'", outcome: 'public.fetch_outcome("payload")' } };
+
+/** Stored rows into a table, by the columns they carry; every other column
+ *  takes its default. Triggers are off: the rows, not the rows they point at. */
+export function insertRows(table, rows) {
+  if (rows.length === 0) return;
+  const filled = TRIGGER_FILLED[table] ?? {};
+  const columns = [...new Set([...rows.flatMap((row) => Object.keys(row)), ...Object.keys(filled)])];
+  const values = columns.map((column) => (column in filled ? `coalesce("${column}", ${filled[column]})` : `"${column}"`));
+  const tag = "$rows$";
+  psql(
+    `set session_replication_role = replica; insert into public.${table} (${columns.map((column) => `"${column}"`).join(", ")}) select ${values.join(", ")} from jsonb_populate_recordset(null::public.${table}, ${tag}${JSON.stringify(rows)}${tag}::jsonb);`
+  );
+}
+
 export function rebuild(root) {
   psql("drop schema public cascade; create schema public; grant usage on schema public to anon, authenticated, service_role;");
   const dir = path.join(root, "supabase/migrations");
