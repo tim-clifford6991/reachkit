@@ -122,15 +122,15 @@ describe("a pack is held against what its template must hold", () => {
     expect(pack.products).toEqual([rival("rival.example"), { domain: "other.example", pages: [features.url] }]);
   });
 
-  it("a business with no knowledge base is missing its point of difference too; its price is read off its own page", () => {
+  it("a business with no price of its own has no row, so no table: the listicle is a Q&A of the same reads, never a stop (D47)", () => {
     const bare = buildPack(inputs({ profile: null }));
-    // No price of its own is no row of its own, so no table either — and
-    // that stops the page rather than turning it into a Q&A.
-    expect(bare).toMatchObject({ type: "listicle", missing: ["options", "own_price", "difference"] });
+    expect(bare.type).toBe("qa");
+    expect(bare.claims).toEqual(buildPack(inputs()).claims);
     // The same answer whenever it is asked of the stored pack.
     expect(missingFrom(bare)).toEqual(bare.missing);
+    // Its price read off its own page gives it a row; it is short only of a point of difference.
     const priced = { fact: { ...GROUNDED, passage: "The starter plan costs $12 a seat." }, sourceText: "The starter plan costs $12 a seat." };
-    expect(buildPack(inputs({ profile: null, facts: [priced] })).missing).toEqual(["difference"]);
+    expect(buildPack(inputs({ profile: null, facts: [priced] }))).toMatchObject({ type: "listicle", missing: ["difference"] });
   });
 });
 

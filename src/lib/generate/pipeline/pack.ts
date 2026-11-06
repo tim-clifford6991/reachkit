@@ -959,15 +959,11 @@ export function buildPack(a: PackInputs): ContextPack {
   };
   const missing = missingFrom(pack, a.previousResearch ?? null);
   const corrections = correctionsFor({ report: a.report, knowledge: a.profile?.knowledge, target: [question, ...searches], language: a.locale?.language ?? "en" });
-  // SPEC §7 (owner, D47): a comparison with fewer than two rivals that have
-  // facts is written as a Q&A, from the same reads. A business with no price
-  // of its own is not that case: the page stops and asks for it, as before.
-  // Issue 1508: two rivals or more but fewer than `RESEARCH.optionsMin`
-  // counted options is a comparison not ready yet: it stays short, and the
-  // day goes to the next topic (D26).
+  // SPEC §7 (D47): a comparison with no table, short of rivals or of an own price, still gets a page as a Q&A, which states no price.
+  // A table short only of `RESEARCH.optionsMin` options stays short, and the day goes on (D26).
   const table = TEMPLATES.listicle.blocks.table;
   const noComparison = table !== undefined && comparisonTable(pack, table.rivals) === null;
-  if (a.type === "listicle" && missing.includes("options") && !missing.includes("own_price") && noComparison) return buildPack({ ...a, type: "qa" });
+  if (a.type === "listicle" && (missing.includes("options") || missing.includes("own_price")) && noComparison) return buildPack({ ...a, type: "qa" });
   return { ...pack, missing, ...(corrections.length === 0 ? {} : { corrections }) };
 }
 
