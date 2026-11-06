@@ -116,7 +116,8 @@ describe("an offering page buys no research", () => {
 
     expect(researchMock).not.toHaveBeenCalled();
     expect(reads).toEqual([]);
-    expect(packed).toEqual([{ facts: [], products: [], asked: { peopleAlsoAsk: [ASKED], related: [] } }]);
+    // The offering's pack; a short one's own-facts page after it reads no research either.
+    expect(packed[0]).toEqual({ facts: [], products: [], asked: { peopleAlsoAsk: [ASKED], related: [] } });
   });
 
   it("the same row as the Q&A it would otherwise be does run the research step", async () => {

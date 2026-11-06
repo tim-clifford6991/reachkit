@@ -450,8 +450,8 @@ export interface Opportunity {
   createdAt: Date;
   /** SPEC §7 (issue 1455): the type the day's page is written as where it
    *  is not the row's own — a comparison over D52's cap is written as a
-   *  Q&A of its buyer question. Set by the ranking, never stored. */
-  writeAs?: "qa";
+   *  Q&A of its buyer question, and a short day's last topic a reference page of its own facts. Never stored. */
+  writeAs?: "qa" | "documentation";
   /** Why the week committed it, where it is in the committed week. */
   planReason?: PlanReason | null;
 }

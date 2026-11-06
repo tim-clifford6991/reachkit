@@ -232,4 +232,14 @@ describe("#784 — a market too small is told, and a never-measured zero is not 
     });
     expect(text(await screen(), "overview-supply")).toBeNull();
   });
+
+  it("a day its own facts could not fill is told in any week, linking the field's place in Settings › Your business", async () => {
+    shell.weekZero = false;
+    current.report = reportWith(12);
+    setOpportunityStore(storeWith({ unused: 0, questions: 12, everHeld: true }));
+    db.seed("draft_days", [{ site_id: LIVE_ACCOUNT.siteId, publish_date: "2026-09-13", outcome: "no_page", reason: "generate:no_own_facts" }]);
+    const notice = (await screen()).querySelector('[data-testid="overview-release-notice"]');
+    expect(notice?.textContent).toBe(COPY["setup.release.own-facts"]);
+    expect([...(notice?.querySelectorAll("a.link") ?? [])].map((a) => [a.textContent, a.getAttribute("href")])).toEqual([["Settings › Your business", "/app/settings"]]);
+  });
 });

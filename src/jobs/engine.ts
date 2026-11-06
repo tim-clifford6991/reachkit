@@ -518,8 +518,8 @@ export async function generateDraft(a: {
   const decided = await step("select", () => decideDayPage(day));
   // The day's page from a ready update of the committed week, in the same run, where its own did not pass.
   const instead = async (trigger: string, from: "select" | "write", stopped: string | null): Promise<EngineResult> => {
-    const taken = trigger === "generate:no_site" || trigger === "generate:no_scan" ? null : await step("refresh", () => refreshForDay({ siteId: a.siteId, publishDate: a.publishDate, trigger, from, stopped }));
-    if (taken === null || !taken.ok) return taken === null ? { degraded: trigger } : { done: true };
+    const taken = trigger === "generate:no_site" || trigger === "generate:no_scan" ? null : await step("refresh", () => refreshForDay({ siteId: a.siteId, publishDate: a.publishDate, trigger, from, stopped, now: a.now }));
+    if (taken === null || (!taken.ok && taken.because === "already_drafted")) return taken === null ? { degraded: trigger } : { done: true };
     const reviewed = await step("refresh-review", () => reviewWritten(taken, a.now));
     return "done" in reviewed ? { done: true, instead: `refresh:${trigger}` } : reviewed;
   };

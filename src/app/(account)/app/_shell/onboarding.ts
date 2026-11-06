@@ -75,7 +75,8 @@ function quietPanel(state: OnboardingState): boolean {
  * The release notice Overview states (issue 784): what the panel is not already
  * saying. Nothing while the pass runs, and nothing the panel shows. A market
  * too small is told in any week — a weekly pass can record it too, and its
- * sentence says Monday measures again; the other two speak of the *first*
+ * sentence says Monday measures again, and so is a day the site's own facts
+ * could not fill; the others speak of the *first*
  * measurement, so only in week zero.
  */
 export function overviewNotice(a: {
@@ -84,7 +85,7 @@ export function overviewNotice(a: {
   weekZero: boolean;
 }): CopyKey | null {
   if (!quietPanel(a.onboarding) || a.notice === null) return null;
-  if (a.weekZero || a.notice.key === "setup.release.market-too-small") return a.notice.key;
+  if (a.weekZero || a.notice.key === "setup.release.market-too-small" || a.notice.key === "setup.release.own-facts") return a.notice.key;
   return null;
 }
 
@@ -95,7 +96,7 @@ export const readReleaseNotice = cache(async function readReleaseNotice(): Promi
   if (isReservedFixtureAccount(account)) return null;
   // Imported at the call: the report reader reaches `@/lib/db`.
   const { releaseNotice } = await import("@/lib/scan/deep/notice");
-  return releaseNotice({ domain: account.domain });
+  return releaseNotice({ domain: account.domain, siteId: account.siteId });
 });
 
 export const readOnboarding = cache(async function readOnboarding(): Promise<OnboardingState> {

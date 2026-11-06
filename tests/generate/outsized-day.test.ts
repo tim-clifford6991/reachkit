@@ -183,7 +183,7 @@ describe("the daily job on a site whose every target is outsized (issue 881)", (
 
     const outcome = await generateDayPage({ siteId: SITE_ID, publishDate: PUBLISH_DATE });
 
-    expect(outcome).toMatchObject({ ok: false, because: "step_failed", step: expect.stringMatching(/^pack:/) });
+    expect(outcome).toMatchObject({ ok: false, because: "no_own_facts" });
     expect([...drafts.rows.values()]).toEqual([]);
     expect(state.rows.filter((r) => r.rest_until != null).map((r) => r.id)).toEqual(["opp-fit"]);
     expect(llmMock).not.toHaveBeenCalled();

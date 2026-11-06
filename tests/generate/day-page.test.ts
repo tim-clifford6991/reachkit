@@ -71,8 +71,8 @@ vi.mock("@/lib/opportunities", () => ({
   queueForDraft: queueForDraftMock,
   restTopic: restTopicMock,
   updateInstead: updateInsteadMock,
-  opportunityById: async () => null,
-  sitePagesFor: async () => [],
+  opportunityById: async () => null, sitePagesFor: async () => [],
+  committedWeek: async () => ({ days: [], spares: [] }),
   assessFixPages: async () => ({ done: 0, ready: 0 }),
   assessReadiness: async () => ({ ready: 1, unready: 0 }),
 }));
@@ -329,7 +329,7 @@ describe("a short pack writes nothing (SPEC §7, D41 stage 2)", () => {
     packAnswer.missing = ["buyer_questions", "facts_on_topic"];
     pickMock.mockResolvedValueOnce(opportunity()).mockResolvedValueOnce(null);
     const outcome = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
-    expect(outcome).toEqual({ ok: false, because: "step_failed", draftId: null, step: "pack:buyer_questions,facts_on_topic" });
+    expect(outcome).toEqual({ ok: false, because: "no_own_facts" });
     expect(llmMock).not.toHaveBeenCalled();
     // Nothing waits in Needs you: no row, no move.
     expect(store.rows.size).toBe(0);

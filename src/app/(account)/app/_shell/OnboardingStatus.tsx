@@ -8,6 +8,8 @@
 import type React from "react";
 import { CircleAlert, CircleCheck, CirclePause, PenLine } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
+import { Linked } from "../settings/Linked";
+import { SETTINGS_TAB_HREF } from "../settings/tabs";
 import { CategoryChoice } from "./CategoryChoice";
 import { PassSteps, stepsFor } from "./PassSteps";
 import { OnboardingPanel } from "./OnboardingPanel";
@@ -157,7 +159,14 @@ export function ReleaseNoticeLine(p: { noticeKey: CopyKey | null }): React.JSX.E
   if (p.noticeKey === null) return null;
   return (
     <div role="status" className="alert alert-warning items-start text-sm" data-testid="overview-release-notice">
-      {copy(p.noticeKey)}
+      {/* The one notice that names a field, so its place in Settings is a link to the tab that holds it. */}
+      {p.noticeKey === "setup.release.own-facts" ? (
+        <span>
+          <Linked sentence={copy(p.noticeKey)} word={`${copy("shell.nav.settings")} › ${copy("settings.tab.business")}`} href={SETTINGS_TAB_HREF.business} />
+        </span>
+      ) : (
+        copy(p.noticeKey)
+      )}
     </div>
   );
 }

@@ -18,18 +18,14 @@
 //   3–4. **write** and **check**, with the one fix call (`pipeline/index.ts`);
 //   5. **publish** is the publishing engine's, behind the veto window.
 //
-//   * a draft the checks stopped rests in `needs_attention` (#788) — never
-//     left in `generating` — and its topic rests for 28 days (owner, D26,
-//     issue 1179);
+//   * a draft the checks stopped rests in `needs_attention` (#788) and its
+//     topic rests for 28 days (owner, D26, issue 1179);
 //   * a stopped draft does not cost its day (D26): the same run writes the
-//     week's next spare in committed order (`pageForDay`), at most once more and
-//     inside the one `CAP_DRAFT` context;
-//   * a pack short of what its template asks, or a new page whose pack adds
-//     too little (D12), writes nothing, and the day goes to the next topic
-//     the same way — without using up D26's one more, since nothing was
-//     written (issue 1477). A short pack writes no row either and rests its
-//     topic, so the pick does not choose a topic its pack cannot fill
-//     (issue 1536); a page that adds too little rests named on its row.
+//     week's next spare (`pageForDay`), at most once more, in the one context;
+//   * a short pack writes no row and rests its topic (issue 1536), and the day
+//     goes on without using up D26's one more (issue 1477); once no spare is
+//     left, its last topic is written from the site's own facts, or the day
+//     names why (`ownFactsPage`). A page that adds too little rests named.
 //
 // `regenerateRestarted` is the customer's Regenerate carried out: the
 // restart moves the row back into `generating`, and the next draft tick
@@ -53,7 +49,7 @@ import { intentFor } from "@/lib/opportunities/intent";
 import { roomForFix, withDraftCost } from "./cost";
 import { readRecordedRules } from "./record";
 import { repairStructure } from "./rules/structure";
-import { mendPage, mendable } from "./day-refresh";
+import { mendPage, mendable, ownFactsPage } from "./day-refresh";
 import { confirmedForWriting } from "./voice/confirmed";
 import {
   clusterLinkTargets,
@@ -105,6 +101,7 @@ export type DayPageOutcome =
   | { ok: false; because: "already_drafted" }
   /** §7: supply is the cap. Nothing was invented to fill the day. */
   | { ok: false; because: "no_opportunity" }
+  | { ok: false; because: "no_own_facts" } // The day's topics came up short, and even the site's own facts held no page.
   /** A restart that is no longer waiting: the row is gone, is another
    *  site's, or has left `generating` since it was found. */
   | { ok: false; because: "no_draft" }
@@ -161,6 +158,7 @@ export async function generateDayPage(a: {
   now?: Date;
   /** The day's topic as `decideDayPage` chose it, where a step of its own did. */
   opportunityId?: string;
+  updatesTried?: boolean;
 }): Promise<DayPageOutcome> {
   const store = generateStore();
   const now = a.now ?? new Date();
@@ -171,7 +169,7 @@ export async function generateDayPage(a: {
 
   // The week's page for the date, after a 0¢ check that it still stands —
   // never a re-ranking of the open pool (issue 1559).
-  const first = a.opportunityId === undefined ? await pageForDay(a.siteId, a.publishDate, now) : await opportunityById(a.opportunityId);
+  const first = a.opportunityId === undefined ? await pageForDay(a.siteId, a.publishDate, now, a.updatesTried) : await opportunityById(a.opportunityId);
   if (first === null) return { ok: false, because: "no_opportunity" };
 
   try {
@@ -209,20 +207,16 @@ export async function generateDayPage(a: {
         // Only a row that was written and stopped is moved on from — a run
         // that wrote none rested nothing, and its topic is still the head.
         const stopped = stoppedRow(outcome);
-        // Issue 1477: a topic whose pack was short wrote nothing and cost
-        // its pack alone, so it does not use up D26's one more topic — the
-        // day goes on to the next ready one, within the same cap and time.
+        // Issue 1477: a short pack wrote nothing and cost its pack alone, so it does not use up D26's one more topic.
         const short = packShort(outcome);
         if (!short) written += 1;
-        // Issue 1536: a short pack writes no row. The topic is one its pack
-        // cannot fill, so it rests as a stopped one does, and the pick does
-        // not choose it again until the rest ends.
+        // Issue 1536: its topic is one its pack cannot fill, so it rests as a stopped one does.
         if (short && stopped === null) await restTopic(opportunity.id, now);
         // And only while the job's invocation has the time for a second page.
         if ((stopped === null && !short) || written >= DAY_TOPICS_MAX || cost.capHit() || !roomForFix(cost) || Date.now() - startedAt > PIPELINE.nextTopicBeforeMs) return outcome;
         // The stopped topic rests by now, so the date's page is the week's next spare.
         const next = await pageForDay(a.siteId, a.publishDate, now);
-        if (next === null || next.id === first.id || next.id === opportunity.id) return outcome;
+        if (next === null || next.id === first.id || next.id === opportunity.id) return short ? await ownFactsPage(page, sinceNow(cost), now, outcome) : outcome;
         // It keeps its row and gives up its date to the page written next.
         if (stopped !== null) await store.patchDraft(stopped, { scheduled_for: null });
         opportunity = next;
@@ -291,9 +285,9 @@ export async function regenerateRestarted(a: {
   if (report === null) return { ok: false, because: "no_scan" };
   const found = await opportunityById(row.opportunity_id);
   if (found === null) return { ok: false, because: "no_opportunity" };
-  // A comparison the day answered as a Q&A (issue 1455) is written again as one.
+  // A page the day wrote as another type (issue 1455) is written again as that type.
   const writtenAs = (row.meta as { contentType?: unknown } | null)?.contentType;
-  const opportunity = writtenAs === "qa" && contentTypeOf(found) === "listicle" ? { ...found, writeAs: "qa" as const } : found;
+  const opportunity = (writtenAs === "qa" && contentTypeOf(found) === "listicle") || writtenAs === "documentation" ? { ...found, writeAs: writtenAs as "qa" | "documentation" } : found;
 
   const page = { siteId: a.siteId, site, report, opportunity, publishDate: row.scheduled_for, draftId: row.id };
   const outcome = await withDraftCost({ scanId: report.scanId, draftId: row.id }, (cost) =>
@@ -303,10 +297,11 @@ export async function regenerateRestarted(a: {
   return outcome;
 }
 
-/** A ready update the writer refreshes from stored research alone, in the day's one cost context (SPEC §7, owner
- *  2026-11-05): no vendor is read, and its one fix call is the pipeline's own. */
-export async function writeStoredUpdate(page: PageInput & { publishDate: string }, now: Date): Promise<DayPageOutcome> {
-  const outcome = await withDraftCost({ scanId: page.report.scanId }, (cost) => writePage({ ...page, attempts: 1, research: "stored" }, cost));
+/** A page the writer writes from stored research alone, in the day's one cost context (SPEC §7, owner 2026-11-05): no
+ *  vendor is read, and its one fix call is the pipeline's own. */
+export async function writeStoredUpdate(page: PageInput & { publishDate: string }, now: Date, day?: CostContext): Promise<DayPageOutcome> {
+  const write = (cost: CostContext) => writePage({ ...page, attempts: 1, research: "stored" }, cost);
+  const outcome = day === undefined ? await withDraftCost({ scanId: page.report.scanId }, write) : await write(day);
   await settle(outcome, page.opportunity.id, now, page.site.domain);
   return outcome;
 }
@@ -666,6 +661,8 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number; 
     if (last.draftId !== null) draftId = last.draftId;
     if (last.ok) return { ok: true, draftId: last.draftId };
     if (last.reason === "rules") {
+      // No row means none of the site's own pages yielded a fact to ground a page on.
+      if (last.draftId === null) return { ok: false, because: "no_own_facts" };
       return { ok: false, because: "rules", draftId: draftId ?? null, attempts: last.attempt, ...(last.fix === undefined ? {} : { stopped: last.fix }), ...(last.stop === undefined ? {} : { stop: last.stop }) };
     }
     // SPEC §7 (D12, issue 1143): a new page whose pack adds too little is not
