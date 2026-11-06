@@ -102,10 +102,10 @@ export async function deriveForPass(
 
   const known = await knownGateFor({ siteId: a.siteId, report: a.report });
   // A market that cannot be read leaves fit judged against the profile, never a pass that derives nothing.
-  const { market, competitors, prompts, knowledge } = await store
+  const { market, competitors, prompts, knowledge, area } = await store
     .marketFor(a.siteId)
-    .catch(() => ({ market: null, competitors: [] as readonly string[], prompts: [] as readonly string[], knowledge: null }));
-  const input = inputFor({ siteId: a.siteId, report: a.report, hostedHost, inventory, known, market, knowledge, competitors, prompts: prompts ?? [] });
+    .catch(() => ({ market: null, competitors: [] as readonly string[], prompts: [] as readonly string[], knowledge: null, area: null }));
+  const input = { ...inputFor({ siteId: a.siteId, report: a.report, hostedHost, inventory, known, market, knowledge, competitors, prompts: prompts ?? [] }), area: area ?? null };
 
   // Fixes this scan shows cleared retire first, so a fixed page is not re-derived beside its closed row.
   await assessFixPages(a.siteId, { report: a.report });

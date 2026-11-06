@@ -58,7 +58,7 @@ describe("the shortfall is stored by name", () => {
     const rows = fake.rows("ops_events");
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({ kind: "supply_short", site_id: SITE_ID, code: String(PLAN_DEPTH - 1) });
-    expect(String(rows[0]!.read).split(",")).toEqual(["product", "problem", "category", "ai_gap", "asked", "cited", "written"]);
+    expect(String(rows[0]!.read).split(",")).toEqual(["product", "problem", "category", "ai_gap", "asked", "cited", "written", "offering"]);
   });
 
   it("a pass whose site holds a week and its spares writes none, and logs what it holds", async () => {
