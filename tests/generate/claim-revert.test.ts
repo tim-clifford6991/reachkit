@@ -4,7 +4,7 @@
 import "./env";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fakeDb, type Row } from "../publish/harness";
-import { SITE_ID, memoryStore, opportunity } from "./fixtures";
+import { GROUNDED, SITE_ID, memoryStore, opportunity, pack } from "./fixtures";
 
 const db = fakeDb();
 db.uniqueIndexes.push({ table: "drafts", columns: ["site_id", "scheduled_for"] });
@@ -181,7 +181,7 @@ describe("two deliveries of one evening (issue 886)", () => {
     // The other delivery saved the date's page meanwhile.
     db.seed("drafts", [{ id: "sibling", site_id: SITE_ID, opportunity_id: "o-other", scheduled_for: DAY }]);
     const store = memoryStore();
-    store.seed({ id: "live", state: "published", title: "Drain repair in Harbor", body_md: "# Drain repair in Harbor\n\nShut the stop valve, then call Harbor Plumbing.", meta: {}, attribution: null });
+    store.seed({ id: "live", state: "published", title: "Drain repair in Harbor", body_md: "# Drain repair in Harbor\n\nShut the stop valve, then call Harbor Plumbing.", meta: { pack: pack() }, grounded_fact: GROUNDED, attribution: null });
     setGenerateStore(
       Object.assign(store, {
         liveVersionAt: async () => ({ draft: store.rows.get("live")!, publishedAt: new Date("2026-10-05T07:00:00.000Z") }),
