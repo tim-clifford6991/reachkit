@@ -28,7 +28,7 @@ import { refineType } from "./typing";
 import { applyKnownContent, type KnownContentGate } from "./known";
 import { writeCandidates } from "./write";
 import { judgeFit, type FitSearch } from "./fit";
-import { askedOfReport, askedSupply, askedTopics, brandsOf, citedTopics, type AskedSupply, candidateFor, comparisonWithoutDemand, noLongerRelevant, productsNamed, proposedTopics, rivalBrandOnly, rivalNamesOf, rivalPriceOf, sourceOf } from "./topics";
+import { askedOfReport, askedSupply, askedTopics, brandsOf, citedTopics, type AskedSupply, candidateFor, comparisonWithoutDemand, namesOwnOnly, noLongerRelevant, productsNamed, proposedTopics, rivalBrandOnly, rivalNamesOf, rivalPriceOf, sourceOf } from "./topics";
 import { judgeTyped, writeBuyerSearches } from "./buyer-searches";
 import { ledgerSourceOf, supplyLedger, writable, type LedgerSource, type SupplyLedger } from "./ledger";
 
@@ -228,7 +228,8 @@ export async function deriveOpportunities(
     stillDismissed += 1;
     return false;
   };
-  const mine = planned.filter((candidate) => !aRivalsPrice(candidate) && !aRivalsBrand(candidate) && !notASearch(candidate) && notDismissed(candidate));
+  const ownNewPage = (candidate: Candidate): boolean => candidate.family === "write" && namesOwnOnly(candidate.targetQuery ?? "", named);
+  const mine = planned.filter((candidate) => !aRivalsPrice(candidate) && !aRivalsBrand(candidate) && !notASearch(candidate) && !ownNewPage(candidate) && notDismissed(candidate));
   const derived: Candidate[] = [
     ...(a.known === undefined ? mine : applyKnownContent(mine, a.known)),
     ...fix.candidates,
@@ -245,6 +246,8 @@ export async function deriveOpportunities(
   const stored = await store.askedBeside(a.siteId, ASKED_TOPICS.maxAgeDays).catch(() => []);
   const seen = [...askedOfReport(a.report), ...stored];
   const asked = askedTopics(seen, a.report.verdict.measuredAt);
+  const ownSearches = [...planned.filter(ownNewPage).flatMap((row) => row.targetQuery ?? []), ...written, ...askedTopics(seen, a.report.verdict.measuredAt, Infinity).map((topic) => topic.query)];
+  const ownBrand = new Set(ownSearches.filter((query) => namesOwnOnly(query, named)).map(queryKey)).size;
   const proposing = proposedTopics({
     report: a.report,
     market,
@@ -491,7 +494,7 @@ export async function deriveOpportunities(
   return {
     created,
     assessed,
-    rejected: { ...rejected, duplicate_open: rejected.duplicate_open + duplicates + folded + stillDismissed },
+    rejected: { ...rejected, own_brand: rejected.own_brand + ownBrand, duplicate_open: rejected.duplicate_open + duplicates + folded + stillDismissed },
     supply,
   };
 }
