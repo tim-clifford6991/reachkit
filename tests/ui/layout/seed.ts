@@ -189,8 +189,7 @@ const SETUP_STAGE_TIMES = {
 const SETUP_REPORT_AT = "2026-09-05T09:00:00.000Z";
 const SETUP_REPORT_SCORE = 44;
 
-/** Each account's own address. Never mailed: the session is minted straight onto the stub
- *  (`seededSessionCookie`), and the address is the one its user record carries. */
+/** Each account's own address, never mailed: the session is minted onto the stub (`seededSessionCookie`). */
 const EMAIL_OF: Readonly<Record<string, string>> = {
   [RESERVED_ACCOUNT.userId]: "layout-sweep@example.com",
   [LIVE_ACCOUNT.userId]: "layout-sweep-live@example.com",
@@ -200,6 +199,7 @@ const EMAIL_OF: Readonly<Record<string, string>> = {
   [UNCONNECTED_ACCOUNT.userId]: "layout-sweep-unconnected@example.com",
   "00000000-0000-0000-0000-0000000000a7": "layout-sweep-wordpress@example.com", // seed-wordpress.ts
   "00000000-0000-0000-0000-0000000000a8": "layout-sweep-thin-market@example.com", // seed-thin-market.ts
+  "00000000-0000-0000-0000-0000000000a9": "layout-sweep-became-update@example.com", // seed-became-update.ts
 };
 
 const SEEDED_EMAIL = EMAIL_OF[RESERVED_ACCOUNT.userId] as string;

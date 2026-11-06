@@ -486,6 +486,7 @@ function PageDayPanel(p: {
         <span className="badge badge-sm badge-ghost max-w-full self-start" data-testid="day-kind">
           {kindWord(page.update)}
         </span>
+        {page.becameUpdate === true ? <p className="text-sm" data-testid="day-became-update-line">{copy("calendar.day.became-update.line")}</p> : null}
         <DayActions cell={shown} destination={p.destination} onCommand={command} busy={busy} pressed={busy ? pressed : null} />
 
         <div className="flex flex-col gap-1 text-sm">

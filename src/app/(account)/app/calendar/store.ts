@@ -196,6 +196,8 @@ function pageOn(a: {
    *  weekly judgement recorded it — or `null` where this week measured
    *  none (issue 930). Read once for the site and handed in. */
   standing: PageStanding | null;
+  /** Whether the committed week's row for the page's date reads as a new page; `false` where none can be read. */
+  plannedNew: boolean;
   now: Date;
 }): DraftOnDay {
   const at = measuredAtOf(a.choice, a.now);
@@ -215,6 +217,8 @@ function pageOn(a: {
     // Issue 880: why the page needs them, as §9's record derived it.
     needsYou: a.page.needsYou,
     setAside: a.page.setAside,
+    // Only where the row the week showed for this date was provably a new page.
+    becameUpdate: a.page.becameUpdate && a.plannedNew,
     // Issue 930: this week's place, read and never re-measured.
     standing: a.standing,
     update: isUpdate(a.choice),
@@ -443,12 +447,14 @@ export async function readCalendarFacts(a: {
   for (const page of publishing.pagesByDay.values()) {
     const choice = await explainChoice(page.opportunityId);
     if (choice === null) continue;
+    const planned = week.days.find((day) => day.date === page.scheduledFor)?.opportunity.family;
     drafts.push(
       pageOn({
         page,
         choice,
         publishAt: publishing.publishAt.get(page.draftId) ?? null,
         standing: page.liveUrl === null ? null : (standings.get(page.liveUrl) ?? null),
+        plannedNew: planned === "write" || planned === "earn",
         now: a.now,
       })
     );

@@ -95,6 +95,8 @@ export interface DraftOnDay {
   needsYou: NeedsYouCause | null;
   /** The daily re-check set this page aside: it did not pass our checks, and its date says so, asking nothing. */
   setAside?: boolean;
+  /** The date's committed row was a new page, and an update of a live page filled the day instead. */
+  becameUpdate?: boolean;
   /**
    * Where the site stands for this page's search, as §9's weekly judgement
    * recorded it (issue 930). `null` for a page that is not live, and for a

@@ -207,6 +207,17 @@ describe("UI strategy: titles and retired names (#1463)", () => {
     expect(offenders).toEqual([]);
   });
 
+  it("a day that became an update claims no ranking, reward or crawl, in plain words", () => {
+    const lines = copy.filter((entry) => /^(?:calendar\.day\.became-update|mail\.weekly\.setAside\.(?:one|many)\.updated)/.test(entry.key));
+    expect(lines).toHaveLength(4);
+    expect(["This will boost your rankings.", "Fresh content ranks sooner.", "We pinged IndexNow and set lastmod."].map(retiredIn)).toEqual(["boost", "sooner", "lastmod"]);
+    for (const { key, sentence } of lines) {
+      expect([retiredIn(sentence), violations(sentence, { key })], key).toEqual([undefined, []]);
+      // Terms other customer text still uses, so they are held on these four alone.
+      expect(sentence, key).not.toMatch(/\b(?:get found|shows? up|cit(?:e|es|ing)|SEO|refresh)/i);
+    }
+  });
+
   it("text written into JSX does not use a retired name (issue 1484)", () => {
     const files = JSX_ROOTS.flatMap((root) => under(root, (rel) => rel.endsWith(".tsx")));
     expect(files.length).toBeGreaterThan(100);

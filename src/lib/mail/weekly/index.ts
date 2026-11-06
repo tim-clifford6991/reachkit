@@ -15,13 +15,13 @@ import { measured, measuredZero, unmeasured, type Measured } from "@/lib/measure
 import { pageLadderOf } from "@/lib/measure/page-ladder";
 import { contentOf } from "@/lib/measure/published";
 import { readPublishedPages } from "@/lib/measure/published-store";
-import { committedWeek, opportunityById, supplyDepth, weeklyDigest } from "@/lib/opportunities";
+import { committedWeek, opportunityById, weeklyDigest } from "@/lib/opportunities";
 import { placedByDay, plannedByDay, serviceWeek } from "@/lib/opportunities/days";
 import { plannedStopToken } from "@/lib/opportunities/stop";
 import { whyOf } from "@/lib/opportunities/why";
 import { vetoLinkPath } from "@/lib/publish/publishable";
 import { scheduledPagesFor } from "@/lib/publish/record";
-import { critical, needsYouOf, setAsideOf } from "@/lib/publish/record/needs-you";
+import { becameUpdate, critical, needsYouOf, setAsideOf } from "@/lib/publish/record/needs-you";
 import { heldPages } from "@/lib/publish/switch";
 import { pauseTokenFor } from "@/lib/publish/switch/pause-link";
 import { readPublishingSettings } from "@/lib/publish/settings/settings";
@@ -70,6 +70,8 @@ interface MinimalQuery<T> extends PromiseLike<MinimalResult<T>> {
   select(columns: string): MinimalQuery<T>;
   eq(column: string, value: unknown): MinimalQuery<T>;
   is(column: string, value: unknown): MinimalQuery<T>;
+  gte(column: string, value: unknown): MinimalQuery<T>;
+  lte(column: string, value: unknown): MinimalQuery<T>;
   not(column: string, operator: string, value: unknown): MinimalQuery<T>;
   limit(n: number): MinimalQuery<T>;
   update(values: Record<string, unknown>): MinimalQuery<T>;
@@ -266,7 +268,7 @@ async function weeklyNumbers(siteId: string, weekStart: string, now: Date): Prom
   const [content, reads, setAside] = await Promise.all([
     readPublishedPages(siteId).then((pages) => contentOf({ pages, now })).catch(() => null),
     blogReadsOf(siteId, now),
-    setAsideLastWeek(siteId, weekStart, now).catch(() => undefined),
+    setAsideLastWeek(siteId, weekStart).catch(() => undefined),
   ]);
   const planned = await weekPages(siteId, weekStart).then(
     (n) => counted(n, now),
@@ -314,8 +316,8 @@ async function weeklyNumbers(siteId: string, weekStart: string, now: Date): Prom
 }
 
 /** Pages the daily re-check set aside in the seven days before `weekStart`, so each is told on exactly one Monday, and
- *  whether a next page is there to write: with supply used up or unread, no replacement is claimed. */
-async function setAsideLastWeek(siteId: string, weekStart: string, now: Date): Promise<WeeklyNumbers["setAside"]> {
+ *  what filled those days by their stored rows: a day without a page, or rows unread, claims no replacement. */
+async function setAsideLastWeek(siteId: string, weekStart: string): Promise<WeeklyNumbers["setAside"]> {
   const to = Date.parse(`${weekStart}T00:00:00Z`);
   const { data, error } = await untyped().from<{ transitions: unknown }>("drafts").select("transitions").eq("site_id", siteId).eq("state", "skipped");
   if (error !== null) return undefined;
@@ -324,8 +326,22 @@ async function setAsideLastWeek(siteId: string, weekStart: string, now: Date): P
     return setAsideOf({ state: "skipped", transitions: row.transitions }) && at >= to - 7 * 86_400_000 && at < to;
   }).length;
   if (n === 0) return undefined;
-  const replaced = await supplyDepth(siteId, now).then((depth) => depth.unused > 0, () => false);
-  return { n, replaced };
+  return { n, arm: await filledBy(siteId, weekDates(new Date(to - 7 * 86_400_000).toISOString().slice(0, 10)), n) };
+}
+
+/** No set-aside page is paired with the date it gave up, so the claim is the week's: updated only where updates could
+ *  have filled every set-aside page's day, and never for a mixed week. */
+async function filledBy(siteId: string, days: readonly string[], n: number): Promise<NonNullable<WeeklyNumbers["setAside"]>["arm"]> {
+  const [first, last] = [days[0]!, days.at(-1)!];
+  const [outcomes, drafts] = await Promise.all([
+    untyped().from<{ publish_date: string; outcome: string | null }>("draft_days").select("publish_date, outcome").eq("site_id", siteId).gte("publish_date", first).lte("publish_date", last),
+    untyped().from<{ meta: unknown }>("drafts").select("meta").eq("site_id", siteId).gte("scheduled_for", first).lte("scheduled_for", last),
+  ]);
+  if (outcomes.error !== null || drafts.error !== null) return "unreplaced";
+  const drafted = new Set((outcomes.data ?? []).filter((day) => day.outcome === "drafted").map((day) => day.publish_date));
+  if (days.some((day) => !drafted.has(day))) return "unreplaced";
+  const u = (drafts.data ?? []).filter((draft) => becameUpdate(draft.meta)).length;
+  return u === 0 ? "replaced" : u >= n ? "updated" : "unreplaced";
 }
 
 async function weekPages(siteId: string, weekStart: string): Promise<number> {

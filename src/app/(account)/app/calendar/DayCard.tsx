@@ -50,8 +50,10 @@ export function KindChip(p: { update: boolean }): React.JSX.Element {
   );
 }
 
-/** What a day with no page says in its place: the day the customer stopped, else the week's first skip. */
+/** A day's state line: a page that became an update says so; a day with no page names the day the customer stopped,
+ *  else the week's first skip. */
 export function stateLineOf(cell: DayCell, firstSkip: boolean): string | null {
+  if (cell.page !== null) return cell.page.becameUpdate === true ? copy("calendar.day.became-update") : null;
   if (cell.empty?.cause === "page_cannot_go_live") return copy("calendar.day.stopped.line", { day: `${weekdayShort(cell.day)} ${dayNumber(cell.day)}` });
   return firstSkip ? copy("calendar.day.skipped.line") : null;
 }

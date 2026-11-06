@@ -32,7 +32,7 @@ const {
   PREVIEW_KINDS,
   RETENTION_PREVIEW_KINDS,
 } = await import("./kinds");
-const { COPY, TODO_COPY_MARKER } = await import("../../../src/lib/presentation/copy");
+const { COPY, TODO_COPY_MARKER, copy } = await import("../../../src/lib/presentation/copy");
 const { MAIL_KINDS } = await import("../../../src/lib/mail/kinds");
 const { WEEK_PLAN } = await import("../../../src/lib/config/constants");
 
@@ -169,6 +169,15 @@ describe("issue #376 — the shell renders S20, and every kind the set draws wea
     for (const body of [mail.html, mail.text]) expect(body).toContain("2026-09-14");
 
     writeSample("weekly-unmeasured", mail, "variant");
+  });
+
+  it("the Monday mail of a week updates filled says they improved live pages, in place of the next ones", async () => {
+    const mail = await composeWeekly([], { n: 2, arm: "updated" });
+    for (const body of [mail.text, mail.html]) {
+      expect(body).toContain(copy("mail.weekly.setAside.many.updated", { n: "2" }));
+      expect(body).not.toContain(copy("mail.weekly.setAside.many", { n: "2" }));
+    }
+    writeSample("weekly-updated", mail, "variant");
   });
 
   it("the page-ready mail for an unconnected address carries the setting below its line", async () => {
