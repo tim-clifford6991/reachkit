@@ -12,7 +12,7 @@ import { choose, type Choice } from "@/lib/opportunities/choose";
 import { contentTypeOf } from "@/lib/opportunities/content-type";
 import { LEDGER_SOURCES, supplyLedger } from "@/lib/opportunities/derive/ledger";
 import { sourceOf } from "@/lib/opportunities/derive/topics";
-import { planFirstWeek } from "@/lib/opportunities/plan";
+import { pageForDay, planFirstWeek, planWeek } from "@/lib/opportunities/plan";
 import { readOpportunity, setOpportunityStore, type OpportunityRow } from "@/lib/opportunities/store";
 import { memoryStore, newMemoryState } from "../../opportunities/memory-store";
 import { AT, heldOf, panelDomains, panelSite, rowOf, SITE_ID, storedSerps, type PanelSite } from "./panel";
@@ -247,5 +247,29 @@ describe("the bakery and the electrician commit pages once readiness runs over t
     for (const entry of listicles) expect(entry.writeAs).toBe("qa");
     expect(fetch).not.toHaveBeenCalled();
     fetch.mockRestore();
+  });
+});
+
+describe("a week whose rows all go unready mid-week is committed again from the date", () => {
+  afterEach(() => setOpportunityStore(null));
+
+  it("every panel site's Wednesday takes a row the week left out, where one is ready, and its week runs from that date", async () => {
+    const midweek = new Date(AT.getTime() + 2 * 86_400_000).toISOString().slice(0, 10);
+    const lines = ["| Site | Ready left out | Wednesday's page | Week from Wednesday |", "|---|---|---|---|"];
+    for (const domain of panelDomains()) {
+      const site = panelSite(domain);
+      const state = newMemoryState({ profile: site.profile, market: site.market, now: AT, rows: site.rows.map((row) => ({ ...row })) });
+      // The stored readiness stands, as in the goldens above; only the week's own rows go unready.
+      setOpportunityStore({ ...memoryStore(state), topTenRows: async () => storedSerps(domain), setReadiness: async () => {} });
+      const week = new Set((await planWeek(SITE_ID, { now: AT, from: FROM })).map((entry) => entry.opportunityId));
+      for (const row of state.rows) if (week.has(row.id)) Object.assign(row, { ready: false, unready_reason: "resting" });
+      const left = state.rows.filter((row) => row.ready && row.status === "open").length;
+      const page = await pageForDay(SITE_ID, midweek, AT);
+      const days = state.rows.filter((row) => row.planned_for != null && row.planned_for >= midweek).sort((a, b) => a.plan_place! - b.plan_place!);
+      expect([page === null, (state.recommits ?? []).length]).toEqual([left === 0, left === 0 ? 0 : 1]);
+      if (page !== null) expect([week.has(page.id), days[0]?.id, days[0]?.planned_for]).toEqual([false, page.id, midweek]);
+      lines.push(`| ${domain} | ${left} | ${page?.targetQuery ?? "none"} | ${page === null ? "unchanged" : days.map((row) => row.target_query).join("; ")} |`);
+    }
+    await expect(lines.join("\n") + "\n").toMatchFileSnapshot("./results/recommit.md");
   });
 });

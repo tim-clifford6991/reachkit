@@ -72,6 +72,13 @@ beforeAll(() => {
   day(2, 0, "no_page", "generate:no_opportunity");
   day(2, 5, "no_page", "generate:no_opportunity");
 
+  // Open rows, none ready and uncommitted: one resting, one ready but already drafted.
+  site(5, "c.example");
+  topic(41, 5, { unready: "resting" });
+  topic(42, 5);
+  run(`insert into drafts (id, opportunity_id, site_id, state, scheduled_for) values ('${id(43)}', '${id(42)}', '${id(5)}', 'in_review', current_date);`);
+  day(5, 1, "no_page", "generate:no_opportunity");
+
   site(3, "not-set-up.example", { setUp: false });
   site(4, "deleted.example", { deleted: true });
 });
@@ -111,6 +118,8 @@ describe("the runway query", () => {
       },
       // The rows were stamped ungrounded after the older day, so that day found none open.
       { domain: "b.example", ready: "0", ahead: "0", live: "", empty: { grounding_failed: 1, no_opportunity_empty: 1 }, shortAt: null, dry: "" },
+      // Only a ready row no page was drafted from counts as one the day could have written.
+      { domain: "c.example", ready: "0", ahead: "0", live: "", empty: { no_opportunity_none_ready: 1 }, shortAt: null, dry: "" },
     ]);
   });
 });

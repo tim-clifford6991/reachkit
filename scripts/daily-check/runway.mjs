@@ -25,7 +25,8 @@ export const RUNWAY_SQL = `select s.id as site_id, s.domain,
     select c.class, count(*) as days
     from draft_days d
     cross join lateral (
-      select count(*) as rows, count(*) filter (where o.unready_reason = 'no_grounding_fact') as ungrounded
+      select count(*) as rows, count(*) filter (where o.unready_reason = 'no_grounding_fact') as ungrounded,
+        count(*) filter (where o.ready and not exists (select 1 from drafts r where r.opportunity_id = o.id)) as ready
       from opportunities o
       where o.site_id = d.site_id and o.family in ('write', 'earn')
         and o.created_at <= coalesce(d.decided_at, d.publish_date + 1)
@@ -38,7 +39,8 @@ export const RUNWAY_SQL = `select s.id as site_id, s.domain,
       when d.reason like 'generate:step_failed:%' then 'step_failed'
       when d.reason = 'generate:no_opportunity' and open.rows = 0 then 'no_opportunity_empty'
       when d.reason = 'generate:no_opportunity' and open.rows = open.ungrounded then 'grounding_failed'
-      when d.reason = 'generate:no_opportunity' then 'no_opportunity_ready_rows'
+      when d.reason = 'generate:no_opportunity' and open.ready > 0 then 'no_opportunity_ready_rows'
+      when d.reason = 'generate:no_opportunity' then 'no_opportunity_none_ready'
       when d.outcome = 'no_page' then 'other: ' || coalesce(d.reason, 'no_page')
       else 'other: ' || d.outcome || coalesce(':' || d.reason, '')
     end as class) c

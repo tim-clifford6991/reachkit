@@ -45,6 +45,8 @@ export interface MemoryState {
   /** The site's own pages a tracked AI answer cited in the last four weeks
    *  (issue 1146); absent reads as none. */
   cited?: string[];
+  /** The week's on-demand recommits recorded; absent reads as none. */
+  recommits?: { siteId: string; date: string }[];
   statusChangedAt: Map<string, Date>;
   profile: Profile | null;
   latestScanAt: Date | null;
@@ -334,6 +336,13 @@ export function memoryStore(state: MemoryState): OpportunityStore {
       return state.rows
         .filter((row) => row.site_id === siteId && row.plan_place !== null && row.plan_place !== undefined)
         .sort((a, b) => a.plan_place! - b.plan_place!);
+    },
+
+    async claimRecommit(siteId, date, monday) {
+      const recommits = (state.recommits ??= []);
+      if (recommits.some((r) => r.siteId === siteId && r.date >= monday)) return false;
+      recommits.push({ siteId, date });
+      return true;
     },
 
     async setReadiness(opportunityId, reason) {
