@@ -354,7 +354,7 @@ describe("nothing to derive from is not an error", () => {
     expect(result).toEqual({
       candidates: [],
       assessed: 0,
-      rejected: { not_yet: 0, unmeasured_top10: 0, duplicate_open: 0 },
+      rejected: { not_yet: 0, unmeasured_top10: 0, duplicate_open: 0, own_brand: 0 },
     });
   });
 
