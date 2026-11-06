@@ -282,7 +282,8 @@ describe("a page whose pack is short writes no row, and its topic rests (D41, is
   it("nothing is written or left in Needs you, the run names the step and what is missing, and the next evening does not pick the topic", async () => {
     fixtures.packAnswer.missing = ["buyer_questions"];
     const outcome = await draftGenerate.run({ data: {}, now: EVENING });
-    expect(outcome).toEqual({ outcome: "degraded", subjectId: null, step: "generate:step_failed:pack:buyer_questions" });
+    // Its own-facts page is as short, so the day names that it had none.
+    expect(outcome).toEqual({ outcome: "degraded", subjectId: null, step: "generate:no_own_facts" });
     expect(llmMock).not.toHaveBeenCalled();
     expect(db.rows("drafts")).toEqual([]);
     expect(restingUntil(opportunityId)).not.toBeNull();

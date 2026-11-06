@@ -367,6 +367,8 @@ export const SETUP_COPY = Object.freeze({
    *  finished reading the market. Not a market too small, and nothing for
    *  the founder to change. Drafted under issue 759's ruling. */
   "setup.release.measuring": ["We’re still checking your market. Your first pages follow on their own.", { slots: {}, fixedBy: "issue 855" }],
+  // The newest day could write no page, not even one from the site's own facts. Drafted under issue 759's ruling.
+  "setup.release.own-facts": ["Your site doesn’t say enough about what you offer for us to write a page from it yet. Add what you sell and who you serve in Settings, and the next page uses it.", { slots: {}, fixedBy: "issue 2431 (drafted)" }],
 
   // Issue 837 (owner ruling 2026-09-17): the choice a thin market offers —
   // two or three broader categories from the site's own profile, and the

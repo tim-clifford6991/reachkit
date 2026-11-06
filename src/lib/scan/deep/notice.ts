@@ -1,5 +1,5 @@
 // BUILD §4.3 — the release notice: one sentence projected from the current
-// report, never a stored flag.
+// report and the newest day's kept reason, never a stored flag.
 //
 // "A degraded pass still releases setup (zero proposals is legal, never
 // faked)." (§4.3) A founder released off the back of a pass that degraded,
@@ -18,6 +18,7 @@
 // It states what could not be measured. It invents nothing: a complete
 // report that found zero opportunities yields `null`, because "we found
 // nothing for you" is §7's own line and not a measurement failure.
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type { CopyKey } from "@/lib/presentation/copy";
 import { marketTooSmall, stoppedOnCeiling } from "../market-floor";
 import { readCurrentReport } from "../report";
@@ -61,6 +62,14 @@ export function unmeasuredParts(report: StoredReport): readonly string[] {
   return NAMED_PARTS.filter((p) => p.missing(report)).map((p) => p.part);
 }
 
+/** The reason the site's newest recorded day kept, or `null`; a read that fails claims nothing. */
+async function newestDayReason(siteId: string): Promise<string | null> {
+  const { dbAdmin } = await import("@/lib/db");
+  const { data, error } = await (dbAdmin() as unknown as SupabaseClient).from("draft_days").select("reason").eq("site_id", siteId).order("publish_date", { ascending: false }).limit(1);
+  if (error !== null) console.warn(JSON.stringify({ event: "release_notice_day_unread", error: error.message }));
+  return (data?.[0] as { reason?: string | null } | undefined)?.reason ?? null;
+}
+
 /**
  * The one sentence that travels with the founder into the app, or `null`
  * when there is nothing to say.
@@ -71,7 +80,7 @@ export function unmeasuredParts(report: StoredReport): readonly string[] {
  *     measured, with the unmeasured parts carried alongside
  *   - a complete report → `null`, however empty its findings are
  */
-export async function releaseNotice(a: { domain: string }): Promise<ReleaseNotice | null> {
+export async function releaseNotice(a: { domain: string; siteId?: string }): Promise<ReleaseNotice | null> {
   const report = await readCurrentReport(a.domain);
 
   if (report === null || report.stoppedReason === "failed") {
@@ -88,6 +97,11 @@ export async function releaseNotice(a: { domain: string }): Promise<ReleaseNotic
   // measurement failure and not silence — its own sentence.
   if (marketTooSmall(report.questions)) {
     return { key: "setup.release.market-too-small", vars: {}, parts: [] };
+  }
+
+  // The newest day could write no page even from the site's own facts, so the founder is told what would let it.
+  if (a.siteId !== undefined && (await newestDayReason(a.siteId)) === "generate:no_own_facts") {
+    return { key: "setup.release.own-facts", vars: {}, parts: [] };
   }
 
   if (report.complete && report.stoppedReason === "complete") return null;

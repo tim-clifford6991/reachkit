@@ -74,9 +74,9 @@ export async function planFirstWeek(siteId: string, now: Date = new Date()): Pro
  * still stands, else the next spare in committed order; nothing ranks here.
  * A date no commit covers, or (once a week) whose slot and spares are used up
  * while ready rows wait outside the week, is committed from the date. `null`
- * where nothing left can be written.
+ * where nothing left can be written; `updatesTried` once the day's update fallback has had its turn.
  */
-export async function pageForDay(siteId: string, date: string, now: Date = new Date()): Promise<Opportunity | null> {
+export async function pageForDay(siteId: string, date: string, now: Date = new Date(), updatesTried = false): Promise<Opportunity | null> {
   const store = opportunityStore();
   const held = await store.plannedRows(siteId);
   if (!held.some((row) => row.planned_for != null && row.planned_for >= date)) {
@@ -91,7 +91,7 @@ export async function pageForDay(siteId: string, date: string, now: Date = new D
   const row = open.find((r) => r.planned_for === date) ?? open.find((r) => r.planned_for == null);
   if (row !== undefined) return planned(row);
   // A ready update dated later is the day's update fallback's to take first, so the recommit stays the last resort.
-  if (open.some((r) => r.family === "improve" && r.planned_for != null && r.planned_for > date)) return null;
+  if (!updatesTried && open.some((r) => r.family === "improve" && r.planned_for != null && r.planned_for > date)) return null;
   const waiting = (await store.countUnused(siteId)) - open.filter((r) => r.family !== "fix").length;
   const monday = new Date(Date.parse(date) - ((new Date(date).getUTCDay() + 6) % 7) * DAY_MS).toISOString().slice(0, 10);
   if (waiting <= 0 || !(await store.claimRecommit(siteId, date, monday, waiting))) return null;
