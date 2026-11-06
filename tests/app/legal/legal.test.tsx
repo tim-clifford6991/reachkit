@@ -23,6 +23,7 @@ import { VETO, WEEK_PLAN } from "@/lib/config/constants";
 import { headingsUnderTitle, parseMarkdown, toHtml } from "@/lib/publish/render/markdown";
 import { LEGAL_BODY_CLASSES, legalBodyHtml } from "@/app/(public)/_legal/LegalPage.tsx";
 import { legalSections } from "@/app/(public)/_legal/sections";
+import { PRIVACY } from "@/app/(public)/_legal/documents";
 import PrivacyPage from "@/app/(public)/privacy/page.tsx";
 import TermsPage from "@/app/(public)/terms/page.tsx";
 import ImprintPage from "@/app/(public)/imprint/page.tsx";
@@ -47,7 +48,7 @@ const SECTIONS = "_legal/sections.ts";
 
 /** The three routes, each with the document it reads. */
 const ROUTES = [
-  { file: "privacy/page.tsx", Page: PrivacyPage, title: "legal.privacy.title", updated: "legal.privacy.updated", document: "legal.privacy.body" },
+  { file: "privacy/page.tsx", Page: PrivacyPage, title: "legal.privacy.title", updated: "legal.privacy.updated", document: "legal.privacy.body", vars: PRIVACY.vars },
   { file: "terms/page.tsx", Page: TermsPage, title: "legal.terms.title", updated: "legal.terms.updated", document: "legal.terms.body" },
   { file: "imprint/page.tsx", Page: ImprintPage, title: "legal.imprint.title", updated: "legal.imprint.updated", document: "legal.imprint.body" },
 ] as const;
@@ -92,7 +93,7 @@ describe("S5 — the screen: title, updated line, one card", () => {
         // Every heading and every block of the body, through the one renderer; a list the
         // board draws as a table is the provider test's. A list is read item by item, since a
         // figure may stand between two of its items.
-        const sections = legalSections(headingsUnderTitle(parseMarkdown(copy(route.document))), LEGAL_BODY_CLASSES);
+        const sections = legalSections(headingsUnderTitle(parseMarkdown(copy(route.document, "vars" in route ? route.vars : undefined))), LEGAL_BODY_CLASSES);
         for (const section of sections) {
           if (section.headingHtml !== "") expect(html).toContain(section.headingHtml);
           for (const block of section.blocks) {
@@ -160,7 +161,7 @@ describe("S5 — the Markdown body goes through the product's one renderer", () 
     // directly under the page's `<h1>` — and it used to arrive as an `<h3>`,
     // skipping `h2` on a page whose only other heading is that `<h1>`.
     const html = renderToStaticMarkup(<PrivacyPage />);
-    expect(copy("legal.privacy.body")).toMatch(/^## 1\. Who we are\n/);
+    expect(copy("legal.privacy.body", PRIVACY.vars)).toMatch(/^## 1\. Who we are\n/);
     expect(html).toMatch(/<h2 id="who-we-are"[^>]*>1\. Who we are<\/h2>/);
     expect(html).not.toMatch(/<h3[^>]*>1\. Who we are<\/h3>/);
     expect(html).not.toContain("## 1. Who we are");
