@@ -200,6 +200,24 @@ describe("a week whose slot and spares are used up is committed again from the d
     expect(state.rows.map((row) => [row.id, row.plan_place, row.planned_for])).toEqual(commit);
     expect(state.recommits ?? []).toEqual([]);
   });
+
+  it("a ready update dated later goes to the day's update fallback first; only once it is gone does the week recommit", async () => {
+    await weeklyPass();
+    const entries = await planWeek(SITE_ID, { now: AT });
+    // Readiness as stored, so the one update stays ready while the rest of the week goes unready.
+    setOpportunityStore({ ...memoryStore(state), setReadiness: async () => {} });
+    const update = state.rows.find((row) => row.id === entries[5]!.opportunityId)!;
+    for (const entry of entries) Object.assign(state.rows.find((row) => row.id === entry.opportunityId)!, { ready: false });
+    Object.assign(update, { family: "improve", ready: true });
+
+    expect(await pageForDay(SITE_ID, DAY(2), AT)).toBeNull();
+    expect((await committedWeek(SITE_ID)).days.find((day) => day.date > DAY(2) && day.opportunity.ready)?.opportunity.id).toBe(update.id);
+    expect(state.recommits ?? []).toEqual([]);
+
+    update.ready = false;
+    expect(await pageForDay(SITE_ID, DAY(2), AT)).not.toBeNull();
+    expect(state.recommits).toHaveLength(1);
+  });
 });
 
 describe("setup commits a new site's first week", () => {

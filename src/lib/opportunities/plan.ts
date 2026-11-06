@@ -90,6 +90,8 @@ export async function pageForDay(siteId: string, date: string, now: Date = new D
   const open = (await store.plannedRows(siteId)).filter((row) => row.status === "open" && row.ready);
   const row = open.find((r) => r.planned_for === date) ?? open.find((r) => r.planned_for == null);
   if (row !== undefined) return planned(row);
+  // A ready update dated later is the day's update fallback's to take first, so the recommit stays the last resort.
+  if (open.some((r) => r.family === "improve" && r.planned_for != null && r.planned_for > date)) return null;
   const waiting = (await store.countUnused(siteId)) - open.filter((r) => r.family !== "fix").length;
   const monday = new Date(Date.parse(date) - ((new Date(date).getUTCDay() + 6) % 7) * DAY_MS).toISOString().slice(0, 10);
   if (waiting <= 0 || !(await store.claimRecommit(siteId, date, monday, waiting))) return null;
