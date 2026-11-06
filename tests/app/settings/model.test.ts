@@ -166,9 +166,9 @@ describe("REQ-097 — the model carries no billing value at all", () => {
   // the plan, the price and the control, and none of the next invoice, the
   // card or the invoice history. So the assertion is not "every value has
   // provenance" any more — it is that there is no such value on the model.
-  it("the billing slice is the plan state, the access-end day, the destination and the refund day — and no card", () => {
+  it("the billing slice is the plan state, the access-end day, and the destination — and no card", () => {
     const billing = assembleSettings(FACTS).billing;
-    expect(Object.keys(billing).sort()).toEqual(["accessUntil", "readable", "refundUntil", "state", "surfaceHref"]);
+    expect(Object.keys(billing).sort()).toEqual(["accessUntil", "readable", "state", "surfaceHref"]);
   });
 
   it("the plan and the price are copy keys, not values read back from a vendor", () => {

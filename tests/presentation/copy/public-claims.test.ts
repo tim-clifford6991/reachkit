@@ -179,3 +179,10 @@ describe("a page set aside asks the customer for nothing", () => {
     }
   });
 });
+
+describe("no customer-visible sentence promises or reports a refund (owner, 2026-11-06)", () => {
+  it("outside the legal bodies, no key says refund", () => {
+    const said = Object.entries(COPY as Record<string, string>).filter(([key, value]) => !/^legal\.[^.]+\.body$/.test(key) && /refund/i.test(value));
+    expect(said.map(([key]) => key)).toEqual([]);
+  });
+});

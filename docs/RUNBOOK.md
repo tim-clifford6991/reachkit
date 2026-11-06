@@ -858,14 +858,6 @@ answers `not-composable`, and the attempt is logged. This is the ruling of 2026-
 never ships a placeholder — and it is why the ops alerts in §5 and §7 are currently silent. The
 fix for every one of them is the owner writing the copy key, never a code change.
 
-**The refund-refused alert.** When Stripe refuses an automatic 14-day refund, the webhook still
-answers 200 and access is unchanged, and `OWNER_EMAILS` gets one incident mail (*"Stripe refused an
-automatic 14-day refund…"*) with the invoice, the account id and Stripe's error code, beside the log
-line `billing_refund outcome=vendor`. Stripe does not redeliver a 200, so refund that invoice by hand
-(`docs/walk/refund.md`). A failure that will pass (a connection error, a Stripe 5xx or 429, a store
-read or write that failed) sends no alert: the webhook answers 500 and logs `billing_redeliver`, and
-Stripe redelivers it for up to 3 days, then emails the Stripe account that the endpoint keeps failing.
-
 Failed and unsent mail is visible in two places: Resend's own dashboard for what left, and the
 runtime log for what did not (`event: "spend_alert_failed"`, and the per-kind `*_not_sent` lines).
 

@@ -34,15 +34,6 @@ export interface BillingRow {
   readonly cancelled_at: string | null;
   readonly last_subscription_event_id: string | null;
   readonly deleted_at: string | null;
-  /** When the account opened, which is when its first payment completed. */
-  readonly created_at: string;
-}
-
-/** One first-14-days refund, as `refunds` stores it. */
-export interface RefundRow {
-  readonly invoice_id: string;
-  readonly user_id: string;
-  readonly subscription_id: string | null;
 }
 
 /** What a subscription event writes. Every member is a value the vendor
@@ -157,40 +148,6 @@ export interface BillingStore {
     at: Date
   ): Promise<{ ok: true } | { ok: false }>;
 
-  /** The stated zone of the account's first site, as the retention mails read it; `null` where none is stated. */
-  siteZone(userId: string): Promise<{ ok: true; timezone: string | null } | { ok: false }>;
-
-  /** The stored domains of every site one account owns, as written. */
-  siteDomains(userId: string): Promise<{ ok: true; domains: readonly string[] } | { ok: false }>;
-
-  /** Every refund made to this account or to any account sharing one of
-   *  these domains. */
-  refundsFor(
-    userId: string,
-    domains: readonly string[]
-  ): Promise<{ ok: true; refunds: readonly RefundRow[] } | { ok: false }>;
-
-  /** Records a refund. A second record of the same invoice is a success. */
-  recordRefund(a: {
-    invoiceId: string;
-    userId: string;
-    subscriptionId: string;
-    domains: readonly string[];
-    at: Date;
-  }): Promise<{ ok: true } | { ok: false }>;
-
-  /** Whether any of the account's publications went live in `[from, to)`,
-   *  taken down since or not. Drafts are never read. */
-  wentLive(userId: string, from: Date, to: Date): Promise<{ ok: true; live: boolean } | { ok: false }>;
-
-  /** Records a first-renewal refund. `inserted` is false where an earlier
-   *  delivery already recorded this invoice. */
-  recordRenewalRefund(a: {
-    invoiceId: string;
-    userId: string;
-    at: Date;
-  }): Promise<{ ok: true; inserted: boolean } | { ok: false }>;
-
   /** The pages delivered to a site in `[from, to)` that are still up, when
    *  each Monday mail went in that span, and the newest finished weekly or deep pass's report. */
   period(
@@ -244,7 +201,7 @@ function untyped(): MinimalClient {
 
 const BILLING_COLUMNS =
   "id, email, plan_status, stripe_customer_id, stripe_subscription_id, " +
-  "paid_through, cancelled_at, last_subscription_event_id, deleted_at, created_at";
+  "paid_through, cancelled_at, last_subscription_event_id, deleted_at";
 
 /** The join `sites` needs to answer both hosting questions in one read.
  *  PostgREST spells an embedded parent this way; the two owner columns are
@@ -422,72 +379,6 @@ export function supabaseBillingStore(): BillingStore {
         .update({ [NOTICE_COLUMN[which]]: at.toISOString() })
         .eq("id", siteId);
       return error ? { ok: false } : { ok: true };
-    },
-
-    async siteZone(userId) {
-      const { data, error } = await untyped()
-        .from<{ timezone: string | null }>("sites")
-        .select("timezone")
-        .eq("user_id", userId)
-        .limit(1);
-      if (error) return { ok: false };
-      return { ok: true, timezone: data?.[0]?.timezone ?? null };
-    },
-
-    async siteDomains(userId) {
-      const { data, error } = await untyped()
-        .from<{ domain: string | null }>("sites")
-        .select("domain")
-        .eq("user_id", userId);
-      if (error) return { ok: false };
-      return {
-        ok: true,
-        domains: (data ?? []).flatMap((row) => (row.domain === null ? [] : [row.domain])),
-      };
-    },
-
-    async refundsFor(userId, domains) {
-      const own = untyped().from<RefundRow>("refunds").select("invoice_id, user_id, subscription_id").eq("user_id", userId);
-      const shared =
-        domains.length === 0
-          ? null
-          : untyped().from<RefundRow>("refunds").select("invoice_id, user_id, subscription_id").overlaps("domains", domains);
-      const [mine, others] = await Promise.all([own, shared]);
-      if (mine.error || (others !== null && others.error)) return { ok: false };
-      return { ok: true, refunds: [...(mine.data ?? []), ...(others?.data ?? [])] };
-    },
-
-    async recordRefund(a) {
-      const { error } = await untyped().from<RefundRow>("refunds").insert({
-        invoice_id: a.invoiceId,
-        user_id: a.userId,
-        subscription_id: a.subscriptionId,
-        domains: a.domains,
-        refunded_at: a.at.toISOString(),
-      });
-      // A unique violation is this invoice already recorded by an earlier delivery.
-      return error && error.code !== "23505" ? { ok: false } : { ok: true };
-    },
-
-    async wentLive(userId, from, to) {
-      const { data, error } = await untyped()
-        .from<{ id: string }>("publications")
-        .select("id, sites!inner(user_id)")
-        .eq("sites.user_id", userId)
-        .eq("delivery_state", "delivered")
-        .gte("published_at", from.toISOString())
-        .lt("published_at", to.toISOString())
-        .limit(1);
-      if (error) return { ok: false };
-      return { ok: true, live: (data ?? []).length > 0 };
-    },
-
-    async recordRenewalRefund(a) {
-      const { error } = await untyped()
-        .from<{ invoice_id: string }>("renewal_refunds")
-        .insert({ invoice_id: a.invoiceId, user_id: a.userId, refunded_at: a.at.toISOString() });
-      if (error?.code === "23505") return { ok: true, inserted: false };
-      return error ? { ok: false } : { ok: true, inserted: true };
     },
 
     async period(siteId, from, to) {

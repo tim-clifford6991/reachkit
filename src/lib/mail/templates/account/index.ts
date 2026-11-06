@@ -21,12 +21,6 @@ const ADDRESS_MOVED_PREHEADER = "mail.account.address_moved.preheader" satisfies
 const ADDRESS_MOVED = "mail.account.address_moved" satisfies CopyKey;
 const NO_SECOND_SUBSCRIPTION = "mail.account.no_second_subscription" satisfies CopyKey;
 const REACH_A_PERSON = "mail.account.reach_a_person" satisfies CopyKey;
-const RENEWAL_REFUNDED_SUBJECT = "mail.account.renewal_refunded.subject" satisfies CopyKey;
-const RENEWAL_REFUNDED = "mail.account.renewal_refunded" satisfies CopyKey;
-const RENEWAL_REFUNDED_NEXT = Object.freeze({
-  renewing: "mail.account.renewal_refunded.renewing" satisfies CopyKey,
-  ending: "mail.account.renewal_refunded.ending" satisfies CopyKey,
-});
 const DELETED_SUBJECT = "mail.account.deleted.subject" satisfies CopyKey;
 const DELETED_STILL_LIVE = "mail.account.deleted.still_live" satisfies CopyKey;
 const DELETED_THEIRS_TO_KEEP = "mail.account.deleted.theirs_to_keep" satisfies CopyKey;
@@ -196,21 +190,6 @@ export function buildHostingEnd(a: {
     blocks: [
       { block: "paragraph", text: HOSTING_END_STOPS_ON, vars: { date: a.stopsOn } },
       { block: "paragraph", text: HOSTING_END_EXPORT_STAYS },
-      { block: "notice", text: REACH_A_PERSON },
-    ],
-  };
-}
-
-/** D10: the first renewal was refunded because no page went live in the first month; `next` is null where the day could not be read, so none is invented. */
-export function buildRenewalRefunded(a: {
-  amount: string;
-  next: { kind: "renewing" | "ending"; date: string } | null;
-}): AccountMail {
-  return {
-    subject: RENEWAL_REFUNDED_SUBJECT,
-    blocks: [
-      { block: "paragraph", text: RENEWAL_REFUNDED, vars: { amount: a.amount } },
-      ...(a.next === null ? [] : [{ block: "paragraph" as const, text: RENEWAL_REFUNDED_NEXT[a.next.kind], vars: { date: a.next.date } }]),
       { block: "notice", text: REACH_A_PERSON },
     ],
   };

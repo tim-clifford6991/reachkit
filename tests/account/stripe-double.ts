@@ -43,13 +43,8 @@ export interface StripeDoubleState {
   portalSessions: Record<string, unknown>[];
   portalError: Error | null;
   nextSubscriptionId: number;
-  /** What `invoices.list` answers: every invoice, filtered by customer and status. */
-  invoices: Record<string, unknown>[];
+  /** Every `refunds.create` call; nothing in billing may make one. */
   refundsCreated: { params: Record<string, unknown>; idempotencyKey: string | undefined }[];
-  /** Set to make `refunds.create` throw. */
-  refundError: Error | null;
-  /** Set to make `invoices.list` throw. */
-  invoiceListError: Error | null;
 }
 
 export function newStripeDouble(): StripeDoubleState {
@@ -79,10 +74,7 @@ export function newStripeDouble(): StripeDoubleState {
     portalSessions: [],
     portalError: null,
     nextSubscriptionId: 1,
-    invoices: [],
     refundsCreated: [],
-    refundError: null,
-    invoiceListError: null,
   };
 }
 
@@ -249,25 +241,10 @@ export function stripeDouble(state: StripeDoubleState): Stripe {
         return created;
       },
     },
-    invoices: {
-      list: async (params: { customer?: string; status?: string }) => {
-        raise(state.invoiceListError);
-        return {
-          data: state.invoices.filter(
-            (i) => (params.customer === undefined || i.customer === params.customer) && (params.status === undefined || i.status === params.status)
-          ),
-          has_more: false,
-        };
-      },
-    },
     refunds: {
       create: async (params: Record<string, unknown>, options?: { idempotencyKey?: string }) => {
-        raise(state.refundError);
-        const key = options?.idempotencyKey;
-        // Stripe answers a repeated idempotency key with the first refund.
-        const seen = state.refundsCreated.findIndex((r) => key !== undefined && r.idempotencyKey === key);
-        if (seen === -1) state.refundsCreated.push({ params, idempotencyKey: key });
-        return { id: `re_${seen === -1 ? state.refundsCreated.length : seen + 1}`, status: "succeeded" };
+        state.refundsCreated.push({ params, idempotencyKey: options?.idempotencyKey });
+        return { id: `re_${state.refundsCreated.length}`, status: "succeeded" };
       },
     },
     billingPortal: {

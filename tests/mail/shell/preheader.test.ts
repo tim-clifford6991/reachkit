@@ -82,7 +82,6 @@ describe("every arm of a kind names its preheader", () => {
         account.buildHostingEnd({ occasion: "access_ended", stopsOn: "2026-10-31" }),
         account.buildHostingEnd({ occasion: "seven_days", stopsOn: "2026-10-31" }),
         account.buildDestinationBroken({ held: 2, href: "https://x/app", at }),
-        account.buildRenewalRefunded({ amount: "€49", next: null }),
         account.buildAccountDeleted({ stillLive: 1, leftInWordPress: {} }),
       ].map((mail) => mail.preheader ?? null)
     ).toEqual([
@@ -93,7 +92,6 @@ describe("every arm of a kind names its preheader", () => {
       "mail.account.hosting_end.preheader",
       "mail.account.hosting_end.preheader",
       "mail.account.destinationBroken.preheader",
-      null,
       null,
     ]);
   });
