@@ -1,34 +1,14 @@
 // tests/generate/mend-1507.test.ts — SPEC §7 (issue 1507): a live page whose
 // every defect code repairs is mended through the refresh path at 0¢, as a
-// new version that keeps its dates (`dateModified`, `lastmod`).
+// new version that keeps its dates (`dateModified`, `lastmod`). The mend
+// itself, under today's battery, is `mend-battery.test.ts`.
 import "./env";
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { SITE_ID, memoryStore, opportunity, type MemoryStore } from "./fixtures";
+import { describe, expect, it, vi } from "vitest";
+import { SITE_ID } from "./fixtures";
 
-const { llmMock, pickMock, queueForDraftMock, publications } = vi.hoisted(() => ({
-  llmMock: vi.fn(),
-  pickMock: vi.fn(),
-  queueForDraftMock: vi.fn(),
-  publications: [] as unknown[],
-}));
-vi.mock("@/lib/llm", () => ({ llm: llmMock }));
-vi.mock("@/lib/opportunities", () => ({
-  pageForDay: (siteId: string, date: string, now?: Date) => pickMock(siteId, date, now),
-  queueForDraft: queueForDraftMock,
-  restTopic: async () => undefined,
-  updateInstead: async () => null,
-  opportunityById: async () => null,
-  sitePagesFor: async () => [],
-  assessFixPages: async () => ({ done: 0, ready: 0 }),
-  assessReadiness: async () => ({ ready: 1, unready: 0 }),
-}));
-vi.mock("@/lib/costs", () => ({
-  withCostContext: async (_: unknown, run: (c: unknown) => Promise<unknown>) =>
-    run({ recordFetch: () => { throw new Error("a mend fetches nothing"); }, capHit: () => false, spentCents: () => 0, degraded: () => false }),
-}));
-vi.mock("@/lib/publish/machine", () => ({ transition: async (_: string, to: string) => ({ ok: true, state: to }) }));
+const { publications } = vi.hoisted(() => ({ publications: [] as unknown[] }));
 // The hosted store's one read, answered from `publications` as Postgres
 // would: newest first.
 vi.mock("@/lib/publish/db", () => {
@@ -43,77 +23,7 @@ const STORED = JSON.parse(readFileSync(path.join(__dirname, "live-structure-page
 const B = STORED.pages.find((page) => page.liveUrl.endsWith("/reachkit-vs-aeo-engine"))!;
 const WENT_LIVE = new Date("2026-10-05T07:00:04.910Z");
 
-/** The refresh the hourly re-check plans for B. */
-const REFRESH = opportunity({
-  id: "44444444-4444-4444-8444-444444444444",
-  type: "refresh_page",
-  family: "improve",
-  targetRef: B.liveUrl,
-  evidence: { family: "improve", query: "reachkit vs aeo engine", pageUrl: B.liveUrl, shortfall: { kind: "due", cause: "structure", defects: ["glued_numeral", "link_markup"] } },
-} as never);
-
-let store: MemoryStore;
-
-beforeEach(async () => {
-  llmMock.mockReset();
-  pickMock.mockReset();
-  pickMock.mockResolvedValue(REFRESH);
-  queueForDraftMock.mockReset();
-  const base = memoryStore();
-  base.seed({ id: B.draftId, state: "published", title: "ReachKit vs AEO Engine: 7 buyer questions, answered", body_md: B.markdown, meta: { description: B.description, contentType: "listicle" }, attribution: "Tim" });
-  store = Object.assign(base, { liveVersionAt: async () => ({ draft: base.rows.get(B.draftId)!, publishedAt: WENT_LIVE }) });
-  const { setGenerateStore } = await import("../../src/lib/generate/store");
-  setGenerateStore(store);
-});
-
-afterEach(async () => {
-  const { setGenerateStore } = await import("../../src/lib/generate/store");
-  setGenerateStore(null);
-});
-
 describe("a live page mended through the refresh path", () => {
-  it("is a new version of its own text with the defects repaired, no model asked and the live row untouched", async () => {
-    const { generateDayPage } = await import("../../src/lib/generate");
-    const outcome = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-11-10" });
-    expect(outcome.ok).toBe(true);
-    expect(llmMock).not.toHaveBeenCalled();
-    const mended = outcome.ok ? store.rows.get(outcome.draftId)! : null;
-    expect(mended?.body_md).toContain("For a B2B SaaS");
-    expect(mended?.body_md).not.toContain("[One plan.");
-    expect(mended?.meta).toMatchObject({ description: B.description, datedAs: WENT_LIVE.toISOString(), mendOf: B.draftId });
-    expect(mended?.cost_cents).toBe(0);
-    expect(store.rows.get(B.draftId)!.body_md).toBe(B.markdown);
-    expect(queueForDraftMock).toHaveBeenCalledWith(REFRESH.id);
-  });
-
-  it("a page stopped while it was written saves no draft, and the day takes the week's next spare", async () => {
-    const { generateDayPage, PageStopped } = await import("../../src/lib/generate");
-    const spare = { ...REFRESH, id: "55555555-5555-4555-8555-555555555555" };
-    pickMock.mockResolvedValueOnce(REFRESH).mockResolvedValueOnce(spare);
-    const insert = store.insertDraft.bind(store);
-    store.insertDraft = async (row) => {
-      if (row.opportunity_id === REFRESH.id) throw new PageStopped(REFRESH.id);
-      return insert(row);
-    };
-    const outcome = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-11-10" });
-    expect(outcome.ok).toBe(true);
-    const saved = [...store.rows.values()].filter((row) => row.id !== B.draftId);
-    expect(saved.map((row) => [row.opportunity_id, row.scheduled_for])).toEqual([[spare.id, "2026-11-10"]]);
-    expect(queueForDraftMock).toHaveBeenCalledWith(spare.id);
-    expect(queueForDraftMock).not.toHaveBeenCalledWith(REFRESH.id);
-  });
-
-  it("a page stopped while it was written, with no spare left, leaves the day without a page", async () => {
-    const { generateDayPage, PageStopped } = await import("../../src/lib/generate");
-    pickMock.mockResolvedValueOnce(REFRESH).mockResolvedValueOnce(null);
-    store.insertDraft = async () => {
-      throw new PageStopped(REFRESH.id);
-    };
-    expect(await generateDayPage({ siteId: SITE_ID, publishDate: "2026-11-10" })).toEqual({ ok: false, because: "no_opportunity" });
-    expect([...store.rows.keys()]).toEqual([B.draftId]);
-    expect(queueForDraftMock).not.toHaveBeenCalled();
-  });
-
   it("keeps the version's published and updated dates, so dateModified and lastmod stay", async () => {
     const row = (id: string, publishedAt: string, meta: Record<string, unknown>) => ({
       id,
