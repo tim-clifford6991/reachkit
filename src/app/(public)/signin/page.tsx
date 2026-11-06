@@ -178,8 +178,8 @@ export default function SignInPage(props: {
           ) : (
             <>
               <h1 className="t-hero">{copy("signin.heading")}</h1>
-              <p className={LEAD}>{copy("signin.body")}</p>
               {fromCheckout ? <p className={`text-sm ${QUIET}`}>{copy("signin.checkout_return")}</p> : null}
+              <p className={LEAD}>{copy("signin.body")}</p>
               {askForLink(copy("signin.field.label"), copy("signin.submit.label"))}
             </>
           )}

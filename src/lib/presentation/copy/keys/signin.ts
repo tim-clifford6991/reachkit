@@ -14,7 +14,7 @@ export const SIGNIN_COPY = Object.freeze({
   ],
   // A return from Checkout that could not sign the buyer in: true whether or not the payment went through.
   "signin.checkout_return": [
-    "If your payment went through, your sign-in link is on its way by email. You won’t be charged twice. You can also ask for a new link here.",
+    "If you paid, your sign-in link is on its way to your email. Please don’t pay again; ask for a new link below.",
     { slots: {}, fixedBy: "issue 2399" },
   ],
   "signin.field.label": ["Your email", { slots: {}, fixedBy: "issue 1574" }],

@@ -19,9 +19,11 @@ const markerOf = (): Record<string, string> =>
 const LINE = copy("signin.checkout_return");
 
 describe("a checkout return's sign-in screen", () => {
-  it("the route's own marker shows the line above the form", () => {
+  it("the route's own marker shows the line under the heading, above the body and the form", () => {
     const html = render(markerOf());
     expect(html).toContain(LINE);
+    expect(html.indexOf(LINE)).toBeGreaterThan(html.indexOf(copy("signin.heading")));
+    expect(html.indexOf(LINE)).toBeLessThan(html.indexOf(copy("signin.body")));
     expect(html.indexOf(LINE)).toBeLessThan(html.indexOf("<form"));
   });
 
