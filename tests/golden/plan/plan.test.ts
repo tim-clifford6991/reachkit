@@ -4,8 +4,9 @@
 // the diff is the one intended. 0¢.
 import "../../opportunities/env";
 import { readdirSync } from "node:fs";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { PLAN_DEPTH, WEEK_PLAN } from "@/lib/config/constants";
+import type { ListicleHeld } from "@/lib/generate/templates/listicle";
 import { measured } from "@/lib/measure/measured";
 import { choose, type Choice } from "@/lib/opportunities/choose";
 import { contentTypeOf } from "@/lib/opportunities/content-type";
@@ -14,7 +15,7 @@ import { sourceOf } from "@/lib/opportunities/derive/topics";
 import { planFirstWeek } from "@/lib/opportunities/plan";
 import { readOpportunity, setOpportunityStore, type OpportunityRow } from "@/lib/opportunities/store";
 import { memoryStore, newMemoryState } from "../../opportunities/memory-store";
-import { AT, panelDomains, panelSite, rowOf, SITE_ID, storedSerps, type PanelSite } from "./panel";
+import { AT, heldOf, panelDomains, panelSite, rowOf, SITE_ID, storedSerps, type PanelSite } from "./panel";
 
 /** A site whose stored rows commit no page, the gate that holds them, and
  *  where the finding is filed. A hold that clears fails its case. */
@@ -25,8 +26,8 @@ const HELD: Readonly<Record<string, string>> = {
 const FROM = AT.toISOString().slice(0, 10);
 const REJECTED_SHOWN = 20;
 
-function chosen(site: PanelSite, linkedClusters: readonly string[] = []): Choice {
-  return choose({ rows: site.rows, fixRows: [], profile: site.profile, latest: null, drafted: [], cited: [], topTens: new Map(), linkedClusters, at: AT, from: FROM });
+function chosen(site: PanelSite, linkedClusters: readonly string[] = [], listicle: ListicleHeld | null = heldOf(site)): Choice {
+  return choose({ rows: site.rows, fixRows: [], profile: site.profile, latest: null, drafted: [], cited: [], topTens: new Map(), linkedClusters, listicle, at: AT, from: FROM });
 }
 
 function render(site: PanelSite, choice: Choice): string {
@@ -163,6 +164,34 @@ describe("at most two offering pages in seven days", () => {
   });
 });
 
+describe("a comparison is committed as a listicle only where stored rows field every need its pack must hold", () => {
+  // Synthetic, as no panel run stores a knowledge base: one priced offering and one differentiator.
+  const offering = { name: "Basic", features: [], prices: ["$12 per user a month"], uses: [], from: "https://savvycal.example/pricing" };
+  const knowledge = {
+    ...Object.fromEntries(["audience", "problems", "proof", "questions", "integrations", "places"].map((list) => [list, []])),
+    offerings: [offering],
+    differentiators: [{ text: "Ranked availability", from: "founder", rival: null }],
+    byline: null,
+  } as unknown as NonNullable<ListicleHeld["profile"]>["knowledge"];
+  const site = panelSite("savvycal.com");
+  const first = (held: ListicleHeld | null) => chosen(site, [], held).committed[0]!;
+
+  it("savvycal's stored rivals with a price and a difference keep its first day a listicle", () => {
+    const entry = first({ ...heldOf(site), profile: { promises: [], knowledge } });
+    expect([entry.writeAs, entry.reason.rule]).toEqual([null, "best"]);
+  });
+
+  it.each([
+    ["no price", { ...heldOf(site), profile: { promises: [], knowledge: { ...knowledge!, offerings: [{ ...offering, prices: [] }] } } }, "own_price"],
+    ["no difference", { ...heldOf(site), profile: { promises: [], knowledge: { ...knowledge!, differentiators: [] } } }, "difference"],
+    ["two rivals", { ...heldOf(site), rivals: heldOf(site).rivals.slice(0, 2), profile: { promises: [], knowledge } }, "options"],
+    ["nothing read", null, "options"],
+  ] as const)("%s: the first day is written as a Q&A and says which need is not on file", (_, held, need) => {
+    const entry = first(held);
+    expect([entry.writeAs, entry.reason.rule]).toEqual(["qa", `${need} not on file, as a Q&A`]);
+  });
+});
+
 /** The site's first two topics as live pages, refreshed: the first stalled
  *  near page one, the second not moving. Its last two topics share a cluster
  *  an AI answer linked. */
@@ -205,5 +234,18 @@ describe("the bakery and the electrician commit pages once readiness runs over t
     const days = (await planFirstWeek(SITE_ID, AT)).filter((entry) => entry.plannedFor !== null);
     const held = state.rows.filter((row) => !row.ready).map((row) => `${row.target_query}: ${row.unready_reason}`);
     expect(days.length, held.join("; ")).toBeGreaterThanOrEqual(1);
+  });
+
+  it("a store that holds nothing for a listicle's needs commits no listicle as one, and calls no vendor", async () => {
+    const site = panelSite("savvycal.com");
+    const fetch = vi.spyOn(globalThis, "fetch");
+    const state = newMemoryState({ profile: site.profile, market: site.market, now: AT, rows: site.rows.map((row) => ({ ...row })) });
+    setOpportunityStore({ ...memoryStore(state), topTenRows: async () => storedSerps(site.domain) });
+    const committed = await planFirstWeek(SITE_ID, AT);
+    const listicles = committed.filter((entry) => contentTypeOf(readOpportunity(state.rows.find((row) => row.id === entry.opportunityId)!)) === "listicle");
+    expect(listicles.length).toBeGreaterThan(0);
+    for (const entry of listicles) expect(entry.writeAs).toBe("qa");
+    expect(fetch).not.toHaveBeenCalled();
+    fetch.mockRestore();
   });
 });

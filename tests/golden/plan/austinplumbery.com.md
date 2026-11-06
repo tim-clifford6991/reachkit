@@ -8,14 +8,14 @@ Supply: 10 of 10 committed, short 0; stored topics product 10, category 3, best_
 |---|---|---|---|---|---|---|---|---|---|---|
 | 0 | 2026-10-19 | emergency plumber austin texas | listed_page | offering | 3 | 880 | 5 | fit 3 + demand 2 | best | — |
 | 1 | 2026-10-20 | best plumber austin | refresh_page | update | 2 | 390 | 3 | fit 1 + demand 2 | best | — |
-| 2 | 2026-10-21 | abacus plumbing alternatives | comparison_page | listicle | 3 | — | 3 | fit 3 | best | — |
+| 2 | 2026-10-21 | abacus plumbing alternatives | comparison_page | listicle | 3 | — | 3 | fit 3 | own_price not on file, as a Q&A | qa |
 | 3 | 2026-10-22 | radiant plumbing alternatives | comparison_page | listicle | 3 | — | 3 | fit 3 | over the D52 cap, as a Q&A | qa |
 | 4 | 2026-10-23 | reliant plumbing alternatives | comparison_page | listicle | 3 | — | 3 | fit 3 | over the D52 cap, as a Q&A | qa |
 | 5 | 2026-10-24 | clarke kent plumbing alternatives | comparison_page | listicle | 3 | — | 3 | fit 3 | over the D52 cap, as a Q&A | qa |
 | 6 | 2026-10-25 | beyond wow plumbing alternatives | comparison_page | listicle | 3 | — | 3 | fit 3 | over the D52 cap, as a Q&A | qa |
 | 7 | spare | austin plumbery vs abacus plumbing | comparison_page | listicle | 3 | — | 3 | fit 3 | over the D52 cap, as a Q&A | qa |
 | 8 | spare | austin plumbery vs radiant plumbing | comparison_page | listicle | 3 | — | 3 | fit 3 | over the D52 cap, as a Q&A | qa |
-| 9 | spare | austin plumbery vs reliant plumbing | comparison_page | listicle | 3 | — | 3 | fit 3 | best | — |
+| 9 | spare | austin plumbery vs reliant plumbing | comparison_page | listicle | 3 | — | 3 | fit 3 | own_price not on file, as a Q&A | qa |
 
 | Not chosen | Type | Fit | Volume | Reason |
 |---|---|---|---|---|
