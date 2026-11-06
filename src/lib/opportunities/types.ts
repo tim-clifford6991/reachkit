@@ -10,6 +10,7 @@
 // The customer-facing words for the three winnability handles are not
 // here and are not this module's: they are `BAND_LABELS.winnability` in
 // `src/lib/presentation/bands.ts` (ADR-001). This engine emits handles.
+import type { ListicleNeed } from "@/lib/generate/templates/listicle";
 import type { Measured } from "@/lib/measure/measured";
 import type { KnownSource } from "@/lib/known-content/types";
 import type { SiteCheck } from "@/lib/site-issues/types";
@@ -487,6 +488,7 @@ export type PlaceRule =
   | "best, offering full"
   | "best, same topic"
   | "over the D52 cap, as a Q&A"
+  | `${ListicleNeed} not on file, as a Q&A`
   | "fix ahead of its cluster"
   | "fix, no page to precede"
   // What a page's own results planned (issue 1611), named in place of the tier.

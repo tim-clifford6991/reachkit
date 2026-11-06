@@ -17,6 +17,7 @@
 // call below is site-scoped by an explicit `site_id` predicate — the
 // scoping the policy would have applied, applied here instead.
 import type { OwnLivePage, RefreshInputs } from "./refresh";
+import type { ListicleHeld } from "@/lib/generate/templates/listicle";
 import type { KnowledgeDigest } from "@/lib/site-profile/knowledge/read";
 import { dbAdmin } from "@/lib/db";
 import { canonicalUrl } from "@/lib/measure/page-reading";
@@ -218,6 +219,8 @@ export interface OpportunityStore {
   /** The site's current stored report, or `null` where it has no readable
    *  one. */
   currentReport(siteId: string): Promise<StoredReport | null>;
+  /** The rivals in force, confirmed profile and scan passages a listicle's needs are read from; `null` with no site. */
+  listicleHeld(siteId: string, scanId: string): Promise<ListicleHeld | null>;
   /** SPEC §6 (2026-09-15): whether the site's own measured page text yields
    *  at least one grounding passage — the generator's own read. A read that
    *  fails is `false`: a row is never made ready on a guess. */
@@ -252,12 +255,7 @@ export interface OpportunityStore {
   setEvidence(opportunityId: string, evidence: Evidence): Promise<void>;
   /** Stores the pass's business-fit judgement on a row it already held
    *  (issue 1134): judged once, read by readiness and the ranking. */
-  setBusinessFit(
-    opportunityId: string,
-    fit: BusinessFit,
-    source: TopicSource,
-    pageType: PageType | null
-  ): Promise<void>;
+  setBusinessFit(opportunityId: string, fit: BusinessFit, source: TopicSource, pageType: PageType | null): Promise<void>;
   /** The site's structured market in force (`null` where none has been
    *  concluded) — what the fit is judged against — and the rivals it is
    *  measured against, as registrable domains. */
@@ -298,10 +296,7 @@ export interface OpportunityStore {
   /** A planned new page that becomes an update of a page the site already
    *  has (SPEC §7, D12, issue 1143): the row keeps its search, its status
    *  and its cluster, and takes the update's type, target and evidence. */
-  becomeUpdate(
-    opportunityId: string,
-    update: Pick<OpportunityInsert, "type" | "family" | "target_ref" | "proposed_slug" | "title" | "effort" | "evidence">
-  ): Promise<void>;
+  becomeUpdate(opportunityId: string, update: Pick<OpportunityInsert, "type" | "family" | "target_ref" | "proposed_slug" | "title" | "effort" | "evidence">): Promise<void>;
   /** The host the site's live hosted destination serves at, or `null`. */
   hostedHostFor(siteId: string): Promise<string | null>;
   /** The pages the site's hosted destination could update — its host and
@@ -478,10 +473,7 @@ const UNIQUE_VIOLATION = "23505";
  *
  * A site with no Improve row costs no read, and a failure moves nothing.
  */
-async function atCurrentHost<T extends { family: string; target_ref: string; evidence?: unknown }>(
-  siteId: string,
-  rows: readonly T[]
-): Promise<T[]> {
+async function atCurrentHost<T extends { family: string; target_ref: string; evidence?: unknown }>(siteId: string, rows: readonly T[]): Promise<T[]> {
   if (!rows.some((row) => row.family === "improve")) return [...rows];
   let now: (url: string) => string;
   try {
@@ -1075,6 +1067,7 @@ export function supabaseOpportunityStore(): OpportunityStore {
     },
 
     currentReport: currentReportOf,
+    listicleHeld: (siteId, scanId) => import("@/lib/generate/voice/confirmed").then(({ listicleHeldOf }) => listicleHeldOf({ siteId, scanId })),
   };
 }
 

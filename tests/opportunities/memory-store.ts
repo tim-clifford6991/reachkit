@@ -11,6 +11,7 @@
 // ('open','queued')`, and `status_changed_at` moving only when `status`
 // does.
 import "./env";
+import type { ListicleHeld } from "@/lib/generate/templates/listicle";
 import type { KnownPage } from "@/lib/known-content/types";
 import type {
   DraftedPage,
@@ -78,6 +79,8 @@ export interface MemoryState {
   /** The site's live pages of ours, as `refreshPages` answers them; absent
    *  reads as none. */
   livePages?: OwnLivePage[];
+  /** What a listicle's needs are read from; absent reads as nothing on file. */
+  listicle?: ListicleHeld | null;
 }
 
 export function newMemoryState(over: Partial<MemoryState> = {}): MemoryState {
@@ -244,6 +247,10 @@ export function memoryStore(state: MemoryState): OpportunityStore {
 
     async currentReport() {
       return state.report;
+    },
+
+    async listicleHeld() {
+      return state.listicle ?? null;
     },
 
     async hasGroundingFact() {

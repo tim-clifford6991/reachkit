@@ -6,14 +6,14 @@ Supply: 9 of 10 committed, short 0; stored topics product 8, category 3, best_x 
 
 | Place | Day | Search | Type | Page | Fit | Volume | Points | Parts | Rule | Written as |
 |---|---|---|---|---|---|---|---|---|---|---|
-| 0 | 2026-10-19 | habitify alternatives | comparison_page | listicle | 3 | 10 | 5 | fit 3 + demand 2 | best | — |
+| 0 | 2026-10-19 | habitify alternatives | comparison_page | listicle | 3 | 10 | 5 | fit 3 + demand 2 | own_price not on file, as a Q&A | qa |
 | 1 | 2026-10-20 | app that counts consecutive days of habit completion | keyword_page | qa | 3 | — | 3 | fit 3 | best | — |
 | 2 | 2026-10-21 | atoms alternatives | comparison_page | listicle | 3 | — | 3 | fit 3 | over the D52 cap, as a Q&A | qa |
 | 3 | 2026-10-22 | loop habit tracker alternatives | comparison_page | listicle | 3 | — | 3 | fit 3 | over the D52 cap, as a Q&A | qa |
 | 4 | 2026-10-23 | streaks vs atoms | comparison_page | listicle | 3 | — | 3 | fit 3 | over the D52 cap, as a Q&A | qa |
 | 5 | 2026-10-24 | streaks vs habitify | comparison_page | listicle | 3 | — | 3 | fit 3 | over the D52 cap, as a Q&A | qa |
 | 6 | 2026-10-25 | streaks vs loop habit tracker | comparison_page | listicle | 3 | — | 3 | fit 3 | over the D52 cap, as a Q&A | qa |
-| 7 | spare | streaks vs habi | comparison_page | listicle | 3 | — | 3 | fit 3 | best | — |
+| 7 | spare | streaks vs habi | comparison_page | listicle | 3 | — | 3 | fit 3 | own_price not on file, as a Q&A | qa |
 | 8 | spare | streaks vs habitbox | comparison_page | listicle | 3 | — | 3 | fit 3 | over the D52 cap, as a Q&A | qa |
 
 | Not chosen | Type | Fit | Volume | Reason |
