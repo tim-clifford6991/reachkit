@@ -20,8 +20,20 @@
 // suite standing a counting double in front of it, most of all. Wiring on
 // top of that would leave the suite measuring the real issuer while
 // believing it was measuring its own, so this checks first and defers.
-import { registerSignInLinkIssuer, signInLinkIssuerWired } from "../provisioning/sign-in-link";
+import { issueSignInLink, registerSignInLinkIssuer, signInLinkIssuerWired } from "../provisioning/sign-in-link";
+import { LANDING_QUERY_KEY, linkLandingOf } from "./addresses";
 import { issueLink } from "./links";
+
+/** A sign-in link that lands on `landsOn` where the redeem route allows it, or `null`, which is no send. */
+export async function signInLinkTo(a: { userId: string; to: string; landsOn: string }): Promise<string | null> {
+  wireSignInLinkIssuer();
+  const link = await issueSignInLink({ userId: a.userId, to: a.to });
+  if (!link.issued) return null;
+  if (linkLandingOf(a.landsOn) === null) return link.url;
+  const url = new URL(link.url);
+  url.searchParams.set(LANDING_QUERY_KEY, a.landsOn);
+  return url.toString();
+}
 
 let wired = false;
 

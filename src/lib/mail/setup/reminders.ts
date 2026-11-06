@@ -3,7 +3,7 @@
 // Checked at send time, never scheduled: the tick asks who is due now and each send re-reads the row, so going live at hour 71 stops hour 72.
 // No working link, no send (REQ-025 c6): the link is issued first and a failure leaves the founder due at the next offset.
 // `sites.setup_reminders_sent` is incremented after the send, and its check constraint refuses a fourth even on a double delivery.
-import { CONNECT_LANDING_PATH, LANDING_QUERY_KEY } from "@/lib/account/identity/addresses";
+import { CONNECT_LANDING_PATH } from "@/lib/account/identity/addresses";
 import { SETUP_REMINDER_OFFSETS_H } from "@/lib/config/constants";
 import { dbAdmin } from "@/lib/db";
 import { sendEmail } from "../send";
@@ -25,15 +25,8 @@ export type SignInLinkIssuer = (a: {
 
 const identityIssuer: SignInLinkIssuer = async (a) => {
   // Lazy: this module rides `src/jobs/engine.ts`'s static imports, and identity pulls Supabase Auth.
-  const { wireSignInLinkIssuer } = await import("@/lib/account/identity/wire");
-  const { issueSignInLink: issue } = await import("@/lib/account/provisioning/sign-in-link");
-  wireSignInLinkIssuer();
-  const link = await issue({ userId: a.userId, to: a.email });
-  if (!link.issued) return null;
-  if (a.landsOn !== CONNECT_LANDING_PATH) return link.url;
-  const url = new URL(link.url);
-  url.searchParams.set(LANDING_QUERY_KEY, a.landsOn);
-  return url.toString();
+  const { signInLinkTo } = await import("@/lib/account/identity/wire");
+  return signInLinkTo({ userId: a.userId, to: a.email, landsOn: a.landsOn });
 };
 
 let issueSignInLink: SignInLinkIssuer = identityIssuer;
