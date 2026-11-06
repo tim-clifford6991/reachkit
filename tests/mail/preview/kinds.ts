@@ -24,7 +24,7 @@ import type {
   DraftReadyPage,
   TellableTelling,
 } from "../../../src/lib/mail/templates/draft-ready";
-import type { WeeklyPage } from "../../../src/lib/mail/templates/weekly";
+import type { WeeklyNumbers, WeeklyPage } from "../../../src/lib/mail/templates/weekly";
 import { COPY, type CopyKey } from "../../../src/lib/presentation/copy";
 import type { PublishedTelling } from "../../../src/lib/publish/verify/telling";
 
@@ -287,8 +287,9 @@ export async function composePreview(kind: PreviewKind): Promise<PreviewMail> {
  *  `weekly` card the set draws. Every section drops out and the whole-mail
  *  line says when the next measurement is due (§8's "a mail that still
  *  arrives when there was nothing to report"). */
-/** Board MondayMail's sample week; `unmeasured` names the Google steps nobody read this week. */
-export async function composeWeekly(unmeasured: readonly string[] = []): Promise<PreviewMail> {
+/** Board MondayMail's sample week; `unmeasured` names the Google steps nobody read this week, `setAside` what filled the
+ *  days of the pages set aside. */
+export async function composeWeekly(unmeasured: readonly string[] = [], setAside: WeeklyNumbers["setAside"] = { n: 1, arm: "replaced" }): Promise<PreviewMail> {
   const composeMail = await composer();
   const { buildWeekly } = await import("../../../src/lib/mail/templates/weekly");
   const mail = buildWeekly({
@@ -298,7 +299,7 @@ export async function composeWeekly(unmeasured: readonly string[] = []): Promise
     numbers: {
       live: measured(12, AT),
       planned: measured(7, AT),
-      setAside: { n: 1, replaced: true },
+      setAside,
       google: {
         steps: (["draft.ladder.found", "draft.ladder.showing", "draft.ladder.first-page"] as const).map((name, i) => ({
           name,
@@ -347,7 +348,7 @@ export async function composeWeeklyFirst(
     numbers: {
       live: measured(0, AT),
       planned: measured(WEEKLY_NEXT.length, AT),
-      setAside: { n: 1, replaced: false },
+      setAside: { n: 1, arm: "unreplaced" },
       google: {
         steps: (["draft.ladder.found", "draft.ladder.showing", "draft.ladder.first-page"] as const).map((name) => ({
           name,

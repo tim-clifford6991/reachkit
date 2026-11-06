@@ -119,6 +119,8 @@ export const CALENDAR_COPY = Object.freeze({
   "calendar.day.stopped": ["Stopped", { slots: {}, fixedBy: "SPEC §7 2026-10-19 E5 (drafted)" }],
   "calendar.day.skipped": ["Skipped", { slots: {}, fixedBy: "SPEC §7 2026-10-19 E5 (drafted)" }],
   "calendar.day.set-aside": ["Set aside", { slots: {}, fixedBy: "owner O7, issue 2164 (drafted)" }],
+  "calendar.day.became-update": ["Now an update", { slots: {}, fixedBy: "ux-designer, seo-master 2026-11-05, issue 2389 (drafted)" }],
+  "calendar.day.became-update.line": ["This day now improves a live page instead of a new one. Nothing is needed from you.", { slots: {}, fixedBy: "ux-designer 2026-11-06, seo-master 2026-11-05, issue 2389 (drafted)" }],
   "calendar.week.stop": ["Stop", { slots: {}, fixedBy: "SPEC §7 2026-10-19 E7 (drafted)" }],
   // Why the week holds a page: its most specific reason, one line.
   "calendar.week.why.near-page-one": ["Close to Google’s first page", { slots: {}, fixedBy: "SPEC §7 2026-10-19 C3 (drafted)" }],

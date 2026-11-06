@@ -104,7 +104,7 @@ function Day(p: { day: WeekDay; firstSkip: boolean; timeZone: string; scheduled:
   const { cell } = p.day;
   const page = cell.page;
   const line = cardLineFor(cell, ALL);
-  const state = page === null ? stateLineOf(cell, p.firstSkip) : null;
+  const state = stateLineOf(cell, p.firstSkip);
   return (
     <li
       className={[

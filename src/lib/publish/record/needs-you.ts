@@ -116,6 +116,13 @@ export function setAsideOf(a: { state: State; transitions: unknown }): boolean {
   return typeof reason === "string" && reason.startsWith("retired:");
 }
 
+/** Whether a day's own page gave way to an update of a live page: the day's fallback, mended in code or written from
+ *  stored research. Anything else claims no change of plan. */
+export function becameUpdate(meta: unknown): boolean {
+  const m = (typeof meta === "object" && meta !== null ? meta : {}) as Record<string, unknown>;
+  return typeof m.fallbackFor === "string" && (typeof m.mendOf === "string" || m.research === "stored");
+}
+
 /** When the page first rested with its publish tried to exhaustion, or `null`. */
 export function exhaustedSince(transitions: unknown): string | null {
   if (!Array.isArray(transitions)) return null;

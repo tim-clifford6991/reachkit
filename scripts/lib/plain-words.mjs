@@ -72,6 +72,18 @@ export const RETIRED = [
   { name: "keyword", pattern: /\bkeywords?\b/ },
   { name: "veto", pattern: /\bveto(?:es|ed)?\b/i },
   { name: "derivation", pattern: /\bderivations?\b/i },
+  // An update of a live page promises no ranking, no reward and no crawl (seo-master, 2026-11-05).
+  { name: "boost", pattern: /\bboost/i },
+  { name: "rank higher", pattern: /\brank(?:s|ing)? higher\b/i },
+  { name: "more visible", pattern: /\bmore visible\b/i },
+  { name: "more traffic", pattern: /\bmore traffic\b/i },
+  { name: "Google rewards", pattern: /\bGoogle (?:rewards|loves)\b/i },
+  { name: "AI prefers", pattern: /\bAI prefers\b/i },
+  { name: "just as good", pattern: /\b(?:just as good|as much as|better than)\b/i },
+  { name: "sooner", pattern: /\b(?:sooner|faster results)\b/i },
+  { name: "freshness", pattern: /\b(?:freshness|fresh content ranks)\b/i },
+  { name: "lastmod", pattern: /\b(?:lastmod|IndexNow|re-?crawl)/i },
+  { name: "improved your rankings", pattern: /\bimproved your rankings?\b/i },
 ];
 
 /** Rule 4 words that still have hits: counted by the ratchet, never banned outright yet. */

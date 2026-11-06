@@ -49,7 +49,7 @@ function DayRow(p: {
   const [busy, startTransition] = useTransition();
   const [stopped, setStopped] = useState(false);
   const today = page !== null && cell.today && p.goesLive !== null && (page.stage === "your_review" || page.stage === "scheduled");
-  const stateLine = page === null ? stateLineOf(cell, p.firstSkip) : null;
+  const stateLine = stateLineOf(cell, p.firstSkip);
 
   function press(asked: { command: DayCommand; draftId: string }): void {
     startTransition(async () => {

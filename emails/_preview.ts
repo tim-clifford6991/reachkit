@@ -32,3 +32,9 @@ export async function previewFirstWeek(): Promise<ReactNode> {
   const { composeWeeklyFirst } = await import("../tests/mail/preview/kinds");
   return (await composeWeeklyFirst()).document;
 }
+
+/** The Monday mail of a week whose set-aside pages' days were filled by updates of live pages — a fourth state of `weekly`. */
+export async function previewUpdatedWeek(): Promise<ReactNode> {
+  const { composeWeekly } = await import("../tests/mail/preview/kinds");
+  return (await composeWeekly([], { n: 2, arm: "updated" })).document;
+}
