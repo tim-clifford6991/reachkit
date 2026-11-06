@@ -33,7 +33,7 @@ import type { State } from "@/lib/publish/types";
 import { withDraftCost } from "./cost";
 import { claimCheck, type ClaimVerdict } from "./claims/check";
 import { readRecordedFact } from "./fact";
-import { buildComparisonSet } from "./pipeline/comparison";
+import { buildComparisonSet, ownVersions } from "./pipeline/comparison";
 import { allowedFacts, readAllFacts } from "./pipeline/grounding";
 import { siteRulesOf } from "./pipeline/battery";
 import { targetSearches } from "./pipeline";
@@ -291,15 +291,4 @@ async function recheck(
     });
     return { claim: outcome.claim, failed: recordedRulesValue(outcome), run: recordedRunValue(outcome), spentCents: cost.spentCents() };
   });
-}
-
-/** A refresh's text is a new version of the page at its own address, so the
- *  versions it replaces there are not what it may not repeat. */
-async function ownVersions(
-  siteId: string,
-  opportunity: { type: string; targetRef: string } | null
-): Promise<{ exceptVersionsAt?: { url: string; draftIds: string[] } }> {
-  const store = generateStore();
-  if (opportunity?.type !== "refresh_page") return {};
-  return { exceptVersionsAt: { url: opportunity.targetRef, draftIds: await store.versionsAt(siteId, opportunity.targetRef) } };
 }

@@ -59,7 +59,7 @@ import { HARD_RULES, type GroundedFact, type HardRule, type RuleFailure, type Si
 import { generateStore, type DraftRow } from "../store";
 import type { PackNeed } from "../templates";
 import { profileItemsUsed } from "../voice/profile-block";
-import { buildComparisonSet } from "./comparison";
+import { buildComparisonSet, ownVersions } from "./comparison";
 import { layoutPage, withClosing, type LaidPage } from "./compose";
 import type { SourcedFact } from "./grounding";
 import { fittedTemplate, packStatements, type ContextPack } from "./pack";
@@ -376,7 +376,7 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
   const draftId = await writeRow({ title: page.laid.body.title, body_md: page.markdown, meta: metaOf(page, [], null) });
 
   // 4. Check: code only, against this customer's own three sets.
-  const comparison = await buildComparisonSet({ siteId: a.siteId, exceptDraftId: draftId });
+  const comparison = await buildComparisonSet({ siteId: a.siteId, exceptDraftId: draftId, ...(await ownVersions(a.siteId, a.opportunity)) });
   const check = async (candidate: Finished, settled = false) => {
     const { laid } = candidate;
     const page = { title: laid.body.title, heading: laid.body.heading, description: laid.body.description, sections: laid.sections, faq: laid.faq };

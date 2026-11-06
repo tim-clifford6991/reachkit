@@ -50,7 +50,8 @@ import { parseHealth } from "@/lib/scan/health";
 import { readStoredReport, type StoredReport } from "@/lib/scan/report";
 import { askedOfReport } from "@/lib/opportunities/derive/topics";
 import { storedKnowledgeOf } from "@/lib/site-profile/knowledge/store";
-import { commitOf, psql, rebuild, waitForSchema } from "../local-run.mjs";
+import { planFirstWeek } from "@/lib/opportunities";
+import { commitOf, insertRows, psql, rebuild, waitForSchema } from "../local-run.mjs";
 import { appendSpend } from "../spend-log.mjs";
 import { checkSite, countPageQuestions, defectsByKind, panelTopicOf, saidOf, type CheckResult, type PanelSite, type SiteResult, type VendorLocale } from "./checks";
 
@@ -128,12 +129,7 @@ function loadEvidence(root: string, domain: string): number {
   // The file holds no `scan_id` (`keepEvidence` drops it), and the cache
   // reads on source, key, policy version and age alone: the rows are put
   // under the evidence scan, and the column is named in the insert.
-  const stored = rows.map((row) => ({ ...row, scan_id: EVIDENCE_SCAN }));
-  const columns = [...new Set(stored.flatMap((row) => Object.keys(row)))].map((column) => `"${column}"`).join(", ");
-  const tag = "$evidence$";
-  psql(
-    `set session_replication_role = replica; insert into public.fetches (${columns}) select ${columns} from jsonb_populate_recordset(null::public.fetches, ${tag}${JSON.stringify(stored)}${tag}::jsonb);`
-  );
+  insertRows("fetches", rows.map((row) => ({ ...row, scan_id: EVIDENCE_SCAN })));
   return rows.length;
 }
 
@@ -194,11 +190,15 @@ function watchNetwork(o: Options, spent: () => number): Watch {
 
 // ── One site ───────────────────────────────────────────────────────────────
 
-/** The pass's own steps, less the one the panel does not run. */
-const step: PassStep = async (name, body) => {
-  if (name === "first-draft") return "completed" as never;
-  return body();
-};
+/** The pass's own steps, less the first draft: its week is still committed,
+ *  so readiness is written as production writes it, and no page is. */
+export const panelStep =
+  (siteId: string, plan: typeof planFirstWeek = planFirstWeek): PassStep =>
+  async (name, body) => {
+    if (name !== "first-draft") return body();
+    await plan(siteId, new Date());
+    return "completed" as never;
+  };
 
 interface Stored {
   site: Row | null;
@@ -243,7 +243,7 @@ async function runSite(o: Options, site: PanelSite, watch: Watch, quiet: (lines:
   const lines: Row[] = [];
   const loud = quiet(lines);
   try {
-    await runDeepPass({ siteId, domain: site.domain, step });
+    await runDeepPass({ siteId, domain: site.domain, step: panelStep(siteId) });
   } catch (error) {
     lines.push({ event: "panel_pass_threw", because: error instanceof Error ? error.message : String(error) });
   } finally {

@@ -84,6 +84,7 @@ const DB = [
   /^src\/lib\/scan\/weekly\/(index|access)\.ts$/,
   /^src\/lib\/account\/billing\/index\.ts$/,
   /^scripts\/daily-check\/(settings-reads|runway)\.mjs$/,
+  /^scripts\/local-run\.mjs$/,
   /^tests\/ui\/layout\/seed-rows\.ts$/,
   /^tests\/(mail\/env-fixture|opportunities\/env)\.ts$/,
 ];

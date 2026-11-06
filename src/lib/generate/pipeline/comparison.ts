@@ -61,3 +61,14 @@ export async function buildComparisonSet(a: {
     })),
   };
 }
+
+/** A refresh's text is a new version of the page at its own address, so the
+ *  versions it replaces there are not what it may not repeat. */
+export async function ownVersions(
+  siteId: string,
+  opportunity: { type: string; targetRef: string } | null
+): Promise<{ exceptVersionsAt?: { url: string; draftIds: string[] } }> {
+  const store = generateStore();
+  if (opportunity?.type !== "refresh_page") return {};
+  return { exceptVersionsAt: { url: opportunity.targetRef, draftIds: await store.versionsAt(siteId, opportunity.targetRef) } };
+}
