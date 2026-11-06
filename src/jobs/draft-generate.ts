@@ -98,7 +98,7 @@ async function draftSite(input: JobInput): Promise<Outcome> {
     await recordDraftDay(
       "degraded" in result
         ? { siteId, publishDate, outcome: "no_page", reason: result.degraded, at: hour }
-        : { siteId, publishDate, outcome: "drafted", reason: null, at: hour }
+        : { siteId, publishDate, outcome: "drafted", reason: result.instead ?? null, at: hour }
     );
     // Last, so a page the recheck rescued or the review let through is seen and nothing it covered is mailed.
     if (site !== null) await step("alert", () => alertSiteDay({ site, hour }));
