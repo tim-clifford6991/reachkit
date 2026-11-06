@@ -335,12 +335,14 @@ async function filledBy(siteId: string, days: readonly string[], n: number): Pro
   const [first, last] = [days[0]!, days.at(-1)!];
   const [outcomes, drafts] = await Promise.all([
     untyped().from<{ publish_date: string; outcome: string | null }>("draft_days").select("publish_date, outcome").eq("site_id", siteId).gte("publish_date", first).lte("publish_date", last),
-    untyped().from<{ meta: unknown }>("drafts").select("meta").eq("site_id", siteId).gte("scheduled_for", first).lte("scheduled_for", last),
+    untyped().from<{ state: string; meta: unknown }>("drafts").select("state, meta").eq("site_id", siteId).gte("scheduled_for", first).lte("scheduled_for", last),
   ]);
   if (outcomes.error !== null || drafts.error !== null) return "unreplaced";
   const drafted = new Set((outcomes.data ?? []).filter((day) => day.outcome === "drafted").map((day) => day.publish_date));
-  if (days.some((day) => !drafted.has(day))) return "unreplaced";
-  const u = (drafts.data ?? []).filter((draft) => becameUpdate(draft.meta)).length;
+  const updates = (drafts.data ?? []).filter((draft) => becameUpdate(draft.meta));
+  // An update that never went live, stopped or not, filled nothing: its day is a gap.
+  if (days.some((day) => !drafted.has(day)) || updates.some((draft) => draft.state !== "published")) return "unreplaced";
+  const u = updates.length;
   return u === 0 ? "replaced" : u >= n ? "updated" : "unreplaced";
 }
 

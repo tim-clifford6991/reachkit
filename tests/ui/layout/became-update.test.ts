@@ -1,5 +1,5 @@
-// SPEC §7 (owner, 2026-11-05) — a day planned as a new page and filled by an update of a live page says so on its row
-// and in its panel. Both lines fit at every width and theme, are on screen, and carry no serious or critical axe finding.
+// SPEC §7 (owner, 2026-11-05) — a day planned as a new page that an update filled says so on its row, in its panel and
+// on the Overview's This week strip. Each line fits, is on screen, and has no serious or critical axe finding.
 import AxeBuilder from "@axe-core/playwright";
 import type { Page } from "playwright";
 import { expect, it } from "vitest";
@@ -22,12 +22,14 @@ function read(selectors: { row: string; panel: string }) {
   };
 }
 
-const CASES = NO_OVERFLOW_WIDTHS.flatMap((width) => NO_OVERFLOW_THEMES.map((theme) => [width, theme] as const));
+const CALENDAR = `/app/calendar?day=${BECAME_UPDATE_DAY}`;
+const CASES = [...NO_OVERFLOW_WIDTHS.flatMap((width) => NO_OVERFLOW_THEMES.map((theme) => [CALENDAR, width, theme] as const)), ...NO_OVERFLOW_THEMES.map((theme) => ["/app", 390, theme] as const)];
 
-it.each(CASES)("at %i in %s, the row says Now an update and the panel says why, both fitting", async (width, theme) => {
+it.each(CASES)("%s at %i in %s: the row says Now an update and the panel why, each fitting", async (path, width, theme) => {
+  const calendar = path === CALENDAR;
   const found = await withPage(width, async (page: Page) => {
     await page.emulateMedia({ colorScheme: theme, reducedMotion: "reduce" });
-    await page.goto(`${getBaseURL()}/app/calendar?day=${BECAME_UPDATE_DAY}`);
+    await page.goto(`${getBaseURL()}${path}`);
     await settleForMeasurement(page);
     return {
       lines: await page.evaluate(read, { row: ROW, panel: PANEL_LINE }),
@@ -36,10 +38,10 @@ it.each(CASES)("at %i in %s, the row says Now an update and the panel says why, 
         await page.evaluate(checkContainment, { scrollContainerAllowlist: SCROLL_CONTAINER_ALLOWLIST }),
         await page.evaluate(checkNoClippingOrTruncation, { scrollContainerAllowlist: SCROLL_CONTAINER_ALLOWLIST, truncationAllowlist: TRUNCATION_ALLOWLIST, monoFontFamily: MONO_FONT_FAMILY }),
       ].flat(),
-      axe: (await new AxeBuilder({ page }).include(ROW).include(PANEL_LINE).analyze()).violations.filter((v) => BLOCKING_AXE_IMPACTS.includes(v.impact ?? "")),
+      axe: (await (calendar ? new AxeBuilder({ page }).include(ROW).include(PANEL_LINE) : new AxeBuilder({ page }).include(ROW)).analyze()).violations.filter((v) => BLOCKING_AXE_IMPACTS.includes(v.impact ?? "")),
     };
   }, { extraHTTPHeaders: { Cookie: getBecameUpdateAccountCookie() } });
-  expect(found.lines).toEqual({ state: copy("calendar.day.became-update"), panel: copy("calendar.day.became-update.line") });
+  expect(found.lines).toEqual({ state: copy("calendar.day.became-update"), panel: calendar ? copy("calendar.day.became-update.line") : null });
   expect(found.offenders).toEqual([]);
   expect(found.axe.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`)).toEqual([]);
 }, 60_000);

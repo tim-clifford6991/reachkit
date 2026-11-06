@@ -82,6 +82,7 @@ describe("the Monday mail's set-aside line", () => {
     ["one set aside and a day with no page claims no next page", ["d98284cc"], [], drafted("2026-10-29"), UNREPLACED[0]],
     ["one set aside, an update, and a day with no page claims no next page", ["d98284cc"], updates(["2026-10-28"]), drafted("2026-10-29"), UNREPLACED[0]],
     ["one set aside and no stored days claims no next page", ["d98284cc"], [], [], UNREPLACED[0]],
+    ["one set aside whose update the customer stopped claims neither", ["d98284cc"], updates(["2026-10-28"]).map((row) => ({ ...row, state: "skipped" })), drafted(), UNREPLACED[0]],
   ] as const)("%s, once", async (_case, ids, filled, days, key) => {
     const lines = (await mailFor([...retired(ids), ...filled], days)).filter((block) => SLOT.some((each) => each === block.text));
     expect(lines).toEqual([{ block: "paragraph", text: key, ...(ids.length > 1 ? { vars: { n: "3" } } : {}) }]);
