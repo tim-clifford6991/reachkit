@@ -5,24 +5,26 @@
 // body, and was written from a pack no older than a topic's rest. Its stored words go through the same battery a page
 // as written does (`./pipeline/battery.ts`), with every model call refused: the fit check's stored verdict stands for
 // the sentences today's reading still asks about. Before the battery, code mends what it can from the row's own words:
-// the title is re-picked from the writer's stored candidates, never one carrying the business's promise figure (OR4),
-// which is held where none is clean; the description is fitted; a FAQ pair or a do-not-claim sentence the rules fail
-// is dropped. What still fails, or was never a page to check, is set aside at 0¢ (`needs_attention → skipped`), the row
-// kept and its topic's rest as the stop left it.
+// the title is re-picked from the writer's stored candidates and code's floor title, never one carrying the business's
+// promise figure (OR4), which is held where none is clean, nor a floor that stops the page as more than a want of a
+// specific; the description is fitted; a FAQ pair or a do-not-claim sentence the rules fail is dropped, and so is a
+// sentence the stored fit verdict named (issue 2375). A page whose one failure left is its title's want of a specific
+// goes on without it, as at stage 4 (ruling 2026-10-11). What still fails, or was never a page to check, is set aside
+// at 0¢ (`needs_attention → skipped`), the row kept and its topic's rest as the stop left it.
 import { TOPIC_REST_DAYS } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import type { Opportunity } from "@/lib/opportunities";
 import { needsYouCauseOf } from "@/lib/publish/record/needs-you";
 import type { Actor, TransitionRecord } from "@/lib/publish/types";
-import { brandSentences, type FitVerdict } from "./claims/fit";
+import { stillAsked, type FitVerdict } from "./claims/fit";
 import { readRecordedFact } from "./fact";
-import { batteryBasis, checkPage, siteRulesOf, type BatteryBasis, type CheckedPage } from "./pipeline/battery";
+import { batteryBasis, blockInputs, checkPage, lacksSpecificOnly, siteRulesOf, type BatteryBasis, type CheckedPage } from "./pipeline/battery";
 import { buildComparisonSet } from "./pipeline/comparison";
 import { fitDescription } from "./pipeline/compose";
 import { allowedFacts, readAllFacts, readDemoPhrases, type SourcedFact } from "./pipeline/grounding";
 import type { ContextPack } from "./pipeline/pack";
-import { withoutBrokenPairs, withoutClaimed } from "./pipeline/repair";
-import { promiseFigures, titleRuleFor } from "./pipeline/title";
+import { withoutBrokenPairs, withoutClaimed, withoutUnfit } from "./pipeline/repair";
+import { floorTitle, promiseFigures, titleRuleFor } from "./pipeline/title";
 import { readRecordedRules, readRecordedRun, recordedRulesValue, recordedRunValue, recordedVerdictValue } from "./record";
 import { batteryCleared } from "./rules";
 import { answerBoxOf } from "./rules/blocks";
@@ -100,15 +102,24 @@ export async function recheckRow(row: DraftRow, world: RecheckWorld): Promise<Re
     sourceText: "",
   };
   const basis = batteryBasis({ pack, opportunity: world.opportunity, site: world.site, facts: world.facts, grounding, ...(world.demoPhrases === undefined ? {} : { demoPhrases: world.demoPhrases }) });
-  const { page, markdown, fixes } = mend(row, pack, basis);
+  const stopped = readRecordedRules(row.rule_failures) ?? [];
+  const { page, markdown, fixes } = mend(row, pack, basis, stopped);
   const { title } = page;
   const figures = promiseFigures(title, pack);
   if (figures.length > 0) return { kind: "held", reason: "title_promise_figure", figures };
-  const stopped = readRecordedRules(row.rule_failures) ?? [];
   const fit = storedFit(row, stopped, { title, markdown, site: world.site, titleOwed: (titleRuleFor(pack, page).business?.length ?? 0) > 0 });
   const comparison = await buildComparisonSet({ siteId: row.site_id, exceptDraftId: row.id });
   const broken = new Set<HardRule>();
-  const checked = await checkPage(REFUSED, basis, page, markdown, { siteId: row.site_id, draftId: row.id, comparison, broken, ...(fit === undefined ? {} : { fit }) }, row.hard_rule_attempts >= 2);
+  const at = { siteId: row.site_id, draftId: row.id, comparison, broken, ...(fit === undefined ? {} : { fit }) };
+  const settled = row.hard_rule_attempts >= 2;
+  let checked = await checkPage(REFUSED, basis, page, markdown, at, settled);
+  // Ruling 2026-10-11, as stage 4 applies it where the fix call cannot start: a page whose one failure left is its
+  // title's want of a specific goes on without one, the title marked. The re-check asks no model (OR2).
+  const unmet = !settled && lacksSpecificOnly(checked.outcome);
+  if (unmet) {
+    const again = await checkPage(REFUSED, basis, page, checked.markdown, at, true);
+    checked = { ...again, repairs: [...checked.repairs, ...again.repairs] };
+  }
 
   const failed = recordedRulesValue(checked.outcome);
   const passed = batteryCleared(checked.outcome) && checked.close === null;
@@ -129,6 +140,7 @@ export async function recheckRow(row: DraftRow, world: RecheckWorld): Promise<Re
         ...(fixes.title === undefined ? meta : Object.fromEntries(Object.entries(meta).filter(([key]) => key !== "heading"))),
         description: page.description,
         faq: page.faq,
+        ...(unmet && Array.isArray(meta.titles) ? { titles: (meta.titles as { title?: unknown }[]).map((each) => (each?.title === title ? { ...each, specific_unmet: true } : each)) } : {}),
         ...(Object.keys(fixes).length === 0 ? {} : { recheck: { ...(meta.recheck as RecheckFixes | undefined), ...fixes } }),
         checks: recordedRunValue(checked.outcome, broken),
         ...(checked.repairs.length === 0 ? {} : { repairs: [...priorRepairs, ...checked.repairs] }),
@@ -141,29 +153,48 @@ export async function recheckRow(row: DraftRow, world: RecheckWorld): Promise<Re
 }
 
 /** The stored page with what code mends from its own words, no word added: the title the picker takes today of the
- *  writer's candidates that carry no promise figure, the description fitted (the short answer's where none was
+ *  writer's candidates and the search's own floor title that carry no promise figure, the description fitted (the short answer's where none was
  *  written), and the FAQ pairs and do-not-claim sentences the rules fail dropped. */
-function mend(row: DraftRow, pack: ContextPack, basis: BatteryBasis): { page: CheckedPage; markdown: string; fixes: RecheckFixes } {
+function mend(row: DraftRow, pack: ContextPack, basis: BatteryBasis, stopped: readonly RuleFailure[]): { page: CheckedPage; markdown: string; fixes: RecheckFixes } {
   const meta = metaOf(row);
   const stored = row.title ?? "";
   const sections = Array.isArray(meta.sections) ? meta.sections : [];
   const before = typeof meta.description === "string" ? meta.description : "";
   const description = fitDescription(before.trim() === "" ? (answerBoxOf(row.body_md!) ?? "") : before, pack.locale?.language);
   const proposed = (Array.isArray(meta.titles) ? (meta.titles as { title?: unknown }[]) : []).flatMap((each) => (typeof each?.title === "string" ? [each.title] : []));
-  const clean = [...proposed, stored].filter((each) => promiseFigures(each, pack).length === 0);
-  const title = clean.length === 0 ? stored : pickTitle(clean, titleRuleFor(pack, { description, sections })).chosen;
+  const unpromised = (each: string | null): each is string => each !== null && promiseFigures(each, pack).length === 0;
+  const clean = [...proposed, stored].filter(unpromised);
+  const rule = titleRuleFor(pack, { description, sections });
+  // Nothing after the re-check mends a title, so a floor that stops the page as more than a want of a specific is not taken.
+  const floor = [floorTitle(pack)].find((each) => unpromised(each) && pickTitle([each], rule).candidates.every((one) => one.faults.every((fault) => fault === "specific"))) ?? null;
+  const title = clean.length === 0 && floor === null ? stored : pickTitle(clean, rule, floor).chosen;
   const faq = withoutBrokenPairs(Array.isArray(meta.faq) ? meta.faq : [], { min: basis.template.blocks.faq?.min ?? 0, rivals: basis.rivalsNamed, facts: basis.brief.marketFacts });
+  const page: CheckedPage = { title, heading: title === stored && typeof meta.heading === "string" ? meta.heading : title, description, sections, faq: faq.faq };
   const claimed = withoutClaimed(row.body_md!, basis.site.doNotClaim);
+  // Issue 2375: the sentences the stored fit verdict named go as the write's repair drops them, never the short
+  // answer or one a required block needs; only those today's reading still asks about (a link's label is not one).
+  const named = stillAsked(
+    { state: "failed", sentences: storedFitSentences(stopped) },
+    { title, markdown: claimed.markdown, businessName: basis.site.businessName, domain: basis.site.domain, titleOwed: (titleRuleFor(pack, page).business?.length ?? 0) > 0 }
+  );
+  const unfit = withoutUnfit(claimed.markdown, named.state === "failed" ? named.sentences : [], { title, blocks: blockInputs(basis, page) });
+  const dropped = [...claimed.dropped, ...unfit.dropped];
   return {
-    page: { title, heading: title === stored && typeof meta.heading === "string" ? meta.heading : title, description, sections, faq: faq.faq },
-    markdown: claimed.markdown,
+    page,
+    markdown: unfit.markdown,
     fixes: {
       ...(title === stored ? {} : { titleBefore: stored, title }),
       ...(description === before ? {} : { descriptionBefore: before, description }),
       ...(faq.dropped.length === 0 ? {} : { faqDropped: faq.dropped }),
-      ...(claimed.dropped.length === 0 ? {} : { sentenceDropped: claimed.dropped }),
+      ...(dropped.length === 0 ? {} : { sentenceDropped: dropped }),
     },
   };
+}
+
+/** The sentences the fit check named when the page was stopped. */
+function storedFitSentences(stopped: readonly RuleFailure[]): string[] {
+  const failure = stopped.find((each) => each.rule === "fit_claim");
+  return failure?.detail?.rule === "fit_claim" ? failure.detail.sentences : [];
 }
 
 /** The reason a row the battery need not read is set aside with, or `null` where it is read or left alone: a pack
@@ -194,9 +225,7 @@ export function retiredFor(outcome: RecheckOutcome): string | null {
 function storedFit(row: DraftRow, stopped: readonly RuleFailure[], page: { title: string; markdown: string; site: SiteRuleInputs; titleOwed: boolean }): FitVerdict | undefined {
   const failure = stopped.find((each) => each.rule === "fit_claim");
   if (failure?.detail?.rule !== "fit_claim") return readRecordedRun(row.meta)?.asked.includes("fit_claim") === true ? { state: "passed" } : undefined;
-  const asked = new Set(brandSentences({ title: page.title, markdown: page.markdown, businessName: page.site.businessName, domain: page.site.domain, titleOwed: page.titleOwed }));
-  const still = failure.detail.sentences.filter((sentence) => asked.has(sentence));
-  return still.length === 0 ? { state: "passed" } : { state: "failed", sentences: still };
+  return stillAsked({ state: "failed", sentences: failure.detail.sentences }, { title: page.title, markdown: page.markdown, businessName: page.site.businessName, domain: page.site.domain, titleOwed: page.titleOwed });
 }
 
 /** The daily re-check for one site and date: nothing where the date already holds a page; otherwise each candidate

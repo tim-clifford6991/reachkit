@@ -138,6 +138,10 @@
       "status": 301,
       "location": "/signin"
     },
+    "/sign-in": {
+      "status": 301,
+      "location": "/signin"
+    },
     "/onboarding": {
       "status": 301,
       "location": "/app"

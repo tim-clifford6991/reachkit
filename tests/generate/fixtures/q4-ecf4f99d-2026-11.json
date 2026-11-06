@@ -1,0 +1,1413 @@
+{
+ "id": "ecf4f99d-05dd-44b7-88d7-a9408c6f8dfd",
+ "title": "Generative engine optimization examples: 4 AI engines compared",
+ "body_md": ":::answer\nSEO is not dead with AI, it has split in two. Google still ranks pages, while AI engines like ChatGPT and Google AI Overviews pick which business they quote in an answer. A study found nearly 40% of web traffic now comes from non-traditional discovery methods, so pages written only for keyword rankings miss a growing share of buyers.\n:::\n\n:::takeaways\n- SEO is not dead, it has split into ranking on Google and getting quoted in AI answers.\n- Nearly 40% of web traffic now comes from non-traditional discovery methods, per DigiMarCon's case study.\n- Generative engine optimization means writing pages that directly answer buyer questions, not just targeting keywords.\n- AI search tools now track engines such as ChatGPT, Google AI Overviews, Perplexity and Microsoft Copilot.\n- ReachKit writes and publishes pages for both Google and AI answers from €49 a month.\n:::\n\n## Is SEO dead now that AI answers questions directly?\n\nSEO is not dead, but it no longer works alone. Search moved from blue links to AI-generated answers, and a page built only to rank on Google can still miss the buyers who ask ChatGPT or Google AI Overviews instead, as described in [SEO Is Not Dead, But AI Search Just Changed the Rules](https://digimarcon.com/seo-is-not-dead-but-ai-search-just-changed-the-rules-a-case-study-of-ai-search-and-generative-engine-optimization/). The same study found a large share of traffic now arrives outside the traditional search click, so a page written for one channel leaves money on the table.\n\n## What is generative engine optimization?\n\nGenerative engine optimization is writing pages so an AI engine can lift a direct answer from them and name your business while doing it. It is the same instinct as SEO, answer the question clearly, but aimed at a model summarising a page rather than a crawler ranking it. Our own page on how to rank in AI Overview for your business covers the mechanics in full.\n\n## What are examples of generative engine optimization in practice?\n\nA GEO example is a page that opens with a plain two-sentence answer to a buyer's exact search, then backs it with a fact, a price or a named source, the format AI engines quote most easily. Tools built for this job track which AI engines mention a brand: Otterly AI tracks all 7 major AI search engines across more than [65 countries and languages](https://otterly.ai/features), and Peec AI's Starter plan tracks activity across [3 chosen models with daily frequency](https://peec.ai/pricing).\n\n## Which AI search engines get tracked?\n\nThe engines buyers use most are ChatGPT, Google AI Overviews, Perplexity and Microsoft Copilot. Otterly AI's Lite plan names exactly this set: [tracking of 4 AI search engines: ChatGPT, Google AI Overviews, Perplexity and MS Copilot](https://otterly.ai/pricing). Profound's enterprise tier goes further, offering [up to 9 answer engines tracked](https://www.tryprofound.com/pricing) for teams running marketing agents at scale.\n\n## Do I need to track AI mentions and rankings separately?\n\nYes, because being quoted in an AI answer and ranking on Google are two separate outcomes that need separate checks. Peec AI's Starter plan bundles [50 prompts, 3 models and daily tracking for one project](https://peec.ai/pricing), built for teams starting on AI visibility specifically, while Google ranking still depends on the technical and content checks SEO always ran. Treating them as one job is how pages fall behind on both.\n\n## How does ReachKit handle SEO and AI visibility together?\n\nWe work on getting your business found on Google and in AI answers, from one subscription rather than two separate tools. ReachKit researches your business and competitors, then writes up to 7 pages a week, new or updated, with Google and AI tracking included, all from the [pricing page](https://reachkit.app/pricing) at €49 a month, tax included. You get one Monday email on what went live and what moved, and a free scan first so you see who Google and AI pick instead of you before you pay anything.\n\n- [ReachKit vs writing with ChatGPT yourself](https://reachkit.app/compare/chatgpt)\n- [Free SEO tools](https://reachkit.app/tools)\n- [Nudgi, read again](https://reachkit.app/teardowns/nudgi)\n- [Google and AI find your competitors. Why not you?](https://reachkit.app/)\n- [ReachKit vs Yoast SEO](https://reachkit.app/compare/yoast-seo)\n\nSee who Google and AI pick instead of you with a free scan, then get your first page free, at [ReachKit's pricing](https://reachkit.app/pricing).\n\n## Sources\n\n- [Pricing - Profound](https://www.tryprofound.com/pricing), read on 3 November 2026\n- [Pricing for Peec AI - AI Search Platform for Marketing teams and SEO agencies](https://peec.ai/pricing), read on 3 November 2026\n- [OtterlyAI Pricing - Transparent & Simple](https://otterly.ai/pricing), read on 3 November 2026\n- [Generative Engine Optimization Features OtterlyAI Platform](https://otterly.ai/features), read on 3 November 2026\n- [SEO Is Not Dead, But AI Search Just Changed the Rules](https://digimarcon.com/seo-is-not-dead-but-ai-search-just-changed-the-rules-a-case-study-of-ai-search-and-generative-engine-optimization/), read on 3 November 2026\n",
+ "meta": {
+  "faq": [
+   {
+    "answer": "SEO is not dead, but it no longer works alone. Search moved from blue links to AI-generated answers, and a page built only to rank on Google can still miss the buyers who ask ChatGPT or Google AI Overviews instead, as described in SEO Is Not Dead, But AI Search Just Changed the Rules. The same study found a large share of traffic now arrives outside the traditional search click, so a page written for one channel leaves money on the table.",
+    "question": "Is SEO dead now that AI answers questions directly?"
+   },
+   {
+    "answer": "Generative engine optimization is writing pages so an AI engine can lift a direct answer from them and name your business while doing it. It is the same instinct as SEO, answer the question clearly, but aimed at a model summarising a page rather than a crawler ranking it. Our own page on how to rank in AI Overview for your business covers the mechanics in full.",
+    "question": "What is generative engine optimization?"
+   },
+   {
+    "answer": "A GEO example is a page that opens with a plain two-sentence answer to a buyer's exact search, then backs it with a fact, a price or a named source, the format AI engines quote most easily. Tools built for this job track which AI engines mention a brand: Otterly AI tracks all 7 major AI search engines across more than 65 countries and languages, and Peec AI's Starter plan tracks activity across 3 chosen models with daily frequency.",
+    "question": "What are examples of generative engine optimization in practice?"
+   },
+   {
+    "answer": "The engines buyers use most are ChatGPT, Google AI Overviews, Perplexity and Microsoft Copilot. Otterly AI's Lite plan names exactly this set: tracking of 4 AI search engines: ChatGPT, Google AI Overviews, Perplexity and MS Copilot. Profound's enterprise tier goes further, offering up to 9 answer engines tracked for teams running marketing agents at scale.",
+    "question": "Which AI search engines get tracked?"
+   },
+   {
+    "answer": "Yes, because being quoted in an AI answer and ranking on Google are two separate outcomes that need separate checks. Peec AI's Starter plan bundles 50 prompts, 3 models and daily tracking for one project, built for teams starting on AI visibility specifically, while Google ranking still depends on the technical and content checks SEO always ran. Treating them as one job is how pages fall behind on both.",
+    "question": "Do I need to track AI mentions and rankings separately?"
+   }
+  ],
+  "why": {
+   "rule": "best, a third cluster",
+   "parts": [
+    {
+     "n": 1,
+     "part": "fit"
+    },
+    {
+     "n": 1,
+     "part": "demand"
+    },
+    {
+     "n": 1,
+     "part": "new_site"
+    }
+   ],
+   "points": 3
+  },
+  "adds": {
+   "short": false,
+   "claims": [
+    {
+     "claim": "Ubersuggest offers keyword research on a database of more than 2.2 billion keywords, content ideas, daily rank tracking, competitor keyword gaps and a full backlink profile.",
+     "business": true
+    },
+    {
+     "claim": "Check the title, headings and hidden text Google reads on one page.",
+     "business": true
+    },
+    {
+     "claim": "Seobility's free Basic plan follows 3 competitors and shows where they appear on Google for 10 searches, updated weekly.",
+     "business": true
+    },
+    {
+     "claim": "Sofa, listed as 'Sofa: Downtime Organizer', keeps shows, films, books, games, podcasts and more in one place.",
+     "business": true
+    },
+    {
+     "claim": "In July 2026 Reflect launched Reflect Open, a separate, local-first, open-source app built on plain Markdown files, and the home page now leads with it.",
+     "business": true
+    },
+    {
+     "claim": "Raycast is a keyboard-first launcher with an extension store and AI built in.",
+     "business": true
+    },
+    {
+     "claim": "Opal is a screen time and focus app for iPhone, Android and Mac.",
+     "business": true
+    },
+    {
+     "claim": "CardPointers helps people with several credit cards earn more rewards.",
+     "business": true
+    },
+    {
+     "claim": "The home page FAQ lists a free plan for individuals, Teams at $16 per user a month, Organizations at $37 per user a month, and custom Enterprise pricing.",
+     "business": true
+    },
+    {
+     "claim": "The correlation reports, experiments and history beyond 30 days sit in a paid subscription with a 7-day free trial.",
+     "business": true
+    },
+    {
+     "claim": "1What it offersWhat the hero and the plans say, quoted.",
+     "business": true
+    },
+    {
+     "claim": "Sitechecker's free check reads your home page for broken links, content issues and page speed, and its page promises the report in 2 seconds without sign up.",
+     "business": true
+    }
+   ]
+  },
+  "pack": {
+   "adds": {
+    "short": false,
+    "claims": [
+     {
+      "claim": "Ubersuggest offers keyword research on a database of more than 2.2 billion keywords, content ideas, daily rank tracking, competitor keyword gaps and a full backlink profile.",
+      "business": true
+     },
+     {
+      "claim": "Check the title, headings and hidden text Google reads on one page.",
+      "business": true
+     },
+     {
+      "claim": "Seobility's free Basic plan follows 3 competitors and shows where they appear on Google for 10 searches, updated weekly.",
+      "business": true
+     },
+     {
+      "claim": "Sofa, listed as 'Sofa: Downtime Organizer', keeps shows, films, books, games, podcasts and more in one place.",
+      "business": true
+     },
+     {
+      "claim": "In July 2026 Reflect launched Reflect Open, a separate, local-first, open-source app built on plain Markdown files, and the home page now leads with it.",
+      "business": true
+     },
+     {
+      "claim": "Raycast is a keyboard-first launcher with an extension store and AI built in.",
+      "business": true
+     },
+     {
+      "claim": "Opal is a screen time and focus app for iPhone, Android and Mac.",
+      "business": true
+     },
+     {
+      "claim": "CardPointers helps people with several credit cards earn more rewards.",
+      "business": true
+     },
+     {
+      "claim": "The home page FAQ lists a free plan for individuals, Teams at $16 per user a month, Organizations at $37 per user a month, and custom Enterprise pricing.",
+      "business": true
+     },
+     {
+      "claim": "The correlation reports, experiments and history beyond 30 days sit in a paid subscription with a 7-day free trial.",
+      "business": true
+     },
+     {
+      "claim": "1What it offersWhat the hero and the plans say, quoted.",
+      "business": true
+     },
+     {
+      "claim": "Sitechecker's free check reads your home page for broken links, content issues and page speed, and its page promises the report in 2 seconds without sign up.",
+      "business": true
+     }
+    ]
+   },
+   "live": null,
+   "type": "qa",
+   "facts": [
+    {
+     "url": "https://reachkit.app/compare/ubersuggest",
+     "readAt": "2026-11-02T05:41:14.417Z",
+     "passage": "Ubersuggest offers keyword research on a database of more than 2.2 billion keywords, content ideas, daily rank tracking, competitor keyword gaps and a full backlink profile."
+    },
+    {
+     "url": "https://reachkit.app/tools",
+     "readAt": "2026-11-02T05:41:21.921Z",
+     "passage": "Check the title, headings and hidden text Google reads on one page."
+    },
+    {
+     "url": "https://reachkit.app/answers/free-seo-competitor-analysis-tool",
+     "readAt": "2026-11-02T05:41:21.920Z",
+     "passage": "Seobility's free Basic plan follows 3 competitors and shows where they appear on Google for 10 searches, updated weekly."
+    },
+    {
+     "url": "https://reachkit.app/teardowns/sofa",
+     "readAt": "2026-11-02T05:41:21.919Z",
+     "passage": "Sofa, listed as 'Sofa: Downtime Organizer', keeps shows, films, books, games, podcasts and more in one place."
+    },
+    {
+     "url": "https://reachkit.app/teardowns/reflect",
+     "readAt": "2026-11-02T05:41:21.919Z",
+     "passage": "In July 2026 Reflect launched Reflect Open, a separate, local-first, open-source app built on plain Markdown files, and the home page now leads with it."
+    },
+    {
+     "url": "https://reachkit.app/teardowns/raycast",
+     "readAt": "2026-11-02T05:41:20.254Z",
+     "passage": "Raycast is a keyboard-first launcher with an extension store and AI built in."
+    },
+    {
+     "url": "https://reachkit.app/teardowns/opal",
+     "readAt": "2026-11-02T05:41:20.254Z",
+     "passage": "Opal is a screen time and focus app for iPhone, Android and Mac."
+    },
+    {
+     "url": "https://reachkit.app/teardowns/cardpointers",
+     "readAt": "2026-11-02T05:41:20.254Z",
+     "passage": "CardPointers helps people with several credit cards earn more rewards."
+    },
+    {
+     "url": "https://reachkit.app/teardowns/cal-com",
+     "readAt": "2026-11-02T05:41:20.254Z",
+     "passage": "The home page FAQ lists a free plan for individuals, Teams at $16 per user a month, Organizations at $37 per user a month, and custom Enterprise pricing."
+    },
+    {
+     "url": "https://reachkit.app/teardowns/bearable",
+     "readAt": "2026-11-02T05:41:18.861Z",
+     "passage": "The correlation reports, experiments and history beyond 30 days sit in a paid subscription with a 7-day free trial."
+    },
+    {
+     "url": "https://reachkit.app/teardowns",
+     "readAt": "2026-11-02T05:41:18.861Z",
+     "passage": "1What it offersWhat the hero and the plans say, quoted."
+    },
+    {
+     "url": "https://reachkit.app/compare/sitechecker",
+     "readAt": "2026-11-02T05:41:17.923Z",
+     "passage": "Sitechecker's free check reads your home page for broken links, content issues and page speed, and its page promises the report in 2 seconds without sign up."
+    },
+    {
+     "url": "https://reachkit.app/compare/debugbear",
+     "readAt": "2026-11-02T05:41:17.923Z",
+     "passage": "Its free scan lists technical issues across up to 100 pages and shows the searches buyers in your market make and who shows up instead of you."
+    },
+    {
+     "url": "https://reachkit.app/compare/yoast-seo",
+     "readAt": "2026-11-02T05:41:17.922Z",
+     "passage": "It checks title tags, meta descriptions and headings, content structure, technical health such as HTTPS, canonicals, sitemap and robots.txt, and broken links and 404 errors."
+    },
+    {
+     "url": "https://reachkit.app/compare/seoptimer",
+     "readAt": "2026-11-02T05:41:16.034Z",
+     "passage": "ReachKit's free scan also lists technical issues, across up to 100 pages, and adds the searches buyers in your market make and who shows up instead of you."
+    },
+    {
+     "url": "https://reachkit.app/compare/seobility",
+     "readAt": "2026-11-02T05:41:16.034Z",
+     "passage": "ReachKit's free scan lists the common technical issues across up to 100 pages, and adds the searches buyers in your market make and the competitors who show up instead of you."
+    },
+    {
+     "url": "https://reachkit.app/compare/website-grader",
+     "readAt": "2026-11-02T05:41:16.033Z",
+     "passage": "The paid plan then writes up to 7 pages a week, new or updated."
+    },
+    {
+     "url": "https://reachkit.app/compare/seositecheckup",
+     "readAt": "2026-11-02T05:41:16.033Z",
+     "passage": "Its page-level audit covers more than 70 SEO factors, and the score comes back as a percentage with passed, failed and warning counts, so you see the shape of the problem at a glance."
+    },
+    {
+     "url": "https://reachkit.app/compare/screaming-frog",
+     "readAt": "2026-11-02T05:41:16.033Z",
+     "passage": "The Screaming Frog SEO Spider is a desktop crawler for Windows, macOS and Linux that walks your whole site and audits it for over 300 SEO issues."
+    },
+    {
+     "url": "https://reachkit.app/compare/rankmath",
+     "readAt": "2026-11-02T05:41:16.033Z",
+     "passage": "Its free scan lists your technical issues too, and the paid plan writes up to 7 pages a week, new or updated, to close the gap."
+    },
+    {
+     "url": "https://reachkit.app/compare/se-ranking",
+     "readAt": "2026-11-02T05:41:14.418Z",
+     "passage": "SE Ranking tracks rankings daily, 2,000 keywords on Core and 5,000 on Growth."
+    },
+    {
+     "url": "https://reachkit.app/compare/moz-competitive-research",
+     "readAt": "2026-11-02T05:41:14.418Z",
+     "passage": "Keyword Gap takes up to 3 competitors and finds searches where you are on the first two pages but they rank higher, and searches where they appear and you do not."
+    },
+    {
+     "url": "https://reachkit.app/compare/moz",
+     "readAt": "2026-11-02T05:41:14.417Z",
+     "passage": "Moz states a keyword index of more than 1.25 billion keywords and more than 40 trillion links in Link Explorer."
+    },
+    {
+     "url": "https://reachkit.app/compare/mangools",
+     "readAt": "2026-11-02T05:41:14.417Z",
+     "passage": "KWFinder finds low difficulty, long tail keywords, by keyword or by a competitor's domain, with search volumes, difficulty scores and trends for more than 65,000 locations."
+    },
+    {
+     "url": "https://reachkit.app/compare/semrush",
+     "readAt": "2026-11-02T05:41:11.436Z",
+     "passage": "Site Audit checks hundreds of technical and on-page issues, and Semrush One advertises more than 140 technical and on-page checks."
+    },
+    {
+     "url": "https://reachkit.app/how-it-works",
+     "readAt": "2026-11-02T05:41:11.435Z",
+     "passage": "Each problem comes with a fix that takes about 10 minutes."
+    },
+    {
+     "url": "https://reachkit.app/compare/ahrefs",
+     "readAt": "2026-11-02T05:41:11.435Z",
+     "passage": "Paid plans start with Starter at €27 a month."
+    },
+    {
+     "url": "https://reachkit.app/compare",
+     "readAt": "2026-11-02T05:41:11.435Z",
+     "passage": "Our general reading of what each kind of tool mainly does, from public product pages read on 15 October 2026 and checked 19 October 2026."
+    },
+    {
+     "url": "https://reachkit.app/",
+     "readAt": "2026-09-17T09:18:18.660Z",
+     "passage": "See what AI tells buyers about your market — and write your way in."
+    },
+    {
+     "url": "https://reachkit.app/teardowns/plausible",
+     "readAt": "2026-11-02T05:41:20.254Z",
+     "passage": "1The hero leads with the alternativeMany similar tools describe themselves the same way."
+    },
+    {
+     "url": "https://reachkit.app/teardowns/nudgi",
+     "readAt": "2026-11-02T05:41:20.254Z",
+     "passage": "It has a free plan and two paid plans in euros: Starter at €29 a month for freelancers and Pro at €79 a month for teams."
+    },
+    {
+     "url": "https://reachkit.app/compare/surfer-seo",
+     "readAt": "2026-11-02T05:41:18.861Z",
+     "passage": "It checks where buyers find your competitors instead of you, then writes up to 7 pages a week, new or updated, from your own site."
+    },
+    {
+     "url": "https://reachkit.app/compare/google-search-console",
+     "readAt": "2026-11-02T05:41:18.861Z",
+     "passage": "ReachKit adds what Search Console does not show: which competitors are on the first page instead of you, whether AI answers mention you, and up to 7 pages a week, new or updated, to change that."
+    },
+    {
+     "url": "https://reachkit.app/compare/chatgpt",
+     "readAt": "2026-11-02T05:41:18.861Z",
+     "passage": "Then up to 7 pages a week go live on your site by themselves."
+    },
+    {
+     "url": "https://reachkit.app/compare/appfigures",
+     "readAt": "2026-11-02T05:41:18.861Z",
+     "passage": "It checks whether buyers find your website on Google and in AI answers, and writes up to 7 pages a week, new or updated, to change that."
+    },
+    {
+     "url": "https://reachkit.app/compare/sparktoro",
+     "readAt": "2026-11-02T05:41:17.923Z",
+     "passage": "Then it writes up to 7 pages a week, new or updated, to change the answer."
+    },
+    {
+     "url": "https://reachkit.app/compare/similarweb",
+     "readAt": "2026-11-02T05:41:17.923Z",
+     "passage": "It checks whether buyers find your one site on Google and in AI answers, and then writes up to 7 pages a week, new or updated, to change that."
+    },
+    {
+     "url": "https://reachkit.app/compare/gummysearch",
+     "readAt": "2026-11-02T05:41:17.923Z",
+     "passage": "Its own site says it shut down on 30 November 2025, to comply with Reddit's API policies, which forbid commercial applications."
+    },
+    {
+     "url": "https://reachkit.app/compare/seobility-competitor-analysis",
+     "readAt": "2026-11-02T05:41:14.418Z",
+     "passage": "Seobility's free Basic plan tracks 3 competitors and their rankings for 10 keywords, updated weekly."
+    },
+    {
+     "url": "https://reachkit.app/about",
+     "readAt": "2026-11-02T05:41:11.435Z",
+     "passage": "We work on getting your business found on Google and in AI answers."
+    }
+   ],
+   "links": [
+    {
+     "url": "https://reachkit.app/pricing",
+     "label": "Pricing",
+     "purpose": "pricing"
+    },
+    {
+     "url": "https://reachkit.app/compare/chatgpt",
+     "label": "ReachKit vs writing with ChatGPT yourself",
+     "purpose": "other"
+    },
+    {
+     "url": "https://reachkit.app/tools",
+     "label": "Free SEO tools",
+     "purpose": "other"
+    },
+    {
+     "url": "https://reachkit.app/compare/seositecheckup",
+     "label": "Seositecheckup",
+     "purpose": "other"
+    },
+    {
+     "url": "https://reachkit.app/answers/free-seo-competitor-analysis-tool",
+     "label": "Free SEO competitor analysis tool",
+     "purpose": "other"
+    },
+    {
+     "url": "https://reachkit.app/tools/on-page-check",
+     "label": "On-page check",
+     "purpose": "other"
+    },
+    {
+     "url": "https://reachkit.app/teardowns/nudgi",
+     "label": "Nudgi, read again",
+     "purpose": null
+    },
+    {
+     "url": "https://reachkit.app/",
+     "label": "Google and AI find your competitors. Why not you?",
+     "purpose": null
+    },
+    {
+     "url": "https://reachkit.app/compare/yoast-seo",
+     "label": "ReachKit vs Yoast SEO",
+     "purpose": null
+    }
+   ],
+   "pages": [
+    {
+     "url": null,
+     "kind": "listicle",
+     "title": "4 AI visibility tools for small businesses to compare (2026)",
+     "status": "published",
+     "question": "best AI visibility tools for small businesses"
+    },
+    {
+     "url": null,
+     "kind": "documentation",
+     "title": "What is AEO? Answer engine optimization in one page",
+     "status": "published",
+     "question": "what is the difference between answer engine optimization and generative engine optimization"
+    },
+    {
+     "url": "https://content.reachkit.app/how-to-rank-in-ai-overview",
+     "kind": "how_to",
+     "title": "How to rank in AI Overview for your business",
+     "status": "published",
+     "question": "how to rank in ai overview"
+    },
+    {
+     "url": "https://content.reachkit.app/how-to-rank-on-chatgpt",
+     "kind": "how_to",
+     "title": "How to rank on ChatGPT when buyers search your market",
+     "status": "published",
+     "question": "how to rank on chatgpt"
+    },
+    {
+     "url": "https://content.reachkit.app/reachkit-vs-aeo-engine",
+     "kind": "listicle",
+     "title": "ReachKit vs AEO Engine: 7 buyer questions, answered",
+     "status": "published",
+     "question": "reachkit vs aeo engine"
+    },
+    {
+     "url": null,
+     "kind": "how_to",
+     "title": null,
+     "status": "planned",
+     "question": "how to improve answer engine optimization"
+    },
+    {
+     "url": null,
+     "kind": "how_to",
+     "title": null,
+     "status": "planned",
+     "question": "how to do generative engine optimization"
+    },
+    {
+     "url": null,
+     "kind": "qa",
+     "title": null,
+     "status": "planned",
+     "question": "ai visibility tracking tools"
+    },
+    {
+     "url": null,
+     "kind": "qa",
+     "title": null,
+     "status": "planned",
+     "question": "aeo optimization"
+    },
+    {
+     "url": null,
+     "kind": "listicle",
+     "title": "Best AI Visibility Solutions with Generative Engine Optimization",
+     "status": "planned",
+     "question": "ai visibility solutions with best generative engine optimization"
+    },
+    {
+     "url": null,
+     "kind": "listicle",
+     "title": "Best AI search visibility tools for founders and small businesses",
+     "status": "planned",
+     "question": "best ai search visibility tools"
+    }
+   ],
+   "voice": {
+    "voice": "short",
+    "chosen": "automatic",
+    "person": "we"
+   },
+   "claims": [
+    {
+     "url": "https://www.tryprofound.com/pricing",
+     "kind": "rival_features",
+     "plan": "Enterprise",
+     "title": "Pricing - Profound",
+     "readAt": "2026-11-03T08:04:44.976Z",
+     "passage": "Enterprise Custom Tailored packages For companies operationalizing AI Search insights and running marketing agents at scale AI Marketer credits for your whole team Tailored prompt tracking plan Up to 9 Answer Engines tracked",
+     "product": "tryprofound.com"
+    },
+    {
+     "url": "https://peec.ai/pricing",
+     "kind": "rival_features",
+     "plan": "Starter",
+     "title": "Pricing for Peec AI - AI Search Platform for Marketing teams and SEO agencies",
+     "readAt": "2026-11-03T08:04:44.821Z",
+     "passage": "Starter Monthly For SEO and content managers getting started with AI Search visibility. Starter Monthly For SEO and content managers getting started with AI Search visibility. Get started This includes: This includes: 50 prompts Choose 3 models Unlimited users Daily tracking frequency 1 project",
+     "product": "peec.ai"
+    },
+    {
+     "url": "https://otterly.ai/pricing",
+     "kind": "rival_pricing",
+     "plan": "Standard",
+     "title": "OtterlyAI Pricing - Transparent & Simple",
+     "readAt": "2026-11-03T08:04:48.134Z",
+     "passage": "Standard $ 189 /month",
+     "product": "otterly.ai"
+    },
+    {
+     "url": "https://otterly.ai/features",
+     "kind": "rival_pricing",
+     "plan": null,
+     "title": "Generative Engine Optimization Features | OtterlyAI Platform",
+     "readAt": "2026-11-03T08:04:48.134Z",
+     "passage": "Pricing starts at $29/month.",
+     "product": "otterly.ai"
+    },
+    {
+     "url": "https://digimarcon.com/seo-is-not-dead-but-ai-search-just-changed-the-rules-a-case-study-of-ai-search-and-generative-engine-optimization/",
+     "kind": "study",
+     "title": "SEO Is Not Dead, But AI Search Just Changed the Rules",
+     "readAt": "2026-11-03T08:04:56.185Z",
+     "passage": "Nearly 40% of web traffic now comes from non-traditional discovery methods."
+    },
+    {
+     "url": "https://otterly.ai/pricing",
+     "kind": "rival_pricing",
+     "plan": "Premium",
+     "title": "OtterlyAI Pricing - Transparent & Simple",
+     "readAt": "2026-11-03T08:04:48.134Z",
+     "passage": "Premium $ 489 /month",
+     "product": "otterly.ai"
+    },
+    {
+     "url": "https://otterly.ai/features",
+     "kind": "rival_features",
+     "plan": null,
+     "title": "Generative Engine Optimization Features | OtterlyAI Platform",
+     "readAt": "2026-11-03T08:04:48.134Z",
+     "passage": "Tracks all 7 major AI search engines.",
+     "product": "otterly.ai"
+    },
+    {
+     "url": "https://digimarcon.com/seo-is-not-dead-but-ai-search-just-changed-the-rules-a-case-study-of-ai-search-and-generative-engine-optimization/",
+     "kind": "study",
+     "title": "SEO Is Not Dead, But AI Search Just Changed the Rules",
+     "readAt": "2026-11-03T08:04:56.185Z",
+     "passage": "From blue links to AI-generated answers"
+    },
+    {
+     "url": "https://otterly.ai/pricing",
+     "kind": "rival_pricing",
+     "plan": "Enterprise",
+     "title": "OtterlyAI Pricing - Transparent & Simple",
+     "readAt": "2026-11-03T08:04:48.134Z",
+     "passage": "Enterprise Custom Starting from 1,000 search prompts",
+     "product": "otterly.ai"
+    },
+    {
+     "url": "https://otterly.ai/features",
+     "kind": "rival_features",
+     "plan": null,
+     "title": "Generative Engine Optimization Features | OtterlyAI Platform",
+     "readAt": "2026-11-03T08:04:48.134Z",
+     "passage": "Monitors 65+ countries and languages",
+     "product": "otterly.ai"
+    },
+    {
+     "url": "https://otterly.ai/pricing",
+     "kind": "rival_features",
+     "plan": "Lite",
+     "title": "OtterlyAI Pricing - Transparent & Simple",
+     "readAt": "2026-11-03T08:04:48.134Z",
+     "passage": "Tracking of 4 AI Search Engines: ChatGPT, Google AI Overviews, Perplexity, MS Copilot",
+     "product": "otterly.ai"
+    },
+    {
+     "url": "https://otterly.ai/pricing",
+     "kind": "rival_features",
+     "plan": "Lite",
+     "title": "OtterlyAI Pricing - Transparent & Simple",
+     "readAt": "2026-11-03T08:04:48.134Z",
+     "passage": "1,000 GEO Audits per month",
+     "product": "otterly.ai"
+    }
+   ],
+   "target": {
+    "question": "is seo dead now with ai",
+    "searches": [
+     "is seo dead now with ai",
+     "generative engine optimization examples"
+    ]
+   },
+   "builtAt": "2026-11-03T08:05:26.623Z",
+   "missing": [],
+   "profile": {
+    "job": "Get your business named in AI answers and ranked for searches your competitors own",
+    "audience": [
+     "small business owners",
+     "service businesses",
+     "local businesses",
+     "e-commerce sites"
+    ],
+    "products": [
+     "pages written for your site",
+     "research on your business and competitors",
+     "weekly page publishing",
+     "Google and AI search optimization"
+    ],
+    "promises": [
+     "Your first page is free",
+     "We research your business and competitors, then write pages that get you found,",
+     "Works for any business with a website",
+     "up to 7 pages a week, new or updated",
+     "no contract",
+     "no setup fee",
+     "cancel any time"
+    ],
+    "knowledge": {
+     "proof": [
+      {
+       "from": "https://reachkit.app/about",
+       "text": "The newest page on ReachKit's own blog: How to rank in AI Overview for your business"
+      },
+      {
+       "from": "https://reachkit.app/about",
+       "text": "ReachKit's own free report available at reachkit.app"
+      }
+     ],
+     "byline": "Tim, ReachKit Founder based in Berlin, Germany",
+     "places": [
+      {
+       "from": "https://reachkit.app/",
+       "text": "Austin"
+      },
+      {
+       "from": "https://reachkit.app/",
+       "text": "Germany"
+      },
+      {
+       "from": "https://reachkit.app/",
+       "text": "Austria"
+      },
+      {
+       "from": "https://reachkit.app/",
+       "text": "Switzerland"
+      },
+      {
+       "from": "https://reachkit.app/about",
+       "text": "Berlin, Germany"
+      }
+     ],
+     "audience": [
+      {
+       "from": "founder",
+       "text": "Founders and Business Owners"
+      },
+      {
+       "from": "https://reachkit.app/",
+       "text": "Local services"
+      },
+      {
+       "from": "https://reachkit.app/",
+       "text": "Shops"
+      },
+      {
+       "from": "https://reachkit.app/",
+       "text": "Restaurants & venues"
+      },
+      {
+       "from": "https://reachkit.app/",
+       "text": "Agencies & firms"
+      },
+      {
+       "from": "https://reachkit.app/",
+       "text": "Software"
+      },
+      {
+       "from": "https://reachkit.app/",
+       "text": "Creators & courses"
+      },
+      {
+       "from": "https://reachkit.app/pricing",
+       "text": "local service"
+      },
+      {
+       "from": "https://reachkit.app/pricing",
+       "text": "shop"
+      },
+      {
+       "from": "https://reachkit.app/pricing",
+       "text": "restaurant"
+      },
+      {
+       "from": "https://reachkit.app/pricing",
+       "text": "creator"
+      },
+      {
+       "from": "https://reachkit.app/compare/ahrefs",
+       "text": "founder who owns a small company website and knows nothing about SEO"
+      }
+     ],
+     "problems": [
+      {
+       "from": "https://reachkit.app/",
+       "text": "Not found by Google and AI"
+      },
+      {
+       "from": "https://reachkit.app/",
+       "text": "Competitors show up in search results instead of you"
+      },
+      {
+       "from": "https://reachkit.app/",
+       "text": "Buyers ask AI what to use and you're not in the answer"
+      },
+      {
+       "from": "https://reachkit.app/pricing",
+       "text": "getting pages written for your website"
+      },
+      {
+       "from": "https://reachkit.app/pricing",
+       "text": "reaching buyers where they search and ask AI"
+      },
+      {
+       "from": "https://reachkit.app/about",
+       "text": "Getting your business found on Google and in AI answers"
+      },
+      {
+       "from": "https://reachkit.app/compare/ahrefs",
+       "text": "Owners of small company websites who know nothing about SEO need to see where buyers go instead of them"
+      }
+     ],
+     "offerings": [
+      {
+       "from": "https://reachkit.app/",
+       "name": "Free scan and first page",
+       "uses": [
+        "See who Google and AI pick instead of you",
+        "See what to fix first"
+       ],
+       "prices": [
+        "Free"
+       ],
+       "features": [
+        "Free scan of your site",
+        "First page proposed free"
+       ]
+      },
+      {
+       "from": "https://reachkit.app/",
+       "name": "Monthly plan",
+       "uses": [
+        "Get mentioned in AI answers",
+        "Get found on Google",
+        "Autopilot page writing"
+       ],
+       "prices": [
+        "€49 a month"
+       ],
+       "features": [
+        "Up to 7 pages a week",
+        "Facts from your site with up to 22 checks before a page goes live",
+        "An email every Monday",
+        "Up to 5 competitors watched every week",
+        "Site checks for problems with fixes",
+        "Google and AI tracking"
+       ]
+      },
+      {
+       "from": "https://reachkit.app/pricing",
+       "name": "ReachKit",
+       "uses": [
+        "get pages written for your website",
+        "reach buyers where they search and ask AI",
+        "Getting your business found on Google and in AI answers",
+        "See where buyers go instead of you",
+        "Have pages put live to change it",
+        "Pages going live every week without writing them"
+       ],
+       "prices": [
+        "€49 a month · tax included",
+        "€49 a month"
+       ],
+       "features": [
+        "up to 7 pages a week, new or updated",
+        "up to 5 competitors watched every Monday",
+        "1 email every Monday: what went live, what moved",
+        "Your next pages chosen every Monday from what buyers search and ask AI",
+        "Your market and your pages checked every Monday",
+        "The Monday email: what went live, what moved, what's next",
+        "24 hours to stop any page before it goes live",
+        "Writes pages from your site and puts them live",
+        "Up to 7 pages a week",
+        "Research on your business, your buyers and who they choose instead",
+        "Picks questions you can win on Google and in AI answers",
+        "Writes pages live on your website"
+       ]
+      }
+     ],
+     "questions": [
+      {
+       "from": "founder",
+       "text": "How does SEO work? How can I get Ai to recommend my business? SEO and GEO take too much time for me to do myself"
+      },
+      {
+       "from": "https://reachkit.app/",
+       "text": "Is this AI spam?"
+      },
+      {
+       "from": "https://reachkit.app/",
+       "text": "Do I have to approve each page?"
+      },
+      {
+       "from": "https://reachkit.app/",
+       "text": "How long until I see results?"
+      },
+      {
+       "from": "https://reachkit.app/",
+       "text": "What if I want to stop?"
+      },
+      {
+       "from": "https://reachkit.app/",
+       "text": "Will it work for my business?"
+      },
+      {
+       "from": "https://reachkit.app/",
+       "text": "What do I need to start?"
+      },
+      {
+       "from": "https://reachkit.app/",
+       "text": "Does it work in German?"
+      },
+      {
+       "from": "https://reachkit.app/",
+       "text": "Why is there no free trial?"
+      },
+      {
+       "from": "https://reachkit.app/pricing",
+       "text": "What exactly do I pay?"
+      },
+      {
+       "from": "https://reachkit.app/compare/ahrefs",
+       "text": "If you want to research keywords and backlinks yourself, pick Ahrefs or ReachKit?"
+      },
+      {
+       "from": "https://reachkit.app/compare/ahrefs",
+       "text": "If you want to see where buyers go instead of you and have pages put live to change it, pick Ahrefs or ReachKit?"
+      }
+     ],
+     "integrations": [
+      {
+       "from": "https://reachkit.app/",
+       "text": "WordPress"
+      },
+      {
+       "from": "https://reachkit.app/about",
+       "text": "Claude"
+      }
+     ],
+     "differentiators": [
+      {
+       "from": "founder",
+       "text": "Automation, Competitor Analysis, Correct Sizing for your business, Intelligent Daily Posts, Business Knowledge Bade",
+       "rival": null
+      },
+      {
+       "from": "https://reachkit.app/",
+       "text": "We research your business and competitors, then write pages that get you found, on autopilot.",
+       "rival": null
+      },
+      {
+       "from": "https://reachkit.app/pricing",
+       "text": "ReachKit does all 5 jobs every week for €49 a month, while an agency costs $501–$1,000 a month and doing it yourself takes hours of your time every week.",
+       "rival": "an agency"
+      },
+      {
+       "from": "https://reachkit.app/about",
+       "text": "ReachKit works on getting your business found every week without you, requiring only about 10 minutes of your time once.",
+       "rival": null
+      },
+      {
+       "from": "https://reachkit.app/about",
+       "text": "Every figure on a page matches a source and a page that fails its checks twice never goes live.",
+       "rival": null
+      },
+      {
+       "from": "https://reachkit.app/compare/ahrefs",
+       "text": "ReachKit writes pages for you and puts them live, while Ahrefs requires you to do the writing yourself.",
+       "rival": "Ahrefs"
+      }
+     ]
+    },
+    "vocabulary": [
+     "get found",
+     "pages",
+     "research",
+     "buyers",
+     "competitors",
+     "Google and AI answers",
+     "live",
+     "autopilot",
+     "AI answers",
+     "Google AI",
+     "ChatGPT",
+     "discoverability"
+    ]
+   },
+   "version": 1,
+   "business": {
+    "name": "ReachKit",
+    "voice": "Your writing is direct and economical. You speak to the reader in second person throughout, focusing on what they stand to lose—their buyers finding competitors instead of them—and what they gain by subscribing. You avoid jargon and flowery language in favour of concrete actions: scans, pages, measures, emails. You state prices and features plainly, with no upsells or hidden clauses. You have the tone of someone solving a problem that matters: you're not enthusiastic, you're practical.",
+    "byline": "Tim, ReachKit Founder based in Berlin, Germany",
+    "domain": "reachkit.app",
+    "market": {
+     "job": "Understand where AI and search send buyers, then write pages to rank in those results",
+     "from": "site",
+     "buyer": "Founders and Business Owners",
+     "rivals": [
+      {
+       "name": "Profound",
+       "domain": "tryprofound.com"
+      },
+      {
+       "name": "Peec AI",
+       "domain": "peec.ai"
+      },
+      {
+       "name": "Otterly",
+       "domain": "otterly.ai"
+      },
+      {
+       "name": "Omniscient",
+       "domain": "beomniscient.com"
+      },
+      {
+       "name": "Analyze AI",
+       "domain": "tryanalyze.ai"
+      }
+     ],
+     "category": "generative engine optimization",
+     "notOurMarket": [
+      "SEO content writing software",
+      "General AI writing assistants",
+      "SEO tools and analytics",
+      "Content management systems",
+      "Copywriting software"
+     ]
+    },
+    "rivals": [
+     "tryprofound.com",
+     "peec.ai",
+     "otterly.ai",
+     "beomniscient.com",
+     "tryanalyze.ai"
+    ],
+    "category": "generative engine optimization"
+   },
+   "products": [
+    {
+     "pages": [
+      "https://www.tryprofound.com/pricing"
+     ],
+     "domain": "tryprofound.com"
+    },
+    {
+     "pages": [
+      "https://peec.ai/pricing"
+     ],
+     "domain": "peec.ai"
+    },
+    {
+     "pages": [
+      "https://otterly.ai/pricing",
+      "https://otterly.ai/features"
+     ],
+     "domain": "otterly.ai"
+    }
+   ],
+   "questions": [
+    "How to answer engine optimization?",
+    "What's the best answer engine optimization tool?",
+    "What answer engine optimization tools should I use?",
+    "How can I improve my AI search visibility?",
+    "How can I optimize for AI answer engines?"
+   ],
+   "neverClaim": [],
+   "measurements": null
+  },
+  "links": [
+   {
+    "url": "https://reachkit.app/pricing",
+    "why": {
+     "kind": "buy"
+    },
+    "label": "Pricing",
+    "source": "site"
+   },
+   {
+    "url": "https://reachkit.app/compare/chatgpt",
+    "why": {
+     "kind": "topic",
+     "words": [
+      "with"
+     ]
+    },
+    "label": "ReachKit vs writing with ChatGPT yourself",
+    "source": "site"
+   },
+   {
+    "url": "https://reachkit.app/tools",
+    "why": {
+     "kind": "topic",
+     "words": [
+      "seo"
+     ]
+    },
+    "label": "Free SEO tools",
+    "source": "site"
+   },
+   {
+    "url": "https://reachkit.app/compare/seositecheckup",
+    "why": {
+     "kind": "topic",
+     "words": [
+      "seo"
+     ]
+    },
+    "label": "Seositecheckup",
+    "source": "site"
+   },
+   {
+    "url": "https://reachkit.app/answers/free-seo-competitor-analysis-tool",
+    "why": {
+     "kind": "topic",
+     "words": [
+      "seo"
+     ]
+    },
+    "label": "Free SEO competitor analysis tool",
+    "source": "site"
+   },
+   {
+    "url": "https://reachkit.app/tools/on-page-check",
+    "why": {
+     "kind": "topic",
+     "words": [
+      "seo"
+     ]
+    },
+    "label": "On-page check",
+    "source": "site"
+   },
+   {
+    "url": "https://reachkit.app/teardowns/nudgi",
+    "why": {
+     "kind": "known"
+    },
+    "label": "Nudgi, read again",
+    "source": "known"
+   },
+   {
+    "url": "https://reachkit.app/",
+    "why": {
+     "kind": "known"
+    },
+    "label": "Google and AI find your competitors. Why not you?",
+    "source": "known"
+   },
+   {
+    "url": "https://reachkit.app/compare/yoast-seo",
+    "why": {
+     "kind": "known"
+    },
+    "label": "ReachKit vs Yoast SEO",
+    "source": "known"
+   }
+  ],
+  "checks": {
+   "asked": [
+    "grounding",
+    "rival_source",
+    "rival_negative",
+    "no_invented_people",
+    "no_unsourced_testimonial",
+    "no_hidden_text",
+    "no_machine_address",
+    "near_duplicate",
+    "no_invented_test",
+    "no_invented_provenance",
+    "traceable_numerals",
+    "first_block_answers",
+    "required_blocks",
+    "no_placeholder_cell",
+    "no_demo_text",
+    "distinct_headings",
+    "title",
+    "plain_prose",
+    "cites_market"
+   ],
+   "fixed": []
+  },
+  "intent": {
+   "prompt": null,
+   "search": {
+    "query": "is seo dead now with ai",
+    "volume": null
+   }
+  },
+  "length": {
+   "floor": 0,
+   "words": 737,
+   "target": 480,
+   "ceiling": 900
+  },
+  "market": {
+   "job": "Understand where AI and search send buyers, then write pages to rank in those results",
+   "from": "site",
+   "buyer": "Founders and Business Owners",
+   "rivals": [
+    {
+     "name": "Profound",
+     "domain": "tryprofound.com"
+    },
+    {
+     "name": "Peec AI",
+     "domain": "peec.ai"
+    },
+    {
+     "name": "Otterly",
+     "domain": "otterly.ai"
+    },
+    {
+     "name": "Omniscient",
+     "domain": "beomniscient.com"
+    },
+    {
+     "name": "Analyze AI",
+     "domain": "tryanalyze.ai"
+    }
+   ],
+   "category": "generative engine optimization",
+   "notOurMarket": [
+    "SEO content writing software",
+    "General AI writing assistants",
+    "SEO tools and analytics",
+    "Content management systems",
+    "Copywriting software"
+   ]
+  },
+  "titles": [
+   {
+    "title": "Is SEO dead now with AI? Otterly tracks 7 engines",
+    "faults": [
+     "specific",
+     "figure_owner"
+    ],
+    "closeness": 1.29
+   },
+   {
+    "title": "Is SEO dead now with AI: Profound tracks up to 9 engines",
+    "faults": [
+     "specific",
+     "figure_owner"
+    ],
+    "closeness": 1.29
+   },
+   {
+    "title": "Generative engine optimization examples: 4 AI engines compared",
+    "faults": [
+     "banned"
+    ],
+    "closeness": 1.43
+   }
+  ],
+  "repairs": [
+   {
+    "rule": "plain_prose",
+    "cleared": false
+   },
+   {
+    "rule": "first_block_answers",
+    "cleared": false
+   }
+  ],
+  "sections": [
+   {
+    "key": "question",
+    "heading": "Is SEO dead now that AI answers questions directly?"
+   },
+   {
+    "key": "question",
+    "heading": "What is generative engine optimization?"
+   },
+   {
+    "key": "question",
+    "heading": "What are examples of generative engine optimization in practice?"
+   },
+   {
+    "key": "question",
+    "heading": "Which AI search engines get tracked?"
+   },
+   {
+    "key": "question",
+    "heading": "Do I need to track AI mentions and rankings separately?"
+   },
+   {
+    "key": "business",
+    "heading": "How does ReachKit handle SEO and AI visibility together?"
+   }
+  ],
+  "factsUsed": [
+   {
+    "url": "https://reachkit.app/compare/ubersuggest",
+    "passage": "Ubersuggest offers keyword research on a database of more than 2.2 billion keywords, content ideas, daily rank tracking, competitor keyword gaps and a full backlink profile."
+   },
+   {
+    "url": "https://reachkit.app/tools",
+    "passage": "Check the title, headings and hidden text Google reads on one page."
+   },
+   {
+    "url": "https://reachkit.app/compare/yoast-seo",
+    "passage": "It checks title tags, meta descriptions and headings, content structure, technical health such as HTTPS, canonicals, sitemap and robots.txt, and broken links and 404 errors."
+   },
+   {
+    "url": "https://reachkit.app/",
+    "passage": "See what AI tells buyers about your market — and write your way in."
+   },
+   {
+    "url": "https://reachkit.app/teardowns/nudgi",
+    "passage": "It has a free plan and two paid plans in euros: Starter at €29 a month for freelancers and Pro at €79 a month for teams."
+   },
+   {
+    "url": "https://reachkit.app/compare/chatgpt",
+    "passage": "Then up to 7 pages a week go live on your site by themselves."
+   }
+  ],
+  "rivalScope": 1,
+  "contentType": "qa",
+  "description": "SEO is not dead with AI, it has split into ranking on Google and getting quoted in AI answers.",
+  "marketFacts": [
+   {
+    "url": "https://www.tryprofound.com/pricing",
+    "kind": "rival_features",
+    "plan": "Enterprise",
+    "title": "Pricing - Profound",
+    "readAt": "2026-11-03T08:04:44.976Z",
+    "passage": "Enterprise Custom Tailored packages For companies operationalizing AI Search insights and running marketing agents at scale AI Marketer credits for your whole team Tailored prompt tracking plan Up to 9 Answer Engines tracked",
+    "product": "tryprofound.com"
+   },
+   {
+    "url": "https://peec.ai/pricing",
+    "kind": "rival_features",
+    "plan": "Starter",
+    "title": "Pricing for Peec AI - AI Search Platform for Marketing teams and SEO agencies",
+    "readAt": "2026-11-03T08:04:44.821Z",
+    "passage": "Starter Monthly For SEO and content managers getting started with AI Search visibility. Starter Monthly For SEO and content managers getting started with AI Search visibility. Get started This includes: This includes: 50 prompts Choose 3 models Unlimited users Daily tracking frequency 1 project",
+    "product": "peec.ai"
+   },
+   {
+    "url": "https://otterly.ai/pricing",
+    "kind": "rival_pricing",
+    "plan": "Standard",
+    "title": "OtterlyAI Pricing - Transparent & Simple",
+    "readAt": "2026-11-03T08:04:48.134Z",
+    "passage": "Standard $ 189 /month",
+    "product": "otterly.ai"
+   },
+   {
+    "url": "https://otterly.ai/features",
+    "kind": "rival_pricing",
+    "plan": null,
+    "title": "Generative Engine Optimization Features | OtterlyAI Platform",
+    "readAt": "2026-11-03T08:04:48.134Z",
+    "passage": "Pricing starts at $29/month.",
+    "product": "otterly.ai"
+   },
+   {
+    "url": "https://digimarcon.com/seo-is-not-dead-but-ai-search-just-changed-the-rules-a-case-study-of-ai-search-and-generative-engine-optimization/",
+    "kind": "study",
+    "title": "SEO Is Not Dead, But AI Search Just Changed the Rules",
+    "readAt": "2026-11-03T08:04:56.185Z",
+    "passage": "Nearly 40% of web traffic now comes from non-traditional discovery methods."
+   },
+   {
+    "url": "https://otterly.ai/pricing",
+    "kind": "rival_pricing",
+    "plan": "Premium",
+    "title": "OtterlyAI Pricing - Transparent & Simple",
+    "readAt": "2026-11-03T08:04:48.134Z",
+    "passage": "Premium $ 489 /month",
+    "product": "otterly.ai"
+   },
+   {
+    "url": "https://otterly.ai/features",
+    "kind": "rival_features",
+    "plan": null,
+    "title": "Generative Engine Optimization Features | OtterlyAI Platform",
+    "readAt": "2026-11-03T08:04:48.134Z",
+    "passage": "Tracks all 7 major AI search engines.",
+    "product": "otterly.ai"
+   },
+   {
+    "url": "https://digimarcon.com/seo-is-not-dead-but-ai-search-just-changed-the-rules-a-case-study-of-ai-search-and-generative-engine-optimization/",
+    "kind": "study",
+    "title": "SEO Is Not Dead, But AI Search Just Changed the Rules",
+    "readAt": "2026-11-03T08:04:56.185Z",
+    "passage": "From blue links to AI-generated answers"
+   },
+   {
+    "url": "https://otterly.ai/pricing",
+    "kind": "rival_pricing",
+    "plan": "Enterprise",
+    "title": "OtterlyAI Pricing - Transparent & Simple",
+    "readAt": "2026-11-03T08:04:48.134Z",
+    "passage": "Enterprise Custom Starting from 1,000 search prompts",
+    "product": "otterly.ai"
+   },
+   {
+    "url": "https://otterly.ai/features",
+    "kind": "rival_features",
+    "plan": null,
+    "title": "Generative Engine Optimization Features | OtterlyAI Platform",
+    "readAt": "2026-11-03T08:04:48.134Z",
+    "passage": "Monitors 65+ countries and languages",
+    "product": "otterly.ai"
+   },
+   {
+    "url": "https://otterly.ai/pricing",
+    "kind": "rival_features",
+    "plan": "Lite",
+    "title": "OtterlyAI Pricing - Transparent & Simple",
+    "readAt": "2026-11-03T08:04:48.134Z",
+    "passage": "Tracking of 4 AI Search Engines: ChatGPT, Google AI Overviews, Perplexity, MS Copilot",
+    "product": "otterly.ai"
+   },
+   {
+    "url": "https://otterly.ai/pricing",
+    "kind": "rival_features",
+    "plan": "Lite",
+    "title": "OtterlyAI Pricing - Transparent & Simple",
+    "readAt": "2026-11-03T08:04:48.134Z",
+    "passage": "1,000 GEO Audits per month",
+    "product": "otterly.ai"
+   }
+  ],
+  "profileItems": [
+   "Get your business named in AI answers and ranked for searches your competitors own",
+   "pages written for your site",
+   "research on your business and competitors",
+   "weekly page publishing",
+   "Google and AI search optimization",
+   "small business owners",
+   "service businesses",
+   "local businesses",
+   "e-commerce sites",
+   "Your first page is free",
+   "We research your business and competitors, then write pages that get you found,",
+   "Works for any business with a website",
+   "up to 7 pages a week, new or updated",
+   "no contract",
+   "no setup fee",
+   "cancel any time",
+   "get found",
+   "pages",
+   "research",
+   "buyers",
+   "competitors",
+   "Google and AI answers",
+   "live",
+   "autopilot",
+   "AI answers",
+   "Google AI",
+   "ChatGPT",
+   "discoverability",
+   "Free scan and first page",
+   "Monthly plan",
+   "ReachKit",
+   "Founders and Business Owners",
+   "How does SEO work? How can I get Ai to recommend my business? SEO and GEO take too much time for me to do myself",
+   "Automation, Competitor Analysis, Correct Sizing for your business, Intelligent Daily Posts, Business Knowledge Bade"
+  ],
+  "rulesChecked": 22
+ },
+ "rule_failures": [
+  {
+   "rule": "title",
+   "detail": {
+    "rule": "title",
+    "faults": [
+     "banned"
+    ]
+   }
+  }
+ ],
+ "claim_check": {
+  "at": "2026-11-04T08:03:27.530Z",
+  "state": "passed",
+  "listHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+ },
+ "grounded_fact": {
+  "url": "https://reachkit.app/compare/ubersuggest",
+  "readAt": "2026-11-02T05:41:14.417Z",
+  "passage": "Ubersuggest offers keyword research on a database of more than 2.2 billion keywords, content ideas, daily rank tracking, competitor keyword gaps and a full backlink profile."
+ },
+ "hard_rule_attempts": 2
+}

@@ -16,13 +16,13 @@
 // the response is ever logged. The ceiling is read before each call; a call
 // the page cannot afford is `not_attempted`, never a rule that failed.
 import { z } from "zod";
-import { HEADING_GAPS, PAGE_BLOCKS, RESEARCH, RIVAL_PRICE_MAX_AGE_D, TITLE, VOICE } from "@/lib/config/constants";
+import { HEADING_GAPS, RESEARCH, RIVAL_PRICE_MAX_AGE_D, TITLE, VOICE } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import { llm } from "@/lib/llm";
 import type { Tier } from "@/lib/llm/tiers";
 import { unmeasured, type Measured } from "@/lib/measure/measured";
 import type { PageType } from "@/lib/opportunities/types";
-import { REGISTER_FLOOR } from "../rules/figures";
+import { briefLines } from "../rules/brief-lines";
 import { HONESTY_INSTRUCTION } from "../rules/honest";
 import { AVOID_LIST } from "../rules/prose-english";
 import { AIM, type LengthRange } from "../length";
@@ -114,48 +114,29 @@ export interface DraftBody {
   bodyMarkdown: string;
 }
 
-/** The rules stage 4 enforces in code, stated to the writer too — not as the
- *  enforcement (a prompt cannot promise), but so the ordinary page does not
- *  spend its one fix call on a rule the model would have respected if asked. */
+/** House guidance: how a page is laid out, linked and voiced. Every line that states a hard rule is that rule's own,
+ *  in `../rules/brief-lines.ts`, and is told only where the battery asks it (issue 2378). */
 const HOUSE_RULES = [
-  "Write from `pack` only. `pack.facts` are this business's own words, read off its pages; `pack.claims` are claims read off public pages; `pack.profile` is what the business sells and how. State nothing about the business, the market, a competitor or a price that none of them carries.",
-  "State a business fact word for word and link it to its `url`. A business fact used word for word may stand as a one-paragraph blockquote ending with a Markdown link to its `url` — at most three blockquotes on the page, each a whole sentence a reader can follow on its own, never a fragment of a table, a menu or a screen.",
-  "State a claim from `pack.claims` in your own sentence or quote it exactly, and link its `url` in that same sentence.",
   "A source is cited by a Markdown link and in no other way: never a bare source name in brackets or parentheses after a sentence.",
-  "Never claim this business serves a use, an audience or a market that `pack.profile` does not support, and never call it \"#1\" or the best of a category.",
   // Issue 1248: the market in force. It places the page; it is no fact pool.
   "Where `pack.business.market` is given, it is the market this business is in: its `category`, who buys (`buyer`) and what they hire it for (`job`). Write for that buyer and that job, and never describe the business as one of `notOurMarket`. Its `rivals` say who it competes with and are not a source.",
-  "Never write any of the phrases in `pack.neverClaim`, in those words or any others.",
-  "Never invent a byline, an author biography, a persona, a quotation, a testimonial, a review or a case study, and never say the page's claims were tested, trialled or benchmarked. The page prints its own byline and dates: write neither.",
-  "Name a competing product only where `pack.claims` holds a claim from that product's own page (`pack.products` lists them), and say what that page says. Never state a figure about a competitor without linking the page it was read from.",
-  "A claim with a `plan` is true of that plan only: name the plan in the sentence that states it (\"its free trial includes …\"), and never present a trial, a starter tier or one plan's limits as the whole product. Where `pack.claims` holds a competitor's own page, cite that page for it and no other page's claim about it.",
-  "Never say a competitor has no, lacks or does not offer something unless a claim in `pack.claims` says so, linked in that same sentence. A page that does not mention a thing is not a page saying the product lacks it.",
   "A GFM table is a header row, a delimiter row with one `---` for every column, then one row per option.",
   "Do not write a sources list: one is added from the pages you linked.",
   "Never state a ranking position or a search volume, and never another company's scan score.",
-  "Write for a human reader only: never address an assistant, a crawler or a ranking system.",
-  "A section's `body` is Markdown without its heading: paragraphs, flat lists, links, emphasis, GFM tables and one-paragraph blockquotes; a sub-point may be an H3 (###), never deeper. No raw HTML, no images, no comments.",
+  "A section's `body` is Markdown without its heading: paragraphs, flat lists, links, emphasis, GFM tables and one-paragraph blockquotes; a sub-point may be an H3 (###), never deeper.",
   "Each section's `heading` is the question a reader asks, in the reader's words, in sentence case, ending in a question mark. Open its `body` with a paragraph of two or three sentences that answers the heading on its own, before any list or table.",
   "Link a page in `pack.links` once, with its url exactly as given, inside the sentence that speaks to what that page holds; link at least three of them, and no other page on the business's domain except a fact's own source.",
   "A link's text is words of the sentence that name what the reader finds at the other end — the page's `label` or a plain description of it. Never a bare number, never an address, never \"here\", \"click here\" or \"read more\", and never the page's slogan.",
-  "`pack.pages` are the pages this site has published or planned: write nothing that repeats one of them, and where one answers something this page raises, send the reader to it.",
-  "Print no label, index or id for a fact — link text is the source's name. Write no sentence of legal, removal or refund terms, no caption of a demo or example, and no menu or navigation text.",
-  "Say a promise or tagline of the business at most twice on the whole page. Write titles and headings in sentence case.",
-  // Issue 1390: how the page reads. Stage 4 counts each of these (`../rules/prose.ts`).
-  "Write plain statements: say what a thing is or does (\"X is Y\", \"X does Y\"), and never define it by what it is not. Mix sentence lengths: a sentence of a few words beside a longer one, and never three sentences of one shape in a row.",
-  "Join two clauses with a full stop, a comma or \"and\", never a dash: at most two dashes on the whole page. Say no sentence, and no run of four words or more, over twice on the page. Each item of a list is its own sentence, with no label repeated down the list.",
+  "Print no label, index or id for a fact — link text is the source's name. Write no sentence of legal, removal or refund terms.",
+  "Write titles and headings in sentence case.",
   "State one opinion of the business's own, once: its judgement on a fact of its own in `pack` (that a number is low, which step it would take first, what it would not bother with), in the paragraph that states that fact and in plain words, without labelling it an opinion. It is never a claim about what most people, businesses or sites do or get wrong: `pack` holds no such fact.",
   "Do not sum the page up at its end, and do not announce what a section is about to say: the last section ends on its last fact or instruction.",
-  "Write none of the habits listed in `avoid`, nor their like in the page's language.",
   `Where \`pack.claims\` or \`pack.facts\` hold a statistic or a sentence worth quoting, use ${VOICE.evidence.min} to ${VOICE.evidence.max} of them on the page, each with who measured or said it and its link. Use only the ones \`pack\` holds, as it states them; where it holds fewer, use fewer, and never invent a figure, a quotation or a name.`,
-  `Write no number of ${REGISTER_FLOOR} or more that \`pack\` or the target search do not contain; a year is not a number for this rule.`,
-  `\`answer\` is the page's short answer: one paragraph of ${PAGE_BLOCKS.answerWords.min} to ${PAGE_BLOCKS.answerWords.max} words that answers the target plainly — write 45 to 55, in two or three sentences, and count them: outside ${PAGE_BLOCKS.answerWords.min} to ${PAGE_BLOCKS.answerWords.max} the page is stopped.`,
-  `\`takeaways\`: ${PAGE_BLOCKS.takeaways.min} to ${PAGE_BLOCKS.takeaways.max} key takeaways, one sentence each. \`closing\`: one line that points the reader to the one action this page's reader should take, linking the page in \`pack.links\` where they take it.`,
 ];
 
-/** A table the writer lays out itself: every cell a fact, never a blank. */
+/** A table the writer lays out itself: every cell a fact (`no_placeholder_cell` says what a cell never is). */
 const WRITTEN_TABLE_RULE =
-  "A comparison table names only this business and the products in `pack.products`. Every cell states what a fact says, with each price or figure linked to that fact's url inside the cell — never a blank, \"not stated\", \"not linked\", \"n/a\", \"unknown\" or any other words that say a value is missing: where a fact is missing for one product, leave that row out for every product, or leave that product out. State each price in the currency its fact states it in, and never convert one.";
+  "A comparison table names only this business and the products in `pack.products`. Every cell states what a fact says, with each price or figure linked to that fact's url inside the cell. State each price in the currency its fact states it in, and never convert one.";
 /** SPEC §7 (owner, D47): the listicle's table is built in code from `pack`
  *  (`./table.ts`), and the writer writes around it. */
 const BUILT_TABLE_RULE =
@@ -225,6 +206,8 @@ export interface WriteInputs {
   /** The lead's free page (SPEC §2), whose one call is sized to fit
    *  `CAPS.FREE_C`. */
   free?: boolean;
+  /** The site's demo phrases (issue 1249): the phrases `no_demo_text` reads, named to the writer (issue 2378). */
+  demoPhrases?: readonly string[];
 }
 
 /** What the writer is told about the page's shape: the template, as data. */
@@ -305,6 +288,8 @@ function inputFor(a: WriteInputs, extra: Record<string, unknown> = {}): Record<s
     avoid: AVOID_LIST,
     rules: [
       ...HOUSE_RULES,
+      // Issue 2378: each hard rule the battery will ask of this page, from its own line.
+      ...briefLines(a),
       ...((a.pack.corrections ?? []).length === 0 ? [] : [CORRECTIONS_RULE]),
       ...(a.pack.voice === undefined ? [] : voiceRules(a.pack.voice)),
       ...(a.pack.type === "qa" || a.pack.type === "update" || a.pack.questions.length === 0 ? [] : [ASKED_HEADINGS_RULE]),

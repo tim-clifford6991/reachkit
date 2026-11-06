@@ -53,7 +53,7 @@ import { batteryCleared, type BatteryOutcome } from "../rules";
 import { answerBoxWords, renumberSteps, withoutBrokenLinks } from "../rules/blocks";
 import { proseNotes } from "../rules/prose";
 import { linksOf, renderOf } from "../rules/text";
-import { pickTitle, specificOnly, titleNotes, type TitleCandidate } from "../rules/title";
+import { pickTitle, titleNotes, type TitleCandidate } from "../rules/title";
 import { RIVAL_SCOPE_VERSION } from "../live-recheck";
 import { HARD_RULES, type GroundedFact, type HardRule, type RuleFailure, type SiteRuleInputs } from "../rules/types";
 import { generateStore, type DraftRow } from "../store";
@@ -63,12 +63,12 @@ import { buildComparisonSet } from "./comparison";
 import { layoutPage, withClosing, type LaidPage } from "./compose";
 import type { SourcedFact } from "./grounding";
 import { fittedTemplate, packStatements, type ContextPack } from "./pack";
-import { batteryBasis, checkPage, scopeOf } from "./battery";
+import { batteryBasis, checkPage, lacksSpecificOnly, scopeOf } from "./battery";
 import { tryFix, type FixStop } from "./fix-call";
 import { fixNotes, type FixNote, type RepairRecord } from "./repair";
 import { completeTables, withSources } from "./sources";
 import { withTable } from "./table";
-import { titleRuleFor, unclaimedSuperlatives } from "./title";
+import { floorTitle, titleRuleFor, unclaimedSuperlatives } from "./title";
 import { fixPage, writePage, type PageParts } from "./write";
 
 /** The stages a page can stop at without a rule failing. */
@@ -264,6 +264,7 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
     // pack is short. The fallback keeps the type total.
     length: length ?? { floor: 0, target: 0, ceiling: Number.MAX_SAFE_INTEGER },
     ...(a.tier === undefined ? {} : { tier: a.tier }),
+    ...(a.demoPhrases === undefined ? {} : { demoPhrases: a.demoPhrases }),
   };
 
   // 3. Write: one call.
@@ -298,7 +299,7 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
     const laid = layoutPage(parts, template, {
       ...tidy,
       pickTitle: (proposed, on) => {
-        const picked = pickTitle(proposed, titleRuleFor(pack, on));
+        const picked = pickTitle(proposed, titleRuleFor(pack, on), floorTitle(pack));
         titles = picked.candidates;
         return picked.chosen;
       },
@@ -442,13 +443,6 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
       }
       return note;
     });
-  };
-
-  /** The page failed one thing: its title lacks a specific. */
-  const lacksSpecificOnly = (outcome: BatteryOutcome): boolean => {
-    if (outcome.passed || outcome.failed.length !== 1) return false;
-    const detail = outcome.failed[0]?.detail;
-    return detail !== undefined && "faults" in detail && detail.rule === "title" && specificOnly(detail.faults);
   };
 
   const attemptsBefore = existing?.hard_rule_attempts ?? 0;

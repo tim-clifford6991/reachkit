@@ -119,18 +119,25 @@ describe("what was written is read back from the post, never inferred from what 
     expect(seoWrittenIn(["yoast"], post, PAGE)).toEqual(["yoast"]);
   });
 
-  it("a plugin whose fields the site dropped is not", () => {
-    expect(seoWrittenIn(["yoast", "rankmath"], { meta: {} }, PAGE)).toEqual([]);
+  it("a plugin whose fields the site dropped is detected, not accepted — never dropped from the record (#2091)", () => {
+    expect(seoWrittenIn(["yoast", "rankmath"], { meta: {} }, PAGE)).toEqual([
+      "yoast:not_accepted",
+      "rankmath:not_accepted",
+    ]);
   });
 
-  it("a post with no meta at all is no plugins written, and no throw", () => {
-    expect(seoWrittenIn(["yoast"], { id: 9 }, PAGE)).toEqual([]);
-    expect(seoWrittenIn(["yoast"], null, PAGE)).toEqual([]);
+  it("a post with no meta at all is not accepted, and no throw", () => {
+    expect(seoWrittenIn(["yoast"], { id: 9 }, PAGE)).toEqual(["yoast:not_accepted"]);
+    expect(seoWrittenIn(["yoast"], null, PAGE)).toEqual(["yoast:not_accepted"]);
   });
 
-  it("one written and one dropped is exactly one", () => {
+  it("none detected is the empty answer", () => {
+    expect(seoWrittenIn([], { meta: {} }, PAGE)).toEqual([]);
+  });
+
+  it("one written and one dropped is one of each", () => {
     const post = { meta: { rank_math_title: PAGE.title, rank_math_description: PAGE.description } };
-    expect(seoWrittenIn(["yoast", "rankmath"], post, PAGE)).toEqual(["rankmath"]);
+    expect(seoWrittenIn(["yoast", "rankmath"], post, PAGE)).toEqual(["yoast:not_accepted", "rankmath"]);
   });
 });
 

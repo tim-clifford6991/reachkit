@@ -50,7 +50,7 @@ import { DAY_TOPICS_MAX, PIPELINE, RESEARCH } from "@/lib/config/constants";
 import type { KnownPage } from "@/lib/known-content/types";
 import { contentTypeOf } from "@/lib/opportunities/content-type";
 import { intentFor } from "@/lib/opportunities/intent";
-import { withDraftCost } from "./cost";
+import { roomForFix, withDraftCost } from "./cost";
 import { readRecordedRules, recordedVerdictValue } from "./record";
 import { mendedInCode, repairStructure } from "./rules/structure";
 import { claimCheck } from "./claims/check";
@@ -224,7 +224,7 @@ export async function generateDayPage(a: {
         // not choose it again until the rest ends.
         if (short && stopped === null) await restTopic(opportunity.id, now);
         // And only while the job's invocation has the time for a second page.
-        if ((stopped === null && !short) || written >= DAY_TOPICS_MAX || cost.capHit() || Date.now() - startedAt > PIPELINE.nextTopicBeforeMs) return outcome;
+        if ((stopped === null && !short) || written >= DAY_TOPICS_MAX || cost.capHit() || !roomForFix(cost) || Date.now() - startedAt > PIPELINE.nextTopicBeforeMs) return outcome;
         // The stopped topic rests by now, so the date's page is the week's next spare.
         const next = await pageForDay(a.siteId, a.publishDate, now);
         if (next === null || next.id === first.id || next.id === opportunity.id) return outcome;

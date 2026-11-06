@@ -16,6 +16,7 @@
 // file reads is the direct-answer character window and the (unused-here)
 // answerability floor, both transcribed to `SCORING` by WO-251's own first
 // file-plan row — never written as a literal here (`structure.md` rule 5).
+import { parse } from "node-html-parser";
 import { SCORING } from "@/lib/config/constants";
 
 /** The counted facts of one fetched document. Named by BP-010's
@@ -249,7 +250,9 @@ function dateCount(text: string): number {
   return matches ? matches.length : 0;
 }
 
-const ANCHOR_HREF_RE = /<a\b[^>]*?\bhref\s*=\s*(?:"([^"]*)"|'([^']*)')[^>]*>/gi;
+/** How the measure reads a document's tags: `<script>` and `<style>` are text, never markup, and every other
+ *  element — `<noscript>` and `<pre>` included — is parsed. */
+export const MARKUP_OPTIONS = { blockTextElements: { script: true, style: true } } as const;
 
 function outboundCitationCount(html: string, pageUrl: string): number {
   let baseHost = "";
@@ -259,10 +262,8 @@ function outboundCitationCount(html: string, pageUrl: string): number {
     baseHost = "";
   }
   let count = 0;
-  let match: RegExpExecArray | null;
-  ANCHOR_HREF_RE.lastIndex = 0;
-  while ((match = ANCHOR_HREF_RE.exec(html)) !== null) {
-    const href = match[1] ?? match[2] ?? "";
+  for (const anchor of parse(html, MARKUP_OPTIONS).querySelectorAll("a[href]")) {
+    const href = anchor.getAttribute("href") ?? "";
     if (!href) continue;
     try {
       const resolved = new URL(href, pageUrl || undefined);
@@ -284,7 +285,6 @@ function outboundCitationCount(html: string, pageUrl: string): number {
 
 const JSON_LD_RE = /<script\b[^>]*\btype\s*=\s*(?:"application\/ld\+json"|'application\/ld\+json')[^>]*>([\s\S]*?)<\/script>/gi;
 const ITEMTYPE_RE = /\bitemtype\s*=\s*(?:"([^"]*)"|'([^']*)')/gi;
-const META_TAG_RE = /<meta\b[^>]*>/gi;
 
 function collectJsonLdTypes(value: unknown, out: string[]): void {
   if (Array.isArray(value)) {
@@ -327,13 +327,6 @@ function schemaTypesOf(withoutComments: string): readonly string[] {
   return types.map(asciiLowerCase);
 }
 
-function attrValue(tag: string, name: string): string | null {
-  const re = new RegExp(`\\b${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)')`, "i");
-  const m = re.exec(tag);
-  if (!m) return null;
-  return m[1] ?? m[2] ?? "";
-}
-
 interface MetaGates {
   openGraphProperties: string[];
   noindex: boolean;
@@ -345,16 +338,13 @@ function scanMetaTags(withoutComments: string): MetaGates {
   let sawAnyNoindex = false;
   let sawGenericNoindex = false;
 
-  let match: RegExpExecArray | null;
-  META_TAG_RE.lastIndex = 0;
-  while ((match = META_TAG_RE.exec(withoutComments)) !== null) {
-    const tag = match[0];
-    const property = attrValue(tag, "property");
+  for (const tag of parse(withoutComments, MARKUP_OPTIONS).querySelectorAll("meta")) {
+    const property = tag.getAttribute("property");
     if (property && asciiLowerCase(property).startsWith("og:")) {
       openGraphProperties.push(asciiLowerCase(property));
     }
-    const name = attrValue(tag, "name");
-    const content = attrValue(tag, "content");
+    const name = tag.getAttribute("name");
+    const content = tag.getAttribute("content");
     if (name && content) {
       const tokens = asciiLowerCase(content)
         .split(",")

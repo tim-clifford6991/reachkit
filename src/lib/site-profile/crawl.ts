@@ -67,6 +67,7 @@
 // it, which is the contradiction §9's `noindex` check exists to name. One
 // variant of a path is read to learn which it is; its siblings are then
 // dropped unread, so a gallery's forty filters cost one fetch, not forty.
+import { parse, type HTMLElement } from "node-html-parser";
 import { CACHE_WINDOWS_D, SITE_ISSUES, SITE_PROFILE } from "@/lib/config/constants";
 import { refusalOf, type CostContext, type FetchRefusal } from "@/lib/costs";
 import { crawlDelayMs, readRobots, robotsAllows } from "@/lib/egress/robots";
@@ -165,16 +166,8 @@ const ROBOTS_TOKENS = robotsTokensFor(OWN_FETCH_OPTS.userAgent);
  *  and the frontier is full long before the tenth child is read. */
 const MAX_SITEMAP_DOCUMENTS = 8;
 
-const TITLE_RE = /<title[^>]*>([\s\S]*?)<\/title>/i;
-const H1_RE = /<h1\b[^>]*>([\s\S]*?)<\/h1>/i;
-const ANCHOR_HREF_RE = /<a\b[^>]*?\bhref\s*=\s*(?:"([^"]*)"|'([^']*)')[^>]*>/gi;
 const LOC_RE = /<loc>\s*([\s\S]*?)\s*<\/loc>/gi;
 const SITEMAP_INDEX_RE = /<sitemapindex\b/i;
-const TAG_RE = /<[^>]*>/g;
-const COMMENT_RE = /<!--[\s\S]*?-->/g;
-const LINK_TAG_RE = /<link\b[^>]*>/gi;
-const REL_RE = /\brel\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i;
-const HREF_RE = /\bhref\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i;
 
 /** Addresses that are not pages. A crawl that fetched these would spend
  *  its budget on bytes no inventory row can be made from. */
@@ -775,17 +768,12 @@ const UNFOLLOWED_REL_RE = /(?:^|\s)(?:nofollow|sponsored|ugc)(?:\s|$)/i;
 
 /** Every anchor's address, and whether its `rel` lets a search engine
  *  follow it. */
-function anchorsOf(html: string): readonly { href: string; followed: boolean }[] {
-  const out: { href: string; followed: boolean }[] = [];
-  ANCHOR_HREF_RE.lastIndex = 0;
-  let match: RegExpExecArray | null;
-  while ((match = ANCHOR_HREF_RE.exec(html)) !== null) {
-    const href = (match[1] ?? match[2] ?? "").trim();
-    if (href.length === 0) continue;
-    const rel = REL_RE.exec(match[0]);
-    out.push({ href: decodeEntities(href), followed: !UNFOLLOWED_REL_RE.test(rel?.[1] ?? rel?.[2] ?? rel?.[3] ?? "") });
-  }
-  return out;
+function anchorsOf(html: string | HTMLElement): readonly { href: string; followed: boolean }[] {
+  const root = typeof html === "string" ? parse(html) : html;
+  return root.querySelectorAll("a[href]").flatMap((anchor) => {
+    const href = (anchor.getAttribute("href") ?? "").trim();
+    return href === "" ? [] : [{ href, followed: !UNFOLLOWED_REL_RE.test(anchor.getAttribute("rel") ?? "") }];
+  });
 }
 
 /** Whether `url` stands on a host the crawl records and never reads. */
@@ -875,14 +863,11 @@ function sameAddress(a: string, b: string): boolean {
 /** The document's `<link rel="canonical">`, absolute; `null` where it
  *  declares none or one that is not an address. */
 function canonicalOf(html: string, url: string): string | null {
-  for (const tag of html.replace(COMMENT_RE, "").match(LINK_TAG_RE) ?? []) {
-    const rel = REL_RE.exec(tag);
-    if (!/(?:^|\s)canonical(?:\s|$)/i.test(rel?.[1] ?? rel?.[2] ?? rel?.[3] ?? "")) continue;
-    const href = HREF_RE.exec(tag);
-    const value = decodeEntities((href?.[1] ?? href?.[2] ?? href?.[3] ?? "").trim());
-    return value === "" ? null : absoluteUrl(value, url);
-  }
-  return null;
+  const link = parse(html)
+    .querySelectorAll("link[rel]")
+    .find((tag) => /(?:^|\s)canonical(?:\s|$)/i.test(tag.getAttribute("rel") ?? ""));
+  const value = (link?.getAttribute("href") ?? "").trim();
+  return value === "" ? null : absoluteUrl(value, url);
 }
 
 /** Whether the document at `url` is a page of its own or an alias of
@@ -903,9 +888,10 @@ function aliasOf(url: string, html: string, site: string | null): { alias: false
 /** One read page, parsed. Never throws: a document that carries no title
  *  and no `h1` yields empty strings, which is the truth about it. */
 function pageOf(url: string, html: string, site: string | null, fetchMs: number | null): CrawledPage {
-  const { links, unfollowed } = linkSets(url, html, site);
-  const title = firstText(html, TITLE_RE);
-  const h1 = firstText(html, H1_RE);
+  const root = parse(html);
+  const { links, unfollowed } = linkSets(url, root, site);
+  const title = firstText(root, "title");
+  const h1 = firstText(root, "h1");
   const text = proseText(html);
   const about = derivePurpose({ url, title, h1 }) === "about";
   const unread = unreadPageOf(html);
@@ -929,7 +915,7 @@ function linksOf(url: string, html: string, site: string | null): string[] {
 
 /** The pages a document links to, and those it links only through an
  *  anchor search engines are asked not to follow. */
-function linkSets(url: string, html: string, site: string | null): { links: string[]; unfollowed: string[] } {
+function linkSets(url: string, html: string | HTMLElement, site: string | null): { links: string[]; unfollowed: string[] } {
   const links = new Set<string>();
   const followed = new Set<string>();
   for (const anchor of anchorsOf(html)) {
@@ -950,16 +936,13 @@ export function ownLinks(url: string, html: string, domain: string): readonly st
   return linksOf(url, html, registrableDomain(domain));
 }
 
-function firstText(html: string, re: RegExp): string {
-  const match = re.exec(html);
-  if (match === null) return "";
-  return decodeEntities((match[1] ?? "").replace(TAG_RE, " ")).replace(/\s+/g, " ").trim();
+/** The first `selector` element's text, entities decoded, whitespace collapsed; "" where there is none. */
+function firstText(root: HTMLElement, selector: string): string {
+  return (root.querySelector(selector)?.text ?? "").replace(/\s+/g, " ").trim();
 }
 
-/** The five named entities a heading or an address realistically carries,
- *  plus numeric references. Not a general HTML parser: this module reads
- *  addresses and two headings, and a dependency for that would be a
- *  dependency added without asking. */
+/** The five named entities a sitemap's `<loc>` realistically carries, plus
+ *  numeric references. The HTML a page carries is read by `node-html-parser`. */
 function decodeEntities(value: string): string {
   return value
     .replace(/&(?:amp|AMP);/g, "&")

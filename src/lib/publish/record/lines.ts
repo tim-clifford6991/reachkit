@@ -12,7 +12,16 @@ import type { CriticalKind, NeedsYouCause } from "./needs-you";
  *  No surface names the key (`tests/publish/record/seo-note.test.ts`). */
 export const SEO_COPY = Object.freeze({
   noSeoPlugin: "publish.wordpress.noSeoPlugin",
+  seoNotAccepted: "publish.wordpress.seoNotAccepted",
 } as const satisfies Record<string, CopyKey>);
+
+/** The SEO line for a delivery's `seo_written` (#2091), or nothing. `null` is no answer; `[]` is none detected;
+ *  any plugin read back is written and silent; only `<plugin>:not_accepted` entries is detected, not accepted. */
+export function seoNoteOf(written: readonly string[] | null | undefined): CopyKey | null {
+  if (written === null || written === undefined) return null;
+  if (written.length === 0) return SEO_COPY.noSeoPlugin;
+  return written.every((entry) => entry.endsWith(":not_accepted")) ? SEO_COPY.seoNotAccepted : null;
+}
 
 /** Which of the seven a record earned: the standing, never how it looks. */
 export type VerificationKind =

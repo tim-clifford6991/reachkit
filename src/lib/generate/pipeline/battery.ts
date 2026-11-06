@@ -5,10 +5,12 @@ import type { CostContext } from "@/lib/costs";
 import type { Opportunity } from "@/lib/opportunities";
 import { contentTypeOf } from "@/lib/opportunities/content-type";
 import { pageTypeOf } from "@/lib/opportunities/page-type";
-import type { FitVerdict } from "../claims/fit";
+import { stillAsked, type FitVerdict } from "../claims/fit";
 import { lengthRangeFor, sectionWords } from "../length";
 import { batteryCleared, runHardRules, type BatteryOutcome } from "../rules";
+import { citesMinOf } from "../rules/brief-lines";
 import { namedRivals } from "../rules/rivals";
+import { specificOnly } from "../rules/title";
 import { renderOf } from "../rules/text";
 import type { ComparisonSet, HardRule, SiteRuleInputs } from "../rules/types";
 import type { SiteFacts } from "../store";
@@ -18,7 +20,7 @@ import type { LaidSection } from "./compose";
 import { closeElsewhere } from "./elsewhere";
 import type { SourcedFact } from "./grounding";
 import { builtFromOutside, fittedTemplate, packStatements, type ContextPack, type PackClaim } from "./pack";
-import { repairable, repairMechanical, type RepairRecord } from "./repair";
+import { repairable, repairRecorded, type RepairRecord } from "./repair";
 import { reportFactsAllowed } from "./report-scope";
 import { withSources } from "./sources";
 import { comparisonTable } from "./table";
@@ -78,8 +80,8 @@ export function batteryBasis(a: {
           ],
         }),
   };
-  /** What `cites_market` holds the page to: the template's own count. */
-  const citesMin = template.packMustHold.reduce((most, need) => (need.need === "outside_sources" ? Math.max(most, need.min) : most), 0);
+  /** What `cites_market` holds the page to: the template's own count, as the writer is told it. */
+  const citesMin = citesMinOf(template);
   return { ...a, template, length, pageType, table, searches, names, passages, cited, brief, citesMin, rivalsNamed: namedRivals(site.rivals, pack.business.market) };
 }
 
@@ -93,6 +95,26 @@ export interface CheckedPage {
   description: string;
   sections: readonly LaidSection[];
   faq: readonly FaqEntry[];
+}
+
+/** What `required_blocks` reads of the page beside its body. */
+export function blockInputs(b: BatteryBasis, page: CheckedPage) {
+  const { pack, site } = b;
+  return {
+    template: b.template,
+    sections: page.sections,
+    length: b.length,
+    faq: page.faq,
+    domain: site.domain,
+    // D52: the rivals the verdict may name as the better pick.
+    // Issue 1508: never the baseline, which no verdict may choose.
+    ...(b.table === null ? {} : { rivals: b.table.options.slice(1) }),
+    ...(b.table?.baseline == null ? {} : { baseline: b.table.baseline }),
+    // Issue 1486: a step that names the business is its own.
+    businessName: site.businessName,
+    // Issue 1521: what a growing refresh may add, and on what.
+    ...(pack.type === "update" && pack.live !== null && pack.gaps !== undefined ? { growth: { live: pack.live.markdown, gaps: pack.gaps } } : {}),
+  };
 }
 
 /** Everything `runHardRules` is handed for one text of the page. `settled` is the page after its fix call, whose
@@ -115,21 +137,7 @@ export function batteryInputs(b: BatteryBasis, page: CheckedPage, markdown: stri
     sourceText: b.grounding.sourceText,
     brief: b.brief,
     factPages: pack.facts.map((fact) => fact.url),
-    blocks: {
-      template: b.template,
-      sections: page.sections,
-      length: b.length,
-      faq: page.faq,
-      domain: site.domain,
-      // D52: the rivals the verdict may name as the better pick.
-      // Issue 1508: never the baseline, which no verdict may choose.
-      ...(b.table === null ? {} : { rivals: b.table.options.slice(1) }),
-      ...(b.table?.baseline == null ? {} : { baseline: b.table.baseline }),
-      // Issue 1486: a step that names the business is its own.
-      businessName: site.businessName,
-      // Issue 1521: what a growing refresh may add, and on what.
-      ...(pack.type === "update" && pack.live !== null && pack.gaps !== undefined ? { growth: { live: pack.live.markdown, gaps: pack.gaps } } : {}),
-    },
+    blocks: blockInputs(b, page),
     titleRule: { ...titleRuleFor(pack, { description: page.description, sections: page.sections }), settled },
     // D61: a Q&A's questions are each their own.
     distinctHeadings: pack.type === "qa",
@@ -150,6 +158,14 @@ export function batteryInputs(b: BatteryBasis, page: CheckedPage, markdown: stri
   };
 }
 
+/** The page failed one thing: its title lacks a specific. Stage 4 then lets it go on without one (ruling
+ *  2026-10-11), and so does the morning re-check. */
+export function lacksSpecificOnly(outcome: BatteryOutcome): boolean {
+  if (outcome.passed || outcome.failed.length !== 1) return false;
+  const detail = outcome.failed[0]?.detail;
+  return detail !== undefined && "faults" in detail && detail.rule === "title" && specificOnly(detail.faults);
+}
+
 /** One page through stage 4: the checks, the repairs code can make (#1178) kept only where the page then passes or
  *  fails fewer checks and no new one, and the pages written for other sites (D13) where the rules passed. Each rule the
  *  first check failed is added to `broken`. */
@@ -167,8 +183,10 @@ export async function checkPage(
   const repairs: RepairRecord[] = [];
   const tried = outcome.passed || outcome.fit.state === "unrun" ? [] : repairable(outcome.failed);
   if (tried.length > 0) {
-    const repaired = withSources(
-      repairMechanical(markdown, tried, {
+    const inputs = batteryInputs(b, page, markdown, at.comparison, settled);
+    const reading = (text: string) => ({ title: page.title, markdown: text, businessName: b.site.businessName, domain: b.site.domain, titleOwed: (inputs.titleRule.business?.length ?? 0) > 0 });
+    const named = stillAsked(outcome.fit, reading(markdown));
+    const mended = repairRecorded(markdown, tried, {
         brief: b.brief,
         sources: [
           ...b.facts.map((sourced) => ({ url: sourced.fact.url, text: sourced.sourceText })),
@@ -176,13 +194,20 @@ export async function checkPage(
         ],
         rivals: b.site.rivals,
         rivalsNamed: b.rivalsNamed,
-        prose: batteryInputs(b, page, markdown, at.comparison, settled).prose,
-      }),
-      b.cited
-    );
-    const again = repaired === markdown ? null : await runHardRules(c, batteryInputs(b, page, repaired, at.comparison, settled, outcome.fit));
+        prose: inputs.prose,
+        // Issue 2375: the sentences the fit check named, and the blocks a drop may not break.
+        ...(named.state === "failed" ? { fit: named.sentences } : {}),
+        kept: { title: page.title, blocks: inputs.blocks },
+      });
+    const repaired = withSources(mended.markdown, b.cited);
+    // The verdict stands for the sentences the repaired page still asks about; no fit call is bought again.
+    const fit = stillAsked(outcome.fit, reading(repaired));
+    const again = repaired === markdown ? null : await runHardRules(c, batteryInputs(b, page, repaired, at.comparison, settled, fit));
     const still = new Set(again === null || again.passed ? [] : again.failed.map((failure) => failure.rule));
-    for (const rule of tried) repairs.push({ rule, cleared: again !== null && !still.has(rule) });
+    for (const rule of tried) {
+      const dropped = mended.dropped[rule];
+      repairs.push({ rule, cleared: again !== null && !still.has(rule), ...(dropped === undefined ? {} : { dropped }) });
+    }
     console.log(JSON.stringify({ event: "draft_repaired", siteId: at.siteId, draftId: at.draftId, repairs }));
     const before = new Set(outcome.passed ? [] : outcome.failed.map((failure) => failure.rule));
     const fewer = again !== null && !again.passed && again.failed.length < before.size && again.failed.every((failure) => before.has(failure.rule));

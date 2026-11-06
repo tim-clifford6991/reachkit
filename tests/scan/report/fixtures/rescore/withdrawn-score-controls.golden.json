@@ -1,0 +1,307 @@
+{
+  "sage.com (market read from search)": {
+    "score": 0,
+    "status": "done",
+    "verdict": {
+      "domain": "gusto.com",
+      "measuredAt": "2026-10-08T13:52:02.178Z",
+      "scoreAndBand": {
+        "kind": "measured",
+        "value": {
+          "score": 0,
+          "band": "invisible"
+        },
+        "at": "2026-10-08T13:52:02.178Z"
+      },
+      "estimate": {
+        "low": 0,
+        "high": 0,
+        "confidence": "rough"
+      },
+      "factors": {
+        "foundations": {
+          "kind": "zero",
+          "value": 0,
+          "at": "2026-10-08T13:52:02.178Z"
+        },
+        "answerability": {
+          "kind": "zero",
+          "value": 1,
+          "at": "2026-10-08T13:52:02.178Z"
+        },
+        "presence": {
+          "kind": "measured",
+          "value": 25.25,
+          "at": "2026-10-08T13:52:02.178Z"
+        }
+      },
+      "halves": {
+        "google": {
+          "kind": "zero",
+          "value": 0,
+          "at": "2026-10-08T13:52:02.178Z"
+        },
+        "ai": {
+          "kind": "unmeasured",
+          "reason": "undeterminable",
+          "at": "2026-10-08T13:52:02.178Z"
+        }
+      },
+      "limiting": {
+        "kind": "factor",
+        "factor": "foundations"
+      },
+      "missing": [],
+      "unmeasuredElsewhere": [],
+      "blockedReaders": {
+        "kind": "zero",
+        "value": 0,
+        "at": "2026-10-08T13:52:02.178Z"
+      }
+    }
+  },
+  "hiverhq.com (market unmeasured, no because)": {
+    "score": 47,
+    "status": "done",
+    "verdict": {
+      "domain": "zapier.com",
+      "measuredAt": "2026-10-06T03:43:51.829Z",
+      "scoreAndBand": {
+        "kind": "measured",
+        "value": {
+          "score": 47,
+          "band": "hard-to-find"
+        },
+        "at": "2026-10-06T03:43:51.829Z"
+      },
+      "estimate": {
+        "low": 28,
+        "high": 57,
+        "confidence": "rough"
+      },
+      "factors": {
+        "foundations": {
+          "kind": "measured",
+          "value": 100,
+          "at": "2026-10-06T03:43:51.829Z"
+        },
+        "answerability": {
+          "kind": "measured",
+          "value": 20.543433689506923,
+          "at": "2026-10-06T03:43:51.829Z"
+        },
+        "presence": {
+          "kind": "measured",
+          "value": 50.5,
+          "at": "2026-10-06T03:43:51.829Z"
+        }
+      },
+      "halves": {
+        "google": {
+          "kind": "measured",
+          "value": 100,
+          "at": "2026-10-06T03:43:51.829Z"
+        },
+        "ai": {
+          "kind": "zero",
+          "value": 1,
+          "at": "2026-10-06T03:43:51.829Z"
+        }
+      },
+      "limiting": {
+        "kind": "factor",
+        "factor": "answerability"
+      },
+      "missing": [],
+      "unmeasuredElsewhere": [],
+      "blockedReaders": {
+        "kind": "zero",
+        "value": 0,
+        "at": "2026-10-06T03:43:51.829Z"
+      }
+    }
+  },
+  "trello.com (market unmeasured, no because)": {
+    "score": 50,
+    "status": "done",
+    "verdict": {
+      "domain": "trello.com",
+      "measuredAt": "2026-10-15T21:27:28.149Z",
+      "scoreAndBand": {
+        "kind": "measured",
+        "value": {
+          "score": 50,
+          "band": "findable"
+        },
+        "at": "2026-10-15T21:27:28.149Z"
+      },
+      "estimate": {
+        "low": 39,
+        "high": 56,
+        "confidence": "rough"
+      },
+      "factors": {
+        "foundations": {
+          "kind": "measured",
+          "value": 75,
+          "at": "2026-10-15T21:27:28.149Z"
+        },
+        "answerability": {
+          "kind": "measured",
+          "value": 27.462299964598554,
+          "at": "2026-10-15T21:27:28.149Z"
+        },
+        "presence": {
+          "kind": "measured",
+          "value": 62.5,
+          "at": "2026-10-15T21:27:28.149Z"
+        }
+      },
+      "halves": {
+        "google": {
+          "kind": "measured",
+          "value": 25,
+          "at": "2026-10-15T21:27:28.149Z"
+        },
+        "ai": {
+          "kind": "measured",
+          "value": 100,
+          "at": "2026-10-15T21:27:28.149Z"
+        }
+      },
+      "limiting": {
+        "kind": "factor",
+        "factor": "answerability"
+      },
+      "missing": [],
+      "unmeasuredElsewhere": [],
+      "blockedReaders": {
+        "kind": "zero",
+        "value": 0,
+        "at": "2026-10-15T21:27:28.149Z"
+      }
+    }
+  },
+  "savvycal.com (panel, SaaS)": {
+    "score": 12,
+    "status": "done",
+    "verdict": {
+      "domain": "savvycal.com",
+      "measuredAt": "2026-10-15T21:29:43.004Z",
+      "scoreAndBand": {
+        "kind": "measured",
+        "value": {
+          "score": 12,
+          "band": "invisible"
+        },
+        "at": "2026-10-15T21:29:43.004Z"
+      },
+      "estimate": {
+        "low": 12,
+        "high": 43,
+        "confidence": "rough"
+      },
+      "factors": {
+        "foundations": {
+          "kind": "measured",
+          "value": 87.5,
+          "at": "2026-10-15T21:29:43.004Z"
+        },
+        "answerability": {
+          "kind": "measured",
+          "value": 19.920454540674864,
+          "at": "2026-10-15T21:29:43.004Z"
+        },
+        "presence": {
+          "kind": "zero",
+          "value": 1,
+          "at": "2026-10-15T21:29:43.004Z"
+        }
+      },
+      "halves": {
+        "google": {
+          "kind": "zero",
+          "value": 0,
+          "at": "2026-10-15T21:29:43.004Z"
+        },
+        "ai": {
+          "kind": "zero",
+          "value": 1,
+          "at": "2026-10-15T21:29:43.004Z"
+        }
+      },
+      "limiting": {
+        "kind": "factor",
+        "factor": "presence"
+      },
+      "missing": [],
+      "unmeasuredElsewhere": [],
+      "blockedReaders": {
+        "kind": "zero",
+        "value": 0,
+        "at": "2026-10-15T21:29:43.004Z"
+      }
+    }
+  },
+  "austinplumbery.com (panel, local)": {
+    "score": 15,
+    "status": "done",
+    "verdict": {
+      "domain": "austinplumbery.com",
+      "measuredAt": "2026-10-15T12:18:58.159Z",
+      "scoreAndBand": {
+        "kind": "measured",
+        "value": {
+          "score": 15,
+          "band": "invisible"
+        },
+        "at": "2026-10-15T12:18:58.159Z"
+      },
+      "estimate": {
+        "low": 15,
+        "high": 55,
+        "confidence": "rough"
+      },
+      "factors": {
+        "foundations": {
+          "kind": "measured",
+          "value": 100,
+          "at": "2026-10-15T12:18:58.159Z"
+        },
+        "answerability": {
+          "kind": "measured",
+          "value": 33.333333333333336,
+          "at": "2026-10-15T12:18:58.159Z"
+        },
+        "presence": {
+          "kind": "zero",
+          "value": 1,
+          "at": "2026-10-15T12:18:58.159Z"
+        }
+      },
+      "halves": {
+        "google": {
+          "kind": "zero",
+          "value": 0,
+          "at": "2026-10-15T12:18:58.159Z"
+        },
+        "ai": {
+          "kind": "zero",
+          "value": 1,
+          "at": "2026-10-15T12:18:58.159Z"
+        }
+      },
+      "limiting": {
+        "kind": "factor",
+        "factor": "presence"
+      },
+      "missing": [],
+      "unmeasuredElsewhere": [],
+      "blockedReaders": {
+        "kind": "zero",
+        "value": 0,
+        "at": "2026-10-15T12:18:58.159Z"
+      }
+    }
+  }
+}

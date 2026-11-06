@@ -11,6 +11,13 @@ import { succeeded } from "./errors";
 /** Closed by REQ-060's non-goals: "SEO plugins other than Yoast and RankMath". */
 export type SeoPlugin = "yoast" | "rankmath";
 
+/** A plugin the REST index showed whose fields were not read back (#2091): kept in the same `seo_written` array, so the
+ *  record can tell "none detected" (empty) from "detected, not accepted" with no migration. */
+export type SeoNotAccepted = `${SeoPlugin}:not_accepted`;
+
+/** One entry per detected plugin: written (read back), or detected and not accepted. Empty means none was detected. */
+export type SeoRecorded = SeoPlugin | SeoNotAccepted;
+
 /** Criterion 4's line where neither was found; the sentence lives in the registry. */
 export const NO_SEO_PLUGIN_LINE: CopyKey = "publish.wordpress.noSeoPlugin";
 
@@ -62,18 +69,30 @@ export function seoMetaFor(
   return meta;
 }
 
-/** Which plugins the site wrote, read back from the returned post, never assumed: sent and not returned is not accepted. */
+/** What each detected plugin did, read back from the returned post, never assumed: sent and not returned is
+ *  `<plugin>:not_accepted`, never dropped, so a detected plugin is not reported as no plugin (#2091). */
 export function seoWrittenIn(
   plugins: readonly SeoPlugin[],
   post: unknown,
   page: { title: string; description: string }
-): readonly SeoPlugin[] {
+): readonly SeoRecorded[] {
   const meta = metaOf(post);
-  return plugins.filter((plugin) => {
-    if (meta[PLUGINS[plugin].title] !== page.title) return false;
-    if (page.description === "") return true;
-    return meta[PLUGINS[plugin].description] === page.description;
-  });
+  return plugins.map((plugin): SeoRecorded => (readBack(meta, plugin, page) ? plugin : `${plugin}:not_accepted`));
+}
+
+/** Whether any detected plugin's fields were read back. */
+export function anySeoWritten(recorded: readonly SeoRecorded[]): boolean {
+  return recorded.some((entry) => !entry.endsWith(":not_accepted"));
+}
+
+function readBack(
+  meta: Readonly<Record<string, unknown>>,
+  plugin: SeoPlugin,
+  page: { title: string; description: string }
+): boolean {
+  if (meta[PLUGINS[plugin].title] !== page.title) return false;
+  if (page.description === "") return true;
+  return meta[PLUGINS[plugin].description] === page.description;
 }
 
 function metaOf(post: unknown): Readonly<Record<string, unknown>> {

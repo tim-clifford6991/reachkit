@@ -16,11 +16,12 @@
 // (`hasLink`). A rule then matches on what the reader reads and decides on
 // what the page would carry, without either side re-deriving the other.
 //
-// This module has no dependency and does not parse Markdown into a tree:
-// it is a lexical pass, which is what makes it deterministic and what keeps
+// This module does not parse Markdown into a tree (only an embedded
+// `<a href>` is read, by `node-html-parser`): it is a lexical pass, which is what makes it deterministic and what keeps
 // it out of the renderer's business (the draft screen's renderer is
 // `src/app/(account)/app/draft/[draftId]/markdown.ts`, and `src/lib` may
 // never import from `src/app`).
+import { parse } from "node-html-parser";
 
 /** `[label](href)` — the label is what a reader meets, the href is what
  *  makes the statement sourced. */
@@ -28,19 +29,15 @@ const MD_LINK_RE = /\[([^\]\n]*)\]\(([^)\s]+)\)/g;
 /** A bare address a destination would linkify. Counts as a link for the
  *  sourcing rules: the reader can open it. */
 const BARE_URL_RE = /https?:\/\/[^\s<>)\]]+/g;
-/** `<a href="…">` — markup embedded in the Markdown. */
-const HTML_ANCHOR_RE = /<a\b[^>]*\bhref\s*=/gi;
-
 /** True where this fragment of Markdown carries an address a reader can
- *  open. */
+ *  open: a Markdown link, a bare address, or an `<a href>` embedded in it. */
 export function hasLink(markdownFragment: string): boolean {
   MD_LINK_RE.lastIndex = 0;
   BARE_URL_RE.lastIndex = 0;
-  HTML_ANCHOR_RE.lastIndex = 0;
   return (
     MD_LINK_RE.test(markdownFragment) ||
     BARE_URL_RE.test(markdownFragment) ||
-    HTML_ANCHOR_RE.test(markdownFragment)
+    (markdownFragment.includes("<") && parse(markdownFragment).querySelector("a[href]") !== null)
   );
 }
 
