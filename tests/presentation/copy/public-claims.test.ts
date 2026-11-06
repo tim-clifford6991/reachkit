@@ -130,7 +130,7 @@ describe("the cancel answer leaves when access ends to the Terms (ruling R22)", 
     expect(answer).toContain("Section four of our Terms says when your access ends.");
     const section4 = text("legal.terms.body").split("\n## ").find((s) => s.startsWith("4. "));
     expect(section4).toMatch(/^4\. Price, billing and cancellation/);
-    expect(section4).toContain("Otherwise your access continues to the end of the period you have paid for");
+    expect(section4).toContain("Your access continues to the end of the month you have paid for");
   });
 });
 

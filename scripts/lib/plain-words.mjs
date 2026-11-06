@@ -48,11 +48,10 @@ export const RETIRED = [
   { name: "quoted by AI", pattern: /\bQuoted by\b/ },
   // A stopped topic is dropped for good. "Write it again" on a held page stays.
   { name: "write this one again", pattern: /\b(write this one again|ask us to write)\b/i },
-  // The Terms' old claims: a daily page, a zero window, a one-click cancel and no refund at all.
+  // The Terms' old claims: a daily page, a zero window and a one-click cancel.
   { name: "a page every day for your site", pattern: /\ba page every day for your site\b/i },
   { name: "from none", pattern: /\bfrom none\b/i },
   { name: "in one click:", pattern: /\bin one click:/i },
-  { name: "Payments already made are not refunded", pattern: /(?:^|[.!?]\s+)Payments already made are not refunded unless\b/ },
   // Up to 7 pages a week, and a week may skip a day: no daily pace and no daily ceiling.
   { name: "Publishing daily", pattern: /\bPublishing daily\b/i },
   { name: "one page a day", pattern: /\bone page a day\b/i },
