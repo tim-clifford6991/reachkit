@@ -294,3 +294,43 @@ describe("the comparison set is this customer's alone", () => {
     for (const call of readMeasuredTextMock.mock.calls) expect(call[0]).toMatchObject({ siteId: SITE_ID });
   });
 });
+
+describe("a refresh is compared with the site's other pages, not with the versions it replaces", () => {
+  const LIVE_URL = "https://example.com/choosing-a-tool";
+  const refresh = opportunity({ type: "refresh_page", targetRef: LIVE_URL, title: null });
+
+  /** The text a run writes, with a closing paragraph added, so a second run
+   *  of the same answer repeats most of it but not all of it. */
+  async function mostlyTheSameAs(): Promise<string> {
+    answers(pageParts());
+    const first = await run();
+    const body = first.ok ? (store.rows.get(first.draftId)?.body_md ?? "") : "";
+    return `${body}\n\nTeams that grow past ten people usually move to the plan with guest seats and shared boards.`;
+  }
+
+  async function runAgainst(published: { ref: string; markdown: string }, versions: string[], over: Partial<Parameters<typeof generateDraft>[1]>) {
+    store = memoryStore({ versionsAt: async (_siteId, url) => (url === LIVE_URL ? versions : []) });
+    setGenerateStore(store);
+    store.published = [{ ref: published.ref, title: "Choosing a tool", markdown: published.markdown }];
+    answers(pageParts(), pageParts());
+    return run(over);
+  }
+
+  it("a refresh_page repeating its own live text is not a near_duplicate of itself", async () => {
+    const outcome = await runAgainst({ ref: "live-1", markdown: await mostlyTheSameAs() }, ["live-1"], { opportunity: refresh });
+    expect(outcome).toMatchObject({ ok: true });
+    expect(passedPatch(outcome.ok ? outcome.draftId : null)).toBe(true);
+  });
+
+  it("a refresh_page copying another page of the site is still near_duplicate", async () => {
+    const outcome = await runAgainst({ ref: "other-1", markdown: await mostlyTheSameAs() }, ["live-1"], { opportunity: refresh });
+    expect(outcome).toMatchObject({ ok: false, reason: "rules", attempt: 2 });
+    expect(await rejectionCause(outcome.ok ? "" : outcome.draftId!)).toMatchObject({ kind: "near_duplicate", duplicateOf: { ref: "other-1" } });
+  });
+
+  it("a page that is not a refresh gets no exception, even for a version at its address", async () => {
+    const outcome = await runAgainst({ ref: "live-1", markdown: await mostlyTheSameAs() }, ["live-1"], { opportunity: opportunity({ targetRef: LIVE_URL }) });
+    expect(outcome).toMatchObject({ ok: false, reason: "rules", attempt: 2 });
+    expect(await rejectionCause(outcome.ok ? "" : outcome.draftId!)).toMatchObject({ kind: "near_duplicate", duplicateOf: { ref: "live-1" } });
+  });
+});

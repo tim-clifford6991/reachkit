@@ -52,8 +52,7 @@
 // stored pass did not make: `--replay` refuses it and lists it; `--live`
 // buys it, inside the cap, and keeps it in `<first 8>.live.json`.
 import { DEFAULT_LOCALE, localeOf } from "@/lib/locale/locales";
-import { execFileSync } from "node:child_process";
-import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { BATTERY, PRICE_BOOK, SELECTION, SERP_RIVAL_SIZING, WEEKLY_RIVAL_RESIZES } from "@/lib/config/constants";
 import { brandKeywords, ownKeywords } from "@/lib/market/infer/demand";
@@ -75,6 +74,7 @@ import { afterDeepReport } from "@/lib/scan/deep/run";
 import { judgeSearchesForPass } from "@/lib/scan/market-conclusion";
 import { parseHealth } from "@/lib/scan/health";
 import { readStoredReport } from "@/lib/scan/report";
+import { insertRows, psql, rebuild, waitForSchema } from "../local-run.mjs";
 import { appendSpend } from "../spend-log.mjs";
 
 export interface Options {
@@ -125,51 +125,6 @@ const OWNER = "00000000-0000-4000-8000-000000001301";
 const cents = (n: number): string => `${n.toFixed(2)}¢`;
 const without = (row: Row, ...columns: string[]): Row => Object.fromEntries(Object.entries(row).filter(([column]) => !columns.includes(column)));
 const short = (id: string): string => id.slice(0, 8);
-
-// ── The local database ─────────────────────────────────────────────────────
-
-function psql(sql: string): string {
-  const url = process.env.DATABASE_URL;
-  if (url === undefined || !/@(127\.0\.0\.1|localhost)[:/]/.test(url)) {
-    throw new Error("scripts/pass/run.ts: DATABASE_URL does not name the local database; nothing was run.");
-  }
-  return execFileSync("psql", [url, "-q", "-v", "ON_ERROR_STOP=1", "-At", "-f", "-"], {
-    input: sql,
-    encoding: "utf8",
-    maxBuffer: 64 * 1024 * 1024,
-    env: { ...process.env, PGOPTIONS: "-c client_min_messages=warning" },
-  });
-}
-
-/** `public`, rebuilt from the migrations — the loop the layout seed runs. */
-function rebuild(root: string): void {
-  psql("drop schema public cascade; create schema public; grant usage on schema public to anon, authenticated, service_role;");
-  const dir = path.join(root, "supabase/migrations");
-  for (const file of readdirSync(dir).filter((name) => name.endsWith(".sql")).sort()) psql(readFileSync(path.join(dir, file), "utf8"));
-  psql("notify pgrst, 'reload schema';");
-}
-
-async function waitForSchema(): Promise<void> {
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
-  const url = `${process.env.SUPABASE_URL}/rest/v1/scans?select=health&limit=1`;
-  const deadline = Date.now() + 30_000;
-  for (;;) {
-    const ok = await fetch(url, { headers: { apikey: key, Authorization: `Bearer ${key}` } }).then((r) => r.ok, () => false);
-    if (ok) return;
-    if (Date.now() > deadline) throw new Error("The local database never served the migrated schema.");
-    await new Promise((resolve) => setTimeout(resolve, 200));
-  }
-}
-
-/** Rows into a table, by the columns the rows carry; every other column
- *  takes its default. */
-function load(table: string, rows: readonly Row[]): void {
-  if (rows.length === 0) return;
-  const columns = [...new Set(rows.flatMap((row) => Object.keys(row)))].map((column) => `"${column}"`).join(", ");
-  const tag = "$snapshot$";
-  // A snapshot is one site's rows, not the rows they point at.
-  psql(`set session_replication_role = replica; insert into public.${table} (${columns}) select ${columns} from jsonb_populate_recordset(null::public.${table}, ${tag}${JSON.stringify(rows)}${tag}::jsonb);`);
-}
 
 // ── The snapshot, and the state the pass started from ──────────────────────
 
@@ -398,20 +353,20 @@ export async function main(o: Options): Promise<number> {
   rebuild(o.root);
   psql(`insert into public.users (id, email, plan_status) values ('${OWNER}', 'replay@example.com', 'active');`);
   const loadedAt = new Date().toISOString();
-  load("sites", [start.site]);
+  insertRows("sites", [start.site]);
   if (snapshot.siteProfile !== null) {
     // The export leaves the logo's image out, so its other two parts go too.
-    load("site_profiles", [without(snapshot.siteProfile, "logo_type", "logo_source")]);
+    insertRows("site_profiles", [without(snapshot.siteProfile, "logo_type", "logo_source")]);
   }
-  load("site_profile_edits", snapshot.siteProfileEdits);
-  load("scans", snapshot.otherScans.map((row) => ({ ...row, is_current: false })));
-  load("scans", [{ ...scan, health: null }]);
-  load("opportunities", start.opportunities);
-  load("destinations", snapshot.destinations);
+  insertRows("site_profile_edits", snapshot.siteProfileEdits);
+  insertRows("scans", snapshot.otherScans.map((row) => ({ ...row, is_current: false })));
+  insertRows("scans", [{ ...scan, health: null }]);
+  insertRows("opportunities", start.opportunities);
+  insertRows("destinations", snapshot.destinations);
   const draftable = new Set(start.opportunities.map((row) => row.id));
-  load("drafts", snapshot.drafts.filter((row) => draftable.has(row.opportunity_id)));
+  insertRows("drafts", snapshot.drafts.filter((row) => draftable.has(row.opportunity_id)));
   const cacheRows = [...snapshot.fetches, ...bought.map((row) => ({ ...row, scan_id: scan.id }))];
-  load("fetches", cacheRows.map((row) => (row.source === RANKED ? { ...row, payload: { total: (row.payload as Row).total, rows: (row.payload as Row).rows } } : row)));
+  insertRows("fetches", cacheRows.map((row) => (row.source === RANKED ? { ...row, payload: { total: (row.payload as Row).total, rows: (row.payload as Row).rows } } : row)));
   await waitForSchema();
 
   const boughtNow = (): (FetchRow & { id: string })[] =>
