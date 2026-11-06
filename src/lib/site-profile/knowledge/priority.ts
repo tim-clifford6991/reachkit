@@ -108,19 +108,30 @@ export function isAccountPage(url: string): boolean {
   return (segmentsOf(url) ?? []).some((segment) => ACCOUNT.includes(segment));
 }
 
+/** Files a site serves to crawlers and agents, not to buyers: what they say
+ *  is the platform's template (every Shopify store serves one `agents.md`). */
+const MACHINE_FILES = ["agents.md", "llms.txt", "llms-full.txt", ".well-known"];
+const FEED_FILE = /\.(?:xml|rss|atom)$/;
+/** A visitor's privacy and cookie choices: a consent form, like the legal page it sits beside. */
+const CONSENT = ["data-sharing-opt-out", "do-not-sell", "do-not-sell-my-personal-information", "privacy-choices", "your-privacy-choices", "cookie-settings", "cookie-preferences"];
+
 /** Whether an address is never read for facts about the business: a gallery
- *  page, with or without a sort or filter on its address, or an account
- *  page. */
+ *  page, with or without a sort or filter on its address, an account page,
+ *  a consent page, or a file for crawlers and agents. */
 export function isNeverRead(url: string): boolean {
   const segments = segmentsOf(url) ?? [];
   return (
     isAccountPage(url) ||
-    segments.some((segment, i) => GALLERY.includes(segment) || (GALLERY_ENTRY.includes(segment) && i < segments.length - 1))
+    FEED_FILE.test(segments.at(-1) ?? "") ||
+    segments.some(
+      (segment, i) =>
+        GALLERY.includes(segment) || MACHINE_FILES.includes(segment) || CONSENT.includes(segment) || (GALLERY_ENTRY.includes(segment) && i < segments.length - 1)
+    )
   );
 }
 
 /** Whether a page is read for facts at all: a legal page never is (§5,
- *  2026-10-03), nor a gallery or account page (2026-10-04). */
+ *  2026-10-03), nor any page `isNeverRead` names (2026-10-04). */
 export function isReadForFacts(url: string): boolean {
   return derivePurpose({ url, title: "", h1: "" }) !== "legal" && !isNeverRead(url);
 }

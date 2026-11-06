@@ -1,0 +1,30 @@
+{
+ "from": "panel proof 2026-11-05, tattly.com listicle.pack.json .facts: every stored passage, grouped by its page in stored order",
+ "pages": [
+  {
+   "url": "https://tattly.com/blogs/news",
+   "measuredAt": "2026-11-06T00:32:12.523Z",
+   "text": "News &ndash; Tattly Skip to content News Search Search Clear No products found."
+  },
+  {
+   "url": "https://tattly.com/pages/data-sharing-opt-out",
+   "measuredAt": "2026-11-06T00:32:12.469Z",
+   "text": "Your Privacy Choices &ndash; Tattly Skip to content Your Privacy Choices As described in our Privacy Policy, we collect personal information from your interactions with us and our website, including through cookies and similar technologies.\nWe may also share this personal information with third parties, including advertising partners.\nWe do this in order to show you ads on other websites that are more relevant to your interests and for other reasons outlined in our privacy policy.\nSharing of personal information for targeted advertising based on your interaction on different websites may be considered \"sales\", \"sharing\", or \"targeted advertising\" under certain U.S.\nDepending on where you live, you may have the right to opt out of these activities.\nIf you would like to exercise this opt-out right, please follow the instructions below."
+  },
+  {
+   "url": "https://tattly.com/agents.md",
+   "measuredAt": "2026-11-06T00:32:12.444Z",
+   "text": "- **Rate limits** — Back off on `429` responses and respect `Retry-After` when provided.\n# Agent Instructions — Tattly You can browse products and shop at Tattly's online store, https://tattly.com, on your user's behalf.\nThis guide covers the Shop skill and UCP integration, directly or through browser-based WebMCP tools.\n## Shop skill — recommended Use the [Shop skill](https://shop.com/SKILL.md) to help your user shop with this store.\nConnect their Shop account for personalized discovery and accelerated checkout with saved details.\n- Personalized discovery: search by text or image, find similar products, and use your user's Shop purchase history to find options that match their preferences.\n- Accelerated cart and checkout: build and update carts and checkouts, then use Shop Pay with prefilled addresses and saved payment methods.\n- Orders: search your user's order history for purchases from this store, track deliveries, and reorder products.\nRead the skill before your first call for setup, supported actions, account connection, and purchase-approval rules.\n## UCP integration This store implements the [Universal Commerce Protocol](https://ucp.dev) for product discovery, carts, and checkout.\nIntegrate directly with its service, or orchestrate shopping through browser-based WebMCP tools.\n**Discover the store** — `GET https://tattly.com/.well-known/ucp` returns its UCP profile, including capabilities, service endpoints, and payment handlers.\n**Discover available tools** — Connect to the MCP endpoint advertised in the profile (`https://tattly.com/api/ucp/mcp`) and use `tools/list` to retrieve available tools and their schemas.\n**Shop** — Use those tools to find products, manage carts, prepare checkout, and complete buyer-authorized purchases.\nFollow returned statuses, messages, and handoff URLs when buyer action is required.\nUse a compatible UCP version and follow the returned tool schemas.\nFor integration details, see [Shopify's agent documentation](https://shopify.dev/docs/agents).\n### Browser integration (WebMCP) When working through a browser, use the WebMCP tools registered on this store's pages.\nThe checkout page exposes UCP tools over WebMCP.\nThese tools act on the checkout in the current browser session.\n- **Storefront** — Use the provided tools to find products, manage the cart, ask questions about the store and its policies, and proceed to checkout.\n- **Checkout** — Use the provided UCP tools to review and update the checkout and complete a buyer-authorized purchase.\nFollow required buyer-review steps: when review is requested, ask the buyer to review and approve the order on the checkout page, and wait for their authorization before submitting it.\nIf checkout tools are unavailable, ask the buyer to continue on the checkout page.\nDo not fall back to scripted form fills or page controls.\nFor integration details, see [Storefront WebMCP](https://shopify.dev/docs/api/web-mcp) and [Checkout WebMCP](https://shopify.dev/docs/agents/carts-and-checkout/checkout-webmcp).\n## Interaction guidelines - **Buyer authorization** — Place orders and submit payment only with the buyer's authorization.\nFollow required review and approval steps.\n- **Agent traffic** — Agents must identify their requests as agent-initiated.\nServer-to-server requests and hosted or remote browsers must use [Web Bot Auth](https://shopify.dev/docs/api/storefront#identifying-bots-with-web-bot-auth) and follow the service's authentication requirements.\nThis helps the store recognize agent traffic and apply appropriate access and rate limits."
+  },
+  {
+   "url": "https://tattly.com/pages/contact",
+   "measuredAt": "2026-11-06T00:32:12.382Z",
+   "text": "Contact &ndash; Tattly Skip to content Contact Name Email * Phone Comment Submit Search Search Clear No products found."
+  },
+  {
+   "url": "https://tattly.com/",
+   "measuredAt": "2026-11-06T00:32:11.113Z",
+   "text": "Fake Tattoos by Real Artists &ndash; Tattly Skip to content For all other inquiries, please reach out to support@tattly.com Search Search Clear No products found."
+  }
+ ]
+}

@@ -43,8 +43,7 @@
 import nlp from "compromise";
 import { BRIEF_MAX_FACTS } from "@/lib/config/constants";
 import { readLatestMeasuredText, readMeasuredText, type MeasuredText } from "@/lib/measure/text";
-import { isNeverRead } from "@/lib/site-profile/knowledge/priority";
-import { derivePurpose } from "@/lib/site-profile/purpose";
+import { isReadForFacts } from "@/lib/site-profile/knowledge/priority";
 import { readReportPage } from "./report-facts";
 import type { GroundedFact } from "../rules/types";
 
@@ -71,13 +70,11 @@ const SENTENCE_END_RE = /[.!?]["'”’)\]]?$/;
 const REPEATED_ON_PAGES = 3;
 const REPEATED_ON_SHARE = 0.5;
 
-/** A legal page — privacy, terms, imprint, cookies — is tagged by its
- *  address, with the crawl's own table (`site-profile/purpose.ts`), and is
- *  never read for facts (SPEC §5, 2026-10-03, issue 1163): a removal clause
- *  or a processor list is not what a business says about itself. */
-function isLegalPage(url: string): boolean {
-  return derivePurpose({ url, title: "", h1: "" }) === "legal";
-}
+/** A sentence carrying a skip link, a doubled search label, a cookie banner
+ *  or an empty catalogue is the site's chrome run into the text, in each
+ *  supported language and the ones `priority.ts` reads paths in. */
+const CHROME_RE =
+  /\b(?:skip to (?:main )?(?:content|navigation)|zum (?:haupt)?inhalt (?:springen|wechseln)|aller au contenu|saltar al contenido|(search|suche|suchen|rechercher|buscar) \1\b|no products found|keine produkte gefunden|aucun produit trouv|no se encontraron productos|we use cookies|this (?:web)?site uses cookies|accept (?:all )?cookies|wir verwenden cookies|diese website verwendet cookies|nous utilisons des cookies|utilizamos cookies)/i;
 
 /** Prose, not a label: it ends in punctuation and it has a verb (SPEC §5,
  *  2026-09-29 — "keeps a sentence only where it is prose"). Menus, tiles
@@ -95,7 +92,7 @@ function candidateSentences(text: string): string[] {
     .map((sentence) => sentence.replace(/\s+/g, " ").trim())
     .filter(
       (sentence) =>
-        sentence.length >= PASSAGE_MIN_CHARS && sentence.length <= PASSAGE_MAX_CHARS && readsAsProse(sentence)
+        sentence.length >= PASSAGE_MIN_CHARS && sentence.length <= PASSAGE_MAX_CHARS && readsAsProse(sentence) && !CHROME_RE.test(sentence)
     );
 }
 
@@ -120,8 +117,8 @@ export function examplePhrases(line: string): string[] {
 }
 
 /**
- * Each page's passages, minus what is not the business speaking: a legal
- * page and a gallery page yield none (issue 1249:
+ * Each page's passages, minus what is not the business speaking: a page
+ * not read for facts, such as a legal or gallery page, yields none (issue 1249:
  * six of the eight reachkit.app pages a round read were its scan gallery,
  * which is about other businesses), a passage the site repeats on three or more pages and
  * on more than half of them is chrome, and a phrase any page of the site
@@ -144,9 +141,7 @@ export function sitePassages<P extends { url: string; text: string; examples?: r
   const demo = new Set(pages.flatMap((page) => (page.examples ?? []).flatMap(examplePhrases)));
   return read.map(({ page, passages }) => ({
     page,
-    passages: isLegalPage(page.url) || isNeverRead(page.url)
-      ? []
-      : passages.filter((passage) => !repeated(passage) && !demo.has(passage)),
+    passages: isReadForFacts(page.url) ? passages.filter((passage) => !repeated(passage) && !demo.has(passage)) : [],
   }));
 }
 
