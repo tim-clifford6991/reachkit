@@ -174,8 +174,8 @@ export interface WeeklyNumbers {
 export function buildWeekly(a: {
   /** Who the mail greets and which week of service it is; absent, no greeting. */
   greeting?: { readonly name: string | null; readonly week: number; readonly business: string };
-  /** The hosted address waiting for its record; absent once live. */
-  connect?: { readonly host: string; readonly href: string };
+  /** The address waiting to be connected, and its line where it is not the hosted one; absent once live. */
+  connect?: { readonly host: string; readonly href: string; readonly text?: CopyKey };
   /** Absent on a week that measured nothing, which the whole-mail line already says once. */
   numbers?: WeeklyNumbers;
   /** The one thing waiting on the customer, where there is one. */
@@ -219,7 +219,7 @@ export function buildWeekly(a: {
       ...(a.connect === undefined
         ? []
         : ([
-            { block: "notice", text: CONNECT, vars: { host: a.connect.host } },
+            { block: "notice", text: a.connect.text ?? CONNECT, vars: { host: a.connect.host } },
             { block: "action", label: CONNECT_ACTION, href: a.connect.href, variant: "secondary" },
           ] as const)),
       ...(a.numbers === undefined ? [] : numberBlocks(a.numbers)),

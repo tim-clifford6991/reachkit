@@ -8,7 +8,7 @@
 // No telling says an approval is needed. The destination clause is not part of the pair (BP-046 decision 5), or every
 // health flap would re-open the telling; `destination_working` holds such a page.
 import { publishDb } from "../db";
-import { adapterFor, destinationOf, withConfig } from "../destinations";
+import { adapterFor, destinationOf, destinationWaitingOnWordPress, withConfig } from "../destinations";
 import type { DestinationKind, DraftView, GoverningPair, ToldRecord, VetoLink } from "../types";
 import { samePair } from "../settings/pair";
 import { becomesPublishable } from "./predicate";
@@ -29,8 +29,12 @@ export type DestinationClause =
   | {
       says: "cannot_go_live_there";
       site: string;
-      /** `addressNotConnected`: a hosted address waiting for its record, so the mail names no moment. */
-      copy: "mail.draftReady.dest.cannotPublish" | "mail.draftReady.dest.addressNotConnected";
+      /** `addressNotConnected`: a hosted address waiting for its record, so the mail names no moment. `wordpressNotConnected`:
+       *  set up without its credentials, so the site's own domain is named. */
+      copy:
+        | "mail.draftReady.dest.cannotPublish"
+        | "mail.draftReady.dest.addressNotConnected"
+        | "mail.draftReady.dest.wordpressNotConnected";
     };
 
 export type Telling =
@@ -154,7 +158,14 @@ async function destinationClause(
   const row = await destinationOf(siteId, kind);
   if (row === null) return null;
 
+  // Never connected holds no credential, so no address of its own: the site's domain is named instead.
+  if (await destinationWaitingOnWordPress(siteId)) {
+    const domain = await domainOf(siteId);
+    return domain === "" ? null : { says: "cannot_go_live_there", site: domain, copy: "mail.draftReady.dest.wordpressNotConnected" };
+  }
   const site = await siteOf(row.id);
+  // A clause with an empty address would be sent with a hole in it.
+  if (site === "") return null;
   // `ok` is the whole test: ADR-086's `cannot_publish` arrives as `error` and joins this arm, one thing to say for both.
   if (row.health !== "ok") {
     return { says: "cannot_go_live_there", site, copy: "mail.draftReady.dest.cannotPublish" };
@@ -175,11 +186,17 @@ async function hostedClause(siteId: string): Promise<DestinationClause | null> {
   try {
     const { hostedHostFor } = await import("../destinations/hosted/hostname");
     const host = await hostedHostFor(siteId);
-    if (host === null || host.state === "live") return null;
+    if (host === null || host.state === "live" || host.hostname === "") return null;
     return { says: "cannot_go_live_there", site: host.hostname, copy: "mail.draftReady.dest.addressNotConnected" };
   } catch {
     return null;
   }
+}
+
+/** The site's own domain, `""` on a failed read. */
+async function domainOf(siteId: string): Promise<string> {
+  const { data, error } = await publishDb().from<{ domain: string | null }>("sites").select("domain").eq("id", siteId).limit(1);
+  return error === null ? data?.[0]?.domain ?? "" : "";
 }
 
 /** The address the clause names, read through `withConfig`, which returns the address and never the config. `""` with

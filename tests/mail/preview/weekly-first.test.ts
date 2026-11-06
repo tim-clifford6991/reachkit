@@ -12,10 +12,13 @@ const { render } = await import("react-email");
 
 const mail = await composeWeeklyFirst();
 /** Both bodies as a reader sees them: the HTML without its tags or the inbox's hidden preheader. */
-const bodies = {
-  text: mail.text,
-  html: mail.html.replace(/<[^>]+>/g, "").replace(/&#x27;/g, "'").split(mail.preheader!).join(""),
-};
+const bodiesOf = (m: typeof mail) => ({
+  text: m.text,
+  html: m.html.replace(/<[^>]+>/g, "").replace(/&#x27;/g, "'").split(m.preheader!).join(""),
+});
+const bodies = bodiesOf(mail);
+const SIGNED = "https://reachkit.example/auth/confirm?token_hash=t&next=%2Fapp%2Fsettings%2Fpages";
+const wordpress = await composeWeeklyFirst({ host: "harborplumbing.example", href: SIGNED, text: "mail.weekly.connect.wordpress" });
 const GOOGLE_STEPS = ["draft.ladder.found", "draft.ladder.showing", "draft.ladder.first-page"] as const;
 const NOT_CHECKED = COPY["mail.weekly.number.unmeasured"];
 
@@ -51,6 +54,20 @@ describe("the first Monday mail of a new site", () => {
       expect(to, name).toBeGreaterThanOrEqual(from);
       expect(body.slice(from, to).trim(), name).toBe("");
     }
+  });
+
+  it("a WordPress never connected leads with its own notice, names the domain, and states no unmeasured zero", () => {
+    const greeting = copy("mail.weekly.hi", { name: "Dana", week: "1", business: "harborplumbing.example" });
+    const connect = copy("mail.weekly.connect.wordpress", { host: "harborplumbing.example" });
+    for (const [name, body] of Object.entries(bodiesOf(wordpress))) {
+      const from = body.indexOf(greeting) + greeting.length;
+      expect(body.indexOf(greeting), name).toBeGreaterThan(-1);
+      expect(body.slice(from, body.indexOf(connect)).trim(), name).toBe("");
+      expect(body, name).not.toContain(copy("mail.weekly.connect", { host: "harborplumbing.example" }));
+      expect(body.split(NOT_CHECKED).length - 1, name).toBe(GOOGLE_STEPS.length);
+      expect(body, name).not.toContain(copy("mail.weekly.google.of", { n: "0" }));
+    }
+    expect(wordpress.html).toContain(SIGNED.replace(/&/g, "&amp;"));
   });
 
   it("is one of the weekly states the preview server renders", async () => {
