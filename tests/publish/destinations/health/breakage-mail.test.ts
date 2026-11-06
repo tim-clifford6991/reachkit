@@ -9,7 +9,7 @@
 // assertion here and writes to the customer every morning.
 //
 // The archived plan is WO-227.
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fakeDb, type Row } from "../../harness";
 
 const db = fakeDb();
@@ -29,6 +29,8 @@ vi.mock("@/lib/mail/send", () => ({
 
 import { DESTINATION_BREAKAGE_MAIL_DELAY_H } from "@/lib/config/constants";
 import { setIdentityAuth } from "@/lib/account/identity/auth";
+import { unwireSignInLinkIssuer } from "@/lib/account/identity/wire";
+import { registerSignInLinkIssuer, type IssuedLink } from "@/lib/account/provisioning/sign-in-link";
 import { addAuthUser, fakeIdentityAuth, newFakeAuth, type FakeAuthState } from "../../../account/identity/fake-auth";
 import { breakageMailDue, sendBreakageMail } from "@/lib/publish/destinations/health";
 
@@ -282,5 +284,75 @@ describe("the send stamps the guard, and only after the mail has gone", () => {
       sent: false,
       reason: "not-due",
     });
+  });
+});
+
+describe("a destination that never worked raises no breakage, at any age", () => {
+  /** A day and an hour past the change, from an owner who last signed in before the row was created. */
+  const LATE = new Date(BROKE_AT.getTime() - HOUR_MS).toISOString();
+  const SIGNED_IN_BEFORE = { first_signed_in_at: "2026-08-01T00:00:00.000Z" };
+  const HOSTED = { kind: "hosted", hostname: "blog.example.com", hostname_state: "pending_dns" };
+
+  it("(a) a deferred WordPress row exactly as setup writes it, before any check has read the site", async () => {
+    seed({ config: null, health_reason: null, health_changed_at: LATE }, SIGNED_IN_BEFORE);
+    expect(await breakageMailDue("site-1", NOW)).toEqual({ due: false });
+    expect(await sendBreakageMail("site-1", NOW)).toEqual({ sent: false, reason: "not-due" });
+    expect(mail.sent).toHaveLength(0);
+  });
+
+  it("(a2) a row the check found has nothing to connect with", async () => {
+    seed({ health_reason: "never_connected", health_changed_at: LATE }, SIGNED_IN_BEFORE);
+    expect(await breakageMailDue("site-1", NOW)).toEqual({ due: false });
+  });
+
+  it("(b) a hosted host still waiting for DNS on a site with no page delivered", async () => {
+    seed({ ...HOSTED, health_reason: "dns_unset", health_changed_at: LATE }, SIGNED_IN_BEFORE);
+    expect(await breakageMailDue("site-1", NOW)).toEqual({ due: false });
+  });
+
+  it("(c) a hosted host that delivered a page and now fails is a breakage, and is due", async () => {
+    seed({ ...HOSTED, health: "error", health_reason: "unreachable", health_changed_at: LATE }, SIGNED_IN_BEFORE);
+    db.seed("publications", [
+      { id: "pub-1", site_id: "site-1", draft_id: "d1", destination: "hosted", published_at: "2026-09-02T00:00:00.000Z" },
+    ]);
+    expect((await breakageMailDue("site-1", NOW)).due).toBe(true);
+  });
+});
+
+describe("the mail's action signs in and lands on Settings › Pages", () => {
+  const ISSUED = "https://app.example.test/auth/confirm?token_hash=abc&type=magiclink";
+  const asked: { userId: string; to: string }[] = [];
+
+  afterEach(() => {
+    unwireSignInLinkIssuer();
+    asked.length = 0;
+  });
+
+  function issuing(link: IssuedLink): void {
+    registerSignInLinkIssuer(async (a) => {
+      asked.push({ userId: a.userId, to: a.to });
+      return link;
+    });
+  }
+
+  it("the href is the issuer's link for the owner, asking for /app/settings/pages", async () => {
+    seed();
+    issuing({ issued: true, url: ISSUED, expiresAt: NOW });
+    expect((await sendBreakageMail("site-1", NOW)).sent).toBe(true);
+    expect(asked).toEqual([{ userId: "user-1", to: "dana@example.com" }]);
+    const action = mail.sent[0]!.blocks.find((b) => (b as { block: string }).block === "action") as { href: string };
+    const href = new URL(action.href);
+    expect(href.searchParams.get("next")).toBe("/app/settings/pages");
+    href.searchParams.delete("next");
+    expect(href.toString()).toBe(ISSUED);
+  });
+
+  it("no link issued, no mail: the guard stays clear so the next daily run asks again", async () => {
+    seed();
+    issuing({ issued: false, reason: "vendor" });
+    expect(await sendBreakageMail("site-1", NOW)).toEqual({ sent: false, reason: "no-link" });
+    expect(mail.sent).toHaveLength(0);
+    expect(db.rows("destinations")[0]!.broken_mail_sent_at).toBeNull();
+    expect((await breakageMailDue("site-1", NOW)).due).toBe(true);
   });
 });
