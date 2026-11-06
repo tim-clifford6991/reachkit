@@ -1,4 +1,5 @@
 // Ops events kept as rows: the runtime log holds them for under an hour, so the daily check counts these.
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { after } from "next/server";
 
 /** A write past this is abandoned, so a slow database never holds the response open longer. */
@@ -44,4 +45,17 @@ export function recordOpsEvent(kind: string, read: string, code: string, siteId:
     // Outside a request scope there is nothing to keep alive; the write is already running.
   }
   return write;
+}
+
+/** Writes a `kind` row for the site where none is held since `since` (an ISO date, as `read` holds), awaited because
+ *  the row gates its caller; `false` where one already was. */
+export async function claimOpsEvent(kind: string, siteId: string, since: string, read: string, code: string): Promise<boolean> {
+  const { dbAdmin } = await import("@/lib/db");
+  const events = () => (dbAdmin() as unknown as SupabaseClient).from("ops_events");
+  const prior = await events().select("id").eq("kind", kind).eq("site_id", siteId).gte("read", since).limit(1);
+  if (prior.error !== null) throw new Error(`ops_events claim: ${prior.error.message}`);
+  if (prior.data.length > 0) return false;
+  const { error } = await events().insert({ kind, read, site_id: siteId, code });
+  if (error !== null) throw new Error(`ops_events claim: ${error.message}`);
+  return true;
 }

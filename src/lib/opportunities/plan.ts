@@ -11,13 +11,12 @@
 // planned for its date (`pageForDay`) after a 0¢ check that the week's rows
 // still stand (a rest, the destination, a page that now covers the topic);
 // where that page cannot be written it takes the next spare in committed
-// order (`takeSpare`). Nothing ranks the open pool again until the next
-// commit.
+// order. Nothing ranks the open pool again until the next commit.
 //
 // A new site's first week is committed when setup's pass ends
 // (`planFirstWeek`). A date no commit covers after that is committed on
 // demand by that evening's run, once: the commit then covers the dates
-// after it.
+// after it, and so, once a week, is a date the week has used up.
 import { PLAN_DEPTH, SUPPLY_SHORT_BELOW, WEEK_PLAN } from "@/lib/config/constants";
 import { stoppedOnCeiling } from "@/lib/scan/market-floor";
 import { choose } from "./choose";
@@ -72,8 +71,10 @@ export async function planFirstWeek(siteId: string, now: Date = new Date()): Pro
 
 /**
  * The page a date's run writes: the row the week planned for it, where it
- * still stands, else the next spare. A date no commit covers is committed
- * here first, once. `null` where the week holds nothing left to write.
+ * still stands, else the next spare in committed order; nothing ranks here.
+ * A date no commit covers, or (once a week) whose slot and spares are used up
+ * while ready rows wait outside the week, is committed from the date. `null`
+ * where nothing left can be written.
  */
 export async function pageForDay(siteId: string, date: string, now: Date = new Date()): Promise<Opportunity | null> {
   const store = opportunityStore();
@@ -86,19 +87,15 @@ export async function pageForDay(siteId: string, date: string, now: Date = new D
     await assessReadiness(siteId, { at: now, now, only });
     await assessFixPages(siteId, { report: null, now, only });
   }
-  const rows = await store.plannedRows(siteId);
-  const slot = rows.find((row) => row.planned_for === date);
-  if (slot !== undefined && slot.status === "open" && slot.ready) return planned(slot);
-  return takeSpare(siteId);
-}
-
-/**
- * The week's next spare: the first in committed order that is still open
- * and ready. Nothing ranks here (issue 1559).
- */
-async function takeSpare(siteId: string): Promise<Opportunity | null> {
-  const { spares } = await committedWeek(siteId);
-  return spares.find((spare) => spare.ready) ?? null;
+  const open = (await store.plannedRows(siteId)).filter((row) => row.status === "open" && row.ready);
+  const row = open.find((r) => r.planned_for === date) ?? open.find((r) => r.planned_for == null);
+  if (row !== undefined) return planned(row);
+  const waiting = (await store.countUnused(siteId)) - open.filter((r) => r.family !== "fix").length;
+  const monday = new Date(Date.parse(date) - ((new Date(date).getUTCDay() + 6) % 7) * DAY_MS).toISOString().slice(0, 10);
+  if (waiting <= 0 || !(await store.claimRecommit(siteId, date, monday, waiting))) return null;
+  await planWeek(siteId, { now, from: date });
+  const slot = (await store.plannedRows(siteId)).find((r) => r.planned_for === date);
+  return slot === undefined ? null : planned(slot);
 }
 
 /** The committed week as the digest, the calendar and the daily job read

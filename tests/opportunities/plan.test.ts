@@ -159,6 +159,49 @@ describe("the daily job takes its slot", () => {
   });
 });
 
+describe("a week whose slot and spares are used up is committed again from the date, once a week", () => {
+  /** Rests every row the week holds, as the daily job does when each page stops. */
+  async function restWeek(): Promise<Set<string>> {
+    const held = new Set(state.rows.filter((row) => row.plan_place != null).map((row) => row.id));
+    for (const id of held) await restTopic(id, AT);
+    return held;
+  }
+
+  it("ready rows outside the week give the date a page, and the commit runs from the date", async () => {
+    await weeklyPass();
+    await planWeek(SITE_ID, { now: AT });
+    const rested = await restWeek();
+
+    const page = await pageForDay(SITE_ID, DAY(2), AT);
+    expect(page).not.toBeNull();
+    expect(rested.has(page!.id)).toBe(false);
+    expect(state.rows.find((row) => row.planned_for === DAY(2))?.id).toBe(page!.id);
+    expect(state.recommits).toEqual([{ siteId: SITE_ID, date: DAY(2) }]);
+
+    // A second used-up day that week commits nothing again and says so.
+    await restWeek();
+    await weeklyPass(weekReport(["best user onboarding software"]));
+    const waiting = state.rows.find((row) => row.plan_place == null && row.target_query === "best user onboarding software")!;
+    waiting.ready = true;
+    waiting.unready_reason = null;
+    const commit = state.rows.map((row) => [row.id, row.plan_place, row.planned_for]);
+    expect(await pageForDay(SITE_ID, DAY(3), AT)).toBeNull();
+    expect(state.rows.map((row) => [row.id, row.plan_place, row.planned_for])).toEqual(commit);
+    expect(state.recommits).toHaveLength(1);
+  });
+
+  it("with no ready row outside the week the day stays empty and nothing is committed", async () => {
+    await weeklyPass(weekReport(TWELVE.slice(0, WEEK_PLAN.days + WEEK_PLAN.spares)));
+    await planWeek(SITE_ID, { now: AT });
+    await restWeek();
+    const commit = state.rows.map((row) => [row.id, row.plan_place, row.planned_for]);
+
+    expect(await pageForDay(SITE_ID, DAY(2), AT)).toBeNull();
+    expect(state.rows.map((row) => [row.id, row.plan_place, row.planned_for])).toEqual(commit);
+    expect(state.recommits ?? []).toEqual([]);
+  });
+});
+
 describe("setup commits a new site's first week", () => {
   it("a site with no commit gets seven days and three spares", async () => {
     await weeklyPass();
