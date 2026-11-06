@@ -116,6 +116,7 @@ import { canonicalUrl, readingOf, type PageReading } from "@/lib/measure/page-re
 import type { Candidate } from "./derive/candidate";
 import { persist } from "./derive/persist";
 import { closestPrompt, measuredVolume } from "./intent";
+import { assessReadiness } from "./readiness";
 import { retargetCandidate } from "./retarget";
 import { climbing } from "./verdicts/verdict";
 import { COLUMNS, opportunityStore, readOpportunity, untyped, type OpportunityRow } from "./store";
@@ -740,6 +741,13 @@ export async function planRefreshes(a: { siteId: string; at: Date }): Promise<nu
   }
 }
 
+/** Writes rows planned between Mondays and assesses them at once, so their own week can see them; a failed read leaves them `not_assessed` for Monday. */
+async function persistAssessed(siteId: string, candidates: readonly Candidate[], at: Date): Promise<number> {
+  const { created } = await persist({ candidates });
+  if (created.length > 0) await assessReadiness(siteId, { at, now: at, only: new Set(created.map((row) => row.id)) }).catch((error: unknown) => console.error(JSON.stringify({ event: "refresh_assess_failed", siteId, message: String(error) })));
+  return created.length;
+}
+
 function isCloseRefresh(candidate: Candidate): boolean {
   return candidate.evidence.family === "improve" && candidate.evidence.shortfall.kind === "due" && candidate.evidence.shortfall.cause === "close";
 }
@@ -795,14 +803,8 @@ export async function planLinkBacks(a: { siteId: string; url: string; at: Date }
     const pages = await store.refreshPages(a.siteId);
     if (pages.length < 2) return 0;
     const stopped = await stoppedRefreshes(a.siteId);
-    const candidates = linkBackCandidates(
-      pages.map((page) => ({ ...page, stopped: stopped.has(addressKey(page.url)) })),
-      a.url,
-      a.at
-    );
-    if (candidates.length === 0) return 0;
-    const { created } = await persist({ candidates });
-    return created.length;
+    const candidates = linkBackCandidates(pages.map((page) => ({ ...page, stopped: stopped.has(addressKey(page.url)) })), a.url, a.at);
+    return await persistAssessed(a.siteId, candidates, a.at);
   } catch (error) {
     console.error(JSON.stringify({ event: "link_back_plan_failed", siteId: a.siteId, message: String(error) }));
     return 0;
@@ -851,9 +853,7 @@ export async function planMovedLinks(a: { siteId: string; from: readonly string[
       a,
       a.at
     );
-    if (candidates.length === 0) return 0;
-    const { created } = await persist({ candidates });
-    return created.length;
+    return await persistAssessed(a.siteId, candidates, a.at);
   } catch (error) {
     console.error(JSON.stringify({ event: "moved_link_plan_failed", siteId: a.siteId, message: String(error) }));
     return 0;
@@ -901,9 +901,7 @@ export async function planStructureRefreshes(a: { siteId: string; at: Date }): P
     const stopped = await stoppedRefreshes(a.siteId);
     const held = pages.map((page) => ({ ...page, stopped: stopped.has(addressKey(page.url)) }));
     const candidates = [...stalePriceCandidates(held, a.at), ...structureCandidates(held, a.at)];
-    if (candidates.length === 0) return 0;
-    const { created } = await persist({ candidates });
-    return created.length;
+    return await persistAssessed(a.siteId, candidates, a.at);
   } catch (error) {
     console.error(JSON.stringify({ event: "structure_plan_failed", siteId: a.siteId, message: String(error) }));
     return 0;
