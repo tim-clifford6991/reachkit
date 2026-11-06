@@ -1,7 +1,9 @@
 // SPEC §7 (owner, 2026-11-05: "each day must have new or updated content, no exceptions") — a day whose run ends
 // without a page takes a ready update from the committed week in the same run, and only where today's whole battery
 // passes it. Here that is the live page mended in code: no model is asked, 0¢. Nothing ranks here.
+import { REFRESH_MIN_AGE_DAYS } from "@/lib/config/constants";
 import { committedWeek, queueForDraft, type Opportunity } from "@/lib/opportunities";
+import { contentTypeOf } from "@/lib/opportunities/content-type";
 import { isOwnRefresh } from "@/lib/opportunities/types";
 import type { StoredReport } from "@/lib/scan/report";
 import type { DayPageOutcome } from ".";
@@ -101,7 +103,8 @@ export async function refreshForDay(a: {
   // A replay after the insert finds the date its own row took.
   const holds = a.stopped !== null && (await store.draftById(a.stopped))?.scheduled_for === a.publishDate;
   if (!holds && (await store.draftOnDate(a.siteId, a.publishDate))) return { ok: false, because: "already_drafted" };
-  for (const opportunity of await candidates(a.siteId, a.publishDate)) {
+  const week = await candidates(a.siteId, a.publishDate);
+  for (const opportunity of week) {
     if (!mendable(opportunity)) continue;
     const page = { siteId: a.siteId, site, report, opportunity, publishDate: a.publishDate };
     const mended = await mendedVersion(page, { fallbackFor: a.trigger });
@@ -118,5 +121,36 @@ export async function refreshForDay(a: {
       throw error;
     }
   }
+  // Only a day whose select found no topic has spent nothing, so the writer's one context is the day's only one.
+  if (a.trigger !== "generate:no_opportunity" || a.from !== "select") return null;
+  for (const opportunity of week) {
+    if (mendable(opportunity) || contentTypeOf(opportunity) !== "update" || !(await pastFloor(a.siteId, opportunity.targetRef))) continue;
+    return writtenUpdate({ siteId: a.siteId, site, report, opportunity, publishDate: a.publishDate }, a.trigger);
+  }
   return null;
+}
+
+/** One of ReachKit's own pages, live at `url` for at least the refresh floor: nothing else is refreshed for a day. */
+async function pastFloor(siteId: string, url: string): Promise<boolean> {
+  const live = await generateStore().liveVersionAt(siteId, url);
+  return live !== null && Date.now() - live.publishedAt.getTime() >= REFRESH_MIN_AGE_DAYS * 24 * 60 * 60 * 1000;
+}
+
+/** The writer's refresh of one candidate, from stored research: today's page where the battery passes it, else a
+ *  stopped row that gives up the date while the day keeps its own reason. */
+async function writtenUpdate(page: MendInput & { publishDate: string }, trigger: string): Promise<{ ok: true; draftId: string } | { ok: false; because: "already_drafted" } | null> {
+  const { writeStoredUpdate } = await import(".");
+  const store = generateStore();
+  try {
+    const outcome = await writeStoredUpdate(page, new Date());
+    const draftId = outcome.ok ? outcome.draftId : "draftId" in outcome ? outcome.draftId : null;
+    if (draftId === null) return null;
+    const meta = (await store.draftById(draftId))?.meta;
+    await store.patchDraft(draftId, { meta: { ...(typeof meta === "object" && meta !== null ? meta : {}), fallbackFor: trigger, research: "stored" }, ...(outcome.ok ? {} : { scheduled_for: null }) });
+    return outcome.ok ? { ok: true, draftId } : null;
+  } catch (error) {
+    if (error instanceof DraftDateTaken) return { ok: false, because: "already_drafted" };
+    if (error instanceof PageStopped) return null;
+    throw error;
+  }
 }
