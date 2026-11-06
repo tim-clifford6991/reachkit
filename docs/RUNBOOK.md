@@ -894,11 +894,14 @@ sequence is written from. On dev use `https://dev.reachkit.app`; on production, 
    (§6 above).
 4. **Follow it.** The action is `…/auth/confirm?token_hash=…&type=magiclink` **on the host you
    started from** — this product's own, never Supabase's `action_link`. It shows **Sign in to
-   ReachKit** and one **Sign in** button, and sets no cookie. Press it: the post to
-   `/auth/confirm/redeem` answers `303` to `/app` (to `/setup` on a first-ever sign-in), one
-   `sb-…-auth-token` cookie set on that same redirect, and `/app` rendering the dashboard with
-   *Overview · This week · Settings*.
-5. **Use it twice.** Re-open the same confirm URL and press again: `303` to `/signin?link=dead`, no
+   ReachKit** and one **Sign in** button, and sets no cookie. Opened in the browser that asked for
+   the link, the page sends its own form at once (the `__Host-rk_signin_pending` cookie set by the
+   request); opened anywhere else (another browser, a phone, a mail scanner) it waits for the press.
+   Either way the post to `/auth/confirm/redeem` answers `303` to `/app` (to `/setup` on a
+   first-ever sign-in), one `sb-…-auth-token` cookie set and the pending cookie cleared on that same
+   redirect, and `/app` rendering the dashboard with *Overview · This week · Settings*.
+5. **Use it twice.** Re-open the same confirm URL (the pending cookie is gone now, so the button
+   shows) and press again: `303` to `/signin?link=dead`, no
    cookie, and the screen **This link no longer works** with the request form on it (**Send a new
    link**). A spent link, a link superseded by a newer one and a token this product never issued
    answer identically on the press; a confirm URL with no query goes to the same screen on opening.

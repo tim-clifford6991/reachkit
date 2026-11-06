@@ -34,6 +34,7 @@ import {
   confirmTypeOf,
   linkLandingOf,
 } from "@/lib/account/identity/addresses";
+import { PENDING_CLEARED } from "@/lib/account/signin-pending";
 import { env } from "@/lib/config/env";
 
 const SEE_OTHER = 303;
@@ -82,5 +83,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   for (const cookie of written) {
     response.cookies.set(cookie.name, cookie.value, cookie.options);
   }
+  response.cookies.set(PENDING_CLEARED.name, PENDING_CLEARED.value, PENDING_CLEARED.options);
   return response;
 }

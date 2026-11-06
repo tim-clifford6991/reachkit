@@ -86,6 +86,7 @@ const { NEW_EMAIL_FIELD, EMAIL_CHANGE_INITIAL } = await import(
 const { beginEmailChangeAction, cancelEmailChangeAction, signOutAction } = await import(
   "@/app/(account)/app/settings/account-actions"
 );
+const { PENDING_COOKIE, isPendingFor } = await import("@/lib/account/signin-pending");
 
 let state = newMemoryIdentity();
 let auth = newFakeAuth();
@@ -202,6 +203,20 @@ describe('REQ-077 c2 — "a sign-in link is sent to it and the old address keeps
 
     expect((await accountCard(mine.id))?.pending?.email).toBe("new@example.com");
     expect((await accountCard(theirs.id))?.pending).toBeNull();
+  });
+});
+
+describe("SPEC §3 — the browser that began a change opens its link with no press", () => {
+  it("a change begun here marks this browser; a refused one does not", async () => {
+    const user = addAccount(state, { email: "founder@example.com" });
+    addAccount(state, { email: "taken@example.com" });
+    signIn(user.id);
+
+    await beginEmailChangeAction(EMAIL_CHANGE_INITIAL, submit("taken@example.com"));
+    expect(jar.has(PENDING_COOKIE)).toBe(false);
+
+    await beginEmailChangeAction(EMAIL_CHANGE_INITIAL, submit("new@example.com"));
+    expect(isPendingFor(jar.get(PENDING_COOKIE), "email_change")).toBe(true);
   });
 });
 

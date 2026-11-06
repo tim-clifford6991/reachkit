@@ -67,7 +67,8 @@ vi.mock("@/app/(account)/app/_shell/provider", async () => {
 // the render the sweep then measures is the real template's.
 vi.mock("next/headers", async () => {
   const { HOSTED_SWEEP_HOST } = await import("./hosted-fixture");
-  return { headers: async () => new Headers({ host: HOSTED_SWEEP_HOST }) };
+  // A stranger's browser: no cookie, so the confirm page draws its button.
+  return { headers: async () => new Headers({ host: HOSTED_SWEEP_HOST }), cookies: async () => ({ get: () => undefined }) };
 });
 
 vi.mock("@/lib/account/billing", () => ({

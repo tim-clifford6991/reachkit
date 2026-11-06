@@ -183,7 +183,7 @@ describe('SPEC §3 — "Sign-in copy is identical whatever the address, revealin
     // Even a seam that told the two apart would not reach the screen.
     const requestMagicLink = vi.fn(async (email: string) => (email === known ? { answered: true, account: "found" } : { answered: true }));
     vi.doMock("@/lib/account/provisioning/magic-link", () => ({ requestMagicLink }));
-    vi.doMock("next/headers", () => ({ headers: async () => new Headers({ "x-forwarded-for": "203.0.113.7" }) }));
+    vi.doMock("next/headers", () => ({ headers: async () => new Headers({ "x-forwarded-for": "203.0.113.7" }), cookies: async () => ({ set: () => {} }) }));
     const { sendLink } = await import(ACTIONS_MODULE);
     const { SIGN_IN_INITIAL } = await import(STATE_MODULE);
     const ask = async (email: string): Promise<SignInState> => {
@@ -237,7 +237,7 @@ describe('SPEC §3 — "Sign-in copy is identical whatever the address, revealin
     vi.resetModules();
     const requestMagicLink = vi.fn(async () => ({ answered: true }));
     vi.doMock("@/lib/account/provisioning/magic-link", () => ({ requestMagicLink }));
-    vi.doMock("next/headers", () => ({ headers: async () => new Headers({ "x-forwarded-for": "203.0.113.7" }) }));
+    vi.doMock("next/headers", () => ({ headers: async () => new Headers({ "x-forwarded-for": "203.0.113.7" }), cookies: async () => ({ set: () => {} }) }));
     const { sendLink } = await import(ACTIONS_MODULE);
     const { SIGN_IN_INITIAL } = await import(STATE_MODULE);
     const form = new FormData();
