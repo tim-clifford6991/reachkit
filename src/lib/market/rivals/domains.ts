@@ -350,7 +350,7 @@ export function isJobRow(row: { domain: string; url?: string; title?: string }):
  *  trains, as its own category says: job seekers are its buyers. */
 export function isJobSearch(rows: readonly { domain: string; url?: string; title?: string }[], category: string | null | undefined): boolean {
   if (servesJobSeekers(category)) return false;
-  const titled = (resolvedRows(rows.slice(0, 10)) ?? []).filter((row) => row.title !== undefined);
+  const titled = resolvedOf(rows.slice(0, 10)).filter((row) => row.title !== undefined);
   return titled.length > 0 && titled.filter(isJobRow).length * 2 >= titled.length;
 }
 
@@ -542,14 +542,19 @@ export function resolvedHost(row: { domain: string; url?: string; breadcrumb?: s
   return [plain, row.breadcrumb, row.domain, row.websiteName].map(shownHost).find((host) => host !== null) ?? null;
 }
 
-/** A search's top ten on resolved sites only, each row carrying its site.
- *  Where fewer than half of the rows stored resolve, the rest would read the
- *  redirect rather than the market, so the organic reading is not measured. */
-export function resolvedRows<T extends { domain: string; url?: string }>(rows: readonly T[]): T[] | null {
-  const read = rows.flatMap((row) => {
+/** A search's rows on resolved sites only, each row carrying its site: a
+ *  hidden row can leave a business unnamed, never name a false one. */
+export function resolvedOf<T extends { domain: string; url?: string }>(rows: readonly T[]): T[] {
+  return rows.flatMap((row) => {
     const host = resolvedHost(row);
     return host === null ? [] : [{ ...row, domain: host }];
   });
+}
+
+/** `resolvedOf`, but where fewer than half of the rows stored resolve, a
+ *  claim of absence would read the redirect, so the reading is not measured. */
+export function resolvedRows<T extends { domain: string; url?: string }>(rows: readonly T[]): T[] | null {
+  const read = resolvedOf(rows);
   return read.length * 2 < rows.length ? null : read;
 }
 

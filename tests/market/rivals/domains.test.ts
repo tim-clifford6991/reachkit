@@ -10,6 +10,7 @@ import {
   isOccupationTitle,
   ownPlaceIn,
   resolvedHost,
+  resolvedOf,
   resolvedRows,
   isJobSearch,
   isSourceRow,
@@ -227,11 +228,18 @@ describe("a result behind a Google redirect is resolved to its site or read as n
     expect(ownPlaceIn(hidden.slice(1), "customer.com")).toBe(false);
   });
 
-  it("a search's shares are not read where fewer than half its stored rows resolve", () => {
+  it("a search's shares are not read where fewer than half its stored rows resolve; its jobs reading is its resolved rows'", () => {
     const wrapper = { domain: "google.com", url: "https://google.com/goto?url=CAES", title: "Baker Jobs - SEEK" };
     const career = { domain: "careers.bakery.com.au", url: "https://careers.bakery.com.au/", title: "Baker jobs" };
+    const shop = { domain: "brumbys.com.au", url: "https://brumbys.com.au/", title: "Brumby's Bakeries" };
     expect(resolvedRows([career, wrapper, wrapper])).toBeNull();
-    expect(isJobSearch([career, career, career, wrapper, wrapper, wrapper, wrapper, wrapper], "bakery")).toBe(false);
-    expect(isJobSearch([career, career, career, career, wrapper, wrapper, wrapper, wrapper], "bakery")).toBe(true);
+    expect(isJobSearch([career, career, career, wrapper, wrapper, wrapper, wrapper, wrapper], "bakery")).toBe(true);
+    expect(isJobSearch([career, shop, shop, wrapper, wrapper, wrapper, wrapper, wrapper], "bakery")).toBe(false);
+  });
+
+  it("resolvedOf keeps the resolved rows of a top ten mostly hidden, where resolvedRows reads nothing", () => {
+    const stored = JSON.parse(readFileSync(path.resolve(import.meta.dirname, "fixtures/au-baker-d149c119.json"), "utf8")) as { organic: { domain: string; url: string }[] };
+    expect(resolvedOf(stored.organic).map((row) => row.domain)).toEqual(["www.yourcareer.gov.au", "en.wikipedia.org", "bakingcareer.com.au"]);
+    expect(resolvedRows(stored.organic)).toBeNull();
   });
 });
