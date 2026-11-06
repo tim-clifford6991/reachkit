@@ -7,7 +7,7 @@ import { scheduledFor } from "./seed-rows";
 export const BECAME_UPDATE_ACCOUNT: AppAccount = Object.freeze({
   userId: "00000000-0000-0000-0000-0000000000a9",
   siteId: "00000000-0000-0000-0000-0000000000b9",
-  domain: "harborplumbing.test",
+  domain: "eastsideplumbing.test",
   createdAt: new Date("2026-08-31T06:00:00.000Z"),
   timeZone: "America/Chicago",
   mode: "autopilot",
