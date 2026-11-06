@@ -42,6 +42,8 @@ import {
   seedLongReadAs,
   seedWeekZeroAccount,
   seedUnconnectedAccount,
+  seedWordPressUnconnectedAccount,
+  WORDPRESS_UNCONNECTED_ACCOUNT,
   UNCONNECTED_ACCOUNT,
   SETUP_ACCOUNT,
   waitForSchemaCache,
@@ -93,6 +95,8 @@ interface BrowserState {
   weekZeroAccountCookie: string;
   /** The same, for a customer whose hosted address waits for its record. */
   unconnectedAccountCookie: string;
+  /** The same, for a customer whose WordPress was never connected. */
+  wordpressUnconnectedAccountCookie: string;
 }
 
 /** ADR-093 decision 6, amended 2026-09-03: "the viewport carries a height …
@@ -216,6 +220,7 @@ export default async function setup(): Promise<() => Promise<void>> {
   seedSetupAccount();
   seedWeekZeroAccount();
   seedUnconnectedAccount();
+  seedWordPressUnconnectedAccount();
   seedFreeScans();
   seedLedger();
   seedLongReadAs();
@@ -229,6 +234,7 @@ export default async function setup(): Promise<() => Promise<void>> {
   const setupAccountCookie = seededSessionCookie(authStub, SETUP_ACCOUNT);
   const weekZeroAccountCookie = seededSessionCookie(authStub, WEEK_ZERO_ACCOUNT);
   const unconnectedAccountCookie = seededSessionCookie(authStub, UNCONNECTED_ACCOUNT);
+  const wordpressUnconnectedAccountCookie = seededSessionCookie(authStub, WORDPRESS_UNCONNECTED_ACCOUNT);
 
   const routes = enumerateRoutes(path.join(ROOT, "src/app"), { accountCookie });
   let baseURL: string | null = null;
@@ -249,6 +255,7 @@ export default async function setup(): Promise<() => Promise<void>> {
     setupAccountCookie,
     weekZeroAccountCookie,
     unconnectedAccountCookie,
+    wordpressUnconnectedAccountCookie,
   };
   const stateDir = mkdtempSync(path.join(os.tmpdir(), STATE_DIR_PREFIX));
   const stateFile = path.join(stateDir, "browser-state.json");
@@ -329,6 +336,11 @@ export function getWeekZeroAccountCookie(): string {
  *  `/app` is the connect state. */
 export function getUnconnectedAccountCookie(): string {
   return readState().unconnectedAccountCookie;
+}
+
+/** The seeded session for the customer whose WordPress was never connected. */
+export function getWordPressUnconnectedAccountCookie(): string {
+  return readState().wordpressUnconnectedAccountCookie;
 }
 
 /**

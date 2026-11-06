@@ -568,6 +568,34 @@ describe("the hosted address waiting for its record is read from the destination
   });
 });
 
+describe("a WordPress never connected is a connect state", () => {
+  const wordpress = (row: Row) => db.seed("destinations", [{ id: "dest-1", site_id: SITE_ID, kind: "wordpress", deleted_at: null, ...row }]);
+
+  it("set up without its credentials, the site waits on WordPress", async () => {
+    wordpress({ config: null, health: "expired", health_reason: "never_connected" });
+    const read = await facts();
+    expect(read.wordpressWaiting).toBe(true);
+    expect(read.connect).toBeNull();
+  });
+
+  it.each([
+    ["connected", { health: "ok", health_reason: null }],
+    ["connected, then broken", { health: "expired", health_reason: "credentials_expired" }],
+  ])("%s, it does not", async (_name, row) => {
+    wordpress(row);
+    expect((await facts()).wordpressWaiting).toBe(false);
+  });
+
+  it("a hosted address waiting for its record is the hosted state alone", async () => {
+    db.seed("destinations", [
+      { id: "dest-1", site_id: SITE_ID, kind: "hosted", hostname: "help.acmecrm.com", hostname_state: "pending_dns", health: "expired", health_reason: "never_connected", deleted_at: null },
+    ]);
+    const read = await facts();
+    expect(read.wordpressWaiting).toBe(false);
+    expect(read.connect).not.toBeNull();
+  });
+});
+
 describe("Technical issues read from the stored report", () => {
   it("a stored report with no site-issue section states no day and no count", async () => {
     const stored = { ...report({ ownRanked: 40, citations: 1, at: WEEKS.sep07 }), siteIssues: null };

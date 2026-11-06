@@ -148,6 +148,17 @@ export const UNCONNECTED_ACCOUNT: AppAccount = Object.freeze({
   mode: "autopilot",
 });
 
+/** A SaaS whose WordPress was set up without its credentials, with its
+ *  first page in review: `/app`'s WordPress connect state. */
+export const WORDPRESS_UNCONNECTED_ACCOUNT: AppAccount = Object.freeze({
+  userId: "00000000-0000-0000-0000-0000000000a7",
+  siteId: "00000000-0000-0000-0000-0000000000b7",
+  domain: "acmecrm.test",
+  createdAt: new Date("2026-08-31T06:00:00.000Z"),
+  timeZone: "Europe/London",
+  mode: "autopilot",
+});
+
 /** The unconnected account's hosted address. */
 export const UNCONNECTED_HOST = "guides.harborplumbing.test";
 
@@ -199,6 +210,7 @@ const EMAIL_OF: Readonly<Record<string, string>> = {
   [WEEK_ZERO_ACCOUNT.userId]: "layout-sweep-week0@example.com",
   [PUBLISHER_ACCOUNT.userId]: "layout-sweep-publisher@example.com",
   [UNCONNECTED_ACCOUNT.userId]: "layout-sweep-unconnected@example.com",
+  [WORDPRESS_UNCONNECTED_ACCOUNT.userId]: "layout-sweep-wordpress@example.com",
 };
 
 /** Kept for the callers that named it before there were two accounts. */
@@ -495,6 +507,18 @@ export function seedUnconnectedAccount(): void {
   sql(
     `insert into destinations (site_id, kind, config, health, health_reason, hostname, hostname_state) values ` +
       `('${siteId}', 'hosted', null, 'expired', 'dns_unset', '${UNCONNECTED_HOST}', 'pending_dns');`
+  );
+}
+
+export function seedWordPressUnconnectedAccount(): void {
+  const { siteId } = WORDPRESS_UNCONNECTED_ACCOUNT;
+  seedSite(WORDPRESS_UNCONNECTED_ACCOUNT, {
+    drafts: [{ id: "00000000-0000-0000-0000-0000000000d7", state: "in_review", title: "How teams pick a CRM for a five-person sales team", scheduledIn: 0 }],
+    publishing: WEEK_ZERO_PUBLISHING,
+  });
+  sql(
+    `insert into destinations (site_id, kind, config, health, health_reason) values ` +
+      `('${siteId}', 'wordpress', null, 'expired', 'never_connected');`
   );
 }
 

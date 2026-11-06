@@ -871,6 +871,7 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" },
   ],
   "overview.connect.wordpress.link": ["Connect WordPress →", { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" }],
+  "overview.connect.wordpress.action": ["Connect WordPress", { slots: {}, fixedBy: "issue 2397 (drafted)" }],
   "overview.connect.later": [
     "The setting is also in your mail, to add later from a computer.",
     { slots: {}, fixedBy: "board OverviewDNS v36, issue 2272 (drafted) · owner R20 2026-10-22" },

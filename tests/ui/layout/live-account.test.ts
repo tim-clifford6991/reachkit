@@ -20,7 +20,14 @@
 // per-test timeout so a slow read fails as a slow read.
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { getBaseURL, getLiveAccountCookie, getUnconnectedAccountCookie, getWeekZeroAccountCookie, withPage } from "./browser";
+import {
+  getBaseURL,
+  getLiveAccountCookie,
+  getUnconnectedAccountCookie,
+  getWeekZeroAccountCookie,
+  getWordPressUnconnectedAccountCookie,
+  withPage,
+} from "./browser";
 import {
   checkContainment,
   checkNoClippingOrTruncation,
@@ -40,7 +47,9 @@ import {
   UNCONNECTED_ACCOUNT,
   UNCONNECTED_HOST,
   WEEK_ZERO_ACCOUNT,
+  WORDPRESS_UNCONNECTED_ACCOUNT,
 } from "./seed";
+import { copy } from "@/lib/presentation/copy";
 import { FIXTURE_SETTINGS_FACTS } from "@/app/(account)/app/settings/fixture";
 import { widths } from "./widths";
 import { sweepWidths } from "./matrix";
@@ -78,6 +87,12 @@ const weekZeroRoutes = enumerateRoutes(APP_ROOT, {
 const unconnectedRoutes = enumerateRoutes(APP_ROOT, {
   segmentFixtures: LIVE_SEGMENTS,
   accountCookie: getUnconnectedAccountCookie(),
+}).filter((route) => route.path === "/app");
+
+/** `/app` for a customer whose WordPress was never connected: the head asks for it. */
+const wordpressRoutes = enumerateRoutes(APP_ROOT, {
+  segmentFixtures: LIVE_SEGMENTS,
+  accountCookie: getWordPressUnconnectedAccountCookie(),
 }).filter((route) => route.path === "/app");
 
 console.log(
@@ -303,7 +318,7 @@ describe(`week-0 sweep — S13, ${weekZeroRoutes.length} route(s) × ${sweepWidt
     // duplicate-key error from inside `seedSite` at global setup — a
     // failure that names Postgres rather than the mistake. Three sets of
     // four say which field collided, before any suite runs.
-    const accounts = [RESERVED_ACCOUNT, LIVE_ACCOUNT, SETUP_ACCOUNT, WEEK_ZERO_ACCOUNT, UNCONNECTED_ACCOUNT];
+    const accounts = [RESERVED_ACCOUNT, LIVE_ACCOUNT, SETUP_ACCOUNT, WEEK_ZERO_ACCOUNT, UNCONNECTED_ACCOUNT, WORDPRESS_UNCONNECTED_ACCOUNT];
     expect(new Set(accounts.map((a) => a.userId)).size).toBe(accounts.length);
     expect(new Set(accounts.map((a) => a.siteId)).size).toBe(accounts.length);
     expect(new Set(accounts.map((a) => a.domain)).size).toBe(accounts.length);
@@ -384,6 +399,63 @@ describe(`connect state — ${unconnectedRoutes.length} route(s) × ${sweepWidth
             headersFor(route)
           );
           expect(drawn).toEqual({ connect: 1, record: 1, tiles: 0, when: 0 });
+          expect(offenders).toEqual([]);
+        },
+        PER_ROUTE_BROWSER_MS
+      );
+    }
+  }
+});
+
+/** The phone width the WordPress arm is proven at on every run, beside the sweep's own. */
+const WORDPRESS_WIDTHS = [...new Set([390, ...sweepWidths()])];
+
+describe(`WordPress connect state — ${wordpressRoutes.length} route(s) × ${WORDPRESS_WIDTHS.length} width(s)`, () => {
+  it("Overview is what is swept, and it is enumerated not listed", () => {
+    expect(wordpressRoutes.map((route) => route.path)).toEqual(["/app"]);
+  });
+
+  for (const route of wordpressRoutes) {
+    for (const width of WORDPRESS_WIDTHS) {
+      it(
+        `${route.path} @ ${width}px asks for WordPress, its action in view, and reports no offender on checks 1-4`,
+        async () => {
+          const { drawn, offenders } = await withPage(
+            width,
+            async (page) => {
+              await page.goto(urlFor(route), { timeout: LIVE_NAVIGATION_MS });
+              const action = page.getByRole("link", { name: copy("overview.connect.wordpress.action"), exact: true });
+              const box = await action.boundingBox();
+              const drawn = {
+                head: await page.locator('[data-testid="overview-head"] h1').textContent(),
+                href: await action.getAttribute("href"),
+                inView: box !== null && box.x >= 0 && box.x + box.width <= width,
+                record: await page.locator('[data-testid="dns-record"]').count(),
+                tiles: await page.locator('[data-testid="overview-tiles"]').count(),
+              };
+              const results = [
+                await page.evaluate(checkNoHorizontalScroll),
+                await page.evaluate(checkContainment, {
+                  scrollContainerAllowlist: SCROLL_CONTAINER_ALLOWLIST,
+                }),
+                await page.evaluate(checkNoClippingOrTruncation, {
+                  scrollContainerAllowlist: SCROLL_CONTAINER_ALLOWLIST,
+                  truncationAllowlist: TRUNCATION_ALLOWLIST,
+                  monoFontFamily: MONO_FONT_FAMILY,
+                }),
+                await page.evaluate(checkTypeFloor),
+              ];
+              return { drawn, offenders: results.flat() };
+            },
+            headersFor(route)
+          );
+          expect(drawn).toEqual({
+            head: copy("overview.connect.head.ready"),
+            href: "/app/settings/pages",
+            inView: true,
+            record: 0,
+            tiles: 0,
+          });
           expect(offenders).toEqual([]);
         },
         PER_ROUTE_BROWSER_MS

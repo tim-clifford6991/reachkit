@@ -176,6 +176,8 @@ export interface OverviewModel {
   supply?: SupplyStatement;
   /** The address to connect, or `null` once it is live. */
   connect: AddressWaiting | null;
+  /** The site's only destination is a WordPress never connected: no page can publish until it is. */
+  wordpressWaiting: boolean;
   /** At most two (§4.5: "up to two alerts"). */
   alerts: readonly Alert[];
   overflow?: Overflow;
@@ -280,6 +282,8 @@ export interface OverviewFacts {
   /** The hosted address still waiting for its record. Absent or `null`
    *  where there is none. */
   connect?: AddressWaiting | null;
+  /** A WordPress destination set up without its credentials. Absent is `false`. */
+  wordpressWaiting?: boolean;
   waiting: readonly WaitingItem[];
   /** Which of §6.2's three answer engines the latest pass actually asked
    *  (issue 867). The tile's number counts Google's AI Overview alone
@@ -415,6 +419,7 @@ export function assembleOverview(facts: OverviewFacts): OverviewModel {
     },
     ...(supply ? { supply } : {}),
     connect: facts.connect ?? null,
+    wordpressWaiting: facts.wordpressWaiting ?? false,
     alerts,
     ...(overflow ? { overflow } : {}),
     ...(issuesOverflow ? { issuesOverflow } : {}),

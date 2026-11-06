@@ -67,6 +67,22 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
     );
   }
 
+  // A WordPress set up without its credentials holds every page the same way: the head asks for it, and nothing else draws.
+  if (overview.wordpressWaiting) {
+    return (
+      <div className={OVERVIEW} data-testid="overview">
+        <div className={HEAD}>
+          <OverviewHead
+            eyebrow={copy("overview.connect.eyebrow.plain")}
+            title={copy(overview.waitingPage === null ? "overview.connect.head" : "overview.connect.head.ready")}
+            action={{ label: copy("overview.connect.wordpress.action"), href: PUBLISHING_SETTINGS }}
+            lead={copy(overview.waitingPage === null ? "overview.connect.lead" : "overview.connect.lead.ready")}
+          />
+        </div>
+      </div>
+    );
+  }
+
   const running = onboarding.kind === "running";
   // Plan's own week and day cards, reached at the call: Plan's modules reach the
   // market's, and this screen's graph holds no vendor client. Where it cannot be

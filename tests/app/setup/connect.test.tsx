@@ -12,6 +12,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { applyEnvFixture } from "../../mail/env-fixture.ts";
 import { COPY } from "@/lib/presentation/copy";
+import { fakeDb, type FakeDb } from "../../publish/harness";
 
 const redirect = vi.fn();
 vi.mock("next/navigation", () => ({
@@ -30,6 +31,9 @@ vi.mock("@/lib/publish/destinations/hosted/hostname", () => ({
   hostedHostFor: async () => site.host,
 }));
 
+const db: FakeDb = fakeDb();
+vi.mock("@/lib/db", () => ({ dbAdmin: () => db.client, db: () => db.client }));
+
 beforeAll(() => {
   applyEnvFixture();
 });
@@ -38,6 +42,8 @@ beforeEach(() => {
   redirect.mockClear();
   site.id = "site-fixture";
   site.host = { hostname: "guides.example.com", state: "pending_dns" };
+  db.reset();
+  db.seed("destinations", []);
 });
 
 async function render(): Promise<Element> {
@@ -108,6 +114,25 @@ describe("a founder with nothing to connect", () => {
 
   it("is sent on where the site row does not exist yet", async () => {
     site.id = "";
+    await render().catch(() => undefined);
+    expect(redirect).toHaveBeenCalledWith("/app");
+  });
+});
+
+describe("a WordPress site", () => {
+  const wordpress = (row: Record<string, unknown>) =>
+    db.seed("destinations", [{ id: "dest-1", site_id: site.id, kind: "wordpress", deleted_at: null, ...row }]);
+
+  it("never connected is sent to Settings › Pages, where WordPress is connected", async () => {
+    site.host = null;
+    wordpress({ config: null, health: "expired", health_reason: "never_connected" });
+    await render().catch(() => undefined);
+    expect(redirect).toHaveBeenCalledWith("/app/settings/pages");
+  });
+
+  it("already live goes to the app", async () => {
+    site.host = null;
+    wordpress({ health: "ok", health_reason: null });
     await render().catch(() => undefined);
     expect(redirect).toHaveBeenCalledWith("/app");
   });
