@@ -27,6 +27,8 @@ vi.mock("../../src/lib/costs/cache", () => ({ readCache: readCacheMock }));
 vi.mock("../../src/lib/costs/ledger", () => ({ writeFetchRow: writeFetchRowMock, nameDraftOnRows: nameDraftOnRowsMock }));
 
 const { withCostContext } = await import("../../src/lib/costs/index");
+const { withDraftCost } = await import("../../src/lib/generate/cost");
+const { CAPS } = await import("../../src/lib/config/constants");
 
 beforeEach(() => {
   readCacheMock.mockReset().mockResolvedValue(null);
@@ -69,6 +71,16 @@ describe("a draft's context", () => {
       await cost.recordFetch(spend("generate.fit_check"));
     });
     expect(written()[0]).toMatchObject({ activity: "draft", draftId: "draft-9" });
+  });
+
+  it("a day's one draft context never ledgers past CAP_DRAFT: a call past it is refused, and the cap reads hit", async () => {
+    const outcomes = await withDraftCost({ scanId: "scan-1" }, async (cost) => {
+      const first = await cost.recordFetch({ ...spend("generate.write"), costCents: CAPS.DRAFT_C });
+      const second = await cost.recordFetch({ ...spend("generate.fix"), costCents: 1 });
+      return { first, second, capHit: cost.capHit(), spent: cost.spentCents() };
+    });
+    expect(outcomes).toMatchObject({ second: { skipped: "cap" }, capHit: true, spent: CAPS.DRAFT_C });
+    expect(written().map((row) => row.source)).toEqual(["generate.write"]);
   });
 });
 
