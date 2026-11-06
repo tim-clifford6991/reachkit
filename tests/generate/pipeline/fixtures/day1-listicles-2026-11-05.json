@@ -1,0 +1,861 @@
+{
+ "about": "The panel proof of 2026-11-05 (/root/ops/reachkit/reports/panel-proof-2026-11-05): the day-1 listicle packs of baeckerei-hinkel.de ('beste bäckerei düsseldorf') and tattly.com ('inkbox alternatives'), both stopped short of options and own_price. Per site: the stored research (packs/*.json, verbatim), and from the stored pack the business, market, profile and business facts it held, and the measured questions it kept (`measured`: text and the search it was asked as; the report itself was not kept).",
+ "baeckerei-hinkel.de": {
+  "target": "beste bäckerei düsseldorf",
+  "locale": {
+   "country": "DE",
+   "language": "de"
+  },
+  "business": {
+   "name": "Bäckerei Hinkel",
+   "domain": "baeckerei-hinkel.de",
+   "category": "bäckerei düsseldorf",
+   "market": {
+    "from": "site",
+    "category": "bäckerei düsseldorf",
+    "buyer": "Kunden in Düsseldorf, die handwerklich gebackenes Brot kaufen",
+    "job": "Handwerklich gebackenes Brot kaufen",
+    "rivals": [],
+    "notOurMarket": [
+     "Industrielle Backwaren",
+     "Bäckereiketten",
+     "Online-Brotversand",
+     "Tiefkühlbrot"
+    ]
+   },
+   "rivals": []
+  },
+  "profile": {
+   "job": "frisches Brot und Backwaren täglich bereitstellen",
+   "products": [],
+   "audience": [
+    "Brotfreunde",
+    "Nachbarschaft",
+    "Familien",
+    "täglich Brotbedarf"
+   ],
+   "promises": [],
+   "vocabulary": [
+    "Brot",
+    "Backwaren",
+    "Bäckerei",
+    "frisch gebacken",
+    "Handwerk",
+    "täglich",
+    "Brotsorten",
+    "Gebäck"
+   ],
+   "knowledge": {
+    "offerings": [
+     {
+      "name": "Brote",
+      "features": [
+       "70 bis 80 Brotsorten",
+       "von Hand gebacken",
+       "mit besten natürlichen Zutaten aus der Region",
+       "ohne Zusätze",
+       "mit Sauerteig, der drei Tage ruhen darf"
+      ],
+      "prices": [],
+      "uses": [
+       "täglicher Verzehr"
+      ],
+      "from": "https://baeckerei-hinkel.de/"
+     },
+     {
+      "name": "Brötchen und Kleingebäck",
+      "features": [
+       "ständig im Sortiment",
+       "von Hand gebacken",
+       "mit besten natürlichen Zutaten"
+      ],
+      "prices": [],
+      "uses": [
+       "täglicher Verzehr"
+      ],
+      "from": "https://baeckerei-hinkel.de/"
+     },
+     {
+      "name": "Feinbackwaren",
+      "features": [
+       "ständig im Sortiment",
+       "von Hand gebacken"
+      ],
+      "prices": [],
+      "uses": [
+       "täglicher Verzehr"
+      ],
+      "from": "https://baeckerei-hinkel.de/"
+     },
+     {
+      "name": "Saisonale Spezialitäten",
+      "features": [
+       "Oster- und Weihnachtsgebäck"
+      ],
+      "prices": [],
+      "uses": [
+       "saisonale Anlässe"
+      ],
+      "from": "https://baeckerei-hinkel.de/"
+     }
+    ],
+    "differentiators": [
+     {
+      "text": "Wir backen von Hand, mit Zeit und aus besten Zutaten, ohne Zusätze, mit traditionellem Handwerksverständnis und ein bisschen High-Tech.",
+      "rival": null,
+      "from": "https://baeckerei-hinkel.de/"
+     },
+     {
+      "text": "Wir backen nachhaltig: wir sparen Energie, vermeiden Müll, nutzen Sonnenstrom und gewinnen Wärme zurück.",
+      "rival": null,
+      "from": "https://baeckerei-hinkel.de/"
+     },
+     {
+      "text": "Familienbetrieb seit 1891 in fünfter Generation mit Liebe zum Bäckerhandwerk.",
+      "rival": null,
+      "from": "https://baeckerei-hinkel.de/"
+     }
+    ],
+    "audience": [
+     {
+      "text": "Brotfreunde",
+      "from": "https://baeckerei-hinkel.de/"
+     }
+    ],
+    "problems": [
+     {
+      "text": "Suche nach echtem Bäckerhandwerk",
+      "from": "https://baeckerei-hinkel.de/"
+     },
+     {
+      "text": "Suche nach nachhaltigen Backwaren",
+      "from": "https://baeckerei-hinkel.de/"
+     },
+     {
+      "text": "Suche nach Backwaren ohne Zusätze",
+      "from": "https://baeckerei-hinkel.de/"
+     }
+    ],
+    "proof": [],
+    "questions": [],
+    "integrations": [],
+    "places": [
+     {
+      "text": "Düsseldorf",
+      "from": "https://baeckerei-hinkel.de/"
+     },
+     {
+      "text": "Meerbusch",
+      "from": "https://baeckerei-hinkel.de/"
+     },
+     {
+      "text": "Kaarst",
+      "from": "https://baeckerei-hinkel.de/"
+     }
+    ],
+    "byline": null
+   }
+  },
+  "facts": [
+   {
+    "passage": "Neuigkeiten werden geladen … Standorte HOHE STRASSe 31 40213 Düsseldorf Tel.",
+    "url": "https://baeckerei-hinkel.de/news",
+    "readAt": "2026-11-06T00:25:16.117Z"
+   },
+   {
+    "passage": "Unser rund 100 Mitarbeiter starkes Top-Team arbeitet Hand in Hand.",
+    "url": "https://baeckerei-hinkel.de/bewerben",
+    "readAt": "2026-11-06T00:25:10.453Z"
+   },
+   {
+    "passage": "Mehr dazu im Datenschutz Nur notwendige Alle akzeptieren Zum Inhalt springen About ▾ Kontakt Karriere News Shop DE EN DIE BÄCKEREI DER BROTFREUNDE Ein Familienbetrieb seit 1891.",
+    "url": "https://baeckerei-hinkel.de/",
+    "readAt": "2026-11-06T00:24:59.668Z"
+   },
+   {
+    "passage": "Mehr dazu im Datenschutz Nur notwendige Alle akzeptieren Zum Inhalt springen About ▾ Kontakt Karriere News Shop DE EN QUIZ: WELCHES BROT bin ich?",
+    "url": "https://baeckerei-hinkel.de/quiz",
+    "readAt": "2026-11-06T00:25:19.171Z"
+   },
+   {
+    "passage": "Mehr dazu im Datenschutz Nur notwendige Alle akzeptieren Zum Inhalt springen About ▾ Kontakt Karriere News Shop DE EN NEUIGkeiten aus der Backstube Hier erfahrt ihr, was es Neues bei uns gibt: saisonale Spezialitäten, Aktionen und Einblicke in unseren Alltag in der Backstube.",
+    "url": "https://baeckerei-hinkel.de/news",
+    "readAt": "2026-11-06T00:25:16.117Z"
+   },
+   {
+    "passage": "Deshalb bieten wir Dir 30 Tage Urlaub sowie freie Sonn- und Feiertage, damit Du genügend Zeit für Erholung hast und sie nach Deinen Vorstellungen gestalten kannst.",
+    "url": "https://baeckerei-hinkel.de/bewerben",
+    "readAt": "2026-11-06T00:25:10.453Z"
+   },
+   {
+    "passage": "Auf diese Weise entstehen 70 bis 80 Brotsorten, außerdem Kleingebäck und Feinbackwaren, die wir ständig im Sortiment haben.",
+    "url": "https://baeckerei-hinkel.de/",
+    "readAt": "2026-11-06T00:24:59.668Z"
+   },
+   {
+    "passage": "Mach unseren Test, und wir sagen Dir, wer Du bist und was Dir schmeckt.",
+    "url": "https://baeckerei-hinkel.de/quiz",
+    "readAt": "2026-11-06T00:25:19.171Z"
+   },
+   {
+    "passage": "Für den privaten Genuss zu Hause kannst Du sie mit 35 Prozent Rabatt erwerben.",
+    "url": "https://baeckerei-hinkel.de/bewerben",
+    "readAt": "2026-11-06T00:25:10.453Z"
+   },
+   {
+    "passage": "➜ Was wir tun Die Hinkel‑Familie: Tradition in fünfter Generation Unsere Geschichte beginnt 1891 mit Jean Hinkel und geht bis heute weiter mit Sophie Hinkel in fünfter Generation.",
+    "url": "https://baeckerei-hinkel.de/",
+    "readAt": "2026-11-06T00:24:59.668Z"
+   },
+   {
+    "passage": "Mehr dazu im Datenschutz Nur notwendige Alle akzeptieren Zum Inhalt springen About ▾ Kontakt Karriere News Shop DE EN Karriere Brot, Backen und Business begeistern Dich?",
+    "url": "https://baeckerei-hinkel.de/bewerben",
+    "readAt": "2026-11-06T00:25:10.453Z"
+   },
+   {
+    "passage": "YOMARO Frozen Yogurt Meerbusch Dorfstraße 26, 40667 Meerbusch 02132 687 64 50 Randvoll – Café und Unverpacktes Kaaster Str.",
+    "url": "https://baeckerei-hinkel.de/",
+    "readAt": "2026-11-06T00:24:59.668Z"
+   },
+   {
+    "passage": "Wir sind ein traditioneller, familiär geführter Handwerksbetrieb in fünfter Generation mit Sitz im Herzen von Düsseldorf.",
+    "url": "https://baeckerei-hinkel.de/bewerben",
+    "readAt": "2026-11-06T00:25:10.453Z"
+   },
+   {
+    "passage": "83, 40547 Düsseldorf 0211 550 80 860 Ihre Brot Experten Paktiani Werstener Feld 1, 40591 Düsseldorf 0211 976 45 74 Fleher Bäckerei Fleherstr.",
+    "url": "https://baeckerei-hinkel.de/",
+    "readAt": "2026-11-06T00:24:59.668Z"
+   },
+   {
+    "passage": "Auf uns kannst Du zählen – und auch auf die Vorteile, die wir Dir bieten: genügend Urlaub, betriebliche Altersvorsorge, Fortbildung und einiges mehr.",
+    "url": "https://baeckerei-hinkel.de/bewerben",
+    "readAt": "2026-11-06T00:25:10.453Z"
+   },
+   {
+    "passage": "115, 40223 Düsseldorf 0211 876 62 09 Brotlädchen am Kirchplatz Kirchplatz 1, 40217 Düsseldorf 0162 2329286 Rochus Bäckerei Rochusmarkt, 40479 Düsseldorf 01577 7165778 Standorte HOHE STRASSe 31 40213 Düsseldorf Tel.",
+    "url": "https://baeckerei-hinkel.de/",
+    "readAt": "2026-11-06T00:24:59.668Z"
+   },
+   {
+    "passage": "Wir unterstützen Dich mit einem hundertprozentigen Zuschuss zum Firmenticket, damit Du kosten- und sorgenfrei zur Arbeit kommst.",
+    "url": "https://baeckerei-hinkel.de/bewerben",
+    "readAt": "2026-11-06T00:25:10.453Z"
+   },
+   {
+    "passage": "Die Bäckerei der Brotfreunde – Bäckerei Hinkel Cookies Wir verwenden technisch notwendige Cookies.",
+    "url": "https://baeckerei-hinkel.de/",
+    "readAt": "2026-11-06T00:24:59.668Z"
+   },
+   {
+    "passage": "Außerdem kannst Du Dich auf regelmäßige Betriebsfeste in familiärer Atmosphäre freuen, bei denen wir gemeinsam feiern und so unser Teamgefühl stärken.",
+    "url": "https://baeckerei-hinkel.de/bewerben",
+    "readAt": "2026-11-06T00:25:10.453Z"
+   },
+   {
+    "passage": "Wir backen mit Herz, traditionellem Handwerksverständnis und ein bisschen High-Tech, mit neuen und alten Rezepten, mit besten natürlichen Zutaten aus der Region und mit viel Zeit und Liebe.",
+    "url": "https://baeckerei-hinkel.de/",
+    "readAt": "2026-11-06T00:24:59.668Z"
+   },
+   {
+    "passage": "Arbeitskleidung & Komfort 👕 Deine Arbeitskleidung ist bei uns in den besten Händen.",
+    "url": "https://baeckerei-hinkel.de/bewerben",
+    "readAt": "2026-11-06T00:25:10.453Z"
+   },
+   {
+    "passage": "Von Hand, mit Zeit und aus besten Zutaten.",
+    "url": "https://baeckerei-hinkel.de/",
+    "readAt": "2026-11-06T00:24:59.668Z"
+   },
+   {
+    "passage": "Wir übernehmen die Reinigung, damit Du Dich voll und ganz auf Deine Arbeit konzentrieren kannst.",
+    "url": "https://baeckerei-hinkel.de/bewerben",
+    "readAt": "2026-11-06T00:25:10.453Z"
+   },
+   {
+    "passage": "Regional, ehrlich, nachhaltig – mit Herz und mit viel Freude am Tun.",
+    "url": "https://baeckerei-hinkel.de/",
+    "readAt": "2026-11-06T00:24:59.668Z"
+   },
+   {
+    "passage": "Du brauchst Dich um nichts zu kümmern – Du sollst es so angenehm wie möglich bei uns haben.",
+    "url": "https://baeckerei-hinkel.de/bewerben",
+    "readAt": "2026-11-06T00:25:10.453Z"
+   },
+   {
+    "passage": "➜ Geschichte Wir backen heute nachhaltig, weil wir an morgen denken Wir sparen Energie, vermeiden Müll, nutzen Sonnenstrom und gewinnen Wärme zurück.",
+    "url": "https://baeckerei-hinkel.de/",
+    "readAt": "2026-11-06T00:24:59.668Z"
+   },
+   {
+    "passage": "Langfristige Absicherung ☂️ Wir denken an morgen: Mit unserer betrieblichen Altersvorsorge und Krankenversicherung bist Du für die Zukunft bereits bestens abgesichert.",
+    "url": "https://baeckerei-hinkel.de/bewerben",
+    "readAt": "2026-11-06T00:25:10.453Z"
+   },
+   {
+    "passage": "➜ Nachhaltigkeit Wir engagieren uns für Menschen Unsere Backwaren helfen dort, wo sie gebraucht werden: bei der Tafel, im Gute-Nacht-Bus und beim Bildungsfrühstück.",
+    "url": "https://baeckerei-hinkel.de/",
+    "readAt": "2026-11-06T00:24:59.668Z"
+   },
+   {
+    "passage": "Deine Sicherheit und Dein Wohlbefinden liegen uns am Herzen, und wir sorgen dafür, dass Du langfristig auf uns zählen kannst.",
+    "url": "https://baeckerei-hinkel.de/bewerben",
+    "readAt": "2026-11-06T00:25:10.453Z"
+   },
+   {
+    "passage": "➜ Engagement Dein Platz im Team der Brotfreunde Du willst Teil eines herzlichen, vielfältigen Teams werden?",
+    "url": "https://baeckerei-hinkel.de/",
+    "readAt": "2026-11-06T00:24:59.668Z"
+   },
+   {
+    "passage": "Seit Jahrzehnten begleiten wir junge Menschen auf ihrem Weg ins Bäckerhandwerk.",
+    "url": "https://baeckerei-hinkel.de/bewerben",
+    "readAt": "2026-11-06T00:25:10.453Z"
+   },
+   {
+    "passage": "Jedes Jahr starten zwei bis vier neue Azubis bei uns durch, viele bleiben uns auch nach der Prüfung treu.",
+    "url": "https://baeckerei-hinkel.de/bewerben",
+    "readAt": "2026-11-06T00:25:10.453Z"
+   },
+   {
+    "passage": "Einige zeigen ihr Können sogar bei Meisterschaften, zwei standen schon im Finale der Deutschen Meisterschaft.",
+    "url": "https://baeckerei-hinkel.de/bewerben",
+    "readAt": "2026-11-06T00:25:10.453Z"
+   },
+   {
+    "passage": "Ins Team in wenigen Schritten Aktuelle Stellen im Bewerbungsportal Fragen zur Bewerbung?",
+    "url": "https://baeckerei-hinkel.de/bewerben",
+    "readAt": "2026-11-06T00:25:10.453Z"
+   },
+   {
+    "passage": "Vorstellungsgespräch Im Vorstellungsgespräch lernen wir Dich und das, was Dich ausmacht, besser kennen.",
+    "url": "https://baeckerei-hinkel.de/bewerben",
+    "readAt": "2026-11-06T00:25:10.453Z"
+   },
+   {
+    "passage": "Du erfährst alles über die Stelle und kannst uns all Deine Fragen stellen.",
+    "url": "https://baeckerei-hinkel.de/bewerben",
+    "readAt": "2026-11-06T00:25:10.453Z"
+   },
+   {
+    "passage": "Schnuppertag Damit beide Seiten sicher sind, dass wir gut zueinander passen, hast Du die Möglichkeit einen halben Tag reinzuschnuppern.",
+    "url": "https://baeckerei-hinkel.de/bewerben",
+    "readAt": "2026-11-06T00:25:10.453Z"
+   },
+   {
+    "passage": "Dein Start bei uns Wenn Du uns im Vorstellungsgespräch überzeugt hast, sagen wir Dir zeitnah zu und lassen Dir den Arbeitsvertrag zukommen.",
+    "url": "https://baeckerei-hinkel.de/bewerben",
+    "readAt": "2026-11-06T00:25:10.453Z"
+   }
+  ],
+  "research": {
+   "facts": [
+    {
+     "url": "https://www.marktaktuell.com/baeckerei-duesseldorf/",
+     "title": "Bäckerei in Düsseldorf gesucht? | Bäckereien in deiner Nähe",
+     "readAt": "2026-11-06T00:28:31.926Z",
+     "passage": "In Düsseldorf ist dieser Name nicht weniger als eine Institution.",
+     "kind": "top_result"
+    },
+    {
+     "url": "https://www.feinschmecker.de/baecker/de/d%C3%BCsseldorf/b%C3%A4ckerei-josef-hinkel-e9",
+     "title": "Bäckerei Josef Hinkel",
+     "readAt": "2026-11-06T00:28:31.926Z",
+     "passage": "Zu den Bestsellern zählen die Roggen-Weizen-Mischbrote Schwarzwälder und Elsässer.",
+     "kind": "top_result"
+    },
+    {
+     "url": "https://www.marktaktuell.com/baeckerei-duesseldorf/",
+     "title": "Bäckerei in Düsseldorf gesucht? | Bäckereien in deiner Nähe",
+     "readAt": "2026-11-06T00:28:31.926Z",
+     "passage": "Alles wird nach traditionellen Rezepten, mit hauseigenem Natursauerteig und ohne künstliche Triebmittel gebacken.",
+     "kind": "top_result"
+    },
+    {
+     "url": "https://www.feinschmecker.de/baecker/de/d%C3%BCsseldorf/b%C3%A4ckerei-josef-hinkel-e9",
+     "title": "Bäckerei Josef Hinkel",
+     "readAt": "2026-11-06T00:28:31.926Z",
+     "passage": "das umfangreiche Sortiment von 80 Broten",
+     "kind": "top_result"
+    },
+    {
+     "url": "https://www.marktaktuell.com/baeckerei-duesseldorf/",
+     "title": "Bäckerei in Düsseldorf gesucht? | Bäckereien in deiner Nähe",
+     "readAt": "2026-11-06T00:28:31.926Z",
+     "passage": "Bei Bastians wird ausschließlich mit reinen Naturprodukten gearbeitet.",
+     "kind": "top_result"
+    },
+    {
+     "url": "https://www.feinschmecker.de/baecker/de/d%C3%BCsseldorf/b%C3%A4ckerei-josef-hinkel-e9",
+     "title": "Bäckerei Josef Hinkel",
+     "readAt": "2026-11-06T00:28:31.926Z",
+     "passage": "Montag 06:00 — 18:30 Dienstag 06:00 — 18:30 Mittwoch 06:00 — 18:30 Donnerstag 06:00 — 18:30 Freitag 06:00 — 18:30 Samstag 06:00 — 16:00 Sonntag Geschlossen",
+     "kind": "top_result"
+    },
+    {
+     "url": "https://www.marktaktuell.com/baeckerei-duesseldorf/",
+     "title": "Bäckerei in Düsseldorf gesucht? | Bäckereien in deiner Nähe",
+     "readAt": "2026-11-06T00:28:31.926Z",
+     "passage": "Die Boulangerie Copain bringt echte, unverfälschte französische Backkunst nach Düsseldorf.",
+     "kind": "top_result"
+    },
+    {
+     "url": "https://www.marktaktuell.com/baeckerei-duesseldorf/",
+     "title": "Bäckerei in Düsseldorf gesucht? | Bäckereien in deiner Nähe",
+     "readAt": "2026-11-06T00:28:31.926Z",
+     "passage": "Schon lange bevor Bio-Brote zum hippen Lifestyle-Trend wurden, mahlte man hier in der eigenen Steinmühle das Getreide selbst und backte schwere, grundehrliche Vollkornbrote.",
+     "kind": "top_result"
+    }
+   ],
+   "products": [],
+   "topResults": [
+    {
+     "url": "https://www.marktaktuell.com/baeckerei-duesseldorf/",
+     "text": "Bäckerei in Düsseldorf gesucht? | Bäckereien in deiner Nähe Startseite Ratgeber Berlin München Hamburg Köln Anmelden Sign up Bäckerei Düsseldorf #Bäckerei #Düsseldorf Zuletzt aktualisiert am 16. März 2026 Special: City Guide Düsseldorf Düsseldorf ist weit mehr als Champagner auf der Kö und Altbier an der längsten Theke der Welt. Die rheinische Metropole besitzt eine tief verwurzelte, stolze Backkultur. Zwischen urigen Röggelchen in der Altstadt, französischer Pâtisserie in Pempelfort und innovativen Sauerteig-Ateliers in Flingern blüht das echte Handwerk. Wer das kulinarische Herz Düsseldorfs verstehen will, muss beim Brot anfangen. Hier am Rhein gibt es einen ungeschriebenen Vertrag: Ein echter \"Halver Hahn\" (Käse mit Senf) funktioniert ausschließlich mit einem perfekten \"Röggelchen\" – jenem typisch rheinischen, dunkel ausgebackenen Roggenbrötchen, das außen krachend kross und innen weich und würzig sein muss. Doch die Stadt ruht sich nicht auf ihren Klassikern aus. In den letzten Jahren hat sich eine faszinierende Spaltung vollzogen, die Genießern nur zugutekommt. Auf der einen Seite stehen alteingesessene Familienbetriebe in der historischen Altstadt und Stadtteilen wie Gerresheim, die seit über 100 Jahren die rheinische Schwarzbrot-Tradition am Leben erhalten. Auf der anderen Seite weht durch Viertel wie Pempelfort, Unterbilk und Flingern ein internationaler Wind: Hier etablieren junge \"Artisan Bakers\" gläserne Backstuben, widmen sich wilden Fermentationen und bringen französische Boulangerie-Qualität an den Rhein. Ganz egal, ob du ein unverfälschtes rheinisches Roggenmischbrot für das Abendbrot suchst oder eine luftige Pain au Chocolat, die direkt aus Paris stammen könnte – unsere Düsseldorf-Auswahl zeigt dir die absolute Spitzenklasse. Hier sind die 20 besten Bäckereien in der Rheinmetropole. Platz 1 • Die Düsseldorfer Legende 5.0 Bäckerei der Könige Bäckerei Josef Hinkel Es gibt Bäckereien, und es gibt Hinkel . In Düsseldorf ist dieser Name nicht weniger als eine Institution. Mitten in der Altstadt stehen die Menschen – egal bei welchem Wetter – geduldig in langen Schlangen an, um sich ihre Ration Handwerkskunst zu sichern. Josef Hinkel, bekannt für sein lautes Lachen und als echtes Düsseldorfer Original, hat die \"Bäckerei der Könige\" zu einem Pilgerort gemacht. Warum Platz 1? Weil hier rheinische Brotkultur zelebriert wird wie nirgendwo sonst. Vom berühmten \"Carlsplatz\"-Brot über das unverwechselbare \"Zillebäckchen\" bis hin zu den vielleicht besten Röggelchen der Stadt. Alles wird nach traditionellen Rezepten, mit hauseigenem Natursauerteig und ohne künstliche Triebmittel gebacken. Der Duft, der aus der Backstube in der Hohe Straße weht, gehört zur Düsseldorfer Altstadt genauso wie das Rheinufer. Auf einen Blick Adresse: Hohe Straße & Mittelstraße (Altstadt) Spezialität: Rheinische Brotklassiker, Röggelchen, Printen Vibe: Trubelig, Authentisch, Tradition pur Route planen via Google Maps Platz 2 • Die Gläserne Bäckerei 4.9 Bastians Direkt am pulsierenden Carlsplatz, dem kulinarischen Herz der Stadt, befindet sich Bastians . Das Konzept der gläsernen Bäckerei war hier ein voller Erfolg: Gäste sitzen im gemütlichen Café-Bereich und können den Bäckermiestern live zusehen, wie sie den Teig kneten, ruhen lassen und in die großen Öfen schieben. Bei Bastians wird ausschließlich mit reinen Naturprodukten gearbeitet. Die extrem saftigen, oft in großen Laiben gebackenen Brote, die fantastischen Croissants und die feinen Kuchen ziehen ein anspruchsvolles Publikum an. Ein Pflichtbesuch für ein ausgedehntes Frühstück am Wochenende! Adresse Carlsplatz (Stadtmitte) Fokus Großes Frühstück, Offene Backstube Auf der Karte zeigen Platz 3 • Französisches Flair 4.8 Boulangerie Copain Wer in Pempelfort die Rethelstraße entlangläuft, wird oft von einem betörenden Duft nach Butter und Karamell gestoppt. Die Boulangerie Copain bringt echte, unverfälschte französische Backkunst nach Düsseldorf. Kein deutscher Kompromiss, sondern Savoir-vivre in Reinform. Die Baguettes (Tradition) haben die perfekten großen Poren und eine krachende Kruste, die Pain au Chocolat blättern beim Reinbeißen in tausend butterige Schichten auf. Wer ein französisches Frühstück liebt, findet in der ganzen Stadt keine bessere Adresse als diesen charmanten Laden. Adresse Rethelstraße (Pempelfort) Highlight Authentische Baguettes & Viennoiserie Auf der Karte zeigen 4. Hercules Vollkornbäckerei 4.8 Die Hercules Vollkornbäckerei an der Ulmenstraße (Derendorf) ist ein echter Pionier. Schon lange bevor Bio-Brote zum hippen Lifestyle-Trend wurden, mahlte man hier in der eigenen Steinmühle das Getreide selbst und backte schwere, grundehrliche Vollkornbrote. Das Ergebnis sind extrem saftige, lang sättigende und hervorragend verträgliche Brote. Besonders die kernigen Roggenvollkornbrote und das Dinkelgebäck haben in Düsseldorf eine riesige, treue Fangemeinde aufgebaut. Adresse Ulmenstraße (Derendorf) Vorteil 100% Bio-Vollkorn, Eigene Mühle Auf der Karte zeigen 5. Bäckerei Terbuyken 4.6 Obwohl Terbuyken mittlerweile über zahlreiche Filialen im Stadtgebiet verfügt, ist es das absolute Paradebeispiel für eine hochqualitative Lokal-Bäckerei. Die Wurzeln liegen tief im Rheinland (Erkrath/Düsseldorf) verankert. Die Düsseldorfer lieben Terbuyken für die unglaubliche Verlässlichkeit. Egal ob die Brötchen fürs Sonntagsfrühstück, das klassische rheinische Schwarzbrot oder die fantastischen Berliner (Krapfen) zur Karnevalszeit – Terbuyken liefert immer auf Top-Niveau. Adresse Zahlreiche Filialen (z.B. Flingern, Düsseltal) Vibe Lokaler Platzhirsch, Verlässlich Gut Auf der Karte zeigen 6. Bäckerei Puppe 4.7 Ursprünglich aus dem benachbarten Neuss stammend, hat sich Bäckerei Puppe besonders im noblen Oberkassel und der Stadtmitte als Premium-Bäcker etabliert. Hier verbindet sich klassisches Bäckerhandwerk mit exzellenter Konditorei. Das Brot ist hervorragend, aber ein besonderes Augenmerk sollte man auf die Kuchenauslagen und feinen Törtchen werfen. Puppe ist die Adresse, wenn man sonntags die Schwiegereltern zum Kaffee am Rhein einlädt. Adresse Luegallee (Oberkassel) & weitere Stil Premium, Exzellente Torten Auf der Karte zeigen 7. Isabella Glutenfreie Pâtisserie 4.8 Was in Oberkassel als Herzensprojekt begann, ist heute eine bundesweite Erfolgsgeschichte. Isabella hat bewiesen, dass glutenfreies Brot und Gebäck nicht nach Verzicht schmecken muss, sondern Premium-Qualität erreichen kann. Die Sauerteigbrote auf Reis- und Buchweizenbasis haben eine tolle Kruste und Saftigkeit. Die Macarons und Törtchen sind ohnehin ein optisches und geschmackliches Highlight. Ein Paradies für Menschen mit Zöliakie und alle anderen Feinschmecker. Adresse Arnulfstraße (Oberkassel) & Kö-Galerie Highlight 100% Glutenfrei, Spitzen-Patisserie Auf der Karte zeigen 8. Konditorei Heinemann 4.9 Keine Liste über Backkunst in Düsseldorf ist komplett ohne Heinemann . Streng genommen eine Konditorei, aber die Backwerke hier spielen in einer eigenen Liga. Das Haus nahe der Kö strahlt luxuriöse, altmodische Eleganz aus. Weltberühmt für die Champagner-Trüffel und den fantastischen Baumkuchen, bietet Heinemann aber auch wunderbare morgendliche Hefegebäcke und feinste Brioches. Ein Stück Düsseldorfer Kulturgeschichte im grünen Gewand. Adresse Martin-Luther-Platz / Kö Fokus Luxus-Konditorei, Baumkuchen Auf der Karte zeigen 9. Bullys Bakery 4.6 Im angesagten Szeneviertel Flingern versprüht Bullys Bakery einen charmanten Vintage-Charme. Was als kleiner Geheimtipp begann, ist heute ein beliebter Hotspot für alle, die es süß und stylish mögen. Bekannt sind sie vor allem für ihre unglaublich leckeren Tartes, Cupcakes und Quiches, aber auch die herzhaften Brote, die oft mit Nüssen oder Früchten verfeinert sind, begeistern das hippe Flingeraner Publikum jeden Tag aufs Neue. Adresse Birkenstraße (Flingern-Nord) Stil Hip, Süße Tartes & Vintage Auf der Karte zeigen 10. Bäckerei Oehme 4.5 Mit dem Slogan \"Oehme Brot & Kuchen\" prägt dieser Betrieb seit Jahrzehnten das Stadtbild. Oehme ist ein echtes Düsseldorfer Familienunternehmen, das den Spagat zwischen Größe und Qualität hervorragend meistert. Wer ein verlässliches, kräftiges Vollkornbrot, sehr gute Weizenbrötchen oder einfach einen leckeren Obstkuchen für den Nachmittag sucht, wird hier im Kiez nie enttäuscht. Grundsolides, ehrliches Handwerk. Adresse Mehrere Standorte (z.B. Bilk, Pempelfort) Nutzen Düsseldorfer Original, Sehr verlässlich Auf der Karte zeigen Die Plätze 11 bis 20 Weitere Back-Highlights in der Rheinmetropole Alle weiteren Plätze anzeigen 👇 11. Bäckerei Pass 4.4 Eine der klassischen Lokal-Größen Düsseldorfs. Bäckerei Pass versorgt viele Stadtteile zuverlässig mit frischem, ehrlichem Backwerk. Die rustikalen Landbrote und die rheinischen Krapfen sind hier besonders empfehlenswert. Adresse Diverse Standorte in D'dorf Vorteil Zuverlässig, Rheinisch Auf der Karte zeigen 12. Ihr Bäcker Schüren 4.6 Ursprünglich aus Hilden, aber mit starker Präsenz in Düsseldorf (z.B. auf den Wochenmärkten und in Bilk). Schüren ist ein Vorreiter in Sachen CO2-neutrales Backen und grandioser Bio-Qualität. Das Walnussbrot ist göttlich! Adresse Bilk & diverse Märkte Fokus Bio-Pionier, Klimaneutral Auf der Karte zeigen 13. Cøpenhagen Coffee Lab 4.5 Der dänische Import hat Düsseldorf (Flingern, Bilk) im Sturm erobert. Zwar kein deutsches Handwerk, aber wer exzellentes Nordic Sourdough Bread und Kardamom-Schnecken sucht, kommt an dieser minimalistischen Bäckerei nicht vorbei. Adresse Hermannstraße (Flingern) & Bilk Stil Nordisch, Sourdough, Kardamom Auf der Karte zeigen 14. TörtchenTörtchen 4.7 Auch hier: Pâtisserie-Kunst der Spitzenklasse! Nahe dem Carlsplatz zaubert dieses Team (das eigentlich Kölner Wurzeln hat, aber von den Düsseldorfern adoptiert wurde) die unglaublichsten Macarons und Eclairs. Optisch und geschmacklich Kunstwerke. Adresse Carlsplatz / Stadtmitte Vibe Edle Pâtisserie, Törtchen Auf der Karte zeigen 15. Bäckerei Nettesheim 4.6 Ein lokaler Geheimtipp im Stadtteil Wersten. Die Bäckerei Nettesheim ist ein traditioneller Familienbetrieb, bei dem man den Chef noch oft selbst in der Backstube stehen sieht. Grandiose Krustenbrote und echte Handwerksqualität fernab vom Trubel der Innenstadt. Adresse Kölner Landstraße (Wersten) Fokus Bodenständig, Kiez-Liebling Auf der Karte zeigen 16. Bäckerei Behmer 4.3 Eine der urigen Bäckereien Düsseldorfs, die mit viel Charme und solidem Handwerk punkten. Bekannt für eine sehr gute Auswahl an Frühstücksbrötchen und ein freundliches Lächeln hinter der Theke. Adresse Verschiedene (z.B. Oberkassel) Qualität Solide Rheinische Tradition Auf der Karte zeigen 17. Bäckerei Horsthemke 4.2 Ein etabliertes Handwerksunternehmen, das man an vielen Ecken der Stadt antrifft. Horsthemke bietet verlässliche Qualität für den Alltag, schöne Cafés für die Kaffeepause und sehr ordentliche belegte Snacks. Adresse Überall im Stadtgebiet Highlight Snacks, Café-Atmosphäre Auf der Karte zeigen 18. Handwerksbäckerei Büsch 4.4 Die Bäckerei vom Niederrhein ist in Düsseldorf an vielen Supermarkt-Vorkassen zu finden –",
+     "headings": [
+      "Bäckerei Josef Hinkel",
+      "Auf einen Blick",
+      "Bastians",
+      "Boulangerie Copain",
+      "4. Hercules Vollkornbäckerei",
+      "5. Bäckerei Terbuyken",
+      "6. Bäckerei Puppe",
+      "7. Isabella Glutenfreie Pâtisserie",
+      "8. Konditorei Heinemann",
+      "9. Bullys Bakery",
+      "10. Bäckerei Oehme",
+      "Die Plätze 11 bis 20",
+      "11. Bäckerei Pass",
+      "12. Ihr Bäcker Schüren",
+      "13. Cøpenhagen Coffee Lab",
+      "14. TörtchenTörtchen",
+      "15. Bäckerei Nettesheim",
+      "16. Bäckerei Behmer",
+      "17. Bäckerei Horsthemke",
+      "18. Handwerksbäckerei Büsch",
+      "19. Pure Pastry",
+      "20. Bäckerei Bolten",
+      "Häufige Fragen (FAQ) Düsseldorfer Bäckereien",
+      "Was ist eigentlich ein \"Röggelchen\"?",
+      "Warum stehen bei Hinkel in der Altstadt immer so lange Schlangen?",
+      "Haben Bäckereien in Düsseldorf am Sonntag geöffnet?",
+      "Beste Bäckerei",
+      "Auszeichnung für Bäckerei Josef Hinkel",
+      "Zeigen Sie Ihren Erfolg!"
+     ]
+    },
+    {
+     "url": "https://www.gelbeseiten.de/branchen/b%C3%A4ckerei/d%C3%BCsseldorf%20stadtteil%20stadtmitte",
+     "text": "ᐅ Top 10 Bäckerei Düsseldorf-Stadtmitte | ✉ Adresse | ☎ Telefonnummer | 📝 Kontakt | ✅ Bewertungen ➤ Jetzt auf GelbeSeiten.de ansehen. Suchen Was & Wo Suche Branchenkatalog Service FÜR SIE Energieberatung NEU FÜR FIRMENINHABER Neuer Firmeneintrag Firmeneintrag ändern KI-Sichtbarkeits-Check Ansprechpartner finden Gelbe Seiten in Zahlen Ratgeber Gesünder Leben Haus & Garten Recht & Finanzen Machergeschichten Meine Firma eintragen Meinen Standort verwenden Finden Umkreis: 0 km Bäckerei in Düsseldorf Stadtteil Stadtmitte ( 19 Treffer) Beste Treffer Bewertung Entfernung Geöffnet Stadtteil Bäckerei-Konditorei Busch GmbH 4,5 4.5 2 Bewertungen Bäckereien E-Mail Chat starten Steinstr. 35, 40210 Düsseldorf (Stadtmitte) 258 m Geschlossen &ndash; Öffnet um 07:00 0211 3 23 93 59 Webseite Oehme Brot und Kuchen 4,5 4.5 2 Bewertungen Bäckereien E-Mail Oststr. 89, 40210 Düsseldorf (Stadtmitte) 277 m Geschlossen &ndash; Öffnet um 06:00 0211 3 23 84 63 Webseite Bäckerei Büsch 3,0 3.0 1 Bewertung Bäckereien E-Mail Berliner Allee 52, 40212 Düsseldorf (Stadtmitte) 566 m Geschlossen &ndash; Öffnet um 07:00 0211 86 29 18 38 Webseite LE CROBAG GmbH & Co. KG Mobilo1 Bäckereien E-Mail Konrad-Adenauer-Platz 14, 40210 Düsseldorf (Stadtmitte) 277 m Geschlossen &ndash; Öffnet um 06:00 0211 1 68 87 51 Webseite LE CROBAG GmbH & Co. KG Mobilo1 Bäckereien E-Mail Konrad-Adenauer-Platz 14, 40210 Düsseldorf (Stadtmitte) 277 m Geschlossen &ndash; Öffnet um 06:00 0211 1 68 87 51 Webseite Kamps Backshop Bäckereien Oststr. 53, 40211 Düsseldorf (Stadtmitte) 417 m 0211 1 71 06 58 Amin Khorsandi Lebensmittel und Backwaren Bäckereien Karl-Anton-Str. 35, 40211 Düsseldorf (Stadtmitte) 561 m 0211 17 93 81 71 Webseite Bäckerei Brinker Bäckereien E-Mail Königsallee 60, 40212 Düsseldorf (Stadtmitte) 689 m Geschlossen &ndash; Öffnet um 07:00 02323 93 08 20 78 Webseite Kamps Backshop Bäckereien E-Mail Chat starten Am Wehrhahn 33, 40211 Düsseldorf (Stadtmitte) 724 m Geschlossen &ndash; Öffnet um 07:00 0211 16 17 50 Webseite Oehme Brot und Kuchen Bäckereien E-Mail Schadowstr. 80, 40212 Düsseldorf (Stadtmitte) 725 m Geschlossen &ndash; Öffnet um 06:30 0211 1 64 63 64 Webseite Oehme Brot und Kuchen Bäckereien E-Mail Schadowstr. 11, 40212 Düsseldorf (Stadtmitte) 765 m Geschlossen &ndash; Öffnet um 07:00 0162 6 37 97 46 Webseite Oehme Brot und Kuchen Bäckereien E-Mail Schadowstr. 11, 40212 Düsseldorf (Stadtmitte) 765 m Geschlossen &ndash; Öffnet um 08:00 0211 3 23 09 79 Webseite Ditsch Düsseldorf Hauptbahnhof Gleis 11/12 4,8 4.8 4 Bewertungen Backwaren E-Mail Konrad-Adenauer-Platz 14, 40210 Düsseldorf 277 m Geschlossen &ndash; Öffnet um 05:00 0211 95 79 59 03 Webseite Ditsch Düsseldorf Hauptbahnhof Gleis 13/14 4,8 4.8 4 Bewertungen Backwaren E-Mail Konrad-Adenauer-Platz 14, 40210 Düsseldorf 277 m Geschlossen &ndash; Öffnet um 05:00 0211 91 36 69 35 Webseite BackWerk 3,8 3.8 4 Bewertungen Backwaren E-Mail Konrad-Adenauer-Platz 14, 40210 Düsseldorf 277 m Ge&ouml;ffnet &ndash; Schließt um 02:00 0211 36 77 76 40 Webseite BackWerk Backwaren E-Mail Konrad-Adenauer-Platz 10, 40210 Düsseldorf 181 m Geschlossen &ndash; Öffnet um 05:30 0211 17 93 77 53 Webseite Ditsch Düsseldorf Hauptbahnhof Empfangshalle Backwaren E-Mail Konrad-Adenauer-Platz 14, 40210 Düsseldorf 277 m Geschlossen &ndash; Öffnet um 05:00 0211 36 77 98 14 Webseite go asia Supermarkt - Düsseldorf Backwaren Schadowstraße 93, 40212 Düsseldorf 681 m Geschlossen &ndash; Öffnet um 10:00 0211 17 93 39 55 Webseite Sammy's Backshop Backwaren Ackerstr. 31, 40233 Düsseldorf (Stadtmitte) 767 m 0211 17 76 47 Häufige Fragen Wie finde ich die beste Bäckerei in Düsseldorf Stadtteil Stadtmitte? Vergleichen Sie alle Anbieter anhand echter Kundenmeinungen und profitieren Sie von den Empfehlungen. Die Suchergebnisse können Sie sich einfach nach Bewertungen sortiert anzeigen lassen. Welche Bäckerei in Düsseldorf Stadtteil Stadtmitte hat gerade geöffnet? Im Anbieter-Bereich finden Sie alle Öffnungszeiten . Bitte beachten Sie, dass diese an Sonn- und Feiertagen abweichen können. Welche Produkte bietet eine Bäckerei an? Das Angebot umfasst unter anderem Croissants, Dips, Getränke, Laugenprodukte und Pizzen. Ratgeber Gesünder Leben Wohin mit Brot? Brot richtig lagern,... Gesünder Leben Die besten Öle und Fette zum Backen Haus & Garten Brot aufbewahren und lagern: So... Ihre Meinung zählt! Was gefällt Ihnen gut? Was sollten wir verbessern? Jetzt Feedback geben! Ihr Gelbe Seiten Verlag Bäckerei in Düsseldorf und der Umgebung Neuss Erkrath Meerbusch Ratingen Hilden Kaarst Mettmann Dormagen Haan Rheinland Monheim am Rhein Bäckerei in Stadtteilen von Düsseldorf Altstadt Benrath Bilk Carlstadt Düsseltal Derendorf Eller Flingern Nord Flingern Süd Friedrichstadt Garath Gerresheim Golzheim Grafenberg Hassels Heerdt Hellerhof Holthausen Lörick Lichtenbroich Lohausen Oberbilk Oberkassel Pempelfort Rath Reisholz Unterbach Unterbilk Unterrath Urdenbach Vennhausen Wersten Wittlaer Beliebte Suchen in Düsseldorf Elektroinstallation Elektriker Elektro Reparatur Klempner Gasinstallateur Sanitärinstallation Kammerjäger Heizung & Sanitär Lüftungsanlagen Heizungsbauer Beliebte Suchen in Düsseldorf Stadtteil Stadtmitte Fensterbauer Fenster Elektroinstallation Elektriker Elektro Reparatur Klempner Gasinstallateur Sanitärinstallation Rohrreinigung Kammerjäger Gelbe Seiten Bäckerei Bäckerei in Düsseldorf Bäckerei in Düsseldorf Stadtteil Stadtmitte Deutschland Nordrhein-Westfalen Düsseldorf Düsseldorf Stadtteil Stadtmitte Dialog & Hilfe Ansprechpartner Häufige Fragen Übersicht aller Städte Über Gelbe Seiten Newsroom Gelbe Seiten als App Gelbe Seiten für Messenger Gelbe Seiten als Alexa Skill Unsere Partner Kooperationspartner Das Telefonbuch Das Örtliche Zu finden auf Instagram Facebook Pinterest TikTok Gelbe Seiten als App Mehrfach ausgezeichnet Impressum Datenschutzerklärung Datenschutz-Einstellungen AGB Inhalte melden Ein Service Ihrer Gelbe Seiten Verlage",
+     "headings": [
+      "Bäckerei-Konditorei Busch GmbH"
+     ]
+    },
+    {
+     "url": "https://www.feinschmecker.de/baecker/de/d%C3%BCsseldorf/b%C3%A4ckerei-josef-hinkel-e9",
+     "text": "Bäckerei Josef Hinkel Magazin Abonnement Shop Mediadaten Newsletter Podcast RSS Zum exklusiven Feinschmecker Shop Zum Shop Restaurants Aktuelle Restauranttests Die 500 besten Restaurants in Deutschland 2026 Gute Gasthäuser Restaurants für jeden Tag Restaurants mit vegetarischen Gerichten Japanische Restaurants in Deutschland Bestenlisten Die besten Feinschmecker-Adressen Die 500 besten Restaurants in Deutschland 2026 Die 111 besten Bars in Europa Die 111 besten Hotels Europas 2026 Die 100 besten Olivenöle: Olio Award 2026 Die 500 besten Weingüter 2026 Die besten Cafés und Röstereien in Deutschland 2025 Restaurants für jeden Tag Die 100 besten Restaurants der Welt Wein Wine Awards 2026 Spätburgunder Cup 2026 Die 500 besten Weingüter Riesling Cup: Die Top 13 Alkoholfreie Getränke Rezepte Herbst-Rezepte Kürbis-Rezepte Pilz-Rezepte Schnelle Rezepte für Zwei Starter Hauptgerichte Desserts Suppen Saucen Salate Backen Frühstück & Brunch Getränke Fine-Dining-Rezepte Reisen Fleisch Porträts Club Olivenöl Die 100 besten Olivenöle 2026 Olio Award Rezepte mit Olivenöl Olivenöl-Ratgeber Olivenöl-Länder Partner Restaurants Aktuelle Restauranttests Die 500 besten Restaurants in Deutschland 2026 Gute Gasthäuser Restaurants für jeden Tag Restaurants mit vegetarischen Gerichten Japanische Restaurants in Deutschland Bestenlisten Die besten Feinschmecker-Adressen Die 500 besten Restaurants in Deutschland 2026 Die 111 besten Bars in Europa Die 111 besten Hotels Europas 2026 Die 100 besten Olivenöle: Olio Award 2026 Die 500 besten Weingüter 2026 Die besten Cafés und Röstereien in Deutschland 2025 Restaurants für jeden Tag Die 100 besten Restaurants der Welt Wein Wine Awards 2026 Spätburgunder Cup 2026 Die 500 besten Weingüter Riesling Cup: Die Top 13 Alkoholfreie Getränke Rezepte Herbst-Rezepte Kürbis-Rezepte Pilz-Rezepte Schnelle Rezepte für Zwei Starter Hauptgerichte Desserts Suppen Saucen Salate Backen Frühstück & Brunch Getränke Fine-Dining-Rezepte Reisen Fleisch Porträts Club Olivenöl Die 100 besten Olivenöle 2026 Olio Award Rezepte mit Olivenöl Olivenöl-Ratgeber Olivenöl-Länder Partner Magazin Abonnement Shop Mediadaten Newsletter Podcast RSS Informationen +49 211 86203411 www.baeckerei-hinkel.de bewerbung@example.com Montag 06:00 — 18:30 Dienstag 06:00 — 18:30 Mittwoch 06:00 — 18:30 Donnerstag 06:00 — 18:30 Freitag 06:00 — 18:30 Samstag 06:00 — 16:00 Sonntag Geschlossen Um Google Maps anzuzeigen, benötigen wir Ihre Zustimmung zu externen Medien. Bitte passen Sie Ihre Cookie-Einstellungen an. Services R Q Kartenzahlung Kreditkartenzahlung Barzahlung Zurück zur Übersicht Bäckerei Bäckerei Josef Hinkel Hohe Str. 31, 40213 Düsseldorf, DE Route Josef Hinkel betreibt seine Bäckerei in der Düsseldorfer Altstadt in der vierten Generation und seine Tochter Sophie Hinkel führt seit Februar 2022 den Betrieb in 5. Generation. Die Schlange vor der Ladentür der Filiale gleich neben dem berühmten Carlsplatz ist lang, innen herrscht geschäftiges Treiben. Unzählige Mitarbeitende kümmern sich im Akkord um Kundenwünsche und haben dennoch Zeit für einen kleinen Plausch. Tipp für alle, die es etwas ruhiger, aber genauso herzlich mögen: Ein paar Straßen weiter ist die weniger besuchte Filiale Hohe Straße. Zu den Bestsellern zählen die Roggen-Weizen-Mischbrote Schwarzwälder und Elsässer. Letzteres überzeugt mit einer knackigen Kruste, dunkler Röstung, reichlich Saaten und Nüssen im Teig sowie einem röstig-saftigen Geschmack. Besondere Empfehlung: Das Senfkrustenbrot mit einer leichten, nicht dominanten Senfnote. Brioche, Krapfen, Stuten, allerlei Feingebäck, Kleinbackwaren und vegane Teilchen (Rosinenschnecke, Obstplunder) ergänzen das umfangreiche Sortiment von 80 Broten. Und auch außerhalb Düsseldorfs kann man Hinkel-Backwaren genießen – einfach im Online-Shop bestellen. Zurück zur Übersicht TOP DER FEINSCHMECKER Das Leben genießen: Reisen + Essen + Trinken Der Feinschmecker 11/26 Abo bestellen (€ 178,80) Ausgabe bestellen (€ 14,90) Ausgabe digital (€ 12,90) Impressum Datenschutz Verlagsangebote SEPA-Lastschriftmandat (sofern Bankeinzug gewünscht) AGB & Widerrufsrecht Verlagsangebote Veranstaltungs- & Stornobedingungen Verlagsangebote Versandkosten Verlagsangebote Gewinnspiel",
+     "headings": []
+    }
+   ],
+   "asked": {
+    "peopleAlsoAsk": [],
+    "related": [
+     {
+      "search": "bäckerei hinkel schließt",
+      "volume": 210
+     },
+     {
+      "search": "bäckerei hinkel düsseldorf brotsorten",
+      "volume": 50
+     },
+     {
+      "search": "bäckerei hinkel düsseldorf filialen",
+      "volume": 140
+     },
+     {
+      "search": "bäckerei hinkel filialen",
+      "volume": 110
+     },
+     {
+      "search": "bäckerei hinkel düsseldorf altstadt",
+      "volume": 50
+     },
+     {
+      "search": "türkische bäckerei düsseldorf",
+      "volume": 210
+     },
+     {
+      "search": "hinkel düsseldorf online shop",
+      "volume": 110
+     },
+     {
+      "search": "kocak bäckerei düsseldorf",
+      "volume": 20
+     }
+    ]
+   }
+  },
+  "measured": [
+   [
+    "Welche ist die beste Bäckerei in Düsseldorf?",
+    ""
+   ],
+   [
+    "Wo finde ich eine Bio-Bäckerei in Düsseldorf?",
+    ""
+   ]
+  ]
+ },
+ "tattly.com": {
+  "target": "inkbox alternatives",
+  "locale": null,
+  "business": {
+   "name": "Tattly",
+   "domain": "tattly.com",
+   "category": "temporary tattoos",
+   "market": {
+    "from": "site",
+    "category": "temporary tattoos",
+    "buyer": "consumers buying temporary tattoos",
+    "job": "apply temporary tattoos designed by artists",
+    "rivals": [
+     {
+      "name": "Inkbox",
+      "domain": "inkbox.com"
+     },
+     {
+      "name": "EZink",
+      "domain": "ezink.co"
+     },
+     {
+      "name": "EasyTatt",
+      "domain": "easytatt.com"
+     },
+     {
+      "name": "Momentary Ink",
+      "domain": "momentaryink.com"
+     },
+     {
+      "name": "Tattooed Now!",
+      "domain": "tattooednow.com"
+     }
+    ],
+    "notOurMarket": [
+     "permanent tattoo services",
+     "body art supplies",
+     "costume accessories"
+    ]
+   },
+   "rivals": [
+    "inkbox.com",
+    "ezink.co",
+    "easytatt.com",
+    "momentaryink.com",
+    "tattooednow.com"
+   ]
+  },
+  "profile": {
+   "job": "provide temporary tattoo designs created by professional artists",
+   "products": [],
+   "audience": [
+    "tattoo enthusiasts",
+    "gift buyers",
+    "temporary body art fans",
+    "design collectors"
+   ],
+   "promises": [
+    "Fake Tattoos by Real Artists"
+   ],
+   "vocabulary": [
+    "Fake Tattoos",
+    "Real Artists",
+    "temporary tattoos",
+    "tattoo designs",
+    "body art",
+    "artist-designed",
+    "removable tattoos"
+   ]
+  },
+  "facts": [
+   {
+    "passage": "News &ndash; Tattly Skip to content News Search Search Clear No products found.",
+    "url": "https://tattly.com/blogs/news",
+    "readAt": "2026-11-06T00:32:12.523Z"
+   },
+   {
+    "passage": "Your Privacy Choices &ndash; Tattly Skip to content Your Privacy Choices As described in our Privacy Policy, we collect personal information from your interactions with us and our website, including through cookies and similar technologies.",
+    "url": "https://tattly.com/pages/data-sharing-opt-out",
+    "readAt": "2026-11-06T00:32:12.469Z"
+   },
+   {
+    "passage": "- **Rate limits** — Back off on `429` responses and respect `Retry-After` when provided.",
+    "url": "https://tattly.com/agents.md",
+    "readAt": "2026-11-06T00:32:12.444Z"
+   },
+   {
+    "passage": "Contact &ndash; Tattly Skip to content Contact Name Email * Phone Comment Submit Search Search Clear No products found.",
+    "url": "https://tattly.com/pages/contact",
+    "readAt": "2026-11-06T00:32:12.382Z"
+   },
+   {
+    "passage": "Fake Tattoos by Real Artists &ndash; Tattly Skip to content For all other inquiries, please reach out to support@example.com Search Search Clear No products found.",
+    "url": "https://tattly.com/",
+    "readAt": "2026-11-06T00:32:11.113Z"
+   },
+   {
+    "passage": "We may also share this personal information with third parties, including advertising partners.",
+    "url": "https://tattly.com/pages/data-sharing-opt-out",
+    "readAt": "2026-11-06T00:32:12.469Z"
+   },
+   {
+    "passage": "# Agent Instructions — Tattly You can browse products and shop at Tattly's online store, https://tattly.com, on your user's behalf.",
+    "url": "https://tattly.com/agents.md",
+    "readAt": "2026-11-06T00:32:12.444Z"
+   },
+   {
+    "passage": "We do this in order to show you ads on other websites that are more relevant to your interests and for other reasons outlined in our privacy policy.",
+    "url": "https://tattly.com/pages/data-sharing-opt-out",
+    "readAt": "2026-11-06T00:32:12.469Z"
+   },
+   {
+    "passage": "This guide covers the Shop skill and UCP integration, directly or through browser-based WebMCP tools.",
+    "url": "https://tattly.com/agents.md",
+    "readAt": "2026-11-06T00:32:12.444Z"
+   },
+   {
+    "passage": "Sharing of personal information for targeted advertising based on your interaction on different websites may be considered \"sales\", \"sharing\", or \"targeted advertising\" under certain U.S.",
+    "url": "https://tattly.com/pages/data-sharing-opt-out",
+    "readAt": "2026-11-06T00:32:12.469Z"
+   },
+   {
+    "passage": "## Shop skill — recommended Use the [Shop skill](https://shop.com/SKILL.md) to help your user shop with this store.",
+    "url": "https://tattly.com/agents.md",
+    "readAt": "2026-11-06T00:32:12.444Z"
+   },
+   {
+    "passage": "Depending on where you live, you may have the right to opt out of these activities.",
+    "url": "https://tattly.com/pages/data-sharing-opt-out",
+    "readAt": "2026-11-06T00:32:12.469Z"
+   },
+   {
+    "passage": "Connect their Shop account for personalized discovery and accelerated checkout with saved details.",
+    "url": "https://tattly.com/agents.md",
+    "readAt": "2026-11-06T00:32:12.444Z"
+   },
+   {
+    "passage": "If you would like to exercise this opt-out right, please follow the instructions below.",
+    "url": "https://tattly.com/pages/data-sharing-opt-out",
+    "readAt": "2026-11-06T00:32:12.469Z"
+   },
+   {
+    "passage": "- Personalized discovery: search by text or image, find similar products, and use your user's Shop purchase history to find options that match their preferences.",
+    "url": "https://tattly.com/agents.md",
+    "readAt": "2026-11-06T00:32:12.444Z"
+   },
+   {
+    "passage": "- Accelerated cart and checkout: build and update carts and checkouts, then use Shop Pay with prefilled addresses and saved payment methods.",
+    "url": "https://tattly.com/agents.md",
+    "readAt": "2026-11-06T00:32:12.444Z"
+   },
+   {
+    "passage": "- Orders: search your user's order history for purchases from this store, track deliveries, and reorder products.",
+    "url": "https://tattly.com/agents.md",
+    "readAt": "2026-11-06T00:32:12.444Z"
+   },
+   {
+    "passage": "Read the skill before your first call for setup, supported actions, account connection, and purchase-approval rules.",
+    "url": "https://tattly.com/agents.md",
+    "readAt": "2026-11-06T00:32:12.444Z"
+   },
+   {
+    "passage": "## UCP integration This store implements the [Universal Commerce Protocol](https://ucp.dev) for product discovery, carts, and checkout.",
+    "url": "https://tattly.com/agents.md",
+    "readAt": "2026-11-06T00:32:12.444Z"
+   },
+   {
+    "passage": "Integrate directly with its service, or orchestrate shopping through browser-based WebMCP tools.",
+    "url": "https://tattly.com/agents.md",
+    "readAt": "2026-11-06T00:32:12.444Z"
+   },
+   {
+    "passage": "**Discover the store** — `GET https://tattly.com/.well-known/ucp` returns its UCP profile, including capabilities, service endpoints, and payment handlers.",
+    "url": "https://tattly.com/agents.md",
+    "readAt": "2026-11-06T00:32:12.444Z"
+   },
+   {
+    "passage": "**Discover available tools** — Connect to the MCP endpoint advertised in the profile (`https://tattly.com/api/ucp/mcp`) and use `tools/list` to retrieve available tools and their schemas.",
+    "url": "https://tattly.com/agents.md",
+    "readAt": "2026-11-06T00:32:12.444Z"
+   },
+   {
+    "passage": "**Shop** — Use those tools to find products, manage carts, prepare checkout, and complete buyer-authorized purchases.",
+    "url": "https://tattly.com/agents.md",
+    "readAt": "2026-11-06T00:32:12.444Z"
+   },
+   {
+    "passage": "Follow returned statuses, messages, and handoff URLs when buyer action is required.",
+    "url": "https://tattly.com/agents.md",
+    "readAt": "2026-11-06T00:32:12.444Z"
+   },
+   {
+    "passage": "Use a compatible UCP version and follow the returned tool schemas.",
+    "url": "https://tattly.com/agents.md",
+    "readAt": "2026-11-06T00:32:12.444Z"
+   },
+   {
+    "passage": "For integration details, see [Shopify's agent documentation](https://shopify.dev/docs/agents).",
+    "url": "https://tattly.com/agents.md",
+    "readAt": "2026-11-06T00:32:12.444Z"
+   },
+   {
+    "passage": "### Browser integration (WebMCP) When working through a browser, use the WebMCP tools registered on this store's pages.",
+    "url": "https://tattly.com/agents.md",
+    "readAt": "2026-11-06T00:32:12.444Z"
+   },
+   {
+    "passage": "The checkout page exposes UCP tools over WebMCP.",
+    "url": "https://tattly.com/agents.md",
+    "readAt": "2026-11-06T00:32:12.444Z"
+   },
+   {
+    "passage": "These tools act on the checkout in the current browser session.",
+    "url": "https://tattly.com/agents.md",
+    "readAt": "2026-11-06T00:32:12.444Z"
+   },
+   {
+    "passage": "- **Storefront** — Use the provided tools to find products, manage the cart, ask questions about the store and its policies, and proceed to checkout.",
+    "url": "https://tattly.com/agents.md",
+    "readAt": "2026-11-06T00:32:12.444Z"
+   },
+   {
+    "passage": "- **Checkout** — Use the provided UCP tools to review and update the checkout and complete a buyer-authorized purchase.",
+    "url": "https://tattly.com/agents.md",
+    "readAt": "2026-11-06T00:32:12.444Z"
+   },
+   {
+    "passage": "Follow required buyer-review steps: when review is requested, ask the buyer to review and approve the order on the checkout page, and wait for their authorization before submitting it.",
+    "url": "https://tattly.com/agents.md",
+    "readAt": "2026-11-06T00:32:12.444Z"
+   },
+   {
+    "passage": "If checkout tools are unavailable, ask the buyer to continue on the checkout page.",
+    "url": "https://tattly.com/agents.md",
+    "readAt": "2026-11-06T00:32:12.444Z"
+   },
+   {
+    "passage": "Do not fall back to scripted form fills or page controls.",
+    "url": "https://tattly.com/agents.md",
+    "readAt": "2026-11-06T00:32:12.444Z"
+   },
+   {
+    "passage": "For integration details, see [Storefront WebMCP](https://shopify.dev/docs/api/web-mcp) and [Checkout WebMCP](https://shopify.dev/docs/agents/carts-and-checkout/checkout-webmcp).",
+    "url": "https://tattly.com/agents.md",
+    "readAt": "2026-11-06T00:32:12.444Z"
+   },
+   {
+    "passage": "## Interaction guidelines - **Buyer authorization** — Place orders and submit payment only with the buyer's authorization.",
+    "url": "https://tattly.com/agents.md",
+    "readAt": "2026-11-06T00:32:12.444Z"
+   },
+   {
+    "passage": "Follow required review and approval steps.",
+    "url": "https://tattly.com/agents.md",
+    "readAt": "2026-11-06T00:32:12.444Z"
+   },
+   {
+    "passage": "- **Agent traffic** — Agents must identify their requests as agent-initiated.",
+    "url": "https://tattly.com/agents.md",
+    "readAt": "2026-11-06T00:32:12.444Z"
+   },
+   {
+    "passage": "Server-to-server requests and hosted or remote browsers must use [Web Bot Auth](https://shopify.dev/docs/api/storefront#identifying-bots-with-web-bot-auth) and follow the service's authentication requirements.",
+    "url": "https://tattly.com/agents.md",
+    "readAt": "2026-11-06T00:32:12.444Z"
+   },
+   {
+    "passage": "This helps the store recognize agent traffic and apply appropriate access and rate limits.",
+    "url": "https://tattly.com/agents.md",
+    "readAt": "2026-11-06T00:32:12.444Z"
+   }
+  ],
+  "research": {
+   "facts": [
+    {
+     "url": "https://ezink.co/products/ezink-gift-card",
+     "title": "EZINK E-Gift Card &ndash; EZINK™",
+     "readAt": "2026-11-06T00:36:10.562Z",
+     "passage": "Free shipping on orders over $65.",
+     "kind": "rival_features",
+     "product": "ezink.co",
+     "plan": null
+    },
+    {
+     "url": "https://ezink.co/products/ezink-gift-card",
+     "title": "EZINK E-Gift Card &ndash; EZINK™",
+     "readAt": "2026-11-06T00:36:10.562Z",
+     "passage": "30 Day Satisfaction Guarantee",
+     "kind": "rival_features",
+     "product": "ezink.co",
+     "plan": null
+    },
+    {
+     "url": "https://ezink.co/products/ezink-gift-card",
+     "title": "EZINK E-Gift Card &ndash; EZINK™",
+     "readAt": "2026-11-06T00:36:10.562Z",
+     "passage": "An EZINK tattoo is an ultra-realistic temporary tattoo that lasts 1-2 weeks!",
+     "kind": "rival_features",
+     "product": "ezink.co",
+     "plan": null
+    }
+   ],
+   "products": [
+    {
+     "domain": "ezink.co",
+     "pages": [
+      "https://ezink.co/products/ezink-gift-card"
+     ]
+    }
+   ],
+   "topResults": [],
+   "asked": {
+    "peopleAlsoAsk": [],
+    "related": [
+     {
+      "search": "inkbox tattoos",
+      "volume": 8100
+     },
+     {
+      "search": "temporary tattoos like inkbox",
+      "volume": 50
+     },
+     {
+      "search": "inkbox freehand",
+      "volume": 170
+     }
+    ]
+   }
+  },
+  "measured": [
+   [
+    "Where can I find temporary tattoos?",
+    ""
+   ],
+   [
+    "What are temporary tattoos and how do they work?",
+    ""
+   ],
+   [
+    "How can I get custom temporary tattoos made?",
+    ""
+   ],
+   [
+    "What custom temporary tattoos should I choose?",
+    ""
+   ],
+   [
+    "Where can I get fake tattoos that look realistic?",
+    ""
+   ]
+  ]
+ }
+}
