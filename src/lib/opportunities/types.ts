@@ -465,18 +465,16 @@ export interface RejectionCount {
   unmeasured_top10: number;
   /** An equivalent open or queued opportunity already exists. */
   duplicate_open: number;
+  /** A new page on a search naming the business itself, which wants its own site. */
+  own_brand: number;
 }
 
 export function noRejections(): RejectionCount {
-  return { not_yet: 0, unmeasured_top10: 0, duplicate_open: 0 };
+  return { not_yet: 0, unmeasured_top10: 0, duplicate_open: 0, own_brand: 0 };
 }
 
 export function addRejections(a: RejectionCount, b: RejectionCount): RejectionCount {
-  return {
-    not_yet: a.not_yet + b.not_yet,
-    unmeasured_top10: a.unmeasured_top10 + b.unmeasured_top10,
-    duplicate_open: a.duplicate_open + b.duplicate_open,
-  };
+  return Object.fromEntries((Object.keys(a) as (keyof RejectionCount)[]).map((key) => [key, a[key] + b[key]])) as unknown as RejectionCount;
 }
 
 /** Which of the one list's rules placed a row, so a plan can say why. */
