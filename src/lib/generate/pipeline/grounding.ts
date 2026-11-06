@@ -43,8 +43,7 @@
 import nlp from "compromise";
 import { BRIEF_MAX_FACTS } from "@/lib/config/constants";
 import { readLatestMeasuredText, readMeasuredText, type MeasuredText } from "@/lib/measure/text";
-import { isNeverRead } from "@/lib/site-profile/knowledge/priority";
-import { derivePurpose } from "@/lib/site-profile/purpose";
+import { isReadForFacts } from "@/lib/site-profile/knowledge/priority";
 import { readReportPage } from "./report-facts";
 import type { GroundedFact } from "../rules/types";
 
@@ -71,13 +70,13 @@ const SENTENCE_END_RE = /[.!?]["'”’)\]]?$/;
 const REPEATED_ON_PAGES = 3;
 const REPEATED_ON_SHARE = 0.5;
 
-/** A legal page — privacy, terms, imprint, cookies — is tagged by its
- *  address, with the crawl's own table (`site-profile/purpose.ts`), and is
- *  never read for facts (SPEC §5, 2026-10-03, issue 1163): a removal clause
- *  or a processor list is not what a business says about itself. */
-function isLegalPage(url: string): boolean {
-  return derivePurpose({ url, title: "", h1: "" }) === "legal";
-}
+/** A skip link or a doubled search label run into a sentence, and all before
+ *  it: what follows is still the page's own words, quotable as they stand. */
+const CHROME_LEAD_RE =
+  /^.*\b(?:skip to (?:main )?(?:content|navigation)|zum (?:haupt)?inhalt (?:springen|wechseln)|aller au contenu|saltar al contenido|(search|suche|suchen|rechercher|buscar) \1(?: clear)?)\b\s*/i;
+/** An empty catalogue or a cookie banner is chrome whole; a bakery's own cookies are not. */
+const CHROME_RE =
+  /\b(?:no products found|keine produkte gefunden|aucun produit trouv|no se encontraron productos)|\b(?:we use|this (?:web)?site uses) cookies\b.*\b(?:to|and similar)\b.*\b(?:experience|analytics|consent|accept|privacy|browsing)/i;
 
 /** Prose, not a label: it ends in punctuation and it has a verb (SPEC §5,
  *  2026-09-29 — "keeps a sentence only where it is prose"). Menus, tiles
@@ -92,10 +91,10 @@ function candidateSentences(text: string): string[] {
   return text
     .split("\n")
     .flatMap((block) => block.split(SENTENCE_SPLIT_RE))
-    .map((sentence) => sentence.replace(/\s+/g, " ").trim())
+    .map((sentence) => sentence.replace(/\s+/g, " ").trim().replace(CHROME_LEAD_RE, ""))
     .filter(
       (sentence) =>
-        sentence.length >= PASSAGE_MIN_CHARS && sentence.length <= PASSAGE_MAX_CHARS && readsAsProse(sentence)
+        sentence.length >= PASSAGE_MIN_CHARS && sentence.length <= PASSAGE_MAX_CHARS && readsAsProse(sentence) && !CHROME_RE.test(sentence)
     );
 }
 
@@ -120,8 +119,8 @@ export function examplePhrases(line: string): string[] {
 }
 
 /**
- * Each page's passages, minus what is not the business speaking: a legal
- * page and a gallery page yield none (issue 1249:
+ * Each page's passages, minus what is not the business speaking: a page
+ * not read for facts, such as a legal or gallery page, yields none (issue 1249:
  * six of the eight reachkit.app pages a round read were its scan gallery,
  * which is about other businesses), a passage the site repeats on three or more pages and
  * on more than half of them is chrome, and a phrase any page of the site
@@ -144,9 +143,7 @@ export function sitePassages<P extends { url: string; text: string; examples?: r
   const demo = new Set(pages.flatMap((page) => (page.examples ?? []).flatMap(examplePhrases)));
   return read.map(({ page, passages }) => ({
     page,
-    passages: isLegalPage(page.url) || isNeverRead(page.url)
-      ? []
-      : passages.filter((passage) => !repeated(passage) && !demo.has(passage)),
+    passages: isReadForFacts(page.url) ? passages.filter((passage) => !repeated(passage) && !demo.has(passage)) : [],
   }));
 }
 
