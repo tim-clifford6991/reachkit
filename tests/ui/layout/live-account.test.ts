@@ -446,12 +446,13 @@ describe(`WordPress connect state — ${wordpressRoutes.length} route(s) × ${WO
   }
 });
 
-it(
-  "/app/calendar @ 390px: an empty date's panel asks to connect WordPress, inside the viewport, with no offender on checks 1-4",
-  async () => {
+it.each(["light", "dark"] as const)(
+  "/app/calendar @ 390px in %s: an empty date's panel asks to connect WordPress, inside the viewport, with no offender on checks 1-4",
+  async (theme) => {
     const { drawn, offenders } = await withPage(
       390,
       async (page) => {
+        await page.emulateMedia({ colorScheme: theme });
         await page.goto(`${getBaseURL()}/app/calendar`, { timeout: LIVE_NAVIGATION_MS });
         await page.locator('li[data-empty]:has([data-testid="cell-empty-line"]) button').first().click();
         const line = page.locator('[data-testid="day-panel"] [data-testid="day-empty-line"]');

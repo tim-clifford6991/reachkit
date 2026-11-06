@@ -97,14 +97,14 @@ export async function destinationWaitingToConnect(siteId: string): Promise<"dns"
   return wordpress ? "wordpress" : null;
 }
 
-/** What the site publishes to and whether it works, from the stored row, never re-checked: choosing whether to draw a
- *  reconnect control may not spend a vendor call. `null` with no live destination. */
+/** What the site publishes to, whether it works and whether it was ever connected, from the stored row, never
+ *  re-checked: choosing a connect or reconnect control may not spend a vendor call. `null` with no live destination. */
 export async function destinationStanding(
   siteId: string
-): Promise<{ kind: DestinationKind; healthy: boolean } | null> {
+): Promise<{ kind: DestinationKind; healthy: boolean; neverConnected: boolean } | null> {
   const [row] = await liveDestinations(siteId);
   if (row === undefined) return null;
-  return { kind: row.kind, healthy: row.health === "ok" };
+  return { kind: row.kind, healthy: row.health === "ok", neverConnected: row.health_reason === "never_connected" };
 }
 
 /** Every live destination as a surface sees it, re-checked on the read path for §9's "never more than 24 hours old"; at
