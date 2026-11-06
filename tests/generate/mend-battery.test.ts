@@ -27,6 +27,7 @@ const NOW = new Date("2026-10-01T09:00:00.000Z");
 const D = "2026-10-02";
 const MEND_ID = "66666666-6666-4666-8666-666666666666";
 const SPARE_ID = "55555555-5555-4555-8555-555555555555";
+const BARE_ID = "77777777-7777-4777-8777-777777777777";
 const row = (id: string): Row => db.rows("drafts").find((each) => each.id === id)!;
 const others = (ids: readonly string[]): Row[] => db.rows("drafts").filter((each) => !ids.includes(each.id as string));
 const statusOf = (id: string): unknown => db.rows("opportunities").find((each) => each.id === id)?.status;
@@ -52,7 +53,7 @@ function refreshAt(live: LiveSite, url: string, id = MEND_ID) {
 
 /** A page the pipeline wrote and the rules passed, live at its own address with a body H1 code removes. `cut` takes a
  *  part of the text out after it passed, as a template that asks more of it today would read it. */
-async function livePage(live: LiveSite, cut?: (body: string) => string): Promise<{ id: string; url: string }> {
+async function livePage(live: LiveSite, cut?: (body: string) => string) {
   site.current = live;
   seedWorld(db, live);
   setGenerateStore(null);
@@ -67,8 +68,7 @@ async function livePage(live: LiveSite, cut?: (body: string) => string): Promise
   const body = (cut ?? ((text: string) => text))(row(id).body_md as string);
   Object.assign(row(id), { state: "published", body_md: `# ${row(id).title as string}\n\n${body}` });
   db.seed("publications", [...db.rows("publications"), { id: "p-written", draft_id: id, site_id: live.siteId, destination: live.destination, delivery_state: "delivered", attempt_no: 1, live_url: url, published_at: WENT_LIVE, unpublished_at: null, mode: "autopilot", made_live_by_us: true }]);
-  refreshAt(live, url);
-  return { id, url };
+  return { id, url, refresh: refreshAt(live, url) };
 }
 
 const day = (live: LiveSite) => generateDayPage({ siteId: live.siteId, publishDate: D, now: NOW, opportunityId: MEND_ID });
@@ -131,6 +131,18 @@ describe("a mended live page enters review only after today's whole battery, at 
     const before = db.rows("drafts").length;
     expect(await day(SAAS_HOSTED)).toEqual({ ok: false, because: "step_failed", draftId: null, step: "mend" });
     expect(db.rows("drafts").length).toBe(before);
+    expect([llm.mock.calls.length, network.mock.calls.length]).toEqual([0, 0]);
+  });
+
+  it("a mend with nothing to check costs no day: its topic rests and the day writes the week's next spare", async () => {
+    const { id, refresh } = await livePage(SAAS_HOSTED);
+    // The page written before packs were stored is the day's refresh; the written page's refresh is the spare.
+    row(LIVE_DRAFT).body_md = `# A title\n\n${row(LIVE_DRAFT).body_md as string}`;
+    refreshAt(SAAS_HOSTED, SAAS_HOSTED.liveUrl, BARE_ID);
+    pick.mockResolvedValueOnce(refresh);
+    expect((await generateDayPage({ siteId: SAAS_HOSTED.siteId, publishDate: D, now: NOW, opportunityId: BARE_ID })).ok).toBe(true);
+    expect(others([id, LIVE_DRAFT]).map((each) => [each.opportunity_id, each.scheduled_for, each.hard_rules_passed])).toEqual([[MEND_ID, D, true]]);
+    expect(db.rows("opportunities").find((each) => each.id === BARE_ID)?.rest_until).not.toBeNull();
     expect([llm.mock.calls.length, network.mock.calls.length]).toEqual([0, 0]);
   });
 });

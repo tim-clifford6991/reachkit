@@ -251,9 +251,10 @@ function stoppedRow(outcome: DayPageOutcome): string | null {
 }
 
 /** A run stopped before its write call because the pack was short of what
- *  its template asks (D41): no page was written. */
+ *  its template asks (D41), or a mend with nothing it may check: no page was
+ *  written. */
 function packShort(outcome: DayPageOutcome): boolean {
-  return !outcome.ok && outcome.because === "step_failed" && outcome.step.startsWith("pack");
+  return !outcome.ok && outcome.because === "step_failed" && (outcome.step.startsWith("pack") || (outcome.step === "mend" && outcome.draftId === null));
 }
 
 /** The day's cost context as one page sees it: the same ceiling, and a
