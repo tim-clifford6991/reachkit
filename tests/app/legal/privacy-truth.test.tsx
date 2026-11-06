@@ -12,7 +12,6 @@ import TermsPage from "@/app/(public)/terms/page.tsx";
 import ImprintPage from "@/app/(public)/imprint/page.tsx";
 import { ANALYTICS_EVENTS } from "@/lib/analytics";
 import { DANGER_TICKET_TTL_MINUTES, ERASURE_DAYS } from "@/lib/config/constants";
-import { LEGAL_PROCESSORS } from "@/app/(public)/_legal/documents";
 
 const html = renderToStaticMarkup(<PrivacyPage />);
 const text = (s: string): string => s.replace(/<[^>]+>/g, "").replace(/\s+/g, " ");
@@ -26,6 +25,9 @@ function sectionHtml(id: string): string {
 }
 
 const section = (id: string): string => text(sectionHtml(id));
+
+/** Every vendor the code sends personal or page data to; kept here because only the notice may name them in src/. */
+const LEGAL_PROCESSORS = ["Supabase", "Vercel", "Stripe", "Resend", "DataForSEO", "Anthropic", "Inngest", "PostHog"];
 
 const NUMBER_WORDS = ["zero", "one", "two", "three", "four", "five", "six"];
 

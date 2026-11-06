@@ -12,18 +12,6 @@ import { Ban, Cookie, Database, Download, type LucideIcon } from "lucide-react";
 import { ERASURE_DAYS } from "@/lib/config/constants";
 import type { CopyKey } from "@/lib/presentation/copy";
 
-/** Every vendor the code sends personal or page data to; the privacy notice's providers table names exactly these. */
-export const LEGAL_PROCESSORS = Object.freeze([
-  "Supabase",
-  "Vercel",
-  "Stripe",
-  "Resend",
-  "DataForSEO",
-  "Anthropic",
-  "Inngest",
-  "PostHog",
-] as const);
-
 /** The three sentences a legal page is made of: its title, the date the
  *  owner last revised it, and its body in Markdown. */
 export interface LegalDocument {
