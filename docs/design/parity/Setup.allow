@@ -5,4 +5,3 @@ On your web address, run by us help.tallyroom.example One setting, once. Recomme
 Name help	sample data: the founder's own label
 Value hosted.reachkit.app	sample data: the deployment's HOSTED_EDGE_CNAME_TARGET
 Each page goes live at 4:00 PM on its day, by itself.	Q11 (#1595): no go-live hour while the address is not connected
-On my WordPress site You create an app password for us.	WORDPRESS_CONNECT off at launch: DNS is the only connect path (owner 2026-11-06)
