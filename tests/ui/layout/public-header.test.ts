@@ -66,11 +66,12 @@ describe("#1125 — the public header, signed in and signed out", () => {
 const LINKS = [
   ["/how-it-works", COPY["chrome.nav.works"]],
   ["/pricing", COPY["chrome.nav.pricing"]],
+  ["/about", COPY["chrome.nav.about"]],
   ["/scans", COPY["chrome.nav.scans"]],
 ];
 
-describe("owner 2026-10-20 (Q1) — three header links on every public route", () => {
-  it.each(PUBLIC_PATHS)("%s has How it works · Pricing · Free scans in the bar and in the menu at the narrowest width", async (path) => {
+describe("four header links on every public route", () => {
+  it.each(PUBLIC_PATHS)("%s has How it works · Pricing · About · Scan library in the bar and in the menu at the narrowest width", async (path) => {
     const baseURL = getBaseURL();
     if (!baseURL) throw new Error("tests/ui/layout/public-header.test.ts: no app server is running.");
     const found = await withPage(WIDTH, async (page) => {
