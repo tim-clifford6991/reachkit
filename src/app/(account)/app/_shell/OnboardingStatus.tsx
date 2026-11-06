@@ -30,8 +30,14 @@ export function OnboardingStatus(p: {
   if (p.state.kind === "ended") return <PassEndLine end={p.state.end} timeZone={p.timeZone} />;
 
   if (p.state.kind === "notice") {
+    // A notice that asks for a choice stands at every width, under the top bar below `lg` as the running line does.
+    const asks = p.choice !== undefined && p.choice !== null;
     return (
-      <div role="status" className="alert alert-warning hidden flex-col items-start text-sm lg:grid" data-testid="shell-onboarding-notice">
+      <div
+        role="status"
+        className={`alert alert-warning flex-col items-start text-sm lg:grid ${asks ? "mt-4 flex lg:mt-0" : "hidden"}`}
+        data-testid="shell-onboarding-notice"
+      >
         <span>{copy(p.state.key)}</span>
         {p.choice === undefined || p.choice === null ? null : <MarketChoice choice={p.choice} />}
       </div>
