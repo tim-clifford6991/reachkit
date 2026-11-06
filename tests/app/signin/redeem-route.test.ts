@@ -246,9 +246,11 @@ describe("an email-change link completes through the same two steps", () => {
   });
 });
 
-describe("R15 — a reminder's link may ask for /setup/connect, and nothing else", () => {
+describe("a link may ask for /setup/connect or Settings › Pages, exactly, and nothing else", () => {
   it.each([
     ["/setup/connect", "/setup/connect"],
+    ["/app/settings/pages", "/app/settings/pages"],
+    ["/app/settings/pages/../account", "/setup"],
     ["https://evil.example/", "/setup"],
     ["/app/settings", "/setup"],
   ])("next=%s lands on %s", async (next, landing) => {

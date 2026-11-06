@@ -74,12 +74,14 @@ export const DEAD_LINK_MARKER = "dead";
 /** The query key that marker rides on. */
 export const LINK_QUERY_KEY = "link";
 
-/** The one landing a link may ask for past the default, by name, so the query can never send its holder off-site. */
+/** The landings a link may ask for past the default, by exact name, so the query can never send its holder off-site. */
 export const LANDING_QUERY_KEY = "next";
 export const CONNECT_LANDING_PATH = "/setup/connect";
+/** Settings › Pages, where a broken destination is reconnected. */
+export const PAGES_LANDING_PATH = "/app/settings/pages";
 
 export function linkLandingOf(value: string | null | undefined): string | null {
-  return value === CONNECT_LANDING_PATH ? value : null;
+  return value === CONNECT_LANDING_PATH || value === PAGES_LANDING_PATH ? value : null;
 }
 
 /** Where a link points, as a path and query. The origin is
