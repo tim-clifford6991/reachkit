@@ -92,6 +92,7 @@ function seed(a: {
   publishingEnabled?: boolean;
   destinationHealth?: string;
   hostnameState?: string | null;
+  destination?: Row;
 }): void {
   db.reset();
   db.seed("sites", [
@@ -113,6 +114,7 @@ function seed(a: {
       health: a.destinationHealth ?? "ok",
       config: null,
       hostname_state: a.hostnameState ?? "live",
+      ...a.destination,
     },
   ]);
   db.seed("drafts", a.drafts ?? []);
@@ -371,6 +373,20 @@ describe("the empty-date arms, from rows", () => {
     });
   });
 
+  it("customer_change_holds_pages: a hosted host the domain list never answered for waits on DNS, not disconnected", async () => {
+    seed({ destinationHealth: "expired", destination: { hostname: "blog.acme.example", hostname_state: null } });
+    expect((await readCalendarFacts({ site: SITE, month: MONTH, now: NOW })).customerChangeHoldsPages).toBe("destination_pending_dns");
+  });
+
+  it.each([
+    ["never given its login asks to connect", "never_connected", "destination_pending_connect"],
+    ["that worked and broke is disconnected", "credentials_expired", "destination_disconnected"],
+  ])("customer_change_holds_pages: a WordPress %s", async (_, healthReason, setting) => {
+    seed({ destination: { kind: "wordpress", health: "expired", health_reason: healthReason, hostname_state: null } });
+    const facts = await readCalendarFacts({ site: SITE, month: MONTH, now: NOW });
+    expect(cellFor(assembleMonth(facts, MONTH), "2026-09-20")?.empty).toEqual({ cause: "customer_change_holds_pages", setting });
+  });
+
   it("supply_exhausted stands only on a proven zero, with nothing of §9's true of the date", async () => {
     seed({});
     const facts = await readCalendarFacts({ site: SITE, month: MONTH, now: NOW });
@@ -439,7 +455,7 @@ describe("issue 880 — why the page needs them, and the act that matches", () =
   it("and the site's own destination is read as what it is — hosted, and working", async () => {
     restedOnRules();
     const facts = await readPublishingFacts({ siteId: SITE_ID, month: MONTH, today: TODAY });
-    expect(facts.destination).toEqual({ kind: "hosted", healthy: true });
+    expect(facts.destination).toEqual({ kind: "hosted", healthy: true, neverConnected: false });
   });
 
   it("so the day offers no reconnect at all — it offers the page, the restart and the way out", async () => {
@@ -484,6 +500,28 @@ describe("issue 880 — why the page needs them, and the act that matches", () =
     // founder is pointed at where their pages publish, not at WordPress.
     expect(keys).toContain("calendar.action.check-destination");
     expect(keys).not.toContain("calendar.action.reconnect");
+  });
+
+  it.each([
+    ["never given its login is connected for the first time", "never_connected", { key: "overview.connect.wordpress.action", href: "/app/settings/pages" }],
+    ["that worked and broke is reconnected", "credentials_expired", { key: "calendar.action.reconnect", href: "/app/settings" }],
+  ])("a page waiting on delivery to a WordPress %s", async (_, healthReason, control) => {
+    seed({
+      drafts: [
+        draft({
+          id: "d1",
+          state: "needs_attention",
+          scheduled_for: "2026-09-16",
+          transitions: [{ from: "failed", to: "needs_attention", at: "2026-09-15T22:04:00.000Z", reason: "reason_needs_customer" }],
+        }),
+      ],
+      destination: { kind: "wordpress", health: "expired", health_reason: healthReason, hostname_state: null },
+    });
+    const model = assembleMonth(await readCalendarFacts({ site: SITE, month: MONTH, now: NOW }), MONTH);
+    const cell = cellFor(model, "2026-09-16");
+    if (cell === undefined) throw new Error("no cell");
+    const links = actionsFor(cell, model.destination).flatMap((a) => (a.kind === "link" ? [{ key: a.key, href: a.href }] : []));
+    expect(links).toEqual([{ key: "calendar.action.read-page", href: "/app/draft/d1" }, control]);
   });
 });
 

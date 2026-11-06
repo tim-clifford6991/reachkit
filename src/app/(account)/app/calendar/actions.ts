@@ -145,6 +145,8 @@ export type DayAction =
 export interface DestinationStanding {
   kind: DestinationKind;
   healthy: boolean;
+  /** Set up without its login: the act is a first connect, not a reconnect. */
+  neverConnected?: boolean;
 }
 
 /**
@@ -244,13 +246,18 @@ export function actionsFor(
   // rules or a step stopped points at neither — the restart below is its
   // act, and the panel states the cause.
   if (waitsOnDestination(page.needsYou)) {
-    actions.push({
-      key: offersReconnect({ cause: page.needsYou, destination })
-        ? "calendar.action.reconnect"
-        : "calendar.action.check-destination",
-      kind: "link",
-      href: "/app/settings",
-    });
+    const firstConnect = destination?.kind === "wordpress" && destination.neverConnected === true;
+    actions.push(
+      firstConnect
+        ? { key: "overview.connect.wordpress.action", kind: "link", href: "/app/settings/pages" }
+        : {
+            key: offersReconnect({ cause: page.needsYou, destination })
+              ? "calendar.action.reconnect"
+              : "calendar.action.check-destination",
+            kind: "link",
+            href: "/app/settings",
+          }
+    );
   }
 
   // The customer's own restart — §9's `needs_attention → generating`

@@ -370,6 +370,15 @@ describe("until the hosted address is live, the shell names no go-live time", ()
     expect(facts.noPublishCauses.address_waiting).toBe(false);
   });
 
+  it("a WordPress never given its login: no time, no next publish, the same line as a host waiting on DNS", async () => {
+    rows.set("drafts", [inReview]);
+    rows.set("destinations", [{ id: "dest-1", site_id: "site-1", kind: "wordpress", health: "expired", health_reason: "never_connected" }]);
+    const facts = await readShellFacts(SITE);
+    expect(facts.review).toEqual({ draftId: "d1", title: inReview.title, goesLiveAt: null });
+    expect(facts.next).toBeNull();
+    expect(publishingStatement(assembleShell(facts)).line).toBe("Waiting for your website");
+  });
+
   it("a site with no hosted address is not waiting for one", async () => {
     rows.set("drafts", [inReview]);
     const facts = await readShellFacts(SITE);
