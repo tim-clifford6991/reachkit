@@ -33,7 +33,7 @@ export function CategoryChoice(p: {
                 type="submit"
                 name={REMEASURE_CATEGORY_FIELD}
                 value={suggestion}
-                className="btn btn-soft rounded-full btn-sm h-auto min-h-8 max-w-full wrap-anywhere"
+                className="btn btn-soft rounded-full btn-sm h-auto min-h-11 max-w-full wrap-anywhere lg:min-h-8"
                 disabled={pending}
                 data-testid="category-suggestion"
               >
@@ -47,9 +47,9 @@ export function CategoryChoice(p: {
       <form action={formAction} className="flex min-w-0 flex-col gap-2">
         <label className="flex min-w-0 flex-col gap-1">
           <span className="text-sm">{p.words.own}</span>
-          <input className="input input-sm w-full" name={REMEASURE_CATEGORY_FIELD} required disabled={pending} />
+          <input className="input input-sm h-11 w-full lg:h-(--size)" name={REMEASURE_CATEGORY_FIELD} required disabled={pending} />
         </label>
-        <button type="submit" className="btn btn-soft btn-primary btn-sm self-start" disabled={pending}>
+        <button type="submit" className="btn btn-soft btn-primary btn-sm min-h-11 self-start lg:min-h-auto" disabled={pending}>
           {pending ? (
             <span className="loading loading-spinner loading-xs" aria-hidden />
           ) : (

@@ -34,11 +34,12 @@ export function OnboardingStatus(p: {
     const asks = p.choice !== undefined && p.choice !== null;
     return (
       <div
-        role="status"
+        role={asks ? undefined : "status"}
         className={`alert alert-warning flex-col items-start text-sm lg:grid ${asks ? "mt-4 flex lg:mt-0" : "hidden"}`}
         data-testid="shell-onboarding-notice"
       >
-        <span>{copy(p.state.key)}</span>
+        {/* The live region is the sentence alone, so the form inside the notice is never announced as a status. */}
+        <span role={asks ? "status" : undefined}>{copy(p.state.key)}</span>
         {p.choice === undefined || p.choice === null ? null : <MarketChoice choice={p.choice} />}
       </div>
     );
