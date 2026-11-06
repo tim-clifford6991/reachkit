@@ -343,6 +343,19 @@ describe("R15 — a stamped setup is reminded until the first page is live", () 
       registerSignInLinkIssuer(null);
     }
   });
+
+  it("a WordPress site's link lands on Settings › Pages, where WordPress is connected, never the DNS step", async () => {
+    stampedNotLive();
+    db.tables.destinations = [{ id: "dest-1", site_id: SITE, kind: "wordpress", config: null, health: "expired", health_reason: "never_connected", deleted_at: null }];
+    const landsOn: string[] = [];
+    setSignInLinkIssuer(async (a) => (landsOn.push(a.landsOn), "https://reachkit.example/auth/confirm?t=1"));
+
+    expect(await sendSetupReminder(SITE, at(24))).toEqual({ sent: true, index: 0 });
+    expect(landsOn).toEqual(["/app/settings/pages"]);
+    expect(mailAt(0).blocks.filter((b) => b.block === "paragraph")).toEqual([
+      { block: "paragraph", text: "mail.setupReminder.connectAny" },
+    ]);
+  });
 });
 
 describe("the register row this mail is sent under", () => {

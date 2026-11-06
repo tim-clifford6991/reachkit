@@ -3,7 +3,7 @@
 // Checked at send time, never scheduled: the tick asks who is due now and each send re-reads the row, so going live at hour 71 stops hour 72.
 // No working link, no send (REQ-025 c6): the link is issued first and a failure leaves the founder due at the next offset.
 // `sites.setup_reminders_sent` is incremented after the send, and its check constraint refuses a fourth even on a double delivery.
-import { CONNECT_LANDING_PATH } from "@/lib/account/identity/addresses";
+import { CONNECT_LANDING_PATH, PAGES_LANDING_PATH } from "@/lib/account/identity/addresses";
 import { SETUP_REMINDER_OFFSETS_H } from "@/lib/config/constants";
 import { dbAdmin } from "@/lib/db";
 import { sendEmail } from "../send";
@@ -128,6 +128,8 @@ interface Standing {
   live: boolean;
   written: boolean;
   hosted: boolean;
+  /** WordPress is connected in Settings › Pages, never on the DNS step. */
+  wordpress: boolean;
 }
 
 async function standingOf(row: ReminderRow): Promise<Standing> {
@@ -144,6 +146,7 @@ async function standingOf(row: ReminderRow): Promise<Standing> {
     live: (published.data ?? []).length > 0 || held.some((d) => d.health === "ok"),
     written: (written.data ?? []).length > 0,
     hosted: held.some((d) => d.kind === "hosted"),
+    wordpress: held.some((d) => d.kind === "wordpress"),
   };
 }
 
@@ -204,7 +207,7 @@ export async function sendSetupReminder(
   // REQ-025 c6: no reminder before there is an account; no account means no link, no send, and the founder due again.
   let href: string | null;
   try {
-    href = await issueSignInLink({ userId: row.user_id, email: to, landsOn: standing === null ? SETUP_LANDING_PATH : CONNECT_LANDING_PATH });
+    href = await issueSignInLink({ userId: row.user_id, email: to, landsOn: standing === null ? SETUP_LANDING_PATH : standing.wordpress ? PAGES_LANDING_PATH : CONNECT_LANDING_PATH });
   } catch {
     return { sent: false, reason: "no-link" };
   }
