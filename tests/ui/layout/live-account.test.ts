@@ -50,6 +50,7 @@ import {
   WEEK_ZERO_ACCOUNT,
 } from "./seed";
 import { WORDPRESS_UNCONNECTED_ACCOUNT, WORDPRESS_UNCONNECTED_DRAFT_ID } from "./seed-wordpress";
+import { THIN_MARKET_ACCOUNT } from "./seed-thin-market";
 import { copy } from "@/lib/presentation/copy";
 import { FIXTURE_SETTINGS_FACTS } from "@/app/(account)/app/settings/fixture";
 import { widths } from "./widths";
@@ -322,7 +323,7 @@ describe(`week-0 sweep — S13, ${weekZeroRoutes.length} route(s) × ${sweepWidt
     // duplicate-key error from inside `seedSite` at global setup — a
     // failure that names Postgres rather than the mistake. Three sets of
     // four say which field collided, before any suite runs.
-    const accounts = [RESERVED_ACCOUNT, LIVE_ACCOUNT, SETUP_ACCOUNT, WEEK_ZERO_ACCOUNT, UNCONNECTED_ACCOUNT, WORDPRESS_UNCONNECTED_ACCOUNT];
+    const accounts = [RESERVED_ACCOUNT, LIVE_ACCOUNT, SETUP_ACCOUNT, WEEK_ZERO_ACCOUNT, UNCONNECTED_ACCOUNT, WORDPRESS_UNCONNECTED_ACCOUNT, THIN_MARKET_ACCOUNT];
     expect(new Set(accounts.map((a) => a.userId)).size).toBe(accounts.length);
     expect(new Set(accounts.map((a) => a.siteId)).size).toBe(accounts.length);
     expect(new Set(accounts.map((a) => a.domain)).size).toBe(accounts.length);

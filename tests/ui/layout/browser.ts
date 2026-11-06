@@ -47,6 +47,7 @@ import {
   waitForSchemaCache,
 } from "./seed";
 import { seedWordPressUnconnectedAccount, WORDPRESS_UNCONNECTED_ACCOUNT } from "./seed-wordpress";
+import { seedThinMarketAccount, THIN_MARKET_ACCOUNT } from "./seed-thin-market";
 import { SWEEP_NOW } from "./seed-rows";
 
 const ROOT = path.resolve(__dirname, "../../..");
@@ -96,6 +97,8 @@ interface BrowserState {
   unconnectedAccountCookie: string;
   /** The same, for a customer whose WordPress was never connected. */
   wordpressUnconnectedAccountCookie: string;
+  /** The same, for a first-week customer whose market was too small. */
+  thinMarketAccountCookie: string;
 }
 
 /** ADR-093 decision 6, amended 2026-09-03: "the viewport carries a height …
@@ -220,6 +223,7 @@ export default async function setup(): Promise<() => Promise<void>> {
   seedWeekZeroAccount();
   seedUnconnectedAccount();
   seedWordPressUnconnectedAccount();
+  seedThinMarketAccount();
   seedFreeScans();
   seedLedger();
   seedLongReadAs();
@@ -234,6 +238,7 @@ export default async function setup(): Promise<() => Promise<void>> {
   const weekZeroAccountCookie = seededSessionCookie(authStub, WEEK_ZERO_ACCOUNT);
   const unconnectedAccountCookie = seededSessionCookie(authStub, UNCONNECTED_ACCOUNT);
   const wordpressUnconnectedAccountCookie = seededSessionCookie(authStub, WORDPRESS_UNCONNECTED_ACCOUNT);
+  const thinMarketAccountCookie = seededSessionCookie(authStub, THIN_MARKET_ACCOUNT);
 
   const routes = enumerateRoutes(path.join(ROOT, "src/app"), { accountCookie });
   let baseURL: string | null = null;
@@ -255,6 +260,7 @@ export default async function setup(): Promise<() => Promise<void>> {
     weekZeroAccountCookie,
     unconnectedAccountCookie,
     wordpressUnconnectedAccountCookie,
+    thinMarketAccountCookie,
   };
   const stateDir = mkdtempSync(path.join(os.tmpdir(), STATE_DIR_PREFIX));
   const stateFile = path.join(stateDir, "browser-state.json");
@@ -340,6 +346,11 @@ export function getUnconnectedAccountCookie(): string {
 /** The seeded session for the customer whose WordPress was never connected. */
 export function getWordPressUnconnectedAccountCookie(): string {
   return readState().wordpressUnconnectedAccountCookie;
+}
+
+/** The seeded session for the first-week customer whose market was too small. */
+export function getThinMarketAccountCookie(): string {
+  return readState().thinMarketAccountCookie;
 }
 
 /**
