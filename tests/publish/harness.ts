@@ -298,6 +298,18 @@ export function fakeDb(): FakeDb {
         inserted = [row];
         return self;
       },
+      /** PostgREST's upsert on its conflict columns (`id` by default): a row equal on all of them is merged, else inserted. */
+      upsert(values: Row, opts?: { onConflict?: string }) {
+        const keys = (opts?.onConflict ?? "id").split(",").map((k) => k.trim());
+        const hit = keys.every((k) => k in values)
+          ? db.rows(table).find((row) => keys.every((k) => row[k] === values[k]))
+          : undefined;
+        if (hit === undefined) return self.insert(values);
+        query.verb = "insert";
+        query.values = values;
+        inserted = [Object.assign(hit, values)];
+        return self;
+      },
       update(values: Row) {
         query.verb = "update";
         query.values = values;
