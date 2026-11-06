@@ -325,22 +325,13 @@ describe('REQ-057 c9 — the destination clause', () => {
     seedDestination("wordpress", "expired", { health_reason: "never_connected", config: null });
     db.seed("sites", [{ id: "s1", domain: "harborplumbing.example" }]);
     const t = await tellingFor({ draft: view(), destination: "wordpress" });
-    expect(t.kind === "interval" && t.destination).toEqual({
-      says: "cannot_go_live_there",
-      site: "harborplumbing.example",
-      copy: "mail.draftReady.dest.wordpressNotConnected",
-    });
+    expect(t.kind === "interval" && t.destination).toEqual({ says: "cannot_go_live_there", site: "harborplumbing.example", copy: "mail.draftReady.dest.wordpressNotConnected" });
   });
 
   it("a WordPress that worked and broke still cannot publish to its own address", async () => {
     seedDestination("wordpress", "error", { health_reason: "unreachable" });
-    db.seed("sites", [{ id: "s1", domain: "harborplumbing.example" }]);
     const t = await tellingFor({ draft: view(), destination: "wordpress" });
-    expect(t.kind === "interval" && t.destination).toEqual({
-      says: "cannot_go_live_there",
-      site: "https://example.com",
-      copy: "mail.draftReady.dest.cannotPublish",
-    });
+    expect(t.kind === "interval" && t.destination).toEqual({ says: "cannot_go_live_there", site: "https://example.com", copy: "mail.draftReady.dest.cannotPublish" });
   });
 
   it("no clause is composed with an empty address, over every destination arm", async () => {
