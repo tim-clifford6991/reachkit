@@ -32,6 +32,7 @@ vi.mock("@/lib/publish/daily", () => ({
 vi.mock("@/lib/generate", () => ({
   decideDayPage: async () => ({ ok: true, opportunityId: "opportunity-1" }),
   generateDayPage: (a: { siteId: string; publishDate: string }) => dayPage(a),
+  refreshForDay: async () => null,
 }));
 vi.mock("@/lib/mail/setup/reminders", () => ({
   sitesDueSetupReminder: () => dueReminders(),

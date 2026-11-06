@@ -16,7 +16,8 @@ vi.mock("@/lib/measure/text", () => ({ readMeasuredText: async () => (site.curre
 vi.mock("@/lib/opportunities", async (original) => ({ ...(await original<object>()), pageForDay: (...args: unknown[]) => pick(...args) }));
 vi.mock("next/cache", () => ({ revalidateTag: () => undefined, revalidatePath: () => undefined }));
 
-import { PageStopped, generateDayPage } from "@/lib/generate";
+import { PageStopped, generateDayPage, refreshForDay } from "@/lib/generate";
+import { committedWeek } from "@/lib/opportunities/plan";
 import { generateDraft } from "@/lib/generate/pipeline";
 import { siteRulesOf } from "@/lib/generate/pipeline/battery";
 import { readAllFacts } from "@/lib/generate/pipeline/grounding";
@@ -143,6 +144,118 @@ describe("a mended live page enters review only after today's whole battery, at 
     expect((await generateDayPage({ siteId: SAAS_HOSTED.siteId, publishDate: D, now: NOW, opportunityId: BARE_ID })).ok).toBe(true);
     expect(others([id, LIVE_DRAFT]).map((each) => [each.opportunity_id, each.scheduled_for, each.hard_rules_passed])).toEqual([[MEND_ID, D, true]]);
     expect(db.rows("opportunities").find((each) => each.id === BARE_ID)?.rest_until).not.toBeNull();
+    expect([llm.mock.calls.length, network.mock.calls.length]).toEqual([0, 0]);
+  });
+});
+
+describe("a day whose own page did not pass takes a ready update from the committed week, at 0¢ (issue 2388)", () => {
+  const LATER = "2026-10-05";
+  const fallback = (live: LiveSite, stopped: string | null = null, trigger = "generate:no_opportunity") =>
+    refreshForDay({ siteId: live.siteId, publishDate: D, trigger, from: stopped === null ? "select" : "write", stopped });
+  /** The row as Monday committed it: for `date`, or a spare where `date` is null. */
+  const commit = (id: string, date: string | null, place: number, extra: Row = {}) =>
+    Object.assign(db.rows("opportunities").find((each) => each.id === id)!, { plan_place: place, planned_for: date, ready: true, ...extra });
+  const onDate = (date: string) => db.rows("drafts").filter((each) => each.scheduled_for === date);
+  /** What the database holds once: one page a site a date. */
+  const oneADay = () => db.uniqueIndexes.push({ table: "drafts", columns: ["site_id", "scheduled_for"], where: (each) => each.scheduled_for != null });
+  const stoppedOn = (live: LiveSite) => db.seed("drafts", [...db.rows("drafts"), { id: "d-stopped", site_id: live.siteId, opportunity_id: "o-write", state: "needs_attention", scheduled_for: D, title: "t", body_md: "b" }]);
+
+  it.each([SAAS_HOSTED, LOCAL_WORDPRESS])("for $kind, an update committed for a later date is mended onto today, and its own date writes no second page", async (live) => {
+    const { id } = await livePage(live);
+    commit(MEND_ID, LATER, 3);
+    const taken = await fallback(live);
+    expect(taken).toEqual({ ok: true, draftId: expect.any(String) });
+    expect(onDate(D)).toMatchObject([{ id: taken?.ok ? taken.draftId : null, state: "generating", hard_rules_passed: true, cost_cents: 0, meta: { mendOf: id, fallbackFor: "generate:no_opportunity" } }]);
+    expect(statusOf(MEND_ID)).toBe("queued");
+    expect((await committedWeek(live.siteId)).days.map((each) => each.opportunity.id)).not.toContain(MEND_ID);
+    expect(await refreshForDay({ siteId: live.siteId, publishDate: LATER, trigger: "generate:no_opportunity", from: "select", stopped: null })).toBeNull();
+    expect(onDate(LATER)).toEqual([]);
+    expect([llm.mock.calls.length, network.mock.calls.length]).toEqual([0, 0]);
+  });
+
+  const OWN = { shortfall: { kind: "due", cause: "structure", defects: ["h1"] } };
+  const OTHER = { shortfall: { kind: "thin", cause: "structure", defects: ["h1"] } };
+  it.each<[string, [string, string | null, number, Row?][], string | null]>([
+    ["a spare before a later date", [["A", LATER, 2], ["B", null, 9]], "B"],
+    ["the latest later date first", [["A", "2026-10-04", 2], ["B", LATER, 3]], "B"],
+    ["ReachKit's own refresh before another update", [["A", null, 8, OTHER], ["B", null, 9, OWN]], "B"],
+    ["never an unready row or a new page", [["C", LATER, 3, { ready: false }], ["D", "2026-10-04", 4, { type: "keyword_page", family: "write" }], ["E", "2026-10-03", 5]], "E"],
+    ["never an earlier date or today's", [["A", "2026-10-01", 1], ["B", D, 2]], null],
+  ])("candidates in order: %s", async (_order, rows, chosen) => {
+    const { url } = await livePage(SAAS_HOSTED);
+    for (const [key, date, place, extra] of rows) {
+      const refresh = refreshAt(SAAS_HOSTED, url, `${key.repeat(8)}-0000-4000-8000-000000000000`.toLowerCase());
+      const evidence = extra?.shortfall === undefined ? {} : { evidence: { ...(refresh.evidence as Row), ...extra } };
+      commit(refresh.id, date, place, { ...extra, ...evidence });
+    }
+    const taken = await fallback(SAAS_HOSTED);
+    expect(onDate(D).map((each) => each.opportunity_id)).toEqual(chosen === null ? [] : [`${chosen.repeat(8)}-0000-4000-8000-000000000000`.toLowerCase()]);
+    expect(taken?.ok ?? null).toBe(chosen === null ? null : true);
+  });
+
+  it.each([SAAS_HOSTED, LOCAL_WORDPRESS])("for $kind, a rules day's stopped row gives up its date to the update that takes it, and keeps its state", async (live) => {
+    await livePage(live);
+    commit(MEND_ID, LATER, 3);
+    oneADay();
+    stoppedOn(live);
+    const taken = await fallback(live, "d-stopped", "generate:rules");
+    expect(taken?.ok).toBe(true);
+    expect(row("d-stopped")).toMatchObject({ state: "needs_attention", scheduled_for: null });
+    expect(onDate(D).map((each) => each.id)).toEqual([taken?.ok ? taken.draftId : null]);
+  });
+
+  it.each([SAAS_HOSTED, LOCAL_WORDPRESS])("for $kind, an update that fails today's battery leaves no trace, and the stopped row keeps its date", async (live) => {
+    const { id } = await livePage(live, (body) => body.replace(/^[^\n]*The right tool for a small team[^\n]*\n/m, ""));
+    commit(MEND_ID, LATER, 3);
+    stoppedOn(live);
+    const before = JSON.stringify([db.rows("drafts"), db.rows("opportunities")]);
+    expect(await fallback(live, "d-stopped", "generate:rules")).toBeNull();
+    expect(JSON.stringify([db.rows("drafts"), db.rows("opportunities")])).toBe(before);
+    expect([row("d-stopped").scheduled_for, others([id, LIVE_DRAFT, "d-stopped"])]).toEqual([D, []]);
+    expect([llm.mock.calls.length, network.mock.calls.length]).toEqual([0, 0]);
+  });
+
+  it("a candidate with nothing to check is passed over for the next", async () => {
+    const { url } = await livePage(SAAS_HOSTED);
+    row(LIVE_DRAFT).body_md = `# A title\n\n${row(LIVE_DRAFT).body_md as string}`;
+    commit(refreshAt(SAAS_HOSTED, SAAS_HOSTED.liveUrl, BARE_ID).id, null, 8);
+    commit(refreshAt(SAAS_HOSTED, url, SPARE_ID).id, null, 9);
+    const bare = JSON.stringify(db.rows("opportunities").find((each) => each.id === BARE_ID));
+    expect((await fallback(SAAS_HOSTED))?.ok).toBe(true);
+    expect(onDate(D).map((each) => each.opportunity_id)).toEqual([SPARE_ID]);
+    expect(JSON.stringify(db.rows("opportunities").find((each) => each.id === BARE_ID))).toBe(bare);
+  });
+
+  it("a replay after the insert, or a delivery that took the date first, writes no second row", async () => {
+    await livePage(SAAS_HOSTED);
+    commit(MEND_ID, LATER, 3);
+    oneADay();
+    expect((await fallback(SAAS_HOSTED))?.ok).toBe(true);
+    // The step ran again before its queueing was kept.
+    db.rows("opportunities").find((each) => each.id === MEND_ID)!.status = "open";
+    expect(await fallback(SAAS_HOSTED)).toEqual({ ok: false, because: "already_drafted" });
+    expect(onDate(D)).toHaveLength(1);
+    // Another delivery's row lands between this one's read and its insert: the database decides.
+    db.seed("drafts", db.rows("drafts").filter((each) => each.scheduled_for !== D));
+    stoppedOn(SAAS_HOSTED);
+    db.rows("opportunities").find((each) => each.id === MEND_ID)!.status = "open";
+    setGenerateStore({ ...generateStore(), draftOnDate: async () => false });
+    expect(await fallback(SAAS_HOSTED)).toEqual({ ok: false, because: "already_drafted" });
+    expect(onDate(D).map((each) => each.id)).toEqual(["d-stopped"]);
+  });
+
+  it.each([SAAS_HOSTED, LOCAL_WORDPRESS])("for $kind, nothing is invented: no own live page, or one younger than the refresh floor, writes nothing", async (live) => {
+    site.current = live;
+    seedWorld(db, live);
+    setGenerateStore(null);
+    const page = opportunity({ id: SPARE_ID, siteId: live.siteId, targetQuery: "which plan fits a small team", targetRef: "which-plan" });
+    db.seed("opportunities", [...db.rows("opportunities"), { ...(insertFor(page) as unknown as Row), id: SPARE_ID, status: "open", created_at: AT.toISOString() }]);
+    commit(SPARE_ID, LATER, 3);
+    const before = db.rows("drafts").length;
+    expect(await fallback(live)).toBeNull();
+    db.seed("publications", []);
+    expect(await fallback(live)).toBeNull();
+    expect(db.rows("drafts").length).toBe(before);
     expect([llm.mock.calls.length, network.mock.calls.length]).toEqual([0, 0]);
   });
 });
