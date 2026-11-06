@@ -7,6 +7,7 @@
 // It lives here, not in the veto leaf, so publishing does not import the mail seam for one occasion.
 import { dbAdmin } from "@/lib/db";
 import { env } from "@/lib/config/env";
+import { PAGES_LANDING_PATH } from "@/lib/account/identity/addresses";
 import { MAIL_PAGE_LINES } from "@/lib/config/constants";
 import { readRecordedFact } from "@/lib/generate/fact";
 import type { TargetEngine } from "@/lib/opportunities/types";
@@ -81,6 +82,14 @@ function withRecord(telling: TellableTelling): { record?: DraftReadyRecord } {
   return { record: { type: record.type, name: nameInZone(record.name, host.slice(host.indexOf(".") + 1)), value: record.value } };
 }
 
+/** A WordPress waiting for its login gets a signed link onto Settings › Pages; with no link issued, the same page unsigned. */
+async function withConnect(telling: TellableTelling, account: { userId: string; email: string }): Promise<{ connectHref?: string }> {
+  if (telling.destination?.copy !== "mail.draftReady.dest.wordpressNotConnected") return {};
+  const { signInLinkTo } = await import("@/lib/account/identity/wire");
+  const signed = await signInLinkTo({ userId: account.userId, to: account.email, landsOn: PAGES_LANDING_PATH }).catch(() => null);
+  return { connectHref: signed ?? new URL(PAGES_LANDING_PATH, env.NEXT_PUBLIC_APP_URL).toString() };
+}
+
 /** The publish moment in the customer's zone, with no fallback: `tellingFor` answers `not_yet_tellable` without one (REQ-073 c1). */
 function writePublishesAt(at: Date, timeZone: string): string {
   return new Intl.DateTimeFormat("en-US", {
@@ -130,6 +139,7 @@ export async function sendDraftReadyMail(a: {
       ? { stopHref: stopHref(telling.stopAction.token) }
       : {}),
     ...withRecord(telling as TellableTelling),
+    ...(await withConnect(telling as TellableTelling, account)),
   });
 
   const result = await sendEmail({

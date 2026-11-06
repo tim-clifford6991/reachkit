@@ -417,7 +417,7 @@ export const MAIL_COPY = Object.freeze({
   "mail.draftReady.waiting.subject": ["Your page waits for your website", { slots: {}, fixedBy: "SPEC §5 2026-09-20 (drafted)" }],
   "mail.draftReady.waiting.preheader": ["Connect your website and it goes live.", { slots: {}, fixedBy: "O6 · issue 2172 (drafted)" }],
   // A WordPress set up without its login is named by the site's domain, since no address is stored. Drafted (#759).
-  "mail.draftReady.dest.wordpressNotConnected": ["This page can't go live on {site} until you connect your WordPress. Connect it in Settings › Pages.", { slots: { site: "text" }, fixedBy: "SPEC §5 2026-09-20 (drafted)" }],
+  "mail.draftReady.dest.wordpressNotConnected": ["This page can't go live on {site} until your WordPress is connected. Connect it in Settings › Pages.", { slots: { site: "text" }, fixedBy: "SPEC §5 2026-09-20 (drafted)" }],
   // The site cannot be published to as things stand: it says what to change, and c9 keeps the date, interval and stop.
   "mail.draftReady.dest.cannotPublish": ["We can't publish to {site} right now. See what to change in Settings › Pages.", { slots: { site: "text" }, fixedBy: "REQ-057 c9" }],
 
