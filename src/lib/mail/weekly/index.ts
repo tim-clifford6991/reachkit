@@ -6,6 +6,7 @@
 // Composed from stored figures, never re-measured, so the mail reports the week it announces.
 import { dbAdmin } from "@/lib/db";
 import { env } from "@/lib/config/env";
+import { PAGES_LANDING_PATH } from "@/lib/account/identity/addresses";
 import { ANSWER_RATE_WEEKS, BLOG_READS_WINDOW_D, WEEK_PLAN } from "@/lib/config/constants";
 import { measurePrompts } from "@/lib/market/prompts/rate";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
@@ -107,7 +108,7 @@ export async function sendWeeklyDigest(a: {
   const recipient = await readRecipient(a.siteId);
   if (recipient === null) return { sent: false, reason: "no-account" };
 
-  const connect = await addressToConnect(a.siteId);
+  const connect = await addressToConnect(a.siteId, recipient);
   const settings = await readPublishingSettings(a.siteId).catch(() => null);
   const zone = settings?.timezone ?? "UTC";
   const greeting =
@@ -155,7 +156,7 @@ export async function sendWeeklyDigest(a: {
 }
 
 type Composed = { mail: ReturnType<typeof buildWeekly>; measurement: MeasurementState };
-type Connect = { host: string; href: string };
+type Connect = { host: string; href: string; text?: CopyKey };
 type Greeting = { name: string | null; week: number; business: string };
 
 function appHref(path: string): string {
@@ -172,13 +173,24 @@ function weekDates(weekStart: string): string[] {
   return Array.from({ length: 7 }, (_, i) => new Date(Date.parse(`${weekStart}T12:00:00Z`) + i * 86_400_000).toISOString().slice(0, 10));
 }
 
-/** The hosted address waiting for its record, with its setup step; `undefined` once live, with none, or on a failed read. */
-async function addressToConnect(siteId: string): Promise<Connect | undefined> {
+const CONNECT_WORDPRESS = "mail.weekly.connect.wordpress" satisfies CopyKey;
+
+/** The address waiting to be connected, with the step that connects it; `undefined` once live, with none, on a failed
+ *  read, or with no address to name. */
+async function addressToConnect(siteId: string, recipient: { userId: string; email: string; domain: string }): Promise<Connect | undefined> {
   try {
     const { hostedHostFor } = await import("@/lib/publish/destinations/hosted/hostname");
     const host = await hostedHostFor(siteId);
-    if (host === null || host.state === "live") return undefined;
-    return { host: host.hostname, href: new URL("/setup/connect", env.NEXT_PUBLIC_APP_URL).toString() };
+    if (host !== null) {
+      if (host.state === "live" || host.hostname === "") return undefined;
+      return { host: host.hostname, href: new URL("/setup/connect", env.NEXT_PUBLIC_APP_URL).toString() };
+    }
+    const { destinationWaitingOnWordPress } = await import("@/lib/publish/destinations");
+    if (recipient.domain === "" || !(await destinationWaitingOnWordPress(siteId))) return undefined;
+    // Signed so the press lands on Settings › Pages; with no link issued the notice still goes, unsigned.
+    const { signInLinkTo } = await import("@/lib/account/identity/wire");
+    const signed = await signInLinkTo({ userId: recipient.userId, to: recipient.email, landsOn: PAGES_LANDING_PATH }).catch(() => null);
+    return { host: recipient.domain, href: signed ?? appHref(PAGES_LANDING_PATH), text: CONNECT_WORDPRESS };
   } catch {
     return undefined;
   }
