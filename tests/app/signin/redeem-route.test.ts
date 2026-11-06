@@ -8,7 +8,9 @@
 // REQ-098 criterion 7: an expired, spent or never-issued link gets one answer
 // whatever the reason. REQ-024 criterion 4: a good one returns them to setup
 // if it is unfinished, otherwise onward into the product.
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createHmac } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { NextRequest, type NextResponse } from "next/server";
 import { applyEnvFixture } from "../../mail/env-fixture";
@@ -17,6 +19,17 @@ import { sendCalls, sendMock, sendOutcome } from "../../account/send-mock";
 applyEnvFixture();
 
 vi.mock("@/lib/mail/send", () => sendMock());
+
+/** This browser's cookies: the page reads them, and the sign-in action writes them. */
+const jar = new Map<string, string>();
+const sets: { value: string; options: object }[] = [];
+vi.mock("next/headers", () => ({
+  headers: async () => new Headers({ "x-forwarded-for": "203.0.113.7" }),
+  cookies: async () => ({
+    get: (name: string) => (jar.has(name) ? { name, value: jar.get(name) } : undefined),
+    set: (name: string, value: string, options: object) => void (jar.set(name, value), sets.push({ value, options })),
+  }),
+}));
 
 const { default: ConfirmPage, metadata } = await import("../../../src/app/(public)/auth/confirm/page");
 const { POST } = await import("../../../src/app/(public)/auth/confirm/redeem/route");
@@ -31,6 +44,12 @@ const { FAKE_AUTH_COOKIE, addAuthUser, fakeIdentityAuth, newFakeAuth } = await i
   "../../account/identity/fake-auth"
 );
 const { COPY } = await import("../../../src/lib/presentation/copy/registry");
+const { PENDING_COOKIE, pendingCookieFor } = await import("../../../src/lib/account/signin-pending");
+const { sendLink } = await import("../../../src/app/(public)/signin/actions");
+const { SIGN_IN_INITIAL, EMAIL_FIELD } = await import("../../../src/app/(public)/signin/state");
+const { setAccountStore } = await import("../../../src/lib/account/store");
+const { unwireSignInLinkIssuer } = await import("../../../src/lib/account/identity/wire");
+const { memoryAccountStore, newMemoryAccounts } = await import("../../account/memory-store");
 
 const ORIGIN = "https://reachkit.example";
 const NOW = new Date();
@@ -49,6 +68,8 @@ beforeEach(() => {
   setIdentityAuth(fakeIdentityAuth(auth));
   sendCalls.length = 0;
   sendOutcome.next = { sent: true, id: "vendor-1" };
+  jar.clear();
+  sets.length = 0;
 });
 
 /** An account and the `auth.users` row whose id it carries (#468). */
@@ -113,6 +134,18 @@ async function liveLink(email = "founder@example.com"): Promise<{ url: string; u
 
 function confirmUrl(tokenHash: string, type = "magiclink"): string {
   return `${ORIGIN}/auth/confirm?token_hash=${encodeURIComponent(tokenHash)}&type=${type}`;
+}
+
+/** This browser asked for a link: the page reads `value` and the post carries it. */
+function asked(value: string = pendingCookieFor("magiclink").value, headers: Record<string, string> = OWN_PAGE): Record<string, string> {
+  jar.set(PENDING_COOKIE, value);
+  return { ...headers, cookie: `${PENDING_COOKIE}=${value}` };
+}
+
+async function emailChangeLink(): Promise<string> {
+  const user = account("old@example.com");
+  await beginEmailChange(user.id, "new@example.com", NOW);
+  return ((sendCalls[0]?.blocks ?? []) as object[]).flatMap((b) => ("href" in b ? [String(b.href)] : []))[0] ?? "";
 }
 
 function locationOf(response: NextResponse): string {
@@ -192,8 +225,12 @@ describe("cross-origin POST refused", () => {
     ["no Origin at all", {}],
     ["a null Origin from another site", { origin: "null", "sec-fetch-site": "cross-site" }],
     ["a null Origin with no fetch site", { origin: "null" }],
-  ])("%s: the dead-link answer, and the link still works", async (_name, headers: Record<string, string>) => {
+    ["a foreign Origin with a valid pending cookie", { origin: "https://evil.example", cookie: "pending" }],
+    ["no Origin with a valid pending cookie", { cookie: "pending" }],
+  ])("%s: the dead-link answer, and the link still works", async (_name, given: Record<string, string>) => {
     const { url } = await liveLink();
+    const { cookie, ...headers } = given;
+    if (cookie !== undefined) Object.assign(headers, asked(undefined, headers));
     const { form } = page(await land(url));
 
     expectDead(await press(form, headers));
@@ -216,6 +253,113 @@ describe("token leaves the URL", () => {
       expect(location).not.toContain("token_hash");
       expect(location).not.toContain(hash);
     }
+  });
+});
+
+describe("a link opened in the browser that asked for it", () => {
+  it("draws the same form marked to send itself; without the cookie the page is byte-identical to before", async () => {
+    const before = readFileSync(new URL("./fixtures/confirm-no-cookie.html", import.meta.url), "utf8");
+    expect(page(await land(confirmUrl("fixed-hash"))).html).toBe(before);
+    asked();
+    const { html, form } = page(await land(confirmUrl("fixed-hash")));
+    expect(html).toMatch(/<form\b[^>]*\bdata-auto=""/);
+    expect(form).toEqual(formOf(before));
+  });
+
+  it.each([
+    ["/app", { first_signed_in_at: NOW.toISOString() }, ""],
+    ["/setup/connect", {}, "/setup/connect"],
+  ])("the auto-sent post signs in, lands on %s and clears the cookie", async (landing, patch, next) => {
+    const user = account("founder@example.com", patch);
+    const issued = await issueLink({ userId: user.id, to: user.email, purpose: "sign_in", now: NOW });
+    if (!issued.issued) throw new Error("not issued");
+    const url = new URL(issued.url);
+    if (next !== "") url.searchParams.set("next", next);
+    const response = await press(page(await land(url.toString())).form, asked());
+    expect([response.status, locationOf(response), auth.verifyCalls]).toEqual([303, landing, 1]);
+    expect(response.cookies.get(FAKE_AUTH_COOKIE)).toBeDefined();
+    expect(response.headers.get("set-cookie")).toMatch(/__Host-rk_signin_pending=; Path=\/; Max-Age=0; Secure; HttpOnly; SameSite=lax/);
+  });
+
+  it("refused, spent and unknown answer as without the cookie, with no token in a Location, and keep the cookie", async () => {
+    const { url } = await liveLink();
+    const cookie = asked();
+    const { form } = page(await land(url));
+    const refused = await press(form, { cookie: cookie.cookie ?? "" });
+    expect((await press(form, cookie)).cookies.get(PENDING_COOKIE)?.maxAge).toBe(0);
+    const dead = [refused, await press(form, cookie), await press(page(await land(confirmUrl("nobody-minted-this"))).form, cookie)];
+    for (const response of dead) {
+      expectDead(response);
+      expect(response.headers.get("location")).not.toContain(new URL(url).searchParams.get("token_hash"));
+      expect(response.cookies.get(PENDING_COOKIE)).toBeUndefined();
+    }
+  });
+
+  // A middle character carries six whole bits of the MAC, so changing it always changes a byte.
+  const flipped = (v: string) => `${v.slice(0, -10)}${v.at(-10) === "A" ? "B" : "A"}${v.slice(-9)}`;
+  const otherKey = (exp: number) => `magiclink.${exp}.${createHmac("sha256", "another-key").update(`signin-pending:magiclink:${exp}`).digest("base64url")}`;
+  it.each([
+    ["one changed MAC byte", "magiclink", () => flipped(pendingCookieFor("magiclink").value)],
+    ["a valid MAC that has expired", "magiclink", () => pendingCookieFor("magiclink", Date.now() - 25 * 3_600_000).value],
+    ["an email-change cookie on a sign-in link", "magiclink", () => pendingCookieFor("email_change").value],
+    ["a sign-in cookie on an email-change link", "email_change", () => pendingCookieFor("magiclink").value],
+    ["another key", "magiclink", () => otherKey(Date.now() + 3_600_000)],
+    ["an unparseable value", "magiclink", () => "not.a-cookie"],
+  ])("%s: the button page and no verify call", async (_name, type, value) => {
+    const url = type === "email_change" ? await emailChangeLink() : (await liveLink()).url;
+    asked(value());
+    expect(page(await land(url)).html).not.toContain("data-auto");
+    expect(auth.verifyCalls).toBe(0);
+  });
+
+  it("an email-change link asked for in this browser sends itself and moves the address", async () => {
+    const href = await emailChangeLink();
+    const cookie = asked(pendingCookieFor("email_change").value);
+    const { html, form } = page(await land(href));
+    expect(html).toContain("data-auto");
+    await press(form, cookie);
+    expect(state.users[0]?.email).toBe("new@example.com");
+  });
+});
+
+describe("asked for on /signin and opened in the same browser", () => {
+  beforeEach(() => {
+    // The action's account read answers from the identity rows; the limiter always admits.
+    const extra = { checkout_session_id: null, sign_in_chased_at: null, stripe_customer_id: null, billing_country: null, vat_number: null, created_at: "2026-01-01T00:00:00Z" };
+    const accountByEmail = async (email: string) => ({ ok: true as const, account: ((u) => (u === undefined ? null : { ...extra, ...u }))(state.users.find((u) => u.email === email)) });
+    setAccountStore({ ...memoryAccountStore(newMemoryAccounts()), accountByEmail });
+    vi.stubGlobal("fetch", async () => new Response("true", { headers: { "content-type": "application/json" } }));
+  });
+  afterEach(() => {
+    unwireSignInLinkIssuer();
+    vi.unstubAllGlobals();
+  });
+  const ask = (email: string) => {
+    const form = new FormData();
+    form.set(EMAIL_FIELD, email);
+    return sendLink(SIGN_IN_INITIAL, form);
+  };
+
+  it("signs in with no press, and a second opening asks for the press", async () => {
+    account("owner@acme.example");
+    await ask("owner@acme.example");
+    const href = ((sendCalls[0]?.blocks ?? []) as object[]).flatMap((b) => ("href" in b ? [String(b.href)] : []))[0] ?? "";
+    const { html, form } = page(await land(href));
+    expect(html).toContain("data-auto");
+
+    const response = await press(form, { ...OWN_PAGE, cookie: `${PENDING_COOKIE}=${jar.get(PENDING_COOKIE)}` });
+    expect([locationOf(response), auth.verifyCalls]).toEqual(["/setup", 1]);
+    expect(response.cookies.get(FAKE_AUTH_COOKIE)).toBeDefined();
+    if (response.cookies.get(PENDING_COOKIE)?.maxAge === 0) jar.delete(PENDING_COOKIE);
+    expect(page(await land(href)).html).not.toContain("data-auto");
+  });
+
+  it("an address with an account and one without get the same cookie; an invalid one gets none", async () => {
+    account("owner@acme.example");
+    for (const email of ["owner@acme.example", "nobody@acme.example", "not-an-address"]) await ask(email);
+    expect(sendCalls.map((m) => m.to)).toEqual(["owner@acme.example"]);
+    const attributes = { httpOnly: true, secure: true, sameSite: "lax", path: "/", maxAge: 86_400 };
+    expect(sets.map((c) => [c.value.split(".")[0], c.options])).toEqual([["magiclink", attributes], ["magiclink", attributes]]);
   });
 });
 

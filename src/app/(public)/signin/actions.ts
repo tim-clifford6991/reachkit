@@ -33,8 +33,9 @@
 // `./state.ts`, which both this file and the screen import.
 "use server";
 
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { z } from "zod";
+import { pendingCookieFor } from "@/lib/account/signin-pending";
 import { requestMagicLink } from "@/lib/account/provisioning/magic-link";
 import { networkKeyOf } from "@/lib/scan/admission";
 import { EMAIL_FIELD, type SignInState } from "./state";
@@ -53,5 +54,8 @@ export async function sendLink(_previous: SignInState, form: FormData): Promise<
   }
 
   await requestMagicLink(value.trim(), networkKeyOf(await headers()));
+  // Set for every valid address, account or not, so the answer stays one answer.
+  const pending = pendingCookieFor("magiclink");
+  (await cookies()).set(pending.name, pending.value, pending.options);
   return { answer: "requested", value, sentAt: Date.now() };
 }

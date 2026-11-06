@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowRight } from "lucide-react";
 
 /** The confirm page's one form. A plain post that works without script;
@@ -11,10 +11,19 @@ export function ConfirmForm(p: {
   action: string;
   fields: Readonly<Record<string, string>>;
   label: string;
+  auto?: boolean;
 }): React.JSX.Element {
   const [sent, setSent] = useState(false);
+  const form = useRef<HTMLFormElement>(null);
+  // StrictMode runs the effect twice; a second post would find the link spent.
+  const fired = useRef(false);
+  useEffect(() => {
+    if (p.auto !== true || fired.current) return;
+    fired.current = true;
+    form.current?.requestSubmit();
+  }, [p.auto]);
   return (
-    <form method="post" action={p.action} className="card border border-base-300 bg-base-100 shadow-(--shadow-card) flex flex-col gap-4 p-6" onSubmit={() => setSent(true)}>
+    <form ref={form} data-auto={p.auto === true ? "" : undefined} method="post" action={p.action} className="card border border-base-300 bg-base-100 shadow-(--shadow-card) flex flex-col gap-4 p-6" onSubmit={() => setSent(true)}>
       {Object.entries(p.fields).map(([name, value]) => (
         <input key={name} type="hidden" name={name} value={value} />
       ))}

@@ -8,7 +8,7 @@ import { sendCalls, sendMock } from "../../account/send-mock";
 applyEnvFixture();
 
 let client = new Headers({ "x-forwarded-for": "203.0.113.7" });
-vi.mock("next/headers", () => ({ headers: async () => client }));
+vi.mock("next/headers", () => ({ headers: async () => client, cookies: async () => ({ set: () => {} }) }));
 vi.mock("@/lib/mail/send", () => sendMock());
 
 const { sendLink } = await import("@/app/(public)/signin/actions");
