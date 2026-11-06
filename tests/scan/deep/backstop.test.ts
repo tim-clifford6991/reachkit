@@ -76,6 +76,39 @@ describe("sitesWithoutDeepPass", () => {
     expect(await deepPassCutShort("ran")).toBeNull();
   });
 
+  it("a first deep pass that failed is owed exactly one re-measure, keyed on the failed pass", async () => {
+    Object.assign(db.rows("scans")[1]!, { status: "failed", stopped_reason: "failed", created_at: minutesAgo(18) });
+    expect(await sitesWithoutDeepPass(NOW)).toEqual(["dropped", "ran"]);
+    expect(await deepPassCutShort("ran")).toBe("claim-ran");
+  });
+
+  it("a second failure is not re-run: the failed re-measure is the site's second ended pass", async () => {
+    Object.assign(db.rows("scans")[1]!, { status: "failed", stopped_reason: "failed", created_at: minutesAgo(18) });
+    db.rows("scans").push({
+      id: "again",
+      site_id: "ran",
+      tier: "deep",
+      status: "failed",
+      stopped_reason: "failed",
+      remeasure_of: "claim-ran",
+      created_at: minutesAgo(2),
+    });
+    expect(await sitesWithoutDeepPass(NOW)).toEqual(["dropped"]);
+    expect(await deepPassCutShort("ran")).toBeNull();
+  });
+
+  it("a failed pass that is not the site's first, or a failed weekly pass, is never re-run by this rule", async () => {
+    Object.assign(db.rows("scans")[1]!, { created_at: minutesAgo(18) });
+    db.rows("scans").push({ id: "later", site_id: "ran", tier: "deep", status: "failed", created_at: minutesAgo(2) });
+    expect(await sitesWithoutDeepPass(NOW)).toEqual(["dropped"]);
+    expect(await deepPassCutShort("ran")).toBeNull();
+
+    db.rows("scans").pop();
+    db.rows("scans").push({ id: "weekly", site_id: "ran", tier: "weekly", status: "failed", created_at: minutesAgo(2) });
+    expect(await sitesWithoutDeepPass(NOW)).toEqual(["dropped"]);
+    expect(await deepPassCutShort("ran")).toBeNull();
+  });
+
   it("the address a re-send carries is the site's own, and a site gone since is null", async () => {
     expect(await deepPassDomain("dropped")).toBe("dropped.test");
     expect(await deepPassDomain("nobody")).toBeNull();

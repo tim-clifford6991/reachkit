@@ -25,7 +25,9 @@
 // same tick starts it again as a re-measure (`startRemeasure`, issue 837) —
 // a fresh row under that bound: one pass at a time, at most
 // `REMEASURE.perDay` in a day, the onboarding pass included — inside the same
-// `TIMING.deepPassBackstopH` window after setup.
+// `TIMING.deepPassBackstopH` window after setup. A first pass that ended
+// `failed` is measured again the same way, once: its re-measure is a second
+// ended pass, so a second failure is owed nothing.
 //
 // **Why a re-measure is harmless too** (issue 886). `account/maintenance` is
 // a clock tick and carries no idempotency key, so the same tick can be
@@ -66,8 +68,8 @@ const MS_PER_MINUTE = 60_000;
 /** At most this many sites a tick. One day of setups is far below it. */
 const SITES_PER_TICK = 200;
 
-/** Every site whose finished setup has no ended deep pass, or whose newest
- *  deep pass a ceiling stopped (issue 855). */
+/** Every site whose finished setup has no ended deep pass, whose newest deep
+ *  pass a ceiling stopped (issue 855), or whose only ended one failed. */
 export async function sitesWithoutDeepPass(now: Date): Promise<readonly string[]> {
   const before = new Date(now.getTime() - TIMING.deepPassBackstopMin * MS_PER_MINUTE).toISOString();
   const after = new Date(now.getTime() - TIMING.deepPassBackstopH * 60 * MS_PER_MINUTE).toISOString();
@@ -109,14 +111,16 @@ function newestOf(rows: readonly PassRow[]): PassRow | undefined {
 }
 
 /** What one site's deep rows owe it: its onboarding pass (`never_ran`), the
- *  pass again because a ceiling stopped the newest (`cut_short`), or nothing
+ *  pass again because a ceiling stopped the newest or the first failed
+ *  (`cut_short`), or nothing
  *  — a pass that finished, or one still under way. */
 function owed(rows: readonly PassRow[]): "never_ran" | "cut_short" | null {
   const ended = rows.filter((row) => row.status !== "running");
   if (ended.length === 0) return "never_ran";
   const newest = newestOf(rows);
   if (newest === undefined || newest.status === "running") return null;
-  return CEILINGS.has(String(newest.stopped_reason ?? "")) ? "cut_short" : null;
+  if (CEILINGS.has(String(newest.stopped_reason ?? ""))) return "cut_short";
+  return newest.status === "failed" && ended.length === 1 ? "cut_short" : null;
 }
 
 /**

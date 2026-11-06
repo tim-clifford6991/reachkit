@@ -27,6 +27,7 @@ vi.mock("@/jobs/client", () => ({
 }));
 
 const { startRemeasure } = await import("../../../src/lib/scan/deep/remeasure");
+const { deepPassCutShort } = await import("../../../src/lib/scan/deep/backstop");
 const { passProgressFor } = await import("../../../src/lib/scan/deep/progress");
 const { REMEASURE } = await import("../../../src/lib/config/constants");
 
@@ -140,6 +141,36 @@ describe("issue 886 — the same maintenance tick delivered twice starts one pas
     expect(both.filter((one) => !one.started)).toEqual([{ started: false, because: "running" }]);
     expect(db.tables.scans.filter((row) => row.remeasure_of === "cut-short")).toHaveLength(1);
     expect(sent).toHaveLength(1);
+  });
+
+  it("a failed first pass: two deliveries start one re-measure, and its failure is not re-run", async () => {
+    db.tables.scans = [{ ...pass("first-failed", "failed", 40), stopped_reason: "failed" }];
+    const owed = await deepPassCutShort(SITE);
+    expect(owed).toBe("first-failed");
+
+    const both = await Promise.all([
+      startRemeasure({ siteId: SITE, domain: DOMAIN, remeasureOf: owed!, now: NOW }),
+      startRemeasure({ siteId: SITE, domain: DOMAIN, remeasureOf: owed!, now: NOW }),
+    ]);
+    expect(both.filter((one) => one.started)).toHaveLength(1);
+    expect(db.tables.scans.filter((row) => row.remeasure_of === "first-failed")).toHaveLength(1);
+    expect(sent).toHaveLength(1);
+
+    const again = db.tables.scans.find((row) => row.remeasure_of === "first-failed")!;
+    Object.assign(again, { status: "failed", stopped_reason: "failed" });
+    expect(await deepPassCutShort(SITE)).toBeNull();
+  });
+
+  it("a failed first pass is refused by REMEASURE.perDay like any re-measure", async () => {
+    db.tables.scans = [
+      { ...pass("first-failed", "failed", 40), stopped_reason: "failed" },
+      ...Array.from({ length: REMEASURE.perDay }, (_, i) => pass(`other-${i}`, "done", 60 + i)),
+    ];
+    expect(await startRemeasure({ siteId: SITE, domain: DOMAIN, remeasureOf: "first-failed", now: NOW })).toMatchObject({
+      started: false,
+      because: "daily_limit",
+    });
+    expect(sent).toHaveLength(0);
   });
 
   it("the pass records which one it is measuring again, and the founder's own press records none", async () => {
