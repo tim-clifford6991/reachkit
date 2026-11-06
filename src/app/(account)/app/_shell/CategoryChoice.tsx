@@ -47,7 +47,8 @@ export function CategoryChoice(p: {
       <form action={formAction} className="flex min-w-0 flex-col gap-2">
         <label className="flex min-w-0 flex-col gap-1">
           <span className="text-sm">{p.words.own}</span>
-          <input className="input input-sm h-11 w-full lg:h-(--size)" name={REMEASURE_CATEGORY_FIELD} required disabled={pending} />
+          {/* Its own text colour: inside an alert it would take the alert's, which is unreadable on the field's base in dark. */}
+          <input className="input input-sm h-11 w-full text-base-content lg:h-(--size)" name={REMEASURE_CATEGORY_FIELD} required disabled={pending} />
         </label>
         <button type="submit" className="btn btn-soft btn-primary btn-sm min-h-11 self-start lg:min-h-auto" disabled={pending}>
           {pending ? (
