@@ -70,6 +70,7 @@ vi.mock("@/lib/generate", () => ({
     await firstDraft.during?.();
     return { ok: false, because: "no_opportunity" };
   },
+  refreshForDay: async () => null,
 }));
 const notice = vi.hoisted(() => ({ next: null as null | { key: string; vars: Record<string, string>; parts: string[] } }));
 vi.mock("@/lib/scan/deep/notice", () => ({ releaseNotice: async () => notice.next }));
