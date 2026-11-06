@@ -76,6 +76,7 @@ const DB = [
   /^src\/lib\/config\/((env|now|constants)\.ts$|constants\/)/,
   /^src\/lib\/opportunities\/(verdicts\/)?types\.ts$/,
   /^src\/lib\/opportunities\/store\.ts$/,
+  /^src\/lib\/ops\/events\.ts$/,
   /^src\/lib\/costs\/(index|daily)\.ts$/,
   /^src\/lib\/scan\/admission\.ts$/,
   /^src\/lib\/scan\/(challenged|page-facts)\.ts$/,

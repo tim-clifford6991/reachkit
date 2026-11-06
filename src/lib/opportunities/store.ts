@@ -159,10 +159,7 @@ export interface OpportunityStore {
    *  set the ranking orders. `unblock` is excluded here, once, so no
    *  caller downstream has to restate the predicate. */
   openRankable(siteId: string): Promise<readonly OpportunityRow[]>;
-  /** The count behind supply depth: open, not the Fix family, and ready
-   *  (SPEC §6 — an unready row is not a day of supply). */
-  /** Ready, open, non-Fix rows a day may actually be filled from — the
-   *  outsized ones excluded (issue 881). */
+  /** The count behind supply depth: open, not the Fix family, and ready (SPEC §6: an unready row is no day of supply). */
   countUnused(siteId: string): Promise<number>;
   /** Open, non-Fix rows this site holds that are outsized for it (issue
    *  881). What tells a zero count of supply apart from a market that is
@@ -214,6 +211,8 @@ export interface OpportunityStore {
   /** The site's committed week, in place order, whatever each row's status
    *  is now. */
   plannedRows(siteId: string): Promise<readonly OpportunityRow[]>;
+  /** Records the week's one recommit from `date`, with the `waiting` ready rows; `false` where one is held since `monday`. */
+  claimRecommit(siteId: string, date: string, monday: string, waiting: number): Promise<boolean>;
   /** Writes a row's cluster and the searches it absorbed. */
   setCluster(opportunityId: string, clusterKey: string, absorbedQueries: readonly string[]): Promise<void>;
   /** The site's current stored report, or `null` where it has no readable
@@ -896,6 +895,7 @@ export function supabaseOpportunityStore(): OpportunityStore {
       if (error) throw new Error(`opportunities.plannedRows: ${error.message}`);
       return atCurrentHost(siteId, data ?? []);
     },
+    claimRecommit: async (siteId, date, monday, n) => (await import("@/lib/ops/events")).claimOpsEvent("week_recommitted", siteId, monday, date, String(n)),
 
     async setReadiness(opportunityId, reason) {
       const { error } = await untyped()
