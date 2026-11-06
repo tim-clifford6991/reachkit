@@ -17,6 +17,8 @@ const PREHEADER = "mail.draftReady.preheader" satisfies CopyKey;
 const WAITING_PREHEADER = "mail.draftReady.waiting.preheader" satisfies CopyKey;
 const ADDRESS_NOT_CONNECTED = "mail.draftReady.dest.addressNotConnected" satisfies CopyKey;
 const ADDRESS_NOT_CONNECTED_NO_RECORD = "mail.draftReady.dest.addressNotConnected.noRecord" satisfies CopyKey;
+const WORDPRESS_NOT_CONNECTED = "mail.draftReady.dest.wordpressNotConnected" satisfies CopyKey;
+const CONNECT_ACTION = "mail.weekly.connect.action" satisfies CopyKey;
 const RECORD_TYPE = "mail.draftReady.record.type" satisfies CopyKey;
 const RECORD_NAME = "mail.draftReady.record.name" satisfies CopyKey;
 const RECORD_VALUE = "mail.draftReady.record.value" satisfies CopyKey;
@@ -82,10 +84,14 @@ export function buildDraftReady(a: {
   readHref?: string;
   /** Only on the not-connected arm, and only where the host has a record. */
   record?: DraftReadyRecord;
+  /** Only on the WordPress not-connected arm: where its login is entered. */
+  connectHref?: string;
 }): DraftReadyMail {
   const blocks: MailBlock[] = [];
-  // No page goes live before the hosted address is connected, so no moment is named.
-  const waitsForAddress = a.telling.destination?.copy === ADDRESS_NOT_CONNECTED;
+  const waitsForHost = a.telling.destination?.copy === ADDRESS_NOT_CONNECTED;
+  const waitsForWordPress = a.telling.destination?.copy === WORDPRESS_NOT_CONNECTED;
+  // No page goes live before the site is connected, so no moment is named.
+  const waitsForAddress = waitsForHost || waitsForWordPress;
 
   // The opening line, above the title: what this mail is.
   blocks.push({ block: "paragraph", text: READY });
@@ -108,12 +114,15 @@ export function buildDraftReady(a: {
   // REQ-057 c9's destination clause, as a `notice` beside the telling: a condition of their own site, which changes nothing c9 keeps.
   if (a.telling.destination !== null) {
     // The sentence says the setting is below only when it is.
-    const record = waitsForAddress ? a.record : undefined;
+    const record = waitsForHost ? a.record : undefined;
     blocks.push({
       block: "notice",
-      text: waitsForAddress && record === undefined ? ADDRESS_NOT_CONNECTED_NO_RECORD : a.telling.destination.copy,
+      text: waitsForHost && record === undefined ? ADDRESS_NOT_CONNECTED_NO_RECORD : a.telling.destination.copy,
       vars: { site: a.telling.destination.site },
     });
+    if (waitsForWordPress && a.connectHref !== undefined) {
+      blocks.push({ block: "action", label: CONNECT_ACTION, href: a.connectHref, variant: "secondary" });
+    }
     if (record !== undefined) {
       blocks.push({
         block: "facts",
