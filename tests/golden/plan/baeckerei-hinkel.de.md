@@ -2,6 +2,8 @@
 
 From `docs/walk/panel/2026-10-10-1374.json`: 12 stored topics, 10 committed from 2026-10-19.
 
+Supply: 10 of 10 committed, short 0; stored topics product 9, category 2, best_x 1.
+
 | Place | Day | Search | Type | Page | Fit | Volume | Points | Parts | Rule | Written as |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 0 | 2026-10-19 | beste bäckerei düsseldorf | answer_page | listicle | 3 | 170 | 5 | fit 3 + demand 2 | best | — |

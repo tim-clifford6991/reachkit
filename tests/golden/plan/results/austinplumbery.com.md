@@ -2,6 +2,8 @@
 
 From `docs/walk/panel/2026-10-09.json`: 15 stored topics, 10 committed from 2026-10-19.
 
+Supply: 10 of 10 committed, short 0; stored topics product 10, category 3, best_x 2.
+
 | Place | Day | Search | Type | Page | Fit | Volume | Points | Parts | Rule | Written as |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 0 | 2026-10-19 | best plumber austin | refresh_page | update | 2 | 390 | 6 | fit 1 + demand 2 + near_page_one 3 | stalled near page one: gap refresh | — |

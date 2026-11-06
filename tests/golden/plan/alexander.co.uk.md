@@ -2,6 +2,8 @@
 
 From `docs/walk/panel/2026-10-09.json`: 17 stored topics, 10 committed from 2026-10-19.
 
+Supply: 10 of 10 committed, short 0; stored topics product 10, category 7.
+
 | Place | Day | Search | Type | Page | Fit | Volume | Points | Parts | Rule | Written as |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 0 | 2026-10-19 | financial accountant manchester | listed_page | listicle | 2 | 260 | 3 | fit 1 + demand 2 | best | — |

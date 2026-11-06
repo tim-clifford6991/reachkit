@@ -2,6 +2,8 @@
 
 From `docs/walk/panel/2026-10-09.json`: 13 stored topics, 10 committed from 2026-10-19.
 
+Supply: 10 of 10 committed, short 0; stored topics product 10, best_x 3.
+
 | Place | Day | Search | Type | Page | Fit | Volume | Points | Parts | Rule | Written as |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 0 | 2026-10-19 | waterbar alternatives | comparison_page | listicle | 3 | — | 3 | fit 3 | best | — |
