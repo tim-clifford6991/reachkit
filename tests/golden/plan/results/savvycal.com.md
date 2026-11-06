@@ -2,6 +2,8 @@
 
 From `docs/walk/panel/2026-10-14-1423.json`: 11 stored topics, 9 committed from 2026-10-19.
 
+Supply: 9 of 10 committed, short 1; stored topics product 9, category 2.
+
 | Place | Day | Search | Type | Page | Fit | Volume | Points | Parts | Rule | Written as |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 0 | 2026-10-19 | appointment scheduling online software | refresh_page | update | 2 | 5400 | 6 | fit 1 + demand 2 + near_page_one 3 | stalled near page one: gap refresh | — |

@@ -2,6 +2,8 @@
 
 From `docs/walk/panel/2026-10-14-1417.json`: 12 stored topics, 9 committed from 2026-10-19.
 
+Supply: 9 of 10 committed, short 0; stored topics product 8, category 3, best_x 1.
+
 | Place | Day | Search | Type | Page | Fit | Volume | Points | Parts | Rule | Written as |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 0 | 2026-10-19 | habitify alternatives | comparison_page | listicle | 3 | 10 | 5 | fit 3 + demand 2 | best | — |

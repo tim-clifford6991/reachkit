@@ -1,22 +1,6 @@
-// BUILD §7 — the derivation, end to end.
-//
-// Order, and there is no other: derive deterministically (Write, Improve,
-// Earn, Fix), keeping one candidate per search → qualify and band (already
-// applied inside each family module, over the same top tens) → label through
-// the model → persist. **Nothing after
-// the derivation step may add a candidate.** The model runs after
-// qualification so that no candidate it touches is one measured evidence
-// did not produce, and persistence runs last so that de-duplication is the
-// index's.
-//
-// Returning `created: []` is a normal return with counts, never an error
-// and never a throw: empty is a success state (§2.5), and the three
-// rejection counters are what let §4.6's "supply ran out" day line be told
-// apart from "we could not read this market".
-//
-// The engine spends nothing here beyond the rows the scan already bought:
-// winnability reads counts already in `fetches`, and the only model call is
-// `opportunity-typing`, inside the pass's own cap.
+// The derivation, end to end: derive deterministically, label through the model, persist. Nothing after the
+// derivation step adds a candidate, so the model only touches what measured evidence produced.
+// An empty `created` is a success with counts, never a throw: the counters tell "supply ran out" from "unreadable".
 import type { Locale } from "@/lib/locale/locales";
 import { siteLocale } from "@/lib/locale/site";
 import type { KnowledgeDigest } from "@/lib/site-profile/knowledge/read";
@@ -46,6 +30,7 @@ import { writeCandidates } from "./write";
 import { judgeFit, type FitSearch } from "./fit";
 import { askedOfReport, askedSupply, askedTopics, brandsOf, citedTopics, type AskedSupply, candidateFor, comparisonWithoutDemand, noLongerRelevant, productsNamed, proposedTopics, rivalBrandOnly, rivalNamesOf, rivalPriceOf, sourceOf } from "./topics";
 import { judgeTyped, writeBuyerSearches } from "./buyer-searches";
+import { ledgerSourceOf, supplyLedger, type LedgerSource, type SupplyLedger } from "./ledger";
 
 export interface DeriveInput {
   siteId: string;
@@ -113,6 +98,7 @@ export interface DeriveOutcome {
   /** Targets looked at, whether or not they became opportunities. */
   assessed: number;
   rejected: RejectionCount;
+  supply: SupplyLedger;
 }
 
 export function ownRankedValue(ownRanked: Measured<number>): number {
@@ -337,6 +323,17 @@ export async function deriveOpportunities(
     .slice(0, HELD_ROWS_JUDGED);
   const sourceFor = (row: { targetQuery: string | null; source?: Candidate["source"] }) =>
     row.source ?? sourceOf(row.targetQuery ?? "", { brands, products: Object.keys(market?.demand?.brands ?? {}) });
+  const writtenKeys = new Set(written.map(queryKey));
+  const classOf = new Map<string, LedgerSource>();
+  const classed = (topic: Parameters<typeof ledgerSourceOf>[0] & { query: string }): LedgerSource => {
+    const source = ledgerSourceOf({ ...topic, written: writtenKeys.has(queryKey(topic.query)) });
+    classOf.set(queryKey(topic.query), source);
+    return source;
+  };
+  const isPage = (row: { family: Opportunity["family"] }) => row.family === "write" || row.family === "earn";
+  const derivedPages = judgedHere.filter(isPage);
+  const derivedClasses = derivedPages.map((candidate) => classed({ query: candidate.targetQuery!, source: sourceFor(candidate) }));
+  const offeredClasses = proposing.map(classed);
   const searches: FitSearch[] = [
     ...judgedHere.map((candidate) => ({ query: candidate.targetQuery!, source: sourceFor(candidate) })),
     ...unjudged.map((row) => ({ query: row.targetQuery!, source: sourceFor(row) })),
@@ -422,23 +419,8 @@ export async function deriveOpportunities(
     return candidate === null ? [] : [{ ...candidate, businessFit: fit }];
   });
 
-  // SPEC §6: one survivor per parent topic, over the rows already held as
-  // well as this pass's — after labelling, because the model may refine a
-  // Write's type and the type decides precedence. Losing open rows go first,
-  // so the one-open-row-per-cluster index never sees two.
-  //
-  // Issue 903: the collapse is also where a superseded row ends. It is told
-  // which pass these candidates came from and which topics that pass read,
-  // so a row from an earlier report on a topic this one covered and proposed
-  // nothing for is dismissed rather than left open.
-  //
-  // `today` is 884's `rebandFor`, handed in because the readiness step that
-  // normally applies it runs *after* this one: without it the collapse reads
-  // a band from whichever pass wrote the row, which is the stale number 881
-  // was written to stop competing with a right-sized candidate. Only where
-  // this pass measured the footprint — an unmeasured one would re-band the
-  // whole site as though it ranked for nothing, which is exactly the reading
-  // `readiness.ts` refuses.
+  // One survivor per parent topic over held rows and this pass's, after labelling since the type decides precedence.
+  // `today` re-bands held rows only where this pass measured the footprint; an unmeasured one would read as 0.
   const brandTokens = brandTokensOf(a.report);
   const measuredOwnRanked = a.ownRanked.kind === "unmeasured" ? null : a.ownRanked.value;
 
@@ -451,11 +433,10 @@ export async function deriveOpportunities(
   for (const [query, urls] of topTensOf(a.report)) topTens.set(query, urls);
   // #1181: the open rows already held are judged too, against each other
   // and against every topic with a page behind it, published ones included.
-  const pages = (row: { family: Opportunity["family"] }) => row.family === "write" || row.family === "earn";
   const judgedSame = await judgeSameQuestion(c, {
     searches: [
-      ...labelled.filter(pages).flatMap((candidate) => candidate.targetQuery ?? []),
-      ...existing.filter((row) => row.status === "open" && pages(row)).flatMap((row) => row.targetQuery ?? []),
+      ...labelled.filter(isPage).flatMap((candidate) => candidate.targetQuery ?? []),
+      ...existing.filter((row) => row.status === "open" && isPage(row)).flatMap((row) => row.targetQuery ?? []),
     ],
     topics: existing.flatMap((row) => row.targetQuery ?? []),
   });
@@ -479,6 +460,27 @@ export async function deriveOpportunities(
   for (const row of plan.update) await store.setCluster(row.id, row.clusterKey, row.absorbedQueries);
 
   const { created, duplicates } = await persist({ candidates: plan.insert });
+  const topFit = (index: number) => (fits.get(index)?.fit ?? 0) >= TOPIC_FIT.writeAt;
+  const classOfRow = (row: Candidate) => classOf.get(queryKey(row.targetQuery ?? "")) ?? ledgerSourceOf(row);
+  for (const question of questions) classOf.set(queryKey(question.targetQuery ?? ""), "asked");
+  const unjudgedFit = new Map(unjudged.map((row, index) => [row.id, fits.get(judgedHere.length + index)?.fit ?? row.businessFit ?? null]));
+  const dismissedNow = new Set(plan.dismiss);
+  const supply = supplyLedger({
+    stages: {
+      offered: [...derivedClasses, ...offeredClasses],
+      searched: [...derivedClasses, ...proposals.map((topic) => classOf.get(topic.query)!)],
+      fit: [
+        ...derivedPages.flatMap((candidate, n) => (topFit(judgedHere.indexOf(candidate)) ? [derivedClasses[n]!] : [])),
+        ...proposals.flatMap((topic, index) => (topFit(judgedHere.length + unjudged.length + index) ? [classOf.get(topic.query)!] : [])),
+      ],
+      candidates: [...labelled, ...questions].filter((row) => isPage(row) && (row.businessFit ?? TOPIC_FIT.gate) >= TOPIC_FIT.gate).map(classOfRow),
+      added: plan.insert.filter(isPage).map(classOfRow),
+    },
+    rows: [
+      ...existing.filter((row) => !dismissedNow.has(row.id)).map((row) => ({ ...row, businessFit: unjudgedFit.get(row.id) ?? row.businessFit })),
+      ...created,
+    ],
+  });
   // A candidate the collapse folded into a row already held is that row's
   // duplicate: an equivalent open or queued opportunity exists.
   const folded = labelled.length + questions.length - plan.insert.length;
@@ -486,6 +488,7 @@ export async function deriveOpportunities(
     created,
     assessed,
     rejected: { ...rejected, duplicate_open: rejected.duplicate_open + duplicates + folded + stillDismissed },
+    supply,
   };
 }
 

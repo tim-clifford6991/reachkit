@@ -2,7 +2,13 @@
 // the rejection counts, and empty as a success state.
 import "../env";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { AI_READER_AGENTS } from "../../../src/lib/config/constants";
+import { AI_READER_AGENTS, PLAN_DEPTH } from "../../../src/lib/config/constants";
+import type { MarketConclusion } from "../../../src/lib/market/infer/types";
+import { BUYER_SEARCHES_CALL_SITE, TYPED_CALL_SITE } from "../../../src/lib/opportunities/derive/buyer-searches";
+import { FIT_CALL_SITE } from "../../../src/lib/opportunities/derive/fit";
+import { SAME_QUESTION_CALL_SITE } from "../../../src/lib/opportunities/derive/same-question";
+import { TYPING_CALL_SITE } from "../../../src/lib/opportunities/derive/typing";
+import { toolUseMessage } from "../../llm/fixtures";
 import { measured, unmeasured } from "../../../src/lib/measure/measured";
 import { setOpportunityStore } from "../../../src/lib/opportunities/store";
 import { deriveOpportunities } from "../../../src/lib/opportunities/derive";
@@ -23,17 +29,20 @@ import {
   unreadableCounts,
 } from "../fixtures";
 
-// No model in this suite: every derivation below is the deterministic one,
-// so a count that moves is a rule that moved and never a stubbed label.
+// No model in this suite but the supply ledger's: every other derivation is
+// the deterministic one, so a count that moves is a rule that moved and never a stubbed label.
+const { createMock } = vi.hoisted(() => ({ createMock: vi.fn() }));
 vi.mock("@anthropic-ai/sdk", () => ({
   default: class MockAnthropic {
-    messages = { create: () => Promise.reject(new Error("no model in this suite")) };
+    messages = { create: createMock };
   },
 }));
 
 let state: MemoryState;
 
 beforeEach(() => {
+  createMock.mockReset();
+  createMock.mockRejectedValue(new Error("no model in this suite"));
   state = newMemoryState();
   setOpportunityStore(memoryStore(state));
 });
@@ -270,5 +279,38 @@ describe("explainChoice reads back what was stored, and recomputes nothing", () 
     expect(strings).toContain("best user onboarding software");
     expect(choice.type).toBe("answer_page");
     expect(choice.fitBand).toBe("winnable");
+  });
+});
+
+describe("the pass says how much new-page supply each source gave, at no added call", () => {
+  const market: MarketConclusion = { buyer: "SaaS product teams", job: "Get new users to their first success", category: "user onboarding software", synonyms: [], differentiators: [], notOurMarket: [], categoryReason: "", rivals: [] };
+
+  it("counts each source at the stages the pass already has, with one call per judgement", async () => {
+    const answers: Record<string, (input: { searches?: { i: number; search: string }[] }) => unknown> = {
+      [BUYER_SEARCHES_CALL_SITE]: () => ({ problems: ["how to cut onboarding churn", "why users drop off after signup"], solutions: [] }),
+      [TYPED_CALL_SITE]: (input) => ({ typed: input.searches!.filter(({ search }) => search.startsWith("how")).map(({ i }) => i) }),
+      [FIT_CALL_SITE]: (input) => {
+        const scores = input.searches!.map(({ i }) => ({ i, fit: 3, title: `Angle ${i}` }));
+        return { scores, strongest: scores.map(({ i }) => i) };
+      },
+      [SAME_QUESTION_CALL_SITE]: () => ({ pairs: [] }),
+    };
+    createMock.mockImplementation(async (request: { messages: { content: string }[]; tools?: { name: string }[] }) => {
+      const site = request.tools?.[0]?.name ?? "";
+      const answer = answers[site];
+      if (answer === undefined) throw new Error(`no model for ${site}`);
+      return toolUseMessage(answer(JSON.parse(request.messages[0]!.content)), 100, 50, site);
+    });
+    const { ctx, sources } = fakeCost();
+    const { supply, created } = await deriveOpportunities(ctx, { ...input(), market });
+
+    expect(sources).toEqual([BUYER_SEARCHES_CALL_SITE, TYPED_CALL_SITE, FIT_CALL_SITE, TYPING_CALL_SITE, SAME_QUESTION_CALL_SITE]);
+    expect(createMock).toHaveBeenCalledTimes(sources.length);
+    expect(supply.sources.best_x).toEqual({ offered: 1, searched: 1, fit: 1, candidates: 1, added: 1 });
+    expect(supply.sources.written).toEqual({ offered: 2, searched: 1, fit: 1, candidates: 1, added: 1 });
+    expect(supply.have).toBe(created.filter((row) => row.family === "write").length);
+    expect(supply.short).toBe(PLAN_DEPTH - supply.have);
+    expect(supply.dry).not.toContain("written");
+    expect(supply.dry).toContain("cited");
   });
 });

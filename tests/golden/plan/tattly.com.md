@@ -2,6 +2,8 @@
 
 From `docs/walk/panel/2026-10-14-1423.json`: 11 stored topics, 5 committed from 2026-10-19.
 
+Supply: 5 of 10 committed, short 4; stored topics product 5, category 5, best_x 1.
+
 | Place | Day | Search | Type | Page | Fit | Volume | Points | Parts | Rule | Written as |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 0 | 2026-10-19 | inkbox alternatives | comparison_page | listicle | 3 | 390 | 5 | fit 3 + demand 2 | best | — |
