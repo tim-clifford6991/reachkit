@@ -92,6 +92,14 @@ export function confirmLinkPath(tokenHash: string, type: ConfirmType): string {
   return `${CONFIRM_PATH}?${query.toString()}`;
 }
 
+/** The query a checkout return that could not sign its buyer in carries to the sign-in screen. */
+export const FROM_QUERY_KEY = "from";
+export const CHECKOUT_MARKER = "checkout";
+
+export function checkoutSignInPath(): string {
+  return `${SIGNIN_PATH}?${FROM_QUERY_KEY}=${CHECKOUT_MARKER}`;
+}
+
 /** Where a link that no longer works lands its holder (REQ-098 c7). */
 export function deadLinkPath(): string {
   return `${SIGNIN_PATH}?${LINK_QUERY_KEY}=${DEAD_LINK_MARKER}`;

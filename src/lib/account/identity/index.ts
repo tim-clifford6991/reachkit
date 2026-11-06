@@ -18,6 +18,7 @@ export {
   CHECKOUT_SESSION_QUERY_KEY,
   CONFIRM_PATH,
   SIGNIN_PATH,
+  checkoutSignInPath,
   confirmLinkPath,
   deadLinkPath,
   isAuthCookieName,
