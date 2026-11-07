@@ -37,6 +37,7 @@ import {
   Zap,
   type LucideIcon,
 } from "lucide-react";
+import { WORDPRESS_CONNECT } from "@/lib/config/constants";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { HARD_RULES } from "@/lib/generate/rules/types";
 import { PageSketch } from "@/ui/PageSketch";
@@ -692,10 +693,7 @@ export function YourPart(e: Example): React.JSX.Element {
                   <Link {...SMALL_ICON} />
                   {copy("how.part.pill.line")}
                 </span>
-                <span className="badge badge-ghost badge-sm gap-1">
-                  <Plug {...SMALL_ICON} />
-                  {copy("settings.destination.wordpress")}
-                </span>
+                {WORDPRESS_CONNECT ? <span className="badge badge-ghost badge-sm gap-1"><Plug {...SMALL_ICON} />{copy("settings.destination.wordpress")}</span> : null}
               </span>
             </span>
           </li>

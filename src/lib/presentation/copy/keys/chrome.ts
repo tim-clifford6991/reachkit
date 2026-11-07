@@ -287,7 +287,7 @@ export const CHROME_COPY = Object.freeze({
   "how.read.held.report": ["fix shown in your report", { slots: {}, fixedBy: "issue 1597 · drafted" }],
   "how.research.detail.read": ["We read your site to learn what you sell, who buys it and where you work. We keep track of up to {rivals} competitors, taken from the businesses that actually show up when your buyers search.", { slots: { rivals: "text" }, fixedBy: "issue 1597 · drafted" }],
   "how.research.detail.blocked": ["Some sites block automated visitors. Then we read your market from Google’s results instead.", { slots: {}, fixedBy: "issue 1597 · drafted" }],
-  "how.research.detail.held": ["We also check what holds your site back: whether AI is let in, whether Google has a list of your pages, slow pages and missing page titles. Each one comes with a fix you or your web person can do. On WordPress, ReachKit rewrites missing titles and descriptions for you.", { slots: {}, fixedBy: "issue 1597 · drafted" }],
+  "how.research.detail.held": ["We also check what holds your site back: whether AI is let in, whether Google has a list of your pages, slow pages and missing page titles. Each one comes with a fix you or your web person can do.", { slots: {}, fixedBy: "issue 1597 · drafted" }],
 
   // competitors
   "how.rivals.title": ["Who buyers choose instead of you", { slots: {}, fixedBy: "issue 1597 · drafted" }],
@@ -431,7 +431,7 @@ export const CHROME_COPY = Object.freeze({
   "how.part.two.line": ["Fix anything we got wrong.", { slots: {}, fixedBy: "issue 1597 · drafted" }],
   "how.part.optional": ["optional", { slots: {}, fixedBy: "issue 1597 · drafted" }],
   "how.part.three": ["Connect your website", { slots: {}, fixedBy: "issue 1597 · drafted" }],
-  "how.part.three.line": ["Copy one line we give you, or log in with WordPress.", { slots: {}, fixedBy: "issue 1597 · drafted" }],
+  "how.part.three.line": ["Copy one line we give you into your domain’s settings.", { slots: {}, fixedBy: "issue 1597 · issue 2450 · drafted" }],
   "how.part.pill.line": ["one line", { slots: {}, fixedBy: "board How it works · issue 1729 · drafted" }],
   "how.part.after": ["Every week after: nothing to do", { slots: {}, fixedBy: "issue 1597 · drafted" }],
   "how.part.page": ["goes live by itself", { slots: {}, fixedBy: "issue 1597 · drafted" }],

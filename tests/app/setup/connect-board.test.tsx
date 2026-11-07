@@ -83,7 +83,6 @@ describe("Connect matches board Setup string for string", () => {
       "We’re already writing your first page. It goes live once you connect.",
       "Where should pages live?",
       `On your web address, run by us ${HOST} One setting, once. Recommended.`,
-      "On my WordPress site You create an app password for us.",
     ]);
     expect(step.join("\n")).not.toContain("How it connects");
   });

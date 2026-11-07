@@ -10,7 +10,7 @@
 // step function of exactly one number, reading no denominator, tier,
 // market or date. That is what makes "the larger count never carries the
 // lower severity" a property of the code rather than a convention.
-import { SEVERITY_THRESHOLDS } from "@/lib/config/constants";
+import { SEVERITY_THRESHOLDS, WORDPRESS_CONNECT } from "@/lib/config/constants";
 import { NOT_BUILT } from "../_address/measured";
 import { combine, mapMeasured, measured, measuredZero, type Measured } from "@/lib/measure/measured";
 import { rankedFreePages } from "@/lib/opportunities/free-page";
@@ -52,7 +52,8 @@ const PROBLEM_COPY: Readonly<
   },
   unquotable_pages: {
     title: "problem.unquotable-pages.title",
-    doer: "problem.unquotable-pages.doer",
+    // Rewriting a page needs a WordPress ReachKit can connect; without one ReachKit writes the quotable page.
+    doer: WORDPRESS_CONNECT ? "problem.unquotable-pages.doer" : "problem.missing-pages.doer",
   },
 });
 

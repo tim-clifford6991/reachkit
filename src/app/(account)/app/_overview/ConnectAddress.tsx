@@ -5,6 +5,7 @@
 import type React from "react";
 import Link from "next/link";
 import { Check, ChevronDown } from "lucide-react";
+import { WORDPRESS_CONNECT } from "@/lib/config/constants";
 import { copy } from "@/lib/presentation/copy";
 import { nameInZone } from "@/lib/publish/destinations/hosted/dns-guide";
 import { CopyValue } from "../../_destination/CnameRecord";
@@ -121,12 +122,14 @@ export function ConnectAddress(p: {
               {copy("overview.connect.other")}
             </summary>
             <div className={`collapse-content flex flex-col gap-2 px-0 ${QUIET}`}>
-              <p>
-                <span className="me-1">{copy("overview.connect.wordpress")}</span>
-                <Link className="link link-primary" href={SETTINGS_TAB_HREF.pages}>
-                  {copy("overview.connect.wordpress.link")}
-                </Link>
-              </p>
+              {WORDPRESS_CONNECT ? (
+                <p>
+                  <span className="me-1">{copy("overview.connect.wordpress")}</span>
+                  <Link className="link link-primary" href={SETTINGS_TAB_HREF.pages}>
+                    {copy("overview.connect.wordpress.link")}
+                  </Link>
+                </p>
+              ) : null}
               <p>{copy("overview.connect.later")}</p>
             </div>
           </details>
