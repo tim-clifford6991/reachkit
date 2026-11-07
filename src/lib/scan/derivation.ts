@@ -17,7 +17,8 @@
 //
 // The guard (`RESCORE_GUARD`), decided before any write: no score moves
 // further than it allows, no scored scan loses its number, and no scan this
-// build cannot read beyond the ones the run before could not read either.
+// build cannot read beyond the ones the run before could not read either,
+// and no report with `rivalsLostFrom` measured rivals or more left with none.
 import { RESCORE_GUARD } from "@/lib/config/constants";
 
 /** The deployed derivation; `null` where the build carried none (a test, a
@@ -69,11 +70,14 @@ export function nextStep(runs: readonly RunRecord[], derivation: string): NextSt
   return { settled: true };
 }
 
-/** A scan whose score the run would change. `null` is no number. */
+/** A scan whose score or rival count the run would change. `null` is no
+ *  number; for rivals, not measured, which is never 0. */
 export interface ScoreMove {
   domain: string;
   before: number | null;
   after: number | null;
+  rivalsBefore: number | null;
+  rivalsAfter: number | null;
 }
 
 /** Why a run may not write, or `null` where it may. */
@@ -100,6 +104,9 @@ export function heldBecause(a: {
   if (a.unreadableBefore !== null && a.unreadable > a.unreadableBefore) {
     reasons.push(`${a.unreadable} stored scans this build cannot read, ${a.unreadableBefore} before`);
   }
+  const emptied = a.moves.filter((m) => m.rivalsBefore !== null && m.rivalsBefore >= RESCORE_GUARD.rivalsLostFrom && m.rivalsAfter === 0);
+  if (emptied.length === 1) reasons.push(`${emptied[0]!.domain} loses all its rivals (${emptied[0]!.rivalsBefore} → 0)`);
+  else if (emptied.length > 1) reasons.push(`${emptied.length} reports lose all their rivals: ${emptied.map((m) => `${m.domain} (${m.rivalsBefore} → 0)`).join(", ")}`);
   return reasons.length === 0 ? null : reasons.join("; ");
 }
 
