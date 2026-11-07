@@ -337,14 +337,69 @@ again. A store that cannot answer still mails and logs
 **The outside check.** The heartbeat cannot see *every* job stopping, so `GET /api/health`
 reads the same rows on each request: `200 {"ok":true}` when every scheduled job with a row is within
 twice its interval, `503` with `stale` (the job ids, mailed or not) or `reason` (`no-runs`,
-`read-failed`) otherwise. It needs no session, is never cached, and writes nothing. UptimeRobot
-polls it every 5 minutes and must not follow redirects, so a 307 to `/signin` reads as down.
+`read-failed`) otherwise. It needs no session, is never cached, and writes nothing.
 
-The alert is carried by the jobs themselves — Vercel Hobby's crons are daily, so there is no
-second clock to watch the first. One job stopping is caught by the others (the 15-minute
-maintenance tick watches the hourly four, and they watch it). **Every job stopping sends no
-mail**, because nothing runs to notice: that is the "every row old" line above, and the reason to
-read the table after a deploy or a sync. The heartbeat is installed only where `/api/jobs` mounts
+**The box's clock.** `rk-deadman.timer` runs `scripts/deadman.mjs` every 2 minutes from the box,
+which Vercel does not host, so it still runs when every deployment answers 402 (2026-11-07). It
+sends a `GET` with a 10 s timeout and redirects not followed to `https://reachkit.app/`,
+`https://reachkit.app/api/health` and `https://dev.reachkit.app/api/health`. Only a 2xx is up;
+a 307, a 402, a 503, a timeout or a DNS or TLS failure is down. State is
+`/root/ops/reachkit/state/deadman.json` (`RK_DEADMAN_STATE` elsewhere), and each run appends one
+line to `/root/ops/reachkit/log/deadman.log`: each target's status or error class, and the outcome
+(`up`, `down`, `mailed`, `mail-failed`). It reads only `RESEND_API_KEY`, `MAIL_FROM` and
+`OWNER_EMAILS`, writes nothing to production and triggers no job. The mails, to every
+`OWNER_EMAILS` address through Resend:
+
+| Subject | Means |
+|---|---|
+| *ReachKit is down: n of 3 checks failing* | a target missed two probes in a row, about 4 minutes. Each target's status says which: 402 is the Vercel account, 503 with stale jobs is the jobs, a timeout or `ENOTFOUND` is the network or DNS |
+| *ReachKit is still down* | the same outage, 6 hours on; one every 6 hours while it lasts |
+| *ReachKit is back up* | the first 2xx after a mailed outage, with how long it lasted |
+| *ReachKit deadman: test* | `node scripts/deadman.mjs --env-file /root/projects/reachkit/.env.local --test-mail`, run by hand; it probes nothing and writes no state |
+
+When Resend does not accept a mail, the run opens one issue titled `[down] reachkit.app` with
+`gh`, or comments on the open one, and GitHub's own notification carries the alert. One failed
+probe followed by a 2xx sends nothing. UptimeRobot, if the owner keeps it, is the second clock,
+for when the box itself is down: it polls `/api/health` every 5 minutes, must not follow
+redirects, and alerts the same inbox.
+
+To recreate the timer, as root, write these two units, then run
+`systemctl daemon-reload && systemctl enable --now rk-deadman.timer`:
+
+```ini
+# /etc/systemd/system/rk-deadman.service
+[Unit]
+Description=ReachKit ops - the product answers 2xx, probed from outside Vercel
+After=network-online.target
+Wants=network-online.target
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/root/projects/reachkit
+Environment=HOME=/root
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+ExecStart=/usr/bin/node /root/projects/reachkit/scripts/deadman.mjs --env-file /root/projects/reachkit/.env.local
+StandardOutput=append:/root/ops/reachkit/log/deadman.log
+StandardError=append:/root/ops/reachkit/log/deadman.log
+
+# /etc/systemd/system/rk-deadman.timer
+[Unit]
+Description=ReachKit ops - probe the product every 2 minutes
+[Timer]
+OnCalendar=*:0/2
+Persistent=true
+AccuracySec=10s
+[Install]
+WantedBy=timers.target
+```
+
+`systemctl list-timers rk-deadman.timer` shows the next run. Remove it with
+`systemctl disable --now rk-deadman.timer` and delete the two files.
+
+Inside the product the alert is carried by the jobs themselves. One job stopping is caught by the
+others (the 15-minute maintenance tick watches the hourly four, and they watch it). Every job
+stopping is caught by the box's clock: `/api/health` answers 503 with `reason` `no-runs` or the
+stale ids, and the deadman mails it. The heartbeat is installed only where `/api/jobs` mounts
 the registry; a failed write logs `{"event":"job_heartbeat","outcome":"record-failed"}` and never
 fails the job.
 
