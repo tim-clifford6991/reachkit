@@ -763,7 +763,7 @@ export const REPORT_COPY = Object.freeze({
   /* ── The free-scans gallery, `/scans`, and the landing's strip (#1069) ── */
   // SPEC §2 2026-09-24 (#1058, #1059). The words of board `PubScans`; the
   // rest drafted in the registry's voice for the owner to correct.
-  "gallery.eyebrow": ["Free scans · live", { slots: {}, fixedBy: "issue 1069 · R12-3" }],
+  "gallery.eyebrow": ["Scan library", { slots: {}, fixedBy: "owner 2026-11-06, issue 2452" }],
   "gallery.heading": ["Every free scan, in the open.", { slots: {}, fixedBy: "issue 1069 · R12-3" }],
   "gallery.subline": [
     "{count} free reports, each at a lasting public link. See how businesses like yours show up on Google and AI.",

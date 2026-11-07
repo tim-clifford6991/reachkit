@@ -42,6 +42,7 @@ const { default: LandingPage, metadata } = await import("@/app/(public)/page");
 const { copy } = await import("@/lib/presentation/copy");
 const { SPECIMEN_HERO_BUSINESS, SPECIMEN_HERO_DOMAIN, SPECIMEN_HERO_RIVAL } = await import("@/app/(public)/_landing/specimen");
 const { BUSINESS_KIND_NAMES } = await import("@/lib/market/kinds");
+const { EXAMPLES } = await import("@/app/(public)/_how/specimen");
 
 function stored(score: number | null = 62): void {
   db.logo = false;
@@ -226,7 +227,9 @@ describe("the story card: four frames, the board's words and no footer", () => {
   });
 
   const board = (name: string) => parse(readFileSync(boardFile(name), "utf8")).querySelector("figure[id^=hero-]")!;
-  const names = new Set<string>([SPECIMEN_HERO_DOMAIN, SPECIMEN_HERO_RIVAL].flatMap((d) => words(d)));
+  // The boards draw the software example; the names of either example are not words of the frame.
+  const { software } = EXAMPLES;
+  const names = new Set<string>([SPECIMEN_HERO_DOMAIN, SPECIMEN_HERO_RIVAL, software.site, software.report.rivals[0]!].flatMap((d) => words(d)));
   const count = (el: HTMLElement): number => words(flat(el)).filter((w: string) => !names.has(w)).length;
 
   it("competitors found, we research, we write pages, you get found, each titled with when it happens", async () => {

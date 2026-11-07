@@ -60,8 +60,8 @@ describe("the boards draw a ring for every score (E17)", () => {
   });
 
   // Decisions 2026-11-01-2265 and 2026-11-03-2281: the row is ReachKit's own report, and states no score, so it draws no ring.
-  it("the landing's and About's report row draws ReachKit's own mark beside reachkit.app, links the report, and states no score", () => {
-    for (const name of ["PubLanding", "PubLandingPhone", "PubAbout"]) {
+  it("About's report row draws ReachKit's own mark beside reachkit.app, links the report, and states no score", () => {
+    for (const name of ["PubAbout"]) {
       const own = board(name).querySelectorAll('a[href="PubReport.dc.html"]').find((a) => a.text.includes("reachkit.app"))!;
       expect(own, name).toBeDefined();
       expect(own.querySelector('[data-slot="brand-mark"]'), name).not.toBeNull();

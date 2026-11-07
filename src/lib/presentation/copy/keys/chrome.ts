@@ -51,7 +51,7 @@ export const CHROME_COPY = Object.freeze({
   "chrome.theme.to-dark": ["Switch to dark theme", { slots: {}, fixedBy: "board PubLanding · owner 2026-10-20" }],
   "chrome.theme.to-light": ["Switch to light theme", { slots: {}, fixedBy: "board PubLanding · owner 2026-10-20 · drafted" }],
   /** The gallery, third of the header's three links (owner 2026-10-20, Q1). */
-  "chrome.nav.scans": ["Free scans", { slots: {}, fixedBy: "issue 1069" }],
+  "chrome.nav.scans": ["Scan library", { slots: {}, fixedBy: "owner 2026-11-06, issue 2452" }],
   "chrome.cta.start": ["Free scan", { slots: {}, fixedBy: "issue 1582" }],
   /** Signed in, the header's one solid button into the app, in place of
    *  *Sign in* and *Start free* (owner 2026-09-26, #1125). Drafted; the
