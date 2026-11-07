@@ -12,16 +12,16 @@ The repository and GitHub are the only record (`docs/PROCESS.md` › Source of t
 Run these together:
 
 ```bash
-git -C /root/projects/reachkitv3 fetch -q origin
-git -C /root/projects/reachkitv3 log origin/main --since="3 days ago" --format="%h %s"
+git -C /root/projects/reachkit fetch -q origin
+git -C /root/projects/reachkit log origin/main --since="3 days ago" --format="%h %s"
 gh pr list --state open --json number,title,headRefName,headRefOid,mergeable,isDraft,statusCheckRollup,updatedAt \
   --jq '.[] | [.number, .headRefName, .mergeable, ([.statusCheckRollup[]? | select(.conclusion != "SUCCESS" and .conclusion != "SKIPPED" and .conclusion != "NEUTRAL") | "\(.name // .context):\(if (.conclusion // "") == "" then (.status // .state) else .conclusion end)"] | join(",")), .title] | @tsv'
 gh issue list --label blocked-on-owner --state open --json number,title --jq '.[] | "\(.number)\t\(.title)"'
 gh issue list --milestone Launch --state open --json number,title,labels --jq '.[] | "\(.number)\t\([.labels[].name] | join(","))\t\(.title)"'
 gh issue list --state open --search "in:title hygiene OR nightly OR layout OR flaky" --json number,title --jq '.[] | "\(.number)\t\(.title)"'
-npm --prefix /root/projects/reachkitv3 run --silent box
+npm --prefix /root/projects/reachkit run --silent box
 herdr tab list 2>/dev/null || true
-node /root/projects/reachkitv3/scripts/this-week.mjs --days 3
+node /root/projects/reachkit/scripts/this-week.mjs --days 3
 ```
 
 For each open pull request, read only the newest comments: `gh pr view <n> --json comments --jq '.comments[-3:][] | "\(.author.login) \(.createdAt)\n\(.body)"'`. A release QA verdict names a head SHA; a GO is stale once the head has moved.

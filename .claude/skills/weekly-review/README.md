@@ -10,7 +10,7 @@ The orchestrator installs it on the box. The run is `SKILL.md`; this page is onl
 #!/usr/bin/env bash
 # Starts the weekly review. This file is not a copy of the rules; SKILL.md is.
 set -euo pipefail
-cd /root/projects/reachkitv3
+cd /root/projects/reachkit
 # The subscription, never the API: with a key in the environment, claude bills it.
 unset ANTHROPIC_API_KEY
 read_tools="Read Grep Glob Task Skill WebFetch Edit(./.review/weekly/**) Bash(git fetch -q origin) Bash(git ls-files src) Bash(xargs wc -l) Bash(sort -n) Bash(tail -21) Bash(mkdir -p .review/weekly) Bash(date -u +%F) Bash(date -u -d '7 days ago' +%F) Bash(curl -fsS https://reachkit.app/api/health) Bash(npm run orphans) Bash(npm run costs -- --stored) Bash(npm outdated --json) Bash(npm audit --omit=dev --json) Bash(node scripts/hygiene.mjs) Bash(node scripts/this-week.mjs) Bash(gh issue list:*) Bash(gh issue view:*) Bash(gh pr list:*) Bash(gh run list:*) Bash(gh api 'repos/tim-clifford6991/reachkit/actions/runs?per_page=100' --jq:*)"
@@ -38,7 +38,7 @@ Wants=network-online.target
 [Service]
 Type=oneshot
 User=root
-WorkingDirectory=/root/projects/reachkitv3
+WorkingDirectory=/root/projects/reachkit
 Environment=HOME=/root
 Environment=PATH=/root/.local/bin:/usr/local/bin:/usr/bin:/bin
 ExecStart=/usr/bin/env bash /root/ops/reachkit/bin/weekly.sh

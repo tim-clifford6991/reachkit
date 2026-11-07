@@ -16,7 +16,7 @@ This page starts after the merge.
 
 2026-10-08  **The guard watches the box** (owner, #1348). `rk-guard` reports low memory,
 swap, load, leaked processes whose directory is gone, and heavy work in the main checkout
-`/root/projects/reachkitv3`. A layout run, a browser sweep, and a production build on this box
+`/root/projects/reachkit`. A layout run, a browser sweep, and a production build on this box
 are the gates and the deploys.
 
 2026-10-08  **Hygiene runs every day** (owner). `scripts/hygiene.mjs` is part of the
@@ -724,7 +724,7 @@ Both null means no pass has read the site yet; its next pass reads and stores th
 
 ### The customer panel
 
-`npm run panel -- --env-file ../../reachkitv3/.env.local` runs every site of
+`npm run panel -- --env-file ../../.env.local` runs every site of
 `docs/walk/panel/sites.json` through a paying site's first pass (SPEC §0, owner 2026-10-07, #1304):
 the site read, the market concluded with its terms, the searches seeded and asked, the knowledge
 base, the rivals with their demand, and the topics. The first page is not written, no second pass
@@ -770,7 +770,7 @@ United States. A pass reads it once for a site that serves one place and keeps t
 
 ### Free scans off production
 
-`npm run free-scan -- --env-file ../../reachkitv3/.env.local --sites a.com,b.com` runs the free
+`npm run free-scan -- --env-file ../../.env.local --sites a.com,b.com` runs the free
 scan a stranger starts from the landing page on the named sites (#1438), on the same local database
 and with the same two keys as the panel (`scripts/local-run.mjs`): the slot is claimed as
 `POST /api/scan` claims it, one network per site, and the product's own
@@ -1117,7 +1117,7 @@ and logs to `/root/ops/reachkit/log/vendor-snapshot.log`:
 
 It reads `GET https://api.dataforseo.com/v3/appendix/user_data`, which the vendor does not
 charge for: the balance, everything deposited, and the vendor's total for its own day (the
-account's timezone, Europe/Berlin). It takes the keys from `/root/projects/reachkitv3/.env.local`
+account's timezone, Europe/Berlin). It takes the keys from `/root/projects/reachkit/.env.local`
 and prints no credential. When that file holds `ANTHROPIC_ADMIN_KEY`, the line also carries
 `"anthropic":{"days":{"2026-10-11":96.2,…}}`: the organisation's cost report
 (`GET /v1/organizations/cost_report`) for today and the seven days before, in cents. That report
@@ -1140,7 +1140,7 @@ User=root
 WorkingDirectory=/root/ops/reachkit
 Environment=HOME=/root
 Environment=PATH=/usr/local/bin:/usr/bin:/bin
-ExecStart=/usr/bin/node /root/projects/reachkitv3/scripts/vendor-snapshot.mjs
+ExecStart=/usr/bin/node /root/projects/reachkit/scripts/vendor-snapshot.mjs
 StandardOutput=append:/root/ops/reachkit/log/vendor-snapshot.log
 StandardError=append:/root/ops/reachkit/log/vendor-snapshot.log
 

@@ -17,9 +17,9 @@ import { staleBaselines } from "./design/baseline.mjs";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const REPO = "tim-clifford6991/reachkit";
 const TITLE = "[hygiene] consistency check is red";
-const MAIN = "/root/projects/reachkitv3";
-const TEMPLATE = "/root/projects/lean-template";
-const NEW_PROJECT = "/root/projects/new-project.sh";
+const MAIN = "/root/projects/reachkit";
+const TEMPLATE = "/root/ops/lean-template";
+const NEW_PROJECT = "/root/ops/bin/new-project.sh";
 const OPS = "/root/ops/reachkit";
 const GUARD = "/root/ops/reachkit/bin/resource-guard.sh";
 const WRAPPER = "/root/ops/reachkit/bin/hygiene.sh";
@@ -422,7 +422,7 @@ function checkBox() {
     scanText("box", path.relative(TEMPLATE, abs), readFileSync(abs, "utf8"));
   }
 
-  if (!existsSync(NEW_PROJECT)) add("box", "missing /root/projects/new-project.sh");
+  if (!existsSync(NEW_PROJECT)) add("box", `missing ${NEW_PROJECT}`);
   else {
     const text = readFileSync(NEW_PROJECT, "utf8");
     if (text.includes("DECISIONS.md")) add("box", "new-project.sh names DECISIONS.md");
@@ -443,7 +443,7 @@ function checkBox() {
   else {
     const guard = readFileSync(GUARD, "utf8");
     const breaches = guard.split("\n").filter((line) => line.includes("RULE BREACH:"));
-    if (breaches.length !== 1 || !breaches[0].includes("/root/projects/reachkitv3")) {
+    if (breaches.length !== 1 || !breaches[0].includes(MAIN)) {
       add("box", "resource-guard.sh RULE BREACH is not only the main checkout");
     }
     for (const needle of ["LOW MEMORY", "SWAP NEARLY FULL", "LOAD HIGH", "cwd deleted"]) {

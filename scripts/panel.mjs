@@ -7,12 +7,12 @@
 //
 // # Usage
 //
-//   npm run panel -- --env-file ../../reachkitv3/.env.local
-//   npm run panel -- --env-file ../../reachkitv3/.env.local --sites zunicafe.com,savvycal.com
-//   npm run panel -- --env-file ../../reachkitv3/.env.local --cap-cents 60
-//   npm run panel -- --env-file ../../reachkitv3/.env.local --continue --cap-cents 300   # run the sites today's run did not reach
+//   npm run panel -- --env-file ../../.env.local
+//   npm run panel -- --env-file ../../.env.local --sites zunicafe.com,savvycal.com
+//   npm run panel -- --env-file ../../.env.local --cap-cents 60
+//   npm run panel -- --env-file ../../.env.local --continue --cap-cents 300   # run the sites today's run did not reach
 //   npm run panel -- --recheck --date 2026-10-07                       # judge a stored run again: 0¢, no database
-//   npm run panel -- --env-file ../../reachkitv3/.env.local --keep     # leave the local database up
+//   npm run panel -- --env-file ../../.env.local --keep     # leave the local database up
 //
 // It runs live, up to `--cap-cents` (default 100) for the whole panel, and
 // writes each paid call to the box's spend log (D57). It prints each site's
