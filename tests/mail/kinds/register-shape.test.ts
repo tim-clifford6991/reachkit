@@ -24,12 +24,14 @@ const DECLARED = [
   "payment-failed",
   "cancellation",
   "win-back",
+  // SPEC §5: the connect steps a buyer sends to their web person.
+  "web-person",
 ] as const;
 
 describe("BUILD §12 — the register of mail kinds", () => {
-  it("holds exactly the fourteen declared kinds", () => {
+  it("holds exactly the fifteen declared kinds", () => {
     expect(Object.keys(MAIL_KINDS).sort()).toEqual([...DECLARED].sort());
-    expect(Object.keys(MAIL_KINDS)).toHaveLength(14);
+    expect(Object.keys(MAIL_KINDS)).toHaveLength(15);
   });
 
   it("every stoppability is one of the three admitted values", () => {
@@ -50,7 +52,7 @@ describe("BUILD §12 — the register of mail kinds", () => {
   });
 
   it("the sign-in, account and setup mails can be stopped by nothing", () => {
-    for (const kind of ["magic-link", "account", "setup-reminder", "payment-failed", "cancellation"] as const) {
+    for (const kind of ["magic-link", "account", "setup-reminder", "payment-failed", "cancellation", "web-person"] as const) {
       expect(MAIL_KINDS[kind].stoppable, kind).toBe(false);
     }
   });
@@ -78,7 +80,7 @@ describe("BUILD §12 — the register of mail kinds", () => {
     expect(() => {
       (MAIL_KINDS as unknown as Record<string, unknown>).newsletter = { occasionsFrom: "§0", stoppable: false };
     }).toThrow(TypeError);
-    expect(Object.keys(MAIL_KINDS)).toHaveLength(14);
+    expect(Object.keys(MAIL_KINDS)).toHaveLength(15);
   });
 
   it("a mail on an unregistered occasion does not typecheck", () => {

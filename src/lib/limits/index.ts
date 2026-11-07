@@ -5,7 +5,7 @@ import { env } from "@/lib/config/env";
 import { dbAdmin } from "@/lib/db";
 import type { NetworkKey } from "@/lib/scan/admission";
 
-type KeyName = "network" | "email" | "scanId";
+type KeyName = "network" | "email" | "scanId" | "site";
 
 interface Limit {
   readonly key: KeyName;
@@ -29,14 +29,16 @@ const RULES = {
     { key: "scanId", windowS: DAY_S, max: 5 },
   ],
   tool_check: [{ key: "network", windowS: HOUR_S, max: 30 }],
+  web_person: [{ key: "site", windowS: DAY_S, max: 3 }],
 } as const satisfies Record<string, readonly Limit[]>;
 
 export type LimitRule = keyof typeof RULES;
 
 export interface LimitKeys {
-  readonly network: NetworkKey;
+  readonly network?: NetworkKey;
   readonly email?: string;
   readonly scanId?: string;
+  readonly site?: string;
 }
 
 interface RpcClient {

@@ -141,11 +141,11 @@ describe("SPEC §5 (docs/spec/decisions/2026-10-22-1737.md) — three saved step
     expect(SETUP_STEPS.map(primary)).toEqual(["Continue", "Looks right", COPY["setup.connect.check"]]);
   });
 
-  it("the first step alone says the time the founder's own part takes", () => {
+  it("Site and Connect say the time the founder's own part takes, and Connect that a web person can do it", () => {
     expect(SETUP_STEPS.map((step) => screenFor(step).querySelector('[data-testid="setup-step-time"]')?.textContent ?? null)).toEqual([
       "About 10 minutes, once",
       null,
-      null,
+      "5–10 min, or send it to your web person",
     ]);
   });
 
@@ -216,12 +216,12 @@ describe("REQ-025 c1 — nothing on any step states how long anything takes", ()
   // minutes.") went with the one submit: the five-step screen has no
   // control to hang it on, so c1 stands unamended again.
   const TIME =
-    /(\d+\s*(second|minute|hour|day|week)s?|~\s*\d|about\s+\d|%|remaining|elapsed|eta\b|countdown)/i;
+    /(\d+\s*(second|minute|min\b|hour|day|week)s?|~\s*\d|about\s+\d|%|remaining|elapsed|eta\b|countdown)/i;
 
   it("no rendered string on any step states a duration, an estimate or a percentage, but the founder's own time", () => {
     for (const step of SETUP_STEPS) {
       for (const facts of [{}, SCANLESS, { concluded: null }]) {
-        const text = (screenFor(step, facts).textContent ?? "").replace(COPY["setup.step.time"], "");
+        const text = (screenFor(step, facts).textContent ?? "").replace(COPY["setup.step.time"], "").replace(COPY["setup.step.publishing.time"], "");
         expect(text, step).not.toMatch(TIME);
       }
     }
@@ -245,7 +245,7 @@ describe("REQ-025 c1 — nothing on any step states how long anything takes", ()
    * It is listed rather than pattern-excused: a second key that states a
    * duration fails here, which is what this test is for.
    */
-  const STATES_THE_FOUNDERS_OWN_TIME = ["setup.step.time"];
+  const STATES_THE_FOUNDERS_OWN_TIME = ["setup.step.time", "setup.step.publishing.time"];
 
   it("no setup key states one, but for the founder's own task", () => {
     const spoken = (Object.keys(COPY) as (keyof typeof COPY)[]).filter((key) =>

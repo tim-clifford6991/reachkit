@@ -40,6 +40,11 @@ import {
 const db = fakeDb();
 vi.mock("@/lib/db", () => ({ dbAdmin: () => db.client, db: () => db.client }));
 
+// The limiter's salt is server-only, and this environment has a `window`; the server action runs here all the same.
+vi.mock("@/lib/config/env", async (importOriginal) => {
+  const actual = await importOriginal<{ env: Record<string, unknown> }>();
+  return { ...actual, env: new Proxy({}, { get: (_t, key: string) => (key === "IP_HASH_SALT" ? "salt-fixture" : actual.env[key]) }) };
+});
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
   redirect: vi.fn(),
@@ -378,5 +383,89 @@ describe("SPEC §5 — beside the record, where the founder's DNS actually is (i
       expect(AWAITING_COPY, key).not.toContain(key);
       expect(COPY[key], key).not.toContain(TODO_COPY_MARKER);
     }
+  });
+});
+
+const { __setVendorTransportForTesting } = await import("@/lib/mail/vendor/resend");
+
+describe("SPEC §5 — the buyer sends the record and its steps to their web person", () => {
+  type Sent = { to: string[]; reply_to: string; subject: string; text: string };
+  const sent: Sent[] = [];
+  const hits = new Map<string, number>();
+
+  beforeEach(() => {
+    sent.length = 0;
+    hits.clear();
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    __setVendorTransportForTesting(async (payload) => {
+      sent.push(JSON.parse(payload) as Sent);
+      return { status: 200, headers: {}, body: JSON.stringify({ id: `re_${sent.length}` }) };
+    });
+    // `take_rate_limits` as its migration counts: one row per scope, key and window, allowed while within max.
+    db.rpcs.set("take_rate_limits", (args) => {
+      const a = args as { p_scopes: string[]; p_keys: string[]; p_max: number[] };
+      return a.p_scopes.every((scope, i) => {
+        const row = `${scope}|${a.p_keys[i]}`;
+        hits.set(row, (hits.get(row) ?? 0) + 1);
+        return hits.get(row)! <= a.p_max[i]!;
+      });
+    });
+  });
+  afterEach(() => __setVendorTransportForTesting(null));
+
+  async function press(block: HTMLElement, to: string): Promise<string> {
+    const form = block.querySelector<HTMLFormElement>('[data-testid="web-person"]')!;
+    const input = form.querySelector("input")!;
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(input, to);
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await act(async () => {
+      form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    });
+    await vi.waitFor(() => expect(form.querySelector('[role="status"]')).not.toBeNull());
+    return form.querySelector('[role="status"]')!.textContent ?? "";
+  }
+
+  it("one mail per press, with the record and steps exactly as each block draws them, and replies going to the buyer", async () => {
+    resolver(async () => ["hasslo.ns.cloudflare.com", "connie.ns.cloudflare.com"]);
+    const blocks = await screens();
+    for (const [screen, block] of Object.entries(blocks)) {
+      expect(block.querySelectorAll('[data-testid="web-person"]'), screen).toHaveLength(1);
+      const guide = await guideIn(block, "cloudflare");
+      expect(await press(block, ` webby-${screen}@agency.test `), screen).toBe(COPY["setup.connect.send.sent"]);
+      const mail = sent.at(-1)!;
+      expect(mail.to, screen).toEqual([`webby-${screen}@agency.test`]);
+      expect(mail.reply_to, screen).toBe("founder@acme.test");
+      expect(mail.subject, screen).toBe(copy("mail.webPerson.subject", { domain: DOMAIN }));
+      for (const [label, value] of guide.fields) expect(mail.text, screen).toContain(`${label}: ${value}`);
+      for (const step of [...guide.steps, guide.proxy!, guide.fullName!]) expect(mail.text, screen).toContain(step);
+    }
+    expect(sent).toHaveLength(2);
+  });
+
+  it("the fourth send for a site in a day is refused in a plain line, and only a hashed count is written", async () => {
+    resolver(async () => Promise.reject(new Error("ENOTFOUND")));
+    const { settings } = await screens();
+    const tables = JSON.stringify([...db.tables]);
+    const read = db.rpcCalls.length;
+    const answers = [];
+    for (let i = 0; i < 4; i++) answers.push(await press(settings, `web${i}@agency.test`));
+    expect(answers).toEqual([...Array(3).fill(COPY["setup.connect.send.sent"]), COPY["setup.connect.send.limited"]]);
+    expect(sent).toHaveLength(3);
+    // No row beyond the limiter's: the tables are as the screens left them, and the count's key is a hash.
+    expect(JSON.stringify([...db.tables])).toBe(tables);
+    const calls = db.rpcCalls.slice(read);
+    expect(calls.map((call) => call.fn)).toEqual(Array(4).fill("take_rate_limits"));
+    expect(JSON.stringify(calls)).not.toMatch(/agency\.test|site-1/);
+  });
+
+  it("an address that is not one is refused before anything is counted or sent", async () => {
+    resolver(async () => ["ns51.domaincontrol.com"]);
+    const { settings } = await screens();
+    const read = db.rpcCalls.length;
+    expect(await press(settings, "not an address")).toBe(COPY["setup.connect.send.invalid"]);
+    expect(db.rpcCalls.slice(read)).toEqual([]);
+    expect(sent).toEqual([]);
   });
 });
