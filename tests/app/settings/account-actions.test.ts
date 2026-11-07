@@ -86,6 +86,7 @@ const { NEW_EMAIL_FIELD, EMAIL_CHANGE_INITIAL } = await import(
 const { beginEmailChangeAction, cancelEmailChangeAction, signOutAction } = await import(
   "@/app/(account)/app/settings/account-actions"
 );
+const { PENDING_COOKIE, isPendingFor } = await import("@/lib/account/signin-pending");
 
 let state = newMemoryIdentity();
 let auth = newFakeAuth();
@@ -206,6 +207,16 @@ describe('REQ-077 c2 — "a sign-in link is sent to it and the old address keeps
 });
 
 describe("REQ-077 c2 — three refusals, each with its own line, and nothing sent", () => {
+  it("a refused change leaves this browser unmarked; an accepted one marks it, so its link needs no press (SPEC §3)", async () => {
+    const user = addAccount(state, { email: "founder@example.com" });
+    addAccount(state, { email: "taken@example.com" });
+    signIn(user.id);
+    await beginEmailChangeAction(EMAIL_CHANGE_INITIAL, submit("taken@example.com"));
+    expect(jar.has(PENDING_COOKIE)).toBe(false);
+    await beginEmailChangeAction(EMAIL_CHANGE_INITIAL, submit("new@example.com"));
+    expect(isPendingFor(jar.get(PENDING_COOKIE), "email_change")).toBe(true);
+  });
+
   it("an address that already belongs to an account", async () => {
     const user = addAccount(state, { email: "founder@example.com" });
     addAccount(state, { email: "taken@example.com" });

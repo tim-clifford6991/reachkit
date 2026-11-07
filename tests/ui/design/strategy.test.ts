@@ -147,8 +147,7 @@ describe("UI strategy: titles and retired names (#1463)", () => {
       "A subscription adds a page every day for your site.",
       "24 hours by default, from none up to seven days",
       "Cancel any time from Settings, in one click: your access continues.",
-      "Your access ends. Payments already made are not refunded unless the law requires it.",
-    ].map(retiredIn)).toEqual(["a page every day for your site", "from none", "in one click:", "Payments already made are not refunded"]);
+    ].map(retiredIn)).toEqual(["a page every day for your site", "from none", "in one click:"]);
     expect([
       "Unsubscribe in one click.",
       "Otherwise your access continues, and payments already made are not refunded unless the law requires it.",

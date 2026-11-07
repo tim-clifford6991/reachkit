@@ -113,7 +113,6 @@ export async function readBilling(userId: string): Promise<BillingFacts> {
     state: summary.value.summary.state,
     paidThrough: summary.value.summary.paidThrough,
     surfaceHref: BILLING_SURFACE,
-    refundUntil: summary.value.summary.refundUntil,
   };
 }
 

@@ -153,12 +153,7 @@ export const SETUP_COPY = Object.freeze({
     "Your web address uses {nameserver}. Paste this wherever you manage that.",
     { slots: { nameserver: "text" }, fixedBy: "SPEC §5 (2026-09-16, issue 760)" },
   ],
-  /** Issue 856 (owner 2026-09-17): one instruction, not a choice. A proxied
-   *  record did verify for `content.reachkit.app` on 2026-09-16, but a
-   *  hosted custom domain behind Cloudflare's proxy commonly fails its
-   *  certificate, and "either works, try the other if not" left the
-   *  founder to choose. DNS only is the instruction; the reason is one
-   *  line. Shown only on Cloudflare. */
+  /** One instruction, not a choice: a custom domain behind Cloudflare's proxy commonly fails its certificate. */
   "setup.destination.dnsProxy": [
     "Set Proxy status to DNS only (the grey cloud). With the proxy on, the connection often fails.",
     { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" },
@@ -399,6 +394,7 @@ export const SETUP_COPY = Object.freeze({
   "setup.step.publishing": ["Connect", { slots: {}, fixedBy: "owner E11 · issue 1601" }],
 
   "setup.step.time": ["About 10 minutes, once", { slots: {}, fixedBy: "SPEC §5 · board Setup1 · issue 1737" }],
+  "setup.step.publishing.time": ["5–10 min, or send it to your web person", { slots: {}, fixedBy: "board Setup · issue 2114 (drafted)" }],
 
   /** One question per step — the screen's `<h1>`. */
   "setup.step.site.question": ["Is this your business?", { slots: {}, fixedBy: "issue 922" }],
@@ -559,12 +555,7 @@ export const SETUP_COPY = Object.freeze({
   ],
 
 
-  // ── SPEC §5 (2026-09-20, #908, #924): the DNS record as its own step
-  // after setup. This supersedes the 2026-09-16 ruling (#757) that it be
-  // completed on the setup page.
-  //
-  // Every sentence below is **drafted** under the owner's 2026-09-16 ruling
-  // (#759) and the PR names each one so the owner can correct it.
+  // ── SPEC §5 (#908, #924): the DNS record as its own step after setup.
   "setup.connect.title": ["Connect your website", { slots: {}, fixedBy: "owner E11 · issue 1601" }],
   // The two ways onward. Neither is a lesser path, and the note under them says so.
   "setup.connect.later": ["Do this later", { slots: {}, fixedBy: "SPEC §5 2026-09-20" }],
@@ -585,6 +576,13 @@ export const SETUP_COPY = Object.freeze({
   "setup.connect.steps.3": ["Pick the type CNAME, then paste the name and the value above.", { slots: {}, fixedBy: "board Setup · issue 1738" }],
   "setup.connect.steps.4": ["Save. Come back here and press I’ve added it, check now.", { slots: {}, fixedBy: "board Setup · issue 1738" }],
   "setup.connect.steps.guide": ["Steps for where you bought your address", { slots: {}, fixedBy: "board Setup · issue 1738" }],
+  // Sending the steps to whoever runs the address; optional, and the address typed is never kept.
+  "setup.connect.send.label": ["Or send these steps to your web person", { slots: {}, fixedBy: "board Setup · issue 2114 (drafted)" }],
+  "setup.connect.send.action": ["Send", { slots: {}, fixedBy: "board Setup · issue 2114 (drafted)" }],
+  "setup.connect.send.sent": ["Sent. When they reply, it comes to you.", { slots: {}, fixedBy: "issue 2114 (drafted)" }],
+  "setup.connect.send.limited": ["You’ve sent this as often as you can today. Try again tomorrow.", { slots: {}, fixedBy: "issue 2114 (drafted)" }],
+  "setup.connect.send.invalid": ["Enter their email address.", { slots: {}, fixedBy: "issue 2114 (drafted)" }],
+  "setup.connect.send.failed": ["We couldn’t send it just now. Try again in a minute.", { slots: {}, fixedBy: "issue 2114 (drafted)" }],
 
   // The press and its two answers on this screen.
   "setup.connect.check": ["I’ve added it, check now", { slots: {}, fixedBy: "board Setup · issue 1738" }],

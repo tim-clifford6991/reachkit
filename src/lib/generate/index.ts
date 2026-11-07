@@ -46,7 +46,7 @@ import { DAY_TOPICS_MAX, PIPELINE, RESEARCH } from "@/lib/config/constants";
 import type { KnownPage } from "@/lib/known-content/types";
 import { contentTypeOf } from "@/lib/opportunities/content-type";
 import { intentFor } from "@/lib/opportunities/intent";
-import { roomForFix, withDraftCost } from "./cost";
+import { openDayCost, roomForFix, withDraftCost } from "./cost";
 import { readRecordedRules } from "./record";
 import { repairStructure } from "./rules/structure";
 import { mendPage, mendable, ownFactsPage } from "./day-refresh";
@@ -154,7 +154,7 @@ export async function generateDayPage(a: {
   siteId: string;
   /** The site-local calendar date the page is for. */
   publishDate: string;
-  /** The run's clock: what a topic's rest is counted from and read against. */
+  /** The run's due hour: what a topic's rest is counted from, and what the day's spend so far is read since. */
   now?: Date;
   /** The day's topic as `decideDayPage` chose it, where a step of its own did. */
   opportunityId?: string;
@@ -173,8 +173,8 @@ export async function generateDayPage(a: {
   if (first === null) return { ok: false, because: "no_opportunity" };
 
   try {
-    // One `CAP_DRAFT` context for the day, whichever topic fills it.
-    return await withDraftCost({ scanId: report.scanId }, async (cost): Promise<DayPageOutcome> => {
+    // One `CAP_DRAFT` context for the day, whichever topic fills it, opened at what the date has already spent.
+    return await openDayCost({ scanId: report.scanId, siteId: a.siteId, since: now }, async (cost): Promise<DayPageOutcome> => {
       let opportunity = first;
       // The topics whose page was written: D26's "at most once more" counts these.
       let written = 0;
@@ -298,10 +298,10 @@ export async function regenerateRestarted(a: {
 }
 
 /** A page the writer writes from stored research alone, in the day's one cost context (SPEC §7, owner 2026-11-05): no
- *  vendor is read, and its one fix call is the pipeline's own. */
+ *  vendor is read, and its one fix call is the pipeline's own. `now` is the run's due hour. */
 export async function writeStoredUpdate(page: PageInput & { publishDate: string }, now: Date, day?: CostContext): Promise<DayPageOutcome> {
   const write = (cost: CostContext) => writePage({ ...page, attempts: 1, research: "stored" }, cost);
-  const outcome = day === undefined ? await withDraftCost({ scanId: page.report.scanId }, write) : await write(day);
+  const outcome = day === undefined ? await openDayCost({ scanId: page.report.scanId, siteId: page.siteId, since: now }, write) : await write(day);
   await settle(outcome, page.opportunity.id, now, page.site.domain);
   return outcome;
 }

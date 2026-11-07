@@ -112,7 +112,7 @@ export async function ownFactsPage(page: MendInput & { publishDate: string }, co
   // The update carries the reason the day's own page ended on, as the update fallback's always does.
   const update = await writableUpdate(page.siteId, page.publishDate);
   const trigger = ended.ok ? "" : `generate:${ended.because === "step_failed" ? `step_failed:${ended.step}` : ended.because}`;
-  const updated = update === null ? null : await writtenUpdate({ ...page, opportunity: update }, trigger, cost);
+  const updated = update === null ? null : await writtenUpdate({ ...page, opportunity: update }, trigger, now, cost);
   if (updated !== null) return updated;
   return isNew ? { ok: false, because: "no_own_facts" } : ended;
 }
@@ -126,7 +126,7 @@ export async function refreshForDay(a: {
   /** Whether the day's run ended before any page was written, so it has spent nothing. */
   from: "select" | "write";
   stopped: string | null;
-  /** The run's clock, which a topic's rest is read against. */
+  /** The run's due hour, which a topic's rest is read against and the day's spend so far is read since. */
   now?: Date;
 }): Promise<DayPageOutcome | null> {
   const store = generateStore();
@@ -156,7 +156,7 @@ export async function refreshForDay(a: {
   // Only a day whose select found no topic has spent nothing, so the writer's one context is the day's only one.
   if (a.trigger !== "generate:no_opportunity" || a.from !== "select") return null;
   const update = await writableUpdate(a.siteId, a.publishDate, week);
-  if (update !== null) return writtenUpdate({ siteId: a.siteId, site, report, opportunity: update, publishDate: a.publishDate }, a.trigger);
+  if (update !== null) return writtenUpdate({ siteId: a.siteId, site, report, opportunity: update, publishDate: a.publishDate }, a.trigger, a.now ?? new Date());
   // No update passed and none was written: the day goes on down its ladder, the recommit then its own facts.
   const { generateDayPage } = await import(".");
   const page = await generateDayPage({ siteId: a.siteId, publishDate: a.publishDate, updatesTried: true, ...(a.now === undefined ? {} : { now: a.now }) });
@@ -171,11 +171,11 @@ async function pastFloor(siteId: string, url: string): Promise<boolean> {
 
 /** The writer's refresh of one candidate, from stored research: today's page where the battery passes it, else a
  *  stopped row that gives up the date while the day keeps its own reason. */
-async function writtenUpdate(page: MendInput & { publishDate: string }, trigger: string, cost?: CostContext): Promise<{ ok: true; draftId: string } | { ok: false; because: "already_drafted" } | null> {
+async function writtenUpdate(page: MendInput & { publishDate: string }, trigger: string, now: Date, cost?: CostContext): Promise<{ ok: true; draftId: string } | { ok: false; because: "already_drafted" } | null> {
   const { writeStoredUpdate } = await import(".");
   const store = generateStore();
   try {
-    const outcome = await writeStoredUpdate(page, new Date(), cost);
+    const outcome = await writeStoredUpdate(page, now, cost);
     const draftId = outcome.ok ? outcome.draftId : "draftId" in outcome ? outcome.draftId : null;
     if (draftId === null) return null;
     const meta = (await store.draftById(draftId))?.meta;

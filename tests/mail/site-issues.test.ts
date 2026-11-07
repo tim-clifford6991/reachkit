@@ -112,21 +112,22 @@ describe("a row for a check ReachKit fixes says so", () => {
   const said = (rows: readonly { label: string; value: string }[]) =>
     rows.map((row) => `${COPY[row.label as keyof typeof COPY]} · ${row.value}`);
 
-  it("in the report mail and in what moved since last Monday; the customer's own rows carry no doer word", async () => {
+  it("in the report mail and in what moved since last Monday; the customer's own rows carry no doer word, nor titles while WordPress is switched off", async () => {
     const mid = COPY["severity.mid"];
     expect(said(issueRows(faults(4)))).toEqual([
-      `${COPY["check.page-titles.title"]} · 4/12 · ${mid} · ReachKit rewrites on WordPress`,
+      `${COPY["check.page-titles.title"]} · 4/12 · ${mid}`,
       `${COPY["check.broken-links.title"]} · 4/140 · ${mid}`,
       `Pages with no labels for Google · 4/12 · ${mid} · ReachKit writes`,
     ]);
     expect(said(issueChangeRows(issueChanges(faults(4), faults(1), AT)))).toEqual([
-      `${COPY["check.page-titles.title"]} · 1 → 4/12 · ${mid} · ReachKit rewrites on WordPress`,
+      `${COPY["check.page-titles.title"]} · 1 → 4/12 · ${mid}`,
       `${COPY["check.broken-links.title"]} · 1 → 4/140 · ${mid}`,
       `Pages with no labels for Google · 1 → 4/12 · ${mid} · ReachKit writes`,
     ]);
     const composed = await reportMail(faults(4));
     for (const body of [composed.html, composed.text]) {
-      expect(body).toContain(`4/12 · ${COPY["severity.mid"]} · ReachKit rewrites on WordPress`);
+      expect(body).toContain(`4/12 · ${COPY["severity.mid"]}`);
+      expect(body).not.toMatch(/wordpress/i);
       expect(body).toContain(`4/140 · ${COPY["severity.mid"]}`);
     }
   });
@@ -141,7 +142,7 @@ describe("mail, report and dashboard agree for one measurement", () => {
     for (const card of cards) {
       const value = rows.get(SITE_CHECK_TITLE[card.check]);
       const doer = COPY[card.doer];
-      if (DOER_OF[card.check] === "free_fix") expect(value).toBe(`2/40 · ${COPY["severity.mid"]}`);
+      if (card.doer === "check.doer.free-fix") expect(value).toBe(`2/40 · ${COPY["severity.mid"]}`);
       else expect(value).toBe(`2/40 · ${COPY["severity.mid"]} · ${doer}`);
     }
   });

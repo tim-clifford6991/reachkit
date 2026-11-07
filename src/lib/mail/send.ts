@@ -32,6 +32,8 @@ interface SendCommon {
   suppressible?: false;
   /** The vendor idempotency key's day, for a caller whose once-ness is not the UTC day. */
   period?: string;
+  /** Where a reply goes, where it is a person and not our mailbox. */
+  replyTo?: string;
 }
 
 export type SendInput =
@@ -146,6 +148,7 @@ export async function sendEmail(m: SendInput): Promise<SendResult> {
     // RFC 8058: the headers go out exactly where the mail carries a stop control, so an unstoppable kind never claims it can.
     listUnsubscribe: m.optOut?.oneClickHref,
     ...(m.period === undefined ? {} : { period: m.period }),
+    ...(m.replyTo === undefined ? {} : { replyTo: m.replyTo }),
   });
 
   if (result.ok) {

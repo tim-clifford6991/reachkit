@@ -213,6 +213,10 @@ export const PUBLISH_VERIFY_DELAY_H = 24 as const;            // BUILD §11
  *  deployment; this label does not. */
 export const HOSTED_SUBDOMAIN_LABEL = "content" as const;     // BUILD §4.3
 
+/** Whether a site without a WordPress destination is offered one. Off at launch: DNS is the only connect path until
+ *  WordPress is proven on a real site (owner, 2026-11-06). A site that already has one keeps it either way. */
+export const WORDPRESS_CONNECT: boolean = false;
+
 // ── Publishing, the veto leaf — BUILD §9
 /** The whole of one delivery attempt, bounded. Distinct from the egress
  *  seam's per-request bound (BUILD §6.4: 8 s default, 15 s hard maximum),

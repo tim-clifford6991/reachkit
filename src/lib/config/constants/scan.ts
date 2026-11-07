@@ -341,6 +341,8 @@ export const SCORING = Object.freeze({                    // BUILD §5
  *  session to read, and nothing is written. */
 export const RESCORE_GUARD = Object.freeze({
   maxScoreMove: 15,
+  /** A report with at least this many measured rivals that a re-score leaves with none. */
+  rivalsLostFrom: 3,
 } as const);
 
 /** SPEC §0 and §2: how a score says how sure it is, and how Presence weighs

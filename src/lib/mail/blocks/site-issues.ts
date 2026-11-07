@@ -15,9 +15,9 @@ function count(value: number): string {
 }
 
 function figure(a: { check: SiteCheck; count: number; over: number; severity: IssueSeverity }): string {
-  const doer = DOER_OF[a.check];
+  const doer = SITE_CHECK_DOER[DOER_OF[a.check]];
   // "Free fix · 10 min" stays on the report's card: a row with no doer word is the customer's.
-  const by = doer === "free_fix" ? "" : ` · ${copy(SITE_CHECK_DOER[doer])}`;
+  const by = doer === SITE_CHECK_DOER.free_fix ? "" : ` · ${copy(doer)}`;
   return `${count(a.count)}/${count(a.over)} · ${copy(SITE_SEVERITY_WORD[a.severity])}${by}`;
 }
 

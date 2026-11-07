@@ -1,20 +1,4 @@
-// 2026-09-10, issue #458: every key in this partition carries the owner's
-// approved string. The owner approved the drafted set that day
-// ("copy proposal approved"); the strings are applied byte for byte, and
-// no key here is owner-owed any more — none is empty, none carries the
-// `TODO(copy)` marker. Ruling 11a strings already here were not touched.
-//
-// src/lib/presentation/copy/keys/mail.ts — BP-020 decision 5, WO-041
-//
-// The mail seam's sentences, BP-016 and BP-029. Two keys seeded (WO-041
-// step 4): the opt-out confirmation and invalid-token lines. BP-029 owns
-// the opt-out surface and lives in src/lib/mail/leads/**, so this is
-// already the right module for its two lines; no thirteenth partition is
-// needed for them.
-//
-// 2026-09-04: the owner ruled on both (WO-041 `## Log`, this date's
-// ruling) — filled verbatim, byte for byte. Neither is owner-owed any
-// more.
+// The mail seam's sentences. Strings marked drafted are named in their pull request for the owner to correct (#759).
 import type { CopyPartition } from "../registry.ts";
 
 export const MAIL_COPY = Object.freeze({
@@ -150,6 +134,12 @@ export const MAIL_COPY = Object.freeze({
   "mail.setupReminder.written": ["Your first page is written and waiting.", { slots: {}, fixedBy: "owner R15 · issue 2142 (drafted)" }],
   "mail.setupReminder.connect": ["One setting at {provider} puts it live.", { slots: { provider: "text" }, fixedBy: "owner R15 · issue 2142 (drafted)" }],
   "mail.setupReminder.connectAny": ["Connecting your website puts it live.", { slots: {}, fixedBy: "owner R15 · issue 2142 (drafted)" }],
+  // SPEC §5: the connect steps a buyer sends to their web person, who never asked for mail from us.
+  "mail.webPerson.subject": ["Add one DNS record for {domain}", { slots: { domain: "text" }, fixedBy: "SPEC §5 · issue 2114 (drafted)" }],
+  "mail.webPerson.preheader": ["One record, about 5 minutes. Reply to reach the person who asked.", { slots: {}, fixedBy: "SPEC §5 · issue 2114 (drafted)" }],
+  "mail.webPerson.intro": ["Someone at {domain} asked us to send you these steps. Replying reaches them, not us.", { slots: { domain: "text" }, fixedBy: "SPEC §5 · issue 2114 (drafted)" }],
+  "mail.webPerson.done": ["Once it’s saved, you’re done. We check for it every hour.", { slots: {}, fixedBy: "SPEC §5 · issue 2114 (drafted)" }],
+  "mail.reason.webPerson": ["Someone at {domain} typed your address to send you this. We keep no copy of it.", { slots: { domain: "text" }, fixedBy: "SPEC §5 · issue 2114 (drafted)" }],
 
   // What `POST /api/lead` answers with. The adapter maps each arm of
   // `captureLead()` to one of these keys and never to a sentence of its
@@ -824,11 +814,6 @@ export const MAIL_COPY = Object.freeze({
   "mail.ops.incident.fact.balance": ["Balance", { slots: {}, fixedBy: "issue 1587 (drafted)" }],
   "mail.ops.incident.fact.days-left": ["Days left at last week's spend", { slots: {}, fixedBy: "issue 1587 (drafted)" }],
   "mail.ops.incident.fact.dashboard": ["Dashboard", { slots: {}, fixedBy: "issue 1587 (drafted)" }],
-  // Issue 1842: Stripe refused an automatic 14-day refund.
-  "mail.ops.incident.refund-refused": ["Stripe refused an automatic 14-day refund, so the customer still has access and has not been paid back. Refund the invoice below by hand in the Stripe dashboard; the refund walk has the steps.", { slots: {}, fixedBy: "issue 1842 (drafted)" }],
-  "mail.ops.incident.fact.invoice": ["Invoice", { slots: {}, fixedBy: "issue 1842 (drafted)" }],
-  "mail.ops.incident.fact.account": ["Account", { slots: {}, fixedBy: "issue 1842 (drafted)" }],
-  "mail.ops.incident.fact.stripe-code": ["Stripe error code", { slots: {}, fixedBy: "issue 1842 (drafted)" }],
 
   // ── SPEC §8, Retention (issue 569). Owner-owed: the copy sheet is issue
   // 568. `sendEmail` refuses a mail that still carries the marker, so none of
@@ -850,23 +835,6 @@ export const MAIL_COPY = Object.freeze({
     "You keep full access until {accessEndsOn}, and nothing more is charged.",
     { slots: { accessEndsOn: "date" }, fixedBy: "SPEC §8 · issue 569" },
   ],
-  /** In place of the line above when the cancel fell in the first 14 days
-   *  and the first payment was refunded (owner D4, E13). */
-  "mail.cancellation.refunded": [
-    "Your first payment was refunded in full, as promised for a cancel in the first 14 days. Your bank usually shows it within 5 to 10 business days. ReachKit stopped on {accessEndsOn}, and nothing more is charged.",
-    { slots: { accessEndsOn: "date" }, fixedBy: "issue 1591 (drafted)" },
-  ],
-  /** Owner D10: the first renewal is refunded when no page went live in the first month. */
-  "mail.account.renewal_refunded.subject": ["Your renewal was refunded", { slots: {}, fixedBy: "issue 1592 (drafted)" }],
-  "mail.account.renewal_refunded": [
-    "No page of yours went live in your first month, so we refunded this month’s payment of {amount} in full. Your bank usually shows it within 5 to 10 business days.",
-    { slots: { amount: "text" }, fixedBy: "issue 1957 · E2 (2026-10-24)" },
-  ],
-  "mail.account.renewal_refunded.renewing": [
-    "ReachKit keeps running, and your next payment is taken as usual on {date}. To stop it, use Cancel plan in Settings › Account.",
-    { slots: { date: "date" }, fixedBy: "issue 1957 · E2 (2026-10-24)" },
-  ],
-  "mail.account.renewal_refunded.ending": ["ReachKit keeps running until {date}.", { slots: { date: "date" }, fixedBy: "issue 1957 · E2 (2026-10-24)" }],
   "mail.winback.subject": ["Your ReachKit settings are still saved", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
   "mail.winback.preheader": ["Resume and we start writing again.", { slots: {}, fixedBy: "O6 · issue 2172 (drafted)" }],
   "mail.winback.line": [

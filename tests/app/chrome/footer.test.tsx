@@ -51,10 +51,10 @@ describe("ruling 3a — brand · rights · removal address · Product · Legal",
     expect(html.lastIndexOf(COPY["chrome.footer.rights"])).toBeGreaterThan(html.indexOf(">Contact<"));
   });
 
-  it("Learn opens with Free scans, then Compare, Free tools and Teardowns", () => {
+  it("Learn opens with Scan library, then Compare, Free tools and Teardowns", () => {
     const learn = html.slice(html.indexOf(">Learn<"), html.indexOf(">Legal<"));
     const links = [...learn.matchAll(/<a class="link link-hover[^"]*" href="([^"]*)">([^<]*)<\/a>/g)].map((m) => m[2]);
-    expect(links).toEqual(["Free scans", "Compare", "Free tools", "Teardowns"]);
+    expect(links).toEqual(["Scan library", "Compare", "Free tools", "Teardowns"]);
   });
 
   it("Contact is hello@reachkit.app, as a mail link", () => {

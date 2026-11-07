@@ -286,7 +286,7 @@ function Section(p: { section: LegalSection; figure: LegalFigure | undefined }):
 }
 
 export function LegalPage(p: { document: LegalDocument }): React.JSX.Element {
-  const blocks = headingsUnderTitle(parseMarkdown(copy(p.document.body)));
+  const blocks = headingsUnderTitle(parseMarkdown(copy(p.document.body, p.document.vars)));
   const headings = legalHeadings(blocks);
 
   return (

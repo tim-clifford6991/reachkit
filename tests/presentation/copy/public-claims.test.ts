@@ -130,7 +130,7 @@ describe("the cancel answer leaves when access ends to the Terms (ruling R22)", 
     expect(answer).toContain("Section four of our Terms says when your access ends.");
     const section4 = text("legal.terms.body").split("\n## ").find((s) => s.startsWith("4. "));
     expect(section4).toMatch(/^4\. Price, billing and cancellation/);
-    expect(section4).toContain("Otherwise your access continues to the end of the period you have paid for");
+    expect(section4).toContain("Your access continues to the end of the month you have paid for");
   });
 });
 
@@ -177,5 +177,12 @@ describe("a page set aside asks the customer for nothing", () => {
       expect(text(key), key).toMatch(/next topic/);
       expect(text(key), key).not.toMatch(/\b(?:tell us|add (?:a|it|what)|write (?:it|the page) again)\b/i);
     }
+  });
+});
+
+describe("no customer-visible sentence promises or reports a refund (owner, 2026-11-06)", () => {
+  it("outside the legal bodies, no key says refund", () => {
+    const said = Object.entries(COPY as Record<string, string>).filter(([key, value]) => !/^legal\.[^.]+\.body$/.test(key) && /refund/i.test(value));
+    expect(said.map(([key]) => key)).toEqual([]);
   });
 });

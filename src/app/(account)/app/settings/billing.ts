@@ -93,7 +93,4 @@ export interface BillingCard {
    *  card, the invoices, the billing address, the VAT number and cancelling
    *  are all done. Every billing control on the screen leads here. */
   surfaceHref: string;
-  /** D4: the date a cancel stops being refunded by itself, shown only
-   *  inside the first 14 days with no refund yet for this web address. */
-  refundUntil: string | null;
 }

@@ -43,6 +43,7 @@ interface MinimalQueryBuilder<T> extends PromiseLike<QueryResult<T>> {
   select(columns: string): MinimalQueryBuilder<T>;
   eq(column: string, value: string | number): MinimalQueryBuilder<T>;
   gt(column: string, value: string): MinimalQueryBuilder<T>;
+  gte(column: string, value: string): MinimalQueryBuilder<T>;
   order(column: string, opts: { ascending: boolean }): MinimalQueryBuilder<T>;
   limit(count: number): MinimalQueryBuilder<T>;
   insert<R extends object>(row: R): MinimalQueryBuilder<T>;

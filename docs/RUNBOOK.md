@@ -142,7 +142,7 @@ Never register a self-hosted runner on this repository while it is public.
 | Database | one Supabase project, `reachkit` (`kleepxxddbcnfsfwudoe`), Postgres 17, us-east-1, **Free plan**. v2's objects sit in schema `v2_archive`, the rollback path (§9). The org is Vercel-Marketplace-managed: uninstalling that integration would delete the org and the database; the exit path is a transfer to a Supabase-managed org |
 | Jobs | Inngest app `reachkit`, registered at `https://reachkit.app/api/jobs` — owed by the owner: create the app, paste the two keys, sync the functions (#315, §4) |
 | Mail | Resend, sending domain `reachkit.app`; `MAIL_FROM` is `hello@reachkit.app` (§6). #325 got the domain sending; DMARC, the return path and one real inbox are `docs/GO-LIVE.md` §2 and #339 |
-| Payments | Stripe: one product `ReachKit`, one €49/month tax-inclusive price bound as `STRIPE_PRICE_ID`; v2's products and prices inactive; webhook `/api/stripe/webhook`; customer portal on. **Production's three Stripe bindings are live-mode values**; the preview target, which `dev.reachkit.app` answers on, carries the test-mode trio and its own test webhook. No live payment has completed yet: what remains is `docs/GO-LIVE.md` §1.1. The dashboard steps, and the test-mode walk that proves them, are `docs/stripe-setup.md` |
+| Payments | Stripe: one product `ReachKit`, one €49/month tax-inclusive price bound as `STRIPE_PRICE_ID`; v2's products and prices inactive; webhook `/api/stripe/webhook`; customer portal on. **Production's three Stripe bindings are live-mode values**; the preview target, which `dev.reachkit.app` answers on, carries the test-mode trio and its own test webhook. No live payment has completed yet: what remains is `docs/GO-LIVE.md` §1.1. The dashboard steps, and the test-mode walk that proves them, are `docs/stripe-setup.md`. **Owner step, in test mode and in live mode, before any deploy that carries the Checkout consent tick:** Settings → Business → Public details → Terms of service = `https://reachkit.app/terms`. Checkout requires the tick (`consent_collection.terms_of_service`), and Stripe refuses to open a session in a mode with no terms URL, so every checkout answers `vendor` until it is set |
 | Hosted CMS | customers point `content.{their-domain}` at `HOSTED_EDGE_CNAME_TARGET` (`edge.reachkit.app`); per-customer domains are added to the project through the Vercel Domains API (#322) |
 | Local | `npm run dev` on `http://localhost:3000`, bindings from `.env.local` (names in `.env.example`) |
 
@@ -858,14 +858,6 @@ answers `not-composable`, and the attempt is logged. This is the ruling of 2026-
 never ships a placeholder — and it is why the ops alerts in §5 and §7 are currently silent. The
 fix for every one of them is the owner writing the copy key, never a code change.
 
-**The refund-refused alert.** When Stripe refuses an automatic 14-day refund, the webhook still
-answers 200 and access is unchanged, and `OWNER_EMAILS` gets one incident mail (*"Stripe refused an
-automatic 14-day refund…"*) with the invoice, the account id and Stripe's error code, beside the log
-line `billing_refund outcome=vendor`. Stripe does not redeliver a 200, so refund that invoice by hand
-(`docs/walk/refund.md`). A failure that will pass (a connection error, a Stripe 5xx or 429, a store
-read or write that failed) sends no alert: the webhook answers 500 and logs `billing_redeliver`, and
-Stripe redelivers it for up to 3 days, then emails the Stripe account that the endpoint keeps failing.
-
 Failed and unsent mail is visible in two places: Resend's own dashboard for what left, and the
 runtime log for what did not (`event: "spend_alert_failed"`, and the per-kind `*_not_sent` lines).
 
@@ -894,11 +886,14 @@ sequence is written from. On dev use `https://dev.reachkit.app`; on production, 
    (§6 above).
 4. **Follow it.** The action is `…/auth/confirm?token_hash=…&type=magiclink` **on the host you
    started from** — this product's own, never Supabase's `action_link`. It shows **Sign in to
-   ReachKit** and one **Sign in** button, and sets no cookie. Press it: the post to
-   `/auth/confirm/redeem` answers `303` to `/app` (to `/setup` on a first-ever sign-in), one
-   `sb-…-auth-token` cookie set on that same redirect, and `/app` rendering the dashboard with
-   *Overview · This week · Settings*.
-5. **Use it twice.** Re-open the same confirm URL and press again: `303` to `/signin?link=dead`, no
+   ReachKit** and one **Sign in** button, and sets no cookie. Opened in the browser that asked for
+   the link, the page sends its own form at once (the `__Host-rk_signin_pending` cookie set by the
+   request); opened anywhere else (another browser, a phone, a mail scanner) it waits for the press.
+   Either way the post to `/auth/confirm/redeem` answers `303` to `/app` (to `/setup` on a
+   first-ever sign-in), one `sb-…-auth-token` cookie set and the pending cookie cleared on that same
+   redirect, and `/app` rendering the dashboard with *Overview · This week · Settings*.
+5. **Use it twice.** Re-open the same confirm URL (the pending cookie is gone now, so the button
+   shows) and press again: `303` to `/signin?link=dead`, no
    cookie, and the screen **This link no longer works** with the request form on it (**Send a new
    link**). A spent link, a link superseded by a newer one and a token this product never issued
    answer identically on the press; a confirm URL with no query goes to the same screen on opening.

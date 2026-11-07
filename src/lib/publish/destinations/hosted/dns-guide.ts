@@ -2,7 +2,7 @@
 // own steps, fields in their dashboard's labels and a link where stable; everyone else gets the generic steps.
 // Data only, every word a registry key; the client record block imports it, so nothing here reaches a server module.
 import type { CopyKey } from "@/lib/presentation/copy";
-import type { DnsGuideId } from "./dns-provider";
+import type { DnsGuideId, DnsWhere } from "./dns-provider";
 
 /** Which of the record's values a field is filled with, or a fixed word
  *  from the provider's own dashboard. */
@@ -141,4 +141,40 @@ export function nameInZone(host: string, zone: string): string {
   const h = host.toLowerCase();
   const z = zone.toLowerCase();
   return h.endsWith(`.${z}`) ? h.slice(0, -(z.length + 1)) : h;
+}
+
+/** One row of the record as the provider's form asks for it: its label, and a value or a fixed word. */
+export type GuideRow = { label: CopyKey; from: "name" | "type" | "target"; text: string } | { label: CopyKey; word: CopyKey };
+
+/** What the record block and the web person's mail both draw, so the two cannot differ. */
+export interface GuideView {
+  id: DnsGuideId;
+  where: { key: CopyKey; vars: Record<string, string> };
+  steps: readonly { key: CopyKey; vars: Record<string, string> }[];
+  rows: readonly GuideRow[];
+  proxy: boolean;
+  link: string | null;
+}
+
+export function guideView(a: { record: { type: string; name: string; value: string }; where: DnsWhere; zone: string }): GuideView {
+  const id = a.where.kind === "provider" ? a.where.guide : "generic";
+  const guide = DNS_GUIDES[id];
+  const slots = { zone: a.zone, name: nameInZone(a.record.name, a.zone), host: a.record.name };
+  const texts = { name: slots.name, type: a.record.type, target: a.record.value };
+  const where: GuideView["where"] =
+    a.where.kind === "provider"
+      ? { key: "setup.destination.dnsAt" as const, vars: { provider: a.where.provider } }
+      : a.where.kind === "nameserver"
+        ? { key: "setup.destination.dnsNameserver" as const, vars: { nameserver: a.where.nameserver } }
+        : { key: "setup.destination.dnsWhere" as const, vars: {} };
+  return {
+    id,
+    where,
+    steps: guide.steps.map((key) => ({ key, vars: slots })),
+    rows: guide.fields.map(({ label, value }) =>
+      "word" in value ? { label, word: value.word } : { label, from: value.from, text: texts[value.from] },
+    ),
+    proxy: guide.proxy,
+    link: guide.link === null || a.where.kind !== "provider" ? null : guide.link(a.zone),
+  };
 }

@@ -18,8 +18,6 @@ export interface RetentionStore {
   cancelledAccounts(): Promise<readonly RetentionAccount[]>;
   account(userId: string): Promise<RetentionAccount | null>;
   siteOf(userId: string): Promise<RetentionSite | null>;
-  /** Whether a first-14-days refund was made to this account at or after `since`. */
-  refundedSince(userId: string, since: Date): Promise<boolean>;
   stampAccount(userId: string, column: AccountStamp, at: Date): Promise<void>;
   /** A sign-in or an /app visit. Writes only when the stored value is stale. */
   recordSeen(userId: string, at: Date): Promise<void>;
@@ -116,14 +114,6 @@ export function supabaseRetentionStore(): RetentionStore {
         "site"
       );
       return found[0] === undefined ? null : { siteId: found[0].id, timezone: found[0].timezone };
-    },
-
-    async refundedSince(userId, since) {
-      const found = await rows(
-        untyped().from<{ invoice_id: string }>("refunds").select("invoice_id").eq("user_id", userId).gte("refunded_at", since.toISOString()).limit(1),
-        "refund"
-      );
-      return found.length > 0;
     },
 
     async stampAccount(userId, column, at) {

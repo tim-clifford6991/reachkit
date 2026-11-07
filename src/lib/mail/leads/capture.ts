@@ -8,7 +8,7 @@ import { leadStore } from "./store";
 import { normaliseAddress } from "./suppress";
 
 /** Form only: one `@`, a dot in the domain, no whitespace. Deliverability is the send's question; anything stricter refuses real addresses. */
-const ADDRESS_FORM = /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/;
+export const ADDRESS_FORM = /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/;
 
 export type CaptureResult =
   | { captured: true; leadId: string }

@@ -47,6 +47,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { SIGNIN_PATH } from "@/lib/account/identity/addresses";
 import type { ActionOutcome } from "./actions";
@@ -118,6 +119,9 @@ export async function beginEmailChangeAction(
   const begun = await beginEmailChange(session.userId, value);
   if (!begun.ok) return { answer: "refused", lineKey: begun.lineKey, value };
 
+  const { pendingCookieFor } = await import("@/lib/account/signin-pending");
+  const pending = pendingCookieFor("email_change");
+  (await cookies()).set(pending.name, pending.value, pending.options);
   revalidatePath(SETTINGS_PATH);
   return { answer: "sent" };
 }

@@ -696,11 +696,11 @@ export const REPORT_COPY = Object.freeze({
   "landing.faq.results.q": ["How long until I see results?", { slots: {}, fixedBy: "board Landing · issue 1596" }],
   "landing.faq.results.a": ["Your pages go live in week 1. Each Monday email shows where they sit on Google, and whether AI links to them.", { slots: {}, fixedBy: "board Landing · issue 1596" }],
   "landing.faq.stop.q": ["What if I want to stop?", { slots: {}, fixedBy: "board Landing · issue 1596" }],
-  "landing.faq.stop.a": ["Cancel any time from Settings, and you’re not charged again. Section four of our Terms says when your access ends. Pages on your WordPress stay where they are. Pages on the blog address we run for you stay live for {days} days after your access ends, and we email you a week before they stop. Your export of every page stays available, with no end date.", { slots: { days: "text" }, fixedBy: "board Landing · issue 1596 · ruling D5 · ruling R22" }],
+  "landing.faq.stop.a": ["Cancel any time from Settings, and you’re not charged again. Section four of our Terms says when your access ends. Pages on the blog address we run for you stay live for {days} days after your access ends, and we email you a week before they stop. Your export of every page stays available, with no end date.", { slots: { days: "text" }, fixedBy: "board Landing · issue 1596 · ruling D5 · ruling R22" }],
   "landing.faq.any.q": ["Will it work for my business?", { slots: {}, fixedBy: "board PubLanding v36 · owner 2026-11-01" }],
   "landing.faq.any.a": ["Yes, if it has a website: a local service, shop, restaurant, firm, software or creator. We help your website where buyers search and ask AI, not your Google Maps listing.", { slots: {}, fixedBy: "board PubLanding v36 · owner 2026-11-01" }],
   "landing.faq.start.q": ["What do I need to start?", { slots: {}, fixedBy: "board Landing · issue 1596" }],
-  "landing.faq.start.a": ["A website and about {minutes} minutes. After you pay, copy one line to connect it, or log in with WordPress.", { slots: { minutes: "text" }, fixedBy: "board Landing · issue 1596" }],
+  "landing.faq.start.a": ["A website and about {minutes} minutes. After you pay, copy one line into your domain’s settings to connect it.", { slots: { minutes: "text" }, fixedBy: "board Landing · issue 1596 · issue 2450 (drafted)" }],
   "landing.faq.german.q": ["Does it work in German?", { slots: {}, fixedBy: "board Landing · issue 1596" }],
   "landing.faq.german.a": [
     "Yes. Sites in {germanCountries} are checked and written in German. Sites in {englishCountries}, and everywhere else, get English.",
@@ -763,7 +763,7 @@ export const REPORT_COPY = Object.freeze({
   /* ── The free-scans gallery, `/scans`, and the landing's strip (#1069) ── */
   // SPEC §2 2026-09-24 (#1058, #1059). The words of board `PubScans`; the
   // rest drafted in the registry's voice for the owner to correct.
-  "gallery.eyebrow": ["Free scans · live", { slots: {}, fixedBy: "issue 1069 · R12-3" }],
+  "gallery.eyebrow": ["Scan library", { slots: {}, fixedBy: "owner 2026-11-06, issue 2452" }],
   "gallery.heading": ["Every free scan, in the open.", { slots: {}, fixedBy: "issue 1069 · R12-3" }],
   "gallery.subline": [
     "{count} free reports, each at a lasting public link. See how businesses like yours show up on Google and AI.",

@@ -14,7 +14,7 @@ import {
 import type { RivalSet } from "@/lib/market/setup/rivals";
 import { FIRST_STEP, storedStep, type SetupStepId } from "../steps";
 import { setupCards, type SetupCards } from "@/lib/publish/setup/cards";
-import { BATTERY } from "@/lib/config/constants";
+import { BATTERY, WORDPRESS_CONNECT } from "@/lib/config/constants";
 import type { SiteProfile } from "@/lib/site-profile/types";
 import type { BusinessEdits, BusinessProfile } from "@/lib/site-profile/business/types";
 import type { FounderAnswers } from "@/lib/site-profile/knowledge/types";
@@ -147,6 +147,11 @@ export interface SetupScreenModel {
   passStartedAt: string | null;
 }
 
+/** The destinations Setup offers: WordPress only while its connect path is switched on. */
+function offered(cards: SetupCards): SetupCards {
+  return WORDPRESS_CONNECT ? cards : { destination: cards.destination.filter((option) => option.kind !== "wordpress") };
+}
+
 export function assembleSetup(facts: SetupFacts): SetupScreenModel {
   const opened = initialSetupState(facts.measured);
   const c = facts.concluded;
@@ -163,7 +168,7 @@ export function assembleSetup(facts: SetupFacts): SetupScreenModel {
 
   return {
     state,
-    cards: setupCards({ siteDomain: state.siteDomain, cnameTarget: facts.cnameTarget }),
+    cards: offered(setupCards({ siteDomain: state.siteDomain, cnameTarget: facts.cnameTarget })),
     cnameTarget: facts.cnameTarget,
     profile: facts.profile,
     // Pure, over the three readings the provider handed in: the same

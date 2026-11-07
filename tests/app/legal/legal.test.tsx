@@ -20,10 +20,10 @@ import { segments } from "../../../scripts/design/parity.mjs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { copy } from "@/lib/presentation/copy";
 import { VETO, WEEK_PLAN } from "@/lib/config/constants";
-import { REFUND_WINDOW_DAYS } from "@/lib/account/billing/refund";
 import { headingsUnderTitle, parseMarkdown, toHtml } from "@/lib/publish/render/markdown";
 import { LEGAL_BODY_CLASSES, legalBodyHtml } from "@/app/(public)/_legal/LegalPage.tsx";
 import { legalSections } from "@/app/(public)/_legal/sections";
+import { PRIVACY } from "@/app/(public)/_legal/documents";
 import PrivacyPage from "@/app/(public)/privacy/page.tsx";
 import TermsPage from "@/app/(public)/terms/page.tsx";
 import ImprintPage from "@/app/(public)/imprint/page.tsx";
@@ -48,7 +48,7 @@ const SECTIONS = "_legal/sections.ts";
 
 /** The three routes, each with the document it reads. */
 const ROUTES = [
-  { file: "privacy/page.tsx", Page: PrivacyPage, title: "legal.privacy.title", updated: "legal.privacy.updated", document: "legal.privacy.body" },
+  { file: "privacy/page.tsx", Page: PrivacyPage, title: "legal.privacy.title", updated: "legal.privacy.updated", document: "legal.privacy.body", vars: PRIVACY.vars },
   { file: "terms/page.tsx", Page: TermsPage, title: "legal.terms.title", updated: "legal.terms.updated", document: "legal.terms.body" },
   { file: "imprint/page.tsx", Page: ImprintPage, title: "legal.imprint.title", updated: "legal.imprint.updated", document: "legal.imprint.body" },
 ] as const;
@@ -93,7 +93,7 @@ describe("S5 — the screen: title, updated line, one card", () => {
         // Every heading and every block of the body, through the one renderer; a list the
         // board draws as a table is the provider test's. A list is read item by item, since a
         // figure may stand between two of its items.
-        const sections = legalSections(headingsUnderTitle(parseMarkdown(copy(route.document))), LEGAL_BODY_CLASSES);
+        const sections = legalSections(headingsUnderTitle(parseMarkdown(copy(route.document, "vars" in route ? route.vars : undefined))), LEGAL_BODY_CLASSES);
         for (const section of sections) {
           if (section.headingHtml !== "") expect(html).toContain(section.headingHtml);
           for (const block of section.blocks) {
@@ -161,7 +161,7 @@ describe("S5 — the Markdown body goes through the product's one renderer", () 
     // directly under the page's `<h1>` — and it used to arrive as an `<h3>`,
     // skipping `h2` on a page whose only other heading is that `<h1>`.
     const html = renderToStaticMarkup(<PrivacyPage />);
-    expect(copy("legal.privacy.body")).toMatch(/^## 1\. Who we are\n/);
+    expect(copy("legal.privacy.body", PRIVACY.vars)).toMatch(/^## 1\. Who we are\n/);
     expect(html).toMatch(/<h2 id="who-we-are"[^>]*>1\. Who we are<\/h2>/);
     expect(html).not.toMatch(/<h3[^>]*>1\. Who we are<\/h3>/);
     expect(html).not.toContain("## 1. Who we are");
@@ -268,17 +268,19 @@ describe("the Terms state the offer the product keeps", () => {
     expect(section("your-content-and-the-pages-we-write")).toContain(`anywhere from ${VETO.minDays} to ${VETO.maxDays} days`);
   });
 
-  it("§4 and §9 state the automatic refund in the window and keep the rule after it", () => {
+  it("§1 sells only to businesses, and no section offers a consumer withdrawal", () => {
+    expect(section("the-service")).toContain("ReachKit is sold only to businesses");
+    expect(html).not.toContain('id="withdrawal"');
+    expect(all).not.toMatch(/right of withdrawal/i);
+  });
+
+  it("§4 and §9 run month to month to the end of the paid month and promise no refund", () => {
     expect(all).not.toMatch(/in one click/i);
     const billing = section("price-billing-and-cancellation");
-    expect(billing).toContain(
-      `If you cancel within ${REFUND_WINDOW_DAYS} days of your first payment, we refund that payment in full, automatically`
-    );
-    expect(billing).toContain("ReachKit stops at once");
-    expect(billing).toContain("once for each web address");
-    expect(billing).toContain("Otherwise your access continues to the end of the period you have paid for");
-    expect(section("ending-things")).toContain(
-      `Cancelling takes effect at the end of your paid period, or at once when the ${REFUND_WINDOW_DAYS}-day refund in section 4 applies.`
-    );
+    expect(billing).toContain("runs month to month");
+    expect(billing).toContain("Your access continues to the end of the month you have paid for");
+    expect(billing).toContain("Payments already made are not refunded unless the law requires it.");
+    expect(all).not.toMatch(/refund that payment in full|automatic(ally)? refund|refunded automatically/i);
+    expect(section("ending-things")).toContain("Cancelling takes effect at the end of the month you have paid for.");
   });
 });

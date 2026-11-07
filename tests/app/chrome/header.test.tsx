@@ -115,7 +115,7 @@ function drawer(html: string): string {
 const LANDING = "/";
 const ELSEWHERE = "/pricing";
 const REPORT = "/scan/example.com";
-// The button's own text node, so the nav's "Free scans" never counts as it.
+// The button's own text node, so the nav's "Scan library" never counts as it.
 const START = `>${COPY["chrome.cta.start"]}<`;
 
 const LANDING_ACTION: HeaderAction = { kind: "landing" };
@@ -169,7 +169,7 @@ describe("board PubLanding v36 — no top bar, and the nav", () => {
     }
   });
 
-  it("the nav is How it works · Pricing · Free scans, then Sign in and Free scan (owner 2026-10-20, Q1)", () => {
+  it("the nav is How it works · Pricing · About · Scan library, then Sign in and Free scan", () => {
     const bar = withoutDrawer(markup(ELSEWHERE));
     const nav = links(bar)
       .filter((a) => a.cls.startsWith("btn btn-ghost btn-sm font-medium"))
@@ -177,9 +177,10 @@ describe("board PubLanding v36 — no top bar, and the nav", () => {
     expect(nav).toEqual([
       ["/how-it-works", "How it works"],
       ["/pricing", "Pricing"],
-      ["/scans", "Free scans"],
+      ["/about", "About"],
+      ["/scans", "Scan library"],
     ]);
-    expect(bar.indexOf("Free scans")).toBeLessThan(bar.indexOf(COPY["chrome.nav.signin"]));
+    expect(bar.indexOf("Scan library")).toBeLessThan(bar.indexOf(COPY["chrome.nav.signin"]));
     expect(bar.indexOf(COPY["chrome.nav.signin"])).toBeLessThan(bar.indexOf(START));
   });
 
@@ -217,11 +218,11 @@ describe("board PubLanding v36 — no top bar, and the nav", () => {
     expect(hrefs.filter((h) => h !== "/#landing-field")).toEqual([]);
   });
 
-  it("the drawer holds the same three links, the switch and Sign in; its toggle is Open menu; Free scan stays in the bar", () => {
+  it("the drawer holds the same four links, the switch and Sign in; its toggle is Open menu; Free scan stays in the bar", () => {
     const html = markup(ELSEWHERE);
     const menu = drawer(html);
     const menuLinks = links(menu.slice(0, menu.indexOf("</ul>"))).map((a) => a.href);
-    expect(menuLinks).toEqual(["/how-it-works", "/pricing", "/scans"]);
+    expect(menuLinks).toEqual(["/how-it-works", "/pricing", "/about", "/scans"]);
     expect(menu).toContain('href="/signin"');
     expect(menu).toContain('data-testid="theme-switch"');
     expect(html).toContain(`aria-label="${COPY["chrome.nav.menu"]}"`);

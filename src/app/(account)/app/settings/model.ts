@@ -111,8 +111,6 @@ export type BillingFacts =
       paidThrough: Date;
       /** REQ-097 c1's one destination. */
       surfaceHref: string;
-      /** D4: until when a cancel is refunded by itself (`billingSummary`). */
-      refundUntil: Date | null;
     }
   | { readable: false; surfaceHref: string };
 
@@ -413,8 +411,6 @@ export function billingSummaryOf(billing: BillingFacts, timeZone: string): Billi
         // of them was corrected.
         accessUntil: formatDayDate(billing.paidThrough, timeZone),
         surfaceHref: billing.surfaceHref,
-        refundUntil:
-          billing.refundUntil === null ? null : formatDayDate(billing.refundUntil, timeZone),
       }
     : { readable: false, surfaceHref: billing.surfaceHref };
 }

@@ -9,13 +9,10 @@
 // one subscription: how far it is paid, and what the vendor calls it. This
 // module writes those two and **nothing else**.
 //
-// **It invents no behaviour for a failed renewal.** REQ-076's non-goal
-// deferred chargebacks and `past_due` by owner ruling. Its deferral of
-// refunds is superseded for two cases only (`refund.ts`): D4's cancel in the
-// first 14 days, reached from the two cancellation events
-// (`docs/spec/decisions/2026-10-20-1699.md`), and D10's first renewal with no
-// page live, reached from `invoice.paid`
-// (`docs/spec/decisions/2026-10-24-1592.md`). So
+// **It invents no behaviour for a failed renewal, and refunds nothing.**
+// REQ-076's non-goal deferred refunds, chargebacks and `past_due` by owner
+// ruling, and the plan is month to month with no money-back guarantee
+// (`docs/spec/decisions/2026-11-06-2448.md`). So
 // `invoice.payment_failed` records the status and
 // returns: no mail, no retry, no dunning, no downgrade, no revocation.
 // REQ-097 criterion 4 says the same thing from the customer's side:
@@ -42,7 +39,6 @@
 import { stripe, type Stripe } from "../stripe/client";
 import { isTransient, redeliver } from "../stripe/transient";
 import { paidThroughOf } from "./period";
-import { refundFirstFortnight, refundFirstRenewal } from "./refund";
 import { recordedStatus } from "./status";
 import { billingStore, type BillingRow } from "./store";
 
@@ -110,7 +106,6 @@ export async function onSubscriptionEvent(event: Stripe.Event): Promise<Subscrip
   if (account.last_subscription_event_id === event.id) {
     // A redelivery finishes what a failed first delivery left after its event id was written.
     await mirrorCancellation(account, subscription);
-    await refundOn(event, account, subscription);
     return { applied: false, because: "replay" };
   }
 
@@ -132,7 +127,6 @@ export async function onSubscriptionEvent(event: Stripe.Event): Promise<Subscrip
   if (!written.ok) redeliver("subscription_facts");
 
   await mirrorCancellation(account, subscription);
-  await refundOn(event, account, subscription);
   return { applied: true };
 }
 
@@ -145,18 +139,6 @@ async function mirrorCancellation(account: BillingRow, subscription: Stripe.Subs
   if (cancelledNow === cancelledHere) return;
   const stamped = await billingStore().stampCancelled(account.id, cancelledNow ? new Date() : null);
   if (!stamped.ok) redeliver("cancelled_at");
-}
-
-const CANCEL_EVENTS: ReadonlySet<string> = new Set([
-  "customer.subscription.updated",
-  "customer.subscription.deleted",
-]);
-
-/** D4's refund on the two cancellation events, D10's on a paid invoice. A
- *  failure that will pass throws, so Stripe redelivers the event. */
-async function refundOn(event: Stripe.Event, account: BillingRow, subscription: Stripe.Subscription): Promise<void> {
-  if (CANCEL_EVENTS.has(event.type)) await refundFirstFortnight(account.id, subscription);
-  else if (event.type === "invoice.paid") await refundFirstRenewal(account, event.data.object as Stripe.Invoice);
 }
 
 /** REQ-024 / §13 — the first period end, stamped by provisioning.

@@ -51,8 +51,6 @@ const FIXTURE_BILLING: BillingFacts = Object.freeze({
   state: "active",
   paidThrough: new Date("2026-10-01T00:00:00.000Z"),
   surfaceHref: "https://billing.stripe.com/p/session/fixture",
-  // Shown in the specimen so the layout sweep measures the refund line.
-  refundUntil: new Date("2026-09-15T00:00:00.000Z"),
 });
 
 export const FIXTURE_SETTINGS_FACTS: SettingsFacts = Object.freeze({

@@ -8,6 +8,7 @@
 // dead-link screen, the same answer the post gives for a spent one.
 import type React from "react";
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { LogIn, MailCheck } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
@@ -21,6 +22,7 @@ import {
   confirmTypeOf,
   linkLandingOf,
 } from "@/lib/account/identity/addresses";
+import { PENDING_COOKIE, isPendingFor } from "@/lib/account/signin-pending";
 import { PUBLIC_ROUTE_SEO } from "../../_seo/routes";
 import { staticMetadata } from "../../_seo/metadata";
 import { ConfirmForm } from "./ConfirmForm";
@@ -51,6 +53,8 @@ export default async function ConfirmPage(p: {
     [TYPE_QUERY_KEY]: type,
     ...(landing === null ? {} : { [LANDING_QUERY_KEY]: landing }),
   };
+  // Only the browser that asked holds the cookie, so a scanner still gets the button.
+  const auto = isPendingFor((await cookies()).get(PENDING_COOKIE)?.value, type);
   const arm = ARM[type];
   const Icon = arm.icon;
 
@@ -69,7 +73,7 @@ export default async function ConfirmPage(p: {
           </span>
           <h1 className="t-hero">{copy(arm.head)}</h1>
           <p className="text-base-content/80 sm:text-lg">{copy("signin.confirm.line")}</p>
-          <ConfirmForm action={REDEEM_PATH} fields={fields} label={copy(arm.submit)} />
+          <ConfirmForm action={REDEEM_PATH} fields={fields} label={copy(arm.submit)} auto={auto} />
         </div>
       </main>
     </Surface>

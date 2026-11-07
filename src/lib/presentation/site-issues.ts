@@ -4,6 +4,7 @@
 // check two ways.
 import { EyeOff, Gauge, Heading, ListTree, Lock, Smartphone, Tags, TextAlignStart, Unlink, type LucideIcon } from "lucide-react";
 import type { IssueDoer, IssueSeverity, SiteCheck } from "@/lib/site-issues/types";
+import { WORDPRESS_CONNECT } from "@/lib/config/constants";
 import type { CopyKey } from "./copy";
 import { SEVERITY } from "./bands";
 
@@ -39,7 +40,8 @@ export const SITE_CHECK_ICON: Readonly<Record<SiteCheck, LucideIcon>> = Object.f
 export const SITE_CHECK_DOER: Readonly<Record<IssueDoer, CopyKey>> = Object.freeze({
   free_fix: "check.doer.free-fix",
   reachkit_writes: "check.doer.reachkit-writes",
-  reachkit_rewrites: "check.doer.reachkit-rewrites",
+  // ReachKit rewrites only inside a WordPress it can connect; without one the fix is the customer's.
+  reachkit_rewrites: WORDPRESS_CONNECT ? "check.doer.reachkit-rewrites" : "check.doer.free-fix",
 });
 
 /** §9's three severity words, from the ordered `SEVERITY` keys. */

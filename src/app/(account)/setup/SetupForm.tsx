@@ -396,12 +396,12 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
           {/* The step is keyed, so each step mounts fresh and rises in once; reduced motion draws it in place. */}
           <div key={step} className={`${QUESTION} motion-safe:animate-rise`} data-frame={REGION.columns}>
             <div className={QUESTION_HEAD}>
-              {step === "site" ? (
+              {step === "check" ? null : (
                 <p className="flex items-center gap-1.5 text-sm text-base-content/70" data-testid="setup-step-time">
                   <Clock4 {...ICON} size={16} />
-                  {copy("setup.step.time")}
+                  {copy(step === "site" ? "setup.step.time" : "setup.step.publishing.time")}
                 </p>
-              ) : null}
+              )}
               <h1 className="text-(length:--h1) leading-tight tracking-[-0.03em] wrap-anywhere">{copy(STEP_COPY[step].question)}</h1>
               <p className="text-base-content/80" data-testid="setup-step-line">
                 {copy(STEP_COPY[step].line)}

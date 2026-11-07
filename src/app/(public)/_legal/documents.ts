@@ -9,6 +9,7 @@
 // document is a fourth entry here and a four-line `page.tsx`, and there is
 // no branch in the renderer to extend.
 import { Ban, Cookie, Database, Download, type LucideIcon } from "lucide-react";
+import { ERASURE_DAYS } from "@/lib/config/constants";
 import type { CopyKey } from "@/lib/presentation/copy";
 
 /** The three sentences a legal page is made of: its title, the date the
@@ -20,6 +21,8 @@ export interface LegalDocument {
    *  document owes only its own date. */
   readonly updated: CopyKey;
   readonly body: CopyKey;
+  /** The body's slots, filled from the constants the code runs on. */
+  readonly vars?: Readonly<Record<string, string>>;
   /** A Markdown list drawn above the card; a document without one has none. */
   readonly summary?: CopyKey;
   /** The tile beside each summary item, in the list's order. */
@@ -37,6 +40,7 @@ export const PRIVACY: LegalDocument = Object.freeze({
   title: "legal.privacy.title",
   updated: "legal.privacy.updated",
   body: "legal.privacy.body",
+  vars: Object.freeze({ erasureDays: String(ERASURE_DAYS) }),
   summary: "legal.privacy.summary",
   summaryIcons: Object.freeze([Database, Ban, Cookie, Download]),
   path: "/privacy",

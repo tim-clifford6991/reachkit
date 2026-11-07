@@ -97,8 +97,6 @@ function boardOrder(customer: { label: string; domain: string }): string[] {
     copy("overview.connect.checked", { time: "9:00 AM" }),
     copy("overview.connect.hourly"),
     copy("overview.connect.other"),
-    copy("overview.connect.wordpress"),
-    copy("overview.connect.wordpress.link"),
     copy("overview.connect.later"),
     copy("overview.connect.page.eyebrow"),
     TITLE,
@@ -170,6 +168,8 @@ describe("Overview for an address not connected yet", () => {
       expect(html).toContain(`aria-label="${copy(key)}"`);
     }
     expect(html).toContain(`data-host="${customer.label}.${customer.domain}"`);
+    // DNS is the only connect path while WordPress is switched off.
+    expect(text).not.toMatch(/wordpress/i);
   });
 
   it("parity: OverviewDNS reads its rendered arms", async () => {

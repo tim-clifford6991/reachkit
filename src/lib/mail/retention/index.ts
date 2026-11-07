@@ -72,14 +72,8 @@ export async function sendCancellation(userId: string, now: Date = new Date()): 
   const account = await store.account(userId);
   if (account === null || account.cancelledAt === null || !cancellationDue(account)) return notDue(kind, userId);
   const site = await store.siteOf(userId);
-  // The webhook stamps the cancel before it refunds, so only a refund at or after the stamp belongs to this cancel.
-  const refunded = await store.refundedSince(userId, account.cancelledAt);
-  // The refund is recorded before access ends, so wait until it has ended rather than name the old period end.
-  if (refunded && account.paidThrough.getTime() > now.getTime()) return notDue(kind, userId);
-
   const mail = buildCancellation({
     accessEndsOn: formatMailDate(account.paidThrough, site?.timezone ?? null),
-    refunded,
   });
   const result = await sendEmail({ kind, to: account.email, ...mail });
   if (!result.sent) return withheld(kind, userId, result);

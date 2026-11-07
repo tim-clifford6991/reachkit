@@ -11,7 +11,7 @@ import PrivacyPage from "@/app/(public)/privacy/page.tsx";
 import TermsPage from "@/app/(public)/terms/page.tsx";
 import ImprintPage from "@/app/(public)/imprint/page.tsx";
 import { ANALYTICS_EVENTS } from "@/lib/analytics";
-import { DANGER_TICKET_TTL_MINUTES } from "@/lib/config/constants";
+import { DANGER_TICKET_TTL_MINUTES, ERASURE_DAYS } from "@/lib/config/constants";
 
 const html = renderToStaticMarkup(<PrivacyPage />);
 const text = (s: string): string => s.replace(/<[^>]+>/g, "").replace(/\s+/g, " ");
@@ -26,7 +26,40 @@ function sectionHtml(id: string): string {
 
 const section = (id: string): string => text(sectionHtml(id));
 
+/** Every vendor the code sends personal or page data to; kept here because only the notice may name them in src/. */
+const LEGAL_PROCESSORS = ["Supabase", "Vercel", "Stripe", "Resend", "DataForSEO", "Anthropic", "Inngest", "PostHog"];
+
 const NUMBER_WORDS = ["zero", "one", "two", "three", "four", "five", "six"];
+
+describe("privacy — every vendor the code sends data to is named", () => {
+  const providers = (): string[] =>
+    [...sectionHtml("service-providers").matchAll(/<th scope="row"[^>]*>([^<]+)<\/th>/g)].map((m) => m[1] ?? "");
+
+  it("the providers table is exactly the processor list", () => {
+    expect(providers().sort()).toEqual([...LEGAL_PROCESSORS].sort());
+  });
+
+  it("names Google Search Console and Bing Webmaster Tools as recipients of hosted page addresses", () => {
+    for (const id of ["service-providers", "international-transfers"]) {
+      expect(section(id)).toContain("Google Search Console and Bing Webmaster Tools");
+    }
+    expect(section("service-providers")).toContain("addresses of the pages we host for you");
+  });
+});
+
+describe("privacy — retention reads as the code runs", () => {
+  const retention = (): string => section("legal-basis-and-retention");
+
+  it("closes a deleted account at once and removes its data within the erasure window", () => {
+    expect(retention()).toContain("the account is closed at once");
+    expect(retention()).toContain(`Its data is then removed within ${ERASURE_DAYS} days`);
+    expect(retention()).not.toContain("act on the deletion at once");
+  });
+
+  it("says how long a free page's email address is kept", () => {
+    expect(retention()).toContain("The email address you give for a free page stays with that report until you ask us to remove it");
+  });
+});
 
 describe("privacy — PostHog is a named service provider", () => {
   const posthog = (): string => {
@@ -38,6 +71,10 @@ describe("privacy — PostHog is a named service provider", () => {
     expect(posthog()).toMatch(/^PostHogProduct analytics\./);
     expect(posthog()).toContain("Our servers send it");
     expect(posthog()).toContain("nothing of it runs in your browser");
+  });
+
+  it("calls its hashes pseudonymous", () => {
+    expect(posthog()).toContain("a pseudonymous one-way hash");
   });
 
   it("counts exactly the events the analytics seam can send", () => {
@@ -75,6 +112,11 @@ describe("privacy — the cookies line matches what the product sets", () => {
   it("says analytics runs on the server, and no analytics or tracking cookies", () => {
     expect(cookies()).toContain("no analytics cookies, no advertising cookies and no cross-site trackers");
     expect(cookies()).toContain("Product analytics runs on our servers and stores nothing in your browser");
+  });
+
+  it("names only the settings the browser really keeps; there is no banner", () => {
+    expect(cookies()).toContain("two settings for this site in its own storage");
+    expect(cookies()).not.toContain("banner");
   });
 
   it("the rights line says Export your data", () => {

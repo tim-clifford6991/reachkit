@@ -4,7 +4,7 @@
 // Boards `PubLanding` and `PubLandingPhone` (owner 2026-10-20):
 //
 //   · **The header** — sticky, a 78% surface ground under a 12px blur. The
-//     mark and *How it works · Pricing · Free scans* on the left (Q1); on the
+//     mark and *How it works · Pricing · About · Scan library* on the left; on the
 //     right the one theme button, *Sign in* as a ghost, and *Free scan* solid.
 //     The link to the page the reader is on is in the primary ink, with
 //     `aria-current` (`NavLink`). The `/app` shell keeps its three-way dropdown.
@@ -51,6 +51,7 @@ const PLACE = { bar: "bar", menu: "menu" } as const;
 const LINKS: readonly { href: string; key: CopyKey }[] = [
   { href: "/how-it-works", key: "chrome.nav.works" },
   { href: "/pricing", key: "chrome.nav.pricing" },
+  { href: "/about", key: "chrome.nav.about" },
   { href: "/scans", key: "chrome.nav.scans" },
 ];
 

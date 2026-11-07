@@ -141,11 +141,11 @@ describe("SPEC §5 (docs/spec/decisions/2026-10-22-1737.md) — three saved step
     expect(SETUP_STEPS.map(primary)).toEqual(["Continue", "Looks right", COPY["setup.connect.check"]]);
   });
 
-  it("the first step alone says the time the founder's own part takes", () => {
+  it("Site and Connect say the time the founder's own part takes, and Connect that a web person can do it", () => {
     expect(SETUP_STEPS.map((step) => screenFor(step).querySelector('[data-testid="setup-step-time"]')?.textContent ?? null)).toEqual([
       "About 10 minutes, once",
       null,
-      null,
+      "5–10 min, or send it to your web person",
     ]);
   });
 
@@ -196,7 +196,7 @@ describe('REQ-025 c3 — "when they look for anything that tunes the engine ... 
     expect(scanless.sort()).toEqual(["domain", "place"]);
   });
 
-  it("the one select is D66's country and language; no checkbox, and the one radio pair is where pages live", () => {
+  it("the one select is D66's country and language; no checkbox, and the one radio is where pages live", () => {
     for (const step of SETUP_STEPS) {
       const tree = screenFor(step);
       expect([...tree.querySelectorAll("select")].map((el) => el.getAttribute("name")), step).toEqual(
@@ -206,7 +206,7 @@ describe('REQ-025 c3 — "when they look for anything that tunes the engine ... 
       expect(
         [...tree.querySelectorAll('input[type="radio"]')].map((el) => el.getAttribute("name")),
         step,
-      ).toEqual(step === "publishing" ? ["destination", "destination"] : []);
+      ).toEqual(step === "publishing" ? ["destination"] : []);
     }
   });
 });
@@ -216,12 +216,12 @@ describe("REQ-025 c1 — nothing on any step states how long anything takes", ()
   // minutes.") went with the one submit: the five-step screen has no
   // control to hang it on, so c1 stands unamended again.
   const TIME =
-    /(\d+\s*(second|minute|hour|day|week)s?|~\s*\d|about\s+\d|%|remaining|elapsed|eta\b|countdown)/i;
+    /(\d+\s*(second|minute|min\b|hour|day|week)s?|~\s*\d|about\s+\d|%|remaining|elapsed|eta\b|countdown)/i;
 
   it("no rendered string on any step states a duration, an estimate or a percentage, but the founder's own time", () => {
     for (const step of SETUP_STEPS) {
       for (const facts of [{}, SCANLESS, { concluded: null }]) {
-        const text = (screenFor(step, facts).textContent ?? "").replace(COPY["setup.step.time"], "");
+        const text = (screenFor(step, facts).textContent ?? "").replace(COPY["setup.step.time"], "").replace(COPY["setup.step.publishing.time"], "");
         expect(text, step).not.toMatch(TIME);
       }
     }
@@ -245,7 +245,7 @@ describe("REQ-025 c1 — nothing on any step states how long anything takes", ()
    * It is listed rather than pattern-excused: a second key that states a
    * duration fails here, which is what this test is for.
    */
-  const STATES_THE_FOUNDERS_OWN_TIME = ["setup.step.time"];
+  const STATES_THE_FOUNDERS_OWN_TIME = ["setup.step.time", "setup.step.publishing.time"];
 
   it("no setup key states one, but for the founder's own task", () => {
     const spoken = (Object.keys(COPY) as (keyof typeof COPY)[]).filter((key) =>
@@ -601,10 +601,11 @@ describe("Connect — where the pages go live (REQ-028 c2, SPEC §7 #476)", () =
     }
   });
 
-  it("both destinations render, each with its own written line", () => {
+  it("the hosted destination renders alone, with its own written line, while WordPress is switched off", () => {
     const tree = screenFor("publishing");
-    expect(tree.querySelectorAll('[data-testid="setup-destination"] input[type="radio"]')).toHaveLength(2);
-    for (const id of ["setup-destination-hosted", "setup-destination-wordpress"]) {
+    expect(tree.querySelectorAll('[data-testid="setup-destination"] input[type="radio"]')).toHaveLength(1);
+    expect(tree.querySelector('[data-testid="setup-destination-wordpress"]')).toBeNull();
+    for (const id of ["setup-destination-hosted"]) {
       const option = tree.querySelector(`[data-testid="${id}"]`);
       expect(option, id).not.toBeNull();
       expect(
@@ -618,19 +619,15 @@ describe("Connect — where the pages go live (REQ-028 c2, SPEC §7 #476)", () =
     const radios = [
       ...screenFor("publishing").querySelectorAll<HTMLInputElement>('[data-testid="setup-destination"] input[type="radio"]'),
     ];
-    expect(radios.map((radio) => radio.checked)).toEqual([true, false]);
+    expect(radios.map((radio) => radio.checked)).toEqual([true]);
     expect(new Set(radios.map((radio) => radio.name)).size).toBe(1);
     expect(radios.every((radio) => radio.classList.contains("radio-primary"))).toBe(true);
   });
 
-  it("board Setup — the hosted choice names its address and says it is recommended; WordPress does neither", () => {
-    const tree = screenFor("publishing");
-    const hosted = tree.querySelector('[data-testid="setup-destination-hosted"]')?.textContent ?? "";
-    const wordpress = tree.querySelector('[data-testid="setup-destination-wordpress"]')?.textContent ?? "";
+  it("board Setup — the hosted choice names its address and says it is recommended", () => {
+    const hosted = screenFor("publishing").querySelector('[data-testid="setup-destination-hosted"]')?.textContent ?? "";
     expect(hosted).toContain("content.example.com");
     expect(hosted).toContain(COPY["setup.destination.hosted"]);
-    expect(wordpress).not.toContain("content.example.com");
-    expect(wordpress).not.toContain(COPY["setup.destination.hosted"]);
   });
 
   it("c2 — with no address given, one written line stands where the record will sit; no blank, dash or placeholder", () => {

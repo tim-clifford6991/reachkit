@@ -118,9 +118,10 @@ describe("the platform is named in exactly one file", () => {
   // Naming two bindings is not importing an SDK — the claim this suite
   // protects is that swapping the platform is a bounded edit, and it stays
   // bounded — but the file is listed, so a third naming site fails here.
-  it("only src/lib/config/env.ts names it under src/lib/, and only as its two bindings", () => {
+  // The privacy notice must name every service provider, so its copy is the one other naming site.
+  it("only src/lib/config/env.ts names it under src/lib/, and only as its two bindings, beside the privacy notice", () => {
     const naming = filesUnder("src/lib").filter((f) => PLATFORM.test(readFileSync(path.join(ROOT, f), "utf8")));
-    expect(naming).toEqual(["src/lib/config/env.ts"]);
+    expect(naming).toEqual(["src/lib/config/env.ts", "src/lib/presentation/copy/keys/chrome.ts"]);
   });
 
   it("env.ts names no import of the platform's SDK", () => {
