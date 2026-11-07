@@ -8,9 +8,10 @@
 #   scripts/smoke.sh --free
 #
 # **`--free` spends nothing**: it sends GETs only, so the deployer can run it
-# on every deploy. It walks landing → old addresses → hosted page, then
-# `GET /api/health`, then the report the gallery lists first, which must carry
-# no incomplete or unreadable notice. It starts no scan and opens no stream.
+# on every deploy. It times the first byte of five routes, cold then warm,
+# then walks landing → old addresses → hosted page, then `GET /api/health`,
+# then the report the gallery lists first, which must carry no incomplete or
+# unreadable notice. It starts no scan and opens no stream.
 #
 # It walks the chain a stranger walks — landing → every old address → scan →
 # report → gallery card — against a
@@ -145,6 +146,49 @@ else
   echo "smoke: $BASE_URL · $DOMAIN · ceiling ${REPORT_CEILING_S}s, hard stop ${PLATFORM_CEILING_S}s, cap ${FREE_CAP_C}c"
 fi
 
+# ── 0. cold ──────────────────────────────────────────────────────────────
+# The first request of the run, right after a deploy, meets every function
+# cold, so it is timed before anything else is fetched; then the fastest of
+# three more holds the warm budget. Over budget is red only on production: a
+# timing blip on dev would otherwise hold every production deploy. A route's
+# own content is asserted by its later step; here only the code is.
+step=cold
+first_byte() { # <path> → "<code> <ms>"
+  local out
+  out=$(curl -sS -o /dev/null -w '%{http_code} %{time_starttransfer}' --max-time 30 "$BASE_URL$1" 2>"$WORK/cold.err") \
+    || fail "$step" "GET $1 did not answer ($(tr -d '\n' < "$WORK/cold.err"))"
+  awk -v c="${out%% *}" -v s="${out#* }" 'BEGIN { printf "%s %d", c, s * 1000 }'
+}
+COLD_ROUTES="/ 200 $(pin coldLandingMs) $(pin warmPageMs)
+/pricing 200 $(pin coldPricingMs) $(pin warmPageMs)
+/signin 200 $(pin coldSigninMs) $(pin warmPageMs)
+/app 307 $(pin coldAppMs) $(pin warmPageMs)
+/api/health any $(pin coldHealthMs) $(pin warmHealthMs)"
+over=""; cold_line=""; warm_line=""
+while read -r route want cold_budget _; do
+  read -r code ms <<<"$(first_byte "$route")"
+  [ "$want" = any ] || [ "$code" = "$want" ] || fail "$step" "GET $route answered $code, not $want"
+  cold_line="$cold_line · $route ${ms}ms"
+  [ "$ms" -le "$cold_budget" ] || over="$over$route ${ms}ms > ${cold_budget}ms cold"$'\n'
+done <<<"$COLD_ROUTES"
+while read -r route _ _ warm_budget; do
+  best=""
+  for _ in 1 2 3; do
+    read -r _ ms <<<"$(first_byte "$route")"
+    [ -z "$best" ] || [ "$ms" -lt "$best" ] && best=$ms
+  done
+  warm_line="$warm_line · $route ${best}ms"
+  [ "$best" -le "$warm_budget" ] || over="$over$route ${best}ms > ${warm_budget}ms warm (best of 3)"$'\n'
+done <<<"$COLD_ROUTES"
+if [ -n "$over" ] && [ "$BASE_URL" = "https://reachkit.app" ]; then
+  note "${cold_line# · } · warm, best of 3: ${warm_line# · }"
+  fail "$step" "$(head -1 <<<"$over")"
+fi
+ok "$step" "${cold_line# · }"
+note "warm, best of 3: ${warm_line# · }"
+while read -r line; do [ -n "$line" ] && printf 'WARN %-22s %s\n' "$step" "$line"; done <<<"$over"
+best=""
+
 # ── 1. landing ───────────────────────────────────────────────────────────
 # REQ-001 c1, the landing's whole contract: "exactly one text input and one
 # submit control". Asserted as structure — the field's own name, the form's
@@ -241,7 +285,7 @@ if [ -n "$FREE" ]; then
   notices_clear "$page"
   ok "$step" "200 · /scan/$newest, the newest listed · no incomplete or unreadable notice"
 
-  echo "smoke: PASS · $BASE_URL walked landing → health → report, GETs only"
+  echo "smoke: PASS · $BASE_URL walked cold → landing → health → report, GETs only"
   exit 0
 fi
 

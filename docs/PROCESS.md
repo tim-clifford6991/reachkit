@@ -123,7 +123,7 @@ The full matrix is a tool, not a job: `npm run test:layout:full` with `RK_LAYOUT
 
 ### Deploys
 
-Vercel Hobby, Git deployments off. `rk-deployer` deploys `main` (dev every SHA, production at most every two hours). Production is deployed with each merge batch (`/root/ops/reachkit/bin/redeploy.sh`) as well as dev. There is no freeze (2026-09-17, #844). Manual: `bash /root/ops/reachkit/bin/deploy-dev-once.sh`.
+Vercel Pro since 2026-11-07, Git deployments off. `rk-deployer` deploys `main`: dev every SHA, and production as soon as that SHA's dev check passes, with no batching and no window (owner, 2026-10-31; `PROD_EVERY_S=0`). `/root/ops/reachkit/bin/redeploy.sh` deploys production by hand. There is no freeze (2026-09-17, #844). Manual: `bash /root/ops/reachkit/bin/deploy-dev-once.sh`.
 
 `supabase/migrations` is the schema. A file under `/root/ops` that lists migrations is a log, not a queue. Do not re-apply a migration because a log still names it.
 
