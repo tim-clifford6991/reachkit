@@ -250,28 +250,32 @@ function localDate(at: Date, timeZone: string): string {
 /** The soonest committed topic from `today` on whose date holds no page and whose due hour did not end without one
  *  (a day decided `no_page` or `failed` is not coming), or `null`; a failed read is `null` too. */
 async function nextTopic(siteId: string, today: string): Promise<NextTopic | null> {
-  const { committedWeek } = await import("@/lib/opportunities");
-  const [week, drafts, days] = await Promise.all([
-    committedWeek(siteId).catch(() => null),
-    client().from<{ scheduled_for: string | null }>("drafts").select("scheduled_for").eq("site_id", siteId).gte("scheduled_for", today),
-    client()
-      .from<{ publish_date: string; outcome: string | null }>("draft_days")
-      .select("publish_date, outcome")
-      .eq("site_id", siteId)
-      .gte("publish_date", today),
-  ]);
-  if (week === null || drafts.error !== null || days.error !== null) return null;
-  const taken = new Set<string | null>([
-    ...(drafts.data ?? []).map((row) => row.scheduled_for),
-    ...(days.data ?? []).filter((day) => day.outcome !== null).map((day) => day.publish_date),
-  ]);
-  const next = week.days
-    .flatMap((day) => {
-      const topic = day.opportunity.targetQuery;
-      return day.date < today || taken.has(day.date) || topic === null ? [] : [{ on: day.date, topic }];
-    })
-    .sort((a, b) => a.on.localeCompare(b.on))[0];
-  return next ?? null;
+  try {
+    const { committedWeek } = await import("@/lib/opportunities");
+    const [week, drafts, days] = await Promise.all([
+      committedWeek(siteId),
+      client().from<{ scheduled_for: string | null }>("drafts").select("scheduled_for").eq("site_id", siteId).gte("scheduled_for", today),
+      client()
+        .from<{ publish_date: string; outcome: string | null }>("draft_days")
+        .select("publish_date, outcome")
+        .eq("site_id", siteId)
+        .gte("publish_date", today),
+    ]);
+    if (drafts.error !== null || days.error !== null) return null;
+    const taken = new Set<string | null>([
+      ...(drafts.data ?? []).map((row) => row.scheduled_for),
+      ...(days.data ?? []).filter((day) => day.outcome !== null).map((day) => day.publish_date),
+    ]);
+    const next = week.days
+      .flatMap((day) => {
+        const topic = day.opportunity.targetQuery;
+        return day.date < today || taken.has(day.date) || topic === null ? [] : [{ on: day.date, topic }];
+      })
+      .sort((a, b) => a.on.localeCompare(b.on))[0];
+    return next ?? null;
+  } catch {
+    return null;
+  }
 }
 
 /**
