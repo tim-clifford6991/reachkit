@@ -49,6 +49,7 @@ export function fakeDb(tables: Record<string, Row[]> = {}): FakeDb {
         const filters: Filter[] = [];
         let updates: Row | null = null;
         let inserted: Row | null = null;
+        let deleting = false;
 
         const rows = (): Row[] => (tables[table] ??= []);
         const matched = (): Row[] => rows().filter((row) => filters.every((f) => f(row)));
@@ -65,6 +66,10 @@ export function fakeDb(tables: Record<string, Row[]> = {}): FakeDb {
           // refused the way Postgres refuses it: a unique violation, and no
           // row written. The check itself is in `then()`, where the insert
           // is applied.
+          delete() {
+            deleting = true;
+            return self;
+          },
           insert(values: Row) {
             inserted = values;
             return self;
@@ -123,6 +128,7 @@ export function fakeDb(tables: Record<string, Row[]> = {}): FakeDb {
               return Promise.resolve({ data: [{ ...row }], error: null }).then(resolve);
             }
             const hit = matched();
+            if (deleting) tables[table] = rows().filter((row) => !hit.includes(row));
             if (updates !== null) for (const row of hit) Object.assign(row, updates);
             return Promise.resolve({ data: hit, error: null }).then(resolve);
           },

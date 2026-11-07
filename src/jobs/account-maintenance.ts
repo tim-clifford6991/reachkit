@@ -70,6 +70,7 @@ import {
 } from "@/jobs/engine";
 import { deepPassBackstop } from "./deep-pass-backstop";
 import { vendorDayReading } from "./vendor-days";
+import { jobDaysPrune } from "./job-days";
 import { MAINTENANCE_TICK_MINUTES } from "@/lib/config/constants";
 import { fanOut, settle } from "./fan-out";
 import type { JobDefinition, Outcome } from "./types";
@@ -123,6 +124,8 @@ const DUE_WORK: readonly {
   // Issue 1478: what the vendors billed, a day and a month, beside the
   // ledger's estimate on the owner's cost page.
   vendorDayReading,
+  // Each job's invocations and CPU a day are kept for a window, then deleted in one statement.
+  jobDaysPrune,
 ]);
 
 export const accountMaintenance: JobDefinition = {
