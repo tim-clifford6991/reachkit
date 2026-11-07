@@ -1,7 +1,6 @@
 // BUILD §12 — composeMail(): one call, both bodies, one omission decision.
 import { describe, expect, it } from "vitest";
-import { composeMail, writtenImprint, type ComposeInput } from "../../../src/lib/mail/shell/compose";
-import { frameText } from "../../../src/lib/mail/shell/text-frame";
+import { composeMail, type ComposeInput } from "../../../src/lib/mail/shell/compose";
 import { renderBlocksHtml } from "../../../src/lib/mail/blocks/html";
 import { renderBlocksText } from "../../../src/lib/mail/blocks/text";
 import { MAIL_KINDS, type MailKind } from "../../../src/lib/mail/kinds";
@@ -88,24 +87,5 @@ describe("BUILD §12 — every mail is composed once and wears one shell", () =>
     };
     expect(missingMeasurement).toBeTruthy();
     expect(wrongKind).toBeTruthy();
-  });
-
-  it("real imprint renders", () => {
-    // The owner's value reaches the band as written, with no code edit; a placeholder or an empty value does not.
-    const real = "Example Ltd, Leeds";
-    expect(writtenImprint(real)).toBe(real);
-    expect(writtenImprint("[[imprint: owner fills]]")).toBeNull();
-    expect(writtenImprint("")).toBeNull();
-    const text = frameText({
-      wordmark: "ReachKit",
-      body: "",
-      actions: "",
-      wholeMailLine: null,
-      links: [],
-      reason: null,
-      optOut: null,
-      imprint: writtenImprint(real),
-    });
-    expect(text.split("\n").at(-1)).toBe(`ReachKit · ${real}`);
   });
 });

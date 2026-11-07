@@ -594,6 +594,5 @@ Perplexity; Search Console (2026-10-02 below); countries and languages beyond D6
 
 - Stripe test-mode payment walk on `dev.reachkit.app` (#319), then three live drafts ≤ 45¢ (#321) and a crawled free scan ≤ 12¢ / 50 s (#715).
 - Production magic-link walk (#542). WordPress connect walk (#324). Gmail/Apple Mail render (#339).
-- Legal imprint: legal entity, address, VAT id still `[[imprint: …]]` placeholders (#335).
 - 2026-09-18  Recovery (#887, #334 — owner-gated, not done). Verified 2026-09-18: the Supabase org is on the **Free** plan, which has no point-in-time recovery and no scheduled backups, and dev and production are that one project — so a dev experiment is a production write and there is nothing behind a mistake. The owner holds the account: the plan change, the PITR add-on, and the one restore drill are all theirs. docs/RUNBOOK.md §9 names the screens (the org is Vercel-Marketplace-managed, so the plan changes on Vercel), the retention to ask for (7 days, ~$100/mo on top of Pro and Small compute), what PITR does and does not cover, and the drill step by step: restore to a point five minutes ago into a scratch clone, confirm one named row is back, record the wall-clock time. Until that number is written down the product's recovery time is unknown. No guard exists today beyond care.
 
