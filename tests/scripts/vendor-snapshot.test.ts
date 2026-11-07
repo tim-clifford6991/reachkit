@@ -106,8 +106,7 @@ describe("a per-site figure where the database key exists", () => {
 
   it("without the key, both are absent", async () => {
     const { row } = await takeSnapshot({ VERCEL_TOKEN: TOKEN }, NOW);
-    expect(row.vercel).not.toHaveProperty("sitesOnAutopilot");
-    expect(row.vercel).not.toHaveProperty("cpuSecondsPerSite");
+    expect(Object.keys(row.vercel!)).toEqual(["days", "month", "monthToDate"]);
   });
 });
 
@@ -128,13 +127,11 @@ describe("the owner is mailed before the 4 CPU-hour month runs out, at most four
     await hour("2026-11-10T14:00:00Z", reading("2026-11", 0.51 * BUDGET));
     expect(mails).toHaveLength(1);
     await hour("2026-11-11T09:00:00Z", reading("2026-11", 0.81 * BUDGET));
-    expect(mails).toHaveLength(2);
-    expect(mails[1]!.subject).toContain("80%");
+    expect(mails.map((m) => m.subject.match(/\d+%/)![0])).toEqual(["50%", "80%"]);
     expect(JSON.parse(readFileSync(statePath, "utf8"))).toEqual({ month: "2026-11", levels: [50, 80], projected: false });
 
     await hour("2026-12-02T09:00:00Z", reading("2026-12", 0.51 * BUDGET));
-    expect(mails).toHaveLength(3);
-    expect(mails[2]!.subject).toContain("50%");
+    expect(mails.map((m) => m.subject.match(/\d+%/)![0])).toEqual(["50%", "80%", "50%"]);
   });
 
   it("mails once when the last three days' mean projects past the budget, with the figure, the budget, the projection and the share", async () => {
