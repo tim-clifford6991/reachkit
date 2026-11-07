@@ -1,7 +1,7 @@
 // The landing draws the icons boards PubLanding and PubLandingPhone name, one
-// per concept (AI is sparkles, your business is building-2), the proof card's
-// report row draws the site's mark and states its stored score in text, the
-// kinds row draws the gallery's six, and the FAQ's questions carry none.
+// per concept (AI is sparkles, your business is building-2), the count row's
+// tile is scan-search, the kinds row draws the gallery's six, and the FAQ's
+// questions carry none.
 // The store and the gallery are the database seam; nothing else is replaced.
 import "../../generate/env";
 import React from "react";
@@ -9,9 +9,7 @@ import { parse, type HTMLElement } from "node-html-parser";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { settledMarkup } from "../shell/settled";
 
-const db = vi.hoisted(() => ({
-  listed: new Map<string, number | null>(),
-}));
+const db = vi.hoisted(() => ({ sites: 0 }));
 
 vi.mock("@/lib/publish/destinations/hosted/store", () => ({
   hostedSiteForDomain: async () => null,
@@ -20,11 +18,7 @@ vi.mock("@/lib/publish/destinations/hosted/store", () => ({
 }));
 vi.mock("@/lib/scan/gallery", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/scan/gallery")>()),
-  isListed: async (domain: string) => db.listed.has(domain),
-  listedCard: async (domain: string) => {
-    const score = db.listed.get(domain) ?? null;
-    return score === null ? null : { score, hasLogo: false };
-  },
+  scannedSites: async () => db.sites,
 }));
 
 const { default: LandingPage } = await import("@/app/(public)/page");
@@ -51,7 +45,7 @@ const glyphs = (el: HTMLElement): string[] =>
   });
 
 beforeEach(() => {
-  db.listed = new Map([["reachkit.app", 62]]);
+  db.sites = 0;
 });
 
 describe("the landing's icons are the boards'", () => {
@@ -70,7 +64,7 @@ describe("the landing's icons are the boards'", () => {
     expect(minis(card).map(glyphs)).toEqual([
       ["search", "sparkles"],
       ["building-2", "users", "search", "sparkles"],
-      ["file-text", "circle-check", "file-text", "clock", "file-text", "calendar"],
+      ["file-text", "circle-check", "file-text", "clock-4", "file-text", "calendar"],
       ["search", "sparkles"],
     ]);
     expect(card.querySelector("figcaption")).toBeNull();
@@ -102,16 +96,11 @@ describe("the landing's icons are the boards'", () => {
     expect(missing.classList.contains("text-error")).toBe(true);
   });
 
-  it("the proof card's report row draws ReachKit's own mark; unscored, no row", async () => {
-    const row = () => render().then((page) => page.querySelector('#landing-field a[href="/scan/reachkit.app"]'));
-    const scored = (await row())!;
-    expect(scored.querySelector(".radial-progress")).toBeNull();
-    expect(scored.querySelectorAll('svg[data-testid="brand-mark"]')).toHaveLength(1);
-    expect(scored.text).toContain(copy("landing.hero.proof.report", { domain: "reachkit.app" }));
-    expect(scored.querySelectorAll(".skeleton")).toHaveLength(0);
-
-    db.listed = new Map([["reachkit.app", null]]);
-    expect(await row()).toBeNull();
+  it("the count row's tile is scan-search, beside the field, and is drawn only from 100 sites", async () => {
+    const hero = async () => (await render()).querySelector("h1")!.parentNode as HTMLElement;
+    expect(glyphs(await hero())).not.toContain("scan-search");
+    db.sites = 100;
+    expect(glyphs(await hero()).filter((name) => name === "scan-search")).toHaveLength(1);
   });
 
   it("the kinds row draws the gallery's six icons: wrench, store, utensils, briefcase, laptop, video", async () => {

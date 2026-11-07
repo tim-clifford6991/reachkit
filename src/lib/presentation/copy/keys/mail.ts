@@ -619,7 +619,7 @@ export const MAIL_COPY = Object.freeze({
   // `setup-reminder`, `account` — gain nothing here.
 
   // The footer band after the wordmark above: `ReachKit · [imprint line]`.
-  "mail.shell.imprint": ["[[imprint: owner fills legal entity, city]]", { slots: {}, fixedBy: "S20" }],
+  "mail.shell.imprint": ["Tim Clifford · Schwedter Straße 235, 10435 Berlin, Germany", { slots: {}, fixedBy: "S20" }],
 
   // S20's footer line — why this mail arrived — one per kind the set
   // draws. `mail.reason.report` takes the removal address as a slot rather

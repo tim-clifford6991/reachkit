@@ -104,24 +104,22 @@ describe("issue #376 — S20's footer, in both bodies", () => {
     // The arm the three kinds above take. It must not throw, and it must
     // not render an empty line where a sentence would go.
     const mail = await composeMail({ kind: "account", ...BASE });
-    expect(mail.text.split("\n").at(-1)).toBe(COPY["mail.shell.wordmark"]);
+    expect(mail.text.split("\n").at(-1)).toBe(`${COPY["mail.shell.wordmark"]} · ${COPY["mail.shell.imprint"]}`);
     expect(mail.html).not.toContain("<p style=\"margin:0\"></p>");
   });
 
-  it("placeholder imprint renders no band", async () => {
-    // The owner has not written the imprint yet; a customer must never read the placeholder.
-    expect(COPY["mail.shell.imprint"]).toContain("[[");
-    const mail = await composeMail({ kind: "report", ...BASE, reason: "mail.reason.report", reasonVars: { address: "x@y.z" } });
-    expect(mail.html).not.toContain(COPY["mail.shell.imprint"]);
-    expect(mail.text).not.toContain(COPY["mail.shell.imprint"]);
-    // The text twin closes on the wordmark alone, with no empty line or separator where the imprint was.
-    expect(mail.text.split("\n").slice(-3)).toMatchInlineSnapshot(`
-      [
-        "————————————————————————",
-        "Own this site and want the report taken down? Write to x@y.z.",
-        "ReachKit",
-      ]
-    `);
+  it("the written imprint shows in the band", async () => {
+    // CAN-SPAM wants the sender's postal address in every commercial mail; nurture and win-back are the commercial kinds.
+    const band = `${COPY["mail.shell.wordmark"]} · ${COPY["mail.shell.imprint"]}`;
+    const commercial = [
+      { kind: "nurture", reason: "mail.reason.nurture", reasonVars: {} },
+      { kind: "win-back", reason: "mail.reason.winback", reasonVars: { days: "30" } },
+    ] as const;
+    for (const { kind, ...footer } of commercial) {
+      const mail = await composeMail({ kind, ...BASE, ...footer });
+      expect(mail.text.split("\n").at(-1), kind).toBe(band);
+      expect(mail.html, kind).toContain(COPY["mail.shell.imprint"]);
+    }
   });
 
   it("the reason line is the one place a mail says why it arrived", () => {

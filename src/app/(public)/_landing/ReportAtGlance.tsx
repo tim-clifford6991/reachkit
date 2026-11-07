@@ -1,4 +1,4 @@
-// Step 1's picture: what a free report opens on, headed by the scanned site's logo and domain, drawn from the plumber specimen.
+// Step 1's picture: what a free report opens on, headed by the scanned site's logo and domain, drawn from the landing's example business.
 import type React from "react";
 import { Gift } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
@@ -13,7 +13,7 @@ const LABEL = "text-primary text-xs font-semibold";
 const SMALL = "text-base-content/70 text-xs";
 
 export function ReportAtGlance(): React.JSX.Element {
-  const { site, report } = EXAMPLES.plumber;
+  const { site, report } = EXAMPLES.software;
   const [leader, ...others] = report.rivals;
   return (
     <figure className={STEP_FIGURE} aria-label={copy("how.start.glance")}>

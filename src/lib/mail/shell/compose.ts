@@ -109,11 +109,6 @@ function renderWholeMailLine(key: CopyKey | null, measurement?: MeasurementState
   return copy(key);
 }
 
-/** The imprint as written, or `null` while it is empty or still an owner placeholder, so no customer reads `[[…]]`. */
-export function writtenImprint(value: string): string | null {
-  return value === "" || value.includes("[[") ? null : value;
-}
-
 /** The first `action` block's index, or the list's end. */
 function firstActionIndex(blocks: readonly MailBlock[]): number {
   const index = blocks.findIndex((block) => block.block === "action");
@@ -144,8 +139,7 @@ function partsOf(m: ComposeInput): ComposedMailParts {
   const line = renderWholeMailLine(wholeMailLine, m.measurement);
 
   const wordmark = copy(WORDMARK);
-  // Read off the registry, not `copy()`, which throws on an unwritten key and would stop every mail on a footer band.
-  const imprint = writtenImprint(COPY[IMPRINT]);
+  const imprint = copy(IMPRINT);
   const optOut =
     m.optOut === undefined
       ? null

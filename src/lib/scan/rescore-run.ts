@@ -34,17 +34,7 @@ import { readingLines } from "./rescore-reading";
 import { scanWriteOf } from "./rescore-write";
 import { homeOf, homeReadsFor, type HomeReadRow, type StoredRead } from "./home-reads";
 import { livePagesAt, measuredOf, oursPicked, type OwnReadRow, type OwnReads, type StoredPublication } from "./own-reads";
-import {
-  rehomeSite,
-  rescoreScan,
-  type RehomedSite,
-  type ReportChange,
-  type Rescored,
-  type RescoredMembers,
-  type RescoreReport,
-  type RescoreScan,
-  type StoredAnswer,
-} from "./rescore";
+import { rehomeSite, rescoreScan, type RehomedSite, type ReportChange, type Rescored, type RescoredMembers, type RescoreReport, type RescoreScan, type StoredAnswer } from "./rescore";
 import type { ScanStatus } from "./store";
 import { asksByItself, deployedFactsVersion, heldBecause, nextStep, type RunRecord, type ScoreMove } from "./derivation";
 
@@ -160,7 +150,7 @@ export interface RescoreAnswer {
   /** The scans that still read differently from the deployed code after
    *  this run: every one a dry run would move, the ones an apply left. */
   stale: readonly string[];
-  /** Every score the run moves, for the guard (issue 1481). */
+  /** Every score or rival count the run moves, for the guard (issue 1481). */
   scoreMoves: readonly ScoreMove[];
   /** Why the guard stopped the run, or the apply still lags; `null` otherwise. */
   held: string | null;
@@ -518,7 +508,10 @@ async function readAll(store: RescoreStore) {
   }
   rows.sort((a, b) => a.scan.createdAt.localeCompare(b.scan.createdAt) || a.scan.id.localeCompare(b.scan.id));
   const scoreOf = (m: RescoredMembers) => (m.verdict.scoreAndBand.kind === "unmeasured" ? null : m.verdict.scoreAndBand.value.score);
-  const scoreMoves = rows.map((row) => ({ domain: row.scan.domain, before: scoreOf(row.result.before), after: scoreOf(row.result.after) })).filter((m) => m.before !== m.after);
+  const rivalsIn = (m: RescoredMembers) => (m.rivals.kind === "unmeasured" ? null : m.rivals.value.length);
+  const scoreMoves = rows
+    .map(({ scan, result: { before, after } }) => ({ domain: scan.domain, before: scoreOf(before), after: scoreOf(after), rivalsBefore: rivalsIn(before), rivalsAfter: rivalsIn(after) }))
+    .filter((m) => m.before !== m.after || m.rivalsBefore !== m.rivalsAfter);
   const ids = (pick: (row: Row) => boolean) => rows.filter(pick).map((row) => row.scan.id);
   // A scan that stands as stored though the code reads it differently (issue 1504) stays stale once written.
   const [moving, standing] = [ids(moves), ids((row) => row.result.stale)];
@@ -563,7 +556,7 @@ export async function rescoreStored(store: RescoreStore, o: RescoreOptions): Pro
     stale,
     scoreMoves,
     held,
-    summary: quietly(() => summaryOf({ o, rows, unreadable, sites, movedSites, profiles, renamed, withdrawn, written, read: store.readBytes?.() })),
+    summary: `${held === null ? "" : `**Held:** ${held}. Nothing is asked after it.\n\n`}${quietly(() => summaryOf({ o, rows, unreadable, sites, movedSites, profiles, renamed, withdrawn, written, read: store.readBytes?.() }))}`,
   };
 }
 
@@ -838,7 +831,7 @@ export function databaseRescore(client: () => Promise<MinimalClient> = adminClie
             stale_scans: answer.stale,
             derivation: o.derivation ?? null,
             held: answer.held,
-            summary: answer.held === null ? answer.summary : `**Held:** ${answer.held}. Nothing is asked after it.\n\n${answer.summary}`,
+            summary: answer.summary,
             error: null,
           })
           .eq("id", id)

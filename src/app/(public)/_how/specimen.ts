@@ -3,7 +3,6 @@
 // only: what ReachKit itself says is in the copy registry (`how.*`). Every
 // domain ends in `.example`, so no stranger's site is ever drawn.
 import type { CopyKey } from "@/lib/presentation/copy";
-import { SPECIMEN_HERO, SPECIMEN_HERO_BLOG, SPECIMEN_HERO_BUSINESS, SPECIMEN_HERO_DOMAIN } from "../_landing/specimen";
 
 export type ExampleKind = "plumber" | "software";
 
@@ -95,9 +94,9 @@ export interface Example {
 }
 
 const HARBOR: Example = {
-  business: SPECIMEN_HERO_BUSINESS,
-  site: SPECIMEN_HERO_DOMAIN,
-  blog: SPECIMEN_HERO_BLOG,
+  business: "Harbor Plumbing",
+  site: "harborplumbing.example",
+  blog: "help.harborplumbing.example",
   buyers: "Austin buyers",
   place: "Austin",
   pagesRead: 38,
@@ -298,7 +297,7 @@ const TIDYSLOT: Example = {
 export const EXAMPLES: Readonly<Record<ExampleKind, Example>> = { plumber: HARBOR, software: TIDYSLOT };
 
 /** The hour a page goes live, as the landing's week shows it. */
-export const LIVE_AT = SPECIMEN_HERO.liveAt;
+export const LIVE_AT = "4:00 PM";
 
 /** A fixed Monday, so the drawn week's dates never move. */
 const WEEK_MONDAY = Date.UTC(2026, 9, 19);
