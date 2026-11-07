@@ -339,12 +339,20 @@ function linksOwnSite(raw: string, domain: string): boolean {
 
 /** A step is the business's own where it links the business's site or says
  *  its name, or its domain's own label ("acme" of acme.com), as a word. */
-function namesBusiness(raw: string, blocks: BlockRuleInputs): boolean {
+function namesBusiness(raw: string, blocks: Pick<BlockRuleInputs, "domain" | "businessName">): boolean {
   if (linksOwnSite(raw, blocks.domain)) return true;
   const said = ` ${raw.toLowerCase().replace(/\]\([^)]*\)/g, "]").replace(/[^\p{L}\p{N}]+/gu, " ")} `;
   const label = blocks.domain.replace(/^www\./, "").split(".")[0]?.toLowerCase() ?? "";
   const name = (blocks.businessName ?? "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
   return [name, label].some((word) => word.length > 2 && said.includes(` ${word} `));
+}
+
+/** The fix call's note for `own_steps`: the writer counted a step citing the business's own pages as not its own, so the note names each step that counted and the claims still unlinked. */
+export function ownStepsNote(a: { markdown: string; domain: string; businessName: string | null; own: number; claims: readonly { url: string }[] }): string {
+  const own = sourceBlocksOf(a.markdown).filter((block) => NUMBERED_RE.test(block.raw) && namesBusiness(block.raw, a)).map((block) => block.raw.trim().split(/[.)]/)[0]);
+  const unused = [...new Set(a.claims.map((claim) => claim.url))].filter((url) => !a.markdown.includes(url));
+  const left = unused.length === 0 ? "" : `; the claims not yet linked are ${unused.join(", ")}`;
+  return `steps: steps ${own.join(", ")} are this business's own, because each names it or links ${a.domain}; at most ${a.own} may be, so write the others as the task as \`pack.claims\` describe it, each linking its claim's url${left}`;
 }
 
 /** The first required block the page lacks, or `null` where it has all. */
