@@ -24,7 +24,7 @@ import path from "node:path";
 import process from "node:process";
 import { createServer } from "vite";
 import { readSpend, spendLogPath } from "./spend-log.mjs";
-import { appendSnapshot, DEFAULT_ENV_FILE, readKeys, readSnapshots, snapshotPath, takeSnapshot } from "./vendor-snapshot.mjs";
+import { appendSnapshot, DEFAULT_ENV_FILE, readKeys, readSnapshots, snapshotPath, takeSnapshot, vercelToken } from "./vendor-snapshot.mjs";
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
 const argv = process.argv.slice(2);
@@ -83,13 +83,13 @@ async function ledgerFromDatabase(keys, now) {
 
 async function main() {
   const now = new Date();
-  const keys = readKeys(path.resolve(flag("--env-file", DEFAULT_ENV_FILE)));
+  const keys = { ...readKeys(path.resolve(flag("--env-file", DEFAULT_ENV_FILE))), VERCEL_TOKEN: vercelToken() };
   const snapshotFile = flag("--snapshots", snapshotPath());
   const snapshots = readSnapshots(snapshotFile);
   if (!argv.includes("--stored")) {
     const { row, problems } = await takeSnapshot(keys, now);
     for (const problem of problems) console.error(`costs: ${problem}`);
-    if (row.dataforseo !== undefined || row.anthropic !== undefined) {
+    if (row.dataforseo !== undefined || row.anthropic !== undefined || row.vercel !== undefined) {
       appendSnapshot(row, snapshotFile);
       snapshots.push(row);
     }

@@ -102,6 +102,40 @@ describe("npm run costs — billed beside recorded, against €2 a day", () => {
   });
 });
 
+describe("npm run costs — Vercel Active CPU", () => {
+  const at = new Date("2026-11-10T12:00:00.000Z");
+  const vercel: Snapshot = {
+    at: "2026-11-10T11:00:02.000Z",
+    vercel: {
+      days: { "2026-11-07": { cpuSeconds: 1440, projectCpuSeconds: 1440 }, "2026-11-08": { cpuSeconds: 900, projectCpuSeconds: 720 }, "2026-11-09": { cpuSeconds: 720, projectCpuSeconds: 540 } },
+      month: "2026-11",
+      monthToDate: { cpuSeconds: 7200, projectCpuSeconds: 6480 },
+      sitesOnAutopilot: 4,
+      cpuSecondsPerSite: 135,
+    },
+  };
+
+  it("prints yesterday, the 7-day mean, the month against the budget, reachkit's share and per site", () => {
+    const text = render(reconcile({ spend: [], ledger: [], snapshots: [vercel], adminKey: true, now: at }));
+    expect(text).toContain("Yesterday (2026-11-09): 0.20 CPU-hours; reachkit 0.15 CPU-hours (75%)");
+    expect(text).toContain("7-day mean: 0.28 CPU-hours a day (3 of 7 days measured)");
+    expect(text).toContain("Month to date (2026-11): 2.00 CPU-hours of the 4 CPU-hour budget (50%); reachkit 1.80 CPU-hours (90%)");
+    expect(text).toContain("Per site yesterday: 135.0 CPU-seconds across 4 sites on autopilot");
+  });
+
+  it("says not measured, never 0, where nothing was read", () => {
+    const none = render(reconcile({ spend: [], ledger: [], snapshots: [], adminKey: true, now: at }));
+    expect(none).toContain("Vercel Active CPU: not measured");
+
+    const bare: Snapshot = { at: vercel.at, vercel: { days: {}, month: "2026-11", monthToDate: {} } };
+    const text = render(reconcile({ spend: [], ledger: [], snapshots: [bare], adminKey: true, now: at }));
+    for (const line of ["Yesterday (2026-11-09): not measured; reachkit not measured", "7-day mean: not measured", "Month to date (2026-11): not measured; reachkit not measured", "Per site yesterday: not measured"]) {
+      expect(text).toContain(line);
+    }
+    expect(text).not.toContain("0.00 CPU-hours");
+  });
+});
+
 describe("the vendors' own answers, as the hourly snapshot keeps them", () => {
   it("reads DataForSEO's balance, deposits and day total in cents", () => {
     const answer = { tasks: [{ cost: 0, result: [{ timezone: "Europe/Berlin", money: { total: 101, balance: 31.133168, statistics: { day: { total: 0.48828, value: "2026-10-11" } } } }] }] };
