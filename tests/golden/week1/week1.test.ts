@@ -2,7 +2,8 @@
 // `planFirstWeek`, and each of days 1 to 7 takes the day's pick and builds its `ContextPack` up to the write, as
 // `writePage` does. Research, the model and every vendor throw, so a type that researches is built from no research,
 // as the day's own catch leaves it. The site's own passages are the ones its stored prose-gate pack holds; a site with
-// none has no knowledge base stored. The supply itself is not replayed: the pass that made it needs the model.
+// none has no knowledge base stored. The supply itself is not replayed: the pass that made it needs the model, so
+// today's derive adds only what needs none, the questions buyers were seen asking beside the stored SERPs.
 import "../../opportunities/env";
 import { readFileSync, existsSync } from "node:fs";
 import { afterAll, expect, it, vi } from "vitest";
@@ -17,14 +18,18 @@ import type { Language, Locale } from "@/lib/locale/locales";
 import { measured } from "@/lib/measure/measured";
 import { queueForDraft, restTopic, type Opportunity } from "@/lib/opportunities";
 import { contentTypeOf } from "@/lib/opportunities/content-type";
+import { askedOfReport, askedOnMarket, askedTopics, type AskedBeside } from "@/lib/opportunities/derive/topics";
+import { queryKey } from "@/lib/opportunities/cluster";
 import { pageForDay, planFirstWeek } from "@/lib/opportunities/plan";
-import { setOpportunityStore } from "@/lib/opportunities/store";
+import { setOpportunityStore, type OpportunityRow } from "@/lib/opportunities/store";
+import { SHAPES } from "@/lib/locale/language";
+import { brandOf } from "@/lib/market/questions/select";
 import type { CanonicalDomain } from "@/lib/scan/domain";
 import type { StoredReport } from "@/lib/scan/report";
 import { assembleReport } from "@/lib/scan/store";
 import { memoryStore, newMemoryState } from "../../opportunities/memory-store";
 import { fullSections, SELECTED } from "../../scan/report/fixtures";
-import { AT, panelDomains, panelSite, SITE_ID, storedPayloads, storedSerps, type PanelSite } from "../plan/panel";
+import { AT, panelDomains, panelSite, rowOf, SITE_ID, storedPayloads, storedSerps, type PanelSite } from "../plan/panel";
 
 const DAY_MS = 86_400_000;
 const DAYS = 7;
@@ -51,6 +56,20 @@ function reportOf(domain: string): StoredReport {
       aiAnswers: null,
     })
   );
+}
+
+/** Today's derive's asked topics on the market (issue 1519), as rows: unmeasured, and with no fit, which the pass's model judges live. */
+function askedRows(site: PanelSite, asked: readonly AskedBeside[]): OpportunityRow[] {
+  const own = [...site.profile.brandTokens, brandOf(site.domain)].map((name) => name.toLowerCase());
+  const rivals = site.market.rivals.flatMap((rival) => [rival.name.toLowerCase(), brandOf(rival.domain)]);
+  const taken = new Set(site.rows.map((row) => queryKey(row.target_query ?? "")));
+  return askedTopics(asked, AT)
+    .filter((topic) => !taken.has(queryKey(topic.query)) && askedOnMarket(topic.query, { market: site.market, own, rivals }))
+    .map((topic, n) => {
+      const type = SHAPES.comparison.test(topic.query) ? "comparison_page" : "keyword_page";
+      const row = rowOf(site.domain, { query: topic.query, status: "open", type, fit: null, volume: null, ready: false }, site.rows.length + n);
+      return { ...row, evidence: { ...(row.evidence as object), askedBeside: { term: topic.term, serpAt: topic.serpAt } } } as OpportunityRow;
+    });
 }
 
 interface World {
@@ -86,14 +105,19 @@ function packed(w: World, o: Opportunity, as?: "documentation"): string {
     now: AT,
     locale: w.locale,
   });
-  if (w.facts.length === 0) return "no_own_facts";
-  if (pack.missing.length > 0) return `${researched ? "research needed" : "pack"}: ${pack.missing.join(", ")}`;
+  // Both are read live: the knowledge base is crawled and the research bought inside the day's run.
+  if (w.facts.length === 0) return `no site facts stored: ${pack.type} "${o.targetQuery}"`;
+  if (researched && pack.missing.length > 0) return `research runs live: ${pack.type} "${o.targetQuery}"`;
+  if (pack.missing.length > 0) return `pack: ${pack.missing.join(", ")}`;
   if (pack.adds.short) return "adds";
   return `writable: ${pack.type} "${o.targetQuery}"`;
 }
 
 /** One day as `generateDayPage` runs it: the planned page, then each spare a short pack rests its topic for, then the
  *  day's own-facts page as documentation. */
+const OUTCOMES = ["writable", "research runs live", "no site facts stored"] as const;
+const blocked = (cell: string) => !OUTCOMES.some((outcome) => cell.startsWith(outcome));
+
 async function day(w: World, date: string): Promise<string> {
   const tried: string[] = [];
   let first: Opportunity | null = null;
@@ -101,7 +125,7 @@ async function day(w: World, date: string): Promise<string> {
     if (tried.length > 0 && (o.id === first?.id || tried.length > 20)) break;
     first ??= o;
     const cell = packed(w, o);
-    if (cell.startsWith("writable")) {
+    if (!blocked(cell)) {
       await queueForDraft(o.id);
       return tried.length === 0 ? cell : `${cell} (after ${tried.length} short)`;
     }
@@ -118,14 +142,13 @@ it("each panel site's first week ends each day in a writable pack or a named rea
   const lines = [
     "# Week 1 at 0¢, from the stored panel supply",
     "",
-    "Seeded from each site's last stored panel topics and market. The supply itself is not replayed at 0¢: the pass that derives it needs the model and the site's pages, which the evidence does not store.",
-    "Ready is today's readiness over the stored topics, with the reasons the rest are held. The stored topics keep no asked-beside, composed or tracked-prompt evidence, so `no_intent` may hold rows a fresh pass would not.",
+    "Seeded from each site's last stored panel topics and market, banded from their stored volume at a site that ranks for nothing. The pass that derives the supply needs the model and the site's pages, which the evidence does not store, so only today's asked topics are added: the People-also-ask and related searches of the stored SERPs, unjudged for fit. That asked-beside evidence is read by readiness too.",
+    "Ready is today's readiness over those rows (`asked` of them are asked topics), with the reasons the rest are held. `research runs live` and `no site facts stored` are days decided inside the live run, not blocked ones.",
     "",
   ];
   const head = Array.from({ length: DAYS }, (_, n) => `Day ${n + 1}`);
-  const table = [`| Site | Ready | ${head.join(" | ")} | Writable | Named |`, `|---|---|${head.map(() => "---|").join("")}---|---|`];
-  let writable = 0;
-  let named = 0;
+  const table = [`| Site | Ready | ${head.join(" | ")} | ${OUTCOMES.join(" | ")} | blocked |`, `|---|---|${head.map(() => "---|").join("")}---|---|---|---|`];
+  const totals = [0, 0, 0, 0];
   for (const domain of panelDomains()) {
     const site = panelSite(domain);
     const stored = storedPack(domain);
@@ -138,22 +161,24 @@ it("each panel site's first week ends each day in a writable pack or a named rea
       locale: { country: entry.country, language: entry.language as Language } as Locale,
       name: stored?.business.name ?? null,
     };
-    const state = newMemoryState({ profile: site.profile, market: site.market, now: AT, rows: site.rows.map((row) => ({ ...row })) });
+    const asked = askedOfReport(w.report);
+    const extra = askedRows(site, asked);
+    const state = newMemoryState({ profile: site.profile, market: site.market, now: AT, asked, rows: [...site.rows, ...extra].map((row) => ({ ...row })) });
     setOpportunityStore({ ...memoryStore(state), topTenRows: async () => storedSerps(domain) });
     await planFirstWeek(SITE_ID, AT);
     const unready = new Map<string, number>();
     for (const row of state.rows) if (!row.ready) unready.set(row.unready_reason ?? "unready", (unready.get(row.unready_reason ?? "unready") ?? 0) + 1);
-    const readiness = `${state.rows.length - [...unready.values()].reduce((a, b) => a + b, 0)} of ${state.rows.length}${[...unready].map(([reason, count]) => `, ${reason} ${count}`).join("")}`;
+    const readiness = `${state.rows.length - [...unready.values()].reduce((a, b) => a + b, 0)} of ${state.rows.length} (asked ${extra.length})${[...unready].map(([reason, count]) => `, ${reason} ${count}`).join("")}`;
     const cells: string[] = [];
     for (let n = 0; n < DAYS; n++) cells.push(await day(w, new Date(AT.getTime() + n * DAY_MS).toISOString().slice(0, 10)));
     setOpportunityStore(null);
-    const ok = cells.filter((cell) => cell.startsWith("writable")).length;
+    const counts = [...OUTCOMES.map((outcome) => cells.filter((cell) => cell.startsWith(outcome)).length), cells.filter(blocked).length];
     expect(cells.every((cell) => cell !== "" && !cell.includes("unknown"))).toBe(true);
-    writable += ok;
-    named += cells.length - ok;
-    table.push(`| ${domain}${stored === null ? " (no own passages stored)" : ""} | ${readiness} | ${cells.join(" | ")} | ${ok} | ${cells.length - ok} |`);
+    counts.forEach((count, n) => (totals[n]! += count));
+    table.push(`| ${domain} | ${readiness} | ${cells.join(" | ")} | ${counts.join(" | ")} |`);
   }
   expect(fetchSpy).not.toHaveBeenCalled();
-  lines.push(...table, "", `**${writable} of ${writable + named} site-days writable, ${named} named, 0 unknown.** 0¢: no vendor, model or research call was made.`, "");
+  const [writable, live, unstored, held] = totals;
+  lines.push(...table, "", `**${writable} of ${DAYS * panelDomains().length} site-days writable, ${live} research runs live, ${unstored} no site facts stored, ${held} blocked, 0 unknown.** 0¢: no vendor, model or research call was made.`, "");
   await expect(lines.join("\n")).toMatchFileSnapshot("./week1-0c.md");
 });
