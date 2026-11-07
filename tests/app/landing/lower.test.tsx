@@ -1,6 +1,6 @@
-// The landing from Why to the closing band, as boards PubLanding and PubLandingPhone v34
-// draw it: two Why cards with no caption inside their drawings, the four steps of what to
-// expect without the promise, eight short answers, ReachKit's own articles and one ask.
+// The landing from Why to the closing band, as boards PubLanding and PubLandingPhone v37
+// draw it: two Why cards with no caption inside their drawings, eight short answers in one
+// list with no timeline, ReachKit's own articles and one ask on a primary band.
 // How it works keeps the full timeline and the full answers. The store and the gallery
 // are the database seam; nothing else is replaced.
 import "../../generate/env";
@@ -68,21 +68,22 @@ describe("Why you should care: two cards", () => {
   });
 });
 
-describe("What to expect, when: four steps and no promise on the landing", () => {
-  it("the four steps, the last the short line, with no promise, no Maps note and no time-ranges line", async () => {
+describe("Questions owners ask: one list beside its heading, and no timeline", () => {
+  it("no timeline on the landing; one joined list, one open at a time, the first open, each summary a 64px target", async () => {
     const faq = (await landing()).querySelector("section#faq")!;
-    const steps = faq.querySelectorAll("figure ol > li").map(flat);
-    expect(steps).toEqual([
-      `${copy("how.when.first.at")} ${copy("how.when.first.what")}`,
-      `${copy("how.when.found.at")} ${copy("how.when.found.what")}`,
-      `${copy("how.when.showing.at")} ${copy("how.when.showing.what")}`,
-      `${copy("how.when.top.at")} ${copy("landing.when.top")}`,
-    ]);
-    const text = flat(faq);
-    expect(text).not.toContain("guarantee a place");
-    expect(text).not.toContain("Not every page gets there");
-    for (const gone of ["how.when.sub", "how.when.maps"] as const) expect(text).not.toContain(copy(gone));
-    expect(text.startsWith(`${copy("landing.faq.heading")} ${copy("how.when.title")}`), "no eyebrow over the heading").toBe(true);
+    expect(faq.querySelector("figure")).toBeNull();
+    expect(flat(faq)).not.toContain(copy("how.when.title"));
+    const list = faq.querySelector(".join.join-vertical.w-full")!;
+    expect(list.classList.contains("lg:col-span-2")).toBe(true);
+    expect((list.parentNode as HTMLElement).classList.contains("lg:grid-cols-3")).toBe(true);
+    const details = list.querySelectorAll("details");
+    expect(details).toHaveLength(8);
+    for (const d of details) {
+      expect(d.getAttribute("name")).toBe("faq");
+      expect(["collapse", "collapse-arrow", "join-item"].every((c) => d.classList.contains(c))).toBe(true);
+      expect(["py-5", "leading-6"].every((c) => d.querySelector("summary")!.classList.contains(c))).toBe(true);
+    }
+    expect(details.map((d) => d.hasAttribute("open"))).toEqual([true, false, false, false, false, false, false, false]);
   });
 
   it("How it works still draws the full last step and the promise", async () => {
@@ -126,14 +127,22 @@ describe("Questions owners ask: eight short answers", () => {
 });
 
 describe("Written by ReachKit, then one ask", () => {
-  it("the articles heading is ReachKit's own", async () => {
+  it("the articles heading is ReachKit's own; with no article stored there is no band", async () => {
     const section = (await landing()).querySelector('section[aria-labelledby="latest-articles"]')!;
     expect(flat(section.querySelector("h2")!)).toBe("Written by ReachKit");
+    db.pages = [];
+    expect((await landing()).querySelector('section[aria-labelledby="latest-articles"]')).toBeNull();
   });
 
   it("the closing band holds the heading, one solid button back to the field and the line under it", async () => {
     const page = await landing();
     const band = page.querySelectorAll("main section").at(-1)!;
     expect(flat(band)).toBe(`${copy("landing.close.heading")} ${copy("landing.start.cta")} ${copy("landing.close.assurance")}`);
+    expect(band.querySelector(".card")!.classNames).toBe("card bg-primary text-primary-content");
+    expect(["py-10", "lg:py-16"].every((c) => band.querySelector(".card-body")!.classList.contains(c))).toBe(true);
+    const button = band.querySelector("button")!;
+    expect([button.getAttribute("type"), button.classNames]).toEqual(["button", "btn btn-lg bg-base-100 text-primary"]);
+    expect(band.querySelector("p")!.classNames).toBe("text-primary-content text-sm");
+    expect([page.querySelectorAll("input").length, page.querySelectorAll('[type="submit"]').length]).toEqual([1, 1]);
   });
 });

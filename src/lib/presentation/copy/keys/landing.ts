@@ -1,17 +1,12 @@
-// The landing above How it works: the hero's offer and proof card, the story
-// card and the walkthrough, then How it works and the plan (boards PubLanding and PubLandingPhone, version 36).
+// The landing above How it works: the hero's offer and count, the story card
+// and the walkthrough, then How it works, the plan and the articles (boards PubLanding and PubLandingPhone, version 37).
 import type { CopyPartition } from "../registry.ts";
 
 export const LANDING_COPY = Object.freeze({
   /** The offer under the field, one tick line each. */
   "landing.hero.offer.free": ["Free scan and first page", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
   "landing.hero.offer.price": ["{price} a month, cancel any time", { slots: { price: "text" }, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
-  /** The proof card: each row is drawn only from a stored row. */
-  /** The caller also passes `score`: writing `{score}` here and declaring the slot shows it again. */
-  "landing.hero.proof.report": ["We run ReachKit on {domain}", { slots: { domain: "text" }, fixedBy: "owner 2026-11-01: our own report replaces the third-party example" }],
-  "landing.hero.proof.report.open": ["See its free report", { slots: {}, fixedBy: "owner 2026-11-01: our own report replaces the third-party example" }],
-  "landing.hero.proof.blog": ["Our blog is written by ReachKit", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
-  "landing.hero.proof.blog.open": ["Read the articles", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
+  /** The count of sites scanned, drawn only from a stored count of 100 or more. */
   "landing.hero.proof.scanned": ["{count}+ sites scanned", { slots: { count: "text" }, fixedBy: "board PubLanding v36 · owner 2026-11-01, issue 2249" }],
   "landing.hero.proof.scanned.line": ["with the free scan", { slots: {}, fixedBy: "board PubLanding v36 · owner 2026-11-01, issue 2249" }],
   /** The label over the six kinds of business: a list label, not a heading. */
@@ -68,8 +63,13 @@ export const LANDING_COPY = Object.freeze({
   "landing.plan.tracking.line": ["Where your pages sit in Google, and which ones AI answers link to.", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
   "landing.plan.time": ["{minutes} minutes, once", { slots: { minutes: "text" }, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
   "landing.plan.time.line": ["Answer a few questions and connect your site. That’s your part.", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
+  "landing.plan.control": ["Edit or stop any page", { slots: {}, fixedBy: "board PubLanding v37 · owner 2026-11-06" }],
+  "landing.plan.control.line": ["Each page waits {hours} hours before it goes live. Edit it, stop it, or do nothing.", { slots: { hours: "text" }, fixedBy: "board PubLanding v37 · owner 2026-11-06" }],
   "landing.plan.one": ["One plan, everything in it", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
   "landing.plan.terms": ["VAT included. Cancel any time.", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
+  /** The article band under the questions: one line under its heading, and each card's way in. */
+  "landing.articles.sub": ["ReachKit wrote and published each article, the same way it works for you.", { slots: {}, fixedBy: "board PubLanding v37 · owner 2026-11-06" }],
+  "landing.articles.read": ["Read", { slots: {}, fixedBy: "board PubLanding v37 · owner 2026-11-06" }],
   // The short Learn close (canvas v36): your part and the price, each with its label in bold.
   "library.close.part.label": ["Your part:", { slots: {}, fixedBy: "board PubScans v36 · issue 2269" }],
   "library.close.part.once": ["about {minutes} minutes, once.", { slots: { minutes: "text" }, fixedBy: "board PubScans v36 · issue 2269" }],

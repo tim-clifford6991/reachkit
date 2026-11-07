@@ -1,6 +1,6 @@
-// What the one plan gets you, as the board's cards: a tile, a title and one line each. The money-back card waits for the launch gate.
+// What the one plan gets you, as the board's eight cards: a tile, a title and one line each.
 import type React from "react";
-import { FilePlus, Link, Mail, Sparkles, Timer, Users, Wrench } from "lucide-react";
+import { CircleStop, FilePlus, Link, Mail, Sparkles, Timer, Users, Wrench } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { HOW_FACTS } from "../_how/facts";
 
@@ -18,6 +18,7 @@ const CARDS: readonly PlanCard[] = [
   { title: "landing.plan.site", line: "landing.plan.site.line", Icon: Wrench },
   { title: "landing.plan.tracking", line: "landing.plan.tracking.line", Icon: Sparkles },
   { title: "landing.plan.time", line: "landing.plan.time.line", Icon: Timer },
+  { title: "landing.plan.control", line: "landing.plan.control.line", Icon: CircleStop },
 ];
 
 const VARS = {
@@ -25,6 +26,7 @@ const VARS = {
   checks: String(HOW_FACTS.checks),
   rivals: String(HOW_FACTS.rivals),
   minutes: String(HOW_FACTS.setupMinutes),
+  hours: String(HOW_FACTS.windowHours),
 };
 
 /** A phone draws each card as a row, tile beside the words; wider, four columns whose rows align across a line. */

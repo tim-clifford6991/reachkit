@@ -1,6 +1,6 @@
-// The landing from *Why you should care* to the articles, as boards PubLanding
-// and PubLandingPhone draw it: each section's strings in the board's order, and
-// the articles drawn only where rows are stored.
+// The landing from How it works to the articles, as boards PubLanding and
+// PubLandingPhone v37 draw it: one heading size, the board's step and Why
+// sizes, and the articles drawn only where rows are stored.
 // The store and the gallery are the database seam; nothing else is replaced.
 import "../../generate/env";
 import React from "react";
@@ -29,7 +29,7 @@ vi.mock("@/lib/scan/gallery", async (importOriginal) => ({
 
 const { default: LandingPage } = await import("@/app/(public)/page");
 const { copy } = await import("@/lib/presentation/copy");
-const { icons } = await import("../how/drawn-icons");
+const { SECTION_HEADING } = await import("@/app/(public)/_landing/sections");
 
 const article = (slug: string, title: string, day: number): Page => ({
   title,
@@ -67,18 +67,50 @@ const flat = (el: HTMLElement): string => parse(el.toString().replace(/</g, " <"
 
 beforeEach(stored);
 
-describe("Questions owners ask", () => {
-  it("what to expect: calendar, search, eye, trending-up in order, and no note under them", async () => {
-    const card = (await render()).querySelector("section#faq figure")!;
-    expect(icons(card.toString())).toEqual(["calendar", "search", "eye", "trending-up"]);
+describe("one size for each kind of line (A.0.4)", () => {
+  const has = (el: HTMLElement | null, classes: string): boolean => classes.split(" ").every((c) => el!.classList.contains(c));
+
+  it("every visible section heading is SECTION_HEADING, and the eyebrows are text-sm", async () => {
+    const page = await render();
+    const headings = page.querySelectorAll("main h2").filter((h) => !h.classList.contains("sr-only"));
+    expect(headings).toHaveLength(6);
+    for (const h of headings) expect(has(h, SECTION_HEADING), flat(h)).toBe(true);
+    for (const id of ["how", "why"]) expect(page.querySelector(`section#${id} h2`)!.previousElementSibling!.classList.contains("text-sm")).toBe(true);
+  });
+
+  it("each step: a size-10 number, a badge-md tag, a text-2xl title and a max-w-md body that grows from lg", async () => {
+    for (const step of (await render()).querySelectorAll("#how li[data-step]")) {
+      expect(has(step.querySelector(".rounded-full"), "size-10")).toBe(true);
+      expect(has(step.querySelector(".badge"), "badge-md")).toBe(true);
+      expect(has(step.querySelector("h3"), "text-2xl")).toBe(true);
+      expect(has(step.querySelector("h3 + p"), "max-w-md text-base lg:text-lg")).toBe(true);
+    }
+  });
+
+  it("Why: the line under the heading is text-lg lg:text-xl, each card title text-xl lg:text-2xl over a text-base line", async () => {
+    const why = (await render()).querySelector("section#why")!;
+    expect(has(why.querySelector("h2 + p"), "text-lg lg:text-xl")).toBe(true);
+    for (const card of why.querySelectorAll("li.card")) {
+      expect(has(card.querySelector("h3"), "text-xl lg:text-2xl")).toBe(true);
+      expect(has(card.querySelector("h3 + p"), "text-base")).toBe(true);
+    }
   });
 });
 
 describe("Latest articles: a page section of three dated cards and the index", () => {
-  it("three cards, newest first, each a title and its date, then All articles to the index", async () => {
+  it("three cards, newest first, each one link holding a tile, its title, its date and Read; then All articles", async () => {
     const section = (await render()).querySelector('section[aria-labelledby="latest-articles"]')!;
-    const cards = section.querySelectorAll("li.card");
-    expect(cards.map((li) => flat(li))).toEqual(["The newest article 17 Oct 2026", "Second newest 14 Oct 2026", "Third newest 10 Oct 2026"]);
+    expect(flat(section.querySelector("h2 + p")!)).toBe(copy("landing.articles.sub"));
+    const cards = section.querySelectorAll("li");
+    const read = copy("landing.articles.read");
+    expect(cards.map((li) => flat(li))).toEqual([`The newest article 17 Oct 2026 ${read}`, `Second newest 14 Oct 2026 ${read}`, `Third newest 10 Oct 2026 ${read}`]);
+    for (const [i, li] of cards.entries()) {
+      const links = li.querySelectorAll("a");
+      expect(links.map((a) => a.getAttribute("href"))).toEqual([db.pages[i]!.liveUrl]);
+      expect(links[0]!.classList.contains("card")).toBe(true);
+      expect(links[0]!.querySelectorAll("svg.lucide-file-text")).toHaveLength(1);
+      expect(links[0]!.querySelector("strong")!.classNames).toBe("line-clamp-3 text-lg font-bold break-words lg:text-xl");
+    }
     const all = section.querySelectorAll("a").find((a) => flat(a) === copy("landing.articles.all"))!;
     expect(all.getAttribute("href")).toBe("https://content.reachkit.app/");
   });

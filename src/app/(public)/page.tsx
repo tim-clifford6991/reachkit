@@ -8,15 +8,15 @@
 // **The order is the owner's of 2026-10-19** (board *Landing*, decision
 // `2026-10-19-1596`), one story with one example business, below the chrome
 // the group layout draws:
-//   1. the hero — title, subline, the one field, the offer, the proof card
-//      (`HeroProof.tsx`) and the six kinds of business — beside the story
-//      card (`Storyboard.tsx`); on a phone the story card comes last (board
-//      v36, decision 2026-11-01-2246);
+//   1. the hero — title, subline, the one field, the offer, the count of sites
+//      scanned (`HeroProof.tsx`) and the six kinds of business — beside the
+//      story card (`Storyboard.tsx`); on a phone the story card comes last
+//      (board v37, decision 2026-11-06-2452);
 //   2. the walkthrough video, once its file exists (`Walkthrough.tsx`);
 //   3. the three steps, each beside its picture, and one link to How it works;
 //   4. *Why you should care* — four features (`Features.tsx`);
-//   5. what the one plan gets you: its cards, then the price band;
-//   6. what to expect when, and the questions owners ask;
+//   5. what the one plan gets you: its eight cards, then the price band;
+//   6. the questions owners ask;
 //   7. the newest three articles ReachKit published, where any are stored;
 //   8. the closing band, whose one button returns to the field.
 //
@@ -50,8 +50,7 @@ import { HeroProof } from "./_landing/HeroProof";
 import { WALKTHROUGH_SRC, Walkthrough } from "./_landing/Walkthrough";
 import { KIND_ICON, KIND_WORD } from "./scans/kinds";
 import { BUSINESS_KIND_NAMES } from "@/lib/market/kinds";
-import { WhenSteps } from "./_how/visuals-when";
-import { FAQ_SECTION_ID, FIELD_SECTION_ID, HOW_SECTION_ID, PRICE_SECTION_ID, WHY_SECTION_ID } from "./_landing/sections";
+import { FAQ_SECTION_ID, FIELD_SECTION_ID, HOW_SECTION_ID, PRICE_SECTION_ID, SECTION_HEADING, WHY_SECTION_ID } from "./_landing/sections";
 import { HOW_FACTS } from "./_how/facts";
 import { PUBLIC_ROUTE_SEO } from "./_seo/routes";
 import { staticMetadata } from "./_seo/metadata";
@@ -73,8 +72,8 @@ const STEPS = [
 const offer = (): readonly string[] => [copy("landing.hero.offer.free"), copy("landing.hero.offer.price", { price: PRICE() })];
 
 /** The questions and their short answers, in the board's order; How it
- *  works holds the full ones. The guarantee and *Cancel your contract* wait
- *  for the launch gate and are not drawn. */
+ *  works holds the full ones. *Cancel your contract* waits for the launch
+ *  gate and is not drawn. */
 function questions(): readonly { q: CopyKey; a: CopyKey; vars?: Record<string, string> }[] {
   return [
     { q: "landing.faq.spam.q", a: "landing.faq.spam.a" },
@@ -95,9 +94,8 @@ const KINDS_ID = "kinds";
 
 const SECTION = "border-t border-base-300 py-16 lg:py-24";
 const INNER = "mx-auto w-full max-w-6xl px-4";
-const LABEL = "text-xs font-semibold uppercase tracking-wide text-primary";
-/** Heading size and weight come from `type.css`'s element rules. */
-const HEADING = "mt-2 mb-3";
+const LABEL = "text-sm font-semibold uppercase tracking-wide text-primary";
+const HEADING = `mt-2 mb-3 ${SECTION_HEADING}`;
 const BODY = "text-base-content/70";
 /** `py-3` on a 20px line makes the link a 44px target. */
 const MORE = "link link-hover link-primary inline-flex items-center gap-1 py-3 text-sm font-semibold";
@@ -139,12 +137,12 @@ export default function LandingPage(props: {
               <h1 className="t-hero">{copy("landing.headline")}</h1>
               <p className="text-lg text-base-content/70">{copy("landing.subline")}</p>
               <div className="w-full">
-                <ScanForm searchParams={props.searchParams} words={scanFormWords()} />
+                <ScanForm hero searchParams={props.searchParams} words={scanFormWords()} />
               </div>
-              <ul className="flex flex-col gap-1.5">
+              <ul className="flex flex-col gap-1.5 sm:flex-row sm:gap-6">
                 {offer().map((line) => (
-                  <li key={line} className="flex items-center gap-2">
-                    <Check size={18} strokeWidth={1.75} className="text-success shrink-0" aria-hidden />
+                  <li key={line} className="text-base-content flex items-center gap-2 text-base font-semibold">
+                    <Check size={20} strokeWidth={1.75} className="text-success shrink-0" aria-hidden />
                     {line}
                   </li>
                 ))}
@@ -153,14 +151,14 @@ export default function LandingPage(props: {
                 <HeroProof />
               </Suspense>
               <div className="flex flex-col gap-2">
-                <p id={KINDS_ID} className="text-sm font-bold">
+                <p id={KINDS_ID} className="text-base font-bold">
                   {copy("landing.hero.kinds.label")}
                 </p>
                 <ul aria-labelledby={KINDS_ID} className="flex flex-wrap gap-1.5">
                   {BUSINESS_KIND_NAMES.map((kind) => {
                     const Icon = KIND_ICON[kind];
                     return (
-                      <li key={kind} className="badge badge-outline border-base-300 h-8 gap-1.5 font-semibold">
+                      <li key={kind} className="badge badge-soft badge-primary badge-lg gap-1.5 font-semibold">
                         <Icon size={16} strokeWidth={1.75} className="text-primary" aria-hidden />
                         {copy(KIND_WORD[kind])}
                       </li>
@@ -188,13 +186,13 @@ export default function LandingPage(props: {
                   <div className="card-body grid grid-cols-1 gap-5 px-4 pt-5 pb-4 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:items-start lg:gap-12 lg:p-8">
                     <div className="flex min-w-0 flex-col items-start gap-3 px-1 lg:px-0 lg:pt-2">
                       <div className="flex items-center gap-2.5">
-                        <span className="bg-primary text-primary-content grid size-7 shrink-0 place-items-center rounded-full text-sm font-semibold">
+                        <span className="bg-primary text-primary-content grid size-10 shrink-0 place-items-center rounded-full font-semibold">
                           {n}
                         </span>
-                        <span className="badge badge-soft badge-primary badge-sm font-mono">{copy(tag)}</span>
+                        <span className="badge badge-soft badge-primary badge-md font-mono">{copy(tag)}</span>
                       </div>
-                      <h3 className="card-title">{copy(title)}</h3>
-                      <p className="max-w-sm text-base-content/70">{copy(body, { weekPages: WEEK_PAGES })}</p>
+                      <h3 className="card-title text-2xl">{copy(title)}</h3>
+                      <p className="text-base-content/70 max-w-md text-base lg:text-lg">{copy(body, { weekPages: WEEK_PAGES })}</p>
                     </div>
                     <Figure />
                   </div>
@@ -213,7 +211,7 @@ export default function LandingPage(props: {
             <div className="max-w-2xl">
               <p className={LABEL}>{copy("landing.why.eyebrow")}</p>
               <h2 className={HEADING}>{copy("landing.why.heading")}</h2>
-              <p className={`${BODY} text-lg`}>{copy("landing.why.sub")}</p>
+              <p className={`${BODY} text-lg lg:text-xl`}>{copy("landing.why.sub")}</p>
             </div>
             <div className="mt-9">
               <Features />
@@ -224,38 +222,38 @@ export default function LandingPage(props: {
         {/* ══ WHAT THE ONE PLAN GETS YOU ══ The band's button brings the field into view, so it adds no second submit. */}
         <section id={PRICE_SECTION_ID} className={`${SECTION} scroll-mt-16`}>
           <div className={`${INNER} flex flex-col gap-6 lg:gap-8`}>
-            <h2 className="m-0">{copy("landing.price.heading", { price: PRICE() })}</h2>
+            <h2 className={`m-0 ${SECTION_HEADING}`}>{copy("landing.price.heading", { price: PRICE() })}</h2>
             <PlanCards />
-            <div className="card card-border bg-primary/5 min-w-0" data-testid={PRICE_TEST_ID}>
-              <div className="card-body gap-5 px-5 py-6 sm:flex-row sm:items-center sm:justify-between lg:px-9 lg:py-7">
+            <div className="card border-primary bg-base-100 min-w-0 border-2" data-testid={PRICE_TEST_ID}>
+              <div className="card-body gap-5 px-5 py-8 sm:flex-row sm:items-center sm:justify-between lg:px-11 lg:py-10">
                 <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
                   <p className="flex items-baseline gap-2">
-                    <span className="num text-5xl font-semibold">{PRICE()}</span>
-                    <span className="text-base-content/70">{copy("landing.price.month")}</span>
+                    <span className="figure text-6xl lg:text-7xl">{PRICE()}</span>
+                    <span className="text-base-content/70 text-lg">{copy("landing.price.month")}</span>
                   </p>
                   <p className="flex flex-col gap-1">
-                    <strong>{copy("landing.plan.one")}</strong>
+                    <strong className="text-lg font-bold">{copy("landing.plan.one")}</strong>
                     <span className="text-base-content/70">{copy("landing.plan.terms")}</span>
                   </p>
                 </div>
-                <FieldCta label={copy("landing.start.cta")} />
+                <FieldCta label={copy("landing.start.cta")} className="btn btn-primary btn-lg" />
               </div>
             </div>
           </div>
         </section>
 
-        {/* ══ QUESTIONS ══ */}
+        {/* ══ QUESTIONS ══ One list, one open at a time; the first is open. */}
         <section id={FAQ_SECTION_ID} className={`${SECTION} scroll-mt-16`}>
-          <div className={`${INNER} flex flex-col items-start gap-6 lg:gap-8`}>
-            <h2 className="mb-0">{copy("landing.faq.heading")}</h2>
-            <div className="w-full">
-              <WhenSteps />
+          <div className={`${INNER} grid grid-cols-1 items-start gap-6 lg:grid-cols-3 lg:gap-12`}>
+            <div className="flex flex-col items-start gap-4">
+              <h2 className={`m-0 ${SECTION_HEADING}`}>{copy("landing.faq.heading")}</h2>
+              <More href="/how-it-works#faq" label={copy("landing.faq.more")} />
             </div>
-            <div className="grid w-full grid-cols-1 items-start gap-3 lg:grid-cols-2 lg:gap-x-4">
-              {questions().map((item) => (
-                <details key={item.q} className="collapse collapse-arrow card-border bg-base-100 min-w-0">
+            <div className="join join-vertical bg-base-100 w-full min-w-0 lg:col-span-2">
+              {questions().map((item, i) => (
+                <details key={item.q} name={FAQ_SECTION_ID} open={i === 0} className="collapse collapse-arrow join-item border-base-300 border">
                   {/* 20px above and below a 24px line: each question is at least a 64px target. */}
-                  <summary className="collapse-title py-5 leading-6 font-semibold">{copy(item.q)}</summary>
+                  <summary className="collapse-title py-5 text-lg leading-6 font-bold">{copy(item.q)}</summary>
                   <div className="collapse-content text-base-content/70">
                     {/* The spam answer names the model that writes the pages, as the board does. */}
                     <p data-disclosure={item.a === "landing.faq.spam.a" ? true : undefined}>{copy(item.a, item.vars)}</p>
@@ -263,7 +261,6 @@ export default function LandingPage(props: {
                 </details>
               ))}
             </div>
-            <More href="/how-it-works#faq" label={copy("landing.faq.more")} />
           </div>
         </section>
 
@@ -276,11 +273,11 @@ export default function LandingPage(props: {
             adds no second submit. */}
         <section className="pb-16 lg:pb-24">
           <div className={INNER}>
-            <div className="card card-border bg-primary/5">
-              <div className="card-body items-center gap-3.5 px-5 py-7 text-center lg:px-10 lg:py-12">
-                <h2 className="mb-0">{copy("landing.close.heading")}</h2>
-                <FieldCta label={copy("landing.start.cta")} />
-                <p className="text-xs text-base-content/70">{copy("landing.close.assurance")}</p>
+            <div className="card bg-primary text-primary-content">
+              <div className="card-body items-center gap-3.5 px-5 py-10 text-center lg:px-10 lg:py-16">
+                <h2 className={`m-0 ${SECTION_HEADING}`}>{copy("landing.close.heading")}</h2>
+                <FieldCta label={copy("landing.start.cta")} className="btn btn-lg bg-base-100 text-primary" />
+                <p className="text-primary-content text-sm">{copy("landing.close.assurance")}</p>
               </div>
             </div>
           </div>

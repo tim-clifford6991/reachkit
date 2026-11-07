@@ -1,6 +1,6 @@
 // The landing's three step pictures, as boards PubLanding and PubLandingPhone
 // draw them: the free report at a glance, three days inside ReachKit and the
-// Monday email as a card, from the plumber specimen. The "node" project, `renderToStaticMarkup`, the real registry.
+// Monday email as a card, from the software example. The "node" project, `renderToStaticMarkup`, the real registry.
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -13,7 +13,7 @@ import { boardFile, compare, readAllow, segments } from "../../../scripts/design
 
 const root = parse(renderToStaticMarkup(React.createElement(LandingPage, { searchParams: {} })));
 const steps = root.querySelectorAll("#how ol > li.card");
-const plumber = EXAMPLES.plumber;
+const example = EXAMPLES.software;
 const textOf = (el: HTMLElement | null | undefined): string => (el?.text ?? "").replace(/\s+/g, " ").trim();
 
 describe("the landing's step figures", () => {
@@ -22,23 +22,23 @@ describe("the landing's step figures", () => {
     expect(glance).toBeTruthy();
     const rings = glance?.querySelectorAll(".radial-progress") ?? [];
     expect(rings).toHaveLength(1);
-    expect(rings[0]?.getAttribute("style")).toMatch(new RegExp(`--value:\\s*${plumber.report.score}\\b`));
+    expect(rings[0]?.getAttribute("style")).toMatch(new RegExp(`--value:\\s*${example.report.score}\\b`));
     expect(glance?.querySelector("svg.lucide-gift")?.getAttribute("aria-hidden")).toBe("true");
     const text = textOf(glance);
     for (const s of [
-      copy("how.start.score", { score: plumber.report.score, max: 100 }),
+      copy("how.start.score", { score: example.report.score, max: 100 }),
       copy("band.score.hard-to-find"),
       copy("landing.glance.rivals"),
-      copy("landing.story.2.more", { more: String(plumber.report.rivals.length - 1) }),
+      copy("landing.story.2.more", { more: String(example.report.rivals.length - 1) }),
       copy("problem.section.title"),
       copy("how.read.held.ai"),
       copy("how.read.held.list"),
       copy("landing.glance.first"),
-      plumber.report.firstPage,
+      example.report.firstPage,
     ]) {
       expect(text, s).toContain(s);
     }
-    expect(textOf(glance?.querySelector(".badge-ghost"))).toBe(plumber.report.rivals[0]);
+    expect(textOf(glance?.querySelector(".badge-ghost"))).toBe(example.report.rivals[0]);
     const holds = glance?.querySelectorAll("ul > li") ?? [];
     expect(holds.map((row) => textOf(row.querySelector(".badge")))).toEqual([
       copy("landing.feature.fix.free"),
@@ -66,7 +66,7 @@ describe("the landing's step figures", () => {
     expect(mail).toBeTruthy();
     expect(steps[2]?.querySelector(".mockup-phone")).toBeNull();
     const text = textOf(mail);
-    expect(text).not.toContain(copy("how.mail.linked", { n: plumber.mail.linked, total: plumber.mail.live }));
+    expect(text).not.toContain(copy("how.mail.linked", { n: example.mail.linked, total: example.mail.live }));
     expect(text).not.toContain(copy("landing.mail.inbox"));
     expect(text).toContain(copy("landing.mail.row", { day: "Mon", time: LIVE_AT }));
   });
