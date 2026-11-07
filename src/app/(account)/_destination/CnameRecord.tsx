@@ -24,18 +24,18 @@
 "use client";
 
 import type React from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { Check, Copy, ExternalLink } from "lucide-react";
-import { copy } from "@/lib/presentation/copy";
+import { copy, type CopyKey } from "@/lib/presentation/copy";
 import type { DnsRecord } from "@/lib/publish/setup/cards";
 import type { HostnameState } from "@/lib/publish/destinations/hosted/hostname";
 import type { DnsWhere } from "@/lib/publish/destinations/hosted/dns-provider";
-import { DNS_GUIDES, nameInZone, type GuideValue } from "@/lib/publish/destinations/hosted/dns-guide";
+import { guideView } from "@/lib/publish/destinations/hosted/dns-guide";
 import { whereDnsIs, type DnsWhereAnswer } from "./dns-actions";
+import { sendToWebPerson, type WebPersonSend } from "./web-person-actions";
 
 const QUIET = "text-sm text-base-content/70";
-type Where = DnsWhere;
-const UNKNOWN: Where = { kind: "unknown" };
+const UNKNOWN: DnsWhere = { kind: "unknown" };
 
 /** The site address a record sits under: its name less the label.
  *  `hostFor` composes every record name as `<label>.<address>`, and a label
@@ -50,6 +50,8 @@ export function CnameRecord(p: {
    *  on `/setup` has just asked it (#757). Absent is "waiting for DNS" — the
    *  word a record nobody has checked is shown under. */
   state?: HostnameState;
+  /** `false` where the screen draws the send control itself, outside this block. */
+  send?: false;
 }): React.JSX.Element {
   const live = p.state === "live";
   const address = addressOf(p.record.name);
@@ -70,26 +72,17 @@ export function CnameRecord(p: {
 
   // An answer about another address is no answer about this one.
   const found = answer !== null && answer.address === address ? answer.found : null;
-  const where = found?.where ?? UNKNOWN;
   // Until the zone is known, the address is the zone: a site address is
   // almost always a registrable domain.
-  const zone = found?.zone ?? address;
-  const guide = DNS_GUIDES[where.kind === "provider" ? where.guide : "generic"];
-  const slots = { zone, name: nameInZone(p.record.name, zone), host: p.record.name };
-
-  const valueOf = (value: GuideValue): { text: string; testId: string | null; num: boolean } =>
-    "word" in value
-      ? { text: copy(value.word), testId: null, num: false }
-      : value.from === "name"
-        ? { text: slots.name, testId: "dns-name", num: true }
-        : value.from === "type"
-          ? { text: p.record.type, testId: "dns-type", num: true }
-          : { text: p.record.value, testId: "dns-value", num: true };
+  const view = guideView({ record: p.record, where: found?.where ?? UNKNOWN, zone: found?.zone ?? address });
+  const provider = found?.where.kind === "provider" ? found.where.provider : "";
 
   return (
-    <div className="flex min-w-0 flex-col gap-3" data-testid="dns-guide" data-guide={where.kind === "provider" ? where.guide : "generic"}>
+    <div className="flex min-w-0 flex-col gap-3" data-testid="dns-guide" data-guide={view.id}>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <WhereLine where={where} />
+        <span className={`${QUIET} min-w-0`} data-testid="dns-where" data-where={found?.where.kind ?? "unknown"}>
+          {copy(view.where.key, view.where.vars)}
+        </span>
         <span
           className={live ? "badge badge-success badge-soft" : "badge badge-warning badge-soft"}
           data-testid="dns-state"
@@ -99,9 +92,9 @@ export function CnameRecord(p: {
       </div>
 
       <ol className="steps steps-vertical text-sm" data-testid="dns-steps">
-        {guide.steps.map((step) => (
-          <li key={step} className="step step-primary text-left" data-testid="dns-step">
-            {copy(step, slots)}
+        {view.steps.map((step) => (
+          <li key={step.key} className="step step-primary text-left" data-testid="dns-step">
+            {copy(step.key, step.vars)}
           </li>
         ))}
       </ol>
@@ -118,21 +111,21 @@ export function CnameRecord(p: {
             </tr>
           </thead>
           <tbody>
-            {guide.fields.map((field) => {
-              const value = valueOf(field.value);
+            {view.rows.map((row) => {
+              const text = "word" in row ? copy(row.word) : row.text;
               return (
-                <tr key={field.label} data-testid="dns-field">
+                <tr key={row.label} data-testid="dns-field">
                   <th className="font-medium" data-testid="dns-field-label">
-                    {copy(field.label)}
+                    {copy(row.label)}
                   </th>
                   <td
-                    className={value.num ? "num wrap-anywhere" : "wrap-anywhere"}
-                    {...(value.testId === null ? {} : { "data-testid": value.testId })}
+                    className={"word" in row ? "wrap-anywhere" : "num wrap-anywhere"}
+                    {...("word" in row ? {} : { "data-testid": `dns-${row.from === "target" ? "value" : row.from}` })}
                   >
-                    {value.text}
+                    {text}
                   </td>
                   <td className="w-0">
-                    <CopyValue text={value.text} />
+                    <CopyValue text={text} />
                   </td>
                 </tr>
               );
@@ -145,42 +138,86 @@ export function CnameRecord(p: {
         {copy("setup.destination.guide.full-name", { host: p.record.name })}
       </span>
 
-      {guide.proxy ? (
+      {view.proxy ? (
         <div role="note" className="alert alert-warning alert-soft text-sm" data-testid="dns-proxy">
           {copy("setup.destination.dnsProxy")}
         </div>
       ) : null}
 
-      {guide.link === null || where.kind !== "provider" ? null : (
+      {view.link === null ? null : (
         <a
           className="link link-primary inline-flex items-center gap-1 self-start text-sm"
-          href={guide.link(zone)}
+          href={view.link}
           target="_blank"
           rel="noopener noreferrer"
           data-testid="dns-link"
         >
-          {copy("setup.destination.guide.open", { provider: where.provider })}
+          {copy("setup.destination.guide.open", { provider })}
           <ExternalLink aria-hidden size={16} strokeWidth={1.75} />
         </a>
       )}
+
+      {p.send === false ? null : <SendSteps host={p.record.name} />}
     </div>
   );
 }
 
-/** The line that says where the record is added. Three answers stay three
- *  (issue 760): a provider named, a nameserver named as itself, or the
- *  static line where nothing could be looked up. */
-function WhereLine(p: { where: Where }): React.JSX.Element {
-  const where = p.where;
-  const props = { className: `${QUIET} min-w-0`, "data-testid": "dns-where", "data-where": where.kind };
-  switch (where.kind) {
-    case "provider":
-      return <span {...props}>{copy("setup.destination.dnsAt", { provider: where.provider })}</span>;
-    case "nameserver":
-      return <span {...props}>{copy("setup.destination.dnsNameserver", { nameserver: where.nameserver })}</span>;
-    case "unknown":
-      return <span {...props}>{copy("setup.destination.dnsWhere")}</span>;
-  }
+type Said = Exclude<WebPersonSend["outcome"], "refused"> | Extract<WebPersonSend, { outcome: "refused" }>["because"];
+const SEND_ANSWER: Record<Said, CopyKey> = {
+  sent: "setup.connect.send.sent",
+  not_an_address: "setup.connect.send.invalid",
+  limited: "setup.connect.send.limited",
+  no_host: "setup.connect.send.failed",
+  failed: "setup.connect.send.failed",
+};
+
+/** One address and one press: the steps above go to whoever runs the address, and their reply comes to the buyer. */
+export function SendSteps(p: { host: string }): React.JSX.Element {
+  const id = useId();
+  const [to, setTo] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [answer, setAnswer] = useState<WebPersonSend | null>(null);
+  const key = answer === null ? null : SEND_ANSWER[answer.outcome === "refused" ? answer.because : answer.outcome];
+  return (
+    <form
+      className="grid min-w-0 gap-2"
+      data-testid="web-person"
+      onSubmit={(event) => {
+        event.preventDefault();
+        setBusy(true);
+        setAnswer(null);
+        void sendToWebPerson({ host: p.host, to })
+          .catch((): WebPersonSend => ({ outcome: "failed" }))
+          .then((sent) => {
+            setAnswer(sent);
+            setBusy(false);
+            if (sent.outcome === "sent") setTo("");
+          });
+      }}
+    >
+      <label htmlFor={id} className="text-sm font-semibold">
+        {copy("setup.connect.send.label")}
+      </label>
+      <div className="join w-full min-w-0">
+        <input
+          id={id}
+          type="email"
+          required
+          className="input join-item h-11 min-w-0 grow"
+          value={to}
+          onChange={(event) => setTo(event.target.value)}
+        />
+        <button type="submit" className="btn btn-outline join-item h-11" disabled={busy} data-testid="web-person-send">
+          {copy("setup.connect.send.action")}
+        </button>
+      </div>
+      {key === null ? null : (
+        <p role="status" className={answer?.outcome === "sent" ? "text-sm text-success" : "text-sm text-error"}>
+          {copy(key)}
+        </p>
+      )}
+    </form>
+  );
 }
 
 /** One value's copy button: the lucide glyph turns to a tick once the

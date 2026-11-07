@@ -465,6 +465,7 @@ export const REMAINING_PREVIEW_KINDS = [
   "setup-reminder",
   "account",
   "ops",
+  "web-person",
 ] as const;
 
 /** The cause the unavailable notice states, as the already-resolved key its
@@ -516,6 +517,13 @@ export async function composeRemainingPreview(
       const { buildSpendCeilingAlert } = await import("../../../src/lib/mail/templates/ops");
       const mail = buildSpendCeilingAlert({ occasion: "reached", spentCents: 1240, ceilingCents: 1200 });
       return composeMail({ kind, subject: mail.subject, blocks: mail.blocks });
+    }
+    case "web-person": {
+      const { buildWebPersonMail } = await import("../../../src/lib/mail/templates/web-person");
+      const { guideView } = await import("../../../src/lib/publish/destinations/hosted/dns-guide");
+      const record = { type: "CNAME", name: "help.example.com", value: "hosted.example.net" };
+      const view = guideView({ record, where: { kind: "provider", provider: "Cloudflare", guide: "cloudflare" }, zone: "example.com" });
+      return composeMail({ kind, ...buildWebPersonMail({ domain: "example.com", host: record.name, view }) });
     }
   }
 }

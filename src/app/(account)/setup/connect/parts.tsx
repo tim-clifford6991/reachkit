@@ -1,6 +1,6 @@
 // SPEC §5, board Setup — the parts setup's Connect step and `/setup/connect`
-// both draw: the record to paste with its steps behind one press, doing it
-// later, and the week that needs nothing more. daisyUI and lucide only.
+// both draw: the record to paste with its steps behind one press, sending it
+// to a web person, doing it later, and the week that needs nothing more. daisyUI and lucide only.
 "use client";
 
 import type React from "react";
@@ -10,7 +10,7 @@ import { copy, type CopyKey } from "@/lib/presentation/copy";
 import type { DnsRecord } from "@/lib/publish/setup/cards";
 import type { HostnameState } from "@/lib/publish/destinations/hosted/hostname";
 import type { CheckWords } from "../../_destination/CheckConnection";
-import { CnameRecord, CopyValue } from "../../_destination/CnameRecord";
+import { CnameRecord, CopyValue, SendSteps } from "../../_destination/CnameRecord";
 import { QUIET } from "../frame";
 
 /** Where doing it later leads. An internal route name, not a sentence. */
@@ -90,11 +90,12 @@ export function DnsCard(p: { record: DnsRecord; state?: HostnameState; name?: Re
             <details className="collapse min-w-0">
               <summary className="collapse-title link link-primary min-h-0 px-0 py-1">{copy("setup.connect.steps.guide")}</summary>
               <div className="collapse-content min-w-0 px-0">
-                <CnameRecord record={p.record} {...(p.state === undefined ? {} : { state: p.state })} />
+                <CnameRecord record={p.record} send={false} {...(p.state === undefined ? {} : { state: p.state })} />
               </div>
             </details>
           </div>
         </details>
+        <SendSteps host={p.record.name} />
       </div>
     </section>
   );

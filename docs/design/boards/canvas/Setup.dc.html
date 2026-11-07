@@ -185,7 +185,7 @@ main .dnote{padding:16px}
   <p role="status" style="margin: 0; display: flex; gap: 8px; align-items: flex-start; font-size: 13px; color: #3a3d52"><span aria-hidden="true" style="flex: none; width: 8px; height: 8px; margin-top: 6px; border-radius: 50%; background: #5b4be0"></span><span>Writing your first page · started 10:42&nbsp;AM</span></p>
 </header>
 <main aria-labelledby="s3-h" style="padding: 20px 16px 24px; display: flex; flex-direction: column; gap: 24px">
-<div style="display: flex; flex-direction: column; gap: 8px"><h1 id="s3-h" style="margin: 0; font-size: 31px; line-height: 1.2; font-weight: 700; letter-spacing: -0.03em">Connect your website</h1><p style="margin: 0; color: #3a3d52">We’re already writing your first page. It goes live once you connect.</p></div>
+<div style="display: flex; flex-direction: column; gap: 8px"><p class="muted" style="margin: 0; font-size: 14px; display: flex; align-items: center; gap: 6px"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 16px; height: 16px;" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>5–10 min, or send it to your web person</p><h1 id="s3-h" style="margin: 0; font-size: 31px; line-height: 1.2; font-weight: 700; letter-spacing: -0.03em">Connect your website</h1><p style="margin: 0; color: #3a3d52">We’re already writing your first page. It goes live once you connect.</p></div>
   <fieldset style="border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; min-width: 0">
     <legend style="font-weight: 700; font-size: 15px; padding: 0 0 8px">Where should pages live?</legend>
     <label style="display: flex; gap: 12px; align-items: flex-start; padding: 16px; border-radius: 12px; border: 1.5px solid #5b4be0; background: #eeecfd; cursor: pointer"><input type="radio" name="where" checked style="margin-top: 4px; accent-color: #5b4be0; width: 18px; height: 18px; flex: none"><span class="tile" style="width: 30px; height: 30px"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 16px; height: 16px;" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path><path d="M2 12h20"></path></svg></span><span style="display: flex; flex-direction: column; min-width: 0"><strong style="font-size: 15px">On your web address, run by us</strong><span class="num" style="font-size: 13px; color: #3a3d52">help.tallyroom.example</span><span class="muted" style="font-size: 13px">One setting, once. Recommended.</span></span></label>
@@ -207,6 +207,10 @@ main .dnote{padding:16px}
         <p><a href="#">Steps for where you bought your address</a></p>
       </div>
     </details>
+    <form style="display: flex; flex-direction: column; gap: 8px; padding-top: 12px; border-top: 1px solid #e8e9f3" onsubmit="return false">
+      <label for="wp-to" style="font-size: 14px; font-weight: 600">Or send these steps to your web person</label>
+      <div style="display: flex; gap: 8px; min-width: 0"><input id="wp-to" class="field" type="email" style="flex: 1"><button type="submit" class="ghost">Send</button></div>
+    </form>
   </section>
   <div style="display: flex; flex-direction: column; gap: 8px">
     <a class="ghost block" href="Main.dc.html">Do this later</a>

@@ -55,12 +55,12 @@ describe("issue #376 — S20's footer, in both bodies", () => {
     // Rule 5.5: the exception is a written list, and it is checked against
     // the register rather than against itself — a fourth kind added to
     // `MAIL_KINDS` without a footer line fails here, naming itself.
-    const drawn = ["magic-link", "report", "first-page", "draft-ready", "published", "weekly", "nurture"];
+    const drawn = ["magic-link", "report", "first-page", "draft-ready", "published", "weekly", "nurture", "web-person"];
     // SPEC §8's win-back carries a reason key.
     const retentionWithReason = ["win-back"];
     drawn.push(...retentionWithReason);
     const registered = Object.keys(MAIL_KINDS);
-    expect(registered).toHaveLength(14);
+    expect(registered).toHaveLength(15);
     expect([...NO_REASON_YET].sort()).toEqual(registered.filter((k) => !drawn.includes(k)).sort());
   });
 

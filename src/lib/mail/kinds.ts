@@ -35,6 +35,8 @@ export const MAIL_KINDS = Object.freeze({
   "payment-failed": { occasionsFrom: "SPEC §8", stoppable: false },
   cancellation: { occasionsFrom: "SPEC §8", stoppable: false },
   "win-back": { occasionsFrom: "SPEC §8", stoppable: "opt-out" },
+  // SPEC §5: sent once per press by a signed-in buyer to the address they typed, which nobody keeps, so there is nothing to stop.
+  "web-person": { occasionsFrom: "SPEC §5", stoppable: false },
 } as const satisfies Readonly<Record<string, KindRow>>);
 
 export type MailKind = keyof typeof MAIL_KINDS;

@@ -29,6 +29,7 @@ const PREHEADER: Readonly<Record<MailKind, CopyKey | null>> = {
   "payment-failed": "mail.paymentFailed.preheader",
   cancellation: "mail.cancellation.preheader",
   "win-back": "mail.winback.preheader",
+  "web-person": "mail.webPerson.preheader",
 };
 
 const HIDDEN = 'data-skip-in-text="true"';

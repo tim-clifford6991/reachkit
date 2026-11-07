@@ -13,6 +13,8 @@ export interface VendorSend {
   listUnsubscribe?: string;
   /** The idempotency key's day, where the caller's once-ness is not the UTC day; absent keeps the UTC day. */
   period?: string;
+  /** Where a reply goes; absent is `MAIL_FROM`, the mailbox we read. */
+  replyTo?: string;
 }
 
 export type VendorResult =

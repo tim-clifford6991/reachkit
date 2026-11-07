@@ -1,20 +1,4 @@
-// 2026-09-10, issue #458: every key in this partition carries the owner's
-// approved string. The owner approved the drafted set that day
-// ("copy proposal approved"); the strings are applied byte for byte, and
-// no key here is owner-owed any more — none is empty, none carries the
-// `TODO(copy)` marker. Ruling 11a strings already here were not touched.
-//
-// src/lib/presentation/copy/keys/mail.ts — BP-020 decision 5, WO-041
-//
-// The mail seam's sentences, BP-016 and BP-029. Two keys seeded (WO-041
-// step 4): the opt-out confirmation and invalid-token lines. BP-029 owns
-// the opt-out surface and lives in src/lib/mail/leads/**, so this is
-// already the right module for its two lines; no thirteenth partition is
-// needed for them.
-//
-// 2026-09-04: the owner ruled on both (WO-041 `## Log`, this date's
-// ruling) — filled verbatim, byte for byte. Neither is owner-owed any
-// more.
+// The mail seam's sentences. Strings marked drafted are named in their pull request for the owner to correct (#759).
 import type { CopyPartition } from "../registry.ts";
 
 export const MAIL_COPY = Object.freeze({
@@ -150,6 +134,12 @@ export const MAIL_COPY = Object.freeze({
   "mail.setupReminder.written": ["Your first page is written and waiting.", { slots: {}, fixedBy: "owner R15 · issue 2142 (drafted)" }],
   "mail.setupReminder.connect": ["One setting at {provider} puts it live.", { slots: { provider: "text" }, fixedBy: "owner R15 · issue 2142 (drafted)" }],
   "mail.setupReminder.connectAny": ["Connecting your website puts it live.", { slots: {}, fixedBy: "owner R15 · issue 2142 (drafted)" }],
+  // SPEC §5: the connect steps a buyer sends to their web person, who never asked for mail from us.
+  "mail.webPerson.subject": ["Add one DNS record for {domain}", { slots: { domain: "text" }, fixedBy: "SPEC §5 · issue 2114 (drafted)" }],
+  "mail.webPerson.preheader": ["One record, about 5 minutes. Reply to reach the person who asked.", { slots: {}, fixedBy: "SPEC §5 · issue 2114 (drafted)" }],
+  "mail.webPerson.intro": ["Someone at {domain} asked us to send you these steps. Replying reaches them, not us.", { slots: { domain: "text" }, fixedBy: "SPEC §5 · issue 2114 (drafted)" }],
+  "mail.webPerson.done": ["Once it’s saved, you’re done. We check for it every hour.", { slots: {}, fixedBy: "SPEC §5 · issue 2114 (drafted)" }],
+  "mail.reason.webPerson": ["Someone at {domain} typed your address to send you this. We keep no copy of it.", { slots: { domain: "text" }, fixedBy: "SPEC §5 · issue 2114 (drafted)" }],
 
   // What `POST /api/lead` answers with. The adapter maps each arm of
   // `captureLead()` to one of these keys and never to a sentence of its

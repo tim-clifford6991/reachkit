@@ -134,10 +134,10 @@ export async function sendViaVendor(v: VendorSend): Promise<VendorResult> {
   const { subject, html, text } = v;
   const headers = unsubscribeHeaders(v.listUnsubscribe);
   // §15's `MAIL_FROM`, read at the send. The From carries the shell's wordmark, since a bare address reads as a stranger; replies go
-  // to the same read mailbox (RUNBOOK §6). `headers` is omitted with no stop control, so an unstoppable kind never claims one.
+  // to the caller's person or else the same read mailbox (RUNBOOK §6). `headers` is omitted with no stop control, so an unstoppable kind never claims one.
   const payload = JSON.stringify({
     from: `${copy("mail.shell.wordmark")} <${env.MAIL_FROM}>`,
-    reply_to: env.MAIL_FROM,
+    reply_to: v.replyTo ?? env.MAIL_FROM,
     to: [v.to],
     subject,
     html,
