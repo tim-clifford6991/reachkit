@@ -47,6 +47,17 @@ describe("the phone's top bar", () => {
   );
 });
 
+describe("the phone's top bar with no page scheduled and nothing holding publishing back", () => {
+  it.each([
+    { kind: "topic", on: "2026-09-17", topic: "bike service cost" },
+    { kind: "monday-check", on: new Date(Date.UTC(2026, 8, 21, 10, 0, 0)) },
+  ] as const)("says publishing is on while the card names the next $kind", (upcoming) => {
+    const shell: ShellModel = { ...SCHEDULED, publishing: { mode: "autopilot", next: null, because: null, upcoming } };
+    const publishing = render(<TopBar shell={shell} />).querySelector("[data-testid='shell-top-publishing']");
+    expect(publishing?.textContent).toBe(COPY["shell.publishing.state.autopilot"]);
+  });
+});
+
 describe("the site's own mark before its domain, in the bar and the panel's foot", () => {
   const BARS = [
     ["the phone's top bar", (shell: ShellModel) => <TopBar shell={shell} />],
