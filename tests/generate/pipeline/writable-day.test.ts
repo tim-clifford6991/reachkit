@@ -108,13 +108,15 @@ describe("a short day ends in a written pack or a named reason", () => {
     expect([...store.rows.values()].map((row) => (row.meta as { fallbackFor?: unknown }).fallbackFor)).toEqual([undefined]);
   });
 
-  it("the shop, whose stored passages are all page chrome, has no own fact: the day names why, and the founder's notice says it", async () => {
+  it("the shop, whose stored passages are all page chrome, has no own fact: the day names grounding before any research is bought, and the founder's notice says it", async () => {
     world(stored["tattly.com"]);
     const outcome = await day();
-    expect(outcome).toEqual({ ok: false, because: "no_own_facts" });
+    expect(outcome).toEqual({ ok: false, because: "no_own_facts", step: "grounding" });
     expect(written()).toEqual([]);
+    expect(research).not.toHaveBeenCalled();
+    expect(llm).not.toHaveBeenCalled();
     // As the due hour keeps it (`reviewWritten`), and as the Overview reads it back.
-    Object.assign(days, { reason: `generate:${outcome.ok ? "" : outcome.because}`, report: JSON.parse(JSON.stringify(report())) });
+    Object.assign(days, { reason: "generate:no_own_facts:grounding", report: JSON.parse(JSON.stringify(report())) });
     expect((await releaseNotice({ domain: "tattly.com", siteId: store.site!.id }))?.key).toBe("setup.release.own-facts");
   });
 
@@ -138,7 +140,7 @@ describe("a short day ends in a written pack or a named reason", () => {
 
   it("with three facts there is no reference page, and the day names why", async () => {
     world(THIN, { readNothing: true });
-    expect(await day()).toEqual({ ok: false, because: "no_own_facts" });
+    expect(await day()).toEqual({ ok: false, because: "no_own_facts", step: "pack:facts_on_topic" });
     expect(written()).toEqual([]);
   });
 

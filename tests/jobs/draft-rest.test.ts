@@ -283,7 +283,7 @@ describe("a page whose pack is short writes no row, and its topic rests (D41, is
     fixtures.packAnswer.missing = ["buyer_questions"];
     const outcome = await draftGenerate.run({ data: {}, now: EVENING });
     // Its own-facts page is as short, so the day names that it had none.
-    expect(outcome).toEqual({ outcome: "degraded", subjectId: null, step: "generate:no_own_facts" });
+    expect(outcome).toEqual({ outcome: "degraded", subjectId: null, step: "generate:no_own_facts:pack:buyer_questions" });
     expect(llmMock).not.toHaveBeenCalled();
     expect(db.rows("drafts")).toEqual([]);
     expect(restingUntil(opportunityId)).not.toBeNull();

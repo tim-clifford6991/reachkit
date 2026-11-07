@@ -98,23 +98,21 @@ async function writableUpdate(siteId: string, date: string, week?: Opportunity[]
 
 /** The day's last rung once its topics and spares came up short, inside its one context: a new page's topic as a
  *  reference page of the site's own facts, which reads no research, else an update of one of our live pages. A day
- *  neither fills ends `no_own_facts` where the reference page was short, else as its own topic did. */
+ *  neither fills ends `no_own_facts`, naming what the reference page's pack lacked, else as its own topic did. */
 export async function ownFactsPage(page: MendInput & { publishDate: string }, cost: CostContext, now: Date, ended: DayPageOutcome): Promise<DayPageOutcome> {
   const { writeStoredUpdate } = await import(".");
   // The rung's page has no row yet, so its calls are counted as one's.
   await cost.forDraft?.(null);
-  const short = (outcome: DayPageOutcome) => !outcome.ok && outcome.because === "step_failed" && outcome.draftId === null && outcome.step.startsWith("pack");
-  const isNew = contentTypeOf(page.opportunity) !== "update";
-  if (isNew) {
-    const documented = await writeStoredUpdate({ ...page, opportunity: { ...page.opportunity, writeAs: "documentation" } }, now, cost);
-    if (!short(documented)) return documented;
-  }
+  const short = (outcome: DayPageOutcome): outcome is Extract<DayPageOutcome, { because: "step_failed" }> =>
+    !outcome.ok && outcome.because === "step_failed" && outcome.draftId === null && outcome.step.startsWith("pack");
+  const documented = contentTypeOf(page.opportunity) === "update" ? null : await writeStoredUpdate({ ...page, opportunity: { ...page.opportunity, writeAs: "documentation" } }, now, cost);
+  if (documented !== null && !short(documented)) return documented;
   // The update carries the reason the day's own page ended on, as the update fallback's always does.
   const update = await writableUpdate(page.siteId, page.publishDate);
   const trigger = ended.ok ? "" : `generate:${ended.because === "step_failed" ? `step_failed:${ended.step}` : ended.because}`;
   const updated = update === null ? null : await writtenUpdate({ ...page, opportunity: update }, trigger, now, cost);
   if (updated !== null) return updated;
-  return isNew ? { ok: false, because: "no_own_facts" } : ended;
+  return documented === null ? ended : { ok: false, because: "no_own_facts", step: documented.step };
 }
 
 /** The day's page, where its own did not pass, from the committed week's updates; `null` where none passes, and then
