@@ -60,41 +60,66 @@ function rows<T>(result: Result<T>, table: string): T[] {
 // Ids per `in` filter, so a long read history never outgrows a request's address.
 const IDS = 100;
 
-/** A `fetches` row as the reader already holds it. */
+/** A `fetches` row as listed, without its payload. */
 export interface FetchRead {
   id: string;
   scan_id: string;
   source: string;
-  payload: unknown;
 }
 
-/** The text of each read: kept rows at `version`, the rest derived from the
- *  payloads already in hand and kept. */
-async function textById(client: TextClient, reads: readonly FetchRead[], version: string): Promise<Map<string, TextRow>> {
-  const out = new Map<string, TextRow>();
+// A kept-text read slower than this is served from the payloads instead.
+const KEPT_MS = 1500;
+
+async function keptRows(client: TextClient, ids: readonly string[], version: string): Promise<(TextRow & { fetch_id: string })[]> {
   const kept = await client
     .from<TextRow & { fetch_id: string }>("fetch_text")
     .select("fetch_id, url, read_at, rendered, document, text, examples, questions")
     .eq("text_version", version)
-    .in("fetch_id", reads.map((read) => read.id));
-  for (const row of rows(kept, "fetch_text")) out.set(row.fetch_id, row);
-  const derived = reads.filter((read) => !out.has(read.id)).map((r) => ({ fetch_id: r.id, scan_id: r.scan_id, text_version: version, ...textRowOf(r.source, r.payload) }));
-  for (const row of derived) out.set(row.fetch_id, row);
+    .in("fetch_id", ids);
+  return rows(kept, "fetch_text");
+}
+
+/** The text of reads with none kept: their payloads are downloaded, derived and kept. */
+async function derive(client: TextClient, reads: readonly FetchRead[], version: string): Promise<(TextRow & { fetch_id: string })[]> {
+  const fetched = await client
+    .from<{ id: string; payload: unknown }>("fetches")
+    .select("id, payload")
+    .in("id", reads.map((read) => read.id));
+  const payloads = new Map(rows(fetched, "fetches").map((row) => [row.id, row.payload]));
+  const derived = reads.filter((read) => payloads.has(read.id)).map((r) => ({ fetch_id: r.id, scan_id: r.scan_id, text_version: version, ...textRowOf(r.source, payloads.get(r.id)) }));
   if (derived.length > 0) {
     // A row Postgres refuses is derived again next time; the text read now is the same.
     const wrote = await client.from("fetch_text").upsert(derived.map((row) => ({ ...row, computed_at: new Date().toISOString() })), { onConflict: "fetch_id" });
     if (wrote.error) console.warn(`text.ts: write to fetch_text failed: ${wrote.error.message}`);
   }
+  return derived;
+}
+
+function batches<T>(items: readonly T[]): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < items.length; i += IDS) out.push(items.slice(i, i + IDS));
   return out;
 }
 
-/** The measured text of each read by fetch id, in the order given; null for
- *  a read that holds no document. */
-export async function storedText(client: TextClient, reads: readonly FetchRead[], version: string): Promise<Map<string, MeasuredText | null>> {
-  const batches = [];
-  for (let i = 0; i < reads.length; i += IDS) batches.push(textById(client, reads.slice(i, i + IDS), version));
+/** The measured text of each read by fetch id, in the order given, null for
+ *  a read that holds no document; or null when the kept text cannot be read
+ *  in time, so the caller serves the payloads rather than an empty set. */
+export async function storedText(client: TextClient, reads: readonly FetchRead[], version: string): Promise<Map<string, MeasuredText | null> | null> {
   const byId = new Map<string, TextRow>();
-  for (const batch of await Promise.all(batches)) for (const [id, row] of batch) byId.set(id, row);
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const kept = Promise.all(batches(reads).map((batch) => keptRows(client, batch.map((read) => read.id), version)));
+  kept.catch(() => {});
+  try {
+    const slow = new Promise<never>((_, reject) => (timer = setTimeout(reject, KEPT_MS, new Error(`no answer in ${KEPT_MS} ms`))));
+    for (const batch of await Promise.race([kept, slow])) for (const row of batch) byId.set(row.fetch_id, row);
+  } catch (error) {
+    console.warn("text: stored read failed, served payloads", error instanceof Error ? error.message : String(error));
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+  const missing = reads.filter((read) => !byId.has(read.id));
+  for (const batch of await Promise.all(batches(missing).map((batch) => derive(client, batch, version)))) for (const row of batch) byId.set(row.fetch_id, row);
   const out = new Map<string, MeasuredText | null>();
   for (const read of reads) {
     const row = byId.get(read.id);

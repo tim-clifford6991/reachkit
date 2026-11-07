@@ -24,7 +24,6 @@
 // paying, which belongs to no site, so it is read by its domain: without
 // it, a deep pass run inside the own-document window has no text at all,
 // and a paid site grounds no fact and starts no draft.
-import { isDeepStrictEqual } from "node:util";
 import { SITE_PROFILE } from "@/lib/config/constants/scan";
 import { dbAdmin } from "@/lib/db";
 import { OWN_FETCH_SOURCE, RENDERED_FETCH_SOURCE } from "./own-fetch";
@@ -170,51 +169,25 @@ export async function readDomainText(domain: string, read?: TextRead): Promise<M
 }
 
 async function textOfScans(scanIds: readonly string[], cap?: number): Promise<MeasuredText[]> {
-  const client = dbAdmin();
-  const query = (client as unknown as MinimalClient)
-    .from<FetchRead>("fetches")
-    .select("id, scan_id, source, payload")
-    .in("source", [OWN_FETCH_SOURCE, RENDERED_FETCH_SOURCE])
-    .in("scan_id", scanIds);
-  const rows = await (cap === undefined ? query : query.order("created_at", { ascending: false }).limit(cap));
-  if (rows.error) {
-    throw new Error(`text.ts: read from fetches failed: ${rows.error.message}`);
-  }
-
-  const out: MeasuredText[] = [];
-  const served = new Map<string, MeasuredText | null>();
-  for (const row of rows.data ?? []) {
-    // A `null` payload is a ledgered failed read (`own-fetch.ts`) — no
-    // text was measured, so none is returned. Any other shape under this
-    // source is skipped the same way, never thrown on.
-    const text = measuredTextOf(textRowOf(row.source, row.payload));
-    served.set(row.id, text);
-    if (text !== null) out.push(text);
-  }
+  const client = dbAdmin() as unknown as MinimalClient;
+  const list = <T>(columns: string) => {
+    const query = client.from<T>("fetches").select(columns).in("source", [OWN_FETCH_SOURCE, RENDERED_FETCH_SOURCE]).in("scan_id", scanIds);
+    return cap === undefined ? query : query.order("created_at", { ascending: false }).limit(cap);
+  };
   // Dev and production share one database, so only production keeps rows at its text version.
   const version = process.env.RK_TEXT_VERSION;
-  if (version && process.env.VERCEL_ENV === "production") await textParity(client as unknown as TextClient, rows.data ?? [], version, served);
-  return out.sort(compareMeasuredText);
+  if (version && process.env.VERCEL_ENV === "production") {
+    const reads = fetchRows(await list<FetchRead>("id, scan_id, source"));
+    const stored = await storedText(client as unknown as TextClient, reads, version);
+    if (stored !== null) return [...stored.values()].filter((text) => text !== null).sort(compareMeasuredText);
+  }
+  // A `null` payload is a ledgered failed read (`own-fetch.ts`) — no text was
+  // measured, so none is returned. Any other shape is skipped the same way.
+  const rows = fetchRows(await list<FetchRead & { payload: unknown }>("id, scan_id, source, payload"));
+  return rows.map((row) => measuredTextOf(textRowOf(row.source, row.payload))).filter((text) => text !== null).sort(compareMeasuredText);
 }
 
-// The served read waits on the shadow for at most this long.
-const SHADOW_MS = 1500;
-
-// The stored text is derived beside the served text and only compared, so its first deploys prove it without serving it.
-async function textParity(client: TextClient, reads: readonly FetchRead[], version: string, served: ReadonlyMap<string, MeasuredText | null>): Promise<void> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const shadow = storedText(client, reads, version);
-  shadow.catch(() => {});
-  try {
-    const stored = await Promise.race([shadow, new Promise<null>((resolve) => (timer = setTimeout(resolve, SHADOW_MS, null)))]);
-    if (stored === null) return console.warn("text parity: shadow timed out");
-    const ids = new Set([...served.keys(), ...stored.keys()]);
-    const mismatched = [...ids].filter((id) => !isDeepStrictEqual(served.get(id), stored.get(id)));
-    const first = mismatched.length > 0 ? ` first=${mismatched[0]}` : "";
-    console.info(`text parity: match=${ids.size - mismatched.length} mismatch=${mismatched.length}${first}`);
-  } catch (error) {
-    console.warn(`text parity: shadow read failed: ${error instanceof Error ? error.message : String(error)}`);
-  } finally {
-    clearTimeout(timer);
-  }
+function fetchRows<T>(result: QueryResult<T>): T[] {
+  if (result.error) throw new Error(`text.ts: read from fetches failed: ${result.error.message}`);
+  return result.data ?? [];
 }
