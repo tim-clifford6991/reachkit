@@ -8,6 +8,10 @@ Follow **Current**. **History** is the dated record of how these rules got here.
 
 ## Current
 
+### Space
+
+There is no master and no orchestrator. A requirement is a GitHub issue. The work runs in the ReachKit Herdr workspace, started with `space.sh reachkit <issue>`, on `.wt/issue-<N>` cut from `origin/main`. The session stops at the pull request or at one comment. The four gates below are the merge gate for an ordinary change. A pull request labelled `risk:paid`, `risk:migration`, or `risk:job` waits for a release-qa GO comment on that SHA. `rk-deployer` ships `main`. Any older sentence on this page that tells you to wait for a master or an orchestrator yields to this section. The box rule is `/root/ops/box/SPACE.md`.
+
 ### Source of truth
 
 The repository and the GitHub issues are the only record. A chat, a memory file, and anything under `/root/ops` do not overrule these pages. If two of them disagree, fix the stale one in the same change. Do not leave the correction only in a comment or a memory file.
