@@ -42,9 +42,8 @@ const MONDAY = (day: number): Date => new Date(Date.UTC(2026, 8, day, 6, 0, 0));
 
 /** The app-side facts for a customer on their first day: no week measured
  *  yet, nothing waiting, and no page planned — every count a real zero, and
- *  none of them an absence. `nothing_planned` rather than no cause at all:
- *  ADR-061 rules an unattributed empty ReachKit's own stop, and a cold start
- *  is not a stop. */
+ *  none of them an absence. No cause holds, so the card names the Monday
+ *  check: a cold start is not a stop. */
 export const COLD_START_SHELL_FACTS: ShellFacts = Object.freeze({
   domain: COLD_START_DOMAIN,
   hasLogo: false,
@@ -58,13 +57,12 @@ export const COLD_START_SHELL_FACTS: ShellFacts = Object.freeze({
   review: null,
   blog: null,
   next: null,
+  nextTopic: null,
   stopped: null,
   noPublishCauses: Object.freeze({
     reachkit_stopped: false,
     address_waiting: false,
     publishing_paused: false,
-    not_written: false,
-    nothing_planned: true,
   }),
 });
 
@@ -79,13 +77,11 @@ export const WARM_SHELL_FACTS: ShellFacts = Object.freeze({
   ]),
   firstDueOn: MONDAY(7),
   waiting: 2,
-  next: new Date(Date.UTC(2026, 8, 16, 13, 0, 0)),
+  next: Object.freeze({ at: new Date(Date.UTC(2026, 8, 16, 13, 0, 0)), title: "How to choose a road bike" }),
   noPublishCauses: Object.freeze({
     reachkit_stopped: false,
     address_waiting: false,
     publishing_paused: false,
-    not_written: false,
-    nothing_planned: false,
   }),
 });
 
@@ -109,7 +105,5 @@ export const STOPPED_SHELL_FACTS: ShellFacts = Object.freeze({
     reachkit_stopped: false,
     address_waiting: false,
     publishing_paused: true,
-    not_written: false,
-    nothing_planned: false,
   }),
 });

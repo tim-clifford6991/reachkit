@@ -17,7 +17,7 @@ const SCHEDULED: ShellModel = {
   waiting: 0,
   review: null,
   blog: null,
-  publishing: { mode: "autopilot", next: new Date(Date.UTC(2026, 8, 16, 13, 0, 0)) },
+  publishing: { mode: "autopilot", next: new Date(Date.UTC(2026, 8, 16, 13, 0, 0)), title: "How to choose a road bike" },
   stopped: null,
 };
 
@@ -35,7 +35,7 @@ describe("the phone's top bar", () => {
     expect(publishing?.textContent).toBe(COPY["shell.publishing.state.autopilot"]);
   });
 
-  it.each(["reachkit_stopped", "publishing_paused", "not_written", "nothing_planned"] as const)(
+  it.each(["reachkit_stopped", "publishing_paused", "address_waiting"] as const)(
     "with no publish scheduled (%s) it never says publishing is on, and says the panel's reason",
     (because) => {
       const shell: ShellModel = { ...SCHEDULED, publishing: { mode: "autopilot", next: null, because } };

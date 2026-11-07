@@ -47,20 +47,25 @@ export function stoppedWorkStatement(
   };
 }
 
-/** The causes REQ-040 c4 admits when ReachKit has not stopped, and
- *  `unexplained`: no publish is scheduled and no cause is recorded, which
- *  is not a stop (SPEC §7, 2026-10-07, issue 1321). */
-export type NextPublishCause = "address-waiting" | "paused" | "being-written" | "none-planned" | "unexplained";
+/** The causes REQ-040 c4 admits when ReachKit has not stopped. */
+export type NextPublishCause = "address-waiting" | "paused";
 
-export type NextPublishOtherwise = { tag: NextPublishCause } | { tag: "scheduled"; at: string };
+/** What happens next where nothing holds publishing back: the next page with its title, the next planned topic, or the
+ *  Monday check, which always has a date, so the line always names an event. */
+export type NextPublishOtherwise =
+  | { tag: NextPublishCause }
+  | { tag: "scheduled"; at: string }
+  | { tag: "page"; at: string; title: string }
+  | { tag: "topic"; on: string; topic: string }
+  | { tag: "monday-check"; on: string };
 
 const OTHERWISE_KEY = {
   scheduled: "next-publish.scheduled",
+  page: "next-publish.page",
+  topic: "next-publish.topic",
+  "monday-check": "next-publish.monday-check",
   "address-waiting": "next-publish.address-waiting",
   paused: "next-publish.paused",
-  "being-written": "next-publish.being-written",
-  "none-planned": "next-publish.none-planned",
-  unexplained: "next-publish.unexplained",
 } as const satisfies Record<NextPublishOtherwise["tag"], CopyKey>;
 
 /** REQ-092 c7. Every statement of when the next page publishes — the
@@ -84,11 +89,9 @@ export function nextPublishStatement(a: {
   // clause, do not pass `otherwise` as a slot.
   if (a.stopped) return { line: copy("next-publish.stopped"), key: "next-publish.stopped" };
 
-  const key: CopyKey = OTHERWISE_KEY[a.otherwise.tag];
-  if (a.otherwise.tag === "scheduled") {
-    return { line: copy(key, { at: a.otherwise.at }), key };
-  }
-  return { line: copy(key), key };
+  const { tag, ...vars } = a.otherwise;
+  const key: CopyKey = OTHERWISE_KEY[tag];
+  return { line: copy(key, vars), key };
 }
 
 /** REQ-092 c1 and c6, as the single account a date carries. Returns the

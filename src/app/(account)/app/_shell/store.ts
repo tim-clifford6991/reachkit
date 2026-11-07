@@ -12,6 +12,8 @@
 //   waiting              §9's `in_review` and `needs_attention` drafts
 //   next / causes        §9's scheduled publish, the site's own switch,
 //                        and the kill switch
+//   nextTopic            §7's committed week, less the dates a draft or a
+//                        decided day already accounts for
 //   stopped              §6.5 / §11's stop, through `stopCause`
 //
 // **A site with nothing yet reads empty, and that is the right answer.** A
@@ -31,7 +33,7 @@ import type { State } from "@/lib/publish/types";
 import { readStop } from "./stop";
 import { nextDueOn } from "@/lib/scan/weekly";
 import { measuredWeeksOf } from "./week-rows";
-import type { ShellFacts, WaitingPage } from "./model";
+import type { NextPage, NextTopic, ShellFacts, WaitingPage } from "./model";
 
 /** One site's account, as the shell needs it. Declared by the caller
  *  (`_session/account.ts`) and narrowed here to the members this file
@@ -53,6 +55,7 @@ interface MinimalQuery<T> extends PromiseLike<MinimalResult<T>> {
   select(columns: string, options?: Record<string, unknown>): MinimalQuery<T>;
   eq(column: string, value: unknown): MinimalQuery<T>;
   in(column: string, values: readonly unknown[]): MinimalQuery<T>;
+  gte(column: string, value: unknown): MinimalQuery<T>;
   not(column: string, operator: string, value: unknown): MinimalQuery<T>;
   order(column: string, opts: { ascending: boolean }): MinimalQuery<T>;
   limit(n: number): MinimalQuery<T>;
@@ -78,9 +81,6 @@ const WAITING_STATES = ["in_review", "needs_attention"] as const;
  *  until it is fixed. */
 const SCHEDULED_STATES = ["in_review", "approved", "publishing"] as const;
 
-/** The states of a page that is planned and not written yet. */
-const UNWRITTEN_STATES = ["planned", "generating"] as const;
-
 interface DraftStateRow {
   id: string;
   state: string;
@@ -89,6 +89,7 @@ interface DraftStateRow {
 
 /** A page that will go live, with the three places its moment is stored. */
 interface ScheduledDraftRow extends DraftStateRow {
+  title: string;
   veto_deadline: string | null;
   told?: { publishesAt?: string | null } | null;
 }
@@ -199,19 +200,21 @@ async function blogAddress(siteId: string): Promise<string | null> {
  * Answering `null` puts the shell on the `publishing_paused` cause, which
  * is the true statement.
  */
-async function nextScheduled(siteId: string, publishingOn: boolean): Promise<Date | null> {
+async function nextScheduled(siteId: string, publishingOn: boolean): Promise<NextPage | null> {
   if (!publishingOn) return null;
   const { data, error } = await client()
     .from<ScheduledDraftRow>("drafts")
-    .select("id, state, scheduled_for, veto_deadline, told")
+    .select("id, state, scheduled_for, veto_deadline, told, title")
     .eq("site_id", siteId)
     .in("state", SCHEDULED_STATES);
   if (error !== null || data === null) return null;
-  const moments = data
-    .map(goesLiveAtOf)
-    .filter((at): at is Date => at !== null)
-    .sort((a, b) => a.getTime() - b.getTime());
-  return moments[0] ?? null;
+  const pages = data
+    .flatMap((row) => {
+      const at = goesLiveAtOf(row);
+      return at === null ? [] : [{ at, title: row.title }];
+    })
+    .sort((a, b) => a.at.getTime() - b.at.getTime());
+  return pages[0] ?? null;
 }
 
 function goesLiveAtOf(row: ScheduledDraftRow): Date | null {
@@ -239,18 +242,36 @@ async function logoStored(domain: string): Promise<boolean> {
   return error === null && data?.[0]?.logo_type != null;
 }
 
-/** How many pages this site has planned and not written yet, and how many
- *  it has that a publish could still reach at all — §4.4's `not_written`
- *  and `nothing_planned`, from one read. */
-async function plannedCounts(siteId: string): Promise<{ unwritten: number; reachable: number }> {
-  const { data, error } = await client()
-    .from<DraftStateRow>("drafts")
-    .select("id, state, scheduled_for")
-    .eq("site_id", siteId)
-    .in("state", [...UNWRITTEN_STATES, ...SCHEDULED_STATES]);
-  if (error !== null || data === null) return { unwritten: 0, reachable: 0 };
-  const unwritten = data.filter((row) => (UNWRITTEN_STATES as readonly string[]).includes(row.state));
-  return { unwritten: unwritten.length, reachable: data.length };
+/** The site-local calendar date of an instant, `YYYY-MM-DD`. */
+function localDate(at: Date, timeZone: string): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(at);
+}
+
+/** The soonest committed topic from `today` on whose date holds no page and whose due hour did not end without one
+ *  (a day decided `no_page` or `failed` is not coming), or `null`; a failed read is `null` too. */
+async function nextTopic(siteId: string, today: string): Promise<NextTopic | null> {
+  const { committedWeek } = await import("@/lib/opportunities");
+  const [week, drafts, days] = await Promise.all([
+    committedWeek(siteId).catch(() => null),
+    client().from<{ scheduled_for: string | null }>("drafts").select("scheduled_for").eq("site_id", siteId).gte("scheduled_for", today),
+    client()
+      .from<{ publish_date: string; outcome: string | null }>("draft_days")
+      .select("publish_date, outcome")
+      .eq("site_id", siteId)
+      .gte("publish_date", today),
+  ]);
+  if (week === null || drafts.error !== null || days.error !== null) return null;
+  const taken = new Set<string | null>([
+    ...(drafts.data ?? []).map((row) => row.scheduled_for),
+    ...(days.data ?? []).filter((day) => day.outcome !== null).map((day) => day.publish_date),
+  ]);
+  const next = week.days
+    .flatMap((day) => {
+      const topic = day.opportunity.targetQuery;
+      return day.date < today || taken.has(day.date) || topic === null ? [] : [{ on: day.date, topic }];
+    })
+    .sort((a, b) => a.on.localeCompare(b.on))[0];
+  return next ?? null;
 }
 
 /**
@@ -274,13 +295,13 @@ export async function readShellFacts(site: ShellSite): Promise<ShellFacts> {
     destinationWaiting(site.siteId),
   ]);
 
-  const [weeks, firstDueOn, waits, blog, next, planned, stopped, hasLogo] = await Promise.all([
+  const [weeks, firstDueOn, waits, blog, next, topic, stopped, hasLogo] = await Promise.all([
     measuredWeeksOf({ site, now }),
     nextDueOn({ siteId: site.siteId, now }),
     waiting(site.siteId),
     blogAddress(site.siteId),
     nextScheduled(site.siteId, publishingOn && !addressWaiting),
-    plannedCounts(site.siteId),
+    nextTopic(site.siteId, localDate(now, site.timeZone)),
     readStop(),
     logoStored(site.domain),
   ]);
@@ -298,16 +319,14 @@ export async function readShellFacts(site: ShellSite): Promise<ShellFacts> {
     review: waits.review === null || !addressWaiting ? waits.review : { ...waits.review, goesLiveAt: null },
     blog,
     next,
+    nextTopic: topic,
     stopped,
-    // The four causes, each read as its own fact. `resolveNoPublish` picks
-    // between them by ADR-011's precedence — never by whichever this file
-    // tested first.
+    // Each cause read as its own fact. `resolveNoPublish` picks between them
+    // by ADR-011's precedence — never by whichever this file tested first.
     noPublishCauses: {
       reachkit_stopped: stopped !== null,
       address_waiting: addressWaiting,
       publishing_paused: !publishingOn,
-      not_written: next === null && planned.unwritten > 0,
-      nothing_planned: planned.reachable === 0,
     },
   };
 }

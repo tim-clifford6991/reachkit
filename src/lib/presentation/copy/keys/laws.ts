@@ -86,21 +86,19 @@ export const LAWS_COPY = Object.freeze({
   // OverviewDNS board's sidebar line). Drafted; the owner corrects it.
   "next-publish.address-waiting": ["Waiting for your website", { law: "next-publish", slots: {}, fixedBy: "issue 1595" }],
   "next-publish.paused": ["Publishing is off.", { law: "next-publish", slots: {}, fixedBy: "REQ-040 c4" }],
-  // A page is planned and not written yet (owner 2026-10-09, issue 1362).
-  // It replaces the "nothing approved" cause: no customer approves a page.
-  // Drafted; the owner corrects it.
-  "next-publish.being-written": [
-    "The next page is being written.",
-    { law: "next-publish", slots: {}, fixedBy: "issue 1362" },
+  // What happens next when nothing holds publishing back. Drafted; the owner corrects it.
+  "next-publish.page": [
+    "Next page goes live {at}: {title}",
+    { law: "next-publish", slots: { at: "date", title: "text" }, fixedBy: "issue 2471" },
   ],
-  "next-publish.none-planned": [
-    "No page planned yet.",
-    { law: "next-publish", slots: {}, fixedBy: "REQ-040 c4" },
+  "next-publish.topic": [
+    "Next page planned for {on}: {topic}",
+    { law: "next-publish", slots: { on: "date", topic: "text" }, fixedBy: "issue 2471" },
   ],
-  // No publish is scheduled and no cause is recorded (SPEC §7, 2026-10-07,
-  // issue 1321). Not a stop. Drafted under issue 759's ruling; the owner
-  // corrects it.
-  "next-publish.unexplained": ["No page is scheduled yet.", { law: "next-publish", slots: {}, fixedBy: "issue 1321" }],
+  "next-publish.monday-check": [
+    "The Monday check on {on} plans the next pages.",
+    { law: "next-publish", slots: { on: "date" }, fixedBy: "issue 2471" },
+  ],
   // 2026-09-06, issue #17: value moved from "" to `TODO(copy)`, on exactly
   // the footing the sibling key below records for 2026-09-05. §4.6's draft
   // view renders a *written* page's body, which is model text and therefore
