@@ -100,7 +100,7 @@ export async function releaseNotice(a: { domain: string; siteId?: string }): Pro
   }
 
   // The newest day could write no page even from the site's own facts, so the founder is told what would let it.
-  if (a.siteId !== undefined && (await newestDayReason(a.siteId)) === "generate:no_own_facts") {
+  if (a.siteId !== undefined && (await newestDayReason(a.siteId))?.startsWith("generate:no_own_facts") === true) {
     return { key: "setup.release.own-facts", vars: {}, parts: [] };
   }
 

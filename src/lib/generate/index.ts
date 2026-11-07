@@ -101,7 +101,7 @@ export type DayPageOutcome =
   | { ok: false; because: "already_drafted" }
   /** §7: supply is the cap. Nothing was invented to fill the day. */
   | { ok: false; because: "no_opportunity" }
-  | { ok: false; because: "no_own_facts" } // The day's topics came up short, and even the site's own facts held no page.
+  | { ok: false; because: "no_own_facts"; step: string } // Even the site's own facts held no page; `step` names what they lacked.
   /** A restart that is no longer waiting: the row is gone, is another
    *  site's, or has left `generating` since it was found. */
   | { ok: false; because: "no_draft" }
@@ -542,6 +542,8 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number; 
     await readAllFacts({ siteId: a.siteId, scanId: report.scanId, target: targetSearches(opportunity)[0] }),
     confirmed.factsOff
   );
+  // Hard rule 1 has nothing to stand on, so no research is bought for a page that cannot pass it.
+  if (facts.length === 0) return { ok: false, because: "no_own_facts", step: "grounding" };
   // What no page may repeat whole (issue 1249): the site's demo phrases —
   // the ones kept with its knowledge base ride in `factsOff`.
   const demoPhrases = [
@@ -661,8 +663,6 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number; 
     if (last.draftId !== null) draftId = last.draftId;
     if (last.ok) return { ok: true, draftId: last.draftId };
     if (last.reason === "rules") {
-      // No row means none of the site's own pages yielded a fact to ground a page on.
-      if (last.draftId === null) return { ok: false, because: "no_own_facts" };
       return { ok: false, because: "rules", draftId: draftId ?? null, attempts: last.attempt, ...(last.fix === undefined ? {} : { stopped: last.fix }), ...(last.stop === undefined ? {} : { stop: last.stop }) };
     }
     // SPEC §7 (D12, issue 1143): a new page whose pack adds too little is not

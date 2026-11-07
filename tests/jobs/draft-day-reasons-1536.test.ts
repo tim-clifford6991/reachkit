@@ -131,8 +131,8 @@ describe("issue 2388: a day without a passing page of its own takes a committed 
 
   it("a select whose ladder below the update ends without a page keeps the ladder's reason, never a bare no_opportunity", async () => {
     decideDayPage.mockResolvedValueOnce({ ok: false, because: "no_opportunity" });
-    refreshForDay.mockResolvedValueOnce({ ok: false, because: "no_own_facts" });
+    refreshForDay.mockResolvedValueOnce({ ok: false, because: "no_own_facts", step: "pack:facts_on_topic" });
     const { day: kept } = await day();
-    expect(kept).toMatchObject({ outcome: "no_page", reason: "generate:no_own_facts" });
+    expect(kept).toMatchObject({ outcome: "no_page", reason: "generate:no_own_facts:pack:facts_on_topic" });
   });
 });
