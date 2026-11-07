@@ -70,6 +70,14 @@ async function newestDayReason(siteId: string): Promise<string | null> {
   return (data?.[0] as { reason?: string | null } | undefined)?.reason ?? null;
 }
 
+/** Whether a kept reason shows the site itself short of facts: no passage at all, or a pack with too few. A topic whose
+ *  words the site's facts miss is the planner's, and a bare reason from before the path was named proves neither. */
+function siteLacksFacts(reason: string | null): boolean {
+  if (reason === "generate:no_own_facts:grounding") return true;
+  const needs = reason?.startsWith("generate:no_own_facts:pack:") === true ? reason.slice("generate:no_own_facts:pack:".length).split(",") : [];
+  return needs.includes("facts_few");
+}
+
 /**
  * The one sentence that travels with the founder into the app, or `null`
  * when there is nothing to say.
@@ -100,7 +108,7 @@ export async function releaseNotice(a: { domain: string; siteId?: string }): Pro
   }
 
   // The newest day could write no page even from the site's own facts, so the founder is told what would let it.
-  if (a.siteId !== undefined && (await newestDayReason(a.siteId))?.startsWith("generate:no_own_facts") === true) {
+  if (a.siteId !== undefined && siteLacksFacts(await newestDayReason(a.siteId))) {
     return { key: "setup.release.own-facts", vars: {}, parts: [] };
   }
 

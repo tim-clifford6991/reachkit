@@ -149,6 +149,10 @@ export const PUBLISH_COPY = Object.freeze({
     "enough facts about your business that speak to this page’s question",
     { slots: {}, fixedBy: "issue 1252 (drafted)" },
   ],
+  "publish.needs-you.pack.need.facts_few": [
+    "enough facts about what you sell and who you serve, from your site or your business profile",
+    { slots: {}, fixedBy: "issue 2482 (drafted)" },
+  ],
   "publish.needs-you.pack.need.outside_sources": [
     "public pages, such as the official guidance on this task, with facts to cite",
     { slots: {}, fixedBy: "issue 1486 (drafted)" },
