@@ -21,7 +21,11 @@ vi.mock("@/lib/egress/safe-fetch", () => ({
   safeFetch: async (url: string) => ({ ok: false, reason: "refused", url, status: null }),
 }));
 vi.mock("@/lib/generate/voice/confirmed", () => ({ confirmedForWriting: async () => ({ profile: null, factsOff: [] }), refusedPassages: async () => [] }));
-vi.mock("@/lib/measure/text", () => ({ readMeasuredText: async () => [] }));
+// The site's one measured page: a page with nothing to ground it on stops before its research is bought.
+vi.mock("@/lib/measure/text", async () => {
+  const { GROUNDED, SOURCE_TEXT } = await import("./fixtures");
+  return { readMeasuredText: async () => [{ url: GROUNDED.url, text: SOURCE_TEXT, measuredAt: GROUNDED.readAt }] };
+});
 vi.mock("@/lib/generate/pipeline/report-facts", () => ({ readReportPage: async () => null }));
 vi.mock("@/lib/publish/machine", () => ({ transition: transitionMock }));
 
