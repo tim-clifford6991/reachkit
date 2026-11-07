@@ -80,7 +80,6 @@ const TEXT = new Set([
 // dispatcher, the TODO(copy) marker, and a comment that cites an old
 // decisions file. A file named DECISIONS.md is still a finding.
 const DROPPED = [
-  "sdlc-factory",
   "master-approved",
   "REQUEST_NEXT",
   "rk-implementer",
