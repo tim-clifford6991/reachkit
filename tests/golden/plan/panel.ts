@@ -4,8 +4,8 @@
 // The source is the last stored panel run that holds the site
 // (`docs/walk/panel/<run>.json`, `sites[].topics`): query, status, type,
 // fit, volume and the stored `ready`. What a run does not store is fixed
-// here, the same for every site: a ready row is banded `winnable` (it passed
-// the right-sizing law), an unready one has no stored reason (`null`), an Improve
+// here, the same for every site: a row is banded from its stored volume at a
+// site that ranks for nothing (`demandBand`, as derive bands a cold start), an Improve
 // row is a thin page (no rule lifts it), no row has a source or a cluster,
 // and the rows were created in the order the run lists them. The profile is
 // read off the run's own market conclusion. A row's shape is what readiness
@@ -22,6 +22,7 @@ import { freshRead, type KindOfBusiness, type TopTenRead } from "@/lib/opportuni
 import { shapedEvidence } from "@/lib/opportunities/readiness";
 import { readOpportunity, type OpportunityRow } from "@/lib/opportunities/store";
 import { FAMILY_OF, type OpportunityType } from "@/lib/opportunities/types";
+import { demandBand } from "@/lib/opportunities/winnability/band";
 import type { SerpResult } from "@/lib/vendors/dataforseo/types";
 
 const PANEL = "docs/walk/panel";
@@ -170,7 +171,7 @@ export function rowOf(domain: string, topic: StoredTopic, n: number): Opportunit
     volume: topic.volume,
     evidence,
     acceptance: { form: "top20", query: topic.query },
-    fit_band: topic.ready ? "winnable" : null,
+    fit_band: topic.volume === null ? "winnable" : demandBand({ volume: topic.volume, ownRanked: 0 }),
     business_fit: topic.fit,
     effort: 0.5,
     status: topic.status,
