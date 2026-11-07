@@ -150,7 +150,7 @@ export const PUBLISH_COPY = Object.freeze({
     { slots: {}, fixedBy: "issue 1252 (drafted)" },
   ],
   "publish.needs-you.pack.need.facts_few": [
-    "enough facts about what you sell and who you serve, from your site or your business profile",
+    "more facts about what you sell and who you serve",
     { slots: {}, fixedBy: "issue 2482 (drafted)" },
   ],
   "publish.needs-you.pack.need.outside_sources": [
