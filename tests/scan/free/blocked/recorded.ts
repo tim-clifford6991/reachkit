@@ -10,7 +10,7 @@
 //
 // # Recording
 //
-//   RK_RECORD=1 RK_ENV_FILE=/root/projects/reachkitv3/.env.local \
+//   RK_RECORD=1 RK_ENV_FILE=/root/projects/reachkit/.env.local \
 //     RK_SPEND_LOG=/root/ops/reachkit/spend.jsonl \
 //     npx vitest run --project node tests/scan/free/blocked-site-market.test.ts
 //

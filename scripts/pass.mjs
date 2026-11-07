@@ -5,7 +5,7 @@
 // # Usage
 //
 //   npm run pass -- --site reachkit.app --replay d4bb3740
-//   npm run pass -- --site reachkit.app --replay d4bb3740 --live --cap-cents 30 --env-file ../../reachkitv3/.env.local
+//   npm run pass -- --site reachkit.app --replay d4bb3740 --live --cap-cents 30 --env-file ../../.env.local
 //   npm run pass -- --site reachkit.app --replay d4bb3740 --keep      # leave the local database up
 //
 // `--replay <scanId>` takes a pass exported to `scripts/pass/snapshot/` (its

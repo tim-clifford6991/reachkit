@@ -4,7 +4,7 @@
 //   node scripts/market-inference.mjs                 # dry run: the evidence, 0¢
 //   node scripts/market-inference.mjs --run           # infers, then rewrites
 //                                                     # docs/walk/market-inference.md
-//   node scripts/market-inference.mjs --run --env-file ../reachkitv3/.env.local
+//   node scripts/market-inference.mjs --run --env-file /root/projects/reachkit/.env.local
 //   node scripts/market-inference.mjs --run --only reachkit.app   # prints, writes nothing
 //
 // Reads the committed snapshots of `scripts/eval-content/snapshot/`, so it

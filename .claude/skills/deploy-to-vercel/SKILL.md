@@ -1,12 +1,16 @@
 ---
 name: deploy-to-vercel
-description: Deploy applications and websites to Vercel. Use when the user requests deployment actions like "deploy my app", "deploy and give me the link", "push this live", or "create a preview deployment".
+description: Deploy applications and websites to Vercel. On ReachKit, do not use this skill. rk-deployer ships main to dev and production. Do not run vercel deploy, git push to trigger a deploy, or the no-auth fallback.
 metadata:
   author: vercel
   version: "3.0.0"
 ---
 
 # Deploy to Vercel
+
+## ReachKit
+
+Do not deploy this repository. `rk-deployer` ships `main` to dev and to production. Do not run `vercel deploy`, `vercel deploy --prod`, `git push` to trigger a deploy, or either no-auth fallback script. This block wins over the steps below.
 
 Deploy any project to Vercel. **Always deploy as preview** (not production) unless the user explicitly asks for production.
 

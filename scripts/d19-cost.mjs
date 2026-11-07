@@ -22,7 +22,7 @@
 //
 //   node scripts/d19-cost.mjs                      # dry run: the prompts and
 //                                                  # the price-book estimate, 0¢
-//   node scripts/d19-cost.mjs --run --env-file ../../reachkitv3/.env.local
+//   node scripts/d19-cost.mjs --run --env-file ../../.env.local
 //   node scripts/d19-cost.mjs --run --max-spend 60 # cents; the default
 //   node scripts/d19-cost.mjs --report             # rewrite the doc from the
 //                                                  # stored run, 0¢

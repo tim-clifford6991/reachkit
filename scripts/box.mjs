@@ -3,8 +3,8 @@
 //
 // Default: print findings and exit 1 when any remain. It does not edit.
 // --clean removes only leftovers that are not a git worktree and not the
-// main checkout: an empty directory on the list, a loadgen folder whose
-// only content is a Next cache, and a closed-sessions spreadsheet.
+// main checkout: a loadgen folder whose only content is a Next cache, and
+// a closed-sessions spreadsheet.
 // A dirty worktree, a worktree with no pull request, and a worktree behind
 // its remote are reported and left in place.
 //
@@ -14,10 +14,9 @@ import { spawnSync } from "node:child_process";
 import { existsSync, lstatSync, readdirSync, rmSync, unlinkSync } from "node:fs";
 import path from "node:path";
 
-const MAIN = "/root/projects/reachkitv3";
-const WT = "/root/projects/reachkitv3-wt";
+const MAIN = "/root/projects/reachkit";
+const WT = "/root/projects/reachkit/.wt";
 const REPO = "tim-clifford6991/reachkit";
-const EMPTY_DIRS = ["/root/projects/reachkitv3-gates", "/root/projects/wt"];
 
 const clean = process.argv.includes("--clean");
 const findings = [];
@@ -90,11 +89,6 @@ function openPr(branch) {
   }
 }
 
-function emptyDir(dir) {
-  if (!existsSync(dir)) return false;
-  return readdirSync(dir).length === 0;
-}
-
 function onlyNextCache(dir) {
   if (!existsSync(dir)) return false;
   const names = readdirSync(dir);
@@ -163,21 +157,6 @@ function checkWorktrees(rows) {
   }
 }
 
-function checkEmpty() {
-  for (const dir of EMPTY_DIRS) {
-    if (!existsSync(dir)) continue;
-    if (!emptyDir(dir)) {
-      add(`${dir} is not an empty leftover`);
-      continue;
-    }
-    add(`empty directory ${dir}`);
-    if (clean) {
-      rmSync(dir, { recursive: true });
-      removed.push(dir);
-    }
-  }
-}
-
 if (!existsSync(MAIN)) {
   console.log("box: not the ReachKit box, nothing to check");
   process.exit(0);
@@ -186,7 +165,6 @@ if (!existsSync(MAIN)) {
 const rows = worktrees();
 checkMain(rows);
 checkWorktrees(rows);
-checkEmpty();
 
 const left = findings.filter((line) => !removed.some((pathRemoved) => line.includes(pathRemoved)));
 if (removed.length) {

@@ -41,7 +41,7 @@ import { pathToFileURL } from "node:url";
 import { readSpend } from "./spend-log.mjs";
 
 const DEFAULT_FILE = "/root/ops/reachkit/vendor-snapshots.jsonl";
-export const DEFAULT_ENV_FILE = "/root/projects/reachkitv3/.env.local";
+export const DEFAULT_ENV_FILE = "/root/projects/reachkit/.env.local";
 const KEYS = ["DATAFORSEO_LOGIN", "DATAFORSEO_PASSWORD", "ANTHROPIC_ADMIN_KEY", "SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"];
 const REQUEST_MS = 20_000;
 const DAY_MS = 24 * 60 * 60 * 1000;

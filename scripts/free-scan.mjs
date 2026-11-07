@@ -6,10 +6,10 @@
 //
 // # Usage
 //
-//   npm run free-scan -- --env-file ../../reachkitv3/.env.local --sites laynescafe.co.uk,flintplumb.com
-//   npm run free-scan -- --env-file ../../reachkitv3/.env.local --sites a.com --cap-cents 40
+//   npm run free-scan -- --env-file ../../.env.local --sites laynescafe.co.uk,flintplumb.com
+//   npm run free-scan -- --env-file ../../.env.local --sites a.com --cap-cents 40
 //   npm run free-scan -- --recheck --date 2026-10-15     # score a stored run again: 0¢, no database
-//   npm run free-scan -- --env-file ../../reachkitv3/.env.local --sites a.com --keep   # leave the local database up
+//   npm run free-scan -- --env-file ../../.env.local --sites a.com --keep   # leave the local database up
 //
 // It runs live, up to `--cap-cents` (default 100) for the whole run, and
 // writes each paid call to the box's spend log (D57). A site is started only
