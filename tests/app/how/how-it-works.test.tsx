@@ -208,6 +208,15 @@ describe("the week of pages", () => {
     );
   });
 
+  it("Your part's page is the day the week shows waiting, and that day's Stop is in the warning tone", () => {
+    const waiting = shown.plan.find((day) => day.state === "waiting")!;
+    expect(shown.partPage).toBe(waiting.title);
+    expect(text(section("you-do"))).toContain(waiting.title);
+    const day = parse(html).querySelectorAll("#pages ol > li").find((li) => li.text.includes(waiting.title))!;
+    const stop = day.querySelectorAll(".badge").find((b) => b.text.trim() === copy("how.week.stop"))!;
+    expect(stop.classList.contains("text-warning")).toBe(true);
+  });
+
   it("planned badges carry calendar", () => {
     const week = weekCard(parse(html), "pages", copy("how.week.planned"));
     const planned = shown.plan.filter((day) => day.kind !== "skip" && day.state === "planned");

@@ -1,5 +1,5 @@
 // How it works' four step cards, as board PubHowItWorks draws them: one head each, one line
-// per chip, and two to a row on a phone.
+// per chip, two to a row on a phone, and each question's chip on its first line.
 import { describe, expect, it } from "vitest";
 import { getBaseURL, withPage } from "./browser";
 import { settleForMeasurement, STILL } from "./no-overflow";
@@ -11,6 +11,8 @@ interface Head {
   stepTitleTops: number[];
   /** Each step card's left edge. */
   stepLefts: number[];
+  /** Each question row: how far its Picked or Skipped chip sits below the question's top. */
+  chipDrops: number[];
 }
 
 async function measure(width: number): Promise<Head> {
@@ -32,6 +34,10 @@ async function measure(width: number): Promise<Head> {
       }),
       stepTitleTops: [...document.querySelectorAll("#top ol a .card-body > :nth-child(2)")].map((t) => t.getBoundingClientRect().top),
       stepLefts: [...document.querySelectorAll("#top ol a.card")].map((a) => Math.round(a.getBoundingClientRect().left)),
+      chipDrops: [...document.querySelectorAll("#questions figure ul > li")].map((li) => {
+        const [question, chip] = [li.firstElementChild!, li.lastElementChild!];
+        return Math.round(chip.getBoundingClientRect().top - question.getBoundingClientRect().top);
+      }),
     }));
   });
 }
@@ -41,6 +47,12 @@ describe("how it works: the four steps", () => {
     const { stepLefts } = await measure(390);
     expect(stepLefts).toHaveLength(4);
     expect(new Set(stepLefts).size).toBe(2);
+  }, 120_000);
+
+  it("at 390px every question's chip stays on the question's first line", async () => {
+    const { chipDrops } = await measure(390);
+    expect(chipDrops.length).toBeGreaterThan(0);
+    for (const [i, drop] of chipDrops.entries()) expect(drop, `question ${i + 1}`).toBeLessThanOrEqual(8);
   }, 120_000);
 
   it("at 1280px every step chip holds its words on one line", async () => {

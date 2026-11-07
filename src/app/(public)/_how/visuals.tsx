@@ -189,8 +189,8 @@ export function QuestionList(e: Example): React.JSX.Element {
           {e.questions.map((q) => {
             const picked = q.reason !== "off";
             return (
-              <li key={q.search} className="flex min-w-0 flex-wrap items-start justify-between gap-2 py-2">
-                <span className={`flex min-w-0 flex-col ${picked ? "" : "text-base-content/70"}`}>
+              <li key={q.search} className="flex min-w-0 items-start justify-between gap-2 py-2">
+                <span className={`flex min-w-0 flex-1 flex-col ${picked ? "" : "text-base-content/70"}`}>
                   <Num phrase>{q.search}</Num>
                   <span className={SMALL}>{copy("how.pick.volume", { n: q.volume.toLocaleString("en-US") })}</span>
                   <span className="flex items-center gap-1 text-sm">
@@ -284,7 +284,7 @@ export function WeekCard(e: Example, foot: React.ReactNode): React.JSX.Element {
                         <Pencil size={12} strokeWidth={1.75} aria-hidden />
                         {copy("how.week.edit")}
                       </span>
-                      <span className="badge badge-ghost badge-sm gap-1">
+                      <span className="badge badge-ghost badge-sm text-warning gap-1">
                         <CircleStop size={12} strokeWidth={1.75} aria-hidden />
                         {copy("how.week.stop")}
                       </span>

@@ -216,7 +216,7 @@ const TIDYSLOT: Example = {
       "stopped gaining at place 18 for 3 weeks; this update adds what the pages above it cover",
     ],
   },
-  partPage: "Booking links for teams: what to look for",
+  partPage: "Round-robin booking, explained",
   report: {
     score: 31,
     mentioned: 0,
