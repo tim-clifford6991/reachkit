@@ -11,18 +11,35 @@
 // (#41) and §9's publishing (#45)). Keeping the assembly pure is what lets
 // every REQ-040 criterion be decided by a test with no database at all.
 import type { WorkStop } from "@/lib/presentation/stopped";
-import { resolveNoPublish, type NoPublishBecause, type NoPublishCauses } from "./nopublish";
+import { resolveNoPublish, type NoPublishCauses, type NoPublishReason } from "./nopublish";
 import { weeksMeasured, type MeasuredWeek, type WeekCount } from "./weeks";
 
 /** BUILD §4.3's two modes, named by the spec and never by a renderer. */
 export type PublishingMode = "autopilot";
 
-/** REQ-040 c3 and c4 as one closed union: either a time, or a reason there
- *  is none. There is no third arm and no `next?: Date` — an optional field
+/** The next page to go live on its own: when, and what it is called. */
+export interface NextPage {
+  at: Date;
+  title: string;
+}
+
+/** The next planned topic no page is written for yet: its site-local date (`YYYY-MM-DD`) and the search it targets. */
+export interface NextTopic {
+  on: string;
+  topic: string;
+}
+
+/** What happens next where no page is scheduled and nothing holds publishing back: the next planned topic, else the
+ *  Monday check, which always has a date. */
+export type Upcoming = ({ kind: "topic" } & NextTopic) | { kind: "monday-check"; on: Date };
+
+/** REQ-040 c3 and c4 as one closed union: the next page, or the reason there
+ *  is none, or what happens next. No `next?: Date` — an optional field
  *  would let a renderer read "no time" as "not loaded yet". */
 export type PublishingState =
-  | { mode: PublishingMode; next: Date }
-  | { mode: PublishingMode; next: null; because: NoPublishBecause };
+  | ({ mode: PublishingMode; next: Date } & Pick<NextPage, "title">)
+  | { mode: PublishingMode; next: null; because: NoPublishReason }
+  | { mode: PublishingMode; next: null; because: null; upcoming: Upcoming };
 
 /** SPEC §4 (2026-09-20, #908) — the *Waiting for you* card's whole subject:
  *  the page sitting in the customer's review, what it is called, and when it
@@ -89,10 +106,11 @@ export interface ShellFacts {
   /** §9's hosted blog, where it is live, as an address a browser can open;
    *  `null` otherwise. */
   blog: string | null;
-  /** The moment the next page goes live on its own — a page in review at
-   *  the time its customer was told, or one already past its window — or
-   *  `null` with the four causes stated (issue 1362). */
-  next: Date | null;
+  /** The next page to go live on its own — a page in review at the time its
+   *  customer was told, or one already past its window — or `null`. */
+  next: NextPage | null;
+  /** The next planned topic on a date no page is written for and no day was decided, or `null`. */
+  nextTopic: NextTopic | null;
   noPublishCauses: NoPublishCauses;
   /** BUILD §6.5 / §11's stop, read per account and per day by BP-001's
    *  adapter (the cap-hit ledger over `fetches`, the kill switch, the last
@@ -122,11 +140,9 @@ export function assembleShell(facts: ShellFacts): ShellModel {
   };
 }
 
-/** A scheduled time outranks every cause; with no time, the four causes are
- *  resolved by `NO_PUBLISH_PRECEDENCE` and never by whichever the caller
- *  tested first. A `null` next with no cause holding at all is
- *  `unexplained`, never a stop: the card says ReachKit stopped only where a
- *  stop is stored (SPEC §7, 2026-10-07, issue 1321). */
+/** A scheduled page outranks every cause but the stop; with none, the causes are
+ *  resolved by `NO_PUBLISH_PRECEDENCE`, and with no cause the card names the
+ *  next event, so it always says what happens next. */
 function publishingOf(facts: ShellFacts): PublishingState {
   // REQ-092 c7 first: while ReachKit has stopped its own work, no publish
   // is scheduled — a time carried over from before the stop would be a
@@ -135,8 +151,11 @@ function publishingOf(facts: ShellFacts): PublishingState {
   // adapter also set the boolean, and it outranks a `next` that is still on
   // the row (ADR-011).
   const stopped = facts.stopped !== null || facts.noPublishCauses.reachkit_stopped;
-  if (!stopped && facts.next !== null) return { mode: facts.mode, next: facts.next };
+  if (!stopped && facts.next !== null) return { mode: facts.mode, next: facts.next.at, title: facts.next.title };
   const causes: NoPublishCauses = { ...facts.noPublishCauses, reachkit_stopped: stopped };
-  const because = resolveNoPublish(causes) ?? "unexplained";
-  return { mode: facts.mode, next: null, because };
+  const because = resolveNoPublish(causes);
+  if (because !== undefined) return { mode: facts.mode, next: null, because };
+  const upcoming: Upcoming =
+    facts.nextTopic !== null ? { kind: "topic", ...facts.nextTopic } : { kind: "monday-check", on: facts.firstDueOn };
+  return { mode: facts.mode, next: null, because: null, upcoming };
 }

@@ -27,7 +27,8 @@ import { publishingStatement } from "./PublishingCard";
 import type { ShellModel } from "./model";
 
 export function TopBar(p: { shell: ShellModel }): React.JSX.Element {
-  const on = p.shell.publishing.next !== null;
+  // With no cause holding it back, publishing is on even while no page is scheduled yet.
+  const on = p.shell.publishing.next !== null || p.shell.publishing.because === null;
   const line = on ? copy("shell.publishing.state.autopilot") : publishingStatement(p.shell).line;
   return (
     <header

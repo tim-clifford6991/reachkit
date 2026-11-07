@@ -27,8 +27,6 @@ const NONE: NoPublishCauses = {
   reachkit_stopped: false,
   address_waiting: false,
   publishing_paused: false,
-  not_written: false,
-  nothing_planned: false,
 };
 
 const only = (...reasons: NoPublishReason[]): NoPublishCauses => ({
@@ -36,22 +34,16 @@ const only = (...reasons: NoPublishReason[]): NoPublishCauses => ({
   ...Object.fromEntries(reasons.map((r) => [r, true])),
 });
 
-describe("the four causes, and the order they are resolved in", () => {
-  it("the precedence is the four causes, stopped first, and nothing else", () => {
-    expect([...NO_PUBLISH_PRECEDENCE]).toEqual([
-      "reachkit_stopped",
-      "address_waiting",
-      "publishing_paused",
-      "not_written",
-      "nothing_planned",
-    ]);
+describe("the causes, and the order they are resolved in", () => {
+  it("the precedence is the three causes, stopped first, and nothing else", () => {
+    expect([...NO_PUBLISH_PRECEDENCE]).toEqual(["reachkit_stopped", "address_waiting", "publishing_paused"]);
   });
 
-  it.each(NO_PUBLISH_PRECEDENCE)("each of the four causes alone resolves to itself: %s", (reason) => {
+  it.each(NO_PUBLISH_PRECEDENCE)("each cause alone resolves to itself: %s", (reason) => {
     expect(resolveNoPublish(only(reason))).toBe(reason);
   });
 
-  it("no cause at all resolves to nothing — that state is a scheduled publish", () => {
+  it("no cause at all resolves to nothing — the card then names the next page or event", () => {
     expect(resolveNoPublish(NONE)).toBeUndefined();
   });
 });
@@ -63,12 +55,8 @@ describe("REQ-092 c7 — ReachKit's stop outranks every other cause that is also
     expect(reason).not.toBe("publishing_paused");
   });
 
-  it("all four true resolve to reachkit_stopped", () => {
-    expect(
-      resolveNoPublish(
-        only("reachkit_stopped", "publishing_paused", "not_written", "nothing_planned")
-      )
-    ).toBe("reachkit_stopped");
+  it("all true resolve to reachkit_stopped", () => {
+    expect(resolveNoPublish(only(...NO_PUBLISH_PRECEDENCE))).toBe("reachkit_stopped");
   });
 
   it("mutation: reversing the precedence breaks the (stopped ∧ paused) pair", () => {
@@ -78,9 +66,8 @@ describe("REQ-092 c7 — ReachKit's stop outranks every other cause that is also
     expect(resolveNoPublish(causes)).toBe("reachkit_stopped");
   });
 
-  it("the three lower causes still resolve among themselves in order", () => {
-    expect(resolveNoPublish(only("not_written", "nothing_planned"))).toBe("not_written");
-    expect(resolveNoPublish(only("publishing_paused", "nothing_planned"))).toBe("publishing_paused");
+  it("the lower causes still resolve among themselves in order", () => {
+    expect(resolveNoPublish(only("address_waiting", "publishing_paused"))).toBe("address_waiting");
   });
 });
 
@@ -88,9 +75,9 @@ describe("each cause has its own line, and the line is chosen in one place", () 
   // Issue #20: the key table moved into `nextPublishStatement`
   // (`src/lib/presentation/stopped/statement.ts`), REQ-092 c7's one home.
   // What the shell keeps is the translation from its own four-boolean
-  // vocabulary into that function's `otherwise` argument — three entries,
-  // because a stop is not an `otherwise`.
-  it("the three non-stop causes map one-to-one onto three distinct next-publish keys", () => {
+  // vocabulary into that function's `otherwise` argument — one entry per
+  // cause but the stop, because a stop is not an `otherwise`.
+  it("the non-stop causes map one-to-one onto distinct next-publish keys", () => {
     const keys = Object.values(NEXT_PUBLISH_OTHERWISE).map(
       (tag) => nextPublishStatement({ stopped: false, otherwise: { tag } }).key
     );
@@ -101,12 +88,7 @@ describe("each cause has its own line, and the line is chosen in one place", () 
 
   it("reachkit_stopped has no otherwise entry — it is passed as the stop itself", () => {
     expect(Object.keys(NEXT_PUBLISH_OTHERWISE)).not.toContain("reachkit_stopped");
-    // The three causes that are not the stop, and `unexplained` — no cause
-    // at all, which is its own line and never the stop's (issue 1321).
-    expect(Object.keys(NEXT_PUBLISH_OTHERWISE)).toHaveLength(NO_PUBLISH_PRECEDENCE.length);
-    expect(
-      nextPublishStatement({ stopped: false, otherwise: { tag: NEXT_PUBLISH_OTHERWISE.unexplained } }).key
-    ).toBe("next-publish.unexplained");
+    expect(Object.keys(NEXT_PUBLISH_OTHERWISE)).toHaveLength(NO_PUBLISH_PRECEDENCE.length - 1);
   });
 
   it("a stop resolves to next-publish.stopped — REQ-092 c7's own line", () => {

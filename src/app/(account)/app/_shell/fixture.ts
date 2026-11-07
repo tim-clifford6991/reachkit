@@ -54,7 +54,8 @@ export const FIXTURE_SHELL_FACTS: ShellFacts = Object.freeze({
   // The reserved fixture account publishes to a hosted blog on its own
   // reserved name, so the shortcut is drawn and goes nowhere real.
   blog: "https://blog.example.com",
-  next: new Date(Date.UTC(2026, 8, 8, 13, 0, 0)),
+  next: Object.freeze({ at: new Date(Date.UTC(2026, 8, 8, 13, 0, 0)), title: "How much does a bike service cost in 2026?" }),
+  nextTopic: null,
   // REQ-092 c3: the ordinary state is that ReachKit has not stopped, so
   // nothing states one. The stopped arm is exercised by
   // `tests/presentation/sweeps/stopped.test.tsx`, which renders every route
@@ -65,7 +66,5 @@ export const FIXTURE_SHELL_FACTS: ShellFacts = Object.freeze({
     reachkit_stopped: false,
     address_waiting: false,
     publishing_paused: false,
-    not_written: false,
-    nothing_planned: false,
   }),
 });

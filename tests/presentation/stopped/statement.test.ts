@@ -15,6 +15,7 @@ import {
   nextPublishStatement,
   stoppedWorkStatement,
   type NextPublishCause,
+  type NextPublishOtherwise,
   type WorkStop,
 } from "@/lib/presentation/stopped";
 
@@ -35,7 +36,15 @@ const BASE: WorkStop = {
   partial: false,
 };
 
-const OTHERWISE_CAUSES: NextPublishCause[] = ["paused", "being-written", "none-planned"];
+const OTHERWISE_CAUSES: NextPublishCause[] = ["paused", "address-waiting"];
+
+/** Every tag that carries values, each with values a stop must not leak. */
+const OTHERWISE_EVENTS: NextPublishOtherwise[] = [
+  { tag: "scheduled", at: "Tue 8 Sep, 09:00 EDT" },
+  { tag: "page", at: "Tue 8 Sep, 09:00 EDT", title: "Bike service cost" },
+  { tag: "topic", on: "Wed 9 Sep", topic: "bike service cost" },
+  { tag: "monday-check", on: "Mon 14 Sep" },
+];
 
 describe("REQ-092 c1 — what the customer reads is that ReachKit did not do the work", () => {
   it("the statement's first line is the stopped-work line, never the exhausted-supply one", () => {
@@ -130,12 +139,7 @@ describe("REQ-092 c7 / ADR-011 point 5 — a stop ignores every other cause", ()
     const lines = new Set(
       OTHERWISE_CAUSES.map((tag) => nextPublishStatement({ stopped: true, otherwise: { tag } }).line)
     );
-    lines.add(
-      nextPublishStatement({
-        stopped: true,
-        otherwise: { tag: "scheduled", at: "Tue 8 Sep, 09:00 EDT" },
-      }).line
-    );
+    for (const otherwise of OTHERWISE_EVENTS) lines.add(nextPublishStatement({ stopped: true, otherwise }).line);
     expect(lines.size).toBe(1);
     expect([...lines][0]).toBe(COPY["next-publish.stopped"]);
   });
@@ -173,11 +177,16 @@ describe("REQ-040 c4 — with no stop, the line comes from otherwise alone", () 
     expect(statement.line).toContain(at);
   });
 
-  it("the four otherwise tags reach four distinct keys", () => {
-    const keys = [...OTHERWISE_CAUSES.map((tag) => ({ tag }) as const), { tag: "scheduled", at: "x" } as const].map(
+  it("every otherwise tag reaches its own key", () => {
+    const keys = [...OTHERWISE_CAUSES.map((tag) => ({ tag }) as const), ...OTHERWISE_EVENTS].map(
       (otherwise) => nextPublishStatement({ stopped: false, otherwise }).key
     );
-    expect(new Set(keys).size).toBe(4);
+    expect(new Set(keys).size).toBe(OTHERWISE_CAUSES.length + OTHERWISE_EVENTS.length);
+  });
+
+  it.each(OTHERWISE_EVENTS)("$tag carries every value it names into the line", (otherwise) => {
+    const { line } = nextPublishStatement({ stopped: false, otherwise });
+    for (const [name, value] of Object.entries(otherwise)) if (name !== "tag") expect(line).toContain(value);
   });
 });
 
@@ -230,10 +239,10 @@ describe("the module writes no sentence, and does not vary with who is reading",
       const isTag = [
         "address-waiting",
         "paused",
-        "being-written",
-        "none-planned",
-        "unexplained",
         "scheduled",
+        "page",
+        "topic",
+        "monday-check",
         "action",
         "reachkit-stopped",
         "on",
