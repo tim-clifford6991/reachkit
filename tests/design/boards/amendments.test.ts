@@ -22,9 +22,6 @@ const BOOK_OPEN = 'd="M12 5v16"';
 const FLAME = "M8.5 14.5A2.5";
 const MESSAGE_CIRCLE_WARNING = 'd="M2.992 16.342';
 const LOADER = "M21 12a9 9 0 1 1-6.219-8.56";
-const GLANCE = [
-  "PubHowItWorks",
-];
 
 /** A row of squares: an element whose children are all empty spans, `min` or more. */
 function squareRows(root: HTMLElement, min: number): HTMLElement[] {
@@ -81,14 +78,6 @@ describe("rows of squares are bars (E18, E20–E25)", () => {
     expect(squareRows(root.querySelector("#holds summary")!, 2)).toEqual([]);
   });
 
-  it("the glance's AI row is one bar and its 14-square row is gone (E22)", () => {
-    for (const name of GLANCE) {
-      const glance = board(name).querySelector('figure[aria-label="Your free report, at a glance"]')!;
-      expect(glance.querySelectorAll(".track"), name).toHaveLength(1);
-      expect(squareRows(glance, 2), name).toEqual([]);
-    }
-  });
-
   it("the AI linked tile on AppAI is one bar, not 12 squares (E20, E23); Main's v36 board has no AI tile", () => {
     expect(raw("Main")).not.toContain("width: 22px; height: 22px");
     for (const name of ["AppAI"]) {
@@ -119,14 +108,14 @@ describe("rows of squares are bars (E18, E20–E25)", () => {
 });
 
 describe("How it works states the pages it read as text (E36)", () => {
-  it("the research card draws no bar strip, and 38 pages read stays", () => {
+  it("the research card draws no bar strip, and the pages read stay", () => {
     const research = board("PubHowItWorks").querySelector("#research")!;
     const bars = research.querySelectorAll("*").filter((el) => {
       const kids = el.childNodes.filter((n): n is HTMLElement => n.nodeType === 1);
       return kids.filter((k) => (k.getAttribute("style") ?? "").includes("width: 7px; height: 11px")).length >= 3;
     });
     expect(bars).toEqual([]);
-    expect(research.text).toContain("38 pages read");
+    expect(research.text).toContain("54 pages read");
   });
 });
 
@@ -168,7 +157,7 @@ describe("icons are structural only (E26, E27, E29)", () => {
     expect(legal.querySelectorAll(".tile")).toHaveLength(4);
   });
 
-  it("Edit this page draws Pencil, Your business draws Building2, the Maps note draws MapPin", () => {
+  it("Edit this page draws Pencil and Your business draws Building2", () => {
     for (const name of ["AppDraft", "PageDetail"]) {
       const edit = board(name).querySelectorAll("button").find((b) => b.text.trim() === "Edit this page")!;
       expect(edit.innerHTML, name).toContain(PENCIL);
@@ -177,8 +166,6 @@ describe("icons are structural only (E26, E27, E29)", () => {
     // The landing's Shops chip is the gallery's Store; your business stays Building2.
     for (const name of ["PubLanding", "PubLandingPhone"]) expect(raw(name), name).toContain(BUILDING_2);
     for (const name of ["PubLanding", "PubLandingPhone", "PubHowItWorks"]) expect(raw(name), name).not.toContain(MAP);
-    const note = board("PubHowItWorks").querySelectorAll("*").filter((el) => el.text.includes("Searches with a map show") && el.querySelector("svg")).at(-1)!;
-    expect(note.innerHTML).toContain(MAP_PIN);
   });
 
   it("HostedIndex's compact block draws MapPin before Serves, as the full block does (E10, H1)", () => {

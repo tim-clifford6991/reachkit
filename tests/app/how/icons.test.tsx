@@ -2,8 +2,8 @@
 // tests/app/how/icons.test.tsx
 //
 // `/how-it-works` draws the board's lucide icons in each section, in order,
-// with Sparkles for AI and no icon on a FAQ question. The plumber arm is what
-// the page renders; the software arm is drawn alongside and must use the same
+// with Sparkles for AI and no icon on a FAQ question. The software example is
+// what the page renders; the plumber is drawn alongside and must use the same
 // icons.
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -42,29 +42,16 @@ function figure(id: string, phrase: string): Element {
 
 const each = (n: number, names: readonly string[]): string[] => Array.from({ length: n }, () => names).flat();
 
-/** The software arm draws the same icons as the plumber's. */
+/** Either example draws the same icons. */
 function sameIconsBothArms(draw: (e: (typeof EXAMPLES)["plumber"]) => React.JSX.Element): void {
   const drawn = (e: (typeof EXAMPLES)["plumber"]): string[] =>
     [...new Set(icons(dom(renderToStaticMarkup(draw(e))).body))].sort();
   expect(drawn(EXAMPLES.software)).toEqual(drawn(EXAMPLES.plumber));
 }
 
-const plumber = EXAMPLES.plumber;
+const shown = EXAMPLES.software;
 
 describe("how it works draws its board icons in every section", () => {
-  it("the two weeks: a tile per job and per page, a day off with a coffee", () => {
-    const jobs = plumber.jobs.length - 1;
-    expect(icons(figure("top", plumber.jobs[0]!))).toEqual([
-      "user",
-      ...each(jobs, ["wrench"]),
-      "coffee",
-      "sparkles",
-      "search",
-      ...each(plumber.live.length, ["file-text", "circle-check"]),
-    ]);
-    sameIconsBothArms(visuals.TwoWeeks);
-  });
-
   it("the four steps: your business, the questions, the pages, the results", () => {
     const steps = [...within("#top").querySelectorAll("ol > li > a[href^='#']")];
     expect(steps.map((step) => icons(step)[0])).toEqual(["building-2", "message-square", "file-text", "trending-up"]);
@@ -77,9 +64,8 @@ describe("how it works draws its board icons in every section", () => {
       "circle-x",
       "sparkles",
       "sparkles",
-      ...each(plumber.mentioned.length, ["link"]),
+      ...each(shown.mentioned.length, ["link"]),
       "circle-x",
-      "users",
     ]);
     sameIconsBothArms(visuals.WhoGetsThem);
   });
@@ -87,26 +73,15 @@ describe("how it works draws its board icons in every section", () => {
   it("the question list: a note on each pick, a ban on the one not asked", () => {
     expect(icons(within("#questions figure"))).toEqual([
       "message-square",
-      ...plumber.questions.flatMap((q) => (q.reason === "off" ? ["ban", "x"] : ["info", "check"])),
+      ...shown.questions.flatMap((q) => (q.reason === "off" ? ["ban", "x"] : ["info", "check"])),
     ]);
     sameIconsBothArms(visuals.QuestionList);
   });
 
   it("true to your business: a locked address, a link per source, the checks shielded", () => {
-    const sources = plumber.page.paragraphs.flat().filter((part) => part.source !== null).length;
+    const sources = shown.page.paragraphs.flat().filter((part) => part.source !== null).length;
     expect(icons(within("#true figure"))).toEqual(["lock", ...each(sources, ["link"]), "ban", "shield-check"]);
     sameIconsBothArms(visuals.PageWithSources);
-  });
-
-  it("the week-1 goal: the trend, Google, the AI answer and its link", () => {
-    expect(icons(figure("found", plumber.goal.search))).toEqual([
-      "trending-up",
-      "search",
-      "circle-check",
-      "sparkles",
-      "link",
-    ]);
-    sameIconsBothArms(visuals.WhatWeWorkToward);
   });
 
   it("your part: a timer, the line, then edit and stop; the WordPress plug is switched off", () => {
@@ -114,16 +89,16 @@ describe("how it works draws its board icons in every section", () => {
     sameIconsBothArms(visuals.YourPart);
   });
 
-  it("#research: Globe, a turned arrow per source, Pencil on the fix, Zap / List / Clock on what holds you back", () => {
-    const read = figure("research", plumber.business);
-    expect(icons(read)).toEqual(["globe", ...each(5, ["arrow-right"]), "pencil", "zap", "list", "clock"]);
+  it("#research: Globe, a turned arrow per source and Pencil on the fix", () => {
+    const read = figure("research", shown.business);
+    expect(icons(read)).toEqual(["globe", ...each(6, ["arrow-right"]), "pencil"]);
     for (const arrow of read.querySelectorAll("svg.lucide-arrow-right")) expect(arrow.classList).toContain("rotate-180");
     expect(read.querySelector("svg.lucide-bot")).toBeNull();
     sameIconsBothArms(visuals.AsWeRead);
   });
 
   it("#research: the source arrows are muted below their line, and the fix badge pins top right of the facts on a wide card only", () => {
-    const read = figure("research", plumber.business);
+    const read = figure("research", shown.business);
     for (const arrow of read.querySelectorAll("svg.lucide-arrow-right")) expect(arrow.classList).toContain("text-base-content/50");
     const badge = read.querySelector("svg.lucide-pencil")?.closest(".badge");
     expect(badge?.textContent).toBe(copy("how.read.fix"));
@@ -151,9 +126,7 @@ describe("how it works keeps one icon per concept", () => {
   it("how it works draws sparkles for AI, never bot", () => {
     expect(icons(page.body)).toContain("sparkles");
     expect(icons(page.body)).not.toContain("bot");
-    for (const draw of [visuals.WhoGetsThem, visuals.WhatWeWorkToward]) {
-      expect(icons(dom(renderToStaticMarkup(draw(EXAMPLES.software))).body)).not.toContain("bot");
-    }
+    expect(icons(dom(renderToStaticMarkup(visuals.WhoGetsThem(EXAMPLES.plumber))).body)).not.toContain("bot");
   });
 
   it("the FAQ summaries carry no icon", () => {

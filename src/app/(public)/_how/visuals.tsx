@@ -11,16 +11,12 @@ import {
   CircleStop,
   CircleX,
   Clock,
-  Coffee,
   Eye,
   FileText,
   Globe,
-  Inbox,
   Info,
   Link,
-  List,
   Lock,
-  MapPin,
   MessageSquare,
   Pencil,
   Plug,
@@ -30,11 +26,7 @@ import {
   Sparkles,
   Timer,
   TrendingUp,
-  User,
-  Users,
-  Wrench,
   X,
-  Zap,
   type LucideIcon,
 } from "lucide-react";
 import { WORDPRESS_CONNECT } from "@/lib/config/constants";
@@ -43,17 +35,15 @@ import { HARD_RULES } from "@/lib/generate/rules/types";
 import { PageSketch } from "@/ui/PageSketch";
 import { Num } from "../scan/[domain]/_address/measured";
 import { HOW_FACTS } from "./facts";
-import { LIVE_AT, REASON_COPY, weekDate, weekDays, weekSpan, type Example } from "./specimen";
+import { KIND_WORD } from "../scans/kinds";
+import { LIVE_AT, REASON_COPY, weekDays, weekSpan, type Example } from "./specimen";
 
 export const ICON = { size: 16, strokeWidth: 1.75, "aria-hidden": true } as const;
 export const CARD = "card card-border bg-base-100 min-w-0";
 const SMALL = "text-base-content/70 text-xs";
 const LABEL = "text-primary text-xs font-semibold";
 const WELL = "rounded-box bg-base-200 flex min-w-0 flex-col gap-1 p-3";
-const TILE = "rounded-field bg-base-200 grid size-7 shrink-0 place-items-center";
 const SMALL_ICON = { size: 12, strokeWidth: 1.75, "aria-hidden": true } as const;
-/** Both example weeks rest on their last day. */
-const DAY_OFF = 6;
 /** A score's ring as the free report draws it, sized by the caller with `[--size:…]`. */
 export const RING_TRACK = "radial-progress after:hidden shadow-[inset_0_0_0_5px_var(--color-base-200)] [--thickness:5px]";
 export const SCORE_RING = `${RING_TRACK} text-primary`;
@@ -70,71 +60,11 @@ function LiveBadge(p: { at?: string; className?: string }): React.JSX.Element {
   );
 }
 
-/** The head: the owner's week beside ReachKit's. Its headings are divs: daisyUI grows a `p` in `.card-body`. */
-export function TwoWeeks(e: Example): React.JSX.Element {
-  const days = weekDays();
-  return (
-    <figure className={CARD}>
-      <div className="card-body gap-4">
-        <p className={LABEL}>{copy("how.top.visual")}</p>
-        <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-[2fr_3fr]">
-          <div className="flex min-w-0 flex-col gap-2">
-            <div className="flex flex-col">
-              <span className="flex items-center gap-2 text-base font-semibold">
-                <User {...ICON} />
-                {copy("how.top.yours")}
-              </span>
-              <span className={SMALL}>{copy("how.top.yours.line", { business: e.business })}</span>
-            </div>
-            <ol className="flex flex-col gap-1">
-              {e.jobs.map((job, i) => (
-                <li key={days[i]} className="flex min-w-0 items-center gap-2 text-sm">
-                  <span className="num text-base-content/70 w-14 shrink-0">{days[i]}</span>
-                  <span className={TILE}>{i === DAY_OFF ? <Coffee {...SMALL_ICON} /> : <Wrench {...SMALL_ICON} />}</span>
-                  <span className="min-w-0">{job}</span>
-                </li>
-              ))}
-            </ol>
-          </div>
-          <div className="flex min-w-0 flex-col gap-2">
-            <div className="flex flex-col">
-              <span className="flex items-center gap-2 text-base font-semibold">
-                <Sparkles {...ICON} />
-                {copy("how.top.ours")}
-              </span>
-              <span className={SMALL}>{copy("how.top.ours.line", { business: e.business })}</span>
-            </div>
-            <ol className="flex flex-col gap-1">
-              <li className="flex min-w-0 items-center gap-2 text-sm">
-                <span className="num text-base-content/70 w-14 shrink-0">{days[0]}</span>
-                <span className={TILE}>
-                  <Search {...SMALL_ICON} />
-                </span>
-                <span className="min-w-0">{copy("how.top.monday", { buyers: e.buyers })}</span>
-              </li>
-              {e.live.map((title, i) => (
-                <li key={title} className="grid min-w-0 grid-cols-[auto_auto_minmax(0,1fr)_auto] items-start gap-2 text-sm sm:grid-cols-[auto_auto_minmax(0,1fr)] xl:grid-cols-[auto_auto_minmax(0,1fr)_auto]">
-                  <span className="num text-base-content/70 w-14 shrink-0">{days[i + 1]}</span>
-                  <span className={TILE}>
-                    <FileText {...SMALL_ICON} />
-                  </span>
-                  <span className="min-w-0">{title}</span>
-                  <LiveBadge className="sm:col-start-3 sm:justify-self-end xl:col-start-auto" />
-                </li>
-              ))}
-            </ol>
-          </div>
-        </div>
-        <p className="text-sm font-semibold">{copy("how.top.split", { minutes: HOW_FACTS.setupMinutes })}</p>
-      </div>
-    </figure>
-  );
-}
-
 /** `#research`: the business, as ReachKit read it. */
 export function AsWeRead(e: Example): React.JSX.Element {
   const rows = [
     ["how.read.name", e.business, copy("how.read.from", { source: e.site })],
+    ["gallery.filter.label", copy(KIND_WORD[e.read.kind]), copy("how.read.whole")],
     ["how.read.sell", e.read.sell[0], copy("how.read.from", { source: `${e.site}${e.read.sell[1]}` })],
     ["how.read.buyers", e.read.buyers[0], copy("how.read.from", { source: `${e.site}${e.read.buyers[1]}` })],
     ["how.read.where", e.read.where[0], copy("how.read.from", { source: `${e.site}${e.read.where[1]}` })],
@@ -173,26 +103,6 @@ export function AsWeRead(e: Example): React.JSX.Element {
             <Pencil {...SMALL_ICON} />
             {copy("how.read.fix")}
           </span>
-        </div>
-        <div className={WELL}>
-          <p className="text-sm font-semibold">{copy("how.read.held")}</p>
-          <ul className="flex flex-col gap-1 text-sm">
-            <li className="flex flex-wrap items-center gap-2">
-              <Zap {...ICON} className="text-warning shrink-0" />
-              <span className="min-w-0 flex-1">{copy("how.read.held.ai")}</span>
-              <span className="badge badge-soft badge-primary badge-sm">{copy("how.read.held.free", { minutes: HOW_FACTS.fixMinutes })}</span>
-            </li>
-            <li className="flex flex-wrap items-center gap-2">
-              <List {...ICON} className="text-warning shrink-0" />
-              <span className="min-w-0 flex-1">{copy("how.read.held.list")}</span>
-              <span className="badge badge-soft badge-primary badge-sm">{copy("how.read.held.free", { minutes: HOW_FACTS.fixMinutes })}</span>
-            </li>
-            <li className="flex flex-wrap items-center gap-2">
-              <Clock {...ICON} className="text-base-content/70 shrink-0" />
-              <span className="min-w-0 flex-1">{copy("how.read.held.slow", { count: e.slowPages })}</span>
-              <span className="badge badge-ghost badge-sm">{copy("how.read.held.report")}</span>
-            </li>
-          </ul>
         </div>
       </div>
     </figure>
@@ -262,25 +172,6 @@ export function WhoGetsThem(e: Example): React.JSX.Element {
           <p className={SMALL}>{copy("how.rivals.tally", { n: e.tally.n, total: e.tally.total })}</p>
         </div>
       </div>
-      <div className={`${CARD} md:col-span-2`}>
-        <div className="card-body gap-3">
-          <p className="flex items-center gap-2 text-sm font-semibold">
-            <Users {...ICON} />
-            {copy("how.rivals.list.title")}
-          </p>
-          <ul className="flex flex-wrap gap-1">
-            {e.watched.map((name) => (
-              <li key={name} className="badge badge-ghost badge-sm">
-                {name}
-              </li>
-            ))}
-            <li className="badge badge-soft badge-primary badge-sm">
-              {copy("how.rivals.list.more", { n: HOW_FACTS.rivals - e.watched.length })}
-            </li>
-          </ul>
-          <p className={SMALL}>{copy("how.rivals.list.caption")}</p>
-        </div>
-      </div>
     </figure>
   );
 }
@@ -294,13 +185,12 @@ export function QuestionList(e: Example): React.JSX.Element {
           <MessageSquare {...ICON} />
           {copy("how.pick.list", { buyers: e.buyers })}
         </p>
-        <p className={SMALL}>{copy("how.pick.keep")}</p>
         <ul className="divide-base-300 flex flex-col divide-y">
           {e.questions.map((q) => {
             const picked = q.reason !== "off";
             return (
-              <li key={q.search} className="flex min-w-0 flex-wrap items-start justify-between gap-2 py-2">
-                <span className={`flex min-w-0 flex-col ${picked ? "" : "text-base-content/70"}`}>
+              <li key={q.search} className="flex min-w-0 items-start justify-between gap-2 py-2">
+                <span className={`flex min-w-0 flex-1 flex-col ${picked ? "" : "text-base-content/70"}`}>
                   <Num phrase>{q.search}</Num>
                   <span className={SMALL}>{copy("how.pick.volume", { n: q.volume.toLocaleString("en-US") })}</span>
                   <span className="flex items-center gap-1 text-sm">
@@ -323,10 +213,6 @@ export function QuestionList(e: Example): React.JSX.Element {
             );
           })}
         </ul>
-        <a href="#pages" className="link link-primary text-sm">
-          {copy("how.pick.caption")}
-        </a>
-        <p className={SMALL}>{copy("how.pick.real")}</p>
       </div>
     </figure>
   );
@@ -345,7 +231,6 @@ export function WeekOfPages(e: Example): React.JSX.Element {
         </div>
         <p className="border-base-300 border-t px-4 py-3 text-sm">{copy("how.week.address")}</p>
       </div>
-      <p className={SMALL}>{copy("how.week.caption", { week: e.mail.week })}</p>
     </>
   );
 }
@@ -360,10 +245,6 @@ export function WeekCard(e: Example, foot: React.ReactNode): React.JSX.Element {
           <span className={LABEL}>{copy("how.week.name", { business: e.business })}</span>
           <span className={`num ${SMALL}`}>{weekSpan().range}</span>
           <span className="badge badge-soft badge-success badge-sm">{copy("how.week.auto")}</span>
-          <span className={`${SMALL} flex items-center gap-1`}>
-            <Search size={12} strokeWidth={1.75} aria-hidden />
-            {copy("how.week.monday")}
-          </span>
         </p>
         <ol className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
           {e.plan.map((day, i) =>
@@ -385,7 +266,6 @@ export function WeekCard(e: Example, foot: React.ReactNode): React.JSX.Element {
                   {copy(day.kind === "new" ? "how.week.new" : "how.week.update")}
                 </span>
                 <span className="text-sm font-semibold">{day.title}</span>
-                <span className={SMALL}>{day.reason}</span>
                 <span className="mt-auto flex flex-wrap items-center gap-1">
                   {day.state === "live" ? <LiveBadge at={LIVE_AT} /> : null}
                   {day.state === "planned" ? (
@@ -404,7 +284,7 @@ export function WeekCard(e: Example, foot: React.ReactNode): React.JSX.Element {
                         <Pencil size={12} strokeWidth={1.75} aria-hidden />
                         {copy("how.week.edit")}
                       </span>
-                      <span className="badge badge-ghost badge-sm gap-1">
+                      <span className="badge badge-ghost badge-sm text-warning gap-1">
                         <CircleStop size={12} strokeWidth={1.75} aria-hidden />
                         {copy("how.week.stop")}
                       </span>
@@ -415,24 +295,6 @@ export function WeekCard(e: Example, foot: React.ReactNode): React.JSX.Element {
             )
           )}
         </ol>
-        <p className={`${SMALL} flex flex-wrap gap-x-4 gap-y-1`}>
-          <span className="flex items-center gap-1">
-            <CircleCheck size={12} strokeWidth={1.75} aria-hidden className="text-success" />
-            {copy("how.week.legend.live")}
-          </span>
-          <span className="flex items-center gap-1">
-            <Clock size={12} strokeWidth={1.75} aria-hidden className="text-primary" />
-            {copy("how.week.legend.emailed")}
-          </span>
-          <span className="flex items-center gap-1">
-            <Calendar size={12} strokeWidth={1.75} aria-hidden />
-            {copy("how.week.planned")}
-          </span>
-          <span className="flex items-center gap-1">
-            <RefreshCw size={12} strokeWidth={1.75} aria-hidden />
-            {copy("how.week.legend.update")}
-          </span>
-        </p>
         {foot}
       </div>
     </figure>
@@ -486,119 +348,6 @@ export function PageWithSources(e: Example): React.JSX.Element {
   );
 }
 
-/** `#found`, and the landing's step 3 without the linked count its board omits: the Monday email, framed as a phone. */
-export function MondayEmail(e: Example, show: { linked: boolean } = { linked: true }): React.JSX.Element {
-  const days = weekDays().map((day) => day.split(" ")[0] ?? day);
-  const rows = e.plan.slice(0, 2).map((page, i) => ({
-    page,
-    head:
-      i === 0
-        ? copy("how.mail.row.new", { day: days[0] ?? "", time: LIVE_AT })
-        : copy("how.mail.row.update", { day: days[1] ?? "", date: weekDate(1), time: LIVE_AT }),
-    why: copy("how.mail.why", { why: e.mail.why[i] ?? "" }),
-  }));
-  return (
-    <figure className="flex min-w-0 flex-col items-center gap-2">
-      <div className="mockup-phone border-base-300 max-w-72">
-        <div className="mockup-phone-camera" />
-        {/* It scrolls, so a keyboard can reach it. */}
-        <div
-          role="region"
-          aria-label={copy("how.mail.caption")}
-          tabIndex={0}
-          className="mockup-phone-display bg-base-100 flex flex-col gap-3 overflow-y-auto px-4 pt-12 pb-6 text-sm"
-        >
-          <p className={SMALL}>{copy("landing.mail.inbox")}</p>
-          <p className="flex items-center gap-1 font-semibold">
-            <Inbox {...ICON} />
-            {copy("how.mail.subject")}
-          </p>
-          <p>{copy("how.mail.hi", { name: e.mail.name, week: e.mail.week, business: e.business })}</p>
-          <p className="rounded-box bg-success/10 flex items-start gap-2 p-2 text-xs">
-            <CircleCheck {...ICON} className="text-success shrink-0" />
-            {copy("how.mail.calm", { time: LIVE_AT })}
-          </p>
-          <ul className="flex flex-col gap-1 font-semibold">
-            <li>{copy("how.mail.live", { n: e.mail.live })}</li>
-            <li>{copy("how.mail.planned", { n: e.mail.planned })}</li>
-            {show.linked ? <li>{copy("how.mail.linked", { n: e.mail.linked, total: e.mail.live })}</li> : null}
-          </ul>
-          <p className={LABEL}>{copy("how.mail.pages")}</p>
-          {rows.map((row) => (
-            <p key={row.page.title} className={WELL}>
-              <span className={SMALL}>{row.head}</span>
-              <span className="text-xs font-semibold">{row.page.title}</span>
-              <span className={SMALL}>{row.why}</span>
-              <span className="text-primary text-xs font-semibold">
-                {`${copy("overview.waiting.stop")} · ${copy("how.week.edit")}`}
-              </span>
-            </p>
-          ))}
-        </div>
-      </div>
-      <figcaption className={SMALL}>{copy("how.mail.caption")}</figcaption>
-    </figure>
-  );
-}
-
-/** `#found`: what the work aims at, drawn as an example and never as a result. */
-export function WhatWeWorkToward(e: Example): React.JSX.Element {
-  return (
-    <figure className={CARD}>
-      <div className="card-body gap-3">
-        <p className="flex flex-wrap items-center justify-between gap-2">
-          <span className="flex items-center gap-2 text-base font-semibold">
-            <TrendingUp {...ICON} />
-            {copy("how.goal.title")}
-          </span>
-          <span className="badge badge-ghost badge-sm">{copy("how.goal.badge")}</span>
-        </p>
-        <p className={`${LABEL} flex items-center gap-1`}>
-          <Search {...ICON} />
-          {copy("how.goal.google", { search: e.goal.search })}
-        </p>
-        <ol className="flex flex-col gap-2">
-          <li className="rounded-box border-primary flex min-w-0 items-start gap-2 border p-2">
-            <span className="badge badge-primary badge-sm shrink-0">{e.business.charAt(0)}</span>
-            <span className="flex min-w-0 flex-col">
-              <span className="text-sm font-semibold">{e.business}</span>
-              <span className="text-base-content/70 font-mono text-xs break-all">{`https://${e.blog}`}</span>
-              <span className="badge badge-soft badge-success badge-sm">{copy("how.goal.yours")}</span>
-              <span className="text-primary text-sm">{e.page.title}</span>
-            </span>
-          </li>
-          <li className="flex min-w-0 items-start gap-2 p-2">
-            <span className="badge badge-ghost badge-sm shrink-0">{e.goal.below.name.charAt(0)}</span>
-            <span className="flex min-w-0 flex-col">
-              <span className="text-sm font-semibold">{e.goal.below.name}</span>
-              <span className="text-base-content/70 font-mono text-xs break-all">{`https://${e.goal.below.url}`}</span>
-              <span className="text-primary text-sm">{e.goal.below.title}</span>
-            </span>
-          </li>
-        </ol>
-        <p className="text-success flex items-center gap-1 text-sm font-semibold">
-          <CircleCheck {...ICON} />
-          {copy("how.goal.first")}
-        </p>
-        <p className="rounded-box border-base-300 flex flex-col gap-1 border p-3 text-sm">
-          <span className={`${LABEL} flex items-center gap-1`}>
-            <Sparkles {...ICON} />
-            {copy("how.rivals.ai")}
-          </span>
-          <span>{e.question}</span>
-          <span>{e.goal.answer}</span>
-          <span className="badge badge-ghost badge-sm gap-1">
-            <Link {...SMALL_ICON} />
-            <Num>{e.blog}</Num>
-          </span>
-          <span className="text-success font-semibold">{copy("how.goal.linked")}</span>
-        </p>
-        <figcaption className={SMALL}>{copy("how.goal.caption", { business: e.business })}</figcaption>
-      </div>
-    </figure>
-  );
-}
-
 const WHEN = [
   ["first", Calendar],
   ["found", Search],
@@ -626,10 +375,7 @@ export function WhatToExpect(): React.JSX.Element {
   return (
     <div className={CARD}>
       <div className="card-body gap-3">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h3 className="text-base font-semibold">{copy("how.when.title")}</h3>
-          <span className={SMALL}>{copy("how.when.sub")}</span>
-        </div>
+        <h3 className="text-base font-semibold">{copy("how.when.title")}</h3>
         <ul className="timeline timeline-vertical timeline-compact min-w-0">
           {steps.map((step, i) => (
             <li key={step.at}>
@@ -645,14 +391,6 @@ export function WhatToExpect(): React.JSX.Element {
             </li>
           ))}
         </ul>
-        <p className="flex items-start gap-2 text-sm font-semibold">
-          <Info {...ICON} className="mt-0.5 shrink-0" />
-          {copy("how.when.promise")}
-        </p>
-        <p className={`${SMALL} flex items-start gap-2`}>
-          <MapPin {...ICON} className="shrink-0" />
-          {copy("how.when.maps")}
-        </p>
       </div>
     </div>
   );

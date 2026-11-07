@@ -134,7 +134,7 @@ describe("the board's cuts (canvas v36)", () => {
     expect(close.querySelector('[data-testid="learn-loop"]')).toBeNull();
     expect(close.querySelector("#start figure")).toBeNull();
     expect(close.querySelector("#start .stat")).toBeNull();
-    expect(text).not.toContain(copy("how.start.body"));
+    expect(text).not.toContain("see who gets your buyers and what to fix");
     expect(text).not.toContain(copy("about.how"));
   });
 });
