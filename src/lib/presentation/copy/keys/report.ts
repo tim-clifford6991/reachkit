@@ -542,10 +542,7 @@ export const REPORT_COPY = Object.freeze({
     "No competitor yet",
     { law: "no-presence-yet", slots: {}, fixedBy: "REQ-010 c1" },
   ],
-  "landing.headline": [
-    "Google and AI find your competitors. Why not you?",
-    { slots: {}, fixedBy: "REQ-001 c1 · owner O1 · 2026-10-31" },
-  ],
+  "landing.headline": ["Get found where your competitors are and customers search.", { slots: {}, fixedBy: "owner 2026-11-06 · board PubLanding v37" }],
   "landing.field.label": ["Your website", { slots: {}, fixedBy: "REQ-001 c1" }],
   "landing.submit.label": ["Scan my site", { slots: {}, fixedBy: "REQ-001 c1" }],
   "landing.problem.empty": ["Type your website’s address, like example.com.", { slots: {}, fixedBy: "REQ-001 c3" }],
@@ -601,7 +598,6 @@ export const REPORT_COPY = Object.freeze({
   /** The pace (owner, A1, 2026-10-19). The number is `WEEK_PLAN.days`. */
   "landing.pace": ["Up to {weekPages} pages a week, new or updated. Never filler.", { slots: { weekPages: "text" }, fixedBy: "owner A1 · 2026-10-19" }],
   "landing.how.full": ["How it works, in full", { slots: {}, fixedBy: "board Landing · issue 1726 · drafted" }],
-  "landing.inside.buyers": ["{place} buyers", { slots: { place: "text" }, fixedBy: "board Landing · issue 1726 · drafted" }],
 
 
   /** Section 03's three Step cards. The eyebrow and the three titles are
@@ -621,36 +617,6 @@ export const REPORT_COPY = Object.freeze({
   "landing.step.3.title": ["You see progress", { slots: {}, fixedBy: "board Landing · issue 1596" }],
   "landing.step.3.body": ["Each page goes live on its own day. Every Monday an email shows what went live and what moved.", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
 
-  /* ── The hero component: "one week, one card" (#935) ──────────────────
-     Owner ruling 2026-09-21: the landing hero is Round 11 `R11-H4-Week`.
-     The approved headline and sub-line above are unchanged; what the
-     ruling replaces is the picture beside them, and it is one card —
-     autopilot on, the Discoverability Score, the week that produced it,
-     the line it moved along, and the AI answer at the end of it.
-
-     **Every sentence here is example content, and it is drafted** under
-     the owner's 2026-09-16 ruling (#759): the ruling says the component's
-     own sentences "go in the registry as keys", and none of them was
-     written by the owner. Each is named in this PR's body for correction.
-
-     **Why the business is named.**
-     The ruling asks for "the AI answer that names the example business",
-     which needs a business with a name — the board writes one, and the
-     card's last line says in writing that it is an example and measures
-     no site. The figures live in `_landing/specimen.ts`, which is the
-     product's one home for a drawn number that measures nothing. */
-  /** Tuesday to Saturday: five page titles, as this example business's
-   *  week would produce them. Titles and not sentences — they are what the
-   *  calendar shows, so they read as the product's own rows. */
-  "landing.hero.page.1": ["How much does slab leak repair cost in Austin?", { slots: {}, fixedBy: "board Landing · issue 1596" }],
-  "landing.hero.page.2": ["Tankless or tank: which suits an Austin home?", { slots: {}, fixedBy: "board Landing · issue 1596" }],
-  "landing.hero.page.3": ["Emergency plumber in Austin: what to do in the first hour", { slots: {}, fixedBy: "board Landing · issue 1596" }],
-  "landing.hero.page.4": ["Why a water heater pops, and when to call", { slots: {}, fixedBy: "board Landing · issue 1596" }],
-  "landing.hero.page.5": ["Drain cleaning prices in Austin", { slots: {}, fixedBy: "board Landing · issue 1596" }],
-  /** The AI answer the week earned. `{you}` is the example business's own
-   *  name, so the card can draw it as the reader's own and the sentence
-   *  still reads whole without the drawing. */
-
   /* ── The landing in its 2026-09-24 order (#1067) ─────────────────────
      Boards `R12-1-Landing`, `R12-8-Phone-landing`, `R12-10-Dark-landing`
      (SPEC §1, 2026-09-24). Where the board writes the sentence, it is the
@@ -662,9 +628,8 @@ export const REPORT_COPY = Object.freeze({
   "landing.feature.ai.title": ["Get mentioned in AI answers", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
   "landing.feature.ai.body": ["Every Monday we ask AI your buyers’ questions. You see if it names you, or a competitor.", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
   /** The AI card's drawing: one answer, who it mentions, and the business it leaves out. */
-  "landing.feature.ai.ask": ["Who’s a good emergency plumber in Austin?", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.feature.ai.ask": ["What’s the best booking app for a small team?", { slots: {}, fixedBy: "board PubLanding v37 · owner 2026-11-06" }],
   "landing.feature.ai.mentions": ["An AI answer mentions", { slots: {}, fixedBy: "board Landing · issue 1596" }],
-  "landing.feature.ai.chain": ["a national plumbing chain", { slots: {}, fixedBy: "board Landing · issue 1596" }],
   "landing.feature.ai.you": ["{you}: not mentioned", { slots: { you: "text" }, fixedBy: "board Landing · issue 1596" }],
   "landing.feature.google.title": ["Get found on Google", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
   "landing.feature.google.body": [
@@ -672,8 +637,8 @@ export const REPORT_COPY = Object.freeze({
     { slots: {}, fixedBy: "board R12-1 · issue 1067" },
   ],
   /** The Google card's drawing: one search, a rival's page at its place, and the business nowhere near. */
-  "landing.feature.google.search": ["“water heater replacement cost austin”", { slots: {}, fixedBy: "board PubLanding · issue 1727 · drafted" }],
-  "landing.feature.google.chain": ["a national plumbing chain’s page", { slots: {}, fixedBy: "board PubLanding · issue 1727 · drafted" }],
+  "landing.feature.google.search": ["“how to stop double bookings”", { slots: {}, fixedBy: "board PubLanding v37 · owner 2026-11-06" }],
+  "landing.feature.google.chain": ["a booking app’s page", { slots: {}, fixedBy: "board PubLanding v37 · owner 2026-11-06" }],
   "landing.feature.google.you": ["You", { slots: {}, fixedBy: "board PubLanding · issue 1727 · drafted" }],
   "landing.feature.google.absent": ["not on Google’s first two pages", { slots: {}, fixedBy: "board PubLanding · issue 1727 · drafted" }],
   "landing.feature.fix.free": ["Free fix · 10 min", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
@@ -710,7 +675,7 @@ export const REPORT_COPY = Object.freeze({
   "landing.faq.trial.a": ["The scan and your first page are free, so you see the work first. Then it’s one plan at {price} a month.", { slots: { price: "text" }, fixedBy: "board Landing · issue 1596" }],
   /** The landing's short answers; How it works and Pricing keep the full ones above. */
   "landing.faq.approve.short": ["No. Each page goes live by itself {hours} hours after it is written. You can edit or stop it first.", { slots: { hours: "text" }, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
-  "landing.faq.results.short": ["Your pages go live in week 1. Each Monday email shows where they sit on Google and whether AI links to them.", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
+  "landing.faq.results.short": ["Pages go live in week 1. Google takes weeks to months; each Monday email shows what moved.", { slots: {}, fixedBy: "board PubLanding v37 · owner 2026-11-06" }],
   "landing.faq.stop.short": ["Cancel any time in Settings; you’re not charged again. Your export of every page stays available.", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
   "landing.faq.german.short": ["Yes, sites in {germanCountries} are checked and written in German. Everywhere else gets English.", { slots: { germanCountries: "text" }, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
   "landing.faq.trial.short": ["The scan and your first page are free, so you see the work first.", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],

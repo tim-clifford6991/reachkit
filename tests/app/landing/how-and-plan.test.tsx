@@ -1,6 +1,7 @@
 // The landing's How it works and pricing sections as boards PubLanding and PubLandingPhone
-// draw them (v34): three short steps beside three equal pictures, then one card grid and
-// one price band. The "node" project, `renderToStaticMarkup`, the real registry.
+// draw them (v37): three short steps beside three equal pictures of the software example,
+// then eight cards and one price band. The "node" project, `renderToStaticMarkup`, the real registry.
+import { readFileSync, readdirSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import React from "react";
@@ -9,7 +10,9 @@ import { copy, type CopyKey } from "@/lib/presentation/copy";
 import LandingPage from "@/app/(public)/page";
 import { HOW_FACTS } from "@/app/(public)/_how/facts";
 import { EXAMPLES, LIVE_AT } from "@/app/(public)/_how/specimen";
-import { SPECIMEN_HERO_DOMAIN, SPECIMEN_HERO_PLACE } from "@/app/(public)/_landing/specimen";
+import { SPECIMEN_HERO_DOMAIN } from "@/app/(public)/_landing/specimen";
+import { VETO } from "@/lib/config/constants";
+import { COPY } from "@/lib/presentation/copy/registry";
 
 const root = parse(renderToStaticMarkup(React.createElement(LandingPage, { searchParams: {} })));
 const how = root.querySelector("section#how")!;
@@ -64,7 +67,7 @@ describe("How it works: three equal pictures", () => {
 
   it("step 1 is headed by the site's logo, its domain and Free report, and carries no example caption", () => {
     const head = figures[0]!.querySelector(".card-body > div")!;
-    const { business, site } = EXAMPLES.plumber;
+    const { business, site } = EXAMPLES.software;
     expect(flat(head)).toBe(`${site.charAt(0).toUpperCase()} ${site} ${copy("landing.glance.free")}`);
     expect(head.querySelector("[aria-hidden]")?.text).toBe(site.charAt(0).toUpperCase());
     expect(figures[0]!.querySelector("figcaption")).toBeNull();
@@ -85,8 +88,9 @@ describe("How it works: three equal pictures", () => {
       expect(row.text, `row ${i + 1}`).toContain(["Mon", "Tue", "Wed"][i]!);
       expect(row.text, `row ${i + 1}`).toContain(kinds[i]!);
     });
-    const monday = copy("how.top.monday", { buyers: copy("landing.inside.buyers", { place: SPECIMEN_HERO_PLACE }) });
-    expect(rows[0]!.text).toContain(monday);
+    const { buyers, plan } = EXAMPLES.software;
+    const monday = copy("how.top.monday", { buyers });
+    expect(rows.map((r) => r.text)).toEqual([expect.stringContaining(monday), expect.stringContaining(plan[0]!.title), expect.stringContaining(plan[2]!.title)]);
     expect(monday).not.toMatch(/\d/);
     expect(textOf(inside.querySelector("p"))).toBe(copy("landing.inside.title"));
     expect(inside.querySelectorAll('[role="tab"], [role="tablist"]')).toHaveLength(0);
@@ -97,7 +101,7 @@ describe("How it works: three equal pictures", () => {
 
   it("step 3 is the Monday email as a card, not a phone: subject, nothing needs you, 12 and 7, one page with its Why", () => {
     const mail = figures[2]!;
-    const { plumber } = EXAMPLES;
+    const { software: plumber } = EXAMPLES;
     expect(steps[2]!.querySelector(".mockup-phone")).toBeNull();
     const text = flat(mail);
     for (const s of [
@@ -126,11 +130,11 @@ describe("What €49 a month gets you: one card grid and one price band", () => 
     expect(weekly.querySelectorAll("h2").map(textOf)).toEqual([copy("landing.price.heading", { price })]);
   });
 
-  it("seven cards in the board's order, each a title and its one line", () => {
-    const vars = { weekPages: HOW_FACTS.weekPages, checks: HOW_FACTS.checks, rivals: HOW_FACTS.rivals, minutes: HOW_FACTS.setupMinutes };
+  it("eight cards in the board's order, each a title and its one line; the last's hours are the veto window's", () => {
+    const vars = { weekPages: HOW_FACTS.weekPages, checks: HOW_FACTS.checks, rivals: HOW_FACTS.rivals, minutes: HOW_FACTS.setupMinutes, hours: VETO.defaultHours };
     const cards = weekly.querySelectorAll("ul > li.card").map((li) => [textOf(li.querySelector("h3")), textOf(li.querySelector("p"))]);
     expect(cards).toEqual(
-      ["pages", "facts", "mail", "rivals", "site", "tracking", "time"].map((k) => [
+      ["pages", "facts", "mail", "rivals", "site", "tracking", "time", "control"].map((k) => [
         copy(`landing.plan.${k}` as CopyKey, vars),
         copy(`landing.plan.${k}.line` as CopyKey, vars),
       ]),
@@ -143,7 +147,17 @@ describe("What €49 a month gets you: one card grid and one price band", () => 
       "Site checks",
       "Google and AI tracking",
       `${HOW_FACTS.setupMinutes} minutes, once`,
+      "Edit or stop any page",
     ]);
+    expect(cards.at(-1)![1]).toContain(`waits ${VETO.defaultHours} hours`);
+    expect(weekly.querySelectorAll("ul > li.card").at(-1)!.querySelectorAll("svg.lucide-circle-stop")).toHaveLength(1);
+  });
+
+  it("no money-back, refund or guarantee in the landing's code or in any landing key", () => {
+    const dir = "src/app/(public)/_landing";
+    const sources = ["src/app/(public)/page.tsx", ...readdirSync(dir).map((f) => `${dir}/${f}`)].map((f) => readFileSync(f, "utf8"));
+    const values = Object.entries(COPY).filter(([k]) => k.startsWith("landing.")).map(([, v]) => v);
+    for (const text of [...sources, ...values]) expect(text).not.toMatch(/money.?back|refund|guarantee/i);
   });
 
   it("nothing behind the launch gate or planned is drawn: no money-back card, no Google and Bing found line", () => {
@@ -156,7 +170,14 @@ describe("What €49 a month gets you: one card grid and one price band", () => 
     expect(flat(band)).toBe(
       [price, copy("landing.price.month"), copy("landing.plan.one"), copy("landing.plan.terms"), copy("landing.start.cta")].join(" "),
     );
-    expect(textOf(band.querySelector(".num"))).toBe(price);
+    expect(textOf(band.querySelector(".figure"))).toBe(price);
+    expect(band.classNames).toBe("card border-primary bg-base-100 min-w-0 border-2");
+    expect(band.querySelector(".card-body")!.classList.value).toEqual(expect.arrayContaining(["py-8", "lg:py-10"]));
+    expect(band.querySelector(".figure")!.classList.value).toEqual(expect.arrayContaining(["text-6xl", "lg:text-7xl"]));
+    expect(band.querySelector(".figure + span")!.classList.contains("text-lg")).toBe(true);
+    expect(band.querySelector("strong")!.classNames).toBe("text-lg font-bold");
+    expect(band.querySelector(".btn")!.classNames).toBe("btn btn-primary btn-lg");
+    expect(band.toString()).not.toMatch(/shadow/);
     const terms = band.querySelectorAll("span").find((s) => textOf(s) === copy("landing.plan.terms"));
     expect(terms).toBeTruthy();
     expect(copy("landing.plan.terms")).toBe("VAT included. Cancel any time.");

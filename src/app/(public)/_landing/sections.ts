@@ -19,3 +19,5 @@ export const FAQ_SECTION_ID = "faq";
 export const ARTICLES_SECTION_ID = "articles";
 /** The three steps' figures share one frame, so each is the same height at a given width. */
 export const STEP_FIGURE = "card card-border bg-base-100 h-[450px] min-w-0 lg:h-[408px]";
+/** Every section heading on the landing is one size (A.0.4 of the v37 board). */
+export const SECTION_HEADING = "text-3xl lg:text-4xl tracking-tight";
