@@ -20,7 +20,7 @@
 // all `./domains`' — one implementation in the product, not two.
 import { BATTERY, RIVAL_SCORE } from "@/lib/config/constants";
 import type { MarketSerp } from "../views";
-import { isArticleRow, isArticleUrl, isExplainerTitle, isHomeUrl, isJobRow, isJobSearch, isOccupationTitle, isOthersPage, isOwnContentUrl, isOwnDomain, isPlaceTitle, isRoundupPage, isSourceDomain, pageClass, pageKey, registrableDomain, resolvedRows, servesJobSeekers } from "./domains";
+import { isArticleRow, isArticleUrl, isExplainerTitle, isHomeUrl, isJobRow, isJobSearch, isOccupationTitle, isOthersPage, isOwnContentUrl, isOwnDomain, isPlaceTitle, isRoundupPage, isSourceDomain, pageClass, pageKey, registrableDomain, resolvedOf, servesJobSeekers } from "./domains";
 
 /** `band.ts`'s `RivalSizeBand`, spelled out: the free card's modules name no
  *  sizing module, not even for a type (§6.4, `size.test.ts`). */
@@ -237,10 +237,8 @@ export function deriveRivals(a: {
   };
 
   a.serps.forEach((stored, index) => {
-    // Rows behind a Google redirect name nobody; too many of them and the search is not read.
-    const organic = resolvedRows(stored.organic);
-    if (organic === null) return;
-    const serp = { ...stored, organic };
+    // A row behind a Google redirect names nobody; the resolved rows, pack and citations still name rivals.
+    const serp = { ...stored, organic: resolvedOf(stored.organic) };
     // Issue 1468: in a national market, a search whose top ten is mostly
     // pages of one place each ("Office Space in Merced, CA") looks for
     // another town's businesses, and none of them is this one's rival.

@@ -488,7 +488,7 @@ describe("a site whose every top-ten page is a job, career or explainer page is 
   });
 });
 
-describe("a row behind a Google redirect that names no site is nobody, and a search mostly of them is not read", () => {
+describe("a row behind a Google redirect that names no site is nobody, and a search mostly of them is read over its resolved rows", () => {
   const stored = JSON.parse(readFileSync(path.resolve(import.meta.dirname, "fixtures/au-baker-d149c119.json"), "utf8")) as { organic: MarketSerp["organic"] };
   const baker: MarketSerp = { organic: stored.organic, aiOverview: { present: false, referenceDomains: [] } };
   const wrapper = (position: number) => ({ position, domain: "", url: `https://google.com/goto?url=CAES${position}opaque`, title: "Hidden" });
@@ -506,10 +506,10 @@ describe("a row behind a Google redirect that names no site is nobody, and a sea
     expect(sources).not.toContain("google.com");
   });
 
-  it("3 of 8 resolved: the leftovers give no rival and no jobs reading, though alone they would", () => {
-    expect(rivalsOf(rows(shops, 5))).toEqual([]);
+  it("3 of 8 resolved: the 3 resolved shops are named and the jobs reading is theirs, as alone", () => {
+    expect(rivalsOf(rows(shops, 5))).toEqual(["brumbys.com.au", "phillippas.com.au", "lunebakery.com"]);
     expect(rivalsOf(rows(shops, 0))).toEqual(["brumbys.com.au", "phillippas.com.au", "lunebakery.com"]);
-    expect(isJobSearch(rows(jobs, 5).organic, "bread and bakery")).toBe(false);
+    expect(isJobSearch(rows(jobs, 5).organic, "bread and bakery")).toBe(true);
     expect(isJobSearch(rows(jobs, 0).organic, "bread and bakery")).toBe(true);
   });
 
