@@ -12,7 +12,7 @@ const STAT = "rounded-box bg-base-200 min-w-0 px-3 py-2";
 const SMALL = "text-base-content/70 block text-xs xl:text-sm";
 
 export function MondayCard(): React.JSX.Element {
-  const { mail, plan } = EXAMPLES.plumber;
+  const { mail, plan } = EXAMPLES.software;
   const page = plan[0]!;
   const calm = copy("how.mail.calm", { time: LIVE_AT });
   // The first sentence is drawn bold; it is still the one key, split where it ends.

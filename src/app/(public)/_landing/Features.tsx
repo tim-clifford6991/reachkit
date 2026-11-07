@@ -14,7 +14,8 @@ import { CircleCheck, CircleX, Search, Sparkles } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { Num } from "../scan/[domain]/_address/measured";
-import { SPECIMEN_FEATURES, SPECIMEN_HERO_BUSINESS, SPECIMEN_HERO_RIVAL } from "./specimen";
+import { EXAMPLES } from "../_how/specimen";
+import { SPECIMEN_FEATURES, SPECIMEN_HERO_BUSINESS } from "./specimen";
 
 /** `#2`: a place in the results, a numeric format and not a sentence. */
 function place(n: number): string {
@@ -38,14 +39,12 @@ function AnswersDrawing(): React.JSX.Element {
           {copy("landing.feature.ai.mentions")}
         </p>
         <ul className="flex flex-col gap-1">
-          <li className={NAMED}>
-            <CircleCheck {...MARK} className="text-base-content/70 shrink-0" />
-            {copy("landing.feature.ai.chain")}
-          </li>
-          <li className={NAMED}>
-            <CircleCheck {...MARK} className="text-base-content/70 shrink-0" />
-            <Num>{SPECIMEN_HERO_RIVAL}</Num>
-          </li>
+          {EXAMPLES.software.mentioned.map((domain) => (
+            <li key={domain} className={NAMED}>
+              <CircleCheck {...MARK} className="text-base-content/70 shrink-0" />
+              <Num>{domain}</Num>
+            </li>
+          ))}
         </ul>
         <p className="border-base-300 text-error flex items-center gap-2 border-t pt-1.5 font-semibold">
           <CircleX {...MARK} />
@@ -89,13 +88,13 @@ export function Features(): React.JSX.Element {
     <ul className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6">
       {FEATURES.map(({ title, body, Icon, Drawing }) => (
         <li key={title} className="card card-border bg-base-100 min-w-0 gap-4 p-6 lg:row-span-3 lg:grid lg:grid-rows-subgrid lg:p-7">
-          <h3 className="card-title gap-3">
+          <h3 className="card-title gap-3 text-xl lg:text-2xl">
             <span className="rounded-field bg-primary/10 text-primary grid size-10 shrink-0 place-items-center">
               <Icon size={20} strokeWidth={1.75} aria-hidden />
             </span>
             {copy(title)}
           </h3>
-          <p className="text-base-content/70">{copy(body)}</p>
+          <p className="text-base-content/70 text-base">{copy(body)}</p>
           {/* Marked as a demo (issue 1249): the drawing's figures are a
               specimen, and are never read as facts about the business. */}
           <div className="flex min-w-0" data-demo>

@@ -1,8 +1,9 @@
 /** @vitest-environment jsdom */
-// The landing above How it works, as boards PubLanding and PubLandingPhone v36
-// draw it: the hero in the board's order, a proof card drawn only from stored
-// rows, the six kinds of business, the story card's four frames, and the
-// walkthrough band once its file exists.
+// The landing above How it works, as boards PubLanding and PubLandingPhone v37
+// draw it: the owner's headline, the field and offer made to stand out, a count
+// row drawn only from 100 sites scanned, the six kinds of business, the story
+// card's four frames for the one example business, and the walkthrough band
+// once its file exists.
 // The store and the gallery are the database seam; nothing else is replaced.
 import "../../generate/env";
 import { readFileSync } from "node:fs";
@@ -17,8 +18,6 @@ type Page = { title: string; liveUrl: string; firstPublishedAt: Date; byline: nu
 const db = vi.hoisted(() => ({
   site: null as { siteId: string; domain: string; host: string } | null,
   pages: [] as Page[],
-  listed: new Map<string, number | null>(),
-  logo: false,
   sites: 0,
 }));
 
@@ -30,33 +29,21 @@ vi.mock("@/lib/publish/destinations/hosted/store", () => ({
 }));
 vi.mock("@/lib/scan/gallery", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/scan/gallery")>()),
-  isListed: async (domain: string) => db.listed.has(domain),
+  isListed: async () => true,
+  listedCard: async () => ({ score: 62, hasLogo: false }),
   scannedSites: async () => db.sites,
-  listedCard: async (domain: string) => {
-    const score = db.listed.get(domain) ?? null;
-    return score === null ? null : { score, hasLogo: db.logo };
-  },
 }));
 
 const { default: LandingPage, metadata } = await import("@/app/(public)/page");
 const { copy } = await import("@/lib/presentation/copy");
 const { SPECIMEN_HERO_BUSINESS, SPECIMEN_HERO_DOMAIN, SPECIMEN_HERO_RIVAL } = await import("@/app/(public)/_landing/specimen");
 const { BUSINESS_KIND_NAMES } = await import("@/lib/market/kinds");
-const { EXAMPLES } = await import("@/app/(public)/_how/specimen");
 
-function stored(score: number | null = 62): void {
-  db.logo = false;
+/** Every row the old proof card read is stored: ReachKit's own listed report, its articles, and 127 sites. */
+function stored(): void {
   db.site = { siteId: "site-1", domain: "reachkit.app", host: "blog.reachkit.app" };
   db.pages = [{ title: "The newest article", liveUrl: "https://content.reachkit.app/newest", firstPublishedAt: new Date(Date.UTC(2026, 9, 17)), byline: null }];
-  db.listed = new Map([["reachkit.app", score]]);
   db.sites = 127;
-}
-
-function nothingStored(): void {
-  db.site = null;
-  db.pages = [];
-  db.listed = new Map();
-  db.sites = 0;
 }
 
 /** The settled document, each streamed boundary put back where its placeholder sits, as the browser does. */
@@ -78,10 +65,8 @@ const flat = (el: HTMLElement): string => parse(el.toString().replace(/</g, " <"
 const hero = (page: HTMLElement): HTMLElement => page.querySelector("section#landing-field")!;
 const column = (page: HTMLElement): HTMLElement => page.querySelector("h1")!.parentNode as HTMLElement;
 const kids = (el: HTMLElement): HTMLElement[] => el.childNodes.filter((n): n is HTMLElement => n.nodeType === 1);
-const proof = (page: HTMLElement): HTMLElement | null =>
-  kids(column(page)).find((el) => el.querySelector('a[href^="/scan/"], a[href="#articles"], svg.lucide-scan-search') !== null) ?? null;
-/** The count row: the card's row that is no link. */
-const scannedRow = (page: HTMLElement): HTMLElement | null => (proof(page) === null ? null : (kids(proof(page)!).find((el) => el.rawTagName === "div") ?? null));
+/** The count row: the column's child that draws the scan-search tile. */
+const scannedRow = (page: HTMLElement): HTMLElement | null => kids(column(page)).find((el) => el.querySelector("svg.lucide-scan-search") !== null) ?? null;
 const frames = (page: HTMLElement): HTMLElement[] => page.querySelectorAll('[data-testid="landing-story"] ol > li');
 /** A frame's picture card: the last element of its row. */
 const mini = (li: HTMLElement): HTMLElement => kids(li).at(-1)!;
@@ -89,9 +74,9 @@ const mini = (li: HTMLElement): HTMLElement => kids(li).at(-1)!;
 beforeEach(() => stored());
 
 describe("the hero, in the board's order", () => {
-  it("h1, subline, the one field, the offer, the proof card, the kinds, then the story card", async () => {
+  it("h1, subline, the one field, the offer, the count row, the kinds, then the story card", async () => {
     const html = hero(await render()).toString();
-    const at = ["<h1", copy("landing.subline"), "<form", copy("landing.hero.offer.free"), 'href="/scan/reachkit.app"', copy("landing.hero.kinds.label"), 'data-testid="landing-story"'].map((m) =>
+    const at = ["<h1", copy("landing.subline"), "<form", copy("landing.hero.offer.free"), copy("landing.hero.proof.scanned.line"), copy("landing.hero.kinds.label"), 'data-testid="landing-story"'].map((m) =>
       html.indexOf(m),
     );
     expect(at.every((n) => n > -1), at.join(",")).toBe(true);
@@ -107,16 +92,31 @@ describe("the hero, in the board's order", () => {
     expect(kids(col.parentNode as HTMLElement).at(-1)!.getAttribute("data-testid")).toBe("landing-story");
   });
 
-  it("the offer is two tick lines: the free scan and first page, then the price, cancel any time", async () => {
+  it("the offer is two tick lines in a row from sm: the free scan and first page, then the price, cancel any time", async () => {
     const offer = kids(column(await render())).find((el) => el.rawTagName === "ul")!;
+    expect(["sm:flex-row", "sm:gap-6"].every((c) => offer.classList.contains(c))).toBe(true);
     const lines = offer.querySelectorAll("li");
     expect(lines.map(flat)).toEqual([copy("landing.hero.offer.free"), copy("landing.hero.offer.price", { price: copy("price.amount") })]);
-    expect(lines.map((li) => li.querySelectorAll("svg.lucide-check").length)).toEqual([1, 1]);
+    for (const li of lines) {
+      expect(["text-base", "font-semibold", "text-base-content"].every((c) => li.classList.contains(c))).toBe(true);
+      const tick = li.querySelector("svg.lucide-check")!;
+      expect([tick.getAttribute("width"), tick.classList.contains("text-success")]).toEqual(["20", true]);
+    }
   });
 
-  it("the one h1 is the headline, and the subline under it is one sentence of at most 15 words", async () => {
+  it("the field and Scan my site are 56px inside one 2px primary edge, under a bold label", async () => {
+    const form = column(await render()).querySelector("form")!;
+    expect(form.querySelector("label")!.classNames).toBe("text-base font-bold");
+    const group = form.querySelector("input")!.parentNode as HTMLElement;
+    expect(["border-2", "border-primary"].every((c) => group.classList.contains(c))).toBe(true);
+    expect(form.querySelector("input")!.classList.contains("input-lg")).toBe(true);
+    expect(["btn", "btn-primary", "btn-lg"].every((c) => form.querySelector('button[type="submit"]')!.classList.contains(c))).toBe(true);
+  });
+
+  it("the one h1 is the owner's headline in the hero class, and the subline under it is one sentence of at most 15 words", async () => {
     const page = await render();
-    expect(page.querySelectorAll("h1").map(flat)).toEqual([copy("landing.headline")]);
+    expect(page.querySelectorAll("h1").map(flat)).toEqual(["Get found where your competitors are and customers search."]);
+    expect(page.querySelector("h1")!.classNames).toBe("t-hero");
     const subline = copy("landing.subline");
     expect(flat(kids(column(page))[1]!)).toBe(subline);
     expect(subline.match(/[.!?](?=\s|$)/g)).toHaveLength(1);
@@ -134,89 +134,41 @@ describe("the hero, in the board's order", () => {
   });
 });
 
-describe("the proof card draws only stored rows", () => {
-  it("listed with an article: the report row, then the blog row, each a whole-row link with a chevron", async () => {
-    const page = await render();
-    const rows = proof(page)!.querySelectorAll("a");
-    expect(rows.map((a) => a.getAttribute("href"))).toEqual(["/scan/reachkit.app", "#articles"]);
-    expect(rows.map(flat)).toEqual([
-      `${copy("landing.hero.proof.report", { domain: "reachkit.app" })} ${copy("landing.hero.proof.report.open")}`,
-      `${copy("landing.hero.proof.blog")} ${copy("landing.hero.proof.blog.open")}`,
-    ]);
-    expect(rows.map((a) => a.querySelectorAll("svg.lucide-chevron-right").length)).toEqual([1, 1]);
-    expect(page.querySelector("section#articles")).not.toBeNull();
-  });
-
-  it("from 100 sites scanned the count row comes first, rounded down to a ten, and is no link", async () => {
+describe("the count row draws only a count of 100 or more", () => {
+  it("from 100 sites scanned, the count rounded down to a ten beside its tile, no card and no link", async () => {
     for (const [sites, shown] of [[100, "100"], [127, "120"], [1004, "1000"]] as const) {
       db.sites = sites;
       const row = scannedRow(await render())!;
       expect(flat(row)).toBe(`${copy("landing.hero.proof.scanned", { count: shown })} ${copy("landing.hero.proof.scanned.line")}`);
-      expect(row.querySelectorAll("svg.lucide-scan-search")).toHaveLength(1);
-      expect(row.querySelector("a")).toBeNull();
+      expect(row.querySelectorAll(".card, a")).toHaveLength(0);
+      expect(row.querySelector(".text-lg.font-bold")!.text).toBe(copy("landing.hero.proof.scanned", { count: shown }));
+      expect(row.querySelector(".text-sm")!.text).toBe(copy("landing.hero.proof.scanned.line"));
     }
-    expect(kids(proof(await render())!).map((el) => el.rawTagName)).toEqual(["div", "a", "a"]);
   });
 
-  it("below 100 sites scanned, or with no count read, there is no count row and never a 0", async () => {
+  it("below 100 sites scanned, or with no count read, there is no row and nothing in its place", async () => {
     for (const sites of [99, 0]) {
       db.sites = sites;
       const page = await render();
       expect(scannedRow(page)).toBeNull();
-      expect(flat(proof(page)!)).not.toContain(copy("landing.hero.proof.scanned.line"));
+      expect(kids(column(page)).map((el) => el.rawTagName)).toEqual(["h1", "p", "div", "ul", "div"]);
     }
   });
 
-  it("the count alone is a card of one row", async () => {
-    nothingStored();
-    db.sites = 100;
-    const card = proof(await render())!;
-    expect(kids(card).map(flat)).toEqual([`${copy("landing.hero.proof.scanned", { count: "100" })} ${copy("landing.hero.proof.scanned.line")}`]);
-  });
-
-  it("the row needs a stored score but prints no number (owner, 2026-11-01)", async () => {
-    stored(71);
-    const report = proof(await render())!.querySelector('a[href="/scan/reachkit.app"]')!;
-    expect(flat(report)).not.toMatch(/\d/);
-  });
-
-  it("the report row draws ReachKit's own mark, never a stored logo or a letter", async () => {
-    db.logo = true;
-    const row = proof(await render())!.querySelector('a[href="/scan/reachkit.app"]')!;
-    expect(row.querySelectorAll('svg[data-testid="brand-mark"]')).toHaveLength(1);
-    expect(row.querySelector("img, .badge")).toBeNull();
-  });
-
-  it("a listed third-party report is never the example: only reachkit.app is", async () => {
-    db.listed = new Map([["podia.com", 90], ["example.com", 80]]);
-    expect(proof(await render())!.querySelector('a[href^="/scan/"]')).toBeNull();
-    db.listed.set("reachkit.app", 24);
-    const links = proof(await render())!.querySelectorAll('a[href^="/scan/"]');
-    expect(links.map((a) => a.getAttribute("href"))).toEqual(["/scan/reachkit.app"]);
-  });
-
-  it("a report no longer listed, or listed without a score, is no row; the blog row stays", async () => {
-    for (const listed of [new Map(), new Map([["reachkit.app", null]])]) {
-      db.listed = listed;
-      const card = proof(await render())!;
-      expect(card.querySelector('a[href^="/scan/"]')).toBeNull();
-      expect(card.querySelectorAll("a")).toHaveLength(1);
-    }
-  });
-
-  it("with nothing stored there is no card, never a placeholder or a 0", async () => {
-    nothingStored();
-    const page = await render();
-    expect(proof(page)).toBeNull();
-    expect(kids(column(page)).map((el) => el.rawTagName)).toEqual(["h1", "p", "div", "ul", "div"]);
+  it("with ReachKit's report listed and its articles stored, the hero names neither", async () => {
+    const section = hero(await render());
+    expect(flat(section)).not.toMatch(/We run ReachKit on|Our blog is written by ReachKit/);
+    expect(section.querySelectorAll('a[href^="/scan/"], a[href="#articles"]')).toHaveLength(0);
   });
 });
 
 describe("the six kinds of business", () => {
-  it("under the proof card, the label and the gallery's six kinds in its order", async () => {
+  it("under the count row, the label and the gallery's six kinds in its order, each a large soft badge and no link", async () => {
     const kinds = kids(column(await render())).at(-1)!;
     expect(flat(kinds.querySelector("p")!)).toBe(copy("landing.hero.kinds.label"));
     expect(kinds.querySelectorAll("li").map(flat)).toEqual(BUSINESS_KIND_NAMES.map((kind) => copy(`gallery.kind.${kind}` as never)));
+    for (const li of kinds.querySelectorAll("li")) expect(["badge", "badge-soft", "badge-primary", "badge-lg"].every((c) => li.classList.contains(c))).toBe(true);
+    expect(kinds.querySelectorAll("a")).toHaveLength(0);
   });
 });
 
@@ -227,10 +179,7 @@ describe("the story card: four frames, the board's words and no footer", () => {
   });
 
   const board = (name: string) => parse(readFileSync(boardFile(name), "utf8")).querySelector("figure[id^=hero-]")!;
-  // The boards draw the software example; the names of either example are not words of the frame.
-  const { software } = EXAMPLES;
-  const names = new Set<string>([SPECIMEN_HERO_DOMAIN, SPECIMEN_HERO_RIVAL, software.site, software.report.rivals[0]!].flatMap((d) => words(d)));
-  const count = (el: HTMLElement): number => words(flat(el)).filter((w: string) => !names.has(w)).length;
+  const count = (el: HTMLElement): number => words(flat(el)).length;
 
   it("competitors found, we research, we write pages, you get found, each titled with when it happens", async () => {
     const drawn = frames(await render());
@@ -242,7 +191,7 @@ describe("the story card: four frames, the board's words and no footer", () => {
     });
   });
 
-  it("each frame says as many words as the board's frame, besides the example names", async () => {
+  it("each frame says as many words as the board's frame", async () => {
     const drawn = frames(await render()).map(count);
     for (const name of ["PubLanding", "PubLandingPhone"]) expect(drawn, name).toEqual(board(name).querySelectorAll("ol > li").map(count));
   });
@@ -277,6 +226,18 @@ describe("the story card: four frames, the board's words and no footer", () => {
 
   it("every mini draws the dark-safe edge", async () => {
     for (const li of frames(await render())) expect(mini(li).classList.contains("border-base-content/20")).toBe(true);
+  });
+});
+
+describe("one example business on the whole page", () => {
+  it("no plumber anywhere in the markup, and every domain the page shows ends in .example", async () => {
+    const page = await render();
+    expect(page.toString()).not.toMatch(/austin|plumb|harbor/i);
+    // The field's placeholder is a hint, not an example business.
+    page.querySelector("form")!.remove();
+    const domains = (segments(page.querySelector("main")!.toString()).join(" ").match(/\b[\w-]+(?:\.[\w-]+)+\b/g) ?? []).filter((d) => /[a-z]$/i.test(d));
+    expect(domains.length).toBeGreaterThan(0);
+    expect(domains.filter((d) => !d.endsWith(".example"))).toEqual([]);
   });
 });
 

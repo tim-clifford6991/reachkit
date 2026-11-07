@@ -1,7 +1,7 @@
 // The landing's story card as board PubLanding draws it: each node beside its
 // title, the picture card beside the title once the card is wide and under it
 // on a phone, the card centred under the hero text below desktop and the wider
-// column beside it on desktop.
+// column beside it on desktop; and the first screen holds the offer and the scan.
 import { describe, expect, it } from "vitest";
 import { checkContainment, checkNoClippingOrTruncation, checkNoHorizontalScroll, MONO_FONT_FAMILY } from "./checks";
 import { getBaseURL, withPage } from "./browser";
@@ -86,4 +86,22 @@ describe("the landing's story card frames, light and dark", () => {
       }
     }
   }, 180_000);
+});
+
+describe("the first screen holds the offer and the scan", () => {
+  // A phone the owner tests on, and a common laptop.
+  it.each([
+    { width: 390, height: 844 },
+    { width: 1280, height: 800 },
+  ])("at $width × $height the headline, the offer and Scan my site all end on screen", async (viewport) => {
+    const bottoms = await withPage(viewport.width, async (page) => {
+      await page.setViewportSize(viewport);
+      await page.goto(`${getBaseURL()}/`);
+      await settleForMeasurement(page);
+      return page.evaluate(() =>
+        ["h1", "h1 ~ ul", '#landing-field button[type="submit"]'].map((s) => document.querySelector(s)!.getBoundingClientRect().bottom),
+      );
+    });
+    for (const bottom of bottoms) expect(bottom).toBeLessThanOrEqual(viewport.height);
+  }, 60_000);
 });

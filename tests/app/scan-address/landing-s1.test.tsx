@@ -125,7 +125,7 @@ describe("the deep shadow is spent on the story card", () => {
   it("the price card and the Inside ReachKit preview sit flat", () => {
     for (const id of ["landing-price", "landing-inside"]) {
       const tag = markup.match(new RegExp(`<[^>]*data-testid="${id}"[^>]*>`))?.[0] ?? "";
-      expect(tag, id).toContain("card-border");
+      expect(tag, id).toMatch(/card-border|border-2/);
       expect(tag, id).not.toContain(FLOAT);
     }
   });

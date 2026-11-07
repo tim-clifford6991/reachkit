@@ -3,7 +3,8 @@ import type React from "react";
 import { CircleCheck, Clock4, FileText, Search } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import { Num } from "../scan/[domain]/_address/measured";
-import { SPECIMEN_HERO, SPECIMEN_HERO_PLACE, specimenHeroWeek } from "./specimen";
+import { EXAMPLES, weekDays } from "../_how/specimen";
+import { SPECIMEN_HERO } from "./specimen";
 import { STEP_FIGURE } from "./sections";
 
 /** Bound to a name: the copy sweep reads a bare JSX attribute string as voice. */
@@ -23,12 +24,13 @@ interface Day {
 }
 
 function days(): readonly Day[] {
-  const week = specimenHeroWeek();
+  const [mon, tue, wed] = weekDays().map((day) => day.split(" ")[0]!);
+  const { buyers, plan } = EXAMPLES.software;
   const newPage = copy("landing.inside.new");
   return [
     {
-      weekday: week[0].weekday,
-      title: copy("how.top.monday", { buyers: copy("landing.inside.buyers", { place: SPECIMEN_HERO_PLACE }) }),
+      weekday: mon!,
+      title: copy("how.top.monday", { buyers }),
       kind: copy("landing.inside.research"),
       tile: "bg-primary/10 text-primary",
       icon: <Search {...ICON} />,
@@ -40,8 +42,8 @@ function days(): readonly Day[] {
       ),
     },
     {
-      weekday: week[1].weekday,
-      title: copy("landing.hero.page.5"),
+      weekday: tue!,
+      title: plan[0]!.title,
       kind: newPage,
       tile: "bg-success/10 text-success",
       icon: <FileText {...ICON} />,
@@ -53,8 +55,8 @@ function days(): readonly Day[] {
       ),
     },
     {
-      weekday: week[2].weekday,
-      title: copy("landing.hero.page.2"),
+      weekday: wed!,
+      title: plan[2]!.title,
       kind: newPage,
       tile: "bg-base-200 text-base-content/70",
       icon: <FileText {...ICON} />,

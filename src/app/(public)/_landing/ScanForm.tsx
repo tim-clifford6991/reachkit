@@ -66,7 +66,10 @@ export function ScanForm(props: {
   words: ScanFormWords;
   /** The button keeps its own width on a phone, where the field is a closing card's and not the hero's. */
   inline?: boolean;
+  /** The landing's hero: a 56px field and button in a 2px primary edge. */
+  hero?: boolean;
 }): React.JSX.Element {
+  const hero = props.hero === true;
   const initial = useLandingSearchParams(props.searchParams);
   const initialProblem = isDomainProblem(initial.problem, props.words.problem)
     ? initial.problem
@@ -106,24 +109,24 @@ export function ScanForm(props: {
 
   return (
     <form action="/api/scan" method="post" onSubmit={handleSubmit} className="flex w-full flex-col gap-2">
-      <label htmlFor={fieldId} className="text-sm font-semibold">
+      <label htmlFor={fieldId} className={hero ? "text-base font-bold" : "text-sm font-semibold"}>
         {props.words.fieldLabel}
       </label>
       {/* One control: the field and its button in one card (#1107), stacked on a phone. */}
-      <div className={`rounded-box border bg-base-100 flex flex-col gap-2 p-1.5 sm:flex-row ${problem ? "border-error" : "border-base-300"}`}>
+      <div className={`rounded-box ${hero ? "border-2" : "border"} bg-base-100 flex flex-col gap-2 p-1.5 sm:flex-row ${problem ? "border-error" : hero ? "border-primary" : "border-base-300"}`}>
         <input
           id={fieldId}
           type="text"
           name="value"
           placeholder={props.words.placeholder}
-          className="input input-ghost h-12 w-full min-w-0 placeholder:font-mono sm:flex-1"
+          className={`input input-ghost ${hero ? "input-lg" : "h-12"} w-full min-w-0 placeholder:font-mono sm:flex-1`}
           value={value}
           onChange={(e) => setValue(e.target.value)}
           aria-invalid={problem !== undefined}
           aria-describedby={problem ? problemId : undefined}
         />
         {/* The screen's one submit control and its one solid button. */}
-        <button type="submit" className={`btn btn-primary h-12 ${props.inline === true ? "self-start" : "w-full"} sm:w-auto`} disabled={submitting} aria-busy={submitting || undefined}>
+        <button type="submit" className={`btn btn-primary ${hero ? "btn-lg" : "h-12"} ${props.inline === true ? "self-start" : "w-full"} sm:w-auto`} disabled={submitting} aria-busy={submitting || undefined}>
           {props.words.submit}
           <ArrowRight aria-hidden size={20} strokeWidth={1.75} />
         </button>

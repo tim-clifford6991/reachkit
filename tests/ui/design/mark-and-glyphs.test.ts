@@ -79,22 +79,24 @@ describe("S1 — the landing's chips carry the icons the approved set draws", ()
     // tomorrow (clock-4); step 3's email is a mail; the plan cards take
     // file-plus, link, mail, users, wrench, sparkles and timer. The tabbed
     // preview's zap, message and send are gone.
+    //
+    // Version 37 (decision 2026-11-06-2452): the eighth plan card stops a page
+    // (circle-stop), the story week's Tomorrow is clock-4 as in step 2, and the
+    // proof card's chevrons and pen went with its rows.
     expect(iconsImported()).toEqual([
       "ArrowRight",
       "Building2",
       "Calendar",
       "Check",
-      "ChevronRight",
       "CircleCheck",
+      "CircleStop",
       "CircleX",
-      "Clock",
       "Clock4",
       "FilePlus",
       "FileText",
       "Gift",
       "Link",
       "Mail",
-      "PenLine",
       "ScanSearch",
       "Search",
       "Sparkles",

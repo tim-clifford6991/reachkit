@@ -17,12 +17,12 @@ export function focusField(): void {
   section?.querySelector("input")?.focus({ preventScroll: true });
 }
 
-/** `soft` where the section already has its solid button, or needs none. */
-export function FieldCta(p: { label: string; soft?: boolean }): React.JSX.Element {
+/** `className` is the button's daisyUI look; each band names its own. */
+export function FieldCta(p: { label: string; className: string }): React.JSX.Element {
   return (
-    <button type="button" className={p.soft ? "btn btn-primary btn-soft" : "btn btn-primary"} onClick={focusField}>
+    <button type="button" className={p.className} onClick={focusField}>
       {p.label}
-      <ArrowRight size={16} strokeWidth={1.75} aria-hidden />
+      <ArrowRight size={20} strokeWidth={1.75} aria-hidden />
     </button>
   );
 }

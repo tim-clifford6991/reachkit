@@ -5,7 +5,7 @@
 // each frame stacks its picture under its title; once the card is wide enough
 // the picture sits right of the title and a spine joins the nodes. It carries the landing's one deep floating shadow.
 import type React from "react";
-import { Building2, Calendar, CircleCheck, Clock, FileText, ScanSearch, Search, Sparkles, TrendingUp, Users } from "lucide-react";
+import { Building2, Calendar, CircleCheck, Clock4, FileText, ScanSearch, Search, Sparkles, TrendingUp, Users } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { FLOAT } from "@/ui/lift";
@@ -120,7 +120,7 @@ function Week(): React.JSX.Element {
       {copy("landing.story.3.live")}
     </span>,
     <span key="next" className="flex items-center gap-1">
-      <Clock {...STATUS} />
+      <Clock4 {...STATUS} />
       {copy("landing.story.3.next")}
     </span>,
     <span key="planned" className="flex items-center gap-1">
