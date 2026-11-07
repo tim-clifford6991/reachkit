@@ -263,7 +263,7 @@ describe("UI strategy: plain words (O6, docs/spec/decisions/2026-10-31-2145.md)"
 
   it("never counts an exempt key, file or board", () => {
     const long = `"k": ["${"word ".repeat(20)}"]`;
-    const keys = ["hosted.a", "body.a", "fact.a", "ai-answers.engine.a", "legal.terms.body", "legal.withdraw.entry", "offer.checkout.consent", "offer.start.priced"];
+    const keys = ["hosted.a", "body.a", "fact.a", "ai-answers.engine.a", "legal.terms.body", "legal.withdraw.entry", "offer.start.priced"];
     const source = keys.map((key) => long.replace('"k"', `"${key}"`)).join(",\n");
     expect(keys.every((key) => isExempt(key))).toBe(true);
     expect(keyFileCounts([{ name: "chrome.ts", source }, { name: "review.ts", source: long }, { name: "ops.ts", source: long }, { name: "de/page.ts", source: long }])).toEqual({ chrome: 0 });

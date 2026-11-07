@@ -18,7 +18,6 @@ export const EXEMPT_KEYS = [
   /^ai-answers\.engine\./,
   /^legal\..*\.body$/,
   /^legal\.withdraw\./,
-  /^offer\.checkout\.consent$/,
   /^offer\.start(?:\.priced)?$/,
 ];
 // Boards drawing a customer's own pages, the owner-only screens, and the legal pages.

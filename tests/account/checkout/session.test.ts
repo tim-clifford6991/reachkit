@@ -155,16 +155,14 @@ describe("a vendor failure is an arm, never a payload", () => {
   });
 });
 
-describe("only businesses buy — the buyer ticks it before paying", () => {
-  it("both origins require the terms tick, and its sentence says the buyer buys for a business and links to the Terms", async () => {
+describe("the buyer is not asked to tick the Terms (owner, 2026-11-07)", () => {
+  it("neither origin sends a terms tick or its sentence to Stripe", async () => {
     await createCheckoutSession({ origin: { kind: "report", scanId: "scan-done" }, returnTo: OURS });
     await createCheckoutSession({ origin: { kind: "pricing" }, returnTo: OURS });
     expect(vendor.created).toHaveLength(2);
     for (const sent of vendor.created) {
-      expect(sent.consent_collection).toEqual({ terms_of_service: "required" });
-      const { message } = (sent.custom_text as { terms_of_service_acceptance: { message: string } })
-        .terms_of_service_acceptance;
-      expect(message).toBe(`I’m buying for my business and agree to the [Terms](${ENV_FIXTURE.NEXT_PUBLIC_APP_URL}/terms)`);
+      expect(sent).not.toHaveProperty("consent_collection");
+      expect(sent).not.toHaveProperty("custom_text");
     }
   });
 });
