@@ -86,11 +86,11 @@ describe("Questions owners ask: one list beside its heading, and no timeline", (
     expect(details.map((d) => d.hasAttribute("open"))).toEqual([true, false, false, false, false, false, false, false]);
   });
 
-  it("How it works still draws the full last step and the promise", async () => {
+  it("How it works still draws the full last step, and no promise of a top spot", async () => {
     const text = flat(await how());
     expect(text).toContain(copy("how.when.top.what"));
     expect(text).toContain("Not every page gets there");
-    expect(text).toContain("guarantee a place");
+    expect(text).toContain(copy("how.value.not.promise"));
   });
 });
 

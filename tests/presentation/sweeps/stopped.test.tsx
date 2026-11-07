@@ -290,9 +290,9 @@ describe("REQ-092 c8 — no internal cause, anywhere the statement renders", () 
       "/how-it-works": "how-disclosure",
       "/about": "about-disclosure",
     };
-    // The questions' "Is this AI spam?" answer names the model too, as boards
-    // PubLanding and PubHowItWorks do; only that answer is taken out.
-    const FAQ_DISCLOSED = new Set(["/", "/how-it-works"]);
+    // The questions' "Is this AI spam?" answer names the model too, as board
+    // PubLanding does; only that answer is taken out.
+    const FAQ_DISCLOSED = new Set(["/"]);
     const swept = (r: (typeof stopped)[number]): ParentNode => {
       if (r.route.url === BILLING) return billingSwept(r.doc.body);
       const testId = DISCLOSED[r.route.url];

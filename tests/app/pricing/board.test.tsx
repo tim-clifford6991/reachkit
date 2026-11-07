@@ -135,8 +135,8 @@ describe("board Pricing — what you see from week 1", () => {
       `${copy("how.when.showing.at")} ${copy("how.when.showing.what")}`,
       `${copy("how.when.top.at")} ${copy("how.when.top.what")}`,
     ]);
-    for (const cut of ["What takes longer", copy("how.when.sub"), copy("how.when.promise"), copy("how.when.maps")]) {
-      expect(first()).not.toContain(text(cut));
+    for (const cut of ["What takes longer", "time ranges, not dates", "guarantee a place", "Maps listings first"]) {
+      expect(first()).not.toContain(cut);
     }
   });
 

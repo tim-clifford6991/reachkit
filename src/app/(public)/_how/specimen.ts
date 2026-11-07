@@ -3,6 +3,7 @@
 // only: what ReachKit itself says is in the copy registry (`how.*`). Every
 // domain ends in `.example`, so no stranger's site is ever drawn.
 import type { CopyKey } from "@/lib/presentation/copy";
+import type { BusinessKind } from "@/lib/market/kinds";
 
 export type ExampleKind = "plumber" | "software";
 
@@ -34,16 +35,13 @@ export interface Example {
   readonly place: string;
   readonly pagesRead: number;
   readonly read: {
+    /** How it sells, named apart from what it sells. */
+    readonly kind: BusinessKind;
     readonly sell: readonly [string, string];
     readonly buyers: readonly [string, string];
     readonly where: readonly [string, string];
     readonly language: string;
   };
-  readonly slowPages: number;
-  /** Monday to Sunday: what the owner does that day. */
-  readonly jobs: readonly string[];
-  /** Tuesday to Sunday: the page that goes live that day. */
-  readonly live: readonly string[];
   readonly search: string;
   readonly results: readonly { readonly name: string; readonly url: string; readonly title: string }[];
   readonly question: string;
@@ -63,24 +61,13 @@ export interface Example {
     readonly never: string;
   };
   readonly mail: {
-    readonly name: string;
-    readonly week: number;
     readonly live: number;
     readonly planned: number;
-    readonly linked: number;
-    readonly climbing: number;
     /** Why each of the week's first two pages was planned, as the email says it. */
     readonly why: readonly [string, string];
   };
   /** The page Your part shows going live by itself. */
   readonly partPage: string;
-  /** The goal drawn in step 4: the business's page first on Google, and mentioned with a link by AI. */
-  readonly goal: {
-    readonly search: string;
-    readonly below: { readonly name: string; readonly url: string; readonly title: string };
-    readonly answer: string;
-  };
-  readonly area: string;
   readonly report: {
     readonly score: number;
     readonly mentioned: number;
@@ -101,29 +88,12 @@ const HARBOR: Example = {
   place: "Austin",
   pagesRead: 38,
   read: {
+    kind: "local-service",
     sell: ["Plumbing repair, water heaters and drain cleaning for homes", "/services"],
     buyers: ["Homeowners", "/about"],
     where: ["In and around Austin, Texas", "/service-area"],
     language: "English, United States",
   },
-  slowPages: 2,
-  jobs: [
-    "Water heater swap, Cedar Park",
-    "Slab leak, South Austin",
-    "Drain clearing, East Austin",
-    "Two quotes, Round Rock",
-    "Tankless install, Pflugerville",
-    "Burst pipe call-out, 7 a.m.",
-    "Day off",
-  ],
-  live: [
-    "How much does slab leak repair cost in Austin?",
-    "Tankless or tank: which suits an Austin home?",
-    "Emergency plumber in Austin: what to do in the first hour",
-    "Why a water heater pops, and when to call",
-    "Drain cleaning prices in Austin",
-    "Water heater replacement cost in Austin (2026)",
-  ],
   search: "emergency plumber austin",
   results: [
     { name: "A national plumbing chain", url: "a national chain’s site › austin", title: "24/7 Emergency Plumbers in Austin, TX" },
@@ -166,24 +136,14 @@ const HARBOR: Example = {
     never: "“Austin’s cheapest plumber”",
   },
   mail: {
-    name: "Dana",
-    week: 3,
     live: 12,
     planned: 7,
-    linked: 2,
-    climbing: 3,
     why: [
       "your core service; AI answers link to a competitor for it",
       "stopped gaining at place 18 for 3 weeks; this update adds what the pages above it cover",
     ],
   },
   partPage: "Tankless water heater installation in Austin",
-  goal: {
-    search: "slab leak repair cost austin",
-    below: { name: "Capitol Rooter", url: "capitolrooter.example", title: "Slab Leak Repair in Austin" },
-    answer: "… Harbor Plumbing lists its slab leak prices and offers same-day call-outs.",
-  },
-  area: "Austin, Texas",
   report: {
     score: 27,
     mentioned: 1,
@@ -202,29 +162,12 @@ const TIDYSLOT: Example = {
   place: "online",
   pagesRead: 54,
   read: {
+    kind: "software",
     sell: ["Booking software for small teams", "/product"],
     buyers: ["Team leads at small firms", "/customers"],
     where: ["Online, US and UK", "/pricing"],
     language: "English, United States",
   },
-  slowPages: 3,
-  jobs: [
-    "Sprint planning",
-    "Ship the reminders feature",
-    "Two customer calls",
-    "Fix the time-zone bug",
-    "Release notes",
-    "Support inbox",
-    "Day off",
-  ],
-  live: [
-    "How to stop double bookings across Outlook and Google",
-    "Booking links for teams: what to look for",
-    "Round-robin booking, explained",
-    "How to cut no-shows with reminders",
-    "Booking software pricing for small teams",
-    "Shared team availability in one link",
-  ],
   search: "how to stop double bookings",
   results: [
     { name: "Bookwell", url: "bookwell.example", title: "Stop Double Bookings for Good" },
@@ -266,24 +209,14 @@ const TIDYSLOT: Example = {
     never: "“The only tool that never double-books”",
   },
   mail: {
-    name: "Sam",
-    week: 3,
     live: 12,
     planned: 7,
-    linked: 3,
-    climbing: 4,
     why: [
       "your core feature; AI answers link to a competitor for it",
       "stopped gaining at place 18 for 3 weeks; this update adds what the pages above it cover",
     ],
   },
-  partPage: "Booking links for teams: what to look for",
-  goal: {
-    search: "how to stop double bookings",
-    below: { name: "Bookwell", url: "bookwell.example", title: "Stop Double Bookings for Good" },
-    answer: "… Tidyslot checks every connected diary before it offers a time.",
-  },
-  area: "online",
+  partPage: "Round-robin booking, explained",
   report: {
     score: 31,
     mentioned: 0,
