@@ -1,21 +1,9 @@
-Name Harbor Plumbing from harborplumbing.com	sample data
-Who buys Homeowners from harborplumbing.com/about	sample data
-A Austin Pipeworks https://austinpipeworks.example Emergency Plumbing Service, Same Day	sample data
-Written with Claude, an AI model, from your own site. Example business. 14 of 14 checks passed.	E10: the check count comes from code (docs/spec/decisions/2026-10-19-1581.md)
-9:41	sample data
-ReachKit 8:00 AM To: Dana	sample data
-0 250 500 750 1,000	sample data
+Name Tidyslot from tidyslot.com	sample data
+Kind of business Software from the whole site	sample data: the board draws each read-as row on one line; the build puts the label and the value in two blocks (dt, dd)
+What you sell Booking software for small teams from tidyslot.com/product	sample data
+Who buys Team leads at small firms from tidyslot.com/customers	sample data
+AI answer Many small teams use Bookwell or Slotly. Both sync with Outlook and Google and send reminders. bookwell.example slotly.example	sample data
+Written with Claude, an AI model, from your own site. 14 of 14 checks passed.	E10: the check count comes from code (docs/spec/decisions/2026-10-19-1581.md)
 Or use Cancel your contract at the foot of any page.	owner 2026-10-20 Q13: shown once the launch gate opens
-We find who buyers choose instead of you	SPEC §0 2026-10-15: a title is at most six words; R12 (owner 2026-10-22) keeps how.rivals.title
-Every page is true to your business	SPEC §0 2026-10-15: a title is at most six words; R12 (owner 2026-10-22) ships Pages true to your business
-On your own web address. Software blog.tidyslot.example/stop-double-bookings	sample data: the software address is the Software arm of the switch (#1729)
 Articles	#1512: the footer links the content host's index only where stored rows name one; the sweep seeds none
 Yes, if it has a website: a local service, a shop, a restaurant, a firm, software or a creator. We check what your buyers search and ask AI, in your language, with your town if you serve one. Our pages help your website, not your Google Maps listing.	docs/spec/decisions/2026-10-31-2145.md (O6): three sentences over 15 words; ships the same facts in two shorter ones
-Our pages help your website, not your Google Maps listing.	docs/spec/decisions/2026-10-31-2145.md (O6): the last sentence of the answer above, which ships shortened
-For software, the same card reads: booking software for small teams · team leads at small firms · online, US and UK.	owner 2026-11-01 (canvas v36, review 4): one example business per board, no Plumber · Software switch
-Software tidyslot.example	owner 2026-11-01 (canvas v36, review 4): one example business per board, no Plumber · Software switch
-Search: how to stop double bookings	owner 2026-11-01 (canvas v36, review 4): one example business per board, no Plumber · Software switch
-bookwell.example is first on Google and mentioned by AI. Tidyslot is missing from both.	owner 2026-11-01 (canvas v36, review 4): one example business per board, no Plumber · Software switch
-For software, the list reads: calendar booking for teams, how to stop double bookings, booking link for outlook.	owner 2026-11-01 (canvas v36, review 4): one example business per board, no Plumber · Software switch
-Example business. For software, the same three steps, with the Tidyslot website and “online” as the area you serve.	owner 2026-11-01 (canvas v36, review 4): one example business per board, no Plumber · Software switch
-Harbor Plumbing’s report For software, Tidyslot’s report shows the same three numbers.	owner 2026-11-01 (canvas v36, review 4): one example business per board, no Plumber · Software switch

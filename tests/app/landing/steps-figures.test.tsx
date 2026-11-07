@@ -66,7 +66,7 @@ describe("the landing's step figures", () => {
     expect(mail).toBeTruthy();
     expect(steps[2]?.querySelector(".mockup-phone")).toBeNull();
     const text = textOf(mail);
-    expect(text).not.toContain(copy("how.mail.linked", { n: example.mail.linked, total: example.mail.live }));
+    expect(text).not.toContain("pages linked by AI");
     expect(text).not.toContain(copy("landing.mail.inbox"));
     expect(text).toContain(copy("landing.mail.row", { day: "Mon", time: LIVE_AT }));
   });

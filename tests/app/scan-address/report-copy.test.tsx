@@ -178,7 +178,6 @@ const SCREEN_KEYS: readonly CopyKey[] = [
   "offer.found.heading",
   "offer.found.line",
   "how.steps.part",
-  "how.steps.part.more",
   "report.rest.eyebrow",
   "check.broken-links.plain",
   "check.status.not-run",

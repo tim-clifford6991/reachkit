@@ -146,7 +146,6 @@ describe("Compare, a comparison, an answer and the tools carry no repeated modul
     // The answer's questions fold as the board draws them; no other fold remains.
     expect(root.querySelectorAll("details").filter((d) => d.querySelector("h3") === null)).toEqual([]);
     expect(text).not.toContain(copy("how.steps.loop"));
-    expect(text).not.toContain(copy("how.detail"));
     expect(root.querySelector(`figure[aria-label="${copy("how.start.glance")}"]`)).toBeNull();
     const start = root.querySelector("#start")!;
     expect(start.childNodes.filter((n) => n.nodeType === 1).map((n) => (n as HTMLElement).rawTagName)).toEqual(["h2", "div", "p"]);

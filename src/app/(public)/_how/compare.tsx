@@ -31,11 +31,12 @@ const ROWS = ["jobs", "time", "covers", "cost"] as const;
 /** The chart's one scale, in the currency each fee is written in. */
 const SCALE_MAX = 1000;
 
-/** With `caption`, the short comparison: no covers row and no chart, the
- *  chart's source moved into the caption. */
-export function ThreeWays(p: { caption?: string } = {}): React.JSX.Element {
+/** Short, or with `caption`: no covers row and no chart, the chart's source
+ *  moved under the cards. */
+export function ThreeWays(p: { caption?: string; short?: boolean } = {}): React.JSX.Element {
   const price = copy("price.amount");
-  const rows = p.caption === undefined ? ROWS : ROWS.filter((row) => row !== "covers");
+  const short = p.short === true || p.caption !== undefined;
+  const rows = short ? ROWS.filter((row) => row !== "covers") : ROWS;
   const source = (
     <a href={AGENCY_BENCHMARK.url} className="link" target="_blank" rel="noopener">
       {copy("how.value.source", { providers: AGENCY_BENCHMARK.providers, year: AGENCY_BENCHMARK.year })}
@@ -89,7 +90,7 @@ export function ThreeWays(p: { caption?: string } = {}): React.JSX.Element {
           );
         })}
       </div>
-      {p.caption === undefined ? (
+      {!short ? (
         <figure className="card card-border bg-base-100 min-w-0">
           <div className="card-body gap-4">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -113,7 +114,8 @@ export function ThreeWays(p: { caption?: string } = {}): React.JSX.Element {
         </figure>
       ) : (
         <p className="text-base-content/70 text-sm">
-          {p.caption} {source}
+          {p.caption === undefined ? null : `${p.caption} `}
+          {source}
         </p>
       )}
     </div>
