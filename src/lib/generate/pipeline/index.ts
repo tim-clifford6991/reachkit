@@ -50,7 +50,7 @@ import type { LinkTarget } from "../links/select";
 import { urlKey } from "../links/select";
 import { recordedRulesValue, recordedRunValue, recordedVerdictValue } from "../record";
 import { batteryCleared, type BatteryOutcome } from "../rules";
-import { answerBoxWords, renumberSteps, withoutBrokenLinks } from "../rules/blocks";
+import { answerBoxWords, ownStepsNote, renumberSteps, withoutBrokenLinks } from "../rules/blocks";
 import { proseNotes } from "../rules/prose";
 import { linksOf, renderOf } from "../rules/text";
 import { pickTitle, titleNotes, type TitleCandidate } from "../rules/title";
@@ -416,7 +416,7 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
         return { ...note, sentences: [`new sections: at most ${HEADING_GAPS.sectionsMax} sections may be new, each headed by one of \`pack.gaps\` and linking a url of that gap's \`claims\`; return every other section under its live heading`] };
       }
       if (note.rule === "required_blocks" && note.sentences.includes("own_steps")) {
-        return { ...note, sentences: [`steps: at most ${template.blocks.steps?.own ?? 1} step may be this business's own product or process; every other step is the task as \`pack.claims\` describe it, linking the claim's url`] };
+        return { ...note, sentences: [ownStepsNote({ markdown: stopped.page.markdown, domain: a.site.domain, businessName: a.site.businessName, own: template.blocks.steps?.own ?? 1, claims: pack.claims })] };
       }
       const cites = stopped.outcome.passed ? undefined : stopped.outcome.failed.find((failure) => failure.rule === "cites_market")?.detail;
       if (note.rule === "cites_market" && cites !== undefined && cites.rule === "cites_market") {

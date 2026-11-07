@@ -10,7 +10,7 @@ import { describe, expect, it } from "vitest";
 import { layoutPage, sentenceCase, tidy, tidyText, withClosing } from "../../../src/lib/generate/pipeline/compose";
 import { applyLinks } from "../../../src/lib/generate/links/apply";
 import { bodyWords, lengthRangeFor } from "../../../src/lib/generate/length";
-import { answerBoxWords, missingBlock, withoutBrokenLinks } from "../../../src/lib/generate/rules/blocks";
+import { answerBoxWords, missingBlock, ownStepsNote, withoutBrokenLinks } from "../../../src/lib/generate/rules/blocks";
 import { TEMPLATES, type Template } from "../../../src/lib/generate/templates";
 import type { PageParts } from "../../../src/lib/generate/pipeline/write";
 import { CLEAN_MARKDOWN, GROUNDED, pageParts, prose } from "../fixtures";
@@ -205,6 +205,32 @@ describe("required_blocks — the first block a generated page lacks", () => {
     expect(howTo(0, stored, reachkit).missing()).toBe("own_steps");
     const task = [...Array.from({ length: 4 }, (_, index) => `${index + 1}. ${prose("steps", index, 1)}`), `5. ${stored[1]!.slice(3)}`];
     expect(howTo(0, task, reachkit).missing()).toBeNull();
+  });
+
+  it("a how-to stopped for its own steps is told which steps counted, the ones citing its own tool pages among them, and the claims still unlinked", () => {
+    // Mirrors the 11-05 stopped how-to: 13 rival claims, and steps 1, 2 and 7 citing the business's own pages.
+    const claims = [
+      ...["features", "pricing", "blog"].map((page) => ({ url: `https://www.tryprofound.com/${page}` })),
+      ...["product/brand-perception", "product/fact-check", "pricing"].map((page) => ({ url: `https://peec.ai/${page}` })),
+      ...["features", "pricing", "lite", "about", "blog", "docs", "faq"].map((page) => ({ url: `https://otterly.ai/${page}` })),
+    ];
+    const steps = [
+      "1. Run the [on-page check](https://reachkit.app/tools/on-page-check) to see what an engine reads first.",
+      "2. Fix the titles and headings the [free tools](https://reachkit.app/tools) flag as unclear.",
+      "3. Read how [Peec AI measures brand perception](https://peec.ai/product/brand-perception) across six engines.",
+      "4. Check each answer's facts the way [Peec AI fact-checks](https://peec.ai/product/fact-check) them.",
+      "5. Track mentions on [Otterly Lite](https://otterly.ai/pricing) at its entry price.",
+      "6. Share the reports, since [Peec AI plans have unlimited users](https://peec.ai/pricing).",
+      "7. Start with a [free scan](https://reachkit.app/) to see where you stand.",
+    ];
+    const reachkit = { domain: "reachkit.app", businessName: "ReachKit" };
+    const stopped = howTo(0, steps, reachkit);
+    expect(stopped.missing()).toBe("own_steps");
+    const note = ownStepsNote({ markdown: stopped.markdown, ...reachkit, own: TEMPLATES.how_to.blocks.steps!.own!, claims });
+    expect(note).toContain("steps 1, 2, 7 are this business's own");
+    expect(note).toContain("links reachkit.app");
+    const linked = ["https://peec.ai/product/brand-perception", "https://peec.ai/product/fact-check", "https://otterly.ai/pricing", "https://peec.ai/pricing"];
+    for (const url of claims.map((claim) => claim.url)) expect(note.includes(url), url).toBe(!linked.includes(url));
   });
 
   it("a Sources list is the one heading that is not a question", () => {
