@@ -77,7 +77,7 @@ const SCHEDULED: ShellModel = {
     goesLiveAt: new Date(Date.UTC(2026, 8, 16, 11, 0, 0)),
   },
   blog: "https://blog.example.com",
-  publishing: { mode: "autopilot", next: new Date(Date.UTC(2026, 8, 16, 13, 0, 0)) },
+  publishing: { mode: "autopilot", next: new Date(Date.UTC(2026, 8, 16, 13, 0, 0)), title: "How much does a bike service cost in 2026?" },
   stopped: null,
 };
 
@@ -242,12 +242,12 @@ describe("REQ-040 c3 — the mode with the next publish time, in the customer's 
     const root = render(<PublishingCard shell={SCHEDULED} />);
     expect(root.textContent).toContain("shell.publishing.mode.autopilot");
     expect(root.querySelector("[data-testid='shell-publishing-line']")?.textContent).toBe(
-      "next-publish.scheduled"
+      "next-publish.page"
     );
   });
 
   it("a copilot row still reads Autopilot, and the card draws no mode picker (SPEC §7, #476)", () => {
-    const copilot: ShellModel = { ...SCHEDULED, publishing: { mode: "copilot" as never, next: MONDAY(16) } };
+    const copilot: ShellModel = { ...SCHEDULED, publishing: { mode: "copilot" as never, next: MONDAY(16), title: "A page" } };
     const root = render(<PublishingCard shell={copilot} />);
     expect(root.textContent).toContain("shell.publishing.mode.autopilot");
     expect(root.textContent).not.toMatch(/copilot/i);
@@ -271,7 +271,7 @@ describe("REQ-040 c3 — the mode with the next publish time, in the customer's 
 
 // ── criterion 4 ─────────────────────────────────────────────────────────
 describe("REQ-040 c4 — with no publish scheduled, one line for the resolved reason", () => {
-  const withReason = (because: "reachkit_stopped" | "publishing_paused" | "not_written" | "nothing_planned"): ShellModel => ({
+  const withReason = (because: "reachkit_stopped" | "publishing_paused" | "address_waiting"): ShellModel => ({
     ...SCHEDULED,
     publishing: { mode: "autopilot", next: null, because },
   });
@@ -289,18 +289,17 @@ describe("REQ-040 c4 — with no publish scheduled, one line for the resolved re
     expect(line?.textContent).toBe("next-publish.stopped");
     // Whichever it is, no *other* cause's line reached this card.
     expect(root.textContent).not.toContain("next-publish.paused");
-    expect(root.textContent).not.toContain("next-publish.being-written");
-    expect(root.textContent).not.toContain("next-publish.none-planned");
-    expect(root.textContent).not.toContain("next-publish.scheduled");
+    expect(root.textContent).not.toContain("next-publish.monday-check");
+    expect(root.textContent).not.toContain("next-publish.page");
   });
 
-  it.each(["publishing_paused", "not_written", "nothing_planned"] as const)(
+  it.each(["publishing_paused", "address_waiting"] as const)(
     "%s never renders the scheduled line, and never a second cause's",
     (because) => {
       const root = render(<PublishingCard shell={withReason(because)} />);
       const lines = root.querySelectorAll("[data-testid='shell-publishing-line']");
       expect(lines.length).toBeLessThanOrEqual(1);
-      expect(root.textContent).not.toContain("next-publish.scheduled");
+      expect(root.textContent).not.toContain("next-publish.page");
       expect(root.textContent).not.toContain("next-publish.stopped");
     }
   );
@@ -308,7 +307,7 @@ describe("REQ-040 c4 — with no publish scheduled, one line for the resolved re
   it("a scheduled publish renders the time's line and no cause's", () => {
     const root = render(<PublishingCard shell={SCHEDULED} />);
     expect(root.querySelector("[data-testid='shell-publishing-line']")?.textContent).toBe(
-      "next-publish.scheduled"
+      "next-publish.page"
     );
   });
 });
@@ -683,11 +682,12 @@ describe("the frame is the route's one screen root, and it invents no sentence",
       "shell.publishing.mode.autopilot",
       "shell.domain.measured-weeks",
       "shell.domain.not-measured",
-      "next-publish.scheduled",
+      "next-publish.page",
+      "next-publish.topic",
+      "next-publish.monday-check",
       "next-publish.stopped",
       "next-publish.paused",
-      "next-publish.being-written",
-      "next-publish.none-planned",
+      "next-publish.address-waiting",
       "calendar.head",
     ];
     const owed = SHELL_KEYS.filter((key) => COPY[key] === "");

@@ -38,14 +38,13 @@ const BASE: ShellFacts = {
   waiting: 0,
   review: null,
   blog: null,
-  next: new Date(Date.UTC(2026, 8, 16, 13, 0, 0)),
+  next: { at: new Date(Date.UTC(2026, 8, 16, 13, 0, 0)), title: "How to choose a road bike" },
+  nextTopic: null,
   stopped: null,
   noPublishCauses: {
     reachkit_stopped: false,
     address_waiting: false,
     publishing_paused: false,
-    not_written: false,
-    nothing_planned: false,
   },
 };
 
@@ -89,10 +88,10 @@ describe("REQ-040 c3 — the mode and the next scheduled publish", () => {
   });
 
   it("a scheduled publish outranks a cause that also happens to be true", () => {
-    // The four causes describe why there is *no* publish. With one, there is
+    // The causes describe why there is *no* publish. With one, there is
     // no reason to state — the time is the answer.
     const shell = assembleShell(
-      facts({ noPublishCauses: { ...BASE.noPublishCauses, nothing_planned: true } })
+      facts({ noPublishCauses: { ...BASE.noPublishCauses, address_waiting: true } })
     );
     expect(shell.publishing.next).not.toBeNull();
     expect(shell.publishing).not.toHaveProperty("because");
@@ -108,27 +107,25 @@ describe("REQ-040 c4 — no publish scheduled carries exactly one resolved reaso
           reachkit_stopped: true,
           address_waiting: true,
           publishing_paused: true,
-          not_written: true,
-          nothing_planned: true,
         },
       })
     );
     expect(shell.publishing).toEqual({ mode: "autopilot", next: null, because: "reachkit_stopped" });
   });
 
-  it("a page not written yet, alone, is the reason stated", () => {
-    const shell = assembleShell(
-      facts({
-        next: null,
-        noPublishCauses: { ...BASE.noPublishCauses, not_written: true },
-      })
-    );
-    expect(shell.publishing).toEqual({ mode: "autopilot", next: null, because: "not_written" });
+  it("with no page and no cause, the next planned topic is what happens next — never a stop nobody stored", () => {
+    const shell = assembleShell(facts({ next: null, nextTopic: { on: "2026-09-17", topic: "bike service cost" } }));
+    expect(shell.publishing).toEqual({
+      mode: "autopilot",
+      next: null,
+      because: null,
+      upcoming: { kind: "topic", on: "2026-09-17", topic: "bike service cost" },
+    });
   });
 
-  it("no time and no cause at all is unexplained — never a stop nobody stored (issue 1321)", () => {
-    const shell = assembleShell(facts({ next: null }));
-    expect(shell.publishing).toEqual({ mode: "autopilot", next: null, because: "unexplained" });
+  it("with no page, no topic and no cause, the Monday check is what happens next", () => {
+    const shell = assembleShell(facts({ next: null, firstDueOn: MONDAY(21) }));
+    expect(shell.publishing).toEqual({ mode: "autopilot", next: null, because: null, upcoming: { kind: "monday-check", on: MONDAY(21) } });
   });
 });
 

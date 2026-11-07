@@ -17,7 +17,7 @@ const SCHEDULED: ShellModel = {
   waiting: 0,
   review: null,
   blog: null,
-  publishing: { mode: "autopilot", next: new Date(Date.UTC(2026, 8, 16, 13, 0, 0)) },
+  publishing: { mode: "autopilot", next: new Date(Date.UTC(2026, 8, 16, 13, 0, 0)), title: "How to choose a road bike" },
   stopped: null,
 };
 
@@ -35,7 +35,7 @@ describe("the phone's top bar", () => {
     expect(publishing?.textContent).toBe(COPY["shell.publishing.state.autopilot"]);
   });
 
-  it.each(["reachkit_stopped", "publishing_paused", "not_written", "nothing_planned"] as const)(
+  it.each(["reachkit_stopped", "publishing_paused", "address_waiting"] as const)(
     "with no publish scheduled (%s) it never says publishing is on, and says the panel's reason",
     (because) => {
       const shell: ShellModel = { ...SCHEDULED, publishing: { mode: "autopilot", next: null, because } };
@@ -45,6 +45,17 @@ describe("the phone's top bar", () => {
       expect(publishing?.textContent).toBe(line?.textContent);
     }
   );
+});
+
+describe("the phone's top bar with no page scheduled and nothing holding publishing back", () => {
+  it.each([
+    { kind: "topic", on: "2026-09-17", topic: "bike service cost" },
+    { kind: "monday-check", on: new Date(Date.UTC(2026, 8, 21, 10, 0, 0)) },
+  ] as const)("says publishing is on while the card names the next $kind", (upcoming) => {
+    const shell: ShellModel = { ...SCHEDULED, publishing: { mode: "autopilot", next: null, because: null, upcoming } };
+    const publishing = render(<TopBar shell={shell} />).querySelector("[data-testid='shell-top-publishing']");
+    expect(publishing?.textContent).toBe(COPY["shell.publishing.state.autopilot"]);
+  });
 });
 
 describe("the site's own mark before its domain, in the bar and the panel's foot", () => {

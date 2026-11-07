@@ -14,7 +14,7 @@ const LIVE_AT = new Date("2026-10-19T21:00:00.000Z");
 const shellIn = (timeZone: string) => ({
   timeZone,
   review: { draftId: "d1", title: "Emergency plumber in Austin: what to do in the first hour", goesLiveAt: LIVE_AT },
-  publishing: { mode: "autopilot" as const, next: LIVE_AT },
+  publishing: { mode: "autopilot" as const, next: LIVE_AT, title: "Emergency plumber in Austin: what to do in the first hour" },
 });
 
 function tab(a: { vetoHours?: number; enabled?: boolean; publishTime?: string; zone?: string; destinations?: typeof FIXTURE_SETTINGS_FACTS.destinations } = {}): Document {

@@ -1,3 +1,4 @@
+/** @vitest-environment jsdom */
 // tests/app/shell/store.test.ts — BUILD §4.4, §9, issue #169
 //
 // The shell's facts for a real account, and the one pair the fixture could
@@ -11,6 +12,8 @@
 // §9 holds it. "Pause is one click and instant"; the page is in
 // `heldPages`, not on its way out.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { applyEnvFixture } from "../../mail/env-fixture";
 
 applyEnvFixture();
@@ -42,7 +45,7 @@ vi.mock("@/app/(account)/app/_shell/week-rows", () => ({
  *  whether or not the query said what it means to say. */
 vi.mock("@/lib/db", () => {
   const builder = (table: string) => {
-    const filters: { column: string; value: unknown; kind: "eq" | "in" | "not-null" }[] = [];
+    const filters: { column: string; value: unknown; kind: "eq" | "in" | "gte" | "not-null" }[] = [];
     const self: Record<string, unknown> = {
       select: () => self,
       order: () => self,
@@ -53,6 +56,10 @@ vi.mock("@/lib/db", () => {
       },
       in: (column: string, value: unknown) => {
         filters.push({ column, value, kind: "in" });
+        return self;
+      },
+      gte: (column: string, value: unknown) => {
+        filters.push({ column, value, kind: "gte" });
         return self;
       },
       not: (column: string) => {
@@ -68,7 +75,9 @@ vi.mock("@/lib/db", () => {
               ? row[f.column] === f.value
               : f.kind === "in"
                 ? (f.value as unknown[]).includes(row[f.column])
-                : row[f.column] !== null && row[f.column] !== undefined
+                : f.kind === "gte"
+                  ? typeof row[f.column] === "string" && (row[f.column] as string) >= (f.value as string)
+                  : row[f.column] !== null && row[f.column] !== undefined
           )
         );
         return Promise.resolve(resolve({ data: kept, error: null }));
@@ -90,7 +99,7 @@ vi.mock("@/lib/db", () => {
 const { readShellFacts } = await import("@/app/(account)/app/_shell/store");
 const { dayCeilingCents, registerPayingSiteCounter } = await import("@/lib/costs/daily");
 const { assembleShell } = await import("@/app/(account)/app/_shell/model");
-const { publishingStatement } = await import("@/app/(account)/app/_shell/PublishingCard");
+const { PublishingCard, publishingStatement } = await import("@/app/(account)/app/_shell/PublishingCard");
 
 /** Paying sites at the day's start; the day's ceiling is read off them. */
 const PAYING_SITES = 3;
@@ -121,13 +130,13 @@ afterEach(() => {
 
 describe("§9's switch decides whether there is a next publish at all", () => {
   const scheduled = [
-    { id: "d1", site_id: "site-1", state: "approved", scheduled_for: "2026-09-09" },
+    { id: "d1", site_id: "site-1", state: "approved", scheduled_for: "2026-09-09", title: "Bike service cost" },
   ];
 
   it("publishing on: the scheduled page is the next publish", async () => {
     rows.set("drafts", scheduled);
     const facts = await readShellFacts(SITE);
-    expect(facts.next).toEqual(new Date("2026-09-09"));
+    expect(facts.next).toEqual({ at: new Date("2026-09-09"), title: "Bike service cost" });
     expect(facts.noPublishCauses.publishing_paused).toBe(false);
   });
 
@@ -154,6 +163,7 @@ describe("a page in review is the next publish (issue 1362)", () => {
     id: "d1",
     site_id: "site-1",
     state: "in_review",
+    title: "What a boiler service costs",
     scheduled_for: "2026-10-09",
     veto_deadline: "2026-10-09T16:00:00.000Z",
   };
@@ -161,14 +171,12 @@ describe("a page in review is the next publish (issue 1362)", () => {
   it("it goes live on its own when its window ends, and no cause is stated", async () => {
     rows.set("drafts", [inReview]);
     const facts = await readShellFacts(SITE);
-    expect(facts.next).toEqual(new Date("2026-10-09T16:00:00.000Z"));
-    expect(facts.noPublishCauses.not_written).toBe(false);
-    expect(facts.noPublishCauses.nothing_planned).toBe(false);
+    expect(facts.next?.at).toEqual(new Date("2026-10-09T16:00:00.000Z"));
   });
 
   it("the moment is the one the customer was told, where they were told one", async () => {
     rows.set("drafts", [{ ...inReview, told: { publishesAt: "2026-10-09T17:00:00.000Z" } }]);
-    expect((await readShellFacts(SITE)).next).toEqual(new Date("2026-10-09T17:00:00.000Z"));
+    expect((await readShellFacts(SITE)).next?.at).toEqual(new Date("2026-10-09T17:00:00.000Z"));
   });
 
   it("a page in review with no window running is not a scheduled publish", async () => {
@@ -177,23 +185,7 @@ describe("a page in review is the next publish (issue 1362)", () => {
   });
 });
 
-describe("the four causes are read as four facts", () => {
-  it("a site with no page at all is `nothing_planned`", async () => {
-    rows.set("drafts", []);
-    const facts = await readShellFacts(SITE);
-    expect(facts.noPublishCauses.nothing_planned).toBe(true);
-    expect(facts.noPublishCauses.not_written).toBe(false);
-  });
-
-  it("a site with a page planned and not written is `not_written`, not `nothing_planned`", async () => {
-    rows.set("drafts", [
-      { id: "d1", site_id: "site-1", state: "planned", scheduled_for: null },
-    ]);
-    const facts = await readShellFacts(SITE);
-    expect(facts.noPublishCauses.nothing_planned).toBe(false);
-    expect(facts.noPublishCauses.not_written).toBe(true);
-  });
-
+describe("the causes are read as separate facts", () => {
   it("the kill switch is ReachKit's own stop, and it is stated as one", async () => {
     reachKitStopped.mockResolvedValue(true);
     const facts = await readShellFacts(SITE);
@@ -366,7 +358,7 @@ describe("until the hosted address is live, the shell names no go-live time", ()
     rows.set("destinations", hosted("live"));
     const facts = await readShellFacts(SITE);
     expect(facts.review?.goesLiveAt).toEqual(new Date(inReview.veto_deadline));
-    expect(facts.next).toEqual(new Date(inReview.veto_deadline));
+    expect(facts.next?.at).toEqual(new Date(inReview.veto_deadline));
     expect(facts.noPublishCauses.address_waiting).toBe(false);
   });
 
@@ -382,7 +374,88 @@ describe("until the hosted address is live, the shell names no go-live time", ()
   it("a site with no hosted address is not waiting for one", async () => {
     rows.set("drafts", [inReview]);
     const facts = await readShellFacts(SITE);
-    expect(facts.next).toEqual(new Date(inReview.veto_deadline));
+    expect(facts.next?.at).toEqual(new Date(inReview.veto_deadline));
     expect(facts.noPublishCauses.address_waiting).toBe(false);
+  });
+});
+
+describe("the Autopilot card always names what happens next", () => {
+  // A Saturday afternoon in the site's zone: today is 2026-11-07, and the Monday check is due on the 9th.
+  const NOW = new Date("2026-11-07T20:00:00.000Z");
+  const MONDAY_CHECK = new Date("2026-11-09T11:00:00.000Z");
+  const topic = (id: string, planned_for: string, target_query: string) => ({
+    id,
+    site_id: "site-1",
+    scan_id: "scan-1",
+    type: "new_page",
+    family: "write",
+    target_query,
+    target_ref: "",
+    title: target_query,
+    evidence: { family: "write", volume: 40, rival: null },
+    acceptance: {},
+    fit_band: null,
+    effort: 1,
+    status: "open",
+    cluster_key: target_query,
+    absorbed_queries: [],
+    ready: true,
+    unready_reason: null,
+    rest_until: null,
+    created_at: "2026-11-02T06:00:00.000Z",
+    plan_place: 1,
+    planned_for,
+  });
+
+  /** The card's line, rendered from the store's facts with the registry's own sentences. */
+  async function cardLine(): Promise<string> {
+    const html = renderToStaticMarkup(createElement(PublishingCard, { shell: assembleShell(await readShellFacts(SITE)) }));
+    const card = document.createElement("div");
+    card.innerHTML = html;
+    return card.querySelector("[data-testid='shell-publishing-line']")?.textContent ?? "";
+  }
+
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(NOW);
+    nextDueOn.mockResolvedValue(MONDAY_CHECK);
+  });
+  afterEach(() => vi.useRealTimers());
+
+  it("a page in review for tomorrow: the card names its time and its title", async () => {
+    rows.set("drafts", [
+      { id: "d1", site_id: "site-1", state: "in_review", title: "Emergency plumber in Austin", scheduled_for: "2026-11-08", veto_deadline: "2026-11-08T21:00:00.000Z" },
+    ]);
+    rows.set("opportunities", [topic("o1", "2026-11-08", "boiler service cost")]);
+    expect(await cardLine()).toBe("Next page goes live Nov 8, 2026, 4:00 PM EST: Emergency plumber in Austin");
+  });
+
+  it("a topic planned for tomorrow with no draft yet: the card names the topic and its day", async () => {
+    rows.set("opportunities", [topic("o1", "2026-11-08", "boiler service cost"), topic("o2", "2026-11-06", "past topic")]);
+    expect(await cardLine()).toBe("Next page planned for Sun 8 Nov: boiler service cost");
+  });
+
+  it("tomorrow decided no page while its topic is still planned: the card names the Monday check and its date", async () => {
+    // reachkit.app on 2026-11-07: 11-08 ended `no_page` (`generate:no_own_facts`) and its row stayed open.
+    rows.set("draft_days", [{ site_id: "site-1", publish_date: "2026-11-08", outcome: "no_page", reason: "generate:no_own_facts" }]);
+    rows.set("opportunities", [topic("o1", "2026-11-08", "boiler service cost")]);
+    expect(await cardLine()).toBe("The Monday check on Mon 9 Nov plans the next pages.");
+  });
+
+  it("a decided day or a date that already holds a page is passed over for the next planned topic", async () => {
+    rows.set("draft_days", [{ site_id: "site-1", publish_date: "2026-11-08", outcome: "no_page", reason: "generate:no_own_facts" }]);
+    rows.set("drafts", [{ id: "d1", site_id: "site-1", state: "skipped", title: "Stopped page", scheduled_for: "2026-11-09" }]);
+    rows.set("opportunities", [
+      topic("o1", "2026-11-08", "boiler service cost"),
+      topic("o2", "2026-11-09", "stopped topic"),
+      topic("o3", "2026-11-10", "drain cleaning"),
+    ]);
+    expect(await cardLine()).toBe("Next page planned for Tue 10 Nov: drain cleaning");
+  });
+
+  it("nothing planned at all: the card names the Monday check, and publishing off still says so", async () => {
+    expect(await cardLine()).toBe("The Monday check on Mon 9 Nov plans the next pages.");
+    isPublishingOn.mockResolvedValue(false);
+    expect(await cardLine()).toBe("Publishing is off.");
   });
 });
