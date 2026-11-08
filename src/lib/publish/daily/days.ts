@@ -1,8 +1,8 @@
 // SPEC §7 — every draft day kept, and a day with no page told, since `job_runs` is overwritten hourly and logs are short:
 //   * The day's reason (`draft_days`): in a site's due hour the tick writes how the day ended under the site and date;
 //     a later tick never overwrites another site's or date's row.
-//   * The publish time, checked at the end of the site's run: a date with no page and nothing going out after it is mailed
-//     to the owner once, with the recorded reason. A day the customer acted on is not mailed, nor a site's first day.
+//   * The publish time, checked at the end of the site's run: a date with no delivered page is mailed to the owner once,
+//     with the recorded reason, whatever is going out later. A day the customer acted on is not mailed, nor a site's first day.
 // The runs are sent for `sitesForDailyTick`'s sites, so a stopped or lapsed site is never checked.
 // Nothing here throws into the tick: a failed record or alert logs one line and must not cost the site its page.
 import { AUTOPILOT_STALL } from "@/lib/config/constants";
@@ -24,13 +24,34 @@ export interface DraftDay {
   readonly publishDate: string;
 }
 
-/** A day is accounted for when its page is going out, out, or stopped or taken down by the customer. */
-const ACCOUNTED: ReadonlySet<string> = new Set(["in_review", "approved", "publishing", "published", "skipped", "unpublished"]);
+/** A draft dated to a day: its state, and its moves as `drafts.transitions` keeps them. */
+export interface DayPage {
+  readonly state: string;
+  readonly transitions?: unknown;
+}
+
+/** The draft's last move, as far as it can be read. */
+function lastMove(page: DayPage): { actor?: { kind?: unknown }; reason?: unknown } | undefined {
+  return Array.isArray(page.transitions) ? page.transitions.at(-1) : undefined;
+}
+
+/** A day is accounted for only by a page delivered (and maybe since taken down) or one the customer stopped; a page the
+ *  system set aside is a miss like no page at all. */
+function accounts(page: DayPage): boolean {
+  if (page.state === "published" || page.state === "unpublished") return true;
+  return page.state === "skipped" && lastMove(page)?.actor?.kind === "customer";
+}
+
+/** Why the date's page is not out: its state and its last move's reason. */
+function pageReason(page: DayPage): string {
+  const reason = lastMove(page)?.reason;
+  return typeof reason === "string" ? `state:${page.state}:${reason}` : `state:${page.state}`;
+}
 
 export interface DraftDayStore {
   record(a: { siteId: string; publishDate: string; outcome: DayOutcome; reason: string | null; at: Date }): Promise<void>;
-  /** The states of the drafts dated `publishDate`. */
-  statesOn(siteId: string, publishDate: string): Promise<readonly string[]>;
+  /** The drafts dated `publishDate`. */
+  statesOn(siteId: string, publishDate: string): Promise<readonly DayPage[]>;
   /** Whether a draft dated `publishDate` or later is going out or out. */
   goingOutFrom(siteId: string, publishDate: string): Promise<boolean>;
   /** Whether the site holds a draft dated before `publishDate`. */
@@ -48,8 +69,8 @@ export interface DraftDayStore {
   claimStallAlert?(siteId: string, lastDelivered: string, at: Date): Promise<boolean>;
   /** The days over `from`…`to` a due hour recorded and no mail told, with the recorded reason. */
   untoldBetween(from: string, to: string): Promise<readonly (DraftDay & { reason: string })[]>;
-  /** Every draft dated `from`…`to`, with its state. */
-  pagesBetween(from: string, to: string): Promise<readonly (DraftDay & { state: string })[]>;
+  /** Every draft dated `from`…`to`. */
+  pagesBetween(from: string, to: string): Promise<readonly (DraftDay & DayPage)[]>;
   /** Whether the destination is not connected yet (hosted: Overview's connect state; WordPress: no credential). */
   waitingForAddress?(siteId: string): Promise<boolean>;
 }
@@ -130,9 +151,10 @@ function localDate(at: Date, timeZone: string): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(at);
 }
 
-/** The site-local date of the latest publish time before the hour `hour` starts has ended. */
+/** The site-local date of the latest publish time at or before the hour `hour` starts: one already passed when the run
+ *  reads it, so a page owed then has had its publish time. */
 export function lastPublishDate(hour: Date, site: DailySite): string {
-  const end = hour.getTime() + MS_PER_HOUR;
+  const end = hour.getTime() + 1;
   const after = (instant: number) => nextPublishTimeAtOrAfter(new Date(instant), settingsOf(site));
   // Publish times are at most 25 hours apart, so one falls in the 26 before the hour ends.
   let at = after(end - 26 * MS_PER_HOUR);
@@ -140,13 +162,16 @@ export function lastPublishDate(hour: Date, site: DailySite): string {
   return publishDateAtOrAfter(at, settingsOf(site));
 }
 
-/** The date's reason, once the date is claimed as a publish time passed with no page owed and none accounted for. */
+/** The date's reason, once the date is claimed as a publish time passed with a page owed and none accounted for. A day
+ *  recorded as drafted is told by where its page stopped. */
 async function claimedMiss(days: DraftDayStore, siteId: string, date: string, at: Date): Promise<string | null> {
-  const states = await days.statesOn(siteId, date);
-  if (states.some((state) => ACCOUNTED.has(state)) || !(await days.draftedBefore(siteId, date))) return null;
+  const pages = await days.statesOn(siteId, date);
+  if (pages.some(accounts) || !(await days.draftedBefore(siteId, date))) return null;
   const reason = await days.reasonOn(siteId, date);
   if (reason === `no_page:${WAITING_FOR_ADDRESS}` || !(await days.claimMissingAlert(siteId, date, at))) return null;
-  return reason ?? (states.length === 0 ? "not-recorded" : `state:${states[0]}`);
+  const page = pages[0];
+  if (page !== undefined && (reason === null || reason.startsWith("drafted"))) return pageReason(page);
+  return reason ?? "not-recorded";
 }
 
 /** The stall, once it is claimed: `AUTOPILOT_STALL.stallFactor` times the cadence without a page delivered, told once
@@ -160,18 +185,17 @@ async function claimedStall(days: DraftDayStore, site: DailySite, date: string, 
   return (await days.claimStallAlert(site.siteId, lastDelivered, at)) ? { lastDelivered, days: since } : null;
 }
 
-/** At the end of a site's run, mails the owner at most once when nothing of the site's is going out: the latest publish
- *  date with no page (once a date) and a stall (once until the next delivery), in one mail. A page going out on that date
- *  or a later one, drafted or rescued, means the system already covered it, so nothing is mailed and the day is left to
- *  the Monday digest (`untoldMisses`). Never throws. */
+/** At the end of a site's run, mails the owner at most once: the latest publish date with no delivered page (once a
+ *  date, whatever is going out later) and, when nothing of the site's is going out, a stall (once until the next
+ *  delivery), in one mail. Never throws. */
 export async function alertSiteDay(a: { site: DailySite; hour: Date }): Promise<number> {
   try {
     const days = draftDays();
     const { siteId } = a.site;
     const date = lastPublishDate(a.hour, a.site);
-    if (await days.goingOutFrom(siteId, date)) return 0;
+    const goingOut = await days.goingOutFrom(siteId, date);
     const missed = await claimedMiss(days, siteId, date, a.hour);
-    const stalled = await claimedStall(days, a.site, date, a.hour);
+    const stalled = goingOut ? null : await claimedStall(days, a.site, date, a.hour);
     if (missed === null && stalled === null) return 0;
     const domain = (await days.domainOf(siteId)) ?? "unknown";
     const { reportIncident } = await import("@/lib/mail/ops");
@@ -192,7 +216,7 @@ export async function alertSiteDay(a: { site: DailySite; hour: Date }): Promise<
 export async function untoldMisses(a: { from: string; to: string }): Promise<readonly (DraftDay & { reason: string })[]> {
   const days = draftDays();
   const [untold, pages] = await Promise.all([days.untoldBetween(a.from, a.to), days.pagesBetween(a.from, a.to)]);
-  const accounted = new Set(pages.filter((page) => ACCOUNTED.has(page.state)).map((page) => `${page.siteId}/${page.publishDate}`));
+  const accounted = new Set(pages.filter(accounts).map((page) => `${page.siteId}/${page.publishDate}`));
   return untold.filter((day) => !accounted.has(`${day.siteId}/${day.publishDate}`) && day.reason !== `no_page:${WAITING_FOR_ADDRESS}`);
 }
 
@@ -215,12 +239,12 @@ function databaseDraftDayStore(): DraftDayStore {
     },
     async statesOn(siteId, publishDate) {
       const { data, error } = await publishDb()
-        .from<{ state: string }>("drafts")
-        .select("state")
+        .from<{ state: string; transitions: unknown }>("drafts")
+        .select("state, transitions")
         .eq("site_id", siteId)
         .eq("scheduled_for", publishDate);
       if (error !== null) throw new Error(error.message);
-      return (data ?? []).map((row) => row.state);
+      return data ?? [];
     },
     async goingOutFrom(siteId, publishDate) {
       const { data, error } = await publishDb()
@@ -250,12 +274,12 @@ function databaseDraftDayStore(): DraftDayStore {
     },
     async pagesBetween(from, to) {
       const { data, error } = await publishDb()
-        .from<{ site_id: string; scheduled_for: string; state: string }>("drafts")
-        .select("site_id, scheduled_for, state")
+        .from<{ site_id: string; scheduled_for: string; state: string; transitions: unknown }>("drafts")
+        .select("site_id, scheduled_for, state, transitions")
         .gte("scheduled_for", from)
         .lte("scheduled_for", to);
       if (error !== null) throw new Error(error.message);
-      return (data ?? []).map((row) => ({ siteId: row.site_id, publishDate: row.scheduled_for, state: row.state }));
+      return (data ?? []).map((row) => ({ siteId: row.site_id, publishDate: row.scheduled_for, state: row.state, transitions: row.transitions }));
     },
     async draftedBefore(siteId, publishDate) {
       const { data, error } = await publishDb()

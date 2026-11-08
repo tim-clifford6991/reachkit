@@ -25,7 +25,7 @@ interface Day {
   alertedAt: string | null;
 }
 
-function memory(drafts: { date: string; state: string }[]) {
+function memory(drafts: { date: string; state: string; transitions?: unknown }[]) {
   const days = new Map<string, Day>();
   const store: DraftDayStore = {
     async record(a) {
@@ -33,7 +33,7 @@ function memory(drafts: { date: string; state: string }[]) {
       days.set(a.publishDate, { ...day, outcome: a.outcome, reason: a.reason });
     },
     async statesOn(_siteId, date) {
-      return drafts.filter((draft) => draft.date === date).map((draft) => draft.state);
+      return drafts.filter((draft) => draft.date === date);
     },
     async goingOutFrom(_siteId, date) {
       return drafts.some((draft) => draft.date >= date && ["in_review", "approved", "publishing", "published"].includes(draft.state));
@@ -94,12 +94,17 @@ describe("the publish time is checked, and a day with no page is told (issue 145
   });
 
   it.each([
-    ["a page going out", "in_review"],
-    ["a page already live", "published"],
-    ["a page the customer stopped", "skipped"],
-  ])("a day with %s is not told", async (_label, state) => {
-    setDraftDayStore(memory([{ date: "2026-10-14", state: "published" }, { date: "2026-10-15", state }]).store);
+    ["a page already live", "published", undefined],
+    ["a page the customer stopped", "skipped", [{ from: "in_review", to: "skipped", actor: { kind: "customer", userId: "u-1" }, reason: "veto" }]],
+  ])("a day with %s is not told", async (_label, state, transitions) => {
+    setDraftDayStore(memory([{ date: "2026-10-14", state: "published" }, { date: "2026-10-15", state, transitions }]).store);
     expect(await alertSiteDay({ site: SITE, hour: PUBLISH_HOUR })).toBe(0);
+  });
+
+  it("a page still in review once its publish time has passed is told: it was not delivered", async () => {
+    setDraftDayStore(memory([{ date: "2026-10-14", state: "published" }, { date: "2026-10-15", state: "in_review" }]).store);
+    expect(await alertSiteDay({ site: SITE, hour: PUBLISH_HOUR })).toBe(1);
+    expect(reportIncident.mock.calls[0]?.[0]).toMatchObject({ reason: "state:in_review" });
   });
 
   it("a page the checks stopped is told: it is not going out", async () => {
