@@ -34,7 +34,7 @@
 // screen. `tests/jobs/client-bindings.test.ts` is what keeps the two names
 // honest instead: it asserts the client resolves exactly the names the
 // schema declares, so a rename in one place cannot silently miss the other.
-import { Inngest } from "inngest";
+import { Inngest, Middleware } from "inngest";
 import { serve as serveFunctions } from "inngest/next";
 import { reportDeadLettered, runJob } from "./run";
 import type { JobDefinition, JobEvent, SubjectEvent } from "./types";
@@ -43,7 +43,28 @@ import type { JobDefinition, JobEvent, SubjectEvent } from "./types";
  *  every function's history, so it is written once, here. */
 export const APP_ID = "reachkit";
 
-export const client = new Inngest({ id: APP_ID });
+const SUBJECT_SUFFIX = "/subject";
+
+/** Every invocation of every function is measured into `job_days`; a per-subject
+ *  run counts under its job, beside that job's own tick. */
+class JobDaysMiddleware extends Middleware.BaseMiddleware {
+  readonly id = "job-days";
+  private site: unknown = null;
+
+  override transformFunctionInput(arg: Middleware.TransformFunctionInputArgs) {
+    this.site = arg.ctx.event?.data;
+    return arg;
+  }
+
+  override async wrapRequest({ fn, next }: Middleware.WrapRequestArgs) {
+    if (fn === null) return next();
+    const { measureInvocation, siteOf } = await import("./job-days");
+    const jobId = fn.name.endsWith(SUBJECT_SUFFIX) ? fn.name.slice(0, -SUBJECT_SUFFIX.length) : fn.name;
+    return measureInvocation(jobId, () => siteOf(this.site), next);
+  }
+}
+
+export const client = new Inngest({ id: APP_ID, middleware: [JobDaysMiddleware] });
 
 type PlatformFunction = ReturnType<typeof client.createFunction>;
 
@@ -63,7 +84,7 @@ function triggerOf(definition: JobDefinition): { event: string } | { cron: strin
 
 /** The event a tick sends for each of its subjects. */
 export function subjectEventName(jobId: JobDefinition["id"]): string {
-  return `${jobId}/subject`;
+  return `${jobId}${SUBJECT_SUFFIX}`;
 }
 
 /** A tick's subjects as platform events: the key is the event's id, so a

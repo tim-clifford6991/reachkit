@@ -285,3 +285,19 @@ describe("a founder who paid and did not finish setup is reminded", () => {
     expect(db.tables.sites![0]!.setup_reminders_sent).toBe(1);
   });
 });
+
+describe("job_days is kept 35 days", () => {
+  it("a tick deletes a row 36 days old and keeps one 34 days old", async () => {
+    const daysAgo = (days: number) => new Date(Date.now() - days * 24 * HOUR).toISOString().slice(0, 10);
+    db = fakeDb({
+      job_days: [
+        { job_id: "draft/generate", day: daysAgo(36), site_id: null, invocations: 3 },
+        { job_id: "draft/generate", day: daysAgo(34), site_id: null, invocations: 2 },
+      ],
+    });
+
+    await accountMaintenance.run({ data: {}, now: NOW });
+
+    expect(db.tables.job_days!.map((row) => row.day)).toEqual([daysAgo(34)]);
+  });
+});

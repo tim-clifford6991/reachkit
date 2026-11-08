@@ -196,6 +196,7 @@ describe('advisor `rls_enabled_no_policy` — the tables that are policy-less by
     // `fetch_facts` is the re-score's cache of what it reads off each `fetches` row.
     // `fetch_text` is the grounding's cache of the text it reads off each `fetches` row.
     // `ops_events` is the daily check's durable count of failed Settings reads.
+    // `job_days` is each job's invocations and CPU per day and site, added only by `job_days_add`.
     expect(policyLess).toEqual([
       "domain_blocks",
       "draft_days",
@@ -203,6 +204,7 @@ describe('advisor `rls_enabled_no_policy` — the tables that are policy-less by
       "fetch_facts",
       "fetch_text",
       "fetches",
+      "job_days",
       "job_error_mails",
       "job_runs",
       "llm_mention_reads",
