@@ -572,8 +572,10 @@ function firstHand(claim: PackClaim, domain: string): boolean {
   return claim.product === domain || ((claim.kind === "study" || claim.kind === "primary") && claim.about === domain);
 }
 
+/** The business facts a pack holds: its passages and its knowledge base's texts. */
+const factTexts = (pack: Omit<ContextPack, "missing">): string[] => [...pack.facts.map((fact) => fact.passage), ...knowledgeTexts(pack.profile?.knowledge)];
+
 function holds(requirement: PackRequirement, pack: Omit<ContextPack, "missing">, previousResearch: PackMeasurements | null): boolean {
-  const knowledge = pack.profile?.knowledge;
   switch (requirement.need) {
     case "rival_evidence":
       return rivalsOnlyVersus(pack).every((rival) => pack.claims.some((claim) => firstHand(claim, rival.domain)));
@@ -586,11 +588,8 @@ function holds(requirement: PackRequirement, pack: Omit<ContextPack, "missing">,
     case "difference":
       return differenceHeld(pack.profile);
     case "facts_on_topic": {
-      // That many business facts, one of them at least in the target's own
-      // words. Whether the topic is the business's at all was judged when it
-      // was ranked (issue 1134); a buyer's words and a site's seldom match
-      // fact for fact ("ChatGPT" and "AI answers"), so the rest are counted.
-      const held = [...pack.facts.map((fact) => fact.passage), ...knowledgeTexts(knowledge)];
+      // One fact in the target's words is enough: a buyer's words and a site's seldom match fact for fact, so the rest are counted.
+      const held = factTexts(pack);
       return held.length >= requirement.min && held.some((text) => shares(ownTopicWords(pack), text));
     }
     case "outside_sources":
@@ -660,7 +659,7 @@ export function correctionsFor(a: {
 export function missingFrom(pack: Omit<ContextPack, "missing">, previousResearch: PackMeasurements | null = null): PackNeed[] {
   // R31: every page but an update, whatever its template, is held to it.
   const held: PackRequirement[] = [...TEMPLATES[pack.type].packMustHold, ...(pack.type === "update" ? [] : [{ need: "rival_evidence" as const }])];
-  return held.filter((requirement) => !holds(requirement, pack, previousResearch)).map((requirement) => requirement.need);
+  return held.filter((requirement) => !holds(requirement, pack, previousResearch)).map((requirement) => (requirement.need === "facts_on_topic" && factTexts(pack).length < requirement.min ? "facts_few" : requirement.need));
 }
 
 /** How many of a section's facts the pack holds: distinct inclusions, the

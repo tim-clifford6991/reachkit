@@ -67,7 +67,9 @@ export type PackRequirement =
    *  a claim about each rival off its own site, a study or a primary source. */
   | { need: "rival_evidence" };
 
-export type PackNeed = PackRequirement["need"];
+/** What a pack lacked, by handle: a requirement's need, or `facts_few` where `facts_on_topic` failed on its count of facts
+ *  rather than on the topic's words, so only a site short of facts is told to add them. */
+export type PackNeed = PackRequirement["need"] | "facts_few";
 
 export interface Template {
   type: ContentType;

@@ -13,19 +13,21 @@ import { applyEnvFixture } from "../../mail/env-fixture";
 applyEnvFixture();
 
 let stored: unknown = null;
+/** The reason the site's newest `draft_days` row kept. */
+let dayReason: string | null = null;
 
 vi.mock("@/lib/db", () => ({
   dbAdmin: () => ({
-    from: () => {
+    from: (table: string) => {
+      const rows = table === "draft_days" ? [{ reason: dayReason }] : stored === null ? [] : [{ report: stored }];
       const self = {
         select: () => self,
         eq: () => self,
         is: () => self,
+        order: () => self,
         limit: () => self,
-        then: (resolve: (v: { data: { report: unknown }[]; error: null }) => unknown) =>
-          Promise.resolve({ data: stored === null ? [] : [{ report: stored }], error: null }).then(
-            resolve
-          ),
+        then: (resolve: (v: { data: unknown[]; error: null }) => unknown) =>
+          Promise.resolve({ data: rows, error: null }).then(resolve),
       };
       return self;
     },
@@ -52,6 +54,7 @@ function asStored(sections: Parameters<typeof assembleReport>[0]): unknown {
 
 beforeEach(() => {
   stored = null;
+  dayReason = null;
 });
 
 describe("REQ-029 c3 — a degraded pass yields one key naming what could not be measured", () => {
@@ -104,6 +107,37 @@ describe("REQ-029 c4 — the emptiness is stated plainly, and this function inve
     const notice = await releaseNotice({ domain: "example.com" });
     expect(Object.keys(notice?.vars ?? {})).toEqual([]);
     for (const part of notice?.parts ?? []) expect(part).toMatch(/^[a-z]+$/);
+  });
+});
+
+describe("the own-facts notice claims the site lacks facts only where the day proved it", () => {
+  const withDay = async (reason: string) => {
+    stored = asStored(fullSections());
+    dayReason = reason;
+    return (await releaseNotice({ domain: "example.com", siteId: "site-1" }))?.key ?? null;
+  };
+
+  it.each(["generate:no_own_facts:grounding", "generate:no_own_facts:pack:facts_few", "generate:no_own_facts:pack:facts_few,product_page"])(
+    "%s shows it",
+    async (reason) => {
+      expect(await withDay(reason)).toBe("setup.release.own-facts");
+    }
+  );
+
+  it.each([
+    // A site with facts, none in the topic's words: the planner's miss, nothing for the founder to add.
+    "generate:no_own_facts:pack:facts_on_topic",
+    "generate:no_own_facts:pack:own_price,facts_on_topic",
+    // Written before the path was named, so it proves neither.
+    "generate:no_own_facts",
+  ])("%s, beside a complete report, shows nothing", async (reason) => {
+    expect(await withDay(reason)).toBeNull();
+  });
+
+  it("a topic-words day falls through to the later arms: a degraded report still says what it missed", async () => {
+    stored = asStored(unreachedSections({ stoppedReason: "site_unreadable" }));
+    dayReason = "generate:no_own_facts:pack:facts_on_topic";
+    expect((await releaseNotice({ domain: "example.com", siteId: "site-1" }))?.key).toBe("setup.release.unmeasured");
   });
 });
 

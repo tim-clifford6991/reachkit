@@ -138,10 +138,12 @@ describe("a short day ends in a written pack or a named reason", () => {
     expect(written()).toEqual([{ opportunity: SPARE, type: "documentation", missing: [] }]);
   });
 
-  it("with three facts there is no reference page, and the day names why", async () => {
+  it("with three facts there is no reference page, the day names too few facts, and the founder's notice says it", async () => {
     world(THIN, { readNothing: true });
-    expect(await day()).toEqual({ ok: false, because: "no_own_facts", step: "pack:facts_on_topic" });
+    expect(await day()).toEqual({ ok: false, because: "no_own_facts", step: "pack:facts_few" });
     expect(written()).toEqual([]);
+    Object.assign(days, { reason: "generate:no_own_facts:pack:facts_few", report: JSON.parse(JSON.stringify(report())) });
+    expect((await releaseNotice({ domain: BAKERY.business.domain, siteId: store.site!.id }))?.key).toBe("setup.release.own-facts");
   });
 
   it.each([

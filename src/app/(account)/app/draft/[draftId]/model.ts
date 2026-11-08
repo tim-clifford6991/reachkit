@@ -189,13 +189,13 @@ export interface PackView {
   readonly missing: readonly PackNeed[];
 }
 
-/** One short noun phrase per thing a pack can lack. Total over `PackNeed`,
- *  so a new need is a compile error here rather than a blank line. */
+/** One short noun phrase per thing a pack can lack, total over `PackNeed` so a new need fails to compile, not prints blank. */
 export const PACK_NEED_COPY: Readonly<Record<PackNeed, CopyKey>> = Object.freeze({
   options: "publish.needs-you.pack.need.options",
   own_price: "publish.needs-you.pack.need.own_price",
   difference: "publish.needs-you.pack.need.difference",
   facts_on_topic: "publish.needs-you.pack.need.facts_on_topic",
+  facts_few: "publish.needs-you.pack.need.facts_few",
   outside_sources: "publish.needs-you.pack.need.outside_sources",
   product_page: "publish.needs-you.pack.need.product_page",
   measured_questions: "publish.needs-you.pack.need.measured_questions",

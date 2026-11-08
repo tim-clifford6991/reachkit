@@ -354,6 +354,32 @@ describe("issue 1477: a comparison over D52's cap, written as a Q&A, is read on 
   });
 });
 
+describe("a reference page short of facts says whether the site is short or only the topic's words are", () => {
+  const reference = (passages: readonly string[]) =>
+    buildPack({
+      ...inputs(),
+      type: "documentation",
+      opportunity: opportunity({ targetQuery: "blocked drain cleaning", targetRef: "blocked-drain-cleaning", title: null, family: "write" }),
+      site: { businessName: "Dale's Drains", domain: "dalesdrains.example", doNotClaim: [], rivals: [] },
+      category: "drain cleaning",
+      profile: null,
+      research: { facts: [], products: [] },
+      facts: passages.map((passage) => ({ fact: { ...GROUNDED, passage, url: "https://dalesdrains.example/" }, sourceText: passage })),
+    }).missing;
+
+  it("three facts in the topic's words are too few: facts_few, never facts_on_topic", () => {
+    const missing = reference(["We clear blocked drains the same day.", "Every drain cleaning job is quoted first.", "A blocked drain costs $95 to clear."]);
+    expect(missing).toContain("facts_few");
+    expect(missing).not.toContain("facts_on_topic");
+  });
+
+  it("six facts, none in the topic's words, are enough facts off the topic: facts_on_topic, never facts_few", () => {
+    const missing = reference(["Open Monday to Saturday.", "Family run since 2009.", "Vans in Leeds and York.", "Insured with Aviva.", "Call us on 0113 555 0100.", "Reviews average 4.9 stars."]);
+    expect(missing).toContain("facts_on_topic");
+    expect(missing).not.toContain("facts_few");
+  });
+});
+
 describe("what a new page adds is counted over the pack (D12)", () => {
   const facts = ["One.", "Two.", "Three."].map((word) => ({ passage: `${word} A fact of the business's own.`, url: GROUNDED.url, readAt: AT.toISOString() }));
 
