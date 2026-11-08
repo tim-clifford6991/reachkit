@@ -24,12 +24,13 @@
 // because a database answer is no part of any promise here.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
+import { unstable_doesMiddlewareMatch, unstable_getResponseFromNextConfig } from "next/experimental/testing/server";
 import "../scan/run/harness";
 
 vi.mock("@/lib/scan/removal", () => ({ isDomainRemoved: async () => false }));
 
 import nextConfig, { SECURITY_HEADERS } from "../../next.config";
-import { contentSecurityPolicy, middleware } from "@/middleware";
+import { config, contentSecurityPolicy, middleware } from "@/middleware";
 import { sessionCookieOptions, setIdentityAuth } from "@/lib/account/identity/auth";
 import { addAuthUser, fakeIdentityAuth, newFakeAuth, signedInCookie } from "../account/identity/fake-auth";
 
@@ -212,6 +213,44 @@ describe("issue #331 — no path out of `src/middleware.ts` answers without the 
       return found;
     };
     expect(nonceOf(a.headers.get(CSP))).not.toBe(nonceOf(b.headers.get(CSP)));
+  });
+});
+
+// ── 1c. The machine endpoints the middleware never sees ─────────────────
+
+describe("the three machine endpoints carry a fixed strict policy wherever the middleware skips them", () => {
+  const MACHINE = ["/api/jobs", "/api/jobs/x", "/api/stripe/webhook", "/api/health"];
+  const OTHERS = ["/", "/app", "/pricing", "/api/scan", "/api/jobsx", "/api/healthz", "/api/health/x", "/scan/example.com"];
+  const HOSTS = ["reachkit.app", "dev.reachkit.app", "content.reachkit.app", "content.example.com", "localhost:3000"];
+
+  const fromConfig = async (host: string, pathname: string): Promise<Headers> =>
+    (await unstable_getResponseFromNextConfig({ url: `https://${host}${pathname}`, nextConfig, headers: { host } })).headers;
+  const middlewareRuns = (host: string, pathname: string): boolean =>
+    unstable_doesMiddlewareMatch({ config, nextConfig, url: `https://${host}${pathname}`, headers: { host } });
+
+  it("on a ReachKit host each of the three answers `default-src 'none'; frame-ancestors 'none'`, beside the fixed set", async () => {
+    for (const host of ["reachkit.app", "dev.reachkit.app"]) {
+      for (const pathname of MACHINE) {
+        const headers = await fromConfig(host, pathname);
+        expect(headers.get(CSP), `${host}${pathname}`).toBe("default-src 'none'; frame-ancestors 'none'");
+        for (const { key, value } of SECURITY_HEADERS) expect(headers.get(key)).toBe(value);
+      }
+    }
+  });
+
+  it("no other path gets that policy from `next.config.ts`", async () => {
+    for (const host of HOSTS) {
+      for (const pathname of OTHERS) expect((await fromConfig(host, pathname)).get(CSP), `${host}${pathname}`).toBeNull();
+    }
+  });
+
+  it("every response has exactly one source of its policy: the middleware's nonce or the fixed one, never both, never neither", async () => {
+    for (const host of HOSTS) {
+      for (const pathname of [...MACHINE, ...OTHERS]) {
+        const fixed = (await fromConfig(host, pathname)).get(CSP) !== null;
+        expect(fixed !== middlewareRuns(host, pathname), `${host}${pathname}`).toBe(true);
+      }
+    }
   });
 });
 

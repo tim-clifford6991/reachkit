@@ -983,7 +983,16 @@ export const config = {
   // static internals so this function is never invoked for them at all —
   // belt-and-braces with `isNextInternal` above, which covers the same
   // paths when this function is called directly, as the test suite does.
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  // The three machine endpoints are skipped as well, but only on ReachKit's
+  // own hosts: on any other host the hosted edge must still answer them, and
+  // `next.config.ts` gives them their fixed policy under the same host test.
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|api/jobs(?:/|$)|api/stripe/webhook$|api/health$).*)",
+    {
+      source: "/api/(jobs|jobs/.*|stripe/webhook|health)",
+      missing: [{ type: "host", value: "(?:dev\\.)?reachkit\\.app" }],
+    },
+  ],
   // **Node.js, and not the Edge runtime** (issue #49). The legacy
   // `middleware.ts` convention still builds for Edge; its successor
   // `proxy.ts` "defaults to using the Node.js runtime" and refuses this

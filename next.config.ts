@@ -42,7 +42,8 @@ const NOINDEX = "noindex, nofollow" as const;
 // (`next/dist/server/app-render/app-render.js`, `parseRequestHeaders`).
 // So `src/middleware.ts` owns the CSP — including its `frame-ancestors` —
 // and this file owns `X-Frame-Options`, that directive's legacy twin,
-// which does reach the static bundles.
+// which does reach the static bundles, and the fixed CSP of the machine
+// endpoints the middleware skips (`MACHINE_CSP`), which render nothing.
 //
 // Every value below is internal (rule 1.1): a header's wire name and its
 // attributes. None is a sentence anybody reads, so none is a copy key.
@@ -88,6 +89,16 @@ export const SECURITY_HEADERS: readonly { key: string; value: string }[] = [
   { key: "X-Content-Type-Options", value: "nosniff" },
 ];
 
+/** ReachKit's own hosts, where `src/middleware.ts`'s matcher skips the
+ *  machine endpoints; it states the same value as a literal, because Next
+ *  reads that file's `config` from source. Any other host is the hosted edge's. */
+const MACHINE_HOSTS = "(?:dev\\.)?reachkit\\.app" as const;
+
+/** The JSON-only endpoints the middleware does not stamp: nothing on them
+ *  renders, so the policy loads nothing and is framed by nothing. */
+const MACHINE_CSP = "default-src 'none'; frame-ancestors 'none'" as const;
+const MACHINE_SOURCES = ["/api/jobs/:path*", "/api/stripe/webhook", "/api/health"] as const;
+
 const nextConfig: NextConfig = {
   // The Tailwind compiler and its native addons are required as they ship, never bundled: the
   // hosted `/style.css` route runs them once, during `next build`.
@@ -124,6 +135,11 @@ const nextConfig: NextConfig = {
         source: "/(.*)",
         headers: [...SECURITY_HEADERS],
       },
+      ...MACHINE_SOURCES.map((source) => ({
+        source,
+        has: [{ type: "host" as const, value: MACHINE_HOSTS }],
+        headers: [{ key: "Content-Security-Policy", value: MACHINE_CSP }],
+      })),
       {
         source: "/scan/:domain",
         headers: [{ key: "X-Robots-Tag", value: NOINDEX }],

@@ -22,6 +22,7 @@
 // under a segment neither that list nor `PUBLIC_PATHS` covers.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
+import { unstable_doesMiddlewareMatch } from "next/experimental/testing/server";
 // #104 gave this function one narrow database read — the removal rewrite
 // for `GET /scan/{domain}` — so importing it now loads `@/lib/db` and
 // through it `env.ts`, which parses the environment at module load. The
@@ -483,10 +484,41 @@ describe("issue #326 — Next's generated metadata assets under (public) are rea
 });
 
 describe("`## Interfaces` — the exported matcher", () => {
-  it("config.matcher is a non-empty array of strings", async () => {
-    expect(Array.isArray(config.matcher)).toBe(true);
-    expect(config.matcher.length).toBeGreaterThan(0);
-    for (const entry of config.matcher) expect(typeof entry).toBe("string");
+  const runs = (url: string): boolean =>
+    unstable_doesMiddlewareMatch({ config, nextConfig, url, headers: { host: new URL(url).host } });
+
+  it("on a ReachKit host the three machine endpoints never invoke the middleware", () => {
+    for (const origin of ["https://reachkit.app", "https://dev.reachkit.app"]) {
+      for (const pathname of ["/api/jobs", "/api/jobs/x", "/api/stripe/webhook", "/api/health"]) {
+        expect(runs(`${origin}${pathname}`), `${origin}${pathname}`).toBe(false);
+      }
+    }
+  });
+
+  it("every other path still invokes it, a near-miss of a machine path included", () => {
+    for (const pathname of ["/", "/app", "/api/scan", "/api/jobsx", "/api/healthz", "/api/health/x", "/api/stripe/webhookx"]) {
+      expect(runs(`https://reachkit.app${pathname}`), pathname).toBe(true);
+    }
+    expect(runs("https://reachkit.app/_next/static/chunk.js")).toBe(false);
+  });
+
+  it("on any other host the machine endpoints still invoke it, so the hosted edge answers them", () => {
+    for (const origin of ["https://content.example.com", "https://content.reachkit.app", "https://evil-reachkit.app", "http://localhost:3000"]) {
+      for (const pathname of ["/api/jobs", "/api/jobs/x", "/api/stripe/webhook", "/api/health"]) {
+        expect(runs(`${origin}${pathname}`), `${origin}${pathname}`).toBe(true);
+      }
+    }
+  });
+
+  it("on a customer's host the hosted edge rewrites the machine endpoints away from their handlers", async () => {
+    const asked = async (pathname: string, method: string): Promise<string | null> => {
+      const req = new NextRequest(new URL(pathname, "https://content.example.com"), { method, headers: { host: "content.example.com" } });
+      const destination = (await middleware(req)).headers.get("x-middleware-rewrite");
+      return destination === null ? null : new URL(destination).pathname;
+    };
+    expect(await asked("/api/health", "GET")).toBe("/hosted-page/api/health");
+    expect(await asked("/api/jobs", "POST")).toBe("/hosted-page/api/jobs");
+    expect(await asked("/api/stripe/webhook", "POST")).toBe("/hosted-page/api/stripe/webhook");
   });
 });
 
