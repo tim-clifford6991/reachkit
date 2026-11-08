@@ -118,9 +118,7 @@ export type DayPageOutcome =
     }
   | { ok: false; because: "step_failed"; draftId: string | null; step: string }
   /** DataForSEO refused the page's research for lack of credit. */
-  | { ok: false; because: "vendor_funds" }
-  /** The day's update fallback found none of the site's own live pages past the refresh floor to update. */
-  | { ok: false; because: "no_update_candidate" };
+  | { ok: false; because: "vendor_funds" };
 
 type NoPage = Extract<DayPageOutcome, { because: "no_site" | "no_scan" | "already_drafted" | "no_opportunity" }>;
 

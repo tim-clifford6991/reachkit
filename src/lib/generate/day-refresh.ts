@@ -3,9 +3,10 @@
 // week's live page mended in code at 0¢, else the writer's update of our oldest live page from stored research.
 import { REFRESH_MIN_AGE_DAYS } from "@/lib/config/constants";
 import { committedWeek, queueForDraft, type Opportunity } from "@/lib/opportunities";
-import { oldestDueUpdate } from "@/lib/opportunities/refresh";
+import { addressKey, persistAssessed, refreshOfPage, stoppedRefreshes } from "@/lib/opportunities/refresh";
+import { opportunityStore, readOpportunity } from "@/lib/opportunities/store";
 import { contentTypeOf } from "@/lib/opportunities/content-type";
-import { isOwnRefresh } from "@/lib/opportunities/types";
+import { isOwnRefresh, isResting } from "@/lib/opportunities/types";
 import type { CostContext } from "@/lib/costs";
 import type { StoredReport } from "@/lib/scan/report";
 import type { DayPageOutcome } from ".";
@@ -129,7 +130,7 @@ export async function refreshForDay(a: {
   stopped: string | null;
   /** The run's due hour, which a topic's rest is read against and the day's spend so far is read since. */
   now?: Date;
-}): Promise<DayPageOutcome | null> {
+}): Promise<DayPageOutcome | typeof NO_UPDATE | null> {
   const store = generateStore();
   const [site, report] = await Promise.all([store.siteFacts(a.siteId), store.latestReport(a.siteId)]);
   if (site === null || report === null) return null;
@@ -174,7 +175,36 @@ export async function refreshForDay(a: {
   return !page.ok && page.because === "no_opportunity" ? NO_UPDATE : page;
 }
 
+/** The day's update fallback found none of the site's own live pages past the refresh floor to update. */
 const NO_UPDATE = { ok: false, because: "no_update_candidate" } as const;
+
+/**
+ * The page a day updates once its own page and its spare end without one (SPEC §7, owner 2026-11-08): the site's own
+ * live page longest past the refresh floor, committed or not — its open refresh where it has one, else one planned and
+ * assessed as Monday's are. A page its customer edited, took down or stopped a refresh of is theirs and is passed over,
+ * as is one whose row rests or is not ready. Nothing is bought.
+ */
+async function oldestDueUpdate(siteId: string, at: Date): Promise<Opportunity | null> {
+  const store = opportunityStore();
+  const floor = at.getTime() - REFRESH_MIN_AGE_DAYS * 24 * 60 * 60 * 1000;
+  const pages = (await store.refreshPages(siteId))
+    .filter((page) => page.publishedAt.getTime() <= floor && page.takenDown !== true && page.edited !== true && page.row.targetQuery !== null)
+    .sort((x, y) => x.publishedAt.getTime() - y.publishedAt.getTime());
+  if (pages.length === 0) return null;
+  const stopped = await stoppedRefreshes(siteId);
+  const openAt = async (url: string) =>
+    (await store.openRankable(siteId)).map(readOpportunity).filter((o) => o.type === "refresh_page" && addressKey(o.targetRef ?? "") === addressKey(url));
+  for (const page of pages) {
+    if (stopped.has(addressKey(page.url))) continue;
+    let open = await openAt(page.url);
+    // Titled as the page is, so the writer finds its live text even before the known-content copy lists it.
+    const planned = { ...refreshOfPage(page, "aged", at), title: page.title || null };
+    if (open.length === 0 && (await persistAssessed(siteId, [planned], at)) > 0) open = await openAt(page.url);
+    const row = open.find((o) => o.ready && !isResting(o, at));
+    if (row !== undefined) return row;
+  }
+  return null;
+}
 
 /** One of ReachKit's own pages, live at `url` for at least the refresh floor: nothing else is refreshed for a day. */
 async function pastFloor(siteId: string, url: string): Promise<boolean> {

@@ -516,7 +516,6 @@ export async function generateDraft(a: {
   const { recheckStopped } = await import("@/lib/generate/recheck");
   await step("recheck", async () => { const rescued = await recheckStopped(day); if (rescued !== null) await schedulePublish({ draftId: rescued }); return rescued; });
   const decided = await step("select", () => decideDayPage(day));
-  // The day's page from a ready update of the committed week, in the same run, where its own did not pass.
   const instead = async (trigger: string, from: "select" | "write", stopped: string | null): Promise<EngineResult> => {
     const taken = trigger === "generate:no_site" || trigger === "generate:no_scan" ? null : await step("refresh", () => refreshForDay({ siteId: a.siteId, publishDate: a.publishDate, trigger, from, stopped, now: a.now }));
     if (taken === null || (!taken.ok && taken.because === "already_drafted")) return taken === null ? { degraded: trigger } : { done: true };
