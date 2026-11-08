@@ -45,13 +45,13 @@ function importFenceRule(test, message) {
 }
 
 /**
- * The boot's import list. Every specifier `src/instrumentation.ts` names must be in `allow`, or in `lazy` and loaded
- * by `import()` inside one of the functions named for it, so boot itself loads only what it registers.
+ * A cold path's import list. Every specifier the file names must be in `allow`, or in `lazy` and loaded by `import()`
+ * inside one of the functions named for it, so a cold start loads only what that path needs. Type imports are erased.
  */
 const instrumentationImports = {
   meta: {
     type: "problem",
-    docs: { description: "src/instrumentation.ts loads only the modules its boot registers." },
+    docs: { description: "A cold path loads only the modules its import list names." },
     schema: [
       {
         type: "object",
@@ -77,7 +77,7 @@ const instrumentationImports = {
       if (typeof spec !== "string" || allow.includes(spec)) return;
       if (isLazy && (lazy[spec] ?? []).includes(enclosingFunction(node))) return;
       const except = lazy[spec] ? `, except by import() inside ${lazy[spec].join(" or ")}` : "";
-      context.report({ node, message: `${file} may not load '${spec}'${except}: a cold start loads only what its boot registers.` });
+      context.report({ node, message: `${file} may not load '${spec}'${except}: a cold start loads only what its import list names.` });
     };
     return {
       ImportDeclaration(node) {
@@ -465,8 +465,9 @@ export const localImportRules = {
     // `dbAdmin()`, imported from the bare `@/lib/db` entry point) may be
     // reached from outside the module.
     "no-db-internal-import": importFenceRule(
-      (spec) => spec.startsWith("@/lib/db/"),
-      "BP-002: only src/lib/db's own public entry ('@/lib/db') may be imported outside src/lib/db — this imports an internal module."
+      // `@/lib/db/rest` is the admin client's read half, an entry of its own so a cold read skips supabase-js.
+      (spec) => spec.startsWith("@/lib/db/") && spec !== "@/lib/db/rest",
+      "BP-002: only src/lib/db's own public entries ('@/lib/db', '@/lib/db/rest') may be imported outside src/lib/db — this imports an internal module."
     ),
 
     // (b) structure.md rule 6: "No `src/lib/` module imports from
@@ -525,6 +526,7 @@ export const localImportRules = {
 
     // A cold start of every function runs the boot, so it loads only what it registers.
     "instrumentation-imports": instrumentationImports,
+    "health-imports": instrumentationImports,
 
     // A client writes the first x-forwarded-for entry itself, so one file decides which header to trust.
     "no-client-address-header": textFenceRule([
@@ -588,6 +590,34 @@ export default tseslint.config(
           lazy: {
             "@/lib/mail/ops": ["tellOwnersOfRefusal", "opsMail"],
             "@/lib/publish/destinations/wordpress/stamp-place": ["wordpressPlace"],
+          },
+        },
+      ],
+    },
+  },
+  {
+    // `/api/health` answers a cold request: no job definition, and the database only inside the store's reads.
+    files: ["src/app/api/health/route.ts"],
+    plugins: { local: localImportRules },
+    rules: { "local/health-imports": ["error", { allow: ["../_adapter", "@/jobs/heartbeat", "@/jobs/schedule"] }] },
+  },
+  {
+    files: ["src/jobs/schedule.ts"],
+    plugins: { local: localImportRules },
+    rules: { "local/health-imports": ["error", { allow: [] }] },
+  },
+  {
+    files: ["src/jobs/heartbeat.ts"],
+    plugins: { local: localImportRules },
+    rules: {
+      "local/health-imports": [
+        "error",
+        {
+          allow: [],
+          lazy: {
+            "@/lib/db": ["client"],
+            "@/lib/db/rest": ["readClient"],
+            "@/lib/mail/ops": ["beat", "databaseHeartbeatStore"],
           },
         },
       ],

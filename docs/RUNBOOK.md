@@ -340,7 +340,8 @@ again. A store that cannot answer still mails and logs
 **The outside check.** The heartbeat cannot see *every* job stopping, so `GET /api/health`
 reads the same rows on each request: `200 {"ok":true}` when every scheduled job with a row is within
 twice its interval, `503` with `stale` (the job ids, mailed or not) or `reason` (`no-runs`,
-`read-failed`) otherwise. It needs no session, is never cached, and writes nothing.
+`read-failed`) otherwise. It needs no session, is never cached, and writes nothing. It judges the
+cron list in `src/jobs/schedule.ts`, which `tests/jobs/schedule.test.ts` holds equal to the registry.
 
 **The box's clock.** `rk-deadman.timer` runs `scripts/deadman.mjs` every 2 minutes from the box,
 which Vercel does not host, so it still runs when every deployment answers 402 (2026-11-07). It
