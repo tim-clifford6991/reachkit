@@ -86,7 +86,7 @@ beforeEach(() => {
   doubles.generateDayPage.mockReset().mockResolvedValue({ ok: true, draftId: "d1" });
   setDraftDayStore({
     record: async (a) => void recorded.set(`${a.siteId}/${a.publishDate}`, a.outcome),
-    statesOn: async (_id, date) => (pages.has(date) ? [pages.get(date)!] : []),
+    statesOn: async (_id, date) => (pages.has(date) ? [{ state: pages.get(date)! }] : []),
     goingOutFrom: async (_id, date) => [...pages].some(([day, state]) => day >= date && state === "in_review"),
     draftedBefore: async () => draftedBefore,
     reasonOn: async () => null,
@@ -109,7 +109,7 @@ afterEach(() => {
 const EVENING = new Date("2026-09-07T18:00:00.000Z");
 const CLOCK = { timeZone: "UTC", publishTime: "18:00", vetoHours: 24 };
 
-describe("draft/generate — the owner is told after the site's run, and only when nothing is going out", () => {
+describe("draft/generate — the owner is told after the site's run, once for a date with no delivered page", () => {
   // The evening's due hour drafts the 8th and is the hour the 7th publishes in; the 7th has no page.
   const run = () =>
     draftGenerate.perSubject!({
@@ -117,7 +117,7 @@ describe("draft/generate — the owner is told after the site's run, and only wh
       now: new Date(EVENING.getTime() + 60_000),
     });
 
-  it("a rescued page silences the stall alert", async () => {
+  it("a page rescued for the 8th does not hide the 7th's miss: 1 mail", async () => {
     doubles.recheckStopped.mockImplementation(async () => {
       pages.set("2026-09-08", "in_review");
       return "d-rescued";
@@ -125,7 +125,7 @@ describe("draft/generate — the owner is told after the site's run, and only wh
     doubles.decideDayPage.mockResolvedValue({ ok: false, because: "already_drafted" });
     await run();
     expect(doubles.recheckStopped).toHaveBeenCalledOnce();
-    expect(mails).toEqual([]);
+    expect(mails).toHaveLength(1);
   });
 
   it("a run whose recheck rescues nothing and that leaves no page going out sends 1 mail", async () => {

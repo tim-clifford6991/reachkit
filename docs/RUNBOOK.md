@@ -406,6 +406,33 @@ stale ids, and the deadman mails it. The heartbeat is installed only where `/api
 the registry; a failed write logs `{"event":"job_heartbeat","outcome":"record-failed"}` and never
 fails the job.
 
+### Which job spent the CPU
+
+Vercel reports Active CPU for `/api/jobs` as one figure, and every step is its own invocation of
+that route. `job_days` splits it: one row per job, UTC day and site, with `invocations`, `cpu_ms`
+and `wall_ms`, added by one atomic `job_days_add` per invocation. A per-site run counts under its
+job with its `site_id`; a tick's own invocations have `site_id` null.
+
+`cpu_ms` is the process's CPU over the invocation. Under Fluid compute, invocations that overlap on
+one instance each see the others' CPU, so the figure is an upper bound; read it beside `wall_ms`.
+A day with no row was not measured, which is not the same as 0. Rows older than 35 days are
+deleted by `account/maintenance`. A failed write logs `{"event":"job_days","outcome":"record-failed"}`
+and never changes the job's answer.
+
+Per job and day, the costliest first:
+
+```sql
+select job_id, day, sum(invocations), sum(cpu_ms), sum(wall_ms)
+from job_days group by 1, 2 order by 4 desc;
+```
+
+Per site, yesterday:
+
+```sql
+select site_id, job_id, invocations, cpu_ms, wall_ms
+from job_days where day = current_date - 1 and site_id is not null order by cpu_ms desc;
+```
+
 ### Why a site had no page on a date
 
 `job_runs` keeps one row per job, so an hourly `skipped` overwrites the due hour that wrote nothing,
@@ -419,8 +446,9 @@ from draft_days d join sites s on s.id = d.site_id
 order by d.publish_date desc limit 30;
 ```
 
-In the hour a paying, publishing site's publish time falls in, a date with no page going out is
-mailed to `OWNER_EMAILS` once (*"A site's publish time passed with no page for the day."*), with that
+In the first due hour that starts at or after a paying, publishing site's publish time, a date with
+neither a page delivered nor one the customer stopped is mailed to `OWNER_EMAILS` once, whether or
+not a later page is going out (*"A site's publish time passed with no page for the day."*), with that
 row's reason, and `missing_alerted_at` records it. A row with only `missing_alerted_at` set is a date
 whose due hour never ran for that site, for example a tick that did not fire or a site not selected
 then. `no_page` with `generate:no_opportunity` and open, ready rows on file means the ranking left

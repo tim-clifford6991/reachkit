@@ -98,6 +98,11 @@ describe("REQ-079 c7 — the enumerated sweep, one case per named class", () => 
     });
   });
 
+  it("the site's job invocations and CPU go with it, by the site they ran for", async () => {
+    await purgeAccount("u-1");
+    expect(state.deleted.find((step) => step.table === "job_days")).toEqual({ table: "job_days", column: "site_id", values: ["site-1"] });
+  });
+
   it("the danger-zone ticket goes with the account", async () => {
     await purgeAccount("u-1");
     expect(tables()).toContain("danger_tickets");

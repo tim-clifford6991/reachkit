@@ -1,5 +1,5 @@
-// The owner is mailed about a site's day only when nothing of the site's is going out (O7): one mail a site an hour, a
-// day a later page covered left to the Monday digest, and a stall told once until the next delivery.
+// The owner is mailed once for each publish date with no delivered page, whatever is going out later, with its reason:
+// one mail a site an hour, and a stall told once until the next delivery while nothing is going out.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const reportIncident = vi.hoisted(() => vi.fn(async () => true));
@@ -17,7 +17,13 @@ const HOUR_15 = new Date("2026-10-15T07:00:00Z");
 
 const GOING_OUT = new Set(["in_review", "approved", "publishing", "published"]);
 
-function memory(a: { drafts: { date: string; state: string }[]; delivered?: string }) {
+/** The last move of a page the customer vetoed, and of one the daily re-check set aside, as `drafts.transitions` keeps them. */
+const BY_CUSTOMER = [{ from: "in_review", to: "skipped", actor: { kind: "customer", userId: "u-1" }, reason: "veto", at: "2026-10-14T09:00:00Z" }];
+const RETIRED = [{ from: "needs_attention", to: "skipped", actor: { kind: "system", job: "draft/recheck" }, reason: "retired:title", at: "2026-10-15T07:00:00Z" }];
+
+type Draft = { date: string; state: string; transitions?: unknown };
+
+function memory(a: { drafts: Draft[]; delivered?: string }) {
   const days = new Map<string, { outcome: string | null; reason: string | null; missingAt: string | null; stallAt: string | null }>();
   const row = (date: string) => days.get(date) ?? { outcome: null, reason: null, missingAt: null, stallAt: null };
   const state = { delivered: a.delivered === undefined ? null : new Date(a.delivered) };
@@ -26,7 +32,7 @@ function memory(a: { drafts: { date: string; state: string }[]; delivered?: stri
     row(date)[field] === null && Boolean(days.set(date, { ...row(date), [field]: at.toISOString() }));
   const store: DraftDayStore = {
     record: async (day) => void days.set(day.publishDate, { ...row(day.publishDate), outcome: day.outcome, reason: day.reason }),
-    statesOn: async (_id, date) => a.drafts.filter((draft) => draft.date === date).map((draft) => draft.state),
+    statesOn: async (_id, date) => a.drafts.filter((draft) => draft.date === date),
     goingOutFrom: async (_id, date) => a.drafts.some((draft) => draft.date >= date && GOING_OUT.has(draft.state)),
     draftedBefore: async (_id, date) => a.drafts.some((draft) => draft.date < date),
     reasonOn: async (_id, date) => {
@@ -44,7 +50,7 @@ function memory(a: { drafts: { date: string; state: string }[]; delivered?: stri
         .filter(([date, day]) => date >= from && date <= to && day.outcome !== null && day.missingAt === null)
         .map(([date, day]) => ({ siteId: SAAS.siteId, publishDate: date, reason: day.reason === null ? day.outcome! : `${day.outcome}:${day.reason}` })),
     pagesBetween: async (from, to) =>
-      a.drafts.filter((draft) => draft.date >= from && draft.date <= to).map((draft) => ({ siteId: SAAS.siteId, publishDate: draft.date, state: draft.state })),
+      a.drafts.filter((draft) => draft.date >= from && draft.date <= to).map((draft) => ({ siteId: SAAS.siteId, publishDate: draft.date, ...draft })),
   };
   return { store, state };
 }
@@ -59,17 +65,80 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe("a missed day is mailed only when nothing is going out", () => {
-  it("a missed day with a later page going out is not mailed and is in the digest", async () => {
+describe("each publish date with no delivered page is mailed once", () => {
+  it("a missed day with a later page going out mails once at its publish time, and is then not in the digest", async () => {
     const { store } = memory({ drafts: [{ date: "2026-10-14", state: "published" }, { date: "2026-10-16", state: "in_review" }] });
     setDraftDayStore(store);
     await store.record({ siteId: SAAS.siteId, publishDate: "2026-10-15", outcome: "no_page", reason: "generate:rules", at: new Date("2026-10-14T07:00:00Z") });
 
-    expect(await alertSiteDay({ site: SAAS, hour: HOUR_15 })).toBe(0);
-    expect(reportIncident).not.toHaveBeenCalled();
+    expect(await alertSiteDay({ site: SAAS, hour: HOUR_15 })).toBe(1);
+    expect(reportIncident.mock.calls).toEqual([
+      [{ occasion: "no-draft-at-publish", domain: "saas.example", date: "2026-10-15", reason: "no_page:generate:rules" }],
+    ]);
+    expect(await untoldMisses({ from: "2026-10-12", to: "2026-10-18" })).toEqual([]);
+  });
+
+  it("a day whose pages the re-check set aside is a miss: in the digest until told, then mailed once with its reason", async () => {
+    // The shape of a day both of whose topics the rules stopped, retired by the next morning's re-check.
+    const { store } = memory({
+      drafts: [
+        { date: "2026-10-14", state: "published" },
+        { date: "2026-10-15", state: "skipped", transitions: RETIRED },
+        { date: "2026-10-15", state: "skipped", transitions: RETIRED },
+        { date: "2026-10-16", state: "in_review" },
+      ],
+    });
+    setDraftDayStore(store);
+    await store.record({ siteId: SAAS.siteId, publishDate: "2026-10-15", outcome: "no_page", reason: "generate:rules", at: new Date("2026-10-14T07:00:00Z") });
     expect(await untoldMisses({ from: "2026-10-12", to: "2026-10-18" })).toEqual([
       { siteId: SAAS.siteId, publishDate: "2026-10-15", reason: "no_page:generate:rules" },
     ]);
+
+    expect(await alertSiteDay({ site: SAAS, hour: HOUR_15 })).toBe(1);
+    expect(reportIncident).toHaveBeenCalledWith(expect.objectContaining({ date: "2026-10-15", reason: "no_page:generate:rules" }));
+  });
+
+  it("a page drafted and then set aside is told by where it stopped", async () => {
+    const { store } = memory({ drafts: [{ date: "2026-10-14", state: "published" }, { date: "2026-10-15", state: "skipped", transitions: RETIRED }] });
+    setDraftDayStore(store);
+    await store.record({ siteId: SAAS.siteId, publishDate: "2026-10-15", outcome: "drafted", reason: null, at: new Date("2026-10-14T07:00:00Z") });
+    expect(await alertSiteDay({ site: SAAS, hour: HOUR_15 })).toBe(1);
+    expect(reportIncident).toHaveBeenCalledWith(expect.objectContaining({ reason: "state:skipped:retired:title" }));
+  });
+
+  it.each([
+    ["the customer stopped", { state: "skipped", transitions: BY_CUSTOMER }],
+    ["was delivered", { state: "published" }],
+    ["was delivered and since taken down", { state: "unpublished", transitions: BY_CUSTOMER }],
+  ])("a day whose page %s is accounted for: no mail and not in the digest", async (_label, page) => {
+    const { store } = memory({ drafts: [{ date: "2026-10-14", state: "published" }, { date: "2026-10-15", ...page }] });
+    setDraftDayStore(store);
+    await store.record({ siteId: SAAS.siteId, publishDate: "2026-10-15", outcome: "drafted", reason: null, at: new Date("2026-10-14T07:00:00Z") });
+    expect(await alertSiteDay({ site: SAAS, hour: HOUR_15 })).toBe(0);
+    expect(await untoldMisses({ from: "2026-10-12", to: "2026-10-18" })).toEqual([]);
+    expect(reportIncident).not.toHaveBeenCalled();
+  });
+
+  it("a second publish run for the same date sends no second mail, even once a later page is going out", async () => {
+    const drafts: Draft[] = [{ date: "2026-10-14", state: "published" }];
+    const { store } = memory({ drafts });
+    setDraftDayStore(store);
+    await store.record({ siteId: SAAS.siteId, publishDate: "2026-10-15", outcome: "no_page", reason: "generate:no_own_facts", at: new Date("2026-10-14T07:00:00Z") });
+    expect(await alertSiteDay({ site: SAAS, hour: HOUR_15 })).toBe(1);
+    drafts.push({ date: "2026-10-16", state: "in_review" });
+    expect(await alertSiteDay({ site: SAAS, hour: HOUR_15 })).toBe(0);
+    expect(await alertSiteDay({ site: SAAS, hour: new Date(HOUR_15.getTime() + 30 * 60_000) })).toBe(0);
+    expect(reportIncident).toHaveBeenCalledTimes(1);
+  });
+
+  it("a publish time later in the run's hour is not yet checked: the run reads the date before it", async () => {
+    // 09:30 in Berlin: the due hour for the 16th starts at 07:00 UTC, before the 15th's 07:30 UTC publish time.
+    const HALF_PAST = { ...SAAS, publishTime: "09:30" };
+    const { store } = memory({ drafts: [{ date: "2026-10-13", state: "published" }, { date: "2026-10-14", state: "published" }, { date: "2026-10-15", state: "in_review" }] });
+    setDraftDayStore(store);
+    expect(await alertSiteDay({ site: HALF_PAST, hour: HOUR_15 })).toBe(0);
+    expect(await alertSiteDay({ site: HALF_PAST, hour: new Date("2026-10-16T07:00:00Z") })).toBe(1);
+    expect(reportIncident).toHaveBeenCalledWith(expect.objectContaining({ date: "2026-10-15", reason: "state:in_review" }));
   });
 
   it("a missed day with nothing going out mails once, and is then not in the digest", async () => {
@@ -95,7 +164,7 @@ describe("a missed day is mailed only when nothing is going out", () => {
 
   it("checks the date publishing in the run's hour, in the site's own zone and window", async () => {
     // LOCAL's due hour for the 18th is 23:00 UTC on the 15th, the hour its 16th publishes in.
-    setDraftDayStore(memory({ drafts: [{ date: "2026-10-15", state: "published" }, { date: "2026-10-17", state: "in_review" }] }).store);
+    setDraftDayStore(memory({ drafts: [{ date: "2026-10-15", state: "published" }, { date: "2026-10-16", state: "published" }] }).store);
     expect(await alertSiteDay({ site: LOCAL, hour: new Date("2026-10-15T23:00:00Z") })).toBe(0);
     setDraftDayStore(memory({ drafts: [{ date: "2026-10-15", state: "published" }] }).store);
     expect(await alertSiteDay({ site: LOCAL, hour: new Date("2026-10-15T23:00:00Z") })).toBe(1);
@@ -114,7 +183,7 @@ describe("a missed day is mailed only when nothing is going out", () => {
 describe("a stall is told once an episode", () => {
   // Each day skipped by the customer: accounted for, so no day's miss is mailed, and none delivered.
   const skippedFrom = (from: number, to: number) =>
-    Array.from({ length: to - from + 1 }, (_, i) => ({ date: `2026-10-${from + i}`, state: "skipped" }));
+    Array.from({ length: to - from + 1 }, (_, i) => ({ date: `2026-10-${from + i}`, state: "skipped", transitions: BY_CUSTOMER }));
   const hourOf = (day: number) => new Date(`2026-10-${day}T07:00:00Z`);
 
   it("two calls in one hour give 1 mail", async () => {
