@@ -36,8 +36,9 @@ import "../scan/run/harness";
 // behaviour is decided.
 vi.mock("@/lib/scan/removal", () => ({ isDomainRemoved: async () => false }));
 
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
+import ts from "typescript";
 import nextConfig from "../../next.config";
 import { middleware, PUBLIC_PATHS, GUARDED_SEGMENTS, config, isMetadataAsset } from "@/middleware";
 import { setIdentityAuth, type IdentityAuth } from "@/lib/account/identity/auth";
@@ -582,5 +583,14 @@ describe("#468: a guarded request is signed in only when Supabase verifies its s
     expect(res.status).toBeLessThan(300);
     expect(res.cookies.get(FAKE_AUTH_COOKIE)?.value).toBe("rotated");
     expect(res.headers.get("x-middleware-request-cookie")).toContain(`${FAKE_AUTH_COOKIE}=rotated`);
+  });
+});
+
+describe("a cold start of the middleware loads no fixture reports and no constants barrel", () => {
+  it("its own imports name neither the scan fixture's states nor `@/lib/config/constants`", () => {
+    const source = readFileSync(path.resolve(__dirname, "../../src/middleware.ts"), "utf8");
+    const specifiers = ts.preProcessFile(source, true, true).importedFiles.map((file) => file.fileName);
+    expect(specifiers).toContain("@/app/(public)/scan/[domain]/_fixture/domains");
+    expect(specifiers.filter((spec) => spec.endsWith("_fixture/states") || spec === "@/lib/config/constants")).toEqual([]);
   });
 });

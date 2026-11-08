@@ -27,8 +27,8 @@ was created, changed or decrypted.
 
 - `reachkit.app` created `cs_live_…` checkout sessions at €49 on 2026-09-14 and 2026-09-25. All of
   them expired unpaid, so **no live payment has completed**.
-- Production's `checkout` boot check logs `checked` on the current deployment, so the live key and
-  the live price agree.
+- Production's price check logged `checked` (at boot until 2026-11-07, on every Vercel build since),
+  so the live key and the live price agree.
 - The live product `prod_VDrq4jWvzRI8WY` and price `price_1UDQ7NIFnqPzUa4ct4p18FGT` match
   `PRICE_OBJECT_SPEC`: 4900 · eur · month · `tax_behavior: inclusive`. Stripe Tax is off at
   checkout.
@@ -56,7 +56,7 @@ not done by this page.
 | Object | Who | Notes |
 |---|---|---|
 | The product `ReachKit` | **[owner]** | Product catalogue, live mode. A test-mode product is not visible in live mode. |
-| One recurring price on it | **[owner]** | `unit_amount 4900` · `currency eur` · `recurring.interval month` · `tax_behavior inclusive` — the four fields `PRICE_OBJECT_SPEC` compares at every boot (`src/lib/account/checkout/price-object.ts`). All four are immutable on a Stripe price: a wrong one is fixed with a **new** price, never an edit. `createPrice()` in `ensure-price.ts` builds exactly this object from the spec if the owner would rather not type it. |
+| One recurring price on it | **[owner]** | `unit_amount 4900` · `currency eur` · `recurring.interval month` · `tax_behavior inclusive` — the four fields `PRICE_OBJECT_SPEC` compares on every Vercel build (`src/lib/account/checkout/price-object.ts`, run by `scripts/check-price.mjs`). All four are immutable on a Stripe price: a wrong one is fixed with a **new** price, never an edit. `createPrice()` in `ensure-price.ts` builds exactly this object from the spec if the owner would rather not type it. |
 | The webhook endpoint | **[owner]** | `https://reachkit.app/api/stripe/webhook`, subscribed to exactly the seven event types in `src/lib/account/provisioning/events.ts`. Its signing secret is a **new** `whsec_…`. |
 | The customer portal configuration | **[protected]** | Nothing to create. `src/lib/account/billing/portal.ts` creates its own configuration from `PORTAL_FEATURES` the first time a customer presses the billing control, in whichever mode it is running. Confirm it in the dashboard afterwards; do not edit it there, because the next process to start recreates it from the code. |
 | Stripe Tax | **[owner]** | Stays **off**. `automatic_tax: { enabled: false }` is stated in `src/lib/account/checkout/params.ts` and asserted key-by-key by its test; §11 puts Stripe Tax outside the MVP. |
@@ -85,8 +85,8 @@ Steps 1–6 are done for production (dates from the 2026-10-02 check in 1.1). St
    (`docs/stripe-setup.md`).
 5. **[owner]** Redeploy. A binding is read once, at module load, so an existing instance keeps the
    old value until it is replaced. **Done** by 2026-09-14, the first `cs_live_…` session.
-6. **[owner]** Watch the boot. The runtime log carries one line per invariant; the one to find is
-   `{"event":"boot_invariants","check":"checkout","outcome":"checked"}`. Anything else is 1.5.
+6. **[owner]** Watch the build. The build log carries one line before `next build`; the one to find is
+   `{"event":"price_check","outcome":"checked"}`. Anything else is 1.5.
    **Seen** on the current production deployment on 2026-10-02.
 7. **[owner]** **Open.** Stripe's dashboard, live mode → Settings → **Customer emails**: decide whether
    Stripe sends the paying customer their invoice and receipt. Stripe sends no customer email in
@@ -103,10 +103,10 @@ Do **not** switch one binding "to test it". Step 4 is atomic by intent.
 | **Declines and dunning** | **[owner ruling, deliberately nothing.]** `invoice.payment_failed` records the status and returns: no retry, no downgrade, no revocation, and `src/lib/account/billing/events.ts` has a test that fails if any behaviour is added to that arm. Access holds until `paid_through` passes whether or not a renewal was paid. Stripe's own Smart Retries and its dunning emails are the whole of the recovery, and they are **[owner]** settings in the live dashboard. One mail does go out — the `payment-failed` retention mail — and it is sent by the retention tick reading `plan_status`, never by the webhook. |
 | **VAT / Stripe Tax** | **[protected].** The price is `tax_behavior: inclusive` with Stripe Tax off: €49 is what the customer pays wherever they are, and the tax comes out of it rather than being added on top. That is the whole point of the inclusive ruling — switching tax on later must never raise an existing customer's bill. The VAT field is collected (`tax_id_collection: { enabled: true }`) and recorded **verbatim, unvalidated** (`record.ts`), so the records exist when registration is set up. |
 | **The invoice the customer receives** | **[owner].** Stripe's, not ours — and Stripe sends no customer email in test mode, which is why this is invisible until live. See step 7 above. The billing portal's invoice history is on either way (`PORTAL_FEATURES`). |
-| **Currency** | **[protected].** `currency: "eur"` is passed on every session and is the same wherever the buyer is; `PRICE_CURRENCY` is one pin in `src/lib/config/constants.ts` and the boot compares the live price against it. |
-| **The €49 price object** | **[protected].** `PRICE_OBJECT_SPEC` is built from the pins, not from four literals, and `assertPriceMatchesSpec` compares the live object field by field at every boot. |
+| **Currency** | **[protected].** `currency: "eur"` is passed on every session and is the same wherever the buyer is; `PRICE_CURRENCY` is one pin in `src/lib/config/constants.ts` and the build compares the live price against it. |
+| **The €49 price object** | **[protected].** `PRICE_OBJECT_SPEC` is built from the pins, not from four literals, and `assertPriceMatchesSpec` compares the live object field by field on every Vercel build. |
 
-### 1.5 What the boot invariant does when a live key meets a test price id
+### 1.5 What the build check does when a live key meets a test price id
 
 **This was the one illegible failure, and it is fixed in #889.**
 
@@ -119,22 +119,22 @@ Stripe outage, on a deployment whose every screen rendered and whose Start butto
 visitor. The first sign of it would have been a stranger pressing Start and getting nothing.
 
 *Now:* the vendor's `resource_missing` is told apart from a vendor that could not be read at all.
-It throws `PriceObjectUnknown`, the boot refuses, `OWNER_EMAILS` is told, and the message names the
+It throws `PriceObjectUnknown`, the build fails (since R-A, `docs/spec/decisions/2026-11-07-2485.md`; until then the boot refused), and the message names the
 mode of the configured key — derived from the key's own prefix, never the key itself:
 
 > Stripe answered that the price behind STRIPE_PRICE_ID does not exist. The configured
 > STRIPE_SECRET_KEY is a live-mode key, and a price created in the other mode is not reachable with
 > it — test-mode and live-mode objects are separate.
 
-A vendor that genuinely could not be read is unchanged: logged `unchecked`, and the deployment
-serves. A read that did not happen establishes nothing, and a hard dependency on one Stripe
-round-trip would turn a Stripe outage into an outage of screens that take no payment.
+A vendor that genuinely could not be read is unchanged: logged `unchecked`, and the build goes
+on. A read that did not happen establishes nothing, and a hard dependency on one Stripe
+round-trip would turn a Stripe outage into a deploy that cannot ship.
 
-**Two crossings the boot still does not catch, and what does catch them.**
+**Two crossings the build check still does not catch, and what does catch them.**
 
 | Crossing | What happens |
 |---|---|
-| Live key, live price, **test** `STRIPE_WEBHOOK_SECRET` | The boot passes — the webhook secret is not a vendor object and nothing can verify it before a delivery arrives. The first live payment's webhook answers `400` and logs `{"event":"stripe_webhook","outcome":"signature"}`, so **the account never opens**. It is caught by the 24-hour provisioning backstop, which provisions from the session that already paid and logs `provisioning_backstop_fired` — a line whose firing *means the webhook path failed*. That is a day's delay for a paying customer, so it is step 6's line to watch on the first real payment (1.6), not something to discover later. |
+| Live key, live price, **test** `STRIPE_WEBHOOK_SECRET` | The build check passes — the webhook secret is not a vendor object and nothing can verify it before a delivery arrives. The first live payment's webhook answers `400` and logs `{"event":"stripe_webhook","outcome":"signature"}`, so **the account never opens**. It is caught by the 24-hour provisioning backstop, which provisions from the session that already paid and logs `provisioning_backstop_fired` — a line whose firing *means the webhook path failed*. That is a day's delay for a paying customer, so it is step 6's line to watch on the first real payment (1.6), not something to discover later. |
 | Test key, test price, live webhook secret | Same shape in reverse; same detection. |
 
 ### 1.6 The first real payment — what to watch, in order
@@ -278,8 +278,8 @@ still block the walk. Anything labeled `later` or
 
 Collected so the next reader does not re-establish it:
 
-- **The price object is checked at every boot**, field by field, against a spec built from the pins
-  — and, since #889, a price that does not exist refuses the boot too.
+- **The price object is checked on every Vercel build**, field by field, against a spec built from the pins
+  — and a price that does not exist fails the build too.
 - **The webhook's trust boundary is one place.** `POST /api/stripe/webhook` verifies nothing and
   hands raw bytes to `handleStripeWebhook`; verification strictly precedes parsing, over the bytes
   received, with no `JSON.parse` or string round-trip in front of it.

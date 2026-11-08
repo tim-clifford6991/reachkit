@@ -4,25 +4,21 @@
 // it must complete before that instance handles a request
 // (`node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/instrumentation.md`).
 // That is the shape BP-005 asks for and `src/lib/config/env.ts` states in
-// its own header: "a deployment cannot start half-configured". Until now
-// nothing said it at boot — `env` threw whenever the first route that
-// imported it was loaded, and the checkout module's boot hook (#123) had no
-// caller at all.
+// its own header: "a deployment cannot start half-configured".
 //
 // **Why the instrumentation hook and not the jobs `serve()` bootstrap.**
 // `serve()` is not a separate process: `src/jobs/index.ts` is mounted by
 // `src/app/api/jobs/[[...slug]]/route.ts`, one route inside this same Next
 // application. Wiring the assertion there would run it when that route's
 // module is first loaded, which is neither "at boot" nor everywhere — the
-// surfaces that actually start a checkout (`/pricing`, the report's offer,
-// `/api/stripe/webhook`) can be served by an instance that never loads the
-// jobs route, and would be exactly the half-configured deployment this
-// closes. It would also put an engine-configuration check inside a
-// transport adapter, which ARCHITECTURE rule 1 forbids. The hook runs for
+// surfaces that take a payment (`/pricing`, `/api/stripe/webhook`) can be
+// served by an instance that never loads the jobs route. It would also put
+// an engine-configuration check inside a transport adapter, which
+// ARCHITECTURE rule 1 forbids. The hook runs for
 // every surface, once, before any of them answers.
 //
-// **What fails the boot, and what does not.** The line is between a fact
-// this deployment can establish and a vendor it could not reach:
+// **What fails the boot, and what does not.** Boot asks nothing of any
+// vendor and loads no mail or publishing module: every check below is local.
 //
 //  - A binding that does not parse throws out of `register()` — `env` is
 //    local, needs nobody, and is BP-005's own promise.
@@ -41,15 +37,13 @@
 //    `src/lib/scan/weekly/access.ts` throws while nothing is registered
 //    rather than guess — so a deployment that boots without the
 //    registration cannot run a Monday tick for any customer. Registering
-//    is local and needs nobody, so it is asserted like `env` and not like
-//    the price: it is done first, before the vendor read, because the
-//    vendor arm below may return early and a gate registered after that
-//    return would be a gate registered on some boots only.
+//    is local and needs nobody, so it is asserted like `env`.
 //  - **The spend seam's alert sink not being registered** is registered
 //    here and does not throw (issue #329). `src/lib/costs/daily.ts`
 //    publishes a crossing of the product's daily ceiling and cannot reach
 //    `src/lib/mail` itself (ARCHITECTURE rule 2 puts costs at the bottom
-//    of the dependency order), so boot is what introduces them. Nothing
+//    of the dependency order), so boot is what introduces them, through a
+//    forwarder that loads the mail module on the first alert. Nothing
 //    registered costs the owner an alert and costs the product nothing:
 //    the ceiling refuses and holds whether or not anybody is told.
 //  - **The deleted-account mail's WordPress place port not being wired**
@@ -57,41 +51,20 @@
 //    `src/lib/account/lifecycle/left-in-wordpress.ts` answers "no place"
 //    while nothing is registered, which is a true answer rather than a
 //    broken one — every sentence still carries its count — so an
-//    unregistered port costs one mail its link and nothing else. It is
-//    registered beside the gate because it is the same kind of fact: local,
-//    needing nobody, and done before the vendor arm that may return early.
-//  - A live Price that **differs from `PRICE_OBJECT_SPEC`** throws out of
-//    `register()`, carrying `PriceObjectMismatch`'s own message: the field,
-//    what was expected, what was found. A deployment that would charge
-//    against a price this repository does not describe does not start.
-//  - **A price the vendor says does not exist** throws too, carrying
-//    `PriceObjectUnknown` and the mode of the configured key (issue 889).
-//    That is the test-mode/live-mode crossing — a live key meeting a
-//    test-mode `STRIPE_PRICE_ID`, which is the state production is in
-//    today — and it belongs on this side of the line rather than the one
-//    below: the vendor answered, and what it answered is a fact about this
-//    deployment's own bindings. Before it was told apart, such a boot
-//    logged `{"check":"checkout","outcome":"unchecked"}` and served, so the
-//    first sign of it was a stranger pressing Start and getting nothing.
-//  - A vendor that could not be read at all is logged and does not stop the
-//    boot. Every scaled instance runs this hook on its cold start, so a
-//    hard dependency on one live Stripe round-trip would turn a Stripe
-//    outage into an outage of screens that take no payment — and it would
-//    assert nothing either way, because a read that did not happen has
-//    established nothing about the price. `verifyPrice()` already keeps
-//    those two apart under the same names (`mismatch` / `vendor`); this
-//    hook keeps them apart for the same reason.
+//    unregistered port costs one mail its link and nothing else. Its
+//    `place` loads the WordPress destination on first use.
+//  - **The price is not checked here.** The production build refuses a
+//    crossed Stripe price (`scripts/check-price.mjs`, npm's `prebuild`), so
+//    a crossed deployment never reaches READY and no boot waits on Stripe.
 //
-// The module holds no invariant of its own — it calls the one the checkout
-// module owns (`src/lib/account/checkout/boot.ts`) and knows nothing about
-// what is being asserted.
+// The module holds no invariant of its own — it calls the ones each module
+// owns, and `local/instrumentation-imports` holds what it may load.
 
 /** One structured line, the shape `src/app/api/_log.ts` uses. Every field
- *  is a name from a closed set — never a binding's value, never a vendor
- *  payload, never the price id. */
+ *  is a name from a closed set — never a binding's value. */
 function log(
   check: BootCheck,
-  outcome: "checked" | "unchecked" | "refused",
+  outcome: "checked" | "refused",
   reason?: string
 ): void {
   const line = { event: "boot_invariants", check, outcome, ...(reason === undefined ? {} : { reason }) };
@@ -101,10 +74,9 @@ function log(
 
 /**
  * Next's boot hook. Called in every runtime, so the work is guarded on the
- * Node.js one: the assertion reads server-only bindings and the payment
- * vendor's SDK, neither of which belongs in an edge bundle. The imports are
- * inside the guard for the same reason — the guide's own recommendation,
- * and here it is load-bearing rather than tidy.
+ * Node.js one: the assertions read server-only bindings, which do not belong
+ * in an edge bundle. The imports are inside the guard for the same reason —
+ * the guide's own recommendation, and here it is load-bearing.
  */
 export async function register(): Promise<void> {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
@@ -124,7 +96,7 @@ export async function register(): Promise<void> {
   }
 }
 
-type BootCheck = "checkout" | "access-gate" | "stamp-place" | "clock" | "jobs" | "spend-alerts";
+type BootCheck = "access-gate" | "stamp-place" | "clock" | "jobs" | "spend-alerts";
 
 /** Never throws: a boot refused because `env` does not parse cannot reach
  *  the mail seam at all, and the log line above is then the whole telling. */
@@ -161,48 +133,44 @@ async function assertInvariants(current: { check: BootCheck }): Promise<void> {
   assertJobsBindings();
   log("jobs", "checked");
 
-  // ADR-050's gate, first: it is local, it needs nobody, and the vendor arm
-  // below returns early on an unreadable Stripe. A registration after that
-  // return would hold on the boots where Stripe answered and not on the
-  // others, which is exactly the half-configured deployment this hook
-  // closes.
+  // ADR-050's gate: local and needing nobody. Imported by file, since the
+  // billing barrel loads the mail and the payment vendor's SDK.
   current.check = "access-gate";
-  const { installActiveAccessGate } = await import("@/lib/account/billing");
+  const { installActiveAccessGate } = await import("@/lib/account/billing/access-gate");
   await installActiveAccessGate();
   log("access-gate", "checked");
 
-  // ADR-083 Decision 4's port, for the same reason and in the same place:
-  // local, needing nobody, and ahead of the arm that may return early.
+  // ADR-083 Decision 4's port; the WordPress destination loads on first use.
   current.check = "stamp-place";
-  const { installStampCapability } = await import(
-    "@/lib/publish/destinations/wordpress/stamp-place"
-  );
-  installStampCapability();
+  const { setStampCapability } = await import("@/lib/account/lifecycle/left-in-wordpress");
+  setStampCapability({ place: async (destinationId) => (await wordpressPlace()).stampPlace(destinationId) });
   log("stamp-place", "checked");
 
-  // The cost seam's crossings, introduced to the side that can mail them
-  // (issue #329). Same kind of fact as the two above: local, needing
-  // nobody, and ahead of the arm that may return early. It does not throw
-  // — an unregistered sink means the seam publishes into nothing, which
-  // costs an alert and never a refusal, and the ceiling itself holds
-  // either way.
+  // The cost seam's crossings, introduced to the side that can mail them.
+  // Synchronous, as the seam expects: the mail module loads on the first
+  // alert and the send is started, never awaited.
   current.check = "spend-alerts";
-  const { installSpendAlerts } = await import("@/lib/mail/ops");
-  installSpendAlerts();
+  const { registerLedgerUnreadableSink, registerSpendAlertSink } = await import("@/lib/costs/sinks");
+  registerSpendAlertSink((alert) => {
+    opsMail().then((ops) => ops.spendAlertSink(alert), (error: unknown) => alertNotLoaded(alert.crossed, error));
+  });
+  registerLedgerUnreadableSink((unreadable) => {
+    opsMail().then((ops) => ops.ledgerUnreadableSink(unreadable), (error: unknown) => alertNotLoaded("unreadable", error));
+  });
   log("spend-alerts", "checked");
+}
 
-  current.check = "checkout";
-  const { assertCheckoutBootInvariants } = await import("@/lib/account/checkout/boot");
-  const { PriceObjectMismatch, PriceObjectUnknown } = await import(
-    "@/lib/account/checkout/price-object"
-  );
+/** Loaded on the first alert, never at boot. */
+function opsMail(): Promise<typeof import("@/lib/mail/ops")> {
+  return import("@/lib/mail/ops");
+}
 
-  try {
-    await assertCheckoutBootInvariants();
-  } catch (error) {
-    if (error instanceof PriceObjectMismatch || error instanceof PriceObjectUnknown) throw error;
-    log("checkout", "unchecked", error instanceof Error ? error.name : "unknown");
-    return;
-  }
-  log("checkout", "checked");
+/** Loaded on the first deleted-account mail that asks, never at boot. */
+function wordpressPlace(): Promise<typeof import("@/lib/publish/destinations/wordpress/stamp-place")> {
+  return import("@/lib/publish/destinations/wordpress/stamp-place");
+}
+
+/** The same line the seam logs for a sink that throws. */
+function alertNotLoaded(crossed: string, error: unknown): void {
+  console.warn(JSON.stringify({ event: "spend_alert_failed", crossed, detail: String(error) }));
 }

@@ -48,12 +48,12 @@
 // a work order that touches BP-001's own `code:` list.
 import { NextResponse } from "next/server";
 import type { NextFetchEvent, NextRequest } from "next/server";
-import { HOSTED_SUBDOMAIN_LABEL, PREVIEW_HOST_SUFFIX } from "@/lib/config/constants";
+import { HOSTED_SUBDOMAIN_LABEL, PREVIEW_HOST_SUFFIX } from "@/lib/config/constants/publish";
 import { env } from "@/lib/config/env";
 import { classifyBlogRead } from "@/lib/publish/reads/classify";
 import { isDomainRemoved } from "@/lib/scan/removal";
 import type { HostedAnswer, LiveAnswer } from "@/app/(hosted)/edge";
-import { isFixtureDomain } from "@/app/(public)/scan/[domain]/_fixture/states";
+import { isFixtureDomain } from "@/app/(public)/scan/[domain]/_fixture/domains";
 import { GATE_PATH_HEADER } from "@/app/(account)/setup/gate";
 import { movedAnswer } from "@/app/(public)/_seo/moved";
 // Three names, one home (issue #35). `src/lib/account/identity/addresses.ts`

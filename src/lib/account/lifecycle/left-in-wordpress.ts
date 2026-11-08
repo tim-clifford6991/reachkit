@@ -81,9 +81,8 @@ export function stampCapability(): StampCapability {
   return slot[CAPABILITY] ?? noStamp;
 }
 
-/** Wired by the WordPress destination at boot
- *  (`installStampCapability`, #160); `null` restores the unanswered
- *  default. */
+/** Wired at boot with a `place` that loads the WordPress destination's
+ *  `stampPlace` on first use; `null` restores the unanswered default. */
 export function setStampCapability(next: StampCapability | null): void {
   slot[CAPABILITY] = next ?? noStamp;
 }

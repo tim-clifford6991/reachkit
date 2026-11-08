@@ -44,6 +44,58 @@ function importFenceRule(test, message) {
   };
 }
 
+/**
+ * The boot's import list. Every specifier `src/instrumentation.ts` names must be in `allow`, or in `lazy` and loaded
+ * by `import()` inside one of the functions named for it, so boot itself loads only what it registers.
+ */
+const instrumentationImports = {
+  meta: {
+    type: "problem",
+    docs: { description: "src/instrumentation.ts loads only the modules its boot registers." },
+    schema: [
+      {
+        type: "object",
+        properties: {
+          allow: { type: "array", items: { type: "string" } },
+          lazy: { type: "object", additionalProperties: { type: "array", items: { type: "string" } } },
+        },
+        additionalProperties: false,
+      },
+    ],
+  },
+  create(context) {
+    const { allow = [], lazy = {} } = context.options[0] ?? {};
+    const file = path.relative(context.cwd, context.filename);
+    const enclosingFunction = (node) => {
+      for (let at = node.parent; at; at = at.parent) {
+        if (at.type === "FunctionDeclaration") return at.id?.name;
+      }
+      return undefined;
+    };
+    const check = (node, source, isLazy) => {
+      const spec = source?.value;
+      if (typeof spec !== "string" || allow.includes(spec)) return;
+      if (isLazy && (lazy[spec] ?? []).includes(enclosingFunction(node))) return;
+      const except = lazy[spec] ? `, except by import() inside ${lazy[spec].join(" or ")}` : "";
+      context.report({ node, message: `${file} may not load '${spec}'${except}: a cold start loads only what its boot registers.` });
+    };
+    return {
+      ImportDeclaration(node) {
+        if (node.importKind !== "type") check(node, node.source, false);
+      },
+      ImportExpression(node) {
+        check(node, node.source, true);
+      },
+      ExportNamedDeclaration(node) {
+        if (node.source) check(node, node.source, false);
+      },
+      ExportAllDeclaration(node) {
+        check(node, node.source, false);
+      },
+    };
+  },
+};
+
 /** Modules that open a socket themselves, so a request through them skips safeFetch's address check. */
 const RAW_HTTP_MODULES = new Set(["http", "https", "http2", "tls", "undici"]);
 
@@ -471,6 +523,9 @@ export const localImportRules = {
     // (m) REQ-093 / ADR-010 decision 1: a surface's sentences are copy()'s.
     "no-voice-literal": noVoiceLiteral,
 
+    // A cold start of every function runs the boot, so it loads only what it registers.
+    "instrumentation-imports": instrumentationImports,
+
     // A client writes the first x-forwarded-for entry itself, so one file decides which header to trust.
     "no-client-address-header": textFenceRule([
       {
@@ -516,6 +571,28 @@ export const localImportRules = {
 export default tseslint.config(
   ...nextConfig,
   ...tseslint.configs.recommended,
+  {
+    files: ["src/instrumentation.ts"],
+    plugins: { local: localImportRules },
+    rules: {
+      "local/instrumentation-imports": [
+        "error",
+        {
+          allow: [
+            "@/lib/config/now",
+            "@/lib/config/env",
+            "@/lib/account/billing/access-gate",
+            "@/lib/costs/sinks",
+            "@/lib/account/lifecycle/left-in-wordpress",
+          ],
+          lazy: {
+            "@/lib/mail/ops": ["tellOwnersOfRefusal", "opsMail"],
+            "@/lib/publish/destinations/wordpress/stamp-place": ["wordpressPlace"],
+          },
+        },
+      ],
+    },
+  },
   {
     // (b) — scoped to every file under src/lib/**.
     files: ["src/lib/**/*.{ts,tsx}"],

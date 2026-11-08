@@ -6,7 +6,6 @@ import { now } from "@/lib/config/now";
 import { env } from "@/lib/config/env";
 import { readDaySpendCents, readDayCeilingCents } from "@/lib/costs/daily";
 import type { LedgerUnreadable, SpendAlert } from "@/lib/costs/daily";
-import { registerLedgerUnreadableSink, registerSpendAlertSink } from "@/lib/costs/daily";
 import { sendEmail } from "../send";
 import { buildSpendCeilingAlert } from "../templates/ops";
 import type { OpsOccasion, OpsSubject, SpendAlertInput } from "../templates/ops";
@@ -88,17 +87,19 @@ export async function reportKillSwitchEngaged(): Promise<void> {
   });
 }
 
-/** Registers this module as the cost seam's crossing sink, once at boot (`src/instrumentation.ts`), since the seam knows nothing of mail.
+/** The cost seam's crossing sink, registered at boot behind a forwarder that loads this module on the first alert.
  *  Synchronous: a spending call never waits on an alert, so the send is started, not awaited, and swallows its own failures. */
-export function installSpendAlerts(): void {
-  registerLedgerUnreadableSink((unreadable) => void reportLedgerUnreadable(unreadable));
-  registerSpendAlertSink((alert: SpendAlert) => {
-    void sendOpsAlert({
-      ...occasionOf(alert),
-      spentCents: alert.spentCents,
-      ceilingCents: alert.ceilingCents,
-    });
+export function spendAlertSink(alert: SpendAlert): void {
+  void sendOpsAlert({
+    ...occasionOf(alert),
+    spentCents: alert.spentCents,
+    ceilingCents: alert.ceilingCents,
   });
+}
+
+/** The cost seam's unreadable-ledger sink, registered the same way. */
+export function ledgerUnreadableSink(unreadable: LedgerUnreadable): void {
+  void reportLedgerUnreadable(unreadable);
 }
 
 /** The spend occasion and the subject named beside it; no subject is the product's own ceiling. */
