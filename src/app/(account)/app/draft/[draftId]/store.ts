@@ -56,6 +56,7 @@ import {
   readRecordedRun,
   readRecordedVerdict,
   recordedChecks,
+  stops,
 } from "@/lib/generate/record";
 import type { PublishingMode } from "../../_shell/model";
 import type { State } from "../../calendar/stages";
@@ -309,7 +310,7 @@ export function emailedAtOf(told: DraftRow["told"]): Date | null {
 /** Whether the last battery recorded a rule this text breaks (#789). A row
  *  no battery has recorded anything for breaks none it can name. */
 export function rulesFailedOf(ruleFailures: unknown): boolean {
-  return (readRecordedRules(ruleFailures) ?? []).length > 0;
+  return (readRecordedRules(ruleFailures) ?? []).some(stops);
 }
 
 /** The engine's own read, with every way it can fail folded into `null`.

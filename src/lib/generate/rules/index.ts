@@ -44,16 +44,22 @@ import { checkProse, proseText, type ProseRuleInputs } from "./prose";
 import { checkRivalNegative, checkRivalScope, checkRivalSource, namedRivals, type NamedRival } from "./rivals";
 import { renderOf, withoutReferenceLists } from "./text";
 import { checkTitle, type TitleRuleInputs } from "./title";
+import { stops } from "../record";
 import { HARD_RULES, SWITCHED_RULES } from "./types";
 import type { ComparisonSet, GroundedFact, HardRule, ModelRule, RuleFailure, SiteRuleInputs } from "./types";
 import type { PageType } from "@/lib/opportunities/types";
 
 /** `fit` is the fit check's own verdict, carried beside the claim check's
  *  for the same reason: `unrun` is neither a pass nor a failure, and the
- *  caller holds the page on it. */
-export type BatteryOutcome =
-  | { passed: true; asked: HardRule[]; claim: ClaimVerdict; fit: FitVerdict }
-  | { passed: false; asked: HardRule[]; failed: RuleFailure[]; claim: ClaimVerdict; fit: FitVerdict };
+ *  caller holds the page on it. `failed` holds the warnings too; `passed`
+ *  reads only the failures that stop the page. */
+export interface BatteryOutcome {
+  passed: boolean;
+  asked: HardRule[];
+  failed: RuleFailure[];
+  claim: ClaimVerdict;
+  fit: FitVerdict;
+}
 
 /**
  * The rules this run asked of the page, in `HARD_RULES` order (issue 1394).
@@ -299,5 +305,5 @@ export async function runHardRules(
 
   logBattery({ failed, claimState: claim.state, fitState: fit.state });
   const asked = rulesAsked(a, { fit, fitAsked: a.knowledge !== undefined });
-  return failed.length === 0 ? { passed: true, asked, claim, fit } : { passed: false, asked, failed, claim, fit };
+  return { passed: !failed.some(stops), asked, failed, claim, fit };
 }

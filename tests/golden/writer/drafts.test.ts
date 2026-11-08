@@ -10,6 +10,7 @@ import { describe, expect, it } from "vitest";
 import type { ContentType } from "@/lib/opportunities/content-type";
 import { builtFromOutside, packStatements, type ContextPack } from "@/lib/generate/pipeline/pack";
 import { fixNotes, repairable, repairMechanical } from "@/lib/generate/pipeline/repair";
+import { stops } from "@/lib/generate/record";
 import { runHardRules, type BatteryOutcome } from "@/lib/generate/rules";
 import { renderOf } from "@/lib/generate/rules/text";
 import { TEMPLATES } from "@/lib/generate/templates";
@@ -34,8 +35,8 @@ const citesMin = (type: ContentType): number =>
   TEMPLATES[type].packMustHold.reduce((most, need) => (need.need === "outside_sources" ? Math.max(most, need.min) : most), 0);
 
 const detail = (outcome: BatteryOutcome, rule: string): string => {
-  const failure = outcome.passed ? undefined : outcome.failed.find((f) => f.rule === rule);
-  return failure === undefined ? "passed" : `failed ${JSON.stringify({ ...failure.detail, rule: undefined })}`;
+  const failure = outcome.failed.find((f) => f.rule === rule);
+  return failure === undefined ? "passed" : `${stops(failure) ? "failed" : "warns"} ${JSON.stringify({ ...failure.detail, rule: undefined })}`;
 };
 
 async function stage4(domain: string): Promise<string> {
@@ -80,7 +81,7 @@ async function stage4(domain: string): Promise<string> {
     });
 
   const written = await battery(markdown);
-  const tried = written.passed ? [] : repairable(written.failed);
+  const tried = repairable(written.failed);
   const repaired = tried.length === 0 ? markdown : repairMechanical(markdown, tried, { brief, sources: pack.facts.map((fact) => ({ url: fact.url, text: fact.passage })), rivals: site.rivals, prose });
   const after = repaired === markdown ? null : await battery(repaired);
   const last = after ?? written;

@@ -37,7 +37,7 @@
 import { listHash } from "./claims/hash";
 import type { ClaimVerdict } from "./claims/check";
 import type { BatteryOutcome } from "./rules";
-import { HARD_RULES, NO_CHECKS, SWITCHED_RULES, type HardRule, type RecordedChecks, type RuleFailure } from "./rules/types";
+import { HARD_RULES, NO_CHECKS, SWITCHED_RULES, WARNING_RULES, type HardRule, type RecordedChecks, type RuleFailure } from "./rules/types";
 
 // ── Hard rule 4: the claim check's verdict ──────────────────────────────
 
@@ -107,6 +107,15 @@ export function checkedAgainstNothing(verdict: ClaimVerdict): boolean {
 
 // ── Hard rules 1–3, 5–7: the battery's own record ───────────────────────
 
+/** The figure faults of a title stay harm, since an unsourced figure is one whatever the line it stands in. */
+const FIGURE_FAULTS: ReadonlySet<string> = new Set(["description_figures", "figure_owner"]);
+
+/** Whether a failure stops the page: the one predicate every verdict on a generated or edited page reads. */
+export function stops(failure: RuleFailure): boolean {
+  if (failure.detail?.rule === "title") return failure.detail.faults.some((fault) => FIGURE_FAULTS.has(fault));
+  return !WARNING_RULES.has(failure.rule);
+}
+
 /**
  * What the pipeline stores in `drafts.rule_failures`: the failures the last
  * battery found, in `HARD_RULES` order.
@@ -116,7 +125,7 @@ export function checkedAgainstNothing(verdict: ClaimVerdict): boolean {
  * a passing run is indistinguishable from a row no battery ever touched.
  */
 export function recordedRulesValue(outcome: BatteryOutcome): RuleFailure[] {
-  return outcome.passed ? [] : [...outcome.failed];
+  return [...outcome.failed];
 }
 
 /**
@@ -153,7 +162,7 @@ const rulesIn = (value: unknown): HardRule[] =>
  *  `broken` is every rule the run failed at any point; the ones the page no
  *  longer fails are the ones it fixed. */
 export function recordedRunValue(outcome: BatteryOutcome, broken: Iterable<HardRule> = []): RecordedRun {
-  const failing = new Set(outcome.passed ? [] : outcome.failed.map((failure) => failure.rule));
+  const failing = new Set(outcome.failed.map((failure) => failure.rule));
   return { asked: rulesIn(outcome.asked), fixed: rulesIn([...broken]).filter((rule) => !failing.has(rule)) };
 }
 

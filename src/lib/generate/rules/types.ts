@@ -111,6 +111,10 @@ export const HARD_RULES: readonly HardRule[] = Object.freeze([
   "do_not_claim",
 ] as const);
 
+/** The rules that only warn (owner, 2026-11-08): recorded on the draft and shown in its Checks list, never a stop.
+ *  Every other rule is harm and stops the page, so a new rule stops until it is named here. */
+export const WARNING_RULES: ReadonlySet<HardRule> = new Set<HardRule>(["first_block_answers", "required_blocks", "distinct_headings", "title", "plain_prose", "cites_market"]);
+
 /** The rules a caller switches on, each by an input it hands over or leaves
  *  out (`rulesAsked`, `./index.ts`). Every other rule reads every page. */
 export const SWITCHED_RULES: readonly HardRule[] = Object.freeze([
