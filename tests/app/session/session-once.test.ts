@@ -15,14 +15,11 @@ vi.mock("@/lib/db", () => ({ dbAdmin: () => db.client, db: () => db.client }));
 const request = new Map<unknown, Map<string, unknown>>();
 vi.mock("react", async (importOriginal) => {
   const actual = await importOriginal<typeof import("react")>();
-  const cache =
-    <A extends unknown[], R>(fn: (...args: A) => R) =>
-    (...args: A): R => {
-      const calls = request.get(fn) ?? new Map<string, unknown>();
-      request.set(fn, calls);
-      if (!calls.has(JSON.stringify(args))) calls.set(JSON.stringify(args), fn(...args));
-      return calls.get(JSON.stringify(args)) as R;
-    };
+  const cache = <A extends unknown[], R>(fn: (...args: A) => R) => (...args: A): R => {
+    const calls = request.set(fn, request.get(fn) ?? new Map()).get(fn)!;
+    if (!calls.has(JSON.stringify(args))) calls.set(JSON.stringify(args), fn(...args));
+    return calls.get(JSON.stringify(args)) as R;
+  };
   // Named even where this React lacks it, so `src/ui/motion.ts`'s probe reads `undefined`.
   const ViewTransition = (actual as Record<string, unknown>)["ViewTransition"];
   return { ...actual, ViewTransition, cache, default: { ...actual, cache } };
@@ -36,24 +33,16 @@ vi.mock("next/server", async (importOriginal) => ({
 
 const jar = new Map<string, string>();
 vi.mock("next/headers", () => ({
-  headers: async () => {
-    const { GATE_PATH_HEADER } = await import("@/app/(account)/setup/gate");
-    return new Headers({ [GATE_PATH_HEADER]: "/app" });
-  },
+  headers: async () => new Headers({ [(await import("@/app/(account)/setup/gate")).GATE_PATH_HEADER]: "/app" }),
   cookies: async () => ({ getAll: () => [...jar].map(([name, value]) => ({ name, value })), set: () => {} }),
 }));
-const redirected = (to: string): never => {
-  throw new Error(`NEXT_REDIRECT:${to}`);
-};
-vi.mock("next/navigation", () => ({ redirect: redirected }));
+vi.mock("next/navigation", () => ({ redirect: (to: string) => { throw new Error(`NEXT_REDIRECT:${to}`); } }));
 
 // The screens' own data, not what this suite counts.
-vi.mock("@/app/(account)/app/_shell/store", async () => ({
-  readShellFacts: async () => (await import("@/app/(account)/app/_shell/fixture")).FIXTURE_SHELL_FACTS,
-}));
-vi.mock("@/app/(account)/app/_overview/store", async () => ({
-  readOverviewFacts: async () => (await import("@/app/(account)/app/_overview/fixture")).FIXTURE_OVERVIEW_FACTS,
-}));
+const shell = () => import("@/app/(account)/app/_shell/fixture");
+vi.mock("@/app/(account)/app/_shell/store", () => ({ readShellFacts: async () => (await shell()).FIXTURE_SHELL_FACTS }));
+const overview = () => import("@/app/(account)/app/_overview/fixture");
+vi.mock("@/app/(account)/app/_overview/store", () => ({ readOverviewFacts: async () => (await overview()).FIXTURE_OVERVIEW_FACTS }));
 
 const { default: AccountLayout } = await import("@/app/(account)/layout");
 const { default: AppLayout } = await import("@/app/(account)/app/layout");
