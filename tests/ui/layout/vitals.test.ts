@@ -26,7 +26,8 @@
 // route can produce and so the honest thing to budget.
 //
 // **Warm the server, keep the browser cold.** Every route in this product
-// renders per request (`src/app/_root/document.tsx`'s `force-dynamic`, issue #331),
+// renders per request (the group layouts' `force-dynamic`, `src/app/(public)/layout.tsx`
+// and `src/app/(account)/layout.tsx`, issue #331),
 // so the first hit after `next start` pays for a cold process and a cold
 // connection to the substrate — a runner artefact, not a page-speed one.
 // One throwaway navigation per route absorbs it. The *browser* is the other
@@ -34,10 +35,12 @@
 // navigation in a warm cache transfers no script bytes at all and a budget
 // that passes because nothing was downloaded is worse than no budget.
 // `scriptCount` is asserted beside the weight for the same reason.
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
 import { WEB_VITALS_BUDGET } from "@/lib/config/constants";
 import { BAND_MIN } from "@/ui/layout/bands";
-import { getBaseURL, withPage } from "./browser";
+import { getAccountCookie, getBaseURL, withPage } from "./browser";
 import { SEGMENT_FIXTURES } from "./routes";
 import { kb, measureVitals, type RawVitals } from "./vitals";
 
@@ -69,6 +72,19 @@ const ROUTES = [
   { name: "the free report", path: REPORT_PATH },
 ] as const;
 
+/** The two signed-in routes whose script weight is budgeted: Overview, and
+ *  the draft view's read arm, which must not fetch the editor. */
+const APP_PATH = "/app";
+const DRAFT_PATH = `/app/draft/${SEGMENT_FIXTURES["[draftId]"]}`;
+const SIGNED_IN = [
+  { path: APP_PATH, budget: WEB_VITALS_BUDGET.APP_SCRIPT_KB },
+  { path: DRAFT_PATH, budget: WEB_VITALS_BUDGET.DRAFT_SCRIPT_KB },
+] as const;
+
+/** A string only CodeMirror's own view module carries (`@codemirror/view`
+ *  names its root element with it), so a chunk holding it is the editor. */
+const CODEMIRROR_MARK = '"cm-editor"';
+
 interface Measurement {
   path: string;
   viewport: string;
@@ -77,6 +93,41 @@ interface Measurement {
 }
 
 const measurements: Measurement[] = [];
+/** The signed-in routes, at the desktop width. */
+const signedIn: Measurement[] = [];
+/** The script URLs the draft view had fetched once its edit arm was open. */
+let editArmScripts: string[] = [];
+/** Script URL → whether its body carries CodeMirror. */
+const codemirror = new Map<string, boolean>();
+
+/** Read off the build `next start` serves, so no request leaves the test. */
+function holdsCodeMirror(url: string): boolean {
+  const known = codemirror.get(url);
+  if (known !== undefined) return known;
+  const { pathname } = new URL(url);
+  const found =
+    pathname.startsWith("/_next/static/") &&
+    readFileSync(path.join(process.cwd(), ".next", decodeURIComponent(pathname.slice("/_next".length))), "utf8").includes(
+      CODEMIRROR_MARK
+    );
+  codemirror.set(url, found);
+  return found;
+}
+
+function codeMirrorChunks(urls: string[]): string[] {
+  return urls.filter(holdsCodeMirror);
+}
+
+function signedInFor(path: string): Measurement {
+  const found = signedIn.find((m) => m.path === path);
+  if (!found) throw new Error(`tests/ui/layout/vitals.test.ts: nothing was measured for ${path} signed in.`);
+  return found;
+}
+
+/** The largest stylesheet a document links, in kB of 1000, uncompressed. */
+function mainCssKb(m: Measurement): number {
+  return kb(Math.max(0, ...m.vitals.stylesheetBytes));
+}
 
 /** Every (route, viewport) pair, as `it.each` rows. */
 const PAIRS = ROUTES.flatMap((route) =>
@@ -141,8 +192,40 @@ beforeAll(async () => {
     }
   }
 
-  for (const m of measurements) console.log(`vitals · ${report(m)}`);
-}, PER_MEASUREMENT_MS * (ROUTES.length * VIEWPORTS.length + 1));
+  const session = { extraHTTPHeaders: { Cookie: getAccountCookie() } };
+  await withPage(
+    BAND_MIN.wide,
+    async (page) => {
+      for (const route of SIGNED_IN) await page.goto(`${baseURL}${route.path}`, { timeout: NAVIGATION_MS });
+    },
+    session
+  );
+  for (const route of SIGNED_IN) {
+    const vitals = await withPage(
+      BAND_MIN.wide,
+      async (page) => {
+        await page.goto(`${baseURL}${route.path}`, { timeout: NAVIGATION_MS });
+        const read = await page.evaluate(measureVitals, SETTLE_MS);
+        if (route.path === DRAFT_PATH) {
+          await page.click('[data-testid="draft-action-draft.action.edit"]');
+          await page.waitForSelector(".cm-editor", { timeout: NAVIGATION_MS });
+          editArmScripts = await page.evaluate(() =>
+            (performance.getEntriesByType("resource") as PerformanceResourceTiming[])
+              .filter((r) => r.initiatorType === "script" || /\.js(\?|$)/.test(r.name))
+              .map((r) => r.name)
+          );
+        }
+        return read;
+      },
+      session
+    );
+    signedIn.push({ path: route.path, viewport: "desktop", width: BAND_MIN.wide, vitals });
+  }
+
+  for (const m of [...measurements, ...signedIn]) {
+    console.log(`vitals · ${report(m)} · main CSS ${mainCssKb(m)}kB`);
+  }
+}, PER_MEASUREMENT_MS * (ROUTES.length * VIEWPORTS.length + SIGNED_IN.length + 2));
 
 describe("#332 — both routes are measured at both widths, and the measurement is real", () => {
   it("has one measurement per route per viewport", () => {
@@ -243,5 +326,45 @@ describe("#332 `## Done when` row 2 — fonts preloaded, images sized", () => {
         "width/height attributes and no aspect-ratio reserves no box, so the page shifts under " +
         "the reader when it decodes."
     ).toEqual([]);
+  });
+});
+
+describe(`the main stylesheet is at most ${WEB_VITALS_BUDGET.MAIN_CSS_KB}kB uncompressed`, () => {
+  // Tailwind emits a rule for every class-like word in what `@source` scans,
+  // and daisyUI one for every component its `include` names, so a wider
+  // glob or a dropped list grows the one sheet every first paint waits on.
+  it.each([
+    [LANDING_PATH, () => measurementFor(LANDING_PATH, "desktop")],
+    [APP_PATH, () => signedInFor(APP_PATH)],
+  ] as const)("%s", (path, measured) => {
+    const m = measured();
+    expect(m.vitals.stylesheetBytes.length, `${path} linked no stylesheet at all`).toBeGreaterThan(0);
+    expect(
+      mainCssKb(m),
+      `${path}'s largest stylesheet is ${mainCssKb(m)}kB, over ${WEB_VITALS_BUDGET.MAIN_CSS_KB}kB. ` +
+        "`src/ui/tailwind.css` scans only `src/app` and `src/ui` and names daisyUI's modules in " +
+        "`include`; a widened `@source` or a removed list is the usual cause."
+    ).toBeLessThanOrEqual(WEB_VITALS_BUDGET.MAIN_CSS_KB);
+  });
+});
+
+describe("the signed-in routes transfer their budgeted script, and the editor loads only when it shows", () => {
+  it.each(SIGNED_IN.map((route) => [route.path, route.budget] as const))("%s within %skB", (path, budget) => {
+    const m = signedInFor(path);
+    expect(m.vitals.scriptCount, `${report(m)} — no script was transferred`).toBeGreaterThan(0);
+    expect(kb(m.vitals.scriptBytes), `${report(m)} — over the ${budget}kB budget`).toBeLessThanOrEqual(budget);
+  });
+
+  it.each(SIGNED_IN.map((route) => [route.path] as const))("%s fetches no CodeMirror chunk", (route) => {
+    const m = signedInFor(route);
+    expect(
+      codeMirrorChunks(m.vitals.scriptUrls),
+      `${route} fetched the draft editor before anyone opened it. \`DraftScreen.tsx\` loads \`Editor\` ` +
+        "through `next/dynamic`; a static import of it, or of `@uiw/react-codemirror`, puts it back."
+    ).toEqual([]);
+  });
+
+  it("the draft's edit arm fetches the CodeMirror chunk once it opens", () => {
+    expect(codeMirrorChunks(editArmScripts), "the edit arm opened with no CodeMirror chunk").not.toEqual([]);
   });
 });

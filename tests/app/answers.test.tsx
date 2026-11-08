@@ -17,7 +17,7 @@
 import React, { act } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createRoot, type Root } from "react-dom/client";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 /** What the product said, in order: the rendered text of each toast and
  *  the daisyUI classes it was drawn with. */
@@ -102,6 +102,7 @@ import {
   FIXTURE_TIME_ZONE,
 } from "@/app/(account)/app/calendar/fixture";
 import { DraftScreen } from "@/app/(account)/app/draft/[draftId]/DraftScreen";
+import { loadEditor } from "./draft/editor-loaded";
 import { assembleDraft } from "@/app/(account)/app/draft/[draftId]/model";
 import { FIXTURE_DRAFTS, FIXTURE_DRAFT_ID } from "@/app/(account)/app/draft/[draftId]/fixture";
 import { assembleSettings } from "@/app/(account)/app/settings/model";
@@ -116,6 +117,7 @@ const MONTH = assembleMonth(FIXTURE_CALENDAR_FACTS, FIXTURE_MONTH);
 /** The fixture's page in review — the one day whose panel offers a stop. */
 const IN_REVIEW = "2026-09-15";
 const DRAFT = assembleDraft(FIXTURE_DRAFTS[FIXTURE_DRAFT_ID]!);
+beforeAll(() => loadEditor(<DraftScreen view={DRAFT} generatedLabel="written by" />));
 const SETTINGS = assembleSettings(FIXTURE_SETTINGS_FACTS);
 
 const mounted: { root: Root; container: HTMLElement }[] = [];

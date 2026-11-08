@@ -15,7 +15,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createRoot, type Root } from "react-dom/client";
 import { act } from "react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 // CodeMirror's own way back from the DOM to the editor (issue 932): the
 // draft body is a CodeMirror 6 field now, so the buffer is read off the
 // editor rather than off an element's `value`.
@@ -44,14 +44,10 @@ import { formatDateTime } from "@/app/(account)/app/_shell/format";
 import { HARD_RULES, NO_CHECKS } from "@/lib/generate/rules/types";
 import { renderMarkdownHtml } from "@/lib/publish/render/markdown";
 import { DraftScreen } from "@/app/(account)/app/draft/[draftId]/DraftScreen";
+import { loadEditor } from "./editor-loaded";
 import { assembleDraft } from "@/app/(account)/app/draft/[draftId]/model";
 import { CLAIM_COPY_KEY, CLAIM_STATES } from "@/app/(account)/app/draft/[draftId]/claim";
-import {
-  FIXTURE_DRAFTS,
-  FIXTURE_DRAFT_ID,
-  FIXTURE_EDITED_DRAFT_ID,
-  FIXTURE_PUBLISHED_DRAFT_ID,
-} from "@/app/(account)/app/draft/[draftId]/fixture";
+import { FIXTURE_DRAFTS, FIXTURE_DRAFT_ID, FIXTURE_EDITED_DRAFT_ID, FIXTURE_PUBLISHED_DRAFT_ID } from "@/app/(account)/app/draft/[draftId]/fixture";
 
 const LABEL = "the label renderGenerated returned";
 
@@ -543,6 +539,7 @@ describe("REQ-045 c5-c9 — the editor, its live preview, its autosave and its i
   let container: HTMLDivElement;
   let root: Root;
 
+  beforeAll(() => loadEditor(<DraftScreen view={VIEW} generatedLabel={LABEL} />));
   beforeEach(() => {
     (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
     vi.useFakeTimers();

@@ -11,14 +11,16 @@ import React, { act } from "react";
 import { readFileSync } from "node:fs";
 import { createRoot } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { boardFile, compare, readAllow, segments } from "../../../scripts/design/parity.mjs";
 import { copy } from "@/lib/presentation/copy";
 import { DraftScreen } from "@/app/(account)/app/draft/[draftId]/DraftScreen";
+import { loadEditor } from "./editor-loaded";
 import { assembleDraft, type DraftView } from "@/app/(account)/app/draft/[draftId]/model";
 import { FIXTURE_DRAFTS, FIXTURE_DRAFT_ID } from "@/app/(account)/app/draft/[draftId]/fixture";
 
 const VIEW = assembleDraft(FIXTURE_DRAFTS[FIXTURE_DRAFT_ID]!);
+beforeAll(() => loadEditor(<DraftScreen view={VIEW} generatedLabel="Written by ReachKit" />));
 const BOARD = readFileSync(boardFile("AppDraft"), "utf8");
 
 /** What the app shell draws around every `/app` screen: the route-level

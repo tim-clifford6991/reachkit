@@ -49,6 +49,12 @@ export interface RawVitals {
   /** How many script resources those bytes came from, so a budget that
    *  passes because nothing loaded cannot read as a pass. */
   scriptCount: number;
+  /** Every script resource's URL, so a test can say which chunks a route
+   *  fetched. */
+  scriptUrls: string[];
+  /** The uncompressed size of each stylesheet the document links, in bytes
+   *  (`decodedBodySize`): what the browser parses before it paints. */
+  stylesheetBytes: number[];
   /** What moved, worst first: one line per element the largest session
    *  window's shifts name as a source, with the score it carried. A CLS
    *  number with nothing attached to it is a number nobody can act on. */
@@ -168,6 +174,11 @@ export function measureVitals(settleMs: number): Promise<RawVitals> {
       let scriptBytes = 0;
       for (const script of scripts) scriptBytes += script.transferSize;
 
+      const linked = new Set(
+        Array.from(document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]')).map((link) => link.href)
+      );
+      const stylesheetBytes = resources.filter((r) => linked.has(r.name)).map((r) => r.decodedBodySize);
+
       const fontPreloads: string[] = [];
       for (const link of Array.from(document.querySelectorAll('link[rel="preload"][as="font"]'))) {
         fontPreloads.push(link.getAttribute("href") ?? "");
@@ -188,6 +199,8 @@ export function measureVitals(settleMs: number): Promise<RawVitals> {
         shiftSources,
         scriptBytes,
         scriptCount: scripts.length,
+        scriptUrls: scripts.map((script) => script.name),
+        stylesheetBytes,
         fontPreloads,
         unsizedImages,
       });

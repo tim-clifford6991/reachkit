@@ -12,11 +12,12 @@
  */
 @import "tailwindcss" source(none);
 
-/* What Tailwind scans for class names: the product's own TSX and TS, the
- * globs the old config's `content` named. `source(none)` above turns
- * automatic detection off, so the docs, the canvas and the tests are never
- * scanned for candidates. */
-@source "../**/*.{ts,tsx}";
+/* What Tailwind scans for class names: the routes and the UI, the only
+ * directories that hold class strings. `source(none)` above turns automatic
+ * detection off; `src/lib` stays out because its prose and data read as
+ * candidates (a "vc" domain suffix emits daisyUI's whole calendar). */
+@source "../app/**/*.{ts,tsx}";
+@source "../ui/**/*.{ts,tsx}";
 
 /* daisyUI's base reset, components and utilities, with none of its bundled
  * themes: `themes: false` emits no palette, so no second copy of any value
@@ -32,8 +33,15 @@
  * rather than depending on being after it. */
 @plugin "@tailwindcss/typography";
 
+/* `include` names every daisyUI module a screen uses, so a class-like word
+ * cannot pull in a component nobody draws; a newly used component is added
+ * here. */
 @plugin "daisyui" {
   themes: false;
+  include: properties, rootcolor, rootscrollgutter, rootscrolllock, scrollbar, svg, join, radius, typography,
+    alert, avatar, badge, breadcrumbs, button, card, collapse, divider, dock, drawer, dropdown, fieldset, footer,
+    input, label, link, list, loading, menu, mockup, navbar, progress, radialprogress, radio, select, skeleton,
+    stat, status, steps, tab, table, textarea, timeline, toggle, tooltip;
 }
 
 /* The theme. `default: true` applies it at bare `:root` with no
