@@ -307,8 +307,7 @@ export function emailedAtOf(told: DraftRow["told"]): Date | null {
   return Number.isNaN(at.getTime()) ? null : at;
 }
 
-/** Whether the last battery recorded a rule this text breaks (#789). A row
- *  no battery has recorded anything for breaks none it can name. */
+/** Whether the last battery recorded a rule that stops this text; a style rule only warns. */
 export function rulesFailedOf(ruleFailures: unknown): boolean {
   return (readRecordedRules(ruleFailures) ?? []).some(stops);
 }
