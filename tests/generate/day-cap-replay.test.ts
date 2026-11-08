@@ -79,6 +79,8 @@ async function world(cause = "stale") {
   const url = SAAS_HOSTED.liveUrl.replace("onboarding-checklist", "which-tool-small-team");
   Object.assign(written, { state: "published" });
   db.seed("publications", [...db.rows("publications"), { id: "p-written", draft_id: written.id, site_id: SITE, destination: SAAS_HOSTED.destination, delivery_state: "delivered", attempt_no: 1, live_url: url, published_at: new Date(Date.now() - 60 * DAY_MS).toISOString(), unpublished_at: null, mode: "autopilot", made_live_by_us: true }]);
+  // The page is ours: the row it was written for is on file.
+  db.seed("opportunities", [...db.rows("opportunities"), { ...(insertFor(opportunity({ siteId: SITE })) as unknown as Row), id: written.opportunity_id }]);
   for (const each of db.rows("opportunities")) each.status = "done";
   const due = cause === "structure" ? { kind: "due", cause, defects: ["h1"] } : { kind: "due", cause };
   const refresh = (id: string, place: number) => {

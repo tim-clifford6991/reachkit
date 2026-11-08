@@ -37,7 +37,7 @@ vi.mock("@/lib/db", () => ({
   dbAdmin: () => ({
     from: (table: string) => {
       const rows = table === "draft_days" ? [{ reason: days.reason }] : [{ report: days.report }];
-      const self = { select: () => self, eq: () => self, is: () => self, order: () => self, limit: () => self, then: (done: (v: unknown) => unknown) => Promise.resolve({ data: rows, error: null }).then(done) };
+      const self = { select: () => self, eq: () => self, is: () => self, not: () => self, order: () => self, limit: () => self, then: (done: (v: unknown) => unknown) => Promise.resolve({ data: rows, error: null }).then(done) };
       return self;
     },
   }),

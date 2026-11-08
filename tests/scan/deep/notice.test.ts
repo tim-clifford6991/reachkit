@@ -117,7 +117,7 @@ describe("the own-facts notice claims the site lacks facts only where the day pr
     return (await releaseNotice({ domain: "example.com", siteId: "site-1" }))?.key ?? null;
   };
 
-  it.each(["generate:no_own_facts:grounding", "generate:no_own_facts:pack:facts_few", "generate:no_own_facts:pack:facts_few,product_page"])(
+  it.each(["generate:no_own_facts:grounding", "generate:no_own_facts:pack:facts_few", "generate:no_own_facts:pack:facts_few,product_page", "generate:no_own_facts:grounding;no_update_candidate", "generate:no_own_facts:pack:facts_few;no_update_candidate"])(
     "%s shows it",
     async (reason) => {
       expect(await withDay(reason)).toBe("setup.release.own-facts");

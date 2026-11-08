@@ -1,0 +1,18 @@
+{
+  "source": "reachkit.app's own days, read-only, 0¢. Pages and their publish instants: content.reachkit.app/rss.xml and each page's datePublished, read 2026-11-08 ~11:00Z; the 10-03 page's day from the 2026-10-31 sitemap (daily-check 10-31 M1) and its 'moved' take-down at 11-03 08:00:42 from daily-check 2026-11-03 row 4. Days, triggers and spend: /root/ops/reachkit/reports/ops-week-delivery-2026-11-08.md §3 (draft_days and the logs). The two 11-04 stops are tests/generate/fixtures/q4-*-2026-11.json; the one built last held the date.",
+  "pages": [
+    { "path": "best-answer-engine-optimization-services-for-ai-visibility", "publishedAt": "2026-10-03T07:00:00.000Z", "unpublishedAt": "2026-11-03T08:00:42.000Z" },
+    { "path": "reachkit-vs-aeo-engine", "publishedAt": "2026-10-05T07:00:04.910Z" },
+    { "path": "how-to-rank-on-chatgpt", "publishedAt": "2026-10-09T07:00:28.476Z" },
+    { "path": "how-to-rank-in-ai-overview", "publishedAt": "2026-10-10T07:00:43.000Z" },
+    { "path": "what-is-the-difference-between-answer-engine-optimization-and-generative-engine-optimization", "publishedAt": "2026-11-02T08:00:19.000Z" },
+    { "path": "best-ai-visibility-tools-for-small-businesses", "publishedAt": "2026-11-03T08:00:42.000Z" },
+    { "path": "how-to-do-generative-engine-optimization", "publishedAt": "2026-11-06T08:00:54.000Z" },
+    { "path": "ai-visibility-tracking-tools", "publishedAt": "2026-11-07T08:00:26.000Z" }
+  ],
+  "days": [
+    { "date": "2026-11-04", "tick": "2026-11-03T08:03:00.000Z", "trigger": "generate:rules", "from": "write", "spentCents": 23.9, "stopped": ["ecf4f99d-05dd-44b7-88d7-a9408c6f8dfd", "0f95686d-a336-471d-bd00-e56f6ad8b7d2"] },
+    { "date": "2026-11-05", "tick": "2026-11-04T08:03:00.000Z", "trigger": "generate:no_opportunity", "from": "select", "spentCents": 0, "stopped": [] },
+    { "date": "2026-11-08", "tick": "2026-11-07T08:03:00.000Z", "trigger": "generate:no_own_facts", "from": "write", "spentCents": 4.14, "stopped": [] }
+  ]
+}

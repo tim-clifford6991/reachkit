@@ -168,7 +168,7 @@ describe("a day whose own page did not pass takes a ready update from the commit
     expect(onDate(D)).toMatchObject([{ id: taken?.ok ? taken.draftId : null, state: "generating", hard_rules_passed: true, cost_cents: 0, meta: { mendOf: id, fallbackFor: "generate:no_opportunity" } }]);
     expect(statusOf(MEND_ID)).toBe("queued");
     expect((await committedWeek(live.siteId)).days.map((each) => each.opportunity.id)).not.toContain(MEND_ID);
-    expect(await refreshForDay({ siteId: live.siteId, publishDate: LATER, trigger: "generate:no_opportunity", from: "select", stopped: null })).toBeNull();
+    expect((await refreshForDay({ siteId: live.siteId, publishDate: LATER, trigger: "generate:no_opportunity", from: "select", stopped: null }))?.ok ?? false).toBe(false);
     expect(onDate(LATER)).toEqual([]);
     expect([llm.mock.calls.length, network.mock.calls.length]).toEqual([0, 0]);
   });
@@ -190,7 +190,7 @@ describe("a day whose own page did not pass takes a ready update from the commit
     }
     const taken = await fallback(SAAS_HOSTED);
     expect(onDate(D).map((each) => each.opportunity_id)).toEqual(chosen === null ? [] : [`${chosen.repeat(8)}-0000-4000-8000-000000000000`.toLowerCase()]);
-    expect(taken?.ok ?? null).toBe(chosen === null ? null : true);
+    expect(taken?.ok === true).toBe(chosen !== null);
   });
 
   it.each([SAAS_HOSTED, LOCAL_WORDPRESS])("for $kind, a rules day's stopped row gives up its date to the update that takes it, and keeps its state", async (live) => {
@@ -208,9 +208,9 @@ describe("a day whose own page did not pass takes a ready update from the commit
     const { id } = await livePage(live, (body) => body.replace(/^[^\n]*The right tool for a small team[^\n]*\n/m, ""));
     commit(MEND_ID, LATER, 3);
     stoppedOn(live);
-    const before = JSON.stringify([db.rows("drafts"), db.rows("opportunities")]);
-    expect(await fallback(live, "d-stopped", "generate:rules")).toBeNull();
-    expect(JSON.stringify([db.rows("drafts"), db.rows("opportunities")])).toBe(before);
+    const before = JSON.stringify(db.rows("drafts"));
+    expect((await fallback(live, "d-stopped", "generate:rules"))?.ok ?? false).toBe(false);
+    expect(JSON.stringify(db.rows("drafts"))).toBe(before);
     expect([row("d-stopped").scheduled_for, others([id, LIVE_DRAFT, "d-stopped"])]).toEqual([D, []]);
     expect([llm.mock.calls.length, network.mock.calls.length]).toEqual([0, 0]);
   });
@@ -252,9 +252,9 @@ describe("a day whose own page did not pass takes a ready update from the commit
     db.seed("opportunities", [...db.rows("opportunities"), { ...(insertFor(page) as unknown as Row), id: SPARE_ID, status: "open", created_at: AT.toISOString() }]);
     commit(SPARE_ID, LATER, 3);
     const before = db.rows("drafts").length;
-    expect(await fallback(live)).toBeNull();
+    expect((await fallback(live))?.ok ?? false).toBe(false);
     db.seed("publications", []);
-    expect(await fallback(live)).toBeNull();
+    expect(await fallback(live)).toEqual({ ok: false, because: "no_update_candidate" });
     expect(db.rows("drafts").length).toBe(before);
     expect([llm.mock.calls.length, network.mock.calls.length]).toEqual([0, 0]);
   });

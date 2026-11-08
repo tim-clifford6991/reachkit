@@ -24,6 +24,7 @@ describe("readiness is assessed in three places", () => {
     const refresh = readFileSync("src/lib/opportunities/refresh.ts", "utf8").split("\n");
     const at = sites.find((site) => site.file.endsWith("refresh.ts"))!.line;
     const helper = refresh.slice(0, at).filter((line) => /^(export )?async function /.test(line)).pop();
-    expect(helper).toMatch(/^async function persistAssessed\(/);
+    // The day's update fallback plans its row through the same helper (decision 2026-11-08-2503).
+    expect(helper).toMatch(/^export async function persistAssessed\(/);
   });
 });
