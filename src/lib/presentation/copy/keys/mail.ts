@@ -144,7 +144,7 @@ export const MAIL_COPY = Object.freeze({
   // What `POST /api/lead` answers with. The adapter maps each arm of
   // `captureLead()` to one of these keys and never to a sentence of its
   // own or a vendor payload (REQ-003 c10, REQ-010 c1).
-  "lead.accepted": ["Got it. We’re writing your page and will email it when it’s ready.", { slots: {}, fixedBy: "REQ-010 c1" }],
+  "lead.accepted": ["Got it. Your report is on its way, and your page follows when it’s written.", { slots: {}, fixedBy: "REQ-010 c1" }],
   "lead.invalid_address": ["That isn’t an email address. Try one like you@example.com.", { slots: {}, fixedBy: "REQ-010 c1" }],
   "lead.unavailable": ["We couldn’t save your email. Try again in a few minutes.", { slots: {}, fixedBy: "REQ-003 c10" }],
 
@@ -663,20 +663,16 @@ export const MAIL_COPY = Object.freeze({
     "{domain}: Visibility Score {score}, {band}",
     { slots: { domain: "text", score: "text", band: "text" }, fixedBy: "S20 (11a)" },
   ],
+  "mail.report.subject.unmeasured": ["{domain}: your free report", { slots: { domain: "text" }, fixedBy: "issue 2519 (drafted)" }],
+  "mail.report.notMeasured": ["Not measured", { slots: {}, fixedBy: "issue 2519 (drafted)" }],
   "mail.report.heading": ["Your report is ready", { slots: {}, fixedBy: "S20 (11a)" }],
   "mail.report.preheader": ["Free, and it stays online.", { slots: {}, fixedBy: "O6 · issue 2172 (drafted)" }],
-  "mail.report.body": [
-    "Your full report is free and stays online.",
-    { slots: {}, fixedBy: "S20 (11a)" },
-  ],
+  "mail.report.body": ["Your full report is free and stays online.", { slots: {}, fixedBy: "S20 (11a)" }],
   "mail.report.action": ["Open the report", { slots: {}, fixedBy: "S20 (11a)" }],
   // #638: the mail's next step, between the verdict and its one action.
   // No approved sentence says what a free-report reader does next, so the
   // key ships awaiting the owner's line.
-  "mail.report.next": [
-    "Each problem says who can fix it. The full method is there too, free.",
-    { slots: {}, fixedBy: "SPEC §8 · issue 638" },
-  ],
+  "mail.report.next": ["Each problem says who can fix it. The full method is there too, free.", { slots: {}, fixedBy: "SPEC §8 · issue 638" }],
   "mail.report.fact.score": ["Visibility Score", { slots: {}, fixedBy: "ruling 6a" }],
   "mail.report.fact.aiAnswers": ["AI", { slots: {}, fixedBy: "S20 (11a)" }],
   "mail.report.fact.googleSearch": ["Google", { slots: {}, fixedBy: "S20 (11a)" }],
