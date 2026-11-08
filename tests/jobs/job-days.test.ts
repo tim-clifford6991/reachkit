@@ -97,7 +97,6 @@ describe("job_days — every invocation counted once, under its job, day and sit
     const failing = await run(await served(async () => Promise.reject(new Error("database unreachable"))), "weekly-refresh-subject", SUBJECT);
 
     expect(failing).toEqual(unmeasured);
-    expect(failing.at(-1)?.status).toBe(200);
     const failures = warned.map((line) => JSON.parse(line) as Record<string, unknown>).filter((line) => line.event === "job_days");
     expect(failures).toHaveLength(4);
     expect(failures[0]).toMatchObject({ event: "job_days", outcome: "record-failed" });

@@ -97,6 +97,8 @@ const PURGE_ORDER: readonly {
   { table: "draft_days", column: "site_id", from: "siteIds" },
   // The site's failed Settings reads, counted by the daily check; no foreign key, so it goes by value.
   { table: "ops_events", column: "site_id", from: "siteIds" },
+  // Each job's invocations and CPU for the site a day; no foreign key, so it goes by value.
+  { table: "job_days", column: "site_id", from: "siteIds" },
   // Destination credentials.
   { table: "destinations", column: "site_id", from: "siteIds" },
   { table: "sites", column: "user_id", from: "userIds" },
