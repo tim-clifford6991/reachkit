@@ -17,13 +17,15 @@ const run = promisify(execFile);
 
 // The listed page the broken deployment serves as a 404.
 const BROKEN = Object.keys(PATHS).find((p) => p !== "/" && PATHS[p]!.status === 200)!;
+// The cold-start routes the list does not hold, answered as a healthy deploy does so the smoke reaches old-paths.
+const COLD: Record<string, Expected> = { "/signin": { status: 200 }, "/app": { status: 307, location: "/signin" } };
 const LANDING = '<form action="/api/scan"><input name="value"><button type="submit">Go</button></form>';
 
 /** A deployment answering every listed address as listed, except `broken`. */
 async function stub(broken?: string): Promise<{ server: Server; origin: string }> {
   const server = createServer((req, res) => {
     const pathname = new URL(req.url ?? "/", "http://stub").pathname;
-    const expected = PATHS[pathname];
+    const expected = PATHS[pathname] ?? COLD[pathname];
     // The scan start is refused, so a smoke run stops right after the free steps.
     if (req.method !== "GET" || expected === undefined || pathname === broken) {
       res.writeHead(req.method === "POST" ? 503 : 404).end();
