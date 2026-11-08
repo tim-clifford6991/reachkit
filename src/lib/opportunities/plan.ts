@@ -16,7 +16,7 @@
 // A new site's first week is committed when setup's pass ends
 // (`planFirstWeek`). A date no commit covers after that is committed on
 // demand by that evening's run, once: the commit then covers the dates
-// after it, and so, once a week, is a date the week has used up.
+// after it, and so, once per weekly commit, is a date the week has used up.
 import { PLAN_DEPTH, SUPPLY_SHORT_BELOW, WEEK_PLAN } from "@/lib/config/constants";
 import { stoppedOnCeiling } from "@/lib/scan/market-floor";
 import { choose } from "./choose";
@@ -72,7 +72,7 @@ export async function planFirstWeek(siteId: string, now: Date = new Date()): Pro
 /**
  * The page a date's run writes: the row the week planned for it, where it
  * still stands, else the next spare in committed order; nothing ranks here.
- * A date no commit covers, or (once a week) whose slot and spares are used up
+ * A date no commit covers, or (once per weekly commit) whose slot and spares are used up
  * while ready rows wait outside the week, is committed from the date. `null`
  * where nothing left can be written; `updatesTried` once the day's update fallback has had its turn.
  */
@@ -93,8 +93,8 @@ export async function pageForDay(siteId: string, date: string, now: Date = new D
   // A ready update dated later is the day's update fallback's to take first, so the recommit stays the last resort.
   if (!updatesTried && open.some((r) => r.family === "improve" && r.planned_for != null && r.planned_for > date)) return null;
   const waiting = (await store.countUnused(siteId)) - open.filter((r) => r.family !== "fix").length;
-  const monday = new Date(Date.parse(date) - ((new Date(date).getUTCDay() + 6) % 7) * DAY_MS).toISOString().slice(0, 10);
-  if (waiting <= 0 || !(await store.claimRecommit(siteId, date, monday, waiting))) return null;
+  // Keyed by the weekly pass the commit came from, so a recommit before Monday's pass never spends the new week's.
+  if (waiting <= 0 || !(await store.claimRecommit(siteId, date, (await store.weeklyCommit(siteId)) ?? "setup"))) return null;
   await planWeek(siteId, { now, from: date });
   const slot = (await store.plannedRows(siteId)).find((r) => r.planned_for === date);
   return slot === undefined ? null : planned(slot);

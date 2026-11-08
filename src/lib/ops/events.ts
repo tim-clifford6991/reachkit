@@ -47,12 +47,12 @@ export function recordOpsEvent(kind: string, read: string, code: string, siteId:
   return write;
 }
 
-/** Writes a `kind` row for the site where none is held since `since` (an ISO date, as `read` holds), awaited because
- *  the row gates its caller; `false` where one already was. */
-export async function claimOpsEvent(kind: string, siteId: string, since: string, read: string, code: string): Promise<boolean> {
+/** Writes a `kind` row for the site where none is held with `code` as its key, awaited because the row gates its
+ *  caller; `false` where one already was. */
+export async function claimOpsEvent(kind: string, siteId: string, code: string, read: string): Promise<boolean> {
   const { dbAdmin } = await import("@/lib/db");
   const events = () => (dbAdmin() as unknown as SupabaseClient).from("ops_events");
-  const prior = await events().select("id").eq("kind", kind).eq("site_id", siteId).gte("read", since).limit(1);
+  const prior = await events().select("id").eq("kind", kind).eq("site_id", siteId).eq("code", code).limit(1);
   if (prior.error !== null) throw new Error(`ops_events claim: ${prior.error.message}`);
   if (prior.data.length > 0) return false;
   const { error } = await events().insert({ kind, read, site_id: siteId, code });

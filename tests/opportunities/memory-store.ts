@@ -45,8 +45,10 @@ export interface MemoryState {
   /** The site's own pages a tracked AI answer cited in the last four weeks
    *  (issue 1146); absent reads as none. */
   cited?: string[];
-  /** The week's on-demand recommits recorded; absent reads as none. */
-  recommits?: { siteId: string; date: string }[];
+  /** The on-demand recommits recorded, each with the weekly commit it extends; absent reads as none. */
+  recommits?: { siteId: string; date: string; commit: string }[];
+  /** The `week_start` of the site's last measured weekly pass; absent reads as none. */
+  weeklyCommit?: string | null;
   statusChangedAt: Map<string, Date>;
   profile: Profile | null;
   latestScanAt: Date | null;
@@ -338,10 +340,14 @@ export function memoryStore(state: MemoryState): OpportunityStore {
         .sort((a, b) => a.plan_place! - b.plan_place!);
     },
 
-    async claimRecommit(siteId, date, monday) {
+    async weeklyCommit() {
+      return state.weeklyCommit ?? null;
+    },
+
+    async claimRecommit(siteId, date, commit) {
       const recommits = (state.recommits ??= []);
-      if (recommits.some((r) => r.siteId === siteId && r.date >= monday)) return false;
-      recommits.push({ siteId, date });
+      if (recommits.some((r) => r.siteId === siteId && r.commit === commit)) return false;
+      recommits.push({ siteId, date, commit });
       return true;
     },
 

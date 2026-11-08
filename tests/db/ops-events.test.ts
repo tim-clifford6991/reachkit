@@ -72,10 +72,10 @@ describe("ops_events — the daily check's count of failed Settings reads", () =
     }
   });
 
-  it("a claim holds once per site since its date, through the service client", async () => {
+  it("a claim holds once per site and key, whatever date it is read for, through the service client", async () => {
     const [site, other] = [psqlRows("select gen_random_uuid();")[0]![0]!, psqlRows("select gen_random_uuid();")[0]![0]!];
-    const claim = (siteId: string, since: string, read: string) => events.claimOpsEvent("week_recommitted", siteId, since, read, "2");
-    expect(await claim(site, "2026-11-02", "2026-11-04")).toBe(true);
+    const claim = (siteId: string, key: string, read: string) => events.claimOpsEvent("week_recommitted", siteId, key, read);
+    expect(await claim(site, "2026-11-02", "2026-11-09")).toBe(true);
     expect(await claim(site, "2026-11-02", "2026-11-06")).toBe(false);
     expect(await claim(other, "2026-11-02", "2026-11-06")).toBe(true);
     expect(await claim(site, "2026-11-09", "2026-11-10")).toBe(true);

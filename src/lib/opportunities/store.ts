@@ -211,8 +211,10 @@ export interface OpportunityStore {
   /** The site's committed week, in place order, whatever each row's status
    *  is now. */
   plannedRows(siteId: string): Promise<readonly OpportunityRow[]>;
-  /** Records the week's one recommit from `date`, with the `waiting` ready rows; `false` where one is held since `monday`. */
-  claimRecommit(siteId: string, date: string, monday: string, waiting: number): Promise<boolean>;
+  /** The `week_start` of the site's last measured weekly pass, which names the commit it made; `null` before the first. */
+  weeklyCommit(siteId: string): Promise<string | null>;
+  /** Records the one recommit from `date` that the commit named `commit` allows; `false` where that commit's is held. */
+  claimRecommit(siteId: string, date: string, commit: string): Promise<boolean>;
   /** Writes a row's cluster and the searches it absorbed. */
   setCluster(opportunityId: string, clusterKey: string, absorbedQueries: readonly string[]): Promise<void>;
   /** The site's current stored report, or `null` where it has no readable
@@ -452,6 +454,12 @@ export interface MinimalClient {
  *  store's own (`refresh.ts`). */
 export function untyped(): MinimalClient {
   return dbAdmin() as unknown as MinimalClient;
+}
+
+/** One row's columns written by id; a failure names the store method. */
+async function updateRow(method: string, opportunityId: string, values: object): Promise<void> {
+  const { error } = await untyped().from<OpportunityRow>("opportunities").update(values).eq("id", opportunityId);
+  if (error) throw new Error(`opportunities.${method}: ${error.message}`);
 }
 
 /** Postgres' unique-violation class. The partial unique index raises it,
@@ -731,13 +739,7 @@ export function supabaseOpportunityStore(): OpportunityStore {
       return (data ?? []).flatMap(dismissedSearchesOf);
     },
 
-    async setCluster(opportunityId, clusterKey, absorbedQueries) {
-      const { error } = await untyped()
-        .from<OpportunityRow>("opportunities")
-        .update({ cluster_key: clusterKey, absorbed_queries: [...absorbedQueries] })
-        .eq("id", opportunityId);
-      if (error) throw new Error(`opportunities.setCluster: ${error.message}`);
-    },
+    setCluster: (opportunityId, clusterKey, absorbedQueries) => updateRow("setCluster", opportunityId, { cluster_key: clusterKey, absorbed_queries: [...absorbedQueries] }),
 
     // The writer's scope; a failed read rejects, so "not read" is never written as "no fact".
     async hasGroundingFact(siteId) {
@@ -812,37 +814,13 @@ export function supabaseOpportunityStore(): OpportunityStore {
       return data ?? [];
     },
 
-    async setFitBand(opportunityId, band) {
-      const { error } = await untyped()
-        .from<OpportunityRow>("opportunities")
-        .update({ fit_band: band })
-        .eq("id", opportunityId);
-      if (error) throw new Error(`opportunities.setFitBand: ${error.message}`);
-    },
+    setFitBand: (opportunityId, band) => updateRow("setFitBand", opportunityId, { fit_band: band }),
 
-    async setVolume(opportunityId, volume, evidence) {
-      const { error } = await untyped()
-        .from<OpportunityRow>("opportunities")
-        .update({ volume, evidence })
-        .eq("id", opportunityId);
-      if (error) throw new Error(`opportunities.setVolume: ${error.message}`);
-    },
+    setVolume: (opportunityId, volume, evidence) => updateRow("setVolume", opportunityId, { volume, evidence }),
 
-    async setEvidence(opportunityId, evidence) {
-      const { error } = await untyped()
-        .from<OpportunityRow>("opportunities")
-        .update({ evidence })
-        .eq("id", opportunityId);
-      if (error) throw new Error(`opportunities.setEvidence: ${error.message}`);
-    },
+    setEvidence: (opportunityId, evidence) => updateRow("setEvidence", opportunityId, { evidence }),
 
-    async setBusinessFit(opportunityId, fit, source, pageType) {
-      const { error } = await untyped()
-        .from<OpportunityRow>("opportunities")
-        .update({ business_fit: fit, source, page_type: pageType })
-        .eq("id", opportunityId);
-      if (error) throw new Error(`opportunities.setBusinessFit: ${error.message}`);
-    },
+    setBusinessFit: (opportunityId, fit, source, pageType) => updateRow("setBusinessFit", opportunityId, { business_fit: fit, source, page_type: pageType }),
 
     async marketFor(siteId) {
       const { readSiteMarket } = await import("@/lib/market/infer/stored");
@@ -895,15 +873,21 @@ export function supabaseOpportunityStore(): OpportunityStore {
       if (error) throw new Error(`opportunities.plannedRows: ${error.message}`);
       return atCurrentHost(siteId, data ?? []);
     },
-    claimRecommit: async (siteId, date, monday, n) => (await import("@/lib/ops/events")).claimOpsEvent("week_recommitted", siteId, monday, date, String(n)),
-
-    async setReadiness(opportunityId, reason) {
-      const { error } = await untyped()
-        .from<OpportunityRow>("opportunities")
-        .update({ ready: reason === null, unready_reason: reason })
-        .eq("id", opportunityId);
-      if (error) throw new Error(`opportunities.setReadiness: ${error.message}`);
+    async weeklyCommit(siteId) {
+      const { data, error } = await untyped()
+        .from<{ week_start: string }>("scans")
+        .select("week_start")
+        .eq("site_id", siteId)
+        .eq("tier", "weekly")
+        .in("status", ["done", "degraded"])
+        .order("week_start", { ascending: false })
+        .limit(1);
+      if (error) throw new Error(`opportunities.weeklyCommit: ${error.message}`);
+      return data?.[0]?.week_start ?? null;
     },
+    claimRecommit: async (siteId, date, commit) => (await import("@/lib/ops/events")).claimOpsEvent("week_recommitted", siteId, commit, date),
+
+    setReadiness: (opportunityId, reason) => updateRow("setReadiness", opportunityId, { ready: reason === null, unready_reason: reason }),
 
     async notWorkingVerdicts(siteId) {
       const { data, error } = await untyped()
@@ -930,13 +914,7 @@ export function supabaseOpportunityStore(): OpportunityStore {
       }));
     },
 
-    async markDone(opportunityId) {
-      const { error } = await untyped()
-        .from<OpportunityRow>("opportunities")
-        .update({ status: "done" })
-        .eq("id", opportunityId);
-      if (error) throw new Error(`opportunities.markDone: ${error.message}`);
-    },
+    markDone: (opportunityId) => updateRow("markDone", opportunityId, { status: "done" }),
 
     async markQueued(opportunityId) {
       const { data, error } = await untyped()
@@ -987,13 +965,7 @@ export function supabaseOpportunityStore(): OpportunityStore {
       if (error) throw new Error(`opportunities.rest: ${error.message}`);
     },
 
-    async becomeUpdate(opportunityId, update) {
-      const { error } = await untyped()
-        .from<OpportunityRow>("opportunities")
-        .update(update)
-        .eq("id", opportunityId);
-      if (error) throw new Error(`opportunities.becomeUpdate: ${error.message}`);
-    },
+    becomeUpdate: (opportunityId, update) => updateRow("becomeUpdate", opportunityId, update),
 
     async hostedHostFor(siteId) {
       const { data, error } = await untyped()
