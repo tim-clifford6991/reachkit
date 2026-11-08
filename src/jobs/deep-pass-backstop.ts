@@ -40,6 +40,23 @@ export async function sendRemeasure(a: { scanId: string; siteId: string; domain:
   });
 }
 
+/** The site's first page as the draft tick's own per-site event, for the
+ *  date `nextPublishDate` gives now. A site the tick would not select is
+ *  sent nothing, and the tick's key keeps a second send to one draft. */
+export async function sendFirstDraft(a: { siteId: string; now?: Date }): Promise<void> {
+  const { activeSites } = await import("./engine");
+  const selection = await activeSites();
+  const site = selection.held === null ? selection.sites.find((row) => row.siteId === a.siteId) : undefined;
+  if (site === undefined) return;
+  const now = a.now ?? new Date();
+  const [{ nextPublishDate }, { dayEvent }, { sendSubjectEvents }] = await Promise.all([
+    import("./site-clock"),
+    import("./draft-generate"),
+    import("./client"),
+  ]);
+  await sendSubjectEvents("draft/generate", [dayEvent(site, { publishDate: nextPublishDate(now, site), hour: now })]);
+}
+
 export const deepPassBackstop = Object.freeze({
   async due(): Promise<readonly string[]> {
     const { sitesWithoutDeepPass } = await import("@/lib/scan/deep/backstop");

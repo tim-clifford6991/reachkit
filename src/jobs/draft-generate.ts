@@ -73,7 +73,7 @@ function siteDay(data: JobInput["data"]): { siteId: string; publishDate: string;
 }
 
 /** The event a due day is sent as: the site's clock rides along, so its run can check the publish time. */
-function dayEvent(site: Site, day: { publishDate: string; hour: Date }) {
+export function dayEvent(site: Site, day: { publishDate: string; hour: Date }) {
   return {
     key: `draft:${site.siteId}:${day.publishDate}`,
     data: { siteId: site.siteId, publishDate: day.publishDate, hour: day.hour.toISOString(), timeZone: site.timeZone, publishTime: site.publishTime, vetoHours: site.vetoHours },

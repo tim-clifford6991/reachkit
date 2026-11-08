@@ -147,6 +147,7 @@ export type SetupProgressState =
  *   readProgress     → `sites.setup_completed_at`
  *   commitSetup      → the three decisions plus `setup_completed_at`
  *   enqueueDeepPass  → `scan/run` at tier `deep` (§6.3, §11)
+ *   enqueueFirstDraft → `draft/generate`'s per-site event (§5)
  *
  * It stays an interface the caller passes in: `completeSetup` is a
  * decision about refusal order, and a function that reached for its own
@@ -166,6 +167,9 @@ export interface SetupStore {
    *  `/setup` reopens on when they come back to it in a new tab. */
   saveStep(a: { siteId: string; save: SetupStepSave; resumeAt: SetupStepId | null }): Promise<void>;
   enqueueDeepPass(siteId: string): Promise<void>;
+  /** The draft tick's per-site event for the first page, so a pass that
+   *  ended before the finish still leaves a first draft. */
+  enqueueFirstDraft?(siteId: string): Promise<void>;
 }
 
 /**
@@ -241,6 +245,10 @@ export async function completeSetup(
   // founder whose Check step was saved by a build that could not reach the
   // queue still gets one from the finish.
   await startPass(store, progress.siteId);
+  // The pass may already have ended while the site was unselected; the tick's key keeps this to one draft.
+  await store.enqueueFirstDraft?.(progress.siteId).catch((error: unknown) => {
+    console.warn(JSON.stringify({ event: "first_draft_enqueue_failed", siteId: progress.siteId, detail: String(error) }));
+  });
 
   return { ok: true, siteId: progress.siteId };
 }

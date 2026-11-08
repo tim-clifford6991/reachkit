@@ -212,6 +212,12 @@ export async function sendJobEvent(
   });
 }
 
+/** Sends a tick's subjects from outside the tick, under the same keys, so
+ *  the platform drops one the tick or another caller already sent. */
+export async function sendSubjectEvents(jobId: JobDefinition["id"], events: readonly SubjectEvent[]): Promise<void> {
+  if (events.length > 0) await client.send(subjectEvents(jobId, events));
+}
+
 /** The HTTP handler set the `/api/jobs` route mounts. It serves exactly the
  *  definitions it is given — an unregistered job is unreachable. */
 export function serveJobs(definitions: readonly JobDefinition[]) {
