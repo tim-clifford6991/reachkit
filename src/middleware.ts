@@ -979,37 +979,19 @@ export async function middleware(
 }
 
 export const config = {
-  // Next's own recommendation (`proxy.md`, "Negative matching"): exclude
-  // static internals so this function is never invoked for them at all —
-  // belt-and-braces with `isNextInternal` above, which covers the same
-  // paths when this function is called directly, as the test suite does.
-  // The three machine endpoints are skipped as well, but only on ReachKit's
-  // own hosts: on any other host the hosted edge must still answer them, and
-  // `next.config.ts` gives them their fixed policy under the same host test.
+  // `proxy.md` "Negative matching": static internals never invoke this function (`isNextInternal`
+  // covers them when it is called directly). The three machine endpoints skip it only on ReachKit's
+  // own hosts, where `next.config.ts` gives them a fixed policy; elsewhere the hosted edge answers.
   matcher: [
     "/((?!_next/static|_next/image|favicon.ico|api/jobs(?:/|$)|api/stripe/webhook$|api/health$).*)",
-    {
-      source: "/api/(jobs|jobs/.*|stripe/webhook|health)",
-      missing: [{ type: "host", value: "(?:dev\\.)?reachkit\\.app" }],
-    },
+    { source: "/api/(jobs|jobs/.*|stripe/webhook|health)", missing: [{ type: "host", value: "(?:dev\\.)?reachkit\\.app" }] },
   ],
-  // **Node.js, and not the Edge runtime** (issue #49). The legacy
-  // `middleware.ts` convention still builds for Edge; its successor
-  // `proxy.ts` "defaults to using the Node.js runtime" and refuses this
-  // option altogether (`proxy.md`, "Runtime"; the runtime became stable
-  // for middleware in 15.5). Setting it here puts this file where the
-  // convention it is being renamed to already is, without renaming it —
-  // the rename is BP-001's own `code:` list to change (see this file's
-  // header), not a feature PR's.
-  //
-  // What forces it: BUILD §9's hosted edge asks `hostedServingState`
-  // whether a customer's pages are still served, which reaches
-  // `@/lib/account/billing` — the only way past that module's import
-  // fence — and the barrel's graph carries the mail vendor's `node:https`
-  // and `node:crypto`. On Edge those do not exist and the build says so.
-  // The alternatives were worse: duplicating BP-060's two-condition rule
-  // inside the hosted store (a second access arbiter, which ADR-050 exists
-  // to prevent), or answering a departed customer's address 404 instead of
-  // the 410 REQ-076 c10 requires.
+  // **Node.js, not Edge** (issue #49): `proxy.ts`, this convention's successor, defaults to Node and
+  // refuses the option (`proxy.md`, "Runtime"); setting it here gets there without the rename, which
+  // is BP-001's `code:` list to change, not a feature PR's. What forces it: BUILD §9's hosted edge
+  // asks `hostedServingState` whether a customer's pages are still served, which reaches
+  // `@/lib/account/billing`, whose graph carries the mail vendor's `node:https` and `node:crypto`;
+  // Edge has neither. The alternatives were worse: a second access arbiter in the hosted store
+  // (ADR-050 forbids it), or a 404 for a departed customer's address where REQ-076 c10 asks 410.
   runtime: "nodejs",
 };
