@@ -446,8 +446,9 @@ from draft_days d join sites s on s.id = d.site_id
 order by d.publish_date desc limit 30;
 ```
 
-In the hour a paying, publishing site's publish time falls in, a date with no page going out is
-mailed to `OWNER_EMAILS` once (*"A site's publish time passed with no page for the day."*), with that
+In the first due hour that starts at or after a paying, publishing site's publish time, a date with
+neither a page delivered nor one the customer stopped is mailed to `OWNER_EMAILS` once, whether or
+not a later page is going out (*"A site's publish time passed with no page for the day."*), with that
 row's reason, and `missing_alerted_at` records it. A row with only `missing_alerted_at` set is a date
 whose due hour never ran for that site, for example a tick that did not fire or a site not selected
 then. `no_page` with `generate:no_opportunity` and open, ready rows on file means the ranking left
