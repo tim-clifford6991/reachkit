@@ -159,7 +159,7 @@ describe("the daily job takes its slot", () => {
   });
 });
 
-describe("a week whose slot and spares are used up is committed again from the date, once a week", () => {
+describe("a week whose slot and spares are used up is committed again from the date, once per weekly commit", () => {
   /** Rests every row the week holds, as the daily job does when each page stops. */
   async function restWeek(): Promise<Set<string>> {
     const held = new Set(state.rows.filter((row) => row.plan_place != null).map((row) => row.id));
@@ -176,7 +176,7 @@ describe("a week whose slot and spares are used up is committed again from the d
     expect(page).not.toBeNull();
     expect(rested.has(page!.id)).toBe(false);
     expect(state.rows.find((row) => row.planned_for === DAY(2))?.id).toBe(page!.id);
-    expect(state.recommits).toEqual([{ siteId: SITE_ID, date: DAY(2) }]);
+    expect(state.recommits).toEqual([{ siteId: SITE_ID, date: DAY(2), commit: "setup" }]);
 
     // A second used-up day that week commits nothing again and says so.
     await restWeek();
@@ -188,6 +188,40 @@ describe("a week whose slot and spares are used up is committed again from the d
     expect(await pageForDay(SITE_ID, DAY(3), AT)).toBeNull();
     expect(state.rows.map((row) => [row.id, row.plan_place, row.planned_for])).toEqual(commit);
     expect(state.recommits).toHaveLength(1);
+  });
+
+  it("a recommit on the Sunday before a week leaves Monday's weekly commit its own one, and that commit allows no second", async () => {
+    // AT is a Saturday, so DAY(2) is the Monday whose weekly pass runs after Sunday's evening writes it.
+    const planned = vi.spyOn(console, "log");
+    const weeksPlanned = () =>
+      planned.mock.calls.map(([line]) => JSON.parse(String(line)) as { event?: string; from?: string }).filter((e) => e.event === "week_planned");
+    state.weeklyCommit = DAY(-5);
+    await weeklyPass();
+    await planWeek(SITE_ID, { now: AT });
+    await restWeek();
+    expect(await pageForDay(SITE_ID, DAY(2), AT)).not.toBeNull();
+
+    // Monday's weekly pass commits a fresh week, which then comes up short on Wednesday.
+    state.weeklyCommit = DAY(2);
+    await weeklyPass(weekReport(TWELVE.map((keyword) => `${keyword} for saas`)));
+    await planWeek(SITE_ID, { now: AT, from: DAY(3) });
+    await restWeek();
+    planned.mockClear();
+    expect(await pageForDay(SITE_ID, DAY(4), AT)).not.toBeNull();
+    expect(weeksPlanned().map((e) => e.from)).toEqual([DAY(4)]);
+
+    // A second short day under the same weekly commit recommits nothing.
+    await restWeek();
+    await weeklyPass(weekReport(TWELVE.map((keyword) => `${keyword} for teams`)));
+    for (const row of state.rows.filter((r) => r.plan_place == null && r.status === "open")) Object.assign(row, { ready: true, unready_reason: null });
+    planned.mockClear();
+    expect(await pageForDay(SITE_ID, DAY(5), AT)).toBeNull();
+    expect(weeksPlanned()).toEqual([]);
+    expect(state.recommits?.map((r) => [r.date, r.commit])).toEqual([
+      [DAY(2), DAY(-5)],
+      [DAY(4), DAY(2)],
+    ]);
+    planned.mockRestore();
   });
 
   it("with no ready row outside the week the day stays empty and nothing is committed", async () => {
