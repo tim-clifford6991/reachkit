@@ -1,13 +1,20 @@
-// tests/app/api/health.test.ts — GET and HEAD /api/health over the real
-// registry's schedule. The double is the `job_runs` store only.
+// tests/app/api/health.test.ts — GET and HEAD /api/health over the light
+// schedule. The double is the `job_runs` store, or `fetch` under the
+// database store's own read.
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { stubEnv } from "../../jobs/env-fixture";
 import type { HeartbeatStore, JobRunRow } from "@/jobs/heartbeat";
 
 stubEnv(false);
-const { GET, HEAD } = await import("@/app/api/health/route");
+// The cold read must not build the full client, so loading it fails the read.
+vi.doMock("@supabase/supabase-js", () => {
+  throw new Error("/api/health loaded @supabase/supabase-js");
+});
+const route = await import("@/app/api/health/route");
+const { GET, HEAD } = route;
 const { setHeartbeatStore, scheduleOf } = await import("@/jobs/heartbeat");
-const { jobs } = await import("@/jobs");
+const { CRON_JOBS } = await import("@/jobs/schedule");
+const jobs = CRON_JOBS;
 
 const NOW = new Date("2026-09-16T12:00:00.000Z");
 const minutesAgo = (n: number) => new Date(NOW.getTime() - n * 60_000).toISOString();
@@ -43,6 +50,7 @@ function withRow(rows: JobRunRow[], row: JobRunRow): JobRunRow[] {
 
 async function get(): Promise<{ status: number; cache: string | null; body: Record<string, unknown> }> {
   const response = await GET(new Request("https://reachkit.example/api/health"), undefined);
+  expect(response.headers.get("x-robots-tag")).toBe("noindex");
   return { status: response.status, cache: response.headers.get("cache-control"), body: await response.json() };
 }
 
@@ -110,6 +118,7 @@ describe("/api/health turns job_runs into a status code", () => {
       const head = await HEAD(new Request("https://reachkit.example/api/health", { method: "HEAD" }), undefined);
       expect(head.status).toBe((await get()).status);
       expect(head.headers.get("cache-control")).toBe("no-store");
+      expect(head.headers.get("x-robots-tag")).toBe("noindex");
       expect(await head.text()).toBe("");
     }
   });
@@ -120,4 +129,45 @@ describe("/api/health turns job_runs into a status code", () => {
     await get();
     expect(writes).toBe(0);
   });
+});
+
+describe("/api/health's own read", () => {
+  // The client keeps the `fetch` it was built with, so one double stands for the database across these cases.
+  let database: (request: Request) => Promise<Response>;
+  beforeAll(() => {
+    vi.stubGlobal("fetch", (input: RequestInfo | URL, init?: RequestInit) => database(new Request(input, init)));
+  });
+  afterAll(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("is never cached or prerendered", () => {
+    expect(route.dynamic).toBe("force-dynamic");
+    expect(route.revalidate).toBe(0);
+  });
+
+  it("is one job_runs select with the service role, without the full client, and the rows it returns decide the answer", async () => {
+    let tableRows: unknown[] = scheduleOf(jobs).map(({ jobId }) => ({ job_id: jobId, last_run_at: minutesAgo(5), stale_alerted_at: null }));
+    const served: Request[] = [];
+    database = async (request) => {
+      served.push(request);
+      return Response.json(tableRows);
+    };
+    await expect(get()).resolves.toEqual({ status: 200, cache: "no-store", body: { ok: true } });
+    expect(served.map((r) => `${r.method} ${decodeURIComponent(r.url)}`)).toEqual([
+      "GET https://project.supabase.co/rest/v1/job_runs?select=job_id,last_run_at,stale_alerted_at",
+    ]);
+    expect(served[0]?.headers.get("apikey")).toBe("service-role-key-fixture");
+    expect(served[0]?.headers.get("authorization")).toBe("Bearer service-role-key-fixture");
+
+    tableRows = [];
+    await expect(get()).resolves.toMatchObject({ status: 503, body: { ok: false, reason: "no-runs" } });
+  });
+
+  it("a connection the database refuses answers 503 read-failed", async () => {
+    database = async () => {
+      throw new TypeError("fetch failed", { cause: new Error("connect ECONNREFUSED") });
+    };
+    await expect(get()).resolves.toMatchObject({ status: 503, body: { ok: false, reason: "read-failed" } });
+  }, 15_000);
 });

@@ -89,7 +89,7 @@ export function cronIntervalMinutes(cron: string): number | null {
   return /^\d$/.test(dayOfWeek) ? 7 * 24 * 60 : null;
 }
 
-export function scheduleOf(definitions: readonly JobDefinition[]): readonly ScheduledJob[] {
+export function scheduleOf(definitions: readonly Pick<JobDefinition, "id" | "trigger">[]): readonly ScheduledJob[] {
   const scheduled: ScheduledJob[] = [];
   for (const definition of definitions) {
     if (definition.trigger.kind !== "cron") continue;
@@ -144,8 +144,7 @@ export type JobsHealth =
 /** What the outside monitor reads: the one check that still sees every job
  *  stopping, because it runs on a request rather than on a job. Reads only;
  *  an alert already mailed does not hide a job here. */
-export async function jobsHealth(definitions: readonly JobDefinition[], now: Date): Promise<JobsHealth> {
-  const schedule = scheduleOf(definitions);
+export async function jobsHealth(schedule: readonly ScheduledJob[], now: Date): Promise<JobsHealth> {
   let rows: readonly JobRunRow[];
   try {
     rows = await (installed?.store ?? databaseHeartbeatStore()).readAll();
@@ -261,6 +260,11 @@ function databaseHeartbeatStore(): HeartbeatStore {
     const { dbAdmin } = await import("@/lib/db");
     return dbAdmin() as unknown as MinimalClient;
   }
+  // The read is `/api/health`'s one database call on a cold instance, so it skips the full client.
+  async function readClient(): Promise<MinimalClient> {
+    const { dbAdminRest } = await import("@/lib/db/rest");
+    return dbAdminRest() as unknown as MinimalClient;
+  }
   return {
     async record(jobId, outcome, at) {
       const { error } = await (await client()).from<Row>("job_runs").upsert(
@@ -270,7 +274,7 @@ function databaseHeartbeatStore(): HeartbeatStore {
       if (error !== null) throw new Error(error.message);
     },
     async readAll() {
-      const { data, error } = await (await client()).from<Row>("job_runs").select("job_id, last_run_at, stale_alerted_at");
+      const { data, error } = await (await readClient()).from<Row>("job_runs").select("job_id, last_run_at, stale_alerted_at");
       if (error !== null) throw new Error(error.message);
       return (data ?? []).map((row) => ({
         jobId: row.job_id,
