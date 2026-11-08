@@ -36,8 +36,8 @@ Product catalogue → add a product named `ReachKit`, then one recurring price o
 Stripe Tax stays **off** (`automatic_tax: { enabled: false }` in `src/lib/account/checkout/params.ts`).
 
 Copy the price id into `STRIPE_PRICE_ID`. `src/lib/account/checkout/price-object.ts` compares the
-live price against those four fields at every boot and the deployment refuses to serve on a
-mismatch, naming the field. All four are immutable on a Stripe price, so the fix is always a
+live price against those four fields on every Vercel build (`scripts/check-price.mjs`, npm's `prebuild`),
+and the build fails on a mismatch, naming the field. All four are immutable on a Stripe price, so the fix is always a
 **new** price built to this spec with `STRIPE_PRICE_ID` repointed at it — never an edit.
 
 `createPrice(productId)` in `src/lib/account/checkout/ensure-price.ts` creates the same object from

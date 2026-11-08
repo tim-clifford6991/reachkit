@@ -19,10 +19,7 @@ const db = fakeDb();
 vi.mock("@/lib/db", () => ({ dbAdmin: () => db.client, db: () => db.client }));
 
 import { seal } from "@/lib/publish/destinations/config";
-import {
-  installStampCapability,
-  stampPlace,
-} from "@/lib/publish/destinations/wordpress/stamp-place";
+import { stampPlace } from "@/lib/publish/destinations/wordpress/stamp-place";
 import {
   leftInWordPress,
   setStampCapability,
@@ -111,7 +108,7 @@ describe("REQ-079 c6 — the counts stand whether or not there is a place", () =
 
   it("with the port wired and the site stamped, the sentence carries its count and its place", async () => {
     seedDestination();
-    installStampCapability();
+    setStampCapability({ place: stampPlace });
     const map = await leftInWordPress({ outcomes, destinationId: "dest-1" });
     expect(map.returned_to_draft).toEqual({
       count: 2,
@@ -121,14 +118,14 @@ describe("REQ-079 c6 — the counts stand whether or not there is a place", () =
 
   it("with the site unstamped, the same sentence still carries its count and names no place", async () => {
     seedDestination({ stamp_capable: false });
-    installStampCapability();
+    setStampCapability({ place: stampPlace });
     const map = await leftInWordPress({ outcomes, destinationId: "dest-1" });
     expect(map.returned_to_draft).toEqual({ count: 2, place: null });
   });
 
   it("`already_gone` names no place even at a stamped site — there is nothing there to find", async () => {
     seedDestination();
-    installStampCapability();
+    setStampCapability({ place: stampPlace });
     const map = await leftInWordPress({ outcomes, destinationId: "dest-1" });
     expect(map.already_gone).toEqual({ count: 1, place: null });
   });

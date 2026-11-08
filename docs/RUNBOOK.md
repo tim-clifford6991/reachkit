@@ -177,7 +177,7 @@ Twenty-four names are in the schema. Two more sit outside it, for stated reasons
 | `SUPABASE_SERVICE_ROLE_KEY` | `dbAdmin()`'s key, bypasses RLS | ● | reading it from a client bundle throws |
 | `STRIPE_SECRET_KEY` | the API key | ● | |
 | `STRIPE_WEBHOOK_SECRET` | verifies `/api/stripe/webhook` | | |
-| `STRIPE_PRICE_ID` | the one €49/month tax-inclusive price | | checked against the spec at boot — §7 |
+| `STRIPE_PRICE_ID` | the one €49/month tax-inclusive price | | checked against the spec by the build — §7 |
 | `RESEND_API_KEY` | mail transport | ● | |
 | `MAIL_FROM` | the mailbox every ReachKit mail comes from | | must be an address, at a verified Resend sending domain, and read by somebody — §6 |
 | `DATAFORSEO_LOGIN` | vendor identity | | |
@@ -1010,8 +1010,8 @@ last thing in the log and the deployment serves nothing.
 | 3 | `access-gate` | (registration) | billing's gate could not register — in practice, the database is unreachable | check the Supabase project is awake and `SUPABASE_*` is right |
 | 4 | `stamp-place` | none | — | non-throwing registration |
 | 5 | `spend-alerts` | none | — | non-throwing; an unregistered sink costs an alert, never a refusal |
-| 6 | `checkout` | `PriceObjectMismatch` | the live Stripe Price behind `STRIPE_PRICE_ID` differs from the spec at `unit_amount`, `currency`, `recurring.interval` or `tax_behavior` | the message names the field, the expected value and the found one. Those fields are immutable on a Stripe Price, so the fix is a **new** price built to the spec and `STRIPE_PRICE_ID` repointed at it |
-| 6b | `checkout` | `PriceObjectUnknown` | Stripe answered that the price behind `STRIPE_PRICE_ID` does not exist — in practice, a test-mode price id asked for with a live-mode key or the reverse (#889) | the message names the mode of the configured `STRIPE_SECRET_KEY`, never the key. Bind a price created in that mode, or repoint the key. The three Stripe bindings move together (`docs/GO-LIVE.md` §1.3). Any *other* error — a Stripe outage, say — still logs `{"check":"checkout","outcome":"unchecked"}` and the deployment serves: a read that did not happen establishes nothing |
+
+The Stripe price is not a boot check. `scripts/check-price.mjs` runs as npm's `prebuild` in the build Vercel runs, and a refused price fails that build, so the deployment never reaches READY and the last good one keeps serving. Its line is `{"event":"price_check","outcome":"refused","reason":"PriceObjectMismatch"}` (the next line names the field, the expected value and the found one: build a **new** price to the spec and repoint `STRIPE_PRICE_ID`) or `"reason":"PriceObjectUnknown"` (the price is not in the configured key's Stripe mode, and the message names that mode, never the key: bind a price created in that mode, or repoint the key; the three Stripe bindings move together, `docs/GO-LIVE.md` §1.3). A Stripe outage logs `"outcome":"unchecked"` and the build goes on. `"reason":"check-not-loaded"` is the check's own loader failing, and fails the build. The build reads `STRIPE_SECRET_KEY` and `STRIPE_PRICE_ID` on its target.
 
 "A real deployment" is `isRealDeployment()` in `src/lib/config/now.ts`, and it **fails closed**:
 anything on Vercel is real, and so is anything with an unset or unparsable `NEXT_PUBLIC_APP_URL`.
@@ -1025,7 +1025,7 @@ Only an app URL whose host is `localhost`, `127.0.0.1` or `[::1]` is not.
 2. **If it is a binding**: the name is in the message. Confirm it exists on the target that
    failed. A value pasted on one target and not the other is the most common cause — the
    deployment that boots is not evidence about the one that does not.
-3. **If it is the price**: `PriceObjectMismatch` names the field and both values; `PriceObjectUnknown` means the price is not in the configured key's Stripe mode, and the message names that mode.
+3. **If the build failed on the price**: read the build log's `price_check` line above.
 4. **If nothing in the log is a boot invariant**, it is not this section: check whether the
    Supabase project has paused (§2) and whether the Vercel build limit was reached (§1).
 

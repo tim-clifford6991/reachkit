@@ -1,14 +1,11 @@
 // BUILD §4.7 · §9 — the WordPress destination answering the deleted-account mail's place port, the `StampCapability`
 // seam `account/lifecycle/left-in-wordpress.ts` declares; unregistered it answers `null`, never a guessed place.
-// The side that knows the answer registers it (ADR-050), so account surfaces never import the publishing graph; the seam
-// is imported by file, since the lifecycle barrel would build a cycle out of a registration.
+// The boot registers a forwarder that loads this module on first use, so neither the boot nor account surfaces import the
+// publishing graph; the seam's type is imported by file, since the lifecycle barrel would build a cycle.
 // `stamp_capable === true` is a place and nothing else is (REQ-079 c6). The base URL is read through `withConfig`, not
 // stored twice; `deleteAccount` asks before it changes anything, so the credential is still there.
 import { WORDPRESS } from "@/lib/config/constants";
-import {
-  setStampCapability,
-  type WordPressListPlace,
-} from "@/lib/account/lifecycle/left-in-wordpress";
+import type { WordPressListPlace } from "@/lib/account/lifecycle/left-in-wordpress";
 import { withConfig } from "../config";
 import { readDestination } from "../store";
 
@@ -30,9 +27,4 @@ export async function stampPlace(destinationId: string): Promise<WordPressListPl
     // No credential, or one that would not open: the mail still names the outcome and its count.
     return null;
   }
-}
-
-/** Registers the port once at boot. Unasserted, unlike `installActiveAccessGate`: missing, it costs one mail its link. */
-export function installStampCapability(): void {
-  setStampCapability({ place: stampPlace });
 }

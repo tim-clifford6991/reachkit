@@ -166,7 +166,6 @@ describe("the template — five occasions, one shape", () => {
 describe("sending — one send per owner address, and nothing that can fail a scan", () => {
   const sendEmailMock = vi.fn();
   const readDaySpendCentsMock = vi.fn();
-  const registerSpendAlertSinkMock = vi.fn();
 
   beforeEach(() => {
     vi.resetModules();
@@ -181,8 +180,6 @@ describe("sending — one send per owner address, and nothing that can fail a sc
     vi.doMock("../../../src/lib/costs/daily", () => ({
       readDaySpendCents: readDaySpendCentsMock,
       readDayCeilingCents: async () => 5000,
-      registerSpendAlertSink: registerSpendAlertSinkMock,
-      registerLedgerUnreadableSink: vi.fn(),
     }));
     return import("../../../src/lib/mail/ops/spend-ceiling");
   }
@@ -238,10 +235,8 @@ describe("sending — one send per owner address, and nothing that can fail a sc
 
   it("which occasion a crossing becomes: the product's two, a site's own, and a free bound's (issue 885)", async () => {
     process.env.OWNER_EMAILS = "owner@example.com";
-    registerSpendAlertSinkMock.mockReset();
     const ops = await loadOps();
-    ops.installSpendAlerts();
-    const sink = registerSpendAlertSinkMock.mock.calls[0]?.[0] as (alert: unknown) => void;
+    const sink = ops.spendAlertSink as (alert: unknown) => void;
 
     const SITE = "11111111-1111-4111-8111-111111111111";
     for (const alert of [

@@ -1,8 +1,9 @@
 // The owner-facing mail occasions: §6.5's ceilings and §11's switch.
 export {
-  installSpendAlerts,
+  ledgerUnreadableSink,
   reportKillSwitchEngaged,
   sendOpsAlert,
+  spendAlertSink,
 } from "./spend-ceiling";
 // The owner's incident alert: a job failed or was dead-lettered, or a deploy refused to boot.
 export { claimOwnerMail, errorNameOf, releaseOwnerMail, reportIncident } from "./incident";

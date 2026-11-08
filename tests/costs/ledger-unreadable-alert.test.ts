@@ -86,7 +86,8 @@ async function coldProcess(): Promise<typeof import("@/lib/mail/ops/spend-ceilin
     return { status: 200, headers: {}, body: JSON.stringify({ id: `vendor-${mails.length}` }) };
   });
   const ops = await import("@/lib/mail/ops/spend-ceiling");
-  ops.installSpendAlerts();
+  daily.registerSpendAlertSink(ops.spendAlertSink);
+  daily.registerLedgerUnreadableSink(ops.ledgerUnreadableSink);
   return ops;
 }
 

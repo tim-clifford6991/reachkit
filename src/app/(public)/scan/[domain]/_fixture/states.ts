@@ -29,6 +29,9 @@ import type { CanonicalDomain } from "@/lib/scan/domain";
 import type { Question } from "@/lib/market/questions/phrase";
 import type { AnswerCell, EngineCell, StoredQuestion, StoredReport } from "@/lib/scan/report";
 import type { AddressState } from "../_address/state";
+import { FIXTURE_SUFFIX, isFixtureDomain } from "./domains";
+
+export { isFixtureDomain };
 
 const MEASURED_AT = new Date("2026-09-05T09:00:00.000Z");
 
@@ -569,17 +572,8 @@ const FIXTURE_ARMS: Readonly<Record<string, (domain: CanonicalDomain) => Address
     "removed.example.com": (domain) => ({ kind: "removed", domain }),
   });
 
-/** The one reserved name every fixture arm hangs under. A domain is a
- *  fixture domain when it is this name or a subdomain of it — never when
- *  it merely ends with the same characters, which `evilexample.com` does. */
-const FIXTURE_SUFFIX = "example.com";
-
 /** Every domain with an arm of its own, and the reserved name itself. */
 export const FIXTURE_DOMAINS: readonly string[] = [FIXTURE_SUFFIX, ...Object.keys(FIXTURE_ARMS)];
-
-export function isFixtureDomain(domain: string): boolean {
-  return domain === FIXTURE_SUFFIX || domain.endsWith(`.${FIXTURE_SUFFIX}`);
-}
 
 /**
  * What a reserved domain resolves to, or `null` for every domain that is
