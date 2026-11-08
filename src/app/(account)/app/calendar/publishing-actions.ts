@@ -60,7 +60,7 @@ const NOT_YOUR_PAGE = "not_your_page";
 async function move(draftId: string, to: State): Promise<string | null> {
   // No session is §4.3's refusal, and `requireAppAccount` answers it by
   // redirecting — so nothing below runs for a caller who is not signed in.
-  const account = await requireAppAccount();
+  const account = await requireAppAccount("write");
   // Imported at the call, like the machine below and for the same reason:
   // this module is imported statically by a client component, and
   // `_session/store` reaches `@/lib/db`.
@@ -122,7 +122,7 @@ async function pageWrite(
   draftId: string,
   write: (a: { draftId: string; userId: string }) => Promise<{ ok: true } | { ok: false; refused: string }>
 ): Promise<string | null> {
-  const account = await requireAppAccount();
+  const account = await requireAppAccount("write");
   const { siteOwnsDraft } = await import("../_session/store");
   if (!(await siteOwnsDraft(account.siteId, draftId))) return NOT_YOUR_PAGE;
   const result = await write({ draftId, userId: account.userId });

@@ -7,7 +7,7 @@
 // their `sites.setup_completed_at` is set.
 //
 // **This file is Node-only, and that is the point of it being a separate
-// file.** `currentSession()` pulls `next/headers` and the Supabase Auth
+// file.** `pageSession()` pulls `next/headers` and the Supabase Auth
 // client, and the store below pulls `dbAdmin()`. `src/middleware.ts` is
 // bundled for the Edge runtime and imports `gate.ts` for one header name;
 // keeping the reads here means that import can never drag any of them into
@@ -39,13 +39,13 @@
 // layout conformance sweep renders every account route against a database
 // that is not there, and a hang would be indistinguishable from a broken
 // screen.
-import { currentSession } from "@/lib/account/identity";
+import { pageSession } from "@/lib/account/identity";
 import { liveSetupStore } from "./_setup/store";
 import type { SetupProgressState } from "./submit";
 
 /** The seam the layout reads through, and the one tests drive the gate
  *  with — a whole database and a signed cookie are not what a redirect
- *  matrix is about. It takes no request: `currentSession()` reads the
+ *  matrix is about. It takes no request: `pageSession()` reads the
  *  cookie jar of the request it is already inside. */
 export type SetupGateReader = () => Promise<SetupProgressState | null>;
 
@@ -71,11 +71,11 @@ function withDeadline<T>(work: Promise<T>): Promise<T> {
 }
 
 const sessionBacked: SetupGateReader = async () => {
-  let session: Awaited<ReturnType<typeof currentSession>>;
+  let session: Awaited<ReturnType<typeof pageSession>>;
   try {
-    session = await withDeadline(currentSession());
+    session = await withDeadline(pageSession());
   } catch {
-    // `currentSession()` reads the `users` row behind a verified cookie,
+    // `pageSession()` reads the `users` row behind a verified cookie,
     // so it is a database read too, and it fails the same way.
     return null;
   }

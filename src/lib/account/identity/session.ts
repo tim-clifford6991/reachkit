@@ -5,8 +5,11 @@
 // **The session is Supabase Auth's** (#468). Its cookie is written by
 // `@supabase/ssr` on a redemption (`/auth/confirm/redeem`) and refreshed by the
 // middleware; this module never mints, signs or parses one. Who is asking
-// is `getUser()`'s answer — Supabase verifying the token, not this process
-// believing a cookie.
+// is never this process believing a cookie: a write asks `getUser()`
+// (`currentSession`), Supabase verifying the token; a page or layout render
+// asks `getClaims()` (`pageSession`), the token's signature checked here
+// against Supabase's published key, once per request (an owner ruling in
+// `docs/spec/decisions/`).
 //
 // **`signOut` ends every session the account holds** (SPEC §3: "Sign-out
 // is global", issue 718): Supabase's `signOut({ scope: "global" })` from the
@@ -17,6 +20,7 @@
 // id rather than a cookie: `auth.admin.signOut(token, "global")`. The other exception — a completed
 // email change — uses `others` from the redemption itself
 // (`email-change-complete.ts`).
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { identityAuth, type CookieIO } from "./auth";
 import { identityStore } from "./store";
@@ -54,13 +58,27 @@ export async function requestCookieIO(): Promise<CookieIO> {
 }
 
 /**
- * Who is making this request, or `null`. Total: no session, a session
- * Supabase does not recognise, one it has revoked, one belonging to a
- * tombstoned account and one whose account row cannot be read are all
+ * Who is making this request, or `null`, with Supabase checking the user
+ * afresh. For a Server Function or a Route Handler. Total: no session, a
+ * session Supabase does not recognise, one it has revoked, one belonging
+ * to a tombstoned account and one whose account row cannot be read are all
  * `null`, and none of them says which.
  */
 export async function currentSession(): Promise<Session | null> {
-  const user = await identityAuth().sessionUser(await requestCookieIO());
+  return accountSession(await identityAuth().sessionUser(await requestCookieIO()));
+}
+
+/**
+ * Who is making this request, for a page or layout render: the signed token
+ * checked locally, and one read per request however many layouts, pages
+ * and headers ask. `null` on the same terms as `currentSession`, except
+ * that a session revoked on another device reads until its token expires.
+ */
+export const pageSession = cache(async function pageSession(): Promise<Session | null> {
+  return accountSession(await identityAuth().sessionClaims(await requestCookieIO()));
+});
+
+async function accountSession(user: { userId: string } | null): Promise<Session | null> {
   if (user === null) return null;
 
   const store = identityStore();

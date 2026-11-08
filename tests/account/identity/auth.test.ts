@@ -11,7 +11,8 @@
 //     back is Supabase's `hashed_token` — Supabase's mailer sends nothing;
 //   · redemption is `verifyOtp({ token_hash, type })`, and `otp_expired` is
 //     the one dead reason GoTrue can name;
-//   · who is asking is `getUser()` — verified by Supabase — never
+//   · who is asking a write is `getUser()` — verified by Supabase — and a
+//     render `getClaims()` — the signature checked here — never
 //     `getSession()` alone, which would believe the cookie;
 //   · sign-out-everywhere is `admin.signOut(token, "global")`.
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -31,6 +32,7 @@ const mocks = vi.hoisted(() => {
     verifyOtp: vi.fn(),
     getUser: vi.fn(),
     getSession: vi.fn(),
+    getClaims: vi.fn(),
     signOut: vi.fn(),
   };
   const created: { url: string; key: string; options: Record<string, unknown> }[] = [];
@@ -192,6 +194,24 @@ describe("sessionUser — `getUser()`, never `getSession()` alone", () => {
       error: null,
     });
     expect(await auth.sessionUser(io)).toBeNull();
+  });
+});
+
+describe("sessionClaims — `getClaims()`, the token's signature checked without asking Supabase", () => {
+  it("answers the subject of a token whose signature holds, and never asks `getUser()`", async () => {
+    mocks.session.getClaims.mockResolvedValue({ data: { claims: { sub: USER.id } }, error: null });
+    expect(await auth.sessionClaims(io)).toEqual({ userId: USER.id });
+    expect(mocks.session.getUser).not.toHaveBeenCalled();
+  });
+
+  it("a token `getClaims()` refuses is null — the forgery case", async () => {
+    mocks.session.getClaims.mockResolvedValue({ data: null, error: { code: "bad_jwt" } });
+    expect(await auth.sessionClaims(io)).toBeNull();
+  });
+
+  it("a verification that throws is null, never an open session", async () => {
+    mocks.session.getClaims.mockRejectedValue(new TypeError("fetch failed"));
+    expect(await auth.sessionClaims(io)).toBeNull();
   });
 });
 

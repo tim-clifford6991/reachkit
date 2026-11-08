@@ -14,10 +14,12 @@ import { applyEnvFixture } from "../../mail/env-fixture";
 applyEnvFixture();
 
 const currentSession = vi.fn();
+const pageSession = vi.fn();
 const readAppSite = vi.fn();
 
 vi.mock("@/lib/account/identity", () => ({
   currentSession: (...a: unknown[]) => currentSession(...a),
+  pageSession: (...a: unknown[]) => pageSession(...a),
 }));
 
 vi.mock("@/app/(account)/app/_session/store", () => ({
@@ -53,6 +55,7 @@ beforeEach(() => {
   redirected.length = 0;
   account.setAppAccountReader(null);
   currentSession.mockResolvedValue({ userId: "user-1", siteId: "site-1" });
+  pageSession.mockResolvedValue({ userId: "user-1", siteId: "site-1" });
   readAppSite.mockResolvedValue(SITE);
 });
 
@@ -97,14 +100,14 @@ describe("who is asking, from the signed cookie and one site read", () => {
 
 describe("the two refusals are two different facts", () => {
   it("no session at all is `no_session`", async () => {
-    currentSession.mockResolvedValue(null);
+    pageSession.mockResolvedValue(null);
     await expect(account.appAccount()).resolves.toEqual({ ok: false, because: "no_session" });
   });
 
   it("a session whose account has no site is `no_site`, not `no_session`", async () => {
     // A customer who has paid and not finished setup is not signed out, and
     // answering `/signin` for them would sign them out of their own account.
-    currentSession.mockResolvedValue({ userId: "user-1", siteId: null });
+    pageSession.mockResolvedValue({ userId: "user-1", siteId: null });
     await expect(account.appAccount()).resolves.toEqual({ ok: false, because: "no_site" });
   });
 
@@ -123,13 +126,13 @@ describe("the two refusals are two different facts", () => {
 
 describe("§4.3's refusal — where each arm sends the customer", () => {
   it("no session goes to the sign-in prompt", async () => {
-    currentSession.mockResolvedValue(null);
+    pageSession.mockResolvedValue(null);
     await expect(account.requireAppAccount()).rejects.toThrow(/NEXT_REDIRECT/);
     expect(redirected).toEqual(["/signin"]);
   });
 
   it("no site goes to setup, never to sign-in", async () => {
-    currentSession.mockResolvedValue({ userId: "user-1", siteId: null });
+    pageSession.mockResolvedValue({ userId: "user-1", siteId: null });
     await expect(account.requireAppAccount()).rejects.toThrow(/NEXT_REDIRECT/);
     expect(redirected).toEqual(["/setup"]);
   });
@@ -179,11 +182,33 @@ describe("the reserved fixture account is decided here and nowhere else", () => 
   });
 });
 
+describe("a render reads the signed token; a write has Supabase check the user", () => {
+  it("a screen's account comes from the page session and never asks Supabase", async () => {
+    await account.requireSetUpAccount();
+    expect(pageSession).toHaveBeenCalledTimes(1);
+    expect(currentSession).not.toHaveBeenCalled();
+  });
+
+  it("a Server Function's account comes from the fresh check, whichever door it asks through", async () => {
+    await account.appAccountForWrite();
+    await account.requireAppAccount("write");
+    await account.requireSetUpAccount("write");
+    expect(currentSession).toHaveBeenCalledTimes(3);
+    expect(pageSession).not.toHaveBeenCalled();
+  });
+
+  it("a session Supabase has ended refuses the write even while its token still reads", async () => {
+    currentSession.mockResolvedValue(null);
+    await expect(account.appAccountForWrite()).resolves.toEqual({ ok: false, because: "no_session" });
+    await expect(account.appAccount()).resolves.toMatchObject({ ok: true });
+  });
+});
+
 describe("the door", () => {
   it("a registered reader answers instead of the session", async () => {
     account.setAppAccountReader(async () => ({ ok: false, because: "no_session" }));
     await expect(account.appAccount()).resolves.toEqual({ ok: false, because: "no_session" });
-    expect(currentSession).not.toHaveBeenCalled();
+    expect(pageSession).not.toHaveBeenCalled();
   });
 
   it("`null` restores the session-backed reader, so no suite leaks an account into the next", async () => {
@@ -200,7 +225,7 @@ describe("what a forged or unverifiable cookie gets, and what that costs elsewhe
     // sessions were ended, and one belonging to a tombstoned account are
     // all `null`, and none of them says which. Every `/app` surface then
     // answers §4.3's refusal.
-    currentSession.mockResolvedValue(null);
+    pageSession.mockResolvedValue(null);
     await expect(account.requireAppAccount()).rejects.toThrow(/NEXT_REDIRECT/);
     expect(redirected).toEqual(["/signin"]);
   });

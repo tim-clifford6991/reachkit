@@ -69,8 +69,8 @@ function listOf(form: FormData): BusinessList | undefined {
  * the same road every other `(account)` write takes.
  */
 async function write(change: (stored: BusinessEdits) => BusinessEdits): Promise<SettingAnswer> {
-  const { appAccount } = await import("../_session/account");
-  const resolved = await appAccount();
+  const { appAccountForWrite } = await import("../_session/account");
+  const resolved = await appAccountForWrite();
   if (!resolved.ok) redirect(SIGNIN_PATH);
   const account = resolved.account;
 

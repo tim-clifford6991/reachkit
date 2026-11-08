@@ -15,12 +15,13 @@
 // **Two clients, two keys.** The admin half (`createUser`, `generateLink`,
 // `signOut`, `deleteUser`, `getUserById`) rides `dbAdmin()`'s service-role
 // client — the one server-only credential this product already has. The
-// session half (`verifyOtp`, `getUser`, a local `signOut`) is an
+// session half (`verifyOtp`, `getUser`, `getClaims`, a local `signOut`) is an
 // `@supabase/ssr` server client on the anon key, built per request over a
 // cookie reader and writer the caller supplies, because that is where the
-// session lives. `getUser()` and never `getSession()` alone decides who is
-// asking: the first asks Supabase to verify the token, the second believes
-// the cookie.
+// session lives. `getUser()` or `getClaims()`, and never `getSession()`
+// alone, decides who is asking: the first asks Supabase to verify the
+// token, the second checks its signature here, the third believes the
+// cookie.
 //
 // **Nothing here throws.** Every method answers what it did or that it
 // could not, on the same footing as `./store.ts`; a vendor that is down is
@@ -77,6 +78,12 @@ export interface IdentityAuth {
   /** Who the request's session belongs to, verified with Supabase. Writes
    *  a refreshed session through `io` where one was due. */
   sessionUser(io: CookieIO): Promise<{ userId: string; accessToken: string } | null>;
+
+  /** Who the request's session belongs to, from its signed token checked
+   *  here against the project's published key (`getClaims()`). A revoked
+   *  session still reads until its token expires, so a write asks
+   *  `sessionUser` instead. Writes a refreshed session through `io`. */
+  sessionClaims(io: CookieIO): Promise<{ userId: string } | null>;
 
   /** Ends every session the account holds (SPEC §3, "Sign-out is
    *  global") and clears this browser's cookies. */
@@ -201,6 +208,17 @@ export function supabaseIdentityAuth(): IdentityAuth {
       const accessToken = session.data.session?.access_token;
       if (accessToken === undefined) return null;
       return { userId: data.user.id, accessToken };
+    },
+
+    async sessionClaims(io) {
+      try {
+        const { data, error } = await sessionClient(io).auth.getClaims();
+        const userId = data?.claims.sub;
+        if (error !== null || typeof userId !== "string" || userId.length === 0) return null;
+        return { userId };
+      } catch {
+        return null;
+      }
     },
 
     async endSession(io) {

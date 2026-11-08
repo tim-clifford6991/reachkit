@@ -25,11 +25,11 @@ export async function appEntry(): Promise<AppEntry> {
   const jar = await cookies();
   if (!jar.getAll().some((cookie) => isAuthCookieName(cookie.name))) return null;
   try {
-    // Imported at the call: `currentSession` reaches `@/lib/db`, which
+    // Imported at the call: `pageSession` reaches `@/lib/db`, which
     // parses every binding the moment it is evaluated (the reason
     // `_session/account.ts` defers the same import).
-    const { currentSession } = await import("@/lib/account/identity");
-    const session = await currentSession();
+    const { pageSession } = await import("@/lib/account/identity");
+    const session = await pageSession();
     if (session === null) return null;
     return session.siteId === null ? "/setup" : "/app";
   } catch {

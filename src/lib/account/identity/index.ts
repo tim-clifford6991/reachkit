@@ -35,6 +35,7 @@ export { issueLink, redeemLink } from "./links";
 export { DEAD_LINK_KEY, type IssuedLink, type RedeemedLink } from "./outcomes";
 export {
   currentSession,
+  pageSession,
   requestCookieIO,
   signOut,
   signOutEverywhere,

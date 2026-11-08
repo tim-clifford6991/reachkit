@@ -33,11 +33,11 @@ vi.mock("@/lib/db", () => ({ dbAdmin: () => db.client, db: () => db.client }));
 
 /** Who the session names. `null` is signed out. */
 let session: { userId: string; siteId: string | null } | null = null;
-vi.mock("@/lib/account/identity", () => ({ currentSession: async () => session }));
+vi.mock("@/lib/account/identity", () => ({ currentSession: async () => session, pageSession: async () => session }));
 // And beneath the barrel: a screen whose layout and page import the session
 // at the same moment can be handed the barrel's own module instead of the
 // double above, and it must still name the same founder.
-vi.mock("@/lib/account/identity/session", () => ({ currentSession: async () => session }));
+vi.mock("@/lib/account/identity/session", () => ({ currentSession: async () => session, pageSession: async () => session }));
 
 vi.mock("@/lib/mail/retention", () => ({ retentionStore: () => ({ recordSeen: async () => {} }) }));
 
@@ -185,7 +185,10 @@ beforeEach(() => {
   forwardedPath = null;
 });
 
-afterEach(() => {
+afterEach(async () => {
+  // A screen that redirects leaves its siblings' reads running, as Next
+  // abandons them; they finish here rather than inside the next state.
+  await new Promise((resolve) => setTimeout(resolve, 0));
   db.reset();
 });
 
