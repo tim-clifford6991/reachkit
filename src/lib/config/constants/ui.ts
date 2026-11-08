@@ -76,6 +76,10 @@ export const PREVIEW_DEBOUNCE_MS = 100 as const;
  *   - `LANDING_SCRIPT_KB` — the script bytes `/` transfers over the wire, in
  *     kilobytes of 1000. Only `/` carries it: it is the one surface a stranger
  *     loads cold, and the report's own weight is its data.
+ *   - `APP_SCRIPT_KB`, `DRAFT_SCRIPT_KB` — the same weight for `/app` and a
+ *     draft's read view, signed in: the measured weight plus a tenth.
+ *   - `MAIN_CSS_KB` — the largest render-blocking stylesheet on `/` and
+ *     `/app`, uncompressed, in kilobytes of 1000.
  *
  * `tests/ui/layout/vitals.test.ts` measures them in the layout sweep's
  * Chromium against the same built-and-served app.
@@ -84,4 +88,7 @@ export const WEB_VITALS_BUDGET = Object.freeze({
   LCP_MS: 2500,
   CLS: 0.1,
   LANDING_SCRIPT_KB: 200,
+  APP_SCRIPT_KB: 663,
+  DRAFT_SCRIPT_KB: 608,
+  MAIN_CSS_KB: 250,
 } as const);

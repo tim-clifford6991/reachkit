@@ -47,16 +47,14 @@
 import type React from "react";
 import { useCallback, useEffect, useMemo, useOptimistic, useRef, useState, useTransition } from "react";
 import { AUTOSAVE_DEBOUNCE_MS, TIMING } from "@/lib/config/constants";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRefreshWhenMoved } from "@/app/_poll/useRefreshWhenMoved";
 import { copy } from "@/lib/presentation/copy";
 import { ArrowLeft, Check, CircleCheck, LoaderCircle, Plus, RefreshCw, TriangleAlert } from "lucide-react";
-import {
-  formatCount,
-  formatDate,
-  formatTime,
-} from "../../_shell/format";
+import { formatCount, formatDate, formatTime } from "../../_shell/format";
+import { PageSkeleton } from "../../_shell/skeletons";
 import { writtenLine } from "../../_shell/written";
 import { COMMAND_TARGET, publishing } from "../../calendar/publishing";
 import { STAGE_OF, TONE_BADGE } from "../../calendar/stages";
@@ -65,7 +63,7 @@ import { CLAIM_COPY_KEY, CLAIM_TONE, claimAfterSave } from "./claim";
 import { DecidePanel } from "./DecidePanel";
 import type { DraftCommand } from "./actions";
 import { draftStore, type SaveBody } from "./save";
-import { Editor, type EditorPane, type PreviewFrame } from "./Editor";
+import type { EditorPane, PreviewFrame } from "./Editor";
 import { liveBreaks, type MarkInputs } from "./marks";
 import { PageRecordBlock } from "./PageRecordBlock";
 import { LivePage } from "./LivePage";
@@ -81,6 +79,8 @@ import { SHAPE } from "./shape";
 import { wordCount, type ClaimState, type DraftView } from "./model";
 import { stageChipOf } from "./stage";
 import { NO_CHECKS, type RecordedChecks } from "@/lib/generate/rules/types";
+// CodeMirror loads only when the edit arm opens; the read view never fetches it.
+const Editor = dynamic(() => import("./Editor").then((m) => m.Editor), { loading: PageSkeleton });
 
 /** The three fields the founder edits (#789), as one value: the buffer, the
  *  text the store last confirmed, and the text the last check ran on are

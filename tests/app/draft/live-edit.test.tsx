@@ -7,7 +7,7 @@
 import "../../generate/env";
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 const save = vi.fn();
 const saveLive = vi.fn();
@@ -23,6 +23,7 @@ vi.mock("@/app/_toast/say", () => ({ say: (...a: unknown[]) => said(...a) }));
 import { AUTOSAVE_DEBOUNCE_MS } from "@/lib/config/constants";
 import { copy } from "@/lib/presentation/copy";
 import { DraftScreen } from "@/app/(account)/app/draft/[draftId]/DraftScreen";
+import { loadEditor } from "./editor-loaded";
 import { assembleDraft, liveEditFor } from "@/app/(account)/app/draft/[draftId]/model";
 import { FIXTURE_DRAFTS, FIXTURE_PUBLISHED_DRAFT_ID } from "@/app/(account)/app/draft/[draftId]/fixture";
 import type { State } from "@/lib/publish/types";
@@ -32,6 +33,7 @@ const VIEW = assembleDraft({ ...PUBLISHED, live: { ...PUBLISHED.live!, edit: { k
 
 let container: HTMLDivElement;
 let root: Root;
+beforeAll(() => loadEditor(<DraftScreen view={VIEW} generatedLabel="Written by ReachKit" />, "live-edit"));
 beforeEach(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
   vi.useFakeTimers();
