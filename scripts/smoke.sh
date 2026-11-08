@@ -16,9 +16,10 @@
 # It walks the chain a stranger walks — landing → every old address → scan →
 # report → gallery card — against a
 # live deployment, and exits non-zero on the first step that does not hold,
-# naming it. Nothing else in CI walks that chain: the five required checks
-# prove the code compiles and renders, and a deployment is marked READY on
-# the strength of a build, which is how nine scan defects shipped in 36 h
+# naming it; a production budget miss is named at once and the walk goes on.
+# Nothing else in CI walks that chain: the five required checks prove the
+# code compiles and renders, and a deployment is marked READY on the
+# strength of a build, which is how nine scan defects shipped in 36 h
 # with CI green and 0 of 17 production scans completing (issue #543).
 #
 # **It is a visitor, not an operator.** Every assertion is made from what a
@@ -96,6 +97,10 @@ fail() {
   [ -n "$T0" ] && printf '     %-22s %s after %s\n' "" "$DOMAIN" "$(secs "$(since_ms "$T0")")" >&2
   exit 1
 }
+
+# A miss is printed at once but fails the run only at its end, so every later step still runs.
+missed=""
+miss() { printf 'FAIL %-22s %s\n' "$1" "$2" >&2; missed=${missed:-$1}; }
 
 # `pin <name>` — the integer `constants.ts` binds to <name>. A pin this
 # script could not read is a refusal, never a default: a smoke check that
@@ -182,11 +187,12 @@ while read -r route _ _ warm_budget; do
 done <<<"$COLD_ROUTES"
 if [ -n "$over" ] && [ "$BASE_URL" = "https://reachkit.app" ]; then
   note "${cold_line# · } · warm, best of 3: ${warm_line# · }"
-  fail "$step" "$(head -1 <<<"$over")"
+  miss "$step" "$(head -1 <<<"$over")"
+else
+  ok "$step" "${cold_line# · }"
+  note "warm, best of 3: ${warm_line# · }"
+  while read -r line; do [ -n "$line" ] && printf 'WARN %-22s %s\n' "$step" "$line"; done <<<"$over"
 fi
-ok "$step" "${cold_line# · }"
-note "warm, best of 3: ${warm_line# · }"
-while read -r line; do [ -n "$line" ] && printf 'WARN %-22s %s\n' "$step" "$line"; done <<<"$over"
 best=""
 
 # ── 1. landing ───────────────────────────────────────────────────────────
@@ -285,6 +291,7 @@ if [ -n "$FREE" ]; then
   notices_clear "$page"
   ok "$step" "200 · /scan/$newest, the newest listed · no incomplete or unreadable notice"
 
+  [ -z "$missed" ] || { echo "smoke: RED at $missed · $BASE_URL walked cold → landing → health → report, GETs only"; exit 1; }
   echo "smoke: PASS · $BASE_URL walked cold → landing → health → report, GETs only"
   exit 0
 fi
@@ -469,4 +476,5 @@ while IFS= read -r name; do
 done <<<"$names"
 ok "$step" "listed under its own name"
 
+[ -z "$missed" ] || { echo "smoke: RED at $missed · $BASE_URL walked landing → scan → report for $DOMAIN in $(secs "$ENDED_MS")"; exit 1; }
 echo "smoke: PASS · $BASE_URL walked landing → scan → report for $DOMAIN in $(secs "$ENDED_MS")"
