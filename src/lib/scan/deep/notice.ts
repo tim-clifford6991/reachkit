@@ -72,7 +72,9 @@ async function newestDayReason(siteId: string): Promise<string | null> {
 
 /** Whether a kept reason shows the site itself short of facts: no passage at all, or a pack with too few. A topic whose
  *  words the site's facts miss is the planner's, and a bare reason from before the path was named proves neither. */
-function siteLacksFacts(reason: string | null): boolean {
+function siteLacksFacts(kept: string | null): boolean {
+  // What the update fallback adds after `;` says nothing about the facts.
+  const reason = kept?.split(";")[0] ?? null;
   if (reason === "generate:no_own_facts:grounding") return true;
   const needs = reason?.startsWith("generate:no_own_facts:pack:") === true ? reason.slice("generate:no_own_facts:pack:".length).split(",") : [];
   return needs.includes("facts_few");

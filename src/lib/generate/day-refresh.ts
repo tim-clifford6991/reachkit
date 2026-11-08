@@ -1,13 +1,16 @@
 // SPEC §7 (owner, 2026-11-05: "each day must have new or updated content, no exceptions") — a day whose run ends
-// without a page takes a ready update from the committed week in the same run, and only where today's whole battery
-// passes it. Here that is the live page mended in code: no model is asked, 0¢. Nothing ranks here.
+// without a page takes an update in the same run, and only where today's whole battery passes it: the committed
+// week's live page mended in code at 0¢, else the writer's update of our oldest live page from stored research.
 import { REFRESH_MIN_AGE_DAYS } from "@/lib/config/constants";
 import { committedWeek, queueForDraft, type Opportunity } from "@/lib/opportunities";
+import { addressKey, persistAssessed, refreshOfPage, stoppedRefreshes } from "@/lib/opportunities/refresh";
+import { opportunityStore, readOpportunity } from "@/lib/opportunities/store";
 import { contentTypeOf } from "@/lib/opportunities/content-type";
-import { isOwnRefresh } from "@/lib/opportunities/types";
+import { isOwnRefresh, isResting } from "@/lib/opportunities/types";
 import type { CostContext } from "@/lib/costs";
 import type { StoredReport } from "@/lib/scan/report";
 import type { DayPageOutcome } from ".";
+import { openDayCost, roomForFix } from "./cost";
 import { checkStoredAt0, siteSets, type RecheckOutcome } from "./recheck";
 import { mendedInCode, repairStructure } from "./rules/structure";
 import { DraftDateTaken, PageStopped, generateStore, type DraftRow, type SiteFacts } from "./store";
@@ -89,8 +92,8 @@ async function candidates(siteId: string, date: string): Promise<Opportunity[]> 
 }
 
 /** The committed week's first ready update the writer refreshes from stored research: one of our pages past its floor. */
-async function writableUpdate(siteId: string, date: string, week?: Opportunity[]): Promise<Opportunity | null> {
-  for (const opportunity of week ?? (await candidates(siteId, date))) {
+async function writableUpdate(siteId: string, date: string): Promise<Opportunity | null> {
+  for (const opportunity of await candidates(siteId, date)) {
     if (!mendable(opportunity) && contentTypeOf(opportunity) === "update" && (await pastFloor(siteId, opportunity.targetRef))) return opportunity;
   }
   return null;
@@ -115,8 +118,9 @@ export async function ownFactsPage(page: MendInput & { publishDate: string }, co
   return documented === null ? ended : { ok: false, because: "no_own_facts", step: documented.step };
 }
 
-/** The day's page, where its own did not pass, from the committed week's updates; `null` where none passes, and then
- *  nothing is written, claimed or rested. `stopped` is the row that holds the date, which gives it up only here. */
+/** The day's page, where its own did not pass: the committed week's code-mended update at 0¢, else the writer's update
+ *  of our live page longest past its floor. `null` where the update did not pass, and `no_update_candidate` where no
+ *  page could be updated. `stopped` is the row that holds the date, which gives it up only to a page written for it. */
 export async function refreshForDay(a: {
   siteId: string;
   publishDate: string;
@@ -126,7 +130,7 @@ export async function refreshForDay(a: {
   stopped: string | null;
   /** The run's due hour, which a topic's rest is read against and the day's spend so far is read since. */
   now?: Date;
-}): Promise<DayPageOutcome | null> {
+}): Promise<DayPageOutcome | typeof NO_UPDATE | null> {
   const store = generateStore();
   const [site, report] = await Promise.all([store.siteFacts(a.siteId), store.latestReport(a.siteId)]);
   if (site === null || report === null) return null;
@@ -151,14 +155,55 @@ export async function refreshForDay(a: {
       throw error;
     }
   }
-  // Only a day whose select found no topic has spent nothing, so the writer's one context is the day's only one.
-  if (a.trigger !== "generate:no_opportunity" || a.from !== "select") return null;
-  const update = await writableUpdate(a.siteId, a.publishDate, week);
-  if (update !== null) return writtenUpdate({ siteId: a.siteId, site, report, opportunity: update, publishDate: a.publishDate }, a.trigger, a.now ?? new Date());
-  // No update passed and none was written: the day goes on down its ladder, the recommit then its own facts.
+  // Any day its own page and spare left without one takes the writer's update of our oldest page past its floor.
+  const now = a.now ?? new Date();
+  const update = await oldestDueUpdate(a.siteId, now);
+  if (update !== null) {
+    const page = { siteId: a.siteId, site, report, opportunity: update, publishDate: a.publishDate };
+    // Opened at what the date has already spent, so the day keeps its one CAP_DRAFT.
+    return openDayCost({ scanId: report.scanId, siteId: a.siteId, since: now }, async (cost) => {
+      if (!roomForFix(cost)) return null;
+      // The row the rules stopped gives up its date to the page written next, as a stopped topic does to its spare.
+      if (holds) await store.patchDraft(a.stopped!, { scheduled_for: null });
+      return writtenUpdate(page, a.trigger, now, cost);
+    });
+  }
+  // Only a day whose select found no topic has spent nothing, so only it goes on down its ladder: recommit, own facts.
+  if (a.trigger !== "generate:no_opportunity" || a.from !== "select") return NO_UPDATE;
   const { generateDayPage } = await import(".");
   const page = await generateDayPage({ siteId: a.siteId, publishDate: a.publishDate, updatesTried: true, ...(a.now === undefined ? {} : { now: a.now }) });
-  return !page.ok && page.because === "no_opportunity" ? null : page;
+  return !page.ok && page.because === "no_opportunity" ? NO_UPDATE : page;
+}
+
+/** The day's update fallback found none of the site's own live pages past the refresh floor to update. */
+const NO_UPDATE = { ok: false, because: "no_update_candidate" } as const;
+
+/**
+ * The page a day updates once its own page and its spare end without one (SPEC §7, owner 2026-11-08): the site's own
+ * live page longest past the refresh floor, committed or not — its open refresh where it has one, else one planned and
+ * assessed as Monday's are. A page its customer edited, took down or stopped a refresh of is theirs and is passed over,
+ * as is one whose row rests or is not ready. Nothing is bought.
+ */
+async function oldestDueUpdate(siteId: string, at: Date): Promise<Opportunity | null> {
+  const store = opportunityStore();
+  const floor = at.getTime() - REFRESH_MIN_AGE_DAYS * 24 * 60 * 60 * 1000;
+  const pages = (await store.refreshPages(siteId))
+    .filter((page) => page.publishedAt.getTime() <= floor && page.takenDown !== true && page.edited !== true && page.row.targetQuery !== null)
+    .sort((x, y) => x.publishedAt.getTime() - y.publishedAt.getTime());
+  if (pages.length === 0) return null;
+  const stopped = await stoppedRefreshes(siteId);
+  const openAt = async (url: string) =>
+    (await store.openRankable(siteId)).map(readOpportunity).filter((o) => o.type === "refresh_page" && addressKey(o.targetRef ?? "") === addressKey(url));
+  for (const page of pages) {
+    if (stopped.has(addressKey(page.url))) continue;
+    let open = await openAt(page.url);
+    // Titled as the page is, so the writer finds its live text even before the known-content copy lists it.
+    const planned = { ...refreshOfPage(page, "aged", at), title: page.title || null };
+    if (open.length === 0 && (await persistAssessed(siteId, [planned], at)) > 0) open = await openAt(page.url);
+    const row = open.find((o) => o.ready && !isResting(o, at));
+    if (row !== undefined) return row;
+  }
+  return null;
 }
 
 /** One of ReachKit's own pages, live at `url` for at least the refresh floor: nothing else is refreshed for a day. */

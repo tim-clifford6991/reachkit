@@ -354,7 +354,7 @@ export function unseenLinkCandidates(pages: readonly OwnLivePage[], at: Date): C
 
 /** The address as two addresses are compared: host without `www.`, no
  *  trailing slash, case folded. */
-function addressKey(url: string): string {
+export function addressKey(url: string): string {
   return url.trim().toLowerCase().replace(/^https?:\/\/(www\.)?/, "").replace(/[#?].*$/, "").replace(/\/+$/, "");
 }
 
@@ -742,7 +742,7 @@ export async function planRefreshes(a: { siteId: string; at: Date }): Promise<nu
 }
 
 /** Writes rows planned between Mondays and assesses them at once, so their own week can see them; a failed read leaves them `not_assessed` for Monday. */
-async function persistAssessed(siteId: string, candidates: readonly Candidate[], at: Date): Promise<number> {
+export async function persistAssessed(siteId: string, candidates: readonly Candidate[], at: Date): Promise<number> {
   const { created } = await persist({ candidates });
   if (created.length > 0) await assessReadiness(siteId, { at, now: at, only: new Set(created.map((row) => row.id)) }).catch((error: unknown) => console.error(JSON.stringify({ event: "refresh_assess_failed", siteId, message: String(error) })));
   return created.length;
@@ -761,7 +761,7 @@ export function absorbedBy(candidates: readonly Candidate[], open: readonly Pick
 
 /** The addresses whose refresh the customer stopped: a stopped draft
  *  dismisses its row (SPEC §7, 2026-09-15). */
-async function stoppedRefreshes(siteId: string): Promise<Set<string>> {
+export async function stoppedRefreshes(siteId: string): Promise<Set<string>> {
   const { data, error } = await untyped()
     .from<{ target_ref: string | null }>("opportunities")
     .select("target_ref")
