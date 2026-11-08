@@ -84,15 +84,15 @@ export interface WordPressCredential {
 }
 
 async function siteId(): Promise<string> {
-  const { appAccount } = await import("../_session/account");
-  const account = await appAccount();
+  const { appAccountForWrite } = await import("../_session/account");
+  const account = await appAccountForWrite();
   if (!account.ok) redirect(SIGNIN_PATH);
   return account.account.siteId;
 }
 
 async function actor(): Promise<{ kind: "customer"; userId: string }> {
-  const { appAccount } = await import("../_session/account");
-  const account = await appAccount();
+  const { appAccountForWrite } = await import("../_session/account");
+  const account = await appAccountForWrite();
   if (!account.ok) redirect(SIGNIN_PATH);
   return { kind: "customer", userId: account.account.userId };
 }

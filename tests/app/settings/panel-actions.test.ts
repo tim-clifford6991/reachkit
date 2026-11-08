@@ -38,7 +38,7 @@ const {
   revalidated: [] as string[],
 }));
 
-vi.mock("@/app/(account)/app/_session/account", () => ({ appAccount }));
+vi.mock("@/app/(account)/app/_session/account", () => ({ appAccount, appAccountForWrite: appAccount }));
 vi.mock("@/lib/publish/settings", () => ({ savePublishingSettings }));
 vi.mock("@/lib/publish/switch", () => ({ setPublishing }));
 vi.mock("@/lib/mail/notifications", () => ({

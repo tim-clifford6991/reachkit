@@ -37,7 +37,7 @@ const { appAccount, saveDomain, saveCategory, saveRivals, declaredAnswers, resol
     revalidated: [] as string[],
   }));
 
-vi.mock("@/app/(account)/app/_session/account", () => ({ appAccount }));
+vi.mock("@/app/(account)/app/_session/account", () => ({ appAccount, appAccountForWrite: appAccount }));
 vi.mock("@/lib/market/changes", () => ({ saveDomain, saveCategory, saveRivals, declaredAnswers }));
 vi.mock("@/lib/egress/dns", () => ({ resolvesInDns }));
 vi.mock("@/lib/scan/deep/remeasure", () => ({ startRemeasure }));

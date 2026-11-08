@@ -129,5 +129,5 @@ export function hostedHostFactory(actual: Record<string, unknown>): Record<strin
 }
 
 export function sessionFactory(): Record<string, unknown> {
-  return { currentSession: async () => setupSession.session };
+  return { currentSession: async () => setupSession.session, pageSession: async () => setupSession.session };
 }

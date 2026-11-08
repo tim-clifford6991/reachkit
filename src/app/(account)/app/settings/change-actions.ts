@@ -77,8 +77,8 @@ async function siteId(): Promise<string> {
 /** The session's site, with the zone a refusal's time is written in
  *  (issue 866). Never a value the browser sent. */
 async function site(): Promise<{ siteId: string; domain: string; timeZone: string | null }> {
-  const { appAccount } = await import("../_session/account");
-  const account = await appAccount();
+  const { appAccountForWrite } = await import("../_session/account");
+  const account = await appAccountForWrite();
   if (!account.ok) redirect(SIGNIN_PATH);
   const { siteId: id, domain, timeZone } = account.account;
   return { siteId: id, domain, timeZone };

@@ -53,8 +53,8 @@ import {
 
 /** The signed-in account, or §4.3's refusal. */
 async function actor(): Promise<{ siteId: string; userId: string; by: Actor }> {
-  const { appAccount } = await import("../_session/account");
-  const account = await appAccount();
+  const { appAccountForWrite } = await import("../_session/account");
+  const account = await appAccountForWrite();
   if (!account.ok) redirect(SIGNIN_PATH);
   return {
     siteId: account.account.siteId,

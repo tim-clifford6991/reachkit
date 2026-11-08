@@ -28,7 +28,7 @@ export async function remeasureAction(_previous: RemeasureState, form: FormData)
   // A missing session goes to sign-in and a missing zone to its own screen,
   // as every account screen is sent (`requireSetUpAccount`).
   const { isReservedFixtureAccount, requireSetUpAccount } = await import("../_session/account");
-  const account = await requireSetUpAccount();
+  const account = await requireSetUpAccount("write");
   if (isReservedFixtureAccount(account)) return { answer: "idle" };
 
   const { startRemeasure } = await import("@/lib/scan/deep/remeasure");
