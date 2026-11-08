@@ -120,7 +120,7 @@ import { assessReadiness } from "./readiness";
 import { retargetCandidate } from "./retarget";
 import { climbing } from "./verdicts/verdict";
 import { COLUMNS, opportunityStore, readOpportunity, untyped, type OpportunityRow } from "./store";
-import { FAMILY_OF, isOwnRefresh, isRetarget, type Evidence, type Opportunity, type RefreshCause } from "./types";
+import { FAMILY_OF, isOwnRefresh, isResting, isRetarget, type Evidence, type Opportunity, type RefreshCause } from "./types";
 
 const DAY_MS = 86_400_000;
 
@@ -926,4 +926,32 @@ export async function planStructureRefreshesEverywhere(a: { at: Date }): Promise
     console.error(JSON.stringify({ event: "structure_plan_failed", message: String(error) }));
     return 0;
   }
+}
+
+/**
+ * The update a day takes once its own page and its spare end without one (SPEC §7, owner 2026-11-08): the site's own
+ * live page longest past the refresh floor, committed or not — its open refresh where it has one, else one planned
+ * and assessed now. A page its customer edited, took down or stopped a refresh of is theirs and is passed over, as is
+ * one whose row rests or is not ready. `null` where no page is left. Nothing is bought.
+ */
+export async function oldestDueUpdate(siteId: string, at: Date): Promise<Opportunity | null> {
+  const store = opportunityStore();
+  const floor = at.getTime() - REFRESH_MIN_AGE_DAYS * DAY_MS;
+  const pages = (await store.refreshPages(siteId))
+    .filter((page) => page.publishedAt.getTime() <= floor && page.takenDown !== true && page.edited !== true && page.row.targetQuery !== null)
+    .sort((x, y) => x.publishedAt.getTime() - y.publishedAt.getTime());
+  if (pages.length === 0) return null;
+  const stopped = await stoppedRefreshes(siteId);
+  const openAt = async (url: string) =>
+    (await store.openRankable(siteId)).map(readOpportunity).filter((o) => o.type === "refresh_page" && addressKey(o.targetRef ?? "") === addressKey(url));
+  for (const page of pages) {
+    if (stopped.has(addressKey(page.url))) continue;
+    let open = await openAt(page.url);
+    // Titled as the page is, so the writer finds its live text even before the known-content copy lists it.
+    const planned = { ...refreshOf(page, "aged", at), title: page.title || null };
+    if (open.length === 0 && (await persistAssessed(siteId, [planned], at)) > 0) open = await openAt(page.url);
+    const row = open.find((o) => o.ready && !isResting(o, at));
+    if (row !== undefined) return row;
+  }
+  return null;
 }

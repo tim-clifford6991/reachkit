@@ -212,7 +212,7 @@ async function stoppedEvening() {
 describe("#788 — a draft the rules stop twice ends in needs_attention, on one row", () => {
   it("the evening tick leaves one row for the date, resting with its rules, and its topic rests for 28 days", async () => {
     const outcome = await stoppedEvening();
-    expect(outcome).toEqual({ outcome: "degraded", subjectId: null, step: "generate:rules" });
+    expect(outcome).toEqual({ outcome: "degraded", subjectId: null, step: "generate:rules;no_update_candidate" });
 
     const drafts = db.rows("drafts");
     expect(drafts).toHaveLength(1);
@@ -283,7 +283,7 @@ describe("a page whose pack is short writes no row, and its topic rests (D41, is
     fixtures.packAnswer.missing = ["buyer_questions"];
     const outcome = await draftGenerate.run({ data: {}, now: EVENING });
     // Its own-facts page is as short, so the day names that it had none.
-    expect(outcome).toEqual({ outcome: "degraded", subjectId: null, step: "generate:no_own_facts:pack:buyer_questions" });
+    expect(outcome).toEqual({ outcome: "degraded", subjectId: null, step: "generate:no_own_facts:pack:buyer_questions;no_update_candidate" });
     expect(llmMock).not.toHaveBeenCalled();
     expect(db.rows("drafts")).toEqual([]);
     expect(restingUntil(opportunityId)).not.toBeNull();
@@ -354,7 +354,7 @@ describe("D26 (issue 1179) — a stopped draft does not cost its day, and its to
 
     llmMock.mockClear();
     const empty = await draftGenerate.run({ data: {}, now: NEXT_EVENING });
-    expect(empty).toEqual({ outcome: "degraded", subjectId: null, step: "generate:no_opportunity" });
+    expect(empty).toEqual({ outcome: "degraded", subjectId: null, step: "generate:no_opportunity;no_update_candidate" });
     expect(llmMock).not.toHaveBeenCalled();
     expect(db.rows("drafts")).toHaveLength(1);
     expect([stopped?.state, (stopped?.transitions as { actor: unknown }[]).at(-1)?.actor, restingUntil(opportunityId)]).toEqual(["skipped", { kind: "system", job: "draft/recheck" }, rested]);
@@ -436,7 +436,7 @@ describe("D26 (issue 1179) — a stopped draft does not cost its day, and its to
 
     for (let attempt = 0; attempt < 4; attempt++) modelWrites(`${STOPPED} ${"Again. ".repeat(attempt)}`);
     const outcome = await draftGenerate.run({ data: {}, now: EVENING });
-    expect(outcome).toEqual({ outcome: "degraded", subjectId: null, step: "generate:rules" });
+    expect(outcome).toEqual({ outcome: "degraded", subjectId: null, step: "generate:rules;no_update_candidate" });
     // Two topics, each its write call and its one fix call.
     expect(llmMock).toHaveBeenCalledTimes(4);
 

@@ -106,7 +106,7 @@ describe("a draft day DataForSEO refuses for credit", () => {
     expect(warned.filter((line) => line.includes('"vendor_funds_refused"'))).toHaveLength(1);
 
     // The reason `draft/generate` keeps in `draft_days` for the date.
-    expect(day).toEqual({ degraded: "generate:vendor_funds" });
+    expect(day).toEqual({ degraded: "generate:vendor_funds;no_update_candidate" });
     // Nothing was written from unmeasured inputs, so nothing can go out.
     expect(drafts.rows.size).toBe(0);
     expect(transitionMock).not.toHaveBeenCalled();
