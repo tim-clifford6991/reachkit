@@ -19,7 +19,7 @@ let session: Session | null = null;
 const readProgress = vi.fn<(userId: string) => Promise<SetupProgressState>>();
 
 vi.mock("@/lib/account/identity", () => ({
-  currentSession: async () => session,
+  pageSession: async () => session,
 }));
 
 vi.mock("@/app/(account)/setup/_setup/store", () => ({

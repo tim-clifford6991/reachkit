@@ -33,7 +33,7 @@ vi.mock("next/headers", () => ({
   }),
 }));
 
-const { currentSession, signOut, signOutEverywhere } = await import(
+const { currentSession, pageSession, signOut, signOutEverywhere } = await import(
   "../../../src/lib/account/identity/session"
 );
 const { setIdentityStore } = await import("../../../src/lib/account/identity/store");
@@ -120,6 +120,29 @@ describe("a session is what Supabase verifies, once the row agrees", () => {
     const user = account();
     signIn(user.id);
     state.failAccountRead = true;
+    expect(await currentSession()).toBeNull();
+  });
+});
+
+describe("a render's session is the signed token, held to the same row", () => {
+  it("reads the account; a forged token, a tombstoned account and an unreadable store are no session", async () => {
+    const user = account();
+    signIn(user.id);
+    expect(await pageSession()).toEqual({ userId: user.id, siteId: state.sites[0]?.id });
+    state.failAccountRead = true;
+    expect(await pageSession()).toBeNull();
+    jar.set(FAKE_AUTH_COOKIE, "a-token-i-wrote-myself");
+    expect(await pageSession()).toBeNull();
+    signIn(account({ email: "gone@example.com", deleted_at: new Date().toISOString() }).id);
+    state.failAccountRead = false;
+    expect(await pageSession()).toBeNull();
+  });
+
+  it("a session ended on another device still reads until its token expires, and a write refuses it", async () => {
+    const user = account();
+    const token = signIn(user.id);
+    auth.sessions.forEach((s) => (s.revoked = s.accessToken === token));
+    expect(await pageSession()).toMatchObject({ userId: user.id });
     expect(await currentSession()).toBeNull();
   });
 });

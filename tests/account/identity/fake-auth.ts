@@ -183,6 +183,13 @@ export function fakeIdentityAuth(state: FakeAuthState): IdentityAuth {
       return session === null ? null : { userId: session.userId, accessToken: session.accessToken };
     },
 
+    async sessionClaims(io) {
+      // A signature check sees no revocation: an issued token reads until it expires.
+      const token = io.getAll().find((c) => c.name === FAKE_AUTH_COOKIE)?.value;
+      const session = state.sessions.find((s) => s.accessToken === token);
+      return session === undefined ? null : { userId: session.userId };
+    },
+
     async endSession(io) {
       // `scope: "global"`: every session the signed-in user holds.
       const session = sessionFrom(state, io);

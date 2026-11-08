@@ -32,7 +32,7 @@ const account = vi.hoisted(() => ({
 }));
 
 vi.mock("@/app/(account)/app/_session/account", () => ({
-  appAccount: async () =>
+  appAccountForWrite: async () =>
     account.ok
       ? { ok: true, account: { siteId: account.siteId, userId: account.userId } }
       : { ok: false },

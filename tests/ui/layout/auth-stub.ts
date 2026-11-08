@@ -13,7 +13,9 @@
 // marker for.
 //
 // **What it answers, and what it forwards.** `GET /auth/v1/user` for a
-// token it minted, `401` for any other; `POST /auth/v1/logout` with `204`.
+// token it minted, `401` for any other; its ES256 key at
+// `/auth/v1/.well-known/jwks.json`, which a page's `getClaims()` checks the
+// token against; `POST /auth/v1/logout` with `204`.
 // Every other request — `/rest/v1/**` above all — is piped unchanged to
 // the substrate the job already started, so the built app's database
 // reads are exactly what they were. `globalSetup` points `SUPABASE_URL` at
@@ -26,7 +28,7 @@
 // that. What this file keeps honest is the half the sweep needs: a
 // session cookie in the exact shape `@supabase/ssr` writes, read back by
 // the real client, verified by a server rather than trusted.
-import { randomBytes } from "node:crypto";
+import { generateKeyPairSync, randomBytes, sign } from "node:crypto";
 import http from "node:http";
 
 /** `@supabase/ssr`'s own limit on one cookie's encoded value
@@ -110,6 +112,9 @@ function json(res: http.ServerResponse, status: number, body: unknown): void {
 export async function startAuthStub(upstream: string): Promise<AuthStub> {
   const target = new URL(upstream);
   const sessions = new Map<string, StubUser>();
+  const { privateKey, publicKey } = generateKeyPairSync("ec", { namedCurve: "P-256" });
+  const jwks = { keys: [{ ...publicKey.export({ format: "jwk" }), kid: "stub", alg: "ES256", use: "sig" }] };
+  const b64 = (value: object): string => Buffer.from(JSON.stringify(value)).toString("base64url");
 
   const server = http.createServer((req, res) => {
     const pathname = new URL(req.url ?? "/", "http://stub").pathname;
@@ -121,6 +126,10 @@ export async function startAuthStub(upstream: string): Promise<AuthStub> {
         return;
       }
       json(res, 200, user);
+      return;
+    }
+    if (pathname === "/auth/v1/.well-known/jwks.json" && req.method === "GET") {
+      json(res, 200, jwks);
       return;
     }
     if (pathname === "/auth/v1/logout" && req.method === "POST") {
@@ -149,7 +158,10 @@ export async function startAuthStub(upstream: string): Promise<AuthStub> {
   return {
     url,
     sessionCookieFor(account) {
-      const accessToken = randomBytes(32).toString("base64url");
+      const expiresAt = Math.floor(Date.now() / 1000) + SESSION_SECONDS;
+      const claims = `${b64({ alg: "ES256", typ: "JWT", kid: "stub" })}.${b64({ sub: account.userId, aud: "authenticated", role: "authenticated", email: account.email, exp: expiresAt })}`;
+      const signature = sign("sha256", Buffer.from(claims), { key: privateKey, dsaEncoding: "ieee-p1363" });
+      const accessToken = `${claims}.${signature.toString("base64url")}`;
       const user: StubUser = {
         id: account.userId,
         aud: "authenticated",
@@ -160,7 +172,6 @@ export async function startAuthStub(upstream: string): Promise<AuthStub> {
         created_at: new Date().toISOString(),
       };
       sessions.set(accessToken, user);
-      const expiresAt = Math.floor(Date.now() / 1000) + SESSION_SECONDS;
       return sessionCookieHeader(cookieName, {
         access_token: accessToken,
         token_type: "bearer",

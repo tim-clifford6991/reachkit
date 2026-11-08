@@ -9,8 +9,9 @@
 // there is one place to read to know how the answer is reached.
 //
 // **One read per request.** `React.cache` memoises the whole resolution:
-// the layout, the screen and the day panel's action each ask, and one
-// `users` read and one `sites` read serve all of them.
+// the layout and the screen each ask, and one signed-token check, one
+// `users` read and one `sites` read serve all of them. A Server Function
+// that writes asks with `"write"`, which has Supabase check the user afresh.
 //
 // **Two refusals, and they are different facts.** No session at all is
 // §4.3's refusal: back to `/signin`, saying nothing about whether an
@@ -29,6 +30,7 @@
 // re-derives the rule.
 import { cache } from "react";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { FIXTURE_DOMAIN } from "../_shell/fixture";
 
 /** The reserved fixture account's domain. Imported from the shell's own
@@ -60,12 +62,17 @@ export type AppAccountResult =
   | { ok: true; account: AppAccount }
   | { ok: false; because: NoAccount };
 
-/** The seam. Answers who is asking, from Supabase's verified session and one site
+/** How the session behind the account is read: `page` from the signed
+ *  token, for a render; `write` with Supabase checking the user afresh, for
+ *  a Server Function that changes something. */
+export type SessionCheck = "page" | "write";
+
+/** The seam. Answers who is asking, from Supabase's session and one site
  *  read. Replaceable in tests through `setAppAccountReader`, which is the
  *  only door: no surface reads the cookie itself. */
-export type AppAccountReader = () => Promise<AppAccountResult>;
+export type AppAccountReader = (check: SessionCheck) => Promise<AppAccountResult>;
 
-const fromSession: AppAccountReader = async () => {
+const fromSession: AppAccountReader = async (check) => {
   // Imported at the call and not at the top. `currentSession` reaches
   // `@/lib/db` through the identity store, which parses every environment
   // binding the moment it is evaluated — a static import here would put a
@@ -77,9 +84,9 @@ const fromSession: AppAccountReader = async () => {
   // it, for the same reason and not a different one: it reaches `@/lib/db`
   // directly, so a static import here would put a database client in the
   // module graph of every screen this seam serves.
-  const { currentSession } = await import("@/lib/account/identity");
+  const { currentSession, pageSession } = await import("@/lib/account/identity");
   const { readAppSite } = await import("./store");
-  const session = await currentSession();
+  const session = await (check === "write" ? currentSession() : pageSession());
   if (session === null) return { ok: false, because: "no_session" };
   if (session.siteId === null) return { ok: false, because: "no_site" };
 
@@ -92,12 +99,24 @@ const fromSession: AppAccountReader = async () => {
   }
 
   // SPEC §8 (#569): an /app visit ends an idle spell, as a sign-in does.
-  // At most one write an hour, and never in the way of the screen.
-  try {
-    const { recordAccountSeen } = await import("./store");
-    await recordAccountSeen(session.userId, new Date());
-  } catch (error) {
+  // At most one write an hour, written after the response so the screen
+  // never waits on it; `after` itself throws outside a request.
+  const userId = session.userId;
+  const seenAt = new Date();
+  const unrecorded = (error: unknown): void => {
     console.warn(JSON.stringify({ event: "retention_seen_unrecorded", detail: String(error) }));
+  };
+  try {
+    after(async () => {
+      try {
+        const { recordAccountSeen } = await import("./store");
+        await recordAccountSeen(userId, seenAt);
+      } catch (error) {
+        unrecorded(error);
+      }
+    });
+  } catch (error) {
+    unrecorded(error);
   }
 
   return {
@@ -126,8 +145,14 @@ export function setAppAccountReader(next: AppAccountReader | null): void {
 /** Who is asking, or why not. Request-cached, so every surface on one
  *  render resolves the same account without asking twice. */
 export const appAccount = cache(async function appAccount(): Promise<AppAccountResult> {
-  return reader();
+  return reader("page");
 });
+
+/** Who is asking a Server Function that writes, with Supabase checking the
+ *  user afresh. Never cached: the write is the request's one ask. */
+export async function appAccountForWrite(): Promise<AppAccountResult> {
+  return reader("write");
+}
 
 /**
  * The account, or the §4.3 refusal.
@@ -139,8 +164,8 @@ export const appAccount = cache(async function appAccount(): Promise<AppAccountR
  * which is the same destination `src/middleware.ts`'s gate would have sent
  * it to.
  */
-export async function requireAppAccount(): Promise<AppAccount> {
-  const result = await appAccount();
+export async function requireAppAccount(check: SessionCheck = "page"): Promise<AppAccount> {
+  const result = await (check === "write" ? appAccountForWrite() : appAccount());
   if (result.ok) return result.account;
   redirect(result.because === "no_session" ? "/signin" : "/setup");
 }
@@ -156,8 +181,8 @@ export async function requireAppAccount(): Promise<AppAccount> {
  *
  * Where it is sent is `redirectForMissingZone`'s, below.
  */
-export async function requireSetUpAccount(): Promise<AppAccount & { timeZone: string }> {
-  const account = await requireAppAccount();
+export async function requireSetUpAccount(check: SessionCheck = "page"): Promise<AppAccount & { timeZone: string }> {
+  const account = await requireAppAccount(check);
   if (account.timeZone === null) return redirectForMissingZone();
   return { ...account, timeZone: account.timeZone };
 }

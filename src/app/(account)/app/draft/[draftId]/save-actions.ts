@@ -21,7 +21,7 @@ import type { LiveEditOutcome } from "@/lib/generate/edit-live";
 import type { SaveBody, SaveResult } from "./save";
 
 export async function saveDraft(body: SaveBody): Promise<SaveResult> {
-  const account = await requireAppAccount();
+  const account = await requireAppAccount("write");
   if (isReservedFixtureAccount(account)) return { ok: false, refused: "not_editable" };
 
   const { saveDraftEdit } = await import("@/lib/generate/edit");
@@ -71,7 +71,7 @@ export async function saveDraft(body: SaveBody): Promise<SaveResult> {
 /** SPEC §7 (R19): a live page's edit, saved as a new version at the same
  *  address. `draftId` is the live version; the new one is in the answer. */
 export async function saveLiveEdit(body: SaveBody): Promise<LiveEditOutcome> {
-  const account = await requireAppAccount();
+  const account = await requireAppAccount("write");
   if (isReservedFixtureAccount(account)) return { ok: false, refused: "not_editable" };
 
   const { startLiveEdit } = await import("@/lib/generate/edit-live");
