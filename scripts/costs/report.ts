@@ -20,6 +20,7 @@
 // Pure: it reads no file and calls nothing. `scripts/costs.mjs` hands it the
 // rows.
 import { TEST_DAY_EUR, USD_PER_EUR } from "@/lib/config/constants";
+import { ACTIVE_CPU_BUDGET_CPU_HOURS_PER_MONTH } from "../vendor-snapshot.mjs";
 
 /** D34: €2 a day across all live testing, and where the warning starts —
  *  the pin the owner's cost page reads too (issue 1478). */
@@ -62,6 +63,36 @@ export interface Snapshot {
   at: string;
   dataforseo?: { balanceCents: number; depositedCents: number; dayCents?: number; day?: string; timezone?: string };
   anthropic?: { days: Record<string, number> };
+  vercel?: VercelReading;
+}
+
+/** A field Vercel reported nothing for is absent, never 0. */
+export interface VercelFigures {
+  cpuSeconds?: number;
+  projectCpuSeconds?: number;
+  invocations?: number;
+}
+
+export interface VercelReading {
+  days: Record<string, VercelFigures>;
+  month: string;
+  monthToDate: VercelFigures;
+  sitesOnAutopilot?: number;
+  cpuSecondsPerSite?: number;
+}
+
+/** Active CPU from the latest reading that holds one; `null` where none does. */
+export interface VercelCpu {
+  at: string;
+  yesterday: { day: string } & VercelFigures;
+  /** Over the measured days of the seven before today. */
+  weekMean: { cpuSeconds: number; days: number } | null;
+  month: string;
+  /** `null` where the latest reading is of an earlier month. */
+  monthToDate: VercelFigures | null;
+  budgetSeconds: number;
+  sitesOnAutopilot?: number;
+  cpuSecondsPerSite?: number;
 }
 
 export interface VendorDay {
@@ -103,6 +134,7 @@ export interface CostsReport {
   adminKey: boolean;
   /** The account's timezone, where the vendor's own day total was used. */
   vendorDayZone: string | null;
+  vercel: VercelCpu | null;
 }
 
 const DATAFORSEO_SOURCE = /^(?:\/v3\/)?(?:serp|dataforseo_labs|ai_optimization|on_page|keywords_data)\/|^dataforseo[:_]/;
@@ -155,6 +187,24 @@ function gapOf(billed: number | null, recorded: number): VendorDay["gap"] {
   return cents > GAP_CENTS || share > GAP_SHARE ? { cents, share } : null;
 }
 
+function vercelCpu(snapshots: readonly Snapshot[], today: string): VercelCpu | null {
+  const latest = snapshots.filter((s) => s.vercel !== undefined).at(-1);
+  if (latest?.vercel === undefined) return null;
+  const { days, month, monthToDate, sitesOnAutopilot, cpuSecondsPerSite } = latest.vercel;
+  const back = (n: number): string => new Date(startOf(today) - n * DAY_MS).toISOString().slice(0, 10);
+  const week = [1, 2, 3, 4, 5, 6, 7].map((n) => days[back(n)]?.cpuSeconds).filter((v): v is number => v !== undefined);
+  return {
+    at: latest.at,
+    yesterday: { day: back(1), ...days[back(1)] },
+    weekMean: week.length === 0 ? null : { cpuSeconds: week.reduce((sum, v) => sum + v, 0) / week.length, days: week.length },
+    month: today.slice(0, 7),
+    monthToDate: month === today.slice(0, 7) ? monthToDate : null,
+    budgetSeconds: ACTIVE_CPU_BUDGET_CPU_HOURS_PER_MONTH * 3600,
+    ...(sitesOnAutopilot === undefined ? {} : { sitesOnAutopilot }),
+    ...(cpuSecondsPerSite === undefined ? {} : { cpuSecondsPerSite }),
+  };
+}
+
 export function reconcile(a: { spend: readonly SpendRow[]; ledger: readonly LedgerRow[] | null; snapshots: readonly Snapshot[]; adminKey: boolean; now?: Date }): CostsReport {
   const today = (a.now ?? new Date()).toISOString().slice(0, 10);
   const capCents = DAY_CAP_EUR * USD_PER_EUR.rate * 100;
@@ -202,6 +252,7 @@ export function reconcile(a: { spend: readonly SpendRow[]; ledger: readonly Ledg
     ledgerRead: a.ledger !== null,
     adminKey: a.adminKey,
     vendorDayZone: snapshots.filter((s) => s.dataforseo?.timezone !== undefined).at(-1)?.dataforseo?.timezone ?? null,
+    vercel: vercelCpu(snapshots, today),
   };
 }
 
@@ -225,6 +276,28 @@ function gapWords(line: VendorDay): string {
 }
 
 const UNCOMPARED = "not compared, production ledger unread";
+
+const NOT_MEASURED = "not measured";
+const cpuHours = (seconds: number): string => `${(seconds / 3600).toFixed(2)} CPU-hours`;
+const share = (part: number, whole: number): string => (whole > 0 ? ` (${Math.round((part / whole) * 100)}%)` : "");
+const ours = (f: VercelFigures): string =>
+  `reachkit ${f.projectCpuSeconds === undefined ? NOT_MEASURED : `${cpuHours(f.projectCpuSeconds)}${f.cpuSeconds === undefined ? "" : share(f.projectCpuSeconds, f.cpuSeconds)}`}`;
+
+/** The Active CPU block: a figure not read says so, never 0. */
+export function renderVercel(cpu: VercelCpu | null): string[] {
+  if (cpu === null) return ["Vercel Active CPU: not measured (no reading of Vercel's billing charges)"];
+  const { yesterday, weekMean, monthToDate, budgetSeconds } = cpu;
+  const mtd = monthToDate?.cpuSeconds;
+  return [
+    `Vercel Active CPU, team-wide, which includes the team's other projects (read ${cpu.at})`,
+    `  Yesterday (${yesterday.day}): ${yesterday.cpuSeconds === undefined ? NOT_MEASURED : cpuHours(yesterday.cpuSeconds)}; ${ours(yesterday)}`,
+    `  7-day mean: ${weekMean === null ? NOT_MEASURED : `${cpuHours(weekMean.cpuSeconds)} a day (${weekMean.days} of 7 days measured)`}`,
+    `  Month to date (${cpu.month}): ${mtd === undefined ? NOT_MEASURED : `${cpuHours(mtd)} of the ${budgetSeconds / 3600} CPU-hour budget${share(mtd, budgetSeconds)}`}; ${ours(monthToDate ?? {})}`,
+    `  Per site yesterday: ${
+      cpu.cpuSecondsPerSite === undefined || cpu.sitesOnAutopilot === undefined ? NOT_MEASURED : `${cpu.cpuSecondsPerSite.toFixed(1)} CPU-seconds across ${cpu.sitesOnAutopilot} sites on autopilot`
+    }`,
+  ];
+}
 
 /** What `npm run costs` prints. */
 export function render(report: CostsReport): string {
@@ -269,5 +342,6 @@ export function render(report: CostsReport): string {
     ];
     lines.push(`  ${day.day.padEnd(11)} ${cell(day.dataforseo)} ${cell(day.ai)} ${both(day.judgedCents)}${notes.length === 0 ? "" : `  ${notes.join("; ")}`}`);
   }
+  lines.push("", ...renderVercel(report.vercel));
   return lines.join("\n");
 }

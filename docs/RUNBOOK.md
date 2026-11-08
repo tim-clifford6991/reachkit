@@ -1272,6 +1272,50 @@ and every reading is free:
   placeholders today, so it says `no database key` and box spend stays in the spend log, which now
   carries each line's `domain` where the script knows it.
 
+### Vercel Active CPU
+
+On 2026-11-07 Vercel soft-blocked the team for Active CPU (`fluidCpuDuration`) and every host
+answered 402 for about two and a half hours (#2477). The hourly snapshot now watches that meter.
+
+**The figure.** Each `vendor-snapshot` line carries `vercel` when Vercel's FOCUS charges
+(`GET /v1/billing/charges`, a free read) answered, with the Vercel CLI's token
+(`/root/.local/share/com.vercel.cli/auth.json`, the one `deployer.sh` reads; never logged):
+
+```json
+"vercel":{"days":{"2026-11-09":{"cpuSeconds":720,"projectCpuSeconds":540,"invocations":500}},"month":"2026-11",
+          "monthToDate":{"cpuSeconds":8892,"projectCpuSeconds":7560,"invocations":6100},"sitesOnAutopilot":4,"cpuSecondsPerSite":135}
+```
+
+`cpuSeconds` is the **team's** Active CPU, which includes the team's other projects and is what
+Vercel enforces. `projectCpuSeconds` is the `reachkit` project's share (`Tags.ProjectId`).
+`invocations` is the team's function invocations. `days` holds the last eight UTC days, and a day
+Vercel reported nothing for is absent, never 0. A read that fails, including the
+`404 costs_not_found` the endpoint gives before a billing cycle has charges, leaves `vercel` off
+the line and logs `Vercel's billing charges could not be read: HTTP 404 costs_not_found`. A CPU row
+in an unknown unit fails the read the same way, rather than miscount. With a real `SUPABASE_URL` and
+`SUPABASE_SERVICE_ROLE_KEY`, `sitesOnAutopilot` counts the sites with `publishing_enabled` and a
+zone, which is what the daily tick runs for, and `cpuSecondsPerSite` is yesterday's project figure
+divided by it. Without the key both are absent. The split by job is #2479.
+
+**`npm run costs`** ends with a Vercel Active CPU block: yesterday, the 7-day mean, the month to
+date against the budget, the reachkit share and per site. A figure not read says `not measured`.
+
+**The budget and the four mails.** `ACTIVE_CPU_BUDGET_CPU_HOURS_PER_MONTH = 4` in
+`scripts/vendor-snapshot.mjs` is Hobby's included amount, the one that blocked the team. It stays
+the efficiency target on Pro and is a drafted default the owner may change. Each hourly run
+compares the team's month to date (the UTC month) with it and mails `OWNER_EMAILS` through Resend,
+from `RESEND_API_KEY` and `MAIL_FROM` in `.env.local`, once each at 50%, 80% and 100%, and once
+when the last three days' mean projects past 100% before the month ends. That makes four mails a
+month at most. What was mailed is kept in `/root/ops/reachkit/state/cpu-budget.json`
+(`RK_CPU_BUDGET_STATE` elsewhere). A mail Resend did not accept is not marked and is tried the
+next hour. A new month starts with nothing mailed.
+
+**When a mail comes.** Run `npm run costs` and read the reachkit share. If it is most of the
+figure, the cuts are in the jobs (#2478, #2479). If it is not, another project on the team is
+spending it. The hard cap is Vercel's own **Spend Management** (team, Settings, Billing), an
+owner setting on Pro. Notify at the amount and do not auto-pause, because a pause is the same 402
+outage.
+
 ---
 
 ## 9. The database
