@@ -7,6 +7,7 @@ import { createServer as createTlsServer } from "node:https";
 import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import { promisify } from "node:util";
 import { afterAll, describe, expect, it } from "vitest";
 import { FIRST_BYTE_BUDGET_MS as BUDGET } from "@/lib/config/constants";
@@ -80,8 +81,9 @@ async function stub(faults: Faults = {}): Promise<string> {
 const PRODUCTION = "https://reachkit.app";
 
 /** The same stub answering as `https://reachkit.app`: curl is pointed at it by
- *  a `.curlrc` (`connect-to`), so the script's own production test is what is
- *  exercised. Returns the env that routes it and the paths the stub saw. */
+ *  a `.curlrc` (`connect-to`) and old-paths' fetch by a preload, and the content
+ *  host is a local one, so the script's own production test is what is exercised
+ *  and nothing reaches the real hosts. Returns the env that routes it and the paths the stub saw. */
 async function production(faults: Faults = {}) {
   const dir = mkdtempSync(path.join(tmpdir(), "smoke-prod-"));
   const key = path.join(dir, "key.pem");
@@ -91,7 +93,10 @@ async function production(faults: Faults = {}) {
   const server = createTlsServer({ key: readFileSync(key), cert: readFileSync(cert) }, handler(faults, paths));
   const at = await listen(server as unknown as Server, (port) => `127.0.0.1:${port}`, paths);
   writeFileSync(path.join(dir, ".curlrc"), `connect-to = "reachkit.app:443:${at}"\ninsecure\n`);
-  return { env: { CURL_HOME: dir }, paths };
+  const preload = path.join(dir, "fetch-to-stub.mjs");
+  writeFileSync(preload, `const real = globalThis.fetch;\nglobalThis.fetch = (url, init) => real(String(url).replace("${PRODUCTION}", "https://${at}"), init);\n`);
+  const env = { CURL_HOME: dir, NODE_OPTIONS: `--import ${pathToFileURL(preload).href}`, NODE_TLS_REJECT_UNAUTHORIZED: "0", SMOKE_HOSTED_URL: await hosted() };
+  return { env, paths };
 }
 
 const ARTICLE = '<!doctype html><html lang="en-US"><head><link rel="stylesheet" href="/style.css"></head><body><script type="application/ld+json">{}</script></body></html>';
@@ -111,7 +116,7 @@ async function hosted(article = ARTICLE): Promise<string> {
 
 /** `smoke.sh --free` against `origin`, with its exit code and output. */
 async function free(origin: string, hostedUrl = "", extra: Record<string, string> = {}) {
-  const env = { ...process.env, ...extra, SMOKE_BASE_URL: origin, SMOKE_HOSTED_URL: hostedUrl };
+  const env = { ...process.env, SMOKE_BASE_URL: origin, SMOKE_HOSTED_URL: hostedUrl, ...extra };
   try {
     const { stdout, stderr } = await run("bash", ["scripts/smoke.sh", "--free"], { cwd: ROOT, env });
     return { code: 0, stdout, stderr };
@@ -158,8 +163,26 @@ describe("smoke.sh --free walks the visitor's chain without spending", () => {
     expect(r.stderr).toMatch(new RegExp(`^FAIL cold +/signin \\d+ms > ${BUDGET.warmPageMs}ms warm`, "m"));
   });
 
+  it("names a cold miss on production first, walks every later step, then exits 1", async () => {
+    const prod = await production({ slow: { path: "/api/health", cold: BUDGET.coldHealthMs + 200 } });
+    const r = await free(PRODUCTION, "", prod.env);
+    for (const step of ["landing", "old-paths", "hosted", "health", "report"]) expect(r.stdout).toMatch(new RegExp(`^ok {3}${step} `, "m"));
+    expect(prod.paths).toContain(`/scan/${NEWEST}`);
+    // The deployer's own reading: the exit status and the first FAIL line.
+    expect(r.stderr.match(/^FAIL.*$/gm)).toEqual([expect.stringMatching(new RegExp(`^FAIL cold +/api/health \\d+ms > ${BUDGET.coldHealthMs}ms cold$`))]);
+    expect(r.code).toBe(1);
+  });
+
+  it("still fails and prints a later step's own failure after a cold miss on production", async () => {
+    const prod = await production({ slow: { path: "/", cold: BUDGET.coldLandingMs + 200 }, landingFailsFrom: 5 });
+    const r = await free(PRODUCTION, "", prod.env);
+    const fails = r.stderr.match(/^FAIL.*$/gm) ?? [];
+    expect(fails[0]).toMatch(/^FAIL cold /);
+    expect(fails[1]).toMatch(/^FAIL landing .*answered 500/);
+    expect(r.code).toBe(1);
+  });
+
   it("passes cold on production under budget and walks on", async () => {
-    // The landing stops the walk, so nothing past `cold` reaches the real host.
     const prod = await production({ landingFailsFrom: 5 });
     const r = await free(PRODUCTION, "", prod.env);
     expect(r.stdout).toMatch(/^ok {3}cold /m);
