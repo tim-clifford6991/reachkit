@@ -257,9 +257,9 @@ Rows 1, 3, 4, 7, 9 and 10 refreshed and row 11 added 2026-11-03.
 | 10 | **Every screen on the paying path matches its board** | Partial. The canvas v36 wave (`/root/ops/reachkit/reports/delivery-status.md`) has 18 of its 19 issues closed on 2026-11-03; #2271 (PubHowItWorks) is open. Every board's `missing` count in `docs/design/parity/` is 0 except Review (owner only, 39); several boards still carry a `components` gap. | **[code]** |
 | 11 | **Supabase stays within the Free egress quota (5 GB a month, about 166 MB a day)** | The project is on Free (Nano compute); the Fair Use Policy applies to it from 2026-11-25. Shipped 2026-11-01 to 11-03: #2251, #2252, #2253, #2254, #2103 (PR #2333), #2104 (PR #2334), #2107 (PR #2338, which also makes `select("*")` a lint error), #2336 (PR #2337) and the stored-text shadow read (PR #2310). Open: the stored-text switch (#2340, the PR #2310 follow-up), #2106 (dev and preview share the production project) and the measured daily figure, **not measured since 2026-11-01**. Due 2026-11-25. | **[code]** |
 
-Vercel Hobby for the first rollout (R18): Hobby's commercial-use clause is an owner-accepted risk;
-at most 100 API deploys per rolling day, with production batched every 2 h. Vercel Pro (#1632) is
-closed as not planned and is not a precondition to sell.
+Vercel Pro since 2026-11-07 (#2477): the team moved from Hobby, whose commercial-use clause had
+been an owner-accepted risk for the first rollout (R18). Production deploys each SHA as soon as its
+dev check passes, with no batching (owner, 2026-10-31).
 
 Accepted risk: no session inactivity timeout (it needs Supabase Pro); accepted for the first rollout
 under R18.

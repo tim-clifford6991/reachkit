@@ -34,8 +34,11 @@ spreadsheet. It leaves every worktree, including a dirty one. It is not on the t
 and it is not a gate.
 
 Dev (`dev.reachkit.app`) deploys from `main` via `rk-deployer`. If it has not moved after a
-merge, run `bash /root/ops/reachkit/bin/deploy-dev-once.sh`. Production is batched (at most
-every two hours) and receives every merge, the same as dev (no freeze, owner 2026-09-17, #844).
+merge, run `bash /root/ops/reachkit/bin/deploy-dev-once.sh`. Production takes each SHA as soon as
+its dev check passes, with no batching and no window (owner 2026-10-31, `PROD_EVERY_S=0`), and
+receives every merge, the same as dev (no freeze, owner 2026-09-17, #844). The production smoke
+prints the first byte of `/`, `/pricing`, `/signin`, `/app` and `/api/health`, cold and warm, on
+every deploy, against the `FIRST_BYTE_BUDGET_MS` pins (#2483).
 2026-10-24 (E3, #1959): production is held only while the free dev check is red. Once a dev build is
 Ready, the deployer runs `scripts/smoke.sh --free` against it. The check sends GETs only and spends
 nothing. It runs from a detached tree at that SHA and writes `state/dev-check.<sha>`. Production
@@ -135,10 +138,10 @@ Never register a self-hosted runner on this repository while it is public.
 | | |
 |---|---|
 | Rule | one Vercel project, one Supabase project, one set of bindings (owner, 2026-09-08) — no duplicate projects, environments or databases |
-| Vercel | team `timclifford` (`team_lFEcKlyuKD5risdEnak7iRIm`), **Hobby plan** (one concurrent build, 100 deployments a day, no deployment protection); project **`reachkit`** (`prj_QJUivDYYshplvV0enuc2oZNIjcnd`), Git-linked to `tim-clifford6991/reachkit`, production branch `main`, Node 24, Next.js preset, no root directory |
+| Vercel | team `timclifford` (`team_lFEcKlyuKD5risdEnak7iRIm`), **Pro plan** since 2026-11-07 (#2477; Hobby before, with 100 deployments a day); project **`reachkit`** (`prj_QJUivDYYshplvV0enuc2oZNIjcnd`), Git-linked to `tim-clifford6991/reachkit`, production branch `main`, Node 24, Next.js preset, no root directory |
 | Production | `reachkit.app` (and `www.`) |
 | Development host | `dev.reachkit.app` — the same project, bound to `main`. It is the URL the owner steers on; it is not a separate environment |
-| Preview | none. Git deployments are off (`vercel.json` `git.deploymentEnabled: false`): every push used to create a cancelled deployment that still counted toward the Hobby quota. The deployer asks for each deployment of `main`; the owner reviews on `dev.reachkit.app` |
+| Preview | none. Git deployments are off (`vercel.json` `git.deploymentEnabled: false`): every push used to create a cancelled deployment that still counted toward the Hobby quota of the time. The deployer asks for each deployment of `main`; the owner reviews on `dev.reachkit.app` |
 | Database | one Supabase project, `reachkit` (`kleepxxddbcnfsfwudoe`), Postgres 17, us-east-1, **Free plan**. v2's objects sit in schema `v2_archive`, the rollback path (§9). The org is Vercel-Marketplace-managed: uninstalling that integration would delete the org and the database; the exit path is a transfer to a Supabase-managed org |
 | Jobs | Inngest app `reachkit`, registered at `https://reachkit.app/api/jobs` — owed by the owner: create the app, paste the two keys, sync the functions (#315, §4) |
 | Mail | Resend, sending domain `reachkit.app`; `MAIL_FROM` is `hello@reachkit.app` (§6). #325 got the domain sending; DMARC, the return path and one real inbox are `docs/GO-LIVE.md` §2 and #339 |
@@ -406,7 +409,7 @@ fails the job.
 ### Why a site had no page on a date
 
 `job_runs` keeps one row per job, so an hourly `skipped` overwrites the due hour that wrote nothing,
-and Vercel Hobby keeps one hour of runtime logs. The draft tick also keeps one row per site and
+and Vercel Pro keeps one day of runtime logs. The draft tick also keeps one row per site and
 date in `draft_days` (issue 1455): how that date's due hour ended (`drafted`, `no_page`, `failed`)
 and why (`reason`, the engine's step such as `generate:no_opportunity`, or the error's class name):
 
@@ -1653,7 +1656,7 @@ deployment (`dpl_2NEUXishMXAkzXG4Ti85yTy7NDda`, 23 Aug 2026).
 | how long would a restore take | §9 — unknown until the drill runs. Enabling it and running it are the owner's |
 | CI jobs fail with a billing or spending-limit error | §1 *Where CI runs* — CI runs on GitHub-hosted runners, which a public repository gets without a minutes cap. The box runners are deregistered and must never be re-registered while the repository is public |
 | a check sits in *queued* for hours | §1 *Where CI runs* — no self-hosted runner exists, so a job waiting on a `self-hosted` label means a workflow regressed: fix that workflow's `runs-on`, never register a runner. `gh api repos/tim-clifford6991/reachkit/actions/runners` must read `total_count: 0` |
-| `Vercel` fails on every PR | §1 — the Hobby plan's 100 builds a day. It is not a required check; nothing is blocked |
+| `Vercel` fails on every PR | §1 — Git deployments are off; it is not a required check, and nothing is blocked |
 
 ---
 

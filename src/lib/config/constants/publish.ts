@@ -149,6 +149,19 @@ export const SEARCH_READING_WINDOW_D = 28 as const;
 export const HOSTED_TTFB_BUDGET_MS = 1000 as const;
 /** And how many fonts a hosted page may preload (the same rule). */
 export const HOSTED_FONT_PRELOADS = 2 as const;
+/** How long each route may take to its first byte, read by `scripts/smoke.sh`
+ *  from where it runs: the run's first request (cold, right after a deploy)
+ *  and the fastest of three after it (warm). Red on production, a warning
+ *  elsewhere; lowered only once a cut is measured in production. */
+export const FIRST_BYTE_BUDGET_MS = Object.freeze({
+  coldLandingMs: 2200,
+  coldPricingMs: 2200,
+  coldSigninMs: 2200,
+  coldAppMs: 1200,
+  coldHealthMs: 1500,
+  warmPageMs: 300,
+  warmHealthMs: 500,
+} as const);
 
 // Publishing, destinations and verification
 export const PUBLISH_RETRY_BACKOFF_MIN = Object.freeze([5, 30, 180] as const);
