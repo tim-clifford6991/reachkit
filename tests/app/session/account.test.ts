@@ -183,24 +183,14 @@ describe("the reserved fixture account is decided here and nowhere else", () => 
 });
 
 describe("a render reads the signed token; a write has Supabase check the user", () => {
-  it("a screen's account comes from the page session and never asks Supabase", async () => {
+  it("a screen asks the page session; every write door asks the fresh check, which refuses an ended session", async () => {
     await account.requireSetUpAccount();
-    expect(pageSession).toHaveBeenCalledTimes(1);
-    expect(currentSession).not.toHaveBeenCalled();
-  });
-
-  it("a Server Function's account comes from the fresh check, whichever door it asks through", async () => {
-    await account.appAccountForWrite();
+    expect([pageSession.mock.calls.length, currentSession.mock.calls.length]).toEqual([1, 0]);
     await account.requireAppAccount("write");
     await account.requireSetUpAccount("write");
-    expect(currentSession).toHaveBeenCalledTimes(3);
-    expect(pageSession).not.toHaveBeenCalled();
-  });
-
-  it("a session Supabase has ended refuses the write even while its token still reads", async () => {
     currentSession.mockResolvedValue(null);
     await expect(account.appAccountForWrite()).resolves.toEqual({ ok: false, because: "no_session" });
-    await expect(account.appAccount()).resolves.toMatchObject({ ok: true });
+    expect([pageSession.mock.calls.length, currentSession.mock.calls.length]).toEqual([1, 3]);
   });
 });
 

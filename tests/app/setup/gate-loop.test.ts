@@ -186,8 +186,7 @@ beforeEach(() => {
 });
 
 afterEach(async () => {
-  // A screen that redirects leaves its siblings' reads running, as Next
-  // abandons them; they finish here rather than inside the next state.
+  // A redirected screen's sibling reads finish here, not inside the next state.
   await new Promise((resolve) => setTimeout(resolve, 0));
   db.reset();
 });

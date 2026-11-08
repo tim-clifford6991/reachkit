@@ -184,8 +184,7 @@ export function fakeIdentityAuth(state: FakeAuthState): IdentityAuth {
     },
 
     async sessionClaims(io) {
-      // A signature check sees no revocation and no deleted user: any token
-      // this project issued reads until it expires, which the fake's never do.
+      // A signature check sees no revocation: an issued token reads until it expires.
       const token = io.getAll().find((c) => c.name === FAKE_AUTH_COOKIE)?.value;
       const session = state.sessions.find((s) => s.accessToken === token);
       return session === undefined ? null : { userId: session.userId };

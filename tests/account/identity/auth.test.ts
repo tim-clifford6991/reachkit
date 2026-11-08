@@ -197,21 +197,15 @@ describe("sessionUser — `getUser()`, never `getSession()` alone", () => {
   });
 });
 
-describe("sessionClaims — `getClaims()`, the token's signature checked without asking Supabase", () => {
-  it("answers the subject of a token whose signature holds, and never asks `getUser()`", async () => {
-    mocks.session.getClaims.mockResolvedValue({ data: { claims: { sub: USER.id } }, error: null });
+describe("sessionClaims — `getClaims()`, the signature checked here, never `getUser()`", () => {
+  it("answers the subject of a token whose signature holds; a refused or throwing check is null", async () => {
+    mocks.session.getClaims.mockResolvedValueOnce({ data: { claims: { sub: USER.id } }, error: null });
     expect(await auth.sessionClaims(io)).toEqual({ userId: USER.id });
+    mocks.session.getClaims.mockResolvedValueOnce({ data: null, error: { code: "bad_jwt" } });
+    expect(await auth.sessionClaims(io)).toBeNull();
+    mocks.session.getClaims.mockRejectedValueOnce(new TypeError("fetch failed"));
+    expect(await auth.sessionClaims(io)).toBeNull();
     expect(mocks.session.getUser).not.toHaveBeenCalled();
-  });
-
-  it("a token `getClaims()` refuses is null — the forgery case", async () => {
-    mocks.session.getClaims.mockResolvedValue({ data: null, error: { code: "bad_jwt" } });
-    expect(await auth.sessionClaims(io)).toBeNull();
-  });
-
-  it("a verification that throws is null, never an open session", async () => {
-    mocks.session.getClaims.mockRejectedValue(new TypeError("fetch failed"));
-    expect(await auth.sessionClaims(io)).toBeNull();
   });
 });
 
