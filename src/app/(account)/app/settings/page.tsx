@@ -1,4 +1,4 @@
-// SPEC §4, owner R7 (docs/spec/decisions/2026-11-03-2127.md): Settings › Your business, at `/app/settings`, in
+// `docs/SPEC.md §4 Settings has three tabs`: Settings › Your business, at `/app/settings`, in
 // board SettingsIndex's order: what we read of the business and what buyers ask, then the market and its competitors,
 // then how the pages sound. Each section is its own boundary over its own reads, so one slow or failed read
 // leaves only its section on the plain line. No stylesheet and no `Surface`: the layout draws the heading and bar.

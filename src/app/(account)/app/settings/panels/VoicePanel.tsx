@@ -1,4 +1,4 @@
-// SPEC §7, REQ-055, REQ-053 (owner R7, docs/spec/decisions/2026-11-03-2127.md): one card, "How your pages sound",
+// SPEC §7, REQ-055, REQ-053 (`docs/SPEC.md §4 How your pages sound`): one card, "How your pages sound",
 // holds who speaks, the words the business uses and its note; Never say stays its own card because it is a hard filter.
 // Neither is an engine parameter (REQ-070 criterion 3): both constrain content published under the customer's name.
 "use client";

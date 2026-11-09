@@ -1,4 +1,4 @@
-// SPEC §4, owner R7 (docs/spec/decisions/2026-11-03-2127.md): Settings › Account, at `/app/settings/account`, in
+// `docs/SPEC.md §4 Settings has three tabs`: Settings › Account, at `/app/settings/account`, in
 // board SettingsAccount's order: billing, the month it paid for, the account card, the shortcuts, then the danger
 // zone at the foot. Billing is the one read awaited before the first flush, so cancelling never waits on another;
 // every other card is its own boundary, so one slow read leaves only that card on the plain line.
