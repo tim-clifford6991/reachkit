@@ -477,11 +477,10 @@ export async function finishReads(a: { readonly scanId: string; readonly now: Da
 }
 
 // ── Generation — BUILD §8 (issue #44)
-// `src/lib/generate/` owns the pipeline, the hard rules and the recovery decision; the wrapper below passes the job's
-// own `publishDate` in and maps the outcome to an `EngineResult`. A day with no page is `degraded`, not a throw: the
-// calendar renders it (§7 — "supply is the cap: never invent an opportunity to fill a day"). A page that passed
-// enters review in the same call (issue 709), through `publish/attempt/window.ts`; a telling that could not leave is
-// a degradation — the page is in review and held until told — never a throw.
+// `src/lib/generate/` owns the pipeline, rules and recovery; this passes the job's `publishDate` in and maps the outcome.
+// A day with no page is `degraded`, not a throw (§7 — "supply is the cap: never invent an opportunity to fill a day").
+// A page that passed enters review in the same call, through `publish/attempt/window.ts`; a telling that could not
+// leave is a degradation — the page is in review and held until told — never a throw.
 
 export async function generateDraft(a: {
   readonly siteId: string;
@@ -489,6 +488,7 @@ export async function generateDraft(a: {
   readonly now: Date;
   /** The per-site run's durable steps: decide, write (in one cost context) and review, then refresh where the day's own page did not pass. */
   readonly step?: StepRunner;
+  readonly again?: boolean; // decided again against a newer week: a page the system stopped gives up the date first
 }): Promise<EngineResult> {
   const step: StepRunner = a.step ?? ((_name, body) => body());
   const { decideDayPage, generateDayPage, refreshForDay } = await import("@/lib/generate");
@@ -498,7 +498,8 @@ export async function generateDraft(a: {
   const held = await step("hold", () => dayHold(a.siteId, a.publishDate));
   if (held !== null) return { degraded: held };
   // A stopped page that passes today's rules takes the date at 0¢, so the day's write answers `already_drafted`.
-  const { recheckStopped } = await import("@/lib/generate/recheck");
+  const { recheckStopped, releaseStoppedDate } = await import("@/lib/generate/recheck");
+  if (a.again === true) await step("release", () => releaseStoppedDate(day));
   await step("recheck", async () => { const rescued = await recheckStopped(day); if (rescued !== null) await schedulePublish({ draftId: rescued }); return rescued; });
   const decided = await step("select", () => decideDayPage(day));
   const instead = async (trigger: string, from: "select" | "write", stopped: string | null): Promise<EngineResult> => {
@@ -508,7 +509,6 @@ export async function generateDraft(a: {
     const reviewed = await step("refresh-review", () => reviewWritten(taken, a.now));
     return "done" in reviewed ? { done: true, instead: `refresh:${trigger}` } : reviewed;
   };
-  // A date that already holds its draft is a day already done, not a degraded tick.
   if (!decided.ok) return decided.because === "already_drafted" ? { done: true } : instead(`generate:${decided.because}`, "select", null);
   const outcome = await step("write", () => generateDayPage({ ...day, opportunityId: decided.opportunityId }));
   if (!outcome.ok && outcome.because === "already_drafted") return { done: true };
@@ -516,10 +516,10 @@ export async function generateDraft(a: {
   return !("degraded" in reviewed) || !reviewed.degraded.startsWith("generate:") ? reviewed : instead(reviewed.degraded, "write", !outcome.ok && "draftId" in outcome ? outcome.draftId : null);
 }
 
-/** Of these site days, the ones owed and no due hour recorded an ending for. */
+/** Of these site days, the ones owed and no due hour recorded an ending for, and those to decide `again`. */
 export async function missedDays<T extends { readonly siteId: string; readonly publishDate: string }>(
   days: readonly T[]
-): Promise<readonly T[]> {
+): Promise<readonly (T & { again?: true })[]> {
   const { missedDays: missed } = await import("@/lib/publish/daily");
   return missed(days);
 }
