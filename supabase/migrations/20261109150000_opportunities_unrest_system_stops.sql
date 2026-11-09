@@ -5,16 +5,14 @@
 -- Kept resting:
 --   - a topic with a customer skip in the last 28 days: that rest is the customer's no;
 --   - a topic with a page the system withdrew in the last 28 days: a take-down still rests 28 days;
---   - a rest to the next weekly commit, which falls on a whole minute (a 28-day rest keeps its run's seconds);
---   - any rest ending on or after 2026-12-08, which the old rule, gone by 2026-11-10, could not have set.
+--   - a rest to the next weekly commit: on a whole minute and at most a week (an hour more across a clock change) away.
 update opportunities o
    set rest_until = null
  where o.status = 'open'
    and not o.stopped
    and o.unready_reason = 'resting'
    and o.rest_until > now()
-   and o.rest_until < timestamptz '2026-12-08 00:00:00+00'
-   and o.rest_until <> date_trunc('minute', o.rest_until)
+   and not (o.rest_until = date_trunc('minute', o.rest_until) and o.rest_until <= now() + interval '7 days 1 hour')
    and not exists (
      select 1
        from drafts d
