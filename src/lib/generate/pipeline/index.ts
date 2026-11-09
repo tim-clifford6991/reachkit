@@ -54,6 +54,7 @@ import { answerBoxWords, ownStepsNote, renumberSteps, withoutBrokenLinks } from 
 import { proseNotes } from "../rules/prose";
 import { linksOf, renderOf } from "../rules/text";
 import { pickTitle, titleNotes, type TitleCandidate } from "../rules/title";
+import { brandTokens, namesBrand } from "../rules/brand";
 import { RIVAL_SCOPE_VERSION } from "../live-recheck";
 import { HARD_RULES, type GroundedFact, type HardRule, type RuleFailure, type SiteRuleInputs } from "../rules/types";
 import { generateStore, type DraftRow } from "../store";
@@ -65,7 +66,7 @@ import type { SourcedFact } from "./grounding";
 import { fittedTemplate, packStatements, type ContextPack } from "./pack";
 import { batteryBasis, checkPage, scopeOf } from "./battery";
 import { tryFix, type FixStop } from "./fix-call";
-import { fixNotes, type FixNote, type RepairRecord } from "./repair";
+import { fixNotes, withoutBusiness, type FixNote, type RepairRecord } from "./repair";
 import { completeTables, withSources } from "./sources";
 import { withTable } from "./table";
 import { floorTitle, titleRuleFor, unclaimedSuperlatives } from "./title";
@@ -184,9 +185,9 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
     return { ok: false, reason: "step_failed", draftId: a.draftId ?? null, step: "write" };
   }
 
-  // §8 hard rule 1: a page stands on at least one passage of the customer's
-  // own. A rewrite stands on the passage its row already records — the
-  // trigger refuses any other.
+  // §8 hard rule 1: a page stands on a passage of the customer's own, else on
+  // research alone and says nothing of the business. A rewrite stands on the
+  // passage its row already records — the trigger refuses any other.
   const existing = a.draftId === undefined ? null : await store.draftById(a.draftId);
   // Issue 1478: a rewrite's calls are its row's from the first one.
   if (existing !== null) await c.forDraft?.(existing.id);
@@ -194,7 +195,6 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
   const pinned = recorded === null ? undefined : a.facts.find((sourced) => sourced.fact.passage === recorded.passage);
   if (existing !== null && recorded !== null && pinned === undefined) return lostFact(a.siteId, existing);
   const grounding = pinned ?? a.facts.find((sourced) => sourced.fact.passage === pack.facts[0]?.passage) ?? a.facts[0];
-  if (grounding === undefined) return noFact(a.siteId);
 
   const priorRepairs = recordedRepairs(existing?.meta);
   const baseMeta = {
@@ -218,7 +218,7 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
   /** The date's row, written or rewritten. `attribution` is the byline the
    *  caller read (SPEC §7, 2026-09-29), never what a model wrote. */
   const writeRow = async (fields: { title: string | null; body_md: string | null; meta: Record<string, unknown> }): Promise<string> => {
-    const row = { ...fields, grounded_fact: recordedFactValue(grounding.fact), cost_cents: c.spentCents() };
+    const row = { ...fields, grounded_fact: grounding === undefined ? null : recordedFactValue(grounding.fact), cost_cents: c.spentCents() };
     if (existing !== null) {
       await store.patchDraft(existing.id, row);
       return existing.id;
@@ -285,7 +285,7 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
       ? { live: { title: pack.live.title, markdown: pack.live.markdown, year: new Date(pack.builtAt).getUTCFullYear() } }
       : {}),
   };
-  const linking = { domain: a.site.domain, targets: a.links, groundedUrl: grounding.fact.url, factUrls: pack.facts.map((fact) => fact.url) };
+  const linking = { domain: a.site.domain, targets: a.links, groundedUrl: grounding?.fact.url, factUrls: pack.facts.map((fact) => fact.url) };
 
   /** The parts laid out as the page (SPEC §7, issue 1137): the body's links
    *  held to the chosen pages, no table cell left empty, the closing line
@@ -296,7 +296,7 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
     // Issue 1389: the writer proposes its titles and code picks one, by the
     // rules stage 4 then holds it to.
     let titles: TitleCandidate[] = [];
-    const laid = layoutPage(parts, template, {
+    const shaped = layoutPage(parts, template, {
       ...tidy,
       pickTitle: (proposed, on) => {
         const picked = pickTitle(proposed, titleRuleFor(pack, on), floorTitle(pack));
@@ -304,11 +304,16 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
         return picked.chosen;
       },
     });
+    // With no passage of its own, the page names the business nowhere: not in its body, its FAQ or its closing line.
+    const silent = grounding === undefined ? brandTokens(a.site) : [];
+    const quiet = (text: string): boolean => silent.length === 0 || !namesBrand(text, silent);
+    const laid = { ...shaped, faq: shaped.faq.filter((entry) => quiet(`${entry.question} ${entry.answer}`)), closing: quiet(shaped.closing) ? shaped.closing : "" };
     const own = laid.sections.find((section) => ["business", "next_step", "related"].includes(section.key))?.heading;
     const glance = laid.sections.find((section) => template.sections.find((slot) => slot.key === section.key)?.block === "table")?.heading;
     // Issue 1507: a stray bracket goes and a numbered list counts from 1, in
     // code, before stage 4 reads the page.
-    const written = renumberSteps(withoutBrokenLinks(laid.body.bodyMarkdown));
+    const tidied = renumberSteps(withoutBrokenLinks(laid.body.bodyMarkdown));
+    const written = silent.length === 0 ? tidied : withoutBusiness(tidied, a.site).markdown;
     const body = table === null ? written : withTable(written, glance, [table.markdown, table.currencies, table.checked].filter((line) => line !== null).join("\n\n"));
     const markdown = withSources(
       withClosing(
@@ -341,7 +346,7 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
       ...(page.laid.kept && pack.live?.datedAs !== undefined ? { datedAs: pack.live.datedAs } : {}),
       // The business facts the page states or links, each with the page it
       // was read from (#931) — the grounded one always among them.
-      factsUsed: [grounding.fact, ...used.filter((fact) => fact.passage !== grounding.fact.passage)].map((fact) => ({
+      factsUsed: [...(grounding === undefined ? [] : [grounding.fact]), ...used.filter((fact) => fact.passage !== grounding?.fact.passage)].map((fact) => ({
         passage: fact.passage,
         url: fact.url,
       })),
@@ -486,7 +491,7 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
   }
   if (checked.outcome.passed) {
     logRun({ siteId: a.siteId, draftId, outcome: "passed", type: pack.type, fixed, costCents: Math.round(c.spentCents()) });
-    return { ok: true, draftId, grounded: grounding.fact };
+    return { ok: true, draftId, grounded: grounding?.fact ?? null };
   }
 
   // A page its fix call did not clear is stopped: never queued, no day taken.
@@ -511,14 +516,6 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
 function recordedRepairs(meta: unknown): RepairRecord[] {
   const value = (meta as { repairs?: unknown } | null)?.repairs;
   return Array.isArray(value) ? (value as RepairRecord[]) : [];
-}
-
-/** Hard rule 1 with nothing to stand on: no page of the customer's yielded a
- *  passage. Nothing was written, so there is no row to count an attempt on. */
-function noFact(siteId: string): GenerateOutcome {
-  const failed: RuleFailure[] = [{ rule: "grounding" }];
-  logRun({ siteId, outcome: "rules", failed: "grounding", attempt: 1 });
-  return { ok: false, reason: "rules", draftId: null, failed, attempt: 1, recovery: "rest" };
 }
 
 /** Hard rule 1 on a rewrite: the passage the row records is no longer on

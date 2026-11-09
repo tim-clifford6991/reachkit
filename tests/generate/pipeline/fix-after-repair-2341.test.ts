@@ -1,5 +1,5 @@
-// Issue 2341: a listicle stopped for a repeated phrase and two claims of fit is repaired in code, then takes its one
-// fix call told only of the fit sentences. Where the budget refuses that call, the stop says so. Model doubled; 0¢.
+// Issue 2341: a listicle stopped for a repeated phrase and two claims of fit is repaired in code. A claim that is its
+// whole short answer takes the one fix call, and where the budget refuses that call, the stop says so. Model doubled; 0¢.
 import "../env";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PromptKnowledge } from "../../../src/lib/generate/voice/profile-block";
@@ -26,10 +26,11 @@ const FAQ = [
 const measured = (value: unknown) => ({ kind: "measured", value, at: AT });
 
 /** The fixture's parts as a listicle that passes; `faulty` adds the phrase three times and the two fit claims, in the
- *  sections' prose, or as two of the three takeaways, where dropping one would leave them under their least (#2375). */
-function listicleParts(faulty = false, fits: "prose" | "takeaways" = "takeaways") {
+ *  sections' prose, as two of the three takeaways, or as the whole short answer. */
+type Fits = "prose" | "takeaways" | "answer";
+function listicleParts(faulty = false, fits: Fits = "takeaways") {
   const base = pageParts();
-  const parts = faulty && fits === "takeaways" ? { ...base, takeaways: [FITS[0]!, FITS[1]!, base.takeaways[2]!] } : base;
+  const parts = !faulty ? base : fits === "takeaways" ? { ...base, takeaways: [FITS[0]!, FITS[1]!, base.takeaways[2]!] } : fits === "answer" ? { ...base, answer: FITS[0]! } : base;
   const added = !faulty ? [] : fits === "prose" ? [SAYINGS[0], `${SAYINGS[1]} ${FITS[0]}`, `${SAYINGS[2]} ${FITS[1]}`] : SAYINGS;
   const sections = parts.sections.map((section, index) => ({
     ...section,
@@ -41,7 +42,7 @@ function listicleParts(faulty = false, fits: "prose" | "takeaways" = "takeaways"
 
 let fitAnswered = false;
 /** The write, a fit check naming the fit claims it is handed, and `fix`. */
-function answers(fix: unknown, fits: "prose" | "takeaways" = "takeaways"): void {
+function answers(fix: unknown, fits: Fits = "takeaways"): void {
   llmMock.mockImplementation(async (_c: unknown, call: { site: string; input: { sentences?: { index: number; sentence: string }[] } }) => {
     if (call.site === "generate.write") return measured(listicleParts(true, fits));
     if (call.site === "generate.fix") return fix;
@@ -71,25 +72,19 @@ beforeEach(() => {
 afterEach(() => setGenerateStore(null));
 
 describe("a page left with only claims of fit after the repair", () => {
-  it("issue 2375: fit claims in the prose are dropped in code too, and the page passes with no fix call", async () => {
-    answers(measured(listicleParts()), "prose");
+  it.each<Fits>(["prose", "takeaways"])("fit claims in the %s are dropped in code too, and the page passes with no fix call", async (fits) => {
+    answers(measured(listicleParts()), fits);
     expect(await run()).toMatchObject({ ok: true });
     expect(fixCalls()).toEqual([]);
-  });
-
-  it("is repaired in code, then its one fix call carries both fit sentences and no prose note", async () => {
-    answers(measured(listicleParts()));
-    expect(await run()).toMatchObject({ ok: true });
-    expect(fixCalls()).toEqual([[{ rule: "fit_claim", sentences: FITS }]]);
   });
 
   it.each([
     ["the ledger refusing the fix call", false, 1],
     ["the cap reached after the checks", true, 0],
   ])("stops after one attempt with the budget as the reason, on %s", async (_, capAfterFit, calls) => {
-    answers({ kind: "unmeasured", reason: "not_attempted", at: AT });
+    answers({ kind: "unmeasured", reason: "not_attempted", at: AT }, "answer");
     const outcome = await run(fakeCost({ capHit: () => capAfterFit && fitAnswered }));
-    expect(outcome).toMatchObject({ ok: false, reason: "rules", attempt: 1, stop: "budget", failed: [{ rule: "fit_claim" }] });
+    expect(outcome).toMatchObject({ ok: false, reason: "rules", attempt: 1, stop: "budget", failed: expect.arrayContaining([expect.objectContaining({ rule: "fit_claim" })]) });
     expect(fixCalls()).toHaveLength(calls);
   });
 });

@@ -2,19 +2,10 @@
 // business. Tattly's stored facts were all of them, and the site still read
 // as grounded.
 import "../env";
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fakeDb, type FakeDb } from "../../scan/deep/fake-db";
-import { SCAN_ID, SITE_ID, question, reportOf, serp } from "../../opportunities/fixtures";
+import { describe, expect, it } from "vitest";
 import TATTLY from "./fixtures/tattly-facts-2026-11-05.json";
 import { sitePassages } from "../../../src/lib/generate/pipeline/grounding";
 import { isNeverRead, isReadForFacts } from "../../../src/lib/site-profile/knowledge/priority";
-import { opportunityStore } from "../../../src/lib/opportunities/store";
-
-let db: FakeDb = fakeDb();
-vi.mock("@/lib/db", () => ({ dbAdmin: () => db.client }));
-// The stored fetches, as `readMeasuredText` reads them back: no network.
-const stored = vi.hoisted(() => ({ pages: [] as { url: string; text: string; measuredAt: Date }[] }));
-vi.mock("@/lib/measure/text", async (original) => ({ ...(await original<object>()), readMeasuredText: async () => stored.pages }));
 
 const tattly = TATTLY.pages.map((page) => ({ ...page, measuredAt: new Date(page.measuredAt) }));
 // Written for this suite, not read from tattly.com: what a shop's own product page says.
@@ -69,21 +60,4 @@ describe("a passage that is a page's chrome is no business fact", () => {
     ["Bakery Search Search Clear Our sourdough is proved for two days before it is baked.", "Our sourdough is proved for two days before it is baked."],
     ["We use cookies from our own oven in every gift box we sell.", "We use cookies from our own oven in every gift box we sell."],
   ])("keeps the business's words in %s", (text, kept) => expect(passagesOf(text)).toEqual([kept]));
-});
-
-describe("re-read from the stored fetches, a site of boilerplate alone is not grounded", () => {
-  beforeEach(() => {
-    const report = JSON.parse(JSON.stringify(reportOf({ questions: [question()], serps: [serp()] })));
-    db = fakeDb({ scans: [{ id: SCAN_ID, site_id: SITE_ID, is_current: true, report }] });
-  });
-
-  it("is not grounded on tattly's stored pages", async () => {
-    stored.pages = tattly;
-    expect(await opportunityStore().hasGroundingFact(SITE_ID)).toBe(false);
-  });
-
-  it("is grounded once one page says what it sells", async () => {
-    stored.pages = [...tattly, PRODUCT];
-    expect(await opportunityStore().hasGroundingFact(SITE_ID)).toBe(true);
-  });
 });

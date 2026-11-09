@@ -1,5 +1,5 @@
 // Issue 2375: a page stopped by an unsupported fit claim drops the sentences the fit verdict named, at 0¢ and with no
-// word written, and the whole battery reads it again. The short answer and a sentence a required block needs stay.
+// word written, and the whole battery reads it again. Only a sentence that is the whole short answer stays.
 // On 0f95686d's stored row (11-04) and the October drafts stopped on fit_claim. Model doubled.
 import "../env";
 import { readFileSync } from "node:fs";
@@ -55,7 +55,7 @@ afterEach(() => setGenerateStore(null));
 
 describe("the fit repair drops exactly the sentences the verdict named", () => {
   it("on 0f95686d's stored body, the two named sentences go and every other sentence stays as written", () => {
-    const repaired = repairRecorded(BODY, ["fit_claim"], { brief: BASIS.brief, sources: [], fit: NAMED, kept: KEPT });
+    const repaired = repairRecorded(BODY, ["fit_claim"], { brief: BASIS.brief, sources: [], fit: NAMED });
     expect(repaired.dropped).toEqual({ fit_claim: NAMED });
     expect(texts(repaired.markdown)).toEqual(texts(BODY).filter((text) => !NAMED.includes(text)));
     expect(missingBlock({ markdown: repaired.markdown, ...KEPT })).toBeNull();
@@ -73,21 +73,15 @@ describe("the fit repair drops exactly the sentences the verdict named", () => {
   });
 });
 
-describe("protected text is never dropped", () => {
-  it("a named sentence in the short answer stays, and fit_claim with it", async () => {
-    expect(answerBoxOf(BODY)).toContain(ANSWERED);
-    expect(withoutUnfit(BODY, [ANSWERED], KEPT)).toEqual({ markdown: BODY, dropped: [] });
+describe("only the whole short answer is protected", () => {
+  it("a named sentence in the short answer goes while another still answers, and fit_claim with it", async () => {
+    expect(withoutUnfit(BODY, [ANSWERED]).dropped).toEqual([ANSWERED]);
     const checked = await check(BODY, { state: "failed", sentences: [ANSWERED] });
-    expect(checked.markdown).toContain(ANSWERED);
-    expect(failedRules(checked.outcome)).toContain("fit_claim");
+    expect(answerBoxOf(checked.markdown)).not.toContain(ANSWERED);
+    expect(failedRules(checked.outcome)).not.toContain("fit_claim");
   });
 
-  it("a named sentence whose drop would leave the takeaways under their least stays", () => {
-    const out = withoutUnfit(BODY, TAKEAWAYS, KEPT);
-    expect(out.dropped).toEqual([TAKEAWAYS[0]]);
-    expect(out.markdown).toContain(TAKEAWAYS[1]);
-    expect(missingBlock({ markdown: out.markdown, ...KEPT })).toBeNull();
-    // Unguarded, the same drop would have stopped the page on its blocks.
+  it("a named sentence goes even where the takeaways are left short: a short block is a warning", () => {
     expect(missingBlock({ markdown: withoutUnfit(BODY, TAKEAWAYS).markdown, ...KEPT })).toBe("takeaways");
   });
 });

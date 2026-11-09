@@ -18,7 +18,7 @@ import { needsYouCauseOf } from "@/lib/publish/record/needs-you";
 import type { Actor, TransitionRecord } from "@/lib/publish/types";
 import { stillAsked, type FitVerdict } from "./claims/fit";
 import { readRecordedFact } from "./fact";
-import { batteryBasis, blockInputs, checkPage, siteRulesOf, type BatteryBasis, type CheckedPage } from "./pipeline/battery";
+import { batteryBasis, checkPage, siteRulesOf, type BatteryBasis, type CheckedPage } from "./pipeline/battery";
 import { buildComparisonSet } from "./pipeline/comparison";
 import { fitDescription } from "./pipeline/compose";
 import { allowedFacts, readAllFacts, readDemoPhrases, type SourcedFact } from "./pipeline/grounding";
@@ -172,13 +172,13 @@ function mend(row: DraftRow, body: string, pack: ContextPack, basis: BatteryBasi
   const faq = withoutBrokenPairs(Array.isArray(meta.faq) ? meta.faq : [], { min: basis.template.blocks.faq?.min ?? 0, rivals: basis.rivalsNamed, facts: basis.brief.marketFacts });
   const page: CheckedPage = { title, heading: title === stored && typeof meta.heading === "string" ? meta.heading : title, description, sections, faq: faq.faq };
   const claimed = withoutClaimed(body, basis.site.doNotClaim);
-  // Issue 2375: the sentences the stored fit verdict named go as the write's repair drops them, never the short
-  // answer or one a required block needs; only those today's reading still asks about (a link's label is not one).
+  // Issue 2375: the sentences the stored fit verdict named go as the write's repair drops them; only those today's
+  // reading still asks about (a link's label is not one).
   const named = stillAsked(
     { state: "failed", sentences: storedFitSentences(stopped) },
     { title, markdown: claimed.markdown, businessName: basis.site.businessName, domain: basis.site.domain, titleOwed: (titleRuleFor(pack, page).business?.length ?? 0) > 0 }
   );
-  const unfit = withoutUnfit(claimed.markdown, named.state === "failed" ? named.sentences : [], { title, blocks: blockInputs(basis, page) });
+  const unfit = withoutUnfit(claimed.markdown, named.state === "failed" ? named.sentences : []);
   const dropped = [...claimed.dropped, ...unfit.dropped];
   return {
     page,

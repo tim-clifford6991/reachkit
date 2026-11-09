@@ -542,8 +542,6 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number; 
     await readAllFacts({ siteId: a.siteId, scanId: report.scanId, target: targetSearches(opportunity)[0] }),
     confirmed.factsOff
   );
-  // Hard rule 1 has nothing to stand on, so no research is bought for a page that cannot pass it.
-  if (facts.length === 0) return { ok: false, because: "no_own_facts", step: "grounding" };
   // What no page may repeat whole (issue 1249): the site's demo phrases —
   // the ones kept with its knowledge base ride in `factsOff`.
   const demoPhrases = [

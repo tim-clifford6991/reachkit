@@ -29,8 +29,8 @@ export interface TemplateSection {
 
 /** What a section that is carried only on its facts is written from: the
  *  knowledge base's inclusions, the places the business's own pages state,
- *  and its differentiators or promises. */
-export type SectionFacts = "inclusions" | "places" | "difference";
+ *  its differentiators or promises, and the passages of its own pages. */
+export type SectionFacts = "inclusions" | "places" | "difference" | "passages";
 
 /** One thing the context pack must hold. Each is checked in code
  *  (`../pipeline/pack.ts`), and its `need` names what is missing. */

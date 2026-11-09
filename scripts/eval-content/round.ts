@@ -386,7 +386,7 @@ export function renderRound(grade: RoundGrade, a: { heading: string; today: stri
   L.push("### What each page adds");
   L.push("");
   L.push(
-    `Each sentence is placed by code first: *commodity* cites a top result or shares its words, *on the site* shares a site page's words, and a *new business fact* shares a founder's answer or cites the business's own report. ${placed ? "The small tier placed only the sentences code could not, reading the same top results and the site's pages whole; it never says what is a business fact." : "Not every sentence code could not place has been placed by the model yet, so no page is held to the bar."} *Unsupported* is a claim about the business that neither its site nor its founder states, or a sentence carrying a figure nothing holds. The bar is ${ADDS.min} new, at least ${ADDS.businessMin} a business fact.`
+    `Each sentence is placed by code first: *commodity* cites a top result or shares its words, *on the site* shares a site page's words, and a *new business fact* shares a founder's answer or cites the business's own report. ${placed ? "The small tier placed only the sentences code could not, reading the same top results and the site's pages whole; it never says what is a business fact." : "Not every sentence code could not place has been placed by the model yet, so no page is held to the bar."} *Unsupported* is a claim about the business that neither its site nor its founder states, or a sentence carrying a figure nothing holds. The bar is ${ADDS.min} new.`
   );
   L.push("");
   L.push("| Page | Commodity | On the site | New business facts | New, other | Unsupported | No claim | Not placed | Bar |");

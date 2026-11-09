@@ -5,7 +5,7 @@ import type { CostContext } from "@/lib/costs";
 import type { Opportunity } from "@/lib/opportunities";
 import { contentTypeOf } from "@/lib/opportunities/content-type";
 import { pageTypeOf } from "@/lib/opportunities/page-type";
-import { stillAsked, type FitVerdict } from "../claims/fit";
+import { brandSentences, stillAsked, type FitVerdict } from "../claims/fit";
 import { lengthRangeFor, sectionWords } from "../length";
 import { batteryCleared, runHardRules, type BatteryOutcome } from "../rules";
 import { citesMinOf } from "../rules/brief-lines";
@@ -19,7 +19,8 @@ import type { LaidSection } from "./compose";
 import { closeElsewhere } from "./elsewhere";
 import type { SourcedFact } from "./grounding";
 import { builtFromOutside, fittedTemplate, packStatements, type ContextPack, type PackClaim } from "./pack";
-import { repairable, repairRecorded, type RepairRecord } from "./repair";
+import { repairable, repairRecorded, withoutBusiness, type RepairRecord } from "./repair";
+import { stops } from "../record";
 import { reportFactsAllowed } from "./report-scope";
 import { withSources } from "./sources";
 import { comparisonTable } from "./table";
@@ -40,8 +41,8 @@ export function batteryBasis(a: {
   site: SiteRuleInputs;
   /** The customer's own passages, each with the page it was read on. */
   facts: readonly SourcedFact[];
-  /** The passage the page stands on (§8 hard rule 1). */
-  grounding: SourcedFact;
+  /** The passage the page stands on (§8 hard rule 1), absent where it stands on research alone. */
+  grounding?: SourcedFact;
   demoPhrases?: readonly string[];
 }) {
   const { pack, site } = a;
@@ -132,8 +133,8 @@ export function batteryInputs(b: BatteryBasis, page: CheckedPage, markdown: stri
       : {}),
     site,
     comparison,
-    grounded: b.grounding.fact,
-    sourceText: b.grounding.sourceText,
+    grounded: b.grounding?.fact ?? null,
+    sourceText: b.grounding?.sourceText ?? "",
     brief: b.brief,
     factPages: pack.facts.map((fact) => fact.url),
     blocks: blockInputs(b, page),
@@ -158,8 +159,9 @@ export function batteryInputs(b: BatteryBasis, page: CheckedPage, markdown: stri
 }
 
 /** One page through stage 4: the checks, the repairs code can make (#1178) kept only where the page then passes or
- *  fails fewer checks and no new one, and the pages written for other sites (D13) where the rules passed. Each rule the
- *  first check failed is added to `broken`. */
+ *  fails fewer checks, or fewer that stop it, and no new one, and the pages written for other sites (D13) where the
+ *  rules passed. A fit check that could not run leaves the page saying nothing of the business. Each rule the first
+ *  check failed is added to `broken`. */
 export async function checkPage(
   c: CostContext,
   b: BatteryBasis,
@@ -172,10 +174,21 @@ export async function checkPage(
   let outcome: BatteryOutcome = await runHardRules(c, batteryInputs(b, page, markdown, at.comparison, settled, at.fit));
   for (const failure of outcome.failed) at.broken?.add(failure.rule);
   const repairs: RepairRecord[] = [];
+  const inputs = batteryInputs(b, page, markdown, at.comparison, settled);
+  const reading = (text: string) => ({ title: page.title, markdown: text, businessName: b.site.businessName, domain: b.site.domain, titleOwed: (inputs.titleRule.business?.length ?? 0) > 0 });
+  const stopping = (o: BatteryOutcome): Set<HardRule> => new Set(o.failed.filter(stops).map((failure) => failure.rule));
+  if (outcome.fit.state === "unrun") {
+    // With no sentence left that names the business, the fit check passes, and no call is made for it.
+    const bare = withoutBusiness(markdown, b.site);
+    const again = bare.dropped.length === 0 || brandSentences(reading(bare.markdown)).length > 0 ? null : await runHardRules(c, batteryInputs(b, page, bare.markdown, at.comparison, settled, { state: "passed" }));
+    if (again !== null && [...stopping(again)].every((rule) => stopping(outcome).has(rule))) {
+      repairs.push({ rule: "fit_claim", cleared: true, dropped: bare.dropped });
+      markdown = bare.markdown;
+      outcome = again;
+    }
+  }
   const tried = outcome.fit.state === "unrun" ? [] : repairable(outcome.failed);
   if (tried.length > 0) {
-    const inputs = batteryInputs(b, page, markdown, at.comparison, settled);
-    const reading = (text: string) => ({ title: page.title, markdown: text, businessName: b.site.businessName, domain: b.site.domain, titleOwed: (inputs.titleRule.business?.length ?? 0) > 0 });
     const named = stillAsked(outcome.fit, reading(markdown));
     const mended = repairRecorded(markdown, tried, {
         brief: b.brief,
@@ -186,9 +199,8 @@ export async function checkPage(
         rivals: b.site.rivals,
         rivalsNamed: b.rivalsNamed,
         prose: inputs.prose,
-        // Issue 2375: the sentences the fit check named, and the blocks a drop may not break.
+        // Issue 2375: the sentences the fit check named.
         ...(named.state === "failed" ? { fit: named.sentences } : {}),
-        kept: { title: page.title, blocks: inputs.blocks },
       });
     const repaired = withSources(mended.markdown, b.cited);
     // The verdict stands for the sentences the repaired page still asks about; no fit call is bought again.
@@ -200,8 +212,9 @@ export async function checkPage(
       repairs.push({ rule, cleared: again !== null && !still.has(rule), ...(dropped === undefined ? {} : { dropped }) });
     }
     console.log(JSON.stringify({ event: "draft_repaired", siteId: at.siteId, draftId: at.draftId, repairs }));
-    const before = new Set(outcome.failed.map((failure) => failure.rule));
-    const fewer = again !== null && again.failed.length < before.size && again.failed.every((failure) => before.has(failure.rule));
+    const narrower = (before: Set<HardRule>, now: Set<HardRule>): boolean => now.size < before.size && [...now].every((rule) => before.has(rule));
+    const all = (o: BatteryOutcome): Set<HardRule> => new Set(o.failed.map((failure) => failure.rule));
+    const fewer = again !== null && (narrower(all(outcome), all(again)) || narrower(stopping(outcome), stopping(again)));
     if (again !== null && fewer && (again.passed || !outcome.passed)) {
       markdown = repaired;
       outcome = again;

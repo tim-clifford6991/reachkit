@@ -34,7 +34,7 @@ export const howTo: Template = {
   blocks: { steps: { min: 3, max: 10, own: 1 }, faq: { min: 3, max: 6 } },
   length: { floor: 1200, ceiling: 2000 },
   research: true,
-  // Issue 1486: the steps are the outside sources'; the business is one step
-  // and the next step, so one business fact on the topic is enough.
-  packMustHold: [{ need: "outside_sources", min: CITES_MARKET.min }, { need: "facts_on_topic", min: 1 }, { need: "product_page" }],
+  // Issue 1486: the steps are the outside sources'; a page with no business
+  // fact stands on them alone (owner, #2511).
+  packMustHold: [{ need: "outside_sources", min: CITES_MARKET.min }],
 };

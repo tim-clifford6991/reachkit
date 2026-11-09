@@ -26,7 +26,6 @@ import type { HostedOwnPages } from "../../src/lib/publish/destinations/hosted/o
 import { dismissedSearchesOf } from "../../src/lib/opportunities/store";
 import { topTensOf } from "../../src/lib/opportunities/cluster";
 import type { AskedBeside } from "../../src/lib/opportunities/derive/topics";
-import type { EarnGrounding } from "../../src/lib/opportunities/earn-grounding";
 import type { OwnLivePage } from "../../src/lib/opportunities/refresh";
 import type { NotWorkingVerdict } from "../../src/lib/opportunities/suppression";
 import type { StoredReport } from "../../src/lib/scan/report";
@@ -64,10 +63,6 @@ export interface MemoryState {
   notWorking: NotWorkingVerdict[];
   /** The site's current stored report, where a suite gives one. */
   report: StoredReport | null;
-  /** Whether the site's own pages ground a fact (SPEC §6, 2026-09-15). */
-  grounded: boolean;
-  /** Which Earn assets the site's own pages ground (issue 478). */
-  earnGrounding: EarnGrounding;
   /** The pages the crawl read of the site's domain (#780). */
   inventory: InventoryRow[];
   /** SPEC §7 (2026-09-20, #928): the pages this site already has — ours,
@@ -99,8 +94,6 @@ export function newMemoryState(over: Partial<MemoryState> = {}): MemoryState {
     nextId: 1,
     notWorking: [],
     report: null,
-    grounded: true,
-    earnGrounding: { comparison_table: true, integration_page: true, original_data_page: true },
     inventory: [],
     knownContent: [],
     knownRefreshes: [],
@@ -235,14 +228,6 @@ export function memoryStore(state: MemoryState): OpportunityStore {
 
     async listicleHeld() {
       return state.listicle ?? null;
-    },
-
-    async hasGroundingFact() {
-      return state.grounded;
-    },
-
-    async earnGrounding() {
-      return state.earnGrounding;
     },
 
     async lastStatusChangeAt(siteId) {

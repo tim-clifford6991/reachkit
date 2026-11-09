@@ -41,7 +41,6 @@
 // known the pages that share its words are offered first, so the fact the
 // page stands on is about the question rather than about the seller.
 import nlp from "compromise";
-import { BRIEF_MAX_FACTS } from "@/lib/config/constants";
 import { readLatestMeasuredText, readMeasuredText, type MeasuredText } from "@/lib/measure/text";
 import { isReadForFacts } from "@/lib/site-profile/knowledge/priority";
 import { readReportPage } from "./report-facts";
@@ -187,12 +186,6 @@ function aboutTheQuestionFirst(pages: readonly MeasuredText[], target?: string):
     .map((row) => row.page);
 }
 
-export type GroundingRead =
-  | { fact: GroundedFact; sourceText: string }
-  /** No page of the customer's own yielded a passage. Not an error — a
-   *  measurable state, and the one §8 leaves no way around. */
-  | { failed: "no_fact" };
-
 /** One passage of the customer's own page, with the page text it was read
  *  from — what the grounding rule re-verifies it against. */
 export interface SourcedFact {
@@ -222,8 +215,7 @@ export interface FactRead {
  *
  * Uncapped, because the callers that look a *recorded* passage back up
  * (`../edit.ts`, and the pinned-fact check on a rewrite) have to be able to
- * find one the brief chose however deep it sat; the cap belongs to the
- * prompt and is applied by `readFacts`.
+ * find one the brief chose however deep it sat.
  */
 export async function readAllFacts(a: FactRead): Promise<SourcedFact[]> {
   const [measured, report] = await Promise.all([
@@ -269,15 +261,6 @@ export async function readDemoPhrases(a: { siteId: string; scanId?: string }): P
 }
 
 /**
- * Up to `BRIEF_MAX_FACTS` of those — the facts a brief chooses among (issue
- * 475), drawn from as many of the customer's pages as the site has (issue
- * 900). Empty where no page yields one.
- */
-export async function readFacts(a: FactRead): Promise<SourcedFact[]> {
-  return (await readAllFacts(a)).slice(0, BRIEF_MAX_FACTS);
-}
-
-/**
  * The same passages, minus the ones the customer switched off (#926, #927).
  *
  * **A pure filter, and the refusals are passed in.** A customer who switched
@@ -303,22 +286,4 @@ export function allowedFacts(
   if (factsOff.length === 0) return [...all];
   const off = new Set(factsOff);
   return all.filter((sourced) => !off.has(sourced.fact.passage));
-}
-
-/**
- * Whether this site has any passage to write from at all, and the first of
- * them.
- *
- * **It reads the base list, and that is deliberate** (#927): the question it
- * answers is whether a site has *supply* — `../../opportunities/store.ts`
- * asks it to decide whether an opportunity can be written at all — not which
- * passage a page will quote. A site whose passages are all switched off has
- * none it may quote, and the writer finds that out at the moment it matters,
- * with §8's own "no fact" path. Reading the refusals here would put a
- * database read behind every supply question for an answer the writer
- * re-derives anyway.
- */
-export async function readGroundingFact(a: FactRead): Promise<GroundingRead> {
-  const [first] = await readFacts(a);
-  return first === undefined ? { failed: "no_fact" } : first;
 }

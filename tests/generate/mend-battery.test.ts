@@ -151,7 +151,7 @@ describe("a mended live page enters review only after today's whole battery, at 
 describe("a day whose own page did not pass takes a ready update from the committed week, at 0¢ (issue 2388)", () => {
   const LATER = "2026-10-05";
   const fallback = (live: LiveSite, stopped: string | null = null, trigger = "generate:no_opportunity") =>
-    refreshForDay({ siteId: live.siteId, publishDate: D, trigger, from: stopped === null ? "select" : "write", stopped });
+    refreshForDay({ siteId: live.siteId, publishDate: D, trigger, from: stopped === null ? "select" : "write", stopped, now: NOW });
   /** The row as Monday committed it: for `date`, or a spare where `date` is null. */
   const commit = (id: string, date: string | null, place: number, extra: Row = {}) =>
     Object.assign(db.rows("opportunities").find((each) => each.id === id)!, { plan_place: place, planned_for: date, ready: true, ...extra });
@@ -168,7 +168,7 @@ describe("a day whose own page did not pass takes a ready update from the commit
     expect(onDate(D)).toMatchObject([{ id: taken?.ok ? taken.draftId : null, state: "generating", hard_rules_passed: true, cost_cents: 0, meta: { mendOf: id, fallbackFor: "generate:no_opportunity" } }]);
     expect(statusOf(MEND_ID)).toBe("queued");
     expect((await committedWeek(live.siteId)).days.map((each) => each.opportunity.id)).not.toContain(MEND_ID);
-    expect((await refreshForDay({ siteId: live.siteId, publishDate: LATER, trigger: "generate:no_opportunity", from: "select", stopped: null }))?.ok ?? false).toBe(false);
+    expect((await refreshForDay({ siteId: live.siteId, publishDate: LATER, trigger: "generate:no_opportunity", from: "select", stopped: null, now: NOW }))?.ok ?? false).toBe(false);
     expect(onDate(LATER)).toEqual([]);
     expect([llm.mock.calls.length, network.mock.calls.length]).toEqual([0, 0]);
   });

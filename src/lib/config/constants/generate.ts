@@ -237,11 +237,6 @@ export const TITLE = Object.freeze({
 
 
 
-/** How many of a site's own passages a caller that needs only a few reads
- *  (`readFacts`): setup's voice sample and the lead's free page. A paid
- *  page's context pack carries `PACK.facts`. */
-export const BRIEF_MAX_FACTS = 8 as const;                     // §7
-
 /** SPEC §7 (*Two pools of facts*) — the research step's bounds. Chosen,
  *  except where the ruling names the figure: "at most two primary studies
  *  found by one search", and "a market statistic older than three years is
@@ -327,9 +322,9 @@ export const HEADING_GAPS = Object.freeze({
 
 /** SPEC §7 (D12) — *a new page adds what the web does not say*.
  *
- *  `min` and `businessMin` are the ruling's: at least three claims found
- *  neither in the target's top results nor on the customer's pages, at least
- *  one of them a business fact. The rest are drafted bounds: how much of the
+ *  `min` is the ruling's: at least three claims found neither in the
+ *  target's top results nor on the customer's pages; a page without a
+ *  business fact stands on research alone. The rest are drafted bounds: how much of the
  *  customer's own pages the listing is shown, how many claims it may return,
  *  and how close an existing page has to be before a page short of the bar
  *  becomes an update of it rather than waiting — half of
@@ -337,7 +332,6 @@ export const HEADING_GAPS = Object.freeze({
  *  update before it was ever written. */
 export const ADDS = Object.freeze({
   min: 3,
-  businessMin: 1,
   maxClaims: 12,
   /** Words of one of the customer's pages shown to the listing, and of all
    *  of them together. The code check reads every page whole. */

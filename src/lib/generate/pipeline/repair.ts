@@ -32,10 +32,11 @@ import {
 } from "../rules/brief";
 import { ownMeasurementIn } from "../rules/figures";
 import { PAGE_BLOCKS, PROSE } from "@/lib/config/constants";
-import { answerBoxOf, missingBlock, renumberSteps, type BlockRuleInputs } from "../rules/blocks";
+import { answerBoxOf, renumberSteps } from "../rules/blocks";
+import { brandTokens, namesBrand } from "../rules/brand";
 import { checkInventedPeople, checkUnsourcedTestimonial } from "../rules/people";
 import { proseScore, sentenceKey, type ProseRuleInputs } from "../rules/prose";
-import { checkRivalNegative, deniedRivals, factPageKeys, namedRivals, unsourcedRivalFigure, type NamedRival } from "../rules/rivals";
+import { checkRivalNegative, checkRivalScope, checkRivalSource, deniedRivals, factPageKeys, namedRivals, unsourcedRivalFigure, type NamedRival } from "../rules/rivals";
 import {
   blocksOf,
   hasLink,
@@ -54,13 +55,13 @@ export const MECHANICAL_RULES: readonly HardRule[] = Object.freeze([
   "no_invented_provenance",
   "traceable_numerals",
   // Issue 1135: a rival's figure left without its page is linked to the
-  // fact's page that states it. Nothing is dropped.
+  // fact's page that states it; a sentence still unsourced is dropped.
   "rival_source",
   // Issue 1485: a sentence that denies a rival something no source says is
   // dropped. The FAQ is the fix call's.
   "rival_negative",
-  // Issue 2375: a sentence the fit check named is dropped, never the short
-  // answer and never one a required block needs. No word is written.
+  // Issue 2375: a sentence the fit check named is dropped, unless it is the
+  // whole short answer. No word is written.
   "fit_claim",
   // Issue 1390: a sentence said a third time is dropped. The rest of what
   // the prose check counts takes a writer, and goes to the fix call.
@@ -89,12 +90,6 @@ export interface RepairRecord {
   dropped?: string[];
 }
 
-/** What a dropped sentence may not break: the page's required blocks as the rule reads them. */
-export interface KeptBlocks {
-  title: string;
-  blocks: BlockRuleInputs;
-}
-
 export interface RepairInputs {
   brief: BriefRuleInputs;
   /** The customer's own pages the page's facts were read from, by address,
@@ -108,10 +103,11 @@ export interface RepairInputs {
   prose?: ProseRuleInputs;
   /** The sentences the fit check named (`fit_claim`'s `detail.sentences`). */
   fit?: readonly string[];
-  /** The blocks a dropped sentence may not leave short of the template's least. */
-  kept?: KeptBlocks;
 }
 
+/** A table's row, and the rule under its header. */
+const TABLE_ROW_RE = /^[ \t]*\|.*\|[ \t]*$/;
+const TABLE_RULE_RE = /^[ \t|:-]+$/;
 /** The block markers a sentence edit keeps: a quote, a heading, a list item. */
 const MARKER_RE = /^[ \t]*(?:>[ \t]?|#{1,6}[ \t]+|(?:[-*+]|\d+[.)])[ \t]+)/;
 const NOTE_SENTENCES_MAX = 5;
@@ -150,9 +146,10 @@ function applyEdits(markdown: string, edits: readonly Edit[]): string {
 
 /** Each sentence of each block through `fn`: a string replaces it, `null`
  *  drops it, and a block left with no sentence is dropped whole. */
-function mapSentences(markdown: string, fn: (piece: string) => string | null): string {
+function mapSentences(markdown: string, fn: (piece: string) => string | null, skipTables = false): string {
   const edits: Edit[] = [];
   for (const block of sourceBlocksOf(markdown)) {
+    if (skipTables && TABLE_ROW_RE.test(block.raw.split("\n")[0]!)) continue;
     const marker = MARKER_RE.exec(block.raw)?.[0] ?? "";
     const pieces = splitSentences(block.raw.slice(marker.length));
     const mapped = pieces.map(fn);
@@ -225,6 +222,16 @@ function repairRivalFigures(markdown: string, inputs: RepairInputs): string {
     const url = inputs.sources.find((source) => collapse(source.text).includes(figure))?.url;
     return url === undefined ? piece : piece.replace(figure, `[${figure}](${url})`);
   });
+}
+
+/** The page without each sentence `rival_source` still fails when handed it alone. */
+function withoutUnsourcedRivals(markdown: string, inputs: RepairInputs): string {
+  const rivals = inputs.rivals ?? [];
+  const named = inputs.rivalsNamed ?? namedRivals(rivals, null);
+  const factPages = inputs.sources.map((source) => source.url);
+  return mapSentences(markdown, (piece) =>
+    checkRivalSource({ markdown: piece, rivals: [...rivals], factPages }) !== null || checkRivalScope({ markdown: piece, rivals: named, facts: inputs.brief.marketFacts }) !== null ? null : piece
+  );
 }
 
 function fits(paragraph: string): boolean {
@@ -349,7 +356,7 @@ export function repairRecorded(
     } else if (rule === "traceable_numerals") {
       out = repairNumerals(out, inputs);
     } else if (rule === "rival_source") {
-      out = repairRivalFigures(out, inputs);
+      out = withoutUnsourcedRivals(repairRivalFigures(out, inputs), inputs);
     } else if (rule === "rival_negative") {
       const rivals = inputs.rivalsNamed ?? namedRivals(inputs.rivals ?? [], null);
       // The rule decides which: a sentence it still fails handed alone goes.
@@ -357,7 +364,7 @@ export function repairRecorded(
         deniedRivals(wordsOf(piece), rivals).length > 0 && checkRivalNegative({ markdown: piece, rivals, facts: inputs.brief.marketFacts }) !== null ? null : piece
       );
     } else if (rule === "fit_claim") {
-      const unfit = withoutUnfit(out, inputs.fit ?? [], inputs.kept);
+      const unfit = withoutUnfit(out, inputs.fit ?? []);
       out = unfit.markdown;
       if (unfit.dropped.length > 0) dropped.fit_claim = unfit.dropped;
     } else if (rule === "plain_prose") {
@@ -388,35 +395,50 @@ export function withoutClaimed(markdown: string, list: readonly string[]): { mar
 }
 
 /** The page without each sentence `drops` takes, by the reader's words, and the sentences dropped. */
-function withoutSentences(markdown: string, drops: (words: string) => boolean): { markdown: string; dropped: string[] } {
+function withoutSentences(markdown: string, drops: (words: string) => boolean, skipTables = false): { markdown: string; dropped: string[] } {
   const dropped: string[] = [];
   const out = mapSentences(markdown, (piece) => {
     if (!drops(wordsOf(piece))) return piece;
     dropped.push(wordsOf(piece));
     return null;
-  });
+  }, skipTables);
   return { markdown: dropped.length === 0 ? markdown : renumberSteps(out), dropped };
 }
 
-/** Issue 2375: the page without each sentence the fit check named, and the sentences dropped. A sentence goes only
- *  where the short answer (`:::answer`) reads as it did and, given the blocks, no required block the page held is
- *  left short of the template's least; such a sentence stays, and `fit_claim` with it. The title and a table row are
- *  not the body's sentences and are never dropped here. */
-export function withoutUnfit(markdown: string, sentences: readonly string[], kept?: KeptBlocks): { markdown: string; dropped: string[] } {
-  const box = answerBoxOf(markdown);
-  const missing = (text: string) => (kept === undefined ? null : missingBlock({ markdown: text, title: kept.title, blocks: kept.blocks }));
-  const before = missing(markdown);
-  let out = markdown;
-  const dropped: string[] = [];
-  for (const sentence of new Set(sentences)) {
+/** Issue 2375: the page without each sentence or table row the fit check named, and what was dropped. A sentence
+ *  that is the whole short answer (`:::answer`) stays, and `fit_claim` with it; a block left short is a warning. */
+export function withoutUnfit(markdown: string, sentences: readonly string[]): { markdown: string; dropped: string[] } {
+  const named = new Set(sentences);
+  const rows = withoutRows(markdown, (row) => named.has(row));
+  let out = rows.markdown;
+  const dropped = [...rows.dropped];
+  for (const sentence of named) {
     const next = withoutSentences(out, (words) => words === sentence);
-    if (next.dropped.length === 0 || answerBoxOf(next.markdown) !== box) continue;
-    const after = missing(next.markdown);
-    if (after !== null && after !== before) continue;
+    if (next.dropped.length === 0 || answerBoxOf(next.markdown) === "") continue;
     out = next.markdown;
     dropped.push(...next.dropped);
   }
   return { markdown: out, dropped };
+}
+
+/** The page without each table row, never its header, whose rendered words `drops` takes, and those rows. */
+function withoutRows(markdown: string, drops: (row: string) => boolean): { markdown: string; dropped: string[] } {
+  const dropped: string[] = [];
+  const lines = markdown.split("\n");
+  const kept = lines.filter((line, n) => {
+    if (!TABLE_ROW_RE.test(line) || TABLE_RULE_RE.test(line) || TABLE_RULE_RE.test(lines[n + 1] ?? "") || !drops(wordsOf(line))) return true;
+    dropped.push(wordsOf(line));
+    return false;
+  });
+  return { markdown: dropped.length === 0 ? markdown : kept.join("\n"), dropped };
+}
+
+/** The page with nothing said of the business: each table row and each sentence outside a table that names it. */
+export function withoutBusiness(markdown: string, site: SiteNames): { markdown: string; dropped: string[] } {
+  const tokens = brandTokens(site);
+  const rows = withoutRows(markdown, (row) => namesBrand(row, tokens));
+  const prose = withoutSentences(rows.markdown, (words) => namesBrand(words, tokens), true);
+  return { markdown: prose.markdown, dropped: [...rows.dropped, ...prose.dropped] };
 }
 
 function sentencesFor(

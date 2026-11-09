@@ -5,7 +5,7 @@
 import "./env";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fakeDb, type Row } from "../publish/harness";
-import { AT, CLEAN_ANSWER, fakeCost, opportunity, pack, pageParts, prose } from "./fixtures";
+import { AT, fakeCost, opportunity, pack, pageParts, prose } from "./fixtures";
 import { LOCAL_WORDPRESS, SAAS_HOSTED, measuredText, seedWorld, snapshot, type LiveSite } from "./live-edit-world";
 import stored from "./fixtures/dogfood-drafts-2026-10.min.json";
 import { GERMAN_NOT, GERMAN_NOT_FITTED } from "./fixtures/german-description";
@@ -33,8 +33,8 @@ const DAY = 86_400_000;
 const NOW = new Date("2026-10-01T09:00:00.000Z");
 /** The date whose window opens at NOW: 24 hours on, at the site's 09:00 UTC. */
 const D = "2026-10-02";
-/** A short answer that opens with a claim of fit. */
-const UNFIT_ANSWER = `Example keeps every seat on one bill. ${CLEAN_ANSWER}`;
+/** A short answer that is nothing but a claim of fit. */
+const UNFIT_ANSWER = "Example keeps every seat, every project and every invoice on one bill for teams of any size, so a growing company never pays twice for the same person, the same workspace or the same month of planning work across its whole calendar year.";
 const STALE = [
   { rule: "title", detail: { rule: "title", faults: ["description"] } },
   { rule: "fit_claim", detail: { rule: "fit_claim", sentences: ["Acme vs Rival"] } },
@@ -97,8 +97,8 @@ describe("a page that still fails is set aside at 0¢, the row kept and its topi
 
   it("still failing rows are set aside: one move each, every row and publication kept, the topic un-rested still", async () => {
     arrange(SAAS_HOSTED);
-    // Issue 2375: a claim in the short answer is never dropped, so it still fails.
-    const id = await stopped(SAAS_HOSTED, { answer: UNFIT_ANSWER, failed: [{ rule: "fit_claim", detail: { rule: "fit_claim", sentences: ["Example keeps every seat on one bill."] } }] });
+    // A claim that is the whole short answer is never dropped, so it still fails.
+    const id = await stopped(SAAS_HOSTED, { answer: UNFIT_ANSWER, failed: [{ rule: "fit_claim", detail: { rule: "fit_claim", sentences: [UNFIT_ANSWER] } }] });
     const topic = db.rows("opportunities").find((each) => each.id === row(id).opportunity_id)!;
     topic.rest_until = null;
     const before = row(id).transitions as Row[];
@@ -115,7 +115,7 @@ describe("a page that still fails is set aside at 0¢, the row kept and its topi
 
   it("with only failing candidates every one is set aside, and the day goes on to write its next topic", async () => {
     arrange(SAAS_HOSTED);
-    const failed = [{ rule: "fit_claim", detail: { rule: "fit_claim", sentences: ["Example keeps every seat on one bill."] } }];
+    const failed = [{ rule: "fit_claim", detail: { rule: "fit_claim", sentences: [UNFIT_ANSWER] } }];
     const ids = [await stopped(SAAS_HOSTED, { answer: UNFIT_ANSWER, failed }), await stopped(SAAS_HOSTED, { topic: "billing", answer: UNFIT_ANSWER, failed })];
     expect(await recheck(SAAS_HOSTED)).toBeNull();
     expect(ids.map((id) => row(id).state)).toEqual(["skipped", "skipped"]);
@@ -163,7 +163,7 @@ describe("a page that still fails is set aside at 0¢, the row kept and its topi
 
   it("a page the customer edited, a live page's edit and an expired credential are never set aside, however they fail", async () => {
     arrange(SAAS_HOSTED);
-    const failed = [{ rule: "fit_claim", detail: { rule: "fit_claim", sentences: ["Example keeps every seat on one bill."] } }];
+    const failed = [{ rule: "fit_claim", detail: { rule: "fit_claim", sentences: [UNFIT_ANSWER] } }];
     const edited = await stopped(SAAS_HOSTED, { first: "Example keeps every seat on one bill. ", failed });
     const live = await stopped(SAAS_HOSTED, { topic: "billing", first: "Example keeps every seat on one bill. ", failed });
     const credentials = await stopped(SAAS_HOSTED, { topic: "invoices", first: "Example keeps every seat on one bill. ", failed });

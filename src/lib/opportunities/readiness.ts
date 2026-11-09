@@ -11,12 +11,11 @@
 //   - `destination_cannot_address` — an Improve the destination cannot
 //     deliver (issue 781), or a topic a page of the site already covers
 //     (#928);
-//   - `low_fit` — a stored business fit below the gate (§6, 2026-09-29);
-//   - `no_grounding_fact` — the site's own pages ground no fact, or none of
-//     the kind an Earn asset needs (`earn-grounding.ts`).
+//   - `low_fit` — a stored business fit below the gate (§6, 2026-09-29).
 //
 // Demand, kind of business and size never hold a row: they order it
-// (`rank/points.ts`).
+// (`rank/points.ts`). Nor does a site whose own pages ground no fact: its
+// page stands on research alone.
 //
 // It is assessed in two places only: the week's commit (`planWeek`) and the
 // evening check of the committed rows (`pageForDay`).
@@ -34,7 +33,6 @@ import { opportunityStore, readOpportunity } from "./store";
 import { isResting, OUTSIZED, qualifiesForADay, type Winnability } from "./types";
 import { demandBand } from "./winnability/band";
 import { difficultyCeiling } from "./winnability/bars";
-import { NO_EARN_GROUNDING, type EarnGrounding } from "./earn-grounding";
 import { heldByVerdict, suppressionOf, type Suppression } from "./suppression";
 import type { IntentPrompt } from "./intent";
 import type { KnownMatch } from "@/lib/known-content/types";
@@ -47,10 +45,6 @@ import type { Evidence, Opportunity, UnreadyReason } from "./types";
 export interface ReadinessContext {
   /** The clock a topic's rest is read against. */
   now: Date;
-  /** The site's own measured pages yield at least one passage. */
-  grounded: boolean;
-  /** Which Earn assets the site's own pages hold a passage for. */
-  earnGrounding: EarnGrounding;
   /** What this site's Monday verdicts hold back. */
   suppression: Suppression;
   /** Whether the site's destination can deliver an update of the page at
@@ -123,8 +117,6 @@ export function eligible(o: Opportunity, ctx: ReadinessContext): UnreadyReason |
   if (o.family !== "improve" && ctx.coveredBy(o) !== null) return "destination_cannot_address";
   const fit = o.businessFit ?? null;
   if (o.family !== "fix" && fit !== null && fit < TOPIC_FIT.gate) return "low_fit";
-  if (!ctx.grounded) return "no_grounding_fact";
-  if (o.evidence.family === "earn" && !ctx.earnGrounding[o.evidence.asset]) return "no_grounding_fact";
   return null;
 }
 
@@ -262,20 +254,12 @@ export async function assessReadiness(
   const rows = a.only === undefined ? open : open.filter((row) => a.only!.has(row.id));
   if (rows.length === 0) return { ready: 0, unready: 0 };
 
-  // Named and rethrown: a failed grounding read writes no row, and the step retries.
-  const loud = <T>(read: Promise<T>) => read.catch((error: unknown) => { console.error("readiness: grounding read failed", { siteId, error }); throw error; });
-  const [verdicts, report, grounded, market, topTens] = await Promise.all([
+  const [verdicts, report, market, topTens] = await Promise.all([
     store.notWorkingVerdicts(siteId),
     store.currentReport(siteId),
-    loud(store.hasGroundingFact(siteId)),
     store.marketFor(siteId).then((read) => read.market).catch(() => null),
     store.topTenRows([...new Set(rows.map((row) => row.scan_id))]),
   ]);
-  // Read only where there is an Earn row to answer: it re-reads the site's
-  // measured pages and its profile, which nothing else here needs.
-  const earnGrounding = rows.some((row) => row.family === "earn")
-    ? await loud(store.earnGrounding(siteId))
-    : NO_EARN_GROUNDING;
   // Read only where there is an update to deliver.
   const ownPages = rows.some((row) => row.family === "improve") ? await store.hostedOwnPages(siteId) : null;
   // One narrowed read per row whose topic could be covered, before the loop,
@@ -284,8 +268,6 @@ export async function assessReadiness(
   const readOf = (o: Opportunity) => (o.targetQuery === null ? null : (topTens.get(queryKey(o.targetQuery)) ?? null));
   const ctx: ReadinessContext = {
     now,
-    grounded,
-    earnGrounding,
     suppression: suppressionOf(verdicts),
     canUpdate: canUpdateFrom(ownPages),
     coveredBy: (o) => covered.get(o.id) ?? null,
