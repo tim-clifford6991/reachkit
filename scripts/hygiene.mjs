@@ -34,22 +34,19 @@ const AUTHORITY = [
   "docs/SPEC.md",
   "docs/DESIGN.md",
   "docs/PROCESS.md",
-  "docs/GO-LIVE.md",
   "docs/RUNBOOK.md",
   "CLAUDE.md",
 ];
 const GATES = ["typecheck · lint · unit", "audit", "schema · RLS", "no overflow · axe"];
 const CURRENT_HEADINGS = [
-  "### Source of truth",
-  "### Roles",
-  "### Four steps",
-  "### Gates",
+  "### 1. Rules and rulings",
+  "### 2. The queue",
+  "### 3. Space and the one loop",
+  "### 4. Merge and deploy",
+  "### 5. Spend",
+  "### 6. Tests",
+  "### 7. Owner, copy and gates",
   "### Coherence",
-  "### Testing budget",
-  "### Deploys",
-  "### Worktrees",
-  "### What gets worked",
-  "### Never",
 ];
 const CITED = [
   "scripts/smoke.sh",

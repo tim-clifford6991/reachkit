@@ -1,154 +1,73 @@
 # Process
 
-Speed to a working MVP is the measure. Delivered means a stranger completes landing → scan → pay → onboard → a page on their domain, live, with real copy.
+Speed to a working MVP is the measure. Delivered means a stranger completes landing → scan → pay → onboard → a page on their domain, live, with real copy (`README.md`).
 
-Follow **Current**. How these rules got here is in git and in `docs/spec/decisions/`. A stale sentence is corrected in the same change that finds it.
-
-2026-09-25  **Nothing survives because it is protected** (owner). Code, tokens, tests and rules stay only while they are the simplest thing for the product as it runs today. A test, a gate, a quoted ruling or an approved file is not a reason to keep something. When a library, framework or platform feature already does the job, the custom version is deleted, and so is the test that pinned it. Anyone may question anything: an agent that finds something kept only because it is guarded says so in its issue or PR instead of working around it. Owner decisions still need a dated line; this line is that decision for removing things that fail this test.
+This page states the approach of the open `simplify` tracking issue (#2513) and the owner rulings on #2513 and #2299. Where this page and those rulings disagree, the rulings win and this page is fixed in the same change that finds it. How the rules got here is in git.
 
 ## Current
 
-### Space
+### 1. Rules and rulings
 
-There is no master and no orchestrator. A requirement is a GitHub issue. The work runs in the ReachKit Herdr workspace, started with `space.sh reachkit <issue>`, on `.wt/issue-<N>` cut from `origin/main`. The session stops at the pull request or at one comment. The four gates below are the merge gate. GitHub merges: an ordinary pull request is opened with auto-merge armed (`gh pr merge <n> --auto --squash --delete-branch`), and GitHub squashes it when the four required checks pass. A pull request labelled `risk:paid`, `risk:migration`, or `risk:job` is opened without auto-merge; release QA arms it with `--match-head-commit <sha>` in the same step as its GO comment on that SHA (owner, 2026-11-08). `rk-deployer` ships `main`. Any older sentence on this page that tells you to wait for a master or an orchestrator yields to this section. The box rule is `/root/ops/box/SPACE.md`.
+`docs/SPEC.md` holds one table of current rules per section (owner C7, 2026-11-08): `name | block/warn | outcome protected | ruling`. Once a section's table has landed, an owner ruling edits its row, with the date and the ruling, in the same pull request, and no new decision file is added for that section. Until then a ruling is a dated decision file, `docs/spec/decisions/YYYY-MM-DD-<issue>.md`, headed by its section (`node scripts/spec-decisions.mjs new <issue> <§n>`); a file that supersedes another names it on a `replaces:` line.
 
-### Source of truth
+Agents add only `warn` rules, and only the owner makes a rule `block`. An incident fix adds no block rule: it relaxes or deletes one, or it goes to the owner. `blockRules` in `scripts/budgets.json` holds each section's count of `block` rows, and `scripts/hygiene.mjs` fails a count that differs from it.
 
-The repository and the GitHub issues are the only record. A chat, a memory file, and anything under `/root/ops` do not overrule these pages. If two of them disagree, fix the stale one in the same change. Do not leave the correction only in a comment or a memory file.
+### 2. The queue
 
-| Question | Where it is answered |
-|---|---|
-| What the product is, and what delivered means | `README.md` |
-| What the product does | `docs/SPEC.md` |
-| How a screen is built | `docs/DESIGN.md` |
-| How work moves, the gates, the worktrees, the queue | this file, Current |
-| What is left before a stranger pays | `docs/GO-LIVE.md` — the only launch checklist |
-| How the box and the vendors are operated | `docs/RUNBOOK.md` |
-| Which open issues are that launch | the GitHub milestone **Launch** |
+The queue is the wave table in #2513. Labels decide order: `urgent` before `Post Launch`; `parked` and `later` are not started (owner 2026-11-06; D5 2026-11-08: the parked four stay on hold unless urgent or essential to revenue). The GitHub milestone is not a queue.
 
-### Roles
+An issue is Ready when it carries Conditions, Invariants, Surfaces and Overlaps. The product manager writes it and classifies owner feedback before a worktree exists; the session that classifies does not also implement.
 
-| Who | Does |
-|---|---|
-| **Owner** | Product, copy, secrets, answers, tests live on `dev.reachkit.app`. Does not read ticket piles. |
-| **Engineer** | One session, one issue. Issue → docs if behaviour changed → implement with libraries → PR with Conditions, Overlaps and Surfaces. Never merges or deploys (owner, 2026-10-19). |
-| **Architect** | Sets the build order, dependencies, hot-file rules and the proof for each step. Advises; never implements. |
-| **Product manager** | Turns an approved plan step into a ready issue (Conditions, Invariants, Surfaces, Overlaps), classifies feedback under Coherence, sequences waves of at most 4 engineers while 2.5 GB is free (owner, 2026-10-31), keeps the delivery status and verifies each condition in production after deploy. |
-| **Release QA** | Only for a `risk:*` pull request, before a merge: each condition proven, CI green, overlaps tested together, migration order; returns GO or NO-GO with the head SHA, and on GO arms auto-merge with `--match-head-commit`. After a deploy, only when it carries a migration, a new or changed Inngest job or a paid path, or the deployer's production check is red: Ready, Inngest synced, smoke, errors, conditions in production; returns PASS or FAIL. Otherwise the deployer's logged production check is the PASS (owner, 2026-10-31). |
+### 3. Space and the one loop
 
-Delivery flow (owner, 2026-10-19; amended 2026-11-08): approved plan step → architect (order, proof) → product manager (issue) → engineer (PR, auto-merge armed) → GitHub merges on the four gates (a `risk:*` PR: release QA GO arms it) → `rk-deployer` (dev, production, Inngest sync, production check: the PASS; release QA only for a migration, a job, a paid path or a red check) → product manager (accepted). The agent definitions live in `.claude/agents/` and `~/.claude/agents/`, named in `CLAUDE.md`. One engineer per issue, in a clean context. The next issue is a new session.
+One issue, one worktree, one session; no session directs another. There is no master and no orchestrator, with one exception: the box loop in `/root/ops/reachkit/box-loop/RULES.md` (owner, 2026-11-08), which starts the next eligible issue from #2513's wave table, starts `release-qa` on a green `risk:*` pull request, and removes merged worktrees; it reads #2513 and does not copy its dependencies.
 
-### Four steps
+A session is started with `space.sh reachkit <issue> [role]` in the Herdr workspace `reachkit`, one tab per issue. The engineer works in `/root/projects/reachkit/.wt/issue-<N>`, branched from `origin/main`, and stops at one pull request or one comment. The checkout at `/root/projects/reachkit` stays on `main`. A worktree is removed when its pull request merges. The agent roles are the files in `.claude/agents/`.
 
-1. **State it.** GitHub issue: what the user can do afterwards. `feature` or `bug`. Board: Status (Ready is next) and Feature (F1–F9). P0 = the paying path is broken. The issue carries Surfaces, Invariants and Overlaps before it is Ready. An example of a parent in Coherence is a comment on that parent, not a new issue.
-2. **Document if required.** New behaviour → that section of `docs/SPEC.md`. Look of a screen → `docs/DESIGN.md` (the three library rules, not a drawing). A bug in specified behaviour → no docs edit. An owner answer → one dated decision file the same day, `docs/spec/decisions/YYYY-MM-DD-<issue>.md`, headed by the SPEC section it belongs to (`node scripts/spec-decisions.mjs new <issue> <§n>` writes the head). A new ruling is never a new line in `docs/SPEC.md` itself, so two pull requests that each add one never conflict (owner, 2026-10-18, #1525).
-3. **Implement.** One issue, one worktree, at `/root/projects/reachkit/.wt/issue-<N>`, branched from `origin/main`. The checkout at `/root/projects/reachkit` stays on `main`. daisyUI classes in the route, Recharts for series, lucide for icons, the libraries on `docs/DESIGN.md`'s list and no others, Stripe / Resend / Supabase for those jobs. No new wrapper, no new CSS sheet, no SVG chart. PR: what changed, how you proved it, `Closes #n`. An issue cites a screen's board in `docs/DESIGN.md` for structure and wording, never pixels.
-4. **Prove and ship.** The four gates below are green, including the Coherence reading inside `audit` and the strategy checks inside `no overflow · axe`. The engineer opens the pull request with auto-merge armed and stops; GitHub merges it when the gates pass. A `risk:*` pull request waits for release QA's GO, which arms auto-merge with `--match-head-commit <sha>`. A pull request with a migration is never armed until the migration is applied. The next session in the space removes a merged worktree and closes its tab. An expand-only migration is applied through the Supabase connector before the deploy whose code reads it; any other migration after the target deploy is READY. Merges deploy to dev and production (owner ruling 2026-09-17, #844); after a production deploy `deployer.sh` waits for Ready, syncs Inngest and runs `scripts/smoke.sh --free`, and its logged production check is the PASS; release QA returns PASS or FAIL only for a deploy that carries a migration, a new or changed Inngest job or a paid path, or when that check is red (owner, 2026-10-31). The owner looks at `dev.reachkit.app` for taste. There is no production freeze.
+The one scheduled agent is the Monday weekly review, `.claude/skills/weekly-review/`: read-only, 0¢, at most five unready `from-weekly` issues.
 
-`blocked-on-owner` is not implemented around. Missing copy is drafted and shipped, never `TODO(copy)` (owner ruling 2026-09-16, #759): the PR body names every new or changed string so the owner can correct the wording.
-
-Every owner decision is a dated line in a decision file under `docs/spec/decisions/`, `docs/DESIGN.md`, `docs/PROCESS.md` or `docs/RUNBOOK.md` before it is implemented. Every section of `docs/SPEC.md` is rewritten (owner C7, 2026-11-08, #2527): a rewrite folds that section's dated lines and decision files into it, and a decision file that supersedes another names it on a `replaces:` line, which `audit` fails while the replaced file is still in the tree. A decision that lives only in a chat is not one an engineer can read. Boards and their renders live in `docs/design/`. A canvas is a review surface, and where it and the repository disagree the repository wins. The tools on the box are described in `docs/RUNBOOK.md`, with how to recreate them.
-
-**Rules.** A rule in `docs/SPEC.md` is a row of its section's `name | block/warn | outcome protected | ruling` table. Agents add only `warn` rules, and only the owner makes a rule `block`. An incident fix adds no block rule: it relaxes or deletes one, or it goes to the owner. `blockRules` in `scripts/budgets.json` holds each section's count of `block` rows, and `scripts/hygiene.mjs` fails a pull request whose count differs from it or rises without a new decision file that names each new row.
-
-2026-11-08  **A block-rule budget per SPEC section, and one record of rulings** (owner, #2513: "A, B and D are all to be prepared and queued in order"). Rulings are folded back into their section, an incident fix deletes or relaxes a rule rather than adding one, and the dated History list is gone; git and the decision files hold it.
-
-### Gates
+### 4. Merge and deploy
 
 | Gate | Blocks merge? |
 |---|---|
 | `typecheck · lint · unit` | **Yes** |
-| `audit` (SPEC/code/tests still agree + runtime `npm audit`) | **Yes** |
-| `schema · RLS (live Postgres)` | **Yes** |
-| `no overflow · axe (390 / 768 / 1280, light and dark)` | **Yes** — sweeps where a screen can change, success with a reason otherwise |
-| Production smoke (`scripts/smoke.sh --free`) | **Yes** for a production deploy, run by `deployer.sh` |
+| `audit` (SPEC, code and tests agree; `scripts/hygiene.mjs`; runtime `npm audit`) | **Yes** |
+| `schema · RLS` (live Postgres) | **Yes** |
+| `no overflow · axe` (390 / 768 / 1280, light and dark) | **Yes**, success with a reason where no screen can change |
 
-`no overflow · axe` renders every `(public)` and `(account)` screen in a real browser, hydrated, at 390, 768 and 1280, and every `/app` screen at 1023 too, in light and dark, and runs `@axe-core/playwright` on the same page. It fails on an element wider than its container, on text its card cuts off, on a chart that did not fit or did not draw, on a serious or critical axe finding, and on a skeleton of `/app`, `/app/calendar` or `/setup` whose columns or rows differ from the screen that arrives (#1484). It takes no screenshot and keeps no baseline. The strategy list in `docs/DESIGN.md` is checked with it, by `tests/ui/design/strategy.test.ts` on the same code change. The owner looks at the live site for taste.
+An ordinary pull request is opened with auto-merge armed (`gh pr merge <n> --auto --squash --delete-branch`), and GitHub squashes it when the four gates pass. A pull request labelled `risk:paid`, `risk:migration` or `risk:job`, or one that adds a migration, is opened without it; release QA arms it with `--match-head-commit <sha>` in the same step as its GO comment on that SHA (owner, 2026-11-08). An expand-only migration is applied by hand before the deploy whose code reads it (`docs/RUNBOOK.md` §9). `rk-deployer` ships `main`: dev every SHA, then production once that SHA's free dev check passes, then the production check, which is the PASS. Release QA returns PASS or FAIL only for a migration, a job, a paid path or a red check. Roll forward only.
 
-The design parity reading runs inside `no overflow · axe` (owner, 2026-10-20, #1714): `tests/ui/layout/parity.test.ts` reads each canvas board's strings with `scripts/design/parity.mjs`, and on a page or hosted route its components (lucide icons, rings, bars, charts, cards) with `scripts/design/components.mjs`, against what its route ships, and on the routes a pull request touches neither missing count goes up. Each is a count in the board's own one-line `docs/design/parity/<Board>.baseline.json` (`missing`, `components`, beside the board file's `sha256`, which `audit` checks), never a picture; a `component:<token> <n>` allow line excuses up to n of one component's gap. A board an issue claims to finish reaches 0.
+`scripts/hygiene.mjs` runs inside `audit`, and nightly and on `rk-hygiene.timer` it opens or comments on one `[hygiene]` issue when it is red. A file over 600 lines or a folder over its cap may only shrink.
 
-A documentation-only pull request runs `audit` alone (owner, #1053). When every file it changes is under `docs/` or is markdown outside `src/`, `tests/`, `supabase/`, `.github/` and `scripts/`, `typecheck · lint · unit` and `schema · RLS` report skipped. Any other file runs them. The canvas boards and `docs/design/parity/` are not documentation here: a change to them runs the component tests that read the state boards (#1970).
+### 5. Spend
 
-`no overflow · axe` sweeps only a pull request that can change a screen (owner, 2026-10-18, #1525, amending #910): a path under `src/app`, `src/components`, `src/ui` or `src/lib/presentation`, the middleware, a stylesheet, `public/`, `tests/ui`, `package*.json`, `next.config.*`, or the sweep itself — its config, migrations, substrate, actions and `ci.yml`. `scripts/ci-changes.mjs` holds the list and prints why each path counts. Any other pull request still gets the check, as success with one reason line, so "every job reports on every pull request" holds as success-with-reason. It stays a required check.
+0¢ by default. A paid vendor or model call needs the owner's comment on that issue naming the calls and the cap (owner, 2026-11-08, #2543). Answer from stored rows and replays first; the pull request reports what was spent.
 
-A check may report *skipped* by path (owner C1 and C3, 2026-10-19, #1585): on a pull request `typecheck · lint · unit` runs only the unit tests vitest's module graph links to the diff (the full suite when a path in `scripts/ci-changes.mjs`'s list reaches tests through no import), `schema · RLS` runs only where the database can change, and `no overflow · axe` sweeps each width in one theme. `Nightly` runs every job in full on `main` at 02:41 UTC and opens or comments on one `[nightly]` issue when it is red; it is not a merge gate.
+### 6. Tests
 
-Before pushing, an engineer runs `npm run typecheck`, `npm run lint`, and only the test files that cover the files it changed, with `bash /root/ops/reachkit/bin/heavy.sh npm run test:unit -- <paths>`. Release QA runs unit tests the same way. `npm run test:unit` is the command CI's unit step runs, with the same projects, workers and 20 s timeout, so a red or green means the same everywhere (#1784). Each heavy command goes through `bash /root/ops/reachkit/bin/heavy.sh`. CI runs the unit tests the change reaches, and the nightly run all of them. An engineer does not run the whole `vitest run --project node --project ui` locally. A red full suite is read from the CI log (owner, 2026-10-08).
+The speed-first test policy (owner, 2026-11-08, https://github.com/tim-clifford6991/reachkit/issues/2513#issuecomment-6728550219):
 
-Two open pull requests may edit one hot copy key file only in separate key blocks (owner R14, 2026-10-22): release QA proves it at GO with `git merge-tree --write-tree` of the two heads; a board's `docs/design/parity/<Board>.baseline.json` is excepted, as two pull requests on different boards never share one.
+- A test is required only for money (checkout, webhooks, the paid check, cost caps), data loss (delete, unpublish, migrations, database access rules), one duplicate-run case per production job, and one case for a bug that reached production.
+- Everything else is proven in the pull request body: a free replay of stored scans, a golden diff, one case added to an existing journey, or the free smoke run on dev after merge.
+- Never write a test that mocks our own modules, renders markup or checks copy, icons or styling, reads `src` or `docs` as text, or pins a ruling number.
+- Test lines changed are at most a third of `src` lines changed. A pull request without money in it adds zero test lines.
+- `tests/archive/` holds the old suite, outside the runner, typecheck, lint and CI. A test outside the safety net that goes red only because code moved goes there in the same pull request; it is not repaired. The archive is deleted when the owner says the new system has proven itself.
 
-Where the jobs run is `docs/RUNBOOK.md` §1: GitHub-hosted, no self-hosted runner while the repo is public. There is no fifth merge gate.
+Locally, run `npm run typecheck`, eslint on the changed files, and only the tests that cover them with `bash /root/ops/reachkit/bin/heavy.sh npm run test:unit -- <paths>`. Never the full suite; CI runs it.
+
+### 7. Owner, copy and gates
+
+- `blocked-on-owner` is not built around: ask on the issue and stop.
+- Never ship `TODO(copy)` (#759): draft the string in the voice of `src/lib/presentation/copy/keys/` and name every new or changed string in the pull request body.
+- Never a fifth gate.
+- At most 4 engineers at once while 2.5 GB is free (owner, 2026-10-31).
 
 ### Coherence
 
-A change is finished when its conditions are checks and every screen it touches still matches the product strategy. Both readings sit inside the four gates. This is not a fifth gate, and it is not a standing agent.
-
-**Feedback.** The session that hears the owner classifies it before a worktree exists. An example of a parent below is a comment on that parent. A word, a label, or a screen is the strategy in `docs/DESIGN.md`, and the change extends `tests/ui/design/strategy.test.ts` or the layout gate. A new condition is an issue whose Surfaces, Invariants and Overlaps are filled. An engineer starts only after that classification is on the issue. The session that classifies does not also implement.
-
-**Before Ready.** The issue states the surfaces it touches (`scan`, `content`, `app`, `public`), the invariant that must stay true, and the overlaps: the `docs/SPEC.md` sections and open issues it was read against, and what was left alone. A slice of a parent is a sub-issue. An issue with any of those three empty is not Ready. An example of a parent below is a comment on that parent, not a new issue.
-
-**On the pull request.** The body has `Conditions`, `Overlaps` and `Surfaces`. `audit` reads that body on a pull request and fails a missing or empty section. A section that is still only the template's note is empty. `none` is a real answer when the change cannot break a condition or cannot touch a surface. Each condition names the check that fails when it breaks. `audit` reads the registry below and fails when a named check file is missing.
-
-**UI.** Every change that can touch a screen runs `no overflow · axe` (Gates), which renders every `(public)` and `(account)` screen at 390, 768 and 1280, in light and dark. `tests/ui/design/strategy.test.ts` runs in `typecheck · lint · unit` on the same change. Together they hold the strategy in `docs/DESIGN.md`: the stack, the calm layer, the names, a title of at most six words, and no retired vocabulary. The owner looks at `dev.reachkit.app` for taste — voice, and an asset only the owner holds. Taste is not a second review of a condition the gates already check.
-
-**After merge.** A witness of the same shape as the hygiene check reads stored production rows and comments on the one open parent for that surface. It does not edit the tree, it does not merge, and an engineer starts only from the issue it files. No witness runs until its script is named in this section and in `.github/workflows/drift-audit.yml`. Until that line is here, these parents stay open and the pull request is the enforcement.
+A pull request body has `Conditions`, `Overlaps` and `Surfaces`, and `audit` fails one that is missing or empty; `none` is a real answer. Each condition names its proof under rule 6.
 
 | Parent | Surface | Condition | Check |
 |---|---|---|---|
 | #1458 | public | The public offer matches the product, and a ranked URL does not 404 | tests/archive/presentation/copy/public-claims.test.ts |
 
-Every row names a check file. `#1454` (scan), `#1127` (content) and `#1457` (app) have no row: the weekly outcome check (#2528) reads them, and they stay open. `#1455` is the silence inside `#1127`, not a fifth parent. A pull request names any of the four parents with `Refs #n`: `audit` fails a body that says Closes, Fixes or Resolves for one, and `scripts/hygiene.mjs` fails while a parent with a row here is closed.
-
-The box is checked by hand with `node scripts/box.mjs` (`npm run box`). It reports a dirty worktree, a worktree with no open pull request, a worktree ahead of or behind its remote, and a leftover that is not a worktree. `--clean` removes only an empty directory on its list, a loadgen folder that holds a Next cache, and a closed-sessions spreadsheet. It never removes a worktree and it never edits `main`. It is not a gate and it does not run on the timer.
-
-`scripts/hygiene.mjs` runs inside `audit`. It fails when an authority page is missing, when Current and the workflows disagree on the four gates, when a second process page appears, when a name in that script's list is back in the tree, or when a Coherence registry parent is closed. The nightly run of the audit workflow, and `rk-hygiene.timer` at 05:30 UTC, open one issue titled `[hygiene]` when the check is red, or comment on the open one. The check does not edit the tree. An engineer starts from that issue, one worktree, then the tab closes. It is not a fifth gate.
-
-### Testing budget
-
-Tests prove customer-observable behaviour. Until a paying user, tests are at most one third of a product PR. A test that transcribes a markdown row is deleted.
-
-New fixtures are synthetic: no copied third-party page, no real person's address. Stored panel evidence holds no email address.
-
-1. **Stored evidence first, fixtures by default.** A question is answered from stored rows and stored vendor responses (`fetches` payloads, `scripts/panel/evidence/`, `npm run panel -- --recheck`) where they can answer it. Tests and proofs use recorded responses unless the question cannot be answered without a new call. A live run happens once, as proof after the merge.
-2. **One dogfood site.** Live tests run on `reachkit.app`, plus at most one control site.
-3. **A live vendor call needs the owner's approval first** (owner, 2026-11-08). An engineer asks on its issue, naming the calls, the sites and the cap, adds `blocked-on-owner`, and waits for the owner's comment before any paid DataForSEO or model call. The default is 0¢: answer from stored rows and replays. The cap defaults to 20¢ per issue. The pull request reports the spend.
-4. **€2 a day across all live testing, judged on the box's own spend.** Spend is recorded in USD cents and the cap is converted at the rate in `constants.ts`. `npm run costs` shows billed beside recorded and judges the cap on the box's spend log, at the vendor's own charge where a row carries one; billed is account-wide, includes production, and is never held against the cap (`docs/RUNBOOK.md` §8). Paid calls made by a script on the box are in `/root/ops/reachkit/spend.jsonl`. It warns at €1.50. Run it before a live test. An agent that would exceed the cap stops and asks the owner first.
-5. **At most 4 engineers at once while 2.5 GB is free (owner, 2026-10-31).** No new issue is started while a proof is pending.
-6. **One smoke check per deploy.**
-7. **The Monday weekly pass is the default live proof.**
-
-Every change to market understanding, the knowledge base, rivals, terms, measured searches or topics passes `npm run panel` before the owner is asked to measure. A pass on reachkit.app alone is not proof. The panel is `docs/walk/panel/sites.json`. It runs only when a change touches how markets, rivals, terms, measured searches or topics are read, on at most five sites a run, after a 0¢ `--recheck` of the stored run could not answer the question. Its cap is 100¢ a run unless the issue states another. `npm run panel -- --recheck --date <date>` judges a stored run again for 0¢ (`docs/RUNBOOK.md` §4).
-
-The full matrix is a tool, not a job: `npm run test:layout:full` with `RK_LAYOUT_FULL=1`, on the box, against `scripts/db-substrate/up.sh --run`, when a width the gate does not reach needs an answer. Read the answer the same day.
-
-### Deploys
-
-Vercel Pro since 2026-11-07, Git deployments off. `rk-deployer` deploys `main`: dev every SHA, and production as soon as that SHA's dev check passes, with no batching and no window (owner, 2026-10-31; `PROD_EVERY_S=0`). `/root/ops/reachkit/bin/redeploy.sh` deploys production by hand. There is no freeze (2026-09-17, #844). Manual: `bash /root/ops/reachkit/bin/deploy-dev-once.sh`.
-
-`supabase/migrations` is the schema. A file under `/root/ops` that lists migrations is a log, not a queue. Do not re-apply a migration because a log still names it.
-
-### Worktrees
-
-One open issue, one worktree, one session: `/root/projects/reachkit/.wt/issue-<N>`, branched from `origin/main`. When the pull request merges, remove the worktree. Do not brief the same session onto a second issue.
-
-A worktree whose commits are already on `origin/main`, and whose issue is closed, is deleted. Untracked `node_modules` is not a reason to keep it. A worktree with its own commits that are not on `main`, or with an open pull request, stays.
-
-The Herdr workspace labelled `reachkit` gets one tab per issue, named by `space.sh` (`eng-<N>`, or `<role>-<N>` for a read-only role). The tab is closed when the pull request merges or the issue closes. The engineer is started in that tab with its role, `claude --agent engineer` (owner, 2026-10-19, #1578). No session spawns that engineer as a subagent or shares its transcript. An agent already running may finish. The next one is a new tab (owner, 2026-09-24).
-
-### What gets worked
-
-The milestone **Launch** is the launch queue. Take an open Launch issue that is not `blocked-on-owner` before any issue outside that milestone.
-
-`later` and `parked` are not started while a Launch issue is open. `blocked-on-owner` is not implemented around: the owner acts, the issue stays open, and nobody codes a guess.
-
-### Never
-
-- Invent a user-facing sentence.
-- Match the pixels or copy the markup of any board or canvas. Citing a screen's board for what it holds is expected (`docs/DESIGN.md`).
-- Add a custom component, CSS sheet or SVG chart where daisyUI or Recharts exists.
-- Guess an owner decision.
-- Add a merge gate beyond the four above.
-- Spawn an implementation agent as a subagent of another session. It is a Herdr tab in the reachkit workspace, one issue, then the tab is closed.
-- Keep a second copy of these rules in a memory file, a settings note, or `/root/ops`.
-- Schedule a standing agent to re-read these pages. The hygiene check is the daily pass. The coherence witness, once its script is named in Coherence, is the same kind of pass. An engineer starts only from the issue either one files.
-  2026-10-19  **One weekly review run is the exception** (owner, C7, #1631). `.claude/skills/weekly-review/` reads code, CI and production read-only at 0¢ on Mondays, reports the six ideas as outcomes from `scripts/outcomes.mjs`, and files at most five unready `from-weekly` issues, classified under Coherence, of which at most one is a deletion for the architect (2026-11-08, #2528); it never edits the tree, merges, deploys or spends. No other scheduled agent.
+`#1454` (scan), `#1127` (content) and `#1457` (app) have no row: the weekly review reads them, and they stay open. A pull request names any of the four parents with `Refs #n`, never Closes, and `scripts/hygiene.mjs` fails while a parent with a row here is closed.

@@ -9,7 +9,7 @@ Production <https://reachkit.app> · dev <https://dev.reachkit.app> · repo `tim
 
 ## The nine MVP features
 
-All nine are on `main`. None of them counts as delivered until a stranger walks the path on production. Where that walk stands is `docs/GO-LIVE.md` and nowhere else. This table does not carry a second status.
+All nine are on `main`. None of them counts as delivered until a stranger walks the path on production. That walk is #1044. What is left before it is the #2513 queue and the owner's list on #2299. This table does not carry a second status.
 
 | # | Feature | What the user gets |
 |---|---|---|
@@ -43,12 +43,11 @@ weekly scan → calendar → email → technical issues — but all nine are MVP
 | 1 | `README.md` | This page: what ReachKit is, the nine features, what delivered means. |
 | 2 | `docs/SPEC.md` | One section per feature: what the user gets, rules, done-when. No pixels. |
 | 3 | `docs/DESIGN.md` | daisyUI + Recharts + lucide. No artboards. |
-| 4 | `docs/PROCESS.md` | How work moves. The four gates, Coherence, the worktrees, the queue. |
-| 5 | `docs/GO-LIVE.md` | The only checklist of what is left before a stranger pays. |
-| 6 | `docs/RUNBOOK.md` | How the box and the vendors are operated after a change is merged. |
-| 7 | `CLAUDE.md` | What an agent reads first. It points at the pages above and does not restate a different rule. |
+| 4 | `docs/PROCESS.md` | How work moves: rulings, the queue, the space, the gates, spend, tests, Coherence. |
+| 5 | `docs/RUNBOOK.md` | How the box and the vendors are operated: what the code cannot show. |
+| 6 | `CLAUDE.md` | What an agent reads first. It points at the pages above and does not restate a different rule. |
 
-A difference between the code and `SPEC.md` is a defect in the code — CI's `audit` check blocks the PR. A difference between these pages is fixed in the same change. The milestone **Launch** is the list of open issues for that checklist.
+A difference between the code and `SPEC.md` is a defect in the code — CI's `audit` check blocks the PR. A difference between these pages is fixed in the same change.
 
 ## Where work is tracked
 
