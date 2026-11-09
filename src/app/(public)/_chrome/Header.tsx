@@ -23,10 +23,10 @@
 // each leaf is handed its sentence already written.
 //
 // **Signed in** (owner 2026-09-26, #1125) *Sign in* and *Start free* give
-// way to one solid *Your dashboard* into the app, in the bar and never in
-// the drawer. The caller reads the session (`./session.ts`) and hands the
-// destination in, so this stays a plain render; no destination is the
-// signed-out header, exactly as it was.
+// way to one solid *Your dashboard* into `/app`, in the bar and never in
+// the drawer. The page is static, so it paints signed out and `SignedIn`
+// switches it after hydration; `/app`'s own gate sends a site-less account
+// on to `/setup`.
 //
 // **The blur is a layer, not the header's own style.** `backdrop-filter` on
 // an element makes it the containing block of its fixed descendants, and
@@ -38,8 +38,7 @@ import Link from "next/link";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { Brand } from "@/app/_brand/Brand";
 import { ThemeSwitch } from "@/app/_theme/ThemeSwitch";
-import { DrawerLinks, HeaderCopyLink, HeaderCta, NavLink } from "./HeaderArm";
-import type { AppEntry } from "./session";
+import { DrawerLinks, HeaderCopyLink, HeaderCta, NavLink, SignedIn } from "./HeaderArm";
 
 /** Which of the copy control's two homes a render is drawing — a slot
  *  name, never a sentence. Bound to a name because the copy sweep reads a
@@ -84,7 +83,7 @@ const MENU_FOCUS_RING = [
  * `sm`, where the bar has no room for them — the theme switch and *Sign in*
  * (signed out only).
  */
-function PhoneMenu(p: { signedIn: boolean }): React.JSX.Element {
+function PhoneMenu(): React.JSX.Element {
   return (
     <div className="drawer drawer-end w-auto lg:hidden" data-testid="public-header-menu">
       <input id={MENU_TOGGLE_ID} type="checkbox" className="drawer-toggle" aria-label={copy("chrome.nav.menu")} />
@@ -110,11 +109,13 @@ function PhoneMenu(p: { signedIn: boolean }): React.JSX.Element {
             <div className="border-base-300 border-t pt-4 sm:hidden">
               <ThemeSwitch names={switchNames()} />
             </div>
-            {p.signedIn ? null : (
-              <NavLink href="/signin" at={SIGNIN_AT} className="btn btn-ghost justify-start sm:hidden">
-                {copy("chrome.nav.signin")}
-              </NavLink>
-            )}
+            <SignedIn
+              out={
+                <NavLink href="/signin" at={SIGNIN_AT} className="btn btn-ghost justify-start sm:hidden">
+                  {copy("chrome.nav.signin")}
+                </NavLink>
+              }
+            />
           </DrawerLinks>
         </div>
       </div>
@@ -122,8 +123,7 @@ function PhoneMenu(p: { signedIn: boolean }): React.JSX.Element {
   );
 }
 
-export function Header(p: { entry?: AppEntry }): React.JSX.Element {
-  const entry = p.entry ?? null;
+export function Header(): React.JSX.Element {
   return (
     <header className="border-base-300 sticky top-0 z-30 border-b" data-testid="public-header">
       <div aria-hidden className="bg-base-100/78 absolute inset-0 -z-10 backdrop-blur-md" />
@@ -148,20 +148,23 @@ export function Header(p: { entry?: AppEntry }): React.JSX.Element {
           <span className="hidden sm:inline-flex" data-testid="public-header-theme">
             <ThemeSwitch names={switchNames()} />
           </span>
-          {entry === null ? (
-            <>
-              <NavLink href="/signin" at={SIGNIN_AT} className="btn btn-ghost px-2">
-                {copy("chrome.nav.signin")}
-              </NavLink>
-              <HeaderCta label={copy("chrome.cta.start")} />
-            </>
-          ) : (
-            <Link href={entry} className="btn btn-primary btn-sm" data-testid="public-header-app">
-              {copy("chrome.cta.app")}
-              <ArrowRight aria-hidden size={16} strokeWidth={1.75} />
-            </Link>
-          )}
-          <PhoneMenu signedIn={entry !== null} />
+          <SignedIn
+            out={
+              <>
+                <NavLink href="/signin" at={SIGNIN_AT} className="btn btn-ghost px-2">
+                  {copy("chrome.nav.signin")}
+                </NavLink>
+                <HeaderCta label={copy("chrome.cta.start")} />
+              </>
+            }
+            in={
+              <Link href="/app" className="btn btn-primary btn-sm" data-testid="public-header-app">
+                {copy("chrome.cta.app")}
+                <ArrowRight aria-hidden size={16} strokeWidth={1.75} />
+              </Link>
+            }
+          />
+          <PhoneMenu />
         </div>
       </nav>
     </header>

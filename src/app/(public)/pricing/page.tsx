@@ -5,6 +5,9 @@
 // with the other ways, the questions asked before paying, and the free scan
 // for anyone not ready yet.
 //
+// Served static (owner R-B, 2026-11-07): a refused checkout's marker is read
+// in the browser (`./refused.tsx`).
+//
 // The offer is `PricingCard`, the report's own component in its `pricing`
 // wording, so the two surfaces state the same price and one Start (REQ-021
 // c4). Its control begins a scanless checkout and nothing is asked before it.
@@ -13,13 +16,13 @@
 //
 // No figure is typed: counts come from `_how/facts.ts` and the constants. There
 // is no money-back line and no refund answer: the plan is month to month.
-import React, { use } from "react";
+import React from "react";
 import type { Metadata } from "next";
 import { CircleCheck, CircleStop, Clock4, Eye, Gift, Mail, Pen, Plug, Search, Store, Timer, TrendingUp, X, type LucideIcon } from "lucide-react";
 import { Surface } from "@/ui/layout";
 import { WEEK_PLAN } from "@/lib/config/constants";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
-import { PricingCard } from "../scan/[domain]/_modules/pricing";
+import { PricingCard, REFUSED_IN_QUERY } from "../scan/[domain]/_modules/pricing";
 import { ScanForm } from "../_landing/ScanForm";
 import { scanFormWords } from "../_landing/scan-form-words";
 import { HOW_FACTS as F } from "../_how/facts";
@@ -27,24 +30,6 @@ import { ThreeWays } from "../_how/compare";
 import { PUBLIC_ROUTE_SEO } from "../_seo/routes";
 import { staticMetadata } from "../_seo/metadata";
 import { startCheckout } from "./actions";
-import { CHECKOUT_QUERY_KEY, REFUSED_MARKER, type PricingSearchParams } from "./state";
-
-function isPromise<T>(value: Promise<T> | T | undefined): value is Promise<T> {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    typeof (value as { then?: unknown }).then === "function"
-  );
-}
-
-/** Accepts a real `searchParams` Promise (production) or an already-plain
- *  object (this file's own tests). */
-function usePricingSearchParams(
-  searchParams: Promise<PricingSearchParams> | PricingSearchParams | undefined
-): PricingSearchParams {
-  if (isPromise(searchParams)) return use(searchParams);
-  return searchParams ?? {};
-}
 
 export const metadata: Metadata = staticMetadata(PUBLIC_ROUTE_SEO.pricing);
 
@@ -184,13 +169,7 @@ function questions(): readonly Question[] {
   ];
 }
 
-export default function PricingPage(props: {
-  searchParams?: Promise<PricingSearchParams> | PricingSearchParams;
-}): React.JSX.Element {
-  // A refused purchase comes back with the marker, so the offer says so
-  // instead of the route throwing.
-  const refused = usePricingSearchParams(props.searchParams)[CHECKOUT_QUERY_KEY] === REFUSED_MARKER;
-
+export default function PricingPage(): React.JSX.Element {
   return (
     <Surface
       arms={{
@@ -213,7 +192,7 @@ export default function PricingPage(props: {
               <p className={LEAD}>{copy("pricing.subline", weekPages)}</p>
             </div>
             <div className="flex min-w-0 flex-col gap-4">
-              <PricingCard startAction={startCheckout} terms="pricing" refused={refused} free={<FreeFirst />} />
+              <PricingCard startAction={startCheckout} terms="pricing" refused={REFUSED_IN_QUERY} free={<FreeFirst />} />
               <NotDone />
             </div>
           </div>

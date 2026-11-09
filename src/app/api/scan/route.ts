@@ -11,9 +11,9 @@
 // (`content-type: application/json`) gets `StartScanResponse` — 422 on a
 // malformed domain, 200 otherwise. A form submission with no JavaScript
 // (`application/x-www-form-urlencoded` or `multipart/form-data`) gets 303
-// to the canonical address on success or refusal, and 303 back to the
-// landing page carrying the problem handle and the submitted value on a
-// malformed domain. Anything else — an unparseable body, or a body whose
+// to the canonical address on success or refusal, and 303 to the landing's
+// per-request twin, `/scan/refused`, carrying the problem handle and the
+// submitted value on a malformed domain (`/` itself is served static). Anything else — an unparseable body, or a body whose
 // shape is not `{ value: string }` — is a 400 with no problem handle
 // (`## Steps` step 2: "it is not a visitor's typed value").
 //
@@ -33,7 +33,7 @@
 // and WO-070's not-yet-built landing page, not a customer-visible string)
 // and flagged once (rule 4.2) since WO-070 has not landed to confirm it
 // reads them:** `problem` carries the `DomainProblem` handle and `value`
-// carries the submitted text, verbatim, both as query params on `/`. Any
+// carries the submitted text, verbatim, both as query params. Any
 // value found here should be renamed together with WO-070's own reader,
 // never redefined independently in that WO.
 import { after } from "next/server";
@@ -45,7 +45,8 @@ export type StartScanResponse =
   | { ok: true; location: string; scanId?: string } // REQ-001 c9; `## Steps` step 5
   | { ok: false; problem: DomainProblem }; // REQ-001 c3, HTTP 422
 
-const LANDING_PATH = "/";
+/** The landing rendered per request, so a refusal reaches a browser without JavaScript. */
+const REFUSED_PATH = "/scan/refused";
 
 function canonicalLocation(domain: string): string {
   return `/scan/${domain}`;
@@ -139,7 +140,7 @@ async function readBody(request: Request): Promise<ParsedBody> {
 }
 
 function landingRedirect(request: Request, problem: DomainProblem, value: string): Response {
-  const url = new URL(LANDING_PATH, request.url);
+  const url = new URL(REFUSED_PATH, request.url);
   url.searchParams.set("problem", problem);
   url.searchParams.set("value", value);
   return Response.redirect(url.toString(), 303);

@@ -47,7 +47,6 @@ vi.mock("@/app/(account)/app/_overview/store", () => ({ readOverviewFacts: async
 const { default: AccountLayout } = await import("@/app/(account)/layout");
 const { default: AppLayout } = await import("@/app/(account)/app/layout");
 const { default: OverviewPage } = await import("@/app/(account)/app/(tabs)/page");
-const { appEntry } = await import("@/app/(public)/_chrome/session");
 const { setIdentityAuth } = await import("@/lib/account/identity/auth");
 const { setIdentityStore } = await import("@/lib/account/identity/store");
 const { setRetentionStore } = await import("@/lib/mail/retention");
@@ -104,9 +103,8 @@ async function renderApp(): Promise<void> {
 }
 
 describe("an /app request reads the session once", () => {
-  it("both layouts, Overview and the public header share one signed-token check and one account read, never getUser", async () => {
+  it("both layouts and Overview share one signed-token check and one account read, never getUser", async () => {
     await renderApp();
-    await expect(appEntry()).resolves.toBe("/app");
     expect(calls).toEqual({ sessionUser: 0, sessionClaims: 1, account: 1, siteForAccount: 1 });
     request.clear();
     await renderApp();

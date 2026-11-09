@@ -21,6 +21,9 @@ const SETTINGS = "/app/settings/pages";
 /** `noindex` and no canonical: the path is the credential. */
 export const metadata: Metadata = staticMetadata(PUBLIC_ROUTE_SEO.pause);
 
+// Rendered per request, so its scripts carry the nonce the middleware's policy names.
+export const dynamic = "force-dynamic";
+
 export default async function PausePage(p: {
   params: TokenParams | Promise<TokenParams>;
   searchParams?: Query | Promise<Query>;

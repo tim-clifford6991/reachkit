@@ -32,6 +32,7 @@
 // identical either way; only where Start goes differs — the report screen
 // passes its own report-origin action (issue #785).
 import type React from "react";
+import { Suspense } from "react";
 import { ArrowRight, Check } from "lucide-react";
 import { VETO, WEEK_PLAN } from "@/lib/config/constants";
 import { copy } from "@/lib/presentation/copy";
@@ -39,6 +40,10 @@ import { HOW_FACTS } from "@/app/(public)/_how/facts";
 import { BrandMark } from "@/app/_brand/Brand";
 import { FLOAT } from "@/ui/lift";
 import { Num } from "../_address/measured";
+import { WhenRefused } from "../../../pricing/refused";
+
+/** The static pricing page's `refused`: the marker is read in the browser. */
+export const REFUSED_IN_QUERY = "query" as const;
 
 /** Which of the two approved wordings of the same four terms this card
  *  states.
@@ -81,10 +86,15 @@ function PriceBox(p: {
   /** The report's close: a rule sets the free path apart. */
   close?: boolean;
   cancel: string;
-  refused?: boolean;
+  refused?: boolean | typeof REFUSED_IN_QUERY;
   terms?: React.ReactNode;
   free?: React.ReactNode;
 }): React.JSX.Element {
+  const refusedLine = (
+    <div role="alert" className="alert alert-error">
+      <span>{copy("offer.checkout.refused")}</span>
+    </div>
+  );
   return (
     <div className="flex flex-col gap-4">
       {/* REQ-022 c1: "€49 per month and says that VAT is included". */}
@@ -97,10 +107,12 @@ function PriceBox(p: {
       {p.terms ?? null}
       {/* Issue #624: the vendor refused to open checkout. One written line
           on the offer itself, above the control that will try again. */}
-      {p.refused ? (
-        <div role="alert" className="alert alert-error">
-          <span>{copy("offer.checkout.refused")}</span>
-        </div>
+      {p.refused === REFUSED_IN_QUERY ? (
+        <Suspense fallback={null}>
+          <WhenRefused>{refusedLine}</WhenRefused>
+        </Suspense>
+      ) : p.refused === true ? (
+        refusedLine
       ) : null}
       {p.start}
       <p className="text-base-content/70 text-center text-xs">{p.cancel}</p>
@@ -127,7 +139,7 @@ export function PricingCard(
   p: {
     startAction?: () => Promise<void>;
     terms?: OfferTerms;
-    refused?: boolean;
+    refused?: boolean | typeof REFUSED_IN_QUERY;
     /** The report's price close (#1068, board `R12-2-Report`): a heading and
      *  the terms on the left, the price and Start in a panel on the right.
      *  The same component and the same facts; only the shape is wider. */

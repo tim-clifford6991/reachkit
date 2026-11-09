@@ -540,7 +540,7 @@ export function LearnClose(p: { variant: LearnCloseVariant; domain?: string }): 
           <h2 id="start-h">{copy(close.heading ?? "landing.close.heading")}</h2>
           {close.lead === undefined ? null : <p className="max-w-xl">{copy(close.lead, FIGURES)}</p>}
           <div className="w-full max-w-xl text-start">
-            <ScanForm words={scanFormWords(submit)} searchParams={p.domain === undefined ? undefined : { value: p.domain }} inline />
+            <ScanForm words={scanFormWords(submit)} initial={p.domain === undefined ? undefined : { value: p.domain }} inline />
           </div>
           <p className={SMALL}>{copy("landing.hero.assurance")}</p>
         </section>
@@ -549,7 +549,7 @@ export function LearnClose(p: { variant: LearnCloseVariant; domain?: string }): 
           <div className={BODY}>
             <h2>{copy(close.heading ?? "landing.close.heading")}</h2>
             {close.lead === undefined ? null : <p>{copy(close.lead, FIGURES)}</p>}
-            <ScanForm words={scanFormWords(submit)} searchParams={p.domain === undefined ? undefined : { value: p.domain }} />
+            <ScanForm words={scanFormWords(submit)} initial={p.domain === undefined ? undefined : { value: p.domain }} />
             <p className={`${SMALL} flex flex-wrap gap-x-3`}>
               <span>{copy("landing.hero.assurance")}</span>
               {close.glance ? null : (

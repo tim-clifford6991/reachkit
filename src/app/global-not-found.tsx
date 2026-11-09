@@ -47,6 +47,7 @@
 //
 // A Server Component: it reads no session, no cookie and no store.
 import type React from "react";
+import { connection } from "next/server";
 import PublicNotFound from "@/app/(public)/not-found";
 import { Header } from "@/app/(public)/_chrome/Header";
 import { Footer } from "@/app/(public)/_chrome/Footer";
@@ -66,7 +67,9 @@ export function NotFoundScreen(): React.JSX.Element {
   );
 }
 
-export default function GlobalNotFound(): React.JSX.Element {
+export default async function GlobalNotFound(): Promise<React.JSX.Element> {
+  // Rendered per request, so its scripts carry the nonce the middleware's policy names.
+  await connection();
   return (
     <ReachKitDocument>
       <NotFoundScreen />

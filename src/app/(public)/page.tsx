@@ -25,8 +25,10 @@
 // The bands run the viewport's width (#1107), each keeping its content at
 // the footer's `max-w-6xl px-4`.
 //
-// A Server Component. It reads no session and no cookie. `ScanForm` and
-// `FieldCta` are the client leaves.
+// A Server Component, served static (owner R-B, 2026-11-07): it reads no
+// session, no cookie and no query. A refusal's `?problem=&value=` is read in
+// the browser; `/scan/refused` serves the same page per request without
+// JavaScript. `ScanForm` and `FieldCta` are the client leaves.
 import type React from "react";
 import { Suspense } from "react";
 import type { Metadata } from "next";
@@ -35,7 +37,7 @@ import { ArrowRight, Check } from "lucide-react";
 import { Surface } from "@/ui/layout";
 import { measuredCountryLists } from "@/lib/locale/locales";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
-import { ScanForm } from "./_landing/ScanForm";
+import { ScanForm, ScanFormFromQuery, type LandingSearchParams } from "./_landing/ScanForm";
 import { scanFormWords } from "./_landing/scan-form-words";
 import { InsideReachKit } from "./_landing/InsideReachKit";
 import { ReportAtGlance } from "./_landing/ReportAtGlance";
@@ -54,8 +56,6 @@ import { HOW_FACTS } from "./_how/facts";
 import { PUBLIC_ROUTE_SEO } from "./_seo/routes";
 import { staticMetadata } from "./_seo/metadata";
 import { JsonLd, homeSchemas } from "./_seo/structured";
-
-type LandingSearchParams = { problem?: string; value?: string };
 
 const WEEK_PAGES = String(HOW_FACTS.weekPages);
 const PRICE = (): string => copy("price.amount");
@@ -115,6 +115,9 @@ export const metadata: Metadata = staticMetadata(PUBLIC_ROUTE_SEO.landing);
 export default function LandingPage(props: {
   searchParams?: Promise<LandingSearchParams> | LandingSearchParams;
 }): React.JSX.Element {
+  // A plain object is a refusal a per-request page hands in; Next's own promise is never read.
+  const prefill = props.searchParams instanceof Promise ? undefined : props.searchParams;
+  const words = scanFormWords();
   return (
     <Surface
       arms={{
@@ -136,7 +139,13 @@ export default function LandingPage(props: {
               <h1 className="t-hero">{copy("landing.headline")}</h1>
               <p className="text-lg text-base-content/70">{copy("landing.subline")}</p>
               <div className="w-full">
-                <ScanForm hero searchParams={props.searchParams} words={scanFormWords()} />
+                {prefill === undefined ? (
+                  <Suspense fallback={<ScanForm hero words={words} />}>
+                    <ScanFormFromQuery hero words={words} />
+                  </Suspense>
+                ) : (
+                  <ScanForm hero initial={prefill} words={words} />
+                )}
               </div>
               <ul className="flex flex-col gap-1.5 sm:flex-row sm:gap-6">
                 {offer().map((line) => (
