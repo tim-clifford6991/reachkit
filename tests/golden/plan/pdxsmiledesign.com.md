@@ -8,8 +8,8 @@ Supply: 4 of 10 committed, short 5; stored topics category 6, best_x 1.
 |---|---|---|---|---|---|---|---|---|---|---|
 | 0 | 2026-10-19 | dental implants in portland oregon | keyword_page | qa | 3 | 480 | 3 | fit 3 + demand 2 + outsized -2 | best | — |
 | 1 | 2026-10-20 | cosmetic dentist in portland oregon | listed_page | offering | 3 | 320 | 3 | fit 3 + demand 2 + outsized -2 | best | — |
-| 2 | 2026-10-21 | dentist near me in portland | keyword_page | qa | 3 | — | 3 | fit 3 | best | — |
-| 3 | 2026-10-22 | cosmetic teeth straightening options portland | keyword_page | qa | 3 | — | 3 | fit 3 | best | — |
+| 2 | 2026-10-21 | dentist near me in portland | keyword_page | qa | 3 | — | 1 | fit 3 + no_demand -2 | best | — |
+| 3 | 2026-10-22 | cosmetic teeth straightening options portland | keyword_page | qa | 3 | — | 1 | fit 3 + no_demand -2 | best | — |
 
 | Not chosen | Type | Fit | Volume | Reason |
 |---|---|---|---|---|

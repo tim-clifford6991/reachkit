@@ -16,6 +16,8 @@ export const POINTS = Object.freeze({
   linkedByAi: 1,
   notMoving: 0,
   outsized: -2,
+  // Fit spans 1..3 among ready rows, so −2 puts a best-fit row nobody searches below a fit-2 row someone asks about.
+  noDemand: -2,
 });
 
 /** A row no pass has judged scores as a judged 2: neither lifted nor dropped. */
@@ -77,7 +79,7 @@ export function pointsOf(o: Scorable, seen: Seen): Omit<PlanReason, "rule"> {
   const fit = POINTS.fit[o.businessFit ?? UNJUDGED_FIT] ?? 0;
   if (fit > 0) parts.push({ part: "fit", n: fit });
   const demand = demandOf(o, seen);
-  if (demand > 0) parts.push({ part: "demand", n: demand });
+  parts.push(demand > 0 ? { part: "demand", n: demand } : { part: "no_demand", n: POINTS.noDemand });
   if (aiGapOf(o)) parts.push({ part: "ai_gap", n: POINTS.aiGap });
   if (nearPageOne(o)) parts.push({ part: "near_page_one", n: POINTS.nearPageOne });
   if (linkedByAi(o, seen)) parts.push({ part: "linked_by_ai", n: POINTS.linkedByAi });

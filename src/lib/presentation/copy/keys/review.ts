@@ -36,6 +36,7 @@ export const REVIEW_COPY = Object.freeze({
   "review.part.not_moving": ["not moving", { slots: {}, fixedBy: "issue 1702 (drafted)" }],
   "review.part.new_site": ["new site", { slots: {}, fixedBy: "issue 1552 (drafted)" }],
   "review.part.outsized": ["too big for now", { slots: {}, fixedBy: "issue 2511 (drafted)" }],
+  "review.part.no_demand": ["nobody searches", { slots: {}, fixedBy: "issue 2511 (drafted)" }],
   "review.rejected.title": ["Not chosen ({count}), and why", { slots: { count: "text" }, fixedBy: "board Review v36 · issue 2275" }],
   "review.pages.empty": ["No live pages yet.", { slots: {}, fixedBy: "issue 1702 (drafted)" }],
   "review.label.working": ["Working", { slots: {}, fixedBy: "issue 1702 (drafted)" }],
