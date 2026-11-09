@@ -412,8 +412,8 @@ export const SETUP_COPY = Object.freeze({
   ],
   /** No hour: each site sets its own publish time. */
   "setup.step.publishing.line": [
-    "We’re already writing your first page. It goes live once you connect.",
-    { slots: {}, fixedBy: "owner E11 · issue 1601" },
+    "Your first page is ready or nearly ready. It goes live once your website is connected.",
+    { slots: {}, fixedBy: "SPEC §5 Live only where the customer chose (drafted)" },
   ],
 
   /** The controls at the foot of every step. "Looks right" leaves Check. */
