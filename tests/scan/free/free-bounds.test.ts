@@ -1,5 +1,5 @@
 // tests/scan/free/free-bounds.test.ts — the two free-path bounds issue 885
-// adds (SPEC §2, 2026-09-18).
+// adds (SPEC §2 Free scan bounds).
 //
 // What was already there is not re-tested here: `admission-check.test.ts`
 // holds BP-012's order and its five original steps, and

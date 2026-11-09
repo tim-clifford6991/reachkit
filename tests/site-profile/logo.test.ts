@@ -1,6 +1,6 @@
 // tests/site-profile/logo.test.ts — issue #1069
 //
-// SPEC §2 2026-09-24: the free scan keeps one logo per site — the first
+// SPEC §2 Logo route: the free scan keeps one logo per site — the first
 // usable of apple-touch-icon, a large icon, og:logo or a square og:image,
 // and the header's logo image — and a site with none is drawn as a letter.
 import { describe, expect, it } from "vitest";

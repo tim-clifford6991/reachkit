@@ -1,4 +1,4 @@
-// SPEC.md §2 (2026-09-24, owner on #1058) — the free scans, as `/scans` and
+// SPEC.md §2 Gallery lists every report — the free scans, as `/scans` and
 // the landing's strip list them.
 // src/lib/scan/gallery.ts — issue #1069
 //

@@ -1,4 +1,4 @@
-// SPEC §2 2026-10-10 (owner, issue 1377) — a placeholder is not an answer.
+// SPEC §2 A placeholder names nothing — a placeholder is not an answer.
 // src/lib/measure/placeholder.ts
 //
 // Asked for a category it could not read, the market inference answered

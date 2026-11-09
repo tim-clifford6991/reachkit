@@ -1,4 +1,4 @@
-// tests/scan/gallery/company.test.ts — issues #1380 and #1384, SPEC §2 (2026-10-10)
+// tests/scan/gallery/company.test.ts — issues #1380 and #1384, SPEC §2 Company name
 //
 // A name stored before the brand rule is a whole page title. The landing's
 // strip and the gallery show its brand without the site being scanned again.

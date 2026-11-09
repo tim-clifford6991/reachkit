@@ -517,7 +517,7 @@ describe("a report written at version 10 is lifted, not refused", () => {
 // The chain above lifts an old blob forward. Nothing lifts a blob back, so a
 // build older than the blob — production pointed at an earlier deployment —
 // fails on every report written since, rather than reading the members it
-// happens to recognise. SPEC §2 2026-09-18 records that as the ruling: roll
+// happens to recognise. SPEC §2 Roll forward only records that as the ruling: roll
 // forward only. These two pin the pair the ruling rests on — a newer blob is
 // refused, diagnosably, and an older blob is still lifted — so that a change
 // to either is a deliberate one.

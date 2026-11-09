@@ -1,4 +1,4 @@
-// SPEC §2 #1058 as amended 2026-11-01: `/scans/logo/{domain}` serves the
+// SPEC §2 Logo route: `/scans/logo/{domain}` serves the
 // stored logo of any domain whose report page is served, listed in the
 // gallery or not, or whose scan is running, and nothing for a removed or
 // never-scanned one. Only the

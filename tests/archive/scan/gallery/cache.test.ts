@@ -1,4 +1,4 @@
-// SPEC §2 2026-09-24 (#1069): a removed site leaves `/scans` at once, and a
+// SPEC §2 Gallery lists every report: a removed site leaves `/scans` at once, and a
 // scan finished a minute ago is already there. The gallery's reads are
 // cached so a crawler walking every filter costs one read per view per
 // window; the cache is keyed by an uncached fingerprint of the removals and
