@@ -1,6 +1,6 @@
 // The plain-words standard as code: one parser for the copy registry and the boards, read by
 // tests/ui/design/strategy.test.ts, scripts/design/parity.mjs and the copy scripts. No dependencies.
-// docs/spec/decisions/2026-10-31-2145.md holds the rules this counts.
+// docs/SPEC.md §0 Plain words holds the rules this counts.
 
 export const LIMITS = { sentence: 15, heading: 6, paragraph: 2 };
 

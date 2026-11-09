@@ -2,7 +2,7 @@
 // the week's pages with why and how to stop each, the pace line, one button. A block list only (ADR-040); absent values are `Measured<T>`.
 // The numbers are Overview's, read with Overview's readers. The unmeasured-week line is `composeMail`'s (REQ-065); footer links are the caller's,
 // since each carries a token only it can sign.
-// A page and an opportunity are named by their search: titles are model text, which REQ-093 keeps out (§8, ADR-012; decision 2026-10-19-1581).
+// A page and an opportunity are named by their search: titles are model text, which REQ-093 keeps out (§8, ADR-012; docs/SPEC.md §0 The canvas is the board set).
 import { env } from "@/lib/config/env";
 import type { Measured } from "@/lib/measure/measured";
 import { shownKey } from "@/lib/measure/registry";

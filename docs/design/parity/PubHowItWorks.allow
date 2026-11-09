@@ -3,7 +3,7 @@ Kind of business Software from the whole site	sample data: the board draws each 
 What you sell Booking software for small teams from tidyslot.com/product	sample data
 Who buys Team leads at small firms from tidyslot.com/customers	sample data
 AI answer Many small teams use Bookwell or Slotly. Both sync with Outlook and Google and send reminders. bookwell.example slotly.example	sample data
-Written with Claude, an AI model, from your own site. 14 of 14 checks passed.	E10: the check count comes from code (docs/spec/decisions/2026-10-19-1581.md)
+Written with Claude, an AI model, from your own site. 14 of 14 checks passed.	E10: the check count comes from code (SPEC §0 One true check count)
 Or use Cancel your contract at the foot of any page.	owner 2026-10-20 Q13: shown once the launch gate opens
 Articles	#1512: the footer links the content host's index only where stored rows name one; the sweep seeds none
-Yes, if it has a website: a local service, a shop, a restaurant, a firm, software or a creator. We check what your buyers search and ask AI, in your language, with your town if you serve one. Our pages help your website, not your Google Maps listing.	docs/spec/decisions/2026-10-31-2145.md (O6): three sentences over 15 words; ships the same facts in two shorter ones
+Yes, if it has a website: a local service, a shop, a restaurant, a firm, software or a creator. We check what your buyers search and ask AI, in your language, with your town if you serve one. Our pages help your website, not your Google Maps listing.	SPEC §0 Plain words (O6): three sentences over 15 words; ships the same facts in two shorter ones
