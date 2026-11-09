@@ -652,15 +652,13 @@ A new dated ruling is its own file under `docs/spec/decisions/`, headed by the s
 
 ## §11 Not in the MVP
 
-2026-09-20 (#908): UI libraries beyond the allow-list in `docs/DESIGN.md`; Ahrefs, Semrush or any other reseller-restricted data; an “AI rank position” or sentiment measure; embeddings for the known-content check.
-
-Perplexity; Search Console (2026-10-02 below); countries and languages beyond D66's list (2026-10-07 below); CMS besides hosted + WordPress; multi-site, seats, workflows; engine-tuning settings; a custom-hostname platform; WCAG certification pass; Copilot; Stripe Tax; a second score; images in drafts; blog/about/A-B; backlinks/outreach; authenticated report removal; LLM-written UI or mail.
-
-2026-09-29 (owner, D17, #1148): the Google Business Profile and Merchant Center check for local businesses and sellers comes after launch.
-
-2026-10-02 (owner, D25, #1172; updates D18 of 2026-09-29): Search Console stays out of the MVP until launch. It is the first addition after launch, for impressions and distinct queries on the pages ReachKit wrote.
-
-2026-10-07 (owner, D66, #1311): "locale derivation" is no longer out of the MVP. A site is measured in its own country and language, in English for the US, UK, Ireland, Australia and Canada and in German for Germany, Austria and Switzerland (§6). Every other country and language is still outside it: such a site is measured in the nearest supported country in English and its report says so. Every screen and every mail stays English, the free report and the site mails included (owner, 2026-10-15, #1443).
+| name | block/warn | outcome protected | ruling |
+|---|---|---|---|
+| Out of the MVP | warn | Not built: Perplexity; a CMS besides hosted and WordPress; multi-site, seats and workflows; engine-tuning settings; a custom-hostname platform; a WCAG certification pass; Copilot; Stripe Tax; a second score; images in drafts; blog, about and A/B pages; backlinks and outreach; authenticated report removal; LLM-written UI or mail. | SPEC, 2026-09-14 |
+| No restricted data, rank or embeddings | warn | Not used: UI libraries beyond the allow-list in `docs/DESIGN.md`; Ahrefs, Semrush or any other reseller-restricted data; an "AI rank position" or a sentiment measure; embeddings for the known-content check. | 2026-09-20, #908 |
+| Local listings come after launch | warn | The Google Business Profile and Merchant Center check for local businesses and sellers comes after launch. | owner D17, 2026-09-29, #1148 |
+| Search Console comes after launch | warn | Search Console and Bing Webmaster Tools are out of the MVP (§0 *No Search Console*). After launch, Search Console is the first addition, for impressions and distinct queries on the pages ReachKit wrote. | owner D25, 2026-10-02, #1172; owner D9, 2026-10-19, #1581 |
+| Countries and languages beyond the list | warn | A site is measured in its own country and language: English for the US, UK, Ireland, Australia and Canada, and German for Germany, Austria and Switzerland (§6). Any other country or language is out: such a site is measured in the nearest supported country in English, and its report says so. Every screen and every mail is English, the free report and the site mails included. | owner D66, 2026-10-07, #1311; owner, 2026-10-15, #1443 |
 
 ## §12 Still owed by the owner
 
