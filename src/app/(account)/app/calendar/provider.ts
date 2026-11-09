@@ -48,6 +48,8 @@ import type { StalledCount } from "@/lib/publish/record/stalled";
 import { FIXTURE_CALENDAR_FACTS, FIXTURE_PLAN_HEAD } from "./fixture";
 import { FIXTURE_DOMAIN } from "../_shell/fixture";
 import type { CalendarSite } from "./store";
+import { readPublishedFor } from "../_overview/content-provider";
+import type { PublishedRead } from "@/lib/measure/published";
 
 /** The reserved fixture account: the one site whose calendar is drawn from
  *  `fixture.ts`. `example.com` is IANA-reserved and can never be a
@@ -88,6 +90,11 @@ export const currentCalendarSite = cache(
     return siteReader();
   }
 );
+
+/** Every page published, for Plan's list: the shared read, through this screen's site. */
+export const readPlanPublished = cache(async function readPlanPublished(): Promise<PublishedRead> {
+  return readPublishedFor((await currentCalendarSite())?.siteId ?? null);
+});
 
 /**
  * The site-local today Plan is drawn for: the fixture's own day for the

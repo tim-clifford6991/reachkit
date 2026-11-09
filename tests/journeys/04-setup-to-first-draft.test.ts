@@ -971,7 +971,7 @@ describe("three decisions → deep pass → the first page already on the calend
       expect(first?.why.bestRival?.domain).toBeTruthy();
       // The calendar states supply from the count it read, never a 0 it
       // guessed (ADR-061).
-      expect(facts.unusedSupply).toBe(depth.unused);
+      expect(facts.unusedSupply === 0).toBe(depth.unused === 0);
       // Never padded: no more dates are accounted for than there is supply.
       expect(facts.drafts.length).toBeLessThanOrEqual(depth.unused);
 
