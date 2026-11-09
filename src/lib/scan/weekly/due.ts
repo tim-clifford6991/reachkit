@@ -23,7 +23,7 @@
 // its own week ends. A retry opens no new budget: it spends only what is
 // left of that row's `WEEKLY` cap. A site whose run completed, wholly or
 // partly, carries its row and is never selected again for that week.
-import { sitesWithActiveAccess } from "./access";
+import { sitesWithActiveAccess } from "@/lib/account/billing";
 import { sitesWithAZone, weekStatuses } from "./store";
 import { isWeeklyDue, weekHasBegun, weekKey, weekStartFor } from "./week";
 
@@ -52,10 +52,7 @@ export async function dueSites(now: Date): Promise<readonly DueSite[]> {
     return [];
   }
 
-  const withAccess = await sitesWithActiveAccess(
-    "dueSites",
-    candidates.map((site) => site.siteId)
-  );
+  const withAccess = await sitesWithActiveAccess(candidates.map((site) => site.siteId));
   const due = candidates.filter((site) => withAccess.has(site.siteId));
   logSelection({ candidates: candidates.length, due: due.length });
   return due;

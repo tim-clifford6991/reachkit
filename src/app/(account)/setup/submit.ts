@@ -19,6 +19,7 @@
 // neither, and nothing here pretends a row was written.
 import type { FounderAnswers } from "@/lib/site-profile/knowledge/types";
 import type { BusinessList } from "@/lib/site-profile/business/types";
+import { hasActiveAccess } from "@/lib/account/billing";
 import { BATTERY } from "@/lib/config/constants";
 import { registrableDomain } from "@/lib/market/rivals/domains";
 import {
@@ -139,8 +140,6 @@ export type SetupProgressState =
  * supplies every member, and `_setup/provider.ts` is what hands it to
  * `POST /api/setup` — against the account `currentSession()` names (#133):
  *
- *   hasActiveAccess  → §13 billing's `hasActiveAccess()`, ADR-050's
- *                      `users.paid_through > now()` alone
  *   resolvesInDns    → §6.4's `resolvesInDns` (#22) — passed in rather
  *                      than imported so this function stays decidable
  *                      without a network stub
@@ -154,7 +153,6 @@ export type SetupProgressState =
  * store could not be driven through that order in a test.
  */
 export interface SetupStore {
-  hasActiveAccess(userId: string): Promise<boolean>;
   resolvesInDns(host: string): Promise<boolean>;
   /** Whether another site already serves at this host (SPEC §5). Passed in
    *  for the reason `resolvesInDns` is: the refusal order is this
@@ -170,6 +168,13 @@ export interface SetupStore {
   /** The draft tick's per-site event for the first page, so a pass that
    *  ended before the finish still leaves a first draft. */
   enqueueFirstDraft?(siteId: string): Promise<void>;
+}
+
+/** The account's progress where its site has paid access (ADR-050), else `null`:
+ *  an account with no site row has not been provisioned and so has no access. */
+async function paidProgress(store: SetupStore, userId: string): Promise<SetupProgressState | null> {
+  const progress = await store.readProgress(userId).catch(() => null);
+  return progress !== null && (await hasActiveAccess(progress.siteId)) ? progress : null;
 }
 
 /**
@@ -189,11 +194,8 @@ export async function completeSetup(
   store: SetupStore,
   a: { userId: string; submission: SetupSubmission }
 ): Promise<SetupResult> {
-  if (!(await store.hasActiveAccess(a.userId))) {
-    return { ok: false, refused: "no_active_access" };
-  }
-
-  const progress = await store.readProgress(a.userId);
+  const progress = await paidProgress(store, a.userId);
+  if (progress === null) return { ok: false, refused: "no_active_access" };
   if (progress.complete) return { ok: false, refused: "already_complete" };
 
   const refusal = shapeRefusal(a.submission);
@@ -290,11 +292,8 @@ export async function saveSetupStep(
   store: SetupStore,
   a: { userId: string; save: SetupStepSave }
 ): Promise<SetupStepResult> {
-  if (!(await store.hasActiveAccess(a.userId))) {
-    return { ok: false, refused: "no_active_access" };
-  }
-
-  const progress = await store.readProgress(a.userId);
+  const progress = await paidProgress(store, a.userId);
+  if (progress === null) return { ok: false, refused: "no_active_access" };
   if (progress.complete) return { ok: false, refused: "already_complete" };
 
   const checked = await checkedStep(store, a.save);

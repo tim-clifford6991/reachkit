@@ -195,11 +195,7 @@ describe("the file is named for the topic that owns it", () => {
 //
 // The four predicates `dueSites` applies, run against the live schema: a
 // stated zone, the site-local Monday hour, no row for the week it is in,
-// and **active access**. The fourth is ADR-050's, and until #180 nothing
-// registered it — so this is the part that could not be asserted at all,
-// against any database, because the selection threw.
-//
-// `installActiveAccessGate()` is the same call the boot path makes. The
+// and **active access**. The fourth is ADR-050's, asked of billing's gate. The
 // gate reaches `users.paid_through` through `sites.user_id`, which is why
 // this suite applies the subscription columns above; nothing here writes a
 // second expression of "active".
@@ -236,20 +232,15 @@ const ENV_FIXTURE: Record<string, string> = {
 const MONDAY_0600_UTC = new Date("2026-08-31T06:00:00.000Z");
 const ZONE = "UTC";
 
-describe("ADR-050 · issue #180 — the weekly selection decides who pays, through the gate billing registers", () => {
+describe("ADR-050 · issue #180 — the weekly selection decides who pays, through billing's gate", () => {
   let dueSites: (typeof import("../../../src/lib/scan/weekly"))["dueSites"];
-  let registerActiveAccessGate: (typeof import("../../../src/lib/scan/weekly"))["registerActiveAccessGate"];
-  let installActiveAccessGate: (typeof import("../../../src/lib/account/billing"))["installActiveAccessGate"];
-  let ActiveAccessGateNotRegistered: (typeof import("../../../src/lib/scan/weekly/access"))["ActiveAccessGateNotRegistered"];
 
   beforeAll(async () => {
     for (const [key, value] of Object.entries(ENV_FIXTURE)) process.env[key] = value;
     globalThis.fetch = loopbackFetch as unknown as typeof fetch;
     // Imported after `process.env` is populated: `env.ts` parses at module
     // load, so `@/lib/db` cannot be reached before the bindings exist.
-    ({ dueSites, registerActiveAccessGate } = await import("../../../src/lib/scan/weekly"));
-    ({ installActiveAccessGate } = await import("../../../src/lib/account/billing"));
-    ({ ActiveAccessGateNotRegistered } = await import("../../../src/lib/scan/weekly/access"));
+    ({ dueSites } = await import("../../../src/lib/scan/weekly"));
   });
 
   /** One site with a stated zone, whose owner's access runs to `paidThrough`. */
@@ -267,19 +258,10 @@ describe("ADR-050 · issue #180 — the weekly selection decides who pays, throu
     psql(["-v", "ON_ERROR_STOP=1", "-c", "delete from scans; delete from sites; delete from users;"]);
   }
 
-  it("with no gate registered the selection throws rather than guess who pays", async () => {
-    clearRows();
-    givenSite("paying", "2026-12-31T00:00:00Z");
-    registerActiveAccessGate(null);
-    await expect(dueSites(MONDAY_0600_UTC)).rejects.toBeInstanceOf(ActiveAccessGateNotRegistered);
-  });
-
   it("selects a paying site and refuses one whose access has ended", async () => {
     clearRows();
     const paying = givenSite("paying", "2026-12-31T00:00:00Z");
     givenSite("ended", "2026-01-01T00:00:00Z");
-    await installActiveAccessGate();
-
     const due = await dueSites(MONDAY_0600_UTC);
     expect(due.map((site) => site.siteId)).toEqual([paying]);
     expect(due[0]).toMatchObject({ domain: "paying.example.com", zone: ZONE, weekStart: "2026-08-31" });
@@ -296,15 +278,12 @@ describe("ADR-050 · issue #180 — the weekly selection decides who pays, throu
     const [site] = psqlRows(
       `insert into sites (user_id, domain, timezone) values ('${user?.[0]}', 'cancelled.example.com', '${ZONE}') returning id;`
     );
-    await installActiveAccessGate();
-
     expect((await dueSites(MONDAY_0600_UTC)).map((s) => s.siteId)).toEqual([site?.[0]]);
   });
 
   it("a week already measured is not selected again, and the gate is still what decided it", async () => {
     clearRows();
     const paying = givenSite("paying", "2026-12-31T00:00:00Z");
-    await installActiveAccessGate();
     expect(await dueSites(MONDAY_0600_UTC)).toHaveLength(1);
 
     psql([
@@ -328,7 +307,6 @@ describe("ADR-050 · issue #180 — the weekly selection decides who pays, throu
       "-c",
       `insert into sites (user_id, domain) values ('${user?.[0]}', 'nozone.example.com');`,
     ]);
-    await installActiveAccessGate();
     expect(await dueSites(MONDAY_0600_UTC)).toEqual([]);
   });
 });

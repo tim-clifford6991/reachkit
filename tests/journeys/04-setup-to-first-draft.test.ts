@@ -409,9 +409,8 @@ const { readCalendarFacts } = await import("../../src/app/(account)/app/calendar
 const { assembleMonth } = await import("../../src/app/(account)/app/calendar/month");
 const { monthOf, dayKeyOf } = await import("../../src/app/(account)/app/calendar/dates");
 const { CalendarView } = await import("../../src/app/(account)/app/calendar/CalendarView");
-const { setActiveAccessReader, resetActiveAccessReader } = await import(
-  "../../src/app/(account)/setup/_setup/store"
-);
+const { setBillingStore, supabaseBillingStore } = await import("../../src/lib/account/billing");
+const { payingStore } = await import("../account/billing/memory-store");
 const { POST: setupRoute } = await import("../../src/app/api/setup/route");
 const { setIdentityAuth } = await import("../../src/lib/account/identity/auth");
 const { addAuthUser, fakeIdentityAuth, newFakeAuth, signedInCookie } = await import(
@@ -419,7 +418,6 @@ const { addAuthUser, fakeIdentityAuth, newFakeAuth, signedInCookie } = await imp
 );
 const { runDeepPass } = await import("../../src/lib/scan/deep/run");
 const { activeSites } = await import("../../src/jobs/engine");
-const { registerActiveAccessGate } = await import("../../src/lib/scan/weekly/access");
 const { passProgressFor } = await import("../../src/lib/scan/deep/progress");
 const { isReleased, deadlineFrom } = await import("../../src/lib/scan/deep/release");
 const { destinationFor, APP_PATH } = await import(
@@ -472,7 +470,7 @@ beforeEach(() => {
     profile: PROFILE_ANSWER,
   });
   setOpportunityStore(opportunityMemoryStore(opportunities));
-  setActiveAccessReader(async () => true);
+  setBillingStore(payingStore(() => true, supabaseBillingStore()));
 
   // Step 2's own outcome, as a value: the founder followed their sign-in
   // link and Supabase's `verifyOtp` set this (#468). Verified by identity
@@ -508,7 +506,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
   setOpportunityStore(null);
   setCalendarSiteReader(null);
-  resetActiveAccessReader();
+  setBillingStore(null);
 });
 
 // ── The journey, in the steps a founder takes ───────────────────────────
@@ -703,21 +701,16 @@ describe("three decisions → deep pass → the first page already on the calend
   it("step 3 — a site with no zone takes the browser's on submit, before the pass is queued, and the first-draft selection picks it", async () => {
     site.timezone = null;
     db.rows.set("destinations", [{ site_id: SITE_ID }]);
-    registerActiveAccessGate(async (ids) => new Set(ids));
-    try {
-      // Without it, the selection the kickoff makes skips this site.
-      expect((await activeSites()).sites).toEqual([]);
+    // Without it, the selection the kickoff makes skips this site.
+    expect((await activeSites()).sites).toEqual([]);
 
-      const submitted = await submitTheThree({ timezone: "Europe/Lisbon" });
-      expect(submitted).toEqual({ status: 200, body: { ok: true, siteId: SITE_ID } });
+    const submitted = await submitTheThree({ timezone: "Europe/Lisbon" });
+    expect(submitted).toEqual({ status: 200, body: { ok: true, siteId: SITE_ID } });
 
-      expect(site.timezone).toBe("Europe/Lisbon");
-      expect(jobEvents.map((event) => event.name)).toEqual(["scan/run"]);
-      expect(zoneWhenSent).toEqual(["Europe/Lisbon"]);
-      expect((await activeSites()).sites).toEqual([{ siteId: SITE_ID, timeZone: "Europe/Lisbon", publishTime: "09:00", vetoHours: 24 }]);
-    } finally {
-      registerActiveAccessGate(null);
-    }
+    expect(site.timezone).toBe("Europe/Lisbon");
+    expect(jobEvents.map((event) => event.name)).toEqual(["scan/run"]);
+    expect(zoneWhenSent).toEqual(["Europe/Lisbon"]);
+    expect((await activeSites()).sites).toEqual([{ siteId: SITE_ID, timeZone: "Europe/Lisbon", publishTime: "09:00", vetoHours: 24 }]);
   });
 
   it("step 3 — a zone the site already has is never overwritten by the browser's", async () => {
@@ -765,13 +758,13 @@ describe("three decisions → deep pass → the first page already on the calend
   it("step 3 — the refusals §4.3 names, in the order the facts become knowable", async () => {
     // Access first: a founder without it is told that, not that their
     // domain is wrong.
-    setActiveAccessReader(async () => false);
+    setBillingStore(payingStore(() => false, supabaseBillingStore()));
     expect((await submitTheThree({ domain: "not a domain" })).body).toEqual({
       ok: false,
       refused: "no_active_access",
     });
     expect(site.setup_completed_at).toBeNull();
-    setActiveAccessReader(async () => true);
+    setBillingStore(payingStore(() => true, supabaseBillingStore()));
 
     // Then the payload, then DNS.
     expect((await submitTheThree({ category: "  " })).body).toEqual({

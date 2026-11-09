@@ -250,10 +250,8 @@ vi.mock("@anthropic-ai/sdk", async () =>
 // ── The modules, after the doubles above are in place ───────────────────
 
 const { scanRun } = await import("../../src/jobs/scan-run");
-const { setActiveAccessReader, resetActiveAccessReader } = await import(
-  "../../src/app/(account)/setup/_setup/store"
-);
-const { registerActiveAccessGate } = await import("../../src/lib/scan/weekly/access");
+const { setBillingStore, supabaseBillingStore } = await import("../../src/lib/account/billing");
+const { payingStore } = await import("../account/billing/memory-store");
 const { setIdentityAuth } = await import("../../src/lib/account/identity/auth");
 const { difficultyCeiling, qualifyingDemand } = await import("../../src/lib/opportunities/winnability/bars");
 const { readOverviewFacts } = await import("../../src/app/(account)/app/_overview/store");
@@ -347,8 +345,7 @@ beforeEach(async () => {
   vercelDomainCalls.length = 0;
   recordPointed = false;
 
-  setActiveAccessReader(async () => true);
-  registerActiveAccessGate(async (siteIds) => new Set(siteIds));
+  setBillingStore(payingStore(() => true, supabaseBillingStore()));
   await signIn(cookieJar, { id: USER_ID, email: EMAIL });
   await captureMail(inbox);
   stubVendorFetch(vendorRequests, vendorAnswer);
@@ -359,8 +356,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
   vi.useRealTimers();
   setIdentityAuth(null);
-  resetActiveAccessReader();
-  registerActiveAccessGate(null);
+  setBillingStore(null);
 });
 
 // ── The founder's steps, and the platform's ─────────────────────────────

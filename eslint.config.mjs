@@ -583,7 +583,8 @@ export default tseslint.config(
           allow: [
             "@/lib/config/now",
             "@/lib/config/env",
-            "@/lib/account/billing/access-gate",
+            "@/lib/account/billing/gate",
+            "@/lib/costs/daily",
             "@/lib/costs/sinks",
             "@/lib/account/lifecycle/left-in-wordpress",
           ],

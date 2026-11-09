@@ -4,19 +4,23 @@
 // The submission contract and the one write path. The archived test plan is
 // WO-146's. Every store below is built in the test, so nothing here needs a
 // database, a queue or a resolver.
-import { describe, expect, it, vi } from "vitest";
-import {
-  completeSetup,
-  type SetupProgressState,
-  type SetupStepSave,
-  type SetupStore,
-  type SetupSubmission,
-} from "@/app/(account)/setup/submit";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { applyEnvFixture } from "../../mail/env-fixture";
+import type { SetupProgressState, SetupStepSave, SetupStore, SetupSubmission } from "@/app/(account)/setup/submit";
 import type { SetupStepId } from "@/app/(account)/setup/steps";
 
 const PAID_AT = new Date(Date.UTC(2026, 8, 5, 9, 30, 0));
 const SITE = "site-1";
 const USER = "user-1";
+
+// The gate reads billing's store, whose module parses the environment when it loads.
+applyEnvFixture();
+const { completeSetup } = await import("@/app/(account)/setup/submit");
+const { setBillingStore } = await import("@/lib/account/billing");
+const { payingStore } = await import("../../account/billing/memory-store");
+
+beforeEach(() => setBillingStore(payingStore()));
+afterEach(() => setBillingStore(null));
 
 const SUBMISSION: SetupSubmission = {
   domain: "example.com",
@@ -40,7 +44,6 @@ function storeOf(
 ): { store: SetupStore; recorder: Recorder } {
   const recorder: Recorder = { committed: [], enqueued: [], steps: [] };
   const store: SetupStore = {
-    hasActiveAccess: async () => true,
     resolvesInDns: async () => true,
     hostnameTaken: async () => false,
     readProgress: async (): Promise<SetupProgressState> => ({
@@ -128,8 +131,9 @@ describe('REQ-025 c4 — "when they return to it, then they are not asked the th
 
 describe("refusal order, and what each refusal leaves behind", () => {
   it("no active access is refused first — before the domain is even looked at", async () => {
+    setBillingStore(payingStore(() => false));
     const resolvesInDns = vi.fn(async () => true);
-    const { store, recorder } = storeOf({ hasActiveAccess: async () => false, resolvesInDns });
+    const { store, recorder } = storeOf({ resolvesInDns });
     const result = await completeSetup(store, {
       userId: USER,
       submission: { ...SUBMISSION, domain: "not a domain" },

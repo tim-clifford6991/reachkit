@@ -12,8 +12,6 @@ export type { WeeklyOutcome, WeeklyRefusal } from "./run";
 export { refreshWeeklyKnowledge, runWeekly } from "./run";
 export type { UnmeasuredPart, WeekAccount } from "./account";
 export { accountForWeek, nextDueOn, unmeasuredPartsOf } from "./account";
-export type { ActiveAccessGate } from "./access";
-export { registerActiveAccessGate } from "./access";
 export type { WeekMovement } from "./movement";
 export { previousWeekStart, weekMovement } from "./movement";
 export type { LocalClock, SiteZone } from "./week";

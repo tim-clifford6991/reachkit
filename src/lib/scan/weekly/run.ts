@@ -32,7 +32,7 @@
 // context and `WEEKLY` cap (§6.3 puts opportunity typing in the paid
 // budgets); it is handed to `runScan` as the hook it calls once the
 // report is stored, because the opportunity rows reference that row. The
-// access gate is not re-decided for it: `sitesWithActiveAccess` answered
+// access gate is not re-decided for it: `hasActiveAccess` answered
 // a few lines above and that answer is passed on, so there is one
 // definition of active and `deriveForPass` obeys rather than asks.
 //
@@ -45,7 +45,7 @@
 import { env } from "@/lib/config/env";
 import { deriveForPass } from "@/lib/opportunities";
 import { accountForWeek, type UnmeasuredPart } from "./account";
-import { sitesWithActiveAccess } from "./access";
+import { hasActiveAccess } from "@/lib/account/billing";
 import { claimWeek, readSiteZone, releaseWeek } from "./store";
 import { runScan, spendOnStoredReport } from "../run";
 import { readSiteCategory } from "../site-category";
@@ -96,8 +96,7 @@ export async function runWeekly(a: {
   const weekStart = weekStartFor({ at: a.now, zone });
   if (!weekHasBegun({ at: a.now, zone })) return refuse(a.siteId, "week_not_begun");
 
-  const withAccess = await sitesWithActiveAccess("runWeekly", [a.siteId]);
-  if (!withAccess.has(a.siteId)) return refuse(a.siteId, "no_active_access");
+  if (!(await hasActiveAccess(a.siteId))) return refuse(a.siteId, "no_active_access");
 
   // Read before the claim, so a failed read leaves no week to release. The
   // category the founder confirmed is the one the week searches (#767).
