@@ -172,11 +172,10 @@ export const MAIL_COPY = Object.freeze({
   // OTP expiry is set to it. Drafted to state the real lifetime; the owner
   // may reword it. `tests/account/identity/otp-expiry.test.ts` pins it to
   // `SIGNIN_LINK_TTL_H`.
-  "mail.magicLink.body": [
-    "One click signs you in on this device. The link works once and expires in 24 hours.",
-    { slots: {}, fixedBy: "REQ-024 c1 · S20 (11a) · issue 1019" },
-  ],
+  "mail.magicLink.body": ["One click signs you in on this device. The link works once and expires in 24 hours.", { slots: {}, fixedBy: "REQ-024 c1 · S20 (11a) · issue 1019" }],
   "mail.magicLink.action": ["Sign in", { slots: {}, fixedBy: "REQ-024 c1 · S20 (11a)" }],
+  "mail.magicLink.paid.subject": ["Payment received: your account is ready", { slots: {}, fixedBy: "REQ-024 c1 (drafted)" }],
+  "mail.magicLink.paid.line": ["Your payment went through and your account is ready. The button below opens setup.", { slots: {}, fixedBy: "REQ-024 c1 (drafted)" }],
 
   // The 15-minute chase (REQ-024 c5): the payment succeeded, and either a
   // working link or a written statement that the account is not open yet.

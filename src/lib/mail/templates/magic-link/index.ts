@@ -11,6 +11,10 @@ const PREHEADER = "mail.magicLink.preheader" satisfies CopyKey;
 const ACTION = "mail.magicLink.action" satisfies CopyKey;
 const FACT_FOR = "mail.magicLink.fact.for" satisfies CopyKey;
 const REASON = "mail.reason.magicLink" satisfies CopyKey;
+const PAID_SUBJECT = "mail.magicLink.paid.subject" satisfies CopyKey;
+const PAID_HEADING = "mail.account.chase.subject" satisfies CopyKey;
+const PAID_LINE = "mail.magicLink.paid.line" satisfies CopyKey;
+const PAID_PREHEADER = "mail.account.chase.preheader" satisfies CopyKey;
 
 export interface AccountMail {
   readonly subject: CopyKey;
@@ -34,5 +38,16 @@ export function buildMagicLink(a: { href: string; address: string }): AccountMai
       { block: "action", label: ACTION, href: a.href },
       { block: "facts", items: [{ label: FACT_FOR, value: a.address }] },
     ],
+  };
+}
+
+/** The same mail after a payment: it leads with the payment, since that is what the buyer is waiting to hear. */
+export function buildPaidMagicLink(a: { href: string; address: string }): AccountMail {
+  const [, ...rest] = buildMagicLink(a).blocks;
+  return {
+    subject: PAID_SUBJECT,
+    preheader: PAID_PREHEADER,
+    reason: REASON,
+    blocks: [{ block: "heading", text: PAID_HEADING }, { block: "paragraph", text: PAID_LINE }, ...rest],
   };
 }

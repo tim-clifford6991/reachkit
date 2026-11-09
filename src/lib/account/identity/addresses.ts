@@ -75,12 +75,22 @@ export const LINK_QUERY_KEY = "link";
 
 /** The landings a link may ask for past the default, by exact name, so the query can never send its holder off-site. */
 export const LANDING_QUERY_KEY = "next";
+/** Setup, where the mail a payment sends opens. */
+export const SETUP_LANDING_PATH = "/setup";
 export const CONNECT_LANDING_PATH = "/setup/connect";
 /** Settings › Pages, where a broken destination is reconnected. */
 export const PAGES_LANDING_PATH = "/app/settings/pages";
 
 export function linkLandingOf(value: string | null | undefined): string | null {
-  return value === CONNECT_LANDING_PATH || value === PAGES_LANDING_PATH ? value : null;
+  return value === SETUP_LANDING_PATH || value === CONNECT_LANDING_PATH || value === PAGES_LANDING_PATH ? value : null;
+}
+
+/** `url` asking to land on `landsOn`, where the redeem route allows it, else unchanged. */
+export function landingOn(url: string, landsOn: string): string {
+  if (linkLandingOf(landsOn) === null) return url;
+  const at = new URL(url);
+  at.searchParams.set(LANDING_QUERY_KEY, landsOn);
+  return at.toString();
 }
 
 /** Where a link points, as a path and query. The origin is
