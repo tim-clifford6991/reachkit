@@ -531,10 +531,10 @@ export const REPORT_COPY = Object.freeze({
   "free-page.format.format_page": ["A comparison, alternative, integration or template page", { slots: {}, fixedBy: "REQ-010 c1" }],
   "free-page.format.keyword_page": ["A page for this search", { slots: {}, fixedBy: "REQ-010 c1" }],
   // REQ-010 c2's trade: the address field and the one control beside it.
-  "free-page.email.label": ["Email me this report", { slots: {}, fixedBy: "REQ-010 c2 · issue 2519 (drafted)" }],
+  "free-page.email.label": ["Where should we send it?", { slots: {}, fixedBy: "REQ-010 c2" }],
   "free-page.email.placeholder": ["you@yourdomain.example", { slots: {}, fixedBy: "REQ-010 c2 · board PubReport · issue 1724" }],
   // True to the nurture sequence: at most NURTURE_MAX_TOUCHES follow-ups, each with a one-click opt-out.
-  "free-page.consent": ["We’ll email this report and this page, then up to {touches} short notes. Unsubscribe in one click.", { slots: { touches: "text" }, fixedBy: "board PubReport · issue 1724 · issue 2519 (drafted)" }],
+  "free-page.consent": ["We’ll email this page, then up to {touches} short notes about your report. Unsubscribe in one click.", { slots: { touches: "text" }, fixedBy: "board PubReport · issue 1724" }],
   "free-page.submit": ["Email me the full page", { slots: {}, fixedBy: "REQ-010 c2" }],
   "free-page.absent": ["No free page this time. We found nothing worth writing.", { slots: {}, fixedBy: "REQ-004 c10" }],
 
