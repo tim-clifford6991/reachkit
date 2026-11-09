@@ -155,7 +155,7 @@ describe("REQ-003 c1 — the scanning arms show named stages, never a bare spinn
   });
 });
 
-describe("SPEC §2, 2026-09-20 — the report's sections are held in place, so there is no full-page wait", () => {
+describe("SPEC §2 Report fills in as it runs — the report's sections are held in place, so there is no full-page wait", () => {
   // "each report section appears in place as its stage finishes, a daisyUI
   // `skeleton` holding its place until then. No full-page wait."
   it.each([ARMS[2]!, ARMS[3]!])("%s draws the report's spine beside the stages", (_kind, state) => {

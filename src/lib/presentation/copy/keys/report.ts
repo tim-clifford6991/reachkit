@@ -726,7 +726,7 @@ export const REPORT_COPY = Object.freeze({
   "control.back-to-start": ["Back to the start", { slots: {}, fixedBy: "issue 936" }],
 
   /* ── The free-scans gallery, `/scans`, and the landing's strip (#1069) ── */
-  // SPEC §2 2026-09-24 (#1058, #1059). The words of board `PubScans`; the
+  // SPEC §2 Gallery board. The words of board `PubScans`; the
   // rest drafted in the registry's voice for the owner to correct.
   "gallery.eyebrow": ["Scan library", { slots: {}, fixedBy: "owner 2026-11-06, issue 2452" }],
   "gallery.heading": ["Every free scan, in the open.", { slots: {}, fixedBy: "issue 1069 · R12-3" }],

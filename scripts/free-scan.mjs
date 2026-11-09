@@ -14,7 +14,7 @@
 // It runs live, up to `--cap-cents` (default 100) for the whole run, and
 // writes each paid call to the box's spend log (D57). A site is started only
 // while the cap still holds a whole free scan's cap (`CAPS.FREE_C`). It
-// writes the run to `docs/walk/free/<date>.json` and `<date>.md`; a second
+// writes the run to `.review/walk/free/<date>.json` and `<date>.md`; a second
 // run on the same date adds its sites to that date's files.
 //
 // `--recheck` scores that date's stored scans again with the current code,

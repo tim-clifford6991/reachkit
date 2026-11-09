@@ -1,4 +1,4 @@
-// SPEC §2 2026-10-10 (issue 1377) — a stored placeholder is never a category,
+// SPEC §2 A placeholder names nothing — a stored placeholder is never a category,
 // and a card names the site by its brand.
 import "../../generate/env";
 import { describe, expect, it } from "vitest";

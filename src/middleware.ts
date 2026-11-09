@@ -222,7 +222,7 @@ export const PUBLIC_PATHS: readonly string[] = [
   "/api/unsubscribe/:token",
   "/pause/:token",
   "/pricing",
-  // Issue #1069: the free-scans gallery (SPEC §2 2026-09-24), and the logo
+  // Issue #1069: the free-scans gallery (SPEC §2 Gallery lists every report), and the logo
   // each of its cards is drawn with, served from our own origin.
   "/scans",
   "/scans/logo/:domain",

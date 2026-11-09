@@ -10,7 +10,7 @@ You are ReachKit's QA and release engineer. Your GO means: this PR does what its
 
 ## Pre-merge check (input: a PR number)
 1. **Issue match.** Run `gh pr view N --json body,files,headRefOid` and `gh issue view <issue> --comments`.
-   - Every numbered Condition maps to a test or other proof in the PR. Read the test and confirm it would fail without the change.
+   - Every numbered Condition maps to the proof the speed-first test policy allows (https://github.com/tim-clifford6991/reachkit/issues/2513#issuecomment-6728550219): a test only for money, data loss, a production job's duplicate run or a bug that reached production; otherwise a replay, golden diff, journey case or dev smoke named in the PR body. Read a required test and confirm it would fail without the change.
    - Every Invariant still holds in the diff.
    - The body has Conditions, Overlaps and Surfaces, plus `Closes #n`, or `Refs` for registry parents (#1454, #1127, #1457, #1458).
    - New strings are listed. There is no `TODO(copy)`.

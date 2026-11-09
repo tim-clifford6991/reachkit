@@ -1,9 +1,9 @@
-// SPEC §2 2026-09-24 (owner, #1059; listing ruled on #1058) — the free-scans
+// SPEC §2 Gallery lists every report — the free-scans
 // gallery, in board `PubScans`'s order: the heading with the count and a scan
 // field → the 12 newest reports' scores → the reports, filtered by kind of
 // business, searched and sorted → what every free report shows → the close.
 //
-// **On a phone the first card is on screen on load** (SPEC §2 2026-10-10,
+// **On a phone the first card is on screen on load** (SPEC §2 Gallery board,
 // issue 1377): the sticky toolbar is two rows, the scan field waits for the
 // laptop width, and the score strip is drawn after the reports.
 //

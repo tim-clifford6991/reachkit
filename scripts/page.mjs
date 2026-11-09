@@ -9,7 +9,7 @@
 //   npm run page -- --site reachkit.app --type how_to --topic "how to get cited by chatgpt"
 //   npm run page -- --site reachkit.app --type qa --fresh           # rebuild the pack
 //   npm run page -- --site reachkit.app --type qa --pack-only       # stage 2 only, no write call
-//   npm run page -- --site reachkit.app --type qa --out docs/walk/pipeline-v2
+//   npm run page -- --site reachkit.app --type qa --out .review/page
 //   npm run page -- --site reachkit.app --type qa --cap-cents 25 --env-file ../../.env.local
 //
 // `--type` is one of listicle, how_to, documentation, research, qa, insights

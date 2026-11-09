@@ -76,7 +76,7 @@ export function AddressView(p: {
     // posted during server render.
     //
     // **The report's sections stand beside the stages from the first
-    // frame** (SPEC §2, 2026-09-20 — "no full-page wait"). Both arms are
+    // frame** (SPEC §2 Report fills in as it runs — "no full-page wait"). Both arms are
     // `ScanningView`, which declares its own band arms and is therefore
     // rendered bare, for the same reason the `removed` and `malformed`
     // arms are: two `Surface`s on one document is one too many.

@@ -1,4 +1,4 @@
-// SPEC §2 2026-09-24 (#1058), amended 2026-11-01 — a public report's logo,
+// SPEC §2 Logo route — a public report's logo,
 // from our own origin.
 //
 // The report's head, the scan that becomes it, the gallery's cards and the

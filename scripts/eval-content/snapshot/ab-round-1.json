@@ -2,8 +2,8 @@
  "round": 1,
  "domain": "reachkit.app",
  "business": "ReachKit",
- "dir": "docs/walk/ab-reachkit",
- "report": "docs/walk/content-ab-reachkit.md",
+ "dir": "scripts/eval-content/ab-reachkit",
+ "report": "scripts/eval-content/content-ab-reachkit.md",
  "readWords": 4000,
  "results": {
   "best ai seo software": [

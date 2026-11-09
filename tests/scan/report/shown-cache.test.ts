@@ -40,7 +40,7 @@ type Blob = Record<string, unknown> & { verdict: Record<string, unknown> };
 
 /** Every stored report in the free walks' evidence, SaaS and local alike. */
 function walkBlobs(): [string, Blob][] {
-  const dir = path.resolve(import.meta.dirname, "../../../docs/walk/free");
+  const dir = path.resolve(import.meta.dirname, "../../../tests/fixtures/walk/free");
   return readdirSync(dir)
     .filter((file) => file.endsWith(".json"))
     .flatMap((file) =>

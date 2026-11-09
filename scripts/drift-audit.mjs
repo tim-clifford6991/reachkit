@@ -8,8 +8,6 @@ import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
 import path from "node:path";
 import { readDecisions, specSections } from "./spec-decisions.mjs";
 import { blockRules } from "./lib/budgets.mjs";
-import { MEASUREMENT_DOC, measurementDoc } from "./measurement-doc.mjs";
-import { PROCESS_DOC, processMap } from "./process-map.mjs";
 
 const rootAt = process.argv.indexOf("--root");
 const ROOT = rootAt > 0
@@ -248,23 +246,6 @@ if (process.argv.includes("--require-pr-body")) {
       if (registryParents.has(m[2])) add("coherence", "MISSING", `#${m[2]}`, `"${m[0]}" would close a registry parent; use Refs #${m[2]}`, true);
     }
   }
-}
-
-// ---------------------------------------------------------------- generated
-// Each generated document equals what its registry generates now.
-for (const [doc, generate, script] of [
-  [MEASUREMENT_DOC, measurementDoc, "scripts/measurement-doc.mjs"],
-  [PROCESS_DOC, processMap, "scripts/process-map.mjs"],
-]) {
-  let want;
-  try {
-    want = generate(ROOT);
-  } catch (e) {
-    add("generated", "MALFORMED", doc, `node ${script} cannot run: ${String(e.message).replace(/\n/g, "; ")}`, true);
-    continue;
-  }
-  if (read(doc) === want) add("generated", "OK", doc, `matches node ${script}`);
-  else add("generated", "MISMATCH", doc, `differs from its registry: run node ${script}`, true);
 }
 
 // -------------------------------------------------------------------- output

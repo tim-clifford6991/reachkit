@@ -1,6 +1,6 @@
 // tests/scan/gallery/listing.test.ts — issue #1069
 //
-// SPEC §2 2026-09-24 (owner on #1058): every finished free scan is listed on
+// SPEC §2 Gallery lists every report: every finished free scan is listed on
 // `/scans` unless removed; a removed or refused site appears in neither the
 // gallery nor the landing's strip. Both read `free_scan_listing`, so this is
 // that view against a live, fully migrated schema.

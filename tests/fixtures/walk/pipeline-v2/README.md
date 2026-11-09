@@ -1,7 +1,7 @@
 # The five-stage pipeline, one page a type — reachkit.app, 2026-10-04
 
 The proof of SPEC §7 D41–D43 (#1252), for the owner's read. Each page was written by
-`npm run page -- --site reachkit.app --type <type> --topic "<q>" --out docs/walk/pipeline-v2`,
+`npm run page -- --site reachkit.app --type <type> --topic "<q>" --out tests/fixtures/walk/pipeline-v2`,
 from the site's production export (`scripts/page/snapshot/reachkit.app.json`). Beside each page is
 the context pack it was written from (`<type>.pack.json`) and the run's record (`<type>.run.json`).
 

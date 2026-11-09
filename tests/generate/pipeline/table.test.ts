@@ -15,7 +15,7 @@ import { checkPlaceholderCell } from "../../../src/lib/generate/rules/cells";
 /** The pack issue 1252's proof wrote its stopped listicle from: Meltwater's
  *  pricing page states no price and no feature page of its was read. */
 const STORED = JSON.parse(
-  readFileSync(path.join(__dirname, "../../../docs/walk/pipeline-v2/listicle.pack.json"), "utf8")
+  readFileSync(path.join(__dirname, "../../../tests/fixtures/walk/pipeline-v2/listicle.pack.json"), "utf8")
 ) as ContextPack;
 
 const claim = (product: string, kind: PackClaim["kind"], passage: string): PackClaim => ({

@@ -1,6 +1,6 @@
 # fletcherelectric.co.uk
 
-From `docs/walk/panel/2026-10-10.json`: 6 stored topics, 0 committed from 2026-10-19.
+From `scripts/panel/runs/2026-10-10.json`: 6 stored topics, 0 committed from 2026-10-19.
 
 Supply: 0 of 10 committed, short 5; stored topics category 6.
 

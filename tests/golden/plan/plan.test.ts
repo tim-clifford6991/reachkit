@@ -34,7 +34,7 @@ function render(site: PanelSite, choice: Choice): string {
   return [
     `# ${site.domain}`,
     "",
-    `From \`docs/walk/panel/${site.run}.json\`: ${site.rows.length} stored topics, ${choice.committed.length} committed from ${FROM}.`,
+    `From \`scripts/panel/runs/${site.run}.json\`: ${site.rows.length} stored topics, ${choice.committed.length} committed from ${FROM}.`,
     "",
     supplyLine(site, choice),
     ...(HELD[site.domain] === undefined ? [] : ["", `**Held:** ${HELD[site.domain]}.`]),

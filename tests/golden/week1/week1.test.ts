@@ -38,9 +38,9 @@ afterAll(() => fetchSpy.mockRestore());
 
 const listed: { sites: { domain: string; country: string; language: string }[] } = JSON.parse(readFileSync("docs/walk/panel/sites.json", "utf8"));
 
-/** The site's stored pack from `docs/walk/prose-gate/`, where one is kept: its own passages and profile. */
+/** The site's stored pack from `tests/fixtures/walk/prose-gate/`, where one is kept: its own passages and profile. */
 function storedPack(domain: string): ContextPack | null {
-  const file = `docs/walk/prose-gate/${domain}.pack.json`;
+  const file = `tests/fixtures/walk/prose-gate/${domain}.pack.json`;
   return existsSync(file) ? (JSON.parse(readFileSync(file, "utf8")) as ContextPack) : null;
 }
 

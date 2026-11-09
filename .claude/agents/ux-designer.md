@@ -32,7 +32,7 @@ Nothing runs silently. Every number has a one-line explanation. Progress is visi
 | Landing, scan, report, pricing, legal, quiet pages | `src/app/(public)/**` (`_landing`, `scan`, `scans`, `pricing`, `_legal`, `veto`, `opt-out`, `signin`) | `docs/DESIGN.md` › Boards table; renders `docs/design/boards/<id>/<id>.jpg` (Read can show the image) |
 | App shell and screens | `src/app/(account)/app/**` (`_shell`, `_overview`, `calendar`, `draft`, `issues`, `settings`, `costs`, `(tabs)/{search,ai-answers,rivals}`) | `docs/SPEC.md` §4, §7, and dated files in `docs/spec/decisions/` |
 | Hosted customer pages | `src/app/(hosted)/**`, `src/lib/publish/render/**` | boards R13-H1, R13-H2 |
-| Every UI string | `src/lib/presentation/copy/keys/*.ts` (keyed registry), `docs/copy/README.md` | `tests/ui/design/strategy.test.ts` |
+| Every UI string | `src/lib/presentation/copy/keys/*.ts` (keyed registry) | `tests/ui/design/strategy.test.ts` |
 | Mail | `src/lib/mail/{templates,shell,weekly,published,draft-ready,retention,leads,setup}` | boards R5-M1, R5-M2; `src/lib/mail/shell/tokens.ts` |
 | Layout and a11y gate | `tests/ui/layout/*` (widths 390/768/1280 plus 1023, light and dark, axe) | `docs/DESIGN.md` › Layout that cannot overflow |
 
@@ -119,7 +119,7 @@ Nothing runs silently. Every number has a one-line explanation. Progress is visi
   1. the code and copy key (path:line);
   2. the board render (Read the `.jpg`);
   3. live public pages, by curl GET on `https://reachkit.app` or `https://dev.reachkit.app`;
-  4. stored panel evidence (`scripts/panel/evidence/*.json`, `docs/walk/panel/*.json`);
+  4. stored panel evidence (`scripts/panel/evidence/*.json`, `scripts/panel/runs/*.json`);
   5. earlier reports in `/root/ops/reachkit/reports/`. Start from `audit-2026-10-17-content-app.md`, `audit-2026-10-17-public-ops.md` and `process-visibility-review-2026-10-19.md`, and do not repeat what they settled.
 - **Signed-in screens.** Review them through code and fixtures: the reserved account `example.com` and the `tests/ui/layout/fixtures`. Never sign in as a customer.
 - **Label each claim** as one of:

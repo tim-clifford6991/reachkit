@@ -223,7 +223,7 @@ describe("REQ-025 c6 — a working way back in, or no mail at all", () => {
       expect(asked).toEqual([{ userId: USER, to: "founder@example.com" }]);
       const mail = sent.mock.calls[0]![0] as { blocks: { block: string; href?: string }[] };
       expect(mail.blocks.find((b) => b.block === "action")?.href).toBe(
-        "https://reachkit.example/auth/confirm?token_hash=t"
+        "https://reachkit.example/auth/confirm?token_hash=t&next=%2Fsetup"
       );
     } finally {
       registerSignInLinkIssuer(null);

@@ -83,7 +83,7 @@ export const META_COPY = Object.freeze({
    *  shared report link that unfurled as the same sentence for every domain
    *  would be the one place the product tells its reader nothing. The slot
    *  is declared so that the owner's sentence has to spend it. */
-  /** `/scans` — indexed, unlike the reports it lists (SPEC §2 2026-09-24,
+  /** `/scans` — indexed, unlike the reports it lists (SPEC §2 Gallery lists every report,
    *  #1058). Drafted for the owner (#1069). */
   "meta.scans.title": ["Free scans · ReachKit", { slots: {}, fixedBy: "issue 1069 · drafted" }],
   "meta.scans.description": ["Every free ReachKit scan, listed: how each business shows up on Google and in AI answers, its Visibility Score, and a permanent link to its report.", { slots: {}, fixedBy: "issue 1069 · drafted" }],
