@@ -80,12 +80,6 @@ export function intentFor(
   };
 }
 
-/** Whether the intent names anything a verdict could find: a search with
- *  measured volume, or a tracked prompt. */
-export function hasGoal(intent: PageIntent | null): boolean {
-  return intent !== null && (intent.search.volume !== null || intent.prompt !== null);
-}
-
 /** `drafts.meta.intent` as it was stored; `null` for anything else. */
 export function readIntent(value: unknown): PageIntent | null {
   if (typeof value !== "object" || value === null) return null;

@@ -76,7 +76,7 @@ export const SELECTION = Object.freeze({                    // BUILD §6.7 step 
   volumeFloorPerMonth: 50,
   /** SPEC §6 thin markets: the floor steps a pass short of twelve questions
    *  walks down, only as far as it needs. The first step is
-   *  `volumeFloorPerMonth`; the last is never below `KEYWORD_PAGE_MIN_VOLUME`. */
+   *  `volumeFloorPerMonth`; the last is never below 10. */
   volumeSteps: Object.freeze([50, 20, 10] as const),
   /** SPEC §6 thin markets: at most this many extra `keyword_suggestions`
    *  purchases per pass, inside that pass's own cap — the free scan's too. */
@@ -221,12 +221,6 @@ export const PACE = Object.freeze({
 /** Two `not_working` verdicts on Improve of one URL retire that URL, counted
  *  in distinct Monday weeks. */
 export const IMPROVE_RETIRE_AFTER_NOT_WORKING = 2 as const;   // §6
-
-/** SPEC §6: "A residual keyword page fires only when every extra gate
- *  passes; volume >= 10/mo alone is never sufficient." The readiness floor a
- *  gate is checked against, never `WRITE_VOLUME_FLOOR_PER_MONTH`'s discovery
- *  one: two clauses of the spec, so two pins. */
-export const KEYWORD_PAGE_MIN_VOLUME = 10 as const;           // §6
 
 /** §7's Improve trigger: "Customer ranks 4–30, page thin". The band is
  *  inclusive at both ends. The bought SERP is a top ten (`transport.ts` fixes

@@ -4,8 +4,7 @@
 // the highest-value topics are written first, even of one type or one topic.
 //
 // `unblock` never appears here: the store's `openRankable` excludes the Fix
-// family. A `not-yet` target never does either: readiness stores it
-// `ready: false`, and this list ranks ready rows.
+// family. A `not-yet` target is ranked, with fewer points (`points.ts`).
 //
 // **A ready `fix_page` is placed, not scored** (SPEC §9, owner ruling
 // 2026-09-14): it goes immediately ahead of the first Write row in its

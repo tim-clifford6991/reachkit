@@ -30,7 +30,7 @@ describe("supplyLedger", () => {
   it("holds only open new-page rows the fit judgement did not keep below the top", () => {
     const ledger = supplyLedger({
       stages: {},
-      rows: [...open(1), ...open(1, { family: "improve" }), ...open(1, { status: "queued" }), ...open(1, { status: "dismissed" }), ...open(1, { businessFit: TOPIC_FIT.gate })],
+      rows: [...open(1), ...open(1, { family: "improve" }), ...open(1, { status: "queued" }), ...open(1, { status: "dismissed" }), ...open(1, { businessFit: 1 })],
     });
     expect(ledger.have).toBe(1);
   });

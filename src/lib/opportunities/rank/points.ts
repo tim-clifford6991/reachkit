@@ -4,7 +4,7 @@
 import { CLOSE_PAGE_POSITION_BAND, WRITE_VOLUME_FLOOR_PER_MONTH } from "@/lib/config/constants";
 import { canonicalUrl } from "@/lib/measure/page-reading";
 import { closestPrompt, measuredVolume, type IntentPrompt } from "../intent";
-import type { Opportunity, PlanReason, PointPart, Shortfall } from "../types";
+import { OUTSIZED, type Opportunity, type PlanReason, type PointPart, type Shortfall } from "../types";
 
 /** The points each part is worth (owner ruling of 2026-10-19, "all as
  *  recommended"). A part that does not apply is not stored. */
@@ -15,6 +15,7 @@ export const POINTS = Object.freeze({
   nearPageOne: 3,
   linkedByAi: 1,
   notMoving: 0,
+  outsized: -2,
 });
 
 /** A row no pass has judged scores as a judged 2: neither lifted nor dropped. */
@@ -29,6 +30,7 @@ export interface Seen {
 
 type Scorable = Pick<Opportunity, "businessFit" | "volume" | "source" | "targetQuery"> & {
   evidence?: Opportunity["evidence"] | null;
+  fitBand?: Opportunity["fitBand"];
 };
 
 function improveOf(o: Scorable): { shortfall: Shortfall | undefined; pageUrl: string | undefined } | null {
@@ -81,6 +83,8 @@ export function pointsOf(o: Scorable, seen: Seen): Omit<PlanReason, "rule"> {
   if (linkedByAi(o, seen)) parts.push({ part: "linked_by_ai", n: POINTS.linkedByAi });
   // Stored though it adds nothing: it is why the refresh is in the list.
   if (notMoving(o)) parts.push({ part: "not_moving", n: POINTS.notMoving });
+  // Too big for the site today ranks lower, and is still written when nothing ranks above it.
+  if (o.fitBand === OUTSIZED) parts.push({ part: "outsized", n: POINTS.outsized });
   return { points: parts.reduce((sum, part) => sum + part.n, 0), parts };
 }
 
