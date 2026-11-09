@@ -171,7 +171,7 @@ describe("sendPublishedMail — one occasion, all three outcomes (REQ-062 c5)", 
   });
 });
 
-describe("sendPublishedMail — the site's first live page only (SPEC §8, decision 2026-10-19-1593)", () => {
+describe("sendPublishedMail — the site's first live page only (docs/SPEC.md §8 The first page's live mail only)", () => {
   function seedPages(pages: readonly Row[]): void {
     seed(found(true));
     db.seed("publications", pages.map((page) => ({ site_id: "s1", live_url: LIVE_URL, verify: found(true), ...page })));

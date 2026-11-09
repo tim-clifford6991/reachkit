@@ -1,6 +1,6 @@
 // BUILD §12 · §4.7 — the three notification switches on `users.notify jsonb` (default `{}`), keyed by user, never the suppression store (ADR-042).
 // Sparse: an absent key reads as on, since never toggled is not switched off. `draft-ready` is on until the first Monday mail, then off
-// (SPEC §8, decision 2026-10-19-1593). A failed read is its own outcome, never `{}`, or a customer who switched a mail off would be mailed.
+// (docs/SPEC.md §8 Page-ready until the first Monday mail). A failed read is its own outcome, never `{}`, or a customer who switched a mail off would be mailed.
 // `dbAdmin()`, not `db()`: the anon client carries no JWT, so `users_select_own` matches nothing. Both callers are server-side with the
 // user already authenticated, one inside a job with no request.
 // `users.notify` is missing from the stale `src/lib/db/types.generated.ts`, so the column is reached through one narrow cast.

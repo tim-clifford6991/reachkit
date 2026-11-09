@@ -657,7 +657,7 @@ export const REPORT_COPY = Object.freeze({
   "landing.faq.spam.q": ["Is this AI spam?", { slots: {}, fixedBy: "board Landing · issue 1596" }],
   "landing.faq.spam.a": ["No. Claude, an AI model, writes each page from your site and linked sources. A page that fails its checks twice never goes live.", { slots: {}, fixedBy: "board Landing · issue 1596" }],
   "landing.faq.approve.q": ["Do I have to approve each page?", { slots: {}, fixedBy: "board Landing · issue 1596" }],
-  "landing.faq.approve.a": ["No. Each page goes live by itself {hours} hours after it is written. You can edit or stop it first, or do nothing.", { slots: { hours: "text" }, fixedBy: "board Landing · issue 1596 · decision 2026-10-19-1593 (drafted)" }],
+  "landing.faq.approve.a": ["No. Each page goes live by itself {hours} hours after it is written. You can edit or stop it first, or do nothing.", { slots: { hours: "text" }, fixedBy: "board Landing · issue 1596 · docs/SPEC.md §8 Page-ready until the first Monday mail (drafted)" }],
   "landing.faq.results.q": ["How long until I see results?", { slots: {}, fixedBy: "board Landing · issue 1596" }],
   "landing.faq.results.a": ["Your pages go live in week 1. Each Monday email shows where they sit on Google, and whether AI links to them.", { slots: {}, fixedBy: "board Landing · issue 1596" }],
   "landing.faq.stop.q": ["What if I want to stop?", { slots: {}, fixedBy: "board Landing · issue 1596" }],
