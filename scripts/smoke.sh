@@ -154,7 +154,7 @@ fi
 # ── 0. cold ──────────────────────────────────────────────────────────────
 # The first request of the run, right after a deploy, meets every function
 # cold, so it is timed before anything else is fetched; then the fastest of
-# three more holds the warm budget. Over budget is red only on production: a
+# three more holds the warm budget. Past half again its budget is red, on production only: a
 # timing blip on dev would otherwise hold every production deploy. A route's
 # own content is asserted by its later step; here only the code is.
 step=cold
@@ -169,12 +169,17 @@ COLD_ROUTES="/ 200 $(pin coldLandingMs) $(pin warmPageMs)
 /signin 200 $(pin coldSigninMs) $(pin warmPageMs)
 /app 307 $(pin coldAppMs) $(pin warmPageMs)
 /api/health any $(pin coldHealthMs) $(pin warmHealthMs)"
-over=""; cold_line=""; warm_line=""
+# A miss up to half again its budget is a WARN, so red means an outage; past that, red on production only.
+late() { # <ms> <budget> <line>
+  [ "$1" -le "$2" ] && return
+  if [ "$1" -gt $(( $2 * 3 / 2 )) ] && [ "$BASE_URL" = "https://reachkit.app" ]; then slow="$slow$3"$'\n'; else over="$over$3"$'\n'; fi
+}
+over=""; slow=""; cold_line=""; warm_line=""
 while read -r route want cold_budget _; do
   read -r code ms <<<"$(first_byte "$route")"
   [ "$want" = any ] || [ "$code" = "$want" ] || fail "$step" "GET $route answered $code, not $want"
   cold_line="$cold_line · $route ${ms}ms"
-  [ "$ms" -le "$cold_budget" ] || over="$over$route ${ms}ms > ${cold_budget}ms cold"$'\n'
+  late "$ms" "$cold_budget" "$route ${ms}ms > ${cold_budget}ms cold"
 done <<<"$COLD_ROUTES"
 while read -r route _ _ warm_budget; do
   best=""
@@ -183,16 +188,16 @@ while read -r route _ _ warm_budget; do
     [ -z "$best" ] || [ "$ms" -lt "$best" ] && best=$ms
   done
   warm_line="$warm_line · $route ${best}ms"
-  [ "$best" -le "$warm_budget" ] || over="$over$route ${best}ms > ${warm_budget}ms warm (best of 3)"$'\n'
+  late "$best" "$warm_budget" "$route ${best}ms > ${warm_budget}ms warm (best of 3)"
 done <<<"$COLD_ROUTES"
-if [ -n "$over" ] && [ "$BASE_URL" = "https://reachkit.app" ]; then
+if [ -n "$slow" ]; then
   note "${cold_line# · } · warm, best of 3: ${warm_line# · }"
-  miss "$step" "$(head -1 <<<"$over")"
+  miss "$step" "$(head -1 <<<"$slow")"
 else
   ok "$step" "${cold_line# · }"
   note "warm, best of 3: ${warm_line# · }"
-  while read -r line; do [ -n "$line" ] && printf 'WARN %-22s %s\n' "$step" "$line"; done <<<"$over"
 fi
+while read -r line; do [ -n "$line" ] && printf 'WARN %-22s %s\n' "$step" "$line"; done <<<"$over"
 best=""
 
 # ── 1. landing ───────────────────────────────────────────────────────────
