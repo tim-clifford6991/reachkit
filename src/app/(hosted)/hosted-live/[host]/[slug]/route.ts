@@ -19,6 +19,7 @@ export async function GET(
   { params }: { params: Promise<{ host: string; slug: string }> }
 ): Promise<Response> {
   const { host, slug } = await params;
+  // A failed read throws: the cache keeps the last good copy, where a returned 503 or 404 would replace it.
   const html = await articleDocument(host, slug);
   // The middleware found this page live a moment ago; if it is not now, this
   // is the 404, and the next request is answered by the middleware.

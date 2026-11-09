@@ -560,6 +560,10 @@ describe("the publish chain, end to end (issue 888)", () => {
       expect(moved.status).toBe(200);
       expect(moved.body).toContain(`<link rel="canonical" href="https://${MOVED_HOST}/${SLUG}"`);
       expect(moved.body).toContain(TITLE);
+      // A publication read that fails says nothing about the page: 503, retried, never a 404 a crawler drops.
+      db.unreadable.add("publications");
+      expect((await servedDocument(MOVED_HOST, SLUG)).status).toBe(503);
+      db.unreadable.delete("publications");
       const listed = await answerFor(`https://${MOVED_HOST}/sitemap.xml`);
       expect([...listed.body.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1])).toEqual([
         `https://${MOVED_HOST}/`,
