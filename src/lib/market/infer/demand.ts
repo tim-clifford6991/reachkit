@@ -141,13 +141,18 @@ export function comparisonsOf(a: {
   const pack = languagePack(a.language ?? "en");
   const out: { query: string; rival: string }[] = [];
   const inDemand = a.rivals.filter((rival) => searched(rival.volume)).sort((x, y) => (y.volume ?? 0) - (x.volume ?? 0));
-  for (const rival of a.searchedOnly ? inDemand : a.rivals) out.push({ query: pack.alternativesSearch(comparisonName(rival)), rival: rival.domain });
+  // A rival with no whole name to say is not compared (`comparisonName`).
+  const named = (list: typeof a.rivals) => list.flatMap((rival) => {
+    const name = comparisonName(rival);
+    return name === null ? [] : [{ rival, name }];
+  });
+  for (const { rival, name } of named(a.searchedOnly ? inDemand : a.rivals)) out.push({ query: pack.alternativesSearch(name), rival: rival.domain });
   if (a.product !== null && a.ownSearched) {
-    for (const rival of a.rivals) out.push({ query: pack.versusSearch(a.product, comparisonName(rival)), rival: rival.domain });
+    for (const { rival, name } of named(a.rivals)) out.push({ query: pack.versusSearch(a.product, name), rival: rival.domain });
   } else {
-    const leading = inDemand.slice(0, RIVAL_DEMAND.PAIRS);
+    const leading = named(inDemand).slice(0, RIVAL_DEMAND.PAIRS);
     leading.forEach((first, i) => {
-      for (const second of leading.slice(i + 1)) out.push({ query: pack.versusSearch(comparisonName(first), comparisonName(second)), rival: first.domain });
+      for (const second of leading.slice(i + 1)) out.push({ query: pack.versusSearch(first.name, second.name), rival: first.rival.domain });
     });
   }
   return out;

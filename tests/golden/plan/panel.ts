@@ -10,12 +10,14 @@
 // and the rows were created in the order the run lists them. The profile is
 // read off the run's own market conclusion. A row's shape is what readiness
 // stores from the site's newest stored SERP for its search
-// (`scripts/panel/evidence/<domain>.json`). 0¢: nothing is measured.
+// (`scripts/panel/evidence/<domain>.json`). A stored topic that is no search
+// is left out, as the next pass dismisses it. 0¢: nothing is measured.
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import type { ListicleHeld } from "@/lib/generate/templates/listicle";
 import type { Language } from "@/lib/locale/locales";
 import type { MarketConclusion } from "@/lib/market/infer/types";
 import type { Profile } from "@/lib/market/questions/profile";
+import { malformedSearch } from "@/lib/market/questions/well-formed";
 import { measured, unmeasured } from "@/lib/measure/measured";
 import { queryKey } from "@/lib/opportunities/cluster";
 import { freshRead, type KindOfBusiness, type TopTenRead } from "@/lib/opportunities/derive/top-ten-kind";
@@ -78,7 +80,7 @@ export function panelSite(domain: string): PanelSite {
     if (site?.market == null || (site.topics ?? []).length === 0) continue;
     const serps = storedSerps(domain);
     const business = businessOf(domain);
-    const rows = site.topics!.map((topic, n) => rowOf(domain, topic, n)).map((row) => {
+    const rows = site.topics!.filter((topic) => malformedSearch(topic.query, site.market!.rivals) === null).map((topic, n) => rowOf(domain, topic, n)).map((row) => {
       const read = freshRead(serps.get(queryKey(row.target_query ?? "")), AT);
       return { ...row, evidence: shapedEvidence(readOpportunity(row), read, business) };
     });

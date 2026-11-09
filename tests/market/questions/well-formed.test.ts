@@ -40,11 +40,11 @@ describe("what is not a search", () => {
 });
 
 describe("a rival is named by its name, never by its domain", () => {
-  it("says a long name as buyers would, and a name that is an address without its ending", () => {
+  it("says a long name as buyers search it, and never a cut name or an address", () => {
     expect(comparisonName(ABC)).toBe("abc plumbing austin");
     expect(comparisonName(RADIANT)).toBe("radiant plumbing austin");
-    expect(comparisonName({ ...RADIANT, searchNames: undefined })).toBe("radiant plumbing");
-    expect(comparisonName(TATTOOS)).toBe("temporarytattoos");
+    expect(comparisonName({ ...RADIANT, searchNames: undefined })).toBeNull();
+    expect(comparisonName(TATTOOS)).toBeNull();
     expect(comparisonName({ name: "Bäckerei Schüren", domain: "baeckerei-schueren.de" })).toBe("bäckerei schüren");
   });
 

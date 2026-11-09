@@ -102,7 +102,9 @@ function holdsAnAddress(search: string): boolean {
 export function labelSaysName(rival: NamedRival): boolean {
   const label = lettersOf(rival.domain.replace(/^www\./, "").split(".")[0] ?? "");
   if (label === "") return true;
-  return [rival.name, ...(rival.searchNames ?? [])].some((name) => wordsOf(name).map(lettersOf).includes(label));
+  // An address is not a name: "boot" is a cut of "Boot.dev", not a word of it.
+  const names = [rival.name, ...(rival.searchNames ?? [])].filter((name) => !holdsAnAddress(name));
+  return names.some((name) => wordsOf(name).map(lettersOf).includes(label));
 }
 
 /** Why a search is not one, or `null` where it is. */
@@ -121,25 +123,15 @@ export function malformedSearch(search: string, rivals: readonly NamedRival[] = 
   return null;
 }
 
-/** A word a long name is cut at: what follows adds to the name and is not
- *  how a buyer says it ("Radiant Plumbing & Air Conditioning"). */
-const NAME_JOINER = /\s+(?:&|\+|and|und|et|-|–|—|\||:)\s+|,\s+/;
 const NAME_MAX_WORDS = 4;
 
 /**
- * A rival as a search names it (D50): its name in lower case, with its
- * accents. Never its domain: a name that is a web address is said without
- * its ending ("monday" for monday.com), and a name too long to type is the
- * short name buyers search it under, else its leading words.
+ * A rival as a search names it (D50): its whole name in lower case, with its
+ * accents, else the whole short name buyers search it under, else `null` —
+ * never a cut name. A web address is no name ("boot" is not "Boot.dev").
  */
-export function comparisonName(rival: NamedRival): string {
+export function comparisonName(rival: NamedRival): string | null {
   const spelt = (text: string): string => text.toLowerCase().replace(/\s+/g, " ").trim().replace(/[.?!]+$/, "");
-  let name = spelt(rival.name);
-  if (!name.includes(" ")) name = addressOf(name)?.label ?? name;
-  const count = (text: string): number => text.split(" ").length;
-  if (name !== "" && count(name) <= NAME_MAX_WORDS) return name;
-  const typed = (rival.searchNames ?? []).map(spelt).find((said) => said !== "" && count(said) <= NAME_MAX_WORDS && !holdsAnAddress(said));
-  if (typed !== undefined) return typed;
-  const lead = name.split(NAME_JOINER)[0] ?? name;
-  return (count(lead) >= 2 ? lead : name).split(" ").slice(0, NAME_MAX_WORDS).join(" ");
+  const whole = (said: string): boolean => said !== "" && said.split(" ").length <= NAME_MAX_WORDS && !holdsAnAddress(said);
+  return [rival.name, ...(rival.searchNames ?? [])].map(spelt).find(whole) ?? null;
 }

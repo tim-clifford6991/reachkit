@@ -1,8 +1,8 @@
 # wesbos.com
 
-From `scripts/panel/runs/2026-10-12-1414.json`: 13 stored topics, 9 committed from 2026-10-19.
+From `scripts/panel/runs/2026-10-12-1414.json`: 12 stored topics, 8 committed from 2026-10-19.
 
-Supply: 9 of 10 committed, short 1; stored topics product 9, category 3, best_x 1.
+Supply: 8 of 10 committed, short 2; stored topics product 8, category 3, best_x 1.
 
 | Place | Day | Search | Type | Page | Fit | Volume | Points | Parts | Rule | Written as |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -10,11 +10,10 @@ Supply: 9 of 10 committed, short 1; stored topics product 9, category 3, best_x 
 | 1 | 2026-10-20 | wes bos vs codecademy | comparison_page | listicle | 3 | — | 3 | fit 3 | own_price not on file, as a Q&A | qa |
 | 2 | 2026-10-21 | wes bos vs freecodecamp | comparison_page | listicle | 3 | — | 3 | fit 3 | own_price not on file, as a Q&A | qa |
 | 3 | 2026-10-22 | wes bos vs the odin project | comparison_page | listicle | 3 | — | 3 | fit 3 | own_price not on file, as a Q&A | qa |
-| 4 | 2026-10-23 | wes bos vs boot | comparison_page | listicle | 3 | — | 3 | fit 3 | own_price not on file, as a Q&A | qa |
-| 5 | 2026-10-24 | wes bos vs scrimba | comparison_page | listicle | 3 | — | 3 | fit 3 | own_price not on file, as a Q&A | qa |
-| 6 | 2026-10-25 | javascript tutorial pricing | keyword_page | how_to | 3 | — | 3 | fit 3 | best | — |
-| 7 | spare | online web development course pricing | keyword_page | qa | 3 | — | 3 | fit 3 | best | — |
-| 8 | spare | front end development course pricing | keyword_page | qa | 3 | — | 3 | fit 3 | best | — |
+| 4 | 2026-10-23 | wes bos vs scrimba | comparison_page | listicle | 3 | — | 3 | fit 3 | own_price not on file, as a Q&A | qa |
+| 5 | 2026-10-24 | javascript tutorial pricing | keyword_page | how_to | 3 | — | 3 | fit 3 | best | — |
+| 6 | 2026-10-25 | online web development course pricing | keyword_page | qa | 3 | — | 3 | fit 3 | best | — |
+| 7 | spare | front end development course pricing | keyword_page | qa | 3 | — | 3 | fit 3 | best | — |
 
 | Not chosen | Type | Fit | Volume | Reason |
 |---|---|---|---|---|
