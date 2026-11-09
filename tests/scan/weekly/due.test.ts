@@ -130,10 +130,16 @@ describe("a week already stamped is never measured twice, and a failed one is re
     expect((await dueSites(MONDAY_0600_UTC)).map((s) => s.siteId)).toEqual(["utc-site"]);
   });
 
-  it("a Monday hour no tick reached stays owed to a site measured last week, and a new site waits", async () => {
-    DB.rows.set("sites", [site("measured", "UTC"), site("new-site", "UTC")]);
-    DB.answer = (s) => s.table === "scans" ? [{ site_id: "measured", week_start: "2026-08-31", status: "done" }] : null;
-    expect((await dueSites(new Date("2026-09-07T10:41:00Z"))).map((s) => s.siteId)).toEqual(["measured"]);
+  it("a Monday hour no tick reached stays owed to a site measured or failed last week, and a new site waits", async () => {
+    DB.rows.set("sites", [site("measured", "UTC"), site("failed-last", "UTC"), site("new-site", "UTC")]);
+    DB.answer = (s) =>
+      s.table === "scans"
+        ? [
+            { site_id: "measured", week_start: "2026-08-31", status: "done" },
+            { site_id: "failed-last", week_start: "2026-08-31", status: "failed" },
+          ]
+        : null;
+    expect((await dueSites(new Date("2026-09-07T10:41:00Z"))).map((s) => s.siteId)).toEqual(["measured", "failed-last"]);
   });
 });
 

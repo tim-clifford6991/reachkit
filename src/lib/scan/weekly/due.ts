@@ -7,7 +7,7 @@
 //
 // Four predicates, each owned once and none re-derived here:
 //   1. the site's own local Monday, at its own due hour, or any later
-//      hour of its week where it was measured the week before — `week.ts`
+//      hour of its week where it has a row for the week before — `week.ts`
 //   2. active access                                     — billing (`access.ts`)
 //   3. no weekly scan row for `(site_id, week_start)`,
 //      or a released (`failed`) one inside the week      — `store.ts`
@@ -45,8 +45,8 @@ export async function dueSites(now: Date): Promise<readonly DueSite[]> {
   const lastWeek = (weekStart: string) => new Date(Date.parse(`${weekStart}T00:00:00Z`) - 7 * 86_400_000).toISOString().slice(0, 10);
   const weeks = begun.flatMap((site) => [site.weekStart, lastWeek(site.weekStart)]);
   const rows = begun.length === 0 ? new Map<string, string>() : await weekStatuses([...new Set(weeks)]);
-  // A Monday hour no tick reached (an outage) stays owed all week to a site measured last week; a new site waits for its first Monday.
-  const owed = (site: DueSite) => ![undefined, "failed"].includes(rows.get(weekKey({ ...site, weekStart: lastWeek(site.weekStart) })));
+  // A missed Monday hour stays owed all week to any site with a row last week, measured or failed; a new site waits for its first Monday.
+  const owed = (site: DueSite) => rows.has(weekKey({ ...site, weekStart: lastWeek(site.weekStart) }));
   const candidates = begun.filter((site) => {
     const key = weekKey(site);
     return rows.get(key) === "failed" || (!rows.has(key) && (owed(site) || isWeeklyDue({ at: now, zone: site.zone })));
