@@ -12,7 +12,8 @@
 // So: no link, no mail, and the outcome says which. The 15-minute chase
 // (`chase.ts`) is what covers the gap, and it is written for both states.
 import { sendEmail } from "@/lib/mail/send";
-import { buildMagicLink } from "@/lib/mail/templates/magic-link";
+import { buildMagicLink, buildPaidMagicLink } from "@/lib/mail/templates/magic-link";
+import { SETUP_LANDING_PATH, landingOn } from "../identity/addresses";
 import { wireSignInLinkIssuer } from "../identity/wire";
 import { issueSignInLink } from "./sign-in-link";
 
@@ -23,6 +24,8 @@ export type SignInMailOutcome =
 export async function sendSignInLink(a: {
   userId: string;
   email: string;
+  /** Sent by a completed payment: it says so, and opens setup. */
+  afterPayment?: boolean;
 }): Promise<SignInMailOutcome> {
   // Issue #35 fills the port declared below. Wiring here, and not only at
   // some entry point's module load, is the same move
@@ -38,7 +41,9 @@ export async function sendSignInLink(a: {
     return { sent: false, because: "no_link" };
   }
 
-  const mail = buildMagicLink({ href: link.url, address: a.email });
+  const mail = a.afterPayment
+    ? buildPaidMagicLink({ href: landingOn(link.url, SETUP_LANDING_PATH), address: a.email })
+    : buildMagicLink({ href: link.url, address: a.email });
   const result = await sendEmail({
     kind: "magic-link",
     to: a.email,

@@ -108,7 +108,7 @@ const { setBillingStore } = await import("../../src/lib/account/billing/store");
 const { hasActiveAccess } = await import("../../src/lib/account/billing");
 const { setIdentityStore } = await import("../../src/lib/account/identity/store");
 const { setIdentityAuth } = await import("../../src/lib/account/identity/auth");
-const { deadLinkPath } = await import("../../src/lib/account/identity/addresses");
+const { deadLinkPath, LANDING_QUERY_KEY } = await import("../../src/lib/account/identity/addresses");
 const { unwireSignInLinkIssuer } = await import("../../src/lib/account/identity/wire");
 const { setLeadStore } = await import("../../src/lib/mail/leads/store");
 const { __setVendorTransportForTesting } = await import("../../src/lib/mail/vendor/resend");
@@ -376,23 +376,19 @@ async function untilTheAccountIsOpen(): Promise<{ sessionId: string }> {
   return { sessionId: started.sessionId };
 }
 
-/** The token hash the magic-link mail carries (#468): Supabase's own,
- *  on this deployment's `/auth/confirm`, never Supabase's `action_link`. */
-function theMagicLink(): string {
-  const mail = inbox.find((m) => m.subject === "mail.magicLink.subject");
-  if (mail === undefined) throw new Error("no magic-link mail was sent");
-  const found =
-    /https:\/\/app\.example\.com\/auth\/confirm\?token_hash=([A-Za-z0-9_-]+)&(?:amp;)?type=magiclink/.exec(
-      mail.html
-    );
-  if (found === null) throw new Error("the magic-link mail carried no link");
-  return found[1] as string;
+/** The link the payment mail carries (#468): Supabase's token hash on this
+ *  deployment's `/auth/confirm`, never Supabase's `action_link`. */
+function theMagicLink(): URL {
+  const mail = inbox.find((m) => m.subject === "mail.magicLink.paid.subject");
+  if (mail === undefined) throw new Error("no payment mail was sent");
+  const found = /https:\/\/app\.example\.com\/auth\/confirm\?[^"\s<]+/.exec(mail.html);
+  if (found === null) throw new Error("the payment mail carried no link");
+  return new URL(found[0].replaceAll("&amp;", "&"));
 }
 
-async function followTheLink(tokenHash: string): ReturnType<typeof confirmRoute> {
-  const query = new URLSearchParams({ token_hash: tokenHash, type: "magiclink" });
+async function followTheLink(link: URL): ReturnType<typeof confirmRoute> {
   const headers = { "sec-fetch-mode": "navigate", "sec-fetch-dest": "document", "sec-fetch-user": "?1" }; // a person's click
-  return confirmRoute(new NextRequest(`https://app.example.com/auth/confirm?${query.toString()}`, { headers }));
+  return confirmRoute(new NextRequest(link, { headers }));
 }
 
 describe("Start → Checkout → webhook → magic link → /setup (JN-002 steps 1–2)", () => {
@@ -536,21 +532,23 @@ describe("Start → Checkout → webhook → magic link → /setup (JN-002 steps
   it("step 2 — the magic-link mail carries a real link, and is a mail nobody can switch off", async () => {
     await untilTheAccountIsOpen();
 
-    const mails = inbox.filter((m) => m.subject === "mail.magicLink.subject");
+    const mails = inbox.filter((m) => m.subject === "mail.magicLink.paid.subject");
     expect(mails).toHaveLength(1);
     const mail = mails[0] as SentMail;
     expect(mail.to).toEqual([ADDRESS]);
-    expect(mail.html).toContain("mail.magicLink.body");
+    expect(mail.html).toContain("mail.magicLink.paid.line");
     expect(mail.html).toContain("mail.magicLink.action");
 
     // The link points at this deployment's own sign-in route and at a
     // token that was written down as a hash and nowhere else.
-    const token = theMagicLink();
+    const link = theMagicLink();
+    expect(link.searchParams.get("type")).toBe("magiclink");
+    expect(link.searchParams.get(LANDING_QUERY_KEY)).toBe(SETUP_PATH);
     // One link, minted by Supabase for this account's own address and
     // user; the mail carries its hash, and no table of ours holds it.
     expect(auth.generated).toEqual([{ kind: "sign_in", email: NORMALISED }]);
     expect(auth.tokens).toHaveLength(1);
-    expect(auth.tokens[0]?.hash).toBe(token);
+    expect(auth.tokens[0]?.hash).toBe(link.searchParams.get("token_hash"));
     expect(auth.tokens[0]?.userId).toBe(accounts.users[0]?.id);
 
     // ADR-042's point, as a register row: the mail that is a customer's way
@@ -560,9 +558,9 @@ describe("Start → Checkout → webhook → magic link → /setup (JN-002 steps
 
   it("step 2 — following the link signs them in, once, and lands them on /setup", async () => {
     await untilTheAccountIsOpen();
-    const token = theMagicLink();
+    const link = theMagicLink();
 
-    const response = await followTheLink(token);
+    const response = await followTheLink(link);
     expect(response.headers.get("location")).toBe(`https://app.example.com${SETUP_PATH}`);
 
     // The cookie rides on the redirect itself, so there is no version in
@@ -576,12 +574,14 @@ describe("Start → Checkout → webhook → magic link → /setup (JN-002 steps
 
     // Single use: the second arrival is a dead link, and a dead link says
     // only that it is dead (REQ-098 c7).
-    const second = await followTheLink(token);
+    const second = await followTheLink(link);
     expect(second.headers.get("location")).toBe(`https://app.example.com${deadLinkPath()}`);
     expect(second.cookies.get(FAKE_AUTH_COOKIE)).toBeUndefined();
     // A token nobody ever issued lands in exactly the same place.
-    const invented = await followTheLink("not-a-token-anyone-issued");
-    expect(invented.headers.get("location")).toBe(`https://app.example.com${deadLinkPath()}`);
+    const invented = new URL(link);
+    invented.searchParams.set("token_hash", "not-a-token-anyone-issued");
+    const inventedArrival = await followTheLink(invented);
+    expect(inventedArrival.headers.get("location")).toBe(`https://app.example.com${deadLinkPath()}`);
 
     // And the founder who has signed in once goes into the product next
     // time, not back to setup (REQ-024 c4/c5).
