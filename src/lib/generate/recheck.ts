@@ -241,6 +241,16 @@ export async function recheckStopped(a: { siteId: string; publishDate: string; n
   }
 }
 
+/** A day decided again: a page the system stopped before review, unedited, gives up the date, which the re-check and
+ *  the week's spares then take as the day's own run does after a stop. */
+export async function releaseStoppedDate(a: { siteId: string; publishDate: string; now: Date }): Promise<void> {
+  const store = generateStore();
+  for (const row of await store.draftsShortOfHandOff(a.siteId, ROWS_READ)) {
+    const why = candidacy(row, a.now);
+    if (row.scheduled_for === a.publishDate && why !== "not_stopped" && why !== "entered_review" && why !== "edited") await store.patchDraft(row.id, { scheduled_for: null });
+  }
+}
+
 /** The site's own sets as the battery reads them: its rules, the facts it allows, and the demo text it must not repeat. */
 export async function siteSets(siteId: string, site: SiteFacts, report: StoredReport): Promise<Pick<RecheckWorld, "site" | "facts" | "demoPhrases">> {
   const confirmed = await confirmedForWriting({ siteId, domain: site.domain });

@@ -13,7 +13,7 @@ vi.mock("@/lib/db", () => ({
   },
 }));
 
-import { alertSiteDay, recordDraftDay, setDraftDayStore, type DraftDayStore } from "@/lib/publish/daily";
+import { alertSiteDay, missedDays, recordDraftDay, setDraftDayStore, type DraftDayStore } from "@/lib/publish/daily";
 
 // reachkit.app: 09:00 in Berlin is 07:00 UTC in October.
 const SITE = { siteId: "site-1", timeZone: "Europe/Berlin", publishTime: "09:00", vetoHours: 24 };
@@ -123,5 +123,19 @@ describe("the publish time is checked, and a day with no page is told (issue 145
     setDraftDayStore({ ...store, statesOn: () => Promise.reject(new Error("down")), record: () => Promise.reject(new Error("down")) });
     await expect(recordDraftDay({ siteId: "site-1", publishDate: "2026-10-15", outcome: "failed", reason: "TypeError", at: PUBLISH_HOUR })).resolves.toBeUndefined();
     await expect(alertSiteDay({ site: SITE, hour: PUBLISH_HOUR })).resolves.toBe(0);
+  });
+
+  it("a day left with no page before the week's late commit is decided again, once (#2589)", async () => {
+    const { store } = memory([{ date: "2026-11-09", state: "published" }]);
+    let decidedAt = "2026-11-09T08:00:00+00:00";
+    setDraftDayStore({
+      ...store,
+      decidedOn: async (asked) => asked.map((day) => ({ ...day, ended: "no_page:generate:rules;no_update_candidate", decidedAt })),
+      committedAt: async () => "2026-11-09T13:46:19+00:00",
+    });
+    const day = { siteId: "site-1", publishDate: "2026-11-10" };
+    expect(await missedDays([day])).toEqual([{ ...day, again: true }]);
+    decidedAt = "2026-11-09T15:03:00+00:00";
+    expect(await missedDays([day])).toEqual([]);
   });
 });

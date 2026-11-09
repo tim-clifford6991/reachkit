@@ -63,20 +63,21 @@ export const DRAFT_TICK_CRON = "3 * * * *";
 type Site = Awaited<ReturnType<typeof activeSites>>["sites"][number];
 
 /** One site's due hour, as its run reads it from the event, and its clock where the event carries it. */
-function siteDay(data: JobInput["data"]): { siteId: string; publishDate: string; hour: Date; site: Site | null } {
-  const { siteId, publishDate, hour, timeZone, publishTime, vetoHours } = data;
+function siteDay(data: JobInput["data"]): { siteId: string; publishDate: string; hour: Date; site: Site | null; again: boolean } {
+  const { siteId, publishDate, hour, timeZone, publishTime, vetoHours, again } = data;
   if (typeof siteId !== "string" || typeof publishDate !== "string" || typeof hour !== "string") {
     throw new TypeError("draft/generate: a site run needs siteId, publishDate and hour");
   }
   const clocked = typeof timeZone === "string" && typeof publishTime === "string" && typeof vetoHours === "number";
-  return { siteId, publishDate, hour: new Date(hour), site: clocked ? { siteId, timeZone, publishTime, vetoHours } : null };
+  return { siteId, publishDate, hour: new Date(hour), site: clocked ? { siteId, timeZone, publishTime, vetoHours } : null, again: again === true };
 }
 
 /** The event a due day is sent as: the site's clock rides along, so its run can check the publish time. */
-export function dayEvent(site: Site, day: { publishDate: string; hour: Date }) {
+export function dayEvent(site: Site, day: { publishDate: string; hour: Date; again?: true }) {
+  // A day decided again is a delivery of its own: the first one's key is still held by the platform.
   return {
-    key: `draft:${site.siteId}:${day.publishDate}`,
-    data: { siteId: site.siteId, publishDate: day.publishDate, hour: day.hour.toISOString(), timeZone: site.timeZone, publishTime: site.publishTime, vetoHours: site.vetoHours },
+    key: `draft:${site.siteId}:${day.publishDate}${day.again ? ":again" : ""}`,
+    data: { siteId: site.siteId, publishDate: day.publishDate, hour: day.hour.toISOString(), timeZone: site.timeZone, publishTime: site.publishTime, vetoHours: site.vetoHours, ...(day.again ? { again: true } : {}) },
   };
 }
 
@@ -85,7 +86,9 @@ export function dayEvent(site: Site, day: { publishDate: string; hour: Date }) {
  *  the event names, so a queued or caught-up run still ends it at or
  *  before the publish time. */
 async function draftSite(input: JobInput): Promise<Outcome> {
-  const { siteId, publishDate, hour, site } = siteDay(input.data);
+  const { siteId, publishDate, hour, site, again } = siteDay(input.data);
+  // Decided again, the day keeps the moment it was, so the same weekly commit never asks for it a third time.
+  const at = again ? input.now : hour;
   const step = input.step ?? ((_name, body) => body());
   try {
     // BUILD §9's one mail per breakage, before the page this site's broken
@@ -93,19 +96,19 @@ async function draftSite(input: JobInput): Promise<Outcome> {
     // generation that falls over must not also cost the customer the only
     // telling they get that their pages are going nowhere.
     await step("notice", () => noticeBrokenDestination({ siteId, now: input.now }));
-    const result = await generateDraft({ siteId, publishDate, now: hour, ...(input.step === undefined ? {} : { step: input.step }) });
+    const result = await generateDraft({ siteId, publishDate, now: hour, again, ...(input.step === undefined ? {} : { step: input.step }) });
     // Issue 1455: the day keeps its reason after the next tick has run.
     await recordDraftDay(
       "degraded" in result
-        ? { siteId, publishDate, outcome: "no_page", reason: result.degraded, at: hour }
-        : { siteId, publishDate, outcome: "drafted", reason: result.instead ?? null, at: hour }
+        ? { siteId, publishDate, outcome: "no_page", reason: result.degraded, at }
+        : { siteId, publishDate, outcome: "drafted", reason: result.instead ?? null, at }
     );
     // Last, so a page the recheck rescued or the review let through is seen and nothing it covered is mailed.
     if (site !== null) await step("alert", () => alertSiteDay({ site, hour }));
     return "degraded" in result ? { outcome: "degraded", subjectId: siteId, step: result.degraded } : { outcome: "ran", subjectId: siteId };
   } catch (error) {
     const reason = error instanceof Error ? error.name : "unknown";
-    await recordDraftDay({ siteId, publishDate, outcome: "failed", reason, at: hour });
+    await recordDraftDay({ siteId, publishDate, outcome: "failed", reason, at });
     throw error;
   }
 }

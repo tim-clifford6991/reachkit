@@ -58,8 +58,10 @@ export interface DraftDayStore {
   draftedBefore(siteId: string, publishDate: string): Promise<boolean>;
   /** The reason the date's due hour recorded, or `null`. */
   reasonOn(siteId: string, publishDate: string): Promise<string | null>;
-  /** Of these days, the ones whose due hour recorded how it ended. */
-  decidedOn(days: readonly DraftDay[]): Promise<readonly DraftDay[]>;
+  /** Of these days, the ones whose due hour recorded how it ended, with that ending (`outcome:reason`) and when. */
+  decidedOn(days: readonly DraftDay[]): Promise<readonly (DraftDay & { ended?: string; decidedAt?: string })[]>;
+  /** When the site's latest weekly pass that measured its week finished, or `null`; absent, no day is decided again. */
+  committedAt?(siteId: string): Promise<string | null>;
   domainOf(siteId: string): Promise<string | null>;
   /** Marks the date told about once; true only for the caller that made the claim and sends the mail. */
   claimMissingAlert(siteId: string, publishDate: string, at: Date): Promise<boolean>;
@@ -122,17 +124,23 @@ export async function dayHold(siteId: string, publishDate: string): Promise<stri
   }
 }
 
-/** The owed days no due hour recorded (a missed tick, or a run killed first); a first day was not owed. An unreadable
- *  store gives none, and the next tick asks again. Never throws. */
-export async function missedDays<T extends DraftDay>(days: readonly T[]): Promise<readonly T[]> {
+/** The owed days no due hour recorded (a missed tick, or a run killed first); a first day was not owed. And, `again`,
+ *  a day the generator left with no page before a newer weekly commit, decided once more against that week. An
+ *  unreadable store gives none, and the next tick asks again. Never throws. */
+export async function missedDays<T extends DraftDay>(days: readonly T[]): Promise<readonly (T & { again?: true })[]> {
   if (days.length === 0) return [];
   try {
     const store = draftDays();
-    const decided = new Set((await store.decidedOn(days)).map((day) => `${day.siteId}/${day.publishDate}`));
-    const missed: T[] = [];
+    const decided = new Map((await store.decidedOn(days)).map((day) => [`${day.siteId}/${day.publishDate}`, day]));
+    const missed: (T & { again?: true })[] = [];
     for (const day of days) {
-      if (decided.has(`${day.siteId}/${day.publishDate}`)) continue;
-      if (await store.draftedBefore(day.siteId, day.publishDate)) missed.push(day);
+      const kept = decided.get(`${day.siteId}/${day.publishDate}`);
+      if (kept === undefined) {
+        if (await store.draftedBefore(day.siteId, day.publishDate)) missed.push(day);
+      } else if (kept.ended?.startsWith("no_page:generate:") && kept.decidedAt !== undefined) {
+        const committed = (await store.committedAt?.(day.siteId)) ?? null;
+        if (committed !== null && Date.parse(committed) > Date.parse(kept.decidedAt)) missed.push({ ...day, again: true });
+      }
     }
     return missed;
   } catch {
@@ -305,13 +313,31 @@ function databaseDraftDayStore(): DraftDayStore {
     },
     async decidedOn(days) {
       const { data, error } = await publishDb()
-        .from<{ site_id: string; publish_date: string }>("draft_days")
-        .select("site_id, publish_date")
+        .from<{ site_id: string; publish_date: string; outcome: string; reason: string | null; decided_at: string | null }>("draft_days")
+        .select("site_id, publish_date, outcome, reason, decided_at")
         .in("site_id", [...new Set(days.map((day) => day.siteId))])
         .in("publish_date", [...new Set(days.map((day) => day.publishDate))])
         .not("outcome", "is", null);
       if (error !== null) throw new Error(error.message);
-      return (data ?? []).map((row) => ({ siteId: row.site_id, publishDate: row.publish_date }));
+      return (data ?? []).map((row) => ({
+        siteId: row.site_id,
+        publishDate: row.publish_date,
+        ended: row.reason === null ? row.outcome : `${row.outcome}:${row.reason}`,
+        ...(row.decided_at === null ? {} : { decidedAt: row.decided_at }),
+      }));
+    },
+    async committedAt(siteId) {
+      const { data, error } = await publishDb()
+        .from<{ finished_at: string | null; created_at: string }>("scans")
+        .select("finished_at, created_at")
+        .eq("site_id", siteId)
+        .eq("tier", "weekly")
+        .in("status", ["done", "degraded"])
+        .order("created_at", { ascending: false })
+        .limit(1);
+      if (error !== null) throw new Error(error.message);
+      const row = data?.[0];
+      return row === undefined ? null : (row.finished_at ?? row.created_at);
     },
     async domainOf(siteId) {
       const { data, error } = await publishDb().from<{ domain: string }>("sites").select("domain").eq("id", siteId).limit(1);
