@@ -35,16 +35,12 @@ import type { StalledCount } from "@/lib/publish/record/stalled";
 export type CalendarSupplyNotice =
   | SupplyNotice
   | { kind: "unmeasured" }
-  | { kind: "measuring" }
-  /** Issue 881: the site holds targets and every one of them is outsized
-   *  for it today — neither a market used up nor one never measured. */
-  | { kind: "outsized" };
+  | { kind: "measuring" };
 
 export function supplyLine(notice: CalendarSupplyNotice | null, timeZone: string): string | null {
   if (notice === null) return null;
   if (notice.kind === "unmeasured") return writtenLine("calendar.supply.unmeasured");
   if (notice.kind === "measuring") return writtenLine("calendar.supply.measuring");
-  if (notice.kind === "outsized") return writtenLine("calendar.supply.outsized");
   if (notice.kind === "exhausted") {
     if (notice.since === null) return writtenLine("calendar.supply.exhausted.undated");
     return writtenLine("calendar.supply.exhausted", {

@@ -39,7 +39,7 @@ export {
 export { rankOpen } from "./rank/open";
 export { planLinkBacks, planMovedLinks, planRefreshes } from "./refresh";
 export { assessFixPages, fixPageReadiness, type FixDelivery } from "./fix-page";
-export { assessReadiness, eligible, ownRanksFrom, type ReadinessContext } from "./readiness";
+export { assessReadiness, eligible, type ReadinessContext } from "./readiness";
 export { clusterKey, collapse, comparePrecedence } from "./cluster";
 export { heldByVerdict, suppressionOf, type NotWorkingVerdict, type Suppression } from "./suppression";
 export {

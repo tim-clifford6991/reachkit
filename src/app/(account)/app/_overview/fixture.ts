@@ -156,7 +156,7 @@ export const FIXTURE_OVERVIEW_FACTS: OverviewFacts = Object.freeze({
     ]),
   }),
 
-  supply: Object.freeze({ exhausted: false, unmeasured: false, measuring: false, outsized: false, short: true, firstArrivalShortfall: false }),
+  supply: Object.freeze({ exhausted: false, unmeasured: false, measuring: false, short: true, firstArrivalShortfall: false }),
 
   // Two pages in review, and three checks on the customer's own site, so
   // the site-fix line is drawn and nothing needs the customer (board Main).

@@ -180,20 +180,8 @@ export function memoryStore(state: MemoryState): OpportunityStore {
     },
 
     async countUnused(siteId) {
-      // Issue 884: the stored answer alone — an outsized row is stored
-      // `ready: false`, so no second rule belongs here.
       return state.rows.filter(
         (row) => row.site_id === siteId && row.status === "open" && row.family !== "fix" && row.ready
-      ).length;
-    },
-
-    async countOutsized(siteId) {
-      return state.rows.filter(
-        (row) =>
-          row.site_id === siteId &&
-          row.status === "open" &&
-          row.family !== "fix" &&
-          row.fit_band === "not-yet"
       ).length;
     },
 

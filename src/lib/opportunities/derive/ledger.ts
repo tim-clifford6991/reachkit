@@ -35,10 +35,10 @@ export function ledgerSourceOf(topic: {
   return topic.source ?? "category";
 }
 
-/** A row a day may be written from: an open Write or Earn the fit judgement did not keep below the top. */
+/** A row a day may be written from: an open Write or Earn at or above readiness's fit floor. */
 export function writable(row: Pick<Opportunity, "family" | "status" | "businessFit">): boolean {
   const fit = row.businessFit ?? null;
-  return (row.family === "write" || row.family === "earn") && row.status === "open" && (fit === null || fit >= TOPIC_FIT.writeAt);
+  return (row.family === "write" || row.family === "earn") && row.status === "open" && (fit === null || fit >= TOPIC_FIT.gate);
 }
 
 /** Pure. `stages` lists each topic's class at every stage it reached; `rows` is what the site holds after the pass. */

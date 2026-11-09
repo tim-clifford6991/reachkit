@@ -310,33 +310,11 @@ export type Acceptance =
 export type Winnability = "winnable" | "reach" | "not-yet";
 
 /** The band a target outsized for this site carries (SPEC §6's right-sizing
- *  law). Named once, because three things read it: the ranking, which never
- *  offers one as the day's page; the supply count, which does not count one
- *  as a day of pages; and the cluster collapse, where a right-sized
- *  candidate takes the place of one already on file (issue 881). */
+ *  law). It holds nothing: the ranking scores it lower (`rank/points.ts`),
+ *  and the cluster collapse keeps a right-sized candidate over it (issue 881). */
 export const OUTSIZED: Winnability = "not-yet";
 
-/**
- * Whether a target may fill a publishing day at all (issue 881).
- *
- * SPEC §6's right-sizing law, as a predicate rather than a weight. It was a
- * weight — the band's fit weight was 0 for `not-yet` — and a weight does not bar anything:
- * on the owner's own site every candidate scored 0, the order was a tie,
- * the tie-break took the biggest keyword, and ReachKit wrote "best seo
- * software" (1 000/mo) for a site ranking for three. A zero multiplicand
- * orders; it does not exclude. This does.
- *
- * A `not-yet` row still stays on file: the site may grow into it, and the
- * next pass re-derives it with a band of its own. It is simply never the
- * day's page and never counted as a day of supply.
- *
- * **One home** (issue 884, owner's ruling 2026-09-18): this predicate is
- * read where readiness is *decided* — `readiness.ts`, which stores the
- * answer as `ready` / `unready_reason` — and nowhere at read time. The
- * ranking and the supply count read the stored column; a second filter over
- * `fit_band` in either of them is a second policy that can drift from it,
- * which is exactly what issue 881 had to patch in three places.
- */
+/** Whether a target is right-sized for the site today. */
 export function qualifiesForADay(fitBand: Winnability | null): boolean {
   return fitBand !== null && fitBand !== OUTSIZED;
 }
@@ -374,18 +352,10 @@ export type UnreadyReason =
    *  does not write to, or a topic one of the site's own pages already
    *  covers (#928). Absorbs `already_covered`. */
   | "destination_cannot_address"
-  /** The business is not the answer: a stored fit below the gate, or a fresh
-   *  top ten of another kind of business. */
+  /** The business is not the answer: a stored fit below the gate. */
   | "low_fit"
   /** The site's own measured pages ground no fact for this page. */
-  | "no_grounding_fact"
-  /** No demand of the kind its page needs (D60, issue 1506): no measured
-   *  volume and no tracked prompt near it, a comparison nobody was seen
-   *  asking, a keyword page below its gate, or a format page with no format
-   *  word. Absorbs `keyword_gate` and `format_not_allowed`. */
-  | "no_intent"
-  /** SPEC §6's right-sizing law: its band does not qualify it for a day. */
-  | "outsized";
+  | "no_grounding_fact";
 
 export const UNREADY_REASONS: readonly UnreadyReason[] = Object.freeze([
   "not_assessed",
@@ -393,8 +363,6 @@ export const UNREADY_REASONS: readonly UnreadyReason[] = Object.freeze([
   "destination_cannot_address",
   "low_fit",
   "no_grounding_fact",
-  "no_intent",
-  "outsized",
 ]);
 
 export interface Opportunity {
@@ -490,7 +458,7 @@ export type PlaceRule =
   | "linked by AI: one more in its cluster";
 
 /** One part of a row's points, as the plan stores it. */
-export type PointPart = "fit" | "demand" | "ai_gap" | "near_page_one" | "linked_by_ai" | "not_moving" | "new_site";
+export type PointPart = "fit" | "demand" | "ai_gap" | "near_page_one" | "linked_by_ai" | "not_moving" | "new_site" | "outsized" | "no_demand";
 
 /** `opportunities.plan_reason`: the points a committed row ranked by, the
  *  parts they sum from, and the rule that placed it. */
