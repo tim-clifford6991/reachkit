@@ -20,7 +20,6 @@ vi.mock("@/lib/mail/send", () => sendMock());
 
 const { provisionFromPayment } = await import("@/lib/account/provisioning/provision");
 const { registerSignInLinkIssuer } = await import("@/lib/account/provisioning/sign-in-link");
-const { registerDeepPassQueue } = await import("@/lib/account/provisioning/deep-pass");
 const { setStripe } = await import("@/lib/account/stripe/client");
 const { setAccountStore } = await import("@/lib/account/store");
 const { setLeadStore } = await import("@/lib/mail/leads/store");
@@ -31,7 +30,6 @@ const { newStripeDouble, stripeDouble } = await import("../stripe-double");
 let accounts = newMemoryAccounts();
 let vendor = newStripeDouble();
 let links = 0;
-let deepPasses = 0;
 
 function session(id: string, patch: Record<string, unknown> = {}) {
   return {
@@ -51,7 +49,6 @@ function session(id: string, patch: Record<string, unknown> = {}) {
 
 beforeEach(() => {
   links = 0;
-  deepPasses = 0;
   accounts = newMemoryAccounts();
   accounts.scans.set("scan-done", { status: "done", domain: "acme.example" });
   setAccountStore(memoryAccountStore(accounts));
@@ -68,26 +65,21 @@ beforeEach(() => {
     links += 1;
     return { issued: true, url: "https://reachkit.example/signin?t=tok", expiresAt: new Date() };
   });
-  registerDeepPassQueue(async () => {
-    deepPasses += 1;
-  });
 });
 
 afterEach(() => {
   registerSignInLinkIssuer(null);
-  registerDeepPassQueue(null);
   setLeadStore(null);
 });
 
 describe("replay — the same session delivered twice", () => {
-  it("leaves one account, one site, one link and one deep pass", async () => {
+  it("leaves one account, one site and one link", async () => {
     await provisionFromPayment("cs_one");
     const second = await provisionFromPayment("cs_one");
     expect(second).toMatchObject({ created: false, duplicate: "replay" });
     expect(accounts.users).toHaveLength(1);
     expect(accounts.sites).toHaveLength(1);
     expect(links).toBe(1);
-    expect(deepPasses).toBe(1);
   });
 
   it("sends no mail on the second delivery — nothing was bought twice", async () => {
@@ -136,13 +128,6 @@ describe("second purchase — a different session from an address that already h
     expect(sendCalls).toHaveLength(1);
     expect(sendCalls[0]).toMatchObject({ kind: "account", to: "founder@acme.example" });
     expect(links).toBe(linksBefore);
-  });
-
-  it("queues no deep pass", async () => {
-    await provisionFromPayment("cs_one");
-    const before = deepPasses;
-    await provisionFromPayment("cs_two");
-    expect(deepPasses).toBe(before);
   });
 
   it("recognises the address whatever its case — the unique index is over lower(email)", async () => {

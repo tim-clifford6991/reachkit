@@ -12,9 +12,9 @@ The code that reads each object is named beside it. Where this page and the code
 code is right. Bindings and who sets them are `docs/RUNBOOK.md` §3; the boot invariant that
 refuses a wrong price is §7, check 6.
 
-**Blocked by two things that are not Stripe's.** No mail leaves until the Resend sending domain is
-verified (#325), so the sign-in link at step 7 arrives nowhere before then; and the deep pass is
-queued through a port nothing registers yet (#422), so `queueDeepPass` answers `not_wired`.
+**Blocked by one thing that is not Stripe's.** No mail leaves until the Resend sending domain is
+verified (#325), so the sign-in link at step 7 arrives nowhere before then. Payment starts no deep
+pass; finishing setup does.
 
 ## 1. Turn test mode on
 

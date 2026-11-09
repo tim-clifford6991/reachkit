@@ -532,9 +532,7 @@ finished (`docs/stripe-setup.md`) and the Inngest app registered (above).
 
 **What starts it: completing setup, and nothing else.** `enqueueDeepPass`
 (`src/app/(account)/setup/_setup/store.ts`) sends `scan/run` with `tier: "deep"`. There is no
-second trigger — the port `src/lib/account/provisioning/deep-pass.ts` offers is registered by
-nothing, so the `queueDeepPass` call provisioning makes at payment answers `not_wired` and queues
-no pass.
+second trigger: payment provisioning queues no pass.
 
 **It runs once per site.** The event's `scanId` is `setup-{siteId}`, which is the job's idempotency
 key, so a second setup submit for the same site is deduplicated rather than run again. Running a

@@ -19,7 +19,6 @@ vi.mock("@/lib/mail/send", () => sendMock());
 
 const { backstopProvision } = await import("@/lib/account/provisioning/backstop");
 const { registerSignInLinkIssuer } = await import("@/lib/account/provisioning/sign-in-link");
-const { registerDeepPassQueue } = await import("@/lib/account/provisioning/deep-pass");
 const { setStripe } = await import("@/lib/account/stripe/client");
 const { setAccountStore } = await import("@/lib/account/store");
 const { setLeadStore } = await import("@/lib/mail/leads/store");
@@ -55,12 +54,10 @@ beforeEach(() => {
     links += 1;
     return { issued: true, url: "https://reachkit.example/signin?t=tok", expiresAt: new Date() };
   });
-  registerDeepPassQueue(async () => {});
 });
 
 afterEach(() => {
   registerSignInLinkIssuer(null);
-  registerDeepPassQueue(null);
   setLeadStore(null);
 });
 

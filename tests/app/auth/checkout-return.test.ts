@@ -27,7 +27,6 @@ const { setStripe } = await import("../../../src/lib/account/stripe/client");
 const { newStripeDouble, stripeDouble, stripeErrors } = await import("../../account/stripe-double");
 const { setLeadStore } = await import("../../../src/lib/mail/leads/store");
 const { memoryStore, newMemoryState } = await import("../../mail/leads/memory-store");
-const { registerDeepPassQueue } = await import("../../../src/lib/account/provisioning/deep-pass");
 const { registerSignInLinkIssuer } = await import("../../../src/lib/account/provisioning/sign-in-link");
 const { wireSignInLinkIssuer, unwireSignInLinkIssuer } = await import(
   "../../../src/lib/account/identity/wire"
@@ -69,14 +68,12 @@ beforeEach(() => {
   setStripe(stripeDouble(vendor));
   sendCalls.length = 0;
   sendOutcome.next = { sent: true, id: "vendor-1" };
-  registerDeepPassQueue(async () => undefined);
   wireSignInLinkIssuer();
   addAccount(identity, { id: "user-1", email: EMAIL });
   addAuthUser(auth, { id: "user-1", email: EMAIL });
 });
 
 afterEach(() => {
-  registerDeepPassQueue(null);
   registerSignInLinkIssuer(null);
   unwireSignInLinkIssuer();
   setLeadStore(null);
