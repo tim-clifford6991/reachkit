@@ -13,7 +13,7 @@
 //   2. who gets your buyers — two equal cards, side by side, AI · Google,
 //      each with its figure and a waffle of who was named. Each card's
 //      list is closed under the list's own name.
-//   3. pricing card — the offer.
+//   3. the top one or two fixes, open, then the pricing card — the offer.
 //   4. three problem cards and the eight checks, closed.
 //   5. three DIY collapses.
 //   6. free page card, closed.
@@ -42,7 +42,7 @@ import { beatsOf } from "@/lib/opportunities/free-page";
 import { FreePageAbsent, FreePageCard } from "../_modules/free-page";
 import { PricingCard } from "../_modules/pricing";
 import { MissingPagesList } from "../_modules/missing-pages";
-import { CheckCards, fixesOf, ProblemCards } from "../_problems/cards";
+import { CheckCards, fixesOf, problemFailed, ProblemCards } from "../_problems/cards";
 import { reportChecksOf } from "../_problems/checks";
 import { MethodSections } from "../_problems/method";
 import { answerReadersOf, cardsOf, missingPagesOf, PROBLEM_ORDER, type MissingPage, type ProblemCard, type ProblemName } from "../_problems/model";
@@ -467,7 +467,9 @@ export function ReportView(p: {
   const measurement = stands ? measurementLine(report) : null;
   const rescored = rescoredOf(report);
   const cards = cardsOf(report, unblockLines(report.blockedAgents));
-  const fixes = fixesOf(cards, reportChecksOf(report));
+  // The first one or two found problems, in the cards' own order, stand open above the price.
+  const top = cards.filter(problemFailed).slice(0, 2);
+  const fixes = fixesOf(cards.filter((card) => !top.includes(card)), reportChecksOf(report));
   const cutOff = cutByCeiling(report);
   const aiAnswers = stands ? report.aiAnswers : null;
   const presence = stands ? report.presence : null;
@@ -491,25 +493,7 @@ export function ReportView(p: {
         wide: { kind: "same-as-below" },
       }}
     >
-      {/* 2026-09-07, issue #241: the arm draws the columns. This screen
-          declares `medium: columns:2`, and until `surface.css` existed that
-          declaration rendered nothing — so the two-up rows carried their own
-          `lg:grid-cols-2`, the same 1024px boundary written a second time,
-          and the column's own width and air were three raw values
-          (`max-w-[1060px]`, `mx-auto`, `p-6`) beside the two ruled measures.
-          All of it is the container's now: `--w-wide` 1216px is
-          `design/tokens.md` §2b's "multi-column content column — the public
-          report's six modules", which is this screen by name.
-
-          `<main>` stays the landmark and spans the arm's tracks, and
-          `grid-cols-subgrid` puts the rows below on *those* tracks rather
-          than on a second set of its own: the two-up cards take one track
-          each, and a row that spans the screen says so once, in
-          `col-span-full`. At compact the grid is one column and every span
-          is a no-op. `display: contents` would read the same and is wrong
-          here — an element with no box has no border box for conformance
-          check 2 to contain its children in, so every row reported as
-          escaping. */}
+      {/* `<main>` spans the arm's tracks and its rows sit on them by `grid-cols-subgrid`; `contents` would leave no border box for the overflow check. */}
       {/* The rows stretch (#1068, the calm layer's "cards in a row stretch
           to one height"): the AI-answers and Google-search cards stand at
           one height. It was `items-start` (#244), because daisyUI's
@@ -572,6 +556,12 @@ export function ReportView(p: {
           )}
         </BuyersSection>
 
+        {top.length === 0 ? null : (
+          <section className="col-span-full flex min-w-0 flex-col gap-3" data-testid="report-top-fixes">
+            <h2 className="text-xl font-bold">{copy("problem.top.title")}</h2>
+            <ProblemCards cards={top} firstPage={report.freePage !== null} />
+          </section>
+        )}
         {/* SPEC §2 (owner, 2026-10-07, issue 1328): the offer is the fourth
             thing on the report, under the score and the two results, and
             everything longer opens from below it. Issue #785: Start buys
