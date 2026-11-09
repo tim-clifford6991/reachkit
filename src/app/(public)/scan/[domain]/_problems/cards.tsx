@@ -152,7 +152,7 @@ function ProblemCardView(p: { card: ProblemCard; firstPage: boolean }): React.JS
 }
 
 /** A problem the scan measured and found: the only kind that carries a fix. */
-function problemFailed(card: ProblemCard): boolean {
+export function problemFailed(card: ProblemCard): boolean {
   return card.fix.kind === "paste" || card.fix.kind === "we_write" || card.fix.kind === "we_rewrite";
 }
 
