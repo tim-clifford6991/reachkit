@@ -1,17 +1,17 @@
 ---
 name: weekly-review
-description: ReachKit's one scheduled weekly review (PROCESS.md › Never, C7). Reads code, CI and production read-only through five lenses (bloat, production health, SEO, dependencies, flaky tests), classifies each finding under Coherence, files at most five unready issues, and republishes the pinned "ReachKit this week" page. Use when the rk-weekly timer starts a run, or when asked for the weekly review or its dry run.
+description: ReachKit's one scheduled weekly review (PROCESS.md › Never, C7). Reports the six ideas as measured outcomes, reads code, CI and production read-only through five lenses (bloat, production health, SEO, dependencies, flaky tests), classifies each finding under Coherence, files at most five unready issues (at most one of them a deletion), and republishes the pinned "ReachKit this week" page. Use when the rk-weekly timer starts a run, or when asked for the weekly review or its dry run.
 ---
 
 # Weekly review
 
-One run a week. It reads, it classifies, it files at most five issues, it republishes one page. Then it stops.
+One run a week. It measures, it reads, it classifies, it files at most five issues, it republishes one page. Then it stops.
 
 ## Rules (each one ends the run if it would be broken)
 
 - **Read-only.** Never edit, commit, push, merge or deploy. Never run a migration, `redeploy.sh`, `smoke.sh`, or a command that writes to production. The only file written is under `.review/weekly/` (ignored by git).
 - **0¢.** No paid vendor or model API call. Never run `npm run panel` (other than `--recheck`), `scripts/page.mjs`, `pass.mjs`, `free-scan.mjs`, `eval-content.mjs`, `d19-cost.mjs`, `market-inference.mjs`, or `npm run costs` without `--stored`. Do not use DataForSEO, Anthropic, Resend or Stripe. The run's own model use is the box's Claude subscription; `ANTHROPIC_API_KEY` is unset by the wrapper (README).
-- **At most five issues**, every one labelled `from-weekly` and none Ready. The orchestrator classifies them; this run never starts an engineer.
+- **At most five issues**, every one labelled `from-weekly` and none Ready. At most one of them is a deletion issue (§0). The orchestrator classifies them; this run never starts an engineer.
 - **Not measured is never shown as 0.** A source that cannot be read is written as not read, with why.
 - **Every customer.** A finding is a general condition that holds for SaaS and local sites alike, never a tune for reachkit.app.
 
@@ -21,6 +21,12 @@ One run a week. It reads, it classifies, it files at most five issues, it republ
 - live (the timer): as above, then file, comment and republish.
 
 Read `date -u +%F` (DAY) and `date -u -d '7 days ago' +%F` (SINCE) once and write both as literal dates in every later command: the wrapper allows each command only exactly as this page writes it, with no other option, shell expansion or redirection. Write files with the Write tool. Work from `/root/projects/reachkit` after `git fetch -q origin`; read `origin/main`, never change the checkout.
+
+## 0. Outcomes
+
+`node scripts/outcomes.mjs --since SINCE --day DAY` prints the six outcomes over SINCE to DAY, each from one fixed SELECT in that script: free scans finished and report mails sent, checkout → setup, setup → first page in 24 h, days delivered per paid site, sign-in → app, and CPU per site per day. It takes no SQL and opens a read-only session as the read-only role (`READONLY_DATABASE_URL`). The Supabase connector is not given to the run. Copy its table into the report as printed: a `not measured` row stays not measured, never 0.
+
+Its last line names the worst measured rate and its SPEC section. Give that line to an `architect` subagent: it names the rule row in that section most tied to the outcome, and the lines its deletion would remove. That is the week's one deletion candidate, filed with `--label from-weekly --label simplify`; the architect owns deletion, and it is never Ready. It counts within the five. `Worst: none` files no deletion issue.
 
 ## 1. Five lenses
 
@@ -77,4 +83,4 @@ Run it after filing, so Found holds this week's issues. Live: the page is the pi
 
 ## 4. Report
 
-Write `.review/weekly/DAY.md`: the mode, each lens's findings with evidence (or "not read: why"), the classification of each, what was filed or commented (live) or would be (dry run), and what was left out over the cap. Print its path and stop.
+Write `.review/weekly/DAY.md`: the mode, the six outcomes and the deletion candidate (or none), each lens's findings with evidence (or "not read: why"), the classification of each, what was filed or commented (live) or would be (dry run), and what was left out over the cap. Print its path and stop.
