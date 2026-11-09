@@ -12,7 +12,7 @@ import { checkProse } from "../../../src/lib/generate/rules/prose";
 import { setGenerateStore } from "../../../src/lib/generate/store";
 import { FACTS, SITE_ID, emptyComparison, fakeCost, memoryStore, opportunity, pack } from "../fixtures";
 
-const STORED = new URL("../../../docs/walk/prose-gate/", import.meta.url);
+const STORED = new URL("../../../tests/fixtures/walk/prose-gate/", import.meta.url);
 const failedRules = (outcome: BatteryOutcome): string[] => outcome.failed.map((failure) => failure.rule).sort();
 
 beforeEach(() => setGenerateStore(memoryStore()));

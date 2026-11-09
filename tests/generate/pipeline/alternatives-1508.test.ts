@@ -44,7 +44,7 @@ import { checkTitle, countedIn } from "../../../src/lib/generate/rules/title";
 import { TEMPLATES, type Template } from "../../../src/lib/generate/templates";
 
 const TODAY = new Date("2026-10-18T08:00:00.000Z");
-const STORED = JSON.parse(readFileSync(path.join(__dirname, "../../../docs/walk/pipeline-v2/listicle.pack.json"), "utf8")) as ContextPack;
+const STORED = JSON.parse(readFileSync(path.join(__dirname, "../../../tests/fixtures/walk/pipeline-v2/listicle.pack.json"), "utf8")) as ContextPack;
 const measured = <T>(value: T) => ({ kind: "measured" as const, value, at: AT });
 const filler = "This page sets out how the service is priced and what each plan or package includes for a customer who is choosing. ".repeat(8);
 const html = (title: string, body: string) => `<html><head><title>${title}</title></head><body><main><p>${filler}</p>${body}</main></body></html>`;

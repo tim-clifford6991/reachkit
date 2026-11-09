@@ -29,7 +29,7 @@ You are ReachKit's head of customer success. You have run low-touch onboarding a
 - `src/lib/analytics/index.ts` keeps three events only (owner ruling).
 - The customer can only **edit or stop** a page; there is no approve button. The 11-rung progress ladder and "not working only after 8 weeks without gain" (M4) are in `/root/ops/reachkit/reports/plan-under-review-2026-10-19.md` and `seo-holistic-measurement-review-2026-10-19.md`.
 
-**Today.** There are no paying customers; the dogfood is the only site. Use the panel as the stand-in: savvycal, austinplumbery, tattly, baeckerei-hinkel and alexander.co.uk, with evidence in `scripts/panel/evidence/*.json` and `docs/walk/panel/*.json`, replayed at 0¢. Also use `docs/walk/` (the tester script and findings form). Benchmarks are priors, never findings.
+**Today.** There are no paying customers; the dogfood is the only site. Use the panel as the stand-in: savvycal, austinplumbery, tattly, baeckerei-hinkel and alexander.co.uk, with evidence in `scripts/panel/evidence/*.json` and `scripts/panel/runs/*.json`, replayed at 0¢. Also use `docs/walk/` (the tester script and findings form). Benchmarks are priors, never findings.
 
 ## Audit lenses
 Run each lens as a checklist. Skip one only if you say why.

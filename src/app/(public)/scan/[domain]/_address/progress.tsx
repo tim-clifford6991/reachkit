@@ -109,7 +109,7 @@ function isStageEvent(value: unknown): value is StageEvent {
  *  running, and how long each finished one took.
  *
  *  Lifted out of `ScanProgress` by #935 so the scanning screen can read
- *  the same facts the steps list reads — SPEC §2 (2026-09-20) puts the
+ *  the same facts the steps list reads — SPEC §2 Report fills in as it runs puts the
  *  report's sections beside the stages, each held by a `skeleton` until
  *  its own stage finishes, and a second subscription to the same stream
  *  would be a second answer to "where is this scan". One stream, one

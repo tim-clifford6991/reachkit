@@ -17,8 +17,9 @@
 // It runs live, up to `--cap-cents` (default 100) for the whole panel, and
 // writes each paid call to the box's spend log (D57). It prints each site's
 // checks as pass, FAIL or review, and writes the run to
-// `docs/walk/panel/<date>.json` and `<date>.md`. It exits 0 only when every
-// site ran and no check failed. `--continue` keeps the sites that date's
+// `.review/walk/panel/<date>.json` and `<date>.md`; `--recheck` reads the kept
+// runs in `scripts/panel/runs/`. It exits 0 only when every site ran and no
+// check failed. `--continue` keeps the sites that date's
 // run already holds and counts their spend against the cap.
 //
 // # What it runs against

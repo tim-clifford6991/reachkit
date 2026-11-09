@@ -1,4 +1,4 @@
-// SPEC §2 2026-10-10 (issue 1377) — a placeholder is never a category where
+// SPEC §2 A placeholder names nothing — a placeholder is never a category where
 // the market inference answers one: the free scan's profile and the deep
 // pass's market call. gusto.com's scan stored `<UNKNOWN>`. `llm()` is stubbed.
 import "../../generate/env";

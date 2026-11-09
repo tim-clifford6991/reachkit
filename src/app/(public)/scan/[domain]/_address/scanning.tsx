@@ -2,7 +2,7 @@
 // site's mark, the stages with what each finds out, and the report's own
 // cards beside them, each held by a skeleton until it arrives.
 //
-// SPEC §2, 2026-09-20: named stages with elapsed times, no spinner, %, or
+// SPEC §2 Report fills in as it runs: named stages with elapsed times, no spinner, %, or
 // countdown, and each report section in place from the first frame, a
 // daisyUI `skeleton` holding it. No full-page wait.
 //

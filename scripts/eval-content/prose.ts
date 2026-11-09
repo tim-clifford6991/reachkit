@@ -9,9 +9,9 @@
 //      only the counts are committed.
 //   2. **Stored pages** — what the product wrote before the check: the live
 //      pages of reachkit.app as they stood on 2026-10-10 (`prose/live/`), the
-//      seven pages of `docs/walk/pipeline-v2/` and the twelve stored drafts.
-//   3. **Pages written since** — `docs/walk/prose-gate/`, where a run of
-//      `--prose --write` keeps them (see `./prose-write.ts`).
+//      seven pages of `tests/fixtures/walk/pipeline-v2/` and the twelve stored drafts.
+//   3. **Pages written since** — `tests/fixtures/walk/prose-gate/`, the kept
+//      pages of earlier `--prose --write` runs (see `./prose-write.ts`).
 //
 // The thresholds in `PROSE` are read against set 1: a count a human page
 // reaches is not a fault. The one committed output is
@@ -156,10 +156,10 @@ export async function main(options: ProseOptions): Promise<number> {
   }
   const stored: Scored[] = [
     ...(await each(markdownIn(path.join(options.root, "scripts/eval-content/prose/live")), (page) => scored("stored", `live: ${page.name}`, page.markdown))),
-    ...(await each(markdownIn(path.join(options.root, "docs/walk/pipeline-v2")), (page) => scored("stored", `pipeline-v2: ${page.name}`, page.markdown))),
+    ...(await each(markdownIn(path.join(options.root, "tests/fixtures/walk/pipeline-v2")), (page) => scored("stored", `pipeline-v2: ${page.name}`, page.markdown))),
     ...(await each(markdownIn(path.join(options.root, "scripts/eval-content/stored-drafts/reachkit.app")), (page) => scored("stored", `stored draft ${page.name}`, page.markdown))),
   ];
-  const fresh: Scored[] = await each(markdownIn(path.join(options.root, "docs/walk/prose-gate")), (page) =>
+  const fresh: Scored[] = await each(markdownIn(path.join(options.root, "tests/fixtures/walk/prose-gate")), (page) =>
     scored("new", page.name, page.markdown, page.name.endsWith(".de") ? "de" : "en")
   );
 

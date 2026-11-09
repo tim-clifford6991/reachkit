@@ -45,9 +45,9 @@ function dogfood(id: string): [DraftRow, RecheckWorld] {
   return replayed(row, { domain: "reachkit.app", doNotClaim: [], rivals: p.business.rivals ?? [] }, [row.grounded_fact as Fact, ...p.facts], "comparison_page");
 }
 
-/** A panel page the pipeline wrote (`docs/walk/prose-gate/`), stored as a page the rules stopped after its fix call. */
+/** A panel page the pipeline wrote (`tests/fixtures/walk/prose-gate/`), stored as a page the rules stopped after its fix call. */
 function panel(domain: string): [DraftRow, RecheckWorld] {
-  const stored = new URL(`../../../docs/walk/prose-gate/${domain}`, import.meta.url).pathname;
+  const stored = new URL(`../../../tests/fixtures/walk/prose-gate/${domain}`, import.meta.url).pathname;
   const [heading, ...body] = readFileSync(`${stored}.md`, "utf8").trimEnd().split("\n");
   const p = JSON.parse(readFileSync(`${stored}.pack.json`, "utf8")) as ContextPack;
   const headings = body.flatMap((line) => (line.startsWith("## ") ? [line.slice(3)] : []));

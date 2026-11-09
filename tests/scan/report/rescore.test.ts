@@ -209,7 +209,7 @@ describe("the network, while a scan is scored", () => {
 });
 
 describe("streaksapp.com's rivals of 13 October (issue 1417), read again from what the pass stored", () => {
-  const run = read("../../../docs/walk/panel/2026-10-13-1414.json") as {
+  const run = read("../../../scripts/panel/runs/2026-10-13-1414.json") as {
     sites: { site: { domain: string }; market: { rivals: RivalConclusion[] } }[];
   };
   const stored = run.sites.find((s) => s.site.domain === "streaksapp.com")!.market.rivals;

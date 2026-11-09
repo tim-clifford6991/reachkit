@@ -9,7 +9,7 @@ import { TEMPLATES } from "../../src/lib/generate/templates";
 import { VOICE } from "../../src/lib/config/constants";
 
 // Buyer questions in the shape the customer panel asked them (a local
-// plumber and a B2B scheduling SaaS; `docs/walk/panel/`).
+// plumber and a B2B scheduling SaaS; `scripts/panel/runs/`).
 const PANEL = {
   local: [
     "Which plumber in Austin can help the same day in an emergency?",

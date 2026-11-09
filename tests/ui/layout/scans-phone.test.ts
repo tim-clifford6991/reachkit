@@ -1,4 +1,4 @@
-// tests/ui/layout/scans-phone.test.ts — SPEC §2 2026-10-10 (owner, issue 1377)
+// tests/ui/layout/scans-phone.test.ts — SPEC §2 Gallery board
 //
 // On a phone `/scans` shows scan cards, on load and while scrolling. The
 // sticky toolbar's chips wrapped, so production's fifty categories made it

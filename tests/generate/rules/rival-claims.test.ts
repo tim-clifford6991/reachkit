@@ -18,7 +18,7 @@ import { checkRivalNegative, checkRivalScope, type NamedRival } from "../../../s
 
 const TODAY = new Date("2026-10-17T00:00:00Z");
 const STORED = JSON.parse(
-  readFileSync(path.join(__dirname, "../../../docs/walk/pipeline-v2/listicle.pack.json"), "utf8")
+  readFileSync(path.join(__dirname, "../../../tests/fixtures/walk/pipeline-v2/listicle.pack.json"), "utf8")
 ) as ContextPack;
 
 interface Case {

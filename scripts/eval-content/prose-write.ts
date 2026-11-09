@@ -14,7 +14,7 @@
 // # What it is written from
 //
 // A proof pack, built here and at no cost: the site's name, market and
-// measured searches from its latest stored panel run (`docs/walk/panel/`),
+// measured searches from its latest stored panel run (`scripts/panel/runs/`),
 // where it has one; sentences read off the site's own pages by a plain GET,
 // as the pack's business facts; and its searches worded as questions, the
 // way a related search is (`templateQuestion`). No search is bought.
@@ -85,7 +85,7 @@ const FACTS_MAX = 30;
 
 /** The site's latest stored panel run, or `null` where no run holds it. */
 function panelRun(root: string, domain: string): PanelSite | null {
-  const dir = path.join(root, "docs/walk/panel");
+  const dir = path.join(root, "scripts/panel/runs");
   for (const file of readdirSync(dir).filter((name) => /^\d{4}-\d{2}-\d{2}.*\.json$/.test(name)).sort().reverse()) {
     const run = JSON.parse(readFileSync(path.join(dir, file), "utf8")) as { sites?: PanelSite[] };
     const held = run.sites?.find((site) => site.site.domain === domain && site.market?.category !== undefined);
@@ -195,7 +195,7 @@ async function checked(parts: PageParts, pack: ContextPack): Promise<Checked> {
 export async function main(options: WriteOptions): Promise<number> {
   const all = (JSON.parse(readFileSync(path.join(options.root, "scripts/eval-content/prose/proof-sites.json"), "utf8")) as { sites: ProofSite[] }).sites;
   const sites = options.sites.length === 0 ? all : all.filter((site) => options.sites.includes(site.domain));
-  const outDir = path.join(options.root, "docs/walk/prose-gate");
+  const outDir = path.join(options.root, ".review/walk/prose-gate");
   mkdirSync(outDir, { recursive: true });
   const ledger = proofLedger(options.capCents, 0, "prose-proof");
   const runFile = path.join(outDir, "run.json");
@@ -256,9 +256,9 @@ export async function main(options: WriteOptions): Promise<number> {
 }
 
 /** reachkit.app's stored pages against pages written now from the same
- *  stored packs (`docs/walk/pipeline-v2/`), read blind, in pairs. */
+ *  stored packs (`tests/fixtures/walk/pipeline-v2/`), read blind, in pairs. */
 async function judgeStored(options: WriteOptions, ledger: ReturnType<typeof proofLedger>, outDir: string): Promise<void> {
-  const from = path.join(options.root, "docs/walk/pipeline-v2");
+  const from = path.join(options.root, "tests/fixtures/walk/pipeline-v2");
   const verdicts: Record<string, unknown>[] = [];
   let judged = 0;
   const spend: JudgeSpend = {

@@ -1,4 +1,4 @@
-// SPEC.md §2 (2026-09-24, #1058) — the one logo the free scan keeps per site.
+// SPEC.md §2 Logo route — the one logo the free scan keeps per site.
 // src/lib/site-profile/logo.ts — issue #1069
 //
 // The gallery at `/scans` and the landing's strip draw each scanned site by

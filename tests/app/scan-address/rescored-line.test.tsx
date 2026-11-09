@@ -11,7 +11,7 @@ type Blob = Record<string, unknown> & { verdict: Record<string, unknown> };
 
 function storedBlob(which: keyof typeof PANEL): Blob {
   const { walk, domain } = PANEL[which];
-  const file = path.resolve(import.meta.dirname, `../../../docs/walk/free/${walk}.json`);
+  const file = path.resolve(import.meta.dirname, `../../../tests/fixtures/walk/free/${walk}.json`);
   const sites = (JSON.parse(readFileSync(file, "utf8")) as { sites: { domain: string; stored: { scan: { report: Blob } } | null }[] }).sites;
   return structuredClone(sites.find((s) => s.domain === domain && s.stored !== null)!.stored!.scan.report);
 }

@@ -70,7 +70,7 @@ export const PUBLIC_ROUTE_SEO = Object.freeze({
     indexable: true,
     vars: { weekPages: String(WEEK_PLAN.days) },
   },
-  // SPEC §2 2026-09-24 (#1058): the gallery is indexed — canonical and a
+  // SPEC §2 Gallery lists every report: the gallery is indexed — canonical and a
   // sitemap entry for `/scans` itself — while every report it links to
   // stays `noindex` and out of the sitemap (the `report` row below).
   scans: {
