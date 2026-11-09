@@ -1,5 +1,5 @@
 /** @vitest-environment jsdom */
-// Settings went from seven tabs to three (owner R7, docs/spec/decisions/2026-11-03-2127.md). Every old card and
+// Settings went from seven tabs to three (`docs/SPEC.md §4 Settings has three tabs`). Every old card and
 // every settable field is drawn on exactly one of the three, every retired address answers 308 to the card that
 // took it in, Facts we can quote moved to the live page's detail, no stored voice value is rewritten, and each tab
 // carries its amended board's words. Rendered for the account the layout sweep reads.

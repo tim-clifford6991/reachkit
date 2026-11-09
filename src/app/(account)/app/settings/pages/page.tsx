@@ -1,4 +1,4 @@
-// SPEC §4, owner R7 (docs/spec/decisions/2026-11-03-2127.md): Settings › Pages, at `/app/settings/pages`, in board
+// `docs/SPEC.md §4 Settings has three tabs`: Settings › Pages, at `/app/settings/pages`, in board
 // SettingsPublishing's order: where and when pages go, which pages they link, the mail about them, and what the
 // writer already knows about. Each section is its own boundary over its own reads, so one slow read leaves only
 // its section on the plain line.

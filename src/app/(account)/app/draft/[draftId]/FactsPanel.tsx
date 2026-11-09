@@ -1,5 +1,5 @@
 // SPEC §7 (2026-09-20, #908) · issue #926 — the facts ReachKit may quote, on the live page's detail beside
-// what the page says (owner R7, docs/spec/decisions/2026-11-03-2127.md).
+// what the page says (`docs/SPEC.md §4 Your business`).
 //
 // #926: "Facts we can quote: the grounding passages
 // (`src/lib/generate/pipeline/grounding.ts`) with source page and how many

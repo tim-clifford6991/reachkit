@@ -1,4 +1,4 @@
-// SPEC §4, owner R7 (2026-10-31, docs/spec/decisions/2026-11-03-2127.md): Settings' three tabs, as one tuple.
+// `docs/SPEC.md §4 Settings has three tabs`: Settings' three tabs, as one tuple.
 //
 // The tuple is the set and both maps are keyed by it, so a fourth tab is a compile error here rather than a link
 // with no address or an address with no name. Your business is `/app/settings` itself, the menu's own link.
