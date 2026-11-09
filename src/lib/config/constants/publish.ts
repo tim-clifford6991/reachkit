@@ -311,6 +311,8 @@ export const PREVIEW_HOST_SUFFIX = "reachkit.app" as const;   // BUILD §9
  *  same reason `PUBLISH_VERIFY_DELAY_H` is its own constant beside
  *  `DAILY_WINDOW_H`. */
 export const HOSTED_GONE_STATUS = 410 as const;               // BUILD §9
+/** A hosted host whose rows could not be read: nothing served, and crawlers retry a 503 where they drop a 4xx. */
+export const HOSTED_UNAVAILABLE_INIT = { status: 503, headers: { "Cache-Control": "no-store", "Retry-After": "120" } };
 
 // ── The Markdown renderer — BUILD §9 · §4.6
 /**

@@ -28,9 +28,10 @@
 // mutation anywhere under `src/app/(hosted)/`, so no crawler and no visitor
 // can advance §9's state machine by fetching a page.
 //
-// **It fails closed.** A lookup that errors resolves to `unknown`: serving
-// a page we could not confirm belongs to this host is the one failure that
-// matters here, and 404 is the safe direction.
+// **It fails closed, and says so.** A lookup that errors resolves to
+// `unavailable`, which serves nothing and answers 503: a 404 or a 410 is a
+// claim about the address that a failed read cannot make, and crawlers drop
+// a 4xx from the index where they retry a 5xx.
 //
 // The archived plan is WO-229. Two departures from it, both forced and both
 // stated: the cache tags live in `@/lib/publish/destinations/hosted`
@@ -39,7 +40,7 @@
 // is produced by the page route rather than here, because whether a *page*
 // was taken down is not a fact about a *host* — the disposition is shared
 // so that all three reasons still yield one `gone` response and not three.
-import { PREVIEW_HOST_SUFFIX, HOSTED_SUBDOMAIN_LABEL } from "@/lib/config/constants";
+import { PREVIEW_HOST_SUFFIX, HOSTED_SUBDOMAIN_LABEL, HOSTED_UNAVAILABLE_INIT } from "@/lib/config/constants";
 import { env } from "@/lib/config/env";
 import { hostedServingState } from "@/lib/account/billing";
 import { hostedSiteForDomain, hostedSiteForHostname } from "@/lib/publish/destinations/hosted";
@@ -50,7 +51,12 @@ export type HostDisposition =
   | { kind: "site"; siteId: string; domain: string; host: string; indexable: true }
   | { kind: "preview"; slug: string; indexable: false }
   | { kind: "gone"; reason: "unpublished" | "access_ended" | "account_deleted"; siteId?: string }
-  | { kind: "unknown" };
+  | { kind: "unknown" }
+  | { kind: "unavailable" };
+
+export function unavailableResponse(): Response {
+  return new Response(null, HOSTED_UNAVAILABLE_INIT);
+}
 
 const CONTENT_PREFIX = `${HOSTED_SUBDOMAIN_LABEL}.`;
 const PREVIEW_SUFFIX = `.${PREVIEW_HOST_SUFFIX}`;
@@ -114,15 +120,8 @@ async function dispositionFor(site: {
   domain: string;
   host: string;
 }): Promise<HostDisposition> {
-  let serving: Awaited<ReturnType<typeof hostedServingState>>;
-  try {
-    serving = await hostedServingState(site.siteId);
-  } catch {
-    // `hostedServingState` already fails closed on a deletion it cannot
-    // read; a throw here is the same direction, one level out.
-    return goneFor("account_deleted", site.siteId);
-  }
-  if (!serving.serve) return goneFor(serving.because, site.siteId);
+  const serving = await hostedServingState(site.siteId).catch(() => ({ serve: false, because: "unreadable" }) as const);
+  if (!serving.serve) return serving.because === "unreadable" ? { kind: "unavailable" } : goneFor(serving.because, site.siteId);
   return { kind: "site", siteId: site.siteId, domain: site.domain, host: site.host, indexable: true };
 }
 
@@ -160,29 +159,29 @@ export async function resolveHost(host: string): Promise<HostDisposition> {
   // the lookup below it is what still serves a site whose destination row
   // predates the ruling.
   let chosen: Awaited<ReturnType<typeof hostedSiteForHostname>> = null;
+  let unread = false;
   try {
     chosen = await hostedSiteForHostname(name);
   } catch {
     // **A throw here is "no answer from this lookup", not "no site".** The
-    // default-label lookup below has its own read and its own guard, and a
-    // host it *can* resolve must not be refused because the lookup in
-    // front of it failed. Failing closed is still what happens overall: a
-    // host neither lookup confirms is `unknown`, which is the 404.
-    chosen = null;
+    // default-label lookup below may still resolve the host; if nothing
+    // does, the host is `unavailable`, never `unknown`.
+    unread = true;
   }
   if (chosen !== null) return dispositionFor(chosen);
+  const unknown: HostDisposition = unread ? { kind: "unavailable" } : { kind: "unknown" };
 
   if (name.startsWith(CONTENT_PREFIX)) {
     const domain = name.slice(CONTENT_PREFIX.length);
-    if (domain === "") return { kind: "unknown" };
+    if (domain === "") return unknown;
 
     let site: Awaited<ReturnType<typeof hostedSiteForDomain>>;
     try {
       site = await hostedSiteForDomain(domain);
     } catch {
-      return { kind: "unknown" };
+      return { kind: "unavailable" };
     }
-    if (site === null) return { kind: "unknown" };
+    if (site === null) return unknown;
 
     return dispositionFor(site);
   }
@@ -190,9 +189,9 @@ export async function resolveHost(host: string): Promise<HostDisposition> {
   if (name.endsWith(PREVIEW_SUFFIX)) {
     const slug = name.slice(0, -PREVIEW_SUFFIX.length);
     // One label only: `a.b.reachkit.app` is not a preview of anything.
-    if (slug === "" || slug.includes(".")) return { kind: "unknown" };
+    if (slug === "" || slug.includes(".")) return unknown;
     return { kind: "preview", slug, indexable: false };
   }
 
-  return { kind: "unknown" };
+  return unknown;
 }

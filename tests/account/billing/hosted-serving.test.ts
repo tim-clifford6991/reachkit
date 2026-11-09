@@ -80,14 +80,14 @@ describe("REQ-079 c6 — deletion takes precedence and needs no window", () => {
 });
 
 describe("BP-060's NFR budget — closed on deletion, open on retention", () => {
-  it("a store that cannot be read does not serve: the tombstone is unknown", async () => {
+  it("a store that cannot be read neither serves nor reads as a deletion, so the edge never answers 410", async () => {
     state.sites.push(site({ id: "s1", user_id: "u1" }));
     state.failHostingRead = true;
-    // Somebody's erasure request may be behind this read. Serving through
-    // it is the failure this direction exists to prevent.
+    // An erasure request may be behind this read, so nothing is served; a
+    // deletion read on an outage de-indexed live pages in production.
     expect(await hostedServingState("s1")).toEqual({
       serve: false,
-      because: "account_deleted",
+      because: "unreadable",
     });
   });
 
