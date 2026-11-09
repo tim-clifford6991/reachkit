@@ -50,6 +50,7 @@ const FIXTURE_BILLING: BillingFacts = Object.freeze({
   readable: true,
   state: "active",
   paidThrough: new Date("2026-10-01T00:00:00.000Z"),
+  paymentFailed: false,
   surfaceHref: "https://billing.stripe.com/p/session/fixture",
 });
 

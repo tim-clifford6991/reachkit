@@ -32,6 +32,7 @@ import type { AppAccount } from "../_session/account";
 import { ACCOUNT_NOTE_KEYS } from "@/lib/account/identity/notes";
 import { recordSettingsReadFailed } from "@/lib/ops/events";
 import type { AccountFacts, BillingFacts, SettingsFacts, SettingsRead } from "./model";
+import { paymentFailedOf } from "./billing";
 
 /** How long any one read may take before it is abandoned — for the two
  *  facts that degrade, into their stated arm; for the rest, into the
@@ -112,6 +113,7 @@ export async function readBilling(userId: string): Promise<BillingFacts> {
     readable: true,
     state: summary.value.summary.state,
     paidThrough: summary.value.summary.paidThrough,
+    paymentFailed: paymentFailedOf(summary.value.summary.planStatus),
     surfaceHref: BILLING_SURFACE,
   };
 }

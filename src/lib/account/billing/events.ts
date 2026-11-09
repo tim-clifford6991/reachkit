@@ -13,11 +13,12 @@
 // REQ-076's non-goal deferred refunds, chargebacks and `past_due` by owner
 // ruling, and the plan is month to month with no money-back guarantee
 // (`docs/spec/decisions/2026-11-06-2448.md`). So
-// `invoice.payment_failed` records the status and
-// returns: no mail, no retry, no dunning, no downgrade, no revocation.
-// REQ-097 criterion 4 says the same thing from the customer's side:
-// ReachKit sends no mail on a billing event at all. `tests/account/billing/
-// events.test.ts` fails if any behaviour is added to that arm.
+// `invoice.payment_failed` records `plan_status = past_due` and returns:
+// no retry, no dunning, no downgrade, no revocation. The payment-failed
+// mail is not sent here; it is the retention rule's (`paymentFailedDue`,
+// `src/lib/mail/retention/rules.ts`), which reads the recorded status.
+// `tests/account/billing/events.test.ts` fails if any behaviour is added
+// to that arm.
 //
 // **A failed renewal does not take access away either.** ADR-050 is the
 // whole gate, and REQ-076 c8 spells the consequence: access holds "whether
