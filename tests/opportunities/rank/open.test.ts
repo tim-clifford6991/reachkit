@@ -1,5 +1,4 @@
-// SPEC §7 — the one list: integer points, an update and a new page on one
-// scale, and no two consecutive days on one topic.
+// SPEC §7 — the one list: integer points, an update and a new page on one scale.
 import "../env";
 import { describe, expect, it } from "vitest";
 import { nearRepeatsOf } from "../../../src/lib/opportunities/cluster";
@@ -79,46 +78,16 @@ describe("pointsOf — integer points from what the row holds", () => {
   });
 });
 
-describe("orderRanked — rotation (#1181)", () => {
+describe("one topic (#1181)", () => {
   const SAME = ["zapier.com/a", "marketermilk.com/b", "morningscore.io/c", "gartner.com/d"];
   const topTens = new Map([
     ["seo software for agencies", SAME],
     ["what is seo software for agencies", [...SAME, "other.example/e"]],
     ["seo software pricing", ["semrush.com/pricing", "nutshell.com/cost"]],
   ]);
-  // Not comparisons: D52 caps those apart from the rotation (issue 1267).
   const best = opportunity("best", "write", "keyword_page", "seo software for agencies");
   const whatIs = opportunity("what-is", "write", "keyword_page", "what is seo software for agencies");
   const pricing = opportunity("pricing", "write", "keyword_page", "seo software pricing");
-
-  it("never puts two rows whose top tens are one topic on consecutive days", () => {
-    expect(
-      order(
-        [
-          at(9, best),
-          at(8, whatIs),
-          at(1, pricing),
-        ],
-        { topTens }
-      )
-    ).toEqual(["best", "pricing", "what-is"]);
-  });
-
-  it("the first day turns away from the page drafted last", () => {
-    expect(
-      order(
-        [
-          at(8, whatIs),
-          at(1, pricing),
-        ],
-        { after: best, topTens }
-      )
-    ).toEqual(["pricing", "what-is"]);
-  });
-
-  it("orders and never empties a day: a list of one topic keeps its rows", () => {
-    expect(order([at(8, whatIs)], { after: best, topTens })).toEqual(["what-is"]);
-  });
 
   it("a page drafted folds its open repeats, and only them", () => {
     const local = opportunity("local", "write", "answer_page", "best local seo software");

@@ -23,7 +23,7 @@ export interface Choice {
 }
 
 export function choose(input: ChooseInput): Choice {
-  const { scored, fixes, rotation, rejected } = rankingOf(input, input.at);
+  const { scored, fixes, rotation, rejected } = rankingOf(input);
   const ranked = placeFixPages(scored, fixes, rotation);
   const first = Math.floor(Date.parse(`${input.from}T00:00:00Z`) / DAY_MS);
   const days = input.days ?? WEEK_PLAN.days, depth = days + WEEK_PLAN.spares;

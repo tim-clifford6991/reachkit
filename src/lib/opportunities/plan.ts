@@ -21,7 +21,7 @@ import { PLAN_DEPTH, SUPPLY_SHORT_BELOW, WEEK_PLAN } from "@/lib/config/constant
 import { stoppedOnCeiling } from "@/lib/scan/market-floor";
 import { choose } from "./choose";
 import { assessFixPages } from "./fix-page";
-import { loadRanking, mixOf, writableDays } from "./rank/open";
+import { firstOpenDay, loadRanking, writableDays } from "./rank/open";
 import { assessReadiness } from "./readiness";
 import { opportunityStore, readOpportunity, type OpportunityRow, type PlanEntry } from "./store";
 import type { Opportunity } from "./types";
@@ -39,7 +39,7 @@ export async function planWeek(siteId: string, a: { now?: Date; from?: string } 
   // On demand, the week starts at the date being written; on Monday, at the
   // first date with no page.
   const from =
-    a.from ?? new Date(mixOf(await store.draftedPages(siteId, 1), now).from * DAY_MS).toISOString().slice(0, 10);
+    a.from ?? new Date(firstOpenDay(await store.draftedPages(siteId, 1), now) * DAY_MS).toISOString().slice(0, 10);
   // Before the first weekly pass, the dated days stop where that Monday's pass opens the next week: a Wednesday 5, a Monday 7.
   const days = (await store.weeklyCommit(siteId)) === null ? (8 - new Date(`${from}T00:00:00Z`).getUTCDay()) % 7 || WEEK_PLAN.days : WEEK_PLAN.days;
   const entries: PlanEntry[] = choose({ ...(await loadRanking(siteId, now)), at: now, from, days }).committed;
@@ -127,8 +127,7 @@ export async function weekChosenOn(siteId: string): Promise<string | null> {
   return dates.length === 0 ? null : dates.reduce((a, b) => (a < b ? a : b));
 }
 
-/** The row as the day writes it: a comparison over D52's cap the commit
- *  marked is written as a Q&A (issue 1455). */
+/** The row as the day writes it: a listicle the commit marked is written as a Q&A (issue 1455). */
 function planned(row: OpportunityRow): Opportunity {
   return row.plan_write_as === "qa" ? { ...readOpportunity(row), writeAs: "qa" } : readOpportunity(row);
 }

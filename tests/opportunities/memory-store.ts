@@ -203,14 +203,6 @@ export function memoryStore(state: MemoryState): OpportunityStore {
       );
     },
 
-    async latestPage(siteId) {
-      const pages = state.rows.filter(
-        (row) => row.site_id === siteId && (row.status === "queued" || row.status === "done") && row.family !== "fix"
-      );
-      const at = (id: string) => state.statusChangedAt.get(id)?.getTime() ?? 0;
-      return pages.sort((a, b) => at(b.id) - at(a.id))[0] ?? null;
-    },
-
     async draftedOpportunityIds() {
       return new Set((state.drafted ?? []).map((page) => page.row.id));
     },
@@ -448,10 +440,6 @@ export function memoryStore(state: MemoryState): OpportunityStore {
     },
 
     async clustersAt() {
-      return [];
-    },
-
-    async livePageClusters() {
       return [];
     },
 

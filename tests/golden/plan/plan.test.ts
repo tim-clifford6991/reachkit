@@ -15,7 +15,7 @@ import { sourceOf } from "@/lib/opportunities/derive/topics";
 import { pageForDay, planFirstWeek, planWeek } from "@/lib/opportunities/plan";
 import { readOpportunity, setOpportunityStore, type OpportunityRow } from "@/lib/opportunities/store";
 import { memoryStore, newMemoryState } from "../../opportunities/memory-store";
-import { AT, heldOf, panelDomains, panelSite, rowOf, SITE_ID, storedSerps, type PanelSite } from "./panel";
+import { AT, heldOf, panelDomains, panelSite, SITE_ID, storedSerps, type PanelSite } from "./panel";
 
 /** A site whose stored rows commit no page, the gate that holds them, and
  *  where the finding is filed. A hold that clears fails its case. */
@@ -27,7 +27,7 @@ const FROM = AT.toISOString().slice(0, 10);
 const REJECTED_SHOWN = 20;
 
 function chosen(site: PanelSite, linkedClusters: readonly string[] = [], listicle: ListicleHeld | null = heldOf(site)): Choice {
-  return choose({ rows: site.rows, fixRows: [], profile: site.profile, latest: null, drafted: [], cited: [], topTens: new Map(), linkedClusters, listicle, at: AT, from: FROM });
+  return choose({ rows: site.rows, fixRows: [], profile: site.profile, cited: [], topTens: new Map(), linkedClusters, listicle, at: AT, from: FROM });
 }
 
 function render(site: PanelSite, choice: Choice): string {
@@ -124,43 +124,6 @@ describe("the goldens are the customer panel's", () => {
 
   it("a held site is a panel site", () => {
     for (const domain of Object.keys(HELD)) expect(panelDomains()).toContain(domain);
-  });
-});
-
-/** The offering pages among a choice's dated days. */
-function offeringDays(site: Pick<PanelSite, "rows">, choice: Choice): string[] {
-  const byId = new Map(site.rows.map((row) => [row.id, row]));
-  return choice.committed
-    .filter((entry) => entry.plannedFor !== null && entry.writeAs == null && contentTypeOf(readOpportunity(byId.get(entry.opportunityId)!)) === "offering")
-    .map((entry) => byId.get(entry.opportunityId)!.target_query!);
-}
-
-describe("at most two offering pages in seven days", () => {
-  it.each(panelDomains())("%s", (domain) => {
-    const site = panelSite(domain);
-    expect(offeringDays(site, chosen(site)).length).toBeLessThanOrEqual(2);
-  });
-
-  it("four offering searches that outrank every answer take two of the seven days", () => {
-    // The plumber's stored searches whose stored SERP asks for a provider's own page.
-    const plumber = panelSite("austinplumbery.com");
-    const shaped = ["emergency plumber austin texas", "plumbing services austin tx", "commercial plumber austin", "austin emergency plumber"];
-    const answers = [
-      "how to fix a leaking pipe",
-      "how to unclog a shower drain",
-      "what is a backflow preventer",
-      "what is a sump pump",
-      "water heater making noise",
-      "pipe burst in winter",
-    ];
-    const topic = (query: string, type: "keyword_page" | "answer_page", fit: number) => ({ query, status: "open", type, fit, volume: 100, ready: true });
-    const rows = [...shaped.map((query) => topic(query, "keyword_page", 3)), ...answers.map((query) => topic(query, "answer_page", 2))].map((stored, n) => {
-      const row = rowOf("austinplumbery.com", stored, n);
-      return n < shaped.length ? { ...row, evidence: { ...(row.evidence as object), shape: "offering" } } : row;
-    });
-    const site = { ...plumber, rows };
-    const days = offeringDays(site, chosen(site));
-    expect(days).toHaveLength(2);
   });
 });
 

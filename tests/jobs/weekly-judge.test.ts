@@ -72,19 +72,6 @@ describe("the Monday tick judges the week it measured", () => {
     expect(store.rows).toHaveLength(1);
   });
 
-  it("SPEC §6 (issue 477): after judging, this week's supply in a cluster judged not working is held back", async () => {
-    opportunities.rows.push({
-      id: "write-1", site_id: SITE_ID, scan_id: "scan-1", type: "answer_page", family: "write",
-      target_query: "user onboarding software", target_ref: "onboarding-faq", proposed_slug: "onboarding-faq", title: null, volume: 500,
-      evidence: { family: "write" }, acceptance: { form: "top20", query: "user onboarding software" },
-      fit_band: "winnable", effort: 0.3, status: "open", cluster_key: "onboarding", absorbed_queries: [],
-      ready: false, unready_reason: "not_assessed", created_at: NOW.toISOString(),
-    });
-    opportunities.notWorking = [{ week: WEEK, clusterKey: "onboarding", family: "write", targetRef: "onboarding-checklist" }];
-    await tick();
-    expect(opportunities.rows[0]!.unready_reason).toBe("resting");
-  });
-
   it("**a failed pass judges nothing** — there is no report to judge against", async () => {
     weekly.outcome = { ran: true, scanId: "scan-1", status: "failed" };
     await tick();

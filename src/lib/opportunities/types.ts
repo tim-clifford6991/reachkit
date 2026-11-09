@@ -480,23 +480,14 @@ export function addRejections(a: RejectionCount, b: RejectionCount): RejectionCo
 
 /** Which of the one list's rules placed a row, so a plan can say why. */
 export type PlaceRule =
-  | "paced: own refresh"
-  | "paced: own refresh, same topic"
-  | "paced: update"
-  | "paced: update, same topic"
   | "best"
-  | "best, offering full"
-  | "best, same topic"
-  | "over the D52 cap, as a Q&A"
   | `${ListicleNeed} not on file, as a Q&A`
   | "fix ahead of its cluster"
   | "fix, no page to precede"
   // What a page's own results planned (issue 1611), named in place of the tier.
   | "stalled near page one: gap refresh"
   | "not moving: refreshed once"
-  | "linked by AI: one more in its cluster"
-  // A new site's third cluster, taken only where nothing else may fill the day.
-  | "best, a third cluster";
+  | "linked by AI: one more in its cluster";
 
 /** One part of a row's points, as the plan stores it. */
 export type PointPart = "fit" | "demand" | "ai_gap" | "near_page_one" | "linked_by_ai" | "not_moving" | "new_site";

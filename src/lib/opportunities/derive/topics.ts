@@ -796,7 +796,7 @@ export interface AskedSupply {
  * asked beside the market's own searched terms first, and only where the
  * business's vocabulary supports every word and no rival is named. Each is
  * on the market, a search a buyer would type, not a rival's bare name,
- * written as a Q&A, how-to or documentation page (D52 caps the rest), and
+ * written as a Q&A, how-to or documentation page, and
  * on no search the site already holds or dismissed. The collapse then folds
  * each into the page of the results page it was seen on.
  */

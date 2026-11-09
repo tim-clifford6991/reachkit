@@ -147,12 +147,6 @@ export interface DraftedPage {
   writtenAs?: string | null;
 }
 
-/** One live page's opportunity and the cluster it was written for. */
-export interface LivePageCluster {
-  opportunityId: string;
-  clusterKey: string | null;
-}
-
 export interface OpportunityStore {
   insert(row: OpportunityInsert): Promise<InsertOutcome>;
   /** Open, non-`fix` rows for one site — the unused-supply set, and the
@@ -173,13 +167,10 @@ export interface OpportunityStore {
    *  or not (SPEC §6, D59, issue 1287): the rows a pass's relevance prune
    *  never touches. */
   draftedOpportunityIds(siteId: string): Promise<ReadonlySet<string>>;
-  /** The non-Fix row whose page was drafted or published last — the day
-   *  before the first one the ranking plans (#1181). */
-  latestPage(siteId: string): Promise<OpportunityRow | null>;
   /** The site's own pages that have a draft row, newest date first, at most
    *  `limit`: each with the date it holds, its state, its written title and
-   *  the row it was written for (issue 1209). What the weekly mix counts and
-   *  what a brief is told the site already covers. */
+   *  the row it was written for (issue 1209). What a brief is told the site
+   *  already covers, and where the week starts. */
   draftedPages(siteId: string, limit: number): Promise<readonly DraftedPage[]>;
   /** The site's own pages an answer to a tracked prompt cited in the four
    *  weeks ending at `at` (SPEC §6, D15, issue 1146), read from the stored
@@ -187,8 +178,6 @@ export interface OpportunityStore {
   citedPages(siteId: string, at: Date): Promise<readonly string[]>;
   /** The clusters of the site's live pages at any of `urls`. */
   clustersAt(siteId: string, urls: readonly string[]): Promise<readonly string[]>;
-  /** The opportunities of the site's live pages, each with its cluster. */
-  livePageClusters(siteId: string): Promise<readonly LivePageCluster[]>;
   /** The top tens the given scans bought, by `queryKey`, a later scan's
    *  over an earlier one's (#1131) — what a held row's search is compared
    *  by. Only the questions and SERPs are read, never the whole report. */
@@ -584,19 +573,6 @@ export function supabaseOpportunityStore(): OpportunityStore {
       return atCurrentHost(siteId, data ?? []);
     },
 
-    async latestPage(siteId) {
-      const { data, error } = await untyped()
-        .from<OpportunityRow>("opportunities")
-        .select(COLUMNS)
-        .eq("site_id", siteId)
-        .in("status", ["queued", "done"])
-        .neq("family", "fix")
-        .order("status_changed_at", { ascending: false })
-        .limit(1);
-      if (error) throw new Error(`opportunities.latestPage: ${error.message}`);
-      return (await atCurrentHost(siteId, data ?? []))[0] ?? null;
-    },
-
     async draftedOpportunityIds(siteId) {
       const { data, error } = await untyped()
         .from<{ opportunity_id: string | null }>("drafts")
@@ -665,22 +641,6 @@ export function supabaseOpportunityStore(): OpportunityStore {
         return wanted.has(canonicalUrl(row.live_url)) || wanted.has(canonicalUrl(now(row.live_url))) ? [key] : [];
       });
       return [...new Set(keys)];
-    },
-
-    async livePageClusters(siteId) {
-      const { data, error } = await untyped()
-        .from<{ drafts: { opportunity_id: string | null; opportunities: { cluster_key: string | null } | null } | null }>("publications")
-        .select("drafts(opportunity_id, opportunities(cluster_key))")
-        .eq("site_id", siteId)
-        .not("live_url", "is", null)
-        .is("unpublished_at", null);
-      if (error) throw new Error(`opportunities.livePageClusters: ${error.message}`);
-      const byId = new Map<string, string | null>();
-      for (const row of data ?? []) {
-        const id = row.drafts?.opportunity_id ?? null;
-        if (id !== null) byId.set(id, row.drafts?.opportunities?.cluster_key ?? null);
-      }
-      return [...byId].map(([opportunityId, clusterKey]) => ({ opportunityId, clusterKey }));
     },
 
     async topTens(scanIds) {

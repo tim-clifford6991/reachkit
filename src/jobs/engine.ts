@@ -217,9 +217,7 @@ async function tellWeek(a: DueSite & { readonly now: Date }, outcome: WeeklyOutc
     await planRefreshes({ siteId: a.siteId, at: a.now });
     // SPEC §7 (issue 1559): the week's seven pages and three spares,
     // committed after one readiness check — so this Monday's "not working"
-    // holds back this week's supply (a Write in that cluster for
-    // `CLUSTER_SUPPRESS_WEEKS`, a twice-failed Improve URL for good) — and
-    // before the digest states them.
+    // retires a twice-failed Improve URL — and before the digest states them.
     await planWeek(a.siteId, { now: a.now });
   }
 
