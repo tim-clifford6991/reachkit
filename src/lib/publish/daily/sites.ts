@@ -7,7 +7,6 @@
 // Two statements per tick whatever the number of sites, and the gate asked once, for the survivors.
 // An unreadable gate holds the tick loudly: no sites, recorded as degraded, never "everyone" and never a quiet "nobody".
 // A hold is not a stop: nothing moves, and the next tick asks again.
-import { sitesWithActiveAccess } from "@/lib/scan/weekly/access";
 import { publishDb } from "../db";
 import { toPublishingSettings } from "../settings/settings";
 
@@ -86,13 +85,11 @@ export async function sitesForDailyTick(): Promise<DailySelection> {
     return { sites: [], held: null };
   }
 
-  // ADR-050's one reader, imported by file: the `@/lib/scan/weekly` barrel drags a database client behind it.
+  // ADR-050's one reader, imported at the call: billing's store parses the environment when it loads.
   let paying: ReadonlySet<string>;
   try {
-    paying = await sitesWithActiveAccess(
-      "sitesForDailyTick",
-      candidates.map((site) => site.siteId)
-    );
+    const { sitesWithActiveAccess } = await import("@/lib/account/billing");
+    paying = await sitesWithActiveAccess(candidates.map((site) => site.siteId));
   } catch (error) {
     // The error's class, never its message, so the hold is diagnosable from this line alone.
     logSelection({

@@ -35,7 +35,9 @@ vi.mock("stripe", async (importOriginal) => {
 });
 
 const { register } = await import("@/instrumentation");
-const { registerActiveAccessGate, sitesWithActiveAccess } = await import("@/lib/scan/weekly/access");
+const { setBillingStore } = await import("@/lib/account/billing/store");
+const { memoryBillingStore, newMemoryBilling, site } = await import("../account/billing/memory-store");
+const { dayCeilingCents, readDayCeilingCents, registerPayingSiteCounter } = await import("@/lib/costs/daily");
 const { publishSpendAlert } = await import("@/lib/costs/sinks");
 const { leftInWordPress } = await import("@/lib/account/lifecycle/left-in-wordpress");
 
@@ -60,12 +62,13 @@ beforeEach(() => {
   process.env.NEXT_RUNTIME = "nodejs";
   // Unregistered before each case, so what is asserted below is this boot
   // registering it and never a leftover from another suite.
-  registerActiveAccessGate(null);
+  registerPayingSiteCounter(null);
 });
 
 afterEach(() => {
   vi.restoreAllMocks();
-  registerActiveAccessGate(null);
+  registerPayingSiteCounter(null);
+  setBillingStore(null);
   if (runtimeBefore === undefined) delete process.env.NEXT_RUNTIME;
   else process.env.NEXT_RUNTIME = runtimeBefore;
 });
@@ -77,7 +80,7 @@ describe("a cold start registers everything and loads no mail, WordPress or paym
     expect(logged.map((line) => JSON.parse(line))).toEqual([
       { event: "boot_invariants", check: "clock", outcome: "checked" },
       { event: "boot_invariants", check: "jobs", outcome: "checked" },
-      { event: "boot_invariants", check: "access-gate", outcome: "checked" },
+      { event: "boot_invariants", check: "paying-count", outcome: "checked" },
       { event: "boot_invariants", check: "stamp-place", outcome: "checked" },
       { event: "boot_invariants", check: "spend-alerts", outcome: "checked" },
     ]);
@@ -85,9 +88,16 @@ describe("a cold start registers everything and loads no mail, WordPress or paym
     expect(loaded).toMatchObject({ mail: false, place: false, stripe: false });
   });
 
-  it("the access gate is registered", async () => {
+  it("the day's spend ceiling counts the sites billing's gate admits", async () => {
+    const billing = newMemoryBilling();
+    const day = 24 * 60 * 60 * 1000;
+    billing.sites.push(
+      site({ id: "paying", user_id: "u-1", owner_paid_through: new Date(Date.now() + 30 * day).toISOString() }),
+      site({ id: "lapsed", user_id: "u-2", owner_paid_through: new Date(Date.now() - 2 * day).toISOString() })
+    );
+    setBillingStore(memoryBillingStore(billing));
     await register();
-    await expect(sitesWithActiveAccess("test", [])).resolves.toEqual(new Set());
+    expect(await readDayCeilingCents(new Date())).toBe(dayCeilingCents(1));
   });
 
   it("a crossing published after boot still reaches the owner's mail, once", async () => {
@@ -138,15 +148,13 @@ describe("a real deployment carrying RK_FIXED_NOW does not start", () => {
     // would serve is not the date, on every screen, silently.
     process.env.RK_FIXED_NOW = "2026-09-08T12:00:00.000Z";
     await expect(register()).rejects.toThrow(/RK_FIXED_NOW is set on a real deployment/);
-    // Nothing after the refusal ran: no line was logged, so the gate was not
-    // registered.
+    // Nothing after the refusal ran: no line was logged.
     expect(logged).toEqual([]);
     // Issue 330: one line naming the refused check and the error's class,
     // and the owner told the same two names — never the binding's value.
     expect(onlyLine(errored)).toEqual({ event: "boot_invariants", check: "clock", outcome: "refused", reason: expect.any(String) });
     expect(loaded.incidents).toEqual([{ occasion: "boot-refused", check: "clock", errorName: expect.any(String) }]);
     expect(JSON.stringify(loaded.incidents)).not.toContain("2026-09-08");
-    expect(sitesWithActiveAccess).toBeDefined();
   });
 
   it("comes up normally once the binding is gone", async () => {

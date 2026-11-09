@@ -21,7 +21,7 @@
 // presented as a whole measurement. The parts come from the stored blob's
 // own `Measured` arms — nothing here re-measures, re-counts or guesses at
 // what a pass reached.
-import { sitesWithActiveAccess } from "./access";
+import { hasActiveAccess } from "@/lib/account/billing";
 import { readSiteZone, readWeekScan } from "./store";
 import type { StoredReport } from "../report";
 import { nextDueAfter } from "./week";
@@ -121,8 +121,7 @@ export async function accountForWeek(a: {
 
   // No week, and nothing is owed where access has ended: no unmeasured
   // week is stated and no next measurement is announced.
-  const withAccess = await sitesWithActiveAccess("accountForWeek", [a.siteId]);
-  if (!withAccess.has(a.siteId)) return { kind: "not_owed" };
+  if (!(await hasActiveAccess(a.siteId))) return { kind: "not_owed" };
 
   return { kind: "not_measured", nextDueOn: await nextDueOn({ siteId: a.siteId, now }) };
 }

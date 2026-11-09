@@ -1006,7 +1006,7 @@ last thing in the log and the deployment serves nothing.
 | 0 | the schema | `Error: src/lib/config/env.ts: invalid or missing environment binding(s):` + the names | any member of the schema is missing or malformed | set the named binding on **that target** and redeploy. The message names the binding and never a value |
 | 1 | `clock` | `FixedClockRefused` | `RK_FIXED_NOW` is set on a real deployment (or set and unparsable anywhere) | unset `RK_FIXED_NOW`. It is a test fixture and belongs in no Vercel environment |
 | 2 | `jobs` | `MissingJobsBindings` | a real deployment is missing `INNGEST_SIGNING_KEY` or `INNGEST_EVENT_KEY` | paste both on that target. This is the #315 refusal: without them the ticks never run and nothing would otherwise say so |
-| 3 | `access-gate` | (registration) | billing's gate could not register — in practice, the database is unreachable | check the Supabase project is awake and `SUPABASE_*` is right |
+| 3 | `paying-count` | none | — | non-throwing registration of the day's paying-site count; an unreadable count is the base ceiling |
 | 4 | `stamp-place` | none | — | non-throwing registration |
 | 5 | `spend-alerts` | none | — | non-throwing; an unregistered sink costs an alert, never a refusal |
 

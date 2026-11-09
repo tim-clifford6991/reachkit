@@ -74,8 +74,7 @@ import { now as clock } from "@/lib/config/now";
 import { dbAdmin } from "@/lib/db";
 // Imported by file rather than through `@/lib/market/changes`: the barrel
 // also re-exports the declared answers and the pending-change computation,
-// and this screen needs the markers alone. The same reason
-// `access-gate.ts` reaches its seam by file (ADR-050).
+// and this screen needs the markers alone.
 import { changeMarkers, type ChangeMarker } from "@/lib/market/changes/markers";
 import type { BandHandle } from "@/lib/measure/bands";
 import { unmeasured, measured, type Measured } from "@/lib/measure/measured";

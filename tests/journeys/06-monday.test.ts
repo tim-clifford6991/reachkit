@@ -35,19 +35,10 @@
 // omission rule drops — is asserted on the block list, which carries keys
 // and no sentences and so needs no registry at all.
 //
-// **Billing's access gate is registered by the boot path** (issue #180).
-// ADR-050 puts active access in `src/lib/account/billing`, and
-// `src/instrumentation.ts` installs it there through
-// `installActiveAccessGate()`. The journey asserts both halves: cleared,
-// the hourly selection throws rather than guessing — the honest answer —
-// and installed the way boot installs it, the selection *decides*. The
-// journey seeds no billing rows, so what it decides is "nobody is paying";
-// that a paying site is selected and an ended one is not is asserted
-// against a live schema in `tests/scan/weekly/schema.test.ts`.
-//
-// For the measurement itself the journey then registers a gate of its own
-// that answers "everyone", because the flow under test is Monday's, not
-// billing's.
+// **Who pays is billing's gate** (ADR-050). The journey's billing store
+// answers "everyone", because the flow under test is Monday's, not
+// billing's; that a paying site is selected and an ended one is not is
+// asserted against a live schema in `tests/scan/weekly/schema.test.ts`.
 //
 // **The weekly mail is sent (#181), and this journey sends it.**
 // `buildWeekly` composed it and `weeklyDigest` read what it needs, and
@@ -424,8 +415,8 @@ function answerQuery(query: DbQuery): unknown[] | typeof UNIQUE_VIOLATION | null
 
 const { CAPS } = await import("../../src/lib/config/constants");
 const weekly = await import("../../src/lib/scan/weekly");
-const { ActiveAccessGateNotRegistered } = await import("../../src/lib/scan/weekly/access");
-const { installActiveAccessGate } = await import("../../src/lib/account/billing");
+const { setBillingStore, supabaseBillingStore } = await import("../../src/lib/account/billing");
+const { payingStore } = await import("../account/billing/memory-store");
 const { setOpportunityStore } = await import("../../src/lib/opportunities");
 const verdicts = await import("../../src/lib/opportunities/verdicts");
 const { readStoredReport } = await import("../../src/lib/scan/report");
@@ -482,8 +473,8 @@ beforeEach(() => {
   opportunities = opportunityDoubles.newMemoryState({ now: MONDAY, profile: PROFILE_ANSWER });
   setOpportunityStore(opportunityDoubles.memoryStore(opportunities));
 
-  // The gate ADR-050 puts in billing, registered the way billing will.
-  weekly.registerActiveAccessGate(async (ids) => new Set(ids));
+  // Everyone pays: the flow under test is Monday's, not billing's.
+  setBillingStore(payingStore(() => true, supabaseBillingStore()));
 
   vi.stubGlobal(
     "fetch",
@@ -510,7 +501,7 @@ afterEach(() => {
   vi.stubGlobal("setTimeout", realSetTimeout);
   vi.unstubAllGlobals();
   setOpportunityStore(null);
-  weekly.registerActiveAccessGate(null);
+  setBillingStore(null);
   verdictDoubles.releaseStore();
   __setVendorTransportForTesting(null);
 });
@@ -565,17 +556,8 @@ describe("Monday: the week is re-measured, judged, and told (JN-005)", () => {
       weekly.weekStartFor({ at: ACROSS_THE_LINE, zone: FAR_ZONE })
     );
 
-    // With billing's gate unregistered, the selection throws rather than
-    // measuring the wrong set of sites or refusing a paying customer.
-    weekly.registerActiveAccessGate(null);
-    await expect(weekly.dueSites(MONDAY)).rejects.toBeInstanceOf(ActiveAccessGateNotRegistered);
-
-    // And the boot path is what ends that: `src/instrumentation.ts` calls
-    // exactly this, once, on every Node boot. Afterwards the same selection
-    // answers instead of throwing — this journey holds no billing rows, so
-    // the answer is that nobody here is paying, which is a decision and not
-    // a guess.
-    await installActiveAccessGate();
+    // Who pays is billing's gate: nobody paying, nobody selected.
+    setBillingStore(payingStore(() => false, supabaseBillingStore()));
     await expect(weekly.dueSites(MONDAY)).resolves.toEqual([]);
   });
 
@@ -676,7 +658,7 @@ describe("Monday: the week is re-measured, judged, and told (JN-005)", () => {
 
     // Access ended: no week is owed, and none is measured.
     sites = [{ id: SITE_ID, domain: DOMAIN, timezone: ZONE, user_id: USER_ID }];
-    weekly.registerActiveAccessGate(async () => new Set());
+    setBillingStore(payingStore(() => false, supabaseBillingStore()));
     await expect(weekly.dueSites(MONDAY)).resolves.toEqual([]);
     await expect(
       weekly.runWeekly({ siteId: SITE_ID, domain: DOMAIN, zone: ZONE, now: MONDAY })

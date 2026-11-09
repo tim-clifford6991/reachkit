@@ -87,13 +87,10 @@ export interface PeriodPageRow {
 export type HostingNotice = "access_ended" | "seven_days";
 
 export interface BillingStore {
-  /** The one read the access gate makes: a site's owner's paid-through
-   *  date. `null` where there is no such site. */
-  paidThroughForSite(siteId: string): Promise<{ ok: true; paidThrough: Date | null } | { ok: false }>;
-
-  /** How many sites' owners are paid through past `at`: the gate's own
-   *  comparison, counted at one instant for the day's spend ceiling. */
-  payingSiteCount(at: Date): Promise<{ ok: true; count: number } | { ok: false }>;
+  /** How many sites' owners are paid through past `at`, of `siteId` alone
+   *  where given: the access gate's one comparison, for one site or for the
+   *  day's spend ceiling. */
+  payingSiteCount(at: Date, siteId?: string): Promise<{ ok: true; count: number } | { ok: false }>;
 
   account(userId: string): Promise<{ ok: true; account: BillingRow | null } | { ok: false }>;
 
@@ -265,29 +262,13 @@ export function supabaseBillingStore(): BillingStore {
   }
 
   return {
-    async paidThroughForSite(siteId) {
-      const { data, error } = await untyped()
-        .from<{ users?: { paid_through?: string | null } | null }>("sites")
-        .select("users!inner(paid_through)")
-        .eq("id", siteId)
-        .limit(1);
-      if (error) return { ok: false };
-      // No row, no joined owner, or an owner with no date are one answer:
-      // there is no `paid_through` to compare, so `hasActiveAccess` reads
-      // `null` and fails closed (ADR-050, and this module's own rule that
-      // spending a departed customer's money is the worse error). Read
-      // defensively because the inner join is the store's claim and not
-      // this function's — a shape that does not arrive must not become a
-      // `TypeError` inside the one gate three loops call.
-      const paidThrough = data?.[0]?.users?.paid_through ?? null;
-      return { ok: true, paidThrough: paidThrough === null ? null : new Date(paidThrough) };
-    },
-
-    async payingSiteCount(at) {
-      const { count, error } = await untyped()
+    async payingSiteCount(at, siteId) {
+      // No owner or no date is excluded by the inner join and `gt`, so the gate fails closed.
+      const paying = untyped()
         .from("sites")
         .select("id, users!inner(paid_through)", { count: "exact", head: true })
         .gt("users.paid_through", at.toISOString());
+      const { count, error } = await (siteId === undefined ? paying : paying.eq("id", siteId));
       if (error || typeof count !== "number") return { ok: false };
       return { ok: true, count };
     },

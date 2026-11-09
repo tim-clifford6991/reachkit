@@ -351,7 +351,8 @@ const { publishRetry } = await import("../../src/jobs/publish-retry");
 const { weeklyRefresh } = await import("../../src/jobs/weekly-refresh");
 const { setGenerateStore } = await import("../../src/lib/generate");
 const { setOpportunityStore } = await import("../../src/lib/opportunities");
-const { registerActiveAccessGate } = await import("../../src/lib/scan/weekly/access");
+const { setBillingStore, supabaseBillingStore } = await import("../../src/lib/account/billing");
+const { payingStore } = await import("../account/billing/memory-store");
 const { VETO } = await import("../../src/lib/config/constants");
 const generateFixtures = await import("../generate/fixtures");
 const opportunityDoubles = await import("../opportunities/memory-store");
@@ -630,12 +631,13 @@ beforeEach(async () => {
   setOpportunityStore(opportunityDoubles.memoryStore(opportunities));
   await seedTheWeeksSupply(opportunities);
   setGenerateStore(joinedGenerateStore());
-  registerActiveAccessGate(async (siteIds) => new Set(siteIds));
+  setBillingStore(payingStore(() => true, supabaseBillingStore()));
   await captureMail(inbox);
 });
 
 afterEach(() => {
   vi.useRealTimers();
+  setBillingStore(null);
 });
 
 const WEEK_TIMEOUT_MS = 120_000;

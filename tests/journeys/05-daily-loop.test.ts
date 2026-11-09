@@ -349,7 +349,8 @@ const { monthOf, dayKeyOf } = await import("../../src/app/(account)/app/calendar
 const { CHECK_IDS } = await import("../../src/lib/publish/verify");
 const { dueRetries, retryDueAt } = await import("../../src/lib/publish/attempt/due");
 const { MAX_RETRIES } = await import("../../src/lib/publish/attempt/retry");
-const { registerActiveAccessGate } = await import("../../src/lib/scan/weekly/access");
+const { setBillingStore, supabaseBillingStore } = await import("../../src/lib/account/billing");
+const { payingStore } = await import("../account/billing/memory-store");
 const { __setVendorTransportForTesting } = await import("../../src/lib/mail/vendor/resend");
 const { sendDraftReadyMail } = await import("../../src/lib/mail/draft-ready");
 const { enterReview, dueApprovals } = await import("../../src/lib/publish/attempt/window");
@@ -585,6 +586,7 @@ afterEach(() => {
   setOpportunityStore(null);
   setCalendarSiteReader(null);
   __setVendorTransportForTesting(null);
+  setBillingStore(null);
 });
 
 // ── The day, in the order it happens ────────────────────────────────────
@@ -684,11 +686,9 @@ function whenItIsDue(): Date {
 
 const JOURNEY_TIMEOUT_MS = 30_000;
 
-/** This founder pays (#201). ADR-050 puts the rule in `hasActiveAccess()`
- *  and `access.ts` throws while nothing is registered, so the journey says
- *  which of the three cases it is rather than inheriting one. */
+/** This founder pays (#201): ADR-050 puts the rule in `hasActiveAccess()`. */
 function payingCustomer(): void {
-  registerActiveAccessGate(async (siteIds) => new Set(siteIds));
+  setBillingStore(payingStore(() => true, supabaseBillingStore()));
 }
 
 describe("the daily loop: pick → generate → tell → publish → +24h check (JN-003)", () => {
@@ -719,16 +719,16 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
 
     // Nor is a site whose access has ended (#201): a day's page is spend,
     // and the gate that decides it is the one the weekly tick asks.
-    registerActiveAccessGate(async () => new Set<string>());
+    setBillingStore(payingStore(() => false, supabaseBillingStore()));
     expect((await engine.activeSites()).sites).toEqual([]);
 
     // And a tick that cannot read the gate prepares nothing and says why,
-    // rather than spending on a guess in either direction. A gate that
-    // throws, not an unregistered one: the engine registers billing's own
-    // where nothing has (issue 863).
-    registerActiveAccessGate(async () => {
-      throw new Error("billing store unreadable");
-    });
+    // rather than spending on a guess in either direction.
+    setBillingStore(
+      payingStore(() => {
+        throw new Error("billing store unreadable");
+      }, supabaseBillingStore())
+    );
     expect(await engine.activeSites()).toEqual({ sites: [], held: "access-unreadable" });
     payingCustomer();
     expect((await engine.activeSites()).sites).toHaveLength(1);

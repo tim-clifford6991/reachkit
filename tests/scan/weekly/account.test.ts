@@ -8,7 +8,8 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { DB, captureLog } from "./harness";
 import { accountForWeek, nextDueOn, unmeasuredPartsOf } from "@/lib/scan/weekly";
-import { registerActiveAccessGate } from "@/lib/scan/weekly";
+import { setBillingStore } from "@/lib/account/billing";
+import { payingStore } from "../../account/billing/memory-store";
 import { assembleReport } from "@/lib/scan/store";
 import { fullSections, unreachedSections, AT } from "../report/fixtures";
 
@@ -32,12 +33,12 @@ let log: { lines: Record<string, unknown>[]; restore: () => void };
 beforeEach(() => {
   DB.reset();
   DB.rows.set("sites", [{ id: SITE, domain: "example.com", timezone: "UTC" }]);
-  registerActiveAccessGate(async (ids) => new Set(ids));
+  setBillingStore(payingStore());
   log = captureLog();
 });
 
 afterEach(() => {
-  registerActiveAccessGate(null);
+  setBillingStore(null);
   log.restore();
 });
 
@@ -120,14 +121,14 @@ describe("a week with no measurement says so, and names the day the next one is 
 describe("a site whose access has ended is owed no week, and is promised none", () => {
   it("returns not_owed, announcing no next measurement", async () => {
     DB.answer = (statement) => (statement.table === "scans" ? [] : null);
-    registerActiveAccessGate(async () => new Set());
+    setBillingStore(payingStore(() => false));
     const account = await accountForWeek({ siteId: SITE, weekStart: WEEK, now: NOW });
     expect(account).toEqual({ kind: "not_owed" });
   });
 
   it("weeks already measured under active access still read back with their own dates", async () => {
     weekRow({ status: "done" });
-    registerActiveAccessGate(async () => new Set());
+    setBillingStore(payingStore(() => false));
     expect(await accountForWeek({ siteId: SITE, weekStart: WEEK, now: NOW })).toEqual({
       kind: "complete",
       measuredAt: AT,
@@ -136,7 +137,7 @@ describe("a site whose access has ended is owed no week, and is promised none", 
 
   it("a partly measured week likewise survives the subscription", async () => {
     weekRow({ status: "degraded", report: stored(unreachedSections()) });
-    registerActiveAccessGate(async () => new Set());
+    setBillingStore(payingStore(() => false));
     const account = await accountForWeek({ siteId: SITE, weekStart: WEEK, now: NOW });
     expect(account.kind).toBe("partial");
   });

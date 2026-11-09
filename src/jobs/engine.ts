@@ -74,7 +74,7 @@ export class EngineNotBuilt extends Error {
 //
 // One call into `src/lib/publish/daily/`, which owns the four predicates:
 // a zone, `publishing_enabled`, a live destination that can publish, and
-// active access through the same registered gate the weekly tick asks
+// active access through the gate the weekly tick asks
 // (ADR-050 — one rule, one reader).
 // It is not the weekly tick's list — `weeklyDueSites()` selects on four
 // predicates this one does not carry (issue #41) — and it is not the hour
@@ -87,16 +87,6 @@ export class EngineNotBuilt extends Error {
 // environment the moment it is imported, and a static import here would
 // put a database client in every module graph this seam appears in.
 
-/** Billing's gate, registered on this route's own module graph (issue 863).
- *  `src/instrumentation.ts` registers it into instrumentation's bundle,
- *  which is not the instance of `access.ts` the `/api/jobs` bundle reads;
- *  without this every daily tick held `access-unreadable`. Imported at the
- *  call: billing reaches `@/lib/db`. */
-async function ensureAccessGate(): Promise<void> {
-  const { ensureActiveAccessGate } = await import("@/lib/account/billing");
-  await ensureActiveAccessGate();
-}
-
 /** What one draft tick found: every site ReachKit is still working for
  *  that a page could actually reach and whose owner is paying, with its
  *  own time zone, publish time and veto window — and, where the access
@@ -104,7 +94,6 @@ async function ensureAccessGate(): Promise<void> {
  *  `draft/generate`'s fan-out, which gates each row on the site's own due
  *  hour. */
 export async function activeSites(): Promise<DailySelection> {
-  await ensureAccessGate();
   const { sitesForDailyTick } = await import("@/lib/publish/daily");
   return sitesForDailyTick();
 }
@@ -147,7 +136,6 @@ export type { DueSite } from "@/lib/scan/weekly";
  *  active access, and that carries no measurement for the week it is in
  *  (ADR-060). */
 export async function weeklyDueSites(now: Date): Promise<readonly DueSite[]> {
-  await ensureAccessGate();
   return dueSites(now);
 }
 
@@ -180,7 +168,6 @@ export async function weeklyDueSites(now: Date): Promise<readonly DueSite[]> {
 export async function startWeeklyScan(
   a: DueSite & { readonly now: Date; readonly step?: StepRunner }
 ): Promise<EngineResult> {
-  await ensureAccessGate();
   const step: StepRunner = a.step ?? ((_name, body) => body());
   const outcome = await step(`measure-${a.siteId}`, () =>
     runWeekly({
