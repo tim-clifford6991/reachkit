@@ -1,7 +1,7 @@
 // BUILD §3 — which arm the public header's right slot takes, for a path.
 // src/app/(public)/_chrome/action.ts
 //
-// SPEC §1, owner 2026-09-15 (issue 714): the same bar on every public route,
+// SPEC §1 Same chrome on every public page: the same bar on every public route,
 // and what changes between them is only what the CTA does — on `/` it brings
 // the hero's own field into view, elsewhere it links to the landing — with
 // the report address adding its copy control beside the pair. This is that

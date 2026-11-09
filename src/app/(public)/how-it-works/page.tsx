@@ -1,5 +1,5 @@
-// How the product works, in public (board *How it works*, decision
-// 2026-10-20-1597). The head and its four-step strip, then ten sections, each
+// How the product works, in public (board *How it works*,
+// docs/SPEC.md §1 How it works page). The head and its four-step strip, then ten sections, each
 // with an outcome heading, a short body and one picture, and nothing folded
 // away but the questions. The pictures draw one example business, Tidyslot.
 //

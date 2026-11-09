@@ -56,7 +56,7 @@ describe("the boards draw a ring for every score (E17)", () => {
     expect(ring!.closest(".card")!.text).toContain("Your Visibility Score");
   });
 
-  // Decisions 2026-11-01-2265 and 2026-11-03-2281: the row is ReachKit's own report, and states no score, so it draws no ring.
+  // docs/SPEC.md §1 Our own report only: the row is ReachKit's own report, and states no score, so it draws no ring.
   it("About's report row draws ReachKit's own mark beside reachkit.app, links the report, and states no score", () => {
     for (const name of ["PubAbout"]) {
       const own = board(name).querySelectorAll('a[href="PubReport.dc.html"]').find((a) => a.text.includes("reachkit.app"))!;

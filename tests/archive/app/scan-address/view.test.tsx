@@ -199,7 +199,7 @@ describe("REQ-003 c12 / REQ-001 c16 — refused offers no control; cooldown offe
   });
 });
 
-describe("REQ-002 c3 / REQ-001 c18 — removed re-measures nothing, and since SPEC §1 (2026-09-20) offers one way back", () => {
+describe("REQ-002 c3 / REQ-001 c18 — removed re-measures nothing, and since SPEC §1 Every control acts offers one way back", () => {
   const html = render(ARMS[1]![1]);
 
   it("names the address in one line", () => {

@@ -5,13 +5,12 @@
 // field into view with the cursor in it — never a second submit and never a
 // second field.
 //
-// **The order is the owner's of 2026-10-19** (board *Landing*, decision
-// `2026-10-19-1596`), one story with one example business, below the chrome
+// **The order is docs/SPEC.md §1 Landing order** (board *Landing*), one story with one example business, below the chrome
 // the group layout draws:
 //   1. the hero — title, subline, the one field, the offer, the count of sites
 //      scanned (`HeroProof.tsx`) and the six kinds of business — beside the
 //      story card (`Storyboard.tsx`); on a phone the story card comes last
-//      (board v37, decision 2026-11-06-2452);
+//      (board v37);
 //   2. the walkthrough video, once its file exists (`Walkthrough.tsx`);
 //   3. the three steps, each beside its picture, and one link to How it works;
 //   4. *Why you should care* — four features (`Features.tsx`);

@@ -3,7 +3,7 @@
 //
 // SPEC §2: "measured cards still render with 'Retry this part'". The owner's
 // ruling of 2026-09-22 says what pressing it does — it "re-runs only that
-// part inside the same budget" — and SPEC §1's 2026-09-20 line says what it
+// part inside the same budget" — and SPEC §1 Every control acts says what it
 // may not do: be drawn and do nothing. This is that control.
 //
 // It posts the part to `POST /api/report/{domain}/retry` and then follows
