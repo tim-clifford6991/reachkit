@@ -422,17 +422,19 @@ describe("the publish chain, end to end (issue 888)", () => {
   it(
     "veto window → publish → the page live at the destination → +24 h check → the record → taken down, 410",
     async () => {
-      // ── 1. The window opens, and the founder is told.
-      expect(await enterReview({ draftId: DRAFT_ID, at: WRITTEN_AT })).toEqual({ kind: "told" });
+      // ── 1. The window opens; the first mail fails, and that holds nothing.
+      __setVendorTransportForTesting(async () => ({ status: 422, headers: {}, body: "{}" }));
+      expect(await enterReview({ draftId: DRAFT_ID, at: WRITTEN_AT })).toEqual({ kind: "entered", told: false });
+      await captureMail(inbox);
       expect(draft().state).toBe("in_review");
       const deadline = new Date(String(draft().veto_deadline));
       expect(deadline.getTime()).toBe(WRITTEN_AT.getTime() + VETO_HOURS * HOUR);
-      expect(inbox.map((mail) => mail.to)).toEqual([[EMAIL]]);
 
-      // Nothing goes out while the window is open.
+      // Nothing goes out while the window is open, and the tick sends the missed mail.
       expect(await publishTick(new Date(deadline.getTime() - HOUR))).toMatchObject({
         outcome: "skipped",
       });
+      expect(inbox.map((mail) => mail.to)).toEqual([[EMAIL]]);
       expect(db.rows("publications")).toEqual([]);
       expect(draft().state).toBe("in_review");
 

@@ -36,13 +36,11 @@
 // **The `draft-ready` mail is built (#174), and this journey sends it.**
 // The decision behind it came with the veto leaf — `tellingFor` picks
 // which of §12's three things the mail says, `issueVetoLink` mints the one
-// stop link it carries, and `recordTold` is what the `customer_told` guard
-// reads — and until #174 nothing composed or sent it, so the composition
+// stop link it carries, and `recordTold` marks it sent — and until #174 nothing composed or sent it, so the composition
 // was the hole and a real customer was never told. Step 3 now goes through
 // the real template, the real compose shell and the real send seam, and
 // the stop link the veto tests redeem is read back out of the mail that
-// actually left. A page still cannot publish untold: that is the guard,
-// and it is asserted here.
+// actually left. The mail is best-effort and holds no page.
 //
 // **The hosted destination cannot take a page yet** (#49 — its adapter
 // returns `destination_unavailable` and says so in its own header), so
@@ -641,7 +639,7 @@ async function generateTonightsPage(): Promise<string> {
  *  that actually went to the inbox, so the veto tests below stop the page
  *  with the link the customer was actually sent. */
 async function enterReviewAndTell(draftId: string): Promise<{ token: string }> {
-  expect(await enterReview({ draftId, at: TOLD_AT })).toEqual({ kind: "told" });
+  expect(await enterReview({ draftId, at: TOLD_AT })).toEqual({ kind: "entered", told: true });
   expect(theDraftRow().veto_deadline).toBe(
     new Date(TOLD_AT.getTime() + VETO.defaultHours * 3_600_000).toISOString()
   );
@@ -777,12 +775,11 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
   );
 
   it(
-    "the veto window: the page enters review, the customer is told, and nothing publishes untold",
+    "the veto window: the page enters review and the customer is told",
     async () => {
       const draftId = await generateTonightsPage();
 
-      // Untold, the page is held by the guard that says so — before any
-      // window has even opened.
+      // Untold before any window has opened.
       const before = await transition(draftId, "in_review", { kind: "system", job: "draft/generate" }, {
         at: TOLD_AT,
       });
@@ -805,7 +802,6 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
       expect(telling.copy).toBe("mail.draftReady.autopilotWindow");
       expect(telling.stopAction.token).toBe(link.token);
       // The telling is a **mail**, and the record follows the send (#174).
-      // Until it left, the page is still untold and still held.
       const inboxBefore = inbox.length;
       const told = await sendDraftReadyMail({ draftId, destination: "wordpress", at: TOLD_AT });
       expect(told.sent).toBe(true);

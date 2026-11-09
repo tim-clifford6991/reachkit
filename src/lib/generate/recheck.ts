@@ -281,7 +281,7 @@ async function rescue(a: { siteId: string; publishDate: string; now: Date }): Pr
     const entry = await enterReview({ draftId: row.id, at: a.now, by: RECHECK, reason: `recheck:${outcome.cleared.join(",")}` });
     // A page that could not enter review is not left marked as one that may.
     if (entry.kind === "not_entered") await store.patchDraft(row.id, { hard_rules_passed: false });
-    return entry.kind === "told" ? row.id : null;
+    return entry.kind === "entered" ? row.id : null;
   }
   return null;
 }

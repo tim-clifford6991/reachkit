@@ -84,7 +84,7 @@ export const TERMINAL: readonly State[] = Object.freeze(["skipped"] as const);
 /** Not one of the seventeen, or a named guard said no; never an exception, never the page moved elsewhere. */
 export type Refusal = "not_a_transition" | "guard";
 
-/** The eleven named guards. A guard is a condition on an *edge*, evaluated
+/** The ten named guards. A guard is a condition on an *edge*, evaluated
  *  in list order; the first that fails names itself in the refusal. */
 export type GuardId =
   /** every edge whose target is `publishing`: only a draft whose text as
@@ -101,9 +101,6 @@ export type GuardId =
   | "customer_initiated"
   /** approved/failed → publishing: the publishable rule. */
   | "publishable_and_due"
-  /** approved → publishing: the customer was told, on the pair actually in
-   *  force, either the interval they have to stop it or that none exists. */
-  | "customer_told"
   /** every edge whose target is `publishing`: BUILD §8 hard rule 4 and
    *  REQ-053 c5 — no claim re-check is outstanding on this draft. On
    *  *every* route into an attempt, because the promise is "no approval,
@@ -175,7 +172,6 @@ export const GUARDS: Readonly<Record<string, readonly GuardId[]>> = Object.freez
     "no_outstanding_claim_recheck",
     "draft_passed_hard_rules",
     "publishable_and_due",
-    "customer_told",
     "publishing_switch_on",
     "within_ceilings",
     "destination_working",
@@ -185,7 +181,6 @@ export const GUARDS: Readonly<Record<string, readonly GuardId[]>> = Object.freez
     "no_outstanding_claim_recheck",
     "draft_passed_hard_rules",
     "publishable_and_due",
-    "customer_told",
     "publishing_switch_on",
     "within_ceilings",
     "destination_working",

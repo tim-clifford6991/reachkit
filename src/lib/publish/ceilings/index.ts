@@ -1,10 +1,10 @@
-// BUILD §9 — the two ceilings, a day's and a week's, in the customer's own zone on a Monday-start week.
+// BUILD §9 — the day's ceiling, in the customer's own zone, else UTC.
 // BUILD §14 guardrail 7 — autopilot rate limits, independent of the monthly cap.
-// §9: hard limits regardless of settings, so the limits come from the pins and no per-site column that could hold a
-// rate is read, and nothing here returns a rate. They hold independently. A refusal is a hold naming the ceiling and when it lifts.
-import { addDays, addWeeks, startOfDay, startOfWeek } from "date-fns";
+// §9: hard limits regardless of settings, so the limit comes from the pin and no per-site column that could hold a
+// rate is read, and nothing here returns a rate. A refusal is a hold naming the ceiling and when it lifts.
+import { addDays, startOfDay } from "date-fns";
 import { RATE_LIMITS } from "@/lib/config/constants";
-import { inZone, WEEK_STARTS_ON } from "@/lib/scan/weekly/week";
+import { inZone } from "@/lib/scan/weekly/week";
 import { publishDb } from "../db";
 
 /** The instant the customer's calendar day containing `at` begins; a skipped midnight is the day's first instant. */
@@ -17,47 +17,25 @@ export function startOfNextLocalDay(at: Date, timeZone: string): Date {
   return new Date(+startOfDay(addDays(startOfDay(inZone(at, timeZone)), 1)));
 }
 
-/** The instant the local week begins; a Sunday counts in the week it ends. */
-export function startOfLocalWeek(at: Date, timeZone: string): Date {
-  return new Date(+startOfWeek(inZone(at, timeZone), { weekStartsOn: WEEK_STARTS_ON }));
-}
-
-/** The instant the customer's next week begins. */
-export function startOfNextLocalWeek(at: Date, timeZone: string): Date {
-  return new Date(+startOfDay(addWeeks(startOfWeek(inZone(at, timeZone), { weekStartsOn: WEEK_STARTS_ON }), 1)));
-}
-
-/** `zone_not_set` holds with no `nextFreeAt`, as no clock clears it: REQ-073 c1 forbids a zone never stated, and the
- *  server's zone would publish on the wrong day. `unreadable` holds too, since "none known" is not "none went out";
- *  it writes nothing and the next tick asks again. */
+/** `unreadable` holds, since "none known" is not "none went out"; it writes nothing and the next tick asks again. */
 export type CeilingRoom =
   | { room: true }
-  | { room: false; blockedBy: "day" | "week"; nextFreeAt: Date }
-  | { room: false; blockedBy: "zone_not_set" }
+  | { room: false; blockedBy: "day"; nextFreeAt: Date }
   | { room: false; blockedBy: "unreadable" };
 
-/** Room to publish now? When both block, the day is reported: it is the nearer boundary the customer waits on. */
+/** Room to publish now? A site with no zone counts its day in UTC, so a missing zone never holds a page. */
 export async function ceilingRoom(siteId: string, at: Date): Promise<CeilingRoom> {
-  const timeZone = await siteTimeZone(siteId);
-  if (timeZone === UNREADABLE) return unreadable(siteId, "sites");
-  if (timeZone === null) return { room: false, blockedBy: "zone_not_set" };
+  const zone = await siteTimeZone(siteId);
+  if (zone === UNREADABLE) return unreadable(siteId, "sites");
+  const timeZone = zone ?? "UTC";
 
-  const dayStart = startOfLocalDay(at, timeZone);
-  const weekStart = startOfLocalWeek(at, timeZone);
-
-  // One read over the week; the day is a slice. A page counts even if later unpublished: the day it went out is used.
-  const published = await publishedSince(siteId, weekStart);
+  // A page counts even if later unpublished: the day it went out is used.
+  const published = await publishedSince(siteId, startOfLocalDay(at, timeZone));
   if (published === UNREADABLE) return unreadable(siteId, "publications");
 
-  const inDay = published.filter((instant) => instant >= dayStart).length;
-  if (inDay >= RATE_LIMITS.publishesPerDay) {
+  if (published.length >= RATE_LIMITS.publishesPerDay) {
     return { room: false, blockedBy: "day", nextFreeAt: startOfNextLocalDay(at, timeZone) };
   }
-
-  if (published.length >= RATE_LIMITS.publishesPerWeek) {
-    return { room: false, blockedBy: "week", nextFreeAt: startOfNextLocalWeek(at, timeZone) };
-  }
-
   return { room: true };
 }
 
@@ -69,7 +47,7 @@ function unreadable(siteId: string, table: string): CeilingRoom {
   return { room: false, blockedBy: "unreadable" };
 }
 
-/** `null` is no zone or no site, both a hold; a read that errored is `UNREADABLE`. */
+/** `null` is no zone or no site; a read that errored is `UNREADABLE`. */
 async function siteTimeZone(siteId: string): Promise<string | null | typeof UNREADABLE> {
   const { data, error } = await publishDb()
     .from<{ timezone: string | null }>("sites")

@@ -31,16 +31,14 @@ function instantOfWallTime(zone: string, day: TZDate, hh: number, mm: number): D
   return new Date(after);
 }
 
-/** The first publish time at or after `instant` in the customer's zone, inclusive at the boundary.
+/** The first publish time at or after `instant` in the customer's zone, else UTC, inclusive at the boundary.
  *  - Spring forward: a time that does not exist resolves to just after the gap, never the next day's.
  *  - Autumn back: a time that occurs twice resolves to the first.
- *  Throws on a missing or unresolvable zone; there is no server-zone fallback. */
+ *  Throws on an unresolvable zone; there is no server-zone fallback. */
 export function nextPublishTimeAtOrAfter(instant: Date, s: PublishingSettings): Date {
-  const zone = s.timezone;
-  if (zone === null || !resolvable(zone)) {
-    throw new Error(
-      "nextPublishTimeAtOrAfter: the site has no resolvable time zone; there is no fallback."
-    );
+  const zone = s.timezone ?? "UTC";
+  if (!resolvable(zone)) {
+    throw new Error("nextPublishTimeAtOrAfter: the site's time zone is not resolvable.");
   }
 
   const [hhText = "", mmText = ""] = s.publishTime.split(":");

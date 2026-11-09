@@ -4,7 +4,6 @@ export {
   becomesPublishable,
   type NotPublishable,
   type PublishableAnswer,
-  type Unresolvable,
 } from "./predicate";
 export {
   isUnsuppressible,
@@ -34,7 +33,6 @@ export {
 } from "./veto";
 export {
   PUBLISHABLE_RULE,
-  customerTold,
   publishableAndDue,
   type PublishableRuleShape,
 } from "./rule";

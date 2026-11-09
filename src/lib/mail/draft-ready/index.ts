@@ -1,7 +1,7 @@
-// BUILD §12, §9 — the occasion of the `draft-ready` mail: no page publishes without the customer told, on the pair it publishes under,
-// the interval to stop it or that none exists. `tellingFor` picks the telling, `issueVetoLink` mints the link, `recordTold` feeds the guard.
-// `recordTold` is written only after the seam accepted the mail: recording first would let a page publish in silence. A refused send leaves
-// the page held and owed again next tick; a mail the customer switched off is a telling declined, so it is recorded, and the page still goes live on its day.
+// BUILD §12, §9 — the occasion of the `draft-ready` mail: the customer is told, on the pair it publishes under, the interval to stop it.
+// `tellingFor` picks the telling, `issueVetoLink` mints the link, `recordTold` marks it sent. It is best-effort and holds no page.
+// `recordTold` is written only after the seam accepted the mail, so a refused send is owed again next tick; a mail the customer
+// switched off is a telling declined, so it is recorded.
 // Once per pair, not per page: changing mode or window is owed a fresh telling (REQ-057 c8), and `toldCurrentPair` is that key.
 // It refuses a draft not `in_review`, since a mail at the wrong moment is a false statement the caller is least able to see.
 // It lives here, not in the veto leaf, so publishing does not import the mail seam for one occasion.
@@ -35,7 +35,7 @@ import {
   type TellableTelling,
 } from "../templates/draft-ready";
 
-/** Why a telling did not go out: every arm reported, since an untold page will not publish. */
+/** Why a telling did not go out: every arm reported, so a failure is logged. */
 export type DraftReadyOutcome =
   | { sent: true; id: string }
   | {
@@ -90,7 +90,7 @@ async function withConnect(telling: TellableTelling, account: { userId: string; 
   return { connectHref: signed ?? new URL(PAGES_LANDING_PATH, env.NEXT_PUBLIC_APP_URL).toString() };
 }
 
-/** The publish moment in the customer's zone, with no fallback: `tellingFor` answers `not_yet_tellable` without one (REQ-073 c1). */
+/** The publish moment in the customer's zone, else UTC, the zone the page publishes in. */
 function writePublishesAt(at: Date, timeZone: string): string {
   return new Intl.DateTimeFormat("en-US", {
     timeZone,
@@ -111,7 +111,7 @@ export async function sendDraftReadyMail(a: {
 }): Promise<DraftReadyOutcome> {
   const at = a.at ?? new Date();
 
-  // The machine's own reader, so the pair this mail names and the pair the `customer_told` guard compares are one answer.
+  // The machine's own reader, so the pair this mail names is the pair the page publishes under.
   const draft = await machineDraftFor(a.draftId);
   if (draft === null) return { sent: false, reason: "no-draft" };
   if (draft.state !== "in_review") return { sent: false, reason: "not-in-review" };
@@ -239,7 +239,7 @@ function writtenFrom(groundedFact: unknown): string | undefined {
   return url === "" ? undefined : url;
 }
 
-/** The address to write to, and the zone to write the moment in. */
+/** The address to write to, and the zone to write the moment in: the site's, else UTC. */
 async function recipient(
   siteId: string,
   draftId: string
@@ -253,7 +253,7 @@ async function recipient(
     throw new Error(`sendDraftReadyMail(${draftId}): ${siteError.message}`);
   }
   const site = sites?.[0];
-  if (site === undefined || site.timezone === null) return null;
+  if (site === undefined) return null;
 
   const { data: users, error: userError } = await untyped()
     .from<{ email: string }>("users")
@@ -266,7 +266,7 @@ async function recipient(
   const email = users?.[0]?.email;
   if (email === undefined) return null;
 
-  return { email, userId: site.user_id, timeZone: site.timezone };
+  return { email, userId: site.user_id, timeZone: site.timezone ?? "UTC" };
 }
 
 /** SPEC §8's "page's first lines": cut at a paragraph boundary within `MAIL_PAGE_LINES`, since a mid-clause cut reads as broken. */

@@ -136,23 +136,10 @@ describe('REQ-057 c7 — "at a veto window of zero it becomes publishable at onc
   });
 });
 
-describe("a site with no stated time zone is held, never published in a zone nobody chose", () => {
-  it("answers `zone_not_set` rather than throwing or guessing", () => {
-    expect(becomesPublishable(view({ governing: pair({ timezone: null }) }))).toEqual({
-      publishable: false,
-      because: "zone_not_set",
-    });
-  });
-
-  it("it is not one of criterion 2's conjuncts — each still has its own reason", () => {
-    const reasons = new Set(
-      [
-        becomesPublishable(view({ vetoDeadline: null })),
-        becomesPublishable(view({ hasUnsavedEdit: true })),
-        becomesPublishable(view({ claimRecheckOutstanding: true })),
-        becomesPublishable(view({ governing: pair({ timezone: null }) })),
-      ].map((answer) => (answer.publishable ? "publishable" : answer.because))
+describe("a site with no stated time zone is not held: it publishes in UTC", () => {
+  it("answers the UTC publish time", () => {
+    expect(becomesPublishable(view({ governing: pair({ timezone: null }) }))).toEqual(
+      becomesPublishable(view({ governing: pair({ timezone: "UTC" }) }))
     );
-    expect(reasons.size).toBe(4);
   });
 });

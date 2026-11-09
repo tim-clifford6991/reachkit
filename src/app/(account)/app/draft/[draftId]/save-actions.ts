@@ -45,12 +45,10 @@ export async function saveDraft(body: SaveBody): Promise<SaveResult> {
       at: outcome.savedAt,
       by: { kind: "customer", userId: account.userId },
     });
-    entered = entry.kind !== "not_entered";
-    if (entry.kind === "told") {
+    entered = entry.kind === "entered";
+    if (entered) {
       const { schedulePublish } = await import("@/jobs/engine");
       await schedulePublish({ draftId: body.draftId });
-    }
-    if (entered) {
       revalidatePath(DESTINATION_HREF.calendar);
       revalidatePath(`/app/draft/${body.draftId}`);
     }

@@ -36,7 +36,7 @@ function openDeps(over: Partial<GuardDeps> = {}): GuardDeps {
     isPublishingOn: async () => true,
     hasCeilingRoom: async () => true,
     destinationWorking: async () => true,
-    rule: { becomesPublishable: () => true, toldCurrentPair: () => true },
+    rule: { becomesPublishable: () => true },
     ...over,
   };
 }
@@ -274,8 +274,7 @@ describe("the switch is read inside the claim, so switching off is instant", () 
 
 describe("every refusal is a hold, and names which one", () => {
   const holds: [string, Partial<GuardDeps>][] = [
-    ["not_publishable", { rule: { becomesPublishable: (): boolean => false, toldCurrentPair: (): boolean => true } }],
-    ["telling_owed", { rule: { becomesPublishable: (): boolean => true, toldCurrentPair: (): boolean => false } }],
+    ["not_publishable", { rule: { becomesPublishable: (): boolean => false } }],
     ["destination_not_working", { destinationWorking: async (): Promise<boolean> => false }],
   ];
 

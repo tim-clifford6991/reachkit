@@ -556,11 +556,9 @@ async function reviewWritten(
   if (!outcome.ok) return { degraded: outcome.because === "step_failed" || outcome.because === "no_own_facts" ? `generate:${outcome.because}:${outcome.step}` : `generate:${(outcome.because === "rules" ? outcome.stop : undefined) ?? outcome.because}` };
   const { enterReview } = await import("@/lib/publish/attempt/window");
   const entry = await enterReview({ draftId: outcome.draftId, at: now });
-  if (entry.kind === "told") {
-    await schedulePublish({ draftId: outcome.draftId });
-    return { done: true };
-  }
-  return entry.kind === "untold" ? { degraded: `draft-ready:${entry.reason}` } : { degraded: `review:${entry.reason}` };
+  if (entry.kind === "not_entered") return { degraded: `review:${entry.reason}` };
+  await schedulePublish({ draftId: outcome.draftId });
+  return { done: true };
 }
 
 // ── Publishing — BP-015, built (issue #173)

@@ -1,6 +1,6 @@
 // BUILD §12 · SPEC §8 — the `draft-ready` mail, as a block list only (ADR-040): title, goes-live line, the fact rows, the page's first
 // lines, *Read the full page* and *Stop this page*, with the searches a month up top and not repeated as a fact row.
-// It lays out the telling `tellingFor` chose; choosing here would copy the rule the `customer_told` guard reads. The switch is exhaustive
+// It lays out the telling `tellingFor` chose; choosing here would copy its rule. The switch is exhaustive
 // over the three tellable arms (`not_yet_tellable` is refused upstream), so a fourth does not compile.
 // Only `interval` carries a `stopAction` (REQ-057 c7: a zero window issues no link); this file mints none and never renders an empty token.
 // The model-written title travels only in `pageBody`, whose `GeneratedText` label names the page (ADR-012); `subject` is a `CopyKey`,

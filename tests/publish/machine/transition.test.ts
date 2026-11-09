@@ -35,7 +35,7 @@ function openDeps(over: Partial<GuardDeps> = {}): GuardDeps {
     isPublishingOn: async () => true,
     hasCeilingRoom: async () => true,
     destinationWorking: async () => true,
-    rule: { becomesPublishable: () => true, toldCurrentPair: () => true },
+    rule: { becomesPublishable: () => true },
     ...over,
   };
 }
@@ -314,21 +314,11 @@ describe("the named guards refuse the edge, each in its turn", () => {
     expect(result).toMatchObject({ failedGuard: "destination_working" });
   });
 
-  it("approved → publishing is refused when the customer has not been told — held, not skipped", async () => {
-    seedDraft("approved");
-    const result = await transition("d1", "publishing", SYSTEM, {
-      at: AT,
-      deps: openDeps({ rule: { becomesPublishable: () => true, toldCurrentPair: () => false } }),
-    });
-    expect(result).toMatchObject({ failedGuard: "customer_told", state: "approved" });
-    expect(draftRow().state).toBe("approved");
-  });
-
   it("approved → publishing is refused when the page is not yet publishable", async () => {
     seedDraft("approved");
     const result = await transition("d1", "publishing", SYSTEM, {
       at: AT,
-      deps: openDeps({ rule: { becomesPublishable: () => false, toldCurrentPair: () => true } }),
+      deps: openDeps({ rule: { becomesPublishable: () => false } }),
     });
     expect(result).toMatchObject({ failedGuard: "publishable_and_due" });
   });
@@ -339,7 +329,7 @@ describe("the named guards refuse the edge, each in its turn", () => {
     const result = await transition("d1", "publishing", SYSTEM, {
       at: AT,
       deps: openDeps({
-        rule: { becomesPublishable: () => false, toldCurrentPair: () => true },
+        rule: { becomesPublishable: () => false },
         hasCeilingRoom: ceilings,
       }),
     });

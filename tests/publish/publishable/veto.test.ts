@@ -283,7 +283,7 @@ describe("no token, hashed or otherwise, reaches a log line", () => {
 describe("the stop page's read: why it was chosen, when the mail left, and the week after a stop", () => {
   const REASON = { points: 5, parts: [{ part: "ai_gap", n: 2 }], rule: null };
   /** The columns the read selects that the module's other cases leave unset. */
-  const PAGE = { title: null, body_md: null, told: null, scheduled_for: null, opportunity_id: null };
+  const PAGE = { title: null, body_md: null, told: null, scheduled_for: null, opportunity_id: null, approved_at: null };
 
   it("an open link carries the stored reason and the told record's send time", async () => {
     seed({ ...PAGE, opportunity_id: "o1", told: { pair: {}, kind: "interval", publishesAt: null, sentAt: "2026-09-02T07:00:00.000Z", mailed: true } });

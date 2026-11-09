@@ -118,7 +118,7 @@ export async function startLiveEdit(a: LiveEdit): Promise<LiveEditOutcome> {
     draftId,
     state: entry.kind === "not_entered" ? "needs_attention" : "in_review",
     passed,
-    told: entry.kind === "told",
+    told: entry.kind === "entered" && entry.told,
   };
 }
 
