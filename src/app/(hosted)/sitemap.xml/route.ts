@@ -40,7 +40,7 @@
 import { env } from "@/lib/config/env";
 import { livePagesForSite } from "@/lib/publish/destinations/hosted";
 import { appSitemapDocument } from "@/app/(public)/_seo/policies";
-import { isAppHost, resolveHost } from "../resolve-host";
+import { isAppHost, resolveHost, unavailableResponse } from "../resolve-host";
 
 const XML = "application/xml; charset=utf-8";
 
@@ -73,6 +73,7 @@ export async function GET(request: Request): Promise<Response> {
   }
 
   const disposition = await resolveHost(host);
+  if (disposition.kind === "unavailable") return unavailableResponse();
   // A preview address is in no sitemap (ADR-002), and neither is a host we
   // do not serve or one that has stopped.
   if (disposition.kind !== "site") return new Response(null, { status: 404 });

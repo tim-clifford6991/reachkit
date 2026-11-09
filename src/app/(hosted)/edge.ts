@@ -39,11 +39,11 @@
 // moved under the site still answers 404 by the rule above (#888) and a
 // redirect never leaves the site's own host.
 //
-// **It fails towards rendering.** A read that throws yields `page`: the
-// uncached route resolves the Host again for itself and answers 404 when
-// it cannot find a page. A 410 asserts that a page was taken down; it is
-// never something to say because a query failed. A cached copy is never
-// served on a failed read either.
+// **A site or hosting row that cannot be read is `unavailable`**, the 503:
+// a 410 asserts that a page was taken down and a 404 that none was there,
+// and a failed query can say neither. Any other throw yields `page`: the
+// uncached route resolves the Host again for itself. A cached copy is never
+// served on a failed read.
 import { hostedAddress } from "@/lib/publish/destinations/hosted";
 import { resolveHost } from "./resolve-host";
 
@@ -66,7 +66,7 @@ export interface MovedAnswer {
   slug: string;
 }
 
-export type HostedAnswer = "gone" | "page" | LiveAnswer | MovedAnswer;
+export type HostedAnswer = "gone" | "page" | "unavailable" | LiveAnswer | MovedAnswer;
 
 /** The single path segment that names a page, or `null` — `content.{domain}
  *  /a/b` is not a deeper page, it is not a page at all. */
@@ -81,6 +81,7 @@ export async function hostedAnswer(host: string, pathname: string): Promise<Host
     // A customer whose access ended, or whose account was deleted: every
     // address on the host is gone, not only the ones that held a page.
     if (disposition.kind === "gone") return "gone";
+    if (disposition.kind === "unavailable") return "unavailable";
     if (disposition.kind !== "site") return "page";
 
     const slug = pageSlug(pathname);

@@ -30,7 +30,7 @@
 import { env } from "@/lib/config/env";
 import { appRobotsDocument } from "@/app/(public)/_seo/policies";
 import { customerRobotsDocument, previewRobotsDocument } from "../policies";
-import { isAppHost, resolveHost } from "../resolve-host";
+import { isAppHost, resolveHost, unavailableResponse } from "../resolve-host";
 
 const TEXT = "text/plain; charset=utf-8";
 
@@ -52,6 +52,7 @@ export async function GET(request: Request): Promise<Response> {
   }
 
   const disposition = await resolveHost(host);
+  if (disposition.kind === "unavailable") return unavailableResponse();
 
   if (disposition.kind === "site") {
     // The sitemap the document names is this site's own, on the customer's

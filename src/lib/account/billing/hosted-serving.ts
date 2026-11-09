@@ -22,19 +22,15 @@
 // all still yields the right answer here, because the answer is a
 // comparison and not a stored state.
 //
-// **It fails closed on deletion and open on retention** (BP-060's NFR
-// budget). A lookup error while the tombstone is unknown must not serve a
-// deleted customer's page — that is somebody's erasure request, and
-// serving through it is the failure this direction exists to prevent.
-// A retention window we cannot read, by contrast, fails towards serving:
-// the cost of a page served a day longer than promised is a day, and the
-// cost of taking a paying customer's live pages down on a failed read is
-// their business.
+// **A failed read is neither answer.** It is `unreadable`: nothing is
+// served, because an erasure request may be behind the row, and nothing is
+// declared gone, because a 410 on a short outage would de-index a paying
+// customer's live pages. The edge answers it 503, which crawlers retry.
 import { billingStore } from "./store";
 
 export type HostedServingState =
   | { serve: true }
-  | { serve: false; because: "retention_elapsed" | "account_deleted" };
+  | { serve: false; because: "retention_elapsed" | "account_deleted" | "unreadable" };
 
 /** REQ-076 criterion 10 — what the hosted edge asks before serving a hosted
  *  address. Server-only, on the request path: p95 ≤ 10 ms, cacheable for
@@ -42,9 +38,8 @@ export type HostedServingState =
 export async function hostedServingState(siteId: string): Promise<HostedServingState> {
   const read = await billingStore().hosting(siteId);
 
-  // Fails closed on deletion: with no row to read, whether this account was
-  // erased is unknown, and "unknown" is not a licence to serve.
-  if (!read.ok) return { serve: false, because: "account_deleted" };
+  // Whether this account was erased is unknown, so it is neither served nor gone.
+  if (!read.ok) return { serve: false, because: "unreadable" };
 
   // A site that does not exist is not a site whose retention elapsed.
   if (read.site === null) return { serve: false, because: "account_deleted" };

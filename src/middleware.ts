@@ -48,7 +48,7 @@
 // a work order that touches BP-001's own `code:` list.
 import { NextResponse } from "next/server";
 import type { NextFetchEvent, NextRequest } from "next/server";
-import { HOSTED_SUBDOMAIN_LABEL, PREVIEW_HOST_SUFFIX } from "@/lib/config/constants/publish";
+import { HOSTED_SUBDOMAIN_LABEL, HOSTED_UNAVAILABLE_INIT, PREVIEW_HOST_SUFFIX } from "@/lib/config/constants/publish";
 import { env } from "@/lib/config/env";
 import { classifyBlogRead } from "@/lib/publish/reads/classify";
 import { isDomainRemoved } from "@/lib/scan/removal";
@@ -580,11 +580,11 @@ async function hostedRewrite(
       HOSTED_READ_DEADLINE_MS
     );
   } catch {
-    answer = "page";
     // `hostedAnswer` answers its own failures, so what lands here is the deadline.
     if (blogReadOf(req) !== null) blogReadSkipped("page_lookup_deadline");
   }
 
+  if (answer === "unavailable") return { response: new NextResponse(null, HOSTED_UNAVAILABLE_INIT), scriptFree: false };
   const destination = req.nextUrl.clone();
   // SPEC §7 (2026-10-17, issue 1487): a retargeted page's old address moves
   // its visitor, and its ranking, to the page's new one on the same host.
