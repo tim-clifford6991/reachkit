@@ -22,8 +22,8 @@ import { SITE_PASS_TIERS } from "@/lib/scan/report";
 
 /** The `users` row, as billing reads it. Narrow on purpose: a column not
  *  named here cannot be read by accident. `plan_status` is on the list
- *  because §4.7's card may state what Stripe last said — and for no other
- *  reason. **No gate reads it** (ADR-050). */
+ *  because §4.7's card states what Stripe last said; the gate reads it
+ *  through `payingSiteCount`, not through this row. */
 export interface BillingRow {
   readonly id: string;
   readonly email: string;
@@ -170,6 +170,7 @@ interface MinimalQueryBuilder<T> extends PromiseLike<QueryResult<T>> {
   gt(column: string, value: string): MinimalQueryBuilder<T>;
   update(patch: object): MinimalQueryBuilder<T>;
   eq(column: string, value: string): MinimalQueryBuilder<T>;
+  neq(column: string, value: string): MinimalQueryBuilder<T>;
   is(column: string, value: null): MinimalQueryBuilder<T>;
   not(column: string, operator: string, value: null): MinimalQueryBuilder<T>;
   lte(column: string, value: string): MinimalQueryBuilder<T>;
@@ -263,11 +264,12 @@ export function supabaseBillingStore(): BillingStore {
 
   return {
     async payingSiteCount(at, siteId) {
-      // No owner or no date is excluded by the inner join and `gt`, so the gate fails closed.
+      // No owner or no date is excluded by the inner join and `gt`, so the gate fails closed; an outstanding invoice is `past_due`.
       const paying = untyped()
         .from("sites")
-        .select("id, users!inner(paid_through)", { count: "exact", head: true })
-        .gt("users.paid_through", at.toISOString());
+        .select("id, users!inner(paid_through, plan_status)", { count: "exact", head: true })
+        .gt("users.paid_through", at.toISOString())
+        .neq("users.plan_status", "past_due");
       const { count, error } = await (siteId === undefined ? paying : paying.eq("id", siteId));
       if (error || typeof count !== "number") return { ok: false };
       return { ok: true, count };

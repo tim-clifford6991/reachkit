@@ -1,9 +1,5 @@
-// tests/account/billing/gate.test.ts — REQ-076 c4, c8; ADR-050
-//
-// ADR-050's three cases, each written so that it **fails if the obvious
-// clause is added**. The clause — "and the subscription is actually active"
-// — reads like a tightening, is one line, and is invisible in every test
-// written with a live subscription. These three are the tests that are not.
+// tests/account/billing/gate.test.ts — paid means paid through today, with no
+// outstanding invoice (docs/spec/decisions/2026-11-09-2525.md).
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { applyEnvFixture } from "../../mail/env-fixture";
 
@@ -11,7 +7,7 @@ applyEnvFixture();
 
 const { hasActiveAccess, setBillingStore, sitesWithActiveAccess } = await import("@/lib/account/billing");
 const { payingSitesAt } = await import("@/lib/account/billing/gate");
-const { memoryBillingStore, newMemoryBilling, site } = await import("./memory-store");
+const { account, memoryBillingStore, newMemoryBilling, site } = await import("./memory-store");
 
 let state = newMemoryBilling();
 const NOW = new Date("2026-09-06T12:00:00.000Z");
@@ -30,47 +26,26 @@ afterEach(() => {
   setBillingStore(null);
 });
 
-/** One site whose owner is in the given state. `planStatus` and
- *  `cancelled` are on the row precisely so the tests below can prove the
- *  gate never reads them. */
-function given(a: { paidThrough: Date }): string {
+/** One site whose owner is in the given state. */
+function given(a: { paidThrough: Date; planStatus?: "active" | "past_due" | "canceled" }): string {
   state.sites.push(site({ id: "site-1", user_id: "u-1", owner_paid_through: a.paidThrough.toISOString() }));
+  if (a.planStatus) state.users.push(account({ id: "u-1", plan_status: a.planStatus, paid_through: a.paidThrough.toISOString() }));
   return "site-1";
 }
 
-describe("REQ-076 c8 — the gate is the paid-through date and nothing else", () => {
-  it("a past_due subscription with a future paid_through HAS access", async () => {
-    // REQ-076 c8: "whether or not its latest renewal was paid". A bounced
-    // card does not move `paid_through`, so it does not move the gate.
-    const siteId = given({ paidThrough: IN_A_MONTH });
-    state.users.push({
-      id: "u-1",
-      email: "a@example.com",
-      plan_status: "past_due",
-      stripe_customer_id: "cus_1",
-      stripe_subscription_id: "sub_1",
-      paid_through: IN_A_MONTH.toISOString(),
-      cancelled_at: null,
-      last_subscription_event_id: null,
-      deleted_at: null,
-    });
-    expect(await hasActiveAccess(siteId)).toBe(true);
+describe("paid through today, with no outstanding invoice", () => {
+  it("past_due with a future paid_through is not paid; active is; canceled keeps its paid month", async () => {
+    const cases = [["past_due", false], ["active", true], ["canceled", true]] as const;
+    for (const [planStatus, paid] of cases) {
+      state = newMemoryBilling();
+      setBillingStore(memoryBillingStore(state));
+      expect(await hasActiveAccess(given({ paidThrough: IN_A_MONTH, planStatus })), planStatus).toBe(paid);
+      expect(await payingSitesAt(NOW), planStatus).toBe(paid ? 1 : 0);
+    }
   });
 
-  it("a subscription Stripe still calls active with a past paid_through has NONE", async () => {
-    const siteId = given({ paidThrough: LAST_MONTH });
-    state.users.push({
-      id: "u-1",
-      email: "a@example.com",
-      plan_status: "active",
-      stripe_customer_id: "cus_1",
-      stripe_subscription_id: "sub_1",
-      paid_through: LAST_MONTH.toISOString(),
-      cancelled_at: null,
-      last_subscription_event_id: null,
-      deleted_at: null,
-    });
-    expect(await hasActiveAccess(siteId)).toBe(false);
+  it("active with a past paid_through is not paid", async () => {
+    expect(await hasActiveAccess(given({ paidThrough: LAST_MONTH, planStatus: "active" }))).toBe(false);
   });
 });
 

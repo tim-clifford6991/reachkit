@@ -1,26 +1,15 @@
 // src/lib/account/billing/gate.ts — BUILD §13
 //
-// **THE access gate. Read ADR-050 before changing anything in this file.**
+// **THE access gate.** Paid means `users.paid_through > now()` and a
+// recorded `plan_status` other than `past_due`: paid through today, with no
+// outstanding invoice (`docs/spec/decisions/2026-11-09-2525.md`). Both
+// columns are read in the one row read, through `sites.user_id`. No vendor
+// call.
 //
-// ADR-050, verbatim: "Active access is `users.paid_through > now()` alone;
-// `plan_status` is recorded and never read by the gate." The body below is
-// that sentence and nothing else — one column, one comparison, resolved
-// through `sites.user_id`. No `plan_status`, no `cancelled_at`, no
-// `deleted_at`, no vendor call.
-//
-// The obvious improvement — "and the subscription is actually active" — is
-// the bug. It is one clause to add, it reads like a tightening, and it is
-// invisible in every test written with a live subscription. What it
-// actually does is take a cancelled customer's remaining paid month away
-// from them (REQ-076 c3: "measurement, generation and publishing continue
-// unchanged until that date") and cut off a customer whose renewal card
-// bounced (REQ-076 c8: "whether or not its latest renewal was paid"). Both
-// are promises the product sells on. `tests/account/billing/gate.test.ts`
-// is written so that adding the clause fails.
-//
-// Deletion is not an exception to the rule either: it moves `paid_through`
-// to `now()`, so this expression turns false at the moment of deletion
-// without knowing that deletion exists (REQ-079 c6, another issue's write).
+// `canceled` is not in the clause: a cancelled customer owes nothing and
+// keeps the month they paid for (REQ-076 c3). Deletion moves `paid_through`
+// to `now()`, so this turns false at that instant without knowing deletion
+// exists. Hosted serving keeps its own, longer rule (`hosted-serving.ts`).
 //
 // **It fails closed.** A store that cannot be read answers `false`. The
 // three loops that call this — weekly re-measurement, daily generation,
@@ -29,7 +18,7 @@
 // The failure is loud in its own way: the tick reports a degraded run.
 import { billingStore } from "./store";
 
-/** REQ-076 criterion 8 — THE access gate. See ADR-050 before changing this.
+/** THE access gate: paid through today, with no outstanding invoice.
  *
  *  One indexed read through `sites.user_id`, by the same filter the count
  *  below uses; p95 ≤ 10 ms, because three subsystems call it per unit of
