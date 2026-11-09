@@ -238,7 +238,7 @@ describe("UI strategy: titles and retired names (#1463)", () => {
   });
 });
 
-describe("UI strategy: plain words (O6, docs/spec/decisions/2026-10-31-2145.md)", () => {
+describe("UI strategy: plain words (O6, docs/SPEC.md §0 Plain words)", () => {
   const rules = (text: string, options?: { key?: string; heading?: boolean }) => violations(text, options).map((v) => v.word ?? `${v.rule} ${v.n}`);
 
   it("counts a long sentence, a long paragraph, a long heading and each soft word", () => {

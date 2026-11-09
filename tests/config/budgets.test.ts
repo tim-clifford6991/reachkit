@@ -64,7 +64,7 @@ describe("budgetFindings", () => {
 
 describe("plainWordsFindings", () => {
   const rise = (name: string, from: number, to: number) =>
-    `plain words: ${name} rises from ${from} to ${to} findings; the count only goes down (docs/spec/decisions/2026-10-31-2145.md)`;
+    `plain words: ${name} rises from ${from} to ${to} findings; the count only goes down (docs/SPEC.md §0 Plain words)`;
 
   it("fails a count raised above the base's", () => {
     expect(plainWordsFindings({ base: { report: 54, chrome: 3 }, head: { report: 55, chrome: 3 } })).toEqual([rise("report", 54, 55)]);
@@ -177,7 +177,7 @@ describe("hygiene holds the line budgets against the pull request's base", () =>
     r.git("add", "-A");
     r.git("commit", "-q", "-m", "keys");
     expect(r.pr(() => keys("report", "Better SEO for your index"))).toEqual([
-      "- repo: plain words: report rises from 1 to 2 findings; the count only goes down (docs/spec/decisions/2026-10-31-2145.md)",
+      "- repo: plain words: report rises from 1 to 2 findings; the count only goes down (docs/SPEC.md §0 Plain words)",
     ]);
     expect(r.pr(() => keys("report", "Your site"))).toEqual([]);
     expect(r.pr(() => keys("review", "Better SEO for your index"))).toEqual([]);
