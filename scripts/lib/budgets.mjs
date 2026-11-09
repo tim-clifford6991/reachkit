@@ -61,8 +61,40 @@ export function budgetFindings({ budgets, base, files, decided = false }) {
       if (was.has(key) && value !== was.get(key) && !decided) {
         findings.push(`scripts/budgets.json changes ${key} from ${was.get(key)} to ${value} without a new docs/spec/decisions/ file`);
       }
-    } else if (was.has(key) && value > was.get(key)) {
+    } else if (!key.startsWith("blockRules.") && was.has(key) && value > was.get(key)) {
       findings.push(`scripts/budgets.json raises ${key} from ${was.get(key)} to ${value}; a budget only goes down`);
+    }
+  }
+  return findings;
+}
+
+// The names of the `block` rows of each section's `name | block/warn | outcome protected | ruling` table.
+export function blockRules(spec) {
+  const out = new Map();
+  let at = null;
+  for (const line of spec.split("\n")) {
+    if (line.startsWith("## ")) {
+      at = /^## (§\d+)\b/.exec(line)?.[1] ?? null;
+      if (at) out.set(at, []);
+      continue;
+    }
+    const cells = line.startsWith("|") ? line.split("|").slice(1, -1).map((c) => c.trim()) : [];
+    if (at && cells.length === 4 && cells[1].replace(/`/g, "") === "block") out.get(at).push(cells[0]);
+  }
+  return out;
+}
+
+// Only the owner makes a rule block: a section's count equals its budget, and rises only beside a new decision file that names each new row.
+// `base` and `head` map §n to its block row names, `base` null where no pull request base exists; `named` is the added decision files' text.
+export function blockRuleFindings({ budget, base, head, named }) {
+  const findings = [];
+  const isNamed = (n) => new RegExp(`(?:^|[^\\w-])${n.replace(/`/g, "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:[^\\w-]|$)`).test(named);
+  for (const [id, names] of head) {
+    if (budget?.[id] !== names.length) findings.push(`docs/SPEC.md ${id} has ${names.length} block rule(s); blockRules.${id} in scripts/budgets.json is ${budget?.[id] ?? "missing"}`);
+    const was = base?.get(id) ?? [];
+    if (!base || names.length <= was.length) continue;
+    for (const name of names.filter((n) => !was.includes(n) && !isNamed(n))) {
+      findings.push(`docs/SPEC.md ${id} adds the block rule ${name}; only an owner ruling in a new docs/spec/decisions/ file that names it may`);
     }
   }
   return findings;
