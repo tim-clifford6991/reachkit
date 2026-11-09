@@ -1,5 +1,5 @@
 // tests/account/billing/gate.test.ts — paid means paid through today, with no
-// outstanding invoice (docs/spec/decisions/2026-11-09-2525.md).
+// outstanding invoice (docs/SPEC.md §3 Paid means no outstanding invoice).
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { applyEnvFixture } from "../../mail/env-fixture";
 

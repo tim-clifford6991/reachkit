@@ -2,7 +2,7 @@
 // src/lib/presentation/copy/keys/signin.ts — REQ-098, boards AuthSignIn, AuthCheckEmail, AuthExpired.
 //
 // What REQ-098 c2 fixes verbatim, and where canvas v36 cut it, is in
-// docs/spec/decisions/2026-11-01-2268.md. Every address gets the same
+// docs/SPEC.md §3 Sign-in board. Every address gets the same
 // answer, `signin.link_requested` (SPEC §3).
 import type { CopyPartition } from "../registry.ts";
 

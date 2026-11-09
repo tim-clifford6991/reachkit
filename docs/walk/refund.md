@@ -1,6 +1,6 @@
 # Refunding the tester
 
-**ReachKit refunds nothing by itself** (owner, 2026-11-06, `docs/spec/decisions/2026-11-06-2448.md`):
+**ReachKit refunds nothing by itself** (owner, 2026-11-06, `docs/SPEC.md` §3 Nothing refunded by itself):
 the plan is month to month, and a cancel keeps access to the end of the paid period. These steps are
 for a refund made by hand, such as one the law requires or the tester's own. Only the owner can do
 them, because each one is an act in a vendor dashboard. Do them after the walk has ended, including

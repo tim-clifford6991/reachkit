@@ -3,7 +3,7 @@
 // The billing country and the VAT number a completed session carries,
 // written onto the buyer's billing record — and nothing else written at all.
 //
-// Checkout requires neither (docs/spec/decisions/2026-11-09-2526.md), so each
+// Checkout requires neither (docs/SPEC.md §3 Checkout asks for card and email), so each
 // is null where Stripe gave none, and an account opens either way.
 //
 // **Both values are recorded exactly as they arrived.**

@@ -1,7 +1,7 @@
 // src/lib/account/checkout/params.ts — BUILD §13
 //
 // **What checkout asks, and nothing else.** The card details and the email
-// (owner, docs/spec/decisions/2026-11-09-2526.md). The address is asked only
+// (docs/SPEC.md §3 Checkout asks for card and email). The address is asked only
 // where Stripe needs it; no tax ID, phone number or custom field is asked.
 //
 // The negative fields are written out so adding a question is a visible diff

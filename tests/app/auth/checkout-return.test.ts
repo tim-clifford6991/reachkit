@@ -1,4 +1,4 @@
-// tests/app/auth/checkout-return.test.ts — SPEC.md §3 (2026-09-14)
+// tests/app/auth/checkout-return.test.ts — SPEC §3 Checkout lands signed in
 //
 // GET /auth/checkout?session_id=…: Stripe's success URL. The buyer has
 // paid and has no session yet. The route provisions (idempotent with the
