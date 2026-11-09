@@ -224,8 +224,8 @@ export interface CalendarFacts {
   changeHoldsGeneration: { because: "domain" | "category"; resumesOn: Date } | null;
   /** What the site publishes to, and whether it is working (issue 880). */
   destination: { kind: DestinationKind; healthy: boolean } | null;
-  /** `supplyDepth().unused`, **read** — or `null` where it could not be.
-   *  ADR-061 point 1 turns on this distinction. */
+  /** `0` where no ready row is left, **read** — else `null`, which states
+   *  no supply. ADR-061 point 1 turns on this distinction. */
   unusedSupply: number | null;
   /** `supplyMeasured()`, read where supply is zero — or `null` (#765). */
   supplyMeasured: boolean | null;

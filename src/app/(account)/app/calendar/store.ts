@@ -59,6 +59,7 @@ import {
 } from "@/lib/market/changes";
 import { readStop } from "../_shell/stop";
 import { plannedByDay } from "@/lib/opportunities/days";
+import { opportunityStore } from "@/lib/opportunities/store";
 import { readPublishingFacts, type ScheduledPage } from "./drafts-read";
 import { weekStartFor } from "@/lib/scan/weekly/week";
 import type { PageStanding } from "./day-number";
@@ -383,16 +384,16 @@ async function marketHold(
   return hold.held ? { because: hold.because, resumesOn: hold.resumesOn } : null;
 }
 
-/** Supply depth, read once per request: it ranks every open row, and the supply statement asks for it too. */
+/** Supply depth for the supply statement, read once per request: it ranks every open row, so the week does not ask. */
 export const siteDepth = cache((siteId: string) => supplyDepth(siteId));
 
 /**
  * Everything the calendar reads, for one real site and one month.
  *
- * `unusedSupply` is read once and is the number ADR-061 point 1 turns on:
- * a count that came back is a proven claim about supply, and a read that
- * could not answer is `null` — never a 0, which would tell a customer
- * their market is empty on a day the database merely broke.
+ * `unusedSupply` is the zero ADR-061 point 1 turns on: `0` only where no
+ * ready row is left, and `null` otherwise — never a 0 the read did not
+ * prove, which would tell a customer their market is empty on a day the
+ * database merely broke.
  */
 export async function readCalendarFacts(a: {
   site: CalendarSite;
@@ -401,10 +402,13 @@ export async function readCalendarFacts(a: {
 }): Promise<CalendarFacts> {
   const today = dayKeyOf(a.now, a.site.timeZone);
   const [depth, week, publishing, stop, changeHold] = await Promise.all([
-    siteDepth(a.site.siteId).then(
-      (d) => d.unused,
-      () => null
-    ),
+    // The week never waits on the ranking: no ready row left is the one zero it can prove cheaply, and anything else states no supply.
+    opportunityStore()
+      .countUnused(a.site.siteId)
+      .then(
+        (n) => (n === 0 ? 0 : null),
+        () => null
+      ),
     committedWeek(a.site.siteId),
     // §9's own answers about this month (#175).
     readPublishingFacts({ siteId: a.site.siteId, month: a.month, today }),

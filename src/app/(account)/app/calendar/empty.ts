@@ -152,8 +152,8 @@ export interface EmptyFacts {
    */
   pageHeld: boolean;
   /**
-   * `supplyDepth().unused` — **read**, or `null` where it could not be
-   * read. ADR-061 point 1: the exhausted-supply arm fires only when this is
+   * `0` where no ready row is left — **read** — or `null` where that is
+   * not proven. ADR-061 point 1: the exhausted-supply arm fires only when this is
    * read *and is zero*. `null` is not zero and must never be treated as it:
    * a depth nobody could read is exactly the case the fallback exists for.
    */
