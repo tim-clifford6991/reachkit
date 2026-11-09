@@ -27,7 +27,7 @@
 // reads and writes that founder's own rows. The two are one switch —
 // `provider.ts` says why.
 import type { FounderAnswers } from "@/lib/site-profile/knowledge/types";
-import { sendDeepPass } from "@/jobs/deep-pass-backstop";
+import { sendDeepPass, sendFirstDraft } from "@/jobs/deep-pass-backstop";
 import { hasActiveAccess } from "@/lib/account/billing";
 import { dbAdmin } from "@/lib/db";
 import { resolvesInDns } from "@/lib/egress/dns";
@@ -536,6 +536,7 @@ export function liveSetupStore(): SetupStore {
 
       await sendDeepPass({ siteId, domain: row.domain });
     },
+    enqueueFirstDraft: (siteId) => sendFirstDraft({ siteId }),
   };
 }
 
