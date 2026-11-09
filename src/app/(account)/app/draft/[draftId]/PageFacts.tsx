@@ -1,4 +1,4 @@
-// Facts we can quote on a live page's detail (owner R7, docs/spec/decisions/2026-11-03-2127.md): the Settings read it
+// Facts we can quote on a live page's detail (`docs/SPEC.md §4 Your business`): the Settings read it
 // always had, in a boundary of its own, so a failed or stalled read leaves only this card on the plain line.
 import type React from "react";
 import { Suspense } from "react";
