@@ -635,10 +635,7 @@ beforeEach(async () => {
   await captureMail(inbox);
 });
 
-afterEach(() => {
-  vi.useRealTimers();
-  setBillingStore(null);
-});
+afterEach(() => { vi.useRealTimers(); setBillingStore(null); });
 
 const WEEK_TIMEOUT_MS = 120_000;
 
