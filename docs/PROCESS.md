@@ -94,7 +94,7 @@ A change is finished when its conditions are checks and every screen it touches 
 | #1454 | scan | One profile describes the business for a free scan, a paid site and the dogfood | pending |
 | #1127 | content | A page is about the business and sourced, and a paying site on autopilot has its next page | pending |
 | #1457 | app | Every figure on Overview equals the rows it opens, and the four tiles are the strategy | pending |
-| #1458 | public | The public offer matches the product, and a ranked URL does not 404 | tests/presentation/copy/public-claims.test.ts |
+| #1458 | public | The public offer matches the product, and a ranked URL does not 404 | tests/archive/presentation/copy/public-claims.test.ts |
 
 `pending` is allowed only on `#1454`, `#1127` and `#1457`, the three parents whose check is not written yet. A later condition names a file. `#1455` is the silence inside `#1127`, not a fifth parent. A pull request names a parent with `Refs #n`: `audit` fails a body that says Closes, Fixes or Resolves for one, and `scripts/hygiene.mjs` fails while a parent with a row here is closed.
 

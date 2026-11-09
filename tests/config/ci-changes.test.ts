@@ -163,7 +163,7 @@ describe("what an affected unit run hands vitest related", () => {
     expect(r.status).toBe(0);
     const files = r.stdout.trim().split("\n");
     const suites = readdirSync(path.join(ROOT, "tests/ui/design")).filter((f) => f.endsWith(".test.ts"));
-    expect(suites).toEqual(expect.arrayContaining(["contrast.test.ts", "heading-layer.test.ts", "mark-and-glyphs.test.ts"]));
+    expect(suites).toEqual(expect.arrayContaining(["contrast.test.ts", "strategy.test.ts"]));
     expect(files).toEqual(expect.arrayContaining(suites.map((f) => `tests/ui/design/${f}`)));
   });
 

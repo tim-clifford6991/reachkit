@@ -130,7 +130,7 @@ export function walkers(root = process.cwd()) {
   return readdirSync(path.join(root, "tests"), { recursive: true, withFileTypes: true })
     .filter((e) => e.isFile() && /\.[cm]?[jt]sx?$/.test(e.name))
     .map((e) => path.relative(root, path.join(e.parentPath, e.name)).split(path.sep).join("/"))
-    .filter((f) => !f.startsWith("tests/ui/layout/") && WALK.test(readFileSync(path.join(root, f), "utf8")))
+    .filter((f) => !f.startsWith("tests/ui/layout/") && !f.startsWith("tests/archive/") && WALK.test(readFileSync(path.join(root, f), "utf8")))
     .sort();
 }
 

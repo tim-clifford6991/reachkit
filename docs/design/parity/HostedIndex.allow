@@ -45,6 +45,6 @@ Low water pressure in the whole house: causes and fixes	sample data
 Check the main valve and the pressure regulator before anything else.	sample data
 Should you drain your water heater every year?	sample data
 What flushing does, how to do it, and when to skip it.	sample data
-Page 1 of 2	sample data: the sweep's site has one page of guides; hosted.index.pageOf and .older draw on a longer list (tests/hosted/serving/index-page.test.tsx)
-Next page	sample data: the sweep's site has one page of guides; hosted.index.pageOf and .older draw on a longer list (tests/hosted/serving/index-page.test.tsx)
+Page 1 of 2	sample data: the sweep's site has one page of guides; hosted.index.pageOf and .older draw on a longer list (tests/archive/hosted/serving/index-page.test.tsx)
+Next page	sample data: the sweep's site has one page of guides; hosted.index.pageOf and .older draw on a longer list (tests/archive/hosted/serving/index-page.test.tsx)
 Water supply 2 guides	sample data: a topic is led by one of the site's own pages, and the sweep's site has its own (hosted.index.topicCount)

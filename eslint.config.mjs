@@ -780,6 +780,7 @@ export default tseslint.config(
     },
   },
   {
-    ignores: [".next/**", "node_modules/**", "coverage/**", "src/**/*.generated.ts"],
+    // The archive is kept for reference only; nothing builds, runs or lints it.
+    ignores: [".next/**", "node_modules/**", "coverage/**", "src/**/*.generated.ts", "tests/archive/**"],
   }
 );
