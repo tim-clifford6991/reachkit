@@ -19,6 +19,7 @@
 import type { OwnLivePage, RefreshInputs } from "./refresh";
 import type { ListicleHeld } from "@/lib/generate/templates/listicle";
 import type { KnowledgeDigest } from "@/lib/site-profile/knowledge/read";
+import { revalidateTag } from "next/cache";
 import { dbAdmin } from "@/lib/db";
 import { canonicalUrl } from "@/lib/measure/page-reading";
 import type { KnownPage } from "@/lib/known-content/types";
@@ -431,10 +432,24 @@ export function untyped(): MinimalClient {
   return dbAdmin() as unknown as MinimalClient;
 }
 
-/** One row's columns written by id; a failure names the store method. */
-async function updateRow(method: string, opportunityId: string, values: object): Promise<void> {
-  const { error } = await untyped().from<OpportunityRow>("opportunities").update(values).eq("id", opportunityId);
+/** The tag the cached supply count reads under; every write here clears it for its site. */
+export const supplyTag = (siteId: string): string => `supply:${siteId}`;
+
+/** One row's columns written by id, only from a `from` status where given; whether it moved. A failure names the method. */
+async function moveRow(method: string, opportunityId: string, values: object, from?: readonly string[]): Promise<boolean> {
+  const query = untyped().from<{ site_id: string }>("opportunities").update(values).eq("id", opportunityId);
+  const { data, error } = await (from === undefined ? query : query.in("status", from)).select("site_id");
   if (error) throw new Error(`opportunities.${method}: ${error.message}`);
+  for (const row of data ?? []) supplyChanged(row.site_id);
+  return (data ?? []).length > 0;
+}
+const updateRow = async (...a: Parameters<typeof moveRow>): Promise<void> => void (await moveRow(...a));
+
+/** Never throws: outside a request (a suite, a script) there is no cache to clear, and the count's TTL bounds it. */
+function supplyChanged(siteId: string): void {
+  try {
+    revalidateTag(supplyTag(siteId), { expire: 0 });
+  } catch {}
 }
 
 /** Postgres' unique-violation class. The partial unique index raises it,
@@ -504,6 +519,7 @@ export function supabaseOpportunityStore(): OpportunityStore {
       }
       const created = data?.[0];
       if (!created) throw new Error("opportunities.insert: the insert returned no row");
+      supplyChanged(created.site_id);
       return { outcome: "created", row: created };
     },
 
@@ -822,54 +838,17 @@ export function supabaseOpportunityStore(): OpportunityStore {
 
     markDone: (opportunityId) => updateRow("markDone", opportunityId, { status: "done" }),
 
-    async markQueued(opportunityId) {
-      const { data, error } = await untyped()
-        .from<{ id: string }>("opportunities")
-        .update({ status: "queued" })
-        .eq("id", opportunityId)
-        .eq("status", "open")
-        .select("id");
-      if (error) throw new Error(`opportunities.markQueued: ${error.message}`);
-      return (data ?? []).length > 0;
-    },
+    markQueued: (opportunityId) => moveRow("markQueued", opportunityId, { status: "queued" }, ["open"]),
 
-    async reopenIfQueued(opportunityId) {
-      const { error } = await untyped()
-        .from<OpportunityRow>("opportunities")
-        .update({ status: "open" })
-        .eq("id", opportunityId)
-        .eq("status", "queued");
-      if (error) throw new Error(`opportunities.reopenIfQueued: ${error.message}`);
-    },
+    reopenIfQueued: (opportunityId) => updateRow("reopenIfQueued", opportunityId, { status: "open" }, ["queued"]),
 
-    async markDismissed(opportunityId, a) {
-      const { error } = await untyped()
-        .from<OpportunityRow>("opportunities")
-        .update({ status: "dismissed", ...(a?.stopped ? { stopped: true } : {}) })
-        .eq("id", opportunityId)
-        .in("status", ["open", "queued"]);
-      if (error) throw new Error(`opportunities.markDismissed: ${error.message}`);
-    },
+    markDismissed: (opportunityId, a) =>
+      updateRow("markDismissed", opportunityId, { status: "dismissed", ...(a?.stopped ? { stopped: true } : {}) }, ["open", "queued"]),
 
-    async dismissIfOpen(opportunityId) {
-      const { data, error } = await untyped()
-        .from<{ id: string }>("opportunities")
-        .update({ status: "dismissed", stopped: true })
-        .eq("id", opportunityId)
-        .eq("status", "open")
-        .select("id");
-      if (error) throw new Error(`opportunities.dismissIfOpen: ${error.message}`);
-      return (data ?? []).length > 0;
-    },
+    dismissIfOpen: (opportunityId) => moveRow("dismissIfOpen", opportunityId, { status: "dismissed", stopped: true }, ["open"]),
 
-    async rest(opportunityId, until) {
-      const { error } = await untyped()
-        .from<OpportunityRow>("opportunities")
-        .update({ status: "open", rest_until: until.toISOString(), ready: false, unready_reason: "resting" })
-        .eq("id", opportunityId)
-        .in("status", ["open", "queued"]);
-      if (error) throw new Error(`opportunities.rest: ${error.message}`);
-    },
+    rest: (opportunityId, until) =>
+      updateRow("rest", opportunityId, { status: "open", rest_until: until.toISOString(), ready: false, unready_reason: "resting" }, ["open", "queued"]),
 
     becomeUpdate: (opportunityId, update) => updateRow("becomeUpdate", opportunityId, update),
 
