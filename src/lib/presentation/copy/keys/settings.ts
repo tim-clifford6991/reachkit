@@ -590,7 +590,6 @@ export const SETTINGS_COPY = Object.freeze({
   // saying nothing the figure had not.
   "settings.billing.active": ["Active", { slots: {}, fixedBy: "REQ-076 c3" }],
   "settings.billing.cancelled": ["Cancelled", { slots: {}, fixedBy: "REQ-076 c3" }],
-  // Shown only while `plan_status` is past_due; the button opens the same Stripe portal. Drafted.
   "settings.billing.payment-failed": ["Your last payment didn’t go through.", { slots: {}, fixedBy: "issue 2517 · drafted" }],
   "settings.billing.pay": ["Pay in Stripe", { slots: {}, fixedBy: "issue 2517 · drafted" }],
   "settings.billing.next-invoice": ["Next invoice", { slots: {}, fixedBy: "BUILD §4.7" }],
@@ -609,14 +608,8 @@ export const SETTINGS_COPY = Object.freeze({
   // `invoices`, `Cancel plan` — and this sentence is the only place they are
   // now spoken, so it is drafted (#759) rather than transcribed: §4.7 prints
   // them as three control words and not as a sentence.
-  "settings.billing.manage": [
-    "Manage billing in Stripe",
-    { slots: {}, fixedBy: "SPEC §4 2026-09-20 · REQ-097 c1" },
-  ],
-  "settings.billing.manage.note": [
-    "Update your card, download invoices, or cancel.",
-    { slots: {}, fixedBy: "SPEC §4 2026-09-20 · REQ-097 c1" },
-  ],
+  "settings.billing.manage": ["Manage billing in Stripe", { slots: {}, fixedBy: "SPEC §4 2026-09-20 · REQ-097 c1" }],
+  "settings.billing.manage.note": ["Update your card, download invoices, or cancel.", { slots: {}, fixedBy: "SPEC §4 2026-09-20 · REQ-097 c1" }],
   "settings.billing.resume": [
     "Resume my subscription",
     { slots: {}, fixedBy: 'REQ-070 c2 ("cancelling or resuming the plan")' },
