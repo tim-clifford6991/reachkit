@@ -13,8 +13,9 @@ take about an hour altogether.
 
 1. Go to **reachkit.app** in your usual browser.
 2. Get a free check of your own website.
-3. Read what it tells you about your site. Take as long as you like.
-4. Sign up and pay.
+3. Read what it tells you about your site. Take as long as you like. If you want a copy, use
+   **Email me this report**.
+4. Pay.
 5. Finish setting up your account.
 6. Get ReachKit's first page live on **your own website's address**. Wait for it if you have to,
    and check that it is there.

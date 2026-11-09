@@ -17,37 +17,30 @@ Where it quotes RUNBOOK and they disagree, RUNBOOK is right and this one is stal
 
 ## Readiness — what must be true before the walk starts
 
-Read on 2026-09-25 from the Launch milestone, `vercel env ls production`, `curl` against
-production, and the production `job_runs` table. Re-check each row the day of the walk. When a row
-here and #2299 disagree, #2299 is the status and this table is out of date.
+Read on 2026-11-09 from the issues and `curl` against production. #2299 is the status; where it
+disagrees with this list, this list is stale. Stripe live (#1042), a hosted page reachable (#1045),
+the legal bodies (#335), the sign-in split (#1025) and DMARC (#1043) are closed. There are no
+backups on the Free plan (owner R18, #334), so the walk writes the first live customer's rows with
+none behind them. The demo video (#1030) is optional.
 
-| # | Must be true | State on 2026-09-25 | Blocks the walk? | Whose |
-|---|---|---|---|---|
-| 1 | **Stripe is live** (**#1042**) | **Half done** (corrected 2026-10-02). The three production Stripe bindings are live-mode values; the 2026-09-25 reading of them as test mode was wrong. No live payment has completed, and the Customer emails setting is unread. The walk's own payment is the first. | **No.** A real card can pay. Stripe's Customer emails setting is still the owner's to decide. | owner |
-| 2 | **A hosted page is reachable** (**#1045**) | **Done 2026-10-02.** | No | — |
-| 3 | **The legal pages carry real bodies** (**#335**) | **Not done.** `/imprint` on production still renders `[[imprint: owner fills legal entity, address, VAT id]]`. The same placeholder is in every mail footer. | **Yes.** A stranger is asked to pay on a page with no legal entity. | owner |
-| 4 | **The sign-in split** (**#1025**) | **Done.** Closed. | No | — |
-| 5 | **Mail reaches a real inbox** (**#1043**) | **Done.** DMARC `p=none` is published, and a real mail passed DKIM, SPF and DMARC on 2026-09-23. | No | — |
-| 6 | **The jobs fire on production** (RUNBOOK §4) | **Done.** On 2026-09-25 the `job_runs` table showed every cron job within its interval. The last production `scan/run` was 2026-09-19, and the walk's own setup is the next one. | No | — |
-| 7 | **A way back from data loss** (**#334**) | **Not done.** Free plan, no PITR, no restore drill. | No, but the walk writes the first live customer's rows with no backup behind them. | owner |
-| 8 | **The landing's demo video** (**#1030**) | **Not done.** The frame is empty on purpose (#734). | No. It is optional for the walk. | owner |
-| 9 | **The owner has picked the tester and the site** (#1044) | **Open.** A WordPress site with an application password, or a domain whose DNS the tester can change. | **Yes.** | owner |
-
-**Open items that block the walk:** 3 (#335) and 9. Item 1 (#1042) still has its Customer emails setting open.
+| # | Must be true | Blocks the walk? | Whose |
+|---|---|---|---|
+| 1 | **The jobs fire on production.** On the day, every `job_runs` row is inside its interval (`docs/walk/watch.md`). | **Yes** | owner |
+| 2 | **The owner has picked the tester and the site** (#1044). A WordPress site with an application password, or a domain whose DNS the tester can change. | **Yes** | owner |
 
 ## How long the walk takes
 
-The tester should plan for **two or three days, then the first Monday**. The walk is not one sitting:
+The tester should plan for **two or three days**. The walk is not one sitting:
 
-- **Day 1:** landing, then the scan, the report, paying and setup. For a hosted page, add the DNS
-  record. After setup, the deep pass and the first page are written in the background.
-- **Day 1 or 2:** the first page waits in review for the stop window, which is 24 h by default
-  (SPEC §0 *Veto*). Then it publishes. The tester checks that it is live on their own domain.
-- **Day 2 or 3:** the next evening's page comes with its mail. The tester presses *Stop this page*
-  in that mail.
-- **The first Monday:** the Monday mail arrives, and the tester reads it.
-- **After that Monday, within 14 days of paying:** the tester downloads the export in Settings,
-  then presses Cancel in Settings. ReachKit refunds nothing by itself (#2448); the refund is `docs/walk/refund.md`.
+- **Day 1:** landing, then the scan, the report, paying and setup. Setup opens with *What you do*,
+  *Who you serve* and *Words you use* filled in from the free scan. For a hosted page, add the DNS
+  record. The first page is ready within the hour after setup, or the app says the market is too
+  small.
+- **Day 1 or 2:** the first page waits 24 h, the default stop window (SPEC §7 *The veto window*),
+  then publishes at the site's next publish time. Until the website is connected it reads as ready
+  and goes live once it is. The tester checks that it is live on their own domain.
+- **Day 2 or 3:** the next day's page is written the evening before and comes with its mail. The
+  tester presses *Stop this page* in that mail. That ends the walk.
 
 Nobody helps during the walk. The owner watches (`docs/walk/watch.md`) and writes down what the
 tester did, but does not answer questions. After the walk: one issue per finding, sized for one PR,
