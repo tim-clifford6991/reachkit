@@ -98,6 +98,15 @@ export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element 
     ? [billing.accessUntil, amount].filter((part) => part !== null).join(" · ")
     : null;
 
+  // Active only where the status was read and is paid: an unread status makes no claim.
+  const badge = !billing.readable
+    ? null
+    : billing.state === "cancelled"
+      ? "cancelled"
+      : billing.paymentFailed === false
+        ? "active"
+        : null;
+
   const pill = (key: CopyKey, run: () => void): React.JSX.Element => (
     <button type="button" className="btn btn-soft btn-primary min-h-11" onClick={run} disabled={action.pending !== null}>
       {action.pending === "resume" ? <span className="loading loading-spinner loading-xs" aria-hidden /> : null}
@@ -118,17 +127,26 @@ export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element 
       <div className="card-body gap-5">
         <h2 className="card-title text-(length:--h3)">{copy("settings.billing.title")}</h2>
 
+        {billing.readable && billing.paymentFailed === true ? (
+          <div className="alert alert-warning alert-soft flex min-w-0 flex-wrap" data-testid="billing-payment-failed">
+            <p className="min-w-0 wrap-anywhere">{copy("settings.billing.payment-failed")}</p>
+            <button type="button" className="btn btn-warning min-h-11" onClick={() => action.run("invoices")} disabled={action.pending !== null}>
+              {copy("settings.billing.pay")}
+            </button>
+          </div>
+        ) : null}
+
         {/* The settable-row shape every Settings tab draws (`SettingRow`,
             #1089): the name at the near edge, the value at the far one. */}
         <div className="flex min-w-0 flex-col">
-          {!billing.readable ? null : (
+          {badge === null ? null : (
             <SettingRow name={copy("settings.billing.status")} testId="billing-row-status">
               <span
-                className={billing.state === "active" ? "badge badge-success badge-soft" : "badge badge-ghost"}
+                className={badge === "active" ? "badge badge-success badge-soft" : "badge badge-ghost"}
                 data-testid="billing-state"
               >
-                {billing.state === "active" ? <Check size={14} strokeWidth={1.75} aria-hidden /> : null}
-                {copy(billing.state === "active" ? "settings.billing.active" : "settings.billing.cancelled")}
+                {badge === "active" ? <Check size={14} strokeWidth={1.75} aria-hidden /> : null}
+                {copy(badge === "active" ? "settings.billing.active" : "settings.billing.cancelled")}
               </span>
             </SettingRow>
           )}

@@ -590,6 +590,9 @@ export const SETTINGS_COPY = Object.freeze({
   // saying nothing the figure had not.
   "settings.billing.active": ["Active", { slots: {}, fixedBy: "REQ-076 c3" }],
   "settings.billing.cancelled": ["Cancelled", { slots: {}, fixedBy: "REQ-076 c3" }],
+  // Shown only while `plan_status` is past_due; the button opens the same Stripe portal. Drafted.
+  "settings.billing.payment-failed": ["Your last payment didn’t go through.", { slots: {}, fixedBy: "issue 2517 · drafted" }],
+  "settings.billing.pay": ["Pay in Stripe", { slots: {}, fixedBy: "issue 2517 · drafted" }],
   "settings.billing.next-invoice": ["Next invoice", { slots: {}, fixedBy: "BUILD §4.7" }],
   "settings.billing.status": ["Status", { slots: {}, fixedBy: "issue 1751 · board SettingsBilling · drafted" }],
   "settings.billing.plan": ["Plan", { slots: {}, fixedBy: "issue 2277 · board SettingsBilling" }],

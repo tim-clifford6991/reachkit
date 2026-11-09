@@ -38,7 +38,7 @@ async function billingCard(day: number): Promise<Document> {
       billing={{
         readable: true,
         state: read.summary.state,
-        accessUntil: "Oct 31, 2026",
+        accessUntil: "Oct 31, 2026", paymentFailed: false,
         surfaceHref: "/app/settings",
       }}
     />
@@ -62,7 +62,7 @@ describe("Settings › Billing — the cancel route, month to month", () => {
   it("a cancelled plan says it, names the day everything runs to, and offers Resume my subscription", () => {
     const html = renderToStaticMarkup(
       <BillingPanel
-        billing={{ readable: true, state: "cancelled", accessUntil: "Nov 7, 2026", surfaceHref: "/app/settings" }}
+        billing={{ readable: true, state: "cancelled", accessUntil: "Nov 7, 2026", paymentFailed: false, surfaceHref: "/app/settings" }}
       />
     );
     const doc = new DOMParser().parseFromString(html, "text/html");
@@ -78,7 +78,7 @@ describe("Settings › Billing — the cancel route, month to month", () => {
     expect(line(active, "billing-state")).toBe(copy("settings.billing.active"));
     const html = renderToStaticMarkup(
       <BillingPanel
-        billing={{ readable: true, state: "cancelled", accessUntil: "Nov 7, 2026", surfaceHref: "/app/settings" }}
+        billing={{ readable: true, state: "cancelled", accessUntil: "Nov 7, 2026", paymentFailed: false, surfaceHref: "/app/settings" }}
       />
     );
     const cancelled = new DOMParser().parseFromString(html, "text/html");

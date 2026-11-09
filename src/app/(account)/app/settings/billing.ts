@@ -46,6 +46,13 @@ import { PRICE_COPY_KEYS } from "@/lib/account/checkout/copy-keys";
  *  and a cancelled customer inside their paid period still has access. */
 export type PlanState = "active" | "cancelled";
 
+/** Whether Stripe last reported a failed payment: `null` where `plan_status`
+ *  holds no word we know, so an unread status is never shown as paid. */
+export function paymentFailedOf(planStatus: string): boolean | null {
+  if (planStatus === "past_due") return true;
+  return planStatus === "active" || planStatus === "canceled" ? false : null;
+}
+
 /** The one plan (REQ-022 c3). A key, because the words are the owner's. */
 export const PLAN_KEY = "plan.single" satisfies CopyKey;
 
@@ -89,6 +96,7 @@ export interface BillingCard {
    *  Written in the customer's own stated zone by `assembleSettings`
    *  (REQ-073 c3) — this card never formats one itself. */
   accessUntil: string;
+  paymentFailed: boolean | null;
   /** REQ-097 c1's one destination: Stripe's own billing surface, where the
    *  card, the invoices, the billing address, the VAT number and cancelling
    *  are all done. Every billing control on the screen leads here. */

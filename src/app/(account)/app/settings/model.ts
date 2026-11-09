@@ -109,6 +109,8 @@ export type BillingFacts =
        *  day the next invoice falls, which is why S18's "next invoice" row
        *  needs no second date and no second read (#374). */
       paidThrough: Date;
+      /** `users.plan_status` read as a failed payment, or `null` where it says nothing we know. */
+      paymentFailed: boolean | null;
       /** REQ-097 c1's one destination. */
       surfaceHref: string;
     }
@@ -410,6 +412,7 @@ export function billingSummaryOf(billing: BillingFacts, timeZone: string): Billi
         // be a second formatter, and the two would disagree the day one
         // of them was corrected.
         accessUntil: formatDayDate(billing.paidThrough, timeZone),
+        paymentFailed: billing.paymentFailed,
         surfaceHref: billing.surfaceHref,
       }
     : { readable: false, surfaceHref: billing.surfaceHref };
