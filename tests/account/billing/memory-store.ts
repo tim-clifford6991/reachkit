@@ -151,7 +151,8 @@ export function memoryBillingStore(state: MemoryBilling): BillingStore {
     async payingSiteCount(at, siteId) {
       if (state.failHostingRead) return { ok: false };
       const sites = state.sites.filter((s) => siteId === undefined || s.id === siteId);
-      return { ok: true, count: sites.filter((s) => new Date(joined(s).owner_paid_through) > at).length };
+      const paid = (s: HostingRow) => new Date(joined(s).owner_paid_through) > at && find(s.user_id)?.plan_status !== "past_due";
+      return { ok: true, count: sites.filter(paid).length };
     },
 
     async account(userId) {

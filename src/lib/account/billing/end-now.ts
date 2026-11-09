@@ -14,7 +14,7 @@
 //
 // Two writes, in this order: the vendor stops billing, then the stored gate
 // moves. `paid_through = now()` is what makes `hasActiveAccess` false at
-// once (ADR-050 — the gate is that column alone), and it is also what stops
+// once (the gate needs that column after now), and it is also what stops
 // the hosted retention window ever beginning: REQ-076 criterion 10's window
 // runs from the paid-through date, and REQ-079 criterion 6 ends serving at
 // the moment of deletion instead, which `hostedServingState` reads from the

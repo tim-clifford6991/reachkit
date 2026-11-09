@@ -26,22 +26,12 @@
 //
 // Five of those need a word.
 //
-// **Both engine seams on this chain are built now (#173).**
-// `activeSites()` (BP-014) is the evening tick's own site list and
-// `publishApproved()` (BP-015) is the approve-and-deliver edge; each used
-// to throw `notBuilt`, and the first test used to assert that they did.
-// It now asserts what they do: the tick walks a real list that this
-// founder's site is on and a stopped site is not, and the day's page goes
-// out through the same `transition()` and `publish()` calls the engine
-// makes — which is what keeps this file a journey rather than a second
-// copy of the engine. The window's two ends are the engine's too since
-// issue 709: `generating → in_review`, with the deadline it stamps and the
-// telling, is `enterReview` (the evening tick's), and `in_review →
-// approved` at window end is `dueApprovals` (the hourly publish tick's).
-// The attempt itself is still made here through `publish()` where a test
-// needs its adapter in hand, because what this journey is about is the
-// customer's day and not the job runner's plumbing
-// (`tests/jobs/engine-daily.test.ts` owns that).
+// **Both engine seams are real.** `activeSites()` is the evening tick's
+// site list and `publishApproved()` the approve-and-deliver edge; the day's
+// page goes out through the same `transition()` and `publish()` calls the
+// engine makes, so this file stays a journey rather than a second copy of
+// the engine. `enterReview` opens the window and `dueApprovals` closes it;
+// `tests/jobs/engine-daily.test.ts` owns the job runner's plumbing.
 //
 // **The `draft-ready` mail is built (#174), and this journey sends it.**
 // The decision behind it came with the veto leaf — `tellingFor` picks
@@ -349,8 +339,10 @@ const { monthOf, dayKeyOf } = await import("../../src/app/(account)/app/calendar
 const { CHECK_IDS } = await import("../../src/lib/publish/verify");
 const { dueRetries, retryDueAt } = await import("../../src/lib/publish/attempt/due");
 const { MAX_RETRIES } = await import("../../src/lib/publish/attempt/retry");
-const { setBillingStore, supabaseBillingStore } = await import("../../src/lib/account/billing");
-const { payingStore } = await import("../account/billing/memory-store");
+const { onSubscriptionEvent, setBillingStore, supabaseBillingStore } = await import("../../src/lib/account/billing");
+const billingDoubles = await import("../account/billing/memory-store");
+const { payingStore } = billingDoubles;
+const { subscriptionDouble } = await import("../account/stripe-double");
 const { __setVendorTransportForTesting } = await import("../../src/lib/mail/vendor/resend");
 const { sendDraftReadyMail } = await import("../../src/lib/mail/draft-ready");
 const { enterReview, dueApprovals } = await import("../../src/lib/publish/attempt/window");
@@ -686,7 +678,7 @@ function whenItIsDue(): Date {
 
 const JOURNEY_TIMEOUT_MS = 30_000;
 
-/** This founder pays (#201): ADR-050 puts the rule in `hasActiveAccess()`. */
+/** This founder pays: the rule is `hasActiveAccess()`'s. */
 function payingCustomer(): void {
   setBillingStore(payingStore(() => true, supabaseBillingStore()));
 }
@@ -717,10 +709,16 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
     await setPublishing(SITE_ID, true, { kind: "customer", userId: USER_ID });
     expect((await engine.activeSites()).sites).toHaveLength(1);
 
-    // Nor is a site whose access has ended (#201): a day's page is spend,
-    // and the gate that decides it is the one the weekly tick asks.
-    setBillingStore(payingStore(() => false, supabaseBillingStore()));
+    // Nor is a site with an outstanding invoice, until `invoice.paid` records it paid: the next tick drafts.
+    const billing = billingDoubles.newMemoryBilling();
+    billing.users.push(billingDoubles.account({ id: USER_ID, plan_status: "past_due" }));
+    billing.sites.push(billingDoubles.site({ id: SITE_ID, user_id: USER_ID }));
+    setBillingStore(billingDoubles.memoryBillingStore(billing));
     expect((await engine.activeSites()).sites).toEqual([]);
+    const subscription = subscriptionDouble({ id: `sub_${USER_ID}`, customer: `cus_${USER_ID}`, periodEnd: new Date(Date.now() + 30 * 86_400_000) });
+    const paid = { id: "evt_paid", type: "invoice.paid", data: { object: { parent: { type: "subscription_details", subscription_details: { subscription } } } } };
+    expect(await onSubscriptionEvent(paid as never)).toEqual({ applied: true });
+    expect((await engine.activeSites()).sites).toHaveLength(1);
 
     // And a tick that cannot read the gate prepares nothing and says why,
     // rather than spending on a guess in either direction.

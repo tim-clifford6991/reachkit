@@ -62,8 +62,8 @@ export interface BillingSummary {
   /** REQ-076 c3's "the exact date their access ends", as an instant. */
   readonly paidThrough: Date;
   readonly cancelledAt: Date | null;
-  /** What Stripe last said about the subscription. Recorded, displayable,
-   *  and read by no gate and no branch (ADR-050). */
+  /** What Stripe last said about the subscription. Displayed here; the
+   *  gate reads its `past_due` through the store. */
   readonly planStatus: string;
   /** REQ-097 c1: the invoices are on the portal, and the card offers a
    *  control to it rather than a list of its own. A literal, so a second
