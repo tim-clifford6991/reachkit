@@ -433,14 +433,14 @@ export const REPORT_COPY = Object.freeze({
   "problem.unquotable-pages.doer": ["ReachKit rewrites on WordPress", { slots: {}, fixedBy: "REQ-009 c5" }],
   // The one control any fix carries (REQ-009 c2), on the paste arm only.
   "problem.paste.label": ["Copy the lines", { slots: {}, fixedBy: "REQ-009 c2" }],
-  // Issue 1068, board R12-2: the section's head, each card's one-line cause,
-  // and the *show me* link the card opens. Drafted; the owner corrects them.
+  // The fixes' heads, each card's one-line cause, and the *show me* link it opens. Drafted; the owner corrects them.
   "problem.section.title": ["Site fixes", { slots: {}, fixedBy: "issue 1068" }],
   "problem.section.sub": ["The {problems} that cost you most, then {checks} quick checks", { slots: { problems: "text", checks: "text" }, fixedBy: "issue 1068" }],
   "problem.section.sub.problems": ["The {problems} that cost you most", { slots: { problems: "text" }, fixedBy: "issue 1068 · issue 2123 · drafted" }],
   "problem.section.sub.checks": ["{checks} quick checks", { slots: { checks: "text" }, fixedBy: "issue 1068 · issue 2123 · drafted" }],
   // With nothing to list: the problems measured and the checks that ran, all passed. Owner-owed wording (#1034).
   "problem.section.none": ["All {n} checks passed.", { slots: { n: "text" }, fixedBy: "issue 2123 · drafted" }],
+  "problem.top.title": ["Fix these first", { slots: {}, fixedBy: "issue 2520 · drafted" }],
   "problem.blocked-readers.cause": ["Your site blocks AI, or asks Google and AI to skip pages.", { slots: {}, fixedBy: "board PubReport · issue 1724" }],
   "problem.missing-pages.cause": ["Questions your buyers ask that no page on your site answers.", { slots: {}, fixedBy: "issue 1068" }],
   "problem.unquotable-pages.cause": ["These pages have no clear answer AI can quote.", { slots: {}, fixedBy: "issue 1068" }],
@@ -531,10 +531,10 @@ export const REPORT_COPY = Object.freeze({
   "free-page.format.format_page": ["A comparison, alternative, integration or template page", { slots: {}, fixedBy: "REQ-010 c1" }],
   "free-page.format.keyword_page": ["A page for this search", { slots: {}, fixedBy: "REQ-010 c1" }],
   // REQ-010 c2's trade: the address field and the one control beside it.
-  "free-page.email.label": ["Where should we send it?", { slots: {}, fixedBy: "REQ-010 c2" }],
+  "free-page.email.label": ["Email me this report", { slots: {}, fixedBy: "REQ-010 c2 · owner 2026-11-09 (#2519)" }],
   "free-page.email.placeholder": ["you@yourdomain.example", { slots: {}, fixedBy: "REQ-010 c2 · board PubReport · issue 1724" }],
   // True to the nurture sequence: at most NURTURE_MAX_TOUCHES follow-ups, each with a one-click opt-out.
-  "free-page.consent": ["We’ll email this page, then up to {touches} short notes about your report. Unsubscribe in one click.", { slots: { touches: "text" }, fixedBy: "board PubReport · issue 1724" }],
+  "free-page.consent": ["We’ll email this report and this page, then up to {touches} short notes. Unsubscribe in one click.", { slots: { touches: "text" }, fixedBy: "board PubReport · owner 2026-11-09 (#2519)" }],
   "free-page.submit": ["Email me the full page", { slots: {}, fixedBy: "REQ-010 c2" }],
   "free-page.absent": ["No free page this time. We found nothing worth writing.", { slots: {}, fixedBy: "REQ-004 c10" }],
 
