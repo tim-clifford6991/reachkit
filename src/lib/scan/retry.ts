@@ -285,7 +285,7 @@ export async function carrySpentCents(scanId: string, cents: number): Promise<vo
  * where there is no current report to retry a part of.
  *
  * A stored blob this build cannot lift throws, exactly as it does at every
- * other reader (SPEC §2, 2026-09-18 — roll forward only): a retry decided
+ * other reader (SPEC §2 Roll forward only): a retry decided
  * against a report nobody could read would be a pass started against a
  * measurement nobody has.
  */

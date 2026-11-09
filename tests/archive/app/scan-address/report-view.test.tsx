@@ -412,7 +412,7 @@ describe("REQ-001 c16 — exactly one measurement-starting control, or none", ()
   });
 });
 
-describe("SPEC §2, 2026-10-07 (issue 1328) — the result and the action first, the rest closed", () => {
+describe("SPEC §2 Report order — the result and the action first, the rest closed", () => {
   const html = render(FIXTURE_REPORT);
   const ORDER = [
     "report.measured-at", // 1 · the score

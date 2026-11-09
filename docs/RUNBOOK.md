@@ -76,7 +76,7 @@ Supabase connector in the order §9 gives, then the path is walked again
 
 ### Rolling back a deploy: we do not
 
-**Roll forward only** — SPEC §2, 2026-09-18 (#887). A bad production build is fixed by the *next*
+**Roll forward only** — SPEC §2 Roll forward only. A bad production build is fixed by the *next*
 production deploy: a revert commit merged to `main` and deployed like any other change. Production
 is never pointed back at an earlier build.
 
@@ -686,7 +686,7 @@ the summary's `read ≈ N MB (facts refresh ≈ M MB)` line says how much it rea
 was pages read for their facts. `fetch_facts` is a cache: a row is never trusted at another version,
 the account purge deletes a scan's facts by `scan_id` before its `fetches` rows (no cascade, ADR-051), and dropping every row costs one refresh. Production's tick,
 every 15 minutes, finds no run at the deployed derivation and asks one apply itself
-(`auto = true`; decision `docs/spec/decisions/2026-11-01-2254.md`). That run scores every stored
+(`auto = true`; `docs/SPEC.md` §2 Re-score follows each scoring deploy). That run scores every stored
 scan in memory and decides the guard before it writes anything (`RESCORE_GUARD` in
 `src/lib/config/constants.ts`: no score moves more than 15 points, no scored scan loses its
 number, no more unreadable scans than the run before). Where the guard stops it, it writes

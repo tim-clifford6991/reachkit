@@ -1024,7 +1024,7 @@ const UPGRADES: readonly ((blob: Record<string, unknown>) => Record<string, unkn
  *  "this domain has no report" at every call site and would quietly take a
  *  customer's report off its own address.
  *
- *  **Forward only, and that is the ruling** (issue 887, SPEC §2 2026-09-18).
+ *  **Forward only, and that is the ruling** (SPEC §2 Roll forward only).
  *  The chain lifts an old blob to `REPORT_VERSION`; nothing lifts a blob the
  *  other way, so a build older than the blob throws here rather than reading
  *  the members it happens to recognise. That is what makes production
