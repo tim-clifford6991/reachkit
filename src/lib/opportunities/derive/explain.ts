@@ -13,7 +13,7 @@
 // which is the point: the explanation is why this page was chosen *then*,
 // not what the market looks like now.
 import { opportunityStore, readOpportunity } from "../store";
-import type { Acceptance, BusinessFit, Evidence, Family, OpportunityType, PlanReason, Winnability } from "../types";
+import type { Acceptance, BusinessFit, Evidence, Family, Opportunity, OpportunityType, PlanReason, Winnability } from "../types";
 
 export interface Choice {
   opportunityId: string;
@@ -35,8 +35,11 @@ export interface Choice {
  *  thrown error on a read path. */
 export async function explainChoice(opportunityId: string): Promise<Choice | null> {
   const row = await opportunityStore().byId(opportunityId);
-  if (row === null) return null;
-  const opportunity = readOpportunity(row);
+  return row === null ? null : choiceOf(readOpportunity(row));
+}
+
+/** The same account of a row already read, so a screen holding the row reads it no second time. */
+export function choiceOf(opportunity: Opportunity): Choice {
   return {
     opportunityId: opportunity.id,
     type: opportunity.type,

@@ -151,6 +151,14 @@ describe("ADR-061: exhausted supply is a proven arm, and there is at most one st
     });
   });
 
+  it("a notice handed the depth Plan already read ranks no row a second time", async () => {
+    await deriveOnly(fakeCost().ctx, reportWith(3));
+    const depth = await supplyDepth(SITE_ID);
+    const store = memoryStore(state);
+    setOpportunityStore({ ...store, openRankable: () => Promise.reject(new Error("ranked twice")) });
+    expect(await supplyNotice({ siteId: SITE_ID, depth })).toEqual({ kind: "short", days: 3 });
+  });
+
   it("an arrival into a short month reads the short line, not a second one", async () => {
     const { ctx } = fakeCost();
     await deriveOnly(ctx, reportWith(3));

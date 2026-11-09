@@ -188,8 +188,10 @@ export async function supplyNotice(a: {
   siteId: string;
   /** The scan the customer is arriving after, where this read is that first arrival. */
   firstArrivalAfter?: string;
+  /** The depth the caller already read, which is not read again. */
+  depth?: Depth;
 }): Promise<SupplyNotice | null> {
-  const { unused, exhaustedSince } = await supplyDepth(a.siteId);
+  const { unused, exhaustedSince } = a.depth ?? (await supplyDepth(a.siteId));
   if (unused === 0) return { kind: "exhausted", days: 0, since: exhaustedSince };
   if (unused < SUPPLY_SHORT_BELOW) return { kind: "short", days: unused };
   // Said once, on arrival after a pass that did not reach a week and its spares.

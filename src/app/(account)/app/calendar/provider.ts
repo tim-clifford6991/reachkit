@@ -134,8 +134,8 @@ export const readSupplyNotice = cache(async function readSupplyNotice(): Promise
     const unused = FIXTURE_CALENDAR_FACTS.unusedSupply;
     return unused === 0 ? { kind: "exhausted", days: 0, since: null } : null;
   }
-  const { supplyNotice, supplyState } = await import("@/lib/opportunities");
-  const notice = await supplyNotice({ siteId: site.siteId });
+  const [{ supplyNotice, supplyState }, { siteDepth }] = await Promise.all([import("@/lib/opportunities"), import("./store")]);
+  const notice = await supplyNotice({ siteId: site.siteId, depth: await siteDepth(site.siteId) });
   if (notice?.kind !== "exhausted") return notice;
   const state = await supplyState(site.siteId).catch(() => null);
   if (state === null) return null;
