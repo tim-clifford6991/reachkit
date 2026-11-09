@@ -1,6 +1,6 @@
 // SPEC §4 · §6 (board AppAI) — the AI tab: the week and the day AI was asked,
-// three tiles, each page in AI answers, which AI read and sent visits, and the
-// reputation card that closes on the grid of the twelve.
+// the month's mention rate with three lines under it, each page in AI answers,
+// which AI read and sent visits, and the questions card that closes on the grid.
 //
 // **Every read is a stored one, and Overview's own.** The pages linked, the
 // reads and the visits are the readers Overview's AI figure draws; the
@@ -23,7 +23,7 @@ import { readOverview } from "../../_overview/provider";
 import { readPromptsAt } from "../../_overview/prompts-provider";
 import { aiPagesFor } from "../../_overview/ai-pages";
 import { AnswerGrid } from "../../_overview/AnswerGrid";
-import { AiPagesCard, AiTiles, Reputation, WhoReads } from "../../_overview/AiTab";
+import { AiLead, AiPagesCard, Reputation, WhoReads } from "../../_overview/AiTab";
 import { OVERVIEW } from "../../_overview/frame";
 import { TabHead } from "../../_overview/TabHead";
 
@@ -58,7 +58,7 @@ export default async function AiAnswersTabPage(): Promise<React.JSX.Element> {
         }
       />
 
-      <AiTiles pages={pages} reads={reads} />
+      <AiLead model={reputation} pages={pages} reads={reads} answered={grid !== null} />
 
       <AiPagesCard pages={pages} />
 
@@ -66,11 +66,7 @@ export default async function AiAnswersTabPage(): Promise<React.JSX.Element> {
 
       {reputation.kind === "measured" ? (
         <Reputation model={reputation}>{grid}</Reputation>
-      ) : grid === null ? (
-        <section className="card card-border min-w-0 bg-base-100" data-testid="ai-empty">
-          <p className="card-body p-5 text-sm text-base-content/70">{copy("overview.answers.empty")}</p>
-        </section>
-      ) : (
+      ) : grid === null ? null : (
         <section className="card card-border min-w-0 bg-base-100 px-4">{grid}</section>
       )}
     </div>
