@@ -130,7 +130,7 @@ async function day(w: World, date: string): Promise<string> {
       return tried.length === 0 ? cell : `${cell} (after ${tried.length} short)`;
     }
     tried.push(cell);
-    await restTopic(o.id, AT);
+    await restTopic(o.id, AT, { zone: null });
   }
   if (first === null) return "no_opportunity";
   const own = packed(w, first, "documentation");

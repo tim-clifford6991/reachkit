@@ -19,7 +19,7 @@
 //   5. **publish** is the publishing engine's, behind the veto window.
 //
 //   * a draft the checks stopped rests in `needs_attention` (#788) and its
-//     topic rests for 28 days (owner, D26, issue 1179);
+//     topic rests until the site's next weekly commit;
 //   * a stopped draft does not cost its day (D26): the same run writes the
 //     week's next spare (`pageForDay`), at most once more, in the one context;
 //   * a short pack writes no row and rests its topic (issue 1536), and the day
@@ -201,7 +201,7 @@ export async function generateDayPage(a: {
           opportunity = spare;
           continue;
         }
-        await settle(outcome, opportunity.id, now, site.domain);
+        await settle(outcome, opportunity.id, now, site);
 
         // SPEC §7 (D26, issue 1179): a stopped draft does not cost its day.
         // Only a row that was written and stopped is moved on from — a run
@@ -211,7 +211,7 @@ export async function generateDayPage(a: {
         const short = packShort(outcome);
         if (!short) written += 1;
         // Issue 1536: its topic is one its pack cannot fill, so it rests as a stopped one does.
-        if (short && stopped === null) await restTopic(opportunity.id, now);
+        if (short && stopped === null) await restTopic(opportunity.id, now, { zone: site.timeZone });
         // And only while the job's invocation has the time for a second page.
         if ((stopped === null && !short) || written >= DAY_TOPICS_MAX || cost.capHit() || !roomForFix(cost) || Date.now() - startedAt > PIPELINE.nextTopicBeforeMs) return outcome;
         // The stopped topic rests by now, so the date's page is the week's next spare.
@@ -293,7 +293,7 @@ export async function regenerateRestarted(a: {
   const outcome = await withDraftCost({ scanId: report.scanId, draftId: row.id }, (cost) =>
     opportunity.type === "fix_page" ? fixPage(page, cost) : writePage({ ...page, attempts: 1 }, cost)
   );
-  await settle(outcome, opportunity.id, a.now ?? new Date(), site.domain);
+  await settle(outcome, opportunity.id, a.now ?? new Date(), site);
   return outcome;
 }
 
@@ -302,7 +302,7 @@ export async function regenerateRestarted(a: {
 export async function writeStoredUpdate(page: PageInput & { publishDate: string }, now: Date, day?: CostContext): Promise<DayPageOutcome> {
   const write = (cost: CostContext) => writePage({ ...page, attempts: 1, research: "stored" }, cost);
   const outcome = day === undefined ? await openDayCost({ scanId: page.report.scanId, siteId: page.siteId, since: now }, write) : await write(day);
-  await settle(outcome, page.opportunity.id, now, page.site.domain);
+  await settle(outcome, page.opportunity.id, now, page.site);
   return outcome;
 }
 
@@ -322,24 +322,24 @@ interface PageInput {
  * SPEC §7 (2026-09-15, issue 712): a written draft queues its opportunity.
  * A draft the rules stopped for the last time rests in `needs_attention`
  * (#788), and so does a row a step stopped for the last time (#813), its
- * reason naming the step. Either way its topic rests for 28 days (owner,
- * D26, issue 1179). A run that wrote no row moves neither.
+ * reason naming the step. Either way its topic rests until the site's next
+ * weekly commit, since a stop is not the customer's no. A run that wrote no row moves neither.
  */
-async function settle(outcome: DayPageOutcome, opportunityId: string, now: Date, domain: string): Promise<void> {
+async function settle(outcome: DayPageOutcome, opportunityId: string, now: Date, { domain, timeZone }: SiteFacts): Promise<void> {
   if (outcome.ok) {
     await queueForDraft(opportunityId);
     return;
   }
   if (outcome.because === "rules" && outcome.draftId !== null) {
     const failed = await recordedRules(outcome.draftId);
-    await rest(outcome.draftId, opportunityId, `rules:${failed.join(",")}`, now);
+    await rest(outcome.draftId, opportunityId, `rules:${failed.join(",")}`, now, timeZone);
     if (outcome.attempts >= 2) {
       await alertStoppedTwice({ domain, draftId: outcome.draftId, attempts: outcome.attempts, failed, stopped: outcome.stopped });
     }
     return;
   }
   if (outcome.because === "step_failed" && outcome.draftId !== null) {
-    await rest(outcome.draftId, opportunityId, `step_failed:${outcome.step}`, now);
+    await rest(outcome.draftId, opportunityId, `step_failed:${outcome.step}`, now, timeZone);
   }
 }
 
@@ -392,13 +392,13 @@ async function alertStoppedTwice(a: {
  * Never a throw on a refused move: the page is stopped either way, and a
  * row another mover moved first is logged rather than forced.
  */
-async function rest(draftId: string, opportunityId: string, reason: `rules:${string}` | `step_failed:${string}`, now: Date): Promise<void> {
+async function rest(draftId: string, opportunityId: string, reason: `rules:${string}` | `step_failed:${string}`, now: Date, zone?: string | null): Promise<void> {
   const { transition } = await import("@/lib/publish/machine");
   const moved = await transition(draftId, "needs_attention", { kind: "system", job: "draft/generate" }, { reason });
   if (!moved.ok) {
     console.log(JSON.stringify({ event: "draft_not_rested", draftId, refused: moved.refused, state: moved.state }));
   }
-  await restTopic(opportunityId, now);
+  await restTopic(opportunityId, now, { zone });
 }
 
 async function fixPage(a: PageInput, cost: CostContext): Promise<DayPageOutcome> {

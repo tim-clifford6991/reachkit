@@ -1,20 +1,10 @@
-// SPEC §7 — what a draft's life does to the opportunity it was written from
-// (issue 712).
+// What a draft's life does to the opportunity it was written from. A written draft queues it and a vetoed draft
+// dismisses it, so the daily pick never offers one opportunity twice and §8's near-duplicate gate never refuses the
+// second page against the first. A published page's row keeps what the weekly verdict does to it.
 //
-// "Opportunity status (2026-09-15): a written draft queues its
-// opportunity; a vetoed draft dismisses it." Nothing moved a row out of
-// `open` before this, so the daily pick offered the same opportunity every
-// evening and §8's near-duplicate gate refused the second page against the
-// first: a site left alone got one page and then none.
-//
-// A published page's row keeps what the weekly verdict already does to it
-// (`markDone` on an acceptance test that passed). A draft the generator
-// stopped for the last time rests in `needs_attention`, and its topic rests
-// with it (owner, D26, 2026-10-02, issue 1179; rewrites issue 833): the row
-// is `open` and not ready for `TOPIC_REST_DAYS`, so the next evening ranks
-// another topic instead of failing the same one. The founder resolves the
-// draft — a rewrite or an edit that passes queues the row as any written
-// draft does; Skip rests the topic from that day.
+// A topic whose page the generator stopped rests only until the site's next weekly commit, which ranks it again: a
+// stop is not the customer's no. The founder's rewrite or passing edit queues the row as any written draft does, and
+// Skip, the customer's no, rests the topic for `TOPIC_REST_DAYS`.
 //
 // A page drafted folds its open repeats (#1181, SPEC §6 2026-10-02): every
 // open Write or Earn row that is the same topic as it — by the stored top
@@ -22,6 +12,7 @@
 // search absorbed into the page's row. The next evening ranks what is left,
 // so a week never drafts one question twice in other words.
 import { TOPIC_REST_DAYS } from "@/lib/config/constants";
+import { nextDueAfter } from "@/lib/scan/weekly/week";
 import { nearRepeatsOf } from "./cluster";
 import { opportunityStore, readOpportunity } from "./store";
 
@@ -70,13 +61,9 @@ export async function dismissForVeto(opportunityId: string): Promise<void> {
   await opportunityStore().markDismissed(opportunityId, { stopped: true });
 }
 
-const MS_PER_DAY = 86_400_000;
-
-/** SPEC §7 (D26, issue 1179): the generator stopped this topic's draft for
- *  the last time, or the founder skipped that draft. The target was never
- *  refused, only the page, so the row stays on file — and is not offered
- *  for a day again until the rest is over. */
-export async function restTopic(opportunityId: string, at: Date): Promise<void> {
+/** The page is refused, not the target, so the row stays on file and is not offered for a day until the rest is over:
+ *  `TOPIC_REST_DAYS` after the customer's skip, or the site's next weekly commit, in its zone, after a system `stop`. */
+export async function restTopic(opportunityId: string, at: Date, stop?: { zone: string | null | undefined }): Promise<void> {
   const store = opportunityStore();
   // A customer's own edit is never written by the generator: resting it would hand the planner a paid refresh nobody asked for.
   const row = await store.byId(opportunityId);
@@ -84,5 +71,6 @@ export async function restTopic(opportunityId: string, at: Date): Promise<void> 
     await store.markDismissed(opportunityId);
     return;
   }
-  await store.rest(opportunityId, new Date(at.getTime() + TOPIC_REST_DAYS * MS_PER_DAY));
+  const until = stop === undefined ? new Date(at.getTime() + TOPIC_REST_DAYS * 86_400_000) : nextDueAfter({ at, zone: stop.zone ?? "UTC" });
+  await store.rest(opportunityId, until);
 }

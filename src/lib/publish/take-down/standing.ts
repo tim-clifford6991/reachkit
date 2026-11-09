@@ -67,7 +67,7 @@ export function takeDownStanding(a: {
   return { kind: "stopped", wordpress: a.unpublishOutcome === "returned_to_draft", putBackUntil: open ? until : null };
 }
 
-/** The topics of pages the system withdrew rest for `TOPIC_REST_DAYS`, as a stopped draft's do (D26); the page is
+/** The topics of pages the system withdrew rest for `TOPIC_REST_DAYS`, as a skipped draft's do; the page is
  *  down whether or not the rows could be written. */
 export async function restWithdrawn(
   deps: { rest: (draftIds: readonly string[], until: Date) => Promise<void> },
