@@ -19,7 +19,9 @@ import type { ReachProfile } from "@/lib/market/rivals/reach";
 const runScan = vi.fn();
 vi.mock("@/lib/scan/run", () => ({ runScan: (a: unknown) => runScan(a) }));
 
-const { runWeekly, registerActiveAccessGate } = await import("@/lib/scan/weekly");
+const { runWeekly } = await import("@/lib/scan/weekly");
+const { setBillingStore } = await import("@/lib/account/billing");
+const { payingStore } = await import("../../account/billing/memory-store");
 const { assembleReport } = await import("@/lib/scan/store");
 const { fullSections } = await import("../report/fixtures");
 const { deriveRivals } = await import("@/lib/market/rivals/derive");
@@ -60,7 +62,7 @@ let log: { lines: Record<string, unknown>[]; restore: () => void };
 beforeEach(() => {
   DB.reset();
   runScan.mockReset();
-  registerActiveAccessGate(async (ids) => new Set(ids));
+  setBillingStore(payingStore());
   process.env.KILL_SWITCH = "false";
   // A competitor's home page is never fetched: its address resolves private, and it is kept unread.
   vi.spyOn(dns.promises, "lookup").mockResolvedValue({ address: "10.0.0.1", family: 4 } as never);
@@ -68,7 +70,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  registerActiveAccessGate(null);
+  setBillingStore(null);
   log.restore();
   vi.restoreAllMocks();
 });

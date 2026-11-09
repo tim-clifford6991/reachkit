@@ -124,8 +124,8 @@ describe("a day that spent nothing takes a writer-made update from stored resear
 
   it.each([SAAS_HOSTED, LOCAL_WORDPRESS])("for $kind, an update the battery stops is not today's page: it rests with its cost and gives up the date", async (live) => {
     await world(live);
-    // The writer's page has lost the short answer a page must open on, before and after its fix.
-    writer(() => PASSING({ answer: "It depends." }));
+    // The writer's page claims a test no one ran, before and after its fix.
+    writer(() => PASSING({ answer: "We tested every plan with our own team." }));
     expect(await day(live)).toBeNull();
     const [stopped] = theirs();
     expect(stopped).toMatchObject({ hard_rules_passed: false, state: "needs_attention", scheduled_for: null, meta: { fallbackFor: "generate:no_opportunity", research: "stored" } });
@@ -198,7 +198,7 @@ describe("a day that spent nothing takes a writer-made update from stored resear
     const { url } = await world(SAAS_HOSTED);
     const second = opportunity({ id: SECOND_ID, siteId: SAAS_HOSTED.siteId, type: "refresh_page", family: "improve", title: row(written).title as string, targetQuery: "which plan fits a small team", targetRef: url, evidence: { family: "improve", query: "which plan fits a small team", pageUrl: url, shortfall: { kind: "due", cause: "stale" } } } as never);
     db.seed("opportunities", [...db.rows("opportunities"), { ...(insertFor(second) as unknown as Row), id: SECOND_ID, status: "open", created_at: AT.toISOString(), plan_place: 10, planned_for: null, ready: true }]);
-    writer(() => PASSING({ answer: "It depends." }));
+    writer(() => PASSING({ answer: "We tested every plan with our own team." }));
     expect(await day(SAAS_HOSTED)).toBeNull();
     const tried = db.rows("drafts").filter((each) => each.opportunity_id === WRITE_ID || each.opportunity_id === SECOND_ID);
     expect(tried).toHaveLength(1);

@@ -343,10 +343,8 @@ const { scanRun } = await import("../../src/jobs/scan-run");
 const { publishExecute } = await import("../../src/jobs/publish-execute");
 const engine = await import("../../src/jobs/engine");
 const { GET: sitemap } = await import("../../src/app/(hosted)/sitemap.xml/route");
-const { setActiveAccessReader, resetActiveAccessReader } = await import(
-  "../../src/app/(account)/setup/_setup/store"
-);
-const { registerActiveAccessGate } = await import("../../src/lib/scan/weekly/access");
+const { setBillingStore, supabaseBillingStore } = await import("../../src/lib/account/billing");
+const { payingStore } = await import("../account/billing/memory-store");
 const { setIdentityAuth } = await import("../../src/lib/account/identity/auth");
 const { releaseNotice } = await import("../../src/lib/scan/deep/notice");
 const { onboardingPanel } = await import("../../src/app/(account)/app/_shell/onboarding");
@@ -431,8 +429,7 @@ beforeEach(async () => {
   vercelDomainCalls.length = 0;
   recordPointed = false;
 
-  setActiveAccessReader(async () => true);
-  registerActiveAccessGate(async (siteIds) => new Set(siteIds));
+  setBillingStore(payingStore(() => true, supabaseBillingStore()));
   await signIn(cookieJar, { id: USER_ID, email: EMAIL });
   await captureMail(inbox);
   stubVendorFetch(vendorRequests, vendorAnswer, () => {
@@ -445,8 +442,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
   vi.useRealTimers();
   setIdentityAuth(null);
-  resetActiveAccessReader();
-  registerActiveAccessGate(null);
+  setBillingStore(null);
 });
 
 // ── The founder's steps, and the platform's ─────────────────────────────

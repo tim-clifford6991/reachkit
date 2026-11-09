@@ -19,7 +19,9 @@ vi.mock("@/lib/scan/run", () => ({
   spendOnStoredReport: (a: unknown, body: unknown) => spendOnStoredReport(a, body),
 }));
 
-const { refreshWeeklyKnowledge, runWeekly, registerActiveAccessGate } = await import("@/lib/scan/weekly");
+const { refreshWeeklyKnowledge, runWeekly } = await import("@/lib/scan/weekly");
+const { setBillingStore } = await import("@/lib/account/billing");
+const { payingStore } = await import("../../account/billing/memory-store");
 const { assembleReport } = await import("@/lib/scan/store");
 const { fullSections } = await import("../report/fixtures");
 
@@ -73,13 +75,13 @@ beforeEach(() => {
   DB.reset();
   runScan.mockReset();
   spendOnStoredReport.mockReset();
-  registerActiveAccessGate(async (ids) => new Set(ids));
+  setBillingStore(payingStore());
   process.env.KILL_SWITCH = "false";
   log = captureLog();
 });
 
 afterEach(() => {
-  registerActiveAccessGate(null);
+  setBillingStore(null);
   log.restore();
   vi.restoreAllMocks();
 });

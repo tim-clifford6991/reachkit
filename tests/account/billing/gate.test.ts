@@ -9,7 +9,8 @@ import { applyEnvFixture } from "../../mail/env-fixture";
 
 applyEnvFixture();
 
-const { hasActiveAccess, setBillingStore } = await import("@/lib/account/billing");
+const { hasActiveAccess, setBillingStore, sitesWithActiveAccess } = await import("@/lib/account/billing");
+const { payingSitesAt } = await import("@/lib/account/billing/gate");
 const { memoryBillingStore, newMemoryBilling, site } = await import("./memory-store");
 
 let state = newMemoryBilling();
@@ -101,5 +102,23 @@ describe("the gate fails closed", () => {
     // Three loops spend money on a `true`. Spending a departed customer's
     // money because a read failed is the worse of the two errors.
     expect(await hasActiveAccess("site-1")).toBe(false);
+  });
+});
+
+describe("the count and the per-site answer are one comparison", () => {
+  it("over one set of sites, the day's count is the number of sites the gate admits", async () => {
+    for (const [id, paidThrough] of [
+      ["saas-site", IN_A_MONTH],
+      ["local-cafe", new Date(NOW.getTime() + 1)],
+      ["at-the-instant", NOW],
+      ["lapsed-site", LAST_MONTH],
+    ] as const) {
+      state.sites.push(site({ id, user_id: `u-${id}`, owner_paid_through: paidThrough.toISOString() }));
+    }
+    const ids = [...state.sites.map((s) => s.id), "site-nobody"];
+    const admitted = await sitesWithActiveAccess(ids);
+    expect([...admitted].sort()).toEqual(["local-cafe", "saas-site"]);
+    for (const id of ids) expect(admitted.has(id), id).toBe(await hasActiveAccess(id));
+    expect(await payingSitesAt(NOW)).toBe(admitted.size);
   });
 });

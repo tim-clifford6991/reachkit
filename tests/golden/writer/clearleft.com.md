@@ -15,8 +15,8 @@
 | traceable_numerals | passed | passed |
 | first_block_answers | passed | passed |
 | no_placeholder_cell | passed | passed |
-| plain_prose | failed {"faults":[{"tell":"repeated_phrase","count":3,"found":["internal service design product design and design systems"]}]} | failed {"faults":[{"tell":"even_sentences","count":33,"found":[]}]} |
+| plain_prose | warns {"faults":[{"tell":"repeated_phrase","count":3,"found":["internal service design product design and design systems"]}]} | warns {"faults":[{"tell":"even_sentences","count":33,"found":[]}]} |
 
 ## What the fix call is told
 
-- plain_prose: even_sentences
+Nothing: the page passes.

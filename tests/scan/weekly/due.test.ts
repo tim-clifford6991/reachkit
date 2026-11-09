@@ -8,8 +8,8 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { DB, captureLog } from "./harness";
 import { dueSites } from "@/lib/scan/weekly";
-import { registerActiveAccessGate } from "@/lib/scan/weekly";
-import { ActiveAccessGateNotRegistered } from "@/lib/scan/weekly/access";
+import { setBillingStore } from "@/lib/account/billing";
+import { payingStore } from "../../account/billing/memory-store";
 
 const MONDAY_0600_UTC = new Date("2026-09-07T06:00:00Z");
 const LA = "America/Los_Angeles"; // UTC−7 — Sunday 23:00 at that instant
@@ -21,7 +21,7 @@ function site(id: string, zone: string) {
 
 /** Every site's owner is paying, unless a suite says otherwise. */
 function everyoneHasAccess(): void {
-  registerActiveAccessGate(async (ids) => new Set(ids));
+  setBillingStore(payingStore());
 }
 
 let log: { lines: Record<string, unknown>[]; restore: () => void };
@@ -33,7 +33,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  registerActiveAccessGate(null);
+  setBillingStore(null);
   log.restore();
 });
 
@@ -77,31 +77,18 @@ describe("a site is selected only once its own local Monday and due hour arrive"
 describe("active access is billing's single gate, and nothing here is a second one", () => {
   it("a site whose access has ended is never selected, whatever its local weekday", async () => {
     DB.rows.set("sites", [site("utc-site", "UTC"), site("gone", "UTC")]);
-    registerActiveAccessGate(async () => new Set(["utc-site"]));
+    setBillingStore(payingStore((id) => id === "utc-site"));
     const due = await dueSites(MONDAY_0600_UTC);
     expect(due.map((s) => s.siteId)).toEqual(["utc-site"]);
   });
 
-  it("asks the gate once for the whole tick, not once per site", async () => {
-    DB.rows.set("sites", [site("a", "UTC"), site("b", "UTC"), site("c", "UTC")]);
-    let asks = 0;
-    registerActiveAccessGate(async (ids) => {
-      asks += 1;
-      return new Set(ids);
-    });
-    await dueSites(MONDAY_0600_UTC);
-    expect(asks).toBe(1);
-  });
-
-  it("refuses to answer at all while billing has registered no gate", async () => {
-    DB.rows.set("sites", [site("utc-site", "UTC")]);
-    registerActiveAccessGate(null);
-    await expect(dueSites(MONDAY_0600_UTC)).rejects.toBeInstanceOf(ActiveAccessGateNotRegistered);
-  });
-
   it("does not ask the gate on a tick that is nobody's Monday", async () => {
     DB.rows.set("sites", [site("utc-site", "UTC")]);
-    registerActiveAccessGate(null);
+    setBillingStore(
+      payingStore(() => {
+        throw new Error("the gate was asked");
+      })
+    );
     await expect(dueSites(new Date("2026-09-09T06:00:00Z"))).resolves.toEqual([]);
   });
 });

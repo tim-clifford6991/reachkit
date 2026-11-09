@@ -32,12 +32,6 @@
 //    clock binding and fails the boot. `assertJobsBindings()` is silent
 //    where the process is not a deployment (a local build, the layout
 //    suite's server), which is where no job is ever triggered.
-//  - **Billing's access gate not taking** throws out of `register()`
-//    (issue #180). ADR-050 puts "who has active access" in billing, and
-//    `src/lib/scan/weekly/access.ts` throws while nothing is registered
-//    rather than guess — so a deployment that boots without the
-//    registration cannot run a Monday tick for any customer. Registering
-//    is local and needs nobody, so it is asserted like `env`.
 //  - **The spend seam's alert sink not being registered** is registered
 //    here and does not throw (issue #329). `src/lib/costs/daily.ts`
 //    publishes a crossing of the product's daily ceiling and cannot reach
@@ -96,7 +90,7 @@ export async function register(): Promise<void> {
   }
 }
 
-type BootCheck = "access-gate" | "stamp-place" | "clock" | "jobs" | "spend-alerts";
+type BootCheck = "paying-count" | "stamp-place" | "clock" | "jobs" | "spend-alerts";
 
 /** Never throws: a boot refused because `env` does not parse cannot reach
  *  the mail seam at all, and the log line above is then the whole telling. */
@@ -133,12 +127,13 @@ async function assertInvariants(current: { check: BootCheck }): Promise<void> {
   assertJobsBindings();
   log("jobs", "checked");
 
-  // ADR-050's gate: local and needing nobody. Imported by file, since the
-  // billing barrel loads the mail and the payment vendor's SDK.
-  current.check = "access-gate";
-  const { installActiveAccessGate } = await import("@/lib/account/billing/access-gate");
-  await installActiveAccessGate();
-  log("access-gate", "checked");
+  // The day's spend ceiling grows with who pays, and costs sits below billing.
+  // Imported by file, since the billing barrel loads the mail and the payment vendor's SDK.
+  current.check = "paying-count";
+  const { payingSitesAt } = await import("@/lib/account/billing/gate");
+  const { registerPayingSiteCounter } = await import("@/lib/costs/daily");
+  registerPayingSiteCounter(payingSitesAt);
+  log("paying-count", "checked");
 
   // ADR-083 Decision 4's port; the WordPress destination loads on first use.
   current.check = "stamp-place";

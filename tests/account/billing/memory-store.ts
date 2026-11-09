@@ -148,19 +148,10 @@ export function memoryBillingStore(state: MemoryBilling): BillingStore {
   }
 
   const store: BillingStore = {
-    async payingSiteCount(at) {
+    async payingSiteCount(at, siteId) {
       if (state.failHostingRead) return { ok: false };
-      const count = state.sites.filter((s) => new Date(joined(s).owner_paid_through) > at).length;
-      return { ok: true, count };
-    },
-
-    async paidThroughForSite(siteId) {
-      if (state.failHostingRead) return { ok: false };
-      const found = state.sites.find((s) => s.id === siteId);
-      return {
-        ok: true,
-        paidThrough: found === undefined ? null : new Date(joined(found).owner_paid_through),
-      };
+      const sites = state.sites.filter((s) => siteId === undefined || s.id === siteId);
+      return { ok: true, count: sites.filter((s) => new Date(joined(s).owner_paid_through) > at).length };
     },
 
     async account(userId) {
@@ -287,4 +278,18 @@ export function memoryBillingStore(state: MemoryBilling): BillingStore {
   return new Proxy(store, {
     get: (target, key) => (key === state.failMethod ? async () => ({ ok: false }) : Reflect.get(target, key)),
   });
+}
+
+/** Who pays, for a suite about something else: each site `pays` admits has
+ *  active access, through the gate's own store method; `base` answers the rest. */
+export function payingStore(
+  pays: (siteId: string) => boolean = () => true,
+  base: BillingStore = memoryBillingStore(newMemoryBilling())
+): BillingStore {
+  return {
+    ...base,
+    async payingSiteCount(_at, siteId) {
+      return { ok: true, count: siteId !== undefined && pays(siteId) ? 1 : 0 };
+    },
+  };
 }

@@ -223,9 +223,6 @@ export function fixtureSetupStore(): SetupStore & {
     committed,
     enqueued,
     steps,
-    // §13's `hasActiveAccess()` (#42). The fixture founder has paid —
-    // reaching `/setup` at all means a webhook provisioned them.
-    hasActiveAccess: async () => true,
     // §6.4's `resolvesInDns` (#22). Not called through here in the
     // fixture: no test in this corpus may reach a resolver.
     resolvesInDns: async () => true,

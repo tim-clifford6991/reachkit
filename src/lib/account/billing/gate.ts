@@ -31,12 +31,19 @@ import { billingStore } from "./store";
 
 /** REQ-076 criterion 8 — THE access gate. See ADR-050 before changing this.
  *
- *  One indexed read of `users.paid_through` through `sites.user_id`; p95
- *  ≤ 10 ms, because three subsystems call it per unit of scheduled work. */
+ *  One indexed read through `sites.user_id`, by the same filter the count
+ *  below uses; p95 ≤ 10 ms, because three subsystems call it per unit of
+ *  scheduled work. */
 export async function hasActiveAccess(siteId: string): Promise<boolean> {
-  const read = await billingStore().paidThroughForSite(siteId);
-  if (!read.ok || read.paidThrough === null) return false;
-  return read.paidThrough.getTime() > Date.now();
+  const read = await billingStore().payingSiteCount(new Date(), siteId);
+  return read.ok && read.count > 0;
+}
+
+/** Which of these sites' owners have active access right now, asked once
+ *  per site through the gate above. */
+export async function sitesWithActiveAccess(siteIds: readonly string[]): Promise<ReadonlySet<string>> {
+  const decided = await Promise.all(siteIds.map(async (siteId) => [siteId, await hasActiveAccess(siteId)] as const));
+  return new Set(decided.filter(([, active]) => active).map(([siteId]) => siteId));
 }
 
 /** How many sites had active access at `at`, by the same comparison. Throws

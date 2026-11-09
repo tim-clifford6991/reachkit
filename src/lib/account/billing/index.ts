@@ -19,8 +19,7 @@
 // module's internals, but the suites need a door and the fence closes every
 // other one. Nothing in `src/` outside the tests imports either —
 // `tests/account/billing/single-gate.test.ts` is what holds that true.
-export { hasActiveAccess } from "./gate";
-export { ensureActiveAccessGate, installActiveAccessGate } from "./access-gate";
+export { hasActiveAccess, sitesWithActiveAccess } from "./gate";
 export { hostedServingState, type HostedServingState } from "./hosted-serving";
 export {
   billingSummary,

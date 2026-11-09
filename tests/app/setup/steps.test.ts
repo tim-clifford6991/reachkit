@@ -4,13 +4,9 @@
 // left so a reload resumes, and the deep pass starts when Check confirms the
 // rivals. Every store here is built in the test, so nothing needs a
 // database, a queue or a resolver.
-import { describe, expect, it } from "vitest";
-import {
-  saveSetupStep,
-  type SetupProgressState,
-  type SetupStepSave,
-  type SetupStore,
-} from "@/app/(account)/setup/submit";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { applyEnvFixture } from "../../mail/env-fixture";
+import type { SetupProgressState, SetupStepSave, SetupStore } from "@/app/(account)/setup/submit";
 import type { SetupStepId } from "@/app/(account)/setup/steps";
 import { confirmedProfile } from "@/lib/site-profile/business/confirm";
 import { NO_EDITS, type BusinessEdits } from "@/lib/site-profile/business/types";
@@ -28,6 +24,15 @@ import { FIXTURE_SETUP_FACTS, FIXTURE_SITE_PROFILE } from "@/app/(account)/setup
 
 const SITE = "site-1";
 const USER = "user-1";
+
+// The gate reads billing's store, whose module parses the environment when it loads.
+applyEnvFixture();
+const { saveSetupStep } = await import("@/app/(account)/setup/submit");
+const { setBillingStore } = await import("@/lib/account/billing");
+const { payingStore } = await import("../../account/billing/memory-store");
+
+beforeEach(() => setBillingStore(payingStore()));
+afterEach(() => setBillingStore(null));
 const PAID_AT = new Date(Date.UTC(2026, 8, 20, 9, 0, 0));
 
 /** Check as a founder leaves it: every section's answer in one save. */
@@ -48,7 +53,6 @@ interface Recorder {
 function storeOf(over: Partial<SetupStore> = {}): { store: SetupStore; recorder: Recorder } {
   const recorder: Recorder = { steps: [], enqueued: [] };
   const store: SetupStore = {
-    hasActiveAccess: async () => true,
     resolvesInDns: async () => true,
     hostnameTaken: async () => false,
     readProgress: async (): Promise<SetupProgressState> => ({
@@ -112,8 +116,8 @@ describe("a step saves as it is left, and says where to resume", () => {
   });
 
   it("no active access is refused first — before the domain is even looked at", async () => {
+    setBillingStore(payingStore(() => false));
     const { store, recorder } = storeOf({
-      hasActiveAccess: async () => false,
       resolvesInDns: async () => {
         throw new Error("the resolver must not be asked");
       },

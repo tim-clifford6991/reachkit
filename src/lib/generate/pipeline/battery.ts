@@ -10,7 +10,6 @@ import { lengthRangeFor, sectionWords } from "../length";
 import { batteryCleared, runHardRules, type BatteryOutcome } from "../rules";
 import { citesMinOf } from "../rules/brief-lines";
 import { namedRivals } from "../rules/rivals";
-import { specificOnly } from "../rules/title";
 import { renderOf } from "../rules/text";
 import type { ComparisonSet, HardRule, SiteRuleInputs } from "../rules/types";
 import type { SiteFacts } from "../store";
@@ -158,14 +157,6 @@ export function batteryInputs(b: BatteryBasis, page: CheckedPage, markdown: stri
   };
 }
 
-/** The page failed one thing: its title lacks a specific. Stage 4 then lets it go on without one (ruling
- *  2026-10-11), and so does the morning re-check. */
-export function lacksSpecificOnly(outcome: BatteryOutcome): boolean {
-  if (outcome.passed || outcome.failed.length !== 1) return false;
-  const detail = outcome.failed[0]?.detail;
-  return detail !== undefined && "faults" in detail && detail.rule === "title" && specificOnly(detail.faults);
-}
-
 /** One page through stage 4: the checks, the repairs code can make (#1178) kept only where the page then passes or
  *  fails fewer checks and no new one, and the pages written for other sites (D13) where the rules passed. Each rule the
  *  first check failed is added to `broken`. */
@@ -179,9 +170,9 @@ export async function checkPage(
 ) {
   let markdown = written;
   let outcome: BatteryOutcome = await runHardRules(c, batteryInputs(b, page, markdown, at.comparison, settled, at.fit));
-  if (!outcome.passed) for (const failure of outcome.failed) at.broken?.add(failure.rule);
+  for (const failure of outcome.failed) at.broken?.add(failure.rule);
   const repairs: RepairRecord[] = [];
-  const tried = outcome.passed || outcome.fit.state === "unrun" ? [] : repairable(outcome.failed);
+  const tried = outcome.fit.state === "unrun" ? [] : repairable(outcome.failed);
   if (tried.length > 0) {
     const inputs = batteryInputs(b, page, markdown, at.comparison, settled);
     const reading = (text: string) => ({ title: page.title, markdown: text, businessName: b.site.businessName, domain: b.site.domain, titleOwed: (inputs.titleRule.business?.length ?? 0) > 0 });
@@ -203,15 +194,15 @@ export async function checkPage(
     // The verdict stands for the sentences the repaired page still asks about; no fit call is bought again.
     const fit = stillAsked(outcome.fit, reading(repaired));
     const again = repaired === markdown ? null : await runHardRules(c, batteryInputs(b, page, repaired, at.comparison, settled, fit));
-    const still = new Set(again === null || again.passed ? [] : again.failed.map((failure) => failure.rule));
+    const still = new Set(again === null ? [] : again.failed.map((failure) => failure.rule));
     for (const rule of tried) {
       const dropped = mended.dropped[rule];
       repairs.push({ rule, cleared: again !== null && !still.has(rule), ...(dropped === undefined ? {} : { dropped }) });
     }
     console.log(JSON.stringify({ event: "draft_repaired", siteId: at.siteId, draftId: at.draftId, repairs }));
-    const before = new Set(outcome.passed ? [] : outcome.failed.map((failure) => failure.rule));
-    const fewer = again !== null && !again.passed && again.failed.length < before.size && again.failed.every((failure) => before.has(failure.rule));
-    if (again !== null && (batteryCleared(again) || fewer)) {
+    const before = new Set(outcome.failed.map((failure) => failure.rule));
+    const fewer = again !== null && again.failed.length < before.size && again.failed.every((failure) => before.has(failure.rule));
+    if (again !== null && fewer && (again.passed || !outcome.passed)) {
       markdown = repaired;
       outcome = again;
     }
