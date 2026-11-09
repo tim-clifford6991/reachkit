@@ -242,7 +242,7 @@ describe("a page held while the switch is off keeps its place in the order", () 
         isPublishingOn: async () => true,
         hasCeilingRoom: async () => true,
         destinationWorking: async () => true,
-        rule: { becomesPublishable: () => true, toldCurrentPair: () => true },
+        rule: { becomesPublishable: () => true },
       },
     });
     await transition("d1", "failed", CUSTOMER, { at: AT });

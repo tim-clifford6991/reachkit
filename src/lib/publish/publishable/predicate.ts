@@ -13,13 +13,9 @@ import { settingsOf } from "../settings/pair";
  *  - `claim_recheck` — criterion 2's fourth (REQ-053 c5's state). */
 export type NotPublishable = "window" | "unsaved_edit" | "claim_recheck";
 
-/** Not a conjunct: the first publish time has no zone to be read in. `sites.timezone` is nullable by design (REQ-073 c1
- *  forbids a zone the customer never stated), so the page is held, never published in a zone nobody chose. */
-export type Unresolvable = "zone_not_set";
-
 export type PublishableAnswer =
   | { publishable: true; at: Date }
-  | { publishable: false; because: NotPublishable | Unresolvable };
+  | { publishable: false; because: NotPublishable };
 
 /** The one expression of criterion 2; `at` comes from `nextPublishTimeAtOrAfter`, never a second clock.
  *  The `unsaved_edit` arm is kept though no caller reaches it today: removing it would silently weaken the predicate. */
@@ -30,8 +26,6 @@ export function becomesPublishable(d: DraftView): PublishableAnswer {
 
   if (d.hasUnsavedEdit) return { publishable: false, because: "unsaved_edit" };
   if (d.claimRecheckOutstanding) return { publishable: false, because: "claim_recheck" };
-
-  if (d.governing.timezone === null) return { publishable: false, because: "zone_not_set" };
 
   return { publishable: true, at: nextPublishTimeAtOrAfter(became, settingsOf(d.governing)) };
 }

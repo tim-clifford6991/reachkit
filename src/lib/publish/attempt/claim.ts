@@ -26,13 +26,10 @@ export type HeldBy =
   | "claim_recheck"
   | "switch_off"
   | "ceiling_day"
-  | "ceiling_week"
-  | "zone_not_set"
   /** The ceilings could not be counted: held, never counted as none published. */
   | "ceiling_unreadable"
   | "destination_not_working"
   | "not_publishable"
-  | "telling_owed"
   | "hard_rules_not_passed";
 
 export type ClaimResult =
@@ -172,7 +169,7 @@ export async function claim(a: ClaimArgs): Promise<ClaimResult> {
   };
 }
 
-/** The refusing guard as a word a surface can act on; the ceilings say which, as day and week lift at different moments. */
+/** The refusing guard as a word a surface can act on. */
 async function heldWord(
   failedGuard: string | undefined,
   siteId: string,
@@ -185,17 +182,11 @@ async function heldWord(
       return "switch_off";
     case "destination_working":
       return "destination_not_working";
-    case "customer_told":
-      return "telling_owed";
     case "draft_passed_hard_rules":
       return "hard_rules_not_passed";
     case "within_ceilings": {
       const room = await ceilingRoom(siteId, at);
-      if (room.room) return "ceiling_day";
-      if (room.blockedBy === "week") return "ceiling_week";
-      if (room.blockedBy === "zone_not_set") return "zone_not_set";
-      if (room.blockedBy === "unreadable") return "ceiling_unreadable";
-      return "ceiling_day";
+      return !room.room && room.blockedBy === "unreadable" ? "ceiling_unreadable" : "ceiling_day";
     }
     default:
       return "not_publishable";

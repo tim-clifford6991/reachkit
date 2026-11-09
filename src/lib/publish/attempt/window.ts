@@ -2,18 +2,17 @@
 // their domain." Each move is one call into the module that owns the rule.
 // Opening (`enterReview`) is the draft tick's after a passing generation: stamp the deadline before the move, since the
 // telling reads it, then enter review and tell the customer through `sendDraftReadyMail`.
-// Closing (`dueApprovals`) is the hourly tick's: a told, publishable, due page is approved by the system and handed on;
+// Closing (`dueApprovals`) is the hourly tick's: a publishable, due page is approved by the system and handed on;
 // the claim re-asks every guard, so a held page is offered again next hour, as a due retry is (`./due.ts`).
 // `publishDueAt` names the moment for one `publish/execute`, which re-enters through `dueApproval`; the tick is the backstop.
-// An untold page is never approved by a clock (REQ-057 c8): it stays in review, where the customer can still stop it.
+// The mail is best-effort: autopilot asks for nothing, so an unsent one is logged and retried by the tick, never a hold.
 import { VETO } from "@/lib/config/constants";
-import { localClock } from "@/lib/scan/weekly/week";
 import { publishDb, type PublishQuery } from "../db";
 import { publishDateAtOrAfter } from "../settings/clock";
 import { settingsOf } from "../settings/pair";
 import { machineDraftFor, transition } from "../machine";
 import { becomesPublishable } from "../publishable/predicate";
-import { customerTold, publishableAndDue } from "../publishable/rule";
+import { publishableAndDue } from "../publishable/rule";
 import type { Actor, DestinationKind } from "../types";
 
 /** One page ready for its attempt, shaped as a due retry is. */
@@ -23,10 +22,8 @@ export interface DueApproval {
 }
 
 export type ReviewEntry =
-  | { readonly kind: "told" }
-  /** The page is in review and its window is open, but the draft-ready
-   *  mail did not leave. The page is held by `customer_told` until it does. */
-  | { readonly kind: "untold"; readonly reason: string }
+  /** In review with its window open; `told` is whether the draft-ready mail left, which holds nothing. */
+  | { readonly kind: "entered"; readonly told: boolean }
   | { readonly kind: "not_entered"; readonly reason: "no_draft" | "not_generating" | "hard_rules" | "no_destination" | "moved" };
 
 const MS_PER_HOUR = 3_600_000;
@@ -78,19 +75,25 @@ export async function enterReview(a: { draftId: string; at: Date; by?: Actor; re
     throw new Error(`publish/window: could not stamp the veto deadline: ${stamped.error.message}`);
   }
 
-  // The day it goes out untouched, the only date its row may carry; with no zone, the deadline's UTC date.
-  const publishes =
-    draft.governing.timezone === null
-      ? localClock(deadline, "UTC").date
-      : publishDateAtOrAfter(deadline, settingsOf(draft.governing));
-  await takeDate(a.draftId, publishes);
+  // The day it goes out untouched, the only date its row may carry.
+  await takeDate(a.draftId, publishDateAtOrAfter(deadline, settingsOf(draft.governing)));
 
   const moved = await transition(a.draftId, "in_review", by, { at: a.at, ...(a.reason === undefined ? {} : { reason: a.reason }) });
   if (!moved.ok) return { kind: "not_entered", reason: "moved" };
 
+  return { kind: "entered", told: await tell(a.draftId, destination.kind, a.at) };
+}
+
+/** The draft-ready mail, once per pair; a failure is logged for ops and returns `false`, never a throw. */
+async function tell(draftId: string, destination: DestinationKind, at: Date): Promise<boolean> {
   const { sendDraftReadyMail } = await import("@/lib/mail/draft-ready");
-  const told = await sendDraftReadyMail({ draftId: a.draftId, destination: destination.kind, at: a.at });
-  return told.sent || told.reason === "preference-off" ? { kind: "told" } : { kind: "untold", reason: told.reason };
+  const outcome = await sendDraftReadyMail({ draftId, destination, at }).catch((error: unknown) => ({
+    sent: false as const,
+    reason: String(error),
+  }));
+  if (outcome.sent || outcome.reason === "preference-off" || outcome.reason === "already-told") return true;
+  console.warn(JSON.stringify({ event: "draft_ready_unsent", draftId, reason: outcome.reason }));
+  return false;
 }
 
 const MS_PER_DAY = 24 * MS_PER_HOUR;
@@ -153,16 +156,19 @@ export async function dueApprovals(now: Date): Promise<readonly DueApproval[]> {
 
 /** One waiting page, approved if its window ran out and handed back when due; otherwise `null`. */
 async function approveIfDue(row: WaitingRow, now: Date): Promise<DueApproval | null> {
-  // The cheap test before a per-page read.
-  if (row.state === "in_review" && (row.veto_deadline === null || new Date(row.veto_deadline) > now)) return null;
+  const destination = await liveDestination(row.site_id);
+  // Disconnected since it entered review: it returns once the customer reconnects.
+  if (destination === null) return null;
+
+  // Window still open: the one moment a missed mail is worth retrying.
+  if (row.state === "in_review" && (row.veto_deadline === null || new Date(row.veto_deadline) > now)) {
+    await tell(row.id, destination.kind, now);
+    return null;
+  }
 
   const draft = await machineDraftFor(row.id);
   if (draft === null || draft.state !== row.state) return null;
-  if (!customerTold(draft) || !publishableAndDue(draft, now)) return null;
-
-  const destination = await liveDestination(row.site_id);
-  // Disconnected since it was told: it returns once the customer reconnects.
-  if (destination === null) return null;
+  if (!publishableAndDue(draft, now)) return null;
 
   if (draft.state === "in_review") {
     const approved = await transition(row.id, "approved", CLOSED_BY, { at: now });

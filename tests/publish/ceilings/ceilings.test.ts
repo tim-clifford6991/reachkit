@@ -1,14 +1,7 @@
-// tests/publish/ceilings/ceilings.test.ts — BUILD §9's two ceilings.
+// tests/publish/ceilings/ceilings.test.ts — BUILD §9's day ceiling.
 //
-// No more than one publishes in any calendar day and no more than the plan's
-// week (`WEEK_PLAN.days`) in any calendar week, counted in the time zone the
-// customer set, whatever their settings or plan would otherwise allow; the
-// two ceilings hold independently of each other.
-//
-// The discriminating fixture is the Sunday one: a page published on a
-// Sunday evening in the customer's zone counts in the week that Sunday
-// *ends*, not the one it begins. A UTC-week implementation gets that wrong
-// and passes every other row here.
+// No more than one publishes in any calendar day, counted in the time zone
+// the customer set, whatever their settings or plan would otherwise allow.
 //
 // The archived plan is WO-211.
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -17,14 +10,7 @@ import { fakeDb, type Row } from "../harness";
 const db = fakeDb();
 vi.mock("@/lib/db", () => ({ dbAdmin: () => db.client, db: () => db.client }));
 
-import { RATE_LIMITS, WEEK_PLAN } from "@/lib/config/constants";
-import {
-  ceilingRoom,
-  startOfLocalDay,
-  startOfLocalWeek,
-  startOfNextLocalDay,
-  startOfNextLocalWeek,
-} from "@/lib/publish/ceilings";
+import { ceilingRoom, startOfLocalDay, startOfNextLocalDay } from "@/lib/publish/ceilings";
 
 const ZONE = "America/New_York";
 
@@ -40,36 +26,6 @@ beforeEach(() => {
   db.reset();
   db.seed("sites", [site()]);
   db.seed("publications", []);
-});
-
-describe("the pins are the only source of the two limits", () => {
-  it("§9's hard limits, read from constants.ts and never restated here", () => {
-    expect(RATE_LIMITS.publishesPerDay).toBe(1);
-    expect(RATE_LIMITS.publishesPerWeek).toBe(WEEK_PLAN.days);
-    expect(RATE_LIMITS.publishesPerWeek).toBe(7);
-  });
-});
-
-describe("the week's ceiling is the plan's week, even across a clock change", () => {
-  // Berlin leaves summer time on Sunday 2026-10-25, inside the local week
-  // Monday 19th to Sunday 25th.
-  const BERLIN = "Europe/Berlin";
-
-  it("an eighth page in that local week is refused by the week, on a day with nothing out", async () => {
-    db.seed("sites", [site({ timezone: BERLIN })]);
-    db.seed("publications", [
-      publishedAt("2026-10-18T22:30:00.000Z"), // 00:30 Monday 19th, Berlin
-      publishedAt("2026-10-19T10:00:00.000Z"),
-      ...["20", "21", "22", "23", "24"].map((d) => publishedAt(`2026-10-${d}T10:00:00.000Z`)),
-    ]);
-    const sunday = new Date("2026-10-25T10:00:00.000Z"); // 11:00 Sunday, after the change
-    const room = await ceilingRoom("s1", sunday);
-    expect(room).toEqual({
-      room: false,
-      blockedBy: "week",
-      nextFreeAt: new Date("2026-10-25T23:00:00.000Z"), // Berlin's Monday midnight, in winter time
-    });
-  });
 });
 
 describe("the day boundary is the customer's midnight, not UTC's", () => {
@@ -103,31 +59,14 @@ describe("the day boundary is the customer's midnight, not UTC's", () => {
   });
 });
 
-describe("the week starts on the customer's Monday", () => {
-  it("a page published on a Sunday counts in the week that Sunday ends, not the one it begins", async () => {
-    // 2026-09-13 is a Sunday. Seven pages that week, then the Sunday one is
-    // the eighth: a ninth on Monday the 14th must be allowed, because the
-    // Monday starts a new week.
-    const sundayEvening = "2026-09-14T00:30:00.000Z"; // 20:30 Sunday 13th, New York
-    db.seed("publications", [publishedAt(sundayEvening)]);
-    const mondayLocal = new Date("2026-09-14T14:00:00.000Z"); // 10:00 Monday 14th
-    expect(await ceilingRoom("s1", mondayLocal)).toEqual({ room: true });
-  });
-
-  it("startOfLocalWeek on that Sunday is the Monday before it, in the customer's zone", () => {
-    const sundayEvening = new Date("2026-09-14T00:30:00.000Z");
-    expect(startOfLocalWeek(sundayEvening, ZONE).toISOString()).toBe("2026-09-07T04:00:00.000Z");
-  });
-});
-
-describe("the two ceilings hold independently", () => {
+describe("the day ceiling", () => {
   const MONDAY = new Date("2026-09-14T14:00:00.000Z");
 
   it("neither blocked: there is room", async () => {
     expect(await ceilingRoom("s1", MONDAY)).toEqual({ room: true });
   });
 
-  it("the day alone blocks: one already published today, six this week", async () => {
+  it("one already published today blocks, whatever went out earlier in the week", async () => {
     db.seed("publications", [
       publishedAt("2026-09-14T13:00:00.000Z"),
       ...["08", "09", "10", "11", "12"].map((d) => publishedAt(`2026-09-${d}T13:00:00.000Z`)),
@@ -135,32 +74,7 @@ describe("the two ceilings hold independently", () => {
     expect(await ceilingRoom("s1", MONDAY)).toMatchObject({ room: false, blockedBy: "day" });
   });
 
-  it("the week alone blocks: seven this week, a free day today", async () => {
-    // Seven on Monday the 14th, read on the Tuesday, so only the week can block.
-    const TUESDAY = new Date("2026-09-15T14:00:00.000Z");
-    db.seed("publications", [
-      ...Array.from({ length: 7 }, (_, i) =>
-        publishedAt(`2026-09-14T${String(10 + i).padStart(2, "0")}:00:00.000Z`)
-      ),
-    ]);
-    const room = await ceilingRoom("s1", TUESDAY);
-    expect(room).toMatchObject({ room: false, blockedBy: "week" });
-  });
-
-  it("nextFreeAt on a week refusal is the customer's next Monday", async () => {
-    const TUESDAY = new Date("2026-09-15T14:00:00.000Z");
-    db.seed("publications", [
-      ...Array.from({ length: 7 }, (_, i) =>
-        publishedAt(`2026-09-14T${String(10 + i).padStart(2, "0")}:00:00.000Z`)
-      ),
-    ]);
-    const room = await ceilingRoom("s1", TUESDAY);
-    if (room.room || room.blockedBy !== "week") throw new Error("expected a week refusal");
-    expect(room.nextFreeAt.toISOString()).toBe(startOfNextLocalWeek(TUESDAY, ZONE).toISOString());
-    expect(room.nextFreeAt.toISOString()).toBe("2026-09-21T04:00:00.000Z");
-  });
-
-  it("both blocked: the day is reported, because it is the nearer boundary", async () => {
+  it("eight in one day is refused by the day", async () => {
     db.seed("publications", [
       ...Array.from({ length: 8 }, (_, i) =>
         publishedAt(`2026-09-14T${String(10 + i).padStart(2, "0")}:00:00.000Z`)
@@ -206,23 +120,6 @@ describe("no settings value raises either ceiling", () => {
     await ceilingRoom("s1", new Date("2026-09-14T14:00:00.000Z"));
     const siteReads = db.queries.filter((q) => q.table === "sites");
     expect(siteReads.map((q) => q.columns)).toEqual(["timezone"]);
-  });
-});
-
-describe("a site with no zone is held, and the hold names why", () => {
-  it("no calendar day can be counted for it, so no attempt begins", async () => {
-    db.seed("sites", [site({ timezone: null })]);
-    expect(await ceilingRoom("s1", new Date("2026-09-14T14:00:00.000Z"))).toEqual({
-      room: false,
-      blockedBy: "zone_not_set",
-    });
-  });
-
-  it("a site that cannot be read at all is held the same way", async () => {
-    expect(await ceilingRoom("no-such-site", new Date())).toEqual({
-      room: false,
-      blockedBy: "zone_not_set",
-    });
   });
 });
 

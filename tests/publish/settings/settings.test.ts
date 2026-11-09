@@ -109,13 +109,13 @@ describe('REQ-073 c1 — "they can set the publishing mode … the veto window t
     expect(db.rows("sites")[0]?.timezone).toBe("America/Denver");
   });
 
-  it("adoptBrowserTimezone refuses a non-IANA value through the same check a patch uses", async () => {
-    seedSite({ timezone: null });
-    expect(await adoptBrowserTimezone("s1", "Mars/Olympus")).toEqual({
-      adopted: false,
-      reason: "invalid",
-    });
-    expect(db.rows("sites")[0]?.timezone).toBeNull();
+  it("adoptBrowserTimezone takes the site's country's zone for a non-IANA value, else UTC", async () => {
+    seedSite({ timezone: null, country: "DE" });
+    expect(await adoptBrowserTimezone("s1", "Mars/Olympus")).toEqual({ adopted: true });
+    expect(db.rows("sites")[0]?.timezone).toBe("Europe/Berlin");
+    seedSite({ timezone: null, country: "US" });
+    await adoptBrowserTimezone("s1", null);
+    expect(db.rows("sites")[0]?.timezone).toBe("UTC");
   });
 
   it("adoptBrowserTimezone leaves a set zone untouched — removing the null guard fails this case", async () => {

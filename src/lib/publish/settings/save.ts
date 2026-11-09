@@ -4,7 +4,7 @@
 //   2. compute each draft's deadline with `newVetoDeadline` (REQ-073 c4);
 //   3. apply the site's values and every deadline in one statement (`save_publishing_settings`), never half-applied.
 // A change clears the telling rather than sending one (BP-046 decision 3): no mail here; drafts whose pair changed come
-// back in `retellOwed`, held by `customer_told` until told again. Clearing can only delay a page, never publish one untold.
+// back in `retellOwed`, and the hourly tick tells them again.
 import { publishDb } from "../db";
 import type { Actor, GoverningPair, State, ToldRecord } from "../types";
 import { STATES } from "../machine/table";

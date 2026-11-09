@@ -20,7 +20,7 @@ const db = fakeDb();
 vi.mock("@/lib/db", () => ({ dbAdmin: () => db.client, db: () => db.client }));
 
 import { DEFAULT_GUARD_DEPS, transition, type GuardDeps } from "@/lib/publish/machine";
-import { PUBLISHABLE_RULE, customerTold, publishableAndDue } from "@/lib/publish/publishable/rule";
+import { PUBLISHABLE_RULE, publishableAndDue } from "@/lib/publish/publishable/rule";
 import type { Actor, DraftView, GoverningPair } from "@/lib/publish/types";
 
 const HOUR = 3_600_000;
@@ -66,30 +66,6 @@ describe("`publishable_and_due` is publishable AND due", () => {
   });
 });
 
-describe("`customer_told` holds a page that was never told and one told on a pair that has changed", () => {
-  it("never told is false", () => {
-    expect(customerTold(view({ told: null }))).toBe(false);
-  });
-
-  it("told on the pair now in force is true", () => {
-    expect(
-      customerTold(
-        view({ told: { pair: pair(), kind: "interval", publishesAt: null, sentAt: "x" } })
-      )
-    ).toBe(true);
-  });
-
-  it("told on a pair that has since changed is false", () => {
-    expect(
-      customerTold(
-        view({
-          told: { pair: pair({ vetoHours: 72 }), kind: "interval", publishesAt: null, sentAt: "x" },
-        })
-      )
-    ).toBe(false);
-  });
-});
-
 /** The real deps, with only the claim re-check opened.
  *
  *  This suite is about the publishable rule, and `no_outstanding_claim_recheck`
@@ -109,7 +85,7 @@ describe("the seam is filled — the machine's default deps carry this rule", ()
     ).toBe(true);
   });
 
-  it("with the real rule wired, `approved → publishing` is refused for a page nobody was told about", async () => {
+  it("with the real rule wired, `approved → publishing` is taken for a page whose mail never went out", async () => {
     seedDraft("approved", {
       approved_at: "2026-09-01T09:00:00.000Z",
       told: null,
@@ -119,8 +95,7 @@ describe("the seam is filled — the machine's default deps carry this rule", ()
       at: new Date("2026-09-03T09:00:00Z"),
       deps: RULE_DEPS,
     });
-    expect(result).toMatchObject({ refused: "guard", failedGuard: "customer_told" });
-    expect(db.rows("drafts")[0]?.state).toBe("approved");
+    expect(result).toEqual({ ok: true, state: "publishing" });
   });
 
   it("and taken once the customer has been told on the pair in force", async () => {
@@ -135,7 +110,7 @@ describe("the seam is filled — the machine's default deps carry this rule", ()
     expect(result).toEqual({ ok: true, state: "publishing" });
   });
 
-  it("a page whose site has no stated zone is held at `publishable_and_due` — never published in a zone nobody chose", async () => {
+  it("a page whose site has no stated zone is taken, its day counted in UTC", async () => {
     seedDraft("approved", {
       approved_at: "2026-09-01T09:00:00.000Z",
       told: { pair: pair({ timezone: null }), kind: "interval", publishesAt: null, sentAt: "x" },
@@ -145,7 +120,7 @@ describe("the seam is filled — the machine's default deps carry this rule", ()
       at: new Date("2026-09-03T09:00:00Z"),
       deps: RULE_DEPS,
     });
-    expect(result).toMatchObject({ refused: "guard", failedGuard: "publishable_and_due" });
+    expect(result).toEqual({ ok: true, state: "publishing" });
   });
 });
 

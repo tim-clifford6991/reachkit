@@ -131,7 +131,6 @@ describe("GUARDS names guards only on edges that exist", () => {
     "never_entered_review",
     "customer_initiated",
     "publishable_and_due",
-    "customer_told",
     "reachkit_not_stopped",
     "no_outstanding_claim_recheck",
     "publishing_switch_on",
@@ -217,10 +216,6 @@ describe("GUARDS names guards only on edges that exist", () => {
 
   it("unpublished → published is open only to a customer, and only inside the put-back window (issue 1532)", () => {
     expect(GUARDS[edgeKey("unpublished", "published")]).toEqual(["customer_initiated", "put_back_window"]);
-  });
-
-  it("approved → publishing carries the telling, so no page publishes on a pair the customer was never told about", () => {
-    expect(GUARDS[edgeKey("approved", "publishing")]).toContain("customer_told");
   });
 
   it("an edge with no entry carries no guard — the stop edges are open", () => {

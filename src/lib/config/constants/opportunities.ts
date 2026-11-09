@@ -68,10 +68,8 @@ export const KNOWN_CONTENT = Object.freeze({
  *  cannot be written. Supply is counted, and refilled at 0¢, up to their sum. */
 export const WEEK_PLAN = Object.freeze({ days: 7, spares: 3 } as const);
 
-// The week's ceiling is the plan's week, so the Terms' "up to 7 a week" holds by construction.
-export const RATE_LIMITS = Object.freeze({
-  publishesPerDay: 1, publishesPerWeek: WEEK_PLAN.days,
-} as const);
+// One a day caps a week at the plan's 7, so the Terms' "up to 7 a week" holds by construction.
+export const RATE_LIMITS = Object.freeze({ publishesPerDay: 1 } as const);
 
 // The free report and the market chain. None of these is a customer-visible string.
 export const SELECTION = Object.freeze({                    // BUILD §6.7 step 3

@@ -133,16 +133,15 @@ export type AdoptResult =
   | { adopted: false; reason: "already_set" | "invalid" };
 
 /** REQ-073 c1's first-sign-in write, only while `sites.timezone` is null, so signing in from an airport never moves a
- *  publish hour. The same IANA check as a patch. Read and write are two statements; a racing write writes the same zone. */
+ *  publish hour. The browser's zone if it passes a patch's IANA check, else the site's country's, else UTC, so no site is
+ *  left without one. Read and write are two statements; a racing write writes the same zone. */
 export async function adoptBrowserTimezone(
   siteId: string,
-  reported: string
+  reported: string | null
 ): Promise<AdoptResult> {
-  if (!isResolvableZone(reported)) return { adopted: false, reason: "invalid" };
-
   const { data, error } = await publishDb()
-    .from<{ timezone: string | null }>("sites")
-    .select("timezone")
+    .from<{ timezone: string | null; country: string | null }>("sites")
+    .select("timezone, country")
     .eq("id", siteId)
     .single();
   if (error !== null || data === null) return { adopted: false, reason: "invalid" };
@@ -150,8 +149,16 @@ export async function adoptBrowserTimezone(
 
   const written = await publishDb()
     .from<never>("sites")
-    .update({ timezone: reported })
+    .update({ timezone: isResolvableZone(reported) ? reported : zoneOfCountry(data.country) })
     .eq("id", siteId);
   if (written.error !== null) return { adopted: false, reason: "invalid" };
   return { adopted: true };
+}
+
+/** The country's zone where all of its zones keep one clock today, else UTC rather than a zone guessed across a border. */
+export function zoneOfCountry(country: string | null, at: Date = new Date()): string {
+  const locale = country === null ? null : (new Intl.Locale(`und-${country}`) as { getTimeZones?: () => string[]; timeZones?: string[] });
+  const zones = locale?.getTimeZones?.() ?? locale?.timeZones ?? [];
+  const clocks = new Set(zones.map((timeZone) => new Intl.DateTimeFormat("en", { timeZone, timeZoneName: "longOffset" }).format(at)));
+  return clocks.size === 1 && zones[0] !== undefined ? zones[0] : "UTC";
 }

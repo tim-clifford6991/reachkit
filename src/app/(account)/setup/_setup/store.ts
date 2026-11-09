@@ -208,12 +208,11 @@ async function writeBusinessLists(a: {
   }
 }
 
-/** Issue #783: the browser's zone, stored only while `sites.timezone` is
- *  null. `adoptBrowserTimezone` decides everything — the IANA check and the
- *  write. Swallowed for `writeVoice`'s reason; `BrowserZone` is the
- *  fallback (#753). */
+/** Issue #783: the browser's zone, else the country's, else UTC, stored only
+ *  while `sites.timezone` is null. `adoptBrowserTimezone` decides everything —
+ *  the IANA check, the fallback and the write. Swallowed for `writeVoice`'s
+ *  reason; `BrowserZone` is the fallback (#753). */
 async function writeTimezone(siteId: string, timezone: string | null): Promise<void> {
-  if (timezone === null) return;
   try {
     const { adoptBrowserTimezone } = await import("@/lib/publish/settings");
     await adoptBrowserTimezone(siteId, timezone);

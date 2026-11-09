@@ -79,8 +79,8 @@ describe('REQ-073 c3 — "it publishes at that hour in the customer\'s stated ti
     expect(answer.toISOString()).toBe("2026-11-01T05:30:00.000Z");
   });
 
-  it("a settings object with no zone throws rather than falling back to the server's", () => {
-    expect(() => nextPublishTimeAtOrAfter(new Date(), at(null))).toThrow(/no resolvable time zone/);
+  it("a settings object with no zone publishes in UTC, never the server's zone", () => {
+    expect(nextPublishTimeAtOrAfter(new Date(), at(null))).toEqual(nextPublishTimeAtOrAfter(new Date(), at("UTC")));
   });
 
   it("an unresolvable zone throws too — there is no second zone source", () => {

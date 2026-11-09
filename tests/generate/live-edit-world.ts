@@ -209,7 +209,7 @@ export async function publishLiveEdit(site: LiveSite, a: { bodyMd: string; edite
       isPublishingOn: async () => true,
       hasCeilingRoom: async () => true,
       destinationWorking: async () => true,
-      rule: { becomesPublishable: () => true, toldCurrentPair: () => true },
+      rule: { becomesPublishable: () => true },
     },
   });
   if (!published.ok) throw new Error(`the new version did not publish: ${JSON.stringify(published)}`);

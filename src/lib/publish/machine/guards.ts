@@ -1,5 +1,5 @@
-// BUILD §9 — the eleven named guards, one function each, each delegating every fact it does not own (the switch, the
-// ceilings, the veto leaf's rule and telling), since a second copy of a rule drifts.
+// BUILD §9 — the ten named guards, one function each, each delegating every fact it does not own (the switch, the
+// ceilings, the veto leaf's rule), since a second copy of a rule drifts.
 // Evaluated lazily in `GUARDS` order, the first failure naming itself, so a move the switch refuses never counts a week first.
 import type { Actor, DraftView, TransitionRecord } from "../types";
 import { isPublishingOn, reachKitStopped } from "../switch";
@@ -18,19 +18,15 @@ export interface MachineDraft extends DraftView {
   transitions: readonly TransitionRecord[];
 }
 
-/** The seam for the veto leaf's two predicates: approved-and-due, and REQ-057 c8's telling. */
+/** The seam for the veto leaf's predicate: approved and due. */
 export interface PublishableRule {
   becomesPublishable(draft: DraftView, at: Date): boolean;
-  toldCurrentPair(draft: DraftView): boolean;
 }
 
-/** The refusing rule, kept because it proves the two guards are load-bearing: with it and every other guard open,
+/** The refusing rule, kept because it proves the guard is load-bearing: with it and every other guard open,
  *  `approved → publishing` must be refused at `publishable_and_due`. Unused in `src/`, it is the test's only failure. */
 export const PUBLISHABLE_RULE_NOT_BUILT: PublishableRule = Object.freeze({
   becomesPublishable(): boolean {
-    return false;
-  },
-  toldCurrentPair(): boolean {
     return false;
   },
 });
@@ -100,10 +96,6 @@ export const GUARD_FNS: Readonly<Record<GuardId, (c: GuardContext) => Promise<bo
 
     async publishable_and_due(c: GuardContext): Promise<boolean> {
       return c.deps.rule.becomesPublishable(c.draft, c.at);
-    },
-
-    async customer_told(c: GuardContext): Promise<boolean> {
-      return c.deps.rule.toldCurrentPair(c.draft);
     },
 
     /** REQ-092 c5: a refusal takes no transition, so a page keeps its state and `publishable_since` and resumes in

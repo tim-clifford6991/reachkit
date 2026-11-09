@@ -29,7 +29,7 @@ function openDeps(): GuardDeps {
     isPublishingOn: async () => true,
     hasCeilingRoom: async () => true,
     destinationWorking: async () => true,
-    rule: { becomesPublishable: () => true, toldCurrentPair: () => true },
+    rule: { becomesPublishable: () => true },
   };
 }
 

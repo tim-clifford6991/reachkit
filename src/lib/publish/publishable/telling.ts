@@ -1,7 +1,5 @@
 // BUILD §9 · §12 — the telling: what the customer is told, when the pair changes, and the one mail that cannot be
-// suppressed. REQ-057 c8: "No page publishes on a pair the customer was never told about, and no page publishes at all
-// without their having been told, on the pair it actually publishes under, either the interval they have to stop it or
-// that no interval exists."
+// suppressed. It is best-effort: autopilot asks for nothing, so no page waits for it.
 // It writes no mail and no sentence: the occasion, the copy key and its values. Two kinds, from the pair alone:
 //   autopilot, window > 0  → `interval`      (c1)
 //   autopilot, window = 0  → `no_interval`   (c7)
@@ -11,7 +9,7 @@ import { publishDb } from "../db";
 import { adapterFor, destinationOf, destinationWaitingOnWordPress, withConfig } from "../destinations";
 import type { DestinationKind, DraftView, GoverningPair, ToldRecord, VetoLink } from "../types";
 import { samePair } from "../settings/pair";
-import { becomesPublishable } from "./predicate";
+import { becomesPublishable, type NotPublishable } from "./predicate";
 
 /** REQ-057 c9: what the telling says about the destination, for a page bound for the customer's own site, decided from
  *  `hostedByUs === false`, never `kind === 'wordpress'`, which would pass every test today. `servesPublicly` is true at
@@ -51,8 +49,8 @@ export type Telling =
       destination: DestinationClause | null;
       copy: "mail.draftReady.autopilotZero";
     }
-  /** No stated zone, so no moment to name; the page is held by the same absence, and no mail names an uncomputable moment. */
-  | { kind: "not_yet_tellable"; because: "zone_not_set" };
+  /** No moment to name yet, so no mail names one. */
+  | { kind: "not_yet_tellable"; because: NotPublishable };
 
 export type TellingKind = Telling["kind"];
 
@@ -71,10 +69,7 @@ export async function tellingFor(a: TellingInput): Promise<Telling> {
   const destination = await destinationClause(a.draft.siteId, a.destination, kind);
 
   const answer = becomesPublishable(withoutHolds(a.draft));
-  if (!answer.publishable) {
-    // Only a site with no stated zone has no moment to name.
-    return { kind: "not_yet_tellable", because: "zone_not_set" };
-  }
+  if (!answer.publishable) return { kind: "not_yet_tellable", because: answer.because };
 
   if (kind === "no_interval") {
     return {
@@ -109,8 +104,8 @@ export type ToldAnswer =
   | { told: true }
   | { told: false; because: "never_told" | "pair_changed" };
 
-/** REQ-057 c8's precondition for `customer_told`: the four pair members and no fifth. The stored destination clause is
- *  not compared, so a health change never re-opens the telling. */
+/** Whether the mail already went out on this pair, so it is sent once per pair: the four pair members and no fifth.
+ *  The stored destination clause is not compared, so a health change never re-opens the telling. */
 export function toldCurrentPair(d: DraftView): ToldAnswer {
   const record = d.told;
   if (record === null) return { told: false, because: "never_told" };
@@ -119,7 +114,7 @@ export function toldCurrentPair(d: DraftView): ToldAnswer {
     : { told: false, because: "pair_changed" };
 }
 
-/** Writes `drafts.told` after a successful send only, so a failed send leaves the telling owed and the page held. */
+/** Writes `drafts.told` after a successful send only, so a failed send leaves the telling owed for the next tick. */
 export async function recordTold(
   draftId: string,
   t: Telling,
