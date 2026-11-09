@@ -6,17 +6,12 @@
 // reached them could produce an opportunity measured evidence did not.
 export type {
   Acceptance,
-  AssetKind,
   Barrier,
   Evidence,
   Family,
   Opportunity,
-  OpportunityStatus,
   OpportunityType,
   Ranked,
-  RejectionCount,
-  Shortfall,
-  UnreadyReason,
   Winnability,
 } from "./types";
 export {
@@ -63,7 +58,7 @@ export { claimForDraft, dismissForVeto, giveBackClaim, queueForDraft, restTopic 
 export { updateInstead } from "./update-instead";
 
 export { deriveOpportunities, type DeriveInput, type DeriveOutcome } from "./derive";
-export { explainChoice, type Choice } from "./derive/explain";
+export { choiceOf, explainChoice, type Choice } from "./derive/explain";
 
 export { opportunityById, setOpportunityStore, type OpportunityStore } from "./store";
 

@@ -37,7 +37,9 @@
 // 2026-09-05, #82).
 import { templateQuestion } from "@/lib/market/questions/phrase";
 import { unmeasured, type Measured } from "@/lib/measure/measured";
+import { cache } from "react";
 import {
+  choiceOf,
   committedWeek,
   explainChoice,
   supplyDepth,
@@ -381,6 +383,9 @@ async function marketHold(
   return hold.held ? { because: hold.because, resumesOn: hold.resumesOn } : null;
 }
 
+/** Supply depth, read once per request: it ranks every open row, and the supply statement asks for it too. */
+export const siteDepth = cache((siteId: string) => supplyDepth(siteId));
+
 /**
  * Everything the calendar reads, for one real site and one month.
  *
@@ -396,7 +401,7 @@ export async function readCalendarFacts(a: {
 }): Promise<CalendarFacts> {
   const today = dayKeyOf(a.now, a.site.timeZone);
   const [depth, week, publishing, stop, changeHold] = await Promise.all([
-    supplyDepth(a.site.siteId).then(
+    siteDepth(a.site.siteId).then(
       (d) => d.unused,
       () => null
     ),
@@ -444,9 +449,11 @@ export async function readCalendarFacts(a: {
   //     win: a date that carries a draft is not a date supply may plan on,
   //     and drawing both would be the two-pages-on-one-date defect
   //     `month.ts` raises.
-  for (const page of publishing.pagesByDay.values()) {
-    const choice = await explainChoice(page.opportunityId);
-    if (choice === null) continue;
+  const pages = [...publishing.pagesByDay.values()];
+  const pageChoices = await Promise.all(pages.map((page) => explainChoice(page.opportunityId)));
+  for (const [i, page] of pages.entries()) {
+    const choice = pageChoices[i];
+    if (choice == null) continue;
     const planned = week.days.find((day) => day.date === page.scheduledFor)?.opportunity.family;
     drafts.push(
       pageOn({
@@ -468,10 +475,10 @@ export async function readCalendarFacts(a: {
   //     already live is worse than a month that says something of ours
   //     failed, which is what every date then resolves to
   //     (`drafts-read.ts`'s own note, and ADR-061 point 2).
+  const rows = new Map(week.days.map((day) => [day.opportunity.id, day.opportunity]));
   for (const [day, opportunityId] of plannedByDay(week.days, publishing.pagesByDay, publishing.readable ? dates : [])) {
-    const choice = await explainChoice(opportunityId);
-    if (choice === null) continue;
-    drafts.push(plannedOn(day, choice, a.now));
+    const row = rows.get(opportunityId);
+    if (row !== undefined) drafts.push(plannedOn(day, choiceOf(row), a.now));
   }
 
   return {
