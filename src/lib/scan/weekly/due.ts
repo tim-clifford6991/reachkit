@@ -6,7 +6,8 @@
 // is the mutation `tests/scan/weekly/due.test.ts` fails on.
 //
 // Four predicates, each owned once and none re-derived here:
-//   1. the site's own local Monday, at its own due hour  — `week.ts`
+//   1. the site's own local Monday, at its own due hour, or any later
+//      hour of its week where it was measured the week before — `week.ts`
 //   2. active access                                     — billing (`access.ts`)
 //   3. no weekly scan row for `(site_id, week_start)`,
 //      or a released (`failed`) one inside the week      — `store.ts`
@@ -41,11 +42,14 @@ export async function dueSites(now: Date): Promise<readonly DueSite[]> {
     if (!weekHasBegun({ at: now, zone: site.zone })) continue;
     begun.push({ ...site, weekStart: weekStartFor({ at: now, zone: site.zone }) });
   }
-  const rows = begun.length === 0 ? new Map<string, string>() : await weekStatuses([...new Set(begun.map((site) => site.weekStart))]);
-  // Due in its Monday hour with no row yet, or at any hour of its week once its claim was released.
+  const lastWeek = (weekStart: string) => new Date(Date.parse(`${weekStart}T00:00:00Z`) - 7 * 86_400_000).toISOString().slice(0, 10);
+  const weeks = begun.flatMap((site) => [site.weekStart, lastWeek(site.weekStart)]);
+  const rows = begun.length === 0 ? new Map<string, string>() : await weekStatuses([...new Set(weeks)]);
+  // A Monday hour no tick reached (an outage) stays owed all week to a site measured last week; a new site waits for its first Monday.
+  const owed = (site: DueSite) => ![undefined, "failed"].includes(rows.get(weekKey({ ...site, weekStart: lastWeek(site.weekStart) })));
   const candidates = begun.filter((site) => {
     const key = weekKey(site);
-    return rows.get(key) === "failed" || (!rows.has(key) && isWeeklyDue({ at: now, zone: site.zone }));
+    return rows.get(key) === "failed" || (!rows.has(key) && (owed(site) || isWeeklyDue({ at: now, zone: site.zone })));
   });
   if (candidates.length === 0) {
     logSelection({ candidates: 0, due: 0 });
