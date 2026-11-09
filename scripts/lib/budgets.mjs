@@ -76,7 +76,8 @@ export function plainWordsFindings({ base, head }) {
     .map(([name, n]) => `plain words: ${name} rises from ${base[name]} to ${n} findings; the count only goes down (docs/spec/decisions/2026-10-31-2145.md)`);
 }
 
-const MEASURED = /^(?:src|tests|scripts)\/.*\.(?:ts|tsx|mjs|js|css)$/;
+// The archive is kept for reference only, so a move into it is not new code.
+const MEASURED = /^(?:src|tests(?!\/archive\/)|scripts)\/.*\.(?:ts|tsx|mjs|js|css)$/;
 
 export function isMeasured(rel) {
   return MEASURED.test(rel);

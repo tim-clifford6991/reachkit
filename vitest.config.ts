@@ -15,7 +15,8 @@ export default defineConfig({
         test: {
           name: "node",
           environment: "node",
-          exclude: ["tests/ui/**", "node_modules/**", ...LIVE_SCHEMA_TESTS],
+          // The archive is kept for reference only; no project runs it.
+          exclude: ["tests/ui/**", "tests/archive/**", "node_modules/**", ...LIVE_SCHEMA_TESTS],
         },
       },
       {

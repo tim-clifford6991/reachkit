@@ -16,7 +16,7 @@ Missing or duplicate titles 3 pages	sample data: the statuses are Fernwood Tea's
 Missing or duplicate descriptions 5 pages	sample data: the statuses are Fernwood Tea's; the sample report ran no checks
 No page list for Google Free fix · 10 min	sample data: the statuses are Fernwood Tea's; the sample report ran no checks
 Slow pages 2 pages	sample data: the statuses are Fernwood Tea's; the sample report ran no checks
-The first lines, written by AI from your site. We email you the full page.	owner R26 2026-10-23: stored first lines once written (tests/app/scan-address/first-page-preview.test.tsx)
+The first lines, written by AI from your site. We email you the full page.	owner R26 2026-10-23: stored first lines once written (tests/archive/app/scan-address/first-page-preview.test.tsx)
 480 times a month	sample data: the page's search volume is Fernwood Tea's
 Articles	#1512: the footer links the content host's index only where stored rows name one; the sweep seeds none
 fernwoodtea.example	sample data
@@ -75,7 +75,7 @@ page 5 Caffeine-free herbal teas: how each one tastes searched 320 times a month
 14 green tea vs black tea	sample data
 All 14, nothing hidden.	sample data: Fernwood Tea's 14; the fixture counts its own 7
 How to brew loose leaf tea: times and temperatures free	sample data
-help.fernwoodtea.example/brew-loose-leaf-tea	owner R26 2026-10-23: the address shows as {domain}/{slug}, labelled proposed (tests/app/scan-address/first-page-preview.test.tsx)
+help.fernwoodtea.example/brew-loose-leaf-tea	owner R26 2026-10-23: the address shows as {domain}/{slug}, labelled proposed (tests/archive/app/scan-address/first-page-preview.test.tsx)
 Fernwood Tea	sample data
 How to brew loose leaf tea: times and temperatures	sample data
 Fernwood Tea brews its green teas at 80°C for two minutes, and its black teas at 95°C for four. from fernwoodtea.example/brewing The right time depends on the leaf and how hot the water is…	sample data
