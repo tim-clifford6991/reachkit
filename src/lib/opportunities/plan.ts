@@ -14,10 +14,9 @@
 // order. Nothing ranks the open pool again until the next commit.
 //
 // A new site's first week is committed when setup's pass ends
-// (`planFirstWeek`), its dated days stopping before the first Monday's
-// pass. A date no commit covers after that is committed on demand by that
-// evening's run, once: the commit then covers the dates
-// after it, and so, once per weekly commit, is a date the week has used up.
+// (`planFirstWeek`), its dated days stopping before the first Monday's pass. A date no commit
+// covers after that is committed on demand by that evening's run, once: the commit then covers
+// the dates after it, and so, once per weekly commit, is a date the week has used up.
 import { PLAN_DEPTH, SUPPLY_SHORT_BELOW, WEEK_PLAN } from "@/lib/config/constants";
 import { stoppedOnCeiling } from "@/lib/scan/market-floor";
 import { choose } from "./choose";
@@ -29,12 +28,7 @@ import type { Opportunity } from "./types";
 
 const DAY_MS = 86_400_000;
 
-/**
- * Commits the site's week: the next `WEEK_PLAN.days` pages, one a day from
- * `from` where it is given, else from the first date with no page, then
- * `WEEK_PLAN.spares` spares. Returns what it committed. Database reads and
- * writes only; what is chosen is `choose`'s.
- */
+/** Commits and returns the site's week as the header says, from `from` where it is given; what is chosen is `choose`'s. */
 export async function planWeek(siteId: string, a: { now?: Date; from?: string } = {}): Promise<readonly PlanEntry[]> {
   const now = a.now ?? new Date();
   const store = opportunityStore();
@@ -46,8 +40,8 @@ export async function planWeek(siteId: string, a: { now?: Date; from?: string } 
   // first date with no page.
   const from =
     a.from ?? new Date(mixOf(await store.draftedPages(siteId, 1), now).from * DAY_MS).toISOString().slice(0, 10);
-  // Before the first weekly pass, the week ends where that Monday's pass opens the next one.
-  const days = (await store.weeklyCommit(siteId)) === null ? daysBeforeMonday(from) : WEEK_PLAN.days;
+  // Before the first weekly pass, the dated days stop where that Monday's pass opens the next week: a Wednesday 5, a Monday 7.
+  const days = (await store.weeklyCommit(siteId)) === null ? (8 - new Date(`${from}T00:00:00Z`).getUTCDay()) % 7 || WEEK_PLAN.days : WEEK_PLAN.days;
   const entries: PlanEntry[] = choose({ ...(await loadRanking(siteId, now)), at: now, from, days }).committed;
   await store.commitPlan(siteId, entries);
   console.log(
@@ -60,11 +54,6 @@ export async function planWeek(siteId: string, a: { now?: Date; from?: string } 
     })
   );
   return entries;
-}
-
-/** The dates from `from` up to the next Monday, `from` itself where it is one: Monday 7, Wednesday 5, Sunday 1. */
-function daysBeforeMonday(from: string): number {
-  return (8 - new Date(`${from}T00:00:00Z`).getUTCDay()) % 7 || WEEK_PLAN.days;
 }
 
 /**

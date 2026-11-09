@@ -945,15 +945,13 @@ describe("three decisions → deep pass → the first page already on the calend
 
       // Setup's pass ends with the first week committed from the one ranked
       // list, before any evening has run, and Plan never ranks (SPEC §7, E5).
-      // Never padded past the supply the pass found.
+      // It runs up to the first Monday's weekly pass (a Monday 7 days, a Sunday 1), never padded past the supply the pass found.
       const depth = await supplyDepth(SITE_ID);
       expect(depth.unused).toBe(opportunities.rows.length);
       const week = await committedWeek(SITE_ID);
       expect(week.days.length).toBeGreaterThan(0);
       const firstDate = week.days[0]!.date;
-      // The first week runs up to the first Monday's weekly pass: a Monday 7 days, a Sunday 1.
-      const toMonday = (8 - new Date(`${firstDate}T00:00:00Z`).getUTCDay()) % 7 || WEEK_PLAN.days;
-      expect(week.days).toHaveLength(Math.min(toMonday, depth.unused));
+      expect(week.days).toHaveLength(Math.min((8 - new Date(`${firstDate}T00:00:00Z`).getUTCDay()) % 7 || WEEK_PLAN.days, depth.unused));
       const head = await opportunityById(week.days[0]!.opportunity.id);
       expect(head).not.toBeNull();
 

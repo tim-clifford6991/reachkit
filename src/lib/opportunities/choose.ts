@@ -11,8 +11,7 @@ export interface ChooseInput extends RankLoad {
   at: Date;
   /** The first date the week writes, `YYYY-MM-DD`. */
   from: string;
-  /** How many dated days the week holds; `WEEK_PLAN.days` where absent. */
-  days?: number;
+  days?: number; // dated days the week holds, `WEEK_PLAN.days` where absent
 }
 
 export interface Choice {
@@ -27,8 +26,7 @@ export function choose(input: ChooseInput): Choice {
   const { scored, fixes, rotation, rejected } = rankingOf(input, input.at);
   const ranked = placeFixPages(scored, fixes, rotation);
   const first = Math.floor(Date.parse(`${input.from}T00:00:00Z`) / DAY_MS);
-  const days = input.days ?? WEEK_PLAN.days;
-  const depth = days + WEEK_PLAN.spares;
+  const days = input.days ?? WEEK_PLAN.days, depth = days + WEEK_PLAN.spares;
   return {
     committed: ranked.slice(0, depth).map((entry, place) => ({
       opportunityId: entry.opportunityId,
