@@ -10,8 +10,7 @@
 // module writes those two and **nothing else**.
 //
 // **It invents no behaviour for a failed renewal, and refunds nothing.**
-// REQ-076's non-goal deferred refunds, chargebacks and `past_due` by owner
-// ruling, and the plan is month to month with no money-back guarantee
+// The plan is month to month with no money-back guarantee
 // (`docs/spec/decisions/2026-11-06-2448.md`). So
 // `invoice.payment_failed` records `plan_status = past_due` and returns:
 // no retry, no dunning, no downgrade, no revocation. The payment-failed
@@ -20,11 +19,9 @@
 // `tests/account/billing/events.test.ts` fails if any behaviour is added
 // to that arm.
 //
-// **A failed renewal does not take access away either.** ADR-050 is the
-// whole gate, and REQ-076 c8 spells the consequence: access holds "whether
-// or not its latest renewal was paid". The customer keeps what they have
-// paid for until `paid_through` passes, and a bounced card does not move
-// that date because the vendor never advanced it.
+// **The recorded `past_due` is what stops the paid loops.** The gate reads
+// it (`gate.ts`): an outstanding invoice means no scans and no new pages
+// until `invoice.paid` records `active` again. Hosted pages keep serving.
 //
 // **`paid_through` never goes backwards from an event.** Vendor events are
 // not ordered — a redelivery of last month's `invoice.paid` can arrive
@@ -133,7 +130,7 @@ export async function onSubscriptionEvent(event: Stripe.Event): Promise<Subscrip
 
 /** The vendor's own record of the cancellation, mirrored onto the column
  *  the Settings card reads. It is a record and not a gate: a cancelled
- *  account keeps access until `paid_through` passes (ADR-050, REQ-076 c3). */
+ *  account keeps access until `paid_through` passes (REQ-076 c3). */
 async function mirrorCancellation(account: BillingRow, subscription: Stripe.Subscription): Promise<void> {
   const cancelledNow = subscription.cancel_at_period_end || subscription.status === "canceled";
   const cancelledHere = account.cancelled_at !== null;
