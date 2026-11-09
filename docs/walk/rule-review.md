@@ -2,7 +2,7 @@
 
 Written by `node scripts/eval-content.mjs --rules` on 2026-10-03 (issue 1187; owner ruling D27, SPEC §7 2026-10-02). A tool, not a gate. Nothing was spent: the rules are code, run again over stored text.
 
-**What was measured.** 12 stored drafts (every draft the product has written, all for reachkit.app, read on 2026-10-03), 10 evaluation drafts (the pages #1153 kept under `docs/walk/ab-reachkit/`), and every block of the evaluation set's own pages across 6 sites. *Before* is `main` on 2026-10-03, before this issue changed a rule.
+**What was measured.** 12 stored drafts (every draft the product has written, all for reachkit.app, read on 2026-10-03), 10 evaluation drafts (the pages #1153 kept under `scripts/eval-content/ab-reachkit/`), and every block of the evaluation set's own pages across 6 sites. *Before* is `main` on 2026-10-03, before this issue changed a rule.
 
 **How a false positive is counted.** A rule that fires is read against the page. It is a violation where the page does what the rule exists to stop, and a false positive otherwise; each reading and its reason is in `scripts/eval-content/stored-drafts/verdicts.json`. A fire nobody has read counts as a false positive. The rate is false positives over all pages in the set.
 

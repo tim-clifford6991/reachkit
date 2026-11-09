@@ -1,6 +1,6 @@
 ---
 name: weekly-review
-description: ReachKit's one scheduled weekly review (PROCESS.md › Never, C7). Reports the six ideas as measured outcomes, reads code, CI and production read-only through five lenses (bloat, production health, SEO, dependencies, flaky tests), classifies each finding under Coherence, files at most five unready issues (at most one of them a deletion), and republishes the pinned "ReachKit this week" page. Use when the rk-weekly timer starts a run, or when asked for the weekly review or its dry run.
+description: ReachKit's one scheduled weekly review (PROCESS.md rule 3, C7). Reports the six ideas as measured outcomes, reads code, CI and production read-only through five lenses (bloat, production health, SEO, dependencies, flaky tests), classifies each finding under Coherence, files at most five unready issues (at most one of them a deletion), and republishes the pinned "ReachKit this week" page. Use when the rk-weekly timer starts a run, or when asked for the weekly review or its dry run.
 ---
 
 # Weekly review
@@ -11,7 +11,7 @@ One run a week. It measures, it reads, it classifies, it files at most five issu
 
 - **Read-only.** Never edit, commit, push, merge or deploy. Never run a migration, `redeploy.sh`, `smoke.sh`, or a command that writes to production. The only file written is under `.review/weekly/` (ignored by git).
 - **0¢.** No paid vendor or model API call. Never run `npm run panel` (other than `--recheck`), `scripts/page.mjs`, `pass.mjs`, `free-scan.mjs`, `eval-content.mjs`, `d19-cost.mjs`, `market-inference.mjs`, or `npm run costs` without `--stored`. Do not use DataForSEO, Anthropic, Resend or Stripe. The run's own model use is the box's Claude subscription; `ANTHROPIC_API_KEY` is unset by the wrapper (README).
-- **At most five issues**, every one labelled `from-weekly` and none Ready. At most one of them is a deletion issue (§0). The orchestrator classifies them; this run never starts an engineer.
+- **At most five issues**, every one labelled `from-weekly` and none Ready. At most one of them is a deletion issue (§0). The product manager classifies them; this run never starts an engineer.
 - **Not measured is never shown as 0.** A source that cannot be read is written as not read, with why.
 - **Every customer.** A finding is a general condition that holds for SaaS and local sites alike, never a tune for reachkit.app.
 
@@ -55,7 +55,7 @@ Rank the issues by harm to a paying customer, then by lines removed. Keep the to
 Issue body:
 
 ```markdown
-**From the weekly review, <DAY>.** Not Ready: the orchestrator classifies it.
+**From the weekly review, <DAY>.** Not Ready: the product manager classifies it.
 
 ## Conditions
 1. <what is true afterwards>. **Fails →** <the check that fails when it breaks>.

@@ -2,7 +2,7 @@
 
 **ReachKit refunds nothing by itself** (owner, 2026-11-06, `docs/spec/decisions/2026-11-06-2448.md`):
 the plan is month to month, and a cancel keeps access to the end of the paid period. These steps are
-for a refund made by hand, such as one the law requires or the tester's own. They are `docs/GO-LIVE.md` §1.7, in the order it gives. Only the owner can do
+for a refund made by hand, such as one the law requires or the tester's own. Only the owner can do
 them, because each one is an act in a vendor dashboard. Do them after the walk has ended, including
 step 7 (the stopped page), so the refund does not cut the walk short.
 
