@@ -1,8 +1,8 @@
 # savvycal.com
 
-From `scripts/panel/runs/2026-10-14-1423.json`: 11 stored topics, 9 committed from 2026-10-19.
+From `scripts/panel/runs/2026-10-14-1423.json`: 10 stored topics, 8 committed from 2026-10-19.
 
-Supply: 9 of 10 committed, short 1; stored topics product 9, category 2.
+Supply: 8 of 10 committed, short 2; stored topics product 8, category 2.
 
 | Place | Day | Search | Type | Page | Fit | Volume | Points | Parts | Rule | Written as |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -14,7 +14,6 @@ Supply: 9 of 10 committed, short 1; stored topics product 9, category 2.
 | 5 | 2026-10-24 | savvycal vs acuity scheduling | comparison_page | listicle | 3 | — | 3 | fit 3 | own_price not on file, as a Q&A | qa |
 | 6 | 2026-10-25 | savvycal vs koalendar | comparison_page | listicle | 3 | — | 3 | fit 3 | own_price not on file, as a Q&A | qa |
 | 7 | spare | savvycal vs lunacal | comparison_page | listicle | 3 | — | 3 | fit 3 | own_price not on file, as a Q&A | qa |
-| 8 | spare | savvycal vs youcanbook | comparison_page | listicle | 3 | — | 3 | fit 3 | own_price not on file, as a Q&A | qa |
 
 | Not chosen | Type | Fit | Volume | Reason |
 |---|---|---|---|---|
