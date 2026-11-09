@@ -129,6 +129,12 @@ describe("a week already stamped is never measured twice, and a failed one is re
     // Nothing was stamped, which is what a released claim leaves behind.
     expect((await dueSites(MONDAY_0600_UTC)).map((s) => s.siteId)).toEqual(["utc-site"]);
   });
+
+  it("a Monday hour no tick reached stays owed to a site measured last week, and a new site waits", async () => {
+    DB.rows.set("sites", [site("measured", "UTC"), site("new-site", "UTC")]);
+    DB.answer = (s) => s.table === "scans" ? [{ site_id: "measured", week_start: "2026-08-31", status: "done" }] : null;
+    expect((await dueSites(new Date("2026-09-07T10:41:00Z"))).map((s) => s.siteId)).toEqual(["measured"]);
+  });
 });
 
 describe("the tick's budget and its one log line", () => {
