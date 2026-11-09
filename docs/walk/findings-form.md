@@ -66,7 +66,7 @@ screenshots in the space provided, or number them (`3a`, `3b`, …) and send the
 
 ---
 
-## Step 4 — Sign up and pay
+## Step 4 — Pay
 
 **What I expected:**
 
