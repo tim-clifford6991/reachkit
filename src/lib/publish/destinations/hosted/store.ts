@@ -326,9 +326,9 @@ export async function hostedIdentity(a: { siteId: string; domain: string }): Pro
 /** Every live hosted page, newest first, on `host`: the sitemap is exactly this list and the render finds its page in
  *  it. `host` is an argument (SPEC §7), so a page states the address it answers at by construction. One page per
  *  address: the newest live row at a slug, never listed beside the versions it replaced. Bodies only for a search. */
-export async function livePagesForSite(siteId: string, host: string): Promise<HostedListing[]>;
+export async function livePagesForSite(siteId: string, host: string, a?: { orThrow: true }): Promise<HostedListing[]>;
 export async function livePagesForSite(siteId: string, host: string, a: { withBody: true }): Promise<(HostedListing & { bodyMd: string })[]>;
-export async function livePagesForSite(siteId: string, host: string, a?: { withBody: true }): Promise<HostedListing[]> {
+export async function livePagesForSite(siteId: string, host: string, a?: { withBody?: true; orThrow?: true }): Promise<HostedListing[]> {
   const { data, error } = await publishDb()
     .from<PublicationRow>("publications")
     .select(LIST_COLUMNS(a?.withBody === true))
@@ -337,6 +337,7 @@ export async function livePagesForSite(siteId: string, host: string, a?: { withB
     .not("published_at", "is", null)
     .is("unpublished_at", null)
     .order("published_at", { ascending: false });
+  if ((error !== null || data === null) && a?.orThrow === true) throw new Error("hosted pages read failed");
   if (error !== null || data === null) return [];
   // The first row at a slug is the page; later ones are older versions, giving its first date.
   const bySlug = new Map<string, HostedListing>();
@@ -351,13 +352,14 @@ export async function livePagesForSite(siteId: string, host: string, a?: { withB
   return [...bySlug.values()];
 }
 
-/** One live page whole, by slug, and the site's other pages as listed: the list, then the one body, by its publication. */
+/** One live page whole, by slug, and the site's other pages as listed: the list, then the one body, by its publication.
+ *  A failed read throws, because `null` says no page is here. */
 export async function livePageBySlug(
   siteId: string,
   slug: string,
   host: string
 ): Promise<{ page: HostedPage; others: HostedListing[] } | null> {
-  const pages = await livePagesForSite(siteId, host);
+  const pages = await livePagesForSite(siteId, host, { orThrow: true });
   const listing = pages.find((page) => page.slug === slug);
   if (listing === undefined) return null;
   const { data, error } = await publishDb()
@@ -365,7 +367,8 @@ export async function livePageBySlug(
     .select("drafts!inner(body_md, meta, grounded_fact)")
     .eq("id", listing.publicationId)
     .limit(1);
-  const draft = error === null ? (data?.[0]?.drafts ?? null) : null;
+  if (error !== null) throw new Error("hosted page read failed");
+  const draft = data?.[0]?.drafts ?? null;
   if (draft === null) return null;
   const page: HostedPage = {
     ...listing,

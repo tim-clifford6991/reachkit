@@ -93,7 +93,9 @@ async function loadArticle(host: string, slug: string): Promise<Resolved | null>
   // Every other disposition is somebody else's answer: `unknown` is the
   // 404 each route falls through to, and `gone` is answered 410 by
   // `../../hosted-gone/route.ts`, which the middleware rewrites to before
-  // either route is reached. A page never renders for either.
+  // either route is reached. A page never renders for either. A host that
+  // could not be read is neither, so it throws rather than reading as none.
+  if (disposition.kind === "unavailable") throw new Error("hosted site read failed");
   if (disposition.kind !== "site") return null;
 
   // The sitemap's list, which the page and its related guides come from, and this page's body alone.
@@ -305,7 +307,7 @@ export function ArticleHead({ resolved }: { resolved: Resolved }): React.JSX.Ele
   );
 }
 
-/** The cached article as its route answers it, or `null` where the host serves no such page now. */
+/** The cached article as its route answers it, or `null` where the host serves no such page now; a failed read throws. */
 export async function articleDocument(host: string, slug: string): Promise<string | null> {
   return readingIn(async () => {
     const resolved = await loadArticle(host, slug);

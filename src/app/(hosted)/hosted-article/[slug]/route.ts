@@ -1,7 +1,8 @@
 // BUILD §9 — an article address the middleware did not find live: drawn per request by the cached article's own renderer.
 // That covers a page whose read missed its deadline and an address that never held a page, which answers the hosted 404.
+// A read that fails here says nothing about the address, so it answers the retried 503, never a 404 a crawler drops.
 import { readingIn } from "@/lib/presentation/copy/reader";
-import { resolveHost } from "../../resolve-host";
+import { resolveHost, unavailableResponse } from "../../resolve-host";
 import { articleDocument, businessOf } from "../../hosted-page/[[...slug]]/article";
 import { emptyDocument, goneDocument } from "../../hosted-page/[[...slug]]/gone";
 
@@ -19,7 +20,8 @@ async function notFoundDocument(host: string): Promise<string> {
 export async function GET(request: Request, { params }: { params: Promise<{ slug: string }> }): Promise<Response> {
   const { slug } = await params;
   const host = request.headers.get("host") ?? "";
-  const html = await articleDocument(host, slug);
+  const html = await articleDocument(host, slug).catch(() => undefined);
+  if (html === undefined) return unavailableResponse();
   if (html === null) return new Response(await notFoundDocument(host), { status: 404, headers: UNCACHED });
   return new Response(html, { headers: UNCACHED });
 }
