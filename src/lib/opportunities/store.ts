@@ -287,9 +287,8 @@ export interface OpportunityStore {
    *  Improve then reads only the ranked urls, never a guessed page. */
   inventoryFor(domain: string): Promise<readonly InventoryRow[]>;
   /** The profile the ranking's intent term is classified against — §6.7's
-   *  own, read out of the site's current stored report rather than derived
-   *  a second time. `null` where the site has no readable report, which
-   *  makes the ranking empty rather than guessed. */
+   *  own, read out of the current report's `market` alone. `null` where it
+   *  has none, which makes the ranking empty rather than guessed. */
   profileForSite(siteId: string): Promise<Profile | null>;
   /** SPEC §7 (2026-09-20, #928): the pages this site already has that are
    *  worth scoring against one planned topic — the database's own narrowing
@@ -941,8 +940,8 @@ export function supabaseOpportunityStore(): OpportunityStore {
     },
 
     async profileForSite(siteId) {
-      const report = await currentReportOf(siteId);
-      return report === null || report.market.kind === "unmeasured" ? null : report.market.value.profile;
+      const market = (await currentOf<{ market: StoredReport["market"] | null }>(siteId, "market:report->market"))?.market;
+      return market == null || market.kind === "unmeasured" ? null : market.value.profile;
     },
 
     currentReport: currentReportOf,
@@ -950,15 +949,14 @@ export function supabaseOpportunityStore(): OpportunityStore {
   };
 }
 
+async function currentOf<T>(siteId: string, columns: string): Promise<T | undefined> {
+  const { data, error } = await untyped().from<T>("scans").select(columns).eq("site_id", siteId).is("is_current", true).limit(1);
+  if (error) throw new Error(`opportunities.currentScan: ${error.message}`);
+  return data?.[0];
+}
+
 async function currentReportOf(siteId: string): Promise<StoredReport | null> {
-  const { data, error } = await untyped()
-    .from<{ report: unknown }>("scans")
-    .select("report")
-    .eq("site_id", siteId)
-    .is("is_current", true)
-    .limit(1);
-  if (error) throw new Error(`opportunities.currentReport: ${error.message}`);
-  const blob = data?.[0]?.report;
+  const blob = (await currentOf<{ report: unknown }>(siteId, "report"))?.report;
   return blob === undefined || blob === null ? null : readStoredReport(blob);
 }
 
