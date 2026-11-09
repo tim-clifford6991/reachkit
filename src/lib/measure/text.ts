@@ -179,7 +179,7 @@ async function textOfScans(scanIds: readonly string[], cap?: number): Promise<Me
   if (version && process.env.VERCEL_ENV === "production") {
     const reads = fetchRows(await list<FetchRead>("id, scan_id, source"));
     const stored = await storedText(client as unknown as TextClient, reads, version);
-    if (stored !== null) return [...stored.values()].filter((text) => text !== null).sort(compareMeasuredText);
+    return [...stored.values()].filter((text) => text !== null).sort(compareMeasuredText);
   }
   // A `null` payload is a ledgered failed read (`own-fetch.ts`) — no text was
   // measured, so none is returned. Any other shape is skipped the same way.

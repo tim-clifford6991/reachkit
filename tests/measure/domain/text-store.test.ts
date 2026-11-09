@@ -20,7 +20,7 @@ type Row = Record<string, unknown>;
 
 /** `fetches` and `fetch_text` in memory. A kept row goes through JSON, as a
  *  `text` and `jsonb` column does, and every request is logged. */
-function store(fetches: Row[], scans: Row[] = [], failing: Record<string, "down" | "hang"> = {}) {
+function store(fetches: Row[], scans: Row[] = []) {
   const tables: Record<string, Row[]> = { fetches, fetch_text: [], scans };
   const log: string[] = [];
   const ids: string[][] = [];
@@ -47,8 +47,6 @@ function store(fetches: Row[], scans: Row[] = [], failing: Record<string, "down"
             return Promise.resolve(resolve({ data: null, error: null }));
           }
           log.push(`${table} ${columns}`);
-          if (failing[table] === "hang") return new Promise(() => {});
-          if (failing[table] === "down") return Promise.resolve(resolve({ data: null, error: { message: "down" } } as never));
           const data = (tables[table] ?? []).filter((row) => filters.every((f) => f(row)));
           return Promise.resolve(resolve({ data: data.map((row) => ({ ...row })), error: null }));
         },
@@ -60,7 +58,7 @@ function store(fetches: Row[], scans: Row[] = [], failing: Record<string, "down"
 }
 
 const reads = (db: ReturnType<typeof store>) => (db.tables.fetches ?? []).filter((row) => row.scan_id === "s1") as unknown as FetchRead[];
-const storedText = async (db: ReturnType<typeof store>, version: string) => [...((await storedById(db.client, reads(db), version)) ?? []).values()].filter((page) => page !== null);
+const storedText = async (db: ReturnType<typeof store>, version: string) => [...(await storedById(db.client, reads(db), version)).values()].filter((page) => page !== null);
 const upserts = (log: readonly string[]) => log.filter((line) => line.startsWith("upsert")).length;
 
 describe("fetch_text: a read's text is derived once, kept, and read back the same", () => {
@@ -132,7 +130,7 @@ describe("production serves the kept text and downloads a payload only for a rea
   const payloadPath = (fetches: Row[]) => (vi.stubEnv("RK_TEXT_VERSION", ""), served(store(fetches, SCANS)));
 
   beforeEach(() => vi.stubEnv("VERCEL_ENV", "production"));
-  afterEach(() => void (vi.useRealTimers(), vi.unstubAllEnvs(), vi.restoreAllMocks()));
+  afterEach(() => void (vi.unstubAllEnvs(), vi.restoreAllMocks()));
 
   it("serves exactly what the payload path serves, on the first read and the kept one", async () => {
     const fixtures: Row[][] = [
@@ -150,18 +148,6 @@ describe("production serves the kept text and downloads a payload only for a rea
       expect(await served(db)).toStrictEqual(expected);
       expect(db.ids.flat().sort()).toEqual(fetches.map((row) => row.id as string).sort());
     }
-  });
-
-  it("serves the payload path, never an empty set, when the fetch_text read fails or outlasts its 1.5 s", async () => {
-    const expected = await payloadPath(FETCHES());
-    vi.stubEnv("RK_TEXT_VERSION", "v1");
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    expect(await served(store(FETCHES(), SCANS, { fetch_text: "down" }))).toStrictEqual(expected);
-    expect(warn.mock.calls).toEqual([["text: stored read failed, served payloads", "text.ts: read from fetch_text failed: down"]]);
-    vi.useFakeTimers();
-    const hanging = served(store(FETCHES(), SCANS, { fetch_text: "hang" }));
-    await vi.advanceTimersByTimeAsync(1500);
-    expect(await hanging).toStrictEqual(expected);
   });
 
   it("dev and preview, which share production's database, never read or write fetch_text", async () => {
