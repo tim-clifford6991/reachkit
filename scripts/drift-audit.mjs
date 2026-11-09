@@ -7,6 +7,7 @@
 import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
 import path from "node:path";
 import { readDecisions, specSections } from "./spec-decisions.mjs";
+import { blockRules } from "./lib/budgets.mjs";
 import { MEASUREMENT_DOC, measurementDoc } from "./measurement-doc.mjs";
 import { PROCESS_DOC, processMap } from "./process-map.mjs";
 
@@ -136,18 +137,23 @@ for (const d of decisions) {
   if (d.problems.length) add("rulings", "MALFORMED", d.file, d.problems.join("; "), true);
   else if (!sectionIds.has(d.section)) add("rulings", "MISSING", d.file, `section ${d.section} is not a heading of docs/SPEC.md`, true);
   else add("rulings", "OK", d.file, `${d.section}, #${d.issue}`);
+  for (const target of d.replaces) {
+    if (existsSync(path.join(ROOT, target))) add("rulings", "MISMATCH", d.file, `replaces ${target}, which still exists; delete it`);
+  }
 }
+
+// scripts/hygiene.mjs holds each count to its budget in scripts/budgets.json.
+for (const [id, names] of blockRules(spec)) add("rules", "OK", id, `${names.length} block rule(s)`);
 
 // ----------------------------------------------------------------- coherence
 // Owner 2026-10-15, #1463. The registry lives in docs/PROCESS.md Coherence.
-// A named check file must exist. `pending` is allowed only on the three
-// parents whose check is not written yet. A pull request body is read only
+// A named check file must exist. A pull request body is read only
 // when --require-pr-body is set, from the PR_BODY environment variable. A
 // heading is followed by a blank line in a real body, so a section runs
 // until the next heading or the end of the whole body.
-const PENDING_OK = new Set(["1454", "1127", "1457"]);
-const REQUIRED_PARENTS = ["1454", "1127", "1457", "1458"];
-const registryParents = new Set();
+const REQUIRED_PARENTS = ["1458"];
+// A parent whose outcome the weekly check now reads has no row, and still may not be closed by a pull request.
+const registryParents = new Set(["1454", "1127", "1457"]);
 
 function coherenceSection(doc) {
   const start = doc.indexOf("\n### Coherence\n");
@@ -190,10 +196,7 @@ if (!coherenceText) {
     if (seenParents.has(number)) add("coherence", "MALFORMED", row.parent, "parent listed twice", true);
     seenParents.add(number);
     registryParents.add(number);
-    if (row.check === "pending") {
-      if (!PENDING_OK.has(number)) add("coherence", "MISSING", row.parent, "a new condition needs a check file, not pending", true);
-      else add("coherence", "OK", row.parent, `${row.surface}: pending, allowed for this parent`);
-    } else if (!/^(tests|scripts)\/[\w./-]+\.(ts|tsx|mjs)$/.test(row.check) || !existsSync(path.join(ROOT, row.check))) {
+    if (!/^(tests|scripts)\/[\w./-]+\.(ts|tsx|mjs)$/.test(row.check) || !existsSync(path.join(ROOT, row.check))) {
       add("coherence", "MISSING", row.parent, `check file missing or not a test path: ${row.check}`, true);
     } else {
       add("coherence", "OK", row.parent, row.check);

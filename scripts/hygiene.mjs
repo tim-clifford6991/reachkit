@@ -9,7 +9,7 @@ import { existsSync, lstatSync, readFileSync, readdirSync, unlinkSync, writeFile
 import path from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
-import { budgetFindings, isMeasured, lineCount, lineFindings, plainWordsFindings } from "./lib/budgets.mjs";
+import { blockRuleFindings, blockRules, budgetFindings, isMeasured, lineCount, lineFindings, plainWordsFindings } from "./lib/budgets.mjs";
 import { keyFileCounts } from "./lib/plain-words.mjs";
 import { mainCheckoutFinding } from "./lib/main-checkout.mjs";
 import { staleBaselines } from "./design/baseline.mjs";
@@ -89,6 +89,8 @@ const DROPPED = [
   "regen-baselines",
   "review-gallery",
   "docs/archive",
+  "orchestrator merges",
+  "master session's approval",
 ];
 const SKIP_SCAN = new Set(["scripts/hygiene.mjs", "package-lock.json"]);
 
@@ -167,11 +169,10 @@ function checkRepo() {
   const processDoc = readRel("docs/PROCESS.md");
   if (processDoc) {
     const currentAt = processDoc.indexOf("\n## Current\n");
-    const historyAt = processDoc.indexOf("\n## History\n");
-    if (currentAt < 0 || historyAt < 0 || currentAt > historyAt) {
-      add("repo", "docs/PROCESS.md does not put ## Current before ## History");
+    if (currentAt < 0) {
+      add("repo", "docs/PROCESS.md has no ## Current");
     } else {
-      const current = processDoc.slice(currentAt, historyAt);
+      const current = processDoc.slice(currentAt);
       for (const gate of GATES) {
         if (!current.includes(gate)) add("repo", `Current does not name the gate ${gate}`);
       }
@@ -316,8 +317,12 @@ function checkBudgets(texts) {
   // A scheduled or box run reports on main and has no pull request base, so it skips every line rule.
   const diffed = !wantIssue && run("git", ["-C", ROOT, "rev-parse", "--verify", "-q", "HEAD^1"]).ok;
   const diff = (...extra) => run("git", ["-C", ROOT, "diff", "--no-renames", "HEAD^1", ...extra], { maxBuffer: 32 * 1024 * 1024 });
-  const decided = !diffed || /^docs\/spec\/decisions\/\d{4}-\d{2}-\d{2}-/m.test(diff("--name-only", "--diff-filter=A").stdout);
+  const added = diffed ? diff("--name-only", "--diff-filter=A").stdout.split("\n").filter((rel) => /^docs\/spec\/decisions\/\d{4}-\d{2}-\d{2}-/.test(rel)) : [];
+  const decided = !diffed || added.length > 0;
   for (const finding of budgetFindings({ budgets, base, files: texts, decided })) add("repo", finding);
+  const baseSpec = diffed ? run("git", ["-C", ROOT, "show", "HEAD^1:docs/SPEC.md"]) : null;
+  const rules = { head: blockRules(readRel("docs/SPEC.md") ?? ""), base: baseSpec?.ok ? blockRules(baseSpec.stdout) : null };
+  for (const finding of blockRuleFindings({ budget: budgets?.blockRules, ...rules, named: added.map(readRel).join("\n") })) add("repo", finding);
   if (!diffed) return;
   const numstat = diff("--numstat", "--", "src", "tests", "scripts");
   if (!numstat.ok) return add("repo", `git diff --numstat HEAD^1 failed (${numstat.stderr.trim() || numstat.status})`);

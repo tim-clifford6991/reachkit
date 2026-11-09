@@ -11,10 +11,11 @@
 //   2026-10-18  **What the ruling says** (owner, #1525). …
 //
 // Two pull requests that each add a ruling add two files, so they never touch
-// the same lines. The lines already in SPEC.md stay where they are.
+// the same lines. An optional `replaces:` line in the head lists the decision
+// files the ruling supersedes, and `audit` fails while one of them remains.
 //
 //   node scripts/spec-decisions.mjs                 the index, per section
-//   node scripts/spec-decisions.mjs new <issue> <§n> [--date YYYY-MM-DD] [--slug s]
+//   node scripts/spec-decisions.mjs new <issue> <§n> [--date YYYY-MM-DD] [--slug s] [--replaces a.md,b.md]
 //                                                   writes the file's head
 //   --root <dir>                                    another checkout
 //
@@ -53,6 +54,9 @@ export function readDecisions(root) {
       const head = HEAD_RE.exec(text);
       const section = head ? /^section:\s*(§\d+)\s*$/m.exec(head[1])?.[1] ?? null : null;
       if (!section) problems.push("no `section: §n` head");
+      const listed = head ? /^replaces:\s*(.*)$/m.exec(head[1])?.[1] ?? "" : "";
+      const replaces = listed.replace(/[[\]]/g, "").split(/[\s,]+/).filter(Boolean)
+        .map((t) => (t.includes("/") ? t : `${DECISIONS_DIR}/${t}`));
       const body = head ? text.slice(head[0].length).trim() : text.trim();
       if (!body) problems.push("the ruling is empty");
       return {
@@ -60,6 +64,7 @@ export function readDecisions(root) {
         date: name ? `${name[1]}-${name[2]}-${name[3]}` : null,
         issue: name ? name[4] : null,
         section,
+        replaces,
         body,
         problems,
       };
@@ -80,14 +85,15 @@ export function index(root) {
   return out.join("\n");
 }
 
-export function create(root, { issue, section, date, slug }) {
+export function create(root, { issue, section, date, slug, replaces }) {
   const name = `${date}-${issue}${slug ? `-${slug}` : ""}.md`;
   if (!NAME_RE.test(name)) throw new Error(`not a decision file name: ${name}`);
   const dir = path.join(root, DECISIONS_DIR);
   mkdirSync(dir, { recursive: true });
   const file = path.join(dir, name);
   if (existsSync(file)) throw new Error(`${DECISIONS_DIR}/${name} exists; pass --slug`);
-  writeFileSync(file, `---\nsection: ${section}\n---\n\n${date}  (owner, #${issue}) \n`);
+  const also = replaces ? `replaces: ${replaces}\n` : "";
+  writeFileSync(file, `---\nsection: ${section}\n${also}---\n\n${date}  (owner, #${issue}) \n`);
   return `${DECISIONS_DIR}/${name}`;
 }
 
@@ -101,12 +107,13 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   if (argv[0] === "new") {
     const date = flag("--date") ?? new Date().toISOString().slice(0, 10);
     const slug = flag("--slug");
+    const replaces = flag("--replaces");
     const [, issue, section] = argv;
     if (!/^\d+$/.test(issue ?? "") || !/^§\d+$/.test(section ?? "")) {
-      console.error("usage: node scripts/spec-decisions.mjs new <issue> <§n> [--date YYYY-MM-DD] [--slug s]");
+      console.error("usage: node scripts/spec-decisions.mjs new <issue> <§n> [--date YYYY-MM-DD] [--slug s] [--replaces a.md,b.md]");
       process.exit(2);
     }
-    console.log(create(root, { issue, section, date, slug }));
+    console.log(create(root, { issue, section, date, slug, replaces }));
   } else {
     console.log(index(root));
   }
