@@ -1,4 +1,4 @@
-// SPEC §5 (docs/spec/decisions/2026-10-22-1737.md) — Check: what the scan
+// docs/SPEC.md §5 Details — Check: what the scan
 // read, as sections a founder opens only to change something. Each section
 // holds the controls its own step held before, and saves to the same rows.
 // daisyUI `collapse` on `<details>`, so a section opens without script.

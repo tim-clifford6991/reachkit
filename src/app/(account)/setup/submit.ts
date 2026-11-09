@@ -101,7 +101,7 @@ export type SetupResult = { ok: true; siteId: string } | { ok: false; refused: S
  * SPEC §5: each step saves as it is left, so a reload resumes. One arm per
  * step, carrying that step's own answers and nothing else.
  *
- * Check carries every section it opens (docs/spec/decisions/2026-10-22-1737.md):
+ * Check carries every section it opens (docs/SPEC.md §5 Details):
  * the market and rivals, the business lists, the five answers and the voice,
  * each written to the row its own step wrote before. There is no publishing
  * arm: leaving the last step forward is the finish, which writes the

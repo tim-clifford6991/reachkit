@@ -1,4 +1,4 @@
-// SPEC §5 (docs/spec/decisions/2026-10-22-1737.md) — the one post-payment
+// docs/SPEC.md §5 Three saved steps — the one post-payment
 // screen, as three saved steps: Site, Check, Connect, with Back and an
 // equal-column step indicator.
 //

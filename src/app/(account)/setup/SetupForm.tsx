@@ -1,4 +1,4 @@
-// SPEC §5 (docs/spec/decisions/2026-10-22-1737.md) — setup, as three saved
+// docs/SPEC.md §5 Three saved steps — setup, as three saved
 // steps: Site, Check, Connect. Each step saves as it is left so a reload
 // resumes; finishing reaches the app at once.
 //
