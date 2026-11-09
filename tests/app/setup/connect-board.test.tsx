@@ -80,7 +80,7 @@ describe("Connect matches board Setup string for string", () => {
       "Details",
       "Connect",
       "Connect your website",
-      "We’re already writing your first page. It goes live once you connect.",
+      "Your first page is ready or nearly ready. It goes live once your website is connected.",
       "Where should pages live?",
       `On your web address, run by us ${HOST} One setting, once. Recommended.`,
     ]);

@@ -863,7 +863,7 @@ export const OVERVIEW_COPY = Object.freeze({
     "The setting is also in your mail, to add later from a computer.",
     { slots: {}, fixedBy: "board OverviewDNS v36, issue 2272 (drafted) · owner R20 2026-10-22" },
   ],
-  "overview.connect.page.eyebrow": ["Waiting to go live", { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" }],
+  "overview.connect.page.eyebrow": ["Ready to go live", { slots: {}, fixedBy: "SPEC §5 Live only where the customer chose (drafted)" }],
   "overview.connect.page.read": ["Read or edit it →", { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" }],
   "overview.connect.progress": [
     "Progress shows here once your first page is live.",
