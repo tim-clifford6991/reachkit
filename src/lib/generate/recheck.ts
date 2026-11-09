@@ -1,4 +1,4 @@
-// SPEC §7 (owner O7, docs/spec/decisions/2026-10-31-2160.md) — a page the rules stopped is read again under today's
+// docs/SPEC.md §7 A stopped page re-checked at 0¢ — a page the rules stopped is read again under today's
 // rules at the start of its site's daily run, at 0¢, and the newest that passes enters review with a fresh veto window.
 //
 // A candidate never entered review, was stopped by the rules at generation, carries no edit of the customer's, has a

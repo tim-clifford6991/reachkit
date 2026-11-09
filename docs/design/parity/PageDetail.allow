@@ -15,10 +15,10 @@ about 1,900 in the US	sample data
 a national plumbing chain’s page, then your page	sample data
 Theme: light	DESIGN.md: the /app shell's theme control is the Light / Dark / System dropdown named Theme (#681)
 Up 30 places since 5 October, one place from the first page.	sample data
-3 visits from Google this week.	owner R19 2026-10-22 (docs/spec/decisions/2026-10-22-1749.md): visits are read over the stored 28-day window, so the line says "in the last 28 days"
+3 visits from Google this week.	owner R19 2026-10-22 (docs/SPEC.md §7 A page's screen): visits are read over the stored 28-day window, so the line says "in the last 28 days"
 Showing in results place 41 → 11	sample data
 4 First page not yet	sample data: the sweep's seeded live page has no reading yet, so its steps say "not checked yet"; tests/archive/app/draft/live.test.tsx reads "not yet"
-Next: still climbing, so we leave it alone. If it stalls for 3 weeks, it gets an update.	owner R19(c) 2026-10-22 (docs/spec/decisions/2026-10-22-1749.md): no rule implements "stalls for 3 weeks", so the line says "If it slips, it gets an update"
+Next: still climbing, so we leave it alone. If it stalls for 3 weeks, it gets an update.	owner R19(c) 2026-10-22 (docs/SPEC.md §7 A page's screen): no rule implements "stalls for 3 weeks", so the line says "If it slips, it gets an update"
 “Licensed master plumbers serving Austin since 2009.”	sample data
 harborplumbing.com/about	sample data
 “Same-day emergency call-outs, 7 days a week.” · on 3 pages	sample data
