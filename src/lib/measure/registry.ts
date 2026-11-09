@@ -1,11 +1,4 @@
-// Each number a customer is shown has one definition, here. `docs/MEASUREMENT.md`
-// is generated from this list (`node scripts/measurement-doc.mjs`) and `audit`
-// fails when the two differ, so the document cannot drift from the code.
-//
-// The list between the markers is plain JavaScript: the audit job has no
-// TypeScript, and the generator evaluates that literal as it stands.
-// `{NAME}` in a definition is a constant of `src/lib/config/constants.ts`,
-// written into the document with its value.
+// Each number a customer is shown has one definition, and this registry is it.
 
 /** Where a number is shown: an Overview tile by its test id, a Monday mail
  *  row by its label's copy key, or a free-report figure by the copy key of

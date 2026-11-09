@@ -90,7 +90,7 @@ Use each lens as a checklist. Skip a lens only if you say why.
   - code you read;
   - live pages (curl GET only);
   - stored rows (SELECT-only, and only if a read tool is given);
-  - panel evidence (`scripts/panel/evidence/*.json`, `docs/walk/panel/*.json`; replay at 0¢);
+  - panel evidence (`scripts/panel/evidence/*.json`, `scripts/panel/runs/*.json`; replay at 0¢);
   - current sources via WebSearch and WebFetch.
 - **Labels.** Label every claim as one of:
   - **fact** (with path, row or URL);

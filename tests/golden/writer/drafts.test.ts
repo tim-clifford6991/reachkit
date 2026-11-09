@@ -1,5 +1,5 @@
 // The writer's stage 4 over stored drafts: each customer-panel page the
-// pipeline wrote (`docs/walk/prose-gate/<site>.md`, with the pack it was
+// pipeline wrote (`tests/fixtures/walk/prose-gate/<site>.md`, with the pack it was
 // written from) is run through the hard rules, the repair code makes and the
 // notes the fix call would be told, and what comes out is the golden beside
 // this file. A changed rule is a reviewed diff here. 0¢: the cost context
@@ -18,7 +18,7 @@ import { pageTypeOf } from "@/lib/opportunities/page-type";
 import type { OpportunityType } from "@/lib/opportunities/types";
 import { fakeCost } from "../../generate/fixtures";
 
-const STORED = new URL("../../../docs/walk/prose-gate/", import.meta.url);
+const STORED = new URL("../../../tests/fixtures/walk/prose-gate/", import.meta.url);
 
 /** SaaS, an agency, a consumer app, and three local businesses (one German). */
 const SITES = ["savvycal.com", "clearleft.com", "streaksapp.com", "wesbos.com", "zunicafe.com", "alexander.co.uk", "baeckerei-hinkel.de"];

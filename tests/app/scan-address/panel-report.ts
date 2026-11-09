@@ -20,7 +20,7 @@ export function panelReport(which: keyof typeof PANEL): StoredReport {
 
 /** One site's stored report from one walk of the free report. */
 export function walkReport(walk: string, domain: string): StoredReport {
-  const file = path.resolve(import.meta.dirname, `../../../docs/walk/free/${walk}.json`);
+  const file = path.resolve(import.meta.dirname, `../../../tests/fixtures/walk/free/${walk}.json`);
   const sites = (JSON.parse(readFileSync(file, "utf8")) as { sites: { domain: string; stored: { scan: { report: unknown } } | null }[] }).sites;
   const site = sites.find((s) => s.domain === domain && s.stored !== null);
   if (site === undefined) throw new Error(`no stored report for ${domain} in ${walk}`);

@@ -28,7 +28,7 @@
 // The runs that wrote pages through the retired pipeline — the set's own
 // run, `--ab`, `--round2` and `--repair` — went with it (D41, D43: "Round
 // 2's remaining pairs are skipped"). Their stored rounds stay under
-// `scripts/eval-content/snapshot/` and `docs/walk/`.
+// `scripts/eval-content/snapshot/` and `scripts/eval-content/ab-reachkit/`.
 //
 // # The credential
 //

@@ -21,7 +21,7 @@ const TO = new Date("2026-10-07T12:00:00.000Z");
 
 /** A stored report from the customer panel's walk, raw as the `scans.report` column holds it. */
 function storedReport(walk: string, domain: string): unknown {
-  const file = path.resolve(import.meta.dirname, `../../../docs/walk/free/${walk}.json`);
+  const file = path.resolve(import.meta.dirname, `../../../tests/fixtures/walk/free/${walk}.json`);
   const sites = (JSON.parse(readFileSync(file, "utf8")) as { sites: { domain: string; stored: { scan: { report: unknown } } | null }[] }).sites;
   return sites.find((s) => s.domain === domain && s.stored !== null)!.stored!.scan.report;
 }

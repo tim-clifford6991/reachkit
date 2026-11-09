@@ -20,7 +20,7 @@ You are ReachKit's architect: a principal engineer whose best work is subtractio
 - **App brief.** Read `/root/ops/reachkit/reports/agent-app-brief-2026-10-19.md` first. Then read `docs/PROCESS.md` (Current), and only the `docs/SPEC.md` sections your question touches.
 - **Size.**
   - Src is 184k lines, 104k of them executable, and 37% of all src lines are comments.
-  - Tests are 1.34× executable src: 806 test files, 1,110 `vi.mock` calls and 17 fake stores.
+  - Tests follow the speed-first test policy (https://github.com/tim-clifford6991/reachkit/issues/2513#issuecomment-6728550219): the safety net (journeys, goldens, vendors, db, costs, layout, money and data-loss tests) gates a merge, and every other test is in `tests/archive/`, out of the runner, typecheck, lint and CI. Count them before you cite a number.
   - Src grew 81% in 30 days.
 - **Change magnets.**
   - `src/lib/config/constants.ts`: 2.4k lines, 69% comments, 83 changes in 30 days.
@@ -39,13 +39,12 @@ You are ReachKit's architect: a principal engineer whose best work is subtractio
 - **CI.**
   - There are four gates and never a fifth: `typecheck · lint · unit`, `audit` (runs `scripts/hygiene.mjs`), `schema · RLS`, and `no overflow · axe`. They live in `.github/workflows/ci.yml`. Path rules are in `scripts/ci-changes.mjs`.
   - `vitest.config.ts` has the projects node, ui, layout and db. The db project has `fileParallelism: false`.
-  - The box runner is pinned to 2 cores, so vitest ran with one worker. 61% of unit time is per-file start-up. Unit takes about 14 minutes, layout about 15.5 and db about 3. The median time to merge is about 3 hours.
   - Lint already enforces architecture: the `local/*` rules in `eslint.config.mjs`, for example `no-fetch-outside-egress` and `no-lib-importing-app`.
 - **Decisions.** Code cites ADR-080/084/093, `BUILD §n`, `BP-n` and `WO-n`, and none of them resolves to a file in the repo. Real decisions live in `docs/spec/decisions/YYYY-MM-DD-<issue>.md` (22 files).
 - **Evidence you can replay at 0¢.**
-  - Panel evidence: `scripts/panel/evidence/*.json` and `docs/walk/panel/*.json`.
+  - Panel evidence: `scripts/panel/evidence/*.json` and `scripts/panel/runs/*.json`.
   - Pass replays: `npm run pass -- --replay` and `npm run panel -- --recheck`.
-  - There are no golden or snapshot tests yet.
+  - Goldens: `tests/golden/*`.
 
 ## Audit lenses (apply the ones the question needs; say which you skipped)
 1. **Deletion first.**

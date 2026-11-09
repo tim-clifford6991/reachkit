@@ -484,7 +484,7 @@ describe("a weekly pass whose measurement would spend its whole cap", () => {
     expect(typing.capHit).toBe(false);
   });
 
-  const panel = (run: string): PanelRun[] => (JSON.parse(readFileSync(`docs/walk/panel/${run}.json`, "utf8")) as { sites: PanelRun[] }).sites;
+  const panel = (run: string): PanelRun[] => (JSON.parse(readFileSync(`scripts/panel/runs/${run}.json`, "utf8")) as { sites: PanelRun[] }).sites;
 
   /** A panel site's derivation after the stored report, from a context opened
    *  at the line; `after` spends next on the same context, as the weekly pass does. */

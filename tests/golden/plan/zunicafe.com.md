@@ -1,6 +1,6 @@
 # zunicafe.com
 
-From `docs/walk/panel/2026-10-09.json`: 13 stored topics, 10 committed from 2026-10-19.
+From `scripts/panel/runs/2026-10-09.json`: 13 stored topics, 10 committed from 2026-10-19.
 
 Supply: 10 of 10 committed, short 0; stored topics product 10, best_x 3.
 
