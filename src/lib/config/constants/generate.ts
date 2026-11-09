@@ -138,13 +138,6 @@ export const MACHINE_ADDRESS_PATTERNS = Object.freeze([
 
 export const CLAIM_RECHECK_SWEEP_MAX = 25 as const;
 
-/** SPEC §6: "A format page fires only for a missing comparison, alternative,
- *  integration or template; glossary, changelog, blog and resources hub
- *  never qualify." The list is the gate: a format outside it never fires. */
-export const FORMAT_PAGE_ALLOWED = Object.freeze([
-  "comparison", "alternative", "integration", "template",
-] as const);                                                  // §6
-
 
 /** SPEC §7: the answerability pass may "shorten a first block to 40–320
  *  characters where a question heading already exists". The same bound is

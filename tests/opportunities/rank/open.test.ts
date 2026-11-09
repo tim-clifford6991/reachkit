@@ -58,7 +58,7 @@ describe("pointsOf — integer points from what the row holds", () => {
 
   it("an unmeasured search counts as asked only where a buyer was seen asking it or a tracked prompt matches it", () => {
     const unmeasured = { kind: "unmeasured", reason: "not_attempted", at: AT };
-    expect(pointsOf(write({ volume: unmeasured }), NOTHING_SEEN).parts.map((part) => part.part)).toEqual(["fit"]);
+    expect(pointsOf(write({ volume: unmeasured }), NOTHING_SEEN).parts.map((part) => part.part)).toEqual(["fit", "no_demand"]);
     const prompts = [{ id: "p1", text: "how should I plan a kitchen refit" }];
     expect(pointsOf(write({ volume: unmeasured }), { cited: new Set(), prompts }).parts).toContainEqual({ part: "demand", n: 1 });
     const asked = write({ volume: unmeasured, evidence: { family: "write", askedBeside: { term: "kitchen refit", serpAt: AT } } });

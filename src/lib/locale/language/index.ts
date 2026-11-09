@@ -63,7 +63,6 @@ export const SHAPES = Object.freeze({
   insights: pattern(anywhere("insights")),
   research: pattern(anywhere("research")),
   documentation: pattern(atStart("documentationStart"), anywhere("documentation")),
-  format: new RegExp(anywhere("format"), "iu"),
   asksPrice: new RegExp(anywhere("asksPrice"), "iu"),
   agency: new RegExp(anywhere("agency"), "iu"),
   wordSense: new RegExp(anywhere("wordSense"), "iu"),

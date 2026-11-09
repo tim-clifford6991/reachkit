@@ -1,6 +1,6 @@
 // src/lib/locale/language/en.ts — English (SPEC §6, D66). The words and
 // templates every pass ran on before D66, moved here unchanged.
-import { FORMAT_PAGE_ALLOWED, TITLE } from "@/lib/config/constants";
+import { TITLE } from "@/lib/config/constants";
 import { EN_PROMPTS } from "./prompts/en";
 import type { LanguagePack } from "./types";
 
@@ -52,8 +52,6 @@ export const EN: LanguagePack = {
     research: "statistics|stats|data|study|studies|report|benchmarks?|survey|research|numbers",
     documentationStart: "what is|what are|how does|how do",
     documentation: "documentation|docs|reference|explained|meaning|definition|guide|features?|api|integrations?",
-    // SPEC §6's four format pages (`FORMAT_PAGE_ALLOWED`) and the owner's "vs".
-    format: `(?:${[...FORMAT_PAGE_ALLOWED, "vs", "versus"].join("|")})s?`,
     asksPrice: "costs?|prices?|priced|pricing|how much|value|cheap\\w*|expensive",
     // Drafted (issue 1506); the owner may correct the lists.
     agency: "agency|agencies|consultants?|consultancy|consultancies|consulting|services|service providers?|companies|firms?",

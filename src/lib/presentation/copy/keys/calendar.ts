@@ -355,15 +355,6 @@ export const CALENDAR_COPY = Object.freeze({
   // issue 855: the same zero while the market is still being measured — a pass
   // stopped on a ceiling, measured again. Drafted under issue 759's ruling.
   "calendar.supply.measuring": ["We’re still checking your market, so no pages are planned yet. Nothing is needed from you.", { slots: {}, fixedBy: "issue 855" }],
-  // Issue 881 (owner's dogfood, 2026-09-18): the site holds targets and
-  // every one of them is outsized for it — the day is empty for a reason
-  // that is neither a used-up market nor an unmeasured one, and the line
-  // says what changes it. Drafted under issue 759's ruling; the owner
-  // corrects the wording.
-  "calendar.supply.outsized": [
-    "No page today. Every search we checked is too hard to win for now.",
-    { slots: {}, fixedBy: "issue 881" },
-  ],
   "calendar.supply.short": ["Only {days} pages are left. The Monday check looks for more.", { slots: { days: "text" }, fixedBy: "BUILD §4.6" }],
   // Issue 1559: the depth is a week and its spares, not a month. Drafted.
   "calendar.supply.first-arrival": ["Your first check found {days} pages so far. We look for more every Monday.", { slots: { days: "text" }, fixedBy: "SPEC §7 2026-10-19 (drafted)" }],
