@@ -365,20 +365,20 @@ describe("the customer panel's stored reports, a SaaS and a local business", () 
   }
 });
 
-describe("Site fixes lists only what needs work (owner 2026-11-03)", () => {
-  const holds = (report: StoredReport) => parse(renderReport(report)).querySelector("#holds");
+describe("the one or two found fixes stand open above the price; the rest stay in Site fixes, closed", () => {
+  /** The titles open above the price, whether that section precedes `#start`, the closed titles, and the closed line. */
+  const split = (report: StoredReport) => {
+    const root = parse(renderReport(report));
+    const top = root.querySelector('[data-testid="report-top-fixes"]');
+    const titles = (at: typeof top) => (at?.querySelectorAll("li.card") ?? []).map((card) => card.querySelector("h3")!.text);
+    const html = root.innerHTML;
+    return [titles(top), top === null || (top.closest("details") === null && html.indexOf("report-top-fixes") < html.indexOf('id="start"')), titles(root.querySelector("#holds")), root.querySelector("#holds summary")!.text.replace(copy("problem.section.title"), "")];
+  };
 
-  it("a measured zero draws no card, and only a found problem carries its fix chip", () => {
-    const fixes = holds(panelReport("saas"))!;
-    const cards = fixes.querySelectorAll("li.card");
-    expect(cards.map((card) => card.querySelector("h3")!.text)).toEqual([copy("problem.missing-pages.title"), copy("problem.unquotable-pages.title")]);
-    expect(cards.map((card) => card.querySelectorAll(".badge-primary").map((badge) => badge.text))).toEqual([[copy("problem.missing-pages.doer")], []]);
-    expect(fixes.querySelector("summary")!.text).toContain(copy("problem.section.sub", { problems: "2", checks: "2" }));
-  });
-
-  it("a half with nothing to list is left out of the count, never said as zero", () => {
-    expect(holds(FIXTURE_COLD_START_REPORT)!.querySelector("summary")!.text).toContain(copy("problem.section.sub.checks", { checks: "8" }));
-    expect(holds(walkReport("2026-10-15", "alexander.co.uk"))!.querySelector("summary")!.text).toContain(copy("problem.section.sub.problems", { problems: "2" }));
+  it("two, one or none above the price, in the cards' order; a measured zero draws no card", () => {
+    expect(split(FIXTURE_REPORT)).toEqual([[copy("problem.blocked-readers.title"), copy("problem.missing-pages.title")], true, [copy("problem.unquotable-pages.title")], copy("problem.section.sub", { problems: "1", checks: "8" })]);
+    expect(split(panelReport("saas"))).toEqual([[copy("problem.missing-pages.title")], true, [copy("problem.unquotable-pages.title")], copy("problem.section.sub", { problems: "1", checks: "2" })]);
+    expect(split(FIXTURE_COLD_START_REPORT)).toEqual([[], true, [], copy("problem.section.sub.checks", { checks: "8" })]);
   });
 });
 
