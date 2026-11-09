@@ -21,21 +21,23 @@ export const SERIES_DRAW = {
 } as const;
 
 /**
- * Screen enter: each section of a screen rises 8px into place in 600ms,
- * 60ms after the one before it — the stagger capped at the seventh, so a
- * long list is not still arriving a second later. Spent by the two shells on
- * the element whose grandchildren (`/app`) or whose `<main>`'s children (the
- * public pages) are a screen's sections, so every screen enters without
- * touching its page. A daisyUI `skeleton` keeps its own shimmer.
+ * Screen enter, on a client navigation only: each section of the new screen
+ * rises 8px into place in 600ms, 60ms after the one before it — the stagger
+ * capped at the seventh. A document load paints its content at once, never
+ * held back from LCP (owner, 2026-11-07, R-D): the rise waits for
+ * `<html data-navigated>`, which `NavigatedFlag` (`./navigated.tsx`) sets
+ * on the first route change. Spent by the two shells on the element whose
+ * grandchildren (`/app`) or whose `<main>`'s children (the public pages)
+ * are a screen's sections. A daisyUI `skeleton` keeps its own shimmer.
  *
  * `sibling-index()` is newer than some browsers; where it is not read, the
  * delay is dropped and the sections rise together. Whole class names, for
  * Tailwind's scanner.
  */
 export const ENTER_APP =
-  "motion-safe:[&>*>*:not(.skeleton)]:animate-rise motion-safe:[&>*>*]:[animation-delay:min(calc((sibling-index()_-_1)_*_60ms),360ms)]!";
+  "motion-safe:[[data-navigated]_&>*>*:not(.skeleton)]:animate-rise motion-safe:[[data-navigated]_&>*>*]:[animation-delay:min(calc((sibling-index()_-_1)_*_60ms),360ms)]!";
 export const ENTER_PUBLIC =
-  "motion-safe:[&_main>*:not(.skeleton)]:animate-rise motion-safe:[&_main>*]:[animation-delay:min(calc((sibling-index()_-_1)_*_60ms),360ms)]!";
+  "motion-safe:[[data-navigated]_&_main>*:not(.skeleton)]:animate-rise motion-safe:[[data-navigated]_&_main>*]:[animation-delay:min(calc((sibling-index()_-_1)_*_60ms),360ms)]!";
 
 /**
  * React's `<ViewTransition>`, for Suspense reveals
