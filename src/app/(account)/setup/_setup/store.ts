@@ -12,7 +12,6 @@
 //   saveStep         one step's own answer and the resume point beside it
 //                    (SPEC §5, 2026-09-20, #922)
 //   enqueueDeepPass  `scan/run` at tier `deep`, on the queue
-//   enqueueFirstDraft the draft tick's per-site event for the first page
 //   resolvesInDns    §6.4's resolver, through the egress seam
 //
 // **`hasActiveAccess` is the billing leaf's, since #133.** It is ADR-050's
@@ -537,7 +536,6 @@ export function liveSetupStore(): SetupStore {
 
       await sendDeepPass({ siteId, domain: row.domain });
     },
-
     enqueueFirstDraft: (siteId) => sendFirstDraft({ siteId }),
   };
 }
