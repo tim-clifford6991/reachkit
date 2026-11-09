@@ -14,7 +14,7 @@ Agents add only `warn` rules, and only the owner makes a rule `block`. An incide
 
 ### 2. The queue
 
-The queue is the wave table in #2513. Labels decide order: `urgent` before `Post Launch`; `parked` and `later` are not started (owner 2026-11-06; D5 2026-11-08: the parked four stay on hold unless urgent or essential to revenue). The GitHub milestone is not a queue.
+The queue is the wave table in #2513. Labels decide order, with `urgent` and `now` before everything else; `Post Launch` is not started (owner 2026-11-06 and 2026-11-09; D5's held performance issues are now Post Launch, except #2478, which is un-parked). The GitHub milestone is not a queue.
 
 An issue is Ready when it carries Conditions, Invariants, Surfaces and Overlaps. The product manager writes it and classifies owner feedback before a worktree exists; the session that classifies does not also implement.
 
