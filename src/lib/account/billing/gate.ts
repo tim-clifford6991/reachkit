@@ -2,7 +2,7 @@
 //
 // **THE access gate.** Paid means `users.paid_through > now()` and a
 // recorded `plan_status` other than `past_due`: paid through today, with no
-// outstanding invoice (`docs/spec/decisions/2026-11-09-2525.md`). Both
+// outstanding invoice (`docs/SPEC.md §3 Paid means no outstanding invoice`). Both
 // columns are read in the one row read, through `sites.user_id`. No vendor
 // call.
 //

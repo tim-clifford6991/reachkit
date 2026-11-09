@@ -133,7 +133,7 @@ describe('REQ-098 c1 — "Given a person with no session, when they reach ReachK
   });
 });
 
-describe('REQ-098 c2 — "then it carries these strings verbatim: the heading …; the body …; the email input\'s placeholder …; the submit control\'s label …" (its fifth string cut by docs/spec/decisions/2026-11-01-2268.md) — signin/strings', () => {
+describe('REQ-098 c2 — "then it carries these strings verbatim: the heading …; the body …; the email input\'s placeholder …; the submit control\'s label …" (its fifth string cut by docs/SPEC.md §3 Sign-in board) — signin/strings', () => {
   it("carries the four keys those strings live in", async () => {
     const html = await renderWithKeys();
     for (const key of ["signin.heading", "signin.body", "signin.field.placeholder", "signin.submit.label"]) {

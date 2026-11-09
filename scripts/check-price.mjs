@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // npm's `prebuild`: the production build refuses a crossed Stripe price, and boot makes no Stripe call
-// (`docs/spec/decisions/2026-11-07-2485.md`). It runs in Vercel's build only, the one build that has a deployment's
+// (`docs/SPEC.md §3 One live Price`). It runs in Vercel's build only, the one build that has a deployment's
 // bindings; anywhere else it says it skipped. It prints closed names and the mismatch message, never a binding's
 // value or a vendor payload. Node strips types but resolves no `@/` alias, so the repo's own Vite loads the check.
 import path from "node:path";

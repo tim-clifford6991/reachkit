@@ -1,4 +1,4 @@
-// src/lib/account/provisioning/enter.ts — SPEC.md §3 (2026-09-14)
+// src/lib/account/provisioning/enter.ts — SPEC §3 Checkout lands signed in
 //
 // After Stripe Checkout, the buyer is sent to `/auth/checkout` with the
 // session id. This is what that route runs: open the account if the

@@ -11,7 +11,7 @@
 //
 // **It invents no behaviour for a failed renewal, and refunds nothing.**
 // The plan is month to month with no money-back guarantee
-// (`docs/spec/decisions/2026-11-06-2448.md`). So
+// (`docs/SPEC.md §3 Nothing refunded by itself`). So
 // `invoice.payment_failed` records `plan_status = past_due` and returns:
 // no retry, no dunning, no downgrade, no revocation. The payment-failed
 // mail is not sent here; it is the retention rule's (`paymentFailedDue`,

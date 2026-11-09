@@ -1,4 +1,4 @@
-// src/app/(public)/auth/checkout/route.ts — SPEC.md §3 (2026-09-14)
+// src/app/(public)/auth/checkout/route.ts — SPEC §3 Checkout lands signed in
 //
 // Stripe's success URL. The buyer has paid and has no session yet. This
 // route opens the account (idempotent with the webhook), writes the
