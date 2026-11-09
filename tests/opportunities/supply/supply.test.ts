@@ -91,6 +91,15 @@ describe("§7: supply is counted in days of pages, and an instruction is not one
     setStatus(state, "opp-0001", "queued", new Date("2026-09-07T09:00:00.000Z"));
     expect((await supplyDepth(SITE_ID)).unused).toBe(2);
   });
+
+  it("the count reads no stored fetches and no cited pages", async () => {
+    await deriveOnly(fakeCost().ctx, reportWith(3));
+    const unread = () => {
+      throw new Error("not read by the count");
+    };
+    setOpportunityStore({ ...memoryStore(state), listicleHeld: unread, citedPages: unread });
+    expect((await supplyDepth(SITE_ID)).unused).toBe(3);
+  });
 });
 
 describe("exhaustedSince is derived, and never stands while supply does", () => {
@@ -293,7 +302,7 @@ async function pass(
   );
   const outcome = await deriveForPass(ctx, { tier, siteId: SITE_ID, report: { ...report, rivalSizes }, hasActiveAccess });
   await planWeek(SITE_ID, { now: AT });
-  return { ...outcome, unused: (await supplyDepth(SITE_ID, AT)).unused };
+  return { ...outcome, unused: (await supplyDepth(SITE_ID)).unused };
 }
 
 /** Derives without going through a pass, so a suite can set supply up

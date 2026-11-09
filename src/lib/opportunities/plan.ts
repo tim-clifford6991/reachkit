@@ -143,9 +143,9 @@ export interface Depth {
   exhaustedSince: Date | null;
 }
 
-export async function supplyDepth(siteId: string, at: Date = new Date()): Promise<Depth> {
+export async function supplyDepth(siteId: string): Promise<Depth> {
   const store = opportunityStore();
-  if ((await store.countUnused(siteId)) > 0) return { unused: await writableDays(siteId, at), exhaustedSince: null };
+  if ((await store.countUnused(siteId)) > 0) return { unused: await writableDays(siteId), exhaustedSince: null };
   // Since the last non-Fix status change; with none, since the scan that last
   // looked and found nothing; with neither, no date rather than an invented one.
   const lastChange = await store.lastStatusChangeAt(siteId);

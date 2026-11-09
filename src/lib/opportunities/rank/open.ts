@@ -134,16 +134,13 @@ export async function rankOpen(siteId: string, at: Date = new Date(), only?: Rea
   return placeFixPages(scored, fixes, rotation);
 }
 
-/**
- * Issue 1549: how many of the next `days` days the week's commit fills — the
- * number "pages left" and the low-supply finding state. Read from the same
- * rows and order as `rankOpen`: an unready row is not counted, and a topic
- * another row on the same topic (`sameTopic`) would be written as is counted
- * once — drafting the first folds the other (`nearRepeatsOf`). A Fix takes no
- * day of supply.
- */
-export async function writableDays(siteId: string, at: Date = new Date(), days: number = PLAN_DEPTH): Promise<number> {
-  const { scored, rotation } = rankingOf(await loadRanking(siteId, at));
+/** How many of the next `days` days the week's commit fills ("pages left", the
+ *  low-supply finding), read from the rows, profile and top tens alone: an
+ *  unready row is not counted, a topic another row covers (`sameTopic`) counts
+ *  once, and a Fix takes no day. */
+export async function writableDays(siteId: string, days: number = PLAN_DEPTH): Promise<number> {
+  const [rows, profile] = await Promise.all([opportunityStore().openRankable(siteId), opportunityStore().profileForSite(siteId)]);
+  const { scored, rotation } = rankingOf({ rows, fixRows: [], profile, cited: [], topTens: await topTensFor(rows, profile) });
   return countWritable(scored, rotation, days);
 }
 
@@ -215,11 +212,14 @@ export async function loadRanking(siteId: string, at: Date, only?: ReadonlySet<s
   // An unmeasured count is the cold-start 0, as the pass reads it.
   const ownRanked = report === null ? null : report.ownRanked.kind === "measured" ? report.ownRanked.value : 0;
   const listicle = report === null ? null : await store.listicleHeld(siteId, report.scanId).catch(() => null);
-  const scans = rows.filter((row) => named(row, only) && eligible(row, { profile }) === null).map((row) => row.scan_id);
-  const topTens = scans.length === 0 ? new Map<string, readonly string[]>() : await store.topTens([...new Set(scans)]);
+  const topTens = await topTensFor(rows, profile, only);
   // A cluster that cannot be read earns no page.
   const linkedClusters = cited.length === 0 ? [] : await store.clustersAt(siteId, cited).catch(() => [] as readonly string[]);
   return { rows, fixRows, profile, cited, topTens, prompts, linkedClusters, ownRanked, listicle };
+}
+
+function topTensFor(rows: readonly OpportunityRow[], profile: Profile | null, only?: ReadonlySet<string>) {
+  return opportunityStore().topTens([...new Set(rows.filter((row) => named(row, only) && eligible(row, { profile }) === null).map((row) => row.scan_id))]);
 }
 
 function named(row: { id: string }, only: ReadonlySet<string> | undefined): boolean {
