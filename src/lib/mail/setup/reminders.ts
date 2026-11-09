@@ -3,7 +3,7 @@
 // Checked at send time, never scheduled: the tick asks who is due now and each send re-reads the row, so going live at hour 71 stops hour 72.
 // No working link, no send (REQ-025 c6): the link is issued first and a failure leaves the founder due at the next offset.
 // `sites.setup_reminders_sent` is incremented after the send, and its check constraint refuses a fourth even on a double delivery.
-import { CONNECT_LANDING_PATH, PAGES_LANDING_PATH } from "@/lib/account/identity/addresses";
+import { CONNECT_LANDING_PATH, PAGES_LANDING_PATH, SETUP_LANDING_PATH } from "@/lib/account/identity/addresses";
 import { SETUP_REMINDER_OFFSETS_H } from "@/lib/config/constants";
 import { dbAdmin } from "@/lib/db";
 import { sendEmail } from "../send";
@@ -12,11 +12,10 @@ import { buildSetupReminder } from "../templates/setup-reminder";
 /** Re-exported from the pins: `constants.ts` is the one home of a pinned number. */
 export const REMINDER_OFFSETS_H = SETUP_REMINDER_OFFSETS_H;
 
-/** The setup screen (REQ-024 c4), the same literal `src/app/(account)/setup/gate.ts` allow-lists, so the gate never bounces a reminder. */
-export const SETUP_LANDING_PATH = "/setup";
+export { SETUP_LANDING_PATH };
 
 /** One sign-in link through the port the sign-in mail uses (`src/lib/account/provisioning/sign-in-link.ts`), or `null`, which is no send.
- *  `/setup` is not in the link, since the setup gate sends an unfinished founder there; `/setup/connect` is. */
+ *  Every landing it asks for is one the redeem route allows. */
 export type SignInLinkIssuer = (a: {
   userId: string;
   email: string;

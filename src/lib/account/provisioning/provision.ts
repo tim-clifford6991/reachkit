@@ -138,7 +138,7 @@ export async function provisionFromPayment(sessionId: string): Promise<Provision
   await convertLead(facts.email, new Date());
 
   // 5. The sign-in link, inside REQ-024 c1's minute.
-  const signIn = await sendSignInLink({ userId, email: facts.email });
+  const signIn = await sendSignInLink({ userId, email: facts.email, afterPayment: true });
 
   logProvision({ sessionId, outcome: "created" });
   // Issue 336: the second of the three product events. Awaited — this runs
