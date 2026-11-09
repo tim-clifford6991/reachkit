@@ -39,7 +39,7 @@
 // same body reached the other way.
 //
 // Since #787 the hourly `lead/nurture` tick also delivers the due first
-// pages (`tests/mail/leads/free-page-delivery.test.ts` drives that path
+// pages (`tests/archive/mail/leads/free-page-delivery.test.ts` drove that path
 // through the job and the real page writer). This journey still drives the
 // giveaway's two entry points directly, at the clock it names.
 //
@@ -302,9 +302,10 @@ describe('"Email me the full page" → lead → first page → a follow-up that 
     expect(theOneLead().scan_id).toBe(SCAN_ID);
     expect(theOneLead().first_page_state).toBe("pending");
 
-    // Nothing has been written or sent on the visitor's own request.
+    // On the visitor's own request only the stored report is mailed (SPEC §8); no page is written.
     expect(draftsWritten).toBe(0);
-    expect(inbox).toHaveLength(0);
+    expect(inbox).toHaveLength(1);
+    expect(mailsOfKind(`mail.report.subject(${DOMAIN},`)).toHaveLength(1);
 
     // A third field is refused rather than silently dropped (REQ-010 c1).
     const extra = await submitTheAddress({ scanId: SCAN_ID, email: ADDRESS, plan: "pro" });
@@ -319,6 +320,11 @@ describe('"Email me the full page" → lead → first page → a follow-up that 
     expect(refused.status).toBe(503);
     expect(refused.body).toEqual({ ok: false, message: "lead.unavailable" });
     expect(leads.leads).toHaveLength(1);
+
+    // Once per scan: the same address again is accepted and is sent no second report mail.
+    leads.failInsert = false;
+    expect((await submitTheAddress({ scanId: SCAN_ID, email: ADDRESS })).status).toBe(202);
+    expect(inbox).toHaveLength(1);
   });
 
   it("step 10 — the job writes one page, mails it, and the mail restates the offer the card showed", async () => {
@@ -430,7 +436,7 @@ describe('"Email me the full page" → lead → first page → a follow-up that 
     expect(theOneLead().next_touch_at).toBeNull();
     const later = await advanceSequences(atTouch(startedAt, NURTURE_MAX_TOUCHES - 1));
     expect(later.sent).toBe(0);
-    expect(inbox).toHaveLength(1 + NURTURE_MAX_TOUCHES);
+    expect(inbox).toHaveLength(2 + NURTURE_MAX_TOUCHES);
 
     // REQ-010's outer bound, as arithmetic over the two pins rather than a
     // third number: a start no later than the deadline plus a last touch
@@ -512,8 +518,8 @@ describe('"Email me the full page" → lead → first page → a follow-up that 
     expect(db.rpcCalls.map((call) => call.fn)).toEqual(["take_rate_limits"]);
 
     // The mails that did go out went through the one send seam to the one
-    // vendor transport, and there were exactly four of them.
-    expect(inbox).toHaveLength(1 + NURTURE_MAX_TOUCHES);
+    // vendor transport: the report, the page and the touches.
+    expect(inbox).toHaveLength(2 + NURTURE_MAX_TOUCHES);
     // #81: the From is the `MAIL_FROM` binding, not a local part derived
     // from the app URL's host — and since #1568 it carries the product's
     // name in front of it (this journey's copy stand-in answers the key).

@@ -10,6 +10,7 @@ import { issueRows } from "../../blocks/site-issues";
 import type { MailBlock } from "../../blocks/types";
 
 const SUBJECT = "mail.report.subject" satisfies CopyKey;
+const SUBJECT_UNMEASURED = "mail.report.subject.unmeasured" satisfies CopyKey;
 const HEADING = "mail.report.heading" satisfies CopyKey;
 const PREHEADER = "mail.report.preheader" satisfies CopyKey;
 const BODY = "mail.report.body" satisfies CopyKey;
@@ -33,7 +34,8 @@ export interface ReportMail {
 export interface ReportFacts {
   readonly domain: string;
   readonly score: string;
-  readonly band: string;
+  /** `null` without a score, so an unmeasured verdict names no band. */
+  readonly band: string | null;
   readonly aiAnswers: string;
   readonly googleSearch: string;
   /** The bar holding the score down, or `null` without a score: an unmeasured verdict names no gap. */
@@ -51,8 +53,8 @@ export function buildReport(a: {
   const { facts } = a;
   const issues = issueRows(a.issues ?? null);
   return {
-    subject: SUBJECT,
-    subjectVars: { domain: facts.domain, score: facts.score, band: facts.band },
+    subject: facts.band === null ? SUBJECT_UNMEASURED : SUBJECT,
+    subjectVars: facts.band === null ? { domain: facts.domain } : { domain: facts.domain, score: facts.score, band: facts.band },
     preheader: PREHEADER,
     reason: REASON,
     reasonVars: { address: a.removalAddress },
@@ -63,7 +65,7 @@ export function buildReport(a: {
         block: "facts",
         items: [
           // Score and band word on one row, since §2.5 refuses a number without its word; the joiner is the caller's.
-          { label: FACT_SCORE, value: `${facts.score} · ${facts.band}` },
+          { label: FACT_SCORE, value: facts.band === null ? facts.score : `${facts.score} · ${facts.band}` },
           { label: FACT_AI_ANSWERS, value: facts.aiAnswers },
           { label: FACT_GOOGLE, value: facts.googleSearch },
         ],
