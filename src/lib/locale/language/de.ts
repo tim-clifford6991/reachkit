@@ -104,7 +104,6 @@ export const DE: LanguagePack = {
     research: "statistik(?:en)?|zahlen|daten|studien?|bericht|umfragen?|forschung",
     documentationStart: "was ist|was sind|wie funktioniert|wie funktionieren",
     documentation: "dokumentation|doku|referenz|erklärt|erklärung|bedeutung|leitfaden|ratgeber|funktionen|schnittstellen?",
-    format: "vergleich(?:e|en)?|alternativen|integrationen|vorlagen?",
     asksPrice: "kosten|kostet|preise?|teuer|günstig\\p{L}*|billig\\p{L}*|wie viel|wieviel",
     // Drafted (issue 1506); the owner may correct the lists.
     agency: "agentur(?:en)?|berater|beratung|beratungen|dienstleister|dienstleistungen?|firmen|unternehmen",

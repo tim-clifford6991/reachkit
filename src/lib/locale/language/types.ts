@@ -39,8 +39,6 @@ export interface ShapeWords {
   /** Documentation as a page, at the start: what is, how does. */
   documentationStart: string;
   documentation: string;
-  /** The four format pages: comparison, alternative, integration, template. */
-  format: string;
   /** A question about price inside a sentence. */
   asksPrice: string;
   /** A result that sells a service by the engagement: an agency, a

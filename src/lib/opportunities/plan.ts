@@ -165,16 +165,13 @@ export async function supplyMeasured(siteId: string): Promise<boolean> {
 
 /** What a site's zero supply is (issue 855): `measured` — a market used up;
  *  `unmeasured` — never measured (#765); `measuring` — a ceiling stopped the
- *  pass, so it is being measured again; `outsized` — every target is too big
- *  for the site today (issue 881). */
-export type SupplyState = "measured" | "unmeasured" | "measuring" | "outsized";
+ *  pass, so it is being measured again. */
+export type SupplyState = "measured" | "unmeasured" | "measuring";
 
 export async function supplyState(siteId: string): Promise<SupplyState> {
   const store = opportunityStore();
   const report = await store.currentReport(siteId);
   if (report !== null && stoppedOnCeiling(report.stoppedReason)) return "measuring";
-  // The more specific claim first; a count that cannot be read claims neither.
-  if (await Promise.resolve().then(() => store.countOutsized(siteId)).catch(() => 0)) return "outsized";
   return (await supplyMeasured(siteId)) ? "measured" : "unmeasured";
 }
 
