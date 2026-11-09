@@ -129,8 +129,7 @@ describe("the plan state, and ADR-050", () => {
   });
 
   it("plan_status is carried for display and decides nothing here", async () => {
-    // ADR-050: recorded, and read by no gate. `past_due` does not change
-    // the state the card offers a control for.
+    // `past_due` does not change the state the card offers a control for.
     state.users.push(account({ id: "u1", plan_status: "past_due", cancelled_at: null }));
     const result = await billingSummary("u1");
     if (!result.ok) throw new Error("unreachable");

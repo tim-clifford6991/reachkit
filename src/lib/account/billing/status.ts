@@ -3,8 +3,8 @@
 // The vendor's subscription status, mapped onto the three words §10's
 // `users.plan_status` check constraint admits.
 //
-// **This is a record and nothing else** (ADR-050). No gate reads
-// `plan_status`; the map exists because the column has a check constraint
+// The gate reads the result: `past_due` (an outstanding invoice) is not
+// paid (`gate.ts`). The map exists because the column has a check constraint
 // and the vendor has more statuses than three, so a write of the vendor's
 // own word would fail the constraint and lose the row's other columns with
 // it.
@@ -14,10 +14,8 @@
 // `undefined` and is recorded as what we last knew, instead of being
 // silently filed under one of the three by a fallback nobody chose.
 //
-// **Nothing branches on the result.** REQ-076's non-goal is explicit that
-// refunds, chargebacks and a failed renewal (`past_due`) are deferred by
-// owner ruling, and `onSubscriptionEvent` invents no behaviour for any of
-// them: it records the status and returns.
+// `onSubscriptionEvent` records the status and returns: no retry, no
+// dunning, no refund.
 import type { Stripe } from "../stripe/client";
 
 /** §10, verbatim: `plan_status(active/past_due/canceled)`. The American
