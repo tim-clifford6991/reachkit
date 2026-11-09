@@ -53,13 +53,9 @@ export function supplyLine(notice: CalendarSupplyNotice | null, timeZone: string
   return writtenLine("calendar.supply.first-arrival", { days: String(notice.days) });
 }
 
-/** Issue 1184: why pages stall, as one line — the last seven days' pages,
- *  how many stopped before review, and the writing rule that stopped most.
- *  Nothing where no page stopped. */
+/** Why pages stall, as one line — the last seven days' pages and how many
+ *  stopped before review. Nothing where no page stopped. */
 export function stalledLine(count: StalledCount | null): string | null {
   if (count === null || count.stopped === 0) return null;
-  const vars = { written: String(count.written), stopped: String(count.stopped) };
-  const rule = count.causes.find((cause) => cause.rule);
-  if (rule === undefined) return writtenLine("calendar.supply.stalled", vars);
-  return writtenLine("calendar.supply.stalled.rule", { ...vars, rule: rule.cause.replaceAll("_", " ") });
+  return writtenLine("calendar.supply.stalled", { written: String(count.written), stopped: String(count.stopped) });
 }
