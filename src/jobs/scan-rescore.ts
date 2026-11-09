@@ -18,10 +18,11 @@
 //
 // Not in the kill switch's scope: it buys nothing and asks no model, and the
 // network is refused while a scan is scored.
-import { answerRescore, claimRescore } from "@/jobs/engine";
+import { answerRescore, claimRescore, rescoreDue } from "@/jobs/engine";
 import type { JobDefinition, Outcome } from "./types";
 
-export const RESCORE_TICK_CRON = "7,22,37,52 * * * *";
+// Hourly at :07, off :00–:02 and every other job's minute; a re-score after a deploy starts within the hour.
+export const RESCORE_TICK_CRON = "7 * * * *";
 
 export const scanRescore: JobDefinition = {
   id: "scan/rescore",
@@ -29,6 +30,7 @@ export const scanRescore: JobDefinition = {
   idempotencyKey: [],
   async run(input): Promise<Outcome> {
     const step = input.step;
+    if (!(await rescoreDue())) return { outcome: "skipped", subjectId: null, reason: "no-subject" };
     const request = step === undefined ? await claimRescore(input.now) : await step("claim", () => claimRescore(input.now));
     if (request === null) return { outcome: "skipped", subjectId: null, reason: "no-subject" };
     if ("held" in request) return { outcome: "degraded", subjectId: null, step: "rescore-held" };

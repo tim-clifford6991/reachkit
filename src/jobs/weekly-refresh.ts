@@ -56,7 +56,9 @@ export const weeklyRefresh: JobDefinition = {
   throttle: LLM_RUN_THROTTLE,
   async run(input): Promise<Outcome> {
     const step = input.step;
-    const due = step === undefined ? await weeklyDueSites(input.now) : await step("due", () => weeklyDueSites(input.now));
+    // Read once outside any step, so an hour with no site due costs one invocation.
+    const found = await weeklyDueSites(input.now);
+    const due = step === undefined || found.length === 0 ? found : await step("due", () => weeklyDueSites(input.now));
     if (due.length === 0) return { outcome: "skipped", subjectId: null, reason: "not-due" };
 
     const results = await sendSubjects(

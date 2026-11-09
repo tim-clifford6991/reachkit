@@ -122,6 +122,7 @@ function engineDouble(): Record<string, unknown> {
     marketDigestsDue: none,
     sendMarketDigest: ran,
     // The re-score (issue 1433) buys nothing, so it is outside the scope.
+    rescoreDue: async () => true,
     claimRescore: async () => {
       engineCalls.count += 1;
       return { id: "run-1", mode: "dry" };

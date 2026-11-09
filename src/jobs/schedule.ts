@@ -8,5 +8,5 @@ export const CRON_JOBS: readonly Pick<JobDefinition, "id" | "trigger">[] = [
   { id: "weekly/refresh", trigger: { kind: "cron", cron: "41 * * * *" } },
   { id: "lead/nurture", trigger: { kind: "cron", cron: "26 * * * *" } },
   { id: "account/maintenance", trigger: { kind: "cron", cron: "*/15 * * * *" } },
-  { id: "scan/rescore", trigger: { kind: "cron", cron: "7,22,37,52 * * * *" } },
+  { id: "scan/rescore", trigger: { kind: "cron", cron: "7 * * * *" } },
 ];
