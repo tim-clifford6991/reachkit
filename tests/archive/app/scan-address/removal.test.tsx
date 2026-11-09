@@ -192,7 +192,7 @@ describe('REQ-002 c3 — "…in its place one written line says the report was r
   });
 });
 
-describe('REQ-001 c18 — "…no stored report is shown, no re-scan or retry control is offered, and no scan starts", and the one way out SPEC §1 (2026-09-20) adds', () => {
+describe('REQ-001 c18 — "…no stored report is shown, no re-scan or retry control is offered, and no scan starts", and the one way out SPEC §1 Every control acts adds', () => {
   const html = renderToStaticMarkup(React.createElement(RemovedView, { domain: DOMAIN }));
 
   it.each(INTERACTIVE_TAGS)("renders no <%s>", (tag) => {
@@ -200,8 +200,8 @@ describe('REQ-001 c18 — "…no stored report is shown, no re-scan or retry con
   });
 
   it("offers exactly one way out, and it is a link to the landing (#936)", () => {
-    // The rule that changed, and the whole of it. SPEC §1's line of
-    // 2026-09-20 — "the removed and refused arms offer a way back to the
+    // The rule that changed, and the whole of it. SPEC §1
+    // Every control acts — "the removed and refused arms offer a way back to the
     // landing" — is the owner deciding against REQ-001 c18's "no route
     // back", and #936 restates it. So this arm has one link; what it must
     // not have is a second one, a route back to *this* report, or

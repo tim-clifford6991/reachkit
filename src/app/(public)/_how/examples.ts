@@ -1,4 +1,4 @@
-// SPEC §1 (2026-10-10, issue 1396) — the live examples and the founder's
+// SPEC §1 Our own report only — the live examples and the founder's
 // line, read from stored rows at render.
 //
 // ReachKit is its own customer: its pages are published like any site's,

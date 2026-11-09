@@ -8,8 +8,8 @@
 // A `<Link>` from `/` to `/pricing` re-renders the page beneath the group
 // layout and not the layout itself, so a header arm decided once on the
 // server would still be offering the landing's field on a screen that has
-// no field — a control that does nothing, which is the defect SPEC §1's
-// 2026-09-20 line names. `usePathname()` is what follows the address, and
+// no field — a control that does nothing, which is the defect SPEC §1
+// Every control acts names. `usePathname()` is what follows the address, and
 // `./action.ts` is the rule it applies.
 //
 // **They hold no copy key** (#988). Each sentence arrives already written,
@@ -44,7 +44,7 @@ function armHere(pathname: string | null): HeaderAction {
  * takes: on the landing it is a button that brings the field into view with
  * the cursor in it, so the page keeps exactly one submit control; everywhere
  * else it is a link to that field on the landing. The header's *Start free*
- * is this (SPEC §1, 2026-09-24).
+ * is this (SPEC §1 One field).
  */
 function ToField(p: { className: string; children: React.ReactNode }): React.JSX.Element {
   return armHere(usePathname()).kind === "landing" ? (

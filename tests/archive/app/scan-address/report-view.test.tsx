@@ -356,7 +356,7 @@ describe("REQ-001 c16 — exactly one measurement-starting control, or none", ()
   it.each(DRAWN.map((c) => [`${c.kind}${"because" in c ? `/${c.because}` : ""}`, c] as const))(
     "%s is a control that acts: it posts the domain to the scan API (#935)",
     (_name, control) => {
-      // SPEC §1, 2026-09-20: "the report's *Try again*, *Measure what's
+      // SPEC §1 Every control acts: "the report's *Try again*, *Measure what's
       // missing* and its one notice control act or are not drawn." Each of
       // the three was a `<button type="button">` with no handler. The form
       // is the whole control with no JavaScript, so the markup is what
@@ -690,7 +690,7 @@ describe("REQ-002 c1/c3 — one removal address, two surfaces", () => {
     );
     // REQ-001 c18's substance, unchanged: no retry control and nothing
     // that could start a scan. Its "no route back", superseded by SPEC §1
-    // (2026-09-20) — one link, to the landing, and not to a report.
+    // Every control acts — one link, to the landing, and not to a report.
     expect(html).not.toContain("<button");
     expect(html).not.toContain("<form");
     expect(html).not.toContain("<input");
@@ -731,8 +731,8 @@ describe("issue 715 — SPEC §2: what was measured, what was reused, what the c
     expect(reused).not.toContain("2026-09-02T09:00:00.000Z");
   });
 
-  // Owner ruling 2026-09-22, box 3: the control acts. SPEC §1's
-  // 2026-09-20 line — a control on this screen "does something or is not
+  // Owner ruling 2026-09-22, box 3: the control acts. SPEC §1
+  // Every control acts — a control on this screen "does something or is not
   // drawn" — so each retry button carries the address its post goes to.
   it("each 'Retry this part' is a live control on its own card, named by its part", () => {
     const html = render(cutOff);

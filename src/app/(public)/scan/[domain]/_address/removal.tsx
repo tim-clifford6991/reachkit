@@ -24,7 +24,7 @@
 //
 // **The way back, and the rule that changed** (#936). This module used to
 // render one written line and nothing else — no button, no link, no form
-// — on REQ-001 c18 and REQ-002 c3. SPEC §1's line of **2026-09-20** is the
+// — on REQ-001 c18 and REQ-002 c3. SPEC §1 **Every control acts** is the
 // owner deciding the other way: "the removed and refused arms offer a way
 // back to the landing", and #936 restates it ("the `removed` arm is one
 // line with no link ... give each the way out drawn on the board").

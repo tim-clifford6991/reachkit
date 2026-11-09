@@ -1,6 +1,6 @@
 // Issue 1458 — what ReachKit does today, as the figures the articles quote.
 //
-// No figure is typed into an article (SPEC §1, 2026-10-10). Each one is read
+// No figure is typed into an article (docs/SPEC.md §1 No typed figure). Each one is read
 // here from the constants the product runs on, so a comparison written today
 // cannot outlive a change to the product.
 import { PRICE_EUR_CENTS, SITE_PROFILE } from "@/lib/config/constants";

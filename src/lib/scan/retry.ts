@@ -31,7 +31,7 @@
 // ceiling, no second allowance consumed"). A report whose pass already
 // spent the cap is offered no retry at all, because there is nothing left
 // to buy the part with and a control that cannot act is a control that must
-// not be drawn (SPEC §1, 2026-09-20).
+// not be drawn (SPEC §1 Every control acts).
 //
 // **The time ceiling is the pass's, not the pair's.** Each pass is bounded
 // by `TIMING.reportCeilingS`; a retry is a new request and gets its own,

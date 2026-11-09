@@ -49,7 +49,7 @@ describe("the route handler — the status a page cannot set", () => {
     expect(html).toContain("<!doctype html>");
     expect(html).toContain(REMOVED);
     // REQ-001 c18 / REQ-002 c3: nothing that could start a scan or reopen
-    // the report. The one *link* is SPEC §1's line of 2026-09-20 — "the
+    // the report. The one *link* is SPEC §1 Every control acts — "the
     // removed and refused arms offer a way back to the landing" — which
     // #936 gives this document too, so the status path says the same three
     // things the styled card does.

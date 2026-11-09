@@ -1,4 +1,4 @@
-// SPEC §1 (2026-10-10, issue 1396) — every figure the public pages state
+// SPEC §1 No typed figure — every figure the public pages state
 // about how the product works, read from the constants that run it.
 //
 // `/how-it-works`, `/about` and the landing's *What happens every day* fill

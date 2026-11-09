@@ -1,5 +1,5 @@
 // The hero's one proof: how many sites the free scan has read, drawn only from
-// 100 distinct sites scanned (decision 2026-11-01-2249). Below that it is no
+// 100 distinct sites scanned (docs/SPEC.md §1 Sites scanned from 100). Below that it is no
 // row, never a placeholder or a 0.
 import type React from "react";
 import { ScanSearch } from "lucide-react";
