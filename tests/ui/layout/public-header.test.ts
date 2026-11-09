@@ -29,7 +29,6 @@ async function headerAt(path: string, cookie?: string): Promise<HeaderFacts> {
   return withPage(
     WIDTH,
     async (page) => {
-      // The signed-in arm switches after paint, once the session probe answers.
       await page.goto(baseURL + path, { waitUntil: "networkidle" });
       return page.evaluate(
         ({ signin, start }) => {
