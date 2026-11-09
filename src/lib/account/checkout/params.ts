@@ -1,17 +1,11 @@
 // src/lib/account/checkout/params.ts — BUILD §13
 //
-// **What checkout asks, and nothing else.** REQ-020 criterion 6: a founder
-// at checkout is asked "only what taking the payment needs — their card
-// details, the address the sign-in link and receipt go to, and the billing
-// details REQ-022 criteria 5 and 6 record". Their company, their role and
-// what they mean to use the product for are asked nowhere before the
-// payment completes.
+// **What checkout asks, and nothing else.** The card details and the email
+// (owner, docs/spec/decisions/2026-11-09-2526.md). The address is asked only
+// where Stripe needs it; no tax ID, phone number or custom field is asked.
 //
-// That is why the four negative fields are written out. `custom_fields: []`
-// and `phone_number_collection: { enabled: false }` are not defaults being
-// restated: they are the two places a question could be added, stated as
-// empty so adding one is a visible diff against an asserted object rather
-// than an argument at a call site.
+// The negative fields are written out so adding a question is a visible diff
+// against an asserted object rather than an argument at a call site.
 //
 // `automatic_tax: { enabled: false }` is DECISIONS' 2026-08-28 ruling — no
 // Stripe Tax at launch — and `allow_promotion_codes: false` is REQ-022
@@ -26,19 +20,15 @@ import { env } from "@/lib/config/env";
 export interface CheckoutParams {
   readonly mode: "subscription";
   readonly line_items: readonly [{ readonly price: string; readonly quantity: 1 }];
-  /** REQ-022 c5 — the country is collected, and no country refuses the
-   *  purchase: there is no allow-list and no block-list on any path. */
-  readonly billing_address_collection: "required";
-  /** REQ-022 c6 — the field exists. Nothing checks what is entered in it. */
-  readonly tax_id_collection: { readonly enabled: true };
+  /** Stripe asks for an address only where the payment method needs one. */
+  readonly billing_address_collection: "auto";
+  readonly tax_id_collection: { readonly enabled: false };
   /** DECISIONS 2026-08-28 · ADR-052. */
   readonly automatic_tax: { readonly enabled: false };
   // No `customer_creation`: Stripe accepts it in `payment` mode only and
   // refuses a subscription session that carries it. Subscription mode
   // creates the customer either way, which is what `record.ts` reads back.
-  /** REQ-020 c6 — nothing beyond the payment is asked. */
   readonly phone_number_collection: { readonly enabled: false };
-  /** REQ-020 c6 — the one place a questionnaire could be added, empty. */
   readonly custom_fields: readonly [];
   /** REQ-022 c3 — one plan, so no code that makes a second one. */
   readonly allow_promotion_codes: false;
@@ -55,8 +45,8 @@ export function checkoutParams(): CheckoutParams {
     line_items: Object.freeze([
       Object.freeze({ price: env.STRIPE_PRICE_ID, quantity: 1 as const }),
     ] as const),
-    billing_address_collection: "required",
-    tax_id_collection: Object.freeze({ enabled: true as const }),
+    billing_address_collection: "auto",
+    tax_id_collection: Object.freeze({ enabled: false as const }),
     automatic_tax: Object.freeze({ enabled: false as const }),
     phone_number_collection: Object.freeze({ enabled: false as const }),
     custom_fields: Object.freeze([] as const),

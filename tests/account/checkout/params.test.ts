@@ -44,13 +44,13 @@ describe('REQ-022 c4 — "it is €49 in euro — the same amount and the same c
   });
 });
 
-describe('REQ-022 c5/c6 — the country is collected and the VAT field exists', () => {
-  it("billing_address_collection is required", () => {
-    expect(params.billing_address_collection).toBe("required");
+describe("checkout asks for the card details and the email, and nothing else is required", () => {
+  it("the billing address is asked only where Stripe needs it", () => {
+    expect(params.billing_address_collection).toBe("auto");
   });
 
-  it("tax_id_collection is enabled", () => {
-    expect(params.tax_id_collection.enabled).toBe(true);
+  it("no tax ID field, so no 'purchasing as a business' tick", () => {
+    expect(params.tax_id_collection.enabled).toBe(false);
   });
 
   it("no country allow-list or block-list exists on this object", () => {

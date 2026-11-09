@@ -1,14 +1,10 @@
 // src/lib/account/checkout/record.ts — BUILD §13
 //
-// The billing country and the VAT number a completed session collected,
+// The billing country and the VAT number a completed session carries,
 // written onto the buyer's billing record — and nothing else written at all.
 //
-// §13, on the tax ruling: "collect the buyer's country (Stripe does
-// automatically) and VAT ID field on, so the records exist when
-// registration is set up." A record that was never captured cannot be
-// reconstructed later, which is the whole reason these two are read off the
-// session before provisioning rather than looked up when registration
-// happens.
+// Checkout requires neither (docs/spec/decisions/2026-11-09-2526.md), so each
+// is null where Stripe gave none, and an account opens either way.
 //
 // **Both values are recorded exactly as they arrived.**
 //   · The country is the two letters Stripe reported. Never re-cased, never

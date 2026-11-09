@@ -11,6 +11,7 @@ import { applyEnvFixture } from "../../mail/env-fixture";
 applyEnvFixture();
 
 const { recordCheckoutFacts } = await import("@/lib/account/checkout/record");
+const { provisionFromPayment } = await import("@/lib/account/provisioning/provision");
 const { setStripe } = await import("@/lib/account/stripe/client");
 const { setAccountStore } = await import("@/lib/account/store");
 const { memoryAccountStore, newMemoryAccounts } = await import("../memory-store");
@@ -58,6 +59,12 @@ describe('REQ-022 c5 — "the country of the billing address they gave at checko
     );
     const result = await recordCheckoutFacts("cs_one");
     expect(result.ok && result.facts.billingCountry).toBe("ie");
+  });
+
+  it("a session with no address and no tax ID provisions the account with both null", async () => {
+    vendor.sessions.set("cs_one", completedSession({ customer_details: { email: "founder@acme.example" }, metadata: {} }));
+    expect((await provisionFromPayment("cs_one")).created).toBe(true);
+    expect(accounts.users[0]).toMatchObject({ billing_country: null, vat_number: null });
   });
 
   it("a session with no country recorded lands as null, not a guess", async () => {
