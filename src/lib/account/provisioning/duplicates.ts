@@ -6,7 +6,7 @@
 //
 // **Replay** — the same session delivered twice. An at-least-once webhook
 // does this routinely. Nothing was bought twice, so: no mail, no sign-in
-// link, no deep pass, no write. The `users_checkout_session_id_key`
+// link, no write. The `users_checkout_session_id_key`
 // constraint is what noticed, and the right response to it is to do
 // nothing at all.
 //
@@ -21,7 +21,7 @@
 //   2. Send exactly one `account` mail saying it bought no second
 //      subscription, naming one way to reach a person — the person who
 //      refunds it.
-//   3. Send no sign-in link and queue no deep pass. They have both already.
+//   3. Send no sign-in link. They have one already.
 //
 // Cancelling is deliberately attempted before the mail: a mail that says
 // "this bought you nothing" while a second subscription quietly renews is

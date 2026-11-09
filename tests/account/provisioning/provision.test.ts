@@ -1,10 +1,8 @@
 // tests/account/provisioning/provision.test.ts — BUILD §13, issue #33
 //
 // §13's own sentence, in order: "upsert user, create site (domain null if
-// scanless — asked at setup), stamp lead converted, queue deep pass, send
-// magic link → /setup." This suite asserts each clause and the order the
-// two time-bound ones stand in — the link before the pass, because REQ-024
-// criterion 1 gives the link 60 seconds and a deep pass is minutes.
+// scanless — asked at setup), stamp lead converted, send magic link →
+// /setup." This suite asserts each clause.
 //
 // The sign-in link arrives through its registered issuer, which is issue
 // #35's to supply. Both states are exercised: an issuer registered (the
@@ -17,9 +15,14 @@ applyEnvFixture();
 
 vi.mock("@/lib/mail/send", () => sendMock());
 
+// Setup starts the onboarding pass once rivals are confirmed; a payment must not.
+const jobEvents: string[] = [];
+vi.mock("@/jobs/client", async () =>
+  (await import("../../journeys/harness")).jobsClient((name) => void jobEvents.push(name))
+);
+
 const { provisionFromPayment } = await import("@/lib/account/provisioning/provision");
 const { registerSignInLinkIssuer } = await import("@/lib/account/provisioning/sign-in-link");
-const { registerDeepPassQueue } = await import("@/lib/account/provisioning/deep-pass");
 const { setStripe } = await import("@/lib/account/stripe/client");
 const { setAccountStore } = await import("@/lib/account/store");
 const { setLeadStore } = await import("@/lib/mail/leads/store");
@@ -49,6 +52,7 @@ function completedSession(patch: Record<string, unknown> = {}) {
 
 beforeEach(() => {
   happened = [];
+  jobEvents.length = 0;
   accounts = newMemoryAccounts();
   accounts.scans.set("scan-done", { status: "done", domain: "acme.example" });
   accounts.leads.push({ email: "Founder@Acme.example", converted_at: null });
@@ -65,14 +69,10 @@ beforeEach(() => {
     happened.push(`link:${a.to}`);
     return { issued: true, url: "https://reachkit.example/signin?t=tok", expiresAt: new Date() };
   });
-  registerDeepPassQueue(async (request) => {
-    happened.push(`deep-pass:${request.domain}`);
-  });
 });
 
 afterEach(() => {
   registerSignInLinkIssuer(null);
-  registerDeepPassQueue(null);
   setLeadStore(null);
   vi.restoreAllMocks();
 });
@@ -115,25 +115,10 @@ describe('REQ-024 c1 — "a sign-in link to setup is sent to the address that pa
     expect(result.signIn).toEqual({ sent: true });
   });
 
-  it("the deep pass is queued after the link, never before it", async () => {
-    await provisionFromPayment("cs_one");
-    const link = happened.indexOf("link:founder@acme.example");
-    const pass = happened.findIndex((step) => step.startsWith("deep-pass:"));
-    expect(link).toBeGreaterThanOrEqual(0);
-    expect(pass).toBeGreaterThan(link);
-  });
-
-  it("the deep pass is never awaited — provisioning returns while it hangs", async () => {
-    let release = () => {};
-    registerDeepPassQueue(
-      () =>
-        new Promise<void>((resolve) => {
-          release = resolve;
-        })
-    );
-    // A queue that never settles must not hold the founder's account open.
-    await expect(provisionFromPayment("cs_one")).resolves.toMatchObject({ created: true });
-    release();
+  it("a report purchase opens the user, the site and the link, and starts no scan/run", async () => {
+    await expect(provisionFromPayment("cs_one")).resolves.toMatchObject({ created: true, signIn: { sent: true } });
+    expect(accounts.sites).toHaveLength(1);
+    expect(jobEvents).not.toContain("scan/run");
   });
 
   it("no credential of any other kind is created — no password column is written", async () => {
@@ -160,12 +145,6 @@ describe('§13 — "create site (domain null if scanless — asked at setup)"', 
     vendor.sessions.set("cs_one", completedSession({ metadata: { originKind: "pricing" } }));
     await provisionFromPayment("cs_one");
     expect(accounts.sites[0]).toMatchObject({ domain: null, provisioned_from_scan_id: null });
-  });
-
-  it("and queues no deep pass — there is nothing to run it against yet", async () => {
-    vendor.sessions.set("cs_one", completedSession({ metadata: { originKind: "pricing" } }));
-    await provisionFromPayment("cs_one");
-    expect(happened.some((step) => step.startsWith("deep-pass:"))).toBe(false);
   });
 
   it("and takes no domain from the address they paid with (REQ-021 c7)", async () => {

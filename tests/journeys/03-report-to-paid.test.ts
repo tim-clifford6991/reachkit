@@ -40,12 +40,9 @@
 // would not compose and the founder could not be observed getting in. The
 // debt is asserted where it belongs; here each key resolves to itself.
 //
-// **The deep pass is queued and not run.** REQ-024 c1 gives the sign-in
-// link 60 seconds from the charge and a deep pass is minutes of vendor
-// work, so this journey ends where §13 ends — at `/setup`, with the pass
-// on the queue. Running it is journey 04's. That is also why this path
-// writes no `fetches` row: nothing on it spends, and the one thing that
-// will spend has not started.
+// **The deep pass is not started here.** This journey ends where §13 ends —
+// at `/setup`. Setup starts the pass; running it is journey 04's. That is
+// why this path writes no `fetches` row: nothing on it spends.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { captureMail } from "./harness";
 import { createHmac } from "node:crypto";
@@ -113,9 +110,6 @@ const { setIdentityStore } = await import("../../src/lib/account/identity/store"
 const { setIdentityAuth } = await import("../../src/lib/account/identity/auth");
 const { deadLinkPath } = await import("../../src/lib/account/identity/addresses");
 const { unwireSignInLinkIssuer } = await import("../../src/lib/account/identity/wire");
-const { registerDeepPassQueue } = await import(
-  "../../src/lib/account/provisioning/deep-pass"
-);
 const { setLeadStore } = await import("../../src/lib/mail/leads/store");
 const { __setVendorTransportForTesting } = await import("../../src/lib/mail/vendor/resend");
 const { MAIL_KINDS } = await import("../../src/lib/mail/kinds");
@@ -147,7 +141,6 @@ let auth: FakeAuthState;
 let billing: MemoryBilling;
 let leads: MemoryState;
 let vendor: ReturnType<typeof newStripeDouble>;
-let deepPasses: { siteId: string; domain: string }[];
 
 interface SentMail {
   to: string[];
@@ -247,7 +240,6 @@ function theBuyerPays(sessionId: string): void {
 beforeEach(async () => {
   db.reset();
   inbox.length = 0;
-  deepPasses = [];
 
   accounts = newMemoryAccounts();
   accounts.scans.set(SCAN_ID, { status: "done", domain: DOMAIN });
@@ -284,8 +276,6 @@ beforeEach(async () => {
   vendor = newStripeDouble();
   setStripe(verifyingStripe());
 
-  registerDeepPassQueue(async (request) => void deepPasses.push({ ...request }));
-
   await captureMail(inbox);
 });
 
@@ -296,7 +286,6 @@ afterEach(() => {
   setBillingStore(null);
   setLeadStore(null);
   setStripe(null);
-  registerDeepPassQueue(null);
   unwireSignInLinkIssuer();
   __setVendorTransportForTesting(null);
 });
@@ -422,7 +411,6 @@ describe("Start → Checkout → webhook → magic link → /setup (JN-002 steps
     expect(accounts.sites).toHaveLength(1);
     expect(accounts.sites[0]?.domain).toBe(DOMAIN);
     expect(accounts.sites[0]?.provisioned_from_scan_id).toBe(SCAN_ID);
-    expect(deepPasses).toEqual([{ siteId: accounts.sites[0]?.id as string, domain: DOMAIN }]);
   });
 
   it("a report whose checkout is refused comes back to that report with the marker, not to /pricing (#785)", async () => {
@@ -503,7 +491,6 @@ describe("Start → Checkout → webhook → magic link → /setup (JN-002 steps
     expect(accounts.sites).toEqual([]);
     expect(auth.generated).toEqual([]);
     expect(inbox).toEqual([]);
-    expect(deepPasses).toEqual([]);
 
     // The same body, signed, is accepted — so the refusal above was the
     // arithmetic and not the fixture.
@@ -542,9 +529,7 @@ describe("Start → Checkout → webhook → magic link → /setup (JN-002 steps
     expect(leads.suppressions.get(NORMALISED)).toBe("subscribed");
     expect(leads.leads[0]?.sequence_state).toBe("stopped");
 
-    // The deep pass is queued against the site and its domain, and it has
-    // not run: REQ-024 c1's minute belongs to the sign-in link.
-    expect(deepPasses).toEqual([{ siteId: site?.id as string, domain: DOMAIN }]);
+    // Nothing on the payment path spends: no pass has started.
     expect(db.queries.filter((q) => q.table === "fetches")).toEqual([]);
   });
 
@@ -622,7 +607,7 @@ describe("Start → Checkout → webhook → magic link → /setup (JN-002 steps
     expect(setupRedirectFor({ setup: finished, path: SETUP_PATH })).toBe(APP_PATH);
   });
 
-  it("a replayed delivery buys nothing twice: no second account, no second mail, no second pass", async () => {
+  it("a replayed delivery buys nothing twice: no second account and no second mail", async () => {
     const { sessionId } = await untilTheAccountIsOpen();
     const mailsAfterFirst = inbox.length;
 
@@ -633,7 +618,6 @@ describe("Start → Checkout → webhook → magic link → /setup (JN-002 steps
     expect(accounts.sites).toHaveLength(1);
     expect(auth.generated).toHaveLength(1);
     expect(inbox).toHaveLength(mailsAfterFirst);
-    expect(deepPasses).toHaveLength(1);
     // Nothing was charged by anything on this path, either time.
     expect(vendor.chargesCreated).toBe(0);
   });

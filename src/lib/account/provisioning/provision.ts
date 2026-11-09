@@ -4,11 +4,9 @@
 // one running subscription.
 //
 // §13, in order: "upsert user, create site (domain null if scanless — asked
-// at setup), stamp lead converted, queue deep pass, send magic link →
-// /setup." The order here is that order with one thing moved: the link is
-// issued and the mail sent *before* the deep pass is queued, because
-// REQ-024 criterion 1 gives the link 60 seconds from the charge and a deep
-// pass is minutes of vendor work. The pass is queued and never awaited.
+// at setup), stamp lead converted, send magic link → /setup." The onboarding
+// deep pass is not started here: setup's Check and finish send it, once the
+// founder has confirmed their rivals, under the `setup-${siteId}` key.
 //
 // **Two idempotency keys, and they mean different things.**
 //   · `users.checkout_session_id` — this payment, seen before. A replay.
@@ -22,9 +20,8 @@
 // **Nothing here fabricates a domain.** The site's domain is the one the
 // report behind the purchase measured, read from the scan row that
 // `resolveOrigin` already checked. A scanless purchase makes a site with a
-// null domain (§13's own words) and queues no deep pass — there is nothing
-// to run it against until setup asks for an address (REQ-021 c7), and the
-// payer's email domain is never read as one.
+// null domain (§13's own words) until setup asks for an address
+// (REQ-021 c7), and the payer's email domain is never read as one.
 //
 // **`plan_status` is set at the insert; `paid_through` immediately after
 // it.** ADR-050 makes `users.paid_through` the whole of the access gate,
@@ -38,7 +35,6 @@
 import { recordCheckoutFacts } from "../checkout/record";
 import { capture } from "@/lib/analytics";
 import { accountStore } from "../store";
-import { queueDeepPass } from "./deep-pass";
 import { handleSecondPurchase } from "./duplicates";
 import { convertLead } from "./lead-conversion";
 import { sendSignInLink, type SignInMailOutcome } from "./sign-in-mail";
@@ -80,7 +76,7 @@ export async function provisionFromPayment(sessionId: string): Promise<Provision
 
   if (!inserted.ok && inserted.conflict === "checkout_session_id") {
     // This payment, again. Nothing was bought twice: no mail, no link, no
-    // deep pass, no write.
+    // write.
     const existing = await store.accountByCheckoutSession(sessionId);
     const account = existing.ok ? existing.account : null;
     const site = account === null ? null : await store.siteForAccount(account.id);
@@ -141,14 +137,8 @@ export async function provisionFromPayment(sessionId: string): Promise<Provision
   // 4. The lead converted, and the nurture sequence stopped.
   await convertLead(facts.email, new Date());
 
-  // 5. The sign-in link, before the deep pass, inside REQ-024 c1's minute.
+  // 5. The sign-in link, inside REQ-024 c1's minute.
   const signIn = await sendSignInLink({ userId, email: facts.email });
-
-  // 6. The deep pass, queued and never awaited. A scanless purchase has
-  //    nothing to run one against yet.
-  if (siteId !== null && domain !== null) {
-    void queueDeepPass({ siteId, domain });
-  }
 
   logProvision({ sessionId, outcome: "created" });
   // Issue 336: the second of the three product events. Awaited — this runs
