@@ -1,135 +1,70 @@
 # Runbook — operating ReachKit alone
 
-Operations only: envs, bindings, jobs, kill switch, mail, boot failures, cost ledger, database.
-How work flows is `docs/PROCESS.md`. What the product does is `docs/SPEC.md`. Nothing here is read
-by the running app.
+Only what the code cannot show: vendor dashboard settings, where each secret lives, the box's tools
+and how to put them back, and the deploy, rollback and restore commands. How work flows is
+`docs/PROCESS.md`. What the product does is `docs/SPEC.md`. Nothing here is read by the running app.
 
 ---
 
 ## 1. Landing a change
 
-How a change reaches `main` is `docs/PROCESS.md`: the four gates (`typecheck · lint · unit`,
-`audit`, `schema · RLS`, `no overflow · axe`), then `gh pr merge --squash --delete-branch`
-(or the GitHub UI). A documentation-only pull request merges on a green `audit` alone; the
-browser gate reports success with a reason wherever no screen can change.
-This page starts after the merge.
+A change reaches `main` through the four gates (`typecheck · lint · unit`, `audit`, `schema · RLS`,
+`no overflow · axe`) and GitHub auto-merge (`docs/PROCESS.md` rule 4). This page starts after the
+merge.
 
-2026-10-08  **The guard watches the box** (owner, #1348). `rk-guard` reports low memory,
-swap, load, leaked processes whose directory is gone, and heavy work in the main checkout
-`/root/projects/reachkit`. A layout run, a browser sweep, and a production build on this box
-are the gates and the deploys.
+**The box's own checks.** `scripts/hygiene.mjs` is part of `audit`. The nightly drift-audit run, and
+`rk-hygiene.timer` at 05:30 UTC, open one `[hygiene]` issue when it is red and comment while it stays
+red. The timer runs `/root/ops/reachkit/bin/hygiene.sh`, which runs that script with `--box`; its log
+is `/root/ops/reachkit/log/hygiene.log`. `rk-guard` (`/root/ops/reachkit/bin/resource-guard.sh`)
+reports low memory, swap, load, leaked processes and heavy work in the main checkout. `node
+scripts/box.mjs` (`npm run box`) reports worktrees and leftovers by hand; `--clean` never removes a
+worktree.
 
-2026-10-08  **Hygiene runs every day** (owner). `scripts/hygiene.mjs` is part of the
-`audit` gate. On a pull request a finding fails the check. The nightly drift-audit
-run, and `rk-hygiene.timer` at 05:30 UTC, file one open issue titled `[hygiene]` when
-the check is red and comment on it when it is still red. The timer runs
-`/root/ops/reachkit/bin/hygiene.sh`, which executes that script with `--box` so the
-template, the units, and `/root/ops/reachkit` are included. The shell file only finds
-the script. The log is `/root/ops/reachkit/log/hygiene.log`. A green run changes nothing.
+**Deploys.** `rk-deployer` (`/root/ops/reachkit/bin/deployer.sh`) deploys every SHA of `main` to dev,
+runs `scripts/smoke.sh --free` against it, and takes a SHA to production only once that check reads
+`pass` (`state/dev-check.<sha>`), with no batching (owner 2026-10-31, `PROD_EVERY_S=0`). Once
+production is Ready it `PUT`s `https://reachkit.app/api/jobs` to sync Inngest and runs the same check
+against production (`state/prod-check.last`). A red check files or comments on one
+`[deploy] production check red` issue. The box's changes to these scripts are the patches in
+`docs/ops/` (with dry cases `deployer-dry.sh` and `redeploy-dry.sh`); to recreate a script, apply them
+in date order.
 
-2026-10-15  **The box folders are checked by hand** (owner, #1463). `node scripts/box.mjs`
-reports worktrees and leftovers. `node scripts/box.mjs --clean` removes only an empty
-directory on its list, a loadgen folder that holds a Next cache, and a closed-sessions
-spreadsheet. It leaves every worktree, including a dirty one. It is not on the timer
-and it is not a gate.
+| Command | Does |
+|---|---|
+| `bash /root/ops/reachkit/bin/deploy-dev-once.sh` | deploys the tip of `main` to dev, when dev has not moved after a merge |
+| `bash /root/ops/reachkit/bin/redeploy.sh --reason "<why>"` | deploys main's head to production by hand; refuses (exit 3) while `state/deploy-prod.inflight` is under 30 min old |
 
-Dev (`dev.reachkit.app`) deploys from `main` via `rk-deployer`. If it has not moved after a
-merge, run `bash /root/ops/reachkit/bin/deploy-dev-once.sh`. Production takes each SHA as soon as
-its dev check passes, with no batching and no window (owner 2026-10-31, `PROD_EVERY_S=0`), and
-receives every merge, the same as dev (no freeze, owner 2026-09-17, #844). The production smoke
-prints the first byte of `/`, `/pricing`, `/signin`, `/app` and `/api/health`, cold and warm, on
-every deploy, against the `FIRST_BYTE_BUDGET_MS` pins (#2483).
-2026-10-24 (E3, #1959): production is held only while the free dev check is red. Once a dev build is
-Ready, the deployer runs `scripts/smoke.sh --free` against it. The check sends GETs only and spends
-nothing. It runs from a detached tree at that SHA and writes `state/dev-check.<sha>`. Production
-takes a SHA only when that file reads `pass`. Once production is Ready and Inngest is synced, the
-same check runs against `reachkit.app` and writes `state/prod-check.last`. A red check, or a hold,
-files one `[deploy] production check red` issue, or comments on the open one. After a red check,
-the next window deploys without the two-hour spacing. A failed build is retried, at most twice per
-SHA. The Ready poll runs in its own unit (`rk-deploy-sync-<id>`), so a deployer restart cannot stop
-the Inngest sync. On start, the deployer polls again any production deploy it accepted in the last
-2 h that has no sync line. Still roll forward only. The box patch is `docs/ops/deployer.sh.patch`.
-2026-10-24 (E3, #2063): production takes the newest first-parent commit of `main` after
-`deploy-prod.sha` whose dev check passed, below 2 tries, not only the head, so a busy merge day no
-longer starves it. Each deploy names its SHA (`gitSource.sha`), so a check describes the build it
-names. Box patch `docs/ops/deployer-newest-checked.patch`; dry cases `docs/ops/deployer-dry.sh`.
-2026-10-25 (#2079): `bin/redeploy.sh` refuses, exit 3, while `state/deploy-prod.inflight` is under
-30 min old, builds the head it read by `gitSource.sha`, records that SHA and marks its own build in
-flight; a failed `git fetch` in the deployer is logged. Box patches `docs/ops/redeploy.sh.patch` and
-`docs/ops/deployer-fetch-failed.patch`; dry cases `docs/ops/redeploy-dry.sh`.
-`/api/jobs` is served by production, so a job or pass change takes effect only once production is
-deployed. `Vercel` is not a check: Git deployments are off (`vercel.json` `git.deploymentEnabled: false`).
-
-Every production deploy is one line in `/root/ops/reachkit/state/prod-redeploy.log`, from the
-deployer or from `bin/redeploy.sh`. The line carries the UTC date and time, the target, the full SHA
-it builds, the deployment id, the trigger (`deployer` or `hand`) and the reason. The
-deployer writes `main moved`; `redeploy.sh --reason "<why>"` writes the reason it is given. Both
-write `state/deploy-prod.sha`, the deployer once that deploy is Ready, so it never deploys a
-Ready SHA again. The deployer
-starts production only at :10–:40, so the build is Ready before the hourly jobs fire. Once the
-build is Ready, either script `PUT`s `https://reachkit.app/api/jobs` to sync Inngest and logs
-`inngest sync <code>` against the deployment id.
-
-The owner tests the path live on `dev.reachkit.app` for taste and for the stranger walk. Conditions and screen strategy are already the gates (`docs/PROCESS.md` Coherence, `docs/DESIGN.md`). This live pass is not a second check of those. A merged migration is applied through the
-Supabase connector in the order §9 gives, then the path is walked again
-(`scripts/smoke.sh` / `scripts/land.sh`).
+Every production deploy is one line in `/root/ops/reachkit/state/prod-redeploy.log`: UTC time,
+target, SHA, deployment id, trigger and reason. `state/deploy-prod.sha` is the last Ready production
+SHA. `/api/jobs` is served by production, so a job change takes effect only once production is
+deployed. Vercel's own status on a commit is not a check: Git deployments are off (`vercel.json`
+`git.deploymentEnabled: false`).
 
 ### Rolling back a deploy: we do not
 
-**Roll forward only** — SPEC §2 Roll forward only. A bad production build is fixed by the *next*
-production deploy: a revert commit merged to `main` and deployed like any other change. Production
-is never pointed back at an earlier build.
+**Roll forward only** (SPEC §2 Roll forward only). A bad production build is fixed by a revert commit on `main`,
+deployed like any other change. A stored report lifts forward only (`src/lib/scan/report.ts`), so an
+older build put back on `reachkit.app` fails on every report a newer build wrote.
 
-That is not a preference, it is what the stored report format allows. A report blob carries the
-version of the build that wrote it, and `src/lib/scan/report.ts` lifts a blob **forward only** —
-`upgradeFromVersion3` … `upgradeFromVersion9`, chained, with nothing going the other way.
-`readStoredReport` throws `stored report version N is not readable by this build (expected M)` on a
-blob it cannot lift, and that includes every blob written by a *newer* build. So an older build put
-back on `reachkit.app` does not degrade on a newer report; it fails on it. Of the nine call sites
-that read a stored report, three catch (the lead-mail offer reader and page writer, the Monday
-market digest) and degrade to "could not read"; the other six — the Overview, opportunities,
-verdicts, both weekly readers, the draft generator — let it throw, as do `readCurrentReport` and
-`readScanReport`. The owner met exactly this on 2026-09-17: *"stored report version 9 is not
-readable by this build (expected 6)"*, which is what made a frozen production look like a broken
-app.
+No script on the box takes a SHA, a ref or a deployment id, so none can put an older build on
+production. Vercel can (the dashboard's promote control, `vercel rollback`, `vercel promote`), and
+that door stays shut by decision, not by a guard. A build that fails is never aliased, so a failed
+deploy is not a rollback.
 
-`REPORT_VERSION` is **10** today and has risen most weeks. The set of builds production could
-safely be pointed back at is therefore only those since the last bump, and that set empties at the
-next one, silently. Nothing in a deploy checks it.
-
-**What can hand you a rollback, and what cannot:**
-
-| | |
-|---|---|
-| `bin/redeploy.sh --reason "<why>"`, `bin/deploy-dev-once.sh`, `bin/deployer.sh` | **Cannot.** `deploy-dev-once.sh` POSTs `gitSource.ref: "main"`, the tip of `main` at the moment of the call. `redeploy.sh` adds `gitSource.sha`: main's head as it read it. The deployer adds `gitSource.sha`: main's head, or a commit of `main` newer than `deploy-prod.sha`. None takes a SHA, a ref or a deployment id as an argument, so no script on this box can put an older build on `reachkit.app` |
-| Vercel — the dashboard's rollback/promote control, `vercel rollback`, `vercel promote`, `POST /v1/projects/{id}/rollback/{dpl}`, `POST /v10/projects/{id}/promote/{dpl}` | **Can.** Production deployments are retained and the previous one is flagged a rollback candidate; promoting it re-aliases `reachkit.app` with no rebuild, in one click. Nothing prevents it. This door stays shut by decision, not by a guard — do not walk through it |
-| A deploy that fails to build | **Not a rollback at all.** A failed build is never aliased: `reachkit.app` keeps serving the build it already had. Nothing was reverted because nothing was replaced |
-
-**So when production is broken:** `KILL_SWITCH` (§5) first if it is spending or writing wrongly,
-then a revert commit on `main`, then a deploy. Reverting the *code* does not revert the *blobs* an
-intervening build already wrote — if the break is in what a pass stored, that is a data problem and
-§9 is the page for it.
-
-Supporting a real rollback was costed and declined under #887: `readStoredReport` would have to
-tolerate a newer blob by reading only the members it understands, every one of its ~30 members
-would need a not-present arm at every reader, and every future version bump would have to state
-what an older build silently loses. It buys back one click that has never been needed.
+**When production is broken:** `KILL_SWITCH` (§5) first if it is spending or writing wrongly, then a
+revert on `main`, then a deploy. Reverting code does not revert what a build already stored; that is
+§9.
 
 ### Where CI runs
 
-Owner, 2026-10-22: the repository is public, so every job runs on GitHub-hosted `ubuntu-latest`,
-which public repositories get without a minutes cap. A self-hosted runner on a public repository
-would run a fork's pull request on this box, so all three box runners (`reachkit-box`,
-`reachkit-light`, `reachkit-light-2`) are deregistered from the repository, not only stopped, and
-the variables `CI_LIGHT_RUNNER` and `CI_BROWSER_ON_BOX` are deleted. The `rk-ci-switch` and
-`rk-runner-watchdog` timers are already disabled. A pull request from a fork waits for approval
-before any workflow runs (`all_external_contributors`), and the default token is read-only. No
-variable chooses a runner; `runs-on` is written in each workflow. Where no screen can change
-(`scripts/ci-changes.mjs`), the browser job prints its reason and passes. `Nightly`
-(`.github/workflows/layout-nightly.yml`) runs every job on `main` at 02:41 UTC; a red run opens or
-comments on one issue titled `[nightly] full run on main is red`.
+The repository is public (owner, 2026-10-22), so every job runs on GitHub-hosted `ubuntu-latest`.
+The box runners are deregistered from the repository, and no variable chooses a runner. A pull
+request from a fork waits for approval, and the default token is read-only. `Nightly`
+(`.github/workflows/layout-nightly.yml`) runs every job on `main` at 02:41 UTC and opens or comments
+on one `[nightly] full run on main is red` issue.
 
 Never register a self-hosted runner on this repository while it is public.
+`gh api repos/tim-clifford6991/reachkit/actions/runners` must read `total_count: 0`.
 
 ---
 
@@ -138,98 +73,94 @@ Never register a self-hosted runner on this repository while it is public.
 | | |
 |---|---|
 | Rule | one Vercel project, one Supabase project, one set of bindings (owner, 2026-09-08) — no duplicate projects, environments or databases |
-| Vercel | team `timclifford` (`team_lFEcKlyuKD5risdEnak7iRIm`), **Pro plan** since 2026-11-07 (#2477; Hobby before, with 100 deployments a day); project **`reachkit`** (`prj_QJUivDYYshplvV0enuc2oZNIjcnd`), Git-linked to `tim-clifford6991/reachkit`, production branch `main`, Node 24, Next.js preset, no root directory |
+| Vercel | team `timclifford` (`team_lFEcKlyuKD5risdEnak7iRIm`), **Pro plan** since 2026-11-07 (#2477); project **`reachkit`** (`prj_QJUivDYYshplvV0enuc2oZNIjcnd`), production branch `main`, Node 24, Next.js preset, no root directory. Spend Management (team, Settings, Billing) is the owner's: notify at the amount and do not auto-pause, because a pause is a 402 outage |
 | Production | `reachkit.app` (and `www.`) |
-| Development host | `dev.reachkit.app` — the same project, bound to `main`. It is the URL the owner steers on; it is not a separate environment |
-| Preview | none. Git deployments are off (`vercel.json` `git.deploymentEnabled: false`): every push used to create a cancelled deployment that still counted toward the Hobby quota of the time. The deployer asks for each deployment of `main`; the owner reviews on `dev.reachkit.app` |
-| Database | one Supabase project, `reachkit` (`kleepxxddbcnfsfwudoe`), Postgres 17, us-east-1, **Free plan**. v2's objects sit in schema `v2_archive`, the rollback path (§9). The org is Vercel-Marketplace-managed: uninstalling that integration would delete the org and the database; the exit path is a transfer to a Supabase-managed org |
-| Jobs | Inngest app `reachkit`, registered at `https://reachkit.app/api/jobs` — owed by the owner: create the app, paste the two keys, sync the functions (#315, §4) |
-| Mail | Resend, sending domain `reachkit.app`; `MAIL_FROM` is `hello@reachkit.app` (§6). #325 got the domain sending; DMARC, the return path and one real inbox are `docs/GO-LIVE.md` §2 and #339 |
-| Payments | Stripe: one product `ReachKit`, one €49/month tax-inclusive price bound as `STRIPE_PRICE_ID`; v2's products and prices inactive; webhook `/api/stripe/webhook`; customer portal on. **Production's three Stripe bindings are live-mode values**; the preview target, which `dev.reachkit.app` answers on, carries the test-mode trio and its own test webhook. No live payment has completed yet: what remains is `docs/GO-LIVE.md` §1.1. Dashboard → Developers → Webhooks: the endpoint `{app origin}/api/stripe/webhook` subscribes to exactly the events in `src/lib/account/provisioning/events.ts` (any other answers `400`), and its signing secret is `STRIPE_WEBHOOK_SECRET`. Settings → Business → Branding, in live and in test mode separately (no API sets it for our own account): icon `public/brand/mark-512.png`, logo `public/brand/logo@2x.png`, brand and accent colour `#5b4be0`; Public details → business name `ReachKit`. Settings → Business → Public details → Terms of service = `https://reachkit.app/terms` in both modes (harmless to keep). Checkout sends no terms tick (`consent_collection`): it is off by owner ruling, 2026-11-06/2026-11-07 |
-| Hosted CMS | customers point `content.{their-domain}` at `HOSTED_EDGE_CNAME_TARGET` (`edge.reachkit.app`); per-customer domains are added to the project through the Vercel Domains API (#322) |
+| Development host | `dev.reachkit.app` — the same project, bound to `main`, and the same database. It is where the owner steers; it is not a separate environment |
+| Preview | none; Git deployments are off |
+| Database | one Supabase project, `reachkit` (`kleepxxddbcnfsfwudoe`), Postgres 17, us-east-1, **Free plan**. v2's objects sit in schema `v2_archive`, the rollback path (§9). The org is Vercel-Marketplace-managed: uninstalling that integration would delete the org and the database; the exit path is a transfer to a Supabase-managed org. Free pauses a project after seven idle days; unpause is a button in the Supabase dashboard |
+| Jobs | Inngest app `reachkit`, registered at `https://reachkit.app/api/jobs` |
+| Mail | Resend, sending domain `reachkit.app`; `MAIL_FROM` is `hello@reachkit.app` (§6) |
+| Payments | Stripe: one product `ReachKit`, one €49/month tax-inclusive price bound as `STRIPE_PRICE_ID`, Stripe Tax off; webhook `/api/stripe/webhook`; customer portal on. Production's three Stripe bindings are live-mode values; the preview target, which `dev.reachkit.app` answers on, carries the test-mode trio and its own test webhook |
+| Hosted CMS | customers point `content.{their-domain}` at `HOSTED_EDGE_CNAME_TARGET` (`edge.reachkit.app`); per-customer domains are added through the Vercel Domains API. The dogfood's hosted host is `content.reachkit.app` (owner, #1045), attached only through the product's own Check, never by hand |
 | Local | `npm run dev` on `http://localhost:3000`, bindings from `.env.local` (names in `.env.example`) |
 
-2026-10-02  **The dogfood's hosted host is `content.reachkit.app`** (owner, #1045: "fix this to be content.reachkit.app for dogfooding purposes"). Its destination row (`9fae8a2d…`, site `reachkit.app`) is re-pointed from the preview-only `reachkit-hosted-test.vercel.app` with one SQL update through the Supabase connector, because no product path changes an existing hosted host: `hostname = 'content.reachkit.app'`, `hostname_state = 'pending_dns'`, `hostname_checked_at = null`. The row keeps its id, so its publications stay attached. The host is then attached to the project only through the product's own code (`checkHostnameNow` → `addProjectDomain`, the Settings › Publishing Check), never by hand in the Vercel dashboard, so the path is proven.
+### Stripe dashboard
 
-**The Supabase Free plan pauses a project after seven idle days.** The hourly job ticks keep it
-awake once Inngest is registered (#315); until then, an untouched week pauses the database and
-every page 500s. Unpause is a button in the Supabase dashboard.
+Each setting is the owner's, in live and in test mode separately unless it says otherwise.
+
+- **Developers → Webhooks:** the endpoint `{app origin}/api/stripe/webhook` subscribes to exactly the
+  events in `src/lib/account/provisioning/events.ts` (any other answers `400`); its signing secret is
+  `STRIPE_WEBHOOK_SECRET`.
+- **The price:** `unit_amount 4900` · `eur` · `month` · `tax_behavior inclusive`, the four fields
+  `scripts/check-price.mjs` compares on every build. They are immutable on a Stripe price: a wrong
+  one is fixed with a new price, never an edit.
+- **The three Stripe bindings move together.** `STRIPE_SECRET_KEY`, `STRIPE_PRICE_ID` and
+  `STRIPE_WEBHOOK_SECRET` are replaced as one, on both targets, then redeployed. A live key with a
+  test price fails the build; a crossed webhook secret is silent until a payment's webhook answers
+  `400` with `{"event":"stripe_webhook","outcome":"signature"}`, and the account opens a day late
+  from the provisioning backstop.
+- **Settings → Business → Branding:** icon `public/brand/mark-512.png`, logo
+  `public/brand/logo@2x.png`, brand and accent colour `#5b4be0`. **Public details:** business name
+  `ReachKit`, and Terms of service `https://reachkit.app/terms`. Checkout sends no terms tick
+  (`consent_collection`), by owner ruling 2026-11-06/2026-11-07.
+- **Settings → Customer emails:** whether Stripe mails the paying customer an invoice and receipt.
+  Stripe sends none in test mode, and ReachKit sends no receipt of its own. The API cannot read it.
+- **The customer portal** configures itself from `PORTAL_FEATURES` on first use; do not edit it in
+  the dashboard.
+- Two v2 prices are still `active` on archived products ("Solo Monthly €59", "Growth Monthly €129").
+  Nothing binds them; deactivating them is a dashboard act.
+
+### The first live payment
+
+One payment on a real card, watching the production runtime log, in order:
+
+1. `{"event":"stripe_webhook","outcome":"provision","type":"checkout.session.completed"}`.
+   `"outcome":"signature"` instead means the webhook secret is crossed.
+2. `{"event":"provision","outcome":"created"}`.
+3. The `users` row: the paying address, `stripe_customer_id`, `checkout_session_id`, and a
+   `paid_through` about a month out. One still on the column's default means the subscription could
+   not be read: look for `{"event":"billing_open_subscription","outcome":"vendor"}`.
+4. The sign-in mail, in a real inbox.
+5. `{"event":"provisioning_backstop_fired"}` **must not appear**: it means the payment was rescued a
+   day late.
+
+ReachKit refunds nothing by itself (owner, 2026-11-06, #2448). A refund made by hand is three
+dashboard acts, in `docs/walk/refund.md`.
 
 ---
 
 ## 3. The bindings
 
-`src/lib/config/env.ts` is the schema, and it is the authority: **a missing or malformed binding
-is a boot failure, not a runtime `undefined`.** There is no default and no fallback anywhere in
-it, so a deployment cannot start half-configured. `.env.example` lists every name with a blank
-value; a real credential in that file is a defect (`tests/app/env-example.test.ts`).
+`src/lib/config/env.ts` is the schema: a missing or malformed binding is a boot failure, and
+`.env.example` lists every name with a blank value. The owner pastes every value in the Vercel
+dashboard, on **both** the production and the preview target; a target missing one cannot build.
+Sensitive rows are write-only. Agents never see a value.
 
-**Who sets each.** The owner pastes every secret and every plain row in the Vercel dashboard
-(production and preview). Sensitive rows are write-only. **Every binding must exist on both
-targets**; a target missing one cannot build.
+| Where it lives | Names |
+|---|---|
+| Vercel, both targets | `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_ID`, `RESEND_API_KEY`, `MAIL_FROM`, `DATAFORSEO_LOGIN`, `DATAFORSEO_PASSWORD`, `ANTHROPIC_API_KEY`, `NANO_API_KEY`, `INNGEST_SIGNING_KEY`, `INNGEST_EVENT_KEY`, `IP_HASH_SALT`, `KILL_SWITCH`, `OWNER_EMAILS`, `NEXT_PUBLIC_APP_URL`, `HOSTED_EDGE_CNAME_TARGET`, `VERCEL_API_TOKEN`, `VERCEL_PROJECT_ID`, `VERCEL_TEAM_ID`, `POSTHOG_API_KEY`, `POSTHOG_HOST`, `ANTHROPIC_ADMIN_KEY` (optional) |
+| Vercel, dev and preview only | `HOSTED_TEST_HOST` (ignored on production) |
+| The owner's shell only, never Vercel | `DATABASE_URL` (Supabase → Project Settings → Database) |
+| Nowhere | `RK_FIXED_NOW`, a test fixture; a real deployment refuses to boot with it |
+| The box, `/root/projects/reachkit/.env.local` | the keys box scripts read (`scripts/vendor-snapshot.mjs`, `npm run costs`); its `SUPABASE_*` are placeholders |
 
-Twenty-four names are in the schema. Two more sit outside it, for stated reasons.
-
-| Binding | What it is for | Server-only | Notes |
-|---|---|---|---|
-| `SUPABASE_URL` | the project's REST origin | | must parse as a URL |
-| `SUPABASE_ANON_KEY` | the browser's key, RLS-bound | | |
-| `SUPABASE_SERVICE_ROLE_KEY` | `dbAdmin()`'s key, bypasses RLS | ● | reading it from a client bundle throws |
-| `STRIPE_SECRET_KEY` | the API key | ● | |
-| `STRIPE_WEBHOOK_SECRET` | verifies `/api/stripe/webhook` | | |
-| `STRIPE_PRICE_ID` | the one €49/month tax-inclusive price | | checked against the spec by the build — §7 |
-| `RESEND_API_KEY` | mail transport | ● | |
-| `MAIL_FROM` | the mailbox every ReachKit mail comes from | | must be an address, at a verified Resend sending domain, and read by somebody — §6 |
-| `DATAFORSEO_LOGIN` | vendor identity | | |
-| `DATAFORSEO_PASSWORD` | vendor secret | ● | |
-| `ANTHROPIC_API_KEY` | inference | ● | |
-| `NANO_API_KEY` | the cheap tier's key | ● | the schema's one optional member; absent, it resolves to `ANTHROPIC_API_KEY` before any caller sees it |
-| `INNGEST_SIGNING_KEY` | proves a delivery to `/api/jobs` came from the platform | ● | optional in the schema, required of a real deployment by the boot invariant |
-| `INNGEST_EVENT_KEY` | puts work on the queue | ● | same |
-| `IP_HASH_SALT` | the free path's per-IP hashing | ● | a fresh random value per environment |
-| `KILL_SWITCH` | boolean-ish; §5 | | `false` in normal operation |
-| `OWNER_EMAILS` | comma-separated; the only recipient of ops mail | | each entry must be an address |
-| `NEXT_PUBLIC_APP_URL` | the app's own origin | | must parse |
-| `HOSTED_EDGE_CNAME_TARGET` | what a customer points `content.{their-domain}` at | | `edge.reachkit.app` |
-| `VERCEL_API_TOKEN` | adds a customer's hosted host to the project's domain list and reads back whether it is verified (`src/lib/vendors/vercel/domains.ts`) | ● | optional in the schema, **required for any hosted host to reach "live"**. Absent, setup's save and the scheduled pass attach nothing, and the founder's "check connection" press answers "could not ask" (#757). **It must be scoped to the team `timclifford`**: a token of another scope is answered 403 even with `VERCEL_TEAM_ID` set. On production and preview since 2026-09-23, replaced by a team-scoped token on 2026-10-02 (#1045) |
-| `VERCEL_PROJECT_ID` | the project those hosts are added to | | same: optional in the schema, required with the token. An identifier, not a secret |
-| `VERCEL_TEAM_ID` | the team that owns the project (`team_lFEcKlyuKD5risdEnak7iRIm`), sent as `?teamId=` on every Domains API call | | optional in the schema, **required with the token for this team-owned project**: without it the vendor answered 403 to every attach on production (2026-10-02, #1045). Set on production and preview 2026-10-02. An identifier, not a secret |
-| `POSTHOG_API_KEY` | product analytics ingestion — the three events of issue 336 | ● | optional; absent, nothing is captured |
-| `POSTHOG_HOST` | the PostHog region's ingestion host | | optional; defaults to `https://us.i.posthog.com` |
-| `HOSTED_TEST_HOST` | one generated `*.vercel.app` host the middleware serves as a customer's hosted blog, so hosted publishing can be walked with no domain (#762) | | **a dev/preview testing aid only.** Optional; exact host, no pattern. Ignored when `VERCEL_ENV` is `production` and when it equals `NEXT_PUBLIC_APP_URL`'s host. A destination row whose hostname is this host is what it resolves to |
-| `DATABASE_URL` | migration and test tooling only | — | no module under `src/` reads it; **never bound in Vercel** |
-| `RK_FIXED_NOW` | a test fixture | — | **never set in any Vercel environment**; a real deployment refuses to boot with it — §7 |
-
-*(The issue that asked for this page said "the 17 bindings" — that was the count before #315 added
-the two Inngest keys and #81 added `MAIL_FROM`. The table above is the current set.)*
+`VERCEL_API_TOKEN` must be scoped to the team `timclifford`; a token of another scope is answered 403
+even with `VERCEL_TEAM_ID` set. `IP_HASH_SALT` is a fresh random value per environment.
 
 ### Rotating a secret
 
-The same six steps for every sensitive row. Nothing here is ever pasted into a shell that logs, a
-PR, an issue, or a message to an agent — **agents never see these values.**
-
 1. **Mint the new value at the vendor** (Stripe → API keys, Supabase → project API keys, Resend →
    API keys, DataForSEO → API access, Anthropic → API keys, Inngest → the app's keys). Where the
-   vendor supports two live keys at once, create the new one before revoking the old.
-2. **Paste it into Vercel** on **both** the production and the preview target, in the project's
-   Environment Variables. Sensitive rows are write-only: the API never reads one back, so a typo
-   is invisible until boot.
-3. **Redeploy.** A binding is read once, at module load. An existing instance keeps the old value
-   until it is replaced — redeploy `main` from the Vercel dashboard, or land the next PR.
-4. **Watch the boot.** The deployment's runtime log carries one line per invariant,
-   `{"event":"boot_invariants","check":"…","outcome":"checked"}`. A deployment that took the new
-   value serves; one that did not fails at the door with the name of the binding — §7.
-5. **Exercise the vendor once.** Stripe: open the customer portal from `/app/settings`. Resend:
-   the vendor's own dashboard shows the send. Supabase: any signed-in page. DataForSEO and
-   Anthropic: one free scan of any domain exercises both.
-6. **Revoke the old value at the vendor**, and only then. Rotating `SUPABASE_SERVICE_ROLE_KEY` or
-   `IP_HASH_SALT` has a consequence beyond the key: the service-role key is what every job and
-   every admin read uses, so a wrong one takes the whole product down rather than one feature; and
-   `IP_HASH_SALT` is the salt the free path's per-IP counters are keyed by, so changing it resets
-   every rate-limit bucket at once. Rotate it deliberately, not on a schedule.
-
-`STRIPE_PRICE_ID` is not a secret and is not rotated — it is repointed, and the boot invariant in
-§7 refuses a price that does not match the spec.
+   vendor allows two live keys, create the new one before revoking the old.
+2. **Paste it into Vercel** on **both** targets.
+3. **Redeploy.** A binding is read once, at module load.
+4. **Watch the boot:** one `{"event":"boot_invariants","check":"…","outcome":"checked"}` line per
+   check; a failure names the binding (§7).
+5. **Exercise the vendor once.** Stripe: open the customer portal from `/app/settings`. Resend: the
+   vendor's dashboard shows the send. Supabase: any signed-in page. DataForSEO and Anthropic: one
+   free scan.
+6. **Revoke the old value at the vendor**, and only then. A wrong `SUPABASE_SERVICE_ROLE_KEY` takes
+   the whole product down, and changing `IP_HASH_SALT` resets every free-scan rate limit at once.
 
 ---
 
@@ -874,346 +805,101 @@ to `.review/walk/free/<date>.json` and `<date>.md`. A second run on a date adds 
 | `--date YYYY-MM-DD` | The run's result files. Default today. |
 | `--keep` | Leaves the local database up. |
 
+---
+
 ## 5. The kill switch
 
-`KILL_SWITCH=true` stops the paid work. The scope is closed and named:
-`KILL_SWITCH_SCOPE` in `src/jobs/kill-switch.ts`.
-
-**Stopped:** `scan/run` · `scan/finish-reads` · `draft/generate` · `publish/execute` · `publish/retry`. The guard runs
-before the body — before the first vendor call and before the first write — so a stopped job
-spends nothing and changes nothing.
-
-**Not stopped, deliberately:** `publish/verify` (holding it would leave a page that is already
-published unchecked), `account/maintenance` (holding it would hold a purge, a hosting notice, or
-a paid customer's sign-in link), `lead/nurture`. `weekly/refresh` is not in the scope either, but
-is refused inside its own run (`src/lib/scan/weekly/run.ts`) — the effect is the same, the record
-is a refusal rather than a stop.
-
-The switch is read in four more places besides the job runner, so the door closes as well as the
-engine: free-scan admission refuses with `switched_off` (`src/lib/scan/admission.ts`), the weekly
-run refuses with `kill_switch` (`src/lib/scan/weekly/run.ts`), the publish state machine asks
-`reachKitStopped()` (`src/lib/publish/switch/`), and the report-correction route refuses without
-consuming one of the customer's attempts. The account shell reads the same answer to render the
-stopped notice.
-
-### Flipping it
+`KILL_SWITCH=true` stops the paid work; the scope is `KILL_SWITCH_SCOPE` in
+`src/jobs/kill-switch.ts`. It is not a maintenance mode: sign-in, billing, hosted pages and the
+webhook keep working.
 
 1. Set `KILL_SWITCH` to `true` on **all** Vercel targets.
-2. **Redeploy.** This is the part that is easy to get wrong: the value is read per call but
-   `process.env` is parsed once at module load, so a running instance keeps the old value for its
-   whole life. *A flip is a redeploy.* Until the new instances are serving, the old ones keep
-   spending.
-3. Confirm: a stopped job logs `"outcome":"stopped","by":"kill-switch"`, and the account shell
-   shows the stopped notice.
+2. **Redeploy.** `process.env` is parsed once at module load, so a running instance keeps the old
+   value: *a flip is a redeploy*.
+3. Confirm: a stopped job logs `"outcome":"stopped","by":"kill-switch"`, and the account shell shows
+   the stopped notice.
 
-To release it, the same three steps with `false`.
-
-### What it does not do
-
-- **It writes no row.** There is no table and no column recording an engagement; the record is the
-  log line and nothing else. So there is no history of when it was on, and the release is not
-  observed at all.
-- **The alert mail cannot send.** `reportKillSwitchEngaged()` fires at most once per process, but
-  every sentence of that mail is an owner-owed copy key that is still empty
-  (`mail.ops.spend-ceiling.*` in `src/lib/presentation/copy/keys/mail.ts`). `copy()` refuses an
-  unwritten key, `sendEmail` answers `not-composable`, and the send is logged rather than
-  delivered. **Flipping the switch tells nobody but the log.** Until those keys are written,
-  treat the flip as silent.
-- **It is not a maintenance mode.** Sign-in, the account screens, billing, the hosted pages and
-  the webhook all keep working. It stops work that costs money, and that is all it stops.
+To release it, the same three steps with `false`. The flip writes no row; the log line is the only
+record.
 
 ---
 
 ## 6. Mail
 
-One transport (Resend), one shell, plain-text alternative, no generated prose — `docs/SPEC.md` §8.
+The From is `ReachKit <hello@reachkit.app>` (`MAIL_FROM`), and Reply-To is the same mailbox, which
+must be one somebody reads. Resend's dashboard shows what left; the runtime log shows what did not.
 
-The sending mailbox is `MAIL_FROM`, read at the send in `src/lib/mail/vendor/resend.ts` (#81);
-before that it was derived as `hello@<host of NEXT_PUBLIC_APP_URL>`, which was only ever the right
-address on production. Its domain must be a verified Resend sending domain with SPF, DKIM and
-DMARC in place, or nothing leaves — and the mailbox itself must be one somebody reads:
-`optout.invalid` tells a reader to reply to it and ask to be removed by hand.
+**Resend → Domains → `reachkit.app`, and the DNS zone in Cloudflare** (the owner's):
 
-The From carries the product's name, `ReachKit <hello@reachkit.app>`, and Reply-To is the same mailbox
-(#1568). The sender logo in inboxes (DMARC, BIMI, a mark certificate, or the Google-account fallback)
-and Stripe Checkout's branding (§2 Payments) are owner steps:
+| Record | What to check |
+|---|---|
+| DKIM | `resend._domainkey` TXT published, and Resend shows the domain **Verified** |
+| SPF | the TXT on the return-path subdomain (`send.reachkit.app`) includes `include:amazonses.com`, never a second `v=spf1` on the root |
+| Return path | the MX on `send.reachkit.app` pointing at Resend's feedback host; this is what makes SPF align for DMARC |
+| DMARC | `_dmarc.reachkit.app` = `v=DMARC1; p=none; rua=mailto:hello@reachkit.app; fo=1` since 2026-09-23 (#1043). Once 7 days of `rua` reports are clean, `p=quarantine; pct=100`, then after 14 clean days `p=reject` (#1048). Rollback is `p=none` |
+| BIMI | only after quarantine: TXT `default._bimi` = `v=BIMI1; l=https://reachkit.app/brand/mark-bimi.svg; a=;`. Gmail draws it only with a VMC or CMC (a paid, yearly owner decision), whose PEM goes to `public/brand/bimi.pem` and into `a=` |
+| Inbound | Cloudflare Email Routing (MX `route{1,2,3}.mx.cloudflare.net`) forwards `hello@` to the owner |
 
-- **DMARC**, in Cloudflare DNS for `reachkit.app`: once Gmail's *Show original* reads SPF, DKIM and DMARC `PASS` and 7 days of `rua` reports are clean, edit `_dmarc` to `v=DMARC1; p=quarantine; pct=100; rua=mailto:hello@reachkit.app; fo=1`, then after 14 clean days to `p=reject`. Rollback is `p=none`.
-- **BIMI**, only after quarantine is live: a TXT at `default._bimi` reading `v=BIMI1; l=https://reachkit.app/brand/mark-bimi.svg; a=;`. Gmail draws it only with a VMC or CMC (a paid, yearly owner decision), whose PEM goes to `public/brand/bimi.pem` and into `a=`.
-- **Free fallback**: a Google account on the existing address `hello@reachkit.app`, with `public/brand/mark-512.png` as its photo, visible to Anyone, and 2-Step Verification on.
+The free sender picture is a Google account on `hello@reachkit.app` with `public/brand/mark-512.png`
+as its photo, visible to Anyone, and 2-Step Verification on.
 
-**A mail with an unwritten sentence does not send.** `copy()` refuses an empty key, `sendEmail`
-answers `not-composable`, and the attempt is logged. This is the ruling of 2026-09-05 — a mail
-never ships a placeholder — and it is why the ops alerts in §5 and §7 are currently silent. The
-fix for every one of them is the owner writing the copy key, never a code change.
-
-Failed and unsent mail is visible in two places: Resend's own dashboard for what left, and the
-runtime log for what did not (`event: "spend_alert_failed"`, and the per-kind `*_not_sent` lines).
-
-### Verifying the sign-in link end to end
-
-The only door into the paid product, walked in order. Every observation below is one the browser or
-`curl` shows; nothing here changes a setting. Last walked on dev on 2026-09-22 (#542), which this
-sequence is written from. On dev use `https://dev.reachkit.app`; on production, `https://reachkit.app`.
-
-1. **An account must exist for the address — and the screen will not tell you whether it does.** A
-   link is only ever sent to an address the `users` table already holds
-   (`src/lib/account/provisioning/magic-link.ts`), and the account is created by the payment
-   webhook, never by a form (`docs/SPEC.md` §3). So either complete one checkout at `/pricing` with
-   an `OWNER_EMAILS` address (#319), or confirm the row first: Supabase → Table editor → `users`,
-   one row whose `email` is that address, with an `auth.users` row of the same `id`. Since #718 the
-   sign-in screen answers every address with the same line, so it is not a way to check this.
-2. **Ask for the link.** Open `/signin` on the host under test, type the address into the one field
-   and press **Send my sign-in link**. Expect the screen to turn to **Check your inbox** — *If that
-   address has an account, a sign-in link is on its way.*, the address echoed under it (*sent to …*),
-   and *It works for 24 hours, and a newer link replaces an older one.* The same screen appears
-   whether or not the address has an account.
-3. **The mail.** Subject **Your sign-in link**, from `MAIL_FROM` (`ReachKit <hello@reachkit.app>`), within a
-   second or two; the line *One click signs you in on this device. The link works once and expires
-   in 24 hours.*; one **Sign in** action. Resend's dashboard shows what left; a mail that did not
-   compose or send is in the runtime log as `mail_not_composable` or `sign_in_link_not_issued`
-   (§6 above).
-4. **Follow it.** The action is `…/auth/confirm?token_hash=…&type=magiclink` **on the host you
-   started from** — this product's own, never Supabase's `action_link`. Opening the link signs you
-   in: in any browser, the click answers `303` to `/app` (to `/setup` on a first-ever sign-in), one
-   `sb-…-auth-token` cookie set and the pending cookie cleared on that same redirect, and `/app`
-   rendering the dashboard with *Overview · This week · Settings*. No page shows. A request that is
-   not a person's page load spends nothing: `curl -I` the link answers `204`, and a bare `curl` of
-   it answers `303` to `/signin?link=open`; the link still works afterwards. The runtime log carries
-   `{"event":"auth_link_opened",…,"signal":"fetch-user"}` (or `"pending"` in the browser that asked).
-5. **Use it twice.** Open the same link again: `303` to `/signin?link=dead`, no
-   cookie, and the screen **This link no longer works** with the request form on it (**Send a new
-   link**). A spent link, a link superseded by a newer one and a token this product never issued
-   answer identically; a confirm URL with no query goes to the same screen. That sameness is the
-   point.
-6. **The gate.** In a private window, `/app` answers `307` to `/signin` — a redirect, never an error;
-   with the session from step 4 it serves.
-
-A link lasts 24 h (`SIGNIN_LINK_TTL_H`), but it is Supabase's own OTP expiry that spends it, so the
-two must agree. So must what the customer is told: the mail's line and the answered screen's line
-both state the lifetime, and `tests/account/identity/otp-expiry.test.ts` holds the setting and both
-sentences to that one number (#1019). The Auth dashboard settings this walk depends on — Site URL, `/auth/confirm` on the
-redirect allow-list, Email OTP expiry 86400 s — are the owner's, listed in §11 under 2026-09-10.
+**Supabase → Authentication** (the owner's): Site URL is the app origin; the redirect allow-list
+holds the product's sign-in address (`CONFIRM_PATH` in `src/lib/account/identity/addresses.ts`) on
+each host; Email OTP expiry is 86400 s, which must equal `SIGNIN_LINK_TTL_H`.
 
 ---
 
 ## 7. When a deployment refuses to boot
 
-`src/instrumentation.ts` runs the invariants once per server instance, before that instance
-answers anything, in this order. Each writes
-`{"event":"boot_invariants","check":"<name>","outcome":"checked"}` when it passes; a failure is the
-last thing in the log and the deployment serves nothing.
+`src/instrumentation.ts` runs the boot checks once per instance. Read the **runtime** log of the
+failing deployment, not the build log: the last `boot_invariants` line names the check reached, and
+the error after it names the binding, never a value.
 
-| # | Check | Error | Trips when | Fix |
-|---|---|---|---|---|
-| 0 | the schema | `Error: src/lib/config/env.ts: invalid or missing environment binding(s):` + the names | any member of the schema is missing or malformed | set the named binding on **that target** and redeploy. The message names the binding and never a value |
-| 1 | `clock` | `FixedClockRefused` | `RK_FIXED_NOW` is set on a real deployment (or set and unparsable anywhere) | unset `RK_FIXED_NOW`. It is a test fixture and belongs in no Vercel environment |
-| 2 | `jobs` | `MissingJobsBindings` | a real deployment is missing `INNGEST_SIGNING_KEY` or `INNGEST_EVENT_KEY` | paste both on that target. This is the #315 refusal: without them the ticks never run and nothing would otherwise say so |
-| 3 | `paying-count` | none | — | non-throwing registration of the day's paying-site count; an unreadable count is the base ceiling |
-| 4 | `stamp-place` | none | — | non-throwing registration |
-| 5 | `spend-alerts` | none | — | non-throwing; an unregistered sink costs an alert, never a refusal |
-
-The Stripe price is not a boot check. `scripts/check-price.mjs` runs as npm's `prebuild` in the build Vercel runs, and a refused price fails that build, so the deployment never reaches READY and the last good one keeps serving. Its line is `{"event":"price_check","outcome":"refused","reason":"PriceObjectMismatch"}` (the next line names the field, the expected value and the found one: build a **new** price to the spec and repoint `STRIPE_PRICE_ID`) or `"reason":"PriceObjectUnknown"` (the price is not in the configured key's Stripe mode, and the message names that mode, never the key: bind a price created in that mode, or repoint the key; the three Stripe bindings move together, `docs/GO-LIVE.md` §1.3). A Stripe outage logs `"outcome":"unchecked"` and the build goes on. `"reason":"check-not-loaded"` is the check's own loader failing, and fails the build. The build reads `STRIPE_SECRET_KEY` and `STRIPE_PRICE_ID` on its target.
-
-"A real deployment" is `isRealDeployment()` in `src/lib/config/now.ts`, and it **fails closed**:
-anything on Vercel is real, and so is anything with an unset or unparsable `NEXT_PUBLIC_APP_URL`.
-Only an app URL whose host is `localhost`, `127.0.0.1` or `[::1]` is not.
-
-### The order to check things in
-
-1. **Read the runtime log of the failing deployment**, not the build log. These invariants run at
-   boot, so the build is green and the deployment 500s. The last `boot_invariants` line names the
-   check that was reached; the error after it is the one to read.
-2. **If it is a binding**: the name is in the message. Confirm it exists on the target that
-   failed. A value pasted on one target and not the other is the most common cause — the
-   deployment that boots is not evidence about the one that does not.
-3. **If the build failed on the price**: read the build log's `price_check` line above.
-4. **If nothing in the log is a boot invariant**, it is not this section: check whether the
-   Supabase project has paused (§2) and whether the Vercel build limit was reached (§1).
+1. **A binding:** confirm it exists on the target that failed. A value pasted on one target and not
+   the other is the usual cause.
+2. **`FixedClockRefused`:** unset `RK_FIXED_NOW`.
+3. **`MissingJobsBindings`:** paste `INNGEST_SIGNING_KEY` and `INNGEST_EVENT_KEY` on that target.
+4. **The build failed on the price:** the build log's `price_check` line. `PriceObjectMismatch` names
+   the field: build a new price to the spec and repoint `STRIPE_PRICE_ID`. `PriceObjectUnknown` means
+   the price is not in the key's Stripe mode (§2). A Stripe outage logs `"outcome":"unchecked"` and
+   the build goes on.
+5. **Nothing in the log is a boot check:** has the Supabase project paused (§2)?
 
 ---
 
 ## 8. The cost ledger
 
-Every vendor and model call goes through the seam in `src/lib/costs/`, and every call that
-actually spent writes one row to **`fetches`**. That table is the source of truth for spend.
-`scans.cost_cents` and `drafts.cost_cents` are its roll-ups, and the database computes them
-(issue 1478): whatever a process writes there is replaced by the ledger's sum.
-
-`fetches` — `supabase/migrations/20260903080000_fetches.sql`:
-
-| Column | |
-|---|---|
-| `scan_id` | the scan the spend belongs to (a draft's spend is keyed to its grounding scan) |
-| `source` | the vendor endpoint or model id, free text |
-| `cache_key`, `policy_version` | what was bought, and under which generation of the derivation |
-| `reserved_cents` | what the cap was checked against |
-| `cost_cents` | what it settled at, from our own price list |
-| `billed_cents` | what the vendor says it charged for the call, read from its response (#1408). Null where the response carried no charge: a model call, an own-page read, a timeout, and every row before 2026-10-11 |
-| `site_id` | the scan's site, filled on insert (issue 1478). Null for a free scan |
-| `activity` | why: `free_scan`, `onboarding`, `weekly`, `draft`, `rescore` (a deep pass after the site's first), `smoke`, `test` (a reserved example domain) or `box`. Filled on insert from the scan; a draft's cost context writes `draft` |
-| `draft_id` | the draft the call was made for, named once the draft has a row |
-| `outcome` | `ok`, `failed` or `timeout`, read from the stored payload on insert |
-| `created_at` | when |
-
-RLS is on with no policy — default-deny — so it is reachable only through `dbAdmin()`. **No cost
-figure is ever rendered to a customer.** Migration `20261017130000_fetches_attribution.sql`
-(issue 1478) added the four attribution columns, filled them for every older row at 0¢, and
-added the roll-up triggers: `scans.cost_cents = carried_cents + Σ cost_cents` over the scan's
-rows that are not a draft's, `drafts.cost_cents = carried_cents + Σ cost_cents` over the draft's.
-`carried_cents` is what a retry carries from the report it retries, and on a draft written before
-2026-10-17 the part of its figure no row could be matched to.
-
-### The caps
-
-`src/lib/config/constants.ts`, `CAPS`, in cents. Per pass: free `12` · deep `150` · weekly `40` ·
-draft `45`. Per site: `DAILY_SITE_C = 500` for one **UTC** day. The unit prices behind them are
-`PRICE_BOOK` in that same file.
-
-**The product-wide daily ceiling is `1000 + 100 × paying sites` cents** (owner ruling D7,
-2026-10-19; `DAILY_PRODUCT_CEILING`), for one **UTC** day, measured over `fetches.cost_cents`.
-Paying sites are the sites whose owner had active access (`paid_through`) at that day's midnight
-UTC: 0 gives 1,000¢, 40 give 5,000¢, 100 give 11,000¢. Billing counts them once a day per process and
-logs `{"event":"daily_ceiling","payingSites":…,"ceilingCents":…}` on its first read of the day. A count
-that cannot be read logs `{"event":"daily_ceiling_unreadable"}` and that call is held to 1,000¢,
-never unlimited; the next call asks again.
-
-**A cap degrades, it never throws.** Hitting one skips the remaining optional work and marks the
-scan `degraded`; the run finishes with a smaller report rather than an error. Hitting the daily
-ceiling refuses a free scan at the door with an honest retry time (next UTC midnight) and degrades
-a paid pass inside the seam. The line to look for is
-`{"event":"cap_hit","reason":"scan_cap"|"daily_ceiling",…}`, logged once per context.
-
-**The guard fails closed.** If the day's total cannot be read the ledger logs
-`{"event":"daily_spend_unreadable"}` (a site's, `site_spend_unreadable`) and the paid call is
-skipped, and a free scan is refused (issue 792). So an unreachable database stops spend until it
-answers. The owner gets one spend alert per reason and UTC day saying the ledger could not be read,
-claimed in `job_error_mails` as job `spend-ledger`; each report logs
-`{"event":"ops_ledger_unreadable","reason":…,"outcome":…}`.
-
-**One known imprecision.** `cost_cents` is an integer while the cheapest vendor rows cost
-fractions of a cent, so the stored day total is a floor: the ceiling can be crossed slightly rather
-than triggered early. The alerts at 80% and 100% of the ceiling (`SPEND_ALERT_AT`) are mailed
-through the ops template; each send logs `{"event":"ops_spend_alert"}`.
-
-### Reading spend
-
-**The owner's surface for production spend is the Monday digest** (SPEC §6, D57, #1286). Its cost
-section reports the seven dates before that Monday: per site the average cost of a measurement and
-of a page written (stopped pages included) with how many there were, the site's total, free scans
-and smoke tests on separate lines, the ledger's total for the week, and (D63, #1298) the share of
-the week's Google SERP reads that timed out with what those reads were billed. `scripts/smoke.sh` sends
-`"smoke": true` with its scan start and the route stores it as `scans.smoke`, which is what tells a
-smoke test from a customer's free scan:
-
-```sql
--- last 7 days of free passes, smoke tests apart
-select smoke, count(*) as scans, sum(cost_cents) as cents
-  from scans
- where tier = 'free' and created_at >= now() - interval '7 days'
- group by 1;
-```
-
-**The owner's page is `/app/costs`** (issue 1478), signed in at one of `OWNER_EMAILS`; every
-other account gets the 404, and it is not in the navigation. It reads `cost_site_day` and
-`vendor_days` for the seven UTC days to today: each site's and each segment's week (free,
-smoke, test, box), estimated beside billed, with its month at that pace against €40.50 net; each
-site each day; the week by activity with its failed and timed-out calls; each vendor-day's
-recorded spend beside the vendor's own bill, and the gap; and each day against D34's €2, judged
-on billed spend where known. `cost_site_day` is the ledger grouped by UTC day, site or segment,
-vendor and activity; a free scan's rows count for the site provisioned from it:
-
-```sql
--- the week by site or segment, estimated beside billed
-select coalesce(site_id::text, segment) as who, sum(estimated_cents), sum(billed_cents),
-       sum(billed_calls) as priced, sum(calls) as calls, sum(judged_cents)
-  from cost_site_day where day >= current_date - 6 group by 1 order by 6 desc;
-```
-
-For anything the digest does not say, read the ledger in the Supabase SQL editor. The only other
-reader in the product is `readDaySpendCents()`, which asks the ledger for the current UTC day and
-uses it as a guard input:
+`fetches` is the source of truth for production spend, reachable only through `dbAdmin()`; the caps
+are `CAPS` and `DAILY_PRODUCT_CEILING` in `src/lib/config/constants.ts`. The owner's page is
+`/app/costs`, signed in at one of `OWNER_EMAILS`. For anything else, read the ledger in the Supabase
+SQL editor, which runs above the grants:
 
 ```sql
 -- today, product-wide (the figure the ceiling is checked against)
 select fetches_spend_since(date_trunc('day', now() at time zone 'utc'));
 
--- the last 30 days, a row each
-select (created_at at time zone 'utc')::date as day,
-       sum(cost_cents) as cents,
-       count(*)       as calls
-  from fetches
- where created_at >= now() - interval '30 days'
- group by 1 order by 1 desc;
-
--- where the money went, same window
+-- where the money went, last 30 days
 select source, sum(cost_cents) as cents, count(*) as calls
   from fetches
  where created_at >= now() - interval '30 days'
  group by 1 order by 2 desc;
-
--- the most expensive passes
-select s.id, s.site_id, s.status, sum(f.cost_cents) as cents
-  from fetches f join scans s on s.id = f.scan_id
- where f.created_at >= now() - interval '30 days'
- group by 1,2,3 order by 4 desc limit 20;
 ```
 
-`fetches_spend_since(timestamptz)` is the function the product itself uses
-(`supabase/migrations/20260909200000_fetches_daily_spend.sql`). Its `execute` is revoked from
-`public`, `anon` and `authenticated` and granted to `service_role` alone; the SQL editor runs as
-the project's `postgres` role, which is above those grants, so it can call it and read `fetches`
-directly. Nothing else can.
+### Spend from the box
 
-### Test spend from the box
+Paid calls a script makes from the box never reach `fetches`. Each appends a line to
+**`/root/ops/reachkit/spend.jsonl`** through `appendSpend()` in `scripts/spend-log.mjs`, and a new
+script that calls a vendor or a model calls it too. The file is created by the first paid call and is
+not rotated.
 
-Paid calls a script makes from the box never reach `fetches`: the box has no database key. Each one
-appends a line to **`/root/ops/reachkit/spend.jsonl`** instead (SPEC §6, D57, #1286):
-
-```json
-{"at":"2026-10-06T09:14:02.118Z","issue":"1286","script":"page","source":"llm:writer","cents":4.21}
-{"at":"2026-10-11T08:43:24.949Z","issue":"1408","script":"pass","source":"serp/google/organic","cents":0.2,"billed":0.2}
-```
-
-`issue` is the number of an `issue-<N>` branch, else the branch's name. `cents` is the price
-book's figure. `billed` is the vendor's own charge for that call (#1408), and is absent where the
-response carried none, which is every model call. A call that settled at nothing and was billed
-nothing writes no line. The scripts that write it are `npm run page`, `npm run pass -- --live`, `npm run panel`, `npm run free-scan`, `scripts/market-inference.mjs`,
-`npm run eval:content` and `scripts/d19-cost.mjs`; they all go
-through `appendSpend()` in `scripts/spend-log.mjs`, and **a new script that calls a vendor or a
-model calls it too**. `RK_SPEND_LOG=<file>` writes to another file. The file is not in the
-repository and is not rotated: to recreate it, nothing is needed — the first paid call creates it.
-
-### What the vendors billed
-
-Every cent above is our own estimate. The audit of 2026-10-11 found the price list 1.7 times
-DataForSEO's bill for that day, and $56 of the account's lifetime spend in no record (#1408).
-Three things now hold the estimate against the bill.
-
-**Each call.** A DataForSEO response states its own charge (`tasks[0].cost`, US dollars).
-`fetches.billed_cents` and the spend log's `billed` keep it in cents beside the estimate. The
-caps and the reservations still read the estimate: it is the figure known before the call.
-A line `{"event":"vendor_cost_mismatch",…}` is logged when the two differ.
-
-**Each hour.** `rk-vendor-snapshot.timer` runs `scripts/vendor-snapshot.mjs` from the main
-checkout on the hour. It appends one line to **`/root/ops/reachkit/vendor-snapshots.jsonl`**
-and logs to `/root/ops/reachkit/log/vendor-snapshot.log`:
-
-```json
-{"at":"2026-10-11T09:00:03.412Z","dataforseo":{"balanceCents":3113.1168,"depositedCents":10100,"dayCents":49.028,"day":"2026-10-11","timezone":"Europe/Berlin"}}
-```
-
-It reads `GET https://api.dataforseo.com/v3/appendix/user_data`, which the vendor does not
-charge for: the balance, everything deposited, and the vendor's total for its own day (the
-account's timezone, Europe/Berlin). It takes the keys from `/root/projects/reachkit/.env.local`
-and prints no credential. When that file holds `ANTHROPIC_ADMIN_KEY`, the line also carries
-`"anthropic":{"days":{"2026-10-11":96.2,…}}`: the organisation's cost report
-(`GET /v1/organizations/cost_report`) for today and the seven days before, in cents. That report
-covers everything billed to the organisation, not only ReachKit's key. An admin key is made in
-the Claude Console under Settings, Admin keys; the key the product calls the model with cannot
-read the report. Without it nothing fails.
-
-To recreate the timer, as root, write these two units, then run
+**`rk-vendor-snapshot.timer`** runs `scripts/vendor-snapshot.mjs` hourly from the main checkout. It
+appends to `/root/ops/reachkit/vendor-snapshots.jsonl` and logs to
+`/root/ops/reachkit/log/vendor-snapshot.log`, reading free endpoints only: DataForSEO's
+`appendix/user_data`, Anthropic's cost report when `.env.local` holds `ANTHROPIC_ADMIN_KEY` (made in
+the Claude Console under Settings, Admin keys), and Vercel's billing charges with the Vercel CLI's
+token (`/root/.local/share/com.vercel.cli/auth.json`). It mails `OWNER_EMAILS` at 50%, 80% and 100%
+of the monthly Active CPU budget in that script; what it mailed is in
+`/root/ops/reachkit/state/cpu-budget.json`. To recreate it, as root, write these two units, then
 `systemctl daemon-reload && systemctl enable --now rk-vendor-snapshot.timer`:
 
 ```ini
@@ -1243,34 +929,9 @@ AccuracySec=1min
 WantedBy=timers.target
 ```
 
-Remove it with `systemctl disable --now rk-vendor-snapshot.timer` and delete the two files. The
-snapshot file is not rotated; a line is about 200 bytes.
-
-**Each day: `npm run costs`.** For today and each of the last 7 days (UTC days) it prints
-**billed** beside **recorded**, for DataForSEO and for AI:
-
-- *Billed*, DataForSEO: the balance at the reading on the day's first hour, less the balance at
-  the next day's, with any deposit added back. For today it runs to a reading the command takes
-  itself, so the figure is current. Where no reading stands at the day's opening, it is the
-  vendor's own day total, and the line says so; that day is Berlin's, two hours off UTC.
-- *Billed*, AI: Anthropic's cost report for the day. Without an admin key it prints
-  `AI spend: estimated from tokens; no admin key`.
-- *Recorded*: the spend log plus production's `fetches`.
-
-It warns when billed and recorded differ by more than 10% or by more than 10¢. Where the
-production ledger was not read it does not compare them and prints `not compared, production
-ledger unread`. It then judges the day against D34's €2 (`docs/PROCESS.md`, *Testing budget*)
-on the box's spend log, at the vendor's own charge where a row carries one, warns past €1.50 and
-says stop at €2. Billed is account-wide and includes production, so it prints on its own line,
-`Billed, account-wide, includes production`, and is never held against the cap. Everything is in
-US cents; €2 is converted with `USD_PER_EUR` in `src/lib/config/constants.ts`, the ECB reference
-rate with its date. Change the rate there when the dollar has moved a few per cent.
-
-**Production's side needs a database key the box does not have.** `npm run costs` reads
-`fetches` when `.env.local` holds a real `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`. The
-box's are placeholders, so it prints `Production ledger: not read` and recorded is test spend
-only. Until the owner puts a key there, run this in the Supabase SQL editor or through the
-connector, save the JSON array it returns, and pass it as `npm run costs -- --ledger <file>`:
+**`npm run costs`** prints billed beside recorded for today and the last 7 days, and the Vercel
+Active CPU block. The box's `.env.local` has no real database key, so production's side is read by
+running this in the SQL editor, saving the JSON array, and passing `npm run costs -- --ledger <file>`:
 
 ```sql
 select coalesce(jsonb_agg(d), '[]'::jsonb) from (
@@ -1283,71 +944,8 @@ select coalesce(jsonb_agg(d), '[]'::jsonb) from (
 ) d;
 ```
 
-Other flags: `--stored` takes no fresh reading, and `--log`, `--snapshots` and `--env-file`
-name other files.
-
-**Each day, stored: `vendor_days`** (issue 1478). One row per vendor per UTC day, `kind` `usage`,
-`fixed` (one a month, `day` its first) or `box` (one per day, vendor and `domain`). `billed_cents`
-is in cents of `currency`, null where nothing reported it, never 0. `account/maintenance` writes it
-on every tick until the day's row exists (`src/jobs/vendor-days.ts`, `src/lib/costs/vendor-days.ts`),
-and every reading is free:
-
-- *DataForSEO*: the balance and deposits at the day's first tick; the day before gets its bill,
-  the fall between the two openings with deposits added back.
-- *Anthropic*: the cost report for the last eight days, closed days only, when the deployment
-  holds `ANTHROPIC_ADMIN_KEY`. Without it the page says AI spend is estimated.
-- *Fixed*: on the first tick of a month, last month's Stripe fees from its balance transactions
-  (euro cents), and a row with no figure for Vercel, Supabase, the job platform and Resend, which
-  report no bill the product can read. A figure learned elsewhere is written into that row by hand
-  in the SQL editor.
-- *Box*: `scripts/vendor-snapshot.mjs` writes the spend log's last eight days as `box` rows when
-  `.env.local` holds a real `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`; the box's are
-  placeholders today, so it says `no database key` and box spend stays in the spend log, which now
-  carries each line's `domain` where the script knows it.
-
-### Vercel Active CPU
-
-On 2026-11-07 Vercel soft-blocked the team for Active CPU (`fluidCpuDuration`) and every host
-answered 402 for about two and a half hours (#2477). The hourly snapshot now watches that meter.
-
-**The figure.** Each `vendor-snapshot` line carries `vercel` when Vercel's FOCUS charges
-(`GET /v1/billing/charges`, a free read) answered, with the Vercel CLI's token
-(`/root/.local/share/com.vercel.cli/auth.json`, the one `deployer.sh` reads; never logged):
-
-```json
-"vercel":{"days":{"2026-11-09":{"cpuSeconds":720,"projectCpuSeconds":540,"invocations":500}},"month":"2026-11",
-          "monthToDate":{"cpuSeconds":8892,"projectCpuSeconds":7560,"invocations":6100},"sitesOnAutopilot":4,"cpuSecondsPerSite":135}
-```
-
-`cpuSeconds` is the **team's** Active CPU, which includes the team's other projects and is what
-Vercel enforces. `projectCpuSeconds` is the `reachkit` project's share (`Tags.ProjectId`).
-`invocations` is the team's function invocations. `days` holds the last eight UTC days, and a day
-Vercel reported nothing for is absent, never 0. A read that fails, including the
-`404 costs_not_found` the endpoint gives before a billing cycle has charges, leaves `vercel` off
-the line and logs `Vercel's billing charges could not be read: HTTP 404 costs_not_found`. A CPU row
-in an unknown unit fails the read the same way, rather than miscount. With a real `SUPABASE_URL` and
-`SUPABASE_SERVICE_ROLE_KEY`, `sitesOnAutopilot` counts the sites with `publishing_enabled` and a
-zone, which is what the daily tick runs for, and `cpuSecondsPerSite` is yesterday's project figure
-divided by it. Without the key both are absent. The split by job is #2479.
-
-**`npm run costs`** ends with a Vercel Active CPU block: yesterday, the 7-day mean, the month to
-date against the budget, the reachkit share and per site. A figure not read says `not measured`.
-
-**The budget and the four mails.** `ACTIVE_CPU_BUDGET_CPU_HOURS_PER_MONTH = 4` in
-`scripts/vendor-snapshot.mjs` is Hobby's included amount, the one that blocked the team. It stays
-the efficiency target on Pro and is a drafted default the owner may change. Each hourly run
-compares the team's month to date (the UTC month) with it and mails `OWNER_EMAILS` through Resend,
-from `RESEND_API_KEY` and `MAIL_FROM` in `.env.local`, once each at 50%, 80% and 100%, and once
-when the last three days' mean projects past 100% before the month ends. That makes four mails a
-month at most. What was mailed is kept in `/root/ops/reachkit/state/cpu-budget.json`
-(`RK_CPU_BUDGET_STATE` elsewhere). A mail Resend did not accept is not marked and is tried the
-next hour. A new month starts with nothing mailed.
-
-**When a mail comes.** Run `npm run costs` and read the reachkit share. If it is most of the
-figure, the cuts are in the jobs (#2478, #2479). If it is not, another project on the team is
-spending it. The hard cap is Vercel's own **Spend Management** (team, Settings, Billing), an
-owner setting on Pro. Notify at the amount and do not auto-pause, because a pause is the same 402
-outage.
+`vendor_days` holds a `fixed` row a month for Vercel, Supabase, the job platform and Resend with no
+figure; a figure learned from their dashboards is written into that row by hand in the SQL editor.
 
 ---
 
@@ -1355,68 +953,17 @@ outage.
 
 ### Migrations
 
-`supabase/migrations/` holds them, applied in filename order. The first six are zero-padded
-ordinals, everything after is `YYYYMMDDHHMMSS_<topic>.sql`; the topic token is checked against a
-closed registry by `tests/db/migration-naming.test.ts`, so a name outside it fails CI.
+`supabase/migrations/` holds them, applied in filename order. **There is no migration tool.** A
+migration reaches the live project by hand, through the Supabase SQL editor or the connector:
 
-**There is no migration tool.** A migration reaches the live project **by hand, through the Supabase SQL editor or the connector**,
-which is how the original 38 were applied (in five chunks) and how every one since has gone.
+1. An expand-only migration is applied before the deploy whose code reads it; any other after the
+   target deploy is READY. Dev shares this database, so an unapplied migration breaks
+   `dev.reachkit.app` as soon as code reads it.
+2. Paste the file into the SQL editor on the `reachkit` project, one migration per run, oldest first.
+3. Re-read the **security and performance advisors**. A finding not in the table below is new and
+   gets a row in the same change that answers it.
 
-The procedure, per migration:
-
-1. Land the PR. The migration is in `main`. Expand before the deploy; contract after the old
-   code is gone. An expand-only migration is applied before the deploy whose code reads it. Any
-   other migration is applied after the target deploy is READY (`docs/PROCESS.md` › Current, four
-   steps 4).
-2. Re-read the file and paste it into the Supabase SQL editor on the `reachkit` project. One
-   migration per run, in filename order, oldest first.
-3. Re-read the **security and performance advisors** afterwards. A new `plpgsql` function without
-   `set search_path = ''` is a WARN, and `tests/db/functions-search-path.test.ts` should have
-   caught it before the merge. Every finding the advisors return is in the dispositions table
-   below; a finding that is not is new, and gets a row in the same change that answers it.
-4. Record it in this section with the date.
-
-### Applied 2026-09-16
-
-The seven migrations this section listed as pending were applied to the `reachkit` project
-(`kleepxxddbcnfsfwudoe`) on 2026-09-16 on the owner's instruction, one `apply_migration` call
-each, in this order:
-
-1. `sites_profile`: `site_profiles`, `sites.voice_edited_at`
-2. `destinations_hostname`: `destinations.hostname*`, 4-arg `apply_setup_choice`
-3. `opportunities_readiness`: `cluster_key` / `absorbed_queries` / `ready` / `unready_reason`
-4. `sites_autopilot`: `sites_veto_hours_floor` (both `update`s matched 0 rows)
-5. `opportunities_fix_page`: `fix_page` in the type, family and reason constraints
-6. `users_retention`: `users.last_seen_at` and the four retention stamps
-7. `drafts_retention`: `drafts.opened_at`, `veto_reminded_at`
-
-Verified afterwards: every object present, and `apply_setup_choice` at
-`(p_site_id uuid, p_mode text, p_kind text, p_hostname text)`. The security advisor returned only
-the standing dispositions below — five `rls_enabled_no_policy` INFO rows and the leaked-password
-WARN — and nothing new.
-
-Until then `POST /api/setup` answered 500 on `dev.reachkit.app` (the deployed code called
-`apply_setup_choice` with four arguments; the live function still took three), and `GET /app`
-logged `retention store: seen: column users.last_seen_at does not exist`.
-
-### Applied 2026-10-16
-
-The master session applied two migrations to the `reachkit` project through the connector on
-2026-10-16:
-
-1. `20261015120000_jobs_draft_days`: `draft_days` (issue 1455)
-2. `20261015120000_sites_profile_ours`: removed 5 `known_content` rows on `content.reachkit.app`
-
-The security advisor afterwards showed the expected `rls_enabled_no_policy` INFO row for
-`draft_days` and the `known_content_near` finding of issue 1472, which
-`20261016120000_sites_content_known_grants` closes.
-
-**Dev shares this database.** There is one Supabase project (§2). A migration merged to `main` and
-left unapplied breaks `dev.reachkit.app` as soon as a code path reads its columns, as the two
-failures above did.
-
-Verify a migration against a throwaway database before it reaches the live project — never against
-the shared scratch database, which other work is using:
+Verify a migration against a throwaway database first, never the shared scratch one:
 
 ```sh
 psql -h 127.0.0.1 -U reachkit -d postgres -c "create database reachkit_check"
@@ -1431,139 +978,59 @@ done
 psql -h 127.0.0.1 -U reachkit -d postgres -c "drop database reachkit_check"
 ```
 
-### Pending: `20261017120000_rls_privileges` (issue 1483)
-
-Merged, applied by the master session through the connector after the deploy is READY. It
-revokes the default `execute` that `PUBLIC`, `anon` and `authenticated` get on every new function
-in `public` (production's `pg_default_acl` granted both, role `postgres`), revokes it from the nine
-functions created under that default, and rewrites the 22 policies the performance advisor names
-to `(select auth.uid())`. Afterwards: the advisor's `auth_rls_initplan` rows in `public` are 0, and
-
-```sql
-select p.proname from pg_proc p
- where p.pronamespace = 'public'::regnamespace
-   and not exists (select 1 from pg_depend d where d.objid = p.oid and d.deptype = 'e')
-   and (has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute'));
-```
-
-returns no row. `tests/db/function-privileges.test.ts` (`schema · RLS`) runs the same query on
-the migrated substrate, with production's default privileges, and fails a function a session can
-execute unless it is allow-listed there with a reason.
-
 ### Advisor findings — the standing dispositions
-
-Both advisors are re-read after every schema change. Every finding they returned on the
-`reachkit` project on 2026-10-17, and what each means here. Security first, then performance:
 
 | Finding | Disposition |
 |---|---|
-| `function_search_path_mutable` — eight plpgsql functions | **Fixed** by `supabase/migrations/20260909130000_rls_functions_search_path.sql` (#384): each function pins `set search_path = ''` and names this schema's tables `public.<table>`. Re-applied to the project through the connector after the merge; the WARN count is then 0. A new function without the clause fails `tests/db/functions-search-path.test.ts` before it can reach the project |
-| `rls_enabled_no_policy` — eight tables in `public`: `domain_blocks`, `draft_days`, `email_suppressions`, `fetches`, `job_runs`, `llm_mention_reads`, `llm_mentions`, `rescore_runs`; and `fetches`, `leads` in `v2_archive` (ten INFO rows) | **By design, and said in place.** The eight in `public` are `dbAdmin()`-only (BUILD §10 default-deny) and each carries a `comment on table` naming the rule, so the intent is where the advisor reads; `tests/db/functions-search-path.test.ts` holds the list and fails a ninth without the comment. The two in `v2_archive` are v2's frozen objects, kept as the v2 rollback path (*Backups and restore*); they are not v3's to change and go when the rollback path is retired |
-| `anon_security_definer_function_executable`, `authenticated_security_definer_function_executable` — `known_content_near` | **Fixed** by `supabase/migrations/20261016120000_sites_content_known_grants.sql` (issue 1472): `execute` is revoked from `public`, `anon` and `authenticated`, and kept for `service_role`, the only caller (`dbAdmin()`). Apply it through the connector after the merge; neither finding should remain. A `security definer` function that a session can execute fails `tests/db/functions-search-path.test.ts` before it can reach the project |
-| Default `execute` on new functions in `public` for `PUBLIC`, `anon` and `authenticated` (no advisor lint; issue 1483) | **Fixed** by `supabase/migrations/20261017120000_rls_privileges.sql`: a new function is its owner's and `service_role`'s, and one a session must call is granted by name in its own migration. `tests/db/function-privileges.test.ts` reads live `pg_proc` in `schema · RLS`, so an `alter function`, a `do` block or a forgotten revoke fails there too |
-| `extension_in_public` — `pg_trgm` | **Accepted.** Its functions and operators read no table, so a session that can call `similarity()` learns nothing about any row; the one reader of `known_content` through it is `known_content_near`, which is `service_role`'s alone. Moving the extension would rewrite that function's `public.similarity` calls for no change in what anyone can read. Extension-owned functions are left out of `function-privileges.test.ts` for the same reason. Revisit if an extension that reads data lands in `public` |
-| `auth_leaked_password_protection` — HaveIBeenPwned check disabled | **Not applicable.** v3 has no passwords: sign-in is a one-time link and nothing else (REQ-098 — "no password field, no social sign-in"; `supabase/config.toml` sets `enable_password_signin = false`). There is no password for the check to read, so the setting stays off and this WARN is expected on every advisor run |
-| `auth_rls_initplan` — 22 policies in `public` (`users`, `sites`, `scans`, `opportunities`, `drafts`, `publications`, `destinations`, `leads`, `page_verdicts`, `site_profiles`, `site_profile_edits`, `known_content`, `publication_reads`) and 4 in `v2_archive` | **Fixed in `public`** by `20261017120000_rls_privileges.sql`: each reads `(select auth.uid())`, evaluated once per statement instead of once per row, with the same command, roles and predicate, so every policy admits the rows it did. `tests/db/function-privileges.test.ts` fails a policy that calls an auth function bare, and one whose predicate changed. **Left** in `v2_archive`, v2's frozen rollback path |
-| `unindexed_foreign_keys` — `llm_mention_reads.scan_id`, `page_verdicts.scan_id`, `scans.supersedes_scan_id`, `sites.provisioned_from_scan_id`; and `v2_archive.actions.scan_id` | **Accepted.** Each references `scans`, and nothing deletes a `scans` row (no cascade, tombstones only), so the index a foreign key needs to make a parent's delete cheap would never be read; no query in `src/` filters by one of these four columns (checked 2026-10-17). Table design was left alone (issue 1483). Revisit when a code path deletes scans or filters by one of these columns |
-| `unused_index` — 30 in `public`, 7 in `v2_archive` | **Kept.** The counters reset with the project's statistics and production traffic is small, so the planner reads most small tables by sequential scan today; each index in `public` backs a uniqueness rule or a query in `src/` (the retention sweeps, the publish queue, `known_content_near`'s trigram search) that will need it at volume. Dropping one is table design and was left alone (issue 1483). The `v2_archive` ones go with the rollback path |
-| `no_primary_key` — 18 tables in `archive` and `backup_20261005` | **Not v3's schema.** They are dated snapshot copies, read by hand only; no code path reads them. They go when the owner retires the snapshots |
+| `rls_enabled_no_policy` on the `dbAdmin()`-only tables in `public`, and `fetches`, `leads` in `v2_archive` | **By design.** Each `public` table carries a `comment on table` naming the rule. The `v2_archive` ones go with the v2 rollback path |
+| `extension_in_public` — `pg_trgm` | **Accepted.** Its functions read no table; the one reader through it, `known_content_near`, is `service_role`'s alone |
+| `auth_leaked_password_protection` | **Not applicable.** There are no passwords (`supabase/config.toml` `enable_password_signin = false`); this WARN is expected on every run |
+| `auth_rls_initplan` in `v2_archive` | **Left**: v2's frozen rollback path |
+| `unindexed_foreign_keys` on columns referencing `scans` | **Accepted.** Nothing deletes a `scans` row and no query filters by them. Revisit when one does |
+| `unused_index` | **Kept.** Traffic is small; each index backs a uniqueness rule or a query that needs it at volume |
+| `no_primary_key` in `archive` and `backup_20261005` | **Not v3's schema.** Dated snapshot copies, read by hand; they go when the owner retires them |
 
 ### The substrate
 
-`scripts/db-substrate/` is the local Postgres + PostgREST + postgres-meta stack that the `db` and
-`layout` suites talk to — a live, migrated database rather than migration text. Its own
-`README.md` is the detail; the operational shape is:
+`scripts/db-substrate/` is the local Postgres + PostgREST + postgres-meta stack the `db` and
+`layout` suites talk to; its `README.md` is the detail.
 
 ```sh
-eval "$(scripts/db-substrate/up.sh --run)"   # its own command; exports the bindings on stdout
+eval "$(scripts/db-substrate/up.sh --run)"   # one worktree, one database
 npx vitest run --project db --maxWorkers=1
 scripts/db-substrate/down.sh                 # the moment the suite finishes
 ```
 
-- `--run` names the run after the working directory, so **one worktree, one database**. Without it
-  you get the shared one, and two runs sharing a database delete each other's rows mid-flight —
-  the seeded account vanishes and every `/app` address redirects to `/signin`, which reads exactly
-  like a broken screen and is not.
-- It exports `DATABASE_URL`, `SUPABASE_URL` (the `/rest/v1` proxy, not PostgREST directly),
-  `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `REACHKIT_DB_NAME`, `PGMETA_PORT`. Progress
-  goes to stderr, which is what makes the `eval` safe.
-- It applies `shim.sql` only — the roles and `auth.uid()`/`auth.role()` that live outside
-  `supabase/migrations/`. The suites apply the migrations themselves.
-- It does **not** start PostgreSQL; that must already be listening. It needs `psql`, `node`, and
-  PostgREST via `POSTGREST_BIN`.
-- **Where PostgREST and postgres-meta live on this box, and how to put them back** (2026-09-21,
-  #910). The path this section used to name — `…/substrate/postgrest/postgrest` — went with the
-  worktree it was inside, so for some weeks `up.sh` could not start a stack here at all and both
-  the `db` and `layout` suites were CI-only. Two things fixed that, neither of them in the
-  repository, and `/tmp` does not survive a reboot:
+Without `--run` you get the shared database, and two runs delete each other's rows. It does not
+start PostgreSQL. Stop the stack before removing a worktree; `down.sh --orphans` finds every stack
+whose directory is gone. To put the box's tools back after a reboot:
 
-  ```sh
-  # 1. PostgREST, pinned to the version up.sh pins its image to (v16.2).
-  #    /root/ops/bin is outside every worktree, so removing one cannot take it again.
-  curl -sL -o /tmp/pgrst.tar.xz \
-    https://github.com/PostgREST/postgrest/releases/download/v16.2/postgrest-v16.2-linux-static-x86-64.tar.xz
-  tar -xJf /tmp/pgrst.tar.xz -C /tmp && install -m 755 /tmp/postgrest /root/ops/bin/postgrest
-  export POSTGREST_BIN=/root/ops/bin/postgrest   # or put /root/ops/bin on PATH
+```sh
+# PostgREST, pinned to the version up.sh pins its image to (v16.2), outside every worktree.
+curl -sL -o /tmp/pgrst.tar.xz \
+  https://github.com/PostgREST/postgrest/releases/download/v16.2/postgrest-v16.2-linux-static-x86-64.tar.xz
+tar -xJf /tmp/pgrst.tar.xz -C /tmp && install -m 755 /tmp/postgrest /root/ops/bin/postgrest
+export POSTGREST_BIN=/root/ops/bin/postgrest
 
-  # 2. postgres-meta's install directory. /tmp/reachkit-pgmeta is a symlink to
-  #    /root/tmp/reachkit-pgmeta; after a reboot the symlink is gone, and if it is
-  #    ever left dangling `up.sh` dies on `mkdir: Already exists`, which reads like
-  #    nothing at all.
-  mkdir -p /root/tmp/reachkit-pgmeta && ln -sfn /root/tmp/reachkit-pgmeta /tmp/reachkit-pgmeta
-  ```
-
-  With both in place `eval "$(scripts/db-substrate/up.sh --run)"` works here, and
-  `npx vitest run --project db` and `npm run test:layout` can be run on the box rather than
-  only in CI.
-- **Stop the stack before removing a worktree.** A stack costs 150–190 MB and nothing else stops
-  it: on 2026-09-07 forty-one orphaned processes from deleted worktrees held 1.66 GB of a 7.7 GB
-  box, which is what the kernel was killing builds to reclaim. `scripts/db-substrate/down.sh --orphans`
-  finds every stack whose directory is gone. `down.sh --drop` also drops the database, which is
-  deliberately not the default — keeping it is what makes the next `up.sh` cheap.
+# postgres-meta's install directory; a dangling symlink makes up.sh die on `mkdir: Already exists`.
+mkdir -p /root/tmp/reachkit-pgmeta && ln -sfn /root/tmp/reachkit-pgmeta /tmp/reachkit-pgmeta
+```
 
 ### Backups and restore
 
-**The `reachkit` project is on the Supabase Free plan, which has no point-in-time recovery and no
-scheduled backups to restore from.** Re-verified 2026-09-18 (#887): org `timclifford`
-(`vercel_icfg_qHQSeWwkm34ehAw2Kc5FUrCH`) reports plan `free`; project `reachkit`
-(`kleepxxddbcnfsfwudoe`), Postgres `17.6.1.127`, `ACTIVE_HEALTHY`, us-east-1. So today the only
-backup that exists is one the owner takes, and there is no automatic recovery point behind a
-mistake — a bad migration, a wrong `delete`, or a reset like 2026-09-17's takes the data with it.
-This is the single largest operational exposure in the product, it is owner-owed, and it has been
-open since #334.
+**The project is on Supabase Free: no point-in-time recovery and no scheduled backups** (accepted
+for the first rollout, owner R18, 2026-10-22). Dev and production are one database, so a row deleted
+while steering on dev is a customer's row. Treat every statement typed against `kleepxxddbcnfsfwudoe`
+as unrecoverable.
 
-**Dev and production are one database, and nothing guards that.** There is one Supabase project
-(§2) and `dev.reachkit.app` is the same Vercel project bound to `main` (§2), reading the same
-`SUPABASE_URL`. A dev experiment *is* a production write. A row deleted while steering on dev is a
-customer's row. There is no second project, no branch, no read-only mode, no confirmation step and
-no environment check in `src/lib/config/env.ts` that could tell the two apart — the only guard that
-exists today is care. `KILL_SWITCH` (§5) stops the product writing; it does nothing about a hand on
-the SQL editor. Until recovery exists, treat every statement typed against `kleepxxddbcnfsfwudoe`
-as unrecoverable, because it is.
+**Turning recovery on** is the owner's. The org is Vercel-Marketplace-managed, so the plan change is
+made at vercel.com → team `timclifford` → the Supabase integration → its plan. Pro gives 7 daily
+backups (**Database → Backups → Scheduled**). PITR needs Pro and at least the Small compute add-on
+(**Project Settings → Add-ons → Point-in-Time Recovery**); enabling it stops the daily backups, and
+it is not covered by the Spend Cap. A PITR restore is in place; a restore into a fresh project is
+**Duplicate Project**.
 
-**Turning recovery on — the cost, the screens, the retention.** Owner-gated: the owner holds the
-account, and every step below is theirs. None of it has been done.
-
-| | |
-|---|---|
-| What Pro alone buys | Daily backups, 7 days of them, restorable in place from **Database → Backups → Scheduled**. That alone ends "there is nothing to restore from". ~$25/mo plan + ~$15/mo compute, less the $10 compute credit |
-| What PITR adds | Restore to any chosen second inside the retention window. WAL is shipped every two minutes, so the worst-case loss is **two minutes**, against up to a day with daily backups alone |
-| Prerequisites | Pro (or Team/Enterprise) **and** at least the Small compute add-on. This project is on Postgres `17.6.1.127`, well past the `15.8.1.079` that physical backups need, so **no Postgres upgrade is required first** |
-| Retention to ask for | **7 days** — ~$0.137/h, ~$100/mo. 14 days is ~$200/mo and 28 is ~$400/mo; neither buys anything 7 does not for a product whose incidents are noticed the same week |
-| All-in, at 7 days | ~$130/mo (Supabase's own worked example: $25 Pro + $15 Small compute + $100 PITR − $10 credit). At €49/mo a seat that is roughly three paying customers |
-| The plan screen | The org is **Vercel-Marketplace-managed** (the `vercel_icfg_` prefix is what says so), and for such an org invoices and plan changes live on Vercel, not Supabase. Start at Supabase dashboard → org `timclifford` → **Billing → Subscription Plan → Change subscription plan**; where that panel refuses because the org is marketplace-managed, it links out — the change is made at **vercel.com → team `timclifford` → the Supabase integration → its plan** |
-| The PITR screen | Supabase dashboard → project `reachkit` → **Project Settings → Add-ons → Point-in-Time Recovery**. Then **Database → Backups → Point in Time** shows the earliest and latest recovery points |
-| Two things to know before pressing it | Enabling PITR **stops** the daily backups (it replaces them, finer-grained). And PITR is **not** covered by the Spend Cap — it bills by the hour whether or not the cap is on |
-| What it still does not cover | A PITR restore is **in place**: the project is inaccessible while it runs, for as long as the database size and WAL volume take. Restoring into a *fresh* project is the **Duplicate Project** path, not the restore button |
-
-**What is actually at risk.** The schema is in `supabase/migrations/` and is recoverable from the
-repository. What is not recoverable from anywhere else is the *data*: accounts, sites, scans,
-reports, drafts, publications, leads, and the `fetches` ledger. Stripe holds the subscriptions and
-Resend holds the mail log, so billing and correspondence survive a database loss; the product's
-own history does not.
-
-**Taking a dump** (`DATABASE_URL` from the Supabase dashboard → Project Settings → Database →
-connection string; it lives in the owner's shell, never in Vercel):
+**Taking a dump** (`DATABASE_URL` from the owner's shell):
 
 ```sh
 pg_dump "$DATABASE_URL" --format=custom --no-owner --no-privileges \
@@ -1571,96 +1038,27 @@ pg_dump "$DATABASE_URL" --format=custom --no-owner --no-privileges \
   --file "reachkit-$(date -u +%Y%m%dT%H%M%SZ).dump"
 ```
 
-Name the schemas rather than taking the default: a bare `pg_dump` of a Supabase project also
-reaches internal schemas the connection role does not own and errors on them. `public` is the
-product's data and `auth` is what makes a sign-in work — a dump of `public` alone restores rows
-that nobody can log in to. `v2_archive` is v2's frozen objects (§2); add
-`-n v2_archive` only while the v2 rollback path is still wanted.
+Name the schemas: a bare `pg_dump` reaches internal schemas and errors, and `public` alone restores
+rows nobody can sign in to. Add `-n v2_archive` only while the v2 rollback path is wanted. Keep the
+file off the box; it holds every customer's data.
 
-`--format=custom` is restored with `pg_restore`, not `psql`. Keep the file off the box that runs
-the product. A dump contains every customer's data: treat it as the most sensitive file the
-project produces, and delete drill copies when the drill ends.
+**The drill**, against a local scratch database, never the live project:
 
-**The dump drill.** Rehearse it against a *scratch* database, never the live project. The point
-of the drill is to find out that a step does not work while it does not matter.
+1. Take a fresh dump.
+2. `psql -h 127.0.0.1 -U reachkit -d postgres -c "create database reachkit_restore_drill"`.
+3. `pg_restore --no-owner --no-privileges --dbname "<scratch url>" reachkit-<stamp>.dump`.
+4. Compare row counts of `users`, `sites`, `scans`, `drafts`, `publications`, `leads`, `fetches`
+   with the source, and `select tablename, policyname from pg_policies where schemaname = 'public'`.
+5. Point a local `next dev` at the scratch database, sign in, open `/app`.
+6. Drop the scratch database and delete the dump copies. Record the date, size and restore time on
+   the backups issue (#334).
 
-1. Take a fresh dump, as above.
-2. Create an empty scratch database. **A local one, not a second Supabase project** —
-   `psql -h 127.0.0.1 -U reachkit -d postgres -c "create database reachkit_restore_drill"`.
-   Restoring `auth` into another Supabase project collides with the objects that project already
-   has there, which turns the drill into a debug of the drill.
-3. Restore into it:
-   `pg_restore --no-owner --no-privileges --dbname "<scratch url>" reachkit-<stamp>.dump`
-4. Check the shape, not just the exit code. Row counts should match the source, table by table —
+**Restoring for real** from a dump: flip `KILL_SWITCH` (§5) and redeploy, restore, verify, release.
+Everything after the dump is lost.
 
-   ```sql
-   select 'users' t, count(*) from users
-   union all select 'sites',        count(*) from sites
-   union all select 'scans',        count(*) from scans
-   union all select 'drafts',       count(*) from drafts
-   union all select 'publications', count(*) from publications
-   union all select 'leads',        count(*) from leads
-   union all select 'fetches',      count(*) from fetches
-   order by 1;
-   ```
-
-   — and the policies should have come across with them:
-
-   ```sql
-   select tablename, policyname from pg_policies
-    where schemaname = 'public' order by 1, 2;
-   ```
-
-   Both are cheap to run against the source first and diff.
-5. Point a local `next dev` at the scratch database — `SUPABASE_URL` and the keys from that
-   project — sign in, and open `/app`. A restore that produces rows but not a working sign-in has
-   not restored the `auth` schema, which `pg_dump` of the `public` schema alone does not carry.
-6. Drop the scratch database and delete the dump copies.
-7. **Record the drill here**, in the log at §11, with the date, the dump size, the restore time
-   and anything that did not work. A drill that is not written down did not happen.
-
-**The one drill.** Not a rehearsal of the dump — a rehearsal of the *platform*, which is the only
-thing that can rewind a mistake nobody dumped ahead of. It is runnable the day PITR is on and not
-before; until then the dump drill above is what there is. **The owner triggers it** — no agent runs
-any of it. It writes and then deletes one sentinel row on production and restores into a *clone*;
-production itself is never restored over and never goes down.
-
-1. Insert one sentinel row into `domain_blocks` — a table `dbAdmin()` alone reads, whose `domain`
-   is unique and whose rows block a scan of that domain and nothing else. Use a reserved name so it
-   can never match a customer:
-
-   ```sql
-   insert into domain_blocks (domain, note)
-   values ('restore-drill.invalid', 'issue 887 restore drill, <date>, owner');
-   ```
-
-2. Note the clock. Wait five minutes. Delete it:
-   `delete from domain_blocks where domain = 'restore-drill.invalid';`
-3. Restore **to a point five minutes ago** — between the insert and the delete — into a *scratch
-   project*, via **Duplicate Project** (Supabase's clone-project path) rather than the in-place
-   restore button, so production is never taken down by a drill. On a Vercel-Marketplace org a new
-   project is created from the **Vercel** dashboard, and it bills under this same org: delete it
-   the moment the drill ends.
-4. Confirm the named row is back:
-   `select domain, note, blocked_at from domain_blocks where domain = 'restore-drill.invalid';`
-   One row, with the note, is the whole pass condition. No row means the restore did not reach the
-   point asked for, and that is the finding.
-5. **Record the wall-clock time** — from pressing restore to the clone answering a query — with
-   the database size and the date, in this section. That number is the recovery time the product
-   actually has; until it is written down, "how long would this take" has only a guess for an
-   answer.
-6. Delete the scratch project. Production needs no cleanup: step 2 already removed the sentinel
-   there, and the clone is where it came back.
-
-**Restoring for real**, from a dump, is the dump drill's steps 3–4 against the live project with
-the product stopped first: flip
-`KILL_SWITCH` (§5) and redeploy so nothing writes while the restore runs, restore, verify, then
-release it. Expect to lose everything between the dump and the incident — with no PITR there is no
-finer granularity than the last dump. That gap is the argument for taking dumps often.
-
-**The rollback to v2** is a different procedure and is not this one:
-`alter table v2_archive.<t> set schema public` per table, then promote the frozen v2 production
-deployment (`dpl_2NEUXishMXAkzXG4Ti85yTy7NDda`, 23 Aug 2026).
+**The rollback to v2** is a different procedure: `alter table v2_archive.<t> set schema public` per
+table, then promote the frozen v2 production deployment (`dpl_2NEUXishMXAkzXG4Ti85yTy7NDda`,
+23 Aug 2026).
 
 ---
 
@@ -1668,28 +1066,14 @@ deployment (`dpl_2NEUXishMXAkzXG4Ti85yTy7NDda`, 23 Aug 2026).
 
 | Situation | Go to |
 |---|---|
-| a PR is green and should ship | §1 — merge it; the owner tests on `dev.reachkit.app` |
-| the site is 500ing | §7 — read the runtime log, find the last `boot_invariants` line |
-| every page 500s and nothing changed | §2 — the Supabase project may have paused after seven idle days |
-| nothing has published for days | §4 — is the Inngest app registered? The ticks are silent when it is not |
-| a WordPress destination needs proving | §4 — the six-step walk, and what each step should show |
-| a real deep pass needs running, or the calendar shows empty days | §4 — the deep-pass walk, and which kind of empty each date is |
-| spend looks wrong | §8 — the SQL is there; `fetches` is the truth |
+| the site is 500ing | §7 — the runtime log's last `boot_invariants` line |
+| every page 500s and nothing changed | §2 — the Supabase project may have paused |
+| nothing has published for days | §4 — is the Inngest app registered? |
+| spend looks wrong | §8 — `fetches` is the truth |
 | stop the spend now | §5 — `KILL_SWITCH=true` on every target, **then redeploy** |
-| a key leaked | §3 — rotate: mint, paste both targets, redeploy, verify, revoke |
-| Stripe must go live, or mail must reach a real inbox | `docs/GO-LIVE.md` — the go-live gate, worked through in order |
-| a migration needs to reach production | §9 — by hand, through the SQL editor; `db-live` does not exist |
-| the database is gone | §9 — and read the plan warning first |
-| production is serving a bad build | §1 — **roll forward**: revert on `main` and deploy. Never promote an older deployment |
-| someone is asking to roll back | §1 — the scripts cannot; Vercel can, and must not. Why is there |
-| "is not readable by this build" in a log | §1 — an older build is reading a newer report. Deploy `main`, do not roll back further |
-| how long would a restore take | §9 — unknown until the drill runs. Enabling it and running it are the owner's |
-| CI jobs fail with a billing or spending-limit error | §1 *Where CI runs* — CI runs on GitHub-hosted runners, which a public repository gets without a minutes cap. The box runners are deregistered and must never be re-registered while the repository is public |
-| a check sits in *queued* for hours | §1 *Where CI runs* — no self-hosted runner exists, so a job waiting on a `self-hosted` label means a workflow regressed: fix that workflow's `runs-on`, never register a runner. `gh api repos/tim-clifford6991/reachkit/actions/runners` must read `total_count: 0` |
-| `Vercel` fails on every PR | §1 — Git deployments are off; it is not a required check, and nothing is blocked |
-
----
-
-## 11. History
-
-Do not extend this section. Cutover and incident narrative live in git. Rollback to v2 is §9.
+| a key leaked | §3 — mint, paste both targets, redeploy, verify, revoke |
+| the first live payment, or a Stripe setting | §2 *Stripe dashboard* |
+| a migration needs to reach production | §9 — by hand, through the SQL editor |
+| production is serving a bad build | §1 — **roll forward**; never promote an older deployment |
+| "is not readable by this build" in a log | §1 — an older build is reading a newer report; deploy `main` |
+| a check sits in *queued* for hours | §1 *Where CI runs* — a workflow regressed to a self-hosted label; fix its `runs-on` |

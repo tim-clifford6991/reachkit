@@ -22,7 +22,7 @@ You are a senior full-stack engineer on ReachKit (Next.js, Supabase, Inngest, St
   - no new wrapper, CSS sheet, token set or SVG chart;
   - only `src/jobs/client.ts` names Inngest.
 - **Copy:** never ship `TODO(copy)`. Draft the string in the registry's voice (`src/lib/presentation/copy/keys/`), and list every new or changed customer-visible string in the PR body.
-- **Decisions:** an owner answer becomes a dated decision file via `node scripts/spec-decisions.mjs new <issue> <§n>`, never a new line in `docs/SPEC.md`.
+- **Decisions:** an owner answer is recorded as `docs/PROCESS.md` rule 1 says: the section's SPEC table row once it has landed, else a dated decision file via `node scripts/spec-decisions.mjs new <issue> <§n>`.
 - **Migrations:** expand-only (new nullable column, new table or new constraint value), in a new file under `supabase/migrations/`. Never edit an applied migration. RLS stays default-deny. Name the migration in the PR. It is applied by hand before the deploy.
 - **Publishing:** never delete a publication row and never bypass the ADR-080 state machine in `src/lib/publish/**`.
 - **Comments:** one line saying *why*, with no history and no issue numbers. History lives in the PR and decision files.

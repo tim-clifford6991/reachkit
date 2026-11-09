@@ -1,7 +1,7 @@
 # What to watch in production during the walk
 
 For the owner, open in a second window for the whole walk. Everything here comes from
-`docs/RUNBOOK.md` and `docs/GO-LIVE.md` §1.6. If this page and those two disagree, they are right.
+`docs/RUNBOOK.md` (§2 *The first live payment*). If this page and RUNBOOK disagree, RUNBOOK is right.
 **Watch, write down times, and do not step in.** A fix during the walk is a finding afterwards,
 unless it is the kill switch below.
 
@@ -30,14 +30,14 @@ from job_runs order by last_run_at;
 |---|---|---|
 | 1 Landing | `{"event":"request",…,"status":200}` lines | any `5xx`. A page with no logs at all may mean the Supabase project paused (RUNBOOK §2). |
 | 2 Free scan | a `request` line carrying a `scanId`; the report renders | `{"event":"cap_hit","reason":"daily_ceiling"}` (RUNBOOK §8), or a refusal with `switched_off` (the kill switch is on) |
-| 4 Pay | In order (GO-LIVE §1.6): `{"event":"stripe_webhook","outcome":"provision","type":"checkout.session.completed"}`, then `{"event":"provision","outcome":"created"}`. The browser lands on `/setup`, signed in. Stripe shows the webhook delivery **200**. | `"outcome":"signature"` means the webhook secret is crossed (GO-LIVE §1.5). A `4xx` on the Stripe delivery. `{"event":"billing_open_subscription","outcome":"vendor"}`. |
+| 4 Pay | In order (RUNBOOK §2): `{"event":"stripe_webhook","outcome":"provision","type":"checkout.session.completed"}`, then `{"event":"provision","outcome":"created"}`. The browser lands on `/setup`, signed in. Stripe shows the webhook delivery **200**. | `"outcome":"signature"` means the webhook secret is crossed (RUNBOOK §2). A `4xx` on the Stripe delivery. `{"event":"billing_open_subscription","outcome":"vendor"}`. |
 | 4 Pay — the row | the query below returns one `users` row with `stripe_customer_id`, `checkout_session_id` and a `paid_through` about a month out | `paid_through` still on the column default |
 | 5 Setup | `sites.setup_stage` moves through the stages (`setup_stage_times` gets a timestamp for each); in Inngest one `scan/run` (`scanId` `setup-{siteId}`); then `{"event":"job","jobId":"scan/run","outcome":"ran"}` and a `{"event":"supply_pass",…}` line (RUNBOOK §4 *The deep pass, for real*) | `"outcome":"degraded"` or `"failed"` on `scan/run`; `setup_released_reason` = `failed` |
 | 5/6 Hosted host | `destinations.hostname_state` moves from `pending_dns` to `live` after the tester's DNS record and a press of the check; `{"event":"destination",…}` lines | The check answers *could not ask*. That is the #1045 risk: the token's team scope. |
 | 5/6 WordPress | `destinations.health` = `ok`, `publish_capable` = true (RUNBOOK §4 *Verifying a WordPress destination*) | `health` = `expired` / `error`; `publish_capable` = false (a Contributor-level password) |
 | 6 First page | a `drafts` row in `in_review` with a `veto_deadline`; the draft-ready mail in Resend. After the deadline: `publish_transition` lines `in_review → approved → publishing → published`, a `publications` row with the `live_url` **the site returned**, `{"event":"job","jobId":"publish/execute","outcome":"ran"}`. `publish/verify` runs 24 h later. | `"outcome":"refused"` with a `failedGuard` on `publish_transition`; `delivery_state` failing with a `failure_reason`; a `live_url` that does not open |
 | 7 Stop the next page | the next evening's `draft/generate` run writes a second `drafts` row in `in_review` and sends its mail; after the tester's press, `veto_token_used_at` is set and the draft moves `in_review → skipped` | the link says the moment has passed (`publish.veto.expired`) before `veto_deadline`; the draft still publishes |
-| any | — | `{"event":"provisioning_backstop_fired"}` **must never appear** — it means the payment was rescued a day late (GO-LIVE §1.6) |
+| any | — | `{"event":"provisioning_backstop_fired"}` **must never appear** — it means the payment was rescued a day late (RUNBOOK §2) |
 
 The tester's rows, with one query:
 
