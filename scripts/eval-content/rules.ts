@@ -9,7 +9,7 @@
 //      under `stored-drafts/<domain>/`: the body as stored, the title, the
 //      target, the facts the row recorded and the rules the product recorded.
 //   2. **Evaluation drafts.** The ten pages #1153 kept under
-//      `docs/walk/ab-reachkit/`: today's pipeline (A), the prototype of the
+//      `scripts/eval-content/ab-reachkit/`: today's pipeline (A), the prototype of the
 //      2026-09-29 rulings before and after its critic (B), and the
 //      hand-written reference (C).
 //   3. **The evaluation set's own pages.** Each snapshot's page text, block by
@@ -96,7 +96,7 @@ const HERE = path.dirname(new URL(import.meta.url).pathname);
 const STORED_DIR = path.join(HERE, "stored-drafts");
 
 /** The ten kept pages of #1153, with the search each was written for
- *  (`docs/walk/ab-reachkit/blind/key.md`). */
+ *  (`scripts/eval-content/ab-reachkit/blind/key.md`). */
 const EVALUATION_PAGES: { file: string; query: string; type: OpportunityType }[] = [
   { file: "A1.md", query: "best ai seo software", type: "listed_page" },
   { file: "A2.md", query: "best seo software review", type: "listed_page" },
@@ -138,7 +138,7 @@ function storedPages(): { index: StoredIndex; pages: Page[] }[] {
 /** A kept page opens with a comment saying which arm it is; the pipeline
  *  wrote none of that. Its title is its first heading. */
 function evaluationPages(root: string, snapshot: Snapshot): Page[] {
-  const dir = path.join(root, "docs/walk/ab-reachkit");
+  const dir = path.join(root, "scripts/eval-content/ab-reachkit");
   return EVALUATION_PAGES.map((kept): Page => {
     const markdown = readFileSync(path.join(dir, kept.file), "utf8").replace(/^<!--[\s\S]*?-->\s*/, "").trimEnd();
     return {
@@ -318,7 +318,7 @@ export async function main(opts: RulesOptions): Promise<number> {
     "",
     `Written by \`node scripts/eval-content.mjs --rules\` on ${new Date().toISOString().slice(0, 10)} (issue 1187; owner ruling D27, SPEC §7 2026-10-02). A tool, not a gate. Nothing was spent: the rules are code, run again over stored text.`,
     "",
-    `**What was measured.** ${storedCount} stored drafts (every draft the product has written, all for reachkit.app, read on ${stored[0]?.index.readOn ?? "—"}), ${keptCount} evaluation drafts (the pages #1153 kept under \`docs/walk/ab-reachkit/\`), and every block of the evaluation set's own pages across ${domains.length} sites. *Before* is \`main\` on ${baseline.takenAt}, before this issue changed a rule.`,
+    `**What was measured.** ${storedCount} stored drafts (every draft the product has written, all for reachkit.app, read on ${stored[0]?.index.readOn ?? "—"}), ${keptCount} evaluation drafts (the pages #1153 kept under \`scripts/eval-content/ab-reachkit/\`), and every block of the evaluation set's own pages across ${domains.length} sites. *Before* is \`main\` on ${baseline.takenAt}, before this issue changed a rule.`,
     "",
     "**How a false positive is counted.** A rule that fires is read against the page. It is a violation where the page does what the rule exists to stop, and a false positive otherwise; each reading and its reason is in `scripts/eval-content/stored-drafts/verdicts.json`. A fire nobody has read counts as a false positive. The rate is false positives over all pages in the set.",
     "",

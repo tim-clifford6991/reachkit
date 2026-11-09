@@ -2,7 +2,7 @@
 // what is stored (#1158).
 //
 // A round is a committed file, `snapshot/ab-round-<n>.json`: the pages (each
-// a Markdown file under `docs/walk/`), the pairs to judge and the answer each
+// a Markdown file under the round's `dir`), the pairs to judge and the answer each
 // pair is expected to give, and the evidence the grader reads — the target's
 // top results as deep as the writer read them, and whether each page a body
 // cites answered. Reading a round from the file is what makes a grade

@@ -34,7 +34,7 @@ const THIS_PASS = as("this-pass", over("gusto.com", SHELL));
 
 /** A stored free report from the panel's walks, as the re-score reads its row. */
 function walkScan(walk: string, domain: string, report: Record<string, unknown> = {}): FixtureScan {
-  const file = new URL(`../../../docs/walk/free/${walk}.json`, import.meta.url);
+  const file = new URL(`../../../tests/fixtures/walk/free/${walk}.json`, import.meta.url);
   const sites = (JSON.parse(readFileSync(file, "utf8")) as { sites: { domain: string; stored: { scan: FixtureScan & { report: Record<string, unknown> } } | null }[] }).sites;
   const scan = sites.find((s) => s.domain === domain && s.stored !== null)!.stored!.scan;
   return { id: scan.id, createdAt: scan.createdAt, status: scan.status, score: scan.score, drivers: scan.drivers, report: { ...scan.report, ...report }, home: null, rendered: [] };

@@ -21,7 +21,7 @@ interface WalkSite {
 
 /** The free scans of 2026-10-15, stored before issue 1454 asked the profile
  *  for its lines, kind and reach. */
-const WALK = (JSON.parse(readFileSync(path.resolve(import.meta.dirname, "../../docs/walk/free/2026-10-15.json"), "utf8")) as { sites: WalkSite[] }).sites;
+const WALK = (JSON.parse(readFileSync(path.resolve(import.meta.dirname, "../../tests/fixtures/walk/free/2026-10-15.json"), "utf8")) as { sites: WalkSite[] }).sites;
 
 function rescored(domain: string) {
   const site = WALK.find((s) => s.domain === domain && s.stored !== null)!;

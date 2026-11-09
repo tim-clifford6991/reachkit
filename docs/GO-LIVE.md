@@ -81,8 +81,7 @@ Steps 1–6 are done for production (dates from the 2026-10-02 check in 1.1). St
    **The three move as one.** Any two of them crossed is a broken deployment, and two of the three
    crossings are silent without step 5's refusal.
    **Done for production:** `STRIPE_PRICE_ID` 2026-09-08, `STRIPE_WEBHOOK_SECRET` 2026-07-21,
-   `STRIPE_SECRET_KEY` 2026-09-13. The preview target keeps the test-mode trio on purpose
-   (`docs/stripe-setup.md`).
+   `STRIPE_SECRET_KEY` 2026-09-13. The preview target keeps the test-mode trio on purpose.
 5. **[owner]** Redeploy. A binding is read once, at module load, so an existing instance keeps the
    old value until it is replaced. **Done** by 2026-09-14, the first `cs_live_…` session.
 6. **[owner]** Watch the build. The build log carries one line before `next build`; the one to find is

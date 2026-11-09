@@ -145,7 +145,7 @@ Never register a self-hosted runner on this repository while it is public.
 | Database | one Supabase project, `reachkit` (`kleepxxddbcnfsfwudoe`), Postgres 17, us-east-1, **Free plan**. v2's objects sit in schema `v2_archive`, the rollback path (§9). The org is Vercel-Marketplace-managed: uninstalling that integration would delete the org and the database; the exit path is a transfer to a Supabase-managed org |
 | Jobs | Inngest app `reachkit`, registered at `https://reachkit.app/api/jobs` — owed by the owner: create the app, paste the two keys, sync the functions (#315, §4) |
 | Mail | Resend, sending domain `reachkit.app`; `MAIL_FROM` is `hello@reachkit.app` (§6). #325 got the domain sending; DMARC, the return path and one real inbox are `docs/GO-LIVE.md` §2 and #339 |
-| Payments | Stripe: one product `ReachKit`, one €49/month tax-inclusive price bound as `STRIPE_PRICE_ID`; v2's products and prices inactive; webhook `/api/stripe/webhook`; customer portal on. **Production's three Stripe bindings are live-mode values**; the preview target, which `dev.reachkit.app` answers on, carries the test-mode trio and its own test webhook. No live payment has completed yet: what remains is `docs/GO-LIVE.md` §1.1. The dashboard steps, and the test-mode walk that proves them, are `docs/stripe-setup.md`. Settings → Business → Public details → Terms of service = `https://reachkit.app/terms` in both modes (harmless to keep). Checkout sends no terms tick (`consent_collection`): it is off by owner ruling, 2026-11-06/2026-11-07 |
+| Payments | Stripe: one product `ReachKit`, one €49/month tax-inclusive price bound as `STRIPE_PRICE_ID`; v2's products and prices inactive; webhook `/api/stripe/webhook`; customer portal on. **Production's three Stripe bindings are live-mode values**; the preview target, which `dev.reachkit.app` answers on, carries the test-mode trio and its own test webhook. No live payment has completed yet: what remains is `docs/GO-LIVE.md` §1.1. Dashboard → Developers → Webhooks: the endpoint `{app origin}/api/stripe/webhook` subscribes to exactly the events in `src/lib/account/provisioning/events.ts` (any other answers `400`), and its signing secret is `STRIPE_WEBHOOK_SECRET`. Settings → Business → Branding, in live and in test mode separately (no API sets it for our own account): icon `public/brand/mark-512.png`, logo `public/brand/logo@2x.png`, brand and accent colour `#5b4be0`; Public details → business name `ReachKit`. Settings → Business → Public details → Terms of service = `https://reachkit.app/terms` in both modes (harmless to keep). Checkout sends no terms tick (`consent_collection`): it is off by owner ruling, 2026-11-06/2026-11-07 |
 | Hosted CMS | customers point `content.{their-domain}` at `HOSTED_EDGE_CNAME_TARGET` (`edge.reachkit.app`); per-customer domains are added to the project through the Vercel Domains API (#322) |
 | Local | `npm run dev` on `http://localhost:3000`, bindings from `.env.local` (names in `.env.example`) |
 
@@ -528,7 +528,7 @@ whichever environment is walked.
 
 `docs/SPEC.md` §6's supply and §7's calendar are built and have never run against a real domain. This is the one
 walk that runs a pass, and where to read each thing it did. It needs a paid account whose setup is
-finished (`docs/stripe-setup.md`) and the Inngest app registered (above).
+finished and the Inngest app registered (above).
 
 **What starts it: completing setup, and nothing else.** `enqueueDeepPass`
 (`src/app/(account)/setup/_setup/store.ts`) sends `scan/run` with `tier: "deep"`. There is no
@@ -763,7 +763,7 @@ nothing; `--cached` reads no page again. The thresholds are `PROSE` in
 
 `npm run eval:content -- --prose --write [--sites a,b] [--cap-cents 75]` writes one page for each
 site of `scripts/eval-content/prose/proof-sites.json` through the write call, the prose check and
-its fix call, and keeps them under `docs/walk/prose-gate/`. `--prose --judge` writes reachkit.app's
+its fix call, and keeps them under `.review/walk/prose-gate/`. `--prose --judge` writes reachkit.app's
 how-to, Q&A and documentation again from their stored packs and has them read blind against the
 stored pages. Both spend on the writer tier and are in the spend log.
 
@@ -819,7 +819,7 @@ other host is refused. The site's own pages, and each concluded rival's home pag
 domain is the rival's, #1314), are read by the product's own fetcher at no cost.
 
 It prints each site's checks as `pass`, `FAIL` or `review`, with the site's cost, and writes
-`docs/walk/panel/<date>.json` and `<date>.md` after every site. `review` is a result the code
+`.review/walk/panel/<date>.json` and `<date>.md` after every site; `--recheck` reads the runs kept in `scripts/panel/runs/`. `review` is a result the code
 cannot judge, listed for a person to read. It exits 0 only when every site ran and no check failed.
 
 | Flag | Does |
@@ -865,7 +865,7 @@ route's request budget. Nothing is written to production.
 Per site it writes the score, the four drivers or why each is unmeasured, the locale and stated
 place, each question (its search, whether the results were read, where the site ranks, the AI
 Overview and whether it names or cites the site, the local pack), the rivals, the cost and the time
-to `docs/walk/free/<date>.json` and `<date>.md`. A second run on a date adds to that date's files.
+to `.review/walk/free/<date>.json` and `<date>.md`. A second run on a date adds to that date's files.
 
 | Flag | Does |
 |---|---|
@@ -936,7 +936,11 @@ DMARC in place, or nothing leaves — and the mailbox itself must be one somebod
 
 The From carries the product's name, `ReachKit <hello@reachkit.app>`, and Reply-To is the same mailbox
 (#1568). The sender logo in inboxes (DMARC, BIMI, a mark certificate, or the Google-account fallback)
-and Stripe Checkout's branding are owner steps in `docs/runbooks/brand-in-inboxes-and-checkout.md`.
+and Stripe Checkout's branding (§2 Payments) are owner steps:
+
+- **DMARC**, in Cloudflare DNS for `reachkit.app`: once Gmail's *Show original* reads SPF, DKIM and DMARC `PASS` and 7 days of `rua` reports are clean, edit `_dmarc` to `v=DMARC1; p=quarantine; pct=100; rua=mailto:hello@reachkit.app; fo=1`, then after 14 clean days to `p=reject`. Rollback is `p=none`.
+- **BIMI**, only after quarantine is live: a TXT at `default._bimi` reading `v=BIMI1; l=https://reachkit.app/brand/mark-bimi.svg; a=;`. Gmail draws it only with a VMC or CMC (a paid, yearly owner decision), whose PEM goes to `public/brand/bimi.pem` and into `a=`.
+- **Free fallback**: a Google account on the existing address `hello@reachkit.app`, with `public/brand/mark-512.png` as its photo, visible to Anyone, and 2-Step Verification on.
 
 **A mail with an unwritten sentence does not send.** `copy()` refuses an empty key, `sendEmail`
 answers `not-composable`, and the attempt is logged. This is the ruling of 2026-09-05 — a mail

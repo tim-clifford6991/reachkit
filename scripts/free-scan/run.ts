@@ -397,7 +397,7 @@ function printSite(site: SiteResult): void {
 // ── The run ────────────────────────────────────────────────────────────────
 
 export async function main(o: Options): Promise<number> {
-  const dir = path.join(o.root, "docs/walk/free");
+  const dir = path.join(o.root, ".review/walk/free");
   const file = path.join(dir, `${o.date}.json`);
   // A second run on a date adds to it; a site run again replaces its entry.
   const held: StoredRun | null = existsSync(file) ? (JSON.parse(readFileSync(file, "utf8")) as StoredRun) : null;
@@ -455,7 +455,7 @@ function factsOfStored(domain: string, reads: readonly (StoredRead | (Omit<Store
 /** `--recheck`: that date's stored scans scored again by the current code,
  *  through the production re-score's own path. No database, no vendor, 0¢. */
 export function recheck(o: Options): number {
-  const dir = path.join(o.root, "docs/walk/free");
+  const dir = path.join(o.root, ".review/walk/free");
   const file = path.join(dir, `${o.date}.json`);
   if (!existsSync(file)) throw new Error(`No stored run at ${file}.`);
   const run = JSON.parse(readFileSync(file, "utf8")) as StoredRun;

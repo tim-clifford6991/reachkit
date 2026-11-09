@@ -719,4 +719,4 @@ Each page is read for claims up to 4000 words, and for the non-commodity listing
 
 ## Files
 
-Every page is under `docs/walk/ab-reachkit/` as `A1.md` … `B3.md` and `C-reference.md`; a B page the critic rewrote keeps its draft as `B<n>-before-critic.md`. `blind/` holds each A–B pair relabelled X and Y at random, and `blind/key.md` the mapping. `control-bad.md` is the planted control the grader is calibrated on (#1158). The round as the grader reads it — pages, pairs, the top results and the judge's answers — is `scripts/eval-content/snapshot/ab-round-1.json` and `ab-round-1.answers.json`.
+Every page is under `scripts/eval-content/ab-reachkit/` as `A1.md` … `B3.md` and `C-reference.md`; a B page the critic rewrote keeps its draft as `B<n>-before-critic.md`. `blind/` holds each A–B pair relabelled X and Y at random, and `blind/key.md` the mapping. `control-bad.md` is the planted control the grader is calibrated on (#1158). The round as the grader reads it — pages, pairs, the top results and the judge's answers — is `scripts/eval-content/snapshot/ab-round-1.json` and `ab-round-1.answers.json`.

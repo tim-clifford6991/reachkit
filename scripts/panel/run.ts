@@ -24,12 +24,11 @@
 //
 // # What it spends
 //
-// The vendors and the model are called live, up to `--cap-cents` for the
-// whole run. A site is started only while the cap still holds what a site
-// has cost so far (before one has run, that site's own last stored run, else
-// `FIRST_SITE_CENTS`); a site the cap
-// does not reach is listed as not run. Past the cap every paid request is
-// refused. Each paid call is written to the box's spend log (D57).
+// The vendors and the model are called live, up to `--cap-cents` for the whole run.
+// A site is started only while the cap still holds what a site has cost so far
+// (before one has run, that site's own last stored run, else `FIRST_SITE_CENTS`); a
+// site the cap does not reach is listed as not run. Past the cap every paid request
+// is refused. Each paid call is written to the box's spend log (D57).
 //
 // What a run buys from the search vendor is kept in
 // `scripts/panel/evidence/<domain>.json` and loaded by the next run, so a
@@ -543,19 +542,20 @@ function printChecks(say: (line: string) => void, run: SiteRun): void {
   say(`  cost   ${cents(run.result.cents)}`);
 }
 
-function readPanel(o: Options): { dir: string; panel: PanelSite[]; sites: PanelSite[] } {
-  const dir = path.join(o.root, "docs/walk/panel");
-  const panel = (JSON.parse(readFileSync(path.join(dir, "sites.json"), "utf8")) as { sites: PanelSite[] }).sites;
+function readPanel(o: Options): { dir: string; stored: string; panel: PanelSite[]; sites: PanelSite[] } {
+  const dir = path.join(o.root, ".review/walk/panel");
+  mkdirSync(dir, { recursive: true });
+  const panel = (JSON.parse(readFileSync(path.join(o.root, "docs/walk/panel/sites.json"), "utf8")) as { sites: PanelSite[] }).sites;
   const unknown = o.sites.filter((domain) => !panel.some((site) => site.domain === domain));
   if (unknown.length > 0) throw new Error(`Not on the panel: ${unknown.join(", ")}. The panel is docs/walk/panel/sites.json.`);
-  return { dir, panel, sites: o.sites.length === 0 ? panel : panel.filter((site) => o.sites.includes(site.domain)) };
+  return { dir, stored: path.join(o.root, "scripts/panel/runs"), panel, sites: o.sites.length === 0 ? panel : panel.filter((site) => o.sites.includes(site.domain)) };
 }
 
 /** `--recheck`: a date's stored results under the checks as they are now.
  *  No database, no vendor, 0¢. */
 export function recheck(o: Options): number {
-  const { dir, panel, sites } = readPanel(o);
-  const file = path.join(dir, `${o.date}.json`);
+  const { dir, stored, panel, sites } = readPanel(o);
+  const file = path.join(stored, `${o.date}.json`);
   if (!existsSync(file)) throw new Error(`No stored run at ${file}.`);
   const held = storedRuns(file, panel);
   const runs = held.runs.filter((run) => sites.some((site) => site.domain === run.result.site.domain));
@@ -571,7 +571,7 @@ export function recheck(o: Options): number {
 }
 
 export async function main(o: Options): Promise<number> {
-  const { dir, panel, sites: asked } = readPanel(o);
+  const { dir, stored, panel, sites: asked } = readPanel(o);
   const carried = o.resume ? storedRuns(path.join(dir, `${o.date}.json`), panel) : { runs: [], spent: 0, commit: "unknown", capCents: null };
   const sites = asked.filter((site) => !carried.runs.some((run) => run.result.site.domain === site.domain));
 
@@ -615,7 +615,7 @@ export async function main(o: Options): Promise<number> {
   const notRun: PanelSite[] = [];
   for (const site of sites) {
     const sofar = spent();
-    const need = runs.length === 0 ? (lastCostOf(dir, site.domain) ?? FIRST_SITE_CENTS) : runs.reduce((sum, run) => sum + run.result.cents, 0) / runs.length;
+    const need = runs.length === 0 ? (lastCostOf(stored, site.domain) ?? FIRST_SITE_CENTS) : runs.reduce((sum, run) => sum + run.result.cents, 0) / runs.length;
     if (o.capCents - sofar < need) {
       notRun.push(site);
       say(`\n${site.domain} — not run: ${cents(o.capCents - sofar)} is left of the cap and a site has cost ${cents(need)}.`);

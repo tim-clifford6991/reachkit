@@ -1,6 +1,6 @@
 # wesbos.com
 
-From `docs/walk/panel/2026-10-12-1414.json`: 13 stored topics, 9 committed from 2026-10-19.
+From `scripts/panel/runs/2026-10-12-1414.json`: 13 stored topics, 9 committed from 2026-10-19.
 
 Supply: 9 of 10 committed, short 1; stored topics product 9, category 3, best_x 1.
 

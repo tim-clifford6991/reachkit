@@ -2,7 +2,7 @@
 // the rows `choose` reads. Not a suite.
 //
 // The source is the last stored panel run that holds the site
-// (`docs/walk/panel/<run>.json`, `sites[].topics`): query, status, type,
+// (`scripts/panel/runs/<run>.json`, `sites[].topics`): query, status, type,
 // fit, volume and the stored `ready`. What a run does not store is fixed
 // here, the same for every site: a row is banded from its stored volume at a
 // site that ranks for nothing (`demandBand`, as derive bands a cold start), an Improve
@@ -26,6 +26,7 @@ import { demandBand } from "@/lib/opportunities/winnability/band";
 import type { SerpResult } from "@/lib/vendors/dataforseo/types";
 
 const PANEL = "docs/walk/panel";
+const RUNS = "scripts/panel/runs";
 export const AT = new Date("2026-10-19T06:00:00.000Z");
 export const SITE_ID = "33333333-3333-4333-8333-333333333333";
 const SCAN_ID = "44444444-4444-4444-8444-444444444444";
@@ -48,7 +49,7 @@ interface StoredSite {
 
 export interface PanelSite {
   domain: string;
-  /** The run the topics come from, `docs/walk/panel/<run>.json`. */
+  /** The run the topics come from, `scripts/panel/runs/<run>.json`. */
   run: string;
   profile: Profile;
   /** The run's own market conclusion, as readiness reads it. */
@@ -64,7 +65,7 @@ export function panelDomains(): string[] {
 
 /** Runs oldest first: a dated run before a re-run of the same date (`<date>-<issue>`). */
 function runs(): string[] {
-  return readdirSync(PANEL)
+  return readdirSync(RUNS)
     .filter((file) => file.endsWith(".json") && file !== "sites.json")
     .map((file) => file.slice(0, -".json".length))
     .sort();
@@ -72,7 +73,7 @@ function runs(): string[] {
 
 export function panelSite(domain: string): PanelSite {
   for (const run of runs().reverse()) {
-    const stored: { sites: StoredSite[] } = JSON.parse(readFileSync(`${PANEL}/${run}.json`, "utf8"));
+    const stored: { sites: StoredSite[] } = JSON.parse(readFileSync(`${RUNS}/${run}.json`, "utf8"));
     const site = stored.sites.find((entry) => entry.site.domain === domain);
     if (site?.market == null || (site.topics ?? []).length === 0) continue;
     const serps = storedSerps(domain);
