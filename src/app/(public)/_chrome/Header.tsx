@@ -60,8 +60,8 @@ function switchNames(): { toDark: string; toLight: string } {
   return { toDark: copy("chrome.theme.to-dark"), toLight: copy("chrome.theme.to-light") };
 }
 
-/** The pages *Sign in* names: the form, and the step its link lands on. */
-const SIGNIN_AT = ["/signin", "/auth/confirm"] as const;
+/** The pages *Sign in* names. */
+const SIGNIN_AT = ["/signin"] as const;
 
 /** The board's pale ground behind the current nav link (`.pnav a[aria-current]`). */
 const CURRENT_GROUND = "aria-[current=page]:bg-primary/10";

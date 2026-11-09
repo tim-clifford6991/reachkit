@@ -18,7 +18,6 @@
   "AuthSignIn": { "read": "page", "paths": ["/signin"] },
   "AuthCheckEmail": { "read": "state", "why": "the sent arm follows a form post", "render": "tests/app/signin/board.test.tsx", "chrome": "PubHowItWorks" },
   "AuthExpired": { "read": "state", "why": "the expired arm needs a used link", "render": "tests/app/signin/board.test.tsx", "chrome": "PubHowItWorks" },
-  "AuthConfirm": { "read": "page", "paths": ["/auth/confirm?token_hash=layout-sweep-fixture&type=magiclink"] },
   "Setup1": { "read": "page", "paths": ["/setup"], "account": "setup" },
   "Setup2": { "read": "page", "paths": ["/setup?step=check"], "account": "setup" },
   "Setup": { "read": "page", "paths": ["/setup?step=publishing", "/setup/connect"], "account": "setup" },

@@ -20,7 +20,7 @@ Tell the plumber where the water is coming from and whether it has reached outle
 Move rugs and boxes away from the water, and take photos for your insurer before anything is moved.	sample data
 Harbor Plumbing https://help.harborplumbing.com › emergency-plumber-austin Emergency plumber in Austin: what to do in the first hour Water spreading? Shut off the main valve, turn off the water heater, then call. What to do in the first hour, from an Austin plumber.	sample data
 today, 4:00 PM	sample data
-and 9 more	E10: the check count comes from code (docs/spec/decisions/2026-10-19-1581.md)
+and 9 more	E10: the check count comes from code (SPEC §0 One true check count)
 Editing	#1110: the board's own caption over the edit arm, not a string of the screen
 Saved 9:42 AM	sample data
 Water spreading? Shut off the main valve, turn off the water heater, then call. What to do in the first hour, from an Austin plumber.	sample data
@@ -36,8 +36,8 @@ Bold	#1748: the edit arm, behind Edit this page, which the route reading never p
 Italic	#1748: the edit arm, behind Edit this page, which the route reading never presses; tests/archive/app/draft/board.test.tsx reads it; E31: the format toolbar
 Ready New page About 1,400 words	sample data
 Goes live Today, 4:00 PM	sample data: the product states the go-live moment as a date and time in the site's zone
-Checks: 14 of 14 passed	E10: the check count comes from code (docs/spec/decisions/2026-10-19-1581.md)
-It won’t go live. Tomorrow’s page is not affected.	owner Q6 2026-10-20 (docs/spec/decisions/2026-10-20-1716.md): a stop drops the topic for good, and every screen that tells a stop says so; docs/spec/decisions/2026-11-02-2274.md
+Checks: 14 of 14 passed	E10: the check count comes from code (SPEC §0 One true check count)
+It won’t go live. Tomorrow’s page is not affected.	owner Q6 2026-10-20 (SPEC §0 A stopped topic is dropped for good): a stop drops the topic for good, and every screen that tells a stop says so; docs/spec/decisions/2026-11-02-2274.md
 After Edit is pressed	#1110: the board's own caption over the edit arm, not a string of the screen
 This edit breaks a page rule, so the page won’t go live until it passes. Your words are saved.	#789: the edit arm, drawn only while the edit breaks a rule; tests/archive/app/draft/board.test.tsx renders it
 component:icon:link 1	#1748, E31: the editor toolbar's Link, behind Edit this page, which the route reading never presses; tests/archive/app/draft/board.test.tsx opens the edit arm

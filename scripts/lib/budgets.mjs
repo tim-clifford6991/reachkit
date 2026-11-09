@@ -105,7 +105,7 @@ export function blockRuleFindings({ budget, base, head, named }) {
 export function plainWordsFindings({ base, head }) {
   return Object.entries(head)
     .filter(([name, n]) => name in base && n > base[name])
-    .map(([name, n]) => `plain words: ${name} rises from ${base[name]} to ${n} findings; the count only goes down (docs/spec/decisions/2026-10-31-2145.md)`);
+    .map(([name, n]) => `plain words: ${name} rises from ${base[name]} to ${n} findings; the count only goes down (docs/SPEC.md §0 Plain words)`);
 }
 
 // The archive is kept for reference only, so a move into it is not new code.

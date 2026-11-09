@@ -4,7 +4,7 @@
 // route opens the account (idempotent with the webhook), writes the
 // session cookie, and sends a first-time payer to `/setup`.
 //
-// A Route Handler, not a page, for the same reason `/auth/confirm/redeem` is:
+// A Route Handler, not a page, for the same reason `/auth/confirm` is:
 // the cookie has to ride on the redirect's own response.
 //
 // **No session id is the offer: nobody returned from a payment.** Any other

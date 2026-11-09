@@ -55,7 +55,7 @@ The current look of every screen, drawn on board [`Calm`](design/boards/R12-0-Ca
 - 2026-10-07  **A note under the page starts closed** (owner, #1325; `docs/SPEC.md` §7 of this date). On the review screen each card under the article is the same `collapse collapse-arrow` on a `details`, with the card's title as its `summary`, and the same classes from `_overview/present.ts`. The board `R12-6-Page` still draws those cards open, and *What this page is for* and *In search results* as two halves of one card; the screen draws each as its own closed line.
 
 - 2026-10-07  **A long section starts closed too** (owner, #1328; `docs/SPEC.md` §2 of this date). On the report the same daisyUI `collapse collapse-arrow` on a `details` closes a list under its own name inside a result card, and closes *What holds you back* and the first page under theirs. The Report boards still draw every section open and the offer last; the screen draws the offer under the two result cards.
-- 2026-10-20  **The report's missing-pages list starts open** (owner, Q3, #1716; `docs/spec/decisions/2026-10-20-1716.md`). Pages 6–14 show under *All 14, nothing hidden*, as the PubReport board draws them. This amends the line above for that list only.
+- 2026-10-20  **The report's missing-pages list starts open** (owner, Q3, #1716; `docs/SPEC.md` §0 Report lists every missing page). Pages 6–14 show under *All 14, nothing hidden*, as the PubReport board draws them. This amends the line above for that list only.
 
 ## Layout that cannot overflow
 
@@ -79,7 +79,7 @@ The nav label, the heading in the docs and the screen name are the same word. Is
 | Competitors | `/app/rivals` | Competitors. “Rivals” was its label until 2026-10-15 (#1444); the route keeps the old word |
 
 - 2026-10-15  **Section, tab and mail names equal the bar names** (owner, #1444). The free report's verdict draws four bars — Readiness, Content, Google, AI (renamed Website basics and Answers questions, owner R4, `docs/spec/decisions/2026-10-31-2165.md`) — and its two sections are “Google” and “AI”; the app tabs and the mail sections carry the same words. A title is at most six words, one idea, no em-dash; a number is the figure and its explanation one line under it (`docs/SPEC.md` §0, 2026-10-15).
-- 2026-10-31  **Plain words** (owner O6, `docs/spec/decisions/2026-10-31-2145.md`). The retired names, the rule-4 words, the limits and the exempt keys and boards live in `scripts/lib/plain-words.mjs`; `tests/ui/design/strategy.test.ts` counts each key file and board, and a count only falls.
+- 2026-10-31  **Plain words** (owner O6, `docs/SPEC.md` §0 Plain words). The retired names, the rule-4 words, the limits and the exempt keys and boards live in `scripts/lib/plain-words.mjs`; `tests/ui/design/strategy.test.ts` counts each key file and board, and a count only falls.
 
 ## Strategy the gate checks
 
@@ -93,10 +93,10 @@ The owner looks at `dev.reachkit.app` for taste: voice, and an asset only the ow
 
 - 2026-09-25  **A board says what a screen holds, not how many pixels it is** (owner, #1110). It lists the sections, their order and their wording. Its render is not a done-when and not a merge gate; a difference of pixels is not a defect. Build it with the classes above; never match its pixels or copy its markup.
 
-- 2026-10-19  **The signed-off canvas replaces the round boards** (owner: *"The UI on design canvas Version 19 is signed off"*, #1581; `docs/spec/decisions/2026-10-19-1581.md`). Each board is a file in `docs/design/boards/canvas/`, copied unchanged from the canvas project, with its `.jpg` render in `renders/` at the width `canvas.json` gives it. `canvas.json` holds each board's title and width, and the files keep their cross-links. The files are published Version 22: Version 19 plus the trust-check wording and the sizing pass of the same day. The canvas is the owner's signed-off copy and is not edited by hand. Where a board and a dated line in `docs/SPEC.md` or a decision file disagree, the SPEC line still wins and the board is not redrawn. Changing a screen's board is an owner decision, written as a file under `docs/spec/decisions/`.
+- 2026-10-19  **The signed-off canvas replaces the round boards** (owner: *"The UI on design canvas Version 19 is signed off"*, #1581; `docs/SPEC.md` §0 The canvas is the board set). Each board is a file in `docs/design/boards/canvas/`, copied unchanged from the canvas project, with its `.jpg` render in `renders/` at the width `canvas.json` gives it. `canvas.json` holds each board's title and width, and the files keep their cross-links. The files are published Version 22: Version 19 plus the trust-check wording and the sizing pass of the same day. The canvas is the owner's signed-off copy and is not edited by hand. Where a board and a dated line in `docs/SPEC.md` or a decision file disagree, the SPEC line still wins and the board is not redrawn. Changing a screen's board is an owner decision, written as a file under `docs/spec/decisions/`.
 - 2026-11-06  **The public header has four links**, How it works · Pricing · About · Scan library (owner, #2452; `docs/spec/decisions/2026-11-06-2452.md`), as the Landing board draws them. This amends Q1 of #1716, which reversed the five anchors of #1066.
 - 2026-10-19  **The AI legend reads *Links to this page · Mentions you, no link · Mentions someone else · No answer*** (owner, #1581), the canvas wording. It replaces *links / names* (#953).
-- 2026-10-24  **Boards amended to E16–E27, E29, E31, E36** (ux-designer, owner-delegated, #1983; `docs/spec/decisions/2026-10-24-1983.md` names the boards). Every half gauge is a ring, rows of squares and bar strips are bars or text, a page sketch is a `FileText` band, and icons are structural only. The renders predate the amendment.
+- 2026-10-24  **Boards amended to E16–E27, E29, E31, E36** (ux-designer, owner-delegated, #1983; `docs/SPEC.md` §0 Board drawings). Every half gauge is a ring, rows of squares and bar strips are bars or text, a page sketch is a `FileText` band, and icons are structural only. The renders predate the amendment.
 
 | Screen | Route | Board |
 |---|---|---|
@@ -119,7 +119,6 @@ The owner looks at `dev.reachkit.app` for taste: voice, and an asset only the ow
 | Sign in | `/signin` | [board](design/boards/canvas/AuthSignIn.dc.html) · [render](design/boards/canvas/renders/AuthSignIn.jpg) |
 | Check your email | `/signin` | [board](design/boards/canvas/AuthCheckEmail.dc.html) · [render](design/boards/canvas/renders/AuthCheckEmail.jpg) |
 | Link expired | `/signin` | [board](design/boards/canvas/AuthExpired.dc.html) · [render](design/boards/canvas/renders/AuthExpired.jpg) |
-| Sign in: one press | `/auth/confirm` | [board](design/boards/canvas/AuthConfirm.dc.html) · [render](design/boards/canvas/renders/AuthConfirm.jpg) |
 | Setup 1 of 3: Site, phone | `/setup` | [board](design/boards/canvas/Setup1.dc.html) · [render](design/boards/canvas/renders/Setup1.jpg) |
 | Setup 2 of 3: Check, phone | `/setup` | [board](design/boards/canvas/Setup2.dc.html) · [render](design/boards/canvas/renders/Setup2.jpg) |
 | Setup 3 of 3: Connect, phone (E11; the board's title still says *Publish*) | `/setup`, `/setup/connect` | [board](design/boards/canvas/Setup.dc.html) · [render](design/boards/canvas/renders/Setup.jpg) |

@@ -86,18 +86,10 @@ export const EXTRA_SEGMENT_VALUES: Readonly<Record<string, readonly string[]>> =
   "[tool]": ["seobility-competitor-analysis"],
 };
 
-/**
- * The query a page is swept with, where its bare address only redirects.
- * A sign-in link's page needs a hash and a type to draw its button; the
- * hash spends nothing, because only the button's post asks Supabase.
- */
+/** The query a page is swept with, where its bare address only redirects or a query changes its lines. */
 export const QUERY_FIXTURES: Readonly<Record<string, readonly string[]>> = {
-  "/auth/confirm": [
-    "?token_hash=layout-sweep-fixture&type=magiclink",
-    "?token_hash=layout-sweep-fixture&type=email_change",
-  ],
-  /** The bare screen, and a checkout return's, which adds one line above the form. */
-  "/signin": ["", "?from=checkout"],
+  /** The bare screen, a checkout return's line above the form, and an unspent link's line in place of the lead. */
+  "/signin": ["", "?from=checkout", "?link=open"],
 };
 
 /**
@@ -173,10 +165,8 @@ export const ROUTE_REFERENCE: Readonly<Record<string, `S${number}`>> = {
   "/signin": "S9",
   /** REFERENCE: S9 — Sign in, a checkout return that could not sign the buyer in */
   "/signin?from=checkout": "S9",
-  /** REFERENCE: S9 — Sign in, the nearest approved screen: the page a sign-in link lands on (board AuthConfirm) */
-  "/auth/confirm?token_hash=layout-sweep-fixture&type=magiclink": "S9",
-  /** REFERENCE: S9 — Sign in, the email-change arm of the same page */
-  "/auth/confirm?token_hash=layout-sweep-fixture&type=email_change": "S9",
+  /** REFERENCE: S9 — Sign in, a link opened by a scanner or a prefetch, left unspent */
+  "/signin?link=open": "S9",
   /** REFERENCE: S10 — Setup (§S10; REQ-025…028, REQ-021 c7) */
   "/setup": "S10",
   /**
