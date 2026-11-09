@@ -72,6 +72,7 @@ import "@/ui/layout/surface.css";
 import { fontVariables } from "@/ui/fonts";
 import { THEME_SCRIPT } from "../_theme/theme";
 import { Answers } from "../_toast/Answers";
+import { NavigatedFlag } from "@/ui/navigated";
 
 /**
  * **Every ReachKit render is a request's own** (issue #331).
@@ -127,6 +128,7 @@ export default async function ReachKitDocument({
             carries the one prop it does. Outside the adapter: it reads no
             URL state and holds none. */}
         <Answers />
+        <NavigatedFlag />
       </body>
     </html>
   );
