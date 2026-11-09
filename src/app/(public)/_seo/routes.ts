@@ -32,7 +32,6 @@
 //     screen whose whole job is to hand out a credential by mail. It is
 //     reachable, linked from every header, and left out of the index
 //     deliberately.
-//   · `/auth/confirm` — its address carries a sign-in link's token.
 //
 // The 404 and error pages take no row — they are not routes,
 // they have no address of their own, and Next reads no `metadata` export
@@ -170,12 +169,6 @@ export const PUBLIC_ROUTE_SEO = Object.freeze({
     route: "/signin",
     title: "meta.signin.title",
     description: "meta.signin.description",
-    indexable: false,
-  },
-  confirm: {
-    route: "/auth/confirm",
-    title: "meta.confirm.title",
-    description: "meta.confirm.description",
     indexable: false,
   },
   report: {

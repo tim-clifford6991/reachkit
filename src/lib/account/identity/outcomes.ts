@@ -8,6 +8,7 @@
 // break-the-cycle-at-file-granularity move ADR-092 records for the
 // publishing leaves. Types alone would not need it; `logLink` and
 // `DEAD_LINK_KEY` are values, and a value import is a real edge.
+import type { OpenSignal } from "../signin-pending";
 import type { LinkPurpose } from "./store";
 
 /** The one sentence the sign-in screen speaks for a link that no longer
@@ -59,6 +60,7 @@ export function logLink(event: {
   userId: string | undefined;
   purpose: LinkPurpose | undefined;
   outcome: string;
+  signal?: OpenSignal;
 }): void {
   console.info(JSON.stringify(event));
 }
