@@ -604,7 +604,7 @@ export const REPORT_COPY = Object.freeze({
    *  approved (11a); the three bodies are bracketed in the set, and are the
    *  owner's approved sentences (2026-09-10, #459). */
   "landing.step.1.title": ["Scan your site", { slots: {}, fixedBy: "board Landing · issue 1596" }],
-  "landing.step.1.body": ["Type your website. See who Google and AI pick instead of you, and what to fix first.", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
+  "landing.step.1.body": ["Type your website. See who Google and its AI answers pick over you, and what to fix first.", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
   "landing.glance.rivals": ["Who buyers pick instead", { slots: {}, fixedBy: "board PubLanding · issue 1997 · drafted" }],
   "landing.glance.first": ["Your first page, proposed free:", { slots: {}, fixedBy: "board PubLanding · issue 1997 · drafted" }],
   "landing.mail.inbox": ["Inbox", { slots: {}, fixedBy: "board PubLanding · issue 1997" }],
@@ -626,7 +626,7 @@ export const REPORT_COPY = Object.freeze({
   /** *Why you should care*: two cards, each a title, a line and a small
    *  drawing whose words follow it. */
   "landing.feature.ai.title": ["Get mentioned in AI answers", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
-  "landing.feature.ai.body": ["Every Monday we ask AI your buyers’ questions. You see if it names you, or a competitor.", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
+  "landing.feature.ai.body": ["Every Monday we ask Google’s AI and ChatGPT your buyers’ questions. You see if they name you, or a competitor.", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
   /** The AI card's drawing: one answer, who it mentions, and the business it leaves out. */
   "landing.feature.ai.ask": ["What’s the best booking app for a small team?", { slots: {}, fixedBy: "board PubLanding v37 · owner 2026-11-06" }],
   "landing.feature.ai.mentions": ["An AI answer mentions", { slots: {}, fixedBy: "board Landing · issue 1596" }],

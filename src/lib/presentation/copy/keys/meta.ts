@@ -47,11 +47,11 @@ import type { CopyPartition } from "../registry.ts";
 
 export const META_COPY = Object.freeze({
   /* ── The two screens a stranger arrives at ────────────────────────── */
-  "meta.landing.title": ["Get found on Google and AI · ReachKit", { slots: {}, fixedBy: "issue 326" }],
+  "meta.landing.title": ["Get found on Google and ChatGPT · ReachKit", { slots: {}, fixedBy: "issue 326" }],
   /** Spent twice: the landing's `<meta name="description">` and the web
    *  manifest's `description`, which describe the same product to two
    *  readers. Read from one key rather than written twice (rule 2.4). */
-  "meta.landing.description": ["Free scan, no account: see where Google and AI send buyers to your competitors, then let ReachKit publish up to {weekPages} pages a week, new or updated, to close the gap.", { slots: { weekPages: "text" }, fixedBy: "issue 326 · owner A1 2026-10-19" }],
+  "meta.landing.description": ["Free scan, no account: see who Google and its AI answers pick instead of you. Then ReachKit publishes up to {weekPages} pages a week, new or updated, tracked on Google and ChatGPT.", { slots: { weekPages: "text" }, fixedBy: "issue 326 · owner A1 2026-10-19" }],
   "meta.pricing.title": ["Pricing · €49 a month · ReachKit", { slots: {}, fixedBy: "issue 326" }],
   "meta.pricing.description": ["One plan at €49 a month, tax included: up to {weekPages} pages a week for your site, new or updated, a weekly scan of your market, and time to stop any page before it goes live.", { slots: { weekPages: "text" }, fixedBy: "issue 326 · owner A1 2026-10-19" }],
 
