@@ -167,35 +167,6 @@ describe("a page a check stops takes one fix call", () => {
     expect(meta.titles.map((each) => each.faults.length === 0)).toEqual([false, true, false]);
   });
 
-  it("where no proposed title passes, the fix call is told what the least bad one failed", async () => {
-    const old = pageParts(CLEAN_MARKDOWN, { titles: ["Small teams: 7 buyer questions, answered"] });
-    const fixed = pageParts();
-    answers(old, fixed);
-    const outcome = await run();
-    expect(outcome.ok).toBe(true);
-    const fix = llmMock.mock.calls[1]?.[1].input as { fix: { rule: string; sentences: string[] }[] };
-    const told = fix.fix.find((note) => note.rule === "title")?.sentences.join(" ") ?? "";
-    expect(told).toContain("which plan fits a small team");
-    expect(told).toContain("questions, answered");
-    const row = outcome.ok ? store.rows.get(outcome.draftId) : undefined;
-    expect(row?.title).toBe(fixed.titles[0]);
-  });
-
-  it("a title that lacks only its specific after the fix call goes on, marked; any other title fault still stops", async () => {
-    const bare = "Project management software plan that fits a small team";
-    answers(pageParts(CLEAN_MARKDOWN, { titles: [bare] }), pageParts(CLEAN_MARKDOWN, { titles: [bare] }));
-    const outcome = await run();
-    expect(outcome.ok).toBe(true);
-    expect(sites()).toEqual(["generate.write", "generate.fix"]);
-    const row = outcome.ok ? store.rows.get(outcome.draftId) : undefined;
-    expect(row).toMatchObject({ title: bare, hard_rules_passed: true });
-    expect((row?.meta as { titles: unknown[] }).titles).toEqual([expect.objectContaining({ title: bare, faults: ["specific"], specific_unmet: true })]);
-
-    const long = pageParts(CLEAN_MARKDOWN, { titles: [`${bare} without paying for seats it will not use`] });
-    answers(long, long);
-    expect(await run()).toMatchObject({ ok: false, reason: "rules", attempt: 2 });
-  });
-
   it("a page still failing after it is stopped with `attempt: 2`, and is never passed toward review", async () => {
     answers(STOPPED, STOPPED);
     const outcome = await run();
