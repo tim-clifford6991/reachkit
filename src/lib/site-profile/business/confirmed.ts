@@ -144,6 +144,14 @@ export async function newestDeepReport(siteId: string): Promise<unknown> {
   return data?.[0]?.report ?? null;
 }
 
+/** The domain's stored scan report: before the first deep pass, the free
+ *  scan the site was bought from is the market reading that stands. */
+async function currentReport(domain: string): Promise<unknown> {
+  if (domain === "") return null;
+  const { readCurrentReport } = await import("@/lib/scan/report");
+  return readCurrentReport(domain);
+}
+
 /**
  * The three readings behind one site's confirmed business profile.
  *
@@ -161,7 +169,7 @@ export async function readConfirmedBusiness(a: {
       const { readSiteProfile } = await import("../store");
       return a.domain === "" ? null : readSiteProfile(a.domain);
     }),
-    soft(() => (a.siteId === "" ? Promise.resolve(null) : newestDeepReport(a.siteId))),
+    soft(async () => (a.siteId === "" ? null : await newestDeepReport(a.siteId)) ?? (await currentReport(a.domain))),
     soft(async () => {
       const { readBusinessEdits } = await import("./edits");
       return a.siteId === "" ? null : readBusinessEdits(a.siteId);
