@@ -565,7 +565,7 @@ export const SETTINGS_COPY = Object.freeze({
     "Pages still go live on their day. You can stop them from This week.",
     { slots: {}, fixedBy: "issue 1574" },
   ],
-  "settings.notifications.published": ["When your first page goes live", { slots: {}, fixedBy: "decision 2026-10-19-1593 (drafted)" }],
+  "settings.notifications.published": ["When your first page goes live", { slots: {}, fixedBy: "docs/SPEC.md §8 The first page's live mail only (drafted)" }],
   "settings.notifications.weekly": ["Monday mail", { slots: {}, fixedBy: "BUILD §12 · board SettingsMail" }],
   // The card's lead and each row's line (issue 1751; Q10 for the page-ready row). No send time: owner R29, 2026-10-23.
   "settings.notifications.to": ["Sent to {email}", { slots: { email: "text" }, fixedBy: "issue 2277 · board SettingsMail" }],

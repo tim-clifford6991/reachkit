@@ -1,4 +1,4 @@
-// D3 (SPEC §8, decision 2026-10-19-1593): the page-ready mail is on until the
+// D3 (docs/SPEC.md §8 Page-ready until the first Monday mail): the page-ready mail is on until the
 // customer's first Monday mail is sent, then off — unless they chose.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { applyEnvFixture } from "../env-fixture";

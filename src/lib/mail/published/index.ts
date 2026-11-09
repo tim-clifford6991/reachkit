@@ -1,7 +1,7 @@
 // BUILD §12 — the occasion of the `published` mail: one message with the live address and all four check outcomes, whatever they were (REQ-062 c5).
 // The outcome never enters the decision to send; only an unrecorded check, a page without an address or no account stops it.
 // The customer's switch is asked inside `sendEmail`, which the outcome never reaches either.
-// Page 1 only (SPEC §8, decision 2026-10-19-1593): later pages are told in the Monday mail.
+// Page 1 only (docs/SPEC.md §8 The first page's live mail only): later pages are told in the Monday mail.
 // It lives here, not in `src/lib/publish/verify/`, so publishing does not import the mail seam; the job runs the check, then tells.
 import { dbAdmin } from "@/lib/db";
 import { tellingFor } from "@/lib/publish/verify";
