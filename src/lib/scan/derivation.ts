@@ -70,6 +70,12 @@ export function nextStep(runs: readonly RunRecord[], derivation: string): NextSt
   return { settled: true };
 }
 
+/** Whether a tick has work, read without a write: a run not finished, or an apply to ask or hold. */
+export function rescoreWaits(runs: readonly RunRecord[], derivation: string | null, byItself: boolean = asksByItself()): boolean {
+  if (runs.some((r) => r.finishedAt === null)) return true;
+  return derivation !== null && byItself && !("settled" in nextStep(runs, derivation));
+}
+
 /** A scan whose score or rival count the run would change. `null` is no
  *  number; for rivals, not measured, which is never 0. */
 export interface ScoreMove {

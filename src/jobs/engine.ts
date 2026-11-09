@@ -426,34 +426,29 @@ export async function sendMarketDigest(weekStart: string): Promise<EngineResult>
 
 // ── The re-score — issues 1433 and 1481, built.
 //
-// The master session may ask for one with a `rescore_runs` row; where none
-// waits, production's tick asks the next step for its deployed derivation
-// itself. `src/lib/scan/rescore-run.ts` answers it on the same row. Imported
-// at the call: the module reaches `@/lib/db`.
+// A `rescore_runs` row asks for one, or production's tick asks itself at a new
+// derivation; `src/lib/scan/rescore-run.ts` answers it. Imported at the call: it reaches `@/lib/db`.
 
 import type { RescoreRequest } from "@/lib/scan/rescore-run";
 export type { RescoreRequest };
+const rescoreModules = () => Promise.all([import("@/lib/scan/rescore-run"), import("@/lib/scan/derivation")]);
 
-/** The oldest re-score asked for and not yet started, now marked started —
- *  or the one the tick asked for itself; `held` where the guard stopped it. */
+/** Read-only, so an idle tick enters no step and costs one invocation. */
+export async function rescoreDue(): Promise<boolean> {
+  const [{ databaseRescore }, { deployedDerivation, rescoreWaits }] = await rescoreModules();
+  return rescoreWaits(await databaseRescore().runs(), deployedDerivation());
+}
+
+/** The oldest re-score asked for, now marked started, or the tick's own; `held` where the guard stopped it. */
 export async function claimRescore(now: Date): Promise<RescoreRequest | { held: string } | null> {
-  const [{ claimRequest }, { deployedDerivation }] = await Promise.all([
-    import("@/lib/scan/rescore-run"),
-    import("@/lib/scan/derivation"),
-  ]);
+  const [{ claimRequest }, { deployedDerivation }] = await rescoreModules();
   return claimRequest(now, deployedDerivation());
 }
 
 /** Answers it with the deployed code: `rescoredBy` is the deployed commit,
  *  and the run records the deployed derivation. */
-export async function answerRescore(a: {
-  readonly request: RescoreRequest;
-  readonly now: Date;
-}): Promise<EngineResult> {
-  const [{ answerRequest }, { deployedDerivation }] = await Promise.all([
-    import("@/lib/scan/rescore-run"),
-    import("@/lib/scan/derivation"),
-  ]);
+export async function answerRescore(a: { readonly request: RescoreRequest; readonly now: Date }): Promise<EngineResult> {
+  const [{ answerRequest }, { deployedDerivation }] = await rescoreModules();
   await answerRequest(a.request, {
     version: (process.env.VERCEL_GIT_COMMIT_SHA ?? "unknown").slice(0, 7),
     derivation: deployedDerivation(),

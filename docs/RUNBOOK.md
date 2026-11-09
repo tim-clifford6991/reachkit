@@ -176,10 +176,10 @@ not in it is unreachable over HTTP. `src/jobs/client.ts` is the only file that n
 | `publish/execute` | event `publish/execute` | state machine → destination | ● |
 | `publish/verify` | event `publish/verify`, +24h | liveness checks on a published page | |
 | `publish/retry` | cron `0 * * * *` | claims failed pages whose retry moment has come round | ● |
-| `weekly/refresh` | cron `41 * * * *` | weekly scan per active site, gated on that site's local Monday. The tick's step is `due`; each due site is sent as `weekly/refresh/subject`, keyed `weekly:{site}:{week}`, to its own run (`weekly-refresh-subject`, bounded as the draft one), whose steps are `measure-…`, up to three `late-answers-…` (free reads of queued answers, #1160), `search-…` and `tell-…` | (stopped inside the run, not by the runner) |
+| `weekly/refresh` | cron `41 * * * *` | weekly scan per active site, gated on that site's local Monday. The tick's step is `due`; each due site is sent as `weekly/refresh/subject`, keyed `weekly:{site}:{week}`, to its own run; an hour with no site due enters no step, (`weekly-refresh-subject`, bounded as the draft one), whose steps are `measure-…`, up to three `late-answers-…` (free reads of queued answers, #1160), `search-…` and `tell-…` | (stopped inside the run, not by the runner) |
 | `lead/nurture` | cron `26 * * * *` | advances sequences over `next_touch_at` | |
 | `account/maintenance` | cron `*/15 * * * *` | five due-work queries: a payment awaiting sign-in, a payment with no account, a hosting-end notice, a hosting stop, an account due for purge | |
-| `scan/rescore` | cron `7,22,37,52 * * * *` | answers the oldest `rescore_runs` request: every stored scan and rival set scored again, dry or applied (issue 1433, "Re-scoring every stored scan" below). Steps: `claim`, then `answer-<id>`; `skipped` / `no-subject` when nothing is asked | |
+| `scan/rescore` | cron `7 * * * *` (hourly) | answers the oldest `rescore_runs` request: every stored scan and rival set scored again, dry or applied (issue 1433, "Re-scoring every stored scan" below). Steps: `claim`, then `answer-<id>`; `skipped` / `no-subject`, with no step entered, when a read-only check finds nothing asked or due | |
 | `scan/finish-reads` | event `scan/finish-reads` | sent by a free pass that stored a report with searches it chose and did not read (issue 1440): reads only those, once, inside the free cap the pass already spent from, and rewrites the report through `rescore_scan`. Step: `finish`; `degraded` where a search failed again, `skipped` / `no-subject` where the report has nothing left to finish. Log line `finish_reads` | ● |
 
 Five ids are sendable events (`src/jobs/types.ts`, `JobEvent`): `scan/run`,
@@ -251,7 +251,7 @@ from job_runs order by last_run_at;
 
 | What you see | Means |
 |---|---|
-| every cron job within its interval (`account/maintenance` 15 min, the other four 60 min) | the crons fire; `skipped` is a tick with nothing due, not a fault |
+| every cron job within its interval (`account/maintenance` 15 min, the other five 60 min) | the crons fire; `skipped` is a tick with nothing due, not a fault |
 | one job far behind the others | that function stopped — check it is synced on the `reachkit` app in Inngest |
 | every row old, or the table empty | nothing is firing: the app is not registered or synced, or `/api/jobs` is not answering (*Running one by hand*, #315) |
 | a job with no row at all | it has never run against this database — an event job nobody has sent yet, or a cron that never fired |
@@ -616,7 +616,7 @@ downloaded once and its facts kept, so only the first run after an extractor cha
 the summary's `read ≈ N MB (facts refresh ≈ M MB)` line says how much it read and how much of that
 was pages read for their facts. `fetch_facts` is a cache: a row is never trusted at another version,
 the account purge deletes a scan's facts by `scan_id` before its `fetches` rows (no cascade, ADR-051), and dropping every row costs one refresh. Production's tick,
-every 15 minutes, finds no run at the deployed derivation and asks one apply itself
+every hour, finds no run at the deployed derivation and asks one apply itself
 (`auto = true`; `docs/SPEC.md` §2 Re-score follows each scoring deploy). That run scores every stored
 scan in memory and decides the guard before it writes anything (`RESCORE_GUARD` in
 `src/lib/config/constants.ts`: no score moves more than 15 points, no scored scan loses its
@@ -646,7 +646,7 @@ are not, the fix is a code change, and its deploy is a new derivation that start
 To ask by hand, as before:
 
 1. **Ask for a dry run** through the Supabase connector:
-   `insert into rescore_runs (mode) values ('dry') returning id;`. The job ticks every 15 minutes,
+   `insert into rescore_runs (mode) values ('dry') returning id;`. The job ticks every hour,
    claims the oldest request not yet started, and answers it on the same row.
 2. **Read the summary**: `select finished_at, rescored_by, scans_read, scans_changed, sites_moved,
    held, error, summary from rescore_runs where id = '<id>';`. `finished_at` is null while it runs.
