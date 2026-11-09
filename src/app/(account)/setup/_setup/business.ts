@@ -76,9 +76,8 @@ export const BUSINESS_MAX: Readonly<Record<BusinessGroupId, number>> = Object.fr
  *
  * Their own additions and removals are already in it (`confirmedProfile`
  * applied them), which is what makes a correction made in Settings visible
- * here. A site nobody has read yet — the free scan reads no profile — opens
- * with five empty groups rather than no groups: there is still something
- * for them to add.
+ * here. A site nobody has read yet opens with five empty groups rather
+ * than no groups: there is still something for them to add.
  */
 export function businessFrom(profile: BusinessProfile | null): BusinessDraft {
   return Object.freeze(
