@@ -90,6 +90,6 @@ export const OFFER_COPY = Object.freeze({
   // S4 — so it carries the marker rather than a sentence written here.
   "offer.checkout.refused": [
     "We couldn’t start checkout. Try again in a moment.",
-    { slots: {}, fixedBy: "SPEC §3 (issue #624)" },
+    { slots: {}, fixedBy: "SPEC §3 (issue 624)" },
   ],
 }) satisfies CopyPartition;
