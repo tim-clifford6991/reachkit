@@ -1,5 +1,5 @@
 // SPEC §3 — "this browser asked for a link of this kind before this time", and nothing else.
-// A mail scanner never holds it, so the confirm page sends its own form only in the browser that asked;
+// A mail scanner never holds it, so a link opened in the browser that asked counts as a person's open;
 // spending still needs the mailed `token_hash`. Stateless: an HMAC keyed by HKDF from an existing secret.
 import { createHmac, hkdfSync, timingSafeEqual } from "node:crypto";
 import { EMAIL_CHANGE_TTL_H, SIGNIN_LINK_TTL_H } from "@/lib/config/constants";
@@ -46,4 +46,19 @@ export function isPendingFor(value: string | undefined, purpose: ConfirmType, no
   const given = Buffer.from(mac, "base64url");
   const expected = macOf(purpose, expiresAtMs);
   return given.length === expected.length && timingSafeEqual(given, expected);
+}
+
+/** What says a link's GET is a person's page load: this browser asked for it, or the user activated it. */
+export type OpenSignal = "pending" | "fetch-user" | "none";
+
+/** Only a top-level navigation counts, so `<img>`, `fetch` and HTTP clients without Fetch Metadata never do. */
+export function openSignal(
+  headers: Pick<Headers, "get">,
+  cookie: string | undefined,
+  purpose: ConfirmType | null,
+  now = Date.now()
+): OpenSignal {
+  if (headers.get("sec-fetch-mode") !== "navigate" || headers.get("sec-fetch-dest") !== "document") return "none";
+  if (purpose !== null && isPendingFor(cookie, purpose, now)) return "pending";
+  return headers.get("sec-fetch-user") === "?1" ? "fetch-user" : "none";
 }

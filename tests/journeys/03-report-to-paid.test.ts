@@ -2,7 +2,7 @@
 //
 // Journey: Start ReachKit → Stripe Checkout → the webhook → an account, a
 // site and a subscription → `/auth/checkout` signs them in → `/setup`.
-// Magic-link mail is for later visits (`/auth/confirm`).
+// The magic-link mail opens straight in (`/auth/confirm`).
 //
 // End to end, at the seams and no further in. Everything the product owns
 // is real: the offer card both price surfaces carry, `createCheckoutSession`
@@ -117,7 +117,7 @@ const { SETUP_PATH, APP_PATH, setupRedirectFor } = await import(
   "../../src/app/(account)/setup/gate"
 );
 const { POST: webhookRoute } = await import("../../src/app/api/stripe/webhook/route");
-const { POST: redeemRoute } = await import("../../src/app/(public)/auth/confirm/redeem/route");
+const { GET: confirmRoute } = await import("../../src/app/(public)/auth/confirm/route");
 
 const SCAN_ID = "scan-journey-03";
 const DOMAIN = "acme.com";
@@ -389,10 +389,10 @@ function theMagicLink(): string {
   return found[1] as string;
 }
 
-async function followTheLink(tokenHash: string): ReturnType<typeof redeemRoute> {
-  const body = new URLSearchParams({ token_hash: tokenHash, type: "magiclink" });
-  const headers = { origin: new URL(env.NEXT_PUBLIC_APP_URL).origin };
-  return redeemRoute(new NextRequest("https://app.example.com/auth/confirm/redeem", { method: "POST", headers, body }));
+async function followTheLink(tokenHash: string): ReturnType<typeof confirmRoute> {
+  const query = new URLSearchParams({ token_hash: tokenHash, type: "magiclink" });
+  const headers = { "sec-fetch-mode": "navigate", "sec-fetch-dest": "document", "sec-fetch-user": "?1" }; // a person's click
+  return confirmRoute(new NextRequest(`https://app.example.com/auth/confirm?${query.toString()}`, { headers }));
 }
 
 describe("Start → Checkout → webhook → magic link → /setup (JN-002 steps 1–2)", () => {

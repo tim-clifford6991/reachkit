@@ -1,5 +1,5 @@
 // BUILD §2.5 — the sign-in prompt's sentences.
-// src/lib/presentation/copy/keys/signin.ts — REQ-098, boards AuthSignIn, AuthCheckEmail, AuthExpired, AuthConfirm.
+// src/lib/presentation/copy/keys/signin.ts — REQ-098, boards AuthSignIn, AuthCheckEmail, AuthExpired.
 //
 // What REQ-098 c2 fixes verbatim, and where canvas v36 cut it, is in
 // docs/spec/decisions/2026-11-01-2268.md. Every address gets the same
@@ -65,12 +65,11 @@ export const SIGNIN_COPY = Object.freeze({
   "signin.expired.head": ["This link no longer works", { slots: {}, fixedBy: "REQ-098 c7" }],
   "signin.expired.submit": ["Send a new link", { slots: {}, fixedBy: "REQ-098 c7" }],
   "signin.expired.field": ["The email you paid with", { slots: {}, fixedBy: "board AuthExpired · issue 2268" }],
-  // The page a link lands on: one press spends it (board AuthConfirm).
-  "signin.confirm.head": ["Sign in to ReachKit", { slots: {}, fixedBy: "board AuthConfirm · issue 2099" }],
-  "signin.confirm.submit": ["Sign in", { slots: {}, fixedBy: "board AuthConfirm · issue 2099" }],
-  "signin.confirm.line": ["Press the button to finish.", { slots: {}, fixedBy: "board AuthConfirm · issue 2099" }],
-  "signin.confirm.change.head": ["Confirm your new email", { slots: {}, fixedBy: "board AuthConfirm · issue 2099" }],
-  "signin.confirm.change.submit": ["Confirm", { slots: {}, fixedBy: "board AuthConfirm · issue 2099" }],
+  // A link opened by a scanner or a prefetch is left unspent, so the line says it still works.
+  "signin.link_open": [
+    "Your link is still good. Enter your email and we'll send one that opens straight in here.",
+    { slots: {}, fixedBy: "issue 2522 · drafted" },
+  ],
 
   /** Under the sent facts: before a reader goes looking in a spam folder. */
   "signin.sent.terms": [

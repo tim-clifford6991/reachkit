@@ -10,7 +10,7 @@ import { CircleAlert, Clock, Send } from "lucide-react";
 import { use, useActionState, useState, useSyncExternalStore } from "react";
 import { Surface } from "@/ui/layout";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
-import { CHECKOUT_MARKER, DEAD_LINK_MARKER, FROM_QUERY_KEY, LINK_QUERY_KEY } from "@/lib/account/identity/addresses";
+import { CHECKOUT_MARKER, DEAD_LINK_MARKER, FROM_QUERY_KEY, LINK_OPEN_MARKER, LINK_QUERY_KEY } from "@/lib/account/identity/addresses";
 import { SIGNIN_LINK_TTL_H } from "@/lib/config/constants";
 import { sendLink } from "./actions";
 import { EMAIL_FIELD, SIGN_IN_INITIAL, type SignInState } from "./state";
@@ -83,6 +83,7 @@ export default function SignInPage(props: {
 
   const deadLink = params[LINK_QUERY_KEY] === DEAD_LINK_MARKER;
   const fromCheckout = params[FROM_QUERY_KEY] === CHECKOUT_MARKER;
+  const linkOpen = params[LINK_QUERY_KEY] === LINK_OPEN_MARKER;
   // A reader holding a dead link typed nothing here, so the field never echoes an address they did not enter.
   const fieldValue = deadLink ? (typed ?? "") : value;
   const answerKey = ANSWER_COPY_KEY[state.answer];
@@ -179,7 +180,7 @@ export default function SignInPage(props: {
             <>
               <h1 className="t-hero">{copy("signin.heading")}</h1>
               {fromCheckout ? <p className={`text-sm ${QUIET}`}>{copy("signin.checkout_return")}</p> : null}
-              <p className={LEAD}>{copy("signin.body")}</p>
+              <p className={LEAD}>{copy(linkOpen ? "signin.link_open" : "signin.body")}</p>
               {askForLink(copy("signin.field.label"), copy("signin.submit.label"))}
             </>
           )}

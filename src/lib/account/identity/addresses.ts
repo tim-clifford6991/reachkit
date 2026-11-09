@@ -32,12 +32,9 @@ export const SIGNIN_PATH = "/signin";
 /** Where a link lands (#468): Supabase's `token_hash` and the
  *  verification type ride in the query, on this product's own host. Public
  *  by necessity — the whole point of the link is that its holder has no
- *  session yet. It shows one button and spends nothing, so a mail scanner
+ *  session yet. Only a person's page load spends it, so a mail scanner
  *  that opens the link leaves it working. */
 export const CONFIRM_PATH = "/auth/confirm";
-
-/** Where that button posts; the only address that spends a link. */
-export const REDEEM_PATH = "/auth/confirm/redeem";
 
 /** Where Stripe sends a completed Checkout Session. Public by necessity —
  *  the buyer has just paid and has no session yet. The route provisions
@@ -54,9 +51,8 @@ export const CHECKOUT_SESSION_QUERY_KEY = "session_id";
 /** The two verification types a link of ours is ever issued as. */
 export type ConfirmType = "magiclink" | "email_change";
 
-/** The query keys a link carries, and the form fields the confirm page
- *  posts them back under. Supabase's own spelling, so a link is the shape
- *  its documentation describes. */
+/** The query keys a link carries. Supabase's own spelling, so a link is
+ *  the shape its documentation describes. */
 export const TOKEN_HASH_QUERY_KEY = "token_hash";
 export const TYPE_QUERY_KEY = "type";
 
@@ -71,7 +67,10 @@ export function confirmTypeOf(value: string | null | undefined): ConfirmType | n
  *  account" — so this marker names no reason, and there is only one of it. */
 export const DEAD_LINK_MARKER = "dead";
 
-/** The query key that marker rides on. */
+/** The marker for a link opened by something that is not a person's page load; it says nothing about the link. */
+export const LINK_OPEN_MARKER = "open";
+
+/** The query key both markers ride on. */
 export const LINK_QUERY_KEY = "link";
 
 /** The landings a link may ask for past the default, by exact name, so the query can never send its holder off-site. */
@@ -103,4 +102,9 @@ export function checkoutSignInPath(): string {
 /** Where a link that no longer works lands its holder (REQ-098 c7). */
 export function deadLinkPath(): string {
   return `${SIGNIN_PATH}?${LINK_QUERY_KEY}=${DEAD_LINK_MARKER}`;
+}
+
+/** Where a link opened by a scanner, a prefetch or an embedded load is sent, untouched. */
+export function linkOpenPath(): string {
+  return `${SIGNIN_PATH}?${LINK_QUERY_KEY}=${LINK_OPEN_MARKER}`;
 }
