@@ -572,7 +572,7 @@ async function untilTheFounderIsReleased(): Promise<void> {
 const JOURNEY_TIMEOUT_MS = 60_000;
 
 describe("three decisions → deep pass → the first page already on the calendar (JN-002 steps 3–9)", () => {
-  it("step 3 — the three steps (docs/spec/decisions/2026-10-22-1737.md) each ask their own, and the finish carries those and nothing else", async () => {
+  it("step 3 — the three steps (docs/SPEC.md §5 Three saved steps) each ask their own, and the finish carries those and nothing else", async () => {
     const model = assembleSetup({ ...FIXTURE_SETUP_FACTS, cnameTarget: "content.example.com" });
     // SPEC §5 (2026-09-20): which step is on screen is the URL's, so each
     // render names the step it is asking about, through `nuqs`'s own

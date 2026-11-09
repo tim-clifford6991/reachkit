@@ -1,4 +1,4 @@
-// tests/app/setup/steps.test.ts — SPEC §5, docs/spec/decisions/2026-10-22-1737.md
+// tests/app/setup/steps.test.ts — docs/SPEC.md §5 Three saved steps
 //
 // Setup is three saved steps, Site · Check · Connect: each saves as it is
 // left so a reload resumes, and the deep pass starts when Check confirms the

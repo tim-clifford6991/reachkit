@@ -1,4 +1,4 @@
-// SPEC §5 (docs/spec/decisions/2026-10-22-1737.md) — setup is three saved
+// docs/SPEC.md §5 Three saved steps — setup is three saved
 // steps: Site, Check, Connect.
 //
 // The order, and nothing else. It is a module of its own because three
