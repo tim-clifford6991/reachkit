@@ -3,9 +3,8 @@
 import "../env";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { measured } from "../../../src/lib/measure/measured";
-import { countWritable, writableDays } from "../../../src/lib/opportunities/rank/open";
+import { countWritable } from "../../../src/lib/opportunities/rank/open";
 import { setOpportunityStore } from "../../../src/lib/opportunities/store";
-import { supplyDepth } from "../../../src/lib/opportunities/plan";
 import type { Opportunity } from "../../../src/lib/opportunities/types";
 import { fakeCost } from "../cost";
 import { memoryStore, newMemoryState, setStatus, type MemoryState } from "../memory-store";
@@ -60,22 +59,12 @@ function row(id: string, type: Opportunity["type"], targetQuery: string, absorbe
 }
 
 describe("pages left are writable days, not ready topics", () => {
-  it("six listicle topics are one writable day in the next seven, not six", async () => {
-    await deriveOnly(listicles(6));
-    expect(state.rows.filter((r) => r.ready).length).toBe(6);
-
-    expect(await writableDays(SITE_ID, AT, 7)).toBe(1);
-    // A week and its spares hold one a week of them, never six-and-counting
-    // as a Q&A.
-    expect((await supplyDepth(SITE_ID, AT)).unused).toBe(2);
-  });
-
   it("a topic another row already absorbed is counted once", () => {
     const scored = [
       { opportunity: row("a", "keyword_page", "best generative engine optimization tools for agencies", ["how to choose geo software"]), points: 2, parts: [] },
       { opportunity: row("b", "keyword_page", "how to choose geo software"), points: 1, parts: [] },
     ];
-    expect(countWritable(scored, { mix: { from: 0, recent: [] } }, 30)).toBe(1);
+    expect(countWritable(scored, {}, 30)).toBe(1);
   });
 });
 

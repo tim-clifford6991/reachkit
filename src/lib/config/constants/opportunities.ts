@@ -153,11 +153,6 @@ export const CLIMB_PLACES = 10 as const;                     // SPEC §6
  *  the spec, and neither derived from the other. */
 export const WRITE_VOLUME_FLOOR_PER_MONTH = 10 as const;      // §7
 
-/** SPEC §6: "A Monday verdict of 'not working' on a cluster suppresses new
- *  Write opportunities in that cluster for four weeks; Improve of the live
- *  URL in it stays allowed." */
-export const CLUSTER_SUPPRESS_WEEKS = 4 as const;             // §6
-
 /** SPEC §7 (D26): "A topic stopped twice, or skipped by the founder, rests
  *  for 28 days." */
 export const TOPIC_REST_DAYS = 28 as const;                   // §7
@@ -178,8 +173,7 @@ export const DAY_TOPICS_MAX = 2 as const;                     // §7
 export const AUTOPILOT_STALL = Object.freeze({ cadenceDays: 1, stallFactor: 2 } as const); // §7
 
 /** SPEC §6 (*Topics by business fit*): two searches whose stored top tens
- *  share this many page addresses are one topic. Drafted threshold; the owner
- *  may correct it. */
+ *  share this many page addresses are one topic, so one page serves both. */
 export const SAME_TOPIC_SHARED_ADDRESSES = 4 as const;        // §6
 
 /** SPEC §6: a page younger than this is never the target of a refresh.
@@ -201,17 +195,11 @@ export const UNSEEN_LINK_EVERY_DAYS = 30 as const;
  *  many weekly verdicts gets a refresh or a retarget queued. */
 export const INTENT_UNMET_WEEKS = 8 as const;                 // §6
 
-/** SPEC §7 (D36): the rolling weekly content mix. Over any `WINDOW_DAYS` days
- *  a site publishes at most `MAX_PER_KIND` pages of one kind, never the same
- *  kind two days running, and at least one update where one is ready.
- *  Drafted defaults; the owner may correct them. */
+/** What a brief and the supply checks read of the site's own pages. The week
+ *  itself keeps no mix: it takes the highest-value topics (owner 2026-11-08). */
 export const CONTENT_MIX = Object.freeze({
+  /** How many of the next ranked topics a brief names as planned. */
   WINDOW_DAYS: 7,
-  MAX_PER_KIND: 2,
-  /** SPEC §7 (D52): how many of a window's pages may be a listicle or
-   *  comparison that includes the business. A topic over it fills no day
-   *  until the window has room. */
-  SELF_PROMOTING_MAX: 1,
   /** SPEC §7: the fewest of the site's last `NON_COMMERCIAL_OF` new pages
    *  (refreshes not counted) that answer rather than sell — a Q&A, a how-to
    *  or documentation — where a topic of one is ready. Drafted; the owner may
@@ -224,12 +212,9 @@ export const CONTENT_MIX = Object.freeze({
   BRIEF_PAGES_MAX: 100,
 });                                                            // §7
 
-/** SPEC §7 (*Pace*): in any seven days a site publishes at most
- *  `NEW_PAGES_PER_WEEK` new pages, and the other days refresh pages already
- *  live. One of ReachKit's own live pages is due a refresh once its current
- *  version is `REFRESH_AGE_DAYS` old. */
+/** SPEC §7 (*Pace*): one of ReachKit's own live pages is due a refresh once
+ *  its current version is `REFRESH_AGE_DAYS` old. */
 export const PACE = Object.freeze({
-  NEW_PAGES_PER_WEEK: 4,
   REFRESH_AGE_DAYS: 90,
 });                                                            // §7
 

@@ -1,6 +1,5 @@
 // A new site (fewer than 30 searches ranked) writes its own offering and
-// what buyers ask before comparisons, and fills one cluster before a third
-// (owner ruling R31, 2026-10-24). Rows are the customer panel's stored
+// what buyers ask before comparisons (owner ruling R31, 2026-10-24). Rows are the customer panel's stored
 // topics; the asked questions are the "People also ask" its stored SERPs hold.
 import "./env";
 import { afterEach, describe, expect, it } from "vitest";
@@ -43,7 +42,7 @@ function rows(kind: Kind): OpportunityRow[] {
 
 function week(kind: Kind, site: Partial<ChooseInput>) {
   const { profile } = panelSite(kind.domain);
-  return choose({ rows: [], fixRows: [], profile, latest: null, drafted: [], cited: [], topTens: new Map(), at: AT, from: FROM, ...site });
+  return choose({ rows: [], fixRows: [], profile, cited: [], topTens: new Map(), at: AT, from: FROM, ...site });
 }
 
 const queries = (kind: Kind, input: Partial<ChooseInput>) => {
@@ -74,45 +73,13 @@ describe("a new site ranks its own offering and what buyers ask ahead of a compa
   });
 });
 
-/** The panel site's ready rows, each in a cluster: the best of them in a third cluster. */
-function clustered(domain: string): { rows: OpportunityRow[]; third: string } {
-  const ready = panelSite(domain).rows.filter((row) => row.ready && (row.family === "write" || row.family === "earn"));
-  // A row no comparison cap places, so the rule that placed it is the cluster's.
-  const first = ready.find((row) => row.type !== "comparison_page");
-  const rest = ready.filter((row) => row !== first);
-  const third = { ...first!, cluster_key: "third", business_fit: 3, volume: 5000, evidence: { ...(first!.evidence as object), volume: measured(5000, AT) } };
-  return { rows: [third, ...rest.slice(0, 3).map((row, n) => ({ ...row, cluster_key: n % 2 === 0 ? "a" : "b" }))], third: third.target_query! };
-}
-
-const live = (cluster: string, n: number) => Array.from({ length: n }, (_, i) => ({ opportunityId: `live-${cluster}-${i}`, clusterKey: cluster }));
-
-describe("a new site fills one cluster to five pages before it opens a third", () => {
-  for (const domain of [KINDS.saas.domain, KINDS.local.domain]) {
-    it(domain, () => {
-      const { rows: held, third } = clustered(domain);
-      const kind = { domain } as Kind;
-      const twoOpen = [...live("a", 2), ...live("b", 1)];
-      // Two clusters open, neither holds five: the third waits behind every row that keeps to them.
-      const waiting = queries(kind, { rows: held, ownRanked: 3, livePages: twoOpen });
-      expect(waiting.indexOf(third)).toBe(held.length - 1);
-      const rule = week(kind, { rows: held, ownRanked: 3, livePages: twoOpen }).committed.find((entry) => entry.opportunityId === held[0]!.id)?.reason.rule;
-      // It is still written once nothing else may fill the day.
-      expect(rule).toBe("best, a third cluster");
-      // One cluster at five, an established site, or only one cluster open: the third is not held.
-      expect(queries(kind, { rows: held, ownRanked: 3, livePages: [...live("a", 5), ...live("b", 1)] })[0]).toBe(third);
-      expect(queries(kind, { rows: held, ownRanked: 300, livePages: twoOpen })[0]).toBe(third);
-      expect(queries(kind, { rows: held, ownRanked: 3, livePages: live("a", 2) })[0]).toBe(third);
-    });
-  }
-});
-
 describe("the ranking reads whether the site is new from its current report", () => {
   afterEach(() => setOpportunityStore(null));
 
   const rank = async (report: StoredReport | null) => {
     const held = rows(KINDS.local).map((row) => ({ ...row, site_id: SITE_ID }));
     const state = newMemoryState({ rows: held, profile: panelSite(KINDS.local.domain).profile, report, now: AT });
-    setOpportunityStore({ ...memoryStore(state), livePageClusters: async () => [] });
+    setOpportunityStore(memoryStore(state));
     const ranked = await rankOpen(SITE_ID, AT);
     const byId = new Map(held.map((row) => [row.id, row.target_query]));
     return ranked.map((entry) => byId.get(entry.opportunityId));

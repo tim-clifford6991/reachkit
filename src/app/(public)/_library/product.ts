@@ -19,8 +19,6 @@ export const PRODUCT = Object.freeze({
   competitors: String(HOW_FACTS.rivals),
   /** Pages in a week at most, new or updated: "7". */
   weekPages: String(HOW_FACTS.weekPages),
-  /** New pages in a week at most: "4". The other days update a live page. */
-  newPages: String(HOW_FACTS.newPages),
   /** Checks a page passes before it goes live: "20". */
   checks: String(HOW_FACTS.checks),
   /** Hours before a written page goes live on its own: "24". */

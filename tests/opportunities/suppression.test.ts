@@ -1,24 +1,17 @@
-// SPEC §6, issue 477 — a Monday "not working" slows its cluster down: new
-// Write in it is held back for `CLUSTER_SUPPRESS_WEEKS`, Improve of a live
-// URL in it stays allowed, and an owned URL whose Improve failed twice is
-// retired.
+// SPEC §6, issue 477 — an owned URL whose Improve was judged not working twice is retired.
 import "./env";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { CLUSTER_SUPPRESS_WEEKS } from "../../src/lib/config/constants";
 import { rankOpen } from "../../src/lib/opportunities/rank/open";
 import { setOpportunityStore, type OpportunityRow } from "../../src/lib/opportunities/store";
 import { suppressionOf, type NotWorkingVerdict } from "../../src/lib/opportunities/suppression";
 import { assessReadiness } from "../../src/lib/opportunities/readiness";
-import { judgeWeek } from "../../src/lib/opportunities/verdicts/judge";
 import { memoryStore, newMemoryState, type MemoryState } from "./memory-store";
-import { WEEK, fakeStore, pageOf, readingAt, releaseStore } from "./verdicts/harness";
 import { AT, PROFILE, SITE_ID } from "./fixtures";
 
 const OWNED = "https://example.com/onboarding-guide";
 const JUDGED = "2026-09-07";
-/** The Monday after the verdict, and the first Monday past its window. */
+/** The Monday after the verdict. */
 const NEXT_WEEK = new Date("2026-09-14T06:00:00.000Z");
-const PAST_WINDOW = new Date(Date.parse(`${JUDGED}T00:00:00.000Z`) + CLUSTER_SUPPRESS_WEEKS * 7 * 86_400_000);
 
 let n = 0;
 function row(over: Partial<OpportunityRow> & Pick<OpportunityRow, "family" | "type" | "target_ref">): OpportunityRow {
@@ -60,53 +53,13 @@ beforeEach(() => {
 });
 afterEach(() => setOpportunityStore(null));
 
-describe("a cluster judged not working", () => {
-  it("holds back new Write in that cluster, and the row says why; Improve of a live URL there stays allowed", async () => {
-    state.rows.push(
-      row({ id: "write-own", family: "write", type: "answer_page", target_ref: "onboarding-faq" }),
-      row({ id: "write-other", family: "write", type: "answer_page", target_ref: "pricing-faq", cluster_key: "pricing" }),
-      row({ id: "improve-own", family: "improve", type: "expand_page", target_ref: OWNED })
-    );
-    state.notWorking = [notWorking()];
-
-    await assessReadiness(SITE_ID, { at: NEXT_WEEK });
-
-    expect(state.rows.map((r) => [r.id, r.unready_reason])).toEqual([
-      ["write-own", "resting"],
-      ["write-other", null],
-      ["improve-own", null],
-    ]);
-    const ranked = (await rankOpen(SITE_ID)).map((r) => r.opportunityId);
-    expect(ranked).not.toContain("write-own");
-    expect(ranked).toEqual(expect.arrayContaining(["write-other", "improve-own"]));
-  });
-
-  it("lasts CLUSTER_SUPPRESS_WEEKS from the Monday it was judged, then releases the row", async () => {
-    expect(suppressionOf([notWorking()], new Date(PAST_WINDOW.getTime() - 1)).clusters.has("onboarding")).toBe(true);
-    expect(suppressionOf([notWorking()], PAST_WINDOW).clusters.size).toBe(0);
-
-    state.rows.push(row({ id: "write-own", family: "write", type: "answer_page", target_ref: "onboarding-faq" }));
-    state.notWorking = [notWorking()];
-    await assessReadiness(SITE_ID, { at: NEXT_WEEK });
-    expect(state.rows[0]!.unready_reason).toBe("resting");
-
-    await assessReadiness(SITE_ID, { at: PAST_WINDOW });
-    expect(state.rows[0]!.unready_reason).toBeNull();
-    expect((await rankOpen(SITE_ID)).map((r) => r.opportunityId)).toEqual(["write-own"]);
-  });
-
-  it("a verdict on a page with no cluster behind it suppresses nothing", () => {
-    expect(suppressionOf([notWorking({ clusterKey: null })], NEXT_WEEK).clusters.size).toBe(0);
-  });
-});
-
 describe("an owned URL whose Improve was judged not working twice", () => {
   const improve = (week: string) => notWorking({ week, family: "improve", targetRef: OWNED });
 
-  it("is retired after the second week, whatever the window, and no open row targets it", async () => {
-    expect(suppressionOf([improve(JUDGED)], NEXT_WEEK).retiredUrls.size).toBe(0);
+  it("is retired after the second week, and no open row targets it", async () => {
+    expect(suppressionOf([improve(JUDGED)]).retiredUrls.size).toBe(0);
     // One week judged twice is one verdict, not two.
-    expect(suppressionOf([improve(JUDGED), improve(JUDGED)], NEXT_WEEK).retiredUrls.size).toBe(0);
+    expect(suppressionOf([improve(JUDGED), improve(JUDGED)]).retiredUrls.size).toBe(0);
 
     state.rows.push(
       row({ id: "improve-own", family: "improve", type: "refresh_page", target_ref: `${OWNED}/`, cluster_key: "pricing" }),
@@ -120,37 +73,5 @@ describe("an owned URL whose Improve was judged not working twice", () => {
       ["improve-other", null],
     ]);
     expect((await rankOpen(SITE_ID)).map((r) => r.opportunityId)).toEqual(["improve-other"]);
-  });
-});
-
-describe("suppression follows the label a page's reading gives", () => {
-  afterEach(releaseStore);
-
-  it("a climbing page stores working and holds nothing back; a page not moving for 8 weeks suppresses its cluster", async () => {
-    const verdicts = fakeStore({
-      pages: [
-        pageOf({ publicationId: "climbing", reading: readingAt(45, { first: 80, weeksAgo: 2 }) }),
-        pageOf({ publicationId: "flat", reading: readingAt(50, { weeksAgo: 8 }) }),
-      ],
-    });
-    await judgeWeek({ siteId: SITE_ID, week: WEEK });
-    expect(verdicts.rows.map((r) => [r.publicationId, r.verdict])).toEqual([
-      ["climbing", "working"],
-      ["flat", "not_working"],
-    ]);
-
-    const clusterOf: Record<string, string> = { climbing: "onboarding", flat: "pricing" };
-    state.notWorking = verdicts.rows
-      .filter((r) => r.verdict === "not_working")
-      .map((r) => notWorking({ week: r.week, clusterKey: clusterOf[r.publicationId] ?? null }));
-    state.rows.push(
-      row({ id: "write-climbing", family: "write", type: "answer_page", target_ref: "onboarding-faq" }),
-      row({ id: "write-flat", family: "write", type: "answer_page", target_ref: "pricing-faq", cluster_key: "pricing" })
-    );
-    await assessReadiness(SITE_ID, { at: NEXT_WEEK });
-    expect(state.rows.map((r) => [r.id, r.unready_reason])).toEqual([
-      ["write-climbing", null],
-      ["write-flat", "resting"],
-    ]);
   });
 });

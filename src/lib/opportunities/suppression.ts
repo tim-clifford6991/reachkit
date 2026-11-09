@@ -1,16 +1,14 @@
-// SPEC §6 — what a Monday "not working" does downstream.
-//
-// "A Monday verdict of 'not working' on a cluster suppresses new Write
-// opportunities in that cluster for four weeks; Improve of the live URL in
-// it stays allowed." And an owned URL whose Improve has been judged not
-// working twice is retired: nothing further targets it.
+// SPEC §6 — what a Monday "not working" does downstream: an owned URL whose
+// Improve has been judged not working twice is retired, and nothing further
+// targets it. A cluster is never held back, since the week takes the
+// highest-value topics (owner 2026-11-08).
 //
 // Pure. The verdicts are `page_verdicts` rows as `judgeWeek` wrote them,
 // read back joined through their publication to the opportunity that page
 // was written for (`OpportunityStore.notWorkingVerdicts`, one read). Nothing
 // here judges a page again or measures anything: a verdict is the week's
 // fact, and this only reads what it implies for the rows still open.
-import { CLUSTER_SUPPRESS_WEEKS, IMPROVE_RETIRE_AFTER_NOT_WORKING } from "@/lib/config/constants";
+import { IMPROVE_RETIRE_AFTER_NOT_WORKING } from "@/lib/config/constants";
 import { canonicalUrl } from "@/lib/measure/page-reading";
 import type { Family, Opportunity } from "./types";
 
@@ -28,13 +26,9 @@ export interface NotWorkingVerdict {
 }
 
 export interface Suppression {
-  /** Clusters with a `not_working` verdict inside the window. */
-  clusters: ReadonlySet<string>;
   /** Owned URLs whose Improve was judged not working in two weeks. */
   retiredUrls: ReadonlySet<string>;
 }
-
-const MS_PER_WEEK = 7 * 86_400_000;
 
 /** A retired URL and a row's target are compared in `canonicalUrl`'s form.
  *  A target that is not a URL (a slug) matches no page address. */
@@ -42,18 +36,9 @@ export function urlKey(ref: string): string {
   return canonicalUrl(ref);
 }
 
-/** Whether a verdict judged on `week` still suppresses at `at`: from its
- *  Monday for `CLUSTER_SUPPRESS_WEEKS` weeks. */
-function insideWindow(week: string, at: Date): boolean {
-  const monday = Date.parse(`${week}T00:00:00.000Z`);
-  return Number.isFinite(monday) && at.getTime() < monday + CLUSTER_SUPPRESS_WEEKS * MS_PER_WEEK;
-}
-
-export function suppressionOf(verdicts: readonly NotWorkingVerdict[], at: Date): Suppression {
-  const clusters = new Set<string>();
+export function suppressionOf(verdicts: readonly NotWorkingVerdict[]): Suppression {
   const improveWeeks = new Map<string, Set<string>>();
   for (const v of verdicts) {
-    if (v.clusterKey !== null && insideWindow(v.week, at)) clusters.add(v.clusterKey);
     if (v.family === "improve" && v.targetRef !== null) {
       const key = urlKey(v.targetRef);
       const weeks = improveWeeks.get(key) ?? new Set<string>();
@@ -65,15 +50,10 @@ export function suppressionOf(verdicts: readonly NotWorkingVerdict[], at: Date):
   for (const [url, weeks] of improveWeeks) {
     if (weeks.size >= IMPROVE_RETIRE_AFTER_NOT_WORKING) retiredUrls.add(url);
   }
-  return { clusters, retiredUrls };
+  return { retiredUrls };
 }
 
-/**
- * Whether a verdict holds this open row back: a retired URL, whatever the
- * family, or a Write in a suppressed cluster. Improve of a live URL in a
- * suppressed cluster stays allowed, and a Fix is not new writing.
- */
+/** Whether a verdict holds this open row back: a retired URL, whatever the family but Fix. */
 export function heldByVerdict(o: Opportunity, s: Suppression): boolean {
-  if (o.family !== "fix" && s.retiredUrls.has(urlKey(o.targetRef))) return true;
-  return o.family === "write" && o.clusterKey !== null && s.clusters.has(o.clusterKey);
+  return o.family !== "fix" && s.retiredUrls.has(urlKey(o.targetRef));
 }

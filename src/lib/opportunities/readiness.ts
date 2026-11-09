@@ -7,7 +7,7 @@
 // 2026-10-19), in this order:
 //
 //   - `resting` — the topic's draft was skipped, or stopped since the week's
-//     commit; its cluster was judged not working; or its URL retired (`suppression.ts`);
+//     commit; or its URL retired (`suppression.ts`);
 //   - `destination_cannot_address` — an Improve the destination cannot
 //     deliver (issue 781), or a topic a page of the site already covers
 //     (#928);
@@ -370,7 +370,7 @@ export async function assessReadiness(
     now,
     grounded,
     earnGrounding,
-    suppression: suppressionOf(verdicts, a.at),
+    suppression: suppressionOf(verdicts),
     profile,
     ownRanks: ownRanksFrom(report),
     canUpdate: canUpdateFrom(ownPages),
