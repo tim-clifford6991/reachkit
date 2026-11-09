@@ -196,7 +196,7 @@ describe(
   }
 );
 
-describe("SPEC §1, 2026-09-20 — the report's re-measure control tells the route why it was pressed (#935)", () => {
+describe("SPEC §1 Every control acts — the report's re-measure control tells the route why it was pressed (#935)", () => {
   // `scans.from_incomplete_rescan` has existed since #540's admission
   // work and nothing was setting it: `resolve.ts` reads it back off the
   // stored report to decide whether to offer *Measure what's missing*

@@ -1,6 +1,6 @@
 // tests/app/scan-address/landing-s1.test.tsx
 //
-// The landing as the 19 Oct board draws it (decision 2026-10-19-1596): one
+// The landing as the 19 Oct board draws it (docs/SPEC.md §1 Landing order): one
 // story with one example business, the sections in order, the pace the owner
 // ruled, figures read from the constants the product runs on, the links into
 // How it works, and the one deep shadow on the story card. `landing.test.tsx`

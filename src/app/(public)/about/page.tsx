@@ -1,4 +1,4 @@
-// SPEC §1 (2026-10-10, issue 1396) — who builds ReachKit, and why.
+// SPEC §1 How it works and About — who builds ReachKit, and why.
 // src/app/(public)/about/page.tsx
 //
 // Board `PubAbout`: the lead and who builds it, why it exists with the

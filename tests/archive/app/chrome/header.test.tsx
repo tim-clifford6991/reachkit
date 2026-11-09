@@ -11,7 +11,7 @@
 // group layout — which is what makes their counts a screen's own. So the
 // header's own shape is asserted here, where it renders.
 //
-// SPEC §1, 2026-09-14: brand · Sign in · the header CTA, and the CTA is
+// SPEC §1 Same chrome on every public page: brand · Sign in · the header CTA, and the CTA is
 // outline on every public page, so each screen's own action is its only
 // solid button. On the landing the CTA is not a submit control: it focuses
 // the one field, which keeps REQ-001 c1 true.
@@ -133,7 +133,7 @@ function primaries(html: string): string[] {
   return [...html.matchAll(/class="([^"]*\bbtn-primary\b[^"]*)"/g)].map((m) => m[1] ?? "").filter((c) => !c.includes("btn-soft"));
 }
 
-describe("SPEC §1, owner 2026-09-15 (issue 714) — the same chrome on the report, token pages and sign-in", () => {
+describe("SPEC §1 Same chrome on every public page — the same chrome on the report, token pages and sign-in", () => {
   it("the veto, opt-out and sign-in routes take the plain arm; the landing takes its field CTA", () => {
     for (const path of ["/veto/a-token", "/opt-out/a-token", "/signin", "/pricing"]) {
       expect(headerActionFor(path)).toEqual(ELSEWHERE_ACTION);

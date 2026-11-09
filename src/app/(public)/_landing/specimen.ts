@@ -21,7 +21,7 @@ export const SPECIMEN_HERO_DOMAIN = EXAMPLE.site;
 /** The competitor the example business's buyers pick instead. */
 export const SPECIMEN_HERO_RIVAL = EXAMPLE.report.rivals[0]!;
 
-/** The story card's search: the one example search that fits its bar at 1280 and 390 (decision 2026-11-06-2452). */
+/** The story card's search: the one example search that fits its bar at 1280 and 390 (docs/SPEC.md §1 The story card). */
 export const SPECIMEN_HERO_QUERY = EXAMPLE.questions[3]!.search;
 
 /** The week's first three pages, short enough for the story card's rows, with one live of the week's plan. */

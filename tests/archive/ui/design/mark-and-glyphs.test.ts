@@ -70,7 +70,7 @@ describe("S1 — the landing's chips carry the icons the approved set draws", ()
     // (trending-up); AI is sparkles; the AI
     // drawing ticks who is named and crosses who is not.
     //
-    // Version 34 (decision 2026-11-01-2246): the story week marks Planned
+    // Version 34 (docs/SPEC.md §1 Landing order): the story week marks Planned
     // with a calendar, the proof card's rows end in a chevron and the blog's
     // tile is a pen; the real-site cards and their globe are gone.
     //
@@ -80,7 +80,7 @@ describe("S1 — the landing's chips carry the icons the approved set draws", ()
     // file-plus, link, mail, users, wrench, sparkles and timer. The tabbed
     // preview's zap, message and send are gone.
     //
-    // Version 37 (decision 2026-11-06-2452): the eighth plan card stops a page
+    // Version 37 (docs/SPEC.md §1 Edit or stop any page): the eighth plan card stops a page
     // (circle-stop), the story week's Tomorrow is clock-4 as in step 2, and the
     // proof card's chevrons and pen went with its rows.
     expect(iconsImported()).toEqual([

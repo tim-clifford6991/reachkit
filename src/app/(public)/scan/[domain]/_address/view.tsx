@@ -89,7 +89,7 @@ export function AddressView(p: {
     //
     // **It used to offer no control at all** — a bare alert, and a
     // stranger's first meeting with the product ending with nothing to
-    // press. SPEC §1 (2026-09-20) settles it the other way: "the removed
+    // press. SPEC §1 Every control acts settles it the other way: "the removed
     // and refused arms offer a way back to the landing". So this is the
     // quiet card, with the wait in the heading (it is the answer to the
     // only question the reader has) and the approved refusal sentence
@@ -125,7 +125,7 @@ export function AddressView(p: {
     //
     // **The retry now retries** (#936). It was a `<button type="button">`
     // with no handler — drawn, focusable, and doing nothing, which is the
-    // defect SPEC §1's 2026-09-20 line names ("every control on them does
+    // defect SPEC §1 Every control acts names ("every control on them does
     // something"). It is a form posting the domain to the scan API, which
     // is the same door the landing field goes through and answers a form
     // post with `303` to the address (`api/scan/route.ts`). So it works

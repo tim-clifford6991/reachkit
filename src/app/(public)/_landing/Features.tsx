@@ -1,4 +1,4 @@
-// SPEC §1 2026-09-24 (#1067) — *Why you should care*: two cards.
+// docs/SPEC.md §1 Landing order — *Why you should care*: two cards.
 // src/app/(public)/_landing/Features.tsx
 //
 // Board `PubLanding` v34: AI answers and Google, each a card with a title, a

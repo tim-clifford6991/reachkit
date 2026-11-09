@@ -17,8 +17,8 @@
 // remembers to call: a screen that forgot it would be the only way to break
 // the promise, and there is no screen that renders it.
 //
-// **The same header on every public route** (SPEC §1; owner 2026-09-15,
-// issue 714: no exceptions). What changes between routes is what the CTA
+// **The same header on every public route** (docs/SPEC.md §1 Same chrome
+// on every public page: no exceptions). What changes between routes is what the CTA
 // does — on `/` it brings the hero's own field into view, elsewhere it links
 // to the landing — and the report address adds its copy control beside the
 // pair. `_chrome/action.ts`'s `headerActionFor` is that one rule.
