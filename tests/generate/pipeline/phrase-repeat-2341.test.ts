@@ -13,7 +13,7 @@ import { setGenerateStore } from "../../../src/lib/generate/store";
 import { FACTS, SITE_ID, emptyComparison, fakeCost, memoryStore, opportunity, pack } from "../fixtures";
 
 const STORED = new URL("../../../docs/walk/prose-gate/", import.meta.url);
-const failedRules = (outcome: BatteryOutcome): string[] => (outcome.passed ? [] : outcome.failed.map((failure) => failure.rule).sort());
+const failedRules = (outcome: BatteryOutcome): string[] => outcome.failed.map((failure) => failure.rule).sort();
 
 beforeEach(() => setGenerateStore(memoryStore()));
 afterEach(() => setGenerateStore(null));
@@ -40,7 +40,7 @@ describe.each([
     const at = { siteId: SITE_ID, draftId: "d1", comparison: emptyComparison(), fit: { state: "passed" as const } };
 
     const before = await runHardRules(fakeCost(), batteryInputs(basis, page, marked, at.comparison, false, at.fit));
-    const prose = before.passed ? undefined : before.failed.find((failure) => failure.rule === "plain_prose");
+    const prose = before.failed.find((failure) => failure.rule === "plain_prose");
     const found = prose?.detail?.rule === "plain_prose" ? prose.detail.faults.flatMap((fault) => fault.found) : [];
     expect(found.some((phrase) => phrase.includes(tagline.toLowerCase().replace(/,/g, "")))).toBe(true);
     const checked = await checkPage(fakeCost(), basis, page, marked, at);
@@ -69,7 +69,7 @@ it("0f95686d's stored body: both phrases said three times are repaired, the open
   const page = { title: "5 AI search visibility tools for founders (2026)", heading: "", description: "", sections: [], faq: [] };
   const battery = (text: string) => runHardRules(fakeCost(), batteryInputs(basis, page, text, emptyComparison(), false, { state: "passed" }));
   const before = await battery(markdown);
-  expect(before.passed ? [] : before.failed.find((failure) => failure.rule === "plain_prose")?.detail).toMatchObject({ faults: [{ tell: "repeated_phrase", found: ["up to 7 pages a week new or updated", "its page does not publish a price"] }] });
+  expect(before.failed.find((failure) => failure.rule === "plain_prose")?.detail).toMatchObject({ faults: [{ tell: "repeated_phrase", found: ["up to 7 pages a week new or updated", "its page does not publish a price"] }] });
   const repaired = repairMechanical(markdown, ["plain_prose"], { brief: basis.brief, sources: [], prose: batteryInputs(basis, page, markdown, emptyComparison()).prose });
   expect(failedRules(await battery(repaired))).toEqual(failedRules(before).filter((rule) => rule !== "plain_prose"));
   expect(repaired.split("\n\n")[0]).toBe(markdown.split("\n\n")[0]);

@@ -112,13 +112,13 @@ describe("a mended live page enters review only after today's whole battery, at 
   });
 
   it.each([SAAS_HOSTED, LOCAL_WORDPRESS])("for $kind, live text that fails today's battery is stopped, the rule named, never in review", async (live) => {
-    // The text that went live has lost its short answer, which a page must open on today.
-    const { id } = await livePage(live, (body) => body.replace(/^[^\n]*The right tool for a small team[^\n]*\n/m, ""));
+    // The text that went live claims a test no one ran, which no code mends.
+    const { id } = await livePage(live, (body) => `${body}\n\nWe tested every plan with our own team.`);
     const outcome = await day(live);
     const [mended] = others([id, LIVE_DRAFT]);
     expect(outcome).toEqual({ ok: false, because: "rules", draftId: mended?.id, attempts: 1 });
     expect(mended).toMatchObject({ hard_rules_passed: false, cost_cents: 0, state: "needs_attention", meta: { mendOf: id } });
-    expect((mended?.rule_failures as Row[]).map((failure) => failure.rule)).toContain("first_block_answers");
+    expect((mended?.rule_failures as Row[]).map((failure) => failure.rule)).toContain("no_invented_test");
     expect((mended?.transitions as Row[]).some((move) => move.to === "in_review")).toBe(false);
     expect([llm.mock.calls.length, network.mock.calls.length]).toEqual([0, 0]);
   });
@@ -205,7 +205,7 @@ describe("a day whose own page did not pass takes a ready update from the commit
   });
 
   it.each([SAAS_HOSTED, LOCAL_WORDPRESS])("for $kind, an update that fails today's battery leaves no trace, and the stopped row keeps its date", async (live) => {
-    const { id } = await livePage(live, (body) => body.replace(/^[^\n]*The right tool for a small team[^\n]*\n/m, ""));
+    const { id } = await livePage(live, (body) => `${body}\n\nWe tested every plan with our own team.`);
     commit(MEND_ID, LATER, 3);
     stoppedOn(live);
     const before = JSON.stringify(db.rows("drafts"));

@@ -15,7 +15,7 @@
 | traceable_numerals | passed | passed |
 | first_block_answers | passed | passed |
 | no_placeholder_cell | passed | passed |
-| plain_prose | failed {"faults":[{"tell":"repeated_phrase","count":6,"found":["mehl wasser und salz"]}]} | passed |
+| plain_prose | warns {"faults":[{"tell":"repeated_phrase","count":6,"found":["mehl wasser und salz"]}]} | passed |
 
 ## What the fix call is told
 

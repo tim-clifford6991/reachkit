@@ -11,9 +11,9 @@
 //   4.  **check** — code only (`../rules`): the five checks and the guards,
 //       after the repairs code can make without writing a word
 //       (`./repair.ts`), and the pages written for other sites
-//       (`./elsewhere.ts`, D13). A page a check still fails takes **one fix
-//       call**, told each check it failed, and is checked again. A page that
-//       still fails is stopped;
+//       (`./elsewhere.ts`, D13). A page a harm check still fails takes **one
+//       fix call**, told each check it failed, and is checked again. A page
+//       that still fails a harm check is stopped; a warning never stops one;
 //   5.  `passed: true` and nothing else lets the page move toward review —
 //       the veto window and publishing are the publishing engine's.
 //
@@ -63,7 +63,7 @@ import { buildComparisonSet, ownVersions } from "./comparison";
 import { layoutPage, withClosing, type LaidPage } from "./compose";
 import type { SourcedFact } from "./grounding";
 import { fittedTemplate, packStatements, type ContextPack } from "./pack";
-import { batteryBasis, checkPage, lacksSpecificOnly, scopeOf } from "./battery";
+import { batteryBasis, checkPage, scopeOf } from "./battery";
 import { tryFix, type FixStop } from "./fix-call";
 import { fixNotes, type FixNote, type RepairRecord } from "./repair";
 import { completeTables, withSources } from "./sources";
@@ -377,10 +377,10 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
 
   // 4. Check: code only, against this customer's own three sets.
   const comparison = await buildComparisonSet({ siteId: a.siteId, exceptDraftId: draftId, ...(await ownVersions(a.siteId, a.opportunity)) });
-  const check = async (candidate: Finished, settled = false) => {
+  const check = async (candidate: Finished) => {
     const { laid } = candidate;
     const page = { title: laid.body.title, heading: laid.body.heading, description: laid.body.description, sections: laid.sections, faq: laid.faq };
-    const checked = await checkPage(c, basis, page, candidate.markdown, { siteId: a.siteId, draftId, comparison, broken }, settled);
+    const checked = await checkPage(c, basis, page, candidate.markdown, { siteId: a.siteId, draftId, comparison, broken });
     return { ...checked, page: { ...candidate, markdown: checked.markdown } };
   };
 
@@ -418,14 +418,14 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
       if (note.rule === "required_blocks" && note.sentences.includes("own_steps")) {
         return { ...note, sentences: [ownStepsNote({ markdown: stopped.page.markdown, domain: a.site.domain, businessName: a.site.businessName, own: template.blocks.steps?.own ?? 1, claims: pack.claims })] };
       }
-      const cites = stopped.outcome.passed ? undefined : stopped.outcome.failed.find((failure) => failure.rule === "cites_market")?.detail;
+      const cites = stopped.outcome.failed.find((failure) => failure.rule === "cites_market")?.detail;
       if (note.rule === "cites_market" && cites !== undefined && cites.rule === "cites_market") {
         return { ...note, sentences: [`sources: the body links ${cites.cited} of the public pages in \`pack.claims\` and must link at least ${cites.min}; state what those pages say, ${primaryFirst}each in a sentence that links its url`] };
       }
       if (note.rule === "required_blocks" && note.sentences.includes("verdict")) {
         return { ...note, sentences: ["verdict: the which-to-choose section must name at least one option of `table` other than this business and say the case where it is the better pick"] };
       }
-      const title = stopped.outcome.passed ? undefined : stopped.outcome.failed.find((failure) => failure.rule === "title")?.detail;
+      const title = stopped.outcome.failed.find((failure) => failure.rule === "title")?.detail;
       if (note.rule === "title" && title !== undefined && title.rule === "title") {
         const body = stopped.page.laid.body;
         return { ...note, sentences: titleNotes(body.title, titleRuleFor(pack, { description: body.description, sections: stopped.page.laid.sections }), title.faults, stopped.page.markdown) };
@@ -433,7 +433,7 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
       if (note.rule === "distinct_headings") {
         return { ...note, sentences: [`headings: ${note.sentences.map((heading) => `"${heading}"`).join(" and ")} ask almost the same thing; each section must ask a different question of \`pack.questions\`, in different words`] };
       }
-      const prose = stopped.outcome.passed ? undefined : stopped.outcome.failed.find((failure) => failure.rule === "plain_prose")?.detail;
+      const prose = stopped.outcome.failed.find((failure) => failure.rule === "plain_prose")?.detail;
       if (note.rule === "plain_prose" && prose !== undefined && prose.rule === "plain_prose") {
         return { ...note, sentences: proseNotes(prose.faults) };
       }
@@ -464,26 +464,13 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
     if (again === null || again.kind === "unmeasured") {
       logRun({ siteId: a.siteId, draftId, step: "fix", outcome: stop ?? (again === null ? "not_started" : "step_failed") });
       if (checked.outcome.passed) return { ok: false, reason: "step_failed", draftId, step: "elsewhere" };
-      if (!lacksSpecificOnly(checked.outcome)) {
-        return { ok: false, reason: "rules", draftId, failed: checked.outcome.failed, attempt: attemptsBefore + 1, recovery: "rest", fix: notes, ...(stop === null ? {} : { stop }) };
-      }
+      return { ok: false, reason: "rules", draftId, failed: checked.outcome.failed, attempt: attemptsBefore + 1, recovery: "rest", fix: notes, ...(stop === null ? {} : { stop }) };
     } else {
       fixed = true;
       page = finish(again.value);
       checked = await check(page);
       repairs = [...repairs, ...checked.repairs];
     }
-  }
-
-  // Ruling 2026-10-11, under the owner's autopilot rule (2026-10-08): a page
-  // is never lost for a specific its pack cannot supply. The picker and the
-  // fix call tried for one; the title that lacks only that goes on, marked.
-  if (lacksSpecificOnly(checked.outcome)) {
-    const title = checked.page.laid.body.title;
-    const titles = checked.page.titles.map((each) => (each.title === title ? { ...each, specific_unmet: true as const } : each));
-    checked = await check({ ...checked.page, titles }, true);
-    repairs = [...repairs, ...checked.repairs];
-    logRun({ siteId: a.siteId, draftId, step: "title", outcome: "specific_unmet" });
   }
 
   const failedNow = !checked.outcome.passed;

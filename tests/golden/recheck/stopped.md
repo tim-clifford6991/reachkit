@@ -14,9 +14,9 @@
 ## f1ec6a58: listicle, "best ai search visibility tools"
 
 - Stopped on: rival_negative, required_blocks, no_demo_text, title
-- Today: fails on required_blocks, title, 0¢
-- Fails required_blocks: {"block":"sections"}
-- Fails title: {"faults":["specific"]} (goes on at 0¢ once it is the only failure)
+- Today: passes, 0¢
+- Warns required_blocks: {"block":"sections"}
+- Warns title: {"faults":["specific"]} (goes on at 0¢ once it is the only failure)
 - A price linked to the site's own page, which no passage read there states, [$29](https://reachkit.app/compare/seositecheckup): caught by no rule
 
 ## ecf4f99d: qa, "is seo dead now with ai"
@@ -32,20 +32,21 @@
 - Title: "5 AI search visibility tools for founders (2026)" → "Best AI search visibility tools (2026)"
 - Dropped: "ReachKit and Analyze AI are the two that name writers or pages as part of what you get, which matters if your actual problem is empty pages rather than a missing dashboard."
 - Dropped: "The limit from its own description: it frames itself around measuring and improving presence, which reads as tracking plus guidance rather than ReachKit's own page publishing."
+- Warns title: {"faults":["specific"]} (goes on at 0¢ once it is the only failure)
 - A price linked to the site's own page, which no passage read there states, [$29](https://reachkit.app/compare/seositecheckup): caught by no rule
 - A price linked to the site's own page, which no passage read there states, [€49 a month](https://reachkit.app/pricing): caught by no rule
 
 ## baeckerei-hinkel.de: documentation, "sauerteigbrot düsseldorf"
 
 - Stopped on: nothing recorded
-- Today: fails on required_blocks, title, 0¢
-- Fails required_blocks: {"block":"faq"}
-- Fails title: {"faults":["length","specific","question"]}
+- Today: passes, 0¢
+- Warns required_blocks: {"block":"faq"}
+- Warns title: {"faults":["length","specific","question"]}
 
 ## wesbos.com: how_to, "learn javascript"
 
 - Stopped on: nothing recorded
-- Today: fails on required_blocks, title, cites_market, 0¢
-- Fails required_blocks: {"block":"own_steps"}
-- Fails title: {"faults":["specific","question"]}
-- Fails cites_market: {"cited":0,"min":2}
+- Today: passes, 0¢
+- Warns required_blocks: {"block":"own_steps"}
+- Warns title: {"faults":["specific","question"]}
+- Warns cites_market: {"cited":0,"min":2}

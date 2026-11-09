@@ -112,17 +112,6 @@ describe("a page that still fails is set aside at 0¢, the row kept and its topi
     expect(llm).not.toHaveBeenCalled();
   });
 
-  // Ruling 2026-10-11: where the fix call cannot start, a title short only of its specific goes on, marked. The re-check
-  // starts none, so a page with one attempt is let go on as one with two is.
-  it.each([1, 2])("a page whose one failure is its title's want of a specific, after %i attempts, enters review, the title marked specific_unmet, at 0¢", async (attempts) => {
-    arrange(SAAS_HOSTED);
-    const title = "Project management software plan that fits a small team";
-    const id = await stopped(SAAS_HOSTED, { attempts });
-    Object.assign(row(id), { title, meta: { ...(row(id).meta as Row), titles: [{ title }] } });
-    await recheck(SAAS_HOSTED);
-    expect(row(id)).toMatchObject({ state: "in_review", hard_rules_passed: true, rule_failures: [], meta: { titles: [{ title, ...(attempts === 1 ? { specific_unmet: true } : {}) }] } });
-    expect(llm).not.toHaveBeenCalled();
-  });
 
   it("with only failing candidates every one is set aside, and the day goes on to write its next topic", async () => {
     arrange(SAAS_HOSTED);
@@ -206,11 +195,11 @@ describe("OR4: a promise-figure title never enters review", () => {
 
   it.each([
     ["b03e044f", true, []],
-    // Its FAQ pair denying a rival is dropped and "17" clears today; no clean candidate names the business.
-    ["bf8de9bf", false, [{ rule: "title", detail: { faults: ["business"] } }]],
+    // Its FAQ pair denying a rival is dropped and "17" clears today; a title that names no business only warns.
+    ["bf8de9bf", true, [{ rule: "title", detail: { faults: ["business"] } }]],
     // Issue 2341: its phrase said too often is dropped in code past the first sayings.
     ["d98284cc", true, []],
-    ["5dcc61c2", false, [{ rule: "required_blocks", detail: { block: "question_headings" } }]],
+    ["5dcc61c2", true, [{ rule: "required_blocks", detail: { block: "question_headings" } }]],
   ] as const)("%s, replayed on its own stored body under today's rules: passed %s, failing exactly what it prints, at 0¢", async (id, passed, failed) => {
     arrange(SAAS_HOSTED);
     expect(await recheckRow(at(id), dogfood(at(id)))).toMatchObject({ kind: "checked", passed, failed, spentCents: 0 });
@@ -224,8 +213,8 @@ describe("OR4: a promise-figure title never enters review", () => {
 
   it.each([
     ["fba1d84d", "What is AEO? Answer engine optimization in one page", true],
-    // Its stored title carries the business's own "€49 a month"; the one clean candidate still fails its wording.
-    ["b8c28f61", "Answer engine optimization vs generative engine optimization (2026)", false],
+    // Its stored title carries the business's own "€49 a month"; the one clean candidate's wording only warns.
+    ["b8c28f61", "Answer engine optimization vs generative engine optimization (2026)", true],
     // "12" is in no promise, but it is the business's figure beside a rival's name, so every writer title stops.
     ["a71279ff", "Profound answer engine optimization", true],
     // Its other candidates carry a "1" #2134's classifier reads as the business's "1 email every Monday".
@@ -234,7 +223,7 @@ describe("OR4: a promise-figure title never enters review", () => {
     arrange(SAAS_HOSTED);
     const outcome = await checked(id);
     const p = (at(id).meta as { pack: ContextPack }).pack;
-    expect(outcome).toMatchObject({ passed, ...(passed ? { failed: [] } : {}), spentCents: 0, patch: { title }, meta: { recheck: { titleBefore: at(id).title, title } } });
+    expect(outcome).toMatchObject({ passed, spentCents: 0, patch: { title }, meta: { recheck: { titleBefore: at(id).title, title } } });
     expect(promiseFigures(title, p)).toEqual([]);
     expect(outcome.meta).not.toHaveProperty("heading");
     expect([...(at(id).meta as { titles: Row[] }).titles.map((each) => each.title), floorTitle(p)]).toContain(title);
@@ -317,34 +306,28 @@ describe("OR4: a promise-figure title never enters review", () => {
     expect([row(other).state, lastMove(other).reason, wordsOf(other)]).toEqual(["skipped", "retired:title", before]);
   });
 
-  const plan = "Which plan fits a small design team";
-  const versus = "Peec ai vs otterly vs profound comparison";
-  it.each([
-    // Every title the writer proposes stops the page: stage 4 and the re-check take the search's own floor.
-    [plan, [`${plan}: the ultimate guide`, `${plan} in 2026`, `${plan}, plan by plan`], null, "in_review"],
-    // The floor names no business beside its rivals, which stops the page as more than a want of a specific: stage 4
-    // ranks it like any other, and the re-check keeps the stored title, as nothing after it mends one.
-    [versus, ["Peec AI vs Otterly vs Profound comparison: the ultimate guide"], ["peec.ai", "otterly.ai", "tryprofound.com"], "skipped"],
-  ] as const)("stage 4 takes the floor %j over writer titles %j (rivals %j), and the re-check at 0¢ leaves the page %s", async (floor, titles, rivals, state) => {
+  // Every title the writer proposes fails the title rule: stage 4 and the re-check take the search's own floor.
+  it("stage 4 takes the floor over writer titles, and the re-check at 0¢ puts the page in review under it", async () => {
+    const floor = "Which plan fits a small design team";
+    const titles = [`${floor}: the ultimate guide`, `${floor} in 2026`, `${floor}, plan by plan`];
     arrange(SAAS_HOSTED);
     const search = floor.toLowerCase();
-    const id = await stopped(SAAS_HOSTED, { titles: [...titles], pack: { target: { question: search, searches: [search] }, ...(rivals === null ? {} : { business: { ...pack().business, rivals: [...rivals] } }) } });
+    const id = await stopped(SAAS_HOSTED, { titles, pack: { target: { question: search, searches: [search] } } });
     expect(row(id)).toMatchObject({ title: floor, meta: { titles: [...titles, floor].map((title) => ({ title })) } });
     Object.assign(row(id), { title: titles[0], meta: { ...(row(id).meta as Row), titles: titles.map((title) => ({ title })) } });
     await recheck(SAAS_HOSTED);
-    expect(row(id)).toMatchObject(state === "in_review" ? { state, title: floor, meta: { recheck: { titleBefore: titles[0], title: floor } } } : { state, title: titles[0] });
-    if (state === "skipped") expect(row(id).meta).not.toHaveProperty("recheck.title");
+    expect(row(id)).toMatchObject({ state: "in_review", title: floor, meta: { recheck: { titleBefore: titles[0], title: floor } } });
     expect(llm).not.toHaveBeenCalled();
   });
 
   it.each([
-    ["5dcc61c2", "retired:required_blocks"],
-    // One attempt: its unsettled title still stops it beside the sections a writer owes.
-    ["f1ec6a58", "retired:required_blocks,title"],
     // OR4: no clean candidate, and no search long enough for a floor title, so it is never published.
     ["a6d24b00", "retired:title"],
-    ["bf8de9bf", "retired:title"],
-    ["b8c28f61", "retired:title"],
+    // A missing block or a title's wording only warns, so these are no longer set aside.
+    ["5dcc61c2", null],
+    ["f1ec6a58", null],
+    ["bf8de9bf", null],
+    ["b8c28f61", null],
     // The search's own floor title passes where no writer title does.
     ["abe42ff7", null],
     ["a71279ff", null],

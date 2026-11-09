@@ -18,7 +18,7 @@ import { needsYouCauseOf } from "@/lib/publish/record/needs-you";
 import type { Actor, TransitionRecord } from "@/lib/publish/types";
 import { stillAsked, type FitVerdict } from "./claims/fit";
 import { readRecordedFact } from "./fact";
-import { batteryBasis, blockInputs, checkPage, lacksSpecificOnly, siteRulesOf, type BatteryBasis, type CheckedPage } from "./pipeline/battery";
+import { batteryBasis, blockInputs, checkPage, siteRulesOf, type BatteryBasis, type CheckedPage } from "./pipeline/battery";
 import { buildComparisonSet } from "./pipeline/comparison";
 import { fitDescription } from "./pipeline/compose";
 import { allowedFacts, readAllFacts, readDemoPhrases, type SourcedFact } from "./pipeline/grounding";
@@ -121,14 +121,7 @@ export async function checkStoredAt0(row: DraftRow, body: string, world: Recheck
   const broken = new Set<HardRule>();
   const at = { siteId: row.site_id, draftId: row.id, comparison, broken, ...(fit === undefined ? {} : { fit }) };
   const settled = row.hard_rule_attempts >= 2;
-  let checked = await checkPage(REFUSED, basis, page, markdown, at, settled);
-  // Ruling 2026-10-11, as stage 4 applies it where the fix call cannot start: a page whose one failure left is its
-  // title's want of a specific goes on without one, the title marked. The re-check asks no model (OR2).
-  const unmet = !settled && lacksSpecificOnly(checked.outcome);
-  if (unmet) {
-    const again = await checkPage(REFUSED, basis, page, checked.markdown, at, true);
-    checked = { ...again, repairs: [...checked.repairs, ...again.repairs] };
-  }
+  const checked = await checkPage(REFUSED, basis, page, markdown, at, settled);
 
   const failed = recordedRulesValue(checked.outcome);
   const passed = batteryCleared(checked.outcome) && checked.close === null;
@@ -149,7 +142,6 @@ export async function checkStoredAt0(row: DraftRow, body: string, world: Recheck
         ...(fixes.title === undefined ? meta : Object.fromEntries(Object.entries(meta).filter(([key]) => key !== "heading"))),
         description: page.description,
         faq: page.faq,
-        ...(unmet && Array.isArray(meta.titles) ? { titles: (meta.titles as { title?: unknown }[]).map((each) => (each?.title === title ? { ...each, specific_unmet: true } : each)) } : {}),
         ...(Object.keys(fixes).length === 0 ? {} : { recheck: { ...(meta.recheck as RecheckFixes | undefined), ...fixes } }),
         checks: recordedRunValue(checked.outcome, broken),
         ...(checked.repairs.length === 0 ? {} : { repairs: [...priorRepairs, ...checked.repairs] }),
