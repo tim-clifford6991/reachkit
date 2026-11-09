@@ -95,12 +95,11 @@ export function placeInCode(a: AddsInputs): { sentence: string; placed: Placed |
   return out;
 }
 
-/** D12's bar, counted from the placed sentences: `ADDS.min` new, at least
- *  `ADDS.businessMin` of them a business fact. */
+/** D12's bar, counted from the placed sentences: `ADDS.min` new. */
 export function addsVerdict(rows: readonly PlacedSentence[]): { fresh: number; business: number; passes: boolean } {
   const business = rows.filter((row) => row.placed === "business").length;
   const fresh = business + rows.filter((row) => row.placed === "new").length;
-  return { fresh, business, passes: fresh >= ADDS.min && business >= ADDS.businessMin };
+  return { fresh, business, passes: fresh >= ADDS.min };
 }
 
 const MATCH_TOOL: Anthropic.Tool = {

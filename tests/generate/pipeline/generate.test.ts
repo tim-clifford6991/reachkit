@@ -249,10 +249,12 @@ describe("a step that did not run is not a rule that failed", () => {
     expect(llmMock).not.toHaveBeenCalled();
   });
 
-  it("a site with no passage of its own fails hard rule 1, before a cent is spent", async () => {
+  // 11-08 on reachkit.app ended `no_own_facts`: a page with no passage of its own now stands on research alone.
+  it("a site with no passage of its own still gets a page, and the page names the business nowhere", async () => {
+    answers(pageParts(`${CLEAN_MARKDOWN}\n\nAcme keeps every seat on one bill.`));
     const outcome = await run({ facts: [], pack: pack({ facts: [] }) });
-    expect(outcome.ok === false && outcome.reason === "rules" && outcome.failed).toEqual([{ rule: "grounding" }]);
-    expect(llmMock).not.toHaveBeenCalled();
+    expect(outcome).toMatchObject({ ok: true, grounded: null });
+    expect(store.rows.get(outcome.ok ? outcome.draftId : "")?.body_md).not.toMatch(/acme/i);
   });
 });
 

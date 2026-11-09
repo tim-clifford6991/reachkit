@@ -87,9 +87,10 @@ describe("what a page adds, placed in code", () => {
     expect(placed).toEqual(["site", "commodity", "business", null]);
   });
 
-  it("counts a business fact only where code placed one", () => {
+  it("passes on three new claims, a business fact among them or not", () => {
     const row = (kind: "new" | "unsupported" | "business") => ({ sentence: "", placed: kind, by: "model" as const, from: "" });
-    expect(addsVerdict([row("new"), row("new"), row("new"), row("unsupported")]).passes).toBe(false);
+    expect(addsVerdict([row("new"), row("new"), row("unsupported")]).passes).toBe(false);
+    expect(addsVerdict([row("new"), row("new"), row("new")]).passes).toBe(true);
     expect(addsVerdict([row("new"), row("new"), row("business")]).passes).toBe(true);
   });
 });

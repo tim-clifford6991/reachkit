@@ -23,7 +23,6 @@ const { readMeasuredTextMock, readReportPageMock } = vi.hoisted(() => ({
 vi.mock("@/lib/measure/text", () => ({ readMeasuredText: readMeasuredTextMock }));
 vi.mock("@/lib/generate/pipeline/report-facts", () => ({ readReportPage: readReportPageMock }));
 
-let readFacts: typeof import("../../../src/lib/generate/pipeline/grounding").readFacts;
 let readAllFacts: typeof import("../../../src/lib/generate/pipeline/grounding").readAllFacts;
 
 const PRICING_URL = "https://example.com/pricing";
@@ -70,31 +69,31 @@ beforeEach(async () => {
   readMeasuredTextMock.mockResolvedValue(pages());
   readReportPageMock.mockReset();
   readReportPageMock.mockResolvedValue(null);
-  ({ readFacts, readAllFacts } = await import("../../../src/lib/generate/pipeline/grounding"));
+  ({ readAllFacts } = await import("../../../src/lib/generate/pipeline/grounding"));
 });
 
 describe("the facts a brief chooses among come from more than one page", () => {
   it("draws from every page the site has, not from the densest one", async () => {
-    const facts = await readFacts({ siteId: SITE_ID });
+    const facts = await readAllFacts({ siteId: SITE_ID });
     const urls = new Set(facts.map((fact) => fact.fact.url));
     expect(urls).toEqual(new Set([PRICING_URL, GUIDE_URL, ABOUT_URL]));
   });
 
   it("takes one passage per page per round, so no page is emptied before the next is opened", async () => {
-    const facts = await readFacts({ siteId: SITE_ID });
+    const facts = await readAllFacts({ siteId: SITE_ID });
     // Three pages, so the first three facts are one from each.
     expect(new Set(facts.slice(0, 3).map((fact) => fact.fact.url)).size).toBe(3);
   });
 
   it("carries each passage with the page text the grounding rule re-verifies it against", async () => {
-    const facts = await readFacts({ siteId: SITE_ID });
+    const facts = await readAllFacts({ siteId: SITE_ID });
     for (const fact of facts) expect(fact.sourceText).toContain(fact.fact.passage);
   });
 });
 
 describe("a fact about the question is preferred to a fact about the seller", () => {
   it("offers the page whose words the target search shares first", async () => {
-    const facts = await readFacts({
+    const facts = await readAllFacts({
       siteId: SITE_ID,
       target: "best project management software for a small team",
     });
@@ -102,12 +101,12 @@ describe("a fact about the question is preferred to a fact about the seller", ()
   });
 
   it("falls back to freshest first where no target is given", async () => {
-    const facts = await readFacts({ siteId: SITE_ID });
+    const facts = await readAllFacts({ siteId: SITE_ID });
     expect(facts[0]?.fact.url).toBe(PRICING_URL);
   });
 
   it("still offers a page that shares none of the search's words, after the ones that do", async () => {
-    const facts = await readFacts({
+    const facts = await readAllFacts({
       siteId: SITE_ID,
       target: "best project management software for a small team",
     });
@@ -116,9 +115,8 @@ describe("a fact about the question is preferred to a fact about the seller", ()
 });
 
 describe("the uncapped read is what finds a passage a row already pinned", () => {
-  it("returns every passage, past the brief's cap", async () => {
+  it("returns every passage", async () => {
     const all = await readAllFacts({ siteId: SITE_ID });
-    expect(all.length).toBeGreaterThan((await readFacts({ siteId: SITE_ID })).length);
     expect(all.length).toBe(17);
   });
 

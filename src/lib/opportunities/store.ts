@@ -45,7 +45,6 @@ import { isSourceHost } from "@/lib/market/rivals/domains";
 import { topTenRowsOf, topTensOf } from "./cluster";
 import type { TopTenRead } from "./derive/top-ten-kind";
 import type { AskedBeside } from "./derive/topics";
-import { earnGroundingOf, NO_EARN_GROUNDING, type EarnGrounding } from "./earn-grounding";
 import type { NotWorkingVerdict } from "./suppression";
 
 /** The row as `opportunities` stores it. `jsonb` members arrive parsed and
@@ -207,14 +206,6 @@ export interface OpportunityStore {
   currentReport(siteId: string): Promise<StoredReport | null>;
   /** The rivals in force, confirmed profile and scan passages a listicle's needs are read from; `null` with no site. */
   listicleHeld(siteId: string, scanId: string): Promise<ListicleHeld | null>;
-  /** SPEC §6 (2026-09-15): whether the site's own measured page text yields
-   *  at least one grounding passage — the generator's own read. A read that
-   *  fails is `false`: a row is never made ready on a guess. */
-  hasGroundingFact(siteId: string): Promise<boolean>;
-  /** SPEC §6 (2026-09-15), issue 478: which Earn assets the site's own
-   *  measured pages hold a passage of the needed kind for. A read that fails
-   *  grounds none. */
-  earnGrounding(siteId: string): Promise<EarnGrounding>;
   /** The moment the site's last non-`fix` opportunity left `open`, which is
    *  the moment supply hit zero. `null` where the site has never held one. */
   lastStatusChangeAt(siteId: string): Promise<Date | null>;
@@ -680,30 +671,6 @@ export function supabaseOpportunityStore(): OpportunityStore {
     },
 
     setCluster: (opportunityId, clusterKey, absorbedQueries) => updateRow("setCluster", opportunityId, { cluster_key: clusterKey, absorbed_queries: [...absorbedQueries] }),
-
-    // The writer's scope; a failed read rejects, so "not read" is never written as "no fact".
-    async hasGroundingFact(siteId) {
-      const [{ readGroundingFact }, report] = await Promise.all([import("@/lib/generate/pipeline/grounding"), currentReportOf(siteId)]);
-      return report !== null && !("failed" in (await readGroundingFact({ siteId, scanId: report.scanId })));
-    },
-
-    async earnGrounding(siteId) {
-      const [{ readMeasuredText }, { sitePassages }, { readSiteProfile }, report] = await Promise.all([
-        import("@/lib/measure/text"),
-        import("@/lib/generate/pipeline/grounding"),
-        import("@/lib/site-profile/store"),
-        currentReportOf(siteId),
-      ]);
-      if (report === null) return NO_EARN_GROUNDING;
-      const [measuredPages, profile] = await Promise.all([
-        readMeasuredText({ siteId, scanId: report.scanId, customerOnly: true }),
-        readSiteProfile(report.domain),
-      ]);
-      return earnGroundingOf({
-        pages: sitePassages(measuredPages).map(({ page, passages }) => ({ url: page.url, passages })),
-        inventory: profile?.inventory ?? [],
-      });
-    },
 
     async lastStatusChangeAt(siteId) {
       const { data, error } = await untyped()

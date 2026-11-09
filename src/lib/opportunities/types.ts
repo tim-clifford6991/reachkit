@@ -354,7 +354,7 @@ export type UnreadyReason =
   | "destination_cannot_address"
   /** The business is not the answer: a stored fit below the gate. */
   | "low_fit"
-  /** The site's own measured pages ground no fact for this page. */
+  /** No longer assigned: a site whose pages ground no fact is written from research (owner, #2511). */
   | "no_grounding_fact";
 
 export const UNREADY_REASONS: readonly UnreadyReason[] = Object.freeze([

@@ -49,7 +49,8 @@ export function applyLinks(
   a: {
     domain: string;
     targets: readonly LinkTarget[];
-    groundedUrl: string;
+    /** Absent on a page that stands on research alone. */
+    groundedUrl?: string;
     /** The customer's own pages the page's facts were read from (SPEC §7,
      *  D41): a fact is linked to its source, so a link to one of them
      *  stands. */
@@ -70,7 +71,7 @@ export function applyLinks(
     const key = urlKey(target.url);
     if (key !== null && !chosen.has(key)) chosen.set(key, target);
   }
-  const grounded = urlKey(a.groundedUrl);
+  const grounded = a.groundedUrl === undefined ? null : urlKey(a.groundedUrl);
   const sources = new Set((a.factUrls ?? []).map(urlKey));
   const linked = new Set<string>();
 

@@ -16,8 +16,8 @@ describe("§8 hard rule 1 — grounded in the customer's own live page", () => {
     expect(checkGrounding({ grounded: GROUNDED, sourceText: SOURCE_TEXT })).toBeNull();
   });
 
-  it("no grounded fact at all fails", () => {
-    expect(checkGrounding({ grounded: null, sourceText: SOURCE_TEXT })).toEqual({ rule: "grounding" });
+  it("no grounded fact at all passes: the page stands on research alone", () => {
+    expect(checkGrounding({ grounded: null, sourceText: SOURCE_TEXT })).toBeNull();
   });
 
   it("a passage altered by one character fails — the promise is that it can still be read against", () => {
