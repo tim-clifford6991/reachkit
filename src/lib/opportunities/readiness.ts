@@ -6,8 +6,8 @@
 // never re-derive it. It answers one of six reasons (owner ruling C6,
 // 2026-10-19), in this order:
 //
-//   - `resting` — the topic's draft was stopped or skipped (D26), its cluster
-//     was judged not working, or its URL retired (`suppression.ts`);
+//   - `resting` — the topic's draft was skipped, or stopped since the week's
+//     commit; its cluster was judged not working; or its URL retired (`suppression.ts`);
 //   - `destination_cannot_address` — an Improve the destination cannot
 //     deliver (issue 781), or a topic a page of the site already covers
 //     (#928);

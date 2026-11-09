@@ -1,18 +1,11 @@
 // BUILD §8 — the one door between the generation engine and Postgres.
 //
-// Every read and write in `src/lib/generate/` goes through `GenerateStore`,
-// and the default implementation is the only place in the engine that names
-// a table or a column. Two reasons, and neither is testing convenience: the
-// row shape is BUILD §10's and belongs in one file, and the suites in
-// `tests/generate/**` run in the `node` project, which has no database.
+// Every read and write in `src/lib/generate/` goes through `GenerateStore`, the only place in the engine that names a
+// table or a column: the row shape is BUILD §10's, and `tests/generate/**` run in the `node` project, with no database.
 //
-// **`dbAdmin()`, not `db()`.** The shipped RLS gives `drafts` a select and
-// an update policy for the owning site's user and no insert policy at all,
-// with creation and removal recorded as system operations. Generation runs
-// inside a job (§11's `draft/generate`), not inside a customer's request,
-// so there is no `auth.uid()` for a row policy to match. Every call below
-// is site-scoped by an explicit `site_id` predicate — the scoping the
-// policy would have applied, applied here instead.
+// **`dbAdmin()`, not `db()`.** RLS gives `drafts` no insert policy, and generation runs inside a job, with no
+// `auth.uid()` for a row policy to match; so every call below is site-scoped by an explicit `site_id` predicate,
+// the scoping the policy would have applied.
 //
 // **The voice text is read and never written.** `sites.voice_text` is the
 // customer's field; nothing here copies it onto a draft, caches it, or
@@ -117,6 +110,8 @@ export interface SiteFacts {
   /** `sites.tracked_prompts` (D19): what a page's intent is matched
    *  against (D60, issue 1288). Absent reads as none tracked. */
   prompts?: readonly { id: string; text: string }[];
+  /** `sites.timezone`: whose Monday a stopped topic waits for. Absent reads as UTC. */
+  timeZone?: string | null;
 }
 
 /** A page of the customer's own, as the near-duplicate gate compares it. */
@@ -333,8 +328,9 @@ export function supabaseGenerateStore(): GenerateStore {
           competitors: unknown;
           market: unknown;
           tracked_prompts: unknown;
+          timezone: string | null;
         }>("sites")
-        .select("id, domain, category, voice_text, do_not_claim, competitors, market, tracked_prompts")
+        .select("id, domain, category, voice_text, do_not_claim, competitors, market, tracked_prompts, timezone")
         .eq("id", siteId)
         .limit(1);
       if (result.error) throw new Error(`generate/store: read from sites failed: ${result.error.message}`);
@@ -349,6 +345,7 @@ export function supabaseGenerateStore(): GenerateStore {
         rivals: stringsOf(row.competitors),
         market: parseStoredMarket(row.market),
         prompts: parsePromptSet(row.tracked_prompts ?? null).prompts,
+        timeZone: row.timezone,
       };
     },
 
