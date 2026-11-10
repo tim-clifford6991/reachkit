@@ -21,7 +21,8 @@ const seen = {
 };
 vi.mock("@/lib/db", () => ({ dbAdmin: () => seen, db: () => seen }));
 
-const { pickMock } = vi.hoisted(() => ({ pickMock: vi.fn() }));
+const { pickMock, cleared } = vi.hoisted(() => ({ pickMock: vi.fn(), cleared: vi.fn() }));
+vi.mock("next/cache", async (importOriginal) => ({ ...(await importOriginal<typeof import("next/cache")>()), revalidateTag: cleared }));
 vi.mock("@/lib/opportunities", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/opportunities")>()),
   pageForDay: (siteId: string, date: string, now?: Date) => pickMock(siteId, date, now),
@@ -112,6 +113,12 @@ describe("queueing a page", () => {
   it("says it moved an open page", async () => {
     expect(await supabaseOpportunityStore().markQueued("o1")).toBe(true);
     expect(status()).toBe("queued");
+  });
+
+  it("clears the site's cached supply count, so the next load counts the page as used", async () => {
+    cleared.mockReset();
+    await supabaseOpportunityStore().markQueued("o1");
+    expect(cleared).toHaveBeenCalledWith(`supply:${SITE_ID}`, { expire: 0 });
   });
 
   it.each(["queued", "dismissed", "done"])("says it did not move a %s page, and leaves it", async (held) => {

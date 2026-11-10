@@ -17,13 +17,14 @@
 // (`planFirstWeek`), its dated days stopping before the first Monday's pass. A date no commit
 // covers after that is committed on demand by that evening's run, once: the commit then covers
 // the dates after it, and so, once per weekly commit, is a date the week has used up.
+import { unstable_cache } from "next/cache";
 import { PLAN_DEPTH, SUPPLY_SHORT_BELOW, WEEK_PLAN } from "@/lib/config/constants";
 import { stoppedOnCeiling } from "@/lib/scan/market-floor";
 import { choose } from "./choose";
 import { assessFixPages } from "./fix-page";
 import { firstOpenDay, loadRanking, writableDays } from "./rank/open";
 import { assessReadiness } from "./readiness";
-import { opportunityStore, readOpportunity, type OpportunityRow, type PlanEntry } from "./store";
+import { opportunityStore, readOpportunity, supplyTag, type OpportunityRow, type PlanEntry } from "./store";
 import type { Opportunity } from "./types";
 
 const DAY_MS = 86_400_000;
@@ -133,8 +134,8 @@ function planned(row: OpportunityRow): Opportunity {
 }
 
 // Supply, as Overview and Plan state it. Volume follows supply and is never
-// a target (SPEC §14 guardrail 1): the count is derived on every read and
-// stored nowhere, so it cannot drift from the rows it counts.
+// a target (SPEC §14 guardrail 1): the count is derived from the rows and
+// stored nowhere; a screen's copy is held at most 5 minutes and cleared by any opportunity write.
 
 export interface Depth {
   /** Days of pages: writable days up to `PLAN_DEPTH` (decisions 1549, 1559). */
@@ -143,7 +144,16 @@ export interface Depth {
   exhaustedSince: Date | null;
 }
 
+/** Held per site: nav prefetch renders several screens at once, and each would rank every open row. */
 export async function supplyDepth(siteId: string): Promise<Depth> {
+  // Outside Next (a suite, a script) there is no cache to hold it.
+  if (process.env.NEXT_RUNTIME === undefined) return readDepth(siteId);
+  const depth = await unstable_cache(readDepth, ["supply-depth"], { tags: [supplyTag(siteId)], revalidate: 300 })(siteId);
+  // The cache hands back JSON, so the date is a string again.
+  return { ...depth, exhaustedSince: depth.exhaustedSince === null ? null : new Date(depth.exhaustedSince) };
+}
+
+async function readDepth(siteId: string): Promise<Depth> {
   const store = opportunityStore();
   if ((await store.countUnused(siteId)) > 0) return { unused: await writableDays(siteId), exhaustedSince: null };
   // Since the last non-Fix status change; with none, since the scan that last
