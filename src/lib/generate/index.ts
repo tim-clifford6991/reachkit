@@ -68,6 +68,7 @@ import { NO_RESEARCH, researchMarket, storedAsk, type MarketResearch } from "./p
 import { namedRivals } from "./rules/rivals";
 import { TEMPLATES } from "./templates";
 import { marketSearches, writingMarket } from "./voice/market";
+import { REWRITTEN, owedToRow } from "./interrupted";
 import { DraftDateTaken, PageStopped, generateStore, type RestartedDraft, type SiteFacts } from "./store";
 
 export type { GroundedFact, HardRule, RuleFailure, ComparisonSet, SiteRuleInputs } from "./rules/types";
@@ -252,11 +253,7 @@ function sinceNow(cost: CostContext): CostContext {
 /** Drafts waiting in `generating` for a run — one a site, oldest first, so a tick spends at most one page on each. */
 export async function restartedDrafts(siteIds: readonly string[], now: Date): Promise<readonly RestartedDraft[]> {
   const seen = new Set<string>();
-  return (await generateStore().restartedDrafts(siteIds, now)).filter((row) => {
-    if (seen.has(row.siteId)) return false;
-    seen.add(row.siteId);
-    return true;
-  });
+  return (await generateStore().restartedDrafts(siteIds, now)).filter((row) => !seen.has(row.siteId) && Boolean(seen.add(row.siteId)));
 }
 
 /**
@@ -266,7 +263,7 @@ export async function restartedDrafts(siteIds: readonly string[], now: Date): Pr
  * is the customer's. It ends where the evening's run ends: a passing page
  * for review, or a stopped one back in `needs_attention`.
  */
-export async function regenerateRestarted(a: { siteId: string; draftId: string; now?: Date; stop?: true }): Promise<DayPageOutcome> {
+export async function regenerateRestarted(a: { siteId: string; draftId: string; now?: Date }): Promise<DayPageOutcome> {
   const store = generateStore();
   const row = await store.draftById(a.draftId);
   // A stopped row that gave up its date (issue 1179) is rewritten without one; `enterReview` gives it the next free date.
@@ -275,8 +272,11 @@ export async function regenerateRestarted(a: { siteId: string; draftId: string; 
   }
   const site = await store.siteFacts(a.siteId);
   if (site === null) return { ok: false, because: "no_site" };
-  // A row whose second run stopped as well rests with its reason rather than costing a third page.
-  if (a.stop === true) { await rest(row.id, row.opportunity_id, "step_failed:interrupted", a.now ?? new Date(), site.timeZone); return { ok: false, because: "step_failed", draftId: row.id, step: "interrupted" }; }
+  // Read from the row, so a retried step sees its first try's mark; set before the paid call, so any interruption stops it next tick.
+  const now = a.now ?? new Date(), owed = owedToRow(row, now, site.timeZone);
+  if (owed === null) return { ok: false, because: "no_draft" };
+  if (owed === "stop") { await rest(row.id, row.opportunity_id, "step_failed:interrupted", now, site.timeZone); return { ok: false, because: "step_failed", draftId: row.id, step: "interrupted" }; }
+  if (owed === "mark") await store.patchDraft(row.id, { meta: { ...(typeof row.meta === "object" && row.meta !== null ? row.meta : {}), [REWRITTEN]: now.toISOString() } });
   const report = await store.latestReport(a.siteId);
   if (report === null) return { ok: false, because: "no_scan" };
   const found = await opportunityById(row.opportunity_id);
@@ -289,7 +289,7 @@ export async function regenerateRestarted(a: { siteId: string; draftId: string; 
   const outcome = await withDraftCost({ scanId: report.scanId, draftId: row.id }, (cost) =>
     opportunity.type === "fix_page" ? fixPage(page, cost) : writePage({ ...page, attempts: 1 }, cost)
   );
-  await settle(outcome, opportunity.id, a.now ?? new Date(), site);
+  await settle(outcome, opportunity.id, now, site);
   return outcome;
 }
 

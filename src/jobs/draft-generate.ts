@@ -36,8 +36,8 @@
 //     keeps the second delivery free. Two deliveries running *together*
 //     both pass it, and `drafts_one_per_site_per_date` is what decides
 //     them: one row is written, the loser answers `already_drafted` too.
-//   * **The restarted pages.** `restartedDrafts()` returns `generating` rows
-//     no run is still writing, and `regenerateRestarted()`
+//   * **The restarted pages.** `restartedDrafts()` returns rows whose last
+//     recorded move is the customer's restart, and `regenerateRestarted()`
 //     rewrites the row it was given — it writes no row of its own, and it
 //     refuses a row that has left `generating`, which the first run's own
 //     ending moves it out of. So a redelivery rewrites nothing, and two
@@ -133,7 +133,7 @@ export const draftGenerate: JobDefinition = {
 
     const restarted = await restartedDrafts(selection.sites.map((site) => site.siteId), input.now);
     const regenerated = await fanOut(restarted, (draft) =>
-      regenerateDraft({ siteId: draft.siteId, draftId: draft.draftId, now: input.now, ...(draft.stop ? { stop: draft.stop } : {}) })
+      regenerateDraft({ siteId: draft.siteId, draftId: draft.draftId, now: input.now })
     );
 
     // The window a due page opens is counted from the tick's own hour, so

@@ -21,7 +21,7 @@ import type { StoredMarket } from "@/lib/market/infer/types";
 import { readSiteProfile } from "@/lib/site-profile/store";
 import type { InventoryRow } from "@/lib/site-profile/types";
 import type { ClusterPage } from "./links/select";
-import { owedToRow } from "./interrupted";
+import { waitingForRun } from "./interrupted";
 import { withheldReportPassages } from "./pipeline/report-scope";
 
 /** The `drafts` row, as §10 and this issue's two migrations leave it. */
@@ -183,7 +183,7 @@ export interface GenerateStore {
    *  and is not counted. */
   draftOnDate(siteId: string, date: string): Promise<boolean>;
   /** Drafts on these sites in `generating` that no run is still writing: the customer's restart (#788), or a row a
-   *  run saved and then stopped on (`./interrupted.ts`), which `stop` marks once it has been written again. */
+   *  run saved and then stopped on (`./interrupted.ts`). */
   restartedDrafts(siteIds: readonly string[], now: Date): Promise<readonly RestartedDraft[]>;
   /** The `meta` of the site's newest draft of one content type (D42), or
    *  `null` where it has none. */
@@ -193,7 +193,6 @@ export interface GenerateStore {
 export interface RestartedDraft {
   draftId: string;
   siteId: string;
-  stop?: true;
 }
 
 // ── The states this module has to name ──────────────────────────────────
@@ -549,10 +548,9 @@ export function supabaseGenerateStore(): GenerateStore {
         .eq("state", "generating")
         .order("created_at", { ascending: true });
       if (result.error) throw new Error(`generate/store: read from drafts failed: ${result.error.message}`);
-      return (result.data ?? []).flatMap((row) => {
-        const owed = owedToRow(row, now);
-        return owed === null ? [] : [{ draftId: row.id, siteId: row.site_id, ...(owed === "stop" ? { stop: true as const } : {}) }];
-      });
+      return (result.data ?? [])
+        .filter((row) => waitingForRun(row, now) !== null)
+        .map((row) => ({ draftId: row.id, siteId: row.site_id }));
     },
 
     async knownPages(siteId) {

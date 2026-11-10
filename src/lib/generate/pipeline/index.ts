@@ -71,6 +71,7 @@ import { completeTables, withSources } from "./sources";
 import { withTable } from "./table";
 import { floorTitle, titleRuleFor, unclaimedSuperlatives } from "./title";
 import { fixPage, writePage, type PageParts } from "./write";
+import { carriedMark } from "../interrupted";
 
 /** The stages a page can stop at without a rule failing. */
 export type PipelineStep =
@@ -214,6 +215,8 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
     // Why the week committed the slot this page fills.
     ...(a.opportunity.planReason == null ? {} : { why: a.opportunity.planReason }),
     ...(priorRepairs.length === 0 ? {} : { repairs: priorRepairs }),
+    // The tick's one automatic rewrite stays recorded through the rewrite itself.
+    ...carriedMark(existing?.meta),
   };
   /** The date's row, written or rewritten. `attribution` is the byline the
    *  caller read (SPEC §7, 2026-09-29), never what a model wrote. */

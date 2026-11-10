@@ -1,17 +1,39 @@
 // What the draft tick owes a `generating` row: a row no run is still writing is never left there.
-import { TIMING } from "@/lib/config/constants";
 
-/** A row a run saved and then stopped on is written again by the next tick, and stopped once older than this. */
-export const REWRITE_WITHIN_MS = 90 * 60_000;
+/** Longer than a run's `write` → `review` gap, its step retries and its queue included, so a live run's row is not taken. */
+export const RUN_FLOOR_MS = 2 * 60 * 60_000;
 
-/** `rewrite` for the customer's restart and for a run that saved the row and stopped, once; `stop` for one that stopped twice. */
-export function owedToRow(row: { readonly transitions: unknown; readonly created_at: string }, now: Date): "rewrite" | "stop" | null {
+/** The `drafts.meta` key the tick sets before its one automatic rewrite, so a second interruption stops the row. */
+export const REWRITTEN = "rewrittenAfterStop";
+
+interface WaitingRow {
+  readonly transitions?: unknown;
+  readonly created_at: string;
+}
+
+/** The customer's restart, or a row with no moves older than any live run. */
+export function waitingForRun(row: WaitingRow, now: Date): "restart" | "interrupted" | null {
   const moves: unknown[] = Array.isArray(row.transitions) ? row.transitions : [];
   const last = moves[moves.length - 1] as { from?: unknown; to?: unknown } | null | undefined;
-  if (last?.from === "needs_attention" && last?.to === "generating") return "rewrite";
+  if (last?.from === "needs_attention" && last?.to === "generating") return "restart";
   if (moves.length > 0) return null;
-  // Inside the job's own ceiling a run may still be writing it.
-  const age = now.getTime() - Date.parse(row.created_at);
-  if (!(age > TIMING.jobsCeilingS * 1000)) return null;
-  return age <= REWRITE_WITHIN_MS ? "rewrite" : "stop";
+  return now.getTime() - Date.parse(row.created_at) > RUN_FLOOR_MS ? "interrupted" : null;
+}
+
+/** `rewrite` a restart; `mark` (then rewrite) an interrupted row once while its date is still to come; else `stop`. */
+export function owedToRow(
+  row: WaitingRow & { readonly meta: unknown; readonly scheduled_for: string | null },
+  now: Date,
+  zone: string | null | undefined
+): "rewrite" | "mark" | "stop" | null {
+  const waiting = waitingForRun(row, now);
+  if (waiting !== "interrupted") return waiting === "restart" ? "rewrite" : null;
+  if (REWRITTEN in carriedMark(row.meta)) return "stop";
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: zone ?? "UTC" }).format(now);
+  return row.scheduled_for !== null && row.scheduled_for < today ? "stop" : "mark";
+}
+
+/** The mark, kept through a rewrite that replaces `meta`. */
+export function carriedMark(meta: unknown): Record<string, unknown> {
+  return typeof meta === "object" && meta !== null && REWRITTEN in meta ? { [REWRITTEN]: (meta as Record<string, unknown>)[REWRITTEN] } : {};
 }
