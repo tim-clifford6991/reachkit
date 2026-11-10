@@ -1,11 +1,12 @@
 // BUILD §9 — REQ-057 criterion 2's conjuncts, in exactly one place: publishable when the veto window has expired or it
 // was explicitly approved, no edit is unsaved and no claim re-check is outstanding (REQ-053 c5); it publishes at the first
-// publish time at or after that, never before.
+// publish time at or after that, never before, or at once where that moment falls after its own day's publish time.
 // No clock: the deadline is the moment it becomes publishable, and whether it has arrived is `publishable_and_due`'s
 // question, one clock per pass. No settings read: the governing pair arrives on the `DraftView`.
 import type { DraftView } from "../types";
-import { nextPublishTimeAtOrAfter } from "../settings/clock";
+import { localDateOf, nextPublishTimeAtOrAfter, publishDateAtOrAfter } from "../settings/clock";
 import { settingsOf } from "../settings/pair";
+import type { PublishingSettings } from "../settings/settings";
 
 /** The three conjuncts, closed; a fourth would be a change to criterion 2.
  *  - `window` — no veto window running, so nothing has yet expired.
@@ -27,7 +28,13 @@ export function becomesPublishable(d: DraftView): PublishableAnswer {
   if (d.hasUnsavedEdit) return { publishable: false, because: "unsaved_edit" };
   if (d.claimRecheckOutstanding) return { publishable: false, because: "claim_recheck" };
 
-  return { publishable: true, at: nextPublishTimeAtOrAfter(became, settingsOf(d.governing)) };
+  return { publishable: true, at: publishMoment(became, d.scheduledFor ?? null, settingsOf(d.governing)) };
+}
+
+/** The first publish time at or after `became`; a page that missed its own day's publish time goes out that day at once. */
+export function publishMoment(became: Date, date: string | null, s: PublishingSettings): Date {
+  const at = nextPublishTimeAtOrAfter(became, s);
+  return date !== null && localDateOf(became, s) === date && publishDateAtOrAfter(at, s) > date ? became : at;
 }
 
 /** The moment the window expired or the page was approved, or why not. The approval is the system's own

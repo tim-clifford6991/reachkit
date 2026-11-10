@@ -296,5 +296,7 @@ export interface DraftView {
   /** What the customer was last told, or `null`: the record, not a verdict, which `toldCurrentPair` decides against
    *  `governing`, never a second copy of the rule (REQ-057 c8). */
   told: ToldRecord | null;
+  /** The site-local date the page publishes on; a window never moves it. */
+  scheduledFor?: string | null;
   governing: GoverningPair;
 }

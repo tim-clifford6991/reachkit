@@ -11,7 +11,7 @@
 // page the customer's switch is holding and one a ReachKit stop is holding
 // are the same page in the same set. The switch is `isPublishingOn`, the
 // destination is `destinationWorking`, the publish moment is
-// `nextPublishTimeAtOrAfter` over the site's own stored settings, and the
+// `publishMoment` over the site's own stored settings, and the
 // rows are `scheduledPagesFor`. Nothing here re-derives a state, a
 // liveness or a due-ness from a column.
 //
@@ -39,7 +39,8 @@
 // under copilot it has no moment at all until it is approved.
 import { destinationStanding, destinationWaitingToConnect, destinationWorking } from "@/lib/publish/destinations";
 import { scheduledPagesFor, type ScheduledPage } from "@/lib/publish/record";
-import { nextPublishTimeAtOrAfter, readPublishingSettings } from "@/lib/publish/settings";
+import { publishMoment } from "@/lib/publish/publishable/predicate";
+import { readPublishingSettings } from "@/lib/publish/settings";
 import { placedByDay } from "@/lib/opportunities/days";
 import { heldPages, isPublishingOn } from "@/lib/publish/switch";
 import type { DestinationKind, State } from "@/lib/publish/types";
@@ -150,11 +151,11 @@ export async function readPublishingFacts(a: {
   const { byDay: pagesByDay, heldDays } = placedByDay(pages, new Set(held.draftIds), a.today);
 
   const publishAt = new Map<string, Date>();
-  for (const page of pagesByDay.values()) {
+  for (const [date, page] of pagesByDay) {
     if (!HAS_A_PUBLISH_MOMENT.includes(page.state)) continue;
     const became = page.approvedAt ?? page.vetoDeadline;
     if (became === null) continue;
-    publishAt.set(page.draftId, nextPublishTimeAtOrAfter(became, settings));
+    publishAt.set(page.draftId, publishMoment(became, date, settings));
   }
 
   return {
