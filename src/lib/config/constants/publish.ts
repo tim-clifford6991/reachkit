@@ -287,17 +287,13 @@ export const WORDPRESS = Object.freeze({
 } as const);
 
 // ── The hosted edge — BUILD §9
-/** §9: "Preview at `{slug}.reachkit.app` is `noindex` **forever**
- *  (site-reputation-abuse guardrail — customer content never ranks on our
- *  domain)."
+/** ReachKit's own domain, the one place the spelling lives. No customer
+ *  content is served under it: a draft is read on the app host, never at a
+ *  `{slug}.reachkit.app` address.
  *
- *  The parent of every preview host, and the one place the spelling lives.
  *  It is **not** `NEXT_PUBLIC_APP_URL`'s host and never derived from it:
- *  the app's own address is a per-deployment binding, while this suffix is
- *  the product's own name and the same in every deployment. `resolveHost()`
- *  reads both — the app's own host is subtracted from this suffix's children,
- *  so the deployment's own address is never mistaken for a customer's
- *  preview. */
+ *  the app's own address is a per-deployment binding, while this domain is
+ *  the product's own name and the same in every deployment. */
 export const PREVIEW_HOST_SUFFIX = "reachkit.app" as const;   // BUILD §9
 
 /** 30 days after a departed customer's paid-through date ReachKit stops

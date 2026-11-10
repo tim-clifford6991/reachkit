@@ -251,9 +251,8 @@ export const PUBLIC_PATHS: readonly string[] = [
   // not a policy — and each route resolves the Host itself and answers 404
   // on one it does not serve, so a row here grants no read of anything.
   // They are deliberately *not* rewritten into the hosted group with the
-  // rest of a `content.` host's paths: `/robots.txt` must be able to
-  // answer the *preview* policy on a `{slug}.reachkit.app` host, which is
-  // not a `content.` host at all (ADR-002).
+  // rest of a `content.` host's paths: the same two routes answer the app
+  // host's own documents too.
   "/robots.txt",
   "/sitemap.xml",
   // Issue #350: the three legal pages the public footer links to. They
@@ -357,8 +356,8 @@ export function isMetadataAsset(pathname: string): boolean {
  *
  *  Four things are ours. `NEXT_PUBLIC_APP_URL`'s own host is the
  *  deployment's address and is read from the binding rather than assumed —
- *  it is `dev.reachkit.app` today, the apex at go-live, and neither a
- *  preview nor a test fixture is under `reachkit.app` at all, so a
+ *  it is `dev.reachkit.app` today, the apex at go-live, and a test
+ *  fixture is not under `reachkit.app` at all, so a
  *  subtraction that only knew the product's own suffix would rewrite the
  *  app's own screens. `PREVIEW_HOST_SUFFIX` covers the apex and every
  *  `*.reachkit.app` address beside it; the platform's preview hosts and
