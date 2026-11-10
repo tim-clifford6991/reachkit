@@ -12,8 +12,8 @@
 //   waiting              §9's `in_review` and `needs_attention` drafts
 //   next / causes        §9's scheduled publish, the site's own switch,
 //                        and the kill switch
-//   nextTopic            §7's committed week, less the dates a draft or a
-//                        decided day already accounts for
+//   coming               §9's pages on their way and §7's committed week, less
+//                        the dates a draft or a decided day accounts for
 //   stopped              §6.5 / §11's stop, through `stopCause`
 //
 // **A site with nothing yet reads empty, and that is the right answer.** A
@@ -33,7 +33,8 @@ import type { State } from "@/lib/publish/types";
 import { readStop } from "./stop";
 import { nextDueOn } from "@/lib/scan/weekly";
 import { measuredWeeksOf } from "./week-rows";
-import type { NextPage, NextTopic, ShellFacts, WaitingPage } from "./model";
+import { localDate } from "./format";
+import type { ComingDay, NextPage, ShellFacts, WaitingPage } from "./model";
 
 /** One site's account, as the shell needs it. Declared by the caller
  *  (`_session/account.ts`) and narrowed here to the members this file
@@ -79,7 +80,10 @@ const WAITING_STATES = ["in_review", "needs_attention"] as const;
  *  window ending is what publishes it. A page already `published` is not
  *  next, a `skipped` one never was, and `needs_attention` goes nowhere
  *  until it is fixed. */
-const SCHEDULED_STATES = ["in_review", "approved", "publishing"] as const;
+const SCHEDULED_STATES: readonly string[] = ["in_review", "approved", "publishing"];
+
+/** A page on its way: planned, being written, or one that goes live on its own. */
+const COMING_STATES = ["planned", "generating", ...SCHEDULED_STATES] as const;
 
 interface DraftStateRow {
   id: string;
@@ -184,6 +188,16 @@ async function blogAddress(siteId: string): Promise<string | null> {
   return row === undefined || row.hostname === null ? null : `https://${row.hostname}`;
 }
 
+/** The pages on their way, or `null` where the read fails. */
+async function pagesOnTheirWay(siteId: string): Promise<ScheduledDraftRow[] | null> {
+  const { data, error } = await client()
+    .from<ScheduledDraftRow>("drafts")
+    .select("id, state, scheduled_for, veto_deadline, told, title")
+    .eq("site_id", siteId)
+    .in("state", COMING_STATES);
+  return error === null ? data : null;
+}
+
 /**
  * When the next page goes live on its own, or `null`.
  *
@@ -200,21 +214,26 @@ async function blogAddress(siteId: string): Promise<string | null> {
  * Answering `null` puts the shell on the `publishing_paused` cause, which
  * is the true statement.
  */
-async function nextScheduled(siteId: string, publishingOn: boolean): Promise<NextPage | null> {
+function nextScheduled(rows: readonly ScheduledDraftRow[], publishingOn: boolean): NextPage | null {
   if (!publishingOn) return null;
-  const { data, error } = await client()
-    .from<ScheduledDraftRow>("drafts")
-    .select("id, state, scheduled_for, veto_deadline, told, title")
-    .eq("site_id", siteId)
-    .in("state", SCHEDULED_STATES);
-  if (error !== null || data === null) return null;
-  const pages = data
+  const pages = rows
     .flatMap((row) => {
-      const at = goesLiveAtOf(row);
+      const at = SCHEDULED_STATES.includes(row.state) ? goesLiveAtOf(row) : null;
       return at === null ? [] : [{ at, title: row.title }];
     })
     .sort((a, b) => a.at.getTime() - b.at.getTime());
   return pages[0] ?? null;
+}
+
+/** A page on its way as a coming day: dated from today on, or past its date but still due to go live. A planned row
+ *  is its topic; nothing is written for it yet. */
+function comingPage(row: ScheduledDraftRow, today: string, timeZone: string): ComingDay[] {
+  const at = SCHEDULED_STATES.includes(row.state) ? goesLiveAtOf(row) : null;
+  const on = row.scheduled_for ?? (at === null ? null : localDate(at, timeZone));
+  if (on === null || (on < today && at === null)) return [];
+  return row.state === "planned"
+    ? [{ kind: "topic", on, topic: row.title }]
+    : [{ kind: "page", on, title: row.title, at, writing: row.state === "generating" }];
 }
 
 function goesLiveAtOf(row: ScheduledDraftRow): Date | null {
@@ -242,14 +261,9 @@ async function logoStored(domain: string): Promise<boolean> {
   return error === null && data?.[0]?.logo_type != null;
 }
 
-/** The site-local calendar date of an instant, `YYYY-MM-DD`. */
-function localDate(at: Date, timeZone: string): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(at);
-}
-
-/** The soonest committed topic from `today` on whose date holds no page and whose due hour did not end without one
- *  (a day decided `no_page` or `failed` is not coming), or `null`; a failed read is `null` too. */
-async function nextTopic(siteId: string, today: string): Promise<NextTopic | null> {
+/** The committed topics from `today` on whose date holds no page and whose due hour did not end without one (a day
+ *  decided `no_page` or `failed` is not coming); a failed read is none. */
+async function plannedTopics(siteId: string, today: string): Promise<ComingDay[]> {
   try {
     const { committedWeek } = await import("@/lib/opportunities");
     const [week, drafts, days] = await Promise.all([
@@ -261,20 +275,17 @@ async function nextTopic(siteId: string, today: string): Promise<NextTopic | nul
         .eq("site_id", siteId)
         .gte("publish_date", today),
     ]);
-    if (drafts.error !== null || days.error !== null) return null;
+    if (drafts.error !== null || days.error !== null) return [];
     const taken = new Set<string | null>([
       ...(drafts.data ?? []).map((row) => row.scheduled_for),
       ...(days.data ?? []).filter((day) => day.outcome !== null).map((day) => day.publish_date),
     ]);
-    const next = week.days
-      .flatMap((day) => {
-        const topic = day.opportunity.targetQuery;
-        return day.date < today || taken.has(day.date) || topic === null ? [] : [{ on: day.date, topic }];
-      })
-      .sort((a, b) => a.on.localeCompare(b.on))[0];
-    return next ?? null;
+    return week.days.flatMap((day): ComingDay[] => {
+      const topic = day.opportunity.targetQuery;
+      return day.date < today || taken.has(day.date) || topic === null ? [] : [{ kind: "topic", on: day.date, topic }];
+    });
   } catch {
-    return null;
+    return [];
   }
 }
 
@@ -299,13 +310,14 @@ export async function readShellFacts(site: ShellSite): Promise<ShellFacts> {
     destinationWaiting(site.siteId),
   ]);
 
-  const [weeks, firstDueOn, waits, blog, next, topic, stopped, hasLogo] = await Promise.all([
+  const today = localDate(now, site.timeZone);
+  const [weeks, firstDueOn, waits, blog, pages, topics, stopped, hasLogo] = await Promise.all([
     measuredWeeksOf({ site, now }),
     nextDueOn({ siteId: site.siteId, now }),
     waiting(site.siteId),
     blogAddress(site.siteId),
-    nextScheduled(site.siteId, publishingOn && !addressWaiting),
-    nextTopic(site.siteId, localDate(now, site.timeZone)),
+    pagesOnTheirWay(site.siteId),
+    plannedTopics(site.siteId, today),
     readStop(),
     logoStored(site.domain),
   ]);
@@ -322,8 +334,8 @@ export async function readShellFacts(site: ShellSite): Promise<ShellFacts> {
     // no go-live time is true until then.
     review: waits.review === null || !addressWaiting ? waits.review : { ...waits.review, goesLiveAt: null },
     blog,
-    next,
-    nextTopic: topic,
+    next: nextScheduled(pages ?? [], publishingOn && !addressWaiting),
+    coming: [...(pages ?? []).flatMap((row) => comingPage(row, today, site.timeZone)), ...topics],
     stopped,
     // Each cause read as its own fact. `resolveNoPublish` picks between them
     // by ADR-011's precedence — never by whichever this file tested first.
