@@ -235,13 +235,8 @@ export const CALENDAR_COPY = Object.freeze({
     { slots: { count: "text" }, fixedBy: "issue 930" },
   ],
   "calendar.why.difficulty": ["Difficulty", { slots: {}, fixedBy: "issue 867" }],
-  // The difficulty against the ceiling this site is judged by (§6, issue
-  // 858) — a number is not a verdict until it is beside the bar it is
-  // measured against.
-  "calendar.why.difficulty.of-ceiling": [
-    "{difficulty} · your limit is {ceiling}",
-    { slots: { difficulty: "text", ceiling: "text" }, fixedBy: "issue 930" },
-  ],
+  // The difficulty with its verdict against the site's ceiling (§6), never the ceiling's number.
+  "calendar.why.difficulty.within-reach": ["{difficulty} · within reach", { slots: { difficulty: "text" }, fixedBy: "SPEC §0 Plain words (drafted)" }],
   "calendar.why.band": ["Chance to win", { slots: {}, fixedBy: "issue 867" }],
   // Where the AI engines stood on this question when the pass measured it.
   "calendar.why.engines": ["AI", { slots: {}, fixedBy: "issue 867" }],
@@ -358,14 +353,8 @@ export const CALENDAR_COPY = Object.freeze({
   "calendar.supply.short": ["Only {days} pages are left. The Monday check looks for more.", { slots: { days: "text" }, fixedBy: "BUILD §4.6" }],
   // Issue 1559: the depth is a week and its spares, not a month. Drafted.
   "calendar.supply.first-arrival": ["Your first check found {days} pages so far. We look for more every Monday.", { slots: { days: "text" }, fixedBy: "SPEC §7 2026-10-19 (drafted)" }],
-  // Issue 1184 (drafted): why pages stall, as one line under the statement
-  // of supply. `{rule}` is the writing rule's own name with its underscores
-  // read as spaces.
+  // Why pages stall, as one line under the statement of supply; a rule's own name never reaches the customer.
   "calendar.supply.stalled": ["We wrote {written} pages in the last 7 days. Our writing rules stopped {stopped}.", { slots: { written: "text", stopped: "text" }, fixedBy: "issue 1184 (drafted)" }],
-  "calendar.supply.stalled.rule": [
-    "We wrote {written} pages in the last 7 days. Our rules stopped {stopped}, most often “{rule}”.",
-    { slots: { written: "text", stopped: "text", rule: "text" }, fixedBy: "issue 1184 (drafted)" },
-  ],
 
   // §4.6's `done-when` row, from the acceptance test recorded when the
   // opportunity was created (§7: "top 20 for Q" / "named on question P" /
