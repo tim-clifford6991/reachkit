@@ -67,9 +67,6 @@ export interface FetchRead {
   source: string;
 }
 
-// A kept-text read slower than this is served from the payloads instead.
-const KEPT_MS = 1500;
-
 async function keptRows(client: TextClient, ids: readonly string[], version: string): Promise<(TextRow & { fetch_id: string })[]> {
   const kept = await client
     .from<TextRow & { fetch_id: string }>("fetch_text")
@@ -102,22 +99,11 @@ function batches<T>(items: readonly T[]): T[][] {
 }
 
 /** The measured text of each read by fetch id, in the order given, null for
- *  a read that holds no document; or null when the kept text cannot be read
- *  in time, so the caller serves the payloads rather than an empty set. */
-export async function storedText(client: TextClient, reads: readonly FetchRead[], version: string): Promise<Map<string, MeasuredText | null> | null> {
+ *  a read that holds no document. A failed `fetch_text` read throws, as every
+ *  other read here does: a request never downloads payloads it already kept. */
+export async function storedText(client: TextClient, reads: readonly FetchRead[], version: string): Promise<Map<string, MeasuredText | null>> {
   const byId = new Map<string, TextRow>();
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const kept = Promise.all(batches(reads).map((batch) => keptRows(client, batch.map((read) => read.id), version)));
-  kept.catch(() => {});
-  try {
-    const slow = new Promise<never>((_, reject) => (timer = setTimeout(reject, KEPT_MS, new Error(`no answer in ${KEPT_MS} ms`))));
-    for (const batch of await Promise.race([kept, slow])) for (const row of batch) byId.set(row.fetch_id, row);
-  } catch (error) {
-    console.warn("text: stored read failed, served payloads", error instanceof Error ? error.message : String(error));
-    return null;
-  } finally {
-    clearTimeout(timer);
-  }
+  for (const batch of await Promise.all(batches(reads).map((batch) => keptRows(client, batch.map((read) => read.id), version)))) for (const row of batch) byId.set(row.fetch_id, row);
   const missing = reads.filter((read) => !byId.has(read.id));
   for (const batch of await Promise.all(batches(missing).map((batch) => derive(client, batch, version)))) for (const row of batch) byId.set(row.fetch_id, row);
   const out = new Map<string, MeasuredText | null>();
