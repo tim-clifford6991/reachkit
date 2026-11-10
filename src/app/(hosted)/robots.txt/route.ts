@@ -1,25 +1,13 @@
 // BUILD §9 — `GET /robots.txt`, on whichever host asked.
 //
-// One route, three documents, and the Host decides which. A `content.`
-// host that resolves to a site gets the policy that permits the six pinned
-// AI readers by name and blocks no general crawler; a
-// `{slug}.reachkit.app` preview gets the document that indexes nothing,
-// forever (ADR-002); ReachKit's own address gets the one that allows the
-// whole site and names our own sitemap. The first two live in
-// `(hosted)/policies.ts` and share no helper — a merged, parameterised
-// template is one tidy-up away from serving the wrong policy on the wrong
-// host — and the third lives under `(public)`, away from both, for the
-// same reason.
-//
-// **Three hosts now, not two** (issue #326). This file used to answer
-// ReachKit's own address 404 and said why: "quietly taking over the
-// product's own `/robots.txt` from inside the hosted edge would be a
-// policy change nobody asked for". Issue #326 is that policy being asked
-// for — BUILD §3 lists `/robots.txt` among the public routes — so the app
-// host is answered here, with a document that lives under `(public)`
-// beside the routes it describes (`_seo/policies.ts`), because this is the
-// one route file Next will let answer that path. Every host that is none
-// of the three is still 404, exactly as before.
+// One route, two documents, and the Host decides which. A `content.`
+// host that resolves to a site gets the policy that permits the pinned AI
+// readers by name and blocks no general crawler (`(hosted)/policies.ts`);
+// ReachKit's own address gets the one that allows the whole site and names
+// our own sitemap (`(public)/_seo/policies.ts`). They share no helper — a
+// merged, parameterised template is one tidy-up away from serving the
+// wrong policy on the wrong host. This is the one route file Next will let
+// answer that path, so both live behind it. Every other host is 404.
 //
 // The app host is asked for by name rather than read off the disposition:
 // `resolveHost` folds it into `unknown` together with every stranger, and
@@ -29,7 +17,7 @@
 // and a robots document held in a proxy would outlive them.
 import { env } from "@/lib/config/env";
 import { appRobotsDocument } from "@/app/(public)/_seo/policies";
-import { customerRobotsDocument, previewRobotsDocument } from "../policies";
+import { customerRobotsDocument } from "../policies";
 import { isAppHost, resolveHost, unavailableResponse } from "../resolve-host";
 
 const TEXT = "text/plain; charset=utf-8";
@@ -62,13 +50,6 @@ export async function GET(request: Request): Promise<Response> {
     return new Response(customerRobotsDocument(sitemapUrl), {
       status: 200,
       headers: { "Cache-Control": "no-store", "Content-Type": TEXT },
-    });
-  }
-
-  if (disposition.kind === "preview") {
-    return new Response(previewRobotsDocument(), {
-      status: 200,
-      headers: { "Cache-Control": "no-store", "Content-Type": TEXT, "X-Robots-Tag": "noindex" },
     });
   }
 

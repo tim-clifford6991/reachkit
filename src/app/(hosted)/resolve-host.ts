@@ -1,8 +1,5 @@
 // BUILD §9 — the one place a Host header becomes a customer.
 //
-// BUILD §14 guardrail 6 — `*.reachkit.app` is noindex forever, and the
-// disposition's literal type is what makes it so.
-//
 // §9: "**Hosted CMS:** `content.{customer-domain}` by CNAME → our edge
 // route serves static-rendered pages by Host header." Everything the edge
 // answers — a page, a robots document, a sitemap, a 404, a 410 — is decided
@@ -16,13 +13,9 @@
 // to land on. `hostedSiteForDomain` is where that property lives — one
 // indexed lookup, one exact match — and this module adds no second path.
 //
-// **`indexable` is a constant of the disposition** (ADR-002 decision 2):
-// `true` on the `site` arm, `false` on the `preview` arm, both as literal
-// types, so a preview with `indexable: true` is a type error rather than a
-// setting somebody could change. `{slug}.reachkit.app` is `noindex`
-// **forever** — the site-reputation-abuse guardrail §9 and §14 state, and
-// customer content never ranks on our domain. Removing it reads as an
-// obvious improvement and is a requirement change.
+// **No `*.reachkit.app` host serves customer content**: a draft is read on
+// the app host (`/app/draft/{draftId}`, `/veto/{token}`), so customer content
+// never ranks on our domain and a slug label resolves to `unknown`.
 //
 // **This surface writes nothing.** No `POST`, no server action, no
 // mutation anywhere under `src/app/(hosted)/`, so no crawler and no visitor
@@ -40,7 +33,7 @@
 // is produced by the page route rather than here, because whether a *page*
 // was taken down is not a fact about a *host* — the disposition is shared
 // so that all three reasons still yield one `gone` response and not three.
-import { PREVIEW_HOST_SUFFIX, HOSTED_SUBDOMAIN_LABEL, HOSTED_UNAVAILABLE_INIT } from "@/lib/config/constants";
+import { HOSTED_SUBDOMAIN_LABEL, HOSTED_UNAVAILABLE_INIT } from "@/lib/config/constants";
 import { env } from "@/lib/config/env";
 import { hostedServingState } from "@/lib/account/billing";
 import { hostedSiteForDomain, hostedSiteForHostname } from "@/lib/publish/destinations/hosted";
@@ -49,7 +42,6 @@ export { tags } from "@/lib/publish/destinations/hosted";
 
 export type HostDisposition =
   | { kind: "site"; siteId: string; domain: string; host: string; indexable: true }
-  | { kind: "preview"; slug: string; indexable: false }
   | { kind: "gone"; reason: "unpublished" | "access_ended" | "account_deleted"; siteId?: string }
   | { kind: "unknown" }
   | { kind: "unavailable" };
@@ -59,7 +51,6 @@ export function unavailableResponse(): Response {
 }
 
 const CONTENT_PREFIX = `${HOSTED_SUBDOMAIN_LABEL}.`;
-const PREVIEW_SUFFIX = `.${PREVIEW_HOST_SUFFIX}`;
 
 /** The Host header as a hostname: lower-cased, port removed, trailing dot
  *  removed. A header is whatever a client sent, and every comparison below
@@ -74,9 +65,7 @@ export function normaliseHost(host: string): string {
   return withoutPort.endsWith(".") ? withoutPort.slice(0, -1) : withoutPort;
 }
 
-/** This deployment's own address. Subtracted from the preview suffix's
- *  children so that `dev.reachkit.app` — and the apex at go-live — is never
- *  read as a customer's preview host. */
+/** This deployment's own address, which is never a customer's host. */
 function appHost(): string {
   try {
     return new URL(env.NEXT_PUBLIC_APP_URL).hostname.toLowerCase();
@@ -148,7 +137,7 @@ export async function resolveHost(host: string): Promise<HostDisposition> {
   const name = normaliseHost(host);
   if (name === "") return { kind: "unknown" };
 
-  // The deployment's own address is not a customer and not a preview.
+  // The deployment's own address is not a customer.
   if (name === appHost()) return { kind: "unknown" };
 
   // **The host as the customer chose it** (SPEC §5, 2026-09-12). The label
@@ -184,13 +173,6 @@ export async function resolveHost(host: string): Promise<HostDisposition> {
     if (site === null) return unknown;
 
     return dispositionFor(site);
-  }
-
-  if (name.endsWith(PREVIEW_SUFFIX)) {
-    const slug = name.slice(0, -PREVIEW_SUFFIX.length);
-    // One label only: `a.b.reachkit.app` is not a preview of anything.
-    if (slug === "" || slug.includes(".")) return unknown;
-    return { kind: "preview", slug, indexable: false };
   }
 
   return unknown;

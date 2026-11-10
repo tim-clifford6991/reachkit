@@ -3,8 +3,7 @@
 //
 // §9: a published hosted page "is listed in a sitemap". This is that
 // sitemap, and its whole contract is what it may *not* contain: another
-// site's page, a page in any state but live, a preview address, or a
-// ReachKit address. Every entry is a live `hosted` publication of the site
+// site's page, a page in any state but live, or a ReachKit address. Every entry is a live `hosted` publication of the site
 // the Host resolved to, addressed on that same Host, which is the same
 // predicate and the same composition the page render reads
 // (`livePagesForSite`) — so a page cannot be absent from the sitemap and
@@ -74,8 +73,7 @@ export async function GET(request: Request): Promise<Response> {
 
   const disposition = await resolveHost(host);
   if (disposition.kind === "unavailable") return unavailableResponse();
-  // A preview address is in no sitemap (ADR-002), and neither is a host we
-  // do not serve or one that has stopped.
+  // A host we do not serve, or one that has stopped, lists nothing.
   if (disposition.kind !== "site") return new Response(null, { status: 404 });
 
   // Addressed on the Host that resolved (SPEC §7, 2026-09-18, issue 888):

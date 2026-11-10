@@ -15,7 +15,7 @@ import { hostedHostOfSite, hostedSiteForDomain, livePagesForSite } from "@/lib/p
 import { isListed } from "@/lib/scan/gallery";
 import { personOf } from "@/app/(hosted)/hosted-page/[[...slug]]/seo";
 
-/** ReachKit's own domain, the one its preview hosts hang off. */
+/** ReachKit's own domain. */
 const OWN_DOMAIN = PREVIEW_HOST_SUFFIX;
 
 /** The only reports the site may feature: our own, and later customers who

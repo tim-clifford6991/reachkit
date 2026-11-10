@@ -1,30 +1,18 @@
-// BUILD §9 — the two robots documents, written by two functions that share
+// BUILD §9 — the robots document a customer's own domain is served.
 //
-// BUILD §14 guardrail 6 — the customer is publisher of record, and
-// `*.reachkit.app` is noindex forever.
-// no helper.
+// BUILD §14 guardrail 6 — the customer is publisher of record.
 //
 // §9: "a robots.txt **we serve** that allows GPTBot, ClaudeBot,
-// OAI-SearchBot, Claude-SearchBot, PerplexityBot, Google-Extended. Preview
-// at `{slug}.reachkit.app` is `noindex` **forever** (site-reputation-abuse
-// guardrail — customer content never ranks on our domain)."
-//
-// Two policies, and they must never become one. The customer's own domain
-// is served a document that blocks no general search engine crawler and
-// names the seven AI crawlers with `Allow`; the preview host is served a
-// document that indexes nothing. **They share no helper and no partial —
-// not even a line-joining utility.** A merged, parameterised template is
-// one edit away from serving the wrong policy on the wrong host, and that
-// edit reads as a tidy-up, which is exactly why the separation is a test
-// (`tests/hosted/indexing/robots.test.ts` asserts the two functions'
-// callees are disjoint) and not a comment.
+// OAI-SearchBot, Claude-SearchBot, PerplexityBot, Google-Extended."
+// ReachKit's own address is served a different document, which lives under
+// `(public)/_seo/policies.ts` and shares no helper with this one: a merged,
+// parameterised template is one tidy-up away from serving the wrong policy
+// on the wrong host.
 //
 // **The agents are pins, never literals here**: the answer readers
 // (`AI_READER_AGENTS`) and the training crawlers (`AI_TRAINING_CRAWLERS`)
 // are the two closed lists SPEC §9 (2026-09-29, D14) names, and this policy
 // allows all seven. Typing the names here would be a second copy.
-//
-// The archived plan is WO-231.
 import { AI_ANSWER_FETCHERS, AI_READER_AGENTS, AI_TRAINING_CRAWLERS } from "@/lib/config/constants";
 
 /**
@@ -60,15 +48,3 @@ export function customerRobotsDocument(sitemapUrl: string): string {
   return lines.join("\n");
 }
 
-/**
- * The document we serve on a `{slug}.reachkit.app` preview.
- *
- * Everything is disallowed, forever (ADR-002 decision 2). No setting
- * reaches this function, there is no argument that changes what it
- * returns, and `HostDisposition`'s `preview` arm carries `indexable: false`
- * as a literal type beside it. Written out in full rather than composed
- * from the function above: see this file's header.
- */
-export function previewRobotsDocument(): string {
-  return "User-agent: *\nDisallow: /\n";
-}

@@ -2,23 +2,19 @@
 // src/app/(public)/_seo/policies.ts — issue #326
 //
 // §3 lists `/robots.txt` and `/sitemap.xml` among the public routes. Until
-// this file existed only two hosts were answered on those paths — a
-// customer's `content.` domain and a `{slug}.reachkit.app` preview — and
-// the app's own host was answered 404, which
+// this file existed only a customer's `content.` domain was answered on
+// those paths, and the app's own host was answered 404, which
 // `src/app/(hosted)/robots.txt/route.ts` recorded as deliberate: "quietly
 // taking over the product's own `/robots.txt` from inside the hosted edge
 // would be a policy change nobody asked for". Issue #326 is the policy
 // being asked for, so the two route handlers now answer a third host with
 // the two documents written here.
 //
-// **They live under `(public)` and not beside the hosted pair.** These are
+// **They live under `(public)` and not beside the hosted one.** These are
 // statements about ReachKit's own public routes; `(hosted)/policies.ts` is
-// a statement about a customer's site and about a preview address, and the
-// test that keeps *those* two apart (`tests/hosted/indexing/robots.test.ts`
-// — "they share no callee") exists because a merged, parameterised
+// a statement about a customer's site, and a merged, parameterised
 // template is one tidy-up away from serving the wrong policy on the wrong
-// host. A third document in that file would be a third candidate for the
-// same tidy-up. It takes no helper from either of them.
+// host. It takes no helper from that file.
 //
 // **The app policy keeps pages out of the index with `noindex`, not
 // `Disallow`.** Every public route that must not be indexed says so twice
