@@ -56,7 +56,7 @@ import type { HostedAnswer, LiveAnswer } from "@/app/(hosted)/edge";
 import { isFixtureDomain } from "@/app/(public)/scan/[domain]/_fixture/domains";
 import { GATE_PATH_HEADER } from "@/app/(account)/setup/gate";
 import { movedAnswer } from "@/app/(public)/_seo/moved";
-import { contentSecurityPolicy, isStaticPage } from "@/app/_root/csp";
+import { contentSecurityPolicy, isStaticHost, isStaticPage } from "@/app/_root/csp";
 // Three names, one home (issue #35). `src/lib/account/identity/addresses.ts`
 // imports nothing at all — precisely so this file can share the session
 // cookie's name and the two routes with the module that issues them,
@@ -856,10 +856,10 @@ export async function middleware(
     return sealed(NextResponse.rewrite(new URL(target, req.url), { request: { headers: forwarded } }));
   }
 
-  // A static page reached on a host the matcher does not skip (local, preview): its prerendered
-  // scripts carry no nonce, so it is answered under the fixed policy `next.config.ts` states.
-  if (isStaticPage(pathname)) {
-    return sealed(NextResponse.next(), contentSecurityPolicy("inline", process.env.NODE_ENV === "development", false, toolbar));
+  // A prerendered page has no nonce: the build's per-page policy hashes its scripts on the hosts
+  // `next.config.ts` names, and elsewhere none runs. `next dev` renders per request and keeps the nonce.
+  if (isStaticPage(pathname) && process.env.NODE_ENV !== "development") {
+    return isStaticHost(hostnameOf(req)) ? NextResponse.next() : sealed(NextResponse.next(), contentSecurityPolicy("fixed", false, false, toolbar));
   }
 
   const removed = await removedRewrite(req, forwarded);

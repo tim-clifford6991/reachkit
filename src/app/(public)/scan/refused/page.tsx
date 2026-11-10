@@ -3,11 +3,11 @@
 // server. The address shadows no report, because `refused` is no domain.
 import type React from "react";
 import type { Metadata } from "next";
-import LandingPage from "../../page";
+import LandingPage, { metadata as landing } from "../../page";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = { robots: { index: false, follow: false } };
+export const metadata: Metadata = { ...landing, robots: { index: false, follow: false } };
 
 type Query = { problem?: string | string[]; value?: string | string[] };
 

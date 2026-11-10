@@ -47,15 +47,14 @@
 // session is read here: the marketing pages are served static (owner R-B,
 // 2026-11-07), so the header's client leaf asks after paint
 // (`_chrome/HeaderArm.tsx`). The routes that render per request declare it
-// themselves; the hourly reads beneath it (the scanned-sites count, the newest
-// articles, the founder's line) refresh by `revalidate`.
+// themselves. The reads beneath it (the scanned-sites count, the newest
+// articles, the founder's line) are taken at build and never regenerated: the
+// static pages' CSP lists their inline scripts by hash.
 import type React from "react";
 import { Header } from "./_chrome/Header";
 import { Footer } from "./_chrome/Footer";
 import { ENTER_PUBLIC } from "@/ui/motion";
 import ReachKitDocument from "../_root/document";
-
-export const revalidate = 3600;
 
 export default function PublicLayout({ children }: { children: React.ReactNode }): React.JSX.Element {
   return (

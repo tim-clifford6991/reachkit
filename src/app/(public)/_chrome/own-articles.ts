@@ -9,10 +9,12 @@
 //
 // **Nothing stored, nothing linked.** A deployment with no such site, no
 // live page, or a database that does not answer draws neither the footer
-// link nor the landing's list. One read an hour, or after a publish or a
-// takedown clears its tag, and the footer and the landing share it.
+// link nor the landing's list. A page rendered per request reads it at most
+// once an hour, or after a publish or a takedown clears its tag; a static page
+// reads it once, at build, untagged, so no publish regenerates it.
 import { cache } from "react";
 import { unstable_cache } from "next/cache";
+import { PHASE_PRODUCTION_BUILD } from "next/constants";
 import { tags } from "@/lib/publish/destinations/hosted/cache";
 import { PREVIEW_HOST_SUFFIX } from "@/lib/config/constants";
 import { INDEX_PATH } from "@/app/(hosted)/hosted-page/[[...slug]]/chrome";
@@ -50,6 +52,7 @@ async function read(): Promise<OwnArticles | null> {
 const cachedRead = unstable_cache(read, ["own-articles"], { revalidate: 3600, tags: [tags.ownArticles] });
 
 async function readCached(): Promise<OwnArticles | null> {
+  if (process.env.NEXT_PHASE === PHASE_PRODUCTION_BUILD) return read();
   let held: OwnArticles | null;
   try {
     held = await cachedRead();

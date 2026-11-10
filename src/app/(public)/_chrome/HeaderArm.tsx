@@ -81,7 +81,8 @@ export function NavLink(p: {
   const current = (p.at ?? [p.href]).includes(usePathname() ?? "");
   const className = [p.className, current ? CURRENT : null].filter(Boolean).join(" ");
   return (
-    <Link href={p.href} className={className === "" ? undefined : className} aria-current={current ? "page" : undefined}>
+    // No prefetch: a static target's prefetch loads its page's script, which the landing's budget would carry.
+    <Link href={p.href} prefetch={false} className={className === "" ? undefined : className} aria-current={current ? "page" : undefined}>
       {p.children}
     </Link>
   );

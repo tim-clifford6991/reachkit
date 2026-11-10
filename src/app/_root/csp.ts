@@ -4,6 +4,7 @@
 //
 // Every string here is internal: directive names and the origins they name.
 import { createHash } from "node:crypto";
+import { STATIC_HOSTS, STATIC_PAGE } from "../../../scripts/static-csp.mjs";
 import { THEME_SCRIPT } from "../_theme/theme";
 
 /** Vercel's preview toolbar, which the platform injects into a preview
@@ -24,25 +25,25 @@ const STRIPE_BILLING = "https://billing.stripe.com";
  *  per request no longer reads its nonce to stamp it. */
 const THEME_HASH = `'sha256-${createHash("sha256").update(THEME_SCRIPT).digest("base64")}'`;
 
-/** How a page's scripts are allowed: by this request's nonce; by origin and
- *  inline, on the static pages, which reflect no input; or not at all, on the
- *  cached hosted article, which has no script. */
-export type ScriptRule = { nonce: string } | "inline" | "none";
+/** How a page's scripts are allowed: by this request's nonce; by origin alone,
+ *  on the static pages, whose build adds each inline script's hash
+ *  (`scripts/static-csp.mjs`); or not at all, on the cached hosted article,
+ *  which has no script. */
+export type ScriptRule = { nonce: string } | "fixed" | "none";
 
 /**
  * The policy a page is answered under.
  *
  * With a nonce, `script-src` has no `'unsafe-inline'`: an injected script does
  * not run. `'strict-dynamic'` is absent because it would make `'self'` inert.
- * Inline, no hash is listed beside `'unsafe-inline'`, because a browser that
- * sees one ignores `'unsafe-inline'`.
+ * No policy allows `'unsafe-inline'` script.
  *
  * `style-src` keeps `'unsafe-inline'`: no nonce reaches a `style="…"`
  * attribute. `upgrade-insecure-requests` is absent; HSTS does its job.
  */
 export function contentSecurityPolicy(script: ScriptRule, isDev: boolean, siteIcons = false, toolbar = true): string {
   const live = (...origins: string[]): string => (toolbar ? ` ${origins.join(" ")}` : "");
-  const allowed = script === "inline" ? "'unsafe-inline'" : script === "none" ? "" : `'nonce-${script.nonce}' ${THEME_HASH}`;
+  const allowed = typeof script === "object" ? ` 'nonce-${script.nonce}' ${THEME_HASH}` : "";
   return [
     "default-src 'self'",
     "base-uri 'self'",
@@ -50,7 +51,7 @@ export function contentSecurityPolicy(script: ScriptRule, isDev: boolean, siteIc
     "frame-ancestors 'none'",
     `form-action 'self' ${STRIPE_CHECKOUT} ${STRIPE_BILLING}`,
     // React reconstructs server stacks with `eval` in development and nowhere else.
-    script === "none" ? "script-src 'none'" : `script-src 'self' ${allowed}${live(VERCEL_LIVE)}${isDev ? " 'unsafe-eval'" : ""}`,
+    script === "none" ? "script-src 'none'" : `script-src 'self'${allowed}${live(VERCEL_LIVE)}${isDev ? " 'unsafe-eval'" : ""}`,
     `style-src 'self' 'unsafe-inline'${live(VERCEL_LIVE)}`,
     `img-src 'self' data: blob:${live(VERCEL_LIVE, VERCEL_LIVE_IMG)}${siteIcons ? " https:" : ""}`,
     `font-src 'self'${live(VERCEL_LIVE, VERCEL_LIVE_FONTS)}`,
@@ -59,17 +60,12 @@ export function contentSecurityPolicy(script: ScriptRule, isDev: boolean, siteIc
   ].join("; ");
 }
 
-/** The public pages served static: no request value reaches their render.
- *  `src/middleware.ts`'s `matcher` restates these two lists as literals,
- *  because Next reads that `config` from source. */
-const PAGES = "pricing|about|how-it-works|privacy|terms|imprint|compare|teardowns|tools";
-const PAGES_UNDER = "compare|teardowns|answers";
-
-/** The static pages as a `headers()` source. */
-export const STATIC_PAGES_SOURCE = `/((?:${PAGES})?|(?:${PAGES_UNDER})/[^/]+)`;
-
-const STATIC_PAGE = new RegExp(`^/(?:(?:${PAGES})?|(?:${PAGES_UNDER})/[^/]+)$`);
-
 export function isStaticPage(pathname: string): boolean {
   return STATIC_PAGE.test(pathname);
+}
+
+const STATIC_HOST = new RegExp(`^${STATIC_HOSTS}$`);
+
+export function isStaticHost(hostname: string): boolean {
+  return STATIC_HOST.test(hostname);
 }

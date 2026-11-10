@@ -1,6 +1,8 @@
+import path from "node:path";
 import type { NextConfig } from "next";
 import { derivation, factsVersion, textVersion } from "./scripts/derivation.mjs";
-import { contentSecurityPolicy, STATIC_PAGES_SOURCE } from "./src/app/_root/csp";
+import { contentSecurityPolicy } from "./src/app/_root/csp";
+import { STATIC_HOSTS, STATIC_PAGES_SOURCE } from "./scripts/static-csp.mjs";
 
 // BP-001's own file (`code:` glob `next.config.ts`). WO-001 step 3 and the
 // file plan: typed config; `serverExternalPackages` for the Supabase admin
@@ -102,6 +104,7 @@ const MACHINE_CSP = "default-src 'none'; frame-ancestors 'none'" as const;
 const MACHINE_SOURCES = ["/api/jobs/:path*", "/api/stripe/webhook", "/api/health"] as const;
 
 const nextConfig: NextConfig = {
+  adapterPath: path.resolve("scripts/static-csp-adapter.mjs"),
   // The Tailwind compiler and its native addons are required as they ship, never bundled: the
   // hosted `/style.css` route runs them once, during `next build`.
   serverExternalPackages: ["@supabase/supabase-js", "@tailwindcss/postcss", "@tailwindcss/oxide", "lightningcss"],
@@ -143,15 +146,16 @@ const nextConfig: NextConfig = {
         has: [{ type: "host" as const, value: MACHINE_HOSTS }],
         headers: [{ key: "Content-Security-Policy", value: MACHINE_CSP }],
       })),
-      // The static pages, served from the CDN with no function on ReachKit's own hosts. The toolbar's
-      // origins follow the deployment the build is for.
+      // The static pages, served from the CDN with no function on ReachKit's own hosts. The build
+      // splits this route into one per page that lists the page's inline scripts by hash
+      // (`scripts/static-csp-adapter.mjs`). The toolbar's origins follow the deployment the build is for.
       {
         source: STATIC_PAGES_SOURCE,
-        has: [{ type: "host" as const, value: MACHINE_HOSTS }],
+        has: [{ type: "host" as const, value: STATIC_HOSTS }],
         headers: [
           {
             key: "Content-Security-Policy",
-            value: contentSecurityPolicy("inline", false, false, process.env.VERCEL_ENV !== "production"),
+            value: contentSecurityPolicy("fixed", false, false, process.env.VERCEL_ENV !== "production"),
           },
         ],
       },

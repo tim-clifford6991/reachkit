@@ -100,7 +100,7 @@ describe(`issue #331 — the security headers, on all ${routes.length} route(s)`
         const csp = headers["content-security-policy"];
         expect(csp, `${route.path} must carry a Content-Security-Policy`).toBeDefined();
         const fixed = isStaticPage(new URL(urlFor(route)).pathname);
-        expect(csp, `${route.path}'s script policy`).toMatch(fixed ? /script-src 'self' 'unsafe-inline'/ : /'nonce-[^']+'/);
+        expect(csp, `${route.path}'s script policy`).toMatch(fixed ? /script-src 'self' 'sha256-/ : /'nonce-[^']+'/);
         if (fixed) expect(csp, `${route.path} is static and carries no nonce`).not.toContain("nonce-");
         expect(csp).toContain("frame-ancestors 'none'");
       }

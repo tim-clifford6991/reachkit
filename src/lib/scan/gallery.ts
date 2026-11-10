@@ -344,7 +344,9 @@ export async function readRecent(n: number): Promise<readonly StripEntry[]> {
 /** ReachKit's own site and the panel's are scanned by us, not by an owner. */
 export const UNCOUNTED_DOMAINS: readonly string[] = [PREVIEW_HOST_SUFFIX, ...panel.sites.map((site) => site.domain)];
 
-async function countListed(): Promise<number> {
+/** How many distinct sites the free scan has listed. The landing reads it once, at build: a page
+ *  served static never regenerates, so its script hashes hold. */
+export async function scannedSites(): Promise<number> {
   // A head request: the database counts the view's one row per domain and sends no rows.
   const { count, error } = await untyped()
     .from<{ domain: string }>("free_scan_listing")
@@ -353,10 +355,6 @@ async function countListed(): Promise<number> {
   if (error) throw new Error(`gallery: could not count the scanned sites: ${error.message}`);
   return count ?? 0;
 }
-
-/** How many distinct sites the free scan has listed, read at most once an
- *  hour: a count the landing rounds down needs no fresher read. */
-export const scannedSites = unstable_cache(countListed, ["scanned-sites"], { revalidate: 3600 });
 
 /** Whether a domain is listed today — the logo route's one question, so a
  *  removed or unreadable site's logo leaves with its card. */
