@@ -4,7 +4,7 @@ import { createHash } from "node:crypto";
 
 /** The public pages served static: no request value reaches their render. `src/middleware.ts`'s
  *  `matcher` restates these two lists as literals, because Next reads that `config` from source. */
-const PAGES = "pricing|about|how-it-works|privacy|terms|imprint|compare|teardowns|tools";
+const PAGES = "pricing|about|how-it-works|privacy|terms|imprint|dpa|compare|teardowns|tools";
 const PAGES_UNDER = "compare|teardowns|answers";
 
 /** Where the build's per-page policy is served: ReachKit's own hosts, this deployment's own
