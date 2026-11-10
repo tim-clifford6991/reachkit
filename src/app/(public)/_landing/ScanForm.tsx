@@ -7,8 +7,7 @@
 // enticing image/component giving them an immediate feel for what the app is
 // and looks like"), and a Server Component cannot carry `onSubmit`. So the
 // interactive half moved here whole: the same single file carrying both the
-// no-JavaScript and the JavaScript path, with the same `searchParams`
-// reading convention and the same one named field.
+// no-JavaScript and the JavaScript path, and the same one named field.
 //
 // **REQ-001 c1 is untouched by the move and by #266's composition**: this is
 // the only text input and the only submit control in the document, and the
@@ -22,13 +21,14 @@
 // submission path changed with them.
 "use client";
 
-import { use, useId, useState, type FormEvent } from "react";
+import { useId, useState, type FormEvent } from "react";
+import { useSearchParams } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import type { ScanFormWords } from "./scan-form-words";
 import type { DomainProblem } from "@/lib/scan/domain";
 import type { StartScanResponse } from "@/app/api/scan/route";
 
-type LandingSearchParams = { problem?: string; value?: string };
+export type LandingSearchParams = { problem?: string; value?: string };
 
 function isDomainProblem(
   value: string | undefined,
@@ -37,29 +37,9 @@ function isDomainProblem(
   return value !== undefined && Object.prototype.hasOwnProperty.call(problem, value);
 }
 
-function isPromise<T>(value: Promise<T> | T | undefined): value is Promise<T> {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    typeof (value as { then?: unknown }).then === "function"
-  );
-}
-
-/** Accepts a real `searchParams` Promise (production) or an already-plain
- *  object (this file's own tests, and every no-JS SSR pass) without
- *  suspending either caller. Named `use…` (not `readSearchParams`) because
- *  it calls the `use()` hook conditionally on the caller's own shape —
- *  `eslint-plugin-react-hooks` requires a hook-calling function's name to
- *  say so. */
-function useLandingSearchParams(
-  searchParams: Promise<LandingSearchParams> | LandingSearchParams | undefined
-): LandingSearchParams {
-  if (isPromise(searchParams)) return use(searchParams);
-  return searchParams ?? {};
-}
-
-export function ScanForm(props: {
-  searchParams?: Promise<LandingSearchParams> | LandingSearchParams;
+type ScanFormProps = {
+  /** The refused value and its problem, from a per-request page. */
+  initial?: LandingSearchParams;
   /** Every sentence the form says, resolved by the Server Component that
    *  renders it — `scanFormWords()` in `./scan-form-words.ts`, which also
    *  carries the one word a caller may replace (S8's "Scan it"). */
@@ -68,9 +48,19 @@ export function ScanForm(props: {
   inline?: boolean;
   /** The landing's hero: a 56px field and button in a 2px primary edge. */
   hero?: boolean;
-}): React.JSX.Element {
+};
+
+/** The landing's form, prefilled from `?problem=&value=` in the browser, so
+ *  the static page reads no request. Render it under a `Suspense` whose
+ *  fallback is the empty `ScanForm`. */
+export function ScanFormFromQuery(props: Omit<ScanFormProps, "initial">): React.JSX.Element {
+  const query = useSearchParams();
+  return <ScanForm {...props} initial={{ problem: query.get("problem") ?? undefined, value: query.get("value") ?? undefined }} />;
+}
+
+export function ScanForm(props: ScanFormProps): React.JSX.Element {
   const hero = props.hero === true;
-  const initial = useLandingSearchParams(props.searchParams);
+  const initial = props.initial ?? {};
   const initialProblem = isDomainProblem(initial.problem, props.words.problem)
     ? initial.problem
     : undefined;

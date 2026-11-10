@@ -23,6 +23,9 @@ import { staticMetadata } from "../_seo/metadata";
 
 export const metadata: Metadata = staticMetadata(PUBLIC_ROUTE_SEO.signin);
 
+// Rendered per request, so its scripts carry the nonce the middleware's policy names.
+export const dynamic = "force-dynamic";
+
 export default function SignInLayout({
   children,
 }: {

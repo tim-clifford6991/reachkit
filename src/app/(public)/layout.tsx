@@ -43,30 +43,20 @@
 // changed is *who* reads it — `_chrome/HeaderArm.tsx`, two client leaves
 // that hold no copy key, below a server-rendered bar.
 //
-// **Owner 2026-09-26 (#1125): the header knows who is signed in.** Still no
-// session is *required* here; `_chrome/session.ts` only reads whether one is
-// present, so a signed-in customer gets one button into the app in place of
-// *Sign in* and *Start free*. Public pages already render per request (the
-// CSP nonce), so the read costs no cache and paints no second state.
+// **Owner 2026-09-26 (#1125): the header knows who is signed in.** No
+// session is read here: the marketing pages are served static (owner R-B,
+// 2026-11-07), so the header's client leaf asks after paint
+// (`_chrome/HeaderArm.tsx`). The routes that render per request declare it
+// themselves. The reads beneath it (the scanned-sites count, the newest
+// articles, the founder's line) are taken at build and never regenerated: the
+// static pages' CSP lists their inline scripts by hash.
 import type React from "react";
 import { Header } from "./_chrome/Header";
-import { appEntry } from "./_chrome/session";
 import { Footer } from "./_chrome/Footer";
 import { ENTER_PUBLIC } from "@/ui/motion";
 import ReachKitDocument from "../_root/document";
 
-/** Every screen under this layout is rendered for its own request, so it
- *  carries that request's nonce (issue #331). The reason is the root
- *  layout's, and so was this declaration until issue 1242: Next applies a
- *  layout's `force-dynamic` to every route under it, and one `(hosted)`
- *  route is cached. */
-export const dynamic = "force-dynamic";
-
-export default async function PublicLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}): Promise<React.JSX.Element> {
+export default function PublicLayout({ children }: { children: React.ReactNode }): React.JSX.Element {
   return (
     // A column at least the viewport tall, so the footer sits at the bottom
     // of a short page. `data-public-shell` is the hook `surface.css` reads
@@ -74,7 +64,7 @@ export default async function PublicLayout({
     // A root layout since issue 1514, so it renders ReachKit's document.
     <ReachKitDocument>
       <div data-public-shell className={`flex min-h-svh flex-col ${ENTER_PUBLIC}`}>
-        <Header entry={await appEntry()} />
+        <Header />
         {children}
         <Footer />
       </div>

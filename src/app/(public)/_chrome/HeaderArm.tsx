@@ -18,6 +18,7 @@
 // kB of it, out of every public route's client bundle.
 "use client";
 
+import { useEffect, useState, type ReactNode } from "react";
 import type React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -80,7 +81,8 @@ export function NavLink(p: {
   const current = (p.at ?? [p.href]).includes(usePathname() ?? "");
   const className = [p.className, current ? CURRENT : null].filter(Boolean).join(" ");
   return (
-    <Link href={p.href} className={className === "" ? undefined : className} aria-current={current ? "page" : undefined}>
+    // No prefetch: a static target's prefetch loads its page's script, which the landing's budget would carry.
+    <Link href={p.href} prefetch={false} className={className === "" ? undefined : className} aria-current={current ? "page" : undefined}>
       {p.children}
     </Link>
   );
@@ -128,4 +130,34 @@ export function HeaderCopyLink(p: {
   ) : (
     <span className="hidden sm:inline-flex">{control}</span>
   );
+}
+
+/** One question per document load, shared by the bar and the drawer: the
+ *  guarded probe answers 2xx only to a verified session. */
+let signedInOnce: Promise<boolean> | undefined;
+
+function signedInHere(): Promise<boolean> {
+  signedInOnce ??= fetch("/api/session", { redirect: "manual", cache: "no-store" }).then(
+    (response) => response.ok,
+    () => false,
+  );
+  return signedInOnce;
+}
+
+/**
+ * The header's signed-in switch. The page is served static, and the session
+ * cookie is `httpOnly`, so it paints signed out and asks once after paint.
+ */
+export function SignedIn(p: { out: ReactNode; in?: ReactNode }): React.JSX.Element {
+  const [signedIn, setSignedIn] = useState(false);
+  useEffect(() => {
+    let live = true;
+    void signedInHere().then((answer) => {
+      if (live) setSignedIn(answer);
+    });
+    return () => {
+      live = false;
+    };
+  }, []);
+  return <>{signedIn ? p.in : p.out}</>;
 }

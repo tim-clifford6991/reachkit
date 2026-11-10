@@ -20,8 +20,8 @@
 // media-guarded dark state, `:root[data-theme="dark"]` = the explicit
 // toggle. `data-theme` is set before paint by `THEME_SCRIPT` (#681), from
 // the Light / Dark / System choice `src/app/_theme/ThemeToggle.tsx` stores;
-// `system` sets none. The script is inline, so it carries this request's
-// CSP nonce, read back off the policy `src/middleware.ts` forwarded.
+// `system` sets none. The script is inline and carries no nonce: a nonce
+// policy allows it by hash (`./csp.ts`), so this document reads no request.
 //
 // Fonts: `fontVariables` (`"rk-fonts"`, `src/ui/fonts.ts`) is the class
 // `src/ui/type.css`'s `.rk-fonts` rule binds `--font-ui`/`--font-mono` on —
@@ -62,7 +62,6 @@
 // ADR-093's three tokens and nothing else.
 
 import type React from "react";
-import { headers } from "next/headers";
 
 import "@/ui/theme.css";
 import "@/ui/tailwind.css";
@@ -74,44 +73,13 @@ import { THEME_SCRIPT } from "../_theme/theme";
 import { Answers } from "../_toast/Answers";
 import { NavigatedFlag } from "@/ui/navigated";
 
-/**
- * **Every ReachKit render is a request's own** (issue #331).
- *
- * `src/middleware.ts` answers each request under a nonce-based
- * `script-src`, and a nonce only works on a page that is rendered *after*
- * the request exists: Next stamps it on the script tags it emits by reading
- * the `Content-Security-Policy` header off the incoming request
- * (`next/dist/server/app-render/app-render.js`, `parseRequestHeaders`). A
- * statically prerendered page is built before any request, so its inline
- * bootstrap carries no nonce, and the policy on the way out — correctly —
- * refuses to run it. The screen would still draw and would never hydrate.
- *
- * Next's own guide states the consequence rather than hiding it: "When you
- * use nonces in your CSP, **all pages must be dynamically rendered**"
- * (`01-app/02-guides/content-security-policy.md`).
- *
- * **The declaration is on the two group layouts, not here** (issue 1242):
- * `(public)/layout.tsx` and `(account)/layout.tsx` each export
- * `dynamic = "force-dynamic"`. The screen this document serves with no
- * group around it, `global-not-found.tsx`, is still rendered per request:
- * the `headers()` read below is itself what makes it so. The hosted pages
- * have a document of their own (`(hosted)/document.tsx`), with no script.
- */
-
-export default async function ReachKitDocument({
-  children,
-}: {
-  children: React.ReactNode;
-}): Promise<React.JSX.Element> {
-  const policy = (await headers()).get("content-security-policy") ?? "";
-  const nonce = /'nonce-([A-Za-z0-9+/_-]+={0,2})'/.exec(policy)?.[1];
-
+export default function ReachKitDocument({ children }: { children: React.ReactNode }): React.JSX.Element {
   // `suppressHydrationWarning`: the script sets `data-theme` on `<html>`
   // before React hydrates, which is the point, not a mismatch.
   return (
     <html lang="en" className={fontVariables} suppressHydrationWarning>
       <head>
-        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>
       <body>
         {/* No `NuqsAdapter` here (#988). Only `(account)` routes hold URL

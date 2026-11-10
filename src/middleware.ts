@@ -56,6 +56,7 @@ import type { HostedAnswer, LiveAnswer } from "@/app/(hosted)/edge";
 import { isFixtureDomain } from "@/app/(public)/scan/[domain]/_fixture/domains";
 import { GATE_PATH_HEADER } from "@/app/(account)/setup/gate";
 import { movedAnswer } from "@/app/(public)/_seo/moved";
+import { contentSecurityPolicy, isStaticHost, isStaticPage } from "@/app/_root/csp";
 // Three names, one home (issue #35). `src/lib/account/identity/addresses.ts`
 // imports nothing at all — precisely so this file can share the session
 // cookie's name and the two routes with the module that issues them,
@@ -82,8 +83,8 @@ import type { CookieToSet } from "@/lib/account/identity/auth";
 // once onto the headers forwarded to the render (which is what makes Next
 // stamp `nonce` on every script tag it emits) and once onto the response
 // (which is what makes the browser enforce it). `next.config.ts` keeps the
-// four headers that are the same on every request and reach the static
-// bundles this file's `matcher` never sees.
+// headers that are the same on every request, and the fixed policy of the
+// static pages this file's `matcher` skips on ReachKit's hosts.
 //
 // **Every response, including the ones that are not renders.** The sign-in
 // redirect, the `410 Gone` rewrite and the hosted rewrite all leave through
@@ -96,27 +97,6 @@ import type { CookieToSet } from "@/lib/account/identity/auth";
 
 /** The header the browser enforces and the renderer reads the nonce from. */
 const CSP_HEADER = "content-security-policy";
-
-/** Vercel's preview toolbar, which the platform injects into a preview
- *  deployment's HTML rather than this repository doing it. These are the
- *  origins it needs; production never gets the toolbar, so its policy names
- *  none of them. */
-const VERCEL_LIVE = "https://vercel.live";
-const VERCEL_LIVE_IMG = "https://vercel.com";
-const VERCEL_LIVE_FONTS = "https://assets.vercel.com";
-const VERCEL_LIVE_SOCKET = "wss://ws-us3.pusher.com";
-
-/** The two Stripe addresses a **form submission** can end up at.
- *  `form-action` is enforced across the redirect that *follows* a POST, and
- *  `/pricing`'s one control is a Server Function reached from a `<form>`
- *  that answers with `redirect(session.url)` — so a policy of `'self'`
- *  alone would block checkout for any customer whose browser had
- *  JavaScript off, and block it silently. The billing portal hands its
- *  address back to the client instead of redirecting, which `form-action`
- *  does not govern; it is named here so that stays a free choice rather
- *  than a load-bearing one. */
-const STRIPE_CHECKOUT = "https://checkout.stripe.com";
-const STRIPE_BILLING = "https://billing.stripe.com";
 
 /** The pages that draw an image from the site being checked: the meta tag
  *  preview draws the share image the checked page names (issue 1458), so
@@ -134,63 +114,6 @@ function mintNonce(): string {
   const bytes = new Uint8Array(NONCE_BYTES);
   crypto.getRandomValues(bytes);
   return btoa(String.fromCharCode(...bytes));
-}
-
-/**
- * The policy this request is answered under.
- *
- * `script-src` carries the nonce and **no `'unsafe-inline'`**, which is the
- * whole point of the exercise: the inline bootstrap Next emits runs because
- * this server stamped it, and an injected one does not run at all.
- * `'strict-dynamic'` is deliberately absent — it would make the `'self'`
- * beside it inert, and with it the platform's own preview script, for no
- * gain over a same-origin allowance on a host this product controls.
- *
- * `style-src` keeps `'unsafe-inline'`. A nonce cannot cover a `style="…"`
- * attribute (those answer to `style-src-attr`, which no nonce reaches), and
- * `src/ui/charts/**` sets six of them to place a mark against a token. The
- * asymmetry is deliberate and is where the real risk is: injected CSS can
- * restyle a page, injected script can act as the customer.
- *
- * `upgrade-insecure-requests` is deliberately absent. Its job here is done
- * by `Strict-Transport-Security`, and its presence would break every
- * `http://` render the layout sweep makes on a non-loopback hostname —
- * a check that cannot run is worse than a header that is not set.
- *
- * **`nonce: null` is the cached hosted article's policy** (issue 1242):
- * `script-src 'none'`. A nonce has to be new on every request and a cached
- * page is the same bytes on every request, so the two cannot be had
- * together — Next's guide: "you must use dynamic rendering to add nonces".
- * The article needs no script (its file's header: "zero client
- * JavaScript"), so the cached copy is answered under a policy that runs
- * none, which is stricter than the nonce and not a loosening of it. It is
- * never `'unsafe-inline'`.
- */
-export function contentSecurityPolicy(
-  nonce: string | null,
-  isDev: boolean,
-  siteIcons = false,
-  toolbar = true
-): string {
-  const live = (...origins: string[]): string => (toolbar ? ` ${origins.join(" ")}` : "");
-  return [
-    "default-src 'self'",
-    "base-uri 'self'",
-    "object-src 'none'",
-    "frame-ancestors 'none'",
-    `form-action 'self' ${STRIPE_CHECKOUT} ${STRIPE_BILLING}`,
-    // React reconstructs server stacks with `eval` in development and
-    // nowhere else, which is the one thing that differs between the two.
-    nonce === null
-      ? "script-src 'none'"
-      : `script-src 'self' 'nonce-${nonce}'${live(VERCEL_LIVE)}${isDev ? " 'unsafe-eval'" : ""}`,
-    `style-src 'self' 'unsafe-inline'${live(VERCEL_LIVE)}`,
-    `img-src 'self' data: blob:${live(VERCEL_LIVE, VERCEL_LIVE_IMG)}${siteIcons ? " https:" : ""}`,
-    `font-src 'self'${live(VERCEL_LIVE, VERCEL_LIVE_FONTS)}`,
-    // The dev server's hot-reload socket, and nothing else new.
-    `connect-src 'self'${live(VERCEL_LIVE, VERCEL_LIVE_SOCKET)}${isDev ? " ws:" : ""}`,
-    `frame-src 'self'${live(VERCEL_LIVE)}`,
-  ].join("; ");
 }
 
 /** Where an address that is gone for good is answered, at its own status
@@ -552,7 +475,7 @@ function countBlogRead(
  * copy of it.
  *
  * `scriptFree` says which policy the answer leaves under: the cached
- * article's (`contentSecurityPolicy`, `nonce: null`), or this request's.
+ * article's (`contentSecurityPolicy`, `"none"`), or this request's.
  */
 async function hostedRewrite(
   req: NextRequest,
@@ -824,7 +747,8 @@ export function reportSegmentOf(pathname: string): string | null {
 async function removedRewrite(req: NextRequest, forwarded: Headers): Promise<NextResponse | null> {
   if (req.method !== "GET") return null;
   const segment = reportSegmentOf(req.nextUrl.pathname);
-  if (segment === null) return null;
+  // No dot, no domain: `/scan/refused` and its kin are never asked about.
+  if (segment === null || !segment.includes(".")) return null;
 
   // The *canonical* form of the segment, and only that. `parseDomain` is
   // not called here on purpose: it needs `node:net`, which the Edge
@@ -887,7 +811,7 @@ export async function middleware(
   const nonce = mintNonce();
   const toolbar = process.env.VERCEL_ENV !== "production";
   const policy = contentSecurityPolicy(
-    nonce,
+    { nonce },
     process.env.NODE_ENV === "development",
     SITE_ICON_PATHS.includes(pathname),
     toolbar,
@@ -909,7 +833,7 @@ export async function middleware(
   const hosted = await hostedRewrite(req, forwarded, event);
   if (hosted !== null) {
     return hosted.scriptFree
-      ? sealed(hosted.response, contentSecurityPolicy(null, false, false, toolbar))
+      ? sealed(hosted.response, contentSecurityPolicy("none", false, false, toolbar))
       : sealed(hosted.response);
   }
 
@@ -929,6 +853,12 @@ export async function middleware(
     if (moved.status === 301) return sealed(NextResponse.redirect(new URL(moved.to, req.url), 301));
     const target = moved.status === 410 ? GONE_PATH : moved.rewrite;
     return sealed(NextResponse.rewrite(new URL(target, req.url), { request: { headers: forwarded } }));
+  }
+
+  // A prerendered page has no nonce: the build's per-page policy hashes its scripts on the hosts
+  // `next.config.ts` names, and elsewhere none runs. `next dev` renders per request and keeps the nonce.
+  if (isStaticPage(pathname) && process.env.NODE_ENV !== "development") {
+    return isStaticHost(hostnameOf(req)) ? NextResponse.next() : sealed(NextResponse.next(), contentSecurityPolicy("fixed", false, false, toolbar));
   }
 
   const removed = await removedRewrite(req, forwarded);
@@ -979,11 +909,14 @@ export async function middleware(
 
 export const config = {
   // `proxy.md` "Negative matching": static internals never invoke this function (`isNextInternal`
-  // covers them when it is called directly). The three machine endpoints skip it only on ReachKit's
-  // own hosts, where `next.config.ts` gives them a fixed policy; elsewhere the hosted edge answers.
+  // covers them when it is called directly). The machine endpoints and the static pages
+  // (`@/app/_root/csp`, the same two lists) skip it only on ReachKit's own hosts, where
+  // `next.config.ts` gives them a fixed policy and a CDN hit runs no function; elsewhere the
+  // hosted edge answers.
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|api/jobs(?:/|$)|api/stripe/webhook$|api/health$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|api/jobs(?:/|$)|api/stripe/webhook$|api/health$|(?:pricing|about|how-it-works|privacy|terms|imprint|compare|teardowns|tools)?$|(?:compare|teardowns|answers)/[^/]+$).*)",
     { source: "/api/(jobs|jobs/.*|stripe/webhook|health)", missing: [{ type: "host", value: "(?:dev\\.)?reachkit\\.app" }] },
+    { source: "/((?:pricing|about|how-it-works|privacy|terms|imprint|compare|teardowns|tools)?|(?:compare|teardowns|answers)/[^/]+)", missing: [{ type: "host", value: "(?:dev\\.)?reachkit\\.app" }] },
   ],
   // **Node.js, not Edge** (issue #49): `proxy.ts`, this convention's successor, defaults to Node and
   // refuses the option (`proxy.md`, "Runtime"); setting it here gets there without the rename, which

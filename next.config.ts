@@ -1,5 +1,8 @@
+import path from "node:path";
 import type { NextConfig } from "next";
 import { derivation, factsVersion, textVersion } from "./scripts/derivation.mjs";
+import { contentSecurityPolicy } from "./src/app/_root/csp";
+import { STATIC_HOSTS, STATIC_PAGES_SOURCE } from "./scripts/static-csp.mjs";
 
 // BP-001's own file (`code:` glob `next.config.ts`). WO-001 step 3 and the
 // file plan: typed config; `serverExternalPackages` for the Supabase admin
@@ -42,8 +45,9 @@ const NOINDEX = "noindex, nofollow" as const;
 // (`next/dist/server/app-render/app-render.js`, `parseRequestHeaders`).
 // So `src/middleware.ts` owns the CSP — including its `frame-ancestors` —
 // and this file owns `X-Frame-Options`, that directive's legacy twin,
-// which does reach the static bundles, and the fixed CSP of the machine
-// endpoints the middleware skips (`MACHINE_CSP`), which render nothing.
+// which does reach the static bundles, and the fixed CSP of what the
+// middleware skips: the machine endpoints (`MACHINE_CSP`), which render
+// nothing, and the static pages, which reflect no request value.
 //
 // Every value below is internal (rule 1.1): a header's wire name and its
 // attributes. None is a sentence anybody reads, so none is a copy key.
@@ -90,7 +94,7 @@ export const SECURITY_HEADERS: readonly { key: string; value: string }[] = [
 ];
 
 /** ReachKit's own hosts, where `src/middleware.ts`'s matcher skips the
- *  machine endpoints; it states the same value as a literal, because Next
+ *  machine endpoints and the static pages; it states the same value as a literal, because Next
  *  reads that file's `config` from source. Any other host is the hosted edge's. */
 const MACHINE_HOSTS = "(?:dev\\.)?reachkit\\.app" as const;
 
@@ -100,6 +104,7 @@ const MACHINE_CSP = "default-src 'none'; frame-ancestors 'none'" as const;
 const MACHINE_SOURCES = ["/api/jobs/:path*", "/api/stripe/webhook", "/api/health"] as const;
 
 const nextConfig: NextConfig = {
+  adapterPath: path.resolve("scripts/static-csp-adapter.mjs"),
   // The Tailwind compiler and its native addons are required as they ship, never bundled: the
   // hosted `/style.css` route runs them once, during `next build`.
   serverExternalPackages: ["@supabase/supabase-js", "@tailwindcss/postcss", "@tailwindcss/oxide", "lightningcss"],
@@ -113,7 +118,8 @@ const nextConfig: NextConfig = {
   // can state its site's language on `<html>`. An address no route matches
   // then has no root layout to render in; `src/app/global-not-found.tsx` is
   // Next's file for exactly that case.
-  experimental: { globalNotFound: true },
+  // Owner R-B, 2026-11-07: the static pages' scripts carry their hash instead of a nonce.
+  experimental: { globalNotFound: true, sri: { algorithm: "sha256" } },
   // Issue #782: the waiting screen is gone — a founder waits for their pass
   // inside the app, where the side panel says which step is running. An old
   // tab or a saved link still reaches the app.
@@ -140,6 +146,19 @@ const nextConfig: NextConfig = {
         has: [{ type: "host" as const, value: MACHINE_HOSTS }],
         headers: [{ key: "Content-Security-Policy", value: MACHINE_CSP }],
       })),
+      // The static pages, served from the CDN with no function on ReachKit's own hosts. The build
+      // splits this route into one per page that lists the page's inline scripts by hash
+      // (`scripts/static-csp-adapter.mjs`). The toolbar's origins follow the deployment the build is for.
+      {
+        source: STATIC_PAGES_SOURCE,
+        has: [{ type: "host" as const, value: STATIC_HOSTS }],
+        headers: [
+          {
+            key: "Content-Security-Policy",
+            value: contentSecurityPolicy("fixed", false, false, process.env.VERCEL_ENV !== "production"),
+          },
+        ],
+      },
       {
         source: "/scan/:domain",
         headers: [{ key: "X-Robots-Tag", value: NOINDEX }],

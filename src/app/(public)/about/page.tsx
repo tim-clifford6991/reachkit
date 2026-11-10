@@ -41,9 +41,6 @@ import { BAND, LearnClose } from "../_library/parts";
 
 export const metadata: Metadata = staticMetadata(PUBLIC_ROUTE_SEO.about);
 
-// The founder's line is a stored row, read per request.
-export const dynamic = "force-dynamic";
-
 /** Attribute values, never sentences (the copy sweep). */
 const CARD = "card bg-base-100 shadow-(--shadow-card) min-w-0";
 const ROW_CARD = `${CARD} flex-row items-start gap-3 p-5`;

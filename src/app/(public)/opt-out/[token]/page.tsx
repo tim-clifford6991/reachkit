@@ -119,6 +119,9 @@ async function arm(token: string): Promise<{
  *  and the row's `{token}` spelling keeps any canonical from restating it. */
 export const metadata: Metadata = staticMetadata(PUBLIC_ROUTE_SEO.optOut);
 
+// Rendered per request, so its scripts carry the nonce the middleware's policy names.
+export const dynamic = "force-dynamic";
+
 export default async function OptOutPage(p: {
   params: TokenParams | Promise<TokenParams>;
 }): Promise<React.JSX.Element> {

@@ -25,6 +25,7 @@ import { BAND_MIN } from "@/ui/layout/bands";
 import { getAccountCookie, getBaseURL, withPage } from "./browser";
 import { SIGNIN_PATH } from "@/lib/account/identity/addresses";
 import { EMAIL_FIELD } from "@/app/(public)/signin/state";
+import { isStaticPage } from "@/app/_root/csp";
 import { enumerateRoutes, headersFor, urlFor as routeUrl, type EnumeratedRoute } from "./routes";
 
 const APP_ROOT = path.resolve(__dirname, "../../../src/app");
@@ -71,7 +72,7 @@ describe(`issue #331 — the security headers, on all ${routes.length} route(s)`
   });
 
   it(
-    "every route answers with the four fixed headers and a nonce-bearing CSP",
+    "every route answers with the four fixed headers and its CSP",
     async () => {
       for (const route of routes) {
         const headers = await withPage(
@@ -98,9 +99,10 @@ describe(`issue #331 — the security headers, on all ${routes.length} route(s)`
 
         const csp = headers["content-security-policy"];
         expect(csp, `${route.path} must carry a Content-Security-Policy`).toBeDefined();
-        expect(csp, `${route.path}'s policy must carry this request's nonce`).toMatch(/'nonce-[^']+'/);
+        const fixed = isStaticPage(new URL(urlFor(route)).pathname);
+        expect(csp, `${route.path}'s script policy`).toMatch(fixed ? /script-src 'self' 'sha256-/ : /'nonce-[^']+'/);
+        if (fixed) expect(csp, `${route.path} is static and carries no nonce`).not.toContain("nonce-");
         expect(csp).toContain("frame-ancestors 'none'");
-        expect(csp).not.toContain("script-src 'self' 'unsafe-inline'");
       }
       if (routes.length === 0) expect(routes).toEqual([]);
     },

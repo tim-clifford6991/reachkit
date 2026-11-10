@@ -18,6 +18,9 @@ import { ReadProblem, ToolForm } from "../_check/ToolForm";
 
 export const metadata: Metadata = staticMetadata(PUBLIC_ROUTE_SEO.metaPreview);
 
+// Rendered per request, so its scripts carry the nonce the middleware's policy names.
+export const dynamic = "force-dynamic";
+
 const INDEX_NAME: CopyKey = "tools.eyebrow";
 const PAGE_TEST_ID = "meta-preview";
 const INDEX = "/tools";
