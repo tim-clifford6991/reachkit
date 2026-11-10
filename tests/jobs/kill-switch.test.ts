@@ -48,6 +48,7 @@ function engineDouble(): Record<string, unknown> {
       return [{ draftId: "d1", siteId: "site-1" }];
     },
     regenerateDraft: ran,
+    returnToPlannedDates: async () => 0,
     // Issue 1455: the day's reason, and the publish-time check.
     recordDraftDay: async () => {
       engineCalls.count += 1;

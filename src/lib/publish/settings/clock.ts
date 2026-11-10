@@ -65,6 +65,26 @@ export function publishDateAtOrAfter(instant: Date, s: PublishingSettings): stri
   return format(inZone(nextPublishTimeAtOrAfter(instant, s), s.timezone ?? "UTC"), "yyyy-MM-dd");
 }
 
+/** The site-local date `instant` falls on. */
+export const localDateOf = (instant: Date, s: PublishingSettings): string => format(inZone(instant.getTime(), s.timezone ?? "UTC"), "yyyy-MM-dd");
+
+/** The publish time of one site-local date, passed or ahead. */
+export function publishTimeOn(date: string, s: PublishingSettings): Date {
+  let at = nextPublishTimeAtOrAfter(new Date(Date.parse(`${date}T00:00:00.000Z`) - MS_PER_DAY), s);
+  while (publishDateAtOrAfter(at, s) < date) at = nextPublishTimeAtOrAfter(new Date(at.getTime() + MS_PER_MINUTE), s);
+  return at;
+}
+
+/** Whether the row's date is today or later in the site's zone, so entering review leaves it. */
+export const keepsDate = (at: Date, date: string | null, s: PublishingSettings): date is string => date !== null && date >= localDateOf(at, s);
+
+/** The Stop window is a preview: it ends `hours` on, or sooner at the row's own publish time, or at once past it. */
+export function reviewDeadline(at: Date, hours: number, date: string | null, s: PublishingSettings): Date {
+  const full = at.getTime() + hours * 60 * MS_PER_MINUTE;
+  if (!keepsDate(at, date, s)) return new Date(full);
+  return new Date(Math.max(at.getTime(), Math.min(full, publishTimeOn(date, s).getTime())));
+}
+
 function resolvable(zone: string): boolean {
   try {
     new Intl.DateTimeFormat("en-US", { timeZone: zone });

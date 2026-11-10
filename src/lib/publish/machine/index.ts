@@ -208,6 +208,7 @@ interface DraftRow {
   transitions: unknown;
   hard_rules_passed: boolean | null;
   publishable_since: string | null;
+  scheduled_for?: string | null;
   sites?: {
     mode?: string | null;
     veto_hours?: number | null;
@@ -222,7 +223,7 @@ export async function machineDraftFor(draftId: string): Promise<MachineDraft | n
   const { data, error } = await publishDb()
     .from<DraftRow>("drafts")
     .select(
-      "id, site_id, state, veto_deadline, approved_at, approved_by, told, transitions, hard_rules_passed, publishable_since, sites(mode, veto_hours, publish_time, timezone)"
+      "id, site_id, state, veto_deadline, approved_at, approved_by, told, transitions, hard_rules_passed, publishable_since, scheduled_for, sites(mode, veto_hours, publish_time, timezone)"
     )
     .eq("id", draftId)
     .single();
@@ -249,6 +250,7 @@ export function toMachineDraft(row: DraftRow): MachineDraft {
     hasUnsavedEdit: false,
     claimRecheckOutstanding: false,
     told: toldOf(row.told),
+    scheduledFor: row.scheduled_for ?? null,
     governing: {
       mode: "autopilot",
       vetoHours: governingVetoHours(row.sites?.veto_hours),

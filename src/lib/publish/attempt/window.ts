@@ -8,7 +8,7 @@
 // The mail is best-effort: autopilot asks for nothing, so an unsent one is logged and retried by the tick, never a hold.
 import { VETO } from "@/lib/config/constants";
 import { publishDb, type PublishQuery } from "../db";
-import { publishDateAtOrAfter } from "../settings/clock";
+import { keepsDate, publishDateAtOrAfter, reviewDeadline } from "../settings/clock";
 import { settingsOf } from "../settings/pair";
 import { machineDraftFor, transition } from "../machine";
 import { becomesPublishable } from "../publishable/predicate";
@@ -65,7 +65,7 @@ export async function enterReview(a: { draftId: string; at: Date; by?: Actor; re
   if (destination === null) return { kind: "not_entered", reason: "no_destination" };
 
   const hours = draft.governing.vetoHours > 0 ? draft.governing.vetoHours : VETO.defaultHours;
-  const deadline = new Date(a.at.getTime() + hours * MS_PER_HOUR);
+  const deadline = reviewDeadline(a.at, hours, draft.scheduledFor ?? null, settingsOf(draft.governing));
   const stamped = await publishDb()
     .from<{ id: string }>("drafts")
     .update({ veto_deadline: deadline.toISOString() })
@@ -75,8 +75,10 @@ export async function enterReview(a: { draftId: string; at: Date; by?: Actor; re
     throw new Error(`publish/window: could not stamp the veto deadline: ${stamped.error.message}`);
   }
 
-  // The day it goes out untouched, the only date its row may carry.
-  await takeDate(a.draftId, publishDateAtOrAfter(deadline, settingsOf(draft.governing)));
+  // Only a page with no date still to come takes one; a dated page keeps its own.
+  if (!keepsDate(a.at, draft.scheduledFor ?? null, settingsOf(draft.governing))) {
+    await takeDate(a.draftId, publishDateAtOrAfter(deadline, settingsOf(draft.governing)));
+  }
 
   const moved = await transition(a.draftId, "in_review", by, { at: a.at, ...(a.reason === undefined ? {} : { reason: a.reason }) });
   if (!moved.ok) return { kind: "not_entered", reason: "moved" };
@@ -102,7 +104,7 @@ const UNIQUE_VIOLATION = "23505";
 const isoDate = (ms: number): string => new Date(ms).toISOString().slice(0, 10);
 
 /** The row takes its publish day `from`, or the first later date no page of the site holds: an undated row (its date
- *  went to a replacement, SPEC §7 D26) or one dated before its new window ends. A row at `from` or later keeps its date. */
+ *  went to a replacement, SPEC §7 D26) or one whose date has gone by. A row at `from` or later keeps its date. */
 async function takeDate(draftId: string, from: string): Promise<void> {
   const start = Date.parse(`${from}T00:00:00.000Z`);
   const dayBefore = isoDate(start - MS_PER_DAY);
