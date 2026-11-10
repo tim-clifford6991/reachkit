@@ -65,5 +65,15 @@ export const IMPRINT: LegalDocument = Object.freeze({
   path: "/imprint",
 });
 
+/** Not a tab: the agreement is read from the Terms and the privacy notice that link it. */
+export const DPA: LegalDocument = Object.freeze({
+  title: "legal.dpa.title",
+  updated: "legal.dpa.updated",
+  body: "legal.dpa.body",
+  vars: Object.freeze({ erasureDays: String(ERASURE_DAYS) }),
+  path: "/dpa",
+  figures: Object.freeze({ "sub-processors-annex-iv": "providers" } as const),
+});
+
 /** The tabs' order: Privacy · Terms · Imprint. */
 export const LEGAL_DOCUMENTS: readonly LegalDocument[] = Object.freeze([PRIVACY, TERMS, IMPRINT]);

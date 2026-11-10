@@ -69,6 +69,8 @@ export const META_COPY = Object.freeze({
   "meta.terms.description": ["The terms for using ReachKit: the free report, the €49 monthly subscription, cancellation, and what ReachKit publishes for you.", { slots: {}, fixedBy: "issue 326" }],
   "meta.imprint.title": ["Imprint · ReachKit", { slots: {}, fixedBy: "issue 326" }],
   "meta.imprint.description": ["Who operates ReachKit: the legal entity, its address, and how to reach it.", { slots: {}, fixedBy: "issue 326" }],
+  "meta.dpa.title": ["Data processing agreement · ReachKit", { slots: {}, fixedBy: "issue 2631 · drafted" }],
+  "meta.dpa.description": ["Visitor data on the pages ReachKit hosts for you: the clauses, safeguards and sub-processors.", { slots: {}, fixedBy: "issue 2631 · drafted" }],
 
   /* ── The four addresses no crawler may index ──────────────────────────
      A `noindex` page still has a browser tab, and its link is still pasted

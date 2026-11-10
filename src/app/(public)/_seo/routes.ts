@@ -111,6 +111,13 @@ export const PUBLIC_ROUTE_SEO = Object.freeze({
     description: "meta.imprint.description",
     indexable: true,
   },
+  dpa: {
+    route: "/dpa",
+    title: "meta.dpa.title",
+    description: "meta.dpa.description",
+    // Read from the Terms and the privacy notice that link it; nobody searches for it.
+    indexable: false,
+  },
   // Issue 1458: the pages Google still ranks from earlier versions, at the
   // addresses they were first published under. An article's title and
   // description are its own data, carried in the two `meta.article.*` slots.
