@@ -37,3 +37,14 @@ export function owedToRow(
 export function carriedMark(meta: unknown): Record<string, unknown> {
   return typeof meta === "object" && meta !== null && REWRITTEN in meta ? { [REWRITTEN]: (meta as Record<string, unknown>)[REWRITTEN] } : {};
 }
+
+export interface DecidedDay {
+  publish_date: string;
+  decided_at: string | null;
+}
+
+/** The earliest day decided `drafted` before the rewrite began, still to come, before the row's date and held by no page. */
+export function emptyDraftedDay(days: readonly DecidedDay[], held: ReadonlySet<string>, today: string, before: string, markedAt: string): string | null {
+  const open = days.filter((d) => d.publish_date >= today && d.publish_date < before && !held.has(d.publish_date));
+  return open.filter((d) => d.decided_at !== null && Date.parse(d.decided_at) <= Date.parse(markedAt)).map((d) => d.publish_date).sort()[0] ?? null;
+}
