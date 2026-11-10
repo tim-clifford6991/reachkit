@@ -20,7 +20,8 @@
 //
 // It is also where the customer's Regenerate is carried out (#788): the
 // restart only moves the page back into `generating`, and every tick —
-// not only a site's due hour — writes one restarted page a site again.
+// not only a site's due hour — writes one restarted page a site again. A
+// row a run saved and then stopped on is written again the same way, once.
 //
 // **What makes a second delivery of one tick harmless** (issue 886). The
 // key: a re-sent `draft:{site}:{date}` is dropped by the platform, and a
@@ -35,8 +36,8 @@
 //     keeps the second delivery free. Two deliveries running *together*
 //     both pass it, and `drafts_one_per_site_per_date` is what decides
 //     them: one row is written, the loser answers `already_drafted` too.
-//   * **The restarted pages.** `restartedDrafts()` returns rows whose last
-//     recorded move is the customer's restart, and `regenerateRestarted()`
+//   * **The restarted pages.** `restartedDrafts()` returns `generating` rows
+//     no run is still writing, and `regenerateRestarted()`
 //     rewrites the row it was given — it writes no row of its own, and it
 //     refuses a row that has left `generating`, which the first run's own
 //     ending moves it out of. So a redelivery rewrites nothing, and two
@@ -130,9 +131,9 @@ export const draftGenerate: JobDefinition = {
       return { outcome: "degraded", subjectId: null, step: `held:${selection.held}` };
     }
 
-    const restarted = await restartedDrafts(selection.sites.map((site) => site.siteId));
+    const restarted = await restartedDrafts(selection.sites.map((site) => site.siteId), input.now);
     const regenerated = await fanOut(restarted, (draft) =>
-      regenerateDraft({ siteId: draft.siteId, draftId: draft.draftId, now: input.now })
+      regenerateDraft({ siteId: draft.siteId, draftId: draft.draftId, now: input.now, ...(draft.stop ? { stop: draft.stop } : {}) })
     );
 
     // The window a due page opens is counted from the tick's own hour, so

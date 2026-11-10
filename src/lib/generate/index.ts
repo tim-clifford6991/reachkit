@@ -249,11 +249,10 @@ function sinceNow(cost: CostContext): CostContext {
   return before === 0 ? cost : { ...cost, spentCents: () => cost.spentCents() - before };
 }
 
-/** Drafts the customer restarted and no run has regenerated yet — one a
- *  site, oldest first, so a tick spends at most one page on each. */
-export async function restartedDrafts(siteIds: readonly string[]): Promise<readonly RestartedDraft[]> {
+/** Drafts waiting in `generating` for a run — one a site, oldest first, so a tick spends at most one page on each. */
+export async function restartedDrafts(siteIds: readonly string[], now: Date): Promise<readonly RestartedDraft[]> {
   const seen = new Set<string>();
-  return (await generateStore().restartedDrafts(siteIds)).filter((row) => {
+  return (await generateStore().restartedDrafts(siteIds, now)).filter((row) => {
     if (seen.has(row.siteId)) return false;
     seen.add(row.siteId);
     return true;
@@ -267,20 +266,17 @@ export async function restartedDrafts(siteIds: readonly string[]): Promise<reado
  * is the customer's. It ends where the evening's run ends: a passing page
  * for review, or a stopped one back in `needs_attention`.
  */
-export async function regenerateRestarted(a: {
-  siteId: string;
-  draftId: string;
-  now?: Date;
-}): Promise<DayPageOutcome> {
+export async function regenerateRestarted(a: { siteId: string; draftId: string; now?: Date; stop?: true }): Promise<DayPageOutcome> {
   const store = generateStore();
   const row = await store.draftById(a.draftId);
-  // A stopped row that gave up its date (issue 1179) is rewritten without
-  // one; `enterReview` gives a passing page the next free date.
+  // A stopped row that gave up its date (issue 1179) is rewritten without one; `enterReview` gives it the next free date.
   if (row === null || row.site_id !== a.siteId || row.state !== "generating") {
     return { ok: false, because: "no_draft" };
   }
   const site = await store.siteFacts(a.siteId);
   if (site === null) return { ok: false, because: "no_site" };
+  // A row whose second run stopped as well rests with its reason rather than costing a third page.
+  if (a.stop === true) { await rest(row.id, row.opportunity_id, "step_failed:interrupted", a.now ?? new Date(), site.timeZone); return { ok: false, because: "step_failed", draftId: row.id, step: "interrupted" }; }
   const report = await store.latestReport(a.siteId);
   if (report === null) return { ok: false, because: "no_scan" };
   const found = await opportunityById(row.opportunity_id);

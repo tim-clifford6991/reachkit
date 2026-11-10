@@ -21,6 +21,7 @@ import type { StoredMarket } from "@/lib/market/infer/types";
 import { readSiteProfile } from "@/lib/site-profile/store";
 import type { InventoryRow } from "@/lib/site-profile/types";
 import type { ClusterPage } from "./links/select";
+import { owedToRow } from "./interrupted";
 import { withheldReportPassages } from "./pipeline/report-scope";
 
 /** The `drafts` row, as §10 and this issue's two migrations leave it. */
@@ -181,11 +182,9 @@ export interface GenerateStore {
    *  stopped draft the run moved on from carries no date (D26, issue 1179)
    *  and is not counted. */
   draftOnDate(siteId: string, date: string): Promise<boolean>;
-  /** Drafts on these sites the customer restarted — `needs_attention →
-   *  generating`, the last move on the row — that no run has regenerated
-   *  yet (#788). A row the evening tick wrote straight into `generating`
-   *  carries no move, so a first run in progress is never one of these. */
-  restartedDrafts(siteIds: readonly string[]): Promise<readonly RestartedDraft[]>;
+  /** Drafts on these sites in `generating` that no run is still writing: the customer's restart (#788), or a row a
+   *  run saved and then stopped on (`./interrupted.ts`), which `stop` marks once it has been written again. */
+  restartedDrafts(siteIds: readonly string[], now: Date): Promise<readonly RestartedDraft[]>;
   /** The `meta` of the site's newest draft of one content type (D42), or
    *  `null` where it has none. */
   lastMetaOfType(siteId: string, type: string): Promise<unknown>;
@@ -194,6 +193,7 @@ export interface GenerateStore {
 export interface RestartedDraft {
   draftId: string;
   siteId: string;
+  stop?: true;
 }
 
 // ── The states this module has to name ──────────────────────────────────
@@ -540,18 +540,19 @@ export function supabaseGenerateStore(): GenerateStore {
       return (result.data ?? [])[0]?.meta ?? null;
     },
 
-    async restartedDrafts(siteIds) {
+    async restartedDrafts(siteIds, now) {
       if (siteIds.length === 0) return [];
       const result = await untyped()
-        .from<{ id: string; site_id: string; transitions: unknown }>("drafts")
-        .select("id, site_id, transitions")
+        .from<{ id: string; site_id: string; transitions: unknown; created_at: string }>("drafts")
+        .select("id, site_id, transitions, created_at")
         .in("site_id", siteIds)
         .eq("state", "generating")
         .order("created_at", { ascending: true });
       if (result.error) throw new Error(`generate/store: read from drafts failed: ${result.error.message}`);
-      return (result.data ?? [])
-        .filter((row) => lastMoveIsRestart(row.transitions))
-        .map((row) => ({ draftId: row.id, siteId: row.site_id }));
+      return (result.data ?? []).flatMap((row) => {
+        const owed = owedToRow(row, now);
+        return owed === null ? [] : [{ draftId: row.id, siteId: row.site_id, ...(owed === "stop" ? { stop: true as const } : {}) }];
+      });
     },
 
     async knownPages(siteId) {
@@ -603,13 +604,6 @@ export function supabaseGenerateStore(): GenerateStore {
       return pages;
     },
   };
-}
-
-/** Whether the row's last recorded move is the customer's restart. */
-function lastMoveIsRestart(transitions: unknown): boolean {
-  if (!Array.isArray(transitions) || transitions.length === 0) return false;
-  const last = transitions[transitions.length - 1] as { from?: unknown; to?: unknown } | null;
-  return last?.from === "needs_attention" && last?.to === "generating";
 }
 
 /** A `jsonb` array of strings, read defensively: a member that is not a

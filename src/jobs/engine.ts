@@ -519,25 +519,21 @@ export async function missedDays<T extends { readonly siteId: string; readonly p
   return missed(days);
 }
 
-/** Drafts the customer restarted (§9's `needs_attention → generating`) on
- *  these sites that no run has regenerated yet — one a site (#788). */
+/** Drafts in `generating` on these sites that no run is still writing: the customer's restart, or an interrupted run's row — one a site. */
 export async function restartedDrafts(
-  siteIds: readonly string[]
-): Promise<readonly { readonly draftId: string; readonly siteId: string }[]> {
+  siteIds: readonly string[],
+  now: Date
+): Promise<readonly { readonly draftId: string; readonly siteId: string; readonly stop?: true }[]> {
   const { restartedDrafts: restarted } = await import("@/lib/generate");
-  return restarted(siteIds);
+  return restarted(siteIds, now);
 }
 
 /** The customer's Regenerate, carried out by the draft tick (#788): the
  *  page is written again for its own date, and a passing one enters review
  *  exactly as the evening's does. */
-export async function regenerateDraft(a: {
-  readonly siteId: string;
-  readonly draftId: string;
-  readonly now: Date;
-}): Promise<EngineResult> {
+export async function regenerateDraft(a: { readonly siteId: string; readonly draftId: string; readonly now: Date; readonly stop?: true }): Promise<EngineResult> {
   const { regenerateRestarted } = await import("@/lib/generate");
-  return reviewWritten(await regenerateRestarted({ siteId: a.siteId, draftId: a.draftId, now: a.now }), a.now);
+  return reviewWritten(await regenerateRestarted({ siteId: a.siteId, draftId: a.draftId, now: a.now, ...(a.stop ? { stop: a.stop } : {}) }), a.now);
 }
 
 async function reviewWritten(
