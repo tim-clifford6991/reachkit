@@ -7,7 +7,7 @@ import { applyEnvFixture } from "../mail/env-fixture";
 import { REST_URL, SERVICE_ROLE_KEY, loopbackFetch, psql, psqlRows } from "./substrate";
 
 const MIGRATIONS = path.resolve(import.meta.dirname, "../../supabase/migrations");
-const APPLIED = ["00000000000001_baseline.sql", "00000000000002_rls.sql", "20261031170000_rate_limits.sql"];
+const APPLIED = ["00000000000001_baseline.sql", "00000000000002_rls.sql", "00000000000005_scans_freepath.sql", "20261031170000_rate_limits.sql"];
 const SIGNATURE = "take_rate_limits(text[], text[], integer[], integer[])";
 
 let limits: typeof import("@/lib/limits");
@@ -91,6 +91,12 @@ describe("rate_limits — one count every instance shares", () => {
     run(`do $$ begin for i in 1 .. 2000 loop perform take_rate_limits(array['x'], array['${"c".repeat(64)}'], array[3600], array[1000000]); end loop; end $$;`);
     expect(value(`select count(*) from rate_limits where key = '${old}';`)).toBe("0");
     expect(value("select count(*) from rate_limits;")).toBe("1");
+  });
+
+  it("the tick forgets hashes older than two days, and a second run is harmless", async () => {
+    run(`insert into rate_limits (scope, key, window_start) values ('x', '${"d".repeat(64)}', now() - interval '3 days'), ('x', '${"e".repeat(64)}', now() - interval '1 day'); insert into scans (domain, tier, status, network_hash, created_at) values ('a.example', 'free', 'done', 'h', now() - interval '3 days'), ('b.example', 'free', 'done', 'h', now() - interval '1 day');`);
+    for (let i = 0; i < 2; i++) await limits.forgetOldHashes();
+    expect([value("select string_agg(left(key, 1), '') from rate_limits;"), value("select string_agg(domain || ':' || coalesce(network_hash, '-'), ',' order by domain) from scans;")]).toEqual(["e", "a.example:-,b.example:h"]);
   });
 
   it("anon and authenticated are denied", () => {
