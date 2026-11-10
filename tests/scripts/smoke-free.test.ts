@@ -18,6 +18,8 @@ type Expected = { status: number; location?: string };
 const PATHS = fixture.paths as Record<string, Expected>;
 const ROOT = path.resolve(import.meta.dirname, "../..");
 const run = promisify(execFile);
+// A miss up to half again its budget is only a WARN, so a red one must be past that.
+const past = (budget: number) => budget * 1.5 + 200;
 
 const LANDING = '<form action="/api/scan"><input name="value"><button type="submit">Go</button></form>';
 const NEWEST = "newest.example";
@@ -149,7 +151,7 @@ describe("smoke.sh --free walks the visitor's chain without spending", () => {
   });
 
   it("is red at cold on production when the first answer on / is past its budget", async () => {
-    const prod = await production({ slow: { path: "/", cold: BUDGET.coldLandingMs + 200 } });
+    const prod = await production({ slow: { path: "/", cold: past(BUDGET.coldLandingMs) } });
     const r = await free(PRODUCTION, "", prod.env);
     expect(r.code).toBe(1);
     expect(r.stderr).toMatch(new RegExp(`^FAIL cold +/ \\d+ms > ${BUDGET.coldLandingMs}ms cold$`, "m"));
@@ -157,14 +159,14 @@ describe("smoke.sh --free walks the visitor's chain without spending", () => {
   });
 
   it("is red at cold on production when a route's warm answers are past its budget", async () => {
-    const prod = await production({ slow: { path: "/signin", warm: BUDGET.warmPageMs + 100 } });
+    const prod = await production({ slow: { path: "/signin", warm: past(BUDGET.warmPageMs) } });
     const r = await free(PRODUCTION, "", prod.env);
     expect(r.code).toBe(1);
     expect(r.stderr).toMatch(new RegExp(`^FAIL cold +/signin \\d+ms > ${BUDGET.warmPageMs}ms warm`, "m"));
   });
 
   it("names a cold miss on production first, walks every later step, then exits 1", async () => {
-    const prod = await production({ slow: { path: "/api/health", cold: BUDGET.coldHealthMs + 200 } });
+    const prod = await production({ slow: { path: "/api/health", cold: past(BUDGET.coldHealthMs) } });
     const r = await free(PRODUCTION, "", prod.env);
     for (const step of ["landing", "old-paths", "hosted", "health", "report"]) expect(r.stdout).toMatch(new RegExp(`^ok {3}${step} `, "m"));
     expect(prod.paths).toContain(`/scan/${NEWEST}`);
@@ -174,7 +176,7 @@ describe("smoke.sh --free walks the visitor's chain without spending", () => {
   });
 
   it("still fails and prints a later step's own failure after a cold miss on production", async () => {
-    const prod = await production({ slow: { path: "/", cold: BUDGET.coldLandingMs + 200 }, landingFailsFrom: 5 });
+    const prod = await production({ slow: { path: "/", cold: past(BUDGET.coldLandingMs) }, landingFailsFrom: 5 });
     const r = await free(PRODUCTION, "", prod.env);
     const fails = r.stderr.match(/^FAIL.*$/gm) ?? [];
     expect(fails[0]).toMatch(/^FAIL cold /);
@@ -190,7 +192,7 @@ describe("smoke.sh --free walks the visitor's chain without spending", () => {
   });
 
   it("only warns, and passes, over budget on any other base", async () => {
-    const r = await free(await stub({ slow: { path: "/", cold: BUDGET.coldLandingMs + 200 } }));
+    const r = await free(await stub({ slow: { path: "/", cold: past(BUDGET.coldLandingMs) } }));
     expect(r.stdout).toMatch(new RegExp(`^WARN cold +/ \\d+ms > ${BUDGET.coldLandingMs}ms cold$`, "m"));
     expect(r.stderr).toBe("");
     expect(r.code).toBe(0);
