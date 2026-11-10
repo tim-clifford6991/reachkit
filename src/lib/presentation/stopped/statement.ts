@@ -50,18 +50,21 @@ export function stoppedWorkStatement(
 /** The causes REQ-040 c4 admits when ReachKit has not stopped. */
 export type NextPublishCause = "address-waiting" | "paused";
 
-/** What happens next where nothing holds publishing back: the next page with its title, the next planned topic, or the
- *  Monday check, which always has a date, so the line always names an event. */
+/** What happens next where nothing holds publishing back: the next page with its moment, a page still being written or
+ *  ready without one, the next planned topic, or the Monday check, which always has a date, so the line always names an event. */
 export type NextPublishOtherwise =
   | { tag: NextPublishCause }
   | { tag: "scheduled"; at: string }
   | { tag: "page"; at: string; title: string }
+  | { tag: "writing" | "ready"; on: string; title: string }
   | { tag: "topic"; on: string; topic: string }
   | { tag: "monday-check"; on: string };
 
 const OTHERWISE_KEY = {
   scheduled: "next-publish.scheduled",
   page: "next-publish.page",
+  writing: "next-publish.writing",
+  ready: "next-publish.ready",
   topic: "next-publish.topic",
   "monday-check": "next-publish.monday-check",
   "address-waiting": "next-publish.address-waiting",

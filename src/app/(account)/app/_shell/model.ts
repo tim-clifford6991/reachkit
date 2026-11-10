@@ -12,6 +12,7 @@
 // every REQ-040 criterion be decided by a test with no database at all.
 import type { WorkStop } from "@/lib/presentation/stopped";
 import { resolveNoPublish, type NoPublishCauses, type NoPublishReason } from "./nopublish";
+import { localDate } from "./format";
 import { weeksMeasured, type MeasuredWeek, type WeekCount } from "./weeks";
 
 /** BUILD §4.3's two modes, named by the spec and never by a renderer. */
@@ -23,21 +24,26 @@ export interface NextPage {
   title: string;
 }
 
-/** The next planned topic no page is written for yet: its site-local date (`YYYY-MM-DD`) and the search it targets. */
-export interface NextTopic {
-  on: string;
-  topic: string;
-}
+/** A day from today on that is still coming: a page on its way, with the moment it goes live where one is set, or a
+ *  planned topic no page is written for yet. `on` is the site-local date (`YYYY-MM-DD`). */
+export type ComingDay =
+  | { kind: "page"; on: string; title: string; at: Date | null; writing: boolean }
+  | { kind: "topic"; on: string; topic: string };
 
-/** What happens next where no page is scheduled and nothing holds publishing back: the next planned topic, else the
- *  Monday check, which always has a date. */
-export type Upcoming = ({ kind: "topic" } & NextTopic) | { kind: "monday-check"; on: Date };
+/** What happens next: the earliest coming day, else the Monday check, which always has a date. */
+export type Upcoming = ComingDay | { kind: "monday-check"; on: Date };
+
+/** The one next event, by date: a page outranks a topic on the same day, and the check wins only when it falls first. */
+export function nextEvent(coming: readonly ComingDay[], check: { on: Date; day: string }): Upcoming {
+  const first = [...coming].sort((a, b) => a.on.localeCompare(b.on) || Number(b.kind === "page") - Number(a.kind === "page"))[0];
+  return first === undefined || check.day < first.on ? { kind: "monday-check", on: check.on } : first;
+}
 
 /** REQ-040 c3 and c4 as one closed union: the next page, or the reason there
  *  is none, or what happens next. No `next?: Date` — an optional field
  *  would let a renderer read "no time" as "not loaded yet". */
 export type PublishingState =
-  | ({ mode: PublishingMode; next: Date } & Pick<NextPage, "title">)
+  | { mode: PublishingMode; next: Date; upcoming: Upcoming }
   | { mode: PublishingMode; next: null; because: NoPublishReason }
   | { mode: PublishingMode; next: null; because: null; upcoming: Upcoming };
 
@@ -109,8 +115,8 @@ export interface ShellFacts {
   /** The next page to go live on its own — a page in review at the time its
    *  customer was told, or one already past its window — or `null`. */
   next: NextPage | null;
-  /** The next planned topic on a date no page is written for and no day was decided, or `null`. */
-  nextTopic: NextTopic | null;
+  /** The pages on their way and the planned topics no page or decided day accounts for, from today on. */
+  coming: readonly ComingDay[];
   noPublishCauses: NoPublishCauses;
   /** BUILD §6.5 / §11's stop, read per account and per day by BP-001's
    *  adapter (the cap-hit ledger over `fetches`, the kill switch, the last
@@ -151,11 +157,10 @@ function publishingOf(facts: ShellFacts): PublishingState {
   // adapter also set the boolean, and it outranks a `next` that is still on
   // the row (ADR-011).
   const stopped = facts.stopped !== null || facts.noPublishCauses.reachkit_stopped;
-  if (!stopped && facts.next !== null) return { mode: facts.mode, next: facts.next.at, title: facts.next.title };
+  const upcoming = nextEvent(facts.coming, { on: facts.firstDueOn, day: localDate(facts.firstDueOn, facts.timeZone) });
+  if (!stopped && facts.next !== null) return { mode: facts.mode, next: facts.next.at, upcoming };
   const causes: NoPublishCauses = { ...facts.noPublishCauses, reachkit_stopped: stopped };
   const because = resolveNoPublish(causes);
   if (because !== undefined) return { mode: facts.mode, next: null, because };
-  const upcoming: Upcoming =
-    facts.nextTopic !== null ? { kind: "topic", ...facts.nextTopic } : { kind: "monday-check", on: facts.firstDueOn };
   return { mode: facts.mode, next: null, because: null, upcoming };
 }

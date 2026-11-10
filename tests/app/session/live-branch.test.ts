@@ -42,7 +42,7 @@ const LIVE_SHELL_FACTS = {
   firstDueOn: new Date("2026-09-14T10:00:00.000Z"),
   waiting: 0,
   next: null,
-  nextTopic: null,
+  coming: [],
   stopped: null,
   noPublishCauses: {
     reachkit_stopped: false,
