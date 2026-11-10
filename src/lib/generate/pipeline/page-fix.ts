@@ -37,6 +37,7 @@ import { claimCheck } from "../claims/check";
 import { recoveryOutcome } from "../claims/recovery";
 import { recordedVerdictValue } from "../record";
 import { generateStore } from "../store";
+import { carriedMark } from "../interrupted";
 import type { GenerateOutcome } from "./index";
 
 const GENERATING = "generating";
@@ -176,7 +177,8 @@ export async function generatePageFix(
     });
   } else {
     draftId = a.draftId;
-    await store.patchDraft(draftId, fields);
+    // The tick's one automatic rewrite stays recorded through the rewrite itself.
+    await store.patchDraft(draftId, { ...fields, meta: { ...fields.meta, ...carriedMark((await store.draftById(draftId))?.meta) } });
   }
   // Issue 1478: the calls this page made are named for its row.
   await c.forDraft?.(draftId);

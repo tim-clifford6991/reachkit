@@ -20,7 +20,8 @@
 //
 // It is also where the customer's Regenerate is carried out (#788): the
 // restart only moves the page back into `generating`, and every tick —
-// not only a site's due hour — writes one restarted page a site again.
+// not only a site's due hour — writes one restarted page a site again. A
+// row a run saved and then stopped on is written again the same way, once.
 //
 // **What makes a second delivery of one tick harmless** (issue 886). The
 // key: a re-sent `draft:{site}:{date}` is dropped by the platform, and a
@@ -130,7 +131,7 @@ export const draftGenerate: JobDefinition = {
       return { outcome: "degraded", subjectId: null, step: `held:${selection.held}` };
     }
 
-    const restarted = await restartedDrafts(selection.sites.map((site) => site.siteId));
+    const restarted = await restartedDrafts(selection.sites.map((site) => site.siteId), input.now);
     const regenerated = await fanOut(restarted, (draft) =>
       regenerateDraft({ siteId: draft.siteId, draftId: draft.draftId, now: input.now })
     );
