@@ -912,9 +912,9 @@ export const config = {
   // `next.config.ts` gives them a fixed policy and a CDN hit runs no function; elsewhere the
   // hosted edge answers.
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|api/jobs(?:/|$)|api/stripe/webhook$|api/health$|(?:pricing|about|how-it-works|privacy|terms|imprint|compare|teardowns|tools)?$|(?:compare|teardowns|answers)/[^/]+$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|api/jobs(?:/|$)|api/stripe/webhook$|api/health$|(?:pricing|about|how-it-works|privacy|terms|imprint|dpa|compare|teardowns|tools)?$|(?:compare|teardowns|answers)/[^/]+$).*)",
     { source: "/api/(jobs|jobs/.*|stripe/webhook|health)", missing: [{ type: "host", value: "(?:dev\\.)?reachkit\\.app" }] },
-    { source: "/((?:pricing|about|how-it-works|privacy|terms|imprint|compare|teardowns|tools)?|(?:compare|teardowns|answers)/[^/]+)", missing: [{ type: "host", value: "(?:dev\\.)?reachkit\\.app" }] },
+    { source: "/((?:pricing|about|how-it-works|privacy|terms|imprint|dpa|compare|teardowns|tools)?|(?:compare|teardowns|answers)/[^/]+)", missing: [{ type: "host", value: "(?:dev\\.)?reachkit\\.app" }] },
   ],
   // **Node.js, not Edge** (issue #49): `proxy.ts`, this convention's successor, defaults to Node and
   // refuses the option (`proxy.md`, "Runtime"); setting it here gets there without the rename, which
