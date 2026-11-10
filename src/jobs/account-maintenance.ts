@@ -126,6 +126,8 @@ const DUE_WORK: readonly {
   vendorDayReading,
   // Each job's invocations and CPU a day are kept for a window, then deleted in one statement.
   jobDaysPrune,
+  // The privacy page keeps a hashed network address and its limit counts for two days, so every tick forgets older ones.
+  { due: () => import("@/lib/limits").then((l) => l.forgetOldHashes()).then(() => []), handOff: async () => ({ done: true as const }) },
 ]);
 
 export const accountMaintenance: JobDefinition = {

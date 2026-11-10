@@ -75,3 +75,29 @@ export async function takeLimits(rule: LimitRule, keys: LimitKeys): Promise<bool
   console.warn(JSON.stringify({ event: "rate_limit_unavailable", rule }));
   return true;
 }
+
+/** How long a hashed network address or limit count is kept; the privacy page promises it. */
+export const HASHES_KEPT_DAYS = 2;
+
+interface Prune {
+  from(table: string): {
+    delete(): { lt(column: string, value: string): PromiseLike<{ error: { message: string } | null }> };
+    update(row: Record<string, null>): {
+      not(column: string, op: "is", value: null): { lt(column: string, value: string): PromiseLike<{ error: { message: string } | null }> };
+    };
+  };
+}
+
+/** Forgets every hash past the window: scans keep their row without it, and old counts go. A second run writes nothing.
+ *  A failure is a log, not a failed tick: the next tick forgets the same rows. */
+export async function forgetOldHashes(now: Date = new Date()): Promise<void> {
+  const cutoff = new Date(now.getTime() - HASHES_KEPT_DAYS * DAY_S * 1000).toISOString();
+  try {
+    const db = dbAdmin() as unknown as Prune;
+    const scans = await db.from("scans").update({ network_hash: null }).not("network_hash", "is", null).lt("created_at", cutoff);
+    const counts = await db.from("rate_limits").delete().lt("window_start", cutoff);
+    if (scans.error !== null || counts.error !== null) throw new Error("prune");
+  } catch {
+    console.warn(JSON.stringify({ event: "hash_purge", outcome: "failed" }));
+  }
+}
