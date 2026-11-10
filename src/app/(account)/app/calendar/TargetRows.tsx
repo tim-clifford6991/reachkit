@@ -149,16 +149,12 @@ export function TargetRows(p: { facts: TargetFacts }): React.JSX.Element {
     ? volume.text
     : copy("calendar.why.volume.value", { count: volume.text });
 
-  // A difficulty is not a verdict until it is beside the bar this site is
-  // judged against (§6, issue 858). Where the row carries no ceiling it is
-  // the number alone, never a limit nobody measured this page against.
-  const difficultyText =
-    difficulty.isDash || facts.ceiling === null
-      ? difficulty.text
-      : copy("calendar.why.difficulty.of-ceiling", {
-          difficulty: difficulty.text,
-          ceiling: String(facts.ceiling),
-        });
+  // The customer reads a verdict, not the site's limit; with no ceiling or a measured miss it is the number alone.
+  const withinReach =
+    facts.ceiling !== null && facts.difficulty.kind !== "unmeasured" && facts.difficulty.value <= facts.ceiling;
+  const difficultyText = withinReach
+    ? copy("calendar.why.difficulty.within-reach", { difficulty: difficulty.text })
+    : difficulty.text;
 
   const rival = facts.bestRival;
   const rivalPlace = rival === null ? null : place(rival.position, rival.domain);

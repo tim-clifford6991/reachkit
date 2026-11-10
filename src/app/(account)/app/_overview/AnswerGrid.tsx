@@ -10,9 +10,9 @@
 // **Every mark is readable three ways, and never by colour alone**
 // (docs/DESIGN.md, §2.4): a lucide glyph that differs per mark, an
 // `aria-label` naming the question, the engine and what that engine said,
-// and a written legend above the grid. Two of the five marks share a colour
-// — links and names are both the customer — and their glyphs are what tells
-// them apart, which is the point of not painting meaning.
+// and a written legend above the grid. Two of the three marks share a colour
+// — links and mentions are both the customer — and their glyphs are what
+// tells them apart, which is the point of not painting meaning.
 //
 // **The wording is model text.** It reaches this file only through
 // `renderQuestion`, which will not yield it without the search it was
@@ -39,8 +39,8 @@ import { copy } from "@/lib/presentation/copy";
 import { renderQuestion } from "@/lib/presentation/generated";
 import { ENGINE_LABEL } from "../_shell/page-target-words";
 import { formatCount } from "./present";
-import { ANSWER_MARKS, type AnswerMark, type AnswerQuestion, type AnswersModel } from "./answers-model";
-import { MARK_COPY_KEY, MARK_ICON, MARK_TONE } from "./answers-words";
+import type { AnswerMark, AnswerQuestion, AnswersModel } from "./answers-model";
+import { LEGEND_MARKS, MARK_COPY_KEY, MARK_ICON, MARK_TONE } from "./answers-words";
 
 /** One mark, drawn. `aria-hidden` on the glyph: the cell around it carries
  *  the written name, and a glyph with a name of its own would be read
@@ -52,12 +52,8 @@ export function Mark(p: { mark: AnswerMark }): React.JSX.Element {
   );
 }
 
-/** The board's four marks, and "names no one" and "not measured" only where
- *  a cell on screen is one: the board's legend, and no mark left unexplained. */
-const ONLY_WHEN_USED: readonly AnswerMark[] = ["names_no_one", "not_measured"];
-
 export function Legend(p: { used: readonly AnswerMark[] }): React.JSX.Element {
-  const marks = ANSWER_MARKS.filter((mark) => !ONLY_WHEN_USED.includes(mark) || p.used.includes(mark));
+  const marks = p.used.includes("not_measured") ? [...LEGEND_MARKS, "not_measured" as const] : LEGEND_MARKS;
   return (
     <p className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1" data-testid="answers-legend">
       {marks.map((mark) => (

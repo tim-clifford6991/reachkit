@@ -50,11 +50,12 @@ function Frame(p: { n: number; Icon: LucideIcon; children: React.ReactNode }): R
   );
 }
 
-/** The search both engines answer, with a chip for each. */
+/** The search both engines answer, with a chip for each. The search wraps
+ *  rather than clips, as the named engines leave it little room. */
 function Query(): React.JSX.Element {
   return (
-    <span className="border-base-content/20 flex h-8.5 min-w-0 items-center gap-2 rounded-full border ps-3 pe-1.5">
-      <span className="min-w-0 flex-1 truncate text-sm">{SPECIMEN_HERO_QUERY}</span>
+    <span className="border-base-content/20 flex min-h-8.5 min-w-0 items-center gap-2 rounded-full border py-0.5 ps-3 pe-1.5">
+      <span className="min-w-0 flex-1 text-sm leading-4 break-words">{SPECIMEN_HERO_QUERY}</span>
       <span className="flex flex-none gap-1">
         <span className="badge badge-ghost badge-sm gap-1 font-semibold">
           <Search {...SMALL} />
