@@ -55,7 +55,7 @@ export const FIXTURE_SHELL_FACTS: ShellFacts = Object.freeze({
   // reserved name, so the shortcut is drawn and goes nowhere real.
   blog: "https://blog.example.com",
   next: Object.freeze({ at: new Date(Date.UTC(2026, 8, 8, 13, 0, 0)), title: "How much does a bike service cost in 2026?" }),
-  nextTopic: null,
+  coming: [{ kind: "page" as const, on: "2026-09-08", title: "How much does a bike service cost in 2026?", at: new Date(Date.UTC(2026, 8, 8, 13, 0, 0)), writing: false }],
   // REQ-092 c3: the ordinary state is that ReachKit has not stopped, so
   // nothing states one. The stopped arm is exercised by
   // `tests/presentation/sweeps/stopped.test.tsx`, which renders every route

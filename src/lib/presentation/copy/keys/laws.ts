@@ -91,6 +91,15 @@ export const LAWS_COPY = Object.freeze({
     "Next page goes live {at}: {title}",
     { law: "next-publish", slots: { at: "date", title: "text" }, fixedBy: "issue 2471" },
   ],
+  // The next page has no moment yet, so the line names its day and how far it got. Drafted; the owner corrects it.
+  "next-publish.writing": [
+    "Next page, {on}: {title} (being written)",
+    { law: "next-publish", slots: { on: "date", title: "text" }, fixedBy: "issue 2639" },
+  ],
+  "next-publish.ready": [
+    "Next page, {on}: {title} (ready)",
+    { law: "next-publish", slots: { on: "date", title: "text" }, fixedBy: "issue 2639" },
+  ],
   "next-publish.topic": [
     "Next page planned for {on}: {topic}",
     { law: "next-publish", slots: { on: "date", topic: "text" }, fixedBy: "issue 2471" },

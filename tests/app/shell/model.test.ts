@@ -39,7 +39,7 @@ const BASE: ShellFacts = {
   review: null,
   blog: null,
   next: { at: new Date(Date.UTC(2026, 8, 16, 13, 0, 0)), title: "How to choose a road bike" },
-  nextTopic: null,
+  coming: [],
   stopped: null,
   noPublishCauses: {
     reachkit_stopped: false,
@@ -114,7 +114,7 @@ describe("REQ-040 c4 — no publish scheduled carries exactly one resolved reaso
   });
 
   it("with no page and no cause, the next planned topic is what happens next — never a stop nobody stored", () => {
-    const shell = assembleShell(facts({ next: null, nextTopic: { on: "2026-09-17", topic: "bike service cost" } }));
+    const shell = assembleShell(facts({ next: null, firstDueOn: MONDAY(21), coming: [{ kind: "topic", on: "2026-09-17", topic: "bike service cost" }] }));
     expect(shell.publishing).toEqual({
       mode: "autopilot",
       next: null,
@@ -126,6 +126,12 @@ describe("REQ-040 c4 — no publish scheduled carries exactly one resolved reaso
   it("with no page, no topic and no cause, the Monday check is what happens next", () => {
     const shell = assembleShell(facts({ next: null, firstDueOn: MONDAY(21) }));
     expect(shell.publishing).toEqual({ mode: "autopilot", next: null, because: null, upcoming: { kind: "monday-check", on: MONDAY(21) } });
+  });
+
+  it("a page being written for tomorrow is next, not the topic planned the day after", () => {
+    const page = { kind: "page" as const, on: "2026-09-11", title: "Road bike sizing", at: null, writing: true };
+    const shell = assembleShell(facts({ next: null, firstDueOn: MONDAY(14), coming: [{ kind: "topic", on: "2026-09-12", topic: "bike fit" }, page] }));
+    expect(shell.publishing).toMatchObject({ upcoming: page });
   });
 });
 

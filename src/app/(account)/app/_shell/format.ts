@@ -43,6 +43,11 @@ export function formatShortDay(at: Date, timeZone: string): string {
   return `${part("weekday")} ${part("day")} ${part("month")}`;
 }
 
+/** The site-local calendar date of an instant, `YYYY-MM-DD`. */
+export function localDate(at: Date, timeZone: string): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(at);
+}
+
 /** A day with its year, as the boards write it: "Sat 7 Nov 2026". */
 export function formatDayDate(at: Date, timeZone: string): string {
   return `${formatShortDay(at, timeZone)} ${new Intl.DateTimeFormat(SHELL_LOCALE, { timeZone, year: "numeric" }).format(at)}`;
