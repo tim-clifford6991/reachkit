@@ -6,7 +6,8 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { isStaticPage } from "@/app/_root/csp";
 import { inlineScriptHashes } from "../../../scripts/static-csp.mjs";
-import { getBaseURL } from "./browser";
+import { BAND_MIN } from "@/ui/layout/bands";
+import { getBaseURL, withPage } from "./browser";
 
 const manifest = JSON.parse(readFileSync(path.resolve(__dirname, "../../../.next/prerender-manifest.json"), "utf8")) as {
   routes: Record<string, { initialRevalidateSeconds: number | false; dataRoute: string | null }>;
@@ -25,14 +26,22 @@ describe("the static pages", () => {
   });
 
   it("answer with a policy that names every inline script they ship, and never 'unsafe-inline'", async () => {
-    for (const [route] of prerendered.filter(([, e]) => e.dataRoute !== null)) {
-      const response = await fetch(`${getBaseURL()}${route}`);
-      const scriptSrc = /script-src([^;]*)/.exec(response.headers.get("content-security-policy") ?? "")?.[1] ?? "";
+    const served = await withPage(BAND_MIN.compact, async (page) => {
+      const pages: { route: string; policy: string; html: string }[] = [];
+      for (const [route] of prerendered.filter(([, e]) => e.dataRoute !== null)) {
+        const response = await page.goto(`${getBaseURL()}${route}`);
+        if (response === null) throw new Error(`${route} produced no response`);
+        pages.push({ route, policy: response.headers()["content-security-policy"] ?? "", html: await response.text() });
+      }
+      return pages;
+    });
+    for (const { route, policy, html } of served) {
+      const scriptSrc = /script-src([^;]*)/.exec(policy)?.[1] ?? "";
       const allowed = new Set(scriptSrc.trim().split(/\s+/));
       expect(scriptSrc, route).not.toMatch(/'unsafe-inline'|'nonce-/);
-      const hashes = inlineScriptHashes(await response.text());
+      const hashes = inlineScriptHashes(html);
       expect(hashes.length, `${route} ships its flight data inline`).toBeGreaterThan(0);
       expect(hashes.filter((h) => !allowed.has(h)), `${route} ships an inline script its policy refuses`).toEqual([]);
     }
-  });
+  }, 120_000);
 });
