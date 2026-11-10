@@ -488,10 +488,6 @@ export const OVERVIEW_COPY = Object.freeze({
   // signal a page moves first. Drafted (#759).
   "overview.answers.pages-cited.label": ["Pages linked by AI", { slots: {}, fixedBy: "board AppAI (drafted)" }],
   "overview.answers.pages-cited.of": ["of {of} pages asked", { slots: { of: "text" }, fixedBy: "issue 1551 (drafted)" }],
-  "overview.answers.pages-cited.means": [
-    "A page counts when AI links to it in answer to its question. We ask ChatGPT and Google’s AI every Monday.",
-    { slots: {}, fixedBy: "board AppAI (drafted)" },
-  ],
   "overview.answers.pages-cited.none": [
     "Shows once a page is live and we’ve asked its question.",
     { slots: {}, fixedBy: "board AppAI v36, issue 2278 (drafted)" },
@@ -513,24 +509,12 @@ export const OVERVIEW_COPY = Object.freeze({
     "times this week",
     { slots: {}, fixedBy: "board AppAI (drafted)" },
   ],
-  "overview.answers.reads.means": [
-    "An AI app, like ChatGPT, opening your page to answer someone.",
-    { slots: {}, fixedBy: "board AppAI (drafted)" },
-  ],
   "overview.answers.visits.label": [
     "Visits from AI",
     { slots: {}, fixedBy: "board AppAI (drafted)" },
   ],
   "overview.answers.visits.of": [
     "this week",
-    { slots: {}, fixedBy: "board AppAI (drafted)" },
-  ],
-  "overview.answers.visits.means": [
-    "People who came to your pages from an AI answer. The real number may be higher.",
-    { slots: {}, fixedBy: "board AppAI (drafted)" },
-  ],
-  "overview.answers.visits.chart": [
-    "Visits from AI, week by week",
     { slots: {}, fixedBy: "board AppAI (drafted)" },
   ],
   "overview.answers.pages.title": [
@@ -542,12 +526,7 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: {}, fixedBy: "board AppAI (drafted)" },
   ],
   "overview.answers.pages.engines": [
-    "Answers by engine",
-    { slots: {}, fixedBy: "board AppAI (drafted)" },
-  ],
-  "overview.answers.engine.ai-overview": ["AI Overview", { slots: {}, fixedBy: "board AppAI v36, issue 2278 (drafted)" }],
-  "overview.answers.engine.none": [
-    "None on this search",
+    "Answers from ChatGPT and Google’s AI",
     { slots: {}, fixedBy: "board AppAI (drafted)" },
   ],
   "overview.answers.who.title": [
@@ -586,16 +565,11 @@ export const OVERVIEW_COPY = Object.freeze({
   // (R4-06) states it as "21 of 24 at most". **Drafted** under the owner's
   // 2026-09-16 ruling (#759); the PR names it so the owner can correct it.
 
-  // The five marks. *Linked* is a cited domain that is the site's own;
-  // *named* is the brand token appearing in a reference somewhere else.
-  // "Names someone else" is deliberately wider than the board's "Names a
-  // rival": an answer can cite a directory, a marketplace or nobody at all,
-  // and none of those is a rival.
-  "overview.answers.mark.links": ["Links to this page", { slots: {}, fixedBy: "SPEC §6 2026-09-20" }],
-  "overview.answers.mark.names": ["Mentions you, no link", { slots: {}, fixedBy: "SPEC §6 2026-09-20" }],
-  "overview.answers.mark.others": ["Mentions someone else", { slots: {}, fixedBy: "SPEC §6 2026-09-20" }],
-  "overview.answers.mark.no-one": ["Names no one", { slots: {}, fixedBy: "SPEC §6 2026-10-24" }],
-  "overview.answers.mark.no-answer": ["No answer", { slots: {}, fixedBy: "SPEC §6 2026-09-20" }],
+  // The three marks, and "Not checked", which is never a miss. The last mark
+  // covers an answer that mentions someone else, names no one or is not given.
+  "overview.answers.mark.links": ["Links to you", { slots: {}, fixedBy: "SPEC §6 2026-11-09" }],
+  "overview.answers.mark.names": ["Mentions you", { slots: {}, fixedBy: "SPEC §6 2026-11-09" }],
+  "overview.answers.mark.not-you": ["Doesn’t mention you", { slots: {}, fixedBy: "SPEC §6 2026-11-09" }],
   "overview.answers.mark.not-measured": ["Not checked", { slots: {}, fixedBy: "SPEC §6 2026-09-20" }],
   // One cell's accessible name: which question, which engine, what it said.
   // Never the colour, and never the mark alone.
@@ -643,7 +617,7 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: {}, fixedBy: "board AppAI v36, issue 2278 (drafted)" },
   ],
   "overview.prompts.rate.count": [
-    "Mentioned by AI: {n} of {m} answers",
+    "ChatGPT and Google’s AI mentioned you in {n} of {m} answers",
     { slots: { n: "text", m: "text" }, fixedBy: "board AppAI v36, issue 2278 (drafted)" },
   ],
   "overview.prompts.rate.first": [
@@ -1066,7 +1040,6 @@ export const OVERVIEW_COPY = Object.freeze({
   // No earlier week was counted, so there is nothing to compare with and no "up from 0".
   "overview.ai.line.first": ["this week, the first week we counted", { slots: {}, fixedBy: "board Main v36, issue 2272 (drafted)" }],
   "overview.ai.reads.none": ["No AI app read your pages this week.", { slots: {}, fixedBy: "issue 1615 (drafted)" }],
-  "overview.ai.reads.chart": ["Read by AI, week by week", { slots: {}, fixedBy: "issue 1615 (drafted)" }],
   "overview.mover.title": ["Best mover this week", { slots: {}, fixedBy: "issue 1615 (drafted) · owner E2" }],
   "overview.mover.place": ["place in Google", { slots: {}, fixedBy: "issue 1615 (drafted)" }],
   "overview.mover.up": ["up {n} since {date}", { slots: { n: "text", date: "date" }, fixedBy: "issue 1615 (drafted)" }],

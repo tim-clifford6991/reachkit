@@ -16,50 +16,40 @@
 // its own written name, so a reader who sees neither colour still reads the
 // grid.
 import type { LucideIcon } from "lucide-react";
-import { CircleDashed, CircleMinus, Link, MessageSquare, Minus, Users } from "lucide-react";
+import { CircleDashed, Link, MessageSquare, Minus } from "lucide-react";
 import type { CopyKey } from "@/lib/presentation/copy";
 import type { AnswerMark } from "./answers-model";
 
+/** Three marks a reader sees; the stored six stay, and every count reads those. */
 export const MARK_COPY_KEY: Readonly<Record<AnswerMark, CopyKey>> = Object.freeze({
   links_to_you: "overview.answers.mark.links",
   names_you: "overview.answers.mark.names",
-  names_others: "overview.answers.mark.others",
-  names_no_one: "overview.answers.mark.no-one",
-  no_answer: "overview.answers.mark.no-answer",
+  names_others: "overview.answers.mark.not-you",
+  names_no_one: "overview.answers.mark.not-you",
+  no_answer: "overview.answers.mark.not-you",
+  // Never a miss: an engine nobody reached is its own grey state, never 0.
   not_measured: "overview.answers.mark.not-measured",
 });
 
-/**
- * The glyph each mark wears, at lucide's house stroke (docs/DESIGN.md rule
- * 3), one glyph per concept across the product: a link, a speech bubble
- * for a mention without one, the crowd for someone else, the empty dashed
- * circle for no one, the struck circle for no answer; an engine nobody
- * reached is the em-dash, which is REQ-004's own mark for a reading that
- * was never taken and is the one the issue asks for by name.
- */
+/** The marks the legend always draws, one per word; "Not checked" joins only where a cell is one. */
+export const LEGEND_MARKS: readonly AnswerMark[] = ["links_to_you", "names_you", "names_others"];
+
+/** One lucide glyph per mark at the house stroke (docs/DESIGN.md rule 3); the em-dash is REQ-004's reading never taken. */
 export const MARK_ICON: Readonly<Record<AnswerMark, LucideIcon>> = Object.freeze({
   links_to_you: Link,
   names_you: MessageSquare,
-  names_others: Users,
+  names_others: CircleDashed,
   names_no_one: CircleDashed,
-  no_answer: CircleMinus,
+  no_answer: CircleDashed,
   not_measured: Minus,
 });
 
-/**
- * The tone each mark is painted in.
- *
- * Only two of the six are coloured at all, and neither is red: §2.5 keeps
- * red for the customer's own problem being shown to them, and an engine
- * that named somebody else or nobody, served no answer or was never
- * reached is not one of those — it is what was measured. Painting three of five red would
- * turn a record of the week into a wall of failure.
- */
+/** Only the customer's own marks are coloured, and none red: §2.5 keeps red for the customer's own problem. */
 export const MARK_TONE: Readonly<Record<AnswerMark, string>> = Object.freeze({
   links_to_you: "text-(--chart-you)",
   names_you: "text-(--chart-you)",
   names_others: "text-base-content/70",
   names_no_one: "text-base-content/70",
-  no_answer: "text-base-content/40",
+  no_answer: "text-base-content/70",
   not_measured: "text-base-content/30",
 });
