@@ -7,9 +7,10 @@ import { createHash } from "node:crypto";
 const PAGES = "pricing|about|how-it-works|privacy|terms|imprint|compare|teardowns|tools";
 const PAGES_UNDER = "compare|teardowns|answers";
 
-/** Where the build's per-page policy is served: ReachKit's own hosts, and the local server a build
- *  is checked on. Never a customer's host, which the hosted edge answers. */
-export const STATIC_HOSTS = "(?:(?:dev\\.)?reachkit\\.app|localhost|127\\.0\\.0\\.1)";
+/** Where the build's per-page policy is served: ReachKit's own hosts, this deployment's own
+ *  `*.vercel.app` addresses (only Vercel routes those, and only here), and the local server a build is
+ *  checked on. Never a customer's host, which the hosted edge answers. */
+export const STATIC_HOSTS = "(?:(?:dev\\.)?reachkit\\.app|[a-z0-9-]+\\.vercel\\.app|localhost|127\\.0\\.0\\.1)";
 
 /** The static pages as a `headers()` source. */
 export const STATIC_PAGES_SOURCE = `/((?:${PAGES})?|(?:${PAGES_UNDER})/[^/]+)`;
