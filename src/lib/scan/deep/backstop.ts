@@ -27,7 +27,9 @@
 // `REMEASURE.perDay` in a day, the onboarding pass included — inside the same
 // `TIMING.deepPassBackstopH` window after setup. A first pass that ended
 // `failed` is measured again the same way, once: its re-measure is a second
-// ended pass, so a second failure is owed nothing.
+// ended pass, so a second failure is owed nothing. A first pass that ended
+// with no market measured, on a site that now holds a category, is measured
+// again the same way and under the same once (owner, 2026-11-13).
 //
 // **Why a re-measure is harmless too** (issue 886). `account/maintenance` is
 // a clock tick and carries no idempotency key, so the same tick can be
@@ -39,6 +41,7 @@
 // `scans_one_remeasure_per_pass` lets exactly one of them through.
 import { TIMING } from "@/lib/config/constants";
 import { dbAdmin } from "@/lib/db";
+import { readSiteCategory } from "@/lib/scan/site-category";
 
 interface QueryResult<T> {
   data: T[] | null;
@@ -75,23 +78,24 @@ export async function sitesWithoutDeepPass(now: Date): Promise<readonly string[]
   const after = new Date(now.getTime() - TIMING.deepPassBackstopH * 60 * MS_PER_MINUTE).toISOString();
 
   const sites = await untyped()
-    .from<{ id: string }>("sites")
-    .select("id")
+    .from<{ id: string; category?: string | null }>("sites")
+    .select("id, category")
     .lt("setup_completed_at", before)
     .gt("setup_completed_at", after)
     .limit(SITES_PER_TICK);
   if (sites.error) throw new Error(`sitesWithoutDeepPass: could not read sites: ${sites.error.message}`);
   const ids = (sites.data ?? []).map((row) => row.id);
   if (ids.length === 0) return [];
+  const categorised = new Set((sites.data ?? []).filter((row) => (row.category ?? "").trim() !== "").map((row) => row.id));
 
   const passes = await untyped()
     .from<PassRow>("scans")
-    .select("site_id, status, stopped_reason, created_at")
+    .select(`site_id, status, stopped_reason, created_at, ${MARKET_COLUMNS}`)
     .eq("tier", "deep")
     .in("site_id", ids);
   if (passes.error) throw new Error(`sitesWithoutDeepPass: could not read scans: ${passes.error.message}`);
   const rows = passes.data ?? [];
-  return ids.filter((id) => owed(rows.filter((row) => row.site_id === id)) !== null);
+  return ids.filter((id) => owed(rows.filter((row) => row.site_id === id), categorised.has(id)) !== null);
 }
 
 interface PassRow {
@@ -100,6 +104,17 @@ interface PassRow {
   status: string;
   stopped_reason?: string | null;
   created_at?: string | null;
+  market_kind?: string | null;
+  market_reason?: string | null;
+  market_because?: string | null;
+}
+
+const MARKET_COLUMNS = "market_kind:report->market->>kind, market_reason:report->market->>reason, market_because:report->market->>because";
+
+/** The pass read no market: the pages named none, or it never got to it. A
+ *  blocked or wordless site is left alone, since a second pass reads the same. */
+function marketUnread(row: PassRow): boolean {
+  return row.market_kind === "unmeasured" && (row.market_because === "market_not_named" || row.market_reason === "not_attempted");
 }
 
 /** The two ceilings: a pass that stopped on one did not finish. */
@@ -111,16 +126,17 @@ function newestOf(rows: readonly PassRow[]): PassRow | undefined {
 }
 
 /** What one site's deep rows owe it: its onboarding pass (`never_ran`), the
- *  pass again because a ceiling stopped the newest or the first failed
- *  (`cut_short`), or nothing
+ *  pass again because a ceiling stopped the newest, or the first failed or
+ *  read no market of a site holding a category (`cut_short`), or nothing
  *  — a pass that finished, or one still under way. */
-function owed(rows: readonly PassRow[]): "never_ran" | "cut_short" | null {
+function owed(rows: readonly PassRow[], hasCategory: boolean): "never_ran" | "cut_short" | null {
   const ended = rows.filter((row) => row.status !== "running");
   if (ended.length === 0) return "never_ran";
   const newest = newestOf(rows);
   if (newest === undefined || newest.status === "running") return null;
   if (CEILINGS.has(String(newest.stopped_reason ?? ""))) return "cut_short";
-  return newest.status === "failed" && ended.length === 1 ? "cut_short" : null;
+  if (ended.length !== 1) return null;
+  return newest.status === "failed" || (hasCategory && marketUnread(newest)) ? "cut_short" : null;
 }
 
 /**
@@ -136,12 +152,12 @@ function owed(rows: readonly PassRow[]): "never_ran" | "cut_short" | null {
 export async function deepPassCutShort(siteId: string): Promise<string | null> {
   const { data, error } = await untyped()
     .from<PassRow>("scans")
-    .select("id, site_id, status, stopped_reason, created_at")
+    .select(`id, site_id, status, stopped_reason, created_at, ${MARKET_COLUMNS}`)
     .eq("tier", "deep")
     .eq("site_id", siteId);
   if (error) throw new Error(`deepPassCutShort: could not read scans: ${error.message}`);
   const rows = data ?? [];
-  if (owed(rows) !== "cut_short") return null;
+  if (owed(rows, (await readSiteCategory(siteId)) !== undefined) !== "cut_short") return null;
   return newestOf(rows)?.id ?? null;
 }
 

@@ -97,6 +97,15 @@ describe("sitesWithoutDeepPass", () => {
     expect(await deepPassCutShort("ran")).toBeNull();
   });
 
+  it("a first pass that read no market is re-run once, keyed on it, only where the site holds a category", async () => {
+    Object.assign(db.rows("scans")[1]!, { status: "degraded", created_at: minutesAgo(18), report: { market: { kind: "unmeasured", reason: "undeterminable", because: "market_not_named" } } });
+    expect(await sitesWithoutDeepPass(NOW)).toEqual(["dropped"]);
+    db.rows("sites")[1]!.category = "tea rooms";
+    expect([await sitesWithoutDeepPass(NOW), await deepPassCutShort("ran")]).toEqual([["dropped", "ran"], "claim-ran"]);
+    db.rows("scans").push({ id: "again", site_id: "ran", tier: "deep", status: "degraded", remeasure_of: "claim-ran", created_at: minutesAgo(2), report: db.rows("scans")[1]!.report });
+    expect([await sitesWithoutDeepPass(NOW), await deepPassCutShort("ran")]).toEqual([["dropped"], null]);
+  });
+
   it("a failed pass that is not the site's first, or a failed weekly pass, is never re-run by this rule", async () => {
     Object.assign(db.rows("scans")[1]!, { created_at: minutesAgo(18) });
     db.rows("scans").push({ id: "later", site_id: "ran", tier: "deep", status: "failed", created_at: minutesAgo(2) });
