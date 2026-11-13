@@ -95,6 +95,7 @@ const client = {
           report: JSON.parse(JSON.stringify(a.p_report)),
           status: a.p_status,
           cost_cents: a.p_cost_cents,
+          stopped_reason: a.p_stopped_reason, finished_at: new Date().toISOString(),
         });
       }
     }
@@ -135,9 +136,7 @@ vi.mock("@/jobs/client", async () =>
 
 // The switch `provider.ts` writes down in its own header — see this file's.
 vi.mock("@/app/(account)/setup/_setup/provider", async (importOriginal) => {
-  const actual = await importOriginal<
-    typeof import("../../src/app/(account)/setup/_setup/provider")
-  >();
+  const actual = await importOriginal<typeof import("../../src/app/(account)/setup/_setup/provider")>();
   const { liveSetupStore } = await import("../../src/app/(account)/setup/_setup/store");
   return { ...actual, setupStore: () => liveSetupStore() };
 });
@@ -402,9 +401,7 @@ function answerQuery(query: DbQuery): unknown[] | null {
 
 const { CAPS, PRICE_BOOK, TIMING, VETO, WEEK_PLAN } = await import("../../src/lib/config/constants");
 const { setOpportunityStore } = await import("../../src/lib/opportunities");
-const { setCalendarSiteReader } = await import(
-  "../../src/app/(account)/app/calendar/provider"
-);
+const { setCalendarSiteReader } = await import("../../src/app/(account)/app/calendar/provider");
 const { readCalendarFacts } = await import("../../src/app/(account)/app/calendar/store");
 const { assembleMonth } = await import("../../src/app/(account)/app/calendar/month");
 const { monthOf, dayKeyOf } = await import("../../src/app/(account)/app/calendar/dates");
@@ -419,6 +416,7 @@ const { addAuthUser, fakeIdentityAuth, newFakeAuth, signedInCookie } = await imp
 const { runDeepPass } = await import("../../src/lib/scan/deep/run");
 const { activeSites } = await import("../../src/jobs/engine");
 const { passProgressFor } = await import("../../src/lib/scan/deep/progress");
+const { lastPass } = await import("../../src/lib/scan/deep/pass-end");
 const { isReleased, deadlineFrom } = await import("../../src/lib/scan/deep/release");
 const { destinationFor, APP_PATH } = await import(
   "../../src/app/(account)/setup/waiting/release"
@@ -610,6 +608,13 @@ describe("three decisions → deep pass → the first page already on the calend
     expect(jobEvents.filter((e) => e.name === "scan/run")).toHaveLength(1);
   });
 
+  it("step 3 — a free scan that named no market still opens setup on its address, the market card asking", async () => {
+    const [{ readReportFor }, { FIXTURE_REPORT }] = await Promise.all([import("../../src/app/(account)/setup/_setup/provider"), import("../../src/app/(public)/scan/[domain]/_fixture/states")]);
+    scanRows.push({ domain: DOMAIN, is_current: true, report: { ...FIXTURE_REPORT, domain: DOMAIN, market: { kind: "unmeasured", reason: "not_attempted", at: "2026-11-13T15:47:00.000Z" } } });
+    const { state } = assembleSetup({ ...FIXTURE_SETUP_FACTS, concluded: null, saved: null, measured: { domain: DOMAIN, report: await readReportFor(DOMAIN) } });
+    expect([state.address.state, state.siteDomain, state.market.state]).toEqual(["measured", DOMAIN, "empty"]);
+  });
+
   it("step 3 — Check changes one field in each section, and each lands on the row its old step wrote", async () => {
     site.timezone = null;
     const response = await setupRoute(
@@ -719,14 +724,6 @@ describe("three decisions → deep pass → the first page already on the calend
     expect(site.timezone).toBe(TIME_ZONE);
   });
 
-  // ── Issue #240: the WordPress arm of step 3 ─────────────────────────
-  //
-  // REQ-028 c3 lets a founder choose WordPress and connect later, and
-  // setup still completes. What that leaves behind is a **destination
-  // waiting for a credential** — and until #240 there was nowhere on any
-  // screen to give it one, which is the M10 gap. This is the hand-off:
-  // the row setup writes is the row the Publishing card offers Connect on,
-  // so the founder's next step exists rather than being described.
   it("step 3, WordPress — setup completes, and the row it leaves is one the card can connect", async () => {
     const submitted = await submitTheThree({
       destination: { kind: "wordpress", connectLater: true },
@@ -916,6 +913,7 @@ describe("three decisions → deep pass → the first page already on the calend
 
       const after = await passProgressFor(SITE_ID);
       expect(after).toEqual({ running: false, degraded: false });
+      expect(await lastPass(SITE_ID)).toEqual({ kind: "ended", end: { outcome: "done", reason: "complete", at: scanRows[0]!.finished_at } });
       expect(destinationFor(after)).toBe(APP_PATH);
 
       // The deadline cannot un-say it: a read long after the window finds

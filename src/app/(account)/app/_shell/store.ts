@@ -9,6 +9,7 @@
 //
 //   weeks / firstDueOn   §11's weekly measurement — `weeksAlreadyStamped`
 //                        over this site's own Mondays, and `nextDueOn`
+//   pass                 the newest deep pass's `scans` row
 //   waiting              §9's `in_review` and `needs_attention` drafts
 //   next / causes        §9's scheduled publish, the site's own switch,
 //                        and the kill switch
@@ -32,6 +33,7 @@ import { critical, needsYouOf } from "@/lib/publish/record/needs-you";
 import type { State } from "@/lib/publish/types";
 import { readStop } from "./stop";
 import { nextDueOn } from "@/lib/scan/weekly";
+import { lastPass } from "@/lib/scan/deep/pass-end";
 import { measuredWeeksOf } from "./week-rows";
 import { localDate } from "./format";
 import type { ComingDay, NextPage, ShellFacts, WaitingPage } from "./model";
@@ -292,7 +294,7 @@ async function plannedTopics(siteId: string, today: string): Promise<ComingDay[]
 /**
  * Everything §4.4's frame states about one real account.
  *
- * Eight reads, all of them projections, run together: nothing here depends on
+ * Nine reads, all of them projections, run together: nothing here depends on
  * anything else here, and a screen that waited on them in sequence would be
  * six round trips deep before it drew a sidebar.
  */
@@ -311,9 +313,10 @@ export async function readShellFacts(site: ShellSite): Promise<ShellFacts> {
   ]);
 
   const today = localDate(now, site.timeZone);
-  const [weeks, firstDueOn, waits, blog, pages, topics, stopped, hasLogo] = await Promise.all([
+  const [weeks, firstDueOn, pass, waits, blog, pages, topics, stopped, hasLogo] = await Promise.all([
     measuredWeeksOf({ site, now }),
     nextDueOn({ siteId: site.siteId, now }),
+    lastPass(site.siteId),
     waiting(site.siteId),
     blogAddress(site.siteId),
     pagesOnTheirWay(site.siteId),
@@ -329,6 +332,7 @@ export async function readShellFacts(site: ShellSite): Promise<ShellFacts> {
     mode: site.mode,
     weeks,
     firstDueOn,
+    pass,
     waiting: waits.count,
     // The day's hold keeps every page back until the destination connects, so
     // no go-live time is true until then.

@@ -35,11 +35,11 @@ export interface SetupQuestions {
 }
 
 export interface SetupFacts {
-  /** REQ-021 c6 versus c7. A completed report for the address the account
-   *  will use — whether or not it was the report the purchase came from —
-   *  or `null` for a purchase with no report behind it, in which case the
-   *  address field is empty and nothing is pre-filled from the payment. */
-  measured: { domain: string; report: ReportFacts } | null;
+  /** REQ-021 c6 versus c7. The address the account will use and the
+   *  completed report for it, if any — whether or not it was the report the
+   *  purchase came from — or `null` where the site holds no address, in
+   *  which case the field is empty and nothing is pre-filled from the payment. */
+  measured: { domain: string; report: ReportFacts | null } | null;
   /** D28 (#1185): the market and rivals ReachKit already concluded for
    *  this site, each with its reason, or `null` where it has concluded none
    *  yet — and then the rivals card opens seeking. */

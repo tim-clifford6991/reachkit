@@ -65,6 +65,7 @@ export function OnboardingStatus(p: {
  *  colour. */
 const END_LINE = {
   done: { key: "shell.pass.ended.done", tone: "alert-success", Icon: CircleCheck },
+  degraded: { key: "shell.pass.ended.degraded", tone: "alert-warning", Icon: CirclePause },
   failed: { key: "shell.pass.ended.failed", tone: "alert-error", Icon: CircleAlert },
   site_unreadable: { key: "shell.pass.ended.site-unreadable", tone: "alert-error", Icon: CircleAlert },
   time_ceiling: { key: "shell.pass.ended.time-ceiling", tone: "alert-warning", Icon: CirclePause },
@@ -72,7 +73,7 @@ const END_LINE = {
 } as const satisfies Record<string, { key: CopyKey; tone: string; Icon: typeof CircleCheck }>;
 
 function endLineOf(end: PassEnd): (typeof END_LINE)[keyof typeof END_LINE] {
-  if (end.outcome === "done") return END_LINE.done;
+  if (end.outcome === "done" || end.outcome === "degraded") return END_LINE[end.outcome];
   if (end.reason === "site_unreadable" || end.reason === "time_ceiling" || end.reason === "spend_ceiling") {
     return END_LINE[end.reason];
   }

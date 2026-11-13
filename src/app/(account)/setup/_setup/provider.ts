@@ -76,13 +76,9 @@ const currentFounder = cache(async function currentFounder(): Promise<{
  */
 export const readSetupScreen = cache(async function readSetupScreen(): Promise<SetupScreenModel> {
   const founder = await currentFounder();
-  const measured =
-    founder.domain === ""
-      ? null
-      : await (async () => {
-          const report = await readReportFor(founder.domain);
-          return report === null ? null : { domain: founder.domain, report };
-        })();
+  // The site row's own address is held even where no report is: it came
+  // from provisioning, never from the payment (REQ-021 c7).
+  const measured = founder.domain === "" ? null : { domain: founder.domain, report: await readReportFor(founder.domain) };
   const questions = measured === null ? null : await readQuestionsFor(founder.domain);
   // D28 (#1185): what ReachKit already concluded for this site, with its
   // reasons — read, never bought again on a reload. Where it has concluded
@@ -254,11 +250,9 @@ export function setupStore(): SetupStore {
  * header gives. The rivals the site's own pages name ride along from the
  * market's profile, as free suggestions (issue 838).
  *
- * **A report with no category is `null`, not a report with an empty
- * market.** REQ-026 c1 versus c3: an inferred market card is drawn from a
- * category that was measured, and a scan that measured none leaves the
- * card empty for the founder to fill — which is the `null` arm here, not a
- * card claiming a market nobody derived.
+ * **A report with no category is still the report**, with `category:
+ * null`: the address it measured is shown as measured, and the market card
+ * opens empty for the founder to fill (REQ-026 c1 versus c3).
  *
  * It reads on every render of the address the founder is typing against,
  * and that is what makes REQ-026 c6 true rather than only tested: change
@@ -324,11 +318,9 @@ export async function readReportFor(domain: string): Promise<ReportFacts | null>
   // #103: the category has one home — the market the profile inferred —
   // and `categoryOf` is its one derivation.
   const { categoryOf } = await import("@/lib/scan/sections");
-  const category = categoryOf(report.market);
-  if (category === null) return null;
   return {
     scanId: report.scanId,
-    category,
+    category: categoryOf(report.market),
     rivals: (report.presence?.rivals ?? []).map((rival) => rival.domain),
     namedRivals: report.market.kind === "unmeasured" ? [] : report.market.value.profile.namedRivals,
   };

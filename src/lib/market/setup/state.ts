@@ -120,33 +120,23 @@ function suggestionsFor(market: MarketCard): { state: SuggestionState; candidate
 /**
  * The state the screen opens in.
  *
- * `measured` is the address a completed report measured for the account —
- * shown to confirm or change (REQ-021 c6). `null` is a purchase with no
- * report behind it: the field is empty and nothing is pre-filled from the
+ * A held address with a completed report is `measured`, shown to confirm or
+ * change (REQ-021 c6); one with no report is `given`. `null` is a purchase
+ * with no address: the field is empty and nothing is pre-filled from the
  * payment (REQ-021 c7).
  */
 export function initialSetupState(
-  measured: { domain: string; report: ReportFacts } | null
+  held: { domain: string; report: ReportFacts | null } | null
 ): SetupState {
-  if (measured === null) {
-    const market: MarketCard = { state: "empty" };
-    return {
-      address: { state: "asked" },
-      siteDomain: null,
-      market,
-      suggestions: suggestionsFor(market),
-      rivals: Object.freeze([]),
-    };
-  }
-
-  const market = marketCardFor({ siteDomain: measured.domain, report: measured.report });
-  return {
-    address: { state: "measured", domain: measured.domain, fromScanId: measured.report.scanId },
-    siteDomain: measured.domain,
+  const market: MarketCard = { state: "empty" };
+  const asked: SetupState = {
+    address: { state: "asked" },
+    siteDomain: null,
     market,
     suggestions: suggestionsFor(market),
     rivals: Object.freeze([]),
   };
+  return held === null ? asked : onDomainChanged(asked, held);
 }
 
 /** REQ-021 c9. Reaching is that the address is a domain name that resolves

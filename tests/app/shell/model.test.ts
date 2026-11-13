@@ -35,6 +35,7 @@ const BASE: ShellFacts = {
     { domain: "example.com", weekStart: MONDAY(14), measured: true },
   ],
   firstDueOn: MONDAY(7),
+  pass: null,
   waiting: 0,
   review: null,
   blog: null,
