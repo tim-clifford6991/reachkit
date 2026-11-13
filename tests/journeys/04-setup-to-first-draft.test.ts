@@ -610,6 +610,13 @@ describe("three decisions → deep pass → the first page already on the calend
     expect(jobEvents.filter((e) => e.name === "scan/run")).toHaveLength(1);
   });
 
+  it("step 3 — a free scan that named no market still opens setup on its address, the market card asking", async () => {
+    const [{ readReportFor }, { FIXTURE_REPORT }] = await Promise.all([import("../../src/app/(account)/setup/_setup/provider"), import("../../src/app/(public)/scan/[domain]/_fixture/states")]);
+    scanRows.push({ domain: DOMAIN, is_current: true, report: { ...FIXTURE_REPORT, domain: DOMAIN, market: { kind: "unmeasured", reason: "not_attempted", at: "2026-11-13T15:47:00.000Z" } } });
+    const { state } = assembleSetup({ ...FIXTURE_SETUP_FACTS, concluded: null, saved: null, measured: { domain: DOMAIN, report: await readReportFor(DOMAIN) } });
+    expect([state.address.state, state.siteDomain, state.market.state]).toEqual(["measured", DOMAIN, "empty"]);
+  });
+
   it("step 3 — Check changes one field in each section, and each lands on the row its old step wrote", async () => {
     site.timezone = null;
     const response = await setupRoute(
@@ -719,14 +726,6 @@ describe("three decisions → deep pass → the first page already on the calend
     expect(site.timezone).toBe(TIME_ZONE);
   });
 
-  // ── Issue #240: the WordPress arm of step 3 ─────────────────────────
-  //
-  // REQ-028 c3 lets a founder choose WordPress and connect later, and
-  // setup still completes. What that leaves behind is a **destination
-  // waiting for a credential** — and until #240 there was nowhere on any
-  // screen to give it one, which is the M10 gap. This is the hand-off:
-  // the row setup writes is the row the Publishing card offers Connect on,
-  // so the founder's next step exists rather than being described.
   it("step 3, WordPress — setup completes, and the row it leaves is one the card can connect", async () => {
     const submitted = await submitTheThree({
       destination: { kind: "wordpress", connectLater: true },

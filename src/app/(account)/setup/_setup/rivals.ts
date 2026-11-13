@@ -67,13 +67,13 @@ export async function seekRivals(a: {
     const domain = registrableDomain(a.domain);
     if (domain === null) return unsought([]);
 
-    const { initialSetupState, onDomainChanged, onMarketStated } = await import(
+    const { initialSetupState, onMarketStated } = await import(
       "@/lib/market/setup/state"
     );
     const { readReportFor } = await import("./provider");
     const report = await readReportFor(domain);
     const category = a.category?.trim() ?? "";
-    const given = onDomainChanged(initialSetupState(null), { domain, report });
+    const given = initialSetupState({ domain, report });
     const state = category === "" ? given : onMarketStated(given, category);
 
     const scanId = await claimFor({ siteId: progress.siteId, domain });
