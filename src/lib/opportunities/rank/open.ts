@@ -206,7 +206,9 @@ export async function loadRanking(siteId: string, at: Date, only?: ReadonlySet<s
       .then(() => store.currentReport(siteId))
       .catch(() => null),
   ]);
-  const rows = await pastRefreshFloor(siteId, open, at);
+  // §6's floor: a refresh of our page whose live version is younger than it takes no place; unreadable pages keep it.
+  const young = !open.some((row) => row.type === "refresh_page") ? [] : await Promise.resolve().then(() => store.refreshPages(siteId)).catch(() => []);
+  const rows = open.filter((row) => row.type !== "refresh_page" || !young.some((page) => at.getTime() - page.publishedAt.getTime() < REFRESH_MIN_AGE_DAYS * 86_400_000 && canonicalUrl(page.url) === canonicalUrl(row.target_ref)));
   // An unmeasured count is the cold-start 0, as the pass reads it.
   const ownRanked = report === null ? null : report.ownRanked.kind === "measured" ? report.ownRanked.value : 0;
   const listicle = report === null ? null : await store.listicleHeld(siteId, report.scanId).catch(() => null);
@@ -214,17 +216,6 @@ export async function loadRanking(siteId: string, at: Date, only?: ReadonlySet<s
   // A cluster that cannot be read earns no page.
   const linkedClusters = cited.length === 0 ? [] : await store.clustersAt(siteId, cited).catch(() => [] as readonly string[]);
   return { rows, fixRows, profile, cited, topTens, prompts, linkedClusters, ownRanked, listicle };
-}
-
-/** The rows less a refresh of one of our pages whose live version is younger than §6's floor; pages that cannot be read keep them. */
-async function pastRefreshFloor(siteId: string, rows: readonly OpportunityRow[], at: Date): Promise<readonly OpportunityRow[]> {
-  if (!rows.some((row) => row.type === "refresh_page")) return rows;
-  const floor = at.getTime() - REFRESH_MIN_AGE_DAYS * 24 * 60 * 60 * 1000;
-  const pages = await Promise.resolve()
-    .then(() => opportunityStore().refreshPages(siteId))
-    .catch(() => []);
-  const young = new Set(pages.filter((page) => page.publishedAt.getTime() > floor).map((page) => canonicalUrl(page.url)));
-  return young.size === 0 ? rows : rows.filter((row) => row.type !== "refresh_page" || !young.has(canonicalUrl(row.target_ref)));
 }
 
 function topTensFor(rows: readonly OpportunityRow[], only?: ReadonlySet<string>) {
