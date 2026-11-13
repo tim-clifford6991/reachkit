@@ -31,7 +31,6 @@
 
 import type React from "react";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import type { LucideIcon } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import type { PublicDns } from "@/lib/publish/destinations/hosted/dns-check";
@@ -122,8 +121,8 @@ export function CheckConnection(p: {
    *  The Server Function still answers a draft, and refuses one that is not
    *  this founder's own address. */
   draft: { label: string; domain: string | null } | null;
-  /** Told of each answer, so a setup screen can draw the record's own word
-   *  from it. Settings passes none: its route is refreshed from the row. */
+  /** Told of each answer, so `/setup/connect` can draw the record's own
+   *  word from it. Settings passes none: its card is redrawn from the row. */
   onAnswer?: (answer: ConnectionCheck) => void;
   /** The screen's own words; Settings' where absent. */
   words?: CheckWords;
@@ -134,7 +133,6 @@ export function CheckConnection(p: {
   /** The press's test hook where the screen names it as its own primary. */
   pressTestId?: string;
 }): React.JSX.Element {
-  const router = useRouter();
   const words = p.words ?? SETTINGS_WORDS;
   const Mark = words.icon;
   const [running, setRunning] = useState(false);
@@ -163,7 +161,7 @@ export function CheckConnection(p: {
     setRunning(true);
     try {
       if (p.prepare !== undefined && !(await p.prepare())) return;
-      const next = await checkConnection({ draft: p.draft });
+      const next = await checkConnection({ draft: p.draft, redraw: p.onAnswer === undefined });
       if (next.outcome === "too_soon") {
         const at = Date.now();
         setNow(at);
@@ -172,9 +170,7 @@ export function CheckConnection(p: {
         setAskAgainAt(null);
         setAnswer(next);
       }
-      if (p.onAnswer !== undefined) p.onAnswer(next);
-      // Only Settings: a setup screen refreshed after a live answer is redirected away under it.
-      else if (next.outcome !== "too_soon") router.refresh();
+      p.onAnswer?.(next);
     } catch {
       // The press did not complete: nothing was asked, and the founder is
       // told so rather than left with whatever was shown before.
