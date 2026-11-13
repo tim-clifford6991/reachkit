@@ -574,7 +574,7 @@ export const SETUP_COPY = Object.freeze({
   "setup.connect.steps.1": ["Sign in where you bought your web address.", { slots: {}, fixedBy: "board Setup · issue 1738" }],
   "setup.connect.steps.2": ["Open the DNS settings and add a new record.", { slots: {}, fixedBy: "board Setup · issue 1738" }],
   "setup.connect.steps.3": ["Pick the type CNAME, then paste the name and the value above.", { slots: {}, fixedBy: "board Setup · issue 1738" }],
-  "setup.connect.steps.4": ["Save. Come back here and press I’ve added it, check now.", { slots: {}, fixedBy: "board Setup · issue 1738" }],
+  "setup.connect.steps.4": ["Save. Come back here and press Check connection now.", { slots: {}, fixedBy: "board Setup · issue 1738; owner 2026-11-13 ruling, issue 2651" }],
   "setup.connect.steps.guide": ["Steps for where you bought your address", { slots: {}, fixedBy: "board Setup · issue 1738" }],
   // Sending the steps to whoever runs the address; optional, and the address typed is never kept.
   "setup.connect.send.label": ["Or send these steps to your web person", { slots: {}, fixedBy: "board Setup · issue 2114 (drafted)" }],
@@ -585,11 +585,11 @@ export const SETUP_COPY = Object.freeze({
   "setup.connect.send.failed": ["We couldn’t send it just now. Try again in a minute.", { slots: {}, fixedBy: "issue 2114 (drafted)" }],
 
   // The press and its two answers on this screen.
-  "setup.connect.check": ["I’ve added it, check now", { slots: {}, fixedBy: "board Setup · issue 1738" }],
+  "setup.connect.check": ["Check connection now", { slots: {}, fixedBy: "board Setup · issue 1738; owner 2026-11-13 ruling, issue 2651" }],
   "setup.connect.notfound.title": ["Not found yet", { slots: {}, fixedBy: "board Setup · issue 1738" }],
   "setup.connect.notfound": [
-    "We can’t see the setting yet. We check every hour, so you can leave this page.",
-    { slots: {}, fixedBy: "board Setup · issue 1738" },
+    "It can take a few minutes to show. We keep checking every hour, so you can leave this page.",
+    { slots: {}, fixedBy: "board Setup · issue 1738; issue 2651 (drafted)" },
   ],
   "setup.connect.connected": [
     "Connected. Your first page goes live on its day, with nothing more to do.",

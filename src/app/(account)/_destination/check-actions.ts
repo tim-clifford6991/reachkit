@@ -33,8 +33,8 @@
 // credential, so it answers on a deployment with no verification bound too,
 // and the founder learns whether they added the record right. The domain
 // list — the certificate — stays the second step, where it is bound. A
-// press refused, or inside the floor, carries no DNS answer: it asked
-// nothing new.
+// press inside the floor still asks public DNS, which is free; only the
+// vendor waits. A refused press carries no DNS answer.
 //
 // **The engine is imported at the call, not at the top**, for the reason
 // `label-actions.ts` gives: this module is imported statically by client
@@ -68,14 +68,15 @@ const SETTINGS_PATH = "/app/settings";
  *   * `address_unsaved` — the address on screen is not the site's own.
  *   * `no_host` — the account has no hosted destination to check.
  *
- * `asked` and `could_not_ask` carry `dns`, what public DNS answered for the
- * host first (issue 856) — `null` where the press never reached it.
+ * `asked`, `too_soon` and `could_not_ask` carry `dns`, what public DNS
+ * answered for the host first (issue 856) — `null` where the press never
+ * reached it.
  *
  * No member can hold a sentence; the screen chooses the line.
  */
 export type ConnectionCheck =
   | { outcome: "asked"; state: Extract<HostnameCheck, { outcome: "asked" }>["state"]; dns: PublicDns | null }
-  | Extract<HostnameCheck, { outcome: "too_soon" }>
+  | (Extract<HostnameCheck, { outcome: "too_soon" }> & { dns: PublicDns })
   | { outcome: "could_not_ask"; because: "not_configured" | "no_answer"; dns: PublicDns | null }
   | { outcome: "refused"; because: LabelRefusal | "address_unsaved" | "no_host" };
 
@@ -87,9 +88,8 @@ function named(checked: HostnameCheck, dns: PublicDns): ConnectionCheck {
     case "could_not_ask":
       return { outcome: "could_not_ask", because: "no_answer", dns };
     case "asked":
-      return { ...checked, dns };
     case "too_soon":
-      return checked;
+      return { ...checked, dns };
   }
 }
 

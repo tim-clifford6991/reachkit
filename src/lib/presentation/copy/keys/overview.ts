@@ -815,7 +815,7 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.connect.copy.type": ["Copy the type", { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" }],
   "overview.connect.copy.name": ["Copy the name", { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" }],
   "overview.connect.copy.value": ["Copy the value", { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" }],
-  "overview.connect.check": ["I’ve added it, check now", { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" }],
+  "overview.connect.check": ["Check connection now", { slots: {}, fixedBy: "board OverviewDNS · issue 1811; owner 2026-11-13 ruling, issue 2651" }],
   "overview.connect.guide": [
     "Step-by-step for your domain host →",
     { slots: {}, fixedBy: "board OverviewDNS v36, issue 2272 (drafted)" },

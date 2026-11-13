@@ -1,7 +1,7 @@
-// SPEC §5 — Overview's "I've added it, check now": the same Server Function
+// SPEC §5 — Overview's "Check connection now": the same Server Function
 // setup and Settings press, and one status line that says when the host was
-// last asked and what was found. The hourly check stays; this press is
-// optional.
+// last asked and what was found, a press inside the floor included. The
+// hourly check stays; this press is optional.
 "use client";
 
 import type React from "react";
@@ -14,12 +14,14 @@ import { formatTime } from "../_shell/format";
 import { SETTINGS_TAB_HREF } from "../settings/tabs";
 
 /** What a press adds under the status line, already written. */
-function noteOf(answer: ConnectionCheck): string | null {
+function noteOf(answer: ConnectionCheck, timeZone: string): string | null {
+  const elsewhere =
+    (answer.outcome === "asked" || answer.outcome === "too_soon") && answer.state !== "live" && answer.dns?.state === "points_elsewhere"
+      ? copy("settings.destination.check.dns.points-elsewhere", { target: answer.dns.target })
+      : null;
   switch (answer.outcome) {
     case "asked":
-      return answer.state !== "live" && answer.dns?.state === "points_elsewhere"
-        ? copy("settings.destination.check.dns.points-elsewhere", { target: answer.dns.target })
-        : null;
+      return elsewhere;
     case "could_not_ask":
       return copy(
         answer.because === "not_configured"
@@ -27,7 +29,13 @@ function noteOf(answer: ConnectionCheck): string | null {
           : "settings.destination.check.could-not-ask"
       );
     case "too_soon":
-      return copy("settings.destination.check.too-soon", { seconds: answer.askAgainInS });
+      return [
+        elsewhere,
+        copy("settings.destination.check.too-soon", {
+          time: formatTime(new Date(answer.checkedAt), timeZone),
+          seconds: answer.askAgainInS,
+        }),
+      ].filter((line) => line !== null).join(" ");
     case "refused":
       return null;
   }
@@ -50,8 +58,11 @@ export function CheckNow(p: {
       if (answer.outcome === "asked") {
         setCheckedAt(new Date().toISOString());
         setLive(answer.state === "live");
+      } else if (answer.outcome === "too_soon" && answer.state !== null) {
+        setCheckedAt(answer.checkedAt);
+        setLive(answer.state === "live");
       }
-      setNote(noteOf(answer));
+      setNote(noteOf(answer, p.timeZone));
     } catch {
       setNote(copy("settings.destination.check.could-not-ask"));
     } finally {
