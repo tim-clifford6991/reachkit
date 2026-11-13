@@ -443,12 +443,14 @@ whichever environment is walked.
 walk that runs a pass, and where to read each thing it did. It needs a paid account whose setup is
 finished and the Inngest app registered (above).
 
-**What starts it: completing setup, and nothing else.** `enqueueDeepPass`
-(`src/app/(account)/setup/_setup/store.ts`) sends `scan/run` with `tier: "deep"`. There is no
-second trigger: payment provisioning queues no pass.
+**What starts it: leaving setup's Details step (`PASS_STARTS_AFTER`, `submit.ts`), and the finish
+sends it again.** `enqueueDeepPass` (`src/app/(account)/setup/_setup/store.ts`) sends `scan/run` with
+`tier: "deep"`. Payment provisioning queues no pass.
 
 **It runs once per site.** The event's `scanId` is `setup-{siteId}`, which is the job's idempotency
-key, so a second setup submit for the same site is deduplicated rather than run again. Running a
+key, so the finish's send, or any second send for the same site, is deduplicated rather than run
+again; the pass adopts the site's onboarding row (`onboardingPassId`), whichever of setup's rivals
+route or the pass claimed it first. Running a
 second pass against a site that has had one means a new site row, or an event sent from the Inngest
 dashboard with a different `scanId` (*Running one by hand*, above).
 

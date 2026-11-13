@@ -102,4 +102,10 @@ describe("a pass concludes a market only from pages of the site's own, and a wit
     buys.push({ ranked: own.bought, market: infer.mock.calls.length });
     expect(buys).toEqual([{ ranked: [true], market: 1 }, { ranked: [undefined], market: 1 }]);
   });
+  it("a paying pass whose pages name no category measures the one the site holds; a free pass guesses none", async () => {
+    const sources: string[] = [], unnamed = { category: "", job: "", offeringType: "", audienceTerms: [], namedRivals: [], vocabulary: [], brandTokens: [] };
+    const paid = { ...cost, recordFetch: async (call: { source: string }) => (sources.push(call.source), call.source === "profile" ? { payload: { parseOutcome: "success", value: unnamed, tokensIn: 0, tokensOut: 0, durationMs: 0 }, fresh: true, costCents: 0 } : { skipped: "cap" }) };
+    const stage = async (concludesMarket: boolean) => { const [{ readMarket }, { freshSections }] = await Promise.all([import("@/lib/scan/pass/market"), import("@/lib/scan/pass/sections")]); const a = { siteId: "site-1", domain: DOMAIN, concludesMarket, cost: paid, startedAt: AT, parameters: { extraSeeds: 0 }, bounds: { stopNow: () => null, remainingMs: () => 0, remainingCents: () => 100 }, sections: { ...freshSections(AT), measurement: { text: { home: WORDS, pricing: null }, locale: { country: "GB", language: "en" }, ownRanked: measured(0, AT), ownRankedRows: [] } } } as unknown as StageArgs; await readMarket(a, () => false); return [a.sections.marketThin, a.sections.concludedCategory]; };
+    expect([await stage(true), await stage(false), sources.filter((s) => s.endsWith("keyword_suggestions")).length]).toEqual([[null, "tea rooms"], ["market_not_named", undefined], 1]);
+  });
 });
