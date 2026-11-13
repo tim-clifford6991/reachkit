@@ -10,7 +10,7 @@ import { measured } from "@/lib/measure/measured";
 import type { CostContext } from "@/lib/costs";
 import { fakeDb, installSiteSpendRpc, type Row } from "../publish/harness";
 import { AT, fakeCost, opportunity, pack, pageParts, prose } from "./fixtures";
-import { LOCAL_WORDPRESS, SAAS_HOSTED, measuredText, seedWorld, type LiveSite } from "./live-edit-world";
+import { LOCAL_WORDPRESS, SAAS_HOSTED, WENT_LIVE, measuredText, seedWorld, type LiveSite } from "./live-edit-world";
 
 const db = fakeDb();
 const { site, llm } = vi.hoisted(() => ({ site: { current: null as LiveSite | null }, llm: vi.fn() }));
@@ -53,9 +53,10 @@ function writer(answer: () => unknown = PASSING) {
   });
 }
 
-/** A page the pipeline wrote and published at `url`, `days` ago, and one ready update of it committed as the week's
- *  spare. `cause` is why it is due: `structure` is one code mends. */
-async function world(live: LiveSite, { days = 60, cause = "stale" }: { days?: number; cause?: string } = {}) {
+/** A page the pipeline wrote and published at `url`, `days` ago, else a month before the seeded live page so it stays
+ *  the oldest whatever today is, and one ready update of it committed as the week's spare. `cause` is why it is due:
+ *  `structure` is one code mends. */
+async function world(live: LiveSite, { days, cause = "stale" }: { days?: number; cause?: string } = {}) {
   site.current = live;
   seedWorld(db, live);
   installSiteSpendRpc(db);
@@ -70,7 +71,7 @@ async function world(live: LiveSite, { days = 60, cause = "stale" }: { days?: nu
   db.seed("opportunities", [...db.rows("opportunities"), { ...(insertFor(opportunity({ siteId: live.siteId })) as unknown as Row), id: row(written).opportunity_id, status: "done" }]);
   const url = live.liveUrl.replace("onboarding-checklist", "which-tool-small-team");
   Object.assign(row(written), { state: "published" });
-  const at = new Date(Date.now() - days * DAY_MS).toISOString();
+  const at = new Date(days === undefined ? Date.parse(WENT_LIVE) - 30 * DAY_MS : Date.now() - days * DAY_MS).toISOString();
   db.seed("publications", [...db.rows("publications"), { id: "p-written", draft_id: written, site_id: live.siteId, destination: live.destination, delivery_state: "delivered", attempt_no: 1, live_url: url, published_at: at, unpublished_at: null, mode: "autopilot", made_live_by_us: true }]);
   for (const each of db.rows("opportunities")) each.status = "done";
   const due = cause === "structure" ? { kind: "due", cause, defects: ["h1"] } : { kind: "due", cause };
@@ -207,8 +208,8 @@ describe("a day that spent nothing takes a writer-made update from stored resear
   });
 
   it("the page longest past its floor is the one updated, whether or not the week committed it", async () => {
-    // Two pages past the floor, 60 days and since 2026-09-12; nothing committed, and neither has a row yet.
-    const { url } = await world(SAAS_HOSTED, { days: 60 });
+    // Two pages past the floor, since 2026-08-13 and since 2026-09-12; nothing committed, and neither has a row yet.
+    const { url } = await world(SAAS_HOSTED);
     db.seed("opportunities", db.rows("opportunities").filter((each) => each.id !== WRITE_ID));
     current({ [row(written).opportunity_id as string]: SMALL, "o-write": SMALL });
     const taken = await day(SAAS_HOSTED, "generate:rules", "write");
