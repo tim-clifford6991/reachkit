@@ -321,7 +321,7 @@ describe("a founder who left comes back where they stopped (SPEC §5, 2026-09-20
   });
 
   it("a category they never changed leaves the card inferred, so the report's rivals stay on offer", () => {
-    const model = saved({ category: FIXTURE_SETUP_FACTS.measured?.report.category ?? "" });
+    const model = saved({ category: FIXTURE_SETUP_FACTS.measured?.report?.category ?? "" });
     expect(model.state.market.state).toBe("inferred");
   });
 
