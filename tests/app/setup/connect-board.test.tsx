@@ -103,7 +103,7 @@ describe("Connect matches board Setup string for string", () => {
       "Sign in where you bought your web address.",
       "Open the DNS settings and add a new record.",
       "Pick the type CNAME, then paste the name and the value above.",
-      "Save. Come back here and press I’ve added it, check now.",
+      "Save. Come back here and press Check connection now.",
       "Steps for where you bought your address",
       "Do this later",
       "We’ll email you a reminder. Your first page waits for it.",
@@ -112,7 +112,7 @@ describe("Connect matches board Setup string for string", () => {
       "Each page goes live on its day, by itself.",
       "You can edit or stop any page first. You never have to.",
       "Cancel or export in Settings at any time.",
-      "I’ve added it, check now",
+      "Check connection now",
     ]);
   });
 

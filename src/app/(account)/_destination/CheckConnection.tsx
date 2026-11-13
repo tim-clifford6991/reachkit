@@ -9,9 +9,10 @@
 //
 // **Three answers stay three.** "Live", "waiting for DNS" and "nothing could
 // be asked" each have their own line, and the third is never drawn as the
-// second. A press inside the floor asked nothing: the line from the last
-// answer stays on screen, beside a line saying when the founder may ask
-// again, so an old answer is never passed off as a new one.
+// second. A press inside the floor asked the vendor nothing: it draws the
+// recorded answer and a fresh DNS line, beside a line saying when that
+// answer was asked and when the founder may ask again, so an old answer is
+// never passed off as a new one, and a press is never answered by a countdown alone.
 //
 // **The wait counts down, and the button waits with it** (issue 840). A
 // press inside the floor starts a countdown to the moment the founder may
@@ -34,12 +35,8 @@ import { useEffect, useState } from "react";
 import type { LucideIcon } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import type { PublicDns } from "@/lib/publish/destinations/hosted/dns-check";
+import { formatTime } from "../app/_shell/format";
 import { checkConnection, type ConnectionCheck } from "./check-actions";
-
-/** An answer that says something about the host, or that nothing could be
- *  asked — the one the founder keeps reading until a later press replaces
- *  it. */
-type Answer = Extract<ConnectionCheck, { outcome: "asked" | "could_not_ask" | "refused" }>;
 
 const GOOD = "alert alert-success alert-soft text-sm";
 const WAITING = "alert alert-warning alert-soft text-sm";
@@ -64,9 +61,11 @@ const SETTINGS_WORDS: CheckWords = {
 /** The line for an answer, or `null` where there is nothing to say here —
  *  `no_host` is an account whose Settings card is redrawn without this
  *  block. `id` names the outcome for the suites, never for the founder. */
-function answerLine(answer: Answer, words: CheckWords): { key: CopyKey; title?: CopyKey; tone: string; id: string } | null {
+function answerLine(answer: ConnectionCheck, words: CheckWords): { key: CopyKey; title?: CopyKey; tone: string; id: string } | null {
   switch (answer.outcome) {
     case "asked":
+    case "too_soon":
+      if (answer.state === null) return null;
       return answer.state === "live"
         ? { key: words.live, tone: GOOD, id: "live" }
         : { key: words.pending, ...(words.pendingTitle ? { title: words.pendingTitle } : {}), tone: WAITING, id: "pending_dns" };
@@ -86,9 +85,9 @@ function answerLine(answer: Answer, words: CheckWords): { key: CopyKey; title?: 
 
 /** The first step's line: what public DNS said about the record, or `null`
  *  where the press did not reach it, or the vendor has said live. */
-function dnsLine(answer: Answer): { text: string; tone: string; id: PublicDns["state"] } | null {
+function dnsLine(answer: ConnectionCheck): { text: string; tone: string; id: PublicDns["state"] } | null {
   if (answer.outcome === "refused" || answer.dns === null) return null;
-  if (answer.outcome === "asked" && answer.state === "live") return null;
+  if ((answer.outcome === "asked" || answer.outcome === "too_soon") && answer.state === "live") return null;
   const dns = answer.dns;
   switch (dns.state) {
     case "points_here":
@@ -136,7 +135,7 @@ export function CheckConnection(p: {
   const words = p.words ?? SETTINGS_WORDS;
   const Mark = words.icon;
   const [running, setRunning] = useState(false);
-  const [answer, setAnswer] = useState<Answer | null>(null);
+  const [answer, setAnswer] = useState<ConnectionCheck | null>(null);
   /** When, by this browser's clock, the founder may ask again — `null`
    *  while nothing is being waited out. Counted from the server's
    *  `askAgainInS` rather than its `askAgainAt`, so a clock that disagrees
@@ -168,8 +167,8 @@ export function CheckConnection(p: {
         setAskAgainAt(at + next.askAgainInS * 1000);
       } else {
         setAskAgainAt(null);
-        setAnswer(next);
       }
+      setAnswer(next);
       p.onAnswer?.(next);
     } catch {
       // The press did not complete: nothing was asked, and the founder is
@@ -219,9 +218,12 @@ export function CheckConnection(p: {
           )}
         </div>
       )}
-      {!waiting ? null : (
+      {!waiting || answer?.outcome !== "too_soon" ? null : (
         <div role="status" className="alert alert-soft text-sm" data-testid="check-connection-too-soon">
-          {copy("settings.destination.check.too-soon", { seconds: askAgainInS })}
+          {copy("settings.destination.check.too-soon", {
+            time: formatTime(new Date(answer.checkedAt), Intl.DateTimeFormat().resolvedOptions().timeZone),
+            seconds: askAgainInS,
+          })}
         </div>
       )}
     </div>

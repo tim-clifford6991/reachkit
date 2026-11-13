@@ -528,7 +528,7 @@ export const SETTINGS_COPY = Object.freeze({
   // list said live, the domain list said waiting, or nothing could be asked
   // — and the press inside the floor, which asked nothing and says when it
   // may. Drafted and shipped under the owner ruling of 2026-09-16 (#759).
-  "settings.destination.check.button": ["Check connection", { slots: {}, fixedBy: "SPEC §5 (2026-09-16, issue 757)" }],
+  "settings.destination.check.button": ["Check connection now", { slots: {}, fixedBy: "SPEC §5 (2026-09-16, issue 757; owner 2026-11-13 ruling, issue 2651)" }],
   "settings.destination.check.live": ["Connected. Your pages will publish to this address.", { slots: {}, fixedBy: "SPEC §5 (2026-09-16, issue 757)" }],
   "settings.destination.check.pending-dns": ["Not connected yet. New settings can take a few hours, and we check every hour.", { slots: {}, fixedBy: "SPEC §5 (2026-09-16, issue 757)" }],
   "settings.destination.check.could-not-ask": ["We couldn’t check just now. Try again in a moment.", { slots: {}, fixedBy: "SPEC §5 (2026-09-16, issue 757)" }],
@@ -546,11 +546,11 @@ export const SETTINGS_COPY = Object.freeze({
   "settings.destination.check.dns.points-here": ["Record found, pointing at the right place.", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
   "settings.destination.check.dns.points-elsewhere": ["Your setting points to {target}. Change it to the value shown above.", { slots: { target: "text" }, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
   "settings.destination.check.dns.not-yet": ["No setting found yet. It can take a few hours.", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
-  "settings.destination.check.dns.unknown": ["We couldn’t check your setting. Try again soon.", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+  "settings.destination.check.dns.unknown": ["We couldn’t look up your setting just now. Try again in a minute.", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856; owner 2026-11-13 ruling, issue 2651)" }],
   /** `seconds` is how long until the press may ask again, as a whole
    *  number, counting down on screen. The registry does not pluralise, so
    *  the number stands after a colon (issue 840). */
-  "settings.destination.check.too-soon": ["Checked a moment ago. You can check again in {seconds} seconds.", { slots: { seconds: "text" }, fixedBy: "SPEC §5 (2026-09-17, issue 840)" }],
+  "settings.destination.check.too-soon": ["We last checked at {time}, and the answer above is that check. You can check again in {seconds} seconds.", { slots: { time: "text", seconds: "text" }, fixedBy: "SPEC §5 (2026-09-17, issue 840; issue 2651, drafted)" }],
 
   // ── Notifications ──────────────────────────────────────────────────────
   // One key per `stoppable: 'toggle'` row of `MAIL_KINDS`, named by the row's
