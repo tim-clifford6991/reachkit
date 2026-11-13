@@ -95,6 +95,7 @@ const client = {
           report: JSON.parse(JSON.stringify(a.p_report)),
           status: a.p_status,
           cost_cents: a.p_cost_cents,
+          stopped_reason: a.p_stopped_reason, finished_at: new Date().toISOString(),
         });
       }
     }
@@ -135,9 +136,7 @@ vi.mock("@/jobs/client", async () =>
 
 // The switch `provider.ts` writes down in its own header — see this file's.
 vi.mock("@/app/(account)/setup/_setup/provider", async (importOriginal) => {
-  const actual = await importOriginal<
-    typeof import("../../src/app/(account)/setup/_setup/provider")
-  >();
+  const actual = await importOriginal<typeof import("../../src/app/(account)/setup/_setup/provider")>();
   const { liveSetupStore } = await import("../../src/app/(account)/setup/_setup/store");
   return { ...actual, setupStore: () => liveSetupStore() };
 });
@@ -402,9 +401,7 @@ function answerQuery(query: DbQuery): unknown[] | null {
 
 const { CAPS, PRICE_BOOK, TIMING, VETO, WEEK_PLAN } = await import("../../src/lib/config/constants");
 const { setOpportunityStore } = await import("../../src/lib/opportunities");
-const { setCalendarSiteReader } = await import(
-  "../../src/app/(account)/app/calendar/provider"
-);
+const { setCalendarSiteReader } = await import("../../src/app/(account)/app/calendar/provider");
 const { readCalendarFacts } = await import("../../src/app/(account)/app/calendar/store");
 const { assembleMonth } = await import("../../src/app/(account)/app/calendar/month");
 const { monthOf, dayKeyOf } = await import("../../src/app/(account)/app/calendar/dates");
@@ -419,6 +416,7 @@ const { addAuthUser, fakeIdentityAuth, newFakeAuth, signedInCookie } = await imp
 const { runDeepPass } = await import("../../src/lib/scan/deep/run");
 const { activeSites } = await import("../../src/jobs/engine");
 const { passProgressFor } = await import("../../src/lib/scan/deep/progress");
+const { lastPass } = await import("../../src/lib/scan/deep/pass-end");
 const { isReleased, deadlineFrom } = await import("../../src/lib/scan/deep/release");
 const { destinationFor, APP_PATH } = await import(
   "../../src/app/(account)/setup/waiting/release"
@@ -915,6 +913,7 @@ describe("three decisions → deep pass → the first page already on the calend
 
       const after = await passProgressFor(SITE_ID);
       expect(after).toEqual({ running: false, degraded: false });
+      expect(await lastPass(SITE_ID)).toEqual({ kind: "ended", end: { outcome: "done", reason: "complete", at: scanRows[0]!.finished_at } });
       expect(destinationFor(after)).toBe(APP_PATH);
 
       // The deadline cannot un-say it: a read long after the window finds
