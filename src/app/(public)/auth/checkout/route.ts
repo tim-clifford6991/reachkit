@@ -10,13 +10,13 @@
 // **No session id is the offer: nobody returned from a payment.** Any other
 // return that cannot sign the buyer in is `/signin`, so they can ask for a
 // link; a real id that opens nothing may still be a payment whose webhook
-// has not landed, so it never shows the price page again.
+// has not landed, so it never shows the price page again. An open account
+// that could not be signed in is a known payment, and the screen says so.
 import { NextResponse, type NextRequest } from "next/server";
 import { APP_PATH, SETUP_PATH } from "@/app/(account)/setup/gate";
 import {
   CHECKOUT_SESSION_PLACEHOLDER,
   CHECKOUT_SESSION_QUERY_KEY,
-  SIGNIN_PATH,
   checkoutSignInPath,
   type CookieToSet,
 } from "@/lib/account/identity";
@@ -38,8 +38,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   });
 
   if (!entered.ok) {
-    const path = entered.because === "no_session" ? SIGNIN_PATH : checkoutSignInPath();
-    return NextResponse.redirect(new URL(path, request.url));
+    return NextResponse.redirect(new URL(checkoutSignInPath(entered.because === "no_session"), request.url));
   }
 
   const destination = entered.firstSignIn ? SETUP_PATH : APP_PATH;

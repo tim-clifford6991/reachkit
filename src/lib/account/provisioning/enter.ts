@@ -31,7 +31,11 @@ export async function enterAfterPayment(sessionId: string, io: CookieIO): Promis
   });
   if (!issued.issued) return { ok: false, because: "no_session" };
 
-  const redeemed = await redeemLink(io, { tokenHash: issued.tokenHash, type: "magiclink" });
+  const redeemed = await redeemLink(io, {
+    tokenHash: issued.tokenHash,
+    type: "magiclink",
+    userId: provisioned.userId,
+  });
   if (!redeemed.ok) return { ok: false, because: "no_session" };
 
   return { ok: true, firstSignIn: redeemed.firstSignIn };

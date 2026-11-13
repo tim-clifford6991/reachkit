@@ -104,9 +104,11 @@ export function confirmLinkPath(tokenHash: string, type: ConfirmType): string {
 /** The query a checkout return that could not sign its buyer in carries to the sign-in screen. */
 export const FROM_QUERY_KEY = "from";
 export const CHECKOUT_MARKER = "checkout";
+/** The return whose account is open, so the payment is known to have gone through. */
+export const PAID_MARKER = "paid";
 
-export function checkoutSignInPath(): string {
-  return `${SIGNIN_PATH}?${FROM_QUERY_KEY}=${CHECKOUT_MARKER}`;
+export function checkoutSignInPath(paid = false): string {
+  return `${SIGNIN_PATH}?${FROM_QUERY_KEY}=${paid ? PAID_MARKER : CHECKOUT_MARKER}`;
 }
 
 /** Where a link that no longer works lands its holder (REQ-098 c7). */
