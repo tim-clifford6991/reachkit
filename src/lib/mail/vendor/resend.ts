@@ -108,15 +108,6 @@ function readId(body: string): string | null {
   return null;
 }
 
-function logSend(a: {
-  kind: string;
-  recipient: string;
-  outcome: string;
-  status: number | null;
-  vendorId: string | null;
-}): void {
-  console.log(JSON.stringify({ event: "mail_send", ...a }));
-}
 
 /** RFC 8058's two headers. `List-Unsubscribe-Post` promises the URL unsubscribes on a POST alone, as `src/app/api/opt-out/[token]/route.ts` does;
  *  Gmail and Yahoo ask it of bulk senders, and the body link is a second way in, never a substitute. URIs are angle-bracketed by the grammar. */
@@ -145,12 +136,18 @@ export async function sendViaVendor(v: VendorSend): Promise<VendorResult> {
     ...(Object.keys(headers).length === 0 ? {} : { headers }),
   });
 
+  const idempotencyKey = idempotencyKeyOf(v, new Date());
+  // Two lines with the same `key` are one mail: the vendor answers a repeated key with the first send's id and sends nothing.
+  const key = createHash("sha256").update(idempotencyKey).digest("hex").slice(0, 12);
+  const logSend = (outcome: string, status: number | null, vendorId: string | null): void =>
+    console.log(JSON.stringify({ event: "mail_send", kind: v.kind, recipient, key, outcome, status, vendorId }));
+
   let response: TransportResponse;
   try {
-    response = await transport(payload, idempotencyKeyOf(v, new Date()));
+    response = await transport(payload, idempotencyKey);
   } catch {
     // Socket, DNS, timeout or other transport failure: nothing is known wrong with the address, so retry.
-    logSend({ kind: v.kind, recipient, outcome: "transport", status: null, vendorId: null });
+    logSend("transport", null, null);
     return { ok: false, retriable: true };
   }
 
@@ -158,21 +155,15 @@ export async function sendViaVendor(v: VendorSend): Promise<VendorResult> {
     const id = readId(response.body);
     if (id === null) {
       // Accepted but unnamed: re-sending would duplicate it, so it is permanent, not retried.
-      logSend({ kind: v.kind, recipient, outcome: "unreadable_ack", status: response.status, vendorId: null });
+      logSend("unreadable_ack", response.status, null);
       return { ok: false, retriable: false };
     }
-    logSend({ kind: v.kind, recipient, outcome: "sent", status: response.status, vendorId: id });
+    logSend("sent", response.status, id);
     return { ok: true, id };
   }
 
   const retriable = isRetriable(response.status);
   const retryUntil = retriable ? retryUntilFrom(response.headers, new Date()) : undefined;
-  logSend({
-    kind: v.kind,
-    recipient,
-    outcome: retriable ? "retriable" : "rejected",
-    status: response.status,
-    vendorId: null,
-  });
+  logSend(retriable ? "retriable" : "rejected", response.status, null);
   return retryUntil === undefined ? { ok: false, retriable } : { ok: false, retriable, retryUntil };
 }

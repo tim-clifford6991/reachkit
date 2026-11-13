@@ -104,6 +104,8 @@ export async function checkConnection(a: {
   /** What `/setup` shows before submit: the label typed and the address on
    *  screen. `null` from Settings, where the destination names its host. */
   draft: { label: string; domain: string | null } | null;
+  /** Settings' card alone: a setup screen redrawn mid-action is redirected away under its press. */
+  redraw?: boolean;
 }): Promise<ConnectionCheck> {
   const { currentSession } = await import("@/lib/account/identity");
   const session = await currentSession();
@@ -131,7 +133,7 @@ export async function checkConnection(a: {
       destinationId: destination.id,
     });
     // The press wrote the row's state: the card is redrawn from it.
-    if (checked.outcome !== "too_soon") revalidatePath(SETTINGS_PATH);
+    if (a.redraw === true && checked.outcome !== "too_soon") revalidatePath(SETTINGS_PATH);
     return named(checked, dns);
   }
 

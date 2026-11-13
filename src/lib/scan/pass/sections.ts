@@ -101,8 +101,8 @@ export interface Sections {
   /** The pages that crawl read, as the market conclusion reads them
    *  (#1185). `null` until the crawl has run. */
   pagesRead: readonly Pick<CrawledPage, "url" | "title" | "h1" | "text" | "unread">[] | null;
-  /** The category this pass concluded and measured under (#1185), where it
-   *  concluded one; the report records it as `measuredCategory`. */
+  /** The category this pass concluded, or read from the site at its market
+   *  stage, and measured under; the report records it as `measuredCategory`. */
   concludedCategory: string | undefined;
   /** The market this pass concluded and measures (#1185), where it
    *  concluded one: the market's buyer prompts are built from it (#1195). */

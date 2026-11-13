@@ -13,6 +13,7 @@ import { localSearch } from "@/lib/locale/place";
 import { BOT_PROTECTION, type DomainMeasurement } from "@/lib/measure";
 import { HOME_WORDLESS } from "@/lib/measure/blank-page";
 import { unmeasured } from "@/lib/measure/measured";
+import { readSiteCategory } from "../site-category";
 import { STAGE_BUDGETS, affordsSeed, questionsAffordable } from "../budgets";
 import type { Bounds } from "../ceilings";
 import { searchFootprintOf, type ThinFootprint } from "../search-footprint";
@@ -125,12 +126,19 @@ export async function readMarket(a: StageArgs, abandoned: () => boolean): Promis
   }
   if (failed(profile)) return;
   // The model was told to name no category the pages or the listing do not
-  // support (issue 1387). Where it named none, there is no market, and none
-  // is guessed.
+  // support. Where it named none, a paying site is measured under the
+  // category it holds, read now since Details may have saved it after the
+  // pass was claimed; a site holding none has no market, and none is guessed.
+  let measuredUnder = a.category;
   if (profile.kind !== "unmeasured" && profile.value.category === "") {
-    sections.marketThin = "market_not_named";
-    logMarketFromSearch({ read: false, because: "market_not_named" });
-    return;
+    measuredUnder = a.concludesMarket === true && a.siteId !== undefined ? ((await readSiteCategory(a.siteId).catch(() => undefined)) ?? a.category) : undefined;
+    if (abandoned()) return;
+    if (measuredUnder === undefined) {
+      sections.marketThin = "market_not_named";
+      logMarketFromSearch({ read: false, because: "market_not_named" });
+      return;
+    }
+    sections.concludedCategory = measuredUnder;
   }
   if ("search" in reading && profile.kind !== "unmeasured") sections.marketFrom = "search";
   sections.profile = profile;
@@ -154,7 +162,6 @@ export async function readMarket(a: StageArgs, abandoned: () => boolean): Promis
   // SPEC §6 (owner D28, #1185): the market is ReachKit's to keep current.
   // Re-checked here, before anything is bought for it, so this pass seeds
   // and measures the market that stands after the check.
-  let measuredUnder = a.category;
   let synonyms: readonly string[] = [];
   if (a.concludesMarket === true && a.siteId !== undefined && sections.pagesRead !== null) {
     try {
