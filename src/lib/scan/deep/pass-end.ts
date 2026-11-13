@@ -25,7 +25,7 @@ interface MinimalClient {
 
 /** How a finished pass ended, as the side panel states it. */
 export type PassEnd = {
-  outcome: "done" | "failed" | "stopped";
+  outcome: "done" | "degraded" | "failed" | "stopped";
   /** `scans.stopped_reason`, or `null` where the row recorded none. */
   reason: string | null;
   /** When it ended. */
@@ -45,14 +45,17 @@ export function passEndOf(row: EndRow): PassEnd | null {
   if (row.status === "running" || row.finished_at === null) return null;
   const reason = row.stopped_reason;
   const outcome =
-    reason === "complete" ? "done" : reason !== null && STOPPED_REASONS.includes(reason) ? "stopped" : "failed";
+    reason === "complete"
+      ? row.status === "degraded" ? "degraded" : "done"
+      : reason !== null && STOPPED_REASONS.includes(reason) ? "stopped" : "failed";
   return { outcome, reason, at: row.finished_at };
 }
 
-/** The newest deep pass's end, where it ended inside
- *  `REMEASURE.endShownMin`; `null` where it is still running or ended
- *  longer ago than the panel speaks of. */
-export async function recentPassEnd(siteId: string, now: Date = new Date()): Promise<PassEnd | null> {
+/** The site's newest deep pass: still running, or how it ended. */
+export type LastPass = { kind: "running" } | { kind: "ended"; end: PassEnd };
+
+/** The newest deep pass of any age, or `null` where the site has none. */
+export async function lastPass(siteId: string): Promise<LastPass | null> {
   const { data, error } = await (dbAdmin() as unknown as MinimalClient)
     .from<EndRow>("scans")
     .select("status, stopped_reason, finished_at")
@@ -60,10 +63,18 @@ export async function recentPassEnd(siteId: string, now: Date = new Date()): Pro
     .eq("tier", "deep")
     .order("created_at", { ascending: false })
     .limit(1);
-  if (error) throw new Error(`recentPassEnd: ${error.message}`);
+  if (error) throw new Error(`lastPass: ${error.message}`);
   const row = data?.[0];
   if (row === undefined) return null;
   const end = passEndOf(row);
-  if (end === null) return null;
-  return now.getTime() - Date.parse(end.at) <= REMEASURE.endShownMin * 60_000 ? end : null;
+  return end === null ? { kind: "running" } : { kind: "ended", end };
+}
+
+/** The newest deep pass's end, where it ended inside
+ *  `REMEASURE.endShownMin`; `null` where it is still running or ended
+ *  longer ago than the panel speaks of. */
+export async function recentPassEnd(siteId: string, now: Date = new Date()): Promise<PassEnd | null> {
+  const pass = await lastPass(siteId);
+  if (pass === null || pass.kind === "running") return null;
+  return now.getTime() - Date.parse(pass.end.at) <= REMEASURE.endShownMin * 60_000 ? pass.end : null;
 }

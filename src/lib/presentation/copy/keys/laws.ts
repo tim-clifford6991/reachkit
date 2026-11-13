@@ -249,6 +249,10 @@ export const LAWS_COPY = Object.freeze({
     "Check finished at {time}. Your screens show what it found.",
     { slots: { time: "text" }, fixedBy: "issue 1196" },
   ],
+  "shell.pass.ended.degraded": [
+    "Check finished at {time}. Some parts couldn’t be read this time; the next check fills them in.",
+    { slots: { time: "text" }, fixedBy: "issue 2654" },
+  ],
   "shell.pass.ended.failed": [
     "The check failed at {time}, on our side. The next check fills it in.",
     { slots: { time: "text" }, fixedBy: "issue 1196" },
@@ -277,5 +281,11 @@ export const LAWS_COPY = Object.freeze({
   "shell.domain.not-measured": [
     "not checked yet · first on {due}",
     { slots: { due: "date" }, fixedBy: "REQ-040 c7 · S13" },
+  ],
+  // Before the first weekly pass, the onboarding pass is what the line names: running, or the day it checked.
+  "shell.domain.checking": ["checking now", { slots: {}, fixedBy: "issue 2654" }],
+  "shell.domain.checked": [
+    "checked {on} · next on {due}",
+    { slots: { on: "date", due: "date" }, fixedBy: "issue 2654" },
   ],
 }) satisfies CopyPartition;

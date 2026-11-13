@@ -11,6 +11,7 @@
 // (#41) and §9's publishing (#45)). Keeping the assembly pure is what lets
 // every REQ-040 criterion be decided by a test with no database at all.
 import type { WorkStop } from "@/lib/presentation/stopped";
+import type { LastPass } from "@/lib/scan/deep/pass-end";
 import { resolveNoPublish, type NoPublishCauses, type NoPublishReason } from "./nopublish";
 import { localDate } from "./format";
 import { weeksMeasured, type MeasuredWeek, type WeekCount } from "./weeks";
@@ -72,6 +73,8 @@ export interface ShellModel {
    *  (REQ-073 c1: captured once, stored as one preference). */
   timeZone: string;
   weeks: WeekCount;
+  /** The newest deep pass, so a site with no weekly pass yet is told it is being checked or when it was. */
+  pass: LastPass | null;
   /** The pages that need the customer, beside Overview's menu item (SPEC §4,
    *  2026-10-17, #1477): a page in review is on its way and is not one. `0`
    *  renders no count at all — the renderer's rule, but the number is stated
@@ -103,6 +106,8 @@ export interface ShellFacts {
   /** REQ-065's own clock (#41): when this domain's first weekly measurement
    *  is due. Read, never computed here. */
   firstDueOn: Date;
+  /** The newest deep pass (the onboarding pass, or one measured again now), or `null`. */
+  pass: LastPass | null;
   /** The `needs_attention` drafts whose cause is critical for the customer
    *  (SPEC §4 2026-10-17, #1477; owner O7). A page in review is not counted. */
   waiting: number;
@@ -138,6 +143,7 @@ export function assembleShell(facts: ShellFacts): ShellModel {
     hasLogo: facts.hasLogo,
     timeZone: facts.timeZone,
     weeks,
+    pass: facts.pass,
     waiting: facts.waiting,
     review: facts.review,
     blog: facts.blog,
