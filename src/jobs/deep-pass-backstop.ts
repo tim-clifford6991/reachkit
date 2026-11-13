@@ -42,12 +42,15 @@ export async function sendRemeasure(a: { scanId: string; siteId: string; domain:
 
 /** The site's first page as the draft tick's own per-site event, for the
  *  date `nextPublishDate` gives now. A site the tick would not select is
- *  sent nothing, and the tick's key keeps a second send to one draft. */
+ *  sent nothing here; the tick sends its first page once it is selected. */
 export async function sendFirstDraft(a: { siteId: string; now?: Date }): Promise<void> {
   const { activeSites } = await import("./engine");
   const selection = await activeSites();
   const site = selection.held === null ? selection.sites.find((row) => row.siteId === a.siteId) : undefined;
-  if (site === undefined) return;
+  if (site === undefined) {
+    console.log(JSON.stringify({ event: "first_draft_not_selected", siteId: a.siteId, reason: selection.held ?? "not-selected" }));
+    return;
+  }
   const now = a.now ?? new Date();
   const [{ nextPublishDate }, { dayEvent }, { sendSubjectEvents }] = await Promise.all([
     import("./site-clock"),

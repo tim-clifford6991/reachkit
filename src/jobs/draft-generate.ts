@@ -16,7 +16,8 @@
 // a time per site and five in all, so one zone's due hour is never one
 // invocation's work. A site whose due hour passed with no day recorded — a
 // tick the platform missed, a run killed before it wrote — is sent on the
-// next tick while its window is still open, under the same key.
+// next tick while its window is still open, under the same key. A site in
+// its first week with no dated page yet is sent its first page on the next tick.
 //
 // It is also where the customer's Regenerate is carried out (#788): the
 // restart only moves the page back into `generating`, and every tick —
@@ -75,10 +76,10 @@ function siteDay(data: JobInput["data"]): { siteId: string; publishDate: string;
 }
 
 /** The event a due day is sent as: the site's clock rides along, so its run can check the publish time. */
-export function dayEvent(site: Site, day: { publishDate: string; hour: Date; again?: true }) {
-  // A day decided again is a delivery of its own: the first one's key is still held by the platform.
+export function dayEvent(site: Site, day: { publishDate: string; hour: Date; again?: true; first?: true }) {
+  // A day decided again, or a first page sent again, is a delivery of its own: the earlier key is still held by the platform.
   return {
-    key: `draft:${site.siteId}:${day.publishDate}${day.again ? ":again" : ""}`,
+    key: `draft:${site.siteId}:${day.publishDate}${day.again ? ":again" : day.first ? ":first" : ""}`,
     data: { siteId: site.siteId, publishDate: day.publishDate, hour: day.hour.toISOString(), timeZone: site.timeZone, publishTime: site.publishTime, vetoHours: site.vetoHours, ...(day.again ? { again: true } : {}) },
   };
 }
@@ -147,7 +148,13 @@ export const draftGenerate: JobDefinition = {
     const missed = await missedDays(
       selection.sites.flatMap((site) => openDraftDays(hour, site).map((day) => ({ site, siteId: site.siteId, ...day })))
     );
-    const due = [...dueNow, ...missed];
+    const sending = new Set([...dueNow, ...missed].map((day) => day.siteId));
+    const { firstDays } = await import("@/lib/publish/daily");
+    const first = await firstDays(
+      selection.sites.filter((site) => !sending.has(site.siteId)).map((site) => ({ site, siteId: site.siteId, publishDate: nextPublishDate(hour, site), hour, first: true as const })),
+      input.now
+    );
+    const due = [...dueNow, ...missed, ...first];
     if (due.length === 0) {
       return restarted.length === 0
         ? { outcome: "skipped", subjectId: null, reason: "not-due" }
