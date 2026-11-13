@@ -41,16 +41,11 @@
 // components, and the publishing seam reaches `@/lib/db`.
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { SIGNIN_PATH } from "@/lib/account/identity/addresses";
 import { checkLabel, hostFor, type LabelRefusal } from "@/lib/publish/destinations/hosted/label";
 import type { HostnameCheck } from "@/lib/publish/destinations/hosted/hostname";
 import type { PublicDns } from "@/lib/publish/destinations/hosted/dns-check";
-
-/** The Settings route, redrawn when a press has written a destination's
- *  state. An internal route name, not a customer-visible string. */
-const SETTINGS_PATH = "/app/settings";
 
 /**
  * What a press answers. `HostnameCheck`'s three outcomes, plus the refusals
@@ -125,13 +120,12 @@ export async function checkConnection(a: {
     // writes nothing and spends no floor: the founder is told what DNS
     // confirmed, and that the second step is not set up (issue 840).
     if (!domainsConfigured()) return { outcome: "could_not_ask", because: "not_configured", dns };
+    // Never revalidated here: that re-renders the pressing screen, and a finished setup redirects mid-action.
     const checked = await checkHostnameNow({
       siteId: site.siteId,
       hostname: destination.hostname,
       destinationId: destination.id,
     });
-    // The press wrote the row's state: the card is redrawn from it.
-    if (checked.outcome !== "too_soon") revalidatePath(SETTINGS_PATH);
     return named(checked, dns);
   }
 
