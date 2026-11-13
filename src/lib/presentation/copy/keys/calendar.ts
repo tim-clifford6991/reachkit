@@ -121,7 +121,7 @@ export const CALENDAR_COPY = Object.freeze({
   "calendar.day.set-aside": ["Set aside", { slots: {}, fixedBy: "owner O7, issue 2164 (drafted)" }],
   "calendar.day.became-update": ["Now an update", { slots: {}, fixedBy: "ux-designer, seo-master 2026-11-05, issue 2389 (drafted)" }],
   "calendar.day.became-update.line": ["This day now improves a live page instead of a new one. Nothing is needed from you.", { slots: {}, fixedBy: "ux-designer 2026-11-06, seo-master 2026-11-05, issue 2389 (drafted)" }],
-  "calendar.week.stop": ["Stop", { slots: {}, fixedBy: "SPEC §7 2026-10-19 E7 (drafted)" }],
+  "calendar.week.stop": ["Stop this page", { slots: {}, fixedBy: "SPEC §7 2026-10-19 E7 · #2657 S1 (issue 2668, drafted)" }],
   // Why the week holds a page: its most specific reason, one line.
   "calendar.week.why.near-page-one": ["Close to Google’s first page", { slots: {}, fixedBy: "SPEC §7 2026-10-19 C3 (drafted)" }],
   "calendar.week.why.not-moving": ["No movement in 8 weeks", { slots: {}, fixedBy: "SPEC §7 2026-10-19 C3 (drafted)" }],
@@ -150,7 +150,7 @@ export const CALENDAR_COPY = Object.freeze({
   // reconnect, so a page waiting on it opens where the founder fixes it
   // instead — and the WordPress sentence above is never shown to a hosted
   // site. Drafted under issue 759's ruling.
-  "calendar.action.check-destination": ["Check where your pages go live", { slots: {}, fixedBy: "issue 880" }],
+  "calendar.action.check-destination": ["Open Settings › Pages", { slots: {}, fixedBy: "issue 880 · #2657 S1 (issue 2668, drafted)" }],
   "calendar.action.skip": ["Skip", { slots: {}, fixedBy: "BUILD §4.6" }],
   // SPEC §7 (2026-09-20, #908, issue #914) — "Screens and mail say *Stop
   // this page*. 'Veto' remains the internal word and the name of the
@@ -194,7 +194,7 @@ export const CALENDAR_COPY = Object.freeze({
   // is the only thing the customer needs: nothing moved. The machine's own
   // word for why (`not_a_transition`, a guard name) is a developer's
   // signal and is never shown.
-  "calendar.answer.refused": ["That didn’t go through. The page is as it was.", { slots: {}, fixedBy: "SPEC §7 2026-09-20" }],
+  "calendar.answer.refused": ["That didn’t work, so the page is unchanged. Try again.", { slots: {}, fixedBy: "SPEC §7 2026-09-20 · #2657 S1 (issue 2668, drafted)" }],
 
   // §4.6's "Why this page" block and its five rows.
   "calendar.why.title": ["Why this page", { slots: {}, fixedBy: "REQ-043 c8" }],
