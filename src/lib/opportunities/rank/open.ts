@@ -9,7 +9,7 @@
 // **A ready `fix_page` is placed, not scored** (SPEC §9, owner ruling
 // 2026-09-14): it goes immediately ahead of the first Write row in its
 // cluster, and while clusters are not derived, ahead of the first Write row.
-import { PLAN_DEPTH } from "@/lib/config/constants";
+import { PLAN_DEPTH, REFRESH_MIN_AGE_DAYS } from "@/lib/config/constants";
 import { unfielded, type ListicleHeld, type ListicleNeed } from "@/lib/generate/templates/listicle";
 import type { Profile } from "@/lib/market/questions/profile";
 import type { IntentPrompt } from "../intent";
@@ -192,7 +192,7 @@ export function eligible(row: OpportunityRow): Rejection | null {
  *  where it is given (a week's spares, issue 1559). */
 export async function loadRanking(siteId: string, at: Date, only?: ReadonlySet<string>): Promise<RankLoad> {
   const store = opportunityStore();
-  const [rows, profile, fixRows, cited, prompts, report] = await Promise.all([
+  const [open, profile, fixRows, cited, prompts, report] = await Promise.all([
     store.openRankable(siteId),
     store.profileForSite(siteId),
     store.openFixPages(siteId),
@@ -206,6 +206,7 @@ export async function loadRanking(siteId: string, at: Date, only?: ReadonlySet<s
       .then(() => store.currentReport(siteId))
       .catch(() => null),
   ]);
+  const rows = await pastRefreshFloor(siteId, open, at);
   // An unmeasured count is the cold-start 0, as the pass reads it.
   const ownRanked = report === null ? null : report.ownRanked.kind === "measured" ? report.ownRanked.value : 0;
   const listicle = report === null ? null : await store.listicleHeld(siteId, report.scanId).catch(() => null);
@@ -213,6 +214,17 @@ export async function loadRanking(siteId: string, at: Date, only?: ReadonlySet<s
   // A cluster that cannot be read earns no page.
   const linkedClusters = cited.length === 0 ? [] : await store.clustersAt(siteId, cited).catch(() => [] as readonly string[]);
   return { rows, fixRows, profile, cited, topTens, prompts, linkedClusters, ownRanked, listicle };
+}
+
+/** The rows less a refresh of one of our pages whose live version is younger than §6's floor; pages that cannot be read keep them. */
+async function pastRefreshFloor(siteId: string, rows: readonly OpportunityRow[], at: Date): Promise<readonly OpportunityRow[]> {
+  if (!rows.some((row) => row.type === "refresh_page")) return rows;
+  const floor = at.getTime() - REFRESH_MIN_AGE_DAYS * 24 * 60 * 60 * 1000;
+  const pages = await Promise.resolve()
+    .then(() => opportunityStore().refreshPages(siteId))
+    .catch(() => []);
+  const young = new Set(pages.filter((page) => page.publishedAt.getTime() > floor).map((page) => canonicalUrl(page.url)));
+  return young.size === 0 ? rows : rows.filter((row) => row.type !== "refresh_page" || !young.has(canonicalUrl(row.target_ref)));
 }
 
 function topTensFor(rows: readonly OpportunityRow[], only?: ReadonlySet<string>) {
