@@ -161,7 +161,7 @@ export function CheckConnection(p: {
     setRunning(true);
     try {
       if (p.prepare !== undefined && !(await p.prepare())) return;
-      const next = await checkConnection({ draft: p.draft });
+      const next = await checkConnection({ draft: p.draft, redraw: p.onAnswer === undefined });
       if (next.outcome === "too_soon") {
         const at = Date.now();
         setNow(at);
