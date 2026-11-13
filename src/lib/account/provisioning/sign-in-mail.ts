@@ -51,6 +51,8 @@ export async function sendSignInLink(a: {
     preheader: mail.preheader,
     blocks: mail.blocks,
     reason: mail.reason,
+    // A request of its own, so "send it again" is a new mail even when it carries the same reused link.
+    period: new Date().toISOString(),
   });
   return result.sent ? { sent: true } : { sent: false, because: "mail" };
 }

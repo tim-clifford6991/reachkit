@@ -173,6 +173,7 @@ describe("BUILD §12 — the log carries no address and no body", () => {
       event: "mail_send",
       kind: "report",
       recipient: recipientDigest(SEND.to),
+      key: expect.stringMatching(/^[0-9a-f]{12}$/),
       outcome: "sent",
       status: 200,
       vendorId: "vendor-1",
