@@ -159,10 +159,10 @@ export const REPORT_COPY = Object.freeze({
   "notice.refused.stopped": ["Free scans are paused for now. Every report stays open to read.", { slots: {}, fixedBy: "REQ-003 c12" }],
   "control.rescan-age": ["Scan again", { slots: {}, fixedBy: "REQ-001 c15" }],
   "control.rescan-incomplete": ["Scan what’s missing", { slots: {}, fixedBy: "REQ-001 c14" }],
-  "control.retry": ["Try again", { slots: {}, fixedBy: "REQ-001 c16" }],
+  "control.retry": ["Scan again", { slots: {}, fixedBy: "REQ-001 c16 · issue 2657 S4 (issue 2671, drafted)" }],
   // Issue 715: the control on a part the pass's ceiling cut off — SPEC §2
   // quotes the words.
-  "control.retry-part": ["Try this part again", { slots: {}, fixedBy: "SPEC §2 · issue 715" }],
+  "control.retry-part": ["Scan this part again", { slots: {}, fixedBy: "SPEC §2 · issue 715 · issue 2657 S4 (issue 2671, drafted)" }],
   "copy-link.label": ["Copy link", { slots: {}, fixedBy: "REQ-001 c7" }],
 
   // ── Module 1, the verdict strip (BUILD §4.1) ──────────────────────────

@@ -55,7 +55,7 @@ export const CHROME_COPY = Object.freeze({
   /** Signed in, the header's one solid button into the app, in place of
    *  *Sign in* and *Start free* (owner 2026-09-26, #1125). Drafted; the
    *  owner's word is "dashboard". The arrow is the button's icon. */
-  "chrome.cta.app": ["Your dashboard", { slots: {}, fixedBy: "issue 1125" }],
+  "chrome.cta.app": ["Open your Overview", { slots: {}, fixedBy: "issue 1125 · issue 2657 S4 (issue 2671, drafted)" }],
   /* ── The footer ──────────────────────────────────────────────────── */
   "chrome.footer.product": ["Product", { slots: {}, fixedBy: "the approved screen set · 3a" }],
   "chrome.footer.legal": ["Legal", { slots: {}, fixedBy: "the approved screen set · 3a" }],
