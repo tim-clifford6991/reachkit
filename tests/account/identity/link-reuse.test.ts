@@ -73,6 +73,14 @@ describe("REQ-024 c4 (O2) — a sign-in link asked for again within 15 minutes i
     expect(await redeem(next)).toMatchObject({ ok: true });
   });
 
+  it("a link that failed to redeem is not re-sent", async () => {
+    const user = account();
+    const first = await ask(user.id, NOW);
+    for (const t of auth.tokens) t.superseded = true;
+    await redeemLink(cookieJarIO(new Map()), { tokenHash: new URL(first).searchParams.get("token_hash") ?? "", type: "magiclink", userId: user.id }, NOW);
+    expect(await ask(user.id, minutes(1))).not.toBe(first);
+  });
+
   it("reuse window is 15 min", async () => {
     const user = account();
     const first = await ask(user.id, NOW);

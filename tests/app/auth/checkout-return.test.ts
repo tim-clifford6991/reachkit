@@ -23,6 +23,7 @@ const { FAKE_AUTH_COOKIE, addAuthUser, fakeIdentityAuth, newFakeAuth } = await i
 );
 const { setAccountStore } = await import("../../../src/lib/account/store");
 const { memoryAccountStore, newMemoryAccounts } = await import("../../account/memory-store");
+const { provisionFromPayment } = await import("../../../src/lib/account/provisioning/provision");
 const { setStripe } = await import("../../../src/lib/account/stripe/client");
 const { newStripeDouble, stripeDouble, stripeErrors } = await import("../../account/stripe-double");
 const { setLeadStore } = await import("../../../src/lib/mail/leads/store");
@@ -61,7 +62,8 @@ beforeEach(() => {
   auth = newFakeAuth();
   vendor = newStripeDouble();
   vendor.sessions.set(SESSION_ID, paidSession());
-  setAccountStore(memoryAccountStore(accounts));
+  const store = memoryAccountStore(accounts);
+  setAccountStore({ ...store, insertAccount: async (a) => (await fakeIdentityAuth(auth).ensureUser(a.email), store.insertAccount(a)) });
   setIdentityStore(memoryIdentityStore(identity));
   setIdentityAuth(fakeIdentityAuth(auth));
   setLeadStore(memoryStore(newMemoryState()));
@@ -95,6 +97,12 @@ describe("a completed payment signs the buyer in and sends them to setup", () =>
     expect(cookie).toBeDefined();
     expect(auth.sessions.find((s) => s.accessToken === cookie?.value)?.userId).toBe("user-1");
     expect(accounts.users).toHaveLength(1);
+  });
+
+  it("the webhook provisioned first: the return still lands signed in on /setup", async () => {
+    await provisionFromPayment(SESSION_ID);
+    const response = await open(`${ORIGIN}/auth/checkout?session_id=${SESSION_ID}`);
+    expect([locationOf(response).pathname, response.cookies.has(FAKE_AUTH_COOKIE)]).toEqual(["/setup", true]);
   });
 
   it("a returning customer who already signed in goes to /app, not setup", async () => {
@@ -143,10 +151,10 @@ describe("a real session id that cannot sign the buyer in lands on sign-in, neve
     expect(response.cookies.get(FAKE_AUTH_COOKIE)).toBeUndefined();
   });
 
-  it("an account whose sign-in cannot be opened lands on the bare /signin, as before", async () => {
+  it("an account whose sign-in cannot be opened lands on /signin?from=paid", async () => {
     auth.failGenerate = true;
     const response = await open(`${ORIGIN}/auth/checkout?session_id=${SESSION_ID}`);
-    expect(pathAndQuery(response)).toBe("/signin");
+    expect(pathAndQuery(response)).toBe("/signin?from=paid");
     expect(response.cookies.get(FAKE_AUTH_COOKIE)).toBeUndefined();
   });
 });

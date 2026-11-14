@@ -110,6 +110,7 @@ export function fakeIdentityAuth(state: FakeAuthState): IdentityAuth {
     async ensureUser(email) {
       if (state.failEnsure) return { ok: false };
       const existing = state.users.find((u) => u.email === lower(email));
+      for (const t of state.tokens) if (t.userId === existing?.id && t.type === "magiclink") t.superseded = true;
       if (existing !== undefined) return { ok: true, userId: existing.id };
       const user = addAuthUser(state, { id: `auth-${state.next++}`, email });
       return { ok: true, userId: user.id };
