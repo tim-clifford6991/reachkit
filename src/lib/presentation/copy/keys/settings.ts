@@ -277,15 +277,15 @@ export const SETTINGS_COPY = Object.freeze({
     { slots: {}, fixedBy: "issue 866" },
   ],
   "settings.market.category.not-measured-yet": [
-    "Saved, not checked yet. Press Check again now, or wait for {date}.",
-    { slots: { date: "date" }, fixedBy: "issue 866" },
+    "Saved, not checked yet. Press Check my market now, or wait for {date}.",
+    { slots: { date: "date" }, fixedBy: "issue 866 · owner 2026-11-14, issue 2657 S6 (issue 2672)" },
   ],
   // The standalone control (issue 866, fault 3): the only plain way to start
   // a pass early. What it does is said before it spends; a refused press
   // reads the same two sentences the thin-market choice is refused with
   // (`setup.remeasure.refused.*`), because the bound and the remedy are the
   // same one.
-  "settings.market.remeasure.action": ["Check again now", { slots: {}, fixedBy: "issue 866" }],
+  "settings.market.remeasure.action": ["Check my market now", { slots: {}, fixedBy: "issue 866 · owner 2026-11-14, issue 2657 S6 (issue 2672)" }],
   "settings.market.remeasure.started": [
     "We’re checking your market again. Your pages follow when it’s done.",
     { slots: {}, fixedBy: "issue 866" },
@@ -427,7 +427,7 @@ export const SETTINGS_COPY = Object.freeze({
   "settings.publishing.flow.paused": ["Paused: nothing goes live", { slots: {}, fixedBy: "issue 1751 · board SettingsPublishing · drafted" }],
   "settings.publishing.where.same": ["Your website stays as it is.", { slots: {}, fixedBy: "issue 2277 · board SettingsPublishing" }],
   "settings.publishing.time-zone.note": ["From your browser.", { slots: {}, fixedBy: "issue 2277 · board SettingsPublishing" }],
-  "settings.publishing.reconnect": ["Reconnect", { slots: {}, fixedBy: "BUILD §4.7" }],
+  "settings.publishing.reconnect": ["Reconnect WordPress", { slots: {}, fixedBy: "BUILD §4.7 · owner 2026-11-14, issue 2657 S6 (issue 2672)" }],
   // Issue #240 — the control on a destination that has never held a
   // credential. **Its own key, not `reconnect` reused**: a founder who
   // chose WordPress at setup has a destination row and has never connected

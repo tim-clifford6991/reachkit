@@ -168,7 +168,7 @@ export const OVERVIEW_COPY = Object.freeze({
   // on the accent panel's outline pill. The alert's own title and the line
   // saying what broke are bracketed there; their words below are the
   // owner's (#460).
-  "overview.alert.needs-you.action": ["Reconnect", { slots: {}, fixedBy: "S12" }],
+  "overview.alert.needs-you.action": ["Reconnect WordPress", { slots: {}, fixedBy: "S12 · owner 2026-11-14, issue 2657 S6 (issue 2672)" }],
   // The cause: "[cause line — owner's]" in the set, written by the owner
   // (#460). One short line
   // under the title, never a paragraph (§2.5's dim line).

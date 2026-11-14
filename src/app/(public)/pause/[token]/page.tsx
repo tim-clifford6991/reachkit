@@ -1,4 +1,4 @@
-// The page behind the Monday mail's "Pause all pages" link. Opening it only
+// The page behind the Monday mail's "Pause publishing" link. Opening it only
 // asks, because mail scanners open links; its one button switches publishing
 // off for the token's site and says how to turn it on again. It takes no page
 // transition (ADR-080): the switch is the column every publish attempt reads.
