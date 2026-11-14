@@ -348,10 +348,10 @@ export const SETUP_COPY = Object.freeze({
 
   /** REQ-029 c3: the pass measured some of it. One sentence saying what
    *  could not be measured. */
-  "setup.release.unmeasured": ["We couldn’t check everything the first time. The next check fills in the rest.", { slots: {}, fixedBy: "REQ-029 c3" }],
+  "setup.release.unmeasured": ["We couldn’t check everything the first time. The next check, on {due}, fills in the rest.", { slots: { due: "date" }, fixedBy: "REQ-029 c3; issue 2657 S3, issue 2670 (drafted)" }],
   /** REQ-029 c5: the pass failed outright, or had not ended when the founder was released anyway. One sentence saying
    *  the measurement did not complete — never that it found nothing, which is a different fact with its own line (§7). */
-  "setup.release.incomplete": ["Your first check didn’t finish. The next check fills it in on its own.", { slots: {}, fixedBy: "REQ-029 c5" }],
+  "setup.release.incomplete": ["Your first check didn’t finish. The next check, on {due}, fills in the rest.", { slots: { due: "date" }, fixedBy: "REQ-029 c5; issue 2657 S3, issue 2670 (drafted)" }],
   /** Issue #770: the pass read the market and found too few searches to
    *  plan a page from — a measurement, not a failure. Issue 837 (owner,
    *  2026-09-17): it points at the choice beside it, never at a week. */
