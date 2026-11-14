@@ -100,6 +100,14 @@ export const SOFT = [
   { name: "fetched", pattern: /\bfetch(?:ed|es|ing)?\b/i },
 ];
 
+// A button or link names its act, a verb and its object: a key ending in a press segment, or one under action/cta.
+export const PRESS_KEY = /(?:\.(?:action|submit|cta|button)|\.(?:action|cta)\.(?!lead$)[\w$-]+)$/;
+// The verbs a press may open with. A button with a new verb adds it here, so a reviewer sees it.
+export const PRESS_VERBS = new Set([
+  "add", "check", "connect", "continue", "edit", "email", "finish", "get", "open", "pause", "preview", "put", "read",
+  "reconnect", "resume", "save", "scan", "see", "send", "show", "sign", "start", "stop", "turn", "update", "view", "write",
+]);
+
 export function isExempt(key, file = "") {
   return EXEMPT_FILES.test(file) || EXEMPT_KEYS.some((re) => re.test(key));
 }
@@ -154,12 +162,12 @@ export function wordCount(text) {
 
 /**
  * What one string breaks: `sentence` over 15 words, `paragraph` over 2 sentences, `heading` over 6 words,
- * and each SOFT `word`. An aria string is a spoken list, so it skips the paragraph rule.
+ * each SOFT `word`, and a `press` key that does not open with a listed verb and its object. An aria string is a spoken list, so it skips the paragraph rule.
  */
 /**
  * @param {string} text
  * @param {{ key?: string, heading?: boolean }} [options]
- * @returns {{ rule: "sentence" | "paragraph" | "heading" | "word", n?: number, word?: string }[]}
+ * @returns {{ rule: "sentence" | "paragraph" | "heading" | "word" | "press", n?: number, word?: string }[]}
  */
 export function violations(text, { key = "", heading = false } = {}) {
   const out = [];
@@ -176,6 +184,10 @@ export function violations(text, { key = "", heading = false } = {}) {
         if (n > LIMITS.sentence) out.push({ rule: "sentence", n });
       }
     }
+  }
+  if (PRESS_KEY.test(key)) {
+    const said = normalise(text).trim();
+    if (!PRESS_VERBS.has(said.split(/\s+/)[0]?.toLowerCase() ?? "") || wordCount(said) < 2) out.push({ rule: "press" });
   }
   const words = text.replace(/\{[\w$.-]+\}/g, " ");
   for (const soft of SOFT) if (soft.pattern.test(words) && !soft.allow?.test(key)) out.push({ rule: "word", word: soft.name });
