@@ -5,7 +5,6 @@ import { Building2, Clock4, Sparkles, User } from "lucide-react";
 import { PRICE_EUR_CENTS } from "@/lib/config/constants";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { CostBars } from "@/ui/charts";
-import { HOW_FACTS } from "./facts";
 import { AGENCY_BENCHMARK } from "./specimen";
 
 const ICON = { size: 20, strokeWidth: 1.75, "aria-hidden": true } as const;
@@ -42,7 +41,7 @@ export function ThreeWays(p: { caption?: string; short?: boolean } = {}): React.
       {copy("how.value.source", { providers: AGENCY_BENCHMARK.providers, year: AGENCY_BENCHMARK.year })}
     </a>
   );
-  const vars = { minutes: HOW_FACTS.setupMinutes, price, fee: AGENCY_BENCHMARK.fee, jobs: JOBS.length };
+  const vars = { price, fee: AGENCY_BENCHMARK.fee, jobs: JOBS.length };
   const ours = PRICE_EUR_CENTS / 100;
   return (
     <div className="flex min-w-0 flex-col gap-4">
