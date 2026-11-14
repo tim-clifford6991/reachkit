@@ -108,13 +108,20 @@ async function askVendor(hostname: string): Promise<VendorAnswer> {
  *     "waiting for DNS".
  *   * `too_soon` — this site's last press was inside
  *     `DESTINATION_HOSTNAME_CHECK_FLOOR_S`, so nothing was asked now. It
- *     carries when the founder may ask again and no state, so an old answer
- *     cannot be read as a new one.
+ *     carries when the founder may ask again, and the recorded word with when
+ *     it was asked, so an old answer is shown as old rather than not at all.
  */
 export type HostnameCheck =
   | { outcome: "asked"; state: HostnameState }
   | { outcome: "could_not_ask" }
-  | { outcome: "too_soon"; askAgainAt: string; askAgainInS: number };
+  | {
+      outcome: "too_soon";
+      askAgainAt: string;
+      askAgainInS: number;
+      /** The row's word, or `null` where no destination holds the host yet or it was never answered. */
+      state: HostnameState | null;
+      checkedAt: string;
+    };
 
 /** When each site's founder last pressed, per instance, keyed by site since cycling labels is one founder asking; the
  *  row's `hostname_checked_at` is read beside it. */
@@ -159,6 +166,8 @@ export async function checkHostnameNow(a: {
       outcome: "too_soon",
       askAgainAt: new Date(at).toISOString(),
       askAgainInS: Math.ceil((at - now.getTime()) / 1000),
+      state: row?.hostname_state ?? null,
+      checkedAt: new Date(last).toISOString(),
     };
   }
 
