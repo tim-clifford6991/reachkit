@@ -6,6 +6,7 @@
 // It refuses a draft not `in_review`, since a mail at the wrong moment is a false statement the caller is least able to see.
 // It lives here, not in the veto leaf, so publishing does not import the mail seam for one occasion.
 import { dbAdmin } from "@/lib/db";
+import { sendOnboardingMails } from "../onboarding";
 import { env } from "@/lib/config/env";
 import { PAGES_LANDING_PATH } from "@/lib/account/identity/addresses";
 import { MAIL_PAGE_LINES } from "@/lib/config/constants";
@@ -142,6 +143,8 @@ export async function sendDraftReadyMail(a: {
     ...(await withConnect(telling as TellableTelling, account)),
   });
 
+  // Setup done and connected, where due, go first, so the sequence reads in order.
+  await sendOnboardingMails(draft.siteId, at);
   const result = await sendEmail({
     kind: "draft-ready",
     to: account.email,

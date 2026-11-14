@@ -136,5 +136,10 @@ export async function checkHealth(destinationId: string): Promise<HealthCheck> {
     checkedAt,
     changed,
   });
+  // A healthy WordPress site is connected; a hosted one is told when its host goes live.
+  if (row.kind !== "hosted" && found.health === "ok") {
+    const { sendOnboardingMails } = await import("@/lib/mail/onboarding");
+    await sendOnboardingMails(row.site_id);
+  }
   return { health: found.health, reason: found.reason, checkedAt };
 }

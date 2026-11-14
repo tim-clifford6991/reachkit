@@ -22,6 +22,7 @@
 import type { FounderAnswers } from "@/lib/site-profile/knowledge/types";
 import { sendDeepPass, sendFirstDraft } from "@/jobs/deep-pass-backstop";
 import { dbAdmin } from "@/lib/db";
+import { sendOnboardingMails } from "@/lib/mail/onboarding";
 import { resolvesInDns } from "@/lib/egress/dns";
 import { applySetupChoice } from "@/lib/publish/setup/apply";
 import { hostFor } from "@/lib/publish/destinations/hosted/label";
@@ -487,6 +488,7 @@ export function liveSetupStore(): SetupStore {
       await sendDeepPass({ siteId, domain: row.domain });
     },
     enqueueFirstDraft: (siteId) => sendFirstDraft({ siteId }),
+    sendOnboardingMails: (siteId) => sendOnboardingMails(siteId),
   };
 }
 

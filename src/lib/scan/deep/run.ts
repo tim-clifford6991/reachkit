@@ -38,6 +38,7 @@
 // and "zero proposals is legal, never faked".
 import { FIRST_DRAFT_STAGE, type OnboardingStage } from "./progress";
 import { dbAdmin } from "@/lib/db";
+import { sendOnboardingMails } from "@/lib/mail/onboarding";
 import { deriveForPass, planFirstWeek } from "@/lib/opportunities";
 import { claimOnboardingPass, runScan, spendOnStoredReport } from "../run";
 import type { ScanStatus } from "../store";
@@ -230,6 +231,12 @@ export async function runDeepPass(a: {
     // who asked after the release.
     await recordStage(a.siteId, null);
     return released;
+  });
+
+  // Setup may have finished before the pass did; the mail is claimed once per site, so a re-measure sends nothing.
+  await step("onboarding-mail", async () => {
+    await sendOnboardingMails(a.siteId);
+    return null;
   });
 
   return { scanId: result.scanId, status: result.status, reason };
