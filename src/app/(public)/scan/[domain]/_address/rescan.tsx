@@ -2,7 +2,7 @@
 // src/app/(public)/scan/[domain]/_address/rescan.tsx
 //
 // **What was wrong.** `report-view.tsx` drew *Measure what's missing* and
-// its sibling *Measure again* / *Try again* as `<button type="button">`
+// its sibling *Measure again* / *Scan again* as `<button type="button">`
 // with no handler: drawn, focusable, tabbable, and doing nothing. SPEC
 // §1's line of 2026-09-20 names those two by name — "the report's *Try
 // again*, *Measure what's missing* and its one notice control act or are

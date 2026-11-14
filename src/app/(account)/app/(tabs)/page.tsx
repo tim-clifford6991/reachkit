@@ -23,7 +23,7 @@ import { PageLadder } from "../_overview/PageLadder";
 import { overviewNotice, readOnboarding, readReleaseNotice } from "../_shell/onboarding";
 import { FirstPageNotice, ReleaseNoticeLine } from "../_shell/OnboardingStatus";
 import { writtenLine } from "../_shell/written";
-import { formatDay, formatTime, SHELL_LOCALE } from "../_shell/format";
+import { formatDate, formatDay, formatTime, SHELL_LOCALE } from "../_shell/format";
 import { copy } from "@/lib/presentation/copy";
 import { dayKeyOf } from "../calendar/dates";
 import { ISSUES_HREF } from "../_overview/alerts";
@@ -149,7 +149,7 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
     <div className={OVERVIEW} data-testid="overview">
       <div className={HEAD}>
         <FirstPageNotice state={onboarding} />
-        <ReleaseNoticeLine noticeKey={notice} />
+        <ReleaseNoticeLine noticeKey={notice} due={formatDate(shell.nextDueOn, shell.timeZone)} />
         <OverviewHead
           eyebrow={eyebrow}
           title={needs === null ? copy("overview.head.title") : copy(needs.key, needs.vars)}

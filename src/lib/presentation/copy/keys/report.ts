@@ -159,10 +159,10 @@ export const REPORT_COPY = Object.freeze({
   "notice.refused.stopped": ["Free scans are paused for now. Every report stays open to read.", { slots: {}, fixedBy: "REQ-003 c12" }],
   "control.rescan-age": ["Scan again", { slots: {}, fixedBy: "REQ-001 c15" }],
   "control.rescan-incomplete": ["Scan what’s missing", { slots: {}, fixedBy: "REQ-001 c14" }],
-  "control.retry": ["Try again", { slots: {}, fixedBy: "REQ-001 c16" }],
+  "control.retry": ["Scan again", { slots: {}, fixedBy: "REQ-001 c16 · issue 2657 S4 (issue 2671, drafted)" }],
   // Issue 715: the control on a part the pass's ceiling cut off — SPEC §2
   // quotes the words.
-  "control.retry-part": ["Try this part again", { slots: {}, fixedBy: "SPEC §2 · issue 715" }],
+  "control.retry-part": ["Scan this part again", { slots: {}, fixedBy: "SPEC §2 · issue 715 · issue 2657 S4 (issue 2671, drafted)" }],
   "copy-link.label": ["Copy link", { slots: {}, fixedBy: "REQ-001 c7" }],
 
   // ── Module 1, the verdict strip (BUILD §4.1) ──────────────────────────
@@ -665,7 +665,7 @@ export const REPORT_COPY = Object.freeze({
   "landing.faq.any.q": ["Will it work for my business?", { slots: {}, fixedBy: "board PubLanding v36 · owner 2026-11-01" }],
   "landing.faq.any.a": ["Yes, if it has a website: a local service, shop, restaurant, firm, software or creator. We help your website where buyers search and ask AI, not your Google Maps listing.", { slots: {}, fixedBy: "board PubLanding v36 · owner 2026-11-01" }],
   "landing.faq.start.q": ["What do I need to start?", { slots: {}, fixedBy: "board Landing · issue 1596" }],
-  "landing.faq.start.a": ["A website and about {minutes} minutes. After you pay, copy one line into your domain’s settings to connect it.", { slots: { minutes: "text" }, fixedBy: "board Landing · issue 1596 · issue 2450 (drafted)" }],
+  "landing.faq.start.a": ["A website. After you pay, copy one line into your domain’s settings to connect it.", { slots: {}, fixedBy: "board Landing · issue 1596 · issue 2450 · owner 2026-11-13 · issue 2656" }],
   "landing.faq.german.q": ["Does it work in German?", { slots: {}, fixedBy: "board Landing · issue 1596" }],
   "landing.faq.german.a": [
     "Yes. Sites in {germanCountries} are checked and written in German. Sites in {englishCountries}, and everywhere else, get English.",

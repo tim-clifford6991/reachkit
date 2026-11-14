@@ -24,7 +24,6 @@ import {
   Search,
   ShieldCheck,
   Sparkles,
-  Timer,
   TrendingUp,
   X,
   type LucideIcon,
@@ -402,10 +401,6 @@ export function YourPart(e: Example): React.JSX.Element {
   return (
     <figure className={CARD}>
       <div className="card-body gap-4">
-        <p className={`${LABEL} flex items-center gap-1`}>
-          <Timer {...ICON} />
-          {copy("how.part.clock", { minutes: HOW_FACTS.setupMinutes })}
-        </p>
         <ol className="steps steps-vertical min-w-0">
           <li className="step step-primary">
             <span className="flex min-w-0 flex-col items-start text-start">

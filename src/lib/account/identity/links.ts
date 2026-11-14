@@ -150,7 +150,7 @@ function purposeOf(type: ConfirmType): LinkPurpose {
  */
 export async function redeemLink(
   io: CookieIO,
-  link: { tokenHash: string; type: ConfirmType },
+  link: { tokenHash: string; type: ConfirmType; userId?: string },
   now: Date = new Date()
 ): Promise<RedeemedLink> {
   const store = identityStore();
@@ -177,7 +177,13 @@ export async function redeemLink(
   }
 
   const verified = await identityAuth().verifyLink(io, link);
-  if (!verified.ok) return deadLink(verified.reason, { purpose });
+  if (!verified.ok) {
+    // A stored link that would not open is never re-sent: the next request mints.
+    if (link.userId !== undefined && (await liveSignInLink(link.userId, now))?.tokenHash === link.tokenHash) {
+      await store.writeSignInLink(link.userId, null);
+    }
+    return deadLink(verified.reason, { userId: link.userId, purpose });
+  }
 
   // REQ-024 c5's column, stamped once: `stampFirstSignedIn` writes only
   // where it is still null, so a second sign-in does not move it and the

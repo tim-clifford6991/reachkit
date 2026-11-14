@@ -227,7 +227,7 @@ export default async function AboutPage(): Promise<React.JSX.Element> {
               <p className="flex items-start gap-2">
                 <User {...ICON} className="text-primary mt-0.5 shrink-0" />
                 <span>
-                  <strong>{copy("library.close.part.label")}</strong> {copy("library.close.part.once", { minutes: F.setupMinutes })}
+                  <strong>{copy("library.close.part.label")}</strong> {copy("library.close.part.do")}
                 </span>
               </p>
               <p className="flex items-start gap-2" data-testid={DISCLOSURE_TEST_ID}>

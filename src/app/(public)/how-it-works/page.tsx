@@ -48,7 +48,6 @@ const SMALL = "text-base-content/70 text-sm";
 const ICON = { size: 16, strokeWidth: 1.75, "aria-hidden": true } as const;
 
 const PRICE = (): string => copy("price.amount");
-const minutes = { minutes: F.setupMinutes };
 const weekPages = { weekPages: F.weekPages };
 /** The week a customer first sees the work: their first. */
 const FIRST_WEEK = { week: 1 };
@@ -261,7 +260,7 @@ export default function HowItWorksPage(): React.JSX.Element {
           <WhatToExpect />
         </Section>
 
-        <Section id="you-do" band title={copy("how.part.title", minutes)} body={copy("how.part.body")}>
+        <Section id="you-do" band title={copy("how.part.title")} body={copy("how.part.body")}>
           {YourPart(EXAMPLE)}
         </Section>
 

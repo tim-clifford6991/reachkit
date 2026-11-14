@@ -62,8 +62,12 @@ export async function provisionFromPayment(sessionId: string): Promise<Provision
   const facts = recorded.facts;
 
   // 2. The account. The insert is the idempotency check: two deliveries
-  //    racing each other both attempt it and the database decides.
+  //    racing each other both attempt it and the database decides. A replay
+  //    already seen is answered first, because the insert's `ensureUser`
+  //    mints a link for a known address and so kills the one already sent.
   const store = accountStore();
+  const seen = await store.accountByCheckoutSession(sessionId);
+  if (seen.ok && seen.account !== null) return replayOf(sessionId, seen.account);
   const inserted = await store.insertAccount({
     email: facts.email,
     checkoutSessionId: sessionId,
@@ -75,18 +79,8 @@ export async function provisionFromPayment(sessionId: string): Promise<Provision
   });
 
   if (!inserted.ok && inserted.conflict === "checkout_session_id") {
-    // This payment, again. Nothing was bought twice: no mail, no link, no
-    // write.
     const existing = await store.accountByCheckoutSession(sessionId);
-    const account = existing.ok ? existing.account : null;
-    const site = account === null ? null : await store.siteForAccount(account.id);
-    logProvision({ sessionId, outcome: "replay" });
-    return {
-      userId: account?.id ?? null,
-      siteId: site?.ok === true ? site.siteId : null,
-      created: false,
-      duplicate: "replay",
-    };
+    return replayOf(sessionId, existing.ok ? existing.account : null);
   }
 
   if (!inserted.ok && inserted.conflict === "email") {
@@ -148,6 +142,18 @@ export async function provisionFromPayment(sessionId: string): Promise<Provision
   await capture("paid", { subject: userId });
 
   return { userId, siteId, created: true, signIn };
+}
+
+/** This payment, again. Nothing was bought twice: no mail, no link, no write. */
+async function replayOf(sessionId: string, account: { id: string } | null): Promise<ProvisionResult> {
+  const site = account === null ? null : await accountStore().siteForAccount(account.id);
+  logProvision({ sessionId, outcome: "replay" });
+  return {
+    userId: account?.id ?? null,
+    siteId: site?.ok === true ? site.siteId : null,
+    created: false,
+    duplicate: "replay",
+  };
 }
 
 /** The domain the purchase carries in. Reads the scan the checkout metadata

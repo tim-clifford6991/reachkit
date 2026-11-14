@@ -153,7 +153,7 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.week.title": ["This week", { slots: {}, fixedBy: "BUILD §4.5" }],
   // SPEC §4 (2026-09-20, #914): *Plan* is the calendar's on-screen name;
   // the key still says where the link goes.
-  "overview.week.calendar-link": ["Why each page →", { slots: {}, fixedBy: "SPEC §4 2026-09-20 · issue 1744 (drafted)" }],
+  "overview.week.calendar-link": ["See why each page →", { slots: {}, fixedBy: "SPEC §4 2026-09-20 · issue 1744; issue 2657 S3, issue 2670 (drafted)" }],
   "overview.week.day.done": ["done", { slots: {}, fixedBy: "REQ-041 c6" }],
   "overview.week.day.today": ["today", { slots: {}, fixedBy: "REQ-041 c6" }],
   "overview.week.day.to-come": ["next", { slots: {}, fixedBy: "REQ-041 c6" }],
@@ -802,7 +802,7 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: {}, fixedBy: "SPEC §5 2026-09-20 (drafted)" },
   ],
   "overview.connect.lead.ready": ["It goes live once your website is connected.", { slots: {}, fixedBy: "board OverviewDNS v36, issue 2272 (drafted)" }],
-  "overview.connect.eyebrow": ["Needs you · about 5 minutes, once", { slots: {}, fixedBy: "SPEC §5 2026-09-20 (drafted)" }],
+  "overview.connect.eyebrow": ["Needs you", { slots: {}, fixedBy: "owner 2026-11-13 · issue 2656" }],
   "overview.connect.title": ["Add one setting to your domain", { slots: {}, fixedBy: "board OverviewDNS v36, issue 2272 (drafted) · owner 2026-10-15 six words" }],
   "overview.connect.step.open": ["Open your domain settings", { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" }],
   "overview.connect.step.open.line": [
@@ -1021,7 +1021,7 @@ export const OVERVIEW_COPY = Object.freeze({
   ],
   "overview.fixes.line.one": ["One fix for your own site.", { slots: {}, fixedBy: "issue 1744 (drafted)" }],
   "overview.fixes.optional": ["Optional.", { slots: {}, fixedBy: "issue 1744 (drafted)" }],
-  "overview.fixes.see": ["See them →", { slots: {}, fixedBy: "issue 1744 (drafted)" }],
+  "overview.fixes.see": ["See the fixes →", { slots: {}, fixedBy: "issue 1744; issue 2657 S3, issue 2670 (drafted)" }],
   "overview.today.live": ["Today’s page went live at {time}.", { slots: { time: "date" }, fixedBy: "issue 1744 (drafted)" }],
   "overview.paused.line": [
     "Publishing is paused. Your pages are kept.",

@@ -171,7 +171,7 @@ export function PricingCard(
             <h2 className="text-3xl font-bold">{p.heading ?? copy("offer.close.heading")}</h2>
             {p.line === undefined ? null : <p className="max-w-prose">{p.line}</p>}
             <Terms specs={specs} />
-            <p className="text-base-content/70 text-sm">{copy("how.steps.part", { minutes: String(HOW_FACTS.setupMinutes) })}</p>
+            <p className="text-base-content/70 text-sm">{copy("how.steps.part")}</p>
           </div>
           <div className={`bg-base-100 rounded-box shrink-0 p-6 lg:w-96 ${FLOAT}`}>
             <PriceBox start={control} close cancel={cancel} refused={p.refused} free={p.free} />
