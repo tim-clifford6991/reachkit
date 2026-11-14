@@ -366,7 +366,7 @@ export const CHROME_COPY = Object.freeze({
   "how.value.agency.covers": ["Often yes", { slots: {}, fixedBy: "issue 1597 · drafted" }],
   "how.value.agency.cost": ["a month, the most common fee¹", { slots: {}, fixedBy: "board How it works · board Pricing v36" }],
   "how.value.ours.jobs": ["We do all {jobs}, every week", { slots: { jobs: "text" }, fixedBy: "issue 1597 · drafted" }],
-  "how.value.ours.time": ["A few questions, then nothing", { slots: {}, fixedBy: "owner 2026-11-13 · issue 2656" }],
+  "how.value.ours.time": ["A few questions and one setting", { slots: {}, fixedBy: "owner 2026-11-13 · issue 2656" }],
   "how.value.ours.covers": ["No", { slots: {}, fixedBy: "issue 1597 · drafted" }],
   "how.value.ours.cost": ["{price} a month", { slots: { price: "text" }, fixedBy: "issue 1597 · drafted" }],
   "how.value.source": ["¹ Most common agency fee for this work, Ahrefs survey of {providers} providers, {year}", { slots: { providers: "text", year: "text" }, fixedBy: "issue 1597 · drafted" }],

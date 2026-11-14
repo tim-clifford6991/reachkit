@@ -393,7 +393,7 @@ export const SETUP_COPY = Object.freeze({
   "setup.step.check": ["Details", { slots: {}, fixedBy: "SPEC §5 · board Setup2 · issue 1737" }],
   "setup.step.publishing": ["Connect", { slots: {}, fixedBy: "owner E11 · issue 1601" }],
 
-  "setup.step.time": ["Takes about 10 minutes.", { slots: {}, fixedBy: "SPEC §5 · owner 2026-11-13 · issue 2656" }],
+  "setup.step.time": ["The three steps take about 10 minutes.", { slots: {}, fixedBy: "SPEC §5 · owner 2026-11-13 · issue 2656" }],
   "setup.step.publishing.time": ["5–10 min, or send it to your web person", { slots: {}, fixedBy: "board Setup · issue 2114 (drafted)" }],
 
   /** One question per step — the screen's `<h1>`. */
