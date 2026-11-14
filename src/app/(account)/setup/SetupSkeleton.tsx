@@ -31,7 +31,7 @@ export function SetupSkeleton(): React.JSX.Element {
 
       <footer className={BAR}>
         <div className={BAR_INNER} data-frame={REGION.bar}>
-          <Box className="ms-auto h-11 w-38" />
+          <Box className="ms-auto h-11 w-50" />
         </div>
       </footer>
     </Waiting>
