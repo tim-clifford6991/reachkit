@@ -108,6 +108,9 @@ export const PRESS_VERBS = new Set([
   "reconnect", "resume", "save", "scan", "see", "send", "show", "sign", "start", "stop", "turn", "update", "view", "write",
 ]);
 
+// A press the owner named themself, counted by no verb rule (owner 2026-11-14, issue 2685).
+export const OWNER_NAMED_PRESSES = new Set(["chrome.cta.app"]);
+
 export function isExempt(key, file = "") {
   return EXEMPT_FILES.test(file) || EXEMPT_KEYS.some((re) => re.test(key));
 }
@@ -185,7 +188,7 @@ export function violations(text, { key = "", heading = false } = {}) {
       }
     }
   }
-  if (PRESS_KEY.test(key)) {
+  if (PRESS_KEY.test(key) && !OWNER_NAMED_PRESSES.has(key)) {
     const said = normalise(text).trim();
     if (!PRESS_VERBS.has(said.split(/\s+/)[0]?.toLowerCase() ?? "") || wordCount(said) < 2) out.push({ rule: "press" });
   }

@@ -53,9 +53,9 @@ export const CHROME_COPY = Object.freeze({
   "chrome.nav.scans": ["Scan library", { slots: {}, fixedBy: "owner 2026-11-06, issue 2452" }],
   "chrome.cta.start": ["Scan my site", { slots: {}, fixedBy: "issue 1582 · owner 2026-11-14, issue 2657 S6 (issue 2672)" }],
   /** Signed in, the header's one solid button into the app, in place of
-   *  *Sign in* and *Start free* (owner 2026-09-26, #1125). Drafted; the
-   *  owner's word is "dashboard". The arrow is the button's icon. */
-  "chrome.cta.app": ["Open your Overview", { slots: {}, fixedBy: "issue 1125 · issue 2657 S4 (issue 2671, drafted)" }],
+   *  *Sign in* and *Start free* (owner 2026-09-26, #1125). The owner's
+   *  word, kept over the verb-first press rule. The arrow is its icon. */
+  "chrome.cta.app": ["Dashboard", { slots: {}, fixedBy: "issue 1125 · owner 2026-11-14, issue 2685" }],
   /* ── The footer ──────────────────────────────────────────────────── */
   "chrome.footer.product": ["Product", { slots: {}, fixedBy: "the approved screen set · 3a" }],
   "chrome.footer.legal": ["Legal", { slots: {}, fixedBy: "the approved screen set · 3a" }],
