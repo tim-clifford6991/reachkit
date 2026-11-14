@@ -75,6 +75,8 @@ export interface DraftDayStore {
   pagesBetween(from: string, to: string): Promise<readonly (DraftDay & DayPage)[]>;
   /** Whether the destination is not connected yet (hosted: Overview's connect state; WordPress: no credential). */
   waitingForAddress?(siteId: string): Promise<boolean>;
+  /** Of these sites, those whose setup completed at or after `since`; absent, none. */
+  setUpSince?(siteIds: readonly string[], since: Date): Promise<readonly string[]>;
 }
 
 let store: DraftDayStore | null = null;
@@ -145,6 +147,23 @@ export async function missedDays<T extends DraftDay>(days: readonly T[]): Promis
     return missed;
   } catch {
     warn("missed-read-failed");
+    return [];
+  }
+}
+
+/** Of these days, those whose site finished setup in its first week and holds no dated page yet: a first page is owed
+ *  from the first tick that selects the site, not from its next due hour. An unreadable store gives none, and the next
+ *  tick asks again. Never throws. */
+export async function firstDays<T extends DraftDay>(days: readonly T[], now: Date): Promise<readonly T[]> {
+  if (days.length === 0) return [];
+  try {
+    const store = draftDays();
+    const recent = new Set((await store.setUpSince?.(days.map((day) => day.siteId), new Date(now.getTime() - 7 * MS_PER_DAY))) ?? []);
+    const fresh = days.filter((day) => recent.has(day.siteId));
+    const owed = await Promise.all(fresh.map(async (day) => !(await store.draftedBefore(day.siteId, "9999-12-31"))));
+    return fresh.filter((_, index) => owed[index]);
+  } catch {
+    warn("first-read-failed");
     return [];
   }
 }
@@ -253,6 +272,15 @@ function databaseDraftDayStore(): DraftDayStore {
         .eq("scheduled_for", publishDate);
       if (error !== null) throw new Error(error.message);
       return data ?? [];
+    },
+    async setUpSince(siteIds, since) {
+      const { data, error } = await publishDb()
+        .from<{ id: string }>("sites")
+        .select("id")
+        .in("id", [...siteIds])
+        .gte("setup_completed_at", since.toISOString());
+      if (error !== null) throw new Error(error.message);
+      return (data ?? []).map((row) => row.id);
     },
     async goingOutFrom(siteId, publishDate) {
       const { data, error } = await publishDb()

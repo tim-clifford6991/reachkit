@@ -100,12 +100,6 @@ describe("§7: one list, ordered by the formula", () => {
     await derive(threeTargets());
     expect(await rankOpen(SITE_ID)).toEqual(await rankOpen(SITE_ID));
   });
-
-  it("a site with no readable profile ranks nothing rather than guessing an order", async () => {
-    await derive(threeTargets());
-    state.profile = null;
-    expect(await rankOpen(SITE_ID)).toEqual([]);
-  });
 });
 
 describe("§7: `unblock` is never in the list and never fills a day", () => {

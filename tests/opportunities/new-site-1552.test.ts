@@ -66,6 +66,11 @@ describe("a new site ranks its own offering and what buyers ask ahead of a compa
     });
   }
 
+  it("a pass that measured no market still plans the ready rows", () => {
+    const held = rows(KINDS.saas);
+    expect(week(KINDS.saas, { rows: held, profile: null }).committed).toHaveLength(held.length);
+  });
+
   it("a fit-3 comparison still outranks a fit-2 offering page: the part orders equals, never lifts a lower fit over a higher", () => {
     const [comparison, offering] = rows(KINDS.saas);
     const lower = { ...offering!, business_fit: 2 };
