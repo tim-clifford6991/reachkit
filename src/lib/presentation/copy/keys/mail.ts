@@ -188,7 +188,7 @@ export const MAIL_COPY = Object.freeze({
   "mail.account.setup_done.found": ["Your setup is done and our first check of {domain} is finished. Here is what we found.", { slots: { domain: "text" }, fixedBy: "issue 2658 (drafted)" }],
   "mail.account.setup_done.partial": ["This first check could not measure everything. We check again every Monday, and that mail says what we found.", { slots: {}, fixedBy: "issue 2658 (drafted)" }],
   "mail.account.setup_done.market": ["Market", { slots: {}, fixedBy: "issue 2658 (drafted)" }],
-  "mail.account.setup_done.rivals": ["Rivals", { slots: {}, fixedBy: "issue 2658 (drafted)" }],
+  "mail.account.setup_done.rivals": ["Competitors", { slots: {}, fixedBy: "issue 2658 (drafted)" }],
   "mail.account.setup_done.searches": ["Searches we can write for", { slots: {}, fixedBy: "issue 2658 (drafted)" }],
   "mail.account.setup_done.day": ["{day}", { slots: { day: "text" }, fixedBy: "issue 2658 (drafted)" }],
   "mail.account.setup_done.week_none": ["No pages are planned yet. We look again on Monday and plan the week from what we find.", { slots: {}, fixedBy: "issue 2658 (drafted)" }],
