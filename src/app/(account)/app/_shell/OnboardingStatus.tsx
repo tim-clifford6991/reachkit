@@ -25,11 +25,13 @@ export function OnboardingStatus(p: {
   choice?: CategoryChoiceModel | null;
   /** The site's zone, for the times the panel states (issue 1196). */
   timeZone: string;
+  /** The weekly clock's next date, already formatted, for a pass that ended early. */
+  due: string;
   /** The site's setup channel, so the running panel hears the pass. */
   channel: string | null;
 }): React.JSX.Element | null {
   if (p.state.kind === "none") return null;
-  if (p.state.kind === "ended") return <PassEndLine end={p.state.end} timeZone={p.timeZone} />;
+  if (p.state.kind === "ended") return <PassEndLine end={p.state.end} timeZone={p.timeZone} due={p.due} />;
 
   if (p.state.kind === "notice") {
     // A notice that asks for a choice stands at every width, under the top bar below `lg` as the running line does.
@@ -83,7 +85,7 @@ function endLineOf(end: PassEnd): (typeof END_LINE)[keyof typeof END_LINE] {
 /** Issue 1196: how the founder's newest pass ended — done, failed with its
  *  reason, or stopped with its cause — for a while after it did, in the
  *  place the running steps stood. */
-export function PassEndLine(p: { end: PassEnd; timeZone: string }): React.JSX.Element {
+export function PassEndLine(p: { end: PassEnd; timeZone: string; due: string }): React.JSX.Element {
   const { key, tone, Icon } = endLineOf(p.end);
   return (
     <div
@@ -93,7 +95,7 @@ export function PassEndLine(p: { end: PassEnd; timeZone: string }): React.JSX.El
       data-outcome={p.end.outcome}
     >
       <Icon size={20} strokeWidth={1.75} className="shrink-0" aria-hidden />
-      <span className="min-w-0 wrap-anywhere">{copy(key, { time: formatTime(new Date(p.end.at), p.timeZone) })}</span>
+      <span className="min-w-0 wrap-anywhere">{copy(key, { time: formatTime(new Date(p.end.at), p.timeZone), due: p.due })}</span>
     </div>
   );
 }

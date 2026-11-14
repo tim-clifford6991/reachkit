@@ -114,7 +114,7 @@ function NotDone(): React.JSX.Element {
 function FromWeekOne(): React.JSX.Element {
   // The first three steps are ReachKit's own work, so they read as done; the rest wait on Google.
   const steps = [
-    { at: copy("pricing.months.day1.at"), what: copy("pricing.months.day1.what", { minutes: F.setupMinutes }), icon: Timer, ours: true },
+    { at: copy("pricing.months.day1.at"), what: copy("pricing.months.day1.what"), icon: Timer, ours: true },
     { at: copy("pricing.months.day2.at"), what: copy("pricing.months.day2.what"), icon: CircleCheck, ours: true },
     { at: copy("pricing.months.monday.at"), what: copy("pricing.months.monday.what"), icon: Mail, ours: true },
     ...([["found", Search], ["showing", Eye], ["top", TrendingUp]] as const).map(([step, icon]) => ({
@@ -161,7 +161,7 @@ function questions(): readonly Question[] {
   });
   return [
     landing("trial", Gift, { price: price() }),
-    landing("start", Plug, { minutes: F.setupMinutes }),
+    landing("start", Plug),
     landing("approve", Pen, { hours: F.windowHours }),
     landing("results", Clock4),
     { q: "landing.faq.stop.q", a: "landing.faq.stop.short", icon: CircleStop },

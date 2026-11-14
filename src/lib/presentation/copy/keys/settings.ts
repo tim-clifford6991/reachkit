@@ -69,10 +69,10 @@ export const SETTINGS_COPY = Object.freeze({
   // word each of them.
   "settings.answer.saved": ["Saved. It takes effect straight away.", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
   "settings.answer.saved-next-page": ["Saved. Your next page goes live at the new time.", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
-  "settings.answer.refused": ["That didn’t save. Nothing changed.", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+  "settings.answer.refused": ["That didn’t save, so nothing changed. Try again.", { slots: {}, fixedBy: "SPEC §4 2026-09-20; issue 2657 S2, issue 2669 (drafted)" }],
   /** Issue 1196: a press whose request never came back — the network or the
    *  server failed, not a refusal. Drafted; the owner may correct it. */
-  "settings.answer.could-not-ask": ["We couldn’t reach ReachKit, so nothing changed. Try again.", { slots: {}, fixedBy: "issue 1196" }],
+  "settings.answer.could-not-ask": ["This wasn’t saved. Check your connection and press again.", { slots: {}, fixedBy: "issue 1196; issue 2657 S2, issue 2669 (drafted)" }],
   // The canvas's own badge on a settings card (R4-11), shown where the
   // last change on that card was stored. It is the quiet half of the same
   // answer the toast speaks — a customer who looked away still sees that
@@ -768,7 +768,7 @@ export const SETTINGS_COPY = Object.freeze({
     { slots: {}, fixedBy: "REQ-075" },
   ],
 
-  "settings.content.export": ["Export everything", { slots: {}, fixedBy: "BUILD §4.7" }],
+  "settings.content.export": ["Download all my pages", { slots: {}, fixedBy: "BUILD §4.7; issue 2657 S2, issue 2669 (drafted)" }],
   // REQ-078 c5 (issue #52): "Given an export cannot be produced, when the
   // customer requests one, then they are told so in one written line and are
   // not given a partial archive presented as complete." One line, whatever

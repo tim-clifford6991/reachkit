@@ -54,8 +54,8 @@ export const PUBLISH_COPY = Object.freeze({
     { slots: { state: "text" }, fixedBy: "REQ-056 c2" },
   ],
   "publish.action.refused.guard": [
-    "Nothing changed. This page stays {state} until the problem clears.",
-    { slots: { state: "text" }, fixedBy: "REQ-056 c2" },
+    "Nothing changed. The reason is shown on this page.",
+    { slots: {}, fixedBy: "REQ-056 c2 · issue 2657 S1 (issue 2668, drafted)" },
   ],
 
   // 2026-09-06, issue #50 (REQ-062 / REQ-056 c6). The page record's
@@ -211,7 +211,7 @@ export const PUBLISH_COPY = Object.freeze({
     "Not connected yet. Your pages wait here, and you can read them.",
     { slots: {}, fixedBy: "§9 · REQ-028 c5" },
   ],
-  "publish.destination.line.dns-unset": ["Waiting for your setting. Pages wait until it works, and nothing is lost.", { slots: {}, fixedBy: "§9 · REQ-059 c2" }],
+  "publish.destination.line.dns-unset": ["We can’t see your setting yet. Your pages wait, and nothing is lost.", { slots: {}, fixedBy: "§9 · REQ-059 c2 · issue 2657 S1 (issue 2668, drafted)" }],
   "publish.destination.line.dns-elsewhere": [
     "Your setting points somewhere else, so pages are waiting. Fix it and they go live.",
     { slots: {}, fixedBy: "§9 · REQ-059 c2" },

@@ -73,6 +73,8 @@ export interface ShellModel {
    *  (REQ-073 c1: captured once, stored as one preference). */
   timeZone: string;
   weeks: WeekCount;
+  /** The weekly clock's next date, so a pass that ended early says when the next check fills it in. */
+  nextDueOn: Date;
   /** The newest deep pass, so a site with no weekly pass yet is told it is being checked or when it was. */
   pass: LastPass | null;
   /** The pages that need the customer, beside Overview's menu item (SPEC §4,
@@ -143,6 +145,7 @@ export function assembleShell(facts: ShellFacts): ShellModel {
     hasLogo: facts.hasLogo,
     timeZone: facts.timeZone,
     weeks,
+    nextDueOn: facts.firstDueOn,
     pass: facts.pass,
     waiting: facts.waiting,
     review: facts.review,

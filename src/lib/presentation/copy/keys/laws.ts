@@ -85,7 +85,7 @@ export const LAWS_COPY = Object.freeze({
   // The hosted address is not connected yet, so no page can go live (the
   // OverviewDNS board's sidebar line). Drafted; the owner corrects it.
   "next-publish.address-waiting": ["Waiting for your website", { law: "next-publish", slots: {}, fixedBy: "issue 1595" }],
-  "next-publish.paused": ["Publishing is off.", { law: "next-publish", slots: {}, fixedBy: "REQ-040 c4" }],
+  "next-publish.paused": ["Publishing is paused.", { law: "next-publish", slots: {}, fixedBy: "REQ-040 c4; issue 2657 S2, issue 2669 (drafted)" }],
   // What happens next when nothing holds publishing back. Drafted; the owner corrects it.
   "next-publish.page": [
     "Next page goes live {at}: {title}",
@@ -93,12 +93,12 @@ export const LAWS_COPY = Object.freeze({
   ],
   // The next page has no moment yet, so the line names its day and how far it got. Drafted; the owner corrects it.
   "next-publish.writing": [
-    "Next page, {on}: {title} (being written)",
-    { law: "next-publish", slots: { on: "date", title: "text" }, fixedBy: "issue 2639" },
+    "Next page, {on}: {title}. Being written.",
+    { law: "next-publish", slots: { on: "date", title: "text" }, fixedBy: "issue 2639; issue 2657 S2, issue 2669 (drafted)" },
   ],
   "next-publish.ready": [
-    "Next page, {on}: {title} (ready)",
-    { law: "next-publish", slots: { on: "date", title: "text" }, fixedBy: "issue 2639" },
+    "Next page, {on}: {title}. Ready.",
+    { law: "next-publish", slots: { on: "date", title: "text" }, fixedBy: "issue 2639; issue 2657 S2, issue 2669 (drafted)" },
   ],
   "next-publish.topic": [
     "Next page planned for {on}: {topic}",
@@ -254,20 +254,20 @@ export const LAWS_COPY = Object.freeze({
     { slots: { time: "text" }, fixedBy: "issue 2654" },
   ],
   "shell.pass.ended.failed": [
-    "The check failed at {time}, on our side. The next check fills it in.",
-    { slots: { time: "text" }, fixedBy: "issue 1196" },
+    "The check failed at {time}, on our side. The next check, on {due}, fills in the rest.",
+    { slots: { time: "text", due: "date" }, fixedBy: "issue 1196; issue 2657 S2, issue 2669 (drafted)" },
   ],
   "shell.pass.ended.site-unreadable": [
     "We couldn’t read your site at {time}. Check that it’s online, then check again in Settings.",
     { slots: { time: "text" }, fixedBy: "issue 1196" },
   ],
   "shell.pass.ended.time-ceiling": [
-    "The check ran out of time at {time}. The next check fills in the rest.",
-    { slots: { time: "text" }, fixedBy: "issue 1196" },
+    "The check ran out of time at {time}. The next check, on {due}, fills in the rest.",
+    { slots: { time: "text", due: "date" }, fixedBy: "issue 1196; issue 2657 S2, issue 2669 (drafted)" },
   ],
   "shell.pass.ended.spend-ceiling": [
-    "The check hit its cost limit at {time}. The next check fills in the rest.",
-    { slots: { time: "text" }, fixedBy: "issue 1196" },
+    "The check stopped early at {time}, on our side. The next check fills in the rest.",
+    { slots: { time: "text" }, fixedBy: "issue 1196; issue 2657 S2, issue 2669 (drafted)" },
   ],
   // Both approved as written by the screen set (ruling 11a): S12's domain
   // block reads "Week 6 · re-measured Mon 1 Sep" and S13's — the week the

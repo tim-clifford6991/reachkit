@@ -25,7 +25,6 @@ const VARS = {
   weekPages: String(HOW_FACTS.weekPages),
   checks: String(HOW_FACTS.checks),
   rivals: String(HOW_FACTS.rivals),
-  minutes: String(HOW_FACTS.setupMinutes),
   hours: String(HOW_FACTS.windowHours),
 };
 

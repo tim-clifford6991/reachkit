@@ -56,16 +56,16 @@ export const DANGER_COPY = Object.freeze({
   // *screen's*.
   //
   // REQ-079 c3's two gates, in the order the criterion states them.
-  // `export-taken` says only that the archive left this process, which is
+  // `export-taken` says the download finished on this side, which is
   // the strongest claim anything on this side can make — `markExportTaken`
   // is stamped after the last byte, and nothing here can know the customer
   // holds the file.
-  "danger.export-take": ["Take your export first", { slots: {}, fixedBy: "REQ-079 c3" }],
+  "danger.export-take": ["Get your pages first", { slots: {}, fixedBy: "REQ-079 c3; issue 2657 S2, issue 2669 (drafted)" }],
   // No slots: `danger_tickets` keeps the stamp and not the archive's name
   // or its page count, so the line says the archive left and no more. A
   // slot naming a file this side cannot re-derive would be a sentence the
   // screen could not fill.
-  "danger.export-taken": ["Export handed over", { slots: {}, fixedBy: "REQ-079 c3" }],
+  "danger.export-taken": ["Your pages are downloaded", { slots: {}, fixedBy: "REQ-079 c3; issue 2657 S2, issue 2669 (drafted)" }],
 
   // c2's typed confirmation. The label and the placeholder are one key —
   // the `/signin` precedent — and `{word}` is what the customer must type.

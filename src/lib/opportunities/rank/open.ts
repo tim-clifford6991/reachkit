@@ -9,7 +9,7 @@
 // **A ready `fix_page` is placed, not scored** (SPEC §9, owner ruling
 // 2026-09-14): it goes immediately ahead of the first Write row in its
 // cluster, and while clusters are not derived, ahead of the first Write row.
-import { PLAN_DEPTH } from "@/lib/config/constants";
+import { PLAN_DEPTH, REFRESH_MIN_AGE_DAYS } from "@/lib/config/constants";
 import { unfielded, type ListicleHeld, type ListicleNeed } from "@/lib/generate/templates/listicle";
 import type { Profile } from "@/lib/market/questions/profile";
 import type { IntentPrompt } from "../intent";
@@ -127,8 +127,7 @@ export function placeFixPages(
   return out;
 }
 
-/** The site's open, rankable opportunities in ranked order. A site with no
- *  readable profile ranks nothing. */
+/** The site's open, rankable opportunities in ranked order. */
 export async function rankOpen(siteId: string, at: Date = new Date(), only?: ReadonlySet<string>): Promise<Ranked[]> {
   const { scored, fixes, rotation } = rankingOf(await loadRanking(siteId, at, only), only);
   return placeFixPages(scored, fixes, rotation);
@@ -140,7 +139,7 @@ export async function rankOpen(siteId: string, at: Date = new Date(), only?: Rea
  *  once, and a Fix takes no day. */
 export async function writableDays(siteId: string, days: number = PLAN_DEPTH): Promise<number> {
   const [rows, profile] = await Promise.all([opportunityStore().openRankable(siteId), opportunityStore().profileForSite(siteId)]);
-  const { scored, rotation } = rankingOf({ rows, fixRows: [], profile, cited: [], topTens: await topTensFor(rows, profile) });
+  const { scored, rotation } = rankingOf({ rows, fixRows: [], profile, cited: [], topTens: await topTensFor(rows) });
   return countWritable(scored, rotation, days);
 }
 
@@ -176,26 +175,24 @@ export interface RankLoad {
 }
 
 /** Why a row the store holds open takes no place in the list. */
-export type Rejection = "unready" | "no_profile";
+export type Rejection = "unready";
 
 /**
  * Whether a row may take a place, or why not. Pure. One predicate, and it is
  * the stored one (issue 884, owner's ruling 2026-09-18): SPEC §6's "a day is
  * filled only by an opportunity that passes readiness" is the stored column
  * (`assessReadiness`), so the column, the screens and this order cannot
- * disagree. A fix needs no profile; any other row needs one.
+ * disagree. A market the pass could not measure holds no row: readiness holds only for harm.
  */
-export function eligible(row: OpportunityRow, ctx: { profile: Profile | null }): Rejection | null {
-  if (!row.ready) return "unready";
-  if (row.type === "fix_page") return null;
-  return ctx.profile === null ? "no_profile" : null;
+export function eligible(row: OpportunityRow): Rejection | null {
+  return row.ready ? null : "unready";
 }
 
 /** The site's rows and context the list reads — of the rows `only` names,
  *  where it is given (a week's spares, issue 1559). */
 export async function loadRanking(siteId: string, at: Date, only?: ReadonlySet<string>): Promise<RankLoad> {
   const store = opportunityStore();
-  const [rows, profile, fixRows, cited, prompts, report] = await Promise.all([
+  const [open, profile, fixRows, cited, prompts, report] = await Promise.all([
     store.openRankable(siteId),
     store.profileForSite(siteId),
     store.openFixPages(siteId),
@@ -209,17 +206,20 @@ export async function loadRanking(siteId: string, at: Date, only?: ReadonlySet<s
       .then(() => store.currentReport(siteId))
       .catch(() => null),
   ]);
+  // §6's floor: a refresh of our page whose live version is younger than it takes no place; unreadable pages keep it.
+  const young = !open.some((row) => row.type === "refresh_page") ? [] : await Promise.resolve().then(() => store.refreshPages(siteId)).catch(() => []);
+  const rows = open.filter((row) => row.type !== "refresh_page" || !young.some((page) => at.getTime() - page.publishedAt.getTime() < REFRESH_MIN_AGE_DAYS * 86_400_000 && canonicalUrl(page.url) === canonicalUrl(row.target_ref)));
   // An unmeasured count is the cold-start 0, as the pass reads it.
   const ownRanked = report === null ? null : report.ownRanked.kind === "measured" ? report.ownRanked.value : 0;
   const listicle = report === null ? null : await store.listicleHeld(siteId, report.scanId).catch(() => null);
-  const topTens = await topTensFor(rows, profile, only);
+  const topTens = await topTensFor(rows, only);
   // A cluster that cannot be read earns no page.
   const linkedClusters = cited.length === 0 ? [] : await store.clustersAt(siteId, cited).catch(() => [] as readonly string[]);
   return { rows, fixRows, profile, cited, topTens, prompts, linkedClusters, ownRanked, listicle };
 }
 
-function topTensFor(rows: readonly OpportunityRow[], profile: Profile | null, only?: ReadonlySet<string>) {
-  return opportunityStore().topTens([...new Set(rows.filter((row) => named(row, only) && eligible(row, { profile }) === null).map((row) => row.scan_id))]);
+function topTensFor(rows: readonly OpportunityRow[], only?: ReadonlySet<string>) {
+  return opportunityStore().topTens([...new Set(rows.filter((row) => named(row, only) && eligible(row) === null).map((row) => row.scan_id))]);
 }
 
 function named(row: { id: string }, only: ReadonlySet<string> | undefined): boolean {
@@ -237,16 +237,15 @@ export function rankingOf(
   rotation: Rotation;
   rejected: { opportunityId: string; reason: Rejection }[];
 } {
-  const { profile } = load;
   const rejected: { opportunityId: string; reason: Rejection }[] = [];
   const keep = (row: OpportunityRow) => {
-    const reason = eligible(row, { profile });
+    const reason = eligible(row);
     if (reason !== null) rejected.push({ opportunityId: row.id, reason });
     return reason === null;
   };
   const fixes = load.fixRows.filter((row) => named(row, only) && keep(row)).map(readOpportunity);
   const mixed = load.rows.filter((row) => named(row, only) && keep(row)).map(readOpportunity);
-  if (profile === null || mixed.length === 0) return { scored: [], fixes, rotation: {}, rejected };
+  if (mixed.length === 0) return { scored: [], fixes, rotation: {}, rejected };
 
   const seen: Seen = { cited: new Set(load.cited.map(canonicalUrl)), prompts: load.prompts ?? [] };
   const scored = mixed.map((opportunity) => ({ opportunity, ...pointsOf(opportunity, seen) }));

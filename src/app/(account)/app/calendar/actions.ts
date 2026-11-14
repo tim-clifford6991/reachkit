@@ -255,7 +255,7 @@ export function actionsFor(
               ? "calendar.action.reconnect"
               : "calendar.action.check-destination",
             kind: "link",
-            href: "/app/settings",
+            href: "/app/settings/pages#publishing",
           }
     );
   }

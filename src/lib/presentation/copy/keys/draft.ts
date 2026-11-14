@@ -87,8 +87,8 @@ export const DRAFT_COPY = Object.freeze({
     { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
   ],
   "draft.answer.refused": [
-    "That didn’t go through. The page is as it was.",
-    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
+    "That didn’t work, so the page is unchanged. Try again.",
+    { slots: {}, fixedBy: "SPEC §7 2026-09-20 · issue 2657 S1 (issue 2668, drafted)" },
   ],
 
   // §9's copy-out, "always shown" — the card the approved S16 draws it on,
@@ -311,8 +311,8 @@ export const DRAFT_COPY = Object.freeze({
     { slots: {}, fixedBy: "issue 1196" },
   ],
   "draft.unsaved": [
-    "couldn’t save. Your text is kept here, and nothing unsaved goes live.",
-    { slots: {}, fixedBy: "REQ-045 c7 · S17 (11a)" },
+    "Not saved. Your text is kept here; check your connection, then make any change to save it.",
+    { slots: {}, fixedBy: "REQ-045 c7 · S17 (11a) · issue 2657 S1 (issue 2668, drafted)" },
   ],
   "draft.not-found": [
     "This page isn’t here. It may have been stopped or replaced.",
@@ -833,7 +833,7 @@ export const DRAFT_COPY = Object.freeze({
   "draft.stopped.badge": ["Stopped", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
   "draft.stopped.line": ["Tomorrow’s page goes live as planned.", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
   "draft.stopped.wordpress": ["Your WordPress post was returned to draft. To bring it back, publish it in WordPress.", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
-  "draft.action.put-back": ["Put it back", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
+  "draft.action.put-back": ["Put it back live", { slots: {}, fixedBy: "issue 1749 · issue 2657 S1 (issue 2668, drafted)" }],
   "draft.put-back.until": ["You can put it back until {date}.", { slots: { date: "date" }, fixedBy: "issue 1749 (drafted)" }],
   "draft.put-back.done": ["It’s back on your site.", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
   "draft.put-back.refused": ["That didn’t work, so the page is still off your site. Try again.", { slots: {}, fixedBy: "issue 1749 (drafted)" }],

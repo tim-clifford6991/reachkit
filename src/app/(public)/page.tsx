@@ -80,7 +80,7 @@ function questions(): readonly { q: CopyKey; a: CopyKey; vars?: Record<string, s
     { q: "landing.faq.results.q", a: "landing.faq.results.short" },
     { q: "landing.faq.stop.q", a: "landing.faq.stop.short" },
     { q: "landing.faq.any.q", a: "landing.faq.any.a" },
-    { q: "landing.faq.start.q", a: "landing.faq.start.a", vars: { minutes: String(HOW_FACTS.setupMinutes) } },
+    { q: "landing.faq.start.q", a: "landing.faq.start.a" },
     { q: "landing.faq.german.q", a: "landing.faq.german.short", vars: { germanCountries: measuredCountryLists().germanCountries } },
     { q: "landing.faq.trial.q", a: "landing.faq.trial.short" },
   ];

@@ -59,6 +59,7 @@
 // `COPY` itself is left real.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { captureMail } from "./harness";
+import { actionsFor } from "@/app/(account)/app/calendar/actions";
 import { fakeDb, installTransitionRpc, type FakeDb, type Row, installSiteSpendRpc } from "../publish/harness";
 
 const db: FakeDb = fakeDb();
@@ -1098,9 +1099,7 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
       }
 
       expect(theDraftRow().state).toBe("needs_attention");
-      // SPEC §7 (2026-09-15): needs_attention leaves the opportunity queued —
-      // a page the customer can still restart is not offered twice, and it
-      // is not dismissed as a veto would dismiss it.
+      // needs_attention leaves the opportunity queued: a page the customer can still restart is neither offered twice nor dismissed.
       const opportunityId = String(theDraftRow().opportunity_id);
       expect(opportunities.rows.find((row) => row.id === opportunityId)?.status).toBe("queued");
       // The reason it stopped is on the page's own history, written by the
@@ -1110,6 +1109,7 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
         to: "needs_attention",
         reason: "retries_exhausted",
       });
+      expect(actionsFor({ page: { state: "needs_attention", stage: "needs_you", draftId, enteredReview: true, liveUrl: null, needsYou: { kind: "delivery" } } } as unknown as Parameters<typeof actionsFor>[0]).find((action) => action.kind === "link" && action.href.startsWith("/app/settings"))).toMatchObject({ href: "/app/settings/pages#publishing" });
       // One publication throughout, and no post: the at-most-once
       // guarantee is the row, and it held across four attempts.
       expect(db.rows("publications")).toHaveLength(1);
