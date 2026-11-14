@@ -36,7 +36,7 @@ export const CHROME_COPY = Object.freeze({
    *  + hero CTA)" — which supersedes the one-primary reading #290 applied
    *  here. The set brackets the label, so it is the owner's (approved
    *  2026-09-10, #459). */
-  "chrome.cta.scan": ["Free scan", { slots: {}, fixedBy: "issue 266" }],
+  "chrome.cta.scan": ["Scan my site", { slots: {}, fixedBy: "issue 266 · owner 2026-11-14, issue 2657 S6 (issue 2672)" }],
   /** The accessible name of the compact-band control that opens the
    *  links. It is the registered `Collapse`, listing them under the
    *  header — never a drawer or a dropdown (2026-09-07). */
@@ -51,7 +51,7 @@ export const CHROME_COPY = Object.freeze({
   "chrome.theme.to-light": ["Switch to light theme", { slots: {}, fixedBy: "board PubLanding · owner 2026-10-20 · drafted" }],
   /** The gallery, third of the header's three links (owner 2026-10-20, Q1). */
   "chrome.nav.scans": ["Scan library", { slots: {}, fixedBy: "owner 2026-11-06, issue 2452" }],
-  "chrome.cta.start": ["Free scan", { slots: {}, fixedBy: "issue 1582" }],
+  "chrome.cta.start": ["Scan my site", { slots: {}, fixedBy: "issue 1582 · owner 2026-11-14, issue 2657 S6 (issue 2672)" }],
   /** Signed in, the header's one solid button into the app, in place of
    *  *Sign in* and *Start free* (owner 2026-09-26, #1125). Drafted; the
    *  owner's word is "dashboard". The arrow is the button's icon. */

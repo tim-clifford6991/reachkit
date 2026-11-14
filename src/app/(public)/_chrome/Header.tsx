@@ -5,7 +5,7 @@
 //
 //   · **The header** — sticky, a 78% surface ground under a 12px blur. The
 //     mark and *How it works · Pricing · About · Scan library* on the left; on the
-//     right the one theme button, *Sign in* as a ghost, and *Free scan* solid.
+//     right the one theme button, *Sign in* as a ghost, and *Scan my site* solid.
 //     The link to the page the reader is on is in the primary ink, with
 //     `aria-current` (`NavLink`). The `/app` shell keeps its three-way dropdown.
 //   · **Below `lg`** the links move into a daisyUI `drawer` from the right;
@@ -151,7 +151,7 @@ export function Header(): React.JSX.Element {
           <SignedIn
             out={
               <>
-                <NavLink href="/signin" at={SIGNIN_AT} className="btn btn-ghost px-2">
+                <NavLink href="/signin" at={SIGNIN_AT} className="btn btn-ghost btn-sm px-2 sm:btn-md">
                   {copy("chrome.nav.signin")}
                 </NavLink>
                 <HeaderCta label={copy("chrome.cta.start")} />

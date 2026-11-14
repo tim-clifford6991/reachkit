@@ -59,7 +59,7 @@ export const MAIL_COPY = Object.freeze({
   "mail.section.rivals": ["competitors", { slots: {}, fixedBy: "REQ-064 c4" }],
   "mail.section.score": ["Visibility Score", { slots: {}, fixedBy: "REQ-064 c4" }],
   "mail.unsubscribe.label": ["Unsubscribe", { slots: {}, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
-  // The pages behind the Monday mail's Unsubscribe and Pause all pages links.
+  // The pages behind the Monday mail's Unsubscribe and Pause publishing links.
   "unsubscribe.head": ["Unsubscribed", { slots: {}, fixedBy: "issue 1741 (drafted)" }],
   "unsubscribe.done": ["You won’t get this mail any more: {mail}. Turn it back on in Settings › Pages.", { slots: { mail: "text" }, fixedBy: "issue 1741 (drafted)" }],
   "unsubscribe.changes.still": ["Still sent", { slots: {}, fixedBy: "issue 1741 (drafted)" }],
@@ -73,7 +73,7 @@ export const MAIL_COPY = Object.freeze({
   "pause.invalid": ["That link isn’t valid, so nothing has changed. You can pause publishing in Settings › Pages.", { slots: {}, fixedBy: "issue 1741 (drafted)" }],
   "pause.unavailable": ["That couldn’t go through just now, so nothing has changed. Try the link again in a few minutes, or pause publishing in Settings › Pages.", { slots: {}, fixedBy: "issue 1741 (drafted)" }],
   "pause.settings": ["Publishing settings", { slots: {}, fixedBy: "issue 1741 (drafted)" }],
-  "pause.ask": ["Press Pause all pages and no page goes live until you turn publishing on again in Settings › Pages. Nothing is deleted.", { slots: {}, fixedBy: "issue 1741 (drafted)" }],
+  "pause.ask": ["Press Pause publishing and no page goes live until you turn publishing on again in Settings › Pages. Nothing is deleted.", { slots: {}, fixedBy: "issue 1741 · owner 2026-11-14, issue 2657 S6 (issue 2672)" }],
   "mail.optout.label": ["Opt out of all follow-up mail", { slots: {}, fixedBy: "§12" }],
 
   // 2026-09-05, issue #31 (lead capture, the giveaway page and the nurture
@@ -295,7 +295,7 @@ export const MAIL_COPY = Object.freeze({
   "mail.weekly.hi": ["Hi {name}, here’s week {week} for {business}.", { slots: { name: "text", week: "text", business: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
   "mail.weekly.hi.unnamed": ["Here’s week {week} for {business}.", { slots: { week: "text", business: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
   "mail.weekly.pace": ["Google finds a new page in a few days to a few weeks. Reaching Google's first page can take months.", { slots: {}, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
-  "mail.weekly.footer.pause": ["Pause all pages", { slots: {}, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
+  "mail.weekly.footer.pause": ["Pause publishing", { slots: {}, fixedBy: "board MondayMail · issue 1741 · owner 2026-11-14, issue 2657 S6 (issue 2672)" }],
   "mail.weekly.footer.settings": ["Mail settings", { slots: {}, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
   "mail.weekly.next.skipped": ["{count} days this week have no page.", { slots: { count: "text" }, fixedBy: "issue 1674 (drafted)" }],
 

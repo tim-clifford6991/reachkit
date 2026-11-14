@@ -139,7 +139,7 @@ export const PUBLIC_PATHS: readonly string[] = [
   // has no session, and refusing it would answer a pressed Unsubscribe
   // control with a redirect to a sign-in screen.
   "/api/opt-out/:token",
-  // The Monday mail's Unsubscribe and Pause all pages links, and the one-click
+  // The Monday mail's Unsubscribe and Pause publishing links, and the one-click
   // endpoint its List-Unsubscribe header names: a mail's reader has no session.
   "/unsubscribe/:token",
   "/api/unsubscribe/:token",

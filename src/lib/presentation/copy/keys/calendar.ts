@@ -151,7 +151,7 @@ export const CALENDAR_COPY = Object.freeze({
   // instead — and the WordPress sentence above is never shown to a hosted
   // site. Drafted under issue 759's ruling.
   "calendar.action.check-destination": ["Open Settings › Pages", { slots: {}, fixedBy: "issue 880 · issue 2657 S1 (issue 2668, drafted)" }],
-  "calendar.action.skip": ["Skip", { slots: {}, fixedBy: "BUILD §4.6" }],
+  "calendar.action.skip": ["Stop this page", { slots: {}, fixedBy: "BUILD §4.6 · owner 2026-11-14, issue 2657 S6 (issue 2672)" }],
   // SPEC §7 (2026-09-20, #908, issue #914) — "Screens and mail say *Stop
   // this page*. 'Veto' remains the internal word and the name of the
   // mechanism in this file." The key, the command, the column and the
@@ -186,7 +186,7 @@ export const CALENDAR_COPY = Object.freeze({
   // ("saving…"): the panel speaks only after the machine has answered, so
   // there is no moment at which one of these is a guess.
   "calendar.answer.veto": ["Stopped. This page won’t go live.", { slots: {}, fixedBy: "SPEC §7 2026-09-20" }],
-  "calendar.answer.skip": ["Skipped. We won’t write this one.", { slots: {}, fixedBy: "SPEC §7 2026-09-20" }],
+  "calendar.answer.skip": ["Stopped. We won’t write this one.", { slots: {}, fixedBy: "SPEC §7 2026-09-20 · owner 2026-11-14, issue 2657 S6 (issue 2672)" }],
   // Issue 1196: "about two minutes" was not true — a page written again is
   // rewritten by the hourly draft tick (`src/jobs/draft-generate.ts`).
   "calendar.answer.regenerate": ["We’re writing it again. It’s ready within the hour, and its page updates itself.", { slots: {}, fixedBy: "SPEC §7 2026-09-20 · issue 1196" }],

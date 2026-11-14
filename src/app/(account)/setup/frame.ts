@@ -47,8 +47,8 @@ export const BAR = "sticky bottom-0 z-10 border-t border-base-300 bg-base-100";
 /** Back on the left, the step's action on the right, on the header's measure. */
 export const BAR_INNER = "mx-auto flex w-full max-w-[calc(var(--w-read)+2rem)] min-w-0 items-center justify-between gap-3 px-4 py-3";
 
-/** The step's one primary: 44px tall and at least as wide as the board draws it. */
-export const PRIMARY = "btn btn-primary h-11 min-w-38 text-(length:--t-body)";
+/** The step's one primary: 44px tall, and wide enough for its label in the fallback font so the font swap does not move it. */
+export const PRIMARY = "btn btn-primary h-11 min-w-50 text-(length:--t-body)";
 
 /** The quiet ink of a line that explains. */
 export const QUIET = "text-(length:--t-sm) text-base-content/70";

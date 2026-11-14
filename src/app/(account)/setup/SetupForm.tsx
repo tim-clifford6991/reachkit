@@ -504,18 +504,13 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
               onClick={() => startSaving(onwards)}
             >
               {saving ? <span className="loading loading-spinner loading-sm" aria-hidden /> : null}
-              {copy(onwardsLabel(step))}
+              {copy("setup.continue")}
             </button>
           )}
         </div>
       </footer>
     </div>
   );
-}
-
-/** What the one primary reads: "Looks right" leaves Check; every other step continues. */
-function onwardsLabel(step: SetupStepId): CopyKey {
-  return step === "check" ? "setup.check.confirm" : "setup.continue";
 }
 
 /** The label the hosted card was composed with — the founder's own, or the

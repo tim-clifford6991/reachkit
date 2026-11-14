@@ -368,7 +368,7 @@ export const SETUP_COPY = Object.freeze({
   // issue 759's ruling; the owner corrects the wording.
   "setup.remeasure.suggested": ["Broader markets to try", { slots: {}, fixedBy: "issue 837" }],
   "setup.remeasure.own": ["Or describe your market in your own words", { slots: {}, fixedBy: "issue 837" }],
-  "setup.remeasure.submit": ["Check again now", { slots: {}, fixedBy: "issue 837" }],
+  "setup.remeasure.submit": ["Check this market now", { slots: {}, fixedBy: "issue 837 · owner 2026-11-14, issue 2657 S6 (issue 2672)" }],
   "setup.remeasure.refused.empty": ["Type a market, or pick one of the suggestions.", { slots: {}, fixedBy: "issue 837" }],
   "setup.remeasure.refused.running": ["We’re already checking your market. Your pages follow when it’s done.", { slots: {}, fixedBy: "issue 837" }],
   "setup.remeasure.refused.daily-limit": ["You can check again after {time}.", { slots: { time: "text" }, fixedBy: "issue 837" }],
@@ -416,10 +416,9 @@ export const SETUP_COPY = Object.freeze({
     { slots: {}, fixedBy: "SPEC §5 Live only where the customer chose (drafted)" },
   ],
 
-  /** The controls at the foot of every step. "Looks right" leaves Check. */
+  /** The controls at the foot of every step, Check included. */
   "setup.back": ["Back", { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" }],
-  "setup.continue": ["Continue", { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" }],
-  "setup.check.confirm": ["Looks right", { slots: {}, fixedBy: "SPEC §5 · board Setup2 · issue 1737" }],
+  "setup.continue": ["Save and continue", { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908) · board Setup2 · issue 1737 · owner 2026-11-14, issue 2657 S6 (issue 2672)" }],
 
   // ── Check: here's what we read ─────────────────────────────────────
   /** `{time}` is when the running pass began, on the founder's clock. Shown only while a pass runs. */
