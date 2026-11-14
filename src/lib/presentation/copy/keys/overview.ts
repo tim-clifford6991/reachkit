@@ -802,7 +802,7 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: {}, fixedBy: "SPEC §5 2026-09-20 (drafted)" },
   ],
   "overview.connect.lead.ready": ["It goes live once your website is connected.", { slots: {}, fixedBy: "board OverviewDNS v36, issue 2272 (drafted)" }],
-  "overview.connect.eyebrow": ["Needs you · about 5 minutes, once", { slots: {}, fixedBy: "SPEC §5 2026-09-20 (drafted)" }],
+  "overview.connect.eyebrow": ["Needs you", { slots: {}, fixedBy: "owner 2026-11-13 · issue 2656" }],
   "overview.connect.title": ["Add one setting to your domain", { slots: {}, fixedBy: "board OverviewDNS v36, issue 2272 (drafted) · owner 2026-10-15 six words" }],
   "overview.connect.step.open": ["Open your domain settings", { slots: {}, fixedBy: "board OverviewDNS · issue 1811 (drafted)" }],
   "overview.connect.step.open.line": [

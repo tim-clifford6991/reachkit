@@ -91,7 +91,7 @@ export const CHROME_COPY = Object.freeze({
   "pricing.first.body": ["Your pages go live in week 1, and each Monday email shows where they stand.", { slots: {}, fixedBy: "board Pricing · issue 1722" }],
   "pricing.months.title": ["Your first months", { slots: {}, fixedBy: "board Pricing · issue 1722" }],
   "pricing.months.day1.at": ["Day 1", { slots: {}, fixedBy: "board Pricing · issue 1722" }],
-  "pricing.months.day1.what": ["About {minutes} minutes of setup. Your first page is written while you do it.", { slots: { minutes: "text" }, fixedBy: "board Pricing · issue 1722" }],
+  "pricing.months.day1.what": ["You answer a few questions and connect your site. Your first page is written while you do it.", { slots: {}, fixedBy: "owner 2026-11-13 · issue 2656" }],
   "pricing.months.day2.at": ["Day 2", { slots: {}, fixedBy: "board Pricing · issue 1722" }],
   "pricing.months.day2.what": ["Your first page goes live on your website, unless you stop it.", { slots: {}, fixedBy: "board Pricing · issue 1722" }],
   "pricing.months.monday.at": ["First Monday", { slots: {}, fixedBy: "board Pricing · issue 1722" }],
@@ -245,7 +245,7 @@ export const CHROME_COPY = Object.freeze({
   "how.step.4.when": ["from week {week}", { slots: { week: "text" }, fixedBy: "board How it works · issue 1729 · drafted" }],
   "how.step.4.line": ["A Monday email shows what went live and what moved.", { slots: {}, fixedBy: "issue 1597 · drafted" }],
   "how.steps.loop": ["Repeats every week, without you", { slots: {}, fixedBy: "issue 1597 · drafted" }],
-  "how.steps.part": ["Your part: about {minutes} minutes, once.", { slots: { minutes: "text" }, fixedBy: "issue 1597 · drafted" }],
+  "how.steps.part": ["Your part: answer a few questions and connect your site.", { slots: {}, fixedBy: "owner 2026-11-13 · issue 2656" }],
 
   // research
   "how.research.title": ["We get to know your business", { slots: {}, fixedBy: "issue 1597 · drafted" }],
@@ -328,9 +328,8 @@ export const CHROME_COPY = Object.freeze({
   "how.when.top.what": ["Some reach Google’s first page. Not every page gets there.", { slots: {}, fixedBy: "issue 1597 · drafted" }],
 
   // you do
-  "how.part.title": ["Your part: about {minutes} minutes, once", { slots: { minutes: "text" }, fixedBy: "issue 1597 · drafted" }],
+  "how.part.title": ["Your part: three steps", { slots: {}, fixedBy: "owner 2026-11-13 · issue 2656" }],
   "how.part.body": ["Check what we read about your business, then connect your website. After that you’re done, though you can edit or stop any page.", { slots: {}, fixedBy: "issue 1597 · drafted" }],
-  "how.part.clock": ["About {minutes} minutes, once", { slots: { minutes: "text" }, fixedBy: "issue 1597 · drafted" }],
   "how.part.one": ["Is this your business?", { slots: {}, fixedBy: "issue 1597 · drafted" }],
   "how.part.one.line": ["Your website, your country and the area you serve.", { slots: {}, fixedBy: "issue 1597 · drafted" }],
   "how.part.two": ["Here’s what we read", { slots: {}, fixedBy: "issue 1597 · drafted" }],
@@ -367,7 +366,7 @@ export const CHROME_COPY = Object.freeze({
   "how.value.agency.covers": ["Often yes", { slots: {}, fixedBy: "issue 1597 · drafted" }],
   "how.value.agency.cost": ["a month, the most common fee¹", { slots: {}, fixedBy: "board How it works · board Pricing v36" }],
   "how.value.ours.jobs": ["We do all {jobs}, every week", { slots: { jobs: "text" }, fixedBy: "issue 1597 · drafted" }],
-  "how.value.ours.time": ["About {minutes} minutes, once", { slots: { minutes: "text" }, fixedBy: "issue 1597 · drafted" }],
+  "how.value.ours.time": ["A few questions and one setting", { slots: {}, fixedBy: "owner 2026-11-13 · issue 2656" }],
   "how.value.ours.covers": ["No", { slots: {}, fixedBy: "issue 1597 · drafted" }],
   "how.value.ours.cost": ["{price} a month", { slots: { price: "text" }, fixedBy: "issue 1597 · drafted" }],
   "how.value.source": ["¹ Most common agency fee for this work, Ahrefs survey of {providers} providers, {year}", { slots: { providers: "text", year: "text" }, fixedBy: "issue 1597 · drafted" }],
@@ -508,7 +507,7 @@ export const CHROME_COPY = Object.freeze({
   "library.close.loop.4.line": ["The Monday email shows what went live and what changed.", { slots: {}, fixedBy: "board PubTools · issue 1728" }],
   "library.close.loop.4.sample": ["{live} pages live · {climbing} climbing on Google", { slots: { live: "text", climbing: "text" }, fixedBy: "board PubTools · issue 1728" }],
   "library.close.example": ["{business} is an example business.", { slots: { business: "text" }, fixedBy: "board PubTools · issue 1728" }],
-  "library.close.part": ["Your part: about {minutes} minutes, once. Then nothing, unless you want to edit or stop a page.", { slots: { minutes: "text" }, fixedBy: "board PubTools · issue 1728" }],
+  "library.close.part": ["Your part: answer a few questions and connect your site. Then nothing, unless you want to edit or stop a page.", { slots: {}, fixedBy: "board PubTools · issue 1728 · owner 2026-11-13 · issue 2656" }],
   "library.close.glance": ["{business}’s report. For software, {software}’s report shows the same three numbers.", { slots: { business: "text", software: "text" }, fixedBy: "board PubTools · issue 1728" }],
   "library.close.scan.domain": ["Scan {domain} for free", { slots: { domain: "text" }, fixedBy: "board PubToolMeta · issue 1728" }],
   "compare.eyebrow": ["Compare", { slots: {}, fixedBy: "issue 1458 · drafted" }],

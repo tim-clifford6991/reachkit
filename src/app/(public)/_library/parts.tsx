@@ -299,7 +299,6 @@ export const FIGURES = {
   weekPages: HOW_FACTS.weekPages,
   checks: HOW_FACTS.checks,
   windowHours: HOW_FACTS.windowHours,
-  minutes: HOW_FACTS.setupMinutes,
   searches: HOW_FACTS.searches,
   pages: SITE_PROFILE.MAX_PAGES,
 };
@@ -410,7 +409,7 @@ function LearnLoop(p: { steps?: Icons["steps"] } = {}): React.JSX.Element {
         <figcaption className={SMALL}>{copy("library.close.example", { business: EXAMPLES.plumber.business })}</figcaption>
       </figure>
       <div className="rounded-box bg-base-200 flex min-w-0 flex-col gap-1 p-4 text-sm">
-        <p>{copy("library.close.part", FIGURES)}</p>
+        <p>{copy("library.close.part")}</p>
         <p className="flex flex-wrap items-center gap-x-1">
           <span>{copy("landing.price.terms", { price: copy("price.amount") })}</span>
           <Link href={HOW_HREF} className="link link-primary inline-flex items-center gap-1">
@@ -432,7 +431,7 @@ export function YourPart(): React.JSX.Element {
       <p className={line}>
         <User size={20} strokeWidth={1.75} aria-hidden className={icon} />
         <span>
-          <strong>{copy("library.close.part.label")}</strong> {copy("library.close.part.once", FIGURES)}
+          <strong>{copy("library.close.part.label")}</strong> {copy("library.close.part.do")}
         </span>
       </p>
       <p className={line}>
