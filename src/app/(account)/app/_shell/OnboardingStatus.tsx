@@ -25,7 +25,7 @@ export function OnboardingStatus(p: {
   choice?: CategoryChoiceModel | null;
   /** The site's zone, for the times the panel states (issue 1196). */
   timeZone: string;
-  /** The weekly clock's next date, already formatted, for a pass that ended early. */
+  /** The weekly clock's next date, already formatted, for a pass that ended early or released short. */
   due: string;
   /** The site's setup channel, so the running panel hears the pass. */
   channel: string | null;
@@ -43,7 +43,7 @@ export function OnboardingStatus(p: {
         data-testid="shell-onboarding-notice"
       >
         {/* The live region is the sentence alone, so the form inside the notice is never announced as a status. */}
-        <span role={asks ? "status" : undefined}>{copy(p.state.key)}</span>
+        <span role={asks ? "status" : undefined}>{copy(p.state.key, { due: p.due })}</span>
         {p.choice === undefined || p.choice === null ? null : <MarketChoice choice={p.choice} />}
       </div>
     );
@@ -158,7 +158,7 @@ function MarketChoice(p: { choice: CategoryChoiceModel }): React.JSX.Element {
 }
 
 /** Overview's release notice (issue 784) — `overviewNotice`'s key, or nothing. */
-export function ReleaseNoticeLine(p: { noticeKey: CopyKey | null }): React.JSX.Element | null {
+export function ReleaseNoticeLine(p: { noticeKey: CopyKey | null; due: string }): React.JSX.Element | null {
   if (p.noticeKey === null) return null;
   return (
     <div role="status" className="alert alert-warning items-start text-sm" data-testid="overview-release-notice">
@@ -168,7 +168,7 @@ export function ReleaseNoticeLine(p: { noticeKey: CopyKey | null }): React.JSX.E
           <Linked sentence={copy(p.noticeKey)} word={`${copy("shell.nav.settings")} › ${copy("settings.tab.business")}`} href={SETTINGS_TAB_HREF.business} />
         </span>
       ) : (
-        copy(p.noticeKey)
+        copy(p.noticeKey, { due: p.due })
       )}
     </div>
   );

@@ -153,7 +153,7 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.week.title": ["This week", { slots: {}, fixedBy: "BUILD §4.5" }],
   // SPEC §4 (2026-09-20, #914): *Plan* is the calendar's on-screen name;
   // the key still says where the link goes.
-  "overview.week.calendar-link": ["Why each page →", { slots: {}, fixedBy: "SPEC §4 2026-09-20 · issue 1744 (drafted)" }],
+  "overview.week.calendar-link": ["See why each page →", { slots: {}, fixedBy: "SPEC §4 2026-09-20 · issue 1744; issue 2657 S3, issue 2670 (drafted)" }],
   "overview.week.day.done": ["done", { slots: {}, fixedBy: "REQ-041 c6" }],
   "overview.week.day.today": ["today", { slots: {}, fixedBy: "REQ-041 c6" }],
   "overview.week.day.to-come": ["next", { slots: {}, fixedBy: "REQ-041 c6" }],
@@ -1021,7 +1021,7 @@ export const OVERVIEW_COPY = Object.freeze({
   ],
   "overview.fixes.line.one": ["One fix for your own site.", { slots: {}, fixedBy: "issue 1744 (drafted)" }],
   "overview.fixes.optional": ["Optional.", { slots: {}, fixedBy: "issue 1744 (drafted)" }],
-  "overview.fixes.see": ["See them →", { slots: {}, fixedBy: "issue 1744 (drafted)" }],
+  "overview.fixes.see": ["See the fixes →", { slots: {}, fixedBy: "issue 1744; issue 2657 S3, issue 2670 (drafted)" }],
   "overview.today.live": ["Today’s page went live at {time}.", { slots: { time: "date" }, fixedBy: "issue 1744 (drafted)" }],
   "overview.paused.line": [
     "Publishing is paused. Your pages are kept.",
