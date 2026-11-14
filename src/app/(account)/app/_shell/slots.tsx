@@ -33,6 +33,7 @@
 // after the wrong picture.
 import type React from "react";
 import { DomainBlock } from "./DomainBlock";
+import { formatDate } from "./format";
 import { OnboardingStatus } from "./OnboardingStatus";
 import { PublishingCard } from "./PublishingCard";
 import { StoppedNotice } from "./StoppedNotice";
@@ -99,6 +100,7 @@ export async function OnboardingSlot(p: Reading): Promise<React.JSX.Element | nu
       state={onboarding}
       choice={choice}
       timeZone={shell.timeZone}
+      due={formatDate(shell.nextDueOn, shell.timeZone)}
       channel={channel}
     />
   );
