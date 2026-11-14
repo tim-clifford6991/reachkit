@@ -23,7 +23,7 @@
 // each leaf is handed its sentence already written.
 //
 // **Signed in** (owner 2026-09-26, #1125) *Sign in* and *Start free* give
-// way to one solid *Open your Overview* into `/app`, in the bar and never in
+// way to one solid *Dashboard* into `/app`, in the bar and never in
 // the drawer. The page is static, so it paints signed out and `SignedIn`
 // switches it after hydration; `/app`'s own gate sends a site-less account
 // on to `/setup`.
