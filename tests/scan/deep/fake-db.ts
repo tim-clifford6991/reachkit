@@ -81,6 +81,10 @@ export function fakeDb(tables: Record<string, Row[]> = {}): FakeDb {
             filters.push((row) => row[column] === value);
             return self;
           },
+          neq(column: string, value: unknown) {
+            filters.push((row) => row[column] !== value);
+            return self;
+          },
           is(column: string, value: unknown) {
             filters.push((row) => (row[column] ?? null) === value);
             return self;

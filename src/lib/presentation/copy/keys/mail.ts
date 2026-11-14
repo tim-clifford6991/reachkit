@@ -50,22 +50,8 @@ export const MAIL_COPY = Object.freeze({
   "mail.week_unmeasured": ["We couldn't check this week. The next check is on {nextDue}.", { slots: { nextDue: "date" }, fixedBy: "§12" }],
   "mail.week_partly_measured": ["We couldn't check {sections} this week. We left them out rather than show a zero.", { slots: { sections: "text" }, fixedBy: "§12" }],
 
-  // 2026-09-07, issue #181. The six names the line above interpolates.
-  //
-  // `mail.week_partly_measured` says a week was measured with sections it
-  // did not reach, and names them — REQ-064 c4 — and until now nothing
-  // could: `MeasurementState.partial` takes copy keys and no key existed
-  // for any of the six parts `unmeasuredPartsOf` reports. So the sender
-  // could state that *something* was missed and never what, which is the
-  // half of the criterion that carries the information.
-  //
-  // Six keys and not one with the part interpolated: they are the names of
-  // six different measurements, and a name is not a value.
-  //
-  // They are `mail.section.*` and not `mail.weekly.section.*`: the same
-  // six parts are what §4.5's own account of a partial week names, and one
-  // set of names is what stops a screen and a mail calling one measurement
-  // two things.
+  // The six parts a partly measured week names (REQ-064 c4): six measurements, so six keys, shared with §4.5's
+  // account of a partial week so a screen and a mail never call one measurement two things.
   "mail.section.on_page": ["your pages", { slots: {}, fixedBy: "REQ-064 c4" }],
   "mail.section.market": ["your market", { slots: {}, fixedBy: "REQ-064 c4" }],
   "mail.section.rankings": ["Google", { slots: {}, fixedBy: "REQ-064 c4" }],
@@ -196,6 +182,22 @@ export const MAIL_COPY = Object.freeze({
   // requires it in (c3, c5). One key, so the address is written once.
   "mail.account.reach_a_person": ["To reach a person, reply to this mail.", { slots: {}, fixedBy: "REQ-024 c5" }],
 
+  // SPEC §8, Onboarding mails: once per site, setup done with what the first check found, then connected.
+  "mail.account.setup_done.subject": ["Your setup is done", { slots: {}, fixedBy: "owner 2026-11-13 · issue 2658" }],
+  "mail.account.setup_done.preheader": ["What our first check found, and the pages planned for this week.", { slots: {}, fixedBy: "issue 2658 (drafted)" }],
+  "mail.account.setup_done.found": ["Your setup is done and our first check of {domain} is finished. Here is what we found.", { slots: { domain: "text" }, fixedBy: "issue 2658 (drafted)" }],
+  "mail.account.setup_done.partial": ["This first check could not measure everything. We check again every Monday, and that mail says what we found.", { slots: {}, fixedBy: "issue 2658 (drafted)" }],
+  "mail.account.setup_done.market": ["Market", { slots: {}, fixedBy: "issue 2658 (drafted)" }],
+  "mail.account.setup_done.rivals": ["Rivals", { slots: {}, fixedBy: "issue 2658 (drafted)" }],
+  "mail.account.setup_done.searches": ["Searches we can write for", { slots: {}, fixedBy: "issue 2658 (drafted)" }],
+  "mail.account.setup_done.day": ["{day}", { slots: { day: "text" }, fixedBy: "issue 2658 (drafted)" }],
+  "mail.account.setup_done.week_none": ["No pages are planned yet. We look again on Monday and plan the week from what we find.", { slots: {}, fixedBy: "issue 2658 (drafted)" }],
+  "mail.account.setup_done.action": ["Open your plan", { slots: {}, fixedBy: "issue 2658 (drafted)" }],
+  "mail.account.connected.subject": ["Your website is connected", { slots: {}, fixedBy: "owner 2026-11-13 · issue 2658" }],
+  "mail.account.connected.preheader": ["Your pages now have a place to go live.", { slots: {}, fixedBy: "issue 2658 (drafted)" }],
+  "mail.account.connected.body": ["Your website is connected. Your pages go live at {host}, starting {day}.", { slots: { host: "text", day: "text" }, fixedBy: "owner 2026-11-13 · issue 2658" }],
+  "mail.account.connected.body_no_day": ["Your website is connected. Your pages go live at {host}.", { slots: { host: "text" }, fixedBy: "owner 2026-11-13 · issue 2658" }],
+
   // 2026-09-06, issue #35 (identity, REQ-077 c3). The one `account` mail
   // that goes to the address an account has just stopped signing in with:
   // "saying the account now signs in at a different address and this one no
@@ -208,23 +210,10 @@ export const MAIL_COPY = Object.freeze({
   "mail.account.address_moved.preheader": ["This address can no longer sign in.", { slots: {}, fixedBy: "O6 · issue 2172 (drafted)" }],
   "mail.account.address_moved": ["Your ReachKit account now signs in with a different email address. This address can't sign in, and our mail goes to the new one.", { slots: {}, fixedBy: "REQ-077 c3" }],
 
-  // 2026-09-06, issue #47 (REQ-063 c4, REQ-064, BUILD §12's `weekly` row:
-  // "score delta, AI answers delta, pages verdicts, next 3 — all values
-  // conditional: a missing number omits its section, never prints 0").
-  // Eleven keys.
-  //
-  // The four *verdict words* are not here — they are `keys/publish.ts`'s,
-  // because Overview and the calendar speak the same four and a mail must
-  // not word a verdict differently from the screen beside it.
-  //
-  // A page is named by **its address**, and a next opportunity by **the
-  // search it targets**: both are measured fact. Neither is named by its
-  // title, which is model-written text a mail may not speak in ReachKit's
-  // own voice (§8, REQ-093) — so no slot below takes one.
-  // S20's subject is "Monday: Discoverability Score 62 (▲ 8)" — a number
-  // and its delta, both of which §12 lets be unmeasured. A subject has no
-  // omission arm: a mail whose subject could not be composed does not go
-  // out at all, so the approved subject carries no number (issue #388).
+  // The `weekly` mail (BUILD §12): a missing number omits its section, never prints 0. The verdict words are
+  // `keys/publish.ts`'s, so a mail never words a verdict unlike the screen. A page is named by its address and a
+  // next opportunity by its search, never by a model-written title (§8, REQ-093); the subject carries no number,
+  // since a subject has no omission arm.
   "mail.weekly.subject": ["Your Monday check is ready", { slots: {}, fixedBy: "§12" }],
   "mail.weekly.preheader": ["Your pages, Google, AI and this week's plan.", { slots: {}, fixedBy: "O6 · issue 2172 (drafted)" }],
   // The simple model (owner, 2026-10-19): the Monday mail's numbers are

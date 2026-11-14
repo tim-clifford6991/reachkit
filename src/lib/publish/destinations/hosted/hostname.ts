@@ -279,7 +279,13 @@ export async function writeHostnameState(a: {
       ...(health === "ok" ? {} : { health_changed_at: at }),
     };
   }
-  await publishDb().from<never>("destinations").update(values).eq("id", a.destinationId);
+  const written = await publishDb().from<{ site_id: string }>("destinations").update(values).eq("id", a.destinationId).select("site_id");
+  const siteId = written.data?.[0]?.site_id;
+  // Live is the "connected" mail's trigger; imported here so no edge-reachable file reaches the mail seam.
+  if (a.state === "live" && siteId !== undefined) {
+    const { sendOnboardingMails } = await import("@/lib/mail/onboarding");
+    await sendOnboardingMails(siteId);
+  }
 }
 
 /** The recorded health, for changed-or-not; a failed read counts as changed, which no customer sees. */

@@ -168,6 +168,8 @@ export interface SetupStore {
   /** The draft tick's per-site event for the first page, so a pass that
    *  ended before the finish still leaves a first draft. */
   enqueueFirstDraft?(siteId: string): Promise<void>;
+  /** The onboarding mails, for a pass that ended before the finish. */
+  sendOnboardingMails?(siteId: string): Promise<unknown>;
 }
 
 /** The account's progress where its site has paid access (ADR-050), else `null`:
@@ -251,6 +253,7 @@ export async function completeSetup(
   await store.enqueueFirstDraft?.(progress.siteId).catch((error: unknown) => {
     console.warn(JSON.stringify({ event: "first_draft_enqueue_failed", siteId: progress.siteId, detail: String(error) }));
   });
+  await store.sendOnboardingMails?.(progress.siteId);
 
   return { ok: true, siteId: progress.siteId };
 }
