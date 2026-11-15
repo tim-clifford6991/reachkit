@@ -32,10 +32,10 @@ Checked against the real flow on 2026-11-15: `src/app/(account)/setup/**` and
 ### 1. Pay (2 min)
 
 - [ ] They press Start on their report (the offer at its foot), or on `/pricing`.
-- [ ] Stripe Checkout asks only for card details and email; no account first (SPEC §3).
+- [ ] Stripe Checkout asks for email, card and country, and a VAT number only if they have one;
+      no account first (SPEC §3). Let them fill it; don't guess.
 - [ ] €49 a month, VAT included. After paying they land on `/setup`, signed in (SPEC §3 *Checkout
       lands signed in*).
-- [ ] If Checkout asks for a VAT number or business details, let them fill it; don't guess.
 
 ### 2. Step 1, Site: "Is this your business?" (2 min)
 
@@ -49,19 +49,16 @@ The step bar reads **Site · Details · Connect**. This step alone says "The thr
       nationwide or online (`setup.place.note`).
 - [ ] Press **Save and continue**.
 
-### 3. Step 2, Details: "What we found on your site" (3 min)
+### 3. Step 2, Details: "What we found on your site" (1–2 min)
 
-"Open a section to change it, or carry on." Nothing here must be changed.
+"Open a section to change it, or carry on." Narrate it in one line, so the call stays at 15
+minutes (customer-success, #2693): "Nothing here must be changed; it's all in Settings later."
 
-- [ ] **Your business**: what you do, what you sell, who you serve, what you promise, words you
-      use, facts we can quote. Say the assurance aloud: "We never invent prices, people or reviews.
-      If a fact isn't on your site, it won't be in your pages." (`setup.ts:456`).
-- [ ] **Your market and competitors**: "We found these competitors and update them every Monday.
-      Remove or add any." Up to five. Remove a directory or marketplace if one slipped in.
-- [ ] **How your pages sound**: read their voice line; they may edit it or leave it.
-- [ ] **Five things only you know** (optional): if they have one minute, ask "What do you do that
-      your competitors don't?" and "A result a customer got, in numbers if you have them". These
-      become facts the pages can use. Otherwise skip; it's also in Settings.
+- [ ] Say the assurance aloud: "We never invent prices, people or reviews. If a fact isn't on your
+      site, it won't be in your pages." (`setup.ts:456`).
+- [ ] Glance at **Your market and competitors** together ("We found these competitors and update
+      them every Monday. Remove or add any."). Remove a directory or marketplace if one slipped in.
+- [ ] Skip **Five things only you know** on the call. It stays optional in Settings.
 - [ ] If the screen says "We're still reading your site, so carry on", carry on.
 - [ ] Press **Save and continue**.
 
@@ -90,7 +87,11 @@ ready or nearly ready. It goes live once your website is connected."
 - [ ] Their DNS is run by someone else: use "Or send these steps to your web person": enter that
       person's email and press **Send** (`setup.ts:579`).
 - [ ] No login to hand: press **Do this later**. "We'll email you a reminder. Your first page waits
-      for it." Book a 5-minute follow-up for the same week.
+      for it." Don't book a follow-up: the product sends three setup reminders, 24, 72 and 168
+      hours after paying, each with a signed-in link to connect, and stops once the site is live
+      (`src/lib/mail/setup/reminders.ts:1–2`). If the
+      second reminder (day 3) hasn't got them connected (no live page in `/app/review`), message
+      them once.
 
 **WordPress (skipped for wave 1, D8; not on production; keep for when it is)**
 
@@ -118,22 +119,30 @@ Don't offer this path on a call until the flag is on.
       "Every Monday we plan up to 7 pages, new or updated. Each page goes live on its day, by
       itself. You can edit or stop any page first. You never have to. Cancel or export in Settings
       at any time." (`setup.connect.week.1–4`, `setup.ts:599–603`).
-- [ ] "You'll get an email when a page is ready to read, and one when your first page goes live.
-      After that, one email every Monday." (SPEC §8 *Page-ready until the first Monday mail*, *The
-      first page's live mail only*).
+- [ ] Tell them the real set of emails: "You'll get an email for each page as it's ready until your
+      first Monday email, one when your first page goes live, and after that one email every
+      Monday. You can stop any page from those emails." Today they also get a sign-in email, one
+      when setup is done and one when the website is connected (SPEC §8 *Page-ready until the first
+      Monday mail*, *The first page's live mail only*, the onboarding row).
 
 ### 6. Close (1 min)
 
-- [ ] "Where did you hear about ReachKit?" → `heard_from` in `leads.csv` (D7; the `?ref=` tag is not
-      stored yet).
+- [ ] "Where did you hear about ReachKit?" → `heard_from` in `leads.csv` (D7; the `?ref=` tag is
+      stored only with a scan started from the landing, #2692).
 - [ ] Book nothing else. Tell them the day-14 check-in is coming.
 - [ ] Note the time each step took (table below).
 
 ## After the call (same day)
 
-- [ ] Within 48 hours of "Connected": check their first page is live on `{label}.{domain}` and
-      message them the link (playbook step 6). Not live by 48 hours → call them and fix it together
-      (D2 service promise).
+- [ ] Send a plain mail by hand, from your own mailbox, confirming the founding terms: "€49 a month,
+      VAT included, for as long as you stay; and with the standard 24-hour wait, if your first page
+      isn't live within 48 hours of connecting your site, I get on a call and do it with you." This
+      is the written record of the price lock (D1) and the promise (D2) (trust-compliance F7,
+      #2693). Note "lock mailed {date}" in `notes` in the private `leads.csv`.
+- [ ] Within 48 hours of "Connected": check `/app/review` › Pages for their first live page. The
+      product's first-live email already carries the link, so a message from you is optional and
+      must add something the email doesn't (e.g. "That's page one; the next lands {day}"). Not live
+      by 48 hours → call them and fix it together (D2 service promise).
 - [ ] Update the Progress table in the README (paying, live within 48 h).
 - [ ] Mark `paid` and `live_within_48h` in the private `leads.csv`.
 

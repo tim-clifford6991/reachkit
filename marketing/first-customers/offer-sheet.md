@@ -12,6 +12,8 @@ start from your report.
 - [ ] Export as a PDF (or a private doc) if you send it as a file. Keep the guarantee box in it only
       for one-to-one sends.
 - [ ] Update "places left" from the real Progress count. Never round it down for pressure.
+- [ ] After they pay, confirm the price lock and the promise in a plain mail by hand
+      (`setup-call.md` › After the call; trust-compliance F7).
 
 ---
 
@@ -28,10 +30,10 @@ and publishes them on your own website. You don't write a word.
 
 | | What it would cost elsewhere |
 |---|---|
-| Up to 7 pages a week, new or updated, written from facts on your own site and published there | Freelance writers most often charge $250–399 for one long blog post |
-| Where you sit in Google, and which of your pages Google's AI and ChatGPT link to, every week | Tools that only track AI answers: €29–489 a month |
+| Up to 7 pages a week, new or updated, written by AI from facts on your own site and published there | In one survey of 213 freelance writers (data from about 2021), the most common rate for a 1,500-word post was $250–399 |
+| Where you sit in Google, and which of your pages Google's AI and ChatGPT link to, every week | One AI-answer tracker charges €29 to €489 a month before tax, and writes nothing |
 | Up to 5 competitors watched every week | (included above) |
-| Your whole site checked for problems, with the fix for each | Most small businesses in one survey paid $101–750 for an SEO audit |
+| Your whole site checked for problems, with the fix for each (an automated check) | In an SEO agency's survey of 250 US businesses, 43% paid $101–750 for an audit |
 | An email every Monday: what went live and what moved | |
 | Edit or stop any page before it goes live, or do nothing | |
 | **Founding bonus:** setup with me on a 15-minute call | |
@@ -45,13 +47,14 @@ and publishes them on your own website. You don't write a word.
 the call.
 
 **Why 50:** I set up every founding customer myself, so there are 50 places, in three waves.
-Wave {wave} closes **{close date}** with {places left} places left. The bonuses close with the wave.
+Wave {wave} has {places left} of {size} places and closes **{close date}**. The founding offer
+(setup call, check-ins, price lock) ends on 31 Jan 2027.
 
 > **My promise to you** (for you only)
 >
-> You see everything before you pay: your free report, and a first page you can read free from
-> it. That's why there are no refunds. What I do promise: if your first page isn't live within 48
-> hours of connecting your site, I get on a call and do it with you.
+> You see your report and a first page before you pay. Payments aren't refunded unless the law
+> requires it. What I do promise: with the standard 24-hour wait, if your first page isn't live
+> within 48 hours of connecting your site, I get on a call and do it with you.
 
 **Next step:** book 15 minutes: {booking}, or start from your report:
 https://reachkit.app/scan/{domain}
@@ -75,7 +78,8 @@ Tim, founder · hello@reachkit.app
 | €49, VAT included, cancel any time | `price.amount` (`offer.ts:33`); `landing.plan.terms` (`landing.ts:69`); `pricing.plan.cancel` (`chrome.ts:85`) |
 | Your part | `landing.plan.time.line` (`landing.ts:65`); `landing.faq.start.a` (`report.ts:668`) |
 | A first page you can read free | `landing.faq.trial.a` (`report.ts:675`); `report.offer.free-path` (`report.ts:837`) |
-| Price anchors | `price-anchors.md` A1, A3, A5 |
+| Price anchors | `price-anchors.md` A1, A3, A5, in trust-compliance's F5 wording (#2693). A3 identifies a vendor, so the sheet stays one to one |
+| No refund unless the law requires it; the 24-hour wait | Terms §4 and §5 (`legal.terms.body`, `chrome.ts:197`) |
 | Price lock, waves, bonuses, the promise | Owner rulings D1, D2, D4 (README), not product features |
 
 Not on the sheet, on purpose: a page a day (SPEC §1 *The pace*), any ranking or mention promise,

@@ -26,6 +26,13 @@ on "can set it up" and is not pitched (owner D8, 2026-11-15).
    who runs their site is deferred to Phase 2, D6)
 4. German businesses (DE, AT, CH), from week 5. Pages are written in German; the dashboard and
    mails are English, and the material says so.
+   Reached in person, by post, through public posts people answer, or when they ask first, never
+   by an unasked email, LinkedIn, WhatsApp or SMS message (README rule 3), and only after the
+   wave-3 prerequisites in `playbook.md` hold (G7).
+
+UK sole traders and partnerships (common in segments 2 and 3) get no cold message either; a UK
+business is cold-mailed only when Companies House shows a company, LLP or Scottish partnership
+(`entity_type` = `company` in the tracker, README rule 3).
 
 ## Where to find them: the Core Four
 
@@ -37,7 +44,7 @@ every day, the Rule of 100: 100 outreach actions a day (or 100 minutes of conten
 | Source | How to pull it |
 |---|---|
 | Phone contacts, WhatsApp, Gmail | Export, tag everyone who owns a business website |
-| LinkedIn 1st-degree connections | Settings → Data privacy → Get a copy of your data → Connections. Filter titles: Founder, Owner, CEO, Managing Director, Inhaber, Geschäftsführer |
+| LinkedIn 1st-degree connections | Settings → Data privacy → Get a copy of your data → Connections. Filter titles: Founder, Owner, CEO, Managing Director, Inhaber, Geschäftsführer. A connection is not consent: in Germany and Austria, and to UK sole traders and partnerships, no sales message unless they asked first (README rule 3; D9 for personal friends) |
 | Former colleagues and clients | Anyone who left to start something |
 | Referral ask (a lead getter) | "Who do you know who owns a business website and hates marketing?" |
 
@@ -50,7 +57,7 @@ is offered as a gift.
 |---|---|---|
 | Ask ChatGPT, Perplexity or Google AI about a category ("best bookkeeping software for freelancers", "best physio in Leeds") | Businesses that rank on Google or Maps but are not in the AI answer: the pain, proven | By hand, recorded in `leads.csv`. Never a ReachKit scan of their site (it would be a public card) |
 | Product Hunt, Indie Hackers, BetaList, r/SaaS "share your project" threads | Launched 3–18 months ago, solo or small team | Maker profiles link X and LinkedIn |
-| LinkedIn Sales Navigator (free trial) | Company size 1–10, title Founder or Owner, posted in the last 30 days | Saved searches → connection note |
+| LinkedIn Sales Navigator (free trial) | Company size 1–10, title Founder or Owner, posted in the last 30 days | Saved searches → connection note: the signal note to US businesses and UK companies only; everyone else no note or the no-offer note (`scripts.md` §2, README rule 3) |
 | BuiltWith or Wappalyzer | WordPress, small business, last blog post over 6 months ago | Lists or the browser extension |
 | Google Maps by category and city | 4.5★+, 50+ reviews, weak site: good but hard to find | By hand (the Places API is spend: owner's go) |
 | G2, Capterra, Shopify App Store, WordPress plugin directory | Small vendors with few reviews in crowded categories | Vendor page → site → founder |
@@ -61,8 +68,8 @@ is offered as a gift.
 
 The free scan solves a narrow problem (where do AI answers send my buyers?) and reveals the bigger
 one (I am not there, and I have no time to write my way in). Each post carries one finding, from
-our own report or from aggregate figures with no site named (trust-compliance clears aggregate use
-first), and one ask: run yours free.
+our own report or from aggregate figures under the conditions in README › *Aggregate figures across
+stored scans* (trust-compliance F9), and one ask: run yours free.
 
 ### 4. Paid ads: last
 

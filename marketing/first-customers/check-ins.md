@@ -1,32 +1,39 @@
 # R12: Day-14 and day-30 check-ins and the referral ask
 
 **Audience:** a founding customer, 14 and 30 days after paying. **Message:** "Here's what went live
-on your site, and I'm here." **Call to action:** day 14, reply with one thing to change; day 30, name
-one owner who should see their own report. Sent by the owner, one to one (WhatsApp, LinkedIn or
-email, whichever they used to reach you).
+on your site, and I'm here." **Call to action:** day 14, reply with one thing to change; day 30,
+introduce one owner who should see their own report. Sent by the owner, one to one (WhatsApp,
+LinkedIn or email, whichever they used to reach you).
+
+Reviewed by customer-success and trust-compliance on #2693; their changes are applied here (#2698).
 
 ## Owner to do
 
-- [ ] customer-success reviews these drafts before the first day-14 message (wave 1 customers reach
-      day 14 around mid-December).
-- [ ] Before each message, open their Overview and Monday mail and fill the braces with their real
-      numbers. If a number isn't there yet, use the "nothing measured yet" variant. Never estimate.
+- [ ] Before each message, open `/app/review` (owner only) and the customer's live pages, and fill
+      the braces with what they show. If a number isn't there, use the "nothing measured yet"
+      variant. Never estimate, and never quote a number `/app/review` doesn't show.
+- [ ] Send day 14 on the first weekday after a Monday email, on or after day 14, so your numbers
+      match the email they last read.
 - [ ] Ask for a quote only with their written yes to use it, and say where it will appear. A quote
       or their site on a public page also needs the consent the SPEC asks for (SPEC §1 *Our own
       report only*: a customer's report is shown only once they consent).
 - [ ] You send every message. Nothing is sent by an agent.
 
-## Where to read their numbers (signed in as the owner, never in a public post)
+## Where to read their numbers (owner only, never in a public post)
+
+You cannot open a customer's own `/app` (Overview, Google, AI or Competitors tabs): only
+`/app/costs` and `/app/review` let the owner in (`src/app/(account)/app/review/page.tsx:18`). So read
+only these:
 
 | Number | Where | Evidence |
 |---|---|---|
-| Pages live, pages planned this week | Overview (`/app`), or their last Monday mail | SPEC §8 *The Monday mail's numbers are Overview's* |
-| Their pages in Google: found, in results, first page | Google tab (`/app/search`) | SPEC §4 *Google tab* |
-| Pages linked by AI | AI tab (`/app/ai-answers`) | SPEC §4 *The four weekly numbers* |
-| Competitors | Competitors tab (`/app/rivals`) | SPEC §4 *Competitors tab* |
-| A page they stopped or edited | This week (`/app/calendar`) | SPEC §7 |
+| Pages live, with links | `/app/review` › Pages | `review.tab.pages` (`src/lib/presentation/copy/keys/review.ts:14`) |
+| Pages planned this week | `/app/review` › Week | `review.tab.week` (`review.ts:13`) |
+| Each page's reading | `/app/review` › Pages label: *Too early*, *Climbing*, *Working*, *Not moving* or *not measured* | `review.label.*` (`review.ts:42–46`) |
+| The page itself | Open `{label}.{domain}/…` | — |
 
-The Monday mail and the tabs read the same stored numbers, so quote one and it matches the other.
+`/app/review` has no "found by Google", "in results" or "first page" count, so these messages never
+say one. *Too early* is the honest state in week 2; it never reads as failure.
 
 ---
 
@@ -39,16 +46,20 @@ The Monday mail and the tabs read the same stored numbers, so quote one and it m
 > So far {n} pages are live on {label}.{domain}, and {m} more are planned this week. The one I'd
 > read first: "{page title}" ({link}).
 >
-> {Only if the Google tab shows it: "Google has already found {x} of them."} {Or, before anything
-> is measured: "Google usually takes weeks to months to rank new pages; your Monday email shows
-> each step as it happens."}
+> {Where every label is *Too early* or *not measured*: "Pages go live in week 1. Google takes
+> weeks to months; each Monday email shows what moved."}
 >
-> One question: is there anything in the pages that doesn't sound like you, or a topic you'd
-> rather we didn't write about? Tell me and I'll set it so it sticks.
+> One question: is there anything in the pages that doesn't sound like you? Tell me and I'll show
+> you where to change it.
 
-**If they reply with a change:** fix it with them in Settings (voice, "Never say", Your business,
-competitors) the same day and tell them it's done. A page they dislike can be stopped before it goes
-live ("Stop this page" in the email or the app).
+The sentence in braces is the landing's own words, quoted as they are (`landing.faq.results.short`,
+`src/lib/presentation/copy/keys/report.ts:678`).
+
+**If they reply with a change:** show them where it lives, on a short call or in a message. Voice,
+"Never say", Your business and competitors are in Settings, which they set with your guidance (you
+can't open their Settings). A page they dislike: "Stop this page", in the email or in *This week*.
+Stopping a page also keeps that topic away for four weeks (`TOPIC_REST_DAYS` = 28,
+`src/lib/config/constants/opportunities.ts:158`). Never promise a topic is gone for good.
 
 **If no page is live yet:** don't send this. Call them (D2 service promise) and fix the connection
 first.
@@ -57,14 +68,15 @@ first.
 
 **Goal:** a referral (a lead getter, Hormozi) and, if they offer it, a quote.
 
-> Hi {name}, a month of ReachKit today. {n} pages are live on your site now, {short real fact from
-> Overview: e.g. "{x} of them are on Google's first page for their search" or "AI has linked to
-> {y} of them"}. {Or, if nothing has moved yet: "Rankings take time; the pages are all there and
-> Google has found {x}."}
+> Hi {name}, a month of ReachKit today. {n} pages are live on your site now. {Only where
+> `/app/review` labels them so: "{w} of them are already Working in Google."} {Otherwise: "Pages go
+> live in week 1. Google takes weeks to months; each Monday email shows what moved."}
 >
 > Thanks for being one of the first. A quick favour: who else do you know who owns a business
-> website and never has time for marketing? I'll set them up personally too, the same way.
-> Send them https://reachkit.app/?ref=referral or just give me their name.
+> website and never has time for marketing? Could you introduce us, or send them this link:
+> https://reachkit.app/?ref=referral {Only while a founding wave is open (until 31 Jan 2027): "I'll
+> set them up personally too, the same way."} {After that: "They can run the free scan on their
+> own site and see what you saw."}
 
 **If they say something good**, ask once:
 
@@ -74,17 +86,36 @@ first.
 Write their exact words and their yes in the private lead tracker. A quote never goes on
 reachkit.app without the owner's ruling and the customer's consent.
 
-**If they're unhappy:** no referral ask. Ask what would make it worth €49 to them, and note it. If
-they want to stop: "Cancel any time from Settings, and you're not charged again. Your export of every
-page stays available." (`landing.faq.stop.short`, `report.ts:679`). No refund is offered (README
-rule 1).
+**If they're unhappy:** no referral ask. Ask what would make it worth €49 to them, note it, and
+answer the reason, not with a discount:
+
+| Their reason | Your answer |
+|---|---|
+| "Not seeing results" | The landing line above, and the pages planned for next week |
+| Something technical | `/app/issues` or the connection, fixed together |
+| Business closed or changing | Let them go with the cancel line below |
+
+No coupon and no pause: one plan, and the credit guarantee (D3) is on hold. If they want to stop:
+
+> Cancel any time in Settings; you're not charged again. Your export of every page stays
+> available. You keep access to the end of the month you've paid for, and pages we host stay up
+> for 30 days after that, with an email before they come down.
+
+Evidence: `landing.faq.stop.short` (`report.ts:679`); Terms §4 and §6 (`legal.terms.body`,
+`src/lib/presentation/copy/keys/chrome.ts:197`); `HOSTED_RETENTION_DAYS` = 30
+(`src/lib/config/constants/costs.ts:306`), with the notice from
+`src/lib/account/billing/hosting-notices.ts`. Payments aren't refunded unless the law requires it
+(Terms §4; README rule 1).
 
 ## The referral itself
 
+The customer makes the first contact. You never take a name and write to someone who didn't ask
+(trust-compliance F10, #2693).
+
 | Step | What |
 |---|---|
-| They name someone | Thank them. Ask: "Can I say you sent me?" |
-| You message the person | Warm opener (`scripts.md` §1), first line: "{customer} said you might like this." Link with `?ref=referral` |
+| They want to refer someone | Thank them. Ask them to introduce you (a message to both of you) or to send the person `https://reachkit.app/?ref=referral` |
+| The person replies to the introduction | Now you may write: warm opener (`scripts.md` §1), first line: "{customer} introduced us." |
 | The person runs a scan | Same path as everyone: walkthrough, offer, call |
 | They pay | Tell the customer who referred them: "{name} joined, thank you." No reward exists: one plan, no credits or add-ons (SPEC §1 *One plan*; D6 defers any partner or affiliate scheme) |
 
@@ -94,8 +125,8 @@ rule 1).
 |---|---|
 | Day 14 sent on time | Private tracker |
 | Still paying at day 30 | `paid` event exists; renewal is in Stripe |
-| Pages live by day 30 | `draft_published` events for their site |
-| Referrals named, and referred people who scanned and paid | By hand: `heard_from` = "referral: {customer}" in the tracker. `?ref=referral` is not stored yet (D7 engineering issue) |
+| Pages live by day 30 | `/app/review` › Pages; `draft_published` events for their site |
+| Referred people who scanned and paid | `?ref=referral` is stored with the scan (#2692; `docs/RUNBOOK.md` §8 queries), and by hand: `heard_from` = "referral: {customer}" in the tracker |
 
 The three analytics events are `scan_started`, `paid` and `draft_published`
 (`src/lib/analytics/index.ts:35`). A fourth event is an owner ruling; none is asked for here.

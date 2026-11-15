@@ -43,9 +43,9 @@ first weeks of pages), not a result.
 
 | What you get | What it would cost elsewhere (check every figure before saying it) |
 |---|---|
-| Up to 7 pages a week, new or updated, written and published on your own site | Freelance writers most often charge $250–399 for one long blog post (`price-anchors.md` A1) |
-| A weekly check of your market in Google and AI answers, with your rivals | Tools that only track AI answers: €29–489 a month (A3) |
-| Your site's problems and what to do about each | Most small businesses in one survey paid $101–750 for an SEO audit (A5) |
+| Up to 7 pages a week, new or updated, written by AI and published on your own site | In one survey of 213 freelance writers (data from about 2021), the most common rate for a 1,500-word post was $250–399 (`price-anchors.md` A1) |
+| A weekly check of your market in Google and AI answers, with your rivals | One AI-answer tracker charges €29 to €489 a month before tax, and writes nothing (A3; one to one only) |
+| Your site's problems and what to do about each (an automated check) | In an SEO agency's survey of 250 US businesses, 43% paid $101–750 for an audit (A5) |
 | Bonus: setup with the founder on a 15-minute call | — |
 | Bonus: a recorded walkthrough of your report | — |
 | Bonus: check-ins at day 14 and day 30, and the founder's direct line | — |
@@ -53,19 +53,24 @@ first weeks of pages), not a result.
 | **€49 a month, VAT included, cancel any time** | |
 
 Say the stack and its value before the price, so €49 is compared with the stack, not with zero.
-Name no rival product in public material (trust-compliance rules on comparisons).
+Never say ReachKit equals or replaces the items it is compared with: they are not like for like
+(trust-compliance F5, #2693). Name no rival product in public material.
 
 ## Scarcity, urgency, guarantee (all must be true)
 
 - **Scarcity:** 50 places, because the owner sets each one up by hand and the daily scan ceiling is
   real.
 - **Urgency:** founding waves (D4): 15 places closing 6 Dec, 15 closing 20 Dec, 20 closing 31 Jan.
-  Each wave opens with a date; when it closes, the bonuses close with it.
+  Each wave has a fixed number of places and a close date. The founding offer (setup call,
+  check-ins, price lock) ends on 31 Jan 2027. Never say a wave's bonuses end with it while the
+  next wave offers the same ones (trust-compliance F6, #2693).
 - **Guarantee** (one to one only, never on a public page):
-  1. Service (D2): "If your first page isn't live within 48 hours of connecting, I get on a call
-     and do it with you."
-  2. Anti-guarantee (D2): "No refunds, because you see everything before you pay: your free report
-     is the proof." This turns the no-refund rule into a reason to trust.
+  1. Service (D2): "With the standard 24-hour wait, if your first page isn't live within 48 hours
+     of connecting your site, I get on a call and do it with you."
+  2. Anti-guarantee (D2): "You see your report and a first page before you pay. Payments aren't
+     refunded unless the law requires it." This turns the terms (§4) into a reason to trust.
+  The price lock (D1) and the service promise are confirmed in a plain mail by hand after payment,
+  so they have a written record (trust-compliance F7).
   3. Credit (D3, on hold): "No page live in your first 7 days → your second month is free." A
      Stripe coupon applied by hand; no refund.
 
