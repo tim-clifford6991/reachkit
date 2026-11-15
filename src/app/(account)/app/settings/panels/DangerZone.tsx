@@ -29,7 +29,7 @@
 
 import type React from "react";
 import { Linked } from "../Linked";
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { ERASURE_DAYS } from "@/lib/config/constants";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { writtenLine } from "../../_shell/written";
@@ -138,6 +138,11 @@ function DangerStep(p: {
   const word = copy(CONFIRM_WORD_KEY[p.row.action]);
   const armed = matchesConfirmWord(p.row.action, typed, word);
 
+  // Closed once the run answers, so focus returns to an opener that is no longer busy.
+  useEffect(() => {
+    if (!running) sure.current?.close();
+  }, [running]);
+
   const run = (): void => {
     startRunning(async () => {
       const result = await runDangerAction(p.row.action, typed);
@@ -212,20 +217,22 @@ function DangerStep(p: {
 
       {/* Esc, the backdrop and Keep all close the dialog and run nothing. */}
       {p.row.action === "delete_account" ? (
-        <dialog ref={sure} className="modal" aria-labelledby="danger-sure-title" data-testid="danger-sure">
-          <div className="modal-box flex min-w-0 flex-col gap-3">
+        <dialog ref={sure} className="modal" role="alertdialog" aria-labelledby="danger-sure-title" aria-describedby="danger-sure-lines" data-testid="danger-sure">
+          <div className="modal-box flex min-w-0 flex-col gap-3 shadow-(--shadow-card)">
             <h3 id="danger-sure-title" className="text-lg font-semibold">{copy("danger.delete-account.sure.title")}</h3>
-            <ul className="flex list-disc flex-col gap-1 ps-5 text-sm wrap-anywhere">
+            <ul id="danger-sure-lines" className="flex list-disc flex-col gap-1 ps-5 text-sm wrap-anywhere">
               {SURE_LINES.map((key) => <li key={key}>{copy(key, DAYS)}</li>)}
             </ul>
-            <div className="modal-action flex-wrap">
-              <form method="dialog"><button className="btn min-h-11">{copy("danger.delete-account.keep")}</button></form>
-              <button type="button" className="btn btn-error min-h-11" onClick={() => { sure.current?.close(); run(); }}>
+            {/* Keep comes first so showModal() focuses it; the dialog stays open, busy, until the run answers. */}
+            <form method="dialog" className="modal-action flex-col sm:flex-row">
+              <button className="btn btn-soft min-h-11 w-full sm:w-auto" disabled={running}>{copy("danger.delete-account.keep")}</button>
+              <button type="button" className="btn btn-error min-h-11 w-full sm:w-auto" disabled={running} onClick={run}>
+                {running ? <span className="loading loading-spinner loading-xs" aria-hidden /> : null}
                 {copy(p.row.label)}
               </button>
-            </div>
+            </form>
           </div>
-          <form method="dialog" className="modal-backdrop"><button>{copy("danger.delete-account.keep")}</button></form>
+          <form method="dialog" className="modal-backdrop"><button tabIndex={-1} aria-hidden="true">{copy("danger.delete-account.keep")}</button></form>
         </dialog>
       ) : null}
     </div>
@@ -239,7 +246,7 @@ type RenderedOutcome = Exclude<DangerOutcome, { action: "delete_account" }>;
 function DangerLine(p: { outcome: RenderedOutcome }): React.JSX.Element {
   const line = writtenLine(p.outcome.lineKey);
   return (
-    <div className="flex min-w-0 flex-col gap-1" data-testid="danger-outcome">
+    <div className="flex min-w-0 flex-col gap-1" role="status" data-testid="danger-outcome">
       {line === null ? null : <p className="text-xs text-base-content/70 wrap-anywhere">{line}</p>}
       {p.outcome.ran ? (
         <>
