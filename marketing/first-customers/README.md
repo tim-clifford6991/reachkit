@@ -78,7 +78,7 @@ Every link we hand out carries its channel. Use exactly these tags, lower case.
 | X | `https://reachkit.app/?ref=x` |
 | WhatsApp and SMS | `https://reachkit.app/?ref=whatsapp` |
 | Email, warm (people the owner knows) | `https://reachkit.app/?ref=email` |
-| Email, cold (UK and US only) | `https://reachkit.app/?ref=cold-email` |
+| Email, cold (UK and US only) | `https://reachkit.app/?ref=coldemail` |
 | Reddit | `https://reachkit.app/?ref=reddit` |
 | Indie Hackers, BetaList and founder communities | `https://reachkit.app/?ref=community` |
 | Events, BNI, IHK, coworking (QR code) | `https://reachkit.app/?ref=event` |

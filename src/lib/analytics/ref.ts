@@ -12,6 +12,9 @@ export const REF_TAGS = [
   "network",
   "event",
   "video",
+  "whatsapp",
+  "referral",
+  "coldemail",
 ] as const;
 
 export type RefTag = (typeof REF_TAGS)[number];
