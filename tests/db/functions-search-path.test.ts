@@ -197,7 +197,9 @@ describe('advisor `rls_enabled_no_policy` — the tables that are policy-less by
     // `fetch_text` is the grounding's cache of the text it reads off each `fetches` row.
     // `ops_events` is the daily check's durable count of failed Settings reads.
     // `job_days` is each job's invocations and CPU per day and site, added only by `job_days_add`.
+    // `churned_contacts` is the churn list of deleted accounts, read only by the owner's invite.
     expect(policyLess).toEqual([
+      "churned_contacts",
       "domain_blocks",
       "draft_days",
       "email_suppressions",

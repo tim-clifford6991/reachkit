@@ -24,7 +24,7 @@ create table churned_contacts (
 alter table churned_contacts enable row level security;
 
 comment on table churned_contacts is
-  'Owner, 2026-11-15, #2706. Name and email of each deleted account, kept past the purge for a later owner-run invite. dbAdmin()-only; no anon/authenticated policy by design.';
+  'Owner, 2026-11-15, #2706. Name and email of each deleted account, kept past the purge for a later owner-run invite. dbAdmin()-only; BUILD §10 default-deny; no anon/authenticated policy by design.';
 
 revoke all on churned_contacts from anon, authenticated;
 grant select, insert, update, delete on churned_contacts to service_role;
