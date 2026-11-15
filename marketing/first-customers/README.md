@@ -15,6 +15,7 @@ the owner's rulings on #2299 and #2513; where they disagree, they win and this f
 | `offer-sheet.md` | R5: the one-page offer sheet, one to one only |
 | `walkthrough-video.md` | R6: the 5-minute report walkthrough template |
 | `setup-call.md` | R8: the setup-call checklist, checked against `/setup` |
+| `social-posts.md` | R10: six LinkedIn and X posts, one finding each, and the posting calendar |
 | `check-ins.md` | R12: day-14 and day-30 check-ins and the referral ask |
 | `price-anchors.md` | R14: sourced price anchors for the stack |
 | `leads.csv` | The lead tracker's columns (the owner keeps the filled copy private, never in the repo) |
@@ -97,6 +98,12 @@ where they heard of us and write it in `heard_from` in the private tracker.
 | 2026-11-15 | 0 | 0 | 0 | 0 | 0 | — |
 
 ## Change log
+
+- 2026-11-15: R10 drafted (#2694): `social-posts.md`, six LinkedIn and X posts from our own
+  site's report (scanned 9 Nov 2026: 16 of 100, 0 of 12 AI answers, 5 missing questions) and our
+  own live pages, posted Mon, Wed and Fri from 30 Nov to 11 Dec. No aggregate scan figures until
+  trust-compliance clears them on #2693. The owner re-checks each number against the live report
+  on the morning of the post.
 
 - 2026-11-15: week-0 resources drafted (#2689): R4 `scripts.md`, R5 `offer-sheet.md`, R6
   `walkthrough-video.md`, R8 `setup-call.md`, R12 `check-ins.md`, R14 `price-anchors.md`. Owner ruled

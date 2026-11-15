@@ -100,7 +100,7 @@ The full set, with follow-ups, the call agenda and the evidence for each claim, 
 | R7 | Booking link (Cal.com or Calendly free) | Owner | — | open |
 | R8 | Setup-call checklist: subdomain and WordPress steps | Agent | G1 timings | drafted: `setup-call.md`; timings from G1 open; WordPress path off on production |
 | R9 | Proof pack: our own report and live pages, screenshots | Owner | G2 | open |
-| R10 | 6 LinkedIn and X posts, one finding each | Agent | trust-compliance on aggregate data | open |
+| R10 | 6 LinkedIn and X posts, one finding each | Agent | trust-compliance on aggregate data | drafted: `social-posts.md` (our own report and pages only; no aggregate figures until #2693); owner posts from 30 Nov |
 | R11 | Partner one-pager for web designers | Agent | D6 | deferred to Phase 2 (D6) |
 | R12 | Check-in and referral messages (day 14, day 30) | Agent | customer-success review | drafted: `check-ins.md`; customer-success review open |
 | R13 | "See it work" video (#1030) | Owner records | — | open |
