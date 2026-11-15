@@ -11,7 +11,7 @@ production on the day it is said. The product items exist today; the bonuses are
 |---|---|---|
 | Dream outcome ↑ | "Buyers ask ChatGPT and hear my rival's name" | Named when buyers ask; new pages on your own site every week |
 | Likelihood ↑ | "SEO never worked for me" | Free report as proof before paying; our own site as the example; the Monday measurement; a service guarantee |
-| Time delay ↓ | "SEO takes six months" | First page live within 48 hours of connecting; a Monday mail from week 1 |
+| Time delay ↓ | "SEO takes six months" | Pages go live in week 1; the service promise (D2): first page live within 48 hours of connecting, or the founder does it with them; a Monday mail from week 1 |
 | Effort ↓ | "No time, no know-how" | Setup done with them on a call; they never write a word; their job is one mail a week |
 
 ## Problems → solutions (trim and stack)
@@ -20,7 +20,7 @@ production on the day it is said. The product items exist today; the bonuses are
 |---|---|---|---|
 | "I don't know if AI mentions me" | Free scan and report: who AI and Google recommend instead of you | Product | 0 |
 | "No time to write" | Up to 7 pages a week, written and published for you, in your language | Product | Vendor cost |
-| "Setup sounds technical" | We set it up with you: a 15-minute call for the subdomain or WordPress | Owner | 15 min |
+| "Setup sounds technical" | We set it up with you: a 15-minute call to connect the subdomain (WordPress publishing is off on production; WordPress sites use the subdomain) | Owner | 15 min |
 | "Will it move anything?" | Monday mail: what went live and what moved in Google and AI answers | Product | 0 |
 | "My site has problems I can't see" | Your site's problems, and what to do about each | Product | 0 |
 | "What are my rivals doing?" | Weekly rival watch: who AI recommends and the gap to close | Product | 0 |
@@ -43,9 +43,9 @@ first weeks of pages), not a result.
 
 | What you get | What it would cost elsewhere (check every figure before saying it) |
 |---|---|
-| Up to 7 pages a week, written and published on your own site | A freelance writer: typically €100–300 a page |
-| A weekly check of your market in Google and AI answers, with your rivals | AI-visibility tools: often €100+ a month |
-| Your site's problems and what to do about each | A one-off SEO audit: often €300+ |
+| Up to 7 pages a week, new or updated, written and published on your own site | Freelance writers most often charge $250–399 for one long blog post (`price-anchors.md` A1) |
+| A weekly check of your market in Google and AI answers, with your rivals | Tools that only track AI answers: €29–489 a month (A3) |
+| Your site's problems and what to do about each | Most small businesses in one survey paid $101–750 for an SEO audit (A5) |
 | Bonus: setup with the founder on a 15-minute call | — |
 | Bonus: a recorded walkthrough of your report | — |
 | Bonus: check-ins at day 14 and day 30, and the founder's direct line | — |
@@ -70,6 +70,9 @@ Name no rival product in public material (trust-compliance rules on comparisons)
      Stripe coupon applied by hand; no refund.
 
 ## Partner offer: web designers and small agencies (lead getters)
+
+> **Deferred to Phase 2 or later (D6, owner 2026-11-15).** No partner or affiliate channel in the
+> first 50: simple direct sales and first revenue first. Kept here for Phase 2; not used now.
 
 Their dream outcome: "My clients get results and I look good."
 
