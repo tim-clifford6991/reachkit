@@ -12,10 +12,10 @@ Checked against the real flow on 2026-11-15: `src/app/(account)/setup/**` and
 - [ ] Run this checklist on G1's first friendly business and write the real times in the timing
       table at the end. If connecting takes longer than 15 minutes, the "15-minute call" claim in
       `offer.md`, `offer-sheet.md` and `scripts.md` changes.
-- [ ] **Decide G1's second walk:** WordPress publishing is off on production
-      (`WORDPRESS_CONNECT = false`, `src/lib/config/constants/publish.ts:231`; SPEC §5 *DNS only at
-      launch*, `docs/SPEC.md:255`). A WordPress site connects by the subdomain today, like
-      everyone else. Recommended: G1's second walk is a WordPress-run site connected by subdomain.
+- [x] **G1's walks** (owner D8, 2026-11-15): subdomain connects only. WordPress sites are skipped
+      for wave 1: don't pitch or set up a WordPress-run site in wave 1. (WordPress publishing is
+      also off on production: `WORDPRESS_CONNECT = false`, `src/lib/config/constants/publish.ts:231`;
+      SPEC §5 *DNS only at launch*, `docs/SPEC.md:255`.)
 - [ ] Ask the customer to have the login to where they bought their web address ready for the
       call (registrar or Cloudflare). Put it in the booking confirmation.
 
@@ -92,9 +92,11 @@ ready or nearly ready. It goes live once your website is connected."
 - [ ] No login to hand: press **Do this later**. "We'll email you a reminder. Your first page waits
       for it." Book a 5-minute follow-up for the same week.
 
-**WordPress (not on production; keep for when it is)**
+**WordPress (skipped for wave 1, D8; not on production; keep for when it is)**
 
-Today a WordPress site gets the subdomain above, which works beside WordPress and needs no plugin.
+Not in wave 1: a WordPress-run site is not set up on a wave-1 call (owner D8, 2026-11-15). After
+wave 1, unless the owner rules otherwise, a WordPress site gets the subdomain above, which works
+beside WordPress and needs no plugin.
 When `WORDPRESS_CONNECT` is switched on (after #324 proves it on a real site), the Connect step
 asks "Where should pages live?" and WordPress adds: "You'll connect it in Settings › Pages, with
 your site address, username and an app password." (`setup.ts:601`). Then:
@@ -151,4 +153,4 @@ Don't offer this path on a call until the flag is on.
 | Business | Kind | Pay | Site | Details | Connect | Total | Connected on the call? | First page live after |
 |---|---|---|---|---|---|---|---|---|
 | G1 #1 (subdomain) | | | | | | | | |
-| G1 #2 (WordPress site, by subdomain) | | | | | | | | |
+| G1 #2 (subdomain) | | | | | | | | |
