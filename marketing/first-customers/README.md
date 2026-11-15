@@ -15,6 +15,7 @@ the owner's rulings on #2299 and #2513; where they disagree, they win and this f
 | `offer-sheet.md` | R5: the one-page offer sheet, one to one only |
 | `walkthrough-video.md` | R6: the 5-minute report walkthrough template |
 | `setup-call.md` | R8: the setup-call checklist, checked against `/setup` |
+| `social-posts.md` | R10: six LinkedIn and X posts, one finding each, and the posting calendar |
 | `check-ins.md` | R12: day-14 and day-30 check-ins and the referral ask |
 | `price-anchors.md` | R14: sourced price anchors for the stack |
 | `leads.csv` | The lead tracker's columns (the owner keeps the filled copy private, never in the repo) |
@@ -47,7 +48,7 @@ owner's 11-10 "publish daily" ruling (#2513).
 
 | # | Gate | Status |
 |---|---|---|
-| G1 | A stranger walk on a customer's domain: one subdomain connect and one WordPress. WordPress publishing is off on production (`WORDPRESS_CONNECT`), so the second walk is a WordPress-run site on a subdomain until it is on (owner to confirm; `setup-call.md`) | open |
+| G1 | A stranger walk on a customer's domain, subdomain connects only (D8). WordPress-run sites are not walked, pitched or set up in wave 1 | open |
 | G2 | 7 of 7 pages a day for 7 days in a row (#2498) | open |
 | G3 | Legal sign-offs: #1614 and the DPA lawyer review | open |
 | G4 | Daily spend ceiling ruled for outreach and launch days (about 80 full-cost scans a day today) | closed 11-15 by D5: ceiling unchanged, outreach staggered |
@@ -67,6 +68,7 @@ until G1–G3 are closed.
 | D5 | Raise the daily scan ceiling on outreach days (G4) | Size with commercialization | **ruled 11-15: keep 1,000¢; launch in small steps, no day planned past ~80 scans; Product Hunt waits** |
 | D6 | Partner (web designer) terms: setup help only, or a credit | Setup help only until commercialization rules | **ruled 11-15: no partner or affiliate channel in the first 50; deferred to Phase 2 or later. Simple direct sales and first revenue** |
 | D7 | A "how did you hear about us" field or a fourth analytics event | Ask by hand for the first 50 | **ruled 11-15: tagged links per channel (`?ref=`), table below; storing the ref is a separate engineering issue** |
+| D8 | WordPress sites in wave 1 | Skip | **ruled 11-15: skipped for wave 1. G1 tests subdomain connects only; WordPress-run sites are not pitched or set up in wave 1, and score 0 on "can set it up" for wave 1** |
 
 ## Channel links (D7)
 
@@ -97,6 +99,17 @@ where they heard of us and write it in `heard_from` in the private tracker.
 | 2026-11-15 | 0 | 0 | 0 | 0 | 0 | — |
 
 ## Change log
+
+- 2026-11-15: owner ruled D8 on #2694: WordPress sites are skipped for wave 1. G1 tests subdomain
+  connects only; WordPress-run sites are not pitched or set up in wave 1 and score 0 on "can set it
+  up" for wave 1 (`icp-and-sources.md`). `setup-call.md`, the playbook's G1 step and the WordPress
+  objection in `playbook.md` and `scripts.md` follow.
+
+- 2026-11-15: R10 drafted (#2694): `social-posts.md`, six LinkedIn and X posts from our own
+  site's report (scanned 9 Nov 2026: 16 of 100, 0 of 12 AI answers, 5 missing questions) and our
+  own live pages, posted Mon, Wed and Fri from 30 Nov to 11 Dec. No aggregate scan figures until
+  trust-compliance clears them on #2693. The owner re-checks each number against the live report
+  on the morning of the post.
 
 - 2026-11-15: week-0 resources drafted (#2689): R4 `scripts.md`, R5 `offer-sheet.md`, R6
   `walkthrough-video.md`, R8 `setup-call.md`, R12 `check-ins.md`, R14 `price-anchors.md`. Owner ruled

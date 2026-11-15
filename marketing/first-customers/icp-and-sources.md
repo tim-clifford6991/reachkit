@@ -11,16 +11,17 @@ ReachKit, plus the two tests our product adds (can they set it up, will they be 
 | Purchasing power | Pays €49 a month by card without asking anyone | Already pays for software, ads or a freelancer | Hobby site, no-budget nonprofit, pre-launch with nothing to sell |
 | Easy to target | The decider is the founder or owner | You know them or someone who does; active on LinkedIn or X | A marketing team, an agency or enterprise buying in the way |
 | Growing | Their category is asked about in AI answers | New or crowded category, recent launch, hiring | Dying category, winding down |
-| Can set it up | Controls DNS for their domain, or runs WordPress | Built the site themselves or has a technical cofounder | Locked site builder with no DNS or subdomain access |
+| Can set it up | Controls DNS for their domain, so a subdomain can point at us | Built the site themselves or has a technical cofounder | Locked site builder with no DNS or subdomain access; **wave 1: a WordPress-run site scores 0 (D8)** |
 | Case study | Will share before and after | Has an audience: a newsletter, posts in public | Wants to stay anonymous (fine as a customer) |
 
 **Score** pain, purchasing power, easy to target, can set it up and case study at 0, 1 or 2 each.
-Contact 8–10 first, 6–7 second, below 6 not in the first 50.
+Contact 8–10 first, 6–7 second, below 6 not in the first 50. In wave 1 a WordPress-run site scores 0
+on "can set it up" and is not pitched (owner D8, 2026-11-15).
 
 **Segment order** (reach per owner-hour, from the growth plan):
 
 1. Owner-run SaaS, software and online businesses (EN)
-2. Consultants, accountants, coaches and small agencies (many on WordPress)
+2. Consultants, accountants, coaches and small agencies (many on WordPress: not in wave 1, D8)
 3. Local services, shops and hospitality, reached directly (the route through the web designer
    who runs their site is deferred to Phase 2, D6)
 4. German businesses (DE, AT, CH), from week 5. Pages are written in German; the dashboard and

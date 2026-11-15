@@ -8,8 +8,8 @@ the owner's go.
 
 1. **Rule D1–D4** in the README. Without a price lock, a guarantee and wave dates there is no
    urgency or risk reversal to pitch.
-2. **Prove delivery before promising it.** Close G1 (one friendly business on a subdomain, one on
-   WordPress, refunded by hand) and start the G2 run of 7 of 7 days. Time both setups: that time
+2. **Prove delivery before promising it.** Close G1 (friendly businesses on subdomain connects only,
+   refunded by hand; no WordPress sites in wave 1, D8) and start the G2 run of 7 of 7 days. Time both setups: that time
    is the "15-minute call" claim, or the claim changes.
 3. **Write the proof.** Our own site's report and live pages are the one example we may show
    (SPEC §1 *Our own report only*). Capture screenshots: the score, the rivals named, a live page,
@@ -84,7 +84,7 @@ The full set, with follow-ups, the call agenda and the evidence for each claim, 
 | "I can do it with ChatGPT" | You can; the question is whether you will write and publish up to 7 pages every week |
 | "Is AI content penalised?" | Hand to seo-master for the approved answer before wave 1 |
 | "I'm not technical" | We connect it together on this call |
-| "I'm on WordPress" | Pages go on a part of your own address (e.g. `content.yourdomain.com`) with one setting, beside WordPress. WordPress publishing is off on production today |
+| "I'm on WordPress" | Wave 1: "Not this wave, I'm starting with sites that connect by subdomain. Can I come back to you after 6 Dec?" (D8). Later: pages go on a part of your own address (e.g. `content.yourdomain.com`) with one setting, beside WordPress. WordPress publishing is off on production today |
 | "Can I get a refund?" | Anti-guarantee (D2): you saw everything first; cancel any time and you're not charged again |
 
 ## 3. Resources to create
@@ -98,9 +98,9 @@ The full set, with follow-ups, the call agenda and the evidence for each claim, 
 | R5 | One-page offer sheet (PDF or private page; no guarantee if public) | Agent | D1–D4 | drafted: `offer-sheet.md` (one to one only) |
 | R6 | Walkthrough video template: what to show in 5 minutes | Agent | — | drafted: `walkthrough-video.md`; owner records |
 | R7 | Booking link (Cal.com or Calendly free) | Owner | — | open |
-| R8 | Setup-call checklist: subdomain and WordPress steps | Agent | G1 timings | drafted: `setup-call.md`; timings from G1 open; WordPress path off on production |
+| R8 | Setup-call checklist: subdomain and WordPress steps | Agent | G1 timings | drafted: `setup-call.md`; timings from G1 open; WordPress path off on production and skipped for wave 1 (D8) |
 | R9 | Proof pack: our own report and live pages, screenshots | Owner | G2 | open |
-| R10 | 6 LinkedIn and X posts, one finding each | Agent | trust-compliance on aggregate data | open |
+| R10 | 6 LinkedIn and X posts, one finding each | Agent | trust-compliance on aggregate data | drafted: `social-posts.md` (our own report and pages only; no aggregate figures until #2693); owner posts from 30 Nov |
 | R11 | Partner one-pager for web designers | Agent | D6 | deferred to Phase 2 (D6) |
 | R12 | Check-in and referral messages (day 14, day 30) | Agent | customer-success review | drafted: `check-ins.md`; customer-success review open |
 | R13 | "See it work" video (#1030) | Owner records | — | open |
