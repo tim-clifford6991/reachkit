@@ -869,6 +869,30 @@ select source, sum(cost_cents) as cents, count(*) as calls
  group by 1 order by 2 desc;
 ```
 
+### Where the free scans and payments came from
+
+An outreach link carries an allow-listed channel tag (`/?ref=linkedin`, list in
+`src/lib/analytics/ref.ts`); a free scan started from it stores the tag in `scans.ref`, and a payment
+counts under the tag of the scan its site was provisioned from. Untagged or scanless reads `(none)`.
+
+```sql
+-- free scans by channel, last 30 days
+select coalesce(ref, '(none)') as ref, count(*) as free_scans
+  from scans
+ where tier = 'free' and not smoke
+   and created_at >= now() - interval '30 days'
+ group by 1 order by 2 desc;
+
+-- paying accounts by the channel of the scan their site was bought from (one site per account)
+select coalesce(s.ref, '(none)') as ref, count(*) as accounts
+  from users u
+  left join sites st on st.user_id = u.id
+  left join scans s on s.id = st.provisioned_from_scan_id
+ where u.stripe_subscription_id is not null
+   and u.created_at >= now() - interval '30 days'
+ group by 1 order by 2 desc;
+```
+
 ### Spend from the box
 
 Paid calls a script makes from the box never reach `fetches`. Each appends a line to

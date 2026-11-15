@@ -84,7 +84,8 @@ export function ScanForm(props: ScanFormProps): React.JSX.Element {
       const response = await fetch("/api/scan", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ value }),
+        // The outreach link's channel tag rides in the URL only, never in a cookie or storage; the route keeps allow-listed tags.
+        body: JSON.stringify({ value, ref: new URLSearchParams(window.location.search).get("ref") }),
       });
       const body = (await response.json()) as StartScanResponse;
       if (body.ok) {
