@@ -21,7 +21,8 @@ Contact 8–10 first, 6–7 second, below 6 not in the first 50.
 
 1. Owner-run SaaS, software and online businesses (EN)
 2. Consultants, accountants, coaches and small agencies (many on WordPress)
-3. Local services, shops and hospitality, through the web designer who runs their site
+3. Local services, shops and hospitality, reached directly (the route through the web designer
+   who runs their site is deferred to Phase 2, D6)
 4. German businesses (DE, AT, CH), from week 5. Pages are written in German; the dashboard and
    mails are English, and the material says so.
 
@@ -52,7 +53,7 @@ is offered as a gift.
 | BuiltWith or Wappalyzer | WordPress, small business, last blog post over 6 months ago | Lists or the browser extension |
 | Google Maps by category and city | 4.5★+, 50+ reviews, weak site: good but hard to find | By hand (the Places API is spend: owner's go) |
 | G2, Capterra, Shopify App Store, WordPress plugin directory | Small vendors with few reviews in crowded categories | Vendor page → site → founder |
-| Web designer and agency directories (Clutch, Dribbble, Webflow and WordPress expert lists) | Agencies of 1–5 running 10+ small-business sites | Partner offer in `offer.md` |
+| ~~Web designer and agency directories (Clutch, Dribbble, Webflow and WordPress expert lists)~~ | ~~Agencies of 1–5 running 10+ small-business sites~~ | Deferred to Phase 2 (D6): no partner channel in the first 50 |
 | IHK Berlin, BNI chapters, coworking Slacks, founder WhatsApp groups | Members are owners | Attend, give value, ask for introductions |
 
 ### 3. Content: the lead magnet already exists

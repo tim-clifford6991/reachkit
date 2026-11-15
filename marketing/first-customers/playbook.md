@@ -16,6 +16,7 @@ the owner's go.
    a Monday mail.
 4. **Fix the figures.** Check each "what it would cost elsewhere" line in `offer.md` against three
    real public price lists and keep the sources in this folder. Drop a line we cannot source.
+   Done 2026-11-15 in `price-anchors.md`; re-check before each wave.
 5. **Make the assets** in section 3.
 6. **Dry-run the pitch** on two friendly owners. Note every question; each becomes an objection
    answer in section 2.
@@ -39,10 +40,13 @@ Follow up no-replies at day 3 and day 7, then stop. Hormozi: most sales come aft
 
 ### Scripts (drafts; EN first, DE once wave 3 opens)
 
+The full set, with follow-ups, the call agenda and the evidence for each claim, is `scripts.md`
+(R4). The short versions below stay as the summary; where they differ, `scripts.md` wins.
+
 **Warm ACA opener**
 > Hey {name}, saw {specific recent thing}, congrats. Quick question: when people ask ChatGPT for
 > {their category}, do you know if it names you? I built a free scan that shows exactly who AI and
-> Google send buyers to instead. Want to run it on {domain}? A minute, no signup.
+> Google send buyers to instead. Want to run it on {domain}? No signup.
 
 **Cold signal opener** (UK and US email, LinkedIn anywhere)
 > Hi {name}, I asked ChatGPT "{exact question}" and it named {rival A} and {rival B}, not
@@ -74,12 +78,13 @@ Follow up no-replies at day 3 and day 7, then stop. Hormozi: most sales come aft
 
 | They say | Answer (true today) |
 |---|---|
-| "Too expensive" | Compare with the stack, not zero: one freelance page costs about what a month of ReachKit costs |
+| "Too expensive" | Compare with the stack, not zero: freelance writers most often charge $250–399 for one long post (`price-anchors.md` A1); a month of ReachKit is €49 |
 | "I'll think about it" | "What would you need to see? Your wave closes {date}; the bonuses close with it." |
 | "SEO didn't work before" | The report is the proof before you pay; the Monday mail measures it every week |
 | "I can do it with ChatGPT" | You can; the question is whether you will write and publish up to 7 pages every week |
 | "Is AI content penalised?" | Hand to seo-master for the approved answer before wave 1 |
 | "I'm not technical" | We connect it together on this call |
+| "I'm on WordPress" | Pages go on a part of your own address (e.g. `content.yourdomain.com`) with one setting, beside WordPress. WordPress publishing is off on production today |
 | "Can I get a refund?" | Anti-guarantee (D2): you saw everything first; cancel any time and you're not charged again |
 
 ## 3. Resources to create
@@ -89,28 +94,28 @@ Follow up no-replies at day 3 and day 7, then stop. Hormozi: most sales come aft
 | R1 | Lead tracker (`leads.csv` columns; filled copy private) | Agent, owner fills | — | done |
 | R2 | 30+ warm contacts, scored | Owner | LinkedIn export, phone | open |
 | R3 | 200 cold leads with a recorded AI-answer gap | Owner (or agent research) | Rule 2 in the README | open |
-| R4 | Scripts EN, then DE (section 2) | Agent | Owner's voice edit | draft |
-| R5 | One-page offer sheet (PDF or private page; no guarantee if public) | Agent | D1–D4 | open |
-| R6 | Walkthrough video template: what to show in 5 minutes | Agent | — | open |
+| R4 | Scripts EN, then DE (section 2) | Agent | Owner's voice edit | EN drafted: `scripts.md`; DE before wave 3 |
+| R5 | One-page offer sheet (PDF or private page; no guarantee if public) | Agent | D1–D4 | drafted: `offer-sheet.md` (one to one only) |
+| R6 | Walkthrough video template: what to show in 5 minutes | Agent | — | drafted: `walkthrough-video.md`; owner records |
 | R7 | Booking link (Cal.com or Calendly free) | Owner | — | open |
-| R8 | Setup-call checklist: subdomain and WordPress steps | Agent | G1 timings | open |
+| R8 | Setup-call checklist: subdomain and WordPress steps | Agent | G1 timings | drafted: `setup-call.md`; timings from G1 open; WordPress path off on production |
 | R9 | Proof pack: our own report and live pages, screenshots | Owner | G2 | open |
 | R10 | 6 LinkedIn and X posts, one finding each | Agent | trust-compliance on aggregate data | open |
-| R11 | Partner one-pager for web designers | Agent | D6 | open |
-| R12 | Check-in and referral messages (day 14, day 30) | Agent | customer-success review | open |
+| R11 | Partner one-pager for web designers | Agent | D6 | deferred to Phase 2 (D6) |
+| R12 | Check-in and referral messages (day 14, day 30) | Agent | customer-success review | drafted: `check-ins.md`; customer-success review open |
 | R13 | "See it work" video (#1030) | Owner records | — | open |
-| R14 | Sourced price anchors for the stack | Agent | — | open |
+| R14 | Sourced price anchors for the stack | Agent | — | done: `price-anchors.md` (re-check each wave) |
 
 ## 4. From now to wave 1, and through the waves
 
 | Week | Dates | Owner | Agent | Exit |
 |---|---|---|---|---|
-| 0 | 16–22 Nov | Rule D1–D5; start G1 with one friendly business; export contacts (R2); booking link (R7) | Finish R4, R5, R6, R8, R14 | Offer ruled; G1 started |
+| 0 | 16–22 Nov | Rule D1–D7 (done 11-15); start G1 with one friendly business; export contacts (R2); booking link (R7) | R4, R5, R6, R8, R12, R14 drafted (#2689) | Offer ruled; G1 started |
 | 1 | 23–29 Nov | Dry-run the pitch on 2 owners; G1 done; G2 running; proof pack (R9) | R10, R12; revise scripts from the dry run | G1 closed; 7 of 7 counting |
 | 2 | 30 Nov–6 Dec | **Wave 1 (15 places, warm only)**: 30 warm messages, walkthroughs, calls | Weekly update of the Progress table | 10 paying, all live in 48 h |
-| 3 | 7–13 Dec | Wave 2 opens: rest of the warm list, first 100 cold (UK/US), posts 3× a week | R11; partner list of 10 | G3 closed before strangers pay |
-| 4 | 14–20 Dec | Wave 2 closes; 10 web designers contacted | Case study from a wave-1 customer | 25 paying |
-| 5–10 | Jan 2027 | Wave 3 (20 places): DE push, cold 100 a day, partners, video (#1030); no Product Hunt while the ceiling stays at 1,000¢ (D5) | DE scripts; €150 ad test plan if 10+ paying | 50 paying by 31 Jan |
+| 3 | 7–13 Dec | Wave 2 opens: rest of the warm list, first 100 cold (UK/US), posts 3× a week | ~~R11; partner list of 10~~ deferred to Phase 2 (D6) | G3 closed before strangers pay |
+| 4 | 14–20 Dec | Wave 2 closes; ~~10 web designers contacted~~ deferred to Phase 2 (D6) | Case study from a wave-1 customer (with consent) | 25 paying |
+| 5–10 | Jan 2027 | Wave 3 (20 places): DE push, cold outreach staggered under the ~80-scans-a-day ceiling (D5), video (#1030); no partners (D6); no Product Hunt while the ceiling stays at 1,000¢ (D5) | DE scripts; €150 ad test plan if 10+ paying | 50 paying by 31 Jan |
 
 **Gate between waves:** every paying customer has a page live and no P0 is open. A stalled wave
 waits; it is not pushed with more outreach.
@@ -118,5 +123,6 @@ waits; it is not pushed with more outreach.
 ## 5. What to measure weekly
 
 Contacts, replies, scans, calls, paying, live within 48 h (README Progress table), plus where each
-payer heard of us, asked by hand (D7). The deciding number for waves 1 and 2 is live within 48 h:
+payer heard of us: the `?ref=` channel link (README › Channel links) and, until the ref is stored,
+asked by hand (D7). The deciding number for waves 1 and 2 is live within 48 h:
 100%.
