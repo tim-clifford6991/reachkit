@@ -44,6 +44,8 @@ export const DANGER_COPY = Object.freeze({
   // c3, the refusal: "if it cannot be produced, or they do not take it, the
   // action does not proceed and says why."
   "danger.export-failed": ["Your export didn’t finish, so nothing was changed.", { slots: {}, fixedBy: "REQ-079 c3" }],
+  // The refusal a customer fixes themselves: this step's download is missing, used or out of date.
+  "danger.export-again": ["Download this step’s pages again, then confirm.", { slots: {}, fixedBy: "REQ-079 c3; issue 2704 (drafted)" }],
   // c4's last clause, the two arms of what an unpublish-everything run
   // leaves behind: "the pages at any destination that could not be reached
   // are listed as still live with one written line saying so", and the line

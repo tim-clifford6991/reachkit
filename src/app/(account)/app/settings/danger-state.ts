@@ -44,6 +44,18 @@ export function matchesConfirmWord(
  *  client's memory of having pressed the control. */
 export type HandoverState = { taken: boolean };
 
+/** The red button waits for both gates: this step's own download, then the word. */
+export function canConfirm(handover: HandoverState, armed: boolean): boolean {
+  return handover.taken && armed;
+}
+
+/** Only a store failure is an export that did not finish; every other refusal
+ *  (no ticket, the other step's, spent, expired, never taken) is fixed by
+ *  downloading this step's pages again. */
+export function refusalLineKey(reason: string): "danger.export-failed" | "danger.export-again" {
+  return reason === "store" ? "danger.export-failed" : "danger.export-again";
+}
+
 /** A destination whose pages this run could not take down (c4). */
 export interface StillLive {
   readonly kind: string;
@@ -53,7 +65,7 @@ export interface StillLive {
 /** What a confirmed action did, as the panel renders it. Every arm carries
  *  the key that says it; none carries a sentence. */
 export type DangerOutcome =
-  | { ran: false; lineKey: "danger.export-failed" | "danger.type-to-confirm" }
+  | { ran: false; lineKey: "danger.export-failed" | "danger.export-again" | "danger.type-to-confirm" }
   | {
       ran: true;
       action: "unpublish_all";
