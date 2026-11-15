@@ -108,6 +108,7 @@ jobs:
           restore-keys: check-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-
       - run: npm run typecheck
       - run: npm run lint -- --cache --cache-strategy content
+      - run: node scripts/daisy-include.mjs
       # `affected` hands `vitest related` the merge commit's surviving paths
       # plus every suite that reads the tree from disk, which no import links
       # to the diff; `full` (or a failed filter) runs them all. `test:unit` and
