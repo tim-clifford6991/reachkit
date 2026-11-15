@@ -38,7 +38,9 @@ import { SETTINGS_TAB_HREF } from "../tabs";
 import { handoverState, runDangerAction } from "../danger-actions";
 import {
   CONFIRM_WORD_KEY,
+  canConfirm,
   matchesConfirmWord,
+  type DangerActionKey,
   type DangerOutcome,
   type HandoverState,
 } from "../danger-state";
@@ -46,6 +48,20 @@ import {
 /** The two, each with the word it is offered under and the sentence stating
  *  what it does before it does it. A third row would be a third destructive
  *  action, which REQ-079 c1 closes at two. */
+/** How long the step keeps re-reading the stamp after a press: a large archive streams for a while. */
+const HANDOVER_POLL_MS = 1000;
+const HANDOVER_POLL_TRIES = 180;
+
+/** Re-reads the stamp until the download has finished, because the press only starts it. */
+async function waitForHandover(action: DangerActionKey): Promise<HandoverState> {
+  for (let i = 0; i < HANDOVER_POLL_TRIES; i++) {
+    await new Promise((resolve) => setTimeout(resolve, HANDOVER_POLL_MS));
+    const state = await handoverState(action).catch(() => ({ taken: false }));
+    if (state.taken) return state;
+  }
+  return { taken: false };
+}
+
 const DANGER: readonly { action: Extract<ActionKey, "unpublish_all" | "delete_account">; label: CopyKey; consequence: CopyKey }[] = [
   {
     action: "unpublish_all",
@@ -134,7 +150,7 @@ function DangerStep(p: {
               className="btn btn-soft btn-primary min-h-11"
               onClick={() => {
                 p.action.run(p.row.action);
-                void handoverState(p.row.action).then(setHandover);
+                void waitForHandover(p.row.action).then(setHandover);
               }}
             >
               {copy("settings.content.export")}
@@ -155,7 +171,7 @@ function DangerStep(p: {
           <button
             type="button"
             className="btn btn-error min-h-11"
-            disabled={!armed || running}
+            disabled={!canConfirm(handover, armed) || running}
             onClick={() => {
               startRunning(async () => {
                 const result = await runDangerAction(p.row.action, typed);
@@ -163,6 +179,8 @@ function DangerStep(p: {
                   window.location.assign(result.href);
                   return;
                 }
+                // A run spends the ticket and a refusal asks for a fresh one, so the download is offered again.
+                if (result.lineKey !== "danger.type-to-confirm") setHandover({ taken: false });
                 setOutcome(result);
               });
             }}

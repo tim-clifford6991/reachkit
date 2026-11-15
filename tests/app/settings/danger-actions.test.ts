@@ -54,6 +54,7 @@ vi.mock("@/lib/account/lifecycle", () => ({
   confirmDangerAction: async (a: { ticket: string; typedConfirmation: string }) => {
     confirmed.push(a);
     if (a.ticket === "not-taken") return { ok: false, reason: "export_not_taken" };
+    if (a.ticket === "store") return { ok: false, reason: "store" };
     if (a.ticket === "unpublish") {
       return {
         ok: true,
@@ -90,7 +91,7 @@ vi.mock("@/lib/account/lifecycle", () => ({
 
 const { DANGER_TICKET_COOKIE } = await import("@/app/(account)/app/settings/danger-ticket");
 const { handoverState, runDangerAction } = await import("@/app/(account)/app/settings/danger-actions");
-const { CONFIRM_WORD_KEY } = await import("@/app/(account)/app/settings/danger-state");
+const { CONFIRM_WORD_KEY, canConfirm } = await import("@/app/(account)/app/settings/danger-state");
 const { COPY } = await import("@/lib/presentation/copy");
 
 /** The word the customer is shown and types — the registry's, never the
@@ -135,17 +136,26 @@ describe("REQ-079 c2 — the customer types the word §4.7 prints, never the eng
 describe("REQ-079 c3 — the ticket is the cookie's, and a refusal changes nothing", () => {
   it("no cookie is a refusal, and the engine is not reached", async () => {
     const outcome = await runDangerAction("delete_account", WORD);
-    expect(outcome).toEqual({ ran: false, lineKey: "danger.export-failed" });
+    expect(outcome).toEqual({ ran: false, lineKey: "danger.export-again" });
     expect(confirmed).toEqual([]);
   });
 
   it("an archive that was never taken is refused by the engine and reported as one line", async () => {
     jar.set(DANGER_TICKET_COOKIE, "not-taken");
     const outcome = await runDangerAction("delete_account", WORD);
-    expect(outcome).toEqual({ ran: false, lineKey: "danger.export-failed" });
+    expect(outcome).toEqual({ ran: false, lineKey: "danger.export-again" });
     // It *did* reach the engine — the refusal is the engine's, not a second
     // copy of its rule on this side.
     expect(confirmed).toHaveLength(1);
+  });
+
+  it("only a store failure reads as an export that didn't finish", async () => {
+    jar.set(DANGER_TICKET_COOKIE, "store");
+    expect(await runDangerAction("delete_account", WORD)).toEqual({ ran: false, lineKey: "danger.export-failed" });
+  });
+
+  it("the red button waits for this step's download as well as the word", () => {
+    expect([canConfirm({ taken: false }, true), canConfirm({ taken: true }, false), canConfirm({ taken: true }, true)]).toEqual([false, false, true]);
   });
 
   it("the ticket is never an argument — only the cookie names it", async () => {

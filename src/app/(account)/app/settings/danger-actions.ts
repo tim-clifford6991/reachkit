@@ -42,6 +42,7 @@ import { DANGER_TICKET_COOKIE } from "./danger-ticket";
 import {
   CONFIRM_WORD_KEY,
   matchesConfirmWord,
+  refusalLineKey,
   type DangerActionKey,
   type DangerOutcome,
   type HandoverState,
@@ -103,7 +104,7 @@ export async function runDangerAction(
   }
 
   const ticket = await ticketFromCookie();
-  if (ticket === null) return { ran: false, lineKey: "danger.export-failed" };
+  if (ticket === null) return { ran: false, lineKey: refusalLineKey("no_ticket") };
 
   const { confirmDangerAction, confirmationFor } = await lifecycle();
   const confirmed = await confirmDangerAction({
@@ -113,13 +114,7 @@ export async function runDangerAction(
     typedConfirmation: confirmationFor(action),
   });
 
-  if (!confirmed.ok) {
-    // Every one of the five refusals is REQ-079 c3's "does not proceed and
-    // says why", and the line that says why is the same for all of them:
-    // which of the five it was is an operator's fact and tells the customer
-    // nothing they can act on.
-    return { ran: false, lineKey: "danger.export-failed" };
-  }
+  if (!confirmed.ok) return { ran: false, lineKey: refusalLineKey(confirmed.reason) };
 
   if (confirmed.action === "unpublish_all") {
     revalidatePath(SETTINGS_PATH);
