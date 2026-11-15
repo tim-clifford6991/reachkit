@@ -110,7 +110,7 @@ Follow up no-replies at day 3 and day 7, then stop. Hormozi: most sales come aft
 | 2 | 30 Nov–6 Dec | **Wave 1 (15 places, warm only)**: 30 warm messages, walkthroughs, calls | Weekly update of the Progress table | 10 paying, all live in 48 h |
 | 3 | 7–13 Dec | Wave 2 opens: rest of the warm list, first 100 cold (UK/US), posts 3× a week | R11; partner list of 10 | G3 closed before strangers pay |
 | 4 | 14–20 Dec | Wave 2 closes; 10 web designers contacted | Case study from a wave-1 customer | 25 paying |
-| 5–10 | Jan 2027 | Wave 3 (20 places): DE push, cold 100 a day, partners, video (#1030); Product Hunt once G4 is ruled | DE scripts; €150 ad test plan if 10+ paying | 50 paying by 31 Jan |
+| 5–10 | Jan 2027 | Wave 3 (20 places): DE push, cold 100 a day, partners, video (#1030); no Product Hunt while the ceiling stays at 1,000¢ (D5) | DE scripts; €150 ad test plan if 10+ paying | 50 paying by 31 Jan |
 
 **Gate between waves:** every paying customer has a page live and no P0 is open. A stalled wave
 waits; it is not pushed with more outreach.

@@ -44,7 +44,7 @@ owner's 11-10 "publish daily" ruling (#2513).
 | G1 | A stranger walk on a customer's domain: one subdomain connect and one WordPress | open |
 | G2 | 7 of 7 pages a day for 7 days in a row (#2498) | open |
 | G3 | Legal sign-offs: #1614 and the DPA lawyer review | open |
-| G4 | Daily spend ceiling ruled for outreach and launch days (about 80 full-cost scans a day today) | open |
+| G4 | Daily spend ceiling ruled for outreach and launch days (about 80 full-cost scans a day today) | closed 11-15 by D5: ceiling unchanged, outreach staggered |
 | G5 | Pace wording in SPEC §1 matches the 11-10 ruling | open |
 
 Warm outreach to people the owner knows may start before G3; strangers are not asked to pay
@@ -54,11 +54,11 @@ until G1–G3 are closed.
 
 | # | Decision | Recommended | Status |
 |---|---|---|---|
-| D1 | Founding price lock: €49 a month for as long as they stay | Yes | open |
-| D2 | Guarantee: service ("live in 48 h or I do it with you") plus anti-guarantee ("the free report is the proof") | Yes | open |
-| D3 | Credit guarantee: no page live in 7 days → second month free (Stripe coupon by hand) | Hold | open |
-| D4 | Founding waves: 15 places closing 6 Dec, 15 closing 20 Dec, 20 closing 31 Jan | Yes | open |
-| D5 | Raise the daily scan ceiling on outreach days (G4) | Size with commercialization | open |
+| D1 | Founding price lock: €49 a month for as long as they stay | Yes | **ruled 11-15: yes** |
+| D2 | Guarantee: service ("live in 48 h or I do it with you") plus anti-guarantee ("the free report is the proof") | Yes | **ruled 11-15: yes, one to one only** |
+| D3 | Credit guarantee: no page live in 7 days → second month free (Stripe coupon by hand) | Hold | **ruled 11-15: hold until G1 and G2 prove 48 h delivery** |
+| D4 | Founding waves: 15 places closing 6 Dec, 15 closing 20 Dec, 20 closing 31 Jan | Yes | **ruled 11-15: yes** |
+| D5 | Raise the daily scan ceiling on outreach days (G4) | Size with commercialization | **ruled 11-15: keep 1,000¢; launch in small steps, no day planned past ~80 scans; Product Hunt waits** |
 | D6 | Partner (web designer) terms: setup help only, or a credit | Setup help only until commercialization rules | open |
 | D7 | A "how did you hear about us" field or a fourth analytics event | Ask by hand for the first 50 | open |
 
@@ -70,4 +70,5 @@ until G1–G3 are closed.
 
 ## Change log
 
+- 2026-11-15: owner ruled D1–D5 (D5 keeps the ceiling, so outreach is staggered and Product Hunt waits).
 - 2026-11-15: folder created from the growth plan (2026-11-11) and the Founding 50 research.
