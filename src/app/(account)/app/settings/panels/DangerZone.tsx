@@ -29,7 +29,7 @@
 
 import type React from "react";
 import { Linked } from "../Linked";
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { ERASURE_DAYS } from "@/lib/config/constants";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { writtenLine } from "../../_shell/written";
@@ -138,6 +138,11 @@ function DangerStep(p: {
   const word = copy(CONFIRM_WORD_KEY[p.row.action]);
   const armed = matchesConfirmWord(p.row.action, typed, word);
 
+  // Closed once the run answers, so focus returns to an opener that is no longer busy.
+  useEffect(() => {
+    if (!running) sure.current?.close();
+  }, [running]);
+
   const run = (): void => {
     startRunning(async () => {
       const result = await runDangerAction(p.row.action, typed);
@@ -148,7 +153,6 @@ function DangerStep(p: {
       // A run spends the ticket and a refusal asks for a fresh one, so the download is offered again.
       if (result.lineKey !== "danger.type-to-confirm") setHandover({ taken: false });
       setOutcome(result);
-      sure.current?.close();
     });
   };
 
