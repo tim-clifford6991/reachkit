@@ -134,6 +134,7 @@ describe("REQ-079 c7 — the enumerated sweep, one case per named class", () => 
 
   it("an address-wide suppression is not purged — it is a person's opt-out, not an account's row", () => {
     expect(PURGE_ORDER.map((step) => step.table)).not.toContain("email_suppressions");
+    expect(PURGE_ORDER.map((step) => step.table)).not.toContain("churned_contacts");
   });
 });
 

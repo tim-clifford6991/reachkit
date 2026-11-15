@@ -29,7 +29,8 @@
 
 import type React from "react";
 import { Linked } from "../Linked";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
+import { ERASURE_DAYS } from "@/lib/config/constants";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { writtenLine } from "../../_shell/written";
 import { useAction } from "./useAction";
@@ -61,6 +62,17 @@ async function waitForHandover(action: DangerActionKey): Promise<HandoverState> 
   }
   return { taken: false };
 }
+
+/** What deleting does, said in the "Are you sure?" step before anything runs. */
+const SURE_LINES: readonly CopyKey[] = [
+  "danger.delete-account.sure.hosted",
+  "danger.delete-account.sure.plan",
+  "danger.delete-account.sure.closed",
+  "danger.delete-account.sure.erased",
+  "danger.delete-account.sure.wordpress",
+  "danger.delete-account.sure.kept",
+];
+const DAYS = { days: String(ERASURE_DAYS) };
 
 const DANGER: readonly { action: Extract<ActionKey, "unpublish_all" | "delete_account">; label: CopyKey; consequence: CopyKey }[] = [
   {
@@ -121,9 +133,23 @@ function DangerStep(p: {
   // the account it belonged to is gone.
   const [outcome, setOutcome] = useState<RenderedOutcome | null>(null);
 
-  const consequence = writtenLine(p.row.consequence);
+  const sure = useRef<HTMLDialogElement>(null);
+  const consequence = writtenLine(p.row.consequence, DAYS);
   const word = copy(CONFIRM_WORD_KEY[p.row.action]);
   const armed = matchesConfirmWord(p.row.action, typed, word);
+
+  const run = (): void => {
+    startRunning(async () => {
+      const result = await runDangerAction(p.row.action, typed);
+      if (result.ran && result.action === "delete_account") {
+        window.location.assign(result.href);
+        return;
+      }
+      // A run spends the ticket and a refusal asks for a fresh one, so the download is offered again.
+      if (result.lineKey !== "danger.type-to-confirm") setHandover({ taken: false });
+      setOutcome(result);
+    });
+  };
 
   return (
     <div
@@ -172,18 +198,7 @@ function DangerStep(p: {
             type="button"
             className="btn btn-error min-h-11"
             disabled={!canConfirm(handover, armed) || running}
-            onClick={() => {
-              startRunning(async () => {
-                const result = await runDangerAction(p.row.action, typed);
-                if (result.ran && result.action === "delete_account") {
-                  window.location.assign(result.href);
-                  return;
-                }
-                // A run spends the ticket and a refusal asks for a fresh one, so the download is offered again.
-                if (result.lineKey !== "danger.type-to-confirm") setHandover({ taken: false });
-                setOutcome(result);
-              });
-            }}
+            onClick={() => (p.row.action === "delete_account" ? sure.current?.showModal() : run())}
           >
             {running ? <span className="loading loading-spinner loading-xs" aria-hidden /> : null}
             {copy(p.row.label)}
@@ -194,6 +209,25 @@ function DangerStep(p: {
       </div>
 
       {outcome === null ? null : <DangerLine outcome={outcome} />}
+
+      {/* Esc, the backdrop and Keep all close the dialog and run nothing. */}
+      {p.row.action === "delete_account" ? (
+        <dialog ref={sure} className="modal" aria-labelledby="danger-sure-title" data-testid="danger-sure">
+          <div className="modal-box flex min-w-0 flex-col gap-3">
+            <h3 id="danger-sure-title" className="text-lg font-semibold">{copy("danger.delete-account.sure.title")}</h3>
+            <ul className="flex list-disc flex-col gap-1 ps-5 text-sm wrap-anywhere">
+              {SURE_LINES.map((key) => <li key={key}>{copy(key, DAYS)}</li>)}
+            </ul>
+            <div className="modal-action flex-wrap">
+              <form method="dialog"><button className="btn min-h-11">{copy("danger.delete-account.keep")}</button></form>
+              <button type="button" className="btn btn-error min-h-11" onClick={() => { sure.current?.close(); run(); }}>
+                {copy(p.row.label)}
+              </button>
+            </div>
+          </div>
+          <form method="dialog" className="modal-backdrop"><button>{copy("danger.delete-account.keep")}</button></form>
+        </dialog>
+      ) : null}
     </div>
   );
 }

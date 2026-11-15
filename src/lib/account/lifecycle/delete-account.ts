@@ -1,5 +1,5 @@
 // BUILD §4.7, §13, §14 — delete account: signed out, subscription ended,
-// tombstone stamped, and one mail about what is still live.
+// tombstone stamped, the churn row kept, and one Goodbye mail.
 //
 // REQ-079 criterion 6, in the order its clauses fall due, each step a
 // precondition of the next:
@@ -12,8 +12,9 @@
 //     (ADR-051: two columns, and no `DELETE` of any kind);
 //  4. every session is ended, so "a sign-in request at that address finds no
 //     account";
-//  5. where anything of either kind is left behind, one `account` mail goes
-//     to the address being deleted.
+//  5. the name and address go on the churn list, which the purge never reads;
+//  6. one Goodbye `account` mail goes to the address being deleted, carrying
+//     whatever of either kind is left behind.
 //
 // **A step that fails stops the ones after it.** A tombstone stamped after a
 // take-down that never ran would leave the customer's pages live at their
@@ -30,7 +31,8 @@
 // (ADR-051 point 3).
 import { ERASURE_DAYS } from "@/lib/config/constants";
 import { sendEmail } from "@/lib/mail/send";
-import { buildAccountDeleted } from "@/lib/mail/templates/account";
+import { formatMailDate } from "@/lib/mail/blocks/format";
+import { buildGoodbye } from "@/lib/mail/templates/account";
 import { endSubscriptionNow } from "../billing";
 import { leftInWordPress, type LeftInWordPress } from "./left-in-wordpress";
 import { lifecycleStore } from "./store";
@@ -44,9 +46,7 @@ export interface DeleteAccountResult {
   readonly stillLive: UnpublishAllResult["stillLive"];
   readonly leftInWordPress: LeftInWordPress;
   readonly purgeDueAt: Date;
-  /** Whether criterion 6's mail went. `false` where there was nothing of
-   *  either kind to say — and `false`, with the reason logged by the mail
-   *  seam, where its sentences are still owner-owed. */
+  /** Whether the Goodbye went; `false`, with the reason logged by the mail seam, where it could not. */
   readonly mailSent: boolean;
 }
 
@@ -95,26 +95,31 @@ export async function deleteAccount(a: {
   const sessions = await store.endSessions(userId, now);
   if (!sessions.ok) return { ok: false, reason: "store" };
 
-  // 5 — one mail, and only where something of *either* kind is left behind.
+  // 5 — the churn list, kept past the purge; a failure is logged and never undoes the deletion.
+  const kept = await store.keepChurnedContact({
+    email: account.account.email,
+    name: account.account.name ?? null,
+    at: now,
+  });
+  if (!kept.ok) console.error(JSON.stringify({ event: "churned_contact_unwritten", userId }));
+
+  // 6 — one Goodbye, always; the user id as the period makes a retried deletion's second send a no-op.
   const stillLive = takenDown.result.stillLive;
   const stillLiveCount = stillLive.reduce((sum, row) => sum + row.liveUrls.length, 0);
-  const anythingLeft = stillLive.length > 0 || Object.keys(wordpress).length > 0;
-
-  let mailSent = false;
-  if (anythingLeft) {
-    const mail = buildAccountDeleted({
-      ...(stillLive.length === 0 ? {} : { stillLive: stillLiveCount }),
-      leftInWordPress: wordpress,
-    });
-    const sent = await sendEmail({
-      kind: "account",
-      to: account.account.email,
-      subject: mail.subject,
-      blocks: mail.blocks,
-      userId,
-    });
-    mailSent = sent.sent;
-  }
+  const mail = buildGoodbye({
+    ...(stillLive.length === 0 ? {} : { stillLive: stillLiveCount }),
+    leftInWordPress: wordpress,
+    erasedBy: formatMailDate(purgeDueAt, read.site.timezone ?? null),
+  });
+  const sent = await sendEmail({
+    kind: "account",
+    to: account.account.email,
+    subject: mail.subject,
+    blocks: mail.blocks,
+    userId,
+    period: userId,
+  });
+  const mailSent = sent.sent;
 
   return {
     ok: true,

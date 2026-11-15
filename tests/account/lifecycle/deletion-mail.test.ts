@@ -23,6 +23,7 @@ interface SentMail {
   kind: string;
   to: string;
   subject: string;
+  period?: string;
   blocks: { block: string; text?: string; vars?: Record<string, string | number> }[];
   tombstoneAt: string | null | undefined;
 }
@@ -102,16 +103,14 @@ describe("REQ-079 c6 — one mail, and only where something of either kind is le
     ).toBe(true);
   });
 
-  it("no mail when both are empty", async () => {
+  it("one Goodbye, keyed by the user id, and one churn row, even when nothing is left", async () => {
     live("a", "hosted", null);
     const run = await deleteAccount({ siteId: "site-1", now: NOW });
-    expect(run.ok && run.result.mailSent).toBe(false);
-    expect(sent).toEqual([]);
-  });
-
-  it("no mail when there was nothing published at all", async () => {
-    await deleteAccount({ siteId: "site-1", now: NOW });
-    expect(sent).toEqual([]);
+    expect(run.ok && run.result.mailSent).toBe(true);
+    expect(sent.map((m) => [m.subject, m.period, m.blocks[0]?.text])).toEqual([
+      ["mail.account.deleted.subject", "u-1", "mail.account.deleted.goodbye"],
+    ]);
+    expect(state.churned).toEqual([{ email: "leaving@example.com", name: null }]);
   });
 });
 
