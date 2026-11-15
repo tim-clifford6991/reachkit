@@ -5,7 +5,7 @@ on your site, and I'm here." **Call to action:** day 14, reply with one thing to
 introduce one owner who should see their own report. Sent by the owner, one to one (WhatsApp,
 LinkedIn or email, whichever they used to reach you).
 
-Reviewed by customer-success and trust-compliance on #2693; their changes are applied here (#2698).
+Reviewed by customer-success on #2693; its changes are applied here (#2698).
 
 ## Owner to do
 
@@ -73,7 +73,7 @@ first.
 > live in week 1. Google takes weeks to months; each Monday email shows what moved."}
 >
 > Thanks for being one of the first. A quick favour: who else do you know who owns a business
-> website and never has time for marketing? Could you introduce us, or send them this link:
+> website and never has time for marketing? Could you send them this link, or introduce us:
 > https://reachkit.app/?ref=referral {Only while a founding wave is open (until 31 Jan 2027): "I'll
 > set them up personally too, the same way."} {After that: "They can run the free scan on their
 > own site and see what you saw."}
@@ -109,13 +109,10 @@ Evidence: `landing.faq.stop.short` (`report.ts:679`); Terms §4 and §6 (`legal.
 
 ## The referral itself
 
-The customer makes the first contact. You never take a name and write to someone who didn't ask
-(trust-compliance F10, #2693).
-
 | Step | What |
 |---|---|
-| They want to refer someone | Thank them. Ask them to introduce you (a message to both of you) or to send the person `https://reachkit.app/?ref=referral` |
-| The person replies to the introduction | Now you may write: warm opener (`scripts.md` §1), first line: "{customer} introduced us." |
+| They want to refer someone | Thank them. An introduction (a message to both of you) or the link `https://reachkit.app/?ref=referral` works best. If they give you a name instead, ask: "Can I say you sent me?" |
+| You write to the person | Warm opener (`scripts.md` §1), first line: "{customer} said you might like this." Link with `?ref=referral` |
 | The person runs a scan | Same path as everyone: walkthrough, offer, call |
 | They pay | Tell the customer who referred them: "{name} joined, thank you." No reward exists: one plan, no credits or add-ons (SPEC §1 *One plan*; D6 defers any partner or affiliate scheme) |
 

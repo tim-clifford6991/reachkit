@@ -2,20 +2,15 @@
 
 **Audience:** owners in `icp-and-sources.md` scoring 6 or more. **Message:** "AI answers send your
 buyers to someone else, and you can see it free." **Call to action:** run the free scan on your own
-domain. One ask per message. DE versions follow before wave 3 (playbook §4).
+domain. One ask per message. English only: the Founding 50 are English-speaking businesses (D10).
 
 ## Owner to do
 
 - [ ] Edit every script into your own voice before the first send (they are drafts).
 - [ ] Make the booking link (R7) and paste it where `{booking}` stands.
-- [ ] No cold mail until G6 is closed (README › *Cold email: cleared with conditions, lawyer confirm
-      pending*): the conditions C1–C7 and your rulings D9 (friends in Germany), D10 (mailbox) and
-      D11 (lawyer).
-- [ ] Send cold mail by hand from a mailbox you already have, under your own name. Never through
-      Resend, and never "From" an @reachkit.app address sent from another mailbox (F8).
-- [ ] Before each UK cold send, check the company on Companies House and set `entity_type`.
-      Anyone who says no: write the date in `opted_out_on` and add the address to your private
-      do-not-contact list, then never write again.
+- [ ] No cold email for now (D11). The researched leads get a LinkedIn connection and a message.
+- [ ] Anyone who says no: write the date in `opted_out_on` in the private tracker, and never write
+      again.
 - [ ] You send every message yourself. Nothing here is sent by an agent.
 
 ## Rules for every message
@@ -23,7 +18,6 @@ domain. One ask per message. DE versions follow before wave 3 (playbook §4).
 | Rule | Why |
 |---|---|
 | Link the scan with the channel tag: `https://reachkit.app/?ref={channel}` (README › Channel links) | D7. The landing stores the tag with the scan (#2692); a purchase from `/pricing` reads none, so also ask "where did you hear of us?" and write it in `heard_from` |
-| Germany and Austria, and UK sole traders and partnerships: no sales message by email, LinkedIn, WhatsApp or SMS unless the person asked first | README rule 3 (trust-compliance F1, F2) |
 | Never scan their site for them; they run it | Every scan is a public card on `/scans` (SPEC §2 *Gallery lists every report*, `docs/SPEC.md:162`) |
 | Say "up to 7 pages a week, new or updated", never "a page a day" | SPEC §1 *The pace* (`docs/SPEC.md:94`); `offer.cadence.page` (`src/lib/presentation/copy/keys/offer.ts:36`) |
 | No guarantee or refund line in a post or on a page; only in a one-to-one message or call | README rule 1; D2 |
@@ -41,9 +35,7 @@ Wave close dates (D4): wave 1 **6 Dec 2026**, wave 2 **20 Dec 2026**, wave 3 **3
 
 ## 1. Warm opener (ACA: acknowledge, compliment, ask)
 
-**Channel:** WhatsApp, LinkedIn message, personal email. People you know only. In Germany and
-Austria, and to UK sole traders and partnerships, only to someone who asked first or in person,
-until the owner rules D9 on personal friends (README rule 3).
+**Channel:** WhatsApp, LinkedIn message, personal email. People you know only.
 **Goal:** a reply. No pitch, no price.
 
 > Hey {name}, saw {specific recent thing}, congrats, that's a big one.
@@ -62,52 +54,26 @@ Evidence: the report's first card is *Who gets your buyers* (`report.buyers.titl
 `report.ts:876`), and its headline names the business buyers are sent to most (`report.top.line`,
 `report.ts:869`). No account before the scan (SPEC §1 *One field*).
 
-## 2. Cold signal opener
+## 2. Cold signal opener (LinkedIn)
 
-**Channel:** a LinkedIn note or message, or an email, to US businesses and UK companies, LLPs and
-Scottish partnerships only (checked on Companies House). Email only after G6 (README). Everyone
-else, including Germany and Austria: a connection request with no note, or the no-offer note below,
-and a pitch only once they ask (README rule 3).
+**Channel:** LinkedIn only: a connection request with the note, then the message once they accept.
+No cold email for now (D11). The researched leads in the private tracker go this way.
 **Before sending:** ask ChatGPT, Perplexity or Google AI the `{exact question}` by hand and record
-the answer in `leads.csv` (`ai_answer_gap`). Never run a ReachKit scan of their site.
+the answer in `leads.csv` (`ai_answer_gap`), with a dated screenshot: AI answers change, and the
+note must match what you saw. Never run a ReachKit scan of their site.
 
-**LinkedIn (under 300 characters for a connection note):**
+**Connection note (under 300 characters):**
 
 > Hi {name}, I asked ChatGPT "{exact question}". It named {rival A} and {rival B}, not {company},
 > even with your {signal}. I built a free scan that shows where AI sends your buyers. Happy to share.
 
-**LinkedIn, no-offer note (anyone, including Germany and Austria):**
+**Message, once they accept:**
 
-> Hi {name}, I liked {specific thing they posted or did}. I work on how small businesses get found
-> in Google and AI answers. Glad to connect.
-
-**Email (US businesses and UK companies only; unused until G6):**
-
-> Subject: When I asked ChatGPT about {category}
->
-> Hi {name},
->
-> I asked ChatGPT "{exact question}" this week. It named {rival A} and {rival B}. It didn't name
-> {company}, even though you {signal: e.g. have 120 five-star reviews}.
->
-> I built a free scan that shows which businesses Google and AI answers send your buyers to, and
-> the questions your buyers ask that no page of yours answers. It's free and needs no signup:
-> https://reachkit.app/?ref=coldemail
+> Thanks for connecting, {name}. Here's the scan I mentioned. It shows which businesses Google and
+> AI answers send your buyers to, and the questions your buyers ask that no page of yours answers.
+> It's free and needs no signup: https://reachkit.app/?ref=linkedin
 >
 > Worth a look?
->
-> Tim
->
-> Tim Clifford, founder, ReachKit · Schwedter Straße 235, 10435 Berlin, Germany
-> This is a sales email from ReachKit. I found your address on {source}.
-> If you'd rather not hear from me, reply "no" and I won't write again.
-> How I handle your details: https://reachkit.app/privacy#people-we-write-to
-
-The footer is trust-compliance's draft (F3, #2693; lawyer confirm pending) and goes in every cold
-mail. Its privacy link works only once the privacy section "People we write to" is live (README C5).
-The subject line must match the body and the answer you recorded: keep the dated screenshot behind
-`ai_answer_gap`, because AI answers change. The tag is `coldemail`, on the allow-list
-(`src/lib/analytics/ref.ts`) and in README › Channel links.
 
 Evidence: the report lists *Pages you're missing* (`report.missing.title`, `report.ts:846`) and
 "We found {count} questions your buyers ask that no page of yours answers" (`report.top.offer`,
@@ -209,7 +175,7 @@ and their row in the private `leads.csv`.
 | "Is this AI spam?" | "No. Claude, an AI model, writes each page from your site and linked sources. A page that fails its checks twice never goes live." | `landing.faq.spam.a`, `report.ts:658` |
 | "Will Google penalise AI pages?" | "No. Google has said that using AI to write pages isn't against its rules. What it acts on is pages churned out in bulk just to game search, with nothing new in them, however they were written. ReachKit writes each page from facts on your own site and linked public sources. It holds back any page with an invented fact or one that repeats a page you already have. And it only writes a new page when it has something the top results don't already say." Then send the written answer (§7). | seo-master on #2693; §7 |
 | "I'm not technical" | "We connect it together on this call. It's one setting where you bought your web address." | `landing.faq.start.a`, `report.ts:668` |
-| "I'm on WordPress" | Wave 1: "Not this wave. I'm starting with sites that connect by subdomain. Can I come back to you after 6 Dec?" Later waves (unless the owner rules otherwise): "Today we publish on a part of your own address, like content.yourdomain.com, with one setting. It works next to WordPress." | Owner D8 (2026-11-15, #2694); SPEC §5 *DNS only at launch* (`docs/SPEC.md:255`) |
+| "I'm on WordPress" | "Not in this founding round. I'm starting with sites that connect by subdomain. Can I come back to you later?" | Owner D8, widened to all 50 on #2698; WordPress publishing is off on production (SPEC §5 *DNS only at launch*, `docs/SPEC.md:255`) |
 | "Do I have to approve every page?" | "No. Each page goes live by itself after a waiting time. You can edit or stop it first, or do nothing." | `landing.plan.control.line`, `landing.ts:67` |
 | "Can I get a refund?" | "You see your report and a first page before you pay. Payments aren't refunded unless the law requires it. Cancel any time and you're not charged again. Every page can be downloaded." | D2; Terms §4 (`chrome.ts:197`); `report.ts:679`; `settings.content.export`, `settings.ts:771` |
 | "My site is in German" | "Sites in Germany, Austria and Switzerland get pages in German. The dashboard and emails are in English." | `landing.faq.german.short`, `report.ts:680`; `icp-and-sources.md` |
@@ -241,7 +207,7 @@ site's facts." Not true of every page today: a page with no fact from the site, 
 pages, carry no AI note (seo-master on #2693; 2 of 13 articles on our own `content.reachkit.app`).
 Add it back only when #1127 lands with the note on every published page.
 
-**DE (draft for the owner's voice edit; said on a call or sent to someone who asked, README rule 3):**
+**DE (draft, not used in the Founding 50: the German push is dropped, D10; kept for later):**
 
 > „Nein. Google sagt selbst, dass KI beim Schreiben nicht gegen seine Regeln verstößt. Google geht
 > gegen Seiten vor, die massenhaft und ohne Mehrwert erstellt werden, nur um die Suche
