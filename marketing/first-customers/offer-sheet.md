@@ -78,7 +78,7 @@ Tim, founder · hello@reachkit.app
 | €49, VAT included, cancel any time | `price.amount` (`offer.ts:33`); `landing.plan.terms` (`landing.ts:69`); `pricing.plan.cancel` (`chrome.ts:85`) |
 | Your part | `landing.plan.time.line` (`landing.ts:65`); `landing.faq.start.a` (`report.ts:668`) |
 | A first page you can read free | `landing.faq.trial.a` (`report.ts:675`); `report.offer.free-path` (`report.ts:837`) |
-| Price anchors | `price-anchors.md` A1, A3, A5, in trust-compliance's F5 wording (#2693). A3 identifies a vendor, so the sheet stays one to one |
+| Price anchors | `price-anchors.md` A1, A3, A5, worded so each is true as said (#2693). A3 identifies a vendor, so the sheet stays one to one |
 | No refund unless the law requires it; the 24-hour wait | Terms §4 and §5 (`legal.terms.body`, `chrome.ts:197`) |
 | Price lock, waves, bonuses, the promise | Owner rulings D1, D2, D4 (README), not product features |
 

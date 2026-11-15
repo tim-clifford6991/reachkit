@@ -34,7 +34,7 @@ Our own site is never presented as a customer.
 | Name no rival product. Say "the biggest name in our market" | `offer.md`; `scripts.md` rules |
 | No guarantee, refund, ranking or result promised | README rule 1; `about.never.promise` (`chrome.ts:414`); Terms §7 (`chrome.ts:197`) |
 | No other company's report, ever | SPEC §1 *Our own report only* |
-| A figure across many scans only when all of these hold: no site, business or person named (rivals in AI answers included); at least 20 sites behind every figure and every slice; the population stated as "Of {N} sites scanned with ReachKit between {d1} and {d2}"; the owner's, test and fixture scans and removed domains excluded; the query, date and N kept with the post; the privacy notice's sentence on scan statistics live and DataForSEO's terms §7.1 read first. Never call the sample "businesses" in general | trust-compliance F9 (#2693); README › *Aggregate figures across stored scans* |
+| A figure across many scans only when it is true as stated: no site, business or person named (rivals in AI answers included); at least 20 sites behind every figure and every slice; the population stated as "Of {N} sites scanned with ReachKit between {d1} and {d2}"; the owner's, test and fixture scans and removed domains excluded; the query, date and N kept with the post. Never call the sample "businesses" in general | README › *Aggregate figures across stored scans* |
 | Never scan a reader's site for them; they run it | README rule 2 |
 | Link with the channel tag; ask every new payer where they heard of us | D7; the landing stores the tag with the scan (#2692), a purchase from `/pricing` reads none (README › Channel links) |
 

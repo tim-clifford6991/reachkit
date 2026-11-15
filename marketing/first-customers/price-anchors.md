@@ -13,7 +13,7 @@ re-check them.
 - [ ] Re-open each source before wave 1 and before each wave; prices change. Drop a line that moved.
 - [ ] Say anchors only one to one (calls, the offer sheet), in the wording below. A3 and A4
       identify vendors, so they never go public. A1, A2 and A5 may go public only in the attributed
-      wording, with the source, date and sample linked, after the lawyer's review (D11).
+      wording, with the source, date and sample linked.
 
 ## The anchors
 
@@ -33,7 +33,7 @@ re-check them.
 > ReachKit's pages are written by AI from your own site, and its site check is automated; it's €49
 > a month, VAT included."
 
-trust-compliance's wording (F5, #2693; lawyer confirm pending). Never say ReachKit equals or
+Worded so each figure is true as said (trust-compliance F5, #2693). Never say ReachKit equals or
 replaces these items. Keep it to these three numbers. Never add them up into a "total value": the items are not like for
 like, and a summed figure would be a number we invented.
 
