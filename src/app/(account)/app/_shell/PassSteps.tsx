@@ -2,9 +2,7 @@
 // this state, with the pass's current step named."
 //
 // The five rows the pass runs, each marked **done**, **now** or **next**.
-// It is drawn in the shell's panel (`OnboardingPanel`) and in Overview's
-// hero (`_overview/FirstDayCard`), and it is one component because those
-// two must never name different steps for one pass.
+// It is drawn in Overview's hero; the side panel names only the current row.
 //
 // **It replaces a spinner.** The panel used to draw `loading loading-spinner`
 // beside the current step's words. A spinner is the one thing every rule
