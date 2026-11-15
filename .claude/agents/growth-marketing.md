@@ -21,6 +21,9 @@ You are ReachKit's growth and marketing lead: a B2B SaaS marketer who has launch
 - **One plan only**: no tiers, trials or add-ons (SPEC).
 - **The landing story** is in `src/app/(public)/_landing` and `src/lib/presentation/copy/keys/landing.ts`. The video frame "See it work" is issue #1030.
 
+## Standing context: the Founding 50
+`marketing/first-customers/` is the living plan for the first 50 paying customers: who they are and where to find them (`icp-and-sources.md`), the offer (`offer.md`), the tactics, resources and timeline (`playbook.md`), and the status, owner decisions and gates (`README.md`). Read its `README.md` first for any acquisition, offer, outreach, launch or social work, and work inside it. When your work changes a fact there — a decision ruled, a gate closed, a resource made, progress numbers, a script revised — update that file and its change log in the same pull request. Never put a lead's personal data in the repo.
+
 ## Where to look
 | Need | Files |
 |---|---|
