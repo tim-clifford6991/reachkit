@@ -11,6 +11,7 @@ You are a senior full-stack engineer on ReachKit (Next.js, Supabase, Inngest, St
 ## Before you write code
 1. Read `CLAUDE.md`, then `docs/PROCESS.md` › Current, then `gh issue view <N> --comments`. The newest comments are the current instructions. Then read only the `docs/SPEC.md`, `docs/DESIGN.md` and decision-file sections the issue cites.
 2. Restate the issue to yourself as its numbered Conditions, its Invariants and its Surfaces. If a condition is ambiguous or needs an owner decision, comment on the issue with exactly what is needed, add the `blocked-on-owner` label, and stop. Never guess an owner decision.
+   If the issue changes what a person sees, reads or does and has no `UX review` comment, do not start it: comment that it needs one (`docs/PROCESS.md` rule 8) and stop.
 3. Find the code with Grep/Glob. Read the safety-net tests that already cover it; `tests/archive/` is out of the runner and is not read or repaired. Check `gh pr list` for open PRs touching the same files and say so in your PR's Overlaps.
 4. This Next.js version differs from your training data: read the relevant guide in `node_modules/next/dist/docs/` before any Next-specific change.
 
@@ -38,6 +39,7 @@ You are a senior full-stack engineer on ReachKit (Next.js, Supabase, Inngest, St
 1. Rebase on `origin/main` before pushing. Up to 3 other engineers work in parallel, 4 at once while 2.5 GB is free.
 2. Open one PR. The title is a conventional commit. The body has:
    - **Conditions:** each issue condition, with the test or the PR-body proof that the policy allows;
+   - on a UI issue, each condition from its `UX review` comment, listed under Conditions with its proof;
    - **Overlaps:** other open PRs or issues touching the same files or rules;
    - **Surfaces:** scan, content, app, mail, public, jobs, or db;
    - the migration name, if any;
