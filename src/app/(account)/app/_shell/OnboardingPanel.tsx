@@ -1,33 +1,7 @@
-// SPEC §5 — the side panel's loading state while onboarding runs in the
-// background (issue #782).
-//
-// A daisyUI `loading` beside the written step, never a bare spinner
-// (REQ-029 c1). The server writes every word — the heading and one label per
-// drawn row — and this component only picks the row the pass reports.
-//
-// It polls `GET /api/setup/progress` at the pinned heartbeat. While the pass
-// runs it moves the label; the moment the pass is released it asks the
-// router for a fresh render, so the Overview and Plan show what the pass
-// and the first draft wrote and the shell replaces this panel with nothing
-// or with the founder's reason.
-//
-// **Issue #911: one panel, and therefore no `offsetParent` guard.** The
-// shell used to draw its parts twice — a compact header and a sidebar, one
-// hidden per breakpoint — so this component polled only when its own copy
-// was the visible one, which it worked out by reading `offsetParent` on
-// every tick. The shell is one drawer now and draws this panel once, so
-// there is no second copy to silence: it polls whenever it is mounted,
-// including while the customer has collapsed the panel to the icon rail —
-// the pass ending is what releases the whole screen, not just this line.
-//
-// **Issue 1196: one status line, kept current, with a time.** The panel
-// now also says when the current step began, listens to the site's setup
-// channel (`inngest/react`, as setup's `PassStatusLine` does) so a step or
-// the pass's end lands at once rather than up to a heartbeat late, and still
-// polls at the heartbeat as SPEC §5's floor. When the pass ends it refreshes
-// the route; the server then draws the pass's end (`PassEndLine`) in this
-// panel's place, so the founder reads *done*, *failed* or *stopped* rather
-// than a panel that silently disappears.
+// The side panel's one status line while a pass runs: the heading, then the
+// current step and when it started. It polls at the heartbeat as a floor,
+// listens to the setup channel for a prompt update, and refreshes the route
+// when the pass ends so the server can draw the end line in its place.
 
 "use client";
 
@@ -38,10 +12,9 @@ import { useRealtime } from "inngest/react";
 import { TIMING } from "@/lib/config/constants";
 import { copy } from "@/lib/presentation/copy";
 import type { PassProgress } from "@/app/(account)/setup/_setup/progress";
-import { PassSteps, stepsFor } from "./PassSteps";
 import { formatTime } from "./format";
 import type { OnboardingStage } from "@/lib/scan/deep/progress";
-import { DRAWN_ROWS, rowOf } from "@/app/(account)/setup/_setup/stages";
+import { DRAWN_ROWS, ROW_COPY_KEY, rowOf } from "@/app/(account)/setup/_setup/stages";
 
 const PROGRESS_PATH = "/api/setup/progress";
 
@@ -117,24 +90,26 @@ export function OnboardingPanel(p: {
     if (pushed === null) router.refresh();
   }, [pushed, router]);
 
+  const row = rowOf(shown);
+  const step = row === null ? "" : copy(ROW_COPY_KEY[row]);
   return (
     <div
       role="status"
       aria-live="polite"
-      className="alert flex-col items-start mt-4 text-sm lg:mt-0"
+      className="alert items-start mt-4 text-sm lg:mt-0"
       data-testid="shell-onboarding"
       data-stage={shown}
     >
-      <span className="font-semibold">{p.heading}</span>
-      {/* **The five steps, not a spinner** (issue 912). `PassSteps` is the
-          same component Overview's first-day hero draws, so the panel and
-          the screen beside it cannot name two steps. */}
-      <PassSteps steps={stepsFor(shown)} />
-      {shownSince === null ? null : (
-        <span className="text-xs text-base-content/70" data-testid="shell-onboarding-since">
-          {copy("shell.pass.since", { time: formatTime(new Date(shownSince), p.timeZone) })}
+      {/* Two children, as the end line has, so the alert's grid gives the words the width. */}
+      <span className="status status-primary mt-1.5 shrink-0" aria-hidden />
+      <span className="flex min-w-0 flex-col">
+        <span className="font-semibold">{p.heading}</span>
+        <span className="text-xs text-base-content/70 wrap-break-word" data-testid="shell-onboarding-step">
+          {shownSince === null
+            ? step
+            : copy("setup.pass.started", { step, time: formatTime(new Date(shownSince), p.timeZone) })}
         </span>
-      )}
+      </span>
     </div>
   );
 }

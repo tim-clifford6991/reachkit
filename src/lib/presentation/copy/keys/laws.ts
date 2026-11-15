@@ -244,7 +244,6 @@ export const LAWS_COPY = Object.freeze({
    *  step began, and how it ended. Drafted in the registry's voice; the
    *  owner may correct them. */
   "shell.pass.remeasure-head": ["Checking your market again", { slots: {}, fixedBy: "issue 1196" }],
-  "shell.pass.since": ["This step started at {time}.", { slots: { time: "text" }, fixedBy: "issue 1196" }],
   "shell.pass.ended.done": [
     "Check finished at {time}. Your screens show what it found.",
     { slots: { time: "text" }, fixedBy: "issue 1196" },

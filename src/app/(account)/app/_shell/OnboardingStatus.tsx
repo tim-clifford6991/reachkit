@@ -49,8 +49,6 @@ export function OnboardingStatus(p: {
     );
   }
 
-  // The rows carry their own words now (`PassSteps`), so the panel is
-  // handed the step and nothing else (issue 912).
   return (
     <OnboardingPanel
       heading={copy(p.state.remeasure ? "shell.pass.remeasure-head" : "setup.waiting.head")}
