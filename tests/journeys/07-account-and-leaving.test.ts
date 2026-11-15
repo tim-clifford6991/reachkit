@@ -463,15 +463,9 @@ describe("settings → cancel → export → erasure, and the pages stop being s
       // purge, thirty days later, and not before.
       expect(lifecycleState.deleted).toEqual([]);
 
-      // Criterion 6's mail goes only where something of either kind is left
-      // behind, and this erasure leaves nothing: no page is live at any
-      // destination and nothing is left in a WordPress. So no mail is sent
-      // — not because it cannot compose (its sentences are written since
-      // issue #458; the last test composes it), but because it would have
-      // nothing to say. The erasure stands either way — the telling is not
-      // a precondition of the take-down.
-      expect(deleted.result.mailSent).toBe(false);
-      expect(mails).toBe(0);
+      // Every deletion sends one Goodbye, composed and delivered, even where nothing is left behind.
+      expect(deleted.result.mailSent).toBe(true);
+      expect(mails).toBe(1);
       // What it would have said about the destinations is read off the
       // take-down's own outcomes rather than assumed.
       expect(Array.isArray(deleted.result.stillLive)).toBe(true);
@@ -655,7 +649,7 @@ describe("settings → cancel → export → erasure, and the pages stop being s
     // standing lists, and the two that interpolate leave no bare slot.
     for (const key of MARKED_KEYS) {
       expect(AWAITING_COPY, key).not.toContain(key);
-      const line = copy(key, { word: "w", pages: "0" });
+      const line = copy(key, { word: "w", pages: "0", days: "30" });
       expect(line, key).not.toBe(TODO_COPY_MARKER);
       expect(line, key).not.toBe("");
       expect(line, key).not.toContain("{");

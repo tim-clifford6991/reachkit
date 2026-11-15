@@ -60,6 +60,7 @@ export const LIVE_SCHEMA_TESTS = [
   "tests/db/ops-events.test.ts",
   // Each job's invocations and CPU per day and site, added atomically.
   "tests/db/job-days.test.ts",
+  "tests/db/churned-contacts.test.ts",
   // The daily check's runway query, run on seeded rows.
   "tests/db/runway.test.ts",
   // Issue 1483: no `public` function a session can execute unless

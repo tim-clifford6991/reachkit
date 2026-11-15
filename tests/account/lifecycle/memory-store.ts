@@ -19,6 +19,7 @@ export interface MemoryLifecycle {
   accounts: LifecycleAccountRow[];
   /** The accounts `endSessions` ended every session of (#468). */
   signedOutEverywhere: string[];
+  churned: { email: string; name: string | null }[];
   tickets: DangerTicketRow[];
   publications: LivePublicationRow[];
   destinations: DestinationIdRow[];
@@ -41,6 +42,7 @@ export function newMemoryLifecycle(): MemoryLifecycle {
     deleted: [],
     writes: [],
     signedOutEverywhere: [],
+    churned: [],
     unreadable: false,
     refuseDelete: null,
   };
@@ -120,6 +122,10 @@ export function memoryLifecycleStore(state: MemoryLifecycle): LifecycleStore {
       // as the call it is, since no `users` column carries it any more.
       state.writes.push("endSessions");
       state.signedOutEverywhere.push(userId);
+      return { ok: true };
+    },
+    async keepChurnedContact(a) {
+      state.churned.push({ email: a.email, name: a.name });
       return { ok: true };
     },
     async accountsDueForPurge(now) {

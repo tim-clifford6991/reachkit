@@ -527,19 +527,16 @@ export const MAIL_COPY = Object.freeze({
   // this mail instead — sent to the address being deleted, and only where
   // something of either kind is left behind. Same `account` kind.
   //
-  // **Ten keys, and the count is the point.** Criterion 6 gives each of §9's
-  // four WordPress outcomes "one sentence of its own, carrying that
-  // outcome's own count and, where there is anywhere to look, its own place
-  // — and no sentence carries two outcomes or one count for both". So each
-  // outcome is its own key; three of them come in two forms, one naming the
-  // place and one saying the posts are in that site and ReachKit cannot
-  // point to them there, "and it still carries its count"; and
-  // `already_gone` has one form only, because that sentence "naming no
-  // place, because there is nothing there to find".
+  // Criterion 6 gives each of §9's four WordPress outcomes "one sentence of its own, carrying that outcome's own count
+  // and, where there is anywhere to look, its own place — and no sentence carries two outcomes or one count for both".
+  // Three come in two forms, one naming the place and one saying ReachKit cannot point to them there, "and it still
+  // carries its count"; `already_gone` has one form only, "naming no place, because there is nothing there to find".
   //
-  // Every one carries a `count` slot and none of them lists a post,
-  // "whatever the number".
-  "mail.account.deleted.subject": ["Account deleted", { slots: {}, fixedBy: "REQ-079 c6" }],
+  // Every one carries a `count` slot and none of them lists a post, "whatever the number".
+  "mail.account.deleted.subject": ["Goodbye from ReachKit", { slots: {}, fixedBy: "REQ-079 c6; issue 2706 (drafted)" }],
+  "mail.account.deleted.goodbye": ["Your ReachKit account is closed, and your plan has ended with no more charges. Every page we hosted for you is taken down.", { slots: {}, fixedBy: "issue 2706 (drafted)" }],
+  "mail.account.deleted.erased_by": ["Everything else we hold is erased by {date}. We keep only your name and email, to invite you back one day.", { slots: { date: "text" }, fixedBy: "issue 2706 (drafted)" }],
+  "mail.account.deleted.kept_removed": ["To have those removed too, reply to this mail.", { slots: {}, fixedBy: "issue 2706 (drafted)" }],
   // The pages still live at a destination that could not be reached: the
   // mail "names it and says what they must do about it".
   "mail.account.deleted.still_live": ["Pages still live at a destination ReachKit could not reach: {count}. Taking them down there is now yours to do; ReachKit no longer can.", { slots: { count: "text" }, fixedBy: "REQ-079 c6" }],

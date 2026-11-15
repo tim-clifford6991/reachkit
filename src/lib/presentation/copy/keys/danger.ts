@@ -35,7 +35,16 @@ export const DANGER_COPY = Object.freeze({
   "danger.pause.line": ["To stop new pages without taking any down, pause publishing instead.", { slots: {}, fixedBy: "issue 1751 · board SettingsAccount · drafted" }],
   "danger.pause.link": ["pause publishing", { slots: {}, fixedBy: "issue 1751 · board SettingsAccount · drafted" }],
   "danger.unpublish-all.consequence": ["We send your export first, then take every page down and pause publishing. Your account stays, and you can turn publishing on again.", { slots: {}, fixedBy: "REQ-079 c1" }],
-  "danger.delete-account.consequence": ["We send your export, then take every page down. Your account closes for good, with no more charges.", { slots: {}, fixedBy: "REQ-079 c1" }],
+  "danger.delete-account.consequence": ["We send your export, take every page down and close your account for good. You pay nothing more; we mail you goodbye and erase the rest in {days} days.", { slots: { days: "text" }, fixedBy: "REQ-079 c1; issue 2706 (drafted)" }],
+  // The "Are you sure?" step before deletion runs: one line per consequence, then the two buttons.
+  "danger.delete-account.sure.title": ["Are you sure?", { slots: {}, fixedBy: "issue 2706 (drafted)" }],
+  "danger.delete-account.sure.hosted": ["Every page we host for you is taken down now.", { slots: {}, fixedBy: "issue 2706 (drafted)" }],
+  "danger.delete-account.sure.plan": ["Your subscription ends now, with no refund for this period and no more charges.", { slots: {}, fixedBy: "issue 2706 (drafted)" }],
+  "danger.delete-account.sure.closed": ["Your account closes, and you are signed out on every device.", { slots: {}, fixedBy: "issue 2706 (drafted)" }],
+  "danger.delete-account.sure.erased": ["Everything else is erased within {days} days and cannot be recovered.", { slots: { days: "text" }, fixedBy: "issue 2706 (drafted)" }],
+  "danger.delete-account.sure.wordpress": ["Pages already copied into your WordPress stay there.", { slots: {}, fixedBy: "issue 2706 (drafted)" }],
+  "danger.delete-account.sure.kept": ["We keep your name and email so we can invite you back.", { slots: {}, fixedBy: "issue 2706 (drafted)" }],
+  "danger.delete-account.keep": ["Keep my account", { slots: {}, fixedBy: "issue 2706 (drafted)" }],
 
   // Issue #52 — the three lines the danger zone's own outcomes are told in.
   // The words are the owner's: REQ-079 states what each must convey and no

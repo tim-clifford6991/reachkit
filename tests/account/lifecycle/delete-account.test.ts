@@ -75,7 +75,7 @@ describe("REQ-079 c6 — the fixed order, each step a precondition of the next",
   it("take-down, then the subscription, then the tombstone, then the sessions", async () => {
     const run = await deleteAccount({ siteId: "site-1", now: NOW });
     expect(run.ok).toBe(true);
-    expect(calls).toEqual(["unpublish", "setPublishing", "endSubscriptionNow"]);
+    expect(calls).toEqual(["unpublish", "setPublishing", "endSubscriptionNow", "sendEmail"]);
     expect(state.writes).toEqual(["stampTombstone", "endSessions"]);
   });
 

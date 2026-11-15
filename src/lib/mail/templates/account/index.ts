@@ -24,6 +24,9 @@ const REACH_A_PERSON = "mail.account.reach_a_person" satisfies CopyKey;
 const DELETED_SUBJECT = "mail.account.deleted.subject" satisfies CopyKey;
 const DELETED_STILL_LIVE = "mail.account.deleted.still_live" satisfies CopyKey;
 const DELETED_THEIRS_TO_KEEP = "mail.account.deleted.theirs_to_keep" satisfies CopyKey;
+const DELETED_GOODBYE = "mail.account.deleted.goodbye" satisfies CopyKey;
+const DELETED_ERASED_BY = "mail.account.deleted.erased_by" satisfies CopyKey;
+const DELETED_KEPT_REMOVED = "mail.account.deleted.kept_removed" satisfies CopyKey;
 
 /** REQ-079 c6's four WordPress outcomes, each with a form that names where the posts are and one that cannot, both with the count.
  *  `already_gone` has one form: there is nothing there to find, so no place to write. */
@@ -115,6 +118,20 @@ export function buildAccountDeleted(a: DeletedAccountMailInput): AccountMail {
     blocks: [...blocks, { block: "notice", text: REACH_A_PERSON }],
   };
 }
+/** The Goodbye every deletion sends: what ended, the erasure date, then whatever REQ-079 c6 says is left behind. */
+export function buildGoodbye(a: DeletedAccountMailInput & { erasedBy: string }): AccountMail {
+  const leftBehind = buildAccountDeleted(a);
+  return {
+    ...leftBehind,
+    blocks: [
+      { block: "paragraph", text: DELETED_GOODBYE },
+      { block: "paragraph", text: DELETED_ERASED_BY, vars: { date: a.erasedBy } },
+      { block: "paragraph", text: DELETED_KEPT_REMOVED },
+      ...leftBehind.blocks,
+    ],
+  };
+}
+
 const HOSTING_END_SUBJECT: Readonly<Record<HostingEndOccasion, CopyKey>> = Object.freeze({
   access_ended: "mail.account.hosting_end.access_ended.subject",
   seven_days: "mail.account.hosting_end.seven_days.subject",

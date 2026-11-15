@@ -30,11 +30,13 @@ export const AUTH_USERS_TABLE = "auth.users";
 export interface LifecycleSiteRow {
   readonly id: string;
   readonly user_id: string;
+  readonly timezone?: string | null;
 }
 
 export interface LifecycleAccountRow {
   readonly id: string;
   readonly email: string;
+  readonly name?: string | null;
   readonly deleted_at: string | null;
   readonly purge_due_at: string | null;
 }
@@ -104,6 +106,9 @@ export interface LifecycleStore {
    *  (#468). */
   endSessions(userId: string, at: Date): Promise<Ok>;
 
+  /** The churn list's row for this address, which the purge never removes. */
+  keepChurnedContact(a: { email: string; name: string | null; at: Date }): Promise<Ok>;
+
   /** Tombstoned accounts whose promised date has arrived. */
   accountsDueForPurge(now: Date): Promise<{ ok: true; userIds: readonly string[] } | { ok: false }>;
 
@@ -133,6 +138,7 @@ interface MinimalQueryBuilder<T> extends PromiseLike<QueryResult<T>> {
   delete(): MinimalQueryBuilder<T>;
   eq(column: string, value: string): MinimalQueryBuilder<T>;
   in(column: string, values: readonly string[]): MinimalQueryBuilder<T>;
+  upsert(rows: object, options: { onConflict: string }): MinimalQueryBuilder<T>;
   is(column: string, value: null): MinimalQueryBuilder<T>;
   not(column: string, operator: string, value: null): MinimalQueryBuilder<T>;
   lte(column: string, value: string): MinimalQueryBuilder<T>;
@@ -157,7 +163,7 @@ export function supabaseLifecycleStore(): LifecycleStore {
     async site(siteId) {
       const { data, error } = await untyped()
         .from<LifecycleSiteRow>("sites")
-        .select("id, user_id")
+        .select("id, user_id, timezone")
         .eq("id", siteId)
         .limit(1);
       if (error !== null || data === null) return { ok: false };
@@ -167,7 +173,7 @@ export function supabaseLifecycleStore(): LifecycleStore {
     async account(userId) {
       const { data, error } = await untyped()
         .from<LifecycleAccountRow>("users")
-        .select("id, email, deleted_at, purge_due_at")
+        .select("id, email, name, deleted_at, purge_due_at")
         .eq("id", userId)
         .limit(1);
       if (error !== null || data === null) return { ok: false };
@@ -272,6 +278,22 @@ export function supabaseLifecycleStore(): LifecycleStore {
       const { signOutEverywhere } = await import("../identity/session");
       const ended = await signOutEverywhere(userId);
       return ended.ok ? { ok: true } : { ok: false };
+    },
+
+    async keepChurnedContact(a) {
+      const { error } = await untyped()
+        .from<{ email: string }>("churned_contacts")
+        .upsert(
+          {
+            email: a.email.toLowerCase(),
+            name: a.name,
+            churned_at: a.at.toISOString(),
+            reason: "account_deleted",
+            invited_at: null,
+          },
+          { onConflict: "email" }
+        );
+      return error === null ? { ok: true } : { ok: false };
     },
 
     async accountsDueForPurge(now) {
