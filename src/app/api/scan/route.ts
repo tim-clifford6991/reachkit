@@ -40,6 +40,7 @@ import { after } from "next/server";
 import { parseDomain, type DomainProblem } from "@/lib/scan/domain";
 import { networkKeyOf, claimFreeScanSlot } from "@/lib/scan/admission";
 import { TIMING } from "@/lib/config/constants";
+import { refOf, type RefTag } from "@/lib/analytics/ref";
 
 export type StartScanResponse =
   | { ok: true; location: string; scanId?: string } // REQ-001 c9; `## Steps` step 5
@@ -53,8 +54,8 @@ function canonicalLocation(domain: string): string {
 }
 
 type ParsedBody =
-  | { transport: "json"; value: string; rescan: Rescan; smoke: boolean }
-  | { transport: "form"; value: string; rescan: Rescan; smoke: false }
+  | { transport: "json"; value: string; rescan: Rescan; smoke: boolean; ref: RefTag | null }
+  | { transport: "form"; value: string; rescan: Rescan; smoke: false; ref: RefTag | null }
   | { transport: "malformed" };
 
 /**
@@ -121,7 +122,7 @@ async function readBody(request: Request): Promise<ParsedBody> {
       ? (parsed as Record<string, unknown>)[RESCAN_FIELD]
       : undefined;
     const smoke = typeof parsed === "object" && parsed !== null && (parsed as Record<string, unknown>)[SMOKE_FIELD] === true;
-    return { transport: "json", value, rescan: rescanOf(rescan), smoke };
+    return { transport: "json", value, rescan: rescanOf(rescan), smoke, ref: refOf((parsed as Record<string, unknown>).ref) };
   }
 
   if (contentType.includes("application/x-www-form-urlencoded") || contentType.includes("multipart/form-data")) {
@@ -133,7 +134,7 @@ async function readBody(request: Request): Promise<ParsedBody> {
     }
     const value = form.get("value");
     if (typeof value !== "string") return { transport: "malformed" };
-    return { transport: "form", value, rescan: rescanOf(form.get(RESCAN_FIELD)), smoke: false };
+    return { transport: "form", value, rescan: rescanOf(form.get(RESCAN_FIELD)), smoke: false, ref: refOf(form.get("ref")) };
   }
 
   return { transport: "malformed" };
@@ -259,6 +260,7 @@ export async function POST(request: Request): Promise<Response> {
     network,
     fromIncompleteRescan: body.rescan === RESCAN_INCOMPLETE,
     ...(body.smoke ? { smoke: true } : {}),
+    ...(body.ref ? { ref: body.ref } : {}),
   });
 
   // `## Steps` step 5: on a claim, respond with the new scan's id; on a

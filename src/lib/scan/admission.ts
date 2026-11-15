@@ -54,15 +54,8 @@
 // **Two schema gaps, each flagged once here (constitution rule 4.2), not
 // fabricated around:**
 //
-//  1. The removal table (BP-002's; the removal address holds it) had
-//     not landed in this repo when this module was written. **The table
-//     landed on 2026-09-05** (`supabase/migrations/
-//     20260905120000_domainblocks.sql`, issue #28), so the gap is now
-//     half closed: the read below hits a real table. What remains is the
-//     generated `Database` type (`src/lib/db/types.generated.ts`), which
-//     was not regenerated with it and still carries no entry for
-//     it — so the `untyped` hatch below stays until a
-//     regeneration lands.
+//  1. The removal table (`20260905120000_domainblocks.sql`) has no entry in
+//     the generated `Database` type (`src/lib/db/types.generated.ts`).
 //  2. `scans.network_hash` and `scans.from_incomplete_rescan` were added to
 //     the live schema by WO-056's migration (`supabase/migrations/
 //     00000000000005_scans_freepath.sql`), but `types.generated.ts` was not
@@ -103,6 +96,7 @@ import {
 import { dbAdmin } from "@/lib/db";
 import { isRemovedWith } from "./removal";
 import type { CanonicalDomain } from "./domain";
+import type { RefTag } from "@/lib/analytics/ref";
 
 // ── NetworkKey — BP-023 decision 3 ──────────────────────────────────────
 
@@ -264,6 +258,8 @@ interface FreeScanInsert {
   /** `scans.smoke` (issue 1286). Present only on a smoke test's row: every
    *  other insert leaves the column to its default. */
   smoke?: true;
+  /** `scans.ref`: the landing link's allow-listed channel tag, only where there was one. */
+  ref?: RefTag;
 }
 
 interface InsertedScanRow {
@@ -657,6 +653,8 @@ export async function claimFreeScanSlot(a: {
   /** `scripts/smoke.sh` started it (SPEC §6, D57). Recorded on the row and
    *  never an argument to a limit. */
   smoke?: boolean;
+  /** The channel tag the scan was started under; recorded, never read by admission. */
+  ref?: RefTag;
 }): Promise<{ claimed: true; scanId: string } | { claimed: false; refusal: Admission }> {
   const client = dbAdmin();
 
@@ -673,6 +671,7 @@ export async function claimFreeScanSlot(a: {
     network_hash: a.network,
     from_incomplete_rescan: a.fromIncompleteRescan,
     ...(a.smoke === true ? { smoke: true as const } : {}),
+    ...(a.ref ? { ref: a.ref } : {}),
   });
 
   if ("conflict" in inserted) {
