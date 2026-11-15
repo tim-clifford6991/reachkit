@@ -9,8 +9,9 @@ from wave 1 (opens 30 Nov 2026).
 Channel links). Nothing else is asked for: no call, no price, no offer.
 
 Each post carries one finding from **our own site's** free report or **our own** live pages,
-the only examples we may show (SPEC §1 *Our own report only*, `docs/SPEC.md:87`). No aggregate scan figures
-until trust-compliance clears them on #2693. Our own site is never presented as a customer.
+the only examples we may show (SPEC §1 *Our own report only*, `docs/SPEC.md:87`). None of the six
+uses an aggregate figure across stored scans; one may be added only under the conditions below.
+Our own site is never presented as a customer.
 
 ## Owner to do
 
@@ -32,9 +33,10 @@ until trust-compliance clears them on #2693. Our own site is never presented as 
 | Say "up to 7 pages a week, new or updated". Never "a page a day", and nothing that implies a daily count, such as a run of days in a row | SPEC §1 *The pace* (`docs/SPEC.md:94`); `offer.cadence.page` (`src/lib/presentation/copy/keys/offer.ts:36`) |
 | Name no rival product. Say "the biggest name in our market" | `offer.md`; `scripts.md` rules |
 | No guarantee, refund, ranking or result promised | README rule 1; `about.never.promise` (`chrome.ts:414`); Terms §7 (`chrome.ts:197`) |
-| No other company's report, ever; no figure across many scans | SPEC §1 *Our own report only*; #2693 |
+| No other company's report, ever | SPEC §1 *Our own report only* |
+| A figure across many scans only when all of these hold: no site, business or person named (rivals in AI answers included); at least 20 sites behind every figure and every slice; the population stated as "Of {N} sites scanned with ReachKit between {d1} and {d2}"; the owner's, test and fixture scans and removed domains excluded; the query, date and N kept with the post; the privacy notice's sentence on scan statistics live and DataForSEO's terms §7.1 read first. Never call the sample "businesses" in general | trust-compliance F9 (#2693); README › *Aggregate figures across stored scans* |
 | Never scan a reader's site for them; they run it | README rule 2 |
-| Link with the channel tag; ask every new payer where they heard of us | D7; the landing does not store `ref` yet (README › Channel links) |
+| Link with the channel tag; ask every new payer where they heard of us | D7; the landing stores the tag with the scan (#2692), a purchase from `/pricing` reads none (README › Channel links) |
 
 Facts checked on production on 15 Nov 2026 (curl of `reachkit.app/scan/reachkit.app`,
 `reachkit.app/how-it-works`, `reachkit.app/about`, `content.reachkit.app` and its sitemap).
@@ -290,8 +292,9 @@ six. Repeat the round once from wave 2 only with fresh numbers from the report o
 | Wed 9 Dec | 5. Every fact from your own site | `linkedin`, `x` |
 | Fri 11 Dec | 6. Old pages kept fresh | `linkedin`, `x` |
 
-**What to measure** (Progress table, weekly): scans with `?ref=linkedin` or `?ref=x` once the ref
-is stored; until then, payers who say "LinkedIn" or "X" in `heard_from`. The deciding number for a
+**What to measure** (Progress table, weekly): free scans and payments tagged `linkedin` or `x`
+(stored since #2692; the two queries in `docs/RUNBOOK.md` §8), plus payers who say "LinkedIn" or "X"
+in `heard_from`. The deciding number for a
 post is replies or direct messages that end in a scan. If a whole round of six brings no scan,
 stop the posts and put the time into warm messages instead.
 
@@ -302,5 +305,5 @@ stop the posts and put the time into warm messages instead.
 | "Can you scan my site?" | "Run it yourself here, it takes under a minute: {link with the channel tag}. Happy to walk you through the result." (README rule 2) |
 | "Is my report public?" | "Yes: every free report is listed in our scan library. If you want yours taken down, email remove@reachkit.app." (SPEC §2 *Gallery lists every report*, `docs/SPEC.md:162`; site footer) |
 | "What does it cost?" | "The scan and report are free. Writing and publishing the pages is €49 a month, VAT included, cancel any time." (`landing.plan.terms`, `landing.ts:69`) |
-| "Will Google penalise AI pages?" | Wait for seo-master's approved answer on #2693; until then, reply by message, not in public |
+| "Will Google penalise AI pages?" | "No. Google has said that using AI to write pages isn't against its rules. What it acts on is pages churned out in bulk just to game search, with nothing new in them, however they were written. ReachKit writes each page from facts on your own site and linked public sources, holds back any page with an invented fact or one that repeats an existing page, and only writes a new page when it has something the top results don't already say." Offer the written answer by message (`scripts.md` §7). Never say "no penalty" or "Google can't detect AI" (seo-master, #2693) |
 | "Does this guarantee I rank?" | "No. Google takes weeks to months, and not every page reaches the first page. The Monday email shows what moved." (`/how-it-works` "What to expect, when"; Terms §7) |
