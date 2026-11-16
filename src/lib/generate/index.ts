@@ -394,7 +394,7 @@ async function rest(draftId: string, opportunityId: string, reason: `rules:${str
   if (!moved.ok) {
     console.log(JSON.stringify({ event: "draft_not_rested", draftId, refused: moved.refused, state: moved.state }));
   }
-  await restTopic(opportunityId, now, { zone });
+  await restTopic(opportunityId, now, { zone, rules: reason.startsWith("rules:") });
 }
 
 async function fixPage(a: PageInput, cost: CostContext): Promise<DayPageOutcome> {

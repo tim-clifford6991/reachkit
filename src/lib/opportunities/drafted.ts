@@ -2,19 +2,19 @@
 // dismisses it, so the daily pick never offers one opportunity twice and §8's near-duplicate gate never refuses the
 // second page against the first. A published page's row keeps what the weekly verdict does to it.
 //
-// A topic whose page the generator stopped rests only until the site's next weekly commit, which ranks it again: a
-// stop is not the customer's no. The founder's rewrite or passing edit queues the row as any written draft does, and
-// Skip, the customer's no, rests the topic for `TOPIC_REST_DAYS`.
+// A topic whose page the generator stopped rests until the site's next weekly commit: a stop is not the customer's no.
+// One the checks stopped keeps what its research read, and the commit plans it again only once that has changed. The
+// founder's rewrite or passing edit queues the row as any written draft does, and Skip rests it `TOPIC_REST_DAYS`.
 //
-// A page drafted folds its open repeats (#1181, SPEC §6 2026-10-02): every
-// open Write or Earn row that is the same topic as it — by the stored top
-// tens, the cluster key or a search it absorbed — is dismissed and its
-// search absorbed into the page's row. The next evening ranks what is left,
-// so a week never drafts one question twice in other words.
-import { TOPIC_REST_DAYS } from "@/lib/config/constants";
+// A page drafted folds its open repeats (SPEC §6): every open Write or Earn row of the same topic, by the stored top
+// tens, the cluster key or an absorbed search, is dismissed into it, so a week never drafts one question twice.
+import { RESEARCH, TOPIC_REST_DAYS } from "@/lib/config/constants";
+import { isOwnDomain } from "@/lib/market/rivals/domains";
+import type { StoredReport } from "@/lib/scan/report";
 import { nextDueAfter } from "@/lib/scan/weekly/week";
-import { nearRepeatsOf } from "./cluster";
+import { nearRepeatsOf, queryKey, topTensOf } from "./cluster";
 import { opportunityStore, readOpportunity } from "./store";
+import type { Evidence, Opportunity, StoppedInputs } from "./types";
 
 /** A draft that passed now exists for this opportunity: it leaves the open
  *  set, and takes its open repeats with it. */
@@ -61,15 +61,29 @@ export async function dismissForVeto(opportunityId: string): Promise<void> {
   await opportunityStore().markDismissed(opportunityId, { stopped: true });
 }
 
+/** What research reads for the row today: the top results it chooses from in its newest stored top ten, never the
+ *  site's own, and the rivals in force. `null` where either cannot be read. Pure. */
+export function stoppedInputs(o: Pick<Opportunity, "targetQuery" | "absorbedQueries">, report: StoredReport | null, rivals: readonly string[] | null): StoppedInputs | null {
+  if (report === null || rivals === null) return null;
+  const topTens = topTensOf(report);
+  const topTen = [o.targetQuery, ...o.absorbedQueries].map((query) => (query === null ? undefined : topTens.get(queryKey(query)))).find((urls) => urls !== undefined) ?? [];
+  return { topResults: topTen.filter((url) => !isOwnDomain(url, report.domain)).slice(0, RESEARCH.topResults * 2), rivals: [...new Set(rivals.map((rival) => rival.toLowerCase()))].sort() };
+}
+
 /** The page is refused, not the target, so the row stays on file and is not offered for a day until the rest is over:
  *  `TOPIC_REST_DAYS` after the customer's skip, or the site's next weekly commit, in its zone, after a system `stop`. */
-export async function restTopic(opportunityId: string, at: Date, stop?: { zone: string | null | undefined }): Promise<void> {
+export async function restTopic(opportunityId: string, at: Date, stop?: { zone: string | null | undefined; rules?: boolean }): Promise<void> {
   const store = opportunityStore();
   // A customer's own edit is never written by the generator: resting it would hand the planner a paid refresh nobody asked for.
   const row = await store.byId(opportunityId);
   if ((row?.evidence as { shortfall?: { cause?: unknown } } | null | undefined)?.shortfall?.cause === "edited") {
     await store.markDismissed(opportunityId);
     return;
+  }
+  if (stop?.rules === true && row !== null && row.family !== "fix") {
+    const [report, market] = await Promise.all([store.currentReport(row.site_id).catch(() => null), store.marketFor(row.site_id).catch(() => null)]);
+    const stopped = stoppedInputs(readOpportunity(row), report, market?.competitors ?? null);
+    if (stopped !== null) await store.setEvidence(opportunityId, { ...readOpportunity(row).evidence, stopped } as Evidence);
   }
   const until = stop === undefined ? new Date(at.getTime() + TOPIC_REST_DAYS * 86_400_000) : nextDueAfter({ at, zone: stop.zone ?? "UTC" });
   await store.rest(opportunityId, until);

@@ -11,12 +11,15 @@
 // cluster, and while clusters are not derived, ahead of the first Write row.
 import { PLAN_DEPTH, REFRESH_MIN_AGE_DAYS } from "@/lib/config/constants";
 import { unfielded, type ListicleHeld, type ListicleNeed } from "@/lib/generate/templates/listicle";
+import { bandRivalSize } from "@/lib/market/rivals/band";
+import { isOwnDomain, isPlatformDomain, registrableDomain } from "@/lib/market/rivals/domains";
+import type { RivalSize } from "@/lib/market/rivals/rival-size";
 import type { Profile } from "@/lib/market/questions/profile";
 import type { IntentPrompt } from "../intent";
 import { opportunityStore } from "../store";
 import { readOpportunity, type DraftedPage, type OpportunityRow } from "../store";
 import { canonicalUrl } from "@/lib/measure/page-reading";
-import { sameTopic } from "../cluster";
+import { queryKey, sameTopic } from "../cluster";
 import { contentTypeOf } from "../content-type";
 import { pageTypeOf } from "../page-type";
 import type { Opportunity, PlaceRule, PlanReason, Ranked } from "../types";
@@ -72,6 +75,23 @@ function newSiteLed(o: Opportunity): boolean {
   if (!newPage(o) || contentTypeOf(o) === "listicle") return false;
   const asked = o.evidence?.family === "write" && o.evidence.askedBeside !== undefined;
   return asked || pageTypeOf(o) === "product";
+}
+
+/** Every domain of a stored top ten is a platform, listing or publisher by the closed list, or a rival sized far
+ *  against the site; an unsized domain, the site's own or an unreadable one is not a giant. Pure. */
+export function heldByGiants(urls: readonly string[], sizes: readonly RivalSize[], ownRanked: number, ownDomain: string | null): boolean {
+  return urls.length > 0 && urls.every((url) => {
+    const domain = registrableDomain(url);
+    if (domain === null || (ownDomain !== null && isOwnDomain(domain, ownDomain))) return false;
+    if (isPlatformDomain(url)) return true;
+    const size = sizes.find((entry) => registrableDomain(entry.domain) === domain);
+    return size?.state === "sized" && bandRivalSize({ rivalRanked: size.rankedCount, ownRanked }) === "far";
+  });
+}
+
+function giantHeld({ opportunity: o, parts }: Scored, load: RankLoad): boolean {
+  if (o.family !== "write" || contentTypeOf(o) !== "listicle" || o.targetQuery === null || parts.some((part) => part.part === "outsized")) return false;
+  return heldByGiants(load.topTens.get(queryKey(o.targetQuery)) ?? [], load.sizes ?? [], load.ownRanked ?? 0, load.ownDomain ?? null);
 }
 
 /** What a page's own results planned, where they planned this row. */
@@ -172,18 +192,16 @@ export interface RankLoad {
   ownRanked?: number | null;
   /** What a listicle's needs are read from; `null` fields none, and absent holds no listicle back. */
   listicle?: ListicleHeld | null;
+  /** The current report's rival sizes and the site's own domain, which tell a giant on a new site; absent reads none. */
+  sizes?: readonly RivalSize[];
+  ownDomain?: string | null;
 }
 
 /** Why a row the store holds open takes no place in the list. */
 export type Rejection = "unready";
 
-/**
- * Whether a row may take a place, or why not. Pure. One predicate, and it is
- * the stored one (issue 884, owner's ruling 2026-09-18): SPEC §6's "a day is
- * filled only by an opportunity that passes readiness" is the stored column
- * (`assessReadiness`), so the column, the screens and this order cannot
- * disagree. A market the pass could not measure holds no row: readiness holds only for harm.
- */
+/** Whether a row may take a place, or why not: the stored readiness column, so the column, the screens and this order
+ *  cannot disagree. Pure. */
 export function eligible(row: OpportunityRow): Rejection | null {
   return row.ready ? null : "unready";
 }
@@ -215,7 +233,9 @@ export async function loadRanking(siteId: string, at: Date, only?: ReadonlySet<s
   const topTens = await topTensFor(rows, only);
   // A cluster that cannot be read earns no page.
   const linkedClusters = cited.length === 0 ? [] : await store.clustersAt(siteId, cited).catch(() => [] as readonly string[]);
-  return { rows, fixRows, profile, cited, topTens, prompts, linkedClusters, ownRanked, listicle };
+  // Stored jsonb: a report with no sizing sizes nothing.
+  const sizes = report?.rivalSizes?.kind === "measured" ? report.rivalSizes.value : [];
+  return { rows, fixRows, profile, cited, topTens, prompts, linkedClusters, ownRanked, listicle, sizes, ownDomain: report?.domain ?? null };
 }
 
 function topTensFor(rows: readonly OpportunityRow[], only?: ReadonlySet<string>) {
@@ -261,6 +281,11 @@ export function rankingOf(
     for (const entry of scored.filter((each) => newSiteLed(each.opportunity))) {
       entry.parts = [...entry.parts, { part: "new_site", n: NEW_SITE.points }];
       entry.points += NEW_SITE.points;
+    }
+    // On a new site a comparison whose stored top ten giants hold is out of reach, never held.
+    for (const entry of scored.filter((each) => giantHeld(each, load))) {
+      entry.parts = [...entry.parts, { part: "outsized", n: POINTS.outsized }];
+      entry.points += POINTS.outsized;
     }
   }
   const unfit = load.listicle === undefined ? null : unfielded(load.listicle);
