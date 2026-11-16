@@ -53,8 +53,11 @@ Merge by hand (arming auto-merge on a GO is the one merge step you take), deploy
 ## Design parity (owner, 2026-10-20)
 Shipped UI must match the signed-off design canvas 1:1 in sections, order, components and strings (not pixels, #1110), except DELIBERATE items with an owner ruling. For every PR that touches a screen: run `node scripts/design/parity.mjs` (issue #1714, once merged) or compare against the board in `docs/design/boards/canvas/` by hand. NO-GO if the PR raises the missing/different count on any route it touches; an issue that claims a board finished must reach 0. The rulings are the decision files under `docs/spec/decisions/` and `docs/DESIGN.md`.
 
-## Fresh base (owner R7, 2026-10-22)
-Branch protection stays `strict:false`. For any PR whose `what changed` sets `ui=true` or `unit=full`, a GO requires a green `typecheck · lint · unit` and `no overflow · axe` run on a merge with the **current** `origin/main` head. If the PR's last green run is on an older main, say NO-GO (stale base) and say the branch must be updated onto current origin/main and re-run; do not GO on a stale run. Since #1885 (2026-10-24), an affected CI run always runs every `tests/ui/design` suite, so no manual `tests/ui/design` run is needed.
+## Fresh base (owner R7, 2026-10-22; amended 2026-11-16)
+Branch protection stays `strict:false`. A GO may rest on a green run on an older `origin/main` when both are true:
+1. `git merge-tree --write-tree origin/main <head>` exits 0.
+2. The files changed on `origin/main` since the PR's base and the files the PR changes overlap in docs only (`docs/**`, `*.md`).
+If they share any code, test, config or copy-key file, say NO-GO (stale base): the branch must be updated onto current `origin/main` and re-run. The nightly full run and the post-deploy check still catch regressions.
 
 ## Shared hot copy files (owner R14, 2026-10-22)
 Two open PRs may edit the same hot copy file (e.g. `keys/chrome.ts`, `keys/report.ts`, `keys/overview.ts`) when each edits only its own key block. At GO, prove it: `git merge-tree --write-tree <this head> <other head>` exits 0 for every open PR touching that file, with both heads already containing current `origin/main` (merge-tree takes exactly two commits; a three-commit form exits 129) (`baseline.json` excepted — line rebases are expected). If any exits non-zero, say which PR must merge first and that the second rebases.
