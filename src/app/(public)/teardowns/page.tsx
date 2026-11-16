@@ -4,12 +4,12 @@
 import type React from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, FileText, Lock, RefreshCw, User } from "lucide-react";
+import { ArrowRight, FileText, Lock, User } from "lucide-react";
 import { SiteMark } from "@/ui/SiteMark";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { PUBLIC_ROUTE_SEO } from "../_seo/routes";
 import { staticMetadata } from "../_seo/metadata";
-import { TEARDOWNS, shortDate, type Teardown } from "../_library";
+import { TEARDOWNS, type Teardown } from "../_library";
 import { TEARDOWN_PARTS } from "../_library/types";
 import { BAND, LearnClose, LibraryPage } from "../_library/parts";
 
@@ -143,12 +143,6 @@ function EveryRead(): React.JSX.Element {
   );
 }
 
-/** "Revised 15 Oct 2026", or what changed since the first read. */
-function badgeOf(t: Teardown): string {
-  if (t.change !== undefined) return copy(`teardowns.card.change.${t.change}` as CopyKey);
-  return copy("teardowns.card.revised", { date: shortDate(t.revised) });
-}
-
 function Card(p: { t: Teardown }): React.JSX.Element {
   const t = p.t;
   return (
@@ -170,10 +164,6 @@ function Card(p: { t: Teardown }): React.JSX.Element {
         </span>
       </span>
       <span className="card-body gap-3">
-        <span className="badge badge-ghost badge-sm">
-          {t.change === undefined ? <RefreshCw {...SMALL_ICON} /> : null}
-          {badgeOf(t)}
-        </span>
         <span className="flex min-w-0 items-center gap-2.5">
           <SiteMark domain={t.domain} hasLogo={false} size={36} />
           <h3 className="card-title text-base-content min-w-0 text-base font-bold break-words">{t.name}</h3>

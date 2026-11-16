@@ -1,11 +1,10 @@
 // SPEC §2 Gallery lists every report — the free-scans
 // gallery, in board `PubScans`'s order: the heading with the count and a scan
-// field → the 12 newest reports' scores → the reports, filtered by kind of
-// business, searched and sorted → what every free report shows → the close.
+// field → the reports, filtered by kind of business, searched and sorted →
+// the close.
 //
-// **On a phone the first card is on screen on load** (SPEC §2 Gallery board,
-// issue 1377): the sticky toolbar is two rows, the scan field waits for the
-// laptop width, and the score strip is drawn after the reports.
+// **On a phone the first card is on screen on load** (SPEC §2 Gallery board):
+// the sticky toolbar is two rows and the scan field waits for the laptop width.
 //
 // **Server-rendered and paged, with no client state.** Every control is a
 // link or a GET form over this page's own address — `q`, `kind`, `sort`,
@@ -23,7 +22,6 @@ import Link from "next/link";
 import {
   ArrowRight,
   ArrowUpDown,
-  ChartColumn,
   ChevronDown,
   LayoutGrid,
   Search,
@@ -32,8 +30,6 @@ import {
 } from "lucide-react";
 import { Surface } from "@/ui/layout";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
-import { SCORE_BANDS } from "@/lib/presentation/bands";
-import { bandOf, type BandHandle } from "@/lib/measure/bands";
 import { BUSINESS_KIND_NAMES, isBusinessKind, type BusinessKind } from "@/lib/market/kinds";
 import {
   GALLERY_MOST as MOST,
@@ -45,7 +41,6 @@ import {
   type GalleryEntry,
   type GallerySort,
 } from "@/lib/scan/gallery";
-import { ScoreStrip } from "@/ui/charts/ScoreStrip";
 import { ScanForm } from "../_landing/ScanForm";
 import { scanFormWords } from "../_landing/scan-form-words";
 import { LearnClose, ScanJump } from "../_library/parts";
@@ -53,8 +48,7 @@ import { PUBLIC_ROUTE_SEO } from "../_seo/routes";
 import { staticMetadata } from "../_seo/metadata";
 import { SiteMark } from "@/ui/SiteMark";
 import { KIND_ICON, KIND_WORD } from "./kinds";
-import { SCORE_MAX, ScoreLine } from "./score";
-import { InsideReport } from "./inside";
+import { ScoreLine } from "./score";
 
 export const metadata: Metadata = staticMetadata(PUBLIC_ROUTE_SEO.scans);
 
@@ -65,21 +59,6 @@ export const dynamic = "force-dynamic";
 
 /** An attribute value, never a sentence: the copy sweep reads a bare JSX attribute string as product voice. */
 const SEARCH_AUTOCOMPLETE = "off";
-/** The strip holds the newest reports, at most this many. */
-const STRIP = 12;
-/** The strip's axis is drawn in steps of this many points. */
-const STEP = 5;
-const BAND_ORDER: readonly BandHandle[] = ["invisible", "hard-to-find", "findable", "dominant"];
-/** A band's dot in the strip's legend, drawn as the chart draws it: a
- *  findable score is filled, a lower one a ring. */
-const DOT: Readonly<Record<BandHandle, string>> = {
-  invisible: "border-(--chart-rival) border",
-  "hard-to-find": "border-(--chart-rival) border-[3px]",
-  findable: "bg-(--chart-rival)",
-  dominant: "bg-(--chart-rival)",
-};
-const RING: Readonly<Record<BandHandle, number>> = { invisible: 1.5, "hard-to-find": 3, findable: 0, dominant: 0 };
-
 const SORT_WORD: Readonly<Record<GallerySort, CopyKey>> = {
   newest: "gallery.sort.newest",
   highest: "gallery.sort.highest",
@@ -232,69 +211,6 @@ function SortMenu(p: { view: View }): React.JSX.Element {
   );
 }
 
-/** The strip's axis: whole steps around the scores shown, never past 0 or 100. */
-function axisOf(scores: readonly number[]): { low: number; high: number; ticks: number[] } {
-  const low = Math.max(0, Math.floor(Math.min(...scores) / STEP) * STEP);
-  const high = Math.min(SCORE_MAX, Math.max(low + STEP, Math.ceil(Math.max(...scores) / STEP) * STEP));
-  const ticks: number[] = [];
-  for (let tick = low; tick <= high; tick += STEP) ticks.push(tick);
-  return { low, high, ticks };
-}
-
-/** The newest reports' scores on one axis, each in its band; an unscored
- *  report is named in the caption, never drawn at 0. */
-function NewestStrip(p: { entries: readonly GalleryEntry[] }): React.JSX.Element | null {
-  const scored = p.entries.flatMap((entry) => (entry.score === null ? [] : [{ domain: entry.domain, score: entry.score }]));
-  if (scored.length === 0) return null;
-  const unscored = p.entries.filter((entry) => entry.score === null);
-  const n = String(p.entries.length);
-  const axis = axisOf(scored.map((entry) => entry.score));
-  const bands = BAND_ORDER.filter((band) => scored.some((entry) => bandOf(entry.score) === band));
-  const caption = [
-    copy("gallery.strip.caption"),
-    unscored.length === 0
-      ? null
-      : unscored.length === 1
-        ? copy("gallery.strip.unscored.one", { domain: unscored[0]!.domain })
-        : copy("gallery.strip.unscored.many", { count: String(unscored.length), n }),
-  ]
-    .filter((part) => part !== null)
-    .join(" ");
-  return (
-    <figure
-      aria-label={copy("gallery.strip.label", { n })}
-      className="card bg-base-100 shadow-(--shadow-card) min-w-0"
-      data-testid="gallery-strip"
-    >
-      <div className="card-body gap-3 p-5">
-        <p className="flex flex-wrap items-center justify-between gap-2">
-          <span className="flex items-center gap-2 font-semibold">
-            <span aria-hidden className="rounded-field bg-primary/10 text-primary grid size-7 flex-none place-items-center">
-              <ChartColumn size={16} strokeWidth={1.75} />
-            </span>
-            {copy("gallery.strip.title", { n })}
-          </span>
-          <span className="text-base-content/70 flex flex-wrap gap-3 text-xs">
-            {bands.map((band) => (
-              <span key={band} className="inline-flex items-center gap-1.5">
-                <span aria-hidden className={`size-3 rounded-full ${DOT[band]}`} />
-                {copy(SCORE_BANDS[band])}
-              </span>
-            ))}
-          </span>
-        </p>
-        <ScoreStrip
-          points={scored.map((entry) => ({ name: entry.domain, score: entry.score, ring: RING[bandOf(entry.score)] }))}
-          low={axis.low}
-          high={axis.high}
-          ticks={axis.ticks}
-        />
-        <figcaption className="text-base-content/70 text-sm">{caption}</figcaption>
-      </div>
-    </figure>
-  );
-}
-
 export default async function ScansPage(props: {
   searchParams: Promise<Params>;
 }): Promise<React.JSX.Element> {
@@ -302,7 +218,7 @@ export default async function ScansPage(props: {
   const plain = view.q === "" && view.kind === null && view.sort === "newest";
   const [gallery, newest] = await Promise.all([
     readGallery({ search: view.q, kind: view.kind, sort: view.sort, shown: view.shown }),
-    // The strip and the count are the whole listing's, whatever is filtered.
+    // The count is the whole listing's, whatever is filtered.
     plain ? null : readGallery({ search: "", kind: null, sort: "newest", shown: PAGE }),
   ]);
   const listing = newest ?? gallery;
@@ -354,11 +270,6 @@ export default async function ScansPage(props: {
             </div>
           </div>
         </section>
-
-        {/* After the reports on a phone, so its first card is on screen. */}
-        <div className="mx-auto w-full max-w-6xl px-4 pb-8 order-1 lg:order-none">
-          <NewestStrip entries={listing.entries.slice(0, STRIP)} />
-        </div>
 
         <section aria-labelledby="list" className="flex flex-col">
           <h2 id="list" className="mx-auto w-full max-w-6xl px-4 pb-3 text-2xl">
@@ -488,10 +399,7 @@ export default async function ScansPage(props: {
           </div>
         </section>
 
-        <div className="order-2 lg:order-none">
-          <InsideReport />
-        </div>
-        <div className="mx-auto w-full max-w-5xl px-4 pb-12 order-3 lg:order-none">
+        <div className="mx-auto w-full max-w-5xl px-4 pb-12">
           <LearnClose variant="scans" />
         </div>
       </main>
