@@ -12,11 +12,11 @@
 //      `@/lib/measure/page-reading` from the newest stored report, the
 //      reads counted on the page, and Google's reading.
 //
-// Inert without credentials: steps 1 and 4 still run, so the ladder shows what ReachKit can prove. 0¢: every call is free.
-// It never throws: a refusal or failed read leaves that engine out this week, and the verdicts and mail still run.
+// Without credentials steps 1 and 4 still run, so the ladder shows what ReachKit can prove. 0¢: every call is free.
+// It never throws: a refusal or failed read stores its reason on each hosted page, logs it once per host, and the verdicts and mail still run.
 import { SEARCH_READING_WINDOW_D, GSC_PROPERTIES_PER_ACCOUNT } from "@/lib/config/constants";
 import { gscAccounts, gscClient, type GscAccount, type GscSend } from "@/lib/vendors/gsc";
-import { addressOf, assembleReading, pageSearchOf, readingOf, type EngineReading } from "@/lib/measure/page-reading";
+import { assembleReading, engineReadingOf, pageSearchOf, readingOf, type GoogleReading, type GoogleUnread } from "@/lib/measure/page-reading";
 import { readStoredReport, type StoredReport } from "@/lib/scan/report";
 import { publishDb } from "../../db";
 import { announceUnannounced, type AnnounceSend } from "./announce";
@@ -74,67 +74,47 @@ async function pickAccount(accounts: readonly GscAccount[]): Promise<GscAccount 
     const account = row.search_verification?.google?.account;
     if (account !== undefined) held.set(account, (held.get(account) ?? 0) + 1);
   }
-  const free = accounts.find((account) => (held.get(account.client_email) ?? 0) < GSC_PROPERTIES_PER_ACCOUNT);
-  if (free === undefined) log("gsc_pool_full", { accounts: accounts.length });
-  return free ?? null;
+  return accounts.find((account) => (held.get(account.client_email) ?? 0) < GSC_PROPERTIES_PER_ACCOUNT) ?? null;
 }
 
-/** The best place over a page's rows, and the query it was shown for. */
-function best(rows: readonly { query?: string; position: number }[]): { place: number | null; query: string | null } {
-  let found: { position: number; query?: string } | null = null;
-  for (const row of rows) if (row.position > 0 && (found === null || row.position < found.position)) found = row;
-  return { place: found === null ? null : Math.round(found.position * 10) / 10, query: found?.query ?? null };
-}
-
+/** Each hosted page's Google reading, or the one reason the host was not read. */
 async function readGoogle(a: {
   siteUrl: string;
-  pages: readonly string[];
+  pages: readonly { url: string; search: string | null }[];
   now: Date;
   accounts: readonly GscAccount[];
   send?: GscSend;
   verification: SearchVerification;
   save: () => Promise<void>;
-}): Promise<Map<string, EngineReading> | null> {
-  if (a.accounts.length === 0) return null;
+}): Promise<Map<string, GoogleReading> | GoogleUnread> {
+  if (a.accounts.length === 0) return "no_credentials";
   let held = a.verification.google;
   let account = a.accounts.find((candidate) => candidate.client_email === held?.account) ?? null;
   if (held === undefined || account === null) {
     account = await pickAccount(a.accounts);
-    if (account === null) return null;
+    if (account === null) return "pool_full";
     const token = await gscClient(account, a.send).metaToken(a.siteUrl);
-    if (token === null) return null;
+    if (token === null) return "no_token";
     held = { account: account.client_email, token };
     a.verification.google = held;
     await a.save();
   }
   const client = gscClient(account, a.send);
   if (held.verifiedAt === undefined) {
-    if (!(await client.verify(a.siteUrl))) return null;
+    if (!(await client.verify(a.siteUrl))) return "verify_refused";
     held.verifiedAt = a.now.toISOString();
     await a.save();
   }
   if (held.sitemapAt === undefined) {
-    if (!(await client.addWithSitemap(a.siteUrl, `${a.siteUrl}sitemap.xml`))) return null;
+    if (!(await client.addWithSitemap(a.siteUrl, `${a.siteUrl}sitemap.xml`))) return "sitemap_refused";
     held.sitemapAt = a.now.toISOString();
     await a.save();
   }
 
   const rows = await client.performance(a.siteUrl, day(new Date(a.now.getTime() - SEARCH_READING_WINDOW_D * DAY_MS)), day(a.now));
-  const readings = new Map<string, EngineReading>();
-  for (const url of a.pages) {
-    const inspected = await client.inspect(a.siteUrl, url);
-    if (rows === null && inspected === null) continue;
-    const own = (rows ?? []).filter((row) => addressOf(row.page) === addressOf(url));
-    const top = best(own);
-    readings.set(url, {
-      indexed: inspected?.indexed ?? null,
-      lastCrawl: inspected?.lastCrawl ?? null,
-      impressions: own.reduce((sum, row) => sum + row.impressions, 0),
-      clicks: own.reduce((sum, row) => sum + row.clicks, 0),
-      bestPlace: top.place,
-      bestQuery: top.query,
-    });
-  }
+  if (rows === null) return "performance_unread";
+  const readings = new Map<string, GoogleReading>();
+  for (const page of a.pages) readings.set(page.url, engineReadingOf(rows, page.url, page.search, await client.inspect(a.siteUrl, page.url)));
   return readings;
 }
 
@@ -165,24 +145,38 @@ export async function readSearchEngines(a: { siteId: string; now: Date; deps?: S
     const destination = destinations?.[0];
     const host = destination?.hostname_state === "live" ? (destination.hostname?.trim().toLowerCase() ?? null) : null;
 
-    let google: Map<string, EngineReading> | null = null;
-    if (destination !== undefined && host !== null && host !== "") {
-      const siteUrl = `https://${host}/`;
-      const hosted = pages.map((page) => page.live_url).filter((url) => url.startsWith(siteUrl));
+    const searchOf = (page: PageRow): string | null =>
+      pageSearchOf(page.acceptance ?? page.drafts?.opportunities?.acceptance, page.drafts?.opportunities?.target_query);
+    // Every live hosted page ends the pass with a reading or the reason it has none.
+    let google: Map<string, GoogleReading> | GoogleUnread = "not_in_property";
+    const siteUrl = host === null || host === "" ? null : `https://${host}/`;
+    if (destination !== undefined && siteUrl !== null) {
       const verification: SearchVerification = { ...(destination.search_verification ?? {}) };
       const save = async (): Promise<void> => {
         await db.from("destinations").update({ search_verification: verification }).eq("id", destination.id);
       };
       google = await readGoogle({
         siteUrl,
-        pages: hosted,
+        pages: pages.filter((page) => page.live_url.startsWith(siteUrl)).map((page) => ({ url: page.live_url, search: searchOf(page) })),
         now: a.now,
         accounts: deps.accounts ?? gscAccounts(),
         ...(deps.gscSend === undefined ? {} : { send: deps.gscSend }),
         verification,
         save,
-      }).catch(() => null);
+      }).catch((): GoogleUnread => "performance_unread");
     }
+    const googleOf = (page: PageRow & { live_url: string }): GoogleReading | null => {
+      if (page.destination !== "hosted") return null;
+      if (typeof google === "string") return { unread: google };
+      return google.get(page.live_url) ?? { unread: "not_in_property" };
+    };
+    const unread = new Map<string, number>();
+    for (const page of pages) {
+      const reason = googleOf(page)?.unread;
+      if (reason !== undefined) unread.set(reason, (unread.get(reason) ?? 0) + 1);
+    }
+    for (const [reason, count] of unread) log("search_engine_unread", { reason, host, siteId: a.siteId, pages: count });
+    if (typeof google !== "string") log("search_engine_read", { host, siteId: a.siteId, pages: google.size });
 
     const { data: scans } = await db
       .from<{ report: unknown }>("scans")
@@ -216,11 +210,11 @@ export async function readSearchEngines(a: { siteId: string; now: Date; deps?: S
         page: {
           id: page.id,
           liveUrl: page.live_url,
-          search: pageSearchOf(page.acceptance ?? page.drafts?.opportunities?.acceptance, page.drafts?.opportunities?.target_query),
+          search: searchOf(page),
           crawled: hitsOf(page.id, ["crawl"]) > 0,
           aiReads: counted ? hitsOf(page.id, ["answer_fetch", "index_fetch"]) : null,
           aiVisits: counted ? hitsOf(page.id, ["referral"]) : null,
-          google: google?.get(page.live_url) ?? null,
+          google: googleOf(page),
         },
         now: a.now,
       });

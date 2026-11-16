@@ -201,11 +201,48 @@ export interface EngineReading {
   /** URL Inspection's verdict; `null` where the engine states none. */
   indexed: boolean | null;
   lastCrawl: string | null;
+  /** Impressions and clicks over every query in the window. */
   impressions: number;
   clicks: number;
-  /** The best place the page was shown at over the window, by query. */
+  /** The best place over the window on the page's own search only. */
   bestPlace: number | null;
   bestQuery: string | null;
+  /** Set where URL Inspection was not read; the figures still stand. */
+  unread?: "inspect_unread";
+}
+
+/** Why Google was not read for a page this week. */
+export const GOOGLE_UNREAD = ["no_credentials", "pool_full", "no_token", "verify_refused", "sitemap_refused", "performance_unread", "inspect_unread", "not_in_property"] as const;
+export type GoogleUnread = (typeof GOOGLE_UNREAD)[number];
+
+/** A reason is not a reading: it carries no impressions, clicks or place. */
+export type GoogleReading = EngineReading | { unread: GoogleUnread };
+
+/** The figures of a Google reading, or `null` where it holds only a reason. */
+export function googleRead(google: GoogleReading | null | undefined): EngineReading | null {
+  return google == null || !("impressions" in google) ? null : google;
+}
+
+/** A page's Google reading from its Search Analytics rows (every query) and its URL Inspection. */
+export function engineReadingOf(
+  rows: readonly { page: string; query: string; impressions: number; clicks: number; position: number }[],
+  url: string,
+  search: string | null,
+  inspected: { indexed: boolean; lastCrawl: string | null } | null
+): EngineReading {
+  const own = rows.filter((row) => addressOf(row.page) === addressOf(url));
+  const key = search === null ? null : normalised(search);
+  let top: { position: number; query: string } | null = null;
+  for (const row of own) if (normalised(row.query) === key && row.position > 0 && (top === null || row.position < top.position)) top = row;
+  return {
+    indexed: inspected?.indexed ?? null,
+    lastCrawl: inspected?.lastCrawl ?? null,
+    impressions: own.reduce((sum, row) => sum + row.impressions, 0),
+    clicks: own.reduce((sum, row) => sum + row.clicks, 0),
+    bestPlace: top === null ? null : Math.round(top.position * 10) / 10,
+    bestQuery: top?.query ?? null,
+    ...(inspected === null ? { unread: "inspect_unread" as const } : {}),
+  };
 }
 
 /** `publications.search_reading`, as the weekly pass writes it. */
@@ -229,7 +266,7 @@ export interface PageReading {
   /** Other searches the page was seen on, best first. */
   variants: { query: string; place: number }[];
   reached: Reached;
-  google: EngineReading | null;
+  google: GoogleReading | null;
 }
 
 const REACHED_KEYS = ["found", "showing", "firstPage", "readByAi", "linkedByAi", "aiVisit"] as const;
@@ -239,10 +276,12 @@ export const VARIANTS_MAX = 3;
 const isNumber = (value: unknown): value is number => typeof value === "number" && Number.isFinite(value);
 const isText = (value: unknown): value is string => typeof value === "string";
 
-function engineOf(value: unknown): EngineReading | null {
+function engineOf(value: unknown): GoogleReading | null {
   const e = value as Partial<EngineReading> | null | undefined;
-  if (typeof e !== "object" || e === null || !isNumber(e.impressions)) return null;
+  if (typeof e !== "object" || e === null) return null;
+  if (!isNumber(e.impressions)) return (GOOGLE_UNREAD as readonly unknown[]).includes(e.unread) ? { unread: e.unread as GoogleUnread } : null;
   return {
+    ...(e.unread === "inspect_unread" ? { unread: e.unread } : {}),
     indexed: typeof e.indexed === "boolean" ? e.indexed : null,
     lastCrawl: isText(e.lastCrawl) ? e.lastCrawl : null,
     impressions: e.impressions,
@@ -336,7 +375,7 @@ export interface PageFacts {
   /** AI fetches and AI visits over the reads kept; `null` off a hosted page. */
   aiReads: number | null;
   aiVisits: number | null;
-  google: EngineReading | null;
+  google: GoogleReading | null;
 }
 
 const WEEK_MS = 6 * 86_400_000;
@@ -356,8 +395,10 @@ export function assembleReading(a: { before: PageReading | null; report: PlaceRe
     const own = rows.kind === "unmeasured" ? null : ownPlaceIn(rows.value, [page.liveUrl]);
     if (own !== null) place = { value: own.value, source: own.source, query: page.search };
   }
-  if (place === null && page.google?.bestPlace != null) {
-    place = { value: Math.round(page.google.bestPlace), source: "gsc", query: page.google.bestQuery ?? page.search ?? "" };
+  const google = googleRead(page.google);
+  // Search Console's place counts only on the page's own search.
+  if (place === null && google?.bestPlace != null && page.search !== null) {
+    place = { value: Math.round(google.bestPlace), source: "gsc", query: page.search };
   }
 
   // A second read in the same week keeps the week before as `prev`.
@@ -369,8 +410,8 @@ export function assembleReading(a: { before: PageReading | null; report: PlaceRe
   const googlebot = before?.googlebot === true || page.crawled;
 
   const now: Record<(typeof REACHED_KEYS)[number], boolean> = {
-    found: googlebot || page.google?.lastCrawl != null || page.google?.indexed === true,
-    showing: place !== null || variants.length > 0 || (page.google?.impressions ?? 0) > 0,
+    found: googlebot || google?.lastCrawl != null || google?.indexed === true,
+    showing: place !== null || variants.length > 0 || (google?.impressions ?? 0) > 0,
     firstPage: place !== null && place.value <= FIRST_PAGE_PLACES,
     readByAi: (page.aiReads ?? 0) > 0,
     linkedByAi: (linkedBy ?? []).length > 0,

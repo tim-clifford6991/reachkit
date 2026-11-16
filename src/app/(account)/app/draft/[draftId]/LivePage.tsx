@@ -13,7 +13,7 @@ import type React from "react";
 import Link from "next/link";
 import { ArrowLeft, Check, ExternalLink, Globe, Pencil, RefreshCw, Sparkles, type LucideIcon } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
-import { FIRST_PAGE_PLACES } from "@/lib/measure/page-reading";
+import { FIRST_PAGE_PLACES, googleRead } from "@/lib/measure/page-reading";
 import { SEARCH_READING_WINDOW_D } from "@/lib/config/constants";
 import type { Label } from "@/lib/opportunities/verdicts/types";
 import type { AnswerEngine } from "@/lib/opportunities/types";
@@ -153,6 +153,7 @@ function ThisWeek(p: { live: LiveFacts; timeZone: string }): React.JSX.Element {
           ? copy("draft.live.up.near", { places: placesWord(gain), date: since, gap: placesWord(place.value - FIRST_PAGE_PLACES) })
           : copy("draft.live.up", { places: placesWord(gain), date: since });
   const found = live.wordpress ? undefined : reading?.reached.found;
+  const google = live.wordpress ? null : googleRead(reading?.google);
   return (
     <div className="flex min-w-0 flex-wrap items-center justify-between gap-5" data-testid="live-week-figure">
       <div className="flex min-w-0 flex-1 basis-80 flex-col gap-1.5">
@@ -177,10 +178,10 @@ function ThisWeek(p: { live: LiveFacts; timeZone: string }): React.JSX.Element {
             {line === null ? null : <p className="min-w-0 font-semibold wrap-anywhere" data-testid="live-moved">{line}</p>}
           </>
         )}
-        {reading === null || reading.google === null || live.wordpress ? null : (
+        {google === null ? null : (
           <p className="text-sm text-base-content/70" data-testid="live-visits">
             {copy("draft.live.visits", {
-              n: formatCount(reading.google.clicks),
+              n: formatCount(google.clicks),
               days: formatCount(SEARCH_READING_WINDOW_D),
             })}
           </p>

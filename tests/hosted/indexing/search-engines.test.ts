@@ -46,7 +46,7 @@ async function google(url: string, opts: SafeFetchOpts): Promise<FetchOutcome> {
   if (url.endsWith("/searchAnalytics/query")) {
     return ok({
       rows: [
-        { keys: [OLD, "rank in ai overview"], clicks: 1, impressions: 30, ctr: 0.03, position: 34.2 },
+        { keys: [OLD, "How to  rank"], clicks: 1, impressions: 30, ctr: 0.03, position: 34.2 },
         { keys: [OLD, "ai overview ranking"], clicks: 0, impressions: 7, ctr: 0, position: 61 },
       ],
     });
@@ -118,7 +118,7 @@ describe("issue 1553 — a live hosted host is verified, and each page's way to 
     // The older page: indexed, shown 37 times, absent from its own result,
     // so Search Console's place 34 — and its own question's answer linked nobody.
     expect(ladderOf(stored("pub-old"), 0)).toEqual({ crawled: true, indexed: true, impressions: 37, showing: true, bestPlace: 34, placeSource: "gsc", cited: false });
-    expect(stored("pub-old")?.google).toMatchObject({ indexed: true, bestPlace: 34.2, bestQuery: "rank in ai overview" });
+    expect(stored("pub-old")?.google).toMatchObject({ indexed: true, bestPlace: 34.2, bestQuery: "How to  rank" });
     // The newer page: Googlebot counted, unknown to Google, cited by AI.
     expect(ladderOf(stored("pub-new"), 2)).toEqual({ crawled: true, indexed: false, impressions: 0, showing: false, bestPlace: null, placeSource: null, cited: true });
   });
@@ -140,6 +140,13 @@ describe("issue 1553 — a live hosted host is verified, and each page's way to 
     // Seen at 7 on its own result is indexed and placed; impressions are not drawn.
     expect(ladderOf(stored("pub-old"), 0)).toEqual({ crawled: false, indexed: true, impressions: null, showing: true, bestPlace: 7, placeSource: "serp", cited: false });
     expect(ladderOf(stored("pub-new"), 2)).toEqual({ crawled: true, indexed: null, impressions: null, showing: null, bestPlace: null, placeSource: null, cited: true });
+  });
+
+  it("a host whose verification Google refuses stores the reason on each hosted page, and no impressions", async () => {
+    const refusing = async (url: string, opts: SafeFetchOpts) => (url.includes("/webResource") ? ok({}, 403) : google(url, opts));
+    await readSearchEngines({ siteId: "s1", now: NOW, deps: { accounts: [ACCOUNT], gscSend: refusing, announce: async () => ok({}) } });
+    expect(db.rows("publications").find((row) => row.id === "pub-old")?.search_reading).toMatchObject({ google: { unread: "verify_refused" } });
+    expect(ladderOf(stored("pub-old"), 0).impressions).toBeNull();
   });
 
   it("a page the hub never accepted is announced once, and never twice", async () => {

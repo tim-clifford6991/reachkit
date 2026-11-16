@@ -32,6 +32,7 @@
     "reslug": "node scripts/reslug.mjs",
     "retarget": "node scripts/retarget.mjs",
     "replan": "node scripts/replan.mjs",
+    "search-history": "node scripts/search-history.mjs",
     "eval:content": "node scripts/eval-content.mjs"
   },
   "dependencies": {

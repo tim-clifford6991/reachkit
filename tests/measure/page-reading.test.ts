@@ -169,7 +169,7 @@ describe("Showing reads the page's own result first, then the keyword database, 
   it("in neither, Search Console's place is the last read", () => {
     const google = { indexed: true, lastCrawl: null, impressions: 12, clicks: 0, bestPlace: 22.4, bestQuery: "water heater repair" };
     const reading = assembleReading({ before: null, report: localWeek(null, null), page: { ...local, google }, now: WEEK_1 });
-    expect(reading.place).toEqual({ value: 22, source: "gsc", query: "water heater repair" });
+    expect(reading.place).toEqual({ value: 22, source: "gsc", query: LOCAL.search });
   });
 
   it("without Search Console, a page in no row is not shown", () => {
