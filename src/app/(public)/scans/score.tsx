@@ -10,7 +10,7 @@ import { RING_TRACK } from "../_how/visuals";
 
 /** Where the score sits in "{score} of {max}", so the figure is drawn large and the rest small. */
 const SCORE_SLOT = "\u0000";
-export const SCORE_MAX = 100;
+const SCORE_MAX = 100;
 
 /** A score in its band's ring, the figure large over its band, or "Not scored": a report with no score never reads 0 and draws no ring. */
 export function ScoreLine(p: { score: number | null }): React.JSX.Element {
@@ -20,7 +20,7 @@ export function ScoreLine(p: { score: number | null }): React.JSX.Element {
   return <ScoreFigure score={p.score} />;
 }
 
-export function ScoreFigure(p: { score: number }): React.JSX.Element {
+function ScoreFigure(p: { score: number }): React.JSX.Element {
   const band = bandOf(p.score);
   const max = String(SCORE_MAX);
   const [, rest = ""] = copy("gallery.card.score", { score: SCORE_SLOT, max }).split(SCORE_SLOT);

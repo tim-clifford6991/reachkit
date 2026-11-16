@@ -4,14 +4,12 @@
 import type React from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, Eye, FileText, ListChecks, Search } from "lucide-react";
-import { SITE_PROFILE } from "@/lib/config/constants";
+import { ArrowRight, Eye, ListChecks, Search } from "lucide-react";
 import { bandOf } from "@/lib/measure/bands";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { PUBLIC_ROUTE_SEO } from "../_seo/routes";
 import { staticMetadata } from "../_seo/metadata";
 import { FIELD_SECTION_ID } from "../_landing/sections";
-import { HOW_FACTS } from "../_how/facts";
 import { EXAMPLES } from "../_how/specimen";
 import { BAND, LearnClose, LibraryPage, Tile } from "../_library/parts";
 import { onPageChecks } from "./_check/checks";
@@ -30,32 +28,6 @@ const SMALL = "text-base-content/70 text-sm";
 const SLASH = "/";
 /** The on-page card shows the first three of its example's checks. */
 const SHOWN = 3;
-const PAGES = Array.from({ length: SITE_PROFILE.MAX_PAGES }, (_, i) => i);
-
-/** A site's pages as squares, the first `filled` of them in colour. */
-function Squares(p: { filled: number }): React.JSX.Element {
-  return (
-    <span className="grid grid-cols-[repeat(20,minmax(0,1fr))] gap-0.5" aria-hidden>
-      {PAGES.map((i) => (
-        <span key={i} aria-hidden className={`aspect-square rounded-xs ${i < p.filled ? "bg-primary" : "bg-base-300"}`} />
-      ))}
-    </span>
-  );
-}
-
-function Reach(p: { icon: typeof Search; name: CopyKey; reach: string; filled: number; ours?: true }): React.JSX.Element {
-  return (
-    <div className="flex min-w-0 flex-col gap-2">
-      <span className={`flex items-center gap-2 font-semibold ${p.ours ? "text-primary" : "text-base-content"}`}>
-        <Tile Icon={p.icon} tone={p.ours ? "primary" : "muted"} />
-        {copy(p.name)}
-      </span>
-      <Squares filled={p.filled} />
-      <span className={SMALL}>{p.reach}</span>
-    </div>
-  );
-}
-
 function CardHead(p: { icon: typeof Search; name: CopyKey; solid?: boolean }): React.JSX.Element {
   return (
     <div className="flex items-center gap-3">
@@ -163,19 +135,6 @@ export default function ToolsPage(): React.JSX.Element {
       testId={PAGE_TEST_ID}
       title={copy("tools.title")}
       lead={<p className="text-lg">{copy("tools.lead")}</p>}
-      aside={
-        <figure className={`${CARD} card-body gap-4`} aria-label={copy("tools.figure.label")}>
-          <Reach icon={FileText} name="tools.figure.tool" reach={copy("tools.figure.tool.reach")} filled={1} />
-          <Reach
-            icon={Search}
-            name="tools.figure.scan"
-            reach={copy("tools.figure.scan.reach", { pages: SITE_PROFILE.MAX_PAGES, searches: HOW_FACTS.searches })}
-            filled={SITE_PROFILE.MAX_PAGES}
-            ours
-          />
-          <figcaption className={SMALL}>{copy("tools.figure.caption")}</figcaption>
-        </figure>
-      }
       wide
     >
       <section aria-label={copy("tools.list.label")} className={BAND}>

@@ -1,5 +1,5 @@
 40 45 50 55 60 65	sample data
-Visibility Score: how easy a business is to find, out of 100. bupa.co.uk is not scored.	sample data: the board's unscored report is bupa.co.uk; the caption names the page's own
+Visibility Score: how easy a business is to find, out of 100. bupa.co.uk is not scored.	owner 2026-11-16, #2745: removed
 B	sample data
 M	sample data
 W	sample data
@@ -57,5 +57,16 @@ Empty state, when a search finds nothing	#1110: the board's own caption over the
 No free scan matches that yet.	#1732: the empty arm, shown when a search finds nothing; tests/archive/app/scans/board.test.tsx searches for it
 Scan it now. It takes under a minute, then it shows here.	#1732: the empty arm, shown when a search finds nothing; tests/archive/app/scans/board.test.tsx searches for it
 Scan this site	#1732: the empty arm, shown when a search finds nothing; tests/archive/app/scans/board.test.tsx searches for it
-The 12 newest reports, by Visibility Score Hard to find Findable	SPEC 2026-10-15 (#1444): a title is at most six words, so it ships as "The 12 newest, by Visibility Score" (#1732)
+The 12 newest reports, by Visibility Score Hard to find Findable	owner 2026-11-16, #2745: removed
 Articles	#1512: the footer links the content host's index only where stored rows name one; the sweep seeds none
+What every free report shows	owner 2026-11-16, #2745: removed
+Every report answers the same four questions.	owner 2026-11-16, #2745: removed
+reachkit.app/scan/harborplumbing.com	owner 2026-11-16, #2745: removed
+1 27 of 100 Hard to find	owner 2026-11-16, #2745: removed
+2 On Google’s first page instead a national plumbing chain austinpipeworks.example capitolrooter.example	owner 2026-11-16, #2745: removed
+3 Mentioned in 1 of 12 AI answers	owner 2026-11-16, #2745: removed
+4 14 pages your site is missing How much does slab leak repair cost in Austin?	owner 2026-11-16, #2745: removed
+1 Visibility Score One number for how easy you are to find.	owner 2026-11-16, #2745: removed
+2 Who gets your buyers The businesses Google and AI pick instead of you.	owner 2026-11-16, #2745: removed
+3 AI answers Whether AI answers mention or link you.	owner 2026-11-16, #2745: removed
+4 Pages you’re missing Questions buyers ask that no page of yours answers.	owner 2026-11-16, #2745: removed
