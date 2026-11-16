@@ -161,7 +161,8 @@ function mend(row: DraftRow, body: string, pack: ContextPack, basis: BatteryBasi
   const stored = row.title ?? "";
   const sections = Array.isArray(meta.sections) ? meta.sections : [];
   const before = typeof meta.description === "string" ? meta.description : "";
-  const description = fitDescription(before.trim() === "" ? (answerBoxOf(body) ?? "") : before, pack.locale?.language);
+  const answer = answerBoxOf(body) ?? "";
+  const description = fitDescription(before.trim() === "" ? answer : before, answer);
   const proposed = (Array.isArray(meta.titles) ? (meta.titles as { title?: unknown }[]) : []).flatMap((each) => (typeof each?.title === "string" ? [each.title] : []));
   const unpromised = (each: string | null): each is string => each !== null && promiseFigures(each, pack).length === 0;
   const clean = [...proposed, stored].filter(unpromised);

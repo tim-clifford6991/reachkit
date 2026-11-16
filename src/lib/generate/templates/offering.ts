@@ -4,7 +4,7 @@
 // facts support; the short answer leads, the questions and the guides follow.
 import type { Template } from "./types";
 
-const SEARCH_WORDS = "Headings are written in the search's words.";
+const SEARCH_WORDS = "Each heading is one plain question with one main verb, or a statement, in the search's words used as the search uses them: a search that is a noun phrase stays one noun phrase, never split around a verb.";
 
 export const offering: Template = {
   type: "offering",

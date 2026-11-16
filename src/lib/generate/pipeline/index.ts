@@ -281,7 +281,6 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
     queries: searches,
     names: [...names, ...pack.products.map((product) => product.domain.split(".")[0] ?? "")],
     unclaimed: unclaimedSuperlatives(pack),
-    language: pack.locale?.language,
     // D51: an update keeps its live title.
     ...(pack.type === "update" && pack.live !== null
       ? { live: { title: pack.live.title, markdown: pack.live.markdown, year: new Date(pack.builtAt).getUTCFullYear() } }

@@ -251,6 +251,12 @@ describe("the title, the H1 and the description are laid out in code (D51)", () 
     expect(same.body.title).toBe(live.title);
   });
 
+  it("a word the page writes only in capitals keeps them in the title (ai-search-visibility-pricing)", () => {
+    const answer = "AI search visibility pricing ranges from $29 a month for prompt-based tracking to €189 for daily reports.";
+    const parts = pageParts(CLEAN_MARKDOWN, { titles: ["ai visibility tracking pricing: Peec AI starts at 50 prompts"], answer });
+    expect(page(parts).body.title).toBe("AI visibility tracking pricing: Peec AI starts at 50 prompts");
+  });
+
   it("a description over 155 characters keeps the whole sentences that fit", () => {
     const first = "A small team picks project management software by seat count, then compares what each plan costs for that many seats in a year.";
     const { body } = page(pageParts(CLEAN_MARKDOWN, { description: `${first} After that it is worth a second look at support hours.` }));
