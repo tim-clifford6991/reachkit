@@ -19,6 +19,7 @@
 import type { OwnLivePage, RefreshInputs } from "./refresh";
 import type { ListicleHeld } from "@/lib/generate/templates/listicle";
 import type { KnowledgeDigest } from "@/lib/site-profile/knowledge/read";
+import { AsyncLocalStorage } from "node:async_hooks";
 import { revalidateTag } from "next/cache";
 import { dbAdmin } from "@/lib/db";
 import { canonicalUrl } from "@/lib/measure/page-reading";
@@ -202,8 +203,7 @@ export interface OpportunityStore {
   claimRecommit(siteId: string, date: string, commit: string): Promise<boolean>;
   /** Writes a row's cluster and the searches it absorbed. */
   setCluster(opportunityId: string, clusterKey: string, absorbedQueries: readonly string[]): Promise<void>;
-  /** The site's current stored report, or `null` where it has no readable
-   *  one. */
+  /** The site's current stored report, or `null` where it has no readable one. */
   currentReport(siteId: string): Promise<StoredReport | null>;
   /** The rivals in force, confirmed profile and scan passages a listicle's needs are read from; `null` with no site. */
   listicleHeld(siteId: string, scanId: string): Promise<ListicleHeld | null>;
@@ -940,12 +940,12 @@ async function currentReportOf(siteId: string): Promise<StoredReport | null> {
 }
 
 let store: OpportunityStore | null = null;
+/** A dry run's store for the calls inside it alone, so a concurrent request still writes through the real one. */
+export const storeScope = new AsyncLocalStorage<OpportunityStore>();
 
-/** Lazily constructed, so importing this module does not construct a
- *  database client. */
+/** Lazily constructed, so importing this module does not construct a database client. */
 export function opportunityStore(): OpportunityStore {
-  if (store === null) store = supabaseOpportunityStore();
-  return store;
+  return storeScope.getStore() ?? (store ??= supabaseOpportunityStore());
 }
 
 /** One opportunity by id: a restarted draft is written again for the one it was written for. */
