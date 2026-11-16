@@ -110,6 +110,9 @@ function dedupeKey(row: {
   return [row.site_id, row.type, row.target_query ?? "", row.target_ref].join(" ");
 }
 
+/** One passage the fit call is shown, which a canned score names as `fact: 0`. */
+export const KNOWN = [{ about: "offering" as const, text: "What the business sells", source: { kind: "founder" as const } }];
+
 export function memoryStore(state: MemoryState): OpportunityStore {
   return {
     async insert(insert: OpportunityInsert): Promise<InsertOutcome> {
@@ -278,7 +281,7 @@ export function memoryStore(state: MemoryState): OpportunityStore {
     },
 
     async marketFor() {
-      return { market: state.market ?? null, competitors: [] };
+      return { market: state.market ?? null, competitors: [], knowledge: KNOWN };
     },
 
     async commitPlan(siteId, entries) {

@@ -10,7 +10,7 @@
 //     commit, or by the checks with its research unchanged; or its URL retired;
 //   - `destination_cannot_address` — an Improve the destination cannot
 //     deliver, or a topic a page of the site already covers;
-//   - `low_fit` — a stored business fit below the gate (§6).
+//   - `low_fit` — a stored fit below the gate, or a new topic judged with no `fitFact` (§6).
 //
 // Demand, kind of business and size never hold a row: they order it
 // (`rank/points.ts`). Nor does a site whose own pages ground no fact: its
@@ -112,8 +112,9 @@ export function eligible(o: Opportunity, ctx: ReadinessContext): UnreadyReason |
   if (o.family === "improve" && !ctx.canUpdate(o.targetRef)) return "destination_cannot_address";
   // An Improve row is the update of the page that covers its topic.
   if (o.family !== "improve" && ctx.coveredBy(o) !== null) return "destination_cannot_address";
-  const fit = o.businessFit ?? null;
-  if (o.family !== "fix" && fit !== null && fit < TOPIC_FIT.gate) return "low_fit";
+  if (o.family !== "fix" && (o.businessFit ?? TOPIC_FIT.gate) < TOPIC_FIT.gate) return "low_fit";
+  // A new topic with no `fitFact` key was judged before the call named one, and keeps its fit until judged again.
+  if ((o.evidence.family === "write" || o.evidence.family === "earn") && o.evidence.fitFact === null) return "low_fit";
   return null;
 }
 

@@ -51,7 +51,7 @@ import type { MarketConclusion } from "../../../src/lib/market/infer/types";
 import type { CanonicalDomain } from "../../../src/lib/scan/domain";
 import type { SerpResult } from "../../../src/lib/vendors/dataforseo/types";
 import { question, reportOf, search, SITE_ID } from "../../opportunities/fixtures";
-import { memoryStore, newMemoryState } from "../../opportunities/memory-store";
+import { KNOWN, memoryStore, newMemoryState } from "../../opportunities/memory-store";
 import { toolUseMessage } from "../../llm/fixtures";
 import { rowOf, type StoredTopic } from "../../golden/plan/panel";
 
@@ -530,13 +530,13 @@ describe("a weekly pass whose measurement would spend its whole cap", () => {
     };
     // What buyers were seen asking beside those searches is what the model writes back as their searches.
     const phrased = [...new Set(serps.flatMap((one) => [...(one.peopleAlsoAsk ?? []), ...(one.relatedSearches ?? [])]))];
-    // The topics the run held stay open; unjudged, the fit judges them again beside this pass's.
+    // The topics the run held stay open: judged, with the passage a usual week's carry; unjudged, judged again beside this pass's.
     const state = newMemoryState({
-      rows: (site.topics ?? []).map((topic, n) => ({ ...rowOf(site.site.domain, { ...topic, ready: false } as StoredTopic, n), site_id: SITE_ID, business_fit: a.heldJudged ? (topic.fit ?? 2) : null })),
+      rows: (site.topics ?? []).map((topic, n) => [rowOf(site.site.domain, { ...topic, ready: false } as StoredTopic, n), topic] as const).map(([row, topic]) => ({ ...row, site_id: SITE_ID, business_fit: a.heldJudged ? (topic.fit ?? 2) : null, ...(a.heldJudged ? { evidence: { ...(row.evidence as object), fitFact: KNOWN[0] } } : {}) })),
     });
     setOpportunityStore({
       ...memoryStore(state),
-      marketFor: async () => ({ market: site.market, competitors: [], prompts: site.prompts.map((p) => p.text), knowledge: null }),
+      marketFor: async () => ({ market: site.market, competitors: [], prompts: site.prompts.map((p) => p.text), knowledge: KNOWN }),
     });
     // The model answers every call in the shape its site asks for, and reports the tokens it was sent.
     anthropicCreate.mockImplementation(async (request: { tools?: { name: string }[]; messages: { content: string }[] }) => {
@@ -548,8 +548,8 @@ describe("a weekly pass whose measurement would spend its whole cap", () => {
         "topic-buyer-searches": [{ problems: phrased.slice(0, BUYER_SEARCHES.max), solutions: phrased.slice(BUYER_SEARCHES.max, 2 * BUYER_SEARCHES.max) }, 400],
         "topic-typed": [{ typed: searches.map((entry) => entry.i) }, 80],
         "topic-fit": [
-          { scores: searches.map((entry) => ({ i: entry.i, fit: fitOf.get(entry.search) ?? 2, title: entry.search })), strongest: [] },
-          40 * searches.length,
+          { scores: searches.map((entry) => ({ i: entry.i, fit: fitOf.get(entry.search) ?? 2, title: entry.search, fact: 0 })), strongest: [] },
+          44 * searches.length,
         ],
         "opportunity-typing": [{ type: input.derivedType, slug: input.derivedSlug, title: input.targetQuery }, 60],
         "topic-same-question": [{ pairs: [] }, 20],

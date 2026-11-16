@@ -16,12 +16,10 @@ export const POINTS = Object.freeze({
   linkedByAi: 1,
   notMoving: 0,
   outsized: -2,
-  // Fit spans 1..3 among ready rows, so −2 puts a best-fit row nobody searches below a fit-2 row someone asks about.
-  noDemand: -2,
 });
 
-/** A row no pass has judged scores as a judged 2: neither lifted nor dropped. */
-const UNJUDGED_FIT = 2;
+/** The fit a row ranks and scores in: one no pass has judged as a judged 2, neither lifted nor dropped. */
+export const fitOf = (o: Pick<Opportunity, "businessFit">): number => o.businessFit ?? 2;
 
 /** What the parts read beyond the row: the site's own pages a stored AI
  *  answer linked (canonical addresses) and its tracked prompts. */
@@ -76,10 +74,10 @@ function notMoving(o: Scorable): boolean {
 /** The row's points and the parts they sum from, in a fixed order. */
 export function pointsOf(o: Scorable, seen: Seen): Omit<PlanReason, "rule"> {
   const parts: { part: PointPart; n: number }[] = [];
-  const fit = POINTS.fit[o.businessFit ?? UNJUDGED_FIT] ?? 0;
+  const fit = POINTS.fit[fitOf(o)] ?? 0;
   if (fit > 0) parts.push({ part: "fit", n: fit });
   const demand = demandOf(o, seen);
-  parts.push(demand > 0 ? { part: "demand", n: demand } : { part: "no_demand", n: POINTS.noDemand });
+  if (demand > 0) parts.push({ part: "demand", n: demand });
   if (aiGapOf(o)) parts.push({ part: "ai_gap", n: POINTS.aiGap });
   if (nearPageOne(o)) parts.push({ part: "near_page_one", n: POINTS.nearPageOne });
   if (linkedByAi(o, seen)) parts.push({ part: "linked_by_ai", n: POINTS.linkedByAi });

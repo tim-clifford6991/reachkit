@@ -16,7 +16,7 @@ import { contentTypeOf } from "../../../src/lib/opportunities/content-type";
 import { assessReadiness } from "../../../src/lib/opportunities/readiness";
 import { readOpportunity, setOpportunityStore } from "../../../src/lib/opportunities/store";
 import type { PromptAnswer } from "../../../src/lib/scan/report";
-import { memoryStore, newMemoryState, type MemoryState } from "../memory-store";
+import { KNOWN, memoryStore, newMemoryState, type MemoryState } from "../memory-store";
 import { AT, PROFILE, SCAN_ID, SITE_ID, question, reportOf, serp, smallCounts } from "../fixtures";
 import { storedSerps } from "../../golden/plan/panel";
 
@@ -93,7 +93,7 @@ function judge(wanted: string): void {
     if (site === BUYER_SEARCHES_CALL_SITE) return toolUseMessage({ problems: [], solutions: [] }, 300, 100, BUYER_SEARCHES_CALL_SITE);
     if (site === TYPED_CALL_SITE) return toolUseMessage({ typed: searches.filter(({ search }) => search === wanted).map(({ i }) => i) }, 300, 50, TYPED_CALL_SITE);
     if (site !== FIT_CALL_SITE) throw new Error("no model for this call");
-    const scores = searches.map(({ i, search }) => ({ i, fit: search === wanted ? 3 : 1, title: `The angle for ${search}` }));
+    const scores = searches.map(({ i, search }) => ({ i, fit: search === wanted ? 3 : 1, title: `The angle for ${search}`, fact: 0 }));
     return toolUseMessage({ scores, strongest: scores.filter((score) => score.fit === 3).map((score) => score.i) }, 900, 300, FIT_CALL_SITE);
   });
 }
@@ -116,7 +116,7 @@ describe("a competitor's page that AI links becomes a topic, for a local busines
       }
     );
     const { ctx } = fakeCost();
-    await deriveOpportunities(ctx, { siteId: SITE_ID, scanId: SCAN_ID, report, ownRanked: measured(0, AT), rankedCounts: smallCounts(), market: held });
+    await deriveOpportunities(ctx, { siteId: SITE_ID, scanId: SCAN_ID, report, ownRanked: measured(0, AT), rankedCounts: smallCounts(), market: held, knowledge: KNOWN });
 
     const row = state.rows.find((each) => each.target_query === topic);
     expect(row?.evidence).toMatchObject({ family: "write", rival: { domain: rival, url: { kind: "measured", value: url.replace("?utm_source=chatgpt.com", "") } } });
@@ -132,7 +132,7 @@ describe("a competitor's page that AI links becomes a topic, for a local busines
       { prompts: { siteName: "Austin Plumbery", asked: [{ id: "p1", kind: "category", text: "Who is the best emergency plumber in Austin?" }], asks: 1, answers: [storedAnswer("austinplumbery.com", "https://www.rotorooter.com/austin/emergency-plumber/?utm_source=chatgpt.com")] } }
     );
     const { ctx } = fakeCost();
-    await deriveOpportunities(ctx, { siteId: SITE_ID, scanId: SCAN_ID, report, ownRanked: measured(0, AT), rankedCounts: smallCounts(), market: PLUMBER });
+    await deriveOpportunities(ctx, { siteId: SITE_ID, scanId: SCAN_ID, report, ownRanked: measured(0, AT), rankedCounts: smallCounts(), market: PLUMBER, knowledge: KNOWN });
     const fresh = new Map([...serps].map(([term, read]) => [term, { ...read, at: AT }]));
     setOpportunityStore({ ...memoryStore(state), topTenRows: async () => fresh });
     await assessReadiness(SITE_ID, { at: AT, now: AT });
