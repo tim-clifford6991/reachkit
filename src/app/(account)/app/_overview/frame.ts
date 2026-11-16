@@ -16,11 +16,7 @@ export const OVERVIEW = "contents";
 /** The notices and the head, drawn above the tabs. */
 export const HEAD = "-order-1 flex min-w-0 flex-col gap-6";
 
-/** Best mover beside the measures checked monthly, from `lg`. */
-export const FIGURES = "grid min-w-0 gap-6 lg:grid-cols-2";
-
 /** The regions the layout gate compares, by name. */
 export const REGION = {
   week: "overview-week",
-  figures: "overview-figures",
 } as const;

@@ -192,14 +192,6 @@ const LIST = (
       cadence: "As the pages are read.",
     },
     {
-      id: "overview-best-mover",
-      shown: { on: "tile", key: "overview-tile-mover" },
-      definition:
-        "The live page whose place on its own search rose most since the reading before, of those above where they were first seen: its place, and the places gained since it was first seen. A week where none rose says so; with no place read there is no figure.",
-      source: "src/lib/measure/figures.ts#bestMoverOf",
-      cadence: "Weekly, each Monday's pass.",
-    },
-    {
       id: "overview-score-month",
       shown: { on: "tile", key: "overview-tile-score" },
       definition:
@@ -208,12 +200,28 @@ const LIST = (
       cadence: "Monthly, on the first Monday.",
     },
     {
-      id: "overview-market-month",
-      shown: { on: "tile", key: "overview-tile-market" },
+      id: "overview-total-ai",
+      shown: { on: "tile", key: "overview-total-ai" },
       definition:
-        "x of N: of the market's biggest searches the month's first Monday pass measured, how many show the site on Google's first page, beside the count at the customer's own scan. A pass that measured fewer searches than it selected shows no figure.",
-      source: "src/lib/measure/figures.ts#monthFiguresOf",
-      cadence: "Monthly, on the first Monday.",
+        "Times AI mentioned you, so far: the sum over each week's weekly pass that passed its own health checks of the tracked-prompt answers that mention or link the site, the branded prompts left out, from the first such pass. A week with no healthy pass adds nothing and says so; an answer not read is not counted. Before the first, a dash and the day it is taken.",
+      source: "src/lib/measure/totals.ts#totalsOf",
+      cadence: "Weekly, each Monday's pass.",
+    },
+    {
+      id: "overview-total-google",
+      shown: { on: "tile", key: "overview-total-google" },
+      definition:
+        "Google searches that have shown you, so far: the distinct searches on which a page ReachKit published, live at the time, was read at places 1 to 100 in any weekly pass, each counted once from the first week it was. Counted from the first pass after a page went live.",
+      source: "src/lib/measure/totals.ts#totalsOf",
+      cadence: "Weekly, each Monday's pass.",
+    },
+    {
+      id: "overview-total-pages",
+      shown: { on: "tile", key: "overview-total-pages" },
+      definition:
+        "Pages published so far: every distinct address ReachKit has published a page at, counted from the week it first went live; a page stopped or merged later stays counted.",
+      source: "src/lib/measure/totals.ts#totalsOf",
+      cadence: "As each page goes live.",
     },
   ]
   // measures:end

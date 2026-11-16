@@ -5,7 +5,7 @@
 // desktop." The boxes below are the new Overview's own, in its own order
 // and on its own frame — `_overview/frame.ts`, which the loaded screen
 // draws with too (issue 1484): the head above the tabs, today's page, the
-// ladder, this week's pages, then the two figures side by side. What arrives
+// three totals, then this week's pages. What arrives
 // lands where its box already is and nothing on the screen moves.
 //
 // It is **inside** the tabs' layout, so the four tab links are drawn and
@@ -15,7 +15,7 @@
 // A Server Component: it reads nothing at all.
 import type React from "react";
 import { Box, CardSkeleton, Waiting } from "../_shell/skeletons";
-import { FIGURES, HEAD, OVERVIEW, REGION } from "../_overview/frame";
+import { HEAD, OVERVIEW, REGION } from "../_overview/frame";
 
 export default function OverviewLoading(): React.JSX.Element {
   return (
@@ -28,13 +28,9 @@ export default function OverviewLoading(): React.JSX.Element {
         </Waiting>
       </div>
       <CardSkeleton testId="waiting-page-skeleton" rows={2} />
-      <CardSkeleton testId="ladder-skeleton" rows={3} />
+      <CardSkeleton testId="totals-skeleton" rows={3} />
       <div className="min-w-0" data-frame={REGION.week}>
         <CardSkeleton testId="week-skeleton" rows={7} />
-      </div>
-      <div className={FIGURES} data-frame={REGION.figures}>
-        <CardSkeleton testId="mover-skeleton" rows={4} />
-        <CardSkeleton testId="months-skeleton" rows={4} />
       </div>
     </div>
   );
