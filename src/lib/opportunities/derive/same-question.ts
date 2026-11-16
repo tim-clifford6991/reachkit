@@ -26,7 +26,7 @@ const SAME_QUESTION_SCHEMA = z.strictObject({
 const TASK = [
   "Each entry of `topics` is a search with its index `i`. For each one marked `ask`, name the index of one **other** topic that asks the same question in different words, so that one page answers both.",
   "Never pair a search with itself. Leave a search out when no other topic asks its question.",
-  "A narrower audience, a different product or a comparison is a different question, and so is a thing's price against the thing itself.",
+  "An audience that is the market's own buyer (`buyer`, where given) is the same question; a different audience, a different product or a comparison is a different question, and so is a thing's price against the thing itself.",
   "Two wordings of one price are the same question: 'acme pricing', 'acme cost' and 'how much is acme' are one.",
 ].join(" ");
 
@@ -43,7 +43,7 @@ const TASK = [
  */
 export async function judgeSameQuestion(
   c: CostContext,
-  a: { searches: readonly string[]; topics: readonly string[] }
+  a: { searches: readonly string[]; topics: readonly string[]; buyer?: string | null }
 ): Promise<ReadonlyMap<string, string>> {
   const asked = new Set(a.searches.map(queryKey));
   const topics = [...new Set([...a.searches, ...a.topics].map(queryKey))];
@@ -54,6 +54,7 @@ export async function judgeSameQuestion(
     site: SAME_QUESTION_CALL_SITE,
     input: {
       task: TASK,
+      ...((a.buyer ?? "").trim() === "" ? {} : { buyer: a.buyer }),
       topics: topics.map((search, i) => (asked.has(search) ? { i, search, ask: true } : { i, search })),
     },
     schema: SAME_QUESTION_SCHEMA,

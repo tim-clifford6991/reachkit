@@ -22,5 +22,5 @@ Supply: 10 of 10 committed, short 0; stored topics product 10, category 3, best_
 | plumber near austin tx | expand_page | 2 | 140 | unready |
 | best plumber in austin texas | listed_page | 2 | 390 | unready |
 | commercial plumber austin tx | keyword_page | 2 | 320 | unready |
+| austin plumbery vs beyond wow plumbing | comparison_page | 3 | — | same_topic |
 | austin plumbery vs reliant plumbing | comparison_page | 3 | — | after_the_week |
-| austin plumbery vs beyond wow plumbing | comparison_page | 3 | — | after_the_week |

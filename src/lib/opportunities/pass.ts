@@ -55,10 +55,7 @@ function inputFor(a: {
 
 /** The net-new gate: the page the site already has on a topic, and whether its destination can update it.
  *  `undefined` where the index cannot be read, so nothing is converted or refused. */
-async function knownGateFor(a: {
-  siteId: string;
-  report: StoredReport;
-}): Promise<DeriveInput["known"]> {
+async function knownGateFor(a: { siteId: string; report: StoredReport; market: DeriveInput["market"] }): Promise<DeriveInput["known"]> {
   const { alreadyCovered } = await import("@/lib/known-content/match");
   const store = opportunityStore();
   const canUpdate = canUpdateFrom(await store.hostedOwnPages(a.siteId));
@@ -71,7 +68,7 @@ async function knownGateFor(a: {
   for (const query of new Set(queries)) {
     if (query.trim() === "") continue;
     const near = await store.knownContentNear({ siteId: a.siteId, query });
-    topics.set(query.trim().toLowerCase(), alreadyCovered({ query }, near));
+    topics.set(query.trim().toLowerCase(), alreadyCovered({ query }, near, a.market));
   }
   return {
     covered: (candidate) => topics.get((candidate.targetQuery ?? "").trim().toLowerCase()) ?? null,
@@ -100,11 +97,11 @@ export async function deriveForPass(
   // Before the derivation, so the net-new rule reads this pass's index of the site and not last week's. Never throws.
   await store.refreshKnownContent({ siteId: a.siteId, domain: a.report.domain, inventory });
 
-  const known = await knownGateFor({ siteId: a.siteId, report: a.report });
   // A market that cannot be read leaves fit judged against the profile, never a pass that derives nothing.
   const { market, competitors, prompts, knowledge, area } = await store
     .marketFor(a.siteId)
     .catch(() => ({ market: null, competitors: [] as readonly string[], prompts: [] as readonly string[], knowledge: null, area: null }));
+  const known = await knownGateFor({ siteId: a.siteId, report: a.report, market });
   const input = { ...inputFor({ siteId: a.siteId, report: a.report, hostedHost, inventory, known, market, knowledge, competitors, prompts: prompts ?? [] }), area: area ?? null };
 
   // Fixes this scan shows cleared retire first, so a fixed page is not re-derived beside its closed row.

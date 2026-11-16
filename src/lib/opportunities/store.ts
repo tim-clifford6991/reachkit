@@ -112,8 +112,7 @@ export interface OpportunityInsert {
   source?: TopicSource | null;
   page_type?: PageType | null;
   effort: number;
-  /** Optional because the database defaults both: a row nothing has
-   *  clustered carries no cluster and no absorbed sibling. */
+  /** Optional because the database defaults both: a row nothing has clustered carries no cluster and no absorbed sibling. */
   cluster_key?: string | null;
   absorbed_queries?: readonly string[];
 }
@@ -129,10 +128,11 @@ export type InsertOutcome =
 export interface PlanEntry {
   opportunityId: string;
   place: number;
-  /** The site-local date, `YYYY-MM-DD`; `null` for a spare. */
-  plannedFor: string | null;
+  plannedFor: string | null; // the site-local date, `YYYY-MM-DD`; `null` for a spare
   writeAs: "qa" | null;
   reason: PlanReason;
+  /** What the commit also writes on the row: the update a live page's twin becomes, or the searches it absorbed. */
+  set?: Partial<Pick<OpportunityInsert, "type" | "family" | "target_ref" | "proposed_slug" | "title" | "effort" | "evidence" | "absorbed_queries">>;
 }
 
 /** One of the site's own pages, as `draftedPages` returns it. */
@@ -778,7 +778,7 @@ export function supabaseOpportunityStore(): OpportunityStore {
       for (const entry of entries) {
         const { error } = await untyped()
           .from<OpportunityRow>("opportunities")
-          .update({ plan_place: entry.place, planned_for: entry.plannedFor, plan_write_as: entry.writeAs, plan_reason: entry.reason })
+          .update({ plan_place: entry.place, planned_for: entry.plannedFor, plan_write_as: entry.writeAs, plan_reason: entry.reason, ...entry.set })
           .eq("id", entry.opportunityId)
           .eq("site_id", siteId);
         if (error) throw new Error(`opportunities.commitPlan: ${error.message}`);

@@ -31,6 +31,7 @@
 import { EFFORT_BY_TYPE, REFRESH_MIN_AGE_DAYS } from "@/lib/config/constants";
 import { measured } from "@/lib/measure/measured";
 import type { KnownMatch } from "@/lib/known-content/types";
+import type { OpportunityInsert } from "../store";
 import { FAMILY_OF, type Evidence } from "../types";
 import type { Candidate } from "./candidate";
 
@@ -82,6 +83,11 @@ export function asUpdate(candidate: Candidate, match: KnownMatch, at: Date): Can
     effort: EFFORT_BY_TYPE.refresh_page,
     evidence,
   };
+}
+
+/** The columns that make a stored row the update `asUpdate` describes. */
+export function updateColumns(u: Candidate): Pick<OpportunityInsert, "type" | "family" | "target_ref" | "proposed_slug" | "title" | "effort" | "evidence"> {
+  return { type: u.type, family: u.family, target_ref: u.targetRef, proposed_slug: null, title: u.title, effort: u.effort, evidence: u.evidence };
 }
 
 /** SPEC §6 (2026-10-02, #1181): a page younger than `REFRESH_MIN_AGE_DAYS`
