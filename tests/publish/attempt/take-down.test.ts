@@ -114,7 +114,7 @@ describe("take down: every live version at the address, through unpublish() as t
       expect(draftRow(id).state).toBe("unpublished");
       expect(moves(id).at(-1)).toMatchObject({ from: "published", to: "unpublished", actor: { kind: "customer", userId: "u1" }, reason: "take_down" });
     }
-    expect(sent.filter((url) => url.includes("indexnow"))).toHaveLength(1);
+    expect(sent.filter((url) => url.includes("pubsubhubbub"))).toHaveLength(1);
   });
 
   it("afterwards: its topic is dropped for good, and a refresh of it that has not gone out is stopped", async () => {

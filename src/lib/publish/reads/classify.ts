@@ -18,7 +18,7 @@ import {
 /** The AI apps we can tell apart, as handles; every word a customer reads for one is a registry key. */
 export type BlogEngine = (typeof AI_BLOG_ENGINES)[number];
 
-/** The two search engines whose crawlers are counted. */
+/** The search engine whose crawler and visitors are counted: Google only. */
 export type CrawlEngine = (typeof SEARCH_CRAWLERS)[keyof typeof SEARCH_CRAWLERS];
 
 /**
@@ -26,8 +26,8 @@ export type CrawlEngine = (typeof SEARCH_CRAWLERS)[keyof typeof SEARCH_CRAWLERS]
  *
  * `answer_fetch`   an engine fetched it because a person asked a question
  * `index_fetch`    an engine fetched it to build the index it answers from
- * `referral`       a person arrived from an AI answer, or from Google or
- *                  Bing search
+ * `referral`       a person arrived from an AI answer, or from Google
+ *                  search
  *
  * Closed. The card never adds fetches to referrals: a fetch is not a visitor.
  */
@@ -36,9 +36,9 @@ export type BlogReadKind = (typeof BLOG_READ_KINDS)[number];
 
 export type BlogRead =
   | { readonly engine: BlogEngine; readonly kind: BlogReadKind }
-  /** Googlebot or Bingbot by agent string, still to be checked by address (`crawler.ts`). */
+  /** Googlebot by agent string, still to be checked by address (`crawler.ts`). */
   | { readonly engine: CrawlEngine; readonly kind: "crawl" }
-  /** A person arriving from Google or Bing search. */
+  /** A person arriving from Google search. */
   | { readonly engine: CrawlEngine; readonly kind: "referral" };
 
 /** What a request offers; each is absent from some real request, and none is stored. */

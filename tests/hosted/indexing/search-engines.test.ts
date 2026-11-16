@@ -1,13 +1,12 @@
 // tests/hosted/indexing/search-engines.test.ts — issue 1553, the SEO
 // metrics review's R2.
 //
-// The weekly step for one site, through the real Search Console and Bing
-// clients with every vendor answered by fixtures: the host is verified by
-// the meta method and its sitemap submitted, each page's reading is
-// stored, and the ladder reads it. Without credentials nothing is asked and
-// the ladder still shows what ReachKit's own rows prove. The pages that
-// predate IndexNow are announced once, and never twice. No suite calls
-// Google, Bing or IndexNow.
+// The weekly step for one site, through the real Search Console client with
+// every vendor answered by fixtures: the host is verified by the meta method
+// and its sitemap submitted, each page's reading is stored, and the ladder
+// reads it. Without credentials nothing is asked and the ladder still shows
+// what ReachKit's own rows prove. A page the hub never accepted is announced
+// once, and never twice. No suite calls Google.
 import { generateKeyPairSync } from "node:crypto";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fakeDb } from "../../publish/harness";
@@ -17,9 +16,8 @@ const db = fakeDb();
 vi.mock("@/lib/db", () => ({ dbAdmin: () => db.client, db: () => db.client }));
 
 import { readSearchEngines } from "@/lib/publish/destinations/hosted/search-engines";
-import { INDEXNOW_ENDPOINT } from "@/lib/publish/destinations/hosted/announce";
+import { WEBSUB_HUB } from "@/lib/publish/destinations/hosted/announce";
 import { searchVerificationOfSite } from "@/lib/publish/destinations/hosted/store";
-import { bingClient } from "@/lib/vendors/bing-wmt";
 import { ladderOf } from "@/lib/measure/ladder";
 import { readingOf } from "@/lib/measure/page-reading";
 import { verdictStore } from "@/lib/opportunities/verdicts/store";
@@ -68,19 +66,6 @@ async function google(url: string, opts: SafeFetchOpts): Promise<FetchOutcome> {
   return ok({}, 404);
 }
 
-/** Bing, as its JSON API answers (`{ d: … }`). */
-async function bing(url: string, opts: SafeFetchOpts): Promise<FetchOutcome> {
-  sent.push({ url, opts });
-  const method = new URL(url).pathname.split("/").pop();
-  if (method === "GetUserSites") return ok({ d: [{ Url: SITE_URL, IsVerified: false, AuthenticationCode: "B1FIXTURE" }] });
-  if (method === "VerifySite") return ok({ d: true });
-  if (method === "GetPageStats") {
-    return ok({ d: [{ Query: OLD, Date: `/Date(${Date.UTC(2026, 9, 15)})/`, Impressions: 5, Clicks: 0, AvgImpressionPosition: 28 }] });
-  }
-  if (method === "GetUrlInfo") return ok({ d: { LastCrawledDate: new URL(url).searchParams.get("url") === OLD ? `/Date(${Date.UTC(2026, 9, 11)})/` : "/Date(0)/" } });
-  return ok({ d: null });
-}
-
 function seed(): void {
   sent = [];
   db.reset();
@@ -112,7 +97,7 @@ function seed(): void {
 }
 
 const stored = (id: string) => readingOf(db.rows("publications").find((row) => row.id === id)?.search_reading);
-const indexNow = () => sent.filter((request) => request.url === INDEXNOW_ENDPOINT);
+const hub = () => sent.filter((request) => request.url === WEBSUB_HUB);
 
 describe("issue 1553 — a live hosted host is verified, and each page's way to being found is stored", () => {
   beforeEach(seed);
@@ -121,20 +106,18 @@ describe("issue 1553 — a live hosted host is verified, and each page's way to 
     await readSearchEngines({
       siteId: "s1",
       now: NOW,
-      deps: { accounts: [ACCOUNT], gscSend: google, bing: bingClient("bing-key-fixture", bing), announce: async () => ok({}) },
+      deps: { accounts: [ACCOUNT], gscSend: google, announce: async () => ok({}) },
     });
 
     // The tokens the hosted index prints, and when each engine accepted it.
-    expect(await searchVerificationOfSite("s1")).toEqual({ google: "g-fixture-token", bing: "B1FIXTURE" });
+    expect(await searchVerificationOfSite("s1")).toBe("g-fixture-token");
     const verification = db.rows("destinations")[0]?.search_verification as Record<string, Record<string, string>>;
     expect(verification.google).toMatchObject({ account: ACCOUNT.client_email, verifiedAt: NOW.toISOString(), sitemapAt: NOW.toISOString() });
-    expect(verification.bing).toMatchObject({ verifiedAt: NOW.toISOString(), sitemapAt: NOW.toISOString() });
     expect(sent.some((r) => r.opts.method === "PUT" && r.url.endsWith(`/sitemaps/${encodeURIComponent(`${SITE_URL}sitemap.xml`)}`))).toBe(true);
-    expect(sent.some((r) => r.url.includes("/SubmitFeed") && (r.opts.body ?? "").includes(`${SITE_URL}sitemap.xml`))).toBe(true);
 
-    // The older page: indexed, shown 42 times, absent from its own result,
+    // The older page: indexed, shown 37 times, absent from its own result,
     // so Search Console's place 34 — and its own question's answer linked nobody.
-    expect(ladderOf(stored("pub-old"), 0)).toEqual({ crawled: true, indexed: true, impressions: 42, showing: true, bestPlace: 34, placeSource: "gsc", cited: false });
+    expect(ladderOf(stored("pub-old"), 0)).toEqual({ crawled: true, indexed: true, impressions: 37, showing: true, bestPlace: 34, placeSource: "gsc", cited: false });
     expect(stored("pub-old")?.google).toMatchObject({ indexed: true, bestPlace: 34.2, bestQuery: "rank in ai overview" });
     // The newer page: Googlebot counted, unknown to Google, cited by AI.
     expect(ladderOf(stored("pub-new"), 2)).toEqual({ crawled: true, indexed: false, impressions: 0, showing: false, bestPlace: null, placeSource: null, cited: true });
@@ -150,7 +133,7 @@ describe("issue 1553 — a live hosted host is verified, and each page's way to 
         ],
       })
     );
-    await readSearchEngines({ siteId: "s1", now: NOW, deps: { accounts: [], bing: null, announce: async () => ok({}) } });
+    await readSearchEngines({ siteId: "s1", now: NOW, deps: { accounts: [], announce: async () => ok({}) } });
 
     expect(sent).toEqual([]);
     expect(db.rows("destinations")[0]?.search_verification).toBeNull();
@@ -159,24 +142,23 @@ describe("issue 1553 — a live hosted host is verified, and each page's way to 
     expect(ladderOf(stored("pub-new"), 2)).toEqual({ crawled: true, indexed: null, impressions: null, showing: null, bestPlace: null, placeSource: null, cited: true });
   });
 
-  it("a page that predates IndexNow is announced once, and never twice", async () => {
+  it("a page the hub never accepted is announced once, and never twice", async () => {
     const send = async (url: string, opts: SafeFetchOpts): Promise<FetchOutcome> => {
       sent.push({ url, opts });
-      return ok({}, url === INDEXNOW_ENDPOINT ? 202 : 204);
+      return ok({}, 204);
     };
-    const deps = { accounts: [], bing: null, announce: send };
+    const deps = { accounts: [], announce: send };
 
     await readSearchEngines({ siteId: "s1", now: NOW, deps });
-    expect(indexNow()).toHaveLength(1);
-    expect((JSON.parse(indexNow()[0]?.opts.body ?? "{}") as { urlList: string[] }).urlList).toEqual([OLD, SITE_URL]);
+    expect(sent.map((request) => request.url)).toEqual([WEBSUB_HUB]);
     expect(db.rows("publications").find((row) => row.id === "pub-old")?.announced_at).toBe(NOW.toISOString());
 
     await readSearchEngines({ siteId: "s1", now: new Date(NOW.getTime() + 7 * 86_400_000), deps });
-    expect(indexNow()).toHaveLength(1);
+    expect(hub()).toHaveLength(1);
   });
 
   it("issue 1538's seen state reads URL Inspection: a page Google calls indexed is seen", async () => {
-    await readSearchEngines({ siteId: "s1", now: NOW, deps: { accounts: [ACCOUNT], gscSend: google, bing: null, announce: async () => ok({}) } });
+    await readSearchEngines({ siteId: "s1", now: NOW, deps: { accounts: [ACCOUNT], gscSend: google, announce: async () => ok({}) } });
     const seen = await verdictStore().seenUrls?.("s1");
     expect(seen).toContain(OLD);
     expect(seen).not.toContain(NEW);

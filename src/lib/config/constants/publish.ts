@@ -91,14 +91,13 @@ export const AI_REFERRER_SOURCES = Object.freeze({
 export const BLOG_READS_WINDOW_D = 7 as const;
 export const BLOG_READS_RETENTION_W = 4 as const;
 
-/** The two search crawlers a hosted page counts, by the token each engine
- *  documents for its agent string. An agent claiming one is counted only from
- *  an address inside that engine's published ranges (`SEARCH_CRAWLER_RANGES`):
+/** The one search crawler a hosted page counts, by the token Google
+ *  documents for its agent string. An agent claiming it is counted only from
+ *  an address inside Google's published ranges (`SEARCH_CRAWLER_RANGES`):
  *  the agent string is free text, the address is not. Case-sensitive, as the
  *  AI tokens above are. */
 export const SEARCH_CRAWLERS = Object.freeze({
   Googlebot: "google",
-  bingbot: "bing",
 } as const);
 
 /** The search hosts a hosted page's visitor counts as coming from, matched
@@ -117,19 +116,15 @@ const GOOGLE_SEARCH_TLDS = `
   com.pr ps pt com.py com.qa ro ru rw com.sa com.sb sc se com.sg sh si sk com.sl sn so sm
   sr st com.sv td tg co.th com.tj tl tm tn to com.tr tt com.tw co.tz com.ua co.ug co.uk
   com.uy co.uz com.vc co.ve co.vi com.vn vu ws rs co.za co.zm co.zw cat`.trim().split(/\s+/);
-export const SEARCH_REFERRER_HOSTS: Readonly<Record<string, (typeof SEARCH_CRAWLERS)[keyof typeof SEARCH_CRAWLERS]>> = Object.freeze({
-  ...Object.fromEntries(GOOGLE_SEARCH_TLDS.flatMap((tld) => [["google." + tld, "google"], ["www.google." + tld, "google"]])),
-  "bing.com": "bing",
-  "www.bing.com": "bing",
-});
+export const SEARCH_REFERRER_HOSTS: Readonly<Record<string, (typeof SEARCH_CRAWLERS)[keyof typeof SEARCH_CRAWLERS]>> = Object.freeze(
+  Object.fromEntries(GOOGLE_SEARCH_TLDS.flatMap((tld) => ["google." + tld, "www.google." + tld]).map((host): [string, "google"] => [host, "google"]))
+);
 
-/** Where each engine publishes its crawler's addresses, as JSON
+/** Where Google publishes its crawler's addresses, as JSON
  *  `{ prefixes: [{ ipv4Prefix } | { ipv6Prefix }] }` (Google, "Verifying
- *  Googlebot"; Bing, "Verifying Bingbot"). Read at most once a day per
- *  process. */
+ *  Googlebot"). Read at most once a day per process. */
 export const SEARCH_CRAWLER_RANGES = Object.freeze({
   google: "https://developers.google.com/static/search/apis/ipranges/googlebot.json",
-  bing: "https://www.bing.com/toolbox/bingbot.json",
 } as const);
 export const SEARCH_CRAWLER_RANGES_TTL_H = 24 as const;
 

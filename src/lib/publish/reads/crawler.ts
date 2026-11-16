@@ -1,5 +1,5 @@
-// Is this Googlebot or Bingbot, or something saying it is? An agent string is free text, so a `crawl` claim from
-// `classify.ts` counts only when the address is inside the engine's published ranges (`SEARCH_CRAWLER_RANGES`).
+// Is this Googlebot, or something saying it is? An agent string is free text, so a `crawl` claim from
+// `classify.ts` counts only when the address is inside Google's published ranges (`SEARCH_CRAWLER_RANGES`).
 // The address is checked and dropped, never returned, logged or stored; the count holds the day, page and engine (SPEC §7).
 // Ranges are read at most once a day per process, and an unread list verifies nobody. Membership is `node:net`'s `BlockList`.
 import { BlockList, isIP } from "node:net";

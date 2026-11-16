@@ -47,7 +47,7 @@ describe.each([
   beforeEach(() => seed(site));
 
   it("is on the first page in the tile, the ladder and the verdict", async () => {
-    await readSearchEngines({ siteId: "s1", now: NOW, deps: { accounts: [], bing: null, announce: async () => ({ ok: true, status: 202, url: "", html: "", bytes: 0, readAt: NOW, headers: {} }) } });
+    await readSearchEngines({ siteId: "s1", now: NOW, deps: { accounts: [], announce: async () => ({ ok: true, status: 202, url: "", html: "", bytes: 0, readAt: NOW, headers: {} }) } });
     const reading = readingOf(db.rows("publications")[0]?.search_reading);
     expect(reading?.place).toEqual({ value: 7, source: "serp", query: site.search });
 

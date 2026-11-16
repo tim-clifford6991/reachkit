@@ -46,7 +46,7 @@ export function readingAt(best: number | null, a: { weeksAgo?: number; first?: n
   const at = new Date(AT.getTime() - (a.weeksAgo ?? 0) * 7 * 86_400_000).toISOString();
   return {
     at: AT.toISOString(),
-    crawled: false,
+    googlebot: false,
     place: best === null ? null : { value: best, source: "serp", query: "best user onboarding software" },
     first: best === null ? null : { at, place: a.first ?? best },
     best: best === null ? null : { place: best, at },
@@ -56,7 +56,6 @@ export function readingAt(best: number | null, a: { weeksAgo?: number; first?: n
     variants: [],
     reached: {},
     google: null,
-    bing: null,
   };
 }
 

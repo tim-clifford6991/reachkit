@@ -1,24 +1,21 @@
 // The weekly pass's search-engine step for one site: ReachKit verifies every live hosted host in Google Search Console
-// and Bing Webmaster Tools under its own account, with no customer step, and reads each page's way toward being found.
+// under its own account, with no customer step, and reads each page's way toward being found. Only Google is read.
 // In order, once a week:
 //
-//   1. Every live hosted page IndexNow never accepted is announced, once (`announceUnannounced`).
+//   1. Every live hosted page the feed's hub never accepted is announced, once (`announceUnannounced`).
 //   2. The host is verified (the meta method: the hosted index prints the
-//      token stored on the destination) and its sitemap submitted, in
-//      Google and in Bing. Each step is stored as it lands, so a pass that
-//      stops half way resumes where it stopped.
+//      token stored on the destination) and its sitemap submitted. Each step
+//      is stored as it lands, so a pass that stops half way resumes where it stopped.
 //   3. Per page: URL Inspection, and impressions, clicks and best place by
-//      query over `SEARCH_READING_WINDOW_D`; Bing's impressions, clicks,
-//      best place and last crawl.
+//      query over `SEARCH_READING_WINDOW_D`.
 //   4. One `search_reading` per live page, assembled by
 //      `@/lib/measure/page-reading` from the newest stored report, the
-//      reads counted on the page, and the two engines' readings.
+//      reads counted on the page, and Google's reading.
 //
 // Inert without credentials: steps 1 and 4 still run, so the ladder shows what ReachKit can prove. 0¢: every call is free.
 // It never throws: a refusal or failed read leaves that engine out this week, and the verdicts and mail still run.
 import { SEARCH_READING_WINDOW_D, GSC_PROPERTIES_PER_ACCOUNT } from "@/lib/config/constants";
 import { gscAccounts, gscClient, type GscAccount, type GscSend } from "@/lib/vendors/gsc";
-import { bingClient, type BingClient } from "@/lib/vendors/bing-wmt";
 import { addressOf, assembleReading, pageSearchOf, readingOf, type EngineReading } from "@/lib/measure/page-reading";
 import { readStoredReport, type StoredReport } from "@/lib/scan/report";
 import { publishDb } from "../../db";
@@ -29,13 +26,11 @@ const DAY_MS = 86_400_000;
 /** `destinations.search_verification`. */
 export interface SearchVerification {
   google?: { account: string; token: string; verifiedAt?: string; sitemapAt?: string };
-  bing?: { token: string; verifiedAt?: string; sitemapAt?: string };
 }
 
 export interface SearchEngineDeps {
   accounts?: readonly GscAccount[];
   gscSend?: GscSend;
-  bing?: BingClient | null;
   announce?: AnnounceSend;
 }
 
@@ -143,52 +138,6 @@ async function readGoogle(a: {
   return readings;
 }
 
-async function readBing(a: {
-  siteUrl: string;
-  pages: readonly string[];
-  now: Date;
-  bing: BingClient | null;
-  verification: SearchVerification;
-  save: () => Promise<void>;
-}): Promise<Map<string, EngineReading> | null> {
-  if (a.bing === null) return null;
-  const standing = await a.bing.standing(a.siteUrl);
-  if (standing === null) return null;
-  let held = a.verification.bing;
-  if (held?.token !== standing.code) {
-    held = { token: standing.code };
-    a.verification.bing = held;
-    await a.save();
-  }
-  if (held.verifiedAt === undefined) {
-    if (!standing.verified && !(await a.bing.verify(a.siteUrl))) return null;
-    held.verifiedAt = a.now.toISOString();
-    await a.save();
-  }
-  if (held.sitemapAt === undefined && (await a.bing.submitSitemap(a.siteUrl, `${a.siteUrl}sitemap.xml`))) {
-    held.sitemapAt = a.now.toISOString();
-    await a.save();
-  }
-
-  const since = a.now.getTime() - SEARCH_READING_WINDOW_D * DAY_MS;
-  const stats = (await a.bing.pageStats(a.siteUrl))?.filter((row) => row.at >= since) ?? null;
-  const readings = new Map<string, EngineReading>();
-  for (const url of a.pages) {
-    const crawledAt = await a.bing.lastCrawl(a.siteUrl, url);
-    const own = (stats ?? []).filter((row) => addressOf(row.page) === addressOf(url));
-    if (stats === null && crawledAt === null) continue;
-    readings.set(url, {
-      indexed: null,
-      lastCrawl: crawledAt === null ? null : new Date(crawledAt).toISOString(),
-      impressions: own.reduce((sum, row) => sum + row.impressions, 0),
-      clicks: own.reduce((sum, row) => sum + row.clicks, 0),
-      bestPlace: best(own).place,
-      bestQuery: null,
-    });
-  }
-  return readings;
-}
-
 /** The weekly step for one site. Never throws. */
 export async function readSearchEngines(a: { siteId: string; now: Date; deps?: SearchEngineDeps }): Promise<void> {
   const deps = a.deps ?? {};
@@ -217,7 +166,6 @@ export async function readSearchEngines(a: { siteId: string; now: Date; deps?: S
     const host = destination?.hostname_state === "live" ? (destination.hostname?.trim().toLowerCase() ?? null) : null;
 
     let google: Map<string, EngineReading> | null = null;
-    let bing: Map<string, EngineReading> | null = null;
     if (destination !== undefined && host !== null && host !== "") {
       const siteUrl = `https://${host}/`;
       const hosted = pages.map((page) => page.live_url).filter((url) => url.startsWith(siteUrl));
@@ -231,14 +179,6 @@ export async function readSearchEngines(a: { siteId: string; now: Date; deps?: S
         now: a.now,
         accounts: deps.accounts ?? gscAccounts(),
         ...(deps.gscSend === undefined ? {} : { send: deps.gscSend }),
-        verification,
-        save,
-      }).catch(() => null);
-      bing = await readBing({
-        siteUrl,
-        pages: hosted,
-        now: a.now,
-        bing: deps.bing === undefined ? bingClient() : deps.bing,
         verification,
         save,
       }).catch(() => null);
@@ -261,7 +201,9 @@ export async function readSearchEngines(a: { siteId: string; now: Date; deps?: S
     const { data: reads, error: readsError } = await db
       .from<ReadRow>("publication_reads")
       .select("publication_id, kind, hits")
-      .eq("site_id", a.siteId);
+      .eq("site_id", a.siteId)
+      // Bing's rows from before only Google counted stay on file, unread.
+      .neq("engine", "bing");
     const hitsOf = (id: string, kinds: readonly string[]): number =>
       (reads ?? []).filter((row) => row.publication_id === id && kinds.includes(row.kind)).reduce((sum, row) => sum + row.hits, 0);
 
@@ -279,7 +221,6 @@ export async function readSearchEngines(a: { siteId: string; now: Date; deps?: S
           aiReads: counted ? hitsOf(page.id, ["answer_fetch", "index_fetch"]) : null,
           aiVisits: counted ? hitsOf(page.id, ["referral"]) : null,
           google: google?.get(page.live_url) ?? null,
-          bing: bing?.get(page.live_url) ?? null,
         },
         now: a.now,
       });

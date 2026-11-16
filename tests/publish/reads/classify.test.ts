@@ -123,14 +123,13 @@ describe("§6(d) — visitors arriving from an AI answer", () => {
   });
 });
 
-describe("D6 — visitors arriving from Google or Bing search", () => {
+describe("D6 — visitors arriving from Google search", () => {
   const browser = "Mozilla/5.0 (Macintosh) AppleWebKit/537.36 Chrome/140 Safari/537.36";
 
   it.each([
     ["a country Google", "https://www.google.de/", "google"],
     ["a bare Google with a query", "https://google.co.uk/search?q=plumber+leeds", "google"],
     ["an image search", "https://www.google.com/imgres?imgurl=x", "google"],
-    ["Bing", "https://www.bing.com/", "bing"],
   ])("%s is a referral", (_name, referer, engine) => {
     expect(read({ userAgent: browser, referer })).toEqual({ engine, kind: "referral" });
   });
@@ -138,7 +137,7 @@ describe("D6 — visitors arriving from Google or Bing search", () => {
   it.each([
     ["a host that only starts with google", "https://google.evil.example/"],
     ["a Google host that is not search", "https://docs.google.com/document/d/1"],
-    ["a subdomain of Bing", "https://cn.bing.com.evil.example/"],
+    ["Bing", "https://www.bing.com/"],
     ["a prototype key", "https://constructor/"],
   ])("%s is not", (_name, referer) => {
     expect(read({ userAgent: browser, referer })).toBeNull();

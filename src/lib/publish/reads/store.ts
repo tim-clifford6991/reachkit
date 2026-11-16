@@ -166,7 +166,7 @@ export interface PageLadder {
 
 /**
  * The ladder of every live page of one site, from its stored weekly
- * reading and the verified crawler hits counted on it; `null` where the
+ * reading and the verified Googlebot hits counted on it; `null` where the
  * pages could not be read. A page ReachKit does not serve has no crawler
  * count, so its crawled step stands on the engines alone.
  */
@@ -182,6 +182,7 @@ export async function readLadders(siteId: string): Promise<readonly PageLadder[]
     .from<{ publication_id: string; hits: number }>("publication_reads")
     .select("publication_id, hits")
     .eq("site_id", siteId)
+    .eq("engine", "google")
     .eq("kind", "crawl");
   const hits = new Map<string, number>();
   for (const row of crawls.data ?? []) hits.set(row.publication_id, (hits.get(row.publication_id) ?? 0) + row.hits);

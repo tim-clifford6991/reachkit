@@ -19,7 +19,6 @@ function facts(over: Partial<PageFacts> = {}): PageFacts {
     aiReads: 0,
     aiVisits: 0,
     google: null,
-    bing: null,
     ...over,
   };
 }
@@ -50,7 +49,7 @@ describe("one stored week assembles every field of the reading", () => {
 
     expect(reading).toEqual({
       at,
-      crawled: true,
+      googlebot: true,
       // The home page at #3 is not this page: the place is the page's own.
       place: { value: 7, source: "serp", query: SAAS.search },
       first: { at, place: 7 },
@@ -64,7 +63,6 @@ describe("one stored week assembles every field of the reading", () => {
       ],
       reached: { found: at, showing: at, firstPage: at, readByAi: at, linkedByAi: at, aiVisit: at },
       google: null,
-      bing: null,
     });
     expect(reading).not.toHaveProperty("seen");
     // What is stored reads back as itself.
@@ -83,7 +81,7 @@ describe("one stored week assembles every field of the reading", () => {
     expect(week2.prev).toBe(7);
     expect(week2.first).toEqual(week1.first);
     expect(week2.best).toEqual(week1.best);
-    expect(week2.crawled).toBe(true);
+    expect(week2.googlebot).toBe(true);
     expect(week2.linkedBy).toEqual([]);
     expect(week2.reached).toEqual(week1.reached);
 
@@ -112,10 +110,20 @@ describe("one stored week assembles every field of the reading", () => {
 
   it("an older stored reading reads defensively, and junk reads as never read", () => {
     const old = { at: WEEK_1.toISOString(), crawled: true, seen: true, cited: false, google: null, bing: null };
-    expect(readingOf(old)).toMatchObject({ crawled: true, place: null, first: null, linkedBy: null, reached: {}, variants: [] });
+    expect(readingOf(old)).toMatchObject({ googlebot: null, place: null, first: null, linkedBy: null, reached: {}, variants: [] });
     expect(readingOf(old)).not.toHaveProperty("seen");
     expect(readingOf({ crawled: true })).toBeNull();
     expect(readingOf("nope")).toBeNull();
+  });
+
+  it("a Found step and crawl that Bing alone set are not carried forward: only Google sets them", () => {
+    const bing = { indexed: null, lastCrawl: WEEK_1.toISOString(), impressions: 5, clicks: 0, bestPlace: 28, bestQuery: null };
+    const bingOnly = readingOf({ at: WEEK_1.toISOString(), crawled: true, reached: { found: WEEK_1.toISOString() }, google: null, bing });
+    expect(ladderOf(bingOnly, 0)).toMatchObject({ crawled: false, impressions: null });
+
+    const next = assembleReading({ before: bingOnly, report: null, page: facts({ search: null }), now: WEEK_2 });
+    expect(next.reached.found).toBeUndefined();
+    expect(ladderOf(next, 0).crawled).toBe(false);
   });
 
   it("keeps at most three variants, best first", () => {

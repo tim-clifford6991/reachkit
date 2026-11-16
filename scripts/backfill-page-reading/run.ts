@@ -39,9 +39,9 @@ export interface ScanRow {
 export const PAGES_SQL = [
   "select p.id, p.site_id, p.live_url, p.destination, p.search_reading,",
   "  coalesce(p.acceptance, o.acceptance) as acceptance, o.target_query,",
-  "  exists (select 1 from publication_reads r where r.publication_id = p.id and r.kind = 'crawl') as crawled,",
+  "  exists (select 1 from publication_reads r where r.publication_id = p.id and r.engine = 'google' and r.kind = 'crawl') as crawled,",
   "  (select coalesce(sum(r.hits), 0) from publication_reads r where r.publication_id = p.id and r.kind in ('answer_fetch', 'index_fetch')) as ai_reads,",
-  "  (select coalesce(sum(r.hits), 0) from publication_reads r where r.publication_id = p.id and r.kind = 'referral') as ai_visits",
+  "  (select coalesce(sum(r.hits), 0) from publication_reads r where r.publication_id = p.id and r.engine <> 'bing' and r.kind = 'referral') as ai_visits",
   "from publications p",
   "left join drafts d on d.id = p.draft_id",
   "left join opportunities o on o.id = d.opportunity_id",
@@ -103,7 +103,7 @@ export function backfill(a: { pages: readonly PageRow[]; scans: readonly ScanRow
     const existing = readingOf(page.search_reading);
     const weeks = [...(bySite.get(page.site_id) ?? [])].sort((x, y) => Date.parse(x.created_at) - Date.parse(y.created_at));
     const search = pageSearchOf(page.acceptance, page.target_query);
-    const quiet = { id: page.id, liveUrl: page.live_url, search, crawled: false, aiReads: null, aiVisits: null, google: null, bing: null };
+    const quiet = { id: page.id, liveUrl: page.live_url, search, crawled: false, aiReads: null, aiVisits: null, google: null };
     let reading: PageReading | null = null;
     for (const week of weeks) {
       const report = placeReportOf(week);
@@ -116,11 +116,10 @@ export function backfill(a: { pages: readonly PageRow[]; scans: readonly ScanRow
       report: newest === undefined ? null : placeReportOf(newest),
       page: {
         ...quiet,
-        crawled: page.crawled || existing?.crawled === true,
+        crawled: page.crawled || existing?.googlebot === true,
         aiReads: hosted ? Number(page.ai_reads) : null,
         aiVisits: hosted ? Number(page.ai_visits) : null,
         google: existing?.google ?? null,
-        bing: existing?.bing ?? null,
       },
       now: a.now,
     });

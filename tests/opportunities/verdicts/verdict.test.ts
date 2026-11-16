@@ -23,7 +23,7 @@ function readingOver(panel: Panel, places: readonly (number | null)[], linked: r
     const report = readStoredReport(
       stored(weekWith({ domain: panel.domain, asked: [{ publicationId: "pub", liveUrl: panel.page, search: panel.search, place, linked: linked.includes(n) }] }))
     );
-    const page = { id: "pub", liveUrl: panel.page, search: panel.search, crawled: false, aiReads: 0, aiVisits: 0, google: null, bing: null };
+    const page = { id: "pub", liveUrl: panel.page, search: panel.search, crawled: false, aiReads: 0, aiVisits: 0, google: null };
     reading = readingOf(stored(assembleReading({ before: reading, report, page, now: week(n) }) as never));
   });
   if (reading === null) throw new Error("no week folded");
