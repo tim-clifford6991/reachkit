@@ -7,11 +7,10 @@
 // this order:
 //
 //   - `resting` — the topic's draft was skipped, or stopped since the week's
-//     commit; or its URL retired (`suppression.ts`);
+//     commit, or by the checks with its research unchanged; or its URL retired;
 //   - `destination_cannot_address` — an Improve the destination cannot
-//     deliver (issue 781), or a topic a page of the site already covers
-//     (#928);
-//   - `low_fit` — a stored business fit below the gate (§6, 2026-09-29).
+//     deliver, or a topic a page of the site already covers;
+//   - `low_fit` — a stored business fit below the gate (§6).
 //
 // Demand, kind of business and size never hold a row: they order it
 // (`rank/points.ts`). Nor does a site whose own pages ground no fact: its
@@ -20,15 +19,13 @@
 // It is assessed in two places only: the week's commit (`planWeek`) and the
 // evening check of the committed rows (`pageForDay`).
 //
-// And SPEC §7's offering page (owner ruling B6, 2026-10-19): the same fresh
-// top ten decides whether a new Write page is written as one, stored on the
-// row's evidence (`shapedEvidence`) so every reader types it alike.
-//
-// The Fix family keeps its own check (`fixPageReadiness`): its readiness is a
-// question about the destination, not about the market.
+// And SPEC §7's offering page: the same fresh top ten decides whether a new
+// Write page is one, stored on its evidence (`shapedEvidence`). The Fix family
+// keeps its own check (`fixPageReadiness`), about the destination.
 import { TOPIC_FIT } from "@/lib/config/constants";
 import type { StoredReport } from "@/lib/scan/report";
 import { addressesOwnPage, type HostedOwnPages } from "@/lib/publish/destinations/hosted/own-page";
+import { stoppedInputs } from "./drafted";
 import { opportunityStore, readOpportunity } from "./store";
 import { isResting, OUTSIZED, qualifiesForADay, type Winnability } from "./types";
 import { demandBand } from "./winnability/band";
@@ -142,28 +139,8 @@ export function canUpdateFrom(own: HostedOwnPages | null): (url: string) => bool
   return (url) => addressesOwnPage(url, own);
 }
 
-/**
- * The band a row would be given **today**, from the evidence stored on it
- * (issue 884's stale-band half).
- *
- * A row keeps the band it was given when it was derived, and a policy
- * change moves the bars under it: the dogfood site's six were banded before
- * right-sizing shipped (issue 862) and were still on file claiming to be
- * ordinary targets. This re-applies the two halves of the law that **can**
- * be recomputed from what the row already carries, against the site's
- * footprint as the current report measures it:
- *
- *   - demand — the search's own volume against `qualifyingDemand(own)`;
- *   - difficulty — the vendor's keyword difficulty, where the row carries
- *     one (issue 867), against `difficultyCeiling(own)`.
- *
- * The competition half is **not** recomputed: it reads the target's whole
- * top ten, and a row stores one rival, not ten. So this is a floor and
- * never a promotion — it can only find a row outsized, never restore one.
- * A row whose stored band already says `not-yet` stays where it is.
- *
- * No vendor call: every input is a stored number.
- */
+/** The band a row would be given today from its stored volume and difficulty, so a row banded under older bars is
+ *  corrected. A floor, never a promotion: it can only find a row outsized. Every input is a stored number. */
 export function rebandFor(o: Opportunity, ownRanked: number): Winnability | null {
   if (o.family === "fix" || o.fitBand === null) return null;
   if (!qualifiesForADay(o.fitBand)) return o.fitBand;
@@ -173,43 +150,20 @@ export function rebandFor(o: Opportunity, ownRanked: number): Winnability | null
     return OUTSIZED;
   }
   const difficulty = "target" in o.evidence ? o.evidence.target?.difficulty : undefined;
-  if (
-    difficulty !== undefined &&
-    difficulty.kind !== "unmeasured" &&
-    difficulty.value > difficultyCeiling(ownRanked)
-  ) {
-    return OUTSIZED;
-  }
+  if (difficulty !== undefined && difficulty.kind !== "unmeasured" && difficulty.value > difficultyCeiling(ownRanked)) return OUTSIZED;
   return o.fitBand;
 }
 
-/**
- * The site's own ranked count as the current report measured it, or `null`
- * where this site has no readable one.
- *
- * `null` is not zero here, and the difference matters: derivation reads an
- * unmeasured footprint as the cold-start 0 because it is banding against
- * the pass it just ran, while this re-bands rows that were banded against
- * some earlier pass. With no measurement in hand the honest move is to
- * leave every stored band alone rather than to re-band the whole site as
- * though it ranked for nothing.
- */
+/** The site's measured ranked count, or `null`: with no measurement every stored band is left alone, never re-banded
+ *  as though the site ranked for nothing. */
 function ownRankedOf(report: StoredReport | null): number | null {
   const own = report?.ownRanked;
   if (own === undefined || own.kind === "unmeasured") return null;
   return own.value;
 }
 
-/**
- * The page this site already has on each row's topic, by row id (#928).
- *
- * One narrowed read per row that could be covered — an Improve row is
- * exempt, so none is made for it — and the scoring is
- * `known-content/match.ts`'s. A read that fails answers "not covered" for
- * that row — the store's own arm, which returns no rows rather than
- * throwing: an index that could not be reached must not refuse a topic, for
- * the same reason a WordPress that did not answer must not empty the index.
- */
+/** The page this site already has on each row's topic, by row id. A read that fails answers "not covered": an index
+ *  that could not be reached must not refuse a topic. */
 async function coveredTopics(
   siteId: string,
   rows: readonly Opportunity[]
@@ -228,14 +182,8 @@ async function coveredTopics(
   return out;
 }
 
-/**
- * Records readiness on every open Write, Improve and Earn row of one site,
- * or on the ones `only` names.
- *
- * Reads, once each: the open rows, the site's `not_working` verdicts, its
- * current report (for the profile and what it ranks for) and whether its own
- * pages ground a fact. Writes only the rows whose answer changed.
- */
+/** Records readiness on every open Write, Improve and Earn row of one site, or on the ones `only` names, writing only
+ *  the rows whose answer changed. */
 export async function assessReadiness(
   siteId: string,
   a: {
@@ -254,12 +202,19 @@ export async function assessReadiness(
   const rows = a.only === undefined ? open : open.filter((row) => a.only!.has(row.id));
   if (rows.length === 0) return { ready: 0, unready: 0 };
 
-  const [verdicts, report, market, topTens] = await Promise.all([
+  const [verdicts, report, sited, topTens] = await Promise.all([
     store.notWorkingVerdicts(siteId),
     store.currentReport(siteId),
-    store.marketFor(siteId).then((read) => read.market).catch(() => null),
+    store.marketFor(siteId).catch(() => null),
     store.topTenRows([...new Set(rows.map((row) => row.scan_id))]),
   ]);
+  const market = sited?.market ?? null;
+  // A page the checks stopped waits for what its research reads to change; what cannot be read has changed.
+  const stillStopped = (o: Opportunity) => {
+    const was = "stopped" in o.evidence ? o.evidence.stopped : undefined;
+    const now = was === undefined ? null : stoppedInputs(o, report, sited?.competitors ?? null);
+    return now !== null && JSON.stringify([was!.topResults, was!.rivals]) === JSON.stringify([now.topResults, now.rivals]);
+  };
   // Read only where there is an update to deliver.
   const ownPages = rows.some((row) => row.family === "improve") ? await store.hostedOwnPages(siteId) : null;
   // One narrowed read per row whose topic could be covered, before the loop,
@@ -294,7 +249,7 @@ export async function assessReadiness(
     const band = ownRanked === null ? null : rebandFor(stored, ownRanked);
     if (band !== null && band !== stored.fitBand) await store.setFitBand(stored.id, band);
     const opportunity = band === null ? stored : { ...stored, fitBand: band };
-    const reason = eligible(opportunity, ctx);
+    const reason = stillStopped(opportunity) ? "resting" : eligible(opportunity, ctx);
     if (reason === null) ready += 1;
     if (stored.ready !== (reason === null) || stored.unreadyReason !== reason) {
       await store.setReadiness(opportunity.id, reason);

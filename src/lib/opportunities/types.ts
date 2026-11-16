@@ -244,6 +244,9 @@ export interface TargetFacts {
  *  sources hold its search. */
 export type WriteRival = { domain: string; url: Measured<string>; position: Measured<number> };
 
+/** What research read when the checks stopped the row's page: the top-result addresses it chose from and the rivals in force. */
+export type StoppedInputs = { topResults: string[]; rivals: string[] };
+
 export type Evidence =
   | {
       family: "write";
@@ -264,6 +267,7 @@ export type Evidence =
        *  (`derive/top-ten-kind.ts` `offeringTopTen`), so it is written as an
        *  offering page. Absent where it does not, or no fresh one is stored. */
       shape?: "offering";
+      stopped?: StoppedInputs;
     }
   | {
       family: "improve";
@@ -273,6 +277,7 @@ export type Evidence =
       shortfall: Shortfall;
       /** issue 867. Absent on a row derived before it. */
       target?: TargetFacts;
+      stopped?: StoppedInputs;
     }
   | { family: "fix"; barrier: Barrier; foundOnUrl: string }
   /** SPEC §9 (#690): a crawled page failed checks ReachKit fixes. `pageUrl`
@@ -293,6 +298,7 @@ export type Evidence =
       target?: TargetFacts;
       /** As a Write row's. */
       shape?: "offering";
+      stopped?: StoppedInputs;
     };
 
 /** §7's acceptance test, verbatim: "top 20 for Q" / "named on question P" /
