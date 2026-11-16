@@ -1,16 +1,21 @@
 // SPEC §7 *Re-plan follows each planner deploy* (owner, 2026-11-16): the
 // deployment carries `RK_PLANNER`, `scripts/derivation.mjs`'s fingerprint of
 // the code a week is chosen with. Finding no re-plan at it, the `scan/rescore`
-// tick re-commits each paying site's week from its stored rows, from the
-// first date no draft holds and no daily run can have claimed, at 0¢: the
-// same `planWeek(from)` the on-demand recommit calls, so no pass runs and
-// nothing is bought.
+// tick dry-runs each paying site's week from its stored rows, from the first
+// date no draft holds and no daily run can have claimed, at 0¢: the same
+// `planWeek(from)` the on-demand recommit calls, through a store that writes
+// nothing, logged as `week_replan_dry_run`.
 //
-// Each site is dry-run first and logged (`week_replan_dry_run`), through a
-// store that writes nothing; a week that would date fewer days than it does
-// now is held (`replan-held`) and its old week stands. One claim per
-// (fingerprint, site) in `ops_events`; the tick runs one at a time.
+// Production holds no GitHub key, so the owner is told through the incident
+// mail: every held site's committed and re-planned week. Nothing commits until
+// the owner writes the OK row (`OWNER_OK`); `ops_events` is `service_role`
+// only, so no customer and no app path can. No OK after 48 h mails the owner
+// again, and nothing commits on its own. A planner first seen from 30 Nov on
+// needs no OK. A week that would date fewer days than the committed one is
+// held either way (`replan-held`). Each step is claimed once per (planner,
+// site); the tick runs one at a time.
 import { unmeasuredPartsOf } from "@/lib/scan/weekly/account";
+import { reportIncident } from "@/lib/mail/ops/incident";
 import { claimOpsEvent } from "@/lib/ops/events";
 import { publishDateAtOrAfter } from "@/lib/publish/settings/clock";
 import { planWeek } from "@/lib/opportunities/plan";
@@ -18,7 +23,17 @@ import { firstOpenDay } from "@/lib/opportunities/rank/open";
 import { opportunityStore, storeScope, type OpportunityRow, type OpportunityStore } from "@/lib/opportunities/store";
 import type { UnreadyReason, Winnability } from "@/lib/opportunities/types";
 
+/** Per site, its dry run: `no-week`, `held` or `waiting`. */
 const KIND = "week_replanned";
+/** Per site, its commit once no OK is owed: its `from`, `held` or `no-week`. */
+const APPLIED = "week_replan_applied";
+/** The owner's OK of one planner, a row with no site: `insert into ops_events (kind, read, code) values ('week_replan_ok', 'owner', '<planner>')`. */
+export const OWNER_OK = "week_replan_ok";
+const ASKED = "week_replan_asked";
+const ALERTED = "week_replan_alerted";
+/** Owner, 2026-11-16: every planner deploy before 30 Nov waits on the owner's OK. */
+const OK_NEEDED_BEFORE = Date.parse("2026-11-30T00:00:00Z");
+const OK_ALERT_MS = 48 * 3_600_000;
 const HOUR_MS = 3_600_000;
 const DAY_MS = 86_400_000;
 
@@ -49,6 +64,7 @@ export interface Replan {
   siteId: string;
   fingerprint: string | null;
   from: string;
+  /** The committed week from `from`, as stored, whoever set it. */
   before: WeekRow[];
   after: WeekRow[];
   /** What the site's stored pass did not measure, so a degraded pass shows. */
@@ -59,44 +75,97 @@ export interface Replan {
 
 /** A named, durable piece of the tick, as `src/jobs/types.ts` states it. */
 type Step = <T>(name: string, body: () => Promise<T>) => Promise<T>;
+type Event = { kind: string; site_id: string | null; read: string; at: string };
 
 /**
- * Each paying site not yet re-planned at the deployed planner: its dry run,
- * its claim, then its commit where the dry run did not hold it. `null` off
- * production or with nothing to do; else the sites committed and the sites held.
+ * Each paying site at the deployed planner: its dry run, claimed once; the
+ * owner's mail while the OK is owed; then its commit once it is not. `null`
+ * off production or with nothing left to do.
  */
 export async function replanSites(
   paying: () => Promise<readonly SiteClock[]>,
   a: { now: Date; step?: Step }
-): Promise<{ replanned: string[]; held: string[] } | null> {
+): Promise<{ replanned: string[]; held: string[]; waiting: string[] } | null> {
   const fingerprint = deployedPlanner();
   if (process.env.VERCEL_ENV !== "production" || fingerprint === null) return null;
   const sites = await paying();
-  const claimed = await claims(fingerprint);
-  const due = sites.filter((site) => !claimed.has(site.siteId));
-  const held = sites.filter((site) => claimed.get(site.siteId) === "held").map((site) => site.siteId);
-  if (due.length + held.length === 0) return null;
+  const events = await eventsAt(fingerprint);
+  const read = (kind: string, siteId: string) => events.find((e) => e.kind === kind && e.site_id === siteId)?.read;
   const inStep = <T>(name: string, body: () => Promise<T>) => (a.step === undefined ? body() : a.step(`${name}-${fingerprint}`, body));
-  const replanned: string[] = [];
-  for (const site of due) {
-    const plan = await inStep(`replan-dry-${site.siteId}`, () => dryReplan(site.siteId, { now: a.now, clock: site, fingerprint }));
-    if (!(await inStep(`replan-claim-${site.siteId}`, () => claimReplan(site.siteId, fingerprint, plan)))) continue;
-    if (plan?.held != null) held.push(site.siteId);
-    else if (plan !== null) await inStep(`replan-apply-${site.siteId}`, () => applyReplan(site.siteId, plan.from, a.now));
-    if (plan !== null && plan.held === null) replanned.push(site.siteId);
+  const first = Math.min(a.now.getTime(), ...events.filter((e) => e.kind === KIND).map((e) => Date.parse(e.at)).filter(Number.isFinite));
+  const okOwed = first < OK_NEEDED_BEFORE && !events.some((e) => e.kind === OWNER_OK);
+  const out = { replanned: [] as string[], held: [] as string[], waiting: [] as string[] };
+  for (const site of sites) {
+    const id = site.siteId;
+    const dry = read(KIND, id) ?? (await inStep(`replan-dry-${id}`, () => dryClaim(site, fingerprint, a.now)));
+    const applied = read(APPLIED, id);
+    if (dry === "held" || applied === "held") out.held.push(id);
+    if (dry !== "waiting" || applied !== undefined) continue;
+    if (okOwed) {
+      out.waiting.push(id);
+      continue;
+    }
+    // Checked again at the commit, which can come days after the dry run.
+    const plan = await inStep(`replan-check-${id}`, async () => {
+      const p = await dryReplan(id, { now: a.now, clock: site, fingerprint, log: false });
+      const state = p === null ? "no-week" : p.held === null ? p.from : "held";
+      return (await claimOpsEvent(APPLIED, id, fingerprint, state)) ? p : null;
+    });
+    if (plan?.held != null) out.held.push(id);
+    else if (plan != null) {
+      await inStep(`replan-apply-${id}`, () => applyReplan(id, plan.from, a.now));
+      out.replanned.push(id);
+    }
   }
-  return { replanned, held };
+  const owed = sites.filter((site) => out.waiting.includes(site.siteId) || out.held.includes(site.siteId));
+  if (okOwed && owed.length > 0) {
+    const mark = a.now.getTime() - first >= OK_ALERT_MS ? ALERTED : ASKED;
+    if (!events.some((e) => e.kind === mark)) await inStep(mark, () => askOwner(owed, fingerprint, a.now, mark));
+  }
+  return out.replanned.length + owed.length === 0 ? null : out;
 }
 
-/** Each site's claim at this fingerprint: its `from`, `held` or `no-week`. */
-async function claims(fingerprint: string): Promise<Map<string, string>> {
-  const { dbAdmin } = await import("@/lib/db");
-  const events = dbAdmin() as unknown as {
-    from(t: string): { select(c: string): { eq(c: string, v: string): { eq(c: string, v: string): PromiseLike<{ data: { site_id: string; read: string }[] | null; error: { message: string } | null }> } } };
-  };
-  const { data, error } = await events.from("ops_events").select("site_id, read").eq("kind", KIND).eq("code", fingerprint);
+/** The site's dry run, logged and claimed once at this planner; what the claim holds. */
+async function dryClaim(site: SiteClock, fingerprint: string, now: Date): Promise<string> {
+  const plan = await dryReplan(site.siteId, { now, clock: site, fingerprint });
+  const state = plan === null ? "no-week" : plan.held === null ? "waiting" : "held";
+  await claimOpsEvent(KIND, site.siteId, fingerprint, state);
+  return state;
+}
+
+/** Mails the owner each site's committed and re-planned week as they stand now, then marks the mail sent. */
+async function askOwner(sites: readonly SiteClock[], fingerprint: string, now: Date, mark: string): Promise<void> {
+  const db = await opsDb();
+  const { data } = await db.from("sites").select("id, domain").in("id", sites.map((site) => site.siteId));
+  const domains = new Map((data ?? []).map((row) => [row.id, row.domain]));
+  const plans = await Promise.all(sites.map((site) => dryReplan(site.siteId, { now, clock: site, fingerprint, log: false })));
+  const told = await reportIncident({
+    occasion: "replan-waiting",
+    fingerprint,
+    okKind: OWNER_OK,
+    overdue: mark === ALERTED,
+    sites: plans.flatMap((plan) => (plan === null ? [] : [{ ...plan, domain: domains.get(plan.siteId) ?? "unknown" }])),
+  });
+  if (told) await db.from("ops_events").insert({ kind: mark, read: "owner-mail", code: fingerprint });
+}
+
+/** Every re-plan row at this planner. */
+async function eventsAt(fingerprint: string): Promise<Event[]> {
+  const db = await opsDb();
+  const { data, error } = await db.from("ops_events").select("kind, site_id, read, at").eq("code", fingerprint).in("kind", [KIND, APPLIED, OWNER_OK, ASKED, ALERTED]);
   if (error !== null) throw new Error(`replan: ${error.message}`);
-  return new Map((data ?? []).map((row) => [row.site_id, row.read]));
+  return data ?? [];
+}
+
+type Answer<T> = PromiseLike<{ data: T[] | null; error: { message: string } | null }>;
+async function opsDb() {
+  return (await import("@/lib/db")).dbAdmin() as unknown as {
+    from(t: "sites"): { select(c: string): { in(c: string, v: readonly string[]): Answer<{ id: string; domain: string }> } };
+    from(t: "ops_events"): {
+      select(c: string): { eq(c: string, v: string): { in(c: string, v: readonly string[]): Answer<Event> } };
+      insert(row: object): PromiseLike<{ error: { message: string } | null }>;
+    };
+  };
 }
 
 /** The first date no draft holds and whose daily run has not started: its due hour is after this one. */
@@ -110,7 +179,10 @@ export async function firstUnwritten(siteId: string, now: Date, clock: SiteClock
 }
 
 /** The week `planWeek` would commit from `from`, its readiness check and all, with nothing written; `null` with no committed week. */
-export async function dryReplan(siteId: string, a: { now: Date; from?: string; clock: SiteClock | null; fingerprint: string | null }): Promise<Replan | null> {
+export async function dryReplan(
+  siteId: string,
+  a: { now: Date; from?: string; clock: SiteClock | null; fingerprint: string | null; log?: boolean }
+): Promise<Replan | null> {
   const base = opportunityStore();
   const committed = await base.plannedRows(siteId);
   if (committed.length === 0) return null;
@@ -134,16 +206,11 @@ export async function dryReplan(siteId: string, a: { now: Date; from?: string; c
   };
   const days = (week: WeekRow[]) => week.filter((row) => row.date !== null).length;
   if (days(plan.after) < days(plan.before)) plan.held = `${days(plan.after)} dated days where the committed week has ${days(plan.before)}`;
-  console.log(JSON.stringify({ event: "week_replan_dry_run", ...plan }));
+  if (a.log !== false) console.log(JSON.stringify({ event: "week_replan_dry_run", ...plan }));
   return plan;
 }
 
-/** Records the site's one re-plan at this fingerprint; `false` where one is already held. */
-function claimReplan(siteId: string, fingerprint: string, plan: Replan | null): Promise<boolean> {
-  return claimOpsEvent(KIND, siteId, fingerprint, plan === null ? "no-week" : plan.held === null ? plan.from : "held");
-}
-
-/** Commits the week from `from`, unguarded: the tick calls it only for a week its dry run did not hold. */
+/** Commits the week from `from`, unguarded: the tick calls it only for a week its check did not hold. */
 export async function applyReplan(siteId: string, from: string, now: Date): Promise<number> {
   return (await planWeek(siteId, { now, from })).length;
 }

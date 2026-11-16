@@ -20,7 +20,8 @@
 // network is refused while a scan is scored.
 //
 // The same tick re-commits each paying site's week once per planner deploy
-// (SPEC §7, `src/lib/scan/replan.ts`), after a dry run it logs; a held week is `replan-held`.
+// (SPEC §7, `src/lib/scan/replan.ts`), after a dry run it logs and mails to the owner;
+// a week waiting on the owner's OK is `replan-awaiting-ok`, a held one `replan-held`.
 import { activeSites, answerRescore, claimRescore, rescoreDue } from "@/jobs/engine";
 import type { JobDefinition, JobInput, Outcome } from "./types";
 
@@ -37,7 +38,7 @@ export const scanRescore: JobDefinition = {
     const replanned = await replanWeeks(input);
     const rescored = await rescore(input);
     if (replanned.outcome !== "degraded") return rescored.outcome === "skipped" ? replanned : rescored;
-    return rescored.outcome === "degraded" ? { ...rescored, step: `${rescored.step},replan-held` } : replanned;
+    return rescored.outcome === "degraded" ? { ...rescored, step: `${rescored.step},${replanned.step}` } : replanned;
   },
 };
 
@@ -54,10 +55,11 @@ async function rescore(input: JobInput): Promise<Outcome> {
     : { outcome: "ran", subjectId: request.id };
 }
 
-/** SPEC §7: each paying site's week re-committed once per planner deploy, after its dry run; 0¢. */
+/** SPEC §7: each paying site's week re-committed once per planner deploy, after its dry run and the owner's OK; 0¢. */
 async function replanWeeks(input: JobInput): Promise<Outcome> {
   const { replanSites } = await import("@/lib/scan/replan");
   const result = await replanSites(async () => (await activeSites()).sites, { now: input.now, ...(input.step === undefined ? {} : { step: input.step }) });
   if (result === null) return { outcome: "skipped", subjectId: null, reason: "no-subject" };
-  return result.held.length > 0 ? { outcome: "degraded", subjectId: null, step: "replan-held" } : { outcome: "ran", subjectId: null };
+  const held = [...(result.held.length > 0 ? ["replan-held"] : []), ...(result.waiting.length > 0 ? ["replan-awaiting-ok"] : [])];
+  return held.length > 0 ? { outcome: "degraded", subjectId: null, step: held.join(",") } : { outcome: "ran", subjectId: null };
 }
