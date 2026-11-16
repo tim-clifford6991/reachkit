@@ -392,7 +392,7 @@ async function defaultDeps(): Promise<LiveTopicDeps> {
                 .from<{ publication_id: string; kind: string; hits: number }>("publication_reads")
                 .select("publication_id, kind, hits")
                 .in("publication_id", ids)
-                .in("kind", ["answer_fetch", "referral"]),
+                .in("kind", ["answer_fetch", "referral"]).neq("engine", "bing"),
             ]).then(([v, r]) => {
               if (v.error !== null || r.error !== null) throw new Error(`live-topics: reading signals: ${(v.error ?? r.error)?.message}`);
               return [v.data ?? [], r.data ?? []] as const;

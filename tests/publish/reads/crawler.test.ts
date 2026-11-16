@@ -1,7 +1,7 @@
 // tests/publish/reads/crawler.test.ts — issue 1553.
 //
-// Googlebot and Bingbot are counted on a hosted page only from an address
-// inside the engine's published ranges. An agent string is free text, so a
+// Googlebot is counted on a hosted page only from an address inside
+// Google's published ranges; Bingbot is not counted. An agent string is free text, so a
 // "Googlebot" from anywhere else is not counted at all. The ranges are the
 // engines' own JSON shape, answered by a fixture: no suite fetches them.
 import { beforeEach, describe, expect, it } from "vitest";
@@ -23,15 +23,14 @@ async function ranges(url: string): Promise<unknown> {
 beforeEach(forgetCrawlerRanges);
 
 describe("issue 1553 — a search crawler is a claim until its address proves it", () => {
-  it("Googlebot and Bingbot are claimed as crawls by their agent strings", () => {
+  it("Googlebot is claimed as a crawl by its agent string, and Bingbot is not counted", () => {
     expect(classifyBlogRead({ userAgent: GOOGLEBOT, referer: null, utmSource: null })).toEqual({ engine: "google", kind: "crawl" });
-    expect(classifyBlogRead({ userAgent: BINGBOT, referer: null, utmSource: null })).toEqual({ engine: "bing", kind: "crawl" });
+    expect(classifyBlogRead({ userAgent: BINGBOT, referer: null, utmSource: null })).toBeNull();
   });
 
   it("an address inside the engine's published ranges is counted", async () => {
     expect(await crawlerVerdict("google", "66.249.64.7", ranges)).toBe("verified");
     expect(await crawlerVerdict("google", "2001:4860:4801:10::2a", ranges)).toBe("verified");
-    expect(await crawlerVerdict("bing", "157.55.39.200", ranges)).toBe("verified");
   });
 
   it("a Googlebot agent from an unverified address is not counted", async () => {

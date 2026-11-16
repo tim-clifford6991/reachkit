@@ -1,11 +1,10 @@
 // tests/publish/attempt/announce.test.ts — issue 1511, SPEC §7 (2026-10-18).
 //
-// Search engines are told about a hosted page the moment it changes: one
-// IndexNow request and one WebSub ping per publish, update and unpublish,
-// and none for a WordPress destination or a host that is not live. Through
-// the real `publish()` and `unpublish()`, the real hosted adapter and the
-// real state machine; the database is doubled, and both services are
-// answered by `send`, so no suite pings either.
+// Google is told about a hosted page the moment it changes: one WebSub ping
+// per publish, update and unpublish, and none for a WordPress destination
+// or a host that is not live. Through the real `publish()` and
+// `unpublish()`, the real hosted adapter and the real state machine; the
+// database is doubled, and the hub is answered by `send`, so no suite pings it.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fakeDb, installTransitionRpc, type Row } from "../harness";
 import type { FetchOutcome, SafeFetchOpts } from "@/lib/egress";
@@ -16,7 +15,7 @@ vi.mock("next/cache", () => ({ revalidateTag: () => undefined }));
 
 import { publish } from "@/lib/publish/attempt";
 import { unpublish } from "@/lib/publish/attempt/unpublish";
-import { INDEXNOW_ENDPOINT, WEBSUB_HUB, indexNowKey } from "@/lib/publish/destinations/hosted/announce";
+import { WEBSUB_HUB } from "@/lib/publish/destinations/hosted/announce";
 import type { GuardDeps } from "@/lib/publish/machine";
 import type { Actor, DestinationAdapter } from "@/lib/publish/types";
 
@@ -26,7 +25,6 @@ const HOST = "content.example.com";
 const PAGE = `https://${HOST}/best-onboarding-tools`;
 const OLD = `https://${HOST}/onboarding-tools`;
 const NEW = `https://${HOST}/how-to-onboard-users`;
-const INDEX = `https://${HOST}/`;
 
 function openDeps(): GuardDeps {
   return {
@@ -59,9 +57,7 @@ const send = async (url: string, opts: SafeFetchOpts): Promise<FetchOutcome> => 
   return answer(url);
 };
 
-const indexNow = (): Sent[] => sent.filter((request) => request.url === INDEXNOW_ENDPOINT);
 const hub = (): Sent[] => sent.filter((request) => request.url === WEBSUB_HUB);
-const urlList = (request: Sent | undefined): string[] => (JSON.parse(request?.opts.body ?? "{}") as { urlList?: string[] }).urlList ?? [];
 
 function seed(a: { kind?: "hosted" | "wordpress"; hostState?: "live" | "pending_dns" } = {}): void {
   sent = [];
@@ -107,60 +103,47 @@ function seed(a: { kind?: "hosted" | "wordpress"; hostState?: "live" | "pending_
   ]);
 }
 
-describe("a hosted publish tells IndexNow and the hub, once", () => {
+describe("a hosted publish tells the hub, once", () => {
   beforeEach(() => seed());
 
-  it("a new page sends exactly one IndexNow request for its address and the index", async () => {
+  it("a new page pings the feed's hub once, and nothing else", async () => {
     expect(await publish({ draftId: "dN", destination: "hosted", by: SYSTEM, at: AT, deps: openDeps(), announce: send })).toMatchObject({ ok: true, liveUrl: PAGE });
 
-    expect(indexNow()).toHaveLength(1);
-    const body = JSON.parse(indexNow()[0]?.opts.body ?? "{}") as Record<string, unknown>;
-    expect(body).toEqual({ host: HOST, key: indexNowKey("s1"), keyLocation: `https://${HOST}/${indexNowKey("s1")}.txt`, urlList: [PAGE, INDEX] });
-    expect(indexNow()[0]?.opts.method).toBe("POST");
-  });
-
-  it("and pings the feed's hub once", async () => {
-    await publish({ draftId: "dN", destination: "hosted", by: SYSTEM, at: AT, deps: openDeps(), announce: send });
-
-    expect(hub()).toHaveLength(1);
+    expect(sent.map((request) => request.url)).toEqual([WEBSUB_HUB]);
     expect(new URLSearchParams(hub()[0]?.opts.body ?? "").get("hub.url")).toBe(`https://${HOST}/rss.xml`);
     expect(new URLSearchParams(hub()[0]?.opts.body ?? "").get("hub.mode")).toBe("publish");
   });
 
-  it("a move submits its old address, its new one and the index in the one request", async () => {
+  it("a move pings once", async () => {
     expect(await publish({ draftId: "dR", destination: "hosted", by: SYSTEM, at: AT, deps: openDeps(), announce: send })).toMatchObject({ ok: true, liveUrl: NEW });
 
-    expect(indexNow()).toHaveLength(1);
-    expect(urlList(indexNow()[0]).sort()).toEqual([INDEX, NEW, OLD].sort());
-  });
-
-  it("an unpublish sends exactly one request for the address that now answers 410", async () => {
-    expect(await unpublish({ draftId: "dO", by: SYSTEM, at: AT, deps: openDeps(), announce: send })).toMatchObject({ ok: true, outcome: "removed" });
-
-    expect(indexNow()).toHaveLength(1);
-    expect(urlList(indexNow()[0])).toEqual([OLD, INDEX]);
     expect(hub()).toHaveLength(1);
   });
 
-  it("a refusal or a 429 is dropped: no retry, and the page is published", async () => {
-    answer = (url) => (url === INDEXNOW_ENDPOINT ? ok(429) : { ok: false, reason: "refused", url, readAt: AT });
+  it("an unpublish pings once", async () => {
+    expect(await unpublish({ draftId: "dO", by: SYSTEM, at: AT, deps: openDeps(), announce: send })).toMatchObject({ ok: true, outcome: "removed" });
+
+    expect(hub()).toHaveLength(1);
+  });
+
+  it("a 429 is dropped: no retry, and the page is published", async () => {
+    answer = () => ok(429);
 
     expect(await publish({ draftId: "dN", destination: "hosted", by: SYSTEM, at: AT, deps: openDeps(), announce: send })).toMatchObject({ ok: true });
-    expect(indexNow()).toHaveLength(1);
     expect(hub()).toHaveLength(1);
     expect(db.rows("drafts").find((row) => row.id === "dN")?.state).toBe("published");
   });
 
   it("a send that throws never fails the publish", async () => {
     const throwing = async (): Promise<FetchOutcome> => {
-      sent.push({ url: INDEXNOW_ENDPOINT, opts: {} });
+      sent.push({ url: WEBSUB_HUB, opts: {} });
       throw new Error("down");
     };
     expect(await publish({ draftId: "dN", destination: "hosted", by: SYSTEM, at: AT, deps: openDeps(), announce: throwing })).toMatchObject({ ok: true, liveUrl: PAGE });
   });
 });
 
-describe("nothing is sent where the engine could not verify the key", () => {
+describe("nothing is sent off a live hosted host", () => {
   it("a host whose record is not live yet sends none", async () => {
     seed({ hostState: "pending_dns" });
     expect(await publish({ draftId: "dN", destination: "hosted", by: SYSTEM, at: AT, deps: openDeps(), announce: send })).toMatchObject({ ok: true });

@@ -70,7 +70,7 @@ function readingAt(index: number, publishedAt: Date, search: string): PageReadin
   const bestAt = index === STALLED ? STALLED_BEST_AT : READ_AT;
   return {
     at: READ_AT,
-    crawled: true,
+    googlebot: true,
     place: place === null ? null : { value: place, source: "serp", query: search },
     // Two pages rose fourteen places since first seen, so they are climbing.
     first: place === null ? null : { at: index === STALLED ? bestAt : at(9), place: place + (index === 8 || index === 9 ? 14 : 0) },
@@ -88,7 +88,6 @@ function readingAt(index: number, publishedAt: Date, search: string): PageReadin
       ...(index === 11 ? { aiVisit: at(11) } : {}),
     },
     google: shown ? { indexed: true, lastCrawl: at(3), impressions: (index - 5) * 9, clicks: index === 16 ? 3 : 0, bestPlace: place, bestQuery: null } : null,
-    bing: null,
   };
 }
 

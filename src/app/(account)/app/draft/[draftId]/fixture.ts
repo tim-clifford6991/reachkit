@@ -405,7 +405,7 @@ const PUBLISHED: DraftFacts = {
     wordpress: false,
     reading: {
       at: "2026-10-05T06:00:00.000Z",
-      crawled: true,
+      googlebot: true,
       place: { value: 24, source: "serp", query: "best crm for small teams" },
       first: { at: "2026-09-21T06:00:00.000Z", place: 41 },
       best: { place: 24, at: "2026-10-05T06:00:00.000Z" },
@@ -420,7 +420,6 @@ const PUBLISHED: DraftFacts = {
         linkedByAi: "2026-10-05T06:00:00.000Z",
       },
       google: { indexed: true, lastCrawl: "2026-10-03T06:00:00.000Z", impressions: 37, clicks: 3, bestPlace: 24, bestQuery: "best crm for small teams" },
-      bing: null,
     },
     label: "climbing",
     // The reserved account has no row a live edit could write.

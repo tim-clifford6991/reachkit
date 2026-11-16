@@ -211,8 +211,10 @@ export interface EngineReading {
 /** `publications.search_reading`, as the weekly pass writes it. */
 export interface PageReading {
   at: string;
-  /** A verified Googlebot or Bingbot hit was counted on the page, ever. */
-  crawled: boolean;
+  /** A verified Googlebot hit was counted on the page, ever; `null` on a
+   *  reading stored before only Google counted, whose crawl and Found step
+   *  may be Bing's and so are not carried forward. */
+  googlebot: boolean | null;
   /** This week's place on the page's own search; `null` where no row held it. */
   place: Place | null;
   first: { at: string; place: number } | null;
@@ -228,7 +230,6 @@ export interface PageReading {
   variants: { query: string; place: number }[];
   reached: Reached;
   google: EngineReading | null;
-  bing: EngineReading | null;
 }
 
 const REACHED_KEYS = ["found", "showing", "firstPage", "readByAi", "linkedByAi", "aiVisit"] as const;
@@ -266,7 +267,7 @@ export function readingOf(value: unknown): PageReading | null {
   }
   return {
     at: r.at,
-    crawled: r.crawled === true,
+    googlebot: typeof r.googlebot === "boolean" ? r.googlebot : null,
     place:
       place != null && isNumber(place.value) && PLACE_SOURCES.includes(place.source as PlaceSource) && isText(place.query)
         ? { value: place.value, source: place.source as PlaceSource, query: place.query }
@@ -283,7 +284,6 @@ export function readingOf(value: unknown): PageReading | null {
       : [],
     reached,
     google: engineOf(r.google),
-    bing: engineOf(r.bing),
   };
 }
 
@@ -331,13 +331,12 @@ export interface PageFacts {
   liveUrl: string;
   /** The search the page is read on; `null` where it has none. */
   search: string | null;
-  /** A verified search-engine crawler hit counted on it now. */
+  /** A verified Googlebot hit counted on it now. */
   crawled: boolean;
   /** AI fetches and AI visits over the reads kept; `null` off a hosted page. */
   aiReads: number | null;
   aiVisits: number | null;
   google: EngineReading | null;
-  bing: EngineReading | null;
 }
 
 const WEEK_MS = 6 * 86_400_000;
@@ -367,12 +366,11 @@ export function assembleReading(a: { before: PageReading | null; report: PlaceRe
   const best = place !== null && (before?.best == null || place.value < before.best.place) ? { place: place.value, at: nowIso } : (before?.best ?? null);
   const linkedBy = report === null ? null : linkedByIn(report, page.id, page.liveUrl);
   const variants = report === null ? [] : variantsIn(report, page.search, [page.liveUrl]);
-  const crawled = before?.crawled === true || page.crawled;
-  const impressions = (page.google?.impressions ?? 0) + (page.bing?.impressions ?? 0);
+  const googlebot = before?.googlebot === true || page.crawled;
 
   const now: Record<(typeof REACHED_KEYS)[number], boolean> = {
-    found: crawled || page.google?.lastCrawl != null || page.bing?.lastCrawl != null || page.google?.indexed === true,
-    showing: place !== null || variants.length > 0 || impressions > 0,
+    found: googlebot || page.google?.lastCrawl != null || page.google?.indexed === true,
+    showing: place !== null || variants.length > 0 || (page.google?.impressions ?? 0) > 0,
     firstPage: place !== null && place.value <= FIRST_PAGE_PLACES,
     readByAi: (page.aiReads ?? 0) > 0,
     linkedByAi: (linkedBy ?? []).length > 0,
@@ -380,13 +378,14 @@ export function assembleReading(a: { before: PageReading | null; report: PlaceRe
   };
   const reached: Reached = {};
   for (const key of REACHED_KEYS) {
-    const at = before?.reached[key] ?? (now[key] ? nowIso : undefined);
+    const kept = key === "found" && before?.googlebot === null ? undefined : before?.reached[key];
+    const at = kept ?? (now[key] ? nowIso : undefined);
     if (at !== undefined) reached[key] = at;
   }
 
   return {
     at: nowIso,
-    crawled,
+    googlebot,
     place,
     first: before?.first ?? (place === null ? null : { at: nowIso, place: place.value }),
     best,
@@ -396,6 +395,5 @@ export function assembleReading(a: { before: PageReading | null; report: PlaceRe
     variants,
     reached,
     google: page.google,
-    bing: page.bing,
   };
 }

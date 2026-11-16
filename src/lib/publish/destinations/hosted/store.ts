@@ -579,16 +579,15 @@ async function hostnameOfSite(siteId: string): Promise<string | null> {
   return host === null || host.trim() === "" ? null : host.trim().toLowerCase();
 }
 
-/** The index's `google-site-verification` and `msvalidate.01` tokens, public by design; `null` for one never issued. */
-export async function searchVerificationOfSite(siteId: string): Promise<{ google: string | null; bing: string | null }> {
+/** The index's `google-site-verification` token, public by design; `null` for one never issued. */
+export async function searchVerificationOfSite(siteId: string): Promise<string | null> {
   const { data, error } = await publishDb()
-    .from<{ search_verification: { google?: { token?: unknown }; bing?: { token?: unknown } } | null }>("destinations")
+    .from<{ search_verification: { google?: { token?: unknown } } | null }>("destinations")
     .select("search_verification")
     .eq("site_id", siteId)
     .eq("kind", "hosted")
     .is("deleted_at", null)
     .limit(1);
-  const held = error === null ? data?.[0]?.search_verification : null;
-  const token = (value: unknown): string | null => (typeof value === "string" && value !== "" ? value : null);
-  return { google: token(held?.google?.token), bing: token(held?.bing?.token) };
+  const token = error === null ? data?.[0]?.search_verification?.google?.token : null;
+  return typeof token === "string" && token !== "" ? token : null;
 }

@@ -1,35 +1,21 @@
-// SPEC §7 — search engines are told about a hosted page the moment it changes: IndexNow, and the feed's WebSub hub.
-// One request each per change, carrying the touched addresses and the index; a move is one change.
-// Hosted and live hosts only: IndexNow checks a key file at the host's root, which we serve on our hosts alone.
-// Never in the way: a refusal, a 429 or a network failure is logged and dropped, with no retry. Both services are free, so 0¢.
-// An accepted request stamps `publications.announced_at`; `announceUnannounced` sends once for live pages with no stamp.
-// The key is not a secret (IndexNow publishes it), so it is derived from the site's id and never stored.
-import { createHash } from "node:crypto";
+// SPEC §7 — Google is told about a hosted page the moment it changes, through the feed's WebSub hub.
+// One ping per change; a move is one change. Hosted and live hosts only: the feed is served on our hosts alone.
+// Never in the way: a refusal, a 429 or a network failure is logged and dropped, with no retry. The hub is free, so 0¢.
+// An accepted ping stamps `publications.announced_at` on the touched addresses; `announceUnannounced` pings once for
+// live pages with no stamp.
 import { safeFetch, type FetchOutcome, type SafeFetchOpts } from "@/lib/egress";
 import { publishDb } from "../../db";
 import { hostedHostFor } from "./hostname";
 
-/** The shared IndexNow endpoint, which reaches every participating engine. */
-export const INDEXNOW_ENDPOINT = "https://api.indexnow.org/indexnow";
 /** Google's public WebSub hub, which the feed names and each change pings. */
 export const WEBSUB_HUB = "https://pubsubhubbub.appspot.com/";
 /** The feed, on the customer's own host. */
 export const HOSTED_FEED_PATH = "/rss.xml";
 
-/** The two requests as `safeFetch` makes them; injected so no suite pings either service. */
+/** The ping as `safeFetch` makes it; injected so no suite pings the hub. */
 export type AnnounceSend = (url: string, opts: SafeFetchOpts) => Promise<FetchOutcome>;
 
 const SEND_OPTS = { respectRobots: false, userAgent: "reachkit-verify", timeoutMs: 8000 } as const;
-
-/** The site's IndexNow key: 32 hex characters, stable per site. */
-export function indexNowKey(siteId: string): string {
-  return createHash("sha256").update(`indexnow:${siteId}`).digest("hex").slice(0, 32);
-}
-
-/** Where the key file is served on the host. */
-export function keyLocation(host: string, siteId: string): string {
-  return `https://${host}/${indexNowKey(siteId)}.txt`;
-}
 
 function onHost(url: string, host: string): string | null {
   try {
@@ -54,7 +40,7 @@ function statusOf(outcome: FetchOutcome | null): number | string {
   return outcome.ok ? outcome.status : (outcome.status ?? outcome.reason);
 }
 
-/** Tells IndexNow and the WebSub hub that `urls` changed on the hosted host. Never throws, never retries. */
+/** Tells the WebSub hub that `urls` changed on the hosted host. Never throws, never retries. */
 export async function announceHosted(a: { siteId: string; urls: readonly string[]; send?: AnnounceSend; at?: Date }): Promise<void> {
   try {
     const live = await hostedHostFor(a.siteId);
@@ -65,22 +51,6 @@ export async function announceHosted(a: { siteId: string; urls: readonly string[
     const urlList = [...new Set([...changed, `https://${host}/`])];
     const send = a.send ?? safeFetch;
 
-    const indexNow = await send(INDEXNOW_ENDPOINT, {
-      ...SEND_OPTS,
-      method: "POST",
-      headers: { "Content-Type": "application/json; charset=utf-8" },
-      body: JSON.stringify({ host, key: indexNowKey(a.siteId), keyLocation: keyLocation(host, a.siteId), urlList }),
-    }).catch(() => null);
-    if (accepted(indexNow)) {
-      log("indexnow_sent", { siteId: a.siteId, urls: urlList.length });
-      await publishDb()
-        .from("publications")
-        .update({ announced_at: (a.at ?? new Date()).toISOString() })
-        .eq("site_id", a.siteId)
-        .in("live_url", urlList)
-        .is("unpublished_at", null);
-    } else log("indexnow_dropped", { siteId: a.siteId, status: statusOf(indexNow) });
-
     const feed = `https://${host}${HOSTED_FEED_PATH}`;
     const hub = await send(WEBSUB_HUB, {
       ...SEND_OPTS,
@@ -88,7 +58,17 @@ export async function announceHosted(a: { siteId: string; urls: readonly string[
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({ "hub.mode": "publish", "hub.url": feed }).toString(),
     }).catch(() => null);
-    if (!accepted(hub)) log("websub_dropped", { siteId: a.siteId, status: statusOf(hub) });
+    if (!accepted(hub)) {
+      log("websub_dropped", { siteId: a.siteId, status: statusOf(hub) });
+      return;
+    }
+    log("websub_sent", { siteId: a.siteId, urls: urlList.length });
+    await publishDb()
+      .from("publications")
+      .update({ announced_at: (a.at ?? new Date()).toISOString() })
+      .eq("site_id", a.siteId)
+      .in("live_url", urlList)
+      .is("unpublished_at", null);
   } catch (error) {
     log("announce_failed", { siteId: a.siteId, message: String(error) });
   }
@@ -106,7 +86,7 @@ export async function announceForDraft(a: { draftId: string; urls: readonly stri
   }
 }
 
-/** Announces in one request every live hosted page IndexNow never accepted. Never throws. */
+/** Pings the hub once for every live hosted page no accepted ping has stamped. Never throws. */
 export async function announceUnannounced(a: { siteId: string; send?: AnnounceSend; at?: Date }): Promise<void> {
   try {
     const { data } = await publishDb()
