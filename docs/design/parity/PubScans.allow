@@ -70,3 +70,6 @@ reachkit.app/scan/harborplumbing.com	owner 2026-11-16, #2745: removed
 2 Who gets your buyers The businesses Google and AI pick instead of you.	owner 2026-11-16, #2745: removed
 3 AI answers Whether AI answers mention or link you.	owner 2026-11-16, #2745: removed
 4 Pages you’re missing Questions buyers ask that no page of yours answers.	owner 2026-11-16, #2745: removed
+component:icon:chart-column 1	owner 2026-11-16, #2745: removed
+component:icon:file-text 1	owner 2026-11-16, #2745: removed
+component:progress 1	owner 2026-11-16, #2745: removed

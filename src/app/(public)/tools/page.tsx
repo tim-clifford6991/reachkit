@@ -134,9 +134,9 @@ export default function ToolsPage(): React.JSX.Element {
     <LibraryPage
       testId={PAGE_TEST_ID}
       title={copy("tools.title")}
-      lead={<p className="text-lg">{copy("tools.lead")}</p>}
       wide
     >
+      <p className="max-w-(--w-read) text-lg">{copy("tools.lead")}</p>
       <section aria-label={copy("tools.list.label")} className={BAND}>
       <ul className="grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {TOOLS.map((tool) => (
