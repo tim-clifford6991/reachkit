@@ -57,7 +57,7 @@ export const RETIRED = [
   { name: "at most one a day", pattern: /\bat most one a day\b/i },
   { name: "daily pages", pattern: /\bdaily pages?\b/i },
   { name: "daily at", pattern: /\bdaily at\b/i },
-  { name: "Opted out", pattern: /\bOpted out\b/ },
+  { name: "Opted out", pattern: /\bOpted out\b/i },
   // Only week 1 is emailed first; competitors are watched weekly; cancelling runs through Settings.
   { name: "We email each page first", pattern: /\bWe email each page first\b/i },
   { name: "Emailed before it goes live", pattern: /\bEmailed before it goes live\b/i },
@@ -66,8 +66,8 @@ export const RETIRED = [
   { name: "competitors checked", pattern: /\bcompetitors\b[^.]{0,20}\bchecked\b/i },
   // Rule 4 words with no hit left. A SOFT word moves here in the change that removes its last hit.
   { name: "prompt", pattern: /\bprompts?\b/i },
-  // A capital Keyword is a vendor's product name (Moz Keyword Gap), drawn on the comparison boards.
-  { name: "keyword", pattern: /\bkeywords?\b/ },
+  // The library and comparison boards name vendors' tools, in their own capitals, which are no word of ours.
+  { name: "keyword", pattern: /\bkeywords?\b/i, except: /\bKeywords? (?:Gap|Explorer|Research)\b/g },
   { name: "veto", pattern: /\bveto(?:es|ed)?\b/i },
   { name: "derivation", pattern: /\bderivations?\b/i },
   // An update of a live page promises no ranking, no reward and no crawl (seo-master, 2026-11-05).
@@ -200,7 +200,7 @@ export function violations(text, { key = "", heading = false } = {}) {
 /** The retired name a text uses, if any. A `{slot}` is a value, never read as a word. */
 export function retiredIn(text) {
   const words = text.replace(/\{[\w$.-]+\}/g, " ");
-  return RETIRED.find((retired) => retired.pattern.test(words))?.name;
+  return RETIRED.find((retired) => retired.pattern.test(retired.except ? words.replace(retired.except, " ") : words))?.name;
 }
 
 /**
