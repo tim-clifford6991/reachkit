@@ -62,7 +62,7 @@ export async function main(a: { site: string; now: Date; send?: GscSend; out?: (
       out([page.live_url, "-", "-", "no search of its own", "", ""].join("\t"));
       continue;
     }
-    const days = await client.history(siteUrl, page.live_url, search.trim().toLowerCase(), start, day(a.now));
+    const days = await client.history(siteUrl, page.live_url, search.trim().toLowerCase().replace(/\s+/g, " "), start, day(a.now));
     if (days === null || days.length === 0) {
       out([page.live_url, search, "-", days === null ? "not read" : "never shown", "", ""].join("\t"));
       continue;
