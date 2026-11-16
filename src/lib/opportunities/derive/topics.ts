@@ -765,12 +765,8 @@ export function candidateFor(
   };
 }
 
-/** A question buyers were seen asking, with the fit a pass judged for it,
- *  `null` where no pass has judged it. */
-export interface AskedSupply {
-  topic: ProposedTopic;
-  fit: BusinessFit | null;
-}
+/** A question buyers were seen asking, with the fit and passage a pass judged for it, `null` where no pass has. */
+export type AskedSupply = { topic: ProposedTopic; fit: BusinessFit | null; fact?: Extract<Evidence, { family: "write" }>["fitFact"] };
 
 /**
  * SPEC §7 (issue 1549): the questions buyers were seen asking that a pass
@@ -818,12 +814,12 @@ export function askedSupply(a: {
     !namesAnyBrand(query, rivals);
 
   const out: AskedSupply[] = [];
-  const take = (topic: ProposedTopic, fit: BusinessFit | null): void => {
-    if (!usable(topic.query) || (fit === null && !onTopic(topic.query))) return;
-    seen.add(queryKey(topic.query));
-    out.push({ topic, fit });
+  const take = (supply: AskedSupply): void => {
+    if (!usable(supply.topic.query) || (supply.fit === null && !onTopic(supply.topic.query))) return;
+    seen.add(queryKey(supply.topic.query));
+    out.push(supply);
   };
-  for (const spare of a.spare) take(spare.topic, spare.fit);
+  for (const spare of a.spare) take(spare);
 
   const terms = new Set(
     a.report.questions.kind === "unmeasured"
@@ -832,7 +828,7 @@ export function askedSupply(a: {
   );
   const byTerm = [...a.asked].sort((x, y) => Number(terms.has(queryKey(y.term))) - Number(terms.has(queryKey(x.term))));
   for (const asked of askedTopics(byTerm, a.now, Number.POSITIVE_INFINITY)) {
-    take({ query: queryKey(asked.query), source: sourceOf(asked.query, { brands }), volume: null, rival: null, asked: { term: asked.term, serpAt: asked.serpAt } }, null);
+    take({ topic: { query: queryKey(asked.query), source: sourceOf(asked.query, { brands }), volume: null, rival: null, asked: { term: asked.term, serpAt: asked.serpAt } }, fit: null });
   }
   return out;
 }

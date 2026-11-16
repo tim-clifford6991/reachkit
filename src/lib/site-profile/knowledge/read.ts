@@ -1,7 +1,7 @@
 // SPEC §0 "Knowledge base" (#1133) — the base for one site, read whole: what
 // the pages were read to say, with the founder's answers over it.
 import { knowledgeBase, knowledgeIsEmpty } from "./merge";
-import type { KnowledgeBase } from "./types";
+import type { KnowledgeBase, KnowledgeItem, KnowledgeSource } from "./types";
 
 /** The site's knowledge base, or `null` where nothing has been read or
  *  said — or where it could not be read, which a caller treats the same. */
@@ -21,23 +21,30 @@ export async function readKnowledgeBase(a: { siteId: string; domain: string }): 
 const DIGEST_ITEMS = 8;
 
 /** What fit is judged against (SPEC §6, 2026-09-29): what the business
- *  sells, to whom, for which problems, and how it differs — texts only. */
-export interface KnowledgeDigest {
-  readonly offerings: readonly { readonly name: string; readonly uses: readonly string[] }[];
-  readonly audience: readonly string[];
-  readonly problems: readonly string[];
-  readonly differentiators: readonly string[];
+ *  sells, to whom, for which problems, and how it differs, one passage each,
+ *  with the address it was read from so a judgement can name it. */
+export interface KnowledgePassage {
+  readonly about: "offering" | "audience" | "problem" | "differentiator";
+  readonly text: string;
+  readonly source: KnowledgeSource;
 }
 
+export type KnowledgeDigest = readonly KnowledgePassage[];
+
+/** The passage a new topic's fit was judged on (SPEC §6), with its address. */
+export type FitFact = Pick<KnowledgePassage, "text" | "source">;
+
 export function knowledgeDigest(base: KnowledgeBase): KnowledgeDigest {
-  const texts = (items: readonly { text: string }[]): string[] =>
-    items.slice(0, DIGEST_ITEMS).map((item) => item.text);
-  return {
-    offerings: base.offerings
-      .slice(0, DIGEST_ITEMS)
-      .map((offering) => ({ name: offering.name, uses: offering.uses.slice(0, 3) })),
-    audience: texts(base.audience),
-    problems: texts(base.problems),
-    differentiators: texts(base.differentiators),
-  };
+  const items = (about: KnowledgePassage["about"], list: readonly KnowledgeItem[]): KnowledgePassage[] =>
+    list.slice(0, DIGEST_ITEMS).map((item) => ({ about, text: item.text, source: item.source }));
+  return [
+    ...base.offerings.slice(0, DIGEST_ITEMS).map((offering) => ({
+      about: "offering" as const,
+      text: [offering.name, ...offering.uses.slice(0, 3)].join("; "),
+      source: offering.source,
+    })),
+    ...items("audience", base.audience),
+    ...items("problem", base.problems),
+    ...items("differentiator", base.differentiators),
+  ];
 }

@@ -1,5 +1,5 @@
-// SPEC §7 — the one ranked list: integer points (`points.ts`), ties by
-// volume, then age, then id, so two reads of the same rows give one order.
+// SPEC §7 — the one ranked list: business fit, then `ai_gap`, then integer points (`points.ts`), then volume, age and id,
+// so two reads of the same rows give one order.
 // The week is the top of that list and keeps no rule of mix, pace or cluster:
 // the highest-value topics are written first, even of one type or one topic.
 //
@@ -25,7 +25,7 @@ import { queryKey, sameTopic } from "../cluster";
 import { contentTypeOf } from "../content-type";
 import { pageTypeOf } from "../page-type";
 import type { Opportunity, PlaceRule, PlanReason, Ranked } from "../types";
-import { POINTS, pointsOf, volumeOrder, type Seen } from "./points";
+import { fitOf, POINTS, pointsOf, volumeOrder, type Seen } from "./points";
 
 /** A site ranking fewer than `rankedBelow` searches is new, and its own offering or asked questions earn `points` (R31). */
 export const NEW_SITE = Object.freeze({ rankedBelow: 30, points: 1 });
@@ -37,12 +37,12 @@ export interface Scored {
   parts: PlanReason["parts"];
 }
 
-function byPoints(a: Scored, b: Scored): number {
-  if (b.points !== a.points) return b.points - a.points;
-  const volume = volumeOrder(b.opportunity) - volumeOrder(a.opportunity);
-  if (volume !== 0) return volume;
-  const age = a.opportunity.createdAt.getTime() - b.opportunity.createdAt.getTime();
-  if (age !== 0) return age;
+/** Highest first by fit, `ai_gap`, points and measured volume, then the older row, then id. */
+function byRank(a: Scored, b: Scored): number {
+  const key = (s: Scored) => [fitOf(s.opportunity), Number(s.parts.some((part) => part.part === "ai_gap")), s.points, volumeOrder(s.opportunity), -s.opportunity.createdAt.getTime()];
+  const [x, y] = [key(a), key(b)];
+  const first = x.findIndex((value, n) => value !== y[n]);
+  if (first >= 0) return y[first]! - x[first]!;
   return a.opportunity.id < b.opportunity.id ? -1 : a.opportunity.id > b.opportunity.id ? 1 : 0;
 }
 
@@ -54,9 +54,9 @@ export interface Rotation {
   unfielded?: ListicleNeed;
 }
 
-/** Every row by points, highest first. Pure. */
+/** Every row by fit, then `ai_gap`, then points, highest first. Pure. */
 export function orderRanked(scored: readonly Scored[], rotation: Rotation = {}): Ranked[] {
-  return [...scored].sort(byPoints).map((entry) => {
+  return [...scored].sort(byRank).map((entry) => {
     const need = contentTypeOf(entry.opportunity) === "listicle" ? rotation.unfielded : undefined;
     return {
       opportunityId: entry.opportunity.id,
@@ -169,7 +169,7 @@ export async function writableDays(siteId: string, days: number = PLAN_DEPTH): P
 export function countWritable(scored: readonly Scored[], rotation: Rotation, days: number): number {
   const topTens = rotation.topTens ?? new Map<string, readonly string[]>();
   const kept: Scored[] = [];
-  for (const entry of [...scored].sort(byPoints)) {
+  for (const entry of [...scored].sort(byRank)) {
     if (!kept.some((held) => sameTopic(held.opportunity, entry.opportunity, topTens))) kept.push(entry);
   }
   return Math.min(kept.length, days);
@@ -278,7 +278,7 @@ export function rankingOf(
   const scored = mixed.map((opportunity) => ({ opportunity, ...pointsOf(opportunity, seen) }));
   // A cluster an AI answer linked earns one more page: its best new page.
   for (const cluster of new Set(load.linkedClusters ?? [])) {
-    const next = scored.filter((entry) => entry.opportunity.family === "write" && entry.opportunity.clusterKey === cluster).sort(byPoints)[0];
+    const next = scored.filter((entry) => entry.opportunity.family === "write" && entry.opportunity.clusterKey === cluster).sort(byRank)[0];
     if (next === undefined) continue;
     next.parts = [...next.parts, { part: "linked_by_ai", n: POINTS.linkedByAi }];
     next.points += POINTS.linkedByAi;

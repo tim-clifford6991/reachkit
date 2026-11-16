@@ -14,6 +14,7 @@ import type { ListicleNeed } from "@/lib/generate/templates/listicle";
 import type { Measured } from "@/lib/measure/measured";
 import type { KnownSource } from "@/lib/known-content/types";
 import type { SiteCheck } from "@/lib/site-issues/types";
+import type { FitFact } from "@/lib/site-profile/knowledge/read";
 
 /** §7's table, read down the `Type` column, plus SPEC §0's Earn family: a
  *  source names a rival and not the customer, and the answer is a citable
@@ -270,6 +271,8 @@ export type Evidence =
        *  offering page. Absent where it does not, or no fresh one is stored. */
       shape?: "offering";
       stopped?: StoppedInputs;
+      /** `null` once judged with no passage; absent where not judged since the call named one. */
+      fitFact?: FitFact | null;
     }
   | {
       family: "improve";
@@ -301,6 +304,7 @@ export type Evidence =
       /** As a Write row's. */
       shape?: "offering";
       stopped?: StoppedInputs;
+      fitFact?: FitFact | null;
     };
 
 /** §7's acceptance test, verbatim: "top 20 for Q" / "named on question P" /

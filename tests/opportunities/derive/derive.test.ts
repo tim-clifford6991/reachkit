@@ -14,7 +14,7 @@ import { setOpportunityStore } from "../../../src/lib/opportunities/store";
 import { deriveOpportunities } from "../../../src/lib/opportunities/derive";
 import { explainChoice } from "../../../src/lib/opportunities/derive/explain";
 import { fakeCost } from "../cost";
-import { memoryStore, newMemoryState, setStatus, type MemoryState } from "../memory-store";
+import { KNOWN, memoryStore, newMemoryState, setStatus, type MemoryState } from "../memory-store";
 import {
   AT,
   SCAN_ID,
@@ -57,6 +57,7 @@ const input = () => ({
   report: defaultReport(),
   ownRanked: measured(0, AT),
   rankedCounts: smallCounts(),
+  knowledge: KNOWN,
 });
 
 describe("a completed scan becomes opportunities, persisted", () => {
@@ -306,7 +307,7 @@ describe("the pass says how much new-page supply each source gave, at no added c
       [BUYER_SEARCHES_CALL_SITE]: () => ({ problems: ["how to cut onboarding churn", "why users drop off after signup"], solutions: [] }),
       [TYPED_CALL_SITE]: (input) => ({ typed: input.searches!.filter(({ search }) => search.startsWith("how")).map(({ i }) => i) }),
       [FIT_CALL_SITE]: (input) => {
-        const scores = input.searches!.map(({ i }) => ({ i, fit: 3, title: `Angle ${i}` }));
+        const scores = input.searches!.map(({ i }) => ({ i, fit: 3, title: `Angle ${i}`, fact: 0 }));
         return { scores, strongest: scores.map(({ i }) => i) };
       },
       [SAME_QUESTION_CALL_SITE]: () => ({ pairs: [] }),
@@ -336,7 +337,7 @@ describe("the pass says how much new-page supply each source gave, at no added c
       const site = request.tools?.[0]?.name ?? "";
       const searches = (JSON.parse(request.messages[0]!.content) as { searches?: { i: number; search: string }[] }).searches ?? [];
       judged[site] = searches.map(({ search }) => search);
-      const scores = searches.map(({ i, search }) => ({ i, fit: search === "product analytics pricing" ? 2 : 3, title: `Angle ${i}` }));
+      const scores = searches.map(({ i, search }) => ({ i, fit: search === "product analytics pricing" ? 2 : 3, title: `Angle ${i}`, fact: 0 }));
       const answer = { [BUYER_SEARCHES_CALL_SITE]: { problems: [], solutions: [] }, [TYPED_CALL_SITE]: { typed: searches.map(({ i }) => i) }, [FIT_CALL_SITE]: { scores, strongest: [] }, [SAME_QUESTION_CALL_SITE]: { pairs: [] } }[site];
       if (answer === undefined) throw new Error(`no model for ${site}`);
       return toolUseMessage(answer, 100, 50, site);

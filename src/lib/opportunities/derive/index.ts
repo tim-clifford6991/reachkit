@@ -3,7 +3,7 @@
 // An empty `created` is a success with counts, never a throw: the counters tell "supply ran out" from "unreadable".
 import type { Locale } from "@/lib/locale/locales";
 import { siteLocale } from "@/lib/locale/site";
-import type { KnowledgeDigest } from "@/lib/site-profile/knowledge/read";
+import type { FitFact, KnowledgeDigest } from "@/lib/site-profile/knowledge/read";
 import { ASKED_TOPICS, PLAN_DEPTH, TOPIC_FIT } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import { ownSearched } from "@/lib/market/infer/demand";
@@ -14,7 +14,7 @@ import type { StoredReport } from "@/lib/scan/report";
 import type { InventoryRow } from "@/lib/site-profile/types";
 import type { RankedCounts } from "../winnability/counts";
 import { pageTypeOf } from "../page-type";
-import { addRejections, isRetarget, noRejections, type Opportunity, type RejectionCount } from "../types";
+import { addRejections, isRetarget, noRejections, type Evidence, type Opportunity, type RejectionCount } from "../types";
 import type { Candidate } from "./candidate";
 import { earnCandidates } from "./earn";
 import { fixCandidates } from "./fix";
@@ -331,9 +331,11 @@ export async function deriveOpportunities(
     existing.push({ ...row, volume, evidence });
   }
 
+  const isNewPage = (row: { family: Opportunity["family"] }) => row.family === "write" || row.family === "earn";
   const unjudged = existing
     .filter((row) => row.status === "open" && row.family !== "fix" && row.targetQuery !== null)
-    .filter((row) => (row.businessFit ?? null) === null)
+    // A plannable new page judged before the call named a passage is judged again.
+    .filter((row) => (row.businessFit ?? null) === null || (isNewPage(row) && row.businessFit! >= TOPIC_FIT.gate && !("fitFact" in row.evidence)))
     .slice(0, HELD_ROWS_JUDGED);
   const sourceFor = (row: { targetQuery: string | null; source?: Candidate["source"] }) =>
     row.source ?? sourceOf(row.targetQuery ?? "", { brands, products: Object.keys(market?.demand?.brands ?? {}) });
@@ -344,13 +346,12 @@ export async function deriveOpportunities(
     classOf.set(queryKey(topic.query), source);
     return source;
   };
-  const isPage = (row: { family: Opportunity["family"] }) => row.family === "write" || row.family === "earn";
-  const derivedPages = judgedHere.filter(isPage);
+  const derivedPages = judgedHere.filter(isNewPage);
   const derivedClasses = derivedPages.map((candidate) => classed({ query: candidate.targetQuery!, source: sourceFor(candidate) }));
   const offeredClasses = proposing.map(classed);
   const searches: FitSearch[] = [
-    ...judgedHere.map((candidate) => ({ query: candidate.targetQuery!, source: sourceFor(candidate) })),
-    ...unjudged.map((row) => ({ query: row.targetQuery!, source: sourceFor(row) })),
+    ...judgedHere.map((candidate) => ({ query: candidate.targetQuery!, source: sourceFor(candidate), update: !isNewPage(candidate) })),
+    ...unjudged.map((row) => ({ query: row.targetQuery!, source: sourceFor(row), update: !isNewPage(row) })),
     ...proposals.map((topic) => ({ query: topic.query, source: topic.source })),
   ];
   const fits = await judgeFit(c, {
@@ -369,7 +370,7 @@ export async function deriveOpportunities(
     const sourced = { ...candidate, source: sourceFor(candidate) };
     const judged = fits.get(judgedHere.indexOf(candidate));
     if (judged === undefined) return sourced;
-    const withFit = { ...sourced, businessFit: judged.fit };
+    const withFit = withFact({ ...sourced, businessFit: judged.fit }, judged.fact);
     if (judged.title !== null) angle.set(withFit, judged.title);
     return withFit;
   });
@@ -378,6 +379,7 @@ export async function deriveOpportunities(
     if (judged === undefined) continue;
     const source = sourceFor(row);
     await store.setBusinessFit(row.id, judged.fit, source, pageTypeOf({ ...row, source }));
+    if (isNewPage(row)) await store.setEvidence(row.id, withFact(row, judged.fact).evidence);
   }
   // A proposal is a write target only at the top fit: below it the search
   // was never measured, and nothing but its fit speaks for it.
@@ -389,12 +391,12 @@ export async function deriveOpportunities(
   for (const [index, topic] of proposals.entries()) {
     const judged = fits.get(judgedHere.length + unjudged.length + index);
     if (topic.asked !== undefined && judged !== undefined && judged.fit < TOPIC_FIT.writeAt) {
-      if (judged.fit >= TOPIC_FIT.gate) spare.push({ topic, fit: judged.fit });
+      if (judged.fit >= TOPIC_FIT.gate) spare.push({ topic, fit: judged.fit, fact: judged.fact });
       else refused.push(topic.query);
     }
     if (judged === undefined || judged.fit < TOPIC_FIT.writeAt) continue;
     const candidate = candidateFor(topic, { ...base, market, ownRanked });
-    if (candidate !== null) proposed.push({ ...candidate, title: judged.title });
+    if (candidate !== null) proposed.push(withFact({ ...candidate, title: judged.title }, judged.fact));
   }
 
   const labelled: Candidate[] = [];
@@ -428,9 +430,9 @@ export async function deriveOpportunities(
     taken: [...labelled.flatMap((row) => row.targetQuery ?? []), ...existing.flatMap((row) => [row.targetQuery ?? [], ...row.absorbedQueries].flat())],
     dismissed: dismissed.map((row) => row.query),
     now: a.report.verdict.measuredAt,
-  }).flatMap(({ topic, fit }) => {
+  }).flatMap(({ topic, fit, fact }) => {
     const candidate = candidateFor(topic, { ...base, market, ownRanked });
-    return candidate === null ? [] : [{ ...candidate, businessFit: fit }];
+    return candidate === null ? [] : [fact === undefined ? { ...candidate, businessFit: fit } : withFact({ ...candidate, businessFit: fit }, fact)];
   });
 
   // One survivor per parent topic over held rows and this pass's, after labelling since the type decides precedence.
@@ -449,8 +451,8 @@ export async function deriveOpportunities(
   // and against every topic with a page behind it, published ones included.
   const judgedSame = await judgeSameQuestion(c, {
     searches: [
-      ...labelled.filter(isPage).flatMap((candidate) => candidate.targetQuery ?? []),
-      ...existing.filter((row) => row.status === "open" && isPage(row)).flatMap((row) => row.targetQuery ?? []),
+      ...labelled.filter(isNewPage).flatMap((candidate) => candidate.targetQuery ?? []),
+      ...existing.filter((row) => row.status === "open" && isNewPage(row)).flatMap((row) => row.targetQuery ?? []),
     ],
     topics: existing.flatMap((row) => row.targetQuery ?? []),
     buyer: market?.buyer,
@@ -489,8 +491,8 @@ export async function deriveOpportunities(
         ...derivedPages.flatMap((candidate, n) => (topFit(judgedHere.indexOf(candidate)) ? [derivedClasses[n]!] : [])),
         ...proposals.flatMap((topic, index) => (topFit(judgedHere.length + unjudged.length + index) ? [classOf.get(topic.query)!] : [])),
       ],
-      candidates: [...labelled, ...questions].filter((row) => isPage(row) && (row.businessFit ?? TOPIC_FIT.gate) >= TOPIC_FIT.gate).map(classOfRow),
-      added: plan.insert.filter(isPage).map(classOfRow),
+      candidates: [...labelled, ...questions].filter((row) => isNewPage(row) && (row.businessFit ?? TOPIC_FIT.gate) >= TOPIC_FIT.gate).map(classOfRow),
+      added: plan.insert.filter(isNewPage).map(classOfRow),
     },
     rows: [
       ...existing.filter((row) => !dismissedNow.has(row.id)).map((row) => ({ ...row, businessFit: unjudgedFit.get(row.id) ?? row.businessFit })),
@@ -520,4 +522,9 @@ export function dismissedUnchanged(
   const key = queryKey(candidate.targetQuery);
   const now = candidate.volume === null || candidate.volume.kind === "unmeasured" ? 0 : candidate.volume.value;
   return dismissed.some((row) => queryKey(row.query) === key && (row.stopped || now <= (row.volume ?? 0)));
+}
+
+/** A new page's evidence with the passage its fit was judged on, `null` where judged with none; unjudged has no key. */
+function withFact<T extends { evidence: Evidence }>(row: T, fact: FitFact | null): T {
+  return row.evidence.family === "write" || row.evidence.family === "earn" ? { ...row, evidence: { ...row.evidence, fitFact: fact } } : row;
 }
