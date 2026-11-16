@@ -1,9 +1,9 @@
 // SPEC §2, board PubReport — who gets the buyers (owner R12, 2026-10-31)
 //
 // The report leads with it: the score as a sentence, the competitor the
-// buyers were sent to most with the customer's own count over both cards,
-// drawn only where both cards measured something so a count is never summed
-// over a missing half, and the questions found. The section below holds the
+// buyers were sent to most with what Google's AI said of the site, drawn only
+// where both cards measured something so a count never stands for a missing
+// half, and the questions found. The section below holds the
 // two cards under its heading.
 import type React from "react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
@@ -81,20 +81,22 @@ function titleOf(report: HeadReport): Line | null {
   return { sentence: copy("report.top.title", { domain: SLOT, score: String(s.value.score), verdict }), value: report.domain };
 }
 
-/** Who gets the buyers over both cards, with the one count that adds them,
- *  or `null` where a card or the category was not measured: nothing
- *  measured is never shown as a count of zero. */
+/** Who gets the buyers over both cards, then what Google's AI said of the
+ *  site, or Google's own count where it showed no AI answer; `null` where a
+ *  card or the category was not measured: nothing measured is never a zero. */
 function lineOf(report: HeadReport): Line | null {
   const category = categoryOf(report.market);
-  if (report.aiAnswers === null || report.presence === null || category === null) return null;
-  const b = buyersOf(report.aiAnswers, report.presence, report.serps);
-  if (b.out === 0) return null;
-  const n = b.ai + b.google;
-  const split = copy("report.top.split", { g: String(b.google), gTotal: String(report.presence.measuredSearches), a: String(b.ai), aTotal: String(report.aiAnswers.answeredSearches) });
-  const counts = { category, n: String(n), m: String(b.out), split };
+  const ai = report.aiAnswers;
+  const google = report.presence;
+  if (ai === null || google === null || category === null || ai.measuredSearches === 0 || google.measuredSearches === 0) return null;
+  const b = buyersOf(ai, google, report.serps);
+  const then =
+    ai.answeredSearches > 0
+      ? copy("report.top.ai", { a: String(b.ai), A: String(ai.answeredSearches) })
+      : copy("report.top.google", { g: String(b.google), G: String(google.measuredSearches) });
   // A site found at least as often as every competitor leads; "can't find you" is only true at zero.
-  if (b.holder === null) return { sentence: copy(n === 0 ? "report.top.line.none" : "report.top.line.you-lead", counts) };
-  return { sentence: copy(n === 1 ? "report.top.line.one" : "report.top.line", { ...counts, rival: SLOT }), value: b.holder };
+  if (b.holder === null) return { sentence: `${copy(b.ai + b.google === 0 ? "report.top.line.none" : "report.top.line.you-lead", { category })} ${then}` };
+  return { sentence: `${copy("report.top.line", { category, competitor: SLOT })} ${then}`, value: b.holder };
 }
 
 /** The report's top: its score, who gets the buyers, then the questions it found. */

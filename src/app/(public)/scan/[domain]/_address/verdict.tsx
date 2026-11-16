@@ -45,9 +45,7 @@ const FACTOR_NAMES: Readonly<Record<ShownFactor, CopyKey>> = Object.freeze({
   presence: "verdict.factor.presence",
 });
 
-/** `score.ts`'s own tie-break order: their own page today, their own
- *  wording next, the market's answer last — Presence as its two halves
- *  where they were kept (issue 1444). */
+/** Display order only, AI before Google; the score and its biggest gap do not read it. */
 function barsOf(verdict: Verdict): readonly { factor: ShownFactor; value: Measured<number> }[] {
   const own = [
     { factor: "foundations", value: verdict.factors.foundations },
@@ -55,7 +53,7 @@ function barsOf(verdict: Verdict): readonly { factor: ShownFactor; value: Measur
   ] as const;
   return verdict.halves === undefined
     ? [...own, { factor: "presence", value: verdict.factors.presence }]
-    : [...own, { factor: "google", value: verdict.halves.google }, { factor: "ai", value: verdict.halves.ai }];
+    : [...own, { factor: "ai", value: verdict.halves.ai }, { factor: "google", value: verdict.halves.google }];
 }
 
 /** The factors are 0–100; the header speaks in tenths. */
