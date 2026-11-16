@@ -10,7 +10,7 @@
 // be recorded keeps `health` null, which no reader calls unhealthy.
 import { dbAdmin } from "@/lib/db";
 import { checkHealth, failingChecks, parseHealth, type ScanHealth, type SerpReads } from "./health";
-import type { StoredReport } from "./report";
+import type { PromptsSection, StoredReport } from "./report";
 
 interface Result<T> {
   data: T[] | null;
@@ -25,6 +25,8 @@ interface Query<T> extends PromiseLike<Result<T>> {
   gte(column: string, value: string): Query<T>;
   lt(column: string, value: string): Query<T>;
   not(column: string, operator: string, value: null): Query<T>;
+  order(column: string, options: { ascending: boolean }): Query<T>;
+  limit(count: number): Query<T>;
 }
 
 function table<T>(name: string): Query<T> {
@@ -110,6 +112,24 @@ export async function recordPassHealth(a: {
         because: error instanceof Error ? error.message : String(error),
       })
     );
+    return null;
+  }
+}
+
+/** The tracked prompts' answers of the site's newest pass that asked them and whose health was recorded and passed
+ *  (SPEC §6), so a pass still running, or one a check failed on, is never read. `null` where there is none or the read fails. */
+export async function healthyPrompts(siteId: string): Promise<PromptsSection | null> {
+  try {
+    const { data } = await scans<{ health: unknown; prompts: PromptsSection | null }>()
+      .select("health, prompts:report->prompts")
+      .eq("site_id", siteId)
+      .not("health", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(8);
+    const passed = (row: { health: unknown }) => parseHealth(row.health) !== null && failingChecks(parseHealth(row.health)).length === 0;
+    const asked = (row: { prompts: PromptsSection | null }) => Array.isArray(row.prompts?.asked) && Array.isArray(row.prompts.answers);
+    return (data ?? []).find((row) => passed(row) && asked(row))?.prompts ?? null;
+  } catch {
     return null;
   }
 }

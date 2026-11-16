@@ -18,9 +18,11 @@ export interface SupplyLedger {
   short: number;
   /** The sources that added no row. */
   dry: LedgerSource[];
+  /** `ai_gap` prompts no stored "People also ask" or related search was close enough to word. */
+  unworded: number;
 }
 
-/** The ledger's class of a topic: where buyers were seen asking it, the rival page an answer cited, the buyer's searches the model wrote, a further line the business sells, else its own source. */
+/** The ledger's class of a topic: an answer that gave a rival and not the site, where buyers were seen asking it, the rival page an answer cited, the buyer's searches the model wrote, a further line the business sells, else its own source. */
 export function ledgerSourceOf(topic: {
   source?: TopicSource | null;
   asked?: unknown;
@@ -28,6 +30,7 @@ export function ledgerSourceOf(topic: {
   written?: boolean;
   offering?: true;
 }): LedgerSource {
+  if (topic.source === "ai_gap") return "ai_gap";
   if (topic.cited !== undefined) return "cited";
   if (topic.asked !== undefined) return "asked";
   if (topic.written === true) return "written";
@@ -45,6 +48,7 @@ export function writable(row: Pick<Opportunity, "family" | "status" | "businessF
 export function supplyLedger(a: {
   stages: Partial<Record<LedgerStage, readonly LedgerSource[]>>;
   rows: readonly Pick<Opportunity, "family" | "status" | "businessFit">[];
+  unworded?: number;
 }): SupplyLedger {
   const sources = Object.fromEntries(
     LEDGER_SOURCES.map((source) => [source, Object.fromEntries(LEDGER_STAGES.map((stage) => [stage, 0]))])
@@ -58,5 +62,6 @@ export function supplyLedger(a: {
     have,
     short: Math.max(0, PLAN_DEPTH - have),
     dry: LEDGER_SOURCES.filter((source) => sources[source].added === 0),
+    unworded: a.unworded ?? 0,
   };
 }

@@ -263,6 +263,8 @@ export type Evidence =
        *  words, which needs a buyer seen asking it. Absent on every other
        *  topic, and on a composed one derived before. */
       composed?: true;
+      /** The tracked prompt whose answer gave a competitor and not the site, which this search words (`ai_gap`). */
+      prompt?: { id: string; text: string };
       /** The search's stored results page asks for a provider's own page
        *  (`derive/top-ten-kind.ts` `offeringTopTen`), so it is written as an
        *  offering page. Absent where it does not, or no fresh one is stored. */
