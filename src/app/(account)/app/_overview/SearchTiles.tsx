@@ -17,7 +17,7 @@ import type { GooglePages } from "./google-pages";
 import type { MarketTile } from "./search-model";
 import type { VisitWeek } from "@/lib/publish/reads/model";
 import { ReadsBars } from "@/ui/charts/ReadsBars";
-import { shortDay } from "./Figures";
+import { shortDay } from "./GooglePages";
 
 const INK = "text-base-content/70";
 const VISITS_CHART = copy("overview.search.visits.chart");

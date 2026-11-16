@@ -962,43 +962,12 @@ export const OVERVIEW_COPY = Object.freeze({
     "Stop: it won’t go live. Tomorrow’s page is not affected.",
     { slots: {}, fixedBy: "issue 1605 (drafted) · board Main v36, issue 2272" },
   ],
-  // Six words at most (SPEC §0; owner R12, B12).
-  "overview.ladder.title": ["How far your {n} pages got", { slots: { n: "text" }, fixedBy: "issue 1605 (drafted)" }],
   // A page published since the last reading is left out of each step's count.
   "overview.ladder.unread": ["{k} not checked yet", { slots: { k: "text" }, fixedBy: "issue 1876 (drafted)" }],
-  "overview.ladder.of": ["of {n}", { slots: { n: "text" }, fixedBy: "board Main v36, issue 2272 (drafted)" }],
-  "overview.ladder.first-page": ["First page", { slots: {}, fixedBy: "board Main v36, issue 2272 (drafted)" }],
-  "overview.ladder.climbing": ["{n} climbing", { slots: { n: "text" }, fixedBy: "issue 1605 (drafted)" }],
-  // Search Console's clicks are summed over the reading's window, not one week.
-  "overview.ladder.visits": [
-    "{n} visits from Google",
-    { slots: { n: "text" }, fixedBy: "issue 1605 (drafted) · issue 1615: counted on the hosted pages · board Main v36" },
-  ],
-  "overview.ladder.this-week": ["this week", { slots: {}, fixedBy: "board Main v36, issue 2272 (drafted)" }],
-  "overview.ladder.how.title": ["How long each step takes", { slots: {}, fixedBy: "issue 1605 (drafted)" }],
-  "overview.ladder.how.google": [
-    "Pages show on Google within weeks. Google’s first page takes months, and not every page gets there.",
-    { slots: {}, fixedBy: "issue 1605 (drafted)" },
-  ],
-  "overview.ladder.how.ai": [
-    "AI can read a page within days, often before Google shows it. Visits from AI are few, so each is a bonus.",
-    { slots: {}, fixedBy: "issue 1605 (drafted)" },
-  ],
-  // Before any page shows in results; the steps above already say what was found and read.
-  "overview.ladder.week1": [
-    "{live} pages are live. Showing on Google usually takes weeks.",
-    { slots: { live: "text" }, fixedBy: "issue 1605 (drafted) · board Main v36, issue 2272" },
-  ],
   // ── The head, this week's pages, the site-fix line and the states without
   // a today card (board Main). Drafted (#759), the owner corrects them.
   "overview.head.eyebrow": ["Week {n} · {day}", { slots: { n: "text", day: "date" }, fixedBy: "issue 1744 (drafted)" }],
   "overview.head.title": ["Nothing needs you this week", { slots: {}, fixedBy: "issue 1744 (drafted)" }],
-  "overview.head.lead.live": [
-    "{live} pages are live and {showing} show on Google.",
-    { slots: { live: "text", showing: "text" }, fixedBy: "issue 1744 (drafted)" },
-  ],
-  // No reading yet: how many show in Google is not known, so it is not said.
-  "overview.head.lead.live-unread": ["{live} of your pages are live.", { slots: { live: "text" }, fixedBy: "issue 1744 (drafted)" }],
   "overview.head.lead.chosen": [
     "This week’s {n} were picked this morning.",
     { slots: { n: "text" }, fixedBy: "issue 1744 (drafted)" },
@@ -1029,37 +998,32 @@ export const OVERVIEW_COPY = Object.freeze({
   ],
   "overview.paused.action": ["Turn publishing on", { slots: {}, fixedBy: "issue 1744 (drafted)" }],
 
-  // Board Main's figures: this week's AI reads under the ladder, the best
-  // mover, then the ones that move over months (owner 2026-10-19, the simple
-  // model). Drafted (#759).
-  "overview.ai.line.reads": ["{n} AI reads", { slots: { n: "text" }, fixedBy: "board Main v36, issue 2272 (drafted)" }],
-  "overview.ai.line.read": ["{n} AI read", { slots: { n: "text" }, fixedBy: "board Main v36, issue 2272 (drafted)" }],
-  "overview.ai.line.up": ["this week, up from {n}", { slots: { n: "text" }, fixedBy: "board Main v36, issue 2272 (drafted)" }],
-  "overview.ai.line.down": ["this week, down from {n}", { slots: { n: "text" }, fixedBy: "board Main v36, issue 2272 (drafted)" }],
-  "overview.ai.line.same": ["this week, the same as last week", { slots: {}, fixedBy: "board Main v36, issue 2272 (drafted)" }],
-  // No earlier week was counted, so there is nothing to compare with and no "up from 0".
-  "overview.ai.line.first": ["this week, the first week we counted", { slots: {}, fixedBy: "board Main v36, issue 2272 (drafted)" }],
-  "overview.ai.reads.none": ["No AI app read your pages this week.", { slots: {}, fixedBy: "issue 1615 (drafted)" }],
-  "overview.mover.title": ["Best mover this week", { slots: {}, fixedBy: "issue 1615 (drafted) · owner E2" }],
-  "overview.mover.place": ["place in Google", { slots: {}, fixedBy: "issue 1615 (drafted)" }],
-  "overview.mover.up": ["up {n} since {date}", { slots: { n: "text", date: "date" }, fixedBy: "issue 1615 (drafted)" }],
-  "overview.mover.climbing": [
-    "Still climbing, so we leave it alone.",
-    { slots: {}, fixedBy: "issue 1615 (drafted)" },
+  // ── Your results so far: three totals that only rise (owner 2026-11-16, #2737).
+  // "Mentioned", never "named"; the AI line never says the count is ReachKit's doing.
+  "overview.totals.title": ["Your results so far", { slots: {}, fixedBy: "owner 2026-11-16 · issue 2737 (drafted)" }],
+  "overview.totals.ai.label": ["Times AI mentioned you", { slots: {}, fixedBy: "owner 2026-11-16 · issue 2737" }],
+  "overview.totals.google.label": ["Google searches that have shown you", { slots: {}, fixedBy: "owner 2026-11-16 · issue 2737" }],
+  "overview.totals.pages.label": ["Pages published so far", { slots: {}, fixedBy: "owner 2026-11-16 · issue 2737" }],
+  "overview.totals.added": ["+{n} this week", { slots: { n: "text" }, fixedBy: "issue 2737 (drafted)" }],
+  // Flat is said as flat, never "+0".
+  "overview.totals.added.none": ["None new this week", { slots: {}, fixedBy: "issue 2737 (drafted)" }],
+  // The first count is a starting point, not this week's gain.
+  "overview.totals.first": ["First count, {date}", { slots: { date: "date" }, fixedBy: "issue 2737 (drafted)" }],
+  "overview.totals.first.due": ["First count on {date}", { slots: { date: "date" }, fixedBy: "issue 2737 (drafted)" }],
+  "overview.totals.unread.ai": ["We couldn’t check AI this week", { slots: {}, fixedBy: "issue 2737 (drafted)" }],
+  "overview.totals.unmeasured.sr": ["Not counted yet", { slots: {}, fixedBy: "issue 2737 (drafted)" }],
+  "overview.totals.how.title": ["What these numbers count", { slots: {}, fixedBy: "owner 2026-11-16 · issue 2737 (drafted)" }],
+  "overview.totals.how.ai": [
+    "Each week we ask AI the questions your buyers ask. This counts answers that mention or link you, not visits.",
+    { slots: {}, fixedBy: "issue 2737 (drafted)" },
   ],
-  "overview.mover.none": [
-    "No page moved up this week. Pages climb over weeks, not days.",
-    { slots: {}, fixedBy: "issue 1615 (drafted)" },
+  "overview.totals.how.ai.brand": ["Questions that use your business name are not counted.", { slots: {}, fixedBy: "issue 2737 (drafted)" }],
+  "overview.totals.how.google": [
+    "Searches where a page we published appeared in Google’s first 10 pages of results. Each search counts once.",
+    { slots: {}, fixedBy: "issue 2737 (drafted)" },
   ],
-  "overview.months.title": ["Checked monthly", { slots: {}, fixedBy: "issue 1615 (drafted) · board Main v36" }],
-  "overview.months.checked": ["Next on {date}", { slots: { date: "date" }, fixedBy: "issue 1615 (drafted) · board Main v36" }],
-  "overview.months.first": ["First reading on {date}.", { slots: { date: "date" }, fixedBy: "issue 1615 (drafted)" }],
-  "overview.months.of": ["of {of}", { slots: { of: "text" }, fixedBy: "issue 1615 (drafted)" }],
-  "overview.months.score": ["Visibility Score", { slots: {}, fixedBy: "issue 1615 (drafted)" }],
-  "overview.months.score.up": ["up from {n} at your free scan", { slots: { n: "text" }, fixedBy: "issue 1615 (drafted)" }],
-  "overview.months.score.down": ["down from {n} at your free scan", { slots: { n: "text" }, fixedBy: "issue 1615 (drafted)" }],
-  "overview.months.score.same": ["same as at your free scan", { slots: {}, fixedBy: "issue 1615 (drafted)" }],
-  "overview.months.market": ["searches on Google’s first page", { slots: {}, fixedBy: "issue 1615 (drafted)" }],
-  "overview.months.market.up": ["searches on Google’s first page, up from {n}", { slots: { n: "text" }, fixedBy: "issue 1615 (drafted)" }],
-  "overview.months.market.down": ["searches on Google’s first page, down from {n}", { slots: { n: "text" }, fixedBy: "issue 1615 (drafted)" }],
+  "overview.totals.how.pages": [
+    "Every page we have published on your site. A page you stopped later still counts, because it went live.",
+    { slots: {}, fixedBy: "issue 2737 (drafted)" },
+  ],
 }) satisfies CopyPartition;

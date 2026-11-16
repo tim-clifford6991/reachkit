@@ -1,6 +1,5 @@
 // SPEC §4 (board Main) — the head of Overview: the week and the day, whether
-// anything needs the customer, and in one line how many pages are live, how
-// many show in Google and when this week's were chosen.
+// anything needs the customer, and in one line when this week's pages were chosen.
 import type React from "react";
 import Link from "next/link";
 

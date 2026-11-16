@@ -58,9 +58,3 @@ export const readGoogleVisitWeeks = cache(async function readGoogleVisitWeeks():
   ]);
   return readSearchVisitsWeekly({ siteId: account.siteId, now: now() }).catch(() => null);
 });
-
-/** Visits from Google search this week; `null` where they cannot be counted. */
-export const readGoogleVisits = cache(async function readGoogleVisits(): Promise<number | null> {
-  const weeks = await readGoogleVisitWeeks();
-  return weeks === null ? null : (weeks.at(-1)?.visits ?? 0);
-});

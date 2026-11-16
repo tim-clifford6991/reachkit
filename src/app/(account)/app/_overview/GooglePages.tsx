@@ -3,13 +3,17 @@
 import type React from "react";
 import Link from "next/link";
 import { copy } from "@/lib/presentation/copy";
-import { formatCount } from "../_shell/format";
-import { shortDay } from "./Figures";
+import { formatCount, SHELL_LOCALE } from "../_shell/format";
 import { LabelBadge } from "../_shell/verdict";
 import { searchKey, type Planned } from "./search-model";
 import type { GooglePageRow, GooglePages as Model, PlaceLine } from "./google-pages";
 
 const SHOWN = 6;
+
+/** "Oct 5": a week or a reading as the Google tab names it. */
+export function shortDay(at: Date, timeZone: string): string {
+  return new Intl.DateTimeFormat(SHELL_LOCALE, { timeZone, month: "short", day: "numeric" }).format(at);
+}
 const INK = "text-base-content/70";
 
 function lineText(line: PlaceLine, timeZone: string): string {
