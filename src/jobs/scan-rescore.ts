@@ -57,7 +57,14 @@ async function rescore(input: JobInput): Promise<Outcome> {
 /** SPEC §7: each paying site's week re-committed once per planner deploy, after its dry run; 0¢. */
 async function replanWeeks(input: JobInput): Promise<Outcome> {
   const { replanSites } = await import("@/lib/scan/replan");
-  const result = await replanSites(async () => (await activeSites()).sites, { now: input.now, ...(input.step === undefined ? {} : { step: input.step }) });
+  let result: Awaited<ReturnType<typeof replanSites>>;
+  try {
+    result = await replanSites(async () => (await activeSites()).sites, { now: input.now, ...(input.step === undefined ? {} : { step: input.step }) });
+  } catch (error) {
+    // A failed re-plan never stops the hour's re-score.
+    console.warn(JSON.stringify({ event: "week_replan_failed", errorClass: error instanceof Error ? error.name : "unknown" }));
+    return { outcome: "degraded", subjectId: null, step: "replan-failed" };
+  }
   if (result === null) return { outcome: "skipped", subjectId: null, reason: "no-subject" };
   return result.held.length > 0 ? { outcome: "degraded", subjectId: null, step: "replan-held" } : { outcome: "ran", subjectId: null };
 }
