@@ -120,7 +120,7 @@ export async function deriveForPass(
   const derivation =
     derived === null
       ? { derived: "not_run" as const, because: "spend_ceiling" as const, spentCents: c.spentCents() }
-      : { derived: derived.created.length, have: derived.supply.have, short: derived.supply.short, dry: derived.supply.dry };
+      : { derived: derived.created.length, have: derived.supply.have, short: derived.supply.short, dry: derived.supply.dry, unworded: derived.supply.unworded };
   console.log(JSON.stringify({ event: "supply_pass", tier: a.tier, siteId: a.siteId, scanId: a.report.scanId, added, ...derivation }));
   // Kept as a row so the daily check can tell a thin pass from a source that ran dry.
   if (derived !== null && derived.supply.short > 0) {

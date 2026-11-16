@@ -31,6 +31,7 @@ import { judgeFit, type FitSearch } from "./fit";
 import { askedOfReport, askedSupply, askedTopics, brandsOf, citedTopics, type AskedSupply, candidateFor, comparisonWithoutDemand, namesOwnOnly, noLongerRelevant, productsNamed, proposedTopics, rivalBrandOnly, rivalNamesOf, rivalPriceOf, sourceOf } from "./topics";
 import { judgeTyped, writeBuyerSearches } from "./buyer-searches";
 import { ledgerSourceOf, supplyLedger, writable, type LedgerSource, type SupplyLedger } from "./ledger";
+import { promptGaps } from "@/lib/market/prompts/gaps";
 
 export interface DeriveInput {
   siteId: string;
@@ -248,12 +249,18 @@ export async function deriveOpportunities(
   const asked = askedTopics(seen, a.report.verdict.measuredAt);
   const ownSearches = [...planned.filter(ownNewPage).flatMap((row) => row.targetQuery ?? []), ...written, ...askedTopics(seen, a.report.verdict.measuredAt, Infinity).map((topic) => topic.query)];
   const ownBrand = new Set(ownSearches.filter((query) => namesOwnOnly(query, named)).map(queryKey)).size;
-  const proposing = proposedTopics({
+  const taken = [...derived, ...held].flatMap((row) => row.targetQuery ?? []);
+  const room = Math.max(0, TOPIC_FIT.maxCandidates - judgedHere.length - HELD_ROWS_JUDGED);
+  const searchRivals = a.report.rivals.kind === "measured" ? a.report.rivals.value.map((rival) => rival.domain) : [];
+  // SPEC §6 (owner, 2026-11-16): an earlier healthy pass's answers, as this pass checks its health after deriving and its late answers land later still.
+  const answered = await import("@/lib/scan/health-record").then(({ healthyPrompts }) => healthyPrompts(a.siteId)).catch(() => null);
+  const { gaps, unworded } = promptGaps({ section: answered, competitors: [...business, ...searchRivals], asked: askedTopics(seen, a.report.verdict.measuredAt, Infinity), taken, market, ...named, max: room });
+  const proposing = [...gaps, ...proposedTopics({
     report: a.report,
     market,
-    taken: [...derived, ...held].flatMap((row) => row.targetQuery ?? []),
+    taken: [...taken, ...gaps.map((gap) => gap.query)],
     ownRanked,
-    max: Math.max(0, TOPIC_FIT.maxCandidates - judgedHere.length - HELD_ROWS_JUDGED),
+    max: room - gaps.length,
     comparisons,
     written,
     language: locale.language,
@@ -263,11 +270,11 @@ export async function deriveOpportunities(
     area: a.area ?? null,
     cited: citedTopics({
       answers: a.report.prompts?.answers ?? [],
-      competitors: [...business, ...(a.report.rivals.kind === "measured" ? a.report.rivals.value.map((rival) => rival.domain) : [])],
+      competitors: [...business, ...searchRivals],
       searched: seen.map((serp) => serp.term),
       language: locale.language,
     }),
-  });
+  })];
   // Never judged again where a row on the search was dismissed (issue 1549).
   const offered = proposing.filter((topic) => {
     const volume = topic.volume === null ? null : measured(topic.volume, a.report.verdict.measuredAt);
@@ -469,7 +476,7 @@ export async function deriveOpportunities(
   const { created, duplicates } = await persist({ candidates: plan.insert });
   const topFit = (index: number) => (fits.get(index)?.fit ?? 0) >= TOPIC_FIT.writeAt;
   const classOfRow = (row: Candidate) => classOf.get(queryKey(row.targetQuery ?? "")) ?? ledgerSourceOf(row);
-  for (const question of questions) classOf.set(queryKey(question.targetQuery ?? ""), "asked");
+  for (const question of questions) classOf.set(queryKey(question.targetQuery ?? ""), ledgerSourceOf({ source: question.source, asked: true }));
   const unjudgedFit = new Map(unjudged.map((row, index) => [row.id, fits.get(judgedHere.length + index)?.fit ?? row.businessFit ?? null]));
   const dismissedNow = new Set(plan.dismiss);
   const supply = supplyLedger({
@@ -487,6 +494,7 @@ export async function deriveOpportunities(
       ...existing.filter((row) => !dismissedNow.has(row.id)).map((row) => ({ ...row, businessFit: unjudgedFit.get(row.id) ?? row.businessFit })),
       ...created,
     ],
+    unworded,
   });
   // A candidate the collapse folded into a row already held is that row's
   // duplicate: an equivalent open or queued opportunity exists.

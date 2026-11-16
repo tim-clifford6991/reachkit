@@ -1,7 +1,6 @@
-// SPEC §6 *Topics by business fit*: where a topic comes from, and the write targets a pass proposes from the
-// business outward. Pure. `sourceOf` decides a search's source from its own words, never `ai_gap`, which only
-// `derive/write.ts` may claim as a measured fact. `proposedTopics` are the searches beside the twelve measured;
-// the pass's one fit judgement (`derive/fit.ts`) writes down only those at fit 3, even below the volume floor.
+// SPEC §6 *Topics by business fit*: where a topic comes from, and the write targets a pass proposes from the business outward.
+// Pure. `sourceOf` reads a search's own words, never `ai_gap`, which only a measured answer claims (`write.ts`, `market/prompts/gaps.ts`).
+// `proposedTopics` are the searches beside the twelve measured; the one fit judgement writes down only those at fit 3.
 import { PRICE_FILLER, SHAPES, languagePack } from "@/lib/locale/language";
 import { LANGUAGES, measuredLocale, type Language } from "@/lib/locale/locales";
 import { ASKED_TOPICS, CONTENT_MIX, EFFORT_BY_TYPE, TOPIC_FIT } from "@/lib/config/constants";
@@ -21,14 +20,7 @@ import { demandBand } from "../winnability/band";
 import { qualifyingDemand } from "../winnability/bars";
 import { slugify, type Candidate } from "./candidate";
 
-// Every supported language's words for each shape (D66).
-const BEST_X = SHAPES.best;
-const PRODUCT_SHAPES = SHAPES.product;
-const COMPARISON_SHAPES = SHAPES.comparison;
-const PROBLEM_SHAPES = SHAPES.problem;
-const VERSUS = SHAPES.versus;
-/** A "vs" that also asks for alternatives, a price or an integration is
- *  anchored on a product by those words. */
+/** A "vs" that also asks for alternatives, a price or an integration is anchored on a product by those words. */
 const COMPARISON_ONLY_BY_NAME = new RegExp(`${SHAPES.alternatives.source}|${SHAPES.price.source}`, "u");
 
 /** A search or a name as these rules compare it: lower case, punctuation
@@ -38,8 +30,7 @@ function normalise(text: string): string {
   return text.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim().replace(/\s+/g, " ");
 }
 
-/** Accents folded, for telling whether a name is said: a buyer types "zuni
- *  cafe" for Zuni Café. */
+/** Accents folded, for telling whether a name is said: a buyer types "zuni cafe" for Zuni Café. */
 function folded(text: string): string {
   return text.normalize("NFKD").replace(/[\u0300-\u036f]/g, "");
 }
@@ -58,22 +49,17 @@ function names(text: string, brands: readonly string[]): boolean {
  * two things are, and no product is its subject. `products` are the other
  * products a pass read a brand volume for, which a "vs" may name too.
  */
-export function sourceOf(
-  query: string,
-  a: { brands: readonly string[]; products?: readonly string[] }
-): Exclude<TopicSource, "ai_gap"> {
+export function sourceOf(query: string, a: { brands: readonly string[]; products?: readonly string[] }): Exclude<TopicSource, "ai_gap"> {
   const text = normalise(query);
   if (names(text, a.brands.map(normalise))) return "product";
-  if (BEST_X.test(text)) return "best_x";
-  if (VERSUS.test(text) && !COMPARISON_ONLY_BY_NAME.test(text) && !names(text, (a.products ?? []).map(normalise))) {
+  if (SHAPES.best.test(text)) return "best_x";
+  if (SHAPES.versus.test(text) && !COMPARISON_ONLY_BY_NAME.test(text) && !names(text, (a.products ?? []).map(normalise))) {
     return "category";
   }
-  if (PRODUCT_SHAPES.test(text)) return "product";
-  if (PROBLEM_SHAPES.test(text)) return "problem";
+  if (SHAPES.product.test(text)) return "product";
+  if (SHAPES.problem.test(text)) return "problem";
   return "category";
 }
-
-const PRICE_SHAPES = SHAPES.price;
 
 /**
  * SPEC §6 (2026-10-03, issue 1208): a rival's own price is a topic only as
@@ -90,7 +76,7 @@ export function rivalPriceOf(
   a: { own: readonly string[]; ownSearched: boolean; rivals: readonly { name: string; domain: string }[]; language?: Language }
 ): { rival: string; comparison: string | null } | null {
   const text = normalise(query);
-  if (!PRICE_SHAPES.test(text) || COMPARISON_SHAPES.test(text) || names(text, a.own)) return null;
+  if (!SHAPES.price.test(text) || SHAPES.comparison.test(text) || names(text, a.own)) return null;
   for (const rival of a.rivals) {
     const name = normalise(rival.name);
     if (name.length <= 2 || !` ${text} `.includes(` ${name} `)) continue;
@@ -120,7 +106,7 @@ export function comparisonWithoutDemand(
   a: { market: MarketConclusion | null; own: readonly string[] }
 ): boolean {
   const text = normalise(query);
-  if (!COMPARISON_SHAPES.test(text)) return false;
+  if (!SHAPES.comparison.test(text)) return false;
   const namesOwn = names(text, a.own);
   const standing = a.market?.rivals ?? [];
   const rivals = standing.filter((rival) => names(text, [normalise(rival.name), brandOf(rival.domain)]));
@@ -225,14 +211,12 @@ export function rivalNamesOf(a: { report: StoredReport; market: MarketConclusion
 /** A search the pass proposes, before its fit is known. */
 export interface ProposedTopic {
   query: string;
-  source: Exclude<TopicSource, "ai_gap">;
-  /** The demand the pass read for it, where its market set carried the
-   *  search; `null` where nothing measured it. */
+  source: TopicSource;
+  /** The demand the pass read for it, where its market set carried the search; `null` where nothing measured it. */
   volume: number | null;
   /** The rival the search names, where it names one. */
   rival: string | null;
-  /** Where buyers were seen asking it (issue 1519): the search whose SERP
-   *  showed it and when that SERP was bought. */
+  /** Where buyers were seen asking it (issue 1519): the search whose SERP showed it and when that SERP was bought. */
   asked?: { term: string; serpAt: Date };
   /** Issue 1520: a search ReachKit composed from the market's own words
    *  (`composedSearches`), not one anyone was seen typing. */
@@ -241,6 +225,8 @@ export interface ProposedTopic {
   offering?: true;
   /** The competitor's page an AI answer linked, which proposed it. */
   cited?: string;
+  /** The tracked prompt whose answer gave a competitor and not the site (`market/prompts/gaps.ts`). */
+  prompt?: { id: string; text: string };
 }
 
 /** A competitor's page an AI answer linked, as the search it answers. */
@@ -250,8 +236,7 @@ export interface CitedTopic {
   url: string;
 }
 
-/** A page's subject, from the last segment of its address: two to six
- *  words, none a number. */
+/** A page's subject, from the last segment of its address: two to six words, none a number. */
 function subjectOf(page: string): string | null {
   try {
     const last = new URL(page).pathname.split("/").filter(Boolean).at(-1) ?? "";
@@ -302,8 +287,7 @@ function phrase(text: string, maxWords: number): string | null {
   return cleaned.split(" ").length > maxWords ? null : cleaned.toLowerCase();
 }
 
-/** The brands a search may name: the site's own tokens and each rival's
- *  name and domain label. */
+/** The brands a search may name: the site's own tokens and each rival's name and domain label. */
 export function brandsOf(a: {
   report: StoredReport;
   market: MarketConclusion | null;
@@ -386,8 +370,7 @@ export interface AskedBeside {
   term: string;
   peopleAlsoAsk: readonly string[];
   related: readonly string[];
-  /** When the SERP was bought (issue 1519). Absent where the reader did
-   *  not say. */
+  /** When the SERP was bought (issue 1519). Absent where the reader did not say. */
   at?: Date;
 }
 
@@ -443,7 +426,7 @@ export function askedTopics(asked: readonly AskedBeside[], now: Date, max: numbe
  *  a name search wants the business's own site, never a new page. */
 export function namesOwnOnly(query: string, a: { own: readonly string[]; rivals: readonly string[] }): boolean {
   const text = normalise(query);
-  return names(text, a.own) && !(VERSUS.test(text) && names(text, a.rivals));
+  return names(text, a.own) && !(SHAPES.versus.test(text) && names(text, a.rivals));
 }
 
 /** Whether a question buyers were seen asking is a topic for this site
@@ -468,7 +451,7 @@ export function namesAnyBrand(query: string, brands: readonly string[]): boolean
  *  review of 2026-10-18). The query's own SERP does not count. */
 export function askedBesideTerms(query: string, asked: readonly AskedBeside[]): boolean {
   const text = normalise(query);
-  const wanted = text.split(" ").filter((word) => word !== "" && !VERSUS.test(word));
+  const wanted = text.split(" ").filter((word) => word !== "" && !SHAPES.versus.test(word));
   if (wanted.length === 0) return false;
   return asked.some((serp) => {
     if (normalise(serp.term) === text) return false;
@@ -750,7 +733,7 @@ export function candidateFor(
 
   const volume: Measured<number> =
     topic.volume === null ? unmeasured<number>("not_attempted", at) : measured(topic.volume, at);
-  const type: OpportunityType = COMPARISON_SHAPES.test(topic.query) ? "comparison_page" : "keyword_page";
+  const type: OpportunityType = SHAPES.comparison.test(topic.query) ? "comparison_page" : "keyword_page";
   const evidence: Evidence = {
     family: "write",
     query: topic.query,
@@ -762,6 +745,7 @@ export function candidateFor(
     },
     ...(topic.asked === undefined ? {} : { askedBeside: topic.asked }),
     ...(topic.composed === undefined ? {} : { composed: true as const }),
+    ...(topic.prompt === undefined ? {} : { prompt: topic.prompt }),
   };
   return {
     siteId: a.siteId,
