@@ -24,6 +24,8 @@
 // scoring change that leaves it alone reads no stored page again. From
 // `src/lib/measure/text.ts`, with the pinned HTML parser's version, it is the
 // text version (`RK_TEXT_VERSION`) that keys a stored read's text (`fetch_text`).
+// From `src/lib/opportunities/plan.ts` it is the planner (`RK_PLANNER`): the code a
+// week is chosen with, so the `scan/rescore` tick re-commits each site's week once it moves.
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
@@ -32,6 +34,7 @@ import ts from "typescript";
 const ENTRY = "src/lib/scan/rescore-run.ts";
 const FACTS_ENTRY = "src/lib/scan/page-facts.ts";
 const TEXT_ENTRY = "src/lib/measure/text.ts";
+const PLAN_ENTRY = "src/lib/opportunities/plan.ts";
 const PARSER = "node-html-parser";
 const SCOPE = "src/lib/";
 const ALL = "*";
@@ -241,10 +244,21 @@ export function textVersion(root = process.cwd()) {
   return createHash("sha256").update(derivation(root, TEXT_ENTRY)).update("\0").update(parser).digest("hex").slice(0, 12);
 }
 
+/** The files a week is chosen and committed with. */
+export function plannerFiles(root = process.cwd()) {
+  return [...walk(root, PLAN_ENTRY).keys()].sort();
+}
+
+/** The fingerprint of that code. */
+export function plannerVersion(root = process.cwd()) {
+  return derivation(root, PLAN_ENTRY);
+}
+
 if (import.meta.url === `file://${process.argv[1]}`) {
   const files = derivationFiles();
   if (process.argv.includes("--files")) for (const file of files) console.log(file);
   console.log(`${derivation()} (${files.length} files)`);
   console.log(`facts ${factsVersion()} (${factsFiles().length} files)`);
   console.log(`text ${textVersion()} (${textFiles().length} files)`);
+  console.log(`planner ${plannerVersion()} (${plannerFiles().length} files)`);
 }

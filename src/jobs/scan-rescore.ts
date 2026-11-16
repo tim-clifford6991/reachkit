@@ -18,8 +18,11 @@
 //
 // Not in the kill switch's scope: it buys nothing and asks no model, and the
 // network is refused while a scan is scored.
-import { answerRescore, claimRescore, rescoreDue } from "@/jobs/engine";
-import type { JobDefinition, Outcome } from "./types";
+//
+// The same tick re-commits each paying site's week once per planner deploy
+// (SPEC §7, `src/lib/scan/replan.ts`), after a dry run it logs; a held week is `replan-held`.
+import { activeSites, answerRescore, claimRescore, rescoreDue } from "@/jobs/engine";
+import type { JobDefinition, JobInput, Outcome } from "./types";
 
 // Hourly at :07, off :00–:02 and every other job's minute; a re-score after a deploy starts within the hour.
 export const RESCORE_TICK_CRON = "7 * * * *";
@@ -28,16 +31,40 @@ export const scanRescore: JobDefinition = {
   id: "scan/rescore",
   trigger: { kind: "cron", cron: RESCORE_TICK_CRON },
   idempotencyKey: [],
+  // One tick at a time, so two cannot re-commit one site's week together.
+  concurrency: [{ limit: 1 }],
   async run(input): Promise<Outcome> {
-    const step = input.step;
-    if (!(await rescoreDue())) return { outcome: "skipped", subjectId: null, reason: "no-subject" };
-    const request = step === undefined ? await claimRescore(input.now) : await step("claim", () => claimRescore(input.now));
-    if (request === null) return { outcome: "skipped", subjectId: null, reason: "no-subject" };
-    if ("held" in request) return { outcome: "degraded", subjectId: null, step: "rescore-held" };
-    const answer = () => answerRescore({ request, now: input.now });
-    const result = step === undefined ? await answer() : await step(`answer-${request.id}`, answer);
-    return "degraded" in result
-      ? { outcome: "degraded", subjectId: request.id, step: result.degraded }
-      : { outcome: "ran", subjectId: request.id };
+    const replanned = await replanWeeks(input);
+    const rescored = await rescore(input);
+    if (replanned.outcome !== "degraded") return rescored.outcome === "skipped" ? replanned : rescored;
+    return rescored.outcome === "degraded" ? { ...rescored, step: `${rescored.step},${replanned.step}` } : replanned;
   },
 };
+
+async function rescore(input: JobInput): Promise<Outcome> {
+  const step = input.step;
+  if (!(await rescoreDue())) return { outcome: "skipped", subjectId: null, reason: "no-subject" };
+  const request = step === undefined ? await claimRescore(input.now) : await step("claim", () => claimRescore(input.now));
+  if (request === null) return { outcome: "skipped", subjectId: null, reason: "no-subject" };
+  if ("held" in request) return { outcome: "degraded", subjectId: null, step: "rescore-held" };
+  const answer = () => answerRescore({ request, now: input.now });
+  const result = step === undefined ? await answer() : await step(`answer-${request.id}`, answer);
+  return "degraded" in result
+    ? { outcome: "degraded", subjectId: request.id, step: result.degraded }
+    : { outcome: "ran", subjectId: request.id };
+}
+
+/** SPEC §7: each paying site's week re-committed once per planner deploy, after its dry run; 0¢. */
+async function replanWeeks(input: JobInput): Promise<Outcome> {
+  const { replanSites } = await import("@/lib/scan/replan");
+  let result: Awaited<ReturnType<typeof replanSites>>;
+  try {
+    result = await replanSites(async () => (await activeSites()).sites, { now: input.now, ...(input.step === undefined ? {} : { step: input.step }) });
+  } catch (error) {
+    // A failed re-plan never stops the hour's re-score.
+    console.warn(JSON.stringify({ event: "week_replan_failed", errorClass: error instanceof Error ? error.name : "unknown" }));
+    return { outcome: "degraded", subjectId: null, step: "replan-failed" };
+  }
+  if (result === null) return { outcome: "skipped", subjectId: null, reason: "no-subject" };
+  return result.held.length > 0 ? { outcome: "degraded", subjectId: null, step: "replan-held" } : { outcome: "ran", subjectId: null };
+}

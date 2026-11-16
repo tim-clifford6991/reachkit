@@ -67,8 +67,16 @@ export type OpsIncident =
       attempts: number;
       failed: readonly { rule: string; sentences: readonly string[] }[];
     }
+  // No error: a planner deploy re-committed each site's week. Owner-only, so each site is named with its old and new week.
+  | {
+      occasion: "replan-committed";
+      fingerprint: string;
+      sites: readonly { domain: string; from: string; before: readonly ReplanRow[]; after: readonly ReplanRow[]; unmeasured: readonly string[]; held: string | null }[];
+    }
   // No error: DataForSEO credit runs out within a week. Days left is null where last week's spend was not measured.
   | { occasion: "vendor-low"; balanceCents: number; daysLeft: number | null; dashboard: string };
+
+type ReplanRow = { date: string | null; search: string | null; page: string; type: string; points: number | null };
 
 const SUBJECT = "mail.ops.incident.subject" satisfies CopyKey;
 const HEADING = "mail.ops.incident.heading" satisfies CopyKey;
@@ -89,6 +97,7 @@ const BODY: Readonly<Record<OpsIncident["occasion"], CopyKey>> = Object.freeze({
   "autopilot-stalled": "mail.ops.incident.autopilot-stalled",
   "draft-stopped-twice": "mail.ops.incident.draft-stopped-twice",
   "vendor-low": "mail.ops.incident.vendor-low",
+  "replan-committed": "ops.replan.committed",
 });
 
 /** A stopped page's sentence on one line, cut where a mail row stops being readable. */
@@ -165,6 +174,22 @@ function factsOf(incident: OpsIncident): FactRow[] {
       { label: "mail.ops.incident.fact.balance", value: `$${(incident.balanceCents / 100).toFixed(2)}` },
       ...(incident.daysLeft === null ? [] : [{ label: "mail.ops.incident.fact.days-left", value: count(Math.floor(incident.daysLeft)) } as const]),
       { label: "mail.ops.incident.fact.dashboard", value: incident.dashboard },
+    ];
+  }
+  if (incident.occasion === "replan-committed") {
+    // A planner is hex, which may start with a digit.
+    const planner = /^[0-9a-z-]{1,40}$/i.test(incident.fingerprint) ? incident.fingerprint : "unknown";
+    const row = (r: ReplanRow) => sentenceValue(`${r.date ?? "spare"} · ${r.search ?? "—"} · ${r.page} · ${r.type} · ${r.points ?? "—"}`);
+    return [
+      { label: "ops.replan.fact.planner", value: planner },
+      ...incident.sites.flatMap((site): FactRow[] => [
+        { label: "mail.ops.incident.fact.site", value: closedDomain(site.domain) },
+        { label: "ops.replan.fact.from", value: closedDate(site.from) },
+        { label: "ops.replan.fact.unmeasured", value: site.unmeasured.map(closedName).join(", ") || "—" },
+        ...(site.held === null ? [] : [{ label: "ops.replan.fact.held", value: sentenceValue(site.held) } as const]),
+        ...site.before.map((r): FactRow => ({ label: "ops.replan.fact.committed", value: row(r) })),
+        ...site.after.map((r): FactRow => ({ label: "ops.replan.fact.replanned", value: row(r) })),
+      ]),
     ];
   }
   if (incident.occasion === "market-too-small") {
