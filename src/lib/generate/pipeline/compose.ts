@@ -22,8 +22,6 @@
 //
 // Deterministic, no I/O.
 import { PAGE_BLOCKS, TITLE } from "@/lib/config/constants";
-import { LANGUAGE_PACKS, languagePack } from "@/lib/locale/language";
-import type { Language } from "@/lib/locale/locales";
 import { FACT_LABEL_RE } from "../rules/blocks";
 import { SENTENCE_END_RE, isQuestionShaped, renderOf, sourceBlocksOf } from "../rules/text";
 import type { Template } from "../templates";
@@ -51,9 +49,6 @@ export interface TidyInputs {
   /** What the business does not claim, taken out of each proposed title and
    *  the description (`unclaimedSuperlatives`). Absent, nothing is. */
   unclaimed?: (line: string) => string;
-  /** The page's language, whose function words a cut description may not
-   *  end on. Absent, no language's may. */
-  language?: Language;
 }
 
 const collapse = (text: string): string => text.replace(/\s+/g, " ").trim();
@@ -354,23 +349,26 @@ function headingOf(text: string, proper: ReadonlySet<string>, cased: ReadonlyMap
   return heading.endsWith("?") || !isQuestionShaped(heading) ? heading : `${heading.replace(/[.:!]+$/, "")}?`;
 }
 
-/** The words that own a capital somewhere in `texts` — "ChatGPT", "AI",
- *  "WordPress" — by their lowercase form. */
-function ownCapitals(texts: readonly string[]): Map<string, string> {
+/** The words `texts` write only with a capital they own — "ChatGPT", "AI", "GmbH" — by their lowercase form: a word
+ *  also written plain ("us" beside "US") is not one. */
+export function ownCapitals(texts: readonly string[]): Map<string, string> {
   const out = new Map<string, string>([["i", "I"]]);
+  const plain = new Set<string>();
   for (const text of texts) {
-    for (const token of renderOf(text).split(/\s+/)) {
-      const bare = token.replace(/^[^\p{L}\d]+|[^\p{L}\d]+$/gu, "").replace(/[’']s$/, "");
-      if (bare.length > 1 && ownsItsCapital(bare) && !out.has(bare.toLowerCase())) out.set(bare.toLowerCase(), bare);
+    for (const [word] of renderOf(text).matchAll(/[\p{L}\d]+/gu)) {
+      if (ownsItsCapital(word)) {
+        if (word.length > 1 && !out.has(word.toLowerCase())) out.set(word.toLowerCase(), word);
+      } else if (word === word.toLowerCase()) plain.add(word);
     }
   }
+  for (const word of plain) if (word !== "i") out.delete(word);
   return out;
 }
 
-/** A title or heading with those words given their capitals back: a search
- *  typed in lowercase ("why does chatgpt…") is not how the page spells it. */
-function recased(text: string, cased: ReadonlyMap<string, string>): string {
-  return text.replace(/[\p{L}\d]+/gu, (word) => (word === word.toLowerCase() ? (cased.get(word) ?? word) : word));
+/** A title or heading with those words given their capitals back: a search typed in lowercase ("why does chatgpt…"),
+ *  or a word sentence case opened with one capital ("Ai"), is not how the page spells it. */
+export function recased(text: string, cased: ReadonlyMap<string, string>): string {
+  return text.replace(/[\p{L}\d]+/gu, (word) => (ownsItsCapital(word) ? word : (cased.get(word.toLowerCase()) ?? word)));
 }
 
 /** The first paragraph of a section's body, as plain words. */
@@ -384,43 +382,20 @@ function slotKey(key: string): string {
   return key.trim().toLowerCase().replace(/[\s_-]*\d+$/, "");
 }
 
-/** The words a cut description may not end on, in `language`, or in every
- *  language where the page's is not known. */
-function tailWords(language: Language | undefined): ReadonlySet<string> {
-  const packs = language === undefined ? LANGUAGE_PACKS : [languagePack(language)];
-  return new Set(packs.flatMap((pack) => [...pack.stopWords, ...pack.descriptionTail]));
-}
-
-/** A meta description over its most keeps the whole sentences that fit, or
- *  is cut at the last clause that fits where that keeps at least half its
- *  most, or else at the last word, never ending on a function word; only a
- *  full stop is added, and its length never stops a page (R-A). */
-export function fitDescription(text: string, language: Language | undefined): string {
+/** A meta description over its most keeps the whole sentences that fit, else is cut at the last clause mark that
+ *  keeps at least half its most, else is the short answer's first sentence that fits, else the longest clause that
+ *  fits: it never ends inside a clause, only a full stop is added, and its length never stops a page (R-A). */
+export function fitDescription(text: string, answer: string): string {
   const { max } = TITLE.description;
   if ([...text].length <= max) return text;
-  let kept = "";
-  for (const sentence of text.split(SENTENCE_END_RE)) {
-    const next = kept === "" ? sentence : `${kept} ${sentence}`;
-    if ([...next].length > max) break;
-    kept = next;
-  }
-  if (kept !== "") return kept;
-  // One character is left for the full stop a cut ends with.
-  const head = [...text].slice(0, max).join("");
-  const tail = tailWords(language);
-  const bare = (word: string): string => word.toLowerCase().replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "");
-  const cutAt = (at: number): string => {
-    const words = head.slice(0, at).split(/\s+/);
-    while (words.length > 1 && tail.has(bare(words.at(-1)!))) words.pop();
-    const cut = words.join(" ").replace(/[\s,;:–—-]+$/u, "");
-    return /[.!?]$/.test(cut) ? cut : `${cut}.`;
-  };
-  const clause = [...head.matchAll(/[,;:)\]](?=\s)|\s[–—](?=\s)/gu)].at(-1);
+  const fits = (line: string): boolean => line !== "" && [...line].length <= max;
+  const sentences = text.split(SENTENCE_END_RE);
+  const whole = sentences.map((_, at) => sentences.slice(0, at + 1).join(" ")).filter(fits).at(-1);
+  if (whole !== undefined) return whole;
+  const clause = [...text.matchAll(/[,;:](?=\s)|\s[–—](?=\s)/gu)].map((mark) => `${text.slice(0, mark.index).replace(/[\s.]+$/, "")}.`).filter(fits).at(-1);
   // An early comma ("In 2026, …") would leave a fragment, not a thought.
-  const byClause = clause === undefined ? "" : cutAt(clause.index + clause[0].length);
-  if ([...byClause].length >= max / 2) return byClause;
-  const word = head.search(/\s\S*$/);
-  return word > 0 ? cutAt(word) : text;
+  if (clause !== undefined && [...clause].length >= max / 2) return clause;
+  return collapse(renderOf(answer)).split(SENTENCE_END_RE).find(fits) ?? clause ?? text;
 }
 
 /** The heading of the sources list code writes, in each language. */
@@ -538,7 +513,7 @@ export function layoutPage(parts: PageParts, template: Template, a: TidyInputs):
   const text = sections.map((section) => `## ${section.heading}${section.body === "" ? "" : `\n\n${section.body}`}`);
   const cleaned = (text: string): string => recased(sentenceCase(tidyText(collapse(text)), proper), cased);
   const unclaimed = a.unclaimed ?? ((line: string) => line);
-  const description = fitDescription(tidyText(collapse(unclaimed(parts.description))), a.language);
+  const description = fitDescription(tidyText(collapse(unclaimed(parts.description))), kept?.answer ?? parts.answer);
   const laid = sections.map(({ key, heading, body }) => {
     const items = numberedItems(body);
     return { key, heading, ...(items > 1 ? { items } : {}) };

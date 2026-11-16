@@ -12,6 +12,7 @@ import { briefLinesOf } from "../rules/brief-lines";
 import { namedRivals } from "../rules/rivals";
 import { numeralsOf } from "../rules/figures";
 import { addedNames, asksQuestion, closestTitle, names, pickTitle, withoutSerials, type TitleRuleInputs } from "../rules/title";
+import { ownCapitals, recased } from "./compose";
 import { packStatements, type ContextPack } from "./pack";
 import { comparisonTable } from "./table";
 import { TEMPLATES } from "../templates";
@@ -104,15 +105,13 @@ export function titleRuleFor(pack: ContextPack, page: TitledPage): TitleRuleInpu
   };
 }
 
-/** A search as typed, sentence-cased, each word as the pack's names spell it, or its passages where they case it
- *  inside the word ("AI", "ChatGPT"): a word only capitalised to open a sentence is left as typed. */
+/** A search as typed, sentence-cased, each word as the pack's names spell it, or as its passages write it only in
+ *  capitals they own ("AI", "ChatGPT", "GmbH"): a word only capitalised to open a sentence is left as typed. */
 function casedAsPack(term: string, pack: ContextPack, rule: TitleRuleInputs): string {
   const names = [...(rule.owners?.rivals ?? []), ...(rule.owners === undefined ? [] : [rule.owners.business])].flatMap((owner) => owner.names);
-  const cased = new Map<string, string>();
-  for (const [said, inner] of [[names.join(" "), false], [[...pack.facts, ...pack.claims].map((each) => each.passage).join(" "), true]] as const) {
-    for (const [word] of said.matchAll(/[\p{L}\p{N}]+/gu)) if (/\p{Lu}/u.test(inner ? word.slice(1) : word) && !cased.has(word.toLowerCase())) cased.set(word.toLowerCase(), word);
-  }
-  return term.trim().replace(/[\p{L}\p{N}]+/gu, (word) => cased.get(word.toLowerCase()) ?? word).replace(/^\p{Ll}/u, (first) => first.toUpperCase());
+  const named = [...names.join(" ").matchAll(/[\p{L}\p{N}]+/gu)].map(([word]) => word).filter((word) => /\p{Lu}/u.test(word));
+  const cased = new Map([...ownCapitals([...pack.facts, ...pack.claims].map((each) => each.passage).concat(packStatements(pack))), ...named.reverse().map((word) => [word.toLowerCase(), word] as const)]);
+  return recased(term.trim(), cased).replace(/^\p{Ll}/u, (first) => first.toUpperCase());
 }
 
 /** The title code builds at 0¢, picked only where every writer title stops the page: the first of the searches that
