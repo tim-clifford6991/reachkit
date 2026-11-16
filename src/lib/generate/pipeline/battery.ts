@@ -46,19 +46,21 @@ export function batteryBasis(a: {
   demoPhrases?: readonly string[];
 }) {
   const { pack, site } = a;
-  const template = fittedTemplate(pack);
-  const liveWords = pack.live === null ? null : sectionWords(pack.live.markdown);
-  // Issue 1390: a short answer is capped at its own length, not its type's.
-  // Issue 1521: a refresh that may add sections on what the pages above it
-  // cover may grow to the update's grown share.
-  const length = lengthRangeFor(template, { questions: pack.questions.length, cap: voiceLength(pack.voice)?.ceiling, liveWords, grown: pack.gaps !== undefined });
   // D47: a comparison written as another type for want of two rivals compares
   // nobody, so it is told to answer, not to compare.
   const becameQa = pack.type !== "listicle" && contentTypeOf(a.opportunity) === "listicle";
   const pageType = becameQa && pageTypeOf(a.opportunity) === "market_comparison" ? "answer" : pageTypeOf(a.opportunity);
+  // Owner Q9/D: a product page keeps its type's former length and sections.
+  const kept = pageType === "product";
+  const template = fittedTemplate(pack, kept);
   // D47: the listicle's table, laid out from the pack before a word is
   // written. The writer is handed the same one (`./write.ts`).
   const table = pack.type === "listicle" && template.blocks.table !== undefined ? comparisonTable(pack, template.blocks.table.rivals) : null;
+  const liveWords = pack.live === null ? null : sectionWords(pack.live.markdown);
+  // A new page's length follows the options or gaps it covers; an update's gaps grow it to its grown share.
+  const covered = kept || pack.type === "update" ? 0 : table !== null ? table.options.length + (table.baseline === null ? 0 : 1) : (pack.gaps?.length ?? 0);
+  // Issue 1390: a short answer is capped at its own length, not its type's.
+  const length = lengthRangeFor(template, { questions: pack.questions.length, covered, cap: voiceLength(pack.voice)?.ceiling, liveWords, grown: pack.gaps !== undefined });
   const searches = pack.target.searches;
   const names = [site.businessName ?? "", site.domain.split(".")[0] ?? "", ...site.rivals];
   const passages = [...pack.facts.map((fact) => fact.passage), ...packStatements(pack)];

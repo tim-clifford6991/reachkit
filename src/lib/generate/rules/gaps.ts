@@ -1,12 +1,11 @@
-// SPEC §7 (owner 2026-10-18, issue 1521; amends D42 #7) — a refresh closes
-// the gap to the pages above it.
+// SPEC §7 (owner 2026-10-18 and Q9/D 2026-11-16) — a page covers what the
+// pages above it cover.
 //
 // A leaf: the pack reads it to find the subtopics the top results head a
-// section with and the live page does not (`../pipeline/pack.ts`,
-// `headingGaps`), and `required_blocks` reads it to hold what a growing
-// refresh added (`new_sections`). The words are a heading's content words
-// in every supported language, so one subtopic worded two ways by two
-// pages is one.
+// section with and a page does not (`headingGaps`), and `required_blocks`
+// reads it to hold what a growing refresh added (`new_sections`). The words
+// are a heading's content words in every supported language, so one
+// subtopic worded two ways by two pages is one.
 import { HEADING_GAPS } from "@/lib/config/constants";
 import { LANGUAGE_PACKS, languagePack } from "@/lib/locale/language";
 import { headingKey, linksOf } from "./text";
@@ -88,4 +87,71 @@ export function newSectionsHold(
     const linked = new Set(linksOf(section.text).map(addressOf));
     return growth.gaps.some((gap) => sameSubtopic(words, subtopicOf(gap.heading)) && gap.claims.some((url) => linked.has(addressOf(url))));
   });
+}
+
+/** The types whose pages cover each subtopic their top results head, new or
+ *  updated (owner Q9/D, 2026-11-16). */
+export const COVERING: ReadonlySet<string> = new Set(["how_to", "qa"]);
+
+/** The refresh causes whose update may add sections from `gaps` and grow
+ *  up to `HEADING_GAPS.growShare` (owner, 2026-10-18). */
+export const GROWING_CAUSES: readonly string[] = Object.freeze(["close", "unmet", "lost_position"]);
+
+/** Whether an update's live page may grow by new sections: an update of a
+ *  covering type always, any other only near page one, where the extra
+ *  write and fix are worth paying for. A link-only update never does. */
+export function grows(live: { cause?: string; place?: number; linkTo?: unknown; type?: string }): boolean {
+  const near = HEADING_GAPS.nearPageOne;
+  if (live.linkTo !== undefined) return false;
+  return COVERING.has(live.type ?? "") || (GROWING_CAUSES.includes(live.cause ?? "") && live.place !== undefined && live.place >= near.min && live.place <= near.max);
+}
+
+/**
+ * What the top results cover and a page does not: each subtopic that
+ * `HEADING_GAPS.coveredBy` or more of them head a section with and none of
+ * `covered` (the live page's headings, or a new page's planned ones) does,
+ * most covered first, at most `HEADING_GAPS.sectionsMax`. A subtopic that is
+ * only the target's own words is the page's subject, not a gap. Each gap
+ * carries the claims whose passage holds half its words beside the
+ * target's, rounded down, and never fewer than one; one no claim speaks to
+ * is left out, so no section is written on nothing. Pure.
+ */
+export function headingGaps(a: {
+  topResults: readonly { url: string; headings?: readonly string[] }[];
+  covered: readonly string[];
+  target: string;
+  claims: readonly { passage: string; url: string }[];
+}): { heading: string; coveredBy: number; claims: string[] }[] {
+  const target = topicWords(a.target);
+  const clusters: { heading: string; words: Set<string>; results: Set<number> }[] = [];
+  a.topResults.forEach((result, index) => {
+    for (const heading of result.headings ?? []) {
+      const words = subtopicOf(heading);
+      if (words.size === 0 || [...words].every((word) => target.has(word))) continue;
+      const held = clusters.find((cluster) => sameSubtopic(cluster.words, words));
+      if (held === undefined) clusters.push({ heading: heading.replace(/\s+/g, " ").trim(), words, results: new Set([index]) });
+      else held.results.add(index);
+    }
+  });
+  const covered = a.covered.map(subtopicOf);
+  return clusters
+    .filter((cluster) => cluster.results.size >= HEADING_GAPS.coveredBy && !covered.some((words) => sameSubtopic(words, cluster.words)))
+    .map((cluster) => {
+      const own = [...cluster.words].filter((word) => !target.has(word));
+      const needed = Math.max(1, Math.floor(own.length / 2));
+      const claims = [
+        ...new Set(
+          a.claims
+            .filter((claim) => {
+              const said = topicWords(claim.passage);
+              return own.filter((word) => said.has(word)).length >= needed;
+            })
+            .map((claim) => claim.url)
+        ),
+      ].slice(0, HEADING_GAPS.sectionsMax);
+      return { heading: cluster.heading, coveredBy: cluster.results.size, claims };
+    })
+    .filter((gap) => gap.claims.length > 0)
+    .sort((x, y) => y.coveredBy - x.coveredBy)
+    .slice(0, HEADING_GAPS.sectionsMax);
 }

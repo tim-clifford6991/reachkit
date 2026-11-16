@@ -1,6 +1,14 @@
 // SPEC §7 (D42, 2) — how-to.
-import { CITES_MARKET } from "@/lib/config/constants";
-import type { Template } from "./types";
+import { CITES_MARKET, HEADING_GAPS } from "@/lib/config/constants";
+import type { Template, TemplateSection } from "./types";
+
+/** Owner Q9/D (2026-11-16): a section on what two of the top results cover, from its claims. */
+export const gapSection: TemplateSection = {
+  key: "gap",
+  task: "One of `pack.gaps`, a subtopic the pages ranked for this search cover: headed by that gap's `heading` worded as a reader asks it, written only from the `pack.claims` whose `url` is in that gap's `claims`, and linking at least one of them. Leave this section out where `pack.gaps` holds none, or where those claims give nothing to say about it.",
+  repeat: { min: 0, max: HEADING_GAPS.sectionsMax },
+  when: "gaps",
+};
 
 export const howTo: Template = {
   type: "how_to",
@@ -22,6 +30,7 @@ export const howTo: Template = {
     },
     { key: "check", task: "Say how the reader checks it worked, from what the outside sources say." },
     { key: "mistakes", task: "Name the mistakes to avoid, from what the outside sources say." },
+    gapSection,
     // Issue 1390: what buyers were seen to ask beside the target, where the
     // pack holds a question no other section answers.
     {
@@ -32,7 +41,7 @@ export const howTo: Template = {
     { key: "next_step", task: "Say what the reader does next, linking the product page." },
   ],
   blocks: { steps: { min: 3, max: 10, own: 1 }, faq: { min: 3, max: 6 } },
-  length: { floor: 1200, ceiling: 2000 },
+  length: { floor: 1200, ceiling: 3000, kept: 2000 },
   research: true,
   // Issue 1486: the steps are the outside sources'; a page with no business
   // fact stands on them alone (owner, #2511).

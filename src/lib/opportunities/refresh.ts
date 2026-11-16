@@ -76,7 +76,7 @@
 // its own, `close` — the page's own address ranks 4–20 for its search in the
 // site's stored ranked rows. It goes ahead of a newer fact and of age, and
 // its refresh may add up to three sections the top results cover and the
-// page does not (`../generate/pipeline/pack.ts`, `headingGaps`). It takes the
+// page does not (`../generate/rules/gaps.ts`, `headingGaps`). It takes the
 // place of the page's own `answerable_page`: one open row a page.
 //
 // **Prices** (issue 1521): a cause of its own, `stale_prices` — a live
