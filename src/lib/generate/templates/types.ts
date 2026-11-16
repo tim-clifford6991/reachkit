@@ -20,8 +20,9 @@ export interface TemplateSection {
   /** The block the section must hold beside its opening paragraph. */
   block?: "table" | "steps";
   /** Issue 1508: a section the page carries once where it lists the
-   *  alternatives to one product, and never otherwise. */
-  when?: "alternatives";
+   *  alternatives to one product, and never otherwise. `gaps`: one the page
+   *  carries only on a gap of `pack.gaps`. */
+  when?: "alternatives" | "gaps";
   /** A section the page carries only where the pack holds at least `min`
    *  of these facts, and never otherwise (E10). */
   onlyWith?: { facts: SectionFacts; min: number };
@@ -95,8 +96,9 @@ export interface Template {
     datedSources?: boolean;
   };
   /** Words of body text. An update keeps within a share of its live page;
-   *  one that may add sections grows up to `grownShare` (issue 1521). */
-  length: { floor: number; ceiling: number } | { withinShareOfLive: number; grownShare?: number };
+   *  one that may add sections grows up to `grownShare` (issue 1521).
+   *  `kept` is the maximum a product page keeps (owner Q9/D, 2026-11-16). */
+  length: { floor: number; ceiling: number; kept?: number } | { withinShareOfLive: number; grownShare?: number };
   /** Whether stage 2 reads public pages for this type. */
   research: boolean;
   packMustHold: readonly PackRequirement[];

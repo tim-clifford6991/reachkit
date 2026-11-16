@@ -19,22 +19,25 @@ export interface LengthRange {
 export const AIM = 0.8;
 
 /** The words a page of this template is written to and held to. A new page
- *  answers its fixed sections and the pack's `questions`, each given the
- *  same share of the type's maximum, which caps it; a short, complete page
- *  is never stopped for its length (owner ruling B7). `cap` is a lower
+ *  answers its fixed sections, the `covered` options or gaps of its top
+ *  results and the pack's `questions`, each given the same share of the
+ *  type's maximum, which caps it; a short, complete page is never stopped
+ *  for its length (owner ruling B7; Q9/D, 2026-11-16). `cap` is a lower
  *  maximum a voice sets. `liveWords` is the body of the page an update
  *  refreshes; an update with no live page to measure against has no range.
  *  An update that may add sections (`grown`, issue 1521) keeps its floor
  *  and may grow to its grown share. */
 export function lengthRangeFor(
   template: Template,
-  a: { questions?: number; cap?: number; liveWords?: number | null; grown?: boolean } = {}
+  a: { questions?: number; covered?: number; cap?: number; liveWords?: number | null; grown?: boolean } = {}
 ): LengthRange | null {
   if ("ceiling" in template.length) {
     const ceiling = Math.min(template.length.ceiling, a.cap ?? Number.MAX_SAFE_INTEGER);
-    const bounds = sectionBounds(template);
+    // A voice's cap is shared by the sections the page has, so empty gap slots never shorten it.
+    const capped = ceiling < template.length.ceiling;
+    const bounds = sectionBounds(capped ? { ...template, sections: template.sections.filter((slot) => slot.when !== "gaps") } : template);
     const fixed = template.sections.filter((section) => section.repeat === undefined).length;
-    const answered = Math.min(bounds.max, Math.max(bounds.min, fixed + (a.questions ?? 0)));
+    const answered = Math.min(bounds.max, Math.max(bounds.min, fixed + (a.covered ?? 0) + (a.questions ?? 0)));
     return { floor: 0, target: Math.round((AIM * ceiling * answered) / bounds.max), ceiling };
   }
   const live = a.liveWords ?? null;

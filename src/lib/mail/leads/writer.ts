@@ -113,7 +113,8 @@ export const writeLeadPage: DraftWriter = async (a) => {
     return REFUSED;
   }
   const type = pack.type;
-  const template = fittedTemplate(pack);
+  // The free page keeps its type's former maximum: its one call is sized to `CAPS.FREE_C`.
+  const template = fittedTemplate(pack, true);
   const length = lengthRangeFor(template, { questions: pack.questions.length });
   const pageType = pageTypeOf(opportunity);
 

@@ -45,6 +45,7 @@ import type { CostContext } from "@/lib/costs";
 import { DAY_TOPICS_MAX, PIPELINE, RESEARCH } from "@/lib/config/constants";
 import type { KnownPage } from "@/lib/known-content/types";
 import { contentTypeOf } from "@/lib/opportunities/content-type";
+import { pageTypeOf } from "@/lib/opportunities/page-type";
 import { intentFor } from "@/lib/opportunities/intent";
 import { openDayCost, roomForFix, withDraftCost } from "./cost";
 import { readRecordedRules } from "./record";
@@ -437,9 +438,7 @@ async function livePageOf(
   // Issue 1507: a page of ours is refreshed from its text with what code can
   // repair of the consistency rules already repaired — never edited live.
   const markdown =
-    (ours === undefined ? undefined : repairStructure(ours.markdown, { title: ours.title })) ??
-    facts.find((sourced) => urlKey(sourced.fact.url) === key)?.sourceText ??
-    "";
+    (ours === undefined ? undefined : repairStructure(ours.markdown, { title: ours.title })) ?? facts.find((sourced) => urlKey(sourced.fact.url) === key)?.sourceText ?? "";
   if (markdown.trim() === "") return null;
   const evidence = opportunity.evidence as { shortfall?: { kind?: unknown; cause?: unknown; place?: unknown } } | undefined;
   const linkTo = linkBackOf(opportunity);
@@ -451,9 +450,7 @@ async function livePageOf(
   // Issue 1487: a link to a page that moved is pointed at its new address in
   // code, by the name the row records; the writer returns the page as it is.
   const moved =
-    linkTo?.replaces === undefined
-      ? markdown
-      : withMovedLink(markdown, { from: (href) => href === linkTo.replaces, to: linkTo.url, text: linkTo.title }).markdown;
+    linkTo?.replaces === undefined ? markdown : withMovedLink(markdown, { from: (href) => href === linkTo.replaces, to: linkTo.url, text: linkTo.title }).markdown;
   return {
     url,
     title,
@@ -465,6 +462,8 @@ async function livePageOf(
     ...(datedAs === undefined ? {} : { datedAs }),
     ...(linkTo === null ? {} : { linkTo }),
     ...(ours?.reportPassages === undefined ? {} : { reportPassages: ours.reportPassages }),
+    // The type it was first written as: an update's own pack carries its live page's.
+    ...(typeof versionMeta?.contentType === "string" ? { type: (versionMeta.pack as { live?: { type?: string } } | undefined)?.live?.type ?? versionMeta.contentType } : {}),
   };
 }
 
@@ -581,6 +580,7 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number; 
         sitePages,
         links,
         live,
+        pageType: pageTypeOf(o),
         previousResearch,
         now: new Date(),
         locale,

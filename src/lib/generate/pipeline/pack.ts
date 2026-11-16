@@ -20,28 +20,28 @@
 // 1143) is counted here, over the pack, before the write call: the facts
 // whose words are on none of the top results the research step read.
 //
-// **What the pages above an update cover** (issue 1521): on a refresh of a
-// page that is close, unmet or has lost its place, the pack carries `gaps` —
-// the subtopics two or more of the top results head a section with that the
-// live page heads none with, each with the claims of the pack it may be
-// written from. A gap no claim speaks to is not carried.
+// **What the pages above a page cover** (`../rules/gaps.ts`): on a new how-to
+// or Q&A, on every update of one, and on a refresh near page one, the pack
+// carries `gaps` — the subtopics two or more of the top results head a
+// section with that the page heads none with, each with the claims of the
+// pack it may be written from. A gap no claim speaks to is not carried.
 //
 // Pure. The reads are the caller's (`../index.ts`, `scripts/page/`).
 import { SHAPES, modelInstruction } from "@/lib/locale/language";
 import type { Language, Locale } from "@/lib/locale/locales";
-import { ADDS, HEADING_GAPS, PACK, RIVAL_PRICE_MAX_AGE_D } from "@/lib/config/constants";
+import { ADDS, PACK, RIVAL_PRICE_MAX_AGE_D } from "@/lib/config/constants";
 import { promptTemplateOf } from "@/lib/market/prompts/generate";
 import { misstatedFacts, siteFactsOf } from "@/lib/market/prompts/misstated";
 import { GENERIC_TOKENS, brandOf } from "@/lib/market/questions/select";
 import { templateQuestion } from "@/lib/market/questions/template";
 import type { ContentType } from "@/lib/opportunities/content-type";
 import type { SitePage } from "@/lib/opportunities/site-pages";
-import type { Opportunity } from "@/lib/opportunities/types";
+import type { Opportunity, PageType } from "@/lib/opportunities/types";
 import type { StoredReport } from "@/lib/scan/report";
 import { isAccountPage } from "@/lib/site-profile/knowledge/priority";
 import { derivePurpose } from "@/lib/site-profile/purpose";
 import type { LinkTarget } from "../links/select";
-import { headingLines, sameSubtopic, subtopicOf, topicWords } from "../rules/gaps";
+import { COVERING, grows, headingGaps, headingLines, topicWords } from "../rules/gaps";
 import { alikeHeadings } from "../rules/headings";
 import { renderOf } from "../rules/text";
 import { sectionBounds, TEMPLATES, type PackNeed, type PackRequirement, type SectionFacts, type Template } from "../templates";
@@ -116,6 +116,8 @@ export interface PackLivePage {
   /** Issue 1521 (as 1507): the date the live version is dated as. A refresh
    *  that changes nothing it says keeps it. Absent where it is not known. */
   datedAs?: string;
+  /** The type the live page of ours was written as, where it is known. */
+  type?: string;
 }
 
 /** One subtopic the pages above an update cover and it does not (issue
@@ -681,20 +683,28 @@ function factsHeld(facts: SectionFacts, pack: ContextPack): number {
  * The template a pack's page is written and checked to (E10): a section the
  * pack holds too few facts for is left out, questions buyers asked fewer than
  * the template's least leave no FAQ, and the length's ceiling keeps each
- * section's share, so a page with fewer sections is never padded.
+ * section's share, so a page with fewer sections is never padded. A `kept`
+ * page (a product page, a lead's free page) keeps its type's former
+ * sections and maximum (owner Q9/D, 2026-11-16).
  */
-export function fittedTemplate(pack: ContextPack): Template {
+export function fittedTemplate(pack: ContextPack, kept = false): Template {
   const template = TEMPLATES[pack.type];
-  const sections = template.sections.filter((slot) => slot.onlyWith === undefined || factsHeld(slot.onlyWith.facts, pack) >= slot.onlyWith.min);
+  const sections = template.sections.filter(
+    (slot) => (slot.onlyWith === undefined || factsHeld(slot.onlyWith.facts, pack) >= slot.onlyWith.min) && !(kept && slot.when === "gaps")
+  );
   const faq = template.blocks.faq;
   const asked = faq === null || faq.asked !== true || holds({ need: "buyer_questions", min: faq.min }, pack, null);
-  if (sections.length === template.sections.length && asked) return template;
-  const share = sectionBounds({ ...template, sections }).max / sectionBounds(template).max;
+  const length = template.length;
+  const max = "ceiling" in length ? (kept ? (length.kept ?? length.ceiling) : length.ceiling) : null;
+  if (sections.length === template.sections.length && asked && (max === null || max === ("ceiling" in length ? length.ceiling : null))) return template;
+  // The gap sections are counted in no share, so a page's share is as it was before they existed.
+  const counted = (slots: readonly Template["sections"][number][]) => sectionBounds({ ...template, sections: slots.filter((slot) => slot.when !== "gaps") }).max;
+  const share = counted(sections) / counted(template.sections);
   return {
     ...template,
     sections,
     blocks: { ...template.blocks, faq: asked ? faq : { min: 0, max: 0 } },
-    length: "ceiling" in template.length ? { ...template.length, ceiling: Math.round(template.length.ceiling * share) } : template.length,
+    length: "ceiling" in length ? { ...length, ceiling: Math.round(max! * share) } : length,
   };
 }
 
@@ -717,6 +727,8 @@ export interface PackInputs {
   sitePages: readonly SitePage[];
   links: readonly LinkTarget[];
   live?: PackLivePage | null;
+  /** A product page keeps its type's former sections: it takes no gaps. */
+  pageType?: PageType | null;
   /** The measurements the site's last research page was written from. */
   previousResearch?: PackMeasurements | null;
   now: Date;
@@ -765,74 +777,6 @@ export function repeatedFactShare(a: { markdown: string; facts: readonly string[
   if (stated.length === 0) return null;
   const others = a.others.map(pageText);
   return stated.filter((passage) => statedOn(passage, others) >= PACK.repeatedOn).length / stated.length;
-}
-
-/** The refresh causes whose update may add sections from `gaps` and grow
- *  up to `HEADING_GAPS.growShare` (owner, 2026-10-18, issue 1521). */
-export const GROWING_CAUSES: readonly string[] = Object.freeze(["close", "unmet", "lost_position"]);
-
-/** Whether an update's live page may grow by new sections (issue 1521):
- *  only near page one, where the extra write and fix are worth paying for. */
-export function grows(live: Pick<PackLivePage, "cause" | "linkTo" | "place"> | null): boolean {
-  const near = HEADING_GAPS.nearPageOne;
-  return (
-    live !== null &&
-    live.linkTo === undefined &&
-    GROWING_CAUSES.includes(live.cause ?? "") &&
-    live.place !== undefined &&
-    live.place >= near.min &&
-    live.place <= near.max
-  );
-}
-
-/**
- * What the pages above an update cover and it does not (issue 1521): each
- * subtopic that `HEADING_GAPS.coveredBy` or more of the top results head a
- * section with and no H2 or H3 of the live page does, most covered first, at
- * most `HEADING_GAPS.sectionsMax`. A subtopic that is only the target's own
- * words is the page's subject, not a gap. Each gap carries the claims whose
- * passage holds half its words beside the target's, rounded down, and never
- * fewer than one; one no claim speaks to is left out, so no section is
- * written on nothing. Pure.
- */
-export function headingGaps(a: {
-  topResults: readonly { url: string; headings?: readonly string[] }[];
-  live: string;
-  target: string;
-  claims: readonly Pick<PackClaim, "passage" | "url">[];
-}): PackGap[] {
-  const target = topicWords(a.target);
-  const clusters: { heading: string; words: Set<string>; results: Set<number> }[] = [];
-  a.topResults.forEach((result, index) => {
-    for (const heading of result.headings ?? []) {
-      const words = subtopicOf(heading);
-      if (words.size === 0 || [...words].every((word) => target.has(word))) continue;
-      const held = clusters.find((cluster) => sameSubtopic(cluster.words, words));
-      if (held === undefined) clusters.push({ heading: heading.replace(/\s+/g, " ").trim(), words, results: new Set([index]) });
-      else held.results.add(index);
-    }
-  });
-  const liveTopics = headingLines(a.live).map(subtopicOf);
-  return clusters
-    .filter((cluster) => cluster.results.size >= HEADING_GAPS.coveredBy && !liveTopics.some((words) => sameSubtopic(words, cluster.words)))
-    .map((cluster) => {
-      const own = [...cluster.words].filter((word) => !target.has(word));
-      const needed = Math.max(1, Math.floor(own.length / 2));
-      const claims = [
-        ...new Set(
-          a.claims
-            .filter((claim) => {
-              const said = topicWords(claim.passage);
-              return own.filter((word) => said.has(word)).length >= needed;
-            })
-            .map((claim) => claim.url)
-        ),
-      ].slice(0, HEADING_GAPS.sectionsMax);
-      return { heading: cluster.heading, coveredBy: cluster.results.size, claims };
-    })
-    .filter((gap) => gap.claims.length > 0)
-    .sort((x, y) => y.coveredBy - x.coveredBy)
-    .slice(0, HEADING_GAPS.sectionsMax);
 }
 
 /** Whether a claim is a rival's price read too long ago to state (D59):
@@ -889,11 +833,28 @@ export function buildPack(a: PackInputs): ContextPack {
     ...(fact.source === undefined ? {} : { source: fact.source }),
   }));
   const newPage = a.opportunity.family === "write" || a.opportunity.family === "earn";
-  // Issue 1521: what the pages above a growing refresh cover.
-  const gaps =
-    a.type === "update" && a.live != null && grows(a.live)
-      ? headingGaps({ topResults: a.research.topResults ?? [], live: a.live.markdown, target: question, claims })
+  const questions =
+    a.type !== "update"
+      ? buyerQuestions({
+          report: a.report,
+          asked: a.research.asked,
+          target: question,
+          market: a.writingFor ?? null,
+          rivals: a.site.rivals,
+          facts,
+          claims,
+          knowledge: a.profile?.knowledge,
+          language: a.locale?.language ?? "en",
+          reserved: a.sitePages.flatMap((page) => (page.question === null ? [] : [page.question])),
+        })
       : [];
+  // A new page's planned sections are what it covers already; the business's own section is no subtopic.
+  const planned = TEMPLATES[a.type].sections.filter((slot) => slot.repeat === undefined && slot.key !== "business").map((slot) => slot.key.replace(/_/g, " "));
+  const covered =
+    a.type === "update"
+      ? a.live != null && grows(a.live) ? headingLines(a.live.markdown) : null
+      : COVERING.has(a.type) && a.pageType !== "product" ? [...planned, ...questions] : null;
+  const gaps = covered === null ? [] : headingGaps({ topResults: a.research.topResults ?? [], covered, target: question, claims });
   const pack: Omit<ContextPack, "missing"> = {
     version: 1,
     type: a.type,
@@ -918,21 +879,7 @@ export function buildPack(a: PackInputs): ContextPack {
     ...(a.research.news === undefined ? {} : { news: a.research.news }),
     pages: a.sitePages.filter((page) => typeof page.url !== "string" || !neverASource(page.url)).slice(0, PACK.pages),
     links: a.links.filter((link) => !neverASource(link.url)).map((link) => ({ url: link.url, label: link.label, purpose: link.source === "site" ? link.purpose : null })),
-    questions:
-      a.type !== "update"
-        ? buyerQuestions({
-            report: a.report,
-            asked: a.research.asked,
-            target: question,
-            market: a.writingFor ?? null,
-            rivals: a.site.rivals,
-            facts,
-            claims,
-            knowledge: a.profile?.knowledge,
-            language: a.locale?.language ?? "en",
-            reserved: a.sitePages.flatMap((page) => (page.question === null ? [] : [page.question])),
-          })
-        : [],
+    questions,
     voice: chooseVoice({
       setting: a.writingVoice ?? null,
       voiceText: a.voice,

@@ -84,7 +84,7 @@ export const listicle: Template = {
     { key: "business", task: "Say how this business itself handles the question, from its facts, linking its product and pricing pages." },
   ],
   blocks: { table: { rivals: 2 }, faq: { min: 3, max: 6 } },
-  length: { floor: 1500, ceiling: 2500 },
+  length: { floor: 1500, ceiling: 3750, kept: 2500 },
   research: true,
   packMustHold: NEEDS,
 };

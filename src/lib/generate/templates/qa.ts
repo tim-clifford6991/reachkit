@@ -1,5 +1,6 @@
 // SPEC §7 (D42, 5) — Q&A.
 import { CITES_MARKET } from "@/lib/config/constants";
+import { gapSection } from "./how-to";
 import type { Template } from "./types";
 
 export const qa: Template = {
@@ -14,11 +15,12 @@ export const qa: Template = {
       task: "One question from `questions`, as its heading, word for word or tidied into the question a buyer asks; each section takes a different one, and no two headings share their opening or most of their words: open with its answer in two or three sentences, then the detail. Each has a fact in the pack that answers it: answer from that fact, linking a claim's `url` where a claim from `pack.claims` answers it, and never write that a question cannot be answered.",
       repeat: { min: 5, max: 8 },
     },
+    gapSection,
     { key: "business", task: "Say how this business itself handles the topic, from its facts, linking its product page.", onlyWith: { facts: "passages", min: 1 } },
   ],
   // The 5–8 questions are the page's FAQ data; it stores no others.
   blocks: { faq: null },
-  length: { floor: 800, ceiling: 1400 },
+  length: { floor: 800, ceiling: 2100, kept: 1400 },
   research: true,
   // A page with no business fact stands on research alone (owner, #2511).
   packMustHold: [{ need: "buyer_questions", min: 5 }, { need: "outside_sources", min: CITES_MARKET.min }],

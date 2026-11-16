@@ -63,7 +63,7 @@ import { profileItemsUsed } from "../voice/profile-block";
 import { buildComparisonSet, ownVersions } from "./comparison";
 import { layoutPage, withClosing, type LaidPage } from "./compose";
 import type { SourcedFact } from "./grounding";
-import { fittedTemplate, packStatements, type ContextPack } from "./pack";
+import { packStatements, type ContextPack } from "./pack";
 import { batteryBasis, checkPage, scopeOf } from "./battery";
 import { tryFix, type FixStop } from "./fix-call";
 import { fixNotes, withoutBusiness, type FixNote, type RepairRecord } from "./repair";
@@ -178,7 +178,6 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
   const store = generateStore();
   const startedAt = a.startedAt ?? Date.now();
   const { pack } = a;
-  const template = fittedTemplate(pack);
 
   // The ceiling, before anything runs.
   if (c.capHit()) {
@@ -258,7 +257,7 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
   }
 
   const basis = batteryBasis({ pack, opportunity: a.opportunity, site: a.site, facts: a.facts, grounding, ...(a.demoPhrases === undefined ? {} : { demoPhrases: a.demoPhrases }) });
-  const { length, pageType, table, searches, names, passages, cited, brief: briefRead } = basis;
+  const { template, length, pageType, table, searches, names, passages, cited, brief: briefRead } = basis;
   const writing = {
     template,
     pack,
