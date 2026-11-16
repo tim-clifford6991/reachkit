@@ -12,19 +12,14 @@ export const OPS_COPY = Object.freeze({
   "ops.cost-drift.fact.billed": ["Billed", { slots: {}, fixedBy: "owner ruling W1, 2026-10-20 (drafted)" }],
   "ops.cost-drift.fact.estimated": ["Estimated for the same calls", { slots: {}, fixedBy: "owner ruling W1, 2026-10-20 (drafted)" }],
   "ops.cost-drift.fact.ratio": ["Billed / estimated", { slots: {}, fixedBy: "owner ruling W1, 2026-10-20 (drafted)" }],
-  "ops.replan.waiting": [
-    "A deploy changed how weeks are chosen. Each paying site's committed week and its re-planned week are below. Nothing is committed until you give this planner your OK: run the statement below in the database.",
-    { slots: {}, fixedBy: "owner ruling, 2026-11-16, #2726 (drafted)" },
-  ],
-  "ops.replan.overdue": [
-    "These re-planned weeks have waited 48 hours for your OK. Nothing has been committed, and nothing will be until you run the statement below.",
+  "ops.replan.committed": [
+    "A deploy changed how weeks are chosen, and each paying site's week has been re-planned from its next unwritten day. The committed week and the new one are below, for information. A held site keeps its committed week.",
     { slots: {}, fixedBy: "owner ruling, 2026-11-16, #2726 (drafted)" },
   ],
   "ops.replan.fact.planner": ["Planner", { slots: {}, fixedBy: "owner ruling, 2026-11-16, #2726 (drafted)" }],
-  "ops.replan.fact.ok": ["To give your OK, run", { slots: {}, fixedBy: "owner ruling, 2026-11-16, #2726 (drafted)" }],
   "ops.replan.fact.from": ["Re-planned from", { slots: {}, fixedBy: "owner ruling, 2026-11-16, #2726 (drafted)" }],
   "ops.replan.fact.unmeasured": ["Not measured in the stored pass", { slots: {}, fixedBy: "owner ruling, 2026-11-16, #2726 (drafted)" }],
   "ops.replan.fact.held": ["Held, the committed week stands", { slots: {}, fixedBy: "owner ruling, 2026-11-16, #2726 (drafted)" }],
-  "ops.replan.fact.committed": ["Committed now", { slots: {}, fixedBy: "owner ruling, 2026-11-16, #2726 (drafted)" }],
-  "ops.replan.fact.replanned": ["Re-planned", { slots: {}, fixedBy: "owner ruling, 2026-11-16, #2726 (drafted)" }],
+  "ops.replan.fact.committed": ["Committed before", { slots: {}, fixedBy: "owner ruling, 2026-11-16, #2726 (drafted)" }],
+  "ops.replan.fact.replanned": ["Committed now", { slots: {}, fixedBy: "owner ruling, 2026-11-16, #2726 (drafted)" }],
 }) satisfies CopyPartition;

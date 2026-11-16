@@ -67,14 +67,10 @@ export type OpsIncident =
       attempts: number;
       failed: readonly { rule: string; sentences: readonly string[] }[];
     }
-  // No error: a planner deploy's re-planned weeks wait on the owner's OK. Owner-only, so each site is named with its old and new week.
+  // No error: a planner deploy re-committed each site's week. Owner-only, so each site is named with its old and new week.
   | {
-      occasion: "replan-waiting";
+      occasion: "replan-committed";
       fingerprint: string;
-      /** The `ops_events` kind the owner's OK row is written with. */
-      okKind: string;
-      /** The 48 h alert, not the first ask. */
-      overdue: boolean;
       sites: readonly { domain: string; from: string; before: readonly ReplanRow[]; after: readonly ReplanRow[]; unmeasured: readonly string[]; held: string | null }[];
     }
   // No error: DataForSEO credit runs out within a week. Days left is null where last week's spend was not measured.
@@ -101,7 +97,7 @@ const BODY: Readonly<Record<OpsIncident["occasion"], CopyKey>> = Object.freeze({
   "autopilot-stalled": "mail.ops.incident.autopilot-stalled",
   "draft-stopped-twice": "mail.ops.incident.draft-stopped-twice",
   "vendor-low": "mail.ops.incident.vendor-low",
-  "replan-waiting": "ops.replan.waiting",
+  "replan-committed": "ops.replan.committed",
 });
 
 /** A stopped page's sentence on one line, cut where a mail row stops being readable. */
@@ -180,13 +176,12 @@ function factsOf(incident: OpsIncident): FactRow[] {
       { label: "mail.ops.incident.fact.dashboard", value: incident.dashboard },
     ];
   }
-  if (incident.occasion === "replan-waiting") {
+  if (incident.occasion === "replan-committed") {
     // A planner is hex, which may start with a digit.
     const planner = /^[0-9a-z-]{1,40}$/i.test(incident.fingerprint) ? incident.fingerprint : "unknown";
     const row = (r: ReplanRow) => sentenceValue(`${r.date ?? "spare"} · ${r.search ?? "—"} · ${r.page} · ${r.type} · ${r.points ?? "—"}`);
     return [
       { label: "ops.replan.fact.planner", value: planner },
-      { label: "ops.replan.fact.ok", value: `insert into ops_events (kind, read, code) values ('${closedName(incident.okKind)}', 'owner', '${planner}');` },
       ...incident.sites.flatMap((site): FactRow[] => [
         { label: "mail.ops.incident.fact.site", value: closedDomain(site.domain) },
         { label: "ops.replan.fact.from", value: closedDate(site.from) },
@@ -348,7 +343,7 @@ export function buildIncidentAlert(incident: OpsIncident): { subject: CopyKey; b
     subject: SUBJECT,
     blocks: [
       { block: "heading", text: HEADING },
-      { block: "paragraph", text: incident.occasion === "replan-waiting" && incident.overdue ? "ops.replan.overdue" : BODY[incident.occasion] },
+      { block: "paragraph", text: BODY[incident.occasion] },
       { block: "facts", items: factsOf(incident) },
     ],
   };

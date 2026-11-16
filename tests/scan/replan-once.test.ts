@@ -1,6 +1,5 @@
-// After a planner deploy the `scan/rescore` tick holds every site's re-planned week for the owner's OK: it mails the
-// owner the committed week as stored (a hand-set one included) and the new one, commits nothing until the OK row,
-// alerts once after 48 h, and once approved commits each site once however many ticks run.
+// After a planner deploy the `scan/rescore` tick re-commits a paying site's week once however many ticks run, and mails
+// the owner once the committed week as stored (a hand-set one included) beside the new one.
 import "../opportunities/env";
 import { beforeEach, expect, it, vi } from "vitest";
 import { fakeDb } from "../publish/harness";
@@ -8,7 +7,7 @@ import { fakeDb } from "../publish/harness";
 const db = fakeDb();
 vi.mock("@/lib/db", () => ({ dbAdmin: () => db.client, db: () => db.client }));
 
-const { OWNER_OK, replanSites } = await import("@/lib/scan/replan");
+const { replanSites } = await import("@/lib/scan/replan");
 const { planWeek } = await import("@/lib/opportunities/plan");
 const { opportunityStore, setOpportunityStore } = await import("@/lib/opportunities/store");
 const { __setVendorTransportForTesting } = await import("@/lib/mail/vendor/resend");
@@ -48,23 +47,10 @@ beforeEach(async () => {
 const tick = (hours: number) => replanSites(paying, { now: new Date(AT.getTime() + hours * HOUR) });
 const events = (kind: string) => db.rows("ops_events").filter((row) => row.kind === kind);
 
-it("holds the week for the owner's OK, mails the committed week as stored, and alerts once after 48 h", async () => {
-  expect(await tick(0)).toEqual({ replanned: [], held: [], waiting: [SITE_ID] });
-  for (const row of db.rows("ops_events")) row.at = AT.toISOString();
-  expect(await tick(1)).toEqual({ replanned: [], held: [], waiting: [SITE_ID] });
-  expect([commits, mails.length, events("week_replanned").length]).toEqual([0, 1, 1]);
+it("re-commits the week once per planner and tells the owner once, with the committed week as it stood", async () => {
   const handSet = (await opportunityStore().plannedRows(SITE_ID)).find((row) => row.planned_for === "2026-10-20")!;
+  expect(await tick(0)).toEqual({ replanned: [SITE_ID], held: [] });
+  expect(await tick(1)).toBeNull();
+  expect([commits, mails.length, events("week_replanned").length, events("week_replan_told").length]).toEqual([1, 1, 1, 1]);
   expect(mails[0]).toContain(`2026-10-20 · ${handSet.target_query}`);
-
-  await tick(48);
-  await tick(49);
-  expect([commits, mails.length]).toEqual([0, 2]);
-});
-
-it("commits each site once after the OK, however many ticks run", async () => {
-  await tick(0);
-  db.rows("ops_events").push({ id: "ok", kind: OWNER_OK, read: "owner", code: "0fa1", site_id: null });
-  expect(await tick(1)).toEqual({ replanned: [SITE_ID], held: [], waiting: [] });
-  expect(await tick(2)).toBeNull();
-  expect([commits, events("week_replan_applied").length]).toEqual([1, 1]);
 });
