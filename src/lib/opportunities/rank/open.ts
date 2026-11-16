@@ -16,6 +16,8 @@ import { isOwnDomain, isPlatformDomain, registrableDomain } from "@/lib/market/r
 import type { RivalSize } from "@/lib/market/rivals/rival-size";
 import type { Profile } from "@/lib/market/questions/profile";
 import type { IntentPrompt } from "../intent";
+import type { MarketConclusion } from "@/lib/market/infer/types";
+import type { OwnLivePage } from "../refresh";
 import { opportunityStore } from "../store";
 import { readOpportunity, type DraftedPage, type OpportunityRow } from "../store";
 import { canonicalUrl } from "@/lib/measure/page-reading";
@@ -195,6 +197,9 @@ export interface RankLoad {
   /** The current report's rival sizes and the site's own domain, which tell a giant on a new site; absent reads none. */
   sizes?: readonly RivalSize[];
   ownDomain?: string | null;
+  /** The site's concluded market and its live pages of ours, which the commit joins one topic by; absent joins nothing. */
+  market?: MarketConclusion | null;
+  live?: readonly OwnLivePage[];
 }
 
 /** Why a row the store holds open takes no place in the list. */
@@ -210,7 +215,7 @@ export function eligible(row: OpportunityRow): Rejection | null {
  *  where it is given (a week's spares, issue 1559). */
 export async function loadRanking(siteId: string, at: Date, only?: ReadonlySet<string>): Promise<RankLoad> {
   const store = opportunityStore();
-  const [open, profile, fixRows, cited, prompts, report] = await Promise.all([
+  const [open, profile, fixRows, cited, prompts, report, market, live] = await Promise.all([
     store.openRankable(siteId),
     store.profileForSite(siteId),
     store.openFixPages(siteId),
@@ -223,10 +228,12 @@ export async function loadRanking(siteId: string, at: Date, only?: ReadonlySet<s
     Promise.resolve()
       .then(() => store.currentReport(siteId))
       .catch(() => null),
+    // An unreadable market or set of live pages joins no topic.
+    store.marketFor(siteId).then((read) => read.market, () => null),
+    Promise.resolve().then(() => store.refreshPages(siteId)).catch(() => [] as readonly OwnLivePage[]),
   ]);
   // §6's floor: a refresh of our page whose live version is younger than it takes no place; unreadable pages keep it.
-  const young = !open.some((row) => row.type === "refresh_page") ? [] : await Promise.resolve().then(() => store.refreshPages(siteId)).catch(() => []);
-  const rows = open.filter((row) => row.type !== "refresh_page" || !young.some((page) => at.getTime() - page.publishedAt.getTime() < REFRESH_MIN_AGE_DAYS * 86_400_000 && canonicalUrl(page.url) === canonicalUrl(row.target_ref)));
+  const rows = open.filter((row) => row.type !== "refresh_page" || !live.some((page) => at.getTime() - page.publishedAt.getTime() < REFRESH_MIN_AGE_DAYS * 86_400_000 && canonicalUrl(page.url) === canonicalUrl(row.target_ref)));
   // An unmeasured count is the cold-start 0, as the pass reads it.
   const ownRanked = report === null ? null : report.ownRanked.kind === "measured" ? report.ownRanked.value : 0;
   const listicle = report === null ? null : await store.listicleHeld(siteId, report.scanId).catch(() => null);
@@ -235,7 +242,7 @@ export async function loadRanking(siteId: string, at: Date, only?: ReadonlySet<s
   const linkedClusters = cited.length === 0 ? [] : await store.clustersAt(siteId, cited).catch(() => [] as readonly string[]);
   // Stored jsonb: a report with no sizing sizes nothing.
   const sizes = report?.rivalSizes?.kind === "measured" ? report.rivalSizes.value : [];
-  return { rows, fixRows, profile, cited, topTens, prompts, linkedClusters, ownRanked, listicle, sizes, ownDomain: report?.domain ?? null };
+  return { rows, fixRows, profile, cited, topTens, prompts, linkedClusters, ownRanked, listicle, sizes, ownDomain: report?.domain ?? null, market, live };
 }
 
 function topTensFor(rows: readonly OpportunityRow[], only?: ReadonlySet<string>) {

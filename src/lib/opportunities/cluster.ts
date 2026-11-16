@@ -1,24 +1,9 @@
-// SPEC §6 — "Cluster by parent topic. One cluster-day, at most one Write per
-// cluster. Improve of an owned URL outranks a new page."
-//
-// Owner, 2026-09-15: the parent topic is a mechanical `clusterKey()` of the
-// query's content words — lower-cased, stop words, brand tokens and a
-// trailing `s` removed, sorted and joined — and Improve uses the same key.
-// Nothing is bought to cluster: the key is a function of the words.
-//
-// Owner, 2026-09-29 (#1131): one URL per question. The word key is not the
-// only way two searches are one topic — "best seo software" and "what is
-// the best seo software" share no key and one top ten. Two members are one
-// topic where their stored top tens share `SAME_TOPIC_SHARED_ADDRESSES`
-// addresses, or where the pass's one small-tier judgement said they ask the
-// same question (`derive/same-question.ts`). Both are handed in; this file
-// still buys and asks nothing.
-//
-// Pure. No model, no fetch, no clock. Every family keys the same way, so a
-// family added later (an Earn row's readiness, say) clusters with no branch
-// here.
+// SPEC §6 *One URL per question*: two searches are one topic where they share a mechanical word key (`clusterKey`),
+// their stored top tens share `SAME_TOPIC_SHARED_ADDRESSES` addresses, or the pass's one same-question judgement
+// pairs them. Pure: both are handed in, and nothing is bought or asked here.
 import { PRICE_WORDS } from "@/lib/locale/language";
 import { SAME_TOPIC_SHARED_ADDRESSES, TOPIC_FIT } from "@/lib/config/constants";
+import { marketTokens, type MarketWords } from "@/lib/market/infer/terms";
 import { GENERIC_TOKENS, ownBrandTokens, stemKey } from "@/lib/market/questions/select";
 import { registrableDomain } from "@/lib/market/rivals/domains";
 import { canonicalUrl } from "@/lib/measure/page-reading";
@@ -63,8 +48,7 @@ export function topTensOf(report: Pick<StoredReport, "questions" | "serps">): Ma
   return topTens;
 }
 
-/** SPEC §6 (2026-09-29): whether two top tens make their searches one
- *  topic. */
+/** Whether two top tens make their searches one topic. */
 export function shareATopTen(a: readonly string[], b: readonly string[]): boolean {
   const other = new Set(b);
   return new Set(a.filter((url) => other.has(url))).size >= SAME_TOPIC_SHARED_ADDRESSES;
@@ -73,12 +57,8 @@ export function shareATopTen(a: readonly string[], b: readonly string[]): boolea
 /** What `sameTopic` reads of a row. */
 type TopicOf = Pick<Opportunity, "targetQuery" | "clusterKey" | "absorbedQueries">;
 
-/**
- * SPEC §6 (2026-10-02, #1181): whether two rows are one topic on what is
- * already stored — one cluster key, one search, a search the other absorbed
- * (the pass's same-question judgement, #1131), or top tens that share
- * `SAME_TOPIC_SHARED_ADDRESSES` addresses. Nothing is bought or asked.
- */
+/** Whether two rows are one topic on what is stored: one cluster key, one search, a search the other absorbed, or
+ *  top tens that share enough addresses. */
 export function sameTopic(a: TopicOf, b: TopicOf, topTens: ReadonlyMap<string, readonly string[]>): boolean {
   if (a.clusterKey !== null && a.clusterKey === b.clusterKey) return true;
   if (a.targetQuery === null || b.targetQuery === null) return false;
@@ -89,13 +69,8 @@ export function sameTopic(a: TopicOf, b: TopicOf, topTens: ReadonlyMap<string, r
   return ta !== undefined && tb !== undefined && shareATopTen(ta, tb);
 }
 
-/**
- * SPEC §6 (2026-10-02, #1181): the open new-page rows a page just drafted
- * makes repeats of. Each folds into that page — dismissed, its search
- * absorbed — the same join #1131 makes in the pass, made the evening the
- * page is written, so the next evening never drafts the same question
- * again in other words.
- */
+/** The open new-page rows a page just drafted makes repeats of, folded into it so the next evening never drafts the
+ *  same question in other words. */
 export function nearRepeatsOf(
   page: Opportunity,
   open: readonly Opportunity[],
@@ -110,9 +85,7 @@ export function nearRepeatsOf(
   );
 }
 
-/** The brand tokens a cluster key drops: the customer's own (the profile's
- *  `brandTokens` that name it, `ownBrandTokens`) and each measured rival's name — its registrable domain's
- *  first label, the tokenisation the Write deriver already uses. */
+/** The brand tokens a cluster key drops: the customer's own and each measured rival's registrable domain's first label. */
 export function brandTokensOf(report: StoredReport): readonly string[] {
   const own = report.market.kind === "unmeasured" ? [] : ownBrandTokens(report.market.value.profile);
   const rivals =
@@ -122,26 +95,13 @@ export function brandTokensOf(report: StoredReport): readonly string[] {
   return [...own, ...rivals].filter((token) => token.trim() !== "");
 }
 
-/**
- * Every parent topic this pass measured — the twelve it asked and the market
- * set it read, keyed the same way a row's own query is (issue 903).
- *
- * This is what "the new pass covered this topic" means, and it is a fact
- * about the report rather than about what the derivation chose to keep: a
- * pass that read a search and proposed nothing for it has covered it and
- * decided against it, which is exactly the case a superseded row must not
- * outlive. A topic outside this set is one the pass never looked at, and a
- * row on it is left alone.
- *
- * An unmeasured market and unmeasured questions each contribute nothing, so
- * a pass that could not read its market supersedes no row at all.
- */
-export function coveredTopics(report: StoredReport, brandTokens: readonly string[]): ReadonlySet<string> {
+/** Every parent topic this pass measured, keyed as a row's own query is: a pass that read a search and proposed nothing
+ *  for it decided against it, so a superseded row on it must not outlive it. Unmeasured parts cover nothing. */
+export function coveredTopics(report: StoredReport, brandTokens: readonly string[], market?: MarketWords | null): ReadonlySet<string> {
   const searches: string[] = [];
   if (report.market.kind !== "unmeasured") {
     for (const row of report.market.value.suggestions) searches.push(row.keyword);
-    // The widened pool (SPEC §6 thin markets): ranked rows the pass already
-    // bought and selected over. A thin market's searches come from here.
+    // A thin market's searches come from the widened pool.
     for (const row of report.market.value.pool ?? []) searches.push(row.keyword);
   }
   if (report.questions.kind !== "unmeasured") {
@@ -149,31 +109,26 @@ export function coveredTopics(report: StoredReport, brandTokens: readonly string
   }
   const topics = new Set<string>();
   for (const search of searches) {
-    const key = clusterKey(search, brandTokens);
+    const key = clusterKey(search, brandTokens, market);
     if (key !== null) topics.add(key);
   }
   return topics;
 }
 
 
-/**
- * The parent topic of a query, or `null` where it has none: no query (a Fix
- * targets no search), or nothing left once stop words and brands are gone —
- * a search for a brand alone has no topic to share.
- */
-export function clusterKey(query: string | null, brandTokens: readonly string[]): string | null {
+/** The parent topic of a query, or `null` where it has none: no query, or nothing left once stop words and brands are
+ *  gone. Given the site's market, its own names are one word and its buyer is no qualifier. */
+export function clusterKey(query: string | null, brandTokens: readonly string[], market?: MarketWords | null): string | null {
   if (query === null) return null;
   const brands = new Set(brandTokens.flatMap((token) => stemKey(token).split(" ")).filter((t) => t !== ""));
-  // A price is one word however it is asked (issue 1208): "x pricing" and
-  // "x cost" are one topic by their words, with no judgement needed.
-  const all = [...new Set(stemKey(query).split(" ").map((token) => (PRICE_WORDS.has(token) ? "pricing" : token)))]
+  const tokens = market == null ? stemKey(query).split(" ") : marketTokens(query, market).tokens;
+  // A price is one word however it is asked: "x pricing" and "x cost" are one topic.
+  const all = [...new Set(tokens.map((token) => (PRICE_WORDS.has(token) ? "pricing" : token)))]
     .filter((token) => token !== "")
     .sort();
   const words = all.filter((token) => !brands.has(token));
   if (words.length === 0) return null;
-  // Where only a shape is left — "alternatives", "vs", "pricing" — the brand
-  // is the topic: one rival's alternatives are not another's (SPEC §6,
-  // 2026-10-03, issue 1134), so the brands stay in the key.
+  // Where only a shape is left ("alternatives", "vs") the brand is the topic: one rival's alternatives are not another's.
   const topic = words.every((token) => GENERIC_TOKENS.has(token)) ? all : words;
   return topic.sort().join(" ");
 }
@@ -206,13 +161,9 @@ export function comparePrecedence(
 export type ClusteredCandidate = Candidate & { clusterKey: string | null; absorbedQueries: readonly string[] };
 
 export interface CollapsePlan {
-  /** Existing open rows that lost their cluster to a better row, and the
-   *  superseded ones this pass covered and proposed nothing for (issue
-   *  903). Applied first, so the one-open-row-per-cluster index never sees
-   *  two. */
+  /** Open rows that lost their cluster, and superseded ones; applied first, so the one-open-row index never sees two. */
   dismiss: readonly string[];
-  /** Existing rows that keep their place and take a cluster key or more
-   *  absorbed searches. */
+  /** Rows that keep their place and take a cluster key or more absorbed searches. */
   update: readonly { id: string; clusterKey: string; absorbedQueries: readonly string[] }[];
   insert: readonly ClusteredCandidate[];
 }
@@ -246,22 +197,17 @@ function serpOf(m: Member): string | null {
   return (evidence.family === "write" ? evidence.askedBeside?.term : undefined) ?? queryOf(m);
 }
 
-/** A queued row always survives; then a right-sized member over an
- *  outsized one (issue 881); then precedence; then a row already held over
- *  a new candidate (a re-derivation moves nothing); then volume. */
 /** The band a member carries, row or candidate. */
 function bandOf(m: Member): Winnability | null {
   return m.kind === "row" ? m.row.fitBand : m.candidate.fitBand;
 }
 
-/** A row with a page behind it — being written (`queued`) or published
- *  (`done`, #1181). It is never dismissed and always survives its topic. */
+/** A row with a page behind it, being written or published: never dismissed, and it always survives its topic. */
 function hasAPage(m: Member): boolean {
   return m.kind === "row" && (m.row.status === "queued" || m.row.status === "done");
 }
 
-/** Whether a member's stored fit passes SPEC §6's gate; one no pass has
- *  judged does. */
+/** Whether a member's stored fit passes SPEC §6's gate; one no pass has judged does. */
 function fitsTheBusiness(m: Member): boolean {
   const fit = (m.kind === "row" ? m.row.businessFit : m.candidate.businessFit) ?? null;
   return fit === null || fit >= TOPIC_FIT.gate;
@@ -270,24 +216,10 @@ function fitsTheBusiness(m: Member): boolean {
 function compareMembers(a: Member, b: Member, band: (m: Member) => Winnability | null): number {
   const queued = Number(hasAPage(b)) - Number(hasAPage(a));
   if (queued !== 0) return queued;
-  // Issue 881: the stale-evidence half. A re-measure **adds** to a site's
-  // rows and recalculates none of them, so the targets derived before
-  // right-sizing shipped are still on file with the band they were given
-  // then. Held-row-wins meant one of those outsized rows survived its
-  // cluster and the pass's own right-sized candidate for the same topic was
-  // never written — the old competing with the new, and winning. A member
-  // that may fill a day outranks one that may not, whichever is the row.
-  //
-  // `band` is how a row's own column is brought up to today's law before it
-  // competes (issue 903): 884's `rebandFor` runs in `assessReadiness`, which
-  // is a step *after* the derivation, so the column this read before it was
-  // a band from the pass that wrote it — and for exactly the rows 881 was
-  // written about, that column still claimed to qualify.
+  // A member that may fill a day outranks one that may not, by today's band, so a stale outsized row never wins.
   const sized = Number(qualifiesForADay(band(b))) - Number(qualifiesForADay(band(a)));
   if (sized !== 0) return sized;
-  // Issue 1549: a member the business is not the answer to never takes a
-  // topic from one it is — "meltwater cost" absorbed "answer engine
-  // optimization pricing" and left that search with no page.
+  // A member the business is not the answer to never takes a topic from one it is.
   const fits = Number(fitsTheBusiness(b)) - Number(fitsTheBusiness(a));
   if (fits !== 0) return fits;
   const precedence = comparePrecedence(shapeOf(a), shapeOf(b));
@@ -298,44 +230,25 @@ function compareMembers(a: Member, b: Member, band: (m: Member) => Winnability |
 }
 
 /**
- * One survivor per cluster, over the site's existing open, queued and done
- * non-Fix rows and this pass's candidates together — a published topic
- * folds a new candidate on it like a page being written does (#1181).
- *
- * The survivor absorbs every other member's search. A losing open row is
- * dismissed; a losing candidate is not written; a queued row is never
- * dismissed — where a cluster already holds a queued row it survives, and a
- * second queued row in the same cluster keeps its place unclustered. Fix
- * candidates and rows with no topic pass through untouched.
- *
- * **And the superseded rows** (issue 903). A cluster the pass covered but
- * put no candidate in is a topic this pass read and decided against, and its
- * surviving row was derived from a report that is no longer current: it is
- * dismissed rather than left open competing for a day and counting in the
- * founder's view of what is planned. Three conditions, each of which alone
- * leaves the row where it is — the cluster holds a candidate of this pass
- * (so the row is this pass's own plan for the topic), the row was derived by
- * this pass, or the pass never covered the topic. A `queued` row has a draft
- * being written from it and is never dismissed here either.
+ * One survivor per cluster over the site's open, queued and done non-Fix rows and this pass's candidates. The survivor
+ * absorbs every other member's search, unless it is a live page; a losing open row is dismissed and a losing
+ * candidate is not written, while a row with a page is never dismissed. An open survivor of a topic this pass covered,
+ * put no candidate in and did not derive is superseded and dismissed too.
  */
 export function collapse(a: {
   existing: readonly Opportunity[];
   candidates: readonly Candidate[];
   brandTokens: readonly string[];
-  /** The pass whose report these candidates came from, where the caller has
-   *  one. Absent collapses clusters and supersedes nothing — the shape a
-   *  suite that hands `collapse` bare candidates keeps. */
+  /** The pass these candidates came from; absent collapses clusters and supersedes nothing. */
   pass?: { scanId: string; covered: ReadonlySet<string> };
-  /** A stored row's band as today's right-sizing law reads it (884's
-   *  `rebandFor`), where the caller can compute one. Absent, the row's own
-   *  column stands. */
+  /** A stored row's band as today's right-sizing reads it; absent, the row's own column stands. */
   today?: (row: Opportunity) => Winnability | null;
-  /** The stored top ten of a search, by `queryKey` (#1131). Absent, or a
-   *  search with none, joins nothing by overlap. */
+  /** The stored top ten of a search, by `queryKey`; a search with none joins nothing by overlap. */
   topTens?: ReadonlyMap<string, readonly string[]>;
-  /** The pass's same-question judgement (#1131): a search, by `queryKey`,
-   *  to the search it asks the same question as. */
+  /** The pass's same-question judgement: a search, by `queryKey`, to the search it asks the same question as. */
   sameQuestion?: ReadonlyMap<string, string>;
+  /** The site's concluded market, whose own words join two searches. Absent joins by the words alone. */
+  market?: MarketWords | null;
 }): CollapsePlan {
   const byKey = new Map<string, Member[]>();
   const insert: ClusteredCandidate[] = [];
@@ -359,11 +272,11 @@ export function collapse(a: {
     add(row.clusterKey ?? clusterKey(row.targetQuery, a.brandTokens), { kind: "row", row });
   }
   for (const candidate of a.candidates) {
-    const key = candidate.family === "fix" ? null : clusterKey(candidate.targetQuery, a.brandTokens);
+    const key = candidate.family === "fix" ? null : clusterKey(candidate.targetQuery, a.brandTokens, a.market);
     if (!add(key, { kind: "candidate", candidate })) insert.push({ ...candidate, clusterKey: null, absorbedQueries: [] });
   }
 
-  const groups = joinTopics(byKey, a.topTens ?? new Map(), a.sameQuestion ?? new Map());
+  const groups = joinTopics(byKey, a.topTens ?? new Map(), a.sameQuestion ?? new Map(), (query) => (a.market == null ? null : clusterKey(query, a.brandTokens, a.market)));
 
   const band = (m: Member): Winnability | null =>
     m.kind === "row" && a.today !== undefined ? a.today(m.row) ?? m.row.fitBand : bandOf(m);
@@ -401,7 +314,7 @@ export function collapse(a: {
     if (survivor.kind === "candidate") {
       insert.push({ ...survivor.candidate, clusterKey: key, absorbedQueries });
     } else if (survivor.row.status === "done") {
-      // A live page keeps the searches it was published from.
+      // A live page keeps the searches it was published from: joining never touches it.
       continue;
     } else if (superseded(survivor.row, key, hadCandidate)) {
       // The whole cluster goes: its losers are already dismissed above, and
@@ -414,20 +327,13 @@ export function collapse(a: {
   return { dismiss, update, insert };
 }
 
-/**
- * The word-key groups, joined where two are one topic (#1131): a member of
- * one shares a top ten with a member of the other, or the judgement says one
- * asks the same question as the other. Joining is transitive — a topic is
- * everything connected to it.
- *
- * Only a member that plans a new page (Write, Earn) joins this way: the rule
- * is "never a second page", and an Improve is already the update of a page
- * that exists — folding it into a queued row would drop that page's refresh.
- */
+/** The word-key groups, joined transitively where two are one topic. Only a member that plans a new page joins this
+ *  way: an Improve is already the update of a page, and folding it in would drop that page's refresh. */
 function joinTopics(
   byKey: ReadonlyMap<string, Member[]>,
   topTens: ReadonlyMap<string, readonly string[]>,
-  sameQuestion: ReadonlyMap<string, string>
+  sameQuestion: ReadonlyMap<string, string>,
+  marketKey: (query: string) => string | null
 ): Member[][] {
   const keys = [...byKey.keys()];
   const parent = new Map(keys.map((key) => [key, key]));
@@ -443,6 +349,7 @@ function joinTopics(
 
   const keyOfQuery = new Map<string, string>();
   const keyOfSerp = new Map<string, string>();
+  const keyOfMarket = new Map<string, string>();
   const tops: { key: string; urls: readonly string[] }[] = [];
   for (const [key, members] of byKey) {
     for (const member of members) {
@@ -451,9 +358,13 @@ function joinTopics(
       keyOfQuery.set(queryKey(query), key);
       // One results page is one topic: its own search and the questions it showed.
       const serp = queryKey(serpOf(member) ?? query);
-      const sharing = keyOfSerp.get(serp);
-      if (sharing === undefined) keyOfSerp.set(serp, key);
-      else join(sharing, key);
+      // So is one search in the market's own words: a held row keyed before them joins its twin.
+      for (const [byShared, shared] of [[keyOfSerp, serp], [keyOfMarket, marketKey(query)]] as const) {
+        if (shared === null) continue;
+        const sharing = byShared.get(shared);
+        if (sharing === undefined) byShared.set(shared, key);
+        else join(sharing, key);
+      }
       const urls = topTens.get(serp);
       if (urls !== undefined) tops.push({ key, urls });
     }
@@ -467,9 +378,7 @@ function joinTopics(
     const [x, y] = [keyOfQuery.get(queryKey(search)), keyOfQuery.get(queryKey(sameAs))];
     if (x !== undefined && y !== undefined) join(x, y);
   }
-  // Issue 1549: a search a held row already absorbed is that row's topic.
-  // Re-derived by a later pass, it joins the row instead of standing beside
-  // it as a second topic counted twice.
+  // A search a held row already absorbed is that row's topic when a later pass derives it again.
   for (const [key, members] of byKey) {
     for (const member of members) {
       if (member.kind !== "row" || !plansANewPage(member)) continue;

@@ -12,6 +12,8 @@
 //
 // Pure: no I/O. `read-terms.ts` buys the candidates and their volume.
 import { MARKET_TERMS } from "@/lib/config/constants";
+import { LANGUAGE_PACKS, SHAPES } from "@/lib/locale/language";
+import { contentTokens } from "@/lib/market/questions/select";
 import type { Place } from "@/lib/locale/locales";
 import { localSearch } from "@/lib/locale/place";
 import type { MarketConclusion, MarketTerm } from "./types";
@@ -168,4 +170,44 @@ export function termsDue(market: Pick<MarketConclusion, "termsAt">, at: Date): b
   if (market.termsAt === undefined) return true;
   const read = Date.parse(market.termsAt);
   return Number.isNaN(read) || at.getTime() - read >= MARKET_TERMS.REFRESH_DAYS * 86_400_000;
+}
+
+/** What joining reads of a market: its own names and its buyer. */
+export type MarketWords = Pick<MarketConclusion, "category" | "synonyms" | "terms" | "buyer" | "serves">;
+
+/**
+ * A search's content tokens in order, read in the market's own words (SPEC §6 *One URL per question*): its category,
+ * each synonym and each term that only rewords them is one token, the category's, and a closing "for …" that names
+ * only the buyer is dropped, so two wordings of one question key alike. `joined` is whether a market phrase was read. A comparison is
+ * read as it is: it is one question only with the same products.
+ */
+export function marketTokens(text: string, market: MarketWords): { tokens: string[]; joined: boolean } {
+  if (SHAPES.comparison.test(text.toLowerCase())) return { tokens: contentTokens(text), joined: false };
+  const buyer = new Set(contentTokens(market.buyer));
+  let kept = ` ${text.toLowerCase()} `;
+  for (const pack of LANGUAGE_PACKS) {
+    const joiner = ` ${pack.forBuyerSearch("", "").trim()} `;
+    const at = kept.lastIndexOf(joiner);
+    const qualifier = at < 0 ? [] : contentTokens(kept.slice(at + joiner.length));
+    if (qualifier.length > 0 && qualifier.every((token) => buyer.has(token))) kept = kept.slice(0, at);
+  }
+  const names = [market.category, ...market.synonyms];
+  const place = new Set([market.serves?.name ?? "", market.serves?.region ?? ""].flatMap((name) => contentTokens(name)));
+  const own = new Set(names.flatMap((name) => contentTokens(name)));
+  // A term with a word of its own is a narrower search, not another name: "eicr leeds" is not "electrician leeds".
+  const terms = (market.terms ?? [])
+    .map((t) => contentTokens(t.term).filter((word) => !place.has(word)))
+    .filter((words) => words.every((word) => own.has(word)));
+  const phrases = [...names.map((name) => contentTokens(name)), ...terms]
+    .filter((phrase) => phrase.length > 0)
+    .sort((a, b) => b.length - a.length);
+  const name = contentTokens(market.category).join("_") || "market";
+  const tokens = contentTokens(kept);
+  const out: string[] = [];
+  for (let at = 0; at < tokens.length; ) {
+    const phrase = phrases.find((words) => words.every((word, i) => tokens[at + i] === word));
+    out.push(phrase === undefined ? tokens[at]! : name);
+    at += phrase?.length ?? 1;
+  }
+  return { tokens: out, joined: out.includes(name) };
 }

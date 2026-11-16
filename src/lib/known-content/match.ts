@@ -14,6 +14,7 @@
 // threshold was measured on: folding a page's headings into one string
 // would dilute every score by the length of the page.
 import { KNOWN_CONTENT } from "@/lib/config/constants";
+import { marketTokens, type MarketWords } from "@/lib/market/infer/terms";
 import { topicSimilarity } from "./similarity";
 import type { KnownMatch, KnownPage } from "./types";
 
@@ -35,16 +36,22 @@ function pageTexts(page: KnownPage): string[] {
 }
 
 /** How close one known page is to one planned topic: the best pair of
- *  texts, either side. */
-export function pageScore(topic: PlannedTopic, page: KnownPage): number {
+ *  texts, either side. Where both name the site's market, also as the market's own words read them. */
+export function pageScore(topic: PlannedTopic, page: KnownPage, market?: MarketWords | null): number {
   let best = 0;
   for (const mine of textsOf(topic)) {
     for (const theirs of pageTexts(page)) {
-      const score = topicSimilarity(mine, theirs);
+      const score = Math.max(topicSimilarity(mine, theirs), inMarketWords(mine, theirs, market));
       if (score > best) best = score;
     }
   }
   return best;
+}
+
+function inMarketWords(mine: string, theirs: string, market: MarketWords | null | undefined): number {
+  if (market == null) return 0;
+  const [a, b] = [marketTokens(mine, market), marketTokens(theirs, market)];
+  return a.joined && b.joined ? topicSimilarity(a.tokens.join(" "), b.tokens.join(" ")) : 0;
 }
 
 /**
@@ -52,10 +59,10 @@ export function pageScore(topic: PlannedTopic, page: KnownPage): number {
  * all. Ties break on the page a reader can open, then on the newest — a
  * live page is the better answer to both questions this index is asked.
  */
-export function closestKnown(topic: PlannedTopic, pages: readonly KnownPage[]): KnownMatch | null {
+export function closestKnown(topic: PlannedTopic, pages: readonly KnownPage[], market?: MarketWords | null): KnownMatch | null {
   let best: KnownMatch | null = null;
   for (const page of pages) {
-    const score = pageScore(topic, page);
+    const score = pageScore(topic, page, market);
     if (score <= 0) continue;
     if (best === null || score > best.score || (score === best.score && better(page, best.page))) {
       best = { page, score };
@@ -76,10 +83,7 @@ function better(page: KnownPage, than: KnownPage): boolean {
  * the rule is "never write the same page twice", not a per-customer
  * setting, and there is no argument through which one could arrive.
  */
-export function alreadyCovered(
-  topic: PlannedTopic,
-  pages: readonly KnownPage[]
-): KnownMatch | null {
-  const closest = closestKnown(topic, pages);
+export function alreadyCovered(topic: PlannedTopic, pages: readonly KnownPage[], market?: MarketWords | null): KnownMatch | null {
+  const closest = closestKnown(topic, pages, market);
   return closest !== null && closest.score >= KNOWN_CONTENT.COVERED_MIN ? closest : null;
 }

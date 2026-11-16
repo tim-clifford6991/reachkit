@@ -7,7 +7,7 @@
 | tattly.com | 0 | none | unchanged |
 | savvycal.com | 0 | none | unchanged |
 | clearleft.com | 0 | none | unchanged |
-| wesbos.com | 0 | none | unchanged |
+| wesbos.com | 1 | online web development course pricing | online web development course pricing |
 | pdxsmiledesign.com | 0 | none | unchanged |
 | fletcherelectric.co.uk | 0 | none | unchanged |
 | streaksapp.com | 0 | none | unchanged |

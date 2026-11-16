@@ -16,7 +16,7 @@
 import { ADDS } from "@/lib/config/constants";
 import { closestKnown } from "@/lib/known-content/match";
 import type { KnownPage } from "@/lib/known-content/types";
-import { asUpdate, tooYoungToRefresh } from "./derive/known";
+import { asUpdate, tooYoungToRefresh, updateColumns } from "./derive/known";
 import { canUpdateFrom } from "./readiness";
 import { opportunityStore } from "./store";
 import type { Opportunity } from "./types";
@@ -38,15 +38,7 @@ export async function updateInstead(
 
   const update = { ...opportunity, ...asUpdate(opportunity, match, at) };
   try {
-    await store.becomeUpdate(opportunity.id, {
-      type: update.type,
-      family: update.family,
-      target_ref: update.targetRef,
-      proposed_slug: null,
-      title: update.title,
-      effort: update.effort,
-      evidence: update.evidence,
-    });
+    await store.becomeUpdate(opportunity.id, updateColumns(update));
   } catch (error) {
     console.warn(JSON.stringify({ event: "update_instead_refused", opportunityId: opportunity.id, error: String(error).slice(0, 200) }));
     return null;

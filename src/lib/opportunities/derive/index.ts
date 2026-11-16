@@ -446,6 +446,7 @@ export async function deriveOpportunities(
       ...existing.filter((row) => row.status === "open" && isPage(row)).flatMap((row) => row.targetQuery ?? []),
     ],
     topics: existing.flatMap((row) => row.targetQuery ?? []),
+    buyer: market?.buyer,
   });
   // SPEC §6 (owner D64, issue 1301): two searches that name different
   // products are never one question, whatever the judgement says.
@@ -456,9 +457,10 @@ export async function deriveOpportunities(
     existing,
     candidates: [...labelled, ...questions],
     brandTokens,
-    pass: { scanId: a.scanId, covered: coveredTopics(a.report, brandTokens) },
+    pass: { scanId: a.scanId, covered: coveredTopics(a.report, brandTokens, market) },
     topTens,
     sameQuestion,
+    market,
     ...(measuredOwnRanked === null
       ? {}
       : { today: (row: Opportunity) => rebandFor(row, measuredOwnRanked) }),
