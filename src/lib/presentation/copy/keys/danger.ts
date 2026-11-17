@@ -41,9 +41,9 @@ export const DANGER_COPY = Object.freeze({
   "danger.delete-account.sure.hosted": ["Every page we host for you is taken down now.", { slots: {}, fixedBy: "issue 2706 (drafted)" }],
   "danger.delete-account.sure.plan": ["Your subscription ends now, with no refund for this period and no more charges.", { slots: {}, fixedBy: "issue 2706 (drafted)" }],
   "danger.delete-account.sure.closed": ["Your account closes, and you are signed out on every device.", { slots: {}, fixedBy: "issue 2706 (drafted)" }],
-  "danger.delete-account.sure.erased": ["Everything else is erased within {days} days and cannot be recovered.", { slots: { days: "text" }, fixedBy: "issue 2706 (drafted)" }],
+  "danger.delete-account.sure.erased": ["The rest is erased within {days} days and cannot be recovered.", { slots: { days: "text" }, fixedBy: "issue 2708 (drafted)" }],
   "danger.delete-account.sure.wordpress": ["Pages already copied into your WordPress stay there.", { slots: {}, fixedBy: "issue 2706 (drafted)" }],
-  "danger.delete-account.sure.kept": ["We keep your name and email so we can invite you back.", { slots: {}, fixedBy: "issue 2706 (drafted)" }],
+  "danger.delete-account.sure.kept": ["We keep invoices, refund records, your name and email, and any opt-out from our mail.", { slots: {}, fixedBy: "issue 2708 (drafted)" }],
   "danger.delete-account.keep": ["Keep My Account", { slots: {}, fixedBy: "issue 2706 (drafted)" }],
 
   // Issue #52 — the three lines the danger zone's own outcomes are told in.

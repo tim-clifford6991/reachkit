@@ -68,9 +68,9 @@ const SURE_LINES: readonly CopyKey[] = [
   "danger.delete-account.sure.hosted",
   "danger.delete-account.sure.plan",
   "danger.delete-account.sure.closed",
-  "danger.delete-account.sure.erased",
   "danger.delete-account.sure.wordpress",
   "danger.delete-account.sure.kept",
+  "danger.delete-account.sure.erased",
 ];
 const DAYS = { days: String(ERASURE_DAYS) };
 

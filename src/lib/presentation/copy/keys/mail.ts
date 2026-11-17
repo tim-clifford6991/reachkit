@@ -467,11 +467,11 @@ export const MAIL_COPY = Object.freeze({
   //
   // Every one carries a `count` slot and none of them lists a post, "whatever the number".
   "mail.account.deleted.subject": ["Goodbye from ReachKit", { slots: {}, fixedBy: "REQ-079 c6; issue 2706 (drafted)" }],
-  "mail.account.deleted.goodbye": ["Your ReachKit account is closed, and your plan has ended with no more charges. Every page we hosted for you is taken down.", { slots: {}, fixedBy: "issue 2706 (drafted)" }],
-  "mail.account.deleted.erased_by": ["Everything else we hold is erased by {date}. We keep only your name and email, to invite you back one day.", { slots: { date: "text" }, fixedBy: "issue 2706 (drafted)" }],
-  "mail.account.deleted.kept_removed": ["To have those removed too, reply to this mail.", { slots: {}, fixedBy: "issue 2706 (drafted)" }],
-  // The pages still live at a destination that could not be reached: the
-  // mail "names it and says what they must do about it".
+  "mail.account.deleted.goodbye": ["Your ReachKit account is closed, and your plan has ended with no more charges.", { slots: {}, fixedBy: "issue 2706 (drafted)" }],
+  "mail.account.deleted.taken_down": ["Every page we hosted for you is taken down.", { slots: {}, fixedBy: "issue 2708 (drafted)" }],
+  "mail.account.deleted.erased_by": ["We keep your invoices, refund records, name and email, and any opt-out from our mail. The rest is erased by {date}.", { slots: { date: "text" }, fixedBy: "issue 2708 (drafted)" }],
+  "mail.account.deleted.kept_removed": ["Your name and email are kept to invite you back. To have them removed, reply to this mail.", { slots: {}, fixedBy: "issue 2708 (drafted)" }],
+  // Pages still live where ReachKit could not reach: the mail "names it and says what they must do about it".
   "mail.account.deleted.still_live": ["Pages still live at a destination ReachKit could not reach: {count}. Taking them down there is now yours to do; ReachKit no longer can.", { slots: { count: "text" }, fixedBy: "REQ-079 c6" }],
   // "The mail says of every post still in that site that it is theirs to
   // keep or remove" — its own key, because a promise living inside another
