@@ -196,10 +196,10 @@ export function buildWeekly(a: {
 /** Blocked, then AI rose, Google rose, pages rose, else the week (owner E). A first count is never a rise. */
 function subjectOf(blocked: boolean, totals: Totals | undefined, g: { week: number; business: string }): { subject: CopyKey; subjectVars?: CopyVars } {
   if (blocked) return { subject: SUBJECT.blocked };
-  for (const of of ["ai", "google", "pages"] as const) {
-    const total = totals?.[of];
+  for (const which of ["ai", "google", "pages"] as const) {
+    const total = totals?.[which];
     if (total?.kind === "added" && total.n > 0) {
-      return total.n === 1 ? { subject: SUBJECT[of].one } : { subject: SUBJECT[of].many, subjectVars: { n: String(total.n) } };
+      return total.n === 1 ? { subject: SUBJECT[which].one } : { subject: SUBJECT[which].many, subjectVars: { n: String(total.n) } };
     }
   }
   return { subject: SUBJECT.week, subjectVars: { week: String(g.week), business: g.business } };
@@ -235,8 +235,8 @@ function didBlocks(did: WeeklyDid, calendar: WeeklyCalendar | undefined): readon
 /** AI first, its one explaining line under it, then Google and pages. A figure is never drawn falling, a first count never
  *  as growth, and a count not taken yet names its day, never a zero. */
 function totalBlocks(t: WeeklyTotals): readonly MailBlock[] {
-  const row = (of: keyof Totals, total: Total): StatRow => {
-    const label = TOTAL_LABEL[of];
+  const row = (which: keyof Totals, total: Total): StatRow => {
+    const label = TOTAL_LABEL[which];
     const due = (date: string): StatRow => ({
       label,
       value: unmeasured("not_attempted", t.at),
@@ -244,9 +244,9 @@ function totalBlocks(t: WeeklyTotals): readonly MailBlock[] {
       unmeasuredLine: TOTAL_DUE,
       unmeasuredVars: { date: formatMailDayMonth(date) },
     });
-    if (total.kind === "due") return due(of === "pages" ? t.due.pages : t.due.measured);
+    if (total.kind === "due") return due(which === "pages" ? t.due.pages : t.due.measured);
     // No answer has mentioned the site yet: the row's line says we asked, in place of a bare 0.
-    if (of === "ai" && total.total === 0) return { label, value: unmeasured("not_attempted", t.at), format: "integer", unmeasuredLine: AI_NONE };
+    if (which === "ai" && total.total === 0) return { label, value: unmeasured("not_attempted", t.at), format: "integer", unmeasuredLine: AI_NONE };
     const value = measured(total.total, t.at);
     if (total.kind === "added" && total.n > 0) return { label, value, format: "integer", note: { text: TOTAL_UP, vars: { n: String(total.n) } } };
     if (total.kind === "first") return { label, value, format: "integer", note: { text: TOTAL_FIRST, vars: { date: formatMailDayMonth(total.week) } } };
