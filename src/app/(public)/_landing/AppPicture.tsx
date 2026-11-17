@@ -1,0 +1,87 @@
+// The hero's right column: the example business's Overview in a browser frame, in the order Overview runs
+// (Today's Page, Your Results So Far, This Week), with the same keys, so the picture cannot say what the app does not.
+// Nothing inside is focusable: the controls are drawings, and the caption describes the figure.
+import type React from "react";
+import { Clock4, CircleStop, Eye } from "lucide-react";
+import { copy, type CopyKey } from "@/lib/presentation/copy";
+import { FLOAT } from "@/ui/lift";
+import { EXAMPLES, EXAMPLE_TOTALS, LIVE_AT, weekDays, type PlannedDay } from "../_how/specimen";
+
+/** Bound to names: the copy sweep reads a bare JSX string as voice. */
+const APP_HOST = "app.reachkit.app";
+const TEST_ID = "landing-app";
+const ICON = { size: 16, strokeWidth: 1.75, "aria-hidden": true } as const;
+const TITLE = "text-sm font-bold";
+
+const STATS = [
+  { of: "ai", label: "overview.totals.ai.label" },
+  { of: "google", label: "overview.totals.google.label" },
+  { of: "pages", label: "overview.totals.pages.label" },
+] as const;
+
+const STATE: Readonly<Record<PlannedDay["state"], CopyKey>> = {
+  live: "calendar.stage.live",
+  waiting: "calendar.stage.scheduled",
+  planned: "calendar.stage.planned",
+};
+
+/** Today is the drawn week's Tuesday: its page waits to go live, and the next three days follow. */
+const TODAY = 1;
+
+export function AppPicture(): React.JSX.Element {
+  const { plan } = EXAMPLES.software;
+  const days = weekDays();
+  return (
+    <figure className="mx-auto flex w-full max-w-xl min-w-0 flex-col gap-3 lg:max-w-none" data-testid={TEST_ID}>
+      <div className={`mockup-browser border-base-300 bg-base-100 w-full border ${FLOAT}`}>
+        <div className="mockup-browser-toolbar">
+          <div className="input min-w-0">{APP_HOST}</div>
+        </div>
+        <div className="border-base-300 pointer-events-none flex min-w-0 flex-col gap-4 border-t p-4 text-left select-none sm:p-5">
+          <div className="card card-border bg-base-100 min-w-0">
+            <div className="card-body min-w-0 gap-3 p-4">
+              <p className="text-primary flex items-center gap-1.5 text-xs font-bold tracking-[0.1em] uppercase">
+                <Clock4 {...ICON} />
+                {copy("overview.today.eyebrow", { time: LIVE_AT })}
+              </p>
+              <p className="font-bold">{plan[TODAY]!.title}</p>
+              <span className="flex flex-wrap gap-2">
+                <span className="btn btn-soft btn-primary btn-sm">
+                  <Eye {...ICON} />
+                  {copy("overview.alert.pending-veto.action")}
+                </span>
+                <span className="btn btn-ghost btn-warning btn-sm">
+                  <CircleStop {...ICON} />
+                  {copy("overview.waiting.stop")}
+                </span>
+              </span>
+            </div>
+          </div>
+          <p className={TITLE}>{copy("overview.totals.title")}</p>
+          <div className="stats stats-vertical lg:stats-horizontal card-border bg-base-100 w-full">
+            {STATS.map((stat) => (
+              <div key={stat.of} className="stat min-w-0">
+                <p className="stat-title text-base-content/70 whitespace-normal">{copy(stat.label)}</p>
+                <p className="stat-value font-semibold tabular-nums">{EXAMPLE_TOTALS[stat.of].total}</p>
+                <p className="stat-desc text-base-content/70 whitespace-normal">
+                  {copy("overview.totals.added", { n: String(EXAMPLE_TOTALS[stat.of].added) })}
+                </p>
+              </div>
+            ))}
+          </div>
+          <p className={TITLE}>{copy("overview.week.title")}</p>
+          <ol className="flex min-w-0 flex-col gap-2">
+            {plan.slice(TODAY + 1, TODAY + 4).map((day, i) => (
+              <li key={day.title} className="rounded-box bg-base-200 flex min-w-0 items-center gap-3 px-3 py-2 text-sm">
+                <span className="num text-base-content/70 w-12 shrink-0 text-xs">{days[TODAY + 1 + i]}</span>
+                <span className="min-w-0 flex-1 font-semibold">{day.title}</span>
+                <span className="badge badge-ghost badge-sm shrink-0">{copy(STATE[day.state])}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </div>
+      <figcaption className="text-base-content/70 text-center text-sm">{copy("landing.inside.caption", { business: EXAMPLES.software.business })}</figcaption>
+    </figure>
+  );
+}

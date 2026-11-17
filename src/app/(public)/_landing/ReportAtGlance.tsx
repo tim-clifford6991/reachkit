@@ -48,7 +48,7 @@ export function ReportAtGlance(): React.JSX.Element {
             <span className="badge badge-ghost badge-sm">
               <Num>{leader}</Num>
             </span>
-            <span className={SMALL}>{copy("landing.story.2.more", { more: String(others.length) })}</span>
+            <span className={SMALL}>{copy("landing.glance.more", { more: String(others.length) })}</span>
           </span>
         </p>
         <div className="min-w-0">
