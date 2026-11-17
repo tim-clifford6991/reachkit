@@ -193,7 +193,10 @@ export async function deriveOpportunities(
   const ownSearches = [...planned.filter(ownNewPage).flatMap((row) => row.targetQuery ?? []), ...written, ...askedTopics(seen, a.report.verdict.measuredAt, Infinity).map((topic) => topic.query)];
   const ownBrand = new Set(ownSearches.filter((query) => namesOwnOnly(query, named)).map(queryKey)).size;
   const taken = [...derived, ...held].flatMap((row) => row.targetQuery ?? []);
-  const room = Math.max(0, TOPIC_FIT.maxCandidates - judgedHere.length - HELD_ROWS_JUDGED);
+  // The asked questions this pass would write unscored are scored in its one fit call, as no score is not planned.
+  const unreached = askedSupply({ report: a.report, market, asked: seen, spare: [], refused: [], taken: [...taken, ...held.flatMap((row) => row.absorbedQueries)], dismissed: dismissed.map((row) => row.query), now: a.report.verdict.measuredAt });
+  const beyond = unreached.filter(({ topic }) => !asked.some((one) => queryKey(one.query) === queryKey(topic.query))).length;
+  const room = Math.max(0, TOPIC_FIT.maxCandidates - judgedHere.length - HELD_ROWS_JUDGED - beyond);
   const searchRivals = a.report.rivals.kind === "measured" ? a.report.rivals.value.map((rival) => rival.domain) : [];
   // SPEC §6 (owner, 2026-11-16): an earlier healthy pass's answers, as this pass checks its health after deriving and its late answers land later still.
   const answered = await import("@/lib/scan/health-record").then(({ healthyPrompts }) => healthyPrompts(a.siteId)).catch(() => null);
@@ -274,13 +277,13 @@ export async function deriveOpportunities(
   }
 
   const isNewPage = (row: { family: Opportunity["family"] }) => row.family === "write" || row.family === "earn";
-  const unjudged = existing
-    .filter((row) => row.status === "open" && row.family !== "fix" && row.targetQuery !== null)
-    // A plannable new page judged before the call named a passage is judged again.
-    .filter((row) => (row.businessFit ?? null) === null || (isNewPage(row) && row.businessFit! >= TOPIC_FIT.gate && !("fitFact" in row.evidence)))
-    // A row no pass has scored is held until scored, so it is judged first.
-    .sort((x, y) => Number((x.businessFit ?? null) !== null) - Number((y.businessFit ?? null) !== null))
-    .slice(0, HELD_ROWS_JUDGED);
+  const open = existing.filter((row) => row.status === "open" && row.family !== "fix" && row.targetQuery !== null);
+  // Every row no pass has scored is judged, as it is held until it is; a plannable new page judged before the call
+  // named a passage is judged again, up to the cap.
+  const unjudged = [
+    ...open.filter((row) => (row.businessFit ?? null) === null),
+    ...open.filter((row) => isNewPage(row) && (row.businessFit ?? 0) >= TOPIC_FIT.gate && !("fitFact" in row.evidence)).slice(0, HELD_ROWS_JUDGED),
+  ];
   const sourceFor = (row: { targetQuery: string | null; source?: Candidate["source"] }) =>
     row.source ?? sourceOf(row.targetQuery ?? "", { brands, products: Object.keys(market?.demand?.brands ?? {}) });
   const writtenKeys = new Set(written.map(queryKey));
@@ -293,10 +296,12 @@ export async function deriveOpportunities(
   const derivedPages = judgedHere.filter(isNewPage);
   const derivedClasses = derivedPages.map((candidate) => classed({ query: candidate.targetQuery!, source: sourceFor(candidate) }));
   const offeredClasses = proposing.map(classed);
+  const scoredAsked = unreached.filter(({ topic }) => !proposals.some((one) => queryKey(one.query) === queryKey(topic.query)));
   const searches: FitSearch[] = [
     ...judgedHere.map((candidate) => ({ query: candidate.targetQuery!, source: sourceFor(candidate), update: !isNewPage(candidate) })),
     ...unjudged.map((row) => ({ query: row.targetQuery!, source: sourceFor(row), update: !isNewPage(row) })),
     ...proposals.map((topic) => ({ query: topic.query, source: topic.source })),
+    ...scoredAsked.map(({ topic }) => ({ query: topic.query, source: topic.source })),
   ];
   const fits = await judgeFit(c, {
     searches,
@@ -374,10 +379,15 @@ export async function deriveOpportunities(
     const title = angle.get(candidate);
     labelled.push(title === undefined || refined.family === "improve" ? refined : { ...refined, title });
   }
-  // A proposal's type is read off its own words and its title is the angle
-  // it was judged with, so it buys no label.
+  // A proposal's type is read off its own words and its title is the angle it was judged with, so it buys no label.
   labelled.push(...proposed);
   // A question buyers asked below the top fit is still a section of its results page's topic.
+  scoredAsked.forEach(({ topic }, index) => {
+    const judged = fits.get(judgedHere.length + unjudged.length + proposals.length + index);
+    if (judged === undefined) return;
+    if (judged.fit >= TOPIC_FIT.gate) spare.push({ topic, fit: judged.fit, fact: judged.fact });
+    else refused.push(topic.query);
+  });
   const questions = askedSupply({
     report: a.report,
     market,

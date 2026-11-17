@@ -1,22 +1,18 @@
 // SPEC §7 (owner, 2026-10-19, issue 1559) — the week a weekly pass commits.
 //
-// "On our weekly refresh, we pull in all new tracking information we require
-// including keywords, ai searches and rivals. This context together with the
-// users business context is used to find the next 7 content generations."
+// "On our weekly refresh, we pull in all new tracking information we require including keywords, ai searches and
+// rivals. This context together with the users business context is used to find the next 7 content generations."
 //
-// The weekly pass ends here (`planWeek`): one readiness check over the open
-// rows, one choice (`choose`, over the one list), and its first
-// `WEEK_PLAN.days` rows committed one a day from the first date with no
-// page, with `WEEK_PLAN.spares` after them. The daily job writes the row
-// planned for its date (`pageForDay`) after a 0¢ check that the week's rows
-// still stand (a rest, the destination, a page that now covers the topic);
-// where that page cannot be written it takes the next spare in committed
-// order. Nothing ranks the open pool again until the next commit.
+// The weekly pass ends here (`planWeek`): one readiness check over the open rows, one choice (`choose`, over the one
+// list), and its first `WEEK_PLAN.days` rows committed one a day from the first date with no page, with
+// `WEEK_PLAN.spares` after them. The daily job writes the row planned for its date (`pageForDay`) after a 0¢ check
+// that the week's rows still stand (a rest, the destination, a page that now covers the topic); where that page
+// cannot be written it takes the next spare in committed order. Nothing ranks the open pool again until the next
+// commit.
 //
-// A new site's first week is committed when setup's pass ends
-// (`planFirstWeek`), its dated days stopping before the first Monday's pass. A date no commit
-// covers after that is committed on demand by that evening's run, once: the commit then covers
-// the dates after it, and so, once per weekly commit, is a date the week has used up.
+// A new site's first week is committed when setup's pass ends (`planFirstWeek`), its dated days stopping before the
+// first Monday's pass. A date no commit covers after that is committed on demand by that evening's run, once: the
+// commit then covers the dates after it, and so, once per weekly commit, is a date the week has used up.
 import { unstable_cache } from "next/cache";
 import { PLAN_DEPTH, SUPPLY_SHORT_BELOW, WEEK_PLAN } from "@/lib/config/constants";
 import { stoppedOnCeiling } from "@/lib/scan/market-floor";
@@ -37,8 +33,7 @@ export async function planWeek(siteId: string, a: { now?: Date; from?: string; r
   // refreshes are written, so a day is planned only from a ready row.
   await assessReadiness(siteId, { at: now, now, record: a.record === true });
   await assessFixPages(siteId, { report: null, now });
-  // On demand, the week starts at the date being written; on Monday, at the
-  // first date with no page.
+  // On demand, the week starts at the date being written; on Monday, at the first date with no page.
   const from =
     a.from ?? new Date(firstOpenDay(await store.draftedPages(siteId, 1), now) * DAY_MS).toISOString().slice(0, 10);
   // Before the first weekly pass, the dated days stop where that Monday's pass opens the next week: a Wednesday 5, a Monday 7.
@@ -57,23 +52,17 @@ export async function planWeek(siteId: string, a: { now?: Date; from?: string; r
   return entries;
 }
 
-/**
- * A new site's first week, committed when setup's pass ends so Plan shows
- * it before the first evening. Only where the site has no commit yet: a
- * week the first draft already committed is never replaced.
- */
+/** A new site's first week, committed when setup's pass ends so Plan shows it before the first evening. Only where
+ *  the site has no commit yet: a week the first draft already committed is never replaced. */
 export async function planFirstWeek(siteId: string, now: Date = new Date()): Promise<readonly PlanEntry[]> {
   if ((await opportunityStore().plannedRows(siteId)).length > 0) return [];
   return planWeek(siteId, { now });
 }
 
-/**
- * The page a date's run writes: the row the week planned for it, where it
- * still stands, else the next spare in committed order; nothing ranks here.
- * A date no commit covers, or (once per weekly commit) whose slot and spares are used up
- * while ready rows wait outside the week, is committed from the date. `null`
- * where nothing left can be written; `updatesTried` once the day's update fallback has had its turn.
- */
+/** The page a date's run writes: the row the week planned for it, where it still stands, else the next spare in
+ *  committed order; nothing ranks here. A date no commit covers, or (once per weekly commit) whose slot and spares
+ *  are used up while ready rows wait outside the week, is committed from the date. `null` where nothing left can be
+ *  written; `updatesTried` once the day's update fallback has had its turn. */
 export async function pageForDay(siteId: string, date: string, now: Date = new Date(), updatesTried = false): Promise<Opportunity | null> {
   const store = opportunityStore();
   const held = await store.plannedRows(siteId);
@@ -98,10 +87,9 @@ export async function pageForDay(siteId: string, date: string, now: Date = new D
   return slot === undefined ? null : planned(slot);
 }
 
-/** The committed week as the digest, the calendar and the daily job read
- *  it: the open rows planned for a date, by date, and the open spares, by
- *  place. `week` is the Monday of the site's week the days are kept to;
- *  absent, it is the whole commit, which is the current week. */
+/** The committed week as the digest, the calendar and the daily job read it: the open rows planned for a date, by
+ *  date, and the open spares, by place. `week` is the Monday of the site's week the days are kept to; absent, it is
+ *  the whole commit, which is the current week. */
 export async function committedWeek(
   siteId: string,
   week?: string
@@ -173,9 +161,8 @@ export async function supplyMeasured(siteId: string): Promise<boolean> {
   return asked && lastChange !== null;
 }
 
-/** What a site's zero supply is (issue 855): `measured` — a market used up;
- *  `unmeasured` — never measured (#765); `measuring` — a ceiling stopped the
- *  pass, so it is being measured again. */
+/** What a site's zero supply is (issue 855): `measured` — a market used up; `unmeasured` — never measured (#765);
+ *  `measuring` — a ceiling stopped the pass, so it is being measured again. */
 export type SupplyState = "measured" | "unmeasured" | "measuring";
 
 export async function supplyState(siteId: string): Promise<SupplyState> {

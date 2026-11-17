@@ -219,8 +219,8 @@ export interface TargetFacts {
 /** The business a Write page is written to overtake; `null` where only sources hold its search. */
 export type WriteRival = { domain: string; url: Measured<string>; position: Measured<number> };
 
-/** What research read for a draft, or reads today: the top-result addresses it chose from and the rivals in force. */
-export type StoppedInputs = { topResults: string[]; rivals: string[] };
+/** What a draft's research read: the top-result addresses it quoted, the rivals in force whose pages it read, and its searches. */
+export type StoppedInputs = { topResults: string[]; rivals: string[]; searches: string[] };
 
 export type Evidence =
   | {

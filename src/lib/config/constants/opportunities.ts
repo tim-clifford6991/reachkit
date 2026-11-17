@@ -43,6 +43,8 @@
  */
 export const KNOWN_CONTENT = Object.freeze({
   COVERED_MIN: 0.6,
+  /** A live page of ours answers a row's question at the commit from here, by its title or answer-box question. */
+  LIVE_TWIN_MIN: 0.55,
   HEADINGS_COMPARED: 12,
   WORDPRESS_POSTS_MAX: 300,
   WORDPRESS_PER_PAGE: 100,

@@ -16,6 +16,7 @@ import { NO_RESEARCH, storedAsk } from "@/lib/generate/pipeline/research";
 import { TEMPLATES } from "@/lib/generate/templates";
 import type { Language, Locale } from "@/lib/locale/locales";
 import { measured } from "@/lib/measure/measured";
+import { TOPIC_FIT } from "@/lib/config/constants";
 import { queueForDraft, restTopic, type Opportunity } from "@/lib/opportunities";
 import { contentTypeOf } from "@/lib/opportunities/content-type";
 import { askedOfReport, askedOnMarket, askedTopics, type AskedBeside } from "@/lib/opportunities/derive/topics";
@@ -58,7 +59,7 @@ function reportOf(domain: string): StoredReport {
   );
 }
 
-/** Today's derive's asked topics on the market (issue 1519), as rows: unmeasured, and with no fit, which the pass's model judges live. */
+/** Today's derive's asked topics on the market, as rows: unmeasured, and at the fit gate, as the pass scores each it writes. */
 function askedRows(site: PanelSite, asked: readonly AskedBeside[]): OpportunityRow[] {
   const own = [...site.profile.brandTokens, brandOf(site.domain)].map((name) => name.toLowerCase());
   const rivals = site.market.rivals.flatMap((rival) => [rival.name.toLowerCase(), brandOf(rival.domain)]);
@@ -67,7 +68,7 @@ function askedRows(site: PanelSite, asked: readonly AskedBeside[]): OpportunityR
     .filter((topic) => !taken.has(queryKey(topic.query)) && askedOnMarket(topic.query, { market: site.market, own, rivals }))
     .map((topic, n) => {
       const type = SHAPES.comparison.test(topic.query) ? "comparison_page" : "keyword_page";
-      const row = rowOf(site.domain, { query: topic.query, status: "open", type, fit: null, volume: null, ready: false }, site.rows.length + n);
+      const row = rowOf(site.domain, { query: topic.query, status: "open", type, fit: TOPIC_FIT.gate, volume: null, ready: false }, site.rows.length + n);
       return { ...row, evidence: { ...(row.evidence as object), askedBeside: { term: topic.term, serpAt: topic.serpAt } } } as OpportunityRow;
     });
 }
@@ -142,7 +143,7 @@ it("each panel site's first week ends each day in a writable pack or a named rea
   const lines = [
     "# Week 1 at 0¢, from the stored panel supply",
     "",
-    "Seeded from each site's last stored panel topics and market, banded from their stored volume at a site that ranks for nothing. The pass that derives the supply needs the model and the site's pages, which the evidence does not store, so only today's asked topics are added: the People-also-ask and related searches of the stored SERPs, unjudged for fit. That asked-beside evidence is read by readiness too.",
+    "Seeded from each site's last stored panel topics and market, banded from their stored volume at a site that ranks for nothing. The pass that derives the supply needs the model and the site's pages, which the evidence does not store, so only today's asked topics are added: the People-also-ask and related searches of the stored SERPs. The pass's one fit call scores every question it writes and every unscored row it holds; this golden asks no model, so each such row stands at the fit gate. That asked-beside evidence is read by readiness too.",
     "Ready is today's readiness over those rows (`asked` of them are asked topics), with the reasons the rest are held; the gate is the market footprint read from the stored SERPs with the site's own profile. `research runs live` and `no site facts stored` are days decided inside the live run, not blocked ones.",
     "",
   ];
@@ -163,7 +164,7 @@ it("each panel site's first week ends each day in a writable pack or a named rea
     };
     const [asked, footprint] = [askedOfReport(w.report), await import("@/lib/market/footprint")];
     const [extra, gate] = [askedRows(site, asked), footprint.footprintRows({ report: { ...w.report, market: measured({ profile: site.profile, suggestions: [], totalVolume: 0 }, AT) }, market: site.market, readings: [] }).some(footprint.opensGate)];
-    const state = newMemoryState({ profile: site.profile, market: site.market, now: AT, asked, rows: [...site.rows, ...extra].map((row) => ({ ...row })) });
+    const state = newMemoryState({ profile: site.profile, market: site.market, now: AT, asked, rows: [...site.rows, ...extra].map((row) => ({ ...row, business_fit: row.business_fit ?? TOPIC_FIT.gate })) });
     setOpportunityStore({ ...memoryStore(state), topTenRows: async () => storedSerps(domain), footprintOpened: async () => gate });
     await planFirstWeek(SITE_ID, AT);
     const unready = new Map<string, number>();

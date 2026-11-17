@@ -22,7 +22,7 @@
 import { TOPIC_FIT } from "@/lib/config/constants";
 import type { StoredReport } from "@/lib/scan/report";
 import { addressesOwnPage, type HostedOwnPages } from "@/lib/publish/destinations/hosted/own-page";
-import { newestStop, readsAsBefore, stoppedInputs } from "./drafted";
+import { newestStop, readsAsBefore } from "./drafted";
 import { measuredMarketOf, neverMeasured } from "@/lib/market/questions/measured";
 import { opportunityStore, readOpportunity, type OpportunityRow } from "./store";
 import { isResting, isRetarget, OUTSIZED, qualifiesForADay, type Winnability } from "./types";
@@ -229,10 +229,13 @@ export async function assessReadiness(
     store.draftsOnTopics?.(siteId).catch(() => []) ?? [],
   ]);
   const market = sited?.market ?? null;
-  // Q8: while the newest draft on a topic is one the checks stopped, it waits for what its research reads to change.
+  // Q8: while the newest draft on a topic is one the checks stopped, it waits for what that draft read to change. The
+  // newest stored top ten of each search wins; one that cannot be read reads none.
+  const scans = [...new Set([...drafts.filter((d) => d.stopped).map((d) => d.row.scanId), ...(report === null ? [] : [report.scanId])])];
+  const stopTens = scans.length === 0 ? new Map<string, readonly string[]>() : await store.topTens(scans).catch(() => new Map<string, readonly string[]>());
   const stillStopped = (o: Opportunity) => {
     const stop = newestStop(o, drafts);
-    return stop !== null && readsAsBefore(stop.read, stoppedInputs(o, report, sited?.competitors ?? null));
+    return stop !== null && readsAsBefore(stop.read, stopTens, sited?.competitors ?? null);
   };
   const measured = measuredMarketOf(market);
   const offMarket = (o: Opportunity) => (o.family === "write" || o.family === "earn") && measured !== undefined && o.targetQuery !== null && neverMeasured(o.targetQuery, measured) !== null;

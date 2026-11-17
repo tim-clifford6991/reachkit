@@ -583,10 +583,10 @@ export function supabaseOpportunityStore(): OpportunityStore {
     },
 
     async draftsOnTopics(siteId) {
-      type Row = { id: string; created_at: string; state: string; transitions: unknown; rivals: unknown; claims: unknown; opportunities: OpportunityRow | null };
+      type Row = { id: string; created_at: string; state: string; transitions: unknown; rivals: unknown; claims: unknown; products: unknown; searches: unknown; opportunities: OpportunityRow | null };
       const { data, error } = await untyped()
         .from<Row>("drafts")
-        .select(`id, created_at, state, transitions, rivals:meta->pack->business->rivals, claims:meta->pack->claims, opportunities(${COLUMNS})`)
+        .select(`id, created_at, state, transitions, rivals:meta->pack->business->rivals, claims:meta->pack->claims, products:meta->pack->products, searches:meta->pack->target->searches, opportunities(${COLUMNS})`)
         .eq("site_id", siteId)
         .order("created_at", { ascending: false });
       if (error) throw new Error(`opportunities.draftsOnTopics: ${error.message}`);

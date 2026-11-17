@@ -1,8 +1,9 @@
 // SPEC §7 (owner, 2026-10-19, issue 1559) — the week a weekly pass commits, chosen from what the store holds and
 // nothing else. Pure: the same rows choose the same week, which is what the golden plans hold it to.
-import { WEEK_PLAN } from "@/lib/config/constants";
-import { alreadyCovered, pageScore } from "@/lib/known-content/match";
+import { KNOWN_CONTENT, WEEK_PLAN } from "@/lib/config/constants";
+import { closestKnown, pageScore } from "@/lib/known-content/match";
 import type { KnownPage } from "@/lib/known-content/types";
+import { SHAPES } from "@/lib/locale/language";
 import { canonicalUrl } from "@/lib/measure/page-reading";
 import { oneQuestion, queryKey, shareATopTen } from "./cluster";
 import { asUpdate, tooYoungToRefresh, updateColumns } from "./derive/known";
@@ -100,14 +101,16 @@ const searchesOf = (o: Opportunity): string[] => [o.targetQuery ?? [], ...o.abso
 
 /** Beside B1's join on its stored row, a live page of ours answers a row's question where either holds a search of the
  *  other, any two of their searches share a top ten, or its title or answer-box question (its first section) is the
- *  row's topic by its own words: the market's words make every short title of one market alike. Every live page is
+ *  row's topic by its own words at `LIVE_TWIN_MIN`: the market's words make every short title of one market alike. Every live page is
  *  compared, with no index narrowing them first. */
 export function liveTwin(page: OwnLivePage, o: Opportunity, topTens: ReadonlyMap<string, readonly string[]>): boolean {
   const [mine, theirs] = [searchesOf(o), searchesOf(page.row)];
   if (mine.some((q) => theirs.includes(q))) return true;
   const tens = (qs: string[]) => qs.flatMap((q) => (topTens.has(q) ? [topTens.get(q)!] : []));
   if (tens(mine).some((a) => tens(theirs).some((b) => shareATopTen(a, b)))) return true;
+  // A comparison is one question only with the same products, which the keys above already read.
+  if ([o.targetQuery ?? "", page.row.targetQuery ?? "", page.title ?? ""].some((text) => SHAPES.comparison.test(text.toLowerCase()))) return false;
   const question = /^##\s+(.+)$/m.exec(page.markdown ?? "")?.[1]?.trim();
   const known: KnownPage = { source: "reachkit", ref: page.row.id, url: page.url, title: page.title ?? "", headings: question === undefined ? [] : [question], live: true, publishedAt: page.publishedAt };
-  return alreadyCovered({ query: o.targetQuery, title: o.title }, [known]) !== null;
+  return (closestKnown({ query: o.targetQuery, title: o.title }, [known])?.score ?? 0) >= KNOWN_CONTENT.LIVE_TWIN_MIN;
 }
