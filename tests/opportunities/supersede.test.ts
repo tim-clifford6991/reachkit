@@ -106,7 +106,7 @@ let state: MemoryState;
 
 beforeEach(() => {
   state = newMemoryState({ profile: PROFILE });
-  setOpportunityStore(memoryStore(state));
+  setOpportunityStore({ ...memoryStore(state), footprintOpened: async () => true });
 });
 
 afterEach(() => {

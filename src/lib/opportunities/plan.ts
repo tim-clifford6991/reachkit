@@ -30,12 +30,12 @@ import type { Opportunity } from "./types";
 const DAY_MS = 86_400_000;
 
 /** Commits and returns the site's week as the header says, from `from` where it is given; what is chosen is `choose`'s. */
-export async function planWeek(siteId: string, a: { now?: Date; from?: string } = {}): Promise<readonly PlanEntry[]> {
+export async function planWeek(siteId: string, a: { now?: Date; from?: string; record?: boolean } = {}): Promise<readonly PlanEntry[]> {
   const now = a.now ?? new Date();
   const store = opportunityStore();
   // SPEC §6: the week's one readiness check, after the week's verdicts and
   // refreshes are written, so a day is planned only from a ready row.
-  await assessReadiness(siteId, { at: now, now });
+  await assessReadiness(siteId, { at: now, now, record: a.record === true });
   await assessFixPages(siteId, { report: null, now });
   // On demand, the week starts at the date being written; on Monday, at the
   // first date with no page.

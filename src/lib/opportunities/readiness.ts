@@ -1,40 +1,38 @@
-// SPEC §6 — "A day is filled only by an opportunity that passes readiness.
-// Never pad the calendar."
+// SPEC §6 — "A day is filled only by an opportunity that passes readiness. Never pad the calendar."
 //
-// `eligible()` is the one check, and its answer is stored on the row
-// (`ready`, `unready_reason`), so supply and next-work read the column and
-// never re-derive it. Readiness holds a row only for harm (owner, #2511), in
-// this order:
+// `eligible()` is the one check, and its answer is stored on the row (`ready`, `unready_reason`), so supply and
+// next-work read the column and never re-derive it. Readiness holds a row only for harm (owner, #2511), in this order:
 //
-//   - `resting` — the topic's draft was skipped, or stopped since the week's
-//     commit, or by the checks with its research unchanged; or its URL retired;
-//   - `destination_cannot_address` — an Improve the destination cannot
-//     deliver, or a topic a page of the site already covers;
-//   - `low_fit` — a stored fit below the gate, or a new topic judged with no `fitFact` (§6).
+//   - `resting` — the topic's draft was skipped, or stopped since the week's commit, or by the checks with its
+//     research unchanged; or its URL retired;
+//   - `destination_cannot_address` — an Improve the destination cannot deliver, or a topic a page of the site covers;
+//   - `low_fit` — a stored fit below the gate, or a new topic judged with no `fitFact` (§6);
+//   - `out_of_reach` — a new comparison or listicle while the site's market footprint is closed, but one a week.
 //
-// Demand, kind of business and size never hold a row: they order it
-// (`rank/points.ts`). Nor does a site whose own pages ground no fact: its
-// page stands on research alone.
+// Demand, kind of business and size never hold a row: they order it (`rank/points.ts`). Nor does a site whose own
+// pages ground no fact: its page stands on research alone.
 //
-// It is assessed in two places only: the week's commit (`planWeek`) and the
-// evening check of the committed rows (`pageForDay`).
+// It is assessed at the week's commit (`planWeek`), the evening check of the committed rows (`pageForDay`) and on the
+// rows a refresh planner creates.
 //
-// And SPEC §7's offering page: the same fresh top ten decides whether a new
-// Write page is one, stored on its evidence (`shapedEvidence`). The Fix family
-// keeps its own check (`fixPageReadiness`), about the destination.
+// And SPEC §7's offering page: the same fresh top ten decides whether a new Write page is one, stored on its evidence
+// (`shapedEvidence`). The Fix family keeps its own check (`fixPageReadiness`), about the destination.
 import { TOPIC_FIT } from "@/lib/config/constants";
 import type { StoredReport } from "@/lib/scan/report";
 import { addressesOwnPage, type HostedOwnPages } from "@/lib/publish/destinations/hosted/own-page";
 import { stoppedInputs } from "./drafted";
-import { opportunityStore, readOpportunity } from "./store";
-import { isResting, OUTSIZED, qualifiesForADay, type Winnability } from "./types";
+import { opportunityStore, readOpportunity, type OpportunityRow } from "./store";
+import { isResting, isRetarget, OUTSIZED, qualifiesForADay, type Winnability } from "./types";
 import { demandBand } from "./winnability/band";
 import { difficultyCeiling } from "./winnability/bars";
 import { heldByVerdict, suppressionOf, type Suppression } from "./suppression";
 import type { IntentPrompt } from "./intent";
 import type { KnownMatch } from "@/lib/known-content/types";
 import { queryKey } from "./cluster";
-import { SHAPED } from "./content-type";
+import { contentTypeOf, SHAPED } from "./content-type";
+import { orderRanked } from "./rank/open";
+import { pointsOf } from "./rank/points";
+import { footprintOpen } from "@/lib/market/footprint";
 import { comparisonUnasked, type AskedBeside, type ComparisonBrands, type MeasuredAnswer } from "./derive/topics";
 import { freshRead, offeringTopTen, type KindOfBusiness, type TopTenRead } from "./derive/top-ten-kind";
 import type { Evidence, Opportunity, UnreadyReason } from "./types";
@@ -52,6 +50,10 @@ export interface ReadinessContext {
    *  pure. A row whose topic is covered and which is **not** itself the
    *  update of the covering page never fills a day. */
   coveredBy: (o: Opportunity) => KnownMatch | null;
+  /** The site's market footprint is open (`footprintOpen`); while closed, a new comparison or listicle waits, */
+  footprint: boolean;
+  /** but for the one row `heldAllowed` lets the week plan. */
+  allowed?: string | null;
 }
 
 /** What `comparisonWithoutAsking` reads beside the row. Absent members read none. */
@@ -115,7 +117,26 @@ export function eligible(o: Opportunity, ctx: ReadinessContext): UnreadyReason |
   if (o.family !== "fix" && (o.businessFit ?? TOPIC_FIT.gate) < TOPIC_FIT.gate) return "low_fit";
   // A new topic with no `fitFact` key was judged before the call named one, and keeps its fit until judged again.
   if ((o.evidence.family === "write" || o.evidence.family === "earn") && o.evidence.fitFact === null) return "low_fit";
+  if (!ctx.footprint && waitsForFootprint(o) && o.id !== ctx.allowed) return "out_of_reach";
   return null;
+}
+
+/** The one held-kind row a closed gate lets a committed week plan (owner, 2026-11-17): none once one is drafted for the
+ *  week, else `ai_gap` first, then the ranked order, of rows otherwise ready and not resting on a stop; the evening
+ *  check keeps the one the week holds, as the commit's `planned_for` is still the last week's. */
+async function heldAllowed(siteId: string, open: readonly OpportunityRow[], ctx: ReadinessContext, a: { evening: boolean; stopped: (o: Opportunity) => boolean }): Promise<string | null> {
+  const store = opportunityStore();
+  const week = (await store.weeklyCommit(siteId)) ?? new Date(ctx.now.getTime() - 6 * 86_400_000).toISOString().slice(0, 10);
+  if ((await store.draftedPages(siteId, 7)).some((page) => page.date >= week && waitsForFootprint(readOpportunity(page.row)))) return null;
+  const held = open.filter((row) => waitsForFootprint(readOpportunity(row)) && !a.stopped(readOpportunity(row)) && eligible(readOpportunity(row), { ...ctx, footprint: true }) === null);
+  const seen = { cited: new Set<string>(), prompts: held.length === 0 ? [] : await store.trackedPrompts(siteId).catch(() => []) };
+  const ranked = orderRanked(held.map((row) => ({ opportunity: readOpportunity(row), ...pointsOf(readOpportunity(row), seen) }))).map((entry) => held.find((row) => row.id === entry.opportunityId)!);
+  return ((a.evening ? ranked.find((row) => row.planned_for != null) : undefined) ?? ranked.find((row) => row.source === "ai_gap") ?? ranked[0])?.id ?? null;
+}
+
+/** A new page, or a live page retargeted onto a new search, written as a comparison or listicle. */
+function waitsForFootprint(o: Opportunity): boolean {
+  return (o.family === "write" || o.family === "earn" || isRetarget(o)) && contentTypeOf(o) === "listicle";
 }
 
 /** The evidence a new page carries once its fresh stored results page
@@ -195,6 +216,8 @@ export async function assessReadiness(
     /** Issue 1559: only these rows — a pass's new ones, or the evening's
      *  committed week. Absent: every open row. */
     only?: ReadonlySet<string>;
+    /** The Monday pass: an open market footprint is recorded. */
+    record?: boolean;
   }
 ): Promise<{ ready: number; unready: number }> {
   const now = a.now ?? new Date();
@@ -227,7 +250,10 @@ export async function assessReadiness(
     suppression: suppressionOf(verdicts),
     canUpdate: canUpdateFrom(ownPages),
     coveredBy: (o) => covered.get(o.id) ?? null,
+    // Read only where a row could wait on it.
+    footprint: !rows.some((row) => waitsForFootprint(readOpportunity(row))) || (await footprintOpen(store, siteId, { report, market, record: a.record === true })),
   };
+  if (!ctx.footprint) ctx.allowed = await heldAllowed(siteId, open, ctx, { evening: a.only !== undefined, stopped: stillStopped });
   const business: KindOfBusiness | null =
     market === null ? null : { kind: market.kind ?? null, serves: market.serves ?? null, words: [market.category, ...market.synonyms].join(" ") };
 

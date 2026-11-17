@@ -190,7 +190,7 @@ const READS = new Set<keyof OpportunityStore>([
   "openRankable", "countUnused", "clusterable", "draftedOpportunityIds", "draftedPages", "citedPages", "clustersAt", "topTens",
   "topTenRows", "askedBeside", "dismissedSearches", "plannedRows", "weeklyCommit", "currentReport", "listicleHeld",
   "lastStatusChangeAt", "latestCompletedScanAt", "byId", "openFixPages", "marketFor", "notWorkingVerdicts", "hostedHostFor",
-  "hostedOwnPages", "inventoryFor", "profileForSite", "knownContentNear", "refreshInputs", "refreshPages", "trackedPrompts",
+  "hostedOwnPages", "inventoryFor", "profileForSite", "knownContentNear", "refreshInputs", "refreshPages", "trackedPrompts", "footprintOpened",
 ]);
 
 /** The real store's reads with the readiness check's writes held in memory over them, and the commit dropped. */
@@ -217,7 +217,9 @@ function dryStore(base: OpportunityStore): OpportunityStore {
         return async (id: string, ...args: never[]) => void patches.set(id, { ...patches.get(id), ...write(...args) });
       }
       if (!READS.has(name)) throw new Error(`a dry re-plan writes nothing, and ${String(name)} is not a read`);
-      const read = target[name] as (...args: unknown[]) => Promise<unknown>;
+      const read = target[name] as ((...args: unknown[]) => Promise<unknown>) | undefined;
+      // An optional read the store does not hold stays absent.
+      if (read === undefined) return undefined;
       return async (...args: unknown[]) => patch(await read.apply(target, args));
     },
   });

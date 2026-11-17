@@ -203,7 +203,7 @@ describe("the bakery and the electrician commit pages once readiness runs over t
     const site = panelSite("savvycal.com");
     const fetch = vi.spyOn(globalThis, "fetch");
     const state = newMemoryState({ profile: site.profile, market: site.market, now: AT, rows: site.rows.map((row) => ({ ...row })) });
-    setOpportunityStore({ ...memoryStore(state), topTenRows: async () => storedSerps(site.domain) });
+    setOpportunityStore({ ...memoryStore(state), topTenRows: async () => storedSerps(site.domain), footprintOpened: async () => true });
     const committed = await planFirstWeek(SITE_ID, AT);
     const listicles = committed.filter((entry) => contentTypeOf(readOpportunity(state.rows.find((row) => row.id === entry.opportunityId)!)) === "listicle");
     expect(listicles.length).toBeGreaterThan(0);

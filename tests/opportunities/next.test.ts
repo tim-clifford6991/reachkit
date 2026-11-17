@@ -38,7 +38,7 @@ const dayPage = () => pageForDay(SITE_ID, AT.toISOString().slice(0, 10), AT);
 
 beforeEach(() => {
   state = newMemoryState({ profile: PROFILE });
-  setOpportunityStore(memoryStore(state));
+  setOpportunityStore({ ...memoryStore(state), footprintOpened: async () => true });
 });
 
 afterEach(() => {
