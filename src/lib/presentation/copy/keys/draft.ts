@@ -61,7 +61,7 @@ import type { CopyPartition } from "../registry.ts";
 
 export const DRAFT_COPY = Object.freeze({
   // §4.6's three controls, over the declared publishing interface.
-  "draft.action.edit": ["Edit this page", { slots: {}, fixedBy: "BUILD §4.6" }],
+  "draft.action.edit": ["Edit This Page", { slots: {}, fixedBy: "BUILD §4.6" }],
   // SPEC §7 (2026-09-20, #908, issue #914) — "Screens and mail say *Stop
   // this page*. 'Veto' remains the internal word and the name of the
   // mechanism in this file." The key, the command, the column and the
@@ -69,7 +69,7 @@ export const DRAFT_COPY = Object.freeze({
   // In full here: this control stands on the page it acts on, and the
   // canvas reserves the short *Stop it* for the day panel's secondary row.
   "draft.action.veto": [
-    "Stop this page",
+    "Stop This Page",
     { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
   ],
 
@@ -112,11 +112,11 @@ export const DRAFT_COPY = Object.freeze({
      all — `PublishedPageView` says why a review screen holds no publication
      date to print. */
   "draft.search-result.title": [
-    "In search results",
+    "In Search Results",
     { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
   ],
   "draft.written-from.title": [
-    "Written from your business",
+    "Written from Your Business",
     { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
   ],
   "draft.written-from.lead": [
@@ -182,7 +182,7 @@ export const DRAFT_COPY = Object.freeze({
   // where a new page says too little of that — the one line that asks the
   // founder for the missing fact. Drafted under issue 759's ruling; the
   // owner corrects the wording.
-  "draft.adds.title": ["What this page adds", { slots: {}, fixedBy: "issue 1143 (drafted)" }],
+  "draft.adds.title": ["What This Page Adds", { slots: {}, fixedBy: "issue 1143 (drafted)" }],
   "draft.adds.lead": [
     "What it says that the pages ranking today don’t.",
     { slots: {}, fixedBy: "issue 1143 (drafted)" },
@@ -197,7 +197,7 @@ export const DRAFT_COPY = Object.freeze({
     { slots: {}, fixedBy: "issue 1143 (drafted)" },
   ],
   // Links on this page (SPEC §7, 2026-10-10, issue 1391).
-  "draft.links.title": ["Links on this page", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
+  "draft.links.title": ["Links on This Page", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
   "draft.links.lead": ["Links to your service pages and to your other live pages.", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
   "draft.links.site": ["Your site", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
   "draft.links.articles": ["Your pages", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
@@ -301,7 +301,7 @@ export const DRAFT_COPY = Object.freeze({
   // The back link §4.6 asks for, the unsaved indicator c7 asks for, and the
   // one written line an unknown draft id resolves to.
   "draft.back": [
-    "Back to This week",
+    "Back to This Week",
     { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
   ],
   /** Issue 1196: a page pressed *Write it again*, while the draft tick has
@@ -476,7 +476,7 @@ export const DRAFT_COPY = Object.freeze({
   // two save lines that are not `draft.unsaved`, the footnote under the two
   // panes, and the two controls that leave the editor.
   "draft.edit.back": [
-    "Back to the page",
+    "Back to the Page",
     { slots: {}, fixedBy: "REQ-045 c5 · S17 (11a)" },
   ],
   "draft.edit.state.edited": [
@@ -524,11 +524,11 @@ export const DRAFT_COPY = Object.freeze({
     { slots: {}, fixedBy: "SPEC §7 · issue 1180" },
   ],
   "draft.edit.done": [
-    "Done editing",
+    "Done Editing",
     { slots: {}, fixedBy: "REQ-045 c5 · S17 (11a)" },
   ],
   "draft.edit.discard": [
-    "Discard changes",
+    "Discard Changes",
     { slots: {}, fixedBy: "REQ-045 c5 · S17 (11a)" },
   ],
 
@@ -765,7 +765,7 @@ export const DRAFT_COPY = Object.freeze({
   // ── SPEC §4 (2026-10-10, issue 1395): why this topic, the topics set
   // aside, and the two sources a page is written from. Drafted.
   "draft.why.title": [
-    "Why this page",
+    "Why This Page",
     { slots: {}, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
   ],
   "draft.why.fit.answer": [
@@ -794,7 +794,7 @@ export const DRAFT_COPY = Object.freeze({
   // for good, Put it back for 7 days on a hosted page. Drafted (#759).
   "draft.live.since": ["Live since {date}", { slots: { date: "date" }, fixedBy: "issue 1749 (drafted)" }],
   "draft.live.new-tab": ["(opens in a new tab)", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
-  "draft.live.week": ["This week in Google", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
+  "draft.live.week": ["This Week in Google", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
   "draft.live.place": ["place for {search}", { slots: { search: "text" }, fixedBy: "issue 1749 (drafted)" }],
   "draft.live.places": ["{n} places", { slots: { n: "text" }, fixedBy: "issue 1749 (drafted)" }],
   "draft.live.places.one": ["one place", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
@@ -833,7 +833,7 @@ export const DRAFT_COPY = Object.freeze({
   "draft.stopped.badge": ["Stopped", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
   "draft.stopped.line": ["Tomorrow’s page goes live as planned.", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
   "draft.stopped.wordpress": ["Your WordPress post was returned to draft. To bring it back, publish it in WordPress.", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
-  "draft.action.put-back": ["Put it back live", { slots: {}, fixedBy: "issue 1749 · issue 2657 S1 (issue 2668, drafted)" }],
+  "draft.action.put-back": ["Put It Back Live", { slots: {}, fixedBy: "issue 1749 · issue 2657 S1 (issue 2668, drafted)" }],
   "draft.put-back.until": ["You can put it back until {date}.", { slots: { date: "date" }, fixedBy: "issue 1749 (drafted)" }],
   "draft.put-back.done": ["It’s back on your site.", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
   "draft.put-back.refused": ["That didn’t work, so the page is still off your site. Try again.", { slots: {}, fixedBy: "issue 1749 (drafted)" }],

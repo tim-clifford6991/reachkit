@@ -171,7 +171,7 @@ export const SETUP_COPY = Object.freeze({
   "setup.destination.guide.column.value": ["Enter", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
   "setup.destination.guide.copy": ["Copy", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
   "setup.destination.guide.copied": ["Copied", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
-  "setup.destination.guide.open": ["Open your {provider} DNS settings", { slots: { provider: "text" }, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+  "setup.destination.guide.open": ["Open Your {provider} DNS Settings", { slots: { provider: "text" }, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
   "setup.destination.guide.full-name": ["The full name of this record is {host}.", { slots: { host: "text" }, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
 
   "setup.destination.guide.field.type": ["Type", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
@@ -368,7 +368,7 @@ export const SETUP_COPY = Object.freeze({
   // issue 759's ruling; the owner corrects the wording.
   "setup.remeasure.suggested": ["Broader markets to try", { slots: {}, fixedBy: "issue 837" }],
   "setup.remeasure.own": ["Or describe your market in your own words", { slots: {}, fixedBy: "issue 837" }],
-  "setup.remeasure.submit": ["Check this market now", { slots: {}, fixedBy: "issue 837 · owner 2026-11-14, issue 2657 S6 (issue 2672)" }],
+  "setup.remeasure.submit": ["Check This Market Now", { slots: {}, fixedBy: "issue 837 · owner 2026-11-14, issue 2657 S6 (issue 2672)" }],
   "setup.remeasure.refused.empty": ["Type a market, or pick one of the suggestions.", { slots: {}, fixedBy: "issue 837" }],
   "setup.remeasure.refused.running": ["We’re already checking your market. Your pages follow when it’s done.", { slots: {}, fixedBy: "issue 837" }],
   "setup.remeasure.refused.daily-limit": ["You can check again after {time}.", { slots: { time: "text" }, fixedBy: "issue 837" }],

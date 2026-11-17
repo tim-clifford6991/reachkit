@@ -97,7 +97,7 @@ export const SETTINGS_COPY = Object.freeze({
      sentence per field, only the one for a profile nobody has read. */
   // The three folds under the card, named for a screen reader.
   "settings.business.more": ["More about your business", { slots: {}, fixedBy: "issue 1750 (drafted)" }],
-  "settings.business.title": ["What we read from your site", { slots: {}, fixedBy: "canvas v36 · board SettingsIndex" }],
+  "settings.business.title": ["What We Read from Your Site", { slots: {}, fixedBy: "canvas v36 · board SettingsIndex" }],
   "settings.business.lead": ["Change any line. Your next page follows it.", { slots: {}, fixedBy: "canvas v36 · board SettingsIndex" }],
   // The group heads (#926).
   "settings.business.job": ["What you do", { slots: {}, fixedBy: "SPEC §7 2026-09-20" }],
@@ -154,11 +154,11 @@ export const SETTINGS_COPY = Object.freeze({
     { slots: { count: "text" }, fixedBy: "SPEC §7 2026-09-20" },
   ],
   "settings.business.facts.switch-off": [
-    "Don’t quote this",
+    "Don’t Quote This",
     { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
   ],
   "settings.business.facts.switch-on": [
-    "Quote this again",
+    "Quote This Again",
     { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
   ],
   "settings.business.facts.off": ["Off", { slots: {}, fixedBy: "SPEC §7 2026-09-20" }],
@@ -218,16 +218,16 @@ export const SETTINGS_COPY = Object.freeze({
     { slots: { rival: "text" }, fixedBy: "issue 1133 (drafted)" },
   ],
   "settings.business.read-again": [
-    "Read my site again now",
+    "Read My Site Again Now",
     { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
   ],
 
   // ── The tab bar (owner R7, 2026-10-31): Your business · Pages · Account. Account reuses `settings.account.title`.
   "settings.tabs.label": ["Settings sections", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
-  "settings.tab.business": ["Your business", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+  "settings.tab.business": ["Your Business", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
   "settings.tab.pages": ["Pages", { slots: {}, fixedBy: "owner R7 · issue 2127" }],
 
-  "settings.market.title": ["Your site and market", { slots: {}, fixedBy: "BUILD §4.7" }],
+  "settings.market.title": ["Your Site and Market", { slots: {}, fixedBy: "BUILD §4.7" }],
   "settings.market.category": ["market", { slots: {}, fixedBy: "REQ-070 c1" }],
   "settings.market.domain": ["Your website", { slots: {}, fixedBy: "BUILD §10 (`sites.domain`), §4.4 · board SettingsMarket" }],
   "settings.market.your-market": ["Your market", { slots: {}, fixedBy: "canvas v36 · board SettingsMarket" }],
@@ -285,7 +285,7 @@ export const SETTINGS_COPY = Object.freeze({
   // reads the same two sentences the thin-market choice is refused with
   // (`setup.remeasure.refused.*`), because the bound and the remedy are the
   // same one.
-  "settings.market.remeasure.action": ["Check my market now", { slots: {}, fixedBy: "issue 866 · owner 2026-11-14, issue 2657 S6 (issue 2672)" }],
+  "settings.market.remeasure.action": ["Check My Market Now", { slots: {}, fixedBy: "issue 866 · owner 2026-11-14, issue 2657 S6 (issue 2672)" }],
   "settings.market.remeasure.started": [
     "We’re checking your market again. Your pages follow when it’s done.",
     { slots: {}, fixedBy: "issue 866" },
@@ -495,10 +495,10 @@ export const SETTINGS_COPY = Object.freeze({
   // typecheck rather than failing a copy review — this key is the label
   // for the control that member selects.
   "settings.publishing.reconnect-other-account": [
-    "Connect a different account",
+    "Connect a Different Account",
     { slots: {}, fixedBy: "ADR-086 · REQ-060 c7" },
   ],
-  "settings.publishing.set-dns": ["Connect your website", { slots: {}, fixedBy: "BUILD §9 · REQ-059 c2" }],
+  "settings.publishing.set-dns": ["Connect Your Website", { slots: {}, fixedBy: "BUILD §9 · REQ-059 c2" }],
 
   // ── The customer's own subdomain (SPEC §5, ruling of 2026-09-12) ───────
   //
@@ -528,7 +528,7 @@ export const SETTINGS_COPY = Object.freeze({
   // list said live, the domain list said waiting, or nothing could be asked
   // — and the press inside the floor, which asked nothing and says when it
   // may. Drafted and shipped under the owner ruling of 2026-09-16 (#759).
-  "settings.destination.check.button": ["Check connection now", { slots: {}, fixedBy: "SPEC §5 (2026-09-16, issue 757; owner 2026-11-13 ruling, issue 2651)" }],
+  "settings.destination.check.button": ["Check Connection Now", { slots: {}, fixedBy: "SPEC §5 (2026-09-16, issue 757; owner 2026-11-13 ruling, issue 2651)" }],
   "settings.destination.check.live": ["Connected. Your pages will publish to this address.", { slots: {}, fixedBy: "SPEC §5 (2026-09-16, issue 757)" }],
   "settings.destination.check.pending-dns": ["Not connected yet. New settings can take a few hours, and we check every hour.", { slots: {}, fixedBy: "SPEC §5 (2026-09-16, issue 757)" }],
   "settings.destination.check.could-not-ask": ["We couldn’t check just now. Try again in a moment.", { slots: {}, fixedBy: "SPEC §5 (2026-09-16, issue 757)" }],
@@ -608,10 +608,10 @@ export const SETTINGS_COPY = Object.freeze({
   // `invoices`, `Cancel plan` — and this sentence is the only place they are
   // now spoken, so it is drafted (#759) rather than transcribed: §4.7 prints
   // them as three control words and not as a sentence.
-  "settings.billing.manage": ["Manage billing in Stripe", { slots: {}, fixedBy: "SPEC §4 2026-09-20 · REQ-097 c1" }],
+  "settings.billing.manage": ["Manage Billing in Stripe", { slots: {}, fixedBy: "SPEC §4 2026-09-20 · REQ-097 c1" }],
   "settings.billing.manage.note": ["Update your card, download invoices, or cancel.", { slots: {}, fixedBy: "SPEC §4 2026-09-20 · REQ-097 c1" }],
   "settings.billing.resume": [
-    "Resume my subscription",
+    "Resume My Subscription",
     { slots: {}, fixedBy: 'REQ-070 c2 ("cancelling or resuming the plan")' },
   ],
   // 2026-09-07, issue #136 — REQ-097 criterion 6: "they are told in writing,
@@ -647,7 +647,7 @@ export const SETTINGS_COPY = Object.freeze({
   ],
 
   // Billing's "What you got this month" (owner E3, 2026-10-19). Drafted.
-  "settings.month.title": ["This month", { slots: {}, fixedBy: "issue 2277 · board SettingsBilling" }],
+  "settings.month.title": ["This Month", { slots: {}, fixedBy: "issue 2277 · board SettingsBilling" }],
   "settings.month.period": ["{from} to {to}. All included in {price}.", { slots: { from: "date", to: "date", price: "text" }, fixedBy: "issue 2277 · board SettingsBilling" }],
   "settings.month.live": ["pages went live", { slots: {}, fixedBy: "E3 · drafted" }],
   "settings.month.reports": ["Monday mails", { slots: {}, fixedBy: "issue 1751 · board SettingsBilling · drafted" }],
@@ -664,8 +664,8 @@ export const SETTINGS_COPY = Object.freeze({
   "settings.account.title": ["Account", { slots: {}, fixedBy: "BUILD §4.7" }],
   "settings.account.name": ["Name", { slots: {}, fixedBy: "BUILD §4.7" }],
   "settings.account.email": ["Email", { slots: {}, fixedBy: "BUILD §4.7" }],
-  "settings.account.change-email": ["Change email", { slots: {}, fixedBy: "BUILD §4.7" }],
-  "settings.account.sign-out": ["Sign out", { slots: {}, fixedBy: "BUILD §4.7" }],
+  "settings.account.change-email": ["Change Email", { slots: {}, fixedBy: "BUILD §4.7" }],
+  "settings.account.sign-out": ["Sign Out", { slots: {}, fixedBy: "BUILD §4.7" }],
   // §4.7 names a "magic-link note" and prints no note; nothing else in the
   // spec writes one, so the words are the owner's.
   "settings.account.magic-link": ["You sign in with a link sent here. No password.", { slots: {}, fixedBy: 'BUILD §4.7 ("magic-link note")' }],
@@ -705,7 +705,7 @@ export const SETTINGS_COPY = Object.freeze({
     "Open the link we sent before {at}, or nothing changes.",
     { slots: { at: "date" }, fixedBy: "REQ-077 c4" },
   ],
-  "settings.account.cancel-change": ["Undo change", { slots: {}, fixedBy: "REQ-077 c4" }],
+  "settings.account.cancel-change": ["Undo Change", { slots: {}, fixedBy: "REQ-077 c4" }],
   // The export row, in the board's words. Two keys: this registry does not pluralise.
   "settings.account.pages": ["Your pages", { slots: {}, fixedBy: "issue 2277 · board SettingsAccount" }],
   "settings.account.pages.count": ["{pages} pages, with images", { slots: { pages: "text" }, fixedBy: "REQ-078 · board SettingsAccount" }],
@@ -722,7 +722,7 @@ export const SETTINGS_COPY = Object.freeze({
   // description — the customer writes this; one field, nothing is learned
   // about them]"), which is the set's own way of saying the words are the
   // owner's, so its value is the owner's approved wording, not the set's.
-  "settings.voice.title": ["How your pages sound", { slots: {}, fixedBy: "REQ-055" }],
+  "settings.voice.title": ["How Your Pages Sound", { slots: {}, fixedBy: "REQ-055" }],
   "settings.voice.never-claim": ["Never say", { slots: {}, fixedBy: "REQ-053" }],
   "settings.voice.add-claim": [
     "Add something your pages must never say",
@@ -768,7 +768,7 @@ export const SETTINGS_COPY = Object.freeze({
     { slots: {}, fixedBy: "REQ-075" },
   ],
 
-  "settings.content.export": ["Download all my pages", { slots: {}, fixedBy: "BUILD §4.7; issue 2657 S2, issue 2669 (drafted)" }],
+  "settings.content.export": ["Download All My Pages", { slots: {}, fixedBy: "BUILD §4.7; issue 2657 S2, issue 2669 (drafted)" }],
   // REQ-078 c5 (issue #52): "Given an export cannot be produced, when the
   // customer requests one, then they are told so in one written line and are
   // not given a partial archive presented as complete." One line, whatever
@@ -785,7 +785,7 @@ export const SETTINGS_COPY = Object.freeze({
   // source labels and the two count lines are drafted in the registry's
   // voice under the 2026-09-16 ruling (#759), and the PR names each one.
   // The site link map (SPEC §7, 2026-10-10, issue 1391).
-  "settings.linkmap.head": ["How your pages link your site", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
+  "settings.linkmap.head": ["How Your Pages Link Your Site", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
   "settings.linkmap.none": ["None of our pages is live yet. Once one is, this shows which of your pages it links.", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
   "settings.linkmap.receiving": ["Pages on your site we link to", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
   "settings.linkmap.receiving.none": ["None of our pages link to your site yet.", { slots: {}, fixedBy: "issue 1391 (drafted)" }],

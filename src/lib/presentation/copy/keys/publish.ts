@@ -96,7 +96,7 @@ export const PUBLISH_COPY = Object.freeze({
   // date printed beside it would read as an observation ReachKit has not
   // made. The two `never` arms state none either: no check will run, so
   // there is nothing to date.
-  "record.title": ["Page record", { slots: {}, fixedBy: "REQ-056 c6" }],
+  "record.title": ["Page Record", { slots: {}, fixedBy: "REQ-056 c6" }],
   "record.label.address": ["Address", { slots: {}, fixedBy: "REQ-056 c6" }],
   "record.label.checked": ["Checked", { slots: {}, fixedBy: "REQ-062 c7" }],
   "record.label.taken-down": ["Taken down", { slots: {}, fixedBy: "REQ-056 c15" }],

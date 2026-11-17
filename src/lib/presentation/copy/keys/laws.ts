@@ -162,7 +162,7 @@ export const LAWS_COPY = Object.freeze({
   // address and loses its old word. The key was `shell.nav.calendar`; a
   // renamed key rather than a re-worded one, so nothing can go on speaking
   // "Calendar" from a name that no longer means it.
-  "shell.nav.plan": ["This week", { slots: {}, fixedBy: "owner R8 (2026-10-31)" }],
+  "shell.nav.plan": ["This Week", { slots: {}, fixedBy: "owner R8 (2026-10-31)" }],
   "shell.nav.settings": ["Settings", { slots: {}, fixedBy: "REQ-040 c1" }],
   /** SPEC §4 (2026-09-20, #908) — the side panel that "collapses to an icon
    *  rail", and below the large breakpoint is a drawer. The checkbox that
@@ -192,7 +192,7 @@ export const LAWS_COPY = Object.freeze({
    *  time is the shell's own formatted date-time in the customer's zone
    *  (`format.ts`), never a composed "tomorrow": the shell states the day
    *  it knows rather than a word it would have to work out. */
-  "shell.waiting.head": ["Next page", { slots: {}, fixedBy: "issue 1362" }],
+  "shell.waiting.head": ["Next Page", { slots: {}, fixedBy: "issue 1362" }],
   "shell.waiting.goes-live": [
     "Goes live on its own {when}. Edit or stop it until then.",
     { slots: { when: "date" }, fixedBy: "issue 1337" },
@@ -200,7 +200,7 @@ export const LAWS_COPY = Object.freeze({
   /** SPEC §4 (2026-09-20) — the side panel's two shortcuts. Each is drawn
    *  only where it can act (SPEC §4, 2026-09-20: "a control that cannot act
    *  is not drawn"), so the blog link is absent until a blog is live. */
-  "shell.shortcut.blog": ["Open your pages", { slots: {}, fixedBy: "issue 911" }],
+  "shell.shortcut.blog": ["Open Your Pages", { slots: {}, fixedBy: "issue 911" }],
   "shell.shortcut.help": ["Help", { slots: {}, fixedBy: "issue 911" }],
   "shell.publishing.mode.autopilot": ["Autopilot", { slots: {}, fixedBy: "REQ-040 c3" }],
   // What the mode is doing, under the mode's own word (UI-SPEC S12's

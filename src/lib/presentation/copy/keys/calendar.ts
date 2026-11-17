@@ -121,7 +121,7 @@ export const CALENDAR_COPY = Object.freeze({
   "calendar.day.set-aside": ["Set aside", { slots: {}, fixedBy: "owner O7, issue 2164 (drafted)" }],
   "calendar.day.became-update": ["Now an update", { slots: {}, fixedBy: "ux-designer, seo-master 2026-11-05, issue 2389 (drafted)" }],
   "calendar.day.became-update.line": ["This day now improves a live page instead of a new one. Nothing is needed from you.", { slots: {}, fixedBy: "ux-designer 2026-11-06, seo-master 2026-11-05, issue 2389 (drafted)" }],
-  "calendar.week.stop": ["Stop this page", { slots: {}, fixedBy: "SPEC §7 2026-10-19 E7 · issue 2657 S1 (issue 2668, drafted)" }],
+  "calendar.week.stop": ["Stop This Page", { slots: {}, fixedBy: "SPEC §7 2026-10-19 E7 · issue 2657 S1 (issue 2668, drafted)" }],
   // Why the week holds a page: its most specific reason, one line.
   "calendar.week.why.near-page-one": ["Close to Google’s first page", { slots: {}, fixedBy: "SPEC §7 2026-10-19 C3 (drafted)" }],
   "calendar.week.why.not-moving": ["No movement in 8 weeks", { slots: {}, fixedBy: "SPEC §7 2026-10-19 C3 (drafted)" }],
@@ -134,13 +134,13 @@ export const CALENDAR_COPY = Object.freeze({
   "calendar.spares.note": ["used if a day’s page can’t be written", { slots: {}, fixedBy: "board Plan v36, issue 2273 (drafted)" }],
 
   // §4.6's stage-appropriate actions.
-  "calendar.action.read-full-page": ["Read the full page", { slots: {}, fixedBy: "BUILD §4.6" }],
-  "calendar.action.view-live-page": ["View live page", { slots: {}, fixedBy: "BUILD §4.6" }],
+  "calendar.action.read-full-page": ["Read the Full Page", { slots: {}, fixedBy: "BUILD §4.6" }],
+  "calendar.action.view-live-page": ["View Live Page", { slots: {}, fixedBy: "BUILD §4.6" }],
   // Issue 882 (owner, 2026-09-18): every written page is readable from the
   // calendar, not only the one in review. The review stage keeps §4.6's own
   // word above, which asks for a judgement; every other stage says plainly
   // what the way in opens. Drafted under issue 759's ruling.
-  "calendar.action.read-page": ["Read the page as written", { slots: {}, fixedBy: "issue 882" }],
+  "calendar.action.read-page": ["Read the Page as Written", { slots: {}, fixedBy: "issue 882" }],
   // The approved S15 names the destination the control reconnects: a page
   // that stalled because WordPress refused the connection is reconnected to
   // WordPress, and "Reconnect" alone left the customer to guess which of
@@ -151,7 +151,7 @@ export const CALENDAR_COPY = Object.freeze({
   // instead — and the WordPress sentence above is never shown to a hosted
   // site. Drafted under issue 759's ruling.
   "calendar.action.check-destination": ["Open Settings › Pages", { slots: {}, fixedBy: "issue 880 · issue 2657 S1 (issue 2668, drafted)" }],
-  "calendar.action.skip": ["Stop this page", { slots: {}, fixedBy: "BUILD §4.6 · owner 2026-11-14, issue 2657 S6 (issue 2672)" }],
+  "calendar.action.skip": ["Stop This Page", { slots: {}, fixedBy: "BUILD §4.6 · owner 2026-11-14, issue 2657 S6 (issue 2672)" }],
   // SPEC §7 (2026-09-20, #908, issue #914) — "Screens and mail say *Stop
   // this page*. 'Veto' remains the internal word and the name of the
   // mechanism in this file." The key, the command, the column and the
@@ -160,7 +160,7 @@ export const CALENDAR_COPY = Object.freeze({
   // in the day panel's two-column secondary row beside *Skip* and *Write
   // it again* — the full sentence belongs on the page itself, where the
   // draft screen says it in full.
-  "calendar.action.veto": ["Stop this page", { slots: {}, fixedBy: "SPEC §7 2026-09-20" }],
+  "calendar.action.veto": ["Stop This Page", { slots: {}, fixedBy: "SPEC §7 2026-09-20" }],
   // 2026-09-07, issue #143. The customer's own restart — §9 opens
   // `needs_attention → generating` for them and for no one else, and no
   // surface offered it.
@@ -174,7 +174,7 @@ export const CALENDAR_COPY = Object.freeze({
   // draft. What it must not say is that anything is being retried
   // automatically — nothing is, which is the whole reason the control
   // exists.
-  "calendar.action.regenerate": ["Write it again", { slots: {}, fixedBy: "BUILD §9 · REQ-043 c9" }],
+  "calendar.action.regenerate": ["Write It Again", { slots: {}, fixedBy: "BUILD §9 · REQ-043 c9" }],
 
   // SPEC §7 (2026-09-20, #908, issue #913) — "every action answers". Each
   // of the three writes the day panel offers says, in words, what became
@@ -444,9 +444,9 @@ export const CALENDAR_COPY = Object.freeze({
   // Board Plan: the head, the four numbers, the week card, how the week was
   // chosen, the day states and the live pages. Drafted (#759).
   "calendar.eyebrow": ["Week {n}", { slots: { n: "text" }, fixedBy: "board Plan (drafted)" }],
-  "calendar.title": ["This week’s {n} pages", { slots: { n: "text" }, fixedBy: "board Plan (drafted)" }],
-  "calendar.title.one": ["This week’s page", { slots: {}, fixedBy: "board Plan (drafted)" }],
-  "calendar.title.none": ["This week’s pages", { slots: {}, fixedBy: "board Plan (drafted)" }],
+  "calendar.title": ["This Week’s {n} Pages", { slots: { n: "text" }, fixedBy: "board Plan (drafted)" }],
+  "calendar.title.one": ["This Week’s Page", { slots: {}, fixedBy: "board Plan (drafted)" }],
+  "calendar.title.none": ["This Week’s Pages", { slots: {}, fixedBy: "board Plan (drafted)" }],
   "calendar.head.undated": ["Each goes live on its day unless you stop it.", { slots: {}, fixedBy: "board Plan (drafted)" }],
   "calendar.first-week": ["Your first week is being chosen. It shows here by Monday morning.", { slots: {}, fixedBy: "board Plan v36, issue 2273 (drafted)" }],
   "calendar.week.time": ["Each goes live at {time}, {place} time", { slots: { time: "text", place: "text" }, fixedBy: "board Plan v36, issue 2273 (drafted)" }],
@@ -469,10 +469,10 @@ export const CALENDAR_COPY = Object.freeze({
   "calendar.reason.asked": ["Buyers ask this question before they buy.", { slots: {}, fixedBy: "board Plan (drafted)" }],
   "calendar.reason.fit": ["A close fit for what your business offers.", { slots: {}, fixedBy: "board Plan (drafted)" }],
   "calendar.day.held-for-fix": ["Waiting on your fix: {fix}.", { slots: { fix: "text" }, fixedBy: "board Plan v36, ux-designer, issue 2273 (drafted)" }],
-  "calendar.day.held-for-fix.link": ["Open this fix in Technical issues", { slots: {}, fixedBy: "board Plan v36, ux-designer, issue 2273 (drafted)" }],
+  "calendar.day.held-for-fix.link": ["Open This Fix in Technical Issues", { slots: {}, fixedBy: "board Plan v36, ux-designer, issue 2273 (drafted)" }],
   "calendar.day.stopped.line": ["Stopped by you on {day}. Other days are not affected.", { slots: { day: "text" }, fixedBy: "board Plan v36, issue 2273 (drafted)" }],
   "calendar.day.skipped.line": ["Nothing worth writing for this day, so no page.", { slots: {}, fixedBy: "board Plan v36, issue 2273 (drafted)" }],
-  "calendar.live.title": ["Live pages", { slots: {}, fixedBy: "board Plan (drafted)" }],
+  "calendar.live.title": ["Live Pages", { slots: {}, fixedBy: "board Plan (drafted)" }],
   "calendar.live.google": ["Google: {step}", { slots: { step: "text" }, fixedBy: "board Plan (drafted)" }],
   "calendar.live.ai": ["AI: {step}", { slots: { step: "text" }, fixedBy: "board Plan (drafted)" }],
   "calendar.live.place": ["Place {n}.", { slots: { n: "text" }, fixedBy: "board Plan v36, issue 2273 (drafted)" }],
@@ -484,6 +484,6 @@ export const CALENDAR_COPY = Object.freeze({
   "calendar.live.ai-unread": ["not read yet", { slots: {}, fixedBy: "board Plan (drafted)" }],
   "calendar.live.showing": ["Showing in results", { slots: {}, fixedBy: "board Plan v36, issue 2273 (drafted)" }],
   "calendar.live.unread": ["Live since {date}. We check it on Monday.", { slots: { date: "text" }, fixedBy: "board Plan v36, issue 2273 (drafted)" }],
-  "calendar.live.all": ["Show all {m} live pages", { slots: { m: "text" }, fixedBy: "board Plan v36, issue 2273 (drafted)" }],
+  "calendar.live.all": ["Show All {m} Live Pages", { slots: { m: "text" }, fixedBy: "board Plan v36, issue 2273 (drafted)" }],
   "calendar.live.none": ["No page is live yet. Each shows here once it goes live, with how far it has got.", { slots: {}, fixedBy: "board Plan (drafted)" }],
 }) satisfies CopyPartition;
