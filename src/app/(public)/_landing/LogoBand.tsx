@@ -34,11 +34,12 @@ export function LogoBand(p: { label: string; pause: string; play: string }): Rea
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const id = window.setInterval(() => {
       const el = row.current;
-      const first = el?.firstElementChild;
-      if (!el || !first) return;
+      if (!el) return;
       const atEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 1;
-      const step = first.getBoundingClientRect().width + parseFloat(getComputedStyle(el).columnGap || "0");
-      el.scrollTo({ left: atEnd ? 0 : el.scrollLeft + step, behavior: "smooth" });
+      const origin = el.getBoundingClientRect().left - el.scrollLeft;
+      const next = [...el.children].map((c) => c.getBoundingClientRect().left - origin).find((x) => x > el.scrollLeft + 1);
+      // Land on the next slide's own snap point and let daisyUI's CSS do the smoothing: WebKit neither snaps a scripted scroll nor finishes a scripted smooth one on a snapping row.
+      el.scrollTo({ left: atEnd || next === undefined ? 0 : next });
     }, EVERY_MS);
     return () => window.clearInterval(id);
   }, [slides, shown, paused, hovered, focused]);
@@ -65,7 +66,7 @@ export function LogoBand(p: { label: string; pause: string; play: string }): Rea
             role="region"
             tabIndex={0}
             aria-label={p.label}
-            className="carousel carousel-center w-full gap-4 py-1"
+            className="carousel w-full gap-4 py-1"
             onMouseEnter={() => setHovered(true)}
             onMouseLeave={() => setHovered(false)}
             onFocus={() => setFocused(true)}
