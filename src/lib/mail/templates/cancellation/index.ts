@@ -3,6 +3,7 @@ import type { CopyKey } from "@/lib/presentation/copy";
 import type { RetentionMail } from "../../retention/mail";
 
 const SUBJECT = "mail.cancellation.subject" satisfies CopyKey;
+const HEADING = "mail.cancellation.heading" satisfies CopyKey;
 const LINE = "mail.cancellation.line" satisfies CopyKey;
 const RESUME = "mail.cancellation.resume" satisfies CopyKey;
 const PREHEADER = "mail.cancellation.preheader" satisfies CopyKey;
@@ -13,7 +14,7 @@ export function buildCancellation(a: { accessEndsOn: string }): RetentionMail {
     subject: SUBJECT,
     preheader: PREHEADER,
     blocks: [
-      { block: "heading", text: SUBJECT },
+      { block: "heading", text: HEADING },
       { block: "paragraph", text: LINE, vars: { accessEndsOn: a.accessEndsOn } },
       { block: "paragraph", text: RESUME },
     ],

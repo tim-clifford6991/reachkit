@@ -12,7 +12,7 @@ const ACTION = "mail.magicLink.action" satisfies CopyKey;
 const FACT_FOR = "mail.magicLink.fact.for" satisfies CopyKey;
 const REASON = "mail.reason.magicLink" satisfies CopyKey;
 const PAID_SUBJECT = "mail.magicLink.paid.subject" satisfies CopyKey;
-const PAID_HEADING = "mail.account.chase.subject" satisfies CopyKey;
+const PAID_HEADING = "mail.magicLink.paid.heading" satisfies CopyKey;
 const PAID_LINE = "mail.magicLink.paid.line" satisfies CopyKey;
 const PAID_PREHEADER = "mail.account.chase.preheader" satisfies CopyKey;
 

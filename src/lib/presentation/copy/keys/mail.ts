@@ -36,14 +36,7 @@ export const MAIL_COPY = Object.freeze({
   "optout.changes.still": ["Still sent", { slots: {}, fixedBy: "REQ-010 c11 · OptOut board (v36)" }],
   "optout.report": ["The page you asked for stays yours, and your free report stays at its address. To take the report down, write to {address}.", { slots: { address: "text" }, fixedBy: "REQ-002 c1 · OptOut board (V22)" }],
 
-  // 2026-09-05, issue #30 (the mail seam, BUILD §12). Six keys the shell
-  // and the whole-mail line need. Five are sentences the product speaks in
-  // its own voice (filled by #458). The sixth is the product's own name,
-  // transcribed — not a sentence, on the
-  // same footing as the em-dash and the removal address that two other
-  // partitions transcribe. (Those two keys are not named here: issue #28's
-  // `tests/app/scan-address/removal.test.tsx` asserts one of them appears
-  // in exactly one file under `src/`, and a comment naming it is a second.)
+  // The shell's keys: the product's own name, transcribed, and the whole-mail lines.
 
   "mail.shell.wordmark": ["ReachKit", { slots: {}, fixedBy: "§12" }],
   "mail.nothing_to_report": ["Nothing new to report this week.", { slots: {}, fixedBy: "§12" }],
@@ -116,12 +109,15 @@ export const MAIL_COPY = Object.freeze({
   "mail.setupReminder.subject": ["Finish setup for your first page", { slots: {}, fixedBy: "REQ-025 c6" }],
   "mail.setupReminder.body": ["It takes about {setupMinutes} minutes. Then we write your first page.", { slots: { setupMinutes: "text" }, fixedBy: "REQ-025 c6" }],
   "mail.setupReminder.preheader": ["Your first page starts after setup.", { slots: {}, fixedBy: "O6 · issue 2172 (drafted)" }],
-  "mail.setupReminder.action": ["Finish setup", { slots: {}, fixedBy: "REQ-025 c6" }],
+  // Headings are Title Case and subjects sentence case (SPEC §1), so a kind headed by its news has its own heading key.
+  "mail.setupReminder.heading": ["Finish Setup for Your First Page", { slots: {}, fixedBy: "SPEC §1 Title Case · issue 2753 (drafted)" }],
+  "mail.setupReminder.action": ["Finish Setup", { slots: {}, fixedBy: "REQ-025 c6" }],
   "mail.setupReminder.written": ["Your first page is written and waiting.", { slots: {}, fixedBy: "owner R15 · issue 2142 (drafted)" }],
   "mail.setupReminder.connect": ["One setting at {provider} puts it live.", { slots: { provider: "text" }, fixedBy: "owner R15 · issue 2142 (drafted)" }],
   "mail.setupReminder.connectAny": ["Connecting your website puts it live.", { slots: {}, fixedBy: "owner R15 · issue 2142 (drafted)" }],
   // SPEC §5: the connect steps a buyer sends to their web person, who never asked for mail from us.
   "mail.webPerson.subject": ["Add one DNS record for {domain}", { slots: { domain: "text" }, fixedBy: "SPEC §5 · issue 2114 (drafted)" }],
+  "mail.webPerson.heading": ["Add One DNS Record for {domain}", { slots: { domain: "text" }, fixedBy: "SPEC §1 Title Case · issue 2753 (drafted)" }],
   "mail.webPerson.preheader": ["One record, about 5 minutes. Reply to reach the person who asked.", { slots: {}, fixedBy: "SPEC §5 · issue 2114 (drafted)" }],
   "mail.webPerson.intro": ["Someone at {domain} asked us to send you these steps. Replying reaches them, not us.", { slots: { domain: "text" }, fixedBy: "SPEC §5 · issue 2114 (drafted)" }],
   "mail.webPerson.done": ["Once it’s saved, you’re done. We check for it every hour.", { slots: {}, fixedBy: "SPEC §5 · issue 2114 (drafted)" }],
@@ -153,14 +149,11 @@ export const MAIL_COPY = Object.freeze({
   // The sign-in link a completed payment sends (§13, REQ-024 c1).
   "mail.magicLink.subject": ["Your sign-in link", { slots: {}, fixedBy: "REQ-024 c1 · S20 (11a)" }],
   "mail.magicLink.preheader": ["One click signs you in.", { slots: {}, fixedBy: "O6 · issue 2172 (drafted)" }],
-  // Issue 1019: S20 drew "expires in 15 minutes", which was never the
-  // product — SPEC §3 (issue 718) rules a link lasts 24 h, and Supabase's
-  // OTP expiry is set to it. Drafted to state the real lifetime; the owner
-  // may reword it. `tests/account/identity/otp-expiry.test.ts` pins it to
-  // `SIGNIN_LINK_TTL_H`.
+  // The lifetime is SPEC §3's 24 h, the OTP expiry Supabase is set to.
   "mail.magicLink.body": ["One click signs you in on this device. The link works once and expires in 24 hours.", { slots: {}, fixedBy: "REQ-024 c1 · S20 (11a) · issue 1019" }],
-  "mail.magicLink.action": ["Sign in", { slots: {}, fixedBy: "REQ-024 c1 · S20 (11a)" }],
+  "mail.magicLink.action": ["Sign In", { slots: {}, fixedBy: "REQ-024 c1 · S20 (11a)" }],
   "mail.magicLink.paid.subject": ["Payment received: your account is ready", { slots: {}, fixedBy: "REQ-024 c1 (drafted)" }],
+  "mail.magicLink.paid.heading": ["Payment Received", { slots: {}, fixedBy: "SPEC §1 Title Case · issue 2753 (drafted)" }],
   "mail.magicLink.paid.line": ["Your payment went through and your account is ready. The button below opens setup.", { slots: {}, fixedBy: "REQ-024 c1 (drafted)" }],
 
   // The 15-minute chase (REQ-024 c5): the payment succeeded, and either a
@@ -192,7 +185,7 @@ export const MAIL_COPY = Object.freeze({
   "mail.account.setup_done.searches": ["Searches we can write for", { slots: {}, fixedBy: "issue 2658 (drafted)" }],
   "mail.account.setup_done.day": ["{day}", { slots: { day: "text" }, fixedBy: "issue 2658 (drafted)" }],
   "mail.account.setup_done.week_none": ["No pages are planned yet. We look again on Monday and plan the week from what we find.", { slots: {}, fixedBy: "issue 2658 (drafted)" }],
-  "mail.account.setup_done.action": ["Open your plan", { slots: {}, fixedBy: "issue 2658 (drafted)" }],
+  "mail.account.setup_done.action": ["Open Your Plan", { slots: {}, fixedBy: "issue 2658 (drafted)" }],
   "mail.account.connected.subject": ["Your website is connected", { slots: {}, fixedBy: "owner 2026-11-13 · issue 2658" }],
   "mail.account.connected.preheader": ["Your pages now have a place to go live.", { slots: {}, fixedBy: "issue 2658 (drafted)" }],
   "mail.account.connected.body": ["Your website is connected. Your pages go live at {host}, starting {day}.", { slots: { host: "text", day: "text" }, fixedBy: "owner 2026-11-13 · issue 2658" }],
@@ -224,9 +217,9 @@ export const MAIL_COPY = Object.freeze({
   "mail.weekly.preheader": ["What we did, your totals so far, and this week's pages.", { slots: {}, fixedBy: "owner 2026-11-16 · issue 2738 (drafted)" }],
   "mail.weekly.preheader.blocked": ["One thing needs you before your pages can go live.", { slots: {}, fixedBy: "owner 2026-11-16 · issue 2738 (drafted)" }],
   "mail.weekly.needsYou": ["One page needs you: {page}.", { slots: { page: "text" }, fixedBy: "SPEC §8 2026-09-20" }],
-  "mail.weekly.needsYou.action": ["Open the page", { slots: {}, fixedBy: "SPEC §8 2026-09-20" }],
+  "mail.weekly.needsYou.action": ["Open the Page", { slots: {}, fixedBy: "SPEC §8 2026-09-20" }],
   // What we did: last week's live pages by their search, the set-aside line, or what the week's pass checked.
-  "mail.weekly.did": ["What we did", { slots: {}, fixedBy: "owner 2026-11-16 · issue 2738 (drafted)" }],
+  "mail.weekly.did": ["What We Did", { slots: {}, fixedBy: "owner 2026-11-16 · issue 2738 (drafted)" }],
   "mail.weekly.did.item.new": ["New page · {search}", { slots: { search: "text" }, fixedBy: "owner 2026-11-16 · issue 2738 (drafted)" }],
   "mail.weekly.did.item.update": ["Update · {search}", { slots: { search: "text" }, fixedBy: "owner 2026-11-16 · issue 2738 (drafted)" }],
   "mail.weekly.did.checked": ["We checked {searches} Google searches and asked AI {questions} questions about your business.", { slots: { searches: "text", questions: "text" }, fixedBy: "owner 2026-11-16 · issue 2738 (drafted)" }],
@@ -244,8 +237,8 @@ export const MAIL_COPY = Object.freeze({
   // The first row while the hosted address waits for its record, every Monday until it is connected. Drafted (#759).
   "mail.weekly.connect": ["Your pages are written but can't go live at {host} yet. Add one line at the company you bought your address from.", { slots: { host: "text" }, fixedBy: "SPEC §5 2026-09-20 (drafted)" }],
   "mail.weekly.connect.wordpress": ["Your pages are written but can't go live on {host} yet. Connect your WordPress in Settings › Pages.", { slots: { host: "text" }, fixedBy: "SPEC §5 2026-09-20 (drafted)" }],
-  "mail.weekly.connect.action": ["Connect your website", { slots: {}, fixedBy: "SPEC §5 2026-09-20 (drafted)" }],
-  "mail.weekly.next": ["This week’s pages", { slots: {}, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
+  "mail.weekly.connect.action": ["Connect Your Website", { slots: {}, fixedBy: "SPEC §5 2026-09-20 (drafted)" }],
+  "mail.weekly.next": ["This Week’s Pages", { slots: {}, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
   "mail.weekly.next.none": ["No new pages this week, as we found nothing worth writing. We look again next Monday.", { slots: {}, fixedBy: "SPEC §8 2026-09-20" }],
   "mail.weekly.next.few": ["{n} pages this week: the ones your business can answer well.", { slots: { n: "text" }, fixedBy: "owner 2026-11-16 · issue 2738 (drafted)" }],
   "mail.weekly.next.few.one": ["One page this week: the one your business can answer well.", { slots: {}, fixedBy: "owner 2026-11-16 · issue 2738 (drafted)" }],
@@ -256,9 +249,9 @@ export const MAIL_COPY = Object.freeze({
   "mail.weekly.next.day.update.today": ["{day} · Update · goes live today, {time}", { slots: { day: "text", time: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
   "mail.weekly.next.day.update": ["{day} · Update · goes live {date}, {time}", { slots: { day: "text", date: "text", time: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
   "mail.weekly.next.why": ["Why: {reason}", { slots: { reason: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
-  "mail.weekly.next.stop": ["Stop this page", { slots: {}, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
+  "mail.weekly.next.stop": ["Stop This Page", { slots: {}, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
   "mail.weekly.next.edit": ["Edit", { slots: {}, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
-  "mail.weekly.next.all": ["See all {n} in This week", { slots: { n: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
+  "mail.weekly.next.all": ["See All {n} in This Week", { slots: { n: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
   "mail.weekly.calm": ["Nothing needs you this week. Each page goes live at {time} on its day.", { slots: { time: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
   "mail.weekly.hi": ["Hi {name}, here’s week {week} for {business}.", { slots: { name: "text", week: "text", business: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
   "mail.weekly.hi.unnamed": ["Here’s week {week} for {business}.", { slots: { week: "text", business: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
@@ -381,9 +374,9 @@ export const MAIL_COPY = Object.freeze({
   // caller that read the stored evidence (`blocks/types.ts` says why the
   // value is the one field that is not a key).
   "mail.draftReady.ready": ["Your next page is ready", { slots: {}, fixedBy: "issue 1362" }],
-  "mail.draftReady.readAction": ["Read the full page", { slots: {}, fixedBy: "SPEC §8 2026-09-20" }],
+  "mail.draftReady.readAction": ["Read the Full Page", { slots: {}, fixedBy: "SPEC §8 2026-09-20" }],
   "mail.draftReady.stopNote": [
-    "Stop this page works without signing in, until the page goes live.",
+    "Stop This Page works without signing in, until the page goes live.",
     { slots: {}, fixedBy: "SPEC §8 2026-09-20" },
   ],
   // The board already names two of the rows — `mail.draftReady.fact.search`
@@ -399,7 +392,7 @@ export const MAIL_COPY = Object.freeze({
   "mail.draftReady.fact.nobody": ["nobody", { slots: {}, fixedBy: "SPEC §8 2026-09-20" }],
   "mail.draftReady.subject": ["Your next page is ready", { slots: {}, fixedBy: "BUILD §12 · S20 (11a)" }],
   "mail.draftReady.preheader": ["Read it now, before it goes live.", { slots: {}, fixedBy: "O6 · issue 2172 (drafted)" }],
-  "mail.draftReady.stopAction": ["Stop this page", { slots: {}, fixedBy: "REQ-057 c1 · S20 (11a)" }],
+  "mail.draftReady.stopAction": ["Stop This Page", { slots: {}, fixedBy: "REQ-057 c1 · S20 (11a)" }],
 
   // 2026-09-06, issue #50 (REQ-062 c5, BUILD §12's `published` mail).
   // Sixteen keys.
@@ -529,7 +522,7 @@ export const MAIL_COPY = Object.freeze({
   "mail.account.destinationBroken.preheader": ["Nothing is lost while you fix it.", { slots: {}, fixedBy: "O6 · issue 2172 (drafted)" }],
   "mail.account.destinationBroken.body": ["Your pages can't reach your website, so we're holding them. Reconnect and they go live.", { slots: {}, fixedBy: "BUILD §9 · REQ-074 c6" }],
   "mail.account.destinationBroken.held": ["pages waiting", { slots: {}, fixedBy: "BUILD §9 · REQ-074 c6" }],
-  "mail.account.destinationBroken.action": ["Reconnect your website", { slots: {}, fixedBy: "BUILD §9 · REQ-074 c6" }],
+  "mail.account.destinationBroken.action": ["Reconnect Your Website", { slots: {}, fixedBy: "BUILD §9 · REQ-074 c6" }],
 
   // ── 2026-09-08, issue #376: UI-SPEC S20, the approved mail shell ──────
   //
@@ -590,10 +583,10 @@ export const MAIL_COPY = Object.freeze({
   ],
   "mail.report.subject.unmeasured": ["{domain}: your free report", { slots: { domain: "text" }, fixedBy: "issue 2519 (drafted)" }],
   "mail.report.notMeasured": ["Not measured", { slots: {}, fixedBy: "issue 2519 (drafted)" }],
-  "mail.report.heading": ["Your report is ready", { slots: {}, fixedBy: "S20 (11a)" }],
+  "mail.report.heading": ["Your Report Is Ready", { slots: {}, fixedBy: "S20 (11a)" }],
   "mail.report.preheader": ["Free, and it stays online.", { slots: {}, fixedBy: "O6 · issue 2172 (drafted)" }],
   "mail.report.body": ["Your full report is free and stays online.", { slots: {}, fixedBy: "S20 (11a)" }],
-  "mail.report.action": ["Open the report", { slots: {}, fixedBy: "S20 (11a)" }],
+  "mail.report.action": ["Open the Report", { slots: {}, fixedBy: "S20 (11a)" }],
   // #638: the mail's next step, between the verdict and its one action.
   // No approved sentence says what a free-report reader does next, so the
   // key ships awaiting the owner's line.
@@ -605,14 +598,14 @@ export const MAIL_COPY = Object.freeze({
   // The headings S20 gives the kinds whose heading is a sentence rather
   // than a page title. `first-page`, `draft-ready` and `published` head on
   // the page's own title, which is data and arrives through a slot.
-  "mail.magicLink.heading": ["Sign in to ReachKit", { slots: {}, fixedBy: "S20 (11a)" }],
+  "mail.magicLink.heading": ["Sign In to ReachKit", { slots: {}, fixedBy: "S20 (11a)" }],
   "mail.magicLink.fact.for": ["for", { slots: {}, fixedBy: "S20 (11a)" }],
   "mail.firstPage.heading": ["{title}", { slots: { title: "text" }, fixedBy: "S20 (11a)" }],
   "mail.draftReady.heading": ["{title}", { slots: { title: "text" }, fixedBy: "S20 (11a)" }],
   "mail.draftReady.fact.search": ["search", { slots: {}, fixedBy: "S20 (11a)" }],
   "mail.draftReady.fact.answeredBy": ["answered today by", { slots: {}, fixedBy: "S20 (11a)" }],
   "mail.draftReady.fact.you": ["you", { slots: {}, fixedBy: "S20 (11a)" }],
-  "mail.published.action": ["View the page", { slots: {}, fixedBy: "S20 (11a)" }],
+  "mail.published.action": ["View the Page", { slots: {}, fixedBy: "S20 (11a)" }],
   // D28 (owner, 2026-10-02, #1185): what ReachKit changed about the market
   // it measures. Drafted, named in the pull request.
   "mail.weekly.market.changed": [
@@ -627,7 +620,7 @@ export const MAIL_COPY = Object.freeze({
     "We no longer compare you with {rival}.",
     { slots: { rival: "text" }, fixedBy: "SPEC §8 2026-10-02 D28, issue 1185" },
   ],
-  "mail.weekly.action": ["Open your overview", { slots: {}, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
+  "mail.weekly.action": ["Open Your Overview", { slots: {}, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
   "mail.nurture.action": ["Start ReachKit €49", { slots: {}, fixedBy: "S20 (11a)" }],
 
   // ── The one mail nobody outside this company ever receives (issue #329,
@@ -640,7 +633,7 @@ export const MAIL_COPY = Object.freeze({
   // splitting it three ways would buy nothing and owe the owner two more
   // sentences. The body is where they differ, and they differ completely.
   "mail.ops.spend-ceiling.subject": ["Spend alert", { slots: {}, fixedBy: "BUILD §6.5 · issue 329" }],
-  "mail.ops.spend-ceiling.heading": ["Spend ceiling", { slots: {}, fixedBy: "BUILD §6.5 · issue 329" }],
+  "mail.ops.spend-ceiling.heading": ["Spend Ceiling", { slots: {}, fixedBy: "BUILD §6.5 · issue 329" }],
   /** Crossed `SPEND_ALERT_AT.warn` of the day's ceiling — nothing has been
    *  refused yet; this is the hour to look. */
   "mail.ops.spend-ceiling.warn": ["Today’s spend has crossed the warning line, most of the way to the daily ceiling. Nothing has been refused yet — this is the hour to look.", { slots: {}, fixedBy: "BUILD §6.5 · issue 329" }],
@@ -679,7 +672,7 @@ export const MAIL_COPY = Object.freeze({
   // names — a job id, an attempt number, an error class, a boot check —
   // never a message, a payload or an address.
   "mail.ops.incident.subject": ["ReachKit incident", { slots: {}, fixedBy: "issue 330" }],
-  "mail.ops.incident.heading": ["Something needs your attention", { slots: {}, fixedBy: "issue 330" }],
+  "mail.ops.incident.heading": ["Something Needs Your Attention", { slots: {}, fixedBy: "issue 330" }],
   "mail.ops.incident.job-failed": ["A job failed.", { slots: {}, fixedBy: "issue 330" }],
   "mail.ops.incident.dead-lettered": ["A job ran out of retries and was set aside.", { slots: {}, fixedBy: "issue 330" }],
   "mail.ops.incident.boot-refused": ["A deployment refused to boot.", { slots: {}, fixedBy: "issue 330" }],
@@ -741,15 +734,17 @@ export const MAIL_COPY = Object.freeze({
   // these kinds sends until its sentences are written ("Unwritten keys send
   // nothing"). Slots are named for what the sequence can supply.
   "mail.paymentFailed.subject": ["Your payment didn’t go through", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
+  "mail.paymentFailed.heading": ["Your Payment Didn’t Go Through", { slots: {}, fixedBy: "SPEC §1 Title Case · issue 2753 (drafted)" }],
   "mail.paymentFailed.line": [
     "Your latest {price} payment didn't go through. Update your payment details to keep ReachKit running.",
     { slots: { price: "text" }, fixedBy: "SPEC §8 · issue 569" },
   ],
   "mail.paymentFailed.preheader": ["Updating your payment details fixes it.", { slots: {}, fixedBy: "O6 · issue 2172 (drafted)" }],
-  "mail.paymentFailed.action": ["Update payment details", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
+  "mail.paymentFailed.action": ["Update Payment Details", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
   /** `{accessEndsOn}` is the day access ends (`paid_through`), in the
    *  customer's zone — SPEC §8's "cancellation (end date)". */
   "mail.cancellation.subject": ["Your subscription is cancelled", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
+  "mail.cancellation.heading": ["Your Subscription Is Cancelled", { slots: {}, fixedBy: "SPEC §1 Title Case · issue 2753 (drafted)" }],
   "mail.cancellation.preheader": ["Nothing more is charged.", { slots: {}, fixedBy: "O6 · issue 2172 (drafted)" }],
   "mail.cancellation.resume": ["Changed your mind? Press Resume my plan in Settings › Account.", { slots: {}, fixedBy: "O6 · issue 2172 (drafted)" }],
   "mail.cancellation.line": [

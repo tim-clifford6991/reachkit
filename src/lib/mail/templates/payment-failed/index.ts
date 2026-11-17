@@ -4,6 +4,7 @@ import type { CopyKey } from "@/lib/presentation/copy";
 import { appHref, type RetentionMail } from "../../retention/mail";
 
 const SUBJECT = "mail.paymentFailed.subject" satisfies CopyKey;
+const HEADING = "mail.paymentFailed.heading" satisfies CopyKey;
 const LINE = "mail.paymentFailed.line" satisfies CopyKey;
 const PREHEADER = "mail.paymentFailed.preheader" satisfies CopyKey;
 const ACTION = "mail.paymentFailed.action" satisfies CopyKey;
@@ -14,7 +15,7 @@ export function buildPaymentFailed(): RetentionMail {
     subject: SUBJECT,
     preheader: PREHEADER,
     blocks: [
-      { block: "heading", text: SUBJECT },
+      { block: "heading", text: HEADING },
       { block: "paragraph", text: LINE, vars: { price: `€${PRICE_EUR_CENTS / 100}` } },
       { block: "action", label: ACTION, href: appHref("/app/settings/account#billing") },
     ],

@@ -317,7 +317,7 @@ describe("R15 — a stamped setup is reminded until the first page is live", () 
     expect(await sendSetupReminder(SITE, at(24))).toEqual({ sent: true, index: 0 });
     expect(landsOn).toEqual(["/setup/connect"]);
     expect(mailAt(0).blocks).toEqual([
-      { block: "heading", text: "mail.setupReminder.subject" },
+      { block: "heading", text: "mail.setupReminder.heading" },
       { block: "paragraph", text: "mail.setupReminder.written" },
       { block: "paragraph", text: "mail.setupReminder.connect", vars: { provider: "Cloudflare" } },
       { block: "action", label: "setup.connect.title", href: "https://reachkit.example/auth/confirm?t=1" },
