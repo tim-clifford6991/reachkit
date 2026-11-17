@@ -22,13 +22,13 @@ import { TEMPLATES } from "./templates";
 const POST_WAIT_MS = 20_000;
 /** The collecting steps: each its own invocation inside the job route's 300 s, about 45 minutes in all, the queue's
  *  own turnaround (`VENDOR.stdQueueDeadlineMin`). */
-export const COLLECT = Object.freeze({ rounds: 11, stepMs: 240_000 });
+export const COLLECT = Object.freeze({ rounds: 11, stepMs: 240_000, askMs: POST_WAIT_MS });
 const SOURCE = "serp/google/organic";
 
 /** The day's research reads and the scan they are ledgered to; `null` for a type that reads no research. */
-async function dayReads(a: { siteId: string; opportunityId: string }) {
+async function dayReads(a: { siteId: string; opportunityId: string; writeAs?: "qa" | "documentation" }) {
   const [o, report] = await Promise.all([opportunityById(a.opportunityId), generateStore().latestReport(a.siteId)]);
-  const type = o === null ? null : (o.writeAs ?? contentTypeOf(o));
+  const type = o === null ? null : (a.writeAs ?? o.writeAs ?? contentTypeOf(o));
   const target = o === null ? undefined : targetSearches(o)[0];
   if (type === null || !TEMPLATES[type].research || target === undefined || report === null) return null;
   const locale = await siteLocale(a.siteId);
@@ -63,7 +63,7 @@ const fetches = (): Query => (dbAdmin() as unknown as { from(table: string): Que
 
 /** Reads the posted research reads until `untilMs` and stores each ready one on its ledger row. Free: a `task_get`
  *  posts nothing. Returns how many are still queued. */
-export async function collectDayResearch(a: { siteId: string; opportunityId: string; now: Date; untilMs: number }): Promise<number> {
+export async function collectDayResearch(a: { siteId: string; opportunityId: string; writeAs?: "qa" | "documentation"; now: Date; untilMs: number }): Promise<number> {
   const day = await dayReads(a);
   if (day === null) return 0;
   const { data, error } = await fetches()

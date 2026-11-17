@@ -27,9 +27,7 @@
 //     left, its last topic is written from the site's own facts, or the day
 //     names why (`ownFactsPage`). A page that adds too little rests named.
 //
-// `regenerateRestarted` is the customer's Regenerate carried out: the
-// restart moves the row back into `generating`, and the next draft tick
-// rewrites that row for the date it already holds.
+// `regenerateRestarted` is the customer's Regenerate carried out: the next draft tick rewrites the row for its date.
 import { siteLocale } from "@/lib/locale/site";
 import {
   opportunityById,
@@ -49,6 +47,7 @@ import { pageTypeOf } from "@/lib/opportunities/page-type";
 import { intentFor } from "@/lib/opportunities/intent";
 import { openDayCost, roomForFix, withDraftCost } from "./cost";
 import { readRecordedRules } from "./record";
+import { COLLECT, collectDayResearch } from "./research-queue";
 import { repairStructure } from "./rules/structure";
 import { mendPage, mendable, ownFactsPage } from "./day-refresh";
 import { confirmedForWriting } from "./voice/confirmed";
@@ -256,9 +255,8 @@ export async function restartedDrafts(siteIds: readonly string[], now: Date): Pr
 }
 
 /**
- * The customer's Regenerate (#788), carried out: the page is written again
- * on the row and for the date it already holds, from the opportunity it was
- * written for. One attempt — ADR-070 bounds the *automatic* ones, and this
+ * The customer's Regenerate (#788), carried out: the page is written again on the row and for the date it already
+ * holds, from the opportunity it was written for. One attempt — ADR-070 bounds the *automatic* ones, and this
  * is the customer's. It ends where the evening's run ends: a passing page
  * for review, or a stopped one back in `needs_attention`.
  */
@@ -285,6 +283,8 @@ export async function regenerateRestarted(a: { siteId: string; draftId: string; 
   const opportunity = (writtenAs === "qa" && contentTypeOf(found) === "listicle") || writtenAs === "documentation" ? { ...found, writeAs: writtenAs as "qa" | "documentation" } : found;
 
   const page = { siteId: a.siteId, site, report, opportunity, publishDate: row.scheduled_for, draftId: row.id };
+  // Research an earlier ask left on the queue is collected free; one still out is waited for, never bought again.
+  if (opportunity.type !== "fix_page" && (await collectDayResearch({ siteId: a.siteId, opportunityId: found.id, writeAs: opportunity.writeAs, now, untilMs: Date.now() + COLLECT.askMs })) > 0) return { ok: false, because: "step_failed", draftId: null, step: "research_pending" };
   const outcome = await withDraftCost({ scanId: report.scanId, draftId: row.id }, (cost) =>
     opportunity.type === "fix_page" ? fixPage(page, cost) : writePage({ ...page, attempts: 1 }, cost)
   );
