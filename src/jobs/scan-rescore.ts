@@ -43,7 +43,8 @@ export const scanRescore: JobDefinition = {
 
 async function rescore(input: JobInput): Promise<Outcome> {
   const step = input.step;
-  if (!(await rescoreDue())) return { outcome: "skipped", subjectId: null, reason: "no-subject" };
+  // A step, so a replay after the claim keeps the first answer and records `ran`.
+  if (!(await (step === undefined ? rescoreDue() : step("due", rescoreDue)))) return { outcome: "skipped", subjectId: null, reason: "no-subject" };
   const request = step === undefined ? await claimRescore(input.now) : await step("claim", () => claimRescore(input.now));
   if (request === null) return { outcome: "skipped", subjectId: null, reason: "no-subject" };
   if ("held" in request) return { outcome: "degraded", subjectId: null, step: "rescore-held" };

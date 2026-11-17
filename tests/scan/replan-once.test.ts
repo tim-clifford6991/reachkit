@@ -44,7 +44,9 @@ beforeEach(async () => {
   };
 });
 
-const tick = (hours: number) => replanSites(paying, { now: new Date(AT.getTime() + hours * HOUR) });
+// As Inngest runs it without checkpointing: each new step is memoized, then the body runs again from the top.
+const replay = <T>(body: (step: <S>(name: string, run: () => Promise<S>) => Promise<S>) => Promise<T>, memo = new Map<string, unknown>()): Promise<T> => body(async <S,>(name: string, run: () => Promise<S>) => (memo.has(name) ? (memo.get(name) as S) : Promise.reject(memo.set(name, await run())))).catch((e: unknown) => (e === memo ? replay(body, memo) : Promise.reject(e)));
+const tick = (hours: number) => replay((step) => replanSites(paying, { now: new Date(AT.getTime() + hours * HOUR), step }));
 const events = (kind: string) => db.rows("ops_events").filter((row) => row.kind === kind);
 
 it("re-commits the week once per planner, after an apply cut short too, and tells the owner once, with the committed week as it stood", async () => {

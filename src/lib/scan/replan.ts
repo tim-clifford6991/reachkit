@@ -79,13 +79,14 @@ export async function replanSites(
 ): Promise<{ replanned: string[]; held: string[] } | null> {
   const fingerprint = deployedPlanner();
   if (process.env.VERCEL_ENV !== "production" || fingerprint === null) return null;
-  const sites = await paying();
-  const events = await eventsAt(fingerprint);
+  const inStep = <T>(name: string, body: () => Promise<T>) => (a.step === undefined ? body() : a.step(`${name}-${fingerprint}`, body));
+  // Read inside steps, so a replay after its own claim keeps the first invocation's view and still tells the owner.
+  const sites = await inStep("replan-paying", paying);
+  const events = await inStep("replan-events", () => eventsAt(fingerprint));
   const claimed = new Map(events.filter((e) => e.kind === KIND).map((e) => [e.site_id, e.read]));
   const due = sites.filter((site) => !claimed.has(site.siteId));
   const held = sites.filter((site) => claimed.get(site.siteId) === "held").map((site) => site.siteId);
   if (due.length + held.length === 0) return null;
-  const inStep = <T>(name: string, body: () => Promise<T>) => (a.step === undefined ? body() : a.step(`${name}-${fingerprint}`, body));
   const replanned: string[] = [];
   const told: Replan[] = [];
   for (const site of due) {
