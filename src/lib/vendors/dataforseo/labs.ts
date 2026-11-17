@@ -3,6 +3,7 @@
 // 50 and 300 are the customer's own domain (7d), 100 a rival's (30d). Suggestions and `competitors_domain` take 30d.
 // Per-rival `ranked_keywords` on the free path is on the never-list (§6.4); that is the caller's tier logic.
 import type { CostContext } from "@/lib/costs";
+import { readCache } from "@/lib/costs/cache";
 import { CACHE_WINDOWS_D, PRICE_BOOK, VENDOR } from "@/lib/config/constants";
 import type { Locale } from "@/lib/locale/locales";
 import type { Measured } from "@/lib/measure/measured";
@@ -11,6 +12,9 @@ import { localeCacheKey } from "./transport";
 import type { CompetitorRow, KeywordVolumeRow, RankedResult, RankedRow, SuggestionRow, VolumeWindow } from "./types";
 
 const LABS = "/v3/dataforseo_labs/google";
+const RANKED_SOURCE = "dataforseo_labs/google/ranked_keywords";
+const rankedKey = (domain: string, rows: RankedRows, locale: Locale, listing: boolean): string =>
+  `${domain}|${rows}|${localeCacheKey(locale)}|p${VENDOR.rankedPayloadVersion}|etv${listing ? "|listing" : ""}`;
 
 export type RankedRows = typeof PRICE_BOOK.RANKED_FREE_ROWS | typeof PRICE_BOOK.RANKED_RIVAL_ROWS | typeof PRICE_BOOK.RANKED_PAID_ROWS;
 
@@ -159,10 +163,10 @@ export async function rankedKeywords(
   const listing = a.listing === true;
   return ledgeredWithTotal<RankedRow>(c, {
     ...(a.onFailure ? { onFailure: a.onFailure } : {}),
-    source: "dataforseo_labs/google/ranked_keywords",
+    source: RANKED_SOURCE,
     // `rankedPayloadVersion` keeps bare-array entries from reading as `{ rows, total }` with no rows;
     // `|etv` keeps unordered rows from serving as a domain's top keywords.
-    cacheKey: `${a.domain}|${a.rows}|${localeCacheKey(a.locale)}|p${VENDOR.rankedPayloadVersion}|etv${listing ? "|listing" : ""}`,
+    cacheKey: rankedKey(a.domain, a.rows, a.locale, listing),
     freshnessDays:
       a.windowDays === undefined
         ? rankedFreshnessDays(a.rows)
@@ -177,6 +181,13 @@ export async function rankedKeywords(
       }),
     parse: (result) => parseRanked(result, listing),
   });
+}
+
+/** A rival's ranked rows as its sizing last bought them, read from the 30-day cache alone: 0¢, `null` on a miss. */
+export async function storedRivalRows(a: { domain: string; locale: Locale; policyVersion: number }): Promise<readonly RankedRow[] | null> {
+  const hit = await readCache({ source: RANKED_SOURCE, cacheKey: rankedKey(a.domain, PRICE_BOOK.RANKED_RIVAL_ROWS, a.locale, false), policyVersion: a.policyVersion, freshnessDays: CACHE_WINDOWS_D.rival });
+  const rows = isRecord(hit?.payload) ? hit.payload.rows : undefined;
+  return Array.isArray(rows) ? (rows as RankedRow[]) : null;
 }
 
 export async function keywordSuggestions(

@@ -21,7 +21,7 @@ import type { CostContext } from "@/lib/costs";
 import { llm } from "@/lib/llm";
 import type { Tier } from "@/lib/llm/tiers";
 import { unmeasured, type Measured } from "@/lib/measure/measured";
-import type { PageType } from "@/lib/opportunities/types";
+import type { Opportunity, PageType } from "@/lib/opportunities/types";
 import { briefLines } from "../rules/brief-lines";
 import { HONESTY_INSTRUCTION } from "../rules/honest";
 import { AVOID_LIST } from "../rules/prose-english";
@@ -192,6 +192,15 @@ const GAPS_TASK =
 const STALE_PRICES_TASK =
   `The live page states rival prices read more than ${RIVAL_PRICE_MAX_AGE_D} days ago: state each rival's price as \`pack.claims\` now give it, and drop a rival price no claim in \`pack\` states.`;
 
+/** SPEC §6 *A competitor wins, the site is absent*: the competitor a question's `ai_gap` row was found winning, which research reads first. */
+export function competitorOf(o: Pick<Opportunity, "evidence">): string | null {
+  return o.evidence.family === "write" ? (o.evidence.win?.competitor ?? null) : null;
+}
+
+/** The winning competitor is named in the body through the pack's own claims about it, never by the writer's word. */
+const COMPETITOR_RULE =
+  "`competitor` is named in the answers to this question today where this business is not. Beyond the words of `pack.target.searches`, name it only in the body, and only in a sentence that states one of `pack.claims` about it (whose `product` is `competitor`) in that claim's words and links that claim's url; where such a claim says what it does well, say so. Where `pack.claims` hold nothing about it, name it nowhere else.";
+
 export interface WriteInputs {
   template: Template;
   pack: ContextPack;
@@ -208,6 +217,8 @@ export interface WriteInputs {
   free?: boolean;
   /** The site's demo phrases (issue 1249): the phrases `no_demo_text` reads, named to the writer (issue 2378). */
   demoPhrases?: readonly string[];
+  /** The competitor this page's question was found winning (`competitorOf`). */
+  competitor?: string;
 }
 
 /** What the writer is told about the page's shape: the template, as data. */
@@ -283,6 +294,7 @@ function inputFor(a: WriteInputs, extra: Record<string, unknown> = {}): Record<s
     titleRules: titleBrief(a.pack),
     ...(table === null ? {} : { table: table.markdown, options: table.options, alternativesTo: table.baseline }),
     ...(unpriced.length === 0 ? {} : { unpriced }),
+    ...(a.competitor === undefined ? {} : { competitor: a.competitor }),
     // Issue 1390: the habits stage 4 counts, so the page is asked not to
     // write what it would be stopped for.
     avoid: AVOID_LIST,
@@ -296,6 +308,7 @@ function inputFor(a: WriteInputs, extra: Record<string, unknown> = {}): Record<s
       ...(table === null ? [WRITTEN_TABLE_RULE] : [BUILT_TABLE_RULE, COUNTED_OPTIONS_RULE]),
       ...(table !== null && table.options.length < RESEARCH.optionsAim ? [fewOptionsRule(table.options.length)] : []),
       ...(unpriced.length === 0 ? [] : [UNPRICED_RULE]),
+      ...(a.competitor === undefined ? [] : [COMPETITOR_RULE]),
       ...languageRules(a.pack.locale?.language ?? "en"),
     ],
     ...extra,

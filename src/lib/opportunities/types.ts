@@ -238,6 +238,8 @@ export type Evidence =
       composed?: true;
       /** The tracked prompt whose answer gave a competitor and not the site, which this search words (`ai_gap`). */
       prompt?: { id: string; text: string };
+      /** SPEC §6 *A competitor wins, the site is absent*: which signal found it, the competitor, and the stored row that shows the site absent. */
+      win?: { signal: "answer" | "prompt" | "cited" | "ranked"; competitor: string; absent: string };
       /** The search's stored results page asks for a provider's own page (`derive/top-ten-kind.ts` `offeringTopTen`),
        *  so it is written as an offering page. Absent where it does not, or no fresh one is stored. */
       shape?: "offering";

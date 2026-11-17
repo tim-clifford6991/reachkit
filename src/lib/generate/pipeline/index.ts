@@ -70,7 +70,7 @@ import { fixNotes, withFitFact, withoutBusiness, type FixNote, type RepairRecord
 import { completeTables, withSources } from "./sources";
 import { withTable } from "./table";
 import { floorTitle, titleRuleFor, unclaimedSuperlatives } from "./title";
-import { fixPage, writePage, type PageParts } from "./write";
+import { competitorOf, fixPage, writePage, type PageParts } from "./write";
 import { carriedMark } from "../interrupted";
 
 /** The stages a page can stop at without a rule failing. */
@@ -126,7 +126,7 @@ function logRun(detail: Record<string, string | number | boolean | null>): void 
   console.log(JSON.stringify({ event: "draft_generated", ...detail }));
 }
 
-export { packStatements };
+export { competitorOf, packStatements };
 
 /** The target search and every search the row absorbed — what the page is
  *  written for, as the pack and the checks read it. */
@@ -267,6 +267,7 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
     length: length ?? { floor: 0, target: 0, ceiling: Number.MAX_SAFE_INTEGER },
     ...(a.tier === undefined ? {} : { tier: a.tier }),
     ...(a.demoPhrases === undefined ? {} : { demoPhrases: a.demoPhrases }),
+    ...(competitorOf(a.opportunity) === null ? {} : { competitor: competitorOf(a.opportunity)! }),
   };
 
   // 3. Write: one call.

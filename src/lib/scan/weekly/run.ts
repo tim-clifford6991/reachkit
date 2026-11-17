@@ -43,7 +43,7 @@
 // The week then reads `not_measured` with its next due date, which is
 // REQ-065 c3's account and not a silent skip.
 import { env } from "@/lib/config/env";
-import { deriveForPass } from "@/lib/opportunities";
+import { cachedRivalRows, deriveForPass } from "@/lib/opportunities";
 import { accountForWeek, type UnmeasuredPart } from "./account";
 import { hasActiveAccess } from "@/lib/account/billing";
 import { claimWeek, readSiteZone, releaseWeek } from "./store";
@@ -131,6 +131,7 @@ export async function runWeekly(a: {
               siteId: a.siteId,
               report,
               hasActiveAccess: true,
+              rivalRows: cachedRivalRows(a.siteId),
             });
           } finally {
             // SPEC §6 (D28; monthly, ruling B5): a re-check the cap refused stays due on every pass until one concludes.

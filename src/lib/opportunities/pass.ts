@@ -1,7 +1,10 @@
 // What a paid pass does with what it measured: one derivation for both tiers, under the pass's own cap.
 // The two winnability inputs are projected from the report here, so `derive/` never knows where a report comes from.
 import type { CostContext } from "@/lib/costs";
+import { siteLocale } from "@/lib/locale/site";
 import { recordOpsEvent } from "@/lib/ops/events";
+import { FREE_SCAN_POLICY_VERSION } from "@/lib/scan/ceilings";
+import { storedRivalRows } from "@/lib/vendors/dataforseo/labs";
 import type { StoredReport } from "@/lib/scan/report";
 import type { InventoryRow } from "@/lib/site-profile/types";
 import { assessFixPages } from "./fix-page";
@@ -53,6 +56,13 @@ function inputFor(a: {
   };
 }
 
+/** SPEC §6 *A competitor wins, the site is absent*: each competitor's ranked rows its sizing cached, 0¢; a miss reads as nothing read. */
+export const cachedRivalRows = (siteId: string) => async (domains: readonly string[]): Promise<NonNullable<DeriveInput["rivalRows"]>> => {
+  const locale = await siteLocale(siteId);
+  const read = await Promise.all([...new Set(domains)].map(async (domain) => [domain, await storedRivalRows({ domain, locale, policyVersion: FREE_SCAN_POLICY_VERSION })] as const));
+  return new Map(read.flatMap(([domain, rows]) => (rows === null ? [] : [[domain, rows] as const])));
+};
+
 /** The net-new gate: the page the site already has on a topic, and whether its destination can update it.
  *  `undefined` where the index cannot be read, so nothing is converted or refused. */
 async function knownGateFor(a: { siteId: string; report: StoredReport; market: DeriveInput["market"] }): Promise<DeriveInput["known"]> {
@@ -86,6 +96,8 @@ export async function deriveForPass(
     report: StoredReport;
     /** Read by the weekly arm alone: the deep pass runs on a payment that has just cleared. */
     hasActiveAccess: boolean;
+    /** The competitors' cached ranked rows (`cachedRivalRows`); absent, none are read. */
+    rivalRows?: ReturnType<typeof cachedRivalRows>;
   }
 ): Promise<PassOutcome> {
   const store = opportunityStore();
@@ -102,7 +114,9 @@ export async function deriveForPass(
     .marketFor(a.siteId)
     .catch(() => ({ market: null, competitors: [] as readonly string[], prompts: [] as readonly string[], knowledge: null, area: null }));
   const known = await knownGateFor({ siteId: a.siteId, report: a.report, market });
-  const input = { ...inputFor({ siteId: a.siteId, report: a.report, hostedHost, inventory, known, market, knowledge, competitors, prompts: prompts ?? [] }), area: area ?? null, topUp: a.tier === "weekly" };
+  const searchRivals = a.report.rivals.kind === "measured" ? a.report.rivals.value.map((rival) => rival.domain) : [];
+  const rivalRows = await a.rivalRows?.([...(market?.rivals.map((rival) => rival.domain) ?? []), ...competitors, ...searchRivals]).catch(() => undefined);
+  const input = { ...inputFor({ siteId: a.siteId, report: a.report, hostedHost, inventory, known, market, knowledge, competitors, prompts: prompts ?? [] }), area: area ?? null, topUp: a.tier === "weekly", ...(rivalRows === undefined ? {} : { rivalRows }) };
 
   // Fixes this scan shows cleared retire first, so a fixed page is not re-derived beside its closed row.
   await assessFixPages(a.siteId, { report: a.report });
