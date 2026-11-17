@@ -69,6 +69,19 @@ export function sameTopic(a: TopicOf, b: TopicOf, topTens: ReadonlyMap<string, r
   return ta !== undefined && tb !== undefined && shareATopTen(ta, tb);
 }
 
+/** B1's one-question join: `sameTopic`, or one cluster key once the market's own names are one word and its buyer no
+ *  qualifier. Given no market, only `sameTopic`. */
+export function oneQuestion(a: {
+  topTens: ReadonlyMap<string, readonly string[]>;
+  market: (MarketWords & { rivals?: readonly { domain: string }[] }) | null;
+  brandTokens: readonly string[];
+}): (x: TopicOf, y: TopicOf) => boolean {
+  const rivals = (a.market?.rivals ?? []).map((rival) => (registrableDomain(rival.domain) ?? rival.domain).split(".")[0] ?? "");
+  const keys = new Map<TopicOf, string | null>();
+  const keyOf = (o: TopicOf) => keys.get(o) ?? keys.set(o, a.market === null ? null : clusterKey(o.targetQuery, [...a.brandTokens, ...rivals], a.market)).get(o)!;
+  return (x, y) => sameTopic(x, y, a.topTens) || (keyOf(x) !== null && keyOf(x) === keyOf(y));
+}
+
 /** The open new-page rows a page just drafted makes repeats of, folded into it so the next evening never drafts the
  *  same question in other words. */
 export function nearRepeatsOf(

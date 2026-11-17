@@ -4,9 +4,8 @@
 import { WEEK_PLAN } from "@/lib/config/constants";
 import { pageScore } from "@/lib/known-content/match";
 import type { KnownPage } from "@/lib/known-content/types";
-import { registrableDomain } from "@/lib/market/rivals/domains";
 import { canonicalUrl } from "@/lib/measure/page-reading";
-import { clusterKey, queryKey, sameTopic } from "./cluster";
+import { oneQuestion, queryKey } from "./cluster";
 import { asUpdate, tooYoungToRefresh, updateColumns } from "./derive/known";
 import { placeFixPages, rankingOf, type RankLoad, type Rejection } from "./rank/open";
 import { readOpportunity, type PlanEntry } from "./store";
@@ -59,11 +58,7 @@ type Joined = Ranked & Pick<PlanEntry, "set">;
 function oneTopicEach(ranked: readonly Ranked[], input: ChooseInput, rejected: Choice["rejected"]): Joined[] {
   if (input.market === undefined && input.live === undefined) return [...ranked];
   const market = input.market ?? null;
-  const rivals = (market?.rivals ?? []).map((rival) => (registrableDomain(rival.domain) ?? rival.domain).split(".")[0] ?? "");
-  const brands = [...(input.profile?.brandTokens ?? []), ...rivals];
-  const keys = new Map<Opportunity, string | null>();
-  const keyOf = (o: Opportunity) => keys.get(o) ?? keys.set(o, market === null ? null : clusterKey(o.targetQuery, brands, market)).get(o)!;
-  const joined = (a: Opportunity, b: Opportunity) => sameTopic(a, b, input.topTens) || (keyOf(a) !== null && keyOf(a) === keyOf(b));
+  const joined = oneQuestion({ topTens: input.topTens, market, brandTokens: input.profile?.brandTokens ?? [] });
   const rows = new Map(input.rows.map((row) => [row.id, readOpportunity(row)]));
   // A page an open refresh already updates takes no second update.
   const updated = new Set([...rows.values()].flatMap((o) => (o.type === "refresh_page" && o.targetRef !== null ? [canonicalUrl(o.targetRef)] : [])));

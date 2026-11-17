@@ -1,98 +1,26 @@
-// SPEC §7 (2026-09-29, *Pace: new pages and refreshes*; issue 1139) — which
-// of ReachKit's own live pages are due a refresh.
-//
-// "The other days carry updates of pages already live — ReachKit's own
-// first, where a page is 90 days old, has lost its position, or a newer fact
-// exists." Three causes, each read from what is already stored:
-//
-//   aged           the page's current version went live `PACE.REFRESH_AGE_DAYS`
-//                  ago or more.
-//   lost_position  the newest Monday verdict on that version recorded a
-//                  decline (`page_verdicts.movement.declined`).
-//   newer_fact     a pool holds a fact newer than the version. Business: the
-//                  site's page a recorded fact was read from has been read
-//                  again since, and no longer says it. Market: a later draft
-//                  of the site recorded a claim from a page this one cites,
-//                  read after this version went live, that this one does not
-//                  carry.
-//
-// §6's floor stands (`REFRESH_MIN_AGE_DAYS`): a version younger than it is
-// not refreshed for any cause.
-//
-// A page is ReachKit's own where ReachKit wrote it — a publication whose
-// row planned a new page. The refresh is a `refresh_page` at the page's own
-// address, for the search the page was written for, carrying that row's
-// volume, band, fit and acceptance test: the search has not changed. It is
-// a new version at the same address (issue 781), which is what sets the
-// page's updated date (issue 1137).
-//
-// **Links in both directions** (SPEC §7, 2026-10-10, issue 1391). A fourth
-// cause, planned when a page goes live and not on Monday: `link` — a newer
-// page of the site is live that this one is near and does not link. The
-// one or two nearest older pages are each planned this same refresh, whose
-// writer adds one sentence linking the new page. A page the customer edited,
-// or whose refresh they stopped, is theirs and is never among them. The
-// floor stands for this cause as for the others.
-//
-// A page that moved (issue 1487) is the same cause seen from the other
-// side: each live page that links its old address is planned a `link`
-// refresh whose new version links the new one. The floor stands for it too,
-// so a younger page is planned on the first hour it is old enough.
-//
-// **The site's own measurements** (SPEC §7, owner 2026-10-17, issue 1490):
-// a cause of its own, `own_figures` — a live page that is not a research page
-// states a measurement read off the site's own report ("0 of 12",
-// "18/100"). Its refresh is written from a pack that no longer holds those
-// sentences, and the numeral rule drops any the live page still carries.
-// The floor stands for this cause as for the others.
-//
-// **Consistency** (SPEC §7, issue 1507): a cause of its own, `structure` — a
-// live page the customer did not edit breaks one of the six rules a new page
-// is held to: a description figure the body lacks, a numbered list with a
-// gap, a repeated link, a link inside a word, broken link markup, an H1 in
-// the body. Planned each hour by the live re-check, not only on Monday. Its
-// refresh is written from the live text with what code can repair already
-// repaired (`repairStructure`), so the new version is the page as it stands,
-// mended; the row is never edited in place (ADR-080). The floor stands.
-//
-// **A page its customer took down** (SPEC §7, issue 1532) is theirs from
-// then on, put back or not: no cause plans a refresh of it, and it gains no
-// link refresh. While it is down it is not live and is read by none of this.
-//
-// **A page not found yet** (issue 1538). A hosted page whose stored search
-// reading holds no Found step (`reached.found`) `UNSEEN_AFTER_DAYS` after it
-// went live gets a different fix from a page that is found and not ranking:
-// one link in from the live page of its cluster with the best reading,
-// planned as that page's `link` refresh, at most one in each
-// `UNSEEN_LINK_EVERY_DAYS`, and D13's check against pages written for other
-// sites run again on its live text. Where that check finds it close, the
-// page itself is due an `unseen` refresh, whose writing runs D13 once more
-// and holds it if it is still close. A page with no reading, or on
-// WordPress, where nothing measures Found, is neither. A page no stored SERP
-// or ranked row has held (`verdicts/seen.ts`, `not_verified`) is not
-// retargeted for `unmet`: it was never seen to fail its search.
-//
-// **Close to page one** (SPEC §7, owner 2026-10-18, issue 1521): a cause of
-// its own, `close` — the page's own address ranks 4–20 for its search in the
-// site's stored ranked rows. It goes ahead of a newer fact and of age, and
-// its refresh may add up to three sections the top results cover and the
-// page does not (`../generate/rules/gaps.ts`, `headingGaps`). It takes the
-// place of the page's own `answerable_page`: one open row a page.
-//
-// **Prices** (issue 1521): a cause of its own, `stale_prices` — a live
-// listicle or comparison states a rival price read more than D59's 30 days
-// ago. Read off the version's own row, so the hourly re-check plans it as it
-// plans `structure`. The refresh's research reads the rivals' pages again.
-//
-// **A page's own results** (owner, 2026-10-19, B3 · M6, issue 1611): `close`
-// covers 4–30 and waits until `GAP_REFRESH.stalledReadings` weekly readings
-// hold no gain. A climbing page (`climbing`, M-a) is left alone by every
-// cause its results drive. A page not moving is refreshed for it once: still
-// not moving 8 weeks after that, its question is retired and its results
-// plan no refresh again.
-//
-// Nothing is bought and no model is asked. The partial unique index keeps
-// one open or queued refresh a page.
+// SPEC §7 *Pace: new pages and refreshes*: which of ReachKit's own live pages are due a refresh, each cause read from
+// what is stored. A page is ReachKit's own where a publication's row planned a new page; its refresh is a
+// `refresh_page` at the same address for the same search, carrying that row's volume, band, fit and acceptance test,
+// and is a new version that sets the page's updated date. Causes:
+//   aged           the current version went live `PACE.REFRESH_AGE_DAYS` ago or more;
+//   lost_position  the newest Monday verdict recorded a decline;
+//   newer_fact     a business page a fact was read from no longer says it, or a later draft recorded a claim from a
+//                  page this one cites that this one does not carry;
+//   link           a newer live page is near and not linked, or a page this one links has moved: the one or two
+//                  nearest older pages add one sentence linking it;
+//   own_figures    a page that is not research states a measurement read off the site's own report;
+//   structure      a page breaks one of the six rules a new page is held to; written from the live text with what
+//                  code can repair repaired (`repairStructure`), never edited in place (ADR-080);
+//   unseen         a hosted page with no Found step `UNSEEN_AFTER_DAYS` after going live gets one link in from its
+//                  cluster's best-read page, at most one each `UNSEEN_LINK_EVERY_DAYS`, and D13's check again;
+//   close          its own address ranks 4–30 for its search and `GAP_REFRESH.stalledReadings` readings hold no gain;
+//                  it may add up to three sections the top results cover (`headingGaps`);
+//   stale_prices   a listicle or comparison states a rival price read more than 30 days ago.
+// §6's floor (`REFRESH_MIN_AGE_DAYS`) stands for every cause. A page the customer edited, stopped a refresh of, or took
+// down is theirs: no cause plans it. A climbing page is left alone by every cause its results drive; one still not
+// moving 8 weeks after its refresh has its question retired. A page never seen in a stored SERP or ranked row is not
+// retargeted for `unmet`. Nothing is bought and no model is asked; the partial unique index keeps one open or queued
+// refresh a page.
 import {
   CLOSE_PAGE_POSITION_BAND,
   CROSS_LINKS,

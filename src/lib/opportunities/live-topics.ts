@@ -1,57 +1,17 @@
-// SPEC §7 (issue 1506, from the SEO review of 2026-10-17, item 7, as the SEO
-// master review of 2026-10-18 amended it) — the live pages, read again
-// against the topic rules.
-//
-// A topic is chosen today only where people search it or ask AI about it,
-// in the business's own market (`readiness.ts`): a "vs" between products
-// needs measured demand, and a search whose stored top ten is another kind
-// of business is `low_fit`. reachkit.app's pages of 3 and 5 October were
-// chosen before either rule.
-//
-// Each hour, beside the rival recheck (issue 1485), every live page the
-// customer has not edited is read again from its own row — the search it
-// was written for, its volume, the stored top ten of the scan that found it
-// — against the site's market, tracked prompts and the questions buyers
-// were seen asking, as they stand. Nothing is fetched and no model is
-// asked: 0¢. A page that would not be chosen today:
-//
-//   - waits where a retarget of it is already planned: D53's rewrite of
-//     page A runs through the move of issue 1487 (new slug, 301);
-//   - is retargeted where the site holds a ready topic in the page's own
-//     cluster that no other live page already targets: that row becomes a
-//     retarget of the page, written through the refresh path;
-//   - is otherwise withdrawn only where nothing says it is worth keeping.
-//     A page younger than 90 days whose verdicts are all `too_early` waits.
-//     A page with a `working` verdict, a top-30 position in the stored
-//     ranked keywords, or an answer-engine read or referral is kept and
-//     planned as a refresh; so is every page on a host the weekly
-//     measurement cannot see (issue 316), since a page there could rank
-//     unseen — never retire blind;
-//   - is merged into another live page of the site — its address answering
-//     301 there (`merged_into`, through the move of issue 1487, whose link
-//     refresh repoints the pages that linked it) — where another live page
-//     of its cluster now passes the topic rules (owner, 2026-10-18: B "stays
-//     until a D50 comparison replaces it, then 301s to it"), where another
-//     live page already targets the topic it would be retargeted to (one
-//     page a search), or where it would be withdrawn and another live page
-//     is in its cluster. A page on the customer's own host (WordPress) has
-//     no 301 of ours: it stays live and is named in the run's report;
-//   - and otherwise is withdrawn through `unpublish()` by the system actor
-//     `content/recheck`, every live version at its address, and a hosted
-//     address then answers 410 (issue 1458). A live page of the site that
-//     links it shows the link's words without the link from then on
-//     (`withoutLinksTo`, at render).
-//
-// A page is never corrected by a direct row edit (ADR-080), and a page the
-// customer edited, or took down and put back (issue 1532), is theirs and
-// never read here. Nothing records a visitor
-// from anywhere but an answer engine (`publication_reads` holds those
-// only), so a non-search referrer is never on file.
+// SPEC §7 *Stop a live page*: each hour every live page the customer has not edited, or taken down and put back, is
+// read again from its own stored row against the site's market, tracked prompts and buyers' questions. 0¢: nothing is
+// fetched and no model is asked. A page that would not be chosen today waits for a planned retarget, is retargeted to a
+// ready topic of its cluster, waits while young and unjudged, is kept and refreshed where it already earns (a `working`
+// verdict, a top-30 ranked keyword, an answer-engine read, or a host the weekly measurement cannot see), is merged into
+// a live page of its cluster (its address answering 301, `merged_into`, through the move), or is otherwise withdrawn
+// through `unpublish()` and answers 410. Of two live pages that pass and are one question (SPEC §6), the one with fewer
+// Google impressions is merged into the other once both are read. A page on the customer's own host has no 301 of
+// ours: it stays live and is named in the run's report. A page is never corrected by a row edit alone (ADR-080).
 import { REFRESH_MIN_AGE_DAYS } from "@/lib/config/constants";
 import { registrableDomain } from "@/lib/market/rivals/domains";
-import { canonicalUrl } from "@/lib/measure/page-reading";
-import { queryKey } from "./cluster";
-import { comparisonBrands, composedSearch, type AskedBeside, type ComparisonBrands, type MeasuredAnswer } from "./derive/topics";
+import { canonicalUrl, googleRead, readingOf } from "@/lib/measure/page-reading";
+import { oneQuestion, queryKey } from "./cluster";
+import { comparisonBrands, composedSearch, productsNamed, rivalNamesOf, type AskedBeside, type ComparisonBrands, type MeasuredAnswer } from "./derive/topics";
 import { freshTopTen, OTHER_KIND_TOP_TEN, otherKindTopTen, type KindOfBusiness, type OtherKind, type TopTenRow } from "./derive/top-ten-kind";
 import type { IntentPrompt } from "./intent";
 import { comparisonWithoutAsking } from "./readiness";
@@ -96,6 +56,10 @@ export interface LiveTopicPage {
   /** The older versions still live at the same address. A withdrawal takes
    *  them too, or the address would serve the version before. */
   olderVersions?: readonly string[];
+  /** Google's figures over the reading window, or `null` where the page holds no reading: not measured is never 0. */
+  google?: { impressions: number; clicks: number } | null;
+  /** An update of the page is drafted and not yet live. */
+  updating?: boolean;
 }
 
 /** What a site's live pages are read against. */
@@ -117,6 +81,10 @@ export interface LiveTopicSite {
   /** The site's open rows, ready or not. */
   open: readonly Opportunity[];
   pages: readonly LiveTopicPage[];
+  /** B1's one-question join of two rows; absent joins none. */
+  joined?: (a: Opportunity, b: Opportunity) => boolean;
+  /** The products a search names; absent names none. */
+  products?: (query: string) => string;
 }
 
 export type LiveTopicFailure = { rule: "no_demand" } | { rule: "other_kind"; kind: OtherKind };
@@ -208,6 +176,48 @@ export function liveTopicVerdict(page: LiveTopicPage, site: LiveTopicSite, now: 
   return close === undefined ? { kind: "withdraw", failure } : { kind: "redirect", failure, into: close.liveUrl, why: "closest" };
 }
 
+/** Why two live twins are not merged. */
+export type TwinHeld = "twin_waits_on_reading" | "own_host" | "draft_in_review" | "names_other_products";
+
+/** Of the live pages that pass the topic rules, each that is one question with a page holding more Google impressions
+ *  (then clicks, then the older address) is merged into it, unless a reason holds it. Pure. */
+export function liveTwins(pages: readonly LiveTopicPage[], site: Pick<LiveTopicSite, "joined" | "products">): {
+  merge: { page: LiveTopicPage; into: LiveTopicPage }[];
+  held: { liveUrl: string; into: string; why: TwinHeld }[];
+} {
+  const out: ReturnType<typeof liveTwins> = { merge: [], held: [] };
+  const twins = (a: LiveTopicPage, b: LiveTopicPage) => a !== b && site.joined !== undefined && site.joined(a.opportunity, b.opportunity);
+  const products = (page: LiveTopicPage) => site.products?.(page.opportunity.targetQuery ?? "") ?? "";
+  const read = pages.filter((page) => page.google != null);
+  read.sort((a, b) => b.google!.impressions - a.google!.impressions || b.google!.clicks - a.google!.clicks || a.signals.firstLive.getTime() - b.signals.firstLive.getTime());
+  const kept: LiveTopicPage[] = [];
+  for (const page of read) {
+    const into = kept.find((held) => twins(held, page));
+    if (into === undefined) kept.push(page);
+    else {
+      const why: TwinHeld | null =
+        !page.hosted || !into.hosted ? "own_host"
+        : page.updating === true || into.updating === true ? "draft_in_review"
+        : products(page) !== products(into) ? "names_other_products"
+        : null;
+      if (why === null) out.merge.push({ page, into });
+      else out.held.push({ liveUrl: page.liveUrl, into: into.liveUrl, why });
+    }
+  }
+  for (const page of pages) {
+    const twin = page.google == null ? pages.find((other) => twins(other, page)) : undefined;
+    if (twin !== undefined) out.held.push({ liveUrl: page.liveUrl, into: twin.liveUrl, why: "twin_waits_on_reading" });
+  }
+  return out;
+}
+
+/** The survivor's absorbed searches with each merged page's own, so its next update covers them. */
+export function absorbedBy(into: LiveTopicPage, merged: readonly LiveTopicPage[]): string[] {
+  const own = queryKey(into.opportunity.targetQuery ?? "");
+  const all = [...into.opportunity.absorbedQueries, ...merged.flatMap((page) => [page.opportunity.targetQuery ?? "", ...page.opportunity.absorbedQueries])];
+  return [...new Set(all.filter((query) => query.trim() !== "" && queryKey(query) !== own))].sort();
+}
+
 export interface LiveTopicOutcome {
   checked: number;
   /** Every page that failed, with what was done or would be done, for the
@@ -223,6 +233,8 @@ export interface LiveTopicOutcome {
   withdrawn: { draftId: string; liveUrl: string; rule: LiveTopicFailure["rule"] }[];
   retargeted: { liveUrl: string; to: string }[];
   merged: { liveUrl: string; into: string }[];
+  /** Live twins merged or held, with why. */
+  twins: { liveUrl: string; into: string; why: "merged" | TwinHeld }[];
   refreshed: string[];
   /** A page whose withdrawal, retarget or refresh did not complete: read
    *  again on the next tick. */
@@ -237,6 +249,8 @@ export interface LiveTopicDeps {
   refresh: (page: LiveTopicPage, at: Date) => Promise<boolean>;
   /** Merges the hosted page into another, its address answering 301. */
   merge: (page: LiveTopicPage, into: LiveTopicPage, at: Date) => Promise<boolean>;
+  /** Writes the survivor row's absorbed searches. */
+  absorb: (into: LiveTopicPage, queries: readonly string[]) => Promise<void>;
   withdraw: (draftId: string, at: Date) => Promise<boolean>;
   /** Dismisses the topics the withdrawn drafts were written for (issue
    *  1549). */
@@ -249,12 +263,16 @@ export interface LiveTopicDeps {
 export async function retireOffTopicPages(a: { now: Date; deps?: LiveTopicDeps; dry?: boolean }): Promise<LiveTopicOutcome> {
   const deps = a.deps ?? (await defaultDeps());
   const sites = await deps.sites();
-  const outcome: LiveTopicOutcome = { checked: 0, failed: [], withdrawn: [], retargeted: [], merged: [], refreshed: [], stillLive: [] };
+  const outcome: LiveTopicOutcome = { checked: 0, failed: [], withdrawn: [], retargeted: [], merged: [], twins: [], refreshed: [], stillLive: [] };
   for (const site of sites) {
+    const passing: LiveTopicPage[] = [];
     for (const page of site.pages) {
       outcome.checked += 1;
       const verdict = liveTopicVerdict(page, site, a.now);
-      if (verdict.kind === "keeps") continue;
+      if (verdict.kind === "keeps") {
+        passing.push(page);
+        continue;
+      }
       outcome.failed.push({
         liveUrl: page.liveUrl,
         verdict: verdict.kind,
@@ -292,6 +310,21 @@ export async function retireOffTopicPages(a: { now: Date; deps?: LiveTopicDeps; 
         });
       }
     }
+    const twins = liveTwins(passing, site);
+    outcome.twins.push(...twins.held, ...twins.merge.map(({ page, into }) => ({ liveUrl: page.liveUrl, into: into.liveUrl, why: "merged" as const })));
+    if (a.dry === true) continue;
+    const absorbed = new Map<LiveTopicPage, LiveTopicPage[]>();
+    for (const { page, into } of twins.merge) {
+      if (!(await deps.merge(page, into, a.now))) outcome.stillLive.push(page.liveUrl);
+      else {
+        outcome.merged.push({ liveUrl: page.liveUrl, into: into.liveUrl });
+        absorbed.set(into, [...(absorbed.get(into) ?? []), page]);
+      }
+    }
+    // The pages are merged either way; a survivor row not written now covers the search at its next pass.
+    for (const [into, merged] of absorbed) await deps.absorb(into, absorbedBy(into, merged)).catch((error: unknown) => {
+      console.log(JSON.stringify({ event: "twin_absorb_failed", draftId: into.draftId, because: String(error) }));
+    });
   }
   console.log(
     JSON.stringify({
@@ -302,6 +335,7 @@ export async function retireOffTopicPages(a: { now: Date; deps?: LiveTopicDeps; 
       withdrawn: outcome.withdrawn.map((page) => ({ url: page.liveUrl, rule: page.rule })),
       retargeted: outcome.retargeted,
       merged: outcome.merged,
+      twins: outcome.twins,
       refreshed: outcome.refreshed,
       stillLive: outcome.stillLive,
     })
@@ -318,6 +352,7 @@ export interface LiveRow {
   live_url: string | null;
   published_at: string;
   site_id: string;
+  search_reading?: unknown;
   drafts: { first_edited_at?: unknown; transitions?: unknown; opportunities: unknown } | null;
 }
 
@@ -360,6 +395,9 @@ export function rankedWithin(rows: readonly { url: string; position: number }[],
   return rows.some((row) => row.position <= RETIRE_RANKED_WITHIN && canonicalUrl(row.url) === own);
 }
 
+/** A draft of a page's update that is not yet live. */
+const PENDING = ["generating", "in_review", "approved", "publishing"];
+
 /** The system actor of the live rechecks. */
 const RECHECK = { kind: "system", job: "content/recheck" } as const;
 
@@ -377,7 +415,7 @@ async function defaultDeps(): Promise<LiveTopicDeps> {
       const db = publishDb();
       const live = await db
         .from<LiveRow>("publications")
-        .select(`id, draft_id, destination, live_url, published_at, site_id, drafts(first_edited_at:meta->first_edited_at, transitions, opportunities(${COLUMNS}))`)
+        .select(`id, draft_id, destination, live_url, published_at, site_id, search_reading, drafts(first_edited_at:meta->first_edited_at, transitions, opportunities(${COLUMNS}))`)
         .not("published_at", "is", null)
         .is("unpublished_at", null);
       if (live.error !== null || live.data === null) throw new Error(`live-topics: reading publications: ${live.error?.message ?? "no rows"}`);
@@ -402,7 +440,7 @@ async function defaultDeps(): Promise<LiveTopicDeps> {
       for (const siteId of new Set(addresses.map((address) => address.siteId))) {
         const held = addresses.filter((address) => address.siteId === siteId);
         const firstLive = new Date(Math.min(...held.flatMap((address) => address.versions.map((version) => Date.parse(version.published_at)))));
-        const [report, site, prompts, open, asked, scans] = await Promise.all([
+        const [report, site, prompts, open, asked, scans, profile, topTenUrls, pending] = await Promise.all([
           store.currentReport(siteId),
           readSiteMarket(siteId),
           store.trackedPrompts(siteId),
@@ -413,7 +451,12 @@ async function defaultDeps(): Promise<LiveTopicDeps> {
             .select("ranked:report->ownRankedRows, created_at")
             .eq("site_id", siteId)
             .gte("created_at", firstLive.toISOString()),
+          store.profileForSite(siteId),
+          store.topTens([...new Set(held.map((address) => address.opportunity.scanId))]),
+          db.from<{ opportunities: { target_ref: string | null } | null }>("drafts").select("opportunities(target_ref)").eq("site_id", siteId).in("state", PENDING),
         ]);
+        if (pending.error !== null) throw new Error(`live-topics: reading drafts: ${pending.error.message}`);
+        const updating = new Set((pending.data ?? []).flatMap((row) => (row.opportunities?.target_ref == null ? [] : [canonicalUrl(row.opportunities.target_ref)])));
         if (scans.error !== null) throw new Error(`live-topics: reading ranked keywords: ${scans.error.message}`);
         const market = site?.stored.current ?? null;
         const topTens = await store.topTenRows([...new Set(held.map((address) => address.opportunity.scanId))]);
@@ -438,6 +481,8 @@ async function defaultDeps(): Promise<LiveTopicDeps> {
               reads: reads.filter((row) => own.has(row.publication_id)).reduce((sum, row) => sum + row.hits, 0),
             },
             ...(older.length === 0 ? {} : { olderVersions: older.map((version) => version.draft_id) }),
+            google: googleRead(readingOf(newest!.search_reading)?.google),
+            updating: updating.has(canonicalUrl(address.liveUrl)),
           };
         });
         out.push({
@@ -451,6 +496,8 @@ async function defaultDeps(): Promise<LiveTopicDeps> {
           topTen: (query) => freshTopTen(topTens.get(queryKey(query)), new Date()),
           open: open.map(readOpportunity),
           pages,
+          joined: oneQuestion({ topTens: topTenUrls, market, brandTokens: profile?.brandTokens ?? [] }),
+          products: (query) => productsNamed(query, { market, rivals: report === null ? [] : rivalNamesOf({ report, market }).map((rival) => rival.name) }),
         });
       }
       return out;
@@ -475,6 +522,10 @@ async function defaultDeps(): Promise<LiveTopicDeps> {
       const { moveAddress } = await import("@/lib/publish/attempt/move");
       await moveAddress({ from: page.liveUrl, to: { publicationId: into.publicationId, url: into.liveUrl }, at, by: RECHECK, merge: true });
       return true;
+    },
+    async absorb(into, queries) {
+      const written = await publishDb().from<{ id: string }>("opportunities").update({ absorbed_queries: [...queries] }).eq("id", into.opportunity.id);
+      if (written.error !== null && written.error !== undefined) throw new Error(written.error.message);
     },
     async withdraw(draftId, at) {
       const result = await unpublish({ draftId, by: RECHECK, at });
