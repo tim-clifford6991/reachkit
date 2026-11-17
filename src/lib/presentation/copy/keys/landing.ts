@@ -12,6 +12,10 @@ export const LANDING_COPY = Object.freeze({
   /** The count of sites scanned, drawn only from a stored count of 100 or more. */
   "landing.hero.proof.scanned": ["{count}+ sites scanned", { slots: { count: "text" }, fixedBy: "board PubLanding v36 · owner 2026-11-01, issue 2249" }],
   "landing.hero.proof.scanned.line": ["with the free scan", { slots: {}, fixedBy: "board PubLanding v36 · owner 2026-11-01, issue 2249" }],
+  /** The logo band's label, drawn from 8 sites with a logo: what the logos are, never customers. */
+  "landing.proof.label": ["{count}+ Sites Scanned With the Free Scan", { slots: { count: "text" }, fixedBy: "owner 2026-11-16 · issue 2745" }],
+  "landing.proof.pause": ["Pause the logos", { slots: {}, fixedBy: "issue 2754 · drafted" }],
+  "landing.proof.play": ["Play the logos", { slots: {}, fixedBy: "issue 2754 · drafted" }],
   /** The label over the six kinds of business: a list label, not a heading. */
   "landing.hero.kinds.label": ["Works for any business with a website", { slots: {}, fixedBy: "board PubLanding v36 · owner 2026-11-01" }],
   /** The hero's story card: four frames, one example business, as few words as possible (owner O3). */

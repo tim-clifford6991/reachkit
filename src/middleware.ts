@@ -145,10 +145,10 @@ export const PUBLIC_PATHS: readonly string[] = [
   "/api/unsubscribe/:token",
   "/pause/:token",
   "/pricing",
-  // Issue #1069: the free-scans gallery (SPEC §2 Gallery lists every report), and the logo
-  // each of its cards is drawn with, served from our own origin.
+  // The free-scans gallery (SPEC §2), each card's logo from our own origin, and the landing's logo band.
   "/scans",
   "/scans/logo/:domain",
+  "/scans/recent",
   // Issue #19: the sign-in address prompt now exists as a route
   // (`src/app/(public)/signin/page.tsx`), so it takes a row on this list
   // like every other public surface. `SIGNIN_PATH` stays used below: it is

@@ -12,6 +12,7 @@
 // of what may change the listing at once, so a crawler walking every filter
 // costs one read per view per window and a removal still shows at once.
 import { unstable_cache } from "next/cache";
+import nlp from "compromise";
 import { kindOfProfile } from "@/lib/business/retrofit";
 import { PREVIEW_HOST_SUFFIX } from "@/lib/config/constants";
 import { dbAdmin } from "@/lib/db";
@@ -136,8 +137,12 @@ export function kindOfCategory(category: string | null): BusinessKind | null {
  *  name either, and the domain's brand is cased as the site's own home
  *  title cases it — "HubSpot" (issue 1384). */
 export function shownCompany(row: { company: string; domain: string }, homeTitle?: string): string {
-  const unnamed = row.company === row.domain || isProtectionName(row.company, row.domain);
-  return brandName([unnamed ? domainBrand(row.domain) : row.company], row.domain, [homeTitle]) ?? row.domain;
+  return brandName([unnamed(row) ? domainBrand(row.domain) : row.company], row.domain, [homeTitle]) ?? row.domain;
+}
+
+/** The view answers the domain where the site stored no name of its own. */
+function unnamed(row: { company: string; domain: string }): boolean {
+  return row.company === row.domain || isProtectionName(row.company, row.domain);
 }
 
 /**
@@ -314,31 +319,49 @@ export async function readGallery(a: GalleryView): Promise<GalleryPage> {
   return { ...page, entries: page.entries.map((entry) => ({ ...entry, scannedAt: new Date(entry.scannedAt) })) };
 }
 
-/** One logo in the landing's strip: the company and whether it has a logo
- *  — no score, no date (SPEC §1, owner on #1058). */
-export type StripEntry = Pick<GalleryEntry, "domain" | "company" | "hasLogo">;
+/** One slide of the landing's logo band: the site's logo and name, never a score or a date (SPEC §1, owner on #1058). */
+export type StripEntry = Pick<GalleryEntry, "domain" | "company">;
 
-/** The `n` most recently scanned sites, newest first, for the landing's
- *  *Recently scanned* strip — the same view as `/scans`, so a removed site
- *  leaves both at once. */
+const TITLED = /(?:^|\s)(?:Mr|Mrs|Ms|Dr|Herr|Frau|Prof)\.?\s+\p{Lu}/u;
+
+/** Whether a name reads as a person's: a title before a capitalised word, or a
+ *  first name and a surname, where the surname is not an ordinary describing word
+ *  ("Fletcher Electric" is a business). In doubt it is a person: a false one only shortens the band. */
+export function readsAsPerson(name: string): boolean {
+  if (TITLED.test(name)) return true;
+  const pairs = nlp(name).match("#Person #LastName").json() as { terms: { text: string }[] }[];
+  return pairs.some(({ terms }) => !nlp(terms.at(-1)?.text.toLowerCase() ?? "").has("#Adjective"));
+}
+
+/** A domain's words as a name, "tim-clifford.dev" as "Tim Clifford Dev". */
+function domainWords(domain: string): string {
+  return domain.split(/[-.]/).map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
+}
+
+/** The `n` newest listed sites the landing's logo band may show: each with a
+ *  logo, scanned by an owner rather than by us, and not named as a person.
+ *  Uncached, the same view as `/scans`, so a removed site leaves both at once. */
 export async function readRecent(n: number): Promise<readonly StripEntry[]> {
   const { data, error } = await listed(
     untyped()
-      .from<Pick<Row, "domain" | "company" | "has_logo">>("free_scan_listing")
-      .select("domain, company, has_logo"),
+      .from<Pick<Row, "domain" | "company">>("free_scan_listing")
+      .select("domain, company")
+      .is("has_logo", true)
+      .not("domain", "in", `(${UNCOUNTED_DOMAINS.join(",")})`),
     await withdrawnMarkets(),
   )
     .order("scanned_at", { ascending: false })
     .order("domain", { ascending: true })
-    .limit(n);
+    // Twice as many, so the names left out rarely shorten the band.
+    .limit(n * 2);
   if (error)
     throw new Error(`gallery: could not read the recent scans: ${error.message}`);
   const titles = await homeTitles((data ?? []).map((row) => row.domain));
-  return (data ?? []).map((row) => ({
-    domain: row.domain,
-    company: shownCompany(row, titles.get(row.domain)),
-    hasLogo: row.has_logo,
-  }));
+  return (data ?? [])
+    .filter((row) => !(unnamed(row) && readsAsPerson(domainWords(row.domain))))
+    .map((row) => ({ domain: row.domain, company: shownCompany(row, titles.get(row.domain)) }))
+    .filter((entry) => !readsAsPerson(entry.company))
+    .slice(0, n);
 }
 
 /** ReachKit's own site and the panel's are scanned by us, not by an owner. */

@@ -10,7 +10,8 @@
 //   1. the hero — the why badge, the title with its catch words, subline, the
 //      one field, the offer and the count of sites scanned (`HeroProof.tsx`),
 //      centred — beside the story card (`Storyboard.tsx`); on a phone the
-//      story card comes last (board v37);
+//      story card comes last (board v37); from 8 logos, the count labels the
+//      logo band under both columns instead (`LogoBand.tsx`);
 //   2. the walkthrough video, once its file exists (`Walkthrough.tsx`);
 //   3. the three steps, each beside its picture, and one link to How it works;
 //   4. *Why Is This Important?* — the features (`Features.tsx`), then the six
@@ -48,7 +49,7 @@ import { FieldCta } from "./_landing/FieldCta";
 import { MondayCard } from "./_landing/MondayCard";
 import { PlanCards } from "./_landing/PlanCards";
 import { LatestArticles } from "./_landing/LatestArticles";
-import { HeroProof } from "./_landing/HeroProof";
+import { HeroProof, ProofBand } from "./_landing/HeroProof";
 import { WALKTHROUGH_SRC, Walkthrough } from "./_landing/Walkthrough";
 import { KIND_ICON, KIND_WORD } from "./scans/kinds";
 import { BUSINESS_KIND_NAMES } from "@/lib/market/kinds";
@@ -181,6 +182,10 @@ export default function LandingPage(props: {
             <Storyboard />
           </div>
         </section>
+
+        <Suspense fallback={null}>
+          <ProofBand />
+        </Suspense>
 
         <Walkthrough src={WALKTHROUGH_SRC} />
 
