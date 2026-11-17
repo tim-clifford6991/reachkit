@@ -46,6 +46,8 @@ type ScanFormProps = {
   words: ScanFormWords;
   /** The landing's hero: a 56px field and button. */
   hero?: boolean;
+  /** A head card's field: soft, so the close's button stays the screen's one solid one. */
+  soft?: boolean;
 };
 
 /** The landing's form, prefilled from `?problem=&value=` in the browser, so
@@ -114,8 +116,7 @@ export function ScanForm(props: ScanFormProps): React.JSX.Element {
           aria-invalid={problem !== undefined}
           aria-describedby={problem ? problemId : undefined}
         />
-        {/* The screen's one submit control and its one solid button. */}
-        <button type="submit" className={`btn btn-primary join-item rounded-e-full ${hero ? "btn-lg" : "h-12"}`} disabled={submitting} aria-busy={submitting || undefined}>
+        <button type="submit" className={`btn btn-primary join-item rounded-e-full ${props.soft === true ? "btn-soft" : ""} ${hero ? "btn-lg" : "h-12"}`} disabled={submitting} aria-busy={submitting || undefined}>
           {props.words.submit}
           <ArrowRight aria-hidden size={20} strokeWidth={1.75} />
         </button>

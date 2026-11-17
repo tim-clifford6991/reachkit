@@ -180,12 +180,14 @@ function Card(p: { t: Teardown }): React.JSX.Element {
 
 export default function TeardownsPage(): React.JSX.Element {
   return (
-    <LibraryPage testId={PAGE_TEST_ID} title={copy("teardowns.title")} wide>
-      <section className="grid min-w-0 items-start gap-6 lg:grid-cols-2">
-        <p className="max-w-(--w-read) text-lg">{copy("teardowns.lead")}</p>
-        <EveryRead />
-      </section>
-      <section className={`mt-6 flex min-w-0 flex-col gap-4 ${BAND}`} aria-labelledby={ALL_ID}>
+    <LibraryPage
+      testId={PAGE_TEST_ID}
+      title={copy("teardowns.title")}
+      lead={<p className="text-lg">{copy("teardowns.lead")}</p>}
+      aside={<EveryRead />}
+      wide
+    >
+      <section className={`flex min-w-0 flex-col gap-4 ${BAND}`} aria-labelledby={ALL_ID}>
         <div className="flex min-w-0 flex-wrap items-end justify-between gap-3">
           <div className="flex min-w-0 flex-col gap-1">
             <p className={LABEL}>{copy("teardowns.count", { count: String(TEARDOWNS.length) })}</p>

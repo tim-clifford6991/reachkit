@@ -58,6 +58,7 @@ import { HOW_FACTS } from "./_how/facts";
 import { PUBLIC_ROUTE_SEO } from "./_seo/routes";
 import { staticMetadata } from "./_seo/metadata";
 import { JsonLd, homeSchemas } from "./_seo/structured";
+import { marked } from "./_library/head";
 
 const WEEK_PAGES = String(HOW_FACTS.weekPages);
 const PRICE = (): string => copy("price.amount");
@@ -68,19 +69,6 @@ const STEPS = [
   { n: "2", title: "landing.step.2.title", body: "landing.step.2.body", tag: "landing.step.2.tag", Figure: InsideReachKit },
   { n: "3", title: "landing.step.3.title", body: "landing.step.3.body", tag: "landing.step.3.tag", Figure: MondayCard },
 ] as const;
-
-/** A title with its catch words in `<em>` (DESIGN *Catch words*); a mark the title does not hold marks nothing. */
-function marked(title: string, mark: string): React.ReactNode {
-  const at = title.indexOf(mark);
-  if (at < 0 || mark === "") return title;
-  return (
-    <>
-      {title.slice(0, at)}
-      <em className="text-primary bg-primary/15 rounded-field px-1.5 font-extrabold italic box-decoration-clone">{mark}</em>
-      {title.slice(at + mark.length)}
-    </>
-  );
-}
 
 /** The offer under the field, one tick line each. */
 const offer = (): readonly string[] => [copy("landing.hero.offer.free"), copy("landing.hero.offer.price", { price: PRICE() })];

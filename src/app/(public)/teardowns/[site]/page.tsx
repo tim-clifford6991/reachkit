@@ -65,6 +65,25 @@ export default async function TeardownPage({ params }: Params): Promise<React.JS
           <SiteMark domain={t.domain} hasLogo={false} size={56} />
         </>
       }
+      lead={
+        <>
+          <p className="text-base-content/70 text-sm">
+            {t.checked === undefined
+              ? copy("teardowns.item.dates", { written: longDate(t.written), revised: longDate(t.revised) })
+              : copy("teardowns.item.dates.checked", { written: longDate(t.written), checked: longDate(t.checked) })}
+          </p>
+          <p className="text-lg">{t.intro}</p>
+        </>
+      }
+      aside={
+        t.sketch === undefined ? undefined : (
+          <Sketch
+            domain={t.domain}
+            marks={t.sketch}
+            caption={copy("teardowns.sketch.caption", { read: longDate(t.revised), checked: longDate(t.checked ?? t.revised) })}
+          />
+        )
+      }
     >
       {/* Issue 1512: the two dates the page prints, and the links it draws. */}
       <JsonLd
@@ -76,23 +95,6 @@ export default async function TeardownPage({ params }: Params): Promise<React.JS
           trail: [homeCrumb(), { name: copy("chrome.nav.teardowns"), path: INDEX }],
         })}
       />
-      <section className="grid min-w-0 items-start gap-6 lg:grid-cols-2">
-        <div className="flex min-w-0 flex-col gap-3">
-          <p className="text-base-content/70 text-sm">
-            {t.checked === undefined
-              ? copy("teardowns.item.dates", { written: longDate(t.written), revised: longDate(t.revised) })
-              : copy("teardowns.item.dates.checked", { written: longDate(t.written), checked: longDate(t.checked) })}
-          </p>
-          <p className="text-lg">{t.intro}</p>
-        </div>
-        {t.sketch === undefined ? null : (
-          <Sketch
-            domain={t.domain}
-            marks={t.sketch}
-            caption={copy("teardowns.sketch.caption", { read: longDate(t.revised), checked: longDate(t.checked ?? t.revised) })}
-          />
-        )}
-      </section>
       <div className={`grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_14rem] ${BAND}`} data-testid="teardown-body">
         <article className="flex min-w-0 flex-col gap-4">
           {t.sections.map((section) => (

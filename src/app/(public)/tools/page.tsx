@@ -9,7 +9,8 @@ import { bandOf } from "@/lib/measure/bands";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { PUBLIC_ROUTE_SEO } from "../_seo/routes";
 import { staticMetadata } from "../_seo/metadata";
-import { FIELD_SECTION_ID } from "../_landing/sections";
+import { ScanForm } from "../_landing/ScanForm";
+import { scanFormWords } from "../_landing/scan-form-words";
 import { EXAMPLES } from "../_how/specimen";
 import { BAND, LearnClose, LibraryPage, Tile } from "../_library/parts";
 import { onPageChecks } from "./_check/checks";
@@ -23,7 +24,6 @@ const CARD = "card bg-base-100 shadow-(--shadow-card) w-full min-w-0";
 const TILE = `${CARD} motion-safe:transition-transform motion-safe:duration-200 hover:-translate-y-0.5`;
 const WELL = "rounded-box bg-base-200 flex min-w-0 flex-col gap-2 p-3";
 const ICON = { size: 16, strokeWidth: 1.75, "aria-hidden": true } as const;
-const SCAN_HREF = `/#${FIELD_SECTION_ID}`;
 const SMALL = "text-base-content/70 text-sm";
 const SLASH = "/";
 /** The on-page card shows the first three of its example's checks. */
@@ -134,29 +134,27 @@ export default function ToolsPage(): React.JSX.Element {
     <LibraryPage
       testId={PAGE_TEST_ID}
       title={copy("tools.title")}
+      mark={copy("tools.title.mark")}
+      lead={<p className="text-lg">{copy("tools.lead")}</p>}
+      aside={
+        <div className={`${CARD} border-primary/30 bg-primary/5 border-[1.5px]`}>
+          <div className="card-body gap-3">
+            <CardHead icon={Search} name="tools.scan.name" solid />
+            <ScanExample />
+            <p>{copy("tools.scan.line")}</p>
+            <ScanForm soft words={scanFormWords()} />
+            <p className={SMALL}>{copy("landing.hero.assurance")}</p>
+          </div>
+        </div>
+      }
       wide
     >
-      <p className="max-w-(--w-read) text-lg">{copy("tools.lead")}</p>
       <section aria-label={copy("tools.list.label")} className={BAND}>
-      <ul className="grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {TOOLS.map((tool) => (
-          <ToolCard key={tool.href} {...tool} />
-        ))}
-        <li className="flex min-w-0">
-          <div className={`${CARD} border-primary/30 bg-primary/5 border-[1.5px]`}>
-            <div className="card-body gap-3">
-              <CardHead icon={Search} name="tools.scan.name" solid />
-              <ScanExample />
-              <p>{copy("tools.scan.line")}</p>
-              <p className={SMALL}>{copy("landing.hero.assurance")}</p>
-              <Link href={SCAN_HREF} className="btn btn-soft btn-primary mt-auto self-start">
-                {copy("landing.submit.label")}
-                <ArrowRight {...ICON} />
-              </Link>
-            </div>
-          </div>
-        </li>
-      </ul>
+        <ul className="grid min-w-0 gap-3 sm:grid-cols-2">
+          {TOOLS.map((tool) => (
+            <ToolCard key={tool.href} {...tool} />
+          ))}
+        </ul>
       </section>
       <LearnClose variant="tools" />
     </LibraryPage>
