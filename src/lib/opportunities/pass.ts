@@ -102,7 +102,7 @@ export async function deriveForPass(
     .marketFor(a.siteId)
     .catch(() => ({ market: null, competitors: [] as readonly string[], prompts: [] as readonly string[], knowledge: null, area: null }));
   const known = await knownGateFor({ siteId: a.siteId, report: a.report, market });
-  const input = { ...inputFor({ siteId: a.siteId, report: a.report, hostedHost, inventory, known, market, knowledge, competitors, prompts: prompts ?? [] }), area: area ?? null };
+  const input = { ...inputFor({ siteId: a.siteId, report: a.report, hostedHost, inventory, known, market, knowledge, competitors, prompts: prompts ?? [] }), area: area ?? null, topUp: a.tier === "weekly" };
 
   // Fixes this scan shows cleared retire first, so a fixed page is not re-derived beside its closed row.
   await assessFixPages(a.siteId, { report: a.report });
@@ -117,7 +117,7 @@ export async function deriveForPass(
   const derivation =
     derived === null
       ? { derived: "not_run" as const, because: "spend_ceiling" as const, spentCents: c.spentCents() }
-      : { derived: derived.created.length, have: derived.supply.have, short: derived.supply.short, dry: derived.supply.dry, unworded: derived.supply.unworded };
+      : { derived: derived.created.length, have: derived.supply.have, short: derived.supply.short, dry: derived.supply.dry, unworded: derived.supply.unworded, topUp: derived.supply.topUp ?? null };
   console.log(JSON.stringify({ event: "supply_pass", tier: a.tier, siteId: a.siteId, scanId: a.report.scanId, added, ...derivation }));
   // Kept as a row so the daily check can tell a thin pass from a source that ran dry.
   if (derived !== null && derived.supply.short > 0) {

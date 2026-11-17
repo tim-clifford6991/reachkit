@@ -31,66 +31,36 @@ import { judgeFit, type FitSearch } from "./fit";
 import { askedOfReport, askedSupply, askedTopics, brandsOf, citedTopics, type AskedSupply, candidateFor, comparisonWithoutDemand, namesOwnOnly, noLongerRelevant, productsNamed, proposedTopics, rivalBrandOnly, rivalNamesOf, rivalPriceOf, sourceOf } from "./topics";
 import { judgeTyped, writeBuyerSearches } from "./buyer-searches";
 import { ledgerSourceOf, supplyLedger, writable, type LedgerSource, type SupplyLedger } from "./ledger";
+import { topUpRecord, topUpTopics, type TopUpTopic } from "./top-up";
 import { promptGaps } from "@/lib/market/prompts/gaps";
 
 export interface DeriveInput {
   siteId: string;
-  /** The site's country and language (SPEC §6, owner D66): the searches
-   *  this derivation writes are written in it. Absent, the site's stored
-   *  one is read. */
+  /** The language the searches are written in; absent, the site's stored one. */
   locale?: Locale;
   scanId: string;
   report: StoredReport;
-  /** The customer's own measured ranked count. `unmeasured` reads as the
-   *  cold-start 0 — which is the honest reading: the bars are then 500 and
-   *  100, both positive, so every band stays assignable and the winnable
-   *  set stays non-empty for a domain that ranks for nothing. Reading it
-   *  as a large number instead would silently widen the bars for exactly
-   *  the customers the product exists to serve. */
+  /** Unmeasured reads as the cold-start 0, so every band stays assignable for a site that ranks for nothing. */
   ownRanked: Measured<number>;
-  /** One ranked count per domain the deep pass sized — issue #37's
-   *  `RivalSize[]`, projected by `rankedCountsFromSizes`. It stays a
-   *  parameter now that `rivalSizes` is a member of `StoredReport`
-   *  (issue #126, DECISIONS 2026-09-06): the projection is the caller's
-   *  — `rankedCountsOf` in `../pass.ts` — so this directory reads a
-   *  lookup and never the blob's sizing arm, and a suite can hand it a
-   *  market of any shape without assembling a report for it. A missing
-   *  entry is `undeterminable` and never a zero — see
-   *  `winnability/counts.ts`. */
+  /** One ranked count per sized domain; a missing entry is `undeterminable`, never 0. */
   rankedCounts: RankedCounts;
-  /** The host the site's hosted destination serves at, whose pages get no
-   *  `fix_page` (SPEC §9, 2026-09-14). Absent where the caller has none. */
+  /** The hosted destination's host, whose pages get no `fix_page`. */
   hostedHost?: string | null;
-  /** The pages the crawl read (`site_profiles.inventory`), which Improve
-   *  matches to the market's questions beside the site's ranked urls (SPEC
-   *  §7, 2026-09-16). Absent reads as none. */
+  /** The pages the crawl read, which Improve matches to the market's questions. */
   inventory?: readonly InventoryRow[];
-  /** SPEC §7 (2026-09-20, #928): the net-new rule's two answers — does the
-   *  site already have a page on this topic, and can its destination publish
-   *  an update of that page. Absent is a pass with no index to read, which
-   *  plans exactly what it planned before #928: nothing is converted and
-   *  nothing is refused, rather than every topic being called net new by a
-   *  gate that was never asked. */
+  /** The net-new gate; absent converts and refuses nothing, rather than calling every topic new. */
   known?: KnownContentGate;
-  /** The site's structured market in force (issue 1159), which business fit
-   *  is judged against and whose vocabulary and rivals propose write targets
-   *  (SPEC §6, 2026-10-03, issue 1134). Absent or `null` is a site no pass
-   *  has concluded a market for: fit is then judged against the report's
-   *  profile, and only the searches the pass read are proposed. */
+  /** The market fit is judged against; absent, fit reads the report's profile and only read searches are proposed. */
   market?: MarketConclusion | null;
-  /** The site's knowledge base, as fit is shown it (SPEC §6, 2026-09-29,
-   *  issue 1133). Absent or `null` is a site nothing has been read for. */
   knowledge?: KnowledgeDigest | null;
-  /** The rivals the site is measured against (`sites.competitors`). A paid
-   *  pass keeps a far-banded one out of the report's rivals (#858), and it
-   *  is still a rival an answer may cite. Absent reads as none. */
+  /** `sites.competitors`: still rivals an answer may cite where the report left them out. */
   competitors?: readonly string[];
-  /** The site's tracked buyer prompts (D19, `sites.tracked_prompts`), the
-   *  branded ones left out: what its buyers ask answer engines, which the
-   *  buyer's searches are written from (issue 1208). Absent reads as none. */
+  /** The unbranded tracked prompts the buyer's searches are written from. */
   prompts?: readonly string[];
-  /** Where the business serves (`sites.market.area`, D67), which no offering's topic may name. */
+  /** Where the business serves, which no offering's topic may name. */
   area?: MarketConclusion["serves"];
+  /** The weekly pass may top a short site up (SPEC §7 *Pages left*); the deep pass and the evening never do. */
+  topUp?: boolean;
 }
 
 /** How many held rows one pass's judgement may also score. */
@@ -108,10 +78,7 @@ export function ownRankedValue(ownRanked: Measured<number>): number {
   return ownRanked.kind === "unmeasured" ? 0 : ownRanked.value;
 }
 
-/** SPEC §6: "Improve of an owned URL outranks a new page", and an Earn
- *  asset outranks a plain Write for the same search (issue 474's order).
- *  Handed candidates in that precedence, it keeps the first for each search,
- *  so one search never plans two pages. Pure. */
+/** One page per search: handed candidates in precedence (Improve, Earn, Write), keeps the first for each search. Pure. */
 export function onePerSearch(ordered: readonly Candidate[]): Candidate[] {
   const seen = new Set<string>();
   return ordered.filter((candidate) => {
@@ -157,20 +124,12 @@ export async function deriveOpportunities(
     .reduce(addRejections, noRejections());
   const assessed = write.assessed + improve.assessed + earn.assessed + fix.assessed;
 
-  // SPEC §7 (2026-09-20, #928), and **before** the model is asked to label
-  // anything: a candidate that is a repeat of a page the site already has
-  // becomes an update of that page, so what the typing step labels is the
-  // row that will actually be written. One page per search is decided first
-  // — the rule is about what the day would publish, and only one candidate
-  // per search survives to be it.
+  // Before labelling, so the type is judged on the row that will be written: one page per search, then net-new.
   const planned = onePerSearch([...improve.candidates, ...earn.candidates, ...write.candidates]);
   const store = opportunityStore();
   const held = (await store.clusterable(a.siteId)).map(readOpportunity);
 
-  // SPEC §6 (2026-10-03, issue 1208): a rival's own price is never a page
-  // about the rival alone. A new page planned on one — this pass's or an
-  // open row's — gives way to the product against that rival at its price,
-  // which is proposed below like any other search nothing measured.
+  // A rival's own price is never a page about the rival alone; it gives way to the product against that rival.
   const rivalNames = rivalNamesOf({ report: a.report, market });
   const comparisons: { query: string; rival: string }[] = [];
   const aRivalsPrice = (row: { family: Candidate["family"]; targetQuery: string | null }): boolean => {
@@ -180,9 +139,7 @@ export async function deriveOpportunities(
     if (priced.comparison !== null) comparisons.push({ query: priced.comparison, rival: priced.rival });
     return true;
   };
-  // SPEC §6 (owner D50, issue 1271): an open row an earlier pass proposed
-  // for a comparison of names nobody searches goes the same way.
-  // Only once the brands' volumes were read: "never read" dismisses nothing.
+  // An open comparison of names nobody searches goes too, once the brands' volumes were read.
   const unsearchedComparison = (row: (typeof held)[number]): boolean =>
     market?.demand !== undefined &&
     row.family === "write" &&
@@ -190,12 +147,7 @@ export async function deriveOpportunities(
     row.source !== "ai_gap" &&
     (row.volume === null || row.volume.kind === "unmeasured") &&
     comparisonWithoutDemand(row.targetQuery, { market, own: named.own });
-  // SPEC §6 (owner D59, issue 1287): context stays relevant. An open topic
-  // nothing was ever drafted from goes where it names a rival that is no
-  // longer current, or uses a term of a market that is not this one. A
-  // topic with a draft or a publication is never touched, and neither is
-  // the search an operator retargeted a live page to (issue 1285). A store
-  // that cannot say which topics were drafted prunes nothing.
+  // An undrafted, unretargeted open topic goes where it names a former rival or another market; an unknown store prunes nothing.
   const drafted = await store.draftedOpportunityIds(a.siteId).catch(() => null);
   const irrelevant = (row: (typeof held)[number]): boolean =>
     drafted !== null &&
@@ -203,14 +155,10 @@ export async function deriveOpportunities(
     row.targetQuery !== null &&
     !isRetarget(row) &&
     noLongerRelevant(row.targetQuery, { market, own: named.own }) !== null;
-  // SPEC §6 (owner D64, issue 1301): a search that is only a rival's brand
-  // name is navigational and never a topic — not planned by this pass, and
-  // an open row for one that nothing was drafted from goes too.
+  // A search that is only a rival's brand is navigational, never a topic.
   const aRivalsBrand = (row: { targetQuery: string | null }): boolean =>
     row.targetQuery !== null && rivalBrandOnly(row.targetQuery, { market, own: named.own, rivals: named.rivals });
-  // SPEC §6 (2026-10-07, issue 1314): nor is a search nobody would type as
-  // it stands — a phrase said twice, a comparison with one side, a web
-  // address, a rival called by its domain.
+  // Nor is a search nobody would type as it stands.
   const notASearch = (row: { targetQuery: string | null }): boolean =>
     row.targetQuery !== null && malformedSearch(row.targetQuery, market?.rivals) !== null;
   const gone = new Set<string>();
@@ -219,9 +167,7 @@ export async function deriveOpportunities(
     const neverDrafted = drafted !== null && !drafted.has(row.id) && !isRetarget(row);
     if (aRivalsPrice(row) || unsearchedComparison(row) || irrelevant(row) || (neverDrafted && (aRivalsBrand(row) || notASearch(row)))) gone.add(row.id);
   }
-  // Issue 1549: a topic a gate dismissed is not written down again by a
-  // pass that read nothing new for it — only a measured volume above the
-  // one it was dismissed at brings it back. One the customer stopped never comes back.
+  // A dismissed topic returns only on a higher measured volume, and a stopped one never.
   const dismissed = await store.dismissedSearches(a.siteId).catch(() => []);
   let stillDismissed = 0;
   const notDismissed = (candidate: Pick<Candidate, "targetQuery" | "volume">): boolean => {
@@ -236,10 +182,7 @@ export async function deriveOpportunities(
     ...fix.candidates,
   ];
 
-  // SPEC §6 *Topics by business fit* (2026-09-29, 2026-10-03; issue 1134):
-  // one judgement a pass, over what it derived, what it proposes from the
-  // market's own vocabulary and the searches it read, and the open rows no
-  // pass has judged yet. Stored on the row; nothing downstream asks again.
+  // One fit judgement a pass, over derived, proposed and unjudged open rows; stored on the row.
   const judgedHere = derived.filter((candidate) => candidate.family !== "fix" && candidate.targetQuery !== null);
   const written = await writeBuyerSearches(c, { market, prompts: a.prompts ?? [], brands, locale });
   // SPEC §6 (issue 1519): what buyers were seen asking beside the site's
@@ -254,19 +197,23 @@ export async function deriveOpportunities(
   const searchRivals = a.report.rivals.kind === "measured" ? a.report.rivals.value.map((rival) => rival.domain) : [];
   // SPEC §6 (owner, 2026-11-16): an earlier healthy pass's answers, as this pass checks its health after deriving and its late answers land later still.
   const answered = await import("@/lib/scan/health-record").then(({ healthyPrompts }) => healthyPrompts(a.siteId)).catch(() => null);
-  const { gaps, unworded } = promptGaps({ section: answered, competitors: [...business, ...searchRivals], asked: askedTopics(seen, a.report.verdict.measuredAt, Infinity), taken, market, ...named, max: room });
-  const proposing = [...gaps, ...proposedTopics({
+  const have = held.filter((row) => !gone.has(row.id) && writable(row)).length;
+  const topUp = a.topUp === true ? topUpRecord(have) : undefined;
+  const topping: TopUpTopic[] = topUp === undefined ? [] : topUpTopics({ record: topUp, report: a.report, market, ownRanked, language: locale.language, ...named, written, asked: askedTopics(seen, a.report.verdict.measuredAt, Infinity), taken, area: a.area ?? null, max: room });
+  const toppedUp = new Set<unknown>(topping);
+  const { gaps, unworded } = promptGaps({ section: answered, competitors: [...business, ...searchRivals], asked: askedTopics(seen, a.report.verdict.measuredAt, Infinity), taken: [...taken, ...topping.map((topic) => topic.query)], market, ...named, max: room - topping.length });
+  const proposing = [...topping, ...gaps, ...proposedTopics({
     report: a.report,
     market,
-    taken: [...taken, ...gaps.map((gap) => gap.query)],
+    taken: [...taken, ...topping.map((topic) => topic.query), ...gaps.map((gap) => gap.query)],
     ownRanked,
-    max: room - gaps.length,
+    max: room - topping.length - gaps.length,
     comparisons,
     written,
     language: locale.language,
     asked,
     seen,
-    short: held.filter((row) => !gone.has(row.id) && writable(row)).length < PLAN_DEPTH,
+    short: have < PLAN_DEPTH,
     area: a.area ?? null,
     cited: citedTopics({
       answers: a.report.prompts?.answers ?? [],
@@ -281,12 +228,7 @@ export async function deriveOpportunities(
     return notDismissed({ targetQuery: topic.query, volume });
   });
 
-  // SPEC §6 (2026-10-03, issue 1208): "would a buyer search this?" — one
-  // small-tier judgement over every search nothing measured: what this pass
-  // offers, and the open rows an earlier pass wrote down the same way. One
-  // that fails is not proposed, and a row that fails is dismissed; no
-  // judgement proposes none of them and dismisses nothing.
-  // A search buyers were seen asking needs no such check: Google showed it.
+  // "Would a buyer search this?" over every unmeasured search; a seen-asked search needs no check, as Google showed it.
   const unmeasuredOffers = offered.filter((topic) => topic.volume === null && topic.asked === undefined);
   const unmeasuredRows = held.filter(
     (row) =>
@@ -388,8 +330,23 @@ export async function deriveOpportunities(
   // the top fit is still written, and what it judged off the business never.
   const spare: AskedSupply[] = [];
   const refused: string[] = [];
+  // A top-up search is measured and right-sized, so it is written at the gate, up to the rows the week lacks.
+  let lacking = PLAN_DEPTH - have;
   for (const [index, topic] of proposals.entries()) {
     const judged = fits.get(judgedHere.length + unjudged.length + index);
+    if (toppedUp.has(topic) && topUp !== undefined) {
+      const source = (topic as TopUpTopic).topUp;
+      if (judged === undefined || judged.fit < TOPIC_FIT.gate) topUp.rejected.low_fit += 1;
+      else if (lacking <= 0) topUp.rejected.not_needed += 1;
+      else {
+        const candidate = candidateFor(topic, { ...base, market, ownRanked });
+        if (candidate === null) continue;
+        proposed.push(withFact({ ...candidate, businessFit: judged.fit, title: judged.title }, judged.fact));
+        topUp.sources[source].added += 1;
+        lacking -= 1;
+      }
+      continue;
+    }
     if (topic.asked !== undefined && judged !== undefined && judged.fit < TOPIC_FIT.writeAt) {
       if (judged.fit >= TOPIC_FIT.gate) spare.push({ topic, fit: judged.fit, fact: judged.fact });
       else refused.push(topic.query);
@@ -408,9 +365,7 @@ export async function deriveOpportunities(
       labelled.push(candidate);
       continue;
     }
-    // Sequential, not `Promise.all`: the cost seam's cap is re-checked
-    // between calls, and a parallel fan-out would issue every call before
-    // the first settled against it.
+    // Sequential, so the cost seam's cap is re-checked between calls.
     const refined = await refineType(c, candidate, locale.language);
     // SPEC §6 (2026-09-29): the title is the page's angle for this buyer,
     // which the fit judgement worded against the market — not the keyword.
@@ -440,11 +395,7 @@ export async function deriveOpportunities(
   const brandTokens = brandTokensOf(a.report);
   const measuredOwnRanked = a.ownRanked.kind === "unmeasured" ? null : a.ownRanked.value;
 
-  // SPEC §6 (2026-09-29, #1131): one URL per question. Two searches are one
-  // topic where their stored top tens share four addresses — a held row's
-  // from the scan that derived it, this pass's own over any older one — or
-  // where the one small-tier judgement below says they ask the same
-  // question. Nothing is bought for either.
+  // One URL per question: two searches are one topic where their stored top tens share four addresses or the judgement says so.
   const topTens = new Map(await store.topTens([...new Set(existing.map((row) => row.scanId))]));
   for (const [query, urls] of topTensOf(a.report)) topTens.set(query, urls);
   // #1181: the open rows already held are judged too, against each other
@@ -499,6 +450,7 @@ export async function deriveOpportunities(
       ...created,
     ],
     unworded,
+    ...(topUp === undefined ? {} : { topUp }),
   });
   // A candidate the collapse folded into a row already held is that row's
   // duplicate: an equivalent open or queued opportunity exists.
@@ -511,9 +463,7 @@ export async function deriveOpportunities(
   };
 }
 
-/** Issue 1549: whether a candidate's search was dismissed before and its
- *  evidence has not changed since — no measured volume above the one the
- *  dismissed row held — or the customer stopped it. Pure. */
+/** Whether a search was dismissed with no higher measured volume since, or stopped. Pure. */
 export function dismissedUnchanged(
   candidate: Pick<Candidate, "targetQuery" | "volume">,
   dismissed: readonly DismissedSearch[]

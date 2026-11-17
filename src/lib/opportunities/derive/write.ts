@@ -1,39 +1,5 @@
-// BUILD §7 — the Write family, from measured evidence only.
-//
-// §7's four Write triggers, and which of them this file can derive:
-//
-//   answer_page      "AI answer for a question names rivals, not customer"
-//                    — the question's answer cell is `answered`, does not
-//                    name the customer, and cites a **rival**: one of the
-//                    report's rivals or the concluded market's (SPEC §6,
-//                    2026-09-29; issue 1134). An answer citing a publisher,
-//                    an aggregator or a platform is not a gap — that loose
-//                    reading put "what is the best seo software" first.
-//   keyword_page     "Rival top-20 for a query >=10/mo; customer absent"
-//                    — no organic row in the bought top ten is on the
-//                    customer's domain, a business holds one (not sources
-//                    alone), and the search clears the volume floor.
-//   comparison_page  "Gap query names a rival or contains vs/alternative"
-//                    — the search's own words say so.
-//   format_page      **not derived here.** "Rivals have a page type
-//                    customer lacks entirely" names a page *type*, and no
-//                    measurement in the stored report states one. Deriving
-//                    it would mean composing a value the product never
-//                    measured. It arises only where `refineType` refines an
-//                    already-derived candidate's type within the closed
-//                    enum — the one thing a model is allowed to do here.
-//                    Adding a deterministic rule later is a branch in this
-//                    file and a fixture; nothing stored changes.
-//
-// **At most one Write candidate per search.** The three triggers overlap —
-// a "best X vs Y" search can be absent from its top ten *and* name a rival
-// *and* be the one an AI answer ignored the customer on — and three pages
-// for one search is three near-duplicates §8's gate would refuse anyway.
-// Precedence is `answer_page` > `comparison_page` > `keyword_page`:
-// strongest evidence first (an AI answer that named rivals is a measured
-// absence from the surface §7 exists to win), then the more specific
-// shape. Chosen here, recorded here; reversing it is this ordering and its
-// fixtures.
+// BUILD §7, the Write family, from measured evidence only: at most one candidate per search, answer_page before
+// comparison_page before keyword_page (strongest evidence first). format_page is never derived: no measurement states a page type.
 import { WRITE_VOLUME_FLOOR_PER_MONTH } from "@/lib/config/constants";
 import { EFFORT_BY_TYPE } from "@/lib/config/constants";
 import { isJobSearch, isOwnDomain, isSourceRow, ownPlaceIn, registrableDomain, resolvedRows, type SourceReading } from "@/lib/market/rivals/domains";
