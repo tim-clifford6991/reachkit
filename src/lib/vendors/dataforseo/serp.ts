@@ -17,6 +17,7 @@ import {
   asNumber,
   asString,
   callEndpoint,
+  collectTask,
   isRecord,
   ledgered,
   referenceDomains,
@@ -148,6 +149,19 @@ export function parseSerp(result: unknown): SerpResult[] | undefined {
   ];
 }
 
+/** The ledger key of one SERP read, which a later collection finds it by. */
+export function serpCacheKey(a: { query: string; locale: Locale; loadAsyncAiOverview: boolean; scope: CacheScope; questions?: true; depth?: SerpDepth; unwrapped?: true }): string {
+  const depth = a.depth ?? VENDOR.serpDepth;
+  return `${a.query}|${placeCacheKey(a.locale)}|aio:${a.loadAsyncAiOverview ? "async" : "cached"}|${scopeKey(a.scope)}${a.questions === true ? "|paa" : ""}${depth === VENDOR.serpDepth ? "" : `|depth:${depth}`}${a.unwrapped === true ? "|unwrapped" : ""}`;
+}
+
+/** A queued SERP an earlier step posted and stopped waiting on, read free until `untilMs`: its rows, or still pending. */
+export async function collectSerp(taskId: string, untilMs: number): Promise<SerpResult[] | "pending" | "failed"> {
+  const out = await collectTask(PATHS, taskId, untilMs);
+  if (!out.ok) return out.taskId === undefined ? "failed" : "pending";
+  return out.noResults === true ? [] : (parseSerp(out.result) ?? "failed");
+}
+
 export async function serpOrganic(
   c: CostContext,
   a: {
@@ -185,6 +199,8 @@ export async function serpOrganic(
     questions?: true;
     /** A read deeper than `VENDOR.serpDepth`, for a page's own search. */
     depth?: SerpDepth;
+    /** Bought on the normal queue for its real links, so never served a live SERP of Google's `goto` redirects. */
+    unwrapped?: true;
   }
 ): Promise<Measured<SerpResult>> {
   const highPriority = a.mode === "std" && a.priority === "high";
@@ -196,7 +212,7 @@ export async function serpOrganic(
   let reusedFrom: Date | null = null;
   const rows = await ledgered<SerpResult>(c, {
     source: "serp/google/organic",
-    cacheKey: `${a.query}|${placeCacheKey(a.locale)}|aio:${flagged ? "async" : "cached"}|${scopeKey(a.scope)}${a.questions === true ? "|paa" : ""}${depth === VENDOR.serpDepth ? "" : `|depth:${depth}`}`,
+    cacheKey: serpCacheKey(a),
     freshnessDays: a.freshnessDays,
     costCents: flagged ? surchargedCents(base, pages) : base * pages,
     ...(flagged ? { settleCents: (r: readonly SerpResult[] | null) => settledCents(base, pages, a.mode, r) } : {}),

@@ -69,7 +69,7 @@
 // page is written from its business facts alone, as before this step.
 import { parse, type HTMLElement } from "node-html-parser";
 import { z } from "zod";
-import { CACHE_WINDOWS_D, HEADING_GAPS, RESEARCH, VENDOR } from "@/lib/config/constants";
+import { CACHE_WINDOWS_D, HEADING_GAPS, RESEARCH } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import { safeFetch } from "@/lib/egress";
 import { llm } from "@/lib/llm";
@@ -708,22 +708,22 @@ async function recentPages(
   };
 }
 
-// The live surface returns Google's unreadable `google.com/goto` redirects; the queue, bought as a waited scan buys it, the pages.
-const queued = () => ({ mode: "std", priority: "high", pollMs: VENDOR.waitedQueuePollIntervalS * 1000, untilMs: Date.now() + RESEARCH.queueWaitS * 1000 }) as const;
 const googleRedirect = (url: string): boolean => /^(?:www\.)?google\.com$/.test(hostOf(url));
+type SerpRead = Parameters<typeof serpOrganic>[1];
+
+/** The target's SERP and its study or guidance search as research buys them: on the normal queue, since the live and
+ *  high-priority ones link only Google's `goto` redirects. A draft's earlier job step posts the same reads. */
+export function researchSerps(a: { siteId: string; locale: Locale; target: string; guidance?: boolean; recent?: unknown }, waitMs = RESEARCH.queueWaitS * 1000): SerpRead[] {
+  const base = { locale: a.locale, mode: "std", unwrapped: true, untilMs: Date.now() + waitMs, loadAsyncAiOverview: false, scope: { site: a.siteId }, freshnessDays: CACHE_WINDOWS_D.serp } as const;
+  const language = languagePack(a.locale.language);
+  const study = a.guidance === true ? language.guidanceSearch(a.target) : language.studySearch(a.target);
+  return [{ ...base, query: a.target, questions: true }, ...(a.recent === undefined ? [{ ...base, query: study }] : [])];
+}
 
 /** One SERP, read for its organic results, its "People also ask" and its
  *  related searches (D61). Ledgered; `null` where the call fails. */
-async function askedBeside(c: CostContext, a: { siteId: string; locale: Locale; query: string; queued?: true }): Promise<{ organic: string[]; peopleAlsoAsk: string[]; searches: string[] } | null> {
-  const serp = await serpOrganic(c, {
-    query: a.query,
-    locale: a.locale,
-    ...(a.queued === true ? queued() : { mode: "live" as const }),
-    loadAsyncAiOverview: false,
-    scope: { site: a.siteId },
-    freshnessDays: CACHE_WINDOWS_D.serp,
-    questions: true,
-  });
+async function askedBeside(c: CostContext, read: SerpRead): Promise<{ organic: string[]; peopleAlsoAsk: string[]; searches: string[] } | null> {
+  const serp = await serpOrganic(c, read);
   if (serp.kind === "unmeasured") return null;
   return {
     organic: serp.value.organic.map((row) => row.url).filter((url) => !googleRedirect(url)),
@@ -777,7 +777,7 @@ async function borrowedAsk(
     .filter((term, at, all) => term !== "" && sameWords(term) !== sameWords(a.target) && all.findIndex((other) => sameWords(other) === sameWords(term)) === at);
   for (const term of terms) {
     if (c.capHit() || a.held(asked).enough) break;
-    const beside = await askedBeside(c, { siteId: a.siteId, locale: a.locale, query: term });
+    const beside = await askedBeside(c, { query: term, locale: a.locale, mode: "live", loadAsyncAiOverview: false, scope: { site: a.siteId }, freshnessDays: CACHE_WINDOWS_D.serp, questions: true });
     if (beside === null) continue;
     read.push(term);
     const known = new Set(asked.peopleAlsoAsk.map(sameWords));
@@ -861,14 +861,15 @@ export async function researchMarket(
   //    The target's SERP, bought once first: its organic rows are the top
   //    results where the scan stored none, its questions what buyers ask.
   const stored = storedTopTen(a.report, a.searches);
-  const beside = a.questions === true || stored.length === 0 ? await askedBeside(c, { siteId: a.siteId, locale: a.locale, query: target, queued: true }) : null;
+  const [targetRead, studyRead] = researchSerps({ ...a, target });
+  const beside = a.questions === true || stored.length === 0 ? await askedBeside(c, targetRead!) : null;
   const topTen = (stored.length > 0 ? stored : (beside?.organic ?? [])).filter(notOurs);
   // The own pages read (#1135): eight products on a listicle (owner, issue
   // 1508), four on any other page.
   const bound = a.options === true ? RESEARCH.options : RESEARCH.rivals;
   const first = inForce.slice(0, bound);
   const [topReads, firstReads] = await Promise.all([
-    Promise.all(topTen.slice(0, RESEARCH.topResults * 2).map(fetchPage)),
+    Promise.all(topTen.map(fetchPage)),
     Promise.all(first.map(readRival)),
   ]);
   const readable = topReads.filter((read) => read !== null);
@@ -926,17 +927,9 @@ export async function researchMarket(
   const taken = new Set(topTen);
   const recent = a.recent === undefined ? null : await recentPages(c, { ...a, recent: a.recent }, notOurs, taken);
   const found: (ReadPage & Wanted)[] = recent === null ? [] : [...recent.pages];
-  if (a.recent === undefined && !c.capHit()) {
+  if (studyRead !== undefined && !c.capHit()) {
     const studyUrls: string[] = [];
-    const language = languagePack(a.locale.language);
-    const serp = await serpOrganic(c, {
-      query: a.guidance === true ? language.guidanceSearch(target) : language.studySearch(target),
-      locale: a.locale,
-      ...queued(),
-      loadAsyncAiOverview: false,
-      scope: { site: a.siteId },
-      freshnessDays: CACHE_WINDOWS_D.serp,
-    });
+    const serp = await serpOrganic(c, studyRead);
     if (serp.kind !== "unmeasured") {
       for (const row of serp.value.organic) {
         const host = hostOf(row.url);
@@ -947,7 +940,7 @@ export async function researchMarket(
     // A primary source leads, in the search's own order otherwise.
     const primary = (url: string): boolean => a.guidance === true && primaryAddress(url, rivalDomains);
     const ordered = [...studyUrls.filter(primary), ...studyUrls.filter((url) => !primary(url))];
-    const studyReads = await Promise.all(ordered.slice(0, RESEARCH.studies * 2).map(fetchPage));
+    const studyReads = await Promise.all(ordered.map(fetchPage));
     found.push(
       ...studyReads
         .filter((read) => read !== null)

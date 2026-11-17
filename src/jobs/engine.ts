@@ -457,11 +457,8 @@ export async function answerRescore(a: { readonly request: RescoreRequest; reado
   return { done: true };
 }
 
-// ── The free scan's unread searches — issue 1440, built.
-//
-// A free pass that stored a report with searches it did not read sends
-// `scan/finish-reads`; `src/lib/scan/finish-reads.ts` reads them once and
-// rewrites the report. Imported at the call: the module reaches `@/lib/db`.
+// ── The free scan's unread searches — issue 1440. A free pass that left searches unread sends `scan/finish-reads`;
+// `src/lib/scan/finish-reads.ts` reads them once and rewrites the report. Imported at the call: it reaches `@/lib/db`.
 
 import type { FinishResult } from "@/lib/scan/finish-reads";
 export type { FinishResult };
@@ -471,11 +468,9 @@ export async function finishReads(a: { readonly scanId: string; readonly now: Da
   return finish({ scanId: a.scanId, now: a.now, version: (process.env.VERCEL_GIT_COMMIT_SHA ?? "unknown").slice(0, 7) });
 }
 
-// ── Generation — BUILD §8 (issue #44)
-// `src/lib/generate/` owns the pipeline, rules and recovery; this passes the job's `publishDate` in and maps the outcome.
-// A day with no page is `degraded`, not a throw (§7 — "supply is the cap: never invent an opportunity to fill a day").
-// A page that passed enters review in the same call, through `publish/attempt/window.ts`; a telling that could not
-// leave is a degradation — the page is in review and held until told — never a throw.
+// ── Generation — BUILD §8. `src/lib/generate/` owns the pipeline; a day with no page is `degraded`, never a throw (§7),
+// and a passing page enters review in the same call (`publish/attempt/window.ts`), where a telling that could not
+// leave is a degradation — the page is in review and held until told.
 
 export async function generateDraft(a: {
   readonly siteId: string;
@@ -505,6 +500,11 @@ export async function generateDraft(a: {
     return "done" in reviewed ? { done: true, instead: `refresh:${trigger}` } : reviewed;
   };
   if (!decided.ok) return decided.because === "already_drafted" ? { done: true } : instead(`generate:${decided.because}`, "select", null);
+  // The research SERPs are queued in steps of their own before the write, which reads them at 0¢ (owner, #2809).
+  const { postDayResearch, collectDayResearch, COLLECT } = await import("@/lib/generate/research-queue");
+  const research = { siteId: a.siteId, opportunityId: decided.opportunityId, now: a.now };
+  let left = await step("research-post", () => postDayResearch(research));
+  for (let round = 1; left > 0 && round <= COLLECT.rounds; round++) left = await step(`research-collect-${round}`, () => collectDayResearch({ ...research, untilMs: Date.now() + COLLECT.stepMs }));
   const outcome = await step("write", () => generateDayPage({ ...day, opportunityId: decided.opportunityId }));
   if (!outcome.ok && outcome.because === "already_drafted") return { done: true };
   const reviewed = await step("review", () => reviewWritten(outcome, a.now));

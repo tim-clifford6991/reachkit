@@ -345,13 +345,8 @@ const RELATED_MIN_WORDS = 3;
 
 const ASKS_PRICE_RE = SHAPES.asksPrice;
 
-/**
- * A measured question is on the site's current market (issue 1263) where
- * its wording or its search shares a word with the target, the market's
- * category or one of its synonyms, or names one of its rivals. `null` is a
- * site no market was concluded for: the report's own reading is its market,
- * and every question that report measured is on it.
- */
+/** A question is on the site's current market (issue 1263) where its wording or search shares a word with the target,
+ *  the market's category or synonyms, or names a rival. With no market concluded (`null`), every measured one is. */
 function onMarket(question: { text: string; search: string }, market: WritingMarket | null, target: string): boolean {
   if (market === null || market.from === "report") return true;
   const asked = `${question.text} ${question.search}`;
@@ -368,7 +363,7 @@ function onMarket(question: { text: string; search: string }, market: WritingMar
  */
 function answerable(
   question: string,
-  a: { facts: readonly PackFact[]; claims: readonly PackClaim[]; knowledge: PromptKnowledge | undefined; rivals: readonly NamedRival[] }
+  a: { facts: readonly PackFact[]; claims: readonly PackClaim[]; knowledge: PromptKnowledge | undefined; rivals: readonly NamedRival[]; target: string }
 ): boolean {
   const named = a.rivals.filter((rival) => namesRival(question, rival));
   if (named.length > 0) {
@@ -377,6 +372,8 @@ function answerable(
   }
   const words = subjectWords(question);
   if (words.size === 0) return false;
+  // A question in two of the target's own words is the target's: its own research answers it in its own words.
+  if ([...words].filter((word) => subjectWords(a.target).has(word)).length >= 2 && a.claims.some((claim) => ["top_result", "study", "primary"].includes(claim.kind) && shares(words, claim.passage))) return true;
   const need = Math.min(2, words.size);
   const asked = new Set((a.knowledge?.questions ?? []).map((item) => item.text));
   const held = [
@@ -476,7 +473,7 @@ function buyerQuestions(a: {
   const all = [...new Set([...seen, ...measured].map((text) => text.replace(/\s+/g, " ").trim()).filter(Boolean))]
     .filter((text) => !tracked.has(flat(text)))
     .filter(printable)
-    .filter((text) => answerable(text, { facts: a.facts, claims: a.claims, knowledge: a.knowledge, rivals }));
+    .filter((text) => answerable(text, { facts: a.facts, claims: a.claims, knowledge: a.knowledge, rivals, target: a.target }));
   const words = topicWords(a.target);
   const kept: string[] = [];
   const templates = new Set<string>();
