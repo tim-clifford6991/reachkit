@@ -282,7 +282,7 @@ describe("evidence is copied out of the report, with its own dates", () => {
     });
     // What this page is optimising for rides beside them since issue 867,
     // and has its own case below.
-    expect(Object.keys(evidence).sort()).toEqual(["family", "query", "rival", "target", "volume"]);
+    expect(Object.keys(evidence).sort()).toEqual(["family", "query", "rival", "target", "volume", "win"]);
   });
 
   it("the rival is the best-placed result that is not the customer's own", () => {

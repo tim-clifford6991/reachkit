@@ -59,7 +59,7 @@ import {
 } from "./links/select";
 import { withMovedLink } from "./links/moved";
 import { urlKey, type LinkTarget } from "./links/select";
-import { generateDraft, targetSearches, type GenerateOutcome } from "./pipeline";
+import { competitorOf, generateDraft, targetSearches, type GenerateOutcome } from "./pipeline";
 import { allowedFacts, readAllFacts, readDemoPhrases, type SourcedFact } from "./pipeline/grounding";
 import { siteRulesOf } from "./pipeline/battery";
 import { buildPack, builtFromOutside, questionsHeld, readPack, type ContextPack, type PackLivePage, type PackMeasurements } from "./pipeline/pack";
@@ -604,7 +604,7 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number; 
           domain: site.domain,
           searches: targetSearches(o),
           report,
-          rivals: site.rivals,
+          rivals: [...(competitorOf(o) ?? []), ...site.rivals],
           // Issue 1508: a listicle counts the options its top results name,
           // and an alternatives search's product is its baseline.
           rivalNames: namedRivals(site.rivals, writingFor.market),

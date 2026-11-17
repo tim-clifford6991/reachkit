@@ -140,12 +140,8 @@ export function writeCandidates(a: WriteInput): DerivationResult {
     // name rivals. A stored row from before the engines has its cell alone.
     const row = answerRows[index];
     const answerCells = row === undefined ? [] : row.engines.length > 0 ? row.engines.map((engine) => engine.cell) : [row.cell];
-    const ignoredByTheAnswer = answerCells.some(
-      (answerCell) =>
-        answerCell.kind === "answered" &&
-        !answerCell.namesCustomer &&
-        citedRival(answerCell.citedDomains, rivalSet) !== null
-    );
+    const answerRival = answerCells.flatMap((cell) => (cell.kind === "answered" && !cell.namesCustomer ? [citedRival(cell.citedDomains, rivalSet)] : [])).find((cited) => cited !== null) ?? null;
+    const ignoredByTheAnswer = answerRival !== null;
 
     const customerAbsent = ownPlaceIn(serp.organic, ownDomain) === false;
 
@@ -177,6 +173,7 @@ export function writeCandidates(a: WriteInput): DerivationResult {
         answerRow: row,
         at,
       }),
+      ...(answerRival !== null ? { win: { signal: "answer" as const, competitor: answerRival, absent: `an AI answer for "${query}" cites a rival and does not name the site` } } : {}),
     };
     result.candidates.push({
       siteId: a.siteId,

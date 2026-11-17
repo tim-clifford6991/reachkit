@@ -64,7 +64,7 @@ export { opportunityById, setOpportunityStore, type OpportunityStore } from "./s
 
 // What a paid pass does with what it measured: derive, then count the
 // writable days of a committed week (issue 1559).
-export { deriveForPass, rankedCountsOf, type PassOutcome, type PassTier } from "./pass";
+export { cachedRivalRows, deriveForPass, rankedCountsOf, type PassOutcome, type PassTier } from "./pass";
 
 // §9's weekly judgement of the pages the engine's opportunities became
 // (REQ-063). It lives under `opportunities/` because a verdict is the

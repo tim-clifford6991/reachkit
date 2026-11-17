@@ -28,11 +28,12 @@ import { refineType } from "./typing";
 import { applyKnownContent, type KnownContentGate } from "./known";
 import { writeCandidates } from "./write";
 import { judgeFit, type FitSearch } from "./fit";
-import { askedOfReport, askedSupply, askedTopics, brandsOf, citedTopics, type AskedSupply, candidateFor, comparisonWithoutDemand, namesOwnOnly, noLongerRelevant, productsNamed, proposedTopics, rivalBrandOnly, rivalNamesOf, rivalPriceOf, sourceOf } from "./topics";
+import { askedOfReport, askedSupply, askedTopics, brandsOf, type AskedSupply, candidateFor, comparisonWithoutDemand, namesOwnOnly, noLongerRelevant, productsNamed, proposedTopics, rivalBrandOnly, rivalNamesOf, rivalPriceOf, sourceOf } from "./topics";
 import { judgeTyped, writeBuyerSearches } from "./buyer-searches";
 import { ledgerSourceOf, supplyLedger, writable, type LedgerSource, type SupplyLedger } from "./ledger";
 import { topUpRecord, topUpTopics, type TopUpTopic } from "./top-up";
-import { promptGaps } from "@/lib/market/prompts/gaps";
+import { competitorWins } from "@/lib/market/competitor-wins";
+import type { RankedRow } from "@/lib/vendors/dataforseo/types";
 
 export interface DeriveInput {
   siteId: string;
@@ -61,6 +62,8 @@ export interface DeriveInput {
   area?: MarketConclusion["serves"];
   /** The weekly pass may top a short site up (SPEC §7 *Pages left*); the deep pass and the evening never do. */
   topUp?: boolean;
+  /** Each competitor's ranked rows as its sizing cached them; absent reads as none read. */
+  rivalRows?: ReadonlyMap<string, readonly RankedRow[]>;
 }
 
 /** How many held rows one pass's judgement may also score. */
@@ -204,7 +207,7 @@ export async function deriveOpportunities(
   const topUp = a.topUp === true ? topUpRecord(have) : undefined;
   const topping: TopUpTopic[] = topUp === undefined ? [] : topUpTopics({ record: topUp, report: a.report, market, ownRanked, language: locale.language, ...named, written, asked: askedTopics(seen, a.report.verdict.measuredAt, Infinity), taken, area: a.area ?? null, max: room });
   const toppedUp = new Set<unknown>(topping);
-  const { gaps, unworded } = promptGaps({ section: answered, competitors: [...business, ...searchRivals], asked: askedTopics(seen, a.report.verdict.measuredAt, Infinity), taken: [...taken, ...topping.map((topic) => topic.query)], market, ...named, max: room - topping.length });
+  const { gaps, unworded } = competitorWins({ section: answered, competitors: [...business, ...searchRivals], ranked: a.rivalRows ?? new Map(), report: a.report, ownRanked: a.ownRanked, asked: askedTopics(seen, a.report.verdict.measuredAt, Infinity), taken: [...taken, ...topping.map((topic) => topic.query)], market, ...named, max: room - topping.length });
   const proposing = [...topping, ...gaps, ...proposedTopics({
     report: a.report,
     market,
@@ -218,12 +221,6 @@ export async function deriveOpportunities(
     seen,
     short: have < PLAN_DEPTH,
     area: a.area ?? null,
-    cited: citedTopics({
-      answers: a.report.prompts?.answers ?? [],
-      competitors: [...business, ...searchRivals],
-      searched: seen.map((serp) => serp.term),
-      language: locale.language,
-    }),
   })];
   // Never judged again where a row on the search was dismissed (issue 1549).
   const offered = proposing.filter((topic) => {

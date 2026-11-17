@@ -39,7 +39,7 @@
 import { FIRST_DRAFT_STAGE, type OnboardingStage } from "./progress";
 import { dbAdmin } from "@/lib/db";
 import { sendOnboardingMails } from "@/lib/mail/onboarding";
-import { deriveForPass, planFirstWeek } from "@/lib/opportunities";
+import { cachedRivalRows, deriveForPass, planFirstWeek } from "@/lib/opportunities";
 import { claimOnboardingPass, runScan, spendOnStoredReport } from "../run";
 import type { ScanStatus } from "../store";
 import { readSiteCategory } from "../site-category";
@@ -270,6 +270,7 @@ export async function afterDeepReport(a: {
           // the gate is answered `true` here and never guessed at inside
           // the engine.
           hasActiveAccess: true,
+          rivalRows: cachedRivalRows(a.siteId),
         });
       } finally {
         // SPEC §6 (owner D58, issue 1287): the pass checks its own health
