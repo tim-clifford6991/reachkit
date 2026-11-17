@@ -9,6 +9,7 @@
 // and the imprint still names the operator.
 import type React from "react";
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -62,6 +63,7 @@ const PAGE_TEST_ID = "about";
 const DISCLOSURE_TEST_ID = "about-disclosure";
 const REPORT_TEST_ID = "about-report";
 const HOW = "/how-it-works";
+const FOUNDER_PHOTO = "/brand/Tim_ProfilePic.jpg";
 
 /** The board's specimen, a fictional invoicing app's buyer; every domain is reserved. */
 const SPECIMEN = {
@@ -120,8 +122,10 @@ export default async function AboutPage(): Promise<React.JSX.Element> {
             <section aria-labelledby="who-h" className={CARD}>
               <div className={BODY}>
                 <div className="flex min-w-0 items-center gap-3">
-                  <span className={TILE}>
-                    <User {...TILE_ICON} />
+                  <span className="avatar">
+                    <span className="size-12 rounded-full">
+                      <Image src={FOUNDER_PHOTO} alt={copy("about.photo.alt")} width={48} height={48} className="object-cover" />
+                    </span>
                   </span>
                   <h2 id="who-h" className="text-lg">
                     {copy("about.who.title")}

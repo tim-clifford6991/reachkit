@@ -11,12 +11,6 @@
 // labelled *proposed — not in the approved idiom*: no approved artifact
 // draws either surface, which is why every sentence below that the set
 // does not write is the owner's rather than transcribed from one.
-//
-// 2026-09-10, issue #459: the owner approved the drafted copy for
-// every key this partition still owed ("copy proposal approved"; proposal
-// sheet artifact 546f45a0-a996-4d25-b85e-fb03fda7b102), and the 16 approved
-// strings are applied here byte for byte. No key in this partition is
-// owner-owed or `TODO(copy)` any more.
 import type { CopyPartition } from "../registry.ts";
 
 export const CHROME_COPY = Object.freeze({
@@ -393,6 +387,7 @@ export const CHROME_COPY = Object.freeze({
   "about.title": ["About ReachKit", { slots: {}, fixedBy: "issue 1396 · drafted" }],
   "about.lead": ["We work on getting your business found on Google and in AI answers. Every week we write pages from your site and put them live.", { slots: {}, fixedBy: "issue 1731 · board PubAbout · drafted" }],
   "about.who.title": ["Who Builds It", { slots: {}, fixedBy: "issue 1396 · drafted · owner 2026-11-16 · issue 2745" }],
+  "about.photo.alt": ["Tim Clifford, who builds ReachKit", { slots: {}, fixedBy: "owner 2026-11-17 · issue 2755" }],
   "about.who.founder": ["ReachKit is built by {name}.", { slots: { name: "text" }, fixedBy: "issue 1396 · drafted" }],
   "about.who.founder.place": ["ReachKit is built by {name} in {place}.", { slots: { name: "text", place: "text" }, fixedBy: "issue 1396 · drafted" }],
   "about.who.imprint": ["The company that runs it is named on the imprint.", { slots: {}, fixedBy: "issue 1731 · board PubAbout · drafted" }],
