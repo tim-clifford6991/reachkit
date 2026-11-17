@@ -263,6 +263,15 @@ export function fakeDb(): FakeDb {
         query.filters.push({ op: value === null ? "is-null" : "eq", column, value });
         return self;
       },
+      /** Recorded, and like every operator `matches` does not model, passes every row. */
+      or(value: string) {
+        query.filters.push({ op: "or", column: "", value });
+        return self;
+      },
+      like(column: string, value: unknown) {
+        query.filters.push({ op: "like", column, value });
+        return self;
+      },
       not(column: string, operator: string, value: unknown) {
         query.filters.push({ op: `not-${operator}-${String(value)}`, column, value });
         return self;
