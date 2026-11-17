@@ -1,6 +1,7 @@
 // What one pass's new-page supply came from, so a thin pass and a source that ran dry read differently.
 import { PLAN_DEPTH, TOPIC_FIT } from "@/lib/config/constants";
 import type { Opportunity, TopicSource } from "../types";
+import type { TopUpRecord } from "./top-up";
 
 export const LEDGER_SOURCES = ["product", "problem", "category", "best_x", "ai_gap", "asked", "cited", "written", "offering"] as const;
 export type LedgerSource = (typeof LEDGER_SOURCES)[number];
@@ -20,6 +21,8 @@ export interface SupplyLedger {
   dry: LedgerSource[];
   /** `ai_gap` prompts no stored "People also ask" or related search was close enough to word. */
   unworded: number;
+  /** The Monday top-up's sources tried, where the pass may top up. */
+  topUp?: TopUpRecord;
 }
 
 /** The ledger's class of a topic: an answer that gave a rival and not the site, where buyers were seen asking it, the rival page an answer cited, the buyer's searches the model wrote, a further line the business sells, else its own source. */
@@ -38,17 +41,22 @@ export function ledgerSourceOf(topic: {
   return topic.source ?? "category";
 }
 
-/** A row a day may be written from: an open Write or Earn at or above readiness's fit floor. */
-export function writable(row: Pick<Opportunity, "family" | "status" | "businessFit">): boolean {
+/** Holds readiness stored that no pass clears, so a held row is not supply. */
+const HELD: ReadonlySet<string> = new Set(["resting", "out_of_reach"]);
+
+/** A row a day may be written from: an open Write or Earn at or above readiness's fit floor, not resting or out of reach. */
+export function writable(row: Pick<Opportunity, "family" | "status" | "businessFit"> & Partial<Pick<Opportunity, "ready" | "unreadyReason">>): boolean {
   const fit = row.businessFit ?? null;
-  return (row.family === "write" || row.family === "earn") && row.status === "open" && (fit === null || fit >= TOPIC_FIT.gate);
+  const held = row.ready === false && HELD.has(row.unreadyReason ?? "");
+  return (row.family === "write" || row.family === "earn") && row.status === "open" && (fit === null || fit >= TOPIC_FIT.gate) && !held;
 }
 
 /** Pure. `stages` lists each topic's class at every stage it reached; `rows` is what the site holds after the pass. */
 export function supplyLedger(a: {
   stages: Partial<Record<LedgerStage, readonly LedgerSource[]>>;
-  rows: readonly Pick<Opportunity, "family" | "status" | "businessFit">[];
+  rows: readonly Parameters<typeof writable>[0][];
   unworded?: number;
+  topUp?: TopUpRecord;
 }): SupplyLedger {
   const sources = Object.fromEntries(
     LEDGER_SOURCES.map((source) => [source, Object.fromEntries(LEDGER_STAGES.map((stage) => [stage, 0]))])
@@ -63,5 +71,6 @@ export function supplyLedger(a: {
     short: Math.max(0, PLAN_DEPTH - have),
     dry: LEDGER_SOURCES.filter((source) => sources[source].added === 0),
     unworded: a.unworded ?? 0,
+    ...(a.topUp === undefined ? {} : { topUp: a.topUp }),
   };
 }

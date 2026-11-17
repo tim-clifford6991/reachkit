@@ -1,52 +1,5 @@
-// BUILD §7 — the Improve family, over pages the scan actually measured.
-//
-// §7's three Improve triggers, and which of them this file can derive:
-//
-//   expand_page      "Customer ranks 4-30, page thin" — the customer's own
-//                    page is in the bought top ten inside the position
-//                    band, and the visible-character count the parser
-//                    measured on it is under the thin floor.
-//   answerable_page  "Page has search value, low answerability" — the same
-//                    page ranks for a tracked question's search, and the
-//                    AI answer for that question does not name the
-//                    customer. The shortfall is its own position. A page
-//                    at 4–20 is one whatever the answer said (SPEC §6,
-//                    2026-09-29, D15): it is close to being quoted.
-//   refresh_page     "Ranking page stale vs rivals'" — **not derived
-//                    here.** Staleness is a comparison of last-changed
-//                    dates, and nothing the measurement engine stores is
-//                    one: `OnPageFacts` counts headings, answers, evidence
-//                    tokens and characters, and reads no `Last-Modified`,
-//                    no `dateModified` and no rival's. `Shortfall`'s
-//                    `stale` arm exists and is storable — the type surface
-//                    is closed and complete — but no candidate carries it
-//                    until a last-changed measurement does. Composing one
-//                    from what we have would be exactly the invented value
-//                    §7's "measured evidence" rule forbids.
-//
-// **Cold start yields nothing here, by construction.** The Improve family
-// needs a page of the customer's that ranks; a domain that ranks for
-// nothing has none, and this file produces none rather than inventing a
-// page to improve. That is §6.6's cold-start law holding without a branch:
-// "all Write-family at first (nothing to Improve yet) ... Improve types
-// appear naturally as pages start ranking."
-//
-// **The site's own pages, not only the home page** (SPEC §7, 2026-09-16).
-// A page is an update candidate for a question where the site ranks it
-// inside the position band for that question's search — read off the
-// question's own bought top ten, or off the site's own ranked rows
-// (`report.ownRankedRows`, the answer `ownRanked` counts, bought once) for
-// the same search or one of its parent topic (`clusterKey`, the key
-// Improve shares with the cluster step). A site already in the top three
-// for the search has nothing to improve for it. Where several of its pages
-// rank, the one the crawl read as being about the question (its inventory
-// title or h1 carries the topic's words) goes first, then the best
-// position. Nothing is bought here.
-//
-// The shortfall is still a measurement of that page: `expand_page` only
-// for the home document, the one page whose length `onPage` measured;
-// `answerable_page` for any ranked page, with its own position. A page
-// with neither shortfall on record is not a candidate.
+// BUILD §7, the Improve family, over the site's own pages the scan measured ranking in the position band.
+// refresh_page is never derived (nothing stores a last-changed date), and a site that ranks for nothing yields none.
 import {
   CLOSE_PAGE_POSITION_BAND,
   EFFORT_BY_TYPE,
