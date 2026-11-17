@@ -70,8 +70,7 @@ function safeSlug(proposed: string, fallback: string, language: Language): strin
  * proposed slug for it would be a page they did not ask for.
  */
 export async function refineType(c: CostContext, candidate: Candidate, language: Language = "en"): Promise<Candidate> {
-  // Earn publishes a page the way Write does, so it is labelled the same
-  // way — within its own family, which holds one type (issue 478).
+  // Earn publishes a page the way Write does, so it is labelled the same way, within its own family, which holds one type.
   if (candidate.family !== "write" && candidate.family !== "earn") return candidate;
 
   const labelled = await llm(c, {

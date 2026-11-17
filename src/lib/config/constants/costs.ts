@@ -31,8 +31,8 @@ export const PRICE_BOOK = Object.freeze({
   USER_DATA_C: 0,
 } as const);
 
-/** The four per-scan/per-draft ceilings BUILD §6.1 pins, plus the per-site
- *  daily one. The product-wide daily ceiling is `DAILY_PRODUCT_CEILING`
+/** The four per-scan/per-draft ceilings BUILD §6.1 pins, the per-site daily
+ *  one, and a short week's top-up. The product-wide daily ceiling is `DAILY_PRODUCT_CEILING`
  *  below, because it is not one figure.
  *
  *  `DAILY_SITE_C` bounds one site for the same UTC day, so a single site in a
@@ -54,6 +54,8 @@ export const PRICE_BOOK = Object.freeze({
 export const CAPS = Object.freeze({
   FREE_C: 12, DEEP_C: 150, WEEKLY_C: 40, DRAFT_C: 45,
   DAILY_SITE_C: 500,
+  /** SPEC §7 *Pages left*: a short week's top-up buys under its own 7¢ a site a week, outside `WEEKLY_C`. */
+  TOPUP_C: 7,
 } as const);
 
 /** The product-wide ceiling for one UTC day, in cents: `baseC` plus

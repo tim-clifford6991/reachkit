@@ -20,7 +20,7 @@ export const WEEKS_A_MONTH = 4.348;
 
 export type Segment = "free" | "smoke" | "test" | "box";
 export type CostVendor = "dataforseo" | "anthropic" | "own";
-export type Activity = "free_scan" | "onboarding" | "weekly" | "draft" | "rescore" | "smoke" | "test" | "box";
+export type Activity = "free_scan" | "onboarding" | "weekly" | "topup" | "draft" | "rescore" | "smoke" | "test" | "box";
 
 /** One `cost_site_day` row as PostgREST returns it: numerics as strings. */
 export interface SiteDayRow {

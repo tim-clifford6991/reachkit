@@ -2,8 +2,7 @@
 // topic is decided: the search it should rank for, with its volume, and the
 // tracked prompt it should be cited for.
 //
-// A leaf, and pure: readiness, the generator and Monday's verdict all read
-// the same answer from it, and none of them asks a model for it.
+// A leaf, and pure: readiness, the generator and Monday's verdict read the same answer from it, and none asks a model.
 import type { Measured } from "@/lib/measure/measured";
 import { stemKey } from "@/lib/market/questions/select";
 

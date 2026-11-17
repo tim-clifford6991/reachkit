@@ -1,5 +1,4 @@
-// SPEC §6 *Topics by business fit* (issue 1506, from the SEO review of
-// 2026-10-17, item 7) — a search whose top ten is another kind of business.
+// SPEC §6 *Topics by business fit*: a search whose top ten is another kind of business.
 //
 // reachkit.app, a software product, went live on "best answer engine
 // optimization services": the top ten were agencies and lists of agencies.

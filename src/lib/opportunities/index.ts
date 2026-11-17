@@ -62,8 +62,7 @@ export { choiceOf, explainChoice, type Choice } from "./derive/explain";
 
 export { opportunityById, setOpportunityStore, type OpportunityStore } from "./store";
 
-// What a paid pass does with what it measured: derive, then count the
-// writable days of a committed week (issue 1559).
+// What a paid pass does with what it measured: derive, then count the writable days of a committed week.
 export { cachedRivalRows, deriveForPass, rankedCountsOf, type PassOutcome, type PassTier } from "./pass";
 
 // §9's weekly judgement of the pages the engine's opportunities became

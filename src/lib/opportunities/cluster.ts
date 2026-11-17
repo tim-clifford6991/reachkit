@@ -273,8 +273,7 @@ export function collapse(a: {
 
   for (const row of a.existing) {
     if (row.family === "fix" || row.status === "dismissed") continue;
-    // A refresh of a page of ours (issue 1139) is the update of that page, not a second page on its topic: it does
-    // not compete with the page's own row, which would always survive it.
+    // A refresh of a page of ours is the update of that page, not a second page on its topic, so it never competes with the page's own row.
     if (isOwnRefresh(row)) continue;
     add(row.clusterKey ?? clusterKey(row.targetQuery, a.brandTokens), { kind: "row", row });
   }
@@ -302,8 +301,7 @@ export function collapse(a: {
   for (const members of groups) {
     const [survivor, ...rest] = [...members].sort((x, y) => compareMembers(x, y, band));
     if (survivor === undefined) continue;
-    // The topic takes the survivor's own key, so a held survivor keeps the
-    // key it has and the index never sees it move.
+    // The topic takes the survivor's own key, so a held survivor keeps its key and the index never sees it move.
     const key = keyOf.get(survivor) as string;
     const hadCandidate = members.some((member) => member.kind === "candidate");
 
@@ -324,8 +322,7 @@ export function collapse(a: {
       // A live page keeps the searches it was published from: joining never touches it.
       continue;
     } else if (superseded(survivor.row, key, hadCandidate)) {
-      // The whole cluster goes: its losers are already dismissed above, and
-      // the searches they were absorbing have nothing left to hang on.
+      // The whole cluster goes: its losers are already dismissed above, and the searches they absorbed have nothing to hang on.
       dismiss.push(survivor.row.id);
     } else if (survivor.row.clusterKey !== key || absorbedQueries.join("\n") !== [...survivor.row.absorbedQueries].sort().join("\n")) {
       update.push({ id: survivor.row.id, clusterKey: key, absorbedQueries });

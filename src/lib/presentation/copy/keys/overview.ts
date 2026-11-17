@@ -941,6 +941,7 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.costs.activity.free_scan": ["Free scan", { slots: {}, fixedBy: "SPEC §6 2026-10-17 · issue 1478 (drafted)" }],
   "overview.costs.activity.onboarding": ["First deep pass", { slots: {}, fixedBy: "SPEC §6 2026-10-17 · issue 1478 (drafted)" }],
   "overview.costs.activity.weekly": ["Weekly pass", { slots: {}, fixedBy: "SPEC §6 2026-10-17 · issue 1478 (drafted)" }],
+  "overview.costs.activity.topup": ["Weekly top-up", { slots: {}, fixedBy: "SPEC §7 2026-11-17 · issue 2777 (drafted)" }],
   "overview.costs.activity.draft": ["Pages", { slots: {}, fixedBy: "SPEC §6 2026-10-17 · issue 1478 (drafted)" }],
   "overview.costs.activity.rescore": ["Later deep pass", { slots: {}, fixedBy: "SPEC §6 2026-10-17 · issue 1478 (drafted)" }],
   "overview.costs.activity.smoke": ["Smoke test", { slots: {}, fixedBy: "SPEC §6 2026-10-17 · issue 1478 (drafted)" }],
@@ -953,8 +954,7 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.costs.vendor.jobs": ["Job platform", { slots: {}, fixedBy: "SPEC §6 2026-10-17 · issue 1478 (drafted)" }],
   "overview.costs.vendor.resend": ["Resend", { slots: {}, fixedBy: "SPEC §6 2026-10-17 · issue 1478 (drafted)" }],
   "overview.costs.vendor.stripe": ["Stripe fees", { slots: {}, fixedBy: "SPEC §6 2026-10-17 · issue 1478 (drafted)" }],
-  // ── Today's page and the ladder (owner E4, 2026-10-19; board Main). Each
-  // step is the stored reading's own; drafted (#759), the owner corrects it.
+  // ── Today's page and the ladder (owner E4, 2026-10-19; board Main): each step is the stored reading's own, drafted.
   "overview.today.eyebrow": ["Goes live today at {time}", { slots: { time: "date" }, fixedBy: "issue 1605 (drafted)" }],
   "overview.today.eyebrow.tomorrow": ["Goes live tomorrow at {time}", { slots: { time: "date" }, fixedBy: "board Main v36, issue 2272 (drafted)" }],
   "overview.today.eyebrow.on": ["Goes live {day} at {time}", { slots: { day: "date", time: "date" }, fixedBy: "board Main v36, issue 2272 (drafted)" }],

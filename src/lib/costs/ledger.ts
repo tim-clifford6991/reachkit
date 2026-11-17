@@ -77,9 +77,9 @@ export async function writeFetchRow(row: {
   durationMs?: number;
   /** The vendor's own charge, where its response carried one. */
   billedCents?: number;
-  /** `draft` for a draft's calls; absent, the database reads
+  /** `draft` for a draft's calls, `topup` for a short week's top-up; absent, the database reads
    *  the activity off the scan. */
-  activity?: "draft";
+  activity?: "draft" | "topup";
   draftId?: string;
 }): Promise<void> {
   const base = {
@@ -145,8 +145,9 @@ function storable(payload: unknown): unknown {
  *  after the table was first applied. */
 const ADDED_COLUMNS = ["billed_cents", "activity", "draft_id"] as const;
 function lacksAddedColumn(error: { message: string; code?: string }): boolean {
+  // A database without the newest activity value (`23514`) is the same case: the row is kept under the scan's own.
   return (
     (error.code === "PGRST204" || error.code === "42703" || error.code === undefined) &&
     ADDED_COLUMNS.some((column) => error.message.includes(column))
-  );
+  ) || (error.code === "23514" && error.message.includes("fetches_activity_known"));
 }

@@ -220,8 +220,7 @@ export function refreshCauseOf(page: OwnLivePage, pools: RefreshPools, at: Date)
   if (hasNewerFact(page, pools)) return "newer_fact";
   if (pricesStale(page, at)) return "stale_prices";
   if (age >= PACE.REFRESH_AGE_DAYS * DAY_MS) return "aged";
-  // Issue 1507: any refresh starts from the repaired text, so this cause is
-  // named only where no other is due.
+  // Any refresh starts from the repaired text, so this cause is named only where no other is due.
   return (page.structure ?? []).length > 0 && page.edited !== true ? "structure" : null;
 }
 
@@ -309,8 +308,7 @@ function takenDownAt(pages: readonly OwnLivePage[], url: string | null): boolean
 
 function linkBacksAmong(pages: readonly OwnLivePage[], freshUrl: string, at: Date): Candidate[] {
   const fresh = pages.find((page) => addressKey(page.url) === addressKey(freshUrl));
-  // A page going live for the first time: a refresh of an old page is not news
-  // its neighbours owe a link to.
+  // A page going live for the first time: a refresh of an old page is not news its neighbours owe a link to.
   if (fresh === undefined || (fresh.row.family !== "write" && fresh.row.family !== "earn")) return [];
   const freshTitle = (fresh.title ?? "").trim() || (fresh.row.targetQuery ?? "");
   if (freshTitle === "") return [];
@@ -497,16 +495,14 @@ export async function ownLivePages(siteId: string): Promise<OwnLivePage[]> {
   // The address each page answers at now (SPEC §7, 2026-09-18; issue 1182).
   const { storedAddressesNow } = await import("@/lib/publish/destinations/hosted/store");
   const now = await storedAddressesNow(siteId);
-  // Issue 1538: every address a stored SERP or ranked row held. Rows that
-  // could not be read state no page's index state, and plan nothing.
+  // Every address a stored SERP or ranked row held; rows that could not be read state no index state and plan nothing.
   const { verdictStore } = await import("./verdicts/store");
   const { indexStateOf } = await import("./verdicts/seen");
   const store = verdictStore();
   const seenUrls = await store.seenUrls(siteId).catch(() => null);
   const pages = new Map<string, OwnLivePage>();
   const ours = new Set<string>();
-  // Issue 1521: what the page at an address was first written as — a
-  // refresh's own version records `update`.
+  // What the page at an address was first written as; a refresh's own version records `update`.
   const writtenAs = new Map<string, string>();
   const flat = new Set<string>();
   for (const publication of live.data ?? []) {

@@ -24,8 +24,7 @@
 // a comparison table, and anything else for an original-data page. It is
 // stored on the evidence, copied at creation like every other value there.
 //
-// Winnability is Write's own `assess` over the same top ten, so an Earn row
-// carries the same band a Write row for that search would.
+// Winnability is Write's own `assess` over the same top ten, so an Earn row carries the band a Write row would.
 import { EFFORT_BY_TYPE } from "@/lib/config/constants";
 import { isOwnDomain, isPlatformDomain, ownPlaceIn, registrableDomain, resolvedRows } from "@/lib/market/rivals/domains";
 import { measured } from "@/lib/measure/measured";

@@ -117,8 +117,7 @@ export async function assessFixPages(
       }
     }
 
-    // SPEC §7 (D26, issue 1179): a fix whose draft was stopped or skipped
-    // rests like any other topic.
+    // SPEC §7 (D26): a fix whose draft was stopped or skipped rests like any other topic.
     const reason = isResting(opportunity, now) ? "resting" : fixPageReadiness(fix, delivery);
     if (reason === null) ready += 1;
     if (opportunity.ready !== (reason === null) || opportunity.unreadyReason !== reason) {

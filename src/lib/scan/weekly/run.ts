@@ -44,6 +44,8 @@
 // REQ-065 c3's account and not a silent skip.
 import { env } from "@/lib/config/env";
 import { cachedRivalRows, deriveForPass } from "@/lib/opportunities";
+import { topUpSpend } from "@/lib/market/questions/top-up-buy";
+import { FREE_SCAN_POLICY_VERSION } from "../ceilings";
 import { accountForWeek, type UnmeasuredPart } from "./account";
 import { hasActiveAccess } from "@/lib/account/billing";
 import { claimWeek, readSiteZone, releaseWeek } from "./store";
@@ -131,6 +133,7 @@ export async function runWeekly(a: {
               siteId: a.siteId,
               report,
               hasActiveAccess: true,
+              topUp: topUpSpend(claim.scanId, FREE_SCAN_POLICY_VERSION),
               rivalRows: cachedRivalRows(a.siteId),
             });
           } finally {

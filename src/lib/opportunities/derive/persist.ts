@@ -42,12 +42,10 @@ export function insertFor(candidate: Candidate | ClusteredCandidate): Opportunit
     fit_band: candidate.fitBand,
     business_fit: candidate.businessFit ?? null,
     source: candidate.source ?? null,
-    // SPEC §7 (issue 1136): written last, after the type was refined, so
-    // the page's type is the stored row's own.
+    // SPEC §7: written last, after the type was refined, so the page's type is the stored row's own.
     page_type: pageTypeOf(candidate),
     effort: candidate.effort,
-    // SPEC §6: the parent topic and the siblings it absorbed, where the
-    // collapse gave the row one.
+    // SPEC §6: the parent topic and the siblings it absorbed, where the collapse gave the row one.
     ...("clusterKey" in candidate
       ? { cluster_key: candidate.clusterKey, absorbed_queries: candidate.absorbedQueries }
       : {}),
