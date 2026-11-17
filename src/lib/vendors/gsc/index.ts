@@ -161,6 +161,35 @@ export function gscClient(account: GscAccount, send: GscSend = safeFetch) {
         return [{ page, query, impressions: Number(r.impressions) || 0, clicks: Number(r.clicks) || 0, position: r.position }];
       });
     },
+    /** One page's days on one search over `[start, end]`, for the history command. */
+    async history(
+      siteUrl: string,
+      page: string,
+      query: string,
+      start: string,
+      end: string
+    ): Promise<{ date: string; impressions: number; clicks: number; position: number }[] | null> {
+      const filters = [
+        { dimension: "page", operator: "equals", expression: page },
+        { dimension: "query", operator: "equals", expression: query },
+      ];
+      const outcome = await call(`${property(siteUrl)}/searchAnalytics/query`, "POST", {
+        startDate: start,
+        endDate: end,
+        dimensions: ["date"],
+        dimensionFilterGroups: [{ filters }],
+        rowLimit: 25000,
+      });
+      if (outcome === null || !success(outcome)) return null;
+      const rows = (json(outcome) as { rows?: unknown } | null)?.rows;
+      if (!Array.isArray(rows)) return rows === undefined ? [] : null;
+      return rows.flatMap((row) => {
+        const r = row as { keys?: unknown; impressions?: unknown; clicks?: unknown; position?: unknown };
+        const date = Array.isArray(r.keys) ? r.keys[0] : undefined;
+        if (typeof date !== "string" || typeof r.position !== "number") return [];
+        return [{ date, impressions: Number(r.impressions) || 0, clicks: Number(r.clicks) || 0, position: r.position }];
+      });
+    },
   };
 }
 

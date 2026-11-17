@@ -99,11 +99,11 @@ describe("SPEC §6 — the tracked set never grows past 24, whatever the custome
     const candidates = [page(1, 40), page(2, null), page(3, 3), page(4, 11)];
     const asked = trackedQuestions({ selected: 22, candidates, misses: NO_MISSES, now: NOW }).asked;
 
-    expect(asked.map((c) => c.publicationId)).toEqual(["pub-04", "pub-03"]);
+    expect(asked.map((c) => c.publicationId)).toEqual(["pub-04", "pub-01"]);
     // Two passes over the same pages ask the same questions: the order is
     // total, so an unranked pair cannot swap between weeks.
     const ordered = trackedQuestions({ selected: 12, candidates, misses: NO_MISSES, now: NOW }).asked;
-    expect(ordered.map((c) => c.publicationId)).toEqual(["pub-04", "pub-03", "pub-01", "pub-02"]);
+    expect(ordered.map((c) => c.publicationId)).toEqual(["pub-04", "pub-01", "pub-03", "pub-02"]);
   });
 
   it("holds the cap for any market size and any number of pages", () => {
@@ -137,7 +137,7 @@ describe("owner B2 and D2 — the page slots go to the pages due a reading, newe
     expect(asked.map((c) => c.publicationId)).toEqual(["pub-02", "pub-04", "pub-08"]);
   });
 
-  it("past the due pages: climbing at 11–30 nearest first, then linked by AI, then the rest", () => {
+  it("past the due pages: climbing at 11–30 nearest first, then seen at 31–100, then linked by AI, then the rest", () => {
     const candidates = [
       page(1, 5),
       page(2, 25),
@@ -146,7 +146,7 @@ describe("owner B2 and D2 — the page slots go to the pages due a reading, newe
       page(5, 11),
     ];
     const asked = trackedQuestions({ selected: 12, candidates, misses: NO_MISSES, now: NOW }).asked;
-    expect(asked.map((c) => c.publicationId)).toEqual(["pub-05", "pub-02", "pub-03", "pub-01", "pub-04"]);
+    expect(asked.map((c) => c.publicationId)).toEqual(["pub-05", "pub-02", "pub-04", "pub-03", "pub-01"]);
   });
 
   it("a page's result is read 100 deep until it is seen, then ten places past where it was last seen, never under 20", () => {

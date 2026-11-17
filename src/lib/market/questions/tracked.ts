@@ -7,7 +7,7 @@
 // question leaves the set after **8 weeks** without a mention. The set never
 // grows past the cap, so its cost is flat." The page slots go to the pages
 // due a reading first, newest first, then to pages climbing at 11–30, then
-// to pages AI linked (owner B2 and D2, 2026-10-19).
+// pages seen at 31–100, then to pages AI linked (owner B2 and D2, 2026-10-19).
 //
 // **The cap is the feature.** The owner's worry was a set that grows with
 // every page published — a site with thirty live pages costing fifteen
@@ -49,6 +49,8 @@ export interface PageQuestionCandidate {
   publishedAt: string | null;
   /** An AI answer to the page's own question linked it at its last reading. */
   linked: boolean;
+  /** The page has never had a stored reading, so it is due one. */
+  unread?: boolean;
 }
 
 /** How many consecutive weekly passes have asked this page's question and
@@ -78,13 +80,14 @@ function weeksLive(candidate: PageQuestionCandidate, now: Date): number | null {
   return Number.isNaN(at) ? null : Math.floor(Math.max(0, now.getTime() - at) / WEEK_MS);
 }
 
-/** The slot tier: due this week, then climbing, then linked, then the rest. */
+/** The slot tier: due this week, then climbing, then seen deeper, then linked, then the rest. */
 function tierOf(candidate: PageQuestionCandidate, now: Date): number {
   const weeks = weeksLive(candidate, now);
-  if (weeks !== null && (PAGE_QUESTION_READ.DUE_WEEKS as readonly number[]).includes(weeks)) return 0;
+  if (candidate.unread === true || (weeks !== null && (PAGE_QUESTION_READ.DUE_WEEKS as readonly number[]).includes(weeks))) return 0;
   const { from, to } = PAGE_QUESTION_READ.CLIMBING;
   if (candidate.position !== null && candidate.position >= from && candidate.position <= to) return 1;
-  return candidate.linked ? 2 : 3;
+  if (candidate.position !== null && candidate.position > to && candidate.position <= PAGE_QUESTION_READ.DEPTH_MAX) return 2;
+  return candidate.linked ? 3 : 4;
 }
 
 /** Due pages newest first; every other tier nearest the first page first.

@@ -154,6 +154,7 @@ export async function pageQuestionCandidates(a: {
       position: reading?.place?.value ?? places.get(key) ?? null,
       publishedAt: row.published_at ?? null,
       linked: (reading?.linkedBy ?? []).length > 0,
+      unread: reading === null,
     });
   }
   return candidates;

@@ -10,7 +10,7 @@
 // never "not indexed".
 //
 // Pure. The screens read it; the weekly pass writes the reading.
-import type { PageReading, PlaceSource } from "./page-reading";
+import { googleRead, type PageReading, type PlaceSource } from "./page-reading";
 
 export interface Ladder {
   crawled: boolean | null;
@@ -31,13 +31,13 @@ export interface Ladder {
  * or `null` where none can be counted (a page ReachKit does not serve).
  */
 export function ladderOf(reading: PageReading | null, crawls: number | null): Ladder {
-  const google = reading?.google ?? null;
+  const google = googleRead(reading?.google);
   const impressions = google === null ? null : google.impressions;
 
   const crawledProved = reading?.googlebot === true || (crawls ?? 0) > 0 || google?.lastCrawl != null;
   const crawled = crawledProved ? true : crawls !== null || google !== null ? false : null;
 
-  const inspected = reading?.google?.indexed ?? null;
+  const inspected = google?.indexed ?? null;
   const seen = reading?.reached.showing !== undefined || (impressions ?? 0) > 0;
   const indexed = inspected === true || seen ? true : inspected === false ? false : null;
   const showing = reading?.place != null || (impressions ?? 0) > 0 ? true : impressions === null ? null : false;
