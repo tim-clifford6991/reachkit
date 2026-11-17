@@ -1,4 +1,5 @@
 // SPEC §7 (D42, 6) — current insights.
+import { businessSection } from "./how-to";
 import type { Template } from "./types";
 
 export const insights: Template = {
@@ -14,7 +15,7 @@ export const insights: Template = {
       repeat: { min: 3, max: 5 },
     },
     { key: "what_to_do", task: "Say what the reader should do now." },
-    { key: "business", task: "Say how this business responds, from its facts, linking its product page." },
+    businessSection("Say how it responds to these changes, linking its product page."),
   ],
   blocks: { faq: { min: 3, max: 6 }, datedSources: true },
   length: { floor: 700, ceiling: 1200 },

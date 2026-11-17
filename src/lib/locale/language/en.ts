@@ -115,6 +115,8 @@ export const EN: LanguagePack = {
   jobSearch: (job) => `how to ${job.length === 0 ? job : job[0]!.toLowerCase() + job.slice(1)}`,
   studySearch: (target) => `${target} statistics study`,
   guidanceSearch: (target) => `${target} official guidance`,
+  businessHeading: (name, search) => `How ${name} handles it: ${search}`,
+  backReferences: ["this", "these", "it", "as mentioned", "also"],
 
   question(keyword) {
     const text = keyword.toLowerCase().trim().replace(/\s+/g, " ");

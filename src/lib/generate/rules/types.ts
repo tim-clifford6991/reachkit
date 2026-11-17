@@ -79,6 +79,8 @@ export type HardRule =
    *  `CITES_MARKET.min` of the public pages its pack read claims off
    *  (`./cites.ts`). */
   | "cites_market"
+  /** SPEC §7 (owner P2b, 2026-11-16): each H2 section's first sentence answers on its own (`./standalone.ts`). */
+  | "standalone_lead"
   /** SPEC §7 (issue 1136; D44): no claim that the business serves a case the
    *  knowledge base does not support (`../claims/fit.ts`). */
   | "fit_claim"
@@ -107,13 +109,14 @@ export const HARD_RULES: readonly HardRule[] = Object.freeze([
   "title",
   "plain_prose",
   "cites_market",
+  "standalone_lead",
   "fit_claim",
   "do_not_claim",
 ] as const);
 
 /** The rules that only warn (owner, 2026-11-08): recorded on the draft and shown in its Checks list, never a stop.
  *  Every other rule is harm and stops the page, so a new rule stops until it is named here. */
-export const WARNING_RULES: ReadonlySet<HardRule> = new Set<HardRule>(["first_block_answers", "required_blocks", "distinct_headings", "title", "plain_prose", "cites_market"]);
+export const WARNING_RULES: ReadonlySet<HardRule> = new Set<HardRule>(["first_block_answers", "required_blocks", "distinct_headings", "title", "plain_prose", "cites_market", "standalone_lead"]);
 
 /** The rules a caller switches on, each by an input it hands over or leaves
  *  out (`rulesAsked`, `./index.ts`). Every other rule reads every page. */
@@ -125,6 +128,7 @@ export const SWITCHED_RULES: readonly HardRule[] = Object.freeze([
   "title",
   "plain_prose",
   "cites_market",
+  "standalone_lead",
   "fit_claim",
   "do_not_claim",
 ] as const);
@@ -205,7 +209,9 @@ export interface RuleFailure {
     | { rule: "plain_prose"; faults: ProseFault[] }
     /** How many of the pack's claim pages the body links, and how many it
      *  must. */
-    | { rule: "cites_market"; cited: number; min: number };
+    | { rule: "cites_market"; cited: number; min: number }
+    /** The H2 headings whose section opens on a sentence that leans on the one before, as the page has them. */
+    | { rule: "standalone_lead"; headings: string[] };
 }
 
 /** Every site-scoped input the battery is called with — the **raw stored**

@@ -43,6 +43,7 @@ import { checkInventedPeople, checkUnsourcedTestimonial } from "./people";
 import { checkProse, proseText, type ProseRuleInputs } from "./prose";
 import { checkRivalNegative, checkRivalScope, checkRivalSource, namedRivals, type NamedRival } from "./rivals";
 import { renderOf, withoutReferenceLists } from "./text";
+import { checkStandaloneLead } from "./standalone";
 import { checkTitle, type TitleRuleInputs } from "./title";
 import { stops } from "../record";
 import { HARD_RULES, SWITCHED_RULES } from "./types";
@@ -80,6 +81,7 @@ export function rulesAsked(a: RuleSwitches, verdicts: { fit: FitVerdict; fitAske
     title: a.titleRule != null,
     plain_prose: a.prose != null,
     cites_market: a.cites != null,
+    standalone_lead: a.prose != null,
   };
   return HARD_RULES.filter((rule) => !SWITCHED_RULES.includes(rule) || on[rule] === true);
 }
@@ -225,6 +227,7 @@ export function runDeterministicRules(
     title: checkTitle({ title: a.title, ...(a.heading === undefined ? {} : { heading: a.heading }), rule: a.titleRule ?? null, markdown: a.markdown }),
     plain_prose: checkProse({ markdown: a.markdown, prose: a.prose ?? null }),
     cites_market: checkCitesMarket({ markdown: a.markdown, cites: a.cites ?? null }),
+    standalone_lead: checkStandaloneLead({ markdown: a.markdown, language: a.prose?.language ?? null }),
   };
 }
 

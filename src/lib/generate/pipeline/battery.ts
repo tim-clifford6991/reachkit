@@ -63,7 +63,7 @@ export function batteryBasis(a: {
   const length = lengthRangeFor(template, { questions: pack.questions.length, covered, cap: voiceLength(pack.voice)?.ceiling, liveWords, grown: pack.gaps !== undefined });
   const searches = pack.target.searches;
   const names = [site.businessName ?? "", site.domain.split(".")[0] ?? "", ...site.rivals];
-  const passages = [...pack.facts.map((fact) => fact.passage), ...packStatements(pack)];
+  const passages = [...pack.facts.map((fact) => fact.passage), ...packStatements(pack), ...(pack.fitFact === undefined ? [] : [pack.fitFact.passage])];
   const cited = pack.claims.map((claim) => ({ ...claim, readAt: new Date(claim.readAt) }));
   const brief = {
     facts: passages,

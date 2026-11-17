@@ -49,13 +49,13 @@ describe("the page is laid out from its parts", () => {
   it("a Q&A page's own questions are its buyer questions, each with the paragraph that answers it", () => {
     const { faq } = page(pageParts("A small team picks by seat count.\n\nThe detail follows."));
     expect(faq).toHaveLength(6);
-    expect(faq[0]).toEqual({ question: "Which tool should a small team pick?", answer: "A small team picks by seat count." });
+    expect(faq[0]).toEqual({ question: "Which tool should a small team pick for its seats?", answer: "A small team picks by seat count." });
   });
 
   it("a heading the writer put inside a section is an H3, and a repeat of the section's own is cut", () => {
-    const { markdown } = page(pageParts("## Which tool should a small team pick?\n\nIt depends on seats.\n\n# A shouted point\n\nText."));
+    const { markdown } = page(pageParts("## Which tool should a small team pick for its seats?\n\nIt depends on seats.\n\n# A shouted point\n\nText."));
     expect(markdown).toContain("It depends on seats.\n\n### A shouted point");
-    expect(markdown.match(/^## Which tool should a small team pick\?$/gm)).toHaveLength(1);
+    expect(markdown.match(/^## Which tool should a small team pick for its seats\?$/gm)).toHaveLength(1);
   });
 });
 
@@ -188,7 +188,7 @@ describe("required_blocks — the first block a generated page lacks", () => {
         ],
         faq: ["first", "second", "third"].map((nth) => ({ question: `What is the ${nth} thing to ask?`, answer: "Count the seats." })),
       }),
-      TEMPLATES.how_to,
+      { ...TEMPLATES.how_to, sections: TEMPLATES.how_to.sections.filter((slot) => slot.key !== "business") },
       business
     );
   }

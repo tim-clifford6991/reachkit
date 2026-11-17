@@ -16,6 +16,7 @@
 | first_block_answers | passed | passed |
 | no_placeholder_cell | passed | passed |
 | plain_prose | warns {"faults":[{"tell":"repeated_phrase","count":6,"found":["mehl wasser und salz"]}]} | passed |
+| standalone_lead | passed | passed |
 
 ## What the fix call is told
 

@@ -1,6 +1,6 @@
 // SPEC §7 (D42, 5) — Q&A.
 import { CITES_MARKET } from "@/lib/config/constants";
-import { gapSection } from "./how-to";
+import { businessSection, gapSection } from "./how-to";
 import type { Template } from "./types";
 
 export const qa: Template = {
@@ -16,7 +16,7 @@ export const qa: Template = {
       repeat: { min: 5, max: 8 },
     },
     gapSection,
-    { key: "business", task: "Say how this business itself handles the topic, from its facts, linking its product page.", onlyWith: { facts: "passages", min: 1 } },
+    businessSection("Link its product page.", "passages"),
   ],
   // The 5–8 questions are the page's FAQ data; it stores no others.
   blocks: { faq: null },

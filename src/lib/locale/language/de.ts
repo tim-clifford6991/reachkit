@@ -189,6 +189,8 @@ export const DE: LanguagePack = {
   jobSearch: (job) => `wie kann man ${job}`,
   studySearch: (target) => `${target} Statistik Studie`,
   guidanceSearch: (target) => `${target} offizielle Anleitung`,
+  businessHeading: (name, search) => `Wie ${name} es angeht: ${search}`,
+  backReferences: ["dies", "diese", "es", "wie erwähnt", "auch"],
 
   question(keyword) {
     const text = keyword.trim().replace(/\s+/g, " ");

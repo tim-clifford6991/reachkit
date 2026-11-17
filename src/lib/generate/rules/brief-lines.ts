@@ -103,6 +103,8 @@ export const RULE_BRIEF: Readonly<Record<HardRule, (a: BriefLineInputs) => strin
   ],
   cites_market: (a) =>
     `Link at least ${citesMinOf(a.template)} different pages that \`pack.claims\` were read from, each in the sentence that states what it says.`,
+  standalone_lead: (a) =>
+    `Open each section's \`body\` with a sentence that answers its heading on its own, in the heading's words: never open on ${quoted(languagePack(a.pack.locale?.language ?? "en").backReferences)} or any other word that leans on an earlier sentence.`,
   // Issue 2375: the fit check's own definition, so the page is written to what it is checked against.
   fit_claim: () =>
     `${UNSUPPORTED_CLAIM} What is known about this business is \`pack.profile\`. Never make an unsupported claim, and never call it "#1" or the best of a category.`,

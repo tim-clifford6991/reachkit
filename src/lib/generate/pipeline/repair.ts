@@ -48,6 +48,11 @@ import {
 } from "../rules/text";
 import { selfRankedIn } from "../rules/honest";
 import type { HardRule, RuleFailure } from "../rules/types";
+import { languagePack } from "@/lib/locale/language";
+import { urlKey } from "../links/select";
+import type { Template } from "../templates";
+import type { ContextPack } from "./pack";
+import type { PageParts } from "./write";
 
 /** The rules a repair in code is tried for, in the order it is applied. The
  *  opening is last because dropping a sentence can change what opens. */
@@ -529,4 +534,44 @@ export function fixNotes(
     rule: failure.rule,
     sentences: [...new Set(sentencesFor(markdown, failure, brief, site, title))].slice(0, NOTE_SENTENCES_MAX),
   }));
+}
+
+const wordCount = (text: string): number => (text.match(/\S+/g) ?? []).length;
+
+/** A business passage as a sentence that links its page, word for word. */
+function linkedPassage(passage: string, url: string): string {
+  const text = passage.replace(/[[\]]/g, "").trim();
+  const ends = /[.!?]$/.test(text);
+  return `[${ends ? text.slice(0, -1) : text}](${url})${ends ? text.slice(-1) : "."}`;
+}
+
+/** The short answer with a linked business passage after the writer's leading sentences that leave room for it: the fit
+ *  fact, else the first of the pack's own that fits. Unchanged where it links one already or none fits. */
+function answerWithFact(answer: string, fit: string, pack: ContextPack): string {
+  const own = new Set([fit, ...pack.facts.map((fact) => fact.url)].flatMap((url) => urlKey(url) ?? []));
+  if (linksOf(answer).some((url) => own.has(urlKey(url) ?? ""))) return answer;
+  const sentences = splitSentences(answer.trim());
+  const { min, max } = PAGE_BLOCKS.answerWords;
+  const boxes = [linkedPassage(pack.fitFact!.passage, fit), ...pack.facts.map((fact) => linkedPassage(fact.passage, fact.url))].flatMap((fact) => {
+    let kept = 0;
+    while (kept < sentences.length && wordCount([...sentences.slice(0, kept + 1), fact].join(" ")) <= max) kept++;
+    return kept === 0 ? [] : [[...sentences.slice(0, kept), fact].join(" ")];
+  });
+  // A box within its words is preferred, the fit fact first.
+  return boxes.find((box) => wordCount(box) >= min) ?? boxes[0] ?? answer;
+}
+
+/** Owner P2b and P3 (2026-11-16): a page whose row names its fit fact states a business passage, word for word and
+ *  linked, in its short answer, and the fit fact in its business section. Code adds what the writer left out and writes
+ *  no other word but the section's heading. A founder's fact has no page to link, so it is left to the writer. */
+export function withFitFact(parts: PageParts, a: { pack: ContextPack; template: Pick<Template, "sections">; businessName: string | null }): PageParts {
+  const fit = a.pack.fitFact;
+  if (fit === undefined || fit.url === null) return parts;
+  const answer = answerWithFact(parts.answer, fit.url, a.pack);
+  const asked = a.template.sections.some((slot) => slot.key === "business");
+  const written = parts.sections.some((section) => section.key === "business" && section.body.trim() !== "");
+  if (!asked || written || a.businessName === null) return { ...parts, answer };
+  const heading = languagePack(a.pack.locale?.language ?? "en").businessHeading(a.businessName, a.pack.target.searches[0] ?? a.pack.target.question);
+  const sections = [...parts.sections.filter((section) => section.key !== "business"), { key: "business", heading, body: `> ${linkedPassage(fit.passage, fit.url)}` }];
+  return { ...parts, answer, sections };
 }

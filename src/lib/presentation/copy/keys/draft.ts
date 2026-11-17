@@ -422,8 +422,7 @@ export const DRAFT_COPY = Object.freeze({
     "No instructions aimed at AI",
     { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
   ],
-  // A title's specific detail is tried for and never stops a page (SPEC §7,
-  // 2026-10-11), so this row names only what the rule does stop a page on.
+  // A title's specific detail is tried for and never stops a page (SPEC §7, 2026-10-11): this row names what it stops on.
   "draft.checks.rule.title": [
     "Title fits, and the heading matches",
     { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
@@ -448,6 +447,7 @@ export const DRAFT_COPY = Object.freeze({
     "No menu or sample text from your site",
     { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
   ],
+  "draft.checks.rule.standalone-lead": ["Each section opens with a sentence that answers on its own", { slots: {}, fixedBy: "SPEC §7 2026-11-16 · issue 2736 · drafted" }],
   "draft.checks.rule.plain-prose": [
     "Reads like a person wrote it: no stock phrases, few dashes, varied sentences",
     { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1390 · drafted" },

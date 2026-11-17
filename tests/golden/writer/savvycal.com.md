@@ -16,6 +16,7 @@
 | first_block_answers | passed | passed |
 | no_placeholder_cell | passed | passed |
 | plain_prose | passed | passed |
+| standalone_lead | passed | passed |
 
 ## What the fix call is told
 

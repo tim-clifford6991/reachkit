@@ -1,6 +1,7 @@
 // SPEC §7 (D42, 1) — listicle / comparison.
 import { RESEARCH } from "@/lib/config/constants";
 import type { PromptProfile } from "../voice/profile-block";
+import { businessSection } from "./how-to";
 import type { Template } from "./types";
 
 const PRICE_RE = /(?:[$€£]\s?\d|\d\s?(?:usd|eur|gbp|€|\$|£)|\bfree\b)/i;
@@ -81,7 +82,8 @@ export const listicle: Template = {
       key: "which_to_choose",
       task: "The verdict: say which of `options` to choose for which case, and name at least one case where a rival among them, by its name, is the better pick than this business — from a fact about that rival.",
     },
-    { key: "business", task: "Say how this business itself handles the question, from its facts, linking its product and pricing pages." },
+    // D52: rivals' strengths stand in the verdict, and this section never ranks the business first.
+    businessSection("Link its product and pricing pages. Never rank it first or call it the best; the verdict above names where a rival is the better pick."),
   ],
   blocks: { table: { rivals: 2 }, faq: { min: 3, max: 6 } },
   length: { floor: 1500, ceiling: 3750, kept: 2500 },
