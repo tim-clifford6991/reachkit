@@ -7,6 +7,7 @@ export const LANDING_COPY = Object.freeze({
   "landing.hero.why": ["Buyers Ask AI What to Use", { slots: {}, fixedBy: "owner 2026-11-16 · issue 2745" }],
   "landing.headline.mark": ["Get Found", { slots: {}, fixedBy: "owner 2026-11-16 · issue 2745" }],
   /** Every other public head's catch words, each a substring of its title key (DESIGN *Catch words*). */
+  "how.headline.mark": ["Gets You Found", { slots: {}, fixedBy: "owner 2026-11-16 · issue 2745" }],
   "pricing.title.mark": ["Everything Included", { slots: {}, fixedBy: "owner 2026-11-16 · issue 2745" }],
   "about.title.mark": ["ReachKit", { slots: {}, fixedBy: "owner 2026-11-16 · issue 2745" }],
   "compare.title.mark": ["ReachKit", { slots: {}, fixedBy: "owner 2026-11-16 · issue 2745" }],
