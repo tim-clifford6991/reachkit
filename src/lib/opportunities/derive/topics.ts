@@ -14,7 +14,7 @@ import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
 import type { PromptAnswer, StoredReport } from "@/lib/scan/report";
 import { queryKey } from "../cluster";
 import { contentTypeOf } from "../content-type";
-import { FAMILY_OF, type BusinessFit, type Evidence, type OpportunityType, type ReadTrend, type TopicSource } from "../types";
+import { FAMILY_OF, type BusinessFit, type Evidence, type ReadTrend, type TopicSource } from "../types";
 import { demandBand } from "../winnability/band";
 import { qualifyingDemand } from "../winnability/bars";
 import { slugify, trendRead, type Candidate } from "./candidate";
@@ -405,8 +405,7 @@ export function askedBesideTerms(query: string, asked: readonly AskedBeside[]): 
   });
 }
 
-/** One measured answer to a tracked prompt, as the demand rules read it
- *  (issue 1520). */
+/** One measured answer to a tracked prompt, as the demand rules read it. */
 export type MeasuredAnswer = Pick<PromptAnswer, "promptId" | "named" | "linked" | "rivals" | "alternatives">;
 
 /**
@@ -552,8 +551,7 @@ export function proposedTopics(a: {
     if (!volumes.has(queryKey(row.keyword))) volumes.set(queryKey(row.keyword), row.volume);
   }
   const trends = new Map(suggestions.map((row) => [queryKey(row.keyword), row.trend] as const).reverse());
-  // SPEC §6 (owner D64, issue 1301): a comparison search the pass read the
-  // volume of carries it. One nobody searches stays unmeasured, as before.
+  // SPEC §6: a comparison search the pass read the volume of carries it; one nobody searches stays unmeasured.
   for (const [search, volume] of Object.entries(a.market?.demand?.searches ?? {})) {
     if (volume > 0 && !volumes.has(queryKey(search))) volumes.set(queryKey(search), volume);
   }
@@ -619,9 +617,7 @@ export function proposedTopics(a: {
     for (const composed of composedSearches(market, language)) add(composed.query, composed.source, null, { composed: true });
   }
 
-  // Issue 1519: what buyers were seen asking beside the site's searches —
-  // on the market in force (D59), and never a rival's name asked about as a
-  // word (issue 1506).
+  // What buyers were seen asking beside the site's searches, on the market in force and never a rival's name as a word.
   for (const topic of a.asked ?? []) {
     if (!askedOnMarket(topic.query, { market: a.market, own, rivals })) continue;
     add(topic.query, sourceOf(topic.query, { brands }), null, { asked: { term: topic.term, serpAt: topic.serpAt, newSince: topic.newSince } });
@@ -649,6 +645,9 @@ function rivalFor(topic: ProposedTopic, a: { report: StoredReport; market: Marke
   return a.report.rivals.kind === "unmeasured" ? null : (a.report.rivals.value[0]?.domain ?? null);
 }
 
+/** The type a proposed search's Write row takes. */
+export const writeTypeOf = (query: string) => (SHAPES.comparison.test(query) ? "comparison_page" : "keyword_page");
+
 /**
  * A proposal the pass judged at the top fit, as a Write candidate.
  *
@@ -670,7 +669,7 @@ export function candidateFor(
 
   const volume: Measured<number> =
     topic.volume === null ? unmeasured<number>("not_attempted", at) : measured(topic.volume, at);
-  const type: OpportunityType = SHAPES.comparison.test(topic.query) ? "comparison_page" : "keyword_page";
+  const type = writeTypeOf(topic.query);
   const evidence: Evidence = {
     family: "write",
     query: topic.query,
