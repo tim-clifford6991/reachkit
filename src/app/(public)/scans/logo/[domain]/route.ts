@@ -16,8 +16,8 @@ import { readSiteLogo } from "@/lib/site-profile";
 
 export const dynamic = "force-dynamic";
 
-/** A day, in browsers and the CDN alike: a hot report reads the bytes once. */
-const KEPT_S = 86_400;
+/** Four minutes in browsers and the CDN alike, no stale copy: a removed logo is gone within 5 minutes. */
+const KEPT_S = 240;
 
 const NOT_FOUND = () =>
   new Response(null, { status: 404, headers: { "Cache-Control": "no-store" } });

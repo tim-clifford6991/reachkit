@@ -63,12 +63,10 @@ describe("the logo route serves every public report's logo", () => {
     expect(Buffer.from(await response.arrayBuffer()).equals(PNG)).toBe(true);
   });
 
-  it("is kept a day by browsers and the CDN, so a hot report reads the bytes once", async () => {
+  it("is kept at most 240 s by browsers and the CDN, with no stale copy, so a removal lands within 5 minutes", async () => {
     scanned("fernwoodtea.example");
-    const cache = (await get("fernwoodtea.example")).headers.get("Cache-Control") ?? "";
-    expect(cache).toContain("public");
-    expect(cache).toContain("max-age=86400");
-    expect(cache).toContain("s-maxage=86400");
+    const cache = (await get("fernwoodtea.example")).headers.get("Cache-Control");
+    expect(cache).toBe("public, max-age=240, s-maxage=240");
   });
 
   it("a removed domain answers 404, so the takedown takes the picture down", async () => {
