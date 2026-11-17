@@ -69,7 +69,7 @@
 // page is written from its business facts alone, as before this step.
 import { parse, type HTMLElement } from "node-html-parser";
 import { z } from "zod";
-import { CACHE_WINDOWS_D, HEADING_GAPS, RESEARCH } from "@/lib/config/constants";
+import { CACHE_WINDOWS_D, HEADING_GAPS, RESEARCH, VENDOR } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import { safeFetch } from "@/lib/egress";
 import { llm } from "@/lib/llm";
@@ -708,13 +708,17 @@ async function recentPages(
   };
 }
 
+// The live surface returns Google's unreadable `google.com/goto` redirects; the queue, bought as a waited scan buys it, the pages.
+const queued = () => ({ mode: "std", priority: "high", pollMs: VENDOR.waitedQueuePollIntervalS * 1000, untilMs: Date.now() + RESEARCH.queueWaitS * 1000 }) as const;
+const googleRedirect = (url: string): boolean => /^(?:www\.)?google\.com$/.test(hostOf(url));
+
 /** One SERP, read for its organic results, its "People also ask" and its
  *  related searches (D61). Ledgered; `null` where the call fails. */
-async function askedBeside(c: CostContext, a: { siteId: string; locale: Locale; query: string }): Promise<{ organic: string[]; peopleAlsoAsk: string[]; searches: string[] } | null> {
+async function askedBeside(c: CostContext, a: { siteId: string; locale: Locale; query: string; queued?: true }): Promise<{ organic: string[]; peopleAlsoAsk: string[]; searches: string[] } | null> {
   const serp = await serpOrganic(c, {
     query: a.query,
     locale: a.locale,
-    mode: "live",
+    ...(a.queued === true ? queued() : { mode: "live" as const }),
     loadAsyncAiOverview: false,
     scope: { site: a.siteId },
     freshnessDays: CACHE_WINDOWS_D.serp,
@@ -722,7 +726,7 @@ async function askedBeside(c: CostContext, a: { siteId: string; locale: Locale; 
   });
   if (serp.kind === "unmeasured") return null;
   return {
-    organic: serp.value.organic.map((row) => row.url),
+    organic: serp.value.organic.map((row) => row.url).filter((url) => !googleRedirect(url)),
     peopleAlsoAsk: [...(serp.value.peopleAlsoAsk ?? [])],
     searches: [...new Set((serp.value.relatedSearches ?? []).map((search) => search.trim().toLowerCase()))],
   };
@@ -854,11 +858,10 @@ export async function researchMarket(
   // 1. The network, in parallel: the top results in order until enough are
   //    readable, and each rival's two pages. A page that compares options
   //    then reads the products its top results name.
-  //    The target's own SERP is bought once, before anything reads it: its
-  //    organic rows are the top results where the scan stored none, and its
-  //    questions are what buyers ask (D61).
+  //    The target's SERP, bought once first: its organic rows are the top
+  //    results where the scan stored none, its questions what buyers ask.
   const stored = storedTopTen(a.report, a.searches);
-  const beside = a.questions === true || stored.length === 0 ? await askedBeside(c, { siteId: a.siteId, locale: a.locale, query: target }) : null;
+  const beside = a.questions === true || stored.length === 0 ? await askedBeside(c, { siteId: a.siteId, locale: a.locale, query: target, queued: true }) : null;
   const topTen = (stored.length > 0 ? stored : (beside?.organic ?? [])).filter(notOurs);
   // The own pages read (#1135): eight products on a listicle (owner, issue
   // 1508), four on any other page.
@@ -929,7 +932,7 @@ export async function researchMarket(
     const serp = await serpOrganic(c, {
       query: a.guidance === true ? language.guidanceSearch(target) : language.studySearch(target),
       locale: a.locale,
-      mode: "live",
+      ...queued(),
       loadAsyncAiOverview: false,
       scope: { site: a.siteId },
       freshnessDays: CACHE_WINDOWS_D.serp,
@@ -937,7 +940,7 @@ export async function researchMarket(
     if (serp.kind !== "unmeasured") {
       for (const row of serp.value.organic) {
         const host = hostOf(row.url);
-        if (!notOurs(row.url) || taken.has(row.url) || rivalDomains.some((rival) => sameSite(host, rival))) continue;
+        if (!notOurs(row.url) || googleRedirect(row.url) || taken.has(row.url) || rivalDomains.some((rival) => sameSite(host, rival))) continue;
         studyUrls.push(row.url);
       }
     }
