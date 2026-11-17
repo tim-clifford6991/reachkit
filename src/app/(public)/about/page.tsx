@@ -122,27 +122,32 @@ export default async function AboutPage(): Promise<React.JSX.Element> {
             <section aria-labelledby="who-h" className={CARD}>
               <div className={BODY}>
                 <div className="flex min-w-0 items-center gap-3">
-                  <span className="avatar">
-                    <span className="size-12 rounded-full">
-                      <Image src={FOUNDER_PHOTO} alt={copy("about.photo.alt")} width={48} height={48} className="object-cover" />
-                    </span>
+                  <span className={TILE}>
+                    <User {...TILE_ICON} />
                   </span>
                   <h2 id="who-h" className="text-lg">
                     {copy("about.who.title")}
                   </h2>
                 </div>
-                <p>
-                  {founder === null
-                    ? null
-                    : `${
-                        founder.place === null
-                          ? copy("about.who.founder", { name: founder.name })
-                          : copy("about.who.founder.place", { name: founder.name, place: founder.place })
-                      } `}
-                  <Link href="/imprint" className="link-hover">
-                    {copy("about.who.imprint")}
-                  </Link>
-                </p>
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="avatar shrink-0">
+                    <span className="size-12 rounded-full">
+                      <Image src={FOUNDER_PHOTO} alt={copy("about.photo.alt")} width={48} height={48} className="object-cover" />
+                    </span>
+                  </span>
+                  <p className="min-w-0">
+                    {founder === null
+                      ? null
+                      : `${
+                          founder.place === null
+                            ? copy("about.who.founder", { name: founder.name })
+                            : copy("about.who.founder.place", { name: founder.name, place: founder.place })
+                        } `}
+                    <Link href="/imprint" className="link-hover">
+                      {copy("about.who.imprint")}
+                    </Link>
+                  </p>
+                </div>
                 <a href={`mailto:${address}`} className="rounded-box bg-base-200 flex min-h-11 min-w-0 items-center gap-3 p-3">
                   <span className={TILE}>
                     <Mail {...TILE_ICON} />
