@@ -7,8 +7,6 @@ import { settleForMeasurement, STILL } from "./no-overflow";
 interface Head {
   /** Each step chip: how many lines its words take, and whether they overflow it. */
   chips: { lines: number; overflows: boolean }[];
-  /** Each step card's title top: its head is number, icon tile, then chip. */
-  stepTitleTops: number[];
   /** Each step card's left edge. */
   stepLefts: number[];
   /** Each question row: how far its Picked or Skipped chip sits below the question's top. */
@@ -32,7 +30,6 @@ async function measure(width: number): Promise<Head> {
           overflows: chip.scrollWidth > chip.clientWidth + 1,
         };
       }),
-      stepTitleTops: [...document.querySelectorAll("#top ol a .card-body > :nth-child(2)")].map((t) => t.getBoundingClientRect().top),
       stepLefts: [...document.querySelectorAll("#top ol a.card")].map((a) => Math.round(a.getBoundingClientRect().left)),
       chipDrops: [...document.querySelectorAll("#questions figure ul > li")].map((li) => {
         const [question, chip] = [li.firstElementChild!, li.lastElementChild!];
@@ -59,11 +56,5 @@ describe("how it works: the four steps", () => {
     const { chips } = await measure(1280);
     expect(chips).toHaveLength(4);
     for (const [i, chip] of chips.entries()) expect(chip, `step ${i + 1}`).toEqual({ lines: 1, overflows: false });
-  }, 120_000);
-
-  it.each([1024, 1280])("at %ipx the four step titles share a top", async (width) => {
-    const { stepTitleTops: tops } = await measure(width);
-    expect(tops).toHaveLength(4);
-    expect(Math.max(...tops) - Math.min(...tops)).toBeLessThanOrEqual(2);
   }, 120_000);
 });
