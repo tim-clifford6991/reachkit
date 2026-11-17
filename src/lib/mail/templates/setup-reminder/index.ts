@@ -7,6 +7,7 @@ import type { MailBlock } from "../../blocks/types";
 
 // Keys named once, so the string-literal sweep never reads a key field as a written sentence.
 const SUBJECT = "mail.setupReminder.subject" satisfies CopyKey;
+const HEADING = "mail.setupReminder.heading" satisfies CopyKey;
 const BODY = "mail.setupReminder.body" satisfies CopyKey;
 const PREHEADER = "mail.setupReminder.preheader" satisfies CopyKey;
 const ACTION = "mail.setupReminder.action" satisfies CopyKey;
@@ -46,7 +47,7 @@ export function buildSetupReminder(a: { signInHref: string; connect?: ConnectPen
     reason: REASON,
     blocks: [
       // Opens on its subject line, as the other sequence mails do.
-      { block: "heading", text: SUBJECT },
+      { block: "heading", text: HEADING },
       ...(a.connect === undefined
         ? [{ block: "paragraph", text: BODY, vars: { setupMinutes: String(SETUP_MINUTES) } } as const]
         : connectBlocks(a.connect)),

@@ -5,6 +5,7 @@ import type { GuideView } from "@/lib/publish/destinations/hosted/dns-guide";
 import type { CopyVars, MailBlock } from "../../blocks/types";
 
 const SUBJECT = "mail.webPerson.subject" satisfies CopyKey;
+const HEADING = "mail.webPerson.heading" satisfies CopyKey;
 const PREHEADER = "mail.webPerson.preheader" satisfies CopyKey;
 const INTRO = "mail.webPerson.intro" satisfies CopyKey;
 const DONE = "mail.webPerson.done" satisfies CopyKey;
@@ -30,7 +31,7 @@ export function buildWebPersonMail(a: { domain: string; host: string; view: Guid
     reason: REASON,
     reasonVars: domain,
     blocks: [
-      { block: "heading", text: SUBJECT, vars: domain },
+      { block: "heading", text: HEADING, vars: domain },
       { block: "paragraph", text: INTRO, vars: domain },
       { block: "paragraph", text: a.view.where.key, vars: a.view.where.vars },
       {
