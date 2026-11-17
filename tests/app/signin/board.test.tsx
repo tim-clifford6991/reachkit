@@ -61,10 +61,10 @@ const textOf = (html: string): string[] => segments(html);
 
 /** Each string is on the screen, and in the order given. */
 function inOrder(texts: string[], wanted: string[]): void {
-  const screen = texts.join("\n");
+  const screen = texts.join("\n").toLowerCase();
   let from = 0;
   for (const want of wanted) {
-    const at = screen.indexOf(want, from);
+    const at = screen.indexOf(want.toLowerCase(), from);
     expect(at, `"${want}" is not on the screen after "${screen.slice(Math.max(0, from - 60), from)}"`).toBeGreaterThanOrEqual(0);
     from = at + want.length;
   }

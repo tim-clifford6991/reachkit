@@ -7,7 +7,7 @@
 import type { CopyPartition } from "../registry.ts";
 
 export const SIGNIN_COPY = Object.freeze({
-  "signin.heading": ["Welcome back", { slots: {}, fixedBy: "REQ-098 c2" }],
+  "signin.heading": ["Welcome Back", { slots: {}, fixedBy: "REQ-098 c2" }],
   "signin.body": [
     "Enter the email you paid with. We’ll send you a sign-in link.",
     { slots: {}, fixedBy: "board AuthSignIn" },
@@ -26,7 +26,7 @@ export const SIGNIN_COPY = Object.freeze({
   "signin.field.placeholder": ["you@example.com", { slots: {}, fixedBy: "REQ-098 c2" }],
   /** Changed 2026-09-21 (#937): "Send my link" → the board's own word,
    *  which says which link. Drafted (#759). */
-  "signin.submit.label": ["Send my sign-in link", { slots: {}, fixedBy: "issue 937" }],
+  "signin.submit.label": ["Send My Sign-In Link", { slots: {}, fixedBy: "issue 937" }],
 
   // REQ-098 open question 3's five lines — the owner's approved sentences
   // (2026-09-10, #459).
@@ -55,7 +55,7 @@ export const SIGNIN_COPY = Object.freeze({
   // The two heads and the two controls are the owner's approved sentences
   // (2026-09-10, #459). The address beside `signin.sent.to` is what the
   // visitor typed, echoed back, never one this screen looked up.
-  "signin.sent.head": ["Check your inbox", { slots: {}, fixedBy: "REQ-098 c3" }],
+  "signin.sent.head": ["Check Your Inbox", { slots: {}, fixedBy: "REQ-098 c3" }],
   "signin.sent.to": ["Sent to", { slots: {}, fixedBy: "REQ-098 c3 · board AuthCheckEmail" }],
   "signin.sent.subject": ["Subject", { slots: {}, fixedBy: "board AuthCheckEmail · issue 2268" }],
   "signin.sent.until": ["Works until", { slots: {}, fixedBy: "board AuthCheckEmail · issue 2268" }],
@@ -66,9 +66,9 @@ export const SIGNIN_COPY = Object.freeze({
    *  presses it is that they typed the wrong address — a second link to
    *  the same place is not what they want. The board says so. Drafted
    *  (#759). */
-  "signin.sent.resend": ["Use a different email", { slots: {}, fixedBy: "issue 937" }],
-  "signin.expired.head": ["This link no longer works", { slots: {}, fixedBy: "REQ-098 c7" }],
-  "signin.expired.submit": ["Send a new link", { slots: {}, fixedBy: "REQ-098 c7" }],
+  "signin.sent.resend": ["Use a Different Email", { slots: {}, fixedBy: "issue 937" }],
+  "signin.expired.head": ["This Link No Longer Works", { slots: {}, fixedBy: "REQ-098 c7" }],
+  "signin.expired.submit": ["Send a New Link", { slots: {}, fixedBy: "REQ-098 c7" }],
   "signin.expired.field": ["The email you paid with", { slots: {}, fixedBy: "board AuthExpired · issue 2268" }],
   // A link opened by a scanner or a prefetch is left unspent, so the line says it still works.
   "signin.link_open": [

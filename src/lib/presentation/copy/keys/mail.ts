@@ -24,11 +24,11 @@ export const MAIL_COPY = Object.freeze({
    *  so 11a writes no eyebrow for the other two arms, and "Unsubscribed" over
    *  "that link isn’t valid any more" would be the page contradicting
    *  itself in its own head. */
-  "optout.head.unresolved": ["Not unsubscribed yet", { slots: {}, fixedBy: "REQ-010 c11 · S7 (12a)" }],
+  "optout.head.unresolved": ["Not Unsubscribed Yet", { slots: {}, fixedBy: "REQ-010 c11 · S7 (12a)" }],
 
   // The OptOut board (canvas V22): what an opt-out changes, which follow-ups
   // were sent, where the report stays, and the by-hand way when a link fails.
-  "optout.changes.title": ["What this changes", { slots: {}, fixedBy: "REQ-010 c11 · OptOut board (V22)" }],
+  "optout.changes.title": ["What This Changes", { slots: {}, fixedBy: "REQ-010 c11 · OptOut board (V22)" }],
   "optout.changes.followups": ["Follow-up emails about your free report", { slots: {}, fixedBy: "REQ-010 c11 · OptOut board (V22)" }],
   "optout.changes.signin": ["Sign-in links, if you have an account", { slots: {}, fixedBy: "REQ-010 c11 · OptOut board (v36)" }],
   "optout.changes.account": ["Receipts and account emails, if you have an account", { slots: {}, fixedBy: "REQ-010 c11 · OptOut board (v36)" }],
@@ -65,15 +65,15 @@ export const MAIL_COPY = Object.freeze({
   "unsubscribe.changes.still": ["Still sent", { slots: {}, fixedBy: "issue 1741 (drafted)" }],
   "unsubscribe.invalid": ["That link isn’t valid, so nothing has changed. You can switch any ReachKit mail off in Settings › Pages.", { slots: {}, fixedBy: "issue 1741 (drafted)" }],
   "unsubscribe.unavailable": ["That couldn’t go through just now, so nothing has changed. Try the link again in a few minutes, or switch the mail off in Settings › Pages.", { slots: {}, fixedBy: "issue 1741 (drafted)" }],
-  "unsubscribe.settings": ["Mail settings", { slots: {}, fixedBy: "issue 1741 (drafted)" }],
+  "unsubscribe.settings": ["Mail Settings", { slots: {}, fixedBy: "issue 1741 (drafted)" }],
   "unsubscribe.ask": ["Press Unsubscribe to stop this mail: {mail}. Sign-in links and account mail still arrive.", { slots: { mail: "text" }, fixedBy: "issue 1741 (drafted)" }],
-  "pause.head": ["Publishing is paused", { slots: {}, fixedBy: "issue 1741 (drafted)" }],
+  "pause.head": ["Publishing Is Paused", { slots: {}, fixedBy: "issue 1741 (drafted)" }],
   "pause.done": ["No page goes live until you turn publishing on again in Settings › Pages. Pages already written wait there, and nothing is deleted.", { slots: {}, fixedBy: "issue 1741 (drafted)" }],
-  "pause.head.unresolved": ["Not paused", { slots: {}, fixedBy: "issue 1741 (drafted)" }],
+  "pause.head.unresolved": ["Not Paused", { slots: {}, fixedBy: "issue 1741 (drafted)" }],
   "pause.invalid": ["That link isn’t valid, so nothing has changed. You can pause publishing in Settings › Pages.", { slots: {}, fixedBy: "issue 1741 (drafted)" }],
   "pause.unavailable": ["That couldn’t go through just now, so nothing has changed. Try the link again in a few minutes, or pause publishing in Settings › Pages.", { slots: {}, fixedBy: "issue 1741 (drafted)" }],
-  "pause.settings": ["Publishing settings", { slots: {}, fixedBy: "issue 1741 (drafted)" }],
-  "pause.ask": ["Press Pause publishing and no page goes live until you turn publishing on again in Settings › Pages. Nothing is deleted.", { slots: {}, fixedBy: "issue 1741 · owner 2026-11-14, issue 2657 S6 (issue 2672)" }],
+  "pause.settings": ["Publishing Settings", { slots: {}, fixedBy: "issue 1741 (drafted)" }],
+  "pause.ask": ["Press Pause Publishing and no page goes live until you turn publishing on again in Settings › Pages. Nothing is deleted.", { slots: {}, fixedBy: "issue 1741 · owner 2026-11-14, issue 2657 S6 (issue 2672)" }],
   "mail.optout.label": ["Opt out of all follow-up mail", { slots: {}, fixedBy: "§12" }],
 
   // 2026-09-05, issue #31 (lead capture, the giveaway page and the nurture
@@ -295,8 +295,8 @@ export const MAIL_COPY = Object.freeze({
   "mail.weekly.hi": ["Hi {name}, here’s week {week} for {business}.", { slots: { name: "text", week: "text", business: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
   "mail.weekly.hi.unnamed": ["Here’s week {week} for {business}.", { slots: { week: "text", business: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
   "mail.weekly.pace": ["Google finds a new page in a few days to a few weeks. Reaching Google's first page can take months.", { slots: {}, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
-  "mail.weekly.footer.pause": ["Pause publishing", { slots: {}, fixedBy: "board MondayMail · issue 1741 · owner 2026-11-14, issue 2657 S6 (issue 2672)" }],
-  "mail.weekly.footer.settings": ["Mail settings", { slots: {}, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
+  "mail.weekly.footer.pause": ["Pause Publishing", { slots: {}, fixedBy: "board MondayMail · issue 1741 · owner 2026-11-14, issue 2657 S6 (issue 2672)" }],
+  "mail.weekly.footer.settings": ["Mail Settings", { slots: {}, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
   "mail.weekly.next.skipped": ["{count} days this week have no page.", { slots: { count: "text" }, fixedBy: "issue 1674 (drafted)" }],
 
   // The three forms a judged page's row takes. Three sentences and not one
