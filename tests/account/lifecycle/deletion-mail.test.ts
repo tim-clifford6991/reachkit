@@ -87,7 +87,9 @@ describe("REQ-079 c6 — one mail, and only where something of either kind is le
     expect(sent).toHaveLength(1);
     expect(sent[0]?.kind).toBe("account");
     expect(sent[0]?.to).toBe("leaving@example.com");
-    expect(sent[0]?.blocks.some((b) => b.text === "mail.account.deleted.still_live")).toBe(true);
+    const texts = sent[0]?.blocks.map((b) => b.text) ?? [];
+    expect(texts.slice(0, 2)).toEqual(["mail.account.deleted.goodbye", "mail.account.deleted.still_live"]);
+    expect(texts).not.toContain("mail.account.deleted.taken_down");
   });
 
   it("one mail when stillLive is empty but leftInWordPress holds an entry — the 'either kind' case", async () => {

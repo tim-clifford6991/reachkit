@@ -25,6 +25,7 @@ const DELETED_SUBJECT = "mail.account.deleted.subject" satisfies CopyKey;
 const DELETED_STILL_LIVE = "mail.account.deleted.still_live" satisfies CopyKey;
 const DELETED_THEIRS_TO_KEEP = "mail.account.deleted.theirs_to_keep" satisfies CopyKey;
 const DELETED_GOODBYE = "mail.account.deleted.goodbye" satisfies CopyKey;
+const DELETED_TAKEN_DOWN = "mail.account.deleted.taken_down" satisfies CopyKey;
 const DELETED_ERASED_BY = "mail.account.deleted.erased_by" satisfies CopyKey;
 const DELETED_KEPT_REMOVED = "mail.account.deleted.kept_removed" satisfies CopyKey;
 
@@ -118,16 +119,19 @@ export function buildAccountDeleted(a: DeletedAccountMailInput): AccountMail {
     blocks: [...blocks, { block: "notice", text: REACH_A_PERSON }],
   };
 }
-/** The Goodbye every deletion sends: what ended, the erasure date, then whatever REQ-079 c6 says is left behind. */
+/** The Goodbye every deletion sends: what ended, then the pages fact second so a still-live page is never read as taken down, then the rest. */
 export function buildGoodbye(a: DeletedAccountMailInput & { erasedBy: string }): AccountMail {
   const leftBehind = buildAccountDeleted(a);
+  const takenDown: AccountMail["blocks"] = a.stillLive === undefined ? [{ block: "paragraph", text: DELETED_TAKEN_DOWN }] : [];
   return {
     ...leftBehind,
     blocks: [
       { block: "paragraph", text: DELETED_GOODBYE },
+      ...takenDown,
+      ...leftBehind.blocks.slice(0, -1),
       { block: "paragraph", text: DELETED_ERASED_BY, vars: { date: a.erasedBy } },
       { block: "paragraph", text: DELETED_KEPT_REMOVED },
-      ...leftBehind.blocks,
+      { block: "notice", text: REACH_A_PERSON },
     ],
   };
 }
