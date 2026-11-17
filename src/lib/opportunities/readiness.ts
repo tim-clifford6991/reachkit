@@ -10,7 +10,8 @@
 //     commit, or by the checks with its research unchanged; or its URL retired;
 //   - `destination_cannot_address` — an Improve the destination cannot
 //     deliver, or a topic a page of the site already covers;
-//   - `low_fit` — a stored fit below the gate, or a new topic judged with no `fitFact` (§6).
+//   - `low_fit` — a stored fit below the gate, or a new topic judged with no `fitFact` (§6);
+//   - `out_of_reach` — a new comparison or listicle while the site's market footprint is closed.
 //
 // Demand, kind of business and size never hold a row: they order it
 // (`rank/points.ts`). Nor does a site whose own pages ground no fact: its
@@ -27,14 +28,15 @@ import type { StoredReport } from "@/lib/scan/report";
 import { addressesOwnPage, type HostedOwnPages } from "@/lib/publish/destinations/hosted/own-page";
 import { stoppedInputs } from "./drafted";
 import { opportunityStore, readOpportunity } from "./store";
-import { isResting, OUTSIZED, qualifiesForADay, type Winnability } from "./types";
+import { isResting, isRetarget, OUTSIZED, qualifiesForADay, type Winnability } from "./types";
 import { demandBand } from "./winnability/band";
 import { difficultyCeiling } from "./winnability/bars";
 import { heldByVerdict, suppressionOf, type Suppression } from "./suppression";
 import type { IntentPrompt } from "./intent";
 import type { KnownMatch } from "@/lib/known-content/types";
 import { queryKey } from "./cluster";
-import { SHAPED } from "./content-type";
+import { contentTypeOf, SHAPED } from "./content-type";
+import { footprintOpen } from "@/lib/market/footprint";
 import { comparisonUnasked, type AskedBeside, type ComparisonBrands, type MeasuredAnswer } from "./derive/topics";
 import { freshRead, offeringTopTen, type KindOfBusiness, type TopTenRead } from "./derive/top-ten-kind";
 import type { Evidence, Opportunity, UnreadyReason } from "./types";
@@ -52,6 +54,8 @@ export interface ReadinessContext {
    *  pure. A row whose topic is covered and which is **not** itself the
    *  update of the covering page never fills a day. */
   coveredBy: (o: Opportunity) => KnownMatch | null;
+  /** The site's market footprint is open (`footprintOpen`); while closed, a new comparison or listicle waits. */
+  footprint: boolean;
 }
 
 /** What `comparisonWithoutAsking` reads beside the row. Absent members read none. */
@@ -115,7 +119,13 @@ export function eligible(o: Opportunity, ctx: ReadinessContext): UnreadyReason |
   if (o.family !== "fix" && (o.businessFit ?? TOPIC_FIT.gate) < TOPIC_FIT.gate) return "low_fit";
   // A new topic with no `fitFact` key was judged before the call named one, and keeps its fit until judged again.
   if ((o.evidence.family === "write" || o.evidence.family === "earn") && o.evidence.fitFact === null) return "low_fit";
+  if (!ctx.footprint && waitsForFootprint(o)) return "out_of_reach";
   return null;
+}
+
+/** A new page, or a live page retargeted onto a new search, written as a comparison or listicle. */
+function waitsForFootprint(o: Opportunity): boolean {
+  return (o.family === "write" || o.family === "earn" || isRetarget(o)) && contentTypeOf(o) === "listicle";
 }
 
 /** The evidence a new page carries once its fresh stored results page
@@ -195,6 +205,8 @@ export async function assessReadiness(
     /** Issue 1559: only these rows — a pass's new ones, or the evening's
      *  committed week. Absent: every open row. */
     only?: ReadonlySet<string>;
+    /** The Monday pass: an open market footprint is recorded. */
+    record?: boolean;
   }
 ): Promise<{ ready: number; unready: number }> {
   const now = a.now ?? new Date();
@@ -227,6 +239,8 @@ export async function assessReadiness(
     suppression: suppressionOf(verdicts),
     canUpdate: canUpdateFrom(ownPages),
     coveredBy: (o) => covered.get(o.id) ?? null,
+    // Read only where a row could wait on it.
+    footprint: !rows.some((row) => waitsForFootprint(readOpportunity(row))) || (await footprintOpen(store, siteId, { report, market, record: a.record === true })),
   };
   const business: KindOfBusiness | null =
     market === null ? null : { kind: market.kind ?? null, serves: market.serves ?? null, words: [market.category, ...market.synonyms].join(" ") };

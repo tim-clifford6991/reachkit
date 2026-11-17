@@ -218,7 +218,7 @@ async function tellWeek(a: DueSite & { readonly now: Date }, outcome: WeeklyOutc
     // SPEC §7 (issue 1559): the week's seven pages and three spares,
     // committed after one readiness check — so this Monday's "not working"
     // retires a twice-failed Improve URL — and before the digest states them.
-    await planWeek(a.siteId, { now: a.now });
+    await planWeek(a.siteId, { now: a.now, record: true });
   }
 
   const { sendWeeklyDigest } = await import("@/lib/mail/weekly");

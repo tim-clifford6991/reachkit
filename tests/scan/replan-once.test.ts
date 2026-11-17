@@ -29,7 +29,7 @@ beforeEach(async () => {
   const site = panelSite("savvycal.com");
   const state = newMemoryState({ profile: site.profile, market: site.market, now: AT, rows: site.rows, weeklyCommit: "2026-10-19" });
   const store = memoryStore(state);
-  setOpportunityStore({ ...store, topTenRows: async () => storedSerps(site.domain), commitPlan: (id, entries) => (commits++, store.commitPlan(id, entries)) });
+  setOpportunityStore({ ...store, footprintOpened: async () => true, topTenRows: async () => storedSerps(site.domain), commitPlan: (id, entries) => (commits++, store.commitPlan(id, entries)) });
   await planWeek(SITE_ID, { now: AT });
   // The owner's hand-set day: a spare moved onto 20 Oct, with no reason the planner gave.
   const spare = state.rows.find((row) => row.plan_place != null && row.planned_for == null)!;

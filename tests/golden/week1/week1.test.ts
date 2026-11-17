@@ -143,7 +143,7 @@ it("each panel site's first week ends each day in a writable pack or a named rea
     "# Week 1 at 0¢, from the stored panel supply",
     "",
     "Seeded from each site's last stored panel topics and market, banded from their stored volume at a site that ranks for nothing. The pass that derives the supply needs the model and the site's pages, which the evidence does not store, so only today's asked topics are added: the People-also-ask and related searches of the stored SERPs, unjudged for fit. That asked-beside evidence is read by readiness too.",
-    "Ready is today's readiness over those rows (`asked` of them are asked topics), with the reasons the rest are held. `research runs live` and `no site facts stored` are days decided inside the live run, not blocked ones.",
+    "Ready is today's readiness over those rows (`asked` of them are asked topics), with the reasons the rest are held; the gate is the market footprint read from the stored SERPs with the site's own profile. `research runs live` and `no site facts stored` are days decided inside the live run, not blocked ones.",
     "",
   ];
   const head = Array.from({ length: DAYS }, (_, n) => `Day ${n + 1}`);
@@ -161,14 +161,14 @@ it("each panel site's first week ends each day in a writable pack or a named rea
       locale: { country: entry.country, language: entry.language as Language } as Locale,
       name: stored?.business.name ?? null,
     };
-    const asked = askedOfReport(w.report);
-    const extra = askedRows(site, asked);
+    const [asked, footprint] = [askedOfReport(w.report), await import("@/lib/market/footprint")];
+    const [extra, gate] = [askedRows(site, asked), footprint.footprintRows({ report: { ...w.report, market: measured({ profile: site.profile, suggestions: [], totalVolume: 0 }, AT) }, market: site.market, readings: [] }).some(footprint.opensGate)];
     const state = newMemoryState({ profile: site.profile, market: site.market, now: AT, asked, rows: [...site.rows, ...extra].map((row) => ({ ...row })) });
-    setOpportunityStore({ ...memoryStore(state), topTenRows: async () => storedSerps(domain) });
+    setOpportunityStore({ ...memoryStore(state), topTenRows: async () => storedSerps(domain), footprintOpened: async () => gate });
     await planFirstWeek(SITE_ID, AT);
     const unready = new Map<string, number>();
     for (const row of state.rows) if (!row.ready) unready.set(row.unready_reason ?? "unready", (unready.get(row.unready_reason ?? "unready") ?? 0) + 1);
-    const readiness = `${state.rows.length - [...unready.values()].reduce((a, b) => a + b, 0)} of ${state.rows.length} (asked ${extra.length})${[...unready].map(([reason, count]) => `, ${reason} ${count}`).join("")}`;
+    const readiness = `gate ${gate ? "open" : "closed"}; ${state.rows.length - [...unready.values()].reduce((a, b) => a + b, 0)} of ${state.rows.length} (asked ${extra.length})${[...unready].map(([reason, count]) => `, ${reason} ${count}`).join("")}`;
     const cells: string[] = [];
     for (let n = 0; n < DAYS; n++) cells.push(await day(w, new Date(AT.getTime() + n * DAY_MS).toISOString().slice(0, 10)));
     setOpportunityStore(null);

@@ -187,7 +187,7 @@ export interface OwnLivePage {
    *  Absent reads as none. */
   readings?: readonly number[];
   /** The first and best place its stored search reading holds. */
-  reading?: Pick<PageReading, "first" | "best">;
+  reading?: Pick<PageReading, "first" | "best"> & Partial<Pick<PageReading, "place">>;
   /** A version of this page was already refreshed for not moving. */
   flatRefreshed?: boolean;
 }

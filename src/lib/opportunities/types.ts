@@ -366,6 +366,8 @@ export type UnreadyReason =
   | "destination_cannot_address"
   /** The business is not the answer: a stored fit below the gate. */
   | "low_fit"
+  /** A new comparison or listicle while the site holds no unbranded place on its market (SPEC §7). */
+  | "out_of_reach"
   /** No longer assigned: a site whose pages ground no fact is written from research (owner, #2511). */
   | "no_grounding_fact";
 
@@ -374,6 +376,7 @@ export const UNREADY_REASONS: readonly UnreadyReason[] = Object.freeze([
   "resting",
   "destination_cannot_address",
   "low_fit",
+  "out_of_reach",
   "no_grounding_fact",
 ]);
 

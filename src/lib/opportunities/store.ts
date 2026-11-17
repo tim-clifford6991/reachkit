@@ -179,8 +179,7 @@ export interface OpportunityStore {
    *  over an earlier one's (#1131) — what a held row's search is compared
    *  by. Only the questions and SERPs are read, never the whole report. */
   topTens(scanIds: readonly string[]): Promise<ReadonlyMap<string, readonly string[]>>;
-  /** The same top tens with each result's domain, address and title, and
-   *  when the scan bought them (issue 1506). */
+  /** The same top tens with each result's domain, address and title, and when the scan bought them (issue 1506). */
   topTenRows(scanIds: readonly string[]): Promise<ReadonlyMap<string, TopTenRead>>;
   /** D62's store (issue 1506): the "People also ask" and related searches
    *  of the SERPs this site's research read, each with its search, bought in
@@ -191,16 +190,17 @@ export interface OpportunityStore {
    *  and whether the customer stopped it — a stopped row's absorbed
    *  searches with it. */
   dismissedSearches(siteId: string): Promise<readonly DismissedSearch[]>;
-  /** Issue 1559: replaces the site's committed week with `entries` — every
-   *  row's place cleared first, then each entry's written. */
+  /** Issue 1559: replaces the site's committed week with `entries` — every row's place cleared first, then each entry's written. */
   commitPlan(siteId: string, entries: readonly PlanEntry[]): Promise<void>;
-  /** The site's committed week, in place order, whatever each row's status
-   *  is now. */
+  /** The site's committed week, in place order, whatever each row's status is now. */
   plannedRows(siteId: string): Promise<readonly OpportunityRow[]>;
   /** The `week_start` of the site's last measured weekly pass, which names the commit it made; `null` before the first. */
   weeklyCommit(siteId: string): Promise<string | null>;
   /** Records the one recommit from `date` that the commit named `commit` allows; `false` where that commit's is held. */
   claimRecommit(siteId: string, date: string, commit: string): Promise<boolean>;
+  /** Whether the site's market footprint was recorded open (SPEC §7 `out_of_reach`; absent: never), and its one record. */
+  footprintOpened?(siteId: string): Promise<boolean>;
+  openFootprint?(siteId: string, row: string): Promise<void>;
   /** Writes a row's cluster and the searches it absorbed. */
   setCluster(opportunityId: string, clusterKey: string, absorbedQueries: readonly string[]): Promise<void>;
   /** The site's current stored report, or `null` where it has no readable one. */
@@ -228,8 +228,7 @@ export interface OpportunityStore {
   /** The volume a pass read for a row it already held unmeasured (SPEC §6,
    *  D64, issue 1301): the column, and the same figure in its evidence. */
   setVolume(opportunityId: string, volume: number, evidence: Evidence): Promise<void>;
-  /** The row's evidence with the shape its stored results page gives it
-   *  (`readiness.ts`). */
+  /** The row's evidence with the shape its stored results page gives it (`readiness.ts`). */
   setEvidence(opportunityId: string, evidence: Evidence): Promise<void>;
   /** Stores the pass's business-fit judgement on a row it already held
    *  (issue 1134): judged once, read by readiness and the ranking. */
@@ -257,8 +256,7 @@ export interface OpportunityStore {
   /** A row a draft was written from: `open` moves to `queued`, and no other
    *  status moves (SPEC §7, 2026-09-15 — issue 712). `true` says it moved. */
   markQueued(opportunityId: string): Promise<boolean>;
-  /** A claim whose draft was never saved is given back: `queued` moves to
-   *  `open` in one conditional update, and no other status moves. */
+  /** A claim whose draft was never saved is given back: `queued` moves to `open` in one conditional update, and no other status moves. */
   reopenIfQueued(opportunityId: string): Promise<void>;
   /** A row whose draft the customer stopped: `open` or `queued` moves to
    *  `dismissed`, and `done` stays done (SPEC §7, 2026-09-15 — issue 712). */
@@ -808,6 +806,8 @@ export function supabaseOpportunityStore(): OpportunityStore {
       return data?.[0]?.week_start ?? null;
     },
     claimRecommit: async (siteId, date, commit) => (await import("@/lib/ops/events")).claimOpsEvent("week_recommitted", siteId, commit, date),
+    footprintOpened: async (siteId) => (await import("@/lib/ops/events")).opsEventHeld("market_footprint", siteId, "open"),
+    openFootprint: async (siteId, row) => void (await (await import("@/lib/ops/events")).claimOpsEvent("market_footprint", siteId, "open", row)),
 
     setReadiness: (opportunityId, reason) => updateRow("setReadiness", opportunityId, { ready: reason === null, unready_reason: reason }),
 
