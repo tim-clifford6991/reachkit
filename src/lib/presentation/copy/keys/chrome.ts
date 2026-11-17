@@ -227,27 +227,27 @@ export const CHROME_COPY = Object.freeze({
   "chrome.nav.about": ["About", { slots: {}, fixedBy: "issue 1396 · drafted" }],
 
   // The head and the four steps
-  "how.eyebrow": ["How it works", { slots: {}, fixedBy: "issue 1597 · drafted" }],
-  "how.headline": ["You run your business. ReachKit works on getting it found.", { slots: {}, fixedBy: "issue 1597 · drafted" }],
+  "how.eyebrow": ["How It Works", { slots: {}, fixedBy: "issue 1597 · drafted · owner 2026-11-16 · issue 2745" }],
+  "how.headline": ["You Run Your Business, ReachKit Gets You Found", { slots: {}, fixedBy: "owner 2026-11-16 · issue 2745" }],
   "how.lead": ["We research your business and competitors. Then every week we write and publish pages that help buyers find you.", { slots: {}, fixedBy: "issue 1597 · drafted" }],
   "how.top.monday": ["Checked what {buyers} search and ask AI", { slots: { buyers: "text" }, fixedBy: "issue 1597 · drafted" }],
   "how.step.eyebrow": ["Step {n} · {name}", { slots: { n: "text", name: "text" }, fixedBy: "issue 1597 · drafted" }],
-  "how.steps.jump": ["The four steps", { slots: {}, fixedBy: "board How it works · issue 1729 · drafted" }],
-  "how.step.1.title": ["We research you", { slots: {}, fixedBy: "issue 1597 · drafted" }],
+  "how.steps.jump": ["The Four Steps", { slots: {}, fixedBy: "board How it works · issue 1729 · drafted · owner 2026-11-16 · issue 2745" }],
+  "how.step.1.title": ["We Research You", { slots: {}, fixedBy: "issue 1597 · drafted · owner 2026-11-16 · issue 2745" }],
   "how.step.1.when": ["first, then every Monday", { slots: {}, fixedBy: "issue 1597 · drafted" }],
-  "how.step.2.title": ["We pick what buyers ask", { slots: {}, fixedBy: "issue 1597 · drafted" }],
+  "how.step.2.title": ["We Pick What Buyers Ask", { slots: {}, fixedBy: "issue 1597 · drafted · owner 2026-11-16 · issue 2745" }],
   "how.step.2.when": ["every Monday", { slots: {}, fixedBy: "issue 1597 · drafted" }],
   "how.step.2.line": ["The questions you can win on Google and in AI answers.", { slots: {}, fixedBy: "issue 1597 · drafted" }],
-  "how.step.3.title": ["We write your pages", { slots: {}, fixedBy: "issue 1597 · drafted" }],
+  "how.step.3.title": ["We Write Your Pages", { slots: {}, fixedBy: "issue 1597 · drafted · owner 2026-11-16 · issue 2745" }],
   "how.step.3.when": ["up to {weekPages} a week", { slots: { weekPages: "text" }, fixedBy: "issue 1597 · drafted" }],
-  "how.step.4.title": ["You see it working", { slots: {}, fixedBy: "issue 1597 · drafted" }],
+  "how.step.4.title": ["You See It Working", { slots: {}, fixedBy: "issue 1597 · drafted · owner 2026-11-16 · issue 2745" }],
   "how.step.4.when": ["from week {week}", { slots: { week: "text" }, fixedBy: "board How it works · issue 1729 · drafted" }],
   "how.step.4.line": ["A Monday email shows what went live and what moved.", { slots: {}, fixedBy: "issue 1597 · drafted" }],
   "how.steps.loop": ["Repeats every week, without you", { slots: {}, fixedBy: "issue 1597 · drafted" }],
   "how.steps.part": ["Your part: answer a few questions and connect your site.", { slots: {}, fixedBy: "owner 2026-11-13 · issue 2656" }],
 
   // research
-  "how.research.title": ["We get to know your business", { slots: {}, fixedBy: "issue 1597 · drafted" }],
+  "how.research.title": ["We Get to Know Your Business", { slots: {}, fixedBy: "issue 1597 · drafted · owner 2026-11-16 · issue 2745" }],
   "how.research.body": ["First we read your website: what you sell, who buys, and where. Every page starts from this, so it says only what’s true.", { slots: {}, fixedBy: "issue 1597 · drafted" }],
   "how.read.title": ["Your business, as we read it", { slots: {}, fixedBy: "issue 1597 · drafted" }],
   "how.read.pages": ["{pages} pages read", { slots: { pages: "text" }, fixedBy: "issue 1597 · drafted" }],
@@ -263,7 +263,7 @@ export const CHROME_COPY = Object.freeze({
   "how.read.held.list": ["No page list for Google", { slots: {}, fixedBy: "issue 1597 · drafted" }],
 
   // competitors
-  "how.rivals.title": ["Who buyers choose instead of you", { slots: {}, fixedBy: "issue 1597 · drafted" }],
+  "how.rivals.title": ["Who Buyers Choose Instead of You", { slots: {}, fixedBy: "issue 1597 · drafted · owner 2026-11-16 · issue 2745" }],
   "how.rivals.body": ["We look up what your buyers search and ask AI, and see who gets chosen instead of you.", { slots: {}, fixedBy: "board PubHowItWorks v36 · owner 2026-11-01" }],
   "how.rivals.google": ["On Google", { slots: {}, fixedBy: "issue 1597 · drafted" }],
   "how.rivals.first": ["Google’s first page", { slots: {}, fixedBy: "issue 1597 · drafted" }],
@@ -275,7 +275,7 @@ export const CHROME_COPY = Object.freeze({
   "how.rivals.more": ["… and {n} more results", { slots: { n: "text" }, fixedBy: "board How it works · issue 1729 · drafted" }],
 
   // questions
-  "how.pick.title": ["We pick questions you can win", { slots: {}, fixedBy: "issue 1597 · drafted" }],
+  "how.pick.title": ["We Pick Questions You Can Win", { slots: {}, fixedBy: "issue 1597 · drafted · owner 2026-11-16 · issue 2745" }],
   "how.pick.body": ["We pick questions that fit you, get searched, and that you can win. Each becomes a new page, or an update to one you have.", { slots: {}, fixedBy: "issue 1597 · drafted" }],
   "how.pick.list": ["What {buyers} search for", { slots: { buyers: "text" }, fixedBy: "issue 1597 · drafted" }],
   "how.pick.volume": ["searched about {n} times a month", { slots: { n: "text" }, fixedBy: "issue 1597 · drafted" }],
@@ -288,7 +288,7 @@ export const CHROME_COPY = Object.freeze({
   "how.reason.off": ["Not a buyer", { slots: {}, fixedBy: "issue 1597 · drafted" }],
 
   // pages
-  "how.week.title": ["Your pages go live every week", { slots: {}, fixedBy: "issue 1597 · drafted" }],
+  "how.week.title": ["Your Pages Go Live Every Week", { slots: {}, fixedBy: "issue 1597 · drafted · owner 2026-11-16 · issue 2745" }],
   "how.week.body": ["Every Monday we plan up to {weekPages} pages for the week, new or updated. If nothing is worth writing, we skip the day.", { slots: { weekPages: "text" }, fixedBy: "issue 1597 · drafted" }],
   "how.week.name": ["{business}’s week", { slots: { business: "text" }, fixedBy: "issue 1597 · drafted" }],
   "how.week.auto": ["Runs by itself", { slots: {}, fixedBy: "issue 1597 · drafted" }],
@@ -303,7 +303,7 @@ export const CHROME_COPY = Object.freeze({
   "how.week.address": ["On your own web address.", { slots: {}, fixedBy: "issue 1597 · drafted" }],
 
   // true
-  "how.true.title": ["Pages true to your business", { slots: {}, fixedBy: "board How it works · issue 1729 · drafted" }],
+  "how.true.title": ["Pages True to Your Business", { slots: {}, fixedBy: "board How it works · issue 1729 · drafted · owner 2026-11-16 · issue 2745" }],
   "how.true.body": ["Pages are written with AI, only from facts on your site and linked sources. Each faces up to {checks} checks, and anything invented is held back.", { slots: { checks: "text" }, fixedBy: "issue 1597 · drafted" }],
   "how.true.eyebrow": ["{business} · {place}", { slots: { business: "text", place: "text" }, fixedBy: "board How it works · issue 1729 · drafted" }],
   "how.true.never": ["Not on your site, so it’s not in your page", { slots: {}, fixedBy: "issue 1597 · drafted" }],
@@ -311,7 +311,7 @@ export const CHROME_COPY = Object.freeze({
   "how.disclosure": ["Written with Claude, an AI model, from your own site.", { slots: {}, fixedBy: "issue 1597 · drafted" }],
 
   // found
-  "how.found.title": ["See it working from week {week}", { slots: { week: "text" }, fixedBy: "board How it works · issue 1729 · drafted" }],
+  "how.found.title": ["See It Working From Week {week}", { slots: { week: "text" }, fixedBy: "board How it works · issue 1729 · drafted · owner 2026-11-16 · issue 2745" }],
   "how.found.body": ["Every Monday an email shows what went live and what moved. Google moves slowly, so it also shows what comes next.", { slots: {}, fixedBy: "issue 1597 · drafted" }],
   "how.mail.subject": ["Monday: what moved this week", { slots: {}, fixedBy: "issue 1597 · drafted" }],
   "how.mail.calm": ["Nothing needs you. Each page goes live at {time} on its day unless you stop it.", { slots: { time: "text" }, fixedBy: "issue 1597 · drafted" }],
@@ -327,7 +327,7 @@ export const CHROME_COPY = Object.freeze({
   "how.when.top.what": ["Some reach Google’s first page. Not every page gets there.", { slots: {}, fixedBy: "issue 1597 · drafted" }],
 
   // you do
-  "how.part.title": ["Your part: three steps", { slots: {}, fixedBy: "owner 2026-11-13 · issue 2656" }],
+  "how.part.title": ["Your Part: Three Steps", { slots: {}, fixedBy: "owner 2026-11-13 · issue 2656 · owner 2026-11-16 · issue 2745" }],
   "how.part.body": ["Check what we read about your business, then connect your website. After that you’re done, though you can edit or stop any page.", { slots: {}, fixedBy: "issue 1597 · drafted" }],
   "how.part.one": ["Is this your business?", { slots: {}, fixedBy: "issue 1597 · drafted" }],
   "how.part.one.line": ["Your website, your country and the area you serve.", { slots: {}, fixedBy: "issue 1597 · drafted" }],
@@ -342,7 +342,7 @@ export const CHROME_COPY = Object.freeze({
   "how.part.window": ["Optional. Each page goes live {hours} hours after it is written, unless you stop it.", { slots: { hours: "text" }, fixedBy: "issue 1597 · drafted" }],
 
   // value
-  "how.value.title": ["{price} a month, everything included", { slots: { price: "text" }, fixedBy: "issue 1597 · drafted" }],
+  "how.value.title": ["{price} a Month, Everything Included", { slots: { price: "text" }, fixedBy: "issue 1597 · drafted · owner 2026-11-16 · issue 2745" }],
   "how.value.body": ["One plan, tax included. No contract, and you can cancel any time.", { slots: {}, fixedBy: "issue 1597 · drafted" }],
   "how.value.jobs": ["Who does the {jobs} jobs", { slots: { jobs: "text" }, fixedBy: "board How it works · board Pricing" }],
   "how.value.job.research": ["research", { slots: {}, fixedBy: "board How it works · board Pricing" }],

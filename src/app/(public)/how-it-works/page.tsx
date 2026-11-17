@@ -1,5 +1,5 @@
 // How the product works, in public (board *How it works*,
-// docs/SPEC.md §1 How it works page). The head and its four-step strip, then ten sections, each
+// docs/SPEC.md §1 How it works page). The split head with its four step links, then ten sections, each
 // with an outcome heading, a short body and one picture, and nothing folded
 // away but the questions. The pictures draw one example business, Tidyslot.
 //
@@ -28,6 +28,7 @@ import { KIND_ICON, KIND_WORD } from "../scans/kinds";
 import { HOW_FACTS as F } from "../_how/facts";
 import { EXAMPLES } from "../_how/specimen";
 import { ThreeWays } from "../_how/compare";
+import { Head } from "../_library/head";
 import { AsWeRead, PageWithSources, QuestionList, WeekOfPages, WhatToExpect, WhoGetsThem, YourPart } from "../_how/visuals";
 
 export const metadata: Metadata = staticMetadata(PUBLIC_ROUTE_SEO.how);
@@ -93,7 +94,7 @@ function Section(p: {
     <section
       id={p.id}
       aria-labelledby={heading}
-      className={`border-base-300 scroll-mt-16 border-t py-12 lg:py-20 ${p.band === true ? "bg-base-100" : ""}`}
+      className={`border-base-300 scroll-mt-20 border-t py-12 lg:py-20 ${p.band === true ? "bg-base-100" : ""}`}
     >
       <div className={`${INNER} grid grid-cols-1 items-start gap-8 ${p.wide === true ? "" : "lg:grid-cols-[5fr_7fr] lg:gap-12"}`}>
         <div className="flex min-w-0 flex-col gap-4">
@@ -111,61 +112,74 @@ function Section(p: {
   );
 }
 
-function Head(): React.JSX.Element {
+/** The four steps, each card a link to the section that tells it. */
+function Steps(): React.JSX.Element {
+  return (
+    <div className="flex min-w-0 flex-col gap-4">
+      <h2 className="text-lg">{copy("how.steps.jump")}</h2>
+      <ol className="grid grid-cols-2 gap-4">
+        {STEPS.map((step) => (
+          <li key={step.n} className="min-w-0">
+            <a href={step.href} className="card card-border bg-base-100 h-full transition-transform hover:-translate-y-0.5">
+              <span className="card-body gap-2">
+                <span className="flex flex-wrap items-center gap-2 sm:grid sm:grid-cols-[auto_1fr]">
+                  <span className="bg-primary text-primary-content grid size-7 shrink-0 place-items-center rounded-full text-sm font-semibold">
+                    {step.n}
+                  </span>
+                  <span className="rounded-field bg-primary/10 text-primary grid size-8 shrink-0 place-items-center">
+                    <step.icon {...ICON} />
+                  </span>
+                  <span className="badge badge-soft badge-primary badge-sm h-auto sm:col-span-2 sm:justify-self-start sm:whitespace-nowrap">
+                    {copy(stepKey(step.n, "when"), step.when)}
+                  </span>
+                </span>
+                <span className="text-base font-semibold">{copy(stepKey(step.n, "title"))}</span>
+              </span>
+            </a>
+          </li>
+        ))}
+      </ol>
+      <p className="badge badge-ghost h-auto gap-1 py-1 whitespace-normal">
+        <RefreshCw size={14} strokeWidth={1.75} aria-hidden />
+        {copy("how.steps.loop")}
+      </p>
+    </div>
+  );
+}
+
+function Top(): React.JSX.Element {
   return (
     <section id="top" aria-labelledby="top-h" className="scroll-mt-16 pt-12 pb-12 lg:pt-16">
-      <div className={`${INNER} flex flex-col items-start gap-4`}>
-        <p className={LABEL}>{copy("how.eyebrow")}</p>
-        <h1 id="top-h" className="t-hero">
-          {copy("how.headline")}
-        </h1>
-        <p className={`${BODY} max-w-2xl text-lg`}>{copy("how.lead")}</p>
-        <ScanCta />
-        <div className="flex flex-col gap-2">
-          <p id={KINDS_ID} className="text-sm font-bold">
-            {copy("landing.hero.kinds.label")}
-          </p>
-          <ul aria-labelledby={KINDS_ID} className="flex flex-wrap gap-1.5">
-            {BUSINESS_KIND_NAMES.map((kind) => {
-              const Icon = KIND_ICON[kind];
-              return (
-                <li key={kind} className="badge badge-outline border-base-300 h-8 gap-1.5 font-semibold">
-                  <Icon size={16} strokeWidth={1.75} className="text-primary" aria-hidden />
-                  {copy(KIND_WORD[kind])}
-                </li>
-              );
-            })}
-          </ul>
-        </div>
+      <div className={INNER}>
+        <Head
+          id="top-h"
+          top={<p className={LABEL}>{copy("how.eyebrow")}</p>}
+          title={copy("how.headline")}
+          mark={copy("how.headline.mark")}
+          lead={
+            <>
+              <p className={`${BODY} max-w-2xl text-lg`}>{copy("how.lead")}</p>
+              <ScanCta />
+            </>
+          }
+          aside={<Steps />}
+        />
       </div>
-      <div className={`${INNER} mt-12`}>
-        <h2 className="text-lg">{copy("how.steps.jump")}</h2>
-        <ol className="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
-          {STEPS.map((step) => (
-            <li key={step.n} className="min-w-0">
-              <Link href={step.href} className="card card-border bg-base-100 h-full transition-transform hover:-translate-y-0.5">
-                <span className="card-body gap-2">
-                  <span className="flex flex-wrap items-center gap-2 sm:grid sm:grid-cols-[auto_1fr]">
-                    <span className="bg-primary text-primary-content grid size-7 shrink-0 place-items-center rounded-full text-sm font-semibold">
-                      {step.n}
-                    </span>
-                    <span className="rounded-field bg-primary/10 text-primary grid size-8 shrink-0 place-items-center">
-                      <step.icon {...ICON} />
-                    </span>
-                    <span className="badge badge-soft badge-primary badge-sm h-auto sm:col-span-2 sm:justify-self-start sm:whitespace-nowrap">
-                      {copy(stepKey(step.n, "when"), step.when)}
-                    </span>
-                  </span>
-                  <span className="text-base font-semibold">{copy(stepKey(step.n, "title"))}</span>
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ol>
-        <p className="badge badge-ghost mt-4 h-auto gap-1 py-1 whitespace-normal">
-          <RefreshCw size={14} strokeWidth={1.75} aria-hidden />
-          {copy("how.steps.loop")}
+      <div className={`${INNER} mt-12 flex flex-col gap-2`}>
+        <p id={KINDS_ID} className="text-sm font-bold">
+          {copy("landing.hero.kinds.label")}
         </p>
+        <ul aria-labelledby={KINDS_ID} className="flex flex-wrap gap-1.5">
+          {BUSINESS_KIND_NAMES.map((kind) => {
+            const Icon = KIND_ICON[kind];
+            return (
+              <li key={kind} className="badge badge-outline border-base-300 h-8 gap-1.5 font-semibold">
+                <Icon size={16} strokeWidth={1.75} className="text-primary" aria-hidden />
+                {copy(KIND_WORD[kind])}
+              </li>
+            );
+          })}
+        </ul>
       </div>
     </section>
   );
@@ -230,22 +244,26 @@ export default function HowItWorksPage(): React.JSX.Element {
       }}
     >
       <main className="flex flex-col" data-testid={PAGE_TEST_ID}>
-        <Head />
+        <Top />
 
         <Section id="research" band eyebrow={eyebrow(1)} title={copy("how.research.title")} body={copy("how.research.body")}>
           {AsWeRead(EXAMPLE)}
         </Section>
 
-        <Section id="competitors" title={copy("how.rivals.title")} body={copy("how.rivals.body")} wide>
+        <Section id="competitors" band title={copy("how.rivals.title")} body={copy("how.rivals.body")} wide>
           {WhoGetsThem(EXAMPLE)}
         </Section>
 
-        <Section id="questions" band eyebrow={eyebrow(2)} title={copy("how.pick.title")} body={copy("how.pick.body")}>
+        <Section id="questions" eyebrow={eyebrow(2)} title={copy("how.pick.title")} body={copy("how.pick.body")}>
           {QuestionList(EXAMPLE)}
         </Section>
 
-        <Section id="pages" eyebrow={eyebrow(3)} title={copy("how.week.title")} body={copy("how.week.body", weekPages)} wide>
+        <Section id="pages" band eyebrow={eyebrow(3)} title={copy("how.week.title")} body={copy("how.week.body", weekPages)} wide>
           {WeekOfPages(EXAMPLE)}
+        </Section>
+
+        <Section id="found" eyebrow={eyebrow(4)} title={copy("how.found.title", FIRST_WEEK)} body={copy("how.found.body")}>
+          <WhatToExpect />
         </Section>
 
         <Section id="true" band title={copy("how.true.title")} body={copy("how.true.body", { checks: HARD_RULES.length })}>
@@ -256,15 +274,11 @@ export default function HowItWorksPage(): React.JSX.Element {
           </p>
         </Section>
 
-        <Section id="found" eyebrow={eyebrow(4)} title={copy("how.found.title", FIRST_WEEK)} body={copy("how.found.body")}>
-          <WhatToExpect />
-        </Section>
-
-        <Section id="you-do" band title={copy("how.part.title")} body={copy("how.part.body")}>
+        <Section id="you-do" title={copy("how.part.title")} body={copy("how.part.body")}>
           {YourPart(EXAMPLE)}
         </Section>
 
-        <Section id="value" title={copy("how.value.title", { price: PRICE() })} body={copy("how.value.body")} wide>
+        <Section id="value" band title={copy("how.value.title", { price: PRICE() })} body={copy("how.value.body")} wide>
           <ValueFigure />
           <form action={startCheckout} data-testid={CHECKOUT_TEST_ID}>
             <button type="submit" className="btn btn-primary">
@@ -273,7 +287,7 @@ export default function HowItWorksPage(): React.JSX.Element {
           </form>
         </Section>
 
-        <Section id="faq" band title={copy("landing.faq.heading")} wide>
+        <Section id="faq" title={copy("landing.faq.heading")} wide>
           <div className="grid min-w-0 grid-cols-1 items-start gap-2 lg:grid-cols-2">
             {questions().map((item) => (
               <details key={item.q} className="collapse collapse-arrow card-border bg-base-100 min-w-0">
@@ -286,7 +300,7 @@ export default function HowItWorksPage(): React.JSX.Element {
           </div>
         </Section>
 
-        <Section id="start" title={copy("landing.close.heading")}>
+        <Section id="start" band title={copy("landing.close.heading")}>
           <div className="flex min-w-0 flex-col gap-2" data-testid={SCAN_TEST_ID}>
             <ScanForm words={scanFormWords(copy("landing.start.cta"))} />
             <p className="font-mono text-xs text-base-content/70">{copy("landing.hero.assurance")}</p>
