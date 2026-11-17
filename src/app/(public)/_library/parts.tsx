@@ -539,7 +539,7 @@ export function LearnClose(p: { variant: LearnCloseVariant; domain?: string }): 
           <h2 id="start-h">{copy(close.heading ?? "landing.close.heading")}</h2>
           {close.lead === undefined ? null : <p className="max-w-xl">{copy(close.lead, FIGURES)}</p>}
           <div className="w-full max-w-xl text-start">
-            <ScanForm words={scanFormWords(submit)} initial={p.domain === undefined ? undefined : { value: p.domain }} inline />
+            <ScanForm words={scanFormWords(submit)} initial={p.domain === undefined ? undefined : { value: p.domain }} />
           </div>
           <p className={SMALL}>{copy("landing.hero.assurance")}</p>
         </section>

@@ -3,6 +3,9 @@
 import type { CopyPartition } from "../registry.ts";
 
 export const LANDING_COPY = Object.freeze({
+  /** The why badge over the hero's title, and the title's catch words: a substring of `landing.headline`. */
+  "landing.hero.why": ["Buyers Ask AI What to Use", { slots: {}, fixedBy: "owner 2026-11-16 · issue 2745" }],
+  "landing.headline.mark": ["Get Found", { slots: {}, fixedBy: "owner 2026-11-16 · issue 2745" }],
   /** The offer under the field, one tick line each. */
   "landing.hero.offer.free": ["Free scan and first page", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
   "landing.hero.offer.price": ["{price} a month, cancel any time", { slots: { price: "text" }, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
@@ -49,23 +52,23 @@ export const LANDING_COPY = Object.freeze({
   "landing.mail.planned": ["planned this week", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
   "landing.mail.row": ["{day} · New page · live today, {time}", { slots: { day: "text", time: "text" }, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
   /** *What {price} a month gets you*: each card a title and one line, then the price band; its terms are the wording `landing.trust` shipped. */
-  "landing.plan.pages": ["Up to {weekPages} pages a week", { slots: { weekPages: "text" }, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
+  "landing.plan.pages": ["Up to {weekPages} Pages a Week", { slots: { weekPages: "text" }, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
   "landing.plan.pages.line": ["New or updated. Never filler.", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
-  "landing.plan.facts": ["Facts from your site", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
+  "landing.plan.facts": ["Facts From Your Site", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
   "landing.plan.facts.line": ["Every fact linked to its source. Up to {checks} checks before a page goes live.", { slots: { checks: "text" }, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
-  "landing.plan.mail": ["An email every Monday", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
+  "landing.plan.mail": ["An Email Every Monday", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
   "landing.plan.mail.line": ["What went live and what’s next. In week 1, one for each page too.", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
-  "landing.plan.rivals": ["Up to {rivals} competitors", { slots: { rivals: "text" }, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
+  "landing.plan.rivals": ["Up to {rivals} Competitors", { slots: { rivals: "text" }, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
   "landing.plan.rivals.line": ["Watched every week.", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
-  "landing.plan.site": ["Site checks", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
+  "landing.plan.site": ["Site Checks", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
   "landing.plan.site.line": ["Your whole site checked for problems, with the fix for each.", { slots: {}, fixedBy: "board Landing · issue 1596" }],
-  "landing.plan.tracking": ["Google and ChatGPT tracking", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
+  "landing.plan.tracking": ["Google and ChatGPT Tracking", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
   "landing.plan.tracking.line": ["Where your pages sit in Google, and which ones Google’s AI and ChatGPT link to.", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
-  "landing.plan.time": ["Your part", { slots: {}, fixedBy: "owner 2026-11-13 · issue 2656" }],
+  "landing.plan.time": ["Your Part", { slots: {}, fixedBy: "owner 2026-11-13 · issue 2656" }],
   "landing.plan.time.line": ["Answer a few questions and connect your site. That’s all.", { slots: {}, fixedBy: "owner 2026-11-13 · issue 2656" }],
-  "landing.plan.control": ["Edit or stop any page", { slots: {}, fixedBy: "board PubLanding v37 · owner 2026-11-06" }],
+  "landing.plan.control": ["Edit or Stop Any Page", { slots: {}, fixedBy: "board PubLanding v37 · owner 2026-11-06" }],
   "landing.plan.control.line": ["Each page waits {hours} hours before it goes live. Edit it, stop it, or do nothing.", { slots: { hours: "text" }, fixedBy: "board PubLanding v37 · owner 2026-11-06" }],
-  "landing.plan.one": ["One plan, everything in it", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
+  "landing.plan.one": ["One Plan, Everything in It", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
   "landing.plan.terms": ["VAT included. Cancel any time.", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
   /** The article band under the questions: one line under its heading, and each card's way in. */
   "landing.articles.sub": ["ReachKit wrote and published each article, the same way it works for you.", { slots: {}, fixedBy: "board PubLanding v37 · owner 2026-11-06" }],

@@ -542,9 +542,9 @@ export const REPORT_COPY = Object.freeze({
     "No competitor yet",
     { law: "no-presence-yet", slots: {}, fixedBy: "REQ-010 c1" },
   ],
-  "landing.headline": ["Get found where your competitors are and customers search.", { slots: {}, fixedBy: "owner 2026-11-06 · board PubLanding v37" }],
+  "landing.headline": ["Get Found Where Your Competitors Are and Customers Search", { slots: {}, fixedBy: "owner 2026-11-16 · issue 2745" }],
   "landing.field.label": ["Your website", { slots: {}, fixedBy: "REQ-001 c1" }],
-  "landing.submit.label": ["Scan my site", { slots: {}, fixedBy: "REQ-001 c1" }],
+  "landing.submit.label": ["Scan My Site", { slots: {}, fixedBy: "REQ-001 c1" }],
   "landing.problem.empty": ["Type your website’s address, like example.com.", { slots: {}, fixedBy: "REQ-001 c3" }],
   "landing.problem.not-a-hostname": ["That isn’t a website address. Try one like example.com.", { slots: {}, fixedBy: "REQ-001 c3" }],
   "landing.problem.ip-literal": ["That’s a number, not a website name. Try one like example.com.", { slots: {}, fixedBy: "REQ-001 c3" }],
@@ -569,12 +569,11 @@ export const REPORT_COPY = Object.freeze({
   // L7–L10 were the demo video block. Issue 1396 replaced the frame with
   // *What happens every day* (`landing.day.*` in `chrome.ts`).
   "landing.subline": ["We research your business and competitors, then write pages that get you found, on autopilot.", { slots: {}, fixedBy: "owner O2 · 2026-10-31" }],
-  "landing.why.eyebrow": ["Why you should care", { slots: {}, fixedBy: "issue 266 · L11" }],
-  "landing.why.heading": ["Buyers ask AI what to use.", { slots: {}, fixedBy: "issue 266 · L12" }],
+  "landing.why.heading": ["Why Is This Important?", { slots: {}, fixedBy: "owner 2026-11-16 · issue 2745" }],
   "landing.why.sub": ["If you’re not in the answer, that buyer never meets you.", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
   "landing.start.eyebrow": ["How it works", { slots: {}, fixedBy: "board Landing · issue 1596" }],
-  "landing.start.heading": ["You scan. We write. You watch.", { slots: {}, fixedBy: "board Landing · issue 1596" }],
-  "landing.start.cta": ["Scan my site for free", { slots: {}, fixedBy: "issue 266 · L25" }],
+  "landing.start.heading": ["You Scan. We Write. You Watch", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.start.cta": ["Scan My Site for Free", { slots: {}, fixedBy: "issue 266 · L25" }],
 
   // ── S1, the owner-approved screen set (2026-09-08) ────────────────────
   //
@@ -603,18 +602,18 @@ export const REPORT_COPY = Object.freeze({
   /** Section 03's three Step cards. The eyebrow and the three titles are
    *  approved (11a); the three bodies are bracketed in the set, and are the
    *  owner's approved sentences (2026-09-10, #459). */
-  "landing.step.1.title": ["Scan your site", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.step.1.title": ["Scan Your Site", { slots: {}, fixedBy: "board Landing · issue 1596" }],
   "landing.step.1.body": ["Type your website. See who Google and its AI answers pick over you, and what to fix first.", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
   "landing.glance.rivals": ["Who buyers pick instead", { slots: {}, fixedBy: "board PubLanding · issue 1997 · drafted" }],
   "landing.glance.first": ["Your first page, proposed free:", { slots: {}, fixedBy: "board PubLanding · issue 1997 · drafted" }],
   "landing.mail.inbox": ["Inbox", { slots: {}, fixedBy: "board PubLanding · issue 1997" }],
-  "landing.step.2.title": ["We choose and write your pages", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.step.2.title": ["We Choose and Write Your Pages", { slots: {}, fixedBy: "board Landing · issue 1596" }],
   "landing.step.2.body": ["Every Monday we plan up to {weekPages} pages. Each is written from facts on your site, then checked.", { slots: { weekPages: "text" }, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
   // Step 3's title is the one approved-set string on this screen the owner
   // has since replaced: the set promised a page a day, and the Autopilot
   // brief (DECISIONS 2026-09-10) rules that out — a page goes live when one
   // is ready, at most one a day. Approved 2026-09-11 (#516).
-  "landing.step.3.title": ["You see progress", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.step.3.title": ["You See Progress", { slots: {}, fixedBy: "board Landing · issue 1596" }],
   "landing.step.3.body": ["Each page goes live on its own day. Every Monday an email shows what went live and what moved.", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
 
   /* ── The landing in its 2026-09-24 order (#1067) ─────────────────────
@@ -625,13 +624,13 @@ export const REPORT_COPY = Object.freeze({
   "landing.inside.title": ["Inside ReachKit", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
   /** *Why you should care*: two cards, each a title, a line and a small
    *  drawing whose words follow it. */
-  "landing.feature.ai.title": ["Get mentioned in AI answers", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
+  "landing.feature.ai.title": ["Get Mentioned in AI Answers", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
   "landing.feature.ai.body": ["Every Monday we ask Google’s AI and ChatGPT your buyers’ questions. You see if they name you, or a competitor.", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
   /** The AI card's drawing: one answer, who it mentions, and the business it leaves out. */
   "landing.feature.ai.ask": ["What’s the best booking app for a small team?", { slots: {}, fixedBy: "board PubLanding v37 · owner 2026-11-06" }],
   "landing.feature.ai.mentions": ["An AI answer mentions", { slots: {}, fixedBy: "board Landing · issue 1596" }],
   "landing.feature.ai.you": ["{you}: not mentioned", { slots: { you: "text" }, fixedBy: "board Landing · issue 1596" }],
-  "landing.feature.google.title": ["Get found on Google", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
+  "landing.feature.google.title": ["Get Found on Google", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
   "landing.feature.google.body": [
     "We find searches where competitors show up and you don’t. Then we write pages for the ones you can win.",
     { slots: {}, fixedBy: "board R12-1 · issue 1067" },
@@ -647,13 +646,13 @@ export const REPORT_COPY = Object.freeze({
   "landing.step.2.tag": ["every Monday", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
   "landing.step.3.tag": ["from week 1", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
   /** The closing band: its heading, and the line under its button. */
-  "landing.close.heading": ["See who gets your buyers today", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
-  "landing.price.heading": ["What {price} a month gets you", { slots: { price: "text" }, fixedBy: "board Landing · issue 1596" }],
+  "landing.close.heading": ["See Who Gets Your Buyers Today", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
+  "landing.price.heading": ["What’s Included for {price}/month?", { slots: { price: "text" }, fixedBy: "owner 2026-11-16 · issue 2745" }],
   "landing.price.month": ["a month", { slots: {}, fixedBy: "board PubLanding · issue 1727 · drafted" }],
   "landing.price.terms": ["{price} a month. One plan. Cancel any time.", { slots: { price: "text" }, fixedBy: "board Landing · issue 1596" }],
   /** The questions owners ask, each a question and its answer. */
   "landing.faq.eyebrow": ["Questions", { slots: {}, fixedBy: "board Landing · issue 1596" }],
-  "landing.faq.heading": ["Questions owners ask", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.faq.heading": ["Questions Owners Ask", { slots: {}, fixedBy: "board Landing · issue 1596" }],
   "landing.faq.spam.q": ["Is this AI spam?", { slots: {}, fixedBy: "board Landing · issue 1596" }],
   "landing.faq.spam.a": ["No. Claude, an AI model, writes each page from your site and linked sources. A page that fails its checks twice never goes live.", { slots: {}, fixedBy: "board Landing · issue 1596" }],
   "landing.faq.approve.q": ["Do I have to approve each page?", { slots: {}, fixedBy: "board Landing · issue 1596" }],

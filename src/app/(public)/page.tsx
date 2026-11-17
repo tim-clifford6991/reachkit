@@ -7,13 +7,14 @@
 //
 // **The order is docs/SPEC.md §1 Landing order** (board *Landing*), one story with one example business, below the chrome
 // the group layout draws:
-//   1. the hero — title, subline, the one field, the offer, the count of sites
-//      scanned (`HeroProof.tsx`) and the six kinds of business — beside the
-//      story card (`Storyboard.tsx`); on a phone the story card comes last
-//      (board v37);
+//   1. the hero — the why badge, the title with its catch words, subline, the
+//      one field, the offer and the count of sites scanned (`HeroProof.tsx`),
+//      centred — beside the story card (`Storyboard.tsx`); on a phone the
+//      story card comes last (board v37);
 //   2. the walkthrough video, once its file exists (`Walkthrough.tsx`);
 //   3. the three steps, each beside its picture, and one link to How it works;
-//   4. *Why you should care* — four features (`Features.tsx`);
+//   4. *Why Is This Important?* — the features (`Features.tsx`), then the six
+//      kinds of business;
 //   5. what the one plan gets you: its eight cards, then the price band;
 //   6. the questions owners ask;
 //   7. the newest three articles ReachKit published, where any are stored;
@@ -33,7 +34,7 @@ import type React from "react";
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, Check } from "lucide-react";
+import { ArrowRight, Check, Sparkles } from "lucide-react";
 import { Surface } from "@/ui/layout";
 import { measuredCountryLists } from "@/lib/locale/locales";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
@@ -66,6 +67,19 @@ const STEPS = [
   { n: "2", title: "landing.step.2.title", body: "landing.step.2.body", tag: "landing.step.2.tag", Figure: InsideReachKit },
   { n: "3", title: "landing.step.3.title", body: "landing.step.3.body", tag: "landing.step.3.tag", Figure: MondayCard },
 ] as const;
+
+/** A title with its catch words in `<em>` (DESIGN *Catch words*); a mark the title does not hold marks nothing. */
+function marked(title: string, mark: string): React.ReactNode {
+  const at = title.indexOf(mark);
+  if (at < 0 || mark === "") return title;
+  return (
+    <>
+      {title.slice(0, at)}
+      <em className="text-primary bg-primary/15 rounded-field px-1.5 font-extrabold italic box-decoration-clone">{mark}</em>
+      {title.slice(at + mark.length)}
+    </>
+  );
+}
 
 /** The offer under the field, one tick line each. */
 const offer = (): readonly string[] => [copy("landing.hero.offer.free"), copy("landing.hero.offer.price", { price: PRICE() })];
@@ -135,8 +149,12 @@ export default function LandingPage(props: {
         {/* ══ HERO ══ */}
         <section id={FIELD_SECTION_ID} className="scroll-mt-20 pt-6 pb-12 lg:pt-10 lg:pb-22">
           <div className={`${INNER} grid grid-cols-1 items-center gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:gap-12`}>
-            <div className="flex min-w-0 flex-col items-start gap-5 lg:gap-6">
-              <h1 className="t-hero">{copy("landing.headline")}</h1>
+            <div className="flex min-w-0 flex-col items-center gap-5 text-center lg:gap-6">
+              <p className="badge badge-soft badge-primary badge-lg gap-1.5 font-semibold">
+                <Sparkles size={16} strokeWidth={1.75} aria-hidden />
+                {copy("landing.hero.why")}
+              </p>
+              <h1 className="t-hero">{marked(copy("landing.headline"), copy("landing.headline.mark"))}</h1>
               <p className="text-lg text-base-content/70">{copy("landing.subline")}</p>
               <div className="w-full">
                 {prefill === undefined ? (
@@ -147,7 +165,7 @@ export default function LandingPage(props: {
                   <ScanForm hero initial={prefill} words={words} />
                 )}
               </div>
-              <ul className="flex flex-col gap-1.5 sm:flex-row sm:gap-6">
+              <ul className="flex flex-col items-center gap-1.5 sm:flex-row sm:justify-center sm:gap-6">
                 {offer().map((line) => (
                   <li key={line} className="text-base-content flex items-center gap-2 text-base font-semibold">
                     <Check size={20} strokeWidth={1.75} className="text-success shrink-0" aria-hidden />
@@ -158,22 +176,6 @@ export default function LandingPage(props: {
               <Suspense fallback={null}>
                 <HeroProof />
               </Suspense>
-              <div className="flex flex-col gap-2">
-                <p id={KINDS_ID} className="text-base font-bold">
-                  {copy("landing.hero.kinds.label")}
-                </p>
-                <ul aria-labelledby={KINDS_ID} className="flex flex-wrap gap-1.5">
-                  {BUSINESS_KIND_NAMES.map((kind) => {
-                    const Icon = KIND_ICON[kind];
-                    return (
-                      <li key={kind} className="badge badge-soft badge-primary badge-lg gap-1.5 font-semibold">
-                        <Icon size={16} strokeWidth={1.75} className="text-primary" aria-hidden />
-                        {copy(KIND_WORD[kind])}
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
             </div>
             <Storyboard />
           </div>
@@ -213,16 +215,31 @@ export default function LandingPage(props: {
           </div>
         </section>
 
-        {/* ══ WHY YOU SHOULD CARE ══ */}
+        {/* ══ WHY IS THIS IMPORTANT ══ */}
         <section id={WHY_SECTION_ID} className={`${SECTION} scroll-mt-16 bg-base-100`}>
           <div className={INNER}>
             <div className="max-w-2xl">
-              <p className={LABEL}>{copy("landing.why.eyebrow")}</p>
               <h2 className={HEADING}>{copy("landing.why.heading")}</h2>
               <p className={`${BODY} text-lg lg:text-xl`}>{copy("landing.why.sub")}</p>
             </div>
             <div className="mt-9">
               <Features />
+            </div>
+            <div className="mt-9 flex flex-col gap-2">
+              <p id={KINDS_ID} className="text-base font-bold">
+                {copy("landing.hero.kinds.label")}
+              </p>
+              <ul aria-labelledby={KINDS_ID} className="flex flex-wrap gap-1.5">
+                {BUSINESS_KIND_NAMES.map((kind) => {
+                  const Icon = KIND_ICON[kind];
+                  return (
+                    <li key={kind} className="badge badge-soft badge-primary badge-lg gap-1.5 font-semibold">
+                      <Icon size={16} strokeWidth={1.75} className="text-primary" aria-hidden />
+                      {copy(KIND_WORD[kind])}
+                    </li>
+                  );
+                })}
+              </ul>
             </div>
           </div>
         </section>
