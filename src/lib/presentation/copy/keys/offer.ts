@@ -38,9 +38,9 @@ export const OFFER_COPY = Object.freeze({
   "offer.veto.window": ["Stop or edit any page before it goes live.", { slots: {}, fixedBy: "REQ-021 c2 · board PubReport · owner O6 2026-10-31" }],
   // Issue 1068, board R12-2: the price close's heading on the report.
   // Drafted; the owner corrects the wording.
-  "offer.close.heading": ["Gain ground every week.", { slots: {}, fixedBy: "issue 1068 · owner A1 2026-10-19" }],
+  "offer.close.heading": ["Gain Ground Every Week", { slots: {}, fixedBy: "issue 1068 · owner A1 2026-10-19" }],
   // Board PubReport (issue 1724, drafted): the offer where the report found pages to write.
-  "offer.found.heading": ["We write these pages for you", { slots: {}, fixedBy: "board PubReport · owner O6 2026-10-31" }],
+  "offer.found.heading": ["We Write These Pages for You", { slots: {}, fixedBy: "board PubReport · owner O6 2026-10-31" }],
   "offer.found.line": ["Written from facts on your own site. All on autopilot.", { slots: {}, fixedBy: "board PubReport · owner O6 2026-10-31" }],
   "offer.start": ["Start ReachKit", { slots: {}, fixedBy: "REQ-021 c4" }],
   /** The **control's** own label, and the one the approved set draws on it:

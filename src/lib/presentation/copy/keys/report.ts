@@ -127,7 +127,7 @@ export const REPORT_COPY = Object.freeze({
   // profile of them, so the market was read from its listing. Short on
   // purpose (master review on #1451). Drafted (#759).
   // Issue 1454: the scanning page's section title, and where the business sells. Drafted (#759).
-  "report.read.title": ["What we read", { slots: {}, fixedBy: "SPEC §2 · issue 1454" }],
+  "report.read.title": ["What We Read", { slots: {}, fixedBy: "SPEC §2 · issue 1454" }],
   "report.read.where.local": ["In and around {place}", { slots: { place: "text" }, fixedBy: "SPEC §2 · issue 1454" }],
   "report.read.where.national": ["Across {country}", { slots: { country: "text" }, fixedBy: "SPEC §2 · issue 1454" }],
   "report.read.where.international": ["Online, in more than one country", { slots: {}, fixedBy: "SPEC §2 · issue 1454" }],
@@ -157,13 +157,13 @@ export const REPORT_COPY = Object.freeze({
   // did not cause and the only one that names no wait, because nobody can
   // say when we start again (ADR-011).
   "notice.refused.stopped": ["Free scans are paused for now. Every report stays open to read.", { slots: {}, fixedBy: "REQ-003 c12" }],
-  "control.rescan-age": ["Scan again", { slots: {}, fixedBy: "REQ-001 c15" }],
-  "control.rescan-incomplete": ["Scan what’s missing", { slots: {}, fixedBy: "REQ-001 c14" }],
-  "control.retry": ["Scan again", { slots: {}, fixedBy: "REQ-001 c16 · issue 2657 S4 (issue 2671, drafted)" }],
+  "control.rescan-age": ["Scan Again", { slots: {}, fixedBy: "REQ-001 c15" }],
+  "control.rescan-incomplete": ["Scan What’s Missing", { slots: {}, fixedBy: "REQ-001 c14" }],
+  "control.retry": ["Scan Again", { slots: {}, fixedBy: "REQ-001 c16 · issue 2657 S4 (issue 2671, drafted)" }],
   // Issue 715: the control on a part the pass's ceiling cut off — SPEC §2
   // quotes the words.
-  "control.retry-part": ["Scan this part again", { slots: {}, fixedBy: "SPEC §2 · issue 715 · issue 2657 S4 (issue 2671, drafted)" }],
-  "copy-link.label": ["Copy link", { slots: {}, fixedBy: "REQ-001 c7" }],
+  "control.retry-part": ["Scan This Part Again", { slots: {}, fixedBy: "SPEC §2 · issue 715 · issue 2657 S4 (issue 2671, drafted)" }],
+  "copy-link.label": ["Copy Link", { slots: {}, fixedBy: "REQ-001 c7" }],
 
   // ── Module 1, the verdict strip (BUILD §4.1) ──────────────────────────
   // The domain and the date ride beside the score so it is never a bare
@@ -207,12 +207,12 @@ export const REPORT_COPY = Object.freeze({
   // REQ-094 c1's correction control, as S2 draws it. #786 gives it its
   // destination: an inline field that posts the corrected market to
   // `POST /api/report/{domain}/correct` and follows the rerun's stages.
-  "verdict.not-your-market": ["Not your market? Correct it", { slots: {}, fixedBy: "REQ-094 c1" }],
+  "verdict.not-your-market": ["Not Your Market? Correct It", { slots: {}, fixedBy: "REQ-094 c1" }],
   // #786: the field, its line and its outcomes. Drafted in the registry's
   // voice under the 2026-09-16 ruling (#759) — named in the PR for the
   // owner to correct.
   "correction.field.label": ["Your market, in a few words", { slots: {}, fixedBy: "SPEC §2 · issue 786" }],
-  "correction.submit": ["Scan again for this market", { slots: {}, fixedBy: "SPEC §2 · issue 786" }],
+  "correction.submit": ["Scan Again for This Market", { slots: {}, fixedBy: "SPEC §2 · issue 786" }],
   "correction.cancel": ["Cancel", { slots: {}, fixedBy: "SPEC §2 · issue 786" }],
   "correction.line": [
     "You can correct this once. We reuse the AI answers we have.",
@@ -262,12 +262,12 @@ export const REPORT_COPY = Object.freeze({
   "scan.head": ["Scanning {domain}", { slots: { domain: "text" }, fixedBy: "board PubScanning · issue 1725" }],
   "scan.progress.title": ["Progress", { slots: {}, fixedBy: "board PubScanning · issue 1725" }],
   "scan.get.score": ["Your Visibility Score", { slots: {}, fixedBy: "board PubScanning · issue 1725" }],
-  "scan.filling.title": ["Your report so far", { slots: {}, fixedBy: "board PubScanning · issue 1725" }],
+  "scan.filling.title": ["Your Report So Far", { slots: {}, fixedBy: "board PubScanning · issue 1725" }],
   "scan.filling.grey": ["Still loading…", { slots: {}, fixedBy: "board PubScanning · issue 1725 · owner 2026-11-03 · issue 2123" }],
-  "scan.filling.readers": ["Who can read your site", { slots: {}, fixedBy: "board PubScanning · issue 1725" }],
-  "scan.filling.competitors": ["Your competitors", { slots: {}, fixedBy: "board PubScanning · issue 1725" }],
-  "scan.filling.searches": ["{searches} searches buyers make", { slots: { searches: "text" }, fixedBy: "board PubScanning · issue 1725" }],
-  "scan.filling.ai": ["What AI answers say", { slots: {}, fixedBy: "board PubScanning · issue 1725" }],
+  "scan.filling.readers": ["Who Can Read Your Site", { slots: {}, fixedBy: "board PubScanning · issue 1725" }],
+  "scan.filling.competitors": ["Your Competitors", { slots: {}, fixedBy: "board PubScanning · issue 1725" }],
+  "scan.filling.searches": ["{searches} Searches Buyers Make", { slots: { searches: "text" }, fixedBy: "board PubScanning · issue 1725" }],
+  "scan.filling.ai": ["What AI Answers Say", { slots: {}, fixedBy: "board PubScanning · issue 1725" }],
   "scan.filling.pages": ["{pages} pages read", { slots: { pages: "text" }, fixedBy: "board PubScanning · issue 1905" }],
   "scan.filling.buyer": ["Who buys: {buyer}", { slots: { buyer: "text" }, fixedBy: "board PubScanning · E44 · issue 2064" }],
   "scan.filling.reader.google": ["Google", { slots: {}, fixedBy: "board PubScanning · issue 1905" }],
@@ -364,7 +364,7 @@ export const REPORT_COPY = Object.freeze({
   // could measure lists them all, so the list's count is not the report's
   // measured count. These two say which is which; the pair above stays for
   // a report that measured every question it lists.
-  "ai-answers.questions.title.partial": ["Searches scanned: {measured} of {total}", { slots: { total: "text", measured: "text" }, fixedBy: "issue 1309 · drafted" }],
+  "ai-answers.questions.title.partial": ["Searches Scanned: {measured} of {total}", { slots: { total: "text", measured: "text" }, fixedBy: "issue 1309 · drafted" }],
   "ai-answers.questions.measured.partial": [
     "We scanned {measured} of the {total} we found. Rows marked not measured don’t count.",
     { slots: { measured: "text", total: "text" }, fixedBy: "issue 1309 · drafted" },
@@ -416,7 +416,7 @@ export const REPORT_COPY = Object.freeze({
   // A figure: one count out of another, as each card's head states it.
   "report.figure.of": ["{count} of {total}", { slots: { count: "text", total: "text" }, fixedBy: "issue 1444" }],
   "presence.no-rivals": ["No competitor showed up in these searches.", { slots: {}, fixedBy: "REQ-008 c6" }],
-  "presence.absent-from.title": ["Searches where you don’t show up", { slots: {}, fixedBy: "REQ-008 c4 · owner O6 2026-10-31" }],
+  "presence.absent-from.title": ["Searches Where You Don’t Show Up", { slots: {}, fixedBy: "REQ-008 c4 · owner O6 2026-10-31" }],
   "presence.absent-from.column.search": ["Search", { slots: {}, fixedBy: "REQ-008 c4" }],
   "presence.absent-from.column.volume": ["Searches a month", { slots: {}, fixedBy: "REQ-008 c4" }],
   "presence.absent-from.column.holder": ["Who’s first", { slots: {}, fixedBy: "REQ-008 c4" }],
@@ -425,28 +425,28 @@ export const REPORT_COPY = Object.freeze({
 
   // ── Module 3, the three problem cards (REQ-009) ───────────────────────
   // One title and one doer per problem; the severity words are BANDS_COPY's `severity.*`.
-  "problem.blocked-readers.title": ["AI shut out of your site", { slots: {}, fixedBy: "SPEC §0 · owner R12 B2 2026-10-22 · issue 1724" }],
+  "problem.blocked-readers.title": ["AI Shut Out of Your Site", { slots: {}, fixedBy: "SPEC §0 · owner R12 B2 2026-10-22 · issue 1724" }],
   "problem.blocked-readers.doer": ["Free fix · 10 min", { slots: {}, fixedBy: "REQ-009 c2" }],
-  "problem.missing-pages.title": ["Missing pages", { slots: {}, fixedBy: "REQ-009 c1" }],
+  "problem.missing-pages.title": ["Missing Pages", { slots: {}, fixedBy: "REQ-009 c1" }],
   "problem.missing-pages.doer": ["ReachKit writes", { slots: {}, fixedBy: "REQ-009 c5" }],
-  "problem.unquotable-pages.title": ["Pages AI can’t quote", { slots: {}, fixedBy: "REQ-009 c1" }],
+  "problem.unquotable-pages.title": ["Pages AI Can’t Quote", { slots: {}, fixedBy: "REQ-009 c1" }],
   "problem.unquotable-pages.doer": ["ReachKit rewrites on WordPress", { slots: {}, fixedBy: "REQ-009 c5" }],
   // The one control any fix carries (REQ-009 c2), on the paste arm only.
-  "problem.paste.label": ["Copy the lines", { slots: {}, fixedBy: "REQ-009 c2" }],
+  "problem.paste.label": ["Copy the Lines", { slots: {}, fixedBy: "REQ-009 c2" }],
   // The fixes' heads, each card's one-line cause, and the *show me* link it opens. Drafted; the owner corrects them.
-  "problem.section.title": ["Site fixes", { slots: {}, fixedBy: "issue 1068" }],
+  "problem.section.title": ["Site Fixes", { slots: {}, fixedBy: "issue 1068" }],
   "problem.section.sub": ["The {problems} that cost you most, then {checks} quick checks", { slots: { problems: "text", checks: "text" }, fixedBy: "issue 1068" }],
   "problem.section.sub.problems": ["The {problems} that cost you most", { slots: { problems: "text" }, fixedBy: "issue 1068 · issue 2123 · drafted" }],
   "problem.section.sub.checks": ["{checks} quick checks", { slots: { checks: "text" }, fixedBy: "issue 1068 · issue 2123 · drafted" }],
   // With nothing to list: the problems measured and the checks that ran, all passed. Owner-owed wording (#1034).
   "problem.section.none": ["All {n} checks passed.", { slots: { n: "text" }, fixedBy: "issue 2123 · drafted" }],
-  "problem.top.title": ["Fix these first", { slots: {}, fixedBy: "issue 2520 · drafted" }],
+  "problem.top.title": ["Fix These First", { slots: {}, fixedBy: "issue 2520 · drafted" }],
   "problem.blocked-readers.cause": ["Your site blocks AI, or asks Google and AI to skip pages.", { slots: {}, fixedBy: "board PubReport · issue 1724" }],
   "problem.missing-pages.cause": ["Questions your buyers ask that no page on your site answers.", { slots: {}, fixedBy: "issue 1068" }],
   "problem.unquotable-pages.cause": ["These pages have no clear answer AI can quote.", { slots: {}, fixedBy: "issue 1068" }],
-  "problem.show.lines": ["Show me the lines", { slots: {}, fixedBy: "issue 1068" }],
-  "problem.show.first-page": ["See the first one", { slots: {}, fixedBy: "issue 1068" }],
-  "problem.show.method": ["Show me how", { slots: {}, fixedBy: "issue 1068" }],
+  "problem.show.lines": ["Show Me the Lines", { slots: {}, fixedBy: "issue 1068" }],
+  "problem.show.first-page": ["See the First One", { slots: {}, fixedBy: "issue 1068" }],
+  "problem.show.method": ["Show Me How", { slots: {}, fixedBy: "issue 1068" }],
 
   // ── Module 3, the technical checks (SPEC §9, issue 571) ──────────────
   // The doer words are SPEC §9’s own; the eight card titles and the not-run line are owner-owed.
@@ -489,22 +489,22 @@ export const REPORT_COPY = Object.freeze({
   // Instructional text is allowed here and nowhere else on this screen.
   // S2's eyebrow over the three collapses. The collapses' instructional
   // prose is the owner's (approved 2026-09-10, #459).
-  "method.title": ["Do it yourself, free", { slots: {}, fixedBy: "REQ-009 c6 · owner O6 2026-10-31" }],
-  "method.blocked-readers.title": ["Let AI in", { slots: {}, fixedBy: "board PubReport · issue 1724" }],
+  "method.title": ["Do It Yourself, Free", { slots: {}, fixedBy: "REQ-009 c6 · owner O6 2026-10-31" }],
+  "method.blocked-readers.title": ["Let AI In", { slots: {}, fixedBy: "board PubReport · issue 1724" }],
   "method.blocked-readers.body": ["Open your site’s robots.txt file. Your host usually has a setting for it.", { slots: {}, fixedBy: "board PubReport · owner O6 2026-10-31" }],
   "method.blocked-readers.step.1": ["Add the lines shown, so AI tools are let in.", { slots: {}, fixedBy: "board PubReport · owner O6 2026-10-31" }],
   "method.blocked-readers.step.2": ["Remove nosnippet or max-snippet:0 from any page that has it.", { slots: {}, fixedBy: "board PubReport · owner O6 2026-10-31" }],
   "method.blocked-readers.step.3": ["If your home page says noindex, remove that too.", { slots: {}, fixedBy: "board PubReport · owner O6 2026-10-31" }],
   "method.blocked-readers.snippet-pages": ["AI answers can’t quote these pages:", { slots: {}, fixedBy: "SPEC §9 D14 · issue 1145" }],
   "method.blocked-readers.training-choice": ["Your robots.txt keeps {crawlers} out. That only stops AI training, so we don’t count it.", { slots: { crawlers: "text" }, fixedBy: "SPEC §9 D14 · issue 1145" }],
-  "method.missing-pages.title": ["Write the missing pages", { slots: {}, fixedBy: "REQ-009 c6" }],
+  "method.missing-pages.title": ["Write the Missing Pages", { slots: {}, fixedBy: "REQ-009 c6" }],
   "method.missing-pages.body": ["You don’t need ReachKit for any of this.", { slots: {}, fixedBy: "board PubReport · owner O6 2026-10-31" }],
   "method.missing-pages.step.1": ["Answer the buyer’s question in the first lines.", { slots: {}, fixedBy: "board PubReport · owner O6 2026-10-31" }],
   "method.missing-pages.step.2": ["Back it with facts from your own site, each one linked.", { slots: {}, fixedBy: "board PubReport · owner O6 2026-10-31" }],
   "method.missing-pages.step.3": ["Put it on your own website, at a plain address.", { slots: {}, fixedBy: "board PubReport · owner O6 2026-10-31" }],
   "method.missing-pages.step.4": ["Link to it from a page that already does well.", { slots: {}, fixedBy: "board PubReport · owner O6 2026-10-31" }],
   "method.missing-pages.step.5": ["A few pages a week is a good pace. One a week still helps.", { slots: {}, fixedBy: "board PubReport · owner O6 2026-10-31" }],
-  "method.unquotable-pages.title": ["Make pages AI can quote", { slots: {}, fixedBy: "REQ-009 c6" }],
+  "method.unquotable-pages.title": ["Make Pages AI Can Quote", { slots: {}, fixedBy: "REQ-009 c6" }],
   "method.unquotable-pages.body": ["AI quotes pages that answer a question directly.", { slots: {}, fixedBy: "board PubReport · owner O6 2026-10-31" }],
   "method.unquotable-pages.step.1": ["Turn each heading into a question a buyer asks.", { slots: {}, fixedBy: "board PubReport · owner O6 2026-10-31" }],
   "method.unquotable-pages.step.2": ["Put a direct answer of 2 or 3 sentences under it.", { slots: {}, fixedBy: "board PubReport · owner O6 2026-10-31" }],
@@ -512,7 +512,7 @@ export const REPORT_COPY = Object.freeze({
   "method.unquotable-pages.step.4": ["Keep the page’s address, so it keeps what it has earned.", { slots: {}, fixedBy: "board PubReport · owner O6 2026-10-31" }],
 
   // ── Module 5, the free page card (REQ-010, BUILD §4.2's trade) ────────
-  "free-page.title": ["Your first page, free", { slots: {}, fixedBy: "REQ-010 c1 · board PubReport" }],
+  "free-page.title": ["Your First Page, Free", { slots: {}, fixedBy: "REQ-010 c1 · board PubReport" }],
   "free-page.badge": ["free", { slots: {}, fixedBy: "REQ-010 c1" }],
   // The facts list, in the board's order and words (owner R26).
   "free-page.row.target": ["answers", { slots: {}, fixedBy: "REQ-010 c1 · board PubReport · owner R26" }],
@@ -535,7 +535,7 @@ export const REPORT_COPY = Object.freeze({
   "free-page.email.placeholder": ["you@yourdomain.example", { slots: {}, fixedBy: "REQ-010 c2 · board PubReport · issue 1724" }],
   // True to the nurture sequence: at most NURTURE_MAX_TOUCHES follow-ups, each with a one-click opt-out.
   "free-page.consent": ["We’ll email this report and this page, then up to {touches} short notes. Unsubscribe in one click.", { slots: { touches: "text" }, fixedBy: "board PubReport · owner 2026-11-09, issue 2519" }],
-  "free-page.submit": ["Email me this report", { slots: {}, fixedBy: "REQ-010 c2 · owner 2026-11-09, issue 2519 · owner 2026-11-14, issue 2657 S6 (issue 2672)" }],
+  "free-page.submit": ["Email Me This Report", { slots: {}, fixedBy: "REQ-010 c2 · owner 2026-11-09, issue 2519 · owner 2026-11-14, issue 2657 S6 (issue 2672)" }],
   "free-page.absent": ["No free page this time. We found nothing worth writing.", { slots: {}, fixedBy: "REQ-004 c10" }],
 
   "place.report.first-page.rival": [
@@ -713,16 +713,16 @@ export const REPORT_COPY = Object.freeze({
    *  measured enough, and neither is a scan that is simply still running.
    *  `refusal.ts` maps them with `satisfies`, so a sixth reason fails the
    *  build until it has a heading here too. */
-  "quiet.refused.head.network-limit": ["Too many scans from your network", { slots: {}, fixedBy: "issue 936" }],
-  "quiet.refused.head.network-day-limit": ["No free scans left today", { slots: {}, fixedBy: "issue 936" }],
-  "quiet.refused.head.domain-day-limit": ["No more scans of this site today", { slots: {}, fixedBy: "issue 936" }],
-  "quiet.refused.head.scan-running": ["A scan is already running", { slots: {}, fixedBy: "issue 936" }],
-  "quiet.refused.head.stopped": ["Free scanning is paused", { slots: {}, fixedBy: "issue 936" }],
-  "quiet.cooldown.head": ["We couldn’t finish scanning this site", { slots: {}, fixedBy: "issue 936" }],
-  "quiet.removed.head": ["This report was removed", { slots: {}, fixedBy: "issue 936" }],
-  "control.scan-another": ["Scan a different site", { slots: {}, fixedBy: "issue 936" }],
-  "control.example-report": ["Read an example report", { slots: {}, fixedBy: "issue 936" }],
-  "control.back-to-start": ["Back to the start", { slots: {}, fixedBy: "issue 936" }],
+  "quiet.refused.head.network-limit": ["Too Many Scans From Your Network", { slots: {}, fixedBy: "issue 936" }],
+  "quiet.refused.head.network-day-limit": ["No Free Scans Left Today", { slots: {}, fixedBy: "issue 936" }],
+  "quiet.refused.head.domain-day-limit": ["No More Scans of This Site Today", { slots: {}, fixedBy: "issue 936" }],
+  "quiet.refused.head.scan-running": ["A Scan Is Already Running", { slots: {}, fixedBy: "issue 936" }],
+  "quiet.refused.head.stopped": ["Free Scanning Is Paused", { slots: {}, fixedBy: "issue 936" }],
+  "quiet.cooldown.head": ["We Couldn’t Finish Scanning This Site", { slots: {}, fixedBy: "issue 936" }],
+  "quiet.removed.head": ["This Report Was Removed", { slots: {}, fixedBy: "issue 936" }],
+  "control.scan-another": ["Scan a Different Site", { slots: {}, fixedBy: "issue 936" }],
+  "control.example-report": ["Read an Example Report", { slots: {}, fixedBy: "issue 936" }],
+  "control.back-to-start": ["Back to the Start", { slots: {}, fixedBy: "issue 936" }],
 
   /* ── The free-scans gallery, `/scans`, and the landing's strip (#1069) ── */
   // SPEC §2 Gallery board. The words of board `PubScans`; the
@@ -817,16 +817,16 @@ export const REPORT_COPY = Object.freeze({
   // SPEC §2, owner A3 and E1 (2026-10-19): the report lists every page it
   // found missing; the count is said once, in the headline (owner R12).
   "report.offer.free-path.lead": ["Not ready?", { slots: {}, fixedBy: "board PubReport v36 · owner 2026-11-01" }],
-  "report.offer.free-path": ["Get your first page free ↓", { slots: {}, fixedBy: "board PubReport v36 · owner 2026-11-01" }],
+  "report.offer.free-path": ["Get Your First Page Free ↓", { slots: {}, fixedBy: "board PubReport v36 · owner 2026-11-01" }],
   "report.missing.volume": ["searched {volume} times a month", { slots: { volume: "text" }, fixedBy: "owner E1 2026-10-19 · issue 1599 · drafted" }],
   "report.missing.holder": ["answered today by {holder}", { slots: { holder: "text" }, fixedBy: "owner E1 2026-10-19 · issue 1599 · drafted" }],
   "report.missing.rest": ["Topics 6 to {last}: the search each one answers", { slots: { last: "text" }, fixedBy: "board PubReport · owner 2026-11-03 · issue 2123" }],
   "report.missing.all": ["All {count}, nothing hidden.", { slots: { count: "text" }, fixedBy: "board PubReport · owner Q3 2026-10-20 · issue 1599" }],
   "report.missing.page": ["page {n}", { slots: { n: "text" }, fixedBy: "board PubReport · 2026-10-24 E16 · issue 1982" }],
   "report.missing.free": ["free · written for you", { slots: {}, fixedBy: "board PubReport · issue 1968" }],
-  "report.missing.free.read": ["Read it free ↓", { slots: {}, fixedBy: "board PubReport · issue 1968" }],
+  "report.missing.free.read": ["Read It Free ↓", { slots: {}, fixedBy: "board PubReport · issue 1968" }],
   "report.rest.eyebrow": ["More in your report", { slots: {}, fixedBy: "board PubReport · issue 1724" }],
-  "report.missing.title": ["Pages you’re missing", { slots: {}, fixedBy: "board PubReport · owner R12 2026-10-31" }],
+  "report.missing.title": ["Pages You’re Missing", { slots: {}, fixedBy: "board PubReport · owner R12 2026-10-31" }],
   "report.missing.lead": [
     "Each one answers a question your buyers ask.",
     { slots: {}, fixedBy: "board PubReport · issue 1599 · issue 2193" },
@@ -843,7 +843,7 @@ export const REPORT_COPY = Object.freeze({
   "report.read.as.kind.software": ["Software", { slots: {}, fixedBy: "board PubReport v36 · owner 2026-11-01 · drafted" }],
   "report.read.as.kind.creator": ["Creator or course", { slots: {}, fixedBy: "board PubReport v36 · owner 2026-11-01 · drafted" }],
   "verdict.estimate.range": ["likely {low} to {high}", { slots: { low: "text", high: "text" }, fixedBy: "board PubReport · issue 1723" }],
-  "verdict.score.split": ["How this score is split", { slots: {}, fixedBy: "board PubReport · owner R12 2026-10-31" }],
+  "verdict.score.split": ["How This Score Is Split", { slots: {}, fixedBy: "board PubReport · owner R12 2026-10-31" }],
   "verdict.score.parts": ["Four parts, combined into one score. They are not added up.", { slots: {}, fixedBy: "board PubReport · owner O6 2026-10-31" }],
   "verdict.score.parts.three": ["Three parts, combined into one score. They are not added up.", { slots: {}, fixedBy: "board PubReport · owner O6 2026-10-31" }],
   // The top names Google's AI, the one AI the free scan asks, and never sums a count over both cards.
@@ -856,13 +856,13 @@ export const REPORT_COPY = Object.freeze({
   "report.top.offer": ["We found {count} questions your buyers ask that no page of yours answers.", { slots: { count: "text" }, fixedBy: "board PubReport · owner 2026-11-03 · issue 2123" }],
   "report.top.offer.one": ["We found 1 question your buyers ask that no page of yours answers.", { slots: {}, fixedBy: "board PubReport · owner 2026-11-03 · issue 2123" }],
   "report.independent": ["An independent report by ReachKit. {company} has not endorsed it.", { slots: { company: "text" }, fixedBy: "board PubReport · owner O6 2026-10-31" }],
-  "report.buyers.title": ["Who gets your buyers", { slots: {}, fixedBy: "board PubReport · owner R12 2026-10-31" }],
+  "report.buyers.title": ["Who Gets Your Buyers", { slots: {}, fixedBy: "board PubReport · owner R12 2026-10-31" }],
   "report.you": ["You", { slots: {}, fixedBy: "board PubReport · issue 1723" }],
   "report.ai.waffle": ["AI mentioned {leader} in {x} of {total} answers, and you in {you}.", { slots: { leader: "text", x: "text", total: "text", you: "text" }, fixedBy: "board PubReport · owner 2026-11-03 · issue 2123" }],
   "report.ai.waffle.you-lead": ["AI mentioned you most, in {you} of {total} answers.", { slots: { you: "text", total: "text" }, fixedBy: "board PubReport · owner 2026-11-03 · issue 2123 · drafted" }],
   "report.ai.quote": ["One answer, for {search}", { slots: { search: "text" }, fixedBy: "board PubReport · issue 1723" }],
   "report.ai.quote.said": ["“{quote}”", { slots: { quote: "text" }, fixedBy: "board PubReport v36 · ux-designer 2026-11-02" }],
-  "report.ai.asked": ["The {total} searches we asked", { slots: { total: "text" }, fixedBy: "board PubReport · issue 1723" }],
+  "report.ai.asked": ["The {total} Searches We Asked", { slots: { total: "text" }, fixedBy: "board PubReport · issue 1723" }],
   "report.google.waffle": ["{leader} is on Google’s first page for {x} of {total} searches. You are on {you}.", { slots: { leader: "text", x: "text", total: "text", you: "text" }, fixedBy: "board PubReport · owner 2026-11-03 · issue 2123" }],
   "report.google.waffle.you-lead": ["You are on Google’s first page most often, for {you} of {total} searches.", { slots: { you: "text", total: "text" }, fixedBy: "board PubReport · owner 2026-11-03 · issue 2123 · drafted" }],
   "report.google.most": ["Most searched: {search}, about {volume} times a month. First on Google: {holder}.", { slots: { search: "text", volume: "text", holder: "text" }, fixedBy: "board PubReport · issue 1723" }],

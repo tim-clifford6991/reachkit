@@ -29,14 +29,14 @@ export const CHROME_COPY = Object.freeze({
   "chrome.wordmark": ["ReachKit", { slots: {}, fixedBy: "S12 · S1" }],
   // The footer's two Product links (UI-SPEC 3a). Approved as written.
   "chrome.nav.pricing": ["Pricing", { slots: {}, fixedBy: "S1 · 3a" }],
-  "chrome.nav.signin": ["Sign in", { slots: {}, fixedBy: "S1 · 3a" }],
+  "chrome.nav.signin": ["Sign In", { slots: {}, fixedBy: "S1 · 3a" }],
   /** The header's one solid CTA (UI-SPEC 3a). **It IS rendered on the
    *  landing** since ruling 2b of 2026-09-08 — "two solid primaries per
    *  screen are allowed where the artifact draws them (landing: header CTA
    *  + hero CTA)" — which supersedes the one-primary reading #290 applied
    *  here. The set brackets the label, so it is the owner's (approved
    *  2026-09-10, #459). */
-  "chrome.cta.scan": ["Scan my site", { slots: {}, fixedBy: "issue 266 · owner 2026-11-14, issue 2657 S6 (issue 2672)" }],
+  "chrome.cta.scan": ["Scan My Site", { slots: {}, fixedBy: "issue 266 · owner 2026-11-14, issue 2657 S6 (issue 2672)" }],
   /** The accessible name of the compact-band control that opens the
    *  links. It is the registered `Collapse`, listing them under the
    *  header — never a drawer or a dropdown (2026-09-07). */
@@ -50,8 +50,8 @@ export const CHROME_COPY = Object.freeze({
   "chrome.theme.to-dark": ["Switch to dark theme", { slots: {}, fixedBy: "board PubLanding · owner 2026-10-20" }],
   "chrome.theme.to-light": ["Switch to light theme", { slots: {}, fixedBy: "board PubLanding · owner 2026-10-20 · drafted" }],
   /** The gallery, third of the header's three links (owner 2026-10-20, Q1). */
-  "chrome.nav.scans": ["Scan library", { slots: {}, fixedBy: "owner 2026-11-06, issue 2452" }],
-  "chrome.cta.start": ["Scan my site", { slots: {}, fixedBy: "issue 1582 · owner 2026-11-14, issue 2657 S6 (issue 2672)" }],
+  "chrome.nav.scans": ["Scan Library", { slots: {}, fixedBy: "owner 2026-11-06, issue 2452" }],
+  "chrome.cta.start": ["Scan My Site", { slots: {}, fixedBy: "issue 1582 · owner 2026-11-14, issue 2657 S6 (issue 2672)" }],
   /** Signed in, the header's one solid button into the app, in place of
    *  *Sign in* and *Start free* (owner 2026-09-26, #1125). The owner's
    *  word, kept over the verb-first press rule. The arrow is its icon. */
@@ -71,7 +71,7 @@ export const CHROME_COPY = Object.freeze({
     { slots: { address: "text" }, fixedBy: "board PubLanding v36 · owner 2026-11-01" },
   ],
   /** The way out of a subscription, from every public page; signed out the app sends it to sign-in first. */
-  "chrome.footer.cancel": ["Cancel your contract", { slots: {}, fixedBy: "board PubLanding v36 · owner 2026-11-01" }],
+  "chrome.footer.cancel": ["Cancel Your Contract", { slots: {}, fixedBy: "board PubLanding v36 · owner 2026-11-01" }],
   "chrome.footer.rights": ["© 2026 ReachKit", { slots: {}, fixedBy: "board PubLanding v36 · owner 2026-11-01" }],
 
   /* ── The pricing page (board Pricing) ─────────────────────────────── */
@@ -126,7 +126,7 @@ export const CHROME_COPY = Object.freeze({
    *  that says what happened and offers two ways on. Drafted under the
    *  owner's 2026-09-16 ruling (#759); the owner corrects the wording. */
   "chrome.notfound.heading": [
-    "We can’t find that page",
+    "We Can’t Find That Page",
     { slots: {}, fixedBy: "issue 936" },
   ],
   /** The address is a slot and not part of the sentence: the set draws it
@@ -153,14 +153,14 @@ export const CHROME_COPY = Object.freeze({
     "reachkit.app/scan/yourdomain.com",
     { slots: {}, fixedBy: "S8 (11a)" },
   ],
-  "chrome.notfound.cta": ["Scan it", { slots: {}, fixedBy: "S8 (11a)" }],
+  "chrome.notfound.cta": ["Scan It", { slots: {}, fixedBy: "S8 (11a)" }],
   /** The same 404 inside the app, where the set's line does not belong: a
    *  customer who is signed in is not being sent to a report address they
    *  already have. S8 draws no account arm, so the line is the owner's
    *  (12a — built in the set's idiom, written by the owner). */
   "chrome.notfound.line.app": ["Nothing is at this address. Go back to Overview.", { slots: {}, fixedBy: "S8 (12a)" }],
   "chrome.error.eyebrow": ["Error", { slots: {}, fixedBy: "S8 (12a)" }],
-  "chrome.error.heading": ["This page didn’t load.", { slots: {}, fixedBy: "S8 (12a)" }],
+  "chrome.error.heading": ["This Page Didn’t Load", { slots: {}, fixedBy: "S8 (12a)" }],
   "chrome.error.line": ["Try again in a minute.", { slots: {}, fixedBy: "S8 (12a)" }],
 
   /** The legal pages' own contents list, built from the document's
@@ -223,7 +223,7 @@ export const CHROME_COPY = Object.freeze({
      and named in that pull request for the owner to correct. A figure is
      always a slot, filled at render from `src/lib/config/constants.ts`
      (`src/app/(public)/_how/facts.ts`), so no number is typed here. */
-  "chrome.nav.works": ["How it works", { slots: {}, fixedBy: "issue 1396 · drafted" }],
+  "chrome.nav.works": ["How It Works", { slots: {}, fixedBy: "issue 1396 · drafted" }],
   "chrome.nav.about": ["About", { slots: {}, fixedBy: "issue 1396 · drafted" }],
 
   // The head and the four steps
@@ -426,7 +426,7 @@ export const CHROME_COPY = Object.freeze({
   // Issue 1458: the pages Google still ranks from earlier versions. The articles' own words are data in `src/app/(public)/_library/`; these are the screens' words around them.
   "chrome.footer.learn": ["Learn", { slots: {}, fixedBy: "issue 1458 · drafted" }],
   "chrome.nav.compare": ["Compare", { slots: {}, fixedBy: "issue 1458 · drafted" }],
-  "chrome.nav.tools": ["Free tools", { slots: {}, fixedBy: "issue 1458 · drafted" }],
+  "chrome.nav.tools": ["Free Tools", { slots: {}, fixedBy: "issue 1458 · drafted" }],
   "chrome.nav.teardowns": ["Teardowns", { slots: {}, fixedBy: "issue 1458 · drafted" }],
   // Issue 1512: ReachKit's own published articles, on its content host, linked from the footer and the landing.
   "chrome.nav.articles": ["Articles", { slots: {}, fixedBy: "issue 1512 · drafted" }],
@@ -692,6 +692,6 @@ export const CHROME_COPY = Object.freeze({
   "tools.tag.twitter-card": ["How the link looks when shared on X", { slots: {}, fixedBy: "board PubToolMeta · issue 1734" }],
   "tools.tag.twitter-card.name": ["the X card", { slots: {}, fixedBy: "board PubToolMeta · issue 1734" }],
   "answers.short": ["Short Answer", { slots: {}, fixedBy: "board PubAnswer · issue 1734 · owner 2026-11-16 · issue 2745" }],
-  "gone.head": ["This page is gone", { slots: {}, fixedBy: "issue 1458 · drafted" }],
+  "gone.head": ["This Page Is Gone", { slots: {}, fixedBy: "issue 1458 · drafted" }],
   "gone.line": ["It belonged to an earlier version of ReachKit and has no replacement. The free scan is the place to start.", { slots: {}, fixedBy: "issue 1458 · drafted" }],
 }) satisfies CopyPartition;

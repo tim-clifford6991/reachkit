@@ -252,22 +252,22 @@ export const PUBLISH_COPY = Object.freeze({
   // has run out, or names no page; those are the owner's approved
   // sentences of 2026-09-10 (#459).
   "publish.veto.ask.head": [
-    "Goes live {when}",
+    "Goes Live {when}",
     { slots: { when: "text" }, fixedBy: "REQ-057 c1 · S6 (11a)" },
   ],
   // Owner ruling Q11 (2026-10-20): no go-live time while the address is unconnected.
-  "publish.veto.ask.head.unconnected": ["Goes live once your website is connected", { slots: {}, fixedBy: "issue 1739 · Q11" }],
+  "publish.veto.ask.head.unconnected": ["Goes Live Once Your Website Is Connected", { slots: {}, fixedBy: "issue 1739 · Q11" }],
   "publish.veto.ask.row.search": ["Search", { slots: {}, fixedBy: "board Veto v36 · issue 2275" }],
   // After the search itself, which is set in the code face as the board draws it.
   "publish.veto.ask.row.volume": ["· searched about {volume} times a month", { slots: { volume: "text" }, fixedBy: "issue 1600 · board Veto v36 · issue 2275" }],
-  "publish.veto.ask.action": ["Stop this page", { slots: {}, fixedBy: "REQ-057 c1 · S6 (11a)" }],
+  "publish.veto.ask.action": ["Stop This Page", { slots: {}, fixedBy: "REQ-057 c1 · S6 (11a)" }],
   // Board Veto v36: the choice not to act, then the way to the page.
   "publish.veto.ask.do-nothing": [
     "Do nothing and it goes live on its own.",
     { slots: {}, fixedBy: "board Veto v36 · issue 2275" },
   ],
   "publish.veto.ask.signin": [
-    "Sign in to edit it",
+    "Sign In to Edit It",
     { slots: {}, fixedBy: "board Veto v36 · issue 2275" },
   ],
   "publish.veto.done.head": ["Stopped", { slots: {}, fixedBy: "S6 (11a)" }],
@@ -279,7 +279,7 @@ export const PUBLISH_COPY = Object.freeze({
    *  which `src/middleware.ts` gates: the reader was bounced to a sign-in
    *  wall with no word about why. It goes to `/signin` now and says so, so
    *  the word and the destination cannot come apart. Drafted (#759). */
-  "publish.veto.calendar": ["Sign in to open This week", { slots: {}, fixedBy: "issue 937" }],
+  "publish.veto.calendar": ["Sign In to Open This Week", { slots: {}, fixedBy: "issue 937" }],
   /** The Veto board's line: other pages are unaffected, and the topic is dropped for good. */
   "publish.veto.stopped": [
     "Your other pages go ahead. ReachKit won’t write this topic again.",
@@ -304,13 +304,13 @@ export const PUBLISH_COPY = Object.freeze({
     { slots: {}, fixedBy: "board Veto v36 · issue 2275" },
   ],
   // The heads of the arms where nothing was stopped; the line under each says why.
-  "publish.veto.closed.head": ["This link has closed", { slots: {}, fixedBy: "issue 1739" }],
-  "publish.veto.unknown.head": ["We can’t use this link", { slots: {}, fixedBy: "issue 1739" }],
-  "publish.veto.used.head": ["Already stopped", { slots: {}, fixedBy: "issue 1739" }],
+  "publish.veto.closed.head": ["This Link Has Closed", { slots: {}, fixedBy: "issue 1739" }],
+  "publish.veto.unknown.head": ["We Can’t Use This Link", { slots: {}, fixedBy: "issue 1739" }],
+  "publish.veto.used.head": ["Already Stopped", { slots: {}, fixedBy: "issue 1739" }],
   // The stop that did not go through: never says Stopped.
-  "publish.veto.failed.head": ["Not stopped yet", { slots: {}, fixedBy: "issue 1739" }],
+  "publish.veto.failed.head": ["Not Stopped Yet", { slots: {}, fixedBy: "issue 1739" }],
   "publish.veto.failed": [
-    "That didn’t go through. Press Stop this page again, or sign in to stop it.",
+    "That didn’t go through. Press Stop This Page again, or sign in to stop it.",
     { slots: {}, fixedBy: "board Veto v36 · issue 2275" },
   ],
   "publish.veto.failed.still": ["Still goes live {when}, unless stopped.", { slots: { when: "text" }, fixedBy: "issue 1739" }],
