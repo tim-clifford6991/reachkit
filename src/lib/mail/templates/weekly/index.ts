@@ -1,67 +1,44 @@
-// SPEC §8 — the Monday mail in board `MondayMail`'s order: greeting, calm line, Overview's numbers (and the month's on its first Monday),
-// the week's pages with why and how to stop each, the pace line, one button. A block list only (ADR-040); absent values are `Measured<T>`.
-// The numbers are Overview's, read with Overview's readers. The unmeasured-week line is `composeMail`'s (REQ-065); footer links are the caller's,
-// since each carries a token only it can sign.
-// A page and an opportunity are named by their search: titles are model text, which REQ-093 keeps out (§8, ADR-012; docs/SPEC.md §0 The canvas is the board set).
+// SPEC §8 — the Monday mail tells one story in a fixed shape: the greeting, then the calm line or the critical needs-you and
+// connect notices, what we did, the running totals (gains only), this week's pages, the pace line and one button.
+// A block list only (ADR-040). The totals are Overview's, read with Overview's reader and drawn under its words; a fall is
+// never drawn, and the standing line says where every figure is. Footer links are the caller's: each carries a token only it can sign.
+// A page and an opportunity are named by their search: titles are model text, which REQ-093 keeps out (§8, ADR-012).
 import { env } from "@/lib/config/env";
-import type { Measured } from "@/lib/measure/measured";
-import { shownKey } from "@/lib/measure/registry";
-import type { IndexState, WeekStanding } from "@/lib/opportunities";
-import { PAGE_VERDICTS } from "@/lib/presentation/bands";
-import { copy, type CopyKey } from "@/lib/presentation/copy";
-import type { IssueChange } from "@/lib/site-issues/changes";
-import { formatMailDayMonth, formatMailWeekday, formatStat } from "../../blocks/format";
-import { issueChangeRows } from "../../blocks/site-issues";
-import type { CopyVars, FactRow, ListRow, MailBlock, StatRow, VerdictRow } from "../../blocks/types";
+import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
+import type { Total, Totals } from "@/lib/measure/totals";
+import type { CopyKey } from "@/lib/presentation/copy";
+import { formatMailDayMonth, formatMailWeekday } from "../../blocks/format";
+import type { CopyVars, ListRow, MailBlock, StatRow } from "../../blocks/types";
 
-const SUBJECT = "mail.weekly.subject" satisfies CopyKey;
-const PREHEADER = "mail.weekly.preheader" satisfies CopyKey;
 const ACTION = "mail.weekly.action" satisfies CopyKey;
 const REASON = "mail.reason.weekly" satisfies CopyKey;
-
-/** The Overview's address (§4.5), absolute from the boot-validated binding. */
-function overviewHref(): string {
-  return new URL("/app", env.NEXT_PUBLIC_APP_URL).toString();
-}
 const HI = "mail.weekly.hi" satisfies CopyKey;
 const HI_UNNAMED = "mail.weekly.hi.unnamed" satisfies CopyKey;
 const CALM = "mail.weekly.calm" satisfies CopyKey;
 const NEEDS_YOU_ACTION = "mail.weekly.needsYou.action" satisfies CopyKey;
 const CONNECT = "mail.weekly.connect" satisfies CopyKey;
 const CONNECT_ACTION = "mail.weekly.connect.action" satisfies CopyKey;
-const LIVE = shownKey("mail-pages-live") satisfies CopyKey;
-const PLANNED = shownKey("mail-pages-planned") satisfies CopyKey;
+const DID = "mail.weekly.did" satisfies CopyKey;
+const DID_ITEM = { new: "mail.weekly.did.item.new", update: "mail.weekly.did.item.update" } as const satisfies Record<string, CopyKey>;
+const DID_CHECKED = "mail.weekly.did.checked" satisfies CopyKey;
 const SET_ASIDE = {
   replaced: { one: "mail.weekly.setAside.one", many: "mail.weekly.setAside.many" },
   unreplaced: { one: "mail.weekly.setAside.one.unreplaced", many: "mail.weekly.setAside.many.unreplaced" },
   updated: { one: "mail.weekly.setAside.one.updated", many: "mail.weekly.setAside.many.updated" },
 } as const satisfies Record<string, Record<string, CopyKey>>;
-const GOOGLE = "mail.weekly.google.title" satisfies CopyKey;
-const SHOWING_CLIMBING = "mail.weekly.google.showing.climbing" satisfies CopyKey;
-const OF_LIVE = "mail.weekly.google.of" satisfies CopyKey;
-const GOOGLE_EARLY = "mail.weekly.google.early" satisfies CopyKey;
-const VISITS = shownKey("mail-google-visits") satisfies CopyKey;
-const VISITS_UP = shownKey("mail-google-visits-up") satisfies CopyKey;
-const VISITS_DOWN = shownKey("mail-google-visits-down") satisfies CopyKey;
-const VISITS_SAME = shownKey("mail-google-visits-same") satisfies CopyKey;
-const CLIMB = "mail.weekly.google.climb" satisfies CopyKey;
-const CLIMB_CLIMBING = "mail.weekly.google.climb.climbing" satisfies CopyKey;
-const CLIMB_NONE = "mail.weekly.google.climb.none" satisfies CopyKey;
-const AI = "mail.weekly.ai.title" satisfies CopyKey;
-const AI_LINKED = shownKey("mail-ai-linked") satisfies CopyKey;
-const AI_EARLY = "mail.weekly.ai.early" satisfies CopyKey;
-const AI_READS = shownKey("mail-ai-reads") satisfies CopyKey;
-const MONTH = "mail.weekly.month" satisfies CopyKey;
-const SCORE = shownKey("mail-score-month") satisfies CopyKey;
-const REPUTATION = shownKey("mail-reputation") satisfies CopyKey;
-const OF = "mail.weekly.month.of" satisfies CopyKey;
-const UP = "mail.weekly.month.up" satisfies CopyKey;
-const DOWN = "mail.weekly.month.down" satisfies CopyKey;
-const NOT_MEASURED = "mail.weekly.number.unmeasured" satisfies CopyKey;
-const NOW_NAMED = "mail.weekly.nowNamed" satisfies CopyKey;
-const NOW_NAMED_ITEM = "mail.weekly.nowNamed.item" satisfies CopyKey;
-const VERDICTS = "mail.weekly.verdicts" satisfies CopyKey;
-const VERDICTS_NONE = "mail.weekly.verdicts.none" satisfies CopyKey;
+// Overview's own words: the mail's sections and figures read as the app's (DESIGN › Names).
+const TOTALS = "overview.totals.title" satisfies CopyKey;
+const TOTAL_LABEL = {
+  ai: "overview.totals.ai.label",
+  google: "overview.totals.google.label",
+  pages: "overview.totals.pages.label",
+} as const satisfies Record<keyof Totals, CopyKey>;
+const TOTAL_UP = "overview.totals.added" satisfies CopyKey;
+const TOTAL_FIRST = "overview.totals.first" satisfies CopyKey;
+const TOTAL_DUE = "overview.totals.first.due" satisfies CopyKey;
+const AI_NONE = "mail.weekly.totals.ai.none" satisfies CopyKey;
+const AI_HOW = "mail.weekly.totals.ai.how" satisfies CopyKey;
+const STANDING = "mail.weekly.standing" satisfies CopyKey;
 const NEXT = "mail.weekly.next" satisfies CopyKey;
 const NEXT_NONE = "mail.weekly.next.none" satisfies CopyKey;
 const NEXT_ITEM = "mail.weekly.next.item" satisfies CopyKey;
@@ -69,13 +46,18 @@ const NEXT_WHY = "mail.weekly.next.why" satisfies CopyKey;
 const NEXT_STOP = "mail.weekly.next.stop" satisfies CopyKey;
 const NEXT_EDIT = "mail.weekly.next.edit" satisfies CopyKey;
 const NEXT_ALL = "mail.weekly.next.all" satisfies CopyKey;
-const NEXT_SKIPPED = "mail.weekly.next.skipped" satisfies CopyKey;
+const NEXT_FEW = { one: "mail.weekly.next.few.one", many: "mail.weekly.next.few" } as const satisfies Record<string, CopyKey>;
 const PACE = "mail.weekly.pace" satisfies CopyKey;
-const SPARES = "mail.weekly.spares" satisfies CopyKey;
-const PAGE = "mail.weekly.page" satisfies CopyKey;
-const PAGE_MOVED = "mail.weekly.page.moved" satisfies CopyKey;
-const PAGE_MOVED_OVER = "mail.weekly.page.moved_over" satisfies CopyKey;
-const PAGE_NOT_VERIFIED = "mail.weekly.page.not_verified" satisfies CopyKey;
+
+/** The subject is the first of these that applies (owner E). */
+const SUBJECT = {
+  blocked: "mail.weekly.blocked.subject",
+  ai: { one: "mail.weekly.ai.one.subject", many: "mail.weekly.ai.subject" },
+  google: { one: "mail.weekly.google.one.subject", many: "mail.weekly.google.subject" },
+  pages: { one: "mail.weekly.pages.one.subject", many: "mail.weekly.pages.subject" },
+  week: "mail.weekly.week.subject",
+} as const;
+const PREHEADER = { blocked: "mail.weekly.preheader.blocked", week: "mail.weekly.preheader" } as const satisfies Record<string, CopyKey>;
 
 /** A page's day line, by whether it updates a page and whether it goes live today. */
 const DAY_LINE = {
@@ -83,18 +65,11 @@ const DAY_LINE = {
   update: { today: "mail.weekly.next.day.update.today", later: "mail.weekly.next.day.update" },
 } as const satisfies Record<string, Record<string, CopyKey>>;
 
-/** The board writes out the first three pages and links the rest to Plan. */
+/** Each list writes out the first three and links the rest to Plan. */
 const WRITTEN_OUT = 3;
 
-/** One judged page; `standing` is the week's stored verdict, never recomputed. */
-export interface WeeklyPage {
-  readonly liveUrl: string | null;
-  /** The search the page was written for; absent or null, the row names the page by its address's last words. */
-  readonly search?: string | null;
-  readonly standing: WeekStanding;
-  /** Whether any stored search result held the page; absent where unreadable. */
-  readonly indexState?: IndexState;
-}
+/** A week planned in full: fewer is said as the pages the business can answer well, never as days without one. */
+const FULL_WEEK = 7;
 
 /** A page the week planned: its search and, once its day is committed,
  *  that day, whether it updates a page, why it was chosen and its two links. */
@@ -120,252 +95,179 @@ export interface WeeklyMail {
   /** UI-SPEC S20's footer line: why this mail arrived. */
   readonly reason?: CopyKey;
   readonly subject: CopyKey;
+  readonly subjectVars?: CopyVars;
   readonly preheader: CopyKey;
   readonly blocks: readonly MailBlock[];
 }
 
-/** SPEC §8: the one item needing the customer this week; absent, the calm line stands instead. */
+/** SPEC §8: the one critical item needing the customer this week; absent, the calm line stands instead. */
 export interface WeeklyNeedsYou {
   readonly line: CopyKey;
   readonly vars?: CopyVars;
   readonly href: string;
 }
 
-/** The Google steps the mail states: Overview's ladder past *Live*, which
- *  the pages row already says. */
-export type GoogleStep = ReturnType<typeof shownKey<"mail-google-found" | "mail-google-showing" | "mail-google-first-page">>;
+/** A page that went live last week, by its search, at its live address. */
+export interface WeeklyDidPage {
+  readonly search: string;
+  readonly liveUrl: string;
+  readonly update: boolean;
+}
 
-/** Overview's weekly figures from Overview's readers; a count nothing read says so in its row, never a zero. */
-export interface WeeklyNumbers {
-  readonly live: Measured<number>;
-  readonly planned: Measured<number>;
-  /** Pages the daily re-check set aside last week, and what the week's stored days say filled them; absent or 0, no line. */
+/** What ReachKit did last week, from publication, draft and scan rows. */
+export interface WeeklyDid {
+  /** When the rows were read. */
+  readonly at: Date;
+  readonly pages: readonly WeeklyDidPage[];
+  /** Pages the daily re-check set aside, and what the week's stored days say filled them; absent or 0, no line. */
   readonly setAside?: { readonly n: number; readonly arm: "updated" | "replaced" | "unreplaced" };
-  /** Absent where no page is live: Overview then draws no ladder. */
-  readonly google?: {
-    /** Each step over the pages it can be read on; unmeasured where none was read. */
-    readonly steps: readonly { readonly name: GoogleStep; readonly count: Measured<number>; readonly of: number }[];
-    /** No page shows in results yet, so the steps past *Found* are too early to count. */
-    readonly early: boolean;
-    /** Showing pages still climbing, as Overview's badge counts them. */
-    readonly climbing?: number;
-    /** Visits from Google this week on the hosted pages; absent where none can be counted. */
-    readonly visits?: Measured<number>;
-    /** The week before's visits, as the Google tab's second-to-last bar; absent in the first week with a visit. */
-    readonly visitsBefore?: Measured<number>;
-    /** `null` where a place was read and no page rose; absent with no place read. */
-    readonly climb?: { readonly search: string; readonly from: number; readonly to: number; readonly climbing: boolean } | null;
-  };
-  /** Absent where no page is live. */
-  readonly ai?: {
-    /** Live pages an answer to their own question linked, of `asked`;
-     *  unmeasured before any page's own question was asked. */
-    readonly linked: Measured<number>;
-    readonly asked: number;
-    /** AI reads this week, on a hosted page; absent elsewhere. */
-    readonly reads?: Measured<number>;
-  };
-  /** Only in the first mail of a month (M-b); each figure absent where that pass stored none. */
-  readonly month?: {
-    readonly score?: { readonly value: Measured<number>; readonly change?: Measured<number> };
-    readonly reputation?: { readonly value: Measured<number>; readonly answers: number; readonly weeks: number };
-  };
+  /** A competitor or category ReachKit itself changed (owner G), each with its reason. */
+  readonly market?: readonly { readonly line: CopyKey; readonly vars: CopyVars }[];
+  /** This week's pass: Google searches read and AI questions asked; said only when no page went live. */
+  readonly checked?: { readonly searches: number; readonly questions: number };
+}
+
+/** Overview's three totals at send time, the unbranded questions AI is asked each week, and when a first count is due. */
+export interface WeeklyTotals {
+  readonly of: Totals;
+  /** When the totals were read: the send. */
+  readonly at: Date;
+  /** `null` where no pass stored its questions. */
+  readonly asked: number | null;
+  /** `YYYY-MM-DD`: the next pass, and the first planned page's day. */
+  readonly due: { readonly measured: string; readonly pages: string };
 }
 
 export function buildWeekly(a: {
-  /** Who the mail greets and which week of service it is; absent, no greeting. */
-  greeting?: { readonly name: string | null; readonly week: number; readonly business: string };
+  /** Who the mail greets and which week of service it is. */
+  greeting: { readonly name: string | null; readonly week: number; readonly business: string };
   /** The address waiting to be connected, and its line where it is not the hosted one; absent once live. */
   connect?: { readonly host: string; readonly href: string; readonly text?: CopyKey };
-  /** Absent on a week that measured nothing, which the whole-mail line already says once. */
-  numbers?: WeeklyNumbers;
-  /** The one thing waiting on the customer, where there is one. */
+  /** The one critical thing waiting on the customer, where there is one. */
   needsYou?: WeeklyNeedsYou;
-  /** `unmeasured` omits the section; measured-empty is its own written line. */
-  pages: Measured<readonly WeeklyPage[]>;
+  /** Absent on a week that measured nothing: the whole-mail line says so once, and no number is stated. */
+  did?: WeeklyDid;
+  /** Absent where the week measured nothing or the totals could not be read. */
+  totals?: WeeklyTotals;
   /** In date order. `unmeasured` omits the section; measured-empty states the supply's empty line, never padded. */
   next: Measured<readonly WeeklyNext[]>;
-  /** The week's dates and publish time; absent, no strip and no calm line. */
+  /** The week's dates and publish time; absent, no calm line. */
   calendar?: WeeklyCalendar;
-  /** Dates in the committed week with no page planned. */
-  skippedDays?: number;
-  /** Spares, written where a day's page cannot be; absent or empty, no list. */
-  spares?: Measured<readonly { targetQuery: string }[]>;
-  /** SPEC §9: checks whose count moved since last Monday; unmeasured or absent where either week stored none. */
-  issues?: Measured<readonly IssueChange[]>;
-  /** D28: what ReachKit changed about the market it measures this week, each with its reason. */
-  marketChanges?: readonly { readonly line: CopyKey; readonly vars: CopyVars }[];
-  /** SPEC §8 (D16): tracked questions that now name the site, by search, with the answer's address. */
-  nowNamed?: Measured<readonly { search: string; answerUrl: string }[]>;
 }): WeeklyMail {
-  const issues = a.issues === undefined ? [] : issueChangeRows(a.issues);
   const g = a.greeting;
+  const blocked = a.needsYou !== undefined || a.connect !== undefined;
+  const subject = subjectOf(blocked, a.totals?.of, g);
+  const measuredWeek = a.did !== undefined;
   return {
-    subject: SUBJECT,
-    preheader: PREHEADER,
+    ...subject,
+    preheader: blocked ? PREHEADER.blocked : PREHEADER.week,
     reason: REASON,
     blocks: [
-      ...(g === undefined
-        ? []
-        : [
-            g.name === null || g.name.trim() === ""
-              ? ({ block: "heading", level: 1, text: HI_UNNAMED, vars: { week: String(g.week), business: g.business } } as const)
-              : ({ block: "heading", level: 1, text: HI, vars: { name: g.name.trim(), week: String(g.week), business: g.business } } as const),
-          ]),
-      // The calm line, only where nothing waits on the customer and pages can go live.
-      ...(a.needsYou !== undefined || a.connect !== undefined || a.calendar === undefined
-        ? []
-        : [{ block: "paragraph", text: CALM, vars: { time: a.calendar.time } } as const]),
-      // No page goes live until the address is connected, so it comes early, every week.
+      g.name === null || g.name.trim() === ""
+        ? { block: "heading", level: 1, text: HI_UNNAMED, vars: { week: String(g.week), business: g.business } }
+        : { block: "heading", level: 1, text: HI, vars: { name: g.name.trim(), week: String(g.week), business: g.business } },
+      // A critical week leads with why nothing goes live (owner F); otherwise the calm line.
+      ...(blocked || a.calendar === undefined ? [] : [{ block: "paragraph", text: CALM, vars: { time: a.calendar.time } } as const]),
       ...(a.connect === undefined
         ? []
         : ([
             { block: "notice", text: a.connect.text ?? CONNECT, vars: { host: a.connect.host } },
             { block: "action", label: CONNECT_ACTION, href: a.connect.href, variant: "secondary" },
           ] as const)),
-      ...(a.numbers === undefined ? [] : numberBlocks(a.numbers)),
-      ...(a.marketChanges ?? []).map((change) => ({ block: "paragraph", text: change.line, vars: change.vars }) as const),
-      // What moved among the technical checks. Nothing measured, or nothing moved: no block.
-      ...(issues.length === 0 ? [] : [{ block: "facts", items: issues } as const]),
-      ...(a.nowNamed === undefined || a.nowNamed.kind === "unmeasured" || a.nowNamed.value.length === 0
-        ? []
-        : [
-            {
-              block: "list",
-              label: NOW_NAMED,
-              items: mapMeasuredRows(a.nowNamed, nowNamedRows),
-              // Unreachable: an empty list is not composed at all.
-              emptyLine: NOW_NAMED,
-            } as const,
-          ]),
-      {
-        block: "verdicts",
-        label: VERDICTS,
-        items: mapMeasuredRows(a.pages, verdictRows),
-        emptyLine: VERDICTS_NONE,
-      },
-      ...weekBlocks(a.next, a.calendar),
-      ...(a.skippedDays === undefined || a.skippedDays === 0
-        ? []
-        : [{ block: "paragraph", text: NEXT_SKIPPED, vars: { count: String(a.skippedDays) } } as const]),
-      ...(a.spares === undefined || a.spares.kind === "unmeasured" || a.spares.value.length === 0
-        ? []
-        : [{ block: "list", label: SPARES, items: mapMeasuredRows(a.spares, spareRows), emptyLine: NEXT_NONE } as const]),
-      // The one needs-you item: its line and the button that opens it.
       ...(a.needsYou === undefined
         ? []
         : ([
             { block: "notice", text: a.needsYou.line, ...(a.needsYou.vars === undefined ? {} : { vars: a.needsYou.vars }) },
             { block: "action", label: NEEDS_YOU_ACTION, href: a.needsYou.href, variant: "secondary" },
           ] as const)),
-      { block: "paragraph", text: PACE, tone: "quiet" },
+      ...(a.did === undefined ? [] : didBlocks(a.did, a.calendar)),
+      ...(a.totals === undefined ? [] : totalBlocks(a.totals)),
+      ...(measuredWeek ? [{ block: "paragraph", text: STANDING, tone: "quiet" } as const] : []),
+      ...weekBlocks(a.next, a.calendar),
+      ...(measuredWeek ? [{ block: "paragraph", text: PACE, tone: "quiet" } as const] : []),
       // S20's one solid button, absolute: an inbox resolves no relative path.
-      { block: "action", label: ACTION, href: overviewHref() },
+      { block: "action", label: ACTION, href: new URL("/app", env.NEXT_PUBLIC_APP_URL).toString() },
+      // A week that measured nothing: the standing line sits under the whole-mail line, which stands above the actions.
+      ...(measuredWeek ? [] : [{ block: "paragraph", text: STANDING, tone: "quiet" } as const]),
     ],
   };
 }
 
-/** Pages, then Google, AI and the month, each under its own title. Every row a
- *  reader could take for a zero carries the line it states instead. */
-function numberBlocks(n: WeeklyNumbers): readonly MailBlock[] {
-  const blocks: MailBlock[] = [
-    {
-      block: "stats",
-      shape: "tiles",
-      items: [
-        { label: LIVE, value: n.live, format: "integer", unmeasuredLine: NOT_MEASURED },
-        { label: PLANNED, value: n.planned, format: "integer", unmeasuredLine: NOT_MEASURED },
-      ],
-    },
-  ];
+/** Blocked, then AI rose, Google rose, pages rose, else the week (owner E). A first count is never a rise. */
+function subjectOf(blocked: boolean, totals: Totals | undefined, g: { week: number; business: string }): { subject: CopyKey; subjectVars?: CopyVars } {
+  if (blocked) return { subject: SUBJECT.blocked };
+  for (const which of ["ai", "google", "pages"] as const) {
+    const total = totals?.[which];
+    if (total?.kind === "added" && total.n > 0) {
+      return total.n === 1 ? { subject: SUBJECT[which].one } : { subject: SUBJECT[which].many, subjectVars: { n: String(total.n) } };
+    }
+  }
+  return { subject: SUBJECT.week, subjectVars: { week: String(g.week), business: g.business } };
+}
+
+/** What we did: up to three live pages and a link to the rest, the set-aside line, ReachKit's own market change, or what was checked. */
+function didBlocks(did: WeeklyDid, calendar: WeeklyCalendar | undefined): readonly MailBlock[] {
+  const rows: ListRow[] = did.pages.slice(0, WRITTEN_OUT).map((page) => ({
+    label: DID_ITEM[page.update ? "update" : "new"],
+    vars: { search: page.search },
+    href: page.liveUrl,
+  }));
+  if (did.pages.length > WRITTEN_OUT && calendar !== undefined) {
+    rows.push({ links: [{ label: NEXT_ALL, vars: { n: String(did.pages.length) }, href: calendar.planHref }] });
+  }
+  const lines: MailBlock[] = [];
   // Told once, with nothing asked: no link and no button follow it (owner O7).
-  const aside = n.setAside;
-  if (aside?.n === 1) blocks.push({ block: "paragraph", text: SET_ASIDE[aside.arm].one });
-  else if (aside !== undefined && aside.n > 1) blocks.push({ block: "paragraph", text: SET_ASIDE[aside.arm].many, vars: { n: String(aside.n) } });
-  const g = n.google;
-  if (g !== undefined) {
-    const steps = g.early ? g.steps.filter((step) => step.name === "draft.ladder.found") : g.steps;
-    blocks.push({ block: "heading", level: 2, text: GOOGLE });
-    if (steps.length > 0) {
-      blocks.push({
-        block: "stats",
-        shape: "bars",
-        items: steps.map((step): StatRow => ({
-          ...(step.name === "draft.ladder.showing" && (g.climbing ?? 0) > 0
-            ? { label: SHOWING_CLIMBING, labelVars: { n: String(g.climbing) } }
-            : { label: step.name }),
-          value: step.count,
-          format: "integer",
-          note: { text: OF_LIVE, vars: { n: String(step.of) } },
-          of: step.of,
-          unmeasuredLine: NOT_MEASURED,
-        })),
-      });
-    }
-    if (g.early) blocks.push({ block: "paragraph", text: GOOGLE_EARLY });
-    if (g.visits !== undefined && g.visits.kind !== "unmeasured") {
-      blocks.push(visitsLine(g.visits, g.visitsBefore));
-    }
-    if (g.climb === null) blocks.push({ block: "paragraph", text: CLIMB_NONE });
-    else if (g.climb !== undefined) {
-      const vars = { search: g.climb.search, from: String(g.climb.from), to: String(g.climb.to) };
-      blocks.push({ block: "paragraph", text: g.climb.climbing ? CLIMB_CLIMBING : CLIMB, vars, tone: "ok" });
-    }
+  const aside = did.setAside;
+  if (aside?.n === 1) lines.push({ block: "paragraph", text: SET_ASIDE[aside.arm].one });
+  else if (aside !== undefined && aside.n > 1) lines.push({ block: "paragraph", text: SET_ASIDE[aside.arm].many, vars: { n: String(aside.n) } });
+  for (const change of did.market ?? []) lines.push({ block: "paragraph", text: change.line, vars: change.vars });
+  if (rows.length === 0 && did.checked !== undefined) {
+    lines.push({ block: "paragraph", text: DID_CHECKED, vars: { searches: String(did.checked.searches), questions: String(did.checked.questions) } });
   }
-  if (n.ai !== undefined) {
-    blocks.push({ block: "heading", level: 2, text: AI });
-    if (n.ai.linked.kind === "unmeasured") blocks.push({ block: "paragraph", text: AI_EARLY });
-    else {
-      const linked = formatStat(n.ai.linked, "integer");
-      blocks.push({ block: "paragraph", text: AI_LINKED, vars: { n: linked, of: String(n.ai.asked) } });
-    }
-    if (n.ai.reads !== undefined && n.ai.reads.kind !== "unmeasured") {
-      blocks.push({ block: "paragraph", text: AI_READS, vars: { n: formatStat(n.ai.reads, "integer") } });
-    }
-  }
-  const m = n.month;
-  if (m !== undefined) {
-    const rows: FactRow[] = [
-      ...monthRow(SCORE, undefined, m.score?.value, undefined, m.score?.change),
-      ...monthRow(REPUTATION, { weeks: String(m.reputation?.weeks ?? "") }, m.reputation?.value, m.reputation?.answers),
-    ];
-    if (rows.length > 0) {
-      blocks.push({ block: "heading", level: 2, text: MONTH }, { block: "facts", items: rows, face: "body" });
-    }
-  }
-  return blocks;
+  if (rows.length === 0 && lines.length === 0) return [];
+  return [
+    { block: "heading", level: 2, text: DID },
+    ...(rows.length === 0 ? [] : [{ block: "list", items: measured(rows, did.at), emptyLine: DID } as const]),
+    ...lines,
+  ];
 }
 
-/** One of the month's figures as the board writes it: `31 up from 27`,
- *  `1 of 12`. A figure nobody stored has no row; a change nobody measured is not stated. */
-/** This week's visits, and which way they moved from the week before where there was one. */
-function visitsLine(visits: Measured<number>, before: Measured<number> | undefined): MailBlock {
-  const n = formatStat(visits, "integer");
-  if (before === undefined || before.kind === "unmeasured" || visits.kind === "unmeasured") return { block: "paragraph", text: VISITS, vars: { n } };
-  if (visits.value === before.value) return { block: "paragraph", text: VISITS_SAME, vars: { n } };
-  return { block: "paragraph", text: visits.value > before.value ? VISITS_UP : VISITS_DOWN, vars: { n, before: formatStat(before, "integer") } };
+/** AI first, its one explaining line under it, then Google and pages. A figure is never drawn falling, a first count never
+ *  as growth, and a count not taken yet names its day, never a zero. */
+function totalBlocks(t: WeeklyTotals): readonly MailBlock[] {
+  const row = (which: keyof Totals, total: Total): StatRow => {
+    const label = TOTAL_LABEL[which];
+    const due = (date: string): StatRow => ({
+      label,
+      value: unmeasured("not_attempted", t.at),
+      format: "integer",
+      unmeasuredLine: TOTAL_DUE,
+      unmeasuredVars: { date: formatMailDayMonth(date) },
+    });
+    if (total.kind === "due") return due(which === "pages" ? t.due.pages : t.due.measured);
+    // No answer has mentioned the site yet: the row's line says we asked, in place of a bare 0.
+    if (which === "ai" && total.total === 0) return { label, value: unmeasured("not_attempted", t.at), format: "integer", unmeasuredLine: AI_NONE };
+    const value = measured(total.total, t.at);
+    if (total.kind === "added" && total.n > 0) return { label, value, format: "integer", note: { text: TOTAL_UP, vars: { n: String(total.n) } } };
+    if (total.kind === "first") return { label, value, format: "integer", note: { text: TOTAL_FIRST, vars: { date: formatMailDayMonth(total.week) } } };
+    return { label, value, format: "integer" };
+  };
+  return [
+    { block: "heading", level: 2, text: TOTALS },
+    { block: "stats", shape: "tiles", items: [row("ai", t.of.ai)] },
+    ...(t.asked === null ? [] : [{ block: "paragraph", text: AI_HOW, vars: { n: String(t.asked) }, tone: "quiet" } as const]),
+    { block: "stats", shape: "tiles", items: [row("google", t.of.google), row("pages", t.of.pages)] },
+  ];
 }
 
-function monthRow(
-  label: CopyKey,
-  labelVars: CopyVars | undefined,
-  value: Measured<number> | undefined,
-  of: number | undefined,
-  change?: Measured<number>
-): FactRow[] {
-  if (value === undefined || value.kind === "unmeasured") return [];
-  const now = of === undefined ? formatStat(value, "integer") : copy(OF, { n: formatStat(value, "integer"), of: String(of) });
-  const moved = change !== undefined && change.kind !== "unmeasured" && change.value !== 0 ? change.value : null;
-  const written = moved === null ? now : copy(moved > 0 ? UP : DOWN, { now, before: String(value.value - moved) });
-  return [{ label, ...(labelVars === undefined ? {} : { labelVars }), value: written }];
-}
-
-/** "This week's pages": title, the first pages with why and two links, and a link to Plan; uncommitted omits it. */
+/** "This week's pages": title, the first pages with why and two links, a link to Plan, and a short week said as such. */
 function weekBlocks(next: Measured<readonly WeeklyNext[]>, calendar: WeeklyCalendar | undefined): readonly MailBlock[] {
   if (next.kind === "unmeasured") return [];
+  const n = next.value.length;
   return [
     { block: "heading", level: 2, text: NEXT },
-    { block: "list", items: mapMeasuredRows(next, (pages) => nextRows(pages, calendar)), emptyLine: NEXT_NONE },
+    { block: "list", items: { ...next, value: nextRows(next.value, calendar) }, emptyLine: NEXT_NONE },
+    ...(n === 0 || n >= FULL_WEEK ? [] : [{ block: "paragraph", text: n === 1 ? NEXT_FEW.one : NEXT_FEW.many, vars: { n: String(n) } } as const]),
   ];
 }
 
@@ -394,45 +296,8 @@ function nextRows(next: readonly WeeklyNext[], calendar: WeeklyCalendar | undefi
   return [...rows, { links: [{ label: NEXT_ALL, vars: { n: String(next.length) }, href: calendar.planHref }] }];
 }
 
-/** A spare is named by its search alone. */
-function spareRows(spares: readonly { targetQuery: string }[]): readonly ListRow[] {
-  return spares.map((spare) => ({ label: NEXT_ITEM, vars: { search: spare.targetQuery } }));
-}
-
-/** `mapMeasured` over a list: unmeasured stays omitted, measured-empty keeps its written line. */
-function mapMeasuredRows<A, B>(m: Measured<readonly A[]>, f: (a: readonly A[]) => readonly B[]): Measured<readonly B[]> {
-  return m.kind === "unmeasured" ? m : { kind: m.kind, value: f(m.value), at: m.at };
-}
-
-/** One row per page with a verdict this week. `not_measured` and `no_week` get no row: they belong to the week, and the whole-mail line
- *  states them once (ADR-071). A page with no address is dropped, as nothing measured identifies it. */
-function verdictRows(pages: readonly WeeklyPage[]): readonly VerdictRow[] {
-  const rows: VerdictRow[] = [];
-  for (const page of pages) {
-    if (page.liveUrl === null) continue;
-    const name = nameOf(page.search, page.liveUrl);
-    const standing = page.standing;
-    if (standing.kind === "not_measured" || standing.kind === "no_week") continue;
-    if (standing.kind === "not_judgeable") {
-      rows.push({
-        subject: PAGE,
-        subjectVars: { page: name },
-        verdict: PAGE_VERDICTS.not_judgeable,
-      });
-      continue;
-    }
-    // Held by no stored search result: the row says not seen, never not indexed.
-    if (page.indexState === "not_verified" && standing.verdict !== "working") {
-      rows.push({ subject: PAGE_NOT_VERIFIED, subjectVars: { page: name }, verdict: PAGE_VERDICTS[standing.verdict] });
-      continue;
-    }
-    rows.push({ ...subjectOf(name, standing), verdict: PAGE_VERDICTS[standing.verdict] });
-  }
-  return rows;
-}
-
-/** A page by its search, as the week's pages are named; with none stored, its address's last path words, never the raw URL. */
-function nameOf(search: string | null | undefined, liveUrl: string): string {
+/** A page by its search; with none stored, its address's last path words, never the raw URL. */
+export function nameOf(search: string | null | undefined, liveUrl: string): string {
   if (search !== null && search !== undefined && search.trim() !== "") return search.trim();
   let path: string;
   try {
@@ -442,38 +307,4 @@ function nameOf(search: string | null | undefined, liveUrl: string): string {
   }
   const last = path.split("/").filter((part) => part !== "").at(-1);
   return last === undefined ? new URL(liveUrl).hostname : decodeURIComponent(last).replace(/[-_]+/g, " ");
-}
-
-/** REQ-063 c3–c4: both raw figures, the measurement date, and the interval where the comparison is not last week's.
- *  Three keys chosen by what there is to say; without both figures it takes the plain form, never a placeholder (REQ-064 c1). */
-function subjectOf(
-  name: string,
-  standing: Extract<WeekStanding, { kind: "verdict" }>
-): { subject: CopyKey; subjectVars: CopyVars } {
-  const movement = standing.movement;
-  if (movement === null || movement.from.kind === "unmeasured" || movement.to.kind === "unmeasured") {
-    return { subject: PAGE, subjectVars: { page: name } };
-  }
-  const common: CopyVars = {
-    page: name,
-    // The shared formatter, so this figure is written as a stat block writes it.
-    from: formatStat(movement.from, "integer"),
-    to: formatStat(movement.to, "integer"),
-    measuredAt: formatMailDayMonth(standing.measuredAt.toISOString().slice(0, 10)),
-  };
-  if (movement.spansWeeks === 1) return { subject: PAGE_MOVED, subjectVars: common };
-  return {
-    subject: PAGE_MOVED_OVER,
-    subjectVars: { ...common, weeks: String(movement.spansWeeks) },
-  };
-}
-
-/** A tracked question is named by its search, as a next page is, and the
- *  row leads to the answer. */
-function nowNamedRows(questions: readonly { search: string; answerUrl: string }[]): readonly ListRow[] {
-  return questions.map((question) => ({
-    label: NOW_NAMED_ITEM,
-    vars: { search: question.search },
-    href: question.answerUrl,
-  }));
 }

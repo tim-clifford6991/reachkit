@@ -47,7 +47,7 @@ say one. *Too early* is the honest state in week 2; it never reads as failure.
 > read first: "{page title}" ({link}).
 >
 > {Where every label is *Too early* or *not measured*: "Pages go live in week 1. Google takes
-> weeks to months; each Monday email shows what moved."}
+> weeks to months; each Monday email shows your totals so far."}
 >
 > One question: is there anything in the pages that doesn't sound like you? Tell me and I'll show
 > you where to change it.
@@ -70,7 +70,7 @@ first.
 
 > Hi {name}, a month of ReachKit today. {n} pages are live on your site now. {Only where
 > `/app/review` labels them so: "{w} of them are already Working in Google."} {Otherwise: "Pages go
-> live in week 1. Google takes weeks to months; each Monday email shows what moved."}
+> live in week 1. Google takes weeks to months; each Monday email shows your totals so far."}
 >
 > Thanks for being one of the first. A quick favour: who else do you know who owns a business
 > website and never has time for marketing? Could you send them this link, or introduce us:

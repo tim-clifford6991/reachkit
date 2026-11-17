@@ -2,8 +2,7 @@
 // A check that could not run gives no row: a mail has no room for its why-line, and a zero would read "no issues found".
 import { copy } from "@/lib/presentation/copy";
 import { SITE_CHECK_DOER, SITE_CHECK_TITLE, SITE_SEVERITY_WORD } from "@/lib/presentation/site-issues";
-import { measured, type Measured } from "@/lib/measure/measured";
-import type { IssueChange } from "@/lib/site-issues/changes";
+import { measured } from "@/lib/measure/measured";
 import { DOER_OF, type IssueSeverity, type SiteCheck, type SiteIssuesSection } from "@/lib/site-issues/types";
 import { formatStat } from "./format";
 import type { FactRow } from "./types";
@@ -29,13 +28,4 @@ export function issueRows(section: SiteIssuesSection | null): readonly FactRow[]
     rows.push({ label: SITE_CHECK_TITLE[issue.check], value: figure(issue) });
   }
   return rows;
-}
-
-/** Last week's count, then this week's figure. An unmeasured change gives no rows, and `omit.ts` drops the empty block. */
-export function issueChangeRows(changes: Measured<readonly IssueChange[]>): readonly FactRow[] {
-  if (changes.kind === "unmeasured") return [];
-  return changes.value.map((change) => ({
-    label: SITE_CHECK_TITLE[change.check],
-    value: `${count(change.from)} → ${figure({ check: change.check, count: change.to, over: change.over, severity: change.severity })}`,
-  }));
 }

@@ -34,7 +34,7 @@ export const OFFER_COPY = Object.freeze({
   "price.vat_included": ["Tax included", { slots: {}, fixedBy: "REQ-022 c1" }],
   "price.interval": ["a month · tax included", { slots: {}, fixedBy: "REQ-022 c1" }],
   "offer.cadence.page": ["Up to {weekPages} pages a week, new or updated", { slots: { weekPages: "text" }, fixedBy: "REQ-021 c2 · owner A1 2026-10-19" }],
-  "offer.cadence.movement": ["A Monday email shows what went live and what moved.", { slots: {}, fixedBy: "REQ-021 c2" }],
+  "offer.cadence.movement": ["A Monday email shows what went live and your totals so far.", { slots: {}, fixedBy: "REQ-021 c2 · owner 2026-11-17 · issue 2738" }],
   "offer.veto.window": ["Stop or edit any page before it goes live.", { slots: {}, fixedBy: "REQ-021 c2 · board PubReport · owner O6 2026-10-31" }],
   // Issue 1068, board R12-2: the price close's heading on the report.
   // Drafted; the owner corrects the wording.

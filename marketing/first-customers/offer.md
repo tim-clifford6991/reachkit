@@ -21,7 +21,7 @@ production on the day it is said. The product items exist today; the bonuses are
 | "I don't know if AI mentions me" | Free scan and report: who AI and Google recommend instead of you | Product | 0 |
 | "No time to write" | Up to 7 pages a week, written and published for you, in your language | Product | Vendor cost |
 | "Setup sounds technical" | We set it up with you: a 15-minute call to connect the subdomain (WordPress-run sites are not in the Founding 50, D8) | Owner | 15 min |
-| "Will it move anything?" | Monday mail: what went live and what moved in Google and AI answers | Product | 0 |
+| "Will it move anything?" | Monday mail: what went live and your totals so far, AI first, then Google | Product | 0 |
 | "My site has problems I can't see" | Your site's problems, and what to do about each | Product | 0 |
 | "What are my rivals doing?" | Weekly rival watch: who AI recommends and the gap to close | Product | 0 |
 | "I need it explained" | A 5-minute recorded walkthrough of your report by the founder | Owner | 5 min |

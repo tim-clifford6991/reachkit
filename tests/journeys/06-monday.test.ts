@@ -427,12 +427,11 @@ const { sendEmail } = await import("../../src/lib/mail/send");
 const { sendWeeklyDigest } = await import("../../src/lib/mail/weekly");
 const { copy } = await import("../../src/lib/presentation/copy");
 const { COPY, COPY_META, OWNER_OWED } = await import("../../src/lib/presentation/copy/registry");
-const { PAGE_VERDICTS } = await import("../../src/lib/presentation/bands");
 const { escapeHtml } = await import("../mail/escape");
 const { readWeek: weekStrip, CALENDAR_HREF } = await import(
   "../../src/app/(account)/app/_overview/week"
 );
-const { measured, measuredZero, unmeasured } = await import("../../src/lib/measure/measured");
+const { measured, unmeasured } = await import("../../src/lib/measure/measured");
 const { __setVendorTransportForTesting } = await import("../../src/lib/mail/vendor/resend");
 
 const opportunityDoubles = await import("../opportunities/memory-store");
@@ -529,15 +528,14 @@ async function measureTheWeek(now = MONDAY) {
  * on the owner's 2026-09-10 approval, so none of them is owed any more.
  */
 const DIGEST_KEYS = [
-  "mail.weekly.subject",
-  "mail.weekly.verdicts",
-  "mail.weekly.verdicts.none",
+  "mail.weekly.week.subject",
+  "mail.weekly.google.subject",
+  "mail.weekly.standing",
+  "mail.weekly.did.checked",
+  "mail.weekly.totals.ai.how",
   "mail.weekly.next",
   "mail.weekly.next.none",
   "mail.weekly.next.item",
-  "mail.weekly.page",
-  "mail.weekly.page.moved",
-  "mail.weekly.page.moved_over",
 ] as const;
 
 const JOURNEY_TIMEOUT_MS = 60_000;
@@ -761,50 +759,35 @@ describe("Monday: the week is re-measured, judged, and told (JN-005)", () => {
     JOURNEY_TIMEOUT_MS
   );
 
-  it("the digest states what moved, and omits the sections the week did not measure", async () => {
-    const page = verdictDoubles.pageOf();
-    verdictDoubles.fakeStore({
-      pages: [page],
-      scanId: "scan-week",
-      report: verdictDoubles.reportWithOwnPlace(3),
-    });
-    await verdicts.judgeWeek({ siteId: verdictDoubles.SITE_ID, week: verdictDoubles.WEEK });
-
-    const digest = await verdicts.weeklyDigest({
-      siteId: verdictDoubles.SITE_ID,
-      week: verdictDoubles.WEEK,
-    });
-    expect(digest.standings).toHaveLength(1);
-    expect(digest.weekMeasuredAt).toBeInstanceOf(Date);
-
-    // Overview's numbers lead, then the pages and the next three.
+  it("the digest tells gains only: a total that did not rise draws no increment and no fall, and an unmeasured week states no number", async () => {
+    const greeting = { name: "Dana", week: 3, business: "acme.example" };
+    // AI did not rise this week; Google did. The subject names the first rise in the fixed order.
     const whole = buildWeekly({
-      numbers: {
-        live: measured(1, MONDAY),
-        // A measured zero is a result — nothing planned — and prints.
-        planned: measuredZero(0, MONDAY),
+      greeting,
+      did: { at: MONDAY, pages: [], checked: { searches: 12, questions: 12 } },
+      totals: {
+        of: { ai: { kind: "flat", total: 5 }, google: { kind: "added", total: 9, n: 2 }, pages: { kind: "flat", total: 1 } },
+        at: MONDAY,
+        asked: 10,
+        due: { measured: "2026-09-07", pages: "2026-09-01" },
       },
-      pages: measured(
-        digest.standings.map((standing) => ({ liveUrl: standing.liveUrl, standing: standing.standing })),
-        MONDAY
-      ),
       next: measured([{ targetQuery: "agency capacity planning tool" }], MONDAY),
     });
-    expect(whole.subject).toBe("mail.weekly.subject");
-    expect(whole.blocks.map((block) => block.block)).toEqual(["stats", "verdicts", "heading", "list", "paragraph", "action"]);
+    expect(whole.subject).toBe("mail.weekly.google.subject");
+    expect(whole.subjectVars).toEqual({ n: "2" });
+    const rows = whole.blocks.flatMap((block) => (block.block === "stats" ? block.items : []));
+    const ai = rows.find((row) => row.label === "overview.totals.ai.label");
+    expect(ai?.value).toEqual(measured(5, MONDAY));
+    expect(ai?.note).toBeUndefined();
+    expect(rows.find((row) => row.label === "overview.totals.google.label")?.note).toEqual({ text: "overview.totals.added", vars: { n: "2" } });
+    expect(JSON.stringify(whole.blocks)).not.toMatch(/down|fell|declin/i);
+    expect(whole.blocks.filter((block) => block.block === "paragraph" && block.text === "mail.weekly.standing")).toHaveLength(1);
     expect(omittedIndexes(whole.blocks)).toEqual([]);
 
-    // A week that measured nothing states no number, omits the judged pages
-    // and draws no week rather than printing a 0 for a measurement nobody made.
-    const partial = buildWeekly({
-      pages: unmeasured("not_attempted", MONDAY),
-      next: unmeasured("not_attempted", MONDAY),
-    });
-    expect(partial.blocks.map((block) => block.block)).toEqual(["verdicts", "paragraph", "action"]);
-    expect(omittedIndexes(partial.blocks)).toEqual([0]);
-    // Every conditional section dropped: the mail carries the one line
-    // that says so rather than standing empty.
-    expect(chooseWholeMailLine({ blocks: partial.blocks })).toBe("mail.nothing_to_report");
+    // A week that measured nothing states no number; the whole-mail line says so, and the standing line follows it.
+    const partial = buildWeekly({ greeting, next: unmeasured("not_attempted", MONDAY) });
+    expect(partial.blocks.map((block) => block.block)).toEqual(["heading", "action", "paragraph"]);
+    expect(chooseWholeMailLine({ blocks: partial.blocks, measurement: { state: "none", nextDueOn: MONDAY } })).toBe("mail.week_unmeasured");
 
     // And through the sender the tick actually calls (#181). The week has
     // to exist for it to be told about: this row is the one `claimWeek`
@@ -826,7 +809,6 @@ describe("Monday: the week is re-measured, judged, and told (JN-005)", () => {
     // 2026-09-10 (#459). So the mail composes: the vendor is handed it once,
     // and **the week is stamped**, so the next tick does not tell it again.
     for (const key of DIGEST_KEYS) expect(OWNER_OWED, key).not.toContain(key);
-    for (const key of Object.values(PAGE_VERDICTS)) expect(OWNER_OWED, key).not.toContain(key);
     const told = await sendWeeklyDigest({ siteId: SITE_ID, weekStart: "2026-08-31", now: MONDAY });
     expect(told).toEqual({ sent: true, id: "resend-1" });
     expect(vendorSends).toBe(1);
@@ -855,29 +837,22 @@ describe("Monday: the week is re-measured, judged, and told (JN-005)", () => {
       payloads.push(payload);
       return { status: 200, headers: {}, body: JSON.stringify({ id: "resend-1" }) };
     });
-    const mail = buildWeekly({
-      pages: measured([], MONDAY),
-      next: measured([], MONDAY),
-    });
+    const mail = buildWeekly({ greeting: { name: null, week: 1, business: "acme.example" }, did: { at: MONDAY, pages: [] }, next: measured([], MONDAY) });
     const sent = await sendEmail({
       kind: "weekly",
       to: "founder@acme.example",
       // The journey's own customer: the weekly toggle is read off their row.
       userId: USER_ID,
       subject: mail.subject,
+      subjectVars: mail.subjectVars,
       blocks: mail.blocks,
       measurement: { state: "complete" },
     });
     expect(sent).toEqual({ sent: true, id: "resend-1" });
     expect(vendorSends).toBe(1);
     const delivered = JSON.parse(payloads[0] ?? "{}") as { subject?: string; text?: string; html?: string };
-    expect(delivered.subject).toBe(COPY["mail.weekly.subject"]);
-    for (const key of [
-      "mail.weekly.verdicts",
-      "mail.weekly.verdicts.none",
-      "mail.weekly.next",
-      "mail.weekly.next.none",
-    ] as const) {
+    expect(delivered.subject).toBe(copy("mail.weekly.week.subject", { week: "1", business: "acme.example" }));
+    for (const key of ["mail.weekly.standing", "mail.weekly.next", "mail.weekly.next.none"] as const) {
       expect(delivered.text, key).toContain(COPY[key]);
       expect(delivered.html, key).toContain(escapeHtml(COPY[key]));
     }
