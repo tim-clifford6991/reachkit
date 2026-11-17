@@ -144,6 +144,12 @@ export const jakartaLatinStrong = localFont({
       weight: "700",
       style: "normal",
     },
+    // A public hero's catch words (DESIGN *Catch words*); fetched only where an `<em>` draws them.
+    {
+      path: "../../node_modules/@fontsource/plus-jakarta-sans/files/plus-jakarta-sans-latin-800-italic.woff2",
+      weight: "800",
+      style: "italic",
+    },
   ],
   display: "swap",
   preload: false,

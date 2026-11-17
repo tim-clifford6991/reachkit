@@ -44,9 +44,7 @@ type ScanFormProps = {
    *  renders it — `scanFormWords()` in `./scan-form-words.ts`, which also
    *  carries the one word a caller may replace (S8's "Scan it"). */
   words: ScanFormWords;
-  /** The button keeps its own width on a phone, where the field is a closing card's and not the hero's. */
-  inline?: boolean;
-  /** The landing's hero: a 56px field and button in a 2px primary edge. */
+  /** The landing's hero: a 56px field and button. */
   hero?: boolean;
 };
 
@@ -103,21 +101,21 @@ export function ScanForm(props: ScanFormProps): React.JSX.Element {
       <label htmlFor={fieldId} className={hero ? "text-base font-bold" : "text-sm font-semibold"}>
         {props.words.fieldLabel}
       </label>
-      {/* One control: the field and its button in one card (#1107), stacked on a phone. */}
-      <div className={`rounded-box ${hero ? "border-2" : "border"} bg-base-100 flex flex-col gap-2 p-1.5 sm:flex-row ${problem ? "border-error" : hero ? "border-primary" : "border-base-300"}`}>
+      {/* One control: the field and its button joined into one pill on every width. */}
+      <div className="join w-full">
         <input
           id={fieldId}
           type="text"
           name="value"
           placeholder={props.words.placeholder}
-          className={`input input-ghost ${hero ? "input-lg" : "h-12"} w-full min-w-0 placeholder:font-mono sm:flex-1`}
+          className={`input join-item rounded-s-full ${hero ? "input-lg" : "h-12"} ${problem ? "input-error" : ""} w-full min-w-0 flex-1 placeholder:font-mono`}
           value={value}
           onChange={(e) => setValue(e.target.value)}
           aria-invalid={problem !== undefined}
           aria-describedby={problem ? problemId : undefined}
         />
         {/* The screen's one submit control and its one solid button. */}
-        <button type="submit" className={`btn btn-primary ${hero ? "btn-lg" : "h-12"} ${props.inline === true ? "self-start" : "w-full"} sm:w-auto`} disabled={submitting} aria-busy={submitting || undefined}>
+        <button type="submit" className={`btn btn-primary join-item rounded-e-full ${hero ? "btn-lg" : "h-12"}`} disabled={submitting} aria-busy={submitting || undefined}>
           {props.words.submit}
           <ArrowRight aria-hidden size={20} strokeWidth={1.75} />
         </button>

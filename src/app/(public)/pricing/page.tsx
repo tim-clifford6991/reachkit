@@ -246,7 +246,7 @@ export default function PricingPage(): React.JSX.Element {
                 {copy("pricing.plan.unsure")} {copy("pricing.close.title")}
               </h2>
               <div className="w-full max-w-xl text-left">
-                <ScanForm words={scanFormWords(copy("landing.start.cta"))} inline />
+                <ScanForm words={scanFormWords(copy("landing.start.cta"))} />
               </div>
               <p className="text-base-content/70 text-sm">{copy("landing.close.assurance")}</p>
             </div>
