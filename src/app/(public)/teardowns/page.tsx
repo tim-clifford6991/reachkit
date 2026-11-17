@@ -5,6 +5,7 @@ import type React from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, FileText, Lock, User } from "lucide-react";
+import { ARROW_NUDGE, CARD_LIFT } from "@/ui/lift";
 import { SiteMark } from "@/ui/SiteMark";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { PUBLIC_ROUTE_SEO } from "../_seo/routes";
@@ -31,8 +32,7 @@ const LABEL = "text-base-content/70 text-xs font-semibold tracking-wide uppercas
 const FRAME = "mockup-browser border-base-300 bg-base-200 min-w-0 border";
 const LINE = "bg-base-300 block h-2 rounded-full";
 const SMALL_ICON = { size: 12, strokeWidth: 1.75, "aria-hidden": true } as const;
-const TILE =
-  "card bg-base-100 shadow-(--shadow-card) motion-safe:transition-transform motion-safe:duration-200 hover:-translate-y-0.5";
+const TILE = "card bg-base-100 shadow-(--shadow-card)";
 
 /** The solid number a sketch marks a place with; the page it could add is green, a changed site warm. */
 const MARK_TONE = {
@@ -146,8 +146,8 @@ function EveryRead(): React.JSX.Element {
 function Card(p: { t: Teardown }): React.JSX.Element {
   const t = p.t;
   return (
-    <Link href={`/teardowns/${t.slug}`} className={`${TILE} w-full min-w-0 overflow-hidden`}>
-      <span className="bg-base-200 block px-3 pt-3" aria-hidden>
+    <Link href={`/teardowns/${t.slug}`} className={`${TILE} ${CARD_LIFT} w-full min-w-0 overflow-hidden`}>
+      <figure className="bg-base-200 block px-3 pt-3" aria-hidden>
         <span className={`${FRAME} block rounded-b-none border-b-0`}>
           <span className="mockup-browser-toolbar">
             <Address domain={t.domain} />
@@ -162,7 +162,7 @@ function Card(p: { t: Teardown }): React.JSX.Element {
             <span aria-hidden className="bg-primary/30 rounded-field block h-5 w-16" />
           </span>
         </span>
-      </span>
+      </figure>
       <span className="card-body gap-3">
         <span className="flex min-w-0 items-center gap-2.5">
           <SiteMark domain={t.domain} hasLogo={false} size={36} />
@@ -171,7 +171,7 @@ function Card(p: { t: Teardown }): React.JSX.Element {
         <span className={SMALL}>{t.summary}</span>
         <span className="text-primary mt-auto inline-flex items-center gap-1 text-sm font-semibold">
           {copy("teardowns.card.read")}
-          <ArrowRight size={16} strokeWidth={1.75} aria-hidden />
+          <ArrowRight size={16} strokeWidth={1.75} aria-hidden className={ARROW_NUDGE} />
         </span>
       </span>
     </Link>
@@ -198,7 +198,7 @@ export default function TeardownsPage(): React.JSX.Element {
             <span>{copy("teardowns.legend")}</span>
           </p>
         </div>
-        <ul className="grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="grid min-w-0 gap-4 md:grid-cols-2">
           {TEARDOWNS.map((t) => (
             <li key={t.slug} className="flex min-w-0">
               <Card t={t} />
