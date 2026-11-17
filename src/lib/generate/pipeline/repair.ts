@@ -574,7 +574,7 @@ export function withFitFact(parts: PageParts, a: { pack: ContextPack; template: 
   const asked = a.template.sections.some((slot) => slot.key === "business");
   const written = parts.sections.some((section) => section.key === "business" && section.body.trim() !== "");
   if (!asked || written || a.businessName === null) return { ...parts, answer };
-  const heading = languagePack(a.pack.locale?.language ?? "en").businessHeading(a.businessName, a.pack.target.searches[0] ?? a.pack.target.question);
+  const heading = languagePack(a.pack.locale?.language ?? "en").businessHeading(a.businessName);
   const sections = [...parts.sections.filter((section) => section.key !== "business"), { key: "business", heading, body: `> ${linkedPassage(fit.passage, fit.url)}` }];
   return { ...parts, answer, sections };
 }

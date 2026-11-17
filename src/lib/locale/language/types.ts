@@ -171,7 +171,7 @@ export interface LanguagePack {
 
   // ── A generated page's own words ────────────────────────────────────────
   /** The heading code gives a business section the writer left out (owner P3, 2026-11-16). */
-  businessHeading(name: string, search: string): string;
+  businessHeading(name: string): string;
   /** How a sentence opens that leans on the one before it, lower case (`standalone_lead`). */
   backReferences: readonly string[];
 

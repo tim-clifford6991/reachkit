@@ -115,7 +115,7 @@ export const EN: LanguagePack = {
   jobSearch: (job) => `how to ${job.length === 0 ? job : job[0]!.toLowerCase() + job.slice(1)}`,
   studySearch: (target) => `${target} statistics study`,
   guidanceSearch: (target) => `${target} official guidance`,
-  businessHeading: (name, search) => `How ${name} handles it: ${search}`,
+  businessHeading: (name) => `How ${name} does it`,
   backReferences: ["this", "these", "it", "as mentioned", "also"],
 
   question(keyword) {
