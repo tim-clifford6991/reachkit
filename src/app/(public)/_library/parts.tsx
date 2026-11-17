@@ -27,6 +27,7 @@ import { scanFormWords } from "../_landing/scan-form-words";
 import { HOW_FACTS } from "../_how/facts";
 import { EXAMPLES } from "../_how/specimen";
 import { ICON_TILE, ReportGlance } from "../_how/visuals";
+import { Head } from "./head";
 import { type ComparisonGroup } from ".";
 
 /** Attribute values, never sentences (the copy sweep). */
@@ -90,14 +91,13 @@ export function Pick(p: { title: React.ReactNode; items: readonly string[]; Icon
 const HOW_HREF = "/how-it-works";
 const START_ID = "start";
 
-/** The page: an eyebrow where the board draws one, the heading, and the column under it. */
+/** The page: the one head, then the column under it. */
 export function LibraryPage(p: {
   testId: string;
-  eyebrow?: CopyKey;
-  /** Where the page sits, drawn in place of the eyebrow. */
+  /** Where the page sits, above the heading. */
   trail?: React.ReactNode;
   title: string;
-  /** The line under the heading, drawn beside `aside` where the board sets a tool's field there. */
+  mark?: string;
   lead?: React.ReactNode;
   aside?: React.ReactNode;
   /** Wide pages (an index) use the about page's outer measure. */
@@ -112,27 +112,9 @@ export function LibraryPage(p: {
         wide: { kind: "same-as-below" },
       }}
     >
-      <main className="mx-auto flex w-full min-w-0 max-w-5xl flex-col px-4 py-12" data-testid={p.testId}>
-        <article
-          className={`text-base-content/80 ${HEADINGS} mx-auto flex w-full min-w-0 flex-col gap-3 leading-relaxed ${p.wide === true ? "" : "max-w-(--w-read)"}`}
-        >
-          {p.trail ??
-            (p.eyebrow === undefined ? null : (
-              <span className="text-base-content/70 text-xs font-semibold tracking-wide uppercase">{copy(p.eyebrow)}</span>
-            ))}
-          {p.aside === undefined ? (
-            <h1 className="t-hero break-words">{p.title}</h1>
-          ) : (
-            <div className="flex min-w-0 flex-wrap items-end gap-x-12 gap-y-8">
-              <div className="flex min-w-0 flex-[1_1_27.5rem] flex-col gap-3.5">
-                <h1 className="t-hero break-words">{p.title}</h1>
-                {p.lead}
-              </div>
-              <div className="min-w-0 flex-[1_1_30rem]">{p.aside}</div>
-            </div>
-          )}
-          <div className="mt-3 flex min-w-0 flex-col gap-4">{p.children}</div>
-        </article>
+      <main className={`text-base-content/80 ${HEADINGS} mx-auto flex w-full min-w-0 max-w-5xl flex-col gap-12 px-4 py-12 leading-relaxed`} data-testid={p.testId}>
+        <Head top={p.trail} title={p.title} mark={p.mark} lead={p.lead} aside={p.aside} />
+        <article className={`mx-auto flex w-full min-w-0 flex-col gap-4 ${p.wide === true ? "" : "max-w-(--w-read)"}`}>{p.children}</article>
       </main>
     </Surface>
   );
@@ -184,8 +166,6 @@ interface Close {
   readonly glance: boolean;
   /** The close as canvas v36 draws it: no 4-step figure, only your part and the price, and the field alone in a tinted band. */
   readonly short?: true;
-  /** The weekly section sits on a white band. */
-  readonly band?: true;
 }
 
 const TEARDOWN_ROW_1: Row = ["library.close.teardown.1.them", "library.close.teardown.1.us"];
@@ -196,24 +176,7 @@ const TOOL_WEEKLY = { title: "library.close.tools.title", them: "library.close.t
 
 const CLOSE = {
   about: { glance: false, short: true },
-  compare: {
-    weekly: {
-      title: "library.close.compare.title",
-      them: "library.close.compare.them",
-      us: "library.close.compare.us",
-      rows: [
-        ["library.close.compare.1.them", "library.close.compare.1.us"],
-        ["library.close.compare.2.them", "library.close.compare.2.us"],
-        ["library.close.compare.3.them", "library.close.compare.3.us"],
-        ["library.close.compare.4.them", "library.close.compare.4.us"],
-        ["library.close.compare.5.them", "library.close.compare.5.us"],
-      ],
-    },
-    glance: false,
-    short: true,
-    band: true,
-    icons: { them: User, us: Sparkles },
-  },
+  compare: { glance: false, short: true },
   "compare-tool": { glance: false, short: true },
   answer: { glance: false, short: true },
   teardowns: {
@@ -293,6 +256,17 @@ const CLOSE = {
 } as const satisfies Record<string, Close>;
 
 export type LearnCloseVariant = keyof typeof CLOSE;
+
+/** Compare's head card: what a tool leaves you beside what ReachKit does. */
+export function CompareCard(): React.JSX.Element {
+  const w = wordsOf({
+    title: "library.close.compare.title",
+    them: "library.close.compare.them",
+    us: "library.close.compare.us",
+    rows: ([1, 2, 3, 4, 5] as const).map((n): Row => [`library.close.compare.${n}.them`, `library.close.compare.${n}.us`]),
+  });
+  return <WeeklyCard w={w} icons={{ them: User, us: Sparkles }} titled />;
+}
 
 /** Every figure a closing sentence states, read from the constants that run the product. */
 export const FIGURES = {
@@ -469,6 +443,32 @@ function Side(p: { text: string; className: string; Icon?: LucideIcon }): React.
   );
 }
 
+/** The them-and-us rows in one card; titled where it stands alone as a head's card. */
+export function WeeklyCard(p: { w: WeeklyWords; icons?: Icons; titled?: true }): React.JSX.Element {
+  const w = p.w;
+  return (
+    <div className={CARD}>
+      <div className={BODY}>
+        {p.titled ? <h2 className="card-title">{w.title}</h2> : null}
+        <div aria-hidden className="text-base-content/70 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-3 text-xs font-semibold tracking-wide uppercase">
+          <span>{w.them}</span>
+          <ArrowRight size={14} strokeWidth={1.75} className="mt-0.5" />
+          <span className="text-primary">{w.us}</span>
+        </div>
+        <ul className="divide-base-300 flex min-w-0 flex-col divide-y">
+          {w.rows.map(([them, us]) => (
+            <li key={them} className="grid min-w-0 grid-cols-1 gap-1 py-2 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:gap-3">
+              <Side text={them} className="text-base-content/70" Icon={p.icons?.them} />
+              <ArrowRight size={16} strokeWidth={1.75} aria-hidden className="text-primary hidden sm:block" />
+              <Side text={us} className="font-semibold" Icon={p.icons?.us} />
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
 /** What this page gives beside what ReachKit gives, anything the page sets under it, then the weekly loop or only your part. */
 export function WeeklyLoop(p: { w: WeeklyWords; icons?: Icons; short?: true; band?: true; children?: React.ReactNode }): React.JSX.Element {
   const w = p.w;
@@ -481,24 +481,7 @@ export function WeeklyLoop(p: { w: WeeklyWords; icons?: Icons; short?: true; ban
         <h2 className="break-words">{w.title}</h2>
         {w.lead === undefined ? null : <p>{w.lead}</p>}
       </div>
-      <div className={CARD}>
-        <div className={BODY}>
-          <div aria-hidden className="text-base-content/70 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-3 text-xs font-semibold tracking-wide uppercase">
-            <span>{w.them}</span>
-            <ArrowRight size={14} strokeWidth={1.75} className="mt-0.5" />
-            <span className="text-primary">{w.us}</span>
-          </div>
-          <ul className="divide-base-300 flex min-w-0 flex-col divide-y">
-            {w.rows.map(([them, us]) => (
-              <li key={them} className="grid min-w-0 grid-cols-1 gap-1 py-2 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:gap-3">
-                <Side text={them} className="text-base-content/70" Icon={p.icons?.them} />
-                <ArrowRight size={16} strokeWidth={1.75} aria-hidden className="text-primary hidden sm:block" />
-                <Side text={us} className="font-semibold" Icon={p.icons?.us} />
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
+      <WeeklyCard w={w} icons={p.icons} />
       {p.children}
       {p.short ? <YourPart /> : <LearnLoop steps={p.icons?.steps} />}
     </section>
@@ -532,7 +515,7 @@ export function LearnClose(p: { variant: LearnCloseVariant; domain?: string }): 
   return (
     <div className="mt-6 flex min-w-0 flex-col gap-6" data-testid="learn-close" data-variant={p.variant}>
       {close.weekly === undefined ? null : (
-        <WeeklyLoop w={wordsOf(close.weekly)} icons={close.icons} short={close.short} band={close.band} />
+        <WeeklyLoop w={wordsOf(close.weekly)} icons={close.icons} short={close.short} />
       )}
       {close.short ? (
         <section id={START_ID} aria-labelledby="start-h" className="rounded-box border-primary/20 bg-primary/10 flex scroll-mt-20 flex-col items-center gap-3.5 border px-5 py-8 text-center sm:px-10 sm:py-12">

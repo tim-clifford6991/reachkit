@@ -8,7 +8,7 @@ import { copy } from "@/lib/presentation/copy";
 import { PUBLIC_ROUTE_SEO } from "../_seo/routes";
 import { staticMetadata } from "../_seo/metadata";
 import { cardLines, COMPARISONS, COMPARISON_GROUPS, type Comparison } from "../_library";
-import { BAND, GROUP_ICON, LearnClose, LibraryPage, Tile, Trademarks } from "../_library/parts";
+import { BAND, CompareCard, GROUP_ICON, LearnClose, LibraryPage, Tile, Trademarks, YourPart } from "../_library/parts";
 
 export const metadata: Metadata = staticMetadata(PUBLIC_ROUTE_SEO.compare);
 
@@ -43,8 +43,14 @@ export default function ComparePage(): React.JSX.Element {
     (g) => g.entries.length > 0
   );
   return (
-    <LibraryPage testId={PAGE_TEST_ID} title={copy("compare.title")} wide>
-      <p className="max-w-(--w-read)">{copy("compare.lead")}</p>
+    <LibraryPage
+      testId={PAGE_TEST_ID}
+      title={copy("compare.title")}
+      mark={copy("compare.title.mark")}
+      lead={<p className="text-lg">{copy("compare.lead")}</p>}
+      aside={<CompareCard />}
+      wide
+    >
       <nav aria-labelledby={JUMP_ID} className="flex min-w-0 flex-col gap-2" data-testid="compare-jump">
         <p id={JUMP_ID} className="text-base-content/70 text-xs font-semibold tracking-wide uppercase">
           {copy("compare.jump", { count: COMPARISONS.length })}
@@ -86,6 +92,7 @@ export default function ComparePage(): React.JSX.Element {
           </ul>
         </section>
       ))}
+      <YourPart />
       <LearnClose variant="compare" />
       <Trademarks />
     </LibraryPage>

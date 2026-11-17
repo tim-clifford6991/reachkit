@@ -6,6 +6,12 @@ export const LANDING_COPY = Object.freeze({
   /** The why badge over the hero's title, and the title's catch words: a substring of `landing.headline`. */
   "landing.hero.why": ["Buyers Ask AI What to Use", { slots: {}, fixedBy: "owner 2026-11-16 · issue 2745" }],
   "landing.headline.mark": ["Get Found", { slots: {}, fixedBy: "owner 2026-11-16 · issue 2745" }],
+  /** Every other public head's catch words, each a substring of its title key (DESIGN *Catch words*). */
+  "pricing.title.mark": ["Everything Included", { slots: {}, fixedBy: "owner 2026-11-16 · issue 2745" }],
+  "about.title.mark": ["ReachKit", { slots: {}, fixedBy: "owner 2026-11-16 · issue 2745" }],
+  "compare.title.mark": ["ReachKit", { slots: {}, fixedBy: "owner 2026-11-16 · issue 2745" }],
+  "tools.title.mark": ["Free", { slots: {}, fixedBy: "owner 2026-11-16 · issue 2745" }],
+  "gallery.heading.mark": ["in the Open", { slots: {}, fixedBy: "owner 2026-11-16 · issue 2745" }],
   /** The offer under the field, one tick line each. */
   "landing.hero.offer.free": ["Free scan and first page", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
   "landing.hero.offer.price": ["{price} a month, cancel any time", { slots: { price: "text" }, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],

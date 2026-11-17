@@ -37,6 +37,7 @@ import { PUBLIC_ROUTE_SEO } from "../_seo/routes";
 import { staticMetadata } from "../_seo/metadata";
 import { readLiveExamples } from "../_how/examples";
 import { HOW_FACTS as F } from "../_how/facts";
+import { Head } from "../_library/head";
 import { BAND, LearnClose } from "../_library/parts";
 
 export const metadata: Metadata = staticMetadata(PUBLIC_ROUTE_SEO.about);
@@ -109,11 +110,13 @@ export default async function AboutPage(): Promise<React.JSX.Element> {
         wide: { kind: "same-as-below" },
       }}
     >
-      <main className="mx-auto flex w-full min-w-0 max-w-5xl flex-col px-4 py-12" data-testid={PAGE_TEST_ID}>
-        <article className={`text-base-content/80 ${HEADINGS} mx-auto flex w-full min-w-0 max-w-(--w-read) flex-col gap-10 leading-relaxed`}>
-          <section id="top" aria-labelledby="top-h" className={SECTION}>
-            <h1 id="top-h" className="t-hero">{copy("about.title")}</h1>
-            <p>{copy("about.lead")}</p>
+      <main className={`text-base-content/80 ${HEADINGS} mx-auto flex w-full min-w-0 max-w-5xl flex-col gap-10 px-4 py-12 leading-relaxed`} data-testid={PAGE_TEST_ID}>
+        <Head
+          id="top-h"
+          title={copy("about.title")}
+          mark={copy("about.title.mark")}
+          lead={<p>{copy("about.lead")}</p>}
+          aside={
             <section aria-labelledby="who-h" className={CARD}>
               <div className={BODY}>
                 <div className="flex min-w-0 items-center gap-3">
@@ -148,8 +151,9 @@ export default async function AboutPage(): Promise<React.JSX.Element> {
                 </a>
               </div>
             </section>
-          </section>
-
+          }
+        />
+        <article className="mx-auto flex w-full min-w-0 max-w-(--w-read) flex-col gap-10">
           <section id="why" aria-labelledby="why-h" className={`${SECTION} ${BAND}`}>
             <h2 id="why-h">{copy("about.why.title")}</h2>
             <p>{`${copy("about.why.problem")} ${copy("about.why.answer")}`}</p>

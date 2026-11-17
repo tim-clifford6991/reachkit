@@ -60,7 +60,39 @@ export default async function AnswerPage({ params }: Params): Promise<React.JSX.
   if (a === undefined) notFound();
 
   return (
-    <LibraryPage testId={PAGE_TEST_ID} title={a.title}>
+    <LibraryPage
+      testId={PAGE_TEST_ID}
+      title={a.title}
+      aside={
+        <section className={`${CARD} border-primary/30 border`}>
+          <div className={BODY}>
+            <span className={`${LABEL} text-primary flex items-center gap-1.5`}>
+              <Zap {...ICON} />
+              {copy("answers.short")}
+            </span>
+            <p className="text-base-content text-lg font-semibold">{a.answer}</p>
+            <Eyebrow>{a.units.title}</Eyebrow>
+            <ol className="grid min-w-0 gap-2 sm:grid-cols-3 lg:grid-cols-1">
+              {a.units.items.map(([head, tail], i) => {
+                const Icon = UNIT_ICONS[i % UNIT_ICONS.length]!;
+                return (
+                  <li key={head} className="rounded-box border-base-300 bg-base-100 flex min-w-0 flex-col gap-2 border p-4">
+                    <span className="flex items-center gap-2.5">
+                      <Tile Icon={Icon} />
+                      <span className="badge badge-primary ms-auto font-bold" aria-hidden>
+                        {i + 1}
+                      </span>
+                    </span>
+                    <strong className="text-base-content">{head}</strong>
+                    <span className={SMALL}>{tail}</span>
+                  </li>
+                );
+              })}
+            </ol>
+          </div>
+        </section>
+      }
+    >
       {/* Issue 1512: the date the page prints. It has no index, so the
           trail is home and the page. */}
       <JsonLd
@@ -71,33 +103,6 @@ export default async function AnswerPage({ params }: Params): Promise<React.JSX.
           trail: [homeCrumb()],
         })}
       />
-      <section className={`${CARD} border-primary/30 border`}>
-        <div className={BODY}>
-          <span className={`${LABEL} text-primary flex items-center gap-1.5`}>
-            <Zap {...ICON} />
-            {copy("answers.short")}
-          </span>
-          <p className="text-base-content text-lg font-semibold">{a.answer}</p>
-          <Eyebrow>{a.units.title}</Eyebrow>
-          <ol className="grid min-w-0 gap-2 sm:grid-cols-3">
-            {a.units.items.map(([head, tail], i) => {
-              const Icon = UNIT_ICONS[i % UNIT_ICONS.length]!;
-              return (
-                <li key={head} className="rounded-box border-base-300 bg-base-100 flex min-w-0 flex-col gap-2 border p-4">
-                  <span className="flex items-center gap-2.5">
-                    <Tile Icon={Icon} />
-                    <span className="badge badge-primary ms-auto font-bold" aria-hidden>
-                      {i + 1}
-                    </span>
-                  </span>
-                  <strong className="text-base-content">{head}</strong>
-                  <span className={SMALL}>{tail}</span>
-                </li>
-              );
-            })}
-          </ol>
-        </div>
-      </section>
       <p className={`${SMALL} flex flex-wrap items-center gap-x-2`}>
         <CalendarCheck {...ICON} />
         <span>{copy("library.checked", { date: longDate(a.checked) })}</span>

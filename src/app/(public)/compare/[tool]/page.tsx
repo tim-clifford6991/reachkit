@@ -212,6 +212,13 @@ export default async function ComparisonPage({ params }: Params): Promise<React.
       trail={
         <Trail label={copy("compare.item.trail")} href={INDEX} index={copy(EYEBROW)} here={group === undefined ? undefined : copy(group.name)} />
       }
+      lead={<p className="text-lg">{c.intro}</p>}
+      aside={
+        <div className="grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-1">
+          <Pick title={<h2 className="text-xl">{copy("compare.item.pick.them", { name: c.name })}</h2>} items={c.pickThem} Icon={GROUP_ICON[c.group]} />
+          <Pick title={<h2 className="text-xl">{copy("compare.item.pick.us")}</h2>} items={c.pickUs} Icon={Sparkles} ours />
+        </div>
+      }
     >
       {/* The date the page prints, and the links it draws. */}
       <JsonLd
@@ -222,7 +229,6 @@ export default async function ComparisonPage({ params }: Params): Promise<React.
           trail: [homeCrumb(), { name: copy("chrome.nav.compare"), path: INDEX }],
         })}
       />
-      <p className="text-lg">{c.intro}</p>
       <WhoDoesEachJob c={c} yours={yours} />
       <div className={BAND}>
         <DoesWell c={c} />
@@ -284,11 +290,6 @@ export default async function ComparisonPage({ params }: Params): Promise<React.
           </span>
         </p>
       </section>
-
-      <div className="grid min-w-0 gap-4 sm:grid-cols-2">
-        <Pick title={<h2 className="text-xl">{copy("compare.item.pick.them", { name: c.name })}</h2>} items={c.pickThem} Icon={GROUP_ICON[c.group]} />
-        <Pick title={<h2 className="text-xl">{copy("compare.item.pick.us")}</h2>} items={c.pickUs} Icon={Sparkles} ours />
-      </div>
 
       <Sources checked={c.checked} sources={c.sources} oneLine />
       <LearnClose variant="compare-tool" />

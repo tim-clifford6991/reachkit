@@ -43,6 +43,7 @@ import {
 } from "@/lib/scan/gallery";
 import { ScanForm } from "../_landing/ScanForm";
 import { scanFormWords } from "../_landing/scan-form-words";
+import { Head } from "../_library/head";
 import { LearnClose, ScanJump } from "../_library/parts";
 import { PUBLIC_ROUTE_SEO } from "../_seo/routes";
 import { staticMetadata } from "../_seo/metadata";
@@ -243,32 +244,28 @@ export default async function ScansPage(props: {
       }}
     >
       <main className="flex flex-col">
-        <section className="mx-auto grid w-full max-w-6xl gap-8 px-4 pt-10 pb-8 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-start">
-          <div className="flex min-w-0 flex-col gap-3">
-            <p className="flex items-center gap-2">
-              <span aria-hidden className="bg-success size-1.5 rounded-full" />
-              <span className="eyebrow">{copy("gallery.eyebrow")}</span>
-            </p>
-            <h1 className="text-4xl font-semibold">
-              {copy("gallery.heading")}
-            </h1>
-            <p className="text-base-content/70 max-w-2xl text-lg">
-              {copy("gallery.subline", { count: String(listing.total) })}
-            </p>
-          </div>
-          {/* From `lg`, beside the heading. Below it the field follows the
-              cards, so a phone opens on them. */}
-          <div className="card bg-base-100 hidden shadow-(--shadow-card) lg:flex">
-            <div className="card-body gap-3 p-5">
-              <h2 className="text-base font-semibold">
-                {copy("landing.close.heading")}
-              </h2>
-              <ScanForm words={scanFormWords()} />
-              <p className="text-base-content/70 font-mono text-xs">
-                {copy("gallery.next.assurance")}
+        <section className="mx-auto w-full max-w-6xl px-4 pt-10 pb-8">
+          <Head
+            top={
+              <p className="flex items-center gap-2">
+                <span aria-hidden className="bg-success size-1.5 rounded-full" />
+                <span className="eyebrow">{copy("gallery.eyebrow")}</span>
               </p>
-            </div>
-          </div>
+            }
+            title={copy("gallery.heading")}
+            mark={copy("gallery.heading.mark")}
+            lead={<p className="text-base-content/70 max-w-2xl text-lg">{copy("gallery.subline", { count: String(listing.total) })}</p>}
+            aside={
+              // From `lg` only: below it a phone opens on the reports (SPEC §2 *Gallery board*).
+              <div className="card bg-base-100 hidden shadow-(--shadow-card) lg:flex">
+                <div className="card-body gap-3 p-8">
+                  <h2 className="card-title">{copy("landing.close.heading")}</h2>
+                  <ScanForm hero soft words={scanFormWords()} />
+                  <p className="text-base-content/70 font-mono text-xs">{copy("gallery.next.assurance")}</p>
+                </div>
+              </div>
+            }
+          />
         </section>
 
         <section aria-labelledby="list" className="flex flex-col">

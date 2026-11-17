@@ -68,6 +68,7 @@ import {
 } from "@/lib/publish/render/markdown";
 import { legalBodyWithIds, legalHeadings, legalSections, type LegalHeading, type LegalSection } from "./sections";
 import { LEGAL_DOCUMENTS, type LegalDocument, type LegalFigure } from "./documents";
+import { Head } from "../_library/head";
 
 /** Heading margins and weight only: the size is the element's ladder step. */
 const HEADING = "mt-6 mb-3 font-bold text-base-content first:mt-0";
@@ -209,7 +210,7 @@ function Providers(p: { list: Extract<Block, { kind: "list" }> }): React.JSX.Ele
 function Summary(p: { summary: CopyKey; icons: readonly LucideIcon[] }): React.JSX.Element {
   const list = parseMarkdown(copy(p.summary)).find((b) => b.kind === "list");
   return (
-    <section className="rounded-box bg-base-100 border-base-300 flex flex-col gap-3 border p-4" data-testid="legal-summary">
+    <section className="card bg-base-100 flex flex-col gap-3 p-4 shadow-(--shadow-card)" data-testid="legal-summary">
       <p className="text-base-content/70 text-xs font-semibold tracking-wide uppercase">{copy("legal.summary.title")}</p>
       <ul className="flex flex-wrap gap-3">
         {(list?.kind === "list" ? list.items : []).map((item, i) => {
@@ -302,31 +303,37 @@ export function LegalPage(p: { document: LegalDocument }): React.JSX.Element {
           than to `max-w-3xl`'s 768. The token is the one `surface.css`
           already selects for a read arm; this is not a second measure. */}
       <main className="mx-auto flex w-full min-w-0 max-w-5xl flex-col gap-4 px-4 py-12">
-        <div className="flex flex-col gap-3">
-          <h1 className="t-hero">{copy(p.document.title)}</h1>
-          {/* The whole line is a date with one word in front of it, so the
-              whole line is in the mono face. */}
-          <p className="text-base-content/70 font-mono text-xs">
-            {copy("legal.updated", { date: copy(p.document.updated) })}
-          </p>
-          <nav aria-label={copy("legal.tabs.label")}>
-            <div className="tabs tabs-box w-fit [--tab-height:2.75rem]">
-              {LEGAL_DOCUMENTS.map((d) => (
-                <Link
-                  key={d.path}
-                  href={d.path}
-                  className={d === p.document ? "tab tab-active bg-primary/10! text-primary! font-semibold" : "tab"}
-                  aria-current={d === p.document ? "page" : undefined}
-                >
-                  {copy(d.title)}
-                </Link>
-              ))}
-            </div>
-          </nav>
-        </div>
-        {p.document.summary === undefined ? null : (
-          <Summary summary={p.document.summary} icons={p.document.summaryIcons ?? []} />
-        )}
+        <Head
+          title={copy(p.document.title)}
+          lead={
+            <>
+              {/* The whole line is a date with one word in front of it, so the
+                  whole line is in the mono face. */}
+              <p className="text-base-content/70 font-mono text-xs">
+                {copy("legal.updated", { date: copy(p.document.updated) })}
+              </p>
+              <nav aria-label={copy("legal.tabs.label")}>
+                <div className="tabs tabs-box w-fit [--tab-height:2.75rem]">
+                  {LEGAL_DOCUMENTS.map((d) => (
+                    <Link
+                      key={d.path}
+                      href={d.path}
+                      className={d === p.document ? "tab tab-active bg-primary/10! text-primary! font-semibold" : "tab"}
+                      aria-current={d === p.document ? "page" : undefined}
+                    >
+                      {copy(d.title)}
+                    </Link>
+                  ))}
+                </div>
+              </nav>
+            </>
+          }
+          aside={
+            p.document.summary === undefined ? undefined : (
+              <Summary summary={p.document.summary} icons={p.document.summaryIcons ?? []} />
+            )
+          }
+        />
         {/* The board's two columns from `lg`, one below it, with the card held
             to the ruled reading measure (`--w-read`). */}
         <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-start lg:gap-8">

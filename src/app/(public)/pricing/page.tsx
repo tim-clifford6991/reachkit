@@ -27,6 +27,7 @@ import { ScanForm } from "../_landing/ScanForm";
 import { scanFormWords } from "../_landing/scan-form-words";
 import { HOW_FACTS as F } from "../_how/facts";
 import { ThreeWays } from "../_how/compare";
+import { Head } from "../_library/head";
 import { PUBLIC_ROUTE_SEO } from "../_seo/routes";
 import { staticMetadata } from "../_seo/metadata";
 import { startCheckout } from "./actions";
@@ -182,20 +183,20 @@ export default function PricingPage(): React.JSX.Element {
       }}
     >
       <main className="flex flex-col">
-        <section id="top" aria-labelledby="top-h" className="scroll-mt-16 py-12 lg:py-16">
-          <div className={`${INNER} grid grid-cols-1 items-center gap-10 lg:grid-cols-[minmax(0,1fr)_26rem] lg:gap-12`}>
-            <div className="flex min-w-0 flex-col gap-5">
-              <p className="eyebrow">{copy("chrome.nav.pricing")}</p>
-              <h1 id="top-h" className="t-hero">
-                {copy("pricing.title")}
-              </h1>
-              <p className={LEAD}>{copy("pricing.subline", weekPages)}</p>
-            </div>
-            <div className="flex min-w-0 flex-col gap-4">
-              <PricingCard startAction={startCheckout} terms="pricing" refused={REFUSED_IN_QUERY} free={<FreeFirst />} />
-              <NotDone />
-            </div>
-          </div>
+        <section id="top" aria-labelledby="top-h" className={`${INNER} scroll-mt-16 py-12 lg:py-16`}>
+          <Head
+            id="top-h"
+            top={<p className="eyebrow">{copy("chrome.nav.pricing")}</p>}
+            title={copy("pricing.title")}
+            mark={copy("pricing.title.mark")}
+            lead={<p className={LEAD}>{copy("pricing.subline", weekPages)}</p>}
+            aside={
+              <div className="flex min-w-0 flex-col gap-4">
+                <PricingCard startAction={startCheckout} terms="pricing" refused={REFUSED_IN_QUERY} free={<FreeFirst />} />
+                <NotDone />
+              </div>
+            }
+          />
         </section>
 
         <Section

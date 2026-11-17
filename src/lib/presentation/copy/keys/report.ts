@@ -727,8 +727,8 @@ export const REPORT_COPY = Object.freeze({
   /* ── The free-scans gallery, `/scans`, and the landing's strip (#1069) ── */
   // SPEC §2 Gallery board. The words of board `PubScans`; the
   // rest drafted in the registry's voice for the owner to correct.
-  "gallery.eyebrow": ["Scan library", { slots: {}, fixedBy: "owner 2026-11-06, issue 2452" }],
-  "gallery.heading": ["Every free scan, in the open.", { slots: {}, fixedBy: "issue 1069 · R12-3" }],
+  "gallery.eyebrow": ["Scan Library", { slots: {}, fixedBy: "owner 2026-11-06, issue 2452 · owner 2026-11-16 · issue 2745" }],
+  "gallery.heading": ["Every Free Scan, in the Open", { slots: {}, fixedBy: "issue 1069 · R12-3 · owner 2026-11-16 · issue 2745" }],
   "gallery.subline": [
     "{count} free reports, each at a lasting public link. See how businesses like yours show up on Google and AI.",
     { slots: { count: "text" }, fixedBy: "board PubScans · issue 1732" },
