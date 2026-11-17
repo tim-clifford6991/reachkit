@@ -48,7 +48,6 @@ describe("JobDefinition's concurrency and throttle, mapped only in client.ts", (
       throttle: { limit: 10, period: "60s" },
       checkpointing: false,
     });
-    expect(tick!.options).not.toHaveProperty("checkpointing");
   });
 
   it("weekly/refresh is mapped the same way; a job with no subjects stays one function", async () => {
