@@ -1,13 +1,14 @@
-// SPEC §7 (owner, 2026-10-19, issue 1559) — the week a weekly pass commits,
-// chosen from what the store holds and nothing else. Pure: the same rows
-// choose the same week, which is what the golden plans hold it to.
-import { WEEK_PLAN } from "@/lib/config/constants";
-import { pageScore } from "@/lib/known-content/match";
+// SPEC §7 (owner, 2026-10-19, issue 1559) — the week a weekly pass commits, chosen from what the store holds and
+// nothing else. Pure: the same rows choose the same week, which is what the golden plans hold it to.
+import { KNOWN_CONTENT, WEEK_PLAN } from "@/lib/config/constants";
+import { closestKnown, pageScore } from "@/lib/known-content/match";
 import type { KnownPage } from "@/lib/known-content/types";
+import { SHAPES } from "@/lib/locale/language";
 import { canonicalUrl } from "@/lib/measure/page-reading";
-import { oneQuestion, queryKey } from "./cluster";
+import { oneQuestion, queryKey, shareATopTen } from "./cluster";
 import { asUpdate, tooYoungToRefresh, updateColumns } from "./derive/known";
 import { placeFixPages, rankingOf, type RankLoad, type Rejection } from "./rank/open";
+import type { OwnLivePage } from "./refresh";
 import { readOpportunity, type PlanEntry } from "./store";
 import type { Opportunity, Ranked } from "./types";
 
@@ -49,12 +50,10 @@ export function choose(input: ChooseInput): Choice {
 
 type Joined = Ranked & Pick<PlanEntry, "set">;
 
-/**
- * SPEC §6 *One URL per question*, at the commit and from stored rows: of two open rows of one topic only the
- * higher-ranked is a new page, and it absorbs the other's search; a twin of a live page of ours is that page's update,
- * and waits while the page is younger than the refresh floor. Given neither the market nor the live pages, the order is
- * the ranking's.
- */
+/** SPEC §6 *One URL per question*, at the commit and from stored rows: of two open rows of one topic only the
+ *  higher-ranked is a new page, and it absorbs the other's search; a twin of a live page of ours is that page's
+ *  update, and waits while the page is younger than the refresh floor. Given neither the market nor the live pages,
+ *  the order is the ranking's. */
 function oneTopicEach(ranked: readonly Ranked[], input: ChooseInput, rejected: Choice["rejected"]): Joined[] {
   if (input.market === undefined && input.live === undefined) return [...ranked];
   const market = input.market ?? null;
@@ -78,7 +77,7 @@ function oneTopicEach(ranked: readonly Ranked[], input: ChooseInput, rejected: C
       rejected.push({ opportunityId: o.id, reason: "same_topic" });
       continue;
     }
-    const live = (input.live ?? []).find((page) => joined(page.row, o));
+    const live = (input.live ?? []).find((page) => joined(page.row, o) || liveTwin(page, o, input.topTens));
     const page: KnownPage | null =
       live === undefined
         ? null
@@ -96,4 +95,22 @@ function oneTopicEach(ranked: readonly Ranked[], input: ChooseInput, rejected: C
     out.push(held);
   }
   return out;
+}
+
+const searchesOf = (o: Opportunity): string[] => [o.targetQuery ?? [], ...o.absorbedQueries].flat().map(queryKey);
+
+/** Beside B1's join on its stored row, a live page of ours answers a row's question where either holds a search of the
+ *  other, any two of their searches share a top ten, or its title or answer-box question (its first section) is the
+ *  row's topic by its own words at `LIVE_TWIN_MIN`: the market's words make every short title of one market alike. Every live page is
+ *  compared, with no index narrowing them first. */
+export function liveTwin(page: OwnLivePage, o: Opportunity, topTens: ReadonlyMap<string, readonly string[]>): boolean {
+  const [mine, theirs] = [searchesOf(o), searchesOf(page.row)];
+  if (mine.some((q) => theirs.includes(q))) return true;
+  const tens = (qs: string[]) => qs.flatMap((q) => (topTens.has(q) ? [topTens.get(q)!] : []));
+  if (tens(mine).some((a) => tens(theirs).some((b) => shareATopTen(a, b)))) return true;
+  // A comparison is one question only with the same products, which the keys above already read.
+  if ([o.targetQuery ?? "", page.row.targetQuery ?? "", page.title ?? ""].some((text) => SHAPES.comparison.test(text.toLowerCase()))) return false;
+  const question = /^##\s+(.+)$/m.exec(page.markdown ?? "")?.[1]?.trim();
+  const known: KnownPage = { source: "reachkit", ref: page.row.id, url: page.url, title: page.title ?? "", headings: question === undefined ? [] : [question], live: true, publishedAt: page.publishedAt };
+  return (closestKnown({ query: o.targetQuery, title: o.title }, [known])?.score ?? 0) >= KNOWN_CONTENT.LIVE_TWIN_MIN;
 }

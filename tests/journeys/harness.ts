@@ -171,6 +171,9 @@ export function anthropicForScan(a: { profile: object; calls: string[] }) {
           return { content: [{ type: "text", text: JSON.stringify(a.profile) }], usage: { input_tokens: 900, output_tokens: 220 } };
         }
         const { toolUseMessage } = await import("../llm/fixtures");
+        // The fit judgement scores every search it is shown, naming the first knowledge passage.
+        const fit = JSON.parse(input) as { task?: string; searches?: { i: number }[] };
+        if (fit.task?.startsWith("Score each search's business fit")) return toolUseMessage({ scores: fit.searches!.map(({ i }) => ({ i, fit: 3, title: "", fact: 0 })), strongest: [] }, 900, 220, "topic-fit");
         const keywords = (JSON.parse(input) as { keywords: { id: string; keyword: string }[] }).keywords;
         return toolUseMessage(
           { questions: keywords.map((row) => ({ id: row.id, text: `What's the best ${row.keyword}?` })) },

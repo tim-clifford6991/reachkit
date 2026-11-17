@@ -1,7 +1,6 @@
-// SPEC §7 — the one ranked list: business fit, then `ai_gap`, then integer points (`points.ts`), then volume, age and id,
-// so two reads of the same rows give one order.
-// The week is the top of that list and keeps no rule of mix, pace or cluster:
-// the highest-value topics are written first, even of one type or one topic.
+// SPEC §7 — the one ranked list: business fit, then `ai_gap`, then integer points (`points.ts`), then volume, age and
+// id, so two reads of the same rows give one order. The week is the top of that list and keeps no rule of mix, pace
+// or cluster: the highest-value topics are written first, even of one type or one topic.
 //
 // `unblock` never appears here: the store's `openRankable` excludes the Fix
 // family. A `not-yet` target is ranked, with fewer points (`points.ts`).
@@ -135,9 +134,8 @@ export async function rankOpen(siteId: string, at: Date = new Date(), only?: Rea
   return placeFixPages(scored, fixes, rotation);
 }
 
-/** How many of the next `days` days the week's commit fills ("pages left", the
- *  low-supply finding), read from the rows, profile and top tens alone: an
- *  unready row is not counted, a topic another row covers (`sameTopic`) counts
+/** How many of the next `days` days the week's commit fills ("pages left", the low-supply finding), read from the
+ *  rows, profile and top tens alone: an unready row is not counted, a topic another row covers (`sameTopic`) counts
  *  once, and a Fix takes no day. */
 export async function writableDays(siteId: string, days: number = PLAN_DEPTH): Promise<number> {
   const [rows, profile] = await Promise.all([opportunityStore().openRankable(siteId), opportunityStore().profileForSite(siteId)]);
@@ -164,8 +162,7 @@ export interface RankLoad {
   cited: readonly string[];
   /** The top tens already stored for the eligible rows' searches (#1181). */
   topTens: ReadonlyMap<string, readonly string[]>;
-  /** The site's tracked prompts, which a search with no measured volume
-   *  matches to count as asked. */
+  /** The site's tracked prompts, which a search with no measured volume matches to count as asked. */
   prompts?: readonly IntentPrompt[];
   /** The clusters of the site's own pages a stored answer cited. */
   linkedClusters?: readonly string[];
@@ -196,8 +193,7 @@ export async function loadRanking(siteId: string, at: Date, only?: ReadonlySet<s
     store.openRankable(siteId),
     store.profileForSite(siteId),
     store.openFixPages(siteId),
-    // A window that cannot be read lifts no update: the order is the one
-    // before it.
+    // A window that cannot be read lifts no update: the order is the one before it.
     store.citedPages(siteId, at).catch(() => [] as readonly string[]),
     // Prompts that cannot be read add no demand.
     store.trackedPrompts(siteId).catch(() => [] as readonly IntentPrompt[]),
@@ -214,14 +210,15 @@ export async function loadRanking(siteId: string, at: Date, only?: ReadonlySet<s
   // An unmeasured count is the cold-start 0, as the pass reads it.
   const ownRanked = report === null ? null : report.ownRanked.kind === "measured" ? report.ownRanked.value : 0;
   const listicle = report === null ? null : await store.listicleHeld(siteId, report.scanId).catch(() => null);
-  const topTens = await topTensFor(rows, only);
+  // A live page's own searches too, so a twin by its top ten is found at the commit.
+  const topTens = await topTensFor(rows, only, live.map((page) => page.row.scanId));
   // A cluster that cannot be read earns no page.
   const linkedClusters = cited.length === 0 ? [] : await store.clustersAt(siteId, cited).catch(() => [] as readonly string[]);
   return { rows, fixRows, profile, cited, topTens, prompts, linkedClusters, ownRanked, listicle, market, live };
 }
 
-function topTensFor(rows: readonly OpportunityRow[], only?: ReadonlySet<string>) {
-  return opportunityStore().topTens([...new Set(rows.filter((row) => named(row, only) && eligible(row) === null).map((row) => row.scan_id))]);
+function topTensFor(rows: readonly OpportunityRow[], only?: ReadonlySet<string>, live: readonly string[] = []) {
+  return opportunityStore().topTens([...new Set([...rows.filter((row) => named(row, only) && eligible(row) === null).map((row) => row.scan_id), ...live])]);
 }
 
 function named(row: { id: string }, only: ReadonlySet<string> | undefined): boolean {

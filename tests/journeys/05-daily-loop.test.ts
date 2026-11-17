@@ -607,7 +607,7 @@ async function seedOneOpportunity(): Promise<string> {
     evidence: seedRow.evidence,
     acceptance: seedRow.acceptance,
     fit_band: seedRow.fitBand,
-    effort: seedRow.effort,
+    effort: seedRow.effort, business_fit: 3,
   });
   if (inserted.outcome !== "created") throw new Error("the fixture opportunity was refused");
   // §9 reads the page's slug off `opportunities`, through the embedding its
