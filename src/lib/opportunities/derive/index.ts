@@ -278,6 +278,8 @@ export async function deriveOpportunities(
     .filter((row) => row.status === "open" && row.family !== "fix" && row.targetQuery !== null)
     // A plannable new page judged before the call named a passage is judged again.
     .filter((row) => (row.businessFit ?? null) === null || (isNewPage(row) && row.businessFit! >= TOPIC_FIT.gate && !("fitFact" in row.evidence)))
+    // A row no pass has scored is held until scored, so it is judged first.
+    .sort((x, y) => Number((x.businessFit ?? null) !== null) - Number((y.businessFit ?? null) !== null))
     .slice(0, HELD_ROWS_JUDGED);
   const sourceFor = (row: { targetQuery: string | null; source?: Candidate["source"] }) =>
     row.source ?? sourceOf(row.targetQuery ?? "", { brands, products: Object.keys(market?.demand?.brands ?? {}) });

@@ -1,22 +1,8 @@
-// BUILD §7 — the one door between the opportunity engine and Postgres.
-//
-// Every read and write in this directory goes through `OpportunityStore`,
-// and the default implementation is the only place in the engine that
-// names a table or a column. Two reasons, and neither is testing
-// convenience: the row shape is §10's and belongs in one file, and the
-// suites in `tests/opportunities/**` run in the `node` project, which has
-// no database (adding a live-schema suite means an entry in
-// `vitest.config.ts`'s `LIVE_SCHEMA_TESTS`, and that file is the owner's).
-//
-// **`dbAdmin()`, not `db()`.** The shipped RLS (`00000000000002_rls.sql`)
-// gives `opportunities` a select policy for the owning site's user and no
-// insert or update policy at all, with the comment "derived and written by
-// the opportunity engine through `dbAdmin()`". The engine runs inside jobs
-// (§11's `scan/run` and `weekly/refresh`), not inside a customer's
-// request, so there is no `auth.uid()` for a row policy to match. Every
-// call below is site-scoped by an explicit `site_id` predicate — the
-// scoping the policy would have applied, applied here instead.
+// BUILD §7 — the one door between the opportunity engine and Postgres: the only place in the engine that names a
+// table or a column. `dbAdmin()`, not `db()`: RLS gives `opportunities` no insert or update policy, the engine runs in
+// jobs with no `auth.uid()`, and every call below is scoped by an explicit `site_id` predicate instead.
 import type { OwnLivePage, RefreshInputs } from "./refresh";
+import type { DraftOnTopic } from "./drafted";
 import type { ListicleHeld } from "@/lib/generate/templates/listicle";
 import type { KnowledgeDigest } from "@/lib/site-profile/knowledge/read";
 import { AsyncLocalStorage } from "node:async_hooks";
@@ -169,6 +155,8 @@ export interface OpportunityStore {
    *  the row it was written for (issue 1209). What a brief is told the site
    *  already covers, and where the week starts. */
   draftedPages(siteId: string, limit: number): Promise<readonly DraftedPage[]>;
+  /** Q8: every draft of the site, newest first, with its row and what its pack's research read. Optional: absent reads none. */
+  draftsOnTopics?(siteId: string): Promise<readonly DraftOnTopic[]>;
   /** The site's own pages an answer to a tracked prompt cited in the four
    *  weeks ending at `at` (SPEC §6, D15, issue 1146), read from the stored
    *  passes. Nothing is bought. */
@@ -592,6 +580,18 @@ export function supabaseOpportunityStore(): OpportunityStore {
         pages.map((page) => page.row)
       );
       return pages.map((page, index) => ({ ...page, row: rows[index] ?? page.row }));
+    },
+
+    async draftsOnTopics(siteId) {
+      type Row = { id: string; created_at: string; state: string; transitions: unknown; rivals: unknown; claims: unknown; opportunities: OpportunityRow | null };
+      const { data, error } = await untyped()
+        .from<Row>("drafts")
+        .select(`id, created_at, state, transitions, rivals:meta->pack->business->rivals, claims:meta->pack->claims, opportunities(${COLUMNS})`)
+        .eq("site_id", siteId)
+        .order("created_at", { ascending: false });
+      if (error) throw new Error(`opportunities.draftsOnTopics: ${error.message}`);
+      const { draftOnTopic } = await import("./drafted");
+      return (data ?? []).flatMap((d) => (d.opportunities === null ? [] : [draftOnTopic(d, readOpportunity(d.opportunities))]));
     },
 
     async citedPages(siteId, at) {

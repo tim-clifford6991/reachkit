@@ -190,6 +190,7 @@ const READS = new Set<keyof OpportunityStore>([
   "topTenRows", "askedBeside", "dismissedSearches", "plannedRows", "weeklyCommit", "currentReport", "listicleHeld",
   "lastStatusChangeAt", "latestCompletedScanAt", "byId", "openFixPages", "marketFor", "notWorkingVerdicts", "hostedHostFor",
   "hostedOwnPages", "inventoryFor", "profileForSite", "knownContentNear", "refreshInputs", "refreshPages", "trackedPrompts", "footprintOpened",
+  "draftsOnTopics",
 ]);
 
 /** The real store's reads with the readiness check's writes held in memory over them, and the commit dropped. */
@@ -200,6 +201,7 @@ function dryStore(base: OpportunityStore): OpportunityStore {
     setFitBand: (band: Winnability) => ({ fit_band: band }),
     setEvidence: (evidence: OpportunityRow["evidence"]) => ({ evidence }),
     markDone: () => ({ status: "done" }),
+    markDismissed: () => ({ status: "dismissed", ready: false }),
   };
   const patch = (value: unknown): unknown => {
     if (Array.isArray(value)) return value.map(patch);

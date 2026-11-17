@@ -16,9 +16,8 @@ export function queryKey(query: string): string {
   return query.trim().toLowerCase();
 }
 
-/** The same top tens with each result's domain, address and title (issue
- *  1506), and whether it showed a local pack: what tells the kind of
- *  business a search is answered by. */
+/** The same top tens with each result's domain, address and title (issue 1506), and whether it showed a local pack:
+ *  what tells the kind of business a search is answered by. */
 export function topTenRowsOf(
   report: Pick<StoredReport, "questions" | "serps">
 ): Map<string, { rows: { domain: string; url: string; title: string }[]; localPack: boolean }> {
@@ -33,9 +32,8 @@ export function topTenRowsOf(
   return topTens;
 }
 
-/** The top ten a report bought for each of its questions, as canonical
- *  addresses, keyed by `queryKey`. A question whose SERP is unmeasured has
- *  none. */
+/** The top ten a report bought for each of its questions, as canonical addresses, keyed by `queryKey`. A question
+ *  whose SERP is unmeasured has none. */
 export function topTensOf(report: Pick<StoredReport, "questions" | "serps">): Map<string, readonly string[]> {
   const topTens = new Map<string, readonly string[]>();
   if (report.questions?.kind !== "measured") return topTens;
@@ -169,8 +167,7 @@ export function comparePrecedence(
   return (WRITE_TYPE_ORDER[a.type] ?? 0) - (WRITE_TYPE_ORDER[b.type] ?? 0);
 }
 
-/** A candidate as it is written: its cluster and the sibling searches it
- *  absorbed. */
+/** A candidate as it is written: its cluster and the sibling searches it absorbed. */
 export type ClusteredCandidate = Candidate & { clusterKey: string | null; absorbedQueries: readonly string[] };
 
 export interface CollapsePlan {
@@ -242,12 +239,10 @@ function compareMembers(a: Member, b: Member, band: (m: Member) => Winnability |
   return volumeOf(b) - volumeOf(a);
 }
 
-/**
- * One survivor per cluster over the site's open, queued and done non-Fix rows and this pass's candidates. The survivor
- * absorbs every other member's search, unless it is a live page; a losing open row is dismissed and a losing
- * candidate is not written, while a row with a page is never dismissed. An open survivor of a topic this pass covered,
- * put no candidate in and did not derive is superseded and dismissed too.
- */
+/** One survivor per cluster over the site's open, queued and done non-Fix rows and this pass's candidates. The
+ *  survivor absorbs every other member's search, unless it is a live page; a losing open row is dismissed and a
+ *  losing candidate is not written, while a row with a page is never dismissed. An open survivor of a topic this pass
+ *  covered, put no candidate in and did not derive is superseded and dismissed too. */
 export function collapse(a: {
   existing: readonly Opportunity[];
   candidates: readonly Candidate[];
@@ -278,9 +273,8 @@ export function collapse(a: {
 
   for (const row of a.existing) {
     if (row.family === "fix" || row.status === "dismissed") continue;
-    // A refresh of a page of ours (issue 1139) is the update of that page,
-    // not a second page on its topic: it does not compete with the page's
-    // own row, which would always survive it.
+    // A refresh of a page of ours (issue 1139) is the update of that page, not a second page on its topic: it does
+    // not compete with the page's own row, which would always survive it.
     if (isOwnRefresh(row)) continue;
     add(row.clusterKey ?? clusterKey(row.targetQuery, a.brandTokens), { kind: "row", row });
   }
