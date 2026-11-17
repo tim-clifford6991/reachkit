@@ -1,7 +1,7 @@
 // src/lib/config/constants/publish.ts — the veto, destinations, the hosted blog and who reads it. Imports nothing.
 
-/** SPEC §0 and §7: "Default 24 h; range 1-7 days; there is no zero window."
- *  `minDays` is never 0: that would be a draft with no veto path at all. */
+/** SPEC §0 and §7: "Default 24 h; range 1-7 days; never zero for a customer; the owner's own sites take 0 h."
+ *  `minDays` is never 0, so no save chooses it; the owner's 0 h comes from `OWNER_EMAILS` in `publish/attempt/window.ts`. */
 export const VETO = Object.freeze({
   defaultHours: 24, minDays: 1, maxDays: 7,
 } as const);

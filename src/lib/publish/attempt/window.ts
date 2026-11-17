@@ -7,6 +7,7 @@
 // `publishDueAt` names the moment for one `publish/execute`, which re-enters through `dueApproval`; the tick is the backstop.
 // The mail is best-effort: autopilot asks for nothing, so an unsent one is logged and retried by the tick, never a hold.
 import { VETO } from "@/lib/config/constants";
+import { env } from "@/lib/config/env";
 import { publishDb, type PublishQuery } from "../db";
 import { keepsDate, publishDateAtOrAfter, reviewDeadline } from "../settings/clock";
 import { settingsOf } from "../settings/pair";
@@ -49,6 +50,16 @@ async function liveDestination(siteId: string): Promise<DestinationRow | null> {
   return data[0] ?? null;
 }
 
+/** Whether the site's account signs in at one of `OWNER_EMAILS`; an unreadable one is a customer's. */
+async function ownerSite(siteId: string): Promise<boolean> {
+  const site = await publishDb().from<{ user_id: string }>("sites").select("user_id").eq("id", siteId).limit(1);
+  const userId = site.data?.[0]?.user_id;
+  if (site.error !== null || userId === undefined) return false;
+  const user = await publishDb().from<{ email: string }>("users").select("email").eq("id", userId).limit(1);
+  const email = user.error === null ? user.data?.[0]?.email?.toLowerCase() : undefined;
+  return email !== undefined && env.OWNER_EMAILS.some((owner) => owner.toLowerCase() === email);
+}
+
 /** `generating → in_review`, with its window and its telling; any other state is left. With a customer or the daily
  *  re-check as `by`, it opens from `needs_attention` (SPEC §7): the stopped page now passes every hard rule. */
 export async function enterReview(a: { draftId: string; at: Date; by?: Actor; reason?: string }): Promise<ReviewEntry> {
@@ -64,7 +75,8 @@ export async function enterReview(a: { draftId: string; at: Date; by?: Actor; re
   const destination = await liveDestination(draft.siteId);
   if (destination === null) return { kind: "not_entered", reason: "no_destination" };
 
-  const hours = draft.governing.vetoHours > 0 ? draft.governing.vetoHours : VETO.defaultHours;
+  // The owner's own sites take 0 h from `OWNER_EMAILS`, never from a setting, so no customer can choose it.
+  const hours = (await ownerSite(draft.siteId)) ? 0 : draft.governing.vetoHours > 0 ? draft.governing.vetoHours : VETO.defaultHours;
   const deadline = reviewDeadline(a.at, hours, draft.scheduledFor ?? null, settingsOf(draft.governing));
   const stamped = await publishDb()
     .from<{ id: string }>("drafts")

@@ -78,10 +78,11 @@ export function publishTimeOn(date: string, s: PublishingSettings): Date {
 /** Whether the row's date is today or later in the site's zone, so entering review leaves it. */
 export const keepsDate = (at: Date, date: string | null, s: PublishingSettings): date is string => date !== null && date >= localDateOf(at, s);
 
-/** The Stop window is a preview: it ends `hours` on, or sooner at the row's own publish time, or at once past it. */
+/** The Stop window is a preview: it ends `hours` on, or sooner at the row's own publish time, or at once past it.
+ *  At 0 h it ends at the page's publish time: its own date's, else the first one at or after `at`. */
 export function reviewDeadline(at: Date, hours: number, date: string | null, s: PublishingSettings): Date {
-  const full = at.getTime() + hours * 60 * MS_PER_MINUTE;
-  if (!keepsDate(at, date, s)) return new Date(full);
+  if (!keepsDate(at, date, s)) return hours === 0 ? nextPublishTimeAtOrAfter(at, s) : new Date(at.getTime() + hours * 60 * MS_PER_MINUTE);
+  const full = hours === 0 ? Infinity : at.getTime() + hours * 60 * MS_PER_MINUTE;
   return new Date(Math.max(at.getTime(), Math.min(full, publishTimeOn(date, s).getTime())));
 }
 
