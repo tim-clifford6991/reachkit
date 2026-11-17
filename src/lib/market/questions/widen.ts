@@ -22,9 +22,9 @@ import { BATTERY, SELECTION } from "@/lib/config/constants";
 import type { SuggestionRow } from "./market-set";
 import type { MeasuredMarket } from "./measured";
 import type { Profile } from "./profile";
-import type { RankedRow } from "@/lib/vendors/dataforseo/types";
+import type { RankedRow, SearchTrend } from "@/lib/vendors/dataforseo/types";
 import { offeringSeeds } from "./offerings";
-import { STOP_WORDS, difficultyField, selectTwelve, type MarketRow, type SelectedSearch } from "./select";
+import { STOP_WORDS, measuredFields, selectTwelve, type MarketRow, type SelectedSearch } from "./select";
 
 /** A ranked keyword pooled beside the suggestions: the site's own row
  *  (`rival: null`) or a tracked rival's. Rows the pass already bought — the
@@ -37,6 +37,7 @@ export interface PoolRow {
   /** The vendor's keyword difficulty where the ranked row carried one
    *  (issue 858). */
   difficulty?: number;
+  trend?: SearchTrend;
 }
 
 /** The lowest volume step. A row below it is never selected at any step. */
@@ -61,7 +62,7 @@ export function poolFrom(a: {
 }
 
 function poolRow(row: RankedRow, rival: string | null): PoolRow {
-  return { keyword: row.keyword, volume: row.searchVolume, rival, ...difficultyField(row.difficulty) };
+  return { keyword: row.keyword, volume: row.searchVolume, rival, ...measuredFields(row) };
 }
 
 function words(text: string): string[] {
@@ -149,7 +150,7 @@ export function pooledMarket(suggestions: readonly SuggestionRow[], pool: readon
     if (key === "") return;
     let held = byKey.get(key);
     if (held === undefined) {
-      held = { row: { keyword: row.keyword, volume: row.volume, ...difficultyField(row.difficulty) }, rivals: [] };
+      held = { row: { keyword: row.keyword, volume: row.volume, ...measuredFields(row) }, rivals: [] };
       byKey.set(key, held);
     } else if (held.row.difficulty === undefined && row.difficulty !== undefined && row.difficulty !== null) {
       held.row = { ...held.row, difficulty: row.difficulty };

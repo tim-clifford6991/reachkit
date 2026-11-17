@@ -14,10 +14,10 @@ import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
 import type { PromptAnswer, StoredReport } from "@/lib/scan/report";
 import { queryKey } from "../cluster";
 import { contentTypeOf } from "../content-type";
-import { FAMILY_OF, type BusinessFit, type Evidence, type OpportunityType, type TopicSource } from "../types";
+import { FAMILY_OF, type BusinessFit, type Evidence, type OpportunityType, type ReadTrend, type TopicSource } from "../types";
 import { demandBand } from "../winnability/band";
 import { qualifyingDemand } from "../winnability/bars";
-import { slugify, type Candidate } from "./candidate";
+import { slugify, trendRead, type Candidate } from "./candidate";
 
 /** A "vs" that also asks for alternatives, a price or an integration is anchored on a product by those words. */
 const COMPARISON_ONLY_BY_NAME = new RegExp(`${SHAPES.alternatives.source}|${SHAPES.price.source}`, "u");
@@ -122,18 +122,10 @@ export function comparisonWithoutDemand(
 const MARKET_SUFFIX = /\s+(?:tools?|software|platforms?|apps?|systems?)$/;
 
 /**
- * SPEC §6 (owner D59 of 2026-10-06, issue 1287): why a topic is no longer
- * relevant to the market in force, or `null` where it still is.
- *
- * `former_rival` — it names a product a pass read as a rival candidate and
- * did not keep: it is known by the keyword its brand volume was read under
- * (`market.demand.brands`), whatever that volume is. Judged only where the
- * volumes were read and the market holds rivals: "never read" names nobody.
- *
- * `not_our_market` — it uses a term from `notOurMarket`: the phrase itself,
- * or the phrase without its closing "software", "tools" or "systems" where
- * two words or more are left. One word alone ("SEO") is never a match: it
- * would take "geo vs seo" with it.
+ * SPEC §6: why a topic is no longer relevant to the market in force, or `null` where it still is.
+ * `former_rival`: it names a product a pass read as a rival and did not keep, known by its brand-volume keyword; judged
+ * only where the volumes were read and the market holds rivals. `not_our_market`: it uses a `notOurMarket` phrase, or
+ * that phrase without its closing "software" or "tools" where two words are left; one word alone would take "geo vs seo".
  */
 export function noLongerRelevant(
   query: string,
@@ -158,15 +150,8 @@ export function noLongerRelevant(
   return names(text, former) ? "former_rival" : null;
 }
 
-/**
- * Is this search only a rival's brand name? (SPEC §6, owner D64, issue
- * 1301.) Someone who types "rankscale ai" is going to Rankscale: the search
- * is navigational and no page of this business answers it, so it is never a
- * topic. A rival's name beside anything else — "rankscale alternatives",
- * "profound vs otterly", "otterly pricing" — is a different search and is
- * not judged here. The names are the rivals in force by every name they are
- * searched under, and the brands the market read demand for (D50).
- */
+/** Whether a search is only a rival's brand name: navigational, so no page of this business answers it. A rival's name
+ *  beside anything else ("otterly pricing") is another search. Names are the rivals' search names and the read brands. */
 export function rivalBrandOnly(
   query: string,
   a: { market: MarketConclusion | null; own: readonly string[]; rivals: readonly string[] }
@@ -181,14 +166,8 @@ export function rivalBrandOnly(
   return brands.has(text);
 }
 
-/**
- * The products a search names, as one comparable string (SPEC §6, owner D64,
- * issue 1301). "profound alternatives" and "otterly alternatives" are worded
- * alike and are two pages: a buyer leaving Profound is not a buyer leaving
- * Otterly. The same-question judgement paired them on reachkit.app's
- * re-measure of 2026-10-07 and the collapse then dismissed the Otterly row,
- * so two searches are one question only where they name the same products.
- */
+/** The products a search names, as one comparable string: two searches worded alike are one question only where they
+ *  name the same products, as a buyer leaving one product is not a buyer leaving another. */
 export function productsNamed(query: string, a: { market: MarketConclusion | null; rivals: readonly string[] }): string {
   const text = ` ${normalise(query)} `;
   const brands = new Set(a.rivals.map(normalise));
@@ -216,7 +195,9 @@ export interface ProposedTopic {
   /** The rival the search names, where it names one. */
   rival: string | null;
   /** Where buyers were seen asking it (issue 1519): the search whose SERP showed it and when that SERP was bought. */
-  asked?: { term: string; serpAt: Date };
+  asked?: { term: string; serpAt: Date; newSince?: Date };
+  /** The trend the market set read for it, where the vendor gave one. */
+  trend?: Omit<ReadTrend, "at">;
   /** Issue 1520: a search ReachKit composed from the market's own words
    *  (`composedSearches`), not one anyone was seen typing. */
   composed?: true;
@@ -330,6 +311,8 @@ export interface AskedTopic {
   query: string;
   term: string;
   serpAt: Date;
+  /** The latest earlier week's read of `term`, which did not show it: first seen this week. */
+  newSince?: Date;
 }
 
 /** The SERPs the report's own measured searches bought, as what buyers were
@@ -365,11 +348,20 @@ export function askedTopics(asked: readonly AskedBeside[], now: Date, max: numbe
         const query = text === undefined ? null : phrase(text, ASKED_TOPICS.maxWords);
         if (query === null || seen.has(query) || out.length >= max) continue;
         seen.add(query);
-        out.push({ query, term: serp.term, serpAt: serp.at ?? now });
+        out.push({ query, term: serp.term, serpAt: serp.at ?? now, newSince: newSince(query, serp.term, asked, now) });
       }
     }
   }
   return out;
+}
+
+/** Where `query` was first shown on `term`'s results this week, the latest read of `term` from an earlier week; none where
+ *  no earlier read is stored, as not measured is not new. A weekly read a day early is still an earlier week. */
+function newSince(query: string, term: string, asked: readonly AskedBeside[], now: Date): Date | undefined {
+  const reads = asked.flatMap((serp) => (serp.at === undefined || queryKey(serp.term) !== queryKey(term) ? [] : [{ at: serp.at.getTime(), shows: [...serp.peopleAlsoAsk, ...serp.related].some((text) => phrase(text, ASKED_TOPICS.maxWords) === query) }]));
+  const first = Math.min(...reads.filter((read) => read.shows).map((read) => read.at));
+  const before = Math.max(...reads.filter((read) => read.at <= first - 6 * 86_400_000).map((read) => read.at));
+  return Number.isFinite(first) && first >= now.getTime() - 7 * 86_400_000 && Number.isFinite(before) ? new Date(before) : undefined;
 }
 
 /** Whether `query` names the business itself and sets it against no rival:
@@ -559,6 +551,7 @@ export function proposedTopics(a: {
   for (const row of suggestions) {
     if (!volumes.has(queryKey(row.keyword))) volumes.set(queryKey(row.keyword), row.volume);
   }
+  const trends = new Map(suggestions.map((row) => [queryKey(row.keyword), row.trend] as const).reverse());
   // SPEC §6 (owner D64, issue 1301): a comparison search the pass read the
   // volume of carries it. One nobody searches stays unmeasured, as before.
   for (const [search, volume] of Object.entries(a.market?.demand?.searches ?? {})) {
@@ -574,7 +567,7 @@ export function proposedTopics(a: {
     // pass read demand for the search itself.
     if (!volumes.has(key) && comparisonWithoutDemand(key, { market: a.market, own })) return;
     seen.add(key);
-    out.push({ query: key, source, volume: volumes.get(key) ?? null, rival, ...more });
+    out.push({ query: key, source, volume: volumes.get(key) ?? null, rival, ...(trends.get(key) === undefined ? {} : { trend: trends.get(key) }), ...more });
   };
 
   const market = a.market;
@@ -631,7 +624,7 @@ export function proposedTopics(a: {
   // word (issue 1506).
   for (const topic of a.asked ?? []) {
     if (!askedOnMarket(topic.query, { market: a.market, own, rivals })) continue;
-    add(topic.query, sourceOf(topic.query, { brands }), null, { asked: { term: topic.term, serpAt: topic.serpAt } });
+    add(topic.query, sourceOf(topic.query, { brands }), null, { asked: { term: topic.term, serpAt: topic.serpAt, newSince: topic.newSince } });
   }
 
   // What the pass read and did not ask: its market set, largest first, at
@@ -688,6 +681,7 @@ export function candidateFor(
       position: unmeasured<number>("not_attempted", at),
     },
     ...(topic.asked === undefined ? {} : { askedBeside: topic.asked }),
+    ...trendRead(topic.trend, at),
     ...(topic.composed === undefined ? {} : { composed: true as const }),
     ...(topic.prompt === undefined ? {} : { prompt: topic.prompt }),
     ...(topic.win === undefined ? {} : { win: topic.win }),
@@ -773,7 +767,7 @@ export function askedSupply(a: {
   );
   const byTerm = [...a.asked].sort((x, y) => Number(terms.has(queryKey(y.term))) - Number(terms.has(queryKey(x.term))));
   for (const asked of askedTopics(byTerm, a.now, Number.POSITIVE_INFINITY)) {
-    take({ topic: { query: queryKey(asked.query), source: sourceOf(asked.query, { brands }), volume: null, rival: null, asked: { term: asked.term, serpAt: asked.serpAt } }, fit: null });
+    take({ topic: { query: queryKey(asked.query), source: sourceOf(asked.query, { brands }), volume: null, rival: null, asked: { term: asked.term, serpAt: asked.serpAt, newSince: asked.newSince } }, fit: null });
   }
   return out;
 }

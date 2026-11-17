@@ -7,8 +7,10 @@
 // has not been persisted.
 import { languagePack } from "@/lib/locale/language";
 import type { Language } from "@/lib/locale/locales";
-import type { Opportunity, RejectionCount } from "../types";
-import { noRejections } from "../types";
+import { noRejections, type Opportunity, type ReadTrend, type RejectionCount } from "../types";
+
+/** The search's trend on its evidence, dated by the read, only where the vendor gave one. */
+export const trendRead = (trend: Omit<ReadTrend, "at"> | undefined, at: Date): { trend?: ReadTrend } => (trend === undefined ? {} : { trend: { ...trend, at } });
 
 /** The cluster and readiness fields are omitted too: the database defaults
  *  them, and the cluster step that fills them is not this file's. */

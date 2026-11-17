@@ -13,6 +13,16 @@ export interface RankedRow {
    *  reader off the site. Only on rows bought with `listing`, where the vendor gave one. */
   title?: string;
   description?: string;
+  trend?: SearchTrend;
+}
+
+/** `keyword_info`'s trend as the vendor gave it: the months it listed, and the change in percent over one month, a quarter
+ *  and a year. A part it gave none of is absent, never 0; a row with none has no `trend`. */
+export interface SearchTrend {
+  months?: readonly { year: number; month: number; searchVolume: number }[];
+  monthly?: number;
+  quarterly?: number;
+  yearly?: number;
 }
 
 /** `keywordOverview` — one keyword the vendor holds data for, as it spells
@@ -20,6 +30,7 @@ export interface RankedRow {
 export interface KeywordVolumeRow {
   keyword: string;
   searchVolume: number;
+  trend?: SearchTrend;
 }
 
 /** `keywordSuggestions` — one keyword DataForSEO returns for a seed term. */
@@ -29,6 +40,7 @@ export interface SuggestionRow {
   /** `keyword_properties.keyword_difficulty`: difficulty of reaching the top 10, 0–100 on a log scale. `null` where the
    *  vendor gave none; absent on an older cached row. */
   difficulty?: number | null;
+  trend?: SearchTrend;
 }
 
 /** The monthly search volume a `keywordSuggestions` call buys between,

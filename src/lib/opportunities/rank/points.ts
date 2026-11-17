@@ -12,11 +12,23 @@ export const POINTS = Object.freeze({
   fit: { 3: 3, 2: 1 } as Readonly<Record<number, number>>,
   demand: { measured: 2, asked: 1 },
   aiGap: 2,
+  rising: 2,
   nearPageOne: 3,
   linkedByAi: 1,
   notMoving: 0,
   outsized: -2,
 });
+
+/** The quarterly change in searches, in percent, from which a search is rising. */
+export const RISING_QUARTERLY_PCT = 30;
+
+/** A search up by `RISING_QUARTERLY_PCT` or more on the quarter, or a question first seen this week. Stored jsonb: a
+ *  missing field is not rising. */
+export function isRising(evidence: Opportunity["evidence"] | null | undefined): boolean {
+  if (evidence?.family !== "write" && evidence?.family !== "earn") return false;
+  const quarterly = evidence.trend?.quarterly;
+  return (typeof quarterly === "number" && quarterly >= RISING_QUARTERLY_PCT) || (evidence.family === "write" && evidence.askedBeside?.newSince != null);
+}
 
 /** The fit a row ranks and scores in: one no pass has judged as a judged 2, neither lifted nor dropped. */
 export const fitOf = (o: Pick<Opportunity, "businessFit">): number => o.businessFit ?? 2;
@@ -79,6 +91,7 @@ export function pointsOf(o: Scorable, seen: Seen): Omit<PlanReason, "rule"> {
   const demand = demandOf(o, seen);
   if (demand > 0) parts.push({ part: "demand", n: demand });
   if (aiGapOf(o)) parts.push({ part: "ai_gap", n: POINTS.aiGap });
+  if (isRising(o.evidence)) parts.push({ part: "rising", n: POINTS.rising });
   if (nearPageOne(o)) parts.push({ part: "near_page_one", n: POINTS.nearPageOne });
   if (linkedByAi(o, seen)) parts.push({ part: "linked_by_ai", n: POINTS.linkedByAi });
   // Stored though it adds nothing: it is why the refresh is in the list.
