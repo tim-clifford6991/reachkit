@@ -546,13 +546,15 @@ function linkedPassage(passage: string, url: string): string {
 }
 
 /** The short answer with a linked business passage after the writer's leading sentences that leave room for it: the fit
- *  fact, else the first of the pack's own that fits. Unchanged where it links one already or none fits. */
-function answerWithFact(answer: string, fit: string, pack: ContextPack): string {
-  const own = new Set([fit, ...pack.facts.map((fact) => fact.url)].flatMap((url) => urlKey(url) ?? []));
+ *  fact where it has a page, else the first of the pack's own that fits. Unchanged where it links one already or none fits. */
+function answerWithFact(answer: string, pack: ContextPack): string {
+  const fit = pack.fitFact?.url == null ? [] : [{ passage: pack.fitFact.passage, url: pack.fitFact.url }];
+  const linked = [...fit, ...pack.facts];
+  const own = new Set(linked.flatMap((fact) => urlKey(fact.url) ?? []));
   if (linksOf(answer).some((url) => own.has(urlKey(url) ?? ""))) return answer;
   const sentences = splitSentences(answer.trim());
   const { min, max } = PAGE_BLOCKS.answerWords;
-  const boxes = [linkedPassage(pack.fitFact!.passage, fit), ...pack.facts.map((fact) => linkedPassage(fact.passage, fact.url))].flatMap((fact) => {
+  const boxes = linked.map((fact) => linkedPassage(fact.passage, fact.url)).flatMap((fact) => {
     let kept = 0;
     while (kept < sentences.length && wordCount([...sentences.slice(0, kept + 1), fact].join(" ")) <= max) kept++;
     return kept === 0 ? [] : [[...sentences.slice(0, kept), fact].join(" ")];
@@ -563,11 +565,12 @@ function answerWithFact(answer: string, fit: string, pack: ContextPack): string 
 
 /** Owner P2b and P3 (2026-11-16): a page whose row names its fit fact states a business passage, word for word and
  *  linked, in its short answer, and the fit fact in its business section. Code adds what the writer left out and writes
- *  no other word but the section's heading. A founder's fact has no page to link, so it is left to the writer. */
+ *  no other word but the section's heading. A founder's fact has no page to link, so its section is left to the writer. */
 export function withFitFact(parts: PageParts, a: { pack: ContextPack; template: Pick<Template, "sections">; businessName: string | null }): PageParts {
   const fit = a.pack.fitFact;
-  if (fit === undefined || fit.url === null) return parts;
-  const answer = answerWithFact(parts.answer, fit.url, a.pack);
+  if (fit === undefined) return parts;
+  const answer = answerWithFact(parts.answer, a.pack);
+  if (fit.url === null) return { ...parts, answer };
   const asked = a.template.sections.some((slot) => slot.key === "business");
   const written = parts.sections.some((section) => section.key === "business" && section.body.trim() !== "");
   if (!asked || written || a.businessName === null) return { ...parts, answer };
