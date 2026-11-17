@@ -276,8 +276,6 @@ export const FIGURES = {
   searches: HOW_FACTS.searches,
   pages: SITE_PROFILE.MAX_PAGES,
 };
-/** Sample figure for the fourth step: the example business's pages climbing on Google. */
-const SAMPLE_CLIMBING = 3;
 const LOOP = [1, 2, 3, 4] as const;
 /** Monday to Sunday, as the letters a calendar heads its columns with. */
 const WEEK = [0, 1, 2, 3, 4, 5, 6] as const;
@@ -319,7 +317,7 @@ function LoopSample(p: { step: (typeof LOOP)[number] }): React.JSX.Element {
   }
   return (
     <span className="text-xs font-semibold">
-      {copy("library.close.loop.4.sample", { live: e.mail.live, climbing: SAMPLE_CLIMBING })}
+      {copy("library.close.loop.4.sample", { live: e.mail.live })}
     </span>
   );
 }

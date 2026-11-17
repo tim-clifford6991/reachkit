@@ -614,7 +614,7 @@ export const REPORT_COPY = Object.freeze({
   // brief (DECISIONS 2026-09-10) rules that out — a page goes live when one
   // is ready, at most one a day. Approved 2026-09-11 (#516).
   "landing.step.3.title": ["You See Progress", { slots: {}, fixedBy: "board Landing · issue 1596" }],
-  "landing.step.3.body": ["Each page goes live on its own day. Every Monday an email shows what went live and what moved.", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
+  "landing.step.3.body": ["Each page goes live on its own day. Every Monday an email shows what went live and your totals so far.", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01 · owner 2026-11-17 · issue 2738" }],
 
   /* ── The landing in its 2026-09-24 order (#1067) ─────────────────────
      Boards `R12-1-Landing`, `R12-8-Phone-landing`, `R12-10-Dark-landing`
@@ -658,7 +658,7 @@ export const REPORT_COPY = Object.freeze({
   "landing.faq.approve.q": ["Do I have to approve each page?", { slots: {}, fixedBy: "board Landing · issue 1596" }],
   "landing.faq.approve.a": ["No. Each page goes live by itself {hours} hours after it is written. You can edit or stop it first, or do nothing.", { slots: { hours: "text" }, fixedBy: "board Landing · issue 1596 · docs/SPEC.md §8 Page-ready until the first Monday mail (drafted)" }],
   "landing.faq.results.q": ["How long until I see results?", { slots: {}, fixedBy: "board Landing · issue 1596" }],
-  "landing.faq.results.a": ["Your pages go live in week 1. Each Monday email shows where they sit on Google, and whether AI links to them.", { slots: {}, fixedBy: "board Landing · issue 1596" }],
+  "landing.faq.results.a": ["Your pages go live in week 1. Each Monday email shows what went live and your totals so far.", { slots: {}, fixedBy: "board Landing · issue 1596 · owner 2026-11-17 · issue 2738" }],
   "landing.faq.stop.q": ["What if I want to stop?", { slots: {}, fixedBy: "board Landing · issue 1596" }],
   "landing.faq.stop.a": ["Cancel any time from Settings, and you’re not charged again. Section four of our Terms says when your access ends. Pages on the blog address we run for you stay live for {days} days after your access ends, and we email you a week before they stop. Your export of every page stays available, with no end date.", { slots: { days: "text" }, fixedBy: "board Landing · issue 1596 · ruling D5 · ruling R22" }],
   "landing.faq.any.q": ["Will it work for my business?", { slots: {}, fixedBy: "board PubLanding v36 · owner 2026-11-01" }],
@@ -674,7 +674,7 @@ export const REPORT_COPY = Object.freeze({
   "landing.faq.trial.a": ["The scan and your first page are free, so you see the work first. Then it’s one plan at {price} a month.", { slots: { price: "text" }, fixedBy: "board Landing · issue 1596" }],
   /** The landing's short answers; How it works and Pricing keep the full ones above. */
   "landing.faq.approve.short": ["No. Each page goes live by itself {hours} hours after it is written. You can edit or stop it first.", { slots: { hours: "text" }, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
-  "landing.faq.results.short": ["Pages go live in week 1. Google takes weeks to months; each Monday email shows what moved.", { slots: {}, fixedBy: "board PubLanding v37 · owner 2026-11-06" }],
+  "landing.faq.results.short": ["Pages go live in week 1. Google takes weeks to months; each Monday email shows your totals so far.", { slots: {}, fixedBy: "board PubLanding v37 · owner 2026-11-06 · owner 2026-11-17 · issue 2738" }],
   "landing.faq.stop.short": ["Cancel any time in Settings; you’re not charged again. Your export of every page stays available.", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
   "landing.faq.german.short": ["Yes, sites in {germanCountries} are checked and written in German. Everywhere else gets English.", { slots: { germanCountries: "text" }, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],
   "landing.faq.trial.short": ["The scan and your first page are free, so you see the work first.", { slots: {}, fixedBy: "board PubLanding v34 · owner 2026-11-01" }],

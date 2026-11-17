@@ -569,7 +569,7 @@ export const SETTINGS_COPY = Object.freeze({
   "settings.notifications.weekly": ["Monday mail", { slots: {}, fixedBy: "BUILD §12 · board SettingsMail" }],
   // The card's lead and each row's line (issue 1751; Q10 for the page-ready row). No send time: owner R29, 2026-10-23.
   "settings.notifications.to": ["Sent to {email}", { slots: { email: "text" }, fixedBy: "issue 2277 · board SettingsMail" }],
-  "settings.notifications.weekly.note": ["Mondays. What went live, what moved, and the next {days} pages.", { slots: { days: "text" }, fixedBy: "issue 2277 · board SettingsMail · owner R29 2026-10-23" }],
+  "settings.notifications.weekly.note": ["Mondays. What went live, your totals so far, and the next {days} pages.", { slots: { days: "text" }, fixedBy: "issue 2277 · board SettingsMail · owner R29 2026-10-23 · owner 2026-11-17 · issue 2738" }],
   "settings.notifications.draft-ready.note": [
     "One mail per page, {window} before it goes live, until your first Monday mail. Turn on to keep getting them.",
     { slots: { window: "text" }, fixedBy: "Q10 · ux-designer · issue 1751" },

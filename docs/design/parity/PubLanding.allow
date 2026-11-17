@@ -15,3 +15,4 @@ component:icon:scan-search 1	#2249: the count row's tile, drawn from 100 distinc
 Why you should care	owner 2026-11-16, #2745: the Why heading has no eyebrow
 What €49 a month gets you	owner 2026-11-16, #2745: ships "What’s Included for {price}/month?"
 Every fact linked to its source. Up to 22 checks before a page goes live.	E10: the check count comes from code (SPEC §0 One true check count)
+Monday: what moved this week	the mock subject follows the fixed subject order, AI first (owner 2026-11-16 E and 2026-11-17, #2738)

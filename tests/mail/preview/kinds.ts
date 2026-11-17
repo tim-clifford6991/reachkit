@@ -24,7 +24,7 @@ import type {
   DraftReadyPage,
   TellableTelling,
 } from "../../../src/lib/mail/templates/draft-ready";
-import type { WeeklyNumbers, WeeklyPage } from "../../../src/lib/mail/templates/weekly";
+import type { WeeklyDid, WeeklyTotals } from "../../../src/lib/mail/templates/weekly";
 import { COPY, type CopyKey } from "../../../src/lib/presentation/copy";
 import type { PublishedTelling } from "../../../src/lib/publish/verify/telling";
 
@@ -105,34 +105,6 @@ const PUBLISHED_TELLING: PublishedTelling = {
   siteCondition: null,
   copy: "mail.published.verified",
 };
-
-/** The digest's own two judged pages: the first is named by its search and carries the set's movement,
- *  the second has no stored search, so its address's last words name it, and no movement to state. */
-/** The sample week's Monday, when its pages were last checked. */
-const WEEK_AT = new Date("2026-10-19T07:00:00.000Z");
-const WEEKLY_PAGES: readonly WeeklyPage[] = [
-  {
-    liveUrl: "https://example.com/water-heater-repair",
-    search: "water heater repair austin",
-    standing: {
-      kind: "verdict",
-      verdict: "working",
-      measuredAt: WEEK_AT,
-      movement: {
-        previousWeek: "2026-09-01",
-        spansWeeks: 1,
-        from: measured(31, AT),
-        to: measured(18, AT),
-        declined: false,
-      },
-      verifyNote: null,
-    },
-  },
-  {
-    liveUrl: "https://example.com/drain-cleaning-cost",
-    standing: { kind: "verdict", verdict: "working", measuredAt: AT, movement: null, verifyNote: null },
-  },
-];
 
 /** The board's sample week: Monday to Sunday from the Monday it is sent, the
  *  first three written out with why, and the publish time Plan states. */
@@ -283,89 +255,59 @@ export async function composePreview(kind: PreviewKind): Promise<PreviewMail> {
   }
 }
 
-/** The same Monday send on a week nothing could be measured in — the second
- *  `weekly` card the set draws. Every section drops out and the whole-mail
- *  line says when the next measurement is due (§8's "a mail that still
- *  arrives when there was nothing to report"). */
-/** Board MondayMail's sample week; `unmeasured` names the Google steps nobody read this week, `setAside` what filled the
- *  days of the pages set aside. */
-export async function composeWeekly(unmeasured: readonly string[] = [], setAside: WeeklyNumbers["setAside"] = { n: 1, arm: "replaced" }): Promise<PreviewMail> {
-  const composeMail = await composer();
-  const { buildWeekly } = await import("../../../src/lib/mail/templates/weekly");
-  const mail = buildWeekly({
-    greeting: { name: "Dana", week: 3, business: "harborplumbing.example" },
-    calendar: WEEKLY_CALENDAR,
-    // Overview's numbers, on a hosted blog, in the first mail of a month.
-    numbers: {
-      live: measured(12, AT),
-      planned: measured(7, AT),
-      setAside,
-      google: {
-        steps: (["draft.ladder.found", "draft.ladder.showing", "draft.ladder.first-page"] as const).map((name, i) => ({
-          name,
-          count: unmeasured.includes(name) ? notRead<number>("not_attempted", AT) : measured([11, 5, 1][i]!, AT),
-          of: 12,
-        })),
-        early: false,
-        climbing: 2,
-        visits: measured(9, AT),
-        visitsBefore: measured(4, AT),
-        climb: { search: "tankless water heater austin", from: 62, to: 24, climbing: true },
-      },
-      ai: { linked: measured(2, AT), asked: 12, reads: measured(14, AT) },
-      month: {
-        score: { value: measured(31, AT), change: measured(4, AT) },
-        reputation: { value: measured(11, AT), answers: 184, weeks: 4 },
-      },
-    },
-    pages: measured(WEEKLY_PAGES, AT),
-    next: measured(WEEKLY_NEXT, AT),
-  });
-  return composeMail({
-    kind: "weekly",
-    subject: mail.subject,
-    preheader: mail.preheader,
-    blocks: mail.blocks,
-    reason: mail.reason,
-    measurement: { state: "complete" },
-    optOut: UNSUBSCRIBE,
-    footerLinks: WEEKLY_FOOTER,
-  });
-}
+/** What last week did, by search, at its live address. */
+const DID_PAGES = ["water heater repair austin", "drain cleaning cost austin", "toilet repair austin", "slab leak repair austin"].map((search, i) => ({
+  search,
+  liveUrl: `https://example.com/${search.replace(/ /g, "-")}`,
+  update: i === 2,
+}));
+const DUE = { measured: "2026-10-26", pages: WEEK_DAYS[0]! };
 
-/** A new site's first Monday: its hosted address waits for DNS (or `connect` names another), nothing is live yet, one page waits in review,
- *  one was set aside with no next page to write, Google and AI have read nothing, and the week is committed. */
-export async function composeWeeklyFirst(
+/** The four weeks `mail:samples` renders (SPEC §8): every total rose; only a page did; a hard week with nothing new and a
+ *  short plan; and a site's first week, waiting on its address, before anything was counted. */
+export const SAMPLE_WEEKS = {
+  gains: {
+    did: { at: AT, pages: DID_PAGES, setAside: { n: 2, arm: "updated" } },
+    totals: { ai: { kind: "added", total: 37, n: 4 }, google: { kind: "added", total: 12, n: 3 }, pages: { kind: "added", total: 12, n: 1 } },
+  },
+  page: {
+    did: { at: AT, pages: DID_PAGES.slice(0, 1) },
+    totals: { ai: { kind: "flat", total: 37 }, google: { kind: "flat", total: 12 }, pages: { kind: "added", total: 13, n: 1 } },
+  },
+  hard: {
+    did: { at: AT, pages: [], setAside: { n: 1, arm: "unreplaced" }, checked: { searches: 12, questions: 12 } },
+    totals: { ai: { kind: "flat", total: 0 }, google: { kind: "flat", total: 3 }, pages: { kind: "flat", total: 5 } },
+    days: 4,
+  },
+  first: {
+    did: { at: AT, pages: DID_PAGES.slice(0, 1), setAside: { n: 1, arm: "unreplaced" } },
+    totals: { ai: { kind: "due" }, google: { kind: "due" }, pages: { kind: "first", total: 1, week: "2026-10-19" } },
+    blocked: true,
+  },
+} as const satisfies Record<string, { did: WeeklyDid; totals: WeeklyTotals["of"]; days?: number; blocked?: boolean }>;
+
+/** Board MondayMail's sample week, or another of the four. */
+export async function composeWeekly(
+  week: keyof typeof SAMPLE_WEEKS = "gains",
   connect: { host: string; href: string; text?: CopyKey } = { host: "blog.harborplumbing.example", href: `${APP}/setup/connect` }
 ): Promise<PreviewMail> {
   const composeMail = await composer();
   const { buildWeekly } = await import("../../../src/lib/mail/templates/weekly");
+  const sample: { did: WeeklyDid; totals: WeeklyTotals["of"]; days?: number; blocked?: boolean } = SAMPLE_WEEKS[week];
   const mail = buildWeekly({
-    greeting: { name: "Dana", week: 1, business: "harborplumbing.example" },
+    greeting: { name: "Dana", week: sample.blocked ? 1 : 3, business: "harborplumbing.example" },
     calendar: WEEKLY_CALENDAR,
-    connect,
-    needsYou: { line: "mail.weekly.needsYou", vars: { page: "emergency plumber austin" }, href: `${APP}/app/draft/preview` },
-    numbers: {
-      live: measured(0, AT),
-      planned: measured(WEEKLY_NEXT.length, AT),
-      setAside: { n: 1, arm: "unreplaced" },
-      google: {
-        steps: (["draft.ladder.found", "draft.ladder.showing", "draft.ladder.first-page"] as const).map((name) => ({
-          name,
-          count: notRead<number>("not_attempted", AT),
-          of: 0,
-        })),
-        early: false,
-      },
-      ai: { linked: notRead<number>("not_attempted", AT), asked: 0 },
-    },
-    pages: measured([], AT),
-    // Nothing is live to update, so every day writes a new page.
-    next: measured(WEEKLY_NEXT.map(({ targetQuery, day, update, why, stopHref, editHref }) => ({ targetQuery, day, stopHref, editHref, ...(update || why === undefined ? {} : { why }) })), AT),
+    ...(sample.blocked
+      ? { connect, needsYou: { line: "mail.weekly.needsYou", vars: { page: "emergency plumber austin" }, href: `${APP}/app/draft/preview` } }
+      : {}),
+    did: sample.did,
+    totals: { of: sample.totals, at: AT, asked: 10, due: DUE },
+    next: measured(WEEKLY_NEXT.slice(0, sample.days ?? WEEKLY_NEXT.length), AT),
   });
   return composeMail({
     kind: "weekly",
     subject: mail.subject,
+    subjectVars: mail.subjectVars,
     preheader: mail.preheader,
     blocks: mail.blocks,
     reason: mail.reason,
@@ -375,18 +317,15 @@ export async function composeWeeklyFirst(
   });
 }
 
+/** The same Monday send on a week nothing could be measured in: no number, and the whole-mail line says when the next is due. */
 export async function composeUnmeasuredWeek(): Promise<PreviewMail> {
   const composeMail = await composer();
   const { buildWeekly } = await import("../../../src/lib/mail/templates/weekly");
-  const { unmeasured } = await import("../../../src/lib/measure/measured");
-  const mail = buildWeekly({
-    greeting: { name: "Dana", week: 3, business: "harborplumbing.example" },
-    pages: unmeasured("not_attempted", AT),
-    next: unmeasured("not_attempted", AT),
-  });
+  const mail = buildWeekly({ greeting: { name: "Dana", week: 3, business: "harborplumbing.example" }, next: notRead("not_attempted", AT) });
   return composeMail({
     kind: "weekly",
     subject: mail.subject,
+    subjectVars: mail.subjectVars,
     preheader: mail.preheader,
     blocks: mail.blocks,
     reason: mail.reason,

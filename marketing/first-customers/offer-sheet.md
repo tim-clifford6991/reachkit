@@ -34,7 +34,7 @@ and publishes them on your own website. You don't write a word.
 | Where you sit in Google, and which of your pages Google's AI and ChatGPT link to, every week | One AI-answer tracker charges €29 to €489 a month before tax, and writes nothing |
 | Up to 5 competitors watched every week | (included above) |
 | Your whole site checked for problems, with the fix for each (an automated check) | In an SEO agency's survey of 250 US businesses, 43% paid $101–750 for an audit |
-| An email every Monday: what went live and what moved | |
+| An email every Monday: what went live and your totals so far | |
 | Edit or stop any page before it goes live, or do nothing | |
 | **Founding bonus:** setup with me on a 15-minute call | |
 | **Founding bonus:** a recorded walkthrough of your report | |

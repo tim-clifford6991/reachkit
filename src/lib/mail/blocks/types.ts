@@ -54,6 +54,7 @@ export interface StatRow {
   readonly note?: { readonly text: CopyKey; readonly vars?: CopyVars };
   /** SPEC §8: an unmeasured row with this line is kept and says so; without it the row is omitted. Never a zero. */
   readonly unmeasuredLine?: CopyKey;
+  readonly unmeasuredVars?: CopyVars;
   /** The whole a `bars` row is drawn against. */
   readonly of?: number;
 }

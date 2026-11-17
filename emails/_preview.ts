@@ -27,14 +27,8 @@ export async function previewUnmeasuredWeek(): Promise<ReactNode> {
   return (await composeUnmeasuredWeek()).document;
 }
 
-/** A new site's first Monday mail, before its address is connected — a third state of `weekly`. */
-export async function previewFirstWeek(): Promise<ReactNode> {
-  const { composeWeeklyFirst } = await import("../tests/mail/preview/kinds");
-  return (await composeWeeklyFirst()).document;
-}
-
-/** The Monday mail of a week whose set-aside pages' days were filled by updates of live pages — a fourth state of `weekly`. */
-export async function previewUpdatedWeek(): Promise<ReactNode> {
+/** One of the Monday mail's sample weeks — a state of the `weekly` kind above, filed in `variants/`. */
+export async function previewWeek(week: "page" | "hard" | "first"): Promise<ReactNode> {
   const { composeWeekly } = await import("../tests/mail/preview/kinds");
-  return (await composeWeekly([], { n: 2, arm: "updated" })).document;
+  return (await composeWeekly(week)).document;
 }

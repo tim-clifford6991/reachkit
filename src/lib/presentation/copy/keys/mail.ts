@@ -109,7 +109,7 @@ export const MAIL_COPY = Object.freeze({
   "mail.nurture.subject.2": ["What changes once the pages ship", { slots: {}, fixedBy: "REQ-010 c9" }],
   "mail.nurture.subject.3": ["One last note about your report", { slots: {}, fixedBy: "REQ-010 c9" }],
   "mail.nurture.body.1": ["You have page 1 for {domain}. ReachKit takes it from here. Up to {weekPages} pages a week, new or updated, published for you. Each goes live on its own unless you stop it first. €49 a month, cancel any time.", { slots: { domain: "text", weekPages: "text" }, fixedBy: "REQ-010 c9" }],
-  "mail.nurture.body.2": ["Every page ReachKit writes for {domain} targets one search your competitors already answer. Each Monday it scans your whole market again and tells you what moved.", { slots: { domain: "text" }, fixedBy: "REQ-010 c9" }],
+  "mail.nurture.body.2": ["Every page ReachKit writes for {domain} targets one search your competitors already answer. Each Monday it scans your market again and sends your totals so far.", { slots: { domain: "text" }, fixedBy: "REQ-010 c9" }],
   "mail.nurture.body.3": ["This is the last follow-up about {domain}. Your report and your first page stay yours. When you want the rest written and published, ReachKit starts at €49 a month, cancel any time.", { slots: { domain: "text" }, fixedBy: "REQ-010 c9" }],
 
   // BUILD §4.3's setup reminder (REQ-025 c6); the last three ask a stamped founder who is not live to connect (R15).
@@ -210,79 +210,47 @@ export const MAIL_COPY = Object.freeze({
   "mail.account.address_moved.preheader": ["This address can no longer sign in.", { slots: {}, fixedBy: "O6 · issue 2172 (drafted)" }],
   "mail.account.address_moved": ["Your ReachKit account now signs in with a different email address. This address can't sign in, and our mail goes to the new one.", { slots: {}, fixedBy: "REQ-077 c3" }],
 
-  // The `weekly` mail (BUILD §12): a missing number omits its section, never prints 0. The verdict words are
-  // `keys/publish.ts`'s, so a mail never words a verdict unlike the screen. A page is named by its address and a
-  // next opportunity by its search, never by a model-written title (§8, REQ-093); the subject carries no number,
-  // since a subject has no omission arm.
-  "mail.weekly.subject": ["Your Monday check is ready", { slots: {}, fixedBy: "§12" }],
-  "mail.weekly.preheader": ["Your pages, Google, AI and this week's plan.", { slots: {}, fixedBy: "O6 · issue 2172 (drafted)" }],
-  // The simple model (owner, 2026-10-19): the Monday mail's numbers are
-  // Overview's, read by the same readers — Pages, Google, AI, and in the
-  // first mail of a month the figures that move over months (M-b). The
-  // Google steps are named by Overview's own `draft.ladder.*` words.
-  // Drafted (#759).
-  "mail.weekly.pages.live": ["Pages live", { slots: {}, fixedBy: "issue 1616 (drafted)" }],
-  "mail.weekly.pages.planned": ["Pages planned this week", { slots: {}, fixedBy: "issue 1616 (drafted)" }],
-  "mail.weekly.google.of": [
-    "of {n} pages checked",
-    { slots: { n: "text" }, fixedBy: "issue 1616 (drafted)" },
-  ],
-  "mail.weekly.google.early": ["Too early for Google places. New pages usually take a few weeks to show.", { slots: {}, fixedBy: "issue 1616 (drafted)" }],
-  "mail.weekly.google.title": ["Google", { slots: {}, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
-  "mail.weekly.google.showing.climbing": ["Showing on Google · {n} moving up", { slots: { n: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
-  "mail.weekly.google.visits": ["{n} visits from Google this week.", { slots: { n: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
-  "mail.weekly.google.visits.up": ["{n} visits from Google this week, up from {before}.", { slots: { n: "text", before: "text" }, fixedBy: "board MondayMail · E8 2026-10-24" }],
-  "mail.weekly.google.visits.down": ["{n} visits from Google this week, down from {before}.", { slots: { n: "text", before: "text" }, fixedBy: "board MondayMail · E8 2026-10-24" }],
-  "mail.weekly.google.visits.same": ["{n} visits from Google this week, the same as last week.", { slots: { n: "text" }, fixedBy: "board MondayMail · E8 2026-10-24" }],
-  "mail.weekly.google.climb": [
-    "Biggest move up: {search}, from place {from} to {to} on Google.",
-    { slots: { search: "text", from: "text", to: "text" }, fixedBy: "issue 1616 (drafted)" },
-  ],
-  "mail.weekly.google.climb.climbing": [
-    "Biggest move up: {search}, from place {from} to {to} on Google. Still rising, so we leave it alone.",
-    { slots: { search: "text", from: "text", to: "text" }, fixedBy: "board MondayMail (v36) · issue 1616 (drafted)" },
-  ],
-  "mail.weekly.google.climb.none": ["No page moved up on Google this week.", { slots: {}, fixedBy: "issue 1616 (drafted)" }],
-  "mail.weekly.ai.title": ["AI", { slots: {}, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
-  "mail.weekly.ai.linked": ["Linked by AI: {n} of {of} pages", { slots: { n: "text", of: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
-  "mail.weekly.ai.early": ["Too early for AI. We haven't asked your pages' questions yet.", { slots: {}, fixedBy: "issue 1616 (drafted)" }],
-  "mail.weekly.ai.reads": ["Read by AI: {n} times this week", { slots: { n: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
-  "mail.weekly.month": ["This month", { slots: {}, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
-  "mail.weekly.month.score": ["Visibility Score", { slots: {}, fixedBy: "issue 1616 (drafted)" }],
-  "mail.weekly.month.reputation": ["Mentioned by AI, last {weeks} weeks", { slots: { weeks: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
-  "mail.weekly.month.of": ["{n} of {of}", { slots: { n: "text", of: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
-  "mail.weekly.month.up": ["{now} up from {before}", { slots: { now: "text", before: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
-  "mail.weekly.month.down": ["{now} down from {before}", { slots: { now: "text", before: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
-  // A headline number nobody measured says so, in the figure's place.
-  "mail.weekly.number.unmeasured": ["Not checked this week", { slots: {}, fixedBy: "SPEC §8 2026-10-07 (drafted)" }],
-  // The one item waiting on them, and the button that opens it; the page's address fills the slot.
+  // The `weekly` mail (owner P5, 2026-11-16): what we did, the running totals in Overview's words (gains only), this
+  // week's pages. A page is named by its search, never by a model-written title (§8, REQ-093). The subject is the first
+  // that applies of blocked, AI rose, Google rose, pages rose, else the week (owner E); each is at most six words.
+  "mail.weekly.blocked.subject": ["Your pages are waiting on you", { slots: {}, fixedBy: "owner 2026-11-16 · issue 2738 (drafted)" }],
+  "mail.weekly.ai.subject": ["AI mentioned you {n} more times", { slots: { n: "text" }, fixedBy: "owner 2026-11-16 · issue 2738 (drafted)" }],
+  "mail.weekly.ai.one.subject": ["AI mentioned you once more", { slots: {}, fixedBy: "owner 2026-11-16 · issue 2738 (drafted)" }],
+  "mail.weekly.google.subject": ["Shown in {n} new Google searches", { slots: { n: "text" }, fixedBy: "owner 2026-11-16 · issue 2738 (drafted)" }],
+  "mail.weekly.google.one.subject": ["Shown in a new Google search", { slots: {}, fixedBy: "owner 2026-11-16 · issue 2738 (drafted)" }],
+  "mail.weekly.pages.subject": ["{n} new pages went live", { slots: { n: "text" }, fixedBy: "owner 2026-11-16 · issue 2738 (drafted)" }],
+  "mail.weekly.pages.one.subject": ["Your new page went live", { slots: {}, fixedBy: "owner 2026-11-16 · issue 2738 (drafted)" }],
+  "mail.weekly.week.subject": ["Week {week} for {business}", { slots: { week: "text", business: "text" }, fixedBy: "owner 2026-11-16 · issue 2738 (drafted)" }],
+  "mail.weekly.preheader": ["What we did, your totals so far, and this week's pages.", { slots: {}, fixedBy: "owner 2026-11-16 · issue 2738 (drafted)" }],
+  "mail.weekly.preheader.blocked": ["One thing needs you before your pages can go live.", { slots: {}, fixedBy: "owner 2026-11-16 · issue 2738 (drafted)" }],
   "mail.weekly.needsYou": ["One page needs you: {page}.", { slots: { page: "text" }, fixedBy: "SPEC §8 2026-09-20" }],
   "mail.weekly.needsYou.action": ["Open the page", { slots: {}, fixedBy: "SPEC §8 2026-09-20" }],
+  // What we did: last week's live pages by their search, the set-aside line, or what the week's pass checked.
+  "mail.weekly.did": ["What we did", { slots: {}, fixedBy: "owner 2026-11-16 · issue 2738 (drafted)" }],
+  "mail.weekly.did.item.new": ["New page · {search}", { slots: { search: "text" }, fixedBy: "owner 2026-11-16 · issue 2738 (drafted)" }],
+  "mail.weekly.did.item.update": ["Update · {search}", { slots: { search: "text" }, fixedBy: "owner 2026-11-16 · issue 2738 (drafted)" }],
+  "mail.weekly.did.checked": ["We checked {searches} Google searches and asked AI {questions} questions about your business.", { slots: { searches: "text", questions: "text" }, fixedBy: "owner 2026-11-16 · issue 2738 (drafted)" }],
   // The week's stored days pick the arm: no gap is replaced, or updated where updates filled every one.
   "mail.weekly.setAside.one": ["One page didn’t pass our checks. We set it aside and wrote the next one.", { slots: {}, fixedBy: "owner O7, issue 2164 (drafted)" }],
   "mail.weekly.setAside.many": ["{n} pages didn’t pass our checks. We set them aside and wrote the next ones.", { slots: { n: "text" }, fixedBy: "owner O7, issue 2164 (drafted)" }],
-  "mail.weekly.setAside.one.unreplaced": ["One page didn’t pass our checks, so we set it aside.", { slots: {}, fixedBy: "owner O7, issue 2164 (drafted)" }],
-  "mail.weekly.setAside.many.unreplaced": ["{n} pages didn’t pass our checks, so we set them aside.", { slots: { n: "text" }, fixedBy: "owner O7, issue 2164 (drafted)" }],
+  "mail.weekly.setAside.one.unreplaced": ["One page didn’t pass our checks, so we held it back.", { slots: {}, fixedBy: "owner 2026-11-16 · issue 2738 (drafted)" }],
+  "mail.weekly.setAside.many.unreplaced": ["{n} pages didn’t pass our checks, so we held them back.", { slots: { n: "text" }, fixedBy: "owner 2026-11-16 · issue 2738 (drafted)" }],
   "mail.weekly.setAside.one.updated": ["One page didn’t pass our checks. We set it aside and improved a live page instead.", { slots: {}, fixedBy: "ux-designer, seo-master 2026-11-05, issue 2389 (drafted)" }],
   "mail.weekly.setAside.many.updated": ["{n} pages didn’t pass our checks. We set them aside and improved live pages instead.", { slots: { n: "text" }, fixedBy: "ux-designer, seo-master 2026-11-05, issue 2389 (drafted)" }],
+  // The totals are drawn under Overview's own `overview.totals.*` words; these are the mail's two lines beside them.
+  "mail.weekly.totals.ai.none": ["We asked. None mentioned you yet.", { slots: {}, fixedBy: "owner 2026-11-16 · issue 2738 (drafted)" }],
+  "mail.weekly.totals.ai.how": ["Each week we ask AI {n} questions about your kind of business. We count from when you joined.", { slots: { n: "text" }, fixedBy: "owner 2026-11-16 · issue 2738 (drafted)" }],
+  "mail.weekly.standing": ["Every figure, up or down, is in your overview.", { slots: {}, fixedBy: "owner 2026-11-16 · issue 2738" }],
   // The first row while the hosted address waits for its record, every Monday until it is connected. Drafted (#759).
   "mail.weekly.connect": ["Your pages are written but can't go live at {host} yet. Add one line at the company you bought your address from.", { slots: { host: "text" }, fixedBy: "SPEC §5 2026-09-20 (drafted)" }],
   "mail.weekly.connect.wordpress": ["Your pages are written but can't go live on {host} yet. Connect your WordPress in Settings › Pages.", { slots: { host: "text" }, fixedBy: "SPEC §5 2026-09-20 (drafted)" }],
   "mail.weekly.connect.action": ["Connect your website", { slots: {}, fixedBy: "SPEC §5 2026-09-20 (drafted)" }],
-  // SPEC §8 2026-09-29 (D16, issue 1147): the tracked questions whose
-  // answer names the site this week and did not the week before, each by
-  // its search and linked to the answer. It credits no page. Drafted (#759).
-  "mail.weekly.nowNamed": ["Questions where AI now mentions you", { slots: {}, fixedBy: "SPEC §8 2026-09-29 D16" }],
-  "mail.weekly.nowNamed.item": ["{search}", { slots: { search: "text" }, fixedBy: "SPEC §8 2026-09-29 D16" }],
-  "mail.weekly.verdicts": ["How your pages are doing", { slots: {}, fixedBy: "REQ-063 c4" }],
-  "mail.weekly.verdicts.none": ["No pages live yet.", { slots: {}, fixedBy: "REQ-064 c3" }],
-  // SPEC §7 (issue 1559): the week this Monday committed, and its spares.
-  // Drafted (#759).
   "mail.weekly.next": ["This week’s pages", { slots: {}, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
-  "mail.weekly.spares": ["Backup pages, if a day's page can't be written", { slots: {}, fixedBy: "SPEC §7 2026-10-19 (drafted)" }],
   "mail.weekly.next.none": ["No new pages this week, as we found nothing worth writing. We look again next Monday.", { slots: {}, fixedBy: "SPEC §8 2026-09-20" }],
+  "mail.weekly.next.few": ["{n} pages this week: the ones your business can answer well.", { slots: { n: "text" }, fixedBy: "owner 2026-11-16 · issue 2738 (drafted)" }],
+  "mail.weekly.next.few.one": ["One page this week: the one your business can answer well.", { slots: {}, fixedBy: "owner 2026-11-16 · issue 2738 (drafted)" }],
   "mail.weekly.next.item": ["{search}", { slots: { search: "text" }, fixedBy: "§12" }],
-  // The week strip, Monday to Sunday, and one row per page: its day, its search, why, and its two links.
+  // One row per page: its day, its search, why, and its two links.
   "mail.weekly.next.day.new.today": ["{day} · New page · goes live today, {time}", { slots: { day: "text", time: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
   "mail.weekly.next.day.new": ["{day} · New page · goes live {date}, {time}", { slots: { day: "text", date: "text", time: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
   "mail.weekly.next.day.update.today": ["{day} · Update · goes live today, {time}", { slots: { day: "text", time: "text" }, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
@@ -297,34 +265,6 @@ export const MAIL_COPY = Object.freeze({
   "mail.weekly.pace": ["Google finds a new page in a few days to a few weeks. Reaching Google's first page can take months.", { slots: {}, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
   "mail.weekly.footer.pause": ["Pause Publishing", { slots: {}, fixedBy: "board MondayMail · issue 1741 · owner 2026-11-14, issue 2657 S6 (issue 2672)" }],
   "mail.weekly.footer.settings": ["Mail Settings", { slots: {}, fixedBy: "board MondayMail · issue 1741 (drafted)" }],
-  "mail.weekly.next.skipped": ["{count} days this week have no page.", { slots: { count: "text" }, fixedBy: "issue 1674 (drafted)" }],
-
-  // The three forms a judged page's row takes. Three sentences and not one
-  // with a conditional: "this page" and "this page, which moved from here
-  // to there since the date it was measured" and "…, over an interval
-  // longer than a week" are three different statements, and REQ-063 c4
-  // requires the third whenever the measurement compared against is not
-  // the previous week's. A template that chose between them with an `if`
-  // would be one edit away from stating a span it did not have.
-  "mail.weekly.page": ["{page}", { slots: { page: "text" }, fixedBy: "REQ-063 c4" }],
-  "mail.weekly.page.moved": [
-    "{page} · from place {from} to {to} on Google · checked {measuredAt}",
-    { slots: { page: "text", from: "text", to: "text", measuredAt: "date" }, fixedBy: "REQ-063 c3" },
-  ],
-  "mail.weekly.page.moved_over": [
-    "{page} · from place {from} to {to} on Google over {weeks} weeks · checked {measuredAt}",
-    {
-      slots: { page: "text", from: "text", to: "text", measuredAt: "date", weeks: "text" },
-      fixedBy: "REQ-063 c4",
-    },
-  ],
-  // Issue 1538: a page no stored search result has held. Said as what was
-  // read, never as "not indexed" — Google says a `site:` search does not
-  // list every indexed page, and these rows are fewer than that.
-  "mail.weekly.page.not_verified": [
-    "{page} · we haven't seen it on Google yet",
-    { slots: { page: "text" }, fixedBy: "issue 1538" },
-  ],
 
   // The end of hosting (REQ-076 c11, issue #34): the two notices a customer
   // with pages on the hosted CMS is owed before those pages stop being

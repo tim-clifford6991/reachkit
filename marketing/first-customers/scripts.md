@@ -91,7 +91,7 @@ with a price, and the first with the offer. Record the video with `walkthrough-v
 > does a bathroom refit cost'."}
 >
 > ReachKit closes that gap for you: up to 7 pages a week, new or updated, written from facts on
-> your own site and published there. Each Monday an email shows what went live and what moved.
+> your own site and published there. Each Monday an email shows what went live and your totals so far.
 >
 > I'm taking 50 founding customers and setting each one up personally. You get setup with me on a
 > 15-minute call, check-ins at day 14 and day 30, and my direct line. €49 a month, VAT included,
@@ -170,7 +170,7 @@ and their row in the private `leads.csv`.
 |---|---|---|
 | "Too expensive" | "Compare it with what one page costs. In one survey of 213 freelance writers, from about 2021, the most common rate for a 1,500-word post was $250–399. This is €49 a month for up to 7 pages a week, written by AI from your own site." | `price-anchors.md` A1 (F5 wording) |
 | "I'll think about it" | "Sure. What would you need to see? Wave {wave} has {places left} places and closes {close date}; the founding offer ends on 31 Jan 2027." | D4; trust-compliance F6 |
-| "SEO didn't work before" | "You've seen the report before paying. And every Monday the email shows what moved, so you're never guessing." | `offer.ts:37` |
+| "SEO didn't work before" | "You've seen the report before paying. And every Monday the email shows your totals so far, so you're never guessing." | `offer.ts:37` |
 | "I can do it with ChatGPT" | "You can. The question is whether you'll research, write, check and publish up to 7 pages every week." | `offer.ts:36` |
 | "Is this AI spam?" | "No. Claude, an AI model, writes each page from your site and linked sources. A page that fails its checks twice never goes live." | `landing.faq.spam.a`, `report.ts:658` |
 | "Will Google penalise AI pages?" | "No. Google has said that using AI to write pages isn't against its rules. What it acts on is pages churned out in bulk just to game search, with nothing new in them, however they were written. ReachKit writes each page from facts on your own site and linked public sources. It holds back any page with an invented fact or one that repeats a page you already have. And it only writes a new page when it has something the top results don't already say." Then send the written answer (§7). | seo-master on #2693; §7 |

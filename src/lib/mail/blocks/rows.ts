@@ -68,7 +68,7 @@ export function statRowsOf(block: Extract<MailBlock, { block: "stats" }>): reado
         value: null,
         before: null,
         change: null,
-        line: item.unmeasuredLine === undefined ? null : copy(item.unmeasuredLine),
+        line: item.unmeasuredLine === undefined ? null : copy(item.unmeasuredLine, item.unmeasuredVars),
         share: null,
       };
     }

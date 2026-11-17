@@ -1,10 +1,10 @@
 // Each number a customer is shown has one definition, and this registry is it.
 
-/** Where a number is shown: an Overview tile by its test id, a Monday mail
- *  row by its label's copy key, or a free-report figure by the copy key of
+/** Where a number is shown: an Overview tile by its test id, which the Monday
+ *  mail draws under the same words, or a free-report figure by the copy key of
  *  the name it is shown under. */
 export interface Shown {
-  readonly on: "tile" | "mail" | "report";
+  readonly on: "tile" | "report";
   readonly key: string;
 }
 
@@ -23,110 +23,6 @@ export interface Measure {
 const LIST = (
   // measures:begin
   [
-    {
-      id: "mail-pages-live",
-      shown: { on: "mail", key: "mail.weekly.pages.live" },
-      definition:
-        "Overview's live pages, read by the same reader: published, not taken down, and live by the time the mail is sent. A page list that could not be read is not measured.",
-      source: "src/lib/measure/page-ladder.ts#pageLadderOf",
-      cadence: "Weekly, in the Monday mail.",
-    },
-    {
-      id: "mail-pages-planned",
-      shown: { on: "mail", key: "mail.weekly.pages.planned" },
-      definition:
-        "The pages this week carries, by Plan's rule: each date's scheduled draft, else its committed row.",
-      source: "src/lib/opportunities/days.ts#plannedByDay",
-      cadence: "Weekly, in the Monday mail.",
-    },
-    {
-      id: "mail-google-found",
-      shown: { on: "mail", key: "draft.ladder.found" },
-      definition:
-        "Overview's ladder step, read by the same function: of the live pages Google can be read on, how many Google fetched. Not measured where no page was read.",
-      source: "src/lib/measure/page-ladder.ts#pageLadderOf",
-      cadence: "Weekly, in the Monday mail.",
-    },
-    {
-      id: "mail-google-showing",
-      shown: { on: "mail", key: "draft.ladder.showing" },
-      definition:
-        "Overview's ladder step, read by the same function: of the live pages, how many are in the top 100 for their own search. Before any page shows, the mail says it is too early instead of a 0.",
-      source: "src/lib/measure/page-ladder.ts#pageLadderOf",
-      cadence: "Weekly, in the Monday mail.",
-    },
-    {
-      id: "mail-google-first-page",
-      shown: { on: "mail", key: "draft.ladder.first-page" },
-      definition:
-        "Overview's ladder step, read by the same function: of the live pages, how many hold places 1 to 10 for their own search. Before any page shows, the mail says it is too early instead of a 0.",
-      source: "src/lib/measure/page-ladder.ts#pageLadderOf",
-      cadence: "Weekly, in the Monday mail.",
-    },
-    {
-      id: "mail-google-visits",
-      shown: { on: "mail", key: "mail.weekly.google.visits" },
-      definition:
-        "Overview's visits from Google this week, counted on the hosted pages over the last {BLOG_READS_WINDOW_D} days. Said alone in the first week with a visit. No row off a hosted blog or with none counted.",
-      source: "src/lib/publish/reads/store.ts#readSearchVisitsWeekly",
-      cadence: "Weekly, in the Monday mail.",
-    },
-    {
-      id: "mail-google-visits-up",
-      shown: { on: "mail", key: "mail.weekly.google.visits.up" },
-      definition:
-        "The Google tab's last two weekly bars, read by the same function: this week's visits from Google above the {BLOG_READS_WINDOW_D} days before.",
-      source: "src/lib/publish/reads/store.ts#readSearchVisitsWeekly",
-      cadence: "Weekly, in the Monday mail.",
-    },
-    {
-      id: "mail-google-visits-down",
-      shown: { on: "mail", key: "mail.weekly.google.visits.down" },
-      definition:
-        "The Google tab's last two weekly bars, read by the same function: this week's visits from Google below the {BLOG_READS_WINDOW_D} days before.",
-      source: "src/lib/publish/reads/store.ts#readSearchVisitsWeekly",
-      cadence: "Weekly, in the Monday mail.",
-    },
-    {
-      id: "mail-google-visits-same",
-      shown: { on: "mail", key: "mail.weekly.google.visits.same" },
-      definition:
-        "The Google tab's last two weekly bars, read by the same function: this week's visits from Google equal to the {BLOG_READS_WINDOW_D} days before.",
-      source: "src/lib/publish/reads/store.ts#readSearchVisitsWeekly",
-      cadence: "Weekly, in the Monday mail.",
-    },
-    {
-      id: "mail-ai-linked",
-      shown: { on: "mail", key: "mail.weekly.ai.linked" },
-      definition:
-        "x of N: of the live pages whose own question was asked, how many the AI answer to that question linked, read off each page's stored weekly reading. Before any is asked, the mail says it is too early.",
-      source: "src/lib/measure/figures.ts#aiPagesOf",
-      cadence: "Weekly, in the Monday mail.",
-    },
-    {
-      id: "mail-ai-reads",
-      shown: { on: "mail", key: "mail.weekly.ai.reads" },
-      definition:
-        "The overview-ai-reads figure, read by the same function over the last {BLOG_READS_WINDOW_D} days. Only on a hosted blog with a page live.",
-      source: "src/lib/publish/reads/model.ts#assembleBlogReads",
-      cadence: "Weekly, in the Monday mail.",
-    },
-    {
-      id: "mail-score-month",
-      shown: { on: "mail", key: "mail.weekly.month.score" },
-      definition:
-        "The overview-score-month figure, in the first mail of a month only, with its change since the customer's scan.",
-      source: "src/lib/measure/figures.ts#monthFiguresOf",
-      cadence: "Monthly, in the first Monday mail of the month.",
-    },
-    {
-      id: "mail-reputation",
-      shown: { on: "mail", key: "mail.weekly.month.reputation" },
-      definition:
-        "x of N, in the first mail of a month only: of the unbranded tracked prompts' AI answers over the {ANSWER_RATE_WEEKS} weeks to that Monday, how many named or linked the site; N is every such answer read, never the prompts. The AI answers tab shows the same count.",
-      source: "src/lib/market/prompts/rate.ts#measurePrompts",
-      cadence: "Monthly, in the first Monday mail of the month.",
-    },
     {
       id: "report-readiness",
       shown: { on: "report", key: "verdict.factor.foundations" },
@@ -234,7 +130,7 @@ export type MeasureId = keyof Keys;
 
 const KEYS = Object.fromEntries(LIST.map((measure) => [measure.id, measure.shown.key])) as Keys;
 
-/** The key a registered number is drawn under: a tile or a mail row reads
+/** The key a registered number is drawn under: a tile reads
  *  it from here, so a number with no entry does not typecheck. */
 export function shownKey<I extends MeasureId>(id: I): Keys[I] {
   return KEYS[id];

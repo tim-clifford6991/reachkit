@@ -258,7 +258,7 @@ the `content.reachkit.app` index with its list of recent guides.
 > anyone opening an editor.
 >
 > That's what you get: up to 7 pages a week, new or updated, on your own website. Each Monday
-> an email shows what went live and what moved. You can edit or stop any page before it goes
+> an email shows what went live and your totals so far. You can edit or stop any page before it goes
 > live, or just let it run.
 >
 > Start by seeing where you stand. Free, under a minute: https://reachkit.app/?ref=linkedin
@@ -306,4 +306,4 @@ stop the posts and put the time into warm messages instead.
 | "Is my report public?" | "Yes: every free report is listed in our scan library. If you want yours taken down, email remove@reachkit.app." (SPEC §2 *Gallery lists every report*, `docs/SPEC.md:162`; site footer) |
 | "What does it cost?" | "The scan and report are free. Writing and publishing the pages is €49 a month, VAT included, cancel any time." (`landing.plan.terms`, `landing.ts:69`) |
 | "Will Google penalise AI pages?" | "No. Google has said that using AI to write pages isn't against its rules. What it acts on is pages churned out in bulk just to game search, with nothing new in them, however they were written. ReachKit writes each page from facts on your own site and linked public sources, holds back any page with an invented fact or one that repeats an existing page, and only writes a new page when it has something the top results don't already say." Offer the written answer by message (`scripts.md` §7). Never say "no penalty" or "Google can't detect AI" (seo-master, #2693) |
-| "Does this guarantee I rank?" | "No. Google takes weeks to months, and not every page reaches the first page. The Monday email shows what moved." (`/how-it-works` "What to expect, when"; Terms §7) |
+| "Does this guarantee I rank?" | "No. Google takes weeks to months, and not every page reaches the first page. The Monday email shows your totals so far." (`/how-it-works` "What to expect, when"; Terms §7) |
