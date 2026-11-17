@@ -433,7 +433,7 @@ import type { RescoreRequest } from "@/lib/scan/rescore-run";
 export type { RescoreRequest };
 const rescoreModules = () => Promise.all([import("@/lib/scan/rescore-run"), import("@/lib/scan/derivation")]);
 
-/** Read-only, so an idle tick enters no step and costs one invocation. */
+/** Read-only: whether a re-score waits. */
 export async function rescoreDue(): Promise<boolean> {
   const [{ databaseRescore }, { deployedDerivation, rescoreWaits }] = await rescoreModules();
   return rescoreWaits(await databaseRescore().runs(), deployedDerivation());
