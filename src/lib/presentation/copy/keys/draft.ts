@@ -422,8 +422,7 @@ export const DRAFT_COPY = Object.freeze({
     "No instructions aimed at AI",
     { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
   ],
-  // A title's specific detail is tried for and never stops a page (SPEC §7,
-  // 2026-10-11), so this row names only what the rule does stop a page on.
+  // A title's specific detail is tried for and never stops a page (SPEC §7, 2026-10-11): this row names what it stops on.
   "draft.checks.rule.title": [
     "Title fits, and the heading matches",
     { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
@@ -448,6 +447,7 @@ export const DRAFT_COPY = Object.freeze({
     "No menu or sample text from your site",
     { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
   ],
+  "draft.checks.rule.standalone-lead": ["Each section starts with a sentence that makes sense on its own", { slots: {}, fixedBy: "SPEC §7 2026-11-16 · issue 2736 · drafted" }],
   "draft.checks.rule.plain-prose": [
     "Reads like a person wrote it: no stock phrases, few dashes, varied sentences",
     { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1390 · drafted" },
@@ -850,8 +850,8 @@ export const DRAFT_COPY = Object.freeze({
   ],
   "draft.checks.more": ["and {n} more", { slots: { n: "text" }, fixedBy: "issue 1748 (drafted)" }],
   "draft.checks.decided": [
-    "A page that fails a check twice never goes live.",
-    { slots: {}, fixedBy: "issue 1748 (drafted)" },
+    "Only checks on facts, honesty, spam and repeats can stop a page. The rest are advice.",
+    { slots: {}, fixedBy: "SPEC §7 Only a harm check stops a page · issue 2736 · UX review" },
   ],
   // Q6 (owner 2026-10-20, #1718): a stopped topic is dropped for good.
   "draft.decide.stop-note": [

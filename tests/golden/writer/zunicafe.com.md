@@ -17,6 +17,7 @@
 | no_placeholder_cell | passed | — |
 | distinct_headings | passed | — |
 | plain_prose | passed | — |
+| standalone_lead | warns {"headings":["Does Zuni Café take reservations?"]} | — |
 
 ## What the fix call is told
 

@@ -1,10 +1,8 @@
 // SPEC §7 (2026-10-04, D41 stage 2) — the context pack.
 //
-// One JSON object per page: everything the writer is handed, and nothing
-// else it may write from. It is stored with the draft (`drafts.meta.pack`),
-// shown on the draft screen under *written from your business*, and cached
-// on disk by `npm run page` (D43) — so a page can always be read beside
-// what it was written from.
+// One JSON object per page: everything the writer is handed, and nothing else it may write from. It is stored with
+// the draft (`drafts.meta.pack`), shown on the draft screen under *written from your business*, and cached on disk
+// by `npm run page` (D43) — so a page can always be read beside what it was written from.
 //
 // It holds the knowledge base and the founder's answers with the never-claim
 // list, the market and the rivals, the target question, every published and
@@ -14,17 +12,14 @@
 // measured, the web results of the last 30 days, or the live page an update
 // refreshes.
 //
-// **Code then holds the pack against the template's *pack must hold* line**
-// (`missingFrom`). A pack short of it writes nothing: the page stops, naming
-// what is missing by its handle. And **what a new page adds** (D12, issue
-// 1143) is counted here, over the pack, before the write call: the facts
-// whose words are on none of the top results the research step read.
+// **Code then holds the pack against the template's *pack must hold* line** (`missingFrom`). A pack short of it writes
+// nothing: the page stops, naming what is missing by its handle. And **what a new page adds** (D12, issue 1143) is
+// counted here, over the pack, before the write call: the facts whose words are on none of the top results read.
 //
-// **What the pages above a page cover** (`../rules/gaps.ts`): on a new how-to
-// or Q&A, on every update of one, and on a refresh near page one, the pack
-// carries `gaps` — the subtopics two or more of the top results head a
-// section with that the page heads none with, each with the claims of the
-// pack it may be written from. A gap no claim speaks to is not carried.
+// **What the pages above a page cover** (`../rules/gaps.ts`): on a new how-to or Q&A, on every update of one, and on a
+// refresh near page one, the pack carries `gaps` — the subtopics two or more of the top results head a section with
+// that the page heads none with, each with the claims of the pack it may be written from. A gap no claim speaks to is
+// not carried.
 //
 // Pure. The reads are the caller's (`../index.ts`, `scripts/page/`).
 import { SHAPES, modelInstruction } from "@/lib/locale/language";
@@ -169,6 +164,8 @@ export interface ContextPack {
   neverClaim: string[];
   /** Business facts: passages of the site's own pages, word for word. */
   facts: PackFact[];
+  /** The business passage a new topic's fit was judged on (§6), which its answer box and business section state; `url` is `null` for the founder's. */
+  fitFact?: { passage: string; url: string | null };
   /** Market facts: claims read off public pages, word for word. */
   claims: PackClaim[];
   /** The rivals whose own pages yielded a claim. */
@@ -663,9 +660,8 @@ export function missingFrom(pack: Omit<ContextPack, "missing">, previousResearch
   return held.filter((requirement) => !holds(requirement, pack, previousResearch)).map((requirement) => (requirement.need === "facts_on_topic" && factTexts(pack).length < requirement.min ? "facts_few" : requirement.need));
 }
 
-/** How many of a section's facts the pack holds: distinct inclusions, the
- *  places the business's own pages state (never one only the founder gave),
- *  and one where it states a difference or a promise. */
+/** How many of a section's facts the pack holds: distinct inclusions, the places the business's own pages state (never
+ *  one only the founder gave), and one where it states a difference or a promise or carries a `fitFact`. */
 function factsHeld(facts: SectionFacts, pack: ContextPack): number {
   const knowledge = pack.profile?.knowledge;
   switch (facts) {
@@ -676,6 +672,7 @@ function factsHeld(facts: SectionFacts, pack: ContextPack): number {
     case "difference":
       return holds({ need: "difference" }, pack, null) ? 1 : 0;
     case "passages": return pack.facts.length;
+    case "fit": return pack.fitFact === undefined ? 0 : 1;
   }
 }
 
@@ -710,7 +707,7 @@ export function fittedTemplate(pack: ContextPack, kept = false): Template {
 
 export interface PackInputs {
   type: ContentType;
-  opportunity: Pick<Opportunity, "family" | "targetQuery" | "targetRef" | "absorbedQueries" | "title">;
+  opportunity: Pick<Opportunity, "family" | "targetQuery" | "targetRef" | "absorbedQueries" | "title"> & { evidence?: Opportunity["evidence"] };
   site: { businessName: string | null; domain: string; doNotClaim: readonly string[]; rivals: readonly string[] };
   category: string;
   market?: unknown;
@@ -833,6 +830,7 @@ export function buildPack(a: PackInputs): ContextPack {
     ...(fact.source === undefined ? {} : { source: fact.source }),
   }));
   const newPage = a.opportunity.family === "write" || a.opportunity.family === "earn";
+  const fit = a.opportunity.evidence?.family === "write" || a.opportunity.evidence?.family === "earn" ? a.opportunity.evidence.fitFact : null;
   const questions =
     a.type !== "update"
       ? buyerQuestions({
@@ -873,6 +871,7 @@ export function buildPack(a: PackInputs): ContextPack {
     profile: a.profile,
     neverClaim: [...a.site.doNotClaim],
     facts,
+    ...(fit == null ? {} : { fitFact: { passage: fit.text, url: fit.source.kind === "page" ? fit.source.url : null } }),
     claims,
     products,
     ...(a.research.baseline === undefined || a.type !== "listicle" ? {} : { baseline: a.research.baseline }),

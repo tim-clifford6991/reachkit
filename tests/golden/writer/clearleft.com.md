@@ -16,6 +16,7 @@
 | first_block_answers | passed | passed |
 | no_placeholder_cell | passed | passed |
 | plain_prose | warns {"faults":[{"tell":"repeated_phrase","count":3,"found":["internal service design product design and design systems"]}]} | warns {"faults":[{"tell":"even_sentences","count":33,"found":[]}]} |
+| standalone_lead | warns {"headings":["How does design transformation consulting work?","What options does design transformation consulting offer?","What does a design transformation project look like in practice?"]} | warns {"headings":["How does design transformation consulting work?","What options does design transformation consulting offer?","What does a design transformation project look like in practice?","What related work does Clearleft offer?"]} |
 
 ## What the fix call is told
 

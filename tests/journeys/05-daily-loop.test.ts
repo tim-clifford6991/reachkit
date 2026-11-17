@@ -264,7 +264,7 @@ const modelCalls: { task: string; tokens: number }[] = [];
 const CLEAN_MARKDOWN = [
   "## Which project management software should a small team pick?",
   "",
-  "The answer depends on how many people need a seat and how much of the work",
+  "A small team picks by how many people need a seat and how much of the work",
   "already lives in one place. Start by counting the people who will open it",
   "every day, then check what the plan you are looking at actually includes.",
   "",

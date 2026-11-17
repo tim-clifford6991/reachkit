@@ -16,6 +16,7 @@
 | first_block_answers | passed | — |
 | no_placeholder_cell | passed | — |
 | plain_prose | passed | — |
+| standalone_lead | warns {"headings":["What are the filing options and their limits?","What does a missed deadline look like in practice?"]} | — |
 
 ## What the fix call is told
 

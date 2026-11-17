@@ -16,6 +16,7 @@
 | first_block_answers | passed | — |
 | no_placeholder_cell | passed | — |
 | plain_prose | passed | — |
+| standalone_lead | warns {"headings":["How do you check it worked?","Should you learn JavaScript before React?"]} | — |
 
 ## What the fix call is told
 
