@@ -1,4 +1,5 @@
 // SPEC §7 (D42, 3) — documentation. No research call.
+import { businessSection } from "./how-to";
 import type { Template } from "./types";
 
 export const documentation: Template = {
@@ -18,6 +19,7 @@ export const documentation: Template = {
       task: "One question from `pack.questions` that no other section of this page answers, as its heading in the buyer's words: answer it in two or three sentences from the facts, then the detail. Leave this section out where `pack.questions` holds no such question.",
       repeat: { min: 0, max: 3 },
     },
+    businessSection("Link its product page.", "fit"),
     { key: "related", task: "Name the related features, linking the pages in `links` that cover them." },
   ],
   blocks: { faq: { min: 3, max: 6 } },

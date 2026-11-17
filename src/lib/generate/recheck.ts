@@ -25,7 +25,7 @@ import { allowedFacts, readAllFacts, readDemoPhrases, type SourcedFact } from ".
 import type { ContextPack } from "./pipeline/pack";
 import { withoutBrokenPairs, withoutClaimed, withoutUnfit } from "./pipeline/repair";
 import { floorTitle, promiseFigures, titleRuleFor } from "./pipeline/title";
-import { readRecordedRules, readRecordedRun, recordedRulesValue, recordedRunValue, recordedVerdictValue } from "./record";
+import { readRecordedRules, readRecordedRun, recordedRulesValue, recordedRunValue, recordedVerdictValue, stops } from "./record";
 import { batteryCleared } from "./rules";
 import { answerBoxOf } from "./rules/blocks";
 import { pickTitle } from "./rules/title";
@@ -216,7 +216,8 @@ export function retiredUnread(row: DraftRow, now: Date): string | null {
 export function retiredFor(outcome: RecheckOutcome): string | null {
   if (outcome.kind === "held") return "retired:title";
   if (outcome.kind === "skipped" || outcome.passed) return null;
-  const rules = [...new Set(outcome.failed.map((failure) => failure.rule))];
+  // A warning never sets a page aside, so it never names why.
+  const rules = [...new Set(outcome.failed.filter(stops).map((failure) => failure.rule))];
   // No rule failed: a page elsewhere is too close, or a check could not run at 0¢; the record names which.
   const causes = rules.length > 0 ? rules : [outcome.close ? "elsewhere" : outcome.fit !== "passed" ? "fit_claim" : "do_not_claim"];
   return `retired:${causes.join(",")}`;

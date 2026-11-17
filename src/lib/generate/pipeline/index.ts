@@ -66,7 +66,7 @@ import type { SourcedFact } from "./grounding";
 import { packStatements, type ContextPack } from "./pack";
 import { batteryBasis, checkPage, scopeOf } from "./battery";
 import { tryFix, type FixStop } from "./fix-call";
-import { fixNotes, withoutBusiness, type FixNote, type RepairRecord } from "./repair";
+import { fixNotes, withFitFact, withoutBusiness, type FixNote, type RepairRecord } from "./repair";
 import { completeTables, withSources } from "./sources";
 import { withTable } from "./table";
 import { floorTitle, titleRuleFor, unclaimedSuperlatives } from "./title";
@@ -286,14 +286,16 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
       ? { live: { title: pack.live.title, markdown: pack.live.markdown, year: new Date(pack.builtAt).getUTCFullYear() } }
       : {}),
   };
-  const linking = { domain: a.site.domain, targets: a.links, groundedUrl: grounding?.fact.url, factUrls: pack.facts.map((fact) => fact.url) };
+  const linking = { domain: a.site.domain, targets: a.links, groundedUrl: grounding?.fact.url, factUrls: [...pack.facts.map((fact) => fact.url), ...(pack.fitFact?.url == null ? [] : [pack.fitFact.url])] };
 
   /** The parts laid out as the page (SPEC §7, issue 1137): the body's links
    *  held to the chosen pages, no table cell left empty, the closing line
    *  last, and the sources list of the market pages the body cites — written
    *  here and never by the model (issue 1135). A listicle's table is the one
    *  code built, under its at-a-glance section's opening paragraph (D47). */
-  const finish = (parts: PageParts): Finished => {
+  const finish = (asWritten: PageParts): Finished => {
+    // Owner P2b and P3: the row's fit fact stands in the short answer and the business section, added in code at 0¢.
+    const parts = grounding === undefined ? asWritten : withFitFact(asWritten, { pack, template, businessName: a.site.businessName });
     // Issue 1389: the writer proposes its titles and code picks one, by the
     // rules stage 4 then holds it to.
     let titles: TitleCandidate[] = [];

@@ -11,3 +11,4 @@ component:icon:file-text 3	#1512: each article card's tile, drawn only where sto
 component:icon:scan-search 1	#2249: the count row's tile, drawn from 100 distinct sites scanned; the sweep seeds none
 Why you should care	owner 2026-11-16, #2745: the Why heading has no eyebrow
 What €49 a month gets you	owner 2026-11-16, #2745: ships "What’s Included for {price}/month?"
+Every fact linked to its source. Up to 22 checks before a page goes live.	E10: the check count comes from code (SPEC §0 One true check count)

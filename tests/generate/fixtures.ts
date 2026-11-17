@@ -110,9 +110,9 @@ export function emptyComparison(over: Partial<ComparisonSet> = {}): ComparisonSe
  *  is no quotation, no rival figure, no embedded markup and no numeral the
  *  register holds. */
 export const CLEAN_MARKDOWN = [
-  "## Which tool should a small team pick?",
+  "## Which tool should a small team pick for its seats?",
   "",
-  "The answer depends on how many people need a seat and how much of the work",
+  "A small team picks by how many people need a seat and how much of the work",
   "already lives in one place. Start by counting the people who will open it",
   "every day, then check what the plan you are looking at actually includes.",
   "",
@@ -424,7 +424,7 @@ export function pageParts(first: string = CLEAN_MARKDOWN, over: Partial<PagePart
     answer: CLEAN_ANSWER,
     takeaways: [prose(topic, 0, 1), prose(topic, 1, 1), prose(topic, 2, 1)],
     sections: [
-      { key: "question", heading: "Which tool should a small team pick?", body: `${first}\n\n${prose(topic, 3, 22)}` },
+      { key: "question", heading: "Which tool should a small team pick for its seats?", body: `${first}\n\n${prose(topic, 3, 22)}` },
       ...[1, 2, 3, 4, 5].map((index) => ({ key: "question", heading: heading(index), body: prose(topic, index * 28, 28) })),
       {
         key: "business",

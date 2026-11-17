@@ -54,6 +54,7 @@ export const CHECKS: Readonly<Record<HardRule, { key: CopyKey }>> = Object.freez
   distinct_headings: { key: "draft.checks.rule.distinct-headings" },
   no_demo_text: { key: "draft.checks.rule.no-demo-text" },
   plain_prose: { key: "draft.checks.rule.plain-prose" },
+  standalone_lead: { key: "draft.checks.rule.standalone-lead" },
 });
 
 export type CheckStatus = "passed" | "skipped" | "failed" | "pending";

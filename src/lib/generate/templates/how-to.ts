@@ -1,6 +1,6 @@
 // SPEC §7 (D42, 2) — how-to.
 import { CITES_MARKET, HEADING_GAPS } from "@/lib/config/constants";
-import type { Template, TemplateSection } from "./types";
+import type { SectionFacts, Template, TemplateSection } from "./types";
 
 /** Owner Q9/D (2026-11-16): a section on what two of the top results cover, from its claims. */
 export const gapSection: TemplateSection = {
@@ -9,6 +9,13 @@ export const gapSection: TemplateSection = {
   repeat: { min: 0, max: HEADING_GAPS.sectionsMax },
   when: "gaps",
 };
+
+/** Owner P3 (2026-11-16): the page's one section on how this business answers its question, from its own passages. */
+export const businessSection = (also: string, onlyWith?: SectionFacts): TemplateSection => ({
+  key: "business",
+  task: `Say how this business answers the page's question, under a heading in the search's own words that names the business, from \`pack.fitFact\` and the business's passages in \`pack.facts\` and \`pack.profile\` only. Where \`pack.fitFact\` is given, state its \`passage\` word for word, linked to its \`url\`. ${also}`,
+  ...(onlyWith === undefined ? {} : { onlyWith: { facts: onlyWith, min: 1 } }),
+});
 
 export const howTo: Template = {
   type: "how_to",
@@ -38,6 +45,7 @@ export const howTo: Template = {
       task: "One question from `pack.questions` that no other section of this page answers, as its heading in the buyer's words: answer it in two or three sentences from the facts, then the detail. Leave this section out where `pack.questions` holds no such question.",
       repeat: { min: 0, max: 3 },
     },
+    businessSection("Link its product page.", "fit"),
     { key: "next_step", task: "Say what the reader does next, linking the product page." },
   ],
   blocks: { steps: { min: 3, max: 10, own: 1 }, faq: { min: 3, max: 6 } },
