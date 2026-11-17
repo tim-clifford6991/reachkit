@@ -5,7 +5,7 @@
 // writer proposes by it, and stage 4 checks it (`../rules/title.ts`) — from
 // this one reading, so the title a writer is asked for, the title code picks
 // and the title the check passes are one description.
-import { SHAPES } from "@/lib/locale/language";
+import { languagePack, SHAPES } from "@/lib/locale/language";
 import { TITLE } from "@/lib/config/constants";
 import { brandOf } from "@/lib/market/questions/select";
 import { briefLinesOf } from "../rules/brief-lines";
@@ -52,7 +52,8 @@ export function unclaimedSuperlatives(pack: Pick<ContextPack, "type" | "target" 
 
 /** A title's figure describes the page, so the business's own words count only on the page that sells or refreshes them. */
 function evidenceOf(pack: ContextPack): string[] {
-  const claims = pack.claims.map((claim) => claim.passage);
+  // A rival's own price or feature line is the rival's, never this page's specific.
+  const claims = pack.claims.filter((claim) => claim.product === undefined).map((claim) => claim.passage);
   return pack.type === "offering" || pack.type === "update" ? [...pack.facts.map((fact) => fact.passage), ...claims, ...packStatements(pack)] : claims;
 }
 
@@ -132,14 +133,20 @@ function figuresOf(pack: ContextPack): string[] {
     evidenceOf(pack).join("\n"),
     pack.locale?.language ?? "en"
   );
+  const stop = languagePack(pack.locale?.language ?? "en").stopWords;
   const seen = new Set<string>();
   const out: string[] = [];
   for (const match of said.matchAll(/(?:[^\s\d]+ ){0,2}[$€£]?\d[\d.,]*\S*(?: [^\s\d]+){0,3}/gu)) {
     const figure = /\d[\d.,]*/.exec(match[0])?.[0].replace(/[.,]+$/, "") ?? "";
     // A lone digit with no currency mark is a list number as often as a fact.
     if (/^(?:19|20)\d\d$/.test(figure) || seen.has(figure) || (figure.length === 1 && !/[$€£%]/.test(match[0]))) continue;
+    // A whole phrase only: never one cut short by the number after it, and never opening or ending on a word that leads on.
+    if (/^ \S*\d/.test(said.slice((match.index ?? 0) + match[0].length))) continue;
+    const words = match[0].replace(/[.,;:]+$/, "").split(" ");
+    while (words.length > 1 && stop.has(words[0]!.toLowerCase()) && !/\d/.test(words[0]!)) words.shift();
+    while (words.length > 1 && stop.has(words.at(-1)!.toLowerCase()) && !/\d/.test(words.at(-1)!)) words.pop();
     seen.add(figure);
-    out.push(match[0].replace(/[.,;:]+$/, ""));
+    out.push(words.join(" "));
     if (out.length === TITLE.figuresTold) break;
   }
   return out;
