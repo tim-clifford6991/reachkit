@@ -154,7 +154,8 @@ export default function LandingPage(props: {
                 <Sparkles size={16} strokeWidth={1.75} aria-hidden />
                 {copy("landing.hero.why")}
               </p>
-              <h1 className="t-hero">{marked(copy("landing.headline"), copy("landing.headline.mark"))}</h1>
+              {/* The mark's inline box is taller than t-hero's line, so the padding holds it inside the title. */}
+              <h1 className="t-hero py-1.5">{marked(copy("landing.headline"), copy("landing.headline.mark"))}</h1>
               <p className="text-lg text-base-content/70">{copy("landing.subline")}</p>
               <div className="w-full">
                 {prefill === undefined ? (
