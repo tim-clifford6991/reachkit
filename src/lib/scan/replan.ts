@@ -70,7 +70,7 @@ type Event = { kind: string; site_id: string | null; read: string };
 
 /**
  * Each paying site not yet re-planned at the deployed planner: its dry run,
- * its claim, then its commit where the dry run did not hold it; then the
+ * its commit where the dry run did not hold it, then its claim; then the
  * owner's mail of the weeks. `null` off production or with nothing to do.
  */
 export async function replanSites(
@@ -92,13 +92,11 @@ export async function replanSites(
     const id = site.siteId;
     const plan = await inStep(`replan-dry-${id}`, () => dryReplan(id, { now: a.now, clock: site, fingerprint }));
     const state = plan === null ? "no-week" : plan.held === null ? plan.from : "held";
+    // Claimed only after the apply, so an apply that never ran is tried again on the next tick.
+    if (plan !== null && plan.held === null) await inStep(`replan-apply-${id}`, () => applyReplan(id, plan.from, a.now));
     if (!(await inStep(`replan-claim-${id}`, () => claimOpsEvent(KIND, id, fingerprint, state))) || plan === null) continue;
     told.push(plan);
-    if (plan.held !== null) held.push(id);
-    else {
-      await inStep(`replan-apply-${id}`, () => applyReplan(id, plan.from, a.now));
-      replanned.push(id);
-    }
+    (plan.held === null ? replanned : held).push(id);
   }
   if (told.length > 0 && !events.some((e) => e.kind === TOLD)) await inStep("replan-told", () => tellOwner(told, fingerprint));
   return { replanned, held };

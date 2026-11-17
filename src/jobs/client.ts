@@ -132,6 +132,8 @@ export function defineJobs(definition: JobDefinition): PlatformFunction[] {
       triggers: [triggerOf(definition)],
       ...(idempotency === undefined ? {} : { idempotency }),
       ...(perSubject === undefined ? boundsOf(definition) : {}),
+      // Each step its own invocation, so no step is cut at the platform's 10 s checkpoint budget.
+      checkpointing: false,
       onFailure,
     },
     async ({ event, step, attempt }) => {
