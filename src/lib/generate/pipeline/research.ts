@@ -708,9 +708,9 @@ async function recentPages(
   };
 }
 
-/** One SERP, read for its "People also ask" and its related searches
- *  (D61). Ledgered; `null` where the call fails. */
-async function askedBeside(c: CostContext, a: { siteId: string; locale: Locale; query: string }): Promise<{ peopleAlsoAsk: string[]; searches: string[] } | null> {
+/** One SERP, read for its organic results, its "People also ask" and its
+ *  related searches (D61). Ledgered; `null` where the call fails. */
+async function askedBeside(c: CostContext, a: { siteId: string; locale: Locale; query: string }): Promise<{ organic: string[]; peopleAlsoAsk: string[]; searches: string[] } | null> {
   const serp = await serpOrganic(c, {
     query: a.query,
     locale: a.locale,
@@ -722,6 +722,7 @@ async function askedBeside(c: CostContext, a: { siteId: string; locale: Locale; 
   });
   if (serp.kind === "unmeasured") return null;
   return {
+    organic: serp.value.organic.map((row) => row.url),
     peopleAlsoAsk: [...(serp.value.peopleAlsoAsk ?? [])],
     searches: [...new Set((serp.value.relatedSearches ?? []).map((search) => search.trim().toLowerCase()))],
   };
@@ -737,16 +738,6 @@ async function withVolume(c: CostContext, locale: Locale, searches: readonly str
   if (volumes.kind === "unmeasured") return [];
   const volumeOf = new Map(volumes.value.map((row) => [row.keyword, row.searchVolume]));
   return asked.map((search) => ({ search, volume: volumeOf.get(search) ?? 0 })).filter((row) => row.volume > 0);
-}
-
-/** What buyers ask about the target (D61): one SERP of the target itself,
- *  read for its "People also ask" and its related searches, and one
- *  keyword-overview call that keeps the related searches with a measured
- *  volume. A call that fails or meets the ceiling leaves its half empty. */
-async function buyersAsk(c: CostContext, a: { siteId: string; locale: Locale; target: string }): Promise<BuyersAsk> {
-  const beside = await askedBeside(c, { siteId: a.siteId, locale: a.locale, query: a.target });
-  if (beside === null) return { peopleAlsoAsk: [], related: [] };
-  return { peopleAlsoAsk: beside.peopleAlsoAsk, related: await withVolume(c, a.locale, beside.searches) };
 }
 
 const sameWords = (text: string): string => text.toLowerCase().replace(/\s+/g, " ").trim();
@@ -863,7 +854,12 @@ export async function researchMarket(
   // 1. The network, in parallel: the top results in order until enough are
   //    readable, and each rival's two pages. A page that compares options
   //    then reads the products its top results name.
-  const topTen = storedTopTen(a.report, a.searches).filter(notOurs);
+  //    The target's own SERP is bought once, before anything reads it: its
+  //    organic rows are the top results where the scan stored none, and its
+  //    questions are what buyers ask (D61).
+  const stored = storedTopTen(a.report, a.searches);
+  const beside = a.questions === true || stored.length === 0 ? await askedBeside(c, { siteId: a.siteId, locale: a.locale, query: target }) : null;
+  const topTen = (stored.length > 0 ? stored : (beside?.organic ?? [])).filter(notOurs);
   // The own pages read (#1135): eight products on a listicle (owner, issue
   // 1508), four on any other page.
   const bound = a.options === true ? RESEARCH.options : RESEARCH.rivals;
@@ -957,9 +953,10 @@ export async function researchMarket(
     );
   }
 
-  // 2b. A Q&A's questions (D61), bought before the claim calls so a ceiling
-  //     met there does not cost the page its questions.
-  const asked = a.questions === true && !c.capHit() ? await buyersAsk(c, { siteId: a.siteId, locale: a.locale, target }) : null;
+  // 2b. A Q&A's related searches measured before the claim calls, so a
+  //     ceiling met there does not cost the page its questions.
+  const asked: BuyersAsk | null =
+    a.questions !== true ? null : { peopleAlsoAsk: beside?.peopleAlsoAsk ?? [], related: beside === null ? [] : await withVolume(c, a.locale, beside.searches) };
 
   // The recent pages lead on a *current insights* page: they are what it is
   // written from, and the claim calls read the first pages only.

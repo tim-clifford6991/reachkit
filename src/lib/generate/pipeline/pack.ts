@@ -347,16 +347,16 @@ const ASKS_PRICE_RE = SHAPES.asksPrice;
 
 /**
  * A measured question is on the site's current market (issue 1263) where
- * its wording or its search shares a word with the market's category or one
- * of its synonyms, or names one of its rivals. `null` is a site no market
- * was concluded for: the report's own reading is its market, and every
- * question that report measured is on it.
+ * its wording or its search shares a word with the target, the market's
+ * category or one of its synonyms, or names one of its rivals. `null` is a
+ * site no market was concluded for: the report's own reading is its market,
+ * and every question that report measured is on it.
  */
-function onMarket(question: { text: string; search: string }, market: WritingMarket | null): boolean {
+function onMarket(question: { text: string; search: string }, market: WritingMarket | null, target: string): boolean {
   if (market === null || market.from === "report") return true;
   const asked = `${question.text} ${question.search}`;
   const words = subjectWords(asked);
-  const marketWords = subjectWords([market.category, ...market.synonyms].join(" "));
+  const marketWords = subjectWords([target, market.category, ...market.synonyms].join(" "));
   return [...words].some((word) => marketWords.has(word)) || (market.market?.rivals ?? []).some((rival) => namesRival(asked, rival));
 }
 
@@ -448,7 +448,7 @@ function buyerQuestions(a: {
   }
   const buyerAsks = (text: string) => !otherSenseOfRival(text, rivals);
   const measured = (a.report.questions.kind === "unmeasured" ? [] : a.report.questions.value)
-    .filter((question) => onMarket({ text: question.text, search: question.search.keyword }, a.market))
+    .filter((question) => onMarket({ text: question.text, search: question.search.keyword }, a.market, a.target))
     .filter((question) => free({ text: question.text, search: question.search.keyword }))
     .map((question) => question.text)
     .filter(buyerAsks);
@@ -463,7 +463,7 @@ function buyerQuestions(a: {
   // off it ("What is the 30% rule for AI?"): each is held to the market, as
   // a measured question is.
   const seen = [...(a.asked?.peopleAlsoAsk ?? []).map((text) => ({ text, search: "" })), ...related]
-    .filter((question) => onMarket(question, a.market) && free(question))
+    .filter((question) => onMarket(question, a.market, a.target) && free(question))
     .map((question) => question.text)
     .filter(buyerAsks);
   // SPEC §6 (D49, issue 1270): a label of the market nobody searches is
@@ -526,7 +526,7 @@ export function packAdds(a: {
  * the words every search shares, the market's own words stand for it: its
  * category and the job it is concluded to do, as the pack carries them.
  */
-function ownTopicWords(pack: Omit<ContextPack, "missing">): Set<string> {
+function ownTopicWords(pack: Pick<ContextPack, "target" | "business">): Set<string> {
   const market = pack.business.market as { job?: unknown; rivals?: unknown } | null;
   const rivals = Array.isArray(market?.rivals) ? (market.rivals as { name?: unknown; domain?: unknown }[]) : [];
   const named = new Set([
@@ -591,10 +591,8 @@ function holds(requirement: PackRequirement, pack: Omit<ContextPack, "missing">,
       return held.length >= requirement.min && held.some((text) => shares(ownTopicWords(pack), text));
     }
     case "outside_sources":
-      // Issue 1486: claims off that many public pages. The research step
-      // reads none of the customer's own, and `neverASource` took out the
-      // pages no page may cite.
-      return new Set(pack.claims.map((claim) => claim.url)).size >= requirement.min;
+      // Claims off one page more than the body must cite, each read off the target's own research, never a rival's own page.
+      return new Set(pack.claims.filter((claim) => claim.product === undefined).map((claim) => claim.url)).size > requirement.min;
     case "product_page":
       return pack.links.some((link) => link.purpose === "product" || link.purpose === "features" || link.purpose === "pricing");
     case "measured_questions":
@@ -802,12 +800,13 @@ export function buildPack(a: PackInputs): ContextPack {
     a.facts.filter((sourced) => !neverASource(sourced.fact.url) && (sourced.report !== true || reportFactsAllowed(a.type))),
     a.livePages ?? []
   );
-  const facts: PackFact[] = allowed.slice(0, PACK.facts).map((sourced) => ({
-    passage: sourced.fact.passage,
-    url: sourced.fact.url,
-    readAt: sourced.fact.readAt.toISOString(),
-    ...(sourced.report === true ? { report: true as const } : {}),
-  }));
+  const packFacts = (from: readonly SourcedFact[]): PackFact[] =>
+    from.slice(0, PACK.facts).map((sourced) => ({
+      passage: sourced.fact.passage,
+      url: sourced.fact.url,
+      readAt: sourced.fact.readAt.toISOString(),
+      ...(sourced.report === true ? { report: true as const } : {}),
+    }));
   // SPEC §7 (owner D59, issue 1287): a rival's price read more than 30
   // days ago is not handed to the writer. A product left with no claim of
   // its own is no longer one the page may name.
@@ -831,21 +830,26 @@ export function buildPack(a: PackInputs): ContextPack {
   }));
   const newPage = a.opportunity.family === "write" || a.opportunity.family === "earn";
   const fit = a.opportunity.evidence?.family === "write" || a.opportunity.evidence?.family === "earn" ? a.opportunity.evidence.fitFact : null;
+  const business = { name: a.site.businessName, domain: a.site.domain, category: a.category, byline: a.byline, voice: a.voice, market: a.market ?? null, rivals: [...a.site.rivals] };
   const questions =
     a.type !== "update"
       ? buyerQuestions({
           report: a.report,
           asked: a.research.asked,
-          target: question,
+          target: [question, ...searches].join(" "),
           market: a.writingFor ?? null,
           rivals: a.site.rivals,
-          facts,
+          facts: packFacts(allowed),
           claims,
           knowledge: a.profile?.knowledge,
           language: a.locale?.language ?? "en",
           reserved: a.sitePages.flatMap((page) => (page.question === null ? [] : [page.question])),
         })
       : [];
+  // A passage on the target or its questions, the fit fact, or the business's own product, pricing or about page; never a page about something else.
+  const topic = new Set([...ownTopicWords({ target: { question, searches }, business }), ...questions.flatMap((text) => [...topicWords(text)])]);
+  const businessPage = (url: string): boolean => ["product", "features", "pricing", "about"].includes(derivePurpose({ url, title: "", h1: "" }));
+  const facts = packFacts(allowed.filter(({ fact, report }) => report === true || fact.passage === fit?.text || businessPage(fact.url) || shares(topic, fact.passage)));
   // A new page's planned sections are what it covers already; the business's own section is no subtopic.
   const planned = TEMPLATES[a.type].sections.filter((slot) => slot.repeat === undefined && slot.key !== "business").map((slot) => slot.key.replace(/_/g, " "));
   const covered =
@@ -859,15 +863,7 @@ export function buildPack(a: PackInputs): ContextPack {
     builtAt: a.now.toISOString(),
     ...(a.locale === undefined || modelInstruction({ country: a.locale.country, language: a.locale.language }) === null ? {} : { locale: { country: a.locale.country, language: a.locale.language } }),
     target: { question, searches },
-    business: {
-      name: a.site.businessName,
-      domain: a.site.domain,
-      category: a.category,
-      byline: a.byline,
-      voice: a.voice,
-      market: a.market ?? null,
-      rivals: [...a.site.rivals],
-    },
+    business,
     profile: a.profile,
     neverClaim: [...a.site.doNotClaim],
     facts,
