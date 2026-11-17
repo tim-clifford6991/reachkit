@@ -327,13 +327,10 @@ export function askedOfReport(report: Pick<StoredReport, "questions" | "serps">)
 }
 
 /**
- * SPEC §6 (issue 1519): the questions and related searches buyers were seen
- * asking beside the site's searches, as topics: each SERP's "People also
- * ask" first, one from each SERP in turn so no one search fills the list,
- * then its related searches the same way. One line each, no closing
- * punctuation, at most `ASKED_TOPICS.maxWords` words, never the SERP's own
- * search, distinct, from a SERP no older than `ASKED_TOPICS.maxAgeDays`,
- * and at most `ASKED_TOPICS.max`. Pure.
+ * SPEC §6: the questions and related searches buyers were seen asking beside the site's searches, as topics: each
+ * SERP's "People also ask" first, one from each SERP in turn so no one search fills the list, then its related searches
+ * the same way. One line each, no closing punctuation, at most `ASKED_TOPICS.maxWords` words, never the SERP's own
+ * search, distinct, from a SERP no older than `ASKED_TOPICS.maxAgeDays`, and at most `ASKED_TOPICS.max`. Pure.
  */
 export function askedTopics(asked: readonly AskedBeside[], now: Date, max: number = ASKED_TOPICS.max): AskedTopic[] {
   const since = now.getTime() - ASKED_TOPICS.maxAgeDays * 86_400_000;
@@ -561,8 +558,7 @@ export function proposedTopics(a: {
     if (rivalBrandOnly(key, { market: a.market, own, rivals }) || namesOwnOnly(key, { own, rivals })) return;
     // Issue 1314: a search nobody would type as it stands is no topic.
     if (malformedSearch(key, a.market?.rivals) !== null) return;
-    // D50: a comparison of names nobody searches is no topic, unless the
-    // pass read demand for the search itself.
+    // A comparison of names nobody searches is no topic, unless the pass read demand for the search itself.
     if (!volumes.has(key) && comparisonWithoutDemand(key, { market: a.market, own })) return;
     seen.add(key);
     out.push({ query: key, source, volume: volumes.get(key) ?? null, rival, ...(trends.get(key) === undefined ? {} : { trend: trends.get(key) }), ...more });
