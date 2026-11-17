@@ -1,17 +1,11 @@
-// BUILD §7 — the closed opportunity surface.
-//
-// Ten kinds, four families, one evidence shape per family (two for Fix), four acceptance forms, three winnability
-// handles. Nothing here computes and nothing here speaks: this file is types plus one frozen lookup table, so that a
-// tenth kind, a fifth family or a fourth acceptance form is a compile error at every call site rather than a value
-// some module has to remember to reject.
-//
-// The customer-facing words for the three winnability handles are not here and are not this module's: they are
-// `BAND_LABELS.winnability` in `src/lib/presentation/bands.ts` (ADR-001). This engine emits handles.
+// BUILD §7 — the closed opportunity surface: types and one frozen table, so a new kind, family or acceptance form is a
+// compile error at every call site. The words for the winnability handles are `BAND_LABELS.winnability`'s (ADR-001).
 import type { ListicleNeed } from "@/lib/generate/templates/listicle";
 import type { Measured } from "@/lib/measure/measured";
 import type { KnownSource } from "@/lib/known-content/types";
 import type { SiteCheck } from "@/lib/site-issues/types";
 import type { FitFact } from "@/lib/site-profile/knowledge/read";
+import type { SearchTrend } from "@/lib/vendors/dataforseo/types";
 
 /** §7's table, read down the `Type` column, plus SPEC §0's Earn family: a source names a rival and not the customer,
  *  and the answer is a citable asset on the customer's own domain. Four Write, three Improve, one Fix, one Earn — and
@@ -216,6 +210,9 @@ export interface TargetFacts {
   engines: readonly TargetEngine[];
 }
 
+/** The search's trend as the vendor gave it, and when it was read. Absent where it gave none: never a 0. */
+export type ReadTrend = SearchTrend & { at: Date };
+
 /** The business a Write page is written to overtake; `null` where only sources hold its search. */
 export type WriteRival = { domain: string; url: Measured<string>; position: Measured<number> };
 
@@ -230,9 +227,10 @@ export type Evidence =
       rival: WriteRival | null;
       /** issue 867. Absent on a row derived before it. */
       target?: TargetFacts;
-      /** Issue 1519: a "People also ask" question or related search the site's stored SERP for `term` showed, bought
-       *  at `serpAt` — demand observed, not measured. Absent on every other topic. */
-      askedBeside?: { term: string; serpAt: Date };
+      /** A "People also ask" question or related search the site's stored SERP for `term` showed, bought at `serpAt`:
+       *  demand observed, not measured. `newSince` is the earlier week's read of `term` that did not show it. */
+      askedBeside?: { term: string; serpAt: Date; newSince?: Date };
+      trend?: ReadTrend;
       /** Issue 1520: a search ReachKit composed from the market's own words, which needs a buyer seen asking it.
        *  Absent on every other topic, and on a composed one derived before. */
       composed?: true;
@@ -272,6 +270,7 @@ export type Evidence =
       target?: TargetFacts;
       /** As a Write row's. */
       shape?: "offering";
+      trend?: ReadTrend;
       fitFact?: FitFact | null;
     };
 
@@ -424,7 +423,7 @@ export type PlaceRule =
   | "linked by AI: one more in its cluster";
 
 /** One part of a row's points, as the plan stores it. */
-export type PointPart = "fit" | "demand" | "ai_gap" | "near_page_one" | "linked_by_ai" | "not_moving" | "new_site" | "outsized" | "no_demand";
+export type PointPart = "fit" | "demand" | "ai_gap" | "rising" | "near_page_one" | "linked_by_ai" | "not_moving" | "new_site" | "outsized" | "no_demand";
 
 /** `opportunities.plan_reason`: the points a committed row ranked by, the
  *  parts they sum from, and the rule that placed it. */

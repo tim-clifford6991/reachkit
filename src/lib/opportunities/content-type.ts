@@ -1,21 +1,8 @@
-// SPEC §7 (2026-10-04, D41 stage 1 and D42) — the content types.
-//
-// A listicle or comparison, a how-to, a documentation page, a research page,
-// a Q&A page, a current-insights page, an update of a live page, and an
-// offering page: the business's own service or product page, where the
-// search's results are mostly such pages (owner ruling B6, 2026-10-19). The
-// type is read off what the row already stores — its opportunity type and
-// its target search — so nothing is judged twice and no model decides it
-// (SPEC §7, 2026-09-18: the ranking only reads). The weekly mix (D36, issue
-// 1209) rotates these.
-//
-// An update is the asset kind `ASSET_KIND_OF` already names. A new page
-// takes the first shape its search has, in the order below, and otherwise
-// its opportunity type's own: an Earn page and a format page compare, the
-// rest answer the questions buyers ask. A new page whose stored results
-// page asks for a provider's own page (`evidence.shape`, set by readiness)
-// is an offering page ahead of its words.
+// SPEC §7 — the content types, read off what the row already stores (its opportunity type, search and evidence), so no
+// model decides one. An update is `ASSET_KIND_OF`'s; an offering shape comes first, then the search's first shape in the
+// order below, and a rising search with no stronger shape is current insights; else the opportunity type's own.
 import { SHAPES } from "@/lib/locale/language";
+import { isRising } from "./rank/points";
 import { ASSET_KIND_OF, isRetarget, type Opportunity, type OpportunityType } from "./types";
 
 export type ContentType = "listicle" | "how_to" | "documentation" | "research" | "qa" | "insights" | "update" | "offering";
@@ -66,7 +53,7 @@ export function contentTypeOf(
   const text = (o.targetQuery ?? "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
   if (LISTICLE_SHAPES.test(text)) return "listicle";
   if (HOW_TO_SHAPES.test(text)) return "how_to";
-  if (INSIGHTS_SHAPES.test(text)) return "insights";
+  if (INSIGHTS_SHAPES.test(text) || isRising(o.evidence)) return "insights";
   if (RESEARCH_SHAPES.test(text)) return "research";
   if (DOCUMENTATION_SHAPES.test(text)) return "documentation";
   return TYPE_BY_OPPORTUNITY[o.type] ?? "qa";

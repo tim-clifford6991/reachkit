@@ -9,7 +9,7 @@ import type { Locale } from "@/lib/locale/locales";
 import type { Measured } from "@/lib/measure/measured";
 import { asArray, asNumber, asString, callEndpoint, isRecord, ledgered, ledgeredWithTotal, type OnVendorFailure } from "./envelope";
 import { localeCacheKey } from "./transport";
-import type { CompetitorRow, KeywordVolumeRow, RankedResult, RankedRow, SuggestionRow, VolumeWindow } from "./types";
+import type { CompetitorRow, KeywordVolumeRow, RankedResult, RankedRow, SearchTrend, SuggestionRow, VolumeWindow } from "./types";
 
 const LABS = "/v3/dataforseo_labs/google";
 const RANKED_SOURCE = "dataforseo_labs/google/ranked_keywords";
@@ -65,6 +65,7 @@ function parseRanked(result: unknown, listing = false): { rows: RankedRow[]; tot
       url: (serp ? asString(serp.url) : undefined) ?? "",
       // Only where the vendor gave one, so stored rows keep their shape otherwise.
       ...(difficultyOf(kd) === null ? {} : { difficulty: difficultyOf(kd) }),
+      ...trendOf(info),
       ...(listing ? listingOf(serp) : {}),
     });
   }
@@ -76,6 +77,21 @@ function listingOf(serp: Record<string, unknown> | undefined): Pick<RankedRow, "
   const title = serp ? asString(serp.title)?.trim() : undefined;
   const description = serp ? asString(serp.description)?.trim() : undefined;
   return { ...(title ? { title } : {}), ...(description ? { description } : {}) };
+}
+
+/** `keyword_info.monthly_searches` and `search_volume_trend`, only the parts the vendor gave: an absent change is not 0. */
+function trendOf(info: Record<string, unknown> | undefined): { trend?: SearchTrend } {
+  const months = asArray(info?.monthly_searches).flatMap((m) => {
+    const [year, month, searchVolume] = isRecord(m) ? [asNumber(m.year), asNumber(m.month), asNumber(m.search_volume)] : [];
+    return year === undefined || month === undefined || searchVolume === undefined ? [] : [{ year, month, searchVolume }];
+  });
+  const change = info && isRecord(info.search_volume_trend) ? info.search_volume_trend : {};
+  const trend: SearchTrend = { ...(months.length > 0 ? { months } : {}) };
+  for (const part of ["monthly", "quarterly", "yearly"] as const) {
+    const value = asNumber(change[part]);
+    if (value !== undefined) trend[part] = value;
+  }
+  return Object.keys(trend).length === 0 ? {} : { trend };
 }
 
 /** `keyword_properties.keyword_difficulty` on a keyword record:
@@ -101,6 +117,7 @@ function parseSuggestions(result: unknown): SuggestionRow[] | undefined {
       keyword,
       searchVolume: (info ? asNumber(info.search_volume) : undefined) ?? 0,
       difficulty: difficultyOf(item),
+      ...trendOf(info),
     });
   }
   return rows;
@@ -233,7 +250,7 @@ function parseOverview(result: unknown): KeywordVolumeRow[] | undefined {
     const keyword = asString(item.keyword)?.toLowerCase();
     if (!keyword) continue;
     const info = isRecord(item.keyword_info) ? item.keyword_info : undefined;
-    rows.push({ keyword, searchVolume: (info ? asNumber(info.search_volume) : undefined) ?? 0 });
+    rows.push({ keyword, searchVolume: (info ? asNumber(info.search_volume) : undefined) ?? 0, ...trendOf(info) });
   }
   return rows;
 }

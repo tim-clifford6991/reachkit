@@ -34,10 +34,10 @@ import {
 } from "@/lib/measure/measured";
 import { difficultyCeiling, qualifyingDemand } from "@/lib/opportunities/winnability/bars";
 import { keywordSuggestions } from "@/lib/vendors/dataforseo";
-import type { VolumeWindow } from "@/lib/vendors/dataforseo/types";
+import type { SearchTrend, VolumeWindow } from "@/lib/vendors/dataforseo/types";
 import type { Profile } from "./profile";
 import type { PoolRow } from "./widen";
-import { difficultyField } from "./select";
+import { measuredFields } from "./select";
 
 /** BP-025 `## Public interface`. The product's row, not the vendor's: the
  *  vendor's own `SuggestionRow` spells the figure `searchVolume`, and the
@@ -48,6 +48,8 @@ export interface SuggestionRow {
   /** The vendor's keyword difficulty, 0–100, where it gave one (issue 858).
    *  Absent or `null`: not known, and selection reads the row on volume. */
   difficulty?: number | null;
+  /** The vendor's search trend, where it gave one. */
+  trend?: SearchTrend;
 }
 
 /** The `market` section of the report blob, declared here because this node
@@ -109,7 +111,7 @@ export async function deriveMarketSet(
     for (const row of result.value) {
       if (seen.has(row.keyword)) continue;
       seen.add(row.keyword);
-      rows.push({ keyword: row.keyword, volume: row.searchVolume, ...difficultyField(row.difficulty) });
+      rows.push({ keyword: row.keyword, volume: row.searchVolume, ...measuredFields(row) });
     }
   }
 

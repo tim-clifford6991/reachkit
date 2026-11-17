@@ -11,7 +11,7 @@ import type { SerpResult } from "@/lib/vendors/dataforseo/types";
 import { assess, rightSizedBand } from "../winnability/band";
 import { rankedCountsFor, type RankedCounts } from "../winnability/counts";
 import { FAMILY_OF, noRejections, type Evidence, type OpportunityType, type TopicSource, type WriteRival } from "../types";
-import { emptyDerivation, slugify, type Candidate, type DerivationResult } from "./candidate";
+import { emptyDerivation, slugify, trendRead, type Candidate, type DerivationResult } from "./candidate";
 import { targetFactsOf } from "./target";
 import { sourceOf } from "./topics";
 
@@ -174,6 +174,7 @@ export function writeCandidates(a: WriteInput): DerivationResult {
         at,
       }),
       ...(answerRival !== null ? { win: { signal: "answer" as const, competitor: answerRival, absent: `an AI answer for "${query}" cites a rival and does not name the site` } } : {}),
+      ...trendRead(question.search.trend, at),
     };
     result.candidates.push({
       siteId: a.siteId,

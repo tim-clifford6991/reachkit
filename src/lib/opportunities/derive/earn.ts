@@ -34,7 +34,7 @@ import type { StoredReport } from "@/lib/scan/report";
 import { assess } from "../winnability/band";
 import { rankedCountsFor, type RankedCounts } from "../winnability/counts";
 import { FAMILY_OF, noRejections, type EarnAsset, type Evidence } from "../types";
-import { emptyDerivation, slugify, type Candidate, type DerivationResult } from "./candidate";
+import { emptyDerivation, slugify, trendRead, type Candidate, type DerivationResult } from "./candidate";
 import { targetFactsOf } from "./target";
 
 interface EarnInput {
@@ -136,6 +136,7 @@ export function earnCandidates(a: EarnInput): DerivationResult {
         answerRow: answerRows[index],
         at,
       }),
+      ...trendRead(question.search.trend, at),
     };
     result.candidates.push({
       siteId: a.siteId,

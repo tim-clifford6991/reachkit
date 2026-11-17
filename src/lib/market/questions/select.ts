@@ -30,6 +30,7 @@ import { namesPlace, saysNearMe, withoutPlace } from "@/lib/locale/place";
 import { BUSINESS_KINDS, type BusinessKind } from "@/lib/market/kinds";
 import { neverMeasured, type MeasuredMarket } from "./measured";
 import type { Profile } from "./profile-types";
+import type { SearchTrend } from "@/lib/vendors/dataforseo/types";
 import type { SuggestionRow } from "./market-set";
 import { malformedSearch } from "./well-formed";
 import { isCategoryName } from "@/lib/market/rivals/category-name";
@@ -62,12 +63,14 @@ export interface SelectedSearch {
    *  (SPEC §6, owner D65, issue 1303): measured at its own volume, whatever
    *  the site's demand ceiling. */
   term?: true;
+  /** The vendor's search trend, where it gave one. */
+  trend?: SearchTrend;
 }
 
-/** A row's difficulty as a stored row carries it: present only where the
- *  vendor gave one, so a row without it stores as it always did. */
-export function difficultyField(difficulty: number | null | undefined): { difficulty?: number } {
-  return difficulty === undefined || difficulty === null ? {} : { difficulty };
+/** A row's difficulty and trend as a stored row carries them: each present only where the vendor gave it, so a row
+ *  without them stores as it always did. */
+export function measuredFields(row: { difficulty?: number | null; trend?: SearchTrend }): { difficulty?: number; trend?: SearchTrend } {
+  return { ...(row.difficulty === undefined || row.difficulty === null ? {} : { difficulty: row.difficulty }), ...(row.trend === undefined ? {} : { trend: row.trend }) };
 }
 
 // ── The shape tables. One edit changes a classification everywhere ──────────
@@ -342,6 +345,7 @@ interface Candidate {
   keyword: string;
   volume: number;
   difficulty: number | null;
+  trend?: SearchTrend;
   intent: Intent;
   score: number;
   rivalBrand: boolean;
@@ -469,6 +473,7 @@ export function selectTwelve(a: {
       keyword: row.keyword,
       volume: row.volume,
       difficulty,
+      ...measuredFields({ trend: row.trend }),
       intent,
       score:
         SELECTION.intentWeights[intent] *
@@ -538,7 +543,7 @@ export function selectTwelve(a: {
       score: candidate.score,
       rank: index + 1,
       floor: stepOf(candidate.volume, floor),
-      ...difficultyField(candidate.difficulty),
+      ...measuredFields(candidate),
       ...(candidate.term ? { term: true as const } : {}),
     }));
 
