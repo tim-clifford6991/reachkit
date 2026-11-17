@@ -391,24 +391,15 @@ function answerable(
 }
 
 /**
- * The questions a Q&A may answer (SPEC §7, D42; issue 1263; owner D61, issue
- * 1295). They are questions buyers were seen to ask: Google's "People also
- * ask" for the target, the target's related searches that have a measured
- * volume, and the stored report's measured questions on the site's current
- * market — in that order, those that share a word with the target first.
- * Where those are too few, the first two lists also hold what the research
- * step read beside the market's searched terms (D62), and every rule here
- * is asked of those as of the target's own.
+ * The questions a Q&A may answer (SPEC §7, D42; issue 1263; owner D61, issue 1295): questions buyers were seen to ask
+ * — Google's "People also ask" for the target, its related searches with a measured volume, then the stored report's
+ * measured questions on the current market — those sharing a word with the target first. Where too few, the first two
+ * lists also hold what was read beside the market's searched terms (D62), held to every rule here.
  *
- * **A tracked buyer prompt is never one** (D61): the prompts are templated
- * so they can be measured (D19), and a page headed by them asks one question
- * seven times. Wherever a templated phrasing still arrives, one question a
- * prompt template is kept; and of two questions that would make headings too
- * alike for stage 4 (`../rules/headings.ts`), the first is.
- *
- * Each goes in only where the pack holds a fact that answers it. None is
- * written here. One that another live or planned page of the site targets
- * is that page's to answer (issue 1544): it is left out here.
+ * **A tracked buyer prompt is never one** (D61): templated for measuring (D19), it would ask one question seven times.
+ * One question a prompt template is kept, and of two headings too alike for stage 4 (`../rules/headings.ts`), the
+ * first. Each goes in only where the pack holds a fact that answers it, and one another page of the site targets is
+ * that page's to answer (issue 1544).
  */
 function buyerQuestions(a: {
   report: StoredReport;
@@ -422,6 +413,8 @@ function buyerQuestions(a: {
   language: Language;
   /** The targets of the site's other live and planned pages. */
   reserved: readonly string[];
+  /** A Q&A's top pages read, whose question headings it may take. */
+  headed: readonly { url: string; headings?: string[] }[];
 }): string[] {
   const flat = (text: string): string => ` ${text.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim()} `;
   // A target is a search or a question; either is reserved as worded and as
@@ -484,17 +477,23 @@ function buyerQuestions(a: {
     if (template !== null) templates.add(template);
     kept.push(text);
   }
-  return kept.slice(0, PACK.questions);
+  // Owner, 2026-11-17 (#2722): short of five on-topic buyer questions, a Q&A takes the question headings of the top
+  // pages it read, each on the topic and answered by a claim off its own page; off-topic ones only fill what is left.
+  const onTopic = kept.filter((text) => shares(words, text));
+  if (onTopic.length >= 5) return kept.slice(0, PACK.questions);
+  for (const page of a.headed) {
+    for (const text of page.headings ?? []) {
+      const answered = a.claims.some((claim) => claim.url === page.url && shares(subjectWords(text), claim.passage));
+      if (/\?\s*$/.test(text) && shares(words, text) && answered && free({ text, search: "" }) && !onTopic.some((held) => alikeHeadings(held, text))) onTopic.push(text);
+    }
+  }
+  return [...onTopic, ...kept.filter((text) => !onTopic.includes(text))].slice(0, PACK.questions);
 }
 
 /**
- * What a new page adds (SPEC §7, D12; a check over the pack since D41): the
- * pack's facts whose words are on none of the top results the research step
- * read. A business fact is the customer's own; a market claim counts where
- * it was read off a rival's own page, a study or a primary source, never off
- * a top result. On a page built from outside facts (issue 1486) the report's
- * own measurements are not information gain: a site's score says nothing
- * about the reader's task.
+ * What a new page adds (SPEC §7, D12; a check over the pack since D41): its facts whose words are on none of the top
+ * results read. A business fact counts; a market claim where read off a rival's own page, a study or a primary source,
+ * never a top result. On a page built from outside facts (issue 1486) the report's own measurements are no gain.
  */
 export function packAdds(a: {
   facts: readonly PackFact[];
@@ -841,6 +840,7 @@ export function buildPack(a: PackInputs): ContextPack {
           knowledge: a.profile?.knowledge,
           language: a.locale?.language ?? "en",
           reserved: a.sitePages.flatMap((page) => (page.question === null ? [] : [page.question])),
+          headed: a.type === "qa" ? (a.research.topResults ?? []) : [],
         })
       : [];
   // A passage on the target or its questions, the fit fact, or the business's own product, pricing or about page; never a page about something else.

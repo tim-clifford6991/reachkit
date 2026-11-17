@@ -167,12 +167,12 @@ export function siteLinkTargets(a: {
   for (const each of ranked) if (each.score > 1e-3) take(each);
   // Short of the floor, the site's own main pages fill it — product,
   // features, pricing, about, the section's own page first (`/pricing` over
-  // `/pricing/enterprise`) — and then whatever else the crawl read.
+  // `/pricing/enterprise`) — and nothing else: fewer links, never a filler one (owner, 2026-11-17, #2722).
   if (chosen.length < CROSS_LINKS.SITE_MIN) {
     const main: readonly PagePurpose[] = [...BUYING_PURPOSES, "about"];
     const order = (purpose: PagePurpose): number => (main.includes(purpose) ? main.indexOf(purpose) : main.length);
     const rest = ranked
-      .filter((each) => !chosen.includes(each))
+      .filter((each) => !chosen.includes(each) && main.includes(each.row.purpose))
       .sort((x, y) => order(x.row.purpose) - order(y.row.purpose) || depth(x.row.url) - depth(y.row.url));
     const seen = new Set(chosen.map((each) => each.row.purpose).filter((purpose) => main.includes(purpose)));
     for (const each of rest) {

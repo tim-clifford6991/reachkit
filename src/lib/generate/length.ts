@@ -38,6 +38,8 @@ export function lengthRangeFor(
     const bounds = sectionBounds(capped ? { ...template, sections: template.sections.filter((slot) => slot.when !== "gaps") } : template);
     const fixed = template.sections.filter((section) => section.repeat === undefined).length;
     const answered = Math.min(bounds.max, Math.max(bounds.min, fixed + (a.covered ?? 0) + (a.questions ?? 0)));
+    const sourced = template.length.sourced;
+    if (sourced !== undefined && (a.questions ?? 0) >= sourced.questions && sourced.target <= ceiling) return { floor: sourced.floor, target: sourced.target, ceiling };
     return { floor: 0, target: Math.round((AIM * ceiling * answered) / bounds.max), ceiling };
   }
   const live = a.liveWords ?? null;

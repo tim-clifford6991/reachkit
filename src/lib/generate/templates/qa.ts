@@ -20,7 +20,7 @@ export const qa: Template = {
   ],
   // The 5–8 questions are the page's FAQ data; it stores no others.
   blocks: { faq: null },
-  length: { floor: 800, ceiling: 2100, kept: 1400 },
+  length: { floor: 800, ceiling: 2100, kept: 1400, sourced: { questions: 6, floor: 1200, target: 1500 } },
   research: true,
   // A page with no business fact stands on research alone (owner, #2511).
   packMustHold: [{ need: "buyer_questions", min: 5 }, { need: "outside_sources", min: CITES_MARKET.min }],
