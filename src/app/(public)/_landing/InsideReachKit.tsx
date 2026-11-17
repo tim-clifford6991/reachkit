@@ -78,7 +78,7 @@ export function InsideReachKit(): React.JSX.Element {
       <div className="card-body gap-3.5 p-5">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <p className="text-primary text-xs font-semibold">{copy("landing.inside.title")}</p>
-          <span className="badge badge-soft badge-success badge-sm">{copy("landing.story.autopilot")}</span>
+          <span className="badge badge-soft badge-success badge-sm">{copy("landing.inside.autopilot")}</span>
         </div>
         <ol className="flex flex-1 flex-col gap-2.5">
           {days().map((day) => (

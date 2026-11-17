@@ -9,8 +9,8 @@
 // the group layout draws:
 //   1. the hero — the why badge, the title with its catch words, subline, the
 //      one field, the offer and the count of sites scanned (`HeroProof.tsx`),
-//      centred — beside the story card (`Storyboard.tsx`); on a phone the
-//      story card comes last (board v37); from 8 logos, the count labels the
+//      centred — beside the example business's Overview in a browser frame
+//      (`AppPicture.tsx`), which on a phone comes after the ticks; from 8 logos, the count labels the
 //      logo band under both columns instead (`LogoBand.tsx`);
 //   2. the walkthrough video, once its file exists (`Walkthrough.tsx`);
 //   3. the three steps, each beside its picture, and one link to How it works;
@@ -43,7 +43,7 @@ import { ScanForm, ScanFormFromQuery, type LandingSearchParams } from "./_landin
 import { scanFormWords } from "./_landing/scan-form-words";
 import { InsideReachKit } from "./_landing/InsideReachKit";
 import { ReportAtGlance } from "./_landing/ReportAtGlance";
-import { Storyboard } from "./_landing/Storyboard";
+import { AppPicture } from "./_landing/AppPicture";
 import { Features } from "./_landing/Features";
 import { FieldCta } from "./_landing/FieldCta";
 import { MondayCard } from "./_landing/MondayCard";
@@ -167,7 +167,7 @@ export default function LandingPage(props: {
                 <HeroProof />
               </Suspense>
             </div>
-            <Storyboard />
+            <AppPicture />
           </div>
         </section>
 
