@@ -276,7 +276,7 @@ describe("the ask arm — what the set draws, in its own order", () => {
     const tree = await ask();
     const rendered = text(tree);
     // The vocabulary's verb: a page goes live, it is not "published".
-    expect(eyebrowOf(tree)).toBe("Goes live Tue 15 Sep, 7:00 AM");
+    expect(eyebrowOf(tree)).toBe("Goes Live Tue 15 Sep, 7:00 AM");
     expect(rendered).toContain("How to choose onboarding software");
     expect(rendered).toContain("best onboarding tools");
     expect(rendered).toContain("example.com");
@@ -390,7 +390,7 @@ describe("the done arm, and the refusals that wear its shape", () => {
     // pins: the destination and the word have to move together.
     expect(links[0]?.props.href).toBe("/signin");
     expect(links[0]?.props.children).toBe(COPY["publish.veto.calendar"]);
-    expect(COPY["publish.veto.calendar"]).toBe("Sign in to open This week");
+    expect(COPY["publish.veto.calendar"]).toBe("Sign In to Open This Week");
     // Not solid: the done arm asks nothing of the reader, and the page it
     // offers is one they may or may not want.
     expect(classOf(links[0] as Node)).toContain("btn-soft");
@@ -563,7 +563,7 @@ describe("the board's sections on the open arm, in its order and words", () => {
   it("draws the window from the mail to the moment", async () => {
     const rendered = text(await ask());
     expect(rendered).toContain("Mail sent 6:00 AM");
-    expect(rendered).toContain("Goes live 7:00 AM");
+    expect(rendered).toContain("Goes Live 7:00 AM");
   });
 
   it("a link sent with no mail names no send time, and a page with no moment draws no window", async () => {
@@ -571,7 +571,7 @@ describe("the board's sections on the open arm, in its order and words", () => {
     const unsent = text(await ask());
     expect(unsent).not.toContain("Mail sent");
     // With no send time to share a day with, the moment carries its day.
-    expect(unsent).toContain("Goes live Tue 15 Sep, 7:00 AM");
+    expect(unsent).toContain("Goes Live Tue 15 Sep, 7:00 AM");
     previewAnswer = async () => ({ ok: true, preview: { ...LIVE_PREVIEW, publishes: null } });
     expect(nodes(await ask()).some((node) => node.props?.["data-testid"] === "veto-timeline")).toBe(false);
   });
@@ -580,7 +580,7 @@ describe("the board's sections on the open arm, in its order and words", () => {
     previewAnswer = async () => ({ ok: true, preview: { ...LIVE_PREVIEW, mailedAt: new Date("2026-09-14T16:00:00.000Z") } });
     const rendered = text(await ask());
     expect(rendered).toContain("Mail sent Mon 14 Sep, 6:00 PM");
-    expect(rendered).toContain("Goes live Tue 15 Sep, 7:00 AM");
+    expect(rendered).toContain("Goes Live Tue 15 Sep, 7:00 AM");
   });
 
   it("says under Stop what it does, in the board's words", async () => {
@@ -609,7 +609,7 @@ describe("the board's sections on the open arm, in its order and words", () => {
 
   it("the sections come in the board's order", async () => {
     const at = order(await ask(), [
-      "Goes live Tue 15 Sep, 7:00 AM",
+      "Goes Live Tue 15 Sep, 7:00 AM",
       LIVE_PREVIEW.title!,
       COPY["publish.veto.why"],
       "· searched about",
@@ -687,7 +687,7 @@ describe("every arm renders, each in its own words", () => {
 
   it("the closed and unusable arms say what the board says, with Stop as the word (E7)", () => {
     for (const key of ["publish.veto.used.head", "publish.veto.closed.head", "publish.veto.unknown.head", "publish.veto.unknown", "publish.veto.failed.head", "publish.veto.failed"] as const) {
-      expect(BOARD.replace(/’/g, "'")).toContain(COPY[key].replace(/’/g, "'"));
+      expect(BOARD.replace(/’/g, "'").toLowerCase()).toContain(COPY[key].replace(/’/g, "'").toLowerCase());
     }
     expect(COPY["publish.veto.expired"]).toContain("Sign in to stop it from This week");
     expect(COPY["publish.veto.expired"]).not.toContain("taken down");

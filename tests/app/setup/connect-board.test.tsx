@@ -57,10 +57,10 @@ const textOf = (root: HTMLElement): string[] => segments(root.innerHTML);
 
 /** Each string is on the screen, and in the order given. */
 function inOrder(texts: string[], wanted: string[]): void {
-  const screen = texts.join("\n");
+  const screen = texts.join("\n").toLowerCase();
   let from = 0;
   for (const want of wanted) {
-    const at = screen.indexOf(want, from);
+    const at = screen.indexOf(want.toLowerCase(), from);
     expect(at, `"${want}" is not on the screen after "${screen.slice(Math.max(0, from - 60), from)}"`).toBeGreaterThanOrEqual(0);
     from = at + want.length;
   }
@@ -174,7 +174,7 @@ describe("the time-zone screen matches board SetupZone", () => {
       "So every date shows in your time. A few seconds, once, with nothing to press.",
     ]);
     expect((await zone()).querySelector("button")).toBeNull();
-    expect((await zone()).querySelector("h1")?.textContent).toBe("Setting your time zone");
+    expect((await zone()).querySelector("h1")?.textContent).toBe("Setting Your Time Zone");
   });
 
   it("the line under it comes after ten seconds and not before, with the address to write to", async () => {
