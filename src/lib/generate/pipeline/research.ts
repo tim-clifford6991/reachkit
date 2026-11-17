@@ -168,6 +168,8 @@ export interface MarketResearch {
   /** Issue 1508: on a search for alternatives to one product, that
    *  product's domain. It is the page's baseline and no option. */
   baseline?: string;
+  /** The target's or the study search's SERP is still on the queue: not measured, so the topic is tried again, never rested. */
+  pending?: true;
 }
 
 export const NO_RESEARCH: MarketResearch = Object.freeze({ facts: [], products: [] });
@@ -861,7 +863,8 @@ export async function researchMarket(
   //    The target's SERP, bought once first: its organic rows are the top
   //    results where the scan stored none, its questions what buyers ask.
   const stored = storedTopTen(a.report, a.searches);
-  const [targetRead, studyRead] = researchSerps({ ...a, target });
+  let pending = false;
+  const [targetRead, studyRead] = researchSerps({ ...a, target }).map((read) => ({ ...read, onFailure: (failed: { taskId?: string }) => void (pending ||= failed.taskId !== undefined) }));
   const beside = a.questions === true || stored.length === 0 ? await askedBeside(c, targetRead!) : null;
   const topTen = (stored.length > 0 ? stored : (beside?.organic ?? [])).filter(notOurs);
   // The own pages read (#1135): eight products on a listicle (owner, issue
@@ -1038,6 +1041,7 @@ export async function researchMarket(
       .map((page) => ({ url: page.url, text: page.text, ...(page.headings === undefined ? {} : { headings: page.headings }) })),
     ...(recent === null ? {} : { news: recent.news }),
     ...(baseline === null ? {} : { baseline }),
+    ...(pending ? { pending: true as const } : {}),
   };
   // 5. A Q&A the target's own SERP leaves short borrows from the market's
   //    searched terms (D62). It follows the claim calls because a question

@@ -238,9 +238,7 @@ function stoppedRow(outcome: DayPageOutcome): string | null {
   return outcome.because === "rules" || outcome.because === "step_failed" ? outcome.draftId : null;
 }
 
-/** A run stopped before its write call because the pack was short of what
- *  its template asks (D41), or a mend with nothing it may check: no page was
- *  written. */
+/** No page written: the pack was short of what its template asks (D41), or a mend had nothing it may check. */
 function packShort(outcome: DayPageOutcome): boolean {
   return !outcome.ok && outcome.because === "step_failed" && (outcome.step.startsWith("pack") || (outcome.step === "mend" && outcome.draftId === null));
 }
@@ -549,7 +547,7 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number; 
   const livePages = await store.livePages(a.siteId).catch(() => []);
 
   /** Stages 1 and 2 for one opportunity: its type, then its context pack. */
-  const packFor = async (o: Opportunity): Promise<{ pack: ContextPack; links: LinkTarget[] } | null> => {
+  const packFor = async (o: Opportunity): Promise<{ pack: ContextPack; links: LinkTarget[]; pending?: true } | null> => {
     // 1. Decide (code only): new or an update, and which of the seven types.
     // Issue 1455: the ranking may write a comparison over D52's cap as a Q&A.
     const type = o.writeAs ?? contentTypeOf(o);
@@ -625,7 +623,7 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number; 
           console.warn(JSON.stringify({ event: "draft_research_failed", siteId: a.siteId, error: String(error).slice(0, 200) }));
           return NO_RESEARCH;
         });
-    return { pack: packOf(market), links };
+    return { pack: packOf(market), links, ...(market.pending === true ? { pending: true as const } : {}) };
   };
 
   // #788: one row for the date across every attempt.
@@ -641,6 +639,8 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number; 
     if (cost.fundsRefused?.() === true) return { ok: false, because: "vendor_funds" };
     const built = packs.get(key) ?? null;
     if (built === null) return { ok: false, because: "step_failed", draftId: draftId ?? null, step: "pack" };
+    // A short pack whose search is still on the queue is not measured: no row and no rest, and the topic is tried again.
+    if (built.pending === true && built.pack.missing.length > 0) return { ok: false, because: "step_failed", draftId: null, step: "research_pending" };
     const last: GenerateOutcome = await generateDraft(cost, {
       siteId: a.siteId,
       opportunity,

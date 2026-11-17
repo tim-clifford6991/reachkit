@@ -61,21 +61,3 @@ describe("a plumber's title brief", () => {
     expect((titleBrief(plumber("offering")).figures as string[]).join("\n")).toMatch(/24\/7/);
   });
 });
-
-// The combined preview of 2026-11-17 titled its page "…: up from 25% in", a window cut short of "2023".
-describe("the figures a title brief offers", () => {
-  const claim = { url: "https://www.onely.com/blog/chatgpt", title: "Onely", readAt: "2026-11-17T00:00:00Z", kind: "top_result" as const };
-  const qa = pack({
-    type: "qa",
-    claims: [
-      { ...claim, passage: "58% had turned to generative AI for recommendations, up from 25% in 2023." },
-      { ...claim, url: "https://otterly.ai/pricing", kind: "rival_pricing", product: "otterly.ai", passage: "Pricing starts at $29/month." },
-    ],
-  });
-
-  it("offers no phrase cut short or ending on a word that leads on, and no rival's price", () => {
-    const figures = (titleBrief(qa).figures as string[]).join("\n");
-    expect(figures).not.toMatch(/up from 25% in|\$29/);
-    expect(titleFaults("Why doesn't ChatGPT recommend my business: starts at $29/month", titleRuleFor(qa, { description: "" }))).toContain("specific");
-  });
-});

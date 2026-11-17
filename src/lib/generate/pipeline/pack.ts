@@ -797,12 +797,7 @@ export function buildPack(a: PackInputs): ContextPack {
     a.livePages ?? []
   );
   const packFacts = (from: readonly SourcedFact[]): PackFact[] =>
-    from.slice(0, PACK.facts).map((sourced) => ({
-      passage: sourced.fact.passage,
-      url: sourced.fact.url,
-      readAt: sourced.fact.readAt.toISOString(),
-      ...(sourced.report === true ? { report: true as const } : {}),
-    }));
+    from.slice(0, PACK.facts).map(({ fact, report }) => ({ passage: fact.passage, url: fact.url, readAt: fact.readAt.toISOString(), ...(report === true ? { report: true as const } : {}) }));
   // SPEC §7 (owner D59, issue 1287): a rival's price read more than 30
   // days ago is not handed to the writer. A product left with no claim of
   // its own is no longer one the page may name.
@@ -843,10 +838,12 @@ export function buildPack(a: PackInputs): ContextPack {
           headed: a.type === "qa" ? (a.research.topResults ?? []) : [],
         })
       : [];
-  // A passage on the target or its questions, the fit fact, or the business's own product, pricing or about page; never a page about something else.
+  // A passage on the target or its questions, the fit fact, or the business's own product, pricing or about page; never a page about something
+  // else, nor a demo widget's readout ("▲ 128 1 · 12 2 · 31"), mostly tokens with no letter: data on show, not the business speaking.
   const topic = new Set([...ownTopicWords({ target: { question, searches }, business }), ...questions.flatMap((text) => [...topicWords(text)])]);
   const businessPage = (url: string): boolean => ["product", "features", "pricing", "about"].includes(derivePurpose({ url, title: "", h1: "" }));
-  const facts = packFacts(allowed.filter(({ fact, report }) => report === true || fact.passage === fit?.text || businessPage(fact.url) || shares(topic, fact.passage)));
+  const widget = (passage: string): boolean => passage.split(/\s+/).filter((token) => !/\p{L}/u.test(token)).length * 2 > passage.split(/\s+/).length;
+  const facts = packFacts(allowed.filter(({ fact, report }) => report === true || fact.passage === fit?.text || (!widget(fact.passage) && (businessPage(fact.url) || shares(topic, fact.passage)))));
   // A new page's planned sections are what it covers already; the business's own section is no subtopic.
   const planned = TEMPLATES[a.type].sections.filter((slot) => slot.repeat === undefined && slot.key !== "business").map((slot) => slot.key.replace(/_/g, " "));
   const covered =
