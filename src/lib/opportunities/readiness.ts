@@ -136,7 +136,7 @@ async function heldAllowed(siteId: string, open: readonly OpportunityRow[], ctx:
 }
 
 /** A new page, or a live page retargeted onto a new search, written as a comparison or listicle. */
-function waitsForFootprint(o: Opportunity): boolean {
+export function waitsForFootprint(o: Pick<Opportunity, "family" | "type" | "targetQuery"> & { evidence?: Evidence | null }): boolean {
   return (o.family === "write" || o.family === "earn" || isRetarget(o)) && contentTypeOf(o) === "listicle";
 }
 

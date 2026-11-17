@@ -34,6 +34,7 @@ import { ledgerSourceOf, supplyLedger, writable, type LedgerSource, type SupplyL
 import { topUpRecord, topUpTopics, type TopUpTopic } from "./top-up";
 import { competitorWins } from "@/lib/market/competitor-wins";
 import type { RankedRow } from "@/lib/vendors/dataforseo/types";
+import { footprintOpen } from "@/lib/market/footprint";
 
 export interface DeriveInput {
   siteId: string;
@@ -188,8 +189,7 @@ export async function deriveOpportunities(
   // One fit judgement a pass, over derived, proposed and unjudged open rows; stored on the row.
   const judgedHere = derived.filter((candidate) => candidate.family !== "fix" && candidate.targetQuery !== null);
   const written = await writeBuyerSearches(c, { market, prompts: a.prompts ?? [], brands, locale });
-  // SPEC §6 (issue 1519): what buyers were seen asking beside the site's
-  // searches — this report's SERPs and D62's store — at 0¢.
+  // SPEC §6: what buyers were seen asking beside the site's searches, from this report's SERPs and the store, at 0¢.
   const stored = await store.askedBeside(a.siteId, ASKED_TOPICS.maxAgeDays).catch(() => []);
   const seen = [...askedOfReport(a.report), ...stored];
   const asked = askedTopics(seen, a.report.verdict.measuredAt);
@@ -205,7 +205,9 @@ export async function deriveOpportunities(
   const answered = await import("@/lib/scan/health-record").then(({ healthyPrompts }) => healthyPrompts(a.siteId)).catch(() => null);
   const have = held.filter((row) => !gone.has(row.id) && writable(row)).length;
   const topUp = a.topUp === true ? topUpRecord(have) : undefined;
-  const topping: TopUpTopic[] = topUp === undefined ? [] : topUpTopics({ record: topUp, report: a.report, market, ownRanked, language: locale.language, ...named, written, asked: askedTopics(seen, a.report.verdict.measuredAt, Infinity), taken, area: a.area ?? null, max: room });
+  // An unreadable footprint stays closed, as the hold it mirrors would.
+  const footprint = topUp?.fired === true && (await footprintOpen(store, a.siteId, { report: a.report, market, record: false }).catch(() => false));
+  const topping: TopUpTopic[] = topUp === undefined ? [] : topUpTopics({ record: topUp, report: a.report, market, ownRanked, footprint, language: locale.language, ...named, written, asked: askedTopics(seen, a.report.verdict.measuredAt, Infinity), taken, area: a.area ?? null, max: room });
   const toppedUp = new Set<unknown>(topping);
   const { gaps, unworded } = competitorWins({ section: answered, competitors: [...business, ...searchRivals], ranked: a.rivalRows ?? new Map(), report: a.report, ownRanked: a.ownRanked, asked: askedTopics(seen, a.report.verdict.measuredAt, Infinity), taken: [...taken, ...topping.map((topic) => topic.query)], market, ...named, max: room - topping.length });
   const proposing = [...topping, ...gaps, ...proposedTopics({

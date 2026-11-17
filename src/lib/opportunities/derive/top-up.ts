@@ -1,7 +1,6 @@
 // SPEC §7 *Pages left*: a weekly pass short of PLAN_DEPTH writable rows offers the site's stored, measured, right-sized
 // searches to the pass's one fit call, so a short week fills from evidence and a dry one says which sources it tried.
 import { PLAN_DEPTH, WRITE_VOLUME_FLOOR_PER_MONTH } from "@/lib/config/constants";
-import { SHAPES } from "@/lib/locale/language";
 import type { Language } from "@/lib/locale/locales";
 import { placeOf } from "@/lib/locale/place";
 import type { MarketConclusion } from "@/lib/market/infer/types";
@@ -9,16 +8,17 @@ import { placelessSeeds } from "@/lib/market/questions/offerings";
 import { classifyIntent } from "@/lib/market/questions/select";
 import { malformedSearch } from "@/lib/market/questions/well-formed";
 import type { StoredReport } from "@/lib/scan/report";
+import { waitsForFootprint } from "../readiness";
 import { queryKey } from "../cluster";
 import { demandBand, difficultyBand } from "../winnability/band";
 import { qualifyingDemand } from "../winnability/bars";
 import type { Winnability } from "../types";
-import { composedSearches, namesOwnOnly, noLongerRelevant, rivalBrandOnly, sourceOf, type AskedTopic, type ProposedTopic } from "./topics";
+import { composedSearches, namesOwnOnly, noLongerRelevant, rivalBrandOnly, sourceOf, writeTypeOf, type AskedTopic, type ProposedTopic } from "./topics";
 
 /** 1: a stored keyword row; 3: a question source (asked, written from prompts, composed) priced by a stored row. */
 export type TopUpSource = 1 | 3;
 export type TopUpTopic = ProposedTopic & { topUp: TopUpSource; band: Winnability };
-const REASONS = ["not_a_topic", "comparison", "unmeasured", "under_floor", "outsized", "not_needed", "low_fit"] as const;
+const REASONS = ["not_a_topic", "out_of_reach_gate", "unmeasured", "under_floor", "outsized", "not_needed", "low_fit"] as const;
 export type TopUpReason = (typeof REASONS)[number];
 
 /** Whether it fired, the writable rows before it, and each source's offers, additions and rejections. */
@@ -39,6 +39,8 @@ export function topUpTopics(a: {
   report: StoredReport;
   market: MarketConclusion | null;
   ownRanked: number;
+  /** The site's market footprint is open (`footprintOpen`). */
+  footprint: boolean;
   language: Language;
   own: readonly string[];
   rivals: readonly string[];
@@ -81,8 +83,8 @@ export function topUpTopics(a: {
   const reasonOf = (key: string, read: { volume: number; difficulty: number | null } | undefined): TopUpReason | Exclude<Winnability, "not-yet"> => {
     const named = { market: a.market, own: a.own, rivals: a.rivals };
     if (malformedSearch(key, a.market?.rivals) !== null || rivalBrandOnly(key, named) || namesOwnOnly(key, named) || noLongerRelevant(key, named) !== null || (profile !== null && classifyIntent(key, profile) === "own_brand")) return "not_a_topic";
-    // A comparison or listicle is what the out-of-reach hold waits on, so it never fills a short week.
-    if (SHAPES.comparison.test(key) || SHAPES.best.test(key)) return "comparison";
+    // While the footprint is closed, the kinds readiness holds out of reach cannot fill a short week.
+    if (!a.footprint && waitsForFootprint({ family: "write", type: writeTypeOf(key), targetQuery: key })) return "out_of_reach_gate";
     if (read === undefined) return "unmeasured";
     if (read.volume < WRITE_VOLUME_FLOOR_PER_MONTH) return "under_floor";
     const band = difficultyBand({ difficulty: read.difficulty, ownRanked: a.ownRanked }) ?? demandBand({ volume: read.volume, ownRanked: a.ownRanked });
