@@ -23,13 +23,14 @@ export {
   type VendorFailure,
 } from "./refusal";
 
-export type CapName = "FREE" | "DEEP" | "WEEKLY" | "DRAFT";
+export type CapName = "FREE" | "DEEP" | "WEEKLY" | "DRAFT" | "TOPUP";
 
 const CAP_VALUES: Record<CapName, number> = {
   FREE: CAPS.FREE_C,
   DEEP: CAPS.DEEP_C,
   WEEKLY: CAPS.WEEKLY_C,
   DRAFT: CAPS.DRAFT_C,
+  TOPUP: CAPS.TOPUP_C,
 };
 
 /** Why a call was refused. All three refuse alike (`{ skipped: "cap" }`,
@@ -151,6 +152,8 @@ export async function withCostContext<T>(
     holdBackCents?: number;
     /** A close after a refusal for credit rolls the row up `failed`, so it never reads as measured. */
     failsWhenFundsRefused?: true;
+    /** The ledger activity of a context that writes no roll-up and is not a draft's. */
+    activity?: "topup";
   },
   body: (cost: CostContext) => Promise<T>
 ): Promise<T> {
@@ -172,7 +175,7 @@ export async function withCostContext<T>(
   let capHitLogged = false;
   let refusedForFunds = false;
   // A context that writes no roll-up is a draft's, and its rows say so; any other's activity the database reads off the scan.
-  const isDraft = ctx.rollUp === "none";
+  const isDraft = ctx.rollUp === "none" && ctx.activity === undefined;
   let draftId = ctx.draftId;
   /** This context's rows written while no draft was named. */
   let unnamed: string[] = [];
@@ -297,7 +300,7 @@ export async function withCostContext<T>(
           payload,
           durationMs: Date.now() - startedMs,
           ...(billedCents === undefined ? {} : { billedCents }),
-          ...(isDraft ? { activity: "draft" as const } : {}),
+          ...(isDraft ? { activity: "draft" as const } : ctx.activity === undefined ? {} : { activity: ctx.activity }),
           ...(isDraft && namedDraft !== undefined ? { draftId: namedDraft } : {}),
         });
         if (isDraft && namedDraft === undefined) {

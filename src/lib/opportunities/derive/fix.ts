@@ -106,8 +106,7 @@ function fixPageCandidate(a: FixInput, pageUrl: string, issues: readonly PageFix
     evidence: { family: "fix", issues, pageUrl },
     acceptance: { form: "issues_cleared", issues, pageUrl },
     fitBand: null,
-    // Written so the column's `not null` holds; nothing reads it — a
-    // `fix_page` is placed by `rank/open.ts`'s rule, never scored.
+    // Written so the column's `not null` holds; nothing reads it, as a `fix_page` is placed by `rank/open.ts`'s rule.
     effort: EFFORT_BY_TYPE.answerable_page,
   };
 }

@@ -19,8 +19,7 @@
 // per page. A row from before the column reads the same answer off the same
 // three values.
 //
-// A leaf: the draft editor asks it in the browser, so it imports nothing
-// that reaches the database.
+// A leaf: the draft editor asks it in the browser, so it imports nothing that reaches the database.
 import { SHAPES } from "@/lib/locale/language";
 import { contentTypeOf } from "./content-type";
 import { FAMILY_OF, isRetarget, type Opportunity, type PageType } from "./types";
@@ -48,11 +47,9 @@ export function pageTypeOf(
   if (o.pageType !== undefined && o.pageType !== null) return o.pageType;
   const source = o.source ?? null;
   if (source === "best_x") return "market_comparison";
-  // Issue 1506: a "vs" between two category terms names no product
-  // (`sourceOf` read it as `category`), so it is a question answered.
+  // A "vs" between two category terms names no product (`sourceOf` read it as `category`), so it is a question answered.
   if (source === "category" && VERSUS.test((o.targetQuery ?? "").toLowerCase())) return "answer";
-  // Issue 1519: a question buyers were seen asking is answered, unless its
-  // own words anchor it on a product.
+  // A question buyers were seen asking is answered, unless its own words anchor it on a product.
   if (o.evidence?.family === "write" && o.evidence.askedBeside !== undefined) {
     return ANCHORED_SHAPES.test((o.targetQuery ?? "").toLowerCase()) ? "product" : "answer";
   }

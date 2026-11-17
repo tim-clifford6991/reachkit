@@ -114,6 +114,7 @@ const CAP_CENTS: Readonly<Record<CapName, number>> = {
   DEEP: CAPS.DEEP_C,
   WEEKLY: CAPS.WEEKLY_C,
   DRAFT: CAPS.DRAFT_C,
+  TOPUP: CAPS.TOPUP_C,
 };
 
 /** The narrow slice of `CostContext` a `Bounds` needs — `capHit()`, and the spend and cap `remainingCents()` reads.

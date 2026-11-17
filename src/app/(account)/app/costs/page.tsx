@@ -38,6 +38,7 @@ const ACTIVITY_KEY = {
   free_scan: "overview.costs.activity.free_scan",
   onboarding: "overview.costs.activity.onboarding",
   weekly: "overview.costs.activity.weekly",
+  topup: "overview.costs.activity.topup",
   draft: "overview.costs.activity.draft",
   rescore: "overview.costs.activity.rescore",
   smoke: "overview.costs.activity.smoke",

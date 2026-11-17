@@ -445,8 +445,7 @@ export function comparisonUnasked(a: {
     const named = (text: string) => versus.rivals.some((rival) => namesBrand(text, rival));
     if (a.answeredRival != null && named(brandOf(a.answeredRival))) return false;
     if (!versus.own) return true;
-    // A product no answer can name — one that is not a rival — is a side no
-    // answer attests.
+    // A product no answer can name, one that is not a rival, is a side no answer attests.
     const sides = new Set(versus.rivals.map(domainOf));
     if (versus.others.length > 0 || sides.has(null) || sides.size + (versus.own ? 1 : 0) < 2) return true;
     const everySide = (answer: MeasuredAnswer) =>
@@ -619,8 +618,7 @@ export function proposedTopics(a: {
     add(topic.query, sourceOf(topic.query, { brands }), null, { asked: { term: topic.term, serpAt: topic.serpAt, newSince: topic.newSince } });
   }
 
-  // What the pass read and did not ask: its market set, largest first, at
-  // any volume the site may be offered. Its own name is never a topic.
+  // What the pass read and did not ask: its market set, largest first, at any volume the site may be offered; never its own name.
   const ceiling = qualifyingDemand(a.ownRanked);
   const read = [...suggestions]
     .filter((row) => row.volume <= ceiling)
@@ -738,8 +736,7 @@ export function askedSupply(a: {
     malformedSearch(query, a.market?.rivals) === null &&
     !rivalBrandOnly(query, { market: a.market, own, rivals });
 
-  // §6.7's relevance guard holds a question no pass judged: "what is aeo in
-  // medical terms" sat beside reachkit.app's searches. No profile, none.
+  // §6.7's relevance guard holds a question no pass judged, such as an acronym's other field. No profile, none.
   const profile = a.report.market.kind === "unmeasured" ? null : a.report.market.value.profile;
   const marketWords = [a.market?.category ?? "", ...(a.market?.synonyms ?? [])].filter((word) => word.trim() !== "").join(" ");
   const onTopic = (query: string): boolean =>

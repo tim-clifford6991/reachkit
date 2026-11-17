@@ -1,5 +1,4 @@
-// The derivation, end to end: derive deterministically, label through the model, persist. Nothing after the
-// derivation step adds a candidate, so the model only touches what measured evidence produced.
+// The derivation, end to end: derive deterministically, label through the model, persist; nothing after deriving adds a candidate.
 // An empty `created` is a success with counts, never a throw: the counters tell "supply ran out" from "unreadable".
 import type { Locale } from "@/lib/locale/locales";
 import { siteLocale } from "@/lib/locale/site";
@@ -31,7 +30,8 @@ import { judgeFit, type FitSearch } from "./fit";
 import { askedOfReport, askedSupply, askedTopics, brandsOf, type AskedSupply, candidateFor, comparisonWithoutDemand, namesOwnOnly, noLongerRelevant, productsNamed, proposedTopics, rivalBrandOnly, rivalNamesOf, rivalPriceOf, sourceOf } from "./topics";
 import { judgeTyped, writeBuyerSearches } from "./buyer-searches";
 import { ledgerSourceOf, supplyLedger, writable, type LedgerSource, type SupplyLedger } from "./ledger";
-import { topUpRecord, topUpTopics, type TopUpTopic } from "./top-up";
+import { topUpRecord, topUpWithPurchase, type TopUpTopic } from "./top-up";
+import type { TopUpSpend } from "@/lib/market/questions/top-up-buy";
 import { competitorWins } from "@/lib/market/competitor-wins";
 import type { RankedRow } from "@/lib/vendors/dataforseo/types";
 import { footprintOpen } from "@/lib/market/footprint";
@@ -61,8 +61,8 @@ export interface DeriveInput {
   prompts?: readonly string[];
   /** Where the business serves, which no offering's topic may name. */
   area?: MarketConclusion["serves"];
-  /** The weekly pass may top a short site up (SPEC §7 *Pages left*); the deep pass and the evening never do. */
-  topUp?: boolean;
+  /** The weekly pass may top a short site up, buying under its own cap (SPEC §7 *Pages left*); the deep pass and the evening never do. */
+  topUp?: { spend?: TopUpSpend };
   /** Each competitor's ranked rows as its sizing cached them; absent reads as none read. */
   rivalRows?: ReadonlyMap<string, readonly RankedRow[]>;
 }
@@ -204,10 +204,10 @@ export async function deriveOpportunities(
   // SPEC §6 (owner, 2026-11-16): an earlier healthy pass's answers, as this pass checks its health after deriving and its late answers land later still.
   const answered = await import("@/lib/scan/health-record").then(({ healthyPrompts }) => healthyPrompts(a.siteId)).catch(() => null);
   const have = held.filter((row) => !gone.has(row.id) && writable(row)).length;
-  const topUp = a.topUp === true ? topUpRecord(have) : undefined;
+  const topUp = a.topUp === undefined ? undefined : topUpRecord(have);
   // An unreadable footprint stays closed, as the hold it mirrors would.
   const footprint = topUp?.fired === true && (await footprintOpen(store, a.siteId, { report: a.report, market, record: false }).catch(() => false));
-  const topping: TopUpTopic[] = topUp === undefined ? [] : topUpTopics({ record: topUp, report: a.report, market, ownRanked, footprint, language: locale.language, ...named, written, asked: askedTopics(seen, a.report.verdict.measuredAt, Infinity), taken, area: a.area ?? null, max: room });
+  const topping: TopUpTopic[] = topUp === undefined ? [] : await topUpWithPurchase(a.topUp?.spend, { record: topUp, report: a.report, market, ownRanked, footprint, language: locale.language, locale, ...named, written, asked: askedTopics(seen, a.report.verdict.measuredAt, Infinity), taken, area: a.area ?? null, max: room });
   const toppedUp = new Set<unknown>(topping);
   const { gaps, unworded } = competitorWins({ section: answered, competitors: [...business, ...searchRivals], ranked: a.rivalRows ?? new Map(), report: a.report, ownRanked: a.ownRanked, asked: askedTopics(seen, a.report.verdict.measuredAt, Infinity), taken: [...taken, ...topping.map((topic) => topic.query)], market, ...named, max: room - topping.length });
   const proposing = [...topping, ...gaps, ...proposedTopics({
@@ -256,8 +256,7 @@ export async function deriveOpportunities(
     });
   }
   for (const id of gone) await store.markDismissed(id);
-  // SPEC §6 (owner D64, issue 1301): an open comparison row an earlier pass
-  // wrote down unmeasured takes the volume this pass read for its search.
+  // An open comparison row written down unmeasured takes the volume this pass read for its search.
   const readVolumes = market?.demand?.searches ?? {};
   const readAt = new Date(market?.demand?.at ?? a.report.verdict.measuredAt);
   const existing: typeof held = [];
@@ -277,8 +276,7 @@ export async function deriveOpportunities(
 
   const isNewPage = (row: { family: Opportunity["family"] }) => row.family === "write" || row.family === "earn";
   const open = existing.filter((row) => row.status === "open" && row.family !== "fix" && row.targetQuery !== null);
-  // Every row no pass has scored is judged, as it is held until it is; a plannable new page judged before the call
-  // named a passage is judged again, up to the cap.
+  // Every unscored row is judged, as it is held until it is; a new page judged without a passage is judged again, up to the cap.
   const unjudged = [
     ...open.filter((row) => (row.businessFit ?? null) === null),
     ...open.filter((row) => isNewPage(row) && (row.businessFit ?? 0) >= TOPIC_FIT.gate && !("fitFact" in row.evidence)).slice(0, HELD_ROWS_JUDGED),
@@ -329,11 +327,9 @@ export async function deriveOpportunities(
     await store.setBusinessFit(row.id, judged.fit, source, pageTypeOf({ ...row, source }));
     if (isNewPage(row)) await store.setEvidence(row.id, withFact(row, judged.fact).evidence);
   }
-  // A proposal is a write target only at the top fit: below it the search
-  // was never measured, and nothing but its fit speaks for it.
+  // A proposal is a write target only at the top fit: its search was never measured, so only its fit speaks for it.
   const proposed: Candidate[] = [];
-  // Issue 1549: what buyers were seen asking that the judgement kept below
-  // the top fit is still written, and what it judged off the business never.
+  // What buyers were seen asking below the top fit is still written; what was judged off the business never is.
   const spare: AskedSupply[] = [];
   const refused: string[] = [];
   // A top-up search is measured and right-sized, so it is written at the gate, up to the rows the week lacks.
@@ -364,8 +360,7 @@ export async function deriveOpportunities(
 
   const labelled: Candidate[] = [];
   for (const candidate of scored) {
-    // A target the business is not the answer to is stored with its reason
-    // and never written, so no label is bought for it.
+    // A target the business is not the answer to is stored with its reason and never written, so no label is bought.
     const fit = candidate.businessFit ?? null;
     if (fit !== null && fit < TOPIC_FIT.gate) {
       labelled.push(candidate);
@@ -373,8 +368,7 @@ export async function deriveOpportunities(
     }
     // Sequential, so the cost seam's cap is re-checked between calls.
     const refined = await refineType(c, candidate, locale.language);
-    // SPEC §6 (2026-09-29): the title is the page's angle for this buyer,
-    // which the fit judgement worded against the market — not the keyword.
+    // The title is the page's angle for this buyer, as the fit judgement worded it against the market, not the keyword.
     const title = angle.get(candidate);
     labelled.push(title === undefined || refined.family === "improve" ? refined : { ...refined, title });
   }
@@ -409,8 +403,7 @@ export async function deriveOpportunities(
   // One URL per question: two searches are one topic where their stored top tens share four addresses or the judgement says so.
   const topTens = new Map(await store.topTens([...new Set(existing.map((row) => row.scanId))]));
   for (const [query, urls] of topTensOf(a.report)) topTens.set(query, urls);
-  // #1181: the open rows already held are judged too, against each other
-  // and against every topic with a page behind it, published ones included.
+  // Held open rows are judged too, against each other and every topic with a page behind it, published ones included.
   const judgedSame = await judgeSameQuestion(c, {
     searches: [
       ...labelled.filter(isNewPage).flatMap((candidate) => candidate.targetQuery ?? []),
@@ -419,8 +412,7 @@ export async function deriveOpportunities(
     topics: existing.flatMap((row) => row.targetQuery ?? []),
     buyer: market?.buyer,
   });
-  // SPEC §6 (owner D64, issue 1301): two searches that name different
-  // products are never one question, whatever the judgement says.
+  // Two searches that name different products are never one question, whatever the judgement says.
   const products = (query: string): string => productsNamed(query, { market, rivals: named.rivals });
   const sameQuestion = new Map([...judgedSame].filter(([search, sameAs]) => products(search) === products(sameAs)));
 
@@ -463,8 +455,7 @@ export async function deriveOpportunities(
     unworded,
     ...(topUp === undefined ? {} : { topUp }),
   });
-  // A candidate the collapse folded into a row already held is that row's
-  // duplicate: an equivalent open or queued opportunity exists.
+  // A candidate the collapse folded into a held row is that row's duplicate: an equivalent open or queued row exists.
   const folded = labelled.length + questions.length - plan.insert.length;
   return {
     created,

@@ -159,8 +159,7 @@ export function liveTopicVerdict(page: LiveTopicPage, site: LiveTopicSite, now: 
       (row.targetQuery ?? "").trim() !== ""
   );
   if (to !== undefined) {
-    // One page a search: where another live page already targets it, this
-    // one is merged into that page rather than made a second.
+    // One page a search: where another live page already targets it, this one is merged into that page, not made a second.
     const holder = others.find((other) => queryKey(other.opportunity.targetQuery ?? "") === queryKey(to.targetQuery ?? ""));
     return holder === undefined ? { kind: "retarget", failure, to } : { kind: "redirect", failure, into: holder.liveUrl, why: "same_search" };
   }

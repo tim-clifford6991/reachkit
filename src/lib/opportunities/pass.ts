@@ -4,6 +4,7 @@ import type { CostContext } from "@/lib/costs";
 import { siteLocale } from "@/lib/locale/site";
 import { recordOpsEvent } from "@/lib/ops/events";
 import { FREE_SCAN_POLICY_VERSION } from "@/lib/scan/ceilings";
+import type { TopUpSpend } from "@/lib/market/questions/top-up-buy";
 import { storedRivalRows } from "@/lib/vendors/dataforseo/labs";
 import type { StoredReport } from "@/lib/scan/report";
 import type { InventoryRow } from "@/lib/site-profile/types";
@@ -96,6 +97,8 @@ export async function deriveForPass(
     report: StoredReport;
     /** Read by the weekly arm alone: the deep pass runs on a payment that has just cleared. */
     hasActiveAccess: boolean;
+    /** The weekly job's top-up spend (`topUpSpend`); absent, a short week tops up from stored rows at 0¢. */
+    topUp?: TopUpSpend;
     /** The competitors' cached ranked rows (`cachedRivalRows`); absent, none are read. */
     rivalRows?: ReturnType<typeof cachedRivalRows>;
   }
@@ -116,7 +119,7 @@ export async function deriveForPass(
   const known = await knownGateFor({ siteId: a.siteId, report: a.report, market });
   const searchRivals = a.report.rivals.kind === "measured" ? a.report.rivals.value.map((rival) => rival.domain) : [];
   const rivalRows = await a.rivalRows?.([...(market?.rivals.map((rival) => rival.domain) ?? []), ...competitors, ...searchRivals]).catch(() => undefined);
-  const input = { ...inputFor({ siteId: a.siteId, report: a.report, hostedHost, inventory, known, market, knowledge, competitors, prompts: prompts ?? [] }), area: area ?? null, topUp: a.tier === "weekly", ...(rivalRows === undefined ? {} : { rivalRows }) };
+  const input = { ...inputFor({ siteId: a.siteId, report: a.report, hostedHost, inventory, known, market, knowledge, competitors, prompts: prompts ?? [] }), area: area ?? null, ...(a.tier === "weekly" ? { topUp: a.topUp === undefined ? {} : { spend: a.topUp } } : {}), ...(rivalRows === undefined ? {} : { rivalRows }) };
 
   // Fixes this scan shows cleared retire first, so a fixed page is not re-derived beside its closed row.
   await assessFixPages(a.siteId, { report: a.report });

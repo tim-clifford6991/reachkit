@@ -18,8 +18,7 @@ export const CONTENT_TYPES: readonly ContentType[] = Object.freeze([
   "offering",
 ]);
 
-// The shapes, in every supported language at once (D66): `SHAPES` is built
-// from each language's own words.
+// The shapes, in every supported language at once (D66): `SHAPES` is built from each language's own words.
 const LISTICLE_SHAPES = SHAPES.listicle;
 const HOW_TO_SHAPES = SHAPES.guide;
 const INSIGHTS_SHAPES = SHAPES.insights;

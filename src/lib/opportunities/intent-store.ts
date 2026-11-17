@@ -5,8 +5,7 @@ import { untyped } from "./store";
 import type { PageIntent } from "./intent";
 
 export async function writeIntent(a: { draftId: string; intent: PageIntent }): Promise<void> {
-  // Read, then written whole: `meta` holds the page's pack and record, and
-  // only the one key is written here.
+  // Read, then written whole: `meta` holds the page's pack and record, and only the one key is written here.
   const read = await untyped()
     .from<{ meta: Record<string, unknown> | null }>("drafts")
     .select("meta")

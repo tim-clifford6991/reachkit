@@ -39,7 +39,8 @@
 //
 // The other stages before the report (reading the site, asking the searches
 // and the prompts) are not run: the stored report is their result, and
-// their cost is carried as the pass recorded it.
+// their cost is carried as the pass recorded it. A weekly snapshot runs the
+// weekly derivation and its top-up instead (`weekly.ts`).
 //
 // # How a call is answered
 //
@@ -76,6 +77,7 @@ import { parseHealth } from "@/lib/scan/health";
 import { readStoredReport } from "@/lib/scan/report";
 import { insertRows, psql, rebuild, waitForSchema } from "../local-run.mjs";
 import { appendSpend } from "../spend-log.mjs";
+import { replayWeekly } from "./weekly";
 
 export interface Options {
   root: string;
@@ -96,7 +98,6 @@ type FetchRow = {
   reserved_cents: number;
   created_at: string;
   duration_ms: number | null;
-  /** Issue 1408: the vendor's own charge. Absent on a row kept before it. */
   billed_cents?: number | string | null;
   payload: unknown;
 };
@@ -127,7 +128,6 @@ const without = (row: Row, ...columns: string[]): Row => Object.fromEntries(Obje
 const short = (id: string): string => id.slice(0, 8);
 
 // ── The snapshot, and the state the pass started from ──────────────────────
-
 function readSnapshot(o: Options): { snapshot: Snapshot; bought: FetchRow[]; boughtFile: string } {
   const dir = path.join(o.root, "scripts/pass/snapshot");
   const file = path.join(dir, `${short(o.scan)}.json`);
@@ -136,7 +136,7 @@ function readSnapshot(o: Options): { snapshot: Snapshot; bought: FetchRow[]; bou
   }
   const snapshot = JSON.parse(readFileSync(file, "utf8")) as Snapshot;
   if (snapshot.site.domain !== o.site) throw new Error(`${file} is a pass of ${snapshot.site.domain}, not of ${o.site}.`);
-  if (snapshot.scan.tier !== "deep") throw new Error(`${file} is a ${snapshot.scan.tier} pass; the replay runs a deep pass's steps only.`);
+  if (snapshot.scan.tier !== "deep" && snapshot.scan.tier !== "weekly") throw new Error(`${file} is a ${snapshot.scan.tier} pass; the replay runs a deep or weekly pass's steps only.`);
   const boughtFile = path.join(dir, `${short(o.scan)}.live.json`);
   const bought = existsSync(boughtFile) ? (JSON.parse(readFileSync(boughtFile, "utf8")) as FetchRow[]) : [];
   return { snapshot, bought, boughtFile };
@@ -246,7 +246,6 @@ function startingState(snapshot: Snapshot): { site: Row; opportunities: Row[]; n
 }
 
 // ── The clock and the network ──────────────────────────────────────────────
-
 /** The process's clock, moved to the pass's own time: a cache window and a
  *  thirty-day refresh are read as they were then. */
 function moveClock(to: Date): void {
@@ -335,7 +334,6 @@ function watchNetwork(a: { o: Options; snapshot: Snapshot; bought: readonly Fetc
 }
 
 // ── The run ────────────────────────────────────────────────────────────────
-
 export async function main(o: Options): Promise<number> {
   const { snapshot, bought, boughtFile } = readSnapshot(o);
   const { scan } = snapshot;
@@ -359,8 +357,8 @@ export async function main(o: Options): Promise<number> {
     insertRows("site_profiles", [without(snapshot.siteProfile, "logo_type", "logo_source")]);
   }
   insertRows("site_profile_edits", snapshot.siteProfileEdits);
-  insertRows("scans", snapshot.otherScans.map((row) => ({ ...row, is_current: false })));
-  insertRows("scans", [{ ...scan, health: null }]);
+  insertRows("scans", snapshot.otherScans.map((row) => ({ ...without(row, "listing_category"), is_current: false })));
+  insertRows("scans", [{ ...without(scan, "listing_category"), health: null }]);
   insertRows("opportunities", start.opportunities);
   insertRows("destinations", snapshot.destinations);
   const draftable = new Set(start.opportunities.map((row) => row.id));
@@ -379,6 +377,7 @@ export async function main(o: Options): Promise<number> {
   if (process.env.RK_PASS_VERBOSE === undefined) console.log = () => undefined;
 
   const report = readStoredReport(scan.report);
+  if (scan.tier === "weekly") return replayWeekly({ live: o.live, root: o.root, site: o.site, siteId, scanId: scan.id, report, loadedAt, boughtFile, kept: bought, say });
   const marketBefore = parseStoredMarket(start.site.market).current;
   const ownRankedNow = report.ownRanked.kind === "unmeasured" ? 0 : report.ownRanked.value;
 
@@ -554,7 +553,7 @@ export async function main(o: Options): Promise<number> {
   for (const prompt of naming) say(`  ${prompt.text}`);
   if (usesOld.length > 0) for (const prompt of usesOld) say(`  uses the category or the job: ${prompt.text}`);
 
-  // ── The acceptance list (issue 1301) ─────────────────────────────────────
+  // ── The acceptance list ──────────────────────────────────────────────────────
   const padded = (text: string): string => ` ${text.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ")} `;
   const current = new Set(names.map((name) => name.toLowerCase()));
   const strangers = naming.filter((prompt) => everNamed.some((name) => !current.has(name.toLowerCase()) && name.length > 2 && padded(prompt.text).includes(padded(name))));
