@@ -9,6 +9,7 @@
 // and the imprint still names the operator.
 import type React from "react";
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -62,6 +63,7 @@ const PAGE_TEST_ID = "about";
 const DISCLOSURE_TEST_ID = "about-disclosure";
 const REPORT_TEST_ID = "about-report";
 const HOW = "/how-it-works";
+const FOUNDER_PHOTO = "/brand/Tim_ProfilePic.jpg";
 
 /** The board's specimen, a fictional invoicing app's buyer; every domain is reserved. */
 const SPECIMEN = {
@@ -127,18 +129,25 @@ export default async function AboutPage(): Promise<React.JSX.Element> {
                     {copy("about.who.title")}
                   </h2>
                 </div>
-                <p>
-                  {founder === null
-                    ? null
-                    : `${
-                        founder.place === null
-                          ? copy("about.who.founder", { name: founder.name })
-                          : copy("about.who.founder.place", { name: founder.name, place: founder.place })
-                      } `}
-                  <Link href="/imprint" className="link-hover">
-                    {copy("about.who.imprint")}
-                  </Link>
-                </p>
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="avatar shrink-0">
+                    <span className="size-12 rounded-full">
+                      <Image src={FOUNDER_PHOTO} alt={copy("about.photo.alt")} width={48} height={48} className="object-cover" />
+                    </span>
+                  </span>
+                  <p className="min-w-0">
+                    {founder === null
+                      ? null
+                      : `${
+                          founder.place === null
+                            ? copy("about.who.founder", { name: founder.name })
+                            : copy("about.who.founder.place", { name: founder.name, place: founder.place })
+                        } `}
+                    <Link href="/imprint" className="link-hover">
+                      {copy("about.who.imprint")}
+                    </Link>
+                  </p>
+                </div>
                 <a href={`mailto:${address}`} className="rounded-box bg-base-200 flex min-h-11 min-w-0 items-center gap-3 p-3">
                   <span className={TILE}>
                     <Mail {...TILE_ICON} />
