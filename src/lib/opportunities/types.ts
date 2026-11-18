@@ -378,10 +378,8 @@ export interface Opportunity {
   /** SPEC §7 (D26, issue 1179): the moment a rested topic may fill a day again. Absent or past: it is not resting. */
   restUntil?: Date | null;
   createdAt: Date;
-  /** SPEC §7 (issue 1455): the type the day's page is written as where it
-   *  is not the row's own — a comparison over D52's cap is written as a
-   *  Q&A of its buyer question, and a short day's last topic a reference page of its own facts. Never stored. */
-  writeAs?: "qa" | "documentation";
+  /** SPEC §7: the type the day's page is written as where it is not the row's own; the commit stores it as `plan_write_as`. */
+  writeAs?: PlanWriteAs;
   /** Why the week committed it, where it is in the committed week. */
   planReason?: PlanReason | null;
 }
@@ -435,8 +433,10 @@ export interface Ranked {
   opportunityId: string;
   reason: PlanReason;
   /** Where the day writes the topic as another type (issue 1455). */
-  writeAs?: "qa";
+  writeAs?: PlanWriteAs;
 }
+
+export type PlanWriteAs = "listicle" | "how_to" | "qa" | "documentation" | "offering"; // the five `plan_write_as`'s check allows
 
 /** Whether a rested topic is still inside its rest at `now` (SPEC §7, D26). */
 export function isResting(o: Pick<Opportunity, "restUntil">, now: Date): boolean {

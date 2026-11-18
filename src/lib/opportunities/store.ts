@@ -23,12 +23,13 @@ import type {
   Opportunity,
   OpportunityStatus,
   OpportunityType,
+  PageType,
   PlanReason,
+  PlanWriteAs,
   TopicSource,
   UnreadyReason,
   Winnability,
 } from "./types";
-import type { PageType } from "./types";
 import { isSourceHost } from "@/lib/market/rivals/domains";
 import { topTenRowsOf, topTensOf } from "./cluster";
 import type { TopTenRead } from "./derive/top-ten-kind";
@@ -64,12 +65,11 @@ export interface OpportunityRow {
   ready: boolean;
   unready_reason: string | null;
   rest_until?: string | null;
-  /** The week the last weekly pass committed (issue 1559): the row's place
-   *  in it, 0 first, the site-local date it is planned for (none for a
-   *  spare), and `qa` where it is written as a Q&A (issue 1455). */
+  /** The week the last weekly pass committed: the row's place in it (0 first), the site-local date it is planned
+   *  for (none for a spare), and the type it is written as where that is not its own. */
   plan_place?: number | null;
   planned_for?: string | null;
-  plan_write_as?: string | null;
+  plan_write_as?: PlanWriteAs | null;
   /** Why the commit placed it: its points, their parts and the rule. */
   plan_reason?: PlanReason | null;
   created_at: string;
@@ -112,7 +112,7 @@ export interface PlanEntry {
   opportunityId: string;
   place: number;
   plannedFor: string | null; // the site-local date, `YYYY-MM-DD`; `null` for a spare
-  writeAs: "qa" | null;
+  writeAs: PlanWriteAs | null;
   reason: PlanReason;
   /** What the commit also writes on the row: the update a live page's twin becomes, or the searches it absorbed. */
   set?: Partial<Pick<OpportunityInsert, "type" | "family" | "target_ref" | "proposed_slug" | "title" | "effort" | "evidence" | "absorbed_queries">>;
