@@ -468,7 +468,7 @@ export function storedTopTen(report: StoredReport, searches: readonly string[]):
   const wanted = new Set(searches.map((search) => search.trim().toLowerCase()));
   const at = report.questions.value.findIndex((question) => wanted.has(question.search.keyword.trim().toLowerCase()));
   const serp = at === -1 ? undefined : report.serps[at];
-  return serp === undefined || serp.kind === "unmeasured" ? [] : serp.value.organic.map((row) => row.url);
+  return serp === undefined || serp.kind === "unmeasured" ? [] : serp.value.organic.map((row) => row.url).filter((url) => googleWrapper(url) === null);
 }
 
 const CLAIMS_SCHEMA = z.strictObject({
