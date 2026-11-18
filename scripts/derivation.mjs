@@ -34,8 +34,9 @@ import ts from "typescript";
 const ENTRY = "src/lib/scan/rescore-run.ts";
 const FACTS_ENTRY = "src/lib/scan/page-facts.ts";
 const TEXT_ENTRY = "src/lib/measure/text.ts";
-// The row check the store reaches by a dynamic import, which the walk does not follow, is named beside the planner.
-const PLAN_ENTRY = ["src/lib/opportunities/plan.ts", "src/lib/generate/research-queue.ts#researchHeld"];
+// The row check the store reaches by a dynamic import, which the walk does not follow, is named beside the planner,
+// and so is the deploy's re-plan, so a change to which sites it re-plans is re-run at its own deploy.
+const PLAN_ENTRY = ["src/lib/opportunities/plan.ts", "src/lib/generate/research-queue.ts#researchHeld", "src/lib/scan/replan.ts#dryReplan"];
 const PARSER = "node-html-parser";
 const SCOPE = "src/lib/";
 const ALL = "*";

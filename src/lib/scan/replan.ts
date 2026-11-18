@@ -145,14 +145,15 @@ export async function firstUnwritten(siteId: string, now: Date, clock: SiteClock
   return open > unclaimed ? open : unclaimed;
 }
 
-/** The week `planWeek` would commit from `from`, its readiness check and all, with nothing written; `null` with no committed week. */
+/** The week `planWeek` would commit from `from`, its readiness check and all, with nothing written; `null` for a site never committed. */
 export async function dryReplan(
   siteId: string,
   a: { now: Date; from?: string; clock: SiteClock | null; fingerprint: string | null }
 ): Promise<Replan | null> {
   const base = opportunityStore();
   const committed = await base.plannedRows(siteId);
-  if (committed.length === 0) return null;
+  // A later commit clears a drafted row's place, so only a site with neither a place nor a page was never committed.
+  if (committed.length === 0 && (await base.draftedPages(siteId, 1)).length === 0) return null;
   const from = a.from ?? (await firstUnwritten(siteId, a.now, a.clock));
   const dry = dryStore(base);
   const entries = await storeScope.run(dry, () => planWeek(siteId, { now: a.now, from }));
