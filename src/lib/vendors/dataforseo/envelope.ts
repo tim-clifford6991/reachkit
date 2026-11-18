@@ -43,6 +43,7 @@ export function isFundsRefusal(kind: string): boolean {
 
 const MS_PER_S = 1000;
 const MS_PER_MIN = 60 * MS_PER_S;
+const TASK_READABLE_MS = 24 * 60 * MS_PER_MIN; // How long a posted task can still be read, so a later ask adopts it.
 
 interface VendorTask {
   id?: unknown;
@@ -371,7 +372,7 @@ export async function ledgered<T>(
     onFailure?: OnVendorFailure;
     onReused?: OnReusedAnswer;
     unusable?: (payload: unknown) => boolean;
-    /** A queued endpoint's free read of a task an earlier ask posted, until the earlier of `untilMs` and the task's deadline. */
+    /** A queued endpoint's free read of a task an earlier ask posted, until the caller's `untilMs`. */
     adopt?: { read: (taskId: string, untilMs: number) => Promise<VendorOutcome>; untilMs?: number };
   }
 ): Promise<Measured<T[]>> {
@@ -381,11 +382,11 @@ export async function ledgered<T>(
   let vendorCents: number | undefined;
   const settle = call.settleCents;
 
-  // A task still out inside the queue's deadline is read, never posted again: the post paid for it.
+  // A task still out is read while it can be, never posted again: the post paid for it.
   const queued = call.adopt === undefined ? undefined : c.queued;
-  const held = queued === undefined ? null : await queued.held(call.source, call.cacheKey, new Date(Date.now() - VENDOR.stdQueueDeadlineMin * MS_PER_MIN));
+  const held = queued === undefined ? null : await queued.held(call.source, call.cacheKey, new Date(Date.now() - TASK_READABLE_MS));
   if (held !== null && queued !== undefined && call.adopt !== undefined) {
-    const out = await call.adopt.read(held.taskId, Math.min(held.storedAt.getTime() + VENDOR.stdQueueDeadlineMin * MS_PER_MIN, call.adopt.untilMs ?? Number.POSITIVE_INFINITY));
+    const out = await call.adopt.read(held.taskId, call.adopt.untilMs ?? Date.now() + VENDOR.stdQueueDeadlineMin * MS_PER_MIN);
     const read: T[] | VendorFailure = !out.ok ? failureRow(call.source, out) : out.noResults === true ? [] : (call.parse(out.result) ?? failureRow(call.source, failure("unparseable", true, "dataforseo: unparseable result")));
     const pending = isVendorFailure(read) && read.taskId !== undefined;
     // One that came to nothing loses its id, so it is not read again and the next ask posts.

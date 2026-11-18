@@ -148,9 +148,15 @@ describe("a replayed day's page spends at most CAP_DRAFT for its date in total",
     expect(await ask()).toBe(2);
     stamp();
     const [rows, paid, posts] = [ledger().length, spent(), network.mock.calls.length];
+    const reposts = () => network.mock.calls.slice(posts).filter(([url]: unknown[]) => String(url).endsWith("task_post")).length;
+    // The next tick, past the queue's 45-minute deadline: the task is still read, never posted again.
+    const clock = Date.now.bind(Date);
+    vi.spyOn(Date, "now").mockImplementation(() => clock() + 46 * 60_000);
+    expect(await ask()).toBe(2);
+    expect([ledger().length, spent(), reposts()]).toEqual([rows, paid, 0]);
     ready = true;
     expect(await ask()).toBe(0);
-    expect([ledger().length, spent(), network.mock.calls.slice(posts).filter(([url]: unknown[]) => String(url).endsWith("task_post")).length]).toEqual([rows, paid, 0]);
+    expect([ledger().length, spent(), reposts()]).toEqual([rows, paid, 0]);
     expect(ledger().every((row) => Array.isArray((row as Row).payload))).toBe(true);
   });
 
