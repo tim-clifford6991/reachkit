@@ -23,9 +23,6 @@ export const PRODUCT = Object.freeze({
   checks: String(HOW_FACTS.checks),
   /** Hours before a written page goes live on its own: "24". */
   windowHours: String(HOW_FACTS.windowHours),
-  /** Links into the customer's own site per page: "3" to "6". */
-  linksMin: String(HOW_FACTS.siteLinksMin),
-  linksMax: String(HOW_FACTS.siteLinksMax),
   /** Pages of a site the scan reads at most: "100". */
   pages: String(SITE_PROFILE.MAX_PAGES),
 });
