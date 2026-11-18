@@ -6,6 +6,9 @@ export const RUN_FLOOR_MS = 2 * 60 * 60_000;
 /** The `drafts.meta` key the tick sets before its one automatic rewrite, so a second interruption stops the row. */
 export const REWRITTEN = "rewrittenAfterStop";
 
+/** The `drafts.meta` key set at a restart's first `research_pending`: its 2 hours run from there, never from a wait in line. */
+export const ASKED = "restartAskedAt";
+
 interface WaitingRow {
   readonly transitions?: unknown;
   readonly created_at: string;
@@ -13,29 +16,45 @@ interface WaitingRow {
 
 /** The customer's restart, or a row with no moves older than any live run. */
 export function waitingForRun(row: WaitingRow, now: Date): "restart" | "interrupted" | null {
-  const moves: unknown[] = Array.isArray(row.transitions) ? row.transitions : [];
-  const last = moves[moves.length - 1] as { from?: unknown; to?: unknown } | null | undefined;
+  const last = lastMove(row);
   if (last?.from === "needs_attention" && last?.to === "generating") return "restart";
-  if (moves.length > 0) return null;
+  if (last !== undefined) return null;
   return now.getTime() - Date.parse(row.created_at) > RUN_FLOOR_MS ? "interrupted" : null;
 }
 
-/** `rewrite` a restart; `mark` (then rewrite) an interrupted row once while its date is still to come; else `stop`. */
+function lastMove(row: WaitingRow): { from?: unknown; to?: unknown; at?: unknown } | null | undefined {
+  return Array.isArray(row.transitions) ? row.transitions.at(-1) : undefined;
+}
+
+/** `rewrite` a restart until a run's floor after its first ask, then `stop`; `mark` (then rewrite) an interrupted row once while its date is still to come; else `stop`. */
 export function owedToRow(
   row: WaitingRow & { readonly meta: unknown; readonly scheduled_for: string | null },
   now: Date,
   zone: string | null | undefined
 ): "rewrite" | "mark" | "stop" | null {
   const waiting = waitingForRun(row, now);
-  if (waiting !== "interrupted") return waiting === "restart" ? "rewrite" : null;
+  if (waiting === "restart") return now.getTime() - askedAt(row) > RUN_FLOOR_MS ? "stop" : "rewrite";
+  if (waiting !== "interrupted") return null;
   if (REWRITTEN in carriedMark(row.meta)) return "stop";
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: zone ?? "UTC" }).format(now);
   return row.scheduled_for !== null && row.scheduled_for < today ? "stop" : "mark";
 }
 
-/** The mark, kept through a rewrite that replaces `meta`. */
+/** This restart's first ask; a key left by an earlier restart, older than the last move, is not this one's. */
+function askedAt(row: WaitingRow & { readonly meta: unknown }): number {
+  const at = Date.parse(String(carriedMark(row.meta)[ASKED]));
+  return at >= Date.parse(String(lastMove(row)?.at)) ? at : NaN;
+}
+
+/** The row's `meta` with this restart's first ask recorded, or null where it already is. */
+export function withFirstAsk(row: WaitingRow & { readonly meta: unknown }, now: Date): Record<string, unknown> | null {
+  return Number.isNaN(askedAt(row)) ? { ...(typeof row.meta === "object" && row.meta !== null ? row.meta : {}), [ASKED]: now.toISOString() } : null;
+}
+
+/** The marks, kept through a rewrite that replaces `meta`. */
 export function carriedMark(meta: unknown): Record<string, unknown> {
-  return typeof meta === "object" && meta !== null && REWRITTEN in meta ? { [REWRITTEN]: (meta as Record<string, unknown>)[REWRITTEN] } : {};
+  const kept = typeof meta === "object" && meta !== null ? (meta as Record<string, unknown>) : {};
+  return Object.fromEntries([REWRITTEN, ASKED].filter((key) => key in kept).map((key) => [key, kept[key]]));
 }
 
 export interface DecidedDay {

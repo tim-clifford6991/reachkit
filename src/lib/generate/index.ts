@@ -64,7 +64,7 @@ import { NO_RESEARCH, researchMarket, storedAsk, type MarketResearch } from "./p
 import { namedRivals } from "./rules/rivals";
 import { TEMPLATES } from "./templates";
 import { writingMarket } from "./voice/market";
-import { REWRITTEN, owedToRow } from "./interrupted";
+import { REWRITTEN, owedToRow, withFirstAsk } from "./interrupted";
 import { DraftDateTaken, PageStopped, generateStore, type RestartedDraft, type SiteFacts } from "./store";
 
 export type { GroundedFact, HardRule, RuleFailure, ComparisonSet, SiteRuleInputs } from "./rules/types";
@@ -281,11 +281,11 @@ export async function regenerateRestarted(a: { siteId: string; draftId: string; 
   const opportunity = (writtenAs === "qa" && contentTypeOf(found) === "listicle") || writtenAs === "documentation" ? { ...found, writeAs: writtenAs as "qa" | "documentation" } : found;
 
   const page = { siteId: a.siteId, site, report, opportunity, publishDate: row.scheduled_for, draftId: row.id };
-  // Research is asked again: a read an earlier ask left on the queue is read free, never bought again.
-  if (opportunity.type !== "fix_page" && (await askDayResearch({ siteId: a.siteId, opportunityId: found.id, writeAs: opportunity.writeAs, now, waitMs: COLLECT.askMs })) > 0) return { ok: false, because: "research_pending" };
-  const outcome = await withDraftCost({ scanId: report.scanId, draftId: row.id }, (cost) =>
-    opportunity.type === "fix_page" ? fixPage(page, cost) : writePage({ ...page, attempts: 1 }, cost)
-  );
+  // Research is asked again (a read left on the queue is read free); a restart's 2 hours run from its first ask.
+  const outcome: DayPageOutcome = opportunity.type !== "fix_page" && (await askDayResearch({ siteId: a.siteId, opportunityId: found.id, writeAs: opportunity.writeAs, now, waitMs: COLLECT.askMs })) > 0 ? { ok: false, because: "research_pending" }
+    : await withDraftCost({ scanId: report.scanId, draftId: row.id }, (cost) => opportunity.type === "fix_page" ? fixPage(page, cost) : writePage({ ...page, attempts: 1 }, cost));
+  const asked = owed === "rewrite" && !outcome.ok && outcome.because === "research_pending" ? withFirstAsk(row, now) : null;
+  if (asked !== null) await store.patchDraft(row.id, { meta: asked });
   await settle(outcome, opportunity.id, now, site);
   return outcome;
 }
