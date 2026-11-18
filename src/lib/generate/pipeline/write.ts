@@ -48,7 +48,7 @@ const ENTRY = { question: z.string(), answer: z.string() };
 const SECTIONS = z.array(z.strictObject(SECTION));
 const FAQ = z.array(z.strictObject(ENTRY));
 // A list sent as text may echo a key the template showed it (a section's `block`): the key is dropped, not the page.
-const READ = { sections: z.array(z.object(SECTION)), faq: z.array(z.object(ENTRY)) };
+const READ = { sections: z.array(z.object({ ...SECTION, heading: z.string().nullable() })), faq: z.array(z.object(ENTRY)) };
 
 /** A list as the model's forced tool returns it. On a long answer the model
  *  sometimes hands a list back as its JSON text (seen 2026-10-04: a whole
@@ -136,7 +136,13 @@ function partsOf(answer: Measured<z.infer<typeof ANSWER_SCHEMA>>): Measured<Page
     unread = true;
     return [] as z.infer<T>;
   };
-  const lists = { titles: read("titles", TITLES), takeaways: read("takeaways", TAKEAWAYS), sections: read("sections", READ.sections), faq: read("faq", READ.faq) };
+  // A section with no heading is left out rather than the page; the checks judge what is left.
+  const sections = read("sections", READ.sections).filter((section, index): section is PageParts["sections"][number] => {
+    if (section.heading !== null && section.heading.trim() !== "") return true;
+    console.warn(JSON.stringify({ event: "write_section_dropped", section: `sections[${index}].heading`, was: section.heading === null ? "null" : "empty" }));
+    return false;
+  });
+  const lists = { titles: read("titles", TITLES), takeaways: read("takeaways", TAKEAWAYS), sections, faq: read("faq", READ.faq) };
   if (unread) return unmeasured("undeterminable", answer.at, "list_unread");
   return { ...answer, value: { ...value, ...lists } };
 }

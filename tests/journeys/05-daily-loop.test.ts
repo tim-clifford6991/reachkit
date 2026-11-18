@@ -1273,8 +1273,8 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
     const day = { siteId: SITE_ID, publishDate: nextPublishDate(EVENING, SITE_CLOCK) }, warned = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     asText.push({ faq: (list) => `${JSON.stringify(list)} and more` });
     expect([await generateDayPage(day), modelCalls.length, warned.mock.calls.map((c) => String(c[0])).filter((line) => line.includes("write_list_unread"))]).toEqual([expect.objectContaining({ because: "step_failed", step: "write" }), 1, [expect.stringMatching(/^\{"event":"write_list_unread","list":"faq","why":"json","length":\d+\}$/)]]);
+    asText.push({ sections: (list) => JSON.stringify(list.map((s, i) => (i === 1 ? { ...(s as object), heading: null } : i % 2 ? s : { ...(s as object), block: "steps" }))).replace(/\\n/g, "\n"), titles: (list) => String(list[0]), takeaways: JSON.stringify, faq: JSON.stringify });
+    expect([await generateDayPage(day), warned.mock.calls.map((c) => String(c[0])).filter((line) => line.includes("write_section_dropped"))]).toEqual([expect.objectContaining({ ok: true }), ['{"event":"write_section_dropped","section":"sections[1].heading","was":"null"}']]);
     warned.mockRestore();
-    asText.push({ sections: (list) => JSON.stringify(list.map((s, i) => (i % 2 ? s : { ...(s as object), block: "steps" }))).replace(/\\n/g, "\n"), titles: (list) => String(list[0]), takeaways: JSON.stringify, faq: JSON.stringify });
-    expect(await generateDayPage(day)).toMatchObject({ ok: true });
   }, JOURNEY_TIMEOUT_MS);
 });
