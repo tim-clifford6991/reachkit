@@ -21,6 +21,7 @@ import {
   type EndpointPaths,
   type OnVendorFailure,
 } from "./envelope";
+import { reportUnreadable, wrappedCount } from "./serp";
 import { localeCacheKey, placeCacheKey, type DataForSeoMode } from "./transport";
 import { AI_ANSWER_SOURCES, scopeKey, type AiAnswer, type CacheScope } from "./types";
 
@@ -154,15 +155,29 @@ export async function aiMode(
 ): Promise<Measured<AiAnswer>> {
   const refused = paidOnly<AiAnswer>(c, new Date());
   if (refused) return refused;
+  let reused = false;
+  const cacheKey = `${a.query}|${placeCacheKey(a.locale)}|${scopeKey(a.scope)}${runKey(a.run, a.asOf)}`;
   const rows = await ledgered<AiAnswer>(c, {
     source: AI_ANSWER_SOURCES.ai_mode,
-    cacheKey: `${a.query}|${placeCacheKey(a.locale)}|${scopeKey(a.scope)}${runKey(a.run, a.asOf)}`,
+    cacheKey,
     freshnessDays: CACHE_WINDOWS_D.aiBattery,
     costCents: a.mode === "live" ? PRICE_BOOK.AI_MODE_LIVE_C : PRICE_BOOK.AI_MODE_STD_C,
     fetch: () => callEndpoint(AI_MODE_PATHS, a.mode, a.locale, { keyword: a.query }, a.abortMs, a.untilMs),
     parse: parseAiMode,
     ...(a.onFailure ? { onFailure: a.onFailure } : {}),
+    onReused: () => {
+      reused = true;
+    },
   });
+  if (rows.kind !== "unmeasured" && !reused) {
+    const answer = rows.value[0];
+    const cited = answer?.citedUrls ?? [];
+    const queue = a.mode === "live" ? "live" : "normal";
+    // An answer that cites nothing still answered; only no answer at all reads as empty.
+    const links = { results: answer?.answered ? Math.max(cited.length, 1) : 0, wrapped: wrappedCount(cited) };
+    const told = reportUnreadable({ source: AI_ANSWER_SOURCES.ai_mode, label: "ai_mode", queue, cacheKey, scope: a.scope }, links);
+    if (queue === "normal") await told;
+  }
   return mapMeasured(rows, (r) => r[0] ?? NO_ANSWER);
 }
 

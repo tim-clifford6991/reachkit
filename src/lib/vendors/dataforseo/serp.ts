@@ -154,25 +154,30 @@ export function parseSerp(result: unknown): SerpResult[] | undefined {
   ];
 }
 
+/** How many of these links stand behind a Google redirect. */
+export const wrappedCount = (urls: readonly string[]): number => urls.filter((url) => googleWrapper(url) !== null).length;
+
 /** How many of a SERP's results stand behind a Google redirect, their own address unknown. */
 function wrappedIn(serp: SerpResult | undefined): number {
-  return (serp?.organic ?? []).filter((row) => googleWrapper(row.url) !== null).length;
+  return wrappedCount((serp?.organic ?? []).map((row) => row.url));
 }
 
 /** A stored SERP with a result behind a Google redirect, which no caller is served. */
 const wrappedRead = (stored: unknown): boolean => Array.isArray(stored) && wrappedIn(stored[0] as SerpResult | undefined) > 0;
 
-/** One `ops_events` row for a bought SERP nothing can be read from: most of its results behind Google redirects or, on
- *  the normal queue, none where the search's last stored read had some. The normal queue's first of a Berlin day mails
- *  the owner. Never throws: the read it reports on stands. */
-async function reportUnreadable(queue: string, serp: SerpResult | undefined, cacheKey: string, scope: CacheScope): Promise<void> {
+/** One `ops_events` row for a bought Google read nothing can be read from: most of its links behind Google redirects or,
+ *  on the normal queue, none where the search's last stored read had some. The normal queue's first of a Berlin day mails
+ *  the owner, one mail for organic, news and AI Mode. Never throws: the read it reports on stands. */
+export async function reportUnreadable(
+  read: { source: string; label: string; queue: string; cacheKey: string; scope: CacheScope },
+  links: { results: number; wrapped: number }
+): Promise<void> {
   try {
-    const results = serp?.organic.length ?? 0;
-    const wrapped = wrappedIn(serp) * 2 > results;
-    if (!wrapped && (queue !== "normal" || results > 0 || !(await heldRowsBefore(SOURCE, cacheKey)))) return;
+    const wrapped = links.wrapped * 2 > links.results;
+    if (!wrapped && (read.queue !== "normal" || links.results > 0 || !(await heldRowsBefore(read.source, read.cacheKey)))) return;
     const cause = wrapped ? "wrapped" : "empty";
-    const row = recordOpsEvent("serp_unreadable", `serp/${queue}`, cause, "site" in scope ? scope.site : null);
-    if (queue !== "normal") return;
+    const row = recordOpsEvent("serp_unreadable", `${read.label}/${read.queue}`, cause, "site" in read.scope ? read.scope.site : null);
+    if (read.queue !== "normal") return;
     await row;
     const { claimOwnerMail, releaseOwnerMail, reportIncident } = await import("@/lib/mail/ops");
     const key = { jobId: SOURCE, errorName: "unreadable", day: berlinDay(new Date()) };
@@ -269,7 +274,9 @@ export async function serpOrganic(
     },
   });
   if (rows.kind !== "unmeasured" && (reusedFrom as Date | null) === null) {
-    const told = reportUnreadable(a.mode === "live" ? "live" : highPriority ? "high" : "normal", rows.value[0], cacheKey, a.scope);
+    const queue = a.mode === "live" ? "live" : highPriority ? "high" : "normal";
+    const serp = rows.value[0];
+    const told = reportUnreadable({ source: SOURCE, label: "serp", queue, cacheKey, scope: a.scope }, { results: serp?.organic.length ?? 0, wrapped: wrappedIn(serp) });
     // Nobody waits on the normal queue, so its owner mail is sent before the pass moves on.
     if (a.mode === "std" && !highPriority) await told;
   }

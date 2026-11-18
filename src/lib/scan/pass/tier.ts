@@ -208,7 +208,9 @@ export interface TierParameters {
 export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.freeze({
   free: Object.freeze({
     cap: "FREE",
+    // eslint-disable-next-line local/serp-normal-queue -- the free report answers inside its 50 s ceiling.
     serpMode: "live",
+    // eslint-disable-next-line local/serp-normal-queue -- the free report answers inside its 50 s ceiling.
     serpPriority: "high",
     serpPollMs: VENDOR.waitedQueuePollIntervalS * 1000,
     asyncAiOverview: true,
@@ -238,6 +240,7 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
   }),
   deep: Object.freeze({
     cap: "DEEP",
+    // eslint-disable-next-line local/serp-normal-queue -- AI Mode: none of 149 live answers since 31 Oct cites a wrapped link.
     serpMode: "live",
     serpPriority: "normal",
     serpPollMs: VENDOR.stdQueuePollIntervalS * 1000,
