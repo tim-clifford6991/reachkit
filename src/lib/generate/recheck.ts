@@ -14,9 +14,12 @@
 import { TOPIC_REST_DAYS } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import type { Opportunity } from "@/lib/opportunities";
-import { needsYouCauseOf } from "@/lib/publish/record/needs-you";
+import { claimOpsEvent, opsEventHeld } from "@/lib/ops/events";
+import { needsYouCauseOf, STANDARD_CHANGED } from "@/lib/publish/record/needs-you";
+import { publishTimeOn } from "@/lib/publish/settings/clock";
 import type { Actor, TransitionRecord } from "@/lib/publish/types";
 import { stillAsked, type FitVerdict } from "./claims/fit";
+import { roomForFix } from "./cost";
 import { readRecordedFact } from "./fact";
 import { batteryBasis, checkPage, siteRulesOf, type BatteryBasis, type CheckedPage } from "./pipeline/battery";
 import { buildComparisonSet } from "./pipeline/comparison";
@@ -31,6 +34,7 @@ import { answerBoxOf } from "./rules/blocks";
 import { pickTitle } from "./rules/title";
 import type { HardRule, RuleFailure, SiteRuleInputs } from "./rules/types";
 import type { StoredReport } from "@/lib/scan/report";
+import { deployedStandard, meetsStandard, type Standard } from "./standard";
 import { generateStore, type DraftPatch, type DraftRow, type SiteFacts } from "./store";
 import { confirmedForWriting } from "./voice/confirmed";
 
@@ -63,7 +67,7 @@ export interface RecheckWorld {
 export type RecheckOutcome =
   | { kind: "skipped"; reason: NotCandidate }
   | { kind: "held"; reason: "title_promise_figure"; figures: string[] }
-  | { kind: "checked"; passed: boolean; failed: RuleFailure[]; cleared: HardRule[]; close: boolean; fit: FitVerdict["state"]; spentCents: number; patch: DraftPatch };
+  | { kind: "checked"; passed: boolean; failed: RuleFailure[]; cleared: HardRule[]; close: boolean; fit: FitVerdict["state"]; spentCents: number; standard: Standard; patch: DraftPatch };
 
 /** What the re-check mended, as the row records it (`drafts.meta.recheck`). */
 export interface RecheckFixes {
@@ -134,6 +138,7 @@ export async function checkStoredAt0(row: DraftRow, body: string, world: Recheck
     close: checked.close !== null,
     fit: checked.outcome.fit.state,
     spentCents: REFUSED.spentCents(),
+    standard: meetsStandard({ failed, markdown: checked.markdown, sections: page.sections.length, basis }),
     patch: {
       ...(fixes.title === undefined ? {} : { title }),
       body_md: checked.markdown,
@@ -296,4 +301,78 @@ async function rescue(a: { siteId: string; publishDate: string; now: Date }): Pr
     return entry.kind === "entered" ? row.id : null;
   }
   return null;
+}
+
+/** Per site: how many waiting drafts the deployed standard set aside. */
+const RESTANDARDED = "drafts_restandarded";
+const HOUR_MS = 3_600_000;
+
+/** A paying site's clock, as the hourly ticks read it. */
+export interface SiteClock { readonly siteId: string; readonly timeZone: string; readonly publishTime: string; readonly vetoHours: number }
+/** Why a waiting draft keeps its date under the deployed standard. */
+export type StandardKept = "current" | "edited" | "too_late" | "no_room" | "met" | "unreadable";
+
+/** Why a waiting draft keeps its date, read before its body; `null` where its body is read. A date whose publish time
+ *  comes before the next draft tick could not be written again in time, so it is too late. */
+export function keptBeforeReading(row: DraftRow, a: { now: Date; fingerprint: string; clock: SiteClock }): StandardKept | null {
+  const meta = metaOf(row);
+  if ((meta.standard as { version?: unknown } | undefined)?.version === a.fingerprint) return "current";
+  // The customer's first save stamps this; it is the one mark of an edit read here.
+  if (typeof meta.first_edited_at === "string") return "edited";
+  if (!row.body_md || packOf(row) === null || row.scheduled_for === null) return "unreadable";
+  const settings = { mode: "autopilot" as const, vetoHours: a.clock.vetoHours, publishTime: a.clock.publishTime, timezone: a.clock.timeZone };
+  if (publishTimeOn(row.scheduled_for, settings).getTime() <= (Math.floor(a.now.getTime() / HOUR_MS) + 1) * HOUR_MS) return "too_late";
+  return roomForFix({ spentCents: () => Number(row.cost_cents) }) ? null : "no_room";
+}
+
+/** SPEC §7: each paying site's waiting drafts read once per standard deploy, at 0¢. One below the standard is set aside
+ *  and gives up its date, its topic open again for it; the date's day is marked so the draft tick decides it again.
+ *  The claim follows the site's reading, so a reading that never finished is tried again on the next tick. */
+export async function restandardSites(paying: () => Promise<readonly SiteClock[]>, a: { now: Date; step?: <T>(name: string, body: () => Promise<T>) => Promise<T> }): Promise<number | null> {
+  const fingerprint = deployedStandard();
+  if (fingerprint === null) return null;
+  const inStep = <T>(name: string, body: () => Promise<T>) => (a.step === undefined ? body() : a.step(`${name}-${fingerprint}`, body));
+  let setAside = 0;
+  for (const clock of await inStep("restandard-paying", paying)) {
+    if (await inStep(`restandard-held-${clock.siteId}`, () => opsEventHeld(RESTANDARDED, clock.siteId, fingerprint))) continue;
+    const count = await inStep(`restandard-${clock.siteId}`, () => restandardSite(clock, { now: a.now, fingerprint }));
+    await inStep(`restandard-claim-${clock.siteId}`, () => claimOpsEvent(RESTANDARDED, clock.siteId, fingerprint, String(count)));
+    setAside += count;
+  }
+  return setAside;
+}
+
+async function restandardSite(clock: SiteClock, a: { now: Date; fingerprint: string }): Promise<number> {
+  const store = generateStore();
+  const waiting = (await store.draftsShortOfHandOff(clock.siteId, ROWS_READ)).filter((row) => row.state === "in_review");
+  if (waiting.length === 0) return 0;
+  const [site, report] = await Promise.all([store.siteFacts(clock.siteId), store.latestReport(clock.siteId)]);
+  const sets = site === null || report === null ? null : await siteSets(clock.siteId, site, report);
+  const { giveBackClaim, opportunityById } = await import("@/lib/opportunities");
+  const { transition } = await import("@/lib/publish/machine");
+  const { recordDraftDay, STANDARD_REWRITE } = await import("@/lib/publish/daily");
+  let setAside = 0;
+  for (const row of waiting) {
+    let kept = keptBeforeReading(row, { ...a, clock });
+    let stops: string[] = [];
+    if (kept === null) {
+      const opportunity = sets === null ? null : await opportunityById(row.opportunity_id);
+      const outcome = opportunity === null ? null : await checkStoredAt0(row, row.body_md!, { ...sets!, opportunity, now: a.now });
+      stops = outcome?.kind === "checked" ? outcome.standard.stops : [];
+      kept = outcome?.kind !== "checked" ? "unreadable" : stops.length === 0 ? "met" : null;
+    }
+    if (kept !== null) {
+      console.log(JSON.stringify({ event: "draft_standard_kept", siteId: clock.siteId, draftId: row.id, reason: kept }));
+      continue;
+    }
+    const date = row.scheduled_for!;
+    if (!(await transition(row.id, "skipped", RECHECK, { at: a.now, reason: STANDARD_CHANGED })).ok) continue;
+    await store.patchDraft(row.id, { scheduled_for: null });
+    await giveBackClaim(row.opportunity_id);
+    // Read by `missedDays`, which sends the date again under its own key; the date's own run then overwrites it.
+    await recordDraftDay({ siteId: clock.siteId, publishDate: date, outcome: "no_page", reason: `${STANDARD_REWRITE}:${a.fingerprint}`, at: a.now });
+    console.log(JSON.stringify({ event: "draft_standard_set_aside", siteId: clock.siteId, draftId: row.id, date, stops: stops.join(",") }));
+    setAside++;
+  }
+  return setAside;
 }

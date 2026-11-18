@@ -327,6 +327,12 @@ export const PUBLISH_COPY = Object.freeze({
     "This page is written now. Sign in to edit or stop it from This week.",
     { slots: {}, fixedBy: "issue 1674 (drafted)" },
   ],
+  // A page set aside for a newer standard: its old link stops nothing, and what goes live has its own.
+  "publish.veto.set-aside.head": ["This Version Was Set Aside", { slots: {}, fixedBy: "issue 2888 (UX review)" }],
+  "publish.veto.set-aside": [
+    "Our page checks changed, so this version won’t go live. Sign in to stop or edit what goes live on This week.",
+    { slots: {}, fixedBy: "issue 2888 (UX review)" },
+  ],
 
   // 2026-09-06, issue #54 (BUILD §9 · REQ-060). The two sentences the
   // WordPress destination speaks, and they are the only two: everything

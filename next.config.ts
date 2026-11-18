@@ -1,6 +1,6 @@
 import path from "node:path";
 import type { NextConfig } from "next";
-import { derivation, factsVersion, plannerVersion, textVersion } from "./scripts/derivation.mjs";
+import { derivation, factsVersion, plannerVersion, standardVersion, textVersion } from "./scripts/derivation.mjs";
 import { contentSecurityPolicy } from "./src/app/_root/csp";
 import { STATIC_HOSTS, STATIC_PAGES_SOURCE } from "./scripts/static-csp.mjs";
 
@@ -112,8 +112,9 @@ const nextConfig: NextConfig = {
   // re-score reads a scan with. The `scan/rescore` tick asks for a dry run
   // and an apply by itself when it finds no run at this value. The facts
   // version keys the stored page facts it scores from (`fetch_facts`); the
-  // text version keys the stored text the grounding reads (`fetch_text`). The planner re-commits each week once it moves.
-  env: { RK_DERIVATION: derivation(), RK_FACTS_VERSION: factsVersion(), RK_TEXT_VERSION: textVersion(), RK_PLANNER: plannerVersion() },
+  // text version keys the stored text the grounding reads (`fetch_text`). The planner re-commits each week once it moves;
+  // the standard reads each waiting draft again.
+  env: { RK_DERIVATION: derivation(), RK_FACTS_VERSION: factsVersion(), RK_TEXT_VERSION: textVersion(), RK_PLANNER: plannerVersion(), RK_STANDARD: standardVersion() },
   // Issue 1514: each route group has its own root layout, so a hosted page
   // can state its site's language on `<html>`. An address no route matches
   // then has no root layout to render in; `src/app/global-not-found.tsx` is

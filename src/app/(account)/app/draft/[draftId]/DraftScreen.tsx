@@ -864,11 +864,11 @@ export function DraftScreen(p: {
           </p>
         </div>
         {matchedLine === null ? null : <p className="text-sm">{matchedLine}</p>}
+        {stage === "set_aside_standard" ? <p className="text-sm" data-testid="draft-set-aside-standard">{copy("draft.set-aside.standard")}</p> : null}
       </header>
 
       <div className={SHAPE.grid}>
         <div className={SHAPE.page} data-testid="draft-page">
-
           <WhyThisPage target={view.target} />
 
           {rulesHeld}

@@ -109,6 +109,12 @@ export function needsYouOf(a: { state: State; transitions: unknown; meta: unknow
   return since === null ? cause : { kind: "delivery", since };
 }
 
+/** The reason a waiting page below a newer standard is set aside with, its date then written again. */
+export const STANDARD_CHANGED = "retired:standard_changed";
+
+/** Whether the last move set the page aside for a newer standard. */
+export const setAsideForStandard = (transitions: unknown): boolean => Array.isArray(transitions) && (transitions as TransitionLike[]).at(-1)?.reason === STANDARD_CHANGED;
+
 /** Whether the daily re-check set the page aside: `skipped`, its last move carrying a `retired:<cause>` reason. */
 export function setAsideOf(a: { state: State; transitions: unknown }): boolean {
   if (a.state !== "skipped" || !Array.isArray(a.transitions)) return false;

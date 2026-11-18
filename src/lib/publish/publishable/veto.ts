@@ -10,10 +10,11 @@ import { VETO_TOKEN_BYTES, WEEK_START } from "@/lib/config/constants";
 import type { PlanReason } from "@/lib/opportunities/types";
 import { publishDb } from "../db";
 import { machineDraftFor, transition } from "../machine";
+import { setAsideForStandard } from "../record/needs-you";
 import { becomesPublishable } from "./predicate";
 import type { Actor, State, ToldRecord, VetoLink } from "../types";
 
-export type VetoRefusal = "unknown" | "expired" | "used" | "not_in_review";
+export type VetoRefusal = "unknown" | "expired" | "used" | "not_in_review" | "set_aside";
 
 export type RedeemResult =
   | { ok: true; draftId: string }
@@ -200,6 +201,7 @@ interface PreviewRow {
   veto_token_used_at: string | null;
   veto_token_expires_at: string | null;
   body_md: string | null;
+  transitions: unknown;
   opportunities?: { target_query?: string | null; volume?: number | null; plan_reason?: PlanReason | null } | null;
   sites?: { domain?: string | null; timezone?: string | null } | null;
 }
@@ -213,7 +215,7 @@ export async function previewVetoLink(
   const { data, error } = await publishDb()
     .from<PreviewRow>("drafts")
     .select(
-      "id, site_id, state, scheduled_for, told, title, body_md, veto_token_used_at, veto_token_expires_at, opportunities(target_query, volume, plan_reason), sites(domain, timezone)"
+      "id, site_id, state, scheduled_for, told, title, body_md, transitions, veto_token_used_at, veto_token_expires_at, opportunities(target_query, volume, plan_reason), sites(domain, timezone)"
     )
     .eq("veto_token_hash", hashToken(token))
     .limit(1);
@@ -231,6 +233,8 @@ export async function previewVetoLink(
       week: row.scheduled_for === null ? null : await weekOf(row.site_id, row.scheduled_for),
     };
   }
+  // Before the window's end: the link of a page written again never reads as one that may be live.
+  if (row.state === "skipped" && setAsideForStandard(row.transitions)) return { ok: false, reason: "set_aside" };
   if (
     row.veto_token_expires_at !== null &&
     new Date(row.veto_token_expires_at).getTime() <= at.getTime()

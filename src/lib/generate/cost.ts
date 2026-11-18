@@ -65,6 +65,6 @@ async function draftSpendSince(siteId: string, since: Date): Promise<number | nu
 const WRITE_AND_FIX_CENTS = costCentsFor("writer", 0, INFERENCE_MAX_OUTPUT_TOKENS["generate.write"] + INFERENCE_MAX_OUTPUT_TOKENS["generate.fix"]);
 
 /** Whether the day's context can still pay for a page and its fix, so a second topic is never written unrepairable. */
-export function roomForFix(cost: CostContext): boolean {
+export function roomForFix(cost: Pick<CostContext, "spentCents">): boolean {
   return CAPS.DRAFT_C - cost.spentCents() >= WRITE_AND_FIX_CENTS;
 }
