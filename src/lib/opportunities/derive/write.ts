@@ -2,7 +2,7 @@
 // comparison_page before keyword_page (strongest evidence first). format_page is never derived: no measurement states a page type.
 import { WRITE_VOLUME_FLOOR_PER_MONTH } from "@/lib/config/constants";
 import { EFFORT_BY_TYPE } from "@/lib/config/constants";
-import { isJobSearch, isOwnDomain, isSourceRow, ownPlaceIn, registrableDomain, resolvedRows, type SourceReading } from "@/lib/market/rivals/domains";
+import { isJobSearch, isOwnDomain, isSourceRow, ownPlaceIn, registrableDomain, resolvedOf, resolvedRows, type SourceReading } from "@/lib/market/rivals/domains";
 import { measured } from "@/lib/measure/measured";
 import { measuredLocale } from "@/lib/locale/locales";
 import { localOfReport } from "@/lib/scan/cards";
@@ -114,7 +114,7 @@ export function writeCandidates(a: WriteInput): DerivationResult {
     result.assessed += 1;
 
     const top10RankedCounts = rankedCountsFor(
-      serp.organic.map((row) => registrableDomain(row.domain) ?? row.domain),
+      resolvedOf(serp.organic).map((row) => registrableDomain(row.domain) ?? row.domain),
       a.rankedCounts,
       at
     );

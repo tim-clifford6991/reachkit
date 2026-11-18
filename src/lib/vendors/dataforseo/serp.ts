@@ -6,9 +6,12 @@
 // the depth and settles from the response: the vendor refunds the surcharge where no async overview came back.
 // The vendor rule lives here; the cost seam stays generic.
 // Cache (§6.4): keyed on query, locale, the flag and `CacheScope`, so a flagged call never gets an unflagged SERP whose
-// missing overview may mean "not fetched". Mode is not in the key: live, standard and both priorities return one SERP.
+// missing overview may mean "not fetched". Mode is not in the key: live, standard and both priorities return one SERP,
+// so a stored SERP with a result behind a Google redirect is a miss for every caller and is bought again.
 // The window is the caller's (`CACHE_WINDOWS_D.serp` or `.serpWeeklyRecheck`), since this module knows nothing of tiers.
+import { berlinDay } from "@/lib/config/now";
 import type { CostContext } from "@/lib/costs";
+import { heldRowsBefore } from "@/lib/costs/cache";
 import { ASYNC_AIO_SURCHARGE_MULTIPLIER, PRICE_BOOK, VENDOR } from "@/lib/config/constants";
 import type { Locale } from "@/lib/locale/locales";
 import { mapMeasured, type Measured } from "@/lib/measure/measured";
@@ -25,10 +28,12 @@ import {
   type EndpointPaths,
   type OnVendorFailure,
 } from "./envelope";
-import { resolvedHost } from "@/lib/market/rivals/domains";
+import { googleWrapper, resolvedHost } from "@/lib/market/rivals/domains";
+import { recordOpsEvent } from "@/lib/ops/events";
 import { placeCacheKey, type DataForSeoMode, type SerpDepth } from "./transport";
 import { AI_OVERVIEW_TEXT_MAX_CHARS, scopeKey, type CacheScope, type SerpAiOverview, type SerpOrganicRow, type SerpResult } from "./types";
 
+const SOURCE = "serp/google/organic";
 const ORGANIC = "/v3/serp/google/organic";
 const PATHS: EndpointPaths = {
   live: `${ORGANIC}/live/advanced`,
@@ -149,10 +154,35 @@ export function parseSerp(result: unknown): SerpResult[] | undefined {
   ];
 }
 
+/** How many of a SERP's results stand behind a Google redirect, their own address unknown. */
+function wrappedIn(serp: SerpResult | undefined): number {
+  return (serp?.organic ?? []).filter((row) => googleWrapper(row.url) !== null).length;
+}
+
+/** One `ops_events` row for a bought SERP nothing can be read from: most of its results behind Google redirects or, on
+ *  the normal queue, none where the search's last stored read had some. The normal queue's first of a Berlin day mails
+ *  the owner. Never throws: the read it reports on stands. */
+async function reportUnreadable(queue: string, serp: SerpResult | undefined, cacheKey: string, scope: CacheScope): Promise<void> {
+  try {
+    const results = serp?.organic.length ?? 0;
+    const wrapped = wrappedIn(serp) * 2 > results;
+    if (!wrapped && (queue !== "normal" || results > 0 || !(await heldRowsBefore(SOURCE, cacheKey)))) return;
+    const cause = wrapped ? "wrapped" : "empty";
+    const row = recordOpsEvent("serp_unreadable", `serp/${queue}`, cause, "site" in scope ? scope.site : null);
+    if (queue !== "normal") return;
+    await row;
+    const { claimOwnerMail, releaseOwnerMail, reportIncident } = await import("@/lib/mail/ops");
+    const key = { jobId: SOURCE, errorName: "unreadable", day: berlinDay(new Date()) };
+    if ((await claimOwnerMail(key, new Date())) && !(await reportIncident({ occasion: "serp-unreadable", cause }))) await releaseOwnerMail(key);
+  } catch (error) {
+    console.warn(JSON.stringify({ event: "serp_unreadable_report_failed", detail: String(error) }));
+  }
+}
+
 /** The ledger key of one SERP read, which a later collection finds it by. */
-export function serpCacheKey(a: { query: string; locale: Locale; loadAsyncAiOverview: boolean; scope: CacheScope; questions?: true; depth?: SerpDepth; unwrapped?: true }): string {
+export function serpCacheKey(a: { query: string; locale: Locale; loadAsyncAiOverview: boolean; scope: CacheScope; questions?: true; depth?: SerpDepth }): string {
   const depth = a.depth ?? VENDOR.serpDepth;
-  return `${a.query}|${placeCacheKey(a.locale)}|aio:${a.loadAsyncAiOverview ? "async" : "cached"}|${scopeKey(a.scope)}${a.questions === true ? "|paa" : ""}${depth === VENDOR.serpDepth ? "" : `|depth:${depth}`}${a.unwrapped === true ? "|unwrapped" : ""}`;
+  return `${a.query}|${placeCacheKey(a.locale)}|aio:${a.loadAsyncAiOverview ? "async" : "cached"}|${scopeKey(a.scope)}${a.questions === true ? "|paa" : ""}${depth === VENDOR.serpDepth ? "" : `|depth:${depth}`}`;
 }
 
 /** A queued SERP an earlier step posted and stopped waiting on, read free until `untilMs`: its rows, or still pending. */
@@ -199,8 +229,6 @@ export async function serpOrganic(
     questions?: true;
     /** A read deeper than `VENDOR.serpDepth`, for a page's own search. */
     depth?: SerpDepth;
-    /** Bought on the normal queue for its real links, so never served a live SERP of Google's `goto` redirects. */
-    unwrapped?: true;
   }
 ): Promise<Measured<SerpResult>> {
   const highPriority = a.mode === "std" && a.priority === "high";
@@ -210,9 +238,11 @@ export async function serpOrganic(
   const pages = Math.ceil(depth / 10);
   /** Set only where the seam served this answer from `fetches`, to when that row was bought. */
   let reusedFrom: Date | null = null;
+  const cacheKey = serpCacheKey(a);
   const rows = await ledgered<SerpResult>(c, {
-    source: "serp/google/organic",
-    cacheKey: serpCacheKey(a),
+    source: SOURCE,
+    cacheKey,
+    unusable: (stored) => Array.isArray(stored) && wrappedIn(stored[0] as SerpResult | undefined) > 0,
     freshnessDays: a.freshnessDays,
     costCents: flagged ? surchargedCents(base, pages) : base * pages,
     ...(flagged ? { settleCents: (r: readonly SerpResult[] | null) => settledCents(base, pages, a.mode, r) } : {}),
@@ -238,6 +268,11 @@ export async function serpOrganic(
       reusedFrom = storedAt;
     },
   });
+  if (rows.kind !== "unmeasured" && (reusedFrom as Date | null) === null) {
+    const told = reportUnreadable(a.mode === "live" ? "live" : highPriority ? "high" : "normal", rows.value[0], cacheKey, a.scope);
+    // Nobody waits on the normal queue, so its owner mail is sent before the pass moves on.
+    if (a.mode === "std" && !highPriority) await told;
+  }
   return mapMeasured(rows, (r) => {
     const serp = markUnread(r[0] ?? EMPTY_SERP, flagged);
     // On the stored result, so a report read later still knows which answers were reused; never set where this pass bought it.

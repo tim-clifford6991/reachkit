@@ -20,7 +20,7 @@
 // all `./domains`' — one implementation in the product, not two.
 import { BATTERY, RIVAL_SCORE } from "@/lib/config/constants";
 import type { MarketSerp } from "../views";
-import { isArticleRow, isArticleUrl, isExplainerTitle, isHomeUrl, isJobRow, isJobSearch, isOccupationTitle, isOthersPage, isOwnContentUrl, isOwnDomain, isPlaceTitle, isRoundupPage, isSourceDomain, pageClass, pageKey, registrableDomain, resolvedOf, servesJobSeekers } from "./domains";
+import { googleWrapper, isArticleRow, isArticleUrl, isExplainerTitle, isHomeUrl, isJobRow, isJobSearch, isOccupationTitle, isOthersPage, isOwnContentUrl, isOwnDomain, isPlaceTitle, isRoundupPage, isSourceDomain, pageClass, pageKey, registrableDomain, resolvedOf, servesJobSeekers } from "./domains";
 
 /** `band.ts`'s `RivalSizeBand`, spelled out: the free card's modules name no
  *  sizing module, not even for a type (§6.4, `size.test.ts`). */
@@ -227,7 +227,7 @@ export function deriveRivals(a: {
   const roundupPages = new Set<string>();
   for (const serp of a.serps) {
     for (const row of serp.organic) {
-      const key = row.url === undefined ? null : pageKey(row.url);
+      const key = row.url === undefined || googleWrapper(row.url) !== null ? null : pageKey(row.url);
       if (key !== null && isRoundupPage(row)) roundupPages.add(key);
     }
   }

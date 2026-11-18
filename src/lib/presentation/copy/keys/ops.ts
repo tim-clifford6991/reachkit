@@ -22,4 +22,8 @@ export const OPS_COPY = Object.freeze({
   "ops.replan.fact.held": ["Held, the committed week stands", { slots: {}, fixedBy: "owner ruling, 2026-11-16, issue 2726 (drafted)" }],
   "ops.replan.fact.committed": ["Committed before", { slots: {}, fixedBy: "owner ruling, 2026-11-16, issue 2726 (drafted)" }],
   "ops.replan.fact.replanned": ["Committed now", { slots: {}, fixedBy: "owner ruling, 2026-11-16, issue 2726 (drafted)" }],
+  "ops.serp.unreadable": [
+    "Google results bought on the normal queue came back unreadable: most of the links were Google redirects, or a search that had results came back with none. Places read from them show as not measured until a clean read. This is the first today; later ones are only counted.",
+    { slots: {}, fixedBy: "owner note, 2026-11-17, issue 2815 (drafted)" },
+  ],
 }) satisfies CopyPartition;

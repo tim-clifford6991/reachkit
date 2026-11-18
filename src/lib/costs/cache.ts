@@ -32,6 +32,8 @@ export async function readCache(params: {
   cacheKey: string;
   policyVersion: number;
   freshnessDays: number;
+  /** The caller's own rule for a stored answer it must not be served; such a row stays and is read past. */
+  unusable?: (payload: unknown) => boolean;
 }): Promise<{ payload: unknown; storedAt: Date } | null> {
   const cutoff = new Date(
     Date.now() - params.freshnessDays * 24 * 60 * 60 * 1000
@@ -52,10 +54,23 @@ export async function readCache(params: {
   }
 
   for (const row of data ?? []) {
-    if (isEmptyPayload(row.payload)) continue;
+    if (isEmptyPayload(row.payload) || params.unusable?.(row.payload) === true) continue;
     // An unreadable `created_at` is still a hit; its date falls back to the cutoff, the oldest a row in the window can be.
     const storedAt = new Date(row.created_at ?? cutoff);
     return { payload: row.payload, storedAt: Number.isNaN(storedAt.getTime()) ? new Date(cutoff) : storedAt };
   }
   return null;
+}
+
+/** Whether the read stored on a key before its newest row held rows, whatever its age: what an empty answer is held against. */
+export async function heldRowsBefore(source: string, cacheKey: string): Promise<boolean> {
+  const { data } = await untypedFetches(dbAdmin())
+    .from<Pick<FetchesRow, "payload">>("fetches")
+    .select("payload")
+    .eq("source", source)
+    .eq("cache_key", cacheKey)
+    .order("created_at", { ascending: false })
+    .limit(CACHE_READ_SCAN_LIMIT);
+  const before = (data ?? []).slice(1).map((row) => row.payload).find((payload): payload is unknown[] => Array.isArray(payload));
+  return before !== undefined && before.length > 0;
 }

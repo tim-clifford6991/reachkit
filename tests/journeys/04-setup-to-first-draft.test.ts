@@ -821,15 +821,15 @@ describe("three decisions → deep pass → the first page already on the calend
       // Never the free path's own 50-row read: this pass buys 300.
       expect(ranked.some((row) => row.costCents === PRICE_BOOK.RANKED_FREE_COST_C)).toBe(false);
 
-      // One SERP per question the market yielded, queued at high priority
-      // — a founder is watching this one (issue 1352) — and each loads its
+      // One SERP per question the market yielded, on the normal queue: the
+      // high-priority one hides each result's address. Each loads its
       // AI Overview's sources (issue 1357): without that an overview Google
       // loads after the page reads as an answer that names nobody.
       const serps = vendorRequests.filter((r) => r.url.includes("/serp/google/organic/task_post"));
       expect(serps.length).toBeGreaterThan(0);
       expect(vendorRequests.some((r) => r.url.includes("/serp/google/organic/live"))).toBe(false);
       for (const request of serps) {
-        expect(request.task.priority).toBe(2);
+        expect(request.task.priority).toBeUndefined();
         expect(request.task.load_async_ai_overview).toBe(true);
       }
 

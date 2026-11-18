@@ -16,8 +16,9 @@ export interface TierParameters {
   /** The queue priority of this tier's Google organic reads (SPEC §6,
    *  2026-10-08, issue 1352). The live surface answered `50000 Internal
    *  Server Error` after 16 s on 12 of 15 calls that day while queued tasks
-   *  came back in seconds, so no tier reads Google live. `high` where
-   *  somebody is waiting: the free scan and a site's first pass. */
+   *  came back in seconds, so no tier reads Google live. `high` only for
+   *  the free scan's waiting visitor: that queue hides each result's address
+   *  behind a Google redirect, and a paid pass reads addresses. */
   serpPriority: "high" | "normal";
   /** How often this tier asks the queue whether a Google read is ready. */
   serpPollMs: number;
@@ -238,8 +239,8 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
   deep: Object.freeze({
     cap: "DEEP",
     serpMode: "live",
-    serpPriority: "high",
-    serpPollMs: VENDOR.waitedQueuePollIntervalS * 1000,
+    serpPriority: "normal",
+    serpPollMs: VENDOR.stdQueuePollIntervalS * 1000,
     asyncAiOverview: true,
     deadlineApplies: false,
     ceilingS: TIMING.paidPassCeilingS,

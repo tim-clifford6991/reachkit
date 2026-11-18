@@ -515,7 +515,7 @@ export function isSourceHost(host: string): boolean {
 }
 
 /** A Google redirect (`google.<tld>/goto`, `/url`) that stands where a result's own address should. */
-function googleWrapper(url: string | undefined): URL | null {
+export function googleWrapper(url: string | undefined): URL | null {
   try {
     const parsed = new URL(url ?? "");
     return isGoogleHost(parsed.hostname) && /^\/(goto|url)\/?$/.test(parsed.pathname) ? parsed : null;
@@ -564,6 +564,16 @@ export function ownPlaceIn(rows: readonly { domain: string; url?: string }[], ow
   const hosts = rows.map(resolvedHost);
   if (hosts.some((host) => host !== null && isOwnDomain(host, ownDomain))) return true;
   return hosts.includes(null) ? null : false;
+}
+
+/** Whether a result holds a row behind a Google redirect that may be the customer's own page: its site is theirs, or
+ *  not known. Read off stored JSON as it is. */
+export function hidesOwnPage(rows: readonly { url?: unknown; domain?: unknown }[], ownDomain: string): boolean {
+  return rows.some((row) => {
+    if (typeof row.url !== "string" || googleWrapper(row.url) === null) return false;
+    const host = resolvedHost({ domain: typeof row.domain === "string" ? row.domain : "", url: row.url });
+    return host === null || isOwnDomain(host, ownDomain);
+  });
 }
 
 /** Whether an answer cites a page whose site is not known: a reference read

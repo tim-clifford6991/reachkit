@@ -370,6 +370,7 @@ export async function ledgered<T>(
     parse: (result: unknown) => T[] | undefined;
     onFailure?: OnVendorFailure;
     onReused?: OnReusedAnswer;
+    unusable?: (payload: unknown) => boolean;
   }
 ): Promise<Measured<T[]>> {
   const at = new Date();
@@ -385,6 +386,7 @@ export async function ledgered<T>(
     costCents: call.costCents,
     ...(settle ? { settleCents: (p: T[] | VendorFailure) => settle(isVendorFailure(p) ? null : p) } : {}),
     billedCents: () => vendorCents,
+    ...(call.unusable ? { unusable: call.unusable } : {}),
     run: async () => {
       const out = await call.fetch();
       vendorCents = out.vendorCents;

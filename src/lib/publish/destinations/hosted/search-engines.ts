@@ -16,6 +16,7 @@
 // It never throws: a refusal or failed read stores its reason on each hosted page, logs it once per host, and the verdicts and mail still run.
 import { SEARCH_READING_WINDOW_D, GSC_PROPERTIES_PER_ACCOUNT } from "@/lib/config/constants";
 import { gscAccounts, gscClient, type GscAccount, type GscSend } from "@/lib/vendors/gsc";
+import { knownPlaces } from "@/lib/measure/known-places";
 import { assembleReading, engineReadingOf, pageSearchOf, readingOf, type GoogleReading, type GoogleUnread } from "@/lib/measure/page-reading";
 import { readStoredReport, type StoredReport } from "@/lib/scan/report";
 import { publishDb } from "../../db";
@@ -187,7 +188,7 @@ export async function readSearchEngines(a: { siteId: string; now: Date; deps?: S
       .limit(1);
     let report: StoredReport | null = null;
     try {
-      report = scans?.[0]?.report == null ? null : readStoredReport(scans[0].report);
+      report = scans?.[0]?.report == null ? null : knownPlaces(readStoredReport(scans[0].report));
     } catch {
       report = null;
     }

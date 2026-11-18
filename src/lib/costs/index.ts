@@ -79,6 +79,8 @@ export interface CostContext {
      *  whether to call. `undefined` where the response carried no charge,
      *  which is stored as null and never as a guess. */
     billedCents?: () => number | undefined;
+    /** A stored answer this caller must not be served: read past, so the call is bought again. */
+    unusable?: (payload: unknown) => boolean;
     /** `more` adds `cents` to this call's reservation under the same three ceilings, or refuses and answers false.
      *  A stand-in context may pass none. */
     run: (more?: (cents: number) => Promise<boolean>) => Promise<P>;
@@ -235,6 +237,7 @@ export async function withCostContext<T>(
       costCents: number;
       settleCents?: (payload: P) => number;
       billedCents?: () => number | undefined;
+      unusable?: (payload: unknown) => boolean;
       run: (more?: (cents: number) => Promise<boolean>) => Promise<P>;
     }): Promise<
       { payload: P; fresh: boolean; costCents: number; storedAt: Date | null } | { skipped: "cap" }
@@ -245,6 +248,7 @@ export async function withCostContext<T>(
         cacheKey: call.cacheKey,
         policyVersion: ctx.policyVersion,
         freshnessDays: call.freshnessDays,
+        ...(call.unusable ? { unusable: call.unusable } : {}),
       });
       if (cached) {
         return { payload: cached.payload as P, fresh: false, costCents: 0, storedAt: cached.storedAt };

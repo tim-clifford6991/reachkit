@@ -13,7 +13,7 @@
 // number"). Neither `2` nor `4` appears as a literal in this file
 // (`structure.md` rule 5) — both operands are read from `COHERENCE`.
 import { COHERENCE } from "@/lib/config/constants";
-import { registrableDomain } from "@/lib/market/rivals/domains";
+import { registrableDomain, resolvedOf } from "@/lib/market/rivals/domains";
 import type { MarketSerpOrganic } from "../views";
 
 /**
@@ -69,7 +69,7 @@ export function checkCoherence(a: {
   const appearances = new Map<string, number>();
   for (const serp of serps) {
     const seenOnThisSerp = new Set<string>();
-    for (const result of serp.organic) {
+    for (const result of resolvedOf(serp.organic)) {
       const domain = registrableDomain(result.domain);
       if (domain === null || seenOnThisSerp.has(domain)) continue;
       seenOnThisSerp.add(domain);
