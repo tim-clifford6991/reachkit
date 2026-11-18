@@ -50,7 +50,7 @@
 // **Then it finishes any retarget's move** (SPEC §7, issue 1487): a hosted
 // page whose new search names another address is moved there, and its old
 // address answers 301. 0¢, and a tick that moves a page has run.
-import { duePublishApprovals, duePublishRetries, publishApproved, recheckLivePages, repairMovedPages } from "@/jobs/engine";
+import { duePublishApprovals, duePublishRetries, publishApproved, recheckLivePages, repairMovedPages, requestDueChecks } from "@/jobs/engine";
 import { fanOut, settle } from "./fan-out";
 import type { JobDefinition, Outcome } from "./types";
 
@@ -70,6 +70,8 @@ export const publishRetry: JobDefinition = {
   async run(input): Promise<Outcome> {
     const { withdrawn } = await recheckLivePages(input.now);
     const { moved } = await repairMovedPages(input.now);
+    // A live check whose request was lost at delivery is asked for again; the receiving job's key keeps it to one.
+    await requestDueChecks(input.now);
     const retries = await duePublishRetries(input.now);
     const approvals = await duePublishApprovals(input.now);
     // One attempt per page per tick: a page is in `failed` or waiting on its
