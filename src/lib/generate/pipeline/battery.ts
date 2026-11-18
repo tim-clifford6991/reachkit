@@ -19,7 +19,8 @@ import { voiceLength } from "../voice/register";
 import type { LaidSection } from "./compose";
 import { closeElsewhere } from "./elsewhere";
 import type { SourcedFact } from "./grounding";
-import { builtFromOutside, fittedTemplate, packStatements, type ContextPack, type PackClaim } from "./pack";
+import { packStatements, type ContextPack, type PackClaim } from "./pack";
+import { builtFromOutside, fittedTemplate } from "../standard";
 import { repairable, repairRecorded, withoutBusiness, type RepairRecord } from "./repair";
 import { completenessFor, stops } from "../record";
 import { reportFactsAllowed } from "./report-scope";
@@ -68,6 +69,8 @@ export function batteryBasis(a: {
   // No room: the sections the pack fills leave a ceiling under the type's floor, or none above it, and the page is then never told that floor.
   const noRoomFor = held !== null && fitted !== null && (fitted.ceiling < held.floor || held.ceiling <= held.floor) ? held.floor : null;
   const short = noRoomFor !== null && (site.completeness ?? completenessFor()) === "warn";
+  // The words the pack has room for against the floor the page is held to; a page written short is held to none.
+  const room = held === null || fitted === null || short ? null : { have: fitted.ceiling, need: held.floor, short: noRoomFor !== null };
   // A page written short carries its sourced questions as its sections, no more: each a question the pack holds a fact for.
   const sourced = { min: pack.questions.length, max: pack.questions.length };
   const template = short ? { ...whole, sections: whole.sections.map((slot) => (slot.key === "question" ? { ...slot, repeat: sourced } : slot)) } : whole;
@@ -95,7 +98,7 @@ export function batteryBasis(a: {
   };
   /** What `cites_market` holds the page to: the template's own count, as the writer is told it. */
   const citesMin = citesMinOf(template);
-  return { ...a, template, length, noRoomFor, short, pageType, table, searches, names, passages, cited, brief, citesMin, rivalsNamed: namedRivals(site.rivals, pack.business.market) };
+  return { ...a, template, length, noRoomFor, short, room, pageType, table, searches, names, passages, cited, brief, citesMin, rivalsNamed: namedRivals(site.rivals, pack.business.market) };
 }
 
 export type BatteryBasis = ReturnType<typeof batteryBasis>;

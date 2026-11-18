@@ -12,7 +12,7 @@
 // measured, the web results of the last 30 days, or the live page an update
 // refreshes.
 //
-// **Code then holds the pack against the template's *pack must hold* line** (`missingFrom`). A pack short of it writes
+// **Code then holds the pack against the template's *pack must hold* line** (`missingFrom`, `../standard.ts`). A pack short of it writes
 // nothing: the page stops, naming what is missing by its handle. And **what a new page adds** (D12, issue 1143) is
 // counted here, over the pack, before the write call: the facts whose words are on none of the top results read.
 //
@@ -39,8 +39,7 @@ import type { LinkTarget } from "../links/select";
 import { COVERING, grows, headingGaps, headingLines, topicWords } from "../rules/gaps";
 import { alikeHeadings } from "../rules/headings";
 import { renderOf } from "../rules/text";
-import { sectionBounds, TEMPLATES, type PackNeed, type PackRequirement, type SectionFacts, type Template } from "../templates";
-import { differenceHeld, ownPriceHeld } from "../templates/listicle";
+import { TEMPLATES, type PackNeed } from "../templates";
 import type { WritingMarket } from "../voice/market";
 import type { PromptKnowledge, PromptProfile } from "../voice/profile-block";
 import { chooseVoice, type PageVoice, type WritingVoice } from "../voice/register";
@@ -48,6 +47,7 @@ import type { SourcedFact } from "./grounding";
 import type { BuyersAsk, JudgedResult, MarketFact, MarketResearch, ResearchedProduct } from "./research";
 import { reportFactsAllowed } from "./report-scope";
 import { comparisonTable } from "./table";
+import { builtFromOutside, missingFrom } from "../standard";
 
 export interface PackFact {
   passage: string;
@@ -242,17 +242,17 @@ export function packStatements(pack: ContextPack): string[] {
 
 export { topicWords };
 
-function shares(words: ReadonlySet<string>, text: string): boolean {
+export function shares(words: ReadonlySet<string>, text: string): boolean {
   if (words.size === 0) return true;
   for (const word of topicWords(text)) if (words.has(word)) return true;
   return false;
 }
 
-const fold = (text: string): string =>
+export const fold = (text: string): string =>
   text.replace(/\s+/g, " ").trim().toLowerCase().replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[–—]/g, "-");
 
 /** Every statement the knowledge base makes, as text. */
-function knowledgeTexts(knowledge: PromptKnowledge | undefined): string[] {
+export function knowledgeTexts(knowledge: PromptKnowledge | undefined): string[] {
   if (knowledge === undefined) return [];
   return [
     ...knowledge.offerings.flatMap((offering) => [offering.name, ...offering.features, ...offering.prices, ...offering.uses]),
@@ -522,7 +522,7 @@ export function packAdds(a: {
  * the words every search shares, the market's own words stand for it: its
  * category and the job it is concluded to do, as the pack carries them.
  */
-function ownTopicWords(pack: Pick<ContextPack, "target" | "business">): Set<string> {
+export function ownTopicWords(pack: Pick<ContextPack, "target" | "business">): Set<string> {
   const market = pack.business.market as { job?: unknown; rivals?: unknown } | null;
   const rivals = Array.isArray(market?.rivals) ? (market.rivals as { name?: unknown; domain?: unknown }[]) : [];
   const named = new Set([
@@ -559,73 +559,6 @@ export function rivalsOnlyVersus(pack: Pick<ContextPack, "target" | "business">)
   return rivals.length >= 2 ? rivals : [];
 }
 
-/** A claim about a rival read first-hand: off its own site, or off a study
- *  or a primary source about it — never off a top search result. */
-function firstHand(claim: PackClaim, domain: string): boolean {
-  if (claim.kind === "top_result") return false;
-  return claim.product === domain || ((claim.kind === "study" || claim.kind === "primary") && claim.about === domain);
-}
-
-/** The business facts a pack holds: its passages and its knowledge base's texts. */
-const factTexts = (pack: Omit<ContextPack, "missing">): string[] => [...pack.facts.map((fact) => fact.passage), ...knowledgeTexts(pack.profile?.knowledge)];
-
-function holds(requirement: PackRequirement, pack: Omit<ContextPack, "missing">, previousResearch: PackMeasurements | null): boolean {
-  switch (requirement.need) {
-    case "rival_evidence":
-      return rivalsOnlyVersus(pack).every((rival) => pack.claims.some((claim) => firstHand(claim, rival.domain)));
-    case "options":
-      // D47: the options are the ones code can lay a table out of — the
-      // business and that many rivals, each with a fact to set beside it.
-      return comparisonTable(pack, requirement.min - 1) !== null;
-    case "own_price":
-      return ownPriceHeld({ profile: pack.profile, passages: pack.facts.map((fact) => fact.passage) });
-    case "difference":
-      return differenceHeld(pack.profile);
-    case "facts_on_topic": {
-      // One fact in the target's words is enough: a buyer's words and a site's seldom match fact for fact, so the rest are counted.
-      const held = factTexts(pack);
-      return held.length >= requirement.min && held.some((text) => shares(ownTopicWords(pack), text));
-    }
-    case "outside_sources":
-      // Claims off one page more than the body must cite, each read off the target's own research, never a rival's own page.
-      return new Set(pack.claims.filter((claim) => claim.product === undefined).map((claim) => claim.url)).size > requirement.min;
-    case "product_page":
-      return pack.links.some((link) => link.purpose === "product" || link.purpose === "features" || link.purpose === "pricing");
-    case "measured_questions":
-      return (pack.measurements?.questions.length ?? 0) >= requirement.min;
-    case "changed_figures": {
-      const now = pack.measurements;
-      if (now === null) return false;
-      if (previousResearch === null) return true;
-      const named = (m: PackMeasurements) => m.questions.filter((question) => question.namesBusiness).length;
-      return now.measuredAt > previousResearch.measuredAt && (now.score !== previousResearch.score || named(now) !== named(previousResearch));
-    }
-    case "buyer_questions":
-      return pack.questions.length >= requirement.min;
-    case "recent_results":
-      return new Set(pack.claims.filter((claim) => claim.kind === "recent").map((claim) => claim.url)).size >= requirement.min;
-    case "live_page":
-      return pack.live !== null && pack.live.markdown.trim() !== "";
-    case "new_fact": {
-      if (pack.live === null) return false;
-      const live = fold(pack.live.markdown);
-      const fresh = [...pack.facts, ...pack.claims].filter((fact) => !live.includes(fold(fact.passage)));
-      // Issue 1391: a newer page of the site the live one does not link is
-      // what is new to say on a refresh planned to link it.
-      // Issue 1487: a link moved to a page's new address is what is new.
-      const linkTo = pack.live.linkTo;
-      const newer = linkTo !== undefined && (linkTo.replaces !== undefined || !pack.live.markdown.includes(linkTo.url)) ? 1 : 0;
-      return fresh.length + newer >= requirement.min;
-    }
-  }
-}
-
-/** Whether a type's page is built from cited outside facts (issue 1486):
- *  its template asks its pack for outside sources. A how-to and a Q&A. */
-export function builtFromOutside(type: ContentType): boolean {
-  return TEMPLATES[type].packMustHold.some((requirement) => requirement.need === "outside_sources");
-}
-
 /**
  * The facts AI answers misstated that a page on this target owns (issue
  * 1539): a price where the target asks what something costs or names the
@@ -645,58 +578,6 @@ export function correctionsFor(a: {
   return misstatedFacts({ answers: a.report.prompts.answers, facts: siteFactsOf(a.knowledge), language: a.language })
     .filter((fact) => (fact.kind === "price" && ASKS_PRICE_RE.test(asked)) || [...topicWords(fact.siteSays)].some((word) => words.has(word)))
     .map((fact) => ({ says: fact.aiSays, site: fact.siteSays, url: fact.url }));
-}
-
-/** What the template asks of the pack that it does not hold, by handle. */
-export function missingFrom(pack: Omit<ContextPack, "missing">, previousResearch: PackMeasurements | null = null): PackNeed[] {
-  // R31: every page but an update, whatever its template, is held to it.
-  const held: PackRequirement[] = [...TEMPLATES[pack.type].packMustHold, ...(pack.type === "update" ? [] : [{ need: "rival_evidence" as const }])];
-  return held.filter((requirement) => !holds(requirement, pack, previousResearch)).map((requirement) => (requirement.need === "facts_on_topic" && factTexts(pack).length < requirement.min ? "facts_few" : requirement.need));
-}
-
-/** How many of a section's facts the pack holds: distinct inclusions, the places the business's own pages state (never
- *  one only the founder gave), and one where it states a difference or a promise or carries a `fitFact`. */
-function factsHeld(facts: SectionFacts, pack: ContextPack): number {
-  const knowledge = pack.profile?.knowledge;
-  switch (facts) {
-    case "inclusions":
-      return new Set((knowledge?.offerings ?? []).flatMap((offering) => offering.features.map(fold))).size;
-    case "places":
-      return new Set((knowledge?.places ?? []).filter((place) => place.from !== "founder").map((place) => fold(place.text))).size;
-    case "difference":
-      return holds({ need: "difference" }, pack, null) ? 1 : 0;
-    case "passages": return pack.facts.length;
-    case "fit": return pack.fitFact === undefined ? 0 : 1;
-  }
-}
-
-/**
- * The template a pack's page is written and checked to (E10): a section the
- * pack holds too few facts for is left out, questions buyers asked fewer than
- * the template's least leave no FAQ, and the length's ceiling keeps each
- * section's share, so a page with fewer sections is never padded. A `kept`
- * page (a product page, a lead's free page) keeps its type's former
- * sections and maximum (owner Q9/D, 2026-11-16).
- */
-export function fittedTemplate(pack: ContextPack, kept = false): Template {
-  const template = TEMPLATES[pack.type];
-  const sections = template.sections.filter(
-    (slot) => (slot.onlyWith === undefined || factsHeld(slot.onlyWith.facts, pack) >= slot.onlyWith.min) && !(kept && slot.when === "gaps")
-  );
-  const faq = template.blocks.faq;
-  const asked = faq === null || faq.asked !== true || holds({ need: "buyer_questions", min: faq.min }, pack, null);
-  const length = template.length;
-  const max = "ceiling" in length ? (kept ? (length.kept ?? length.ceiling) : length.ceiling) : null;
-  if (sections.length === template.sections.length && asked && (max === null || max === ("ceiling" in length ? length.ceiling : null))) return template;
-  // The gap sections are counted in no share, so a page's share is as it was before they existed.
-  const counted = (slots: readonly Template["sections"][number][]) => sectionBounds({ ...template, sections: slots.filter((slot) => slot.when !== "gaps") }).max;
-  const share = counted(sections) / counted(template.sections);
-  return {
-    ...template,
-    sections,
-    blocks: { ...template.blocks, faq: asked ? faq : { min: 0, max: 0 } },
-    length: "ceiling" in length ? { ...length, ceiling: Math.round(max! * share) } : length,
-  };
 }
 
 export interface PackInputs {

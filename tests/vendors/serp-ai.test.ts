@@ -116,7 +116,7 @@ describe('BUILD §6.2 — "the free AI matrix rides here at 0¢ extra": one call
     expect(parsed!.aiOverview.referenceDomains).toEqual(["", "rival-one.com"]);
   });
 
-  it("reads the SERP's People also ask and related searches, and a call that asks for them is keyed apart (D61)", async () => {
+  it("reads the SERP's People also ask and related searches on every read, under the search's one key (D61)", async () => {
     stubVendorFetch(() =>
       envelope({
         items: [
@@ -128,13 +128,13 @@ describe('BUILD §6.2 — "the free AI matrix rides here at 0¢ extra": one call
     );
     const { ctx, calls } = fakeCostContext();
     const args = { query: "best crm", mode: "live", loadAsyncAiOverview: false, scope: SCOPE, freshnessDays: WINDOW(), locale: { country: "US", language: "en" } } as const;
-    const result = await serp.serpOrganic(ctx, { ...args, questions: true });
+    const result = await serp.serpOrganic(ctx, args);
     await serp.serpOrganic(ctx, args);
 
     if (result.kind !== "measured") throw new Error("unreachable");
     expect(result.value.peopleAlsoAsk).toEqual(["What is a CRM used for?"]);
     expect(result.value.relatedSearches).toEqual(["crm for small business", "free crm"]);
-    expect(calls[0]!.cacheKey).toBe(`${calls[1]!.cacheKey}|paa`);
+    expect(calls[0]!.cacheKey).toBe(calls[1]!.cacheKey);
   });
 
   it('a SERP Google served no AI answer on is `present: false` — a muted cell, never a miss', async () => {

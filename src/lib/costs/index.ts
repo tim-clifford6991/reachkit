@@ -10,9 +10,9 @@ import { dbAdmin } from "@/lib/db";
 import { withRobotsMemo } from "@/lib/egress/robots-memo";
 import { CAPS } from "@/lib/config/constants";
 import { now } from "@/lib/config/now";
-import { readCache } from "./cache";
+import { pendingTask, readCache } from "./cache";
 import { openDayLedger, openSiteDayLedger, type SiteDayLedger } from "./daily";
-import { nameDraftOnRows, writeFetchRow } from "./ledger";
+import { nameDraftOnRows, storeCollected, writeFetchRow } from "./ledger";
 import { isFetchRefusal, isVendorFailure } from "./refusal";
 export {
   isFetchRefusal,
@@ -101,6 +101,12 @@ export interface CostContext {
   /** True once a vendor refused a call of this context for lack of credit.
    *  Absent on a stand-in context, which is never refused. */
   fundsRefused?(): boolean;
+  /** A paid queued task a call on a key left out since `since`, which a later ask reads instead of posting again, and
+   *  `keep`, which stores that read on the row the post wrote. Absent on a stand-in context, which always posts. */
+  queued?: {
+    held(source: string, cacheKey: string, since: Date): Promise<{ id: string; taskId: string; storedAt: Date } | null>;
+    keep(rowId: string, payload: unknown): Promise<void>;
+  };
 
   /** The draft this context's calls are for, once it has a row.
    *  The calls made since the context opened, or since the last `null`,
@@ -339,6 +345,8 @@ export async function withCostContext<T>(
     fundsRefused(): boolean {
       return refusedForFunds;
     },
+
+    queued: { held: (source, cacheKey, since) => pendingTask(source, cacheKey, since), keep: (rowId, payload) => storeCollected(rowId, payload) },
 
     ...(isDraft
       ? {

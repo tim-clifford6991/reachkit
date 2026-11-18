@@ -110,6 +110,12 @@ export async function writeFetchRow(row: {
   }
 }
 
+/** Stores what a later free read of a paid queued task returned on the row its post wrote; no second row is written. */
+export async function storeCollected(rowId: string, payload: unknown): Promise<void> {
+  const { error } = await untypedFetches(dbAdmin()).from<FetchesRow>("fetches").update({ payload: storable(payload) }).eq("id", rowId);
+  if (error) throw new Error(`ledger.ts: update of fetches failed: ${error.message}`);
+}
+
 /** Names the draft a cost context's earlier rows were spent
  *  for, once that draft has a row. Never throws: the rows are the ledger
  *  and stand either way, and a page is not lost because its calls could

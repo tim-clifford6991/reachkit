@@ -179,17 +179,10 @@ async function reportUnreadable(queue: string, serp: SerpResult | undefined, cac
   }
 }
 
-/** The ledger key of one SERP read, which a later collection finds it by. */
-export function serpCacheKey(a: { query: string; locale: Locale; loadAsyncAiOverview: boolean; scope: CacheScope; questions?: true; depth?: SerpDepth }): string {
+/** The ledger key of one SERP read. Every SERP is parsed for its People also ask, so one search has one key. */
+function serpCacheKey(a: { query: string; locale: Locale; loadAsyncAiOverview: boolean; scope: CacheScope; depth?: SerpDepth }): string {
   const depth = a.depth ?? VENDOR.serpDepth;
-  return `${a.query}|${placeCacheKey(a.locale)}|aio:${a.loadAsyncAiOverview ? "async" : "cached"}|${scopeKey(a.scope)}${a.questions === true ? "|paa" : ""}${depth === VENDOR.serpDepth ? "" : `|depth:${depth}`}`;
-}
-
-/** A queued SERP an earlier step posted and stopped waiting on, read free until `untilMs`: its rows, or still pending. */
-export async function collectSerp(taskId: string, untilMs: number): Promise<SerpResult[] | "pending" | "failed"> {
-  const out = await collectTask(PATHS, taskId, untilMs);
-  if (!out.ok) return out.taskId === undefined ? "failed" : "pending";
-  return out.noResults === true ? [] : (parseSerp(out.result) ?? "failed");
+  return `${a.query}|${placeCacheKey(a.locale)}|aio:${a.loadAsyncAiOverview ? "async" : "cached"}|${scopeKey(a.scope)}${depth === VENDOR.serpDepth ? "" : `|depth:${depth}`}`;
 }
 
 export async function serpOrganic(
@@ -223,10 +216,6 @@ export async function serpOrganic(
     /** How often the queue is asked whether the task is ready, where the
      *  caller cannot wait `VENDOR.stdQueuePollIntervalS` between asks. */
     pollMs?: number;
-    /** The caller reads this SERP's "People also ask" and related searches
-     *  (D61). It is then keyed apart, so it is never served a SERP stored
-     *  before they were read, whose silence about them means nothing. */
-    questions?: true;
     /** A read deeper than `VENDOR.serpDepth`, for a page's own search. */
     depth?: SerpDepth;
   }
@@ -263,6 +252,8 @@ export async function serpOrganic(
         a.depth
       ),
     parse: parseSerp,
+    // A later ask for a search still on the queue reads its task (free `task_get`) instead of posting again.
+    ...(a.mode === "std" ? { adopt: { read: (taskId: string, untilMs: number) => collectTask(PATHS, taskId, untilMs), ...(a.untilMs === undefined ? {} : { untilMs: a.untilMs }) } } : {}),
     ...(a.onFailure ? { onFailure: a.onFailure } : {}),
     onReused: (storedAt) => {
       reusedFrom = storedAt;

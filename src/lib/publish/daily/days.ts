@@ -126,9 +126,9 @@ export async function dayHold(siteId: string, publishDate: string): Promise<stri
   }
 }
 
-/** The owed days no due hour recorded (a missed tick, or a run killed first); a first day was not owed. And, `again`,
- *  a day the generator left with no page before a newer weekly commit, decided once more against that week. An
- *  unreadable store gives none, and the next tick asks again. Never throws. */
+/** The owed days no due hour recorded (a missed tick, or a run killed first) or one left with research still queued;
+ *  a first day was not owed. And, `again`, a day the generator left with no page before a newer weekly commit, decided
+ *  once more against that week. An unreadable store gives none, and the next tick asks again. Never throws. */
 export async function missedDays<T extends DraftDay>(days: readonly T[]): Promise<readonly (T & { again?: true })[]> {
   if (days.length === 0) return [];
   try {
@@ -139,6 +139,9 @@ export async function missedDays<T extends DraftDay>(days: readonly T[]): Promis
       const kept = decided.get(`${day.siteId}/${day.publishDate}`);
       if (kept === undefined) {
         if (await store.draftedBefore(day.siteId, day.publishDate)) missed.push(day);
+      } else if (kept.ended?.startsWith("no_page:generate:research_pending") === true) {
+        // Research still on the queue measured nothing, so the open day is asked again and the next ask reads it at 0¢.
+        missed.push(day);
       } else if (kept.ended?.startsWith("no_page:generate:") && kept.decidedAt !== undefined) {
         const committed = (await store.committedAt?.(day.siteId)) ?? null;
         if (committed !== null && Date.parse(committed) > Date.parse(kept.decidedAt)) missed.push({ ...day, again: true });
