@@ -44,7 +44,8 @@ export const PRICE_BOOK = Object.freeze({
  *   - one deep pass (`DEEP_C` 150¢) plus a week of drafts (7 x `DRAFT_C` =
  *     315¢) is 465¢;
  *   - the largest day SPEC §6 allows a site, 3 deep passes in 24 hours (450¢)
- *     and the day's one draft (45¢), is 495¢.
+ *     and the day's one draft (45¢), is 495¢; while `DRAFT_C` is raised that
+ *     day is 540¢, still bounded by this cap.
  *  500¢ covers both, and is half the product's smallest day (1000¢), so one
  *  runaway site never takes the whole of it.
  *
@@ -52,7 +53,9 @@ export const PRICE_BOOK = Object.freeze({
  *  ledger in one call, and a site-local day would make "today" mean two
  *  different windows inside a single refusal. */
 export const CAPS = Object.freeze({
-  FREE_C: 12, DEEP_C: 150, WEEKLY_C: 40, DRAFT_C: 45,
+  FREE_C: 12, DEEP_C: 150, WEEKLY_C: 40,
+  /** Raised for one day, owner ruling 36 (2026-11-18, #2722); reverted by #2924. */
+  DRAFT_C: 90,
   DAILY_SITE_C: 500,
   /** SPEC §7 *Pages left*: a short week's top-up buys under its own 7¢ a site a week, outside `WEEKLY_C`. */
   TOPUP_C: 7,
