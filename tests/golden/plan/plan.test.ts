@@ -14,7 +14,7 @@ import { LEDGER_SOURCES, supplyLedger } from "@/lib/opportunities/derive/ledger"
 import { sourceOf } from "@/lib/opportunities/derive/topics";
 import { pageForDay, planFirstWeek, planWeek } from "@/lib/opportunities/plan";
 import { readOpportunity, setOpportunityStore, type OpportunityRow } from "@/lib/opportunities/store";
-import { memoryStore, newMemoryState } from "../../opportunities/memory-store";
+import { memoryStore, newMemoryState, type MemoryState } from "../../opportunities/memory-store";
 import { AT, heldOf, panelDomains, panelSite, SITE_ID, storedSerps, type PanelSite } from "./panel";
 
 /** A site whose stored rows commit no page, the gate that holds them, and
@@ -238,25 +238,26 @@ describe("a week whose rows all go unready mid-week is committed again from the 
 
   it("a recommit for a resting day keeps the later days where Monday put them, once per date, and no two rows share a place", async () => {
     const site = panelSite("austinplumbery.com");
-    const short = async (day: number) => {
+    const monday = async () => {
       const state = newMemoryState({ profile: site.profile, market: site.market, now: AT, rows: site.rows.map((row) => ({ ...row })) });
       setOpportunityStore({ ...memoryStore(state), topTenRows: async () => storedSerps(site.domain), setReadiness: async () => {} });
-      const week = await planWeek(SITE_ID, { now: AT, from: FROM });
-      const held = (id: string) => state.rows.find((row) => row.id === id)!;
-      for (const entry of week.filter((e) => e.place === day || e.plannedFor === null)) Object.assign(held(entry.opportunityId), { ready: false, unready_reason: "resting" });
-      return { state, week, held, page: await pageForDay(SITE_ID, week[day]!.plannedFor!, AT) };
+      return { state, days: (await planWeek(SITE_ID, { now: AT, from: FROM })).flatMap((e) => (e.plannedFor === null ? [] : [e.plannedFor])) };
     };
-    const { state, week, held, page } = await short(3);
-    expect([page !== null, page?.id === week[3]!.opportunityId]).toEqual([true, false]);
-    const kept = week.slice(4, 7);
-    expect(kept.map((e) => [held(e.opportunityId).plan_place, held(e.opportunityId).planned_for])).toEqual(kept.map((e) => [e.place, e.plannedFor]));
-    // Day 4 again and day 5 fall short too: day 4's claim is spent, day 5 takes its own.
-    const [day4, day5] = [week[3]!.plannedFor!, week[4]!.plannedFor!];
-    for (const row of state.rows) if (row.plan_place != null && [null, day4, day5].includes(row.planned_for ?? null)) Object.assign(row, { ready: false, unready_reason: "resting" });
-    expect(await pageForDay(SITE_ID, day4, AT, true)).toBeNull();
-    expect(await pageForDay(SITE_ID, day5, AT, true)).not.toBeNull();
-    expect((state.recommits ?? []).map((r) => r.date)).toEqual([day4, day5]);
-    const places = (await short(1)).state.rows.flatMap((row) => (row.plan_place == null ? [] : [row.plan_place]));
+    // The date's row and the spares rest, so its run recommits.
+    const short = (state: MemoryState, date: string) => {
+      for (const row of state.rows) if (row.plan_place != null && (row.planned_for == null || row.planned_for === date)) Object.assign(row, { ready: false, unready_reason: "resting" });
+      return pageForDay(SITE_ID, date, AT, true);
+    };
+    const { state, days } = await monday();
+    const later = () => state.rows.filter((row) => row.planned_for != null && row.planned_for > days[3]!).map((row) => [row.id, row.plan_place, row.planned_for]);
+    const before = later();
+    expect([before.length, await short(state, days[3]!) === null]).toEqual([3, false]);
+    expect(later()).toEqual(before);
+    expect([await short(state, days[3]!), await short(state, days[4]!)].map((page) => page === null)).toEqual([true, false]);
+    expect((state.recommits ?? []).map((r) => r.date)).toEqual([days[3], days[4]]);
+    const second = await monday();
+    await short(second.state, second.days[1]!);
+    const places = second.state.rows.flatMap((row) => (row.plan_place == null ? [] : [row.plan_place]));
     expect(new Set(places).size).toBe(places.length);
   });
 });
