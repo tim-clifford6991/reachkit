@@ -174,10 +174,12 @@ export interface RankLoad {
   /** The site's concluded market and its live pages of ours, which the commit joins one topic by; absent joins nothing. */
   market?: MarketConclusion | null;
   live?: readonly OwnLivePage[];
+  /** The refreshes held back by §6's floor, by id. */
+  floored?: readonly string[];
 }
 
 /** Why a row the store holds open takes no place in the list. */
-export type Rejection = "unready";
+export type Rejection = "unready" | "refresh_floor";
 
 /** Whether a row may take a place, or why not: the stored readiness column, so the column, the screens and this order
  *  cannot disagree. Pure. */
@@ -206,7 +208,8 @@ export async function loadRanking(siteId: string, at: Date, only?: ReadonlySet<s
     Promise.resolve().then(() => store.refreshPages(siteId)).catch(() => [] as readonly OwnLivePage[]),
   ]);
   // §6's floor: a refresh of our page whose live version is younger than it takes no place; unreadable pages keep it.
-  const rows = open.filter((row) => row.type !== "refresh_page" || !live.some((page) => at.getTime() - page.publishedAt.getTime() < REFRESH_MIN_AGE_DAYS * 86_400_000 && canonicalUrl(page.url) === canonicalUrl(row.target_ref)));
+  const young = (row: OpportunityRow) => row.type === "refresh_page" && live.some((page) => at.getTime() - page.publishedAt.getTime() < REFRESH_MIN_AGE_DAYS * 86_400_000 && canonicalUrl(page.url) === canonicalUrl(row.target_ref));
+  const rows = open.filter((row) => !young(row));
   // An unmeasured count is the cold-start 0, as the pass reads it.
   const ownRanked = report === null ? null : report.ownRanked.kind === "measured" ? report.ownRanked.value : 0;
   const listicle = report === null ? null : await store.listicleHeld(siteId, report.scanId).catch(() => null);
@@ -214,7 +217,7 @@ export async function loadRanking(siteId: string, at: Date, only?: ReadonlySet<s
   const topTens = await topTensFor(rows, only, live.map((page) => page.row.scanId));
   // A cluster that cannot be read earns no page.
   const linkedClusters = cited.length === 0 ? [] : await store.clustersAt(siteId, cited).catch(() => [] as readonly string[]);
-  return { rows, fixRows, profile, cited, topTens, prompts, linkedClusters, ownRanked, listicle, market, live };
+  return { rows, fixRows, profile, cited, topTens, prompts, linkedClusters, ownRanked, listicle, market, live, floored: open.filter(young).map((row) => row.id) };
 }
 
 function topTensFor(rows: readonly OpportunityRow[], only?: ReadonlySet<string>, live: readonly string[] = []) {
@@ -236,7 +239,7 @@ export function rankingOf(
   rotation: Rotation;
   rejected: { opportunityId: string; reason: Rejection }[];
 } {
-  const rejected: { opportunityId: string; reason: Rejection }[] = [];
+  const rejected = (load.floored ?? []).map((opportunityId) => ({ opportunityId, reason: "refresh_floor" as Rejection }));
   const keep = (row: OpportunityRow) => {
     const reason = eligible(row);
     if (reason !== null) rejected.push({ opportunityId: row.id, reason });

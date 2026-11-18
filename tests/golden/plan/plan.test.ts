@@ -14,7 +14,7 @@ import { LEDGER_SOURCES, supplyLedger } from "@/lib/opportunities/derive/ledger"
 import { sourceOf } from "@/lib/opportunities/derive/topics";
 import { pageForDay, planFirstWeek, planWeek } from "@/lib/opportunities/plan";
 import { readOpportunity, setOpportunityStore, type OpportunityRow } from "@/lib/opportunities/store";
-import { memoryStore, newMemoryState } from "../../opportunities/memory-store";
+import { memoryStore, newMemoryState, type MemoryState } from "../../opportunities/memory-store";
 import { AT, heldOf, panelDomains, panelSite, SITE_ID, storedSerps, type PanelSite } from "./panel";
 
 /** A site whose stored rows commit no page, the gate that holds them, and
@@ -234,5 +234,30 @@ describe("a week whose rows all go unready mid-week is committed again from the 
       lines.push(`| ${domain} | ${left} | ${page?.targetQuery ?? "none"} | ${page === null ? "unchanged" : days.map((row) => row.target_query).join("; ")} |`);
     }
     await expect(lines.join("\n") + "\n").toMatchFileSnapshot("./results/recommit.md");
+  });
+
+  it("a recommit for a resting day keeps the later days where Monday put them, once per date, and no two rows share a place", async () => {
+    const site = panelSite("austinplumbery.com");
+    const monday = async () => {
+      const state = newMemoryState({ profile: site.profile, market: site.market, now: AT, rows: site.rows.map((row) => ({ ...row })) });
+      setOpportunityStore({ ...memoryStore(state), topTenRows: async () => storedSerps(site.domain), setReadiness: async () => {} });
+      return { state, days: (await planWeek(SITE_ID, { now: AT, from: FROM })).flatMap((e) => (e.plannedFor === null ? [] : [e.plannedFor])) };
+    };
+    // The date's row and the spares rest, so its run recommits.
+    const short = (state: MemoryState, date: string) => {
+      for (const row of state.rows) if (row.plan_place != null && (row.planned_for == null || row.planned_for === date)) Object.assign(row, { ready: false, unready_reason: "resting" });
+      return pageForDay(SITE_ID, date, AT, true);
+    };
+    const { state, days } = await monday();
+    const later = () => state.rows.filter((row) => row.planned_for != null && row.planned_for > days[3]!).map((row) => [row.id, row.plan_place, row.planned_for]);
+    const before = later();
+    expect([before.length, await short(state, days[3]!) === null]).toEqual([3, false]);
+    expect(later()).toEqual(before);
+    expect([await short(state, days[3]!), await short(state, days[4]!)].map((page) => page === null)).toEqual([true, false]);
+    expect((state.recommits ?? []).map((r) => r.date)).toEqual([days[3], days[4]]);
+    const second = await monday();
+    await short(second.state, second.days[1]!);
+    const places = second.state.rows.flatMap((row) => (row.plan_place == null ? [] : [row.plan_place]));
+    expect(new Set(places).size).toBe(places.length);
   });
 });
