@@ -28,13 +28,10 @@
 //   heldDays                      §9's held set (#45, REQ-092 c5)
 //   customerChangeHoldsPages      §4.7's saved settings (#42)
 //
-// **Two values a planned page does not speak.** Its `title` is the search
-// it targets and not the model's proposed title: that title is
-// model-written and reaches a customer only through `GeneratedText`
-// (ADR-012), which this screen has no gate for — the written title arrives
-// with the draft (#44). Its `askedAs` is `templateQuestion`, the
-// deterministic question form, which is code and not copy (DECISIONS
-// 2026-09-05, #82).
+// **A planned page speaks its search.** Its `title` is the search it
+// targets; a written page's own title replaces it, labelled. Its `askedAs`
+// is `templateQuestion`, the deterministic question form, which is code
+// and not copy (DECISIONS 2026-09-05, #82).
 import { templateQuestion } from "@/lib/market/questions/phrase";
 import { unmeasured, type Measured } from "@/lib/measure/measured";
 import { cache } from "react";
@@ -46,6 +43,7 @@ import {
   supplyMeasured,
   type Choice,
 } from "@/lib/opportunities";
+import { fromStored, renderGenerated } from "@/lib/presentation/generated";
 import { writtenLine } from "../_shell/written";
 import { whySentenceOf } from "./card-lines";
 import { pageTargetOf } from "../_shell/page-target";
@@ -187,10 +185,7 @@ function whyOf(choice: Choice, at: Date): WhyThisPage {
  *  this date is §7's, read through the same `explainChoice` a planned date
  *  uses — so a page keeps its account of itself from the moment supply
  *  chose it to the moment it goes live, and the panel does not change its
- *  story when the draft is written.
- *
- *  The title is the search, not the draft's own written title: see
- *  `drafts-read.ts`'s note on ADR-012. */
+ *  story when the draft is written. */
 function pageOn(a: {
   page: ScheduledPage;
   choice: Choice;
@@ -204,9 +199,16 @@ function pageOn(a: {
   now: Date;
 }): DraftOnDay {
   const at = measuredAtOf(a.choice, a.now);
+  const search = a.choice.evidence.family === "fix" ? "" : a.choice.evidence.query;
+  // Model-written, so it reaches the screen only with its label (ADR-012); a draft still being written keeps its search.
+  const stored = a.page.state === "generating" || search === "" ? "" : (a.page.title?.trim() ?? "");
+  const title = fromStored("drafts.title", stored);
+  const written =
+    stored === "" ? null : renderGenerated(title, { state: "written", pageId: a.page.draftId, title, edited: a.page.edited });
   return {
     draftId: a.page.draftId,
-    title: a.choice.evidence.family === "fix" ? "" : a.choice.evidence.query,
+    title: written?.text ?? search,
+    ...(written === null ? {} : { titleLabel: written.label }),
     state: a.page.state,
     enteredReview: a.page.enteredReview,
     scheduledFor: a.page.scheduledFor as DayKey,
@@ -490,7 +492,7 @@ export async function readCalendarFacts(a: {
     now: a.now,
     stop,
     drafts,
-    // The search each spare targets, as a planned date's title is (ADR-012).
+    // The search each spare targets, as a planned date's title is.
     spares: week.spares.flatMap((spare) => (spare.targetQuery === null ? [] : [spare.targetQuery])),
     // REQ-047 c5's dated instruction and §11's stopped-work record are
     // still other subsystems' rows (#42, #39). Empty here is what is true

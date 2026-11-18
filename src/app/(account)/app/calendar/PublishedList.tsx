@@ -136,6 +136,7 @@ function Row(p: {
             {row.title}
           </Link>
         )}
+        {page?.titleLabel === undefined ? null : <span className="min-w-0 text-xs text-base-content/70" data-testid="plan-live-title-label">{page.titleLabel}</span>}
         {lines.length === 0 ? null : <p className="min-w-0 text-sm text-base-content/70">{lines.join(" ")}</p>}
         <span className="flex min-w-0 flex-col gap-1 text-xs text-base-content/70">
           <Dots dots={unread(row.dots.google, row.measured)} caption={copy("calendar.live.google", { step: google })} testId="plan-live-google" />

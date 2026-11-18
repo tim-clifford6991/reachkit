@@ -18,6 +18,8 @@ import type { PageReading } from "@/lib/measure/page-reading";
 export interface PublishedPage {
   id: string;
   title: string;
+  /** `renderGenerated`'s label where `title` is the draft's own; absent where it is the address. */
+  titleLabel?: string;
   /** The address it is live at, where the publish recorded one. */
   url: string | null;
   publishedAt: Date;

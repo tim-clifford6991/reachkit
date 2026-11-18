@@ -231,6 +231,8 @@ export interface ScheduledPage {
   readonly setAside: boolean;
   /** Whether the page is the day's fallback update of a live page, from its own meta. */
   readonly becameUpdate: boolean;
+  /** Whether the customer has saved an edit to it, from its own meta. */
+  readonly edited: boolean;
 }
 
 interface ScheduledDraftRow {
@@ -324,6 +326,7 @@ export async function scheduledPagesFor(a: {
       needsYou: needsYouOf({ state, transitions: row.transitions, meta: row.meta }),
       setAside: setAsideOf({ state, transitions: row.transitions }),
       becameUpdate: becameUpdate(row.meta),
+      edited: typeof (row.meta as { first_edited_at?: unknown } | null)?.first_edited_at === "string",
       // The address now; `readStandings` re-addresses its side of the join too, so a moved host never empties it.
       liveUrl:
         state === "published" && publication?.made_live_by_us === true && publication.live_url !== null

@@ -94,7 +94,10 @@ function DayRow(p: {
             )
           ) : (
             <>
-              <KindChip update={page.update} />
+              <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                <KindChip update={page.update} />
+                {page.titleLabel === undefined ? null : <span className="min-w-0 text-xs text-base-content/70" data-testid="cell-title-label">{page.titleLabel}</span>}
+              </span>
               <span className="min-w-0 text-sm font-semibold leading-snug wrap-anywhere" data-testid="cell-label">
                 {page.title}
               </span>

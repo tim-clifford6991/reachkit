@@ -143,6 +143,7 @@ function PageRow(p: { row: AiPageRow }): React.JSX.Element {
               {row.title}
             </Link>
           )}
+          {row.titleLabel === undefined ? null : <span className={`text-xs ${INK}`} data-testid="ai-page-title-label">{row.titleLabel}</span>}
           {pair === null ? null : (
             // REQ-093 c3: the wording is shown only beside the search it came from.
             <p className={`text-xs break-words ${INK}`}>

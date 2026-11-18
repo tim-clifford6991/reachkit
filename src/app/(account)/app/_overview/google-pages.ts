@@ -22,6 +22,7 @@ export type PlaceLine =
 export interface GooglePageRow {
   id: string;
   title: string;
+  titleLabel?: string;
   href: string | null;
   /** The search its place is read on; `null` where no place was read. */
   search: string | null;
@@ -65,6 +66,7 @@ export function googlePagesOf(all: readonly PublishedPage[], now: Date): GoogleP
     return {
       id: page.id,
       title: page.title,
+      ...(page.titleLabel === undefined ? {} : { titleLabel: page.titleLabel }),
       href: page.draftId === undefined ? null : `/app/draft/${page.draftId}`,
       search: reading?.place?.query ?? null,
       line: lineOf(page, now),
