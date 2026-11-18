@@ -172,6 +172,7 @@ body {
  *   chart draw                      1.4s  — `SERIES_DRAW` in `src/ui/motion.ts`
  *   the report's score ring         1.4s  — `animate-ring`, the same draw
  *   *Live* / *Your review* dot      2.4s  — `animate-beacon`
+ *   the landing's logo band         5s a site, linear — `animate-logos`
  *
  * Under `prefers-reduced-motion: reduce` nothing moves: the rule at the end
  * turns every animation and transition off, `animate-rise` holds nothing back once
@@ -191,6 +192,8 @@ body {
    * registers as a `<percentage>`, so the fill can be drawn from nothing.
    * `backwards`, like `rise`: once drawn it lets go. */
   --animate-ring: ring 1.4s var(--ease-calm) backwards;
+  /* The track holds its set twice, so half its width is one seamless lap. */
+  --animate-logos: logos 40s linear infinite;
 
   @keyframes rise {
     from {
@@ -202,6 +205,12 @@ body {
   @keyframes ring {
     from {
       --radialprogress: 0%;
+    }
+  }
+
+  @keyframes logos {
+    to {
+      translate: -50% 0;
     }
   }
 
