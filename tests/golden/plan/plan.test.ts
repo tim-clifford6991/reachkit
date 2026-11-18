@@ -236,16 +236,27 @@ describe("a week whose rows all go unready mid-week is committed again from the 
     await expect(lines.join("\n") + "\n").toMatchFileSnapshot("./results/recommit.md");
   });
 
-  it("a recommit for a resting day 4 with no spares keeps days 5 to 7 where Monday put them", async () => {
+  it("a recommit for a resting day keeps the later days where Monday put them, once per date, and no two rows share a place", async () => {
     const site = panelSite("austinplumbery.com");
-    const state = newMemoryState({ profile: site.profile, market: site.market, now: AT, rows: site.rows.map((row) => ({ ...row })) });
-    setOpportunityStore({ ...memoryStore(state), topTenRows: async () => storedSerps(site.domain), setReadiness: async () => {} });
-    const week = await planWeek(SITE_ID, { now: AT, from: FROM });
-    const held = (id: string) => state.rows.find((row) => row.id === id)!;
-    for (const entry of week.filter((e) => e.place === 3 || e.plannedFor === null)) Object.assign(held(entry.opportunityId), { ready: false, unready_reason: "resting" });
-    const page = await pageForDay(SITE_ID, week[3]!.plannedFor!, AT);
+    const short = async (day: number) => {
+      const state = newMemoryState({ profile: site.profile, market: site.market, now: AT, rows: site.rows.map((row) => ({ ...row })) });
+      setOpportunityStore({ ...memoryStore(state), topTenRows: async () => storedSerps(site.domain), setReadiness: async () => {} });
+      const week = await planWeek(SITE_ID, { now: AT, from: FROM });
+      const held = (id: string) => state.rows.find((row) => row.id === id)!;
+      for (const entry of week.filter((e) => e.place === day || e.plannedFor === null)) Object.assign(held(entry.opportunityId), { ready: false, unready_reason: "resting" });
+      return { state, week, held, page: await pageForDay(SITE_ID, week[day]!.plannedFor!, AT) };
+    };
+    const { state, week, held, page } = await short(3);
     expect([page !== null, page?.id === week[3]!.opportunityId]).toEqual([true, false]);
     const kept = week.slice(4, 7);
     expect(kept.map((e) => [held(e.opportunityId).plan_place, held(e.opportunityId).planned_for])).toEqual(kept.map((e) => [e.place, e.plannedFor]));
+    // Day 4 again and day 5 fall short too: day 4's claim is spent, day 5 takes its own.
+    const [day4, day5] = [week[3]!.plannedFor!, week[4]!.plannedFor!];
+    for (const row of state.rows) if (row.plan_place != null && [null, day4, day5].includes(row.planned_for ?? null)) Object.assign(row, { ready: false, unready_reason: "resting" });
+    expect(await pageForDay(SITE_ID, day4, AT, true)).toBeNull();
+    expect(await pageForDay(SITE_ID, day5, AT, true)).not.toBeNull();
+    expect((state.recommits ?? []).map((r) => r.date)).toEqual([day4, day5]);
+    const places = (await short(1)).state.rows.flatMap((row) => (row.plan_place == null ? [] : [row.plan_place]));
+    expect(new Set(places).size).toBe(places.length);
   });
 });

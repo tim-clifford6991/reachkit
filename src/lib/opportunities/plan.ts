@@ -39,10 +39,12 @@ export async function planWeek(siteId: string, a: { now?: Date; from?: string; r
   // Before the first weekly pass, the dated days stop where that Monday's pass opens the next week: a Wednesday 5, a Monday 7.
   const days = a.keepLater ? 1 : (await store.weeklyCommit(siteId)) === null ? (8 - new Date(`${from}T00:00:00Z`).getUTCDay()) % 7 || WEEK_PLAN.days : WEEK_PLAN.days;
   // A recommit fills its own date and the spares: the days after it stay as committed.
-  const later = new Set(a.keepLater ? (await store.plannedRows(siteId)).flatMap((r) => (r.planned_for != null && r.planned_for > from ? [r.id] : [])) : []);
+  const kept = a.keepLater ? (await store.plannedRows(siteId)).filter((r) => r.planned_for != null && r.planned_for > from) : [];
+  const later = new Set(kept.map((r) => r.id)), top = Math.max(0, ...kept.map((r) => r.plan_place ?? 0));
   const load = await loadRanking(siteId, now), free = (r: OpportunityRow) => !later.has(r.id);
   const choice = choose({ ...load, rows: load.rows.filter(free), fixRows: load.fixRows.filter(free), at: now, from, days });
-  const entries = choice.committed, rejected: Record<string, { n: number; ids?: string[] }> = {};
+  // The day keeps place 0, which no later row holds; the spares follow the kept rows so no two rows share a place.
+  const entries = choice.committed.map((e) => (e.plannedFor === null ? { ...e, place: top + e.place } : e)), rejected: Record<string, { n: number; ids?: string[] }> = {};
   for (const r of choice.rejected) {
     const held = (rejected[r.reason] ??= r.reason === "after_the_week" ? { n: 0 } : { n: 0, ids: [] });
     held.n++;
