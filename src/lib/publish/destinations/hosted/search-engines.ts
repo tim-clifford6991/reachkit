@@ -6,8 +6,8 @@
 //   2. The host is verified (the meta method: the hosted index prints the
 //      token stored on the destination) and its sitemap submitted. Each step
 //      is stored as it lands, so a pass that stops half way resumes where it stopped.
-//   3. Per page: URL Inspection, and impressions, clicks and best place by
-//      query over `SEARCH_READING_WINDOW_D`.
+//   3. Per page: URL Inspection, and impressions and clicks (by page alone) and best place by
+//      query over `SEARCH_READING_WINDOW_D`; a property younger than `PROPERTY_NEW_D` gets URL Inspection only.
 //   4. One `search_reading` per live page, assembled by
 //      `@/lib/measure/page-reading` from the newest stored report, the
 //      reads counted on the page, and Google's reading.
@@ -23,6 +23,8 @@ import { publishDb } from "../../db";
 import { announceUnannounced, type AnnounceSend } from "./announce";
 
 const DAY_MS = 86_400_000;
+// Google starts a new property's data "in a few days" and Search Analytics lags 2–3 days more, so an empty answer before then is not a zero.
+const PROPERTY_NEW_D = 4;
 
 /** `destinations.search_verification`. */
 export interface SearchVerification {
@@ -112,10 +114,19 @@ async function readGoogle(a: {
     await a.save();
   }
 
-  const rows = await client.performance(a.siteUrl, day(new Date(a.now.getTime() - SEARCH_READING_WINDOW_D * DAY_MS)), day(a.now));
-  if (rows === null) return "performance_unread";
   const readings = new Map<string, GoogleReading>();
-  for (const page of a.pages) readings.set(page.url, engineReadingOf(rows, page.url, page.search, await client.inspect(a.siteUrl, page.url)));
+  if (a.now.getTime() - Date.parse(held.sitemapAt) < PROPERTY_NEW_D * DAY_MS) {
+    for (const page of a.pages) {
+      const inspected = await client.inspect(a.siteUrl, page.url);
+      readings.set(page.url, { unread: "property_new", indexed: inspected?.indexed ?? null, lastCrawl: inspected?.lastCrawl ?? null });
+    }
+    return readings;
+  }
+  const start = day(new Date(a.now.getTime() - SEARCH_READING_WINDOW_D * DAY_MS));
+  const totals = await client.performance(a.siteUrl, start, day(a.now), false);
+  const rows = totals === null ? null : await client.performance(a.siteUrl, start, day(a.now));
+  if (totals === null || rows === null) return "performance_unread";
+  for (const page of a.pages) readings.set(page.url, engineReadingOf(totals, rows, page.url, page.search, await client.inspect(a.siteUrl, page.url)));
   return readings;
 }
 

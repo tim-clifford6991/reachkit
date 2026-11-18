@@ -44,6 +44,8 @@ async function google(url: string, opts: SafeFetchOpts): Promise<FetchOutcome> {
   if (url.endsWith("/siteVerification/v1/token")) return ok({ method: "META", token: '<meta name="google-site-verification" content="g-fixture-token" />' });
   if (url.includes("/siteVerification/v1/webResource")) return ok({ id: SITE_URL, owners: [ACCOUNT.client_email] });
   if (url.endsWith("/searchAnalytics/query")) {
+    // By page alone Google keeps the anonymised queries the page × query rows leave out.
+    if (opts.body?.includes('["page"]')) return ok({ rows: [{ keys: [OLD], clicks: 2, impressions: 40, position: 40 }] });
     return ok({
       rows: [
         { keys: [OLD, "How to  rank"], clicks: 1, impressions: 30, ctr: 0.03, position: 34.2 },
@@ -114,10 +116,14 @@ describe("issue 1553 — a live hosted host is verified, and each page's way to 
     const verification = db.rows("destinations")[0]?.search_verification as Record<string, Record<string, string>>;
     expect(verification.google).toMatchObject({ account: ACCOUNT.client_email, verifiedAt: NOW.toISOString(), sitemapAt: NOW.toISOString() });
     expect(sent.some((r) => r.opts.method === "PUT" && r.url.endsWith(`/sitemaps/${encodeURIComponent(`${SITE_URL}sitemap.xml`)}`))).toBe(true);
+    // The property added this pass is not measured yet: URL Inspection's facts are kept, and no figure is stored.
+    expect(stored("pub-old")?.google).toEqual({ unread: "property_new", indexed: true, lastCrawl: "2026-10-12T03:00:00Z" });
 
-    // The older page: indexed, shown 37 times, absent from its own result,
+    await readSearchEngines({ siteId: "s1", now: new Date(NOW.getTime() + 5 * 86_400_000), deps: { accounts: [ACCOUNT], gscSend: google, announce: async () => ok({}) } });
+
+    // The older page: indexed, shown 40 times by page alone, absent from its own result,
     // so Search Console's place 34 — and its own question's answer linked nobody.
-    expect(ladderOf(stored("pub-old"), 0)).toEqual({ crawled: true, indexed: true, impressions: 37, showing: true, bestPlace: 34, placeSource: "gsc", cited: false });
+    expect(ladderOf(stored("pub-old"), 0)).toEqual({ crawled: true, indexed: true, impressions: 40, showing: true, bestPlace: 34, placeSource: "gsc", cited: false });
     expect(stored("pub-old")?.google).toMatchObject({ indexed: true, bestPlace: 34.2, bestQuery: "How to  rank" });
     // The newer page: Googlebot counted, unknown to Google, cited by AI.
     expect(ladderOf(stored("pub-new"), 2)).toEqual({ crawled: true, indexed: false, impressions: 0, showing: false, bestPlace: null, placeSource: null, cited: true });

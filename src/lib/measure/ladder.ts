@@ -34,10 +34,10 @@ export function ladderOf(reading: PageReading | null, crawls: number | null): La
   const google = googleRead(reading?.google);
   const impressions = google === null ? null : google.impressions;
 
-  const crawledProved = reading?.googlebot === true || (crawls ?? 0) > 0 || google?.lastCrawl != null;
+  const crawledProved = reading?.googlebot === true || (crawls ?? 0) > 0 || reading?.google?.lastCrawl != null;
   const crawled = crawledProved ? true : crawls !== null || google !== null ? false : null;
 
-  const inspected = google?.indexed ?? null;
+  const inspected = reading?.google?.indexed ?? null;
   const seen = reading?.reached.showing !== undefined || (impressions ?? 0) > 0;
   const indexed = inspected === true || seen ? true : inspected === false ? false : null;
   const showing = reading?.place != null || (impressions ?? 0) > 0 ? true : impressions === null ? null : false;

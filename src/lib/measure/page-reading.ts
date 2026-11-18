@@ -201,7 +201,7 @@ export interface EngineReading {
   /** URL Inspection's verdict; `null` where the engine states none. */
   indexed: boolean | null;
   lastCrawl: string | null;
-  /** Impressions and clicks over every query in the window. */
+  /** Impressions and clicks over the window, anonymised queries included. */
   impressions: number;
   clicks: number;
   /** The best place over the window on the page's own search only. */
@@ -212,33 +212,35 @@ export interface EngineReading {
 }
 
 /** Why Google was not read for a page this week. */
-export const GOOGLE_UNREAD = ["no_credentials", "pool_full", "no_token", "verify_refused", "sitemap_refused", "performance_unread", "inspect_unread", "not_in_property"] as const;
+export const GOOGLE_UNREAD = ["no_credentials", "pool_full", "no_token", "verify_refused", "sitemap_refused", "performance_unread", "inspect_unread", "not_in_property", "property_new"] as const;
 export type GoogleUnread = (typeof GOOGLE_UNREAD)[number];
 
-/** A reason is not a reading: it carries no impressions, clicks or place. */
-export type GoogleReading = EngineReading | { unread: GoogleUnread };
+/** A reason is not a reading: it carries no impressions, clicks or place, only URL Inspection's facts where they were read. */
+export type GoogleReading = EngineReading | { unread: GoogleUnread; indexed?: boolean | null; lastCrawl?: string | null };
 
 /** The figures of a Google reading, or `null` where it holds only a reason. */
 export function googleRead(google: GoogleReading | null | undefined): EngineReading | null {
   return google == null || !("impressions" in google) ? null : google;
 }
 
-/** A page's Google reading from its Search Analytics rows (every query) and its URL Inspection. */
+/** A page's Google reading from its Search Analytics totals (page only), its rows by query and its URL Inspection. */
 export function engineReadingOf(
-  rows: readonly { page: string; query: string; impressions: number; clicks: number; position: number }[],
+  totals: readonly { page: string; impressions: number; clicks: number }[],
+  rows: readonly { page: string; query: string; position: number }[],
   url: string,
   search: string | null,
   inspected: { indexed: boolean; lastCrawl: string | null } | null
 ): EngineReading {
   const own = rows.filter((row) => addressOf(row.page) === addressOf(url));
+  const total = totals.filter((row) => addressOf(row.page) === addressOf(url));
   const key = search === null ? null : normalised(search);
   let top: { position: number; query: string } | null = null;
   for (const row of own) if (normalised(row.query) === key && row.position > 0 && (top === null || row.position < top.position)) top = row;
   return {
     indexed: inspected?.indexed ?? null,
     lastCrawl: inspected?.lastCrawl ?? null,
-    impressions: own.reduce((sum, row) => sum + row.impressions, 0),
-    clicks: own.reduce((sum, row) => sum + row.clicks, 0),
+    impressions: total.reduce((sum, row) => sum + row.impressions, 0),
+    clicks: total.reduce((sum, row) => sum + row.clicks, 0),
     bestPlace: top === null ? null : Math.round(top.position * 10) / 10,
     bestQuery: top?.query ?? null,
     ...(inspected === null ? { unread: "inspect_unread" as const } : {}),
@@ -279,7 +281,12 @@ const isText = (value: unknown): value is string => typeof value === "string";
 function engineOf(value: unknown): GoogleReading | null {
   const e = value as Partial<EngineReading> | null | undefined;
   if (typeof e !== "object" || e === null) return null;
-  if (!isNumber(e.impressions)) return (GOOGLE_UNREAD as readonly unknown[]).includes(e.unread) ? { unread: e.unread as GoogleUnread } : null;
+  if (!isNumber(e.impressions)) {
+    const unread = e.unread as unknown;
+    if (!(GOOGLE_UNREAD as readonly unknown[]).includes(unread)) return null;
+    if (unread !== "property_new") return { unread: unread as GoogleUnread };
+    return { unread, indexed: typeof e.indexed === "boolean" ? e.indexed : null, lastCrawl: isText(e.lastCrawl) ? e.lastCrawl : null };
+  }
   return {
     ...(e.unread === "inspect_unread" ? { unread: e.unread } : {}),
     indexed: typeof e.indexed === "boolean" ? e.indexed : null,
@@ -410,7 +417,7 @@ export function assembleReading(a: { before: PageReading | null; report: PlaceRe
   const googlebot = before?.googlebot === true || page.crawled;
 
   const now: Record<(typeof REACHED_KEYS)[number], boolean> = {
-    found: googlebot || google?.lastCrawl != null || google?.indexed === true,
+    found: googlebot || page.google?.lastCrawl != null || page.google?.indexed === true,
     showing: place !== null || variants.length > 0 || (google?.impressions ?? 0) > 0,
     firstPage: place !== null && place.value <= FIRST_PAGE_PLACES,
     readByAi: (page.aiReads ?? 0) > 0,

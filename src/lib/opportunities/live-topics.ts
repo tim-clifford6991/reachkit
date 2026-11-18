@@ -28,8 +28,7 @@ export const RETIRE_RANKED_WITHIN = 30;
 
 const DAY_MS = 86_400_000;
 
-/** What says a live page is worth keeping, read from stored rows since its
- *  address went live. */
+/** What says a live page is worth keeping, read from stored rows since its address went live. */
 export interface LiveSignals {
   /** When the address's first live version went live. */
   firstLive: Date;
@@ -179,7 +178,7 @@ export function liveTopicVerdict(page: LiveTopicPage, site: LiveTopicSite, now: 
 export type TwinHeld = "twin_waits_on_reading" | "own_host" | "draft_in_review" | "names_other_products";
 
 /** Of the live pages that pass the topic rules, each that is one question with a page holding more Google impressions
- *  (then clicks, then the older address) is merged into it, unless a reason holds it. Pure. */
+ *  (then clicks, then the older address, never when both read 0) is merged into it, unless a reason holds it. Pure. */
 export function liveTwins(pages: readonly LiveTopicPage[], site: Pick<LiveTopicSite, "joined" | "products">): {
   merge: { page: LiveTopicPage; into: LiveTopicPage }[];
   held: { liveUrl: string; into: string; why: TwinHeld }[];
@@ -195,7 +194,8 @@ export function liveTwins(pages: readonly LiveTopicPage[], site: Pick<LiveTopicS
     if (into === undefined) kept.push(page);
     else {
       const why: TwinHeld | null =
-        !page.hosted || !into.hosted ? "own_host"
+        into.google!.impressions + into.google!.clicks === 0 ? "twin_waits_on_reading"
+        : !page.hosted || !into.hosted ? "own_host"
         : page.updating === true || into.updating === true ? "draft_in_review"
         : products(page) !== products(into) ? "names_other_products"
         : null;
