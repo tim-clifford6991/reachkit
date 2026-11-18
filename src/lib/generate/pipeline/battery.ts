@@ -19,6 +19,7 @@ import { voiceLength } from "../voice/register";
 import type { LaidSection } from "./compose";
 import { closeElsewhere } from "./elsewhere";
 import type { SourcedFact } from "./grounding";
+import { sourcingUrls } from "./original";
 import { packStatements, type ContextPack, type PackClaim } from "./pack";
 import { builtFromOutside, fittedTemplate } from "../standard";
 import { repairable, repairRecorded, withoutBusiness, type RepairRecord } from "./repair";
@@ -159,7 +160,7 @@ export function batteryInputs(b: BatteryBasis, page: CheckedPage, markdown: stri
     distinctHeadings: pack.type === "qa",
     // Issue 1486: a how-to or a Q&A links the outside pages it is built
     // from.
-    ...(builtFromOutside(pack.type) ? { cites: { claimUrls: pack.claims.map((claim) => claim.url), min: b.citesMin } } : {}),
+    ...(builtFromOutside(pack.type) ? { cites: { claimUrls: sourcingUrls(pack.claims), min: b.citesMin } } : {}),
     heading: page.heading,
     rivalsNamed: b.rivalsNamed,
     ...(b.demoPhrases === undefined ? {} : { demoPhrases: b.demoPhrases }),

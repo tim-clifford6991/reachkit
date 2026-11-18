@@ -227,6 +227,10 @@ const ASKED_HEADINGS_RULE =
 const CORRECTIONS_RULE =
   "`pack.corrections` are facts about this business that AI answers state wrongly: `says` is what an answer said, `site` is what the business's own page at `url` states. State each `site` fact plainly, in one sentence of its own, with its figure or place as `site` gives it, in the section that speaks most to it. Never repeat, quote or mention what `says` said, and never say an AI answer was wrong.";
 
+/** The site's own measurement: stated once, as measured, in the business's voice. */
+const OWN_DATA_RULE =
+  "`pack.ownData` is this business's own measurement. State it once, in one sentence of your own in the section it fits best, as our measurements with its date and its figures exactly as `passage` gives them. Say only what was measured: never what it proves, causes or will lead to, and never who else measured it.";
+
 /** Issue 1521 (owner, 2026-10-18, amends D42 #7): what a growing refresh
  *  may add. */
 const GAPS_TASK =
@@ -346,6 +350,7 @@ function inputFor(a: WriteInputs, extra: Record<string, unknown> = {}): Record<s
       // Issue 2378: each hard rule the battery will ask of this page, from its own line.
       ...briefLines(a),
       ...((a.pack.corrections ?? []).length === 0 ? [] : [CORRECTIONS_RULE]),
+      ...(a.pack.ownData === undefined ? [] : [OWN_DATA_RULE]),
       ...(a.pack.voice === undefined ? [] : voiceRules(a.pack.voice)),
       ...(a.pack.type === "qa" || a.pack.type === "update" || a.pack.questions.length === 0 ? [] : [ASKED_HEADINGS_RULE]),
       ...(table === null ? [WRITTEN_TABLE_RULE] : [BUILT_TABLE_RULE, COUNTED_OPTIONS_RULE]),

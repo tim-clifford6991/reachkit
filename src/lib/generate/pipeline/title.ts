@@ -64,7 +64,7 @@ function rivals(pack: ContextPack): (claim: ContextPack["claims"][number]) => bo
 function evidenceOf(pack: ContextPack): string[] {
   // A rival's plan or price line is the rival's, never this page's specific.
   const rival = rivals(pack);
-  const claims = pack.claims.filter((claim) => !rival(claim)).map((claim) => claim.passage);
+  const claims = pack.claims.filter((claim) => !rival(claim) && claim.secondHand !== true).map((claim) => claim.passage);
   return pack.type === "offering" || pack.type === "update" ? [...pack.facts.map((fact) => fact.passage), ...claims, ...packStatements(pack)] : claims;
 }
 

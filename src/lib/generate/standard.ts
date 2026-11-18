@@ -12,6 +12,7 @@ import { registrableDomain } from "@/lib/market/rivals/domains";
 import { bodyWords, lengthRangeFor, sectionWords, typeLength } from "./length";
 import type { BatteryBasis } from "./pipeline/battery";
 import { fold, knowledgeTexts, ownTopicWords, rivalsOnlyVersus, shares, type ContextPack, type PackClaim, type PackMeasurements } from "./pipeline/pack";
+import { sourcingUrls } from "./pipeline/original";
 import { comparisonTable } from "./pipeline/table";
 import { citedSources } from "./rules/cites";
 import type { RuleFailure } from "./rules/types";
@@ -86,7 +87,7 @@ export function meetsStandard(a: ResearchHalf | PageHalf | ReadHalf): Standard {
     const { pack, template, length } = a.basis;
     parts = [
       mark("sections", a.sections, sectionBounds(template).min, short("sections")),
-      mark("sources", citedSources(a.markdown, pack.claims.map((claim) => claim.url)), a.basis.citesMin, short("sources")),
+      mark("sources", citedSources(a.markdown, sourcingUrls(pack.claims)), a.basis.citesMin, short("sources")),
       ...(length === null ? [] : [mark("words", pack.type === "update" ? sectionWords(a.markdown) : bodyWords(a.markdown), length.floor, short("words"))]),
       mark("title", short("title") ? 0 : 1, 1, short("title")),
       mark("links", short("links") ? 0 : 1, 1, short("links")),
@@ -159,7 +160,7 @@ function holds(requirement: PackRequirement, pack: Omit<ContextPack, "missing">,
     }
     case "outside_sources":
       // Claims off one page more than the body must cite, each read off the target's own research, never a rival's own page.
-      return new Set(pack.claims.filter((claim) => claim.product === undefined).map((claim) => claim.url)).size > requirement.min;
+      return sourcingUrls(pack.claims.filter((claim) => claim.product === undefined)).length > requirement.min;
     case "product_page":
       return pack.links.some((link) => link.purpose === "product" || link.purpose === "features" || link.purpose === "pricing");
     case "measured_questions":
@@ -204,7 +205,7 @@ const WAIVED: ReadonlySet<PackNeed> = new Set<PackNeed>(["outside_sources", "buy
  *  once its research holds the minimum: two sourced sections, from two independent sources, the site's own on-topic
  *  facts one of them. Under it, or written as any other page, everything it lacks: nothing is invented. */
 export function writtenAnyway(pack: ContextPack, missing: readonly PackNeed[], anyway: boolean): PackNeed[] {
-  const sources = new Set(pack.claims.map((claim) => registrableDomain(claim.url) ?? claim.url.replace(/^\w+:\/\/([^/]+).*$/, "$1")));
+  const sources = new Set(sourcingUrls(pack.claims).map((url) => registrableDomain(url) ?? url.replace(/^\w+:\/\/([^/]+).*$/, "$1")));
   const own = factTexts(pack).some((text) => shares(ownTopicWords(pack), text)) ? 1 : 0;
   return anyway && pack.questions.length >= 2 && sources.size + own >= 2 ? missing.filter((need) => !WAIVED.has(need)) : [...missing];
 }
