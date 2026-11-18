@@ -850,8 +850,8 @@ export const DRAFT_COPY = Object.freeze({
   ],
   "draft.checks.more": ["and {n} more", { slots: { n: "text" }, fixedBy: "issue 1748 (drafted)" }],
   "draft.checks.decided": [
-    "Only checks on facts, honesty, spam and repeats can stop a page. The rest are advice.",
-    { slots: {}, fixedBy: "SPEC §7 Only a harm check stops a page · issue 2736 · UX review" },
+    "A page that fails a check on facts, honesty, spam or repeats doesn’t go live. The other checks show where a page could be better.",
+    { slots: {}, fixedBy: "SPEC §7 What stops a page, in order · issue 2878 · UX review" },
   ],
   // Q6 (owner 2026-10-20, #1718): a stopped topic is dropped for good.
   "draft.decide.stop-note": [
