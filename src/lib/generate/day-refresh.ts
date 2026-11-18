@@ -92,6 +92,19 @@ export async function mendPage(a: MendInput): Promise<DayPageOutcome> {
   return mended.checked.passed ? { ok: true, draftId } : { ok: false, because: "rules", draftId, attempts: 1 };
 }
 
+/** SPEC §7 (owner, 2026-11-17 ~23:45): a committed 0¢ `structure` mend or a `link`/`unseen` refresh may publish, but it
+ *  never keeps the day. It gives up its date and is dated as its live version, so `dateModified` and `lastmod` stay. */
+export async function setAside(draftId: string): Promise<boolean> {
+  const store = generateStore();
+  const row = await store.draftById(draftId);
+  const o = row === null ? null : await opportunityById(row.opportunity_id);
+  const cause = (o?.evidence as { shortfall?: { cause?: unknown } } | undefined)?.shortfall?.cause;
+  if (row === null || o === null || !(mendable(o) || (o.type === "refresh_page" && (cause === "link" || cause === "unseen")))) return false;
+  const meta = metaOf(row.meta), live = (meta.pack as ContextPack | undefined)?.live?.datedAs;
+  await store.patchDraft(draftId, { scheduled_for: null, meta: typeof meta.datedAs === "string" || live === undefined ? meta : { ...meta, datedAs: live } });
+  return true;
+}
+
 const DAY_MS = 24 * 60 * 60 * 1000;
 /** A version live since `publishedAt` is at least the refresh floor old at `at`: nothing younger is refreshed for a day. */
 const pastFloor = (publishedAt: Date, at: Date): boolean => at.getTime() - publishedAt.getTime() >= REFRESH_MIN_AGE_DAYS * DAY_MS;
@@ -142,13 +155,13 @@ export async function updateSearch(siteId: string, at: Date): Promise<string | n
 }
 
 /** The candidate's open refresh where it has one, else one planned and assessed as Monday's are; none while it rests. */
-async function refreshRow(siteId: string, page: OwnLivePage, at: Date): Promise<Opportunity | null> {
+async function refreshRow(siteId: string, page: OwnLivePage, at: Date, plan = true): Promise<Opportunity | null> {
   const store = opportunityStore();
   const openAt = async () => (await store.openRankable(siteId)).map(readOpportunity).filter((o) => o.type === "refresh_page" && addressKey(o.targetRef ?? "") === addressKey(page.url));
   let open = await openAt();
   // Titled as the page is, so the writer finds its live text even before the known-content copy lists it.
   const planned = { ...refreshOfPage(page, "aged", at), title: page.title || null };
-  if (open.length === 0 && (await persistAssessed(siteId, [planned], at)) > 0) open = await openAt();
+  if (plan && open.length === 0 && (await persistAssessed(siteId, [planned], at)) > 0) open = await openAt();
   return open.find((o) => o.ready && !isResting(o, at)) ?? null;
 }
 
@@ -195,7 +208,9 @@ async function dayUpdate(day: Day, trigger: string, now: Date, cost: CostContext
     const serp = await serpOrganic(cost, read!);
     if (serp.kind === "unmeasured") continue;
     const sections = standard?.parts.find((part) => part.part === "sections")?.have ?? 0;
-    if (standard?.met === false && (serp.value.peopleAlsoAsk?.length ?? 0) <= sections) continue;
+    // The questions its research answers, where the commit checked its update, else the SERP's own count.
+    const asked = standard?.met === false ? ((await refreshRow(day.siteId, page, now, false))?.planReason?.research?.Q ?? serp.value.peopleAlsoAsk?.length ?? 0) : Infinity;
+    if (asked <= sections) continue;
     const opportunity = await refreshRow(day.siteId, page, now);
     if (opportunity === null) continue;
     await giveUp();

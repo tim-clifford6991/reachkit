@@ -262,7 +262,7 @@ export function headingsOf(html: string): string[] {
 
 /** One page off the network, or `null` where it did not answer with enough
  *  to read. */
-async function fetchPage(url: string): Promise<{ page: ReadPage; html: string } | null> {
+export async function fetchPage(url: string): Promise<{ page: ReadPage; html: string } | null> {
   const body = await fetchBody(url);
   if (body === null) return null;
   const text = visibleText(body.html);
@@ -679,11 +679,11 @@ export async function researchMarket(
     /** A Q&A, or a comparison that may be written as one (D47): what buyers
      *  ask about the target is read too (D61). */
     questions?: boolean;
-    /** A page built from cited outside facts (issue 1486): the one search
-     *  looks for the target's own guidance in place of studies, and a
-     *  result that is a platform's or an authority's documentation is read
-     *  first, as a `primary` source. */
+    /** A page built from cited outside facts (issue 1486): the one search looks for the target's own guidance in place
+     *  of studies, and a result that is a platform's or an authority's documentation is read first, as a `primary` source. */
     guidance?: boolean; study?: boolean;
+    /** The commit's readable results, in order (SPEC §7): read before the stored top ten, the fourth the spare. */
+    urls?: readonly string[];
   }
 ): Promise<MarketResearch> {
   const target = a.searches[0];
@@ -711,7 +711,7 @@ export async function researchMarket(
   //    then reads the products its top results name.
   //    The target's SERP, bought once first: its organic rows are the top
   //    results where the scan stored none, its questions what buyers ask.
-  const stored = storedTopTen(a.report, a.searches);
+  const stored = a.urls?.length ? [...a.urls] : storedTopTen(a.report, a.searches);
   let pending = false;
   const [targetRead, studyRead] = researchSerps({ ...a, target }, RESEARCH.queueWaitS * 1000).map((read) => ({ ...read, onFailure: (failed: { taskId?: string }) => void (pending ||= failed.taskId !== undefined) }));
   const beside = a.questions === true || stored.length === 0 ? await askedBeside(c, targetRead!) : null;

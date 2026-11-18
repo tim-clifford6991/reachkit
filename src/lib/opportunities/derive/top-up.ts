@@ -1,6 +1,6 @@
-// SPEC §7 *Pages left*: a weekly pass short of PLAN_DEPTH writable rows offers the site's stored, measured, right-sized
+// SPEC §7 *Pages left*: a weekly pass short of WEEK_RESEARCH.rowsMax writable rows offers the site's stored, measured, right-sized
 // searches to the pass's one fit call, so a short week fills from evidence and a dry one says which sources it tried.
-import { PLAN_DEPTH, WRITE_VOLUME_FLOOR_PER_MONTH } from "@/lib/config/constants";
+import { WEEK_RESEARCH, WRITE_VOLUME_FLOOR_PER_MONTH } from "@/lib/config/constants";
 import type { Language, Locale } from "@/lib/locale/locales";
 import { placeOf } from "@/lib/locale/place";
 import type { MarketConclusion } from "@/lib/market/infer/types";
@@ -29,7 +29,7 @@ export interface TopUpRecord { fired: boolean; have: number; sources: Record<Top
 
 export function topUpRecord(have: number): TopUpRecord {
   return {
-    fired: have < PLAN_DEPTH,
+    fired: have < WEEK_RESEARCH.rowsMax,
     have,
     sources: { 1: { offered: 0, added: 0 }, 2: { offered: 0, added: 0 }, 3: { offered: 0, added: 0 } },
     rejected: Object.fromEntries(REASONS.map((reason) => [reason, 0])) as Record<TopUpReason, number>,
@@ -74,7 +74,7 @@ export async function topUpWithPurchase(spend: TopUpSpend | undefined, a: TopUpA
 }
 
 /** Three offers a missing row, as the fit call refuses some, inside the room the call has left. */
-const wanted = (a: Pick<TopUpArgs, "max" | "record">) => Math.max(0, Math.min(a.max, 3 * (PLAN_DEPTH - a.record.have)));
+const wanted = (a: Pick<TopUpArgs, "max" | "record">) => Math.max(0, Math.min(a.max, 3 * (WEEK_RESEARCH.rowsMax - a.record.have)));
 
 /** Pure. The searches a short site's top-up offers, by source, winnable before reach, then by volume. */
 export function topUpTopics(a: TopUpArgs): TopUpTopic[] {

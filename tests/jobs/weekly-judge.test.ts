@@ -5,11 +5,13 @@
 // the digest reads them — a digest composed from an unjudged week reports
 // nothing moved — and a failed pass, which stored no report, judges
 // nothing at all rather than writing a week of blanks.
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DOMAIN, SITE_ID, WEEK, fakeStore, releaseStore, type Fake } from "../opportunities/verdicts/harness";
 import type { DigestPage } from "@/lib/opportunities/verdicts";
 import { setOpportunityStore } from "@/lib/opportunities/store";
 import { memoryStore, newMemoryState, type MemoryState } from "../opportunities/memory-store";
+import { asQueue, envelope, pollTheQueueAtOnce, stubVendorFetch, type VendorFetchStub } from "../vendors/harness";
+import { VENDOR } from "@/lib/config/constants";
 
 const weekly = vi.hoisted(() => ({
   outcome: { ran: true, scanId: "scan-1", status: "done" } as unknown,
@@ -47,7 +49,22 @@ const tick = () =>
 
 let store: Fake;
 let opportunities: MemoryState;
+// Only the network answers: PostgREST keeps the ledger and `ops_events`, and the vendor's queue answers at once.
+let tables: Map<string, Record<string, unknown>[]>;
+let vendor: VendorFetchStub;
 beforeEach(() => {
+  tables = new Map();
+  vendor = stubVendorFetch(asQueue(() => envelope({ items: [{ type: "organic", rank_group: 1, domain: "a.com", url: "https://a.com/", title: "A" }] })));
+  const answer = vi.mocked(fetch).getMockImplementation()!;
+  vi.mocked(fetch).mockImplementation(async (url, init) => {
+    const at = new URL(String(url)), name = at.pathname.split("/").pop()!;
+    if (at.host === "api.dataforseo.com") return answer(url, init);
+    const table = tables.get(name) ?? tables.set(name, []).get(name)!;
+    if (init?.method === "POST") table.push(...[JSON.parse(String(init.body))].flat().map((row: Record<string, unknown>) => ({ created_at: new Date().toISOString(), ...row })));
+    const rows = table.filter((row) => [...at.searchParams].every(([k, v]) => !v.startsWith("eq.") || String(row[k]) === v.slice(3))).reverse();
+    return new Response(JSON.stringify(name === "scans" ? [{ cost_cents: 0, site_id: SITE_ID }] : at.pathname.includes("/rpc/") ? 0 : rows));
+  });
+  pollTheQueueAtOnce(VENDOR.stdQueuePollIntervalS * 1000);
   opportunities = newMemoryState();
   setOpportunityStore(memoryStore(opportunities));
   releaseStore();
@@ -55,6 +72,7 @@ beforeEach(() => {
   digest.read = [];
   store = fakeStore({});
 });
+afterEach(() => vi.unstubAllGlobals());
 
 describe("the Monday tick judges the week it measured", () => {
   it("one published page and one measured week leave one verdict, and the digest names it", async () => {
@@ -98,5 +116,17 @@ describe("the Monday tick judges the week it measured", () => {
     await tick();
     await tick();
     expect(store.rows).toHaveLength(1);
+  });
+
+  it("**a replayed research step buys no second SERP and writes no second week_research row**", async () => {
+    const { askWeekResearch } = await import("@/lib/generate/research-queue");
+    const { commitWeek } = await import("@/lib/scan/weekly/commit");
+    const week = { siteId: SITE_ID, scanId: "scan-1", weekStart: WEEK, now: NOW, rows: [{ id: "write-1", target_query: "user onboarding software", topUp: true }] };
+    for (let run = 0; run < 2; run++) {
+      await askWeekResearch({ ...week, waitMs: 1_000 });
+      await commitWeek({ ...week, checks: [["write-1", null]] });
+    }
+    expect(vendor.requests.filter((request) => request.url.includes("/serp/google/organic/task_post"))).toHaveLength(1);
+    expect(tables.get("ops_events")?.map((row) => [row.kind, row.code, JSON.parse(String(row.read)).top_up])).toEqual([["week_research", WEEK, { tried: 1, kept: 0 }]]);
   });
 });

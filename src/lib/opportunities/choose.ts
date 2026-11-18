@@ -26,7 +26,7 @@ export interface ChooseInput extends RankLoad {
 
 export interface Choice {
   committed: PlanEntry[];
-  rejected: { opportunityId: string; reason: Rejection | "after_the_week" | "same_topic" | "live_twin" | "short" }[];
+  rejected: { opportunityId: string; reason: Rejection | "after_the_week" | "same_topic" | "live_twin" | "short"; short?: string[] }[];
 }
 
 const TIERS = ["met", "at_margin", "queued", "short"] as const;
@@ -46,7 +46,7 @@ export function choose(input: ChooseInput): Choice {
       reason: entry.reason,
       ...(entry.set === undefined ? {} : { set: entry.set }),
     })),
-    rejected: [...rejected, ...ranked.slice(depth).map((entry) => ({ opportunityId: entry.opportunityId, reason: entry.reason.research?.state === "short" ? ("short" as const) : ("after_the_week" as const) }))],
+    rejected: [...rejected, ...ranked.slice(depth).map((entry) => ({ opportunityId: entry.opportunityId, ...(entry.reason.research?.state === "short" ? { reason: "short" as const, short: entry.reason.research.short ?? [] } : { reason: "after_the_week" as const }) }))],
   };
 }
 
@@ -64,7 +64,7 @@ function byResearch(ranked: Joined[], input: ChooseInput): Joined[] {
     const roomy = standard.parts.every((part) => (part.part !== "sources" && (part.part !== "sections" || type !== "qa")) || part.have! - part.need >= WEEK_RESEARCH.margin);
     const state = standard.pending ? "queued" : !standard.met ? "short" : roomy ? "met" : "at_margin";
     const words = standard.parts.find((part) => part.part === "words")?.have ?? null;
-    return { ...entry, reason: { ...entry.reason, research: { state, R: read?.R ?? null, Q: read?.Q ?? null, F: read?.F ?? null, estWords: words, urls: read?.urls ?? [] } } };
+    return { ...entry, reason: { ...entry.reason, research: { state, R: read?.R ?? null, Q: read?.Q ?? null, F: read?.F ?? null, estWords: words, urls: read?.urls ?? [], ...(state === "short" ? { short: standard.parts.filter((part) => part.state === "short").map((part) => part.part) } : {}) } } };
   });
   const tier = (entry: Joined) => TIERS.indexOf(entry.reason.research?.state ?? "met");
   return [...head.sort((a, b) => tier(a) - tier(b)), ...ranked.slice(WEEK_RESEARCH.rowsMax)];

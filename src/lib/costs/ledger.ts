@@ -79,7 +79,7 @@ export async function writeFetchRow(row: {
   billedCents?: number;
   /** `draft` for a draft's calls, `topup` for a short week's top-up; absent, the database reads
    *  the activity off the scan. */
-  activity?: "draft" | "topup";
+  activity?: "draft" | "topup" | "weekly";
   draftId?: string;
 }): Promise<void> {
   const base = {

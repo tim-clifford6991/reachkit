@@ -3,7 +3,7 @@
 import type { Locale } from "@/lib/locale/locales";
 import { siteLocale } from "@/lib/locale/site";
 import type { FitFact, KnowledgeDigest } from "@/lib/site-profile/knowledge/read";
-import { ASKED_TOPICS, PLAN_DEPTH, TOPIC_FIT } from "@/lib/config/constants";
+import { ASKED_TOPICS, PLAN_DEPTH, TOPIC_FIT, WEEK_RESEARCH } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import { ownSearched } from "@/lib/market/infer/demand";
 import type { MarketConclusion } from "@/lib/market/infer/types";
@@ -333,7 +333,7 @@ export async function deriveOpportunities(
   const spare: AskedSupply[] = [];
   const refused: string[] = [];
   // A top-up search is measured and right-sized, so it is written at the gate, up to the rows the week lacks.
-  let lacking = PLAN_DEPTH - have;
+  let lacking = WEEK_RESEARCH.rowsMax - have;
   for (const [index, topic] of proposals.entries()) {
     const judged = fits.get(judgedHere.length + unjudged.length + index);
     if (toppedUp.has(topic) && topUp !== undefined) {
