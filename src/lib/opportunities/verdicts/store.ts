@@ -34,7 +34,7 @@ import { readStoredReport, type StoredReport } from "@/lib/scan/report";
 import type { Acceptance } from "../types";
 import { addressOf } from "@/lib/measure/page-reading";
 import { urlsIn } from "./seen";
-import { googleRead, readingOf, type PageReading } from "@/lib/measure/page-reading";
+import { readingOf, type PageReading } from "@/lib/measure/page-reading";
 import { readIntent, type IntentPrompt, type PageIntent } from "../intent";
 import type { CheckId, Movement, NotJudgeableCause, PageMeasured, Verdict, VerifyNote, WeekStart } from "./types";
 
@@ -482,7 +482,7 @@ export function supabaseVerdictStore(): VerdictStore {
         .eq("site_id", siteId)
         .not("search_reading", "is", null);
       const indexed = (inspected.data ?? [])
-        .filter((row) => googleRead(readingOf(row.search_reading)?.google)?.indexed === true)
+        .filter((row) => readingOf(row.search_reading)?.google?.indexed === true)
         .flatMap((row) => (row.live_url === null ? [] : [row.live_url]));
       return [...new Set([...(data ?? []).flatMap((scan) => urlsIn(scan)), ...indexed])];
     },

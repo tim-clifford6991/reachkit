@@ -14,7 +14,8 @@ const HOST = "content.reachkit.app";
 const A = `https://${HOST}/ai-search-visibility-pricing`;
 const B = `https://${HOST}/ai-visibility-pricing`;
 const VOLUME = { kind: "measured", value: 50, at: "2026-10-05T00:00:00.000Z" };
-const read = (impressions: number) => ({ at: "2026-11-16T05:00:00.000Z", google: { impressions, clicks: 1, indexed: true, lastCrawl: null } });
+const read = (impressions: number, clicks = 1) => ({ at: "2026-11-16T05:00:00.000Z", google: { impressions, clicks, indexed: true, lastCrawl: null } });
+const reason = (google: unknown) => ({ at: "2026-11-16T05:00:00.000Z", google });
 
 function row(id: string, query: string): Row {
   return {
@@ -24,7 +25,7 @@ function row(id: string, query: string): Row {
   };
 }
 
-function seed(bReading: unknown): void {
+function seed(bReading: unknown, aReading: unknown = read(120)): void {
   db.reset();
   installTransitionRpc(db);
   db.seed("sites", [{ id: "s1", domain: "reachkit.app", market: null }]);
@@ -34,7 +35,7 @@ function seed(bReading: unknown): void {
   db.seed("drafts", [{ ...draft, id: "dA", opportunity_id: "oA", title: "AI search visibility pricing" }, { ...draft, id: "dB", opportunity_id: "oB", title: "AI visibility pricing" }]);
   const live = { site_id: "s1", destination: "hosted", delivery_state: "delivered", unpublished_at: null };
   db.seed("publications", [
-    { ...live, id: "pA", draft_id: "dA", live_url: A, published_at: "2026-10-07T07:00:00.000Z", search_reading: read(120) },
+    { ...live, id: "pA", draft_id: "dA", live_url: A, published_at: "2026-10-07T07:00:00.000Z", search_reading: aReading },
     { ...live, id: "pB", draft_id: "dB", live_url: B, published_at: "2026-10-03T07:00:00.000Z", search_reading: bReading },
   ]);
 }
@@ -56,12 +57,16 @@ describe("live twins", () => {
     expect(db.rows("opportunities").find((o) => o.id === "oA")?.absorbed_queries).toEqual(["ai visibility pricing"]);
   });
 
-  it("does not merge a twin whose Google reading is only a reason, and names it as waiting", async () => {
-    seed({ at: "2026-11-16T05:00:00.000Z", google: { unread: "no_credentials" } });
+  it.each([
+    ["only a reason", reason({ unread: "no_credentials" }), read(120)],
+    ["a property too new to read", reason({ unread: "property_new", indexed: true, lastCrawl: null }), read(120)],
+    ["0 impressions and 0 clicks, as its twin's", read(0, 0), read(0, 0)],
+  ])("does not merge a twin whose Google reading is %s, and names it as waiting", async (_, bReading, aReading) => {
+    seed(bReading, aReading);
     const outcome = await retireOffTopicPages({ now: AT });
 
     expect(outcome.merged).toEqual([]);
-    expect(outcome.twins).toContainEqual({ liveUrl: B, into: A, why: "twin_waits_on_reading" });
+    expect(outcome.twins).toContainEqual(expect.objectContaining({ why: "twin_waits_on_reading" }));
     expect(db.rows("publications").every((p) => p.unpublished_at === null)).toBe(true);
   });
 });

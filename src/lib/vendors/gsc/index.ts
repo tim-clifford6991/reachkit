@@ -137,17 +137,18 @@ export function gscClient(account: GscAccount, send: GscSend = safeFetch) {
         lastCrawl: typeof status.lastCrawlTime === "string" ? status.lastCrawlTime : null,
       };
     },
-    /** Search Analytics by page and query over `[start, end]`
-     *  (`YYYY-MM-DD`). */
+    /** Search Analytics over `[start, end]` (`YYYY-MM-DD`), by page and query, or by page alone, whose totals keep the
+     *  anonymised queries Google drops from rows grouped by query; a page-only row's `query` is "". */
     async performance(
       siteUrl: string,
       start: string,
-      end: string
+      end: string,
+      byQuery = true
     ): Promise<{ page: string; query: string; impressions: number; clicks: number; position: number }[] | null> {
       const outcome = await call(`${property(siteUrl)}/searchAnalytics/query`, "POST", {
         startDate: start,
         endDate: end,
-        dimensions: ["page", "query"],
+        dimensions: byQuery ? ["page", "query"] : ["page"],
         rowLimit: 25000,
       });
       if (outcome === null || !success(outcome)) return null;
@@ -156,7 +157,7 @@ export function gscClient(account: GscAccount, send: GscSend = safeFetch) {
       if (!Array.isArray(rows)) return null;
       return rows.flatMap((row) => {
         const r = row as { keys?: unknown; impressions?: unknown; clicks?: unknown; position?: unknown };
-        const [page, query] = Array.isArray(r.keys) ? r.keys : [];
+        const [page, query = ""] = Array.isArray(r.keys) ? r.keys : [];
         if (typeof page !== "string" || typeof query !== "string" || typeof r.position !== "number") return [];
         return [{ page, query, impressions: Number(r.impressions) || 0, clicks: Number(r.clicks) || 0, position: r.position }];
       });
