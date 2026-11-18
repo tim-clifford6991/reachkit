@@ -80,29 +80,61 @@ export interface PageParts {
   updated: string;
 }
 
-function listOf<T extends z.ZodType>(schema: T, value: unknown): z.infer<T> | null {
-  let list = value;
-  if (typeof value === "string") {
-    try {
-      list = JSON.parse(value);
-    } catch {
-      return null;
-    }
+const parsed = (text: string): unknown => {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return undefined;
   }
-  const read = schema.safeParse(list);
-  return read.success ? read.data : null;
+};
+
+/** The text with raw control characters inside its string literals escaped:
+ *  a long section body sometimes comes back with real newlines in it. */
+function escapeControls(text: string): string {
+  let out = "";
+  let inString = false;
+  let escaped = false;
+  for (const ch of text) {
+    out += inString && ch < " " ? `\\u${ch.charCodeAt(0).toString(16).padStart(4, "0")}` : ch;
+    if (escaped) escaped = false;
+    else if (inString && ch === "\\") escaped = true;
+    else if (ch === '"') inString = !inString;
+  }
+  return out;
 }
 
-/** The answer as the page's parts, or `undeterminable` where a list that
- *  came back as text is not that list. */
+/** The list, or why its text is not that list. A titles or takeaways list
+ *  sent as one plain line is that one item. */
+function listOf<T extends z.ZodType>(schema: T, value: unknown, one: boolean): { list: z.infer<T> } | { why: "json" | "schema" } {
+  let list = value;
+  if (typeof value === "string") {
+    list = parsed(value);
+    if (list === undefined) list = parsed(escapeControls(value));
+    if (list === undefined && one) list = [value];
+    if (list === undefined) return { why: "json" };
+  }
+  const read = schema.safeParse(list);
+  return read.success ? { list: read.data } : { why: "schema" };
+}
+
+/** The answer as the page's parts, or `undeterminable` (`list_unread`) where
+ *  a list that came back as text is not that list: that answer is never
+ *  bought again, as the same input fails the same way. */
 function partsOf(answer: Measured<z.infer<typeof ANSWER_SCHEMA>>): Measured<PageParts> {
   if (answer.kind === "unmeasured") return answer;
-  const titles = listOf(TITLES, answer.value.titles);
-  const takeaways = listOf(TAKEAWAYS, answer.value.takeaways);
-  const sections = listOf(SECTIONS, answer.value.sections);
-  const faq = listOf(FAQ, answer.value.faq);
-  if (titles === null || takeaways === null || sections === null || faq === null) return unmeasured("undeterminable", answer.at);
-  return { ...answer, value: { ...answer.value, titles, takeaways, sections, faq } };
+  const value = answer.value;
+  let unread = false;
+  const read = <T extends z.ZodType>(list: "titles" | "takeaways" | "sections" | "faq", schema: T): z.infer<T> => {
+    const got = listOf(schema, value[list], list === "titles" || list === "takeaways");
+    if ("list" in got) return got.list;
+    // Which list and why, never the answer's text.
+    console.warn(JSON.stringify({ event: "write_list_unread", list, why: got.why, length: String(value[list]).length }));
+    unread = true;
+    return [] as z.infer<T>;
+  };
+  const lists = { titles: read("titles", TITLES), takeaways: read("takeaways", TAKEAWAYS), sections: read("sections", SECTIONS), faq: read("faq", FAQ) };
+  if (unread) return unmeasured("undeterminable", answer.at, "list_unread");
+  return { ...answer, value: { ...value, ...lists } };
 }
 
 /** The page as it is stored and as every check reads it. */

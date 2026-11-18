@@ -24,7 +24,7 @@
 //   · Postgres                 → the storing PostgREST double the §9 suites
 //                                share, plus §7's and §8's declared stores
 //
-// Five of those need a word.
+// Three of those need a word.
 //
 // **Both engine seams are real.** `activeSites()` is the evening tick's
 // site list and `publishApproved()` the approve-and-deliver edge; the day's
@@ -41,18 +41,6 @@
 // the real template, the real compose shell and the real send seam, and
 // the stop link the veto tests redeem is read back out of the mail that
 // actually left. The mail is best-effort and holds no page.
-//
-// **The hosted destination cannot take a page yet** (#49 — its adapter
-// returns `destination_unavailable` and says so in its own header), so
-// this founder publishes to their own WordPress. That is also where the
-// external vendor is, which is what makes the delivery assertion an
-// assertion about the requests that actually left.
-//
-// **The calendar does not read `drafts` yet** (#45 — `store.ts` names the
-// four facts it leaves honestly empty). So the calendar read below asserts
-// what the screen actually says today — §7's supply put a page on the date
-// — and names the held set and the draft state as the engine's, which the
-// screen will read when #45 lands.
 //
 // **The copy registry is a fixture**, as in journeys 02–04: `copy()`
 // refuses an owner-owed key and every sentence on this chain is owed.
@@ -256,6 +244,7 @@ vi.mock("@/lib/egress", () => ({
 // ── Anthropic ───────────────────────────────────────────────────────────
 
 const modelCalls: { task: string; tokens: number }[] = [];
+const asText: Record<string, (list: unknown[]) => string>[] = [];
 
 /** A page that passes every one of §8's deterministic rules: the brand is
  *  not named in the opening, the grounded passage is stated word for word
@@ -296,6 +285,7 @@ vi.mock("@anthropic-ai/sdk", () => {
         // The one write call's answer: the page in its template's parts.
         const { partsFromPage } = await import("../generate/fixtures");
         const answer = partsFromPage(PAGE_BODY, "tool");
+        for (const [key, text] of Object.entries(asText.shift() ?? {})) Object.assign(answer, { [key]: text(answer[key as keyof typeof answer] as unknown[]) });
         return {
           content: [{ type: "text", text: JSON.stringify(answer) }],
           usage: { input_tokens: 800, output_tokens: 400 },
@@ -1278,4 +1268,13 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
     },
     JOURNEY_TIMEOUT_MS
   );
+  it("a list sent as text is read, and one still unread is logged without its text and bought once", async () => {
+    await seedOneOpportunity();
+    const day = { siteId: SITE_ID, publishDate: nextPublishDate(EVENING, SITE_CLOCK) }, warned = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    asText.push({ faq: (list) => `${JSON.stringify(list)} and more` });
+    expect([await generateDayPage(day), modelCalls.length, warned.mock.calls.map((c) => String(c[0])).filter((line) => line.includes("write_list_unread"))]).toEqual([expect.objectContaining({ because: "step_failed", step: "write" }), 1, [expect.stringMatching(/^\{"event":"write_list_unread","list":"faq","why":"json","length":\d+\}$/)]]);
+    warned.mockRestore();
+    asText.push({ sections: (list) => JSON.stringify(list).replace(/\\n/g, "\n"), titles: (list) => String(list[0]) });
+    expect(await generateDayPage(day)).toMatchObject({ ok: true });
+  }, JOURNEY_TIMEOUT_MS);
 });

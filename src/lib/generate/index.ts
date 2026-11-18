@@ -669,9 +669,9 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number; 
       }
     }
     // #813: a write call that did not answer is tried once more — a model
-    // that did not answer may answer now. The ceiling would stop that
-    // attempt too, and a job out of time must not start it.
-    if (last.step === "write" && attempt < a.attempts && !cost.capHit() && Date.now() - startedAt < PIPELINE.fixBeforeMs) continue;
+    // that did not answer may answer now; a refused answer is not. The ceiling
+    // would stop that attempt too, and a job out of time must not start it.
+    if (last.step === "write" && last.answered !== true && attempt < a.attempts && !cost.capHit() && Date.now() - startedAt < PIPELINE.fixBeforeMs) continue;
     // A step that did not run before any row was written leaves nothing to
     // rest: the opportunity stays open for the next evening.
     return {
