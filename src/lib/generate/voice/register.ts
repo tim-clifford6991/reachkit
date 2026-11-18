@@ -8,7 +8,7 @@
 //     regulated business: a law, tax, finance, insurance or medical practice,
 //     or one whose own voice text says it writes formally.
 //   * **short** — a short answer of `VOICE.short.words`, for a simple
-//     question on a page type a short answer suits.
+//     documentation question, or where the customer chose it.
 //
 // The customer may fix the voice in Settings (`sites.writing_voice`); it is
 // never a step, and where they have not, it is chosen here. `voice_text` —
@@ -86,7 +86,8 @@ export function chooseVoice(a: {
     const voice = a.setting === "short" && !short ? (formal ? "guide" : "ours") : a.setting;
     return { voice, person: voice === "guide" || (voice === "short" && formal) ? "third" : "we", chosen: "customer" };
   }
-  if (short && simpleQuestion(a.question, a.language)) return { voice: "short", person: formal ? "third" : "we", chosen: "automatic" };
+  // A Q&A has a word floor a short answer cannot meet, so only its customer picks short for it.
+  if (a.type === "documentation" && simpleQuestion(a.question, a.language)) return { voice: "short", person: formal ? "third" : "we", chosen: "automatic" };
   return formal ? { voice: "guide", person: "third", chosen: "automatic" } : { voice: "ours", person: "we", chosen: "automatic" };
 }
 
