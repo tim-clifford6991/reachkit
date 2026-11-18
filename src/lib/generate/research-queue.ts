@@ -55,7 +55,7 @@ const STEP_RE = /^(?:\p{L}+\s+)?\d{1,2}\s*[.):\-–]\s*\S/u;
 type ReadPage = { url: string; title: string; text: string; headings?: string[] };
 
 /** Each row's research as the cache holds it, at 0¢ and with no vendor call: the commit's row check (SPEC §7 *The week is
- *  committed on Monday*). A row whose target SERP, or every result's read, is not cached reads `null`: not measured. */
+ *  committed on Monday*). A row whose target SERP, or any eligible result's read, is not cached reads `null`: not measured. */
 export async function researchHeld(siteId: string, rows: readonly Pick<OpportunityRow, "id" | "target_query">[], now: Date): Promise<Map<string, ResearchRead | null>> {
   const [site, locale] = await Promise.all([generateStore().siteFacts(siteId), siteLocale(siteId)]);
   const others = new Set((site?.rivals ?? []).flatMap((rival) => registrableDomain(rival) ?? []));
@@ -72,7 +72,7 @@ export async function researchHeld(siteId: string, rows: readonly Pick<Opportuni
     if (serp === null) return null;
     const urls = serp.organic.slice(0, READ.results).map((row) => row.url).filter((url) => googleWrapper(url) === null && foreign(url));
     const cached = await Promise.all(urls.map((url) => readCache({ source: RESEARCH_READ_SOURCE, cacheKey: url, policyVersion: DRAFT_POLICY_VERSION, freshnessDays: RESEARCH.freshnessDays })));
-    if (urls.length > 0 && cached.every((hit) => hit === null)) return null;
+    if (urls.length > 0 && cached.some((hit) => hit === null)) return null;
     const topic = words(target);
     const pages = cached.flatMap((hit) => (hit === null ? [] : [hit.payload as ReadPage])).filter((page) => {
       const language = languageOfText(page.text);
