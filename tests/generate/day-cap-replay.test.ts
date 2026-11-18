@@ -106,6 +106,21 @@ function throwOnFirstSave() {
 const attempt = () => generateDayPage({ siteId: SITE, publishDate: D, now: HOUR });
 /** The due hour's update fallback for a day whose select found no topic. */
 const fallback = () => refreshForDay({ siteId: SITE, publishDate: D, trigger: "generate:no_opportunity", from: "select", stopped: null, now: HOUR });
+/** The vendor's standard queue: a post is queued, and a later read of its task answers once `ready`. */
+const queue = (ready: () => boolean) => async (url: unknown) => {
+  const task = (status: number, result: unknown = null) => ({ ok: true, status: 200, json: async () => ({ tasks: [{ id: String(url).endsWith("task_post") ? `t${Math.random()}` : String(url).split("/").at(-1), status_code: status, result }] }) });
+  return (String(url).endsWith("task_post") ? task(20100) : ready() ? task(20000, [{ items: [{ type: "organic", rank_group: 1, domain: "rival.com", url: "https://rival.com/" }] }]) : task(40602)) as never;
+};
+/** The research step's asks, which post and then read the update candidate's one SERP, so the fallback reads the cache. */
+async function asked(): Promise<void> {
+  let ready = false;
+  network.mockImplementation(queue(() => ready));
+  await askDayResearch({ siteId: SITE, opportunityId: NEW_ID, now: HOUR, waitMs: 30 });
+  ready = true;
+  await askDayResearch({ siteId: SITE, opportunityId: NEW_ID, now: HOUR, waitMs: 30 });
+  stamp();
+  network.mockClear();
+}
 
 beforeEach(() => vi.spyOn(console, "log").mockImplementation(() => {}));
 afterEach(() => vi.restoreAllMocks());
@@ -113,10 +128,10 @@ afterEach(() => vi.restoreAllMocks());
 describe("a replayed day's page spends at most CAP_DRAFT for its date in total", () => {
   it.each<[string, (w: Awaited<ReturnType<typeof world>>) => unknown, () => Promise<unknown>]>([
     ["its topic", (w) => pick.mockResolvedValueOnce(w.update), attempt],
-    ["a select that found nothing (Tier B)", () => undefined, fallback],
-    ["a short pack (own facts)", (w) => pick.mockResolvedValueOnce(w.fresh), attempt],
+    ["a select that found nothing (Tier B), its update read from the cache", () => undefined, fallback],
   ])("for %s: attempt 2 opens at what attempt 1 ledgered and refuses a call past the cap", async (_entry, arrange, run) => {
     const w = await world();
+    if (run === fallback) await asked();
     let first = true;
     model(() => (first ? ((first = false), 30) : 1));
     arrange(w);
@@ -136,14 +151,14 @@ describe("a replayed day's page spends at most CAP_DRAFT for its date in total",
     stamp();
     expect(spent()).toBe(before);
     expect(spent()).toBeLessThanOrEqual(CAPS.DRAFT_C);
-    expect(network).not.toHaveBeenCalled();
+    // No paid post: the update's one SERP is the research step's, read free from its task.
+    expect(network.mock.calls.filter(([url]: unknown[]) => String(url).endsWith("task_post"))).toEqual([]);
   });
 
   it("a replayed research ask reads the task its first ask posted (free `task_get`) and ledgers no second paid row", async () => {
     await world();
     let ready = false;
-    const queue = (url: string, status: number, result: unknown = null) => ({ ok: true, status: 200, json: async () => ({ tasks: [{ id: url.split("/").at(-1) === "task_post" ? `t${Math.random()}` : url.split("/").at(-1), status_code: status, result }] }) });
-    network.mockImplementation(async (url: unknown) => (String(url).endsWith("task_post") ? queue(String(url), 20100) : ready ? queue(String(url), 20000, [{ items: [{ type: "organic", rank_group: 1, domain: "rival.com", url: "https://rival.com/" }] }]) : queue(String(url), 40602)) as never);
+    network.mockImplementation(queue(() => ready));
     const ask = () => askDayResearch({ siteId: SITE, opportunityId: NEW_ID, now: HOUR, waitMs: 30 });
     expect(await ask()).toBe(2);
     stamp();
@@ -168,12 +183,4 @@ describe("a replayed day's page spends at most CAP_DRAFT for its date in total",
     expect([ledger().length, db.rows("drafts").filter((row) => row.scheduled_for === D).length]).toEqual([0, 0]);
   });
 
-  it("an unreadable ledger still lets the 0¢ mend take the day", async () => {
-    await world("structure");
-    model(() => 1);
-    ledgerDown.on = true;
-    const taken = await fallback();
-    expect(taken?.ok).toBe(true);
-    expect([llm.mock.calls.length, ledger().length]).toEqual([0, 0]);
-  });
 });

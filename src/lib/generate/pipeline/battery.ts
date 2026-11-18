@@ -12,7 +12,7 @@ import { batteryCleared, runHardRules, type BatteryOutcome } from "../rules";
 import { citesMinOf } from "../rules/brief-lines";
 import { namedRivals } from "../rules/rivals";
 import { renderOf } from "../rules/text";
-import type { ComparisonSet, HardRule, SiteRuleInputs } from "../rules/types";
+import type { ComparisonSet, Completeness, HardRule, SiteRuleInputs } from "../rules/types";
 import type { SiteFacts } from "../store";
 import type { StoredReport } from "@/lib/scan/report";
 import { voiceLength } from "../voice/register";
@@ -31,9 +31,9 @@ import type { FaqEntry } from "./write";
 
 /** The site as the rules read it. The one name the product holds for the business is the brand the profile measured
  *  off their own home page: what the site calls itself. */
-export function siteRulesOf(site: Pick<SiteFacts, "domain" | "doNotClaim" | "rivals">, report: StoredReport): SiteRuleInputs {
+export function siteRulesOf(site: Pick<SiteFacts, "domain" | "doNotClaim" | "rivals">, report: StoredReport, completeness?: Completeness): SiteRuleInputs {
   const businessName = report.market.kind === "unmeasured" ? null : (report.market.value.profile.brandTokens[0] ?? null);
-  return { businessName, domain: site.domain, doNotClaim: site.doNotClaim, rivals: site.rivals };
+  return { businessName, domain: site.domain, doNotClaim: site.doNotClaim, rivals: site.rivals, ...(completeness === undefined ? {} : { completeness }) };
 }
 
 /** What one page's checks read that its words do not change: its pack, its type and the customer's own sets. */
@@ -68,7 +68,7 @@ export function batteryBasis(a: {
   const fitted = rangeOf(true);
   // No room: the sections the pack fills leave a ceiling under the type's floor, or none above it, and the page is then never told that floor.
   const noRoomFor = held !== null && fitted !== null && (fitted.ceiling < held.floor || held.ceiling <= held.floor) ? held.floor : null;
-  const short = noRoomFor !== null && (site.completeness ?? completenessFor()) === "warn";
+  const short = noRoomFor !== null && (site.completeness ?? completenessFor()) !== "stop";
   // The words the pack has room for against the floor the page is held to; a page written short is held to none.
   const room = held === null || fitted === null || short ? null : { have: fitted.ceiling, need: held.floor, short: noRoomFor !== null };
   // A page written short carries its sourced questions as its sections, no more: each a question the pack holds a fact for.

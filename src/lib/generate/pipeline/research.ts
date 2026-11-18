@@ -612,13 +612,13 @@ async function recentPages(
 
 type SerpRead = Parameters<typeof serpOrganic>[1];
 
-/** The target's SERP and its study or guidance search as research buys them: on the normal queue, since the live and
- *  high-priority ones link only Google's `goto` redirects. A draft's earlier job step posts the same reads. */
-export function researchSerps(a: { siteId: string; locale: Locale; target: string; guidance?: boolean; recent?: unknown }, waitMs: number): SerpRead[] {
+/** The target's SERP and its study or guidance search (an update's one SERP is its target's) as research buys them: on the
+ *  normal queue, since the live and high-priority ones link only Google's `goto` redirects. A draft's earlier job step posts the same reads. */
+export function researchSerps(a: { siteId: string; locale: Locale; target: string; guidance?: boolean; recent?: unknown; study?: boolean }, waitMs: number): SerpRead[] {
   const base = { locale: a.locale, mode: "std", untilMs: Date.now() + waitMs, loadAsyncAiOverview: false, scope: { site: a.siteId }, freshnessDays: CACHE_WINDOWS_D.serp } as const;
   const language = languagePack(a.locale.language);
   const study = a.guidance === true ? language.guidanceSearch(a.target) : language.studySearch(a.target);
-  return [{ ...base, query: a.target }, ...(a.recent === undefined ? [{ ...base, query: study }] : [])];
+  return [{ ...base, query: a.target }, ...(a.recent === undefined && a.study !== false ? [{ ...base, query: study }] : [])];
 }
 
 /** One SERP, read for its organic results, its "People also ask" and its
@@ -683,7 +683,7 @@ export async function researchMarket(
      *  looks for the target's own guidance in place of studies, and a
      *  result that is a platform's or an authority's documentation is read
      *  first, as a `primary` source. */
-    guidance?: boolean;
+    guidance?: boolean; study?: boolean;
   }
 ): Promise<MarketResearch> {
   const target = a.searches[0];

@@ -29,19 +29,23 @@ import { TEMPLATES } from "./templates";
  *  the job route's 300 s, about 45 minutes in all, the queue's own turnaround (`VENDOR.stdQueueDeadlineMin`). */
 export const COLLECT = Object.freeze({ rounds: 11, stepMs: 240_000, askMs: 20_000 });
 
-/** Asks for the day's research reads inside the day's draft cap, each waiting `waitMs`. Returns how many are still on
+/** Asks for the day's research reads inside the day's draft cap, each waiting `waitMs`, and the first update candidate's
+ *  one SERP beside them, so a fallback update writes from the cache. Returns how many of the topic's own are still on
  *  the queue; a type that reads no research has none. */
 export async function askDayResearch(a: { siteId: string; opportunityId: string; writeAs?: "qa" | "documentation"; now: Date; waitMs: number }): Promise<number> {
   const [o, report] = await Promise.all([opportunityById(a.opportunityId), generateStore().latestReport(a.siteId)]);
   const type = o === null ? null : (a.writeAs ?? o.writeAs ?? contentTypeOf(o));
   const target = o === null ? undefined : targetSearches(o)[0];
-  if (type === null || !TEMPLATES[type].research || target === undefined || report === null) return 0;
+  if (report === null) return 0;
   const locale = await siteLocale(a.siteId);
-  const reads = researchSerps({ siteId: a.siteId, locale, target, guidance: builtFromOutside(type), ...(type === "insights" ? { recent: true } : {}) }, a.waitMs);
+  const reads = type === null || !TEMPLATES[type].research || target === undefined ? [] : researchSerps({ siteId: a.siteId, locale, target, guidance: builtFromOutside(type), ...(type === "insights" ? { recent: true } : {}) }, a.waitMs);
+  const update = await (await import("./day-refresh")).updateSearch(a.siteId, a.now);
+  const beside = update === null ? [] : researchSerps({ siteId: a.siteId, locale, target: update, study: false }, a.waitMs).filter((read) => !reads.some((own) => own.query === read.query));
+  if (reads.length + beside.length === 0) return 0;
   return openDayCost({ scanId: report.scanId, siteId: a.siteId, since: a.now }, async (cost) => {
     let waiting = 0;
-    // Together, since every read waits to the one `untilMs`.
-    await Promise.all(reads.map((read) => serpOrganic(cost, { ...read, onFailure: (failed) => void (waiting += failed.taskId === undefined ? 0 : 1) })));
+    // Together, since every read waits to the one `untilMs`; the update's read never holds the day's own write.
+    await Promise.all([...reads.map((read) => serpOrganic(cost, { ...read, onFailure: (failed) => void (waiting += failed.taskId === undefined ? 0 : 1) })), ...beside.map((read) => serpOrganic(cost, read))]);
     return waiting;
   });
 }

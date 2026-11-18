@@ -39,7 +39,7 @@ import type { ClaimVerdict } from "./claims/check";
 import type { BatteryOutcome } from "./rules";
 import { COMPLETENESS_STOPS } from "@/lib/config/constants";
 import { incomplete } from "./standard";
-import { HARD_RULES, NO_CHECKS, SWITCHED_RULES, WARNING_RULES, type Completeness, type HardRule, type RecordedChecks, type RuleFailure } from "./rules/types";
+import { HARD_RULES, HIDDEN_RULES, NO_CHECKS, SWITCHED_RULES, WARNING_RULES, type Completeness, type HardRule, type RecordedChecks, type RuleFailure } from "./rules/types";
 
 // ── Hard rule 4: the claim check's verdict ──────────────────────────────
 
@@ -112,8 +112,10 @@ export function checkedAgainstNothing(verdict: ClaimVerdict): boolean {
 /** The figure faults of a title stay harm, since an unsourced figure is one whatever the line it stands in. */
 const FIGURE_FAULTS: ReadonlySet<string> = new Set(["description_figures", "figure_owner"]);
 
-/** What an incomplete page meets after its fix call: a lead's free page only ever a warning, every other page the one switch. */
-export function completenessFor(page: "lead" | "customer" = "customer"): Completeness {
+/** What an incomplete page meets after its fix call: a lead's free page and a page written anyway only ever a warning, a
+ *  new site's a warning it is not shown (owner, 2026-11-18), every other page the one switch. */
+export function completenessFor(page: "lead" | "customer" | "anyway" = "customer", newSite = false): Completeness {
+  if (page !== "lead" && newSite) return "hidden";
   return page === "customer" && COMPLETENESS_STOPS ? "stop" : "warn";
 }
 
@@ -162,6 +164,8 @@ export function readRecordedRules(payload: unknown): RuleFailure[] | null {
 export interface RecordedRun {
   asked: HardRule[];
   fixed: HardRule[];
+  /** Asked, and never drawn: a new site's shortfall (`HIDDEN_RULES`). Absent reads as none. */
+  hidden?: HardRule[];
 }
 
 const rulesIn = (value: unknown): HardRule[] =>
@@ -170,17 +174,17 @@ const rulesIn = (value: unknown): HardRule[] =>
 /** What the pipeline and an edit's re-check store in `drafts.meta.checks`.
  *  `broken` is every rule the run failed at any point; the ones the page no
  *  longer fails are the ones it fixed. */
-export function recordedRunValue(outcome: BatteryOutcome, broken: Iterable<HardRule> = []): RecordedRun {
+export function recordedRunValue(outcome: BatteryOutcome, broken: Iterable<HardRule> = [], completeness?: Completeness): RecordedRun {
   const failing = new Set(outcome.failed.map((failure) => failure.rule));
-  return { asked: rulesIn(outcome.asked), fixed: rulesIn([...broken]).filter((rule) => !failing.has(rule)) };
+  return { asked: rulesIn(outcome.asked), fixed: rulesIn([...broken]).filter((rule) => !failing.has(rule)), ...(completeness === "hidden" ? { hidden: [...HIDDEN_RULES] } : {}) };
 }
 
 /** `drafts.meta.checks`, read back, or `null` on a row written before it
  *  was recorded. */
 export function readRecordedRun(meta: unknown): RecordedRun | null {
-  const value = (meta as { checks?: { asked?: unknown; fixed?: unknown } | null } | null)?.checks;
+  const value = (meta as { checks?: { asked?: unknown; fixed?: unknown; hidden?: unknown } | null } | null)?.checks;
   if (value === null || typeof value !== "object" || !Array.isArray(value.asked)) return null;
-  return { asked: rulesIn(value.asked), fixed: rulesIn(value.fixed) };
+  return { asked: rulesIn(value.asked), fixed: rulesIn(value.fixed), ...(Array.isArray(value.hidden) ? { hidden: rulesIn(value.hidden) } : {}) };
 }
 
 /**
@@ -193,13 +197,16 @@ export function readRecordedRun(meta: unknown): RecordedRun | null {
 export function recordedChecks(ruleFailures: unknown, run: RecordedRun | null): RecordedChecks {
   const failures = readRecordedRules(ruleFailures);
   if (failures === null) return NO_CHECKS;
-  const failed = rulesIn(failures.map((failure) => failure.rule));
-  const asked = run === null ? HARD_RULES.filter((rule) => !SWITCHED_RULES.includes(rule)) : run.asked;
+  const hidden = run?.hidden ?? [];
+  const shown = (rules: readonly HardRule[]) => rules.filter((rule) => !hidden.includes(rule));
+  const failed = shown(rulesIn(failures.map((failure) => failure.rule)));
+  const asked = run === null ? HARD_RULES.filter((rule) => !SWITCHED_RULES.includes(rule)) : shown(run.asked);
   const passed = asked.filter((rule) => !failed.includes(rule));
   return {
     passed,
     failed,
-    skipped: run === null ? null : HARD_RULES.filter((rule) => !run.asked.includes(rule) && !failed.includes(rule)),
+    skipped: run === null ? null : shown(HARD_RULES.filter((rule) => !run.asked.includes(rule) && !failed.includes(rule))),
     fixed: run === null ? 0 : run.fixed.filter((rule) => passed.includes(rule)).length,
+    ...(hidden.length === 0 ? {} : { hidden }),
   };
 }
