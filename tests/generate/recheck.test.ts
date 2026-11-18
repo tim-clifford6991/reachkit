@@ -394,3 +394,28 @@ describe("one page per date", () => {
     expect(row(older).state).toBe("needs_attention");
   });
 });
+
+describe("a waiting page below a newer standard (duplicate run)", () => {
+  it("two ticks at one fingerprint set it aside once and mark its date to be decided again once", async () => {
+    arrange(SAAS_HOSTED);
+    const id = await stopped(SAAS_HOSTED);
+    vi.stubEnv("RK_STANDARD", "std-2");
+    const entered = { from: "generating", to: "in_review", at: AT.toISOString(), actor: { kind: "system", job: "draft/generate" } };
+    Object.assign(row(id), { state: "in_review", scheduled_for: D, created_at: NOW.toISOString(), transitions: [entered], body_md: String(row(id).body_md).split("\n## ")[0] });
+    const { keptBeforeReading, restandardSites } = await import("@/lib/generate/recheck");
+    const { missedDays } = await import("@/lib/publish/daily");
+    const paying = async () => [{ siteId: SAAS_HOSTED.siteId, timeZone: "UTC", publishTime: "09:00", vetoHours: 24 }];
+    const tick = (hours: number) => restandardSites(paying, { now: new Date(NOW.getTime() + hours * 3_600_000) });
+    // Money: a page written before its date's due hour is outside the rewrite's 45¢ count, so it is kept.
+    const early = { ...row(id), created_at: new Date(NOW.getTime() - 3_600_000).toISOString() } as unknown as DraftRow;
+    expect(keptBeforeReading(early, { now: NOW, fingerprint: "std-2", clock: (await paying())[0]! })).toBe("no_room");
+    expect([await tick(0), await tick(1)]).toEqual([1, 0]);
+    expect(row(id)).toMatchObject({ state: "skipped", scheduled_for: null });
+    expect(row(id).transitions).toEqual([entered, { from: "in_review", to: "skipped", actor: { kind: "system", job: "draft/recheck" }, reason: "retired:standard_changed", at: NOW.toISOString() }]);
+    expect(db.rows("ops_events").filter((each) => each.kind === "drafts_restandarded")).toHaveLength(1);
+    const day = { siteId: SAAS_HOSTED.siteId, publishDate: D };
+    expect(await missedDays([day])).toEqual([{ ...day, again: true, rewrite: "standard_changed:std-2" }]);
+    expect(llm).not.toHaveBeenCalled();
+    vi.unstubAllEnvs();
+  });
+});

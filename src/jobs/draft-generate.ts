@@ -76,10 +76,10 @@ function siteDay(data: JobInput["data"]): { siteId: string; publishDate: string;
 }
 
 /** The event a due day is sent as: the site's clock rides along, so its run can check the publish time. */
-export function dayEvent(site: Site, day: { publishDate: string; hour: Date; again?: true; first?: true }) {
+export function dayEvent(site: Site, day: { publishDate: string; hour: Date; again?: true; rewrite?: string; first?: true }) {
   // A day decided again, or a first page sent again, is a delivery of its own: the earlier key is still held by the platform.
   return {
-    key: `draft:${site.siteId}:${day.publishDate}${day.again ? ":again" : day.first ? ":first" : ""}`,
+    key: `draft:${site.siteId}:${day.publishDate}${day.again ? `:again${day.rewrite === undefined ? "" : `:${day.rewrite}`}` : day.first ? ":first" : ""}`,
     data: { siteId: site.siteId, publishDate: day.publishDate, hour: day.hour.toISOString(), timeZone: site.timeZone, publishTime: site.publishTime, vetoHours: site.vetoHours, ...(day.again ? { again: true } : {}) },
   };
 }

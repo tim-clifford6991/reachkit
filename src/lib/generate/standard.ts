@@ -23,6 +23,9 @@ export type Part = "sections" | "sources" | "words" | "figures" | "title" | "lin
 export interface PartMark { part: Part; have: number | null; need: number; state: "met" | "short" | "pending" }
 export interface Standard { parts: PartMark[]; met: boolean; pending: boolean; stops: Part[] }
 
+/** The deployed standard's fingerprint (`RK_STANDARD`), or `null` where the build carried none. */
+export const deployedStandard = (): string | null => process.env.RK_STANDARD || null;
+
 /** The parts that may ever stop a page. */
 const STOPPING: ReadonlySet<Part> = new Set<Part>(["sections", "sources", "words"]);
 

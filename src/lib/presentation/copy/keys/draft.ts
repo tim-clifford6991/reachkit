@@ -300,16 +300,15 @@ export const DRAFT_COPY = Object.freeze({
 
   // The back link §4.6 asks for, the unsaved indicator c7 asks for, and the
   // one written line an unknown draft id resolves to.
-  "draft.back": [
-    "Back to This Week",
-    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
-  ],
+  "draft.back": ["Back to This Week", { slots: {}, fixedBy: "SPEC §7 2026-09-20" }],
   /** Issue 1196: a page pressed *Write it again*, while the draft tick has
    *  not written it yet. Drafted; the owner may correct it. */
   "draft.rewriting": [
     "We’re writing this page again. It’s ready within the hour, and this screen updates itself when it is.",
     { slots: {}, fixedBy: "issue 1196" },
   ],
+  // Under the chip of a page set aside for a newer standard.
+  "draft.set-aside.standard": ["Our page checks changed and this version no longer passed, so we set it aside. This week shows what goes live on its date.", { slots: {}, fixedBy: "issue 2888 (UX review)" }],
   "draft.unsaved": [
     "Not saved. Your text is kept here; check your connection, then make any change to save it.",
     { slots: {}, fixedBy: "REQ-045 c7 · S17 (11a) · issue 2657 S1 (issue 2668, drafted)" },

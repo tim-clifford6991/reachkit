@@ -223,6 +223,8 @@ function refusal(reason: Exclude<Read, { ok: true }>["reason"]): { head: string;
       return { head: copy("publish.veto.closed.head"), line: copy("publish.veto.expired"), icon: Clock };
     case "written":
       return { head: copy("publish.veto.closed.head"), line: copy("publish.veto.written"), icon: Clock };
+    case "set_aside":
+      return { head: copy("publish.veto.set-aside.head"), line: copy("publish.veto.set-aside"), icon: Clock };
     case "unknown":
       return { head: copy("publish.veto.unknown.head"), line: copy("publish.veto.unknown"), icon: CircleQuestionMark };
   }

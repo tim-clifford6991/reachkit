@@ -26,6 +26,8 @@
 // text version (`RK_TEXT_VERSION`) that keys a stored read's text (`fetch_text`).
 // From `src/lib/opportunities/plan.ts` it is the planner (`RK_PLANNER`): the code a
 // week is chosen with, so the `scan/rescore` tick re-commits each site's week once it moves.
+// From `src/lib/generate/standard.ts` it is the content standard (`RK_STANDARD`), so the same tick reads each waiting
+// draft again once it moves.
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
@@ -37,6 +39,7 @@ const TEXT_ENTRY = "src/lib/measure/text.ts";
 // The row check the store reaches by a dynamic import, which the walk does not follow, is named beside the planner,
 // and so is the deploy's re-plan, so a change to which sites it re-plans is re-run at its own deploy.
 const PLAN_ENTRY = ["src/lib/opportunities/plan.ts", "src/lib/generate/research-queue.ts#researchHeld", "src/lib/scan/replan.ts#dryReplan"];
+const STANDARD_ENTRY = "src/lib/generate/standard.ts";
 const PARSER = "node-html-parser";
 const SCOPE = "src/lib/";
 const ALL = "*";
@@ -256,6 +259,11 @@ export function plannerVersion(root = process.cwd()) {
   return derivation(root, PLAN_ENTRY);
 }
 
+/** The fingerprint of the code a page is held to its standard with. */
+export function standardVersion(root = process.cwd()) {
+  return derivation(root, STANDARD_ENTRY);
+}
+
 if (import.meta.url === `file://${process.argv[1]}`) {
   const files = derivationFiles();
   if (process.argv.includes("--files")) for (const file of files) console.log(file);
@@ -263,4 +271,5 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   console.log(`facts ${factsVersion()} (${factsFiles().length} files)`);
   console.log(`text ${textVersion()} (${textFiles().length} files)`);
   console.log(`planner ${plannerVersion()} (${plannerFiles().length} files)`);
+  console.log(`standard ${standardVersion()}`);
 }

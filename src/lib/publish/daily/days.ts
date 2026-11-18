@@ -15,6 +15,9 @@ const MS_PER_HOUR = 3_600_000;
 /** How a due hour ended for one site. */
 export type DayOutcome = "drafted" | "no_page" | "failed";
 
+/** The reason a day whose waiting page a newer standard set aside is kept under, with that standard's fingerprint. */
+const STANDARD_REWRITE = "standard_changed";
+
 /** A day held until the customer's address is connected: not a fault, so no missing-draft mail. */
 const WAITING_FOR_ADDRESS = "waiting_for_address";
 
@@ -114,6 +117,12 @@ export async function recordDraftDay(a: {
   }
 }
 
+/** Marks a date whose waiting page a newer standard set aside, so `missedDays` decides it again; the date's own run then
+ *  overwrites the mark. Throws, so a mark that failed keeps the set-aside unfinished and its caller tries again. */
+export async function markStandardRewrite(a: { siteId: string; publishDate: string; fingerprint: string; at: Date }): Promise<void> {
+  await draftDays().record({ siteId: a.siteId, publishDate: a.publishDate, outcome: "no_page", reason: `${STANDARD_REWRITE}:${a.fingerprint}`, at: a.at });
+}
+
 /** Why the day's page is held, or `null`: until the address is connected only the first page is written. Never throws. */
 export async function dayHold(siteId: string, publishDate: string): Promise<string | null> {
   try {
@@ -128,17 +137,20 @@ export async function dayHold(siteId: string, publishDate: string): Promise<stri
 
 /** The owed days no due hour recorded (a missed tick, or a run killed first) or one left with research still queued;
  *  a first day was not owed. And, `again`, a day the generator left with no page before a newer weekly commit, decided
- *  once more against that week. An unreadable store gives none, and the next tick asks again. Never throws. */
-export async function missedDays<T extends DraftDay>(days: readonly T[]): Promise<readonly (T & { again?: true })[]> {
+ *  once more against that week, or whose waiting page a newer standard set aside, under that standard's own key. An
+ *  unreadable store gives none, and the next tick asks again. Never throws. */
+export async function missedDays<T extends DraftDay>(days: readonly T[]): Promise<readonly (T & { again?: true; rewrite?: string })[]> {
   if (days.length === 0) return [];
   try {
     const store = draftDays();
     const decided = new Map((await store.decidedOn(days)).map((day) => [`${day.siteId}/${day.publishDate}`, day]));
-    const missed: (T & { again?: true })[] = [];
+    const missed: (T & { again?: true; rewrite?: string })[] = [];
     for (const day of days) {
       const kept = decided.get(`${day.siteId}/${day.publishDate}`);
       if (kept === undefined) {
         if (await store.draftedBefore(day.siteId, day.publishDate)) missed.push(day);
+      } else if (kept.ended?.startsWith(`no_page:${STANDARD_REWRITE}:`) === true) {
+        missed.push({ ...day, again: true, rewrite: kept.ended.slice("no_page:".length) });
       } else if (kept.ended?.startsWith("no_page:generate:research_pending") === true) {
         // Research still on the queue measured nothing, so the open day is asked again and the next ask reads it at 0¢.
         missed.push(day);
