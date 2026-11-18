@@ -47,11 +47,7 @@ export interface OpportunityRow {
   target_ref: string;
   proposed_slug: string | null;
   title: string | null;
-  /** §10's denormalised integer, for the surfaces and the sorts that read
-   *  one. The *measurement* — the value with its arm and its date — lives
-   *  in `evidence`, which is where `readOpportunity` takes it from: one
-   *  measurement, one home, and a column that cannot drift from it because
-   *  nothing derives the measurement back out of it. */
+  /** §10's denormalised integer for sorts; the measurement itself lives in `evidence`, which nothing derives back from it. */
   volume: number | null;
   evidence: unknown;
   acceptance: unknown;
@@ -142,50 +138,37 @@ export interface OpportunityStore {
   openRankable(siteId: string): Promise<readonly OpportunityRow[]>;
   /** The count behind supply depth: open, not the Fix family, and ready (SPEC §6: an unready row is no day of supply). */
   countUnused(siteId: string): Promise<number>;
-  /** Open, queued and done non-Fix rows — the set a cluster collapse runs
-   *  over alongside a pass's new candidates. A published topic is in it
-   *  (#1181), so a pass never plans a second page on it. */
+  /** Open, queued and done non-Fix rows a cluster collapse runs over, so a pass never plans a second page on a published topic. */
   clusterable(siteId: string): Promise<readonly OpportunityRow[]>;
-  /** The ids of this site's rows a draft was ever written from, published
-   *  or not (SPEC §6, D59, issue 1287): the rows a pass's relevance prune
-   *  never touches. */
+  /** The ids of rows a draft was ever written from, published or not: the rows a pass's relevance prune never touches. */
   draftedOpportunityIds(siteId: string): Promise<ReadonlySet<string>>;
-  /** The site's own pages that have a draft row, newest date first, at most
-   *  `limit`: each with the date it holds, its state, its written title and
-   *  the row it was written for (issue 1209). What a brief is told the site
-   *  already covers, and where the week starts. */
+  /** The site's drafted pages, newest date first, at most `limit`: what a brief is told is covered, and where the week starts. */
   draftedPages(siteId: string, limit: number): Promise<readonly DraftedPage[]>;
   /** Q8: every draft of the site, newest first, with its row and what its pack's research read. Optional: absent reads none. */
   draftsOnTopics?(siteId: string): Promise<readonly DraftOnTopic[]>;
-  /** The site's own pages an answer to a tracked prompt cited in the four
-   *  weeks ending at `at` (SPEC §6, D15, issue 1146), read from the stored
-   *  passes. Nothing is bought. */
+  /** The site's pages a tracked prompt's answer cited in the four weeks ending at `at`, from stored passes; nothing is bought. */
   citedPages(siteId: string, at: Date): Promise<readonly string[]>;
   /** The clusters of the site's live pages at any of `urls`. */
   clustersAt(siteId: string, urls: readonly string[]): Promise<readonly string[]>;
-  /** The top tens the given scans bought, by `queryKey`, a later scan's
-   *  over an earlier one's (#1131) — what a held row's search is compared
-   *  by. Only the questions and SERPs are read, never the whole report. */
+  /** The top tens the given scans bought, by `queryKey`, a later scan's over an earlier one's; never the whole report. */
   topTens(scanIds: readonly string[]): Promise<ReadonlyMap<string, readonly string[]>>;
   /** The same top tens with each result's domain, address and title, and when the scan bought them (issue 1506). */
   topTenRows(scanIds: readonly string[]): Promise<ReadonlyMap<string, TopTenRead>>;
-  /** D62's store (issue 1506): the "People also ask" and related searches
-   *  of the SERPs this site's research read, each with its search, bought in
-   *  the last `days`. */
+  /** The "People also ask" and related searches of this site's research SERPs, each with its search, bought in the last `days`. */
   askedBeside(siteId: string, days: number): Promise<readonly AskedBeside[]>;
   /** Issue 1549: the searches of this site's dismissed non-Fix rows, each
    *  with the volume it was dismissed at (`null` where none was measured),
    *  and whether the customer stopped it — a stopped row's absorbed
    *  searches with it. */
   dismissedSearches(siteId: string): Promise<readonly DismissedSearch[]>;
-  /** Issue 1559: replaces the site's committed week with `entries` — every row's place cleared first, then each entry's written. */
-  commitPlan(siteId: string, entries: readonly PlanEntry[]): Promise<void>;
+  /** Replaces the site's committed week with `entries`, keeping the rows dated after `keepAfter` where it is given. */
+  commitPlan(siteId: string, entries: readonly PlanEntry[], keepAfter?: string): Promise<void>;
   /** The site's committed week, in place order, whatever each row's status is now. */
   plannedRows(siteId: string): Promise<readonly OpportunityRow[]>;
   /** The `week_start` of the site's last measured weekly pass, which names the commit it made; `null` before the first. */
   weeklyCommit(siteId: string): Promise<string | null>;
-  /** Records the one recommit from `date` that the commit named `commit` allows; `false` where that commit's is held. */
-  claimRecommit(siteId: string, date: string, commit: string): Promise<boolean>;
+  /** Records the one recommit `date` allows; `false` where it is held. */
+  claimRecommit(siteId: string, date: string): Promise<boolean>;
   /** Whether the site's market footprint was recorded open (SPEC §7 `out_of_reach`; absent: never), and its one record. */
   footprintOpened?(siteId: string): Promise<boolean>;
   openFootprint?(siteId: string, row: string): Promise<void>;
@@ -766,12 +749,13 @@ export function supabaseOpportunityStore(): OpportunityStore {
       return { market, competitors: site?.competitors ?? [], prompts, knowledge, area: site?.stored.area?.place ?? null };
     },
 
-    async commitPlan(siteId, entries) {
-      const cleared = await untyped()
+    async commitPlan(siteId, entries, keepAfter) {
+      const placed = untyped()
         .from<OpportunityRow>("opportunities")
         .update({ plan_place: null, planned_for: null, plan_write_as: null, plan_reason: null })
         .eq("site_id", siteId)
         .not("plan_place", "is", null);
+      const cleared = await (keepAfter === undefined ? placed : placed.or(`planned_for.is.null,planned_for.lte.${keepAfter}`));
       if (cleared.error) throw new Error(`opportunities.commitPlan: ${cleared.error.message}`);
       for (const entry of entries) {
         const { error } = await untyped()
@@ -805,7 +789,7 @@ export function supabaseOpportunityStore(): OpportunityStore {
       if (error) throw new Error(`opportunities.weeklyCommit: ${error.message}`);
       return data?.[0]?.week_start ?? null;
     },
-    claimRecommit: async (siteId, date, commit) => (await import("@/lib/ops/events")).claimOpsEvent("week_recommitted", siteId, commit, date),
+    claimRecommit: async (siteId, date) => (await import("@/lib/ops/events")).claimOpsEvent("week_recommitted", siteId, date, date),
     footprintOpened: async (siteId) => (await import("@/lib/ops/events")).opsEventHeld("market_footprint", siteId, "open"),
     openFootprint: async (siteId, row) => void (await (await import("@/lib/ops/events")).claimOpsEvent("market_footprint", siteId, "open", row)),
 

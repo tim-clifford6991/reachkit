@@ -44,8 +44,8 @@ export interface MemoryState {
   /** The site's own pages a tracked AI answer cited in the last four weeks
    *  (issue 1146); absent reads as none. */
   cited?: string[];
-  /** The on-demand recommits recorded, each with the weekly commit it extends; absent reads as none. */
-  recommits?: { siteId: string; date: string; commit: string }[];
+  /** The on-demand recommits recorded, one per date; absent reads as none. */
+  recommits?: { siteId: string; date: string }[];
   /** The `week_start` of the site's last measured weekly pass; absent reads as none. */
   weeklyCommit?: string | null;
   statusChangedAt: Map<string, Date>;
@@ -284,9 +284,9 @@ export function memoryStore(state: MemoryState): OpportunityStore {
       return { market: state.market ?? null, competitors: [], knowledge: KNOWN };
     },
 
-    async commitPlan(siteId, entries) {
+    async commitPlan(siteId, entries, keepAfter) {
       for (const row of state.rows) {
-        if (row.site_id !== siteId) continue;
+        if (row.site_id !== siteId || (keepAfter !== undefined && row.planned_for != null && row.planned_for > keepAfter)) continue;
         row.plan_place = null;
         row.planned_for = null;
         row.plan_write_as = null;
@@ -312,10 +312,10 @@ export function memoryStore(state: MemoryState): OpportunityStore {
       return state.weeklyCommit ?? null;
     },
 
-    async claimRecommit(siteId, date, commit) {
+    async claimRecommit(siteId, date) {
       const recommits = (state.recommits ??= []);
-      if (recommits.some((r) => r.siteId === siteId && r.commit === commit)) return false;
-      recommits.push({ siteId, date, commit });
+      if (recommits.some((r) => r.siteId === siteId && r.date === date)) return false;
+      recommits.push({ siteId, date });
       return true;
     },
 

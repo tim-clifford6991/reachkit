@@ -171,7 +171,7 @@ export async function dryReplan(
   };
   const days = (week: WeekRow[]) => week.filter((row) => row.date !== null).length;
   if (days(plan.after) < days(plan.before)) plan.held = `${days(plan.after)} dated days where the committed week has ${days(plan.before)}`;
-  console.log(JSON.stringify({ event: "week_replan_dry_run", ...plan }));
+  console.log(JSON.stringify({ event: "week_replan_dry_run", ...plan, rejected: entries.rejected }));
   return plan;
 }
 

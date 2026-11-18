@@ -11,8 +11,8 @@
 // commit.
 //
 // A new site's first week is committed when setup's pass ends (`planFirstWeek`), its dated days stopping before the
-// first Monday's pass. A date no commit covers after that is committed on demand by that evening's run, once: the
-// commit then covers the dates after it, and so, once per weekly commit, is a date the week has used up.
+// first Monday's pass. A date no commit covers after that is committed on demand by that evening's run: the commit
+// then covers the dates after it. A date the week has used up is recommitted once per date, its own day and spares only.
 import { unstable_cache } from "next/cache";
 import { PLAN_DEPTH, SUPPLY_SHORT_BELOW, WEEK_PLAN } from "@/lib/config/constants";
 import { stoppedOnCeiling } from "@/lib/scan/market-floor";
@@ -26,7 +26,7 @@ import type { Opportunity } from "./types";
 const DAY_MS = 86_400_000;
 
 /** Commits and returns the site's week as the header says, from `from` where it is given; what is chosen is `choose`'s. */
-export async function planWeek(siteId: string, a: { now?: Date; from?: string; record?: boolean } = {}): Promise<readonly PlanEntry[]> {
+export async function planWeek(siteId: string, a: { now?: Date; from?: string; record?: boolean; keepLater?: boolean } = {}): Promise<readonly PlanEntry[] & { rejected: Record<string, { n: number; ids?: string[] }> }> {
   const now = a.now ?? new Date();
   const store = opportunityStore();
   // SPEC §6: the week's one readiness check, after the week's verdicts and
@@ -37,9 +37,18 @@ export async function planWeek(siteId: string, a: { now?: Date; from?: string; r
   const from =
     a.from ?? new Date(firstOpenDay(await store.draftedPages(siteId, 1), now) * DAY_MS).toISOString().slice(0, 10);
   // Before the first weekly pass, the dated days stop where that Monday's pass opens the next week: a Wednesday 5, a Monday 7.
-  const days = (await store.weeklyCommit(siteId)) === null ? (8 - new Date(`${from}T00:00:00Z`).getUTCDay()) % 7 || WEEK_PLAN.days : WEEK_PLAN.days;
-  const entries: PlanEntry[] = choose({ ...(await loadRanking(siteId, now)), at: now, from, days }).committed;
-  await store.commitPlan(siteId, entries);
+  const days = a.keepLater ? 1 : (await store.weeklyCommit(siteId)) === null ? (8 - new Date(`${from}T00:00:00Z`).getUTCDay()) % 7 || WEEK_PLAN.days : WEEK_PLAN.days;
+  // A recommit fills its own date and the spares: the days after it stay as committed.
+  const later = new Set(a.keepLater ? (await store.plannedRows(siteId)).flatMap((r) => (r.planned_for != null && r.planned_for > from ? [r.id] : [])) : []);
+  const load = await loadRanking(siteId, now), free = (r: OpportunityRow) => !later.has(r.id);
+  const choice = choose({ ...load, rows: load.rows.filter(free), fixRows: load.fixRows.filter(free), at: now, from, days });
+  const entries = choice.committed, rejected: Record<string, { n: number; ids?: string[] }> = {};
+  for (const r of choice.rejected) {
+    const held = (rejected[r.reason] ??= r.reason === "after_the_week" ? { n: 0 } : { n: 0, ids: [] });
+    held.n++;
+    held.ids?.push(r.opportunityId);
+  }
+  await store.commitPlan(siteId, entries, a.keepLater ? from : undefined);
   console.log(
     JSON.stringify({
       event: "week_planned",
@@ -47,9 +56,11 @@ export async function planWeek(siteId: string, a: { now?: Date; from?: string; r
       from,
       days: Math.min(entries.length, days),
       spares: Math.max(0, entries.length - days),
+      kept: later.size,
+      rejected,
     })
   );
-  return entries;
+  return Object.assign(entries, { rejected });
 }
 
 /** A new site's first week, committed when setup's pass ends so Plan shows it before the first evening. Only where
@@ -60,8 +71,8 @@ export async function planFirstWeek(siteId: string, now: Date = new Date()): Pro
 }
 
 /** The page a date's run writes: the row the week planned for it, where it still stands, else the next spare in
- *  committed order; nothing ranks here. A date no commit covers, or (once per weekly commit) whose slot and spares
- *  are used up while ready rows wait outside the week, is committed from the date. `null` where nothing left can be
+ *  committed order; nothing ranks here. A date no commit covers is committed from the date; one (once per date) whose
+ *  slot and spares are used up while ready rows wait outside the week commits its own date and spares. `null` where nothing left can be
  *  written; `updatesTried` once the day's update fallback has had its turn. */
 export async function pageForDay(siteId: string, date: string, now: Date = new Date(), updatesTried = false): Promise<Opportunity | null> {
   const store = opportunityStore();
@@ -80,9 +91,8 @@ export async function pageForDay(siteId: string, date: string, now: Date = new D
   // A ready update dated later is the day's update fallback's to take first, so the recommit stays the last resort.
   if (!updatesTried && open.some((r) => r.family === "improve" && r.planned_for != null && r.planned_for > date)) return null;
   const waiting = (await store.countUnused(siteId)) - open.filter((r) => r.family !== "fix").length;
-  // Keyed by the weekly pass the commit came from, so a recommit before Monday's pass never spends the new week's.
-  if (waiting <= 0 || !(await store.claimRecommit(siteId, date, (await store.weeklyCommit(siteId)) ?? "setup"))) return null;
-  await planWeek(siteId, { now, from: date });
+  if (waiting <= 0 || !(await store.claimRecommit(siteId, date))) return null;
+  await planWeek(siteId, { now, from: date, keepLater: true });
   const slot = (await store.plannedRows(siteId)).find((r) => r.planned_for === date);
   return slot === undefined ? null : planned(slot);
 }

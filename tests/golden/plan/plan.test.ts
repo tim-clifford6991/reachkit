@@ -235,4 +235,17 @@ describe("a week whose rows all go unready mid-week is committed again from the 
     }
     await expect(lines.join("\n") + "\n").toMatchFileSnapshot("./results/recommit.md");
   });
+
+  it("a recommit for a resting day 4 with no spares keeps days 5 to 7 where Monday put them", async () => {
+    const site = panelSite("austinplumbery.com");
+    const state = newMemoryState({ profile: site.profile, market: site.market, now: AT, rows: site.rows.map((row) => ({ ...row })) });
+    setOpportunityStore({ ...memoryStore(state), topTenRows: async () => storedSerps(site.domain), setReadiness: async () => {} });
+    const week = await planWeek(SITE_ID, { now: AT, from: FROM });
+    const held = (id: string) => state.rows.find((row) => row.id === id)!;
+    for (const entry of week.filter((e) => e.place === 3 || e.plannedFor === null)) Object.assign(held(entry.opportunityId), { ready: false, unready_reason: "resting" });
+    const page = await pageForDay(SITE_ID, week[3]!.plannedFor!, AT);
+    expect([page !== null, page?.id === week[3]!.opportunityId]).toEqual([true, false]);
+    const kept = week.slice(4, 7);
+    expect(kept.map((e) => [held(e.opportunityId).plan_place, held(e.opportunityId).planned_for])).toEqual(kept.map((e) => [e.place, e.plannedFor]));
+  });
 });
