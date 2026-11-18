@@ -39,13 +39,13 @@ import { bodyWords } from "@/lib/generate/length";
 import { clusterLinkTargets, siteLinkTargets } from "@/lib/generate/links/select";
 import { generateDraft, targetSearches, type GenerateOutcome } from "@/lib/generate/pipeline";
 import { allowedFacts, readAllFacts } from "@/lib/generate/pipeline/grounding";
-import { buildPack, builtFromOutside, questionsHeld, type ContextPack } from "@/lib/generate/pipeline/pack";
+import { buildPack, builtFromOutside, type ContextPack } from "@/lib/generate/pipeline/pack";
 import { NO_RESEARCH, researchMarket, type MarketResearch } from "@/lib/generate/pipeline/research";
 import { readRecordedRules, readRecordedVerdict } from "@/lib/generate/record";
 import { HARD_RULES } from "@/lib/generate/rules/types";
 import { setGenerateStore, type DraftInsert, type DraftPatch, type DraftRow, type GenerateStore } from "@/lib/generate/store";
 import { TEMPLATES } from "@/lib/generate/templates";
-import { marketSearches, writingMarket } from "@/lib/generate/voice/market";
+import { writingMarket } from "@/lib/generate/voice/market";
 import { promptProfile } from "@/lib/generate/voice/profile-block";
 import { parseStoredMarket } from "@/lib/market/infer/stored";
 import { measured } from "@/lib/measure/measured";
@@ -356,7 +356,6 @@ export async function main(opts: Options): Promise<number> {
           questions: true,
             // Issue 1486: a how-to or a Q&A reads the target's own guidance.
             guidance: builtFromOutside(type),
-            borrow: { terms: marketSearches(writingFor), held: (found) => questionsHeld(packOf(found)) },
             ...(type === "insights" ? { recent: { searches: [category, ...writingFor.synonyms], days: RESEARCH.recentDays, market: writingFor } } : {}),
           });
       cached = { research, researchCents: ledger.spentCents() };
@@ -372,13 +371,6 @@ export async function main(opts: Options): Promise<number> {
       console.log(`pack    ${pack.facts.length} business facts, ${pack.claims.length} market claims, ${pack.products.length} rivals read`);
       console.log(`short   ${pack.missing.length === 0 ? "of nothing" : `of ${pack.missing.join(", ")}`}`);
       if (pack.questions.length > 0) console.log(`\nquestions\n${pack.questions.map((text) => `  ${text}`).join("\n")}`);
-      // D62: what the market's searched terms added where the target's own
-      // SERP left the Q&A short.
-      const borrowed = research.borrowed;
-      if (borrowed !== undefined) {
-        const read = borrowed.terms.length === 0 ? "none could be read" : `read beside ${borrowed.terms.map((term) => `“${term}”`).join(", ")}`;
-        console.log(`\nborrowed the market's searched terms added ${borrowed.added} of ${pack.questions.length} questions (${read})`);
-      }
       console.log(`\ncost    ${cents(ledger.spentCents())} this run`);
       return 0;
     }

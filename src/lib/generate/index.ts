@@ -61,13 +61,13 @@ import { urlKey, type LinkTarget } from "./links/select";
 import { competitorOf, generateDraft, targetSearches, type GenerateOutcome } from "./pipeline";
 import { allowedFacts, readAllFacts, readDemoPhrases, type SourcedFact } from "./pipeline/grounding";
 import { siteRulesOf } from "./pipeline/battery";
-import { buildPack, builtFromOutside, questionsHeld, readPack, type ContextPack, type PackLivePage, type PackMeasurements } from "./pipeline/pack";
+import { buildPack, builtFromOutside, readPack, type ContextPack, type PackLivePage, type PackMeasurements } from "./pipeline/pack";
 import { generatePageFix } from "./pipeline/page-fix";
 import type { FixNote } from "./pipeline/repair";
 import { NO_RESEARCH, researchMarket, storedAsk, type MarketResearch } from "./pipeline/research";
 import { namedRivals } from "./rules/rivals";
 import { TEMPLATES } from "./templates";
-import { marketSearches, writingMarket } from "./voice/market";
+import { writingMarket } from "./voice/market";
 import { REWRITTEN, owedToRow } from "./interrupted";
 import { DraftDateTaken, PageStopped, generateStore, type RestartedDraft, type SiteFacts } from "./store";
 
@@ -615,7 +615,6 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number; 
           // Issue 1486: a how-to or a Q&A is built from cited outside facts,
           // so its one search reads the target's own guidance.
           guidance: builtFromOutside(type),
-          borrow: { terms: marketSearches(writingFor), held: (research) => questionsHeld(packOf(research)) },
           ...(type === "insights"
             ? { recent: { searches: [category === "" ? (targetSearches(o)[0] ?? "") : category, ...writingFor.synonyms], days: RESEARCH.recentDays, market: writingFor } }
             : {}),
