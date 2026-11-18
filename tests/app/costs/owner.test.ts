@@ -20,7 +20,7 @@ vi.mock("@/lib/db", () => ({
 }));
 
 const { env } = await import("@/lib/config/env");
-const { isOwner } = await import("@/app/(account)/app/costs/owner");
+const { isOwner } = await import("@/lib/account/owner");
 
 describe("who opens /app/costs", () => {
   it("an owner's address does, a customer's does not", async () => {

@@ -20,7 +20,7 @@ import type { FixedVendor } from "@/lib/costs/vendor-days";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { CapDays } from "@/ui/charts";
 import { appAccount } from "../_session/account";
-import { isOwner } from "./owner";
+import { isOwner } from "@/lib/account/owner";
 
 export const metadata: Metadata = { title: copy("meta.app.costs.title") };
 

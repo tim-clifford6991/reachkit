@@ -7,7 +7,7 @@ import { notFound } from "next/navigation";
 import { now } from "@/lib/config/now";
 import { copy } from "@/lib/presentation/copy";
 import { appAccount } from "../_session/account";
-import { isOwner } from "../costs/owner";
+import { isOwner } from "@/lib/account/owner";
 import { Review } from "./Review";
 import { readReview } from "./store";
 
