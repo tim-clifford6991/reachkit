@@ -492,12 +492,9 @@ export async function generateDraft(a: {
   // The write never waits on the queue: research still out is no page today and no rest, and the next tick asks again.
   if (left > 0) return instead("generate:research_pending", "select", null);
   let outcome = await step("write", () => generateDayPage({ ...day, opportunityId: decided.opportunityId }));
-  // A committed cosmetic page publishes dated as its live version, but never keeps the day: the day takes a spare as after a stop.
+  // A committed cosmetic page never keeps the day: it is set aside undated, and the day takes a spare as after a stop.
   const aside = outcome.ok ? outcome.draftId : null;
-  if (aside !== null && (await step("cosmetic", () => setAside(aside)))) {
-    await step("cosmetic-review", () => reviewWritten({ ok: true, draftId: aside }, a.now));
-    outcome = await step("spare", () => generateDayPage({ ...day, updatesTried: true }));
-  }
+  if (aside !== null && (await step("cosmetic", () => setAside(aside)))) outcome = await step("spare", () => generateDayPage({ ...day, updatesTried: true }));
   if (!outcome.ok && outcome.because === "already_drafted") return { done: true };
   const reviewed = await step("review", () => reviewWritten(outcome, a.now));
   return !("degraded" in reviewed) || !reviewed.degraded.startsWith("generate:") ? reviewed : instead(reviewed.degraded, "write", !outcome.ok && "draftId" in outcome ? outcome.draftId : null);

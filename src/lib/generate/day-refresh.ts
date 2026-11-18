@@ -92,8 +92,8 @@ export async function mendPage(a: MendInput): Promise<DayPageOutcome> {
   return mended.checked.passed ? { ok: true, draftId } : { ok: false, because: "rules", draftId, attempts: 1 };
 }
 
-/** SPEC §7 (owner, 2026-11-17 ~23:45): a committed 0¢ `structure` mend or a `link`/`unseen` refresh may publish, but it
- *  never keeps the day. It gives up its date and is dated as its live version, so `dateModified` and `lastmod` stay. */
+/** SPEC §7 (owner, 2026-11-17 ~23:45): a committed 0¢ `structure` mend or a `link`/`unseen` refresh never keeps the day.
+ *  As an update that adds too little, it gives up its date, keeps its live version's, and never enters review, which would date it again. */
 export async function setAside(draftId: string): Promise<boolean> {
   const store = generateStore();
   const row = await store.draftById(draftId);
@@ -102,6 +102,8 @@ export async function setAside(draftId: string): Promise<boolean> {
   if (row === null || o === null || !(mendable(o) || (o.type === "refresh_page" && (cause === "link" || cause === "unseen")))) return false;
   const meta = metaOf(row.meta), live = (meta.pack as ContextPack | undefined)?.live?.datedAs;
   await store.patchDraft(draftId, { scheduled_for: null, meta: typeof meta.datedAs === "string" || live === undefined ? meta : { ...meta, datedAs: live } });
+  const { transition } = await import("@/lib/publish/machine");
+  await transition(draftId, "needs_attention", { kind: "system", job: "draft/generate" }, { reason: "step_failed:adds" });
   return true;
 }
 

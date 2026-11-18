@@ -31,7 +31,9 @@ export async function commitWeek(a: { siteId: string; weekStart: string; now: Da
     short: { rows: count("short"), ...short },
     rested: week.rested.map((rested) => ({ id: rested.opportunityId, short: rested.short })),
     top_up: { tried: tried.size, kept: week.filter((entry) => tried.has(entry.opportunityId)).length },
-    spares_met: spares.filter((entry) => ["met", "at_margin"].includes(entry.reason.research?.state ?? "met")).length,
+    spares_met: spares.filter((entry) => ["met", "at_margin"].includes(entry.reason.research?.state ?? "")).length,
+    // Not measured is never met: a spare the commit did not check is counted apart.
+    spares_unchecked: spares.filter((entry) => entry.reason.research === undefined).length,
     spares_of: WEEK_PLAN.spares,
     uncovered: Math.max(0, WEEK_PLAN.days - week.length + spares.length),
   };
