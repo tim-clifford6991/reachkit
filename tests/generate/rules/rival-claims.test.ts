@@ -12,7 +12,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import type { ContextPack, PackClaim } from "../../../src/lib/generate/pipeline/pack";
-import { admittedClaims, ownPagesFirst } from "../../../src/lib/generate/pipeline/research";
+import { admittedClaims, ownPagesFirst } from "../../../src/lib/generate/pipeline/claims";
 import { comparisonTable } from "../../../src/lib/generate/pipeline/table";
 import { checkRivalNegative, checkRivalScope, type NamedRival } from "../../../src/lib/generate/rules/rivals";
 

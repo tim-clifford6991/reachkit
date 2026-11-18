@@ -44,6 +44,7 @@ import type { WritingMarket } from "../voice/market";
 import type { PromptKnowledge, PromptProfile } from "../voice/profile-block";
 import { chooseVoice, type PageVoice, type WritingVoice } from "../voice/register";
 import type { SourcedFact } from "./grounding";
+import { byNewest } from "./claims";
 import type { BuyersAsk, JudgedResult, MarketFact, MarketResearch, ResearchedProduct } from "./research";
 import { reportFactsAllowed } from "./report-scope";
 import { comparisonTable } from "./table";
@@ -637,20 +638,6 @@ export function freshFirst<T extends { fact: { passage: string } }>(facts: reado
   return [...facts.filter((sourced) => !repeated(sourced)), ...facts.filter(repeated)];
 }
 
-/**
- * The stored-row check of issue 1509: of the business-fact passages a live
- * page states (its pack's facts found word for word in its text), the share
- * also stated on `PACK.repeatedOn` or more of the site's other live pages.
- * `null` for a page that states none.
- */
-export function repeatedFactShare(a: { markdown: string; facts: readonly string[]; others: readonly string[] }): number | null {
-  const page = pageText(a.markdown);
-  const stated = [...new Set(a.facts.map(fold))].filter((passage) => passage !== "" && page.includes(passage));
-  if (stated.length === 0) return null;
-  const others = a.others.map(pageText);
-  return stated.filter((passage) => statedOn(passage, others) >= PACK.repeatedOn).length / stated.length;
-}
-
 /** Whether a claim is a rival's price read too long ago to state (D59):
  *  more than `RIVAL_PRICE_MAX_AGE_D` days before `now`. A date that cannot
  *  be read is not an age. */
@@ -688,7 +675,7 @@ export function buildPack(a: PackInputs): ContextPack {
   const products = a.research.products
     .map((product) => ({ ...product, pages: product.pages.filter((url) => current.some((fact) => fact.product === product.domain && fact.url === url)) }))
     .filter((product) => product.pages.length > 0);
-  const claims: PackClaim[] = current.map((fact) => ({
+  const claims: PackClaim[] = byNewest(current).map((fact) => ({
     passage: fact.passage,
     url: fact.url,
     title: fact.title,
