@@ -229,6 +229,7 @@ export type Evidence =
       /** Issue 1520: a search ReachKit composed from the market's own words, which needs a buyer seen asking it.
        *  Absent on every other topic, and on a composed one derived before. */
       composed?: true;
+      topUp?: true; // the week's top-up added it, which the commit's record counts
       /** The tracked prompt whose answer gave a competitor and not the site, which this search words (`ai_gap`). */
       prompt?: { id: string; text: string };
       /** SPEC §6 *A competitor wins, the site is absent*: which signal found it, the competitor, and the stored row that shows the site absent. */
@@ -426,8 +427,8 @@ export interface PlanReason {
   points: number;
   parts: { part: PointPart; n: number }[];
   rule: PlaceRule | null;
-  /** What the commit read of its research: `queued` where none is cached, `short` under its type's pass mark. */
-  research?: { state: "met" | "at_margin" | "queued" | "short"; R: number | null; Q: number | null; F: number | null; estWords: number | null; urls: string[] };
+  /** What the commit read of its research: `queued` where none is cached, `short` under its type's pass mark, by part. */
+  research?: { state: "met" | "at_margin" | "queued" | "short"; R: number | null; Q: number | null; F: number | null; estWords: number | null; urls: string[]; short?: string[] };
 }
 
 export interface Ranked {

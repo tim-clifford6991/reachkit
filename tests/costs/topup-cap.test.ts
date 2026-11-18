@@ -49,4 +49,12 @@ describe("the top-up's own cap", () => {
     expect(bought.degraded).toBe("topup_cap");
     expect(bought.seeds).toEqual([]);
   });
+
+  it("the Monday commit's research is refused at its own 2¢ and asks the vendor nothing, so its row stays queued", async () => {
+    const { serpOrganic } = await import("@/lib/vendors/dataforseo/serp");
+    const read = { query: "plumber near me", mode: "std", loadAsyncAiOverview: false, locale: DEFAULT_LOCALE, scope: { site: "s" }, freshnessDays: 30 } as const;
+    const serp = await withCostContext({ scanId: SCAN, cap: "WEEK_RESEARCH", policyVersion: 1, rollUp: "none", activity: "weekly", priorCents: CAPS.WEEK_RESEARCH_C }, (c) => serpOrganic(c, read));
+    expect(serp.kind).toBe("unmeasured");
+    expect(calls.vendor).toEqual([]);
+  });
 });

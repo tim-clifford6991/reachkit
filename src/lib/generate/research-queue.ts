@@ -7,7 +7,7 @@
 // step's research then makes the same reads from the cache. A read still not ready by then is no research, and the
 // pack's own check writes no page: it never falls back to a live SERP.
 import { RESEARCH } from "@/lib/config/constants";
-import type { CostContext } from "@/lib/costs";
+import { withCostContext, type CostContext } from "@/lib/costs";
 import { readCache } from "@/lib/costs/cache";
 import { languageOfText } from "@/lib/locale/read";
 import { siteLocale } from "@/lib/locale/site";
@@ -20,7 +20,7 @@ import { cachedSerp, serpOrganic } from "@/lib/vendors/dataforseo/serp";
 import { DRAFT_POLICY_VERSION, openDayCost } from "./cost";
 import { targetSearches } from "./pipeline";
 import { builtFromOutside, type ResearchRead } from "./standard";
-import { NO_RESEARCH, RESEARCH_READ_SOURCE, researchSerps, type MarketResearch } from "./pipeline/research";
+import { NO_RESEARCH, RESEARCH_READ_SOURCE, fetchPage, researchSerps, type MarketResearch } from "./pipeline/research";
 import { alikeHeadings } from "./rules/headings";
 import { isQuestionShaped } from "./rules/text";
 import { generateStore } from "./store";
@@ -68,8 +68,9 @@ const STEP_RE = /^(?:\p{L}+\s+)?\d{1,2}\s*[.):\-–]\s*\S/u;
 type ReadPage = { url: string; title: string; text: string; headings?: string[] };
 
 /** Each row's research as the cache holds it, at 0¢ and with no vendor call: the commit's row check (SPEC §7 *The week is
- *  committed on Monday*). A row whose target SERP, or any eligible result's read, is not cached reads `null`: not measured. */
-export async function researchHeld(siteId: string, rows: readonly Pick<OpportunityRow, "id" | "target_query">[], now: Date): Promise<Map<string, ResearchRead | null>> {
+ *  committed on Monday*). A row whose target SERP, or any eligible result's read, is not cached reads `null`: not measured.
+ *  Given `cost`, a result not yet held is read off the network, together, and ledgered at 0¢; one that does not read is no result. */
+export async function researchHeld(siteId: string, rows: readonly WeekRow[], now: Date, cost?: CostContext): Promise<Map<string, ResearchRead | null>> {
   const [site, locale] = await Promise.all([generateStore().siteFacts(siteId), siteLocale(siteId)]);
   const others = new Set((site?.rivals ?? []).flatMap((rival) => registrableDomain(rival) ?? []));
   const foreign = (url: string) => (site === null || !isOwnDomain(url, site.domain)) && !others.has(registrableDomain(url) ?? "") && !isListingAddress(url) && !isMarketplaceHost(url) && !isPlatformDomain(url);
@@ -84,10 +85,10 @@ export async function researchHeld(siteId: string, rows: readonly Pick<Opportuni
     const serp = await cachedSerp(researchSerps({ siteId, locale, target }, 0)[0]!, DRAFT_POLICY_VERSION);
     if (serp === null) return null;
     const urls = serp.organic.slice(0, READ.results).map((row) => row.url).filter((url) => googleWrapper(url) === null && foreign(url));
-    const cached = await Promise.all(urls.map((url) => readCache({ source: RESEARCH_READ_SOURCE, cacheKey: url, policyVersion: DRAFT_POLICY_VERSION, freshnessDays: RESEARCH.freshnessDays })));
-    if (urls.length > 0 && cached.some((hit) => hit === null)) return null;
+    const held = await Promise.all(urls.map(async (url) => ((await readCache({ source: RESEARCH_READ_SOURCE, cacheKey: url, policyVersion: DRAFT_POLICY_VERSION, freshnessDays: RESEARCH.freshnessDays }))?.payload as ReadPage | undefined) ?? (cost === undefined ? undefined : readFresh(cost, url))));
+    if (held.some((page) => page === undefined)) return null;
     const topic = words(target);
-    const pages = cached.flatMap((hit) => (hit === null ? [] : [hit.payload as ReadPage])).filter((page) => {
+    const pages = held.flatMap((page) => (page == null ? [] : [page])).filter((page) => {
       const language = languageOfText(page.text);
       return page.text.split(/\s+/).length >= READ.words && (language === null || language === locale.language) && holds(topic, page.title);
     });
@@ -112,4 +113,39 @@ export async function researchHeld(siteId: string, rows: readonly Pick<Opportuni
   const out = new Map<string, ResearchRead | null>();
   for (const row of rows) out.set(row.id, row.target_query === null ? null : await read(row.target_query));
   return out;
+}
+
+/** A result read for the commit's check, ledgered at 0¢ under its address as research's reads are; `null` where it does not read. */
+async function readFresh(cost: CostContext, url: string): Promise<ReadPage | null> {
+  const read = await fetchPage(url);
+  if (read === null) return null;
+  const { title, text, readAt, headings } = read.page;
+  const row = await cost.recordFetch<ReadPage>({ source: RESEARCH_READ_SOURCE, cacheKey: url, freshnessDays: RESEARCH.freshnessDays, costCents: 0, run: async () => ({ url: read.page.url, title, text, readAt, ...(headings === undefined ? {} : { headings }) }) as ReadPage });
+  return "skipped" in row ? null : row.payload;
+}
+
+// The Monday commit's research (SPEC §7 *The week is committed on Monday*), a job step each: each of the week's best rows'
+// own target SERP on the normal queue under `CAPS.WEEK_RESEARCH_C`, then the rows checked a batch a step from free reads.
+export type WeekRow = Pick<OpportunityRow, "id" | "target_query"> & { topUp?: boolean };
+export type Checks = [string, ResearchRead | null][];
+const weekCost = <T>(scanId: string, body: (cost: CostContext) => Promise<T>): Promise<T> =>
+  withCostContext({ scanId, cap: "WEEK_RESEARCH", policyVersion: DRAFT_POLICY_VERSION, rollUp: "none", activity: "weekly" }, body);
+
+/** Asks each row's own target SERP, never its study search, each waiting `waitMs`; how many are still on the queue. A
+ *  read the cap refuses is not asked, and its row is committed queued. */
+export async function askWeekResearch(a: { siteId: string; scanId: string; rows: readonly WeekRow[]; waitMs: number }): Promise<number> {
+  const targets = a.rows.flatMap((row) => (row.target_query === null ? [] : [row.target_query]));
+  if (targets.length === 0) return 0;
+  const locale = await siteLocale(a.siteId);
+  return weekCost(a.scanId, async (cost) => {
+    let waiting = 0;
+    const onFailure = (failed: { taskId?: string }) => void (waiting += failed.taskId === undefined ? 0 : 1);
+    await Promise.all(targets.map((target) => serpOrganic(cost, { ...researchSerps({ siteId: a.siteId, locale, target }, a.waitMs)[0]!, onFailure })));
+    return waiting;
+  });
+}
+
+/** One batch's row checks, from the cached SERPs and the free reads of their results. */
+export async function checkWeekResearch(a: { siteId: string; scanId: string; rows: readonly WeekRow[]; now: Date }): Promise<Checks> {
+  return [...(await weekCost(a.scanId, (cost) => researchHeld(a.siteId, a.rows, a.now, cost)))];
 }

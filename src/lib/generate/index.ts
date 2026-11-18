@@ -597,10 +597,10 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number; 
           locale,
           domain: site.domain,
           searches: targetSearches(o),
+          urls: o.planReason?.research?.urls,
           report,
           rivals: [...(competitorOf(o) ?? []), ...site.rivals],
-          // Issue 1508: a listicle counts the options its top results name,
-          // and an alternatives search's product is its baseline.
+          // Issue 1508: a listicle counts its top results' options, and an alternatives search's product is its baseline.
           rivalNames: namedRivals(site.rivals, writingFor.market),
           options: type === "listicle",
           marketWords: [category, ...writingFor.synonyms],

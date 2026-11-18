@@ -23,14 +23,16 @@ export {
   type VendorFailure,
 } from "./refusal";
 
-export type CapName = "FREE" | "DEEP" | "WEEKLY" | "DRAFT" | "TOPUP";
+export type CapName = "FREE" | "DEEP" | "WEEKLY" | "DRAFT" | "TOPUP" | "WEEK_RESEARCH";
 
-const CAP_VALUES: Record<CapName, number> = {
+/** Each cap's figure: what a context refuses a call against, and what `remainingCents()` reads. */
+export const CAP_VALUES: Readonly<Record<CapName, number>> = {
   FREE: CAPS.FREE_C,
   DEEP: CAPS.DEEP_C,
   WEEKLY: CAPS.WEEKLY_C,
   DRAFT: CAPS.DRAFT_C,
   TOPUP: CAPS.TOPUP_C,
+  WEEK_RESEARCH: CAPS.WEEK_RESEARCH_C,
 };
 
 /** Why a call was refused. All three refuse alike (`{ skipped: "cap" }`,
@@ -161,7 +163,7 @@ export async function withCostContext<T>(
     /** A close after a refusal for credit rolls the row up `failed`, so it never reads as measured. */
     failsWhenFundsRefused?: true;
     /** The ledger activity of a context that writes no roll-up and is not a draft's. */
-    activity?: "topup";
+    activity?: "topup" | "weekly";
   },
   body: (cost: CostContext) => Promise<T>
 ): Promise<T> {

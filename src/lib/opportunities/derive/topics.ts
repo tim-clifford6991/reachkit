@@ -675,7 +675,7 @@ export function candidateFor(
     },
     ...(topic.asked === undefined ? {} : { askedBeside: topic.asked }),
     ...trendRead(topic.trend, at),
-    ...(topic.composed === undefined ? {} : { composed: true as const }),
+    ...(topic.composed === undefined ? {} : { composed: true as const }), ...("topUp" in topic ? { topUp: true as const } : {}),
     ...(topic.prompt === undefined ? {} : { prompt: topic.prompt }),
     ...(topic.win === undefined ? {} : { win: topic.win }),
   };

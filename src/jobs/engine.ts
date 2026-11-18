@@ -26,7 +26,7 @@
 // one call into a module that owns the rule, or a named refusal.
 import { runDeepPass } from "@/lib/scan/deep/run";
 import { sendSetupReminder, sitesDueSetupReminder as sitesDueSetupReminderRows } from "@/lib/mail/setup/reminders";
-import { TIMING } from "@/lib/config/constants";
+import { TIMING, WEEK_RESEARCH } from "@/lib/config/constants";
 import { dueSites, refreshWeeklyKnowledge, runWeekly, type DueSite, type WeeklyOutcome } from "@/lib/scan/weekly";
 import type { StepRunner } from "./types";
 
@@ -144,19 +144,10 @@ export async function weeklyDueSites(now: Date): Promise<readonly DueSite[]> {
  *  `weekStart` is the site-local Monday the run belongs to; the `unique (site_id, week_start)
  *  where tier = 'weekly'` constraint makes a second delivery of the same key start nothing.
  *
- *  **Three obligations of one tick, visible here rather than hidden inside
- *  the pass** (issue #181, and the same shape the 24-hour check takes):
- *  the pass records what it measured and stops, the week is judged, and
- *  the digest is sent after both. The judgement carries its own once-ness
- *  on `(publication_id, week_start)` and the digest carries its own on the
- *  same site-week row (`scans.digest_sent_at`), so a re-delivery of this
- *  tick measures nothing, judges nothing further and sends nothing.
- *
- *  **Each is a step of its own, and between the pass and the telling the
- *  late answers are read** (#1160). The pass fills its invocation, so the
- *  tracked-prompt asks it paid for and stopped waiting on are read in up
- *  to `TIMING.weeklyCollectRounds` further steps, each bounded by the
- *  pass's own ceiling, before the week is judged and told.
+ *  **Each obligation is a step of its own** (#181, #1160): the pass records what it measured, its late answers are read
+ *  in up to `TIMING.weeklyCollectRounds` steps, the week is judged, its best rows researched and committed, and the
+ *  digest is sent last. The judgement is once per `(publication_id, week_start)`, the week's record once per site and
+ *  week, and the digest once per `scans.digest_sent_at`, so a re-delivery measures, judges and sends nothing further.
  *
  *  **A degraded pass still tells.** A week that reached only some of its
  *  sections is REQ-064 c4's case — measured, with the sections it missed
@@ -198,28 +189,24 @@ export async function startWeeklyScan(
     await readSearchEngines({ siteId: a.siteId, now: a.now });
   });
 
+  // SPEC §7: the week judged, its best rows' own SERPs bought and their research checked, then committed before it is told.
+  if (outcome.ran && outcome.status !== "failed") {
+    const [{ askWeekResearch, checkWeekResearch, COLLECT }, { commitWeek, judgeWeekRows }] = await Promise.all([import("@/lib/generate/research-queue"), import("@/lib/scan/weekly/commit")]);
+    const week = { siteId: a.siteId, scanId: outcome.scanId, weekStart: a.weekStart, now: a.now };
+    const rows = await step(`judge-${a.siteId}`, () => judgeWeekRows(week)), at = (n: number) => rows.slice(n * WEEK_RESEARCH.batch, (n + 1) * WEEK_RESEARCH.batch);
+    let left = await step(`research-post-${a.siteId}`, () => askWeekResearch({ ...week, rows, waitMs: COLLECT.askMs }));
+    for (let n = 1; left > 0 && n <= TIMING.weeklyCollectRounds; n++) left = await step(`research-collect-${a.siteId}-${n}`, () => askWeekResearch({ ...week, rows, waitMs: COLLECT.stepMs }));
+    const checks: Awaited<ReturnType<typeof checkWeekResearch>> = [];
+    for (let n = 0; at(n).length > 0; n++) checks.push(...(await step(`research-check-${a.siteId}-${n}`, () => checkWeekResearch({ ...week, rows: at(n) }))));
+    await step(`commit-${a.siteId}`, () => commitWeek({ ...week, rows, checks }));
+  }
   return step(`tell-${a.siteId}`, () => tellWeek(a, outcome));
 }
 
-/** The week judged and told, after its measurement and its late answers. */
+/** The week told, after it is judged and committed. A failed pass stored no report, so its week judges nothing. */
 async function tellWeek(a: DueSite & { readonly now: Date }, outcome: WeeklyOutcome): Promise<EngineResult> {
   // A week the vendor refused for credit is still due: nothing is judged, planned or told until a pass measures it.
   if (outcome.ran && outcome.status === "failed" && outcome.because === "vendor_funds") return { degraded: "vendor_funds" };
-  // §6's verdict on every page published so far, written before the digest
-  // reads it. A failed pass stored no report, so its week judges nothing.
-  if (outcome.ran && outcome.status !== "failed") {
-    const { judgeWeek, planRefreshes, planWeek } = await import("@/lib/opportunities");
-    await judgeWeek({ siteId: a.siteId, week: a.weekStart });
-    // SPEC §7 (*Pace*, issue 1139): the live pages of ours that are due a
-    // refresh — 90 days old, a worse place in the verdict just written, or
-    // a newer fact — planned before readiness is recorded on them.
-    await planRefreshes({ siteId: a.siteId, at: a.now });
-    // SPEC §7 (issue 1559): the week's seven pages and three spares,
-    // committed after one readiness check — so this Monday's "not working"
-    // retires a twice-failed Improve URL — and before the digest states them.
-    await planWeek(a.siteId, { now: a.now, record: true });
-  }
-
   const { sendWeeklyDigest } = await import("@/lib/mail/weekly");
   const told = await sendWeeklyDigest({
     siteId: a.siteId,
@@ -478,7 +465,7 @@ export async function generateDraft(a: {
   readonly again?: boolean; // decided again against a newer week: a page the system stopped gives up the date first
 }): Promise<EngineResult> {
   const step: StepRunner = a.step ?? ((_name, body) => body());
-  const { decideDayPage, generateDayPage, refreshForDay } = await import("@/lib/generate");
+  const [{ decideDayPage, generateDayPage, refreshForDay }, { setAside }] = await Promise.all([import("@/lib/generate"), import("@/lib/generate/day-refresh")]);
   const day = { siteId: a.siteId, publishDate: a.publishDate, now: a.now };
   // Before the plan is read: deciding a day's page writes the week's plan.
   const { dayHold } = await import("@/lib/publish/daily");
@@ -504,7 +491,10 @@ export async function generateDraft(a: {
   for (let round = 1; a.step !== undefined && left > 0 && round <= COLLECT.rounds; round++) left = await step(`research-collect-${round}`, () => askDayResearch({ ...research, waitMs: COLLECT.stepMs }));
   // The write never waits on the queue: research still out is no page today and no rest, and the next tick asks again.
   if (left > 0) return instead("generate:research_pending", "select", null);
-  const outcome = await step("write", () => generateDayPage({ ...day, opportunityId: decided.opportunityId }));
+  let outcome = await step("write", () => generateDayPage({ ...day, opportunityId: decided.opportunityId }));
+  // A committed cosmetic page never keeps the day: it is set aside undated, and the day takes a spare as after a stop.
+  const aside = outcome.ok ? outcome.draftId : null;
+  if (aside !== null && (await step("cosmetic", () => setAside(aside)))) outcome = await step("spare", () => generateDayPage({ ...day, updatesTried: true }));
   if (!outcome.ok && outcome.because === "already_drafted") return { done: true };
   const reviewed = await step("review", () => reviewWritten(outcome, a.now));
   return !("degraded" in reviewed) || !reviewed.degraded.startsWith("generate:") ? reviewed : instead(reviewed.degraded, "write", !outcome.ok && "draftId" in outcome ? outcome.draftId : null);

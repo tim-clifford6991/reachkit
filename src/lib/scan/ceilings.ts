@@ -51,8 +51,8 @@
 // "a number that appears in two files is wrong" — does not reach a value
 // that lives in exactly one file, which this stays as long as no second
 // caller repeats the literal rather than importing it.
-import { CAPS, TIMING } from "@/lib/config/constants";
-import { withCostContext, type CapName, type CostContext, type FetchRefusalReason } from "@/lib/costs";
+import { TIMING } from "@/lib/config/constants";
+import { CAP_VALUES, withCostContext, type CapName, type CostContext, type FetchRefusalReason } from "@/lib/costs";
 
 /** REQ-003's "bounded moment", made total. A free scan reaches exactly one. */
 export type Ending =
@@ -107,16 +107,6 @@ export interface Bounds {
 // cache").
 export const FREE_SCAN_POLICY_VERSION = 1;
 
-/** Each cap's figure, for `remainingCents()`. The same pins `withCostContext`
- *  refuses a call against. */
-const CAP_CENTS: Readonly<Record<CapName, number>> = {
-  FREE: CAPS.FREE_C,
-  DEEP: CAPS.DEEP_C,
-  WEEKLY: CAPS.WEEKLY_C,
-  DRAFT: CAPS.DRAFT_C,
-  TOPUP: CAPS.TOPUP_C,
-};
-
 /** The narrow slice of `CostContext` a `Bounds` needs — `capHit()`, and the spend and cap `remainingCents()` reads.
  *  Kept separate from the full interface so `makeBounds` cannot reach for
  *  `recordFetch`, which is not this module's to call (`## Out of scope`:
@@ -162,7 +152,7 @@ function makeBounds(a: {
       return a.cost.capHit();
     },
     remainingCents(): number {
-      return Math.max(0, CAP_CENTS[a.cost.cap] - a.holdBackCents - a.cost.spentCents());
+      return Math.max(0, CAP_VALUES[a.cost.cap] - a.holdBackCents - a.cost.spentCents());
     },
     stopNow(): "time_ceiling" | "spend_ceiling" | null {
       if (bounds.expired()) return "time_ceiling";
