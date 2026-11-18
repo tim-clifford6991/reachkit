@@ -499,10 +499,10 @@ export async function generateDraft(a: {
   };
   if (!decided.ok) return decided.because === "already_drafted" ? { done: true } : instead(`generate:${decided.because}`, "select", null);
   // Research SERPs are queued before the write, which reads them at 0¢; run inline (the first draft), no step waits.
-  const { postDayResearch, collectDayResearch, COLLECT } = await import("@/lib/generate/research-queue");
+  const { askDayResearch, COLLECT } = await import("@/lib/generate/research-queue");
   const research = { siteId: a.siteId, opportunityId: decided.opportunityId, now: a.now };
-  let left = await step("research-post", () => postDayResearch(research));
-  for (let round = 1; a.step !== undefined && left > 0 && round <= COLLECT.rounds; round++) left = await step(`research-collect-${round}`, () => collectDayResearch({ ...research, untilMs: Date.now() + COLLECT.stepMs }));
+  let left = await step("research-post", () => askDayResearch({ ...research, waitMs: COLLECT.askMs }));
+  for (let round = 1; a.step !== undefined && left > 0 && round <= COLLECT.rounds; round++) left = await step(`research-collect-${round}`, () => askDayResearch({ ...research, waitMs: COLLECT.stepMs }));
   // The write never waits on the queue: research still out is no page today and no rest, and the next tick asks again.
   if (left > 0) return instead("generate:research_pending", "select", null);
   const outcome = await step("write", () => generateDayPage({ ...day, opportunityId: decided.opportunityId }));

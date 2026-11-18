@@ -29,6 +29,7 @@ vi.mock("@/lib/generate/pipeline/research", async (original) => ({ ...(await ori
 vi.mock("next/cache", () => ({ revalidateTag: () => undefined, revalidatePath: () => undefined }));
 
 import { generateDayPage, refreshForDay } from "@/lib/generate";
+import { askDayResearch } from "@/lib/generate/research-queue";
 import { openDayCost } from "@/lib/generate/cost";
 import { generateDraft } from "@/lib/generate/pipeline";
 import { siteRulesOf } from "@/lib/generate/pipeline/battery";
@@ -136,6 +137,21 @@ describe("a replayed day's page spends at most CAP_DRAFT for its date in total",
     expect(spent()).toBe(before);
     expect(spent()).toBeLessThanOrEqual(CAPS.DRAFT_C);
     expect(network).not.toHaveBeenCalled();
+  });
+
+  it("a replayed research ask reads the task its first ask posted (free `task_get`) and ledgers no second paid row", async () => {
+    await world();
+    let ready = false;
+    const queue = (url: string, status: number, result: unknown = null) => ({ ok: true, status: 200, json: async () => ({ tasks: [{ id: url.split("/").at(-1) === "task_post" ? `t${Math.random()}` : url.split("/").at(-1), status_code: status, result }] }) });
+    network.mockImplementation(async (url: unknown) => (String(url).endsWith("task_post") ? queue(String(url), 20100) : ready ? queue(String(url), 20000, [{ items: [{ type: "organic", rank_group: 1, domain: "rival.com", url: "https://rival.com/" }] }]) : queue(String(url), 40602)) as never);
+    const ask = () => askDayResearch({ siteId: SITE, opportunityId: NEW_ID, now: HOUR, waitMs: 30 });
+    expect(await ask()).toBe(2);
+    stamp();
+    const [rows, paid, posts] = [ledger().length, spent(), network.mock.calls.length];
+    ready = true;
+    expect(await ask()).toBe(0);
+    expect([ledger().length, spent(), network.mock.calls.slice(posts).filter(([url]: unknown[]) => String(url).endsWith("task_post")).length]).toEqual([rows, paid, 0]);
+    expect(ledger().every((row) => Array.isArray((row as Row).payload))).toBe(true);
   });
 
   it("an unreadable ledger is never 0: no paid call, and the day keeps its reason", async () => {

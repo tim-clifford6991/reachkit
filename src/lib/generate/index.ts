@@ -47,21 +47,17 @@ import { pageTypeOf } from "@/lib/opportunities/page-type";
 import { intentFor } from "@/lib/opportunities/intent";
 import { openDayCost, roomForFix, withDraftCost } from "./cost";
 import { readRecordedRules } from "./record";
-import { COLLECT, collectDayResearch } from "./research-queue";
+import { COLLECT, askDayResearch } from "./research-queue";
 import { repairStructure } from "./rules/structure";
 import { mendPage, mendable, ownFactsPage } from "./day-refresh";
 import { confirmedForWriting } from "./voice/confirmed";
-import {
-  clusterLinkTargets,
-  knownLinkTargets as knownContentTargets,
-  siteLinkTargets,
-} from "./links/select";
+import { clusterLinkTargets, knownLinkTargets as knownContentTargets, siteLinkTargets, urlKey, type LinkTarget } from "./links/select";
 import { withMovedLink } from "./links/moved";
-import { urlKey, type LinkTarget } from "./links/select";
 import { competitorOf, generateDraft, targetSearches, type GenerateOutcome } from "./pipeline";
 import { allowedFacts, readAllFacts, readDemoPhrases, type SourcedFact } from "./pipeline/grounding";
 import { siteRulesOf } from "./pipeline/battery";
-import { buildPack, builtFromOutside, readPack, type ContextPack, type PackLivePage, type PackMeasurements } from "./pipeline/pack";
+import { buildPack, readPack, type ContextPack, type PackLivePage, type PackMeasurements } from "./pipeline/pack";
+import { builtFromOutside, meetsStandard } from "./standard";
 import { generatePageFix } from "./pipeline/page-fix";
 import type { FixNote } from "./pipeline/repair";
 import { NO_RESEARCH, researchMarket, storedAsk, type MarketResearch } from "./pipeline/research";
@@ -118,6 +114,8 @@ export type DayPageOutcome =
       stop?: Extract<GenerateOutcome, { reason: "rules" }>["stop"];
     }
   | { ok: false; because: "step_failed"; draftId: string | null; step: string }
+  /** Its research is still on the vendor's queue: no row and no rest, and the next tick asks again. */
+  | { ok: false; because: "research_pending" }
   /** DataForSEO refused the page's research for lack of credit. */
   | { ok: false; because: "vendor_funds" };
 
@@ -283,8 +281,8 @@ export async function regenerateRestarted(a: { siteId: string; draftId: string; 
   const opportunity = (writtenAs === "qa" && contentTypeOf(found) === "listicle") || writtenAs === "documentation" ? { ...found, writeAs: writtenAs as "qa" | "documentation" } : found;
 
   const page = { siteId: a.siteId, site, report, opportunity, publishDate: row.scheduled_for, draftId: row.id };
-  // Research an earlier ask left on the queue is collected free; one still out is waited for, never bought again.
-  if (opportunity.type !== "fix_page" && (await collectDayResearch({ siteId: a.siteId, opportunityId: found.id, writeAs: opportunity.writeAs, now, untilMs: Date.now() + COLLECT.askMs })) > 0) return { ok: false, because: "step_failed", draftId: null, step: "research_pending" };
+  // Research is asked again: a read an earlier ask left on the queue is read free, never bought again.
+  if (opportunity.type !== "fix_page" && (await askDayResearch({ siteId: a.siteId, opportunityId: found.id, writeAs: opportunity.writeAs, now, waitMs: COLLECT.askMs })) > 0) return { ok: false, because: "research_pending" };
   const outcome = await withDraftCost({ scanId: report.scanId, draftId: row.id }, (cost) =>
     opportunity.type === "fix_page" ? fixPage(page, cost) : writePage({ ...page, attempts: 1 }, cost)
   );
@@ -639,7 +637,7 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number; 
     const built = packs.get(key) ?? null;
     if (built === null) return { ok: false, because: "step_failed", draftId: draftId ?? null, step: "pack" };
     // A short pack whose search is still on the queue is not measured: no row and no rest, and the topic is tried again.
-    if (built.pending === true && built.pack.missing.length > 0) return { ok: false, because: "step_failed", draftId: null, step: "research_pending" };
+    if (meetsStandard({ pack: built.pack, pending: built.pending === true }).pending) return { ok: false, because: "research_pending" };
     const last: GenerateOutcome = await generateDraft(cost, {
       siteId: a.siteId,
       opportunity,

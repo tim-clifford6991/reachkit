@@ -74,3 +74,19 @@ export async function heldRowsBefore(source: string, cacheKey: string): Promise<
   const before = (data ?? []).slice(1).map((row) => row.payload).find((payload): payload is unknown[] => Array.isArray(payload));
   return before !== undefined && before.length > 0;
 }
+
+/** The key's newest row since `since` where it is a paid queued task still out, read by a later ask instead of a second post. */
+export async function pendingTask(source: string, cacheKey: string, since: Date): Promise<{ id: string; taskId: string; storedAt: Date } | null> {
+  const { data, error } = await untypedFetches(dbAdmin())
+    .from<Pick<FetchesRow, "id" | "payload" | "created_at">>("fetches")
+    .select("id, payload, created_at")
+    .eq("source", source)
+    .eq("cache_key", cacheKey)
+    .gt("created_at", since.toISOString())
+    .order("created_at", { ascending: false })
+    .limit(1);
+  if (error) throw new Error(`cache.ts: read from fetches failed: ${error.message}`);
+  const row = data?.[0];
+  if (row === undefined || !isVendorFailure(row.payload) || row.payload.taskId === undefined) return null;
+  return { id: row.id, taskId: row.payload.taskId, storedAt: new Date(row.created_at) };
+}

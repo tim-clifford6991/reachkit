@@ -371,6 +371,8 @@ export async function ledgered<T>(
     onFailure?: OnVendorFailure;
     onReused?: OnReusedAnswer;
     unusable?: (payload: unknown) => boolean;
+    /** A queued endpoint's free read of a task an earlier ask posted, until the earlier of `untilMs` and the task's deadline. */
+    adopt?: { read: (taskId: string, untilMs: number) => Promise<VendorOutcome>; untilMs?: number };
   }
 ): Promise<Measured<T[]>> {
   const at = new Date();
@@ -378,6 +380,23 @@ export async function ledgered<T>(
   let reason: string | undefined;
   let vendorCents: number | undefined;
   const settle = call.settleCents;
+
+  // A task still out inside the queue's deadline is read, never posted again: the post paid for it.
+  const queued = call.adopt === undefined ? undefined : c.queued;
+  const held = queued === undefined ? null : await queued.held(call.source, call.cacheKey, new Date(Date.now() - VENDOR.stdQueueDeadlineMin * MS_PER_MIN));
+  if (held !== null && queued !== undefined && call.adopt !== undefined) {
+    const out = await call.adopt.read(held.taskId, Math.min(held.storedAt.getTime() + VENDOR.stdQueueDeadlineMin * MS_PER_MIN, call.adopt.untilMs ?? Number.POSITIVE_INFINITY));
+    const read: T[] | VendorFailure = !out.ok ? failureRow(call.source, out) : out.noResults === true ? [] : (call.parse(out.result) ?? failureRow(call.source, failure("unparseable", true, "dataforseo: unparseable result")));
+    const pending = isVendorFailure(read) && read.taskId !== undefined;
+    // One that came to nothing loses its id, so it is not read again and the next ask posts.
+    if (!pending) await queued.keep(held.id, read);
+    logVendorCall({ source: call.source, outcome: isVendorFailure(read) ? "failed" : "ok", rows: isVendorFailure(read) ? 0 : read.length, costCents: 0, fresh: false, durationMs: Date.now() - startedMs, ...(isVendorFailure(read) ? { failure: read.vendorFailure, billed: read.billed } : {}) });
+    if (pending) {
+      call.onFailure?.(read);
+      return unmeasured("undeterminable", at);
+    }
+    if (!isVendorFailure(read) && call.unusable?.(read) !== true) return read.length === 0 ? measuredZero<T[]>([], at) : measured(read, at);
+  }
 
   const result = await c.recordFetch<T[] | VendorFailure>({
     source: call.source,

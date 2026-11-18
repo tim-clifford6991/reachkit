@@ -9,7 +9,8 @@ import { DISTINCT_HEADINGS, PAGE_BLOCKS, PROSE, TITLE } from "@/lib/config/const
 import { languagePack } from "@/lib/locale/language";
 import type { PageType } from "@/lib/opportunities/types";
 import { UNSUPPORTED_CLAIM } from "../claims/fit";
-import { builtFromOutside, type ContextPack } from "../pipeline/pack";
+import type { ContextPack } from "../pipeline/pack";
+import { builtFromOutside } from "../standard";
 import type { Template } from "../templates";
 import { REGISTER_FLOOR } from "./figures";
 import { rulesAsked } from "./index";

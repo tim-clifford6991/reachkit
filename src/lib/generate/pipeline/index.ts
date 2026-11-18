@@ -48,7 +48,8 @@ import { bodyWords, sectionWords } from "../length";
 import { applyLinks } from "../links/apply";
 import type { LinkTarget } from "../links/select";
 import { urlKey } from "../links/select";
-import { incomplete, recordedRulesValue, recordedRunValue, recordedVerdictValue } from "../record";
+import { recordedRulesValue, recordedRunValue, recordedVerdictValue } from "../record";
+import { incomplete, meetsStandard } from "../standard";
 import { batteryCleared, type BatteryOutcome } from "../rules";
 import { answerBoxWords, ownStepsNote, renumberSteps, withoutBrokenLinks } from "../rules/blocks";
 import { proseNotes } from "../rules/prose";
@@ -243,8 +244,9 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
   const basis = batteryBasis({ pack, opportunity: a.opportunity, site: a.site, facts: a.facts, grounding, ...(a.demoPhrases === undefined ? {} : { demoPhrases: a.demoPhrases }) });
   const { template, length, pageType, table, searches, names, passages, cited, brief: briefRead } = basis;
   // No room for the type's floor: a short pack where an incomplete page stops, and elsewhere a page written short.
-  const missing: PackNeed[] = basis.noRoomFor !== null && !basis.short && !pack.missing.includes("facts_few") ? [...pack.missing, "facts_few"] : pack.missing;
-  if (missing.length > 0 && existing === null) {
+  const standard = meetsStandard({ pack, words: basis.room });
+  const missing: PackNeed[] = basis.room?.short === true && !pack.missing.includes("facts_few") ? [...pack.missing, "facts_few"] : pack.missing;
+  if (!standard.met && existing === null) {
     logRun({ siteId: a.siteId, step: "pack", outcome: "short", type: pack.type, missing: missing.join(",") });
     return { ok: false, reason: "step_failed", draftId: null, step: "pack", missing };
   }
@@ -369,7 +371,7 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
       ...(repairs.length === 0 ? {} : { repairs: [...priorRepairs, ...repairs] }),
       // Issue 1394: the rules this run asked of the page and the ones it
       // failed first and then cleared, for the draft screen's Checks list.
-      ...(outcome === undefined ? {} : { checks: recordedRunValue(outcome, broken) }),
+      ...(outcome === undefined ? {} : { checks: recordedRunValue(outcome, broken), standard: (({ parts, met }) => ({ parts, met }))(meetsStandard({ failed: outcome.failed, markdown: page.markdown, sections: page.laid.sections.length, basis })) }),
       // A number and nothing else: which page it was is not recorded.
       ...(elsewhere === null ? {} : { elsewhere: { similarity: elsewhere } }),
     };
