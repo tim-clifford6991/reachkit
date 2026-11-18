@@ -3,11 +3,12 @@
 //
 // Its research half reads a pack built from what is already cached: the template's *pack must hold* line
 // (`missingFrom`), the room its sections leave for the type's floor, and whether its research is still on the queue.
+// Before a pack exists, the weekly commit holds a row's cached reads to its type's pass marks (`READ_MARKS`).
 // Its page half reads the battery's failures on a written body. Each part is met, short or pending; a part that was
 // not measured is pending, never short. Only a short section, source or word count is ever a stop, and whether it
 // stops is the completeness switch's (`completenessFor`, `./record.ts`); title and links are recorded and never stop.
 import type { ContentType } from "@/lib/opportunities/content-type";
-import { bodyWords, sectionWords } from "./length";
+import { bodyWords, lengthRangeFor, sectionWords, typeLength } from "./length";
 import type { BatteryBasis } from "./pipeline/battery";
 import { fold, knowledgeTexts, ownTopicWords, rivalsOnlyVersus, shares, type ContextPack, type PackClaim, type PackMeasurements } from "./pipeline/pack";
 import { comparisonTable } from "./pipeline/table";
@@ -16,7 +17,7 @@ import type { RuleFailure } from "./rules/types";
 import { sectionBounds, TEMPLATES, type PackNeed, type PackRequirement, type SectionFacts, type Template } from "./templates";
 import { differenceHeld, ownPriceHeld } from "./templates/listicle";
 
-export type Part = "sections" | "sources" | "words" | "figures" | "title" | "links";
+export type Part = "sections" | "sources" | "words" | "figures" | "title" | "links" | "demand";
 /** `have: null` is not measured, and its state is `pending`. */
 export interface PartMark { part: Part; have: number | null; need: number; state: "met" | "short" | "pending" }
 export interface Standard { parts: PartMark[]; met: boolean; pending: boolean; stops: Part[] }
@@ -52,13 +53,31 @@ const mark = (part: Part, have: number, need: number, short: boolean, pending = 
 
 /** What the research half reads: the pack, whether its research is still queued, and the room for the type's floor. */
 interface ResearchHalf { pack: Pick<ContextPack, "type" | "missing">; pending?: boolean; words?: { have: number; need: number; short: boolean } | null }
+/** What a row's cached research holds: on-topic readable results (`R`) and their addresses, the buyer questions they
+ *  answer (`Q`), the results stating a recent figure (`F`), the results laid out in three or more steps, and its
+ *  "People also ask". */
+export interface ResearchRead { R: number; Q: number; F: number; stepPages: number; asked: number; urls: string[] }
+/** What the commit reads: the type a row is written as, its cached read (`null` with nothing cached), and whether it
+ *  must show a buyer asks it, having no measured volume. */
+interface ReadHalf { type: ContentType; read: ResearchRead | null; demand?: boolean }
+
+/** The least research a type is written from (seo-master's R/Q/F test); a type not named is checked at its draft. */
+const READ_MARKS: Partial<Record<ContentType, { R: number; F: number; Q?: number; stepPages?: number; key: string }>> = {
+  qa: { R: 3, Q: 5, F: 1, key: "question" },
+  how_to: { R: 3, stepPages: 2, F: 1, key: "asked" },
+};
+/** The results a buyer's asking shows as, where no volume is measured: one "People also ask", or this many results. */
+const DEMAND_RESULTS = 3;
+
 /** What the page half reads: the battery's failures on a written body, beside what it was written to. */
 interface PageHalf { failed: readonly RuleFailure[]; markdown: string; sections: number; basis: Pick<BatteryBasis, "pack" | "template" | "length" | "citesMin"> }
 
 /** The one standard a page is held to, from its research before it is written or from its body after. */
-export function meetsStandard(a: ResearchHalf | PageHalf): Standard {
+export function meetsStandard(a: ResearchHalf | PageHalf | ReadHalf): Standard {
   let parts: PartMark[];
-  if ("failed" in a) {
+  if ("read" in a) {
+    parts = readParts(a);
+  } else if ("failed" in a) {
     const short = (part: Part) => a.failed.some((failure) => partsOf(failure).includes(part));
     const { pack, template, length } = a.basis;
     parts = [
@@ -79,6 +98,27 @@ export function meetsStandard(a: ResearchHalf | PageHalf): Standard {
     if (a.words != null) parts.push(mark("words", a.words.have, a.words.need, a.words.short));
   }
   return { parts, met: parts.every((part) => part.state === "met"), pending: parts.some((part) => part.state === "pending"), stops: parts.filter((part) => part.state === "short" && STOPPING.has(part.part)).map((part) => part.part) };
+}
+
+/** A row's cached research against its type's pass marks, its words the room its questions leave for the type's floor;
+ *  with nothing cached every part is pending. */
+function readParts({ type, read, demand }: ReadHalf): PartMark[] {
+  const marks = READ_MARKS[type];
+  const r = read ?? { R: 0, Q: 0, F: 0, stepPages: 0, asked: 0, urls: [] };
+  const part = (name: Part, have: number, need: number) => mark(name, have, need, have < need, read === null);
+  const parts: PartMark[] = demand === true ? [part("demand", r.asked > 0 || r.R >= DEMAND_RESULTS ? 1 : 0, 1)] : [];
+  if (marks === undefined) return parts;
+  const template = TEMPLATES[type];
+  const repeat = template.sections.find((slot) => slot.key === marks.key)?.repeat?.max ?? 0;
+  // The draft's own room, with the questions its question slots take: its gaps are not known before its research.
+  const room = lengthRangeFor(template, { questions: Math.min(r.Q, repeat), fitted: true });
+  return [
+    ...parts,
+    part("sources", r.R, marks.R),
+    part("sections", marks.Q === undefined ? r.stepPages : r.Q, marks.Q ?? marks.stepPages!),
+    part("figures", r.F, marks.F),
+    part("words", room?.ceiling ?? 0, typeLength(template)?.floor ?? 0),
+  ];
 }
 
 /** What a type's pack must hold. R31: every page but an update, whatever its template, is held to first-hand rival evidence. */

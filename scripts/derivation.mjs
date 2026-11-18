@@ -34,7 +34,8 @@ import ts from "typescript";
 const ENTRY = "src/lib/scan/rescore-run.ts";
 const FACTS_ENTRY = "src/lib/scan/page-facts.ts";
 const TEXT_ENTRY = "src/lib/measure/text.ts";
-const PLAN_ENTRY = "src/lib/opportunities/plan.ts";
+// The row check the store reaches by a dynamic import, which the walk does not follow, is named beside the planner.
+const PLAN_ENTRY = ["src/lib/opportunities/plan.ts", "src/lib/generate/research-queue.ts#researchHeld"];
 const PARSER = "node-html-parser";
 const SCOPE = "src/lib/";
 const ALL = "*";
@@ -196,7 +197,7 @@ function walk(root, entry = ENTRY) {
     for (const star of giving) keep(file, star.via);
     return giving.length > 0;
   };
-  need(join(root, entry), ALL);
+  for (const [file, name = ALL] of [entry].flat().map((e) => e.split("#"))) need(join(root, file), name);
   const executed = new Map();
   for (const [file, mod] of modules) {
     const order = [...mod.statements, ...mod.stars.map((s) => s.via), ...[...mod.exports.values()].map((e) => e.via)];

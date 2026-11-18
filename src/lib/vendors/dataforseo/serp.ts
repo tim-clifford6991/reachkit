@@ -11,7 +11,7 @@
 // The window is the caller's (`CACHE_WINDOWS_D.serp` or `.serpWeeklyRecheck`), since this module knows nothing of tiers.
 import { berlinDay } from "@/lib/config/now";
 import type { CostContext } from "@/lib/costs";
-import { heldRowsBefore } from "@/lib/costs/cache";
+import { heldRowsBefore, readCache } from "@/lib/costs/cache";
 import { ASYNC_AIO_SURCHARGE_MULTIPLIER, PRICE_BOOK, VENDOR } from "@/lib/config/constants";
 import type { Locale } from "@/lib/locale/locales";
 import { mapMeasured, type Measured } from "@/lib/measure/measured";
@@ -159,6 +159,9 @@ function wrappedIn(serp: SerpResult | undefined): number {
   return (serp?.organic ?? []).filter((row) => googleWrapper(row.url) !== null).length;
 }
 
+/** A stored SERP with a result behind a Google redirect, which no caller is served. */
+const wrappedRead = (stored: unknown): boolean => Array.isArray(stored) && wrappedIn(stored[0] as SerpResult | undefined) > 0;
+
 /** One `ops_events` row for a bought SERP nothing can be read from: most of its results behind Google redirects or, on
  *  the normal queue, none where the search's last stored read had some. The normal queue's first of a Berlin day mails
  *  the owner. Never throws: the read it reports on stands. */
@@ -183,6 +186,12 @@ async function reportUnreadable(queue: string, serp: SerpResult | undefined, cac
 function serpCacheKey(a: { query: string; locale: Locale; loadAsyncAiOverview: boolean; scope: CacheScope; depth?: SerpDepth }): string {
   const depth = a.depth ?? VENDOR.serpDepth;
   return `${a.query}|${placeCacheKey(a.locale)}|aio:${a.loadAsyncAiOverview ? "async" : "cached"}|${scopeKey(a.scope)}${depth === VENDOR.serpDepth ? "" : `|depth:${depth}`}`;
+}
+
+/** The SERP `serpOrganic` would serve from the ledger for the same read, at 0¢ and with no vendor call; `null` where none is held. */
+export async function cachedSerp(a: Parameters<typeof serpOrganic>[1], policyVersion: number): Promise<SerpResult | null> {
+  const hit = await readCache({ source: SOURCE, cacheKey: serpCacheKey(a), policyVersion, freshnessDays: a.freshnessDays, unusable: wrappedRead });
+  return hit === null || !Array.isArray(hit.payload) ? null : ((hit.payload[0] as SerpResult | undefined) ?? EMPTY_SERP);
 }
 
 export async function serpOrganic(
@@ -231,7 +240,7 @@ export async function serpOrganic(
   const rows = await ledgered<SerpResult>(c, {
     source: SOURCE,
     cacheKey,
-    unusable: (stored) => Array.isArray(stored) && wrappedIn(stored[0] as SerpResult | undefined) > 0,
+    unusable: wrappedRead,
     freshnessDays: a.freshnessDays,
     costCents: flagged ? surchargedCents(base, pages) : base * pages,
     ...(flagged ? { settleCents: (r: readonly SerpResult[] | null) => settledCents(base, pages, a.mode, r) } : {}),

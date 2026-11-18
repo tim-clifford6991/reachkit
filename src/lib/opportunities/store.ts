@@ -132,9 +132,8 @@ export interface DraftedPage {
 
 export interface OpportunityStore {
   insert(row: OpportunityInsert): Promise<InsertOutcome>;
-  /** Open, non-`fix` rows for one site — the unused-supply set, and the
-   *  set the ranking orders. `unblock` is excluded here, once, so no
-   *  caller downstream has to restate the predicate. */
+  /** Open, non-`fix` rows for one site — the unused-supply set, and the set the ranking orders. `unblock` is excluded
+   *  here, once, so no caller downstream has to restate the predicate. */
   openRankable(siteId: string): Promise<readonly OpportunityRow[]>;
   /** The count behind supply depth: open, not the Fix family, and ready (SPEC §6: an unready row is no day of supply). */
   countUnused(siteId: string): Promise<number>;
@@ -156,10 +155,8 @@ export interface OpportunityStore {
   topTenRows(scanIds: readonly string[]): Promise<ReadonlyMap<string, TopTenRead>>;
   /** The "People also ask" and related searches of this site's research SERPs, each with its search, bought in the last `days`. */
   askedBeside(siteId: string, days: number): Promise<readonly AskedBeside[]>;
-  /** Issue 1549: the searches of this site's dismissed non-Fix rows, each
-   *  with the volume it was dismissed at (`null` where none was measured),
-   *  and whether the customer stopped it — a stopped row's absorbed
-   *  searches with it. */
+  /** The searches of this site's dismissed non-Fix rows, each with the volume it was dismissed at (`null` where none was
+   *  measured), and whether the customer stopped it — a stopped row's absorbed searches with it. */
   dismissedSearches(siteId: string): Promise<readonly DismissedSearch[]>;
   /** Replaces the site's committed week with `entries`, keeping the rows dated after `keepAfter` where it is given. */
   commitPlan(siteId: string, entries: readonly PlanEntry[], keepAfter?: string): Promise<void>;
@@ -172,6 +169,8 @@ export interface OpportunityStore {
   /** Whether the site's market footprint was recorded open (SPEC §7 `out_of_reach`; absent: never), and its one record. */
   footprintOpened?(siteId: string): Promise<boolean>;
   openFootprint?(siteId: string, row: string): Promise<void>;
+  /** Each row's research as the cache holds it, at 0¢; absent, none is read and the week keeps the ranking's order. */
+  researchHeld?(siteId: string, rows: readonly OpportunityRow[], now: Date): Promise<ReadonlyMap<string, import("@/lib/generate/standard").ResearchRead | null>>;
   /** Writes a row's cluster and the searches it absorbed. */
   setCluster(opportunityId: string, clusterKey: string, absorbedQueries: readonly string[]): Promise<void>;
   /** The site's current stored report, or `null` where it has no readable one. */
@@ -791,6 +790,7 @@ export function supabaseOpportunityStore(): OpportunityStore {
     },
     claimRecommit: async (siteId, date) => (await import("@/lib/ops/events")).claimOpsEvent("week_recommitted", siteId, date, date),
     footprintOpened: async (siteId) => (await import("@/lib/ops/events")).opsEventHeld("market_footprint", siteId, "open"),
+    researchHeld: async (siteId, rows, now) => (await import("@/lib/generate/research-queue")).researchHeld(siteId, rows, now),
     openFootprint: async (siteId, row) => void (await (await import("@/lib/ops/events")).claimOpsEvent("market_footprint", siteId, "open", row)),
 
     setReadiness: (opportunityId, reason) => updateRow("setReadiness", opportunityId, { ready: reason === null, unready_reason: reason }),
