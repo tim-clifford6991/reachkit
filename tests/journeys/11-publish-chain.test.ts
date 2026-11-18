@@ -400,6 +400,7 @@ function draft(): Row {
 }
 
 beforeEach(async () => {
+  vi.stubEnv("VERCEL_ENV", "production");
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(WRITTEN_AT);
   seedTheDatabase();
