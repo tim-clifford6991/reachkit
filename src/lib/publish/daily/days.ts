@@ -16,7 +16,7 @@ const MS_PER_HOUR = 3_600_000;
 export type DayOutcome = "drafted" | "no_page" | "failed";
 
 /** The reason a day whose waiting page a newer standard set aside is kept under, with that standard's fingerprint. */
-export const STANDARD_REWRITE = "standard_changed";
+const STANDARD_REWRITE = "standard_changed";
 
 /** A day held until the customer's address is connected: not a fault, so no missing-draft mail. */
 const WAITING_FOR_ADDRESS = "waiting_for_address";
@@ -115,6 +115,12 @@ export async function recordDraftDay(a: {
   } catch {
     warn("record-failed");
   }
+}
+
+/** Marks a date whose waiting page a newer standard set aside, so `missedDays` decides it again; the date's own run then
+ *  overwrites the mark. Throws, so a mark that failed keeps the set-aside unfinished and its caller tries again. */
+export async function markStandardRewrite(a: { siteId: string; publishDate: string; fingerprint: string; at: Date }): Promise<void> {
+  await draftDays().record({ siteId: a.siteId, publishDate: a.publishDate, outcome: "no_page", reason: `${STANDARD_REWRITE}:${a.fingerprint}`, at: a.at });
 }
 
 /** Why the day's page is held, or `null`: until the address is connected only the first page is written. Never throws. */

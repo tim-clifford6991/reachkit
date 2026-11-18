@@ -15,7 +15,7 @@ import { TOPIC_REST_DAYS } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import type { Opportunity } from "@/lib/opportunities";
 import { claimOpsEvent, opsEventHeld } from "@/lib/ops/events";
-import { needsYouCauseOf, STANDARD_CHANGED } from "@/lib/publish/record/needs-you";
+import { needsYouCauseOf, setAsideForStandard, STANDARD_CHANGED } from "@/lib/publish/record/needs-you";
 import { publishTimeOn } from "@/lib/publish/settings/clock";
 import type { Actor, TransitionRecord } from "@/lib/publish/types";
 import { stillAsked, type FitVerdict } from "./claims/fit";
@@ -321,7 +321,11 @@ export function keptBeforeReading(row: DraftRow, a: { now: Date; fingerprint: st
   if (typeof meta.first_edited_at === "string") return "edited";
   if (!row.body_md || packOf(row) === null || row.scheduled_for === null) return "unreadable";
   const settings = { mode: "autopilot" as const, vetoHours: a.clock.vetoHours, publishTime: a.clock.publishTime, timezone: a.clock.timeZone };
-  if (publishTimeOn(row.scheduled_for, settings).getTime() <= (Math.floor(a.now.getTime() / HOUR_MS) + 1) * HOUR_MS) return "too_late";
+  const publishAt = publishTimeOn(row.scheduled_for, settings).getTime();
+  if (publishAt <= (Math.floor(a.now.getTime() / HOUR_MS) + 1) * HOUR_MS) return "too_late";
+  // The rewrite's cap counts spend from the date's due hour on, so a page written before it would not be counted.
+  const dueHour = Math.floor((publishAt - a.clock.vetoHours * HOUR_MS) / HOUR_MS) * HOUR_MS;
+  if (Date.parse(row.created_at) < dueHour) return "no_room";
   return roomForFix({ spentCents: () => Number(row.cost_cents) }) ? null : "no_room";
 }
 
@@ -344,13 +348,23 @@ export async function restandardSites(paying: () => Promise<readonly SiteClock[]
 
 async function restandardSite(clock: SiteClock, a: { now: Date; fingerprint: string }): Promise<number> {
   const store = generateStore();
+  const { giveBackClaim, opportunityById } = await import("@/lib/opportunities");
+  const { markStandardRewrite } = await import("@/lib/publish/daily");
+  // The date given up last, so a retry after a failed write finds the set-aside row still holding it and finishes.
+  const release = async (row: Pick<DraftRow, "id" | "opportunity_id" | "scheduled_for">) => {
+    await markStandardRewrite({ siteId: clock.siteId, publishDate: row.scheduled_for!, fingerprint: a.fingerprint, at: a.now });
+    await giveBackClaim(row.opportunity_id);
+    await store.patchDraft(row.id, { scheduled_for: null });
+  };
+  const { publishDb } = await import("@/lib/publish/db");
+  const held = await publishDb().from<Pick<DraftRow, "id" | "opportunity_id" | "scheduled_for" | "transitions">>("drafts").select("id, opportunity_id, scheduled_for, transitions").eq("site_id", clock.siteId).eq("state", "skipped").not("scheduled_for", "is", null);
+  if (held.error !== null) throw new Error(`restandard: ${held.error.message}`);
+  for (const row of (held.data ?? []).filter((each) => setAsideForStandard(each.transitions))) await release(row);
   const waiting = (await store.draftsShortOfHandOff(clock.siteId, ROWS_READ)).filter((row) => row.state === "in_review");
   if (waiting.length === 0) return 0;
   const [site, report] = await Promise.all([store.siteFacts(clock.siteId), store.latestReport(clock.siteId)]);
   const sets = site === null || report === null ? null : await siteSets(clock.siteId, site, report);
-  const { giveBackClaim, opportunityById } = await import("@/lib/opportunities");
   const { transition } = await import("@/lib/publish/machine");
-  const { recordDraftDay, STANDARD_REWRITE } = await import("@/lib/publish/daily");
   let setAside = 0;
   for (const row of waiting) {
     let kept = keptBeforeReading(row, { ...a, clock });
@@ -367,10 +381,7 @@ async function restandardSite(clock: SiteClock, a: { now: Date; fingerprint: str
     }
     const date = row.scheduled_for!;
     if (!(await transition(row.id, "skipped", RECHECK, { at: a.now, reason: STANDARD_CHANGED })).ok) continue;
-    await store.patchDraft(row.id, { scheduled_for: null });
-    await giveBackClaim(row.opportunity_id);
-    // Read by `missedDays`, which sends the date again under its own key; the date's own run then overwrites it.
-    await recordDraftDay({ siteId: clock.siteId, publishDate: date, outcome: "no_page", reason: `${STANDARD_REWRITE}:${a.fingerprint}`, at: a.now });
+    await release(row);
     console.log(JSON.stringify({ event: "draft_standard_set_aside", siteId: clock.siteId, draftId: row.id, date, stops: stops.join(",") }));
     setAside++;
   }
