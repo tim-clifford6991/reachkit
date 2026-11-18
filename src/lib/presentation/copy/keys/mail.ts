@@ -687,9 +687,6 @@ export const MAIL_COPY = Object.freeze({
   // Issue 796: the Monday digest of weekly passes that found too little.
   "mail.ops.incident.market-too-small-week": ["These weekly passes found too little search demand to plan any pages.", { slots: {}, fixedBy: "issue 796" }],
   "mail.ops.incident.fact.week": ["Week of", { slots: {}, fixedBy: "issue 796" }],
-  // Issue 1184 (drafted): the same digest says why the week before's pages stalled.
-  "mail.ops.incident.drafts-stopped-week": ["These sites had pages stop before review last week. Each lists the pages that stopped out of the pages written, and how many pages each cause stopped.", { slots: {}, fixedBy: "issue 1184 (drafted)" }],
-  "mail.ops.incident.fact.stopped": ["Stopped / written", { slots: {}, fixedBy: "issue 1184 (drafted)" }],
   "mail.ops.incident.fact.cause": ["Cause", { slots: {}, fixedBy: "issue 1184 (drafted)" }],
   "mail.ops.incident.untold-days-week": ["These days had no page, and no alert went out for them. Each shows the site, the date and the recorded cause.", { slots: {}, fixedBy: "issue 2221 (drafted)" }],
   // Issue 1286 (D57): what the week cost, on the same Monday digest.

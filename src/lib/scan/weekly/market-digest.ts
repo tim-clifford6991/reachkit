@@ -20,10 +20,10 @@
 // read; if it finishes, or a retry finishes it, too small after the digest
 // went, the next tick sends it alone.
 //
-// **Why pages stalled** (issue 1184). The same mail carries, per site, how
-// many of the week before's pages stopped on the way to review and how often
-// each cause stopped one — the seven dates before `week_start`, which is the
-// last week every zone has finished. A read that fails leaves the count out
+// **The daily promise.** The same mail carries one line per paying site: the
+// seven dates before `week_start` (the last week every zone has finished)
+// kept, stopped by the customer or missed, the standard met, and the coming
+// week's researched supply (`./promise-week`). A read that fails leaves it out
 // and never holds the digest back. The same dates' days with no page that no
 // alert was sent for, each with its reason, are listed after them.
 //
@@ -45,6 +45,7 @@ import { readStoredReport } from "../report";
 import type { OpsIncident } from "@/lib/mail/templates/ops";
 import type { UnhealthyPass } from "../health-record";
 import type { CostWeek } from "./cost-week";
+import type { PromiseWeek } from "./promise-week";
 
 // `scans.week_start`, `scans.market_digest_at` are on disk and not in the
 // generated `Database` type — the same narrow cast `./store` carries.
@@ -80,38 +81,18 @@ interface SiteRow {
   domain: string;
 }
 
-type StoppedWeek = NonNullable<Extract<OpsIncident, { occasion: "market-too-small-week" }>["stopped"]>;
-
 /** `day` moved by whole days, as the calendar date it lands on. */
 function shiftDay(day: string, delta: number): string {
   return format(addDays(day, delta, { in: tz("UTC") }), "yyyy-MM-dd");
 }
 
-/** The sites with a stopped page in the week before `weekStart`, or `null`
- *  where there is none or the count could not be read. */
-async function stoppedBefore(weekStart: string): Promise<StoppedWeek | null> {
+/** Each paying site's promise line (`./promise-week`), or `null` where none pays or it could not be read. */
+async function promiseOf(weekStart: string): Promise<PromiseWeek | null> {
   try {
-    const from = shiftDay(weekStart, -7);
-    const { stalledBySite } = await import("@/lib/publish/record/stalled-read");
-    const counts = [...(await stalledBySite({ from, to: shiftDay(weekStart, -1) }))].filter(([, count]) => count.stopped > 0);
-    if (counts.length === 0) return null;
-    const sites = await untyped()
-      .from<SiteRow>("sites")
-      .select("id, domain")
-      .in(
-        "id",
-        counts.map(([siteId]) => siteId)
-      );
-    if (sites.error) throw new Error(sites.error.message);
-    const domains = new Map((sites.data ?? []).map((site) => [site.id, site.domain]));
-    return {
-      weekStart: from,
-      sites: counts
-        .map(([siteId, count]) => ({ domain: domains.get(siteId) ?? "unknown", ...count }))
-        .sort((a, b) => b.stopped - a.stopped || a.domain.localeCompare(b.domain)),
-    };
+    const { readPromiseWeek } = await import("./promise-week");
+    return await readPromiseWeek(shiftDay(weekStart, -7), weekStart);
   } catch (error) {
-    console.warn(JSON.stringify({ event: "market_digest_stopped_unread", error: error instanceof Error ? error.name : "unknown" }));
+    console.warn(JSON.stringify({ event: "market_digest_promise_unread", error: error instanceof Error ? error.name : "unknown" }));
     return null;
   }
 }
@@ -205,7 +186,7 @@ const ROWS_PER_DIGEST = 500;
 
 /**
  * Reads the week's unread weekly passes, mails the owner the ids of those
- * that found too little market, why the week before's pages stalled and what
+ * that found too little market, each paying site's promise line and what
  * that week cost, and stamps every row it read. Answers
  * whether the week is settled; `false` means the mail was not accepted and
  * nothing was stamped.
@@ -229,17 +210,17 @@ export async function sendMarketDigest(weekStart: string, now: Date): Promise<bo
     }
   }
 
-  const stopped = await stoppedBefore(weekStart);
+  const promise = await promiseOf(weekStart);
   const untold = await untoldBefore(weekStart);
   const costs = await costBefore(weekStart);
   const unhealthy = await unhealthyBefore(weekStart);
-  if (tooSmall.length > 0 || stopped !== null || untold !== null || costs !== null || unhealthy !== null) {
+  if (tooSmall.length > 0 || promise !== null || untold !== null || costs !== null || unhealthy !== null) {
     const { reportIncident } = await import("@/lib/mail/ops");
     const accepted = await reportIncident({
       occasion: "market-too-small-week",
       weekStart,
       scanIds: tooSmall,
-      ...(stopped === null ? {} : { stopped }),
+      ...(promise === null ? {} : { promise }),
       ...(untold === null ? {} : { untold }),
       ...(costs === null ? {} : { costs }),
       ...(unhealthy === null ? {} : { unhealthy }),
@@ -254,6 +235,6 @@ export async function sendMarketDigest(weekStart: string, now: Date): Promise<bo
     .in("id", ids)
     .is("market_digest_at", null);
   if (stamped.error) throw new Error(`sendMarketDigest: could not stamp the week: ${stamped.error.message}`);
-  console.log(JSON.stringify({ event: "market_digest", weekStart, read: ids.length, tooSmall: tooSmall.length, stoppedSites: stopped?.sites.length ?? 0, untold: untold?.length ?? 0, costs: costs !== null, drifting: costs?.drift?.sources.length ?? 0, unhealthy: unhealthy?.length ?? 0 }));
+  console.log(JSON.stringify({ event: "market_digest", weekStart, read: ids.length, tooSmall: tooSmall.length, promiseSites: promise?.sites.length ?? 0, untold: untold?.length ?? 0, costs: costs !== null, drifting: costs?.drift?.sources.length ?? 0, unhealthy: unhealthy?.length ?? 0 }));
   return true;
 }
