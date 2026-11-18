@@ -141,10 +141,8 @@ export async function weeklyDueSites(now: Date): Promise<readonly DueSite[]> {
 
 /** Starts one site's weekly pass, and tells the customer what it found.
  *
- *  `weekStart` is the site-local Monday the run belongs to; the
- *  `unique (site_id, week_start) where tier = 'weekly'` constraint behind
- *  the measurement is the engine's, so a second delivery of the same key
- *  starts nothing.
+ *  `weekStart` is the site-local Monday the run belongs to; the `unique (site_id, week_start)
+ *  where tier = 'weekly'` constraint makes a second delivery of the same key start nothing.
  *
  *  **Three obligations of one tick, visible here rather than hidden inside
  *  the pass** (issue #181, and the same shape the 24-hour check takes):
@@ -166,7 +164,7 @@ export async function weeklyDueSites(now: Date): Promise<readonly DueSite[]> {
  *  of. Only a week with no measurement at all sends nothing, and that
  *  decision is `sendWeeklyDigest`'s, read from `accountForWeek`. */
 export async function startWeeklyScan(
-  a: DueSite & { readonly now: Date; readonly step?: StepRunner }
+  a: DueSite & { readonly now: Date; readonly step?: StepRunner; readonly early?: boolean }
 ): Promise<EngineResult> {
   const step: StepRunner = a.step ?? ((_name, body) => body());
   const outcome = await step(`measure-${a.siteId}`, () =>
@@ -175,6 +173,7 @@ export async function startWeeklyScan(
       domain: a.domain,
       zone: a.zone,
       now: a.now,
+      ...(a.early === true ? { early: true, weekStart: a.weekStart } : {}),
     })
   );
 
