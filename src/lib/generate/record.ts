@@ -37,7 +37,8 @@
 import { listHash } from "./claims/hash";
 import type { ClaimVerdict } from "./claims/check";
 import type { BatteryOutcome } from "./rules";
-import { HARD_RULES, NO_CHECKS, SWITCHED_RULES, WARNING_RULES, type HardRule, type RecordedChecks, type RuleFailure } from "./rules/types";
+import { COMPLETENESS_STOPS } from "@/lib/config/constants";
+import { HARD_RULES, NO_CHECKS, SWITCHED_RULES, WARNING_RULES, type Completeness, type HardRule, type RecordedChecks, type RuleFailure } from "./rules/types";
 
 // ── Hard rule 4: the claim check's verdict ──────────────────────────────
 
@@ -110,9 +111,23 @@ export function checkedAgainstNothing(verdict: ClaimVerdict): boolean {
 /** The figure faults of a title stay harm, since an unsourced figure is one whatever the line it stands in. */
 const FIGURE_FAULTS: ReadonlySet<string> = new Set(["description_figures", "figure_owner"]);
 
+/** The blocks that are a page's sections and words: with its sources, the only parts that may ever stop it. */
+const COMPLETENESS_BLOCKS: ReadonlySet<string> = new Set(["sections", "steps", "table", "length"]);
+
+/** Whether a failure is a page missing its sections, sources or words: what earns the one fix call. */
+export function incomplete(failure: RuleFailure): boolean {
+  return failure.rule === "cites_market" || (failure.detail?.rule === "required_blocks" && (failure.detail.length === true || COMPLETENESS_BLOCKS.has(failure.detail.block)));
+}
+
+/** What an incomplete page meets after its fix call: a lead's free page only ever a warning, every other page the one switch. */
+export function completenessFor(page: "lead" | "customer" = "customer"): Completeness {
+  return page === "customer" && COMPLETENESS_STOPS ? "stop" : "warn";
+}
+
 /** Whether a failure stops the page: the one predicate every verdict on a generated or edited page reads. */
-export function stops(failure: RuleFailure): boolean {
+export function stops(failure: RuleFailure, completeness: Completeness = completenessFor()): boolean {
   if (failure.detail?.rule === "title") return failure.detail.faults.some((fault) => FIGURE_FAULTS.has(fault));
+  if (incomplete(failure)) return completeness === "stop";
   return !WARNING_RULES.has(failure.rule);
 }
 

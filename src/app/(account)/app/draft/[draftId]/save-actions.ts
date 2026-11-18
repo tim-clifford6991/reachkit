@@ -61,7 +61,7 @@ export async function saveDraft(body: SaveBody): Promise<SaveResult> {
     savedAt: outcome.savedAt,
     claim: claimStateOf(outcome.claim === null ? null : recordedVerdictValue(outcome.claim)),
     recordedChecks: recordedChecks(outcome.failed, outcome.run),
-    rulesFailed: outcome.failed !== null && outcome.failed.some(stops),
+    rulesFailed: outcome.failed !== null && outcome.failed.some((failure) => stops(failure)),
     entered,
   };
 }

@@ -6,7 +6,8 @@ import type { Opportunity } from "@/lib/opportunities";
 import { contentTypeOf } from "@/lib/opportunities/content-type";
 import { pageTypeOf } from "@/lib/opportunities/page-type";
 import { brandSentences, stillAsked, type FitVerdict } from "../claims/fit";
-import { lengthRangeFor, sectionWords } from "../length";
+import { lengthRangeFor, sectionWords, typeLength } from "../length";
+import { TEMPLATES } from "../templates";
 import { batteryCleared, runHardRules, type BatteryOutcome } from "../rules";
 import { citesMinOf } from "../rules/brief-lines";
 import { namedRivals } from "../rules/rivals";
@@ -20,7 +21,7 @@ import { closeElsewhere } from "./elsewhere";
 import type { SourcedFact } from "./grounding";
 import { builtFromOutside, fittedTemplate, packStatements, type ContextPack, type PackClaim } from "./pack";
 import { repairable, repairRecorded, withoutBusiness, type RepairRecord } from "./repair";
-import { stops } from "../record";
+import { completenessFor, stops } from "../record";
 import { reportFactsAllowed } from "./report-scope";
 import { withSources } from "./sources";
 import { comparisonTable } from "./table";
@@ -52,15 +53,25 @@ export function batteryBasis(a: {
   const pageType = becameQa && pageTypeOf(a.opportunity) === "market_comparison" ? "answer" : pageTypeOf(a.opportunity);
   // Owner Q9/D: a product page keeps its type's former length and sections.
   const kept = pageType === "product";
-  const template = fittedTemplate(pack, kept);
+  const whole = fittedTemplate(pack, kept);
   // D47: the listicle's table, laid out from the pack before a word is
   // written. The writer is handed the same one (`./write.ts`).
-  const table = pack.type === "listicle" && template.blocks.table !== undefined ? comparisonTable(pack, template.blocks.table.rivals) : null;
+  const table = pack.type === "listicle" && whole.blocks.table !== undefined ? comparisonTable(pack, whole.blocks.table.rivals) : null;
   const liveWords = pack.live === null ? null : sectionWords(pack.live.markdown);
   // A new page's length follows the options or gaps it covers; an update's gaps grow it to its grown share.
   const covered = kept || pack.type === "update" ? 0 : table !== null ? table.options.length + (table.baseline === null ? 0 : 1) : (pack.gaps?.length ?? 0);
-  // Issue 1390: a short answer is capped at its own length, not its type's.
-  const length = lengthRangeFor(template, { questions: pack.questions.length, covered, cap: voiceLength(pack.voice)?.ceiling, liveWords, grown: pack.gaps !== undefined });
+  // A short answer keeps its own row; an update is held to the type its search reads as.
+  const liveType = pack.type === "update" ? typeLength(TEMPLATES[contentTypeOf({ type: "keyword_page", targetQuery: a.opportunity.targetQuery }) ?? "qa"], kept) : undefined;
+  const rangeOf = (fitted: boolean) => lengthRangeFor(whole, { questions: pack.questions.length, covered, voice: voiceLength(pack.voice), liveWords, grown: pack.gaps !== undefined, kept, fitted, ...(liveType === undefined ? {} : { typeOf: liveType }) });
+  const held = rangeOf(false);
+  const fitted = rangeOf(true);
+  // No room: the sections the pack fills leave a ceiling under the type's floor, or none above it, and the page is then never told that floor.
+  const noRoomFor = held !== null && fitted !== null && (fitted.ceiling < held.floor || held.ceiling <= held.floor) ? held.floor : null;
+  const short = noRoomFor !== null && (site.completeness ?? completenessFor()) === "warn";
+  // A page written short carries its sourced questions as its sections, no more: each a question the pack holds a fact for.
+  const sourced = { min: pack.questions.length, max: pack.questions.length };
+  const template = short ? { ...whole, sections: whole.sections.map((slot) => (slot.key === "question" ? { ...slot, repeat: sourced } : slot)) } : whole;
+  const length = short ? fitted : held;
   const searches = pack.target.searches;
   const names = [site.businessName ?? "", site.domain.split(".")[0] ?? "", ...site.rivals];
   const passages = [...pack.facts.map((fact) => fact.passage), ...packStatements(pack), ...(pack.fitFact === undefined ? [] : [pack.fitFact.passage])];
@@ -84,7 +95,7 @@ export function batteryBasis(a: {
   };
   /** What `cites_market` holds the page to: the template's own count, as the writer is told it. */
   const citesMin = citesMinOf(template);
-  return { ...a, template, length, pageType, table, searches, names, passages, cited, brief, citesMin, rivalsNamed: namedRivals(site.rivals, pack.business.market) };
+  return { ...a, template, length, noRoomFor, short, pageType, table, searches, names, passages, cited, brief, citesMin, rivalsNamed: namedRivals(site.rivals, pack.business.market) };
 }
 
 export type BatteryBasis = ReturnType<typeof batteryBasis>;
@@ -178,7 +189,7 @@ export async function checkPage(
   const repairs: RepairRecord[] = [];
   const inputs = batteryInputs(b, page, markdown, at.comparison, settled);
   const reading = (text: string) => ({ title: page.title, markdown: text, businessName: b.site.businessName, domain: b.site.domain, titleOwed: (inputs.titleRule.business?.length ?? 0) > 0 });
-  const stopping = (o: BatteryOutcome): Set<HardRule> => new Set(o.failed.filter(stops).map((failure) => failure.rule));
+  const stopping = (o: BatteryOutcome): Set<HardRule> => new Set(o.failed.filter((failure) => stops(failure, b.site.completeness)).map((failure) => failure.rule));
   if (outcome.fit.state === "unrun") {
     // With no sentence left that names the business, the fit check passes, and no call is made for it.
     const bare = withoutBusiness(markdown, b.site);

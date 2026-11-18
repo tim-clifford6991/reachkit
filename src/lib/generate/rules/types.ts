@@ -118,6 +118,9 @@ export const HARD_RULES: readonly HardRule[] = Object.freeze([
  *  Every other rule is harm and stops the page, so a new rule stops until it is named here. */
 export const WARNING_RULES: ReadonlySet<HardRule> = new Set<HardRule>(["first_block_answers", "required_blocks", "distinct_headings", "title", "plain_prose", "cites_market", "standalone_lead"]);
 
+/** What a page still missing its sections, sources or words after its fix call meets (`completenessFor`, `../record.ts`). */
+export type Completeness = "stop" | "warn";
+
 /** The rules a caller switches on, each by an input it hands over or leaves
  *  out (`rulesAsked`, `./index.ts`). Every other rule reads every page. */
 export const SWITCHED_RULES: readonly HardRule[] = Object.freeze([
@@ -195,7 +198,7 @@ export interface RuleFailure {
     | { rule: "rival_negative"; sentence: string }
     | { rule: "traceable_numerals"; figure: string }
     /** Which block the page lacks — a handle, never a sentence. */
-    | { rule: "required_blocks"; block: RequiredBlock }
+    | { rule: "required_blocks"; block: RequiredBlock; length?: true }
     /** The cell's words, as the page has them. */
     | { rule: "no_placeholder_cell"; cell: string }
     /** The page's own sentence that is a demo or menu phrase. */
@@ -216,14 +219,16 @@ export interface RuleFailure {
 
 /** Every site-scoped input the battery is called with — the **raw stored**
  *  inputs, so each rule module derives what it needs and no derived
- *  per-site artifact is stored anywhere. Four members and no fifth: a
- *  profile, a summary or an embedding has no member to arrive through. */
+ *  per-site artifact is stored anywhere: a profile, a summary or an
+ *  embedding has no member to arrive through. */
 export interface SiteRuleInputs {
   businessName: string | null;
   domain: string;
   doNotClaim: string[];
   /** The rival domains and names recorded for the site. */
   rivals: string[];
+  /** What an incomplete page meets, so every verdict on it is one answer. Absent, the product's own (`completenessFor`). */
+  completeness?: Completeness;
 }
 
 /** The three sets a candidate is compared against, all this customer's.

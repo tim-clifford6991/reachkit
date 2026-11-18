@@ -158,10 +158,10 @@ describe("required_blocks — the first block a generated page lacks", () => {
     expect(check(verdict("Pick Acme for one plan; a team that needs single sign-on is better served by Globex."))).toBeNull();
   });
 
-  it("a short, complete page is not stopped for its length, and one over its type's maximum is", () => {
+  it("a page under its type's floor is stopped for its length, as is one over its maximum", () => {
     const short = page(pageParts(CLEAN_MARKDOWN, { sections: pageParts().sections.map((s) => ({ ...s, body: withoutBrokenLinks(s.body.slice(0, 200)) })) }));
     expect(bodyWords(short.markdown)).toBeLessThan(500);
-    expect(short.missing()).toBeNull();
+    expect(short.missing()).toBe("length");
     const long = page(pageParts(CLEAN_MARKDOWN, { sections: pageParts().sections.map((s) => ({ ...s, body: `${s.body}\n\n${"Seat counts decide the plan a small team needs. ".repeat(40)}` })) }));
     expect(bodyWords(long.markdown)).toBeGreaterThan(long.blocks.length!.ceiling);
     expect(long.missing()).toBe("length");
@@ -180,11 +180,11 @@ describe("required_blocks — the first block a generated page lacks", () => {
     return page(
       pageParts(CLEAN_MARKDOWN, {
         sections: [
-          section("what_you_need", "first", prose("steps", 0, 60)),
-          section("steps", "second", `${prose("steps", 60, 30)}\n\n${steps}`),
-          section("check", "third", prose("steps", 90, 60)),
-          section("mistakes", "fourth", prose("steps", 150, 60)),
-          section("next_step", "fifth", `${prose("steps", 210, 14)} It is on [the product page](https://example.com/product).`),
+          section("what_you_need", "first", prose("steps", 0, 75)),
+          section("steps", "second", `${prose("steps", 75, 30)}\n\n${steps}`),
+          section("check", "third", prose("steps", 105, 75)),
+          section("mistakes", "fourth", prose("steps", 180, 75)),
+          section("next_step", "fifth", `${prose("steps", 255, 14)} It is on [the product page](https://example.com/product).`),
         ],
         faq: ["first", "second", "third"].map((nth) => ({ question: `What is the ${nth} thing to ask?`, answer: "Count the seats." })),
       }),

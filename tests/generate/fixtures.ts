@@ -334,7 +334,8 @@ export function pack(over: Partial<ContextPack> = {}): ContextPack {
     products: [],
     pages: [],
     links: [],
-    questions: [],
+    // Six, as `pageParts` answers: a pack with fewer has no room for a Q&A's floor.
+    questions: [1, 2, 3, 4, 5, 6].map((nth) => `What does plan ${nth} cost a small team?`),
     measurements: null,
     live: null,
     adds: { claims: [{ claim: GROUNDED.passage, business: true }], short: false },
@@ -362,7 +363,9 @@ export function packStandIn<T extends object>(actual: T): T {
       // As the real pack counts it: an update is held to no bar of its own.
       const short = packAnswer.short && built.type !== "update";
       const missing = packAnswer.missingFor?.(a.opportunity.targetQuery) ?? packAnswer.missing;
-      return { ...built, missing: [...missing], adds: { claims: built.adds.claims, short } };
+      // A pack said to lack nothing holds the questions a whole Q&A answers.
+      const questions = built.questions.length < 6 ? pack().questions : built.questions;
+      return { ...built, questions, missing: [...missing], adds: { claims: built.adds.claims, short } };
     },
   };
 }
@@ -425,11 +428,11 @@ export function pageParts(first: string = CLEAN_MARKDOWN, over: Partial<PagePart
     takeaways: [prose(topic, 0, 1), prose(topic, 1, 1), prose(topic, 2, 1)],
     sections: [
       { key: "question", heading: "Which tool should a small team pick for its seats?", body: `${first}\n\n${prose(topic, 3, 22)}` },
-      ...[1, 2, 3, 4, 5].map((index) => ({ key: "question", heading: heading(index), body: prose(topic, index * 28, 28) })),
+      ...[1, 2, 3, 4, 5].map((index) => ({ key: "question", heading: heading(index), body: prose(topic, index * 40, 40) })),
       {
         key: "business",
         heading: `${t}: how is it handled here?`,
-        body: `${prose(topic, 170, 6)} It is on [the published page](${GROUNDED.url}) for anyone to read. [The vendor's seat help](${OUTSIDE_CLAIMS[0]!.url}) counts each member who signs in, and [a guide to team plans](${OUTSIDE_CLAIMS[1]!.url}) leaves viewers free.`,
+        body: `${prose(topic, 250, 6)} It is on [the published page](${GROUNDED.url}) for anyone to read. [The vendor's seat help](${OUTSIDE_CLAIMS[0]!.url}) counts each member who signs in, and [a guide to team plans](${OUTSIDE_CLAIMS[1]!.url}) leaves viewers free.`,
       },
     ],
     closing: "Count your seats before you choose a plan.",
@@ -451,11 +454,11 @@ export function partsFromPage(
     slug: page.slug,
     description: page.description,
     // Ten five-word sentences: 50 words, inside the box's 40–60.
-    answer: prose(topic, 200, 10),
+    answer: prose(topic, 260, 10),
     // The body opens on the page's own question, which is its first section's.
     // A title is a statement where its search is one (issue 1389), so such
     // a page names its question beside it.
     sections: parts.sections.map((section, index) => (index === 0 ? { ...section, heading: page.question ?? page.title } : section)),
-    closing: prose(topic, 210, 1),
+    closing: prose(topic, 270, 1),
   };
 }

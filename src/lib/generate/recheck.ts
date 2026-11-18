@@ -217,7 +217,7 @@ export function retiredFor(outcome: RecheckOutcome): string | null {
   if (outcome.kind === "held") return "retired:title";
   if (outcome.kind === "skipped" || outcome.passed) return null;
   // A warning never sets a page aside, so it never names why.
-  const rules = [...new Set(outcome.failed.filter(stops).map((failure) => failure.rule))];
+  const rules = [...new Set(outcome.failed.filter((failure) => stops(failure)).map((failure) => failure.rule))];
   // No rule failed: a page elsewhere is too close, or a check could not run at 0¢; the record names which.
   const causes = rules.length > 0 ? rules : [outcome.close ? "elsewhere" : outcome.fit !== "passed" ? "fit_claim" : "do_not_claim"];
   return `retired:${causes.join(",")}`;

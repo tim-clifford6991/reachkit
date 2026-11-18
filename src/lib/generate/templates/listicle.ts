@@ -86,7 +86,7 @@ export const listicle: Template = {
     businessSection("Link its product and pricing pages. Never rank it first or call it the best; the verdict above names where a rival is the better pick."),
   ],
   blocks: { table: { rivals: 2 }, faq: { min: 3, max: 6 } },
-  length: { floor: 1500, ceiling: 3750, kept: 2500 },
+  length: { floor: 1800, target: 2600, ceiling: 3750, kept: 2500, keptAim: { floor: 1600, target: 2000 } },
   research: true,
   packMustHold: NEEDS,
 };

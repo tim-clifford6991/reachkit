@@ -208,7 +208,7 @@ export interface WriteInputs {
   pageType: PageType | null;
   /** The words of body text the page is held to, and aims for where a
    *  target is given. */
-  length: Pick<LengthRange, "floor" | "ceiling"> & { target?: number };
+  length: Pick<LengthRange, "floor" | "ceiling" | "each"> & { target?: number };
   /** The customer's page on the writer tier; a tier is named only by a
    *  caller with another ceiling. */
   tier?: Tier;
@@ -236,14 +236,13 @@ function templateFor(a: WriteInputs): Record<string, unknown> {
   };
 }
 
-/** What the writer is told of the page's length. A new page has no floor:
- *  each section it answers is given an equal share of the maximum. */
+/** What the writer is told of the page's length: its range, its target, and each section's share of it. */
 function lengthTask(a: WriteInputs): string {
   const { floor, ceiling } = a.length;
   const target = a.length.target ?? Math.round((floor + ceiling) / 2);
   const counted = a.pack.type === "update" ? "The page's sections together — the short answer and the takeaways are not counted —" : "The page's body — the short answer, the takeaways and every section together —";
   const sections = Math.max(1, a.template.sections.reduce((sum, slot) => sum + (slot.repeat?.min ?? 1), 0));
-  const each = floor > 0 ? Math.round(target / sections) : Math.round((AIM * ceiling) / sectionBounds(a.template).max);
+  const each = a.length.each ?? (floor > 0 ? Math.round(target / sections) : Math.round((AIM * ceiling) / sectionBounds(a.template).max));
   const range = floor > 0 ? `between ${floor} and ${ceiling}` : `at most ${ceiling}`;
   const least = floor > 0 ? `, and no section under ${Math.ceil((floor * 1.15) / sections)}` : "";
   return `${counted} must be ${range} words, counted. Write about ${target} words — about ${each} a section${least}: a page ${floor > 0 ? `under ${floor} or ` : ""}over ${ceiling} is stopped. Give every paragraph something the reader can use — detail, an example, a comparison or a consequence drawn from \`pack\` — and never pad or restate a point to reach the length.`;

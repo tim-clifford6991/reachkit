@@ -193,11 +193,11 @@ describe("OR4: a promise-figure title never enters review", () => {
   };
 
   it.each([
-    ["b03e044f", true, [{ rule: "standalone_lead" }]],
+    ["b03e044f", true, [{ rule: "required_blocks", detail: { block: "length" } }, { rule: "standalone_lead" }]],
     // Its FAQ pair denying a rival is dropped and "17" clears today; a title that names no business only warns.
-    ["bf8de9bf", true, [{ rule: "title", detail: { faults: ["business"] } }]],
+    ["bf8de9bf", true, [{ rule: "required_blocks", detail: { block: "length" } }, { rule: "title", detail: { faults: ["business"] } }]],
     // Issue 2341: its phrase said too often is dropped in code past the first sayings.
-    ["d98284cc", true, [{ rule: "standalone_lead" }]],
+    ["d98284cc", true, [{ rule: "required_blocks", detail: { block: "length" } }, { rule: "standalone_lead" }]],
     ["5dcc61c2", true, [{ rule: "required_blocks", detail: { block: "question_headings" } }]],
   ] as const)("%s, replayed on its own stored body under today's rules: passed %s, failing exactly what it prints, at 0¢", async (id, passed, failed) => {
     arrange(SAAS_HOSTED);
@@ -271,7 +271,7 @@ describe("OR4: a promise-figure title never enters review", () => {
     const bf8 = at("bf8de9bf");
     const faq = (bf8.meta as { faq: Row[] }).faq.slice(1);
     const outcome = await recheckRow({ ...bf8, meta: { ...(bf8.meta as Row), faq } }, dogfood(bf8));
-    expect(outcome).toMatchObject({ kind: "checked", passed: false, failed: [{ rule: "rival_negative" }, { rule: "title" }], patch: { meta: { faq } } });
+    expect(outcome).toMatchObject({ kind: "checked", passed: false, failed: [{ rule: "rival_negative" }, { rule: "required_blocks" }, { rule: "title" }], patch: { meta: { faq } } });
     expect((outcome as { patch: { meta: { recheck?: Row } } }).patch.meta.recheck?.faqDropped).toBeUndefined();
   });
 
@@ -336,7 +336,7 @@ describe("OR4: a promise-figure title never enters review", () => {
     const b03 = at("b03e044f");
     const unasked = { ...b03, rule_failures: (b03.rule_failures as Row[]).filter((each) => each.rule !== "fit_claim"), meta: { ...(b03.meta as Row), checks: undefined } };
     const outcome = await recheckRow(unasked, dogfood(b03));
-    expect([outcome, retiredFor(outcome)]).toMatchObject([{ kind: "checked", passed: false, failed: [{ rule: "standalone_lead" }], fit: "unrun", spentCents: 0 }, "retired:fit_claim"]);
+    expect([outcome, retiredFor(outcome)]).toMatchObject([{ kind: "checked", passed: false, failed: [{ rule: "required_blocks" }, { rule: "standalone_lead" }], fit: "unrun", spentCents: 0 }, "retired:fit_claim"]);
   });
 
   it.each(["a9ac66a2", "86083a2b"])("%s, whose pack was short and so was never written, is set aside as retired:pack, unread", (id) => {

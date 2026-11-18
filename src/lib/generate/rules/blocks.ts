@@ -466,14 +466,14 @@ export function missingBlock(a: { markdown: string; title: string; blocks: Block
   const last = [...sourceBlocksOf(markdown)].reverse().find(isParagraph);
   if (last === undefined || !hasLink(last.raw)) return "closing";
 
-  // The length, in words of body text, counted on the page as laid out.
-  if (blocks.length !== null) {
-    // An update is measured as its live page was: by the words under its
-    // headings.
-    const words = template.type === "update" ? sectionWords(markdown) : bodyWords(markdown);
-    if (words < blocks.length.floor || words > blocks.length.ceiling) return "length";
-  }
-  return null;
+  return outOfRange(markdown, blocks) ? "length" : null;
+}
+
+/** Whether the body is outside its length, in words counted on the page as laid out; an update is measured as its live page was, by the words under its headings. */
+function outOfRange(markdown: string, blocks: BlockRuleInputs): boolean {
+  if (blocks.length === null) return false;
+  const words = blocks.template.type === "update" ? sectionWords(markdown) : bodyWords(markdown);
+  return words < blocks.length.floor || words > blocks.length.ceiling;
 }
 
 export function checkRequiredBlocks(a: {
@@ -484,5 +484,8 @@ export function checkRequiredBlocks(a: {
 }): RuleFailure | null {
   if (a.blocks === null) return null;
   const block = missingBlock({ markdown: a.markdown, title: a.title, blocks: a.blocks });
-  return block === null ? null : { rule: "required_blocks", detail: { rule: "required_blocks", block } };
+  if (block === null) return null;
+  // The first block hides the ones after it, and a page out of its length is always told so.
+  const length = block !== "length" && outOfRange(a.markdown, a.blocks);
+  return { rule: "required_blocks", detail: { rule: "required_blocks", block, ...(length ? { length: true as const } : {}) } };
 }

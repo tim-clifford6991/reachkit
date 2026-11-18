@@ -49,7 +49,7 @@ export const howTo: Template = {
     { key: "next_step", task: "Say what the reader does next, linking the product page." },
   ],
   blocks: { steps: { min: 3, max: 10, own: 1 }, faq: { min: 3, max: 6 } },
-  length: { floor: 1200, ceiling: 3000, kept: 2000 },
+  length: { floor: 1400, target: 1900, ceiling: 3000, kept: 2000, keptAim: { floor: 1200, target: 1600 } },
   research: true,
   // Issue 1486: the steps are the outside sources'; a page with no business
   // fact stands on them alone (owner, #2511).

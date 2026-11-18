@@ -25,6 +25,7 @@ import {
   opportunity,
   pack,
   pageParts,
+  prose,
   siteInputs,
   type MemoryStore,
 } from "../fixtures";
@@ -170,6 +171,32 @@ describe("a page a check stops takes one fix call", () => {
     expect(passedPatch(draftId)).toBe(false);
   });
 
+  // The 18 Nov draft that reached production, in its stored shape: a Q&A pack of 5 questions and 14 claims, written as one section with no outside source.
+  const thin = pageParts(CLEAN_MARKDOWN, { sections: [{ key: "question", heading: "Why doesn't ChatGPT recommend my business?", body: prose("seats", 3, 40) }] });
+  const stored = (): Parameters<typeof generateDraft>[1]["pack"] => pack({ questions: pack().questions.slice(0, 5), claims: Array.from({ length: 14 }, (_, nth) => ({ ...OUTSIDE_CLAIMS[nth % 2]!, url: `${OUTSIDE_CLAIMS[nth % 2]!.url}/${nth}` })) });
+  const notes = (): { rule: string; sentences: string[] }[] => (llmMock.mock.calls[1]?.[1].input as { fix: { rule: string; sentences: string[] }[] }).fix;
+
+  it("55e081d5: its pack has no room for a Q&A's floor, so it is written short, told its sections and sources in one fix call and, still so, enters review with both recorded", async () => {
+    answers(thin, thin);
+    const outcome = await run({ pack: stored() });
+    expect(sites()).toEqual(["generate.write", "generate.fix"]);
+    expect(notes().find((note) => note.rule === "required_blocks")?.sentences).toEqual(["sections"]);
+    expect(notes().map((note) => note.rule)).toContain("cites_market");
+    const row = store.rows.get(outcome.draftId ?? "");
+    expect((row?.meta as { length: unknown }).length).toMatchObject({ floor: 0, target: 840, ceiling: 1050, typeFloor: 1200 });
+    expect((row?.rule_failures as { rule: string }[]).map((failure) => failure.rule)).toEqual(expect.arrayContaining(["required_blocks", "cites_market"]));
+    expect([outcome.ok, passedPatch(outcome.draftId)]).toEqual([true, true]);
+  });
+
+  it("55e081d5 with the stop on: the same pack writes no row and buys no call; a pack with room is told its length beside its sections and is stopped", async () => {
+    answers(thin, thin);
+    expect(await run({ pack: stored(), site: siteInputs({ completeness: "stop" }) })).toMatchObject({ ok: false, step: "pack", draftId: null, missing: ["facts_few"] });
+    expect(sites()).toEqual([]);
+    const outcome = await run({ site: siteInputs({ completeness: "stop" }) });
+    expect(notes().find((note) => note.rule === "required_blocks")?.sentences).toEqual(["sections", expect.stringMatching(/^length: the body has \d+ words and must have between 1200 and 2100$/)]);
+    expect([outcome.ok, passedPatch(outcome.draftId)]).toEqual([false, false]);
+  });
+
   it("a voice instruction demanding an invented persona still loses to the rule", async () => {
     const persona = pageParts('"This changed everything for us, from week one," says Dana Whitfield.');
     answers(persona, persona);
@@ -243,7 +270,9 @@ describe("a step that did not run is not a rule that failed", () => {
 
   // 11-08 on reachkit.app ended `no_own_facts`: a page with no passage of its own now stands on research alone.
   it("a site with no passage of its own still gets a page, and the page names the business nowhere", async () => {
-    answers(pageParts(`${CLEAN_MARKDOWN}\n\nAcme keeps every seat on one bill.`));
+    // With no business section its six questions leave no room for the floor: written short, with its one fix call.
+    const parts = pageParts(`${CLEAN_MARKDOWN}\n\nAcme keeps every seat on one bill.`);
+    answers(parts, parts);
     const outcome = await run({ facts: [], pack: pack({ facts: [] }) });
     expect(outcome).toMatchObject({ ok: true, grounded: null });
     expect(store.rows.get(outcome.ok ? outcome.draftId : "")?.body_md).not.toMatch(/acme/i);

@@ -14,6 +14,7 @@ import { completeTables } from "@/lib/generate/pipeline/sources";
 import { titleRuleFor } from "@/lib/generate/pipeline/title";
 import { writePage } from "@/lib/generate/pipeline/write";
 import { pickTitle } from "@/lib/generate/rules/title";
+import { completenessFor } from "@/lib/generate/record";
 import { runHardRules } from "@/lib/generate/rules";
 import { renderOf } from "@/lib/generate/rules/text";
 import { contentTypeOf, type ContentType } from "@/lib/opportunities/content-type";
@@ -84,7 +85,8 @@ export const writeLeadPage: DraftWriter = async (a) => {
   const profile = report.market.value.profile;
   const businessName = profile.brandTokens[0] ?? null;
   const rivals = report.rivals.kind === "unmeasured" ? [] : report.rivals.value.map((rival) => rival.domain);
-  const site = { businessName, domain: report.domain, doNotClaim: [], rivals };
+  // The free page has no fix call, so what it lacks of its sections or words is only ever recorded.
+  const site = { businessName, domain: report.domain, doNotClaim: [], rivals, completeness: completenessFor("lead") };
 
   // Stage 2: the pack. No confirmed profile: a lead has nobody who could confirm, and the crawl's reading would put words in their mouth.
   const packOf = (type: ContentType) =>
@@ -115,7 +117,10 @@ export const writeLeadPage: DraftWriter = async (a) => {
   const type = pack.type;
   // The free page keeps its type's former maximum: its one call is sized to `CAPS.FREE_C`.
   const template = fittedTemplate(pack, true);
-  const length = lengthRangeFor(template, { questions: pack.questions.length });
+  // It is told no floor, only the share of that maximum its sections fill.
+  const rangeOf = (fitted: boolean) => lengthRangeFor(template, { questions: pack.questions.length, kept: true, fitted });
+  const [told, whole] = [rangeOf(true), rangeOf(false)];
+  const length = told === null || whole === null ? null : { ...told, ceiling: whole.ceiling };
   const pageType = pageTypeOf(opportunity);
 
   return withCostContext(
@@ -167,7 +172,7 @@ export const writeLeadPage: DraftWriter = async (a) => {
         log({ leadId: a.leadId, outcome: "rules", failed: outcome.failed.map((f) => f.rule).join(",") });
         return REFUSED;
       }
-      log({ leadId: a.leadId, outcome: "passed", type, words: bodyWords(markdown), costCents: Math.round(cost.spentCents()) });
+      log({ leadId: a.leadId, outcome: "passed", type, words: bodyWords(markdown), warned: outcome.failed.map((f) => f.rule).join(","), costCents: Math.round(cost.spentCents()) });
       return { written: true, title: laid.body.title, markdown };
     }
   );

@@ -41,7 +41,7 @@ export const offering: Template = {
     },
   ],
   blocks: { steps: { min: 3, max: 6 }, faq: { min: 3, max: 6, asked: true } },
-  length: { floor: 500, ceiling: 1200 },
+  length: { floor: 600, target: 900, ceiling: 1200 },
   // No outside read: its questions are the stored search's "People also ask".
   research: false,
   packMustHold: [{ need: "own_price" }, { need: "facts_on_topic", min: 4 }],
