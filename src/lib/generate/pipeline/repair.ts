@@ -490,7 +490,9 @@ function sentencesFor(
       return failure.detail !== undefined && "cell" in failure.detail ? [failure.detail.cell] : [];
     case "no_demo_text":
       return failure.detail !== undefined && failure.detail.rule === "no_demo_text" ? [failure.detail.sentence] : [];
+    // By the headings they name; the pipeline and the fix brief say what each asks.
     case "distinct_headings":
+    case "standalone_lead":
       return failure.detail !== undefined && "headings" in failure.detail ? failure.detail.headings : [];
     case "do_not_claim":
       return failure.detail !== undefined && "matchedEntry" in failure.detail ? [failure.detail.matchedEntry] : [];

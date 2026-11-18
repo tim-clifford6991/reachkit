@@ -25,7 +25,9 @@ import type { Opportunity, PageType } from "@/lib/opportunities/types";
 import { briefLines } from "../rules/brief-lines";
 import { HONESTY_INSTRUCTION } from "../rules/honest";
 import { AVOID_LIST } from "../rules/prose-english";
-import { AIM, type LengthRange } from "../length";
+import { AIM, bodyWords, type LengthRange } from "../length";
+import { urlKey } from "../links/select";
+import { linksOf } from "../rules/text";
 import { languageRules, sectionBounds, titleFormulas, type Template } from "../templates";
 import { voiceRules } from "../voice/register";
 import type { ContextPack } from "./pack";
@@ -344,7 +346,7 @@ export async function fixPage(
       : " The page also read almost the same as a page already written for another business: `apart` lists " +
         "sentences the two shared. Use none of them, and give this page its own order, examples and wording, " +
         "built on this business's facts.";
-  return partsOf(await llm(c, {
+  const fixed = partsOf(await llm(c, {
     site: "generate.fix",
     tier: a.tier ?? "writer",
     schema: ANSWER_SCHEMA,
@@ -353,11 +355,27 @@ export async function fixPage(
       task:
         `${taskFor(a)} \`page\` is the page as it was written, and it was stopped: \`fix\` names each check it ` +
         "failed and the sentences or the block that failed it. Return the whole page again with every one of " +
-        "them put right, and change nothing else." +
+        "them put right, and change nothing else. Put each right only by mending the sentences it names, or by " +
+        "adding a section that states a claim of `pack.claims` and links its url; never lengthen the page " +
+        "otherwise, and where the body is over its most words, cut it back to them. A `standalone_lead` entry " +
+        "names a heading whose section opens leaning on what came before: open it on a sentence that answers that heading alone." +
         apart,
       page: a.parts,
       fix: a.fix,
       ...(a.apart === undefined ? {} : { apart: a.apart }),
     }),
   }));
+  return fixed.kind === "measured" && padded(a.parts, fixed.value, a.pack.claims) ? unmeasured("undeterminable", fixed.at, "padded") : fixed;
+}
+
+/** A mended sentence may run about a sentence longer than the one it replaces. */
+const MEND_WORDS = 25;
+
+/** Whether the fix gained more words than its new sections that link a pack claim carry: length, not a fix. */
+function padded(before: PageParts, after: PageParts, claims: readonly { url: string }[]): boolean {
+  const words = (sections: PageParts["sections"]): number => sections.reduce((sum, section) => sum + bodyWords(`${section.heading}\n${section.body}`), 0);
+  const had = new Set(before.sections.map((section) => section.heading.trim().toLowerCase()));
+  const sourced = new Set(claims.flatMap((claim) => urlKey(claim.url) ?? []));
+  const added = after.sections.filter((section) => !had.has(section.heading.trim().toLowerCase()) && linksOf(section.body).some((url) => sourced.has(urlKey(url) ?? "")));
+  return words(after.sections) - words(before.sections) > words(added) + MEND_WORDS;
 }
