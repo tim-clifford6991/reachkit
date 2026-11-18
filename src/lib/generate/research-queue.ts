@@ -20,7 +20,7 @@ import { cachedSerp, serpOrganic } from "@/lib/vendors/dataforseo/serp";
 import { DRAFT_POLICY_VERSION, openDayCost } from "./cost";
 import { targetSearches } from "./pipeline";
 import { builtFromOutside, type ResearchRead } from "./standard";
-import { NO_RESEARCH, RESEARCH_READ_SOURCE, fetchPage, researchSerps, type MarketResearch } from "./pipeline/research";
+import { NO_RESEARCH, RESEARCH_READ_SOURCE, readFresh, researchSerps, type MarketResearch } from "./pipeline/research";
 import { alikeHeadings } from "./rules/headings";
 import { isQuestionShaped } from "./rules/text";
 import { generateStore } from "./store";
@@ -113,15 +113,6 @@ export async function researchHeld(siteId: string, rows: readonly WeekRow[], now
   const out = new Map<string, ResearchRead | null>();
   for (const row of rows) out.set(row.id, row.target_query === null ? null : await read(row.target_query));
   return out;
-}
-
-/** A result read for the commit's check, ledgered at 0¢ under its address as research's reads are; `null` where it does not read. */
-async function readFresh(cost: CostContext, url: string): Promise<ReadPage | null> {
-  const read = await fetchPage(url);
-  if (read === null) return null;
-  const { title, text, readAt, headings } = read.page;
-  const row = await cost.recordFetch<ReadPage>({ source: RESEARCH_READ_SOURCE, cacheKey: url, freshnessDays: RESEARCH.freshnessDays, costCents: 0, run: async () => ({ url: read.page.url, title, text, readAt, ...(headings === undefined ? {} : { headings }) }) as ReadPage });
-  return "skipped" in row ? null : row.payload;
 }
 
 // The Monday commit's research (SPEC §7 *The week is committed on Monday*), a job step each: each of the week's best rows'

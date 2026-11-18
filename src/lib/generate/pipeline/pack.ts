@@ -24,7 +24,7 @@
 // Pure. The reads are the caller's (`../index.ts`, `scripts/page/`).
 import { SHAPES, modelInstruction } from "@/lib/locale/language";
 import type { Language, Locale } from "@/lib/locale/locales";
-import { ADDS, PACK, RIVAL_PRICE_MAX_AGE_D } from "@/lib/config/constants";
+import { ADDS, PACK } from "@/lib/config/constants";
 import { promptTemplateOf } from "@/lib/market/prompts/generate";
 import { misstatedFacts, siteFactsOf } from "@/lib/market/prompts/misstated";
 import { GENERIC_TOKENS, brandOf } from "@/lib/market/questions/select";
@@ -33,7 +33,6 @@ import type { ContentType } from "@/lib/opportunities/content-type";
 import type { SitePage } from "@/lib/opportunities/site-pages";
 import type { Opportunity, PageType } from "@/lib/opportunities/types";
 import type { StoredReport } from "@/lib/scan/report";
-import { isAccountPage } from "@/lib/site-profile/knowledge/priority";
 import { derivePurpose } from "@/lib/site-profile/purpose";
 import type { LinkTarget } from "../links/select";
 import { COVERING, grows, headingGaps, headingLines, topicWords } from "../rules/gaps";
@@ -45,6 +44,8 @@ import type { PromptKnowledge, PromptProfile } from "../voice/profile-block";
 import { chooseVoice, type PageVoice, type WritingVoice } from "../voice/register";
 import type { SourcedFact } from "./grounding";
 import { byNewest } from "./claims";
+import { neverASource, staleRivalPrice } from "./original";
+import { ownDataFact, type OwnDataFact } from "./own-data";
 import type { BuyersAsk, JudgedResult, MarketFact, MarketResearch, ResearchedProduct } from "./research";
 import { reportFactsAllowed } from "./report-scope";
 import { comparisonTable } from "./table";
@@ -74,6 +75,10 @@ export interface PackClaim {
   publishedAt?: string;
   /** Who published a `recent` page, as the news search names it (D48). */
   source?: string;
+  /** The page that repeated a statistic cited here to its original: a supporting source only. */
+  via?: string;
+  /** A statistic whose original could not be read: never a title's figure, nor alone what makes its page a source. */
+  secondHand?: true;
 }
 
 /** What the latest complete pass measured, as a research page states it. */
@@ -204,6 +209,8 @@ export interface ContextPack {
    *  page (`url`; `null`, the founder) states (`site`). The page states
    *  `site` plainly. Absent where there is none, and on every pack before. */
   corrections?: PackCorrection[];
+  /** The one fact of the site's own measured data the page states once, where one is on its topic. */
+  ownData?: OwnDataFact;
 }
 
 export interface PackCorrection {
@@ -238,6 +245,7 @@ export function packStatements(pack: ContextPack): string[] {
             measured.questions.map((q) => `${q.search} ${q.citedSites}`).join(" "),
         ]),
     ...(pack.live === null ? [] : [pack.live.markdown]),
+    ...(pack.ownData === undefined ? [] : [pack.ownData.passage]),
   ].filter((text) => text !== "");
 }
 
@@ -638,24 +646,6 @@ export function freshFirst<T extends { fact: { passage: string } }>(facts: reado
   return [...facts.filter((sourced) => !repeated(sourced)), ...facts.filter(repeated)];
 }
 
-/** Whether a claim is a rival's price read too long ago to state (D59):
- *  more than `RIVAL_PRICE_MAX_AGE_D` days before `now`. A date that cannot
- *  be read is not an age. */
-export function staleRivalPrice(claim: Pick<PackClaim, "kind" | "readAt">, now: Date): boolean {
-  if (claim.kind !== "rival_pricing") return false;
-  const read = Date.parse(claim.readAt);
-  return !Number.isNaN(read) && now.getTime() - read > RIVAL_PRICE_MAX_AGE_D * 86_400_000;
-}
-
-/** Whether an address may never be a page's grounding or one of its
- *  sources, on any site: a sign-in, account, basket, checkout or legal page
- *  (SPEC §7, 2026-10-10, issue 1393). The read of the customer's own pages
- *  leaves them out already (`./grounding.ts`); this holds the same line for
- *  everything else the pack carries an address for. */
-export function neverASource(url: string): boolean {
-  return isAccountPage(url) || derivePurpose({ url, title: "", h1: "" }) === "legal";
-}
-
 export function buildPack(a: PackInputs): ContextPack {
   const searches = [...(a.opportunity.targetQuery === null ? [] : [a.opportunity.targetQuery]), ...a.opportunity.absorbedQueries];
   const question = searches[0] ?? a.opportunity.title ?? a.opportunity.targetRef;
@@ -686,6 +676,8 @@ export function buildPack(a: PackInputs): ContextPack {
     ...(fact.about === undefined ? {} : { about: fact.about }),
     ...(fact.publishedAt === undefined ? {} : { publishedAt: fact.publishedAt }),
     ...(fact.source === undefined ? {} : { source: fact.source }),
+    ...(fact.via === undefined ? {} : { via: fact.via }),
+    ...(fact.secondHand === undefined ? {} : { secondHand: fact.secondHand }),
   }));
   const newPage = a.opportunity.family === "write" || a.opportunity.family === "earn";
   const fit = a.opportunity.evidence?.family === "write" || a.opportunity.evidence?.family === "earn" ? a.opportunity.evidence.fitFact : null;
@@ -763,7 +755,8 @@ export function buildPack(a: PackInputs): ContextPack {
   const table = TEMPLATES.listicle.blocks.table;
   const noComparison = table !== undefined && comparisonTable(pack, table.rivals) === null;
   if (a.type === "listicle" && (missing.includes("own_price") || (missing.includes("options") && noComparison))) return buildPack({ ...a, type: "qa" });
-  return { ...pack, missing, ...(corrections.length === 0 ? {} : { corrections }) };
+  const ownData = ownDataFact(a.report, [question, ...searches], business.name ?? business.domain);
+  return { ...pack, missing, ...(corrections.length === 0 ? {} : { corrections }), ...(ownData === null ? {} : { ownData }) };
 }
 
 /** The pack as the row keeps it, read back. `null` on a row written before

@@ -4,7 +4,7 @@ import { RESEARCH } from "@/lib/config/constants";
 import type { CLAIMS_SCHEMA, MarketFact, ReadPage, Wanted } from "./research";
 
 /** Quotation marks and whitespace are not a different claim. */
-const squash = (text: string): string =>
+export const squash = (text: string): string =>
   text.replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/\s+/g, " ").trim();
 
 const YEAR_RE = /\b(?:19|20)\d{2}\b/g;
@@ -102,4 +102,17 @@ function yearOf(claim: { passage: string; publishedAt?: string }): number | null
 export function byNewest<T extends { passage: string; publishedAt?: string }>(claims: readonly T[]): T[] {
   const years = new Map(claims.map((claim) => [claim, yearOf(claim)] as const));
   return [...claims].sort((a, b) => (years.get(b) ?? -Infinity) - (years.get(a) ?? -Infinity) || 0);
+}
+
+/** One claim from each page in turn, so no page is the whole pool. */
+export function inTurn(facts: readonly MarketFact[], pages: readonly { url: string }[]): MarketFact[] {
+  const queues = pages.map((page) => facts.filter((fact) => fact.url === page.url));
+  const out: MarketFact[] = [];
+  for (let round = 0; out.length < RESEARCH.briefFacts && queues.some((queue) => queue[round] !== undefined); round++) {
+    for (const queue of queues) {
+      const fact = queue[round];
+      if (fact !== undefined && out.length < RESEARCH.briefFacts) out.push(fact);
+    }
+  }
+  return out;
 }

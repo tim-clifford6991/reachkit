@@ -67,7 +67,7 @@
 //
 // **Research never stops a page.** A site whose market yields no readable
 // page is written from its business facts alone, as before this step.
-import { parse, type HTMLElement } from "node-html-parser";
+import { parse } from "node-html-parser";
 import { z } from "zod";
 import { CACHE_WINDOWS_D, HEADING_GAPS, RESEARCH } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
@@ -84,7 +84,8 @@ import { askedOfReport } from "@/lib/opportunities/derive/topics";
 import { googleWrapper, isPlatformDomain, nameLetters, registrableDomain } from "@/lib/market/rivals/domains";
 import type { Locale } from "@/lib/locale/locales";
 import type { NewsRow } from "@/lib/vendors/dataforseo/types";
-import { admittedClaims, ownPagesFirst } from "./claims";
+import { admittedClaims, inTurn, ownPagesFirst } from "./claims";
+import { publishedOf, sourcedBlocks, toOriginals, type SourcedBlock } from "./original";
 import { keywordOverview, serpNews, serpOrganic } from "@/lib/vendors/dataforseo";
 
 /** The `fetches.source` of every public page this step reads. */
@@ -114,6 +115,10 @@ export interface MarketFact {
   publishedAt?: string;
   /** Who published a `recent` page, as the news search names it. */
   source?: string;
+  /** A statistic cited to its original publisher: the page that repeated it, a supporting source only. */
+  via?: string;
+  /** A statistic whose linked original could not be read or did not state it: cited where it was repeated. */
+  secondHand?: true;
 }
 
 /** A product whose own pages were read: what a comparison table may name. */
@@ -179,6 +184,8 @@ export interface ReadPage {
   readAt: string;
   /** Issue 1521: its H2 and H3 headings. Absent on a read stored before. */
   headings?: string[];
+  /** Its passages that state a figure and link another site, from a live read only. */
+  sourced?: SourcedBlock[];
 }
 
 export interface Wanted {
@@ -187,27 +194,6 @@ export interface Wanted {
   product?: string;
   publishedAt?: string;
   source?: string;
-}
-
-const PUBLISHED_NAMES: ReadonlySet<string> = new Set(["article:published_time", "datepublished", "date", "pubdate", "publish-date", "og:published_time"]);
-
-/** The day a page says it was published, as its own markup states it —
- *  a meta tag, its structured data or a `<time>` — or `null` where it
- *  states none. Never read off the prose and never guessed. */
-export function publishedOf(html: string): string | null {
-  const root = parse(html);
-  const named = (meta: HTMLElement) => meta.getAttribute("property") ?? meta.getAttribute("name") ?? meta.getAttribute("itemprop") ?? "";
-  const stated = [
-    ...root.querySelectorAll("meta[content]").filter((meta) => PUBLISHED_NAMES.has(named(meta).toLowerCase())).map((meta) => meta.getAttribute("content")),
-    /"datePublished"\s*:\s*"([^"]+)"/i.exec(html)?.[1],
-    root.querySelector("time[datetime]")?.getAttribute("datetime"),
-  ];
-  for (const found of stated) {
-    if (found === undefined || found === "") continue;
-    const at = new Date(found);
-    if (!Number.isNaN(at.getTime())) return at.toISOString().slice(0, 10);
-  }
-  return null;
 }
 
 export function hostOf(url: string): string {
@@ -275,9 +261,21 @@ export async function fetchPage(url: string): Promise<{ page: ReadPage; html: st
       text: words(text, RESEARCH.readWords),
       readAt: body.readAt.toISOString(),
       headings: headingsOf(body.html),
+      sourced: sourcedBlocks(body.html, body.url),
     },
     html: body.html,
   };
+}
+
+/** A page read at 0¢ and ledgered under its address as research's reads are, with the day its markup says it was
+ *  published; `null` where it does not read. */
+export async function readFresh(c: CostContext, url: string): Promise<(ReadPage & { publishedAt?: string }) | null> {
+  const read = await fetchPage(url);
+  if (read === null) return null;
+  const { title, text, readAt, headings } = read.page;
+  const row = await c.recordFetch<ReadPage>({ source: RESEARCH_READ_SOURCE, cacheKey: url, freshnessDays: RESEARCH.freshnessDays, costCents: 0, run: async () => ({ url: read.page.url, title, text, readAt, ...(headings === undefined ? {} : { headings }) }) });
+  const publishedAt = publishedOf(read.html);
+  return "skipped" in row ? null : { ...row.payload, sourced: read.page.sourced ?? [], ...(publishedAt === null ? {} : { publishedAt }) };
 }
 
 type RivalPageKind = "rival_pricing" | "rival_features";
@@ -491,19 +489,6 @@ export const CLAIMS_SCHEMA = z.strictObject({
     })
   ),
 });
-
-/** One claim from each page in turn, so no page is the whole pool. */
-function inTurn(facts: readonly MarketFact[], pages: readonly { url: string }[]): MarketFact[] {
-  const queues = pages.map((page) => facts.filter((fact) => fact.url === page.url));
-  const out: MarketFact[] = [];
-  for (let round = 0; out.length < RESEARCH.briefFacts && queues.some((queue) => queue[round] !== undefined); round++) {
-    for (const queue of queues) {
-      const fact = queue[round];
-      if (fact !== undefined && out.length < RESEARCH.briefFacts) out.push(fact);
-    }
-  }
-  return out;
-}
 
 function logResearch(detail: Record<string, string | number | boolean | null>): void {
   console.log(JSON.stringify({ event: "draft_researched", ...detail }));
@@ -871,7 +856,8 @@ export async function researchMarket(
     facts.push(...admittedClaims(answer.value.claims, batch, a.today, rivalDomains));
   }
 
-  const ordered = inTurn(ownPagesFirst(facts), pages);
+  // A statistic is cited to the original its page links, read at 0¢.
+  const ordered = await toOriginals(inTurn(ownPagesFirst(facts), pages), pages, (url) => readFresh(c, url));
   const products = rivalDomains
     .map((domain) => {
       const name = names.get(domain);
@@ -902,6 +888,8 @@ export async function researchMarket(
     recent: pages.filter((page) => page.kind === "recent").length,
     newsOffMarket: recent === null ? null : recent.news.filter((result) => !result.onMarket).length,
     facts: ordered.length,
+    originals: ordered.filter((fact) => fact.via !== undefined).length,
+    secondHand: ordered.filter((fact) => fact.secondHand === true).length,
     products: products.length,
     namedProducts: a.options === true ? named.length : null,
     baseline,
