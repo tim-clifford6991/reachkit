@@ -414,7 +414,7 @@ function changesLive(live: NonNullable<TidyInputs["live"]>, sections: readonly {
 }
 
 /** An update's title (D51): the live page's own, its year moved to this one
- *  only where a section no longer reads as the live page has it. */
+ *  only where a section no longer reads as the live page has it. Code's floor title takes its place where it breaks the title rule. */
 function liveTitle(live: NonNullable<TidyInputs["live"]>, changed: boolean): string {
   return changed ? live.title.replace(/\b20\d\d\b/g, String(live.year)) : live.title;
 }
@@ -520,7 +520,7 @@ export function layoutPage(parts: PageParts, template: Template, a: TidyInputs):
   const title =
     a.live === undefined
       ? (a.pickTitle?.(proposed, { description, sections: laid }) ?? proposed[0] ?? "")
-      : liveTitle(a.live, changed);
+      : (a.pickTitle?.([liveTitle(a.live, changed)], { description, sections: laid }) ?? liveTitle(a.live, changed));
   return {
     body: {
       title,

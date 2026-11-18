@@ -1,18 +1,26 @@
-// SPEC §7 (owner, 2026-11-05: "each day must have new or updated content, no exceptions") — a day whose run ends
-// without a page takes an update in the same run, and only where today's whole battery passes it: the committed
-// week's live page mended in code at 0¢, else the writer's update of our oldest live page from stored research.
-import { REFRESH_MIN_AGE_DAYS } from "@/lib/config/constants";
-import { committedWeek, queueForDraft, type Opportunity } from "@/lib/opportunities";
-import { addressKey, persistAssessed, refreshOfPage, stoppedRefreshes } from "@/lib/opportunities/refresh";
+// SPEC §7 *Every day has new or updated content* (owner, 2026-11-05, 2026-11-17 and 2026-11-18) — a day whose topics
+// and spares ended without a page takes, in the same run, the writer's update of the live page furthest below the
+// standard, kept only where it adds real substance; else its last step, the committed topic written anyway. It ends
+// empty only behind a harm stop, or where nothing can be sourced.
+import { PIPELINE, REFRESH_MIN_AGE_DAYS, RESEARCH } from "@/lib/config/constants";
+import { siteLocale } from "@/lib/locale/site";
+import { committedWeek, opportunityById, type Opportunity } from "@/lib/opportunities";
+import { addressKey, persistAssessed, refreshOfPage, stoppedRefreshes, type OwnLivePage } from "@/lib/opportunities/refresh";
 import { opportunityStore, readOpportunity } from "@/lib/opportunities/store";
 import { contentTypeOf } from "@/lib/opportunities/content-type";
-import { isOwnRefresh, isResting } from "@/lib/opportunities/types";
+import { isResting } from "@/lib/opportunities/types";
+import { serpOrganic } from "@/lib/vendors/dataforseo/serp";
 import type { CostContext } from "@/lib/costs";
 import type { StoredReport } from "@/lib/scan/report";
 import type { DayPageOutcome } from ".";
 import { openDayCost, roomForFix } from "./cost";
+import { fold, type ContextPack } from "./pipeline/pack";
+import { researchSerps } from "./pipeline/research";
 import { checkStoredAt0, siteSets, type RecheckOutcome } from "./recheck";
+import { completenessFor, readRecordedRules, stops } from "./record";
+import type { Completeness } from "./rules/types";
 import { mendedInCode, repairStructure } from "./rules/structure";
+import type { PartMark } from "./standard";
 import { DraftDateTaken, PageStopped, generateStore, type DraftRow, type SiteFacts } from "./store";
 
 export interface MendInput {
@@ -37,19 +45,21 @@ export function mendable(opportunity: Opportunity): boolean {
 }
 
 type Mended = { version: DraftRow; body: string; checked: Extract<RecheckOutcome, { kind: "checked" }> };
+type Meta = Record<string, unknown>;
+const metaOf = (meta: unknown): Meta => (typeof meta === "object" && meta !== null ? (meta as Meta) : {});
 
 /** The live page's mended new version under today's battery, written nowhere. `null` where nothing changed or there
  *  is nothing the battery may check. */
-async function mendedVersion(a: MendInput, extra: Record<string, unknown> = {}): Promise<Mended | null> {
+async function mendedVersion(a: MendInput): Promise<Mended | null> {
   const store = generateStore();
   const url = a.opportunity.targetRef;
   const live = await store.liveVersionAt(a.siteId, url);
   if (live === null) return null;
-  const meta = (typeof live.draft.meta === "object" && live.draft.meta !== null ? live.draft.meta : {}) as Record<string, unknown>;
+  const meta = metaOf(live.draft.meta);
   const body = repairStructure(live.draft.body_md ?? "", { title: live.draft.title ?? "" });
   // Mended since it was planned: there is nothing to publish.
   if (body === (live.draft.body_md ?? "")) return null;
-  const version = { ...live.draft, meta: { ...meta, datedAs: typeof meta.datedAs === "string" ? meta.datedAs : live.publishedAt.toISOString(), mendOf: live.draft.id, ...extra } };
+  const version = { ...live.draft, meta: { ...meta, datedAs: typeof meta.datedAs === "string" ? meta.datedAs : live.publishedAt.toISOString(), mendOf: live.draft.id } };
   // The live text passed the rules of its own day; its new version enters review only on today's.
   const sets = await siteSets(a.siteId, a.site, a.report);
   const checked = await checkStoredAt0(version, body, { ...sets, opportunity: a.opportunity, now: new Date(), versionsAt: { url, draftIds: await store.versionsAt(a.siteId, url) } });
@@ -82,45 +92,171 @@ export async function mendPage(a: MendInput): Promise<DayPageOutcome> {
   return mended.checked.passed ? { ok: true, draftId } : { ok: false, because: "rules", draftId, attempts: 1 };
 }
 
-/** The committed week's ready updates a day may take: the spares, then the rows planned for a later date, latest
- *  first so the nearest days stay as shown; within each, ReachKit's own refresh first (SPEC §7 Pace). */
-async function candidates(siteId: string, date: string): Promise<Opportunity[]> {
-  const { days, spares } = await committedWeek(siteId);
-  const ownFirst = (rows: Opportunity[]) => rows.filter((o) => o.ready && o.family === "improve").sort((x, y) => Number(isOwnRefresh(y)) - Number(isOwnRefresh(x)));
-  const later = days.filter((day) => day.date > date).sort((x, y) => y.date.localeCompare(x.date));
-  return [...ownFirst([...spares]), ...ownFirst(later.map((day) => day.opportunity))];
+const DAY_MS = 24 * 60 * 60 * 1000;
+/** A version live since `publishedAt` is at least the refresh floor old at `at`: nothing younger is refreshed for a day. */
+const pastFloor = (publishedAt: Date, at: Date): boolean => at.getTime() - publishedAt.getTime() >= REFRESH_MIN_AGE_DAYS * DAY_MS;
+
+/** A site none of whose live pages of ours has stood the refresh floor (owner, 2026-11-18): its pages are short by
+ *  nature, and its shortfall is not shown. A read that fails reads as an established site, which shows it. */
+export async function newSite(siteId: string, at: Date): Promise<boolean> {
+  const pages = await opportunityStore().refreshPages(siteId).catch(() => null);
+  return pages !== null && !pages.some((page) => page.takenDown !== true && pastFloor(page.publishedAt, at));
 }
 
-/** The committed week's first ready update the writer refreshes from stored research: one of our pages past its floor. */
-async function writableUpdate(siteId: string, date: string): Promise<Opportunity | null> {
-  for (const opportunity of await candidates(siteId, date)) {
-    if (!mendable(opportunity) && contentTypeOf(opportunity) === "update" && (await pastFloor(siteId, opportunity.targetRef))) return opportunity;
+/** What an incomplete page of this site meets (`completenessFor`): `anyway` for the day's last step. */
+export async function completenessOf(siteId: string, at: Date, anyway = false): Promise<Completeness> {
+  return completenessFor(anyway ? "anyway" : "customer", await newSite(siteId, at));
+}
+
+/** The day's update fallback found none of the site's own live pages to update, and its last step met a harm stop. */
+const NO_UPDATE = { ok: false, because: "no_update_candidate" } as const;
+
+type Day = { siteId: string; site: SiteFacts; report: StoredReport; publishDate: string };
+type Candidate = { page: OwnLivePage; standard: { parts: PartMark[]; met: boolean } | null; early: boolean };
+
+/**
+ * The live pages a day may update, the one furthest below the standard first (SPEC §7, owner 2026-11-17 ~23:45): the
+ * fewest parts its stored `meta.standard` meets, ties to the oldest, and a page with none recorded after every page
+ * measured. Each is past the refresh floor, but a page published below the standard, which may take one completing
+ * update before it (ruling 14). A page its customer edited, took down or stopped a refresh of is theirs. 0¢.
+ */
+async function updateCandidates(siteId: string, at: Date): Promise<Candidate[]> {
+  const pages = (await opportunityStore().refreshPages(siteId)).filter((page) => page.takenDown !== true && page.edited !== true && page.row.targetQuery !== null);
+  const stopped = await stoppedRefreshes(siteId);
+  const found: Candidate[] = [];
+  for (const page of pages) {
+    if (stopped.has(addressKey(page.url))) continue;
+    const meta = metaOf((await generateStore().liveVersionAt(siteId, page.url))?.draft.meta);
+    const standard = Array.isArray(metaOf(meta.standard).parts) ? (meta.standard as Candidate["standard"]) : null;
+    // Its one early update is the live version, so it is not picked again until it is past the floor.
+    const early = !pastFloor(page.publishedAt, at) && standard?.met === false && meta.early !== true;
+    if (early || pastFloor(page.publishedAt, at)) found.push({ page, standard, early });
+  }
+  const met = (each: Candidate): number => each.standard?.parts.filter((part) => part.state === "met").length ?? Number.POSITIVE_INFINITY;
+  return found.sort((x, y) => met(x) - met(y) || x.page.publishedAt.getTime() - y.page.publishedAt.getTime());
+}
+
+/** The search of the day's first update candidate, whose one SERP the day's research step asks with its own. */
+export async function updateSearch(siteId: string, at: Date): Promise<string | null> {
+  return (await updateCandidates(siteId, at).catch(() => []))[0]?.page.row.targetQuery ?? null;
+}
+
+/** The candidate's open refresh where it has one, else one planned and assessed as Monday's are; none while it rests. */
+async function refreshRow(siteId: string, page: OwnLivePage, at: Date): Promise<Opportunity | null> {
+  const store = opportunityStore();
+  const openAt = async () => (await store.openRankable(siteId)).map(readOpportunity).filter((o) => o.type === "refresh_page" && addressKey(o.targetRef ?? "") === addressKey(page.url));
+  let open = await openAt();
+  // Titled as the page is, so the writer finds its live text even before the known-content copy lists it.
+  const planned = { ...refreshOfPage(page, "aged", at), title: page.title || null };
+  if (open.length === 0 && (await persistAssessed(siteId, [planned], at)) > 0) open = await openAt();
+  return open.find((o) => o.ready && !isResting(o, at)) ?? null;
+}
+
+/** Real substance (SPEC §7, owner 2026-11-17 ~23:45): three new sourced facts or one new question answered, and two
+ *  cited pages, one read in this run. A link, a mend or a page that says little more is not the day's content. */
+function substantial(pack: ContextPack | undefined, body: string, since: Date): boolean {
+  if (pack === undefined) return false;
+  const live = pack.live?.markdown ?? "";
+  const cited = pack.claims.filter((claim) => body.includes(claim.url));
+  const facts = cited.filter((claim) => !fold(live).includes(fold(claim.passage))).length;
+  const asked = (markdown: string): string[] => (markdown.match(/^#{2,3} .*\?\s*$/gm) ?? []).map(fold);
+  const question = asked(body).some((heading) => !asked(live).includes(heading));
+  return (facts >= 3 || question) && new Set(cited.map((claim) => claim.url)).size >= 2 && cited.some((claim) => Date.parse(claim.readAt) >= since.getTime());
+}
+
+/** The writer's update of one candidate, from its research: the day's page where it passes and adds real substance.
+ *  One that adds too little keeps the live page's dates, gives up the date and rests as such a page does. */
+async function writtenUpdate(page: Day & { opportunity: Opportunity }, marks: Meta, now: Date, cost: CostContext): Promise<{ ok: true; draftId: string } | null> {
+  const { writeFallback } = await import(".");
+  const store = generateStore();
+  const outcome = await writeFallback(page, now, cost);
+  const draftId = outcome.ok ? outcome.draftId : "draftId" in outcome ? outcome.draftId : null;
+  if (draftId === null) return null;
+  const row = await store.draftById(draftId);
+  const meta = metaOf(row?.meta);
+  const pack = meta.pack as ContextPack | undefined;
+  const kept = outcome.ok && substantial(pack, row?.body_md ?? "", now);
+  const dated = pack?.live?.datedAs === undefined ? {} : { datedAs: pack.live.datedAs };
+  await store.patchDraft(draftId, { meta: { ...meta, ...(kept ? marks : dated) }, ...(kept ? {} : { scheduled_for: null }) });
+  if (!outcome.ok || kept) return kept ? { ok: true, draftId } : null;
+  const { transition } = await import("@/lib/publish/machine");
+  await transition(draftId, "needs_attention", { kind: "system", job: "draft/generate" }, { reason: "step_failed:adds" });
+  return null;
+}
+
+/** The day's update (SPEC §7): each candidate's one target SERP read on the normal queue, cached or bought inside the
+ *  date's cap, and the first whose research reads is written. A page published short is passed over where its research
+ *  holds no more questions than it has sections. `null` where none kept the day. */
+async function dayUpdate(day: Day, trigger: string, now: Date, cost: CostContext, giveUp: () => Promise<void>): Promise<{ ok: true; draftId: string } | null> {
+  const locale = await siteLocale(day.siteId);
+  for (const { page, standard, early } of await updateCandidates(day.siteId, now)) {
+    if (cost.capHit() || !roomForFix(cost)) return null;
+    const [read] = researchSerps({ siteId: day.siteId, locale, target: page.row.targetQuery!, study: false }, RESEARCH.queueWaitS * 1000);
+    const serp = await serpOrganic(cost, read!);
+    if (serp.kind === "unmeasured") continue;
+    const sections = standard?.parts.find((part) => part.part === "sections")?.have ?? 0;
+    if (standard?.met === false && (serp.value.peopleAlsoAsk?.length ?? 0) <= sections) continue;
+    const opportunity = await refreshRow(day.siteId, page, now);
+    if (opportunity === null) continue;
+    await giveUp();
+    const research = serp.value.reusedFrom === undefined ? "bought" : "cached";
+    // One update is written for a day, whether or not it kept it.
+    return writtenUpdate({ ...day, opportunity }, { fallbackFor: trigger, research, ...(early ? { early: true } : {}) }, now, cost);
   }
   return null;
 }
 
-/** The day's last rung once its topics and spares came up short, inside its one context: a new page's topic as a
- *  reference page of the site's own facts, which reads no research, else an update of one of our live pages. A day
- *  neither fills ends `no_own_facts`, naming what the reference page's pack lacked, else as its own topic did. */
-export async function ownFactsPage(page: MendInput & { publishDate: string }, cost: CostContext, now: Date, ended: DayPageOutcome): Promise<DayPageOutcome> {
-  const { writeStoredUpdate } = await import(".");
-  // The rung's page has no row yet, so its calls are counted as one's.
-  await cost.forDraft?.(null);
-  const short = (outcome: DayPageOutcome): outcome is Extract<DayPageOutcome, { because: "step_failed" }> =>
-    !outcome.ok && outcome.because === "step_failed" && outcome.draftId === null && outcome.step.startsWith("pack");
-  const documented = contentTypeOf(page.opportunity) === "update" ? null : await writeStoredUpdate({ ...page, opportunity: { ...page.opportunity, writeAs: "documentation" } }, now, cost);
-  if (documented !== null && !short(documented)) return documented;
-  // The update carries the reason the day's own page ended on, as the update fallback's always does.
-  const update = await writableUpdate(page.siteId, page.publishDate);
-  const trigger = ended.ok ? "" : `generate:${ended.because === "step_failed" ? `step_failed:${ended.step}` : ended.because}`;
-  const updated = update === null ? null : await writtenUpdate({ ...page, opportunity: update }, trigger, now, cost);
-  if (updated !== null) return updated;
-  return documented === null ? ended : { ok: false, because: "no_own_facts", step: documented.step };
+/** The week's new topics a day's last step may write, its own date's first, then the spares, never an update or a fix. */
+async function weekTopics(siteId: string, date: string): Promise<Opportunity[]> {
+  const { days, spares } = await committedWeek(siteId);
+  const own = days.filter((day) => day.date === date).map((day) => day.opportunity);
+  return [...own, ...spares].filter((o) => o.type !== "fix_page" && !mendable(o) && contentTypeOf(o) !== null && contentTypeOf(o) !== "update");
 }
 
-/** The day's page, where its own did not pass: the committed week's code-mended update at 0¢, else the writer's update
- *  of our live page longest past its floor. `null` where the update did not pass, and `no_update_candidate` where no
- *  page could be updated. `stopped` is the row that holds the date, which gives it up only to a page written for it. */
+/**
+ * The day's last step (SPEC §7, owner 2026-11-18, rulings 1, 11, 13 and 16). A page a harm rule stopped ends the day
+ * empty. One only completeness stopped is read again at 0¢ with completeness a warning and enters review. Otherwise
+ * the topic is written anyway, as its type where its research holds the minimum, else as documentation from the
+ * site's own facts; a topic neither can source costs no write, and the week's next short topic is tried. One write.
+ */
+async function lastStep(day: Day, a: { trigger: string; stopped: string | null; giveUp: () => Promise<void> }, now: Date, cost: CostContext): Promise<DayPageOutcome | typeof NO_UPDATE | null> {
+  const store = generateStore();
+  const row = a.stopped === null ? null : await store.draftById(a.stopped);
+  const failures = readRecordedRules(row?.rule_failures) ?? [];
+  if (failures.some((failure) => stops(failure, "warn"))) return NO_UPDATE;
+  const opportunity = row === null || !failures.some((failure) => stops(failure)) ? null : await opportunityById(row.opportunity_id);
+  if (row !== null && opportunity !== null) {
+    const sets = await siteSets(day.siteId, day.site, day.report);
+    const site = { ...sets.site, completeness: sets.site.completeness === "hidden" ? ("hidden" as const) : ("warn" as const) };
+    const checked = await checkStoredAt0(row, row.body_md ?? "", { ...sets, site, opportunity, now });
+    if (checked.kind === "checked" && checked.passed) {
+      await store.patchDraft(row.id, { ...checked.patch, meta: { ...metaOf(checked.patch.meta), fallbackFor: a.trigger } });
+      return { ok: true, draftId: row.id };
+    }
+  }
+  await a.giveUp();
+  const { writeFallback } = await import(".");
+  const startedAt = Date.now();
+  let ended: DayPageOutcome | null = null;
+  for (const topic of await weekTopics(day.siteId, day.publishDate)) {
+    for (const opportunity of contentTypeOf(topic) === "documentation" ? [topic] : [topic, { ...topic, writeAs: "documentation" as const }]) {
+      if (cost.capHit() || Date.now() - startedAt > PIPELINE.nextTopicBeforeMs) return ended;
+      const outcome = await writeFallback({ ...day, opportunity }, now, cost, "warn");
+      const draftId = outcome.ok ? outcome.draftId : "draftId" in outcome ? outcome.draftId : null;
+      if (draftId === null) {
+        ended = outcome;
+        continue;
+      }
+      await store.patchDraft(draftId, { meta: { ...metaOf((await store.draftById(draftId))?.meta), fallbackFor: a.trigger, anyway: true } });
+      return outcome;
+    }
+  }
+  return ended;
+}
+
+/** The day's page, where its own and its spares did not pass: the writer's update of the live page furthest below the
+ *  standard, else the last step. `null` or a page that did not pass where neither kept it, `no_update_candidate` only
+ *  behind a harm stop. `stopped` is the row that holds the date, which gives it up only to a page written for it. */
 export async function refreshForDay(a: {
   siteId: string;
   publishDate: string;
@@ -137,96 +273,27 @@ export async function refreshForDay(a: {
   // A replay after the insert finds the date its own row took.
   const holds = a.stopped !== null && (await store.draftById(a.stopped))?.scheduled_for === a.publishDate;
   if (!holds && (await store.draftOnDate(a.siteId, a.publishDate))) return { ok: false, because: "already_drafted" };
-  const week = await candidates(a.siteId, a.publishDate);
-  for (const opportunity of week) {
-    if (!mendable(opportunity)) continue;
-    const page = { siteId: a.siteId, site, report, opportunity, publishDate: a.publishDate };
-    const mended = await mendedVersion(page, { fallbackFor: a.trigger });
-    if (mended === null || !mended.checked.passed) continue;
-    if (holds) await store.patchDraft(a.stopped!, { scheduled_for: null });
-    try {
-      const draftId = await insertMended(page, mended);
-      await queueForDraft(opportunity.id);
-      return { ok: true, draftId };
-    } catch (error) {
-      if (error instanceof DraftDateTaken) return { ok: false, because: "already_drafted" };
-      // The customer stopped this one as it was saved: the week's next is read.
-      if (error instanceof PageStopped) continue;
-      throw error;
-    }
-  }
-  // Any day its own page and spare left without one takes the writer's update of our oldest page past its floor.
   const now = a.now ?? new Date();
-  const update = await oldestDueUpdate(a.siteId, now);
-  if (update !== null) {
-    const page = { siteId: a.siteId, site, report, opportunity: update, publishDate: a.publishDate };
+  const day = { siteId: a.siteId, site, report, publishDate: a.publishDate };
+  // The row the rules stopped gives up its date to the page written next, as a stopped topic does to its spare.
+  const giveUp = async () => void (holds ? await store.patchDraft(a.stopped!, { scheduled_for: null }) : undefined);
+  const inDay = <T>(body: (cost: CostContext) => Promise<T>): Promise<T | { ok: false; because: "already_drafted" } | null> =>
     // Opened at what the date has already spent, so the day keeps its one CAP_DRAFT.
-    return openDayCost({ scanId: report.scanId, siteId: a.siteId, since: now }, async (cost) => {
-      if (!roomForFix(cost)) return null;
-      // The row the rules stopped gives up its date to the page written next, as a stopped topic does to its spare.
-      if (holds) await store.patchDraft(a.stopped!, { scheduled_for: null });
-      return writtenUpdate(page, a.trigger, now, cost);
+    openDayCost({ scanId: report.scanId, siteId: a.siteId, since: now }, body).catch((error: unknown) => {
+      if (error instanceof DraftDateTaken) return { ok: false, because: "already_drafted" } as const;
+      // The customer stopped this page as it was saved: the day ends as its own did.
+      if (error instanceof PageStopped) return null;
+      throw error;
     });
+  const updated = await inDay((cost) => dayUpdate(day, a.trigger, now, cost, giveUp));
+  if (updated !== null) return updated;
+  // A day whose select found no topic has spent nothing, so it recommits before its last step.
+  if (a.trigger === "generate:no_opportunity" && a.from === "select") {
+    const { generateDayPage } = await import(".");
+    const page = await generateDayPage({ siteId: a.siteId, publishDate: a.publishDate, updatesTried: true, now });
+    if (page.ok || page.because !== "no_opportunity") return page;
   }
-  // Only a day whose select found no topic has spent nothing, so only it goes on down its ladder: recommit, own facts.
-  if (a.trigger !== "generate:no_opportunity" || a.from !== "select") return NO_UPDATE;
-  const { generateDayPage } = await import(".");
-  const page = await generateDayPage({ siteId: a.siteId, publishDate: a.publishDate, updatesTried: true, ...(a.now === undefined ? {} : { now: a.now }) });
-  return !page.ok && page.because === "no_opportunity" ? NO_UPDATE : page;
-}
-
-/** The day's update fallback found none of the site's own live pages past the refresh floor to update. */
-const NO_UPDATE = { ok: false, because: "no_update_candidate" } as const;
-
-/**
- * The page a day updates once its own page and its spare end without one (SPEC §7, owner 2026-11-08): the site's own
- * live page longest past the refresh floor, committed or not — its open refresh where it has one, else one planned and
- * assessed as Monday's are. A page its customer edited, took down or stopped a refresh of is theirs and is passed over,
- * as is one whose row rests or is not ready. Nothing is bought.
- */
-async function oldestDueUpdate(siteId: string, at: Date): Promise<Opportunity | null> {
-  const store = opportunityStore();
-  const floor = at.getTime() - REFRESH_MIN_AGE_DAYS * 24 * 60 * 60 * 1000;
-  const pages = (await store.refreshPages(siteId))
-    .filter((page) => page.publishedAt.getTime() <= floor && page.takenDown !== true && page.edited !== true && page.row.targetQuery !== null)
-    .sort((x, y) => x.publishedAt.getTime() - y.publishedAt.getTime());
-  if (pages.length === 0) return null;
-  const stopped = await stoppedRefreshes(siteId);
-  const openAt = async (url: string) =>
-    (await store.openRankable(siteId)).map(readOpportunity).filter((o) => o.type === "refresh_page" && addressKey(o.targetRef ?? "") === addressKey(url));
-  for (const page of pages) {
-    if (stopped.has(addressKey(page.url))) continue;
-    let open = await openAt(page.url);
-    // Titled as the page is, so the writer finds its live text even before the known-content copy lists it.
-    const planned = { ...refreshOfPage(page, "aged", at), title: page.title || null };
-    if (open.length === 0 && (await persistAssessed(siteId, [planned], at)) > 0) open = await openAt(page.url);
-    const row = open.find((o) => o.ready && !isResting(o, at));
-    if (row !== undefined) return row;
-  }
-  return null;
-}
-
-/** One of ReachKit's own pages, live at `url` for at least the refresh floor: nothing else is refreshed for a day. */
-async function pastFloor(siteId: string, url: string): Promise<boolean> {
-  const live = await generateStore().liveVersionAt(siteId, url);
-  return live !== null && Date.now() - live.publishedAt.getTime() >= REFRESH_MIN_AGE_DAYS * 24 * 60 * 60 * 1000;
-}
-
-/** The writer's refresh of one candidate, from stored research: today's page where the battery passes it, else a
- *  stopped row that gives up the date while the day keeps its own reason. */
-async function writtenUpdate(page: MendInput & { publishDate: string }, trigger: string, now: Date, cost?: CostContext): Promise<{ ok: true; draftId: string } | { ok: false; because: "already_drafted" } | null> {
-  const { writeStoredUpdate } = await import(".");
-  const store = generateStore();
-  try {
-    const outcome = await writeStoredUpdate(page, now, cost);
-    const draftId = outcome.ok ? outcome.draftId : "draftId" in outcome ? outcome.draftId : null;
-    if (draftId === null) return null;
-    const meta = (await store.draftById(draftId))?.meta;
-    await store.patchDraft(draftId, { meta: { ...(typeof meta === "object" && meta !== null ? meta : {}), fallbackFor: trigger, research: "stored" }, ...(outcome.ok ? {} : { scheduled_for: null }) });
-    return outcome.ok ? { ok: true, draftId } : null;
-  } catch (error) {
-    if (error instanceof DraftDateTaken) return { ok: false, because: "already_drafted" };
-    if (error instanceof PageStopped) return null;
-    throw error;
-  }
+  // A topic whose research is still on the queue is not short: the next tick writes it.
+  if (a.trigger === "generate:research_pending") return null;
+  return inDay((cost) => lastStep(day, { trigger: a.trigger, stopped: holds ? a.stopped : null, giveUp }, now, cost));
 }

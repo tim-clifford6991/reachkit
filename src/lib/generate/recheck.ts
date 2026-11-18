@@ -143,7 +143,7 @@ export async function checkStoredAt0(row: DraftRow, body: string, world: Recheck
         description: page.description,
         faq: page.faq,
         ...(Object.keys(fixes).length === 0 ? {} : { recheck: { ...(meta.recheck as RecheckFixes | undefined), ...fixes } }),
-        checks: recordedRunValue(checked.outcome, broken),
+        checks: recordedRunValue(checked.outcome, broken, world.site.completeness),
         ...(checked.repairs.length === 0 ? {} : { repairs: [...priorRepairs, ...checked.repairs] }),
       },
       claim_check: recordedVerdictValue(checked.outcome.claim),
@@ -258,7 +258,7 @@ export async function siteSets(siteId: string, site: SiteFacts, report: StoredRe
   const confirmed = await confirmedForWriting({ siteId, domain: site.domain });
   const facts = allowedFacts(await readAllFacts({ siteId, scanId: report.scanId }), confirmed.factsOff);
   const demoPhrases = [...(await readDemoPhrases({ siteId, scanId: report.scanId }).catch(() => [])), ...confirmed.factsOff];
-  return { site: siteRulesOf(site, report), facts, demoPhrases };
+  return { site: siteRulesOf(site, report, await (await import("./day-refresh")).completenessOf(siteId, new Date())), facts, demoPhrases };
 }
 
 async function rescue(a: { siteId: string; publishDate: string; now: Date }): Promise<string | null> {

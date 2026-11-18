@@ -110,7 +110,7 @@ export function checkList(a: {
         ? null
         : {
             passed: count("passed"),
-            total: HARD_RULES.length,
+            total: HARD_RULES.length - (a.recorded.hidden?.length ?? 0),
             skipped: count("skipped"),
             failed: count("failed"),
             fixed: a.recorded.fixed,

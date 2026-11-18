@@ -24,8 +24,8 @@
 //     week's next spare (`pageForDay`), at most once more, in the one context;
 //   * a short pack writes no row and rests its topic (issue 1536), and the day
 //     goes on without using up D26's one more (issue 1477); once no spare is
-//     left, its last topic is written from the site's own facts, or the day
-//     names why (`ownFactsPage`). A page that adds too little rests named.
+//     left, the day's fallback updates a page or writes its topic anyway
+//     (`refreshForDay`). A page that adds too little rests named.
 //
 // `regenerateRestarted` is the customer's Regenerate carried out: the next draft tick rewrites the row for its date.
 import { siteLocale } from "@/lib/locale/site";
@@ -47,9 +47,9 @@ import { pageTypeOf } from "@/lib/opportunities/page-type";
 import { intentFor } from "@/lib/opportunities/intent";
 import { openDayCost, roomForFix, withDraftCost } from "./cost";
 import { readRecordedRules } from "./record";
-import { COLLECT, askDayResearch } from "./research-queue";
+import { COLLECT, askDayResearch, heldResearch } from "./research-queue";
 import { repairStructure } from "./rules/structure";
-import { mendPage, mendable, ownFactsPage } from "./day-refresh";
+import { completenessOf, mendPage, mendable } from "./day-refresh";
 import { confirmedForWriting } from "./voice/confirmed";
 import { clusterLinkTargets, knownLinkTargets as knownContentTargets, siteLinkTargets, urlKey, type LinkTarget } from "./links/select";
 import { withMovedLink } from "./links/moved";
@@ -215,7 +215,7 @@ export async function generateDayPage(a: {
         if ((stopped === null && !short) || written >= DAY_TOPICS_MAX || cost.capHit() || !roomForFix(cost) || Date.now() - startedAt > PIPELINE.nextTopicBeforeMs) return outcome;
         // The stopped topic rests by now, so the date's page is the week's next spare.
         const next = await pageForDay(a.siteId, a.publishDate, now);
-        if (next === null || next.id === first.id || next.id === opportunity.id) return short ? await ownFactsPage(page, sinceNow(cost), now, outcome) : outcome;
+        if (next === null || next.id === first.id || next.id === opportunity.id) return outcome;
         // It keeps its row and gives up its date to the page written next.
         if (stopped !== null) await store.patchDraft(stopped, { scheduled_for: null });
         opportunity = next;
@@ -290,10 +290,10 @@ export async function regenerateRestarted(a: { siteId: string; draftId: string; 
   return outcome;
 }
 
-/** A page the writer writes from stored research alone, in the day's one cost context (SPEC §7, owner 2026-11-05): no
- *  vendor is read, and its one fix call is the pipeline's own. `now` is the run's due hour. */
-export async function writeStoredUpdate(page: PageInput & { publishDate: string }, now: Date, day?: CostContext): Promise<DayPageOutcome> {
-  const write = (cost: CostContext) => writePage({ ...page, attempts: 1, research: "stored" }, cost);
+/** A page the day's fallback writes in its one cost context (SPEC §7): an update from the day's research, or the last
+ *  step's page written anyway (`completeness`). Its one fix call is the pipeline's own. `now` is the run's due hour. */
+export async function writeFallback(page: PageInput & { publishDate: string }, now: Date, day?: CostContext, completeness?: "warn"): Promise<DayPageOutcome> {
+  const write = (cost: CostContext) => writePage({ ...page, attempts: 1, ...(completeness === undefined ? {} : { completeness }) }, cost);
   const outcome = day === undefined ? await openDayCost({ scanId: page.report.scanId, siteId: page.siteId, since: now }, write) : await write(day);
   await settle(outcome, page.opportunity.id, now, page.site);
   return outcome;
@@ -472,13 +472,13 @@ function linkBackOf(opportunity: Opportunity): { url: string; title: string; rep
   return { url: link.url, title: link.title, ...(typeof link.replaces === "string" ? { replaces: link.replaces } : {}) };
 }
 
-async function writePage(a: PageInput & { attempts: number; startedAt?: number; research?: "stored" }, cost: CostContext): Promise<DayPageOutcome> {
+async function writePage(a: PageInput & { attempts: number; startedAt?: number; completeness?: "warn" }, cost: CostContext): Promise<DayPageOutcome> {
   const store = generateStore();
   const { site, report } = a;
   const startedAt = a.startedAt ?? Date.now();
   let opportunity = a.opportunity;
 
-  const ruleInputs = siteRulesOf(site, report);
+  const ruleInputs = siteRulesOf(site, report, await completenessOf(a.siteId, new Date(), a.completeness === "warn"));
   // SPEC §7 (2026-09-20), #927: the **confirmed** business profile — the
   // knowledge base and the founder's answers, with the customer's own
   // corrections applied over the crawl — through `readConfirmedBusiness`
@@ -589,12 +589,10 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number; 
     //    A read that fails leaves the page to its business facts and never
     //    stops it. A Q&A its target's own SERP leaves short of questions is
     //    read beside the market's searched terms too (owner, D62; issue
-    //    1297): the pack says when it holds enough. `stored` reads the report alone and no vendor.
-    const market = !template.research || a.research === "stored"
-      ? template.research || type === "offering"
-        ? storedAsk(report, targetSearches(o))
-        : NO_RESEARCH
-      : await researchMarket(cost, {
+    //    1297): the pack says when it holds enough.
+    const market = !template.research
+      ? type === "offering" ? storedAsk(report, targetSearches(o)) : NO_RESEARCH
+      : await heldResearch(cost, { key: `${a.siteId}:${o.id}:${type}:${a.publishDate}`, reuse: a.completeness === "warn" }, () => researchMarket(cost, {
           siteId: a.siteId,
           locale,
           domain: site.domain,
@@ -612,14 +610,14 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number; 
           questions: true,
           // Issue 1486: a how-to or a Q&A is built from cited outside facts,
           // so its one search reads the target's own guidance.
-          guidance: builtFromOutside(type),
+          guidance: builtFromOutside(type), study: type !== "update",
           ...(type === "insights"
             ? { recent: { searches: [category === "" ? (targetSearches(o)[0] ?? "") : category, ...writingFor.synonyms], days: RESEARCH.recentDays, market: writingFor } }
             : {}),
         }).catch((error: unknown) => {
           console.warn(JSON.stringify({ event: "draft_research_failed", siteId: a.siteId, error: String(error).slice(0, 200) }));
           return NO_RESEARCH;
-        });
+        }));
     return { pack: packOf(market), links, ...(market.pending === true ? { pending: true as const } : {}) };
   };
 
@@ -649,7 +647,7 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number; 
       demoPhrases,
       intent: intentFor({ query: opportunity.targetQuery, volume: opportunity.volume }, site.prompts ?? []),
       startedAt,
-      ...(draftId === undefined ? {} : { draftId }),
+      ...(draftId === undefined ? {} : { draftId }), ...(a.completeness === undefined ? {} : { completeness: a.completeness }),
     });
     if (last.draftId !== null) draftId = last.draftId;
     if (last.ok) return { ok: true, draftId: last.draftId };

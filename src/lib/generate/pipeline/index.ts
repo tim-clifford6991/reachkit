@@ -49,7 +49,7 @@ import { applyLinks } from "../links/apply";
 import type { LinkTarget } from "../links/select";
 import { urlKey } from "../links/select";
 import { recordedRulesValue, recordedRunValue, recordedVerdictValue } from "../record";
-import { incomplete, meetsStandard } from "../standard";
+import { incomplete, meetsStandard, writtenAnyway } from "../standard";
 import { batteryCleared, type BatteryOutcome } from "../rules";
 import { answerBoxWords, ownStepsNote, renumberSteps, withoutBrokenLinks } from "../rules/blocks";
 import { proseNotes } from "../rules/prose";
@@ -166,6 +166,8 @@ export interface GenerateInputs {
   /** When the page's making began, so the fix call stays inside the job's
    *  invocation (`PIPELINE.fixBeforeMs`). */
   startedAt?: number;
+  /** The day's last step, written anyway (SPEC §7): a short pack at the minimum is written short, adding too little noted. */
+  completeness?: "warn";
 }
 
 interface Finished {
@@ -245,12 +247,13 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
   const { template, length, pageType, table, searches, names, passages, cited, brief: briefRead } = basis;
   // No room for the type's floor: a short pack where an incomplete page stops, and elsewhere a page written short.
   const standard = meetsStandard({ pack, words: basis.room });
-  const missing: PackNeed[] = basis.room?.short === true && !pack.missing.includes("facts_few") ? [...pack.missing, "facts_few"] : pack.missing;
-  if (!standard.met && existing === null) {
+  const anyway = a.completeness === "warn";
+  const missing: PackNeed[] = writtenAnyway(pack, basis.room?.short === true && !pack.missing.includes("facts_few") ? [...pack.missing, "facts_few"] : pack.missing, anyway);
+  if ((anyway ? missing.length > 0 : !standard.met) && existing === null) {
     logRun({ siteId: a.siteId, step: "pack", outcome: "short", type: pack.type, missing: missing.join(",") });
     return { ok: false, reason: "step_failed", draftId: null, step: "pack", missing };
   }
-  if (missing.length > 0 || pack.adds.short) {
+  if (missing.length > 0 || (pack.adds.short && !anyway)) {
     const draftId = await writeRow({ title: existing?.title ?? a.opportunity.title ?? null, body_md: existing?.body_md ?? null, meta: baseMeta });
     await store.patchDraft(draftId, { hard_rules_passed: false });
     const step: PipelineStep = missing.length > 0 ? "pack" : "adds";
@@ -282,7 +285,7 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
     queries: searches,
     names: [...names, ...pack.products.map((product) => product.domain.split(".")[0] ?? "")],
     unclaimed: unclaimedSuperlatives(pack),
-    // D51: an update keeps its live title.
+    // D51: an update keeps its live title, unless it breaks the title rule.
     ...(pack.type === "update" && pack.live !== null
       ? { live: { title: pack.live.title, markdown: pack.live.markdown, year: new Date(pack.builtAt).getUTCFullYear() } }
       : {}),
@@ -371,7 +374,7 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
       ...(repairs.length === 0 ? {} : { repairs: [...priorRepairs, ...repairs] }),
       // Issue 1394: the rules this run asked of the page and the ones it
       // failed first and then cleared, for the draft screen's Checks list.
-      ...(outcome === undefined ? {} : { checks: recordedRunValue(outcome, broken), standard: (({ parts, met }) => ({ parts, met }))(meetsStandard({ failed: outcome.failed, markdown: page.markdown, sections: page.laid.sections.length, basis })) }),
+      ...(outcome === undefined ? {} : { checks: recordedRunValue(outcome, broken, a.site.completeness), standard: (({ parts, met }) => ({ parts, met }))(meetsStandard({ failed: outcome.failed, markdown: page.markdown, sections: page.laid.sections.length, basis })) }),
       // A number and nothing else: which page it was is not recorded.
       ...(elsewhere === null ? {} : { elsewhere: { similarity: elsewhere } }),
     };

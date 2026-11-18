@@ -7,6 +7,7 @@
 // step's research then makes the same reads from the cache. A read still not ready by then is no research, and the
 // pack's own check writes no page: it never falls back to a live SERP.
 import { RESEARCH } from "@/lib/config/constants";
+import type { CostContext } from "@/lib/costs";
 import { readCache } from "@/lib/costs/cache";
 import { languageOfText } from "@/lib/locale/read";
 import { siteLocale } from "@/lib/locale/site";
@@ -19,7 +20,7 @@ import { cachedSerp, serpOrganic } from "@/lib/vendors/dataforseo/serp";
 import { DRAFT_POLICY_VERSION, openDayCost } from "./cost";
 import { targetSearches } from "./pipeline";
 import { builtFromOutside, type ResearchRead } from "./standard";
-import { RESEARCH_READ_SOURCE, researchSerps } from "./pipeline/research";
+import { NO_RESEARCH, RESEARCH_READ_SOURCE, researchSerps, type MarketResearch } from "./pipeline/research";
 import { alikeHeadings } from "./rules/headings";
 import { isQuestionShaped } from "./rules/text";
 import { generateStore } from "./store";
@@ -29,21 +30,33 @@ import { TEMPLATES } from "./templates";
  *  the job route's 300 s, about 45 minutes in all, the queue's own turnaround (`VENDOR.stdQueueDeadlineMin`). */
 export const COLLECT = Object.freeze({ rounds: 11, stepMs: 240_000, askMs: 20_000 });
 
-/** Asks for the day's research reads inside the day's draft cap, each waiting `waitMs`. Returns how many are still on
+/** Asks for the day's research reads inside the day's draft cap, each waiting `waitMs`, and the first update candidate's
+ *  one SERP beside them, so a fallback update writes from the cache. Returns how many of the topic's own are still on
  *  the queue; a type that reads no research has none. */
 export async function askDayResearch(a: { siteId: string; opportunityId: string; writeAs?: "qa" | "documentation"; now: Date; waitMs: number }): Promise<number> {
   const [o, report] = await Promise.all([opportunityById(a.opportunityId), generateStore().latestReport(a.siteId)]);
   const type = o === null ? null : (a.writeAs ?? o.writeAs ?? contentTypeOf(o));
   const target = o === null ? undefined : targetSearches(o)[0];
-  if (type === null || !TEMPLATES[type].research || target === undefined || report === null) return 0;
+  if (report === null) return 0;
   const locale = await siteLocale(a.siteId);
-  const reads = researchSerps({ siteId: a.siteId, locale, target, guidance: builtFromOutside(type), ...(type === "insights" ? { recent: true } : {}) }, a.waitMs);
+  const reads = type === null || !TEMPLATES[type].research || target === undefined ? [] : researchSerps({ siteId: a.siteId, locale, target, guidance: builtFromOutside(type), ...(type === "insights" ? { recent: true } : {}) }, a.waitMs);
+  const update = await (await import("./day-refresh")).updateSearch(a.siteId, a.now);
+  const beside = update === null ? [] : researchSerps({ siteId: a.siteId, locale, target: update, study: false }, a.waitMs).filter((read) => !reads.some((own) => own.query === read.query));
+  if (reads.length + beside.length === 0) return 0;
   return openDayCost({ scanId: report.scanId, siteId: a.siteId, since: a.now }, async (cost) => {
     let waiting = 0;
-    // Together, since every read waits to the one `untilMs`.
-    await Promise.all(reads.map((read) => serpOrganic(cost, { ...read, onFailure: (failed) => void (waiting += failed.taskId === undefined ? 0 : 1) })));
+    // Together, since every read waits to the one `untilMs`; the update's read never holds the day's own write.
+    await Promise.all([...reads.map((read) => serpOrganic(cost, { ...read, onFailure: (failed) => void (waiting += failed.taskId === undefined ? 0 : 1) })), ...beside.map((read) => serpOrganic(cost, read))]);
     return waiting;
   });
+}
+
+/** A topic's research for its date, ledgered at 0¢ beside its own calls, so the day's last step counts its minimum from
+ *  what the run already bought (SPEC §7): that step reads only what is held, and never buys a topic's research again. */
+export async function heldResearch(cost: CostContext, a: { key: string; reuse: boolean }, buy: () => Promise<MarketResearch>): Promise<MarketResearch> {
+  const held = await cost.recordFetch({ source: "generate.research.held", cacheKey: a.key, freshnessDays: a.reuse ? 1 : 0, costCents: 0, unusable: (payload) => (payload as MarketResearch).pending === true, run: () => (a.reuse ? Promise.resolve(NO_RESEARCH) : buy()) });
+  // A held row is jsonb, which keeps a date as its string.
+  return "skipped" in held ? NO_RESEARCH : { ...held.payload, facts: held.payload.facts.map((fact) => ({ ...fact, readAt: new Date(fact.readAt) })) };
 }
 
 /** seo-master's test of a result: the first `results` organic rows are read, a readable one holds `words`, and a

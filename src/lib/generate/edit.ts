@@ -262,7 +262,7 @@ async function recheck(
     const source =
       recordedFact === null ? undefined : facts.find((sourced) => sourced.fact.passage === recordedFact.passage);
 
-    const siteInputs = siteRulesOf(site, report);
+    const siteInputs = siteRulesOf(site, report, await (await import("./day-refresh")).completenessOf(a.siteId, new Date()));
 
     const marketFacts = recordedMarketFacts(meta);
     const outcome = await runHardRules(cost, {
@@ -290,6 +290,6 @@ async function recheck(
       },
       factPages: facts.map((sourced) => sourced.fact.url),
     });
-    return { claim: outcome.claim, failed: recordedRulesValue(outcome), run: recordedRunValue(outcome), spentCents: cost.spentCents() };
+    return { claim: outcome.claim, failed: recordedRulesValue(outcome), run: recordedRunValue(outcome, [], siteInputs.completeness), spentCents: cost.spentCents() };
   });
 }
