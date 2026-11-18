@@ -1,9 +1,5 @@
-// eslint.config.mjs
-//
-// Flat config extending `next/core-web-vitals` + `@typescript-eslint`.
-// BP-001 decision 2: "`eslint.config.mjs` is where the corpus's
-// cross-module lint invariants land," and this node is answerable for
-// them. Each project rule below carries a comment naming its source.
+// Flat config extending `next/core-web-vitals` + `@typescript-eslint`: the cross-module lint invariants land here (BP-001
+// decision 2), and each project rule below carries a comment naming its source.
 //
 // ADR-050's other half is not recast here (WO-001 step 3, verbatim):
 // "'Computes no access predicate' is not a lexical property an import rule
@@ -17,6 +13,7 @@ import { fileURLToPath } from "node:url";
 import nextConfig from "eslint-config-next";
 import ts from "typescript";
 import tseslint from "typescript-eslint";
+import { serpNormalQueue } from "./scripts/lib/serp-normal-queue.mjs";
 
 /**
  * A single-purpose local rule factory. Every invariant below is a lexical
@@ -460,6 +457,7 @@ const STRUCTURAL_ATTRIBUTES = [
 // file defines, without needing a second copy of the invariant text.
 export const localImportRules = {
   rules: {
+    "serp-normal-queue": serpNormalQueue,
     // (a) BP-002 boundary: "no import of src/lib/db internals outside
     // src/lib/db". Only `src/lib/db`'s own two clients (`db()`,
     // `dbAdmin()`, imported from the bare `@/lib/db` entry point) may be
@@ -692,6 +690,7 @@ export default tseslint.config(
       "local/no-client-constant-in-server": "error",
       "local/no-db-admin-in-client": "error",
       "local/no-select-star": "error",
+      "local/serp-normal-queue": "error",
     },
   },
   {

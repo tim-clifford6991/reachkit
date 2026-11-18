@@ -2,7 +2,7 @@
 // Bought for the date: *current insights* needs what a market published lately, so an undated result is not a row.
 // A `news_search` row names no publisher, so its domain is the source. Its `timestamp` reads Google's "2 days ago",
 // exact to the day only for recent stories, so the research step prefers a page's own stated date.
-// Live only: a page is written inside one invocation, shorter than the standard queue's wait.
+// Live only: a page is written inside one invocation, shorter than the standard queue's wait. A wrapped answer is reported.
 // Cached like the organic SERP, on query, locale and whose purchase it is; the window is the caller's.
 import type { CostContext } from "@/lib/costs";
 import { PRICE_BOOK } from "@/lib/config/constants";
@@ -10,8 +10,10 @@ import type { Locale } from "@/lib/locale/locales";
 import { localeCacheKey } from "./transport";
 import type { Measured } from "@/lib/measure/measured";
 import { asArray, asString, callEndpoint, isRecord, ledgered, type EndpointPaths } from "./envelope";
+import { reportUnreadable, wrappedCount } from "./serp";
 import { scopeKey, type CacheScope, type NewsRow } from "./types";
 
+const SOURCE = "serp/google/news";
 const PATHS: EndpointPaths = { live: "/v3/serp/google/news/live/advanced" };
 
 /** The vendor writes `2026-10-01 09:30:00 +00:00`; the day is its UTC date. */
@@ -71,12 +73,23 @@ export async function serpNews(
     freshnessDays: number;
   }
 ): Promise<Measured<NewsRow[]>> {
-  return ledgered<NewsRow>(c, {
-    source: "serp/google/news",
-    cacheKey: `${a.query}|${localeCacheKey(a.locale)}|${scopeKey(a.scope)}`,
+  let reused = false;
+  const cacheKey = `${a.query}|${localeCacheKey(a.locale)}|${scopeKey(a.scope)}`;
+  const rows = await ledgered<NewsRow>(c, {
+    source: SOURCE,
+    cacheKey,
     freshnessDays: a.freshnessDays,
     costCents: PRICE_BOOK.NEWS_LIVE_C,
+    // eslint-disable-next-line local/serp-normal-queue -- no stored news read since 31 Oct shows a wrapped link, and a page is written inside one invocation.
     fetch: () => callEndpoint(PATHS, "live", a.locale, { keyword: a.query }),
     parse: parseNews,
+    onReused: () => {
+      reused = true;
+    },
   });
+  if (rows.kind !== "unmeasured" && !reused) {
+    const links = { results: rows.value.length, wrapped: wrappedCount(rows.value.map((row) => row.url)) };
+    void reportUnreadable({ source: SOURCE, label: "news", queue: "live", cacheKey, scope: a.scope }, links);
+  }
+  return rows;
 }

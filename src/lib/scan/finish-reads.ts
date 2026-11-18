@@ -339,6 +339,7 @@ export function vendorFinish(): FinishVendor {
         query: a.query,
         locale: a.locale,
         mode: "std",
+        // eslint-disable-next-line local/serp-normal-queue -- the free report's unread searches, finished while its visitor waits.
         priority: "high",
         pollMs: VENDOR.waitedQueuePollIntervalS * 1000,
         loadAsyncAiOverview: true,

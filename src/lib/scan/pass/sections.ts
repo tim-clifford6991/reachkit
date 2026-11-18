@@ -465,7 +465,7 @@ export function serpAbortFor(pass: Bounds, parameters: TierParameters): number {
 
 /** How this tier's Google organic reads are queued (issue 1352). */
 export function queueOf(parameters: TierParameters): { priority?: "high"; pollMs: number } {
-  return { ...(parameters.serpPriority === "high" ? { priority: "high" as const } : {}), pollMs: parameters.serpPollMs };
+  return { ...(parameters.serpPriority === "high" ? { priority: parameters.serpPriority } : {}), pollMs: parameters.serpPollMs };
 }
 
 /** What a pass keeps beyond one request's bound to ledger and score its
