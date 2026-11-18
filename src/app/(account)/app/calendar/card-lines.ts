@@ -94,11 +94,10 @@ export function cardLabel(a: {
   const date = cardDate(a.cell.day);
   const page = a.page;
   if (page !== null) {
-    return copy("calendar.card.aria.page", {
-      date,
-      stage: copy(STAGE_FILTER_COPY_KEY[page.stage]),
-      title: page.title,
-    });
+    const stage = copy(STAGE_FILTER_COPY_KEY[page.stage]);
+    return page.titleLabel === undefined
+      ? copy("calendar.card.aria.page", { date, stage, title: page.title })
+      : copy("calendar.card.aria.written", { date, stage, title: page.title, label: page.titleLabel });
   }
   if (a.line !== null) return copy("calendar.card.aria.empty", { date, reason: a.line });
   return copy("calendar.card.aria.date", { date });

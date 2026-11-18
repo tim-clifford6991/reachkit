@@ -483,8 +483,11 @@ function PageDayPanel(p: {
         <h2 className="card-title rk-cal-label line-clamp-2 min-w-0" data-testid="day-title">
           {page.title}
         </h2>
-        <span className="badge badge-sm badge-ghost max-w-full self-start" data-testid="day-kind">
-          {kindWord(page.update)}
+        <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+          <span className="badge badge-sm badge-ghost max-w-full" data-testid="day-kind">
+            {kindWord(page.update)}
+          </span>
+          {page.titleLabel === undefined ? null : <span className="min-w-0 text-xs text-base-content/70" data-testid="day-title-label">{page.titleLabel}</span>}
         </span>
         {page.becameUpdate === true ? <p className="text-sm" data-testid="day-became-update-line">{copy("calendar.day.became-update.line")}</p> : null}
         <DayActions cell={shown} destination={p.destination} onCommand={command} busy={busy} pressed={busy ? pressed : null} />

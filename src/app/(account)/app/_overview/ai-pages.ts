@@ -11,6 +11,7 @@ import type { AnswerQuestion } from "./answers-model";
 export interface AiPageRow {
   id: string;
   title: string;
+  titleLabel?: string;
   href: string | null;
   /** The page's own question as the pass asked it; `null` where the pass kept none for its address. */
   question: AnswerQuestion | null;
@@ -42,6 +43,7 @@ export function aiPagesFor(all: readonly PublishedPage[], pageQuestions: readonl
     return {
       id: page.id,
       title: page.title,
+      ...(page.titleLabel === undefined ? {} : { titleLabel: page.titleLabel }),
       href: row?.href ?? null,
       question: page.url === null ? null : (byAddress.get(addressOf(page.url)) ?? null),
       step: row?.ai ?? null,

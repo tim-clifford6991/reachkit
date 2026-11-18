@@ -24,13 +24,6 @@
 // causes). A held page whose date is today or still to come has missed
 // nothing and is drawn on its date as what it is.
 //
-// **The title stays the search, for every page.** A draft's own title is
-// model-written and reaches a customer only through `GeneratedText`
-// (ADR-012), and this screen still has no gate for one — `store.ts`'s own
-// note says so. Handing the column through here would put unlabelled model
-// text on the grid, so the page carries the search it targets exactly as a
-// planned date does, and the written title waits for the gate.
-//
 // **`publishAt` is the site clock's, for the pages that have one.** It is
 // the first publish time at or after the page became publishable, computed
 // from `sites`' own stored settings — never a second clock, and never for

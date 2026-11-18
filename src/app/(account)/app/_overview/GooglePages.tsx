@@ -53,6 +53,7 @@ function Row(p: { row: GooglePageRow; planned: ReadonlyMap<string, Planned>; tim
             {row.title}
           </Link>
         )}
+        {row.titleLabel === undefined ? null : <span className={`text-xs ${INK}`} data-testid="search-page-title-label">{row.titleLabel}</span>}
         {row.search === null ? null : <p className={`font-mono text-xs break-words ${INK}`}>{row.search}</p>}
         <p className="text-sm" data-testid="search-page-line">
           {update?.update === true ? `${line} ${copy("overview.search.place.update", { day: update.day })}` : line}

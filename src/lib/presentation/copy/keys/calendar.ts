@@ -411,6 +411,10 @@ export const CALENDAR_COPY = Object.freeze({
     "{date}. {stage}. {title}",
     { slots: { date: "text", stage: "text", title: "text" }, fixedBy: "issue 930" },
   ],
+  "calendar.card.aria.written": [
+    "{date}. {stage}. {title}. {label}",
+    { slots: { date: "text", stage: "text", title: "text", label: "text" }, fixedBy: "issue 2892 (drafted)" },
+  ],
   "calendar.card.aria.empty": [
     "{date}. {reason}",
     { slots: { date: "text", reason: "text" }, fixedBy: "issue 930" },

@@ -3,6 +3,7 @@
 // hosted sitemap and Settings' count read. Overview reaches it through
 // `content-provider.ts` at the call, and the Monday mail reads it the same way.
 import { dbAdmin } from "@/lib/db";
+import { fromStored, renderGenerated } from "@/lib/presentation/generated";
 import { readLadders } from "@/lib/publish/reads/store";
 import type { PublishedPage } from "./published";
 
@@ -12,7 +13,7 @@ interface PublicationRow {
   live_url: string | null;
   published_at: string | null;
   unpublished_at: string | null;
-  drafts: { title: string | null } | null;
+  drafts: { title: string | null; first_edited_at?: unknown } | null;
 }
 
 interface MinimalClient {
@@ -35,7 +36,7 @@ export async function readPublishedPages(siteId: string): Promise<readonly Publi
   try {
     read = await (dbAdmin() as unknown as MinimalClient)
       .from("publications")
-      .select("id, draft_id, live_url, published_at, unpublished_at, drafts(title)")
+      .select("id, draft_id, live_url, published_at, unpublished_at, drafts(title, first_edited_at:meta->first_edited_at)")
       .eq("site_id", siteId)
       .not("published_at", "is", null);
   } catch {
@@ -51,12 +52,20 @@ export async function readPublishedPages(siteId: string): Promise<readonly Publi
     const publishedAt = new Date(row.published_at);
     // A page with no stored title is named by its address; one with
     // neither cannot be listed, so it is counted nowhere.
-    const title = row.drafts?.title?.trim() || row.live_url || "";
+    const stored = row.drafts?.title?.trim() ?? "";
+    const title = stored || row.live_url || "";
     if (Number.isNaN(publishedAt.getTime()) || title === "") continue;
+    // Model-written, so it is listed only with its label (ADR-012).
+    const generated = fromStored("drafts.title", stored);
+    const written =
+      stored === ""
+        ? null
+        : renderGenerated(generated, { state: "written", pageId: row.id, title: generated, edited: typeof row.drafts?.first_edited_at === "string" });
     const ladder = ladders.get(row.id);
     pages.push({
       id: row.id,
-      title,
+      title: written?.text ?? title,
+      ...(written === null ? {} : { titleLabel: written.label }),
       url: row.live_url,
       publishedAt,
       ...(typeof row.draft_id === "string" ? { draftId: row.draft_id } : {}),

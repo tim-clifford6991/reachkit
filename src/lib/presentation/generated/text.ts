@@ -57,17 +57,19 @@ export function fromStored(column: GeneratedColumn, value: string): GeneratedTex
   return Object.freeze({ source: "model", text: value });
 }
 
-/** REQ-093 criterion 2. A written page carries all four fields; a proposed
- *  page carries a title and a slug and has no description arm at all — the
- *  requirement admits none, so none is representable. */
+/** REQ-093 criterion 2. A written page carries its id and title, and the rest
+ *  where the surface holds them; a proposed page carries a title and a slug
+ *  and has no description arm at all — the requirement admits none. */
 export type PageIdentity =
   | {
       state: "written";
       pageId: string;
       title: GeneratedText;
-      slug: GeneratedText;
-      body: GeneratedText;
+      slug?: GeneratedText;
+      body?: GeneratedText;
       description?: GeneratedText;
+      /** The customer has saved an edit, so the label credits them. */
+      edited?: boolean;
     }
   | {
       state: "proposed";
@@ -78,8 +80,9 @@ export type PageIdentity =
 
 /** One label producer (rule 7.1): both `renderGenerated` and
  *  `generatedLabel` delegate here, so there is exactly one place that
- *  chooses between the two `generated.page.*` keys. */
-function labelFor(pageTitle: string, written: boolean): string {
+ *  chooses between the `generated.page.*` keys. */
+function labelFor(pageTitle: string, written: boolean, edited = false): string {
+  if (edited) return copy("generated.page.edited");
   return written
     ? copy("generated.page.written", { pageTitle })
     : copy("generated.page.proposed", { pageTitle });
@@ -95,7 +98,7 @@ export function renderGenerated(
   page: PageIdentity
 ): { label: string; text: string; proposed: boolean } {
   const proposed = page.state === "proposed";
-  return { label: labelFor(page.title.text, !proposed), text: field.text, proposed };
+  return { label: labelFor(page.title.text, !proposed, page.state === "written" && page.edited === true), text: field.text, proposed };
 }
 
 /** BP-019's declared helper, unchanged: the label alone, for a caller that

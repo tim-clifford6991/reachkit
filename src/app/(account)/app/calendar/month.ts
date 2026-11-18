@@ -51,6 +51,8 @@ export interface DraftOnDay {
    *  where there is one; `actions.ts` is where that is held, once. */
   draftId: string | null;
   title: string;
+  /** `renderGenerated`'s label where `title` is the draft's own written title; absent where it is the search. */
+  titleLabel?: string;
   state: State;
   scheduledFor: DayKey;
   why: WhyThisPage;
