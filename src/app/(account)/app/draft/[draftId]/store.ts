@@ -309,7 +309,7 @@ export function emailedAtOf(told: DraftRow["told"]): Date | null {
 
 /** Whether the last battery recorded a rule that stops this text; a style rule only warns. */
 export function rulesFailedOf(ruleFailures: unknown): boolean {
-  return (readRecordedRules(ruleFailures) ?? []).some(stops);
+  return (readRecordedRules(ruleFailures) ?? []).some((failure) => stops(failure));
 }
 
 /** The engine's own read, with every way it can fail folded into `null`.

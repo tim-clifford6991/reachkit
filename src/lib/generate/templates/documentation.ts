@@ -23,7 +23,7 @@ export const documentation: Template = {
     { key: "related", task: "Name the related features, linking the pages in `links` that cover them." },
   ],
   blocks: { faq: { min: 3, max: 6 } },
-  length: { floor: 800, ceiling: 1500 },
+  length: { floor: 800, target: 1100, ceiling: 1500 },
   research: false,
   packMustHold: [{ need: "facts_on_topic", min: 4 }],
 };

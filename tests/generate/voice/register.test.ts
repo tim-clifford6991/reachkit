@@ -18,7 +18,7 @@ describe("the page's voice", () => {
   it("is a short answer for a simple question on a page a short answer suits, in either language", () => {
     const short = chooseVoice({ ...base, type: "qa", question: "is sourdough gluten free" });
     expect(short).toMatchObject({ voice: "short", person: "we" });
-    expect(voiceLength(short)).toEqual({ floor: 600, ceiling: 900 });
+    expect(voiceLength(short)).toEqual({ floor: 600, target: 750, ceiling: 900 });
     expect(voiceRules(short).join(" ")).toContain("600 to 900 words");
     expect(chooseVoice({ ...base, type: "qa", language: "de", question: "was kostet eine Zahnreinigung", category: "Zahnarzt" })).toMatchObject({ voice: "short", person: "third" });
     // A choice among options, a task and a comparison page are not short answers.

@@ -187,7 +187,7 @@ export async function saveDraftEdit(a: DraftEdit): Promise<DraftEditOutcome> {
     return { ok: true, savedAt: at, state, claim: null, failed: null, run: null, passed: false };
   }
 
-  const passed = !checked.failed.some(stops) && checked.claim.state === "passed";
+  const passed = !checked.failed.some((failure) => stops(failure)) && checked.claim.state === "passed";
   await store.patchDraft(a.draftId, {
     claim_check: recordedVerdictValue(checked.claim),
     rule_failures: checked.failed,
@@ -215,7 +215,7 @@ function enteredReview(row: DraftRow): boolean {
 function recorded(row: DraftRow): { claim: ClaimVerdict | null; failed: readonly RuleFailure[] | null; run: RecordedRun | null; passed: boolean } {
   const claim = readRecordedVerdict(row.claim_check);
   const failed = readRecordedRules(row.rule_failures);
-  const passed = claim !== null && claim.state === "passed" && failed !== null && !failed.some(stops);
+  const passed = claim !== null && claim.state === "passed" && failed !== null && !failed.some((failure) => stops(failure));
   return { claim, failed, run: readRecordedRun(row.meta), passed };
 }
 

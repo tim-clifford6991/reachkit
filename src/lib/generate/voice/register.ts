@@ -91,7 +91,7 @@ export function chooseVoice(a: {
 }
 
 /** The words a page in this voice is held to, where the voice sets them. */
-export function voiceLength(voice: PageVoice | undefined): { floor: number; ceiling: number } | null {
+export function voiceLength(voice: PageVoice | undefined): { floor: number; target: number; ceiling: number } | null {
   return voice?.voice === "short" ? { ...VOICE.short.words } : null;
 }
 

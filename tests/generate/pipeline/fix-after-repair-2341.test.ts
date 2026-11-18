@@ -37,7 +37,7 @@ function listicleParts(faulty = false, fits: Fits = "takeaways") {
     key: KEYS[index] ?? section.key,
     body: [section.body.replace(/^## .*\n+/, ""), KEYS[index] === "which_to_choose" ? "Boardly is the better pick for a team that works offline." : "", added[index] ?? ""].filter(Boolean).join(" "),
   }));
-  return { ...parts, faq: FAQ, sections: [sections[0]!, { key: "at_a_glance", heading: "Seats: how do the plans compare?", body: prose("plans", 200, 6) }, ...sections.slice(1)] };
+  return { ...parts, faq: FAQ, sections: [sections[0]!, { key: "at_a_glance", heading: "Seats: how do the plans compare?", body: prose("plans", 200, 100) }, ...sections.slice(1)] };
 }
 
 let fitAnswered = false;

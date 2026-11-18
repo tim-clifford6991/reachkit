@@ -18,7 +18,7 @@ export const insights: Template = {
     businessSection("Say how it responds to these changes, linking its product page."),
   ],
   blocks: { faq: { min: 3, max: 6 }, datedSources: true },
-  length: { floor: 700, ceiling: 1200 },
+  length: { floor: 700, target: 950, ceiling: 1200 },
   research: true,
   packMustHold: [{ need: "recent_results", min: 3, days: 30 }],
 };

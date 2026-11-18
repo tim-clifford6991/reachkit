@@ -48,7 +48,7 @@ import { bodyWords, sectionWords } from "../length";
 import { applyLinks } from "../links/apply";
 import type { LinkTarget } from "../links/select";
 import { urlKey } from "../links/select";
-import { recordedRulesValue, recordedRunValue, recordedVerdictValue } from "../record";
+import { incomplete, recordedRulesValue, recordedRunValue, recordedVerdictValue } from "../record";
 import { batteryCleared, type BatteryOutcome } from "../rules";
 import { answerBoxWords, ownStepsNote, renumberSteps, withoutBrokenLinks } from "../rules/blocks";
 import { proseNotes } from "../rules/prose";
@@ -238,26 +238,24 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
     return id;
   };
 
-  // 2b. A pack short of what its template asks, or a new page short of what
-  //     it must add, writes nothing. Issue 1536: a short pack on a new day
-  //     writes no row either — the topic was one the pack cannot fill, and
-  //     the caller rests it and goes to the next one, so nothing waits in
-  //     *Needs you* for a page nobody could write. A rewrite keeps its row,
-  //     and the row keeps the pack, so the page can say what is missing.
-  if (pack.missing.length > 0 && existing === null) {
-    logRun({ siteId: a.siteId, step: "pack", outcome: "short", type: pack.type, missing: pack.missing.join(",") });
-    return { ok: false, reason: "step_failed", draftId: null, step: "pack", missing: pack.missing };
-  }
-  if (pack.missing.length > 0 || pack.adds.short) {
-    const draftId = await writeRow({ title: existing?.title ?? a.opportunity.title ?? null, body_md: existing?.body_md ?? null, meta: baseMeta });
-    await store.patchDraft(draftId, { hard_rules_passed: false });
-    const step: PipelineStep = pack.missing.length > 0 ? "pack" : "adds";
-    logRun({ siteId: a.siteId, draftId, step, outcome: "short", type: pack.type, missing: pack.missing.join(",") });
-    return { ok: false, reason: "step_failed", draftId, step, ...(step === "pack" ? { missing: pack.missing } : {}) };
-  }
-
+  // 2b. A pack short of what its template asks, or a new page short of what it must add, writes nothing, and on a new
+  //     day no row: the caller rests the topic and goes to the next. A rewrite keeps its row, and the row its pack.
   const basis = batteryBasis({ pack, opportunity: a.opportunity, site: a.site, facts: a.facts, grounding, ...(a.demoPhrases === undefined ? {} : { demoPhrases: a.demoPhrases }) });
   const { template, length, pageType, table, searches, names, passages, cited, brief: briefRead } = basis;
+  // No room for the type's floor: a short pack where an incomplete page stops, and elsewhere a page written short.
+  const missing: PackNeed[] = basis.noRoomFor !== null && !basis.short && !pack.missing.includes("facts_few") ? [...pack.missing, "facts_few"] : pack.missing;
+  if (missing.length > 0 && existing === null) {
+    logRun({ siteId: a.siteId, step: "pack", outcome: "short", type: pack.type, missing: missing.join(",") });
+    return { ok: false, reason: "step_failed", draftId: null, step: "pack", missing };
+  }
+  if (missing.length > 0 || pack.adds.short) {
+    const draftId = await writeRow({ title: existing?.title ?? a.opportunity.title ?? null, body_md: existing?.body_md ?? null, meta: baseMeta });
+    await store.patchDraft(draftId, { hard_rules_passed: false });
+    const step: PipelineStep = missing.length > 0 ? "pack" : "adds";
+    logRun({ siteId: a.siteId, draftId, step, outcome: "short", type: pack.type, missing: missing.join(",") });
+    return { ok: false, reason: "step_failed", draftId, step, ...(step === "pack" ? { missing } : {}) };
+  }
+
   const writing = {
     template,
     pack,
@@ -367,7 +365,7 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
       // Issue 1391: the pages code chose for this page to link, each with
       // why — what the draft screen's *Links on this page* reads.
       links: a.links.map((link) => ({ url: link.url, label: link.label, source: link.source, why: link.why ?? null })),
-      length: { words: bodyWords(page.markdown), floor: length?.floor ?? null, target: length?.target ?? null, ceiling: length?.ceiling ?? null },
+      length: { words: bodyWords(page.markdown), floor: length?.floor ?? null, target: length?.target ?? null, ceiling: length?.ceiling ?? null, ...(basis.short ? { typeFloor: basis.noRoomFor } : {}) },
       ...(repairs.length === 0 ? {} : { repairs: [...priorRepairs, ...repairs] }),
       // Issue 1394: the rules this run asked of the page and the ones it
       // failed first and then cleared, for the draft screen's Checks list.
@@ -381,7 +379,7 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
 
   /** Every rule a check of this run failed, before any repair or fix. */
   const broken = new Set<HardRule>();
-  let page = finish(written.value);
+  const page = finish(written.value);
   const draftId = await writeRow({ title: page.laid.body.title, body_md: page.markdown, meta: metaOf(page, [], null) });
 
   // 4. Check: code only, against this customer's own three sets.
@@ -415,12 +413,13 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
   /** What the fix call is told: each check failed and what failed it — and,
    *  for the length, the count against the range, which no sentence shows. */
   const notesFor = (stopped: Awaited<ReturnType<typeof check>>): FixNote[] => {
-    if (stopped.outcome.passed) return [];
+    if (stopped.outcome.passed && !stopped.outcome.failed.some(incomplete)) return [];
     const words = pack.type === "update" ? sectionWords(stopped.page.markdown) : bodyWords(stopped.page.markdown);
+    const lengthNote = length === null ? null : `length: ${pack.type === "update" ? "the sections have" : "the body has"} ${words} words and must have ${length.floor > 0 ? `between ${length.floor} and ` : "at most "}${length.ceiling}`;
+    const blocks = stopped.outcome.failed.find((failure) => failure.rule === "required_blocks")?.detail;
+    const beside = lengthNote !== null && blocks?.rule === "required_blocks" && blocks.length === true ? [lengthNote] : [];
     return fixNotes(stopped.page.markdown, stopped.outcome.failed, briefRead, a.site, stopped.page.laid.body.title).map((note) => {
-      if (note.rule === "required_blocks" && note.sentences.includes("length") && length !== null) {
-        return { ...note, sentences: [`length: ${pack.type === "update" ? "the sections have" : "the body has"} ${words} words and must have ${length.floor > 0 ? `between ${length.floor} and ` : "at most "}${length.ceiling}`] };
-      }
+      if (note.rule === "required_blocks" && note.sentences.includes("length") && lengthNote !== null) return { ...note, sentences: [lengthNote] };
       if (note.rule === "required_blocks" && note.sentences.includes("new_sections")) {
         return { ...note, sentences: [`new sections: at most ${HEADING_GAPS.sectionsMax} sections may be new, each headed by one of \`pack.gaps\` and linking a url of that gap's \`claims\`; return every other section under its live heading`] };
       }
@@ -451,7 +450,7 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
         return { ...note, sentences: [`answer: it has ${answerBoxWords(stopped.page.markdown)} words and must be one paragraph of ${box.min} to ${box.max} that does not end in a question`] };
       }
       return note;
-    });
+    }).map((note) => (note.rule === "required_blocks" ? { ...note, sentences: [...note.sentences, ...beside] } : note));
   };
 
   const attemptsBefore = existing?.hard_rule_attempts ?? 0;
@@ -459,11 +458,11 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
   let repairs = checked.repairs;
   let fixed = false;
 
-  // The one fix call: each check the page failed, and the sentences that
-  // failed it. Not started without the money or the time for it.
-  const stopped = !checked.outcome.passed || checked.close !== null;
-  if (stopped && checked.outcome.fit.state !== "unrun") {
-    await record(checked, repairs, attemptsBefore + 1);
+  // The one fix call, for a stopped page and for one missing its sections, sources or words: each check the page
+  // failed, and the sentences that failed it. Not started without the money or the time for it.
+  const clear = (read: typeof checked): boolean => read.outcome.passed && read.close === null;
+  if ((!clear(checked) || checked.outcome.failed.some(incomplete)) && checked.outcome.fit.state !== "unrun") {
+    await record(checked, repairs, clear(checked) ? null : attemptsBefore + 1);
     const notes = notesFor(checked);
     // Issue 1536: a fix call told only of sentences the writer never wrote
     // — code's table, its sources list — would be stopped for them again.
@@ -472,13 +471,13 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
     const { again, stop } = await tryFix(c, { futile, startedAt, call: () => fixPage(c, { ...writing, parts: written.value, fix: notes, ...(checked.close === null ? {} : { apart: checked.close.sentences }) }) });
     if (again === null || again.kind === "unmeasured") {
       logRun({ siteId: a.siteId, draftId, step: "fix", outcome: stop ?? (again === null ? "not_started" : "step_failed") });
-      if (checked.outcome.passed) return { ok: false, reason: "step_failed", draftId, step: "elsewhere" };
-      return { ok: false, reason: "rules", draftId, failed: checked.outcome.failed, attempt: attemptsBefore + 1, recovery: "rest", fix: notes, ...(stop === null ? {} : { stop }) };
+      if (!checked.outcome.passed) return { ok: false, reason: "rules", draftId, failed: checked.outcome.failed, attempt: attemptsBefore + 1, recovery: "rest", fix: notes, ...(stop === null ? {} : { stop }) };
+      if (checked.close !== null) return { ok: false, reason: "step_failed", draftId, step: "elsewhere" };
     } else {
-      fixed = true;
-      page = finish(again.value);
-      checked = await check(page);
-      repairs = [...repairs, ...checked.repairs];
+      const mended = await check(finish(again.value));
+      // A page that could enter review is never lost to its fix: the fixed page is kept only where it can too.
+      fixed = !clear(checked) || clear(mended);
+      if (fixed) [checked, repairs] = [mended, [...repairs, ...mended.repairs]];
     }
   }
 

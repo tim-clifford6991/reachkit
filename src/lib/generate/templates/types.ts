@@ -97,8 +97,8 @@ export interface Template {
   };
   /** Words of body text. An update keeps within a share of its live page;
    *  one that may add sections grows up to `grownShare` (issue 1521).
-   *  `kept` is the maximum a product page keeps (owner Q9/D, 2026-11-16). */
-  length: { floor: number; ceiling: number; kept?: number } | { withinShareOfLive: number; grownShare?: number };
+   *  A new page's `target` is what it aims at; `kept` and `keptAim` are a kept product page's own row (owner, 2026-11-17, #2722). */
+  length: { floor: number; target: number; ceiling: number; kept?: number; keptAim?: { floor: number; target: number } } | { withinShareOfLive: number; grownShare?: number };
   /** Whether stage 2 reads public pages for this type. */
   research: boolean;
   packMustHold: readonly PackRequirement[];
