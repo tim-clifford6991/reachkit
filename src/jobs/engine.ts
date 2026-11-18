@@ -566,9 +566,9 @@ async function reviewWritten(outcome: DayPageOutcome, now: Date): Promise<Engine
 // other: that is the same fact `verify_due_at` is written from (BP-049 —
 // the address decides, never the destination kind), so a page the check
 // could not look at is never queued for it. A re-delivery that found the
-// row already delivered enqueues nothing: its check was queued when it
-// first went out, and `publish/verify`'s `publicationId` key would refuse
-// the second delivery anyway.
+// row already delivered asks again, since the first send may have failed:
+// `publish/verify`'s `publicationId` key and the recorded outcome keep it
+// to one check and one mail.
 //
 // **Neither a hold nor a failure throws.** A held page is §9 working —
 // the switch is off, a ceiling is reached, the claim needs re-checking —
@@ -587,7 +587,7 @@ export async function publishApproved(a: { readonly draftId: string; readonly de
   if (outcome.kind === "held") return { degraded: `held:${outcome.heldBy}` };
   if (outcome.kind === "failed") return { degraded: `publish:${outcome.reason}` };
 
-  if (outcome.verifyDue && !outcome.alreadyPublished) {
+  if (outcome.verifyDue) {
     const { sendJobEvent } = await import("./client");
     await sendJobEvent("publish/verify", { publicationId: outcome.publicationId });
   }
