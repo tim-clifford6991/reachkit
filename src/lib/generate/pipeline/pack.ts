@@ -345,18 +345,13 @@ const RELATED_MIN_WORDS = 3;
 
 const ASKS_PRICE_RE = SHAPES.asksPrice;
 
-/**
- * A measured question is on the site's current market (issue 1263) where
- * its wording or its search shares a word with the market's category or one
- * of its synonyms, or names one of its rivals. `null` is a site no market
- * was concluded for: the report's own reading is its market, and every
- * question that report measured is on it.
- */
-function onMarket(question: { text: string; search: string }, market: WritingMarket | null): boolean {
+/** A question is on the site's current market (issue 1263) where its wording or search shares a word with the target,
+ *  the market's category or synonyms, or names a rival. With no market concluded (`null`), every measured one is. */
+function onMarket(question: { text: string; search: string }, market: WritingMarket | null, target: string): boolean {
   if (market === null || market.from === "report") return true;
   const asked = `${question.text} ${question.search}`;
   const words = subjectWords(asked);
-  const marketWords = subjectWords([market.category, ...market.synonyms].join(" "));
+  const marketWords = subjectWords([target, market.category, ...market.synonyms].join(" "));
   return [...words].some((word) => marketWords.has(word)) || (market.market?.rivals ?? []).some((rival) => namesRival(asked, rival));
 }
 
@@ -368,7 +363,7 @@ function onMarket(question: { text: string; search: string }, market: WritingMar
  */
 function answerable(
   question: string,
-  a: { facts: readonly PackFact[]; claims: readonly PackClaim[]; knowledge: PromptKnowledge | undefined; rivals: readonly NamedRival[] }
+  a: { facts: readonly PackFact[]; claims: readonly PackClaim[]; knowledge: PromptKnowledge | undefined; rivals: readonly NamedRival[]; target: string }
 ): boolean {
   const named = a.rivals.filter((rival) => namesRival(question, rival));
   if (named.length > 0) {
@@ -377,6 +372,8 @@ function answerable(
   }
   const words = subjectWords(question);
   if (words.size === 0) return false;
+  // A question in two of the target's own words is the target's: its own research answers it in its own words.
+  if ([...words].filter((word) => subjectWords(a.target).has(word)).length >= 2 && a.claims.some((claim) => ["top_result", "study", "primary"].includes(claim.kind) && shares(words, claim.passage))) return true;
   const need = Math.min(2, words.size);
   const asked = new Set((a.knowledge?.questions ?? []).map((item) => item.text));
   const held = [
@@ -394,24 +391,15 @@ function answerable(
 }
 
 /**
- * The questions a Q&A may answer (SPEC §7, D42; issue 1263; owner D61, issue
- * 1295). They are questions buyers were seen to ask: Google's "People also
- * ask" for the target, the target's related searches that have a measured
- * volume, and the stored report's measured questions on the site's current
- * market — in that order, those that share a word with the target first.
- * Where those are too few, the first two lists also hold what the research
- * step read beside the market's searched terms (D62), and every rule here
- * is asked of those as of the target's own.
+ * The questions a Q&A may answer (SPEC §7, D42; issue 1263; owner D61, issue 1295): questions buyers were seen to ask
+ * — Google's "People also ask" for the target, its related searches with a measured volume, then the stored report's
+ * measured questions on the current market — those sharing a word with the target first. Where too few, the first two
+ * lists also hold what was read beside the market's searched terms (D62), held to every rule here.
  *
- * **A tracked buyer prompt is never one** (D61): the prompts are templated
- * so they can be measured (D19), and a page headed by them asks one question
- * seven times. Wherever a templated phrasing still arrives, one question a
- * prompt template is kept; and of two questions that would make headings too
- * alike for stage 4 (`../rules/headings.ts`), the first is.
- *
- * Each goes in only where the pack holds a fact that answers it. None is
- * written here. One that another live or planned page of the site targets
- * is that page's to answer (issue 1544): it is left out here.
+ * **A tracked buyer prompt is never one** (D61): templated for measuring (D19), it would ask one question seven times.
+ * One question a prompt template is kept, and of two headings too alike for stage 4 (`../rules/headings.ts`), the
+ * first. Each goes in only where the pack holds a fact that answers it, and one another page of the site targets is
+ * that page's to answer (issue 1544).
  */
 function buyerQuestions(a: {
   report: StoredReport;
@@ -425,6 +413,8 @@ function buyerQuestions(a: {
   language: Language;
   /** The targets of the site's other live and planned pages. */
   reserved: readonly string[];
+  /** A Q&A's top pages read, whose question headings it may take. */
+  headed: readonly { url: string; headings?: string[] }[];
 }): string[] {
   const flat = (text: string): string => ` ${text.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim()} `;
   // A target is a search or a question; either is reserved as worded and as
@@ -448,7 +438,7 @@ function buyerQuestions(a: {
   }
   const buyerAsks = (text: string) => !otherSenseOfRival(text, rivals);
   const measured = (a.report.questions.kind === "unmeasured" ? [] : a.report.questions.value)
-    .filter((question) => onMarket({ text: question.text, search: question.search.keyword }, a.market))
+    .filter((question) => onMarket({ text: question.text, search: question.search.keyword }, a.market, a.target))
     .filter((question) => free({ text: question.text, search: question.search.keyword }))
     .map((question) => question.text)
     .filter(buyerAsks);
@@ -463,7 +453,7 @@ function buyerQuestions(a: {
   // off it ("What is the 30% rule for AI?"): each is held to the market, as
   // a measured question is.
   const seen = [...(a.asked?.peopleAlsoAsk ?? []).map((text) => ({ text, search: "" })), ...related]
-    .filter((question) => onMarket(question, a.market) && free(question))
+    .filter((question) => onMarket(question, a.market, a.target) && free(question))
     .map((question) => question.text)
     .filter(buyerAsks);
   // SPEC §6 (D49, issue 1270): a label of the market nobody searches is
@@ -476,7 +466,7 @@ function buyerQuestions(a: {
   const all = [...new Set([...seen, ...measured].map((text) => text.replace(/\s+/g, " ").trim()).filter(Boolean))]
     .filter((text) => !tracked.has(flat(text)))
     .filter(printable)
-    .filter((text) => answerable(text, { facts: a.facts, claims: a.claims, knowledge: a.knowledge, rivals }));
+    .filter((text) => answerable(text, { facts: a.facts, claims: a.claims, knowledge: a.knowledge, rivals, target: a.target }));
   const words = topicWords(a.target);
   const kept: string[] = [];
   const templates = new Set<string>();
@@ -487,17 +477,23 @@ function buyerQuestions(a: {
     if (template !== null) templates.add(template);
     kept.push(text);
   }
-  return kept.slice(0, PACK.questions);
+  // Owner, 2026-11-17 (#2722): short of five on-topic buyer questions, a Q&A takes the question headings of the top
+  // pages it read, each on the topic and answered by a claim off its own page; off-topic ones only fill what is left.
+  const onTopic = kept.filter((text) => shares(words, text));
+  if (onTopic.length >= 5) return kept.slice(0, PACK.questions);
+  for (const page of a.headed) {
+    for (const text of page.headings ?? []) {
+      const answered = a.claims.some((claim) => claim.url === page.url && shares(subjectWords(text), claim.passage));
+      if (/\?\s*$/.test(text) && shares(words, text) && answered && free({ text, search: "" }) && !onTopic.some((held) => alikeHeadings(held, text))) onTopic.push(text);
+    }
+  }
+  return [...onTopic, ...kept.filter((text) => !onTopic.includes(text))].slice(0, PACK.questions);
 }
 
 /**
- * What a new page adds (SPEC §7, D12; a check over the pack since D41): the
- * pack's facts whose words are on none of the top results the research step
- * read. A business fact is the customer's own; a market claim counts where
- * it was read off a rival's own page, a study or a primary source, never off
- * a top result. On a page built from outside facts (issue 1486) the report's
- * own measurements are not information gain: a site's score says nothing
- * about the reader's task.
+ * What a new page adds (SPEC §7, D12; a check over the pack since D41): its facts whose words are on none of the top
+ * results read. A business fact counts; a market claim where read off a rival's own page, a study or a primary source,
+ * never a top result. On a page built from outside facts (issue 1486) the report's own measurements are no gain.
  */
 export function packAdds(a: {
   facts: readonly PackFact[];
@@ -526,7 +522,7 @@ export function packAdds(a: {
  * the words every search shares, the market's own words stand for it: its
  * category and the job it is concluded to do, as the pack carries them.
  */
-function ownTopicWords(pack: Omit<ContextPack, "missing">): Set<string> {
+function ownTopicWords(pack: Pick<ContextPack, "target" | "business">): Set<string> {
   const market = pack.business.market as { job?: unknown; rivals?: unknown } | null;
   const rivals = Array.isArray(market?.rivals) ? (market.rivals as { name?: unknown; domain?: unknown }[]) : [];
   const named = new Set([
@@ -591,10 +587,8 @@ function holds(requirement: PackRequirement, pack: Omit<ContextPack, "missing">,
       return held.length >= requirement.min && held.some((text) => shares(ownTopicWords(pack), text));
     }
     case "outside_sources":
-      // Issue 1486: claims off that many public pages. The research step
-      // reads none of the customer's own, and `neverASource` took out the
-      // pages no page may cite.
-      return new Set(pack.claims.map((claim) => claim.url)).size >= requirement.min;
+      // Claims off one page more than the body must cite, each read off the target's own research, never a rival's own page.
+      return new Set(pack.claims.filter((claim) => claim.product === undefined).map((claim) => claim.url)).size > requirement.min;
     case "product_page":
       return pack.links.some((link) => link.purpose === "product" || link.purpose === "features" || link.purpose === "pricing");
     case "measured_questions":
@@ -802,12 +796,8 @@ export function buildPack(a: PackInputs): ContextPack {
     a.facts.filter((sourced) => !neverASource(sourced.fact.url) && (sourced.report !== true || reportFactsAllowed(a.type))),
     a.livePages ?? []
   );
-  const facts: PackFact[] = allowed.slice(0, PACK.facts).map((sourced) => ({
-    passage: sourced.fact.passage,
-    url: sourced.fact.url,
-    readAt: sourced.fact.readAt.toISOString(),
-    ...(sourced.report === true ? { report: true as const } : {}),
-  }));
+  const packFacts = (from: readonly SourcedFact[]): PackFact[] =>
+    from.slice(0, PACK.facts).map(({ fact, report }) => ({ passage: fact.passage, url: fact.url, readAt: fact.readAt.toISOString(), ...(report === true ? { report: true as const } : {}) }));
   // SPEC §7 (owner D59, issue 1287): a rival's price read more than 30
   // days ago is not handed to the writer. A product left with no claim of
   // its own is no longer one the page may name.
@@ -831,21 +821,29 @@ export function buildPack(a: PackInputs): ContextPack {
   }));
   const newPage = a.opportunity.family === "write" || a.opportunity.family === "earn";
   const fit = a.opportunity.evidence?.family === "write" || a.opportunity.evidence?.family === "earn" ? a.opportunity.evidence.fitFact : null;
+  const business = { name: a.site.businessName, domain: a.site.domain, category: a.category, byline: a.byline, voice: a.voice, market: a.market ?? null, rivals: [...a.site.rivals] };
   const questions =
     a.type !== "update"
       ? buyerQuestions({
           report: a.report,
           asked: a.research.asked,
-          target: question,
+          target: [question, ...searches].join(" "),
           market: a.writingFor ?? null,
           rivals: a.site.rivals,
-          facts,
+          facts: packFacts(allowed),
           claims,
           knowledge: a.profile?.knowledge,
           language: a.locale?.language ?? "en",
           reserved: a.sitePages.flatMap((page) => (page.question === null ? [] : [page.question])),
+          headed: a.type === "qa" ? (a.research.topResults ?? []) : [],
         })
       : [];
+  // A passage on the target or its questions, the fit fact, or the business's own product, pricing or about page; never a page about something
+  // else, nor a demo widget's readout ("▲ 128 1 · 12 2 · 31"), mostly tokens with no letter: data on show, not the business speaking.
+  const topic = new Set([...ownTopicWords({ target: { question, searches }, business }), ...questions.flatMap((text) => [...topicWords(text)])]);
+  const businessPage = (url: string): boolean => ["product", "features", "pricing", "about"].includes(derivePurpose({ url, title: "", h1: "" }));
+  const widget = (passage: string): boolean => passage.split(/\s+/).filter((token) => !/\p{L}/u.test(token)).length * 2 > passage.split(/\s+/).length;
+  const facts = packFacts(allowed.filter(({ fact, report }) => report === true || fact.passage === fit?.text || (!widget(fact.passage) && (businessPage(fact.url) || shares(topic, fact.passage)))));
   // A new page's planned sections are what it covers already; the business's own section is no subtopic.
   const planned = TEMPLATES[a.type].sections.filter((slot) => slot.repeat === undefined && slot.key !== "business").map((slot) => slot.key.replace(/_/g, " "));
   const covered =
@@ -859,15 +857,7 @@ export function buildPack(a: PackInputs): ContextPack {
     builtAt: a.now.toISOString(),
     ...(a.locale === undefined || modelInstruction({ country: a.locale.country, language: a.locale.language }) === null ? {} : { locale: { country: a.locale.country, language: a.locale.language } }),
     target: { question, searches },
-    business: {
-      name: a.site.businessName,
-      domain: a.site.domain,
-      category: a.category,
-      byline: a.byline,
-      voice: a.voice,
-      market: a.market ?? null,
-      rivals: [...a.site.rivals],
-    },
+    business,
     profile: a.profile,
     neverClaim: [...a.site.doNotClaim],
     facts,

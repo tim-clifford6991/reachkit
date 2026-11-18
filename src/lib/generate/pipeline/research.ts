@@ -168,6 +168,8 @@ export interface MarketResearch {
   /** Issue 1508: on a search for alternatives to one product, that
    *  product's domain. It is the page's baseline and no option. */
   baseline?: string;
+  /** The target's or the study search's SERP is still on the queue: not measured, so the topic is tried again, never rested. */
+  pending?: true;
 }
 
 export const NO_RESEARCH: MarketResearch = Object.freeze({ facts: [], products: [] });
@@ -708,20 +710,25 @@ async function recentPages(
   };
 }
 
-/** One SERP, read for its "People also ask" and its related searches
- *  (D61). Ledgered; `null` where the call fails. */
-async function askedBeside(c: CostContext, a: { siteId: string; locale: Locale; query: string }): Promise<{ peopleAlsoAsk: string[]; searches: string[] } | null> {
-  const serp = await serpOrganic(c, {
-    query: a.query,
-    locale: a.locale,
-    mode: "live",
-    loadAsyncAiOverview: false,
-    scope: { site: a.siteId },
-    freshnessDays: CACHE_WINDOWS_D.serp,
-    questions: true,
-  });
+const googleRedirect = (url: string): boolean => /^(?:www\.)?google\.com$/.test(hostOf(url));
+type SerpRead = Parameters<typeof serpOrganic>[1];
+
+/** The target's SERP and its study or guidance search as research buys them: on the normal queue, since the live and
+ *  high-priority ones link only Google's `goto` redirects. A draft's earlier job step posts the same reads. */
+export function researchSerps(a: { siteId: string; locale: Locale; target: string; guidance?: boolean; recent?: unknown }, waitMs = RESEARCH.queueWaitS * 1000): SerpRead[] {
+  const base = { locale: a.locale, mode: "std", unwrapped: true, untilMs: Date.now() + waitMs, loadAsyncAiOverview: false, scope: { site: a.siteId }, freshnessDays: CACHE_WINDOWS_D.serp } as const;
+  const language = languagePack(a.locale.language);
+  const study = a.guidance === true ? language.guidanceSearch(a.target) : language.studySearch(a.target);
+  return [{ ...base, query: a.target, questions: true }, ...(a.recent === undefined ? [{ ...base, query: study }] : [])];
+}
+
+/** One SERP, read for its organic results, its "People also ask" and its
+ *  related searches (D61). Ledgered; `null` where the call fails. */
+async function askedBeside(c: CostContext, read: SerpRead): Promise<{ organic: string[]; peopleAlsoAsk: string[]; searches: string[] } | null> {
+  const serp = await serpOrganic(c, read);
   if (serp.kind === "unmeasured") return null;
   return {
+    organic: serp.value.organic.map((row) => row.url).filter((url) => !googleRedirect(url)),
     peopleAlsoAsk: [...(serp.value.peopleAlsoAsk ?? [])],
     searches: [...new Set((serp.value.relatedSearches ?? []).map((search) => search.trim().toLowerCase()))],
   };
@@ -737,16 +744,6 @@ async function withVolume(c: CostContext, locale: Locale, searches: readonly str
   if (volumes.kind === "unmeasured") return [];
   const volumeOf = new Map(volumes.value.map((row) => [row.keyword, row.searchVolume]));
   return asked.map((search) => ({ search, volume: volumeOf.get(search) ?? 0 })).filter((row) => row.volume > 0);
-}
-
-/** What buyers ask about the target (D61): one SERP of the target itself,
- *  read for its "People also ask" and its related searches, and one
- *  keyword-overview call that keeps the related searches with a measured
- *  volume. A call that fails or meets the ceiling leaves its half empty. */
-async function buyersAsk(c: CostContext, a: { siteId: string; locale: Locale; target: string }): Promise<BuyersAsk> {
-  const beside = await askedBeside(c, { siteId: a.siteId, locale: a.locale, query: a.target });
-  if (beside === null) return { peopleAlsoAsk: [], related: [] };
-  return { peopleAlsoAsk: beside.peopleAlsoAsk, related: await withVolume(c, a.locale, beside.searches) };
 }
 
 const sameWords = (text: string): string => text.toLowerCase().replace(/\s+/g, " ").trim();
@@ -782,7 +779,7 @@ async function borrowedAsk(
     .filter((term, at, all) => term !== "" && sameWords(term) !== sameWords(a.target) && all.findIndex((other) => sameWords(other) === sameWords(term)) === at);
   for (const term of terms) {
     if (c.capHit() || a.held(asked).enough) break;
-    const beside = await askedBeside(c, { siteId: a.siteId, locale: a.locale, query: term });
+    const beside = await askedBeside(c, { query: term, locale: a.locale, mode: "live", loadAsyncAiOverview: false, scope: { site: a.siteId }, freshnessDays: CACHE_WINDOWS_D.serp, questions: true });
     if (beside === null) continue;
     read.push(term);
     const known = new Set(asked.peopleAlsoAsk.map(sameWords));
@@ -863,13 +860,19 @@ export async function researchMarket(
   // 1. The network, in parallel: the top results in order until enough are
   //    readable, and each rival's two pages. A page that compares options
   //    then reads the products its top results name.
-  const topTen = storedTopTen(a.report, a.searches).filter(notOurs);
+  //    The target's SERP, bought once first: its organic rows are the top
+  //    results where the scan stored none, its questions what buyers ask.
+  const stored = storedTopTen(a.report, a.searches);
+  let pending = false;
+  const [targetRead, studyRead] = researchSerps({ ...a, target }).map((read) => ({ ...read, onFailure: (failed: { taskId?: string }) => void (pending ||= failed.taskId !== undefined) }));
+  const beside = a.questions === true || stored.length === 0 ? await askedBeside(c, targetRead!) : null;
+  const topTen = (stored.length > 0 ? stored : (beside?.organic ?? [])).filter(notOurs);
   // The own pages read (#1135): eight products on a listicle (owner, issue
   // 1508), four on any other page.
   const bound = a.options === true ? RESEARCH.options : RESEARCH.rivals;
   const first = inForce.slice(0, bound);
   const [topReads, firstReads] = await Promise.all([
-    Promise.all(topTen.slice(0, RESEARCH.topResults * 2).map(fetchPage)),
+    Promise.all(topTen.map(fetchPage)),
     Promise.all(first.map(readRival)),
   ]);
   const readable = topReads.filter((read) => read !== null);
@@ -927,28 +930,20 @@ export async function researchMarket(
   const taken = new Set(topTen);
   const recent = a.recent === undefined ? null : await recentPages(c, { ...a, recent: a.recent }, notOurs, taken);
   const found: (ReadPage & Wanted)[] = recent === null ? [] : [...recent.pages];
-  if (a.recent === undefined && !c.capHit()) {
+  if (studyRead !== undefined && !c.capHit()) {
     const studyUrls: string[] = [];
-    const language = languagePack(a.locale.language);
-    const serp = await serpOrganic(c, {
-      query: a.guidance === true ? language.guidanceSearch(target) : language.studySearch(target),
-      locale: a.locale,
-      mode: "live",
-      loadAsyncAiOverview: false,
-      scope: { site: a.siteId },
-      freshnessDays: CACHE_WINDOWS_D.serp,
-    });
+    const serp = await serpOrganic(c, studyRead);
     if (serp.kind !== "unmeasured") {
       for (const row of serp.value.organic) {
         const host = hostOf(row.url);
-        if (!notOurs(row.url) || taken.has(row.url) || rivalDomains.some((rival) => sameSite(host, rival))) continue;
+        if (!notOurs(row.url) || googleRedirect(row.url) || taken.has(row.url) || rivalDomains.some((rival) => sameSite(host, rival))) continue;
         studyUrls.push(row.url);
       }
     }
     // A primary source leads, in the search's own order otherwise.
     const primary = (url: string): boolean => a.guidance === true && primaryAddress(url, rivalDomains);
     const ordered = [...studyUrls.filter(primary), ...studyUrls.filter((url) => !primary(url))];
-    const studyReads = await Promise.all(ordered.slice(0, RESEARCH.studies * 2).map(fetchPage));
+    const studyReads = await Promise.all(ordered.map(fetchPage));
     found.push(
       ...studyReads
         .filter((read) => read !== null)
@@ -957,9 +952,10 @@ export async function researchMarket(
     );
   }
 
-  // 2b. A Q&A's questions (D61), bought before the claim calls so a ceiling
-  //     met there does not cost the page its questions.
-  const asked = a.questions === true && !c.capHit() ? await buyersAsk(c, { siteId: a.siteId, locale: a.locale, target }) : null;
+  // 2b. A Q&A's related searches measured before the claim calls, so a
+  //     ceiling met there does not cost the page its questions.
+  const asked: BuyersAsk | null =
+    a.questions !== true ? null : { peopleAlsoAsk: beside?.peopleAlsoAsk ?? [], related: beside === null ? [] : await withVolume(c, a.locale, beside.searches) };
 
   // The recent pages lead on a *current insights* page: they are what it is
   // written from, and the claim calls read the first pages only.
@@ -1045,6 +1041,7 @@ export async function researchMarket(
       .map((page) => ({ url: page.url, text: page.text, ...(page.headings === undefined ? {} : { headings: page.headings }) })),
     ...(recent === null ? {} : { news: recent.news }),
     ...(baseline === null ? {} : { baseline }),
+    ...(pending ? { pending: true as const } : {}),
   };
   // 5. A Q&A the target's own SERP leaves short borrows from the market's
   //    searched terms (D62). It follows the claim calls because a question

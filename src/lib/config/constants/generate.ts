@@ -246,6 +246,8 @@ export const TITLE = Object.freeze({
 export const RESEARCH = Object.freeze({
   /** The target's top results that are read, from the stored top ten. */
   topResults: 3,
+  /** How long a queued SERP of the target or its guidance is waited for, inside the draft step's 300 s. */
+  queueWaitS: 90,
   /** The named rivals whose own pricing and feature pages are read. */
   rivals: 4,
   /** SPEC §7: a listicle reads the own pages of up to this many products, an
