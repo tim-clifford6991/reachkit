@@ -176,7 +176,7 @@ async function restoreShown(a: { siteId: string; totals: readonly { page: string
     if (typeof holder.drafts?.first_edited_at === "string" || takenDownByCustomer(holder.drafts?.transitions)) continue;
     if (data.some((row) => slugOf(readingOf(row.search_reading)?.restored ?? "") === slug)) continue;
     if (shown(old) === 0 || shown(holder.live_url) > 0) continue;
-    const by = { kind: "system", job: "content/recheck" } as const;
+    const by = { kind: "system", job: "weekly/refresh" } as const;
     if (await restoreAddress({ siteId: a.siteId, publicationId: holder.id, opportunityId: opportunity.id, from: holder.live_url, to: old, at: a.now, by })) {
       out.set(holder.live_url, old);
       log("search_engine_restored", { siteId: a.siteId, from: holder.live_url, to: old, impressions: shown(old) });
@@ -231,7 +231,9 @@ export async function readSearchEngines(a: { siteId: string; now: Date; deps?: S
         ...(deps.gscSend === undefined ? {} : { send: deps.gscSend }),
         verification,
         save,
-        restore: async (totals) => (restored = await restoreShown({ siteId: a.siteId, totals, now: a.now })),
+        // A failed restore leaves the week's Google reading standing.
+        restore: async (totals) =>
+          (restored = await restoreShown({ siteId: a.siteId, totals, now: a.now }).catch((error: unknown) => (log("search_engine_restore_failed", { siteId: a.siteId, message: String(error) }), new Map()))),
       }).catch((): GoogleUnread => "performance_unread");
     }
     const googleOf = (page: PageRow & { live_url: string }): GoogleReading | null => {
