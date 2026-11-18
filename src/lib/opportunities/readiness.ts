@@ -34,9 +34,10 @@ import type { KnownMatch } from "@/lib/known-content/types";
 import type { MarketWords } from "@/lib/market/infer/terms";
 import { queryKey } from "./cluster";
 import { contentTypeOf, SHAPED } from "./content-type";
-import { orderRanked } from "./rank/open";
+import { firstOpenDay, orderRanked } from "./rank/open";
 import { pointsOf } from "./rank/points";
 import { footprintOpen } from "@/lib/market/footprint";
+import { weekStartFor } from "@/lib/scan/weekly/week";
 import { comparisonUnasked, type AskedBeside, type ComparisonBrands, type MeasuredAnswer } from "./derive/topics";
 import { freshRead, offeringTopTen, type KindOfBusiness, type TopTenRead } from "./derive/top-ten-kind";
 import type { Evidence, Opportunity, UnreadyReason } from "./types";
@@ -122,17 +123,16 @@ export function eligible(o: Opportunity, ctx: ReadinessContext): UnreadyReason |
   return null;
 }
 
-/** The one held-kind row a closed gate lets a committed week plan (owner, 2026-11-17): none once one is drafted for the
- *  week, else `ai_gap` first, then the ranked order, of rows otherwise ready and not resting on a stop; the evening
- *  check keeps the one the week holds, as the commit's `planned_for` is still the last week's. */
-async function heldAllowed(siteId: string, open: readonly OpportunityRow[], ctx: ReadinessContext, a: { evening: boolean; stopped: (o: Opportunity) => boolean }): Promise<string | null> {
-  const store = opportunityStore();
-  const week = (await store.weeklyCommit(siteId)) ?? new Date(ctx.now.getTime() - 6 * 86_400_000).toISOString().slice(0, 10);
-  if ((await store.draftedPages(siteId, 7)).some((page) => page.date >= week && waitsForFootprint(readOpportunity(page.row)))) return null;
+/** The one held-kind row a closed gate lets a site-local week of planned dates take (owner, 2026-11-17): none once one is
+ *  drafted in the week of `date`, else the one committed to it (on the evening, any committed), else `ai_gap`, then rank. */
+async function heldAllowed(siteId: string, open: readonly OpportunityRow[], ctx: ReadinessContext, a: { date?: string; evening: boolean; stopped: (o: Opportunity) => boolean }): Promise<string | null> {
+  const store = opportunityStore(), pages = await store.draftedPages(siteId, 14), mondayOf = (date: string) => weekStartFor({ at: new Date(`${date}T00:00:00Z`), zone: "UTC" });
+  const week = mondayOf(a.date ?? new Date(firstOpenDay(pages, ctx.now) * 86_400_000).toISOString().slice(0, 10)), inWeek = (date?: string | null) => date != null && mondayOf(date) === week;
+  if (pages.some((page) => inWeek(page.date) && waitsForFootprint(readOpportunity(page.row)))) return null;
   const held = open.filter((row) => waitsForFootprint(readOpportunity(row)) && !a.stopped(readOpportunity(row)) && eligible(readOpportunity(row), { ...ctx, footprint: true }) === null);
   const seen = { cited: new Set<string>(), prompts: held.length === 0 ? [] : await store.trackedPrompts(siteId).catch(() => []) };
   const ranked = orderRanked(held.map((row) => ({ opportunity: readOpportunity(row), ...pointsOf(readOpportunity(row), seen) }))).map((entry) => held.find((row) => row.id === entry.opportunityId)!);
-  return ((a.evening ? ranked.find((row) => row.planned_for != null) : undefined) ?? ranked.find((row) => row.source === "ai_gap") ?? ranked[0])?.id ?? null;
+  return (ranked.find((row) => inWeek(row.planned_for)) ?? (a.evening ? ranked.find((row) => row.planned_for != null) : undefined) ?? ranked.find((row) => row.source === "ai_gap") ?? ranked[0])?.id ?? null;
 }
 
 /** A new page, or a live page retargeted onto a new search, written as a comparison or listicle. */
@@ -212,6 +212,7 @@ export async function assessReadiness(
     only?: ReadonlySet<string>;
     /** The Monday pass: an open market footprint is recorded. */
     record?: boolean;
+    plannedFrom?: string;
   }
 ): Promise<{ ready: number; unready: number }> {
   const now = a.now ?? new Date();
@@ -253,7 +254,7 @@ export async function assessReadiness(
     // Read only where a row could wait on it.
     footprint: !rows.some((row) => waitsForFootprint(readOpportunity(row))) || (await footprintOpen(store, siteId, { report, market, record: a.record === true })),
   };
-  if (!ctx.footprint) ctx.allowed = await heldAllowed(siteId, open, ctx, { evening: a.only !== undefined, stopped: stillStopped });
+  if (!ctx.footprint) ctx.allowed = await heldAllowed(siteId, open, ctx, { date: a.plannedFrom, evening: a.only !== undefined, stopped: stillStopped });
   const business: KindOfBusiness | null =
     market === null ? null : { kind: market.kind ?? null, serves: market.serves ?? null, words: [market.category, ...market.synonyms].join(" ") };
 

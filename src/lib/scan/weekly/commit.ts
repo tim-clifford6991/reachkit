@@ -31,7 +31,8 @@ export async function postFirstWeek(a: { siteId: string; scanId: string; now: Da
 /** Commits the week from the checks, then records once per site and week what it was short of (SPEC §7). */
 export async function commitWeek(a: { siteId: string; weekStart: string; now: Date; rows: readonly WeekRow[]; checks: Checks }): Promise<void> {
   const week = await planWeek(a.siteId, { now: a.now, record: true, research: new Map(a.checks) });
-  await recordWeek(a, week, week.rested, WEEK_PLAN.days);
+  // An early pass supplies every date from its first to the claimed week's Sunday.
+  await recordWeek(a, week, week.rested, { from: week.from, days: (Date.parse(a.weekStart) - Date.parse(week.from)) / 86_400_000 + 7 });
 }
 
 /** The first week's record, from the rows committed, whichever commit made it: the first draft's from its own date, or
@@ -44,10 +45,10 @@ export async function recordFirstWeek(a: { siteId: string; now: Date; rows: read
   const rested = others.flatMap((row) => (row?.rest_until != null && Date.parse(row.rest_until) > a.now.getTime() ? [{ opportunityId: row.id, short: [] }] : []));
   // The first week runs to the first Monday from its first date: a Wednesday 5 days, a Monday 7.
   const first = week.flatMap((entry) => entry.plannedFor ?? []).sort()[0], days = first === undefined ? WEEK_PLAN.days : (8 - new Date(`${first}T00:00:00Z`).getUTCDay()) % 7 || WEEK_PLAN.days;
-  await recordWeek({ ...a, weekStart: a.now.toISOString().slice(0, 10) }, week, rested, days);
+  await recordWeek({ ...a, weekStart: a.now.toISOString().slice(0, 10) }, week, rested, { from: first ?? a.now.toISOString().slice(0, 10), days });
 }
 
-async function recordWeek(a: { siteId: string; weekStart: string; rows: readonly WeekRow[]; checks: Checks }, week: readonly { opportunityId: string; plannedFor: string | null; reason: Pick<PlanReason, "research"> }[], rested: readonly { opportunityId: string; short: string[] }[], days: number): Promise<void> {
+async function recordWeek(a: { siteId: string; weekStart: string; rows: readonly WeekRow[]; checks: Checks }, week: readonly { opportunityId: string; plannedFor: string | null; reason: Pick<PlanReason, "research"> }[], rested: readonly { opportunityId: string; short: string[] }[], span: { from: string; days: number }): Promise<void> {
   const marks = [...week.flatMap((entry) => entry.reason.research ?? []), ...rested.map((r) => ({ state: "short" as const, short: r.short }))];
   const count = (state: string) => marks.filter((mark) => mark.state === state).length;
   const short: Record<string, number> = {};
@@ -66,7 +67,8 @@ async function recordWeek(a: { siteId: string; weekStart: string; rows: readonly
     // Not measured is never met: a spare the commit did not check is counted apart.
     spares_unchecked: spares.filter((entry) => entry.reason.research === undefined).length,
     spares_of: WEEK_PLAN.spares,
-    uncovered: Math.max(0, days - week.length + spares.length),
+    // A date of the span no row is committed to.
+    uncovered: Array.from({ length: Math.max(0, span.days) }, (_, n) => new Date(Date.parse(span.from) + n * 86_400_000).toISOString().slice(0, 10)).filter((date) => !week.some((entry) => entry.plannedFor === date)).length,
   };
   // The record never holds the week's telling: a write that fails is only logged.
   await claimOpsEvent("week_research", a.siteId, a.weekStart, JSON.stringify(read)).catch((error: unknown) => console.warn(JSON.stringify({ event: "week_research_unrecorded", siteId: a.siteId, error: String(error).slice(0, 200) })));
