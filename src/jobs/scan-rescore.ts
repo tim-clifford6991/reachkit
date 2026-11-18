@@ -20,7 +20,7 @@
 // network is refused while a scan is scored.
 //
 // The same tick re-commits each paying site's week once per planner deploy
-// (SPEC §7, `src/lib/scan/replan.ts`), after a dry run it logs; a held week is `replan-held`. After it, once per
+// (SPEC §7, `src/lib/scan/replan.ts`), after a dry run it logs; a held week is `replan-held`, a week with no day `replan-empty`. After it, once per
 // standard deploy, it sets aside each waiting draft below the standard, so the draft tick writes its date again.
 import { activeSites, answerRescore, claimRescore, rescoreDue } from "@/jobs/engine";
 import type { JobDefinition, JobInput, Outcome } from "./types";
@@ -69,7 +69,8 @@ async function replanWeeks(input: JobInput): Promise<Outcome> {
     return { outcome: "degraded", subjectId: null, step: "replan-failed" };
   }
   if (result === null) return { outcome: "skipped", subjectId: null, reason: "no-subject" };
-  return result.held.length > 0 ? { outcome: "degraded", subjectId: null, step: "replan-held" } : { outcome: "ran", subjectId: null };
+  const stood = [result.held.length > 0 ? "replan-held" : "", result.empty.length > 0 ? "replan-empty" : ""].filter(Boolean).join(",");
+  return stood === "" ? { outcome: "ran", subjectId: null } : { outcome: "degraded", subjectId: null, step: stood };
 }
 
 /** SPEC §7: each paying site's waiting drafts read once per standard deploy, at 0¢; after the re-plan, so a freed date keeps its topic. */

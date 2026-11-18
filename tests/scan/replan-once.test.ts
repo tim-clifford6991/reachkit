@@ -18,6 +18,7 @@ const HOUR = 3_600_000;
 const paying = async () => [{ siteId: SITE_ID, timeZone: "UTC", publishTime: "09:00", vetoHours: 24 }];
 let mails: string[] = [];
 let [commits, cut] = [0, 0];
+let state: ReturnType<typeof newMemoryState>;
 
 beforeEach(async () => {
   vi.stubEnv("VERCEL_ENV", "production");
@@ -27,7 +28,7 @@ beforeEach(async () => {
   db.reset();
   db.seed("sites", [{ id: SITE_ID, domain: "savvycal.com" }]);
   const site = panelSite("savvycal.com");
-  const state = newMemoryState({ profile: site.profile, market: site.market, now: AT, rows: site.rows, weeklyCommit: "2026-10-19" });
+  state = newMemoryState({ profile: site.profile, market: site.market, now: AT, rows: site.rows, weeklyCommit: "2026-10-19" });
   const store = memoryStore(state);
   setOpportunityStore({ ...store, footprintOpened: async () => true, topTenRows: async () => storedSerps(site.domain), commitPlan: (id, entries) => (cut-- === 1 ? Promise.reject(new Error("cut")) : (commits++, store.commitPlan(id, entries))) });
   await planWeek(SITE_ID, { now: AT });
@@ -51,8 +52,16 @@ const events = (kind: string) => db.rows("ops_events").filter((row) => row.kind 
 
 it("re-commits the week once per planner, after an apply cut short too, and tells the owner once, with the committed week as it stood", async () => {
   const handSet = (await opportunityStore().plannedRows(SITE_ID)).find((row) => row.planned_for === "2026-10-20")!;
-  expect(await tick(0).catch(() => tick(1))).toEqual({ replanned: [SITE_ID], held: [] });
+  expect(await tick(0).catch(() => tick(1))).toEqual({ replanned: [SITE_ID], held: [], empty: [] });
   expect(await tick(1)).toBeNull();
   expect([commits, mails.length, events("week_replanned").length, events("week_replan_told").length]).toEqual([1, 1, 1, 1]);
   expect(mails[0]).toContain(`2026-10-20 · ${handSet.target_query}`);
+});
+
+it("claims a week that dates no day empty, commits nothing, and does not dry-run it again at the same planner", async () => {
+  for (const row of state.rows) Object.assign(row, { ready: false, unready_reason: "resting", rest_until: "2027-01-01T00:00:00Z", ...(row.planned_for == null ? {} : { planned_for: "2026-10-01" }) });
+  expect(await tick(0)).toEqual({ replanned: [], held: [], empty: [SITE_ID] });
+  expect(await tick(1)).toEqual({ replanned: [], held: [], empty: [SITE_ID] });
+  const dryRuns = vi.mocked(console.log).mock.calls.filter(([line]) => String(line).includes("week_replan_dry_run")).length;
+  expect([commits, dryRuns, events("week_replanned").map((row) => row.read)]).toEqual([0, 1, ["empty"]]);
 });

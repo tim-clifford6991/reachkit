@@ -8,7 +8,8 @@
 //
 // Each site is dry-run first through a store that writes nothing and logged
 // (`week_replan_dry_run`); a week that would date fewer days than the
-// committed one is held (`replan-held`) and its old week stands. The owner is
+// committed one is held (`replan-held`) and its old week stands; one that dates
+// no day is claimed `empty` (`replan-empty`), so the next planner tries it again. The owner is
 // mailed each site's old and new week once per planner, for information:
 // production holds no GitHub key. One claim per (planner, site) in
 // `ops_events`; the tick runs one at a time.
@@ -21,7 +22,7 @@ import { firstOpenDay } from "@/lib/opportunities/rank/open";
 import { opportunityStore, storeScope, type OpportunityRow, type OpportunityStore } from "@/lib/opportunities/store";
 import type { PlanReason, UnreadyReason, Winnability } from "@/lib/opportunities/types";
 
-/** Per site: its `from`, `held` or `no-week`. */
+/** Per site: its `from`, `held`, `empty` or `no-week`. */
 const KIND = "week_replanned";
 /** The owner's mail of the planner's weeks, sent. */
 const TOLD = "week_replan_told";
@@ -64,6 +65,8 @@ export interface Replan {
   unmeasured: string[];
   /** Why the new week is not committed, or `null` where it may be. */
   held: string | null;
+  /** Where the new week dates no day: its unready rows by reason; nothing is committed. */
+  empty: Record<string, number> | null;
 }
 
 /** A named, durable piece of the tick, as `src/jobs/types.ts` states it. */
@@ -78,7 +81,7 @@ type Event = { kind: string; site_id: string | null; read: string };
 export async function replanSites(
   paying: () => Promise<readonly SiteClock[]>,
   a: { now: Date; step?: Step }
-): Promise<{ replanned: string[]; held: string[] } | null> {
+): Promise<{ replanned: string[]; held: string[]; empty: string[] } | null> {
   const fingerprint = deployedPlanner();
   if (process.env.VERCEL_ENV !== "production" || fingerprint === null) return null;
   const inStep = <T>(name: string, body: () => Promise<T>) => (a.step === undefined ? body() : a.step(`${name}-${fingerprint}`, body));
@@ -87,22 +90,22 @@ export async function replanSites(
   const events = await inStep("replan-events", () => eventsAt(fingerprint));
   const claimed = new Map(events.filter((e) => e.kind === KIND).map((e) => [e.site_id, e.read]));
   const due = sites.filter((site) => !claimed.has(site.siteId));
-  const held = sites.filter((site) => claimed.get(site.siteId) === "held").map((site) => site.siteId);
-  if (due.length + held.length === 0) return null;
-  const replanned: string[] = [];
+  const stood = (read: string) => sites.filter((site) => claimed.get(site.siteId) === read).map((site) => site.siteId);
+  const [held, empty, replanned] = [stood("held"), stood("empty"), [] as string[]];
+  if (due.length + held.length + empty.length === 0) return null;
   const told: Replan[] = [];
   for (const site of due) {
     const id = site.siteId;
     const plan = await inStep(`replan-dry-${id}`, () => dryReplan(id, { now: a.now, clock: site, fingerprint }));
-    const state = plan === null ? "no-week" : plan.held === null ? plan.from : "held";
+    const state = plan === null ? "no-week" : plan.empty !== null ? "empty" : plan.held === null ? plan.from : "held";
     // Claimed only after the apply, so an apply that never ran is tried again on the next tick.
-    if (plan !== null && plan.held === null) await inStep(`replan-apply-${id}`, () => applyReplan(id, plan.from, a.now));
+    if (plan !== null && state === plan.from) await inStep(`replan-apply-${id}`, () => applyReplan(id, plan.from, a.now));
     if (!(await inStep(`replan-claim-${id}`, () => claimOpsEvent(KIND, id, fingerprint, state))) || plan === null) continue;
     told.push(plan);
-    (plan.held === null ? replanned : held).push(id);
+    (state === "empty" ? empty : state === "held" ? held : replanned).push(id);
   }
   if (told.length > 0 && !events.some((e) => e.kind === TOLD)) await inStep("replan-told", () => tellOwner(told, fingerprint));
-  return { replanned, held };
+  return { replanned, held, empty };
 }
 
 /** Mails the owner each site's old and new week, then marks the planner told. */
@@ -171,9 +174,16 @@ export async function dryReplan(
     }),
     unmeasured: report === null ? ["report"] : [...unmeasuredPartsOf(report)],
     held: null,
+    empty: null,
   };
   const days = (week: WeekRow[]) => week.filter((row) => row.date !== null).length;
-  if (days(plan.after) < days(plan.before)) plan.held = `${days(plan.after)} dated days where the committed week has ${days(plan.before)}`;
+  if (days(plan.after) === 0) {
+    plan.empty = {};
+    for (const id of entries.rejected.unready?.ids ?? []) {
+      const reason = rows.get(id)?.unready_reason ?? "unknown";
+      plan.empty[reason] = (plan.empty[reason] ?? 0) + 1;
+    }
+  } else if (days(plan.after) < days(plan.before)) plan.held = `${days(plan.after)} dated days where the committed week has ${days(plan.before)}`;
   console.log(JSON.stringify({ event: "week_replan_dry_run", ...plan, rejected: entries.rejected }));
   return plan;
 }
