@@ -16,38 +16,17 @@ import type { CostContext } from "@/lib/costs";
 import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
 import { costCentsFor, tierBinding, type Tier, type TierBinding } from "./tiers";
 
-/** BP-009 `## Error & edge behavior`: "retried at most once" — one retry,
- *  two attempts total. Both attempts spend the *same* budget
- *  (`binding.timeoutMs`), which is why `runAttempts` below carries a
- *  deadline rather than handing each attempt a fresh clock: the pin is a
- *  bound on the call, and a retry that could double it would make the
- *  pass's own arithmetic (`tests/llm/budget.test.ts`) untrue. */
+/** One retry, two attempts, both inside the same `binding.timeoutMs`, so a retry never doubles the call's bound. */
 const MAX_ATTEMPTS = 2;
 
-/** BP-009's closed call-site list: every site that has an output budget
- *  pinned (`INFERENCE_MAX_OUTPUT_TOKENS`), and nothing else. That budget
- *  bounds both the request's own `max_tokens` and the cost reservation
- *  below — one seam-wide 4 096 let a seven-field profile spend its whole
- *  15 s generating one answer (issue #462). */
+/** Every site with a pinned output budget, which bounds both `max_tokens` and the cost reservation. */
 export type LlmCallSite = keyof typeof INFERENCE_MAX_OUTPUT_TOKENS;
 
 type ParseOutcome = "success" | "unparseable" | "unavailable" | "not_attempted";
 
-/** Why a call did not come back with a conforming answer, in one word a
- *  live run can be grepped for (issue #452). `parseOutcome` alone said
- *  only `unavailable`, which is every transport failure there is — a
- *  timeout, a 429, a 529, a bad credential and a DNS failure all read the
- *  same, so the M3 live run of 2026-09-10 could say the profile never
- *  arrived and not say why. Four classes, closed: the vendor's own HTTP
- *  status where it gave one, `timeout` where the budget below ran out,
- *  `parse` where responses came back and none conformed to the caller's
- *  schema, and `vendor` for a transport failure of no other shape.
- *
- *  **Read off the error's *shape*, never its text.** A vendor SDK's error
- *  object routinely echoes the request that produced it, credential
- *  headers included (`tests/llm/seam.test.ts`'s third mutation probe is
- *  exactly that scenario), so nothing here reads `message` and nothing
- *  here reaches a log but the class word itself. */
+/** Why a call came back without a conforming answer, in one closed word: the vendor's HTTP status, `timeout`,
+ *  `parse` (answers came back and none conformed) or `vendor`. Read off the error's shape, never its text, which
+ *  can echo the request and its credentials. */
 type FailureClass = "timeout" | "parse" | "vendor" | `http_${number}`;
 
 /** Why an answer that came back was not used: `json`, no JSON in the text; `schema`, JSON the caller's schema
@@ -97,6 +76,8 @@ interface AttemptOutcome {
   /** Present only with `failure: "parse"`. */
   retryExhausted?: RetryExhausted;
   diagnosis?: ParseDiagnosis;
+  /** Field names decoded from JSON text on a success; never their text. */
+  coerced?: string[];
 }
 
 /** Every error shape whose *name* says the request ran out of time —
@@ -300,18 +281,33 @@ function textShape(text: string): { textStart: TextStart; textLength: number } {
   return { textStart, textLength: text.length };
 }
 
-/** One Zod issue as `path:code` — see `ParseDiagnosis`. Every path segment
- *  a string is a key the schema itself declared (Zod descends only into
- *  known keys, and no call site's schema is a `z.record`); numbers are
- *  array positions and collapse to `[]`, so twelve bad entries in one list
- *  read as one line. */
-function issueLabel(issue: { path: PropertyKey[]; code: string }): string {
+/** A schema path as a label: string segments are keys the schema declared, array positions collapse to `[]`. */
+function fieldLabel(at: PropertyKey[]): string {
   let path = "";
-  for (const segment of issue.path) {
+  for (const segment of at) {
     if (typeof segment === "number") path += "[]";
     else if (typeof segment === "string") path += path === "" ? segment : `.${segment}`;
   }
-  return `${path === "" ? "(root)" : path}:${issue.code}`;
+  return path === "" ? "(root)" : path;
+}
+
+/** Where every schema miss is a list or object sent as a string, each such string decoded once; else `null`. */
+function decodeTextFields(candidate: unknown, issues: readonly z.core.$ZodIssue[]): { value: unknown; coerced: string[] } | null {
+  if (issues.length === 0 || typeof candidate !== "object" || candidate === null) return null;
+  const value: unknown = structuredClone(candidate);
+  const coerced: string[] = [];
+  for (const issue of issues) {
+    if (issue.code !== "invalid_type" || (issue.expected !== "array" && issue.expected !== "object")) return null;
+    const key = issue.path.at(-1);
+    const parent = issue.path.slice(0, -1).reduce<unknown>((at, k) => (typeof at === "object" && at !== null ? (at as Record<PropertyKey, unknown>)[k] : undefined), value);
+    if (key === undefined || typeof parent !== "object" || parent === null) return null;
+    const text = (parent as Record<PropertyKey, unknown>)[key];
+    const read = typeof text === "string" ? parseWhole(text) : { ok: false as const };
+    if (!read.ok) return null;
+    (parent as Record<PropertyKey, unknown>)[key] = read.value;
+    coerced.push(fieldLabel(issue.path));
+  }
+  return { value, coerced };
 }
 
 type ModelResponse = { answer: Answer; stop: Anthropic.StopReason | null; tokensIn: number; tokensOut: number };
@@ -379,9 +375,9 @@ async function callModel(
  *  extend, the schema-parse retry allowance. A response that comes back
  *  but does not parse against `schema` is retried once; a second failure
  *  returns `unparseable`, and the raw payload is never coerced or
- *  returned in its place (the mutation this WO's `## Steps` names:
- *  falling back to the raw string here is exactly the bug the "never
- *  silently coerced" test exists to kill).
+ *  returned in its place. A JSON-text field of the expected type is
+ *  decoded once and logged `coerced`; nothing else is, and the schema
+ *  still decides.
  *
  *  An answer that came back unparseable with no budget left for the retry
  *  is still `unparseable` / `parse` — with `retryExhausted: "budget"` —
@@ -465,19 +461,17 @@ async function runAttempts<T>(
       candidate = asJson.value;
     }
     const parsed = schema.safeParse(candidate);
-    if (parsed.success) {
-      return {
-        parseOutcome: "success",
-        value: parsed.data,
-        tokensIn,
-        tokensOut,
-        durationMs: Date.now() - startedAt,
-      };
+    const decoded = parsed.success ? null : decodeTextFields(candidate, parsed.error.issues);
+    const again = decoded === null ? undefined : schema.safeParse(decoded.value);
+    if (parsed.success || again?.success) {
+      const value = parsed.success ? parsed.data : again?.data;
+      const coerced = parsed.success || decoded === null ? {} : { coerced: decoded.coerced };
+      return { parseOutcome: "success", value, tokensIn, tokensOut, durationMs: Date.now() - startedAt, ...coerced };
     }
     const issues = parsed.error.issues;
     lastMiss = {
       parseFailure: "schema",
-      schemaIssues: [...new Set(issues.map(issueLabel))],
+      schemaIssues: [...new Set(issues.map((issue) => `${fieldLabel(issue.path)}:${issue.code}`))],
     };
     // **A too-long answer is not re-asked (issue 898).** The `figma.com`
     // scan of 2026-09-18 made this call twice, 0.66¢ each, over an answer
@@ -526,6 +520,7 @@ interface LogRecord {
   /** Present only with `parseFailure: "json"` (issue #512). */
   textStart?: TextStart;
   textLength?: number;
+  coerced?: string[];
 }
 
 /** BP-009 `## NFR budget`, verbatim: "call site, tier, tokens in and out,
@@ -632,6 +627,7 @@ export async function llm<T>(
     ...(outcome.failure === undefined ? {} : { failure: outcome.failure }),
     ...(outcome.retryExhausted === undefined ? {} : { retryExhausted: outcome.retryExhausted }),
     ...(outcome.diagnosis === undefined ? {} : outcome.diagnosis),
+    ...(outcome.coerced === undefined ? {} : { coerced: outcome.coerced }),
   });
 
   if (outcome.parseOutcome === "success") return measured(outcome.value as T, at);
