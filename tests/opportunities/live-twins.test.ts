@@ -7,7 +7,8 @@ const db = fakeDb();
 vi.mock("@/lib/db", () => ({ dbAdmin: () => db.client, db: () => db.client }));
 vi.mock("next/cache", () => ({ revalidateTag: () => undefined }));
 
-import { retireOffTopicPages } from "@/lib/opportunities/live-topics";
+import { liveTopicVerdict, retireOffTopicPages, type LiveTopicPage, type LiveTopicSite } from "@/lib/opportunities/live-topics";
+import type { Opportunity } from "@/lib/opportunities/types";
 
 const AT = new Date(Date.UTC(2026, 10, 18, 7, 0, 0));
 const HOST = "content.reachkit.app";
@@ -60,7 +61,6 @@ describe("live twins", () => {
   it.each([
     ["only a reason", reason({ unread: "no_credentials" }), read(120)],
     ["a property too new to read", reason({ unread: "property_new", indexed: true, lastCrawl: null }), read(120)],
-    ["0 impressions and 0 clicks, as its twin's", read(0, 0), read(0, 0)],
   ])("does not merge a twin whose Google reading is %s, and names it as waiting", async (_, bReading, aReading) => {
     seed(bReading, aReading);
     const outcome = await retireOffTopicPages({ now: AT });
@@ -68,5 +68,29 @@ describe("live twins", () => {
     expect(outcome.merged).toEqual([]);
     expect(outcome.twins).toContainEqual(expect.objectContaining({ why: "twin_waits_on_reading" }));
     expect(db.rows("publications").every((p) => p.unpublished_at === null)).toBe(true);
+  });
+
+  it("merges the newer of a pair both measured at 0 impressions and 0 clicks into the older", async () => {
+    seed(read(0, 0), read(0, 0));
+    expect((await retireOffTopicPages({ now: AT })).merged).toEqual([{ liveUrl: A, into: B }]);
+  });
+});
+
+describe("a failing live page Google shows", () => {
+  const topic = (id: string, query: string) =>
+    ({ id, family: "write", type: "answer_page", targetQuery: query, clusterKey: "ai visibility", ready: true, evidence: { family: "write" } }) as unknown as Opportunity;
+  const page = (google: LiveTopicPage["google"]): LiveTopicPage => ({
+    draftId: "d1", publicationId: "p1", hosted: true, liveUrl: `https://${HOST}/best-answer-engine-optimization-services`, opportunity: topic("o1", "best answer engine optimization services"),
+    signals: { firstLive: new Date("2026-10-01"), publishedAt: new Date("2026-10-01"), verdicts: [], ranked: false, reads: 0 }, google,
+  });
+  const agencies = Array.from({ length: 6 }, (_, i) => ({ domain: `agency${i}.com`, title: `AEO Agency ${i}` }));
+  const site = (pages: LiveTopicPage[]) =>
+    ({ domain: HOST, brands: undefined, prompts: [], asked: [], business: { kind: "software" }, topTen: () => agencies, open: [topic("o2", "best ai visibility tools")], pages }) as unknown as LiveTopicSite;
+
+  it("is refreshed at its own address, not retargeted to a ready topic of its cluster", () => {
+    const shown = page({ impressions: 400, clicks: 1 });
+    expect(liveTopicVerdict(shown, site([shown]), AT)).toMatchObject({ kind: "refresh", signals: expect.arrayContaining(["impressions"]) });
+    const unseen = page({ impressions: 0, clicks: 0 });
+    expect(liveTopicVerdict(unseen, site([unseen]), AT).kind).toBe("retarget");
   });
 });
