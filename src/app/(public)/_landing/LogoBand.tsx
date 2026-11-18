@@ -1,7 +1,7 @@
 "use client";
 // The landing's logo band (SPEC §1 Our own report only): the label paints with
 // the page, the slides are read from `/scans/recent` so the static HTML names no
-// third party, and the row moves one slide every 5 s until hovered, focused or paused.
+// third party, and the row drifts on until paused, slows on hover and stops on focus.
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
@@ -11,15 +11,15 @@ import { LOGO_BAND } from "./sections";
 
 type Slide = { domain: string; company: string };
 
-const EVERY_MS = 5000;
 const SKELETONS = Array.from({ length: LOGO_BAND.from }, (_, i) => i);
 
 export function LogoBand(p: { label: string; pause: string; play: string }): React.JSX.Element {
   const row = useRef<HTMLDivElement>(null);
+  const track = useRef<HTMLDivElement>(null);
   const [slides, setSlides] = useState<readonly Slide[] | null>(null);
   const [paused, setPaused] = useState(false);
-  const [hovered, setHovered] = useState(false);
-  const [focused, setFocused] = useState(false);
+  // The CSS loop itself, driven through the browser's own Web Animations calls so a speed change never jumps; none under reduced motion.
+  const loop = (): Animation | undefined => track.current?.getAnimations()[0];
 
   useEffect(() => {
     fetch("/scans/recent")
@@ -28,21 +28,24 @@ export function LogoBand(p: { label: string; pause: string; play: string }): Rea
       .catch(() => setSlides([]));
   }, []);
 
-  const shown = slides === null || slides.length >= LOGO_BAND.from;
   useEffect(() => {
-    if (slides === null || !shown || paused || hovered || focused) return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const id = window.setInterval(() => {
-      const el = row.current;
-      if (!el) return;
-      const atEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 1;
-      const origin = el.getBoundingClientRect().left - el.scrollLeft;
-      const next = [...el.children].map((c) => c.getBoundingClientRect().left - origin).find((x) => x > el.scrollLeft + 1);
-      // Land on the next slide's own snap point and let daisyUI's CSS do the smoothing: WebKit neither snaps a scripted scroll nor finishes a scripted smooth one on a snapping row.
-      el.scrollTo({ left: atEnd || next === undefined ? 0 : next });
-    }, EVERY_MS);
-    return () => window.clearInterval(id);
-  }, [slides, shown, paused, hovered, focused]);
+    if (paused) loop()?.pause();
+    else if (!row.current?.contains(document.activeElement)) loop()?.play();
+  }, [paused, slides]);
+
+  const focus = (e: React.FocusEvent<HTMLDivElement>): void => {
+    const a = loop();
+    const lap = (track.current?.offsetWidth ?? 0) / 2;
+    if (!a || !row.current || !lap) return;
+    a.pause();
+    const box = row.current.getBoundingClientRect();
+    const r = e.target.getBoundingClientRect();
+    const shift = r.left < box.left + 4 ? box.left + 4 - r.left : r.right > box.right - 4 ? box.right - 4 - r.right : 0;
+    // Move the stopped loop until the focused logo is wholly in view: the browser cannot scroll back to a box translated off the left edge.
+    if (shift) a.currentTime = Number(a.currentTime) - (shift / lap) * Number(a.effect?.getComputedTiming().duration);
+  };
+
+  const shown = slides === null || slides.length >= LOGO_BAND.from;
 
   return (
     <section className="pb-12 lg:pb-16">
@@ -64,26 +67,39 @@ export function LogoBand(p: { label: string; pause: string; play: string }): Rea
           <div
             ref={row}
             role="region"
-            tabIndex={0}
             aria-label={p.label}
-            className="carousel w-full gap-4 py-1"
-            onMouseEnter={() => setHovered(true)}
-            onMouseLeave={() => setHovered(false)}
-            onFocus={() => setFocused(true)}
-            onBlur={(e) => setFocused(e.currentTarget.contains(e.relatedTarget))}
+            className="carousel w-full py-1 motion-safe:overflow-hidden"
+            onMouseEnter={() => loop()?.updatePlaybackRate(0.25)}
+            onMouseLeave={() => loop()?.updatePlaybackRate(1)}
+            onFocus={focus}
+            onBlur={(e) => {
+              if (!paused && !e.currentTarget.contains(e.relatedTarget)) loop()?.play();
+            }}
           >
-            {slides === null
-              ? SKELETONS.map((i) => <div key={i} className="carousel-item skeleton h-14 w-48" />)
-              : slides.map((slide) => (
-                  <div key={slide.domain} className="carousel-item">
-                    <Link href={`/scan/${slide.domain}`} prefetch={false} className="card card-sm bg-base-100 shadow-(--shadow-card)">
-                      <span className="card-body flex-row items-center gap-3">
-                        <SiteMark domain={slide.domain} hasLogo size={32} />
-                        <span className="max-w-40 truncate font-semibold">{slide.company}</span>
-                      </span>
-                    </Link>
-                  </div>
-                ))}
+            <div
+              ref={track}
+              className={`flex w-max flex-none gap-4 ${slides ? "motion-safe:animate-logos motion-safe:pr-4" : ""}`}
+              style={slides ? { animationDuration: `${slides.length * 5}s` } : undefined}
+            >
+              {slides === null
+                ? SKELETONS.map((i) => <div key={i} className="carousel-item skeleton h-20 w-32" />)
+                : [...slides, ...slides].map((slide, i) => (
+                    <div
+                      key={i}
+                      inert={i >= slides.length}
+                      className={`carousel-item h-20 w-32 ${i >= slides.length ? "motion-reduce:hidden" : ""}`}
+                    >
+                      <Link
+                        href={`/scan/${slide.domain}`}
+                        prefetch={false}
+                        className="card card-sm bg-base-100 shadow-(--shadow-card) size-full items-center justify-center"
+                      >
+                        <SiteMark domain={slide.domain} hasLogo size={48} />
+                        <span className="sr-only">{slide.company}</span>
+                      </Link>
+                    </div>
+                  ))}
+            </div>
           </div>
         )}
       </div>
