@@ -47,7 +47,7 @@ import { pageTypeOf } from "@/lib/opportunities/page-type";
 import { intentFor } from "@/lib/opportunities/intent";
 import { openDayCost, roomForFix, withDraftCost } from "./cost";
 import { readRecordedRules } from "./record";
-import { COLLECT, askDayResearch } from "./research-queue";
+import { COLLECT, askDayResearch, heldResearch } from "./research-queue";
 import { repairStructure } from "./rules/structure";
 import { completenessOf, mendPage, mendable } from "./day-refresh";
 import { confirmedForWriting } from "./voice/confirmed";
@@ -592,7 +592,7 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number; 
     //    1297): the pack says when it holds enough.
     const market = !template.research
       ? type === "offering" ? storedAsk(report, targetSearches(o)) : NO_RESEARCH
-      : await researchMarket(cost, {
+      : await heldResearch(cost, { key: `${a.siteId}:${o.id}:${type}:${a.publishDate}`, reuse: a.completeness === "warn" }, () => researchMarket(cost, {
           siteId: a.siteId,
           locale,
           domain: site.domain,
@@ -617,7 +617,7 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number; 
         }).catch((error: unknown) => {
           console.warn(JSON.stringify({ event: "draft_research_failed", siteId: a.siteId, error: String(error).slice(0, 200) }));
           return NO_RESEARCH;
-        });
+        }));
     return { pack: packOf(market), links, ...(market.pending === true ? { pending: true as const } : {}) };
   };
 

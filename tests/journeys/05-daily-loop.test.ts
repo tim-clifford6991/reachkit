@@ -757,8 +757,8 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
       expect(modelCalls).toHaveLength(1);
       const rows = ledger();
       // The research step is stood in for here (no test reaches a vendor),
-      // so the write call is the day's one ledgered row.
-      expect(rows.map((r) => r.source)).toEqual(["generate.write"]);
+      // so the write call is the day's one paid row, beside its research held at 0¢.
+      expect(rows.map((r) => [r.source, r.costCents > 0])).toEqual([["generate.research.held", false], ["generate.write", true]]);
       const spent = rows.reduce((total, r) => total + r.costCents, 0);
       expect(spent).toBeGreaterThan(0);
       expect(spent).toBeLessThanOrEqual(CAPS.DRAFT_C);
