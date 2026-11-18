@@ -142,23 +142,11 @@ export interface BuyersAsk {
   related: { search: string; volume: number }[];
 }
 
-/** What a pack built from this research holds for a Q&A (D62): the
- *  questions it keeps, and whether they are as many as its template asks.
- *  A page that is not written as a Q&A has `enough`. */
-export interface QuestionsHeld {
-  kept: number;
-  enough: boolean;
-}
-
 export interface MarketResearch {
   facts: MarketFact[];
   products: ResearchedProduct[];
   /** A Q&A's question sources, where the step was asked for them. */
   asked?: BuyersAsk;
-  /** D62: the market's searched terms whose SERPs were read because the
-   *  target's own left the Q&A short, and the questions they added to the
-   *  ones kept. Absent where the target's own SERP was enough. */
-  borrowed?: { terms: string[]; added: number };
   /** *Current insights*: every news result the judgement was asked about. */
   news?: JudgedResult[];
   /** The target's top results as they were read (issue 1143): what a new
@@ -746,52 +734,6 @@ async function withVolume(c: CostContext, locale: Locale, searches: readonly str
   return asked.map((search) => ({ search, volume: volumeOf.get(search) ?? 0 })).filter((row) => row.volume > 0);
 }
 
-const sameWords = (text: string): string => text.toLowerCase().replace(/\s+/g, " ").trim();
-
-/**
- * A thin SERP borrows from the market's searched terms (owner, D62; issue
- * 1297). Where the target's own SERP leaves the pack short of a Q&A's
- * questions, the SERP of each of `terms` is read in turn — the market's
- * search term, then its other searched terms, most searched first — for its
- * "People also ask", and the reading stops as soon as the pack keeps enough
- * or the terms run out. Each is one SERP, about 0.2¢.
- *
- * The terms' related searches are measured only where their questions were
- * not enough, in one keyword-overview call for all of them: a call a term
- * would cost five times the SERP it follows.
- *
- * Nothing is kept here. `held` is the pack's own count, so a borrowed
- * question passes the market filter, the template limit and the heading
- * measure a question of the target's own SERP does.
- */
-async function borrowedAsk(
-  c: CostContext,
-  a: { siteId: string; locale: Locale; target: string; terms: readonly string[]; asked: BuyersAsk; held: (asked: BuyersAsk) => QuestionsHeld }
-): Promise<{ asked: BuyersAsk; borrowed: { terms: string[]; added: number } } | null> {
-  const first = a.held(a.asked);
-  if (first.enough) return null;
-  let asked = a.asked;
-  const read: string[] = [];
-  const unmeasured: string[] = [];
-  // Each term once, and never the target, whose SERP is already read.
-  const terms = a.terms
-    .map((term) => term.trim())
-    .filter((term, at, all) => term !== "" && sameWords(term) !== sameWords(a.target) && all.findIndex((other) => sameWords(other) === sameWords(term)) === at);
-  for (const term of terms) {
-    if (c.capHit() || a.held(asked).enough) break;
-    const beside = await askedBeside(c, { query: term, locale: a.locale, mode: "live", loadAsyncAiOverview: false, scope: { site: a.siteId }, freshnessDays: CACHE_WINDOWS_D.serp, questions: true });
-    if (beside === null) continue;
-    read.push(term);
-    const known = new Set(asked.peopleAlsoAsk.map(sameWords));
-    asked = { ...asked, peopleAlsoAsk: [...asked.peopleAlsoAsk, ...beside.peopleAlsoAsk.filter((question) => !known.has(sameWords(question)))] };
-    for (const search of beside.searches) {
-      if (!unmeasured.includes(search) && !asked.related.some((row) => row.search === search)) unmeasured.push(search);
-    }
-  }
-  if (!a.held(asked).enough) asked = { ...asked, related: [...asked.related, ...(await withVolume(c, a.locale, unmeasured))] };
-  return { asked, borrowed: { terms: read, added: a.held(asked).kept - first.kept } };
-}
-
 export async function researchMarket(
   c: CostContext,
   a: {
@@ -831,10 +773,6 @@ export async function researchMarket(
      *  result that is a platform's or an authority's documentation is read
      *  first, as a `primary` source. */
     guidance?: boolean;
-    /** D62: where the target's own SERP leaves the Q&A short, the market's
-     *  searched terms are read for more — `terms` in the order they are
-     *  read, and `held`, what a pack built from this research holds. */
-    borrow?: { terms: readonly string[]; held: (research: MarketResearch) => QuestionsHeld };
   }
 ): Promise<MarketResearch> {
   const target = a.searches[0];
@@ -1043,15 +981,6 @@ export async function researchMarket(
     ...(baseline === null ? {} : { baseline }),
     ...(pending ? { pending: true as const } : {}),
   };
-  // 5. A Q&A the target's own SERP leaves short borrows from the market's
-  //    searched terms (D62). It follows the claim calls because a question
-  //    is kept only where a fact answers it.
-  const borrow = a.borrow;
-  const more =
-    asked === null || borrow === undefined
-      ? null
-      : await borrowedAsk(c, { siteId: a.siteId, locale: a.locale, target, terms: borrow.terms, asked, held: (each) => borrow.held({ ...research, asked: each }) });
-  const questions = more?.asked ?? asked;
   logResearch({
     siteId: a.siteId,
     pagesRead: pages.length,
@@ -1065,14 +994,8 @@ export async function researchMarket(
     products: products.length,
     namedProducts: a.options === true ? named.length : null,
     baseline,
-    peopleAlsoAsk: questions === null ? null : questions.peopleAlsoAsk.length,
-    relatedSearches: questions === null ? null : questions.related.length,
-    borrowedTerms: more === null ? null : more.borrowed.terms.length,
-    borrowedQuestions: more === null ? null : more.borrowed.added,
+    peopleAlsoAsk: asked === null ? null : asked.peopleAlsoAsk.length,
+    relatedSearches: asked === null ? null : asked.related.length,
   });
-  return {
-    ...research,
-    ...(questions === null ? {} : { asked: questions }),
-    ...(more === null ? {} : { borrowed: more.borrowed }),
-  };
+  return { ...research, ...(asked === null ? {} : { asked }) };
 }

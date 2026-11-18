@@ -45,7 +45,7 @@ import type { WritingMarket } from "../voice/market";
 import type { PromptKnowledge, PromptProfile } from "../voice/profile-block";
 import { chooseVoice, type PageVoice, type WritingVoice } from "../voice/register";
 import type { SourcedFact } from "./grounding";
-import type { BuyersAsk, JudgedResult, MarketFact, MarketResearch, QuestionsHeld, ResearchedProduct } from "./research";
+import type { BuyersAsk, JudgedResult, MarketFact, MarketResearch, ResearchedProduct } from "./research";
 import { reportFactsAllowed } from "./report-scope";
 import { comparisonTable } from "./table";
 
@@ -896,14 +896,6 @@ export function buildPack(a: PackInputs): ContextPack {
   const noComparison = table !== undefined && comparisonTable(pack, table.rivals) === null;
   if (a.type === "listicle" && (missing.includes("own_price") || (missing.includes("options") && noComparison))) return buildPack({ ...a, type: "qa" });
   return { ...pack, missing, ...(corrections.length === 0 ? {} : { corrections }) };
-}
-
-/** What a pack holds for a Q&A (owner, D62; issue 1297): the questions it
- *  keeps, and whether they are as many as the template asks. It is what the
- *  research step reads to know whether the target's own SERP was enough; a
- *  pack that is not written as a Q&A asks for none. */
-export function questionsHeld(pack: ContextPack): QuestionsHeld {
-  return { kept: pack.questions.length, enough: pack.type !== "qa" || !pack.missing.includes("buyer_questions") };
 }
 
 /** The pack as the row keeps it, read back. `null` on a row written before
