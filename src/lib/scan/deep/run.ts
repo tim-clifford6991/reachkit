@@ -37,6 +37,7 @@
 // finds nothing is a normal return: §4.3 releases the founder either way
 // and "zero proposals is legal, never faked".
 import { FIRST_DRAFT_STAGE, type OnboardingStage } from "./progress";
+import { WEEK_RESEARCH } from "@/lib/config/constants";
 import { dbAdmin } from "@/lib/db";
 import { sendOnboardingMails } from "@/lib/mail/onboarding";
 import { cachedRivalRows, deriveForPass, planFirstWeek } from "@/lib/opportunities";
@@ -191,7 +192,16 @@ export async function runDeepPass(a: {
   // that throws is logged: zero proposals is legal, never faked (§4.3).
   await step("opportunities", async () => {
     await afterDeepReport({ scanId: result.scanId, siteId: a.siteId, domain: a.domain, remeasure: a.remeasure === true });
+    return null;
+  });
 
+  // SPEC §5: the first week is researched like Monday's. Its best rows' own SERPs are posted now, so the voice step
+  // and the first draft hide the queue's minutes; a row still queued at the commit is committed queued, never short.
+  // Research never holds the release: a step that fails is logged and the week is committed from what is held.
+  const week = { siteId: a.siteId, scanId: result.scanId }, held = <T>(body: () => Promise<T[]>) => body().catch((error: unknown) => (console.warn(JSON.stringify({ event: "first_week_research_failed", siteId: a.siteId, detail: String(error) })), []));
+  const rows = await step("first-week-research", () => held(async () => (await import("../weekly/commit")).postFirstWeek({ ...week, now: new Date() })));
+
+  await step("voice", async () => {
     // The pass derived the paid voice; seed the customer's field from it, so
     // the first draft is written in it (issue 737). Setup could not: a
     // free-scan profile has no voice to adopt. Unstamped, and never over the
@@ -206,6 +216,10 @@ export async function runDeepPass(a: {
     return null;
   });
 
+  const { checkWeekResearch } = await import("@/lib/generate/research-queue");
+  const checks: Awaited<ReturnType<typeof checkWeekResearch>> = [];
+  for (let n = 0; n * WEEK_RESEARCH.batch < rows.length; n++) checks.push(...(await step(`first-week-check-${n}`, () => held(() => checkWeekResearch({ ...week, rows: rows.slice(n * WEEK_RESEARCH.batch, (n + 1) * WEEK_RESEARCH.batch), now: new Date() })))));
+
   const reason = await step("first-draft", async () => {
     if (a.beforeRelease !== undefined) {
       await recordStage(a.siteId, FIRST_DRAFT_STAGE);
@@ -215,11 +229,11 @@ export async function runDeepPass(a: {
         console.warn(JSON.stringify({ event: "before_release_failed", siteId: a.siteId, detail: String(error) }));
       }
     }
-    // After the first draft, which commits from its own date where it ran,
-    // so Plan has a week before the first evening either way. Never holds
-    // the release.
+    // After the first draft, which commits from its own date where it ran, reading the same checks from the cache,
+    // so Plan has a week before the first evening either way. Never holds the release.
     try {
-      await planFirstWeek(a.siteId, new Date());
+      await planFirstWeek(a.siteId, new Date(), new Map(checks));
+      await (await import("../weekly/commit")).recordFirstWeek({ siteId: a.siteId, now: new Date(), rows, checks });
     } catch (error) {
       console.warn(JSON.stringify({ event: "first_week_not_planned", siteId: a.siteId, detail: String(error) }));
     }

@@ -53,11 +53,11 @@ export async function planWeek(siteId: string, a: { now?: Date; from?: string; r
   return Object.assign(entries, { rejected, rested });
 }
 
-/** A new site's first week, committed when setup's pass ends so Plan shows it before the first evening. Only where
- *  the site has no commit yet: a week the first draft already committed is never replaced. */
-export async function planFirstWeek(siteId: string, now: Date = new Date()): Promise<readonly PlanEntry[]> {
+/** A new site's first week, committed when setup's pass ends so Plan shows it before the first evening, filled by the
+ *  `research` checks as Monday's is. Only where the site has no commit yet: a week the first draft committed stands. */
+export async function planFirstWeek(siteId: string, now: Date = new Date(), research?: ReadonlyMap<string, ResearchRead | null>): Promise<readonly PlanEntry[]> {
   if ((await opportunityStore().plannedRows(siteId)).length > 0) return [];
-  return planWeek(siteId, { now });
+  return planWeek(siteId, { now, ...(research === undefined ? {} : { research }) });
 }
 
 /** The page a date's run writes: its planned row where it still stands, else the next spare; nothing ranks here. A date
