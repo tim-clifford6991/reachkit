@@ -539,7 +539,7 @@ export async function main(o: Options): Promise<number> {
     const change = was === undefined ? "new" : was.status !== row.status ? `${String(was.status)} → ${row.status}` : row.status;
     const volume = row.volume === null ? "no volume" : `${row.volume}/mo`;
     if (was !== undefined && was.status === row.status && was.volume === row.volume && row.status !== "open") continue;
-    say(`  ${change.padEnd(18)} ${row.target_query} — ${row.type}, ${volume}${row.unready_reason === "no_intent" || row.unready_reason === "low_fit" ? `, ${row.unready_reason}` : ""}${was !== undefined && was.volume !== row.volume ? " (volume read by this pass)" : ""}`);
+    say(`  ${change.padEnd(18)} ${row.target_query} — ${row.type}, ${volume}${["no_intent", "low_fit", "fit_unscored"].includes(String(row.unready_reason)) ? `, ${row.unready_reason}` : ""}${was !== undefined && was.volume !== row.volume ? " (volume read by this pass)" : ""}`);
   }
 
   const set = parsePromptSet(after.site.tracked_prompts);

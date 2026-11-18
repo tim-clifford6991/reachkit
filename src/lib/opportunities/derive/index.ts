@@ -327,23 +327,23 @@ export async function deriveOpportunities(
     await store.setBusinessFit(row.id, judged.fit, source, pageTypeOf({ ...row, source }));
     if (isNewPage(row)) await store.setEvidence(row.id, withFact(row, judged.fact).evidence);
   }
-  // A proposal is a write target only at the top fit: its search was never measured, so only its fit speaks for it.
+  // A proposal is a write target only at the top fit, as only its fit speaks for it; one the fit call left unanswered is kept unscored for the next pass, but an asked question, which the asked supply guards.
   const proposed: Candidate[] = [];
   // What buyers were seen asking below the top fit is still written; what was judged off the business never is.
   const spare: AskedSupply[] = [];
   const refused: string[] = [];
-  // A top-up search is measured and right-sized, so it is written at the gate, up to the rows the week lacks.
+  // A top-up search is measured and right-sized, so it is written at the gate, or unscored where the fit call gave none, up to the rows the week lacks.
   let lacking = WEEK_RESEARCH.rowsMax - have;
   for (const [index, topic] of proposals.entries()) {
     const judged = fits.get(judgedHere.length + unjudged.length + index);
     if (toppedUp.has(topic) && topUp !== undefined) {
       const source = (topic as TopUpTopic).topUp;
-      if (judged === undefined || judged.fit < TOPIC_FIT.gate) topUp.rejected.low_fit += 1;
+      if (judged !== undefined && judged.fit < TOPIC_FIT.gate) topUp.rejected.low_fit += 1;
       else if (lacking <= 0) topUp.rejected.not_needed += 1;
       else {
         const candidate = candidateFor(topic, { ...base, market, ownRanked });
         if (candidate === null) continue;
-        proposed.push(withFact({ ...candidate, businessFit: judged.fit, title: judged.title }, judged.fact));
+        proposed.push(judged === undefined ? { ...candidate, businessFit: null } : withFact({ ...candidate, businessFit: judged.fit, title: judged.title }, judged.fact));
         topUp.sources[source].added += 1;
         lacking -= 1;
       }
@@ -353,9 +353,9 @@ export async function deriveOpportunities(
       if (judged.fit >= TOPIC_FIT.gate) spare.push({ topic, fit: judged.fit, fact: judged.fact });
       else refused.push(topic.query);
     }
-    if (judged === undefined || judged.fit < TOPIC_FIT.writeAt) continue;
+    if (judged === undefined ? topic.asked !== undefined : judged.fit < TOPIC_FIT.writeAt) continue;
     const candidate = candidateFor(topic, { ...base, market, ownRanked });
-    if (candidate !== null) proposed.push(withFact({ ...candidate, title: judged.title }, judged.fact));
+    if (candidate !== null) proposed.push(judged === undefined ? { ...candidate, businessFit: null } : withFact({ ...candidate, title: judged.title }, judged.fact));
   }
 
   const labelled: Candidate[] = [];
