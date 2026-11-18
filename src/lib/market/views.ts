@@ -36,7 +36,7 @@
  *  (`src/lib/vendors/dataforseo/transport.ts`), so every organic row on it
  *  is a top-ten row. */
 export interface MarketSerpOrganic {
-  organic: readonly { domain: string }[];
+  organic: readonly { domain: string; url?: string }[];
 }
 
 /** One organic row, as the leaves that need a *rank* read it — the

@@ -293,7 +293,7 @@ describe("the transport sends only the paths the endpoint modules use (BUILD §6
   /** Every request an export makes, answered as the vendor does: a queued post is created, everything else answers. */
   const answering = () =>
     stubVendorFetch((request) => (request.url.endsWith("/task_post") ? taskCreated() : envelope(request.url.includes("/locations/") ? undefined : { items: [] })));
-  const urls = (stub: { requests: { method: string; url: string }[] }) => stub.requests.map((r) => `${r.method} ${r.url.replace("https://api.dataforseo.com", "")}`);
+  const urls = (stub: { requests: { method: string; url: string }[] }) => stub.requests.filter((r) => r.url.startsWith("https://api.dataforseo.com")).map((r) => `${r.method} ${r.url.replace("https://api.dataforseo.com", "")}`);
   const SCOPE = { site: "site-1" } as const;
   const soon = () => Date.now() + 20;
 

@@ -469,8 +469,8 @@ export function supabaseVerdictStore(): VerdictStore {
 
     async seenUrls(siteId) {
       const { data, error } = await untyped()
-        .from<{ serps: unknown; ranked: unknown; pages: unknown }>("scans")
-        .select("serps:report->serps, ranked:report->ownRankedRows, pages:report->pageQuestions->rows")
+        .from<{ serps: unknown; ranked: unknown; pages: unknown; domain: string }>("scans")
+        .select("domain, serps:report->serps, ranked:report->ownRankedRows, pages:report->pageQuestions->rows")
         .eq("site_id", siteId)
         .not("report", "is", null);
       if (error) throw new Error(`page_verdicts.seenUrls: ${error.message}`);
@@ -484,7 +484,7 @@ export function supabaseVerdictStore(): VerdictStore {
       const indexed = (inspected.data ?? [])
         .filter((row) => googleRead(readingOf(row.search_reading)?.google)?.indexed === true)
         .flatMap((row) => (row.live_url === null ? [] : [row.live_url]));
-      return [...new Set([...(data ?? []).flatMap(urlsIn), ...indexed])];
+      return [...new Set([...(data ?? []).flatMap((scan) => urlsIn(scan)), ...indexed])];
     },
 
     async recordIntent(a) {

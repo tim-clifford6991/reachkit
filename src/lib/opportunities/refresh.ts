@@ -540,7 +540,7 @@ export async function ownLivePages(siteId: string): Promise<OwnLivePage[]> {
       edited: typeof meta.first_edited_at === "string",
       ownFigures: statesOwnFigures(meta, publication.drafts?.body_md ?? ""),
       takenDown: takenDownByCustomer(publication.drafts?.transitions),
-      ...(seenUrls === null ? {} : { seen: indexStateOf([url, publication.live_url], seenUrls) === "seen" }),
+      ...((state) => (state === null ? {} : { seen: state === "seen" }))(seenUrls === null ? null : indexStateOf([url, publication.live_url], seenUrls)),
       ...(found === undefined ? {} : { found }),
       ...(readPlace === undefined ? {} : { readPlace }),
       readings: readings.get(publication.id) ?? [],

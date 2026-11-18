@@ -1,4 +1,4 @@
-// The daily check's Settings line: failed reads per read from `ops_events`, red at the threshold, "not measured" when the query gave nothing.
+// The daily check's Settings line: failed reads per read from `ops_events`, Google results that read as nothing among them, red at the threshold, "not measured" when the query gave nothing.
 //
 //   node scripts/daily-check/settings-reads.mjs --sql      prints the read-only query
 //   node scripts/daily-check/settings-reads.mjs < rows.json prints the report section
@@ -12,7 +12,7 @@ export const SETTINGS_READS_SQL = `select read,
   count(*) filter (where at > now() - interval '24 hours') as last_24h,
   count(*) as last_7d
 from ops_events
-where kind = 'settings_read_failed' and at > now() - interval '7 days'
+where kind in ('settings_read_failed', 'serp_unreadable') and at > now() - interval '7 days'
 group by read
 order by last_24h desc, last_7d desc, read;`;
 

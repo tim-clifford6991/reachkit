@@ -3,6 +3,7 @@
 // checks a fix page is decided from. A projection: nothing is measured or
 // re-counted, and a reading the week did not reach stays `unmeasured`.
 import { measured, measuredZero, unmeasured, type Measured } from "@/lib/measure/measured";
+import { knownPlaces } from "@/lib/measure/known-places";
 import { searchRowsFor, type SearchRows } from "@/lib/measure/page-reading";
 import type { StoredReport } from "@/lib/scan/report";
 import type { Barrier } from "../types";
@@ -21,9 +22,8 @@ export function weekMeasurementsFrom(a: {
    *  it tracks; on any other, a page no row holds is not measured. */
   withDemand?: readonly string[];
 }): WeekMeasurements {
-  const { report } = a;
+  const report = knownPlaces(a.report);
   const at = report.verdict.measuredAt;
-
   const positions = new Map<string, Measured<SearchRows>>();
 
   const questions = report.questions.kind === "unmeasured" ? [] : report.questions.value;

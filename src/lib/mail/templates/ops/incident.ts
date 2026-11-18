@@ -73,6 +73,8 @@ export type OpsIncident =
       fingerprint: string;
       sites: readonly { domain: string; from: string; before: readonly ReplanRow[]; after: readonly ReplanRow[]; unmeasured: readonly string[]; held: string | null }[];
     }
+  // No error: a Google result bought on the normal queue read as nothing. `wrapped`: its links are Google redirects; `empty`: no result where the last read had some.
+  | { occasion: "serp-unreadable"; cause: "wrapped" | "empty" }
   // No error: DataForSEO credit runs out within a week. Days left is null where last week's spend was not measured.
   | { occasion: "vendor-low"; balanceCents: number; daysLeft: number | null; dashboard: string };
 
@@ -98,6 +100,7 @@ const BODY: Readonly<Record<OpsIncident["occasion"], CopyKey>> = Object.freeze({
   "draft-stopped-twice": "mail.ops.incident.draft-stopped-twice",
   "vendor-low": "mail.ops.incident.vendor-low",
   "replan-committed": "ops.replan.committed",
+  "serp-unreadable": "ops.serp.unreadable",
 });
 
 /** A stopped page's sentence on one line, cut where a mail row stops being readable. */
@@ -192,6 +195,7 @@ function factsOf(incident: OpsIncident): FactRow[] {
       ]),
     ];
   }
+  if (incident.occasion === "serp-unreadable") return [{ label: "mail.ops.incident.fact.cause", value: closedName(incident.cause) }];
   if (incident.occasion === "market-too-small") {
     return [
       { label: "mail.ops.incident.fact.scan", value: closedId(incident.scanId) },

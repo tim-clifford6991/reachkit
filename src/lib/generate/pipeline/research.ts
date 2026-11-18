@@ -81,7 +81,7 @@ import { brandOf, GENERIC_TOKENS } from "@/lib/market/questions/select";
 import { topicWords } from "@/lib/opportunities/intent";
 import { queryKey } from "@/lib/opportunities/cluster";
 import { askedOfReport } from "@/lib/opportunities/derive/topics";
-import { isPlatformDomain, nameLetters, registrableDomain } from "@/lib/market/rivals/domains";
+import { googleWrapper, isPlatformDomain, nameLetters, registrableDomain } from "@/lib/market/rivals/domains";
 import type { Locale } from "@/lib/locale/locales";
 import type { NewsRow } from "@/lib/vendors/dataforseo/types";
 import { keywordOverview, serpNews, serpOrganic } from "@/lib/vendors/dataforseo";
@@ -698,13 +698,12 @@ async function recentPages(
   };
 }
 
-const googleRedirect = (url: string): boolean => /^(?:www\.)?google\.com$/.test(hostOf(url));
 type SerpRead = Parameters<typeof serpOrganic>[1];
 
 /** The target's SERP and its study or guidance search as research buys them: on the normal queue, since the live and
  *  high-priority ones link only Google's `goto` redirects. A draft's earlier job step posts the same reads. */
 export function researchSerps(a: { siteId: string; locale: Locale; target: string; guidance?: boolean; recent?: unknown }, waitMs = RESEARCH.queueWaitS * 1000): SerpRead[] {
-  const base = { locale: a.locale, mode: "std", unwrapped: true, untilMs: Date.now() + waitMs, loadAsyncAiOverview: false, scope: { site: a.siteId }, freshnessDays: CACHE_WINDOWS_D.serp } as const;
+  const base = { locale: a.locale, mode: "std", untilMs: Date.now() + waitMs, loadAsyncAiOverview: false, scope: { site: a.siteId }, freshnessDays: CACHE_WINDOWS_D.serp } as const;
   const language = languagePack(a.locale.language);
   const study = a.guidance === true ? language.guidanceSearch(a.target) : language.studySearch(a.target);
   return [{ ...base, query: a.target, questions: true }, ...(a.recent === undefined ? [{ ...base, query: study }] : [])];
@@ -716,7 +715,7 @@ async function askedBeside(c: CostContext, read: SerpRead): Promise<{ organic: s
   const serp = await serpOrganic(c, read);
   if (serp.kind === "unmeasured") return null;
   return {
-    organic: serp.value.organic.map((row) => row.url).filter((url) => !googleRedirect(url)),
+    organic: serp.value.organic.map((row) => row.url).filter((url) => googleWrapper(url) === null),
     peopleAlsoAsk: [...(serp.value.peopleAlsoAsk ?? [])],
     searches: [...new Set((serp.value.relatedSearches ?? []).map((search) => search.trim().toLowerCase()))],
   };
@@ -874,7 +873,7 @@ export async function researchMarket(
     if (serp.kind !== "unmeasured") {
       for (const row of serp.value.organic) {
         const host = hostOf(row.url);
-        if (!notOurs(row.url) || googleRedirect(row.url) || taken.has(row.url) || rivalDomains.some((rival) => sameSite(host, rival))) continue;
+        if (!notOurs(row.url) || googleWrapper(row.url) !== null || taken.has(row.url) || rivalDomains.some((rival) => sameSite(host, rival))) continue;
         studyUrls.push(row.url);
       }
     }

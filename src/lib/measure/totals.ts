@@ -2,6 +2,7 @@
 // page ReachKit published has shown up for, and pages published, each counted
 // "so far" from stored rows, so a total can only stay or rise. Overview and the
 // Monday mail read the same function. Pure: rows in, totals out.
+import { hidesOwnPage } from "@/lib/market/rivals/domains";
 import { addressOf } from "./page-reading";
 
 /** Google's first ten pages of results: the deepest place a search counts at. */
@@ -78,6 +79,12 @@ export function googleSearchesOf(pass: TotalsPass, addresses: ReadonlySet<string
   return found;
 }
 
+/** Whether a pass read a result behind a Google redirect that may be one of the site's pages: its week is not counted. */
+function hidesOwn(pass: TotalsPass, own: string): boolean {
+  const serps = (Array.isArray(pass.serps) ? pass.serps : []).map((serp) => (valueOf(serp) as Row | null)?.organic);
+  return [...serps, ...rowsOf((pass.pageQuestions as Row | null)?.rows).map((row) => row.organic)].some((rows) => hidesOwnPage(rowsOf(rows), own));
+}
+
 function live(pages: readonly TotalsPage[], at: string): Set<string> {
   const t = Date.parse(at);
   return new Set(
@@ -107,7 +114,7 @@ export function totalsOf(a: { passes: readonly TotalsPass[]; pages: readonly Tot
   const seen = new Set<string>();
   const google = passes.map((pass) => {
     const addresses = live(a.pages, pass.at);
-    if (addresses.size === 0) return { week: pass.weekStart, n: null };
+    if (addresses.size === 0 || hidesOwn(pass, [...addresses][0]!)) return { week: pass.weekStart, n: null };
     const before = seen.size;
     for (const search of googleSearchesOf(pass, addresses)) seen.add(search);
     return { week: pass.weekStart, n: seen.size - before };

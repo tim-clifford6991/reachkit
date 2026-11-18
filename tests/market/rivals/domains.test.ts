@@ -5,6 +5,10 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { knownPlaces } from "../../../src/lib/measure/known-places";
+import { unmeasured } from "../../../src/lib/measure/measured";
+import { placeOf, searchRowsFor } from "../../../src/lib/measure/page-reading";
+import { topTensOf } from "../../../src/lib/opportunities/cluster";
 import {
   isJobRow,
   isOccupationTitle,
@@ -241,5 +245,17 @@ describe("a result behind a Google redirect is resolved to its site or read as n
     const stored = JSON.parse(readFileSync(path.resolve(import.meta.dirname, "fixtures/au-baker-d149c119.json"), "utf8")) as { organic: { domain: string; url: string }[] };
     expect(resolvedOf(stored.organic).map((row) => row.domain)).toEqual(["www.yourcareer.gov.au", "en.wikipedia.org", "bakingcareer.com.au"]);
     expect(resolvedRows(stored.organic)).toBeNull();
+  });
+
+  it("a stored top ten of goto rows names no google.com, never says the site's own page is absent, and joins no two searches", () => {
+    const at = new Date("2026-11-13T00:00:00Z");
+    const goto = (position: number, domain: string) => ({ position, domain, url: `https://google.com/goto?url=CAES${position}`, title: "" });
+    // As stored before the site was resolved (`google.com`) and after it (the real host); one row is the customer's own.
+    const serp = { kind: "measured" as const, value: { organic: [goto(1, "google.com"), goto(2, "rival.com"), goto(3, "customer.com")] }, at };
+    const questions = { kind: "measured" as const, value: [{ search: { keyword: "crm" } }, { search: { keyword: "crm software" } }], at };
+    const report = { domain: "customer.com", questions, serps: [serp, serp], ownRanked: unmeasured<number>("not_attempted", at), ownRankedRows: [], pageQuestions: null, verdict: { measuredAt: at } };
+    expect(resolvedOf(serp.value.organic).map((row) => row.domain)).toEqual(["rival.com", "customer.com"]);
+    expect(placeOf(searchRowsFor(knownPlaces(report), "crm", { tracked: false }), ["https://customer.com/crm"]).kind).toBe("unmeasured");
+    expect(topTensOf(report as never).size).toBe(0);
   });
 });

@@ -5,7 +5,7 @@ import { PRICE_WORDS } from "@/lib/locale/language";
 import { SAME_TOPIC_SHARED_ADDRESSES, TOPIC_FIT } from "@/lib/config/constants";
 import { marketTokens, type MarketWords } from "@/lib/market/infer/terms";
 import { GENERIC_TOKENS, ownBrandTokens, stemKey } from "@/lib/market/questions/select";
-import { registrableDomain } from "@/lib/market/rivals/domains";
+import { googleWrapper, registrableDomain, resolvedOf } from "@/lib/market/rivals/domains";
 import { canonicalUrl } from "@/lib/measure/page-reading";
 import type { StoredReport } from "@/lib/scan/report";
 import type { Candidate } from "./derive/candidate";
@@ -26,21 +26,21 @@ export function topTenRowsOf(
   report.questions.value.forEach((question, index) => {
     const serp = report.serps?.[index];
     if (serp === undefined || serp.kind !== "measured") return;
-    const rows = serp.value.organic.slice(0, 10).map(({ domain, url, title }) => ({ domain, url, title }));
+    const rows = resolvedOf(serp.value.organic.slice(0, 10)).map(({ domain, url, title }) => ({ domain, url, title }));
     if (rows.length > 0) topTens.set(queryKey(question.search.keyword), { rows, localPack: (serp.value.localPack ?? []).length > 0 });
   });
   return topTens;
 }
 
 /** The top ten a report bought for each of its questions, as canonical addresses, keyed by `queryKey`. A question
- *  whose SERP is unmeasured has none. */
+ *  whose SERP is unmeasured has none, and a row behind a Google redirect has no address to share. */
 export function topTensOf(report: Pick<StoredReport, "questions" | "serps">): Map<string, readonly string[]> {
   const topTens = new Map<string, readonly string[]>();
   if (report.questions?.kind !== "measured") return topTens;
   report.questions.value.forEach((question, index) => {
     const serp = report.serps?.[index];
     if (serp === undefined || serp.kind !== "measured") return;
-    const urls = serp.value.organic.slice(0, 10).map((row) => canonicalUrl(row.url));
+    const urls = serp.value.organic.slice(0, 10).filter((row) => googleWrapper(row.url) === null).map((row) => canonicalUrl(row.url));
     if (urls.length > 0) topTens.set(queryKey(question.search.keyword), urls);
   });
   return topTens;

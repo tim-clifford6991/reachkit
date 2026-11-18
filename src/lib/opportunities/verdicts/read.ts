@@ -103,7 +103,7 @@ export interface DigestPage extends PageStanding {
   readonly targetQuery: string | null;
   /** Issue 1538: whether any stored SERP or ranked row held the page.
    *  Absent where the rows could not be read: nothing is then said. */
-  readonly indexState?: IndexState;
+  readonly indexState?: IndexState | null;
 }
 
 /** What the Monday mail reads (REQ-063 c4): the surface's standings, each page's address and search, and the
