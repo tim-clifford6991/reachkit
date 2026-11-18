@@ -30,6 +30,7 @@ export async function main(a: { domain: string; from: string | null; apply: bool
   console.log(`\n${a.domain} from ${plan.from}. Unmeasured in its stored pass: ${plan.unmeasured.join(", ") || "none"}.`);
   for (const [name, week] of [["Committed now", plan.before], ["Re-planned", plan.after]] as const) console.log(`\n${name}:\n${table(week)}`);
   if (plan.held !== null) console.log(`\nThe tick would hold this week: ${plan.held}.`);
+  if (plan.empty !== null) console.log(`\nNo day is dated; the tick would claim it empty. Not ready: ${JSON.stringify(plan.empty)}.`);
   if (!a.apply) return 0;
   console.log(`\nCommitted ${await applyReplan(site.id, plan.from, a.now)} rows from ${plan.from}.`);
   return 0;

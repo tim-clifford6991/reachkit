@@ -51,7 +51,7 @@ const events = (kind: string) => db.rows("ops_events").filter((row) => row.kind 
 
 it("re-commits the week once per planner, after an apply cut short too, and tells the owner once, with the committed week as it stood", async () => {
   const handSet = (await opportunityStore().plannedRows(SITE_ID)).find((row) => row.planned_for === "2026-10-20")!;
-  expect(await tick(0).catch(() => tick(1))).toEqual({ replanned: [SITE_ID], held: [] });
+  expect(await tick(0).catch(() => tick(1))).toEqual({ replanned: [SITE_ID], held: [], empty: [] });
   expect(await tick(1)).toBeNull();
   expect([commits, mails.length, events("week_replanned").length, events("week_replan_told").length]).toEqual([1, 1, 1, 1]);
   expect(mails[0]).toContain(`2026-10-20 · ${handSet.target_query}`);

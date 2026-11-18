@@ -13,13 +13,14 @@ export const OPS_COPY = Object.freeze({
   "ops.cost-drift.fact.estimated": ["Estimated for the same calls", { slots: {}, fixedBy: "owner ruling W1, 2026-10-20 (drafted)" }],
   "ops.cost-drift.fact.ratio": ["Billed / estimated", { slots: {}, fixedBy: "owner ruling W1, 2026-10-20 (drafted)" }],
   "ops.replan.committed": [
-    "A deploy changed how weeks are chosen, and each paying site's week has been re-planned from its next unwritten day. The committed week and the new one are below, for information. A held site keeps its committed week.",
+    "A deploy changed how weeks are chosen, and each paying site's week has been re-planned from its next unwritten day. The committed week and the new one are below, for information. A held site keeps its committed week, and so does a site with no week, which the next planner tries again.",
     { slots: {}, fixedBy: "owner ruling, 2026-11-16, issue 2726 (drafted)" },
   ],
   "ops.replan.fact.planner": ["Planner", { slots: {}, fixedBy: "owner ruling, 2026-11-16, issue 2726 (drafted)" }],
   "ops.replan.fact.from": ["Re-planned from", { slots: {}, fixedBy: "owner ruling, 2026-11-16, issue 2726 (drafted)" }],
   "ops.replan.fact.unmeasured": ["Not measured in the stored pass", { slots: {}, fixedBy: "owner ruling, 2026-11-16, issue 2726 (drafted)" }],
   "ops.replan.fact.held": ["Held, the committed week stands", { slots: {}, fixedBy: "owner ruling, 2026-11-16, issue 2726 (drafted)" }],
+  "ops.replan.fact.empty": ["No week, its rows not ready by reason", { slots: {}, fixedBy: "owner ruling 11, 2026-11-18, issue 2817 (drafted)" }],
   "ops.replan.fact.committed": ["Committed before", { slots: {}, fixedBy: "owner ruling, 2026-11-16, issue 2726 (drafted)" }],
   "ops.replan.fact.replanned": ["Committed now", { slots: {}, fixedBy: "owner ruling, 2026-11-16, issue 2726 (drafted)" }],
   "ops.serp.unreadable": [
