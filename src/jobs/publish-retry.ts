@@ -43,9 +43,9 @@
 // `publishApproved()`, inside the kill switch's scope. Which windows have
 // run out is `publish/attempt/window.ts`'s, not this file's.
 //
-// **It first re-reads the live pages** (SPEC §7, issue 1485): a page written
-// before the rival rules that fails them is withdrawn before anything is
-// attempted. 0¢, and a tick that withdraws a page has run.
+// **After the hour's publishes it re-reads the live pages** (SPEC §7, issue
+// 1485): a page written before the rival rules that fails them is withdrawn.
+// 0¢, and a tick that withdraws a page has run.
 //
 // **Then it finishes any retarget's move** (SPEC §7, issue 1487): a hosted
 // page whose new search names another address is moved there, and its old
@@ -68,22 +68,22 @@ export const publishRetry: JobDefinition = {
   trigger: { kind: "cron", cron: PUBLISH_RETRY_TICK_CRON },
   idempotencyKey: [],
   async run(input): Promise<Outcome> {
-    const { withdrawn } = await recheckLivePages(input.now);
-    const { moved } = await repairMovedPages(input.now);
-    // A live check whose request was lost at delivery is asked for again; the receiving job's key keeps it to one.
-    await requestDueChecks(input.now);
     const retries = await duePublishRetries(input.now);
     const approvals = await duePublishApprovals(input.now);
     // One attempt per page per tick: a page is in `failed` or waiting on its
     // window, never both, but the tick does not rest on that.
     const seen = new Set(retries.map((page) => page.draftId));
     const due = [...retries, ...approvals.filter((page) => !seen.has(page.draftId))];
+    // Due pages go first so a slow re-check cannot run the hour out before they publish.
+    const results = await fanOut(due, (page) => publishApproved(page));
+    const { withdrawn } = await recheckLivePages(input.now);
+    const { moved } = await repairMovedPages(input.now);
+    // A live check whose request was lost at delivery is asked for again; the receiving job's key keeps it to one.
+    await requestDueChecks(input.now);
     // An hour with nothing due is the ordinary case and is recorded as
     // such — never as a run, which would make the observability line say
     // work happened on every hour of every day.
     if (due.length === 0) return withdrawn + moved > 0 ? { outcome: "ran", subjectId: null } : { outcome: "skipped", subjectId: null, reason: "not-due" };
-
-    const results = await fanOut(due, (page) => publishApproved(page));
     return settle(results, null);
   },
 };
