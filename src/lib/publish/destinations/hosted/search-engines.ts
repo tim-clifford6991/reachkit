@@ -17,7 +17,7 @@
 // Without credentials steps 1 and 4 still run, so the ladder shows what ReachKit can prove. 0¢: every call is free.
 // It never throws: a refusal or failed read stores its reason on each hosted page, logs it once per host, and the verdicts and mail still run.
 import { SEARCH_READING_WINDOW_D, GSC_PROPERTIES_PER_ACCOUNT } from "@/lib/config/constants";
-import { gscAccounts, gscClient, type GscAccount, type GscSend } from "@/lib/vendors/gsc";
+import { gscClient, gscPool, type GscAccount, type GscRefusal, type GscSend } from "@/lib/vendors/gsc";
 import { knownPlaces } from "@/lib/measure/known-places";
 import { addressOf as pageAddress, assembleReading, engineReadingOf, pageSearchOf, readingOf, type GoogleReading, type GoogleUnread } from "@/lib/measure/page-reading";
 import { readStoredReport, type StoredReport } from "@/lib/scan/report";
@@ -91,26 +91,29 @@ async function readGoogle(a: {
   siteUrl: string;
   pages: readonly { url: string; search: string | null }[];
   now: Date;
-  accounts: readonly GscAccount[];
+  pool: { entries: number; accounts: readonly GscAccount[] };
   send?: GscSend;
+  onRefused: (refusal: GscRefusal) => void;
   verification: SearchVerification;
   save: () => Promise<void>;
   /** Puts back the addresses Google still shows; returns each moved page's new address by its old one. */
   restore: (totals: readonly { page: string; impressions: number }[]) => Promise<ReadonlyMap<string, string>>;
 }): Promise<Map<string, GoogleReading> | GoogleUnread> {
-  if (a.accounts.length === 0) return "no_credentials";
+  const { entries, accounts } = a.pool;
+  if (accounts.length < entries) log("gsc_key_unreadable", { entries, usable: accounts.length });
+  if (entries === 0) return "no_credentials";
+  if (accounts.length === 0) return "bad_credentials";
   let held = a.verification.google;
-  let account = a.accounts.find((candidate) => candidate.client_email === held?.account) ?? null;
-  if (held === undefined || account === null) {
-    account = await pickAccount(a.accounts);
-    if (account === null) return "pool_full";
-    const token = await gscClient(account, a.send).metaToken(a.siteUrl);
+  const account = accounts.find((candidate) => candidate.client_email === held?.account) ?? (await pickAccount(accounts));
+  if (account === null) return "pool_full";
+  const client = gscClient(account, a.send, a.onRefused);
+  if (held === undefined || held.account !== account.client_email) {
+    const token = await client.metaToken(a.siteUrl);
     if (token === null) return "no_token";
     held = { account: account.client_email, token };
     a.verification.google = held;
     await a.save();
   }
-  const client = gscClient(account, a.send);
   if (held.verifiedAt === undefined) {
     if (!(await client.verify(a.siteUrl))) return "verify_refused";
     held.verifiedAt = a.now.toISOString();
@@ -217,6 +220,7 @@ export async function readSearchEngines(a: { siteId: string; now: Date; deps?: S
     // Every live hosted page ends the pass with a reading or the reason it has none.
     let google: Map<string, GoogleReading> | GoogleUnread = "not_in_property";
     let restored: ReadonlyMap<string, string> = new Map();
+    let refusal: GscRefusal | undefined;
     const siteUrl = host === null || host === "" ? null : `https://${host}/`;
     if (destination !== undefined && siteUrl !== null) {
       const verification: SearchVerification = { ...(destination.search_verification ?? {}) };
@@ -227,8 +231,9 @@ export async function readSearchEngines(a: { siteId: string; now: Date; deps?: S
         siteUrl,
         pages: pages.filter((page) => page.live_url.startsWith(siteUrl)).map((page) => ({ url: page.live_url, search: searchOf(page) })),
         now: a.now,
-        accounts: deps.accounts ?? gscAccounts(),
+        pool: deps.accounts === undefined ? gscPool() : { entries: deps.accounts.length, accounts: deps.accounts },
         ...(deps.gscSend === undefined ? {} : { send: deps.gscSend }),
+        onRefused: (last) => (refusal = last),
         verification,
         save,
         // A failed restore leaves the week's Google reading standing.
@@ -246,8 +251,8 @@ export async function readSearchEngines(a: { siteId: string; now: Date; deps?: S
       const reason = googleOf(page)?.unread;
       if (reason !== undefined) unread.set(reason, (unread.get(reason) ?? 0) + 1);
     }
-    for (const [reason, count] of unread) log("search_engine_unread", { reason, host, siteId: a.siteId, pages: count });
-    if (typeof google !== "string") log("search_engine_read", { host, siteId: a.siteId, pages: google.size });
+    for (const [reason, count] of unread) log("search_engine_unread", { reason, host, siteId: a.siteId, pages: count, ...refusal });
+    if (typeof google !== "string") log("search_engine_read", { host, siteId: a.siteId, pages: google.size, ...refusal });
 
     const { data: scans } = await db
       .from<{ report: unknown }>("scans")

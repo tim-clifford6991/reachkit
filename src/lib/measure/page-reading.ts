@@ -212,7 +212,7 @@ export interface EngineReading {
 }
 
 /** Why Google was not read for a page this week. */
-export const GOOGLE_UNREAD = ["no_credentials", "pool_full", "no_token", "verify_refused", "sitemap_refused", "performance_unread", "inspect_unread", "not_in_property", "property_new"] as const;
+export const GOOGLE_UNREAD = ["no_credentials", "bad_credentials", "pool_full", "no_token", "verify_refused", "sitemap_refused", "performance_unread", "inspect_unread", "not_in_property", "property_new"] as const;
 export type GoogleUnread = (typeof GOOGLE_UNREAD)[number];
 
 /** A reason is not a reading: it carries no impressions, clicks or place, only URL Inspection's facts where they were read. */

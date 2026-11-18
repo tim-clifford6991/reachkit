@@ -1,7 +1,7 @@
 // scripts/search-history/run.ts — `npm run search-history`: each live hosted page's weeks on its own search, from
 // Search Console's history (up to 16 months, including the months before the property was verified). Read-only: it
 // selects rows and asks Google, and writes nothing. 0¢.
-import { gscAccounts, gscClient, type GscSend } from "@/lib/vendors/gsc";
+import { gscClient, gscPool, type GscSend } from "@/lib/vendors/gsc";
 import { pageSearchOf } from "@/lib/measure/page-reading";
 import { publishDb } from "@/lib/publish/db";
 import type { SearchVerification } from "@/lib/publish/destinations/hosted/search-engines";
@@ -38,7 +38,7 @@ export async function main(a: { site: string; now: Date; send?: GscSend; out?: (
     .limit(1);
   const destination = destinations?.[0];
   const held = destination?.search_verification?.google;
-  const account = gscAccounts().find((candidate) => candidate.client_email === held?.account);
+  const account = gscPool().accounts.find((candidate) => candidate.client_email === held?.account);
   if (destination?.hostname_state !== "live" || destination.hostname === null) return (out(`${a.site} has no live hosted host.`), 1);
   if (account === undefined || held?.verifiedAt === undefined) {
     return (out(`${destination.hostname} is not read: ${account === undefined ? "no key for its Search Console account" : "not verified yet"}.`), 1);

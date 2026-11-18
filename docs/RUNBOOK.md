@@ -206,8 +206,7 @@ So the way to run one by hand is **the Inngest dashboard**, on the `reachkit` ap
 - **An event job**: send the event with its payload, or *Replay* a past run. The payload keys are
   the job's `idempotencyKey` in `src/jobs/*.ts` — `scan/run` takes `scanId`, `publish/execute`
   takes `draftId` and `destinationId`, `publish/verify` takes `publicationId`, `scan/finish-reads`
-  takes `scanId`. A delivery is
-  deduplicated on those keys, so re-sending the same one is a no-op rather than a second run.
+  takes `scanId`. A delivery is deduplicated on those keys, so re-sending the same one is a no-op rather than a second run.
 - **Next week's pass for one site, run now.** The owner sends `weekly/refresh/subject` from the
   Inngest dashboard with `{siteId, domain, zone, weekStart: <the site's next local Monday,
   YYYY-MM-DD>, at: <now, ISO>, early: true, key: "weekly:<siteId>:<weekStart>:early"}`. It is that
@@ -220,11 +219,6 @@ So the way to run one by hand is **the Inngest dashboard**, on the `reachkit` ap
   Monday, not from the first unwritten date.
 - **`publish/verify` sleeps 24 hours** before its body, by design. Invoking it is not a way to
   check a page now.
-
-**Nothing ticks until the Inngest app is registered.** As of 2026-09-09 the owner still owes:
-create the app, paste `INNGEST_SIGNING_KEY` and `INNGEST_EVENT_KEY` on both Vercel targets, and
-sync the functions from `https://reachkit.app/api/jobs` (#315). Until then the crons do not run
-and the only sign is their absence.
 
 ### Reading what a job did
 
@@ -247,6 +241,12 @@ Routes log the same way: `{"event":"request","routeId":…,"status":…,"duratio
 one exists, `scanId` (`src/app/api/_log.ts`). Vercel's runtime logs are the only place these go —
 there is no log sink, no APM and no error tracker.
 
+The weekly search step: `gsc_key_unreadable {entries, usable}` counts `GOOGLE_SEARCH_CONSOLE_KEYS` entries that are not a
+service-account key whose `private_key` loads; none usable stores `bad_credentials` (`no_credentials` is the binding unset).
+`search_engine_unread` and `search_engine_read` carry the last refused call's `step` (`token`, `verify`, `add`, `sitemap`,
+`analytics`, `inspect`), `status` and `googleReason`: `SERVICE_DISABLED` the API is off in the key's Cloud project,
+`PERMISSION_DENIED` the account does not own the property, `RESOURCE_EXHAUSTED` quota, `invalid_grant`/`invalid_client` a bad key.
+
 ### Is it firing?
 
 The heartbeat (#799) answers this without the Inngest dashboard or a Vercel log query. Every
@@ -263,7 +263,7 @@ from job_runs order by last_run_at;
 |---|---|
 | every cron job within its interval (`account/maintenance` 15 min, the other five 60 min) | the crons fire; `skipped` is a tick with nothing due, not a fault |
 | one job far behind the others | that function stopped — check it is synced on the `reachkit` app in Inngest |
-| every row old, or the table empty | nothing is firing: the app is not registered or synced, or `/api/jobs` is not answering (*Running one by hand*, #315) |
+| every row old, or the table empty | nothing is firing: the app is not synced, or `/api/jobs` is not answering |
 | a job with no row at all | it has never run against this database — an event job nobody has sent yet, or a cron that never fired |
 
 **The stale-job alert.** After recording its own run, each invocation reads the other rows. A
