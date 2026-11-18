@@ -13,21 +13,25 @@ interface WaitingRow {
 
 /** The customer's restart, or a row with no moves older than any live run. */
 export function waitingForRun(row: WaitingRow, now: Date): "restart" | "interrupted" | null {
-  const moves: unknown[] = Array.isArray(row.transitions) ? row.transitions : [];
-  const last = moves[moves.length - 1] as { from?: unknown; to?: unknown } | null | undefined;
+  const last = lastMove(row);
   if (last?.from === "needs_attention" && last?.to === "generating") return "restart";
-  if (moves.length > 0) return null;
+  if (last !== undefined) return null;
   return now.getTime() - Date.parse(row.created_at) > RUN_FLOOR_MS ? "interrupted" : null;
 }
 
-/** `rewrite` a restart; `mark` (then rewrite) an interrupted row once while its date is still to come; else `stop`. */
+function lastMove(row: WaitingRow): { from?: unknown; to?: unknown; at?: unknown } | null | undefined {
+  return Array.isArray(row.transitions) ? row.transitions.at(-1) : undefined;
+}
+
+/** `rewrite` a restart until it has waited a run's floor (its research still pending), then `stop`; `mark` (then rewrite) an interrupted row once while its date is still to come; else `stop`. */
 export function owedToRow(
   row: WaitingRow & { readonly meta: unknown; readonly scheduled_for: string | null },
   now: Date,
   zone: string | null | undefined
 ): "rewrite" | "mark" | "stop" | null {
   const waiting = waitingForRun(row, now);
-  if (waiting !== "interrupted") return waiting === "restart" ? "rewrite" : null;
+  if (waiting === "restart") return now.getTime() - Date.parse(String(lastMove(row)?.at)) > RUN_FLOOR_MS ? "stop" : "rewrite";
+  if (waiting !== "interrupted") return null;
   if (REWRITTEN in carriedMark(row.meta)) return "stop";
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: zone ?? "UTC" }).format(now);
   return row.scheduled_for !== null && row.scheduled_for < today ? "stop" : "mark";
