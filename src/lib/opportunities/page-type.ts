@@ -26,8 +26,6 @@ import { FAMILY_OF, isRetarget, type Opportunity, type PageType } from "./types"
 
 export type { PageType };
 
-export const PAGE_TYPES: readonly PageType[] = Object.freeze(["product", "market_comparison", "answer"]);
-
 /** A search anchored on a product by its own words, whatever source it was
  *  found through — an AI-answer gap for "acme alternatives" is still a page
  *  about the product. */

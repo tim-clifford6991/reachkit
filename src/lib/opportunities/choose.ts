@@ -1,11 +1,12 @@
-// SPEC §7 (owner, 2026-10-19, issue 1559) — the week a weekly pass commits, chosen from what the store holds and
-// nothing else. Pure: the same rows choose the same week, which is what the golden plans hold it to.
-import { KNOWN_CONTENT, WEEK_PLAN } from "@/lib/config/constants";
+// SPEC §7: the week a pass commits, from stored rows alone and pure, so the golden plans can hold it.
+import { KNOWN_CONTENT, WEEK_PLAN, WEEK_RESEARCH } from "@/lib/config/constants";
+import { meetsStandard, type ResearchRead } from "@/lib/generate/standard";
 import { closestKnown, pageScore } from "@/lib/known-content/match";
 import type { KnownPage } from "@/lib/known-content/types";
 import { SHAPES } from "@/lib/locale/language";
 import { canonicalUrl } from "@/lib/measure/page-reading";
 import { oneQuestion, queryKey, shareATopTen } from "./cluster";
+import { contentTypeOf } from "./content-type";
 import { asUpdate, tooYoungToRefresh, updateColumns } from "./derive/known";
 import { placeFixPages, rankingOf, type RankLoad, type Rejection } from "./rank/open";
 import type { OwnLivePage } from "./refresh";
@@ -19,20 +20,21 @@ export interface ChooseInput extends RankLoad {
   /** The first date the week writes, `YYYY-MM-DD`. */
   from: string;
   days?: number; // dated days the week holds, `WEEK_PLAN.days` where absent
+  /** The cached research of the best-ranked rows; absent, the order is the ranking's. */
+  research?: ReadonlyMap<string, ResearchRead | null>;
 }
 
 export interface Choice {
-  /** The next `WEEK_PLAN.days` pages, one a day from `from`, then
-   *  `WEEK_PLAN.spares` spares, each with its points and the rule that placed it. */
   committed: PlanEntry[];
-  /** Every other open row, with why it is not in the week. */
-  rejected: { opportunityId: string; reason: Rejection | "after_the_week" | "same_topic" | "live_twin" }[];
+  rejected: { opportunityId: string; reason: Rejection | "after_the_week" | "same_topic" | "live_twin" | "short" }[];
 }
+
+const TIERS = ["met", "at_margin", "queued", "short"] as const;
 
 export function choose(input: ChooseInput): Choice {
   const ranking = rankingOf(input);
   const rejected: Choice["rejected"] = [...ranking.rejected];
-  const ranked = oneTopicEach(placeFixPages(ranking.scored, ranking.fixes, ranking.rotation), input, rejected);
+  const ranked = byResearch(oneTopicEach(placeFixPages(ranking.scored, ranking.fixes, ranking.rotation), input, rejected), input);
   const first = Math.floor(Date.parse(`${input.from}T00:00:00Z`) / DAY_MS);
   const days = input.days ?? WEEK_PLAN.days, depth = days + WEEK_PLAN.spares;
   return {
@@ -44,8 +46,28 @@ export function choose(input: ChooseInput): Choice {
       reason: entry.reason,
       ...(entry.set === undefined ? {} : { set: entry.set }),
     })),
-    rejected: [...rejected, ...ranked.slice(depth).map((entry) => ({ opportunityId: entry.opportunityId, reason: "after_the_week" as const }))],
+    rejected: [...rejected, ...ranked.slice(depth).map((entry) => ({ opportunityId: entry.opportunityId, reason: entry.reason.research?.state === "short" ? ("short" as const) : ("after_the_week" as const) }))],
   };
+}
+
+/** SPEC §7: the best-ranked rows in `TIERS` order of what their research holds, rank order inside each; a type with no
+ *  pass mark at the commit, or a row with no read, is researched. */
+function byResearch(ranked: Joined[], input: ChooseInput): Joined[] {
+  if (input.research === undefined) return ranked;
+  const rows = new Map(input.rows.map((row) => [row.id, readOpportunity(row)]));
+  const head = ranked.slice(0, WEEK_RESEARCH.rowsMax).map((entry): Joined => {
+    const o = rows.get(entry.opportunityId), read = input.research!.get(entry.opportunityId);
+    const type = entry.set?.type === undefined && o !== undefined ? (entry.writeAs ?? contentTypeOf(o)) : null;
+    const demand = (o?.volume?.kind ?? "unmeasured") === "unmeasured" && (type === "documentation" || type === "offering");
+    const standard = read === undefined || type === null ? { parts: [], met: true, pending: false } : meetsStandard({ type, read, demand });
+    // The margin is the commit's alone: the draft and the rules hold a page to the pass mark.
+    const roomy = standard.parts.every((part) => (part.part !== "sources" && (part.part !== "sections" || type !== "qa")) || part.have! - part.need >= WEEK_RESEARCH.margin);
+    const state = standard.pending ? "queued" : !standard.met ? "short" : roomy ? "met" : "at_margin";
+    const words = standard.parts.find((part) => part.part === "words")?.have ?? null;
+    return { ...entry, reason: { ...entry.reason, research: { state, R: read?.R ?? null, Q: read?.Q ?? null, F: read?.F ?? null, estWords: words, urls: read?.urls ?? [] } } };
+  });
+  const tier = (entry: Joined) => TIERS.indexOf(entry.reason.research?.state ?? "met");
+  return [...head.sort((a, b) => tier(a) - tier(b)), ...ranked.slice(WEEK_RESEARCH.rowsMax)];
 }
 
 type Joined = Ranked & Pick<PlanEntry, "set">;

@@ -36,6 +36,6 @@ export async function main(a: { domain: string; from: string | null; apply: bool
 }
 
 function table(week: readonly WeekRow[]): string {
-  const rows = week.map((row) => `| ${row.date ?? "spare"} | ${row.search ?? "—"} | ${row.page} | ${row.type} | ${row.points ?? "—"} |`);
-  return ["| Day | Search | Page | Type | Points |", "|---|---|---|---|---|", ...rows].join("\n");
+  const rows = week.map((row) => `| ${row.date ?? "spare"} | ${row.search ?? "—"} | ${row.page} | ${row.type} | ${row.points ?? "—"} | ${row.state ?? "—"} |`);
+  return ["| Day | Search | Page | Type | Points | Research |", "|---|---|---|---|---|---|", ...rows].join("\n");
 }

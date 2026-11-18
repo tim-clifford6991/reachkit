@@ -19,7 +19,7 @@ import { publishDateAtOrAfter } from "@/lib/publish/settings/clock";
 import { planWeek } from "@/lib/opportunities/plan";
 import { firstOpenDay } from "@/lib/opportunities/rank/open";
 import { opportunityStore, storeScope, type OpportunityRow, type OpportunityStore } from "@/lib/opportunities/store";
-import type { UnreadyReason, Winnability } from "@/lib/opportunities/types";
+import type { PlanReason, UnreadyReason, Winnability } from "@/lib/opportunities/types";
 
 /** Per site: its `from`, `held` or `no-week`. */
 const KIND = "week_replanned";
@@ -49,6 +49,8 @@ export interface WeekRow {
   page: "new" | "update";
   type: string;
   points: number | null;
+  /** What the commit read of its research (`met`, `at_margin`, `queued`, `short`); `null` where none was read. */
+  state: string | null;
 }
 
 export interface Replan {
@@ -161,10 +163,10 @@ export async function dryReplan(
     siteId,
     fingerprint: a.fingerprint,
     from,
-    before: before.map((row) => weekRow(row, row.planned_for ?? null, row.plan_reason?.points ?? null)),
+    before: before.map((row) => weekRow(row, row.planned_for ?? null, row.plan_reason ?? null)),
     after: entries.flatMap((entry) => {
       const row = rows.get(entry.opportunityId);
-      return row === undefined ? [] : [weekRow(row, entry.plannedFor, entry.reason.points)];
+      return row === undefined ? [] : [weekRow(row, entry.plannedFor, entry.reason)];
     }),
     unmeasured: report === null ? ["report"] : [...unmeasuredPartsOf(report)],
     held: null,
@@ -180,8 +182,8 @@ export async function applyReplan(siteId: string, from: string, now: Date): Prom
   return (await planWeek(siteId, { now, from })).length;
 }
 
-function weekRow(row: OpportunityRow, date: string | null, points: number | null): WeekRow {
-  return { date, search: row.target_query, page: row.family === "improve" ? "update" : "new", type: row.type, points };
+function weekRow(row: OpportunityRow, date: string | null, reason: PlanReason | null): WeekRow {
+  return { date, search: row.target_query, page: row.family === "improve" ? "update" : "new", type: row.type, points: reason?.points ?? null, state: reason?.research?.state ?? null };
 }
 
 // The store's reads, which a dry run passes through; anything else it is asked is a write, and it refuses one it does not hold.
@@ -190,7 +192,7 @@ const READS = new Set<keyof OpportunityStore>([
   "topTenRows", "askedBeside", "dismissedSearches", "plannedRows", "weeklyCommit", "currentReport", "listicleHeld",
   "lastStatusChangeAt", "latestCompletedScanAt", "byId", "openFixPages", "marketFor", "notWorkingVerdicts", "hostedHostFor",
   "hostedOwnPages", "inventoryFor", "profileForSite", "knownContentNear", "refreshInputs", "refreshPages", "trackedPrompts", "footprintOpened",
-  "draftsOnTopics",
+  "draftsOnTopics", "researchHeld",
 ]);
 
 /** The real store's reads with the readiness check's writes held in memory over them, and the commit dropped. */
@@ -202,6 +204,7 @@ function dryStore(base: OpportunityStore): OpportunityStore {
     setEvidence: (evidence: OpportunityRow["evidence"]) => ({ evidence }),
     markDone: () => ({ status: "done" }),
     markDismissed: () => ({ status: "dismissed", ready: false }),
+    rest: (until: Date) => ({ rest_until: until.toISOString(), ready: false, unready_reason: "resting" }),
   };
   const patch = (value: unknown): unknown => {
     if (Array.isArray(value)) return value.map(patch);

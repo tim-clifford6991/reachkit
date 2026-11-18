@@ -75,11 +75,6 @@ export const ASSET_KIND_OF: Readonly<Record<OpportunityType, AssetKind | null>> 
   listed_page: "page",
 });
 
-/** The day's asset kind, read off the opportunity it was picked for. */
-export function assetKindOf(type: OpportunityType): AssetKind | null {
-  return ASSET_KIND_OF[type];
-}
-
 /** §7's Improve triggers, as the measurement that shows the shortfall: "Customer ranks 4–30" · "page thin" · "Ranking
  *  page stale vs rivals'". Every arm carries a `Measured`, so a shortfall the scan could not measure cannot be
  *  constructed. */
@@ -431,6 +426,8 @@ export interface PlanReason {
   points: number;
   parts: { part: PointPart; n: number }[];
   rule: PlaceRule | null;
+  /** What the commit read of its research: `queued` where none is cached, `short` under its type's pass mark. */
+  research?: { state: "met" | "at_margin" | "queued" | "short"; R: number | null; Q: number | null; F: number | null; estWords: number | null; urls: string[] };
 }
 
 export interface Ranked {

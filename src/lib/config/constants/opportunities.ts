@@ -70,6 +70,10 @@ export const KNOWN_CONTENT = Object.freeze({
  *  cannot be written. Supply is counted, and refilled at 0¢, up to their sum. */
 export const WEEK_PLAN = Object.freeze({ days: 7, spares: 3 } as const);
 
+/** SPEC §7 *The week is committed on Monday*: the commit reads the research of its `rowsMax` best-ranked rows, and a
+ *  row is researched with room to spare only `margin` past its type's pass mark on its results and its questions. */
+export const WEEK_RESEARCH = Object.freeze({ margin: 1, rowsMax: 20 } as const);
+
 // One a day caps a week at the plan's 7, so the Terms' "up to 7 a week" holds by construction.
 export const RATE_LIMITS = Object.freeze({ publishesPerDay: 1 } as const);
 

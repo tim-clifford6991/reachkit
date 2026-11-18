@@ -1,20 +1,6 @@
-// SPEC §7 (owner, 2026-10-19, issue 1559) — the week a weekly pass commits.
-//
-// "On our weekly refresh, we pull in all new tracking information we require including keywords, ai searches and
-// rivals. This context together with the users business context is used to find the next 7 content generations."
-//
-// The weekly pass ends here (`planWeek`): one readiness check over the open rows, one choice (`choose`, over the one
-// list), and its first `WEEK_PLAN.days` rows committed one a day from the first date with no page, with
-// `WEEK_PLAN.spares` after them. The daily job writes the row planned for its date (`pageForDay`) after a 0¢ check
-// that the week's rows still stand (a rest, the destination, a page that now covers the topic); where that page
-// cannot be written it takes the next spare in committed order. Nothing ranks the open pool again until the next
-// commit.
-//
-// A new site's first week is committed when setup's pass ends (`planFirstWeek`), its dated days stopping before the
-// first Monday's pass. A date no commit covers after that is committed on demand by that evening's run: the commit
-// then covers the dates after it. A date the week has used up is recommitted once per date, its own day and spares only.
+// SPEC §7 *The week is committed on Monday*: the week a pass commits from stored rows, and the page a date's run writes.
 import { unstable_cache } from "next/cache";
-import { PLAN_DEPTH, SUPPLY_SHORT_BELOW, WEEK_PLAN } from "@/lib/config/constants";
+import { CACHE_WINDOWS_D, PLAN_DEPTH, SUPPLY_SHORT_BELOW, WEEK_PLAN, WEEK_RESEARCH } from "@/lib/config/constants";
 import { stoppedOnCeiling } from "@/lib/scan/market-floor";
 import { choose } from "./choose";
 import { assessFixPages } from "./fix-page";
@@ -25,12 +11,11 @@ import type { Opportunity } from "./types";
 
 const DAY_MS = 86_400_000;
 
-/** Commits and returns the site's week as the header says, from `from` where it is given; what is chosen is `choose`'s. */
+/** Commits and returns the site's week, from `from` where it is given; what is chosen is `choose`'s. */
 export async function planWeek(siteId: string, a: { now?: Date; from?: string; record?: boolean; keepLater?: boolean } = {}): Promise<readonly PlanEntry[] & { rejected: Record<string, { n: number; ids?: string[] }> }> {
   const now = a.now ?? new Date();
   const store = opportunityStore();
-  // SPEC §6: the week's one readiness check, after the week's verdicts and
-  // refreshes are written, so a day is planned only from a ready row.
+  // SPEC §6: the week's one readiness check, after its verdicts and refreshes, so a day is planned only from a ready row.
   await assessReadiness(siteId, { at: now, now, record: a.record === true });
   await assessFixPages(siteId, { report: null, now });
   // On demand, the week starts at the date being written; on Monday, at the first date with no page.
@@ -42,7 +27,12 @@ export async function planWeek(siteId: string, a: { now?: Date; from?: string; r
   const kept = a.keepLater ? (await store.plannedRows(siteId)).filter((r) => r.planned_for != null && r.planned_for > from) : [];
   const later = new Set(kept.map((r) => r.id)), top = Math.max(0, ...kept.map((r) => r.plan_place ?? 0));
   const load = await loadRanking(siteId, now), free = (r: OpportunityRow) => !later.has(r.id);
-  const choice = choose({ ...load, rows: load.rows.filter(free), fixRows: load.fixRows.filter(free), at: now, from, days });
+  const input = { ...load, rows: load.rows.filter(free), fixRows: load.fixRows.filter(free), at: now, from, days };
+  // The ranking's best rows are then ordered by what research the cache holds for them.
+  const ranked = choose(input), best = new Set([...ranked.committed, ...ranked.rejected.filter((r) => r.reason === "after_the_week")].slice(0, WEEK_RESEARCH.rowsMax).map((r) => r.opportunityId));
+  const choice = store.researchHeld === undefined ? ranked : choose({ ...input, research: await store.researchHeld(siteId, input.rows.filter((r) => best.has(r.id)), now) });
+  // A short row no day or spare took rests until its SERP is read again.
+  for (const r of choice.rejected) if (r.reason === "short") await store.rest(r.opportunityId, new Date(now.getTime() + CACHE_WINDOWS_D.serp * DAY_MS));
   // The day keeps place 0, which no later row holds; the spares follow the kept rows so no two rows share a place.
   const entries = choice.committed.map((e) => (e.plannedFor === null ? { ...e, place: top + e.place } : e)), rejected: Record<string, { n: number; ids?: string[] }> = {};
   for (const r of choice.rejected) {
@@ -72,10 +62,9 @@ export async function planFirstWeek(siteId: string, now: Date = new Date()): Pro
   return planWeek(siteId, { now });
 }
 
-/** The page a date's run writes: the row the week planned for it, where it still stands, else the next spare in
- *  committed order; nothing ranks here. A date no commit covers is committed from the date; one (once per date) whose
- *  slot and spares are used up while ready rows wait outside the week commits its own date and spares. `null` where nothing left can be
- *  written; `updatesTried` once the day's update fallback has had its turn. */
+/** The page a date's run writes: its planned row where it still stands, else the next spare; nothing ranks here. A date
+ *  no commit covers is committed from the date; one whose slot and spares are used up while ready rows wait commits its
+ *  own date and spares, once. `null` where nothing left can be written; `updatesTried` once the update fallback had its turn. */
 export async function pageForDay(siteId: string, date: string, now: Date = new Date(), updatesTried = false): Promise<Opportunity | null> {
   const store = opportunityStore();
   const held = await store.plannedRows(siteId);
@@ -99,9 +88,8 @@ export async function pageForDay(siteId: string, date: string, now: Date = new D
   return slot === undefined ? null : planned(slot);
 }
 
-/** The committed week as the digest, the calendar and the daily job read it: the open rows planned for a date, by
- *  date, and the open spares, by place. `week` is the Monday of the site's week the days are kept to; absent, it is
- *  the whole commit, which is the current week. */
+/** The committed week as the digest, the calendar and the daily job read it: the open dated rows, by date, and the open
+ *  spares, by place. `week` is the Monday the days are kept to; absent, the whole commit, which is the current week. */
 export async function committedWeek(
   siteId: string,
   week?: string
@@ -121,8 +109,7 @@ export async function committedWeek(
   };
 }
 
-/** The first date the committed week holds, written or not: the day the
- *  pass chose it. `null` before the site's first commit. */
+/** The first date the committed week holds, written or not: the day the pass chose it; `null` before the first commit. */
 export async function weekChosenOn(siteId: string): Promise<string | null> {
   const dates = (await opportunityStore().plannedRows(siteId)).flatMap((row) => (row.planned_for == null ? [] : [row.planned_for]));
   return dates.length === 0 ? null : dates.reduce((a, b) => (a < b ? a : b));
@@ -133,9 +120,8 @@ function planned(row: OpportunityRow): Opportunity {
   return row.plan_write_as === "qa" ? { ...readOpportunity(row), writeAs: "qa" } : readOpportunity(row);
 }
 
-// Supply, as Overview and Plan state it. Volume follows supply and is never
-// a target (SPEC §14 guardrail 1): the count is derived from the rows and
-// stored nowhere; a screen's copy is held at most 5 minutes and cleared by any opportunity write.
+// Supply, as Overview and Plan state it; never a target (SPEC §14 guardrail 1). Derived from the rows and stored
+// nowhere; a screen's copy is held at most 5 minutes and cleared by any opportunity write.
 
 export interface Depth {
   /** Days of pages: writable days up to `PLAN_DEPTH` (decisions 1549, 1559). */
@@ -156,15 +142,13 @@ export async function supplyDepth(siteId: string): Promise<Depth> {
 async function readDepth(siteId: string): Promise<Depth> {
   const store = opportunityStore();
   if ((await store.countUnused(siteId)) > 0) return { unused: await writableDays(siteId), exhaustedSince: null };
-  // Since the last non-Fix status change; with none, since the scan that last
-  // looked and found nothing; with neither, no date rather than an invented one.
+  // Since the last non-Fix status change, else the scan that last looked and found nothing, else no date.
   const lastChange = await store.lastStatusChangeAt(siteId);
   if (lastChange !== null) return { unused: 0, exhaustedSince: lastChange };
   return { unused: 0, exhaustedSince: await store.latestCompletedScanAt(siteId) };
 }
 
-/** Whether a site with no supply ever had a market to use up (#765): its
- *  current report asked questions and it has held a non-Fix row. */
+/** Whether a site with no supply ever had a market to use up (#765): its report asked questions and it held a non-Fix row. */
 export async function supplyMeasured(siteId: string): Promise<boolean> {
   const store = opportunityStore();
   const [report, lastChange] = await Promise.all([store.currentReport(siteId), store.lastStatusChangeAt(siteId)]);
@@ -184,8 +168,7 @@ export async function supplyState(siteId: string): Promise<SupplyState> {
   return (await supplyMeasured(siteId)) ? "measured" : "unmeasured";
 }
 
-/** At most one statement of supply, never an array: `exhausted` > `short` >
- *  `arrival_shortfall` (ADR-061). The lines are the copy registry's. */
+/** At most one statement of supply: `exhausted` > `short` > `arrival_shortfall` (ADR-061); the lines are the copy registry's. */
 export type SupplyNotice =
   | { kind: "exhausted"; days: 0; since: Date | null }
   /** 1..SUPPLY_SHORT_BELOW-1 */
