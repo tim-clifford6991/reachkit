@@ -43,8 +43,12 @@ export interface FaqEntry {
 
 const TITLES = z.array(z.string());
 const TAKEAWAYS = z.array(z.string());
-const SECTIONS = z.array(z.strictObject({ key: z.string(), heading: z.string(), body: z.string() }));
-const FAQ = z.array(z.strictObject({ question: z.string(), answer: z.string() }));
+const SECTION = { key: z.string(), heading: z.string(), body: z.string() };
+const ENTRY = { question: z.string(), answer: z.string() };
+const SECTIONS = z.array(z.strictObject(SECTION));
+const FAQ = z.array(z.strictObject(ENTRY));
+// A list sent as text may echo a key the template showed it (a section's `block`): the key is dropped, not the page.
+const READ = { sections: z.array(z.object(SECTION)), faq: z.array(z.object(ENTRY)) };
 
 /** A list as the model's forced tool returns it. On a long answer the model
  *  sometimes hands a list back as its JSON text (seen 2026-10-04: a whole
@@ -132,7 +136,7 @@ function partsOf(answer: Measured<z.infer<typeof ANSWER_SCHEMA>>): Measured<Page
     unread = true;
     return [] as z.infer<T>;
   };
-  const lists = { titles: read("titles", TITLES), takeaways: read("takeaways", TAKEAWAYS), sections: read("sections", SECTIONS), faq: read("faq", FAQ) };
+  const lists = { titles: read("titles", TITLES), takeaways: read("takeaways", TAKEAWAYS), sections: read("sections", READ.sections), faq: read("faq", READ.faq) };
   if (unread) return unmeasured("undeterminable", answer.at, "list_unread");
   return { ...answer, value: { ...value, ...lists } };
 }
