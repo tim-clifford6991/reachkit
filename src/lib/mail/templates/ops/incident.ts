@@ -2,8 +2,10 @@
 // (a registry job id, an attempt, an error class, a boot check). No customer input, payload, error message or subject id reaches it.
 // The exception is a draft the writing rules stopped twice: the owner cannot investigate a rule without its words, so that alert names
 // the site, each rule and the breaking sentences, and goes to `OWNER_EMAILS` only.
-import type { CopyKey } from "@/lib/presentation/copy";
-import type { FactRow, MailBlock } from "../../blocks/types";
+import { WEEK_PLAN } from "@/lib/config/constants";
+import { copy, type CopyKey } from "@/lib/presentation/copy";
+import type { FactRow, ListRow, MailBlock } from "../../blocks/types";
+import { measured } from "@/lib/measure/measured";
 
 export type OpsIncident =
   | { occasion: "job-failed"; jobId: string; attempt: number; errorName: string }
@@ -11,19 +13,25 @@ export type OpsIncident =
   | { occasion: "boot-refused"; check: string; errorName: string }
   // No error: the market was read and was too small. The scan's id and tier, never the domain.
   | { occasion: "market-too-small"; scanId: string; tier: string }
-  // One Monday's weekly passes that found too little market, one line a week rather than a mail per site, and why last week's
-  // pages stalled: per site, pages stopped of pages written and each cause's count. Owner-only, so the site is named.
+  // One Monday's weekly passes that found too little market, one line a week rather than a mail per site, and each paying
+  // site's daily promise: last week's days kept, missed with their reason, the standard met, and the coming week's
+  // researched supply (`null`: not measured). Owner-only, so the site is named.
   | {
       occasion: "market-too-small-week";
       weekStart: string;
       scanIds: readonly string[];
-      stopped?: {
+      promise?: {
         weekStart: string;
         sites: readonly {
           domain: string;
-          written: number;
+          kept: number;
+          days: number;
           stopped: number;
-          causes: readonly { cause: string; count: number }[];
+          unrecorded: number;
+          missed: readonly { date: string; reason: string }[];
+          standard: { met: number; of: number } | null;
+          supply: { researched: number; spares: number; uncovered: number; queued: number; short: number } | null;
+          low: boolean;
         }[];
       };
       // What the week cost: per site a measurement and a page, then free scans and smoke tests, then the ledger total, in cents.
@@ -82,7 +90,9 @@ type ReplanRow = { date: string | null; search: string | null; page: string; typ
 
 const SUBJECT = "mail.ops.incident.subject" satisfies CopyKey;
 const HEADING = "mail.ops.incident.heading" satisfies CopyKey;
-const STOPPED_WEEK = "mail.ops.incident.drafts-stopped-week" satisfies CopyKey;
+const PROMISE_WEEK = "ops.promise.week" satisfies CopyKey;
+const MISSED = "ops.promise.missed" satisfies CopyKey;
+const UNRESEARCHED = "ops.promise.unresearched" satisfies CopyKey;
 const COSTS_WEEK = "mail.ops.incident.costs-week" satisfies CopyKey;
 const HEALTH_WEEK = "mail.ops.incident.health-week" satisfies CopyKey;
 const UNTOLD_WEEK = "mail.ops.incident.untold-days-week" satisfies CopyKey;
@@ -279,27 +289,44 @@ function driftFacts(drift: NonNullable<WeekCosts["drift"]>): FactRow[] {
   ]);
 }
 
+type PromiseSite = NonNullable<Extract<OpsIncident, { occasion: "market-too-small-week" }>["promise"]>["sites"][number];
+
+/** One site's promise line, its missed dates and its unresearched committed days under it. */
+function promiseRow(site: PromiseSite): ListRow {
+  const unmeasured = copy("ops.promise.not-measured");
+  const { supply } = site;
+  const kept = { n: count(site.kept), total: count(site.days) };
+  return {
+    label: "ops.promise.line",
+    vars: {
+      domain: closedDomain(site.domain),
+      kept: site.unrecorded > 0 ? copy("ops.promise.of-unrecorded", { ...kept, unrecorded: count(site.unrecorded) }) : copy("ops.promise.of", kept),
+      stopped: count(site.stopped),
+      met: site.standard === null ? unmeasured : copy("ops.promise.of", { n: count(site.standard.met), total: count(site.standard.of) }),
+      supply:
+        supply === null
+          ? unmeasured
+          : copy("ops.promise.supply", { researched: count(supply.researched), rows: count(WEEK_PLAN.days + WEEK_PLAN.spares), spares: count(supply.spares), sparesOf: count(WEEK_PLAN.spares), uncovered: count(supply.uncovered) }),
+    },
+    detail: [
+      ...site.missed.map((day) => ({ text: MISSED, vars: { date: closedDate(day.date), reason: closedReason(day.reason) } }) as const),
+      ...(supply !== null && supply.queued + supply.short > 0 ? [{ text: UNRESEARCHED, vars: { queued: count(supply.queued), short: count(supply.short) } } as const] : []),
+    ],
+  };
+}
+
 /** The Monday digest: each part drawn only where it has something to say. */
 function weekBlocks(incident: Extract<OpsIncident, { occasion: "market-too-small-week" }>): MailBlock[] {
   const blocks: MailBlock[] = [];
-  if (incident.scanIds.length > 0 || (incident.stopped === undefined && incident.untold === undefined && incident.costs === undefined && incident.unhealthy === undefined)) {
+  if (incident.scanIds.length > 0 || (incident.promise === undefined && incident.untold === undefined && incident.costs === undefined && incident.unhealthy === undefined)) {
     blocks.push({ block: "paragraph", text: BODY[incident.occasion] }, { block: "facts", items: factsOf(incident) });
   }
-  if (incident.stopped !== undefined) {
-    blocks.push(
-      { block: "paragraph", text: STOPPED_WEEK },
-      {
-        block: "facts",
-        items: [
-          { label: "mail.ops.incident.fact.week", value: closedDate(incident.stopped.weekStart) },
-          ...incident.stopped.sites.flatMap((site): FactRow[] => [
-            { label: "mail.ops.incident.fact.site", value: closedDomain(site.domain) },
-            { label: "mail.ops.incident.fact.stopped", value: `${count(site.stopped)} / ${count(site.written)}` },
-            ...site.causes.map((cause): FactRow => ({ label: "mail.ops.incident.fact.cause", value: `${closedName(cause.cause)}: ${count(cause.count)}` })),
-          ]),
-        ],
-      }
-    );
+  if (incident.promise !== undefined) {
+    const { sites, weekStart } = incident.promise;
+    blocks.push({ block: "paragraph", text: PROMISE_WEEK, vars: { week: closedDate(weekStart), spares: WEEK_PLAN.spares } });
+    for (const [label, group] of [["ops.promise.low", sites.filter((site) => site.low)], ["ops.promise.held", sites.filter((site) => !site.low)]] as const) {
+      if (group.length > 0) blocks.push({ block: "list", label, items: measured(group.map(promiseRow), new Date(`${closedDate(weekStart)}T00:00:00Z`)), emptyLine: "ops.promise.not-measured" });
+    }
   }
   if (incident.untold !== undefined) {
     blocks.push(

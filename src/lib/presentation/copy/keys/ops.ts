@@ -26,4 +26,23 @@ export const OPS_COPY = Object.freeze({
     "Google results bought on the normal queue came back unreadable: most of the links were Google redirects, or a search that had results came back with none. Places read from them show as not measured until a clean read. This is the first today; later ones are only counted.",
     { slots: {}, fixedBy: "owner note, 2026-11-17, issue 2815 (drafted)" },
   ],
+  "ops.promise.week": [
+    "Each paying site's daily promise for the week of {week}: days kept, days the customer stopped, pages that met the content standard, and the research behind the coming week. A missed day shows its recorded cause. A site with fewer than {spares} researched spares or a day left uncovered is listed first.",
+    { slots: { week: "text", spares: "text" }, fixedBy: "owner ruling 2, 2026-11-17, issue 2819 (drafted)" },
+  ],
+  "ops.promise.low": ["Coming week below its margin", { slots: {}, fixedBy: "owner ruling 2, 2026-11-17, issue 2819 (drafted)" }],
+  "ops.promise.held": ["The other paying sites", { slots: {}, fixedBy: "owner ruling 2, 2026-11-17, issue 2819 (drafted)" }],
+  "ops.promise.line": [
+    "{domain} · Days kept: {kept} · stopped by you: {stopped} · standard met: {met} · this week: {supply}",
+    { slots: { domain: "text", kept: "text", stopped: "text", met: "text", supply: "text" }, fixedBy: "owner ruling 2, 2026-11-17, issue 2819 (drafted)" },
+  ],
+  "ops.promise.of": ["{n} of {total}", { slots: { n: "text", total: "text" }, fixedBy: "owner ruling 2, 2026-11-17, issue 2819 (drafted)" }],
+  "ops.promise.of-unrecorded": ["{n} of {total}, {unrecorded} not recorded", { slots: { n: "text", total: "text", unrecorded: "text" }, fixedBy: "owner ruling 2, 2026-11-17, issue 2819 (drafted)" }],
+  "ops.promise.supply": [
+    "{researched} of {rows} researched, spares {spares} of {sparesOf}, uncovered {uncovered}",
+    { slots: { researched: "text", rows: "text", spares: "text", sparesOf: "text", uncovered: "text" }, fixedBy: "owner ruling 2, 2026-11-17, issue 2819 (drafted)" },
+  ],
+  "ops.promise.not-measured": ["not measured", { slots: {}, fixedBy: "owner ruling 2, 2026-11-17, issue 2819 (drafted)" }],
+  "ops.promise.missed": ["Missed {date}: {reason}", { slots: { date: "text", reason: "text" }, fixedBy: "owner ruling 2, 2026-11-17, issue 2819 (drafted)" }],
+  "ops.promise.unresearched": ["Committed days with research still queued: {queued} · short: {short}", { slots: { queued: "text", short: "text" }, fixedBy: "owner ruling 2, 2026-11-17, issue 2819 (drafted)" }],
 }) satisfies CopyPartition;
