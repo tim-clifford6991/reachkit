@@ -195,13 +195,11 @@ export function tidy(markdown: string, a: TidyInputs): string {
         edits.push({ from: block.from, to: block.to, text: "" });
       } else if (!/\]\(/.test(block.raw)) {
         // The passage's own page, where the quote came back without it; a
-        // quote of a passage with no page to name is dropped.
+        // quote of a passage with no page to name is dropped, and one that
+        // already names its page's host has its one source.
         const source = a.sources?.find((held) => lower(held.passage).includes(words) || words.includes(lower(held.passage)));
-        edits.push({
-          from: block.from,
-          to: block.to,
-          text: source === undefined ? "" : `${block.raw.trimEnd()} ([${hostOf(source.url)}](${source.url}))`,
-        });
+        const text = source === undefined ? "" : `${block.raw.trimEnd()} ([${hostOf(source.url)}](${source.url}))`;
+        if (source === undefined || !lower(block.raw).includes(hostOf(source.url))) edits.push({ from: block.from, to: block.to, text });
       }
       continue;
     }
