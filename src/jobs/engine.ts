@@ -552,23 +552,13 @@ async function reviewWritten(outcome: DayPageOutcome, now: Date): Promise<Engine
 
 // ── Publishing — BP-015, built (issue #173)
 //
-// One call into `src/lib/publish/attempt/deliver.ts`, which orchestrates
-// the edge — the claim and its nine guards, the delivery, `made_live_by_us`
-// as the adapter declared it, and the retry policy — and **one obligation
-// of this tick that the leaf cannot discharge itself**: enqueuing the
-// +24h check. `src/lib/**` may not import `src/jobs/**` (ARCHITECTURE rule
-// 2), so the leaf reports that an address came back and the event is sent
-// from here, which is the same shape `verifyLive` below uses for the
-// `published` mail — two obligations of one tick, both visible in the one
-// place the tick is described.
-//
-// The check is enqueued on a delivery that produced an address and on no
-// other: that is the same fact `verify_due_at` is written from (BP-049 —
-// the address decides, never the destination kind), so a page the check
-// could not look at is never queued for it. A re-delivery that found the
-// row already delivered enqueues nothing: its check was queued when it
-// first went out, and `publish/verify`'s `publicationId` key would refuse
-// the second delivery anyway.
+// One call into `src/lib/publish/attempt/deliver.ts`, which owns the edge,
+// and one obligation the leaf cannot discharge itself, since `src/lib/**`
+// may not import `src/jobs/**`: asking for the +24h check. It is asked on
+// every delivery that has an address, the fact `verify_due_at` is written
+// from (BP-049), and again by `requestDueChecks` each hour, since this send
+// can fail after the page is `published` and no attempt returns to it. The
+// job's `publicationId` key and the recorded outcome keep it to one check.
 //
 // **Neither a hold nor a failure throws.** A held page is §9 working —
 // the switch is off, a ceiling is reached, the claim needs re-checking —
@@ -587,7 +577,7 @@ export async function publishApproved(a: { readonly draftId: string; readonly de
   if (outcome.kind === "held") return { degraded: `held:${outcome.heldBy}` };
   if (outcome.kind === "failed") return { degraded: `publish:${outcome.reason}` };
 
-  if (outcome.verifyDue && !outcome.alreadyPublished) {
+  if (outcome.verifyDue) {
     const { sendJobEvent } = await import("./client");
     await sendJobEvent("publish/verify", { publicationId: outcome.publicationId });
   }
@@ -711,6 +701,16 @@ export async function repairMovedPages(now: Date): Promise<{ readonly moved: num
   } catch (error) {
     console.log(JSON.stringify({ event: "hosted_move_repair_failed", error: error instanceof Error ? error.message : "unknown" }));
     return { moved: 0 };
+  }
+}
+
+/** Asks again for each check that is due and unrecorded; a failure here never stops the hour's publishing. */
+export async function requestDueChecks(now: Date): Promise<void> {
+  try {
+    const [{ dueNow }, { sendJobEvent }] = await Promise.all([import("@/lib/publish/verify/due"), import("./client")]);
+    for (const publicationId of await dueNow(100, now)) await sendJobEvent("publish/verify", { publicationId });
+  } catch (error) {
+    console.log(JSON.stringify({ event: "verify_request_failed", error: error instanceof Error ? error.name : "unknown" }));
   }
 }
 

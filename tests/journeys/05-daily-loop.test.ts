@@ -1140,12 +1140,13 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
       // The live page, as the check finds it a day later.
       livePage.html = `<html><head><title>${PAGE_BODY.title}</title></head><body>${CLEAN_MARKDOWN}</body></html>`;
 
+      // No request for the check was sent at delivery, as when that send fails: the hourly sweep asks for it.
+      await engine.requestDueChecks(new Date());
+      expect(jobEvents).toEqual([{ name: "publish/verify", data: { publicationId: published.publicationId } }]);
       const run = await engine.verifyLive({ publicationId: published.publicationId });
       expect(run).toEqual({ done: true });
 
-      // One recorded check, against the publication, in the one column the
-      // partial index reads: `verify is null` is what makes the row due,
-      // so writing it is what makes it never due again.
+      // One recorded check, in the column whose null is what makes the row due.
       const row = db.rows("publications")[0];
       const stored = row?.verify as
         | { outcome?: string; checks?: Record<string, unknown> }
@@ -1156,15 +1157,14 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
       expect(Object.keys(stored?.checks ?? {}).sort()).toEqual([...CHECK_IDS].sort());
 
       // And it runs once, ever: a second call finds the outcome recorded
-      // and reaches neither the page nor the mail again.
+      // and reaches neither the page nor the mail again, and the sweep asks no more.
       const second = await engine.verifyLive({ publicationId: published.publicationId });
       expect(second).toEqual({ done: true });
       expect(inbox.filter((mail) => mail.subject.startsWith("mail.published"))).toHaveLength(1);
+      await engine.requestDueChecks(new Date());
+      expect(jobEvents).toHaveLength(1);
 
-      // The telling that goes with it — one mail, through the one send
-      // seam, to the account that owns the site. It is sent on the same
-      // occasion in every arm: a failed check, an absent page and an
-      // unconfirmed one are none of them a reason to send nothing.
+      // The telling that goes with it: one mail, to the account that owns the site, in every arm of the check.
       const mails = inbox.filter((mail) => mail.subject.startsWith("mail.published"));
       expect(mails[0]?.to).toEqual([EMAIL]);
     },
