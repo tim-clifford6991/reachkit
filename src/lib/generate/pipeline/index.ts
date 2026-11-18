@@ -119,6 +119,8 @@ export type GenerateOutcome =
       step: PipelineStep;
       /** On `pack`: what the template asks that the pack lacks. */
       missing?: readonly PackNeed[];
+      /** On `write`: the writer answered and its answer was refused, so buying it again would fail the same way. */
+      answered?: true;
     };
 
 /** Observability: per-step outcome, which rules failed, the attempt number.
@@ -275,7 +277,7 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
 
   // 3. Write: one call.
   const written = await writePage(c, writing);
-  if (written.kind === "unmeasured") return stepFailed(a.siteId, "write", a.draftId);
+  if (written.kind === "unmeasured") return stepFailed(a.siteId, "write", a.draftId, written.because === "list_unread");
 
   const tidy = {
     // Both pools: a quotation stands where it is either's exact words.
@@ -540,9 +542,9 @@ async function lostFact(siteId: string, row: DraftRow): Promise<GenerateOutcome>
 
 /** A step that did not run. On a rewrite the date's row already exists, and
  *  the failure names it so the caller can rest it (#813). */
-function stepFailed(siteId: string, step: PipelineStep, draftId: string | undefined): GenerateOutcome {
+function stepFailed(siteId: string, step: PipelineStep, draftId: string | undefined, answered = false): GenerateOutcome {
   logRun({ siteId, step, outcome: "step_failed" });
-  return { ok: false, reason: "step_failed", draftId: draftId ?? null, step };
+  return { ok: false, reason: "step_failed", draftId: draftId ?? null, step, ...(answered ? { answered } : {}) };
 }
 
 /** The rules whose note names the sentences that broke them, word for word
