@@ -42,6 +42,7 @@ async function weeklySite(input: JobInput): Promise<Outcome> {
     zone: zone as string,
     weekStart: weekStart as string,
     now: new Date(at as string),
+    early: input.data.early === true,
     ...(input.step === undefined ? {} : { step: input.step }),
   });
   return "degraded" in result ? { outcome: "degraded", subjectId: siteId as string, step: result.degraded } : { outcome: "ran", subjectId: siteId as string };

@@ -208,6 +208,16 @@ So the way to run one by hand is **the Inngest dashboard**, on the `reachkit` ap
   takes `draftId` and `destinationId`, `publish/verify` takes `publicationId`, `scan/finish-reads`
   takes `scanId`. A delivery is
   deduplicated on those keys, so re-sending the same one is a no-op rather than a second run.
+- **Next week's pass for one site, run now.** The owner sends `weekly/refresh/subject` from the
+  Inngest dashboard with `{siteId, domain, zone, weekStart: <the site's next local Monday,
+  YYYY-MM-DD>, at: <now, ISO>, early: true, key: "weekly:<siteId>:<weekStart>:early"}`. It is that
+  Monday's pass, run now: it claims next week's row, commits the days from the site's first
+  unwritten date, and sends the Monday mail. It costs that week's own budget, at most `WEEKLY_C`
+  40¢ + `TOPUP_C` 7¢ + `WEEK_RESEARCH_C` 2¢, and that Monday then runs nothing for the site. Send it
+  at the latest about an hour before the first date's draft tick. Any other `weekStart` is refused
+  `not_next_week` before spend; a second send for the same week is `already_measured` at 0¢. Never
+  send it without `early` and with `at` in the future: that claims next week and plans from that
+  Monday, not from the first unwritten date.
 - **`publish/verify` sleeps 24 hours** before its body, by design. Invoking it is not a way to
   check a page now.
 

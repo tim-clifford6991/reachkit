@@ -54,7 +54,7 @@ import { readSiteCategory } from "../site-category";
 import { localClock, weekHasBegun, weekStartFor, weekStartInstant } from "./week";
 
 /** Why a week was not measured, before anything was spent. */
-export type WeeklyRefusal = "week_not_begun" | "already_measured" | "no_active_access" | "kill_switch";
+export type WeeklyRefusal = "week_not_begun" | "already_measured" | "no_active_access" | "kill_switch" | "not_next_week";
 
 export type WeeklyOutcome =
   | { readonly ran: true; readonly scanId: string; readonly status: "done" }
@@ -85,6 +85,9 @@ export async function runWeekly(a: {
    *  so this never re-reads the row it came from. */
   zone?: string;
   now: Date;
+  /** Sent by the owner: next week's pass, run now, which that Monday then finds measured. */
+  early?: boolean;
+  weekStart?: string;
 }): Promise<WeeklyOutcome> {
   // A site that has stated no zone has no local Monday, so no week of its
   // own has begun — the one refusal that is literally true of it, and the
@@ -95,7 +98,9 @@ export async function runWeekly(a: {
   // 1. The four refusals, all of them before any spend.
   if (env.KILL_SWITCH) return refuse(a.siteId, "kill_switch");
 
-  const weekStart = weekStartFor({ at: a.now, zone });
+  const thisWeek = weekStartFor({ at: a.now, zone });
+  const weekStart = a.early === true ? new Date(Date.parse(`${thisWeek}T00:00:00Z`) + 7 * 86_400_000).toISOString().slice(0, 10) : thisWeek;
+  if (a.early === true && a.weekStart !== weekStart) return refuse(a.siteId, "not_next_week");
   if (!weekHasBegun({ at: a.now, zone })) return refuse(a.siteId, "week_not_begun");
 
   if (!(await hasActiveAccess(a.siteId))) return refuse(a.siteId, "no_active_access");
@@ -119,8 +124,8 @@ export async function runWeekly(a: {
       domain: a.domain,
       tier: "weekly",
       // SPEC §6 (issue 1170): only values measured this week, each dated
-      // this week — a read from before the site's Monday is last week's.
-      measuredSince: weekStartInstant({ weekStart, zone }),
+      // this week — a read from before the site's Monday, or before an early pass began, is last week's.
+      measuredSince: new Date(Math.min(+weekStartInstant({ weekStart, zone }), +a.now)),
       ...(category === undefined ? {} : { category }),
       concludesMarket: true,
       failsWhenFundsRefused: true,

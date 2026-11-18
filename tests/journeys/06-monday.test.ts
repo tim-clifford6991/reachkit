@@ -428,22 +428,17 @@ const { sendWeeklyDigest } = await import("../../src/lib/mail/weekly");
 const { copy } = await import("../../src/lib/presentation/copy");
 const { COPY, COPY_META, OWNER_OWED } = await import("../../src/lib/presentation/copy/registry");
 const { escapeHtml } = await import("../mail/escape");
-const { readWeek: weekStrip, CALENDAR_HREF } = await import(
-  "../../src/app/(account)/app/_overview/week"
-);
+const { readWeek: weekStrip, CALENDAR_HREF } = await import("../../src/app/(account)/app/_overview/week");
 const { measured, unmeasured } = await import("../../src/lib/measure/measured");
 const { __setVendorTransportForTesting } = await import("../../src/lib/mail/vendor/resend");
 
 const opportunityDoubles = await import("../opportunities/memory-store");
 const verdictDoubles = await import("../opportunities/verdicts/harness");
 
-/** Monday 06:00 in New York — the site's own local Monday at its own due
- *  hour. In Auckland the same instant is Monday evening, which is a
- *  different local hour and so not due. */
+/** Monday 06:00 in New York, the site's own due hour; Monday evening in Auckland, so not due there. */
 const MONDAY = new Date("2026-08-31T10:00:00.000Z");
 
-/** Half past midnight on Monday in Auckland, which is still Sunday morning
- *  in New York: one instant, two customer-weeks. */
+/** Monday 00:30 in Auckland, still Sunday in New York: one instant, two customer-weeks. */
 const ACROSS_THE_LINE = new Date("2026-08-30T12:30:00.000Z");
 
 let opportunities: ReturnType<typeof opportunityDoubles.newMemoryState>;
@@ -505,8 +500,7 @@ afterEach(() => {
   __setVendorTransportForTesting(null);
 });
 
-/** The `fetches` rows the pass wrote — the ledger, as the product would
- *  have stored it. */
+/** The `fetches` rows the pass wrote: the ledger, as the product would have stored it. */
 function ledger(): { source: string; costCents: number }[] {
   return db.queries
     .filter((q) => q.table === "fetches" && q.verb === "insert")
@@ -521,12 +515,7 @@ async function measureTheWeek(now = MONDAY) {
   return weekly.runWeekly({ siteId: site.siteId, domain: site.domain, zone: site.zone, now });
 }
 
-/**
- * §12's four weekly sections, and the lines that speak them.
- *
- * The nine below, subject included (issue #388), were filled by issue #458
- * on the owner's 2026-09-10 approval, so none of them is owed any more.
- */
+/** §12's four weekly sections, and the lines that speak them; none is owed any more. */
 const DIGEST_KEYS = [
   "mail.weekly.week.subject",
   "mail.weekly.google.subject",
@@ -605,6 +594,16 @@ describe("Monday: the week is re-measured, judged, and told (JN-005)", () => {
         weekly.runWeekly({ siteId: SITE_ID, domain: DOMAIN, zone: ZONE, now: MONDAY })
       ).resolves.toEqual({ ran: false, because: "already_measured" });
       expect(ledger()).toHaveLength(spentBefore);
+
+      // An early pass is next week's, measured on the real clock: claimed once, and that Monday is then not due.
+      const early = { siteId: SITE_ID, domain: DOMAIN, zone: ZONE, now: new Date("2026-09-02T15:00:00.000Z"), early: true };
+      await expect(weekly.runWeekly({ ...early, weekStart: "2026-09-14" })).resolves.toEqual({ ran: false, because: "not_next_week" });
+      await expect(weekly.runWeekly({ ...early, weekStart: "2026-09-07" })).resolves.toMatchObject({ ran: true });
+      const spentEarly = ledger().length;
+      await expect(weekly.runWeekly({ ...early, weekStart: "2026-09-07" })).resolves.toEqual({ ran: false, because: "already_measured" });
+      expect(ledger()).toHaveLength(spentEarly);
+      expect(scans.filter((scan) => scan.tier === "weekly").map((scan) => scan.week_start)).toEqual(["2026-08-31", "2026-09-07"]);
+      await expect(weekly.dueSites(new Date("2026-09-07T10:00:00.000Z"))).resolves.toEqual([]);
     },
     JOURNEY_TIMEOUT_MS
   );
