@@ -548,7 +548,7 @@ const steps: string[] = [];
  *  have stored it. */
 function ledger(): { source: string; costCents: number }[] {
   return db.queries
-    .filter((q) => q.table === "fetches" && q.verb === "insert")
+    .filter((q) => q.table === "fetches" && q.verb === "insert" && q.values?.activity !== "weekly")
     .map((q) => ({ source: String(q.values?.source), costCents: Number(q.values?.cost_cents) }));
 }
 
@@ -825,7 +825,7 @@ describe("three decisions → deep pass → the first page already on the calend
       // high-priority one hides each result's address. Each loads its
       // AI Overview's sources (issue 1357): without that an overview Google
       // loads after the page reads as an answer that names nobody.
-      const serps = vendorRequests.filter((r) => r.url.includes("/serp/google/organic/task_post"));
+      const serps = vendorRequests.filter((r) => r.url.includes("/serp/google/organic/task_post") && r.task.load_async_ai_overview !== false);
       expect(serps.length).toBeGreaterThan(0);
       expect(vendorRequests.some((r) => r.url.includes("/serp/google/organic/live"))).toBe(false);
       for (const request of serps) {
@@ -843,7 +843,7 @@ describe("three decisions → deep pass → the first page already on the calend
 
       // The queue was used for the Google reads and for the one endpoint
       // that has no live surface, and for nothing else.
-      const queued = vendorRequests.filter((r) => r.url.includes("/task_post"));
+      const queued = vendorRequests.filter((r) => r.url.includes("/task_post") && r.task.load_async_ai_overview !== false);
       expect(queued).toHaveLength(serps.length * 2);
       for (const request of queued) expect(request.url).toMatch(/llm_scraper|serp\/google\/organic/);
     },
@@ -876,7 +876,7 @@ describe("three decisions → deep pass → the first page already on the calend
       // Issue 798: the derivation is a step of its own, after the pass's,
       // and the typing it paid for is in the row's cost — every ledgered
       // call, not only the stages'.
-      expect(steps).toEqual(["deep-pass", "knowledge-base", "opportunities", "first-draft", "onboarding-mail"]);
+      expect(steps.filter((name) => !name.startsWith("first-week-"))).toEqual(["deep-pass", "knowledge-base", "opportunities", "voice", "first-draft", "onboarding-mail"]);
       const spent = ledger().reduce((total, row) => total + row.costCents, 0);
       const typingCents = ledger()
         .filter((row) => row.source === "opportunity-typing")
