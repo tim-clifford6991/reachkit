@@ -160,6 +160,10 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      // A copy of the product that is not production stays out of every index, on every host it serves.
+      ...(process.env.VERCEL_ENV === "production"
+        ? []
+        : [{ source: "/:path*", headers: [{ key: "X-Robots-Tag", value: NOINDEX }] }]),
       {
         source: "/scan/:domain",
         headers: [{ key: "X-Robots-Tag", value: NOINDEX }],

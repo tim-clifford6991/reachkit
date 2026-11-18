@@ -26,6 +26,13 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export async function GET(request: Request): Promise<Response> {
+  // A deployment other than production names no sitemap and asks every crawler to stay out, on every host.
+  if (process.env.VERCEL_ENV !== "production") {
+    return new Response("User-agent: *\nDisallow: /\n", {
+      status: 200,
+      headers: { "Cache-Control": "no-store", "Content-Type": TEXT },
+    });
+  }
   const host = request.headers.get("host") ?? "";
 
   // ReachKit's own address, before any lookup: the app host is not a

@@ -92,7 +92,9 @@ export function publicMetadata(a: {
   // under — and for the token pair that is the better answer twice over,
   // because the path is the credential and a `<link rel="canonical">`
   // restating it would publish the stop link into the document.
-  const canonical = a.path.includes("{") ? null : canonicalUrl(a.path);
+  // A deployment other than production never names itself the canonical copy.
+  const canonical =
+    a.path.includes("{") || process.env.VERCEL_ENV !== "production" ? null : canonicalUrl(a.path);
   return {
     metadataBase: metadataBase(),
     title,
