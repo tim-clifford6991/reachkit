@@ -49,6 +49,12 @@
 //     business — its name or its domain's label — as one of them. A search
 //     that compares category terms ("aeo vs geo") names no product, and is
 //     not held to it.
+//   * **A whole clause** (owner, 2026-11-17): a figure the title states,
+//     its count aside, stands in the clause after the search's colon, a
+//     question mark or a dash, of three words or more and not ending on a
+//     stop word: "…: up from 25% in" is cut, "…: AI traffic up 693%" whole.
+//   * **A count** on a page that counts no options leads its title only
+//     where two of the top results' titles do, and as its questions or steps.
 //   * **A figure's owner** (seo-master, 2026-10-31): a title that names a
 //     rival states a figure only where that rival's own pages hold it, or
 //     the business's own where the title names the business too, or the
@@ -74,6 +80,8 @@ export type TitleFault =
   | "banned"
   | "overlap"
   | "count"
+  /** A figure the title states that is no whole clause after the search. */
+  | "clause"
   /** Issue 1552: a comparison's title does not name the business. */
   | "business"
   | "heading"
@@ -123,6 +131,9 @@ export interface TitleRuleInputs {
   /** Issue 1508: the options a comparison counts, the business among them
    *  and an alternatives page's baseline not. Absent on any other page. */
   options?: number;
+  /** On a page that counts no options, the question or step sections a leading count may be; empty where the top results
+   *  do not count. Absent, a count is not read. */
+  counts?: readonly number[];
   /** Issue 1552: on a page whose search compares products, the names the
    *  business goes by; the title names one. Absent on any other page. */
   business?: readonly string[];
@@ -233,6 +244,18 @@ function figureUnowned(title: string, a: TitleRuleInputs): boolean {
   return statedIn(title, language).some((figure) => !held.some((holds) => holds(figure)));
 }
 
+/** What a title says after the search: past its first colon, question mark or dash; else all of it. */
+const tailOf = (title: string): string => title.split(/[:?–—]\s+|\s-\s/u).slice(1).join(" ").trim() || title;
+
+/** Whether a figure the title states, its count aside, stands in no whole clause after the search. */
+function clauseCut(title: string, a: TitleRuleInputs): boolean {
+  const language = languageOf(a);
+  const count = String(countedIn(title));
+  if (!statedIn(title, language).some((each) => each.figure !== count)) return false;
+  const words = tailOf(title).split(/\s+/).map((word) => word.replace(/^[^\p{L}\p{N}$€£]+|[^\p{L}\p{N}%]+$/gu, "")).filter(Boolean);
+  return words.length < 3 || statedIn(words.join(" "), language).length === 0 || languagePack(language).stopWords.has(words.at(-1)!.toLowerCase());
+}
+
 /** Whether a text is a question: it opens as one, or carries the mark. */
 export function asksQuestion(text: string, language: Language = "en"): boolean {
   return text.includes("?") || wordsPattern(languagePack(language).title.asksStart, true).test(text.trim());
@@ -280,10 +303,10 @@ export function closestTitle(title: string, titles: readonly string[]): string |
 }
 
 /** The number a title counts its options by (issue 1508): a bare whole
- *  number among its first three words, else `null`. A year, a price and a
- *  share are not one. */
+ *  number among its first three words or opening its clause, else `null`.
+ *  A year, a price and a share are not one. */
 export function countedIn(title: string): number | null {
-  for (const word of title.trim().split(/\s+/).slice(0, 3)) {
+  for (const word of [...title.trim().split(/\s+/).slice(0, 3), tailOf(title).split(/\s+/)[0] ?? ""]) {
     const bare = /^(\d{1,2})[.:,]?$/.exec(word);
     if (bare !== null) return Number(bare[1]);
   }
@@ -295,6 +318,7 @@ function wordingFaults(title: string, a: TitleRuleInputs): TitleFault[] {
   const chars = [...title.trim()].length;
   const language = languageOf(a);
   const led = [...a.terms, ...a.follow].map((term) => leadsWith(title, term, language)).filter((answer) => answer !== null);
+  const counted = countedIn(title);
   const faults: (TitleFault | false)[] = [
     (chars < TITLE.chars.min || chars > TITLE.chars.max) && "length",
     led.length > 0 && !led.includes(true) && "term",
@@ -303,7 +327,8 @@ function wordingFaults(title: string, a: TitleRuleInputs): TitleFault[] {
     yearMisplaced(title, a) && "year",
     hasBanned(title, a) && "banned",
     closestTitle(title, a.titles) !== null && "overlap",
-    a.options !== undefined && countedIn(title) !== null && countedIn(title) !== a.options && "count",
+    counted !== null && (a.options === undefined ? a.counts?.includes(counted) === false : counted !== a.options) && "count",
+    clauseCut(title, a) && "clause",
     a.business !== undefined && a.business.length > 0 && !a.business.some((name) => names(title, name)) && "business",
     figureUnowned(title, a) && "figure_owner",
   ];
@@ -451,7 +476,11 @@ export function titleNotes(title: string, a: TitleRuleInputs, faults: readonly T
       : "title: a page of this type carries no year in its title",
     banned: `title: it must not use ${pack.title.banned.map((phrase) => `"${phrase}"`).join(", ")}, a filler verb or stock phrase like ${pack.title.tropeSamples.map((phrase) => `"${phrase}"`).join(", ")}, two things joined by "and" after "How to", a square bracket, a pipe, or the same word twice${twice === null ? "" : `; it says "${twice}" twice, so say it once`}`,
     overlap: `title: it reads almost the same as this site's page "${close ?? ""}"; lead with what this page has that one does not`,
-    count: `title: it counts ${countedIn(title) ?? 0} options and the page counts ${a.options ?? 0}: state ${a.options ?? 0}, the number \`options\` holds, or no count`,
+    count:
+      a.options === undefined
+        ? `title: a count leads it only where the top results' titles count and it is the page's questions or steps (${a.counts?.join(", ") || "none"}); else state a figure`
+        : `title: it counts ${countedIn(title) ?? 0} options and the page counts ${a.options}: state ${a.options}, the number \`options\` holds, or no count`,
+    clause: "title: after the search, its figure stands in a whole clause of three words or more, from one sentence of `figures`, ending on a word that does not lead on",
     business: `title: the search compares products, and this page is the business's own: the title names it, as "${a.business?.[0] ?? ""}", beside the products the search names`,
     heading: "heading: the H1 is the title itself",
     description: `description: write one of ${TITLE.description.min} to ${TITLE.description.max} characters, opening with the answer`,

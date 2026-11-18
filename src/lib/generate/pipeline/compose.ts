@@ -23,7 +23,9 @@
 // Deterministic, no I/O.
 import { PAGE_BLOCKS, TITLE } from "@/lib/config/constants";
 import { FACT_LABEL_RE } from "../rules/blocks";
+import { numeralsOf } from "../rules/figures";
 import { SENTENCE_END_RE, isQuestionShaped, renderOf, sourceBlocksOf } from "../rules/text";
+import { countedIn } from "../rules/title";
 import type { Template } from "../templates";
 import type { DraftBody, FaqEntry, PageParts } from "./write";
 
@@ -466,6 +468,26 @@ export interface LaidPage {
   kept: boolean;
 }
 
+/** A passage as a sentence that links its page, word for word. */
+export function linkedPassage(passage: string, url: string): string {
+  const text = passage.replace(/[[\]]/g, "").trim();
+  const ends = /[.!?]$/.test(text);
+  return `[${ends ? text.slice(0, -1) : text}](${url})${ends ? text.slice(-1) : "."}`;
+}
+
+/** The title's figure, its count aside, stands with its claim linked in the short answer, the takeaways or the first
+ *  section: where the writer left it out, the claim is the last takeaway, word for word and linked, at 0¢. */
+function withTitleFigure(takeaways: string[], title: string, near: string, sources: readonly { passage: string; url: string }[]): string[] {
+  const values = (line: string): Set<string> => new Set(numeralsOf(line.replace(/\b(?:19|20)\d\d\b/g, "")).map((each) => each.normalised));
+  const stated = values(near);
+  for (const figure of values(title)) {
+    const holders = sources.filter((source) => values(source.passage).has(figure));
+    if (figure === String(countedIn(title)) || holders.length === 0 || (stated.has(figure) && holders.some((each) => near.includes(`](${each.url})`)))) continue;
+    return [...takeaways.slice(0, PAGE_BLOCKS.takeaways.max - 1), linkedPassage(holders[0]!.passage, holders[0]!.url)];
+  }
+  return takeaways;
+}
+
 /**
  * The page, laid out from the writer's parts in the template's order (SPEC
  * §7, D42: "one fixed template each"): the short-answer box, the takeaways,
@@ -503,11 +525,11 @@ export function layoutPage(parts: PageParts, template: Template, a: TidyInputs):
   // says changed; the writer rewrites it only where the answer did.
   const changed = a.live !== undefined && changesLive(a.live, sections.map((section) => ({ heading: section.heading, body: tidy(section.body, a) })));
   const kept = a.live === undefined || changed ? null : liveLead(a.live.markdown);
-  const takeaways = (kept?.takeaways ?? parts.takeaways)
+  const listed = (kept?.takeaways ?? parts.takeaways)
     .map((item) => tidyText(oneLine(item)))
     .filter((item) => item !== "")
     .slice(0, PAGE_BLOCKS.takeaways.max);
-  const lead = [kept === null ? answerBox(parts.answer) : `:::answer\n${kept.answer}\n:::`, `:::takeaways\n${takeaways.map((item) => `- ${item}`).join("\n")}\n:::`];
+  const box = kept === null ? answerBox(parts.answer) : `:::answer\n${kept.answer}\n:::`;
   const text = sections.map((section) => `## ${section.heading}${section.body === "" ? "" : `\n\n${section.body}`}`);
   const cleaned = (text: string): string => recased(sentenceCase(tidyText(collapse(text)), proper), cased);
   const unclaimed = a.unclaimed ?? ((line: string) => line);
@@ -521,6 +543,8 @@ export function layoutPage(parts: PageParts, template: Template, a: TidyInputs):
     a.live === undefined
       ? (a.pickTitle?.(proposed, { description, sections: laid }) ?? proposed[0] ?? "")
       : (a.pickTitle?.([liveTitle(a.live, changed)], { description, sections: laid }) ?? liveTitle(a.live, changed));
+  const takeaways = kept === null ? withTitleFigure(listed, title, [box, ...listed, text[0] ?? ""].join("\n"), a.sources ?? []) : listed;
+  const lead = [box, `:::takeaways\n${takeaways.map((item) => `- ${item}`).join("\n")}\n:::`];
   return {
     body: {
       title,

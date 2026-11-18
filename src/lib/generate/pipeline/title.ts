@@ -5,13 +5,14 @@
 // writer proposes by it, and stage 4 checks it (`../rules/title.ts`) — from
 // this one reading, so the title a writer is asked for, the title code picks
 // and the title the check passes are one description.
-import { languagePack, SHAPES } from "@/lib/locale/language";
+import { SHAPES } from "@/lib/locale/language";
 import { TITLE } from "@/lib/config/constants";
 import { brandOf } from "@/lib/market/questions/select";
 import { briefLinesOf } from "../rules/brief-lines";
+import { topicWords } from "../rules/gaps";
 import { namedRivals } from "../rules/rivals";
 import { numeralsOf } from "../rules/figures";
-import { addedNames, asksQuestion, closestTitle, names, pickTitle, withoutSerials, type TitleRuleInputs } from "../rules/title";
+import { addedNames, asksQuestion, closestTitle, countedIn, names, pickTitle, withoutSerials, type TitleRuleInputs } from "../rules/title";
 import { ownCapitals, recased } from "./compose";
 import { packStatements, type ContextPack } from "./pack";
 import { comparisonTable } from "./table";
@@ -50,10 +51,20 @@ export function unclaimedSuperlatives(pack: Pick<ContextPack, "type" | "target" 
   };
 }
 
+/** A claim about a rival: off its own page, about it or of one plan; off a comparison, also one naming it or stating a price. */
+function rivals(pack: ContextPack): (claim: ContextPack["claims"][number]) => boolean {
+  const named = namedRivals(pack.business.rivals ?? [], pack.business.market).flatMap((rival) => [...text(rival.name), brandOf(rival.domain)]).filter((name) => name.length > 2);
+  const priced = pack.type !== "listicle";
+  return (claim) =>
+    claim.product !== undefined || claim.about !== undefined || (claim.plan ?? null) !== null || claim.kind.startsWith("rival_") ||
+    (priced && (named.some((name) => names(claim.passage, name)) || /[$€£¥]/.test(claim.passage) || SHAPES.price.test(claim.passage.toLowerCase())));
+}
+
 /** A title's figure describes the page, so the business's own words count only on the page that sells or refreshes them. */
 function evidenceOf(pack: ContextPack): string[] {
-  // A rival's own price or feature line is the rival's, never this page's specific.
-  const claims = pack.claims.filter((claim) => claim.product === undefined).map((claim) => claim.passage);
+  // A rival's plan or price line is the rival's, never this page's specific.
+  const rival = rivals(pack);
+  const claims = pack.claims.filter((claim) => !rival(claim)).map((claim) => claim.passage);
   return pack.type === "offering" || pack.type === "update" ? [...pack.facts.map((fact) => fact.passage), ...claims, ...packStatements(pack)] : claims;
 }
 
@@ -82,6 +93,9 @@ export function titleRuleFor(pack: ContextPack, page: TitledPage): TitleRuleInpu
   const ownPassages = (domain: string): string => pack.claims.filter((claim) => claim.product === domain).map((claim) => claim.passage).join("\n");
   const rivalOwners = namedRivals(pack.business.rivals ?? [], pack.business.market).map((rival) => ({ names: [...text(rival.name), brandOf(rival.domain)].filter((name) => name.length > 2), holds: ownPassages(rival.domain) }));
   const pageCounts = [...counts.values(), ...listed, pack.questions.length, options ?? 0].filter((count) => count > 1).join(" ");
+  // A count leads a title only as the top results' titles do, two of their first five, and only as the page's questions or steps.
+  const serp = [...new Set(pack.claims.filter((claim) => claim.kind === "top_result").map((claim) => claim.title))].slice(0, 5);
+  const sectionCounts = serp.filter((title) => countedIn(title) !== null).length >= 2 ? [counts.get("question") ?? 0, counts.get("steps") ?? 0, ...listed] : [];
   return {
     type: pack.type,
     terms: [...new Set([...searches, pack.target.question])],
@@ -100,7 +114,7 @@ export function titleRuleFor(pack: ContextPack, page: TitledPage): TitleRuleInpu
     titles: pack.pages.flatMap((each) => text(each.title)),
     description: page.description,
     ...(pack.locale === undefined ? {} : { language }),
-    ...(options === undefined ? {} : { options }),
+    ...(options === undefined ? { counts: sectionCounts.filter((count) => count > 1) } : { options }),
     ...(compares && business.length > 0 ? { business } : {}),
     owners: { rivals: rivalOwners, business: { names: business, holds: [...pack.facts.map((fact) => fact.passage), ...packStatements(pack), ownPassages(pack.business.domain)].join("\n") }, page: pageCounts },
   };
@@ -125,31 +139,14 @@ export function floorTitle(pack: ContextPack): string | null {
   return titles.find((title) => [...title].length >= TITLE.chars.min && [...title].length <= TITLE.chars.max && closestTitle(title, rule.titles) === null) ?? null;
 }
 
-/** The figures the pack states, each with the words around it, so the
- *  writer is shown the specifics a title may carry. A year is not one, and
- *  neither is the number of an episode or an issue. */
+/** The whole passages a title's clause may be built on, word for word, each stating a figure, a year or a serial aside:
+ *  the most topic words shared with the target first, then the pack's own on-topic, newest-first order. */
 function figuresOf(pack: ContextPack): string[] {
-  const said = withoutSerials(
-    evidenceOf(pack).join("\n"),
-    pack.locale?.language ?? "en"
-  );
-  const stop = languagePack(pack.locale?.language ?? "en").stopWords;
-  const seen = new Set<string>();
-  const out: string[] = [];
-  for (const match of said.matchAll(/(?:[^\s\d]+ ){0,2}[$€£]?\d[\d.,]*\S*(?: [^\s\d]+){0,3}/gu)) {
-    const figure = /\d[\d.,]*/.exec(match[0])?.[0].replace(/[.,]+$/, "") ?? "";
-    // A lone digit with no currency mark is a list number as often as a fact.
-    if (/^(?:19|20)\d\d$/.test(figure) || seen.has(figure) || (figure.length === 1 && !/[$€£%]/.test(match[0]))) continue;
-    // A whole phrase only: never one cut short by the number after it, and never opening or ending on a word that leads on.
-    if (/^ \S*\d/.test(said.slice((match.index ?? 0) + match[0].length))) continue;
-    const words = match[0].replace(/[.,;:]+$/, "").split(" ");
-    while (words.length > 1 && stop.has(words[0]!.toLowerCase()) && !/\d/.test(words[0]!)) words.shift();
-    while (words.length > 1 && stop.has(words.at(-1)!.toLowerCase()) && !/\d/.test(words.at(-1)!)) words.pop();
-    seen.add(figure);
-    out.push(words.join(" "));
-    if (out.length === TITLE.figuresTold) break;
-  }
-  return out;
+  const language = pack.locale?.language ?? "en";
+  const target = topicWords([pack.target.question, ...pack.target.searches].join(" "));
+  const shared = (passage: string): number => [...topicWords(passage)].filter((word) => target.has(word)).length;
+  const stating = evidenceOf(pack).filter((passage) => numeralsOf(withoutSerials(passage, language)).some((each) => !/^(?:19|20)\d\d$/.test(each.normalised)));
+  return [...new Set(stating)].sort((left, right) => shared(right) - shared(left)).slice(0, TITLE.figuresTold);
 }
 
 /** The figures a title states that are the business's own promise, offer or price: a promise figure is never a
@@ -176,17 +173,16 @@ export function titleBrief(pack: ContextPack): Record<string, unknown> {
   const titled = (specific: string): string => `${casedAsPack(rule.terms[0] ?? "", pack, rule)}: ${specific}`;
   const passes = (specific: string): boolean => pickTitle([titled(specific)], rule).candidates[0]?.faults.length === 0 && promiseFigures(titled(specific), pack).length === 0;
   const names = addedNames(rule).filter(passes).slice(0, TITLE.namesTold);
-  const figures = figuresOf(pack).filter(passes);
   const floor = floorTitle(pack);
   return {
     searches: rule.terms,
     year: dated ? rule.year : null,
     // The rivals and the place that count as the title's specific.
     names,
-    // Figures `pack` states, as it words them.
-    figures,
+    // Whole sentences `pack` states a figure in, never the business's promise off the page that sells it.
+    figures: figuresOf(pack).filter((sentence) => promiseFigures(sentence, pack).length === 0),
     // Titles code checked against every rule below.
-    titles: [...new Set([...figures, ...names].map(titled))].slice(0, TITLE.candidates).concat(floor === null ? [] : [floor]),
+    titles: [...new Set(names.map(titled))].slice(0, TITLE.candidates).concat(floor === null ? [] : [floor]),
     // Issue 2378: the title rule's lines, from the one list every prompt renders.
     rules: briefLinesOf("title", { pack, template: TEMPLATES[pack.type], pageType: null, titleRule: rule }),
   };

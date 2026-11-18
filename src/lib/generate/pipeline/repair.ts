@@ -52,6 +52,7 @@ import { languagePack } from "@/lib/locale/language";
 import { urlKey } from "../links/select";
 import type { Template } from "../templates";
 import type { ContextPack } from "./pack";
+import { linkedPassage } from "./compose";
 import type { PageParts } from "./write";
 
 /** The rules a repair in code is tried for, in the order it is applied. The
@@ -539,13 +540,6 @@ export function fixNotes(
 }
 
 const wordCount = (text: string): number => (text.match(/\S+/g) ?? []).length;
-
-/** A business passage as a sentence that links its page, word for word. */
-function linkedPassage(passage: string, url: string): string {
-  const text = passage.replace(/[[\]]/g, "").trim();
-  const ends = /[.!?]$/.test(text);
-  return `[${ends ? text.slice(0, -1) : text}](${url})${ends ? text.slice(-1) : "."}`;
-}
 
 /** The short answer with a linked business passage after the writer's leading sentences that leave room for it: the fit
  *  fact where it has a page, else the first of the pack's own that fits. Unchanged where it links one already or none fits. */

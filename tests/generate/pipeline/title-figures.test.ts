@@ -2,10 +2,12 @@
 // evidence, never the business's promise; the offering page still may. No model.
 import "../env";
 import { describe, expect, it } from "vitest";
+import { layoutPage } from "../../../src/lib/generate/pipeline/compose";
 import { titleBrief, titleRuleFor } from "../../../src/lib/generate/pipeline/title";
 import type { ContextPack } from "../../../src/lib/generate/pipeline/pack";
 import { pickTitle, titleFaults } from "../../../src/lib/generate/rules/title";
-import { pack } from "../fixtures";
+import { TEMPLATES } from "../../../src/lib/generate/templates";
+import { pack, pageParts } from "../fixtures";
 import stored from "../fixtures/dogfood-promise-titles-2026-10.json";
 import type { ContentType } from "../../../src/lib/opportunities/content-type";
 
@@ -60,4 +62,11 @@ describe("a plumber's title brief", () => {
   it("still offers it on the offering page", () => {
     expect((titleBrief(plumber("offering")).figures as string[]).join("\n")).toMatch(/24\/7/);
   });
+});
+
+it("a title's figure the writer left out of the body is added as its claim, word for word and linked", () => {
+  const adobe = { passage: "Traffic from generative AI sources to U.S. retail sites rose 693% during the 2025 holiday season.", url: "https://business.adobe.com/blog/holiday-2025" };
+  const parts = { ...pageParts(), titles: ["Why doesn't ChatGPT recommend my business: AI traffic up 693%"] };
+  const laid = layoutPage(parts, TEMPLATES.qa, { facts: [], promises: [], queries: [], names: [], sources: [adobe] });
+  expect(laid.body.bodyMarkdown).toContain(`- [${adobe.passage.slice(0, -1)}](${adobe.url}).\n:::`);
 });
