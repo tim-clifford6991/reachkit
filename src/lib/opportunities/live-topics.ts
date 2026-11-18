@@ -1,12 +1,14 @@
 // SPEC §7 *Stop a live page*: each hour every live page the customer has not edited, or taken down and put back, is
 // read again from its own stored row against the site's market, tracked prompts and buyers' questions. 0¢: nothing is
-// fetched and no model is asked. A page that would not be chosen today waits for a planned retarget, is retargeted to a
-// ready topic of its cluster, waits while young and unjudged, is kept and refreshed where it already earns (a `working`
-// verdict, a top-30 ranked keyword, an answer-engine read, or a host the weekly measurement cannot see), is merged into
-// a live page of its cluster (its address answering 301, `merged_into`, through the move), or is otherwise withdrawn
-// through `unpublish()` and answers 410. Of two live pages that pass and are one question (SPEC §6), the one with fewer
-// Google impressions is merged into the other once both are read. A page on the customer's own host has no 301 of
-// ours: it stays live and is named in the run's report. A page is never corrected by a row edit alone (ADR-080).
+// fetched and no model is asked. A page that would not be chosen today waits for a planned retarget, is kept and
+// refreshed at its own address where Google measured impressions on it, is retargeted to a ready topic of its cluster,
+// waits while young and unjudged, is kept and refreshed where it otherwise earns (a `working` verdict, a top-30 ranked
+// keyword, an answer-engine read, or a host the weekly measurement cannot see), is merged into the live page of its
+// cluster with the most impressions (its address answering 301, `merged_into`, through the move) once it is measured, or
+// is otherwise withdrawn through `unpublish()` and answers 410. Of two live pages that pass and are one question (SPEC
+// §6), the one with fewer Google impressions, or the newer of a measured 0–0 pair, is merged into the other once both are
+// read. A page on the customer's own host has no 301 of ours: it stays live and is named in the run's report. A page is
+// never corrected by a row edit alone (ADR-080).
 import { REFRESH_MIN_AGE_DAYS } from "@/lib/config/constants";
 import { registrableDomain } from "@/lib/market/rivals/domains";
 import { canonicalUrl, googleRead, readingOf } from "@/lib/measure/page-reading";
@@ -18,9 +20,7 @@ import { comparisonWithoutAsking } from "./readiness";
 import { isRetarget, type Opportunity } from "./types";
 import { takenDownByCustomer } from "@/lib/publish/take-down/standing";
 
-/** How old an address must be before topic rules alone may retire it, where
- *  no verdict has yet judged it. Drafted (the SEO master review of
- *  2026-10-18); the owner may correct it. */
+/** How old an address must be before topic rules alone may retire it, where no verdict has yet judged it. */
 export const RETIRE_MIN_AGE_DAYS = 90;
 
 /** The top-30 position in the stored ranked keywords that keeps a page. */
@@ -89,7 +89,7 @@ export interface LiveTopicSite {
 export type LiveTopicFailure = { rule: "no_demand" } | { rule: "other_kind"; kind: OtherKind };
 
 /** A reason a failing page is kept. */
-export type KeepSignal = "working" | "ranked" | "reads" | "host_unmeasured";
+export type KeepSignal = "impressions" | "working" | "ranked" | "reads" | "host_unmeasured";
 
 export type LiveTopicVerdict =
   | { kind: "keeps" }
@@ -146,7 +146,12 @@ export function liveTopicVerdict(page: LiveTopicPage, site: LiveTopicSite, now: 
   const failure = liveTopicFailure(page, site);
   if (failure === null) return { kind: "keeps" };
   if (site.open.some((row) => isRetarget(row) && row.targetRef === page.liveUrl)) return { kind: "moving", failure };
-  const others = site.pages.filter((other) => other.liveUrl !== page.liveUrl);
+  // A page Google shows is never moved, merged or withdrawn: it is refreshed where it stands.
+  if ((page.google?.impressions ?? 0) > 0) return { kind: "refresh", failure, signals: ["impressions", ...keepSignals(page, site)] };
+  // Merges go into the page with more impressions; a stable sort keeps today's order where none differ.
+  const others = site.pages.filter((other) => other.liveUrl !== page.liveUrl).sort((a, b) => (b.google?.impressions ?? 0) - (a.google?.impressions ?? 0));
+  // Not measured is not 0: such a page is never merged on it, and waits instead.
+  const merge = (into: string, why: "replaced" | "same_search" | "closest"): LiveTopicVerdict => (page.google == null ? { kind: "waits", failure } : { kind: "redirect", failure, into, why });
   const cluster = page.opportunity.clusterKey;
   const to = site.open.find(
     (row) =>
@@ -160,25 +165,25 @@ export function liveTopicVerdict(page: LiveTopicPage, site: LiveTopicSite, now: 
   if (to !== undefined) {
     // One page a search: where another live page already targets it, this one is merged into that page, not made a second.
     const holder = others.find((other) => queryKey(other.opportunity.targetQuery ?? "") === queryKey(to.targetQuery ?? ""));
-    return holder === undefined ? { kind: "retarget", failure, to } : { kind: "redirect", failure, into: holder.liveUrl, why: "same_search" };
+    return holder === undefined ? { kind: "retarget", failure, to } : merge(holder.liveUrl, "same_search");
   }
   // A page of its cluster that passes the topic rules has replaced it.
   const sameCluster = cluster === null ? [] : others.filter((other) => other.opportunity.clusterKey === cluster);
   const replacement = sameCluster.find((other) => liveTopicFailure(other, site) === null);
-  if (replacement !== undefined) return { kind: "redirect", failure, into: replacement.liveUrl, why: "replaced" };
+  if (replacement !== undefined) return merge(replacement.liveUrl, "replaced");
   const judged = page.signals.verdicts.some((verdict) => verdict !== "too_early");
   if (!judged && now.getTime() - page.signals.firstLive.getTime() < RETIRE_MIN_AGE_DAYS * DAY_MS) return { kind: "waits", failure };
   const signals = keepSignals(page, site);
   if (signals.length > 0) return { kind: "refresh", failure, signals };
   const close = sameCluster[0];
-  return close === undefined ? { kind: "withdraw", failure } : { kind: "redirect", failure, into: close.liveUrl, why: "closest" };
+  return close === undefined ? { kind: "withdraw", failure } : merge(close.liveUrl, "closest");
 }
 
 /** Why two live twins are not merged. */
 export type TwinHeld = "twin_waits_on_reading" | "own_host" | "draft_in_review" | "names_other_products";
 
 /** Of the live pages that pass the topic rules, each that is one question with a page holding more Google impressions
- *  (then clicks, then the older address, never when both read 0) is merged into it, unless a reason holds it. Pure. */
+ *  (then clicks, then the older address) is merged into it once both are measured, unless a reason holds it. Pure. */
 export function liveTwins(pages: readonly LiveTopicPage[], site: Pick<LiveTopicSite, "joined" | "products">): {
   merge: { page: LiveTopicPage; into: LiveTopicPage }[];
   held: { liveUrl: string; into: string; why: TwinHeld }[];
@@ -194,8 +199,7 @@ export function liveTwins(pages: readonly LiveTopicPage[], site: Pick<LiveTopicS
     if (into === undefined) kept.push(page);
     else {
       const why: TwinHeld | null =
-        into.google!.impressions + into.google!.clicks === 0 ? "twin_waits_on_reading"
-        : !page.hosted || !into.hosted ? "own_host"
+        !page.hosted || !into.hosted ? "own_host"
         : page.updating === true || into.updating === true ? "draft_in_review"
         : products(page) !== products(into) ? "names_other_products"
         : null;
@@ -219,8 +223,7 @@ export function absorbedBy(into: LiveTopicPage, merged: readonly LiveTopicPage[]
 
 export interface LiveTopicOutcome {
   checked: number;
-  /** Every page that failed, with what was done or would be done, for the
-   *  run's report. */
+  /** Every page that failed, with what was done or would be done, for the run's report. */
   failed: {
     liveUrl: string;
     verdict: LiveTopicVerdict["kind"];
@@ -235,8 +238,7 @@ export interface LiveTopicOutcome {
   /** Live twins merged or held, with why. */
   twins: { liveUrl: string; into: string; why: "merged" | TwinHeld }[];
   refreshed: string[];
-  /** A page whose withdrawal, retarget or refresh did not complete: read
-   *  again on the next tick. */
+  /** A page whose withdrawal, retarget or refresh did not complete: read again on the next tick. */
   stillLive: string[];
 }
 
@@ -251,8 +253,7 @@ export interface LiveTopicDeps {
   /** Writes the survivor row's absorbed searches. */
   absorb: (into: LiveTopicPage, queries: readonly string[]) => Promise<void>;
   withdraw: (draftId: string, at: Date) => Promise<boolean>;
-  /** Dismisses the topics the withdrawn drafts were written for (issue
-   *  1549). */
+  /** Dismisses the topics the withdrawn drafts were written for. */
   dismiss?: (draftIds: readonly string[]) => Promise<void>;
 }
 
@@ -301,9 +302,7 @@ export async function retireOffTopicPages(a: { now: Date; deps?: LiveTopicDeps; 
         for (const older of page.olderVersions ?? []) down = (await deps.withdraw(older, a.now)) && down;
         if (down) outcome.withdrawn.push({ draftId: page.draftId, liveUrl: page.liveUrl, rule: verdict.failure.rule });
         else outcome.stillLive.push(page.liveUrl);
-        // Issue 1549: an off-topic page's topic is not left `queued` behind
-        // an address that is gone; it is dismissed. The page is down whether
-        // or not the rows could be written.
+        // An off-topic page's topic is not left `queued` behind an address that is gone; the page is down either way.
         if (down && deps.dismiss !== undefined) await deps.dismiss([page.draftId, ...(page.olderVersions ?? [])]).catch((error: unknown) => {
           console.log(JSON.stringify({ event: "withdrawn_topic_dismiss_failed", draftId: page.draftId, because: String(error) }));
         });

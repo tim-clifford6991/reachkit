@@ -269,6 +269,8 @@ export interface PageReading {
   variants: { query: string; place: number }[];
   reached: Reached;
   google: GoogleReading | null;
+  /** The address this page was put back at because Google still showed it; an address is put back once. */
+  restored?: string;
 }
 
 const REACHED_KEYS = ["found", "showing", "firstPage", "readByAi", "linkedByAi", "aiVisit"] as const;
@@ -330,6 +332,7 @@ export function readingOf(value: unknown): PageReading | null {
       : [],
     reached,
     google: engineOf(r.google),
+    ...(isText(r.restored) ? { restored: r.restored } : {}),
   };
 }
 
@@ -443,5 +446,6 @@ export function assembleReading(a: { before: PageReading | null; report: PlaceRe
     variants,
     reached,
     google: page.google,
+    ...(before?.restored === undefined ? {} : { restored: before.restored }),
   };
 }

@@ -3,7 +3,8 @@
 //     `unpublished_at` (ADR-080: never a row edit alone), and no unpublish outcome, as the old address answers 301;
 //   · every live page linking the old address is planned a `link` refresh (§7); no live page's text is edited in place.
 // A merge is the same move into a page at its own address, and the rows it leaves name it (`merged_into`).
-// `repairMoves` runs hourly for a retarget whose move was never written or did not complete. 0¢: rows only.
+// `repairMoves` runs hourly for a retarget whose move was never written or did not complete, and `restoreAddress` puts a
+// page back at an address Google still shows. 0¢: rows only.
 // It never throws: the page is live at its new address either way, and the log says what was not written.
 import { pageName } from "@/lib/generate/links/text";
 import { publishDb } from "../db";
@@ -82,6 +83,23 @@ export async function moveAddress(a: {
   } catch (error) {
     console.error(JSON.stringify({ event: "hosted_move_failed", from: a.from, to: a.to.url, message: String(error) }));
   }
+}
+
+/** An address moved away while Google still showed it serves the page that left it again, and the address it went to
+ *  answers 301 back: the page's update now names that address, so `repairMoves` leaves it where it is. */
+export async function restoreAddress(a: { siteId: string; publicationId: string; opportunityId: string; from: string; to: string; at: Date; by: Actor }): Promise<boolean> {
+  const db = publishDb();
+  const moved = await db.from<{ id: string }>("publications").update({ live_url: a.to }).eq("id", a.publicationId).eq("live_url", a.from);
+  if (moved.error !== null && moved.error !== undefined) return false;
+  const named = await db.from<{ id: string }>("opportunities").update({ target_ref: a.from }).eq("id", a.opportunityId);
+  if (named.error !== null && named.error !== undefined) {
+    // Without the row naming its old address, that address would answer nothing: the page goes back where it was.
+    await db.from<{ id: string }>("publications").update({ live_url: a.from }).eq("id", a.publicationId);
+    return false;
+  }
+  invalidateHosted({ siteId: a.siteId });
+  await moveAddress({ from: a.from, to: { publicationId: a.publicationId, url: a.to }, at: a.at, by: a.by });
+  return true;
 }
 
 interface RetargetRow extends Row {
