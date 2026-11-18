@@ -1,49 +1,6 @@
-// src/lib/llm/index.ts — WO-026, BP-009's `llm()` seam.
-//
-// **Risk: high — money, and the customer's own page text leaving the
-// process here.** Every model call the product ever makes goes through
-// this one function. Three things are non-negotiable and mutation-tested
-// (doctrine 0.13.2):
-//   1. Every call is ledgered through `CostContext.recordFetch` — no path
-//      calls the vendor without going through the cap/reserve/settle/
-//      ledger seam BP-007 already owns.
-//   2. A tier's model id comes from exactly one place — `tierBinding()`
-//      (`tiers.ts`) — and nothing on the caller's `call` object can
-//      substitute for it: only `call.tier`, `call.input` and
-//      `call.schema` are ever read, by name, never spread.
-//   3. `call.input` — the customer's own page text, in whatever shape a
-//      caller supplies — reaches the model and nothing else: it is never
-//      logged, and neither is the model's response text. The credential
-//      (`tierBinding().apiKey`) is read in exactly one place below and
-//      handed to the vendor SDK's constructor; it is never interpolated
-//      into a log line, a thrown value, or any string this module builds
-//      by hand — including an *encoded* form of it (WO-023's sibling
-//      order shipped a credential test that only searched for the
-//      plaintext secret and missed the header's own base64 encoding;
-//      `tests/llm/seam.test.ts` searches for both forms of the fixture
-//      key).
-//
-// **Two gaps this file inherits, flagged once here (rule 4.2) rather than
-// blocking a WO-071-blocking, critical-path order:**
-//
-// - **`call.site` is `LlmCallSite`, the key set of
-//   `INFERENCE_MAX_OUTPUT_TOKENS` (issue #462).** It was typed `string`
-//   while BP-009's union waited on a WO-027 file that never landed; the
-//   per-site output budget is what closed it, since a site with no
-//   budget pinned now does not compile.
-// - **The `unparseable` reason BP-009's `## Error & edge behavior` names
-//   does not exist on the shipped `Measured<T>`.** `UnmeasuredReason`
-//   (`src/lib/measure/measured.ts`, BP-024, WO-277 — outside this file
-//   plan) is a closed `'undeterminable' | 'not_attempted'`, with
-//   `undeterminable` defined as "nothing returned, unreadable, or a data
-//   source did not answer" (BP-024 `## Data model delta`) — language that
-//   already covers an unparsed model response without inventing a third
-//   member of a type this WO does not own (rule 7.1: one owner per
-//   capability). Both a schema-parse failure and model unavailability
-//   below resolve to `undeterminable`; `not_attempted` is reserved for
-//   the one case BP-024 defines it for — the caller's own cost ceiling
-//   stopping the call, or the retry it needed, before it was attempted
-//   (`recordFetch`'s `{ skipped: "cap" }`). Recorded as an open `rests-on` row on WO-026.
+// The one seam every model call goes through. Every call is ledgered through `CostContext.recordFetch`; a tier's
+// model id comes only from `tierBinding()`; `call.input`, the model's text and the API key never reach a log.
+// A parse failure and model unavailability both resolve to `undeterminable`; `not_attempted` is the cost cap's.
 import { modelInstruction } from "@/lib/locale/language";
 import type { Locale } from "@/lib/locale/locales";
 import Anthropic from "@anthropic-ai/sdk";
@@ -93,12 +50,9 @@ type ParseOutcome = "success" | "unparseable" | "unavailable" | "not_attempted";
  *  here reaches a log but the class word itself. */
 type FailureClass = "timeout" | "parse" | "vendor" | `http_${number}`;
 
-/** Why an answer that came back did not parse (issue #462): `json` — the
- *  text was not JSON at all, even after `parseJson` below stripped a fence
- *  and looked for the first balanced object (prose with no object in it, or
- *  an answer cut off at `max_tokens`); `schema` — JSON that the caller's
- *  schema refused. */
-type ParseFailureKind = "json" | "schema";
+/** Why an answer that came back was not used: `json`, no JSON in the text; `schema`, JSON the caller's schema
+ *  refused; `cut_off`, the answer stopped at the length limit; `refusal`, the model declined to answer. */
+type ParseFailureKind = "json" | "schema" | "cut_off" | "refusal";
 
 /** What a `json` miss's text began with (issue #512), after any leading
  *  whitespace: a Markdown fence, an object, an array, a word, nothing at
@@ -360,6 +314,8 @@ function issueLabel(issue: { path: PropertyKey[]; code: string }): string {
   return `${path === "" ? "(root)" : path}:${issue.code}`;
 }
 
+type ModelResponse = { answer: Answer; stop: Anthropic.StopReason | null; tokensIn: number; tokensOut: number };
+
 /** The one place a vendor request is built and issued — `binding.apiKey`
  *  and `binding.modelId` are read here and nowhere else in this module.
  *  Anthropic's own SDK is the transport (`eslint.config.mjs`'s
@@ -386,7 +342,7 @@ async function callModel(
   /** The call site's pinned `INFERENCE_TEMPERATURE`, or `undefined` for
    *  the vendor's default — then nothing is sent, exactly as before. */
   temperature: number | undefined
-): Promise<{ answer: Answer; tokensIn: number; tokensOut: number }> {
+): Promise<ModelResponse> {
   const client = new Anthropic({
     apiKey: binding.apiKey,
     timeout: binding.timeoutMs,
@@ -411,6 +367,7 @@ async function callModel(
   );
   return {
     answer: readAnswer(message, tool),
+    stop: message.stop_reason,
     tokensIn: message.usage.input_tokens,
     tokensOut: message.usage.output_tokens,
   };
@@ -475,7 +432,7 @@ async function runAttempts<T>(
       };
     }
     if (attempt > 1 && !(await retryFits())) return unparseable("cap", lastMiss ?? { parseFailure: "json" });
-    let response: { answer: Answer; tokensIn: number; tokensOut: number };
+    let response: ModelResponse;
     try {
       response = await callModel(binding, inputText, maxOutputTokens, remainingMs, tool, temperature);
     } catch (error: unknown) {
@@ -490,6 +447,11 @@ async function runAttempts<T>(
     }
     tokensIn += response.tokensIn;
     tokensOut += response.tokensOut;
+    // The same request would be cut off or refused again, and a cut-off answer is never taken as whole.
+    if (response.stop === "refusal") return unparseable("deterministic", { parseFailure: "refusal" });
+    if (response.stop === "max_tokens" || response.stop === "model_context_window_exceeded") {
+      return unparseable("deterministic", { parseFailure: "cut_off" });
+    }
 
     let candidate: unknown;
     if (response.answer.kind === "tool") {
