@@ -29,6 +29,7 @@
 //
 // `regenerateRestarted` is the customer's Regenerate carried out: the next draft tick rewrites the row for its date.
 import { siteLocale } from "@/lib/locale/site";
+import { answeredQueries } from "@/lib/measure/page-reading";
 import {
   opportunityById,
   pageForDay,
@@ -431,20 +432,18 @@ async function livePageOf(
   const listed = known.find((page) => page.url !== null && urlKey(page.url) === key);
   const title = listed?.title ?? opportunity.title ?? "";
   const ours = title === "" ? undefined : (await generateStore().publishedPages(a.siteId)).find((page) => page.title === title);
-  // Issue 1507: a page of ours is refreshed from its text with what code can
-  // repair of the consistency rules already repaired — never edited live.
+  // A page of ours is refreshed from its text with what code can repair of the consistency rules repaired, never edited live.
   const markdown =
     (ours === undefined ? undefined : repairStructure(ours.markdown, { title: ours.title })) ?? facts.find((sourced) => urlKey(sourced.fact.url) === key)?.sourceText ?? "";
   if (markdown.trim() === "") return null;
   const evidence = opportunity.evidence as { shortfall?: { kind?: unknown; cause?: unknown; place?: unknown } } | undefined;
   const linkTo = linkBackOf(opportunity);
-  // Issue 1521 (as 1507): the date the live version is dated as, which a
-  // refresh that says nothing new keeps.
+  // The date the live version is dated as, which a refresh that says nothing new keeps.
   const version = ours === undefined ? null : await generateStore().liveVersionAt(a.siteId, url);
   const versionMeta = (version?.draft.meta ?? null) as Record<string, unknown> | null;
   const datedAs = version === null ? undefined : typeof versionMeta?.datedAs === "string" ? versionMeta.datedAs : version.publishedAt.toISOString();
-  // Issue 1487: a link to a page that moved is pointed at its new address in
-  // code, by the name the row records; the writer returns the page as it is.
+  const queries = answeredQueries(version?.reading);
+  // A link to a page that moved is pointed at its new address in code, by the name the row records.
   const moved =
     linkTo?.replaces === undefined ? markdown : withMovedLink(markdown, { from: (href) => href === linkTo.replaces, to: linkTo.url, text: linkTo.title }).markdown;
   return {
@@ -456,6 +455,7 @@ async function livePageOf(
     ...(evidence?.shortfall?.kind === "due" && typeof evidence.shortfall.cause === "string" ? { cause: evidence.shortfall.cause } : {}),
     ...(evidence?.shortfall?.kind === "due" && typeof evidence.shortfall.place === "number" ? { place: evidence.shortfall.place } : {}),
     ...(datedAs === undefined ? {} : { datedAs }),
+    ...(queries.length === 0 ? {} : { queries }),
     ...(linkTo === null ? {} : { linkTo }),
     ...(ours?.reportPassages === undefined ? {} : { reportPassages: ours.reportPassages }),
     // The type it was first written as: an update's own pack carries its live page's.
