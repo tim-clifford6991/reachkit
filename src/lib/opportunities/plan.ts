@@ -113,9 +113,9 @@ export async function weekChosenOn(siteId: string): Promise<string | null> {
   return dates.length === 0 ? null : dates.reduce((a, b) => (a < b ? a : b));
 }
 
-/** The row as the day writes it: a listicle the commit marked is written as a Q&A (issue 1455). */
+/** The row as the day writes it: as the type the commit stored where it stored one (issue 1455). */
 function planned(row: OpportunityRow): Opportunity {
-  return row.plan_write_as === "qa" ? { ...readOpportunity(row), writeAs: "qa" } : readOpportunity(row);
+  return row.plan_write_as == null ? readOpportunity(row) : { ...readOpportunity(row), writeAs: row.plan_write_as };
 }
 
 // Supply, as Overview and Plan state it; never a target (SPEC §14 guardrail 1). Derived from the rows and stored

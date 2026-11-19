@@ -87,7 +87,7 @@ export function storedChoice(rows: readonly OpportunityRow[]): WeekChoice {
         opportunityId: row.id,
         place: row.plan_place!,
         plannedFor: row.planned_for ?? null,
-        writeAs: row.plan_write_as === "qa" ? "qa" : null,
+        writeAs: row.plan_write_as ?? null,
         reason: row.plan_reason ?? null,
       })
     );

@@ -16,6 +16,7 @@ import { stemKey } from "@/lib/market/questions/select";
 import { opportunityById } from "@/lib/opportunities";
 import { contentTypeOf } from "@/lib/opportunities/content-type";
 import type { OpportunityRow } from "@/lib/opportunities/store";
+import type { PlanWriteAs } from "@/lib/opportunities/types";
 import { cachedSerp, serpOrganic } from "@/lib/vendors/dataforseo/serp";
 import { DRAFT_POLICY_VERSION, openDayCost } from "./cost";
 import { targetSearches } from "./pipeline";
@@ -33,7 +34,7 @@ export const COLLECT = Object.freeze({ rounds: 11, stepMs: 240_000, askMs: 20_00
 /** Asks for the day's research reads inside the day's draft cap, each waiting `waitMs`, and the first update candidate's
  *  one SERP beside them, so a fallback update writes from the cache. Returns how many of the topic's own are still on
  *  the queue; a type that reads no research has none. */
-export async function askDayResearch(a: { siteId: string; opportunityId: string; writeAs?: "qa" | "documentation"; now: Date; waitMs: number }): Promise<number> {
+export async function askDayResearch(a: { siteId: string; opportunityId: string; writeAs?: PlanWriteAs; now: Date; waitMs: number }): Promise<number> {
   const [o, report] = await Promise.all([opportunityById(a.opportunityId), generateStore().latestReport(a.siteId)]);
   const type = o === null ? null : (a.writeAs ?? o.writeAs ?? contentTypeOf(o));
   const target = o === null ? undefined : targetSearches(o)[0];
