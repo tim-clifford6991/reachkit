@@ -2,9 +2,10 @@
 // submit its sitemap, read URL Inspection and Search Analytics. Every call is free.
 // An account holds 1,000 properties (`GSC_PROPERTIES_PER_ACCOUNT`), so `GOOGLE_SEARCH_CONSOLE_KEYS` is one key or an array;
 // a host stays with the account the destination row names. No key means no pool, and nothing is asked.
-// No payload leaves this file: each call answers a small typed value or `null`, and no key, token or body is logged.
+// No payload leaves this file: each call answers a small typed value or `null`, and no key, token or body is logged;
+// a refusal reaches `onRefused` as its step, its status and Google's one-word reason.
 // Auth is one JWT signed with `node:crypto`, exchanged for an access token (Google's server-to-server OAuth).
-import { createSign } from "node:crypto";
+import { createPrivateKey, createSign } from "node:crypto";
 import { env } from "@/lib/config/env";
 import { safeFetch, type FetchOutcome, type SafeFetchOpts } from "@/lib/egress";
 
@@ -16,6 +17,13 @@ export interface GscAccount {
 /** The HTTP door; injected by tests, so no suite calls Google. */
 export type GscSend = (url: string, opts: SafeFetchOpts) => Promise<FetchOutcome>;
 
+export type GscStep = "token" | "verify" | "add" | "sitemap" | "analytics" | "inspect";
+export interface GscRefusal {
+  step: GscStep;
+  status: number | null;
+  googleReason: string | null;
+}
+
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
 const SCOPES = "https://www.googleapis.com/auth/siteverification https://www.googleapis.com/auth/webmasters";
 const VERIFY_API = "https://www.googleapis.com/siteVerification/v1";
@@ -25,18 +33,25 @@ const OPTS = { respectRobots: false, timeoutMs: 15000, maxBytes: 8_000_000 } as 
 
 function isAccount(value: unknown): value is GscAccount {
   const key = value as Partial<GscAccount> | null;
-  return typeof key?.client_email === "string" && typeof key.private_key === "string";
+  if (typeof key?.client_email !== "string" || typeof key.private_key !== "string") return false;
+  // The loader signing uses, so a key that would fail to sign is never in the pool.
+  try {
+    createPrivateKey(key.private_key);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
-/** The pool, in the binding's order. Empty where it is absent or cannot be
- *  read. */
-export function gscAccounts(raw: string | undefined = env.GOOGLE_SEARCH_CONSOLE_KEYS): GscAccount[] {
-  if (raw === undefined) return [];
+/** The usable accounts, in the binding's order, and how many entries the binding holds (0 where it is not set). */
+export function gscPool(raw: string | undefined = env.GOOGLE_SEARCH_CONSOLE_KEYS): { entries: number; accounts: GscAccount[] } {
+  if (raw === undefined) return { entries: 0, accounts: [] };
   try {
     const parsed = JSON.parse(raw) as unknown;
-    return (Array.isArray(parsed) ? parsed : [parsed]).filter(isAccount);
+    const entries = Array.isArray(parsed) ? parsed : [parsed];
+    return { entries: entries.length, accounts: entries.filter(isAccount) };
   } catch {
-    return [];
+    return { entries: 1, accounts: [] };
   }
 }
 
@@ -65,8 +80,18 @@ function json(outcome: FetchOutcome): unknown {
 
 const success = (outcome: FetchOutcome): boolean => outcome.ok && outcome.status >= 200 && outcome.status < 300;
 
+/** Google's code for a refusal (`SERVICE_DISABLED`, `PERMISSION_DENIED`, `invalid_grant`); only a bare word, so no text of the body is logged. */
+function googleReason(outcome: FetchOutcome | null): string | null {
+  const error = outcome === null ? undefined : (json(outcome) as { error?: unknown } | null)?.error;
+  const e = error as { status?: unknown; errors?: { reason?: unknown }[]; details?: { reason?: unknown }[] } | undefined;
+  const reason = typeof error === "string" ? error : (e?.details?.find((d) => typeof d?.reason === "string")?.reason ?? e?.errors?.[0]?.reason ?? e?.status);
+  return typeof reason === "string" && /^[A-Za-z_]{1,64}$/.test(reason) ? reason : null;
+}
+
 /** One authorised Google client, for one account. */
-export function gscClient(account: GscAccount, send: GscSend = safeFetch) {
+export function gscClient(account: GscAccount, send: GscSend = safeFetch, onRefused?: (refusal: GscRefusal) => void) {
+  const refuse = (step: GscStep, outcome: FetchOutcome | null): void =>
+    onRefused?.({ step, status: outcome?.status ?? null, googleReason: googleReason(outcome) });
   let token: { value: string; until: number } | null = null;
 
   async function bearer(): Promise<string | null> {
@@ -82,20 +107,22 @@ export function gscClient(account: GscAccount, send: GscSend = safeFetch) {
       }).toString(),
     }).catch(() => null);
     const body = outcome === null ? null : (json(outcome) as { access_token?: unknown; expires_in?: unknown } | null);
-    if (typeof body?.access_token !== "string") return null;
+    if (typeof body?.access_token !== "string") return (refuse("token", outcome), null);
     token = { value: body.access_token, until: nowS + (typeof body.expires_in === "number" ? body.expires_in : 3600) };
     return token.value;
   }
 
-  async function call(url: string, method: "GET" | "POST" | "PUT", body?: unknown): Promise<FetchOutcome | null> {
+  async function call(step: GscStep, url: string, method: "GET" | "POST" | "PUT", body?: unknown): Promise<FetchOutcome | null> {
     const auth = await bearer();
     if (auth === null) return null;
-    return send(url, {
+    const outcome = await send(url, {
       ...OPTS,
       method,
       headers: { Authorization: `Bearer ${auth}`, Accept: "application/json", ...(body === undefined ? {} : { "Content-Type": "application/json" }) },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     }).catch(() => null);
+    if (outcome === null || !success(outcome)) refuse(step, outcome);
+    return outcome;
   }
 
   const site = (siteUrl: string) => ({ type: "SITE", identifier: siteUrl });
@@ -104,7 +131,7 @@ export function gscClient(account: GscAccount, send: GscSend = safeFetch) {
   return {
     /** The meta tag's `content` for this property, or `null`. */
     async metaToken(siteUrl: string): Promise<string | null> {
-      const outcome = await call(`${VERIFY_API}/token`, "POST", { site: site(siteUrl), verificationMethod: "META" });
+      const outcome = await call("verify", `${VERIFY_API}/token`, "POST", { site: site(siteUrl), verificationMethod: "META" });
       const tag = outcome === null ? null : (json(outcome) as { token?: unknown } | null)?.token;
       if (typeof tag !== "string") return null;
       // Google answers the whole tag; the head prints only its content.
@@ -112,21 +139,21 @@ export function gscClient(account: GscAccount, send: GscSend = safeFetch) {
     },
     /** Asks Google to check the token on the host. */
     async verify(siteUrl: string): Promise<boolean> {
-      const outcome = await call(`${VERIFY_API}/webResource?verificationMethod=META`, "POST", { site: site(siteUrl) });
+      const outcome = await call("verify", `${VERIFY_API}/webResource?verificationMethod=META`, "POST", { site: site(siteUrl) });
       return outcome !== null && success(outcome);
     },
     /** Adds the verified property to Search Console and submits its
      *  sitemap. */
     async addWithSitemap(siteUrl: string, sitemapUrl: string): Promise<boolean> {
-      const added = await call(property(siteUrl), "PUT");
+      const added = await call("add", property(siteUrl), "PUT");
       if (added === null || !success(added)) return false;
-      const submitted = await call(`${property(siteUrl)}/sitemaps/${encodeURIComponent(sitemapUrl)}`, "PUT");
+      const submitted = await call("sitemap", `${property(siteUrl)}/sitemaps/${encodeURIComponent(sitemapUrl)}`, "PUT");
       return submitted !== null && success(submitted);
     },
     /** URL Inspection: indexed (`verdict` PASS), the coverage line Google
      *  states, and when Google last crawled the page. */
     async inspect(siteUrl: string, url: string): Promise<{ indexed: boolean; coverage: string | null; lastCrawl: string | null } | null> {
-      const outcome = await call(INSPECT_URL, "POST", { inspectionUrl: url, siteUrl });
+      const outcome = await call("inspect", INSPECT_URL, "POST", { inspectionUrl: url, siteUrl });
       if (outcome === null || !success(outcome)) return null;
       const status = (json(outcome) as { inspectionResult?: { indexStatusResult?: Record<string, unknown> } } | null)
         ?.inspectionResult?.indexStatusResult;
@@ -145,7 +172,7 @@ export function gscClient(account: GscAccount, send: GscSend = safeFetch) {
       end: string,
       byQuery = true
     ): Promise<{ page: string; query: string; impressions: number; clicks: number; position: number }[] | null> {
-      const outcome = await call(`${property(siteUrl)}/searchAnalytics/query`, "POST", {
+      const outcome = await call("analytics", `${property(siteUrl)}/searchAnalytics/query`, "POST", {
         startDate: start,
         endDate: end,
         dimensions: byQuery ? ["page", "query"] : ["page"],
@@ -174,7 +201,7 @@ export function gscClient(account: GscAccount, send: GscSend = safeFetch) {
         { dimension: "page", operator: "equals", expression: page },
         { dimension: "query", operator: "equals", expression: query },
       ];
-      const outcome = await call(`${property(siteUrl)}/searchAnalytics/query`, "POST", {
+      const outcome = await call("analytics", `${property(siteUrl)}/searchAnalytics/query`, "POST", {
         startDate: start,
         endDate: end,
         dimensions: ["date"],
