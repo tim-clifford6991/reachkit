@@ -1,9 +1,7 @@
 // tests/journeys/05-daily-loop.test.ts — BUILD §3, §9
 //
-// Journey: the evening tick picks the day's page and writes it → the
-// customer is told and the veto window opens → the page goes out to their
-// destination → twenty-four hours later ReachKit looks at it and says what
-// it saw (JN-003).
+// Journey: the evening tick picks the day's page and writes it → the customer is told and the veto window opens → the
+// page goes out to their destination → twenty-four hours later ReachKit looks at it and says what it saw (JN-003).
 //
 // End to end, at the seams and no further in. Everything the product owns
 // is real: the site clock, `generateDayPage` and its four model steps
@@ -977,8 +975,7 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
       expect((await heldPages(SITE_ID)).count).toBe(1);
       expect(await resumeOrder(SITE_ID)).toEqual([draftId]);
 
-      // And when both stops lift, the same page resumes, in the state it
-      // was held in.
+      // And when both stops lift, the same page resumes, in the state it was held in.
       const out = await publish({
         draftId,
         destination: "wordpress",
@@ -1000,8 +997,7 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
       const at = whenItIsDue();
       await closeTheWindow(draftId, at);
 
-      // The customer's site answers 5xx to the create. §9: "Failed
-      // publish: back in the queue with a written reason."
+      // The customer's site answers 5xx to the create. §9: "Failed publish: back in the queue with a written reason."
       wordpress.failCreates = true;
       const failed = await engine.publishApproved({ draftId, destinationId: DEST_ID });
       expect(failed).toEqual({ degraded: "publish:destination_unavailable" });
@@ -1044,8 +1040,7 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
       expect(wordpress.posts).toEqual([]);
       await setPublishing(SITE_ID, true, { kind: "customer", userId: USER_ID });
 
-      // The tick re-enters through the same seam an approval does, and the
-      // site is answering again.
+      // The tick re-enters through the same seam an approval does, and the site is answering again.
       wordpress.failCreates = false;
       const retried = await engine.publishApproved({ draftId, destinationId: DEST_ID });
       expect(retried).toEqual({ done: true });
@@ -1053,8 +1048,7 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
       // One post, not two: the retry re-claimed the row it already had.
       expect(db.rows("publications")).toHaveLength(1);
       expect(wordpress.posts).toHaveLength(1);
-      // And the +24h check is queued from the engine, on the publication
-      // the delivery produced.
+      // And the +24h check is queued from the engine, on the publication the delivery produced.
       expect(jobEvents).toEqual([
         { name: "publish/verify", data: { publicationId: publication.id } },
       ]);
@@ -1088,8 +1082,7 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
       // needs_attention leaves the opportunity queued: a page the customer can still restart is neither offered twice nor dismissed.
       const opportunityId = String(theDraftRow().opportunity_id);
       expect(opportunities.rows.find((row) => row.id === opportunityId)?.status).toBe("queued");
-      // The reason it stopped is on the page's own history, written by the
-      // machine and not by the tick.
+      // The reason it stopped is on the page's own history, written by the machine and not by the tick.
       const moves = (theDraftRow().transitions as { to: string; reason?: string }[]) ?? [];
       expect(moves.at(-1)).toMatchObject({
         to: "needs_attention",
@@ -1138,8 +1131,7 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
         | { outcome?: string; checks?: Record<string, unknown> }
         | undefined;
       expect(stored?.outcome).toBe("found");
-      // The four checks §9 promises, produced in the `found` arm and in no
-      // other.
+      // The four checks §9 promises, produced in the `found` arm and in no other.
       expect(Object.keys(stored?.checks ?? {}).sort()).toEqual([...CHECK_IDS].sort());
 
       // And it runs once, ever: a second call finds the outcome recorded
@@ -1179,11 +1171,9 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
       expect(page).toBeDefined();
       expect(page?.state).toBe("in_review");
       expect(page?.scheduledFor).toBe(nextPublishDate(EVENING, SITE_CLOCK));
-      // Its own veto window, read off the row the telling was composed
-      // from.
+      // Its own veto window, read off the row the telling was composed from.
       expect(page?.vetoDeadline).not.toBeNull();
-      // And §7's account of why the page exists travels with it, unchanged
-      // from the day supply chose it.
+      // And §7's account of why the page exists travels with it, unchanged from the day supply chose it.
       expect(page?.why.search).toBe(TARGET_SEARCH);
 
       // The engine's held set is cause-agnostic and counts every page that
@@ -1248,8 +1238,7 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
       expect(theDraftRow().state).toBe("approved");
       expect(wordpress.posts).toEqual([]);
 
-      // The read comes back: the next attempt counts nothing published today
-      // and the page goes out once.
+      // The read comes back: the next attempt counts nothing published today and the page goes out once.
       db.unreadable.delete("publications");
       const result = await publish({
         draftId,
@@ -1275,5 +1264,16 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
     const items = generateFixtures.partsFromPage(PAGE_BODY, "tool").takeaways, lines = (event: string) => warned.mock.calls.map((c) => String(c[0])).filter((line) => line.includes(event));
     expect([await written((list) => list.map((text) => ({ text }))), await written((list) => `${list[0]}\n\n${list[1]}\n- ${list[2]}`), lines("write_list_refused"), (asText.push({ takeaways: () => [1, 2] }), await written(() => [1, 2]), db.rows("fetches").filter((row) => JSON.stringify(row.payload).includes("takeaways:invalid_union")).length), lines("write_list_refused")]).toEqual([[items], [items], [], 1, Array(2).fill('{"event":"write_list_refused","list":"takeaways","shape":"array<number>"}')]);
     warned.mockRestore();
+  }, JOURNEY_TIMEOUT_MS);
+  it("a write saved too late in its step owes its one fix call to the next step, made once however often that step runs", async () => {
+    const real = Date.now.bind(Date), clock = { ahead: 0 }, late = vi.spyOn(Date, "now").mockImplementation(() => real() + clock.ahead);
+    // Write 1 is refused at 78 s; write 2, saved at 170 s, claims a test nobody ran; the fix call answers clean.
+    asText.push({ titles: () => { throw new Error(String((clock.ahead += 78_000))); } }, { sections: (list) => ((clock.ahead += 92_000), list.map((s, i) => (i === 0 ? { ...(s as object), body: `${(s as { body: string }).body} We tested every plan with our own team for a month.` } : s))) });
+    const owed = (await seedOneOpportunity(), await generateDayPage({ siteId: SITE_ID, publishDate: nextPublishDate(EVENING, SITE_CLOCK) }));
+    const draftId = theDraftRow().id as string, step = async () => (await import("../../src/lib/generate/fix-step")).fixOwedPage({ draftId, now: EVENING });
+    // The next step makes it and re-checks the page; a replay buys nothing, and one cut off before the page passed rests it.
+    const fixes = [await step(), await step(), (Object.assign(generateStore.rows.get(draftId)!, { hard_rules_passed: false }), await step())];
+    late.mockRestore();
+    expect([owed, fixes, ["generate.write", "generate.fix"].map((source) => ledger().filter((row) => row.source === source).length), theDraftRow().state]).toEqual([{ ok: false, because: "fix_owed", draftId }, [{ ok: true, draftId }, { ok: true, draftId }, { ok: false, because: "step_failed", draftId, step: "fix" }], [2, 1], "needs_attention"]);
   }, JOURNEY_TIMEOUT_MS);
 });

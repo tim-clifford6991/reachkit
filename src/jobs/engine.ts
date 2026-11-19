@@ -529,8 +529,9 @@ export async function regenerateDraft(a: { readonly siteId: string; readonly dra
 }
 
 async function reviewWritten(outcome: DayPageOutcome, now: Date): Promise<EngineResult> {
-  // Issue 1536: a step names itself, and a short pack what it lacked, so
-  // the day's kept reason says which stage left it without a page.
+  // A page its write step had no room to fix takes its one fix call here, in this step's own time, before review.
+  if (!outcome.ok && outcome.because === "fix_owed") return reviewWritten(await (await import("@/lib/generate/fix-step")).fixOwedPage({ draftId: outcome.draftId, now }), now);
+  // Issue 1536: a step names itself, and a short pack what it lacked, so the day's kept reason says which stage left it without a page.
   if (!outcome.ok) return { degraded: outcome.because === "step_failed" || outcome.because === "no_own_facts" ? `generate:${outcome.because}:${outcome.step}` : `generate:${(outcome.because === "rules" ? outcome.stop : undefined) ?? outcome.because}` };
   const { enterReview } = await import("@/lib/publish/attempt/window");
   const entry = await enterReview({ draftId: outcome.draftId, at: now });
@@ -552,9 +553,8 @@ async function reviewWritten(outcome: DayPageOutcome, now: Date): Promise<Engine
 // **Neither a hold nor a failure throws.** A held page is §9 working —
 // the switch is off, a ceiling is reached, the claim needs re-checking —
 // and the page keeps its state and resumes in the order it was held. A
-// failure has already been written as it happened and passed through the
-// retry policy inside the leaf. Both are reported as the step they stopped
-// at, so an operator sees a page that did not go out rather than a run
+// failure has already been written as it happened and passed through the retry policy inside the leaf. Both
+// are reported as the step they stopped at, so an operator sees a page that did not go out rather than a run
 // that claims it did.
 //
 // Imported at the call, for the same reason as `activeSites()` above.

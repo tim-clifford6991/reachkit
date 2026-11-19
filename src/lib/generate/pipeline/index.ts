@@ -66,7 +66,7 @@ import { layoutPage, withClosing, type LaidPage } from "./compose";
 import type { SourcedFact } from "./grounding";
 import { packStatements, type ContextPack } from "./pack";
 import { batteryBasis, checkPage, scopeOf } from "./battery";
-import { tryFix, type FixStop } from "./fix-call";
+import { FIX_OWED, owedParts, tryFix, type FixStop } from "./fix-call";
 import { fixNotes, withFitFact, withoutBusiness, withoutWriterNotes, type FixNote, type RepairRecord } from "./repair";
 import { languagePack } from "@/lib/locale/language";
 import { completeTables, withSources } from "./sources";
@@ -122,6 +122,8 @@ export type GenerateOutcome =
       missing?: readonly PackNeed[];
       /** On `write`: the writer answered and its answer was refused, so buying it again would fail the same way. */
       answered?: true;
+      /** On `fix`: the step had no room left for the page's one fix call; the row holds the write, and the run's next step makes it. */
+      owed?: true;
     };
 
 /** Observability: per-step outcome, which rules failed, the attempt number.
@@ -166,9 +168,10 @@ export interface GenerateInputs {
   /** The writer's tier, where a caller has another ceiling than a customer's
    *  page. */
   tier?: Tier;
-  /** When the page's making began, so the fix call stays inside the job's
-   *  invocation (`PIPELINE.fixBeforeMs`). */
+  /** When the page's making began, so the fix call stays inside the job's invocation (`PIPELINE.fixBeforeMs`). `owe`:
+   *  the run has a `fix` step, which a fix call this step has no room for is left to; `owed`: this is that step. */
   startedAt?: number;
+  fixStep?: "owe" | "owed";
   /** The day's last step, written anyway (SPEC §7): a short pack at the minimum is written short, adding too little noted. */
   completeness?: "warn";
 }
@@ -202,6 +205,9 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
   const recorded = existing === null ? null : readRecordedFact(existing.grounded_fact);
   const pinned = recorded === null ? undefined : a.facts.find((sourced) => sourced.fact.passage === recorded.passage);
   if (existing !== null && recorded !== null && pinned === undefined) return lostFact(a.siteId, existing);
+  // The `fix` step writes nothing: it fixes the write its row holds, and with none held it buys none.
+  const owed = a.fixStep === "owed" ? owedParts(existing?.meta) : null;
+  if (a.fixStep === "owed" && owed === null) return stepFailed(a.siteId, "fix", a.draftId);
   const grounding = pinned ?? a.facts.find((sourced) => sourced.fact.passage === pack.facts[0]?.passage) ?? a.facts[0];
 
   const priorRepairs = recordedRepairs(existing?.meta);
@@ -270,16 +276,16 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
     template,
     pack,
     pageType,
-    // An update with no live page to measure against never reaches here: its
-    // pack is short. The fallback keeps the type total.
+    // An update with no live page to measure against never reaches here: its pack is short. The fallback keeps the type total.
     length: length ?? { floor: 0, target: 0, ceiling: Number.MAX_SAFE_INTEGER },
     ...(a.tier === undefined ? {} : { tier: a.tier }),
     ...(a.demoPhrases === undefined ? {} : { demoPhrases: a.demoPhrases }),
     ...(competitorOf(a.opportunity) === null ? {} : { competitor: competitorOf(a.opportunity)! }),
   };
 
-  // 3. Write: one call.
-  const written = await writePage(c, writing);
+  // 3. Write: one call, whose start the fix call's time runs from.
+  const writtenAt = Date.now();
+  const written = owed ?? (await writePage(c, writing));
   if (written.kind === "unmeasured") return stepFailed(a.siteId, "write", a.draftId, written.because === "list_unread");
 
   const tidy = {
@@ -305,8 +311,7 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
   const finish = (asWritten: PageParts): Finished => {
     // Owner P2b and P3: the row's fit fact stands in the short answer and the business section, added in code at 0¢.
     const parts = grounding === undefined ? asWritten : withFitFact(asWritten, { pack, template, businessName: a.site.businessName });
-    // Issue 1389: the writer proposes its titles and code picks one, by the
-    // rules stage 4 then holds it to.
+    // Issue 1389: the writer proposes its titles and code picks one, by the rules stage 4 then holds it to.
     let titles: TitleCandidate[] = [];
     const shaped = layoutPage(parts, template, {
       ...tidy,
@@ -324,8 +329,7 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
     const laid = { ...shaped, body: { ...shaped.body, bodyMarkdown: notes.markdown }, faq: notes.faq.filter((entry) => quiet(`${entry.question} ${entry.answer}`)), closing: quiet(shaped.closing) ? shaped.closing : "" };
     const own = laid.sections.find((section) => ["business", "next_step", "related"].includes(section.key))?.heading;
     const glance = laid.sections.find((section) => template.sections.find((slot) => slot.key === section.key)?.block === "table")?.heading;
-    // Issue 1507: a stray bracket goes and a numbered list counts from 1, in
-    // code, before stage 4 reads the page.
+    // Issue 1507: a stray bracket goes and a numbered list counts from 1, in code, before stage 4 reads the page.
     const tidied = renumberSteps(withoutBrokenLinks(laid.body.bodyMarkdown));
     const written = silent.length === 0 ? tidied : withoutBusiness(tidied, a.site).markdown;
     const body = table === null ? written : withTable(written, glance, [table.markdown, table.currencies, table.checked].filter((line) => line !== null).join("\n\n"));
@@ -409,9 +413,8 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
       body_md: checked.page.markdown,
       meta: metaOf(checked.page, repairs, checked.close?.similarity ?? null, checked.outcome),
       claim_check: recordedVerdictValue(checked.outcome.claim),
-      // Written on every run — the empty array on a run that found nothing,
-      // because "the checks ran and passed" and "no check has touched this
-      // row" are different facts (#424).
+      // Written on every run — the empty array on a run that found nothing, because "the checks ran and passed"
+      // and "no check has touched this row" are different facts (#424).
       rule_failures: recordedRulesValue(checked.outcome),
       cost_cents: c.spentCents(),
       // The publishing engine's guard on `generating → in_review`, written
@@ -480,7 +483,9 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
     // — code's table, its sources list — would be stopped for them again.
     const futile = checked.close === null && !checked.outcome.passed && notWritersToFix(notes, written.value);
     if (futile) logRun({ siteId: a.siteId, draftId, step: "fix", outcome: "not_writers" });
-    const { again, stop } = await tryFix(c, { futile, startedAt, call: () => fixPage(c, { ...writing, parts: written.value, fix: notes, ...(checked.close === null ? {} : { apart: checked.close.sentences }) }) });
+    const { again, stop, owed: later } = await tryFix(c, { futile, startedAt, writtenAt, owe: a.fixStep === "owe", call: () => fixPage(c, { ...writing, parts: written.value, fix: notes, ...(checked.close === null ? {} : { apart: checked.close.sentences }) }) });
+    // The `fix` step reads the row as this run found it, with the write's parts beside it.
+    if (later) return (await store.patchDraft(draftId, { meta: { ...baseMeta, [FIX_OWED]: written.value }, hard_rule_attempts: attemptsBefore }), logRun({ siteId: a.siteId, draftId, step: "fix", outcome: "owed" }), { ok: false, reason: "step_failed", draftId, step: "fix", owed: true });
     if (again === null || again.kind === "unmeasured") {
       logRun({ siteId: a.siteId, draftId, step: "fix", outcome: stop ?? (again === null ? "not_started" : "step_failed") });
       if (!checked.outcome.passed) return { ok: false, reason: "rules", draftId, failed: checked.outcome.failed, attempt: attemptsBefore + 1, recovery: "rest", fix: notes, ...(stop === null ? {} : { stop }) };

@@ -51,6 +51,7 @@ import { readRecordedRules } from "./record";
 import { COLLECT, askDayResearch, heldResearch } from "./research-queue";
 import { repairStructure } from "./rules/structure";
 import { completenessOf, dayTopic, mendPage, mendable, versusRivals } from "./day-refresh";
+import { writtenFor } from "./fix-step";
 import { confirmedForWriting } from "./voice/confirmed";
 import { clusterLinkTargets, knownLinkTargets as knownContentTargets, siteLinkTargets, urlKey, type LinkTarget } from "./links/select";
 import { withMovedLink } from "./links/moved";
@@ -118,7 +119,8 @@ export type DayPageOutcome =
   /** Its research is still on the vendor's queue: no row and no rest, and the next tick asks again. */
   | { ok: false; because: "research_pending" }
   /** DataForSEO refused the page's research for lack of credit. */
-  | { ok: false; because: "vendor_funds" };
+  | { ok: false; because: "vendor_funds" }
+  | { ok: false; because: "fix_owed"; draftId: string }; // Its write step had no room for its fix call (`fixOwedPage`).
 
 type NoPage = Extract<DayPageOutcome, { because: "no_site" | "no_scan" | "already_drafted" | "no_opportunity" }>;
 
@@ -167,8 +169,7 @@ export async function generateDayPage(a: {
   if (!ready.ok) return ready;
   const { site, report } = ready;
 
-  // The week's page for the date, after a 0¢ check that it still stands —
-  // never a re-ranking of the open pool (issue 1559).
+  // The week's page for the date, after a 0¢ check that it still stands — never a re-ranking of the open pool (issue 1559).
   const first = a.opportunityId === undefined ? await pageForDay(a.siteId, a.publishDate, now, a.updatesTried) : await opportunityById(a.opportunityId);
   if (first === null) return { ok: false, because: "no_opportunity" };
 
@@ -192,7 +193,7 @@ export async function generateDayPage(a: {
               ? await fixPage(page, own)
               : mendable(opportunity)
                 ? await mendPage(page)
-                : await writePage({ ...page, attempts: MAX_AUTOMATIC_ATTEMPTS, startedAt: topic === 1 ? startedAt : Date.now() }, own);
+                : await writePage({ ...page, attempts: MAX_AUTOMATIC_ATTEMPTS, startedAt: topic === 1 ? startedAt : Date.now(), fixStep: "owe" }, own);
         } catch (error) {
           // The customer stopped this page while it was written: nothing was saved, and the day takes the week's next spare.
           if (!(error instanceof PageStopped)) throw error;
@@ -275,15 +276,12 @@ export async function regenerateRestarted(a: { siteId: string; draftId: string; 
   if (owed === "mark") await store.patchDraft(row.id, { meta: { ...(typeof row.meta === "object" && row.meta !== null ? row.meta : {}), [REWRITTEN]: now.toISOString() } });
   const report = await store.latestReport(a.siteId);
   if (report === null) return { ok: false, because: "no_scan" };
-  const found = await opportunityById(row.opportunity_id);
-  if (found === null) return { ok: false, because: "no_opportunity" };
-  // A page the day wrote as another type (issue 1455) is written again as that type.
-  const writtenAs = (row.meta as { contentType?: unknown } | null)?.contentType;
-  const opportunity = (writtenAs === "qa" && contentTypeOf(found) === "listicle") || writtenAs === "documentation" ? { ...found, writeAs: writtenAs as "qa" | "documentation" } : found;
+  const opportunity = await writtenFor(row);
+  if (opportunity === null) return { ok: false, because: "no_opportunity" };
 
   const page = { siteId: a.siteId, site, report, opportunity, publishDate: row.scheduled_for, draftId: row.id };
   // Research is asked again (a read left on the queue is read free); a restart's 2 hours run from its first ask.
-  const outcome: DayPageOutcome = opportunity.type !== "fix_page" && (await askDayResearch({ siteId: a.siteId, opportunityId: found.id, writeAs: opportunity.writeAs, now, waitMs: COLLECT.askMs })) > 0 ? { ok: false, because: "research_pending" }
+  const outcome: DayPageOutcome = opportunity.type !== "fix_page" && (await askDayResearch({ siteId: a.siteId, opportunityId: opportunity.id, writeAs: opportunity.writeAs, now, waitMs: COLLECT.askMs })) > 0 ? { ok: false, because: "research_pending" }
     : await withDraftCost({ scanId: report.scanId, draftId: row.id }, (cost) => opportunity.type === "fix_page" ? fixPage(page, cost) : writePage({ ...page, attempts: 1 }, cost));
   const asked = owed === "rewrite" && !outcome.ok && outcome.because === "research_pending" ? withFirstAsk(row, now) : null;
   if (asked !== null) await store.patchDraft(row.id, { meta: asked });
@@ -308,6 +306,7 @@ interface PageInput {
   publishDate: string | null;
   /** The date's row, where one is already written. */
   draftId?: string;
+  fixStep?: "owe" | "owed"; // `GenerateInputs.fixStep`
 }
 
 /**
@@ -386,7 +385,7 @@ async function alertStoppedTwice(a: {
  * Never a throw on a refused move: the page is stopped either way, and a
  * row another mover moved first is logged rather than forced.
  */
-async function rest(draftId: string, opportunityId: string, reason: `rules:${string}` | `step_failed:${string}`, now: Date, zone?: string | null): Promise<void> {
+export async function rest(draftId: string, opportunityId: string, reason: `rules:${string}` | `step_failed:${string}`, now: Date, zone?: string | null): Promise<void> {
   const { transition } = await import("@/lib/publish/machine");
   const moved = await transition(draftId, "needs_attention", { kind: "system", job: "draft/generate" }, { reason });
   if (!moved.ok) {
@@ -592,7 +591,7 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number; 
     //    1297): the pack says when it holds enough.
     const market = !template.research
       ? type === "offering" ? storedAsk(report, targetSearches(o)) : NO_RESEARCH
-      : await heldResearch(cost, { key: `${a.siteId}:${o.id}:${type}:${a.publishDate}`, reuse: a.completeness === "warn" }, () => researchMarket(cost, {
+      : await heldResearch(cost, { key: `${a.siteId}:${o.id}:${type}:${a.publishDate}`, reuse: a.completeness === "warn" || a.fixStep === "owed" }, () => researchMarket(cost, {
           siteId: a.siteId,
           locale,
           domain: site.domain,
@@ -647,10 +646,11 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number; 
       demoPhrases,
       intent: intentFor({ query: opportunity.targetQuery, volume: opportunity.volume }, site.prompts ?? []),
       startedAt,
-      ...(draftId === undefined ? {} : { draftId }), ...(a.completeness === undefined ? {} : { completeness: a.completeness }),
+      ...(draftId === undefined ? {} : { draftId }), ...(a.completeness === undefined ? {} : { completeness: a.completeness }), ...(a.fixStep === undefined ? {} : { fixStep: a.fixStep }),
     });
     if (last.draftId !== null) draftId = last.draftId;
     if (last.ok) return { ok: true, draftId: last.draftId };
+    if ("owed" in last && last.draftId !== null) return { ok: false, because: "fix_owed", draftId: last.draftId };
     if (last.reason === "rules") {
       return { ok: false, because: "rules", draftId: draftId ?? null, attempts: last.attempt, ...(last.fix === undefined ? {} : { stopped: last.fix }), ...(last.stop === undefined ? {} : { stop: last.stop }) };
     }

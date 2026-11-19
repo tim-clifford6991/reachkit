@@ -39,6 +39,7 @@ export interface DraftRow {
   rule_failures: unknown;
   claim_check: unknown;
   cost_cents: number;
+  hard_rules_passed?: boolean;
   scheduled_for: string | null;
   veto_deadline: string | null;
   created_at: string;
@@ -90,9 +91,8 @@ export interface DraftPatch {
    *  fact about what the rules decided, and the engine that decided them
    *  is the only one that may assert it. */
   hard_rules_passed?: boolean;
-  /** SPEC §7 (D26, issue 1179): only ever set to `null`, and only on a row
-   *  the generator stopped — the stopped draft keeps its row and gives up
-   *  its date, so the same run can write the next topic for it. */
+  /** SPEC §7 (D26, issue 1179): only ever set to `null`, and only on a row the generator stopped — the stopped
+   *  draft keeps its row and gives up its date, so the same run can write the next topic for it. */
   scheduled_for?: null;
 }
 
@@ -284,7 +284,7 @@ function untyped(): MinimalClient {
 
 const DRAFT_COLUMNS =
   "id, site_id, opportunity_id, state, title, body_md, meta, grounded_fact, " +
-  "attribution, hard_rule_attempts, rule_failures, claim_check, cost_cents, " +
+  "attribution, hard_rule_attempts, rule_failures, claim_check, cost_cents, hard_rules_passed, " +
   "scheduled_for, veto_deadline, created_at, transitions";
 
 /** An address by its path: the host a page answers at may have moved since
