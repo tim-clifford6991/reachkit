@@ -18,7 +18,7 @@ const { withCostContext } = await import("../../src/lib/costs/index");
 const { llm } = await import("../../src/lib/llm/index");
 const { tryFix } = await import("../../src/lib/generate/pipeline/fix-call");
 
-const { DRAFT_C } = (await import("../../src/lib/config/constants/costs")).CAPS;
+const DRAFT_C = 45;
 const SCHEMA = z.object({ page: z.string() });
 /** A fix call's input the size of 11-04's, about 12,000 tokens. */
 const INPUT = { page: "x".repeat(48_000) };

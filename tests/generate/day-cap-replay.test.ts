@@ -133,11 +133,11 @@ describe("a replayed day's page spends at most CAP_DRAFT for its date in total",
     const w = await world();
     if (run === fallback) await asked();
     let first = true;
-    model(() => (first ? ((first = false), CAPS.DRAFT_C - 15) : 1));
+    model(() => (first ? ((first = false), 30) : 1));
     arrange(w);
     throwOnFirstSave();
     await expect(run()).rejects.toThrow("connection reset");
-    expect(spent()).toBeGreaterThanOrEqual(CAPS.DRAFT_C - 15);
+    expect(spent()).toBeGreaterThanOrEqual(30);
     stamp();
     const before = spent();
     // It opens at what attempt 1 ledgered, and a 20¢ call that would carry the date past the cap is refused.
