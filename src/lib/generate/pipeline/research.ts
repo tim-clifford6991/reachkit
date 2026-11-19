@@ -212,7 +212,7 @@ function words(text: string, limit: number): string {
 
 /** What an address answered with, or `null` where it did not answer.
  *  Nothing is thrown: a page that cannot be read is not a fact. */
-async function fetchBody(url: string): Promise<{ url: string; html: string; readAt: Date } | null> {
+export async function fetchBody(url: string): Promise<{ url: string; html: string; readAt: Date } | null> {
   try {
     const outcome = await safeFetch(url, { userAgent: "reachkit-measure", timeoutMs: RESEARCH.readTimeoutMs });
     return outcome.ok ? { url: outcome.url, html: outcome.html, readAt: outcome.readAt } : null;

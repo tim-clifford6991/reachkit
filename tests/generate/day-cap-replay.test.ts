@@ -179,8 +179,17 @@ describe("a replayed day's page spends at most CAP_DRAFT for its date in total",
     await world();
     model(() => 1);
     ledgerDown.on = true;
-    expect(await fallback()).toBeNull();
+    expect(await fallback()).toMatchObject({ ok: false, why: "update:cap" });
     expect([ledger().length, db.rows("drafts").filter((row) => row.scheduled_for === D).length]).toEqual([0, 0]);
   });
 
+  it("a page whose retarget rests still takes its own aged update for the day", async () => {
+    await world();
+    await asked();
+    model(() => 1);
+    Object.assign(db.rows("opportunities").find((row) => row.id === UPDATE_ID)!, { rest_until: new Date(Date.now() + 7 * DAY_MS).toISOString(), ready: false, unready_reason: "resting" });
+    await fallback();
+    const aged = db.rows("opportunities").find((row) => row.type === "refresh_page" && (row.evidence as { shortfall: { cause: string } }).shortfall.cause === "aged");
+    expect(db.rows("drafts").some((row) => row.opportunity_id === aged?.id)).toBe(true);
+  });
 });
