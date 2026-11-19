@@ -174,6 +174,8 @@ export interface LanguagePack {
   businessHeading(name: string): string;
   /** How a sentence opens that leans on the one before it, lower case (`standalone_lead`). */
   backReferences: readonly string[];
+  /** A sentence about the writer's own inputs rather than to the reader; a language without one drops none. */
+  writerNotes?: RegExp;
 
   // ── Questions and prompts ───────────────────────────────────────────────
   /** A search as the question a buyer would ask, by its shape. Total. */

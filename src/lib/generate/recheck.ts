@@ -26,7 +26,8 @@ import { buildComparisonSet } from "./pipeline/comparison";
 import { fitDescription } from "./pipeline/compose";
 import { allowedFacts, readAllFacts, readDemoPhrases, type SourcedFact } from "./pipeline/grounding";
 import type { ContextPack } from "./pipeline/pack";
-import { withoutBrokenPairs, withoutClaimed, withoutUnfit } from "./pipeline/repair";
+import { withoutBrokenPairs, withoutClaimed, withoutUnfit, withoutWriterNotes } from "./pipeline/repair";
+import { languagePack } from "@/lib/locale/language";
 import { floorTitle, promiseFigures, titleRuleFor } from "./pipeline/title";
 import { readRecordedRules, readRecordedRun, recordedRulesValue, recordedRunValue, recordedVerdictValue, stops } from "./record";
 import { batteryCleared } from "./rules";
@@ -116,7 +117,7 @@ export async function checkStoredAt0(row: DraftRow, body: string, world: Recheck
   };
   const basis = batteryBasis({ pack, opportunity: world.opportunity, site: world.site, facts: world.facts, grounding, ...(world.demoPhrases === undefined ? {} : { demoPhrases: world.demoPhrases }) });
   const stopped = readRecordedRules(row.rule_failures) ?? [];
-  const { page, markdown, fixes } = mend(row, body, pack, basis, stopped);
+  const { page, markdown, fixes, notes } = mend(row, body, pack, basis, stopped);
   const { title } = page;
   const figures = promiseFigures(title, pack);
   if (figures.length > 0) return { kind: "held", reason: "title_promise_figure", figures };
@@ -138,7 +139,7 @@ export async function checkStoredAt0(row: DraftRow, body: string, world: Recheck
     close: checked.close !== null,
     fit: checked.outcome.fit.state,
     spentCents: REFUSED.spentCents(),
-    standard: meetsStandard({ failed, markdown: checked.markdown, sections: page.sections.length, basis }),
+    standard: meetsStandard({ failed, markdown: checked.markdown, sections: page.sections.length, basis, notes }),
     patch: {
       ...(fixes.title === undefined ? {} : { title }),
       body_md: checked.markdown,
@@ -160,9 +161,11 @@ export async function checkStoredAt0(row: DraftRow, body: string, world: Recheck
 
 /** The stored page with what code mends from its own words, no word added: the title the picker takes today of the
  *  writer's candidates and the search's own floor title that carry no promise figure, the description fitted (the short answer's where none was
- *  written), and the FAQ pairs and do-not-claim sentences the rules fail dropped. */
-function mend(row: DraftRow, body: string, pack: ContextPack, basis: BatteryBasis, stopped: readonly RuleFailure[]): { page: CheckedPage; markdown: string; fixes: RecheckFixes } {
+ *  written), and the writer's notes, the FAQ pairs and the do-not-claim sentences the rules fail dropped. */
+function mend(row: DraftRow, written: string, pack: ContextPack, basis: BatteryBasis, stopped: readonly RuleFailure[]): { page: CheckedPage; markdown: string; fixes: RecheckFixes; notes: number } {
   const meta = metaOf(row);
+  const noted = withoutWriterNotes(written, Array.isArray(meta.faq) ? meta.faq : [], languagePack(pack.locale?.language ?? "en").writerNotes);
+  const body = noted.markdown;
   const stored = row.title ?? "";
   const sections = Array.isArray(meta.sections) ? meta.sections : [];
   const before = typeof meta.description === "string" ? meta.description : "";
@@ -175,7 +178,7 @@ function mend(row: DraftRow, body: string, pack: ContextPack, basis: BatteryBasi
   // Nothing after the re-check mends a title, so a floor that stops the page as more than a want of a specific is not taken.
   const floor = [floorTitle(pack)].find((each) => unpromised(each) && pickTitle([each], rule).candidates.every((one) => one.faults.every((fault) => fault === "specific"))) ?? null;
   const title = clean.length === 0 && floor === null ? stored : pickTitle(clean, rule, floor).chosen;
-  const faq = withoutBrokenPairs(Array.isArray(meta.faq) ? meta.faq : [], { min: basis.template.blocks.faq?.min ?? 0, rivals: basis.rivalsNamed, facts: basis.brief.marketFacts });
+  const faq = withoutBrokenPairs(noted.faq, { min: basis.template.blocks.faq?.min ?? 0, rivals: basis.rivalsNamed, facts: basis.brief.marketFacts });
   const page: CheckedPage = { title, heading: title === stored && typeof meta.heading === "string" ? meta.heading : title, description, sections, faq: faq.faq };
   const claimed = withoutClaimed(body, basis.site.doNotClaim);
   // Issue 2375: the sentences the stored fit verdict named go as the write's repair drops them; only those today's
@@ -195,6 +198,7 @@ function mend(row: DraftRow, body: string, pack: ContextPack, basis: BatteryBasi
       ...(faq.dropped.length === 0 ? {} : { faqDropped: faq.dropped }),
       ...(dropped.length === 0 ? {} : { sentenceDropped: dropped }),
     },
+    notes: noted.dropped,
   };
 }
 
