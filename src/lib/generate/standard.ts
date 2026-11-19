@@ -19,7 +19,7 @@ import type { RuleFailure } from "./rules/types";
 import { sectionBounds, TEMPLATES, type PackNeed, type PackRequirement, type SectionFacts, type Template } from "./templates";
 import { differenceHeld, ownPriceHeld } from "./templates/listicle";
 
-export type Part = "sections" | "sources" | "words" | "figures" | "title" | "links" | "demand" | "style";
+export type Part = "sections" | "sources" | "words" | "figures" | "title" | "links" | "demand" | "style" | "rival_evidence";
 /** `have: null` is not measured, and its state is `pending`. */
 export interface PartMark { part: Part; have: number | null; need: number; state: "met" | "short" | "pending" }
 export interface Standard { parts: PartMark[]; met: boolean; pending: boolean; stops: Part[] }
@@ -60,8 +60,8 @@ const mark = (part: Part, have: number, need: number, short: boolean, pending = 
 interface ResearchHalf { pack: Pick<ContextPack, "type" | "missing">; pending?: boolean; words?: { have: number; need: number; short: boolean } | null }
 /** What a row's cached research holds: on-topic readable results (`R`) and their addresses, the buyer questions they
  *  answer (`Q`), the results stating a recent figure (`F`), the results laid out in three or more steps, and its
- *  "People also ask". */
-export interface ResearchRead { R: number; Q: number; F: number; stepPages: number; asked: number; urls: string[] }
+ *  "People also ask"; on a rival-only `vs` search (R31), how many of the rivals it names have an own page read. */
+export interface ResearchRead { R: number; Q: number; F: number; stepPages: number; asked: number; urls: string[]; rivals?: { need: number; have: number } }
 /** What the commit reads: the type a row is written as, its cached read (`null` with nothing cached), and whether it
  *  must show a buyer asks it, having no measured volume. */
 interface ReadHalf { type: ContentType; read: ResearchRead | null; demand?: boolean }
@@ -112,7 +112,7 @@ function readParts({ type, read, demand }: ReadHalf): PartMark[] {
   const marks = READ_MARKS[type];
   const r = read ?? { R: 0, Q: 0, F: 0, stepPages: 0, asked: 0, urls: [] };
   const part = (name: Part, have: number, need: number) => mark(name, have, need, have < need, read === null);
-  const parts: PartMark[] = demand === true ? [part("demand", r.asked > 0 || r.R >= DEMAND_RESULTS ? 1 : 0, 1)] : [];
+  const parts: PartMark[] = [...(demand === true ? [part("demand", r.asked > 0 || r.R >= DEMAND_RESULTS ? 1 : 0, 1)] : []), ...(r.rivals === undefined ? [] : [part("rival_evidence", r.rivals.have, r.rivals.need)])];
   if (marks === undefined) return parts;
   const template = TEMPLATES[type];
   const repeat = template.sections.find((slot) => slot.key === marks.key)?.repeat?.max ?? 0;
