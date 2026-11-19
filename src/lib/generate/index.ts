@@ -11,7 +11,7 @@
 //   1. **decide** — the week the weekly pass committed supplies the
 //      opportunity planned for the date (`pageForDay`, issue 1559), or
 //      nothing when the week holds none: supply is the cap. Its type is read
-//      off the row (`contentTypeOf`): new or an update, one of seven;
+//      off the row (`typeTheResearchFills`): new or an update, one of seven;
 //   2. **context pack** — the knowledge base and the founder's answers, the
 //      market, the site's pages, its own passages and what the research step
 //      read (`pipeline/pack.ts`), inside the one `CAP_DRAFT` context;
@@ -43,12 +43,11 @@ import type { StoredReport } from "@/lib/scan/report";
 import type { CostContext } from "@/lib/costs";
 import { DAY_TOPICS_MAX, PIPELINE, RESEARCH } from "@/lib/config/constants";
 import type { KnownPage } from "@/lib/known-content/types";
-import { contentTypeOf } from "@/lib/opportunities/content-type";
 import { pageTypeOf } from "@/lib/opportunities/page-type";
 import { intentFor } from "@/lib/opportunities/intent";
 import { openDayCost, roomForFix, withDraftCost } from "./cost";
 import { readRecordedRules } from "./record";
-import { COLLECT, askDayResearch, heldResearch } from "./research-queue";
+import { COLLECT, askDayResearch, heldResearch, researchHeld } from "./research-queue";
 import { repairStructure } from "./rules/structure";
 import { completenessOf, dayTopic, mendPage, mendable, versusRivals } from "./day-refresh";
 import { writtenFor } from "./fix-step";
@@ -59,7 +58,7 @@ import { competitorOf, generateDraft, targetSearches, type GenerateOutcome } fro
 import { allowedFacts, readAllFacts, readDemoPhrases, type SourcedFact } from "./pipeline/grounding";
 import { siteRulesOf } from "./pipeline/battery";
 import { buildPack, readPack, type ContextPack, type PackLivePage, type PackMeasurements } from "./pipeline/pack";
-import { builtFromOutside, meetsStandard } from "./standard";
+import { builtFromOutside, meetsStandard, typeTheResearchFills } from "./standard";
 import { generatePageFix } from "./pipeline/page-fix";
 import type { FixNote } from "./pipeline/repair";
 import { NO_RESEARCH, researchMarket, storedAsk, type MarketResearch } from "./pipeline/research";
@@ -546,8 +545,8 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number; 
   /** Stages 1 and 2 for one opportunity: its type, then its context pack. */
   const packFor = async (o: Opportunity): Promise<{ pack: ContextPack; links: LinkTarget[]; pending?: true } | null> => {
     // 1. Decide (code only): new or an update, and which of the seven types.
-    // Issue 1455: the ranking may write a comparison over D52's cap as a Q&A.
-    const type = o.writeAs ?? contentTypeOf(o);
+    // The commit's stored type stands; a row with none takes the type its cached research fills, read at 0¢.
+    const type = o.writeAs ?? typeTheResearchFills(o, (await researchHeld(a.siteId, [{ id: o.id, target_query: o.targetQuery }], new Date(), cost)).get(o.id) ?? null);
     if (type === null) return null;
     const template = TEMPLATES[type];
     const links = linksFor(o).filter((link) => link.url !== o.targetRef);

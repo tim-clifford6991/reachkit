@@ -1,6 +1,5 @@
 // BUILD §7 — the closed opportunity surface: types and one frozen table, so a new kind, family or acceptance form is a
 // compile error at every call site. The words for the winnability handles are `BAND_LABELS.winnability`'s (ADR-001).
-import type { ListicleNeed } from "@/lib/generate/templates/listicle";
 import type { Measured } from "@/lib/measure/measured";
 import type { KnownSource } from "@/lib/known-content/types";
 import type { SiteCheck } from "@/lib/site-issues/types";
@@ -410,7 +409,6 @@ export function addRejections(a: RejectionCount, b: RejectionCount): RejectionCo
 /** Which of the one list's rules placed a row, so a plan can say why. */
 export type PlaceRule =
   | "best"
-  | `${ListicleNeed} not on file, as a Q&A`
   | "fix ahead of its cluster"
   | "fix, no page to precede"
   // What a page's own results planned (issue 1611), named in place of the tier.
@@ -438,7 +436,8 @@ export interface Ranked {
   writeAs?: PlanWriteAs;
 }
 
-export type PlanWriteAs = "listicle" | "how_to" | "qa" | "documentation" | "offering"; // the five `plan_write_as`'s check allows
+export const PLAN_WRITE_AS = ["listicle", "how_to", "qa", "documentation", "offering"] as const; // the five `plan_write_as`'s check allows
+export type PlanWriteAs = (typeof PLAN_WRITE_AS)[number];
 
 /** Whether a rested topic is still inside its rest at `now` (SPEC §7, D26). */
 export function isResting(o: Pick<Opportunity, "restUntil">, now: Date): boolean {

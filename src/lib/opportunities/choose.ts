@@ -1,17 +1,16 @@
 // SPEC §7: the week a pass commits, from stored rows alone and pure, so the golden plans can hold it.
 import { KNOWN_CONTENT, WEEK_PLAN, WEEK_RESEARCH } from "@/lib/config/constants";
-import { meetsStandard, type ResearchRead } from "@/lib/generate/standard";
+import { meetsStandard, mustShowDemand, typeTheResearchFills, type ResearchRead } from "@/lib/generate/standard";
 import { closestKnown, pageScore } from "@/lib/known-content/match";
 import type { KnownPage } from "@/lib/known-content/types";
 import { SHAPES } from "@/lib/locale/language";
 import { canonicalUrl } from "@/lib/measure/page-reading";
 import { oneQuestion, queryKey, shareATopTen } from "./cluster";
-import { contentTypeOf } from "./content-type";
 import { asUpdate, tooYoungToRefresh, updateColumns } from "./derive/known";
 import { placeFixPages, rankingOf, type RankLoad, type Rejection } from "./rank/open";
 import type { OwnLivePage } from "./refresh";
 import { readOpportunity, type PlanEntry } from "./store";
-import type { Opportunity, Ranked } from "./types";
+import { PLAN_WRITE_AS, type Opportunity, type Ranked } from "./types";
 
 const DAY_MS = 86_400_000;
 
@@ -34,7 +33,7 @@ const TIERS = ["met", "at_margin", "queued", "short"] as const;
 export function choose(input: ChooseInput): Choice {
   const ranking = rankingOf(input);
   const rejected: Choice["rejected"] = [...ranking.rejected];
-  const ranked = byResearch(oneTopicEach(placeFixPages(ranking.scored, ranking.fixes, ranking.rotation), input, rejected), input);
+  const ranked = byResearch(oneTopicEach(placeFixPages(ranking.scored, ranking.fixes), input, rejected), input);
   const first = Math.floor(Date.parse(`${input.from}T00:00:00Z`) / DAY_MS);
   const days = input.days ?? WEEK_PLAN.days, depth = days + WEEK_PLAN.spares;
   return {
@@ -50,21 +49,21 @@ export function choose(input: ChooseInput): Choice {
   };
 }
 
-/** SPEC §7: the best-ranked rows in `TIERS` order of what their research holds, rank order inside each; a type with no
- *  pass mark at the commit, or a row with no read, is researched. */
+/** SPEC §7: the best-ranked rows in `TIERS` order of what their research holds, rank order inside each, each typed by
+ *  what its research fills and storing that type where it is filled; a type with no pass mark at the commit is queued. */
 function byResearch(ranked: Joined[], input: ChooseInput): Joined[] {
   if (input.research === undefined) return ranked;
   const rows = new Map(input.rows.map((row) => [row.id, readOpportunity(row)]));
   const head = ranked.slice(0, WEEK_RESEARCH.rowsMax).map((entry): Joined => {
     const o = rows.get(entry.opportunityId), read = input.research!.get(entry.opportunityId);
-    const type = entry.set?.type === undefined && o !== undefined ? (entry.writeAs ?? contentTypeOf(o)) : null;
-    const demand = (o?.volume?.kind ?? "unmeasured") === "unmeasured" && (type === "documentation" || type === "offering");
-    const standard = read === undefined || type === null ? { parts: [], met: true, pending: false } : meetsStandard({ type, read, demand });
+    const type = entry.set?.type === undefined && o !== undefined ? typeTheResearchFills(o, read ?? null) : null;
+    const standard = read === undefined || type === null ? { parts: [], met: true, pending: false } : meetsStandard({ type, read, demand: mustShowDemand(o!, type) });
     // The margin is the commit's alone: the draft and the rules hold a page to the pass mark.
     const roomy = standard.parts.every((part) => (part.part !== "sources" && (part.part !== "sections" || type !== "qa")) || part.have! - part.need >= WEEK_RESEARCH.margin);
-    const state = standard.pending ? "queued" : !standard.met ? "short" : roomy ? "met" : "at_margin";
+    const state = standard.pending || "unchecked" in standard ? "queued" : !standard.met ? "short" : roomy ? "met" : "at_margin";
     const words = standard.parts.find((part) => part.part === "words")?.have ?? null;
-    return { ...entry, reason: { ...entry.reason, research: { state, R: read?.R ?? null, Q: read?.Q ?? null, F: read?.F ?? null, estWords: words, urls: read?.urls ?? [], ...(state === "short" ? { short: standard.parts.filter((part) => part.state === "short").map((part) => part.part) } : {}) } } };
+    const filled = read != null && standard.met && PLAN_WRITE_AS.find((each) => each === type);
+    return { ...entry, ...(filled ? { writeAs: filled } : {}), reason: { ...entry.reason, research: { state, R: read?.R ?? null, Q: read?.Q ?? null, F: read?.F ?? null, estWords: words, urls: read?.urls ?? [], ...(state === "short" ? { short: standard.parts.filter((part) => part.state === "short").map((part) => part.part) } : {}) } } };
   });
   const tier = (entry: Joined) => TIERS.indexOf(entry.reason.research?.state ?? "met");
   return [...head.sort((a, b) => tier(a) - tier(b)), ...ranked.slice(WEEK_RESEARCH.rowsMax)];

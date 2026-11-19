@@ -36,7 +36,8 @@ export async function updateInstead(
   const store = opportunityStore();
   if (!canUpdateFrom(await store.hostedOwnPages(opportunity.siteId))(match.page.url)) return null;
 
-  const update = { ...opportunity, ...asUpdate(opportunity, match, at) };
+  // An update is written as an update, whatever type the commit stored for the new page.
+  const update = { ...opportunity, ...asUpdate(opportunity, match, at), writeAs: undefined };
   try {
     await store.becomeUpdate(opportunity.id, updateColumns(update));
   } catch (error) {

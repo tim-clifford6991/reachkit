@@ -13,8 +13,7 @@ function opportunity(id: string, family: Opportunity["family"], type: Opportunit
   return { id, family, type, status: "open", clusterKey: null, targetQuery, absorbedQueries: [], evidence, createdAt: AT } as unknown as Opportunity;
 }
 
-const order = (scored: Scored[], rotation?: Parameters<typeof orderRanked>[1]) =>
-  orderRanked(scored, rotation).map((entry) => entry.opportunityId);
+const order = (scored: Scored[]) => orderRanked(scored).map((entry) => entry.opportunityId);
 const at = (points: number, o: Opportunity): Scored => ({ opportunity: o, points, parts: [] });
 const NOTHING_SEEN = { cited: new Set<string>(), prompts: [] };
 

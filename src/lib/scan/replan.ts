@@ -200,7 +200,7 @@ function weekRow(row: OpportunityRow, date: string | null, reason: PlanReason | 
 // The store's reads, which a dry run passes through; anything else it is asked is a write, and it refuses one it does not hold.
 const READS = new Set<keyof OpportunityStore>([
   "openRankable", "countUnused", "clusterable", "draftedOpportunityIds", "draftedPages", "citedPages", "clustersAt", "topTens",
-  "topTenRows", "askedBeside", "dismissedSearches", "plannedRows", "weeklyCommit", "currentReport", "listicleHeld",
+  "topTenRows", "askedBeside", "dismissedSearches", "plannedRows", "weeklyCommit", "currentReport",
   "lastStatusChangeAt", "latestCompletedScanAt", "byId", "openFixPages", "marketFor", "notWorkingVerdicts", "hostedHostFor",
   "hostedOwnPages", "inventoryFor", "profileForSite", "knownContentNear", "refreshInputs", "refreshPages", "trackedPrompts", "footprintOpened",
   "draftsOnTopics", "researchHeld",

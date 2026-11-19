@@ -3,7 +3,6 @@
 // jobs with no `auth.uid()`, and every call below is scoped by an explicit `site_id` predicate instead.
 import type { OwnLivePage, RefreshInputs } from "./refresh";
 import type { DraftOnTopic } from "./drafted";
-import type { ListicleHeld } from "@/lib/generate/templates/listicle";
 import type { KnowledgeDigest } from "@/lib/site-profile/knowledge/read";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { revalidateTag } from "next/cache";
@@ -175,8 +174,6 @@ export interface OpportunityStore {
   setCluster(opportunityId: string, clusterKey: string, absorbedQueries: readonly string[]): Promise<void>;
   /** The site's current stored report, or `null` where it has no readable one. */
   currentReport(siteId: string): Promise<StoredReport | null>;
-  /** The rivals in force, confirmed profile and scan passages a listicle's needs are read from; `null` with no site. */
-  listicleHeld(siteId: string, scanId: string): Promise<ListicleHeld | null>;
   /** The moment the site's last non-`fix` opportunity left `open`, which is
    *  the moment supply hit zero. `null` where the site has never held one. */
   lastStatusChangeAt(siteId: string): Promise<Date | null>;
@@ -908,7 +905,6 @@ export function supabaseOpportunityStore(): OpportunityStore {
     },
 
     currentReport: currentReportOf,
-    listicleHeld: (siteId, scanId) => import("@/lib/generate/voice/confirmed").then(({ listicleHeldOf }) => listicleHeldOf({ siteId, scanId })),
   };
 }
 
