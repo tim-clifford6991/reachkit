@@ -36,8 +36,8 @@
 //
 // `adjustFontFallback` is off throughout for the same reason: its
 // size-adjusted Arial face is reachable only through the generated class,
-// which nothing here applies. The fallback stack is the approved token's
-// own tail, which is the owner's to set.
+// which nothing here applies, and it names only Arial; `type.css` declares
+// that face by hand, under a fixed name the token lists.
 //
 // **One call per family per subset, and the subsets are the vendor's.**
 // `unicode-range` is a `@font-face` property, and `declarations` applies to

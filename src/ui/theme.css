@@ -64,8 +64,8 @@
   --s-5: 24px;
   --s-6: 32px;
 
-  /* The two families, self-hosted (`src/ui/fonts.ts`). */
-  --font-ui: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  /* The two families, self-hosted (`src/ui/fonts.ts`); Jakarta's fallback is sized to it in `type.css`. */
+  --font-ui: "Plus Jakarta Sans", "Plus Jakarta Sans Fallback", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 
   /* Type: the eyebrow, the body steps and the four heading steps. */
