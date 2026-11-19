@@ -501,7 +501,7 @@ export async function generateDraft(a: {
 }
 
 /** Of these site days, the ones owed and no due hour recorded an ending for, and those to decide `again`. */
-export async function missedDays<T extends { readonly siteId: string; readonly publishDate: string }>(
+export async function missedDays<T extends { readonly siteId: string; readonly publishDate: string; readonly hour?: Date }>(
   days: readonly T[]
 ): Promise<readonly (T & { again?: true; rewrite?: string })[]> {
   const { missedDays: missed } = await import("@/lib/publish/daily");

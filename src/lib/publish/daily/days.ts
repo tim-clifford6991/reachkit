@@ -137,9 +137,9 @@ export async function dayHold(siteId: string, publishDate: string): Promise<stri
 
 /** The owed days no due hour recorded (a missed tick, or a run killed first) or one left with research still queued;
  *  a first day was not owed. And, `again`, a day the generator left with no page before a newer weekly commit, decided
- *  once more against that week, or whose waiting page a newer standard set aside, under that standard's own key. An
- *  unreadable store gives none, and the next tick asks again. Never throws. */
-export async function missedDays<T extends DraftDay>(days: readonly T[]): Promise<readonly (T & { again?: true; rewrite?: string })[]> {
+ *  once more against that week, or whose waiting page a newer standard set aside, under that standard's own key, or
+ *  else re-sent once under `retry`. An unreadable store gives none, and the next tick asks again. Never throws. */
+export async function missedDays<T extends DraftDay & { readonly hour?: Date }>(days: readonly T[]): Promise<readonly (T & { again?: true; rewrite?: string })[]> {
   if (days.length === 0) return [];
   try {
     const store = draftDays();
@@ -157,6 +157,8 @@ export async function missedDays<T extends DraftDay>(days: readonly T[]): Promis
       } else if (kept.ended?.startsWith("no_page:generate:") && kept.decidedAt !== undefined) {
         const committed = (await store.committedAt?.(day.siteId)) ?? null;
         if (committed !== null && Date.parse(committed) > Date.parse(kept.decidedAt)) missed.push({ ...day, again: true });
+        // Once, while the publish time is ahead: only the due hour's own run records that hour, and never behind a harm stop.
+        else if (!kept.ended.includes(";harm_stop") && Date.parse(kept.decidedAt) === day.hour?.getTime()) missed.push({ ...day, again: true, rewrite: "retry" });
       }
     }
     return missed;
