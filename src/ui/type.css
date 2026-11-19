@@ -6,6 +6,16 @@
  * `tailwind.css`. Anything else a screen needs is a Tailwind utility.
  */
 
+/* Jakarta's metrics on a system face, so text laid out before the font arrives keeps its lines and the page does not move when it swaps in (next/font's numbers for the 400 face; it names only Arial, which Linux lacks). */
+@font-face {
+  font-family: "Plus Jakarta Sans Fallback";
+  src: local("Arial"), local("Liberation Sans"), local("Arimo");
+  ascent-override: 98.16%;
+  descent-override: 20.99%;
+  line-gap-override: 0%;
+  size-adjust: 105.75%;
+}
+
 .rk-fonts {
   font-family: var(--font-ui);
 }
