@@ -6,7 +6,7 @@
 //   - `resting` — the topic's draft was skipped, or stopped since the week's commit, or the newest draft on its topic
 //     was stopped by the checks and its research is unchanged; or its URL retired;
 //   - `destination_cannot_address` — an Improve the destination cannot deliver, or a topic a page of the site covers;
-//   - `low_fit` — a stored fit below the gate, a new topic no pass has scored, or one judged with no `fitFact` (§6);
+//   - `low_fit` — a stored fit below the gate, or a new topic judged with no `fitFact` (§6); `fit_unscored`, one never scored;
 //   - `out_of_reach` — a new comparison or listicle while the site's market footprint is closed, but one a week.
 //
 // Demand, kind of business and size never hold a row: they order it (`rank/points.ts`). Nor does a site whose own
@@ -114,9 +114,9 @@ export function eligible(o: Opportunity, ctx: ReadinessContext): UnreadyReason |
   if (o.family === "improve" && !ctx.canUpdate(o.targetRef)) return "destination_cannot_address";
   // An Improve row is the update of the page that covers its topic.
   if (o.family !== "improve" && ctx.coveredBy(o) !== null) return "destination_cannot_address";
-  // No score is not planned for a new page; an update or a fix is never held for want of one.
+  // A new page with no score waits for one, never read as low; an update or a fix is never held for want of one.
   const fit = o.businessFit ?? null;
-  if (fit === null ? o.family === "write" || o.family === "earn" : o.family !== "fix" && fit < TOPIC_FIT.gate) return "low_fit";
+  if (fit === null ? o.family === "write" || o.family === "earn" : o.family !== "fix" && fit < TOPIC_FIT.gate) return fit === null ? "fit_unscored" : "low_fit";
   // A new topic with no `fitFact` key was judged before the call named one, and keeps its fit until judged again.
   if ((o.evidence.family === "write" || o.evidence.family === "earn") && o.evidence.fitFact === null) return "low_fit";
   if (!ctx.footprint && waitsForFootprint(o) && o.id !== ctx.allowed) return "out_of_reach";
