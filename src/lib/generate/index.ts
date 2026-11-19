@@ -50,7 +50,7 @@ import { openDayCost, roomForFix, withDraftCost } from "./cost";
 import { readRecordedRules } from "./record";
 import { COLLECT, askDayResearch, heldResearch } from "./research-queue";
 import { repairStructure } from "./rules/structure";
-import { completenessOf, mendPage, mendable } from "./day-refresh";
+import { completenessOf, dayTopic, mendPage, mendable, versusRivals } from "./day-refresh";
 import { confirmedForWriting } from "./voice/confirmed";
 import { clusterLinkTargets, knownLinkTargets as knownContentTargets, siteLinkTargets, urlKey, type LinkTarget } from "./links/select";
 import { withMovedLink } from "./links/moved";
@@ -143,7 +143,7 @@ async function dayReady(siteId: string, publishDate: string): Promise<NoPage | {
 export async function decideDayPage(a: { siteId: string; publishDate: string; now: Date }): Promise<NoPage | { ok: true; opportunityId: string }> {
   const ready = await dayReady(a.siteId, a.publishDate);
   if (!ready.ok) return ready;
-  const first = await pageForDay(a.siteId, a.publishDate, a.now);
+  const first = await dayTopic({ siteId: a.siteId, ...ready }, a.publishDate, a.now);
   return first === null ? { ok: false, because: "no_opportunity" } : { ok: true, opportunityId: first.id };
 }
 
@@ -599,7 +599,7 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number; 
           searches: targetSearches(o),
           urls: o.planReason?.research?.urls,
           report,
-          rivals: [...(competitorOf(o) ?? []), ...site.rivals],
+          rivals: [...versusRivals(site, report, o), ...(competitorOf(o) ?? []), ...site.rivals],
           // Issue 1508: a listicle counts its top results' options, and an alternatives search's product is its baseline.
           rivalNames: namedRivals(site.rivals, writingFor.market),
           options: type === "listicle",

@@ -479,7 +479,7 @@ export async function generateDraft(a: {
   const instead = async (trigger: string, from: "select" | "write", stopped: string | null): Promise<EngineResult> => {
     const taken = trigger === "generate:no_site" || trigger === "generate:no_scan" ? null : await step("refresh", () => refreshForDay({ siteId: a.siteId, publishDate: a.publishDate, trigger, from, stopped, now: a.now }));
     if (taken === null || (!taken.ok && taken.because === "already_drafted")) return taken === null ? { degraded: trigger } : { done: true };
-    if (!taken.ok && taken.because === "no_update_candidate") return { degraded: `${trigger};no_update_candidate` };
+    if (!taken.ok && taken.because === "passed") return { degraded: `${trigger};${taken.why}` };
     const reviewed = await step("refresh-review", () => reviewWritten(taken, a.now));
     return "done" in reviewed ? { done: true, instead: `refresh:${trigger}` } : reviewed;
   };
