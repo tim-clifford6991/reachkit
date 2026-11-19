@@ -19,7 +19,7 @@ import type { RuleFailure } from "./rules/types";
 import { sectionBounds, TEMPLATES, type PackNeed, type PackRequirement, type SectionFacts, type Template } from "./templates";
 import { differenceHeld, ownPriceHeld } from "./templates/listicle";
 
-export type Part = "sections" | "sources" | "words" | "figures" | "title" | "links" | "demand";
+export type Part = "sections" | "sources" | "words" | "figures" | "title" | "links" | "demand" | "style";
 /** `have: null` is not measured, and its state is `pending`. */
 export interface PartMark { part: Part; have: number | null; need: number; state: "met" | "short" | "pending" }
 export interface Standard { parts: PartMark[]; met: boolean; pending: boolean; stops: Part[] }
@@ -75,7 +75,7 @@ const READ_MARKS: Partial<Record<ContentType, { R: number; F: number; Q?: number
 const DEMAND_RESULTS = 3;
 
 /** What the page half reads: the battery's failures on a written body, beside what it was written to. */
-interface PageHalf { failed: readonly RuleFailure[]; markdown: string; sections: number; basis: Pick<BatteryBasis, "pack" | "template" | "length" | "citesMin"> }
+interface PageHalf { failed: readonly RuleFailure[]; markdown: string; sections: number; basis: Pick<BatteryBasis, "pack" | "template" | "length" | "citesMin">; /** Writer's notes the repair dropped: a style warning. */ notes?: number }
 
 /** The one standard a page is held to, from its research before it is written or from its body after. */
 export function meetsStandard(a: ResearchHalf | PageHalf | ReadHalf): Standard {
@@ -91,6 +91,7 @@ export function meetsStandard(a: ResearchHalf | PageHalf | ReadHalf): Standard {
       ...(length === null ? [] : [mark("words", pack.type === "update" ? sectionWords(a.markdown) : bodyWords(a.markdown), length.floor, short("words"))]),
       mark("title", short("title") ? 0 : 1, 1, short("title")),
       mark("links", short("links") ? 0 : 1, 1, short("links")),
+      ...((a.notes ?? 0) > 0 ? [mark("style", 0, 1, true)] : []),
     ];
   } else {
     const asked = mustHold(a.pack.type);

@@ -173,6 +173,7 @@ const HOUSE_RULES = [
   "A link's text is words of the sentence that name what the reader finds at the other end — the page's `label` or a plain description of it. Never a bare number, never an address, never \"here\", \"click here\" or \"read more\", and never the page's slogan.",
   "Print no label, index or id for a fact — link text is the source's name. Write no sentence of legal, removal or refund terms.",
   "Write titles and headings in sentence case.",
+  "Write only to the reader. Never write about `pack`, this brief, the sources or facts you were given, held or available, or what this page can or cannot state: where `pack` holds nothing on a point, say nothing of it.",
   "State one opinion of the business's own, once: its judgement on a fact of its own in `pack` (that a number is low, which step it would take first, what it would not bother with), in the paragraph that states that fact and in plain words, without labelling it an opinion. It is never a claim about what most people, businesses or sites do or get wrong: `pack` holds no such fact.",
   "Do not sum the page up at its end, and do not announce what a section is about to say: the last section ends on its last fact or instruction.",
   `Where \`pack.claims\` or \`pack.facts\` hold a statistic or a sentence worth quoting, use ${VOICE.evidence.min} to ${VOICE.evidence.max} of them on the page, each with who measured or said it and its link. Use only the ones \`pack\` holds, as it states them; where it holds fewer, use fewer, and never invent a figure, a quotation or a name.`,

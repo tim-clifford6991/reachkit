@@ -67,7 +67,8 @@ import type { SourcedFact } from "./grounding";
 import { packStatements, type ContextPack } from "./pack";
 import { batteryBasis, checkPage, scopeOf } from "./battery";
 import { tryFix, type FixStop } from "./fix-call";
-import { fixNotes, withFitFact, withoutBusiness, type FixNote, type RepairRecord } from "./repair";
+import { fixNotes, withFitFact, withoutBusiness, withoutWriterNotes, type FixNote, type RepairRecord } from "./repair";
+import { languagePack } from "@/lib/locale/language";
 import { completeTables, withSources } from "./sources";
 import { withTable } from "./table";
 import { floorTitle, titleRuleFor, unclaimedSuperlatives } from "./title";
@@ -177,6 +178,8 @@ interface Finished {
   markdown: string;
   /** The titles the writer proposed, as code read them (issue 1389). */
   titles: TitleCandidate[];
+  /** How many sentences about the writer's own inputs the repair dropped. */
+  notes: number;
 }
 
 export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<GenerateOutcome> {
@@ -316,7 +319,9 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
     // With no passage of its own, the page names the business nowhere: not in its body, its FAQ or its closing line.
     const silent = grounding === undefined ? brandTokens(a.site) : [];
     const quiet = (text: string): boolean => silent.length === 0 || !namesBrand(text, silent);
-    const laid = { ...shaped, faq: shaped.faq.filter((entry) => quiet(`${entry.question} ${entry.answer}`)), closing: quiet(shaped.closing) ? shaped.closing : "" };
+    // The writer's notes about its pack or brief go before any check reads the page.
+    const notes = withoutWriterNotes(shaped.body.bodyMarkdown, shaped.faq, languagePack(pack.locale?.language ?? "en").writerNotes);
+    const laid = { ...shaped, body: { ...shaped.body, bodyMarkdown: notes.markdown }, faq: notes.faq.filter((entry) => quiet(`${entry.question} ${entry.answer}`)), closing: quiet(shaped.closing) ? shaped.closing : "" };
     const own = laid.sections.find((section) => ["business", "next_step", "related"].includes(section.key))?.heading;
     const glance = laid.sections.find((section) => template.sections.find((slot) => slot.key === section.key)?.block === "table")?.heading;
     // Issue 1507: a stray bracket goes and a numbered list counts from 1, in
@@ -332,7 +337,7 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
       ),
       cited
     );
-    return { laid, markdown, titles };
+    return { laid, markdown, titles, notes: notes.dropped };
   };
 
   const metaOf = (page: Finished, repairs: readonly RepairRecord[], elsewhere: number | null, outcome?: BatteryOutcome): Record<string, unknown> => {
@@ -376,7 +381,7 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
       ...(repairs.length === 0 ? {} : { repairs: [...priorRepairs, ...repairs] }),
       // Issue 1394: the rules this run asked of the page and the ones it
       // failed first and then cleared, for the draft screen's Checks list.
-      ...(outcome === undefined ? {} : { checks: recordedRunValue(outcome, broken, a.site.completeness), standard: (({ parts, met }) => ({ parts, met, version: deployedStandard() }))(meetsStandard({ failed: outcome.failed, markdown: page.markdown, sections: page.laid.sections.length, basis })) }),
+      ...(outcome === undefined ? {} : { checks: recordedRunValue(outcome, broken, a.site.completeness), standard: (({ parts, met }) => ({ parts, met, version: deployedStandard() }))(meetsStandard({ failed: outcome.failed, markdown: page.markdown, sections: page.laid.sections.length, basis, notes: page.notes })) }),
       // A number and nothing else: which page it was is not recorded.
       ...(elsewhere === null ? {} : { elsewhere: { similarity: elsewhere } }),
     };

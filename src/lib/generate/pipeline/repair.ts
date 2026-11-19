@@ -400,6 +400,29 @@ export function withoutClaimed(markdown: string, list: readonly string[]): { mar
   return withoutSentences(markdown, (words) => list.length > 0 && literalClaimMatch(words, list) !== null);
 }
 
+/** The page and its FAQ without each sentence the writer wrote about its own inputs (`writerNotes`): a list item that
+ *  holds one goes whole with its line break, and a FAQ answer left empty goes with its question. Only the count is logged. */
+export function withoutWriterNotes<Q extends { answer: string }>(markdown: string, faq: readonly Q[], notes: RegExp | undefined): { markdown: string; faq: Q[]; dropped: number } {
+  if (notes === undefined) return { markdown, faq: [...faq], dropped: 0 };
+  let dropped = 0;
+  const drop = (text: string): string => {
+    const edits: Edit[] = [];
+    for (const block of sourceBlocksOf(text)) {
+      const marker = MARKER_RE.exec(block.raw)?.[0] ?? "";
+      const pieces = splitSentences(block.raw.slice(marker.length));
+      const kept = pieces.filter((piece) => !notes.test(wordsOf(piece)));
+      if (kept.length === pieces.length) continue;
+      dropped += pieces.length - kept.length;
+      const gone = /[-*+\d]/.test(marker) || kept.length === 0;
+      edits.push({ from: block.from, to: gone && text[block.to] === "\n" ? block.to + 1 : block.to, text: gone ? "" : marker + kept.join(" ") });
+    }
+    return edits.length === 0 ? text : renumberSteps(applyEdits(text, edits));
+  };
+  const out = { markdown: drop(markdown), faq: faq.map((entry) => ({ ...entry, answer: drop(entry.answer) })).filter((entry) => entry.answer.trim() !== ""), dropped };
+  if (dropped > 0) console.log(JSON.stringify({ event: "writer_note_dropped", count: dropped }));
+  return out;
+}
+
 /** The page without each sentence `drops` takes, by the reader's words, and the sentences dropped. */
 function withoutSentences(markdown: string, drops: (words: string) => boolean, skipTables = false): { markdown: string; dropped: string[] } {
   const dropped: string[] = [];
