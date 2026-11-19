@@ -5,7 +5,7 @@ import type React from "react";
 import { ChevronDown } from "lucide-react";
 import type { ContentType } from "@/lib/opportunities/content-type";
 import type { CommittedRow, NotChosenRow } from "@/lib/opportunities/review/week";
-import type { PointPart } from "@/lib/opportunities/types";
+import type { PlanWriteAs, PointPart } from "@/lib/opportunities/types";
 import type { Label } from "@/lib/opportunities/verdicts/types";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { whyLineOf } from "../calendar/card-lines";
@@ -70,7 +70,7 @@ function cell(value: string | number | null): string {
 
 function pageWord(row: CommittedRow): string {
   if (row.page === "update") return copy("review.page.update");
-  const type = row.writeAs === "qa" ? "qa" : row.page;
+  const type = (row.writeAs as PlanWriteAs | null) ?? row.page;
   return type === null ? NONE : copy("review.page.new", { type: copy(PAGE[type]) });
 }
 

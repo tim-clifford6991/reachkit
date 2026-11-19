@@ -239,7 +239,7 @@ export interface OpportunityStore {
   /** A planned new page that becomes an update of a page the site already
    *  has (SPEC §7, D12, issue 1143): the row keeps its search, its status
    *  and its cluster, and takes the update's type, target and evidence. */
-  becomeUpdate(opportunityId: string, update: Pick<OpportunityInsert, "type" | "family" | "target_ref" | "proposed_slug" | "title" | "effort" | "evidence">): Promise<void>;
+  becomeUpdate(opportunityId: string, update: Pick<OpportunityInsert, "type" | "family" | "target_ref" | "proposed_slug" | "title" | "effort" | "evidence"> & { plan_write_as?: null }): Promise<void>;
   /** The host the site's live hosted destination serves at, or `null`. */
   hostedHostFor(siteId: string): Promise<string | null>;
   /** The pages the site's hosted destination could update — its host and
