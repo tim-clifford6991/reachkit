@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { fixCandidates } from "../../src/lib/opportunities/derive/fix";
 import { assessFixPages, fixPageReadiness } from "../../src/lib/opportunities/fix-page";
 import { placeFixPages } from "../../src/lib/opportunities/rank/open";
+import { eligible, type ReadinessContext } from "../../src/lib/opportunities/readiness";
 import { readOpportunity, setOpportunityStore } from "../../src/lib/opportunities/store";
 import { persist } from "../../src/lib/opportunities/derive/persist";
 import { evaluateAcceptance } from "../../src/lib/opportunities/verdicts/evaluate";
@@ -77,6 +78,11 @@ describe("readiness — only where the destination can make the update", () => {
     ] as const) {
       expect(fixPageReadiness(fix, delivery), fix.pageUrl).toBe("destination_cannot_address");
     }
+  });
+  it("a new page the fit call never scored is held unscored, and one scored low is low fit", () => {
+    const ctx = { now: new Date(AT), suppression: { retiredUrls: new Set() }, canUpdate: () => true, coveredBy: () => null, footprint: true } as unknown as ReadinessContext;
+    const row = (businessFit: number | null) => ({ family: "write", businessFit, targetRef: PRICING, evidence: { family: "write", fitFact: "x" } }) as unknown as Opportunity;
+    expect([eligible(row(null), ctx), eligible(row(1), ctx)]).toEqual(["fit_unscored", "low_fit"]);
   });
 });
 
