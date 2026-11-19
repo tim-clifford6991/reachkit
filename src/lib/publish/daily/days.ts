@@ -63,7 +63,7 @@ export interface DraftDayStore {
   reasonOn(siteId: string, publishDate: string): Promise<string | null>;
   /** Of these days, the ones whose due hour recorded how it ended, with that ending (`outcome:reason`) and when. */
   decidedOn(days: readonly DraftDay[]): Promise<readonly (DraftDay & { ended?: string; decidedAt?: string })[]>;
-  /** When the site's latest weekly pass that measured its week finished, or `null`; absent, no day is decided again. */
+  /** When the plan of the site's latest weekly pass that measured its week was committed, or `null` until it is; absent, no day is decided again. */
   committedAt?(siteId: string): Promise<string | null>;
   domainOf(siteId: string): Promise<string | null>;
   /** Marks the date told about once; true only for the caller that made the claim and sends the mail. */
@@ -373,16 +373,20 @@ function databaseDraftDayStore(): DraftDayStore {
     },
     async committedAt(siteId) {
       const { data, error } = await publishDb()
-        .from<{ finished_at: string | null; created_at: string }>("scans")
-        .select("finished_at, created_at")
+        .from<{ week_start: string }>("scans")
+        .select("week_start")
         .eq("site_id", siteId)
         .eq("tier", "weekly")
         .in("status", ["done", "degraded"])
         .order("created_at", { ascending: false })
         .limit(1);
       if (error !== null) throw new Error(error.message);
-      const row = data?.[0];
-      return row === undefined ? null : (row.finished_at ?? row.created_at);
+      const week = data?.[0]?.week_start;
+      if (week === undefined) return null;
+      // The week's plan is committed minutes after its scan closes; the commit step's own record is the time it was.
+      const commit = await publishDb().from<{ at: string }>("ops_events").select("at").eq("kind", "week_research").eq("site_id", siteId).eq("code", week).limit(1);
+      if (commit.error !== null) throw new Error(commit.error.message);
+      return commit.data?.[0]?.at ?? null;
     },
     async domainOf(siteId) {
       const { data, error } = await publishDb().from<{ domain: string }>("sites").select("domain").eq("id", siteId).limit(1);
