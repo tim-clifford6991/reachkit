@@ -21,7 +21,7 @@ import { cachedSerp, serpOrganic } from "@/lib/vendors/dataforseo/serp";
 import { DRAFT_POLICY_VERSION, openDayCost } from "./cost";
 import { targetSearches } from "./pipeline";
 import { builtFromOutside, type ResearchRead } from "./standard";
-import { NO_RESEARCH, RESEARCH_READ_SOURCE, readFresh, researchSerps, type MarketResearch } from "./pipeline/research";
+import { NO_RESEARCH, RESEARCH_READ_SOURCE, fetchBody, readFresh, researchSerps, rivalPage, sitemapOf, type MarketResearch } from "./pipeline/research";
 import { alikeHeadings } from "./rules/headings";
 import { isQuestionShaped } from "./rules/text";
 import { generateStore } from "./store";
@@ -70,9 +70,10 @@ type ReadPage = { url: string; title: string; text: string; headings?: string[] 
 
 /** Each row's research as the cache holds it, at 0¢ and with no vendor call: the commit's row check (SPEC §7 *The week is
  *  committed on Monday*). A row whose target SERP, or any eligible result's read, is not cached reads `null`: not measured.
- *  Given `cost`, a result not yet held is read off the network, together, and ledgered at 0¢; one that does not read is no result. */
+ *  Given `cost`, a result not yet held is read off the network, together, and ledgered at 0¢; one that does not read is no result.
+ *  A rival-only `vs` row (R31) is read only given `cost`: each rival it names, its own pricing or features page as research finds it. */
 export async function researchHeld(siteId: string, rows: readonly WeekRow[], now: Date, cost?: CostContext): Promise<Map<string, ResearchRead | null>> {
-  const [site, locale] = await Promise.all([generateStore().siteFacts(siteId), siteLocale(siteId)]);
+  const [site, locale, report, { versusRivals }] = await Promise.all([generateStore().siteFacts(siteId), siteLocale(siteId), generateStore().latestReport(siteId), import("./day-refresh")]);
   const others = new Set((site?.rivals ?? []).flatMap((rival) => registrableDomain(rival) ?? []));
   const foreign = (url: string) => (site === null || !isOwnDomain(url, site.domain)) && !others.has(registrableDomain(url) ?? "") && !isListingAddress(url) && !isMarketplaceHost(url) && !isPlatformDomain(url);
   const words = (text: string) => new Set(stemKey(text, locale.language).split(" ").filter((word) => word !== ""));
@@ -82,12 +83,22 @@ export async function researchHeld(siteId: string, rows: readonly WeekRow[], now
     return topic.size > 0 && [...topic].filter((word) => said.has(word)).length * 2 >= topic.size;
   };
   const oldest = now.getUTCFullYear() - RESEARCH.statisticMaxAgeYears;
+  const cached = async (url: string) => ((await readCache({ source: RESEARCH_READ_SOURCE, cacheKey: url, policyVersion: DRAFT_POLICY_VERSION, freshnessDays: RESEARCH.freshnessDays }))?.payload as ReadPage | undefined) ?? (cost === undefined ? undefined : readFresh(cost, url));
+  // Whether a rival has an own page that reads, found as research finds it (D56): its home page's links, then its sitemap.
+  const ownPageRead = async (domain: string): Promise<boolean> => {
+    const [home, sitemap] = await Promise.all([fetchBody(`https://${domain}/`), sitemapOf(domain)]);
+    const urls = new Set((["rival_pricing", "rival_features"] as const).flatMap((kind) => rivalPage(kind, domain, home, sitemap) ?? []));
+    return (await Promise.all([...urls].map(cached))).some((page) => page != null);
+  };
   const read = async (target: string): Promise<ResearchRead | null> => {
     const serp = await cachedSerp(researchSerps({ siteId, locale, target }, 0)[0]!, DRAFT_POLICY_VERSION);
     if (serp === null) return null;
     const urls = serp.organic.slice(0, READ.results).map((row) => row.url).filter((url) => googleWrapper(url) === null && foreign(url));
-    const held = await Promise.all(urls.map(async (url) => ((await readCache({ source: RESEARCH_READ_SOURCE, cacheKey: url, policyVersion: DRAFT_POLICY_VERSION, freshnessDays: RESEARCH.freshnessDays }))?.payload as ReadPage | undefined) ?? (cost === undefined ? undefined : readFresh(cost, url))));
+    const held = await Promise.all(urls.map(cached));
     if (held.some((page) => page === undefined)) return null;
+    const rivals = site === null || report === null ? [] : versusRivals(site, report, { targetQuery: target, absorbedQueries: [], title: null });
+    if (rivals.length > 0 && cost === undefined) return null;
+    const firstHand = await Promise.all(rivals.map(ownPageRead));
     const topic = words(target);
     const pages = held.flatMap((page) => (page == null ? [] : [page])).filter((page) => {
       const language = languageOfText(page.text);
@@ -109,6 +120,7 @@ export async function researchHeld(siteId: string, rows: readonly WeekRow[], now
       stepPages: pages.filter((page) => (page.headings ?? []).filter((heading) => STEP_RE.test(heading)).length >= READ.steps).length,
       asked: serp.peopleAlsoAsk?.length ?? 0,
       urls: pages.map((page) => page.url),
+      ...(rivals.length === 0 ? {} : { rivals: { need: rivals.length, have: firstHand.filter(Boolean).length } }),
     };
   };
   const out = new Map<string, ResearchRead | null>();

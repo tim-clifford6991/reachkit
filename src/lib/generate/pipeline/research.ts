@@ -337,7 +337,7 @@ export function rivalPage(
 /** The addresses a rival's sitemap lists: `/sitemap.xml`, else the one its
  *  `robots.txt` names; an index is followed into its first few sitemaps on
  *  the rival's own host. Empty where it publishes none. */
-async function sitemapOf(domain: string): Promise<string[]> {
+export async function sitemapOf(domain: string): Promise<string[]> {
   const locs = (xml: string): string[] => [...xml.matchAll(LOC_RE)].map((match) => match[1]!.replace(/&amp;/g, "&"));
   let first = await fetchBody(`https://${domain}/sitemap.xml`);
   if (first === null || !/<(?:urlset|sitemapindex)\b/i.test(first.html)) {

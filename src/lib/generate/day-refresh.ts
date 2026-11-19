@@ -127,7 +127,7 @@ export async function completenessOf(siteId: string, at: Date, anyway = false): 
 }
 
 /** R31's rivals of a `vs` topic, as its pack names them: the domains a page on it must read first-hand. */
-export function versusRivals(site: SiteFacts, report: StoredReport, o: Opportunity): string[] {
+export function versusRivals(site: SiteFacts, report: StoredReport, o: Pick<Opportunity, "targetQuery" | "absorbedQueries" | "title">): string[] {
   const market = site.market === undefined ? null : writingMarket({ site: { category: site.category, competitors: site.rivals, stored: site.market }, reportCategory: "" }).market;
   const business = { name: siteRulesOf(site, report).businessName, domain: site.domain, category: "", byline: null, voice: null, market, rivals: site.rivals };
   return rivalsOnlyVersus({ target: { searches: targetSearches(o), question: o.title ?? "" }, business }).map((rival) => rival.domain);
