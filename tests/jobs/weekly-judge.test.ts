@@ -8,7 +8,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DOMAIN, SITE_ID, WEEK, fakeStore, releaseStore, type Fake } from "../opportunities/verdicts/harness";
 import type { DigestPage } from "@/lib/opportunities/verdicts";
-import { setOpportunityStore } from "@/lib/opportunities/store";
+import { setOpportunityStore, type OpportunityRow } from "@/lib/opportunities/store";
 import { memoryStore, newMemoryState, type MemoryState } from "../opportunities/memory-store";
 import { asQueue, envelope, pollTheQueueAtOnce, stubVendorFetch, type VendorFetchStub } from "../vendors/harness";
 import { VENDOR } from "@/lib/config/constants";
@@ -44,6 +44,11 @@ vi.mock("@/lib/mail/weekly", () => ({
 const { startWeeklyScan } = await import("@/jobs/engine");
 
 const NOW = new Date(Date.UTC(2026, 7, 31, 10, 0, 0));
+const writeRow = (topic: string): OpportunityRow => ({
+  id: `write-${topic}`, site_id: SITE_ID, scan_id: "scan-1", type: "answer_page", family: "write", target_query: `user ${topic} software`, target_ref: `${topic}-faq`,
+  proposed_slug: `${topic}-faq`, title: null, volume: 500, evidence: { family: "write" }, acceptance: { form: "top20", query: `user ${topic} software` }, business_fit: 3,
+  fit_band: "winnable", effort: 0.3, status: "open", cluster_key: topic, absorbed_queries: [], ready: false, unready_reason: "not_assessed", created_at: NOW.toISOString(),
+});
 const tick = () =>
   startWeeklyScan({ siteId: SITE_ID, domain: DOMAIN, zone: "UTC", weekStart: WEEK, now: NOW });
 
@@ -97,13 +102,7 @@ describe("the Monday tick judges the week it measured", () => {
   });
 
   it("a week the vendor refused for credit ends degraded with vendor_funds, and judges, plans and tells nothing", async () => {
-    opportunities.rows.push({
-      id: "write-1", site_id: SITE_ID, scan_id: "scan-1", type: "answer_page", family: "write",
-      target_query: "user onboarding software", target_ref: "onboarding-faq", proposed_slug: "onboarding-faq", title: null, volume: 500,
-      evidence: { family: "write" }, acceptance: { form: "top20", query: "user onboarding software" },
-      fit_band: "winnable", effort: 0.3, status: "open", cluster_key: "onboarding", absorbed_queries: [],
-      ready: false, unready_reason: "not_assessed", created_at: NOW.toISOString(),
-    });
+    opportunities.rows.push(writeRow("onboarding"));
     const before = structuredClone(opportunities.rows);
     weekly.outcome = { ran: true, scanId: "scan-1", status: "failed", because: "vendor_funds" };
     expect(await tick()).toEqual({ degraded: "vendor_funds" });
@@ -128,5 +127,11 @@ describe("the Monday tick judges the week it measured", () => {
     }
     expect(vendor.requests.filter((request) => request.url.includes("/serp/google/organic/task_post"))).toHaveLength(1);
     expect(tables.get("ops_events")?.map((row) => [row.kind, row.code, JSON.parse(String(row.read)).top_up])).toEqual([["week_research", WEEK, { tried: 1, kept: 0 }]]);
+  });
+
+  it("an early pass from 19 Nov that claims 23–29 Nov with 3 dates committed leaves 8 uncovered", async () => {
+    Object.assign(opportunities, { weeklyCommit: "2026-11-23", rows: ["billing", "churn", "signup"].map(writeRow) });
+    await (await import("@/lib/scan/weekly/commit")).commitWeek({ siteId: SITE_ID, weekStart: "2026-11-23", now: new Date("2026-11-19T06:00:00Z"), rows: [], checks: [] });
+    expect(JSON.parse(String(tables.get("ops_events")!.at(-1)!.read)).uncovered).toBe(8);
   });
 });
