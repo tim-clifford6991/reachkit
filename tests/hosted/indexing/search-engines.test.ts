@@ -117,7 +117,7 @@ describe("issue 1553 — a live hosted host is verified, and each page's way to 
     expect(verification.google).toMatchObject({ account: ACCOUNT.client_email, verifiedAt: NOW.toISOString(), sitemapAt: NOW.toISOString() });
     expect(sent.some((r) => r.opts.method === "PUT" && r.url.endsWith(`/sitemaps/${encodeURIComponent(`${SITE_URL}sitemap.xml`)}`))).toBe(true);
     // The property added this pass is not measured yet: URL Inspection's facts are kept, and no figure is stored.
-    expect(stored("pub-old")?.google).toEqual({ unread: "property_new", indexed: true, lastCrawl: "2026-10-12T03:00:00Z" });
+    expect(stored("pub-old")?.google).toEqual({ unread: "property_new", indexed: true, lastCrawl: "2026-10-12T03:00:00Z", coverageState: "Submitted and indexed" });
 
     await readSearchEngines({ siteId: "s1", now: new Date(NOW.getTime() + 5 * 86_400_000), deps: { accounts: [ACCOUNT], gscSend: google, announce: async () => ok({}) } });
 

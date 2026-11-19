@@ -46,4 +46,11 @@ export const OPS_COPY = Object.freeze({
   "ops.promise.not-measured": ["not measured", { slots: {}, fixedBy: "owner ruling 2, 2026-11-17, issue 2819 (drafted)" }],
   "ops.promise.missed": ["Missed {date}: {reason}", { slots: { date: "text", reason: "text" }, fixedBy: "owner ruling 2, 2026-11-17, issue 2819 (drafted)" }],
   "ops.promise.unresearched": ["Committed days with research still queued: {queued} · short: {short}", { slots: { queued: "text", short: "text" }, fixedBy: "owner ruling 2, 2026-11-17, issue 2819 (drafted)" }],
+  "ops.uncrawled.week": [
+    "Google has still not crawled these live pages a week or more after they went live. ReachKit announces each to Google again, once. Each shows the site, the page, what Google says of it and the day it went live.",
+    { slots: {}, fixedBy: "owner ruling 32, 2026-11-18, issue 2914 (drafted)" },
+  ],
+  "ops.uncrawled.fact.page": ["Page", { slots: {}, fixedBy: "owner ruling 32, 2026-11-18, issue 2914 (drafted)" }],
+  "ops.uncrawled.fact.state": ["Google says", { slots: {}, fixedBy: "owner ruling 32, 2026-11-18, issue 2914 (drafted)" }],
+  "ops.uncrawled.fact.published": ["Went live", { slots: {}, fixedBy: "owner ruling 32, 2026-11-18, issue 2914 (drafted)" }],
 }) satisfies CopyPartition;

@@ -10,21 +10,22 @@
 //      query over `SEARCH_READING_WINDOW_D`; a property younger than `PROPERTY_NEW_D` gets URL Inspection only.
 //      An address moved or merged away in the last `RESTORE_WITHIN_D` days that holds impressions, while the page it
 //      301s to holds none, has that page put back, once (SPEC §7), and the page is read there.
-//   4. One `search_reading` per live page, assembled by
+//   4. A hosted page Google has still not crawled `UNCRAWLED_AFTER_D` days after going live is announced again, once.
+//   5. One `search_reading` per live page, assembled by
 //      `@/lib/measure/page-reading` from the newest stored report, the
 //      reads counted on the page, and Google's reading.
 //
-// Without credentials steps 1 and 4 still run, so the ladder shows what ReachKit can prove. 0¢: every call is free.
+// Without credentials steps 1 and 5 still run, so the ladder shows what ReachKit can prove. 0¢: every call is free.
 // It never throws: a refusal or failed read stores its reason on each hosted page, logs it once per host, and the verdicts and mail still run.
-import { SEARCH_READING_WINDOW_D, GSC_PROPERTIES_PER_ACCOUNT } from "@/lib/config/constants";
+import { SEARCH_READING_WINDOW_D, GSC_PROPERTIES_PER_ACCOUNT, UNCRAWLED_AFTER_D } from "@/lib/config/constants";
 import { gscClient, gscPool, type GscAccount, type GscRefusal, type GscSend } from "@/lib/vendors/gsc";
 import { knownPlaces } from "@/lib/measure/known-places";
-import { addressOf as pageAddress, assembleReading, engineReadingOf, pageSearchOf, readingOf, type GoogleReading, type GoogleUnread } from "@/lib/measure/page-reading";
+import { addressOf as pageAddress, assembleReading, engineReadingOf, pageSearchOf, readingOf, statedOf, uncrawled, type GoogleReading, type GoogleUnread } from "@/lib/measure/page-reading";
 import { readStoredReport, type StoredReport } from "@/lib/scan/report";
 import { restoreAddress } from "../../attempt/move";
 import { publishDb } from "../../db";
 import { takenDownByCustomer } from "../../take-down/standing";
-import { announceUnannounced, type AnnounceSend } from "./announce";
+import { announceHosted, announceUnannounced, type AnnounceSend } from "./announce";
 import { addressOf, slugOf, type AddressRow } from "./moved";
 
 const DAY_MS = 86_400_000;
@@ -54,6 +55,7 @@ interface PageRow {
   id: string;
   live_url: string | null;
   destination: string | null;
+  published_at: string | null;
   acceptance: unknown;
   search_reading: unknown;
   drafts: { opportunities: { acceptance: unknown; target_query: string | null } | null } | null;
@@ -129,7 +131,7 @@ async function readGoogle(a: {
   if (a.now.getTime() - Date.parse(held.sitemapAt) < PROPERTY_NEW_D * DAY_MS) {
     for (const page of a.pages) {
       const inspected = await client.inspect(a.siteUrl, page.url);
-      readings.set(page.url, { unread: "property_new", indexed: inspected?.indexed ?? null, lastCrawl: inspected?.lastCrawl ?? null });
+      readings.set(page.url, { unread: "property_new", indexed: inspected?.indexed ?? null, lastCrawl: inspected?.lastCrawl ?? null, ...statedOf({ ...inspected }) });
     }
     return readings;
   }
@@ -197,7 +199,7 @@ export async function readSearchEngines(a: { siteId: string; now: Date; deps?: S
     const db = publishDb();
     const { data: pageRows, error } = await db
       .from<PageRow>("publications")
-      .select("id, live_url, destination, acceptance, search_reading, drafts(opportunities(acceptance, target_query))")
+      .select("id, live_url, destination, published_at, acceptance, search_reading, drafts(opportunities(acceptance, target_query))")
       .eq("site_id", a.siteId)
       .not("published_at", "is", null)
       .is("unpublished_at", null);
@@ -277,6 +279,13 @@ export async function readSearchEngines(a: { siteId: string; now: Date; deps?: S
     const hitsOf = (id: string, kinds: readonly string[]): number =>
       (reads ?? []).filter((row) => row.publication_id === id && kinds.includes(row.kind)).reduce((sum, row) => sum + row.hits, 0);
 
+    const dueAt = a.now.getTime() - UNCRAWLED_AFTER_D * DAY_MS;
+    const due = pages
+      .filter((page) => page.destination === "hosted" && uncrawled(googleOf(page)) && Date.parse(page.published_at ?? "") <= dueAt && readingOf(page.search_reading)?.reannounced === undefined)
+      .map((page) => page.live_url);
+    const reannounced = due.length > 0 && (await announceHosted({ siteId: a.siteId, urls: due, at: a.now, ...(deps.announce === undefined ? {} : { send: deps.announce }) }));
+    if (reannounced) log("search_engine_reannounced", { host, siteId: a.siteId, pages: due.length });
+
     for (const page of pages) {
       // Reads are counted on the pages ReachKit serves; elsewhere they are not measured.
       const counted = page.destination === "hosted" && readsError === null;
@@ -295,7 +304,8 @@ export async function readSearchEngines(a: { siteId: string; now: Date; deps?: S
         },
         now: a.now,
       });
-      await db.from("publications").update({ search_reading: back === undefined ? reading : { ...reading, restored: back } }).eq("id", page.id);
+      const stamped = reannounced && due.includes(page.live_url) ? { ...reading, reannounced: a.now.toISOString() } : reading;
+      await db.from("publications").update({ search_reading: back === undefined ? stamped : { ...stamped, restored: back } }).eq("id", page.id);
     }
   } catch (error) {
     log("search_engines_failed", { siteId: a.siteId, message: String(error) });

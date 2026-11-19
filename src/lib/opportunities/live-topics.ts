@@ -56,7 +56,7 @@ export interface LiveTopicPage {
    *  them too, or the address would serve the version before. */
   olderVersions?: readonly string[];
   /** Google's figures over the reading window, or `null` where the page holds no reading: not measured is never 0. */
-  google?: { impressions: number; clicks: number } | null;
+  google?: { impressions: number; clicks: number; googleCanonical?: string } | null;
   /** An update of the page is drafted and not yet live. */
   updating?: boolean;
 }
@@ -177,33 +177,41 @@ export function liveTopicVerdict(page: LiveTopicPage, site: LiveTopicSite, now: 
 /** Why two live twins are not merged. */
 export type TwinHeld = "twin_waits_on_reading" | "own_host" | "draft_in_review" | "names_other_products";
 
-/** Of the live pages that pass the topic rules, each that is one question with a page holding more Google impressions
- *  (then clicks, then the older address) is merged into it once both are measured, unless a reason holds it. Pure. */
+/** Of the live pages that pass the topic rules, each whose Google canonical is another of them, or that is one question
+ *  with a page holding more Google impressions (then clicks, then the older address), is merged into that page once
+ *  both are measured, unless a reason holds it. Pure. */
 export function liveTwins(pages: readonly LiveTopicPage[], site: Pick<LiveTopicSite, "joined" | "products">): {
   merge: { page: LiveTopicPage; into: LiveTopicPage }[];
   held: { liveUrl: string; into: string; why: TwinHeld }[];
 } {
   const out: ReturnType<typeof liveTwins> = { merge: [], held: [] };
-  const twins = (a: LiveTopicPage, b: LiveTopicPage) => a !== b && site.joined !== undefined && site.joined(a.opportunity, b.opportunity);
   const products = (page: LiveTopicPage) => site.products?.(page.opportunity.targetQuery ?? "") ?? "";
-  const read = pages.filter((page) => page.google != null);
+  const decide = (page: LiveTopicPage, into: LiveTopicPage): void => {
+    const why: TwinHeld | null =
+      page.google == null || into.google == null ? "twin_waits_on_reading"
+      : !page.hosted || !into.hosted ? "own_host"
+      : page.updating === true || into.updating === true ? "draft_in_review"
+      : products(page) !== products(into) ? "names_other_products"
+      : null;
+    if (why === null) out.merge.push({ page, into });
+    else out.held.push({ liveUrl: page.liveUrl, into: into.liveUrl, why });
+  };
+  const chosen = (page: LiveTopicPage) => page.google?.googleCanonical === undefined ? undefined : pages.find((other) => other !== page && canonicalUrl(other.liveUrl) === canonicalUrl(page.google!.googleCanonical!));
+  // Google's own canonical names the page a twin goes into; a page Google points away from is never a survivor.
+  const named = pages.filter((page) => chosen(page) !== undefined && chosen(chosen(page)!) === undefined);
+  for (const page of named) decide(page, chosen(page)!);
+  const rest = pages.filter((page) => !named.includes(page));
+  const twins = (a: LiveTopicPage, b: LiveTopicPage) => a !== b && site.joined !== undefined && site.joined(a.opportunity, b.opportunity);
+  const read = rest.filter((page) => page.google != null);
   read.sort((a, b) => b.google!.impressions - a.google!.impressions || b.google!.clicks - a.google!.clicks || a.signals.firstLive.getTime() - b.signals.firstLive.getTime());
   const kept: LiveTopicPage[] = [];
   for (const page of read) {
     const into = kept.find((held) => twins(held, page));
     if (into === undefined) kept.push(page);
-    else {
-      const why: TwinHeld | null =
-        !page.hosted || !into.hosted ? "own_host"
-        : page.updating === true || into.updating === true ? "draft_in_review"
-        : products(page) !== products(into) ? "names_other_products"
-        : null;
-      if (why === null) out.merge.push({ page, into });
-      else out.held.push({ liveUrl: page.liveUrl, into: into.liveUrl, why });
-    }
+    else decide(page, into);
   }
-  for (const page of pages) {
-    const twin = page.google == null ? pages.find((other) => twins(other, page)) : undefined;
+  for (const page of rest) {
+    const twin = page.google == null ? rest.find((other) => twins(other, page)) : undefined;
     if (twin !== undefined) out.held.push({ liveUrl: page.liveUrl, into: twin.liveUrl, why: "twin_waits_on_reading" });
   }
   return out;

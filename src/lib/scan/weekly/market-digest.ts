@@ -37,8 +37,13 @@
 // lists every pass — weekly, deep or re-measure — one of its own checks
 // failed on in the seven days up to the moment this digest fell due, with
 // the check and what it found. A read that fails leaves it out too.
+//
+// **Pages Google has not crawled.** The same mail lists every live hosted page
+// whose newest URL Inspection still says Google does not know it or has only
+// found it, `UNCRAWLED_AFTER_D` days or more after it went live, with that state.
 import { tz } from "@date-fns/tz";
 import { addDays, format } from "date-fns";
+import { UNCRAWLED_AFTER_D } from "@/lib/config/constants";
 import { dbAdmin } from "@/lib/db";
 import { marketTooSmall, stoppedOnCeiling } from "../market-floor";
 import { readStoredReport } from "../report";
@@ -148,6 +153,37 @@ async function unhealthyBefore(weekStart: string): Promise<UnhealthyPass[] | nul
   }
 }
 
+type UncrawledWeek = NonNullable<Extract<OpsIncident, { occasion: "market-too-small-week" }>["uncrawled"]>;
+
+/** The live hosted pages Google had not crawled `UNCRAWLED_AFTER_D` days after going live, or `null` where there are
+ *  none or they could not be read. */
+async function uncrawledAt(now: Date): Promise<UncrawledWeek | null> {
+  try {
+    const { readingOf, uncrawled } = await import("@/lib/measure/page-reading");
+    const live = await untyped()
+      .from<{ site_id: string; live_url: string | null; published_at: string | null; search_reading: unknown }>("publications")
+      .select("site_id, live_url, published_at, search_reading")
+      .eq("destination", "hosted")
+      .is("unpublished_at", null);
+    if (live.error) throw new Error(live.error.message);
+    const pages = (live.data ?? []).flatMap((row) => {
+      const google = readingOf(row.search_reading)?.google;
+      const due = Date.parse(row.published_at ?? "") <= now.getTime() - UNCRAWLED_AFTER_D * DAY_MS;
+      return row.live_url !== null && due && uncrawled(google) ? [{ siteId: row.site_id, url: row.live_url, state: google!.coverageState!, published: row.published_at!.slice(0, 10) }] : [];
+    });
+    if (pages.length === 0) return null;
+    const sites = await untyped().from<SiteRow>("sites").select("id, domain").in("id", [...new Set(pages.map((page) => page.siteId))]);
+    if (sites.error) throw new Error(sites.error.message);
+    const domains = new Map((sites.data ?? []).map((site) => [site.id, site.domain]));
+    return pages
+      .map(({ siteId, ...page }) => ({ domain: domains.get(siteId) ?? "unknown", ...page }))
+      .sort((a, b) => a.domain.localeCompare(b.domain) || a.published.localeCompare(b.published));
+  } catch (error) {
+    console.warn(JSON.stringify({ event: "market_digest_uncrawled_unread", error: error instanceof Error ? error.name : "unknown" }));
+    return null;
+  }
+}
+
 /** Monday 00:00 → Tuesday 12:00 UTC: the moment Monday has ended in UTC−12. */
 const MONDAY_ENDS_EVERYWHERE_MS = 36 * 60 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -214,7 +250,8 @@ export async function sendMarketDigest(weekStart: string, now: Date): Promise<bo
   const untold = await untoldBefore(weekStart);
   const costs = await costBefore(weekStart);
   const unhealthy = await unhealthyBefore(weekStart);
-  if (tooSmall.length > 0 || promise !== null || untold !== null || costs !== null || unhealthy !== null) {
+  const uncrawled = await uncrawledAt(now);
+  if (tooSmall.length > 0 || promise !== null || untold !== null || costs !== null || unhealthy !== null || uncrawled !== null) {
     const { reportIncident } = await import("@/lib/mail/ops");
     const accepted = await reportIncident({
       occasion: "market-too-small-week",
@@ -224,6 +261,7 @@ export async function sendMarketDigest(weekStart: string, now: Date): Promise<bo
       ...(untold === null ? {} : { untold }),
       ...(costs === null ? {} : { costs }),
       ...(unhealthy === null ? {} : { unhealthy }),
+      ...(uncrawled === null ? {} : { uncrawled }),
     });
     if (!accepted) return false;
   }
@@ -235,6 +273,6 @@ export async function sendMarketDigest(weekStart: string, now: Date): Promise<bo
     .in("id", ids)
     .is("market_digest_at", null);
   if (stamped.error) throw new Error(`sendMarketDigest: could not stamp the week: ${stamped.error.message}`);
-  console.log(JSON.stringify({ event: "market_digest", weekStart, read: ids.length, tooSmall: tooSmall.length, promiseSites: promise?.sites.length ?? 0, untold: untold?.length ?? 0, costs: costs !== null, drifting: costs?.drift?.sources.length ?? 0, unhealthy: unhealthy?.length ?? 0 }));
+  console.log(JSON.stringify({ event: "market_digest", weekStart, read: ids.length, tooSmall: tooSmall.length, promiseSites: promise?.sites.length ?? 0, untold: untold?.length ?? 0, costs: costs !== null, drifting: costs?.drift?.sources.length ?? 0, unhealthy: unhealthy?.length ?? 0, uncrawled: uncrawled?.length ?? 0 }));
   return true;
 }

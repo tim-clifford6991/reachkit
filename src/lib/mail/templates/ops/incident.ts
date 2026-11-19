@@ -59,6 +59,8 @@ export type OpsIncident =
         domain: string;
         failing: readonly { check: string; detail: string }[];
       }[];
+      // Live hosted pages Google had still not crawled a week after going live, each with Google's coverage line.
+      uncrawled?: readonly { domain: string; url: string; state: string; published: string }[];
     }
   // No error: a scheduled job has not run for twice its interval. Job id, last run and interval in minutes.
   | { occasion: "job-stale"; jobId: string; lastRunAt: string; intervalMinutes: number }
@@ -97,6 +99,7 @@ const COSTS_WEEK = "mail.ops.incident.costs-week" satisfies CopyKey;
 const HEALTH_WEEK = "mail.ops.incident.health-week" satisfies CopyKey;
 const UNTOLD_WEEK = "mail.ops.incident.untold-days-week" satisfies CopyKey;
 const DRIFT_WEEK = "ops.cost-drift.week" satisfies CopyKey;
+const UNCRAWLED_WEEK = "ops.uncrawled.week" satisfies CopyKey;
 
 const BODY: Readonly<Record<OpsIncident["occasion"], CopyKey>> = Object.freeze({
   "job-failed": "mail.ops.incident.job-failed",
@@ -138,6 +141,11 @@ export function closedName(value: string): string {
 /** A week is a stored calendar date; anything else is written `unknown`. */
 function closedDate(value: string): string {
   return /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : "unknown";
+}
+
+/** A page address on one line, or `unknown`. */
+function closedUrl(value: string): string {
+  return /^https?:\/\/[^\s]{1,2000}$/.test(value) ? value : "unknown";
 }
 
 /** An instant to the minute in UTC, or `unknown`. */
@@ -319,7 +327,7 @@ function promiseRow(site: PromiseSite): ListRow {
 /** The Monday digest: each part drawn only where it has something to say. */
 function weekBlocks(incident: Extract<OpsIncident, { occasion: "market-too-small-week" }>): MailBlock[] {
   const blocks: MailBlock[] = [];
-  if (incident.scanIds.length > 0 || (incident.promise === undefined && incident.untold === undefined && incident.costs === undefined && incident.unhealthy === undefined)) {
+  if (incident.scanIds.length > 0 || (incident.promise === undefined && incident.untold === undefined && incident.costs === undefined && incident.unhealthy === undefined && incident.uncrawled === undefined)) {
     blocks.push({ block: "paragraph", text: BODY[incident.occasion] }, { block: "facts", items: factsOf(incident) });
   }
   if (incident.promise !== undefined) {
@@ -353,6 +361,20 @@ function weekBlocks(incident: Extract<OpsIncident, { occasion: "market-too-small
           ...pass.failing.map(
             (failed): FactRow => ({ label: "mail.ops.incident.fact.health-check", value: `${closedName(failed.check)}: ${sentenceValue(failed.detail)}` })
           ),
+        ]),
+      }
+    );
+  }
+  if (incident.uncrawled !== undefined) {
+    blocks.push(
+      { block: "paragraph", text: UNCRAWLED_WEEK },
+      {
+        block: "facts",
+        items: incident.uncrawled.flatMap((page): FactRow[] => [
+          { label: "mail.ops.incident.fact.site", value: closedDomain(page.domain) },
+          { label: "ops.uncrawled.fact.page", value: closedUrl(page.url) },
+          { label: "ops.uncrawled.fact.state", value: sentenceValue(page.state) },
+          { label: "ops.uncrawled.fact.published", value: closedDate(page.published) },
         ]),
       }
     );
