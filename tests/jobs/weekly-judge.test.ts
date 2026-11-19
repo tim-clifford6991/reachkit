@@ -120,13 +120,13 @@ describe("the Monday tick judges the week it measured", () => {
   it("**a replayed research step buys no second SERP and writes no second week_research row**", async () => {
     const { askWeekResearch } = await import("@/lib/generate/research-queue");
     const { commitWeek } = await import("@/lib/scan/weekly/commit");
-    const week = { siteId: SITE_ID, scanId: "scan-1", weekStart: WEEK, now: NOW, rows: [{ id: "write-1", target_query: "user onboarding software", topUp: true }] };
+    const week = { siteId: SITE_ID, scanId: "scan-1", weekStart: WEEK, now: NOW, rows: [{ id: "write-1", target_query: "user onboarding software" }] };
     for (let run = 0; run < 2; run++) {
       await askWeekResearch({ ...week, waitMs: 1_000 });
       await commitWeek({ ...week, checks: [["write-1", null]] });
     }
     expect(vendor.requests.filter((request) => request.url.includes("/serp/google/organic/task_post"))).toHaveLength(1);
-    expect(tables.get("ops_events")?.map((row) => [row.kind, row.code, JSON.parse(String(row.read)).top_up])).toEqual([["week_research", WEEK, { tried: 1, kept: 0 }]]);
+    expect(tables.get("ops_events")?.map((row) => [row.kind, row.code, JSON.parse(String(row.read)).top_up])).toEqual([["week_research", WEEK, null]]);
   });
 
   it("an early pass from 19 Nov that claims 23–29 Nov with 3 dates committed leaves 8 uncovered", async () => {

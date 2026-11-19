@@ -134,9 +134,9 @@ export async function deriveForPass(
   const derivation =
     derived === null
       ? { derived: "not_run" as const, because: "spend_ceiling" as const, spentCents: c.spentCents() }
-      : { derived: derived.created.length, have: derived.supply.have, short: derived.supply.short, dry: derived.supply.dry, unworded: derived.supply.unworded, topUp: derived.supply.topUp ?? null };
-  console.log(JSON.stringify({ event: "supply_pass", tier: a.tier, siteId: a.siteId, scanId: a.report.scanId, added, ...derivation }));
-  // Kept as a row so the daily check can tell a thin pass from a source that ran dry.
+      : { derived: derived.created.length, ...derived.supply };
+  // Rows, not log lines: the runtime log drops a long request's tail, and the daily check tells a thin pass from a dry source.
+  await recordOpsEvent("supply_pass", JSON.stringify({ tier: a.tier, added, ...derivation }), a.report.scanId, a.siteId);
   if (derived !== null && derived.supply.short > 0) {
     await recordOpsEvent("supply_short", derived.supply.dry.join(",") || "none", String(derived.supply.short), a.siteId);
   }

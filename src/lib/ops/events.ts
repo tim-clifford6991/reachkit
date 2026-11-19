@@ -60,6 +60,13 @@ export async function opsEventHeld(kind: string, siteId: string, code: string): 
   return prior.data.length > 0;
 }
 
+/** The `read` of the site's `kind` row keyed `code`, or `null` where none is held. */
+export async function opsEventRead(kind: string, siteId: string, code: string): Promise<string | null> {
+  const held = await (await events())().select("read").eq("kind", kind).eq("site_id", siteId).eq("code", code).limit(1);
+  if (held.error !== null) throw new Error(`ops_events read: ${held.error.message}`);
+  return (held.data[0] as { read: string } | undefined)?.read ?? null;
+}
+
 /** Writes a `kind` row for the site where none is held with `code` as its key, awaited because the row gates its
  *  caller; `false` where one already was. */
 export async function claimOpsEvent(kind: string, siteId: string, code: string, read: string): Promise<boolean> {

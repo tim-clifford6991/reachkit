@@ -9,7 +9,7 @@
 //    failure → `unmeasured / undeterminable`, `[]` → `zero`, rows → `measured`. Zero rows is billed, never `unmeasured` (§6.6).
 // 4. What a failure costs: an `http_<n>` or `task_<code>` refusal of a live call or of a `task_post` ran nothing and is
 //    ledgered at 0. Anything else may have been charged (§6.5: "money already spent is always ledgered"), so it is ledgered
-//    at the reservation: over-count an uncharged call rather than under-count a charged one. A funds refusal is always 0.
+//    at the task's own `cost` where the vendor reported one, else at the reservation. A funds refusal is always 0.
 import type { CostContext, VendorFailure } from "@/lib/costs";
 import { isVendorFailure } from "@/lib/costs";
 import { VENDOR } from "@/lib/config/constants";

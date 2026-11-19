@@ -76,10 +76,9 @@ export interface CostContext {
      *  authorised the excess. */
     settleCents?: (payload: P) => number;
     /** What the vendor says it charged for this call, in cents, asked once
-     *  `run` has answered. Stored beside the settled
-     *  figure as `fetches.billed_cents` and read by nothing that decides
-     *  whether to call. `undefined` where the response carried no charge,
-     *  which is stored as null and never as a guess. */
+     *  `run` has answered. Stored as `fetches.billed_cents`, and the call
+     *  settles at it where it is below the settlement. `undefined` where the
+     *  response carried no charge, which is stored as null and never as a guess. */
     billedCents?: () => number | undefined;
     /** A stored answer this caller must not be served: read past, so the call is bought again. */
     unusable?: (payload: unknown) => boolean;
@@ -299,6 +298,8 @@ export async function withCostContext<T>(
         }
 
         const billedCents = call.billedCents?.();
+        // The vendor's own charge is what was spent, so the cap is never held by an estimate above it.
+        if (billedCents !== undefined && billedCents < settledCents) settledCents = billedCents;
         const rowId = crypto.randomUUID();
         const namedDraft = draftId;
         await writeFetchRow({
