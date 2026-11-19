@@ -33,14 +33,9 @@
 // the engine. `enterReview` opens the window and `dueApprovals` closes it;
 // `tests/jobs/engine-daily.test.ts` owns the job runner's plumbing.
 //
-// **The `draft-ready` mail is built (#174), and this journey sends it.**
-// The decision behind it came with the veto leaf — `tellingFor` picks
-// which of §12's three things the mail says, `issueVetoLink` mints the one
-// stop link it carries, and `recordTold` marks it sent — and until #174 nothing composed or sent it, so the composition
-// was the hole and a real customer was never told. Step 3 now goes through
-// the real template, the real compose shell and the real send seam, and
-// the stop link the veto tests redeem is read back out of the mail that
-// actually left. The mail is best-effort and holds no page.
+// **The `draft-ready` mail is sent.** Step 3 goes through the real template,
+// compose shell and send seam, and the stop link the veto tests redeem is
+// read back out of the mail that actually left. It is best-effort and holds no page.
 //
 // **The copy registry is a fixture**, as in journeys 02–04: `copy()`
 // refuses an owner-owed key and every sentence on this chain is owed.
@@ -244,7 +239,7 @@ vi.mock("@/lib/egress", () => ({
 // ── Anthropic ───────────────────────────────────────────────────────────
 
 const modelCalls: { task: string; tokens: number }[] = [];
-const asText: Record<string, (list: unknown[]) => string>[] = [];
+const asText: Record<string, (list: unknown[]) => unknown>[] = [];
 
 /** A page that passes every one of §8's deterministic rules: the brand is
  *  not named in the opening, the grounded passage is stated word for word
@@ -337,6 +332,7 @@ const { sendDraftReadyMail } = await import("../../src/lib/mail/draft-ready");
 const { enterReview, dueApprovals } = await import("../../src/lib/publish/attempt/window");
 
 const generateFixtures = await import("../generate/fixtures");
+const { liveLead } = await import("../../src/lib/generate/pipeline/compose");
 const opportunityDoubles = await import("../opportunities/memory-store");
 
 // ── The one site, and its day ───────────────────────────────────────────
@@ -1269,12 +1265,15 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
     JOURNEY_TIMEOUT_MS
   );
   it("a list sent as text is read, and one still unread is logged without its text and bought once", async () => {
-    await seedOneOpportunity();
+    const opportunityId = await seedOneOpportunity();
     const day = { siteId: SITE_ID, publishDate: nextPublishDate(EVENING, SITE_CLOCK) }, warned = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     asText.push({ faq: (list) => `${JSON.stringify(list)} and more` });
     expect([await generateDayPage(day), modelCalls.length, warned.mock.calls.map((c) => String(c[0])).filter((line) => line.includes("write_list_unread"))]).toEqual([expect.objectContaining({ because: "step_failed", step: "write" }), 1, [expect.stringMatching(/^\{"event":"write_list_unread","list":"faq","why":"json","length":\d+\}$/)]]);
     asText.push({ sections: (list) => JSON.stringify(list.map((s, i) => (i === 1 ? { ...(s as object), heading: null } : i % 2 ? s : { ...(s as object), block: "steps" }))).replace(/\\n/g, "\n"), titles: (list) => String(list[0]), takeaways: JSON.stringify, faq: JSON.stringify });
     expect([await generateDayPage(day), warned.mock.calls.map((c) => String(c[0])).filter((line) => line.includes("write_section_dropped"))]).toEqual([expect.objectContaining({ ok: true }), ['{"event":"write_section_dropped","section":"sections[1].heading","was":"null"}']]);
+    const written = async (takeaways: (list: unknown[]) => unknown) => (db.seed("drafts", []), setGenerateStore(joinedGenerateStore()), asText.push({ takeaways }), await generateDayPage({ ...day, opportunityId }), db.rows("drafts").map((row) => liveLead(String(row.body_md))?.takeaways));
+    const items = generateFixtures.partsFromPage(PAGE_BODY, "tool").takeaways, lines = (event: string) => warned.mock.calls.map((c) => String(c[0])).filter((line) => line.includes(event));
+    expect([await written((list) => list.map((text) => ({ text }))), await written((list) => `${list[0]}\n\n${list[1]}\n- ${list[2]}`), lines("write_list_refused"), (asText.push({ takeaways: () => [1, 2] }), await written(() => [1, 2]), db.rows("fetches").filter((row) => JSON.stringify(row.payload).includes("takeaways:invalid_union")).length), lines("write_list_refused")]).toEqual([[items], [items], [], 1, Array(2).fill('{"event":"write_list_refused","list":"takeaways","shape":"array<number>"}')]);
     warned.mockRestore();
   }, JOURNEY_TIMEOUT_MS);
 });

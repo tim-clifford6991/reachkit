@@ -50,23 +50,48 @@ const FAQ = z.array(z.strictObject(ENTRY));
 // A list sent as text may echo a key the template showed it (a section's `block`): the key is dropped, not the page.
 const READ = { sections: z.array(z.object({ ...SECTION, heading: z.string().nullable() })), faq: z.array(z.object(ENTRY)) };
 
+type ListName = "titles" | "takeaways" | "sections" | "faq";
+const isText = (list: ListName): boolean => list === "titles" || list === "takeaways";
+const isObject = (value: unknown): value is object => value !== null && typeof value === "object" && !Array.isArray(value);
+
+/** A text item sent as an object of one text field is that text. */
+const oneText = (item: unknown): unknown => {
+  const values = isObject(item) ? Object.values(item) : [];
+  return values.length === 1 && typeof values[0] === "string" ? values[0] : item;
+};
+
+/** The list in the shape the page needs, where its content can be read: one object is a list of one. */
+const shaped = (list: ListName, value: unknown): unknown =>
+  isText(list) ? (Array.isArray(value) ? value.map(oneText) : value) : isObject(value) ? [value] : value;
+
+/** A value's shape, never its text: its type, and an object's field names. */
+const shapeOf = (value: unknown): string =>
+  Array.isArray(value) ? `array<${[...new Set(value.map(shapeOf))].join("|")}>` : isObject(value) ? `object{${Object.keys(value).sort().join(",")}}` : value === null ? "null" : typeof value;
+
 /** A list as the model's forced tool returns it. On a long answer the model
  *  sometimes hands a list back as its JSON text (seen 2026-10-04: a whole
  *  page lost twice to `sections` arriving as a string), so the text is
- *  admitted here and parsed against the list's own schema by `partsOf`. */
-const listOrText = <T extends z.ZodType>(list: T) => z.union([list, z.string()]);
+ *  admitted here and parsed against the list's own schema by `partsOf`.
+ *  Other readable shapes are reshaped before the schema judges them, so the
+ *  tool's schema is unchanged and a shape still refused is logged. */
+const listOrText = <T extends z.ZodType>(list: ListName, schema: T) =>
+  z.preprocess((value) => {
+    const out = shaped(list, value);
+    if (typeof out !== "string" && !schema.safeParse(out).success) console.warn(JSON.stringify({ event: "write_list_refused", list, shape: shapeOf(out) }));
+    return out;
+  }, z.union([schema, z.string()]));
 
 const ANSWER_SCHEMA = z.strictObject({
   /** The titles the writer proposes (issue 1389): code picks one, and it is
    *  the page's `<title>` and its H1. */
-  titles: listOrText(TITLES),
+  titles: listOrText("titles", TITLES),
   slug: z.string(),
   description: z.string(),
   answer: z.string(),
-  takeaways: listOrText(TAKEAWAYS),
-  sections: listOrText(SECTIONS),
+  takeaways: listOrText("takeaways", TAKEAWAYS),
+  sections: listOrText("sections", SECTIONS),
   closing: z.string(),
-  faq: listOrText(FAQ),
+  faq: listOrText("faq", FAQ),
   /** An update's note of what changed, in one sentence; empty otherwise. */
   updated: z.string(),
 });
@@ -107,17 +132,21 @@ function escapeControls(text: string): string {
   return out;
 }
 
+/** Each non-empty line, its list marker removed. */
+const linesOf = (text: string): string[] =>
+  text.split(/\r?\n/).map((line) => line.replace(/^\s*(?:[-*•]|\d+[.)])\s+/, "").trim()).filter((line) => line !== "");
+
 /** The list, or why its text is not that list. A titles or takeaways list
- *  sent as one plain line is that one item. */
-function listOf<T extends z.ZodType>(schema: T, value: unknown, one: boolean): { list: z.infer<T> } | { why: "json" | "schema" } {
-  let list = value;
+ *  sent as plain text is one item per line. */
+function listOf<T extends z.ZodType>(list: ListName, schema: T, value: unknown): { list: z.infer<T> } | { why: "json" | "schema" } {
+  let got = value;
   if (typeof value === "string") {
-    list = parsed(value);
-    if (list === undefined) list = parsed(escapeControls(value));
-    if (list === undefined && one) list = [value];
-    if (list === undefined) return { why: "json" };
+    got = parsed(value);
+    if (got === undefined) got = parsed(escapeControls(value));
+    if (got === undefined && isText(list)) got = linesOf(value);
+    if (got === undefined) return { why: "json" };
   }
-  const read = schema.safeParse(list);
+  const read = schema.safeParse(shaped(list, got));
   return read.success ? { list: read.data } : { why: "schema" };
 }
 
@@ -128,8 +157,8 @@ function partsOf(answer: Measured<z.infer<typeof ANSWER_SCHEMA>>): Measured<Page
   if (answer.kind === "unmeasured") return answer;
   const value = answer.value;
   let unread = false;
-  const read = <T extends z.ZodType>(list: "titles" | "takeaways" | "sections" | "faq", schema: T): z.infer<T> => {
-    const got = listOf(schema, value[list], list === "titles" || list === "takeaways");
+  const read = <T extends z.ZodType>(list: ListName, schema: T): z.infer<T> => {
+    const got = listOf(list, schema, value[list]);
     if ("list" in got) return got.list;
     // Which list and why, never the answer's text.
     console.warn(JSON.stringify({ event: "write_list_unread", list, why: got.why, length: String(value[list]).length }));
