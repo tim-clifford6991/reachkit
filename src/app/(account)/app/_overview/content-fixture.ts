@@ -87,7 +87,8 @@ function readingAt(index: number, publishedAt: Date, search: string): PageReadin
       ...(index === 12 ? { linkedByAi: at(12) } : {}),
       ...(index === 11 ? { aiVisit: at(11) } : {}),
     },
-    google: shown ? { indexed: true, lastCrawl: at(3), impressions: (index - 5) * 9, clicks: index === 16 ? 3 : 0, bestPlace: place, bestQuery: null } : null,
+    // Impressions on any search make a page working, so only the working pages carry them.
+    google: shown ? { indexed: true, lastCrawl: at(3), impressions: index === 12 || index === 16 ? (index - 5) * 9 : 0, clicks: index === 16 ? 3 : 0, bestPlace: place, bestQuery: null } : null,
   };
 }
 
