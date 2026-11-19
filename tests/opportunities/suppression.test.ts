@@ -75,3 +75,10 @@ describe("an owned URL whose Improve was judged not working twice", () => {
     expect((await rankOpen(SITE_ID)).map((r) => r.opportunityId)).toEqual(["improve-other"]);
   });
 });
+
+it("a closed footprint lets each planned date's week take one comparison: none beside 17 Nov's, one the next week", async () => {
+  const compare = (id: string) => row({ id, family: "write", type: "comparison_page", target_ref: id, business_fit: 3 });
+  Object.assign(state, { weeklyCommit: "2026-11-23", drafted: [{ date: "2026-11-17", state: "drafted", title: null, row: compare("drafted") }], rows: [compare("c-1")] });
+  const readyFor = async (plannedFrom: string) => (await assessReadiness(SITE_ID, { at: new Date("2026-11-18T22:00:00Z"), plannedFrom }), state.rows[0]!.ready);
+  expect([await readyFor("2026-11-19"), await readyFor("2026-11-24")]).toEqual([false, true]);
+});
