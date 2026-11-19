@@ -53,6 +53,7 @@ const PLAN_REASON = "20261020120000_opportunities_plan_reason.sql";
 const STOPPED = "20261021120000_opportunities_stopped.sql";
 /** Issue 2773: `out_of_reach`. */
 const OUT_OF_REACH = "20261117130000_opportunities_out_of_reach.sql";
+const FIT_UNSCORED = "20261118140000_opportunities_fit_unscored.sql";
 const UNREST_RULE_STOPS = "20261031150000_opportunities_unrest_rule_stops.sql";
 /** The drafts' move record, which the stop backfill reads. */
 const DRAFTS_PUBLISHING = "20260906120100_drafts_publishing.sql";
@@ -99,6 +100,7 @@ beforeAll(() => {
   psql(["-v", "ON_ERROR_STOP=1", "-f", path.join(MIGRATIONS, DRAFTS_PUBLISHING)]);
   psql(["-v", "ON_ERROR_STOP=1", "-f", path.join(MIGRATIONS, STOPPED)]);
   psql(["-v", "ON_ERROR_STOP=1", "-f", path.join(MIGRATIONS, OUT_OF_REACH)]);
+  psql(["-v", "ON_ERROR_STOP=1", "-f", path.join(MIGRATIONS, FIT_UNSCORED)]);
   const [user] = psqlRows(
     `insert into users (email, plan_status) values ('opps@example.com', 'active') returning id;`
   );
