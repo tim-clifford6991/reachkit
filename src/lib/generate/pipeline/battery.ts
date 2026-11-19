@@ -61,10 +61,11 @@ export function batteryBasis(a: {
   const table = pack.type === "listicle" && whole.blocks.table !== undefined ? comparisonTable(pack, whole.blocks.table.rivals) : null;
   const liveWords = pack.live === null ? null : sectionWords(pack.live.markdown);
   // A new page's length follows the options or gaps it covers; an update's gaps grow it to its grown share.
-  const covered = kept || pack.type === "update" ? 0 : table !== null ? table.options.length + (table.baseline === null ? 0 : 1) : (pack.gaps?.length ?? 0);
+  const covered = pack.type === "update" ? 0 : table !== null ? table.options.length + (table.baseline === null ? 0 : 1) : (pack.gaps?.length ?? 0);
   // A short answer keeps its own row; an update is held to the type its search reads as.
   const liveType = pack.type === "update" ? typeLength(TEMPLATES[contentTypeOf({ type: "keyword_page", targetQuery: a.opportunity.targetQuery }) ?? "qa"], kept) : undefined;
-  const rangeOf = (fitted: boolean) => lengthRangeFor(whole, { questions: pack.questions.length, covered, voice: voiceLength(pack.voice), liveWords, grown: pack.gaps !== undefined, kept, fitted, ...(liveType === undefined ? {} : { typeOf: liveType }) });
+  // A kept page's own range ignores what it covers, but the room its pack fills counts its options (it has no gap sections).
+  const rangeOf = (fitted: boolean) => lengthRangeFor(whole, { questions: pack.questions.length, covered: kept && (!fitted || table === null) ? 0 : covered, voice: voiceLength(pack.voice), liveWords, grown: pack.gaps !== undefined, kept, fitted, ...(liveType === undefined ? {} : { typeOf: liveType }) });
   const held = rangeOf(false);
   const fitted = rangeOf(true);
   // No room: the sections the pack fills leave a ceiling under the type's floor, or none above it, and the page is then never told that floor.
