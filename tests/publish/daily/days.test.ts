@@ -138,4 +138,12 @@ describe("the publish time is checked, and a day with no page is told (issue 145
     decidedAt = "2026-11-09T15:03:00+00:00";
     expect(await missedDays([day])).toEqual([]);
   });
+
+  it("a day its due hour left with no page is re-sent once before its publish hour, never behind a harm stop", async () => {
+    let kept = { ended: "no_page:generate:step_failed:pack:sections", decidedAt: "2026-11-09T08:00:00+00:00" };
+    setDraftDayStore({ ...memory([{ date: "2026-11-09", state: "published" }]).store, decidedOn: async (asked) => asked.map((day) => ({ ...day, ...kept })) });
+    const day = { siteId: "site-1", publishDate: "2026-11-10", hour: new Date("2026-11-09T08:00:00Z") };
+    expect(await missedDays([day])).toEqual([{ ...day, again: true, rewrite: "retry" }]);
+    for (kept of [{ ...kept, decidedAt: "2026-11-09T09:03:41+00:00" }, { ...kept, ended: `${kept.ended};harm_stop` }]) expect(await missedDays([day])).toEqual([]);
+  });
 });
