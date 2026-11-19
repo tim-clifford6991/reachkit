@@ -40,14 +40,14 @@ function statusOf(outcome: FetchOutcome | null): number | string {
   return outcome.ok ? outcome.status : (outcome.status ?? outcome.reason);
 }
 
-/** Tells the WebSub hub that `urls` changed on the hosted host. Never throws, never retries. */
-export async function announceHosted(a: { siteId: string; urls: readonly string[]; send?: AnnounceSend; at?: Date }): Promise<void> {
+/** Tells the WebSub hub that `urls` changed on the hosted host; answers whether the hub accepted. Never throws, never retries. */
+export async function announceHosted(a: { siteId: string; urls: readonly string[]; send?: AnnounceSend; at?: Date }): Promise<boolean> {
   try {
     const live = await hostedHostFor(a.siteId);
-    if (live === null || live.state !== "live") return;
+    if (live === null || live.state !== "live") return false;
     const host = live.hostname.trim().toLowerCase();
     const changed = a.urls.map((url) => onHost(url, host)).filter((url): url is string => url !== null);
-    if (changed.length === 0) return;
+    if (changed.length === 0) return false;
     const urlList = [...new Set([...changed, `https://${host}/`])];
     const send = a.send ?? safeFetch;
 
@@ -60,7 +60,7 @@ export async function announceHosted(a: { siteId: string; urls: readonly string[
     }).catch(() => null);
     if (!accepted(hub)) {
       log("websub_dropped", { siteId: a.siteId, status: statusOf(hub) });
-      return;
+      return false;
     }
     log("websub_sent", { siteId: a.siteId, urls: urlList.length });
     await publishDb()
@@ -69,8 +69,10 @@ export async function announceHosted(a: { siteId: string; urls: readonly string[
       .eq("site_id", a.siteId)
       .in("live_url", urlList)
       .is("unpublished_at", null);
+    return true;
   } catch (error) {
     log("announce_failed", { siteId: a.siteId, message: String(error) });
+    return false;
   }
 }
 

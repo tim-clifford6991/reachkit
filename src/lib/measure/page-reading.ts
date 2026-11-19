@@ -199,7 +199,31 @@ export interface Reached {
   aiVisit?: string;
 }
 
-export interface EngineReading {
+/** What URL Inspection says of one page; a field Google leaves out is absent, never "". */
+export interface Inspection {
+  indexed: boolean;
+  lastCrawl: string | null;
+  coverageState?: string;
+  googleCanonical?: string;
+  userCanonical?: string;
+}
+const INSPECTION_FIELDS = ["coverageState", "googleCanonical", "userCanonical"] as const;
+type Stated = Partial<Pick<Inspection, (typeof INSPECTION_FIELDS)[number]>>;
+
+/** The fields of `value` URL Inspection stated, each a non-empty string. */
+export function statedOf(value: Record<string, unknown> | null | undefined): Stated {
+  return Object.fromEntries(INSPECTION_FIELDS.flatMap((key) => (typeof value?.[key] === "string" && value[key] !== "" ? [[key, value[key]]] : [])));
+}
+
+const coverageKey = (google: Stated | null | undefined): string => (google?.coverageState ?? "").toLowerCase().replace(/\s*[-\u2013\u2014]\s*/g, " - ");
+/** Google crawled or found the page and keeps it out of the index; `null` where no coverage line was read. */
+export function keptOut(google: Stated | null | undefined): boolean | null {
+  return google?.coverageState === undefined ? null : /^(crawled|discovered) - currently not indexed$/.test(coverageKey(google));
+}
+/** Google has not crawled the page: it does not know it, or only found it. */
+export const uncrawled = (google: Stated | null | undefined): boolean => /^(discovered - currently not indexed|url is unknown to google)$/.test(coverageKey(google));
+
+export interface EngineReading extends Stated {
   /** URL Inspection's verdict; `null` where the engine states none. */
   indexed: boolean | null;
   lastCrawl: string | null;
@@ -220,7 +244,7 @@ export const GOOGLE_UNREAD = ["no_credentials", "bad_credentials", "pool_full", 
 export type GoogleUnread = (typeof GOOGLE_UNREAD)[number];
 
 /** A reason is not a reading: it carries no impressions, clicks or place, only URL Inspection's facts where they were read. */
-export type GoogleReading = EngineReading | { unread: GoogleUnread; indexed?: boolean | null; lastCrawl?: string | null };
+export type GoogleReading = EngineReading | ({ unread: GoogleUnread; indexed?: boolean | null; lastCrawl?: string | null } & Stated);
 
 /** The figures of a Google reading, or `null` where it holds only a reason. */
 export function googleRead(google: GoogleReading | null | undefined): EngineReading | null {
@@ -233,7 +257,7 @@ export function engineReadingOf(
   rows: readonly { page: string; query: string; impressions: number; clicks: number; position: number }[],
   url: string,
   search: string | null,
-  inspected: { indexed: boolean; lastCrawl: string | null } | null
+  inspected: Inspection | null
 ): EngineReading {
   const own = rows.filter((row) => addressOf(row.page) === addressOf(url));
   const total = totals.filter((row) => addressOf(row.page) === addressOf(url));
@@ -248,7 +272,7 @@ export function engineReadingOf(
     bestPlace: top === null ? null : Math.round(top.position * 10) / 10,
     bestQuery: top?.query ?? null,
     queries: [...own].sort((x, y) => y.impressions - x.impressions).slice(0, EARNING.kept).map(({ query, impressions, clicks, position }) => ({ query, impressions, clicks, position })),
-    ...(inspected === null ? { unread: "inspect_unread" as const } : {}),
+    ...(inspected === null ? { unread: "inspect_unread" as const } : statedOf({ ...inspected })),
   };
 }
 
@@ -276,6 +300,10 @@ export interface PageReading {
   google: GoogleReading | null;
   /** The address this page was put back at because Google still showed it; an address is put back once. */
   restored?: string;
+  /** Weekly readings in a row whose coverage line kept the page out of the index; absent is none. */
+  unindexedWeeks?: number;
+  /** When the page, still not crawled a week after going live, was announced again; it is announced again once. */
+  reannounced?: string;
 }
 
 const REACHED_KEYS = ["found", "showing", "firstPage", "readByAi", "linkedByAi", "aiVisit"] as const;
@@ -292,7 +320,7 @@ function engineOf(value: unknown): GoogleReading | null {
     const unread = e.unread as unknown;
     if (!(GOOGLE_UNREAD as readonly unknown[]).includes(unread)) return null;
     if (unread !== "property_new") return { unread: unread as GoogleUnread };
-    return { unread, indexed: typeof e.indexed === "boolean" ? e.indexed : null, lastCrawl: isText(e.lastCrawl) ? e.lastCrawl : null };
+    return { unread, indexed: typeof e.indexed === "boolean" ? e.indexed : null, lastCrawl: isText(e.lastCrawl) ? e.lastCrawl : null, ...statedOf({ ...e }) };
   }
   return {
     ...(e.unread === "inspect_unread" ? { unread: e.unread } : {}),
@@ -303,6 +331,7 @@ function engineOf(value: unknown): GoogleReading | null {
     bestPlace: isNumber(e.bestPlace) ? e.bestPlace : null,
     bestQuery: isText(e.bestQuery) ? e.bestQuery : null,
     ...(Array.isArray(e.queries) ? { queries: e.queries.filter((q) => isText(q?.query) && isNumber(q.impressions) && isNumber(q.clicks) && isNumber(q.position)) } : {}),
+    ...statedOf({ ...e }),
   };
 }
 
@@ -345,6 +374,8 @@ export function readingOf(value: unknown): PageReading | null {
     reached,
     google: engineOf(r.google),
     ...(isText(r.restored) ? { restored: r.restored } : {}),
+    ...(isNumber(r.unindexedWeeks) && r.unindexedWeeks > 0 ? { unindexedWeeks: r.unindexedWeeks } : {}),
+    ...(isText(r.reannounced) ? { reannounced: r.reannounced } : {}),
   };
 }
 
@@ -430,6 +461,10 @@ export function assembleReading(a: { before: PageReading | null; report: PlaceRe
   const linkedBy = report === null ? null : linkedByIn(report, page.id, page.liveUrl);
   const variants = report === null ? [] : variantsIn(report, page.search, [page.liveUrl]);
   const googlebot = before?.googlebot === true || page.crawled;
+  // A week with no coverage line read keeps the count: not measured is not a reset.
+  const out = keptOut(page.google);
+  const weeksBefore = before?.unindexedWeeks ?? 0;
+  const unindexedWeeks = out === null ? weeksBefore : !out ? 0 : sameWeek ? Math.max(weeksBefore, 1) : weeksBefore + 1;
 
   const now: Record<(typeof REACHED_KEYS)[number], boolean> = {
     found: googlebot || page.google?.lastCrawl != null || page.google?.indexed === true,
@@ -459,5 +494,7 @@ export function assembleReading(a: { before: PageReading | null; report: PlaceRe
     reached,
     google: page.google,
     ...(before?.restored === undefined ? {} : { restored: before.restored }),
+    ...(unindexedWeeks > 0 ? { unindexedWeeks } : {}),
+    ...(before?.reannounced === undefined ? {} : { reannounced: before.reannounced }),
   };
 }

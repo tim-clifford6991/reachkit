@@ -201,6 +201,8 @@ export const UNSEEN_LINK_EVERY_DAYS = 30 as const;
 /** SPEC §6 (D60): a page that has reached neither of its goals after this
  *  many weekly verdicts gets a refresh or a retarget queued. */
 export const INTENT_UNMET_WEEKS = 8 as const;                 // §6
+/** Weekly readings in a row Google keeps a page out of the index ("Crawled" or "Discovered – currently not indexed") before it is refreshed. */
+export const NOT_INDEXED_WEEKS = 4 as const;
 
 /** What a brief and the supply checks read of the site's own pages. The week
  *  itself keeps no mix: it takes the highest-value topics (owner 2026-11-08). */

@@ -15,7 +15,8 @@
 //                  cluster's best-read page, at most one each `UNSEEN_LINK_EVERY_DAYS`, and D13's check again;
 //   close          its own address ranks 4–30 for its search and `GAP_REFRESH.stalledReadings` readings hold no gain;
 //                  it may add up to three sections the top results cover (`headingGaps`);
-//   stale_prices   a listicle or comparison states a rival price read more than 30 days ago.
+//   stale_prices   a listicle or comparison states a rival price read more than 30 days ago;
+//   not_indexed    Google's coverage line kept it out of the index for `NOT_INDEXED_WEEKS` weekly readings in a row.
 // §6's floor (`REFRESH_MIN_AGE_DAYS`) stands for every cause. A page the customer edited, stopped a refresh of, or took
 // down is theirs: no cause plans it. A climbing page is left alone by every cause its results drive; one still not
 // moving 8 weeks after its refresh has its question retired. A page never seen in a stored SERP or ranked row is not
@@ -27,6 +28,7 @@ import {
   EFFORT_BY_TYPE,
   GAP_REFRESH,
   INTENT_UNMET_WEEKS,
+  NOT_INDEXED_WEEKS,
   PACE,
   REFRESH_MIN_AGE_DAYS,
   RIVAL_PRICE_MAX_AGE_D,
@@ -68,54 +70,41 @@ export interface OwnLivePage {
   row: Opportunity;
   /** The newest Monday verdict on this version found it in a worse place. */
   declined: boolean;
-  /** SPEC §6 (D60, issue 1288): this version has had `INTENT_UNMET_WEEKS`
-   *  weekly verdicts and none found it working — neither in the top 20 for
-   *  its search nor cited for its prompt. Absent reads as not so. */
+  /** SPEC §6 (D60): this version has had `INTENT_UNMET_WEEKS` weekly verdicts and none found it working, neither in
+   *  the top 20 for its search nor cited for its prompt. Absent reads as not so. */
   unmet?: boolean;
   facts: readonly RecordedPassage[];
   marketFacts: readonly RecordedPassage[];
-  /** Issue 1391, what a link back is chosen from: the page's title, its
-   *  body as it is live, whether the customer edited this version, and
-   *  whether they stopped a refresh of this page. Absent reads as an
-   *  untitled, empty, untouched page. */
+  /** What a link back is chosen from: the title, the live body, whether the customer edited this version, and whether
+   *  they stopped a refresh of this page. Absent reads as an untitled, empty, untouched page. */
   title?: string;
   markdown?: string;
   edited?: boolean;
   stopped?: boolean;
-  /** Issue 1490: this version is not a research page and states one of the
-   *  site's own measurements its pack held. Absent reads as not so. */
+  /** This version is not a research page and states one of the site's own measurements its pack held. */
   ownFigures?: boolean;
-  /** Issue 1507: what this version breaks of the consistency rules, where
-   *  the customer did not edit it. Absent reads as nothing. */
+  /** What this version breaks of the consistency rules, where the customer did not edit it. */
   structure?: readonly StructureDefect[];
-  /** Issue 1532: the customer took this page down and put it back. Absent
-   *  reads as not so. */
+  /** The customer took this page down and put it back. */
   takenDown?: boolean;
-  /** Issue 1538: whether any stored SERP or ranked row held this page.
-   *  `false` is `not_verified`; absent is not known, and plans nothing. */
+  /** Whether any stored SERP or ranked row held this page: `false` is `not_verified`; absent is not known, and plans nothing. */
   seen?: boolean;
-  /** Issue 1538: whether its stored search reading reached Found. `false`
-   *  only where Found is measured — a hosted page with a reading; absent is
-   *  not measured, and plans nothing. */
+  /** Whether its stored search reading reached Found. `false` only where Found is measured (a hosted page with a
+   *  reading); absent is not measured, and plans nothing. */
   found?: boolean;
-  /** Issue 1538: a `link` refresh into this page was planned within
-   *  `UNSEEN_LINK_EVERY_DAYS`. Absent reads as not so. */
+  /** A `link` refresh into this page was planned within `UNSEEN_LINK_EVERY_DAYS`. */
   linkedLately?: boolean;
-  /** Issue 1538: D13's check, run again on the live text, found a page
-   *  written for another site as close as the near-duplicate bar. Read only
-   *  for a page `unseenDue`; absent reads as not so. */
+  /** D13's check, run again on the live text, found a page written for another site as close as the near-duplicate
+   *  bar. Read only for a page `unseenDue`. */
   closeElsewhere?: boolean;
-  /** The place the page's stored search reading holds for it, where one
-   *  was read. */
+  /** The place the page's stored search reading holds for it, where one was read. */
   readPlace?: number;
-  /** Issue 1521: on a listicle or comparison, when the oldest rival price
-   *  this version was written from was read. Absent reads as none. */
+  /** On a listicle or comparison, when the oldest rival price this version was written from was read. */
   oldestPrice?: Date;
-  /** The places this version's weekly verdicts measured, oldest first.
-   *  Absent reads as none. */
+  /** The places this version's weekly verdicts measured, oldest first. Absent reads as none. */
   readings?: readonly number[];
-  /** The first and best place its stored search reading holds. */
-  reading?: Pick<PageReading, "first" | "best"> & Partial<Pick<PageReading, "place">>;
+  /** The first and best place its stored search reading holds, and the weeks Google kept it out of the index. */
+  reading?: Pick<PageReading, "first" | "best"> & Partial<Pick<PageReading, "place" | "unindexedWeeks">>;
   /** A version of this page was already refreshed for not moving. */
   flatRefreshed?: boolean;
 }
@@ -213,6 +202,7 @@ export function refreshCauseOf(page: OwnLivePage, pools: RefreshPools, at: Date)
   if (age < REFRESH_MIN_AGE_DAYS * DAY_MS) return null;
   if (page.ownFigures === true) return "own_figures";
   if (unseenDue(page, at) && page.closeElsewhere === true) return "unseen";
+  if ((page.reading?.unindexedWeeks ?? 0) >= NOT_INDEXED_WEEKS) return "not_indexed";
   const held = leftAlone(page, at);
   if (!held && page.unmet === true && page.seen !== false) return "unmet";
   if (!held && page.declined) return "lost_position";
@@ -582,7 +572,6 @@ export function oldestPriceOf(value: unknown): Date | undefined {
   return oldest;
 }
 
-/** What `planRefreshes` reads, as the Postgres store answers it. */
 /** D60: `INTENT_UNMET_WEEKS` weekly verdicts, and none of them working. */
 export function unmetAfter(judged: { weeks: number; worked: boolean } | undefined): boolean {
   return judged !== undefined && judged.weeks >= INTENT_UNMET_WEEKS && !judged.worked;

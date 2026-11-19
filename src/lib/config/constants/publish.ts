@@ -138,6 +138,9 @@ export const GSC_PROPERTIES_PER_ACCOUNT = 1000 as const;
  *  which a sum over four weeks absorbs. */
 export const SEARCH_READING_WINDOW_D = 28 as const;
 
+/** Days after going live a hosted page Google has still not crawled is announced again, once, and listed in the owner digest. */
+export const UNCRAWLED_AFTER_D = 7 as const;
+
 /** SPEC §7: how long a cached hosted article may take to its first byte,
  *  read by `scripts/smoke.sh` from where it runs. A text page's largest paint
  *  is mostly this and its fonts. */

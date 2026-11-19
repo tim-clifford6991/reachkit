@@ -8,6 +8,7 @@
 import { createPrivateKey, createSign } from "node:crypto";
 import { env } from "@/lib/config/env";
 import { safeFetch, type FetchOutcome, type SafeFetchOpts } from "@/lib/egress";
+import { statedOf, type Inspection } from "@/lib/measure/page-reading";
 
 export interface GscAccount {
   client_email: string;
@@ -150,19 +151,15 @@ export function gscClient(account: GscAccount, send: GscSend = safeFetch, onRefu
       const submitted = await call("sitemap", `${property(siteUrl)}/sitemaps/${encodeURIComponent(sitemapUrl)}`, "PUT");
       return submitted !== null && success(submitted);
     },
-    /** URL Inspection: indexed (`verdict` PASS), the coverage line Google
-     *  states, and when Google last crawled the page. */
-    async inspect(siteUrl: string, url: string): Promise<{ indexed: boolean; coverage: string | null; lastCrawl: string | null } | null> {
+    /** URL Inspection: indexed (`verdict` PASS), when Google last crawled the page, and the coverage line and canonicals
+     *  Google states; a field Google leaves out is absent. */
+    async inspect(siteUrl: string, url: string): Promise<Inspection | null> {
       const outcome = await call("inspect", INSPECT_URL, "POST", { inspectionUrl: url, siteUrl });
       if (outcome === null || !success(outcome)) return null;
       const status = (json(outcome) as { inspectionResult?: { indexStatusResult?: Record<string, unknown> } } | null)
         ?.inspectionResult?.indexStatusResult;
       if (status === undefined) return null;
-      return {
-        indexed: status.verdict === "PASS",
-        coverage: typeof status.coverageState === "string" ? status.coverageState : null,
-        lastCrawl: typeof status.lastCrawlTime === "string" ? status.lastCrawlTime : null,
-      };
+      return { indexed: status.verdict === "PASS", lastCrawl: typeof status.lastCrawlTime === "string" ? status.lastCrawlTime : null, ...statedOf(status) };
     },
     /** Search Analytics over `[start, end]` (`YYYY-MM-DD`), by page and query, or by page alone, whose totals keep the
      *  anonymised queries Google drops from rows grouped by query; a page-only row's `query` is "". */

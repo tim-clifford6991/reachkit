@@ -118,7 +118,8 @@ export type Shortfall =
  *  related page went live that it does not link (issue 1391), it breaks a consistency rule of issue 1507
  *  (`structure`), no stored search result has held it and D13's check finds it close to a page written for another
  *  site (`unseen`, issue 1538), its own address ranks 4–20 for its search (`close`), or a comparison's rival prices
- *  are older than D59's 30 days (`stale_prices`), or its customer saved changed words for it (`edited`). */
+ *  are older than D59's 30 days (`stale_prices`), Google kept it out of the index four weeks running (`not_indexed`), or
+ *  its customer saved changed words for it (`edited`). */
 export type RefreshCause =
   | "aged"
   | "lost_position"
@@ -130,6 +131,7 @@ export type RefreshCause =
   | "unseen"
   | "close"
   | "stale_prices"
+  | "not_indexed"
   | "edited";
 
 /** §7's Fix trigger — "any access gate fails" — as the closed set of gates the measurement engine can actually
