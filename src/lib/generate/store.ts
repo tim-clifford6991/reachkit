@@ -143,8 +143,8 @@ export interface GenerateStore {
    *  path here takes a site id other than the one it was called with. */
   publishedPages(siteId: string): Promise<StoredPage[]>;
   /** SPEC §7 (issue 1507): the version live at an address — its row, and
-   *  when it went live — or `null` where none is. */
-  liveVersionAt(siteId: string, url: string): Promise<{ draft: DraftRow; publishedAt: Date } | null>;
+   *  when it went live, and its stored search reading — or `null` where none is. */
+  liveVersionAt(siteId: string, url: string): Promise<{ draft: DraftRow; publishedAt: Date; reading?: unknown } | null>;
   /** Every version that went live at an address, live now or not, by its
    *  draft id. */
   versionsAt(siteId: string, url: string): Promise<string[]>;
@@ -420,8 +420,8 @@ export function supabaseGenerateStore(): GenerateStore {
 
     async liveVersionAt(siteId, url) {
       const live = await untyped()
-        .from<{ draft_id: string; live_url: string | null; published_at: string }>("publications")
-        .select("draft_id, live_url, published_at")
+        .from<{ draft_id: string; live_url: string | null; published_at: string; search_reading: unknown }>("publications")
+        .select("draft_id, live_url, published_at, search_reading")
         .eq("site_id", siteId)
         .not("published_at", "is", null)
         .is("unpublished_at", null)
@@ -431,7 +431,7 @@ export function supabaseGenerateStore(): GenerateStore {
       const newest = (live.data ?? []).find((row) => row.live_url !== null && wanted !== null && pathOf(row.live_url) === wanted);
       if (newest === undefined) return null;
       const draft = await this.draftById(newest.draft_id);
-      return draft === null ? null : { draft, publishedAt: new Date(newest.published_at) };
+      return draft === null ? null : { draft, publishedAt: new Date(newest.published_at), reading: newest.search_reading };
     },
 
     async versionsAt(siteId, url) {

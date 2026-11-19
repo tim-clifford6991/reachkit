@@ -58,6 +58,8 @@ export interface PlaceReport {
 /** The deepest place the verdict counts and the first-page line. */
 export const TRACKED_DEPTH = 20;
 export const FIRST_PAGE_PLACES = 10;
+/** The searches a page earns on that its stored reading keeps, and the places a refresh answers them from. */
+export const EARNING = Object.freeze({ kept: 20, answered: { min: 8, max: TRACKED_DEPTH } } as const);
 
 /** One page's address as two readings of it compare: tracking parameters,
  *  the fragment, the scheme, `www.` and a trailing slash dropped, lower-cased. */
@@ -207,6 +209,8 @@ export interface EngineReading {
   /** The best place over the window on the page's own search only. */
   bestPlace: number | null;
   bestQuery: string | null;
+  /** Its searches over the window, most impressions first, at most `EARNING.kept`; absent on a reading stored before. */
+  queries?: { query: string; impressions: number; clicks: number; position: number }[];
   /** Set where URL Inspection was not read; the figures still stand. */
   unread?: "inspect_unread";
 }
@@ -226,7 +230,7 @@ export function googleRead(google: GoogleReading | null | undefined): EngineRead
 /** A page's Google reading from its Search Analytics totals (page only), its rows by query and its URL Inspection. */
 export function engineReadingOf(
   totals: readonly { page: string; impressions: number; clicks: number }[],
-  rows: readonly { page: string; query: string; position: number }[],
+  rows: readonly { page: string; query: string; impressions: number; clicks: number; position: number }[],
   url: string,
   search: string | null,
   inspected: { indexed: boolean; lastCrawl: string | null } | null
@@ -243,6 +247,7 @@ export function engineReadingOf(
     clicks: total.reduce((sum, row) => sum + row.clicks, 0),
     bestPlace: top === null ? null : Math.round(top.position * 10) / 10,
     bestQuery: top?.query ?? null,
+    queries: [...own].sort((x, y) => y.impressions - x.impressions).slice(0, EARNING.kept).map(({ query, impressions, clicks, position }) => ({ query, impressions, clicks, position })),
     ...(inspected === null ? { unread: "inspect_unread" as const } : {}),
   };
 }
@@ -297,7 +302,14 @@ function engineOf(value: unknown): GoogleReading | null {
     clicks: isNumber(e.clicks) ? e.clicks : 0,
     bestPlace: isNumber(e.bestPlace) ? e.bestPlace : null,
     bestQuery: isText(e.bestQuery) ? e.bestQuery : null,
+    ...(Array.isArray(e.queries) ? { queries: e.queries.filter((q) => isText(q?.query) && isNumber(q.impressions) && isNumber(q.clicks) && isNumber(q.position)) } : {}),
   };
+}
+
+/** The searches a stored reading holds the page at `EARNING.answered` places on, the one its refresh answers. */
+export function answeredQueries(value: unknown): string[] {
+  const { min, max } = EARNING.answered;
+  return (googleRead(readingOf(value)?.google)?.queries ?? []).filter((q) => q.position >= min && q.position <= max).map((q) => q.query);
 }
 
 /** The stored JSON, read defensively; `null` for a page never read. */

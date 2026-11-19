@@ -264,7 +264,7 @@ const OWN_DATA_RULE =
 /** Issue 1521 (owner, 2026-10-18, amends D42 #7): what a growing refresh
  *  may add. */
 const GAPS_TASK =
-  `\`pack.gaps\` are subtopics the pages ranked above this one cover and it does not. Add at most ${HEADING_GAPS.sectionsMax} new sections, each on one of them: headed by that gap's \`heading\`, worded as a reader asks it, placed where it fits among the live sections, written only from the \`pack.claims\` whose \`url\` is in that gap's \`claims\`, and linking at least one of those urls. Add none on a gap those claims give nothing to say about, and say in \`updated\` which sections were added.`;
+  `\`pack.gaps\` are subtopics the pages ranked above this one cover, or searches Google already shows it for, that it does not answer. Add at most ${HEADING_GAPS.sectionsMax} new sections, each on one of them: headed by that gap's \`heading\`, worded as a reader asks it, placed where it fits among the live sections, written only from the \`pack.claims\` whose \`url\` is in that gap's \`claims\`, and linking at least one of those urls. On a gap whose heading is one of \`pack.live.queries\`, head its section with that search as the question a searcher asks, and answer it in the section's first sentence. Add none on a gap those claims give nothing to say about, and say in \`updated\` which sections were added.`;
 
 /** Issue 1521: a comparison whose rival prices are older than D59 allows. */
 const STALE_PRICES_TASK =

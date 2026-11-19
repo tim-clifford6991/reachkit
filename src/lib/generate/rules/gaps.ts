@@ -98,12 +98,13 @@ export const COVERING: ReadonlySet<string> = new Set(["how_to", "qa"]);
 export const GROWING_CAUSES: readonly string[] = Object.freeze(["close", "unmet", "lost_position"]);
 
 /** Whether an update's live page may grow by new sections: an update of a
- *  covering type always, any other only near page one, where the extra
- *  write and fix are worth paying for. A link-only update never does. */
-export function grows(live: { cause?: string; place?: number; linkTo?: unknown; type?: string }): boolean {
+ *  covering type or one Google already shows near page one for a search it
+ *  never answered always, any other only near page one on its own search,
+ *  where the extra write and fix are worth paying for. A link-only update never does. */
+export function grows(live: { cause?: string; place?: number; linkTo?: unknown; type?: string; queries?: readonly string[] }): boolean {
   const near = HEADING_GAPS.nearPageOne;
   if (live.linkTo !== undefined) return false;
-  return COVERING.has(live.type ?? "") || (GROWING_CAUSES.includes(live.cause ?? "") && live.place !== undefined && live.place >= near.min && live.place <= near.max);
+  return COVERING.has(live.type ?? "") || (live.queries ?? []).length > 0 || (GROWING_CAUSES.includes(live.cause ?? "") && live.place !== undefined && live.place >= near.min && live.place <= near.max);
 }
 
 /**
@@ -114,16 +115,23 @@ export function grows(live: { cause?: string; place?: number; linkTo?: unknown; 
  * only the target's own words is the page's subject, not a gap. Each gap
  * carries the claims whose passage holds half its words beside the
  * target's, rounded down, and never fewer than one; one no claim speaks to
- * is left out, so no section is written on nothing. Pure.
+ * is left out, so no section is written on nothing. A search Google shows
+ * the live page for (`searched`) is a gap however few results head it, and
+ * comes first: the page already earns there. Pure.
  */
 export function headingGaps(a: {
   topResults: readonly { url: string; headings?: readonly string[] }[];
   covered: readonly string[];
   target: string;
   claims: readonly { passage: string; url: string }[];
+  searched?: readonly string[];
 }): { heading: string; coveredBy: number; claims: string[] }[] {
   const target = topicWords(a.target);
-  const clusters: { heading: string; words: Set<string>; results: Set<number> }[] = [];
+  const clusters: { heading: string; words: Set<string>; results: Set<number>; searched?: true }[] = [];
+  for (const query of a.searched ?? []) {
+    const words = subtopicOf(query);
+    if (words.size > 0 && ![...words].every((word) => target.has(word))) clusters.push({ heading: query.replace(/\s+/g, " ").trim(), words, results: new Set(), searched: true });
+  }
   a.topResults.forEach((result, index) => {
     for (const heading of result.headings ?? []) {
       const words = subtopicOf(heading);
@@ -135,7 +143,8 @@ export function headingGaps(a: {
   });
   const covered = a.covered.map(subtopicOf);
   return clusters
-    .filter((cluster) => cluster.results.size >= HEADING_GAPS.coveredBy && !covered.some((words) => sameSubtopic(words, cluster.words)))
+    .filter((cluster) => (cluster.searched || cluster.results.size >= HEADING_GAPS.coveredBy) && !covered.some((words) => sameSubtopic(words, cluster.words)))
+    .sort((x, y) => Number(y.searched === true) - Number(x.searched === true) || y.results.size - x.results.size)
     .map((cluster) => {
       const own = [...cluster.words].filter((word) => !target.has(word));
       const needed = Math.max(1, Math.floor(own.length / 2));
@@ -152,6 +161,5 @@ export function headingGaps(a: {
       return { heading: cluster.heading, coveredBy: cluster.results.size, claims };
     })
     .filter((gap) => gap.claims.length > 0)
-    .sort((x, y) => y.coveredBy - x.coveredBy)
     .slice(0, HEADING_GAPS.sectionsMax);
 }

@@ -108,15 +108,15 @@ export interface PackLivePage {
    *  it was not a research page. The refresh may state none of their
    *  measurements. Absent reads as none. */
   reportPassages?: string[];
-  /** Issue 1521: the refresh cause its row records (`RefreshCause`), where
-   *  it is one of ours. Absent on any other update. */
+  /** The refresh cause its row records (`RefreshCause`) on one of ours; absent on any other update. */
   cause?: string;
   /** The page's own place for its search when its refresh was planned.
    *  Absent where none was read. */
   place?: number;
-  /** Issue 1521 (as 1507): the date the live version is dated as. A refresh
-   *  that changes nothing it says keeps it. Absent where it is not known. */
+  /** The date the live version is dated as, which a refresh that changes nothing it says keeps; absent where unknown. */
   datedAs?: string;
+  /** The searches Google shows the page for at places 8–20, which its refresh answers; absent where none. */
+  queries?: string[];
   /** The type the live page of ours was written as, where it is known. */
   type?: string;
 }
@@ -710,7 +710,7 @@ export function buildPack(a: PackInputs): ContextPack {
     a.type === "update"
       ? a.live != null && grows(a.live) ? headingLines(a.live.markdown) : null
       : COVERING.has(a.type) && a.pageType !== "product" ? [...planned, ...questions] : null;
-  const gaps = covered === null ? [] : headingGaps({ topResults: a.research.topResults ?? [], covered, target: question, claims });
+  const gaps = covered === null ? [] : headingGaps({ topResults: a.research.topResults ?? [], covered, target: question, claims, searched: a.live?.queries ?? [] });
   const pack: Omit<ContextPack, "missing"> = {
     version: 1,
     type: a.type,
