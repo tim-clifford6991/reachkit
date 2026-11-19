@@ -1,24 +1,4 @@
-// SPEC §6 — "A day is filled only by an opportunity that passes readiness. Never pad the calendar."
-//
-// `eligible()` is the one check, and its answer is stored on the row (`ready`, `unready_reason`), so supply and
-// next-work read the column and never re-derive it. Readiness holds a row only for harm (owner, #2511), in this order:
-//
-//   - `resting` — the topic's draft was skipped, or stopped since the week's commit, or the newest draft on its topic
-//     was stopped by the checks and its research is unchanged; or its URL retired;
-//   - `destination_cannot_address` — an Improve the destination cannot deliver, or a topic a page of the site covers;
-//   - `low_fit` — a stored fit below the gate, or a new topic judged with no `fitFact` (§6); `fit_unscored`, one never scored;
-//   - `out_of_reach` — a new comparison or listicle while the site's market footprint is closed, but one a week.
-//
-// Demand, kind of business and size never hold a row: they order it (`rank/points.ts`). Nor does a site whose own
-// pages ground no fact: its page stands on research alone.
-//
-// A new topic whose own search fails the twelve's market test (`neverMeasured`) is dismissed.
-//
-// It is assessed at the week's commit (`planWeek`), the evening check of the committed rows (`pageForDay`) and on the
-// rows a refresh planner creates.
-//
-// And SPEC §7's offering page: the same fresh top ten decides whether a new Write page is one, stored on its evidence
-// (`shapedEvidence`). The Fix family keeps its own check (`fixPageReadiness`), about the destination.
+// SPEC §7 *Readiness holds only for harm*: one stored answer per row (`ready`, `unready_reason`) that supply and next-work read.
 import { TOPIC_FIT } from "@/lib/config/constants";
 import type { StoredReport } from "@/lib/scan/report";
 import { addressesOwnPage, type HostedOwnPages } from "@/lib/publish/destinations/hosted/own-page";
@@ -32,11 +12,12 @@ import { heldByVerdict, suppressionOf, type Suppression } from "./suppression";
 import type { IntentPrompt } from "./intent";
 import type { KnownMatch } from "@/lib/known-content/types";
 import type { MarketWords } from "@/lib/market/infer/terms";
-import { queryKey } from "./cluster";
+import { brandTokensOf, queryKey, reachedBy } from "./cluster";
 import { contentTypeOf, SHAPED } from "./content-type";
 import { firstOpenDay, orderRanked } from "./rank/open";
 import { pointsOf } from "./rank/points";
 import { footprintOpen } from "@/lib/market/footprint";
+import { earnedSearches } from "@/lib/measure/page-reading";
 import { weekStartFor } from "@/lib/scan/weekly/week";
 import { comparisonUnasked, type AskedBeside, type ComparisonBrands, type MeasuredAnswer } from "./derive/topics";
 import { freshRead, offeringTopTen, type KindOfBusiness, type TopTenRead } from "./derive/top-ten-kind";
@@ -49,14 +30,14 @@ export interface ReadinessContext {
   suppression: Suppression;
   /** Whether the site's destination can deliver an update of the page at this address (issue 781). */
   canUpdate: (url: string) => boolean;
-  /** SPEC §7 (2026-09-20, #928): the page this site already has on the row's topic, where it has one, resolved before
-   *  the loop so this stays pure. A row whose topic is covered and which is **not** itself the update of the covering
-   *  page never fills a day. */
+  /** The page this site already has on the row's topic, resolved before the loop so `eligible` stays pure. */
   coveredBy: (o: Opportunity) => KnownMatch | null;
   /** The site's market footprint is open (`footprintOpen`); while closed, a new comparison or listicle waits, */
   footprint: boolean;
-  /** but for the one row `heldAllowed` lets the week plan. */
+  /** but for the one row `heldAllowed` lets the week plan, */
   allowed?: string | null;
+  /** or a row whose search, or one it absorbed, Search Console measured the site at `EARNING.reach` or better on. */
+  reachedBy?: (o: Opportunity) => string | null;
 }
 
 /** What `comparisonWithoutAsking` reads beside the row. Absent members read none. */
@@ -77,10 +58,7 @@ function volumeOf(o: Opportunity): number {
   return o.volume === null || o.volume.kind === "unmeasured" ? 0 : o.volume.value;
 }
 
-/** Issue 1506, as issue 1520 amended it: a comparison, alternatives or composed search that nothing observed anyone
- *  asking (`comparisonUnasked`). The answer a row was found in counts where it named one of its rivals: an Earn row's
- *  AI answer, or an `ai_gap` row's. A topic buyers were seen asking (issue 1519) is observed. A composed search is a
- *  Write row's: an update is of a page that exists. */
+/** A comparison, alternatives or composed search nothing observed anyone asking; the answer a row came from counts. */
 export function comparisonWithoutAsking(
   o: Opportunity,
   ctx: AskingContext
@@ -119,12 +97,11 @@ export function eligible(o: Opportunity, ctx: ReadinessContext): UnreadyReason |
   if (fit === null ? o.family === "write" || o.family === "earn" : o.family !== "fix" && fit < TOPIC_FIT.gate) return fit === null ? "fit_unscored" : "low_fit";
   // A new topic with no `fitFact` key was judged before the call named one, and keeps its fit until judged again.
   if ((o.evidence.family === "write" || o.evidence.family === "earn") && o.evidence.fitFact === null) return "low_fit";
-  if (!ctx.footprint && waitsForFootprint(o) && o.id !== ctx.allowed) return "out_of_reach";
+  if (!ctx.footprint && waitsForFootprint(o) && o.id !== ctx.allowed && (ctx.reachedBy?.(o) ?? null) === null) return "out_of_reach";
   return null;
 }
 
-/** The one held-kind row a closed gate lets a site-local week of planned dates take (owner, 2026-11-17): none once one is
- *  drafted in the week of `date`, else the one committed to it (on the evening, any committed), else `ai_gap`, then rank. */
+/** The one held-kind row a closed gate lets a week take: none once one is drafted, else its committed one, `ai_gap`, rank. */
 async function heldAllowed(siteId: string, open: readonly OpportunityRow[], ctx: ReadinessContext, a: { date?: string; evening: boolean; stopped: (o: Opportunity) => boolean }): Promise<string | null> {
   const store = opportunityStore(), pages = await store.draftedPages(siteId, 14), mondayOf = (date: string) => weekStartFor({ at: new Date(`${date}T00:00:00Z`), zone: "UTC" });
   const week = mondayOf(a.date ?? new Date(firstOpenDay(pages, ctx.now) * 86_400_000).toISOString().slice(0, 10)), inWeek = (date?: string | null) => date != null && mondayOf(date) === week;
@@ -140,8 +117,7 @@ export function waitsForFootprint(o: Pick<Opportunity, "family" | "type" | "targ
   return (o.family === "write" || o.family === "earn" || isRetarget(o)) && contentTypeOf(o) === "listicle";
 }
 
-/** The evidence a new page carries once its fresh stored results page is read: `shape: "offering"` where that page
- *  asks for a provider's own page, none where it does not. With no fresh read the row is left as it is. Pure. */
+/** A new page's evidence after its fresh top ten: `shape: "offering"` where it asks for a provider's own page. Pure. */
 export function shapedEvidence(o: Opportunity, read: TopTenRead | null, business: KindOfBusiness | null): Evidence {
   const evidence = o.evidence;
   if (read === null || !SHAPED.has(o.type) || (evidence.family !== "write" && evidence.family !== "earn")) return evidence;
@@ -152,15 +128,13 @@ export function shapedEvidence(o: Opportunity, read: TopTenRead | null, business
 
 const shapeOf = (evidence: Evidence): string | undefined => ("shape" in evidence ? evidence.shape : undefined);
 
-/** Which pages the site's destination can update. `null` (not a hosted destination) leaves the update to that
- *  destination, which answers for itself; a hosted one updates only its own live publications. */
+/** Which pages the destination can update: a hosted one only its own live publications, any other answers for itself. */
 export function canUpdateFrom(own: HostedOwnPages | null): (url: string) => boolean {
   if (own === null) return () => true;
   return (url) => addressesOwnPage(url, own);
 }
 
-/** The band a row would be given today from its stored volume and difficulty, so a row banded under older bars is
- *  corrected. A floor, never a promotion: it can only find a row outsized. Every input is a stored number. */
+/** Today's band from stored numbers, so a row banded under older bars is corrected; a floor, never a promotion. */
 export function rebandFor(o: Opportunity, ownRanked: number): Winnability | null {
   if (o.family === "fix" || o.fitBand === null) return null;
   if (!qualifiesForADay(o.fitBand)) return o.fitBand;
@@ -174,16 +148,14 @@ export function rebandFor(o: Opportunity, ownRanked: number): Winnability | null
   return o.fitBand;
 }
 
-/** The site's measured ranked count, or `null`: with no measurement every stored band is left alone, never re-banded
- *  as though the site ranked for nothing. */
+/** The site's measured ranked count, or `null`, which leaves every stored band alone. */
 function ownRankedOf(report: StoredReport | null): number | null {
   const own = report?.ownRanked;
   if (own === undefined || own.kind === "unmeasured") return null;
   return own.value;
 }
 
-/** The page this site already has on each row's topic, by row id. A read that fails answers "not covered": an index
- *  that could not be reached must not refuse a topic. */
+/** The page the site already has on each row's topic; an unreadable index refuses no topic. */
 async function coveredTopics(siteId: string, rows: readonly Opportunity[], market: MarketWords | null): Promise<Map<string, KnownMatch>> {
   const out = new Map<string, KnownMatch>();
   const { alreadyCovered } = await import("@/lib/known-content/match");
@@ -199,8 +171,7 @@ async function coveredTopics(siteId: string, rows: readonly Opportunity[], marke
   return out;
 }
 
-/** Records readiness on every open Write, Improve and Earn row of one site, or on the ones `only` names, writing only
- *  the rows whose answer changed. */
+/** Records readiness on a site's open rows, or the ones `only` names, writing only the answers that changed. */
 export async function assessReadiness(
   siteId: string,
   a: {
@@ -254,7 +225,10 @@ export async function assessReadiness(
     // Read only where a row could wait on it.
     footprint: !rows.some((row) => waitsForFootprint(readOpportunity(row))) || (await footprintOpen(store, siteId, { report, market, record: a.record === true })),
   };
-  if (!ctx.footprint) ctx.allowed = await heldAllowed(siteId, open, ctx, { date: a.plannedFrom, evening: a.only !== undefined, stopped: stillStopped });
+  if (!ctx.footprint) {
+    ctx.allowed = await heldAllowed(siteId, open, ctx, { date: a.plannedFrom, evening: a.only !== undefined, stopped: stillStopped });
+    ctx.reachedBy = reachedBy(earnedSearches(await store.refreshPages(siteId).catch(() => [])), report === null ? [] : brandTokensOf(report), market);
+  }
   const business: KindOfBusiness | null =
     market === null ? null : { kind: market.kind ?? null, serves: market.serves ?? null, words: [market.category, ...market.synonyms].join(" ") };
 
@@ -281,6 +255,8 @@ export async function assessReadiness(
     if (band !== null && band !== stored.fitBand) await store.setFitBand(stored.id, band);
     const opportunity = band === null ? stored : { ...stored, fitBand: band };
     const reason = stillStopped(opportunity) ? "resting" : eligible(opportunity, ctx);
+    const by = reason === null && !ctx.footprint && waitsForFootprint(opportunity) && opportunity.id !== ctx.allowed ? (ctx.reachedBy?.(opportunity) ?? null) : null;
+    if (by !== null) console.log(JSON.stringify({ event: "reach_from_search_console", siteId, opportunityId: opportunity.id, search: by }));
     if (reason === null) ready += 1;
     if (stored.ready !== (reason === null) || stored.unreadyReason !== reason) {
       await store.setReadiness(opportunity.id, reason);

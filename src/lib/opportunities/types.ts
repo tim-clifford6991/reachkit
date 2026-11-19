@@ -300,7 +300,7 @@ export type BusinessFit = 0 | 1 | 2 | 3;
  *  the site; a search anchored on the product; a problem it solves; a plain category search; and a category's "best
  *  X", which ranks last. Decided in code from the search and its evidence — never by the model, and never from an
  *  intent kind. */
-export type TopicSource = "ai_gap" | "product" | "problem" | "category" | "best_x";
+export type TopicSource = "ai_gap" | "product" | "problem" | "category" | "best_x" | "earned";
 
 /** SPEC §7 *honesty by page type* (2026-09-29; D20, 2026-10-02): how the business may appear on a Write or an Earn
  *  page. `./page-type.ts` decides it; the database mirrors the set in a check constraint. */

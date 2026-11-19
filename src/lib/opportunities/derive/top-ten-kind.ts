@@ -112,14 +112,7 @@ export function servedPlace(business: KindOfBusiness | null | undefined): Place 
   return typeof serves === "object" && serves !== null && typeof (serves as Place).name === "string" ? (serves as Place) : null;
 }
 
-/**
- * Whether a page answers a question rather than sells (issue 1561): a Q&A,
- * a how-to or documentation, whose search does not ask for the business's
- * place. Its top ten is articles for every kind of business, so a
- * publishers' top ten does not make it another kind's market. "water
- * heater repair cost" and "how to unclog a drain" are; "plumber austin"
- * and "emergency plumber near me" are not.
- */
+/** A Q&A, how-to or documentation page whose search asks for no place, so a publishers' top ten names no other market. */
 export function answersQuestion(page: Pick<Opportunity, "type" | "targetQuery">, business: KindOfBusiness | null): boolean {
   const type = contentTypeOf(page);
   if (type === null || !(CONTENT_MIX.NON_COMMERCIAL_TYPES as readonly string[]).includes(type)) return false;
@@ -128,12 +121,7 @@ export function answersQuestion(page: Pick<Opportunity, "type" | "targetQuery">,
   return !(place === null ? saysNearMe(query) : isLocalSearch(query, place));
 }
 
-/**
- * The other kind of business a stored top ten is, for `business` — six or
- * more of its first ten results — or `null` where it is not, or the
- * business's kind is not known. A publishers' top ten says nothing of a
- * `page` that answers a question (`answersQuestion`, issue 1561).
- */
+/** The other kind of business six of a stored top ten's first results are, else `null`; silent on a page that answers. */
 export function otherKindTopTen(
   rows: readonly TopTenRow[],
   business: KindOfBusiness | null,

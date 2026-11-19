@@ -3,7 +3,7 @@ import { PLAN_DEPTH, TOPIC_FIT } from "@/lib/config/constants";
 import type { Opportunity, TopicSource } from "../types";
 import type { TopUpRecord } from "./top-up";
 
-export const LEDGER_SOURCES = ["product", "problem", "category", "best_x", "ai_gap", "asked", "cited", "written", "offering"] as const;
+export const LEDGER_SOURCES = ["product", "problem", "category", "best_x", "ai_gap", "asked", "cited", "written", "offering", "earned"] as const;
 export type LedgerSource = (typeof LEDGER_SOURCES)[number];
 
 /** The stages a topic passes, in order: offered, "would a buyer search this?", fit 3, candidate, kept by the collapse. */
