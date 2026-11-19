@@ -26,19 +26,6 @@ export function differenceHeld(profile: ListicleHeld["profile"]): boolean {
 
 // Issue 1508: at least four counted options, the business among them.
 const NEEDS = [{ need: "options", min: RESEARCH.optionsMin }, { need: "own_price" }, { need: "difference" }] as const;
-export type ListicleNeed = (typeof NEEDS)[number]["need"];
-
-// The planner's reading of each need before research is paid for: the options are the rivals in force research reads first.
-const PLANNED: Record<ListicleNeed, (held: ListicleHeld) => boolean> = {
-  options: (held) => new Set(held.rivals).size >= RESEARCH.optionsMin - 1,
-  own_price: ownPriceHeld,
-  difference: (held) => differenceHeld(held.profile),
-};
-
-/** The first need stored rows cannot field, or `null`; nothing on file fields nothing. */
-export function unfielded(held: ListicleHeld | null): ListicleNeed | null {
-  return NEEDS.find((need) => held === null || !PLANNED[need.need](held))?.need ?? null;
-}
 
 export const listicle: Template = {
   type: "listicle",

@@ -7,8 +7,10 @@
 // Its page half reads the battery's failures on a written body. Each part is met, short or pending; a part that was
 // not measured is pending, never short. Only a short section, source or word count is ever a stop, and whether it
 // stops is the completeness switch's (`completenessFor`, `./record.ts`); title and links are recorded and never stop.
-import type { ContentType } from "@/lib/opportunities/content-type";
-import { registrableDomain } from "@/lib/market/rivals/domains";
+import { contentTypeOf, SHAPED, type ContentType } from "@/lib/opportunities/content-type";
+import { offeringTopTen, type TopTenRow } from "@/lib/opportunities/derive/top-ten-kind";
+import type { Opportunity } from "@/lib/opportunities/types";
+import { pageClass, registrableDomain } from "@/lib/market/rivals/domains";
 import { bodyWords, lengthRangeFor, sectionWords, typeLength } from "./length";
 import type { BatteryBasis } from "./pipeline/battery";
 import { fold, knowledgeTexts, ownTopicWords, rivalsOnlyVersus, shares, type ContextPack, type PackClaim, type PackMeasurements } from "./pipeline/pack";
@@ -22,7 +24,8 @@ import { differenceHeld, ownPriceHeld } from "./templates/listicle";
 export type Part = "sections" | "sources" | "words" | "figures" | "title" | "links" | "demand" | "style" | "rival_evidence";
 /** `have: null` is not measured, and its state is `pending`. */
 export interface PartMark { part: Part; have: number | null; need: number; state: "met" | "short" | "pending" }
-export interface Standard { parts: PartMark[]; met: boolean; pending: boolean; stops: Part[] }
+/** `unchecked`: a type with no pass marks, whose cached research is never read as met. */
+export interface Standard { parts: PartMark[]; met: boolean; pending: boolean; stops: Part[]; unchecked?: true }
 
 /** The deployed standard's fingerprint (`RK_STANDARD`), or `null` where the build carried none. */
 export const deployedStandard = (): string | null => process.env.RK_STANDARD || null;
@@ -59,17 +62,25 @@ const mark = (part: Part, have: number, need: number, short: boolean, pending = 
 /** What the research half reads: the pack, whether its research is still queued, and the room for the type's floor. */
 interface ResearchHalf { pack: Pick<ContextPack, "type" | "missing">; pending?: boolean; words?: { have: number; need: number; short: boolean } | null }
 /** What a row's cached research holds: on-topic readable results (`R`) and their addresses, the buyer questions they
- *  answer (`Q`), the results stating a recent figure (`F`), the results laid out in three or more steps, and its
- *  "People also ask"; on a rival-only `vs` search (R31), how many of the rivals it names have an own page read. */
-export interface ResearchRead { R: number; Q: number; F: number; stepPages: number; asked: number; urls: string[]; rivals?: { need: number; have: number } }
+ *  answer (`Q`), the results stating a recent figure (`F`), the results laid out in three or more steps, its
+ *  "People also ask", its first organic results (`top`), the site's own facts on its topic (`facts`), and on a rival-only
+ *  `vs` search (R31), how many of the rivals it names have an own page read. */
+export interface ResearchRead { R: number; Q: number; F: number; stepPages: number; asked: number; urls: string[]; top?: readonly TopTenRow[]; facts?: number; rivals?: { need: number; have: number } }
 /** What the commit reads: the type a row is written as, its cached read (`null` with nothing cached), and whether it
  *  must show a buyer asks it, having no measured volume. */
 interface ReadHalf { type: ContentType; read: ResearchRead | null; demand?: boolean }
 
-/** The least research a type is written from (seo-master's R/Q/F test); a type not named is checked at its draft. */
-const READ_MARKS: Partial<Record<ContentType, { R: number; F: number; Q?: number; stepPages?: number; key: string }>> = {
+const factsNeed = (type: ContentType) => TEMPLATES[type].packMustHold.find((each) => each.need === "facts_on_topic")?.min;
+/** The least research a type is written from (seo-master's R/Q/F test); a type not named is unchecked until its draft.
+ *  A listicle's options and an update's new facts are read off on-topic results; documentation and an offering are
+ *  written from the site's own facts on the topic. */
+const READ_MARKS: Partial<Record<ContentType, { R?: number; F?: number; Q?: number; stepPages?: number; facts?: number; key?: string }>> = {
   qa: { R: 3, Q: 5, F: 1, key: "question" },
   how_to: { R: 3, stepPages: 2, F: 1, key: "asked" },
+  listicle: { R: 3, F: 1 },
+  update: { R: 2, F: 1 },
+  documentation: { facts: factsNeed("documentation") },
+  offering: { facts: factsNeed("offering") },
 };
 /** The results a buyer's asking shows as, where no volume is measured: one "People also ask", or this many results. */
 const DEMAND_RESULTS = 3;
@@ -80,6 +91,7 @@ interface PageHalf { failed: readonly RuleFailure[]; markdown: string; sections:
 /** The one standard a page is held to, from its research before it is written or from its body after. */
 export function meetsStandard(a: ResearchHalf | PageHalf | ReadHalf): Standard {
   let parts: PartMark[];
+  const unchecked = "read" in a && READ_MARKS[a.type] === undefined;
   if ("read" in a) {
     parts = readParts(a);
   } else if ("failed" in a) {
@@ -103,7 +115,7 @@ export function meetsStandard(a: ResearchHalf | PageHalf | ReadHalf): Standard {
     });
     if (a.words != null) parts.push(mark("words", a.words.have, a.words.need, a.words.short));
   }
-  return { parts, met: parts.every((part) => part.state === "met"), pending: parts.some((part) => part.state === "pending"), stops: parts.filter((part) => part.state === "short" && STOPPING.has(part.part)).map((part) => part.part) };
+  return { parts, met: !unchecked && parts.every((part) => part.state === "met"), pending: parts.some((part) => part.state === "pending"), stops: parts.filter((part) => part.state === "short" && STOPPING.has(part.part)).map((part) => part.part), ...(unchecked ? { unchecked } : {}) };
 }
 
 /** A row's cached research against its type's pass marks, its words the room its questions leave for the type's floor;
@@ -111,8 +123,8 @@ export function meetsStandard(a: ResearchHalf | PageHalf | ReadHalf): Standard {
 function readParts({ type, read, demand }: ReadHalf): PartMark[] {
   const marks = READ_MARKS[type];
   const r = read ?? { R: 0, Q: 0, F: 0, stepPages: 0, asked: 0, urls: [] };
-  const part = (name: Part, have: number, need: number) => mark(name, have, need, have < need, read === null);
-  const parts: PartMark[] = [...(demand === true ? [part("demand", r.asked > 0 || r.R >= DEMAND_RESULTS ? 1 : 0, 1)] : []), ...(r.rivals === undefined ? [] : [part("rival_evidence", r.rivals.have, r.rivals.need)])];
+  const part = (name: Part, have: number, need: number | undefined, unread = false): PartMark[] => (need === undefined ? [] : [mark(name, have, need, have < need, read === null || unread)]);
+  const parts: PartMark[] = [...(demand === true ? part("demand", r.asked > 0 || r.R >= DEMAND_RESULTS ? 1 : 0, 1) : []), ...(r.rivals === undefined ? [] : part("rival_evidence", r.rivals.have, r.rivals.need))];
   if (marks === undefined) return parts;
   const template = TEMPLATES[type];
   const repeat = template.sections.find((slot) => slot.key === marks.key)?.repeat?.max ?? 0;
@@ -120,11 +132,34 @@ function readParts({ type, read, demand }: ReadHalf): PartMark[] {
   const room = lengthRangeFor(template, { questions: Math.min(r.Q, repeat), fitted: true });
   return [
     ...parts,
-    part("sources", r.R, marks.R),
-    part("sections", marks.Q === undefined ? r.stepPages : r.Q, marks.Q ?? marks.stepPages!),
-    part("figures", r.F, marks.F),
-    part("words", room?.ceiling ?? 0, typeLength(template)?.floor ?? 0),
+    ...part("sources", r.R, marks.R),
+    ...part("sections", marks.Q === undefined ? r.stepPages : r.Q, marks.Q ?? marks.stepPages),
+    ...part("figures", r.F, marks.F),
+    ...part("figures", r.facts ?? 0, marks.facts, r.facts === undefined),
+    ...part("words", room?.ceiling ?? 0, marks.key === undefined ? undefined : (typeLength(template)?.floor ?? 0)),
   ];
+}
+
+/** Whether a page must show a buyer asks it: documentation or an offering on a search with no measured volume. */
+export const mustShowDemand = (o: Pick<Opportunity, "volume">, type: ContentType): boolean => (o.volume?.kind ?? "unmeasured") === "unmeasured" && (type === "documentation" || type === "offering");
+
+/** SPEC §7 *How the type is decided* (owner, 2026-11-17, #2722): the owner's ladder, top down. */
+const LADDER: readonly ContentType[] = ["listicle", "how_to", "qa", "documentation"];
+/** The first organic results read for vendors' own pages: at least half of them make a results page a vendor one. */
+const VENDOR_TOP = 5;
+
+/** The type a row's research fills, 0¢ and with no model: its shape's own, an offering where its own results page asks
+ *  for one, else the first type down the ladder its research fills. A vendor results page is never a Q&A or a how-to.
+ *  None filled, the first type it may take, which the commit finds short; with nothing cached, its shape's own. */
+export function typeTheResearchFills(o: Pick<Opportunity, "type" | "targetQuery" | "evidence" | "volume">, read: ResearchRead | null): ContentType | null {
+  const top = read?.top ?? [];
+  const start = SHAPED.has(o.type) && offeringTopTen({ rows: top }, null, o.targetQuery ?? "") ? "offering" : contentTypeOf(o);
+  if (read === null || start === null || READ_MARKS[start] === undefined) return start;
+  const vendors = top.slice(0, VENDOR_TOP).filter((row) => pageClass(row) === "provider").length;
+  const vendor = vendors > 0 && vendors * 2 >= Math.min(VENDOR_TOP, top.length);
+  const at = LADDER.indexOf(start);
+  const rungs = (start === "update" ? [start] : at < 0 ? [start, "documentation" as const] : LADDER.slice(at)).filter((type) => !(vendor && (type === "qa" || type === "how_to")));
+  return rungs.find((type) => meetsStandard({ type, read, demand: mustShowDemand(o, type) }).met) ?? rungs[0]!;
 }
 
 /** What a type's pack must hold. R31: every page but an update, whatever its template, is held to first-hand rival evidence. */

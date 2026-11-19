@@ -1,16 +1,16 @@
 // SPEC §7 (D41 stage 4) — the page's one fix call where its write step had no room left for it: made on the row
 // that step saved, from the write it holds, inside the date's one `CAP_DRAFT`.
 import { opportunityById, type Opportunity } from "@/lib/opportunities";
-import { contentTypeOf } from "@/lib/opportunities/content-type";
+import { PLAN_WRITE_AS } from "@/lib/opportunities/types";
 import { FIX_OWED } from "./pipeline/fix-call";
 import { generateStore, type DraftRow } from "./store";
 import type { DayPageOutcome } from ".";
 
-/** The opportunity a row was written for, as the type the day wrote it as (issue 1455). */
+/** The opportunity a row was written for, as the type it was first written as, never decided again. */
 export async function writtenFor(row: Pick<DraftRow, "opportunity_id" | "meta">): Promise<Opportunity | null> {
   const found = await opportunityById(row.opportunity_id);
-  const writtenAs = (row.meta as { contentType?: unknown } | null)?.contentType;
-  return found !== null && ((writtenAs === "qa" && contentTypeOf(found) === "listicle") || writtenAs === "documentation") ? { ...found, writeAs: writtenAs as "qa" | "documentation" } : found;
+  const writtenAs = PLAN_WRITE_AS.find((type) => type === (row.meta as { contentType?: unknown } | null)?.contentType);
+  return found === null || writtenAs === undefined ? found : { ...found, writeAs: writtenAs };
 }
 
 /** `now` is the run's due hour, which the date's spend so far is read since. */

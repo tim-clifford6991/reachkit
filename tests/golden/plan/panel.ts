@@ -13,7 +13,6 @@
 // (`scripts/panel/evidence/<domain>.json`). A stored topic that is no search
 // is left out, as the next pass dismisses it. 0¢: nothing is measured.
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import type { ListicleHeld } from "@/lib/generate/templates/listicle";
 import type { Language } from "@/lib/locale/locales";
 import type { MarketConclusion } from "@/lib/market/infer/types";
 import type { Profile } from "@/lib/market/questions/profile";
@@ -87,11 +86,6 @@ export function panelSite(domain: string): PanelSite {
     return { domain, run, profile: profileOf(site), market: site.market, rows };
   }
   throw new Error(`no stored panel run holds topics for ${domain}`);
-}
-
-/** What the panel stores for a listicle's needs: the concluded rivals, and no knowledge base or own-page passage. */
-export function heldOf(site: PanelSite): ListicleHeld {
-  return { rivals: site.market.rivals.map((rival) => rival.domain), profile: null, passages: [] };
 }
 
 /** The site's stored vendor answers (`scripts/panel/evidence/<domain>.json`), oldest first. */

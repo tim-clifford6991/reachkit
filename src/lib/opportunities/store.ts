@@ -3,7 +3,6 @@
 // jobs with no `auth.uid()`, and every call below is scoped by an explicit `site_id` predicate instead.
 import type { OwnLivePage, RefreshInputs } from "./refresh";
 import type { DraftOnTopic } from "./drafted";
-import type { ListicleHeld } from "@/lib/generate/templates/listicle";
 import type { KnowledgeDigest } from "@/lib/site-profile/knowledge/read";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { revalidateTag } from "next/cache";
@@ -175,8 +174,6 @@ export interface OpportunityStore {
   setCluster(opportunityId: string, clusterKey: string, absorbedQueries: readonly string[]): Promise<void>;
   /** The site's current stored report, or `null` where it has no readable one. */
   currentReport(siteId: string): Promise<StoredReport | null>;
-  /** The rivals in force, confirmed profile and scan passages a listicle's needs are read from; `null` with no site. */
-  listicleHeld(siteId: string, scanId: string): Promise<ListicleHeld | null>;
   /** The moment the site's last non-`fix` opportunity left `open`, which is
    *  the moment supply hit zero. `null` where the site has never held one. */
   lastStatusChangeAt(siteId: string): Promise<Date | null>;
@@ -242,7 +239,7 @@ export interface OpportunityStore {
   /** A planned new page that becomes an update of a page the site already
    *  has (SPEC §7, D12, issue 1143): the row keeps its search, its status
    *  and its cluster, and takes the update's type, target and evidence. */
-  becomeUpdate(opportunityId: string, update: Pick<OpportunityInsert, "type" | "family" | "target_ref" | "proposed_slug" | "title" | "effort" | "evidence">): Promise<void>;
+  becomeUpdate(opportunityId: string, update: Pick<OpportunityInsert, "type" | "family" | "target_ref" | "proposed_slug" | "title" | "effort" | "evidence"> & { plan_write_as?: null }): Promise<void>;
   /** The host the site's live hosted destination serves at, or `null`. */
   hostedHostFor(siteId: string): Promise<string | null>;
   /** The pages the site's hosted destination could update — its host and
@@ -908,7 +905,6 @@ export function supabaseOpportunityStore(): OpportunityStore {
     },
 
     currentReport: currentReportOf,
-    listicleHeld: (siteId, scanId) => import("@/lib/generate/voice/confirmed").then(({ listicleHeldOf }) => listicleHeldOf({ siteId, scanId })),
   };
 }
 

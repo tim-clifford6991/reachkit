@@ -9,7 +9,6 @@
 // 2026-09-14): it goes immediately ahead of the first Write row in its
 // cluster, and while clusters are not derived, ahead of the first Write row.
 import { PLAN_DEPTH, REFRESH_MIN_AGE_DAYS } from "@/lib/config/constants";
-import { unfielded, type ListicleHeld, type ListicleNeed } from "@/lib/generate/templates/listicle";
 import type { Profile } from "@/lib/market/questions/profile";
 import type { IntentPrompt } from "../intent";
 import type { MarketConclusion } from "@/lib/market/infer/types";
@@ -46,20 +45,11 @@ function byRank(a: Scored, b: Scored): number {
 export interface Rotation {
   /** The stored top tens, by which two rows are one topic. */
   topTens?: ReadonlyMap<string, readonly string[]>;
-  /** The first need a listicle cannot field from stored rows: each is written as a Q&A. */
-  unfielded?: ListicleNeed;
 }
 
 /** Every row by fit, then `ai_gap`, then points, highest first. Pure. */
-export function orderRanked(scored: readonly Scored[], rotation: Rotation = {}): Ranked[] {
-  return [...scored].sort(byRank).map((entry) => {
-    const need = contentTypeOf(entry.opportunity) === "listicle" ? rotation.unfielded : undefined;
-    return {
-      opportunityId: entry.opportunity.id,
-      reason: { points: entry.points, parts: entry.parts, rule: need === undefined ? (actionOf(entry) ?? "best") : `${need} not on file, as a Q&A` },
-      ...(need === undefined ? {} : { writeAs: "qa" as const }),
-    };
-  });
+export function orderRanked(scored: readonly Scored[]): Ranked[] {
+  return [...scored].sort(byRank).map((entry) => ({ opportunityId: entry.opportunity.id, reason: { points: entry.points, parts: entry.parts, rule: actionOf(entry) ?? "best" } }));
 }
 
 /** A Write or Earn row: a new page of the site's. */
@@ -99,12 +89,8 @@ function samePool(a: string | null, b: string | null): boolean {
 }
 
 /** Oldest first, each ahead of the first Write row of its pool. Pure. */
-export function placeFixPages(
-  scored: readonly Scored[],
-  fixes: readonly Opportunity[],
-  rotation: Rotation = {}
-): Ranked[] {
-  const ordered = orderRanked(scored, rotation);
+export function placeFixPages(scored: readonly Scored[], fixes: readonly Opportunity[]): Ranked[] {
+  const ordered = orderRanked(scored);
   const byId = new Map(scored.map((entry) => [entry.opportunity.id, entry.opportunity]));
   const pending = [...fixes].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
 
@@ -130,8 +116,8 @@ export function placeFixPages(
 
 /** The site's open, rankable opportunities in ranked order. */
 export async function rankOpen(siteId: string, at: Date = new Date(), only?: ReadonlySet<string>): Promise<Ranked[]> {
-  const { scored, fixes, rotation } = rankingOf(await loadRanking(siteId, at, only), only);
-  return placeFixPages(scored, fixes, rotation);
+  const { scored, fixes } = rankingOf(await loadRanking(siteId, at, only), only);
+  return placeFixPages(scored, fixes);
 }
 
 /** How many of the next `days` days the week's commit fills ("pages left", the low-supply finding), read from the
@@ -169,8 +155,6 @@ export interface RankLoad {
   /** The searches the site ranks for, as its current report counts them;
    *  `null` or absent where no report is read, ordered as an established site. */
   ownRanked?: number | null;
-  /** What a listicle's needs are read from; `null` fields none, and absent holds no listicle back. */
-  listicle?: ListicleHeld | null;
   /** The site's concluded market and its live pages of ours, which the commit joins one topic by; absent joins nothing. */
   market?: MarketConclusion | null;
   live?: readonly OwnLivePage[];
@@ -212,12 +196,11 @@ export async function loadRanking(siteId: string, at: Date, only?: ReadonlySet<s
   const rows = open.filter((row) => !young(row));
   // An unmeasured count is the cold-start 0, as the pass reads it.
   const ownRanked = report === null ? null : report.ownRanked.kind === "measured" ? report.ownRanked.value : 0;
-  const listicle = report === null ? null : await store.listicleHeld(siteId, report.scanId).catch(() => null);
   // A live page's own searches too, so a twin by its top ten is found at the commit.
   const topTens = await topTensFor(rows, only, live.map((page) => page.row.scanId));
   // A cluster that cannot be read earns no page.
   const linkedClusters = cited.length === 0 ? [] : await store.clustersAt(siteId, cited).catch(() => [] as readonly string[]);
-  return { rows, fixRows, profile, cited, topTens, prompts, linkedClusters, ownRanked, listicle, market, live, floored: open.filter(young).map((row) => row.id) };
+  return { rows, fixRows, profile, cited, topTens, prompts, linkedClusters, ownRanked, market, live, floored: open.filter(young).map((row) => row.id) };
 }
 
 function topTensFor(rows: readonly OpportunityRow[], only?: ReadonlySet<string>, live: readonly string[] = []) {
@@ -264,7 +247,5 @@ export function rankingOf(
       entry.points += NEW_SITE.points;
     }
   }
-  const unfit = load.listicle === undefined ? null : unfielded(load.listicle);
-  const rotation = { topTens: load.topTens, ...(unfit === null ? {} : { unfielded: unfit }) };
-  return { scored, fixes, rotation, rejected };
+  return { scored, fixes, rotation: { topTens: load.topTens }, rejected };
 }

@@ -36,9 +36,10 @@ export async function updateInstead(
   const store = opportunityStore();
   if (!canUpdateFrom(await store.hostedOwnPages(opportunity.siteId))(match.page.url)) return null;
 
-  const update = { ...opportunity, ...asUpdate(opportunity, match, at) };
+  // An update is written as an update, whatever type the commit stored for the new page, on this run and any re-run of its day.
+  const update = { ...opportunity, ...asUpdate(opportunity, match, at), writeAs: undefined };
   try {
-    await store.becomeUpdate(opportunity.id, updateColumns(update));
+    await store.becomeUpdate(opportunity.id, { ...updateColumns(update), plan_write_as: null });
   } catch (error) {
     console.warn(JSON.stringify({ event: "update_instead_refused", opportunityId: opportunity.id, error: String(error).slice(0, 200) }));
     return null;
