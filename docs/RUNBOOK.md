@@ -980,6 +980,8 @@ migration reaches the live project by hand, through the Supabase SQL editor or t
 2. Paste the file into the SQL editor on the `reachkit` project, one migration per run, oldest first.
 3. Re-read the **security and performance advisors**. A finding not in the table below is new and
    gets a row in the same change that answers it.
+4. A migration pasted as SQL is not in the connector's migration list; its record is the
+   constraint read-back posted on its PR.
 
 Verify a migration against a throwaway database first, never the shared scratch one:
 
@@ -1005,6 +1007,8 @@ psql -h 127.0.0.1 -U reachkit -d postgres -c "drop database reachkit_check"
 | `auth_leaked_password_protection` | **Not applicable.** There are no passwords (`supabase/config.toml` `enable_password_signin = false`); this WARN is expected on every run |
 | `auth_rls_initplan` in `v2_archive` | **Left**: v2's frozen rollback path |
 | `unindexed_foreign_keys` on columns referencing `scans` | **Accepted.** Nothing deletes a `scans` row and no query filters by them. Revisit when one does |
+| `unindexed_foreign_keys` on `publications_merged_into_fkey` | **Accepted.** No `publications` row is deleted and no query filters by `merged_into`. Revisit when one does: a partial index `where merged_into is not null` |
+| `no_primary_key` on `job_days` | **By design.** A primary key cannot hold the nullable `site_id`; the unique index `job_days_key (job_id, day, site_id) nulls not distinct` is the row's identity |
 | `unused_index` | **Kept.** Traffic is small; each index backs a uniqueness rule or a query that needs it at volume |
 | `no_primary_key` in `archive` and `backup_20261005` | **Not v3's schema.** Dated snapshot copies, read by hand; they go when the owner retires them |
 
