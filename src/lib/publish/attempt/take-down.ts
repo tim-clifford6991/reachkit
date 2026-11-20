@@ -40,10 +40,13 @@ const STOPPABLE: readonly State[] = ["planned", "in_review", "needs_attention"];
 export async function takeDown(a: { draftId: string; userId: string; at?: Date; deps?: TakeDownDeps }): Promise<TakeDownResult> {
   const at = a.at ?? new Date();
   const by: Actor = { kind: "customer", userId: a.userId };
-  const row = (await publicationsOf("draft_id", a.draftId)).find(isLive);
+  // A retry after a partial take-down starts from the draft's own row even when that one is already down.
+  const drafted = await publicationsOf("draft_id", a.draftId);
+  const row = drafted.find(isLive) ?? drafted.find((each) => each.published_at !== null && each.live_url !== null);
   if (row === undefined || row.live_url === null) return { ok: false, refused: "not_live" };
 
   const versions = (await publicationsAt(row.site_id, row.live_url)).filter(isLive);
+  if (versions.length === 0) return { ok: false, refused: "not_live" };
   const results: UnpublishResult[] = [];
   for (const [index, version] of versions.entries()) {
     results.push(
@@ -73,7 +76,8 @@ export async function takeDown(a: { draftId: string; userId: string; at?: Date; 
   } catch (error) {
     console.log(JSON.stringify({ event: "take_down_settle_failed", draftId: a.draftId, because: String(error) }));
   }
-  return { ok: true };
+  // Down only when every version is: one still live still answers at the address.
+  return down.length === versions.length ? { ok: true } : { ok: false, refused: "failed" };
 }
 
 export async function putBack(a: { draftId: string; userId: string; at?: Date; deps?: TakeDownDeps }): Promise<PutBackResult> {
