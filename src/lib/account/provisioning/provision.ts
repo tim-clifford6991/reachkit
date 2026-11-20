@@ -35,6 +35,8 @@
 // replay branch opens it.
 import { recordCheckoutFacts } from "../checkout/record";
 import { capture } from "@/lib/analytics";
+import { takeSpot } from "@/lib/account/offer/spots";
+import { recordOpsEvent } from "@/lib/ops/events";
 import { accountStore } from "../store";
 import { handleSecondPurchase } from "./duplicates";
 import { convertLead } from "./lead-conversion";
@@ -125,6 +127,13 @@ export async function provisionFromPayment(sessionId: string): Promise<Provision
     const { openSubscription } = await import("@/lib/account/billing");
     const opening = await openSubscription({ userId, subscriptionId: facts.subscriptionId });
     opened = opening.ok || !opening.transient;
+  }
+
+  // 2c. The offer spot. A failed write is the owner's to see, never the buyer's.
+  const spot = await takeSpot({ userId, subscriptionId: facts.subscriptionId, email: facts.email, livemode: facts.livemode });
+  if (spot === "failed") {
+    logProvision({ sessionId, outcome: "offer_spot_failed" });
+    void recordOpsEvent("offer_spot_failed", "offer_spot", `…${sessionId.slice(-6)}`);
   }
 
   // 3. The site. Its domain is the report's, or null where there was no

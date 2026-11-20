@@ -25,6 +25,7 @@
 // still charging them.
 import { stripe, type Stripe } from "../stripe/client";
 import { isTransient, redeliver } from "../stripe/transient";
+import { freeSpotOnRefund } from "../offer/spots";
 import { billingStore } from "./store";
 
 export type EndSubscriptionNow =
@@ -91,6 +92,10 @@ export async function onRefundOrDispute(event: Stripe.Event): Promise<{ ended: b
   const read = await billingStore().accountByStripeCustomer(typeof charge.customer === "string" ? charge.customer : charge.customer.id);
   if (!read.ok) redeliver("account");
   const account = read.account;
+  // Before the already-ended check, so a redelivery finishes a free that failed.
+  if (account !== null && event.type === "charge.refunded" && !(await freeSpotOnRefund(account.id, new Date(event.created * 1000)))) {
+    redeliver("offer_spot");
+  }
   // Already ended, so a redelivery calls Stripe for nothing and moves no date.
   if (account === null || (account.plan_status === "canceled" && new Date(account.paid_through).getTime() <= Date.now())) {
     return { ended: false };

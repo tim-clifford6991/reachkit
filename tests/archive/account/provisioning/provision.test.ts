@@ -31,6 +31,8 @@ const { memoryStore, newMemoryState } = await import("../../mail/leads/memory-st
 const { newStripeDouble, stripeDouble, stripeErrors, subscriptionDouble } = await import("../stripe-double");
 const { setBillingStore } = await import("@/lib/account/billing");
 const { account, memoryBillingStore, newMemoryBilling } = await import("../billing/memory-store");
+const { setOfferStore } = await import("@/lib/account/offer/spots");
+const { memoryOfferStore } = await import("../offer-store");
 
 let accounts = newMemoryAccounts();
 let vendor = newStripeDouble();
@@ -202,5 +204,27 @@ describe("what provisioning logs", () => {
     expect(emitted).toContain("cs_one");
     expect(emitted).not.toContain("founder@acme.example");
     expect(emitted).not.toContain("IE1234567X");
+  });
+});
+
+describe("the first-50 offer: a live paid checkout takes the lowest free place; provisioning never waits on it", () => {
+  it("one spot per checkout, none for a return, the 51st, an owner, test mode, after the end or a failed write; each account opens", async () => {
+    const spot = (place: number, freed = false) => ({ place, user_id: `u${place}`, subscription_id: `sub_${place}`, taken_at: new Date(), freed_at: freed ? new Date() : null });
+    const [rows, fail] = [[spot(1), spot(2, true)], { next: false }];
+    setOfferStore(memoryOfferStore(rows, fail));
+    const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
+    const buy = async (id: string, email = `${id}@x.example`, livemode = true) => (vendor.sessions.set(id, completedSession({ id, livemode, subscription: `sub_${id}`, customer_details: { email } })), (await provisionFromPayment(id)).userId !== null);
+    const opened = [await buy("cs_one", "founder@acme.example"), await buy("cs_one", "founder@acme.example"), await buy("cs_back", "founder@acme.example"), await buy("cs_owner", "Owner@Example.com"), await buy("cs_test", undefined, false)];
+    expect(rows.map((r) => r.place)).toEqual([1, 2, 2]);
+    fail.next = true;
+    opened.push(await buy("cs_fail"));
+    rows.push(...Array.from({ length: 48 }, (_, i) => spot(i + 3)));
+    fail.next = false;
+    opened.push(await buy("cs_51"));
+    vi.useFakeTimers({ now: new Date("2027-02-01T00:00:00Z"), toFake: ["Date"] });
+    opened.push(rows.splice(3).length === 48 && (await buy("cs_late")));
+    vi.useRealTimers();
+    setOfferStore(null);
+    expect({ opened: opened.every(Boolean), rows: rows.length, failLogged: log.mock.calls.flat().join().includes("offer_spot_failed") }).toEqual({ opened: true, rows: 3, failLogged: true });
   });
 });

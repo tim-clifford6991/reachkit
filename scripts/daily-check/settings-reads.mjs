@@ -12,7 +12,7 @@ export const SETTINGS_READS_SQL = `select read,
   count(*) filter (where at > now() - interval '24 hours') as last_24h,
   count(*) as last_7d
 from ops_events
-where kind in ('settings_read_failed', 'serp_unreadable') and at > now() - interval '7 days'
+where kind in ('settings_read_failed', 'serp_unreadable', 'offer_spot_failed') and at > now() - interval '7 days'
 group by read
 order by last_24h desc, last_7d desc, read;`;
 
