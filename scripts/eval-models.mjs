@@ -4,6 +4,7 @@
 //
 //   node scripts/eval-models.mjs --plan  --site opportunity-typing --tier haiku --model claude-haiku-5-5 --repeat 3
 //   node scripts/eval-models.mjs --fake  --site opportunity-typing --tier haiku --cap-cents 10 --repeat 100
+//   node scripts/eval-models.mjs --fake  --driver writer --cases /root/ops/reachkit/eval/cases/writer --model claude-opus-5 --repeat 3
 //   node scripts/eval-models.mjs --prove-isolation
 //   node scripts/eval-models.mjs --report
 //   node scripts/eval-models.mjs --live  ... (spends: the ledger refuses past min(--cap-cents, 5,900¢) and after the deadline)
@@ -68,6 +69,11 @@ async function main() {
   if (mode === "live" && argv.includes("--ledger")) throw new Error("A live run always books into the one ledger; --ledger is refused with --live.");
   const ledgerFile = path.resolve(flag("--ledger", path.join(EVAL_DIR, mode === "fake" ? "fake-ledger.jsonl" : "ledger.jsonl")));
   if (insideRepo(ledgerFile)) throw new Error("The ledger lives outside the repository (it is public).");
+  const cases = path.resolve(flag("--cases", path.join(EVAL_DIR, "cases/writer")));
+  const results = path.resolve(flag("--results", path.join(EVAL_DIR, "results", mode === "live" ? "writer.jsonl" : `writer-${mode}.jsonl`)));
+  if (insideRepo(cases) || insideRepo(results)) throw new Error("Cases and results live outside the repository (it is public).");
+  const driver = flag("--driver", "probe");
+  if (driver !== "probe" && driver !== "writer") throw new Error("--driver is probe or writer.");
   const capText = flag("--cap-cents", "5900");
   if (!/^\d+(\.\d+)?$/.test(capText)) throw new Error(`--cap-cents takes a number of cents, 0 or more; got "${capText}".`);
   const capCents = Number(capText);
@@ -84,7 +90,13 @@ async function main() {
     appType: "custom",
     logLevel: "error",
     server: { middlewareMode: true, hmr: false, watch: null },
-    resolve: { alias: [{ find: /^@\//, replacement: `${path.join(ROOT, "src")}/` }] },
+    resolve: {
+      alias: [
+        // The site's own page text comes from the case, as `npm run page` serves it from its snapshot.
+        { find: "@/lib/measure/text", replacement: path.join(ROOT, "scripts/page/measured-text.ts") },
+        { find: /^@\//, replacement: `${path.join(ROOT, "src")}/` },
+      ],
+    },
     // Bundled rather than left to Node, so the plugin below sees `src/`'s import of it.
     ssr: { noExternal: ["@anthropic-ai/sdk"] },
     plugins: [
@@ -106,6 +118,10 @@ async function main() {
       tier: flag("--tier", "haiku"),
       model: flag("--model", null),
       repeat: Number(flag("--repeat", "1")),
+      driver,
+      root: ROOT,
+      cases,
+      results,
     });
   } finally {
     await server.close();

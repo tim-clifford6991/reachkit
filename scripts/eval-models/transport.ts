@@ -18,6 +18,8 @@ export interface Run {
   sends: number;
   plan: { calls: number; cents: number; unpriced: number };
   halted: string | null;
+  /** Fake and plan runs only: each call site's canned tool answer, from the case; `{}` where it gives none. */
+  fakeAnswers?: Record<string, unknown>;
 }
 
 type Spec = ModelPrice & { drop: string[]; set: Record<string, unknown> };
@@ -56,14 +58,14 @@ export function requestFor(params: Params, site: string, swap: Record<string, st
 const estimateTokens = (request: Params): number =>
   Math.ceil(JSON.stringify([request.system, request.messages, request.tools]).length / 2);
 
-function fakeMessage(request: Params, tokensIn: number): Anthropic.Message {
+function fakeMessage(request: Params, tokensIn: number, answer: unknown = {}): Anthropic.Message {
   const tool = request.tools?.[0];
   return {
     id: "msg_eval_fake",
     type: "message",
     role: "assistant",
     model: request.model,
-    content: [tool === undefined ? { type: "text", text: "{}", citations: null } : { type: "tool_use", id: "toolu_eval_fake", name: tool.name, input: {} }],
+    content: [tool === undefined ? { type: "text", text: "{}", citations: null } : { type: "tool_use", id: "toolu_eval_fake", name: tool.name, input: answer }],
     stop_reason: tool === undefined ? "end_turn" : "tool_use",
     stop_sequence: null,
     usage: { input_tokens: tokensIn, output_tokens: request.max_tokens },
@@ -87,7 +89,7 @@ async function evalCreate(client: Anthropic, send: (p: Params, o: unknown) => Pr
     run.plan.calls += 1;
     if (reserved === null) run.plan.unpriced += 1;
     else run.plan.cents += reserved;
-    return fakeMessage(request, tokensIn);
+    return fakeMessage(request, tokensIn, run.fakeAnswers?.[site]);
   }
   const ledger = run.ledger as Ledger;
   const held = ledger.reserve(request.model, site, reserved);
@@ -102,7 +104,7 @@ async function evalCreate(client: Anthropic, send: (p: Params, o: unknown) => Pr
   };
   let message: Anthropic.Message;
   try {
-    if (run.mode === "fake") message = fakeMessage(request, tokensIn);
+    if (run.mode === "fake") message = fakeMessage(request, tokensIn, run.fakeAnswers?.[site]);
     else {
       run.sends += 1;
       message = await throughTransport(() => send(request, options));
