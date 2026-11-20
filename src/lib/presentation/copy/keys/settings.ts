@@ -457,12 +457,10 @@ export const SETTINGS_COPY = Object.freeze({
 
   // ── Issue #240: the credential form, and the whole of what it says.
   //
-  // Four keys and no fifth. There is deliberately no key for a refusal:
-  // the credential is validated by the health check, never by the act of
-  // connecting, so what a customer reads after a refusal is the *state's*
-  // own line (`destination.line.*`, minted by #48) on a redrawn card — not
-  // a sentence this form composed, and never anything the site said back.
+  // A refused credential reads the state's own line on the redrawn card;
+  // the form's one line of its own is the https refusal, before any check.
   "settings.destination.site-url": ["Site URL", { slots: {}, fixedBy: "REQ-060" }],
+  "settings.destination.https-only": ["The site URL must start with https://, so your password stays private. If your site has no https:// address, ask your web host to add one.", { slots: {}, fixedBy: "REQ-060" }],
   // The WordPress user the application password was issued to (ruling,
   // 2026-09-07). A WordPress application password authenticates as
   // `username:app-password` — it is scoped to the account that created it —

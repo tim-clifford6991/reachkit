@@ -5,9 +5,9 @@
 // choice. Three fields: site, WordPress user, application password
 // (2026-09-07). In the card, under its row — not a modal, not a route.
 //
-// The password is cleared on every outcome. A refusal renders no sentence of
-// its own: the redrawn card states the destination's health (SPEC §5 — no
-// vendor text).
+// The password is cleared on every outcome that sent it. A refused credential
+// renders no sentence of its own: the redrawn card states the destination's
+// health (SPEC §5 — no vendor text). Only a non-https address is refused here.
 
 "use client";
 
@@ -41,19 +41,21 @@ export function ConnectDestination(p: { action: CredentialAction }): React.JSX.E
   // Issue 1196: React's pending state, and a line when the request never
   // came back — a rejected promise used to leave the button disabled forever.
   const [running, startRunning] = useTransition();
-  const [failed, setFailed] = useState(false);
+  const [line, setLine] = useState<CopyKey | null>(null);
   const help = writtenLine("settings.destination.app-password.help");
 
   const submit = useCallback(() => {
     startRunning(async () => {
-      setFailed(false);
+      setLine(null);
       const outcome = await connectWordPress({ siteUrl, username, applicationPassword }).catch(() => null);
-      // Cleared on both arms. The card is redrawn from the server either
+      // Nothing was sent on an https refusal, so the password is kept to spare a re-paste.
+      if (outcome !== null && "httpsOnly" in outcome) return setLine("settings.destination.https-only");
+      // Cleared otherwise. The card is redrawn from the server either
       // way, and what it then says about this destination is the state the
       // check found — including on a refusal, which is a state and not a
       // rejected form (ADR-086).
       setApplicationPassword("");
-      if (outcome === null) setFailed(true);
+      if (outcome === null) setLine("settings.answer.could-not-ask");
       else if (outcome.connected) setOpen(false);
     });
   }, [applicationPassword, siteUrl, username]);
@@ -63,7 +65,8 @@ export function ConnectDestination(p: { action: CredentialAction }): React.JSX.E
     name: string,
     value: string,
     set: (next: string) => void,
-    type: "text" | "password" = "text"
+    type: "text" | "password" = "text",
+    describedBy?: string
   ): React.JSX.Element => (
     <label className="flex min-w-0 flex-col gap-1">
       <span className="text-sm text-base-content/70">{label}</span>
@@ -73,6 +76,8 @@ export function ConnectDestination(p: { action: CredentialAction }): React.JSX.E
         name={name}
         value={value}
         onChange={(e) => set(e.target.value)}
+        aria-invalid={describedBy === undefined ? undefined : true}
+        aria-describedby={describedBy}
       />
     </label>
   );
@@ -85,7 +90,14 @@ export function ConnectDestination(p: { action: CredentialAction }): React.JSX.E
 
       {open ? (
         <div className="flex min-w-0 flex-col gap-2" data-testid="wp-credential-form">
-          {field(copy("settings.destination.site-url"), "site-url", siteUrl, setSiteUrl)}
+          {field(
+            copy("settings.destination.site-url"),
+            "site-url",
+            siteUrl,
+            setSiteUrl,
+            "text",
+            line === "settings.destination.https-only" ? "wp-credential-line" : undefined
+          )}
           {field(copy("settings.destination.username"), "wp-username", username, setUsername)}
           {/* `type="password"`: a credential in clear text is a credential in
               a screenshot. */}
@@ -101,9 +113,9 @@ export function ConnectDestination(p: { action: CredentialAction }): React.JSX.E
             {running ? <span className="loading loading-spinner loading-xs" aria-hidden /> : null}
             {copy("settings.destination.submit")}
           </button>
-          {failed ? (
-            <p role="alert" className="text-xs text-error wrap-anywhere">
-              {copy("settings.answer.could-not-ask")}
+          {line !== null ? (
+            <p id="wp-credential-line" role="alert" className="text-xs text-error wrap-anywhere">
+              {copy(line)}
             </p>
           ) : null}
         </div>

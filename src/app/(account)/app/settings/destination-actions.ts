@@ -66,7 +66,8 @@ const SETTINGS_PATH = "/app/settings";
 
 export type ConnectOutcome =
   | { connected: true }
-  | { connected: false; because: HealthReason };
+  | { connected: false; because: HealthReason }
+  | { connected: false; httpsOnly: true };
 
 /** The credential, as the form hands it over.
  *
@@ -111,6 +112,9 @@ async function actor(): Promise<{ kind: "customer"; userId: string }> {
  * quietly edited a credential would refuse a correct one.
  */
 export async function connectWordPress(credential: WordPressCredential): Promise<ConnectOutcome> {
+  // Refused before any read or write, so a non-https address is never stored or sent the password.
+  const { isHttps } = await import("@/lib/publish/destinations/wordpress/client");
+  if (!isHttps(credential.siteUrl.trim())) return { connected: false, httpsOnly: true };
   const { connect, listDestinations, reconnect } = await import("@/lib/publish/destinations");
 
   const config = {

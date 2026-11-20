@@ -36,6 +36,11 @@ export function restRoot(baseUrl: string): string {
   return `${baseUrl.replace(/\/+$/, "")}${WORDPRESS.restBase}`;
 }
 
+/** Whether the credential may travel to this address: only over TLS, so a password is never sent in the clear. */
+export function isHttps(baseUrl: string): boolean {
+  return URL.canParse(baseUrl) && new URL(baseUrl).protocol === "https:";
+}
+
 /** The only place the credential is a string; not exported, as a header a caller could build it could log. */
 function authorization(cfg: WordPressConfig): string {
   const pair = `${cfg.username}:${cfg.applicationPassword}`;
@@ -47,6 +52,7 @@ async function call(
   path: string,
   init?: { method: "POST"; json: unknown }
 ): Promise<WordPressAnswer> {
+  if (!isHttps(cfg.baseUrl)) return { ok: false, transport: "blocked_by_policy" };
   const outcome = await safeFetch(`${restRoot(cfg.baseUrl)}${path}`, {
     // `robots.txt` does not govern an API its administrator authorised.
     respectRobots: false,
