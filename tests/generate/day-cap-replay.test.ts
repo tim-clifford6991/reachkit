@@ -208,3 +208,10 @@ it("a day whose own committed update is under the floor writes it as its last st
   db.rows("opportunities").forEach((row) => Object.assign(row, row.id === UPDATE_ID ? { planned_for: D } : row.id === NEW_ID ? { status: "done" } : {}));
   expect([await fallback(), db.rows("drafts").find((row) => row.scheduled_for === D)?.opportunity_id]).toMatchObject([{ ok: true }, UPDATE_ID]);
 });
+it("a day decided again counts its spend from its own run, and the same date not decided again stays refused", async () => {
+  const w = await world();
+  model(() => 9);
+  db.seed("fetches", [{ site_id: SITE, activity: "draft", cost_cents: 40, created_at: HOUR.toISOString() }]);
+  pick.mockResolvedValue(w.update);
+  expect([(await attempt()).ok, (await generateDayPage({ siteId: SITE, publishDate: D, now: HOUR, since: new Date(HOUR.getTime() + 1) })).ok]).toEqual([false, true]);
+});

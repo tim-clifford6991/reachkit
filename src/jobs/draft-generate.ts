@@ -90,7 +90,7 @@ export function dayEvent(site: Site, day: { publishDate: string; hour: Date; aga
  *  before the publish time. */
 async function draftSite(input: JobInput): Promise<Outcome> {
   const { siteId, publishDate, hour, site, again } = siteDay(input.data);
-  // Decided again, the day keeps the moment it was, so the same weekly commit never asks for it a third time.
+  // Decided again, the day keeps the moment it was, so the same weekly commit never asks for it a third time, and its spend counts from it.
   const at = again ? input.now : hour;
   const step = input.step ?? ((_name, body) => body());
   try {
@@ -99,7 +99,7 @@ async function draftSite(input: JobInput): Promise<Outcome> {
     // generation that falls over must not also cost the customer the only
     // telling they get that their pages are going nowhere.
     await step("notice", () => noticeBrokenDestination({ siteId, now: input.now }));
-    const result = await generateDraft({ siteId, publishDate, now: hour, again, ...(input.step === undefined ? {} : { step: input.step }) });
+    const result = await generateDraft({ siteId, publishDate, now: hour, since: at, again, ...(input.step === undefined ? {} : { step: input.step }) });
     // Issue 1455: the day keeps its reason after the next tick has run.
     await recordDraftDay(
       "degraded" in result

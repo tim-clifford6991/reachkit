@@ -13,8 +13,8 @@ export async function writtenFor(row: Pick<DraftRow, "opportunity_id" | "meta">)
   return found === null || writtenAs === undefined ? found : { ...found, writeAs: writtenAs };
 }
 
-/** `now` is the run's due hour, which the date's spend so far is read since. */
-export async function fixOwedPage(a: { draftId: string; now: Date }): Promise<DayPageOutcome> {
+/** `now` is the run's due hour, which the date's spend so far is read since unless `since` says otherwise. */
+export async function fixOwedPage(a: { draftId: string; now: Date; since?: Date }): Promise<DayPageOutcome> {
   const store = generateStore();
   const row = await store.draftById(a.draftId);
   if (row === null || row.scheduled_for === null) return { ok: false, because: "no_draft" };
@@ -28,5 +28,5 @@ export async function fixOwedPage(a: { draftId: string; now: Date }): Promise<Da
   const [site, report, opportunity] = await Promise.all([store.siteFacts(row.site_id), store.latestReport(row.site_id), writtenFor(row)]);
   if (site === null || report === null || opportunity === null) return { ok: false, because: "no_draft" };
   const { writeFallback } = await import(".");
-  return writeFallback({ siteId: row.site_id, site, report, opportunity, publishDate: row.scheduled_for, draftId: row.id, fixStep: "owed" }, a.now);
+  return writeFallback({ siteId: row.site_id, site, report, opportunity, publishDate: row.scheduled_for, draftId: row.id, fixStep: "owed" }, a.now, undefined, undefined, a.since);
 }
