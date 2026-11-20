@@ -250,6 +250,16 @@ describe("idempotence, and the direction the gate may move", () => {
     expect(storedUser(state).paid_through).toBe(later.toISOString());
   });
 
+  it("a late snapshot saying unpaid leaves a paid account paid: the vendor's current subscription decides", async () => {
+    const periodEnd = new Date(NOW.getTime() + 30 * DAY);
+    paying({ paidThrough: periodEnd });
+    vendor.subscriptions.set("sub_1", subscriptionDouble({ id: "sub_1", customer: "cus_u1", periodEnd }));
+    const late = subscriptionEvent({ id: "evt_late", type: "customer.subscription.created", periodEnd, status: "incomplete" });
+
+    expect(await deliver(late)).toBe(200);
+    expect(storedUser(state).plan_status).toBe("active");
+  });
+
   it("a store failure on invoice.paid answers 500 and the redelivery advances the gate", async () => {
     const was = new Date(NOW.getTime() + DAY);
     const periodEnd = new Date(NOW.getTime() + 31 * DAY);

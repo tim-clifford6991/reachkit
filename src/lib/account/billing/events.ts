@@ -47,27 +47,26 @@ export type SubscriptionEventOutcome =
    *  advance to. None of the three is a failure. */
   | { applied: false; because: "replay" | "no_account" | "no_period" | "vendor" };
 
-/** The subscription an event is about. `customer.subscription.*` carries
- *  the subscription itself; the two invoice events carry an invoice whose
- *  parent names it. Both are resolved to a full subscription object, so the
- *  period end is read from one shape in one place (`period.ts`). */
+/** The subscription an event is about, as the vendor holds it now.
+ *  `customer.subscription.*` carries a snapshot; the two invoice events
+ *  carry an invoice whose parent names it. Either way the current object is
+ *  read, because a snapshot delivered late or out of order would otherwise
+ *  write an old status over a newer one. */
 async function subscriptionOf(event: Stripe.Event): Promise<Stripe.Subscription | null> {
+  let named: string | Stripe.Subscription | null;
   if (event.type.startsWith("customer.subscription.")) {
-    return event.data.object as Stripe.Subscription;
+    named = event.data.object as Stripe.Subscription;
+  } else {
+    const parent = (event.data.object as Stripe.Invoice).parent;
+    named = parent?.type === "subscription_details" ? (parent.subscription_details?.subscription ?? null) : null;
   }
-
-  const invoice = event.data.object as Stripe.Invoice;
-  const parent = invoice.parent;
-  const details = parent?.type === "subscription_details" ? parent.subscription_details : null;
-  const subscription = details?.subscription ?? null;
-  if (subscription === null) return null;
-  if (typeof subscription !== "string") return subscription;
+  if (named === null) return null;
 
   try {
-    return await stripe().subscriptions.retrieve(subscription);
+    return await stripe().subscriptions.retrieve(typeof named === "string" ? named : named.id);
   } catch (error) {
     if (isTransient(error)) redeliver("subscription");
-    return null;
+    return typeof named === "string" ? null : named;
   }
 }
 

@@ -21,7 +21,7 @@ const { STRIPE_EVENTS } = await import("@/lib/account/provisioning/events");
 const { setStripe } = await import("@/lib/account/stripe/client");
 const { setAccountStore } = await import("@/lib/account/store");
 const { memoryAccountStore, newMemoryAccounts } = await import("../memory-store");
-const { newStripeDouble, stripeDouble } = await import("../stripe-double");
+const { newStripeDouble, stripeDouble, stripeErrors } = await import("../stripe-double");
 
 let accounts = newMemoryAccounts();
 let vendor = newStripeDouble();
@@ -134,11 +134,18 @@ describe("STRIPE_EVENTS is the closed list", () => {
     expect(provisioned).toEqual(["cs_one"]);
   });
 
-  it("a verified event type absent from the list answers unknown_event — never a throw, never a 500", async () => {
+  it("a verified event type absent from the list is answered like an ignored one — a 200, so Stripe stops sending it", async () => {
     vendor.event = { type: "radar.early_fraud_warning.created", data: { object: {} } };
     const result = await handleStripeWebhook(body({}), "t_good");
-    expect(result).toEqual({ handled: false, reason: "unknown_event" });
+    expect(result).toEqual({ handled: true, event: "radar.early_fraud_warning.created", route: "ignore" });
     expect(provisioned).toEqual([]);
+  });
+
+  it("a payment Stripe cannot read for now fails the delivery, so Stripe delivers it again", async () => {
+    registerProvisionHandler(null);
+    vendor.sessionRetrieveError = stripeErrors.connection();
+    await expect(handleStripeWebhook(body(COMPLETED), "t_good")).rejects.toThrow();
+    expect(accounts.users).toEqual([]);
   });
 
   it("a subscription event routes to the subscription handler and provisions nothing", async () => {

@@ -28,7 +28,9 @@ const { setAccountStore } = await import("@/lib/account/store");
 const { setLeadStore } = await import("@/lib/mail/leads/store");
 const { memoryAccountStore, newMemoryAccounts } = await import("../memory-store");
 const { memoryStore, newMemoryState } = await import("../../mail/leads/memory-store");
-const { newStripeDouble, stripeDouble } = await import("../stripe-double");
+const { newStripeDouble, stripeDouble, stripeErrors, subscriptionDouble } = await import("../stripe-double");
+const { setBillingStore } = await import("@/lib/account/billing");
+const { account, memoryBillingStore, newMemoryBilling } = await import("../billing/memory-store");
 
 let accounts = newMemoryAccounts();
 let vendor = newStripeDouble();
@@ -165,6 +167,24 @@ describe('REQ-024 c2 — a payment that did not complete results in nothing', ()
     expect(accounts.leads[0]?.converted_at).toBeNull();
     expect(happened).toEqual([]);
     expect(sendCalls).toEqual([]);
+  });
+});
+
+describe("a payment whose subscription did not open", () => {
+  it("asks for a redelivery, and the redelivery opens it rather than leaving the buyer unpaid", async () => {
+    const billing = newMemoryBilling();
+    setBillingStore(memoryBillingStore(billing));
+    const periodEnd = new Date("2026-12-20T00:00:00.000Z");
+    vendor.sessions.set("cs_one", completedSession({ subscription: "sub_1" }));
+    vendor.subscriptions.set("sub_1", subscriptionDouble({ id: "sub_1", customer: "cus_one", periodEnd }));
+    vendor.subscriptionRetrieveError = stripeErrors.unavailable();
+    expect((await provisionFromPayment("cs_one")).retry).toBe(true);
+
+    billing.users.push(account({ id: accounts.users[0]?.id ?? "", paid_through: new Date(0).toISOString() }));
+    vendor.subscriptionRetrieveError = null;
+    expect(await provisionFromPayment("cs_one")).toMatchObject({ duplicate: "replay", retry: false });
+    expect(billing.users[0]?.paid_through).toBe(periodEnd.toISOString());
+    setBillingStore(null);
   });
 });
 
