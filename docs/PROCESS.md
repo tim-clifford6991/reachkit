@@ -69,8 +69,9 @@ Owner, 2026-11-15 (#2712): "ensure for any future UX improvements or fixes, teh 
 - Any issue that changes what a person sees, reads or does (a screen, dialog, mail, copy or layout) gets a **ux-designer** review before an engineer builds it.
 - A screen only the owner can see (for example `/app/review` and other owner-only keys and boards) needs no UX review; customer-facing screens, mail and public pages always do.
 - The product manager copies the ux-designer's conditions into the issue as a comment headed `UX review`. Until that comment exists the issue is not Ready.
+- A pull request that changes a screen, dialog, mail, public page or customer-facing wording also gets a ux-designer read of the built change (390 and 1280, the strings as built) before merge, labelled or not; the read is a PR comment headed `UX check`, and until it exists the pull request is not armed (owner, 2026-11-20, #2722 ruling 55).
 - The pull request lists those conditions under Conditions, and its body says it meets each one with its proof.
-- Release QA returns NO-GO on a risk-labelled pull request that touches a customer-facing screen, mail or public page when the issue has no `UX review` comment.
+- Release QA returns NO-GO on a pull request that touches a customer-facing screen, mail or public page without the issue's `UX review` comment and the pull request's `UX check` comment.
 - The automatic half is the daisyUI include-list check from #2711: it fails when `src/**/*.tsx` uses a daisyUI component that `src/ui/tailwind.css`'s `include:` leaves out. It runs inside the existing gates; it is not a fifth gate.
 
 ### Coherence
