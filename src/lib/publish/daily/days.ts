@@ -137,7 +137,7 @@ export async function dayHold(siteId: string, publishDate: string): Promise<stri
 
 /** The owed days no due hour recorded (a missed tick, or a run killed first) or one left with research still queued;
  *  a first day was not owed. And, `again`, a day the generator left with no page, short of a harm stop, before a newer
- *  commit (a weekly pass's or an applied re-plan's), decided once more against that week, or whose waiting page a newer
+ *  commit (a weekly pass's or a re-plan's that changed the week), decided once more against that week, or whose waiting page a newer
  *  standard set aside, under that standard's own key, or else re-sent once under `retry`. An unreadable store gives none, and the next tick asks again. Never throws. */
 export async function missedDays<T extends DraftDay & { readonly hour?: Date }>(days: readonly T[]): Promise<readonly (T & { again?: true; rewrite?: string })[]> {
   if (days.length === 0) return [];
@@ -384,9 +384,9 @@ function databaseDraftDayStore(): DraftDayStore {
       const week = data?.[0]?.week_start;
       // The week's plan is committed minutes after its scan closes; the commit step's own record is the time it was.
       const commit = week === undefined ? null : await publishDb().from<{ at: string }>("ops_events").select("at").eq("kind", "week_research").eq("site_id", siteId).eq("code", week).limit(1);
-      // An applied re-plan commits the week again; its claim reads the date it planned from, else `held`, `empty` or `no-week`.
+      // A re-plan that changed the week commits it again; its claim reads the date it planned from, else `unchanged`, `held`, `empty` or `no-week`.
       const replan = await publishDb().from<{ at: string }>("ops_events").select("at").eq("kind", "week_replanned").eq("site_id", siteId)
-        .not("read", "in", '("held","empty","no-week")').order("at", { ascending: false }).limit(1);
+        .not("read", "in", '("unchanged","held","empty","no-week")').order("at", { ascending: false }).limit(1);
       const failed = commit?.error ?? replan.error;
       if (failed != null) throw new Error(failed.message);
       const times = [commit?.data?.[0]?.at, replan.data?.[0]?.at].filter((at) => at !== undefined);

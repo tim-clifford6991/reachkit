@@ -22,7 +22,7 @@ import { firstOpenDay } from "@/lib/opportunities/rank/open";
 import { opportunityStore, storeScope, type OpportunityRow, type OpportunityStore } from "@/lib/opportunities/store";
 import type { PlanReason, UnreadyReason, Winnability } from "@/lib/opportunities/types";
 
-/** Per site: its `from`, `held`, `empty` or `no-week`. */
+/** Per site: its `from`, `unchanged`, `held`, `empty` or `no-week`. */
 const KIND = "week_replanned";
 /** The owner's mail of the planner's weeks, sent. */
 const TOLD = "week_replan_told";
@@ -97,9 +97,9 @@ export async function replanSites(
   for (const site of due) {
     const id = site.siteId;
     const plan = await inStep(`replan-dry-${id}`, () => dryReplan(id, { now: a.now, clock: site, fingerprint }));
-    const state = plan === null ? "no-week" : plan.empty !== null ? "empty" : plan.held === null ? plan.from : "held";
-    // Claimed only after the apply, so an apply that never ran is tried again on the next tick; an applied claim's time is a commit the daily tick reads.
-    if (plan !== null && state === plan.from) await inStep(`replan-apply-${id}`, () => applyReplan(id, plan.from, a.now));
+    const state = plan === null ? "no-week" : plan.empty !== null ? "empty" : plan.held !== null ? "held" : sameWeek(plan) ? "unchanged" : plan.from;
+    // Claimed only after the apply, so an apply that never ran is tried again on the next tick; a changed week's claim time is a commit the daily tick reads.
+    if (plan !== null && (state === plan.from || state === "unchanged")) await inStep(`replan-apply-${id}`, () => applyReplan(id, plan.from, a.now));
     if (!(await inStep(`replan-claim-${id}`, () => claimOpsEvent(KIND, id, fingerprint, state))) || plan === null) continue;
     told.push(plan);
     (state === "empty" ? empty : state === "held" ? held : replanned).push(id);
@@ -107,6 +107,12 @@ export async function replanSites(
   if (told.length > 0 && !events.some((e) => e.kind === TOLD)) await inStep("replan-told", () => tellOwner(told, fingerprint));
   return { replanned, held, empty };
 }
+
+/** The new week dates the same searches and pages on the same days as the committed one, in any order. */
+const sameWeek = (plan: Replan) => {
+  const keys = (week: WeekRow[]) => JSON.stringify(week.map((row) => [row.date, row.search, row.page].join("|")).sort());
+  return keys(plan.before) === keys(plan.after);
+};
 
 /** Mails the owner each site's old and new week, then marks the planner told. */
 async function tellOwner(plans: readonly Replan[], fingerprint: string): Promise<void> {
