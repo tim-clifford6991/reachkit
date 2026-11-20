@@ -28,7 +28,7 @@ import { copy } from "@/lib/presentation/copy";
 import { stopPage } from "./stop-actions";
 
 /** What the machine last said. `idle` is "nothing has been asked yet" and is
- *  not a result: the line is drawn only once there is one. */
+ *  not a result: the line stays empty until there is one. */
 type Answer = "idle" | "stopped" | "refused";
 
 export function StopThisPage(p: { draftId: string }): React.JSX.Element {
@@ -60,20 +60,21 @@ export function StopThisPage(p: { draftId: string }): React.JSX.Element {
         )}
         {copy("overview.waiting.stop")}
       </button>
-      {answer === "idle" ? null : (
-        <p
-          role="status"
-          className={`flex items-center gap-2 text-xs ${answer === "stopped" ? "text-success" : "text-error"}`}
-          data-testid="overview-stop-answer"
-        >
-          {answer === "stopped" ? (
-            <CircleCheck size={16} strokeWidth={1.75} aria-hidden />
-          ) : (
-            <CircleX size={16} strokeWidth={1.75} aria-hidden />
-          )}
-          {copy(answer === "stopped" ? "overview.waiting.stopped" : "overview.waiting.stop-refused")}
-        </p>
-      )}
+      {/* Always mounted so screen readers announce the answer when it arrives. */}
+      <p
+        role="status"
+        className={`flex items-center gap-2 text-xs ${answer === "stopped" ? "text-success" : "text-error"}`}
+        data-testid="overview-stop-answer"
+      >
+        {answer === "idle" ? null : answer === "stopped" ? (
+          <CircleCheck size={16} strokeWidth={1.75} aria-hidden />
+        ) : (
+          <CircleX size={16} strokeWidth={1.75} aria-hidden />
+        )}
+        {answer === "idle"
+          ? null
+          : copy(answer === "stopped" ? "overview.waiting.stopped" : "overview.waiting.stop-refused")}
+      </p>
     </div>
   );
 }
