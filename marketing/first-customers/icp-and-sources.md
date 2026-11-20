@@ -11,21 +11,21 @@ ReachKit, plus the two tests our product adds (can they set it up, will they be 
 | Purchasing power | Pays €49 a month by card without asking anyone | Already pays for software, ads or a freelancer | Hobby site, no-budget nonprofit, pre-launch with nothing to sell |
 | Easy to target | The decider is the founder or owner | You know them or someone who does; active on LinkedIn or X | A marketing team, an agency or enterprise buying in the way |
 | Growing | Their category is asked about in AI answers | New or crowded category, recent launch, hiring | Dying category, winding down |
-| Can set it up | Controls DNS for their domain, so a subdomain can point at us | Built the site themselves or has a technical cofounder | Locked site builder with no DNS or subdomain access; **a WordPress-run site scores 0 in the Founding 50 (D8)** |
+| Can set it up | Controls DNS for their domain, so a subdomain can point at us | Built the site themselves or has a technical cofounder | Locked site builder with no DNS or subdomain access; **a WordPress-run site scores 0 for the first 50 (D8)** |
 | Case study | Will share before and after | Has an audience: a newsletter, posts in public | Wants to stay anonymous (fine as a customer) |
 
 **Score** pain, purchasing power, easy to target, can set it up and case study at 0, 1 or 2 each.
 Contact 8–10 first, 6–7 second, below 6 not in the first 50. A WordPress-run site scores 0 on
-"can set it up" and is not pitched in the Founding 50 (owner D8, 2026-11-15, widened on #2698).
+"can set it up" and is not pitched to the first 50 (owner D8, 2026-11-15, widened on #2698).
 
 **Segment order** (reach per owner-hour, from the growth plan):
 
 1. Owner-run SaaS, software and online businesses (EN)
-2. Consultants, accountants, coaches and small agencies (many on WordPress: those are not in the Founding 50, D8)
+2. Consultants, accountants, coaches and small agencies (many on WordPress: those are not among the first 50, D8)
 3. Local services, shops and hospitality, reached directly (the route through the web designer
    who runs their site is deferred to Phase 2, D6)
 All four in English-speaking countries (owner D10, 2026-11-15). German businesses (DE, AT, CH) are
-dropped from the Founding 50.
+dropped from the first 50.
 
 ## Where to find them: the Core Four
 
@@ -72,5 +72,5 @@ Only after 10 paying. The €150 Google Search test with its stop rule is in the
 ## The numbers (assumptions, replace with actuals in the README's Progress table)
 
 About 1,000 outreach actions → about 300 replies → about 150 scans → about 50 paying. That needs
-roughly one in three scans to buy, which only the hand-held Founding offer makes plausible. At the
-Rule of 100 it is about 10 working days of outreach, spread over the waves in `playbook.md`.
+roughly one in three scans to buy, which only the hand-held first-50 offer makes plausible. At the
+Rule of 100 it is about 10 working days of outreach, spread over the weeks to 31 Jan 2027 in `playbook.md`.

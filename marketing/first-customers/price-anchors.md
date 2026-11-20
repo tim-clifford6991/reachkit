@@ -10,7 +10,7 @@ re-check them.
 
 ## Owner to do
 
-- [ ] Re-open each source before wave 1 and before each wave; prices change. Drop a line that moved.
+- [ ] Re-open each source before the first send (30 Nov 2026) and then monthly; prices change. Drop a line that moved.
 - [ ] Say anchors only one to one (calls, the offer sheet), in the wording below. A3 and A4
       identify vendors, so they never go public. A1, A2 and A5 may go public only in the attributed
       wording, with the source, date and sample linked.

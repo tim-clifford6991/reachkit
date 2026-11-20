@@ -1,8 +1,9 @@
 # R8: Setup-call checklist
 
-**Audience:** the owner, on a 15-minute call with a founding customer. **Message to them:** "We'll
-have your site connected before we hang up." **Outcome:** paid, set up and connected on the call;
-first page live within 48 hours of connecting (the D2 service promise).
+**Audience:** the owner, on a 15-minute call with one of the first 50 customers. **Message to
+them:** "Set up in about 10 minutes, or we do it with you on a call." **Outcome:** paid and set up
+on the call; the site's setting entered (it can take a few hours to show); first page live within
+a week of setup (D2, lifted 2026-11-20; D3's gate).
 
 Checked against the real flow on 2026-11-15: `src/app/(account)/setup/**` and
 `src/lib/presentation/copy/keys/setup.ts`. Quoted words are what the customer sees on screen.
@@ -10,8 +11,8 @@ Checked against the real flow on 2026-11-15: `src/app/(account)/setup/**` and
 ## Owner to do
 
 - [ ] Run this checklist on G1's first friendly business and write the real times in the timing
-      table at the end. If connecting takes longer than 15 minutes, the "15-minute call" claim in
-      `offer.md`, `offer-sheet.md` and `scripts.md` changes.
+      table at the end. If the three steps take longer than about 10 minutes, the "about 10 minutes"
+      claim in `offer.md`, `offer-sheet.md` and `scripts.md` changes.
 - [x] **G1's walks** (owner D8, 2026-11-15): subdomain connects only. WordPress sites are skipped
       for all 50 (widened on #2698): don't pitch or set up a WordPress-run site. (WordPress publishing is
       also off on production: `WORDPRESS_CONNECT = false`, `src/lib/config/constants/publish.ts:231`;
@@ -93,9 +94,9 @@ ready or nearly ready. It goes live once your website is connected."
       second reminder (day 3) hasn't got them connected (no live page in `/app/review`), message
       them once.
 
-**WordPress (skipped for all 50, D8; not on production; kept for after the Founding 50)**
+**WordPress (skipped for all 50, D8; not on production; kept for after the first 50)**
 
-Not in the Founding 50: a WordPress-run site is not set up on a founding call (owner D8,
+Not among the first 50: a WordPress-run site is not set up on a first-50 call (owner D8,
 2026-11-15, widened to all 50 on #2698).
 When `WORDPRESS_CONNECT` is switched on (after #324 proves it on a real site), the Connect step
 asks "Where should pages live?" and WordPress adds: "You'll connect it in Settings › Pages, with
@@ -133,17 +134,18 @@ Don't offer this path on a call until the flag is on.
 
 ## After the call (same day)
 
-- [ ] Send a plain mail by hand, from your own mailbox, confirming the founding terms: "€49 a month,
-      VAT included, for as long as you stay; and with the standard 24-hour wait, if your first page
-      isn't live within 48 hours of connecting your site, I get on a call and do it with you." This
-      is the written record of the price lock (D1) and the promise (D2) (trust-compliance F7,
-      #2693). Note "lock mailed {date}" in `notes` in the private `leads.csv`.
-- [ ] Within 48 hours of "Connected": check `/app/review` › Pages for their first live page. The
-      product's first-live email already carries the link, so a message from you is optional and
-      must add something the email doesn't (e.g. "That's page one; the next lands {day}"). Not live
-      by 48 hours → call them and fix it together (D2 service promise).
-- [ ] Update the Progress table in the README (paying, live within 48 h).
-- [ ] Mark `paid` and `live_within_48h` in the private `leads.csv`.
+- [ ] Send a plain mail by hand, from your own mailbox, confirming the terms: "€49 a month, VAT
+      included, cancel any time. You're one of the first 50 customers: I check in after two weeks
+      and after a month, and you can email me directly. If anything in setup gets stuck, we do it
+      together on a call." This is the written record (trust-compliance F7, #2693). Add no
+      price-lock line until Terms §4 carries it (#2993). Note "terms mailed {date}" in `notes` in
+      the private `leads.csv`.
+- [ ] Within a week of setup: check `/app/review` › Pages for their first live page. The product's
+      first-live email already carries the link, so a message from you is optional and must add
+      something the email doesn't (e.g. "That's page one; the next lands {day}"). Not live within a
+      week → call them and fix it together.
+- [ ] Update the Progress table in the README (paying; set up in about 10 minutes, or on a call).
+- [ ] Mark `paid`, `set_up_by` (`self` or `call`) and `first_live_on` in the private `leads.csv`.
 
 ## When it goes wrong
 

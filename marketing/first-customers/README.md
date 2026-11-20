@@ -1,4 +1,4 @@
-# First customers: the Founding 50
+# First customers: the first 50
 
 The living plan for ReachKit's first 50 paying customers. The `growth-marketing` agent reads this
 folder first for any acquisition, offer, outreach or launch work, and updates it in the same pull
@@ -9,7 +9,7 @@ the owner's rulings on #2299 and #2513; where they disagree, they win and this f
 |---|---|
 | `README.md` | Goal, status, open owner decisions, readiness gates, change log |
 | `icp-and-sources.md` | Who the first 50 are, how to score them, where to find them |
-| `offer.md` | The Grand Slam offer: value equation, stack, name, scarcity, urgency, guarantee, partner offer (deferred, D6) |
+| `offer.md` | The Grand Slam offer: value equation, stack, name, scarcity, urgency, the setup promise, partner offer (deferred, D6) |
 | `playbook.md` | Tactics: how to build the offer, how to pitch it, the resources to make, the timeline |
 | `scripts.md` | R4: outreach scripts (EN), follow-ups and the call agenda |
 | `offer-sheet.md` | R5: the one-page offer sheet, one to one only |
@@ -28,19 +28,27 @@ sales frame is from his sales training.
 ## Goal
 
 50 paying customers on €49 a month, each with a page live on their own domain, without buying
-attention first. Interim targets: 10 by 6 Dec 2026, 25 by 20 Dec 2026, 50 by 31 Jan 2027.
+attention first, by the end of 31 Jan 2027 UTC. Interim targets: 10 paying after the first week
+of outreach, 25 after the third.
 
 ## The three rules this plan works inside
 
 1. **No money-back guarantee on any public page; nothing refunded by itself** (SPEC, owner
-   2026-11-06, #2452 and #2448). Guarantees here are service or credit promises, made one to one,
-   and each needs the owner's yes.
+   2026-11-06, #2452 and #2448). The setup promise, "Set up in about 10 minutes, or we do it with
+   you on a call", may stand in public (owner 2026-11-20, #2981). The refund line and any credit
+   stay one to one, and each needs the owner's yes.
 2. **Every free scan is a public card on `/scans`** (SPEC §2). We never scan a prospect's site for
    them. We show what AI says about their market by asking an AI by hand, and they run the scan.
-3. **English first** (owner, 2026-11-15, D10). The Founding 50 are English-speaking businesses in
-   English-speaking countries. The German push is dropped from the Founding 50. No cold email for
+3. **English first** (owner, 2026-11-15, D10). The first 50 are English-speaking businesses in
+   English-speaking countries. The German push is dropped from the first 50. No cold email for
    now (D11): the researched leads are reached by a LinkedIn connection plus a message, and by
    public posts. Anyone who says no is never contacted again (`opted_out_on` in the tracker).
+
+4. **Customer words** (owner, 2026-11-20, #2981). Say "first 50 customers", "{left} of 50 spots
+   left until 31 Jan 2027" and "Set up in about 10 minutes, or we do it with you on a call". One
+   pool, one end date: no batches, sizes or interim dates. "Founder" (the person) is fine; the
+   adjective for the offer, a promise of certainty and a delivery deadline in hours are not used
+   (the exact words are on #2994). The price-lock line waits for Terms §4 (#2993).
 
 The pace wording is "up to 7 pages a week, new or updated" until SPEC §1 *The pace* takes the
 owner's 11-10 "publish daily" ruling (#2513).
@@ -73,16 +81,16 @@ Warm outreach may start now. Strangers are not asked to pay until G1 and G2 are 
 
 | # | Decision | Recommended | Status |
 |---|---|---|---|
-| D1 | Founding price lock: €49 a month for as long as they stay | Yes | **ruled 11-15: yes** |
-| D2 | Guarantee: service ("live in 48 h or I do it with you") plus anti-guarantee ("the free report is the proof") | Yes | **ruled 11-15: yes, one to one only** |
-| D3 | Credit guarantee: no page live in 7 days → second month free (Stripe coupon by hand) | Hold | **ruled 11-15: hold until G1 and G2 prove 48 h delivery** |
-| D4 | Founding waves: 15 places closing 6 Dec, 15 closing 20 Dec, 20 closing 31 Jan | Yes | **ruled 11-15: yes** |
+| D1 | Price lock for the first 50: €49 a month while they stay | Yes | **ruled 11-15: yes. Not said to customers until Terms §4 carries it (#2993, held by owner ruling 57, 2026-11-20)** |
+| D2 | The setup promise, plus "read your report and first page before you pay" | Yes | **ruled 11-15; lifted 2026-11-20 (#2981): the promise is "Set up in about 10 minutes, or we do it with you on a call", public, never worded as a certainty. The refund line stays one to one** |
+| D3 | Credit: no page live in 7 days → second month free (Stripe coupon by hand) | Hold | **ruled 11-15: hold; gate re-worded 2026-11-20 (#2994, owner ruling 57): hold until G1 and G2 prove a first page live within a week of setup** |
+| D4 | Scarcity and end date | Yes | **replaced 2026-11-20 (owner, by selector; #2299, #2994): one pool of 50 spots, open until the end of 31 Jan 2027 UTC or until taken. No sizes or interim close dates anywhere, the owner's outreach scripts included** |
 | D5 | Raise the daily scan ceiling on outreach days (G4) | Size with commercialization | **ruled 11-15: keep 1,000¢; launch in small steps, no day planned past ~80 scans; Product Hunt waits** |
 | D6 | Partner (web designer) terms: setup help only, or a credit | Setup help only until commercialization rules | **ruled 11-15: no partner or affiliate channel in the first 50; deferred to Phase 2 or later. Simple direct sales and first revenue** |
 | D7 | A "how did you hear about us" field or a fourth analytics event | Ask by hand for the first 50 | **ruled 11-15: tagged links per channel (`?ref=`), table below; storing the ref is a separate engineering issue** |
-| D8 | WordPress sites in the Founding 50 | Skip | **ruled 11-15: skipped for wave 1; widened the same day to all 50 (#2698). G1 tests subdomain connects only; WordPress-run sites are not pitched or set up, and score 0 on "can set it up"** |
+| D8 | WordPress sites in the first 50 | Skip | **ruled 11-15: skipped at first; widened the same day to all 50 (#2698). G1 tests subdomain connects only; WordPress-run sites are not pitched or set up, and score 0 on "can set it up"** |
 | D9 | Lawyer and compliance work before revenue | — | **ruled 11-15 (#2698): none for now. The plan is not gated on trust-compliance; no lawyer. What keeps a claim true still applies (price anchors, urgency, the refund wording, the price lock mailed after payment)** |
-| D10 | Market | — | **ruled 11-15 (#2698): English-speaking countries and businesses first. The German push (wave 3 DE) is dropped from the Founding 50; wave 3 stays, in English** |
+| D10 | Market | — | **ruled 11-15 (#2698): English-speaking countries and businesses first. The German push is dropped from the first 50; January's outreach stays, in English** |
 | D11 | Cold email | — | **ruled 11-15 (#2698): none for now. The 111 researched leads are reached by LinkedIn (connection plus message) and public posts** |
 
 ## Channel links (D7)
@@ -110,11 +118,22 @@ and write it in `heard_from` in the private tracker. The three analytics events 
 
 ## Progress
 
-| Date | Contacts | Replies | Scans run | Calls | Paying | Live in 48 h |
+| Date | Contacts | Replies | Scans run | Calls | Paying | Set up in about 10 minutes, or a call |
 |---|---|---|---|---|---|---|
 | 2026-11-15 | 0 | 0 | 0 | 0 | 0 | — |
 
 ## Change log
+
+- 2026-11-20 (#2994; owner rulings on #2981, D4 replaced on #2299, ruling 57 on #2722): the
+  outreach material speaks of the first 50 customers, spots left and a 10-minute setup. D4 is one
+  pool of 50 spots until the end of 31 Jan 2027 UTC; the batch sizes and interim dates are gone
+  from every file, the playbook timeline and the scripts included, and the gate between them is
+  now a pause rule. D2 is lifted: the setup promise is public, and the 48-hour promise is gone. D3
+  stays held, its gate re-worded to "first page live within a week of setup". The price-lock line
+  is held for Terms §4 (#2993), so no customer line promises it. The Progress table measures "Set
+  up in about 10 minutes, or a call"; `leads.csv` swaps its 48-hour column for `set_up_by` and
+  `first_live_on`. The plan is now "the first 50". Rule 4 (customer words) added. Overlaps #2988,
+  which rewrites rule 1, D2 and D4 with the same words.
 
 - 2026-11-15: owner rulings on #2698 recorded as D9–D11 and a wider D8. No lawyer and no compliance
   gate before revenue (G3 dropped as a gate); English first, the German push dropped from the

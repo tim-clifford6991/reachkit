@@ -2,7 +2,7 @@
 
 **Audience:** owners of small businesses with a website: local services, shops, hospitality,
 professional services, software and creators. Mostly the owner's own network on LinkedIn and X,
-from wave 1 (opens 30 Nov 2026).
+from 30 Nov 2026, when outreach starts.
 **Message, every post:** "You can see, free, who Google and AI send your buyers to instead of you."
 **Call to action, every post:** run the free scan on your own site:
 `https://reachkit.app/?ref=linkedin` on LinkedIn, `https://reachkit.app/?ref=x` on X (README ›
@@ -32,7 +32,7 @@ Our own site is never presented as a customer.
 | One finding, one ask: the free scan | Simplicity; playbook §3 (R10) |
 | Say "up to 7 pages a week, new or updated". Never "a page a day", and nothing that implies a daily count, such as a run of days in a row | SPEC §1 *The pace* (`docs/SPEC.md:94`); `offer.cadence.page` (`src/lib/presentation/copy/keys/offer.ts:36`) |
 | Name no rival product. Say "the biggest name in our market" | `offer.md`; `scripts.md` rules |
-| No guarantee, refund, ranking or result promised | README rule 1; `about.never.promise` (`chrome.ts:414`); Terms §7 (`chrome.ts:197`) |
+| No refund, ranking or result promised. Only the setup promise may be said, in its own words (D2, lifted 2026-11-20) | README rule 1; `about.never.promise` (`chrome.ts:414`); Terms §7 (`chrome.ts:197`) |
 | No other company's report, ever | SPEC §1 *Our own report only* |
 | A figure across many scans only when it is true as stated: no site, business or person named (rivals in AI answers included); at least 20 sites behind every figure and every slice; the population stated as "Of {N} sites scanned with ReachKit between {d1} and {d2}"; the owner's, test and fixture scans and removed domains excluded; the query, date and N kept with the post. Never call the sample "businesses" in general | README › *Aggregate figures across stored scans* |
 | Never scan a reader's site for them; they run it | README rule 2 |
@@ -278,17 +278,17 @@ live 24 hours after it is written, unless you stop it").
 
 ---
 
-## Calendar (wave 1 and wave 2)
+## Calendar (the first two weeks of outreach)
 
 Mon, Wed and Fri, around 08:30 Berlin time on LinkedIn; the same day on X. Two weeks, one round of
-six. Repeat the round once from wave 2 only with fresh numbers from the report on that day.
+six. Repeat the round once, from Mon 14 Dec, only with fresh numbers from the report on that day.
 
 | Date | Post | Channel tag |
 |---|---|---|
-| Mon 30 Nov 2026 (wave 1 opens) | 1. A tidy website is not a found website | `linkedin`, `x` |
+| Mon 30 Nov 2026 (outreach starts) | 1. A tidy website is not a found website | `linkedin`, `x` |
 | Wed 2 Dec | 2. AI names a few businesses | `linkedin`, `x` |
 | Fri 4 Dec | 3. The questions nobody on your site answers | `linkedin`, `x` |
-| Mon 7 Dec (wave 2 opens) | 4. The free report tells you how to fix it yourself | `linkedin`, `x` |
+| Mon 7 Dec | 4. The free report tells you how to fix it yourself | `linkedin`, `x` |
 | Wed 9 Dec | 5. Every fact from your own site | `linkedin`, `x` |
 | Fri 11 Dec | 6. Old pages kept fresh | `linkedin`, `x` |
 

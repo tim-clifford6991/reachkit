@@ -1,6 +1,6 @@
 # R12: Day-14 and day-30 check-ins and the referral ask
 
-**Audience:** a founding customer, 14 and 30 days after paying. **Message:** "Here's what went live
+**Audience:** one of the first 50 customers, 14 and 30 days after paying. **Message:** "Here's what went live
 on your site, and I'm here." **Call to action:** day 14, reply with one thing to change; day 30,
 introduce one owner who should see their own report. Sent by the owner, one to one (WhatsApp,
 LinkedIn or email, whichever they used to reach you).
@@ -53,7 +53,7 @@ say one. *Too early* is the honest state in week 2; it never reads as failure.
 > you where to change it.
 
 The sentence in braces is the landing's own words, quoted as they are (`landing.faq.results.short`,
-`src/lib/presentation/copy/keys/report.ts:678`).
+`src/lib/presentation/copy/keys/report.ts:677`).
 
 **If they reply with a change:** show them where it lives, on a short call or in a message. Voice,
 "Never say", Your business and competitors are in Settings, which they set with your guidance (you
@@ -61,8 +61,8 @@ can't open their Settings). A page they dislike: "Stop this page", in the email 
 Stopping a page also keeps that topic away for four weeks (`TOPIC_REST_DAYS` = 28,
 `src/lib/config/constants/opportunities.ts:158`). Never promise a topic is gone for good.
 
-**If no page is live yet:** don't send this. Call them (D2 service promise) and fix the connection
-first.
+**If no page is live yet:** don't send this. Call them and fix the connection together first
+(the setup promise, D2).
 
 ## Day 30: check-in and referral ask
 
@@ -74,7 +74,7 @@ first.
 >
 > Thanks for being one of the first. A quick favour: who else do you know who owns a business
 > website and never has time for marketing? Could you send them this link, or introduce us:
-> https://reachkit.app/?ref=referral {Only while a founding wave is open (until 31 Jan 2027): "I'll
+> https://reachkit.app/?ref=referral {Only while spots are left (until 31 Jan 2027): "I'll
 > set them up personally too, the same way."} {After that: "They can run the free scan on their
 > own site and see what you saw."}
 
@@ -95,13 +95,13 @@ answer the reason, not with a discount:
 | Something technical | `/app/issues` or the connection, fixed together |
 | Business closed or changing | Let them go with the cancel line below |
 
-No coupon and no pause: one plan, and the credit guarantee (D3) is on hold. If they want to stop:
+No coupon and no pause: one plan, and the second-month credit (D3) is on hold. If they want to stop:
 
 > Cancel any time in Settings; you're not charged again. Your export of every page stays
 > available. You keep access to the end of the month you've paid for, and pages we host stay up
 > for 30 days after that, with an email before they come down.
 
-Evidence: `landing.faq.stop.short` (`report.ts:679`); Terms §4 and §6 (`legal.terms.body`,
+Evidence: `landing.faq.stop.short` (`report.ts:678`); Terms §4 and §6 (`legal.terms.body`,
 `src/lib/presentation/copy/keys/chrome.ts:197`); `HOSTED_RETENTION_DAYS` = 30
 (`src/lib/config/constants/costs.ts:306`), with the notice from
 `src/lib/account/billing/hosting-notices.ts`. Payments aren't refunded unless the law requires it
