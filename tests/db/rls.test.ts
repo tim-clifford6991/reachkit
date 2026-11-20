@@ -378,3 +378,34 @@ describe('BP-002 `## Error & edge behavior` — "The public report is served by 
     expect(data).toEqual([]);
   });
 });
+
+describe("a session reads its own rows and writes none; every write goes through the server", () => {
+  const OWNER = "bbbbbbbb-0000-0000-0000-000000000001";
+
+  beforeAll(() => {
+    psql(["-v", "ON_ERROR_STOP=1", "-f", path.join(REPO_ROOT, "supabase/migrations/20261120120000_rls_sessions_read_only.sql")]);
+    psql(["-v", "ON_ERROR_STOP=1", "-c", `insert into users (id, email, plan_status) values ('${OWNER}', 'reader@example.com', 'canceled');`]);
+  });
+
+  it("the owner still reads their row, no session role may insert, update or delete on any public table, and the server still writes", async () => {
+    const owner = asUser(userJwt(OWNER));
+    expect((await owner.from("users").select("id").eq("id", OWNER)).data).toEqual([{ id: OWNER }]);
+
+    const writable = psqlRows(`
+      select r.rolname || ' ' || t.tablename || ' ' || p.priv from pg_tables t
+      cross join (values ('anon'), ('authenticated')) r(rolname)
+      cross join (values ('insert'), ('update'), ('delete')) p(priv)
+      where t.schemaname = 'public' and has_table_privilege(r.rolname, 'public.' || t.tablename, p.priv);
+    `);
+    expect(writable).toEqual([]);
+
+    for (const client of [owner, db()]) {
+      expect((await client.from("users").update({ plan_status: "active" }).eq("id", OWNER)).error).not.toBeNull();
+      expect((await client.from("users").delete().eq("id", OWNER)).error).not.toBeNull();
+      expect((await client.from("users").insert({ email: "new@example.com", plan_status: "active" })).error).not.toBeNull();
+    }
+    expect(psqlRows(`select plan_status from users where id = '${OWNER}';`)).toEqual([["canceled"]]);
+
+    expect((await dbAdmin().from("users").update({ plan_status: "active" }).eq("id", OWNER)).error).toBeNull();
+  });
+});
