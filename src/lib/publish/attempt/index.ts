@@ -122,7 +122,7 @@ export async function publish(a: PublishArgs): Promise<PublishResult> {
 
   const publishedAt = at;
   const liveUrl = result.liveUrl ?? null;
-  await publishDb()
+  const recorded = await publishDb()
     .from<{ id: string }>("publications")
     .update({
       delivery_state: "delivered",
@@ -142,6 +142,8 @@ export async function publish(a: PublishArgs): Promise<PublishResult> {
           : new Date(publishedAt.getTime() + PUBLISH_VERIFY_DELAY_H * 3600_000).toISOString(),
     })
     .eq("id", claimed.publicationId);
+  // Never published without its address and remote id: a retryable failure, and the retry's idempotency key reconciles.
+  if (recorded.error !== null) return failWith(a, claimed.publicationId, claimed.attemptNo, "network", at);
 
   // SPEC §7: a moved page leaves its old address, which answers 301, and its linkers are planned an update; only where
   // it did publish elsewhere, since WordPress keeps the post's address.

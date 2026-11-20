@@ -21,6 +21,8 @@ import type {
 
 export interface UnpublishArgs {
   draftId: string;
+  /** The publication to take down; without it, the draft's live one. */
+  publicationId?: string;
   by: Actor;
   at?: Date;
   deps?: GuardDeps;
@@ -62,7 +64,7 @@ export async function unpublish(a: UnpublishArgs): Promise<UnpublishResult> {
   const at = a.at ?? new Date();
   const resolve = a.adapterFor ?? defaultAdapterFor;
 
-  const row = await readPublication(a.draftId);
+  const row = await readPublication(a.draftId, a.publicationId);
   if (row === null) return { ok: false, reason: "no_destination" };
 
   const destination = row.destination as DestinationKind;
@@ -74,13 +76,15 @@ export async function unpublish(a: UnpublishArgs): Promise<UnpublishResult> {
 
   if (!result.ok) return result;
 
-  await publishDb()
+  const written = await publishDb()
     .from<{ id: string }>("publications")
     .update({
       unpublished_at: at.toISOString(),
       unpublish_outcome: result.outcome,
     })
     .eq("id", row.id);
+  // Unrecorded, the page is not reported down and the draft stays put: the row is still live, so a later try finishes it.
+  if (written.error !== null) return { ok: false, reason: "network" };
 
   await transition(a.draftId, "unpublished", a.by, {
     at,
@@ -115,12 +119,13 @@ async function takenDown(
   }
 }
 
-async function readPublication(draftId: string): Promise<PublicationRow | null> {
-  const { data, error } = await publishDb()
-    .from<PublicationRow>("publications")
-    .select(PUBLICATION_COLUMNS)
-    .eq("draft_id", draftId)
-    .limit(1);
+async function readPublication(draftId: string, publicationId?: string): Promise<PublicationRow | null> {
+  const query = publishDb().from<PublicationRow>("publications").select(PUBLICATION_COLUMNS).eq("draft_id", draftId);
+  // A draft can hold a failed row beside its live one, so an unnamed read takes the live one.
+  const { data, error } = await (publicationId === undefined
+    ? query.not("published_at", "is", null).is("unpublished_at", null)
+    : query.eq("id", publicationId)
+  ).limit(1);
   if (error !== null || data === null) return null;
   const [row] = data;
   return row ?? null;
