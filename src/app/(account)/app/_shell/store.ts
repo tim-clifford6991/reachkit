@@ -307,9 +307,10 @@ export async function readShellFacts(site: ShellSite): Promise<ShellFacts> {
 
   // The switch and the destination are read first: whether there is a next
   // publish at all depends on both (see `nextScheduled`).
-  const [publishingOn, addressWaiting] = await Promise.all([
+  const [publishingOn, addressWaiting, unpaid] = await Promise.all([
     isPublishingOn(site.siteId),
     destinationWaiting(site.siteId),
+    import("@/lib/account/billing").then((billing) => billing.paymentOutstanding(site.siteId)),
   ]);
 
   const today = localDate(now, site.timeZone);
@@ -334,17 +335,18 @@ export async function readShellFacts(site: ShellSite): Promise<ShellFacts> {
     firstDueOn,
     pass,
     waiting: waits.count,
-    // The day's hold keeps every page back until the destination connects, so
+    // The day's hold keeps every page back until the destination connects, or the invoice is paid, so
     // no go-live time is true until then.
-    review: waits.review === null || !addressWaiting ? waits.review : { ...waits.review, goesLiveAt: null },
+    review: waits.review === null || (!addressWaiting && !unpaid) ? waits.review : { ...waits.review, goesLiveAt: null },
     blog,
-    next: nextScheduled(pages ?? [], publishingOn && !addressWaiting),
+    next: nextScheduled(pages ?? [], publishingOn && !addressWaiting && !unpaid),
     coming: [...(pages ?? []).flatMap((row) => comingPage(row, today, site.timeZone)), ...topics],
     stopped,
     // Each cause read as its own fact. `resolveNoPublish` picks between them
     // by ADR-011's precedence — never by whichever this file tested first.
     noPublishCauses: {
       reachkit_stopped: stopped !== null,
+      unpaid,
       address_waiting: addressWaiting,
       publishing_paused: !publishingOn,
     },

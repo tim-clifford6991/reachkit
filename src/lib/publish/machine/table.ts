@@ -88,7 +88,7 @@ export type Refusal = "not_a_transition" | "guard";
 /** The reason the system's restore of an earning address is recorded and guarded under. */
 export const RESTORE_EARNING = "restore:earning";
 
-/** The ten named guards. A guard is a condition on an *edge*, evaluated
+/** The named guards. A guard is a condition on an *edge*, evaluated
  *  in list order; the first that fails names itself in the refusal. */
 export type GuardId =
   /** every edge whose target is `publishing`: only a draft whose text as
@@ -122,6 +122,8 @@ export type GuardId =
    *  customer's own pause are both in force it is the stop that names
    *  itself in the refusal. */
   | "reachkit_not_stopped"
+  /** every edge whose target is `publishing`: the site is paid for (SPEC §3), so an unpaid site's page waits in its state. */
+  | "site_paid"
   /** every edge whose target is `publishing`. */
   | "publishing_switch_on"
   /** every edge whose target is `publishing`. */
@@ -152,9 +154,9 @@ export function isTransition(from: State, to: State): boolean {
  * The guards each edge carries, keyed `'from→to'`. An absent key means no
  * guard: the move is open the moment it is one of the seventeen.
  *
- * Every edge whose target is `publishing` carries the same five ambient
- * guards — ReachKit's own stop, the outstanding claim re-check, the switch,
- * the ceilings and the destination — because "no publish attempt begins"
+ * Every edge whose target is `publishing` carries the same six ambient
+ * guards — ReachKit's own stop, the outstanding claim re-check, the paid
+ * check, the switch, the ceilings and the destination — because "no publish attempt begins"
  * has to be true of every route into an attempt, not of the ordinary one
  * only. Each also carries `draft_passed_hard_rules`, third, beside the claim
  * re-check it is a sibling of: a founder's edit re-runs the battery, and an
@@ -183,6 +185,7 @@ export const GUARDS: Readonly<Record<string, readonly GuardId[]>> = Object.freez
     "no_outstanding_claim_recheck",
     "draft_passed_hard_rules",
     "publishable_and_due",
+    "site_paid",
     "publishing_switch_on",
     "within_ceilings",
     "destination_working",
@@ -192,6 +195,7 @@ export const GUARDS: Readonly<Record<string, readonly GuardId[]>> = Object.freez
     "no_outstanding_claim_recheck",
     "draft_passed_hard_rules",
     "publishable_and_due",
+    "site_paid",
     "publishing_switch_on",
     "within_ceilings",
     "destination_working",
@@ -200,6 +204,7 @@ export const GUARDS: Readonly<Record<string, readonly GuardId[]>> = Object.freez
     "reachkit_not_stopped",
     "no_outstanding_claim_recheck",
     "draft_passed_hard_rules",
+    "site_paid",
     "publishing_switch_on",
     "within_ceilings",
     "destination_working",

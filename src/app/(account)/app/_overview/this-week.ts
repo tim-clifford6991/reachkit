@@ -14,7 +14,7 @@ const stoppable = (cell: DayCell, week: WeekModel): boolean =>
 
 function dayOf(cell: DayCell, week: WeekModel, next: boolean, time: string | null): WeekDay {
   const { page } = cell;
-  if (page === null) return { cell, goesLiveToday: null, href: null, next: false, goesLiveAt: null, liveDraft: null };
+  if (page === null) return { cell, goesLiveToday: null, href: null, next: false, goesLiveAt: null, liveDraft: null, heldBack: false };
   const at = next || page.stage === "your_review" || page.stage === "scheduled" ? (page.vetoDeadline ?? page.publishAt) : null;
   return {
     // Why a page was chosen is Plan's to say; Overview links there instead.
@@ -26,6 +26,8 @@ function dayOf(cell: DayCell, week: WeekModel, next: boolean, time: string | nul
     goesLiveAt: next ? time : null,
     // A live page can be taken down from its row, as on Plan's live list.
     liveDraft: page.stage === "live" && page.liveUrl !== null ? page.draftId : null,
+    // An invoice outstanding holds the next page, which says so in place of its time.
+    heldBack: next && week.held === "unpaid",
   };
 }
 

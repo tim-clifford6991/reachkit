@@ -314,6 +314,8 @@ export function DayPanelView(p: {
    *  statements — the publish line and a stopped day's account — turn on
    *  it, and they must turn on the same one. */
   stopped: WorkStop | null;
+  /** The site has an invoice outstanding: a page's publish line names that in place of its time. */
+  unpaid?: boolean;
   /** SPEC §7 (2026-09-20): the panel is closable. Closing clears the open
    *  day from the address, so a closed panel survives a reload too. */
   onClose: () => void;
@@ -372,6 +374,7 @@ export function DayPanelView(p: {
       timeZone={p.timeZone}
       destination={p.destination ?? null}
       stopped={p.stopped}
+      unpaid={p.unpaid ?? false}
       hiddenOnPhone={p.hiddenOnPhone ?? false}
       onClose={p.onClose}
     />
@@ -404,6 +407,7 @@ function PageDayPanel(p: {
   timeZone: string;
   destination: DestinationStanding | null;
   stopped: WorkStop | null;
+  unpaid: boolean;
   hiddenOnPhone: boolean;
   onClose: () => void;
 }): React.JSX.Element {
@@ -452,7 +456,7 @@ function PageDayPanel(p: {
       ? null
       : nextPublishStatement({
           stopped: stopped !== null,
-          otherwise: { tag: "scheduled", at: formatDateTime(page.publishAt, timeZone) },
+          otherwise: p.unpaid ? { tag: "unpaid" } : { tag: "scheduled", at: formatDateTime(page.publishAt, timeZone) },
         }).line;
   // What became of the page, in one line (issue #217) — the same keys the
   // draft view's record block reads, so the two cannot disagree.

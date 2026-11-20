@@ -35,6 +35,19 @@ export async function sitesWithActiveAccess(siteIds: readonly string[]): Promise
   return new Set(decided.filter(([, active]) => active).map(([siteId]) => siteId));
 }
 
+/** Whether this site's owner has an invoice outstanding, the cause a screen names while publishing waits on payment.
+ *  An unreadable store answers no: a screen never tells a paying customer their payment failed on a guess. */
+export async function paymentOutstanding(siteId: string): Promise<boolean> {
+  try {
+    const site = await billingStore().hosting(siteId);
+    if (!site.ok || site.site === null) return false;
+    const owner = await billingStore().account(site.site.user_id);
+    return owner.ok && owner.account?.plan_status === "past_due";
+  } catch {
+    return false;
+  }
+}
+
 /** How many sites had active access at `at`, by the same comparison. Throws
  *  where the store cannot answer: the spend ceiling's reader falls back to
  *  its smallest day, and a count of 0 would be a guess. */

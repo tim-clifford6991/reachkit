@@ -86,6 +86,8 @@ export interface DoNothing {
    *  with no `at` to make it with. */
   key: CopyKey | null;
   publishesAt: Date | null;
+  /** The site has an invoice outstanding, so the page waits and no time is stated. */
+  unpaid?: true;
 }
 
 /**
@@ -453,6 +455,8 @@ export interface DraftFacts extends Standing {
   /** §9's veto window: when this page goes out if nothing is done. `null`
    *  under copilot, and `null` for a page that is not awaiting review. */
   autoApprovesAt: Date | null;
+  /** A page on its way whose site has an invoice outstanding; absent is paid. */
+  unpaid?: boolean;
   lastSavedAt: Date | null;
   /** The page's own record, or `null` where none could be read (#217). */
   record: PageRecord | null;
@@ -488,14 +492,8 @@ export const DO_NOTHING_COPY_KEY: Readonly<Record<PublishingMode, CopyKey>> =
 
 /** Criterion 4. */
 export function doNothingOf(facts: DraftFacts): DoNothing {
-  // **Autopilot with no window left says nothing at all.** `store.ts` reads
-  // `autoApprovesAt` as non-null only while a page is `in_review`, so every
-  // published, vetoed or stopped page on an autopilot site arrives here with
-  // none — and the autopilot sentence takes a `{at}` slot. Naming the key
-  // anyway made `copy()` throw the moment a customer on autopilot opened a
-  // page that had already gone out: `copy(): "draft.do-nothing.autopilot"
-  // requires slot "at"`, and the whole screen 500'd. The rule this follows
-  // is the draft view's own, stated in `PageRecord`: no row without a fact.
+  // No window left, or a site waiting on payment, names no key: the autopilot sentence needs an `{at}` (no row without a fact).
+  if (facts.unpaid === true) return { key: null, publishesAt: null, unpaid: true };
   const publishesAt = facts.autoApprovesAt;
   return {
     key: publishesAt === null ? null : DO_NOTHING_COPY_KEY[facts.mode],

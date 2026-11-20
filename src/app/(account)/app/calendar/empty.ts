@@ -28,6 +28,8 @@ import type { WorkStop } from "@/lib/presentation/stopped";
  *  their own member, apart from a destination that broke, because each has
  *  its own remedy (#754). */
 export type HeldBySetting =
+  /** An invoice outstanding (SPEC §3): Billing is where it clears. */
+  | "unpaid"
   | "publishing_off"
   | "destination_pending_dns"
   | "destination_pending_connect"
@@ -221,6 +223,7 @@ export const EMPTY_COPY_KEY: Record<OneLineCause, CopyKey> = {
  *  CNAME points the customer at the record — rather than one sentence
  *  offering every cause. The same line in the cell and the panel. */
 export const HELD_BY_SETTING_COPY_KEY: Record<HeldBySetting, CopyKey> = {
+  unpaid: "next-publish.unpaid",
   publishing_off: "calendar.empty.customer-change-holds-pages.publishing-off",
   destination_pending_dns: "calendar.empty.customer-change-holds-pages.destination-pending-dns",
   destination_pending_connect: "calendar.empty.customer-change-holds-pages.destination-pending-connect",

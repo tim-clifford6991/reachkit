@@ -29,6 +29,8 @@ export interface WeekDay {
   goesLiveAt: string | null;
   /** A live page's draft, which its row can take down; `null` otherwise. */
   liveDraft: string | null;
+  /** The next page, held back while the site has an invoice outstanding. */
+  heldBack: boolean;
 }
 
 export interface WeekList {
@@ -76,7 +78,11 @@ function DayControls(p: { day: WeekDay; timeZone: string; scheduled: boolean; wo
           : null;
   return (
     <span className="flex min-w-0 flex-col items-start" data-testid={when === null ? undefined : "overview-week-goes-live"}>
-      {when === null ? (
+      {when === null && day.heldBack ? (
+        <span className="badge badge-sm badge-soft badge-warning shrink-0 whitespace-nowrap font-semibold" data-testid="overview-week-held">
+          {copy("calendar.empty.short.customer-change-holds-pages")}
+        </span>
+      ) : when === null ? (
         <DayStateBadge cell={day.cell} filter={ALL} />
       ) : (
         <span className="text-xs font-semibold">

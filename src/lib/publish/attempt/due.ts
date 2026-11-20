@@ -4,7 +4,7 @@
 // `(draft_id, destination)` is a post's at-most-once key, never a retry key.
 // Due: `delivery_state = 'failed'`, the page still in `failed`, and `attempt_no` inside `MAX_RETRIES` with the moment passed;
 // or the page resting on retries exhausted, re-attempted once a day (`reattemptDue`).
-// The switch is not asked here: the claim's guard reads it at the attempt, so a held page is offered again next tick.
+// Neither the switch nor the paid check is asked here: the claim's guards read them at the attempt, so a held page is offered again next tick.
 // One statement for the failed rows and one for their destinations, never one per page.
 import { PUBLISH_RETRY_BACKOFF_MIN } from "@/lib/config/constants";
 import { publishDb } from "../db";

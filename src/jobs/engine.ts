@@ -626,7 +626,7 @@ export async function publishDue(a: {
 // tick that reads this re-enters every page it returns through
 // `publishApproved()` above — the same seam an approval comes through, so
 // an attempt occasioned by a retry and one occasioned by a customer are
-// the same attempt, with the same nine guards re-asked at the moment it is
+// the same attempt, with the same guards re-asked at the moment it is
 // made.
 //
 // `now` comes from the tick, which is what makes due-ness testable without

@@ -545,10 +545,8 @@ export async function readDraftRow(a: {
     state: row.state as State,
     ...standingAtRead({ state: row.state as State, transitions: row.transitions, meta: row.meta }, at),
     firstEditedAt: firstEdited === null ? null : new Date(firstEdited),
-    // §8's recorded fact, from its own column and through the one reader
-    // (`@/lib/generate/fact`). `null` where generation recorded no
-    // grounding: `assembleDraft` draws no highlight and no source line for
-    // one, rather than an empty address beside a stand-in date (#268).
+    // §8's recorded fact through the one reader (`@/lib/generate/fact`); `null` where generation recorded no
+    // grounding, so `assembleDraft` draws no highlight and no source line rather than an empty address.
     groundedFact: readRecordedFact(row.grounded_fact),
     claim: claimStateOf(row.claim_check),
     mode: a.site.mode,
@@ -558,6 +556,8 @@ export async function readDraftRow(a: {
       row.state === "in_review" && row.veto_deadline !== null
         ? new Date(row.veto_deadline)
         : null,
+    // Only a page still on its way can be waiting on payment.
+    unpaid: ["in_review", "approved", "publishing", "failed"].includes(row.state) && (await (await import("@/lib/account/billing")).paymentOutstanding(a.site.siteId)),
     lastSavedAt: lastSaved === null ? null : new Date(lastSaved),
     record,
     // The page's own publication, after the same ownership proof.

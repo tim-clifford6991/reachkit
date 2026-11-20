@@ -145,9 +145,8 @@ vi.mock("@/lib/egress", () => ({
   resolvesInDns: async () => true,
 }));
 
-// ── The modules, after the doubles above are in place ───────────────────
-
 const { runJob } = await import("../../src/jobs/run");
+const [{ setBillingStore, supabaseBillingStore }, { payingStore }] = [await import("../../src/lib/account/billing"), await import("../account/billing/memory-store")];
 const { publishRetry } = await import("../../src/jobs/publish-retry");
 const { publishVerify } = await import("../../src/jobs/publish-verify");
 const { enterReview } = await import("../../src/lib/publish/attempt/window");
@@ -404,6 +403,7 @@ beforeEach(async () => {
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(WRITTEN_AT);
   seedTheDatabase();
+  setBillingStore(payingStore(() => true, supabaseBillingStore())); // This customer pays: the flow under test is publishing's, not billing's.
   queued.length = 0;
   runs.length = 0;
   inbox.length = 0;

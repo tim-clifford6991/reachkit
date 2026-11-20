@@ -78,8 +78,8 @@ export interface PublishingFacts {
    *  actually broken — and never on the page's stage. `null` where the
    *  site has no live destination. */
   destination: { kind: DestinationKind; healthy: boolean } | null;
-  /** REQ-043 c4's saved change, where one is holding pages back. The
-   *  switch is asked first: it is the customer's own act, and a
+  /** REQ-043 c4's saved change, where one is holding pages back. An
+   *  outstanding invoice outranks every setting, then the switch is asked: it is the customer's own act, and a
    *  disconnected destination on a site whose publishing is off is not the
    *  fact they need. A destination that is not working because its host
    *  is still waiting for DNS is named as that (#754). */
@@ -121,8 +121,9 @@ export async function readPublishingFacts(a: {
   let waitingToConnect: Awaited<ReturnType<typeof destinationWaitingToConnect>>;
   let settings: Awaited<ReturnType<typeof readPublishingSettings>>;
   let standing: Awaited<ReturnType<typeof destinationStanding>>;
+  let unpaid: boolean;
   try {
-    [pages, held, publishingOn, destinationOk, waitingToConnect, settings, standing] = await Promise.all([
+    [pages, held, publishingOn, destinationOk, waitingToConnect, settings, standing, unpaid] = await Promise.all([
       scheduledPagesFor({ siteId: a.siteId, from, to }),
       heldPages(a.siteId),
       isPublishingOn(a.siteId),
@@ -132,6 +133,7 @@ export async function readPublishingFacts(a: {
       // Issue 880: the stored row, not a re-check — this decides which
       // control a page earns and may spend no vendor call.
       destinationStanding(a.siteId),
+      import("@/lib/account/billing").then((billing) => billing.paymentOutstanding(a.siteId)),
     ]);
   } catch (error) {
     console.warn(
@@ -157,7 +159,9 @@ export async function readPublishingFacts(a: {
     publishAt,
     heldDays,
     destination: standing,
-    customerChangeHoldsPages: !publishingOn
+    customerChangeHoldsPages: unpaid
+      ? "unpaid"
+      : !publishingOn
       ? "publishing_off"
       : !destinationOk
         ? waitingToConnect === "dns"
