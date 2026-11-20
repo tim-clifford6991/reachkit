@@ -261,14 +261,14 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
   const anyway = a.completeness === "warn";
   const missing: PackNeed[] = writtenAnyway(pack, basis.room?.short === true && !pack.missing.includes("facts_few") ? [...pack.missing, "facts_few"] : pack.missing, anyway);
   if ((anyway ? missing.length > 0 : !standard.met) && existing === null) {
-    logRun({ siteId: a.siteId, step: "pack", outcome: "short", type: pack.type, missing: missing.join(",") });
+    logRun({ siteId: a.siteId, opportunityId: a.opportunity.id, step: "pack", outcome: "short", type: pack.type, missing: missing.join(",") });
     return { ok: false, reason: "step_failed", draftId: null, step: "pack", missing };
   }
   if (missing.length > 0 || (pack.adds.short && !anyway)) {
     const draftId = await writeRow({ title: existing?.title ?? a.opportunity.title ?? null, body_md: existing?.body_md ?? null, meta: baseMeta });
     await store.patchDraft(draftId, { hard_rules_passed: false });
     const step: PipelineStep = missing.length > 0 ? "pack" : "adds";
-    logRun({ siteId: a.siteId, draftId, step, outcome: "short", type: pack.type, missing: missing.join(",") });
+    logRun({ siteId: a.siteId, opportunityId: a.opportunity.id, draftId, step, outcome: "short", type: pack.type, missing: missing.join(",") });
     return { ok: false, reason: "step_failed", draftId, step, ...(step === "pack" ? { missing } : {}) };
   }
 
