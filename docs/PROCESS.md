@@ -79,6 +79,6 @@ A pull request body has `Conditions`, `Overlaps` and `Surfaces`, and `audit` fai
 
 | Parent | Surface | Condition | Check |
 |---|---|---|---|
-| #1458 | public | The public offer matches the product, and a ranked URL does not 404 | tests/archive/presentation/copy/public-claims.test.ts |
+| #1458 | public | A ranked URL does not 404 | tests/app/library/old-paths.test.ts |
 
 `#1454` (scan), `#1127` (content) and `#1457` (app) have no row: the weekly review reads them, and they stay open. A pull request names any of the four parents with `Refs #n`, never Closes, and `scripts/hygiene.mjs` fails while a parent with a row here is closed.
