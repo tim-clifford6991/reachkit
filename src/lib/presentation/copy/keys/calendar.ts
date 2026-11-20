@@ -51,8 +51,8 @@
 // arbiter `src/lib/presentation/place/account.ts` resolves — the baseline
 // cold-start line for a date carrying no page, and the two cause lines. They
 // were registered **owner-owed and empty**, deliberately, so `account()`
-// threw naming the key rather than handing a place a blank; #246 moved them
-// to the marker, and #460 wrote them.
+// threw naming the key rather than handing a place a blank; #460 wrote
+// them.
 // 2026-09-06, separately again: issue #116 (REQ-092 c5) adds one —
 // `calendar.empty.page-held`, the account a date carries when a page was
 // planned for it and did not go live on it because a ReachKit stop held it.
@@ -82,11 +82,11 @@ import type { CopyPartition } from "../registry.ts";
 export const CALENDAR_COPY = Object.freeze({
   "place.calendar.date.page": [
     "No page on this date yet. The Monday check fills dates in.",
-    { law: "no-presence-yet", slots: {}, fixedBy: "REQ-043 c5" },
+    { law: "no-presence-yet", slots: {} },
   ],
   "cause.unrecognised": [
     "Nothing here yet, because of something on our side. It isn’t your market.",
-    { law: "no-presence-yet", slots: {}, fixedBy: "REQ-043 c4" },
+    { law: "no-presence-yet", slots: {} },
   ],
   // 2026-09-08, issue #354. The approved screen set (S14) draws this line
   // on the one grid cell that has it, and ruling 11a makes its unbracketed
@@ -100,58 +100,58 @@ export const CALENDAR_COPY = Object.freeze({
   // exactly that split for supply.
   "cause.supply-exhausted": [
     "nothing worth publishing",
-    { law: "no-presence-yet", slots: {}, fixedBy: "REQ-043 c3" },
+    { law: "no-presence-yet", slots: {} },
   ],
   // Plan's lead, cut to the board's first two sentences (SPEC §0 ≤20 words, owner R12 B11).
-  "calendar.head": ["Chosen {date}. Each goes live on its day unless you stop it.", { slots: { date: "text" }, fixedBy: "owner R12 B11 (drafted)" }],
+  "calendar.head": ["Chosen {date}. Each goes live on its day unless you stop it.", { slots: { date: "text" } }],
 
   // §4.6's stage filter cards. `all` is a filter, not a stage.
-  "calendar.stage.all": ["All", { slots: {}, fixedBy: "BUILD §4.6" }],
-  "calendar.stage.live": ["Live", { slots: {}, fixedBy: "REQ-043 c2" }],
-  "calendar.stage.your-review": ["Ready", { slots: {}, fixedBy: "REQ-043 c2" }],
-  "calendar.stage.scheduled": ["Scheduled", { slots: {}, fixedBy: "REQ-043 c2" }],
-  "calendar.stage.planned": ["Planned", { slots: {}, fixedBy: "REQ-043 c2" }],
-  "calendar.stage.needs-you": ["Needs you", { slots: {}, fixedBy: "REQ-043 c2" }],
+  "calendar.stage.all": ["All", { slots: {} }],
+  "calendar.stage.live": ["Live", { slots: {} }],
+  "calendar.stage.your-review": ["Ready", { slots: {} }],
+  "calendar.stage.scheduled": ["Scheduled", { slots: {} }],
+  "calendar.stage.planned": ["Planned", { slots: {} }],
+  "calendar.stage.needs-you": ["Needs you", { slots: {} }],
 
   // E5: Plan's seven days, each in one of five states, the stop control on
   // a page that can still be stopped, and the week's spares. Drafted (#759).
-  "calendar.day.written": ["Written", { slots: {}, fixedBy: "SPEC §7 2026-10-19 E5 (drafted)" }],
-  "calendar.day.stopped": ["Stopped", { slots: {}, fixedBy: "SPEC §7 2026-10-19 E5 (drafted)" }],
-  "calendar.day.skipped": ["Skipped", { slots: {}, fixedBy: "SPEC §7 2026-10-19 E5 (drafted)" }],
-  "calendar.day.set-aside": ["Set aside", { slots: {}, fixedBy: "owner O7, issue 2164 (drafted)" }],
-  "calendar.day.became-update": ["Now an update", { slots: {}, fixedBy: "ux-designer, seo-master 2026-11-05, issue 2389 (drafted)" }],
-  "calendar.day.became-update.line": ["This day now improves a live page instead of a new one. Nothing is needed from you.", { slots: {}, fixedBy: "ux-designer 2026-11-06, seo-master 2026-11-05, issue 2389 (drafted)" }],
-  "calendar.week.stop": ["Stop This Page", { slots: {}, fixedBy: "SPEC §7 2026-10-19 E7 · issue 2657 S1 (issue 2668, drafted)" }],
+  "calendar.day.written": ["Written", { slots: {} }],
+  "calendar.day.stopped": ["Stopped", { slots: {} }],
+  "calendar.day.skipped": ["Skipped", { slots: {} }],
+  "calendar.day.set-aside": ["Set aside", { slots: {} }],
+  "calendar.day.became-update": ["Now an update", { slots: {} }],
+  "calendar.day.became-update.line": ["This day now improves a live page instead of a new one. Nothing is needed from you.", { slots: {} }],
+  "calendar.week.stop": ["Stop This Page", { slots: {} }],
   // Why the week holds a page: its most specific reason, one line.
-  "calendar.week.why.near-page-one": ["Close to Google’s first page", { slots: {}, fixedBy: "SPEC §7 2026-10-19 C3 (drafted)" }],
-  "calendar.week.why.not-moving": ["No movement in 8 weeks", { slots: {}, fixedBy: "SPEC §7 2026-10-19 C3 (drafted)" }],
-  "calendar.week.why.ai-gap": ["AI answers link a competitor", { slots: {}, fixedBy: "SPEC §7 2026-10-19 C3 (drafted)" }],
-  "calendar.week.why.linked-by-ai": ["AI answers link your page on this topic", { slots: {}, fixedBy: "SPEC §7 2026-10-19 C3 (drafted)" }],
-  "calendar.week.why.searched": ["Searched every month", { slots: {}, fixedBy: "SPEC §7 2026-10-19 C3 (drafted)" }],
-  "calendar.week.why.asked": ["Buyers ask this", { slots: {}, fixedBy: "SPEC §7 2026-10-19 C3 (drafted)" }],
-  "calendar.week.why.fit": ["A close fit for your business", { slots: {}, fixedBy: "SPEC §7 2026-10-19 C3 (drafted)" }],
-  "calendar.spares.title": ["backup pages", { slots: {}, fixedBy: "board Plan v36, issue 2273 (drafted)" }],
-  "calendar.spares.note": ["used if a day’s page can’t be written", { slots: {}, fixedBy: "board Plan v36, issue 2273 (drafted)" }],
+  "calendar.week.why.near-page-one": ["Close to Google’s first page", { slots: {} }],
+  "calendar.week.why.not-moving": ["No movement in 8 weeks", { slots: {} }],
+  "calendar.week.why.ai-gap": ["AI answers link a competitor", { slots: {} }],
+  "calendar.week.why.linked-by-ai": ["AI answers link your page on this topic", { slots: {} }],
+  "calendar.week.why.searched": ["Searched every month", { slots: {} }],
+  "calendar.week.why.asked": ["Buyers ask this", { slots: {} }],
+  "calendar.week.why.fit": ["A close fit for your business", { slots: {} }],
+  "calendar.spares.title": ["backup pages", { slots: {} }],
+  "calendar.spares.note": ["used if a day’s page can’t be written", { slots: {} }],
 
   // §4.6's stage-appropriate actions.
-  "calendar.action.read-full-page": ["Read the Full Page", { slots: {}, fixedBy: "BUILD §4.6" }],
-  "calendar.action.view-live-page": ["View Live Page", { slots: {}, fixedBy: "BUILD §4.6" }],
+  "calendar.action.read-full-page": ["Read the Full Page", { slots: {} }],
+  "calendar.action.view-live-page": ["View Live Page", { slots: {} }],
   // Issue 882 (owner, 2026-09-18): every written page is readable from the
   // calendar, not only the one in review. The review stage keeps §4.6's own
   // word above, which asks for a judgement; every other stage says plainly
   // what the way in opens. Drafted under issue 759's ruling.
-  "calendar.action.read-page": ["Read the Page as Written", { slots: {}, fixedBy: "issue 882" }],
+  "calendar.action.read-page": ["Read the Page as Written", { slots: {} }],
   // The approved S15 names the destination the control reconnects: a page
   // that stalled because WordPress refused the connection is reconnected to
   // WordPress, and "Reconnect" alone left the customer to guess which of
   // their settings it meant (ruling 11a, issue #354).
-  "calendar.action.reconnect": ["Reconnect WordPress", { slots: {}, fixedBy: "BUILD §4.6" }],
+  "calendar.action.reconnect": ["Reconnect WordPress", { slots: {} }],
   // Issue 880: a destination that carries no credential has nothing to
   // reconnect, so a page waiting on it opens where the founder fixes it
   // instead — and the WordPress sentence above is never shown to a hosted
   // site. Drafted under issue 759's ruling.
-  "calendar.action.check-destination": ["Open Settings › Pages", { slots: {}, fixedBy: "issue 880 · issue 2657 S1 (issue 2668, drafted)" }],
-  "calendar.action.skip": ["Stop This Page", { slots: {}, fixedBy: "BUILD §4.6 · owner 2026-11-14, issue 2657 S6 (issue 2672)" }],
+  "calendar.action.check-destination": ["Open Settings › Pages", { slots: {} }],
+  "calendar.action.skip": ["Stop This Page", { slots: {} }],
   // SPEC §7 (2026-09-20, #908, issue #914) — "Screens and mail say *Stop
   // this page*. 'Veto' remains the internal word and the name of the
   // mechanism in this file." The key, the command, the column and the
@@ -160,7 +160,7 @@ export const CALENDAR_COPY = Object.freeze({
   // in the day panel's two-column secondary row beside *Skip* and *Write
   // it again* — the full sentence belongs on the page itself, where the
   // draft screen says it in full.
-  "calendar.action.veto": ["Stop This Page", { slots: {}, fixedBy: "SPEC §7 2026-09-20" }],
+  "calendar.action.veto": ["Stop This Page", { slots: {} }],
   // 2026-09-07, issue #143. The customer's own restart — §9 opens
   // `needs_attention → generating` for them and for no one else, and no
   // surface offered it.
@@ -174,7 +174,7 @@ export const CALENDAR_COPY = Object.freeze({
   // draft. What it must not say is that anything is being retried
   // automatically — nothing is, which is the whole reason the control
   // exists.
-  "calendar.action.regenerate": ["Write It Again", { slots: {}, fixedBy: "BUILD §9 · REQ-043 c9" }],
+  "calendar.action.regenerate": ["Write It Again", { slots: {} }],
 
   // SPEC §7 (2026-09-20, #908, issue #913) — "every action answers". Each
   // of the three writes the day panel offers says, in words, what became
@@ -185,40 +185,40 @@ export const CALENDAR_COPY = Object.freeze({
   // They are stated as facts about the page and never as progress
   // ("saving…"): the panel speaks only after the machine has answered, so
   // there is no moment at which one of these is a guess.
-  "calendar.answer.veto": ["Stopped. This page won’t go live.", { slots: {}, fixedBy: "SPEC §7 2026-09-20" }],
-  "calendar.answer.skip": ["Stopped. We won’t write this one.", { slots: {}, fixedBy: "SPEC §7 2026-09-20 · owner 2026-11-14, issue 2657 S6 (issue 2672)" }],
+  "calendar.answer.veto": ["Stopped. This page won’t go live.", { slots: {} }],
+  "calendar.answer.skip": ["Stopped. We won’t write this one.", { slots: {} }],
   // Issue 1196: "about two minutes" was not true — a page written again is
   // rewritten by the hourly draft tick (`src/jobs/draft-generate.ts`).
-  "calendar.answer.regenerate": ["We’re writing it again. It’s ready within the hour, and its page updates itself.", { slots: {}, fixedBy: "SPEC §7 2026-09-20 · issue 1196" }],
+  "calendar.answer.regenerate": ["We’re writing it again. It’s ready within the hour, and its page updates itself.", { slots: {} }],
   // One refusal sentence for all three. What a refused write has in common
   // is the only thing the customer needs: nothing moved. The machine's own
   // word for why (`not_a_transition`, a guard name) is a developer's
   // signal and is never shown.
-  "calendar.answer.refused": ["That didn’t work, so the page is unchanged. Try again.", { slots: {}, fixedBy: "SPEC §7 2026-09-20 · issue 2657 S1 (issue 2668, drafted)" }],
+  "calendar.answer.refused": ["That didn’t work, so the page is unchanged. Try again.", { slots: {} }],
 
   // §4.6's "Why this page" block and its five rows.
-  "calendar.why.title": ["Why this page", { slots: {}, fixedBy: "REQ-043 c8" }],
+  "calendar.why.title": ["Why this page", { slots: {} }],
   // SPEC §7 (2026-09-20, #908, issue 930): the day panel is label-and-value
   // rows, and the labels are the founder's words for the facts rather than
   // the measurement's own names. Four of the six below were reworded for
   // that pass; every one of them is still the same fact, stated once and
   // read by both screens (`calendar/TargetRows.tsx`).
-  "calendar.why.search": ["Going after", { slots: {}, fixedBy: "issue 930" }],
-  "calendar.why.asked": ["Asked", { slots: {}, fixedBy: "REQ-043 c8" }],
-  "calendar.why.answered-today-by": ["Best competitor", { slots: {}, fixedBy: "issue 930" }],
+  "calendar.why.search": ["Going after", { slots: {} }],
+  "calendar.why.asked": ["Asked", { slots: {} }],
+  "calendar.why.answered-today-by": ["Best competitor", { slots: {} }],
   // The rival and where it stands, as one value: a domain alone does not
   // say it is ahead of you.
   "calendar.why.answered-today-by.value": [
     "{domain} · #{position}",
-    { slots: { domain: "text", position: "text" }, fixedBy: "issue 930" },
+    { slots: { domain: "text", position: "text" } },
   ],
-  "calendar.why.you": ["You today", { slots: {}, fixedBy: "issue 930" }],
+  "calendar.why.you": ["You today", { slots: {} }],
   // §6.6's cold-start law: a measured zero is a measurement — the site
   // holds no place — and it is said in words rather than as a 0, which
   // would read as a position. An *unmeasured* place still renders the dash
   // and its own line, and never this.
-  "calendar.why.not-ranking": ["Not on Google yet", { slots: {}, fixedBy: "issue 930" }],
-  "calendar.why.done-when": ["Done when", { slots: {}, fixedBy: "REQ-043 c8" }],
+  "calendar.why.not-ranking": ["Not on Google yet", { slots: {} }],
+  "calendar.why.done-when": ["Done when", { slots: {} }],
 
   // Issue 867 (owner, 2026-09-17): "I don't believe we are currently showing
   // the users the SEO or GEO metrics their content is currently optimizing
@@ -227,58 +227,58 @@ export const CALENDAR_COPY = Object.freeze({
   // is for" block. Plain words for both dimensions, never "SEO" or "GEO" as
   // jargon (SPEC §4, 2026-09-17). Drafted under issue 759's ruling; the
   // owner corrects the wording.
-  "calendar.why.volume": ["Each month", { slots: {}, fixedBy: "issue 930" }],
+  "calendar.why.volume": ["Each month", { slots: {} }],
   // The demand as a value, with its unit in words: a bare count in a row
   // labelled "Each month" does not say what is counted.
   "calendar.why.volume.value": [
     "{count} searches",
-    { slots: { count: "text" }, fixedBy: "issue 930" },
+    { slots: { count: "text" } },
   ],
-  "calendar.why.difficulty": ["Difficulty", { slots: {}, fixedBy: "issue 867" }],
+  "calendar.why.difficulty": ["Difficulty", { slots: {} }],
   // The difficulty with its verdict against the site's ceiling (§6), never the ceiling's number.
-  "calendar.why.difficulty.within-reach": ["{difficulty} · within reach", { slots: { difficulty: "text" }, fixedBy: "SPEC §0 Plain words (drafted)" }],
-  "calendar.why.band": ["Chance to win", { slots: {}, fixedBy: "issue 867" }],
+  "calendar.why.difficulty.within-reach": ["{difficulty} · within reach", { slots: { difficulty: "text" } }],
+  "calendar.why.band": ["Chance to win", { slots: {} }],
   // Where the AI engines stood on this question when the pass measured it.
-  "calendar.why.engines": ["AI", { slots: {}, fixedBy: "issue 867" }],
+  "calendar.why.engines": ["AI", { slots: {} }],
   // Issue 930: each standing is a chip beside its engine rather than half
   // of a composed phrase, so each one is now a statement of its own and is
   // capitalised as one.
-  "calendar.why.engine.names-you": ["Mentions you", { slots: {}, fixedBy: "issue 930" }],
-  "calendar.why.engine.names-others": ["Mentions competitors", { slots: {}, fixedBy: "issue 930" }],
-  "calendar.why.engine.names-no-one": ["Names no one", { slots: {}, fixedBy: "SPEC §6 2026-10-24" }],
-  "calendar.why.engine.no-answer": ["No answer", { slots: {}, fixedBy: "issue 930" }],
+  "calendar.why.engine.names-you": ["Mentions you", { slots: {} }],
+  "calendar.why.engine.names-others": ["Mentions competitors", { slots: {} }],
+  "calendar.why.engine.names-no-one": ["Names no one", { slots: {} }],
+  "calendar.why.engine.no-answer": ["No answer", { slots: {} }],
   // One engine's standing, as one phrase: "ChatGPT — names others".
   "calendar.why.engine.line": [
     "{engine}: {standing}",
-    { slots: { engine: "text", standing: "text" }, fixedBy: "issue 867" },
+    { slots: { engine: "text", standing: "text" } },
   ],
 
   // Issue 857 (owner, 2026-09-17): the plan reaches only the day before the
   // next weekly pass. The one quiet marker on the first date after it —
   // the owner's own words. Drafted under issue 759's ruling.
-  "calendar.horizon.marker": ["Planned a week ahead, closer to the day", { slots: {}, fixedBy: "issue 1455 (drafted)" }],
+  "calendar.horizon.marker": ["Planned a week ahead, closer to the day", { slots: {} }],
 
   // REQ-043 criterion 4's remaining causes, and criterion 10's one
   // provenance line. Each is a written sentence no artifact states, so the
   // words are the owner's.
-  "calendar.empty.instruction": ["This date holds a fix on your own site. Only you can make it.", { slots: {}, fixedBy: "REQ-043 c5" }],
-  "calendar.empty.page-cannot-go-live": ["The page for this date was stopped or taken down, so it won’t go live. No page replaces it.", { slots: {}, fixedBy: "REQ-043 c4" }],
-  "calendar.empty.page-set-aside": ["This page didn’t pass our checks, so we set it aside. Nothing is needed from you.", { slots: {}, fixedBy: "owner O7, issue 2164 (drafted)" }],
+  "calendar.empty.instruction": ["This date holds a fix on your own site. Only you can make it.", { slots: {} }],
+  "calendar.empty.page-cannot-go-live": ["The page for this date was stopped or taken down, so it won’t go live. No page replaces it.", { slots: {} }],
+  "calendar.empty.page-set-aside": ["This page didn’t pass our checks, so we set it aside. Nothing is needed from you.", { slots: {} }],
   // #754 (owner 2026-09-16): the one held line offered both causes when the
   // app knows which it is. Split into one line per setting — and a host
   // waiting for its CNAME points at the record Settings shows. Drafted and
   // shipped under the owner ruling of 2026-09-16 (#759).
-  "calendar.empty.customer-change-holds-pages.publishing-off": ["Publishing is off, so this page is waiting. Turn it on in Settings and pages resume.", { slots: {}, fixedBy: "REQ-043 c4" }],
-  "calendar.empty.customer-change-holds-pages.destination-pending-dns": ["This page is ready. It goes live once your website is connected.", { slots: {}, fixedBy: "SPEC §5 Live only where the customer chose (drafted)" }],
-  "calendar.empty.customer-change-holds-pages.destination-pending-connect": ["This page is ready. It goes live once you connect your WordPress in Settings › Pages.", { slots: {}, fixedBy: "SPEC §5 Live only where the customer chose (drafted)" }],
-  "calendar.empty.customer-change-holds-pages.destination-disconnected": ["This page is ready. It goes live once you reconnect your website in Settings.", { slots: {}, fixedBy: "SPEC §5 Live only where the customer chose (drafted)" }],
-  "calendar.empty.page-held": ["We stopped our own work, so this page waited. It goes live, in turn, once we start again.", { slots: {}, fixedBy: "REQ-092 c5" }],
+  "calendar.empty.customer-change-holds-pages.publishing-off": ["Publishing is off, so this page is waiting. Turn it on in Settings and pages resume.", { slots: {} }],
+  "calendar.empty.customer-change-holds-pages.destination-pending-dns": ["This page is ready. It goes live once your website is connected.", { slots: {} }],
+  "calendar.empty.customer-change-holds-pages.destination-pending-connect": ["This page is ready. It goes live once you connect your WordPress in Settings › Pages.", { slots: {} }],
+  "calendar.empty.customer-change-holds-pages.destination-disconnected": ["This page is ready. It goes live once you reconnect your website in Settings.", { slots: {} }],
+  "calendar.empty.page-held": ["We stopped our own work, so this page waited. It goes live, in turn, once we start again.", { slots: {} }],
   // The day panel's whole account of an exhausted supply — S15's `empty`
   // arm, verbatim (ruling 11a, issue #354). Its cell states the first line
   // alone, from `cause.supply-exhausted` above (#209).
   "calendar.empty.supply-exhausted": [
     "Nothing worth publishing on this date. The Monday check looks for more.",
-    { slots: {}, fixedBy: "REQ-043 c3" },
+    { slots: {} },
   ],
   // #765 (owner ruling 2026-09-16): a zero supply over a market that was
   // never measured — the current scan derived no questions, or the site has
@@ -286,18 +286,18 @@ export const CALENDAR_COPY = Object.freeze({
   // and the panel alike. Drafted and shipped under #759's ruling.
   "calendar.empty.supply-unmeasured": [
     "We haven’t found enough searches for your market yet. Name a broader one in Settings and we’ll check again.",
-    { slots: {}, fixedBy: "REQ-043 c3" },
+    { slots: {} },
   ],
   // S15's `empty` arm leads with a chip carrying this word, so a date with
   // no page is named rather than left as a bare numeral. Approved (11a).
-  "calendar.empty.day-badge": ["Empty day", { slots: {}, fixedBy: "REQ-043 c11" }],
+  "calendar.empty.day-badge": ["Empty day", { slots: {} }],
   // REQ-071 c11 (issue #204). A market change holds generation until the
   // pass that adopts it, so the day names which change is holding pages and
   // the date they resume — both read from `generationHold()`, which has
   // already chosen one reason where two answers changed.
   "calendar.empty.change-holds-pages": [
     "No new page until the change to {change} takes effect. Pages resume on {date}.",
-    { slots: { date: "date", change: "text" }, fixedBy: "REQ-071 c11" },
+    { slots: { date: "date", change: "text" } },
   ],
   // Issue 866: a category being replaced is measured again at once, so the
   // held day names the measurement it waits on rather than a Monday. A
@@ -305,7 +305,7 @@ export const CALENDAR_COPY = Object.freeze({
   // weekly pass. Drafted under issue 759's ruling.
   "calendar.empty.change-holds-pages.category": [
     "No new page until we’ve checked your new market. Pages resume right after.",
-    { slots: {}, fixedBy: "issue 866" },
+    { slots: {} },
   ],
   // REQ-043 c10's one line. Every one of S15's five arms ends on the same
   // measured tail — "measured Mon 8 Sep" — so that half is approved copy
@@ -316,10 +316,10 @@ export const CALENDAR_COPY = Object.freeze({
   // exists to prevent. Named in #354's PR as engine-owed.
   "calendar.provenance.measured": [
     "checked {date}",
-    { slots: { date: "date" }, fixedBy: "REQ-043 c10" },
+    { slots: { date: "date" } },
   ],
   // SPEC §7 (2026-09-20, #914): the customer's word for the interval.
-  "calendar.status.veto-deadline": ["It goes live on its own. You can edit or stop it until {at}.", { slots: { at: "date" }, fixedBy: "issue 1337" }],
+  "calendar.status.veto-deadline": ["It goes live on its own. You can edit or stop it until {at}.", { slots: { at: "date" } }],
 
   // §7's one statement of supply, as §4.6's calendar makes it: the three
   // arms of `supplyNotice`, in the engine's own precedence (exhausted >
@@ -332,7 +332,7 @@ export const CALENDAR_COPY = Object.freeze({
   // same three claims on a different screen, so neither is the other's
   // string. `days` counts days of pages, so it is a text slot carrying a
   // numeral, exactly as `overview.supply.*` declares it.
-  "calendar.supply.exhausted": ["Nothing worth publishing is left since {since}. The Monday check looks for more.", { slots: { since: "date" }, fixedBy: "BUILD §4.6" }],
+  "calendar.supply.exhausted": ["Nothing worth publishing is left since {since}. The Monday check looks for more.", { slots: { since: "date" } }],
   // The same claim where the moment it ran out cannot be read (owner, PR
   // #961, 2026-09-21). `SupplyNotice`'s `since` is `Date | null` by
   // declaration, so this is a state a real site reaches and not only the
@@ -342,30 +342,30 @@ export const CALENDAR_COPY = Object.freeze({
   // product does not have is a date it does not mention.
   "calendar.supply.exhausted.undated": [
     "Nothing worth publishing is left. The Monday check looks for more.",
-    { slots: {}, fixedBy: "owner, PR 961" },
+    { slots: {} },
   ],
   // issue 784: the same statement over a market that was never measured (issue 765)
   // — there was nothing to use up. Drafted under issue 759's ruling.
-  "calendar.supply.unmeasured": ["We haven’t found enough searches in your market to plan pages yet. Name a broader one in Settings and we’ll check again.", { slots: {}, fixedBy: "issue 784" }],
+  "calendar.supply.unmeasured": ["We haven’t found enough searches in your market to plan pages yet. Name a broader one in Settings and we’ll check again.", { slots: {} }],
   // issue 855: the same zero while the market is still being measured — a pass
   // stopped on a ceiling, measured again. Drafted under issue 759's ruling.
-  "calendar.supply.measuring": ["We’re still checking your market, so no pages are planned yet. Nothing is needed from you.", { slots: {}, fixedBy: "issue 855" }],
-  "calendar.supply.short": ["Only {days} pages are left. The Monday check looks for more.", { slots: { days: "text" }, fixedBy: "BUILD §4.6" }],
+  "calendar.supply.measuring": ["We’re still checking your market, so no pages are planned yet. Nothing is needed from you.", { slots: {} }],
+  "calendar.supply.short": ["Only {days} pages are left. The Monday check looks for more.", { slots: { days: "text" } }],
   // Issue 1559: the depth is a week and its spares, not a month. Drafted.
-  "calendar.supply.first-arrival": ["Your first check found {days} pages so far. We look for more every Monday.", { slots: { days: "text" }, fixedBy: "SPEC §7 2026-10-19 (drafted)" }],
+  "calendar.supply.first-arrival": ["Your first check found {days} pages so far. We look for more every Monday.", { slots: { days: "text" } }],
   // Why pages stall, as one line under the statement of supply; a rule's own name never reaches the customer.
-  "calendar.supply.stalled": ["We wrote {written} pages in the last 7 days. Our writing rules stopped {stopped}.", { slots: { written: "text", stopped: "text" }, fixedBy: "issue 1184 (drafted)" }],
+  "calendar.supply.stalled": ["We wrote {written} pages in the last 7 days. Our writing rules stopped {stopped}.", { slots: { written: "text", stopped: "text" } }],
 
   // §4.6's `done-when` row, from the acceptance test recorded when the
   // opportunity was created (§7: "top 20 for Q" / "named on question P" /
   // "gate passes"). Three forms, three keys: the test a page is judged
   // against is never rewritten, so the row must say which of the three it
   // is rather than a single line that fits none of them.
-  "calendar.done-when.top20": ["your page is on Google’s first two pages for “{query}”", { slots: { query: "text" }, fixedBy: "BUILD §7" }],
+  "calendar.done-when.top20": ["your page is on Google’s first two pages for “{query}”", { slots: { query: "text" } }],
   // SPEC §4 2026-09-29 (D16, issue 1147): the page is credited only where
   // the answer cites the page itself. Drafted (#759).
-  "calendar.done-when.named-on": ["an AI answer to “{question}” links this page", { slots: { question: "text" }, fixedBy: "SPEC §4 2026-09-29 D16" }],
-  "calendar.done-when.gate-cleared": ["the access check passes", { slots: {}, fixedBy: "BUILD §7" }],
+  "calendar.done-when.named-on": ["an AI answer to “{question}” links this page", { slots: { question: "text" } }],
+  "calendar.done-when.gate-cleared": ["the access check passes", { slots: {} }],
 
   // ── The day card and the day panel (SPEC §7, 2026-09-20, #908; issue 930)
   //
@@ -379,28 +379,28 @@ export const CALENDAR_COPY = Object.freeze({
   // made for supply, applied to every cause — and the short form is never a
   // truncation of the long one, because two words cannot be a sentence cut
   // in half. Drafted under issue 759's ruling; the owner corrects them.
-  "calendar.empty.short.instruction": ["Your fix", { slots: {}, fixedBy: "issue 930" }],
-  "calendar.empty.short.page-cannot-go-live": ["Stopped", { slots: {}, fixedBy: "issue 930" }],
-  "calendar.empty.short.page-set-aside": ["Didn’t pass our checks", { slots: {}, fixedBy: "owner O7, issue 2164 (drafted)" }],
-  "calendar.empty.short.change-holds-pages": ["On hold", { slots: {}, fixedBy: "issue 930" }],
-  "calendar.empty.short.customer-change-holds-pages": ["Held back", { slots: {}, fixedBy: "issue 930" }],
-  "calendar.empty.short.page-held": ["Held back", { slots: {}, fixedBy: "issue 930" }],
+  "calendar.empty.short.instruction": ["Your fix", { slots: {} }],
+  "calendar.empty.short.page-cannot-go-live": ["Stopped", { slots: {} }],
+  "calendar.empty.short.page-set-aside": ["Didn’t pass our checks", { slots: {} }],
+  "calendar.empty.short.change-holds-pages": ["On hold", { slots: {} }],
+  "calendar.empty.short.customer-change-holds-pages": ["Held back", { slots: {} }],
+  "calendar.empty.short.page-held": ["Held back", { slots: {} }],
   // The two supply causes never reach a card — §7 (issue 857) states supply
   // once, at the top of the screen — but the map the card reads is total
   // over the causes, so a cause added to the union fails to compile rather
   // than drawing a blank word.
-  "calendar.empty.short.supply-unmeasured": ["No market yet", { slots: {}, fixedBy: "issue 930" }],
-  "calendar.empty.short.supply-exhausted": ["No page", { slots: {}, fixedBy: "issue 930" }],
+  "calendar.empty.short.supply-unmeasured": ["No market yet", { slots: {} }],
+  "calendar.empty.short.supply-exhausted": ["No page", { slots: {} }],
   // ReachKit's own stop, where one is recorded for the day.
-  "calendar.empty.short.reachkit-stopped": ["We stopped", { slots: {}, fixedBy: "issue 930" }],
+  "calendar.empty.short.reachkit-stopped": ["We stopped", { slots: {} }],
   // A day the product cannot explain (SPEC §7, 2026-10-07, issue 1321): its
   // own two words and its own panel line, and neither says ReachKit
   // stopped. Drafted under issue 759's ruling; the owner corrects them.
-  "calendar.empty.short.unexplained": ["No page", { slots: {}, fixedBy: "issue 1321" }],
-  "calendar.empty.unexplained": ["No page is planned for this date yet.", { slots: {}, fixedBy: "issue 1321" }],
+  "calendar.empty.short.unexplained": ["No page", { slots: {} }],
+  "calendar.empty.unexplained": ["No page is planned for this date yet.", { slots: {} }],
   // Issue 857's quiet marker, in the room a card has for it. The full line
   // (`calendar.horizon.marker`) is the panel's.
-  "calendar.horizon.short": ["Planned later", { slots: {}, fixedBy: "issue 1455 (drafted)" }],
+  "calendar.horizon.short": ["Planned later", { slots: {} }],
 
   // The card's whole label, for a reader who never sees it. Three shapes,
   // because a card has three: a page, a date that says why it has none, and
@@ -409,27 +409,27 @@ export const CALENDAR_COPY = Object.freeze({
   // the owner's.
   "calendar.card.aria.page": [
     "{date}. {stage}. {title}",
-    { slots: { date: "text", stage: "text", title: "text" }, fixedBy: "issue 930" },
+    { slots: { date: "text", stage: "text", title: "text" } },
   ],
   "calendar.card.aria.written": [
     "{date}. {stage}. {title}. {label}",
-    { slots: { date: "text", stage: "text", title: "text", label: "text" }, fixedBy: "issue 2892 (drafted)" },
+    { slots: { date: "text", stage: "text", title: "text", label: "text" } },
   ],
   "calendar.card.aria.empty": [
     "{date}. {reason}",
-    { slots: { date: "text", reason: "text" }, fixedBy: "issue 930" },
+    { slots: { date: "text", reason: "text" } },
   ],
-  "calendar.card.aria.date": ["{date}", { slots: { date: "text" }, fixedBy: "issue 930" }],
+  "calendar.card.aria.date": ["{date}", { slots: { date: "text" } }],
 
   // What the page is: a new page, or an update of one the site already has
   // (SPEC §7, 2026-09-20 — "a mark for an update"). The card carries the
   // mark and this word names it; the panel says it in full.
-  "calendar.card.update": ["Update", { slots: {}, fixedBy: "issue 930" }],
-  "calendar.card.new-page": ["New page", { slots: {}, fixedBy: "issue 930" }],
+  "calendar.card.update": ["Update", { slots: {} }],
+  "calendar.card.new-page": ["New page", { slots: {} }],
 
   // The panel's two section heads, and the one control that closes it.
-  "calendar.panel.search": ["Search", { slots: {}, fixedBy: "issue 930" }],
-  "calendar.panel.close": ["Close", { slots: {}, fixedBy: "issue 930" }],
+  "calendar.panel.search": ["Search", { slots: {} }],
+  "calendar.panel.close": ["Close", { slots: {} }],
 
   // 2026-09-06, issue #50 (REQ-043 c12). The three grounds on which the
   // day panel says a way through leads nowhere **in place of** offering
@@ -441,53 +441,53 @@ export const CALENDAR_COPY = Object.freeze({
   // page the record says nothing against and tell the customer the way
   // leads nowhere (ADR-085). The offered way claims only that this is
   // where the page was put, never that it is there now.
-  "waythrough.unpublished-by-us": ["This page was taken down through ReachKit, so its address isn’t offered.", { slots: {}, fixedBy: "REQ-043 c12" }],
-  "waythrough.page-not-found": ["Our one check found no page at its address, so there’s nothing to open there.", { slots: {}, fixedBy: "REQ-043 c12" }],
-  "waythrough.no-admin-address": ["No address inside your WordPress could be formed for this post.", { slots: {}, fixedBy: "REQ-043 c12" }],
+  "waythrough.unpublished-by-us": ["This page was taken down through ReachKit, so its address isn’t offered.", { slots: {} }],
+  "waythrough.page-not-found": ["Our one check found no page at its address, so there’s nothing to open there.", { slots: {} }],
+  "waythrough.no-admin-address": ["No address inside your WordPress could be formed for this post.", { slots: {} }],
 
   // Board Plan: the head, the four numbers, the week card, how the week was
   // chosen, the day states and the live pages. Drafted (#759).
-  "calendar.eyebrow": ["Week {n}", { slots: { n: "text" }, fixedBy: "board Plan (drafted)" }],
-  "calendar.title": ["This Week’s {n} Pages", { slots: { n: "text" }, fixedBy: "board Plan (drafted)" }],
-  "calendar.title.one": ["This Week’s Page", { slots: {}, fixedBy: "board Plan (drafted)" }],
-  "calendar.title.none": ["This Week’s Pages", { slots: {}, fixedBy: "board Plan (drafted)" }],
-  "calendar.head.undated": ["Each goes live on its day unless you stop it.", { slots: {}, fixedBy: "board Plan (drafted)" }],
-  "calendar.first-week": ["Your first week is being chosen. It shows here by Monday morning.", { slots: {}, fixedBy: "board Plan v36, issue 2273 (drafted)" }],
-  "calendar.week.time": ["Each goes live at {time}, {place} time", { slots: { time: "text", place: "text" }, fixedBy: "board Plan v36, issue 2273 (drafted)" }],
-  "calendar.week.why": ["Why", { slots: {}, fixedBy: "board Plan (drafted)" }],
-  "calendar.week.today": ["Goes live today, {time}", { slots: { time: "text" }, fixedBy: "board Plan (drafted)" }],
-  "calendar.chip.new": ["New", { slots: {}, fixedBy: "board Plan (drafted)" }],
-  "calendar.next": ["{date}: we check again and pick the next {n}.", { slots: { date: "text", n: "text" }, fixedBy: "board Plan v36, issue 2273 (drafted)" }],
-  "calendar.chosen.title": ["How this week’s pages were chosen", { slots: {}, fixedBy: "board Plan (drafted)" }],
+  "calendar.eyebrow": ["Week {n}", { slots: { n: "text" } }],
+  "calendar.title": ["This Week’s {n} Pages", { slots: { n: "text" } }],
+  "calendar.title.one": ["This Week’s Page", { slots: {} }],
+  "calendar.title.none": ["This Week’s Pages", { slots: {} }],
+  "calendar.head.undated": ["Each goes live on its day unless you stop it.", { slots: {} }],
+  "calendar.first-week": ["Your first week is being chosen. It shows here by Monday morning.", { slots: {} }],
+  "calendar.week.time": ["Each goes live at {time}, {place} time", { slots: { time: "text", place: "text" } }],
+  "calendar.week.why": ["Why", { slots: {} }],
+  "calendar.week.today": ["Goes live today, {time}", { slots: { time: "text" } }],
+  "calendar.chip.new": ["New", { slots: {} }],
+  "calendar.next": ["{date}: we check again and pick the next {n}.", { slots: { date: "text", n: "text" } }],
+  "calendar.chosen.title": ["How this week’s pages were chosen", { slots: {} }],
   "calendar.chosen.body": [
     "Every Monday we check where your pages stand on Google and in AI answers. Then we pick the {n} most likely to bring you buyers.",
-    { slots: { n: "text" }, fixedBy: "board Plan v36, issue 2273 (drafted)" },
+    { slots: { n: "text" } },
   ],
-  "calendar.chosen.stored": ["Each reason is the one saved when the page was chosen.", { slots: {}, fixedBy: "board Plan v36, issue 2273 (drafted)" }],
+  "calendar.chosen.stored": ["Each reason is the one saved when the page was chosen.", { slots: {} }],
   // Why the week holds a page, as a sentence from its most specific stored part.
-  "calendar.reason.near-page-one": ["Your page is close to Google’s first page for this search. This update adds what the pages above cover.", { slots: {}, fixedBy: "board Plan (drafted)" }],
-  "calendar.reason.not-moving": ["Your page has not moved in 8 weeks. This rewrite matches what Google now shows for it.", { slots: {}, fixedBy: "board Plan (drafted)" }],
-  "calendar.reason.ai-gap": ["AI answers link to a competitor’s page for this question. Yours can answer it from your own work.", { slots: {}, fixedBy: "board Plan (drafted)" }],
-  "calendar.reason.linked-by-ai": ["An AI answer linked your page on this topic. This one builds on it.", { slots: {}, fixedBy: "board Plan (drafted)" }],
-  "calendar.reason.searched": ["Buyers search for this every month.", { slots: {}, fixedBy: "board Plan (drafted)" }],
-  "calendar.reason.asked": ["Buyers ask this question before they buy.", { slots: {}, fixedBy: "board Plan (drafted)" }],
-  "calendar.reason.fit": ["A close fit for what your business offers.", { slots: {}, fixedBy: "board Plan (drafted)" }],
-  "calendar.day.held-for-fix": ["Waiting on your fix: {fix}.", { slots: { fix: "text" }, fixedBy: "board Plan v36, ux-designer, issue 2273 (drafted)" }],
-  "calendar.day.held-for-fix.link": ["Open This Fix in Technical Issues", { slots: {}, fixedBy: "board Plan v36, ux-designer, issue 2273 (drafted)" }],
-  "calendar.day.stopped.line": ["Stopped by you on {day}. Other days are not affected.", { slots: { day: "text" }, fixedBy: "board Plan v36, issue 2273 (drafted)" }],
-  "calendar.day.skipped.line": ["Nothing worth writing for this day, so no page.", { slots: {}, fixedBy: "board Plan v36, issue 2273 (drafted)" }],
-  "calendar.live.title": ["Live Pages", { slots: {}, fixedBy: "board Plan (drafted)" }],
-  "calendar.live.google": ["Google: {step}", { slots: { step: "text" }, fixedBy: "board Plan (drafted)" }],
-  "calendar.live.ai": ["AI: {step}", { slots: { step: "text" }, fixedBy: "board Plan (drafted)" }],
-  "calendar.live.place": ["Place {n}.", { slots: { n: "text" }, fixedBy: "board Plan v36, issue 2273 (drafted)" }],
-  "calendar.live.place-up": ["Place {n}, up {up} since {date}.", { slots: { n: "text", up: "text", date: "text" }, fixedBy: "board Plan v36, issue 2273 (drafted)" }],
-  "calendar.live.no-gain": ["Place {n}, flat for {weeks} weeks.", { slots: { n: "text", weeks: "text" }, fixedBy: "board Plan v36, issue 2273 (drafted)" }],
-  "calendar.live.linked": ["Linked by {engines}.", { slots: { engines: "text" }, fixedBy: "board Plan v36, issue 2273 (drafted)" }],
-  "calendar.live.update": ["Update goes live {day}.", { slots: { day: "text" }, fixedBy: "board Plan v36, issue 2273 (drafted)" }],
-  "calendar.live.found": ["Found by Google {date}. Not in results yet.", { slots: { date: "text" }, fixedBy: "board Plan v36, issue 2273 (drafted)" }],
-  "calendar.live.ai-unread": ["not read yet", { slots: {}, fixedBy: "board Plan (drafted)" }],
-  "calendar.live.showing": ["Showing in results", { slots: {}, fixedBy: "board Plan v36, issue 2273 (drafted)" }],
-  "calendar.live.unread": ["Live since {date}. We check it on Monday.", { slots: { date: "text" }, fixedBy: "board Plan v36, issue 2273 (drafted)" }],
-  "calendar.live.all": ["Show All {m} Live Pages", { slots: { m: "text" }, fixedBy: "board Plan v36, issue 2273 (drafted)" }],
-  "calendar.live.none": ["No page is live yet. Each shows here once it goes live, with how far it has got.", { slots: {}, fixedBy: "board Plan (drafted)" }],
+  "calendar.reason.near-page-one": ["Your page is close to Google’s first page for this search. This update adds what the pages above cover.", { slots: {} }],
+  "calendar.reason.not-moving": ["Your page has not moved in 8 weeks. This rewrite matches what Google now shows for it.", { slots: {} }],
+  "calendar.reason.ai-gap": ["AI answers link to a competitor’s page for this question. Yours can answer it from your own work.", { slots: {} }],
+  "calendar.reason.linked-by-ai": ["An AI answer linked your page on this topic. This one builds on it.", { slots: {} }],
+  "calendar.reason.searched": ["Buyers search for this every month.", { slots: {} }],
+  "calendar.reason.asked": ["Buyers ask this question before they buy.", { slots: {} }],
+  "calendar.reason.fit": ["A close fit for what your business offers.", { slots: {} }],
+  "calendar.day.held-for-fix": ["Waiting on your fix: {fix}.", { slots: { fix: "text" } }],
+  "calendar.day.held-for-fix.link": ["Open This Fix in Technical Issues", { slots: {} }],
+  "calendar.day.stopped.line": ["Stopped by you on {day}. Other days are not affected.", { slots: { day: "text" } }],
+  "calendar.day.skipped.line": ["Nothing worth writing for this day, so no page.", { slots: {} }],
+  "calendar.live.title": ["Live Pages", { slots: {} }],
+  "calendar.live.google": ["Google: {step}", { slots: { step: "text" } }],
+  "calendar.live.ai": ["AI: {step}", { slots: { step: "text" } }],
+  "calendar.live.place": ["Place {n}.", { slots: { n: "text" } }],
+  "calendar.live.place-up": ["Place {n}, up {up} since {date}.", { slots: { n: "text", up: "text", date: "text" } }],
+  "calendar.live.no-gain": ["Place {n}, flat for {weeks} weeks.", { slots: { n: "text", weeks: "text" } }],
+  "calendar.live.linked": ["Linked by {engines}.", { slots: { engines: "text" } }],
+  "calendar.live.update": ["Update goes live {day}.", { slots: { day: "text" } }],
+  "calendar.live.found": ["Found by Google {date}. Not in results yet.", { slots: { date: "text" } }],
+  "calendar.live.ai-unread": ["not read yet", { slots: {} }],
+  "calendar.live.showing": ["Showing in results", { slots: {} }],
+  "calendar.live.unread": ["Live since {date}. We check it on Monday.", { slots: { date: "text" } }],
+  "calendar.live.all": ["Show All {m} Live Pages", { slots: { m: "text" } }],
+  "calendar.live.none": ["No page is live yet. Each shows here once it goes live, with how far it has got.", { slots: {} }],
 }) satisfies CopyPartition;

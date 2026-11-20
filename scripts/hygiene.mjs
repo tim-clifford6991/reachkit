@@ -10,7 +10,7 @@ import path from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { blockRuleFindings, blockRules, budgetFindings, isMeasured, lineCount, lineFindings, plainWordsFindings } from "./lib/budgets.mjs";
-import { keyFileCounts } from "./lib/plain-words.mjs";
+import { ENTRY_RE, keyFileCounts } from "./lib/plain-words.mjs";
 import { mainCheckoutFinding } from "./lib/main-checkout.mjs";
 import { staleBaselines } from "./design/baseline.mjs";
 
@@ -74,7 +74,7 @@ const TEXT = new Set([
 ]);
 // This file holds the list, so the scan skips it. Live product and library
 // text is not on the list: a mock factory, micromark-factory, React's
-// dispatcher, the TODO(copy) marker, and a comment that cites an old
+// dispatcher, and a comment that cites an old
 // decisions file. A file named DECISIONS.md is still a finding.
 const DROPPED = [
   "master-approved",
@@ -318,6 +318,17 @@ function checkBudgets(texts) {
   for (const { rel } of changes) if (!lines.has(rel)) lines.set(rel, lineCount(readRel(rel) ?? ""));
   for (const finding of lineFindings({ budget: budgets?.lines, changes, lines })) add("repo", finding);
   checkPlainWords(diff);
+  checkEmptyCopy();
+}
+
+// SPEC §8 "unwritten keys send nothing": a key is drafted and shipped, so no value is left empty.
+function checkEmptyCopy() {
+  for (const abs of walkFiles(path.join(ROOT, "src/lib/presentation/copy/keys"))) {
+    if (!abs.endsWith(".ts")) continue;
+    for (const [, key, value] of readFileSync(abs, "utf8").matchAll(ENTRY_RE)) {
+      if (value === "") add("repo", `${path.relative(ROOT, abs)}: copy key "${key}" is empty`);
+    }
+  }
 }
 
 // The base holds the last merged count, so no number is stored and a gain is kept the moment it merges.

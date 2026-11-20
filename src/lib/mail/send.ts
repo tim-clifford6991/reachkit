@@ -3,7 +3,7 @@
 // The store is asked immediately before the vendor call, never at schedule time, so a mail switched off in between is not sent.
 // The stop control leaves twice: as a link in both bodies and as RFC 8058's headers, since an inbox does not read the body.
 // It never throws, retries nothing, and is not idempotent: a caller that must send once carries its own key.
-import { TODO_COPY_MARKER, type CopyKey } from "@/lib/presentation/copy";
+import type { CopyKey } from "@/lib/presentation/copy";
 import type { CopyVars, MailBlock } from "./blocks/types";
 import { MAIL_KINDS, type MailKind } from "./kinds";
 import { stoppedByPreference } from "./notifications";
@@ -111,9 +111,9 @@ export async function sendEmail(m: SendInput): Promise<SendResult> {
   let composed: Awaited<ReturnType<typeof composeMail>>;
   try {
     composed = await compose(m);
-    // SPEC §8, "unwritten keys send nothing": a `TODO(copy)` key renders as itself, which a mail, sent once, must not.
-    if ([composed.subject, composed.html, composed.text].some((part) => part.includes(TODO_COPY_MARKER))) {
-      throw new Error("sendEmail: the mail carries an unwritten TODO(copy) line.");
+    // SPEC §8, "unwritten keys send nothing": a mail sent once must not go out with an empty part.
+    if ([composed.subject, composed.html, composed.text].some((part) => part.trim() === "")) {
+      throw new Error("sendEmail: the mail has an empty subject or body.");
     }
   } catch (error) {
     // Reported as its own reason, not thrown: an unwritten line must not fail the job, and is never papered over with an empty line.

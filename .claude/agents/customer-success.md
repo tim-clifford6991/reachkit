@@ -76,7 +76,7 @@ Run each lens as a checklist. Skip one only if you say why.
 **5. Lifecycle mail cadence.**
 - Lay every kind on one timeline for days 0–90, for an ideal customer and a stalled one: account and magic link, setup reminders, draft-ready, published, weekly, inactivity, veto reminder, payment-failed, cancellation, hosting-end, win-back.
 - Check: one job per mail; no two mails in a day without cause; every mail useful with no click; every stop condition checked at send time; the plain-text twin; RFC 8058 one-click unsubscribe.
-- **Find kinds silently not sent because a copy key is unwritten.** Grep `src/lib/presentation/copy/keys` for the `TODO_COPY_MARKER`; `sendEmail` refuses it. A retention mail that never sends is a must-fix.
+- **Find kinds silently not sent because a copy key is unwritten.** A key with an empty value is unwritten; `scripts/hygiene.mjs` fails it and `sendEmail` refuses an empty subject or body. A retention mail that never sends is a must-fix.
 
 **6. Support load and deflection.**
 - Predict the tickets that 100 and 1,000 customers will send: DNS/CNAME and WordPress authentication; "why this topic?"; "this page says something wrong about my business"; "nothing is ranking"; invoices and VAT IDs; cancellation and refunds; language.

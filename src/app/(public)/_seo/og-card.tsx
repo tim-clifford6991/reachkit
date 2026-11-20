@@ -37,11 +37,8 @@
 //
 // **It renders no unwritten sentence.** Only `chrome.wordmark`, and — on
 // the report card — `verdict.score.label` and the band word, all three
-// approved as written (ruling 11a). A `TODO(copy)` marker set 40 px tall
-// in a picture posted to someone else's timeline is not the "visibly
-// unwritten" the marker exists for, so the owed strings stay in the
-// `<head>`, where a reader sees them as text and the owner can still
-// write them.
+// approved as written (ruling 11a). Every other string stays in the
+// `<head>`, where a reader sees it as text and the owner can still edit it.
 //
 // **Satori is not a browser**: every element that holds more than one
 // child declares `display: "flex"` explicitly, because flexbox is the one

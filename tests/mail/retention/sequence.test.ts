@@ -9,7 +9,7 @@ applyEnvFixture();
 vi.mock("@/lib/db", () => ({ db: () => null, dbAdmin: () => null }));
 vi.mock("@/lib/mail/leads/wire", () => ({ wireSuppressionReader: () => {} }));
 
-/** Keys the unwritten-copy row puts back to the marker. Every retention
+/** Keys the unwritten-copy row empties. Every retention
  *  line is written now (the owner's sheet), so the row that proves "unwritten
  *  keys send nothing" stubs one back here rather than depending on a key
  *  that happens to be still owed. Empty everywhere else. */
@@ -19,7 +19,7 @@ vi.mock("@/lib/presentation/copy", async (importOriginal) => {
   return {
     ...actual,
     copy: (key: Parameters<typeof actual.copy>[0], vars?: Parameters<typeof actual.copy>[1]) =>
-      unwritten.has(key) ? actual.TODO_COPY_MARKER : actual.copy(key, vars),
+      unwritten.has(key) ? "" : actual.copy(key, vars),
   };
 });
 
@@ -128,10 +128,10 @@ describe("the cancellation mail names the day access ends and promises no refund
 });
 
 describe("a kind whose copy is unwritten sends nothing at all", () => {
-  it("the real seam refuses a mail still carrying TODO(copy), and the touch is not stamped", async () => {
+  it("the real seam refuses a mail with an empty subject, and the touch is not stamped", async () => {
     real = true;
-    unwritten.add("mail.winback.line");
-    unwritten.add("mail.paymentFailed.line");
+    unwritten.add("mail.winback.subject");
+    unwritten.add("mail.paymentFailed.subject");
     try {
       expect(await sendEmail({ kind: "win-back", to: "founder@example.com", ...buildWinback({ email: "founder@example.com" }) }))
         .toEqual({ sent: false, reason: "not-composable" });

@@ -11,7 +11,7 @@
 // delimiter) costs one `.replace` call here and no consumer change, because
 // no caller ever sees the marker.
 //
-// Implementation order, fixed by WO-041 step 6: (a) OWNER_OWED — throw
+// Implementation order, fixed by WO-041 step 6: (a) an empty value — throw
 // naming the key; (b) a 'measured' slot in COPY_META[key].slots — throw
 // naming the key (the type half, ExplainKey, is WO-042's); (c) substitute.
 // A slot named in COPY_META[key].slots and absent from vars throws naming
@@ -21,10 +21,10 @@
 // parameter, and no module-level mutable state: `copy.length === 2` and
 // every read is a plain property lookup on the frozen COPY/COPY_META
 // literals.
-import { COPY, COPY_META, OWNER_OWED, type CopyKey, type CopyMeta } from "./registry.ts";
+import { COPY, COPY_META, type CopyKey, type CopyMeta } from "./registry.ts";
 
 export function copy(key: CopyKey, vars?: Record<string, string | number>): string {
-  if (OWNER_OWED.includes(key)) {
+  if (COPY[key] === "") {
     throw new Error(`copy(): "${key}" is owner-owed — no sentence has been written for it yet.`);
   }
 

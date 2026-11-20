@@ -8,7 +8,7 @@
 // There is no reader, session or persona parameter, so the words cannot
 // change with who is reading.
 import type { Measured } from "@/lib/measure/measured";
-import { COPY, COPY_META, OWNER_OWED, type CopyKey, type CopyMeta } from "./registry.ts";
+import { COPY, COPY_META, type CopyKey, type CopyMeta } from "./registry.ts";
 import { renderMeasured } from "../measured.ts";
 
 /** Every slot name of `K` whose declared kind is 'measured' — computed
@@ -52,7 +52,7 @@ export function explain<K extends ExplainKey>(
   // therefore duplicated from copy.ts's own guard rather than extracted
   // and shared; no acceptance criterion in `## Test plan` asserts a single
   // shared guard. Residual risk recorded as a `rests-on` row.
-  if (OWNER_OWED.includes(key)) {
+  if (COPY[key] === "") {
     throw new Error(`explain(): "${key}" is owner-owed — no sentence has been written for it yet.`);
   }
 

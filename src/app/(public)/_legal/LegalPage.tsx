@@ -48,8 +48,7 @@
 // Setting HTML is safe by construction, not by review, and for exactly the
 // reason `RenderedBody` gives: that module escapes every text node and every
 // attribute it emits and never passes source HTML through, so the string
-// below cannot carry markup the key contained. Today every body key holds
-// the `TODO(copy)` marker, which renders as one paragraph saying so.
+// below cannot carry markup the key contained.
 //
 // Server Components that read nothing: no session, no cookie, no store.
 import type React from "react";

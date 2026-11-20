@@ -42,101 +42,101 @@ export const SETUP_COPY = Object.freeze({
    *  export with setup unfinished. */
   /** Issue 1196: a step whose request never came back. Drafted; the owner
    *  may correct it. */
-  "setup.refused.could-not-ask": ["This step wasn’t saved. Check your connection and press again.", { slots: {}, fixedBy: "issue 1196" }],
-  "setup.refused.no-access": ["We found no subscription on this account, so setup can’t start. You can still cancel or export in Settings.", { slots: {}, fixedBy: "REQ-025 c5" }],
+  "setup.refused.could-not-ask": ["This step wasn’t saved. Check your connection and press again.", { slots: {} }],
+  "setup.refused.no-access": ["We found no subscription on this account, so setup can’t start. You can still cancel or export in Settings.", { slots: {} }],
   // ── The progress strip (UI-SPEC S10 · S11, issue #356) ──────────────
-  "setup.progress.paid": ["Paid", { slots: {}, fixedBy: "S10 · 11a" }],
-  "setup.progress.setup": ["Setup", { slots: {}, fixedBy: "S10 · 11a" }],
-  "setup.progress.first-page": ["First page live", { slots: {}, fixedBy: "S10 · 11a" }],
+  "setup.progress.paid": ["Paid", { slots: {} }],
+  "setup.progress.setup": ["Setup", { slots: {} }],
+  "setup.progress.first-page": ["First page live", { slots: {} }],
 
   // ── The two arms' own lines (UI-SPEC S10, issue #356) ───────────────
   "setup.address.assurance": [
     "We check this site and put your pages live on it.",
-    { slots: {}, fixedBy: "S10 · REQ-021 c7" },
+    { slots: {} },
   ],
   "setup.competitors.add.placeholder.first": [
     "competitor.com",
-    { slots: {}, fixedBy: "S10 · REQ-026 c3" },
+    { slots: {} },
   ],
 
   // ── The site address (REQ-021) ──────────────────────────────────────
-  "setup.address.label": ["Your website", { slots: {}, fixedBy: "REQ-021 c7 · S10 (11a)" }],
-  "setup.address.placeholder": ["yourdomain.com", { slots: {}, fixedBy: "REQ-021 c7 · S10 (11a)" }],
+  "setup.address.label": ["Your website", { slots: {} }],
+  "setup.address.placeholder": ["yourdomain.com", { slots: {} }],
   /** The line beside an address a completed report measured — shown to
    *  confirm or change, never retyped (REQ-021 c6). */
-  "setup.address.change": ["Change", { slots: {}, fixedBy: "REQ-021 c6 · S10 (11a)" }],
-  "setup.address.refused.not-a-domain": ["That isn’t a web address. Enter one like yourdomain.com.", { slots: {}, fixedBy: "REQ-021 c9" }],
+  "setup.address.change": ["Change", { slots: {} }],
+  "setup.address.refused.not-a-domain": ["That isn’t a web address. Enter one like yourdomain.com.", { slots: {} }],
   /** REQ-021 c9 and c10 in one line: it says the address cannot be
    *  reached, names one way to reach a person, and tells the founder they
    *  can cancel without finishing setup. */
-  "setup.address.refused.unreachable": ["We can’t reach that website. Check the spelling, or write to hello@reachkit.app for help.", { slots: {}, fixedBy: "REQ-021 c10" }],
-  "setup.address.missing": ["Enter your website to start.", { slots: {}, fixedBy: "REQ-021 c7" }],
+  "setup.address.refused.unreachable": ["We can’t reach that website. Check the spelling, or write to hello@reachkit.app for help.", { slots: {} }],
+  "setup.address.missing": ["Enter your website to start.", { slots: {} }],
 
   // ── Your market (REQ-026) ───────────────────────────────────────────
-  "setup.market.change": ["Change", { slots: {}, fixedBy: "REQ-026 c1" }],
+  "setup.market.change": ["Change", { slots: {} }],
   /** REQ-026 c3: the empty card asks them to state their market in their
    *  own words, with nothing pre-filled and nothing presented as inferred. */
-  "setup.market.state-it": ["Describe your market in a few words.", { slots: {}, fixedBy: "REQ-026 c3" }],
-  "setup.market.label": ["Your market, in a few words", { slots: {}, fixedBy: "REQ-026 c3" }],
-  "setup.market.placeholder": ["payroll software for small teams", { slots: {}, fixedBy: "REQ-026 c3" }],
-  "setup.market.missing": ["Describe your market to start.", { slots: {}, fixedBy: "REQ-026 c5" }],
+  "setup.market.state-it": ["Describe your market in a few words.", { slots: {} }],
+  "setup.market.label": ["Your market, in a few words", { slots: {} }],
+  "setup.market.placeholder": ["payroll software for small teams", { slots: {} }],
+  "setup.market.missing": ["Describe your market to start.", { slots: {} }],
 
   // ── Competitors (REQ-026) ───────────────────────────────────────────
-  "setup.competitors.title": ["Competitors", { slots: {}, fixedBy: "REQ-026 c7" }],
+  "setup.competitors.title": ["Competitors", { slots: {} }],
   // D28 (owner, 2026-10-02, #1185): drafted, named in the pull request.
   "setup.competitors.concluded": [
     "We found these competitors and update them every Monday. Remove or add any.",
-    { slots: {}, fixedBy: "SPEC §5 2026-10-02 D28, issue 1185" },
+    { slots: {} },
   ],
   "setup.market.concluded": [
     "We read this from your site and update it every Monday. Change it only if it’s wrong.",
-    { slots: {}, fixedBy: "SPEC §5 2026-10-02 D28, issue 1185" },
+    { slots: {} },
   ],
   /** REQ-026 c10, first limb: waiting on the market, never "none found". */
-  "setup.competitors.awaiting-market": ["We suggest competitors once you describe your market.", { slots: {}, fixedBy: "REQ-026 c10" }],
-  "setup.competitors.seeking": ["Looking for competitors in your market…", { slots: {}, fixedBy: "REQ-026 c10" }],
+  "setup.competitors.awaiting-market": ["We suggest competitors once you describe your market.", { slots: {} }],
+  "setup.competitors.seeking": ["Looking for competitors in your market…", { slots: {} }],
   /** REQ-026 c10, second limb: a known market whose suggestions came back
    *  empty. */
   "setup.competitors.none-found": [
     "We found no competitors yet. Add up to five, or carry on and we keep looking.",
-    { slots: {}, fixedBy: "REQ-026 c10 · S10 (11a)" },
+    { slots: {} },
   ],
   /** REQ-026 c9: the limit is stated on screen rather than silently
    *  enforced. `{max}` is `BATTERY.COMPETITORS_MAX`. */
   /** The set draws "3 of 5": the count chosen and the limit, both slots. */
   "setup.competitors.limit": [
     "{chosen} of {max}",
-    { slots: { chosen: "text", max: "text" }, fixedBy: "S10 · REQ-026 c9" },
+    { slots: { chosen: "text", max: "text" } },
   ],
-  "setup.competitors.add.label": ["Add a competitor", { slots: {}, fixedBy: "REQ-026 c8 · S10 (11a)" }],
-  "setup.competitors.add.placeholder": ["add another", { slots: {}, fixedBy: "REQ-026 c8 · S10 (11a)" }],
-  "setup.competitors.add.action": ["Add", { slots: {}, fixedBy: "REQ-026 c8 · S10 (11a)" }],
+  "setup.competitors.add.label": ["Add a competitor", { slots: {} }],
+  "setup.competitors.add.placeholder": ["add another", { slots: {} }],
+  "setup.competitors.add.action": ["Add", { slots: {} }],
   /** The accessible name on a chosen tag's ×, naming the rival it takes
    *  out. The set draws the glyph and no words. */
-  "setup.competitors.remove": ["Remove {rival}", { slots: { rival: "text" }, fixedBy: "REQ-026 c7" }],
-  "setup.competitors.refused.not-a-domain": ["That isn’t a web address. Enter one like competitor.com.", { slots: {}, fixedBy: "REQ-026 c8" }],
-  "setup.competitors.refused.does-not-resolve": ["We can’t find a website at that address. Check the spelling.", { slots: {}, fixedBy: "REQ-026 c8" }],
-  "setup.competitors.refused.own-domain": ["That’s your own site, not a competitor.", { slots: {}, fixedBy: "REQ-026 c8" }],
-  "setup.competitors.refused.already-present": ["That site is already on your list.", { slots: {}, fixedBy: "REQ-026 c8" }],
-  "setup.competitors.refused.set-full": ["Your list is full. Remove a competitor to add another.", { slots: {}, fixedBy: "REQ-026 c9" }],
+  "setup.competitors.remove": ["Remove {rival}", { slots: { rival: "text" } }],
+  "setup.competitors.refused.not-a-domain": ["That isn’t a web address. Enter one like competitor.com.", { slots: {} }],
+  "setup.competitors.refused.does-not-resolve": ["We can’t find a website at that address. Check the spelling.", { slots: {} }],
+  "setup.competitors.refused.own-domain": ["That’s your own site, not a competitor.", { slots: {} }],
+  "setup.competitors.refused.already-present": ["That site is already on your list.", { slots: {} }],
+  "setup.competitors.refused.set-full": ["Your list is full. Remove a competitor to add another.", { slots: {} }],
 
   // ── Destination (REQ-028) ───────────────────────────────────────────
   // No mode pair and no mode title (SPEC §7, #476): the card is headed with
   // `settings.publishing.title`.
-  "setup.destination.where": ["Where Should Pages Live?", { slots: {}, fixedBy: "board Setup · issue 1738" }],
-  "setup.destination.hosted.name": ["On your web address, run by us", { slots: {}, fixedBy: "board Setup · issue 1738" }],
-  "setup.destination.hosted": ["One setting, once. Recommended.", { slots: {}, fixedBy: "board Setup · issue 1738" }],
-  "setup.destination.wordpress.name": ["On my WordPress site", { slots: {}, fixedBy: "board Setup · issue 1738" }],
+  "setup.destination.where": ["Where Should Pages Live?", { slots: {} }],
+  "setup.destination.hosted.name": ["On your web address, run by us", { slots: {} }],
+  "setup.destination.hosted": ["One setting, once. Recommended.", { slots: {} }],
+  "setup.destination.wordpress.name": ["On my WordPress site", { slots: {} }],
   "setup.destination.wordpress": [
     "You create an app password for us.",
-    { slots: {}, fixedBy: "board Setup · issue 1738" },
+    { slots: {} },
   ],
   /** Issue 759 (owner ruling 2026-09-16): where that provider is — beside
    *  the record on `/setup` and in Settings. Since issue 760 it is the
    *  fallback for a lookup that could not answer. */
   "setup.destination.dnsWhere": [
     "Paste this at the company you bought your web address from. If you use Cloudflare, paste it there.",
-    { slots: {}, fixedBy: "SPEC §5 · §12 (2026-09-16, issue 759)" },
+    { slots: {} },
   ],
   /** Issue 760 (owner ruling 2026-09-16): the guidance is derived, not
    *  generic. An NS lookup on the site's domain names where the record is
@@ -147,16 +147,16 @@ export const SETUP_COPY = Object.freeze({
    *  `{nameserver}` a host name: data, never composed words. */
   "setup.destination.dnsAt": [
     "Your web address is at {provider}. Paste this there.",
-    { slots: { provider: "text" }, fixedBy: "SPEC §5 (2026-09-16, issue 760)" },
+    { slots: { provider: "text" } },
   ],
   "setup.destination.dnsNameserver": [
     "Your web address uses {nameserver}. Paste this wherever you manage that.",
-    { slots: { nameserver: "text" }, fixedBy: "SPEC §5 (2026-09-16, issue 760)" },
+    { slots: { nameserver: "text" } },
   ],
   /** One instruction, not a choice: a custom domain behind Cloudflare's proxy commonly fails its certificate. */
   "setup.destination.dnsProxy": [
     "Set Proxy status to DNS only (the grey cloud). With the proxy on, the connection often fails.",
-    { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" },
+    { slots: {} },
   ],
 
   // ── The DNS guide (issue 856; owner 2026-09-17) ─────────────────────
@@ -167,66 +167,66 @@ export const SETUP_COPY = Object.freeze({
   // zone — and `{host}` the full name. Field labels and values are the
   // provider's own words as its dashboard prints them. Drafted; the owner
   // corrects the wording.
-  "setup.destination.guide.column.field": ["Field", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
-  "setup.destination.guide.column.value": ["Enter", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
-  "setup.destination.guide.copy": ["Copy", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
-  "setup.destination.guide.copied": ["Copied", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
-  "setup.destination.guide.open": ["Open Your {provider} DNS Settings", { slots: { provider: "text" }, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
-  "setup.destination.guide.full-name": ["The full name of this record is {host}.", { slots: { host: "text" }, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+  "setup.destination.guide.column.field": ["Field", { slots: {} }],
+  "setup.destination.guide.column.value": ["Enter", { slots: {} }],
+  "setup.destination.guide.copy": ["Copy", { slots: {} }],
+  "setup.destination.guide.copied": ["Copied", { slots: {} }],
+  "setup.destination.guide.open": ["Open Your {provider} DNS Settings", { slots: { provider: "text" } }],
+  "setup.destination.guide.full-name": ["The full name of this record is {host}.", { slots: { host: "text" } }],
 
-  "setup.destination.guide.field.type": ["Type", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
-  "setup.destination.guide.field.name": ["Name", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
-  "setup.destination.guide.field.target": ["Target", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
-  "setup.destination.guide.field.value": ["Value", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
-  "setup.destination.guide.field.host": ["Host", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
-  "setup.destination.guide.field.data": ["Data", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
-  "setup.destination.guide.field.proxy-status": ["Proxy status", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
-  "setup.destination.guide.field.ttl": ["TTL", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
-  "setup.destination.guide.field.record-name": ["Record name", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
-  "setup.destination.guide.field.record-type": ["Record type", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
-  "setup.destination.guide.field.routing-policy": ["Routing policy", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
-  "setup.destination.guide.field.generic-name": ["Name (or Host)", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
-  "setup.destination.guide.field.generic-target": ["Target (or Value, Points to)", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
-  "setup.destination.guide.value.dns-only": ["DNS only", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
-  "setup.destination.guide.value.auto": ["Auto", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
-  "setup.destination.guide.value.automatic": ["Automatic", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
-  "setup.destination.guide.value.simple-routing": ["Simple routing", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+  "setup.destination.guide.field.type": ["Type", { slots: {} }],
+  "setup.destination.guide.field.name": ["Name", { slots: {} }],
+  "setup.destination.guide.field.target": ["Target", { slots: {} }],
+  "setup.destination.guide.field.value": ["Value", { slots: {} }],
+  "setup.destination.guide.field.host": ["Host", { slots: {} }],
+  "setup.destination.guide.field.data": ["Data", { slots: {} }],
+  "setup.destination.guide.field.proxy-status": ["Proxy status", { slots: {} }],
+  "setup.destination.guide.field.ttl": ["TTL", { slots: {} }],
+  "setup.destination.guide.field.record-name": ["Record name", { slots: {} }],
+  "setup.destination.guide.field.record-type": ["Record type", { slots: {} }],
+  "setup.destination.guide.field.routing-policy": ["Routing policy", { slots: {} }],
+  "setup.destination.guide.field.generic-name": ["Name (or Host)", { slots: {} }],
+  "setup.destination.guide.field.generic-target": ["Target (or Value, Points to)", { slots: {} }],
+  "setup.destination.guide.value.dns-only": ["DNS only", { slots: {} }],
+  "setup.destination.guide.value.auto": ["Auto", { slots: {} }],
+  "setup.destination.guide.value.automatic": ["Automatic", { slots: {} }],
+  "setup.destination.guide.value.simple-routing": ["Simple routing", { slots: {} }],
 
-  "setup.destination.guide.cloudflare.1": ["Open the Cloudflare dashboard and choose {zone}.", { slots: { zone: "text" }, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
-  "setup.destination.guide.cloudflare.2": ["Go to DNS, then Records, and press Add record.", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
-  "setup.destination.guide.cloudflare.3": ["Fill in the fields as shown. In Name, enter only {name}, and Cloudflare adds {zone}.", { slots: { name: "text", zone: "text" }, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
-  "setup.destination.guide.cloudflare.4": ["Set Proxy status to DNS only, then press Save.", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+  "setup.destination.guide.cloudflare.1": ["Open the Cloudflare dashboard and choose {zone}.", { slots: { zone: "text" } }],
+  "setup.destination.guide.cloudflare.2": ["Go to DNS, then Records, and press Add record.", { slots: {} }],
+  "setup.destination.guide.cloudflare.3": ["Fill in the fields as shown. In Name, enter only {name}, and Cloudflare adds {zone}.", { slots: { name: "text", zone: "text" } }],
+  "setup.destination.guide.cloudflare.4": ["Set Proxy status to DNS only, then press Save.", { slots: {} }],
 
-  "setup.destination.guide.godaddy.1": ["Sign in to GoDaddy, open {zone} from your domains and choose DNS.", { slots: { zone: "text" }, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
-  "setup.destination.guide.godaddy.2": ["Press Add New Record and choose CNAME as the type.", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
-  "setup.destination.guide.godaddy.3": ["Fill in the fields as shown. In Name, enter only {name}, and GoDaddy adds {zone}.", { slots: { name: "text", zone: "text" }, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
-  "setup.destination.guide.godaddy.4": ["Press Save.", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+  "setup.destination.guide.godaddy.1": ["Sign in to GoDaddy, open {zone} from your domains and choose DNS.", { slots: { zone: "text" } }],
+  "setup.destination.guide.godaddy.2": ["Press Add New Record and choose CNAME as the type.", { slots: {} }],
+  "setup.destination.guide.godaddy.3": ["Fill in the fields as shown. In Name, enter only {name}, and GoDaddy adds {zone}.", { slots: { name: "text", zone: "text" } }],
+  "setup.destination.guide.godaddy.4": ["Press Save.", { slots: {} }],
 
-  "setup.destination.guide.namecheap.1": ["Sign in to Namecheap, open Domain List and press Manage beside {zone}.", { slots: { zone: "text" }, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
-  "setup.destination.guide.namecheap.2": ["Open the Advanced DNS tab, press Add New Record and choose CNAME Record.", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
-  "setup.destination.guide.namecheap.3": ["Fill in the fields as shown. In Host, enter only {name}, and Namecheap adds {zone}.", { slots: { name: "text", zone: "text" }, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
-  "setup.destination.guide.namecheap.4": ["Press the green tick to save the record.", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+  "setup.destination.guide.namecheap.1": ["Sign in to Namecheap, open Domain List and press Manage beside {zone}.", { slots: { zone: "text" } }],
+  "setup.destination.guide.namecheap.2": ["Open the Advanced DNS tab, press Add New Record and choose CNAME Record.", { slots: {} }],
+  "setup.destination.guide.namecheap.3": ["Fill in the fields as shown. In Host, enter only {name}, and Namecheap adds {zone}.", { slots: { name: "text", zone: "text" } }],
+  "setup.destination.guide.namecheap.4": ["Press the green tick to save the record.", { slots: {} }],
 
-  "setup.destination.guide.squarespace.1": ["Sign in to Squarespace, open Domains and choose {zone}.", { slots: { zone: "text" }, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
-  "setup.destination.guide.squarespace.2": ["Open DNS, then DNS Settings, and under Custom records press Add record.", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
-  "setup.destination.guide.squarespace.3": ["Fill in the fields as shown. In Host, enter only {name}, and Squarespace adds {zone}.", { slots: { name: "text", zone: "text" }, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
-  "setup.destination.guide.squarespace.4": ["Press Save.", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+  "setup.destination.guide.squarespace.1": ["Sign in to Squarespace, open Domains and choose {zone}.", { slots: { zone: "text" } }],
+  "setup.destination.guide.squarespace.2": ["Open DNS, then DNS Settings, and under Custom records press Add record.", { slots: {} }],
+  "setup.destination.guide.squarespace.3": ["Fill in the fields as shown. In Host, enter only {name}, and Squarespace adds {zone}.", { slots: { name: "text", zone: "text" } }],
+  "setup.destination.guide.squarespace.4": ["Press Save.", { slots: {} }],
 
-  "setup.destination.guide.route53.1": ["Open Route 53 in the AWS console, choose Hosted zones and open {zone}.", { slots: { zone: "text" }, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
-  "setup.destination.guide.route53.2": ["Press Create record.", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
-  "setup.destination.guide.route53.3": ["Fill in the fields as shown. In Record name, enter only {name}, and Route 53 shows {zone} after it.", { slots: { name: "text", zone: "text" }, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
-  "setup.destination.guide.route53.4": ["Press Create records.", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+  "setup.destination.guide.route53.1": ["Open Route 53 in the AWS console, choose Hosted zones and open {zone}.", { slots: { zone: "text" } }],
+  "setup.destination.guide.route53.2": ["Press Create record.", { slots: {} }],
+  "setup.destination.guide.route53.3": ["Fill in the fields as shown. In Record name, enter only {name}, and Route 53 shows {zone} after it.", { slots: { name: "text", zone: "text" } }],
+  "setup.destination.guide.route53.4": ["Press Create records.", { slots: {} }],
 
-  "setup.destination.guide.vercel.1": ["Open the Vercel dashboard, go to Domains and choose {zone}.", { slots: { zone: "text" }, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
-  "setup.destination.guide.vercel.2": ["Fill in the fields under DNS Records as shown. In Name, enter only {name}, and Vercel adds {zone}.", { slots: { name: "text", zone: "text" }, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
-  "setup.destination.guide.vercel.3": ["Press Add.", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+  "setup.destination.guide.vercel.1": ["Open the Vercel dashboard, go to Domains and choose {zone}.", { slots: { zone: "text" } }],
+  "setup.destination.guide.vercel.2": ["Fill in the fields under DNS Records as shown. In Name, enter only {name}, and Vercel adds {zone}.", { slots: { name: "text", zone: "text" } }],
+  "setup.destination.guide.vercel.3": ["Press Add.", { slots: {} }],
 
-  "setup.destination.guide.generic.1": ["Sign in where you bought your web address. Open the DNS records for {zone}.", { slots: { zone: "text" }, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
-  "setup.destination.guide.generic.2": ["Add a CNAME record with the fields shown. In Name, enter {name}, or {host} if it asks for the full name.", { slots: { name: "text", host: "text" }, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
-  "setup.destination.guide.generic.3": ["Save the record. If your provider offers a proxy or forwarding for it, leave that off.", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+  "setup.destination.guide.generic.1": ["Sign in where you bought your web address. Open the DNS records for {zone}.", { slots: { zone: "text" } }],
+  "setup.destination.guide.generic.2": ["Add a CNAME record with the fields shown. In Name, enter {name}, or {host} if it asks for the full name.", { slots: { name: "text", host: "text" } }],
+  "setup.destination.guide.generic.3": ["Save the record. If your provider offers a proxy or forwarding for it, leave that off.", { slots: {} }],
   /** REQ-028 c2: the written line that stands where the record will sit
    *  until a site address is given — never a blank, dash or placeholder. */
-  "setup.destination.dnsPending": ["The setting shows once you enter your website.", { slots: {}, fixedBy: "REQ-028 c2" }],
+  "setup.destination.dnsPending": ["The setting shows once you enter your website.", { slots: {} }],
 
   // ── The subdomain label (SPEC §5, ruling of 2026-09-12) ─────────────
   //
@@ -237,33 +237,29 @@ export const SETUP_COPY = Object.freeze({
   // choose the subdomain, e.g. blog or content]" — which is the canvas's
   // own way of saying the sentence is not written yet.
   //
-  // **Three keys, all owed.** `CLAUDE.md`'s standing rule: add the key,
-  // leave the value `TODO(copy)`, name it in the PR. The marker renders as
-  // itself, so the field and each refusal are visibly unwritten rather
-  // than invisibly absent — and no sentence here was composed to fill
-  // them. The two words the state is read as ("waiting for DNS", "live")
-  // are §5's own and are written, in `settings.ts`.
+  // The two words the state is read as ("waiting for DNS", "live") are
+  // §5's own and are written, in `settings.ts`.
   "setup.destination.label.label": [
     "The first part of the address",
-    { slots: {}, fixedBy: "SPEC §5 (2026-09-12) · Canvas: Setup" },
+    { slots: {} },
   ],
   /** The one written line for a label that is not a label at all. */
   "setup.destination.label.refused.invalid": [
     "That name can’t be used here. Try another short word.",
-    { slots: {}, fixedBy: "SPEC §5 (2026-09-12)" },
+    { slots: {} },
   ],
   /** The one written line for a label somebody else already serves at. */
   "setup.destination.label.refused.taken": [
     "That name is already taken. Try another.",
-    { slots: {}, fixedBy: "SPEC §5 (2026-09-12)" },
+    { slots: {} },
   ],
   /** Issue #757: a "check connection" press on `/setup` for an address the
    *  founder has changed on screen but not submitted. The server knows only
    *  the site's stored address as theirs, and asks about no other host. */
-  "setup.destination.check.address-unsaved": ["Confirm your website first. This setting depends on it.", { slots: {}, fixedBy: "SPEC §5 (2026-09-16, issue 757)" }],
+  "setup.destination.check.address-unsaved": ["Confirm your website first. This setting depends on it.", { slots: {} }],
 
   // ── The waiting screen (REQ-029) ────────────────────────────────────
-  "setup.waiting.head": ["Your first page is coming", { slots: {}, fixedBy: "REQ-029 c1" }],
+  "setup.waiting.head": ["Your first page is coming", { slots: {} }],
   /** One line per stage of the pass. Which step is under way, in written
    *  words — never a bare spinner, and never how long. */
   //
@@ -279,23 +275,23 @@ export const SETUP_COPY = Object.freeze({
   // and never current. That is the set's own drawing, not an omission.
   "setup.waiting.stage.measuring-your-market": [
     "Checking your buyers and competitors",
-    { slots: {}, fixedBy: "S11 · 11a · REQ-029 c1" },
+    { slots: {} },
   ],
   "setup.waiting.stage.sizing-your-rivals": [
     "Comparing you with competitors",
-    { slots: {}, fixedBy: "S11 · 11a · REQ-029 c1" },
+    { slots: {} },
   ],
   "setup.waiting.stage.finding-pages": [
     "Finding pages worth writing",
-    { slots: {}, fixedBy: "S11 · 11a · REQ-029 c1" },
+    { slots: {} },
   ],
   "setup.waiting.stage.writing-your-first-page": [
     "Writing your first page",
-    { slots: {}, fixedBy: "S11 · 11a · REQ-029 c1" },
+    { slots: {} },
   ],
   "setup.waiting.stage.checking-it": [
     "Checking it against your facts",
-    { slots: {}, fixedBy: "S11 · 11a · REQ-029 c1" },
+    { slots: {} },
   ],
 
   // ── No stated time zone yet (issue 753) ─────────────────────────────
@@ -306,30 +302,30 @@ export const SETUP_COPY = Object.freeze({
   // zone from this screen and the founder is taken on to the app. Drafted
   // and shipped under the owner ruling of 2026-09-16 (#759); the owner
   // corrects the wording.
-  "setup.zone.head": ["Setting Your Time Zone", { slots: {}, fixedBy: "board SetupZone · issue 1738" }],
-  "setup.zone.line": ["So every date shows in your time. A few seconds, once, with nothing to press.", { slots: {}, fixedBy: "board SetupZone v36 · O6 · issue 2270" }],
+  "setup.zone.head": ["Setting Your Time Zone", { slots: {} }],
+  "setup.zone.line": ["So every date shows in your time. A few seconds, once, with nothing to press.", { slots: {} }],
   /** Shown once the browser has said nothing for ten seconds; the support address follows it as a link. */
-  "setup.zone.slow": ["We don’t have your time zone yet. Reload this page, or write to", { slots: {}, fixedBy: "board SetupZone · issue 1738" }],
+  "setup.zone.slow": ["We don’t have your time zone yet. Reload this page, or write to", { slots: {} }],
 
   // ── Your voice (SPEC.md §5, 2026-09-12; renamed 2026-09-17, issue 839) ─
   //
   // §5's "The site profile is confirmed here": the page inventory, the site
   // name and the editable brand voice, drawn on the Check board
   // (`docs/design/boards/canvas/Setup2.dc.html`).
-  "setup.profile.voice.label": ["How your pages sound", { slots: {}, fixedBy: "SPEC.md §5 (2026-09-12)" }],
+  "setup.profile.voice.label": ["How your pages sound", { slots: {} }],
   /** Above an empty voice box, where no voice has been read of the site
    *  yet — the free scan does not read one, and the deep pass that does
    *  runs after this submit. Drafted under the owner ruling of 2026-09-16
    *  (issue 759); the owner corrects the wording. */
   "setup.profile.voice.unread": [
     "We haven’t read how your site sounds yet. Describe it, or leave this empty and we’ll read it.",
-    { slots: {}, fixedBy: "issue 839" },
+    { slots: {} },
   ],
   /** The note under the voice box: the same text is editable in Settings
    *  afterwards (§5's done-when, 2026-09-12). */
   "setup.profile.voice.later": [
     "You can change this later in Settings.",
-    { slots: {}, fixedBy: "SPEC.md §5 (2026-09-12)" },
+    { slots: {} },
   ],
 
   // ── The release notice (issue #36) ──────────────────────────────────
@@ -348,30 +344,30 @@ export const SETUP_COPY = Object.freeze({
 
   /** REQ-029 c3: the pass measured some of it. One sentence saying what
    *  could not be measured. */
-  "setup.release.unmeasured": ["We couldn’t check everything the first time. The next check, on {due}, fills in the rest.", { slots: { due: "date" }, fixedBy: "REQ-029 c3; issue 2657 S3, issue 2670 (drafted)" }],
+  "setup.release.unmeasured": ["We couldn’t check everything the first time. The next check, on {due}, fills in the rest.", { slots: { due: "date" } }],
   /** REQ-029 c5: the pass failed outright, or had not ended when the founder was released anyway. One sentence saying
    *  the measurement did not complete — never that it found nothing, which is a different fact with its own line (§7). */
-  "setup.release.incomplete": ["Your first check didn’t finish. The next check, on {due}, fills in the rest.", { slots: { due: "date" }, fixedBy: "REQ-029 c5; issue 2657 S3, issue 2670 (drafted)" }],
+  "setup.release.incomplete": ["Your first check didn’t finish. The next check, on {due}, fills in the rest.", { slots: { due: "date" } }],
   /** Issue #770: the pass read the market and found too few searches to
    *  plan a page from — a measurement, not a failure. Issue 837 (owner,
    *  2026-09-17): it points at the choice beside it, never at a week. */
-  "setup.release.market-too-small": ["We couldn’t find enough searches for your market to plan pages yet. Pick a broader market and we’ll scan again right away.", { slots: {}, fixedBy: "issue 770" }],
+  "setup.release.market-too-small": ["We couldn’t find enough searches for your market to plan pages yet. Pick a broader market and we’ll scan again right away.", { slots: {} }],
   /** Issue 855 (owner, 2026-09-17): the pass stopped on a ceiling before it
    *  finished reading the market. Not a market too small, and nothing for
    *  the founder to change. Drafted under issue 759's ruling. */
-  "setup.release.measuring": ["We’re still checking your market. Your first pages follow on their own.", { slots: {}, fixedBy: "issue 855" }],
-  "setup.release.own-facts": ["Your site doesn’t say enough about what you sell to write a new page. Add what you sell and who you serve in Settings › Your business.",{ slots: {}, fixedBy: "issue 2431 (drafted)" }], // The newest day wrote no page, not even from the site's own facts.
+  "setup.release.measuring": ["We’re still checking your market. Your first pages follow on their own.", { slots: {} }],
+  "setup.release.own-facts": ["Your site doesn’t say enough about what you sell to write a new page. Add what you sell and who you serve in Settings › Your business.",{ slots: {} }], // The newest day wrote no page, not even from the site's own facts.
 
   // Issue 837 (owner ruling 2026-09-17): the choice a thin market offers —
   // two or three broader categories from the site's own profile, and the
   // founder's own words — and the two ways a press is refused. Drafted under
   // issue 759's ruling; the owner corrects the wording.
-  "setup.remeasure.suggested": ["Broader markets to try", { slots: {}, fixedBy: "issue 837" }],
-  "setup.remeasure.own": ["Or describe your market in your own words", { slots: {}, fixedBy: "issue 837" }],
-  "setup.remeasure.submit": ["Check This Market Now", { slots: {}, fixedBy: "issue 837 · owner 2026-11-14, issue 2657 S6 (issue 2672)" }],
-  "setup.remeasure.refused.empty": ["Type a market, or pick one of the suggestions.", { slots: {}, fixedBy: "issue 837" }],
-  "setup.remeasure.refused.running": ["We’re already checking your market. Your pages follow when it’s done.", { slots: {}, fixedBy: "issue 837" }],
-  "setup.remeasure.refused.daily-limit": ["You can check again after {time}.", { slots: { time: "text" }, fixedBy: "issue 837" }],
+  "setup.remeasure.suggested": ["Broader markets to try", { slots: {} }],
+  "setup.remeasure.own": ["Or describe your market in your own words", { slots: {} }],
+  "setup.remeasure.submit": ["Check This Market Now", { slots: {} }],
+  "setup.remeasure.refused.empty": ["Type a market, or pick one of the suggestions.", { slots: {} }],
+  "setup.remeasure.refused.running": ["We’re already checking your market. Your pages follow when it’s done.", { slots: {} }],
+  "setup.remeasure.refused.daily-limit": ["You can check again after {time}.", { slots: { time: "text" } }],
 
   // ── The five steps (SPEC §5, 2026-09-20, #908) ──────────────────────
   //
@@ -389,57 +385,57 @@ export const SETUP_COPY = Object.freeze({
   // #923's panel. Both are written here for the screen this issue ships.
 
   /** The one-word labels on the daisyUI `steps` indicator, three equal columns. */
-  "setup.step.site": ["Site", { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" }],
-  "setup.step.check": ["Details", { slots: {}, fixedBy: "SPEC §5 · board Setup2 · issue 1737" }],
-  "setup.step.publishing": ["Connect", { slots: {}, fixedBy: "owner E11 · issue 1601" }],
+  "setup.step.site": ["Site", { slots: {} }],
+  "setup.step.check": ["Details", { slots: {} }],
+  "setup.step.publishing": ["Connect", { slots: {} }],
 
-  "setup.step.time": ["The three steps take about 10 minutes.", { slots: {}, fixedBy: "SPEC §5 · owner 2026-11-13 · issue 2656" }],
-  "setup.step.publishing.time": ["5–10 min, or send it to your web person", { slots: {}, fixedBy: "board Setup · issue 2114 (drafted)" }],
+  "setup.step.time": ["The three steps take about 10 minutes.", { slots: {} }],
+  "setup.step.publishing.time": ["5–10 min, or send it to your web person", { slots: {} }],
 
   /** One question per step — the screen's `<h1>`. */
-  "setup.step.site.question": ["Is This Your Business?", { slots: {}, fixedBy: "issue 922" }],
-  "setup.step.check.question": ["What We Found on Your Site", { slots: {}, fixedBy: "SPEC §5 · board Setup2 · issue 1737" }],
-  "setup.step.publishing.question": ["Connect Your Website", { slots: {}, fixedBy: "owner E11 · issue 1601" }],
+  "setup.step.site.question": ["Is This Your Business?", { slots: {} }],
+  "setup.step.check.question": ["What We Found on Your Site", { slots: {} }],
+  "setup.step.publishing.question": ["Connect Your Website", { slots: {} }],
 
   /** The line under each question. */
   "setup.step.site.line": [
     "We write every page from this site. Fix anything wrong.",
-    { slots: {}, fixedBy: "SPEC §5 · board Setup1 · issue 1737" },
+    { slots: {} },
   ],
   "setup.step.check.line": [
     "Open a section to change it, or carry on.",
-    { slots: {}, fixedBy: "SPEC §5 · board Setup2 · issue 1737" },
+    { slots: {} },
   ],
   /** No hour: each site sets its own publish time. */
   "setup.step.publishing.line": [
     "Your first page is ready or nearly ready. It goes live once your website is connected.",
-    { slots: {}, fixedBy: "SPEC §5 Live only where the customer chose (drafted)" },
+    { slots: {} },
   ],
 
   /** The controls at the foot of every step, Check included. */
-  "setup.back": ["Back", { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" }],
-  "setup.continue": ["Save and Continue", { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908) · board Setup2 · issue 1737 · owner 2026-11-14, issue 2657 S6 (issue 2672)" }],
+  "setup.back": ["Back", { slots: {} }],
+  "setup.continue": ["Save and Continue", { slots: {} }],
 
   // ── Check: here's what we read ─────────────────────────────────────
   /** `{time}` is when the running pass began, on the founder's clock. Shown only while a pass runs. */
-  "setup.check.status": ["Checking your buyers and competitors · started {time}", { slots: { time: "text" }, fixedBy: "SPEC §5 · board Setup2 · issue 1737" }],
+  "setup.check.status": ["Checking your buyers and competitors · started {time}", { slots: { time: "text" } }],
   /** The pass's step and when the pass began, on the founder's clock: `{step}` is the step's own line. */
-  "setup.pass.started": ["{step} · started {time}", { slots: { step: "text", time: "text" }, fixedBy: "board Setup v36 · issue 2270" }],
+  "setup.pass.started": ["{step} · started {time}", { slots: { step: "text", time: "text" } }],
   /** `{n}` is the inventory's own row count — what was read, never a target. */
-  "setup.check.pages": ["{n} pages read", { slots: { n: "text" }, fixedBy: "SPEC §5 · board Setup2 · issue 1737" }],
-  "setup.check.business": ["Your Business", { slots: {}, fixedBy: "SPEC §5 · board Setup2 · issue 1737" }],
-  "setup.check.market": ["Your Market and Competitors", { slots: {}, fixedBy: "SPEC §5 · board Setup2 · issue 1737" }],
-  "setup.check.market.summary": ["{market} · {n} competitors", { slots: { market: "text", n: "text" }, fixedBy: "SPEC §5 · board Setup2 · issue 1737" }],
-  "setup.check.voice": ["How Your Pages Sound", { slots: {}, fixedBy: "SPEC §5 · board Setup2 · issue 1737" }],
-  "setup.check.asks.summary": ["Answer any, or none.", { slots: {}, fixedBy: "SPEC §5 · board Setup2 · issue 1737" }],
+  "setup.check.pages": ["{n} pages read", { slots: { n: "text" } }],
+  "setup.check.business": ["Your Business", { slots: {} }],
+  "setup.check.market": ["Your Market and Competitors", { slots: {} }],
+  "setup.check.market.summary": ["{market} · {n} competitors", { slots: { market: "text", n: "text" } }],
+  "setup.check.voice": ["How Your Pages Sound", { slots: {} }],
+  "setup.check.asks.summary": ["Answer any, or none.", { slots: {} }],
   /** Before the profile crawl has read a page. */
   "setup.check.unread": [
     "We’re still reading your site, so carry on. You can change what we find in Settings.",
-    { slots: {}, fixedBy: "SPEC §5 · board Setup2 · issue 1737" },
+    { slots: {} },
   ],
 
   // ── After setup: the week that needs nothing more ──────────────────
-  "setup.next.after": ["After This, Nothing to Do", { slots: {}, fixedBy: "SPEC §5 · board Setup1 · issue 1737" }],
+  "setup.next.after": ["After This, Nothing to Do", { slots: {} }],
 
   // ── Step two: what we learned about your business ───────────────────
   //
@@ -455,94 +451,94 @@ export const SETUP_COPY = Object.freeze({
   /** The owner's own sentence (issue #922), under the pages-read chips. */
   "setup.business.assurance": [
     "We never invent prices, people or reviews. If a fact isn’t on your site, it won’t be in your pages.",
-    { slots: {}, fixedBy: "issue 922" },
+    { slots: {} },
   ],
-  "setup.business.group.job": ["What You Do", { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" }],
-  "setup.business.group.products": ["What You Sell", { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" }],
+  "setup.business.group.job": ["What You Do", { slots: {} }],
+  "setup.business.group.products": ["What You Sell", { slots: {} }],
   "setup.business.group.audienceTerms": [
     "Who you serve",
-    { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" },
+    { slots: {} },
   ],
-  "setup.business.group.claims": ["What You Promise", { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" }],
-  "setup.business.group.vocabulary": ["Words You Use", { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" }],
-  "setup.business.group.facts": ["Facts We Can Quote", { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" }],
+  "setup.business.group.claims": ["What You Promise", { slots: {} }],
+  "setup.business.group.vocabulary": ["Words You Use", { slots: {} }],
+  "setup.business.group.facts": ["Facts We Can Quote", { slots: {} }],
   /** The quiet note beside each group head. `{max}` is the list's own
    *  bound, from `VOICE_LIST_MAX`. */
   "setup.business.group.products.note": [
     "up to {max}",
-    { slots: { max: "text" }, fixedBy: "SPEC §5 (2026-09-20, issue 908)" },
+    { slots: { max: "text" } },
   ],
   "setup.business.group.job.note": [
     "one sentence",
-    { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" },
+    { slots: {} },
   ],
   "setup.business.group.audienceTerms.note": [
     "2 to {max}",
-    { slots: { max: "text" }, fixedBy: "SPEC §5 (2026-09-20, issue 908)" },
+    { slots: { max: "text" } },
   ],
   "setup.business.group.claims.note": [
     "we may repeat these",
-    { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" },
+    { slots: {} },
   ],
   "setup.business.group.vocabulary.note": [
     "so pages sound like you",
-    { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" },
+    { slots: {} },
   ],
   "setup.business.group.facts.note": [
     "in your own words, from your own pages",
-    { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" },
+    { slots: {} },
   ],
   /** The accessible name on an item's ×. `{item}` is the founder's own
    *  text, data and never composed words. */
   "setup.business.remove": [
     "Remove {item}",
-    { slots: { item: "text" }, fixedBy: "SPEC §5 (2026-09-20, issue 908)" },
+    { slots: { item: "text" } },
   ],
-  "setup.business.add": ["Add", { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" }],
+  "setup.business.add": ["Add", { slots: {} }],
   /** The label on a group's own add field. `{group}` is the group head
    *  above it, so the field is named even when the head is scrolled off. */
   "setup.business.add.label": [
     "Add to {group}",
-    { slots: { group: "text" }, fixedBy: "SPEC §5 (2026-09-20, issue 908)" },
+    { slots: { group: "text" } },
   ],
   "setup.business.empty": [
     "Nothing read for this yet. Add what we missed.",
-    { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" },
+    { slots: {} },
   ],
   "setup.business.full": [
     "This list is full. Remove one to add another.",
-    { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" },
+    { slots: {} },
   ],
   // SPEC §5 (2026-09-29, issue 1133): the five optional questions, each one
   // field, on this step and in Settings › Your business. The questions are
   // the ruling's own; the head and its note are drafted for the owner.
   "setup.business.questions": [
     "Five Things Only You Know",
-    { slots: {}, fixedBy: "issue 1133 (drafted)" },
+    { slots: {} },
   ],
   "setup.business.questions.note": [
     "Optional. We use an answer in your pages as something you told us.",
-    { slots: {}, fixedBy: "issue 1133 (drafted)" },
+    { slots: {} },
   ],
   "setup.business.question.buyers": [
     "Who buys from you, and why?",
-    { slots: {}, fixedBy: "SPEC §5 (2026-09-29, issue 1133, drafted)" },
+    { slots: {} },
   ],
   "setup.business.question.edge": [
     "What do you do that your competitors don’t?",
-    { slots: {}, fixedBy: "SPEC §5 (2026-09-29, issue 1133, drafted)" },
+    { slots: {} },
   ],
   "setup.business.question.asked": [
     "What do buyers ask before they buy?",
-    { slots: {}, fixedBy: "SPEC §5 (2026-09-29, issue 1133, drafted)" },
+    { slots: {} },
   ],
   "setup.business.question.result": [
     "A result a customer got, in numbers if you have them",
-    { slots: {}, fixedBy: "SPEC §5 (2026-09-29, issue 1133, drafted)" },
+    { slots: {} },
   ],
   "setup.business.question.byline": [
     "Your name and one line about you, shown on your pages as the writer",
-    { slots: {}, fixedBy: "SPEC §5 (2026-09-29, issue 1133, drafted)" },
+    { slots: {} },
   ],
 
   // ── Step four: your voice ───────────────────────────────────────────
@@ -550,64 +546,64 @@ export const SETUP_COPY = Object.freeze({
    *  and ReachKit must not start making (`VoiceSummary.claimsToAvoid`). */
   "setup.voice.never": [
     "Never say",
-    { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" },
+    { slots: {} },
   ],
 
 
   // ── SPEC §5 (#908, #924): the DNS record as its own step after setup.
-  "setup.connect.title": ["Connect Your Website", { slots: {}, fixedBy: "owner E11 · issue 1601" }],
+  "setup.connect.title": ["Connect Your Website", { slots: {} }],
   // The two ways onward. Neither is a lesser path, and the note under them says so.
-  "setup.connect.later": ["Do This Later", { slots: {}, fixedBy: "SPEC §5 2026-09-20" }],
-  "setup.connect.onward.live": ["Connected. Go to Your Overview", { slots: {}, fixedBy: "SPEC §5 2026-09-20" }],
+  "setup.connect.later": ["Do This Later", { slots: {} }],
+  "setup.connect.onward.live": ["Connected. Go to Your Overview", { slots: {} }],
   "setup.connect.skipping": [
     "We’ll email you a reminder. Your first page waits for it.",
-    { slots: {}, fixedBy: "board Setup · issue 1738" },
+    { slots: {} },
   ],
 
   // The record, as three rows to copy, and the steps behind one press.
-  "setup.connect.record.title": ["Paste This Where You Bought {domain}", { slots: { domain: "text" }, fixedBy: "board Setup · issue 1738" }],
-  "setup.connect.record.usually": ["Look for its DNS settings.", { slots: {}, fixedBy: "board Setup · issue 1738" }],
+  "setup.connect.record.title": ["Paste This Where You Bought {domain}", { slots: { domain: "text" } }],
+  "setup.connect.record.usually": ["Look for its DNS settings.", { slots: {} }],
   /** A copy button's name: `{field}` is the row's own label. */
-  "setup.connect.record.copy": ["Copy {field}", { slots: { field: "text" }, fixedBy: "board Setup · issue 1738" }],
-  "setup.connect.steps": ["Show the Steps", { slots: {}, fixedBy: "board Setup · issue 1738" }],
-  "setup.connect.steps.1": ["Sign in where you bought your web address.", { slots: {}, fixedBy: "board Setup · issue 1738" }],
-  "setup.connect.steps.2": ["Open the DNS settings and add a new record.", { slots: {}, fixedBy: "board Setup · issue 1738" }],
-  "setup.connect.steps.3": ["Pick the type CNAME, then paste the name and the value above.", { slots: {}, fixedBy: "board Setup · issue 1738" }],
-  "setup.connect.steps.4": ["Save. Come back here and press Check Connection Now.", { slots: {}, fixedBy: "board Setup · issue 1738; owner 2026-11-13 ruling, issue 2651" }],
-  "setup.connect.steps.guide": ["Steps for Where You Bought Your Address", { slots: {}, fixedBy: "board Setup · issue 1738" }],
+  "setup.connect.record.copy": ["Copy {field}", { slots: { field: "text" } }],
+  "setup.connect.steps": ["Show the Steps", { slots: {} }],
+  "setup.connect.steps.1": ["Sign in where you bought your web address.", { slots: {} }],
+  "setup.connect.steps.2": ["Open the DNS settings and add a new record.", { slots: {} }],
+  "setup.connect.steps.3": ["Pick the type CNAME, then paste the name and the value above.", { slots: {} }],
+  "setup.connect.steps.4": ["Save. Come back here and press Check Connection Now.", { slots: {} }],
+  "setup.connect.steps.guide": ["Steps for Where You Bought Your Address", { slots: {} }],
   // Sending the steps to whoever runs the address; optional, and the address typed is never kept.
-  "setup.connect.send.label": ["Or send these steps to your web person", { slots: {}, fixedBy: "board Setup · issue 2114 (drafted)" }],
-  "setup.connect.send.action": ["Send", { slots: {}, fixedBy: "board Setup · issue 2114 (drafted)" }],
-  "setup.connect.send.sent": ["Sent. When they reply, it comes to you.", { slots: {}, fixedBy: "issue 2114 (drafted)" }],
-  "setup.connect.send.limited": ["You’ve sent this as often as you can today. Try again tomorrow.", { slots: {}, fixedBy: "issue 2114 (drafted)" }],
-  "setup.connect.send.invalid": ["Enter their email address.", { slots: {}, fixedBy: "issue 2114 (drafted)" }],
-  "setup.connect.send.failed": ["We couldn’t send it just now. Try again in a minute.", { slots: {}, fixedBy: "issue 2114 (drafted)" }],
+  "setup.connect.send.label": ["Or send these steps to your web person", { slots: {} }],
+  "setup.connect.send.action": ["Send", { slots: {} }],
+  "setup.connect.send.sent": ["Sent. When they reply, it comes to you.", { slots: {} }],
+  "setup.connect.send.limited": ["You’ve sent this as often as you can today. Try again tomorrow.", { slots: {} }],
+  "setup.connect.send.invalid": ["Enter their email address.", { slots: {} }],
+  "setup.connect.send.failed": ["We couldn’t send it just now. Try again in a minute.", { slots: {} }],
 
   // The press and its two answers on this screen.
-  "setup.connect.check": ["Check Connection Now", { slots: {}, fixedBy: "board Setup · issue 1738; owner 2026-11-13 ruling, issue 2651" }],
-  "setup.connect.notfound.title": ["Not Found Yet", { slots: {}, fixedBy: "board Setup · issue 1738" }],
+  "setup.connect.check": ["Check Connection Now", { slots: {} }],
+  "setup.connect.notfound.title": ["Not Found Yet", { slots: {} }],
   "setup.connect.notfound": [
     "It can take a few minutes to show. We keep checking every hour, so you can leave this page.",
-    { slots: {}, fixedBy: "board Setup · issue 1738; issue 2651 (drafted)" },
+    { slots: {} },
   ],
   "setup.connect.connected": [
     "Connected. Your first page goes live on its day, with nothing more to do.",
-    { slots: {}, fixedBy: "board Setup · issue 1738" },
+    { slots: {} },
   ],
 
   // The week after setup. No go-live hour: the address is not connected yet (Q11).
-  "setup.connect.week.1": ["Every Monday we plan up to 7 pages, new or updated.", { slots: {}, fixedBy: "board Setup · issue 1738" }],
-  "setup.connect.week.2": ["Each page goes live on its day, by itself.", { slots: {}, fixedBy: "board Setup · issue 1738" }],
-  "setup.wordpress.later": ["You’ll connect it in Settings › Pages, with your site address, username and an app password.", { slots: {}, fixedBy: "SPEC §5 · board Setup v36 · issue 2270" }],
-  "setup.connect.week.3": ["You can edit or stop any page first. You never have to.", { slots: {}, fixedBy: "board Setup · issue 1738" }],
-  "setup.connect.week.4": ["Cancel or export in Settings at any time.", { slots: {}, fixedBy: "board Setup v36 · issue 2270" }],
+  "setup.connect.week.1": ["Every Monday we plan up to 7 pages, new or updated.", { slots: {} }],
+  "setup.connect.week.2": ["Each page goes live on its day, by itself.", { slots: {} }],
+  "setup.wordpress.later": ["You’ll connect it in Settings › Pages, with your site address, username and an app password.", { slots: {} }],
+  "setup.connect.week.3": ["You can edit or stop any page first. You never have to.", { slots: {} }],
+  "setup.connect.week.4": ["Cancel or export in Settings at any time.", { slots: {} }],
 
   // SPEC §6, owner D66 (issue 1311): the site step's one question — where
   // the site's buyers are and the language they search in, filled with what
   // was read of the site. Drafted (#759).
-  "setup.locale.label": ["Where your buyers are", { slots: {}, fixedBy: "SPEC §6 · D66 · issue 1311" }],
-  "setup.locale.option": ["{country} · {language}", { slots: { country: "text", language: "text" }, fixedBy: "SPEC §6 · D66 · issue 1311" }],
-  "setup.place.label": ["City or area you serve", { slots: {}, fixedBy: "SPEC §6 · D67 · issue 1318" }],
-  "setup.place.note": ["Leave it empty if you sell nationwide or online.", { slots: {}, fixedBy: "SPEC §6 · D67 · issue 1318" }],
-  "setup.locale.note": ["Your pages are written in this language.", { slots: {}, fixedBy: "SPEC §6 · D66 · issue 1311" }],
+  "setup.locale.label": ["Where your buyers are", { slots: {} }],
+  "setup.locale.option": ["{country} · {language}", { slots: { country: "text", language: "text" } }],
+  "setup.place.label": ["City or area you serve", { slots: {} }],
+  "setup.place.note": ["Leave it empty if you sell nationwide or online.", { slots: {} }],
+  "setup.locale.note": ["Your pages are written in this language.", { slots: {} }],
 }) satisfies CopyPartition;

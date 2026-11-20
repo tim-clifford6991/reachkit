@@ -8,18 +8,10 @@ import { describe, expect, it } from "vitest";
 import { renderBlocksHtml } from "../../../src/lib/mail/blocks/html";
 import { renderBlocksText } from "../../../src/lib/mail/blocks/text";
 import { generatedLabel } from "../../../src/lib/presentation/generated";
-import { OWNER_OWED } from "../../../src/lib/presentation/copy/registry";
-import type { CopyKey } from "../../../src/lib/presentation/copy";
 import type { MailBlock } from "../../../src/lib/mail/blocks/types";
 
 const MARKDOWN = "# A page\n\nA line of the draft, written by a model.";
 const PAGE: MailBlock = { block: "pageBody", pageTitle: "A page", written: true, markdown: MARKDOWN };
-
-/** The two `generated.page.*` sentences are the owner's and are not
- *  written yet. Rather than hard-code today's state, this suite asserts
- *  whichever half is true — so it keeps discriminating the day the owner
- *  fills them, instead of quietly turning into a test of nothing. */
-const LABEL_OWED = OWNER_OWED.includes("generated.page.written" satisfies CopyKey);
 
 describe("BUILD §12 — one door for model text", () => {
   it("no arm but pageBody carries a free string", () => {
@@ -32,15 +24,7 @@ describe("BUILD §12 — one door for model text", () => {
     expect(bad).toBeTruthy();
   });
 
-  it("renders the draft through generatedLabel(), or fails loudly until the owner writes the label", async () => {
-    if (LABEL_OWED) {
-      expect(() => renderBlocksText([PAGE])).toThrow(/generated\.page\.written/);
-      // Rejects rather than throws since #934: the HTML half is React
-      // Email's renderer and so returns a promise. The same refusal, at
-      // the same block, for the same missing label.
-      await expect(renderBlocksHtml([PAGE])).rejects.toThrow(/generated\.page\.written/);
-      return;
-    }
+  it("renders the draft through generatedLabel()", async () => {
     const label = generatedLabel({ pageTitle: "A page", written: true }).label;
     const { text } = renderBlocksText([PAGE]);
     expect(text).toContain(label);

@@ -1,4 +1,4 @@
-// SPEC §8, Retention — the `payment-failed` mail. Every sentence is a key, and `sendEmail` refuses one still carrying `TODO(copy)`.
+// SPEC §8, Retention — the `payment-failed` mail. Every sentence is a key, and `sendEmail` refuses an empty subject or body.
 import { PRICE_EUR_CENTS } from "@/lib/config/constants";
 import type { CopyKey } from "@/lib/presentation/copy";
 import { appHref, type RetentionMail } from "../../retention/mail";

@@ -18,9 +18,7 @@ vi.mock("@/lib/db", () => ({
 const fakeDbRef = { current: fakeDb(state) };
 
 const { sendEmail, registerSuppressionReader } = await import("../../../src/lib/mail/send");
-const { OWNER_OWED } = await import("../../../src/lib/presentation/copy/registry");
 type SendInput = import("../../../src/lib/mail/send").SendInput;
-type CopyKey = import("../../../src/lib/presentation/copy").CopyKey;
 const { composeMail } = await import("../../../src/lib/mail/shell/compose");
 const { __setVendorTransportForTesting } = await import("../../../src/lib/mail/vendor/resend");
 
@@ -75,26 +73,6 @@ describe("BUILD §12 — one send, one request", () => {
       sendEmail({ kind: "report", to: "reader@example.com", subject: f.HEADING_KEY, blocks })
     ).resolves.toEqual({ sent: true, id: "vendor-1" });
     expect(requests[0]?.text).toContain("0");
-  });
-
-  it("a mail needing a sentence the owner has not written is not sent, and says so", async () => {
-    // Every conditional section omitted → the nothing-to-report line,
-    // which is owner-owed. The seam refuses rather than shipping an empty
-    // line, and refuses as a value rather than by throwing into the job
-    // that was sending.
-    const blocks = [f.HEADING, f.stat(f.missing<number>())];
-    const result = await sendEmail({
-      kind: "report",
-      to: "reader@example.com",
-      subject: f.HEADING_KEY,
-      blocks,
-    });
-    if (OWNER_OWED.includes("mail.nothing_to_report" satisfies CopyKey)) {
-      expect(result).toEqual({ sent: false, reason: "not-composable" });
-      expect(requests).toEqual([]);
-    } else {
-      expect(result).toEqual({ sent: true, id: "vendor-1" });
-    }
   });
 
   it("maps a permanent vendor rejection to reason 'vendor' with no retry deadline", async () => {

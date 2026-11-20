@@ -12,7 +12,6 @@ applyEnvFixture();
 
 const { reportIncident } = await import("../../../src/lib/mail/ops");
 const { __setVendorTransportForTesting } = await import("../../../src/lib/mail/vendor/resend");
-const { AWAITING_COPY, TODO_COPY_MARKER } = await import("../../../src/lib/presentation/copy");
 type OpsIncident = import("../../../src/lib/mail/templates/ops").OpsIncident;
 
 let requests: Record<string, unknown>[] = [];
@@ -32,42 +31,21 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-const INCIDENT_KEYS = [
-  "mail.ops.incident.subject",
-  "mail.ops.incident.heading",
-  "mail.ops.incident.job-failed",
-  "mail.ops.incident.dead-lettered",
-  "mail.ops.incident.boot-refused",
-  "mail.ops.incident.fact.job",
-  "mail.ops.incident.fact.attempt",
-  "mail.ops.incident.fact.error",
-  "mail.ops.incident.fact.check",
-  "mail.ops.incident.job-stale",
-  "mail.ops.incident.fact.last-run",
-  "mail.ops.incident.fact.interval",
-  "mail.ops.incident.no-draft-at-publish",
-  "mail.ops.incident.fact.date",
-] as const;
-
 describe("#759 — the incident alert leaves, on every occasion", () => {
-  it("none of its lines is awaiting copy", () => {
-    for (const key of INCIDENT_KEYS) expect(AWAITING_COPY, key).not.toContain(key);
-  });
-
   it.each<OpsIncident>([
     { occasion: "job-failed", jobId: "scan/run", attempt: 0, errorName: "TypeError" },
     { occasion: "dead-lettered", jobId: "scan/run", errorName: "TypeError" },
     { occasion: "boot-refused", check: "jobs", errorName: "MissingJobsBindings" },
     { occasion: "job-stale", jobId: "account/maintenance", lastRunAt: "2026-09-16T11:00:00.000Z", intervalMinutes: 15 },
     { occasion: "no-draft-at-publish", domain: "reachkit.app", date: "2026-10-15", reason: "no_page:no_opportunity" },
-  ])("$occasion reaches the vendor, with no marker in it", async (incident) => {
+  ])("$occasion reaches the vendor, with no empty part", async (incident) => {
     await reportIncident(incident);
 
     expect(requests).toHaveLength(1);
     const mail = requests[0]!;
     for (const part of [mail.subject, mail.html, mail.text]) {
       expect(typeof part).toBe("string");
-      expect(part).not.toContain(TODO_COPY_MARKER);
+      expect(String(part).trim()).not.toBe("");
     }
   });
 });

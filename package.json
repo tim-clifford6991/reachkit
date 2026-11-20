@@ -14,7 +14,6 @@
     "test:unit:related": "vitest related --run --project node --project ui --maxWorkers=2 --testTimeout=20000",
     "test:layout": "vitest run --project layout",
     "test:layout:full": "RK_LAYOUT_FULL=1 vitest run --project layout",
-    "copy:owed": "node scripts/copy/owed.mjs",
     "orphans": "node scripts/orphans.mjs",
     "spike:llm-mentions": "node scripts/llm-mentions-pilot.mjs",
     "mail:samples": "node scripts/mail-samples.mjs",

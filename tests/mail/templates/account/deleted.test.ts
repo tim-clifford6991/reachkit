@@ -11,7 +11,6 @@ applyEnvFixture();
 
 const { buildAccountDeleted } = await import("../../../../src/lib/mail/templates/account");
 const { COPY, copy } = await import("../../../../src/lib/presentation/copy");
-const { OWNER_OWED } = await import("../../../../src/lib/presentation/copy/registry");
 const { composeMail } = await import("../../../../src/lib/mail/shell/compose");
 const { escapeHtml } = await import("../../escape");
 
@@ -165,7 +164,6 @@ describe("REQ-093 — every sentence is a registry key, and all ten are the owne
     expect(DELETED_MAIL_KEYS).toHaveLength(10);
     for (const key of DELETED_MAIL_KEYS) {
       expect(COPY[key], key).not.toBe("");
-      expect(OWNER_OWED, key).not.toContain(key);
     }
 
     // Two mails between them reach every one of the ten: one where each

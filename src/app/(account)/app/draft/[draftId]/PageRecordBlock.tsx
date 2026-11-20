@@ -23,9 +23,8 @@
 // which is REQ-056 criterion 6's own construction.
 //
 // **Every sentence goes through `writtenLine`, not `copy`.** This renders
-// on a route the customer reaches, and every key it names is `TODO(copy)`
-// today; the shell's own `written.ts` (issue #9) states the argument in
-// full — a screen that throws is worse in every way than a screen that
+// on a route the customer reaches; the shell's own `written.ts` (issue #9)
+// states the argument in full — a screen that throws is worse in every way than a screen that
 // omits a line nobody has written.
 import type React from "react";
 import type { Tone } from "@/ui/types";

@@ -4,7 +4,7 @@
 // it could not measure, and otherwise a mail whose conditional sections all went says there was nothing to report.
 // `measurement` is required for `'weekly'` and rejected for every other kind, by type.
 import { createElement, type ReactNode } from "react";
-import { COPY, TODO_COPY_MARKER, copy, type CopyKey } from "@/lib/presentation/copy";
+import { COPY, copy, type CopyKey } from "@/lib/presentation/copy";
 import { blockNodes } from "../blocks/nodes";
 import { renderBlocksText } from "../blocks/text";
 import { isMeasuredEmpty, omittedIndexes } from "../blocks/omit";
@@ -148,9 +148,9 @@ function partsOf(m: ComposeInput): ComposedMailParts {
   const footer = {
     wordmark,
     links: (m.footerLinks ?? []).map((link) => ({ label: copy(link.label), href: link.href })),
-    // An unwritten reason renders nothing: SPEC §8 sends no `TODO(copy)`.
+    // An unwritten reason renders nothing: SPEC §8 sends no unwritten line.
     reason:
-      m.reason === undefined || COPY[m.reason] === TODO_COPY_MARKER ? null : copy(m.reason, m.reasonVars),
+      m.reason === undefined || COPY[m.reason] === "" ? null : copy(m.reason, m.reasonVars),
     imprint,
   };
   const preheader = m.preheader === undefined ? null : copy(m.preheader);

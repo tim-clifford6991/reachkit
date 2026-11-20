@@ -22,7 +22,6 @@ describe("every hard rule has a sentence", () => {
     expect(new Set(keys).size).toBe(HARD_RULES.length);
     for (const rule of HARD_RULES) {
       expect(COPY[CHECKS[rule].key], rule).toBeTruthy();
-      expect(COPY[CHECKS[rule].key], rule).not.toContain("TODO(copy)");
     }
   });
 });

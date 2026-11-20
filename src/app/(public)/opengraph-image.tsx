@@ -18,9 +18,7 @@
 // than by literal path.
 //
 // **It says only the brand and the address.** Every other sentence a public
-// route owes is a `TODO(copy)` key (`keys/meta.ts`); a marker rendered
-// 32 px tall into a picture posted somewhere we cannot edit is not what
-// the marker is for. The origin is written because it is a value, not a
+// route speaks is a `keys/meta.ts` key and stays in the `<head>`. The origin is written because it is a value, not a
 // sentence — the address this deployment answers on — and it is omitted
 // rather than guessed where no origin is bound at build time.
 //

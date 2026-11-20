@@ -144,9 +144,7 @@ const { unpublishWordPress } = await import(
 const { resolveHost, normaliseHost } = await import("../../src/app/(hosted)/resolve-host");
 const { hostedAnswer, pageSlug } = await import("../../src/app/(hosted)/edge");
 const goneRoute = await import("../../src/app/(hosted)/hosted-gone/route");
-const { AWAITING_COPY, COPY, OWNER_OWED, TODO_COPY_MARKER } = await import(
-  "../../src/lib/presentation/copy/registry"
-);
+const { COPY } = await import("../../src/lib/presentation/copy/registry");
 const { copy } = await import("../../src/lib/presentation/copy");
 const { __setVendorTransportForTesting } = await import("../../src/lib/mail/vendor/resend");
 const { sendEmail } = await import("../../src/lib/mail/send");
@@ -617,8 +615,7 @@ describe("settings → cancel → export → erasure, and the pages stop being s
     // so the seam composes the deletion mail rather than refusing it.
     for (const key of MAIL_KEYS) {
       expect(Object.keys(COPY), key).toContain(key);
-      expect(COPY[key], key).not.toBe("");
-      expect(OWNER_OWED, key).not.toContain(key);
+      expect(COPY[key].trim(), key).not.toBe("");
       expect(copy(key), key).toBe(COPY[key]);
     }
 
@@ -645,19 +642,12 @@ describe("settings → cancel → export → erasure, and the pages stop being s
     expect(delivered.text).toContain(copy("mail.account.deleted.still_live", { count: "2" }));
 
     // The marked kind — a screen's — is written since #460: the owner's
-    // approved set of 2026-09-10. Each renders its sentence, off both
-    // standing lists, and the two that interpolate leave no bare slot.
+    // approved set of 2026-09-10. Each renders a non-empty sentence, and
+    // the two that interpolate leave no bare slot.
     for (const key of MARKED_KEYS) {
-      expect(AWAITING_COPY, key).not.toContain(key);
       const line = copy(key, { word: "w", pages: "0", days: "30" });
-      expect(line, key).not.toBe(TODO_COPY_MARKER);
-      expect(line, key).not.toBe("");
+      expect(line.trim(), key).not.toBe("");
       expect(line, key).not.toContain("{");
     }
-
-    // The two lists are disjoint: a key is in one shape or the other, and
-    // never in both.
-    for (const key of MARKED_KEYS) expect(OWNER_OWED).not.toContain(key);
-    for (const key of MAIL_KEYS) expect(AWAITING_COPY).not.toContain(key);
   });
 });

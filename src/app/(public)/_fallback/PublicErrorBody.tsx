@@ -30,8 +30,7 @@ import { ErrorScreen } from "@/app/_fallback/Fallback";
 import { ScanForm } from "../_landing/ScanForm";
 import { scanFormWords } from "../_landing/scan-form-words";
 
-/** Owner-owed (12a): S8 draws no line for the error page, so this renders
- *  the `TODO(copy)` marker until the owner writes it. */
+/** S8 draws no line for the error page, so this key's sentence is drafted (12a). */
 const LINE: CopyKey = "chrome.error.line";
 
 const TEST_ID = "public-error";

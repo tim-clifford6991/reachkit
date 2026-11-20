@@ -1,4 +1,4 @@
-// SPEC §8, Retention — the `cancellation` mail. Every sentence is a key, and `sendEmail` refuses one still carrying `TODO(copy)`.
+// SPEC §8, Retention — the `cancellation` mail. Every sentence is a key, and `sendEmail` refuses an empty subject or body.
 import type { CopyKey } from "@/lib/presentation/copy";
 import type { RetentionMail } from "../../retention/mail";
 

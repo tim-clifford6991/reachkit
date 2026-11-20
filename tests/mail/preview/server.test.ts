@@ -20,7 +20,6 @@ applyEnvFixture();
 
 const { render } = await import("react-email");
 const { MAIL_KINDS } = await import("../../../src/lib/mail/kinds");
-const { TODO_COPY_MARKER } = await import("../../../src/lib/presentation/copy");
 
 const EMAILS = path.resolve(__dirname, "../../../emails");
 
@@ -52,7 +51,6 @@ describe("#934 — the preview server shows every kind the product sends", () =>
     it(`${name}: renders through the preview app's own renderer`, async () => {
       const html = await renderTemplate(path.join(EMAILS, `${name}.tsx`));
       expect(html).toContain("<html");
-      expect(html, `${name} still carries an unwritten line`).not.toContain(TODO_COPY_MARKER);
     });
   }
 

@@ -3,7 +3,7 @@
 // promises: it fills the same slots, and a key with no translation is shown
 // in English rather than breaking the screen.
 import { describe, expect, it } from "vitest";
-import { COPY, COPY_META, TODO_COPY_MARKER, copy, type CopyKey } from "@/lib/presentation/copy";
+import { COPY, COPY_META, copy, type CopyKey } from "@/lib/presentation/copy";
 import { TRANSLATIONS, copyIn, translationOf } from "@/lib/presentation/copy/translated";
 
 const slotsIn = (text: string): string[] => [...new Set([...text.matchAll(/\{([A-Za-z0-9_]+)\}/g)].map((match) => match[1]!))].sort();
@@ -19,7 +19,7 @@ describe("the German overlay", () => {
         continue;
       }
       const declared = Object.keys(COPY_META[key as CopyKey].slots).sort();
-      if (text === undefined || text.trim() === "" || text.includes(TODO_COPY_MARKER)) wrong.push(`${key}: no sentence`);
+      if (text === undefined || text.trim() === "") wrong.push(`${key}: no sentence`);
       else if (JSON.stringify(slotsIn(text)) !== JSON.stringify(declared.filter((slot) => COPY[key as CopyKey].includes(`{${slot}}`)))) {
         wrong.push(`${key}: slots ${slotsIn(text).join(",") || "none"}, the key has ${declared.join(",") || "none"}`);
       }

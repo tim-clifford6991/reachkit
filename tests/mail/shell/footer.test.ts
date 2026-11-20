@@ -20,7 +20,6 @@ applyEnvFixture();
 const { composeMail } = await import("../../../src/lib/mail/shell/compose");
 const { COPY } = await import("../../../src/lib/presentation/copy");
 const { MAIL_KINDS } = await import("../../../src/lib/mail/kinds");
-const { OWNER_OWED } = await import("../../../src/lib/presentation/copy/registry");
 
 /**
  * The kinds the approved set does not draw, and which therefore carry no
@@ -71,7 +70,6 @@ describe("issue #376 — S20's footer, in both bodies", () => {
     // and `text-frame.ts` place it.
     const label = COPY["mail.optout.label"];
     expect(label).not.toBe("");
-    expect(OWNER_OWED).not.toContain("mail.optout.label");
 
     const href = "https://reachkit.example/opt-out/token";
     const mail = await composeMail({

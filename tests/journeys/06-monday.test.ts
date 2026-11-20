@@ -426,7 +426,7 @@ const { chooseWholeMailLine } = await import("../../src/lib/mail/shell/compose")
 const { sendEmail } = await import("../../src/lib/mail/send");
 const { sendWeeklyDigest } = await import("../../src/lib/mail/weekly");
 const { copy } = await import("../../src/lib/presentation/copy");
-const { COPY, COPY_META, OWNER_OWED } = await import("../../src/lib/presentation/copy/registry");
+const { COPY, COPY_META } = await import("../../src/lib/presentation/copy/registry");
 const { escapeHtml } = await import("../mail/escape");
 const { readWeek: weekStrip, CALENDAR_HREF } = await import("../../src/app/(account)/app/_overview/week");
 const { measured, unmeasured } = await import("../../src/lib/measure/measured");
@@ -807,7 +807,7 @@ describe("Monday: the week is re-measured, judged, and told (JN-005)", () => {
     // verdict partition's — is written too, the owner's approved words of
     // 2026-09-10 (#459). So the mail composes: the vendor is handed it once,
     // and **the week is stamped**, so the next tick does not tell it again.
-    for (const key of DIGEST_KEYS) expect(OWNER_OWED, key).not.toContain(key);
+    for (const key of DIGEST_KEYS) expect(COPY[key].trim(), key).not.toBe("");
     const told = await sendWeeklyDigest({ siteId: SITE_ID, weekStart: "2026-08-31", now: MONDAY });
     expect(told).toEqual({ sent: true, id: "resend-1" });
     expect(vendorSends).toBe(1);
@@ -818,7 +818,6 @@ describe("Monday: the week is re-measured, judged, and told (JN-005)", () => {
     for (const key of DIGEST_KEYS) {
       expect(Object.keys(COPY), key).toContain(key);
       expect(COPY[key], key).not.toBe("");
-      expect(OWNER_OWED, key).not.toContain(key);
       // `copy()` renders it, every declared slot filled with its value.
       const slots = Object.keys(COPY_META[key].slots);
       const said = copy(key, Object.fromEntries(slots.map((slot) => [slot, `${slot}-value`])));
