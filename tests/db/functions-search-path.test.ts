@@ -198,6 +198,7 @@ describe('advisor `rls_enabled_no_policy` — the tables that are policy-less by
     // `ops_events` is the daily check's durable count of failed Settings reads.
     // `job_days` is each job's invocations and CPU per day and site, added only by `job_days_add`.
     // `churned_contacts` is the churn list of deleted accounts, read only by the owner's invite.
+    // `offer_spots` is the first-50 offer's spots, written by provisioning and the refund webhook.
     expect(policyLess).toEqual([
       "churned_contacts",
       "domain_blocks",
@@ -211,6 +212,7 @@ describe('advisor `rls_enabled_no_policy` — the tables that are policy-less by
       "job_runs",
       "llm_mention_reads",
       "llm_mentions",
+      "offer_spots",
       "ops_events",
       "rate_limits",
       "refunds",

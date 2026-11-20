@@ -33,8 +33,10 @@
 // date a webhook will supply seconds later. The column's own default keeps
 // the row legal in that window, and the result asks for a redelivery, whose
 // replay branch opens it.
-import { recordCheckoutFacts } from "../checkout/record";
+import { recordCheckoutFacts, type CheckoutFacts } from "../checkout/record";
 import { capture } from "@/lib/analytics";
+import { takeSpot } from "@/lib/account/offer/spots";
+import { recordOpsEvent } from "@/lib/ops/events";
 import { accountStore } from "../store";
 import { handleSecondPurchase } from "./duplicates";
 import { convertLead } from "./lead-conversion";
@@ -54,7 +56,8 @@ export interface ProvisionResult {
   readonly openedAt?: number;
 }
 
-export async function provisionFromPayment(sessionId: string): Promise<ProvisionResult> {
+/** `paidAt` is when the payment completed, where the caller knows it (the webhook event); else now. */
+export async function provisionFromPayment(sessionId: string, paidAt?: Date): Promise<ProvisionResult> {
   // 1. The facts the session collected, recorded before anything is
   //    created. A session that did not complete stops here and opens
   //    nothing (REQ-024 c2).
@@ -73,7 +76,7 @@ export async function provisionFromPayment(sessionId: string): Promise<Provision
   //    mints a link for a known address and so kills the one already sent.
   const store = accountStore();
   const seen = await store.accountByCheckoutSession(sessionId);
-  if (seen.ok && seen.account !== null) return replayOf(sessionId, seen.account, facts);
+  if (seen.ok && seen.account !== null) return replayOf(sessionId, seen.account, facts, paidAt);
   const inserted = await store.insertAccount({
     email: facts.email,
     checkoutSessionId: sessionId,
@@ -86,7 +89,7 @@ export async function provisionFromPayment(sessionId: string): Promise<Provision
 
   if (!inserted.ok && inserted.conflict === "checkout_session_id") {
     const existing = await store.accountByCheckoutSession(sessionId);
-    return replayOf(sessionId, existing.ok ? existing.account : null, facts);
+    return replayOf(sessionId, existing.ok ? existing.account : null, facts, paidAt);
   }
 
   if (!inserted.ok && inserted.conflict === "email") {
@@ -127,6 +130,9 @@ export async function provisionFromPayment(sessionId: string): Promise<Provision
     opened = opening.ok || !opening.transient;
   }
 
+  // 2c. The offer spot.
+  await holdSpot(sessionId, userId, facts, paidAt);
+
   // 3. The site. Its domain is the report's, or null where there was no
   //    report — never anything derived from how the buyer paid.
   const domain = await domainOfPurchase(facts.origin);
@@ -158,8 +164,11 @@ export async function provisionFromPayment(sessionId: string): Promise<Provision
 async function replayOf(
   sessionId: string,
   account: { id: string } | null,
-  facts: { subscriptionId: string | null; openedAt: number }
+  facts: CheckoutFacts,
+  paidAt: Date | undefined
 ): Promise<ProvisionResult> {
+  // A delivery that stopped before the spot was written, or failed to write it, finishes it here.
+  if (account !== null) await holdSpot(sessionId, account.id, facts, paidAt);
   const opened = account === null || facts.subscriptionId === null || (await openIfMissing(account.id, facts.subscriptionId));
   const site = account === null ? null : await accountStore().siteForAccount(account.id);
   logProvision({ sessionId, outcome: "replay" });
@@ -171,6 +180,14 @@ async function replayOf(
     openedAt: facts.openedAt,
     retry: !opened,
   };
+}
+
+/** The offer spot, judged at the payment's own time. A failed write is the owner's to see, never the buyer's. */
+async function holdSpot(sessionId: string, userId: string, facts: CheckoutFacts, paidAt: Date | undefined): Promise<void> {
+  const spot = await takeSpot({ userId, subscriptionId: facts.subscriptionId, email: facts.email, livemode: facts.livemode, at: paidAt });
+  if (spot !== "failed") return;
+  logProvision({ sessionId, outcome: "offer_spot_failed" });
+  await recordOpsEvent("offer_spot_failed", "offer_spot", `…${sessionId.slice(-6)}`);
 }
 
 /** Opens the subscription unless an account already holds it; false only where a redelivery could succeed. */

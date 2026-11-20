@@ -42,6 +42,8 @@ export interface CheckoutFacts {
   readonly origin: CheckoutOrigin;
   /** When Stripe opened the session, in its own unit (seconds). */
   readonly openedAt: number;
+  /** False for a test-mode payment, which takes no offer spot. */
+  readonly livemode: boolean;
 }
 
 export type RecordResult =
@@ -130,6 +132,7 @@ export async function recordCheckoutFacts(sessionId: string): Promise<RecordResu
     subscriptionId: subscriptionIdOf(session),
     origin,
     openedAt: session.created,
+    livemode: session.livemode === true,
   };
 
   // The write is best-effort onto an account that may not exist yet: on the

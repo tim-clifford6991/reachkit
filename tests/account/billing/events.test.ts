@@ -23,6 +23,8 @@ const { registerSubscriptionHandler } = await import("@/lib/account/provisioning
 const { setStripe } = await import("@/lib/account/stripe/client");
 const { memoryBillingStore, newMemoryBilling, account, site, storedUser } = await import("./memory-store");
 const { newStripeDouble, stripeDouble, stripeErrors, subscriptionDouble } = await import("../stripe-double");
+const { setOfferStore } = await import("@/lib/account/offer/spots");
+const { memoryOfferStore } = await import("../offer-store");
 
 let state = newMemoryBilling();
 let vendor = newStripeDouble();
@@ -36,6 +38,7 @@ beforeEach(() => {
   vendor = newStripeDouble();
   setBillingStore(memoryBillingStore(state));
   setStripe(stripeDouble(vendor));
+  setOfferStore(memoryOfferStore([]));
   registerSubscriptionHandler(null);
   sendCalls.length = 0;
   vi.spyOn(console, "warn").mockImplementation(() => undefined);
@@ -57,6 +60,7 @@ afterEach(() => {
   vi.useRealTimers();
   setBillingStore(null);
   setStripe(null);
+  setOfferStore(null);
   vi.restoreAllMocks();
 });
 
@@ -423,7 +427,7 @@ describe("openSubscription — provisioning's own stamp", () => {
 });
 
 describe("SPEC §3 — a full refund or an opened dispute ends access at once", () => {
-  const charge = (type: string, object: object) => ({ id: `evt_${type}`, type, data: { object } }) as unknown as Parameters<typeof deliver>[0];
+  const charge = (type: string, object: object) => ({ id: `evt_${type}`, type, created: NOW.getTime() / 1000, data: { object } }) as unknown as Parameters<typeof deliver>[0];
   const FULL = charge("charge.refunded", { id: "ch_1", customer: "cus_u1", refunded: true });
   const later = new Date(NOW.getTime() + 20 * DAY);
 
@@ -440,5 +444,16 @@ describe("SPEC §3 — a full refund or an opened dispute ends access at once", 
     const missing = charge("charge.dispute.created", { id: "dp_2", charge: "ch_missing" });
     expect([await deliver(charge("charge.refunded", { id: "ch_1", customer: "cus_u1", refunded: false })), await deliver(missing), await deliver(FULL)]).toEqual([200, 200, 500]);
     expect(storedUser(state)).toMatchObject({ paid_through: later.toISOString(), plan_status: "active", cancelled_at: null });
+  });
+
+  it("a full refund 13 days after the spot frees it; a cancel, a dispute, a partial refund and a full one on day 15 do not", async () => {
+    const rows = [13, 15, 1].map((days, i) => ({ place: i + 1, user_id: `u${i + 1}`, subscription_id: `s${i}`, taken_at: new Date(NOW.getTime() - days * DAY), freed_at: null }));
+    setOfferStore(memoryOfferStore(rows));
+    for (const id of ["u1", "u2", "u3"]) state.users.push(account({ id, paid_through: later.toISOString(), plan_status: "active", stripe_customer_id: `cus_${id}`, stripe_subscription_id: `sub_${id}` }));
+    await deliver(subscriptionEvent({ type: "customer.subscription.deleted", periodEnd: later, status: "canceled" }));
+    await deliver(charge("charge.dispute.created", { id: "dp_1", charge: "ch_1" }));
+    expect(rows.some((r) => r.freed_at !== null)).toBe(false);
+    for (const [id, refunded] of [["u1", true], ["u2", true], ["u3", false]] as const) await deliver(charge("charge.refunded", { id: `ch_${id}`, customer: `cus_${id}`, refunded }));
+    expect(rows.map((r) => r.freed_at !== null)).toEqual([true, false, false]);
   });
 });
