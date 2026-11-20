@@ -230,7 +230,7 @@ export const INFERENCE_MAX_OUTPUT_TOKENS = Object.freeze({
    *  claims, and the five-member brand-voice summary with the paragraph the
    *  customer reads. Prose the customer edits, not a set of tokens: an answer
    *  with every list the schema allows filled is ~800 tokens, and a smaller
-   *  pin truncates the forced tool's input and stores `voice: null` on a site
+   *  pin truncates the tool's input and stores `voice: null` on a site
    *  that read fine. Paid only, never on the free pass
    *  (`FREE_PASS_INFERENCE_CALLS`); two attempts at 1 200 reserve 1.2¢.
    *  `tests/site-profile/your-voice.test.tsx` holds a full answer to this pin. */
