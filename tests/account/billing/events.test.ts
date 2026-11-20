@@ -434,10 +434,11 @@ describe("SPEC §3 — a full refund or an opened dispute ends access at once", 
     expect(storedUser(state)).toMatchObject({ paid_through: NOW.toISOString(), plan_status: "canceled" });
   });
 
-  it("a partial refund changes nothing, and a vendor that cannot cancel for now answers 500 and writes nothing", async () => {
+  it("a partial refund and a dispute on a charge Stripe cannot find change nothing; a vendor that cannot cancel for now answers 500", async () => {
     paying({ paidThrough: later });
     vendor.cancelError = stripeErrors.connection();
-    expect([await deliver(charge("charge.refunded", { id: "ch_1", customer: "cus_u1", refunded: false })), await deliver(FULL)]).toEqual([200, 500]);
+    const missing = charge("charge.dispute.created", { id: "dp_2", charge: "ch_missing" });
+    expect([await deliver(charge("charge.refunded", { id: "ch_1", customer: "cus_u1", refunded: false })), await deliver(missing), await deliver(FULL)]).toEqual([200, 200, 500]);
     expect(storedUser(state)).toMatchObject({ paid_through: later.toISOString(), plan_status: "active", cancelled_at: null });
   });
 });

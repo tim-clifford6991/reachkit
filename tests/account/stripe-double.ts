@@ -179,7 +179,7 @@ export function stripeDouble(state: StripeDoubleState): Stripe {
         state.chargesCreated += 1;
         return { id: "ch_should_never_happen" };
       },
-      retrieve: async (id: string) => ({ id, customer: "cus_u1" }), // the suites' one paying customer
+      retrieve: async (id: string) => (id === "ch_1" ? { id, customer: "cus_u1" } : Promise.reject(resourceMissing("charge"))),
     },
     checkout: {
       sessions: {

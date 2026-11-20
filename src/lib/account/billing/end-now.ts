@@ -79,8 +79,11 @@ export async function onRefundOrDispute(event: Stripe.Event): Promise<{ ended: b
     const named = (event.data.object as Stripe.Dispute).charge;
     try {
       charge = typeof named === "string" ? await stripe().charges.retrieve(named) : named;
-    } catch {
-      redeliver("dispute_charge");
+    } catch (error) {
+      // Only a passing failure is worth Stripe's redelivery; a charge Stripe cannot find is logged and answered 200.
+      if (isTransient(error)) redeliver("dispute_charge");
+      console.warn(JSON.stringify({ event: "billing_dispute_charge", outcome: "unreadable" }));
+      return { ended: false };
     }
   }
   if (charge.customer === null) return { ended: false };
