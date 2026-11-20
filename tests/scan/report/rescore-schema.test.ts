@@ -11,10 +11,12 @@
 //
 // A `db`-project suite (`vitest.config.ts`'s `LIVE_SCHEMA_TESTS`), run
 // against `scripts/db-substrate/` in CI's `schema · RLS` gate.
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { psql, psqlRows } from "../../db/substrate";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { stubEnv } from "../../jobs/env-fixture";
+import { loopbackFetch, psql, psqlRows, REST_URL, SERVICE_ROLE_KEY } from "../../db/substrate";
 
 const MIGRATIONS = path.resolve(import.meta.dirname, "../../../supabase/migrations");
 const APPLIED = [
@@ -451,5 +453,37 @@ describe("prune_page_html — raw page html kept 30 days", () => {
     expect(underived()).toEqual([[bare, "f", "f"], [untexted, "t", "f"]]);
     expect(value("select has_function_privilege('authenticated', 'public.page_reads_underived(timestamptz, integer)', 'execute');")).toBe("f");
     expect(value("select has_function_privilege('authenticated', 'public.prune_page_html(timestamptz, integer)', 'execute');")).toBe("f");
+  });
+});
+
+describe("prunePageHtml — a due read's missing facts and text are derived before its html goes", () => {
+  it("derives only the missing rows in production, keeps an older row, and a read whose derive fails keeps its html", async () => {
+    const scanId = scan();
+    const page = `{"url":"https://gusto.com/","status":200,"html":"<html><head><title>Gusto</title></head><body><main><h1>Payroll</h1><p>Run payroll for your whole team in minutes, with taxes filed for you.</p></main></body></html>","bytes":160,"readAt":"2026-10-01T00:00:00Z","headers":{"content-type":"text/html"}}`;
+    const read = (days: number) => value(`insert into fetches (scan_id, source, cache_key, policy_version, cost_cents, reserved_cents, payload, created_at) values ('${scanId}', 'egress.safeFetch', 'https://gusto.com/', 1, 3, 3, '${page}'::jsonb, now() - interval '${days} days') returning id;`)!;
+    const [old, young, older, refused] = [read(31), read(29), read(31), read(31)];
+    run(`insert into fetch_facts (fetch_id, scan_id, facts_version, facts) values ('${older}', '${scanId}', 'v0', '{"kept":true}'::jsonb);`);
+    run(`create function public.refuse_facts() returns trigger language plpgsql as $$ begin if new.fetch_id = '${refused}' then raise exception 'refused'; end if; return new; end $$; create trigger refuse_facts before insert on public.fetch_facts for each row execute function public.refuse_facts(); notify pgrst, 'reload schema';`);
+    // PostgREST reloads its schema cache asynchronously; the tick's first call must find the function.
+    const listed = () => loopbackFetch(`${REST_URL}/rest/v1/rpc/page_reads_underived`, { method: "POST", headers: { apikey: SERVICE_ROLE_KEY, Authorization: `Bearer ${SERVICE_ROLE_KEY}`, "Content-Type": "application/json" }, body: JSON.stringify({ p_before: new Date(0).toISOString(), p_limit: 1 }) });
+    for (let i = 0; i < 50 && !(await listed()).ok; i += 1) await new Promise((r) => setTimeout(r, 100));
+    const { textRowOf } = await import("@/lib/measure/text-store");
+    const expected = createHash("md5").update(textRowOf("egress.safeFetch", JSON.parse(page)).text).digest("hex");
+    stubEnv(false);
+    for (const [key, to] of [["SUPABASE_URL", REST_URL], ["SUPABASE_SERVICE_ROLE_KEY", SERVICE_ROLE_KEY], ["VERCEL_ENV", "production"], ["RK_FACTS_VERSION", "f1"], ["RK_TEXT_VERSION", "t1"]]) vi.stubEnv(key!, to!);
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = loopbackFetch as unknown as typeof fetch;
+    try {
+      await (await import("@/lib/costs/ledger")).prunePageHtml();
+    } finally {
+      globalThis.fetch = realFetch;
+      vi.unstubAllEnvs();
+      run("drop trigger refuse_facts on public.fetch_facts; drop function public.refuse_facts();");
+    }
+    const state = (id: string) => psqlRows(`select payload ? 'html', (select facts_version || ':' || coalesce(facts->>'kept', '') from fetch_facts where fetch_id = f.id), (select text_version || ':' || md5(text) from fetch_text where fetch_id = f.id) from fetches f where id = '${id}';`)[0];
+    expect(state(old)).toEqual(["f", "f1:", `t1:${expected}`]);
+    expect(state(young)).toEqual(["t", "", ""]);
+    expect(state(older)).toEqual(["f", "v0:true", `t1:${expected}`]);
+    expect(state(refused)).toEqual(["t", "", ""]);
   });
 });
