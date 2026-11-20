@@ -166,7 +166,6 @@ async function domainOfPurchase(origin: { kind: "report"; scanId: string } | { k
 }
 
 function logProvision(fields: { sessionId: string; outcome: string }): void {
-  // The session id and the outcome. No address, no country, no VAT number,
-  // no link.
-  console.log(JSON.stringify({ event: "provision", ...fields }));
+  // The session id's tail and the outcome: a whole id signs in on its checkout return. No address, VAT number or link.
+  console.log(JSON.stringify({ event: "provision", session: `…${fields.sessionId.slice(-6)}`, outcome: fields.outcome }));
 }
