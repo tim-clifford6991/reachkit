@@ -27,7 +27,8 @@ import { publishing } from "../calendar/publishing";
 
 export async function stopPage(draftId: string): Promise<boolean> {
   try {
-    await publishing.veto({ draftId });
+    // A refusal is a returned value, not a throw, so it is read here.
+    if (!(await publishing.veto({ draftId })).ok) return false;
   } catch {
     return false;
   }

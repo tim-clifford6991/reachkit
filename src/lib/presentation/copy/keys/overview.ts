@@ -320,8 +320,8 @@ export const OVERVIEW_COPY = Object.freeze({
   // says back, on the screen, in place of silence.
   "overview.waiting.stopped": ["Stopped. This page won’t go live.", { slots: {}, fixedBy: "SPEC §4 2026-09-20 · issue 1605 (drafted)" }],
   "overview.waiting.stop-refused": [
-    "That didn’t work, so the page is unchanged. Try again.",
-    { slots: {}, fixedBy: "SPEC §4 2026-09-20" },
+    "Not stopped: this page may already be going live. You can still stop it in This Week.",
+    { slots: {}, fixedBy: "SPEC §4 2026-09-20 · issue 2845 (drafted)" },
   ],
 
   // ── This week: the word a day carries when nothing is scheduled on it.
