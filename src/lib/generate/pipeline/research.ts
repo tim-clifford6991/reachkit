@@ -84,7 +84,8 @@ import { askedOfReport } from "@/lib/opportunities/derive/topics";
 import { googleWrapper, isPlatformDomain, nameLetters, registrableDomain } from "@/lib/market/rivals/domains";
 import type { Locale } from "@/lib/locale/locales";
 import type { NewsRow } from "@/lib/vendors/dataforseo/types";
-import { inTurn, ownPagesFirst, readClaims } from "./claims";
+import { inTurn, ownPagesFirst } from "./claims";
+import { readClaims } from "./claims-read";
 import { publishedOf, sourcedBlocks, toOriginals, type SourcedBlock } from "./original";
 import { keywordOverview, serpNews, serpOrganic } from "@/lib/vendors/dataforseo";
 
