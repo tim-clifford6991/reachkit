@@ -25,7 +25,7 @@ function supabaseOfferStore(): OfferStore {
       const { error } = await spots().insert(row);
       if (error === null) return "taken";
       if (error.code !== "23505") return "failed";
-      return error.message.includes("subscription_id") ? "subscription" : "place";
+      return error.message.includes("offer_spots_place_held_key") ? "place" : "subscription";
     },
     async free(userId, takenSince, at) {
       const { error } = await spots()

@@ -48,7 +48,7 @@ export function registerSubscriptionHandler(handler: SubscriptionHandler | null)
 
 /** What the `provision` route calls, behind a narrow function type so this
  *  file holds no provisioning logic and the two can be tested apart. */
-export type ProvisionHandler = (sessionId: string) => Promise<{ readonly retry?: boolean } | void>;
+export type ProvisionHandler = (sessionId: string, paidAt?: Date) => Promise<{ readonly retry?: boolean } | void>;
 
 let provisionHandler: ProvisionHandler | null = null;
 
@@ -91,7 +91,8 @@ export async function handleStripeWebhook(
     const session = event.data.object as Stripe.Checkout.Session;
     const handler = provisionHandler ?? (await defaultProvisionHandler());
     // A non-2xx is what makes Stripe deliver again, which finishes the payment.
-    if ((await handler(session.id))?.retry === true) redeliver("provision");
+    // The event's own time is when the buyer paid, however late it is delivered.
+    if ((await handler(session.id, new Date(event.created * 1000)))?.retry === true) redeliver("provision");
   } else if (route === "subscription") {
     const handler = subscriptionHandler ?? (await defaultSubscriptionHandler());
     await handler(event);
@@ -108,7 +109,7 @@ export async function handleStripeWebhook(
  *  `provision.ts` do not form a load-time cycle through the store. */
 async function defaultProvisionHandler(): Promise<ProvisionHandler> {
   const { provisionFromPayment } = await import("./provision");
-  return (sessionId) => provisionFromPayment(sessionId);
+  return (sessionId, paidAt) => provisionFromPayment(sessionId, paidAt);
 }
 
 /** `onSubscriptionEvent`, imported lazily for the same reason: billing's
