@@ -5,7 +5,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { INFERENCE_MAX_OUTPUT_TOKENS } from "@/lib/config/constants";
 import { appendSpend } from "../spend-log.mjs";
 import config from "./models.json";
-import { throughTransport } from "./isolate";
+import { anthropicFetch, throughTransport } from "./isolate";
 import { priceCents, type Ledger, type ModelPrice } from "./ledger";
 
 export type Mode = "live" | "fake" | "plan";
@@ -20,6 +20,10 @@ export interface Run {
   halted: string | null;
   /** Fake and plan runs only: each call site's canned tool answer, from the case; `{}` where it gives none. */
   fakeAnswers?: Record<string, unknown>;
+  /** Where set, the only call sites the run evaluates; any other model call is refused, never sent or booked. */
+  only?: ReadonlySet<string>;
+  /** Each answer an evaluated call came back with: the tool's input, or `null` where the model called no tool. */
+  onAnswer?: (site: string, value: unknown, stop: string | null) => void;
 }
 
 type Spec = ModelPrice & { drop: string[]; set: Record<string, unknown> };
@@ -76,6 +80,11 @@ async function evalCreate(client: Anthropic, send: (p: Params, o: unknown) => Pr
   const run = current();
   const site = SITE_OF_TOOL.get(params.tools?.[0]?.name ?? "") ?? "unknown";
   if (run.halted !== null) throw new EvalRefused(run.halted);
+  if (run.only !== undefined && !run.only.has(site)) throw new EvalRefused("not_evaluated");
+  const answered = (message: Anthropic.Message): Anthropic.Message => {
+    run.onAnswer?.(site, message.content.find((block) => block.type === "tool_use")?.input ?? null, message.stop_reason);
+    return message;
+  };
   const { request, spec } = requestFor(params, site, run.swap);
   let tokensIn = estimateTokens(request);
   if (run.mode === "live") {
@@ -89,7 +98,7 @@ async function evalCreate(client: Anthropic, send: (p: Params, o: unknown) => Pr
     run.plan.calls += 1;
     if (reserved === null) run.plan.unpriced += 1;
     else run.plan.cents += reserved;
-    return fakeMessage(request, tokensIn, run.fakeAnswers?.[site]);
+    return answered(fakeMessage(request, tokensIn, run.fakeAnswers?.[site]));
   }
   const ledger = run.ledger as Ledger;
   const held = ledger.reserve(request.model, site, reserved);
@@ -118,12 +127,12 @@ async function evalCreate(client: Anthropic, send: (p: Params, o: unknown) => Pr
   }
   const { input_tokens, output_tokens } = message.usage;
   book(priceCents(spec as Spec, input_tokens, output_tokens) ?? (reserved as number), { tokensIn: input_tokens, tokensOut: output_tokens, stop: message.stop_reason, outcome: "answered" });
-  return message;
+  return answered(message);
 }
 
 export default class EvalAnthropic extends Anthropic {
   constructor(options?: ConstructorParameters<typeof Anthropic>[0]) {
-    super(options);
+    super({ ...options, fetch: anthropicFetch });
     const send = this.messages.create.bind(this.messages) as unknown as (p: Params, o: unknown) => Promise<Anthropic.Message>;
     (this.messages as unknown as { create: unknown }).create = (params: Params, opts: unknown) => evalCreate(this, send, params, opts);
   }
