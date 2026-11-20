@@ -39,6 +39,8 @@ export interface CheckoutFacts {
    *  `customer.subscription.created` to arrive could wait a month. */
   readonly subscriptionId: string | null;
   readonly origin: CheckoutOrigin;
+  /** When Stripe opened the session, in its own unit (seconds). */
+  readonly openedAt: number;
 }
 
 export type RecordResult =
@@ -126,6 +128,7 @@ export async function recordCheckoutFacts(sessionId: string): Promise<RecordResu
     stripeCustomerId,
     subscriptionId: subscriptionIdOf(session),
     origin,
+    openedAt: session.created,
   };
 
   // The write is best-effort onto an account that may not exist yet: on the

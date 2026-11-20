@@ -186,7 +186,7 @@ export function stripeDouble(state: StripeDoubleState): Stripe {
           raise(state.sessionCreateError);
           const id = `cs_created_${state.nextSessionId++}`;
           state.created.push(params);
-          const session = { id, url: `https://checkout.stripe.com/${id}`, ...params };
+          const session = { id, url: `https://checkout.stripe.com/${id}`, created: Math.floor(Date.now() / 1000), ...params };
           state.sessions.set(id, session);
           return session;
         },

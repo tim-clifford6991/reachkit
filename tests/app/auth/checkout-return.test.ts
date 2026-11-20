@@ -45,6 +45,7 @@ let vendor = newStripeDouble();
 function paidSession() {
   return {
     id: SESSION_ID,
+    created: Math.floor(Date.now() / 1000),
     status: "complete",
     customer: "cus_one",
     customer_details: {
@@ -105,10 +106,15 @@ describe("a completed payment signs the buyer in and sends them to setup", () =>
     expect([locationOf(response).pathname, response.cookies.has(FAKE_AUTH_COOKIE)]).toEqual(["/setup", true]);
   });
 
-  it("a returning customer who already signed in goes to /app, not setup", async () => {
-    identity.users[0] = { ...identity.users[0]!, first_signed_in_at: new Date("2026-01-01").toISOString() };
+  it.each([
+    ["after the first sign-in", () => void (identity.users[0] = { ...identity.users[0]!, first_signed_in_at: "2026-01-01T00:00:00Z" })],
+    ["an hour after paying", () => void accounts.users.forEach((u, i) => (accounts.users[i] = { ...u, created_at: new Date(Date.now() - 3_600_000).toISOString() }))],
+    ["two hours after paying, with no account yet", () => void vendor.sessions.set(SESSION_ID, { ...paidSession(), created: Math.floor(Date.now() / 1000) - 7200 })],
+  ])("a return %s signs nobody in and lands on plain /signin", async (name, arrange) => {
+    if (!name.includes("no account")) await provisionFromPayment(SESSION_ID);
+    arrange();
     const response = await open(`${ORIGIN}/auth/checkout?session_id=${SESSION_ID}`);
-    expect(locationOf(response).pathname).toBe("/app");
+    expect([response.headers.get("location"), response.cookies.has(FAKE_AUTH_COOKIE)]).toEqual([`${ORIGIN}/signin`, false]);
   });
 });
 

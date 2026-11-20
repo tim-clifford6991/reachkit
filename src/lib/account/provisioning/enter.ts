@@ -9,20 +9,37 @@
 // `provisionFromPayment` it does, so a race is a replay, not a second
 // account. Signing in here is what "redirected directly to onboarding"
 // means — the magic-link mail is for later visits, not this one.
+//
+// **It signs in once, soon after paying.** The id outlives the visit, in
+// browser history and Stripe's dashboard, so a later visit, or one after
+// the account's first sign-in, is `spent` and asks for a mailed link.
 import { issueLink, redeemLink, type CookieIO } from "../identity";
 import { accountStore } from "../store";
 import { provisionFromPayment } from "./provision";
 
 export type EnterAfterPayment =
-  | { ok: true; firstSignIn: boolean }
-  | { ok: false; because: "not_paid" | "no_account" | "no_session" };
+  | { ok: true }
+  | { ok: false; because: "not_paid" | "no_account" | "no_session" | "spent" };
 
-export async function enterAfterPayment(sessionId: string, io: CookieIO): Promise<EnterAfterPayment> {
+/** How long after the payment its checkout return still signs the buyer in. */
+const RETURN_WINDOW_MS = 60 * 60 * 1000;
+
+export async function enterAfterPayment(
+  sessionId: string,
+  io: CookieIO,
+  now: Date = new Date()
+): Promise<EnterAfterPayment> {
   const provisioned = await provisionFromPayment(sessionId);
   if (provisioned.userId === null) return { ok: false, because: "not_paid" };
 
   const read = await accountStore().accountByCheckoutSession(sessionId);
   if (!read.ok || read.account === null) return { ok: false, because: "no_account" };
+  const { first_signed_in_at, created_at } = read.account;
+  // Stripe's own time too: an account first opened by this visit is new, the payment may not be.
+  const startedAt = Math.min(Date.parse(created_at), (provisioned.openedAt ?? Number.NaN) * 1000);
+  if (first_signed_in_at !== null || !(startedAt + RETURN_WINDOW_MS > now.getTime())) {
+    return { ok: false, because: "spent" };
+  }
 
   const issued = await issueLink({
     userId: provisioned.userId,
@@ -37,6 +54,8 @@ export async function enterAfterPayment(sessionId: string, io: CookieIO): Promis
     userId: provisioned.userId,
   });
   if (!redeemed.ok) return { ok: false, because: "no_session" };
+  // Another visit or a mailed link signed in first; its cookie is never written.
+  if (!redeemed.firstSignIn) return { ok: false, because: "spent" };
 
-  return { ok: true, firstSignIn: redeemed.firstSignIn };
+  return { ok: true };
 }

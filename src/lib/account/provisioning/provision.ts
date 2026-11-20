@@ -47,6 +47,8 @@ export interface ProvisionResult {
   /** Why nothing was created, where nothing was. Never a vendor string. */
   readonly refused?: "session_not_complete" | "vendor" | "store";
   readonly signIn?: SignInMailOutcome;
+  /** When Stripe opened the paid session (seconds), wherever it was read. */
+  readonly openedAt?: number;
 }
 
 export async function provisionFromPayment(sessionId: string): Promise<ProvisionResult> {
@@ -67,7 +69,7 @@ export async function provisionFromPayment(sessionId: string): Promise<Provision
   //    mints a link for a known address and so kills the one already sent.
   const store = accountStore();
   const seen = await store.accountByCheckoutSession(sessionId);
-  if (seen.ok && seen.account !== null) return replayOf(sessionId, seen.account);
+  if (seen.ok && seen.account !== null) return replayOf(sessionId, seen.account, facts.openedAt);
   const inserted = await store.insertAccount({
     email: facts.email,
     checkoutSessionId: sessionId,
@@ -80,7 +82,7 @@ export async function provisionFromPayment(sessionId: string): Promise<Provision
 
   if (!inserted.ok && inserted.conflict === "checkout_session_id") {
     const existing = await store.accountByCheckoutSession(sessionId);
-    return replayOf(sessionId, existing.ok ? existing.account : null);
+    return replayOf(sessionId, existing.ok ? existing.account : null, facts.openedAt);
   }
 
   if (!inserted.ok && inserted.conflict === "email") {
@@ -96,6 +98,7 @@ export async function provisionFromPayment(sessionId: string): Promise<Provision
       siteId: site?.ok === true ? site.siteId : null,
       created: false,
       duplicate: "second_purchase",
+      openedAt: facts.openedAt,
     };
   }
 
@@ -141,11 +144,15 @@ export async function provisionFromPayment(sessionId: string): Promise<Provision
   // provisioned account look unprovisioned.
   await capture("paid", { subject: userId });
 
-  return { userId, siteId, created: true, signIn };
+  return { userId, siteId, created: true, signIn, openedAt: facts.openedAt };
 }
 
 /** This payment, again. Nothing was bought twice: no mail, no link, no write. */
-async function replayOf(sessionId: string, account: { id: string } | null): Promise<ProvisionResult> {
+async function replayOf(
+  sessionId: string,
+  account: { id: string } | null,
+  openedAt: number
+): Promise<ProvisionResult> {
   const site = account === null ? null : await accountStore().siteForAccount(account.id);
   logProvision({ sessionId, outcome: "replay" });
   return {
@@ -153,6 +160,7 @@ async function replayOf(sessionId: string, account: { id: string } | null): Prom
     siteId: site?.ok === true ? site.siteId : null,
     created: false,
     duplicate: "replay",
+    openedAt,
   };
 }
 
@@ -166,7 +174,6 @@ async function domainOfPurchase(origin: { kind: "report"; scanId: string } | { k
 }
 
 function logProvision(fields: { sessionId: string; outcome: string }): void {
-  // The session id and the outcome. No address, no country, no VAT number,
-  // no link.
-  console.log(JSON.stringify({ event: "provision", ...fields }));
+  // The session id's tail and the outcome: a whole id signs in on its checkout return. No address, VAT number or link.
+  console.log(JSON.stringify({ event: "provision", sessionId: `…${fields.sessionId.slice(-6)}`, outcome: fields.outcome }));
 }

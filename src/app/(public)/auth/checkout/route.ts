@@ -12,11 +12,13 @@
 // link; a real id that opens nothing may still be a payment whose webhook
 // has not landed, so it never shows the price page again. An open account
 // that could not be signed in is a known payment, and the screen says so.
+// A spent return lands on plain Sign in, which says nothing about the id.
 import { NextResponse, type NextRequest } from "next/server";
-import { APP_PATH, SETUP_PATH } from "@/app/(account)/setup/gate";
+import { SETUP_PATH } from "@/app/(account)/setup/gate";
 import {
   CHECKOUT_SESSION_PLACEHOLDER,
   CHECKOUT_SESSION_QUERY_KEY,
+  SIGNIN_PATH,
   checkoutSignInPath,
   type CookieToSet,
 } from "@/lib/account/identity";
@@ -38,11 +40,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   });
 
   if (!entered.ok) {
-    return NextResponse.redirect(new URL(checkoutSignInPath(entered.because === "no_session"), request.url));
+    const signIn = entered.because === "spent" ? SIGNIN_PATH : checkoutSignInPath(entered.because === "no_session");
+    return NextResponse.redirect(new URL(signIn, request.url));
   }
 
-  const destination = entered.firstSignIn ? SETUP_PATH : APP_PATH;
-  const response = NextResponse.redirect(new URL(destination, request.url));
+  const response = NextResponse.redirect(new URL(SETUP_PATH, request.url));
   for (const cookie of written) {
     response.cookies.set(cookie.name, cookie.value, cookie.options);
   }

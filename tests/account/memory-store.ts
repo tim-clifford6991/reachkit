@@ -88,7 +88,7 @@ export function memoryAccountStore(state: MemoryAccounts): AccountStore {
         stripe_customer_id: a.facts.stripe_customer_id,
         billing_country: a.facts.billing_country,
         vat_number: a.facts.vat_number,
-        created_at: new Date(0).toISOString(),
+        created_at: new Date().toISOString(),
       };
       state.users.push(row);
       return { ok: true, id: row.id };
