@@ -1,35 +1,7 @@
-// SPEC §2 (issue 1383) — a report measured off a bot-protection page, read
-// as what it is.
-//
-// Issue 1379 stopped a pass from measuring a protection's page as the site.
-// The reports stored before it were measured off exactly such a page, and
-// they are still the domain's current report: sage.com stayed "0, Invisible"
-// while the 7-day re-scan window answered every new scan from it. This
-// module applies the measure-time rule at read time. It asks the ledger for
-// the home document the report was measured from, has `challengeOf` judge
-// it, and where it was a protection's page reads the report as the pass
-// would store it today: the site's own pages unmeasured, no score, no band,
-// no on-page site issue, and not a report the re-scan window protects.
-//
-// **Decided from the ledger, never from a list of domains.** The home
-// document is the newest `fetches` row of the home address read at or
-// before the date the report's home-page facts carry (a scan served from
-// the cache ledgers no row of its own, so the row is found by its address,
-// not by the scan's id). That date is the read's own; the report's date is
-// its scan's (issue 1392), which a read made during the scan comes after.
-//
-// **Two reads, and the second is rare.** The first asks for no document
-// body, only what `couldBeChallenge` reads; the few rows that could be a
-// protection's page are judged from the facts the re-score kept
-// (`fetch_facts`), and a body is fetched only where none is kept.
-//
-// **Not a report the vendor's browser measured.** Where the plain read met
-// a protection and the rendered read returned the site (issue 1379), the
-// report holds the site's facts. A rendered read of the home address that
-// is the site's own page, ledgered after the plain read, says so.
-//
-// Under-report, never over-report: a read the ledger cannot answer leaves
-// the report as it is stored.
+// A report measured off a bot-protection page, read at read time as the pass would store it today: the site's pages unmeasured, no score, no band, no on-page issue, not protected by the re-scan window.
+// Decided from the ledger, never a domain list: the newest `fetches` row of the home address at or before the report's home-facts date (a cached scan ledgers no row, so the row is found by address).
+// The first read asks no body, only what `couldBeChallenge` reads; a body is fetched only where the re-score kept no `fetch_facts`.
+// A later rendered read of the home address that drew the site's own page clears it. Under-report, never over-report: an unanswerable read leaves the report as stored.
 import { BOT_PROTECTION, challengeOf, couldBeChallenge } from "@/lib/measure/challenge";
 import { unmeasured } from "@/lib/measure/measured";
 import { holdsHtml, isStoredDocument, OWN_FETCH_SOURCE, RENDERED_FETCH_SOURCE, renderedDocumentOf } from "@/lib/measure/own-fetch";
@@ -75,9 +47,7 @@ interface MinimalClient {
   from<T>(table: string): MinimalQueryBuilder<T>;
 }
 
-/** `fetches` is outside the generated `Database` type — the same narrow
- *  cast `src/lib/measure/text.ts` carries. Imported when a read asks for it
- *  (issue 1426): the pure halves below load without the database. */
+/** `fetches` is outside the generated `Database` type; imported on demand so the pure halves below load without the database. */
 async function untyped(): Promise<MinimalClient> {
   const { dbAdmin } = await import("@/lib/db");
   return dbAdmin() as unknown as MinimalClient;
@@ -195,12 +165,7 @@ export function protectionPage(payload: unknown): boolean {
   return challengeOf(payload) !== null;
 }
 
-/**
- * `challengedHomes`' answer for one stored home read, from the facts of
- * reads already in hand (issue 1426): the re-score reads them from stored
- * rows, not the database. True where the read was a protection's page and no
- * rendered read since drew the site.
- */
+/** `challengedHomes`' answer for one stored home read, from reads already in hand (the re-score reads stored rows): a protection's page no later rendered read replaced. */
 export function readAsProtection(a: {
   home: { created_at: string; facts: Pick<PageFacts, "protection"> } | null;
   rendered: readonly { created_at: string; facts: Pick<PageFacts, "drawn"> }[];
@@ -231,7 +196,7 @@ export function unreadByProtection<R extends Pick<StoredReport, "verdict" | "rob
     const m = factors[factor];
     if (m.kind === "unmeasured") missing.push({ factor, reason: m.reason });
   }
-  // No score, so no range (issue 1439).
+  // No score, so no range.
   const verdict = { ...report.verdict };
   delete verdict.estimate;
   return {

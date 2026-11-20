@@ -1,47 +1,12 @@
-// BUILD §11 — runWeekly: one measurement inside the week, stamped with the
-// week it belongs to
-//
-// "`weekly/refresh` · Weekly scan per active site." The measurement is
-// `runScan({ tier: 'weekly' })` and nothing else — one pipeline, tier a
-// parameter (§6.3), so the standard SERP queue, the `WEEKLY` cap and every
-// stage's degradation are the pipeline's own and are not re-decided here.
-// This file is the four refusals before any spend, the claim that makes a
-// second run in one week unrepresentable, and the account of what came
-// back.
-//
-// **The claim, not the schedule, is what makes it once.** `claimWeek`
-// inserts the `running` row carrying `week_start` before a cent is spent,
-// and the partial unique index `(site_id, week_start) where tier =
-// 'weekly'` rejects a second insert — so two ticks delivered at once
-// resolve to one measurement and one `already_measured`, with no
-// read-then-write window between them (ADR-060 point 3). `runScan` writes
-// its report into that same row, so the pass never inserts a second one.
-//
-// **A pass that produced no report, or that the vendor refused for credit,
-// leaves no week behind it.** The claim is released — its row is marked
-// `failed` and kept, because the ledger's rows reference it — and the site
-// is selected again on the next hourly tick, inside the same site-local
-// week, where the claim takes that row back and the pass spends only what
-// is left of that row's `WEEKLY` cap. A pass that produced a report keeps
-// its row whether it was whole or partial: a partly measured week is a
-// measured week that says what it missed (REQ-065 c4), never a failure to
-// repeat.
-//
-// **What the week found becomes supply, before the account is read.**
-// §7's derivation is additive and runs inside this pass's own cost
-// context and `WEEKLY` cap (§6.3 puts opportunity typing in the paid
-// budgets); it is handed to `runScan` as the hook it calls once the
-// report is stored, because the opportunity rows reference that row. The
-// access gate is not re-decided for it: `hasActiveAccess` answered
-// a few lines above and that answer is passed on, so there is one
-// definition of active and `deriveForPass` obeys rather than asks.
-//
-// **The kill switch stops it before any spend.** §11's switch names
-// `scan+generate+publish`, and this starts a scan without passing through
-// the `scan/run` job's own door, so it asks the same binding here — the
-// same reader `src/lib/scan/admission.ts` already uses on the free path.
-// The week then reads `not_measured` with its next due date, which is
-// REQ-065 c3's account and not a silent skip.
+// BUILD §11: `runWeekly`, one measurement inside the week, stamped with the week it belongs to. The measurement is `runScan({ tier: 'weekly' })`,
+// so queue, cap and degradation are the pipeline's. This file holds the refusals before any spend, the claim and the account of what came back.
+// The claim, not the schedule, makes it once: `claimWeek` inserts the `running` row before any spend and the partial unique index
+// `(site_id, week_start) where tier = 'weekly'` rejects a second, so two ticks resolve to one measurement and one `already_measured`.
+// A pass with no report, or refused for credit, releases its claim: the row is kept `failed` (the ledger references it) and the next hourly tick
+// retakes it inside the same week, spending only what is left of its `WEEKLY` cap. A partial report is a measured week, never retried.
+// What the week found becomes supply inside this pass's cost context and cap, through `runScan`'s hook after the store; access is passed on, not re-asked.
+// The kill switch (`scan+generate+publish`) is asked here before any spend, since this starts a scan outside the `scan/run` job's door;
+// the week then reads `not_measured` with its next due date.
 import { env } from "@/lib/config/env";
 import { cachedRivalRows, deriveForPass } from "@/lib/opportunities";
 import { topUpSpend } from "@/lib/market/questions/top-up-buy";
@@ -71,13 +36,7 @@ export type WeeklyOutcome =
   | { readonly ran: true; readonly scanId: string; readonly status: "failed"; readonly because?: "vendor_funds" }
   | { readonly ran: false; readonly because: WeeklyRefusal };
 
-/**
- * One site's weekly measurement.
- *
- * `weekStart` is computed once, here, from the site's own zone, and is
- * written at insert. Nothing recomputes it on read: a customer who moves
- * zone moves no already-measured week.
- */
+/** One site's weekly measurement. `weekStart` is computed once from the site's zone and written at insert, so moving zone moves no measured week. */
 export async function runWeekly(a: {
   siteId: string;
   domain: string;
@@ -89,9 +48,7 @@ export async function runWeekly(a: {
   early?: boolean;
   weekStart?: string;
 }): Promise<WeeklyOutcome> {
-  // A site that has stated no zone has no local Monday, so no week of its
-  // own has begun — the one refusal that is literally true of it, and the
-  // reason nothing is spent on it (REQ-073 c1 forbids a zone we chose).
+  // A site with no stated zone has no local Monday, so no week has begun; nothing is spent, and no zone is chosen for it.
   const zone = a.zone ?? (await readSiteZone(a.siteId));
   if (zone === null || zone === undefined) return refuse(a.siteId, "week_not_begun");
 
@@ -105,8 +62,7 @@ export async function runWeekly(a: {
 
   if (!(await hasActiveAccess(a.siteId))) return refuse(a.siteId, "no_active_access");
 
-  // Read before the claim, so a failed read leaves no week to release. The
-  // category the founder confirmed is the one the week searches (#767).
+  // Read before the claim, so a failed read leaves no week to release. The category the founder confirmed is the one the week searches.
   const category = await readSiteCategory(a.siteId);
 
   const claim = await claimWeek({ siteId: a.siteId, domain: a.domain, weekStart });
@@ -123,8 +79,7 @@ export async function runWeekly(a: {
       siteId: a.siteId,
       domain: a.domain,
       tier: "weekly",
-      // SPEC §6 (issue 1170): only values measured this week, each dated
-      // this week — a read from before the site's Monday, or before an early pass began, is last week's.
+      // Only values measured this week, each dated this week: a read from before the site's Monday, or before an early pass began, is last week's.
       measuredSince: new Date(Math.min(+weekStartInstant({ weekStart, zone }), +a.now)),
       ...(category === undefined ? {} : { category }),
       concludesMarket: true,
@@ -142,7 +97,7 @@ export async function runWeekly(a: {
               rivalRows: cachedRivalRows(a.siteId),
             });
           } finally {
-            // SPEC §6 (D28; monthly, ruling B5): a re-check the cap refused stays due on every pass until one concludes.
+            // A monthly re-check the cap refused stays due on every pass until one concludes.
             const { readSiteMarket } = await import("@/lib/market/infer/stored");
             const checkedAt = await readSiteMarket(a.siteId).then((site) => site?.stored.rivalsCheckedAt, () => undefined);
             if (rivalsDue(checkedAt, weekStart, zone)) {
@@ -151,8 +106,7 @@ export async function runWeekly(a: {
             }
           }
         } finally {
-          // SPEC §6 (owner D58, issue 1287): the pass checks its own health
-          // last, against the rivals it leaves in force. It never throws.
+          // The pass checks its own health last, against the rivals it leaves in force. It never throws.
           const { recordPassHealth } = await import("../health-record");
           await recordPassHealth({ scanId: claim.scanId, siteId: a.siteId, domain: a.domain, report, asksPrompts: true });
         }
@@ -192,14 +146,8 @@ function rivalsDue(checkedAt: string | undefined, weekStart: string, zone: strin
   return checkedAt === undefined || localClock(new Date(checkedAt), zone).date.slice(0, 7) < weekStart.slice(0, 7);
 }
 
-/**
- * SPEC §5 (2026-10-25): the knowledge base read again from the pages this
- * week's crawl read; only a page whose text changed is asked about. It is
- * the tick's own step, because the read keeps its own clock and the pass
- * fills its invocation. It spends on the scan's own record, so what the
- * pass spent counts against the `WEEKLY` cap. A read that fails costs the
- * knowledge base, never the week.
- */
+/** The knowledge base read again from the pages this week's crawl read; only changed pages are asked about. The tick's own step, since the read
+ *  keeps its own clock. It spends on the scan's record, against the `WEEKLY` cap; a failed read costs the knowledge base, never the week. */
 export async function refreshWeeklyKnowledge(a: { scanId: string; siteId: string; domain: string }): Promise<null> {
   try {
     await spendOnStoredReport({ scanId: a.scanId, tier: "weekly" }, async ({ cost }) => {

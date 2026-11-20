@@ -16,19 +16,12 @@ import { PROMPT_ENGINES, type MarketPromptAnswer, type PromptAnswer, type Prompt
 import { attempt, cacheScope, failed, localeOfPass, noBattery, queueOf, serpAbortFor, serpWindowOf, type StageArgs, untilCeiling } from "./sections";
 import { askTheBattery, newEngineWatch } from "./battery";
 
-/**
- * The market's buyer prompts (#1195), asked of AI Mode beside the twelve
- * and inside their budget: the same clock, the same cap and the same
- * deadline before the ceiling. Built from the market this pass concluded
- * (`buyerPrompts`), so a pass that moved the site to a new market reads
- * who answers in it before its rivals are concluded — the twelve may still
- * be thin there. Never in the score. A prompt that did not answer is left
- * out; nothing here throws.
- */
+/** The market's buyer prompts, asked of AI Mode beside the twelve inside their budget, clock, cap and deadline. Built from the market this pass concluded,
+ *  so a pass that moved to a new market reads who answers in it before its rivals are concluded. Never in the score; an unanswered prompt is left out; never throws. */
 export async function askTheMarketPrompts(a: StageArgs): Promise<void> {
   const { bounds, cost, parameters, sections } = a;
   if (!parameters.battery || parameters.marketPrompts === 0 || sections.market === null) return;
-  // D49: asked in the words buyers search, for the buyer the founder named.
+  // Asked in the words buyers search, for the buyer the founder named.
   const prompts = buyerPrompts(spokenMarket(sections.market, sections.founderBuyer), parameters.marketPrompts, localeOfPass(a).language, localeOfPass(a).place);
   await Promise.all(
     prompts.map(async (prompt) => {
@@ -46,7 +39,7 @@ export async function askTheMarketPrompts(a: StageArgs): Promise<void> {
       if (sections.sealed || failed(got) || got.kind === "unmeasured" || !got.value.answered) return;
       const cited = got.value.citedDomains.map((d) => d.toLowerCase().replace(/^www\./, ""));
       const text = got.value.text;
-      // Issue 1420: the score's own reading of linked and named.
+      // The score's own reading of linked and named.
       const reading = classifyReferences(got.value.citedDomains, a.domain, { urls: got.value.citedUrls ?? [], text, siteName: sections.siteName });
       sections.marketPrompts.push({
         prompt,
@@ -61,36 +54,16 @@ export async function askTheMarketPrompts(a: StageArgs): Promise<void> {
   );
 }
 
-/**
- * SPEC §6 (owner, D19 final and D33 of 2026-10-03, #1162) — the site's
- * tracked buyer prompts, asked by the weekly pass and by a founder's
- * re-measure (owner, 2026-10-03), beside the twelve and inside their budget:
- * the same clock, the same `WEEKLY` cap and the same deadline before the
- * ceiling.
- *
- * The set is the site's own (`sites.tracked_prompts`): built from the
- * market in force the first time, kept after that, and rotated only as
- * `nextPromptSet` allows. Every prompt is asked of both engines, an
- * unbranded one `TRACKED_PROMPTS.RUNS` times and a branded one
- * `TRACKED_PROMPTS.BRANDED_RUNS` times, all at once — a standard-queue ask costs
- * its wait whether one is queued or a hundred (#1160) — and each run has
- * its own cache key, so the second is a second answer and not the first
- * served again.
- *
- * What is stored is each answer's reading — named, linked, the site's own
- * pages cited, the rivals named — never the engine's prose. An ask that did
- * not answer is left out, so it leaves the rate's denominator. Unbranded
- * answers that are not comparisons also join the rival evidence, as the
- * deep pass's market prompts do (#1195). Nothing here throws.
- */
+/** The site's tracked buyer prompts, asked by the weekly pass and a founder's re-measure beside the twelve, inside the same clock, `WEEKLY` cap and deadline.
+ *  The set is `sites.tracked_prompts`: built from the market in force once, then rotated only as `nextPromptSet` allows. Each prompt is asked of both engines,
+ *  `TRACKED_PROMPTS.RUNS` (or `BRANDED_RUNS`) times at once, each run with its own cache key so it is a second answer, not the first again.
+ *  Each answer's reading is stored, never the prose; an unanswered ask leaves the denominator. Unbranded non-comparison answers join the rival evidence. Never throws. */
 export async function askTheTrackedPrompts(a: StageArgs): Promise<void> {
   const { bounds, cost, parameters, sections, siteId } = a;
   const asks = parameters.trackedPrompts || (a.asksTrackedPrompts === true && parameters.battery);
   if (!asks || siteId === undefined || bounds.stopNow() !== null) return;
-  // Each day's asks are their own samples: without the day in the key, a
-  // Monday pass two days after a re-measure would be served the
-  // re-measure's answers as a second week's measurement. A retry the same
-  // day is served what it already bought.
+  // Each day's asks are their own samples: without the day in the key, a Monday pass two days after a re-measure would be served its answers.
+  // A retry the same day is served what it already bought.
   const asOf = a.startedAt.toISOString().slice(0, 10);
   try {
     const [{ readPromptSet, writePromptSet }, { readSiteMarket }, { readSiteProfile }, { readBusinessEdits }] =
@@ -107,17 +80,13 @@ export async function askTheTrackedPrompts(a: StageArgs): Promise<void> {
     }
     const siteName = promptSiteName((await readSiteProfile(a.domain))?.siteName ?? null, a.domain);
     const stored = await readPromptSet(siteId);
-    // D49: a prompt names the market by its searched terms, never by a
-    // label nobody searches, and the buyer by the founder's own answer.
+    // A prompt names the market by its searched terms, never a label nobody searches, and the buyer by the founder's own answer.
     const buyer =
       sections.market === null
         ? ((await readBusinessEdits(siteId).catch(() => null))?.answers.buyers ?? null)
         : sections.founderBuyer;
-    // D54: a set built from another label is rebuilt whole from the search
-    // term here, once.
-    // D69: a set worded for software is rebuilt once for the kind of
-    // business the market records, and D67: a local business's prompts
-    // name its place.
+    // A set built from another label is rebuilt whole from the search term once; one worded for software is rebuilt once for the market's kind of business,
+    // and a local business's prompts name its place.
     const set = nextPromptSet(
       stored,
       generatePrompts(spokenMarket(market, buyer), siteName, localeOfPass(a).language, localeOfPass(a).place),
@@ -143,8 +112,7 @@ export async function askTheTrackedPrompts(a: StageArgs): Promise<void> {
       const got = await attempt("asking_the_twelve", () =>
         engine === "chatgpt"
           ? llmScraper(cost, { query: prompt.text, mode: "std", scope, locale, untilMs, run, asOf })
-          : // The standard queue on every tier: the measure is the same
-            // ask whichever pass makes it, at the price D19 was costed at.
+          : // The standard queue on every tier: the same ask whichever pass makes it, at one price.
             aiMode(cost, { query: prompt.text, mode: "std", scope, locale, untilMs, run, asOf, abortMs: serpAbortFor(bounds, parameters) })
       );
       if (failed(got) || got.kind === "unmeasured" || !got.value.answered) return;
@@ -187,7 +155,7 @@ export async function askTheTrackedPrompts(a: StageArgs): Promise<void> {
     }
     await Promise.all(asks);
 
-    // D33: a prompt rotated in stays only if an answer to it named a brand.
+    // A prompt rotated in stays only if an answer to it named a brand.
     const verdicts = new Map<string, "keep" | "drop">();
     for (const prompt of set.prompts) {
       if (prompt.precheck !== true) continue;
@@ -232,36 +200,11 @@ export async function askTheTrackedPrompts(a: StageArgs): Promise<void> {
   }
 }
 
-/**
- * SPEC §6 (2026-09-20, #908 · #919) — the published pages' own questions,
- * asked after the twelve and inside their budget.
- *
- * **Everything that decides *which* questions is pure and lives
- * elsewhere.** `trackedQuestions` holds the cap arithmetic and the
- * retirement (`src/lib/market/questions/tracked.ts`); `page-questions.ts`
- * holds the two reads it is answered from. This function asks what it is
- * handed, with the same two calls per question the twelve are asked with —
- * one SERP, whose AI Overview rides free, and the battery's two engines.
- *
- * **It is the first thing a short pass loses.** It runs after the twelve
- * in the same stage, under the same cap and the same clock, and every
- * worker re-reads both before taking a question — so a ceiling stops the
- * pages and never the market.
- *
- * **It writes to its own three arrays**, which no card, no rival
- * derivation, no coherence verdict and no score reads.
- *
- * At a tier that asks none, on a pass with no site, and on a site with no
- * live page, it returns having bought nothing and leaves the section
- * `null`. Per question, at the standard queue's prices: one SERP read to
- * `slotDepth` (`SERP_STD_C` 0.06¢ a page of ten, 0.66¢ at a hundred with the
- * AI Overview's one surcharge) plus ChatGPT (`CHATGPT_SCRAPE_STD_C` 0.12¢)
- * and AI Mode (`AI_MODE_STD_C` 0.12¢) — at most 0.9¢. Only the first twelve
- * slots read deep; a thin market's slots past them read ten (0.36¢), so the
- * most is 10.8¢ + 4.32¢ against `CAPS.WEEKLY_C`'s 40¢, and the figure does
- * not move with how many pages the customer has published, which is the
- * cap's whole purpose.
- */
+/** The published pages' own questions, asked after the twelve inside their budget, each with one SERP (its AI Overview free) and the battery's two engines.
+ *  Which questions is decided elsewhere and purely (`trackedQuestions`, `page-questions.ts`). It is the first thing a short pass loses: every worker
+ *  re-reads cap and clock before a question, so a ceiling stops the pages and never the market. It writes its own three arrays, which no score reads.
+ *  Per question at most 0.9¢ at standard prices; only the first twelve slots read deep, so the most is 10.8¢ + 4.32¢ against `CAPS.WEEKLY_C`,
+ *  however many pages the customer has published. */
 export async function askThePageQuestions(a: StageArgs, abandoned: () => boolean): Promise<void> {
   const { bounds, parameters, sections, siteId } = a;
   if (!parameters.pageQuestions || siteId === undefined) return;
@@ -350,10 +293,7 @@ function runsOf(prompt: TrackedPrompt): number {
   return prompt.kind === "branded" ? TRACKED_PROMPTS.BRANDED_RUNS : TRACKED_PROMPTS.RUNS;
 }
 
-/** One line per pass over the page questions (#919): how many pages could
- *  carry one, how many the cap left room for, how many retired and how many
- *  are waiting for a slot. No customer, no page and no question text — the
- *  shape of the set, readable from the deployment log. */
+/** One line per pass over the page questions: candidates, slots, retired, waiting. No customer, page or question text. */
 function logPageQuestions(fields: {
   candidates: number;
   asking: number;

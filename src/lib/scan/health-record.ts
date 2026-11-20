@@ -1,13 +1,6 @@
-// src/lib/scan/health-record.ts — a paid pass's health, checked and kept on
-// its own row (SPEC §6, owner D58 of 2026-10-06, issue 1287).
-//
-// The last thing a deep, weekly or re-measuring pass does with its report:
-// after its rivals are re-checked and its topics derived, so the market read
-// here is the one the pass leaves in force. The checks are `./health.ts`'s;
-// this reads what they need and writes `scans.health`.
-//
-// It never throws and never changes the pass: a pass whose health could not
-// be recorded keeps `health` null, which no reader calls unhealthy.
+// A paid pass's health, checked and kept on its own row (`scans.health`): the last thing a deep, weekly or re-measuring pass does,
+// after its rivals are re-checked and topics derived, so the market read is the one it leaves in force. The checks are `./health.ts`'s.
+// It never throws and never changes the pass: unrecorded health stays null, which no reader calls unhealthy.
 import { dbAdmin } from "@/lib/db";
 import { checkHealth, failingChecks, parseHealth, type ScanHealth, type SerpReads } from "./health";
 import type { PromptsSection, StoredReport } from "./report";
@@ -37,19 +30,13 @@ function scans<T>(): Query<T> {
   return table<T>("scans");
 }
 
-/** The ledger's names for a Google SERP read: the organic results
- *  (`serpOrganic`'s `source`) and AI Mode (`aiMode`'s), which is a SERP
- *  endpoint under the same request bound (issue 1314). */
+/** The ledger's names for a Google SERP read: organic results and AI Mode, a SERP endpoint under the same request bound. */
 export const SERP_SOURCES = ["serp/google/organic", "serp/google/ai_mode"] as const;
 
 /** A failed call's kind, read out of the row's stored failure. */
 export const FAILURE_KIND = "payload->>vendorFailure";
 
-/**
- * The SERP reads one pass's ledger rows hold (D63, issue 1298). A row is a
- * call that reached the vendor, so a search asked twice is two reads. `null`
- * where the ledger could not be read: the check then fails nothing.
- */
+/** The SERP reads one pass's ledger rows hold; a row is a call that reached the vendor, so a search asked twice is two reads. `null` where unreadable: the check then fails nothing. */
 export async function serpReadsOf(scanId: string): Promise<SerpReads | null> {
   const { data, error } = await table<{ failure: string | null }>("fetches")
     .select(`failure:${FAILURE_KIND}`)
@@ -64,8 +51,7 @@ export async function recordPassHealth(a: {
   siteId: string;
   domain: string;
   report: StoredReport;
-  /** Whether this pass asks the tracked prompts: the onboarding pass asks
-   *  none (SPEC §6, 2026-10-03), and states no rate. */
+  /** Whether this pass asks the tracked prompts: the onboarding pass asks none and states no rate. */
   asksPrompts: boolean;
 }): Promise<ScanHealth | null> {
   try {
@@ -116,8 +102,8 @@ export async function recordPassHealth(a: {
   }
 }
 
-/** The tracked prompts' answers of the site's newest pass that asked them and whose health was recorded and passed
- *  (SPEC §6), so a pass still running, or one a check failed on, is never read. `null` where there is none or the read fails. */
+/** The tracked prompts' answers of the site's newest pass that asked them and whose health was recorded and passed,
+ *  so a pass still running, or one a check failed on, is never read. `null` where there is none or the read fails. */
 export async function healthyPrompts(siteId: string): Promise<PromptsSection | null> {
   try {
     const { data } = await scans<{ health: unknown; prompts: PromptsSection | null }>()

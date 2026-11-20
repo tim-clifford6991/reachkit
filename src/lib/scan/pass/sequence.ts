@@ -14,32 +14,10 @@ import { askTheTwelve } from "./serps";
 import { askTheMarketPrompts, askThePageQuestions, askTheTrackedPrompts } from "./prompts";
 import { score } from "./compose";
 
-/**
- * The six stages in `STAGES` order, each inside its own budget, with both
- * of the pass's ceilings re-checked between every one.
- *
- * Stages two and four report reads that arrive with stage one's own call:
- * `measureDomain` is one call and produces the access rules and the
- * customer's own ranked rows alongside the site's own documents. `STAGES`
- * order is preserved exactly; what differs is when a completed stage is
- * reported, not what it reports. The alternative is splitting
- * `measureDomain` into a read half and a presence half, which changes that
- * module's declared signature — which is why it is not taken here.
- *
- * **Each stage is bounded by its own budget, not only by the pass's**
- * (issue #539). Before this, one overall ceiling was the only bound, so
- * whichever stage was slow consumed all of it and every later stage read
- * `not_attempted` — which is why no production free scan had ever reached
- * `complete`. A stage that spends its own budget now ends *there*: it emits
- * no exit event (`stages.ts`: "a stage the ceilings cut off emits no
- * `done: true`"), its sections keep the `not_attempted` arm they were
- * initialised with, and the pass goes on to the next stage and keeps
- * buying. The pass's own ceilings are unchanged and still end it.
- *
- * **The site's crawl may run beside the market** (issue 1419), and the pass
- * waits for it before it ends, so the report is composed with its site
- * issues in it.
- */
+/** The six stages in `STAGES` order, each inside its own budget, both pass ceilings re-checked between. Stages two and four report reads
+ *  that arrive with stage one's single `measureDomain` call; the order is kept, only when a stage is reported differs.
+ *  A stage that spends its own budget ends there with no exit event and its sections `not_attempted`, and the pass goes on.
+ *  The site's crawl may run beside the market; the pass waits for it so the report holds its site issues. */
 export async function runStages(a: StageArgs): Promise<void> {
   const crawl: SiteCrawl = { reading: Promise.resolve() };
   try {
@@ -49,13 +27,8 @@ export async function runStages(a: StageArgs): Promise<void> {
   }
 }
 
-/**
- * Issue 1551: the score's Content over the site's measured pages — the
- * pages ReachKit has live for it, newest first, then the pages its crawl
- * read — up to the tier's allowance (`withMeasuredPages`). A free scan has
- * no site and an allowance of none, so it reads nothing here. A list of our
- * pages that cannot be read leaves the crawl's pages to stand alone.
- */
+/** The score's Content over the site's measured pages (ReachKit's live pages newest first, then the crawl's), up to the tier's allowance.
+ *  A free scan has none. An unreadable list of our pages leaves the crawl's to stand alone. */
 async function measuredContent(a: StageArgs, m: DomainMeasurement, crawled: readonly string[]): Promise<DomainMeasurement["drivers"]["answerability"]> {
   let ours: readonly string[] = [];
   if (a.siteId !== undefined) {
@@ -77,7 +50,7 @@ async function measuredContent(a: StageArgs, m: DomainMeasurement, crawled: read
   return read.drivers.answerability;
 }
 
-/** The crawl of the customer's own site, while it runs (issue 1419). */
+/** The crawl of the customer's own site, while it runs. */
 interface SiteCrawl {
   reading: Promise<void>;
 }
@@ -121,15 +94,11 @@ async function stagesOf(a: StageArgs, crawl: SiteCrawl): Promise<void> {
       })
     )
   );
-  // **A pass whose deadline fired writes nothing more** (issue 607). The
-  // report is composed from `sections` the moment the deadline wins, and
-  // nothing in flight can be cancelled — so every write below an `await`
-  // in this function reads `bounds.abandoned()` first.
+  // A pass whose deadline fired writes nothing more: the report is composed the moment it wins and nothing in flight can be cancelled,
+  // so every write below an `await` here reads `bounds.abandoned()` first.
   if (bounds.abandoned()) return;
-  // Stage one's budget ends the pass, not just the stage: nothing after it
-  // measures anything without the site's own documents. It ends by the
-  // column that ran out — never `complete`, never §479's refusal, which
-  // would blame the customer's domain for a budget of our own (#539).
+  // Stage one's budget ends the pass: nothing after it measures without the site's documents. It ends by the column that ran out,
+  // never `complete` and never `site_unreadable`, which would blame the customer's domain for our budget.
   if (read.spent) {
     bounds.stageExhausted(read.reason);
     return;
@@ -139,9 +108,7 @@ async function stagesOf(a: StageArgs, crawl: SiteCrawl): Promise<void> {
   await exit("reading_your_site");
   const siteLocale = failed(measurement) || measurement.homeRefusal !== null ? null : readSiteLocale(measurement);
   if (siteLocale !== null && a.siteId !== undefined && a.locale === undefined) {
-    // The reading is the site's from here on (D66). A write that fails
-    // costs nothing this pass, which already holds it: the next pass reads
-    // the site again.
+    // The reading is the site's from here on; a failed write costs nothing this pass, and the next pass reads the site again.
     await writeSiteLocale(a.siteId, siteLocale).catch((error: unknown) =>
       console.log(
         JSON.stringify({ event: "site_locale_unwritten", because: error instanceof Error ? error.message : String(error) })
@@ -149,70 +116,30 @@ async function stagesOf(a: StageArgs, crawl: SiteCrawl): Promise<void> {
     );
   }
 
-  // A site whose own home document could not be read — refused by the
-  // fetcher, or a read that raised — is not measured by anything after it,
-  // and the pass does not pretend otherwise: it stops here, and the ending
-  // is `site_unreadable` with the refusal, never `complete` (issue #479).
+  // A site whose home document could not be read is measured by nothing after it: the pass ends `site_unreadable` with the refusal.
   if (failed(measurement) || measurement.homeRefusal !== null) {
     bounds.siteUnreadable(failed(measurement) ? null : measurement.homeRefusal);
     return;
   }
 
-  // D67 for the free pass (owner ruling 2026-10-15, issue 1441): a home page
-  // that states the town it serves is measured there, as a paid pass
-  // measures the place it settled. Looked up beside the crawl and the
-  // access rules, and in force before the market is read.
+  // A free pass's home page that states the town it serves is measured there; looked up beside the crawl and in force before the market is read.
   const placing = a.parameters.measuresStatedPlace && a.concludesMarket !== true ? statedPlaceOfPass(measurement) : Promise.resolve(null);
 
-  // SPEC.md §2: "The scan builds the site profile" — up to 100 pages from
-  // the sitemap and internal links, one run per scan, inside the existing
-  // caps (§12 ruling 8, 2026-09-12). It belongs to this stage because this
-  // is the stage that reads the customer's own site, and it runs at every
-  // tier for the same reason every other stage does: the weekly pass is
-  // this pipeline, so §5's "the weekly pass refreshes the profile" is this
-  // call under the weekly cap rather than a second scheduler.
-  //
-  // **What this call does at which tier.** Every tier crawls, classifies
-  // and stores the inventory, the page count and the site name — the site
-  // name off the home document itself, with no model call. The voice
-  // summary, the products and the claims are the profile's inference half
-  // and derive at the paid tiers only: `tests/llm/budget.test.ts` pins the
-  // free pass at two nano calls, which is 30 s of the 60 the platform
-  // allows this invocation, and a third would not fit. The deep pass runs
-  // in the background once setup is submitted and seeds the founder's
-  // voice from it (issue 839); the weekly pass refreshes it after that.
-  //
-  // **Its failure is not this stage's verdict.** `attempt` exists to turn a
-  // raised stage into `stage_undeterminable` — a statement about what the
-  // *measurement* could not determine, which the report then carries. The
-  // profile contributes nothing to the report, so a profile that could not
-  // be built says nothing about the measurement and must not wear that
-  // word: `tests/scan/free/vendor-failure.test.ts` reads exactly this, and
-  // a pass whose ranked-keywords call failed at the vendor would otherwise
-  // report a second, unrelated undeterminable stage. Its own event says
-  // what actually happened, and the pass continues either way.
-  //
-  // **Beside the market, where the market does not read it** (issue 1419).
-  // A free pass reads its market from the home document alone, and waiting
-  // for up to 100 pages first cost its Google reads a median of 8.7 s of the
-  // queue (the stored free scans of 2026-10-08 to 2026-10-14): the one
-  // read stripe.com asked gave up at the deadline. A pass that concludes
-  // its market reads the crawled pages for it, so it still waits here.
+  // The site profile: up to 100 pages from the sitemap and links, one run per scan inside the existing caps, at every tier (the weekly pass refreshes it).
+  // Every tier stores the inventory, page count and site name; the voice, products and claims are inference and derive at paid tiers only,
+  // since the free pass's budget holds two nano calls.
+  // Its failure is not this stage's verdict: the profile adds nothing to the report, so it must not report `stage_undeterminable`; its own event says what happened.
+  // It runs beside the market where the market does not read it: a free pass reads its market from the home document alone,
+  // and waiting for 100 pages cost its queued Google reads. A pass that concludes its market from the crawled pages still waits.
   const readTheSite = async (): Promise<void> => {
     try {
       const { buildSiteProfileWithCrawl } = await import("@/lib/site-profile");
       const { readingOf } = await import("@/lib/site-issues");
       const { profile, crawl } = await buildSiteProfileWithCrawl(cost, {
         domain,
-        // `CanonicalDomain` is the branded string itself, and the home
-        // address the measurement read is `https://<domain>/` — the same
-        // one `measureDomain` builds, whose own helper is private to that
-        // module. The crawl re-reads nothing: this address is row one of
-        // the inventory and is already in the `fetches` cache.
+        // The home address `measureDomain` read, row one of the inventory and already in the `fetches` cache, so the crawl re-reads nothing.
         homeUrl: `https://${domain}/`,
-        // Issue 1379: where bot protection answered the plain read and the
-        // vendor's browser returned the site, that document is the home
-        // page — the crawl's own read of it would be the protection's.
+        // Where bot protection answered the plain read and the vendor's browser returned the site, that document is the home page.
         homeHtml: measurement.renderedHome ?? null,
         sitemaps: measurement.robots.kind === "unmeasured" ? [] : measurement.robots.value.sitemaps,
         tier: a.tier,
@@ -220,8 +147,7 @@ async function stagesOf(a: StageArgs, crawl: SiteCrawl): Promise<void> {
         locale: measurement.locale,
       });
       const content = await measuredContent(a, measurement, crawl.pages.map((page) => page.url));
-      // SPEC §9: the technical-issue checks run over exactly this crawl —
-      // the one run, nothing fetched beyond its set (2026-09-12).
+      // SPEC §9: the technical-issue checks run over exactly this crawl, nothing fetched beyond its set.
       if (!bounds.abandoned() && !sections.sealed) {
         if (sections.measurement !== null) {
           sections.measurement = { ...sections.measurement, drivers: { ...sections.measurement.drivers, answerability: content } };
@@ -254,20 +180,12 @@ async function stagesOf(a: StageArgs, crawl: SiteCrawl): Promise<void> {
 
   if (bounds.stopNow() !== null) return;
   await enter("reading_your_market");
-  // **A retry reads the market it already has** (SPEC §2, issue 715). The
-  // stage is entered and exited so the screen's stage list still reads
-  // straight through, and it buys nothing: `resumeMarket` puts the stored
-  // report's profile, suggestions, twelve searches and wording back into
-  // `sections`, which is the one part of a free pass the ledger cannot
-  // return for free (`llm()` caches at `freshnessDays: 0`). Re-deriving it
-  // would cost the two nano calls again and could come back with different
-  // questions — a different report at the same address, not a retried part.
+  // A retry reads the market it already has: the stage is entered and exited so the list reads through, and buys nothing.
+  // `resumeMarket` restores the profile, suggestions, twelve and wording; re-deriving them would cost two nano calls and could change the questions.
   const marketFromCents = cost.spentCents();
   let market: StageOutcome<void> = SKIPPED_STAGE;
   if (retry === undefined) {
-    // The market spends from the purse it shares with the twelve, and the
-    // twelve get what it left (issue 835): an extra seed is only ever
-    // bought with the SERPs of questions the pass does not have.
+    // The market spends from the purse it shares with the twelve, and the twelve get what it left.
     market = await inBudget(
       "reading_your_market",
       (b, abandoned) => readMarket({ ...a, bounds: b }, abandoned),
@@ -282,11 +200,8 @@ async function stagesOf(a: StageArgs, crawl: SiteCrawl): Promise<void> {
   if (bounds.abandoned()) return;
   if (!market.spent) await exit("reading_your_market");
 
-  // No stage-abandonment guard is threaded here, and none is owed:
-  // `sizesRivals` is false on the free path and the budget applies on no
-  // other, so on every pass this stage can be abandoned on, it returns
-  // before it awaits anything at all. Its one write still reads the pass's
-  // own `abandoned()`, which costs nothing.
+  // No stage-abandonment guard is owed: `sizesRivals` is false on the free path and stage budgets apply on no other, so where this can be abandoned
+  // it returns before awaiting anything. Its one write still reads the pass's `abandoned()`.
   if (bounds.stopNow() !== null) return;
   await enter("checking_your_presence");
   const presence = await inBudget("checking_your_presence", (b) => sizeTrackedRivals({ ...a, bounds: b }));
@@ -295,14 +210,8 @@ async function stagesOf(a: StageArgs, crawl: SiteCrawl): Promise<void> {
 
   if (bounds.stopNow() !== null) return;
   await enter("asking_the_twelve");
-  // **A retry of a part this stage does not produce does not ask again**
-  // (issue 715). The stored SERPs go back into `sections` instead, so the
-  // two cards counted over them are rebuilt from the same answers the
-  // report already showed — never re-derived from an empty battery, which
-  // would replace a measured card with an unmeasured one for the sake of a
-  // part that is neither. Where the part *is* this stage's, it runs: the
-  // questions already bought come back from `fetches` free of charge and
-  // only the ones the ceiling cut off are paid for.
+  // A retry of a part this stage does not produce does not ask again: the stored SERPs go back into `sections`, so both cards are rebuilt
+  // from the same answers. Where the part is this stage's it runs, and questions already bought come back from `fetches` free.
   let twelve: StageOutcome<void> = SKIPPED_STAGE;
   let asking: Promise<void> = Promise.resolve();
   if (retry !== undefined && RETRY_STAGE[retry.part] !== "asking_the_twelve") {
@@ -311,18 +220,8 @@ async function stagesOf(a: StageArgs, crawl: SiteCrawl): Promise<void> {
     twelve = await inBudget(
       "asking_the_twelve",
       async (b, abandoned) => {
-        // **Beside the twelve, not after them** (#1160). The page questions
-        // (#919) run inside this same budget row — the same clock, the same
-        // `WEEKLY` cap and the same `stopNow()` before every call — and the
-        // twelve are handed to the queue first. They used to ask *after*
-        // the twelve, and on the standard queue that is a second full wait
-        // of two to three minutes: the weekly passes of 2026-09-21 and
-        // 2026-09-28 met their ceiling inside it and never reached scoring,
-        // so rivals were never sized. A standard-queue ask costs its wait
-        // whether one question is in the queue or twenty-four, so asking
-        // both sets together costs the pass no time.
-        // The market's buyer prompts join them (#1195), so the rivals are
-        // concluded from answers in the market this pass measures.
+        // Beside the twelve, not after them: page questions and the market's buyer prompts run inside this budget row (same clock, `WEEKLY` cap, `stopNow()`),
+        // handed to the queue after the twelve. A standard-queue ask costs its wait however many are queued, so asking together costs no time.
         asking = askTheTwelve({ ...a, bounds: b }, abandoned, bounds);
         await Promise.all([
           asking,
@@ -334,31 +233,14 @@ async function stagesOf(a: StageArgs, crawl: SiteCrawl): Promise<void> {
       twelveCents
     );
   }
-  // D63 (issue 1298): a stage that spent its clock stops waiting, and the
-  // asks it left go on. The pass waits for them here — the reads still
-  // queued and the one more ask of a read that failed — so what was bought
-  // is scored. No new first ask starts, and every queued read gives up by
-  // itself `askReserveS` before the pass's ceiling (issue 1352), so the
-  // pass still ends `complete`.
+  // A stage that spent its clock stops waiting, but the reads still queued and one re-ask go on; the pass waits for them here so what was bought is scored.
+  // No new first ask starts, and each queued read gives up `askReserveS` before the ceiling, so the pass still ends `complete`.
   if (twelve.spent && stillCollecting(bounds, a.parameters)) await asking;
   if (bounds.abandoned()) return;
   if (!twelve.spent) await exit("asking_the_twelve");
 
-  // Scoring itself buys nothing and is synchronous — it counts over SERPs
-  // already paid for (§6.6's "zero extra cost"). Its budget row is the CPU
-  // the count is allowed, and there is no await inside `score` for a race
-  // to preempt, so it is not wrapped: a synchronous call cannot be cut off.
-  //
-  // The one purchase in this stage is `sizeSerpRivals` (issue 901), and it
-  // is here because this is the first moment the twelve's own top tens
-  // exist: the stage that asks them is the stage before. It runs at the
-  // tiers whose `sizesRivals` says so and buys nothing at any other, so
-  // the free path's 0¢ budget row for this stage still describes it.
-  // **A ceiling met during the asks still counts what they bought**
-  // (#1160). Scoring buys nothing and cannot be cut off. Skipping it left
-  // a pass that had paid for eleven AI Mode answers with no AI-answers
-  // section at all. Only the purchase in the stage (`sizeSerpRivals`) is
-  // what the ceiling stops.
+  // Scoring buys nothing and is synchronous (§6.6's "zero extra cost"), so it is not raced. Its one purchase, `sizeSerpRivals`, is here because the twelve's
+  // top tens first exist now; it runs only where `sizesRivals` says so. A ceiling met during the asks still scores what they bought; only the purchase is skipped.
   if (bounds.stopNow() !== null) {
     await crawl.reading;
     score(a);

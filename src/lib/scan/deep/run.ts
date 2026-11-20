@@ -1,41 +1,7 @@
-// BUILD §4.3 — the deep pass, and the named stages the waiting screen
-// reads.
-//
-// "While the deep pass runs: progress screen; on completion straight to
-// the app with the first draft already in the calendar. A degraded pass
-// still releases setup (zero proposals is legal, never faked)." (§4.3)
-//
-// **There is no second pipeline here.** The deep pass is `runScan` at
-// `tier: 'deep'` — one call, no stage list of its own, no ceiling of its
-// own, no cost arithmetic of its own. What this file adds is the two
-// things onboarding needs that the pipeline has no reason to know about:
-// the founder's stage, written somewhere the waiting screen can read it,
-// and the release latch, written once the pass ends whatever it ended as.
-//
-// **Why the stage is written to a row.** `src/lib/scan/stages.ts` carries
-// transitions on an in-process event bus, and its own header says so: "if
-// the job that runs `runScan` and the process that serves this route are
-// ever different deployed instances, a second transport … replaces this
-// bus". They are. The pass runs as `scan/run` on the job platform and the
-// progress endpoint answers from the web process, so the founder's step
-// travels through `sites.setup_stage` — six small writes for a pass that
-// spends 30¢, and the only shape a duration could not travel in even if
-// somebody wanted it to.
-//
-// A stage write that fails is swallowed. The pass is the thing being paid
-// for; a founder briefly shown the previous step is a worse screen, and
-// stopping a 30¢ measurement over it would be a worse product.
-//
-// **And the third thing: the pass's measurements become supply.** §7's
-// derivation runs here rather than inside the pipeline because the
-// pipeline branches on no tier and the free path derives nothing — the
-// choice of *which* §7 entry point a pass uses belongs to the pass. The
-// deep pass derives toward a week and its spares
-// (`deriveForPass`), under the same `DEEP` cap the stages spent and counted
-// in the same row's cost (issue 798), on the report the pass just stored —
-// as a step of its own, after the pass's. A derivation that
-// finds nothing is a normal return: §4.3 releases the founder either way
-// and "zero proposals is legal, never faked".
+// BUILD §4.3: the deep pass is `runScan` at `tier: 'deep'`, with no stages, ceiling or cost arithmetic of its own.
+// It adds what onboarding needs: the founder's stage on `sites.setup_stage`, because the job and the progress route run in different processes, and the release latch.
+// A failed stage write is swallowed: the paid pass matters more than a briefly stale step.
+// The pass's measurements become supply here (`deriveForPass`), not in the tier-blind pipeline, under the same `DEEP` cap and row cost. Zero proposals is legal, never faked.
 import { FIRST_DRAFT_STAGE, type OnboardingStage } from "./progress";
 import { WEEK_RESEARCH } from "@/lib/config/constants";
 import { dbAdmin } from "@/lib/db";
@@ -55,27 +21,8 @@ export function reasonFor(status: ScanStatus): ReleaseReason {
   return "failed";
 }
 
-/**
- * The stage a founder is shown, and the instant it began.
- *
- * See this file's header for why the event bus cannot serve the first.
- * The second is issue #356: UI-SPEC S11 draws an elapsed time beside
- * every finished stage, and a duration the screen composed from its own
- * clock would be how long a tab was open rather than how long the work
- * took. So each entry is stamped as it happens and the screen subtracts
- * consecutive entries — `sites.setup_stage_times`.
- *
- * **Accumulated, never rewritten.** The map is merged rather than
- * replaced, so a stage's own instant survives the next five writes; the
- * clearing write at the end of the pass (`stage = null`) leaves it
- * standing, because a founder released into the app may still be shown
- * what their pass did.
- *
- * **`reset` starts a pass.** The map belongs to one pass, so the run
- * clears it before the first stage rather than adding to whatever a
- * previous pass left — two passes' timings in one map would state a
- * stage that ran twice as one that ran long.
- */
+/** The stage a founder is shown and the instant it began (`sites.setup_stage_times`), stamped as it happens so the screen never composes a duration from its own clock.
+ *  Merged, never replaced, and kept after the closing `stage = null`; `reset` clears it at a pass's start so two passes' timings never mix. */
 async function recordStage(
   siteId: string,
   stage: OnboardingStage | null,
@@ -105,17 +52,8 @@ async function recordStage(
       JSON.stringify({ event: "setup_stage_not_recorded", siteId, stage, detail: String(error) })
     );
   }
-  // SPEC §5 (2026-09-20, #923): the setup screen is told, instead of asking
-  // every few seconds. **After the write and outside its `try`**, and both
-  // halves of that matter: the row is the record and the push is a courtesy
-  // on top of it, so a push is only ever made for a step that was actually
-  // recorded, and a push that fails can no more fail the pass than a
-  // recorded stage can be rolled back by one. `publishSetupStage` swallows
-  // its own failures; this is not awaited for a value because there is none.
-  // Imported at the call, the way `remeasure.ts` reaches its own job
-  // module: a static edge from the engine into `src/jobs/` would put the
-  // platform's realtime half into the static graph of everything that can
-  // reach this pass.
+  // The row is the record and the push is a courtesy: pushed after the write and outside its `try`, so a failed push cannot fail the pass.
+  // Imported at the call, so the job platform's realtime half stays out of the engine's static graph.
   const { publishSetupStage } = await import("@/jobs/realtime");
   await publishSetupStage(siteId, stage);
 }
@@ -127,48 +65,23 @@ export type PassStep = <T>(name: string, body: () => Promise<T>) => Promise<T>;
 
 const inline: PassStep = (_name, body) => body();
 
-/**
- * Runs one founder's onboarding pass and releases them.
- *
- * **Three steps, not one** (issue 798): the pass itself, the opportunities
- * it derives, and the first draft with the release. Each is its own
- * invocation on the job platform, so no one of them has to fit the whole
- * onboarding inside the platform's ceiling on a request, and a later step
- * that fails is retried without buying the pass a second time.
- *
- * The release is written from the pass's own end state, and it is written
- * whatever that state is: a degraded pass and a failed one both release,
- * because §4.3 has no arm in which a founder is held. If the ten-minute
- * deadline already latched while this pass was running, `releaseToApp`
- * reports that earlier latch and this call changes nothing — the first
- * writer wins, so a pass that finishes late cannot put a founder back on
- * the progress screen.
- */
+/** Runs one founder's onboarding pass and releases them, in three job steps (the pass, its opportunities, the first draft and release),
+ *  so none must fit the whole onboarding and a later retry does not re-buy the pass.
+ *  The release is written whatever the pass ended as; if the deadline latched first, the first writer wins. */
 export async function runDeepPass(a: {
   siteId: string;
   domain: string;
-  /** The work that belongs to onboarding after the scan and before the
-   *  release — the first draft (issue #782). The founder is already in the
-   *  app; the release is what clears their side panel, so it waits for the
-   *  first page rather than announcing an app with none in it. A throw here
-   *  never holds the release. */
+  /** Onboarding work after the scan and before the release (the first draft): the release clears the side panel, so it waits for the first page. A throw never holds the release. */
   beforeRelease?: () => Promise<void>;
   step?: PassStep;
-  /** A pass measured again now (issue 837): the row its request claimed is
-   *  already running, so the onboarding row is not claimed again, and the
-   *  stage the request wrote stands until the pipeline's first. The rest —
-   *  the opportunities, the first draft, the latch already written — is the
-   *  onboarding pass's own. */
+  /** A pass measured again now: its row is already running, so the onboarding row is not claimed again and the request's stage stands until the pipeline's first. */
   remeasure?: boolean;
 }): Promise<{ scanId: string; status: ScanStatus; reason: ReleaseReason }> {
   const step = a.step ?? inline;
 
   const result = await step("deep-pass", () => measure(a));
 
-  // SPEC §5 (2026-09-29, issue 1133): the pages the pass read become the
-  // knowledge base, one small call a page, on the pass's own money and
-  // before anything is derived against it. A read that fails costs the
-  // base, never the pass.
+  // The pages the pass read become the knowledge base, one small call a page, on the pass's money; a failed read costs the base, never the pass.
   await step("knowledge-base", async () => {
     try {
       await spendOnStoredReport({ scanId: result.scanId, tier: "deep" }, async ({ cost }) => {
@@ -195,18 +108,14 @@ export async function runDeepPass(a: {
     return null;
   });
 
-  // SPEC §5: the first week is researched like Monday's. Its best rows' own SERPs are posted now, so the voice step
+  // The first week is researched like Monday's. Its best rows' own SERPs are posted now, so the voice step
   // and the first draft hide the queue's minutes; a row still queued at the commit is committed queued, never short.
   // Research never holds the release: a step that fails is logged and the week is committed from what is held.
   const week = { siteId: a.siteId, scanId: result.scanId }, held = <T>(body: () => Promise<T[]>) => body().catch((error: unknown) => (console.warn(JSON.stringify({ event: "first_week_research_failed", siteId: a.siteId, detail: String(error) })), []));
   const rows = await step("first-week-research", () => held(async () => (await import("../weekly/commit")).postFirstWeek({ ...week, now: new Date() })));
 
   await step("voice", async () => {
-    // The pass derived the paid voice; seed the customer's field from it, so
-    // the first draft is written in it (issue 737). Setup could not: a
-    // free-scan profile has no voice to adopt. Unstamped, and never over the
-    // founder's own edit (`adoptVoiceText`); a failure costs a voice, never
-    // the release.
+    // Seed the customer's voice from the pass's paid voice so the first draft is written in it; never over the founder's own edit, and a failure costs a voice, never the release.
     try {
       const { adoptVoiceText } = await import("@/lib/site-profile");
       await adoptVoiceText({ siteId: a.siteId, domain: a.domain });
@@ -256,13 +165,8 @@ export async function runDeepPass(a: {
   return { scanId: result.scanId, status: result.status, reason };
 }
 
-/**
- * What a deep pass does with the report it stored, on the pass's own money:
- * the rivals re-checked, the topics derived and pruned, and the pass's own
- * health recorded last. One function, so `npm run pass -- --replay` runs the
- * same steps in the same order over a stored report (SPEC §6, D64, issue
- * 1301). It never throws.
- */
+/** What a deep pass does with its stored report, on its own money: rivals re-checked, topics derived and pruned, health recorded last.
+ *  One function, so `npm run pass -- --replay` runs the same steps in the same order. Never throws. */
 export async function afterDeepReport(a: {
   scanId: string;
   siteId: string;
@@ -271,8 +175,7 @@ export async function afterDeepReport(a: {
 }): Promise<void> {
   try {
     await spendOnStoredReport({ scanId: a.scanId, tier: "deep" }, async ({ report, cost }) => {
-      // SPEC §6 (owner D28, #1185): the rivals, re-checked from this
-      // pass's own answers before anything is derived against them.
+      // The rivals, re-checked from this pass's own answers before anything is derived against them.
       const { recheckRivalsOf } = await import("../market-conclusion");
       await recheckRivalsOf({ siteId: a.siteId, domain: a.domain, cost, report, at: new Date() });
       try {
@@ -287,9 +190,7 @@ export async function afterDeepReport(a: {
           rivalRows: cachedRivalRows(a.siteId),
         });
       } finally {
-        // SPEC §6 (owner D58, issue 1287): the pass checks its own health
-        // last, against the rivals it leaves in force. Only a re-measure
-        // asks the tracked prompts. It never throws.
+        // The pass checks its own health last, against the rivals it leaves in force; only a re-measure asks the tracked prompts. Never throws.
         const { recordPassHealth } = await import("../health-record");
         await recordPassHealth({ scanId: a.scanId, siteId: a.siteId, domain: a.domain, report, asksPrompts: a.remeasure });
       }
@@ -311,26 +212,13 @@ async function measure(a: {
   domain: string;
   remeasure?: boolean;
 }): Promise<{ scanId: string; status: ScanStatus }> {
-  // The timings belong to one pass, so the map is cleared before this one
-  // rather than added to whatever a previous pass left — two passes'
-  // instants in one map would state a stage that ran twice as one that ran
-  // long. Cleared here and not on the first stage, because deciding "is
-  // this the first" would mean naming the pipeline's stage order in this
-  // file, which `run.test.ts` holds it not to.
-  //
-  // A re-measure's request already cleared them and wrote the stage its
-  // founder is shown (`remeasure.ts`), so a panel polling between the two
-  // writes is never told the pass is over.
+  // Cleared here, not on the first stage, so this file need not name the pipeline's stage order. A re-measure's request already cleared them and wrote its stage.
   if (a.remeasure !== true) await recordStage(a.siteId, null, { reset: true });
 
-  // The row setup claimed when it accepted the address, or claimed now for
-  // a founder whose address it never sought against — at the address setup
-  // committed. The pass adopts it and inserts no second (owner ruling,
-  // 2026-09-16). A throw here is the job's to retry: no pass without a row.
+  // The row setup claimed, or claimed now at the address setup committed; the pass adopts it and inserts no second. A throw is the job's to retry.
   if (a.remeasure !== true) await claimOnboardingPass({ siteId: a.siteId, domain: a.domain });
 
-  // The category the founder confirmed at setup is the one the market is
-  // searched on (#767); none stored, the pass seeds from the profile.
+  // The category the founder confirmed at setup is the one the market is searched on; none stored, the pass seeds from the profile.
   const category = await readSiteCategory(a.siteId);
 
   return runScan({
@@ -339,8 +227,7 @@ async function measure(a: {
     tier: "deep",
     ...(category === undefined ? {} : { category }),
     concludesMarket: true,
-    // Owner, 2026-10-03 (#1162): a re-measure also asks the site's tracked
-    // buyer prompts, so the mention rate does not wait for Monday.
+    // A re-measure also asks the site's tracked buyer prompts, so the mention rate does not wait for Monday.
     ...(a.remeasure === true ? { asksTrackedPrompts: true } : {}),
     onStage: (stage) => recordStage(a.siteId, stage),
   });

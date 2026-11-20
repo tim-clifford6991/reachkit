@@ -1,35 +1,9 @@
-// SPEC §6 (2026-09-20, #908 · #919) — the two reads behind the page
-// questions, and nothing else.
-//
-// "Each published page's own question may join the tracked set: at most 24
-// tracked questions in all (the twelve plus twelve), the twelve page
-// questions being those whose pages rank nearest the first page, and a
-// page's question leaves the set after 8 weeks without a mention."
-//
-// The **arithmetic** of that sentence — which candidates fit, which have
-// run out of weeks — is `src/lib/market/questions/tracked.ts`, pure and
-// tested with no database. This file is the pair of reads that answers it:
-//
-//   the candidates   §9's live publications, joined through the draft to
-//                    the opportunity each was written for, so a page
-//                    carries the question it was written to be the answer
-//                    to (the opportunity's asked-as form) and the search it
-//                    targets, with the page's stored reading: where it was
-//                    last seen and whether AI linked it.
-//   the misses       the site's own last `PAGE_QUESTION_RETIRE_WEEKS`
-//                    weekly reports, read for their `pageQuestions` section.
-//
-// **No new table and no migration.** Both facts are already on disk: the
-// pages are `publications`, and the weeks a question was asked without a
-// mention are in the stored reports of those weeks. A `page_questions`
-// table would be a second copy of both, kept in step by a writer that could
-// fall behind them.
-//
-// **Every read here degrades to nothing.** A pass is a measurement, and a
-// database that will not answer about published pages must not take one
-// down: an unreadable candidate list is no page questions this week, which
-// is exactly what the section then says — never an invented row, and never
-// a throw out of the middle of a paid pass.
+// The two reads behind the page questions: a published page's own question may join the tracked set (at most 24 in all, those nearest the first page),
+// and leaves after `PAGE_QUESTION_RETIRE_WEEKS` without a mention. The arithmetic is `src/lib/market/questions/tracked.ts`, pure; this file answers it:
+// the candidates   live publications joined through the draft to their opportunity, carrying its question, its search and the page's stored reading;
+// the misses       the site's last `PAGE_QUESTION_RETIRE_WEEKS` weekly reports' `pageQuestions` sections.
+// No new table: both facts are already stored, and a copy could fall behind them.
+// Every read degrades to nothing: an unreadable list is no page questions this week, never an invented row or a throw out of a paid pass.
 import { dbAdmin } from "@/lib/db";
 import { PAGE_QUESTION_RETIRE_WEEKS } from "@/lib/config/constants";
 import { classifyReferences } from "@/lib/measure/drivers";
@@ -40,10 +14,7 @@ import { missesByPage } from "@/lib/market/questions/tracked";
 import type { RankedRow } from "@/lib/vendors/dataforseo/types";
 import { readStoredReport, type PageQuestionsSection, type StoredReport } from "./report";
 
-/** `scans.week_start` and the join shapes below are on disk and not in the
- *  generated `Database` type, so these two reads go through the same
- *  narrow, explicitly cast builder `report.ts`, `admission.ts` and
- *  `weekly/store.ts` already carry. Nothing else here bypasses the type. */
+/** `scans.week_start` and the join shapes below are not in the generated `Database` type, so these two reads go through a narrow cast. Nothing else here bypasses the type. */
 interface QueryResult<T> {
   data: T[] | null;
   error: { message: string } | null;
@@ -77,32 +48,10 @@ interface LivePageRow {
   } | null;
 }
 
-/**
- * Every live page that could carry a tracked question, each with the place
- * its target search holds.
- *
- * **One question per page, and it is the page's own.** The asked-as form is
- * the opportunity's: a page written to be the answer to *"what CRM should a
- * small team use?"* is tracked on that question and not on a question
- * composed here. Where the opportunity recorded no question — a target
- * chosen on its search rather than on an answer — the search's own template
- * question stands in, which is `templateQuestion`: code, deterministic, and
- * the same form the calendar and the draft screen already state for such a
- * page (`askedAs`).
- *
- * **The place is the page's stored reading's**, else the ranked rows this
- * pass has already bought (§6.6's cold-start read), so knowing where a page
- * stands costs nothing. `null` where neither holds it: the site ranks
- * nowhere we can see for it, which is not a position of zero and not a
- * reason to drop the page, because a page nobody ranks for is exactly the
- * page an AI answer might still name.
- *
- * **The order is not decided here.** These come back in the order the
- * database gave them; *which* of them are asked, and in what order, is
- * `trackedQuestions` — one home for the rule, and it is pure.
- *
- * Returns `[]` where the site has no live page, and on any failure.
- */
+/** Every live page that could carry a tracked question, each with the place its target search holds.
+ *  One question per page, its own: the opportunity's asked-as form, else `templateQuestion` of its search, as `askedAs` states it elsewhere.
+ *  The place is the page's stored reading, else this pass's ranked rows, so it costs nothing; `null` where neither holds it, which keeps the page.
+ *  The order is `trackedQuestions`'s, not decided here. `[]` where no live page, and on any failure. */
 export async function pageQuestionCandidates(a: {
   siteId: string;
   ownRankedRows: readonly RankedRow[];
@@ -125,9 +74,7 @@ export async function pageQuestionCandidates(a: {
     if (held === undefined || row.position < held) places.set(key, row.position);
   }
 
-  // SPEC §7 (2026-09-18): the page a tracked question is asked about is
-  // named at its site's host now, which is the address an answer would cite.
-  // A site with no page costs no read.
+  // The page a tracked question is asked about is named at its site's host now, the address an answer would cite. A site with no page costs no read.
   const { hostedAddressesNow } = await import("@/lib/publish/destinations/hosted/store");
   const addressNow = data.length === 0 ? null : await hostedAddressesNow(a.siteId).catch(() => null);
 
@@ -160,11 +107,8 @@ export async function pageQuestionCandidates(a: {
   return candidates;
 }
 
-/** The opportunity's own asked-as form: the question its acceptance test
- *  names where it named one, and the search's template question otherwise.
- *  The same rule `askedAs` states for the calendar and the draft screen —
- *  written here over the stored `jsonb` because this runs in a job, where
- *  the app's projection of an opportunity does not reach. */
+/** The opportunity's own asked-as form: its acceptance test's question, else the search's template question.
+ *  The rule `askedAs` states, written over the stored `jsonb` because the app's projection does not reach this job. */
 function askedAsOf(acceptance: unknown, search: string): string {
   if (
     typeof acceptance === "object" &&
@@ -183,24 +127,9 @@ interface WeekReportRow {
   report: unknown;
 }
 
-/**
- * How many weekly passes running have asked each page's question and heard
- * nothing, newest week first.
- *
- * It reads the site's own last `PAGE_QUESTION_RETIRE_WEEKS` weekly reports
- * — the window the rule is stated over, so a question cannot retire on a
- * history longer than the rule and cannot survive one shorter.
- *
- * **A week is only counted where it answered.** A row whose every engine
- * came back `unmeasured` is a week nobody measured that page, not a week
- * the answer was no, and counting it would retire a question for the
- * pass's own failure. `missesByPage` is handed the pages a week *answered*
- * for, and decides the run from those.
- *
- * Returns an empty map on any failure: no miss is counted, which retires
- * nothing. The honest direction — a question kept a week longer costs
- * 0.3¢, and one retired on a database error loses its slot for good.
- */
+/** How many weekly passes running asked each page's question and heard nothing, over the last `PAGE_QUESTION_RETIRE_WEEKS` weekly reports.
+ *  A week counts only where it answered: an all-`unmeasured` row is the pass's failure, not a miss.
+ *  An empty map on any failure retires nothing: a question kept a week longer costs 0.3¢, a wrongly retired one loses its slot for good. */
 export async function pageQuestionMisses(siteId: string): Promise<MissesByPage> {
   const { data, error } = await untyped()
     .from<WeekReportRow>("scans")
@@ -235,13 +164,8 @@ function sectionOf(blob: unknown): PageQuestionsSection | null {
   return report.pageQuestions;
 }
 
-/** One week as the retirement rule reads it: the pages it got an answer
- *  about, and the ones an answer named or linked.
- *
- *  *Named or linked* is `classifyReferences` — the score's own function,
- *  the one the AI answers tab splits its two marks with. A mention is a
- *  mention on **any** of the three engines: the rule is "8 weeks without a
- *  mention", and an answer on one engine is a mention. */
+/** One week as the retirement rule reads it: the pages it got an answer about, and those an answer named or linked (`classifyReferences`, the score's own).
+ *  A mention on any of the three engines is a mention. */
 function weekOf(section: PageQuestionsSection): { asked: string[]; mentioned: string[] } {
   const asked: string[] = [];
   const mentioned: string[] = [];

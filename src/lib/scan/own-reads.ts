@@ -1,7 +1,5 @@
-// src/lib/scan/own-reads.ts — a paying scan's measured pages as the re-score
-// reads them, and the stored reads of ReachKit's live pages it
-// keeps: the newest of each address at or before the scan's last own read.
-// The rest of the history changes no score, so it is never downloaded.
+// A paying scan's measured pages as the re-score reads them, and the stored reads of ReachKit's live pages it keeps: the newest of each address
+// at or before the scan's last own read. The rest of the history changes no score, so it is never downloaded.
 import type { PageFacts } from "./page-facts";
 import type { RescoreScan } from "./rescore";
 

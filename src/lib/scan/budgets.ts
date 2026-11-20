@@ -1,74 +1,8 @@
-// §2 — the free pass's per-stage time and spend budget, and the seam that
-// enforces it (issue #539).
-//
-// **The defect this file exists to close.** `run.ts`'s `runStages` walked
-// the six `StageName` handles strictly in sequence inside one overall bound
-// (`ceilings.ts`'s `withFreeBounds`, `TIMING.reportCeilingS`), and no stage
-// had a budget of its own. So whichever stage was slow — a model that took
-// its whole 15 s, twelve live SERPs bought one after another — consumed the
-// *whole* ceiling, and every stage after it read `not_attempted`. On
-// production 2026-09-11, 0 of 17 free scans had ever reached
-// `stopped_reason=complete`. One overall ceiling cannot stop that: by the
-// time it fires the pass is already over.
-//
-// **A stage that spends its own budget ends, and the pass carries on.**
-// That is the whole difference. The overall ceiling still ends the pass —
-// it is ADR-021's promise and nothing here weakens it — but a stage now
-// also has a bound it alone can exhaust, and exhausting it costs the pass
-// that stage's own drivers and nothing else. The stages after it still run,
-// still buy, and still measure.
-//
-// **The budget, and why it adds up.** Two columns per stage, both stated
-// here and asserted at module load:
-//
-// | stage                   | seconds | cents | what the budget covers |
-// |-------------------------|---------|-------|------------------------|
-// | `reading_your_site`     |      10 |   2.0 | the home and pricing documents, the robots policy, and the one `ranked_keywords`@50 (`RANKED_FREE_COST_C` = 1.8¢) |
-// | `reading_access_rules`  |       1 |   0   | reports a read stage one already made — it buys nothing and waits for nothing |
-// | `reading_your_market`   |      14 |   5.0 | `keyword_suggestions` (1.8¢) and the free path's two nano calls — the profile and the phrasing (≈2.6¢ together at Haiku's row); the seed ladder's extra purchases are paid from the purse it shares with the twelve (below) |
-// | `checking_your_presence`|       1 |   0   | the free tier's `sizesRivals` is `false`: per-rival `ranked_keywords` is on §6.4's never-pull list for this path |
-// | `asking_the_twelve`     |      13 |   5.0 | twelve queued SERPs at high priority, each reserving the async-AI-Overview surcharge (12 × `QUESTION_SERP_RESERVE_C` = 2.88¢, issue 1352), and a second ask of one that failed |
-// | `scoring`               |       1 |   0   | both cards, the rivals and the coherence verdict, all counted over SERPs already paid for (§6.6's "zero extra cost") |
-//
-// **The market and the twelve share one purse** (issue 835, owner ruling
-// 2026-09-17: the free scan walks the same seed ladder as the deep pass,
-// up to `SELECTION.maxExtraSeeds` extra seeds, inside the free cap). Three
-// extra seeds at 1.8¢ each do not fit beside twelve SERPs in 12¢, and they
-// never need to: a seed is bought only while the pass is short of
-// questions, and a question the pass does not have is a SERP it will not
-// buy. So `reading_your_market` spends from its own row *and* the twelve's
-// (`MARKET_PURSE_CENTS`), the twelve get what the market left of that purse
-// (`twelveCentsAfter`), and the run buys an extra seed only while the purse
-// still holds the seed and — once it has a question — the phrasing and the
-// SERPs of the questions it will ask (`affordsSeed`). The column sum below is unchanged by that: the two rows
-// are one purse, not two.
-//
-// The seconds sum to `TIMING.reportTargetS` — 40, the p95 the pass aims at,
-// which is itself ten seconds under `TIMING.reportCeilingS`. Budgeting to
-// the *target* rather than the ceiling is what leaves the overall ceiling
-// something to be: a pass whose every stage spends its whole budget still
-// finishes inside 40 s, and the ten seconds above that are the margin the
-// ending and the stored report are written in. The cents sum to 12,
-// under `CAPS.FREE_C`. `assertBudgetsFit` below is both sums, checked when
-// this module loads, so a stage whose budget is widened past what the pass
-// can afford fails at import rather than on a customer's scan.
-//
-// **The budget binds tighter than the vendor's own timeout, on purpose.**
-// `INFERENCE_TIMEOUT_MS.nano` is 15 s and the free path makes two such
-// calls (`FREE_PASS_INFERENCE_CALLS`), so `reading_your_market`'s worst
-// case at the seam below it is 30 s — three quarters of the whole target.
-// Its budget here is 14. The stage's bound is therefore this file's, not
-// the model client's: a profile call that runs long is cut off with the
-// market `not_attempted` and the twelve still get asked, which is the
-// trade §2 asks for ("a cut-off factor shows '—' with one line per
-// unmeasured driver") and the opposite of what shipped.
-//
-// **Time is preemptive here too.** `ceilings.ts` races the whole body
-// against the overall deadline because the delay can be inside a call that
-// never resolves; a stage's budget is raced the same way and for the same
-// reason (`runInStageBudget` below). Money stays cooperative: it is read
-// between calls through the stage's own `Bounds`, exactly as the overall
-// cap is.
+// The free pass's per-stage time and spend budget: a stage that spends its own budget ends and the pass carries on, where one overall ceiling let a slow stage starve every stage after it.
+// `reading_your_market` and `asking_the_twelve` share one purse (`MARKET_PURSE_CENTS`): an extra seed is bought only while the purse still holds it and the SERPs of the questions it will ask (`affordsSeed`).
+// Seconds sum to `TIMING.reportTargetS`, not the ceiling, leaving the ceiling's margin for the ending; cents sum under `CAPS.FREE_C`. `assertBudgetsFit` checks both at load.
+// A stage's budget binds tighter than the model client's timeout, so a slow profile call leaves the market `not_attempted` and the twelve still get asked.
+// Time is raced preemptively, since a call may never resolve; money is read cooperatively between calls through the stage's `Bounds`.
 import { ASYNC_AIO_SURCHARGE_MULTIPLIER, CAPS, PRICE_BOOK, SELECTION, TIMING } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import type { Bounds } from "./ceilings";
@@ -81,9 +15,7 @@ export interface StageBudget {
   readonly cents: number;
 }
 
-/** The table above, as the value the seam reads. Frozen, and keyed by
- *  `StageName` through `satisfies`, so a seventh stage cannot be added to
- *  `stages.ts` without a budget being decided for it — the compiler asks. */
+/** Frozen and keyed by `StageName` through `satisfies`, so a new stage cannot be added without a budget. */
 export const STAGE_BUDGETS = Object.freeze({
   reading_your_site: Object.freeze({ seconds: 10, cents: 2.0 }),
   reading_access_rules: Object.freeze({ seconds: 1, cents: 0 }),
@@ -93,19 +25,13 @@ export const STAGE_BUDGETS = Object.freeze({
   scoring: Object.freeze({ seconds: 1, cents: 0 }),
 }) satisfies Readonly<Record<StageName, StageBudget>>;
 
-/** The most one question's SERP reserves on the free path: the high-priority
- *  queue's price (issue 1352) with the async-AI-Overview surcharge (ADR-094
- *  d3). The twelve's row holds twelve of these and their second asks. */
+/** The most one question's SERP reserves on the free path: the high-priority queue's price with the async-AI-Overview surcharge. */
 export const QUESTION_SERP_RESERVE_C = PRICE_BOOK.SERP_STD_HIGH_C * ASYNC_AIO_SURCHARGE_MULTIPLIER;
 
-/** Issue 835: the purse `reading_your_market` spends from on the free path —
- *  its own row and the twelve's, because the seed ladder's extra purchases
- *  are paid from the SERPs of questions the pass does not have. */
+/** The purse `reading_your_market` spends from on the free path: its own row and the twelve's, since extra seeds are paid from SERPs of questions the pass does not have. */
 export const MARKET_PURSE_CENTS = STAGE_BUDGETS.reading_your_market.cents + STAGE_BUDGETS.asking_the_twelve.cents;
 
-/** Issue 835: what the twelve may spend once the market has spent
- *  `marketCents` of the purse they share — their own row at most, never
- *  below nothing. */
+/** What the twelve may spend after the market spent `marketCents` of their shared purse: their own row at most, never below zero. */
 export function twelveCentsAfter(marketCents: number): number {
   return Math.max(0, Math.min(STAGE_BUDGETS.asking_the_twelve.cents, MARKET_PURSE_CENTS - marketCents));
 }
@@ -114,73 +40,32 @@ export function twelveCentsAfter(marketCents: number): number {
  *  `reading_your_market`'s row the table above gives the phrasing. */
 export const PHRASING_RESERVE_C = 1.3;
 
-/** Whether a pass with `remainingCents` left may buy one more
- *  `keyword_suggestions` seed while it holds `selected` questions.
- *
- *  A pass with no questions buys while the purse holds the seed (issue
- *  835): any question is better than none. A pass that has questions and
- *  is only short of `SELECTION.freeLadderMinQuestions` (issue 1235) buys
- *  the seed only while the purse still holds, after it, the phrasing and a
- *  SERP for that minimum or for every question already selected, whichever
- *  is more — so widening never leaves questions the pass cannot ask.
- *  Strictly more, so the call after the purchase reads a purse that is not
- *  spent. */
+/** Whether one more `keyword_suggestions` seed fits: with no questions, while the purse holds the seed; otherwise only while the purse still holds, after it,
+ *  the phrasing and a SERP for `SELECTION.freeLadderMinQuestions` or every selected question, whichever is more. Strictly more, so the next read is not spent. */
 export function affordsSeed(a: { remainingCents: number; selected: number }): boolean {
   if (a.selected === 0) return a.remainingCents > PRICE_BOOK.SUGGESTIONS_COST_C;
   const asked = Math.max(a.selected, SELECTION.freeLadderMinQuestions);
   return a.remainingCents > PRICE_BOOK.SUGGESTIONS_COST_C + PHRASING_RESERVE_C + asked * QUESTION_SERP_RESERVE_C;
 }
 
-/**
- * How many questions a purse of `cents` can actually ask (issue 873).
- *
- * A reserve each, never a settlement: the reservation is what the cap is
- * checked against (`recordFetch`), so it is what decides whether a question
- * can be asked at all. Any remainder below one question's reserve buys
- * nothing, which is why this floors.
- *
- * The free pass used to select and *phrase* twelve whatever the market
- * ladder had left of the shared purse, and the questions at the end of the
- * list were then dropped after the visitor had already been shown them.
- * Deciding the count here, before the phrasing, is what makes the free
- * report a list of questions it can pay to answer.
- *
- * The epsilon is the binary representation, not a tolerance: the reserve is
- * a hundredth-of-a-cent figure (`numeric(12,4)` in `fetches`), and a sum of them
- * lands a hair under twelve in IEEE-754.
- */
+/** How many questions `cents` can ask, at a reserve each (the cap is checked against reservations), floored.
+ *  Decided before phrasing so the report lists only questions it can pay to answer. The epsilon absorbs IEEE-754 sums of `numeric(12,4)` reserves. */
 export function questionsAffordable(cents: number): number {
   if (cents <= 0) return 0;
   return Math.floor((cents + 1e-9) / QUESTION_SERP_RESERVE_C);
 }
 
-/** The twelve, all at once (issue 855). Each of a paid pass's questions is
- *  three calls — the SERP, the ChatGPT read on the standard queue and AI
- *  Mode — so three waves of four are three times the slowest question's
- *  calls, which a job invocation's ceiling does not hold. Twelve at once is
- *  one wave; the cap is still checked against every reservation in flight.
- *
- *  The free path's too since issue 1352. It asked in waves of four
- *  (`SERP_FANOUT`, issue #539) while its reads were live; they are queued
- *  now, and a wave that waits on the queue would start the next one after
- *  the scan's time is spent. */
+/** All twelve at once: a paid question is three calls and waves of four overrun an invocation's ceiling; queued free reads would start late waves after the scan's time.
+ *  The cap is still checked against every reservation in flight. */
 export const PAID_SERP_FANOUT = 12;
 
-/** What a stage's work came back with, or the fact that the stage spent its
- *  budget before the work finished. `spent` is never an error: the stage's
- *  sections keep the arm they were initialised with — `not_attempted`, "we
- *  did not get to it" — and the pass moves to the next stage.
- *
- *  `reason` is the column that ran out, in the pass's own bounded
- *  vocabulary, so the one stage the pass cannot continue without can end
- *  the pass bounded rather than `complete` (#539 review). */
+/** A stage's result, or that it spent its budget first; `spent` is not an error, its sections stay `not_attempted`.
+ *  `reason` is the column that ran out, so a stage the pass cannot continue without ends the pass bounded rather than `complete`. */
 export type StageOutcome<T> =
   | { readonly spent: false; readonly value: T }
   | { readonly spent: true; readonly reason: "time_ceiling" | "spend_ceiling" };
 
-/** Both sums, checked when this module loads — the same discipline
- *  `stages.ts` uses for "exactly six stages". A widened budget that the
- *  pass cannot afford is a defect at import, not on a scan. */
+/** Both sums, checked at module load, so a budget the pass cannot afford fails at import rather than on a scan. */
 function assertBudgetsFit(): void {
   const budgets = Object.values(STAGE_BUDGETS);
   const seconds = budgets.reduce((total, budget) => total + budget.seconds, 0);
@@ -199,12 +84,7 @@ function assertBudgetsFit(): void {
 
 assertBudgetsFit();
 
-/** A delay that can be cleared. The timer is cleared as soon as the race
- *  below settles, whichever side won it (#539 review): an uncleared
- *  `setTimeout` holds the event loop open for the rest of the budget after
- *  a stage that answered early, which on a short-lived invocation is wall
- *  clock the platform is paying for and a fake clock still has to advance
- *  past. */
+/** A delay cleared once the race settles: an uncleared timer holds the event loop open on a short-lived invocation. */
 function cancellableDelay(ms: number): { promise: Promise<void>; cancel: () => void } {
   let timer: ReturnType<typeof setTimeout> | undefined;
   const promise = new Promise<void>((resolve) => {
@@ -213,25 +93,8 @@ function cancellableDelay(ms: number): { promise: Promise<void>; cancel: () => v
   return { promise, cancel: () => clearTimeout(timer) };
 }
 
-/**
- * The pass's own `Bounds`, narrowed to one stage.
- *
- * Every member answers for *either* ceiling — the pass's or this stage's —
- * so a multi-call step that already re-checks `stopNow()` between calls
- * (the twelve SERPs, the paid battery's two engines) starts respecting its
- * stage's budget without a line of its own changing. `stopNow()` reads
- * time before money for the same reason `ceilings.ts` does: the time bound
- * is the one §2 states absolutely.
- *
- * It never writes to the pass's bounds. A stage that exhausts its own
- * budget must not make the *pass* read as cut off — the pass still ends
- * `complete` where no overall ceiling fired, with the cut-off stage's
- * drivers `not_attempted` and every other stage's measured, which is
- * exactly the report §2 describes. The two recording members are
- * deliberately delegated through — `siteUnreadable` and `stageExhausted`
- * are the pass's ending rather than a ceiling, and stage one is where
- * either is decided.
- */
+/** The pass's `Bounds` narrowed to one stage: each member answers for either ceiling, so steps that already re-check `stopNow()` respect the stage budget unchanged.
+ *  It never writes to the pass's bounds, so a spent stage does not make the pass read as cut off; `siteUnreadable` and `stageExhausted` delegate through as the pass's ending. */
 function stageBounds(a: {
   bounds: Bounds;
   cost: CostContext;
@@ -278,11 +141,7 @@ function stageBounds(a: {
   return bounds;
 }
 
-/** One line per stage that spent its budget, carrying which column ran out
- *  and what the stage had. The pass's own ending line is `ceilings.ts`'s
- *  and says nothing about a stage; this is where a reader of the logs sees
- *  *which* stage was the expensive one — the thing 36 hours of fix-forward
- *  issues could not see. */
+/** One line per stage that spent its budget, naming the column and what it had, so the logs show which stage was expensive. */
 function logStageBudgetSpent(a: {
   stage: StageName;
   budget: StageBudget;
@@ -301,48 +160,21 @@ function logStageBudgetSpent(a: {
   );
 }
 
-/**
- * Runs one stage's work inside that stage's own budget.
- *
- * `work` is handed a `Bounds` that answers for the stage's ceilings as well
- * as the pass's, and is raced against the stage's own deadline — so a stage
- * stuck inside a vendor call that never resolves still ends at its budget
- * and the pass still reaches the stages after it.
- *
- * **The losing side cannot be cancelled, so it is told** (#539 review).
- * Nothing in this pipeline is cancellable — the vendor client takes no
- * signal from here — so a call already in flight when the budget runs out
- * goes on running and eventually answers. The second parameter `work`
- * receives is how it finds out that nobody is waiting any more: `abandoned()`
- * reads `true` from the moment this function returns `{ spent: true }`, and
- * a worker that checks it before writing keeps its late answer out of a
- * `sections` the pass has already scored and stored. Its spend is ledgered
- * by `recordFetch` either way, which is what "bounded and ledgered" means.
- *
- * `applies: false` — the two paid tiers, whose passes are released at ten
- * minutes or run on the standard queue — runs `work` against the pass's own
- * bounds and adds nothing. The budget is the free path's, because the two
- * sums it fits inside (`TIMING.reportTargetS`, `CAPS.FREE_C`) are the free
- * path's; it reaches this function as a parameter rather than a tier test,
- * so `run.ts` keeps its own rule that the pipeline branches on no tier.
- */
+/** Runs one stage's work inside its budget, raced against the stage deadline so a vendor call that never resolves still ends there.
+ *  A losing call cannot be cancelled, so `abandoned()` turns true once this returns `{ spent: true }` and a late writer stays out of scored `sections`; its spend is still ledgered.
+ *  `applies: false` (paid tiers) runs against the pass's bounds only, passed as a parameter so the pipeline branches on no tier. */
 export async function withStageBudget<T>(
   a: {
     stage: StageName;
     bounds: Bounds;
     cost: CostContext;
     applies: boolean;
-    /** The cents this stage may spend, where it is not its own row: the
-     *  market's shared purse and what the twelve get of it (issue 835).
-     *  The seconds are always the row's. */
+    /** The cents this stage may spend where not its own row (the shared market purse); seconds are always the row's. */
     cents?: number;
   },
   work: (bounds: Bounds, abandoned: () => boolean) => Promise<T>
 ): Promise<StageOutcome<T>> {
-  // A pass with no stage budgets abandons no stage of its own, so the
-  // predicate is the pass's — which reads `false` for the life of a pass
-  // the deadline does not apply to — rather than a branch every caller
-  // would have to remember to read.
+  // With no stage budgets the predicate is the pass's own, rather than a branch every caller must remember.
   if (!a.applies) return { spent: false, value: await work(a.bounds, () => a.bounds.abandoned()) };
 
   const row = STAGE_BUDGETS[a.stage];
@@ -357,9 +189,7 @@ export async function withStageBudget<T>(
   let abandoned = false;
   const timer = cancellableDelay(budget.seconds * 1000);
   const done: StageOutcome<T> = await Promise.race([
-    // Abandoned by this stage's budget, or by the pass's own deadline firing
-    // while the stage was still inside it (issue 607): either way nobody
-    // is waiting for what the work writes.
+    // Abandoned by this stage's budget or by the pass's deadline firing inside it: either way nobody waits for the write.
     (async (): Promise<StageOutcome<T>> => ({
       spent: false,
       value: await work(bounds, () => abandoned || a.bounds.abandoned()),

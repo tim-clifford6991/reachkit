@@ -1,46 +1,11 @@
-// Issue 796 — the owner's Monday market digest.
-//
-// Issue 770 mailed the owner on every paid pass that found too little market
-// (`../market-floor`), and a weekly pass is a paid pass, so a thin site
-// mailed every Monday. A site's first (deep) pass still mails at once — that
-// is news. A weekly pass is folded into one owner mail per Monday listing
-// the scan ids, sent by the maintenance tick once that Monday has ended in
-// every zone.
-//
-// **Which Monday.** `week_start` is the site-local Monday's calendar date,
-// the same date in every zone. The last zone to leave a Monday is UTC−12,
-// at Tuesday 12:00 UTC, so a week is due from then until the next one is.
-// Only that one week is ever due: rows from before this shipped are never
-// offered, and a week the tick missed entirely is not mailed late.
-//
-// **Once.** `scans.market_digest_at` is stamped on every weekly row of the
-// week the digest read — too small or not — and only when the seam accepted
-// the mail (or there was nothing to tell). A refusal stamps nothing and the
-// next tick offers the week again. A row still `running` or `failed` is not
-// read; if it finishes, or a retry finishes it, too small after the digest
-// went, the next tick sends it alone.
-//
-// **The daily promise.** The same mail carries one line per paying site: the
-// seven dates before `week_start` (the last week every zone has finished)
-// kept, stopped by the customer or missed, the standard met, and the coming
-// week's researched supply (`./promise-week`). A read that fails leaves it out
-// and never holds the digest back. The same dates' days with no page that no
-// alert was sent for, each with its reason, are listed after them.
-//
-// **What the week cost** (issue 1286, D57). The same mail carries that same
-// week's cost (`./cost-week`): per site a measurement and a page written,
-// free scans and smoke tests apart, and the ledger's total. It is sent
-// whenever the week held a scan or a page, thin market or not, and a read
-// that fails leaves it out the same way.
-//
-// **Which passes failed a health check** (issue 1287, D58). The same mail
-// lists every pass — weekly, deep or re-measure — one of its own checks
-// failed on in the seven days up to the moment this digest fell due, with
-// the check and what it found. A read that fails leaves it out too.
-//
-// **Pages Google has not crawled.** The same mail lists every live hosted page
-// whose newest URL Inspection still says Google does not know it or has only
-// found it, `UNCRAWLED_AFTER_D` days or more after it went live, with that state.
+// The owner's Monday digest. A site's first (deep) pass that found too little market mails at once; weekly passes fold into one mail per Monday,
+// sent by the maintenance tick once that Monday has ended in every zone (UTC−12 leaves it at Tuesday 12:00 UTC). Only that one week is ever due:
+// a week the tick missed is not mailed late.
+// Once: `scans.market_digest_at` is stamped on every weekly row read, only when the seam accepted the mail; a refusal stamps nothing and the
+// next tick retries. `running` and `failed` rows are not read; one that later finishes too small is sent alone.
+// The same mail carries, each left out where its read fails and never holding the digest back: each paying site's daily-promise line
+// (`./promise-week`) and its untold empty days; the week's cost (`./cost-week`); the passes a health check failed on;
+// and live hosted pages Google has not crawled `UNCRAWLED_AFTER_D` days after going live.
 import { tz } from "@date-fns/tz";
 import { addDays, format } from "date-fns";
 import { UNCRAWLED_AFTER_D } from "@/lib/config/constants";
@@ -52,8 +17,7 @@ import type { UnhealthyPass } from "../health-record";
 import type { CostWeek } from "./cost-week";
 import type { PromiseWeek } from "./promise-week";
 
-// `scans.week_start`, `scans.market_digest_at` are on disk and not in the
-// generated `Database` type — the same narrow cast `./store` carries.
+// `scans.week_start` and `scans.market_digest_at` are not in the generated `Database` type; the same narrow cast as `./store`.
 interface QueryResult<T> {
   data: T[] | null;
   error: { message: string } | null;
@@ -138,9 +102,7 @@ async function costBefore(weekStart: string): Promise<CostWeek | null> {
   }
 }
 
-/** The passes a health check failed on (D58, issue 1287) since the digest
- *  before this one fell due, or `null` where there is none or they could not
- *  be read. */
+/** The passes a health check failed on since the digest before this one fell due, or `null` where none or unreadable. */
 async function unhealthyBefore(weekStart: string): Promise<UnhealthyPass[] | null> {
   try {
     const due = Date.parse(`${weekStart}T00:00:00.000Z`) + MONDAY_ENDS_EVERYWHERE_MS;
@@ -238,7 +200,7 @@ export async function sendMarketDigest(weekStart: string, now: Date): Promise<bo
     if (row.report === null || row.report === undefined) continue;
     try {
       const report = readStoredReport(row.report);
-      // A pass a ceiling stopped did not finish reading its market (issue 855).
+      // A pass a ceiling stopped did not finish reading its market.
       if (marketTooSmall(report.questions) && !stoppedOnCeiling(report.stoppedReason)) tooSmall.push(row.id);
     } catch {
       // A report this build cannot read is not a market this digest can judge.

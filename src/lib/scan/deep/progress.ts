@@ -1,31 +1,11 @@
-// BUILD §4.3 — what the waiting screen is told, and what it is never told.
-//
-// Two arms. The running one carries the instant each stage began, and
-// nothing more (issue #356): UI-SPEC S11 draws a finished stage's elapsed
-// time, and a duration the screen composed from its own clock would be how
-// long a tab was open rather than how long the work took. So this frame
-// passes recorded instants through, and the screen subtracts consecutive
-// entries — the arithmetic lives in `_setup/stages.ts` and nowhere else,
-// which is what keeps a duration from being invented in two places.
-//
-// What no arm carries is a forecast: nothing here estimates, counts down,
-// shows a clock or a percentage, and the row under way is drawn as a dash
-// rather than a number that grows.
-//
-// The running arm's `stage` is the step the pipeline last entered, read
-// from `sites.setup_stage` (written by `runDeepPass` — see its header for
-// why a row and not the event bus). The ended arm carries `degraded` and
-// nothing else: which of the four release reasons ended the wait is a fact
-// the app states through `releaseNotice()`, not a fact this frame carries
-// to a screen that is about to disappear.
+// BUILD §4.3: what the waiting screen is told. The running arm carries each stage's recorded start instant and the screen subtracts consecutive entries in `_setup/stages.ts`,
+// so no duration is composed from a tab's clock. No arm carries a forecast.
+// `stage` is read from `sites.setup_stage` (see `runDeepPass`); the ended arm carries only `degraded`, and why the wait ended is `releaseNotice()`'s to state.
 import { dbAdmin } from "@/lib/db";
 import { STAGES, type StageName } from "../stages";
 import { isReleased } from "./release";
 
-/** The step after the scan: the first draft, written before the founder is
- *  released (issue #782), so "the pass is running" covers the first page as
- *  well. Not one of the engine's six handles — the scan knows nothing of
- *  §8's writing — which is why it is its own value on `sites.setup_stage`. */
+/** The first draft, written before the founder is released, so "the pass is running" covers the first page. Not one of the engine's six handles, so its own value. */
 export const FIRST_DRAFT_STAGE = "writing_first_draft" as const;
 export type OnboardingStage = StageName | typeof FIRST_DRAFT_STAGE;
 
@@ -33,16 +13,9 @@ export type DeepPassProgress =
   | {
       running: true;
       stage: OnboardingStage;
-      /** When each stage of this pass began, keyed by handle
-       *  (`sites.setup_stage_times`, issue #356). A finished stage's
-       *  elapsed time is the difference between its own entry and the
-       *  next one's; the running stage has no end yet and UI-SPEC S11
-       *  draws it as a dash rather than a clock. Empty where the pass
-       *  recorded none. */
+      /** When each stage began (`sites.setup_stage_times`); a finished stage's time is the gap to the next entry, the running one is drawn as a dash. Empty where none recorded. */
       enteredAt: Readonly<Partial<Record<StageName, string>>>;
-      /** A pass measured again after the founder's release (issue 837), as
-       *  opposed to the onboarding pass itself — the side panel heads the
-       *  two differently (issue 1196). */
+      /** A pass measured again after release, as opposed to the onboarding pass; the side panel heads them differently. */
       remeasure?: boolean;
     }
   | { running: false; degraded: boolean };
@@ -52,8 +25,7 @@ interface StageRow {
   setup_stage_times: Record<string, string> | null;
 }
 
-/** The generated `Database` type does not carry `sites.setup_stage` yet —
- *  the same narrow cast `release.ts` documents. */
+/** `sites.setup_stage` is outside the generated `Database` type; the same narrow cast as `release.ts`. */
 interface MinimalResult<T> {
   data: T[] | null;
   error: { message: string } | null;
@@ -71,25 +43,15 @@ function isStage(value: string | null): value is OnboardingStage {
   return value === FIRST_DRAFT_STAGE || (value !== null && (STAGES as readonly string[]).includes(value));
 }
 
-/**
- * One founder's pass, as the waiting screen sees it.
- *
- * Reading it is also what latches the ten-minute deadline (`isReleased`),
- * so the founder refreshing the progress screen is the thing that releases
- * them — no scheduled job exists in this path at all.
- *
- * A pass that has been released but recorded no stage still answers: the
- * first stage stands in, because "which step is under way" has no honest
- * empty value and a bare spinner is the thing REQ-029 c1 forbids.
- */
+/** One founder's pass as the waiting screen sees it. Reading it latches the release deadline (`isReleased`), so no scheduled job exists in this path.
+ *  A released pass that recorded no stage answers with the first stage: a bare spinner is not allowed. */
 export async function passProgressFor(
   siteId: string,
   now: Date = new Date()
 ): Promise<DeepPassProgress> {
   const release = await isReleased(siteId, now);
   if (release.released) {
-    // A released founder whose market is being measured again now (issue
-    // 837) is shown that pass's steps, in the same panel, until it ends.
+    // A released founder whose market is being measured again is shown that pass's steps until it ends.
     const { remeasureUnderWay } = await import("./remeasure");
     const stage = await readStage(siteId);
     if ((stage.setup_stage ?? null) === null || !(await remeasureUnderWay(siteId, release.at, now))) {

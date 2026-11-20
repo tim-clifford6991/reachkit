@@ -1,48 +1,15 @@
-// src/lib/scan/correction.ts — BUILD §6.7 step 5, the stored side of the
-// one market correction.
-//
-// The correction *decision* is the market module's — the coherence
-// verdict, the offer and the state machine are pure and live there. This
-// file is the two things that decision needs from storage and cannot get
-// without it: the facts of the domain's current report, and the one
-// conditional write that moves that report's `correction_state` forward.
-// It holds no threshold, no allowance arithmetic and no state table: it
-// reads `CorrectionState` values and writes the one it is handed.
-//
-// **Two stale-type gaps, worked around the way `admission.ts` already
-// works around its own** (`untyped`, below, and that file's module header
-// for the pattern): `scans.correction_state` and `scans.is_current` are on
-// disk in `supabase/migrations/20260904110000_scans_current.sql` and
-// neither is in the generated `Database` type, which has not been
-// regenerated since. Both queries here go through a narrow, explicitly
-// cast builder against a locally declared row shape; regenerating
-// `types.generated.ts` is its own change, not this one.
-//
-// The removal list is *not* read here: `admission.ts` is the one file
-// under `src/` that names that table (REQ-002 c4), and this module asks it
-// rather than opening a second reader of the same fact.
-//
-// **The re-measurement itself is issue #25's `runScan`, which is not on
-// disk.** Rather than fork a second pipeline here, this module declares
-// the one seam that pipeline registers itself through
-// (`registerCorrectionRunner`) and answers honestly while nothing is
-// registered: `correctionRunner()` returns `null`, and the correction is
-// refused *before it runs* — the same arm as free scanning being paused or
-// switched off, which costs the reader neither attempt and leaves the
-// control standing. Nothing here writes a state that a missing pipeline
-// would then strand.
+// The stored side of the market correction (BUILD §6.7): the current report's facts and the one conditional write of its `correction_state`. The decision itself is the market module's.
+// `scans.correction_state` and `scans.is_current` are missing from the generated `Database` type, so both queries go through `untyped`.
+// The removal list is asked of `admission.ts`, its one reader.
+// The re-measurement registers itself through `registerCorrectionRunner`; while none is registered a correction is refused before it runs, so no state is stranded.
 import { dbAdmin } from "@/lib/db";
 import type { CorrectionState } from "@/lib/market/coherence/state";
 import type { ReportFacts } from "@/lib/market/coherence/offer";
 import { isDomainRemoved } from "./admission";
 import type { CanonicalDomain } from "./domain";
 
-/** The scan pipeline's own entry point, as this seam needs to call it:
- *  BUILD §6.3's one pipeline with the tier as a parameter, plus
- *  `correctionOf` — "a market correction re-measures inside the scan it
- *  corrects: same spend ceiling" — the category the reader corrected to,
- *  which the re-measurement seeds on (#767), and the visitor's network.
- *  No ceiling override and no deadline is passed through it. */
+/** The scan pipeline's entry point as this seam calls it (BUILD §6.3): one pipeline with the tier as a parameter, `correctionOf` the category the reader corrected to,
+ *  and the visitor's network. A correction re-measures inside the scan it corrects: no ceiling override, no deadline. */
 export type CorrectionRunner = (a: {
   domain: string;
   tier: "free";
@@ -52,12 +19,7 @@ export type CorrectionRunner = (a: {
   network: string;
 }) => Promise<CorrectionRun>;
 
-/** A started re-measurement (#786). `scanId` is the row the pass writes
- *  to, already claimed when this resolves — so the report can follow the
- *  rerun's stages at `/api/scan/{scanId}/progress` from the moment the
- *  submission is answered — and `finished` settles when the pass does. The
- *  correction route hands `finished` to `after()`: the pass outlives the
- *  response, as the free scan's does. */
+/** A started re-measurement: `scanId` is already claimed, so the report can follow its stages at `/api/scan/{scanId}/progress`; `finished` settles with the pass and goes to `after()`. */
 export interface CorrectionRun {
   scanId: string;
   finished: Promise<{ scanId: string; status: "done" | "degraded" | "failed" }>;
@@ -95,8 +57,7 @@ interface MinimalClient {
   from<T>(table: string): MinimalQueryBuilder<T>;
 }
 
-/** Cast boundary for the two gaps named in the module header. Nothing else
- *  in this file bypasses the generated `Database` type. */
+/** Cast boundary for the two gaps; nothing else here bypasses the generated `Database` type. */
 function untyped(client: ReturnType<typeof dbAdmin>): MinimalClient {
   return client as unknown as MinimalClient;
 }
@@ -128,15 +89,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-/**
- * The category the report measured, read out of the stored blob's market
- * section: `market` is `Measured<MarketSet>` and a `MarketSet` carries the
- * profile the category belongs to (ADR-095). A market that was not
- * measured, a blob written before that shape, and a category that is not a
- * non-empty string all read the same way — `null`, "the scan never reached
- * one" — because none of them is a category and none may be guessed into
- * one.
- */
+/** The category the report measured, from the stored market section's profile. Unmeasured, older or non-string reads as `null`: none may be guessed into one. */
 function categoryIn(report: unknown): string | null {
   if (!isRecord(report) || !isRecord(report.market)) return null;
   const market = report.market;
@@ -146,10 +99,7 @@ function categoryIn(report: unknown): string | null {
   return typeof category === "string" && category.length > 0 ? category : null;
 }
 
-/** A read that cannot be answered is not evidence of a removal. The report
- *  address decides what a removed domain is served (REQ-002 c3); this read
- *  only keeps a correction from being offered on one, so it fails open the
- *  same way the admission order's own first step does. */
+/** An unanswerable read is not evidence of a removal; this only keeps an offer off a removed report, so it fails open. */
 async function removedOrUnanswerable(domain: CanonicalDomain): Promise<boolean> {
   try {
     return await isDomainRemoved(domain);

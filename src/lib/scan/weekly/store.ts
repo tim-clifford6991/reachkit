@@ -1,34 +1,9 @@
-// BUILD §11 — the four reads and two writes the weekly measurement needs
-//
-// Every statement this module sends is here, so the selection, the run and
-// the account each hold one rule and no SQL. Nothing below decides
-// anything: due-ness is `week.ts`'s, active access is billing's
-// (`access.ts`), and what a degraded week did not reach is `account.ts`'s.
-//
-// **The claim is the exactly-once mechanism, and the index is what makes
-// it true.** `claimWeek` inserts the `running` row *before* a cent is
-// spent, carrying `week_start`; the partial unique index
-// `(site_id, week_start) where tier = 'weekly'`
-// (`supabase/migrations/20260906120000_scans_weekly.sql`) rejects the
-// second insert, and that rejection is the answer "already measured" —
-// not an error, and not a read-then-write race two ticks can both win.
-// `week_start` is written once, at insert, and no statement here ever
-// updates it: a week's label must not move when a customer moves zone.
-//
-// **A claim that produced no report is released.** `releaseWeek` marks the
-// row `failed` and keeps it, because `fetches.scan_id` references it and the
-// ledger is never deleted; `claimWeek` takes a `failed` row back, so the
-// next hourly tick retries the site inside the same site-local week, and
-// every reader below treats a `failed` row as no week at all. A run that
-// produced a report — `done` or `degraded` — keeps its row and is never
-// retried: a partly measured week is a measured week that says what it
-// missed, not a failure to repeat.
-//
-// `scans.week_start` and `scans.finished_at` are on disk and not in the
-// generated `Database` type, which has not been regenerated since. Every
-// query here goes through one narrow, explicitly cast builder against a
-// locally declared row shape — the same worked-around gap `admission.ts`,
-// `report.ts`, `correction.ts` and `run.ts` already carry.
+// BUILD §11: every statement the weekly measurement sends, so the selection, run and account each hold a rule and no SQL. Nothing here decides.
+// `claimWeek` inserts the `running` row with `week_start` before any spend, and the partial unique index `(site_id, week_start) where tier = 'weekly'`
+// rejects a second insert: that rejection is "already measured", not a race. `week_start` is never updated, so a week's label never moves.
+// `releaseWeek` marks a reportless claim `failed` and keeps it (`fetches.scan_id` references it); `claimWeek` retakes it on the next tick, and
+// readers treat `failed` as no week. A `done` or `degraded` row is never retried.
+// `scans.week_start` and `scans.finished_at` are not in the generated `Database` type, so every query uses one narrow cast against a local row shape.
 import { dbAdmin } from "@/lib/db";
 import { readStoredReport, type StoredReport } from "../report";
 
@@ -69,17 +44,8 @@ interface SiteQueryRow {
   timezone: string | null;
 }
 
-/**
- * Every site that carries a zone, with the domain it measures.
- *
- * One indexed read, and deliberately not filtered by access: whose access
- * is current is billing's single gate to answer (`access.ts`), and a
- * second predicate here would be a second definition of active. A site
- * whose `timezone` is still null has not finished first sign-in (REQ-073
- * c1 forbids a zone the customer did not state), and there is no zone in
- * which to decide its Monday — so it is not selected, and no server-chosen
- * fallback puts it on the wrong day.
- */
+/** Every site that carries a zone, with its domain. Not filtered by access, which is billing's one gate; a site with a null `timezone` has not
+ *  finished first sign-in and has no Monday, so it is not selected and no fallback zone is chosen. */
 export async function sitesWithAZone(): Promise<readonly SiteRow[]> {
   const { data, error } = await untyped()
     .from<SiteQueryRow>("sites")
@@ -145,14 +111,7 @@ const UNIQUE_VIOLATION = "23505";
 
 export type Claim = { readonly claimed: true; readonly scanId: string } | { readonly claimed: false };
 
-/**
- * Inserts the `running` row for one site's week, before any spend.
- *
- * The id is generated here and handed to `runScan`, which writes its
- * report to this very row: one row per site per week, from the claim to
- * the report, so a pass never inserts a second one behind the index's
- * back.
- */
+/** Inserts the `running` row for one site's week before any spend; `runScan` writes its report to this row, so a pass never inserts a second. */
 export async function claimWeek(a: {
   siteId: string;
   domain: string;
@@ -222,24 +181,8 @@ export async function readWeekScan(a: { siteId: string; weekStart: string }): Pr
   };
 }
 
-/**
- * Several of one site's weeks, in one read (issue #213).
- *
- * `readWeekScan` above is the account's reader — one week, one lookup, on
- * the render path of a screen that states one week. A *series* is a
- * different question, and asking the single reader twelve times would put
- * twelve round trips on Overview's render path. So: one `in` over the
- * window's Mondays, keyed back by `week_start`.
- *
- * **Only the weeks that have a row come back.** The map is missing rather
- * than empty for a week the site was not measured in, because those are
- * two different facts and the caller draws them differently: an absent
- * week is a break in a series, and inventing an entry for it here would be
- * the one thing REQ-004 forbids — a reading where no measurement was made.
- *
- * An empty `weekStarts` asks nothing: a site whose window is empty has no
- * question to put to the database.
- */
+/** Several of one site's weeks in one read, so Overview's series costs one round trip. Only weeks with a row come back: an absent week is a break
+ *  in the series, and inventing an entry would be a reading where no measurement was made. An empty `weekStarts` asks nothing. */
 export async function readWeekScans(a: {
   siteId: string;
   weekStarts: readonly string[];

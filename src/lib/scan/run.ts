@@ -1,44 +1,11 @@
-// BUILD §4.1, §6.2, §6.3, §6.5 — the one scan pipeline. Tier is a parameter.
-//
-// Six named stages in `STAGES` order, under the tier's spend cap and — on
-// the free path — the ninety-second deadline, ending in exactly one stored
-// report or in a failure that leaves the previous report untouched.
-//
-// **The pipeline never branches on tier; only its parameters change.** One
-// frozen `Record<Tier, TierParameters>` holds the cap name, the SERP mode,
-// whether the report deadline applies and whether the pass adopts an
-// admission claim. No `if (tier === …)` selects a different stage, a
-// different formula or a different battery anywhere below: the same six
-// stages run over the same callees at every tier. Cold start branches
-// nothing at all (§6.6) — a domain that ranks for nothing runs every stage
-// and stores a report whose empty sections are `zero`, not `unmeasured`.
-//
-// **This file orders calls and nothing else.** Every figure in the stored
-// blob is the value its callee returned; no arithmetic is applied to a
-// measured value here, nothing is parsed here, and nothing under
-// `src/lib/presentation/`, `src/ui/` or `src/app/` is imported.
-//
-// **A ceiling gives back what was measured.** Sections accumulate in one
-// record that starts entirely `unmeasured / not_attempted`, and each stage
-// fills its own members as it completes. A pass the ninety-second deadline
-// cuts off mid-flight — where the ceiling wins the race and the body's own
-// return value is discarded — still stores everything the stages before it
-// measured, and everything outstanding stays `not_attempted`. Never a 0: a
-// zero is a measurement about a customer's site, and nobody made it.
-//
-// **Degradation never throws.** A callee that raises — a vendor that
-// answered with something unreadable, a model that did not answer — is
-// caught at its own stage and becomes `undeterminable`, which is what is
-// true of it; the pass continues and the report is stored. A pass reaches
-// `failed` only where it produced no report at all: a domain that does not
-// parse, or a free or onboarding call with no claimed row to adopt.
-//
-// **A free re-scan of the same domain within seven days serves the stored
-// report** (§6.4) — no new spend and no vendor call, the stored report's
-// own scan id returned. The adopted row is closed out at zero cents, so
-// the next visitor is not refused for an in-flight scan that is not
-// running. A correction is not a re-scan: it re-measures inside the scan
-// it corrects and always runs.
+// BUILD §4.1, §6.2, §6.3, §6.5: the one scan pipeline, tier a parameter. Six stages in `STAGES` order under the tier's cap (and the free deadline),
+// ending in one stored report or a failure that leaves the previous report untouched.
+// It never branches on tier: `TierParameters` changes what it does, never which stages or formulas run. Cold start branches nothing:
+// a domain that ranks for nothing stores `zero` sections, not `unmeasured`.
+// This file orders calls only: no arithmetic on a measured value, no parsing, no presentation, UI or app import.
+// A ceiling gives back what was measured: sections start `unmeasured / not_attempted` and fill as stages complete, never a 0 nobody measured.
+// Degradation never throws: a callee that raises becomes `undeterminable` at its stage. A pass `failed` only where it produced no report.
+// A free re-scan within seven days serves the stored report (§6.4) at no spend, closing the adopted row at 0¢; a correction always runs.
 import { FREE_RESCAN_WINDOW_D } from "@/lib/config/constants";
 import { captureInBackground } from "@/lib/analytics";
 import type { CostContext } from "@/lib/costs";
@@ -74,85 +41,33 @@ export interface RunScanArgs {
   domain: string;
   siteId?: string;
   tier: Tier;
-  /** The row this pass writes to, where the caller already claimed one.
-   *  The weekly measurement inserts its `(site_id, week_start)` row before
-   *  any spend — the claim *is* the once-a-week guarantee (§11, ADR-060)
-   *  — and hands the id here so the pass writes its report into that row
-   *  rather than inserting a second one behind the index's back. Absent,
-   *  a paid pass generates its own id, exactly as before. */
+  /** The row this pass writes to, where the caller claimed one: the weekly `(site_id, week_start)` row is the once-a-week guarantee,
+   *  so the report goes into it rather than a second row. Absent, a paid pass generates its own id. */
   scanId?: string;
   /** A market correction re-measures inside the scan it corrects: same
    *  spend ceiling, no second allowance consumed. */
   correctionOf?: string;
-  /** SPEC §2's "Retry this part" (issue 715): the report this pass
-   *  re-measures one part of, and which part. Like a correction it spends
-   *  no second allowance and opens no second ceiling — the retried row's
-   *  `cost_cents` becomes this pass's `priorCents`, so the 12¢ free cap
-   *  covers the original pass and every retry of it together. Unlike a
-   *  correction it changes no question: the market is read back off the
-   *  stored report (`resumeMarket`) rather than measured again. */
+  /** The report this pass re-measures one part of, and which part. It spends no second allowance: the retried row's `cost_cents` becomes
+   *  `priorCents`, so the 12¢ free cap covers every retry. It changes no question: the market is read back (`resumeMarket`). */
   retryOf?: { scanId: string; part: RetryPart };
-  /** The category the founder confirmed — `sites.category` on a paid pass,
-   *  the corrected one on the free report's correction. Where present it is
-   *  the market's seed ahead of the inferred category (SPEC §0: the category
-   *  "fixes the twelve questions"), and its words join the relevance guard's
-   *  support set. Absent, the pass seeds from the profile as before. */
+  /** The category the founder confirmed (`sites.category`, or a correction's): the market's seed ahead of the inferred one, its words joining
+   *  the relevance guard's support set. Absent, the pass seeds from the profile. */
   category?: string;
-  /** The site's stored country and language (SPEC §6, owner D66, issue
-   *  1311): the founder's answer at setup. Where present every vendor read
-   *  of the pass is made in it. Absent — a free scan, or a site that has
-   *  not answered — the pass reads it from the address and the home page. */
+  /** The site's stored country and language from setup: every vendor read is made in it. Absent, the pass reads it from the address and home page. */
   locale?: Locale;
-  /** SPEC §6 (owner D28, #1185): this pass re-checks the site's market
-   *  before it seeds one, and measures the market that stands after — the
-   *  deep and weekly passes. Needs `siteId`. A category the founder set
-   *  stands; see `market-conclusion.ts`. */
+  /** The deep and weekly passes re-check the site's market before seeding and measure the one that stands (needs `siteId`); a founder's category stands. */
   concludesMarket?: boolean;
-  /** The founder's *Measure again now* (owner, 2026-10-03, #1162): this
-   *  pass also asks the site's tracked buyer prompts, as a weekly pass
-   *  does, so no founder waits for Monday to see a mention rate. */
+  /** The founder's *Measure again now* also asks the tracked buyer prompts, so no founder waits for Monday to see a mention rate. */
   asksTrackedPrompts?: boolean;
-  /** SPEC §6 (issue 1170): "Missing values omit the row, never repeat last
-   *  week." The instant this pass's own period began — a weekly pass's
-   *  site-local Monday. The site's own documents, its ranked rows and the
-   *  twelve's SERPs are served from the cache only where they were read
-   *  since; anything older is read again, so every factor is this pass's
-   *  and carries this pass's date. Absent, the cache windows stand. */
+  /** "Missing values omit the row, never repeat last week": the start of this pass's period (a weekly pass's site-local Monday).
+   *  The site's documents, ranked rows and SERPs are served from cache only where read since, so every factor carries this pass's date. */
   measuredSince?: Date;
-  /**
-   * Called as each stage is entered, before its work starts.
-   *
-   * `stages.ts`'s event bus already carries every transition, but it
-   * carries them **in this process only** — a caller whose reader lives
-   * somewhere else (the onboarding progress screen, served by the web
-   * process while the pass runs in the job one) has no way to observe it.
-   * This hook is how such a caller writes the transition somewhere
-   * durable; it is awaited, so a stage is never reported out of order,
-   * and it is optional, so no existing caller changes.
-   *
-   * It reports entry only. A hook that threw would stop the pass, which is
-   * why the one caller in this repo swallows its own write failures.
-   */
+  /** Called as each stage is entered: `stages.ts`'s bus is in-process only, so a reader in another process (the onboarding progress screen)
+   *  needs this durable write. Awaited, so stages are never reported out of order; a throw would stop the pass, so the caller swallows its own failures. */
   onStage?: (stage: StageName) => void | Promise<void>;
-  /**
-   * Called once the pass's report is stored, with the report and a
-   * `CostContext` on the pass's own money (`spendOnStoredReport`).
-   *
-   * §6.3 puts "Haiku ×~4 for opportunity typing" inside the deep and
-   * weekly passes' own budgets, so the work this hook does spends the
-   * pass's money and no other: the context handed here opens on what the
-   * row already carries, under the pass's own cap, and its close adds what
-   * the hook spent to the row's `cost_cents` (issue 798 — the typing used
-   * to be ledgered in `fetches` and missing from the row's total).
-   *
-   * **After the store, and that ordering is a foreign key.**
-   * `opportunities.scan_id references scans (id)`: an opportunity derived
-   * before the row it belongs to exists cannot be written.
-   *
-   * It is awaited, and it never stops the pass: a derivation that throws
-   * is logged and the stored report stands (§4.3 — "a degraded pass still
-   * releases setup; zero proposals is legal, never faked").
-   */
+  /** Called once the report is stored, with a `CostContext` on the pass's own money (`spendOnStoredReport`): §6.3 puts opportunity typing
+   *  inside the pass's budget, so the hook's spend is added to the row's `cost_cents`. After the store, since `opportunities.scan_id` references the row.
+   *  Awaited but never stops the pass: a throw is logged, and zero proposals is legal, never faked. */
   afterReport?: (a: { report: StoredReport; cost: CostContext }) => Promise<void>;
   /** The report of a pass the vendor refused for credit is stored `failed`, in the one write, so no reader ever sees it measured. */
   failsWhenFundsRefused?: true;
@@ -173,8 +88,7 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
   let scanId: string;
   let fromIncompleteRescan = false;
   let priorCents = 0;
-  // A correction never went through admission, so there is no claimed row
-  // to adopt: its row is claimed by the correction seam below (#786).
+  // A correction never went through admission, so there is no claimed row to adopt: the correction seam claims it.
   if (parameters.adoptsClaim && a.correctionOf === undefined && a.retryOf === undefined) {
     const claimed = await adoptClaimedRow({
       domain,
@@ -204,10 +118,7 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
     if (!claimed) throw new Error(`runScan: the scan row ${scanId} already exists`);
   }
 
-  // Issue 336, owner 2026-09-16: one of the three product events, recorded
-  // as the pass begins. Started and not awaited — the free pass runs under
-  // a 50 s ceiling and an analytics vendor is never allowed a second of it —
-  // and the subject is the domain, hashed inside the seam.
+  // One of the product events, as the pass begins: not awaited, since no analytics vendor gets a second of the free ceiling. The subject is hashed in the seam.
   captureInBackground("scan_started", { subject: domain, tier: a.tier });
 
   // 2. §6.4's seven-day window — the free path's, per `servesStoredReport`.
@@ -236,18 +147,11 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
   const correctionBefore =
     a.correctionOf === undefined ? null : ((await readCorrectionFacts(domain))?.correctionState ?? null);
 
-  // 3b. The report a retry starts from (issue 715). Read here, once, and
-  //     handed to the stages, so the market is not bought again and every
-  //     section this pass does not re-measure is carried forward rather
-  //     than lost — a retry of one part may never leave the report with
-  //     less on it than it had. A retried row whose report cannot be read
-  //     is a retry with nothing to start from, and the pass says so rather
-  //     than measuring the domain from scratch on somebody else's money.
+  // 3b. The report a retry starts from, read once so the market is not re-bought and every section not re-measured is carried forward.
+  // A retried row whose report cannot be read stops the pass rather than measuring from scratch.
   let retried: StoredReport | null = null;
   if (a.retryOf !== undefined) {
-    // The retried row's spend is this pass's `priorCents`, which is what
-    // "inside the same budget" is: one 12¢ purse across the original pass
-    // and every retry of it, counted by the one cap every paid call reads.
+    // The retried row's spend is this pass's `priorCents`: one 12¢ purse across the pass and every retry.
     priorCents = await readSpentCents(a.retryOf.scanId);
     await carrySpentCents(scanId, priorCents);
     retried = await readScanReport(a.retryOf.scanId);
@@ -258,13 +162,8 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
   }
   const retry = retried === null || a.retryOf === undefined ? undefined : { report: retried, part: a.retryOf.part };
 
-  // 4. The pass. `sections` lives out here so a ceiling that discards the
-  //    body's return value still gives back everything measured before it,
-  //    and `spend` holds the one cost context so its roll-up can be read
-  //    after it has closed.
-  // D66: a paying site is measured in the country and language stored on
-  // it. A site with none stored is read in stage one, and the reading is
-  // stored there, so every later stage and pass reads the one answer.
+  // 4. The pass. `sections` lives out here so a ceiling that discards the body's return still gives back what was measured; `spend` holds the context.
+  // A paying site is measured in its stored country and language; one with none is read in stage one and stored there.
   const storedLocale =
     a.locale ?? (a.siteId === undefined ? null : await readStoredLocale(a.siteId).catch(() => null));
 
@@ -314,16 +213,8 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
   // 5. Assemble from whatever the stages reached, and store.
   const stoppedReason: StoppedReason = ending.stoppedReason;
   const correctionState = correctionStateAfter(correctionBefore, stoppedReason);
-  // Issue 875: from here the report is being composed, so a stage still in
-  // flight writes nothing more. Set immediately before the read, and after
-  // the bounds have settled, so every answer that came back in time — the
-  // late ones included — is in what follows.
-  // Issue 1170: **the card and the score's AI input are one read.**
-  // `composeReport` reads AI Presence off `sections.serps`; a pass that
-  // stopped before its scoring stage held those SERPs and no card, so the
-  // report said "Presence 0/10" beside "AI answers couldn't be measured".
-  // Scoring buys nothing and reads only `sections`, so wherever a SERP was
-  // read and nothing scored it, it is counted here.
+  // From here the report is being composed, so a stage still in flight writes nothing more; set after the bounds settle so late answers are in.
+  // The card and the score's AI input are one read: a SERP read that nothing scored is counted here, since scoring buys nothing.
   if (sections.aiAnswers === null && sections.serps.some((serp) => serp.kind !== "unmeasured")) {
     score({ domain, sections, parameters, correction: a.correctionOf !== undefined });
   }
@@ -342,17 +233,9 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
     ...(retry === undefined ? {} : { carried: retry.report }),
   });
 
-  // **The ending is published after the row is stored, never before**
-  // (issue #540). REQ-003 c3 is "the report replaces the progress view
-  // without the visitor reloading", and the ending event is what makes the
-  // browser ask the server to resolve the address again
-  // (`_address/progress.tsx`). Published before the store, that ask races
-  // the write it is waiting for and the visitor is re-shown a scan still
-  // running. The `finally` is the other half of the promise: a store that
-  // raises must still end the stream, or the visitor waits on a pass that
-  // is over.
-  // Issue 1440: searches this pass chose and did not read are read in the
-  // background, inside the same cap, and the report says so meanwhile.
+  // The ending is published after the row is stored, never before: it makes the browser resolve the address again, and before the store
+  // that races the write. The `finally` ends the stream even when the store raises.
+  // Searches this pass chose and did not read are read in the background, inside the same cap, and the report says so meanwhile.
   const finishing = parameters.finishesReads ? finishingOf(composed.report, spend.cents, new Date()) : null;
   if (finishing !== null) composed.report.finishingReads = finishing;
   let stored: { scanId: string; status: ScanStatus };
@@ -361,9 +244,7 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
       report: composed.report,
       ...(a.siteId === undefined ? {} : { siteId: a.siteId }),
       ...(a.correctionOf === undefined ? {} : { supersedesScanId: a.correctionOf }),
-      // A retry supersedes the report it retried a part of, exactly as a
-      // correction supersedes the one it corrected: one current report per
-      // domain, and the one before it kept at its own scan id (issue 715).
+      // A retry supersedes the report it retried a part of, as a correction does: one current report per domain, the old one kept at its scan id.
       ...(a.retryOf === undefined ? {} : { supersedesScanId: a.retryOf.scanId }),
       drivers: composed.drivers,
       degraded: spend.degraded || composed.sectionMissing,
@@ -403,17 +284,10 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
     tier: a.tier,
     stoppedReason,
     status: stored.status,
-    // Issue 865: how much of the battery this pass actually measured, so
-    // "ten of twelve" is a fact in the log rather than one to be inferred
-    // from the stored report.
+    // How much of the battery this pass measured, so "ten of twelve" is a fact in the log.
     serpsMeasured: composed.report.serps.filter((serp) => serp.kind !== "unmeasured").length,
     serpsAsked: composed.report.serps.length,
-    // Issue 865's field, and issue 898's fourth word for it: a pass whose
-    // market was never read is not a pass that simply ended. `figma.com`
-    // on 2026-09-18 ended `complete`/`degraded` with `pass_ended`, and
-    // nothing in the line said that the profile call was what the whole
-    // empty report hung on. `marketUnread` names the step it stopped at,
-    // by the `ScanInput` the verdict already reads that step under.
+    // A pass whose market was never read did not simply end: `marketUnread` names the step it stopped at, by its `ScanInput`.
     because:
       ending.stoppedReason === "site_unreadable"
         ? (ending.refusal ?? "stage_undeterminable")
@@ -424,14 +298,11 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
             : "pass_ended",
   });
 
-  // 8. Issue 1440: the searches this pass left unread are finished in the
-  //    background. Sent after the report is stored, since the job reads it.
+  // 8. The searches this pass left unread are finished in the background, sent after the report is stored since the job reads it.
   if (finishing !== null && stored.status !== "failed") await sendFinishingReads(scanId);
 
-  // 9. #770: a paid pass (one with a site) that found too little market
-  //    tells the owner at once where its parameters say `immediate`; a
-  //    `digest` pass waits for the owner's Monday digest (issue 796). Imported
-  //    at the call, as `src/jobs/run.ts` does; `reportIncident` never throws.
+  // 9. A paid pass that found too little market tells the owner at once where its parameters say `immediate`; `digest` waits for Monday.
+  // Imported at the call; `reportIncident` never throws.
   if (composed.marketTooSmall && a.siteId !== undefined && parameters.marketTooSmallAlert === "immediate") {
     const { reportIncident } = await import("@/lib/mail/ops");
     await reportIncident({ occasion: "market-too-small", scanId, tier: a.tier });
@@ -440,10 +311,7 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
   return spend.fundsRefused ? { ...stored, fundsRefused: true } : stored;
 }
 
-/** Sends `scan/finish-reads` for a stored report that says it is still
- *  reading (issue 1440). Imported at the call, as `src/jobs/run.ts` is. A
- *  send that fails is logged: the report's line then lapses after its
- *  window and the report stands as stored. */
+/** Sends `scan/finish-reads` for a report still reading. A failed send is logged: the line lapses after its window and the report stands. */
 async function sendFinishingReads(scanId: string): Promise<void> {
   try {
     const { sendFinishReads } = await import("@/jobs/scan-finish-reads");
@@ -459,16 +327,8 @@ async function sendFinishingReads(scanId: string): Promise<void> {
   }
 }
 
-/**
- * The work a paid pass does with its stored report, on the pass's own
- * money (issue 798): a context under the tier's cap that opens on the
- * row's `cost_cents` and adds its own spend to it at close.
- *
- * `runScan` calls it with the report it just stored. The onboarding pass
- * calls it as a step of its own, after the pass's step has ended, and the
- * report is read back from the row; a row that stored none has nothing to
- * derive from, and nothing is opened.
- */
+/** The work a paid pass does with its stored report, on its own money: a context under the tier's cap opening on the row's `cost_cents`.
+ *  The onboarding pass calls it as its own step and reads the report back; a row with none opens nothing. */
 export async function spendOnStoredReport(
   a: { scanId: string; tier: Tier; report?: StoredReport },
   body: (a: { report: StoredReport; cost: CostContext }) => Promise<void>
@@ -497,8 +357,7 @@ function logPass(fields: {
   tier: Tier;
   stoppedReason: StoppedReason;
   status: ScanStatus;
-  /** Issue 865: how much of the battery this pass measured. Absent where
-   *  a pass ended before the twelve were asked at all. */
+  /** How much of the battery this pass measured; absent where it ended before the twelve were asked. */
   serpsMeasured?: number;
   serpsAsked?: number;
   because: string;
@@ -506,29 +365,10 @@ function logPass(fields: {
   console.log(JSON.stringify({ event: "scan_pass", ...fields }));
 }
 
-// ── The correction seam ─────────────────────────────────────────────────
-//
-// Registered at module load, so the correction route's "scanning
-// unavailable" refusal means what it says — no pipeline is reachable —
-// rather than one that is reachable and was never introduced. The
-// correction's own parameter (`loadAsyncAiOverview: false`, DECISIONS
-// 2026-09-03) travels as `correctionOf`, never as a ceiling of its own.
-//
-// The row is claimed here, before the seam answers, and the pass is started
-// and not awaited (#786): the report follows the rerun's stages by that
-// row's id, and a stream opened on a row that does not exist yet is a 404.
-// The free tier adopts an admission claim, and a correction has none, so
-// it claims its own row, under the visitor's network so it counts as a scan.
-// ── The retry seam (SPEC §2, issue 715) ─────────────────────────────────
-//
-// The same arrangement as the correction seam below, and for the same two
-// reasons: the route's "scanning unavailable" must mean no pipeline is
-// reachable, and the row has to exist before the seam answers so the report
-// can open the stream on it.
-//
-// A retry claims a row of its own and spends no second allowance: the cap
-// it runs under counts the retried row's spend as `priorCents`, so the
-// original pass and every retry of it share one 12¢ purse.
+// ── The retry and correction seams ───────────────────────────────────────
+// Registered at module load, so a route's "scanning unavailable" means no pipeline is reachable. Each claims its row before answering,
+// since the report opens its stream on it, and starts the pass without awaiting. A correction claims under the visitor's network so it counts as a scan;
+// its `loadAsyncAiOverview: false` travels as `correctionOf`. A retry spends no second allowance: `priorCents` shares the 12¢ purse.
 registerRetryRunner(async (a) => {
   const parsed = parseDomain(a.domain);
   if (!parsed.ok) throw new Error(`retry: ${parsed.problem}`);

@@ -1,11 +1,5 @@
-// SPEC §4 (2026-10-02, issue 1196) — how the founder's newest pass ended.
-//
-// The side panel names the running step while a pass runs
-// (`./progress.ts`). When the pass ends it says how — done, failed with its
-// reason, or stopped with its cause — for `REMEASURE.endShownMin`, rather
-// than going blank. Read from the pass's own `scans` row: a deep pass is the
-// onboarding pass or one measured again now; a weekly pass is its own tier
-// and is never read here.
+// How the founder's newest deep pass ended (done, failed with its reason, or stopped with its cause), shown for `REMEASURE.endShownMin` rather than going blank.
+// Read from the pass's own `scans` row; a weekly pass is its own tier and never read here.
 import { REMEASURE } from "@/lib/config/constants";
 import { dbAdmin } from "@/lib/db";
 

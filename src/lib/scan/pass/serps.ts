@@ -28,14 +28,10 @@ export async function askTheTwelve(a: StageArgs, abandoned: () => boolean, pass:
     sections.battery.push(noBattery(questions.at));
   }
 
-  /** Issue 877: how long each ask took, so the tail is visible in the log
-   *  without a query — and so the next abort value is chosen from what
-   *  these calls take rather than from a guess (issue 875's was wrong). */
+  /** How long each ask took, so the tail shows in the log and the next abort value is chosen from data, not a guess. */
   const tookMs: number[] = [];
 
-  /** One question's live SERP, with the vendor's own failure kind where
-   *  there was one (issue 865). The cell is what this returns; nothing
-   *  here writes to `sections`. */
+  /** One question's SERP, with the vendor's own failure kind where there was one. Returns the cell; writes nothing to `sections`. */
   const askOne = async (
     keyword: string
   ): Promise<{ serp: Measured<SerpResult> | StageFailure; failure: VendorFailure | null }> => {
@@ -51,8 +47,7 @@ export async function askTheTwelve(a: StageArgs, abandoned: () => boolean, pass:
         scope: cacheScope(a),
         freshnessDays: serpWindowOf(a),
         abortMs: serpAbortFor(pass, parameters),
-        // The pass's clock, not the stage's (issue 1352): a queued read is
-        // paid for when it is posted, and the pass waits for it.
+        // The pass's clock, not the stage's: a queued read is paid for when posted, and the pass waits for it.
         untilMs: untilCeiling(pass, parameters),
         onFailure: (failure) => {
           heard.failure = failure;
@@ -63,10 +58,7 @@ export async function askTheTwelve(a: StageArgs, abandoned: () => boolean, pass:
     return { serp, failure: heard.failure };
   };
 
-  /** The cell, carrying the vendor's own kind where the call failed (issue
-   *  865): `undeterminable` says a cell could not be measured, `because`
-   *  says what the pass was told — a vendor that timed out and a request it
-   *  refused are not the same fact, and the second is not worth re-asking. */
+  /** The cell, with the vendor's failure kind as `because`: a timeout and a refused request are different facts, and only the first is worth re-asking. */
   const cellFor = (
     got: { serp: Measured<SerpResult> | StageFailure; failure: VendorFailure | null },
     at: Date
@@ -83,12 +75,9 @@ export async function askTheTwelve(a: StageArgs, abandoned: () => boolean, pass:
   // stops asking on the first refusal rather than asking eleven more times
   // and being refused eleven more times.
   let next = 0;
-  /** Issue 869: how the battery's two engines are answering this pass, so
-   *  one that is refusing stops being bought. One watch per pass, shared by
-   *  every worker. */
+  /** How the battery's two engines are answering this pass, so one that is refusing stops being bought. One watch per pass. */
   const engines = newEngineWatch();
-  /** Issue 865: the questions whose first ask failed in a way that is worth
-   *  one more, asked again only once every question has been asked once. */
+  /** Questions whose first ask failed in a way worth one more, re-asked only once every question has been asked once. */
   const worthOneMore: { readonly index: number; readonly keyword: string; readonly because: string }[] = [];
   const buyOne = async (): Promise<void> => {
     for (;;) {
@@ -97,28 +86,15 @@ export async function askTheTwelve(a: StageArgs, abandoned: () => boolean, pass:
       const question = asked[i];
       if (question === undefined) return;
       if (bounds.stopNow() !== null) continue;
-      // The SERP and the battery at once (#1160): neither reads the other,
-      // and on the standard queue each is minutes of waiting. Asked one
-      // after the other, a weekly question cost a SERP's wait and then the
-      // engines' — longer than the whole ceiling.
+      // The SERP and the battery at once: neither reads the other, and on the standard queue each is minutes of waiting.
       const [got, battery] = await Promise.all([
         askOne(question.search.keyword),
         parameters.batteryOnTheTwelve
           ? askTheBattery(a, question.search.keyword, questions.at, engines)
           : noBattery(questions.at),
       ]);
-      // **A late answer is kept, and a sealed report is never written to**
-      // (#539 review, re-cut by issue 875). The budget stops the pass
-      // *waiting* for this stage; it cannot cancel a call already in
-      // flight. The old guard read the stage's abandonment and dropped
-      // whatever arrived after it — money spent, and an answer thrown away
-      // (two of them on the free scans of 2026-09-17). What #539 was
-      // actually protecting against is a write into a report that has
-      // already been composed, and `sections.sealed` is exactly that line:
-      // before it, an answer that arrives is still worth having and
-      // `rescore` below counts it; after it, there is no report left to put
-      // it in. Both writes happen together after the last await, so a
-      // question's SERP and its battery are never half a pair.
+      // A late answer is kept and a sealed report is never written to: the budget stops the waiting but cannot cancel the call, and a paid answer
+      // before the seal is still counted by `rescore`. Both writes happen together after the last await, so a SERP and its battery are never half a pair.
       if (sections.sealed) return;
       sections.serps[i] = cellFor(got, questions.at);
       sections.battery[i] = battery;
@@ -131,36 +107,9 @@ export async function askTheTwelve(a: StageArgs, abandoned: () => boolean, pass:
 
   await Promise.all(Array.from({ length: Math.min(parameters.serpFanout, asked.length) }, () => buyOne()));
 
-  // **One more ask, and only one, and only after every question has had
-  // its first** (issue 865).
-  //
-  // Production 2026-09-17: about an eighth of live SERP calls came back
-  // `timeout` — our own request abort inside the vendor's latency tail,
-  // which DataForSEO bills either way — and the cell was dropped and never
-  // asked again. That is where "a fifth of the battery is unmeasured" came
-  // from; the `not_attempted` tail on the same passes is the same call,
-  // seen from the stage's clock, since a request that runs to the abort
-  // holds one of `serpFanout` workers for all of it.
-  //
-  // **After the sweep, never inside it**: a question that has never been
-  // asked outranks one that is being asked twice, so the retries take
-  // whatever time and money the first sweep left and nothing that was owed
-  // to a question still waiting.
-  //
-  // **It spends nothing the pass had not already set aside**: the retry is
-  // an ordinary purchase through the same `CostContext`, so the cap is
-  // checked against it exactly as it was against the first ask, and a
-  // purse with no room refuses it rather than raising anything. A question
-  // reserves the async-AI-Overview surcharge and a failed call settles the
-  // base price, which is the room this ask is made in.
-  //
-  // **It is bounded by the pass, not by the stage** (D63, issue 1298). On
-  // the free path a read that met its 10 s bound left three of the stage's
-  // thirteen seconds, so the second ask was made and its answer dropped, or
-  // never made. It is asked while the report is not composed, the purse
-  // still holds it, and the pass's own ceiling leaves room for one whole
-  // bound; `runStages` waits for it. A paid pass has no stage clock, and
-  // this is the rule it always had.
+  // One more ask, only one, and only after every question has had its first: a never-asked question outranks a second ask.
+  // Timeouts are billed either way, so a timed-out cell is worth one retry. It is an ordinary purchase through the same `CostContext`, so the cap holds it.
+  // It is bounded by the pass, not the stage: asked while the report is not composed, the purse holds it and the pass's ceiling leaves one whole bound.
   const mayAskAgain = (): boolean =>
     !sections.sealed && !pass.abandoned() && !bounds.capHit() && roomForOneRead(pass, parameters);
   let nextRetry = 0;
@@ -195,19 +144,14 @@ export async function askTheTwelve(a: StageArgs, abandoned: () => boolean, pass:
   });
 }
 
-/** The middle of what the asks took, the lower of the two in an even set —
- *  a figure, not a statistic: the p50 the next abort value is chosen from
- *  is the owner's, over a week of the rows these calls now carry (issue
- *  877). */
+/** The middle of what the asks took (the lower of two in an even set): a figure for the log, not a statistic. */
 function medianOf(values: readonly number[]): number {
   if (values.length === 0) return 0;
   const sorted = [...values].sort((a, b) => a - b);
   return sorted[Math.floor((sorted.length - 1) / 2)] ?? 0;
 }
 
-/** One line per pass over the twelve (issue 877): how many were asked, how
- *  many came back, and what the asking took. No query, no customer, no
- *  query text — the tail of a pass, readable from the deployment log. */
+/** One line per pass over the twelve: how many asked, how many came back and what it took. No query or customer. */
 function logSerpLatency(fields: {
   asked: number;
   measured: number;
@@ -218,8 +162,7 @@ function logSerpLatency(fields: {
   console.log(JSON.stringify({ event: "serp_latency", ...fields }));
 }
 
-/** One line per re-asked question (issue 865), carrying the failure that
- *  bought the second ask and what it came back as — never the query. */
+/** One line per re-asked question: the failure that bought it and what it came back as, never the query. */
 function logSerpRetry(fields: { because: string; outcome: "measured" | "unmeasured" }): void {
   console.log(JSON.stringify({ event: "serp_retry", ...fields }));
 }

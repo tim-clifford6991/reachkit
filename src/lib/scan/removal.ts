@@ -1,22 +1,6 @@
-// BUILD §4.1 — the one read of the removal table
-//
-// A report is taken down only by a written request received at the address
-// REQ-002 c1 names, and one row records each. Three callers need to know
-// the same fact — admission's first step, the correction offer, and the
-// status a removed address serves (#104) — and this is the one place the
-// table is read, so they cannot disagree about which domains are removed.
-//
-// **It lives apart from `admission.ts` for a reason the bundler decides.**
-// The removal rewrite runs in `src/middleware.ts`, which Next builds for
-// the Edge runtime under the `middleware` file convention. `admission.ts`
-// imports `node:crypto` for `networkKeyOf`'s HMAC, which Edge does not
-// have; importing this fact *through* that module would drag the whole
-// admission order — and `node:crypto` with it — into the Edge bundle. This
-// file imports the database client and nothing else.
-//
-// It reads and never writes. Throws on a read that could not be answered;
-// each caller decides what an unanswerable read means for it (admission's
-// order fails open, and so does the rewrite).
+// BUILD §4.1: the one read of the removal table, so admission, the correction offer and a removed address's status cannot disagree.
+// Apart from `admission.ts` because the middleware runs on the Edge runtime, which lacks the `node:crypto` admission imports; this imports only the database client.
+// It never writes. It throws on an unanswerable read, and each caller decides what that means (admission and the rewrite fail open).
 import { dbAdmin } from "@/lib/db";
 
 // Named once, so every read of the takedown list is in this file.
@@ -43,9 +27,7 @@ interface MinimalClient {
   from<T>(table: string): MinimalQueryBuilder<T>;
 }
 
-/** `domain_blocks` is not in the generated `Database` type — the same
- *  worked-around schema gap `admission.ts` documents. This is the cast
- *  boundary and nothing else in this file bypasses the generated type. */
+/** `domain_blocks` is not in the generated `Database` type: this is the cast boundary, nothing else here bypasses it. */
 function untyped(client: { from: unknown }): MinimalClient {
   return client as unknown as MinimalClient;
 }
@@ -67,8 +49,7 @@ export function isDomainRemoved(domain: string): Promise<boolean> {
   return isRemovedWith(dbAdmin(), domain);
 }
 
-/** The takedown list's size and newest row, as one key: a removal changes it
- *  at once, so a listing cached on it never waits out a window (#1069). */
+/** The takedown list's size and newest row as one key: a removal changes it at once, so a listing cached on it never waits out a window. */
 export async function removalsMark(): Promise<string> {
   const { data, error, count } = await untyped(dbAdmin())
     .from<{ blocked_at: string }>(TABLE)

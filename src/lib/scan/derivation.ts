@@ -1,23 +1,7 @@
-// src/lib/scan/derivation.ts — issue 1481: the re-score follows every scoring
-// deploy by itself, and a public report is never silently stale.
-//
-// The deployment carries its derivation: `scripts/derivation.mjs`'s
-// fingerprint of the code under `src/lib` the re-score reads a scan with,
-// computed by `next.config.ts` at build as `RK_DERIVATION`. Each
-// `rescore_runs` row records the derivation it ran with, so the tick can tell
-// a deploy that changed how a scan is read from one that did not, and ask the
-// next step itself (owner, 2026-10-14, issue 1426: every derivation change
-// reaches every stored scan at 0¢; owner action is never a required step).
-// One download per derivation (SPEC issue 1481 (2) as amended 2026-11-01):
-//
-//   no run at this derivation            → the apply, guarded in memory
-//   a finished run                       → settled
-//   a held guard or a run that failed    → held: nothing more is asked, and
-//                                          the tick says so on every run
-//
-// The guard (`RESCORE_GUARD`), decided before any write: no score moves
-// further than it allows, no scored scan loses its number, and no scan this
-// build cannot read beyond the ones the run before could not read either,
+// The re-score follows every scoring deploy by itself. The deployment carries its derivation (`RK_DERIVATION`, `scripts/derivation.mjs`'s fingerprint of the code the re-score reads with),
+// and each `rescore_runs` row records the one it ran with, so the tick asks the next step itself at 0¢. One download per derivation:
+// no run at this derivation → the apply, guarded in memory; a finished run → settled; a held guard or a failed run → held, said on every tick.
+// The guard (`RESCORE_GUARD`), before any write: no score moves past it, no scored scan loses its number, no new unreadable scans,
 // and no report with `rivalsLostFrom` measured rivals or more left with none.
 import { RESCORE_GUARD } from "@/lib/config/constants";
 
@@ -116,11 +100,8 @@ export function heldBecause(a: {
   return reasons.length === 0 ? null : reasons.join("; ");
 }
 
-/** Whether the deployed code reads this stored scan differently from its
- *  report (SPEC §2, issue 1481): the last finished run at the deployed
- *  derivation lists it, as one the run would move or the apply left.
- *  `false` where nothing says so, or nothing can be read — the report still
- *  renders. */
+/** Whether the deployed code reads this stored scan differently from its report: the last finished run at this derivation lists it.
+ *  `false` where nothing says so or nothing can be read; the report still renders. */
 export async function readsDifferently(scanId: string, derivation = deployedDerivation()): Promise<boolean> {
   if (derivation === null) return false;
   try {

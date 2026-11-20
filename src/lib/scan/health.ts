@@ -1,30 +1,12 @@
-// src/lib/scan/health.ts — every measurement checks its own health (SPEC
-// §6, owner D58 of 2026-10-06, issue 1287).
-//
-// Scan 17f5bbff stored a rival read at 22,200 searches for a first name and
-// asked five prompts about rivals the same pass dropped, and nothing said
-// so: the numbers went to the screens as they were. So a paid pass ends by
-// asking six questions of what it stored, and keeps the answers on its own
-// row (`scans.health`):
-//
-//   brand_volume   no rival's brand volume is polluted — none is larger
-//                  than what the keywords its brand is read under hold
-//                  (issue 1285's `brandKeywords`);
-//   prompt_rivals  every tracked prompt names only current rivals;
-//   market_terms   the market has at least one searched term with volume;
-//   mention_rate   the mention rate states its sample size and margin;
-//   serp_timeouts  no more than a fifth of the pass's SERP reads timed out
-//                  (owner D63 of 2026-10-07, issue 1298), Google's AI Mode
-//                  reads among them (issue 1314);
-//   knowledge_base the site's knowledge base holds at least one page
-//                  (2026-10-07, issue 1314).
-//
-// A failing check deletes nothing. It is listed in the Monday owner digest,
-// and the headline numbers are read from the last pass that had none
-// (`./weekly/prompts.ts`).
-//
-// Pure: no I/O and no clock of its own. `./health-record.ts` reads and
-// writes.
+// Every paid pass checks what it stored and keeps the answers on its own row (`scans.health`), so a bad number never reaches the screens unflagged:
+// brand_volume   no rival's brand volume exceeds what the keywords its brand is read under hold (`brandKeywords`);
+// prompt_rivals  every tracked prompt names only current rivals;
+// market_terms   the market has at least one searched term with volume;
+// mention_rate   the mention rate states its sample size and margin;
+// serp_timeouts  no more than a fifth of the pass's SERP reads, AI Mode's included, timed out;
+// knowledge_base the site's knowledge base holds at least one page.
+// A failing check deletes nothing: it is listed in the Monday owner digest, and headline numbers are read from the last pass that had none.
+// Pure: no I/O and no clock. `./health-record.ts` reads and writes.
 import { brandKeywords } from "@/lib/market/infer/demand";
 import type { MarketConclusion } from "@/lib/market/infer/types";
 import type { GeneratedPrompt, PromptKind } from "@/lib/market/prompts/generate";
@@ -33,7 +15,7 @@ import { followRivals } from "@/lib/market/prompts/set";
 
 export const HEALTH_CHECKS = ["brand_volume", "prompt_rivals", "market_terms", "mention_rate", "serp_timeouts", "knowledge_base"] as const;
 
-/** D63: the share of a pass's SERP reads that may time out. More fails. */
+/** The share of a pass's SERP reads that may time out. More fails. */
 export const SERP_TIMEOUT_SHARE = 0.2;
 
 /** A pass's SERP reads as the ledger holds them: every read that reached
@@ -111,21 +93,12 @@ export function namesAny(text: string, brands: readonly string[]): boolean {
   return brands.some((brand) => padded.includes(` ${brand} `));
 }
 
-/** The prompts that name a rival that is not current: a comparison or
- *  branded prompt today's rivals do not yield (issue 1285's `followRivals`),
- *  and any prompt that names a product a pass read and did not keep. */
+/** The prompts that name a rival that is not current: a comparison or branded prompt today's rivals do not yield (`followRivals`),
+ *  and any prompt naming a product a pass read and did not keep. */
 const literal = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-/**
- * Does this prompt name only rivals in force? (SPEC §6, owner D64, issue
- * 1301.) The comparison and branded prompts are built from the rivals in
- * demand order, and a pass re-orders its rivals after it has asked them:
- * "Profound or Otterly: which is the better choice…" named two current
- * rivals and was flagged because the set now began "Otterly or Omniscient".
- * So the order is not read. A prompt passes where it is one the rivals in
- * force yield, in any of the places a rival's name takes, and every name it
- * puts there is a current rival's.
- */
+/** Whether this prompt names only rivals in force. The order is not read, since a pass re-orders its rivals after asking them:
+ *  a prompt passes where the rivals in force yield it in any of the places a rival's name takes, and every name it puts there is current. */
 function namesCurrentRivals(
   prompt: { kind: PromptKind; text: string },
   generated: readonly GeneratedPrompt[],
@@ -196,9 +169,7 @@ function serpTimeouts(serp: SerpReads | null | undefined): HealthResult {
   return result("serp_timeouts", serp.timeouts / serp.reads > SERP_TIMEOUT_SHARE ? [found] : [], found);
 }
 
-/** A site whose knowledge base holds no page has nothing its topics are
- *  judged against or its pages written from (issue 1314). A count that
- *  could not be read fails nothing. */
+/** A site whose knowledge base holds no page has nothing its topics are judged against or its pages written from. An unreadable count fails nothing. */
 function knowledgeBase(pages: number | null | undefined): HealthResult {
   if (pages === null || pages === undefined) return result("knowledge_base", [], "the knowledge base was not counted");
   return pages === 0

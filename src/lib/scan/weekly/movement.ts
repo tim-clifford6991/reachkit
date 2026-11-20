@@ -1,35 +1,8 @@
-// BUILD §12 — "weekly (score delta, AI answers delta, …)", read from the
-// two weeks a delta is made of.
-//
-// §12's Monday digest opens with two **deltas**, not two levels, and a
-// delta is a statement about a pair of measurements. So this module reads
-// the week being reported and the week before it, and subtracts. It buys
-// nothing, measures nothing and stores nothing: both weeks are already
-// stored (`scans.report`, keyed `(site_id, week_start)`), and a digest
-// that re-measured to state a movement would report a different week from
-// the one it is announcing.
-//
-// **A delta needs two measurements, and where it has fewer it is
-// `unmeasured`** — never zero. That is the one decision in this file and
-// it is REQ-004's trichotomy applied to a difference: a measured zero
-// means "we measured both weeks and nothing moved", which §12's omission
-// rule prints, and an absent previous week means "there is no movement to
-// state", which the rule omits. Collapsing them would tell a customer in
-// their very first digest that nothing changed, in the week when there was
-// nothing yet to change from.
-//
-// **Why here and not in the mail.** The mail lays out what it is handed
-// (`templates/weekly/`), and the weekly leaf is where a week's stored
-// report is read — `readWeekScan` and `accountForWeek` are its readers and
-// this is a third one beside them. Putting the subtraction in the mail
-// would make the template reach the database for two weeks, and would put
-// the definition of "what moved" somewhere no other reader could find it.
-//
-// The previous week is **the calendar week before**, in the site's own
-// zone: seven days back from this week's Monday, which is the same Monday
-// `weekStartFor` would have computed then. A site that skipped a week has
-// no row there and reads `unmeasured` — the honest answer, since the
-// movement across a gap is not a week's movement.
+// BUILD §12: the Monday digest's deltas ("score delta, AI answers delta, …"), read from the two stored weeks a delta is made of and subtracted.
+// It buys, measures and stores nothing. A delta needs two measurements and is otherwise `unmeasured`, never zero: a measured zero says nothing moved,
+// which the mail prints; a first digest has nothing to change from, which the mail omits.
+// Here, not in the mail, so the template never reaches the database and "what moved" has one definition.
+// The previous week is the calendar week before in the site's zone; a skipped week reads `unmeasured`, since movement across a gap is not a week's.
 import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
 import { issueChanges, type IssueChange } from "@/lib/site-issues/changes";
 import type { StoredReport } from "../report";
@@ -42,27 +15,15 @@ import { readWeekScan } from "./store";
 export interface WeekMovement {
   readonly scoreDelta: Measured<number>;
   readonly aiAnswersDelta: Measured<number>;
-  /** SPEC §8 (2026-09-20, #933): the levels those two deltas are the change
-   *  in — the Monday mail states the number as well as its movement, as the
-   *  Overview does. Read off the same stored week; `unmeasured` where the
-   *  week did not reach one, so a mail states no number it does not have.
-   *
-   *  `searches` is the searches the site appears in, the third of the
-   *  Overview's four. The fourth — pages live — is not a measurement of the
-   *  week at all and is read where it is stored, by the mail's own
-   *  occasion. */
+  /** The levels those deltas are the change in, so the mail states the number as well as its movement, as Overview does; `unmeasured` where the week reached none.
+   *  `searches` is the searches the site appears in. Pages live is not a measurement of the week and is read where it is stored. */
   readonly score: Measured<number>;
   readonly aiAnswers: Measured<number>;
   readonly searches: Measured<number>;
   readonly searchesDelta: Measured<number>;
-  /** SPEC §9 on Monday: the technical checks whose count moved since the
-   *  week before. `unmeasured` where either week stored no checks — the
-   *  same two-measurements-or-nothing rule as the deltas. */
+  /** The technical checks whose count moved since the week before; `unmeasured` where either week stored no checks, as the deltas' rule. */
   readonly issueChanges: Measured<readonly IssueChange[]>;
-  /** SPEC §8 2026-09-29 (D16): the tracked questions whose answer names
-   *  the site this week and did not the week before, each by the search it
-   *  was phrased from. A question the week before did not ask, or could
-   *  not read, is not listed: "now" is a comparison of two readings. */
+  /** The tracked questions whose answer names the site this week and did not the week before, by search. One the week before did not ask or read is not listed. */
   readonly nowNamed: readonly { readonly search: string }[];
 }
 
@@ -77,22 +38,12 @@ export function previousWeekStart(weekStart: string): string {
   return new Date(midday - 7 * MS_PER_DAY).toISOString().slice(0, 10);
 }
 
-/**
- * The customer's own citations in AI answers — the figure §12 calls "AI
- * answers".
- *
- * `customerCitations` and not `answeredSearches`: the second counts
- * searches an AI answer appeared on at all, which moves with the engines
- * rather than with the customer, and §4.5's own tile reads the customer's
- * citations. One reading, and this is it.
- */
+/** The customer's own citations in AI answers, the figure the digest calls "AI answers": `customerCitations`, not `answeredSearches`,
+ *  which moves with the engines rather than the customer. */
 function aiAnswersOf(report: StoredReport | null): number | null {
   if (report === null) return null;
   if (report.aiAnswers === null) return null;
-  // Issue 869: the same rule the Overview tile reads by. A week whose AI
-  // answers could not be read counts `0` citations over `0` answers, and a
-  // `0` here becomes a measured delta — the Monday mail would print "AI
-  // answers −3" for an engine outage. No denominator, no number.
+  // The same rule the Overview tile reads by: a week whose AI answers could not be read would print a measured delta for an engine outage. No denominator, no number.
   if (report.aiAnswers.measuredSearches === 0) return null;
   return report.aiAnswers.customerCitations;
 }
@@ -112,19 +63,12 @@ function levelOf(now: number | null, at: Date): Measured<number> {
 }
 
 function deltaOf(now: number | null, before: number | null, at: Date): Measured<number> {
-  // Two measurements or nothing: see the module header.
+  // Two measurements or nothing.
   if (now === null || before === null) return unmeasured<number>("not_attempted", at);
   return measured(now - before, at);
 }
 
-/**
- * What moved for one site between the week before and the week being
- * reported.
- *
- * `at` is the date the digest states its figures as of — the week's own
- * measurement date, so every number in the mail carries the same one
- * (REQ-063 c4: "the date it was measured").
- */
+/** What moved for one site between the week before and the week reported. `at` is the week's measurement date, so every number in the mail carries one date. */
 export async function weekMovement(a: {
   siteId: string;
   weekStart: string;
@@ -141,9 +85,7 @@ export async function weekMovement(a: {
   return {
     scoreDelta: deltaOf(shownScore(now), shownScore(before), a.at),
     aiAnswersDelta: deltaOf(aiAnswersOf(now), aiAnswersOf(before), a.at),
-    // #933's levels, off the same two weeks. `levelOf` is `deltaOf`'s
-    // one-sided twin: a week that did not reach the figure has none, and
-    // says so rather than standing a zero in its place.
+    // The levels, off the same two weeks: a week that did not reach a figure has none, never a zero.
     score: levelOf(shownScore(now), a.at),
     aiAnswers: levelOf(aiAnswersOf(now), a.at),
     searches: levelOf(searchesOf(now), a.at),

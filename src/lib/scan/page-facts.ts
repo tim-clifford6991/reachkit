@@ -1,10 +1,6 @@
-// src/lib/scan/page-facts.ts — what the re-score reads off one stored page
-// read (`fetches.payload`), derived once and kept in `fetch_facts`, so a
-// scoring deploy scores from these and downloads no page twice. Every value
-// here is what `rescore.ts`, `own-reads.ts` and `challenged.ts` would derive
-// from the read's `html`; `scripts/derivation.mjs` fingerprints this module
-// as `RK_FACTS_VERSION`, so a change to how they are derived reads the pages
-// again.
+// What the re-score reads off one stored page read (`fetches.payload`), derived once and kept in `fetch_facts`, so a scoring deploy downloads no page twice.
+// Each value is what `rescore.ts`, `own-reads.ts` and `challenged.ts` would derive from the `html`; `scripts/derivation.mjs` fingerprints this module
+// as `RK_FACTS_VERSION`, so a change here reads the pages again.
 import { servedSignalsOf, type ServedSignals } from "@/lib/locale/read";
 import type { Measured } from "@/lib/measure/measured";
 import { saysNothing } from "@/lib/measure/blank-page";

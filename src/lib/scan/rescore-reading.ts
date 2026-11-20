@@ -6,8 +6,7 @@ import { BOT_PROTECTION } from "@/lib/measure/challenge";
 import type { SiteWithdrawal } from "./rescore-blank";
 import type { Row } from "./rescore-run";
 
-/** Issue 1470: how many stored profiles gain each part of the business's
- *  reading, what they gain, and which stay unread. */
+/** How many stored profiles gain each part of the business's reading, what they gain, and which stay unread. */
 export function readingLines(rows: readonly Row[], sites: readonly SiteWithdrawal[] = []): string[] {
   const of = (because: string) => sites.filter((w) => w.because === because).length;
   const named = [...new Set(sites.map((w) => w.domain))].sort();

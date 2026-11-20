@@ -1,21 +1,7 @@
-// src/lib/scan/market-conclusion.ts — each paid pass re-checks the site's
-// market and rivals and keeps them current (SPEC §6, owner D28 of
-// 2026-10-02, #1185).
-//
-// Two moments in a pass, because the two halves need different evidence:
-//
-//   1. **The market, before anything is bought for it.** The site's own
-//      pages, just crawled, with the last report's measurements as a check.
-//      The stability rule decides whether it replaces the standing market;
-//      what stands is what this pass seeds and measures.
-//   2. **The rivals, once this pass's own answers are in.** Who the AI
-//      answers to the market's own questions name, and who holds its top
-//      tens — evidence about the market the pass just measured, not the one
-//      before (`docs/walk/market-inference.md` says why the order matters).
-//
-// A founder's override stands; neither moment touches a field they set.
-// Every failure leaves what is stored alone: a pass never loses its market
-// because a model call did not come back.
+// Each paid pass re-checks the site's market and rivals and keeps them current, at two moments because the halves need different evidence:
+// 1. The market, before anything is bought for it: the freshly crawled pages, the last report as a check, and the stability rule.
+// 2. The rivals, once this pass's answers are in: who the AI answers name and who holds the top tens of the market just measured.
+// A founder's override stands. Every failure leaves what is stored alone: a pass never loses its market because a model call did not come back.
 import type { Locale, Place } from "@/lib/locale/locales";
 import type { PlaceSignals, ServingArea, ServingEvidence } from "@/lib/locale/place";
 import { siteLocale } from "@/lib/locale/site";
@@ -67,30 +53,21 @@ export interface PassMarket {
   synonyms: readonly string[];
   market: MarketConclusion;
   rivalsOverridden: boolean;
-  /** The founder's own answer about who buys, where they gave one (D49). */
+  /** The founder's own answer about who buys, where they gave one. */
   founderBuyer: string | null;
-  /** The one place the business serves (D67, issue 1318), as this pass
-   *  settled it; `null` where it sells nationally or online. The pass
-   *  measures there from here on. */
+  /** The one place the business serves, as this pass settled it; `null` where it sells nationally or online. The pass measures there from here on. */
   place: Place | null;
 }
 
-/**
- * Where the site serves, settled for this pass (SPEC §6, owner D67, issue
- * 1318). The founder's answer stands. Where nobody has said, the first
- * market call that read it decides, once — and a place read before the
- * site's own evidence was asked for (issue 1370: it carries no `because`)
- * is decided again by the first pass that reads the site. A place the search vendor's list
- * was not yet read for is looked up there — free, once — so Google's
- * results are read from that city. Never throws: a lookup that fails
- * leaves the place measured in its country, and the next pass asks again.
- */
+/** Where the site serves, settled for this pass. The founder's answer stands; otherwise the first market call that read it decides, once,
+ *  and a place read without the site's own evidence (no `because`) is decided again by the first pass that reads the site.
+ *  A place not yet read on the search vendor's list is looked up there, free and once. Never throws: a failed lookup measures in the country and the next pass asks again. */
 export async function settleArea(a: {
   siteId: string;
   area: ServingArea | undefined;
   /** What this pass's market call read; `undefined` where it made none. */
   read: Place | null | undefined;
-  /** What on the site said it serves `read` (issue 1370). */
+  /** What on the site said it serves `read`. */
   because?: ServingEvidence;
   locale: Locale;
 }): Promise<ServingArea | undefined> {
@@ -150,7 +127,7 @@ export async function concludeMarketForPass(a: {
   /** The listing in search the pass read its market from, where it did. */
   listing?: string;
   at: Date;
-  /** What the home page's structured data states of its address (D67). */
+  /** What the home page's structured data states of its address. */
   stated?: PlaceSignals;
 }): Promise<PassMarket | null> {
   const [{ readSiteMarket, writeSiteMarket }, { inferMarketFields }, { settleMarket }, { readCurrentReport }] = await Promise.all([
@@ -189,7 +166,7 @@ export async function concludeMarketForPass(a: {
     log("market_conclusion_unmeasured", { siteId: a.siteId, reason: fresh.reason });
     return passMarket(site.stored.current, site.stored.rivalsOverridden, await founderBuyer(a.siteId), site.stored.area?.place ?? null);
   }
-  // D67: where it serves is settled before anything is read for the market.
+  // Where it serves is settled before anything is read for the market.
   const area = await settleArea({
     siteId: a.siteId,
     area: site.stored.area,
@@ -208,10 +185,8 @@ export async function concludeMarketForPass(a: {
     scanId: a.scanId,
     at: a.at,
   });
-  // D49: the market that stands has its words checked against search
-  // volume, on this pass's money.
-  // D69: a market that stands keeps its words and takes the kind the first
-  // call that read one gave it.
+  // The market that stands has its words checked against search volume on this pass's money,
+  // keeps its words, and takes the kind the first call that read one gave it.
   const standing = settled.next.current;
   const kinded =
     standing === null || standing.kind !== undefined || fresh.value.kind === undefined ? standing : { ...standing, kind: fresh.value.kind };
@@ -240,12 +215,7 @@ export async function concludeMarketForPass(a: {
   return passMarket(current, settled.next.rivalsOverridden, await founderBuyer(a.siteId), place);
 }
 
-/**
- * The market with its search terms read (SPEC §6, D49, issue 1270), where
- * they are due: never read, or older than `MARKET_TERMS.REFRESH_DAYS`. A
- * read that did not come back leaves the market as it was, and the next
- * pass asks again.
- */
+/** The market with its search terms read where due (never read, or older than `MARKET_TERMS.REFRESH_DAYS`). A read that fails leaves it as it was; the next pass asks again. */
 async function withSearchTerms(a: {
   market: MarketConclusion | null;
   siteId: string;
@@ -265,12 +235,10 @@ async function withSearchTerms(a: {
       import("@/lib/market/infer/read-terms"),
       import("@/lib/locale/place"),
     ]);
-    // D67: terms read for the whole country are read again for the place,
-    // whatever their age.
+    // Terms read for the whole country are read again for the place, whatever their age.
     const place = a.locale.place;
     const elsewhere = place !== undefined && (market.terms ?? []).some((term) => term.volume > 0 && !namesPlace(term.term, place));
-    // Issue 1370: and terms read for a place the site no longer serves are
-    // read again for where it sells.
+    // And terms read for a place the site no longer serves are read again for where it sells.
     const was = a.was;
     const left =
       was !== null &&
@@ -290,13 +258,8 @@ async function withSearchTerms(a: {
   }
 }
 
-/**
- * SPEC §6 (owner D65, issue 1303) — the searches a pass is about to measure,
- * judged against its market and kept on it, so a search is judged once.
- * Answers the market with the judgements added, or `null` where the call
- * did not come back: the pass then measures what it selected, and the next
- * pass asks again. Never throws.
- */
+/** The searches a pass is about to measure, judged against its market and kept on it, so a search is judged once.
+ *  `null` where the call did not come back: the pass measures what it selected and the next pass asks again. Never throws. */
 export async function judgeSearchesForPass(a: {
   siteId: string;
   cost: CostContext;
@@ -331,8 +294,7 @@ export async function judgeSearchesForPass(a: {
   }
 }
 
-/** The founder's own answer about who buys (§5's first question), which
- *  outranks the inferred buyer (D49). `null` where they gave none. */
+/** The founder's own answer about who buys (§5's first question), which outranks the inferred buyer. `null` where none. */
 async function founderBuyer(siteId: string): Promise<string | null> {
   try {
     const { readBusinessEdits } = await import("@/lib/site-profile/business/edits");
@@ -367,8 +329,7 @@ export async function recheckRivals(a: {
       import("@/lib/market/rivals/category-name"),
       import("@/lib/market/infer/demand"),
     ]);
-  // A pass its ceiling stopped did not finish reading its market (#1195):
-  // its few answers are no measure of who competes in it.
+  // A pass its ceiling stopped did not finish reading its market: its few answers are no measure of who competes in it.
   if (a.report.stoppedReason === "time_ceiling") {
     log("rival_conclusion_skipped", { siteId: a.siteId, because: "time_ceiling" });
     return none;
@@ -379,17 +340,14 @@ export async function recheckRivals(a: {
 
   const text = await siteText(a.domain);
   const locale = await siteLocale(a.siteId);
-  // Issue 1369: a volume an earlier pass read under the category's own
-  // words is no product's, and is not carried into this read.
+  // A volume an earlier pass read under the category's own words is no product's, and is not carried into this read.
   const demand = withoutCategoryBrands(market.demand, market, {
     own: ownKeywords({ domain: a.domain, siteName: text.siteName }),
     language: locale.language,
   });
-  // A conclusion reached, with or without the model, is the month's re-check (ruling B5).
+  // A conclusion reached, with or without the model, is the month's re-check.
   const checkedAt = a.at.toISOString();
-  // A founder's own rivals stand (D28). Their brand volumes are still read
-  // (D50), since a comparison is derived only for a searched name — and
-  // never under the category's words (issue 1369).
+  // A founder's own rivals stand. Their brand volumes are still read, since a comparison is derived only for a searched name, never under the category's words.
   if (site.stored.rivalsOverridden) {
     const weighed = await weighByDemand({ ...a, siteName: text.siteName, demand, rivals: withoutCategoryNames(market.rivals, market, locale.language) });
     let current = market;
@@ -421,15 +379,14 @@ export async function recheckRivals(a: {
     log("rival_conclusion_unmeasured", { siteId: a.siteId, reason: fresh.reason });
     return none;
   }
-  // Issue 1314: a candidate is a rival only at a domain that is its own.
+  // A candidate is a rival only at a domain that is its own.
   const checked = await withCheckedDomains({ siteId: a.siteId, domain: a.domain, rivals: fresh.value, seen: evidenceDomains(evidence) });
-  // Issue 1369: a candidate whose name is the category's own words is
-  // called by its domain, so no step below reads the category as its brand.
+  // A candidate whose name is the category's own words is called by its domain, so no step below reads the category as its brand.
   const candidates = withoutCategoryNames(checked, market, locale.language);
-  // D50: the candidates weighed by how often buyers search their brand.
+  // The candidates weighed by how often buyers search their brand.
   const weighed = await weighByDemand({ ...a, siteName: text.siteName, demand, rivals: candidates });
   const stored = { ...site.stored, current: { ...market, ...(weighed !== null ? { demand: weighed.demand } : demand === undefined ? {} : { demand }) } };
-  // Issue 1365: and by what this pass's own first pages and answers show.
+  // And by what this pass's own first pages and answers show.
   const seen = seenByDomain(evidence, candidates);
   const settled = settleRivals({
     stored,
@@ -461,13 +418,8 @@ function sameDomains(a: readonly string[], b: readonly string[]): boolean {
   return a.length > 0 && a.length === b.length && a.every((domain) => b.includes(domain));
 }
 
-/**
- * The candidates whose domain is their own (SPEC §6, 2026-10-07, issue
- * 1314): each home page is read once, a domain that is no site or another
- * company's is put right where the rival's own can be found, and the rival
- * is dropped where it cannot. Costs nothing and never throws; what it
- * changed is logged.
- */
+/** The candidates whose domain is their own: each home page read once; a domain that is no site or another company's is put right where the rival's own can be found,
+ *  else the rival is dropped. Costs nothing, never throws; changes are logged. */
 async function withCheckedDomains(a: {
   siteId: string;
   domain: string;
@@ -487,12 +439,8 @@ async function withCheckedDomains(a: {
   }
 }
 
-/**
- * The candidates in the order D50 chooses them, with the demand read for
- * them: one keyword-overview call for the names not yet held, on the
- * caller's money. `null` where it did not come back — the caller keeps the
- * conclusion's own order, and the next pass asks again.
- */
+/** The candidates ordered by brand search demand: one keyword-overview call for names not yet held, on the caller's money.
+ *  `null` where it did not come back: the caller keeps the conclusion's order and the next pass asks again. */
 async function weighByDemand(a: {
   siteId: string;
   domain: string;
@@ -519,12 +467,7 @@ async function weighByDemand(a: {
   }
 }
 
-/**
- * The market in force, the stored prompt set and what that market yields
- * today, read once: what the set follows (issue 1285) and what a pass's
- * health is checked against (D58, issue 1287). `null` where the site has no
- * market.
- */
+/** The market in force, the stored prompt set and what that market yields today, read once: what the set follows and what a pass's health is checked against. `null` where no market. */
 export async function promptsInForce(a: { siteId: string; domain: string }): Promise<{
   market: MarketConclusion;
   stored: PromptSet;
@@ -545,14 +488,8 @@ export async function promptsInForce(a: { siteId: string; domain: string }): Pro
   return { market, stored, siteName, generated: generatePrompts(spokenMarket(market, await founderBuyer(a.siteId)), siteName, locale.language, locale.place) };
 }
 
-/**
- * SPEC §6 (D54, issue 1285) — the stored set's comparison and branded
- * prompts, brought to the rivals a pass has just concluded. The rivals are
- * concluded from the pass's own answers, so after the pass built and asked
- * the set: without this the set names the rivals of the pass before. This
- * pass's stored answers are to the prompts it asked; the next pass asks
- * these. Nothing here throws.
- */
+/** The stored set's comparison and branded prompts, brought to the rivals a pass just concluded from its own answers, after it asked the set;
+ *  without this the set names the previous pass's rivals. The next pass asks these. Never throws. */
 export async function trackedPromptsFollowRivals(a: { siteId: string; domain: string }): Promise<void> {
   try {
     const [{ writePromptSet }, { followRivals }] = await Promise.all([
@@ -585,7 +522,7 @@ export async function trackedPromptsFollowRivals(a: { siteId: string; domain: st
   }
 }
 
-/** The rivals re-checked on the pass's own money and stamped with its own date, never the clock's (#1185). A failure
+/** The rivals re-checked on the pass's own money and stamped with its own date, never the clock's. A failure
  *  changes nothing and says so in the log; the pass goes on. */
 export async function recheckRivalsOf(a: { siteId: string; domain: string; cost: CostContext; report: StoredReport; at: Date }): Promise<void> {
   try {
@@ -602,16 +539,9 @@ export async function recheckRivalsOf(a: { siteId: string; domain: string; cost:
   }
 }
 
-/**
- * Setup's conclusion (§5, D28): the market and rivals ReachKit identified,
- * each with its reason, shown on the rivals step and stored as the market
- * in force. Read from what is already known of the site — the pages its
- * scans read, its profile, and its free report where it has one. A market
- * the founder stated is kept as theirs, and the rivals are found for it.
- *
- * `null` where nothing of the site has been read yet, or the call did not
- * come back: setup then offers what it offered before #1185.
- */
+/** Setup's conclusion (§5): the market and rivals identified, each with its reason, shown on the rivals step and stored as the market in force.
+ *  Read from the pages its scans read, its profile and its free report where it has one; a market the founder stated is kept as theirs.
+ *  `null` where nothing of the site has been read yet or the call did not come back: setup then offers its plain choices. */
 export async function concludeAtSetup(a: {
   siteId: string;
   domain: string;
@@ -664,8 +594,7 @@ export async function concludeAtSetup(a: {
   const concluded = await a.spend(async (c) => {
     const fields = await inferMarketFields(c, evidence, stored);
     if (fields.kind === "unmeasured") return null;
-    // D67: the founder's place where they gave one at the step before,
-    // else the one this call read — so the rivals offered are that place's.
+    // The founder's place where they gave one at the step before, else the one this call read, so the rivals offered are that place's.
     const area: ServingArea | undefined =
       held?.stored.area ??
       (fields.value.serves === undefined
@@ -681,9 +610,9 @@ export async function concludeAtSetup(a: {
     if (rivals.kind === "unmeasured") return { market, rivals: [], demand: undefined, area };
     const { withoutCategoryNames } = await import("@/lib/market/rivals/category-name");
     const checked = await withCheckedDomains({ siteId: a.siteId, domain: a.domain, rivals: rivals.value, seen: evidenceDomains(evidence) });
-    // Issue 1369: none is named by the category's own words.
+    // None is named by the category's own words.
     const candidates = withoutCategoryNames(checked, market, locale.language);
-    // D50: the rivals setup offers are the ones buyers search for.
+    // The rivals setup offers are the ones buyers search for.
     const weighed = await weighByDemand({
       siteId: a.siteId,
       domain: a.domain,
@@ -693,7 +622,7 @@ export async function concludeAtSetup(a: {
       rivals: candidates,
       at: a.at,
     });
-    // Issue 1365: of those, the ones the free report's own results show.
+    // Of those, the ones the free report's own results show.
     const { chooseRivals, seenByDomain } = await import("@/lib/market/infer/presence");
     const chosen = chooseRivals({ fresh: weighed?.rivals ?? candidates, seen: seenByDomain(evidence, candidates) });
     return { market, rivals: chosen, demand: weighed?.demand, area };

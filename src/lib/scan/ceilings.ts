@@ -1,131 +1,51 @@
-// src/lib/scan/ceilings.ts — the two spend ceilings on one scan.
-//
-// Two ceilings — the pinned
-// `TIMING.reportCeilingS` and the free path's spend cap
-// (`CAPS.FREE_C`, reached through BP-007's `CostContext.capHit()`) — and
-// exactly one `Ending` however a free scan stops. Raising either ceiling
-// at runtime, or computing a partial result from whatever a ceiling left
-// measured, both read as kindnesses and both break a promise a customer
-// can be shown (ADR-021). Nothing here does either: `withFreeBounds`
-// exposes no third parameter, no environment escape and no per-scan
-// exemption, and every source assertion this file's own test suite
-// carries is satisfied by never spelling the four forbidden identifiers
-// that WO-281's own test-plan table names.
-//
-// **Time is preemptive; money is cooperative.** The deadline can
-// fire while `body` is stuck inside a call that never resolves — REQ-003
-// criterion 5's "including when the delay is the scanned domain's own
-// server answering slowly" — so `withFreeBounds` races `body` against a
-// timer set to the deadline and returns at whichever settles first
-// (`runBounded`, below). The spend ceiling has no equivalent race: it can
-// only change between discrete calls (BP-007's own re-check discipline —
-// `capHit()` is "re-checked between calls in any multi-call step"), so it
-// is read cooperatively through `Bounds.stopNow()`/`capHit()` wherever the
-// caller chooses to ask, never preempted from outside. Time is checked
-// first when both apply in the same tick (WO-281 `## Steps` step 3),
-// because `TIMING.reportCeilingS` is the bound REQ-003 criterion 5 states
-// absolutely.
-//
-// **The pin, and only the pin.** REQ-003 c5 states that bound as 90
-// seconds and this file used to repeat the figure in prose. It is 50 now
-// (ruling 2026-09-10, issue #456): the invocation this runs inside
-// is frozen by the platform at 60, so a design ceiling above that could
-// never fire and the partial report the criterion promises could never be
-// stored. Nothing here spells a number — the deadline is read from
-// `TIMING.reportCeilingS`, and the order of the two ceilings is held by
-// `tests/scan/ceilings-pins.test.ts`.
-//
-// **How `Bounds.capHit()` reaches a real `CostContext`.** BP-023's own
-// `## Public interface` locks `withFreeBounds` to two parameters — `a` and
-// `body` — with no third slot for one (`withFreeBounds.length === 2` is
-// itself one of this WO's test-plan assertions), yet this file's
-// `## Interfaces` block also names `withCostContext` as consumed. The only
-// reading that satisfies both without inventing a hidden channel is that
-// `withFreeBounds` opens the context itself, scoped to the same call: it
-// wraps `body` inside `withCostContext({ scanId, cap: 'FREE', policyVersion
-// }, ...)` and wires `Bounds.capHit()` to that inner context's own
-// `capHit()`. `cap: 'FREE'` is derivable from the function's own name — the
-// free path's bounds — without asking anyone. `policyVersion` is not: nothing
-// upstream of this file pins one, so it is chosen here (rule 1.1, recorded
-// once): `FREE_SCAN_POLICY_VERSION` below. `structure.md` rule 5's bar —
-// "a number that appears in two files is wrong" — does not reach a value
-// that lives in exactly one file, which this stays as long as no second
-// caller repeats the literal rather than importing it.
+// The two ceilings on one scan, `TIMING.reportCeilingS` and the spend cap, and exactly one `Ending` however a free scan stops.
+// Neither ceiling is raised at runtime and no partial result is computed from what a ceiling left: `withFreeBounds` has no third parameter, environment escape or per-scan exemption.
+// Time is preemptive (the body may be stuck in a call that never resolves, so it is raced); money is cooperative, read between calls through `stopNow()`/`capHit()`. Time is checked first.
+// `withFreeBounds` opens its own cost context, so `capHit()` reaches it without a third parameter.
 import { TIMING } from "@/lib/config/constants";
 import { CAP_VALUES, withCostContext, type CapName, type CostContext, type FetchRefusalReason } from "@/lib/costs";
 
-/** REQ-003's "bounded moment", made total. A free scan reaches exactly one. */
+/** A free scan reaches exactly one ending. */
 export type Ending =
   | { kind: "report"; complete: true; stoppedReason: "complete" }
   | { kind: "report"; complete: false; stoppedReason: "time_ceiling" | "spend_ceiling" }
-  /** The body read nothing of the customer's own site and stopped there
-   *  (issue #479): `refusal` is the fetcher's reason, or `null` where the
-   *  read raised rather than being refused (its reason is then the
-   *  `stage_undeterminable` line). Never called `complete`. */
+  /** The body read nothing of the customer's own site and stopped there: `refusal` is the fetcher's reason, or `null` where the read raised
+   *  (its reason is then the `stage_undeterminable` line). Never called `complete`. */
   | { kind: "report"; complete: false; stoppedReason: "site_unreadable"; refusal: FetchRefusalReason | null }
   | { kind: "no_report"; stoppedReason: "failed" };
 
-/** The deadline every stage and every multi-call step re-checks, exactly as
- *  BP-007's `capHit()` is re-checked between calls. */
+/** The deadline every stage and multi-call step re-checks between calls, as `capHit()` is. */
 export interface Bounds {
   expired(): boolean; // now ≥ startedAt + the pass's own ceiling (the free path's: TIMING.reportCeilingS)
   remainingMs(): number;
   capHit(): boolean; // delegates to the CostContext, CAP_FREE
-  /** The cents left before the pass's cap — or, inside a stage's budget,
-   *  before that budget — so a step can ask whether its next purchase fits
-   *  before it makes it (issue 835). */
+  /** Cents left before the pass's cap (or the stage's budget), so a step can ask whether its next purchase fits. */
   remainingCents(): number;
   stopNow(): "time_ceiling" | "spend_ceiling" | null;
-  /** Called by the body when its first stage could not read the site's own
-   *  home document, before it stops (issue #479). Not a ceiling: the pass
-   *  ends `site_unreadable` where no ceiling fired first. */
+  /** Called when the first stage could not read the site's home document. Not a ceiling: the pass ends `site_unreadable` where no ceiling fired first. */
   siteUnreadable(refusal: FetchRefusalReason | null): void;
   /** What `siteUnreadable` recorded, or `undefined` where it was never called. */
   unreadable(): { refusal: FetchRefusalReason | null } | undefined;
-  /** Called by the body when a stage the pass cannot continue without spent
-   *  that stage's own budget (issue #539): the pass ends bounded, by the
-   *  column that ran out. A ceiling the pass itself hit still outranks it. */
+  /** Called when a stage the pass cannot continue without spent its own budget: the pass ends bounded by that column; a pass ceiling still outranks it. */
   stageExhausted(reason: "time_ceiling" | "spend_ceiling"): void;
   /** What `stageExhausted` recorded, or `undefined` where it was never called. */
   exhausted(): "time_ceiling" | "spend_ceiling" | undefined;
-  /** `true` from the moment the pass's deadline won the race against the
-   *  body (issue 607). The report is composed from `sections` from then on,
-   *  so a stage still in flight — nothing here can cancel it — checks this
-   *  before every write and writes nothing. `false` for the life of a pass
-   *  the deadline does not apply to, and for a body that settled first. */
+  /** True once the pass's deadline won the race: the report is composed from `sections` then, so an uncancellable stage still in flight writes nothing.
+   *  False for a pass the deadline does not apply to, and for a body that settled first. */
   abandoned(): boolean;
 }
 
-// Rule 1.1 parameter: the generation `withCostContext`'s own cache reads
-// are keyed against (alongside `source` + `cacheKey`). Nothing in this
-// corpus pins a "current derivation policy" number yet — there is no
-// vendor-derivation change this scan's own cache needs to invalidate
-// against — so `1` is the only defensible starting value: the first
-// generation. Reversal cost: bump this one constant, which ages out every
-// free-scan cache entry at once (BP-007 `## Error & edge behavior`,
-// "bumping the policy version is how a changed derivation invalidates its
-// cache").
+// The generation the free scan's cache reads are keyed against; bumping it ages out every free-scan cache entry.
 export const FREE_SCAN_POLICY_VERSION = 1;
 
-/** The narrow slice of `CostContext` a `Bounds` needs — `capHit()`, and the spend and cap `remainingCents()` reads.
- *  Kept separate from the full interface so `makeBounds` cannot reach for
- *  `recordFetch`, which is not this module's to call (`## Out of scope`:
- *  "BP-007's `capHit()` itself, the ledger and the cache — another
- *  node's"). */
+/** The slice of `CostContext` a `Bounds` needs, so `makeBounds` cannot reach `recordFetch`. */
 interface CapReader {
   capHit(): boolean;
   spentCents(): number;
   readonly cap: CapName;
 }
 
-/** The clock is a parameter of this builder, never read from a global
- *  inside the returned object's methods (WO-281 `## Steps` step 2) — so a
- *  test can construct a `Bounds` against a fake clock with no real
- *  waiting. `withFreeBounds` itself (below) supplies the real clock; it
- *  has no clock parameter of its own; a caller reaches deterministic time
- *  in a test by faking the global timers (`vi.useFakeTimers()`), not by
- *  passing one in — the public signature stays the two parameters BP-023
- *  declares. */
+/** The clock is a parameter here, never a global read inside the methods, so a test can build `Bounds` on a fake clock. */
 function makeBounds(a: {
   startedAt: Date;
   ceilingS: number;
@@ -133,10 +53,7 @@ function makeBounds(a: {
   cost: CapReader;
   holdBackCents: number;
 }): Bounds & { abandon(): void } {
-  // The pass's own ceiling (issue 855). The free report's 50 s used to be
-  // read here for every tier, so a deep pass — which nobody waits on and
-  // which runs in a job invocation of `TIMING.jobsCeilingS` — stopped
-  // asking its twelve after three SERPs.
+  // The pass's own ceiling: a deep pass runs in a job invocation and must not stop at the free report's.
   const deadlineMs = a.startedAt.getTime() + a.ceilingS * 1000;
   let unreadable: { refusal: FetchRefusalReason | null } | undefined;
   let exhausted: "time_ceiling" | "spend_ceiling" | undefined;
@@ -183,9 +100,7 @@ function makeBounds(a: {
   return bounds;
 }
 
-/** A delay that can be cleared — `budgets.ts`'s own shape, for the same
- *  reason: an uncleared timer holds the invocation open for the rest of
- *  the ceiling after a body that answered early. */
+/** A delay that can be cleared, as in `budgets.ts`: an uncleared timer holds the invocation open after a body that answered early. */
 function cancellableDelay(ms: number): { promise: Promise<void>; cancel: () => void } {
   let timer: ReturnType<typeof setTimeout> | undefined;
   const promise = new Promise<void>((resolve) => {
@@ -194,29 +109,8 @@ function cancellableDelay(ms: number): { promise: Promise<void>; cancel: () => v
   return { promise, cancel: () => clearTimeout(timer) };
 }
 
-/** Runs `body` and settles an `Ending` from whichever of three things
- *  happens: the 90-second deadline wins the race (below), `body` throws,
- *  or `body` resolves. BP-023 decision 4, translated to this file's only
- *  vocabulary — a ceiling fired or it did not, `body` threw or it did
- *  not — since this module has no notion of "a driver" (that is
- *  BP-012/BP-024's, out of scope here):
- *   - a ceiling fired at any point (`stopNow()` reads non-null once the
- *     race settles) → always `{ kind: 'report', complete: false,
- *     stoppedReason }`, whatever `body` itself did — ADR-021's "a ceiling
- *     always produces a report".
- *   - no ceiling fired and `body` resolved having called `stageExhausted`
- *     → `{ kind: 'report', complete: false, stoppedReason }` carrying the
- *     column that stage ran out of (issue #539).
- *   - no ceiling fired, `body` resolved and called `siteUnreadable` →
- *     `{ kind: 'report', complete: false, stoppedReason: 'site_unreadable',
- *     refusal }` (issue #479 — a pass that read nothing is never
- *     `complete`).
- *   - no ceiling fired and `body` resolved → `{ kind: 'report', complete:
- *     true, stoppedReason: 'complete' }`.
- *   - no ceiling fired and `body` threw → `{ kind: 'no_report',
- *     stoppedReason: 'failed' }` (decision 4: "reached only when no
- *     ceiling was reached").
- */
+/** Runs `body` and settles one `Ending`: a ceiling fired → incomplete report whatever `body` did; `stageExhausted` → incomplete, by that column;
+ *  `siteUnreadable` → `site_unreadable`; resolved → complete; threw with no ceiling → `no_report` `failed`. */
 async function runBounded<T>(
   a: { startedAt: Date; ceilingS: number; cost: CostContext; deadlineApplies: boolean; holdBackCents: number },
   body: (b: Bounds, c: CostContext) => Promise<T>
@@ -234,8 +128,7 @@ async function runBounded<T>(
       const result = await body(bounds, a.cost);
       const stopped = bounds.stopNow();
       if (stopped) return { result, ending: { kind: "report" as const, complete: false as const, stoppedReason: stopped } };
-      // A stage the pass cannot continue without spent its own budget: the
-      // pass is bounded by that column, and its report is not whole (#539).
+      // A stage the pass cannot continue without spent its own budget: the pass is bounded by that column.
       const exhausted = bounds.exhausted();
       if (exhausted)
         return { result, ending: { kind: "report" as const, complete: false as const, stoppedReason: exhausted } };
@@ -259,22 +152,13 @@ async function runBounded<T>(
     }
   })();
 
-  // A paid pass (deep, weekly) is not raced: nobody is waiting on its
-  // response. Its ceiling is read cooperatively — `stopNow()` between
-  // calls, as the cap is — and it is the pass's own `ceilingS`, never the
-  // free report's (issue 855). No timer is set for one: a deadline that
-  // does not race the pass must not be able to abandon its body either
-  // (issue 607).
+  // A paid pass is not raced (nobody waits on it): its own `ceilingS` is read between calls, and no timer may abandon its body.
   if (!a.deadlineApplies) return bodyOutcome;
 
   const timer = cancellableDelay(bounds.remainingMs());
   const deadlineOutcome: Promise<{ result: T | null; ending: Ending }> = (async () => {
     await timer.promise;
-    // **The losing body cannot be cancelled, so it is told** (issue 607) —
-    // `withStageBudget`'s rule one level up. The caller composes the report
-    // from `sections` as soon as this resolves; flipped here, at the
-    // timer, rather than after the race settles, so no worker's write can
-    // land in the microtasks between the two.
+    // The losing body cannot be cancelled, so it is told; flipped at the timer so no write lands between the race and the caller's compose.
     bounds.abandon();
     return {
       result: null,
@@ -289,10 +173,7 @@ async function runBounded<T>(
   }
 }
 
-/** BP-023 `## NFR budget`: "one line per ending carrying `stoppedReason`,
- *  elapsed ms, cents spent and whether the cost context degraded." Never
- *  returned from anywhere a visitor's own response is built — the figures
- *  leave this module only through this line (WO-281 `## Steps` step 5). */
+/** One line per ending: `stoppedReason`, elapsed ms, cents and whether the cost context degraded. The figures leave this module only here. */
 function logEnding(a: { scanId: string; ending: Ending; elapsedMs: number; cost: CostContext }): void {
   console.log(
     JSON.stringify({
@@ -307,12 +188,7 @@ function logEnding(a: { scanId: string; ending: Ending; elapsedMs: number; cost:
   );
 }
 
-/** `withFreeBounds` runs `body`, and on either ceiling stops measuring,
- *  marks everything outstanding `not_attempted` (the caller's own job —
- *  this module only signals which ceiling fired), and returns `{ result,
- *  ending }` with a `report` ending. No third parameter, no environment
- *  escape and no per-scan exemption exists anywhere in this file
- *  (ADR-021 decision 1). */
+/** Runs `body` and on either ceiling stops and returns a `report` ending; the caller marks what is outstanding `not_attempted`. No third parameter, environment escape or per-scan exemption. */
 export async function withFreeBounds<T>(
   a: { scanId: string; startedAt: Date },
   body: (b: Bounds, c: CostContext) => Promise<T>
@@ -323,19 +199,13 @@ export async function withFreeBounds<T>(
   );
 }
 
-/** The same two-ceiling shape for a pass whose cap and time ceiling are not
- *  the free path's, and whose deadline is read between calls rather than
- *  raced (`deadlineApplies: false`). The free
- *  path never reaches this function with anything but its own two fixed
- *  values — `withFreeBounds` above supplies them and exposes no way to
- *  vary either, which is the whole of ADR-021 decision 1. */
+/** The same two-ceiling shape for a pass whose cap and time ceiling are not the free path's, its deadline read between calls rather than raced. */
 export async function withScanBounds<T>(
   a: {
     scanId: string;
     startedAt: Date;
     cap: CapName;
-    /** The pass's time ceiling in seconds: `TIMING.reportCeilingS` on the
-     *  free path, `TIMING.paidPassCeilingS` on a paid one (issue 855). */
+    /** The pass's time ceiling: `TIMING.reportCeilingS` free, `TIMING.paidPassCeilingS` paid. */
     ceilingS: number;
     deadlineApplies: boolean;
     priorCents?: number;
@@ -371,12 +241,7 @@ export async function withScanBounds<T>(
   );
 }
 
-/** The context a paid pass spends in once its report is stored (issue
- *  798): the opportunity typing §6.3 puts inside the pass's own budget. It
- *  is keyed to the pass's row and adds to what that row already carries,
- *  so the typing is counted in `scans.cost_cents` and against the cap the
- *  stages already spent — whether it runs in the pass's invocation or in a
- *  later step of its own. */
+/** The context a paid pass spends in once its report is stored (the §6.3 opportunity typing): keyed to the pass's row, so it counts in `scans.cost_cents` and against the same cap. */
 export function withStoredPassSpend<T>(
   a: { scanId: string; cap: CapName },
   body: (c: CostContext) => Promise<T>
