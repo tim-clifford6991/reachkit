@@ -1,13 +1,16 @@
-// The harness's own checks, through the product's `llm()`: a probe call per repeat, and the isolation proof.
-// The drivers that replay stored cases call `configure()` the same way and reuse the ledger and transport.
+// The harness's own checks and its drivers: a probe call per repeat through the product's `llm()`, the writer group
+// over a folder of cases, and the isolation proof. Each run shares one ledger and one transport.
+import { appendFileSync, mkdirSync } from "node:fs";
+import path from "node:path";
 import { z } from "zod";
-import type { CostContext } from "@/lib/costs";
 import { llm, type LlmCallSite } from "@/lib/llm";
 import type { Tier } from "@/lib/llm/tiers";
+import { passThrough } from "./context";
 import { blocked, EvalIsolation, isolate, socketsOpened } from "./isolate";
 import { HARD_CAP_CENTS, Ledger } from "./ledger";
 import { report } from "./report";
 import { configure, type Mode, type Run } from "./transport";
+import { readCases, runWriter } from "./writer";
 
 export interface Options {
   mode: Mode | "report" | "prove-isolation";
@@ -17,16 +20,11 @@ export interface Options {
   tier: Tier;
   model: string | null;
   repeat: number;
+  driver: "probe" | "writer";
+  /** The writer's case folder, and the file its scored lines are appended to; both outside the repository. */
+  cases: string;
+  results: string;
 }
-
-/** Production's cap stays out of the run: the eval ledger is the only ceiling, and nothing is written to a table. */
-const passThrough: CostContext = {
-  cap: "DRAFT",
-  async recordFetch(call) {
-    const payload = await call.run();
-    return { payload, fresh: true, costCents: call.settleCents?.(payload) ?? call.costCents, storedAt: null };
-  },
-} as CostContext;
 
 async function proveIsolation(): Promise<number> {
   isolate(false);
@@ -56,6 +54,8 @@ async function proveIsolation(): Promise<number> {
   return reading === null && direct === "EvalIsolation" && dnsBlocked === "EvalIsolation" && ipLiteral === "EvalIsolation" && socketsOpened() === 0 ? 0 : 1;
 }
 
+const WRITER_SITES = ["generate.write", "generate.write_free", "generate.fix"];
+
 export async function main(o: Options): Promise<number> {
   if (o.mode === "report") return console.log(report(o.ledgerFile)), 0;
   if (o.mode === "prove-isolation") return proveIsolation();
@@ -63,18 +63,27 @@ export async function main(o: Options): Promise<number> {
   const run: Run = {
     mode: o.mode,
     ledger: o.mode === "plan" ? null : new Ledger(o.ledgerFile, o.capCents, o.mode === "live"),
-    swap: o.model === null ? {} : { [o.site]: o.model },
+    // The writer's model writes and fixes the page; the claim check stays on today's model.
+    swap: o.model === null ? {} : o.driver === "writer" ? Object.fromEntries(WRITER_SITES.map((site) => [site, o.model as string])) : { [o.site]: o.model },
     sends: 0,
     plan: { calls: 0, cents: 0, unpriced: 0 },
     halted: null,
   };
   configure(run);
   const outcomes: string[] = [];
-  for (let i = 0; i < o.repeat && run.halted === null; i++) {
-    const answer = await llm(passThrough, { site: o.site, tier: o.tier, schema: z.object({ ok: z.boolean() }), input: { probe: "eval harness self-check", i } });
+  if (o.driver === "writer") {
+    mkdirSync(path.dirname(o.results), { recursive: true });
+    await runWriter(run, readCases(o.cases), o.repeat, (line) => {
+      outcomes.push((line as { outcome: string }).outcome);
+      console.log(JSON.stringify(line));
+      if (o.mode !== "plan") appendFileSync(o.results, `${JSON.stringify({ at: new Date().toISOString(), mode: o.mode, ...line })}\n`);
+    });
+  }
+  for (let i = 0; o.driver === "probe" && i < o.repeat && run.halted === null; i++) {
+    const answer = await llm(passThrough(), { site: o.site, tier: o.tier, schema: z.object({ ok: z.boolean() }), input: { probe: "eval harness self-check", i } });
     outcomes.push(answer.kind === "unmeasured" ? answer.reason : answer.kind);
   }
   const spent = run.ledger?.spent() ?? null;
-  console.log(JSON.stringify({ mode: o.mode, site: o.site, outcomes, sends: run.sends, plan: o.mode === "plan" ? run.plan : undefined, ledger: run.ledger?.file, spentCents: spent, limitCents: run.ledger?.limitCents ?? HARD_CAP_CENTS, halted: run.halted }));
+  console.log(JSON.stringify({ mode: o.mode, driver: o.driver, site: o.site, outcomes, sends: run.sends, plan: o.mode === "plan" ? run.plan : undefined, ledger: run.ledger?.file, spentCents: spent, limitCents: run.ledger?.limitCents ?? HARD_CAP_CENTS, halted: run.halted }));
   return 0;
 }

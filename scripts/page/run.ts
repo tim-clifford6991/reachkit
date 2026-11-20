@@ -112,7 +112,7 @@ const OPPORTUNITY_TYPE: Readonly<Record<ContentType, OpportunityType>> = {
   offering: "keyword_page",
 };
 
-function memoryStore(snapshot: PageSnapshot, report: ReturnType<typeof readStoredReport>): GenerateStore {
+export function memoryStore(snapshot: PageSnapshot, report: ReturnType<typeof readStoredReport>): GenerateStore {
   const rows = new Map<string, DraftRow>();
   let next = 0;
   return {
