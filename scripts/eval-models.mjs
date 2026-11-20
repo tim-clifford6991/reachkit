@@ -9,6 +9,11 @@
 //   node scripts/eval-models.mjs --report
 //   node scripts/eval-models.mjs --live  ... (spends: the ledger refuses past min(--cap-cents, 5,900¢) and after the deadline)
 //
+// Running live. Prices are `models.json`'s, each with the page it was read from and the day; re-read that page before a
+// run and correct any entry that moved (an entry without both is refused as unpriced). After the first live batch, and
+// after each day of live runs, compare `--report`'s spent total with the Anthropic Console's billed cost for the key over
+// the same hours: if they differ by more than 10 percent, stop live runs until `models.json` is corrected.
+//
 // `--plan` prices every call and sends none. `--fake` books each call at its `max_tokens` in a separate ledger and
 // sends none. Only `--live` reads the env file, and only `ANTHROPIC_API_KEY` from it; every other binding the product
 // requires is a placeholder, so no DataForSEO, Supabase, Stripe or mail credential is in the process. Ledgers and

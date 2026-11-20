@@ -12,7 +12,9 @@
 // `--eval-site` (the model evaluation, `scripts/eval-models/pass-site.ts`) makes the named call sites miss the
 // store, so each goes to `--model` through the eval transport and ledger; `--eval-mode` is fake (the default), plan
 // or live, and live reads only `ANTHROPIC_API_KEY` from the env file. Every other row is served as stored and any
-// other miss is refused, as in a replay. It cannot be combined with `--live`, which buys vendor calls. `--cases <file>`
+// other miss is refused, as in a replay. It cannot be combined with `--live`, which buys vendor calls. A live
+// evaluation follows `scripts/eval-models.mjs`'s "Running live": prices re-read, and the ledger reconciled against the
+// Anthropic Console after the first batch, stopping on a difference over 10 percent. `--cases <file>`
 // replays a pass from an export (`scripts/eval-models/export/passes.sql`) instead of `scripts/pass/snapshot/`; the file
 // goes through the evaluation's one case loader, which refuses it whole on any of its rules.
 //

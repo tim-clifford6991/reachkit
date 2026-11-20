@@ -4,7 +4,8 @@ import { closeSync, existsSync, fsyncSync, mkdirSync, openSync, readFileSync, un
 import path from "node:path";
 import config from "./models.json";
 
-export type ModelPrice = { in: number; out: number; longAbove?: number; longIn?: number | null; longOut?: number | null };
+/** ¢ per million tokens, read off `source` on `checkedAt`; a price with neither is not used. */
+export type ModelPrice = { in: number; out: number; longAbove?: number; longIn?: number | null; longOut?: number | null; source?: string; checkedAt?: string };
 export type Row =
   | { kind: "reserve"; id: string; at: string; model: string; site: string; cents: number }
   | { kind: "settle"; id: string; at: string; model: string; site: string; cents: number; tokensIn: number | null; tokensOut: number | null; ms: number; stop: string | null; outcome: string }
@@ -12,8 +13,10 @@ export type Row =
 
 export const HARD_CAP_CENTS = config.capCents - config.marginCents;
 
-/** Cents for the tokens at the model's list price, or `null` where the price for that prompt size is not known. */
+/** Cents for the tokens at the model's list price, or `null` where the price for that prompt size is not known or the
+ *  price says nowhere where it was read. */
 export function priceCents(price: ModelPrice, tokensIn: number, tokensOut: number): number | null {
+  if (!price.source || !price.checkedAt) return null;
   const long = price.longAbove !== undefined && tokensIn > price.longAbove;
   const inRate = long ? price.longIn : price.in;
   const outRate = long ? price.longOut : price.out;
