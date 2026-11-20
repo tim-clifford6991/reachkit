@@ -138,7 +138,7 @@ To a no-reply after the walkthrough:
 > Hi {name}, did the walkthrough make sense? Happy to answer anything in a reply here, no call
 > needed. {left} of 50 spots left until 31 Jan 2027.
 
-Only say the spots left if the number is the real count from the Progress table.
+Only say the spots left if the number is the one the site shows (see `{left}` above).
 
 ## 5. Follow-up, day 7 (last)
 
