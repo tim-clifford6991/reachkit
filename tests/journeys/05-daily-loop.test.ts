@@ -308,14 +308,10 @@ const {
   toldCurrentPair,
   PUBLISHABLE_RULE,
 } = await import("../../src/lib/publish/publishable");
-const { WORDPRESS_ADAPTER } = await import(
-  "../../src/lib/publish/destinations/wordpress/adapter"
-);
+const { WORDPRESS_ADAPTER } = await import("../../src/lib/publish/destinations/wordpress/adapter");
 const { seal } = await import("../../src/lib/publish/destinations/config");
 const { heldPages, resumeOrder, setPublishing } = await import("../../src/lib/publish/switch");
-const { setCalendarSiteReader } = await import(
-  "../../src/app/(account)/app/calendar/provider"
-);
+const { setCalendarSiteReader } = await import("../../src/app/(account)/app/calendar/provider");
 const { readCalendarFacts } = await import("../../src/app/(account)/app/calendar/store");
 const { monthOf, dayKeyOf } = await import("../../src/app/(account)/app/calendar/dates");
 const { CHECK_IDS } = await import("../../src/lib/publish/verify");
@@ -324,7 +320,8 @@ const { MAX_RETRIES } = await import("../../src/lib/publish/attempt/retry");
 const { onSubscriptionEvent, setBillingStore, supabaseBillingStore } = await import("../../src/lib/account/billing");
 const billingDoubles = await import("../account/billing/memory-store");
 const { payingStore } = billingDoubles;
-const { subscriptionDouble } = await import("../account/stripe-double");
+const { newStripeDouble, stripeDouble, subscriptionDouble } = await import("../account/stripe-double");
+const { setStripe } = await import("../../src/lib/account/stripe/client");
 const { __setVendorTransportForTesting } = await import("../../src/lib/mail/vendor/resend");
 const { sendDraftReadyMail } = await import("../../src/lib/mail/draft-ready");
 const { enterReview, dueApprovals } = await import("../../src/lib/publish/attempt/window");
@@ -562,6 +559,7 @@ afterEach(() => {
   setCalendarSiteReader(null);
   __setVendorTransportForTesting(null);
   setBillingStore(null);
+  setStripe(null);
 });
 
 // ── The day, in the order it happens ────────────────────────────────────
@@ -699,6 +697,7 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
     setBillingStore(billingDoubles.memoryBillingStore(billing));
     expect((await engine.activeSites()).sites).toEqual([]);
     const subscription = subscriptionDouble({ id: `sub_${USER_ID}`, customer: `cus_${USER_ID}`, periodEnd: new Date(Date.now() + 30 * 86_400_000) });
+    setStripe(stripeDouble({ ...newStripeDouble(), subscriptions: new Map([[`sub_${USER_ID}`, subscription]]) }));
     const paid = { id: "evt_paid", type: "invoice.paid", data: { object: { parent: { type: "subscription_details", subscription_details: { subscription } } } } };
     expect(await onSubscriptionEvent(paid as never)).toEqual({ applied: true });
     expect((await engine.activeSites()).sites).toHaveLength(1);

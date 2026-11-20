@@ -22,6 +22,7 @@
 // the same row, which is the same row it wrote before.
 import { accountStore, type BillingFacts } from "../store";
 import { stripe, type Stripe } from "../stripe/client";
+import { isTransient } from "../stripe/transient";
 import type { CheckoutOrigin } from "./origin";
 import { checkoutEvent } from "./redaction";
 
@@ -45,7 +46,7 @@ export interface CheckoutFacts {
 
 export type RecordResult =
   | { ok: true; facts: CheckoutFacts }
-  | { ok: false; reason: "session_not_complete" | "session_incomplete_facts" | "vendor" | "store" };
+  | { ok: false; reason: "session_not_complete" | "session_incomplete_facts" | "vendor" | "store"; transient?: boolean };
 
 /** The `CheckoutOrigin` this session was opened with, read back out of the
  *  metadata `createCheckoutSession` wrote. A session whose metadata carries
@@ -98,9 +99,9 @@ export async function recordCheckoutFacts(sessionId: string): Promise<RecordResu
   let session: Stripe.Checkout.Session;
   try {
     session = await stripe().checkout.sessions.retrieve(sessionId);
-  } catch {
+  } catch (error) {
     checkoutEvent({ sessionId, originKind: "pricing", outcome: "vendor" });
-    return { ok: false, reason: "vendor" };
+    return { ok: false, reason: "vendor", transient: isTransient(error) };
   }
 
   const origin = originFrom(session.metadata);

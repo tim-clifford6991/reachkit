@@ -31,7 +31,8 @@
 // a second vendor object, and a retrieve that failed must still leave an
 // account open rather than refusing a paid customer their account over a
 // date a webhook will supply seconds later. The column's own default keeps
-// the row legal in that window.
+// the row legal in that window, and the result asks for a redelivery, whose
+// replay branch opens it.
 import { recordCheckoutFacts } from "../checkout/record";
 import { capture } from "@/lib/analytics";
 import { accountStore } from "../store";
@@ -46,6 +47,8 @@ export interface ProvisionResult {
   readonly duplicate?: "replay" | "second_purchase";
   /** Why nothing was created, where nothing was. Never a vendor string. */
   readonly refused?: "session_not_complete" | "vendor" | "store";
+  /** A temporary failure left this payment unfinished; a redelivery finishes it. */
+  readonly retry?: boolean;
   readonly signIn?: SignInMailOutcome;
   /** When Stripe opened the paid session (seconds), wherever it was read. */
   readonly openedAt?: number;
@@ -59,7 +62,8 @@ export async function provisionFromPayment(sessionId: string): Promise<Provision
   if (!recorded.ok) {
     const refused = recorded.reason === "session_incomplete_facts" ? "vendor" : recorded.reason;
     logProvision({ sessionId, outcome: refused });
-    return { userId: null, siteId: null, created: false, refused };
+    const retry = recorded.reason === "store" || (recorded.reason === "vendor" && recorded.transient === true);
+    return { userId: null, siteId: null, created: false, refused, retry };
   }
   const facts = recorded.facts;
 
@@ -69,7 +73,7 @@ export async function provisionFromPayment(sessionId: string): Promise<Provision
   //    mints a link for a known address and so kills the one already sent.
   const store = accountStore();
   const seen = await store.accountByCheckoutSession(sessionId);
-  if (seen.ok && seen.account !== null) return replayOf(sessionId, seen.account, facts.openedAt);
+  if (seen.ok && seen.account !== null) return replayOf(sessionId, seen.account, facts);
   const inserted = await store.insertAccount({
     email: facts.email,
     checkoutSessionId: sessionId,
@@ -82,7 +86,7 @@ export async function provisionFromPayment(sessionId: string): Promise<Provision
 
   if (!inserted.ok && inserted.conflict === "checkout_session_id") {
     const existing = await store.accountByCheckoutSession(sessionId);
-    return replayOf(sessionId, existing.ok ? existing.account : null, facts.openedAt);
+    return replayOf(sessionId, existing.ok ? existing.account : null, facts);
   }
 
   if (!inserted.ok && inserted.conflict === "email") {
@@ -104,7 +108,7 @@ export async function provisionFromPayment(sessionId: string): Promise<Provision
 
   if (!inserted.ok) {
     logProvision({ sessionId, outcome: "store" });
-    return { userId: null, siteId: null, created: false, refused: "store" };
+    return { userId: null, siteId: null, created: false, refused: "store", retry: true };
   }
 
   const userId = inserted.id;
@@ -116,9 +120,11 @@ export async function provisionFromPayment(sessionId: string): Promise<Provision
   //     the two deliveries are not ordered: an account opened after that
   //     event had already been dropped for having no account would sit on
   //     the default until its first renewal.
+  let opened = true;
   if (facts.subscriptionId !== null) {
     const { openSubscription } = await import("@/lib/account/billing");
-    await openSubscription({ userId, subscriptionId: facts.subscriptionId });
+    const opening = await openSubscription({ userId, subscriptionId: facts.subscriptionId });
+    opened = opening.ok || !opening.transient;
   }
 
   // 3. The site. Its domain is the report's, or null where there was no
@@ -144,15 +150,17 @@ export async function provisionFromPayment(sessionId: string): Promise<Provision
   // provisioned account look unprovisioned.
   await capture("paid", { subject: userId });
 
-  return { userId, siteId, created: true, signIn, openedAt: facts.openedAt };
+  return { userId, siteId, created: true, signIn, openedAt: facts.openedAt, retry: !opened };
 }
 
-/** This payment, again. Nothing was bought twice: no mail, no link, no write. */
+/** This payment, again. Nothing was bought twice: no mail and no link; the
+ *  one write is the subscription an earlier delivery failed to open. */
 async function replayOf(
   sessionId: string,
   account: { id: string } | null,
-  openedAt: number
+  facts: { subscriptionId: string | null; openedAt: number }
 ): Promise<ProvisionResult> {
+  const opened = account === null || facts.subscriptionId === null || (await openIfMissing(account.id, facts.subscriptionId));
   const site = account === null ? null : await accountStore().siteForAccount(account.id);
   logProvision({ sessionId, outcome: "replay" });
   return {
@@ -160,8 +168,19 @@ async function replayOf(
     siteId: site?.ok === true ? site.siteId : null,
     created: false,
     duplicate: "replay",
-    openedAt,
+    openedAt: facts.openedAt,
+    retry: !opened,
   };
+}
+
+/** Opens the subscription unless an account already holds it; false only where a redelivery could succeed. */
+async function openIfMissing(userId: string, subscriptionId: string): Promise<boolean> {
+  const { billingStore, openSubscription } = await import("@/lib/account/billing");
+  const held = await billingStore().accountBySubscription(subscriptionId);
+  if (!held.ok) return false;
+  if (held.account !== null) return true;
+  const opening = await openSubscription({ userId, subscriptionId });
+  return opening.ok || !opening.transient;
 }
 
 /** The domain the purchase carries in. Reads the scan the checkout metadata

@@ -179,7 +179,7 @@ describe('REQ-024 c2 — "a claimed payment we cannot verify as ours … no acco
   it("a vendor failure is an arm and carries no vendor text", async () => {
     vendor.sessionRetrieveError = new Error("raw vendor text");
     const result = await recordCheckoutFacts("cs_one");
-    expect(result).toEqual({ ok: false, reason: "vendor" });
+    expect(result).toEqual({ ok: false, reason: "vendor", transient: false });
     expect(JSON.stringify(result)).not.toContain("raw vendor text");
   });
 });

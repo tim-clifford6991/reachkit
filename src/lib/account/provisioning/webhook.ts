@@ -14,21 +14,22 @@
 // over bytes: a round-trip through a string would make every live webhook
 // fail while every test that stubs the verifier passed.
 //
-// **An unknown event is an answer, never a throw.** A verified event whose
-// type is not in `STRIPE_EVENTS` is reported as `unknown_event` — Stripe
-// retries a 5xx, so throwing on an event we simply do not handle would
-// enqueue an indefinite retry of nothing.
+// **An unknown event is a 200, never a refusal.** A verified event whose
+// type is not in `STRIPE_EVENTS` is logged as `unknown_event` and answered
+// like an ignored one: Stripe retries any non-2xx, and disables an endpoint
+// that keeps refusing.
 //
 // This module creates no table and writes no row of its own. The durable
 // record that lets a replayed delivery be recognised is the `users` row's
 // `checkout_session_id`, which the provisioning branch writes.
 import { env } from "@/lib/config/env";
 import { stripe, type Stripe } from "../stripe/client";
+import { redeliver } from "../stripe/transient";
 import { STRIPE_EVENTS, type StripeEventRoute } from "./events";
 
 export type WebhookResult =
   | { handled: true; event: string; route: StripeEventRoute }
-  | { handled: false; reason: "signature" | "unknown_event" };
+  | { handled: false; reason: "signature" };
 
 /** What the `subscription` route calls. The rule is
  *  `src/lib/account/billing/events.ts`'s (issue #34), reached through the
@@ -47,7 +48,7 @@ export function registerSubscriptionHandler(handler: SubscriptionHandler | null)
 
 /** What the `provision` route calls, behind a narrow function type so this
  *  file holds no provisioning logic and the two can be tested apart. */
-export type ProvisionHandler = (sessionId: string) => Promise<unknown>;
+export type ProvisionHandler = (sessionId: string) => Promise<{ readonly retry?: boolean } | void>;
 
 let provisionHandler: ProvisionHandler | null = null;
 
@@ -83,13 +84,14 @@ export async function handleStripeWebhook(
   const route = STRIPE_EVENTS[event.type];
   if (route === undefined) {
     log({ outcome: "unknown_event", type: event.type });
-    return { handled: false, reason: "unknown_event" };
+    return { handled: true, event: event.type, route: "ignore" };
   }
 
   if (route === "provision") {
     const session = event.data.object as Stripe.Checkout.Session;
     const handler = provisionHandler ?? (await defaultProvisionHandler());
-    await handler(session.id);
+    // A non-2xx is what makes Stripe deliver again, which finishes the payment.
+    if ((await handler(session.id))?.retry === true) redeliver("provision");
   } else if (route === "subscription") {
     const handler = subscriptionHandler ?? (await defaultSubscriptionHandler());
     await handler(event);
