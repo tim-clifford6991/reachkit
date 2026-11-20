@@ -1,4 +1,5 @@
 // What the draft tick owes a `generating` row: a row no run is still writing is never left there.
+import { localDay } from "@/lib/scan/weekly/week";
 
 /** Longer than a run's `write` → `review` gap, its step retries and its queue included, so a live run's row is not taken. */
 export const RUN_FLOOR_MS = 2 * 60 * 60_000;
@@ -36,7 +37,7 @@ export function owedToRow(
   if (waiting === "restart") return now.getTime() - askedAt(row) > RUN_FLOOR_MS ? "stop" : "rewrite";
   if (waiting !== "interrupted") return null;
   if (REWRITTEN in carriedMark(row.meta)) return "stop";
-  const today = new Intl.DateTimeFormat("en-CA", { timeZone: zone ?? "UTC" }).format(now);
+  const today = localDay(now, zone);
   return row.scheduled_for !== null && row.scheduled_for < today ? "stop" : "mark";
 }
 

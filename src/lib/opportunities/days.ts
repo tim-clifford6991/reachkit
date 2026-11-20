@@ -1,6 +1,9 @@
 // SPEC §7 — which dates carry a page. One rule for Plan, the week Overview
 // counts and the Monday mail: a date's scheduled draft, except one held on a
 // date already past, else the open row committed for it.
+import { tz } from "@date-fns/tz";
+import { differenceInCalendarWeeks } from "date-fns";
+import { WEEK_STARTS_ON } from "@/lib/scan/weekly/week";
 
 /** Each date's scheduled draft: the first on it (REQ-043 c1), with the held
  *  ones on dates already past set apart. */
@@ -35,9 +38,6 @@ export function plannedByDay(
 
 /** Which week of service `today` falls in, counting the week `first` falls in as 1. Both are `YYYY-MM-DD`. */
 export function serviceWeek(first: string, today: string): number {
-  const monday = (day: string): number => {
-    const at = Date.parse(`${day}T00:00:00Z`);
-    return at - ((new Date(at).getUTCDay() + 6) % 7) * 86_400_000;
-  };
-  return Math.max(1, Math.round((monday(today) - monday(first)) / (7 * 86_400_000)) + 1);
+  const weeks = differenceInCalendarWeeks(`${today}T00:00:00Z`, `${first}T00:00:00Z`, { weekStartsOn: WEEK_STARTS_ON, in: tz("UTC") });
+  return Math.max(1, weeks + 1);
 }

@@ -44,9 +44,7 @@ export function formatShortDay(at: Date, timeZone: string): string {
 }
 
 /** The site-local calendar date of an instant, `YYYY-MM-DD`. */
-export function localDate(at: Date, timeZone: string): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(at);
-}
+export { localDay as localDate } from "@/lib/scan/weekly/week";
 
 /** A day with its year, as the boards write it: "Sat 7 Nov 2026". */
 export function formatDayDate(at: Date, timeZone: string): string {

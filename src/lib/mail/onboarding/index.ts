@@ -9,6 +9,7 @@ import { committedWeek } from "@/lib/opportunities";
 import { opportunityStore } from "@/lib/opportunities/store";
 import { liveDestinations } from "@/lib/publish/destinations/store";
 import { lastPass } from "@/lib/scan/deep/pass-end";
+import { localDay } from "@/lib/scan/weekly/week";
 import { sendEmail } from "../send";
 import { buildConnected, buildSetupDone } from "../templates/account/onboarding";
 import type { AccountMail } from "../templates/magic-link";
@@ -142,7 +143,7 @@ async function connectedHost(site: SiteRow): Promise<string | null> {
 }
 
 async function connectedMail(site: SiteRow, host: string, now: Date): Promise<AccountMail> {
-  const today = new Intl.DateTimeFormat("en-CA", { timeZone: site.timezone ?? "UTC" }).format(now);
+  const today = localDay(now, site.timezone);
   const days = (await committedWeek(site.id)).days.map((day) => day.date).filter((date) => date >= today).sort();
   return buildConnected({ host, firstDay: days[0] ?? null });
 }

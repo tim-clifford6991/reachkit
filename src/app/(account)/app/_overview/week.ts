@@ -16,7 +16,7 @@
 // **Seven days, by type.** The week is built as a fixed-length tuple, so a
 // strip missing a day has no shape to be in.
 import type { CopyKey } from "@/lib/presentation/copy";
-import { WEEK_START } from "@/lib/config/constants";
+import { localDay, weekStartFor } from "@/lib/scan/weekly/week";
 
 export type DayState = "done" | "today" | "to-come";
 
@@ -73,12 +73,11 @@ export const DAY_MARK: Readonly<Record<DayState, CopyKey>> = Object.freeze({
 export const CALENDAR_HREF = "/app/calendar";
 
 /** The zone a `WeekDayModel.date` is read back in. The site's own zone was
- *  applied when the day was resolved (`localMidnight`); reading the marker
+ *  applied when the day was resolved (`readWeek`); reading the marker
  *  is a second, different operation, and doing it in the site's zone would
  *  apply the offset twice. */
 export const CALENDAR_DAY_ZONE = "UTC";
 
-const DAYS_IN_WEEK = 7;
 const MS_PER_DAY = 86_400_000;
 
 export function readWeek(input: {
@@ -90,8 +89,9 @@ export function readWeek(input: {
    *  drafts; this module decides nothing about what is scheduled. */
   pages?: readonly (CopyKey | null)[];
 }): WeekModule {
-  const today = localMidnight(input.today, input.timeZone);
-  const start = weekStartOf(today);
+  // Each day is carried as its site-local date at UTC midnight, where "the same day" is an equality.
+  const today = new Date(`${localDay(input.today, input.timeZone)}T00:00:00Z`);
+  const start = new Date(`${weekStartFor({ at: input.today, zone: input.timeZone })}T00:00:00Z`);
 
   const dayAt = (offset: number): WeekDayModel => {
     const date = new Date(start.getTime() + offset * MS_PER_DAY);
@@ -115,35 +115,4 @@ export function readWeek(input: {
   const days: SevenDayModel = [dayAt(0), dayAt(1), dayAt(2), dayAt(3), dayAt(4), dayAt(5), dayAt(6)];
 
   return { days, calendarHref: CALENDAR_HREF };
-}
-
-/** The site-local calendar day of `at`, as a UTC-midnight instant — the one
- *  representation in which "the same day" is an equality rather than a
- *  range. `en-CA` is chosen here for its ISO-shaped output (`2026-09-05`),
- *  a parse target and not a customer-visible locale; every string the
- *  customer reads is formatted by the shell's own `formatDate`. */
-function localMidnight(at: Date, timeZone: string): Date {
-  const [year = 0, month = 1, day = 1] = new Intl.DateTimeFormat("en-CA", {
-    timeZone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  })
-    .format(at)
-    .split("-")
-    .map(Number);
-  return new Date(Date.UTC(year, month - 1, day));
-}
-
-/** `getUTCDay()`'s index for each week start the pin can name. Keyed by
- *  `typeof WEEK_START`, so changing the pin (REQ-065 c1) is a compile error
- *  here — a missing row — rather than a strip that silently starts on the
- *  wrong day. */
-const WEEK_START_INDEX: Readonly<Record<typeof WEEK_START, number>> = Object.freeze({ monday: 1 });
-
-/** The first day of `day`'s own week. */
-function weekStartOf(day: Date): Date {
-  const fromStart =
-    (day.getUTCDay() - WEEK_START_INDEX[WEEK_START] + DAYS_IN_WEEK) % DAYS_IN_WEEK;
-  return new Date(day.getTime() - fromStart * MS_PER_DAY);
 }

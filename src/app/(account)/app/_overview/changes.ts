@@ -22,6 +22,7 @@
 // draw it.
 import type { CopyKey } from "@/lib/presentation/copy";
 import type { ChangeMarker, MarkerKind } from "@/lib/market/changes/markers";
+import { weekStartFor } from "@/lib/scan/weekly/week";
 
 /** The written account each kind of change puts on its break. One key per
  *  kind and no default: a change this screen cannot name is a change it
@@ -48,7 +49,7 @@ export type SeriesEntry<T> =
  * `startOf` reads a week's own Monday. A marker belongs *before the week it
  * was measured in* — that week is the first one under the new answer, which
  * is exactly what `weeksSinceChange` counts from, because both ask
- * `weekOf()`. One rule, one function: the count and the drawing cannot
+ * `weekStartFor` in the site's zone: the count and the drawing cannot
  * disagree about which side of the break a week is on.
  *
  * A marker before every week it could break (a change older than the whole
@@ -59,7 +60,8 @@ export type SeriesEntry<T> =
 export function withBreaks<T>(
   weeks: readonly T[],
   changes: readonly ChangeMarker[],
-  startOf: (week: T) => Date
+  startOf: (week: T) => Date,
+  zone: string
 ): readonly SeriesEntry<T>[] {
   if (weeks.length === 0) return [];
   const ordered = [...changes].sort((a, b) => a.on.getTime() - b.on.getTime());
@@ -67,10 +69,10 @@ export function withBreaks<T>(
 
   weeks.forEach((week, index) => {
     if (index > 0) {
-      const previous = weekOf(startOf(weeks[index - 1] as T));
-      const current = weekOf(startOf(week));
+      const previous = storedWeek(startOf(weeks[index - 1] as T));
+      const current = storedWeek(startOf(week));
       for (const marker of ordered) {
-        const changed = weekOf(marker.on);
+        const changed = weekStartFor({ at: marker.on, zone });
         if (changed > previous && changed <= current) {
           out.push({ kind: "break", marker });
         }
@@ -82,18 +84,9 @@ export function withBreaks<T>(
   return out;
 }
 
-/**
- * The Monday of the week a date falls in, as `YYYY-MM-DD`.
- *
- * The one place this screen decides which week a date belongs to. A change
- * measured mid-week belongs to the week it was measured in, and that week
- * is the first under the new answer — so the break stands before it and the
- * count starts at it, from this one function.
- */
-export function weekOf(at: Date): string {
-  const midnight = Date.UTC(at.getUTCFullYear(), at.getUTCMonth(), at.getUTCDate());
-  const weekday = (new Date(midnight).getUTCDay() + 6) % 7;
-  return new Date(midnight - weekday * 86_400_000).toISOString().slice(0, 10);
+/** A drawn week's stored `week_start`, read back from the instant it is drawn at. */
+export function storedWeek(weekStart: Date): string {
+  return weekStart.toISOString().slice(0, 10);
 }
 
 /**
