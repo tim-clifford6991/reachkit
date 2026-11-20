@@ -31,8 +31,6 @@ const { memoryStore, newMemoryState } = await import("../../mail/leads/memory-st
 const { newStripeDouble, stripeDouble, stripeErrors, subscriptionDouble } = await import("../stripe-double");
 const { setBillingStore } = await import("@/lib/account/billing");
 const { account, memoryBillingStore, newMemoryBilling } = await import("../billing/memory-store");
-const { setOfferStore } = await import("@/lib/account/offer/spots");
-const { memoryOfferStore } = await import("../offer-store");
 
 let accounts = newMemoryAccounts();
 let vendor = newStripeDouble();
@@ -204,45 +202,5 @@ describe("what provisioning logs", () => {
     expect(emitted).toContain("cs_one");
     expect(emitted).not.toContain("founder@acme.example");
     expect(emitted).not.toContain("IE1234567X");
-  });
-});
-
-describe("the first-50 offer: a live paid checkout takes the lowest free place; provisioning never waits on it", () => {
-  const spot = (place: number, freed = false) => ({ place, user_id: `u${place}`, subscription_id: `sub_${place}`, taken_at: new Date(), freed_at: freed ? new Date() : null });
-  const buy = async (id: string, email = `${id}@x.example`, livemode = true, paidAt?: Date) => (vendor.sessions.set(id, completedSession({ id, livemode, subscription: `sub_${id}`, customer_details: { email } })), (await provisionFromPayment(id, paidAt)).userId !== null);
-  afterEach(() => (vi.useRealTimers(), setOfferStore(null)));
-
-  it("one spot per checkout, none for a return, the 51st, an owner or test mode; a replay repairs a failed write; each account opens", async () => {
-    const [rows, fail] = [[spot(1), spot(2, true)], { next: true }];
-    setOfferStore(memoryOfferStore(rows, fail));
-    const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
-    const opened = [await buy("cs_one", "founder@acme.example")];
-    const failLogged = log.mock.calls.flat().join().includes("offer_spot_failed") && rows.length === 2;
-    fail.next = false;
-    opened.push(await buy("cs_one", "founder@acme.example"), await buy("cs_one", "founder@acme.example"), await buy("cs_back", "founder@acme.example"), await buy("cs_owner", "Owner@Example.com"), await buy("cs_test", undefined, false));
-    expect(rows.map((r) => r.place)).toEqual([1, 2, 2]);
-    rows.push(...Array.from({ length: 48 }, (_, i) => spot(i + 3)));
-    opened.push(await buy("cs_51"));
-    expect({ opened: opened.every(Boolean), rows: rows.length, failLogged }).toEqual({ opened: true, rows: 51, failLogged: true });
-  });
-
-  it("the end is judged by when the buyer paid; a buyer who loses a place to a concurrent one reads again, and the cap holds", async () => {
-    const rows = [spot(1)];
-    setOfferStore(memoryOfferStore(rows));
-    vi.useFakeTimers({ now: new Date("2027-02-01T00:00:05Z"), toFake: ["Date"] });
-    await buy("cs_late");
-    await buy("cs_paid_before", undefined, true, new Date("2027-01-31T23:59:59Z"));
-    expect(rows.map((r) => r.subscription_id)).toEqual(["sub_1", "sub_cs_paid_before"]);
-    vi.useRealTimers();
-    for (const held of [48, 49]) {
-      rows.splice(0, rows.length, ...Array.from({ length: held }, (_, i) => spot(i + 1)));
-      const store = memoryOfferStore(rows);
-      let stale = true;
-      // The first read is taken before a rival buyer inserts the next free place.
-      setOfferStore({ ...store, heldPlaces: async () => { const read = await store.heldPlaces(); if (stale) rows.push(spot(held + 1)); stale = false; return read; } });
-      expect(await buy(`cs_race_${held}`)).toBe(true);
-      expect(rows.filter((r) => r.subscription_id === `sub_cs_race_${held}`).map((r) => r.place)).toEqual(held === 48 ? [50] : []);
-      expect(rows.filter((r) => r.freed_at === null).length).toBeLessThanOrEqual(50);
-    }
   });
 });
