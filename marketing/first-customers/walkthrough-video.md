@@ -20,7 +20,7 @@ report. One video per prospect, sent with script 3 in `scripts.md` within 24 hou
 - Show their result, not the machinery. Say "pages that answer what your buyers ask", not
   "keywords", "SERP", "schema" or "LLM".
 - No promise of a ranking, mention or date. "Google takes weeks to months" is the live line
-  (`landing.faq.results.short`, `report.ts:678`).
+  (`landing.faq.results.short`, `report.ts:677`).
 - The pace is "up to 7 pages a week, new or updated".
 - Format: 16:9 screen recording, browser at about 1280 wide, face bubble bottom right. Their domain
   is in the first frame so they know it's for them.
@@ -37,7 +37,7 @@ report. One video per prospect, sent with script 3 in `scripts.md` within 24 hou
 | 2:40–3:40 | *Pages you're missing* (`report.missing.title`, `report.ts:846`) | "This is the part I'd care about. These are questions your buyers ask that no page of yours answers. The top one: '{topic}', searched {volume} times a month, answered today by {holder}. Each is a page we'd write and put on your site." |
 | 3:40–4:05 | The free first page, opened from "Get your first page free" (`report.offer.free-path`, `report.ts:837`) | "You can read the first one free, right here. It's written from facts on your own site." Scroll a few lines. Skip this row if their report has no first page. |
 | 4:05–4:25 | The top one or two site fixes | "Two things on your site worth fixing anyway: {fix 1}, {fix 2}. That's free advice, whatever you decide." |
-| 4:25–5:00 | The offer at the foot of the report; then your face full screen | "Here's what I'd suggest. ReachKit writes up to 7 pages a week, new or updated, and publishes them on your site, and each Monday you get an email with what went live and your totals so far. I'm setting up 50 founding customers myself: €49 a month, VAT included, cancel any time, price locked while you stay. Wave {wave} closes {close date}. The link to book 15 minutes is in my message." |
+| 4:25–5:00 | The offer at the foot of the report; then your face full screen | "Here's what I'd suggest. ReachKit writes up to 7 pages a week, new or updated, and publishes them on your site, and each Monday you get an email with what went live and your totals so far. I'm setting up the first 50 customers myself. It's set up in about 10 minutes, or I do it with you on a call. €49 a month, VAT included, cancel any time, and there are {left} of 50 spots left until 31 Jan 2027. The link to book 15 minutes is in my message." |
 
 **On-screen text** (optional, as captions in the recorder):
 
@@ -63,4 +63,6 @@ report. One video per prospect, sent with script 3 in `scripts.md` within 24 hou
 The report's order (headline, score, *Who gets your buyers* over the AI and Google cards, *Pages
 you're missing*, the top fixes, then the offer) is SPEC §2 *Report order*. Every phrase in quotes
 above is a live copy key in `src/lib/presentation/copy/keys/report.ts` (lines 846–886) or the offer
-keys in `offer.ts:36–44`.
+keys in `offer.ts:36–44`. "About 10 minutes" is `setup.step.time` (`setup.ts:396`); the call, the
+50 spots and 31 Jan 2027 are the owner's (D2, D4, 2026-11-20, #2981). No price-lock line until
+Terms §4 carries it (#2993).
