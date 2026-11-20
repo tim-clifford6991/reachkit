@@ -73,7 +73,7 @@ Never register a self-hosted runner on this repository while it is public.
 | | |
 |---|---|
 | Rule | one Vercel project, one Supabase project, one set of bindings (owner, 2026-09-08) — no duplicate projects, environments or databases |
-| Vercel | team `timclifford` (`team_lFEcKlyuKD5risdEnak7iRIm`), **Pro plan** since 2026-11-07 (#2477); project **`reachkit`** (`prj_QJUivDYYshplvV0enuc2oZNIjcnd`), production branch `main`, Node 24, Next.js preset, no root directory. Spend Management (team, Settings, Billing) is the owner's: notify at the amount and do not auto-pause, because a pause is a 402 outage |
+| Vercel | team `timclifford` (`team_lFEcKlyuKD5risdEnak7iRIm`), **Pro plan** since 2026-11-07 (#2477); project **`reachkit`** (`prj_QJUivDYYshplvV0enuc2oZNIjcnd`), production branch `main`, Node 24, Next.js preset, no root directory. Spend Management (team, Settings, Billing) is the owner's: notify at the amount and do not auto-pause, because a pause is an outage: every request answers 503 [`DEPLOYMENT_PAUSED`](https://vercel.com/docs/errors/DEPLOYMENT_PAUSED). Hobby's soft-block of 2026-11-07 answered 402 |
 | Production | `reachkit.app` (and `www.`) |
 | Development host | `dev.reachkit.app` — the same project, bound to `main`, and the same database. It is where the owner steers; it is not a separate environment |
 | Preview | none; Git deployments are off |
@@ -286,8 +286,8 @@ cron list in `src/jobs/schedule.ts`, which `tests/jobs/schedule.test.ts` holds e
 
 **The outage alarm.** UptimeRobot, run by the owner outside the box and outside Vercel, probes
 `https://reachkit.app/api/health` and alerts the owner by email. Its HTTP monitor counts any
-non-2xx or timeout as down, so the 402 of a Vercel soft-block (2026-11-07) and the 503 of stale jobs
-(2026-11-09) both alert. Nothing else probes production continuously; customers' hosted hosts are
+non-2xx or timeout as down, so the 402 of a Vercel soft-block (2026-11-07), the 503 `DEPLOYMENT_PAUSED`
+of a Spend Management pause and the 503 of stale jobs (2026-11-09) all alert. Nothing else probes production continuously; customers' hosted hosts are
 not watched.
 
 `scripts/deadman.mjs` is a second clock from the box. It is **not installed** and is kept as an
