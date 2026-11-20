@@ -1,0 +1,15 @@
+{
+  "capCents": 6000,
+  "marginCents": 100,
+  "until": "2026-11-25T22:30:00Z",
+  "models": {
+    "claude-haiku-4-5": { "in": 100, "out": 500, "drop": [], "set": {} },
+    "claude-haiku-5-5": { "in": 10, "out": 50, "longAbove": 50000, "longIn": null, "longOut": null, "drop": ["temperature"], "set": { "thinking": { "type": "disabled" } } },
+    "claude-sonnet-4-6": { "in": 300, "out": 1500, "drop": [], "set": {} },
+    "claude-sonnet-5": { "in": 200, "out": 1000, "drop": ["temperature"], "set": { "thinking": { "type": "disabled" } } },
+    "claude-sonnet-5-5": { "in": 200, "out": 1000, "drop": ["temperature", "thinking"], "set": {} },
+    "claude-opus-5": { "in": 500, "out": 2500, "drop": ["temperature"], "set": { "thinking": { "type": "disabled" } } },
+    "claude-opus-5-5": { "in": 400, "out": 2000, "drop": ["temperature", "thinking"], "set": {} },
+    "claude-fable-5-2": { "in": 800, "out": 4000, "drop": ["temperature", "thinking"], "set": {} }
+  }
+}

@@ -63,9 +63,11 @@ export function issueOrBranch() {
  * Off the box (no `/root/ops/reachkit`) and under a test runner nothing is
  * written unless `RK_SPEND_LOG` names a file.
  *
- * @param {{ script: string, source: string, cents: number, billed?: number | undefined, domain?: string | undefined, at?: Date }} call
+ * `issue` names the issue where the script, not the branch, says which one paid (the model evaluation).
+ *
+ * @param {{ script: string, source: string, cents: number, billed?: number | undefined, domain?: string | undefined, issue?: string | undefined, at?: Date }} call
  */
-export function appendSpend({ script, source, cents, billed, domain, at = new Date() }) {
+export function appendSpend({ script, source, cents, billed, domain, issue, at = new Date() }) {
   const charged = typeof billed === "number" && Number.isFinite(billed) ? billed : undefined;
   if (!(cents > 0) && !(charged > 0)) return;
   const file = spendLogPath();
@@ -74,7 +76,7 @@ export function appendSpend({ script, source, cents, billed, domain, at = new Da
   try {
     appendFileSync(
       file,
-      `${JSON.stringify({ at: at.toISOString(), issue: issueOrBranch(), script, source, cents: round(cents > 0 ? cents : 0), ...(charged === undefined ? {} : { billed: round(charged) }), ...(typeof domain === "string" && domain !== "" ? { domain } : {}) })}\n`
+      `${JSON.stringify({ at: at.toISOString(), issue: issue ?? issueOrBranch(), script, source, cents: round(cents > 0 ? cents : 0), ...(charged === undefined ? {} : { billed: round(charged) }), ...(typeof domain === "string" && domain !== "" ? { domain } : {}) })}\n`
     );
   } catch (error) {
     console.error(`spend log: could not append to ${file} (${String(error?.message ?? error)}); ${cents}¢ by ${script} is unrecorded.`);
