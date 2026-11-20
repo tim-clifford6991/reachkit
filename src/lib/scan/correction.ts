@@ -40,15 +40,16 @@ import type { CanonicalDomain } from "./domain";
 /** The scan pipeline's own entry point, as this seam needs to call it:
  *  BUILD §6.3's one pipeline with the tier as a parameter, plus
  *  `correctionOf` — "a market correction re-measures inside the scan it
- *  corrects: same spend ceiling, no second allowance consumed" — and the
- *  category the reader corrected to, which is what the re-measurement
- *  seeds on (#767). Nothing else is ever passed through it from here: no
- *  ceiling override, no deadline, no allowance flag. */
+ *  corrects: same spend ceiling" — the category the reader corrected to,
+ *  which the re-measurement seeds on (#767), and the visitor's network.
+ *  No ceiling override and no deadline is passed through it. */
 export type CorrectionRunner = (a: {
   domain: string;
   tier: "free";
   correctionOf: string;
   category: string;
+  /** The visitor's network key: the rerun's row counts against their free bounds. */
+  network: string;
 }) => Promise<CorrectionRun>;
 
 /** A started re-measurement (#786). `scanId` is the row the pass writes

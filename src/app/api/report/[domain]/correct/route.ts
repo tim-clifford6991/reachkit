@@ -19,10 +19,10 @@
 // are never collapsed into one key.
 //
 // **The re-measurement is issue #25's `runScan`**, reached through the seam
-// `@/lib/scan/correction` declares. This route never calls
-// `admitFreeScan` or `claimFreeScanSlot`: a correction re-measures inside
-// the scan it corrects, spends no further scan allowance and opens no
-// second spend ceiling, and there is no call here through which it could.
+// `@/lib/scan/correction` declares. It re-measures inside the scan it
+// corrects, under no second spend ceiling, but it counts against the
+// visitor's network bounds as a free scan does, and its row carries the
+// visitor's network so the next scan counts it too.
 //
 // This route returns handles, never sentences: every key below is turned
 // into a written line by the copy registry, on the surface that renders it.
@@ -43,6 +43,8 @@ import { advanceCorrectionState, correctionRunner, readCorrectionFacts } from "@
 // `scanning_unavailable` — a refusal that would be untrue.
 import "@/lib/scan/run";
 import { parseDomain, type DomainProblem } from "@/lib/scan/domain";
+import { networkAdmits, networkKeyOf } from "@/lib/scan/admission";
+import { CATEGORY_MAX } from "@/lib/scan/stages";
 
 /** Every way a submission can be turned down, as one flat vocabulary.
  *  `used`/`exhausted` are the offer's terminal reasons and
@@ -59,7 +61,8 @@ export type CorrectionRefusal =
   | "already_running"
   | "already_used"
   | "no_current_report"
-  | "scanning_unavailable";
+  | "scanning_unavailable"
+  | "limited";
 
 export type CorrectReportResponse =
   | { ok: true; scanId: string }
@@ -76,6 +79,7 @@ const REFUSAL_STATUS: Readonly<Record<CorrectionRefusal, number>> = {
   already_used: 409,
   no_current_report: 404,
   scanning_unavailable: 503,
+  limited: 429,
 };
 
 function refuse(refused: CorrectionRefusal): Response {
@@ -85,10 +89,8 @@ function refuse(refused: CorrectionRefusal): Response {
   });
 }
 
-/** One body field, the corrected category, as an opaque string. It is
- *  neither checked against a vocabulary nor normalised here: no list of
- *  categories exists for this route to check against, and inventing one
- *  would be a second implementation of a check the market module owns. */
+/** One body field, the corrected category: one line no longer than the stored category's cap,
+ *  otherwise opaque, since no list of categories exists for this route to check against. */
 async function readCategory(request: Request): Promise<string | null> {
   let parsed: unknown;
   try {
@@ -98,7 +100,8 @@ async function readCategory(request: Request): Promise<string | null> {
   }
   if (typeof parsed !== "object" || parsed === null || !("category" in parsed)) return null;
   const category = (parsed as { category: unknown }).category;
-  return typeof category === "string" && category.trim().length > 0 ? category : null;
+  const fits = typeof category === "string" && category.length <= CATEGORY_MAX && !/[\r\n]/.test(category);
+  return fits && category.trim().length > 0 ? category : null;
 }
 
 const ROUTE_ID = "POST /api/report/{domain}/correct";
@@ -142,6 +145,8 @@ async function handle(
     nextCorrectionState({ current: report.correctionState, event: "refused_before_run" });
     return refuse("scanning_unavailable");
   }
+  const network = networkKeyOf(request.headers);
+  if (!(await networkAdmits(network))) return refuse("limited");
 
   // Two submissions racing for one report resolve here, in Postgres: the
   // loser is told a correction is already under way, which is true.
@@ -156,7 +161,7 @@ async function handle(
   // (#786). The id goes back at once so the report can follow the stages;
   // the pass itself is handed to `after()`, which keeps this invocation
   // alive until it settles, exactly as `POST /api/scan` does.
-  const run = await runner({ domain: parsed.domain, tier: "free", correctionOf: report.scanId, category });
+  const run = await runner({ domain: parsed.domain, tier: "free", correctionOf: report.scanId, category, network });
   after(async () => {
     try {
       const { status } = await run.finished;

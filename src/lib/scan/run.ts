@@ -517,9 +517,8 @@ function logPass(fields: {
 // The row is claimed here, before the seam answers, and the pass is started
 // and not awaited (#786): the report follows the rerun's stages by that
 // row's id, and a stream opened on a row that does not exist yet is a 404.
-// The free tier adopts an admission claim, and a correction has none — it
-// spends no second allowance — so without this claim the pass found no row
-// and ended `no_claimed_slot` before it measured anything.
+// The free tier adopts an admission claim, and a correction has none, so
+// it claims its own row, under the visitor's network so it counts as a scan.
 // ── The retry seam (SPEC §2, issue 715) ─────────────────────────────────
 //
 // The same arrangement as the correction seam below, and for the same two
@@ -551,7 +550,7 @@ registerCorrectionRunner(async (a) => {
   const parsed = parseDomain(a.domain);
   if (!parsed.ok) throw new Error(`correction: ${parsed.problem}`);
   const scanId = crypto.randomUUID();
-  const { claimed } = await claimPassRow({ scanId, domain: parsed.domain, tier: a.tier });
+  const { claimed } = await claimPassRow({ scanId, domain: parsed.domain, tier: a.tier, network: a.network });
   if (!claimed) throw new Error(`correction: the scan row ${scanId} already exists`);
   return {
     scanId,

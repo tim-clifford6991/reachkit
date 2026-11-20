@@ -75,6 +75,8 @@ export async function claimPassRow(a: {
   domain: CanonicalDomain;
   tier: Tier;
   siteId?: string;
+  /** The visitor's network, so the row counts against their free bounds. */
+  network?: string;
 }): Promise<{ claimed: boolean }> {
   const { error } = await untyped(dbAdmin())
     .from<{ id: string }>("scans")
@@ -84,6 +86,7 @@ export async function claimPassRow(a: {
       tier: a.tier,
       status: "running",
       ...(a.siteId === undefined ? {} : { site_id: a.siteId }),
+      ...(a.network === undefined ? {} : { network_hash: a.network }),
     });
   // The row already exists: a claim made earlier under the same id.
   if (error?.code === UNIQUE_VIOLATION) return { claimed: false };

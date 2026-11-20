@@ -118,7 +118,7 @@ export interface StageSummary {
   searches?: readonly { words: string; onPageOne: boolean }[];
 }
 
-const CATEGORY_MAX = 60;
+export const CATEGORY_MAX = 60;
 const BUYER_MAX = 200;
 const PLACE_MAX = 60;
 const WORDS_MAX = 80;

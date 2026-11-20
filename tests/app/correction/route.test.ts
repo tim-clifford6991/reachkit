@@ -56,6 +56,9 @@ vi.mock("@/lib/scan/correction", () => ({
   registerCorrectionRunner: () => {},
 }));
 
+const networkAdmits = vi.fn(async () => true);
+vi.mock("@/lib/scan/admission", () => ({ networkKeyOf: () => "net", networkAdmits: () => networkAdmits() }));
+
 const nextCorrectionState = vi.fn();
 vi.mock("@/lib/market/coherence/state", async (importOriginal) => {
   const original = await importOriginal<typeof import("../../../src/lib/market/coherence/state.ts")>();
@@ -152,6 +155,7 @@ describe("REQ-094 c3 — an accepted correction is one re-measurement inside the
       tier: "free",
       correctionOf: "scan-1",
       category: "employee scheduling software",
+      network: "net",
     });
     expect(runner.mock.calls[0]).toHaveLength(1);
   });
@@ -196,9 +200,12 @@ describe("REQ-094 c3 — an accepted correction is one re-measurement inside the
     });
   });
 
-  it("correct-route/accepted · no scan allowance is consumed — the route never calls admission", () => {
-    expect(CODE).not.toMatch(/claimFreeScanSlot|admitFreeScan|networkKeyOf/);
-    expect(SOURCE).not.toMatch(/from\s+["'][^"']*lib\/scan\/admission/);
+  it("cost cap · an over-long or multi-line category, or a visitor over the scan limit, starts nothing", async () => {
+    for (const category of ["x".repeat(61), "a\nb"]) expect((await post({ body: { category } })).status).toBe(400);
+    networkAdmits.mockResolvedValueOnce(false);
+    expect(await (await post()).json()).toEqual({ ok: false, refused: "limited" });
+    expect(advanceCorrectionState).not.toHaveBeenCalled();
+    expect(runner).not.toHaveBeenCalled();
   });
 
   it("correct-route/accepted · the route passes no ceiling, deadline or allowance flag", () => {

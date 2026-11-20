@@ -40,6 +40,7 @@ const REFUSAL_LINE: Readonly<Record<CorrectionRefusal, CopyKey>> = Object.freeze
   domain_removed: "correction.refused.unavailable",
   no_current_report: "correction.refused.unavailable",
   scanning_unavailable: "correction.refused.unavailable",
+  limited: "correction.refused.unavailable",
 });
 
 type Step =
