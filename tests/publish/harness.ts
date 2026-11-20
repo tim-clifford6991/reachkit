@@ -48,6 +48,8 @@ export interface FakeDb {
   /** Tables whose reads answer an error, the way an unreachable database
    *  does. Writes are untouched. */
   unreadable: Set<string>;
+  /** Tables whose updates answer an error, the way a lost connection does. */
+  unwritable: Set<string>;
   seed(table: string, rows: Row[]): void;
   rows(table: string): Row[];
   reset(): void;
@@ -158,6 +160,7 @@ export function fakeDb(): FakeDb {
     rpcCalls: [],
     client: null,
     unreadable: new Set(),
+    unwritable: new Set(),
     seed(table, rows) {
       db.tables.set(table, rows.map((row) => ({ ...row })));
     },
@@ -172,6 +175,7 @@ export function fakeDb(): FakeDb {
     reset() {
       db.tables.clear();
       db.unreadable.clear();
+      db.unwritable.clear();
       db.queries.length = 0;
       db.rpcCalls.length = 0;
     },
@@ -201,6 +205,7 @@ export function fakeDb(): FakeDb {
 
     function run(): { data: Row[] | null; error: { message: string; code?: string } | null } {
       if (insertError !== null) return { data: null, error: insertError };
+      if (query.verb === "update" && db.unwritable.has(table)) return { data: null, error: { message: `stubbed write failure: ${table}` } };
       if (query.verb === "update") {
         const hits = db.rows(table).filter((row) => matches(row, query.filters));
         for (const row of hits) Object.assign(row, query.values);

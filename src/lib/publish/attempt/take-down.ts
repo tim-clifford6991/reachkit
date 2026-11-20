@@ -49,6 +49,7 @@ export async function takeDown(a: { draftId: string; userId: string; at?: Date; 
     results.push(
       await unpublish({
         draftId: version.draft_id,
+        publicationId: version.id,
         by,
         at,
         reason: TAKE_DOWN_REASON,
