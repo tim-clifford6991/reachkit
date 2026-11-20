@@ -10,7 +10,7 @@ start from your report.
 
 - [ ] Fill `{booking}` (R7) and `{left}` before each send.
 - [ ] Export as a PDF (or a private doc) if you send it as a file.
-- [ ] Take `{left}` from the real Progress count. Never round it down for pressure.
+- [ ] `{left}` is the number the site shows (the banner, from `/offer/spots`). Until that ships: 50 minus every first paid checkout not refunded within 14 days, owner and test accounts excluded. Never round it down for pressure.
 - [ ] After they pay, confirm the terms in a plain mail by hand (`setup-call.md` › After the call;
       trust-compliance F7).
 
@@ -18,7 +18,7 @@ start from your report.
 
 ## The sheet (copy below the line into the PDF)
 
-### First 50 Customers: Get Your Business Into AI Answers – 30-Day Kickstart
+### First 50 Customers: 30-Day Kickstart for Google and AI Answers
 
 **When your buyers ask Google or ChatGPT about {category}, they should hear your name.**
 

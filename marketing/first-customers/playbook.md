@@ -76,7 +76,7 @@ Full version: `check-ins.md`.
 | Overview past pain | "What have you tried? What happened?" |
 | Sell the vacation | Their pages live, their name in answers, one mail a Monday. Not the machinery. |
 | Explain away concerns | The objections below |
-| Reinforce the decision | Pay on the call, set up on the call in about 10 minutes, pages go live in week 1 |
+| Reinforce the decision | Pay on the call, set up on the call in about 10 minutes; each page goes live on its day, by itself, once your site is connected |
 
 ### Objections
 

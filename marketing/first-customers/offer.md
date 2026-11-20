@@ -11,7 +11,7 @@ production on the day it is said. The product items exist today; the bonuses are
 |---|---|---|
 | Dream outcome ↑ | "Buyers ask ChatGPT and hear my rival's name" | Named when buyers ask; new pages on your own site every week |
 | Likelihood ↑ | "SEO never worked for me" | Free report as proof before paying; our own site as the example; the Monday measurement; the setup promise |
-| Time delay ↓ | "SEO takes six months" | Pages go live in week 1; the setup promise (D2): set up in about 10 minutes, or we do it with them on a call; a Monday mail from week 1 |
+| Time delay ↓ | "SEO takes six months" | Each page goes live on its day, by itself, once the site is connected; the setup promise (D2): set up in about 10 minutes, or we do it with them on a call; a Monday mail from week 1 |
 | Effort ↓ | "No time, no know-how" | Setup done with them on a call; they never write a word; their job is one mail a week |
 
 ## Problems → solutions (trim and stack)
@@ -33,10 +33,9 @@ fixes, calls beyond setup.
 
 ## Name (MAGIC: reason, avatar, goal, time, container)
 
-> **First 50 Customers: Get Your Business Into AI Answers – 30-Day Kickstart**
+> **First 50 Customers: 30-Day Kickstart for Google and AI Answers**
 
-Alternative to test: "Be the Answer: 30-Day Kickstart". Customer words are "first 50 customers"
-and "spots" (owner, 2026-11-20, #2981; README › *Customer words*).
+Customer words are "first 50 customers" and "spots" (owner, 2026-11-20, #2981; README › *Customer words*).
 No name promises a ranking or a mention; the 30 days is the kickstart (setup, check-ins, the
 first weeks of pages), not a result.
 
@@ -61,8 +60,8 @@ Never say ReachKit equals or replaces the items it is compared with: they are no
 - **Scarcity:** 50 spots, because the founder sets each one up personally and the daily scan
   ceiling is real.
 - **Urgency** (D4, replaced 2026-11-20): one pool of 50 spots, open until the end of 31 Jan 2027
-  UTC or until taken. Say it as "{left} of 50 spots left until 31 Jan 2027", with {left} the real
-  count from the Progress table. Before the first sale: "Open to the first 50 customers until
+  UTC or until taken. Say it as "{left} of 50 spots left until 31 Jan 2027", with {left}
+  the number the site shows (the banner, from `/offer/spots`). Until that ships: 50 minus every first paid checkout not refunded within 14 days, owner and test accounts excluded. Before the first sale: "Open to the first 50 customers until
   31 Jan 2027". There are no batches, sizes or interim close dates to mention.
 - **The setup promise** (D2, lifted 2026-11-20; may be said in public, in these words only):
   "Set up in about 10 minutes, or we do it with you on a call." The longer form: "Three short

@@ -29,7 +29,7 @@ domain. One ask per message. English only: the first 50 are English-speaking bus
 Placeholders: `{name}`, `{company}`, `{domain}`, `{category}` (their market in plain words),
 `{rival A}`, `{rival B}`, `{exact question}`, `{signal}`, `{left}`, `{booking}`, `{channel}`.
 
-`{left}` is the real count of open spots from the Progress table (50 minus paying). The offer
+`{left}` is the number the site shows (the banner, from `/offer/spots`). Until that ships: 50 minus every first paid checkout not refunded within 14 days, owner and test accounts excluded. The offer
 ends at the end of **31 Jan 2027** UTC, or sooner when all 50 spots are taken (D4).
 
 ---
@@ -115,11 +115,12 @@ D2; F7 wording):
 
 > You read your report and a first page before you pay. Payments aren't refunded unless the law
 > requires it. Setup takes about 10 minutes, and if it takes longer, we do it together on a call.
-> Pages go live in week 1. Google takes weeks to months; each Monday email shows your totals so
-> far.
+> Each page goes live on its day, by itself, once your site is connected. Google takes weeks to
+> months; each Monday email shows your totals so far.
 
 Evidence: the free page (`landing.faq.trial.a`, `report.ts:674`); refunds are Terms §4
-(`legal.terms.body`, `chrome.ts:197`); about 10 minutes (`setup.ts:396`); the results line is
+(`legal.terms.body`, `chrome.ts:197`); about 10 minutes (`setup.ts:396`); each page on its day is
+`setup.connect.week.2` (`setup.ts:600`, SPEC §5 Connect); the rest of the results line is
 `landing.faq.results.short` (`report.ts:677`).
 
 ## 4. Follow-up, day 3 (no reply)
