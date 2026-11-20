@@ -3,6 +3,7 @@
 // graph holds no vendor client.
 import { actionsFor } from "../calendar/actions";
 import { dayKeyOf } from "../calendar/dates";
+import { BILLING_HOLDS } from "../calendar/empty";
 import { dayStateOf, type DayCell, type WeekModel } from "../calendar/month";
 import type { WeekDay, WeekList } from "./ThisWeek";
 
@@ -26,8 +27,8 @@ function dayOf(cell: DayCell, week: WeekModel, next: boolean, time: string | nul
     goesLiveAt: next ? time : null,
     // A live page can be taken down from its row, as on Plan's live list.
     liveDraft: page.stage === "live" && page.liveUrl !== null ? page.draftId : null,
-    // An invoice outstanding holds the next page, which says so in place of its time.
-    heldBack: next && week.held === "unpaid",
+    // A site not paid for holds the next page, which says so in place of its time.
+    heldBack: next && week.held !== null && BILLING_HOLDS.includes(week.held),
   };
 }
 

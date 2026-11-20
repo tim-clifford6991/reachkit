@@ -91,6 +91,8 @@ export const LAWS_COPY = Object.freeze({
     "Your last payment didn’t go through, so no page goes live. Pay in Settings › Billing and pages resume.",
     { law: "next-publish", slots: {}, fixedBy: "SPEC §3 Paid means no outstanding invoice; issue 2840 (drafted)" },
   ],
+  // The paid term has ended, so publishing waits; "access has ended" is the hosting-end mail's word, and no fix is promised.
+  "next-publish.ended": ["Your access has ended, so no page goes live.", { law: "next-publish", slots: {}, fixedBy: "SPEC §3; issue 2840 (drafted)" }],
   // What happens next when nothing holds publishing back. Drafted; the owner corrects it.
   "next-publish.page": [
     "Next page goes live {at}: {title}",

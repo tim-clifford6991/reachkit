@@ -151,7 +151,7 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
         <WaitingPageCard
           page={overview.waitingPage}
           scheduled={shell.publishing.next !== null}
-          unpaid={shell.publishing.next === null && shell.publishing.because === "unpaid"}
+          unpaid={shell.publishing.next === null && (shell.publishing.because === "unpaid" || shell.publishing.because === "ended") ? shell.publishing.because : null}
           timeZone={shell.timeZone}
           now={overview.today}
         />

@@ -16,7 +16,7 @@
 // later editor happens to leave on top.
 import type { NextPublishCause } from "@/lib/presentation/stopped";
 
-export type NoPublishReason = "reachkit_stopped" | "unpaid" | "address_waiting" | "publishing_paused";
+export type NoPublishReason = "reachkit_stopped" | "unpaid" | "ended" | "address_waiting" | "publishing_paused";
 
 /** REQ-040 c4's causes in the one order they are ever resolved in.
  *  `reachkit_stopped` is first: REQ-092 c7 requires that where ReachKit
@@ -26,6 +26,7 @@ export const NO_PUBLISH_PRECEDENCE: readonly NoPublishReason[] = Object.freeze([
   "reachkit_stopped",
   // An outstanding invoice holds every page whatever the address or the switch say, and Billing is where it clears.
   "unpaid",
+  "ended",
   "address_waiting",
   "publishing_paused",
 ] as const);
@@ -45,6 +46,7 @@ export type NoPublishCauses = Record<NoPublishReason, boolean>;
  *  reads. */
 export const NEXT_PUBLISH_OTHERWISE: Record<Exclude<NoPublishReason, "reachkit_stopped">, NextPublishCause> = {
   unpaid: "unpaid",
+  ended: "ended",
   address_waiting: "address-waiting",
   publishing_paused: "paused",
 };

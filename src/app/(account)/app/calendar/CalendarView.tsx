@@ -82,7 +82,7 @@ export function CalendarView(p: {
             cell={cell}
             timeZone={p.week.timeZone}
             stopped={p.week.stopped}
-            unpaid={p.week.held === "unpaid"}
+            held={p.week.held}
             destination={p.week.destination}
             // Nobody chose this day, so below `lg` — where the panel is a
             // sheet over the list — it is not open.

@@ -121,9 +121,9 @@ export async function readPublishingFacts(a: {
   let waitingToConnect: Awaited<ReturnType<typeof destinationWaitingToConnect>>;
   let settings: Awaited<ReturnType<typeof readPublishingSettings>>;
   let standing: Awaited<ReturnType<typeof destinationStanding>>;
-  let unpaid: boolean;
+  let access: Awaited<ReturnType<typeof import("@/lib/account/billing").accessCause>>;
   try {
-    [pages, held, publishingOn, destinationOk, waitingToConnect, settings, standing, unpaid] = await Promise.all([
+    [pages, held, publishingOn, destinationOk, waitingToConnect, settings, standing, access] = await Promise.all([
       scheduledPagesFor({ siteId: a.siteId, from, to }),
       heldPages(a.siteId),
       isPublishingOn(a.siteId),
@@ -133,7 +133,7 @@ export async function readPublishingFacts(a: {
       // Issue 880: the stored row, not a re-check — this decides which
       // control a page earns and may spend no vendor call.
       destinationStanding(a.siteId),
-      import("@/lib/account/billing").then((billing) => billing.paymentOutstanding(a.siteId)),
+      import("@/lib/account/billing").then((billing) => billing.accessCause(a.siteId)),
     ]);
   } catch (error) {
     console.warn(
@@ -159,8 +159,8 @@ export async function readPublishingFacts(a: {
     publishAt,
     heldDays,
     destination: standing,
-    customerChangeHoldsPages: unpaid
-      ? "unpaid"
+    customerChangeHoldsPages: access !== "active"
+      ? access === "past_due" ? "unpaid" : access === "ended" ? "ended" : "billing_unreadable"
       : !publishingOn
       ? "publishing_off"
       : !destinationOk

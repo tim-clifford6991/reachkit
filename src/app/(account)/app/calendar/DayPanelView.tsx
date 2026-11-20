@@ -48,7 +48,7 @@ import {
 import { formatDate, formatDateTime } from "../_shell/format";
 import { writtenLine } from "../_shell/written";
 import { actionsFor, type DayCommand, type DestinationStanding } from "./actions";
-import { EMPTY_ACCOUNT_COPY_KEY, HELD_BY_SETTING_COPY_KEY, isLawCause, isSupplyCause, stopForEmptyDay, type OneLineCause } from "./empty";
+import { EMPTY_ACCOUNT_COPY_KEY, HELD_BY_SETTING_COPY_KEY, isLawCause, isSupplyCause, stopForEmptyDay, type HeldBySetting, type OneLineCause } from "./empty";
 import { kindWord } from "./card-lines";
 import { nextPublishStatement, stoppedWorkStatement, type WorkStop } from "@/lib/presentation/stopped";
 import { fullDate } from "./dates";
@@ -314,8 +314,8 @@ export function DayPanelView(p: {
    *  statements — the publish line and a stopped day's account — turn on
    *  it, and they must turn on the same one. */
   stopped: WorkStop | null;
-  /** The site has an invoice outstanding: a page's publish line names that in place of its time. */
-  unpaid?: boolean;
+  /** What holds pages back; a hold the paid check keeps names itself in place of a page's time. */
+  held?: HeldBySetting | null;
   /** SPEC §7 (2026-09-20): the panel is closable. Closing clears the open
    *  day from the address, so a closed panel survives a reload too. */
   onClose: () => void;
@@ -374,7 +374,7 @@ export function DayPanelView(p: {
       timeZone={p.timeZone}
       destination={p.destination ?? null}
       stopped={p.stopped}
-      unpaid={p.unpaid ?? false}
+      held={p.held ?? null}
       hiddenOnPhone={p.hiddenOnPhone ?? false}
       onClose={p.onClose}
     />
@@ -407,7 +407,7 @@ function PageDayPanel(p: {
   timeZone: string;
   destination: DestinationStanding | null;
   stopped: WorkStop | null;
-  unpaid: boolean;
+  held: HeldBySetting | null;
   hiddenOnPhone: boolean;
   onClose: () => void;
 }): React.JSX.Element {
@@ -455,8 +455,8 @@ function PageDayPanel(p: {
     page.publishAt === null
       ? null
       : nextPublishStatement({
-          stopped: stopped !== null,
-          otherwise: p.unpaid ? { tag: "unpaid" } : { tag: "scheduled", at: formatDateTime(page.publishAt, timeZone) },
+          stopped: stopped !== null || p.held === "billing_unreadable",
+          otherwise: p.held === "unpaid" || p.held === "ended" ? { tag: p.held } : { tag: "scheduled", at: formatDateTime(page.publishAt, timeZone) },
         }).line;
   // What became of the page, in one line (issue #217) — the same keys the
   // draft view's record block reads, so the two cannot disagree.

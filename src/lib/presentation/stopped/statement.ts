@@ -48,7 +48,7 @@ export function stoppedWorkStatement(
 }
 
 /** The causes REQ-040 c4 admits when ReachKit has not stopped. */
-export type NextPublishCause = "unpaid" | "address-waiting" | "paused";
+export type NextPublishCause = "unpaid" | "ended" | "address-waiting" | "paused";
 
 /** What happens next where nothing holds publishing back: the next page with its moment, a page still being written or
  *  ready without one, the next planned topic, or the Monday check, which always has a date, so the line always names an event. */
@@ -70,6 +70,7 @@ const OTHERWISE_KEY = {
   "address-waiting": "next-publish.address-waiting",
   paused: "next-publish.paused",
   unpaid: "next-publish.unpaid",
+  ended: "next-publish.ended",
 } as const satisfies Record<NextPublishOtherwise["tag"], CopyKey>;
 
 /** REQ-092 c7. Every statement of when the next page publishes — the

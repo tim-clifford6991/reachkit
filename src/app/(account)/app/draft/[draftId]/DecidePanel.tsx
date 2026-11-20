@@ -151,9 +151,9 @@ export function DecidePanel(p: {
 
         {counting && publishesAt !== null ? (
           <GoesLive at={publishesAt} timeZone={view.timeZone} />
-        ) : view.doNothing.unpaid === true ? (
+        ) : view.doNothing.held !== undefined ? (
           <p className="text-sm text-base-content/70" data-testid="draft-unpaid">
-            {copy("next-publish.unpaid")}
+            {copy(view.doNothing.held)}
           </p>
         ) : null}
 

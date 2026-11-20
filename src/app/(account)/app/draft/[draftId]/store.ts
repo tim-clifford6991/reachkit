@@ -69,6 +69,7 @@ import { askedAs, doneWhen } from "../../calendar/store";
 import type { Choice } from "@/lib/opportunities/derive/explain";
 import { pageTargetOf } from "../../_shell/page-target";
 import {
+  HELD_KEY,
   NO_RULE_FACTS,
   PACK_PAGES_SHOWN,
   knownNeeds,
@@ -552,12 +553,9 @@ export async function readDraftRow(a: {
     mode: a.site.mode,
     // §9's veto window, and only where one is running: a page that is not
     // awaiting review has no time at which doing nothing publishes it.
-    autoApprovesAt:
-      row.state === "in_review" && row.veto_deadline !== null
-        ? new Date(row.veto_deadline)
-        : null,
-    // Only a page still on its way can be waiting on payment.
-    unpaid: ["in_review", "approved", "publishing", "failed"].includes(row.state) && (await (await import("@/lib/account/billing")).paymentOutstanding(a.site.siteId)),
+    autoApprovesAt: row.state === "in_review" && row.veto_deadline !== null ? new Date(row.veto_deadline) : null,
+    // Only a page still on its way can be held by the paid check.
+    held: ["in_review", "approved", "publishing", "failed"].includes(row.state) ? HELD_KEY[await (await import("@/lib/account/billing")).accessCause(a.site.siteId)] : undefined,
     lastSavedAt: lastSaved === null ? null : new Date(lastSaved),
     record,
     // The page's own publication, after the same ownership proof.

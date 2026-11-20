@@ -36,8 +36,8 @@ export function WaitingPageCard(p: {
   page: WaitingPage;
   /** Whether a publish is scheduled at all — the shell's own answer. */
   scheduled: boolean;
-  /** The site has an invoice outstanding: the line says so in place of a time. */
-  unpaid: boolean;
+  /** The site is not paid for: the line names why in place of a time. */
+  unpaid: "unpaid" | "ended" | null;
   timeZone: string;
   now: Date;
 }): React.JSX.Element {
@@ -53,9 +53,9 @@ export function WaitingPageCard(p: {
           <Clock4 className="size-5" strokeWidth={1.75} />
         </span>
         <div className="flex min-w-0 flex-[1_1_20rem] flex-col gap-0.5">
-          {p.unpaid ? (
+          {p.unpaid !== null ? (
             <p className="text-sm text-base-content/70" data-testid="overview-waiting-unpaid">
-              {copy("next-publish.unpaid")}
+              {copy(`next-publish.${p.unpaid}`)}
             </p>
           ) : held ? null : (
             <p className="text-xs font-bold uppercase tracking-[0.1em] text-primary" data-testid="overview-waiting-when">

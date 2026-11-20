@@ -28,8 +28,10 @@ import type { WorkStop } from "@/lib/presentation/stopped";
  *  their own member, apart from a destination that broke, because each has
  *  its own remedy (#754). */
 export type HeldBySetting =
-  /** An invoice outstanding (SPEC §3): Billing is where it clears. */
+  /** The site is not paid for (SPEC §3): an invoice outstanding, a term ended, or a billing store that cannot say. */
   | "unpaid"
+  | "ended"
+  | "billing_unreadable"
   | "publishing_off"
   | "destination_pending_dns"
   | "destination_pending_connect"
@@ -218,12 +220,18 @@ export const EMPTY_COPY_KEY: Record<OneLineCause, CopyKey> = {
   unattributed: "calendar.empty.unexplained",
 };
 
+/** The holds the paid check keeps: no next page's time is drawn under them, and "Held back" stands in its place. */
+export const BILLING_HOLDS: readonly HeldBySetting[] = Object.freeze(["unpaid", "ended", "billing_unreadable"] as const);
+
 /** REQ-043 c4's held date, one line per setting (#754). The app knows which
  *  setting it is, so the date says that one — and a host waiting for its
  *  CNAME points the customer at the record — rather than one sentence
  *  offering every cause. The same line in the cell and the panel. */
 export const HELD_BY_SETTING_COPY_KEY: Record<HeldBySetting, CopyKey> = {
   unpaid: "next-publish.unpaid",
+  ended: "next-publish.ended",
+  // It is ReachKit's failure, not the customer's, so it says what ReachKit's own stop says and asks for nothing.
+  billing_unreadable: "calendar.empty.page-held",
   publishing_off: "calendar.empty.customer-change-holds-pages.publishing-off",
   destination_pending_dns: "calendar.empty.customer-change-holds-pages.destination-pending-dns",
   destination_pending_connect: "calendar.empty.customer-change-holds-pages.destination-pending-connect",
