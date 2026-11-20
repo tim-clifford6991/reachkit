@@ -67,8 +67,6 @@ export type Ok = { ok: true } | { ok: false };
 export interface PurgeScope {
   readonly siteIds: readonly string[];
   readonly scanIds: readonly string[];
-  readonly draftIds: readonly string[];
-  readonly publicationIds: readonly string[];
 }
 
 export interface LifecycleStore {
@@ -120,6 +118,9 @@ export interface LifecycleStore {
     values: readonly string[];
   }): Promise<{ ok: true } | { ok: false; message: string }>;
 
+  /** Clears the link from each scan outside these sites to these scans, so a free correction or retry of one does not hold it. */
+  unlinkScans(a: { siteIds: readonly string[]; scanIds: readonly string[] }): Promise<{ ok: true } | { ok: false; message: string }>;
+
   /** The ids a purge needs to reach the rows that hang off them. */
   purgeScope(userId: string): Promise<{ ok: true; scope: PurgeScope } | { ok: false }>;
 }
@@ -143,7 +144,14 @@ interface MinimalQueryBuilder<T> extends PromiseLike<QueryResult<T>> {
   not(column: string, operator: string, value: null): MinimalQueryBuilder<T>;
   lte(column: string, value: string): MinimalQueryBuilder<T>;
   limit(count: number): MinimalQueryBuilder<T>;
+  or(filters: string): MinimalQueryBuilder<T>;
+  order(column: string): MinimalQueryBuilder<T>;
+  range(from: number, to: number): MinimalQueryBuilder<T>;
 }
+
+/** PostgREST returns at most this many rows a read, and a long `in` list overruns the URL. */
+const PAGE = 1000;
+const IDS_PER_DELETE = 100;
 
 interface MinimalClient {
   from<T>(table: string): MinimalQueryBuilder<T>;
@@ -319,11 +327,28 @@ export function supabaseLifecycleStore(): LifecycleStore {
         }
         return { ok: true };
       }
-      const { error } = await untyped()
-        .from<{ id: string }>(a.table)
-        .delete()
-        .in(a.column, a.values);
-      return error === null ? { ok: true } : { ok: false, message: error.message };
+      for (let i = 0; i < a.values.length; i += IDS_PER_DELETE) {
+        const { error } = await untyped()
+          .from<{ id: string }>(a.table)
+          .delete()
+          .in(a.column, a.values.slice(i, i + IDS_PER_DELETE));
+        if (error !== null) return { ok: false, message: error.message };
+      }
+      return { ok: true };
+    },
+
+    async unlinkScans(a) {
+      for (const column of ["supersedes_scan_id", "remeasure_of"]) {
+        for (let i = 0; i < a.scanIds.length; i += IDS_PER_DELETE) {
+          const { error } = await untyped()
+            .from<{ id: string }>("scans")
+            .update({ [column]: null })
+            .in(column, a.scanIds.slice(i, i + IDS_PER_DELETE))
+            .or(`site_id.is.null,site_id.not.in.(${a.siteIds.join(",")})`);
+          if (error !== null) return { ok: false, message: error.message };
+        }
+      }
+      return { ok: true };
     },
 
     async purgeScope(userId) {
@@ -333,29 +358,19 @@ export function supabaseLifecycleStore(): LifecycleStore {
         .eq("user_id", userId);
       if (sites.error !== null || sites.data === null) return { ok: false };
       const siteIds = sites.data.map((row) => row.id);
-      if (siteIds.length === 0) {
-        return { ok: true, scope: { siteIds, scanIds: [], draftIds: [], publicationIds: [] } };
+      const scanIds: string[] = [];
+      for (let from = 0; siteIds.length > 0; from += PAGE) {
+        const page = await untyped()
+          .from<{ id: string }>("scans")
+          .select("id")
+          .in("site_id", siteIds)
+          .order("id")
+          .range(from, from + PAGE - 1);
+        if (page.error !== null || page.data === null) return { ok: false };
+        scanIds.push(...page.data.map((row) => row.id));
+        if (page.data.length < PAGE) break;
       }
-
-      const scans = await untyped().from<{ id: string }>("scans").select("id").in("site_id", siteIds);
-      if (scans.error !== null || scans.data === null) return { ok: false };
-      const drafts = await untyped().from<{ id: string }>("drafts").select("id").in("site_id", siteIds);
-      if (drafts.error !== null || drafts.data === null) return { ok: false };
-      const publications = await untyped()
-        .from<{ id: string }>("publications")
-        .select("id")
-        .in("site_id", siteIds);
-      if (publications.error !== null || publications.data === null) return { ok: false };
-
-      return {
-        ok: true,
-        scope: {
-          siteIds,
-          scanIds: scans.data.map((row) => row.id),
-          draftIds: drafts.data.map((row) => row.id),
-          publicationIds: publications.data.map((row) => row.id),
-        },
-      };
+      return { ok: true, scope: { siteIds, scanIds } };
     },
   };
 }

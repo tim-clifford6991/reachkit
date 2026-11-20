@@ -84,6 +84,7 @@ const DB = [
   /^src\/lib\/limits\//,
   /^src\/lib\/scan\/weekly\/(index|access)\.ts$/,
   /^src\/lib\/account\/billing\/index\.ts$/,
+  /^src\/lib\/account\/lifecycle\/purge\.ts$/,
   /^scripts\/daily-check\/(settings-reads|runway)\.mjs$/,
   /^scripts\/local-run\.mjs$/,
   /^tests\/ui\/layout\/seed-rows\.ts$/,
