@@ -99,6 +99,7 @@ export const OFFER_COPY = Object.freeze({
   "offer.spots.before": ["Open to the first {of} customers until {endsOn}", { slots: { of: "text", endsOn: "text" }, fixedBy: "owner ruling 57 2026-11-20 · issue 2981" }],
   "offer.spots.left": ["{left} of {of} spots left until {endsOn}", { slots: { left: "text", of: "text", endsOn: "text" }, fixedBy: "owner ruling 57 2026-11-20 · issue 2981" }],
   "offer.spots.taken": ["All {of} spots are taken. ReachKit is {price} a month, cancel any time.", { slots: { of: "text", price: "text" }, fixedBy: "owner ruling 57 2026-11-20 · issue 2981" }],
+  "offer.spots.ended": ["Our offer for the first {of} customers has ended. ReachKit is {price} a month, cancel any time.", { slots: { of: "text", price: "text" }, fixedBy: "owner ruling 56 2026-11-20 · issue 2989" }],
   "offer.banner.see": ["See the Offer", { slots: {}, fixedBy: "owner ruling 57 2026-11-20 · issue 2981" }],
   "offer.card.title": ["First {of} Customers", { slots: { of: "text" }, fixedBy: "owner ruling 57 2026-11-20 · issue 2981" }],
   "offer.card.until": ["Until {endsOn}", { slots: { endsOn: "text" }, fixedBy: "owner ruling 57 2026-11-20 · issue 2981" }],
