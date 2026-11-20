@@ -7,9 +7,19 @@ import { judgeWeek, planRefreshes, planWeek } from "@/lib/opportunities";
 import { weekCandidates } from "@/lib/opportunities/plan";
 import { opportunityStore, type OpportunityRow } from "@/lib/opportunities/store";
 import type { PlanReason } from "@/lib/opportunities/types";
-import { claimOpsEvent } from "@/lib/ops/events";
+import { claimOpsEvent, opsEventRead } from "@/lib/ops/events";
+import type { TopUpRecord } from "@/lib/opportunities/derive/top-up";
 
-const weekRows = (rows: readonly OpportunityRow[]): WeekRow[] => rows.map((row) => ({ id: row.id, target_query: row.target_query, topUp: (row.evidence as { topUp?: true } | null)?.topUp === true }));
+const weekRows = (rows: readonly OpportunityRow[]): WeekRow[] => rows.map((row) => ({ id: row.id, target_query: row.target_query }));
+
+/** What the pass's top-up offered, offered from searches it bought, and wrote as rows, from the pass's stored supply row; `null` where none is stored. */
+async function topUpOf(siteId: string, scanId: string | undefined): Promise<{ offered: number; bought: number; kept: number } | null> {
+  if (scanId === undefined) return null;
+  const record = (JSON.parse((await opsEventRead("supply_pass", siteId, scanId)) ?? "{}") as { topUp?: TopUpRecord }).topUp;
+  if (record === undefined) return null;
+  const sources = Object.values(record.sources);
+  return { offered: sources.reduce((n, s) => n + s.offered, 0), bought: record.sources[2].offered, kept: sources.reduce((n, s) => n + s.added, 0) };
+}
 
 /** The week's verdicts and its refreshes, then the `WEEK_RESEARCH.rowsMax` best-ranked writable rows the commit checks. */
 export async function judgeWeekRows(a: { siteId: string; weekStart: string; now: Date }): Promise<WeekRow[]> {
@@ -29,7 +39,7 @@ export async function postFirstWeek(a: { siteId: string; scanId: string; now: Da
 }
 
 /** Commits the week from the checks, then records once per site and week what it was short of (SPEC §7). */
-export async function commitWeek(a: { siteId: string; weekStart: string; now: Date; rows: readonly WeekRow[]; checks: Checks }): Promise<void> {
+export async function commitWeek(a: { siteId: string; scanId?: string; weekStart: string; now: Date; rows: readonly WeekRow[]; checks: Checks }): Promise<void> {
   const week = await planWeek(a.siteId, { now: a.now, record: true, research: new Map(a.checks) });
   // An early pass supplies every date from its first to the claimed week's Sunday.
   await recordWeek(a, week, week.rested, { from: week.from, days: (Date.parse(a.weekStart) - Date.parse(week.from)) / 86_400_000 + 7 });
@@ -48,12 +58,11 @@ export async function recordFirstWeek(a: { siteId: string; now: Date; rows: read
   await recordWeek({ ...a, weekStart: a.now.toISOString().slice(0, 10) }, week, rested, { from: first ?? a.now.toISOString().slice(0, 10), days });
 }
 
-async function recordWeek(a: { siteId: string; weekStart: string; rows: readonly WeekRow[]; checks: Checks }, week: readonly { opportunityId: string; plannedFor: string | null; reason: Pick<PlanReason, "research"> }[], rested: readonly { opportunityId: string; short: string[] }[], span: { from: string; days: number }): Promise<void> {
+async function recordWeek(a: { siteId: string; scanId?: string; weekStart: string; rows: readonly WeekRow[]; checks: Checks }, week: readonly { opportunityId: string; plannedFor: string | null; reason: Pick<PlanReason, "research"> }[], rested: readonly { opportunityId: string; short: string[] }[], span: { from: string; days: number }): Promise<void> {
   const marks = [...week.flatMap((entry) => entry.reason.research ?? []), ...rested.map((r) => ({ state: "short" as const, short: r.short }))];
   const count = (state: string) => marks.filter((mark) => mark.state === state).length;
   const short: Record<string, number> = {};
   for (const part of marks.flatMap((mark) => (mark.state === "short" ? (mark.short ?? []) : []))) short[part] = (short[part] ?? 0) + 1;
-  const tried = new Set(a.rows.filter((row) => row.topUp === true).map((row) => row.id));
   const spares = week.filter((entry) => entry.plannedFor === null);
   const read = {
     checked: a.checks.length,
@@ -62,7 +71,7 @@ async function recordWeek(a: { siteId: string; weekStart: string; rows: readonly
     queued: count("queued"),
     short: { rows: count("short"), ...short },
     rested: rested.map((r) => ({ id: r.opportunityId, short: r.short })),
-    top_up: { tried: tried.size, kept: week.filter((entry) => tried.has(entry.opportunityId)).length },
+    top_up: await topUpOf(a.siteId, a.scanId).catch(() => null),
     spares_met: spares.filter((entry) => ["met", "at_margin"].includes(entry.reason.research?.state ?? "")).length,
     // Not measured is never met: a spare the commit did not check is counted apart.
     spares_unchecked: spares.filter((entry) => entry.reason.research === undefined).length,

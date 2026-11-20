@@ -31,13 +31,10 @@ export async function replayWeekly(a: {
 }): Promise<number> {
   const count = (): number => Number(psql(`select count(*) from public.opportunities o where o.site_id = '${a.siteId}' and ${writable};`).trim());
   const before = count();
-  const lines: string[] = [];
-  console.log = (line: unknown) => void (typeof line === "string" && line.includes('"supply_pass"') && lines.push(line));
   // The weekly room the derivation had, without the stored pass's own spend before it.
   await withCostContext({ scanId: a.scanId, cap: "WEEKLY", policyVersion: FREE_SCAN_POLICY_VERSION }, (cost) => deriveForPass(cost, { tier: "weekly", siteId: a.siteId, report: a.report, hasActiveAccess: true, topUp: topUpSpend(a.scanId, FREE_SCAN_POLICY_VERSION) }));
-  console.log = a.say;
 
-  const supply = JSON.parse(lines.at(-1) ?? "{}") as { have?: number; topUp?: { fired: boolean; have: number; sources: Record<string, { offered: number; added: number }>; rejected: Record<string, number>; bought?: { seeds: string[]; cents: number; degraded?: string } } | null };
+  const supply = JSON.parse(psql(`select read from public.ops_events where kind = 'supply_pass' and code = '${a.scanId}' order by id desc limit 1;`).trim() || "{}") as { have?: number; topUp?: { fired: boolean; have: number; sources: Record<string, { offered: number; added: number }>; rejected: Record<string, number>; bought?: { seeds: string[]; cents: number; degraded?: string } } | null };
   const topUp = supply.topUp ?? null;
   const rows = JSON.parse(psql(`select coalesce(jsonb_agg(to_jsonb(f) order by f.created_at), '[]'::jsonb) from public.fetches f where f.created_at >= '${a.loadedAt}';`).trim() || "[]") as Bought[];
   const topics = JSON.parse(psql(`select coalesce(jsonb_agg(jsonb_build_object('target_query', o.target_query, 'volume', o.volume, 'business_fit', o.business_fit, 'ready', o.ready, 'unready_reason', o.unready_reason, 'fit_fact', o.evidence->'fitFact', 'status', o.status, 'family', o.family) order by o.created_at), '[]'::jsonb) from public.opportunities o where o.site_id = '${a.siteId}' and o.created_at >= '${a.loadedAt}';`).trim() || "[]") as Topic[];
