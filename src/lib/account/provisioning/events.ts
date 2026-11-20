@@ -6,16 +6,17 @@
 // switch with a default arm: an event Stripe adds tomorrow routes nowhere
 // until somebody writes a row for it here.
 //
-// Three destinations, no more:
+// Four destinations, no more:
 //   `provision`    — a payment completed; open the account (REQ-024).
 //   `subscription` — the state of an existing subscription changed. Owned
 //                    by billing (issue #34); named here so the webhook has
 //                    somewhere to route it rather than dropping it.
+//   `end`          — a full refund or an opened dispute ends access at once (SPEC §3).
 //   `ignore`       — received, understood, deliberately acted on by
 //                    nothing. Distinct from absent: absent means we do not
 //                    know what it is.
 
-export type StripeEventRoute = "provision" | "subscription" | "ignore";
+export type StripeEventRoute = "provision" | "subscription" | "end" | "ignore";
 
 export const STRIPE_EVENTS: Readonly<Record<string, StripeEventRoute>> = Object.freeze({
   // §13: the webhook is "the only provisioning path".
@@ -29,6 +30,9 @@ export const STRIPE_EVENTS: Readonly<Record<string, StripeEventRoute>> = Object.
   "customer.subscription.deleted": "subscription",
   "invoice.paid": "subscription",
   "invoice.payment_failed": "subscription",
+
+  "charge.refunded": "end",
+  "charge.dispute.created": "end",
 
   // Received and deliberately acted on by nothing: the session expiring is
   // REQ-020 criterion 2's "leaves checkout without paying", and the answer

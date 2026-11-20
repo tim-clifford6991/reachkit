@@ -580,14 +580,13 @@ export const SETTINGS_COPY = Object.freeze({
   // Stripe's own surface and carry that provenance in the model
   // (`billing.ts`); ReachKit computes none of them.
   "settings.billing.title": ["Billing", { slots: {}, fixedBy: "BUILD §4.7" }],
-  // The plan's state, as the approved S18 draws it: a pill beside the
-  // figure rather than a row of its own. "active" is the set's own word
-  // (11a); "cancelled" is its opposite and the only other state
-  // `PlanState` has, so the pair is closed. There is one plan (REQ-022 c3),
-  // which is why the pill states the STATE and the plan word beside it was
-  // saying nothing the figure had not.
+  // The plan's state, one pill per `PlanState`: there is one plan (REQ-022 c3), so the pill names the state.
   "settings.billing.active": ["Active", { slots: {}, fixedBy: "REQ-076 c3" }],
   "settings.billing.cancelled": ["Cancelled", { slots: {}, fixedBy: "REQ-076 c3" }],
+  "settings.billing.ended": ["Ended", { slots: {}, fixedBy: "SPEC §3 2026-11-18 · drafted" }],
+  "settings.billing.ended.line": ["Your access has ended, so we’ve stopped writing and publishing pages.", { slots: {}, fixedBy: "SPEC §3 2026-11-18 · drafted" }],
+  "settings.billing.ended.pages": ["Your pages go offline on {date}.", { slots: { date: "date" }, fixedBy: "SPEC §3 2026-11-18 · drafted" }],
+  "settings.billing.ended.contact": ["To start again, write to hello@reachkit.app.", { slots: {}, fixedBy: "SPEC §3 2026-11-18 · drafted" }],
   "settings.billing.payment-failed": ["Your last payment didn’t go through.", { slots: {}, fixedBy: "issue 2517 · drafted" }],
   "settings.billing.pay": ["Pay in Stripe", { slots: {}, fixedBy: "issue 2517 · drafted" }],
   "settings.billing.next-invoice": ["Next invoice", { slots: {}, fixedBy: "BUILD §4.7" }],

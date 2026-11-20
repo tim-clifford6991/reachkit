@@ -114,8 +114,9 @@ export async function onSubscriptionEvent(event: Stripe.Event): Promise<Subscrip
   // Never backwards. An out-of-order redelivery records the status it
   // carries and leaves the gate where the later event already put it.
   const stored = new Date(account.paid_through);
+  // An ended subscription never extends access: one ended at once stays ended until the owner restores it.
   const paidThrough =
-    vendorPaidThrough.getTime() > stored.getTime() ? vendorPaidThrough : stored;
+    vendorPaidThrough.getTime() > stored.getTime() && subscription.status !== "canceled" ? vendorPaidThrough : stored;
 
   const written = await billingStore().writeSubscriptionFacts(account.id, {
     stripe_subscription_id: subscription.id,

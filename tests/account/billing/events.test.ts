@@ -421,3 +421,24 @@ describe("openSubscription — provisioning's own stamp", () => {
     expect(storedUser(state).paid_through).toBe(NOW.toISOString());
   });
 });
+
+describe("SPEC §3 — a full refund or an opened dispute ends access at once", () => {
+  const charge = (type: string, object: object) => ({ id: `evt_${type}`, type, data: { object } }) as unknown as Parameters<typeof deliver>[0];
+  const FULL = charge("charge.refunded", { id: "ch_1", customer: "cus_u1", refunded: true });
+  const later = new Date(NOW.getTime() + 20 * DAY);
+
+  it.each([FULL, charge("charge.dispute.created", { id: "dp_1", charge: "ch_1" })])("$type cancels at Stripe and closes the gate; nothing later reopens it", async (event) => {
+    paying({ paidThrough: later });
+    for (const e of [event, event, subscriptionEvent({ type: "customer.subscription.deleted", periodEnd: later, status: "canceled" })]) expect(await deliver(e)).toBe(200);
+    expect({ cancelled: vendor.cancelled, refunds: vendor.refundsCreated.length, access: await hasActiveAccess("s1") }).toEqual({ cancelled: ["sub_1"], refunds: 0, access: false });
+    expect(storedUser(state)).toMatchObject({ paid_through: NOW.toISOString(), plan_status: "canceled" });
+  });
+
+  it("a partial refund and a dispute on a charge Stripe cannot find change nothing; a vendor that cannot cancel for now answers 500", async () => {
+    paying({ paidThrough: later });
+    vendor.cancelError = stripeErrors.connection();
+    const missing = charge("charge.dispute.created", { id: "dp_2", charge: "ch_missing" });
+    expect([await deliver(charge("charge.refunded", { id: "ch_1", customer: "cus_u1", refunded: false })), await deliver(missing), await deliver(FULL)]).toEqual([200, 200, 500]);
+    expect(storedUser(state)).toMatchObject({ paid_through: later.toISOString(), plan_status: "active", cancelled_at: null });
+  });
+});

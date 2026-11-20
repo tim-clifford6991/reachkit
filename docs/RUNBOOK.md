@@ -127,6 +127,14 @@ One payment on a real card, watching the production runtime log, in order:
 ReachKit refunds nothing by itself (owner, 2026-11-06, #2448). A refund made by hand is three
 dashboard acts, in `docs/walk/refund.md`.
 
+A full refund or an opened dispute ends access at once (SPEC §3): the webhook cancels the
+subscription, then sets `paid_through` to now. The endpoint must subscribe to `charge.refunded` and
+`charge.dispute.created`. A partial refund changes nothing. A dispute won later restores nothing by itself.
+To restore access by hand: in Stripe, open the customer and create a subscription on the live price.
+Its `invoice.paid` finds the account by customer id and sets the plan to active. Then clear the
+hosted-retention clock so the pages stay up:
+`update sites set hosted_serving_ends_at = null, hosting_end_notice_at = null, hosting_end_reminder_at = null where user_id = '<id>';`
+
 ---
 
 ## 3. The bindings

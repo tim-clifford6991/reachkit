@@ -63,12 +63,16 @@ export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element 
   // plan word, the price and the one control still stand, and the date and
   // the cancel/resume choice — the two things that depend on having read
   // the account — are replaced by REQ-097 c6's three sentences (#228).
-  // Under the plan: the cancelled arm's date, else how billing runs.
+  // Under the plan: why work stopped once access ended, else the cancelled arm's date, else how billing runs.
+  const ended = billing.readable && billing.state === "ended";
   const planLine = !billing.readable
     ? null
-    : billing.state === "cancelled"
-      ? writtenLine("settings.billing.cancelling", { date: billing.accessUntil })
-      : writtenLine("settings.billing.billed");
+    : ended
+      ? writtenLine("settings.billing.ended.line")
+      : billing.state === "cancelled"
+        ? writtenLine("settings.billing.cancelling", { date: billing.accessUntil })
+        : writtenLine("settings.billing.billed");
+  const offline = billing.readable && ended && billing.pagesOfflineOn !== null ? writtenLine("settings.billing.ended.pages", { date: billing.pagesOfflineOn }) : null;
 
   // **One of the two lines beside the figure, not both** (owner,
   // 2026-09-21, on #925). `PRICE_COPY_KEYS` is `price.amount`,
@@ -94,15 +98,15 @@ export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element 
   // a fact about the plan and belongs beside the headline, not on a row
   // stating one invoice.
   const amount = writtenLine(PRICE_KEYS[0] ?? "price.amount");
-  const nextInvoice = billing.readable
+  const nextInvoice = billing.readable && !ended
     ? [billing.accessUntil, amount].filter((part) => part !== null).join(" · ")
     : null;
 
   // Active only where the status was read and is paid: an unread status makes no claim.
   const badge = !billing.readable
     ? null
-    : billing.state === "cancelled"
-      ? "cancelled"
+    : billing.state !== "active"
+      ? billing.state
       : billing.paymentFailed === false
         ? "active"
         : null;
@@ -127,7 +131,7 @@ export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element 
       <div className="card-body gap-5">
         <h2 className="card-title text-(length:--h3)">{copy("settings.billing.title")}</h2>
 
-        {billing.readable && billing.paymentFailed === true ? (
+        {billing.readable && !ended && billing.paymentFailed === true ? (
           <div className="alert alert-warning alert-soft flex min-w-0 flex-wrap" data-testid="billing-payment-failed">
             <p className="min-w-0 wrap-anywhere">{copy("settings.billing.payment-failed")}</p>
             <button type="button" className="btn btn-warning min-h-11" onClick={() => action.run("invoices")} disabled={action.pending !== null}>
@@ -146,7 +150,7 @@ export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element 
                 data-testid="billing-state"
               >
                 {badge === "active" ? <Check size={14} strokeWidth={1.75} aria-hidden /> : null}
-                {copy(badge === "active" ? "settings.billing.active" : "settings.billing.cancelled")}
+                {copy(`settings.billing.${badge}`)}
               </span>
             </SettingRow>
           )}
@@ -158,13 +162,14 @@ export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element 
                 {planLine === null ? null : (
                   <p
                     className="wrap-anywhere"
-                    data-testid={billing.readable && billing.state === "cancelled" ? "billing-cancelling" : "billing-billed"}
+                    data-testid={ended ? "billing-ended" : billing.readable && billing.state === "cancelled" ? "billing-cancelling" : "billing-billed"}
                   >
                     {planLine}
                   </p>
                 )}
+                {offline === null ? null : <p className="wrap-anywhere" data-testid="billing-offline">{offline}</p>}
                 <p className="wrap-anywhere" data-testid="billing-route">
-                  {copy("settings.billing.route", { control: copy("settings.billing.manage") })}
+                  {ended ? copy("settings.billing.ended.contact") : copy("settings.billing.route", { control: copy("settings.billing.manage") })}
                 </p>
               </div>
             }
@@ -202,7 +207,7 @@ export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element 
             it and REQ-076 c6's "two plan states, one position". */}
         <div className="border-base-300 flex min-w-0 flex-col gap-2 border-t pt-4">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
-          {!billing.readable || billing.state === "active" ? (
+          {!billing.readable || billing.state !== "cancelled" ? (
             // Each marker is a flex box, so it is as tall as its button and the button never overflows it.
             <span className="flex min-w-0" data-testid="action-cancel">
               <span className="flex min-w-0" data-testid="action-invoices">

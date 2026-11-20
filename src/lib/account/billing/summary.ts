@@ -39,10 +39,11 @@
 // module would be formatted in the server's zone and would be wrong for
 // every customer who is not in it.
 //
-// `plan_status` is carried for display and is used in **no conditional in
-// this file** (ADR-050). `state` is derived from `cancelled_at`, which is
-// the fact the card is actually asking about.
+// `state` is derived from `cancelled_at`, which is the fact the card is
+// actually asking about; `plan_status` only tells an ended subscription
+// from one still being retried, and never decides access (ADR-050).
 import { PRICE_COPY_KEYS } from "../checkout/copy-keys";
+import { hostedServingEndsAt } from "./hosting-end";
 import { billingStore } from "./store";
 
 /** Whether the plan is running or has been cancelled. It selects which of
@@ -50,7 +51,7 @@ import { billingStore } from "./store";
  *  from a date comparison against `paid_through`: a cancelled customer
  *  inside their paid period still has access, and a card that read the gate
  *  would offer them a cancel control they had already used. */
-export type PlanState = "active" | "cancelled";
+export type PlanState = "active" | "cancelled" | "ended";
 
 export interface BillingSummary {
   readonly state: PlanState;
@@ -62,6 +63,8 @@ export interface BillingSummary {
   /** REQ-076 c3's "the exact date their access ends", as an instant. */
   readonly paidThrough: Date;
   readonly cancelledAt: Date | null;
+  /** The day the hosted pages go offline, the day the access-ended mail names; `null` unless ended with hosted pages. */
+  readonly pagesOfflineOn: Date | null;
   /** What Stripe last said about the subscription. Displayed here; the
    *  gate reads its `past_due` through the store. */
   readonly planStatus: string;
@@ -83,14 +86,22 @@ export async function billingSummary(userId: string): Promise<BillingSummaryResu
   if (read.account === null) return { ok: false, reason: "no_account" };
 
   const account = read.account;
+  // Ended at once (a refund, a dispute): the cancel stamp is not before the paid-through date, which a cancel at period end always is.
+  const ended =
+    account.plan_status === "canceled" &&
+    account.cancelled_at !== null &&
+    new Date(account.cancelled_at).getTime() >= new Date(account.paid_through).getTime();
+  const sites = ended ? await billingStore().hostingForAccount(userId) : null;
+  const hosted = sites?.ok === true ? sites.sites.find((site) => site.hasHostedPages) : undefined;
   return {
     ok: true,
     summary: {
-      state: account.cancelled_at === null ? "active" : "cancelled",
+      state: ended ? "ended" : account.cancelled_at === null ? "active" : "cancelled",
       planKey: "plan.single",
       priceKeys: PRICE_COPY_KEYS,
       paidThrough: new Date(account.paid_through),
       cancelledAt: account.cancelled_at === null ? null : new Date(account.cancelled_at),
+      pagesOfflineOn: hosted === undefined ? null : hostedServingEndsAt(hosted),
       planStatus: account.plan_status,
       invoicesVia: "portal",
     },
