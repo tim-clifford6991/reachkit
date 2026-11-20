@@ -54,9 +54,9 @@ export { REACHES, type Offering, type Profile, type Reach };
  *
  * `z.preprocess`, deliberately, rather than a `.transform` after the
  * array: the pipe still reports `minItems`/`maxItems` through
- * `z.toJSONSchema`, so the forced tool `src/lib/llm/index.ts` builds still
+ * `z.toJSONSchema`, so the tool `src/lib/llm/index.ts` builds still
  * tells the model the cap (a `.transform` cannot be represented in JSON
- * Schema at all, and `forcedToolFor` would quietly fall back to the plain
+ * Schema at all, and `answerToolFor` would quietly fall back to the plain
  * text path issue #512 exists to avoid).
  *
  * Only the over-full case moves. A list that is empty where `min > 0`, an

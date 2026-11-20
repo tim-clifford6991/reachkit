@@ -68,7 +68,7 @@ const shaped = (list: ListName, value: unknown): unknown =>
 const shapeOf = (value: unknown): string =>
   Array.isArray(value) ? `array<${[...new Set(value.map(shapeOf))].join("|")}>` : isObject(value) ? `object{${Object.keys(value).sort().join(",")}}` : value === null ? "null" : typeof value;
 
-/** A list as the model's forced tool returns it. On a long answer the model
+/** A list as the model's tool call returns it. On a long answer the model
  *  sometimes hands a list back as its JSON text (seen 2026-10-04: a whole
  *  page lost twice to `sections` arriving as a string), so the text is
  *  admitted here and parsed against the list's own schema by `partsOf`.

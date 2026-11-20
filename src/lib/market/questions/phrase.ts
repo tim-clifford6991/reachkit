@@ -54,7 +54,7 @@ export interface Question {
  *  or a `rank` does not parse, so the model has no field to re-select in.
  *
  *  The list rides inside one `questions` field (issue #512): `llm()` asks
- *  for every answer as a forced tool call, and a tool's input is an object,
+ *  for every answer as a tool call, and a tool's input is an object,
  *  so a top-level array is wrapped here and unwrapped below. */
 const PHRASING_SCHEMA = z.strictObject({
   questions: z.array(z.strictObject({ id: z.string(), text: z.string() })),

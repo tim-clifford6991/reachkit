@@ -84,7 +84,7 @@ describe("the model labels, and the label goes through the cost seam", () => {
     expect(refined.effort).toBe(EFFORT_BY_TYPE.comparison_page);
   });
 
-  it("the label read off the forced tool's input (issue #512) refines the candidate the same way", async () => {
+  it("the label read off the tool's input (issue #512) refines the candidate the same way", async () => {
     createMock.mockResolvedValue(
       toolUseMessage({ type: "comparison_page", slug: "appcues-vs-us", title: "Appcues or us" }, 100, 20, TYPING_CALL_SITE)
     );
@@ -92,8 +92,8 @@ describe("the model labels, and the label goes through the cost seam", () => {
 
     const refined = await refineType(ctx, writeCandidate());
 
-    const sent = createMock.mock.calls[0]![0] as { tool_choice: { type: string; name: string } };
-    expect(sent.tool_choice).toEqual({ type: "tool", name: TYPING_CALL_SITE });
+    const sent = createMock.mock.calls[0]![0] as { tool_choice: { type: string }; tools: { name: string; strict: boolean }[] };
+    expect([sent.tool_choice, sent.tools[0]?.name, sent.tools[0]?.strict]).toEqual([{ type: "auto" }, TYPING_CALL_SITE, true]);
     expect(sources).toEqual([TYPING_CALL_SITE]);
     expect(refined.type).toBe("comparison_page");
     expect(refined.targetRef).toBe("appcues-vs-us");

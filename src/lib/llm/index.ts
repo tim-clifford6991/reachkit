@@ -4,6 +4,7 @@
 import { modelInstruction } from "@/lib/locale/language";
 import type { Locale } from "@/lib/locale/locales";
 import Anthropic from "@anthropic-ai/sdk";
+import { transformJSONSchema } from "@anthropic-ai/sdk/lib/transform-json-schema";
 import { createHash } from "node:crypto";
 import { z, type ZodType } from "zod";
 import {
@@ -135,54 +136,34 @@ function estimateTokens(text: string): number {
   return Math.max(1, Math.ceil(text.length / 4));
 }
 
-/** A tool name the vendor accepts is `[a-zA-Z0-9_-]{1,128}`; a call site
- *  such as `generate.brief` carries a dot, so every other character is
- *  written as `_`. The name is a label for the one tool offered — nothing
- *  reads it back but `tool_choice`. */
+/** A tool name the vendor accepts is `[a-zA-Z0-9_-]{1,128}`; a call site such as `generate.brief` carries a dot. */
 const TOOL_NAME_UNSAFE = /[^a-zA-Z0-9_-]/g;
 
-/** The one tool a call offers, and forces (issue #512). */
-interface ForcedTool {
-  name: string;
-  input_schema: Anthropic.Tool.InputSchema;
-}
-
-/** The call site's schema as one forced tool: the model answers by calling
- *  it, and the vendor returns the answer as a `tool_use` block's `input` —
- *  an already-parsed value, never text a fence or a sentence can wrap. A
- *  system line asking for "JSON only" is a request; this is the shape of
- *  the response (M3 live run 6: two profile answers inside budget, neither
- *  JSON).
- *
- *  `null` — the call goes out as plain text, read by `parseJson` — for a
- *  schema whose JSON Schema is not an object (the vendor's `input_schema`
- *  must be one; a top-level-array site wraps its array at the call site,
- *  as `question-phrasing` does) or that Zod cannot express as JSON Schema
- *  at all. Building the request never throws: `llm()` does not. The Zod
- *  `safeParse` below stays the gate on either path. */
-function forcedToolFor(site: LlmCallSite, schema: ZodType<unknown>): ForcedTool | null {
+/** The call site's schema as one strict tool the model may call: the vendor holds a call's `input` to the schema and
+ *  returns it already parsed. The choice is the model's, since newer models refuse a forced call, so a text answer
+ *  is still read by `parseJson`. `null`, plain text, for a schema that is not an object or that cannot be written as
+ *  JSON Schema; building the request never throws. The SDK moves what strict mode refuses (lengths, bounds) into
+ *  descriptions, and the Zod `safeParse` below stays the gate on either path. */
+function answerToolFor(site: LlmCallSite, schema: ZodType<unknown>): Anthropic.Tool | null {
   let jsonSchema: Record<string, unknown>;
   try {
-    jsonSchema = { ...(z.toJSONSchema(schema) as Record<string, unknown>) };
+    const raw = { ...(z.toJSONSchema(schema) as Record<string, unknown>) };
+    // The dialect marker is the document's, not the tool input's shape.
+    delete raw.$schema;
+    jsonSchema = transformJSONSchema(raw);
   } catch {
     return null;
   }
   if (jsonSchema.type !== "object") return null;
-  // The dialect marker is the document's, not the tool input's shape.
-  delete jsonSchema.$schema;
-  return {
-    name: site.replace(TOOL_NAME_UNSAFE, "_"),
-    input_schema: jsonSchema as Anthropic.Tool.InputSchema,
-  };
+  return { name: site.replace(TOOL_NAME_UNSAFE, "_"), input_schema: jsonSchema as Anthropic.Tool.InputSchema, strict: true };
 }
 
-/** What one response carried: the forced tool's `input` where the model
- *  called it, and otherwise its text. */
+/** What one response carried: the tool's `input` where the model called it, and otherwise its text. */
 type Answer = { kind: "tool"; value: unknown } | { kind: "text"; text: string };
 
-function readAnswer(message: Anthropic.Message, tool: ForcedTool | null): Answer {
+function readAnswer(message: Anthropic.Message, tool: Anthropic.Tool | null): Answer {
   if (tool !== null) {
-    // One tool is offered and it is forced, so any `tool_use` block is it.
+    // One tool is offered, so any `tool_use` block is it.
     const called = message.content.find(
       (candidate): candidate is Anthropic.ToolUseBlock => candidate.type === "tool_use"
     );
@@ -251,7 +232,7 @@ function firstBalancedValue(text: string): JsonRead {
 }
 
 /** The text path's reader (issue #512) — a response that carried text
- *  rather than the forced tool's `input`. The whole text first; then the
+ *  rather than the tool's `input`. The whole text first; then the
  *  inside of a surrounding fence; then the first balanced object or array,
  *  which is what an answer with a sentence before it or prose after it
  *  holds. It never coerces: a value comes back only where `JSON.parse`
@@ -332,9 +313,8 @@ async function callModel(
    *  one, so no `llm()` call can outlive the number `INFERENCE_TIMEOUT_MS`
    *  states however many attempts it takes inside. */
   remainingMs: number,
-  /** The call site's schema as one forced tool, or `null` for plain text
-   *  (see `forcedToolFor`). */
-  tool: ForcedTool | null,
+  /** The call site's schema as one strict tool, or `null` for plain text (see `answerToolFor`). */
+  tool: Anthropic.Tool | null,
   /** The call site's pinned `INFERENCE_TEMPERATURE`, or `undefined` for
    *  the vendor's default — then nothing is sent, exactly as before. */
   temperature: number | undefined
@@ -357,7 +337,7 @@ async function callModel(
       messages: [{ role: "user", content: inputText }],
       ...(tool === null
         ? {}
-        : { tools: [tool], tool_choice: { type: "tool" as const, name: tool.name } }),
+        : { tools: [tool], tool_choice: { type: "auto" as const } }),
     },
     { timeout: remainingMs }
   );
@@ -388,7 +368,7 @@ async function runAttempts<T>(
   schema: ZodType<T>,
   inputText: string,
   maxOutputTokens: number,
-  tool: ForcedTool | null,
+  tool: Anthropic.Tool | null,
   temperature: number | undefined,
   attempts: number, retryFits: () => Promise<boolean>
 ): Promise<AttemptOutcome> {
@@ -580,7 +560,7 @@ export async function llm<T>(
   const binding = tierBinding(call.tier);
   const inputText = JSON.stringify(inputIn(call.input, call.locale));
   const maxOutputTokens = INFERENCE_MAX_OUTPUT_TOKENS[call.site];
-  const tool = forcedToolFor(call.site, call.schema);
+  const tool = answerToolFor(call.site, call.schema);
   const cacheKey = createHash("sha256").update(`${call.site}:${call.tier}:${inputText}`).digest("hex");
   const attempts = INFERENCE_ATTEMPTS[call.site] ?? MAX_ATTEMPTS;
   const attemptCents = costCentsFor(call.tier, estimateTokens(inputText), maxOutputTokens);

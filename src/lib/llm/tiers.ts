@@ -89,12 +89,12 @@ const TIER_MODEL_IDS: Readonly<Record<Tier, string>> = Object.freeze({
   nano: "claude-haiku-4-5",
   haiku: "claude-haiku-4-5",
   // The business-fit judgement's tier (owner, issue 1134, 2026-10-02: "Run
-  // it on Sonnet"). 4.6 and not a later Sonnet because `llm()` forces its
-  // one tool and pins a temperature, and the later ones refuse both.
+  // it on Sonnet"). 4.6 and not a later Sonnet because `llm()` pins a
+  // temperature here, and the later ones refuse it.
   sonnet: "claude-sonnet-4-6",
   // The page's sections and its critic (SPEC §7, 2026-09-29, *Length and
-  // the writer*; issue 1138). Sonnet 5 takes the forced tool; it refuses a
-  // sampling parameter and thinks unless told not to — `FIXED_REQUEST`.
+  // the writer*; issue 1138). Sonnet 5 refuses a sampling parameter and
+  // thinks unless told not to — `FIXED_REQUEST`.
   writer: "claude-sonnet-5",
 });
 
