@@ -32,7 +32,7 @@
 // the report as it is stored.
 import { BOT_PROTECTION, challengeOf, couldBeChallenge } from "@/lib/measure/challenge";
 import { unmeasured } from "@/lib/measure/measured";
-import { isStoredDocument, OWN_FETCH_SOURCE, RENDERED_FETCH_SOURCE, renderedDocumentOf } from "@/lib/measure/own-fetch";
+import { holdsHtml, isStoredDocument, OWN_FETCH_SOURCE, RENDERED_FETCH_SOURCE, renderedDocumentOf } from "@/lib/measure/own-fetch";
 import { computeScore, limitingFactorOf, type ScoreFactors } from "@/lib/measure/score";
 import { checkSite } from "@/lib/site-issues/checks";
 import { deployedFactsVersion } from "./derivation";
@@ -54,6 +54,7 @@ interface PayloadRow {
 }
 interface FactRow {
   fetch_id: string;
+  facts_version: string;
   fact: unknown;
 }
 interface RenderedRow {
@@ -100,17 +101,22 @@ async function rowsOf<T>(query: MinimalQueryBuilder<T>): Promise<T[]> {
 }
 
 /** Each read's `fact`, as the re-score derived it at the deployed facts
- *  version, else as `judge` reads it off the payload. */
+ *  version, else as `judge` reads it off the payload, else, where the
+ *  payload's html was pruned, as it was derived at any version. */
 async function judged(db: MinimalClient, ids: readonly string[], fact: "protection" | "drawn", judge: (payload: unknown) => boolean): Promise<Map<string, boolean>> {
   const out = new Map<string, boolean>();
+  const older = new Map<string, boolean>();
   const version = deployedFactsVersion();
   if (version !== null && ids.length > 0) {
-    const kept = await rowsOf(db.from<FactRow>("fetch_facts").select(`fetch_id, fact:facts->${fact}`).eq("facts_version", version).in("fetch_id", ids));
-    for (const row of kept) if (typeof row.fact === "boolean") out.set(row.fetch_id, row.fact);
+    const kept = await rowsOf(db.from<FactRow>("fetch_facts").select(`fetch_id, facts_version, fact:facts->${fact}`).in("fetch_id", ids));
+    for (const row of kept) if (typeof row.fact === "boolean") (row.facts_version === version ? out : older).set(row.fetch_id, row.fact);
   }
   const missing = ids.filter((id) => !out.has(id));
   if (missing.length === 0) return out;
-  for (const row of await rowsOf(db.from<PayloadRow>("fetches").select("id, payload").in("id", missing))) out.set(row.id, judge(row.payload));
+  for (const row of await rowsOf(db.from<PayloadRow>("fetches").select("id, payload").in("id", missing))) {
+    const had = older.get(row.id);
+    out.set(row.id, had !== undefined && !holdsHtml(row.payload) ? had : judge(row.payload));
+  }
   return out;
 }
 

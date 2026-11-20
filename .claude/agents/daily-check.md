@@ -35,6 +35,7 @@ For each one, report the evidence and PASS / FAIL / NO-DATA. NO-DATA is not a fa
    - Vercel runtime errors in 24 h (`get_runtime_errors`).
 7. **Deploys:** `prod-redeploy.log` in 24 h, covering production deploys, their Ready and Inngest-sync lines, production check results, and dev-check failures.
 8. **Spend:** vendor spend in 24 h from `vendor_days` and scan costs, against the daily caps. Anything near a cap is a WARN.
+9. **Database size:** `select pg_size_pretty(pg_database_size(current_database())), pg_size_pretty(pg_total_relation_size('public.fetches'));`, against the plan's limit (the plan is in `docs/RUNBOOK.md` §2; Free is 500 MB, Pro 8 GB), because at the limit the database goes read-only. Report the size, the limit, the percentage and the change since the last report. 80% is a WARN; 95% is a FAIL.
 
 ## Output
 - Write `/root/ops/reachkit/reports/daily-check/<YYYY-MM-DD>.md`, made of:
