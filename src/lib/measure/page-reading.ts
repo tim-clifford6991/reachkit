@@ -59,7 +59,7 @@ export interface PlaceReport {
 export const TRACKED_DEPTH = 20;
 export const FIRST_PAGE_PLACES = 10;
 /** The searches a page earns on that its stored reading keeps, and the places a refresh answers them from. */
-export const EARNING = Object.freeze({ kept: 20, answered: { min: 8, max: TRACKED_DEPTH } } as const);
+export const EARNING = Object.freeze({ kept: 20, answered: { min: 8, max: TRACKED_DEPTH }, offered: { min: 8, max: 30, impressions: 5, words: 6 }, reach: 30 } as const);
 
 /** One page's address as two readings of it compare: tracking parameters,
  *  the fragment, the scheme, `www.` and a trailing slash dropped, lower-cased. */
@@ -339,6 +339,28 @@ function engineOf(value: unknown): GoogleReading | null {
 export function answeredQueries(value: unknown): string[] {
   const { min, max } = EARNING.answered;
   return (googleRead(readingOf(value)?.google)?.queries ?? []).filter((q) => q.position >= min && q.position <= max).map((q) => q.query);
+}
+
+/** One search Search Console showed the site's live pages on: impressions summed, position their impression-weighted mean. */
+export interface EarnedSearch {
+  query: string;
+  impressions: number;
+  position: number;
+}
+
+/** The searches the stored readings measured, but a live page's own; a reading `property_new` or unread holds none. */
+export function earnedSearches(pages: readonly { reading?: unknown; search?: string | null }[]): EarnedSearch[] {
+  const own = new Set(pages.flatMap((page) => (page.search == null ? [] : [normalised(page.search)])));
+  const sums = new Map<string, { query: string; impressions: number; weighted: number }>();
+  for (const page of pages) {
+    for (const row of googleRead(readingOf(page.reading)?.google)?.queries ?? []) {
+      const key = normalised(row.query);
+      if (own.has(key) || row.impressions <= 0 || row.position <= 0) continue;
+      const held = sums.get(key) ?? { query: key, impressions: 0, weighted: 0 };
+      sums.set(key, { query: key, impressions: held.impressions + row.impressions, weighted: held.weighted + row.impressions * row.position });
+    }
+  }
+  return [...sums.values()].map(({ query, impressions, weighted }) => ({ query, impressions, position: Math.round((weighted / impressions) * 10) / 10 })).sort((a, b) => b.impressions - a.impressions);
 }
 
 /** The stored JSON, read defensively; `null` for a page never read. */

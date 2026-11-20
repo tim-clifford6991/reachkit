@@ -30,6 +30,7 @@
 // `regenerateRestarted` is the customer's Regenerate carried out: the next draft tick rewrites the row for its date.
 import { siteLocale } from "@/lib/locale/site";
 import { answeredQueries } from "@/lib/measure/page-reading";
+import { answeredHere } from "@/lib/opportunities/cluster";
 import {
   opportunityById,
   pageForDay,
@@ -440,7 +441,7 @@ async function livePageOf(
   const version = ours === undefined ? null : await generateStore().liveVersionAt(a.siteId, url);
   const versionMeta = (version?.draft.meta ?? null) as Record<string, unknown> | null;
   const datedAs = version === null ? undefined : typeof versionMeta?.datedAs === "string" ? versionMeta.datedAs : version.publishedAt.toISOString();
-  const queries = answeredQueries(version?.reading);
+  const queries = await answeredHere(a.siteId, opportunity, answeredQueries(version?.reading));
   // A link to a page that moved is pointed at its new address in code, by the name the row records.
   const moved =
     linkTo?.replaces === undefined ? markdown : withMovedLink(markdown, { from: (href) => href === linkTo.replaces, to: linkTo.url, text: linkTo.title }).markdown;
@@ -477,10 +478,7 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number; 
   let opportunity = a.opportunity;
 
   const ruleInputs = siteRulesOf(site, report, await completenessOf(a.siteId, new Date(), a.completeness === "warn"));
-  // SPEC §7 (2026-09-20), #927: the **confirmed** business profile — the
-  // knowledge base and the founder's answers, with the customer's own
-  // corrections applied over the crawl — through `readConfirmedBusiness`
-  // (#978), the read both screens use. Read once for the day.
+  // The confirmed business profile, the customer's corrections over the crawl, as both screens read it, once for the day.
   const confirmed = await confirmedForWriting({ siteId: a.siteId, domain: site.domain });
   // D66: the page is researched and written in the site's own country and language.
   const locale = await siteLocale(a.siteId);

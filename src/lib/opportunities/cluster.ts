@@ -6,7 +6,7 @@ import { SAME_TOPIC_SHARED_ADDRESSES, TOPIC_FIT } from "@/lib/config/constants";
 import { marketTokens, type MarketWords } from "@/lib/market/infer/terms";
 import { GENERIC_TOKENS, ownBrandTokens, stemKey } from "@/lib/market/questions/select";
 import { googleWrapper, registrableDomain, resolvedOf } from "@/lib/market/rivals/domains";
-import { canonicalUrl } from "@/lib/measure/page-reading";
+import { canonicalUrl, EARNING, type EarnedSearch } from "@/lib/measure/page-reading";
 import type { StoredReport } from "@/lib/scan/report";
 import type { Candidate } from "./derive/candidate";
 import { isOwnRefresh, qualifiesForADay, type Family, type Opportunity, type OpportunityType, type Winnability } from "./types";
@@ -16,8 +16,7 @@ export function queryKey(query: string): string {
   return query.trim().toLowerCase();
 }
 
-/** The same top tens with each result's domain, address and title (issue 1506), and whether it showed a local pack:
- *  what tells the kind of business a search is answered by. */
+/** The same top tens with each result's domain, address, title and local pack: what kind of business answers a search. */
 export function topTenRowsOf(
   report: Pick<StoredReport, "questions" | "serps">
 ): Map<string, { rows: { domain: string; url: string; title: string }[]; localPack: boolean }> {
@@ -32,8 +31,7 @@ export function topTenRowsOf(
   return topTens;
 }
 
-/** The top ten a report bought for each of its questions, as canonical addresses, keyed by `queryKey`. A question
- *  whose SERP is unmeasured has none, and a row behind a Google redirect has no address to share. */
+/** The top ten a report bought for each question, as canonical addresses by `queryKey`; an unmeasured SERP has none. */
 export function topTensOf(report: Pick<StoredReport, "questions" | "serps">): Map<string, readonly string[]> {
   const topTens = new Map<string, readonly string[]>();
   if (report.questions?.kind !== "measured") return topTens;
@@ -55,8 +53,7 @@ export function shareATopTen(a: readonly string[], b: readonly string[]): boolea
 /** What `sameTopic` reads of a row. */
 type TopicOf = Pick<Opportunity, "targetQuery" | "clusterKey" | "absorbedQueries">;
 
-/** Whether two rows are one topic on what is stored: one cluster key, one search, a search the other absorbed, or
- *  top tens that share enough addresses. */
+/** Whether two rows are one topic: one cluster key, one search, a search the other absorbed, or shared top tens. */
 export function sameTopic(a: TopicOf, b: TopicOf, topTens: ReadonlyMap<string, readonly string[]>): boolean {
   if (a.clusterKey !== null && a.clusterKey === b.clusterKey) return true;
   if (a.targetQuery === null || b.targetQuery === null) return false;
@@ -67,8 +64,22 @@ export function sameTopic(a: TopicOf, b: TopicOf, topTens: ReadonlyMap<string, r
   return ta !== undefined && tb !== undefined && shareATopTen(ta, tb);
 }
 
-/** B1's one-question join: `sameTopic`, or one cluster key once the market's own names are one word and its buyer no
- *  qualifier. Given no market, only `sameTopic`. */
+/** The search Search Console measured the site at `EARNING.reach` or better on that a row's search, an absorbed one or its cluster is. */
+export function reachedBy(searches: readonly EarnedSearch[], brandTokens: readonly string[], market?: MarketWords | null): (o: TopicOf) => string | null {
+  const reached = searches.filter((row) => row.position <= EARNING.reach);
+  const byKey = new Map(reached.map((row) => [queryKey(row.query), row.query]));
+  const byCluster = new Map(reached.flatMap((row) => [[clusterKey(row.query, brandTokens, market) ?? "", row.query] as const]).filter(([key]) => key !== ""));
+  return (o) => [o.targetQuery ?? "", ...o.absorbedQueries].map((query) => byKey.get(queryKey(query))).find((query) => query !== undefined) ?? [o.clusterKey, clusterKey(o.targetQuery, brandTokens, market)].map((key) => byCluster.get(key ?? "")).find((query) => query !== undefined) ?? null;
+}
+
+/** The searches a refresh of `own`'s page answers, less any another open, queued or live topic of the site holds. */
+export async function answeredHere(siteId: string, own: Pick<Opportunity, "id" | "targetQuery">, queries: readonly string[]): Promise<string[]> {
+  const rows = queries.length === 0 ? [] : await import("./store").then(({ opportunityStore }) => opportunityStore().clusterable(siteId)).catch(() => []);
+  const ownKey = queryKey(own.targetQuery ?? ""), held = new Set(rows.flatMap((row) => (row.id === own.id || queryKey(row.target_query ?? "") === ownKey ? [] : [row.target_query ?? "", ...row.absorbed_queries])).map(queryKey));
+  return queries.filter((query) => !held.has(queryKey(query)));
+}
+
+/** B1's one-question join: `sameTopic`, or one market-aware cluster key; given no market, only `sameTopic`. */
 export function oneQuestion(a: {
   topTens: ReadonlyMap<string, readonly string[]>;
   market: (MarketWords & { rivals?: readonly { domain: string }[] }) | null;
@@ -80,8 +91,7 @@ export function oneQuestion(a: {
   return (x, y) => sameTopic(x, y, a.topTens) || (keyOf(x) !== null && keyOf(x) === keyOf(y));
 }
 
-/** The open new-page rows a page just drafted makes repeats of, folded into it so the next evening never drafts the
- *  same question in other words. */
+/** The open new-page rows a just-drafted page repeats, folded in so no evening drafts the question again in other words. */
 export function nearRepeatsOf(
   page: Opportunity,
   open: readonly Opportunity[],
@@ -147,8 +157,7 @@ export function clusterKey(query: string | null, brandTokens: readonly string[],
 /** SPEC §6: Improve of an owned URL, then an Earn asset, then new writing. */
 const FAMILY_ORDER: Readonly<Record<Family, number>> = Object.freeze({ improve: 0, earn: 1, write: 2, fix: 3 });
 
-/** Owner, 2026-09-15: `answer_page` > `comparison_page` > `format_page` >
- *  `keyword_page`. Types outside the Write family share one place. */
+/** `answer_page` > `comparison_page` > `format_page` > `keyword_page`; types outside the Write family share one place. */
 const WRITE_TYPE_ORDER: Readonly<Partial<Record<OpportunityType, number>>> = Object.freeze({
   answer_page: 0,
   comparison_page: 1,
@@ -156,8 +165,7 @@ const WRITE_TYPE_ORDER: Readonly<Partial<Record<OpportunityType, number>>> = Obj
   keyword_page: 3,
 });
 
-/** Negative where `a` goes first. Family, then Write type; nothing else —
- *  the score and age are the ranking's to add after this. */
+/** Negative where `a` goes first: family, then Write type; score and age are the ranking's to add. */
 export function comparePrecedence(
   a: { family: Family; type: OpportunityType },
   b: { family: Family; type: OpportunityType }
@@ -200,8 +208,7 @@ function queryOf(m: Member): string | null {
   return m.kind === "row" ? m.row.targetQuery : m.candidate.targetQuery;
 }
 
-/** The search whose stored results page a member was read from: a question
- *  buyers were seen asking shares its parent search's. */
+/** The search whose stored results page a member was read from; an asked question shares its parent's. */
 function serpOf(m: Member): string | null {
   const evidence = m.kind === "row" ? m.row.evidence : m.candidate.evidence;
   return (evidence.family === "write" ? evidence.askedBeside?.term : undefined) ?? queryOf(m);

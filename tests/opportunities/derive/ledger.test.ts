@@ -24,7 +24,7 @@ describe("supplyLedger", () => {
     expect(ledger.sources.problem).toEqual({ offered: 1, searched: 0, fit: 0, candidates: 0, added: 0 });
     expect(ledger.have).toBe(5);
     expect(ledger.short).toBe(PLAN_DEPTH - 5);
-    expect(ledger.dry).toEqual(["problem", "category", "best_x", "ai_gap", "asked", "cited", "written", "offering"]);
+    expect(ledger.dry).toEqual(["problem", "category", "best_x", "ai_gap", "asked", "cited", "written", "offering", "earned"]);
   });
 
   it("holds only open new-page rows the fit judgement did not keep below the top", () => {
@@ -38,7 +38,7 @@ describe("supplyLedger", () => {
   it("a site holding a week and its spares is short of nothing, and its dry sources are still named", () => {
     const ledger = supplyLedger({ stages: { added: ["category"] }, rows: open(PLAN_DEPTH + 2) });
     expect(ledger.short).toBe(0);
-    expect(ledger.dry).toEqual(["product", "problem", "best_x", "ai_gap", "asked", "cited", "written", "offering"]);
+    expect(ledger.dry).toEqual(["product", "problem", "best_x", "ai_gap", "asked", "cited", "written", "offering", "earned"]);
   });
 });
 

@@ -27,7 +27,7 @@ import { refineType } from "./typing";
 import { applyKnownContent, type KnownContentGate } from "./known";
 import { writeCandidates } from "./write";
 import { judgeFit, type FitSearch } from "./fit";
-import { askedOfReport, askedSupply, askedTopics, brandsOf, type AskedSupply, candidateFor, comparisonWithoutDemand, namesOwnOnly, noLongerRelevant, productsNamed, proposedTopics, rivalBrandOnly, rivalNamesOf, rivalPriceOf, sourceOf } from "./topics";
+import { askedOfReport, askedSupply, askedTopics, brandsOf, type AskedSupply, type ProposedTopic, candidateFor, comparisonWithoutDemand, namesOwnOnly, noLongerRelevant, productsNamed, proposedTopics, rivalBrandOnly, rivalNamesOf, rivalPriceOf, sourceOf } from "./topics";
 import { judgeTyped, writeBuyerSearches } from "./buyer-searches";
 import { ledgerSourceOf, supplyLedger, writable, type LedgerSource, type SupplyLedger } from "./ledger";
 import { topUpRecord, topUpWithPurchase, type TopUpTopic } from "./top-up";
@@ -35,6 +35,8 @@ import type { TopUpSpend } from "@/lib/market/questions/top-up-buy";
 import { competitorWins } from "@/lib/market/competitor-wins";
 import type { RankedRow } from "@/lib/vendors/dataforseo/types";
 import { footprintOpen } from "@/lib/market/footprint";
+import { EARNING, earnedSearches, pageSearchOf } from "@/lib/measure/page-reading";
+import { closestPrompt } from "../intent";
 
 export interface DeriveInput {
   siteId: string;
@@ -209,13 +211,19 @@ export async function deriveOpportunities(
   const footprint = topUp?.fired === true && (await footprintOpen(store, a.siteId, { report: a.report, market, record: false }).catch(() => false));
   const topping: TopUpTopic[] = topUp === undefined ? [] : await topUpWithPurchase(a.topUp?.spend, { record: topUp, report: a.report, market, ownRanked, footprint, language: locale.language, locale, ...named, written, asked: askedTopics(seen, a.report.verdict.measuredAt, Infinity), taken, area: a.area ?? null, max: room });
   const toppedUp = new Set<unknown>(topping);
-  const { gaps, unworded } = competitorWins({ section: answered, competitors: [...business, ...searchRivals], ranked: a.rivalRows ?? new Map(), report: a.report, ownRanked: a.ownRanked, asked: askedTopics(seen, a.report.verdict.measuredAt, Infinity), taken: [...taken, ...topping.map((topic) => topic.query)], market, ...named, max: room - topping.length });
-  const proposing = [...topping, ...gaps, ...proposedTopics({
+  const earnedKeys = new Set([...taken, ...topping.map((topic) => topic.query)].map(queryKey));
+  const earned = earnedTopics(await store.refreshPages(a.siteId).catch(() => []), {
+    taken: earnedKeys,
+    wordings: askedTopics(seen, a.report.verdict.measuredAt, Infinity).map((topic) => topic.query),
+    refused: (query) => namesOwnOnly(query, named) || aRivalsBrand({ targetQuery: query }) || notASearch({ targetQuery: query }),
+  }).slice(0, Math.max(0, room - topping.length));
+  const { gaps, unworded } = competitorWins({ section: answered, competitors: [...business, ...searchRivals], ranked: a.rivalRows ?? new Map(), report: a.report, ownRanked: a.ownRanked, asked: askedTopics(seen, a.report.verdict.measuredAt, Infinity), taken: [...earnedKeys], market, ...named, max: room - topping.length - earned.length });
+  const proposing = [...topping, ...earned, ...gaps, ...proposedTopics({
     report: a.report,
     market,
-    taken: [...taken, ...topping.map((topic) => topic.query), ...gaps.map((gap) => gap.query)],
+    taken: [...earnedKeys, ...gaps.map((gap) => gap.query)],
     ownRanked,
-    max: room - topping.length - gaps.length,
+    max: room - topping.length - earned.length - gaps.length,
     comparisons,
     written,
     language: locale.language,
@@ -349,6 +357,12 @@ export async function deriveOpportunities(
       }
       continue;
     }
+    // An earned search is kept at the fit it was judged, so readiness holds a low one and an unscored one waits.
+    if (topic.source === "earned") {
+      const candidate = candidateFor(topic, { ...base, market, ownRanked });
+      if (candidate !== null) proposed.push(judged === undefined ? { ...candidate, businessFit: null } : withFact({ ...candidate, businessFit: judged.fit, title: judged.title }, judged.fact));
+      continue;
+    }
     if (topic.asked !== undefined && judged !== undefined && judged.fit < TOPIC_FIT.writeAt) {
       if (judged.fit >= TOPIC_FIT.gate) spare.push({ topic, fit: judged.fit, fact: judged.fact });
       else refused.push(topic.query);
@@ -474,6 +488,18 @@ export function dismissedUnchanged(
   const key = queryKey(candidate.targetQuery);
   const now = candidate.volume === null || candidate.volume.kind === "unmeasured" ? 0 : candidate.volume.value;
   return dismissed.some((row) => queryKey(row.query) === key && (row.stopped || now <= (row.volume ?? 0)));
+}
+
+/** Searches Search Console measured the live pages on at `EARNING.offered` that none targets, a typed-in prompt worded as searched. Pure; adds to `taken`. */
+export function earnedTopics(pages: readonly { reading?: unknown; row: Pick<Opportunity, "acceptance" | "targetQuery"> }[], a: { taken: Set<string>; wordings: readonly string[]; refused: (query: string) => boolean }): ProposedTopic[] {
+  const { min, max, impressions, words } = EARNING.offered;
+  const wordings = a.wordings.map((text) => ({ id: text, text }));
+  return earnedSearches(pages.map((page) => ({ reading: page.reading, search: pageSearchOf(page.row.acceptance, page.row.targetQuery) }))).flatMap((row): ProposedTopic[] => {
+    const query = queryKey(row.query.split(" ").length > words ? (closestPrompt(row.query, wordings)?.text ?? "") : row.query);
+    if (row.position < min || row.position > max || row.impressions < impressions || query === "" || a.taken.has(query) || a.refused(query)) return [];
+    a.taken.add(query);
+    return [{ query, source: "earned", volume: null, rival: null }];
+  });
 }
 
 /** A new page's evidence with the passage its fit was judged on, `null` where judged with none; unjudged has no key. */
