@@ -1,7 +1,8 @@
 // The research claims a page may cite: which are admitted, and in what order.
 import type { z } from "zod";
 import { RESEARCH } from "@/lib/config/constants";
-import type { CLAIMS_SCHEMA, MarketFact, ReadPage, Wanted } from "./research";
+import type { CLAIMS_SCHEMA } from "./claims-read";
+import type { MarketFact, ReadPage, Wanted } from "./research";
 
 /** Quotation marks and whitespace are not a different claim. */
 export const squash = (text: string): string =>
