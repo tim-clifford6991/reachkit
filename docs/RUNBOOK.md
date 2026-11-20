@@ -884,10 +884,10 @@ select source, sum(cost_cents) as cents, count(*) as calls
 ```
 
 **Retention.** An own or rendered page read keeps its html 30 days (owner, 2026-11-18, #2836).
-`account/maintenance` calls `prune_page_html`, which removes `html` from older reads whose facts are
-kept in `fetch_facts`, up to 1000 rows a tick, with the cutoff fixed for the UTC day; the log line is
-`page_html_pruned`. The cost columns, the rest of the payload and every derived row stay; a read with
-no kept facts keeps its html. The daily check reports the database's size against the plan's limit.
+`account/maintenance` calls `prune_page_html`, which removes `html` from older reads whose facts and
+text are kept in `fetch_facts` and `fetch_text`, up to 1000 rows a tick, with the cutoff fixed for the UTC day; the log line is
+`page_html_pruned`. The cost columns, the rest of the payload and every derived row stay; a read without
+both keeps its html. The daily check reports the database's size against the plan's limit.
 Emptied rows free space inside the table; returning it to the plan's count (`vacuum full fetches`)
 is an operator step, done and recorded on its own.
 

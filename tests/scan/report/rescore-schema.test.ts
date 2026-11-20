@@ -430,20 +430,21 @@ describe("fetch_text — the grounding's text of each stored read", () => {
 });
 
 describe("prune_page_html — raw page html kept 30 days", () => {
-  it("empties html past the cutoff only where facts are kept, keeps cost and the rest, and a second run empties nothing", () => {
+  it("empties html past the cutoff only where facts and text are kept, keeps cost and the rest, and a second run empties nothing", () => {
     const scanId = scan();
     const html = `{"url":"https://gusto.com/","status":200,"html":"<p>x</p>","bytes":8,"readAt":"2026-10-01T00:00:00Z"}`;
-    const read = (days: number, payload: string) =>
-      value(`insert into fetches (scan_id, source, cache_key, policy_version, cost_cents, reserved_cents, payload, created_at) values ('${scanId}', 'egress.safeFetch', 'https://gusto.com/', 1, 3, 3, '${payload}'::jsonb, now() - interval '${days} days') returning id;`)!;
-    const [young, old, rendered, bare] = [read(29, html), read(31, html), read(31, `[${html}]`), read(90, html)];
-    for (const id of [young, old, rendered]) run(`insert into fetch_facts (fetch_id, scan_id, facts_version, facts) values ('${id}', '${scanId}', 'v1', '{}'::jsonb);`);
+    const read = (days: number, payload: string, source = "egress.safeFetch") =>
+      value(`insert into fetches (scan_id, source, cache_key, policy_version, cost_cents, reserved_cents, payload, created_at) values ('${scanId}', '${source}', 'https://gusto.com/', 1, 3, 3, '${payload}'::jsonb, now() - interval '${days} days') returning id;`)!;
+    const [young, old, rendered, bare, untexted] = [read(29, html), read(31, html), read(31, `[${html}]`, "on_page/instant_pages"), read(90, html), read(31, html)];
+    for (const id of [young, old, rendered, untexted]) run(`insert into fetch_facts (fetch_id, scan_id, facts_version, facts) values ('${id}', '${scanId}', 'v1', '{}'::jsonb);`);
+    for (const id of [young, old, rendered]) run(`insert into fetch_text (fetch_id, scan_id, text_version, url, read_at, rendered, document, text, examples, questions) values ('${id}', '${scanId}', 't1', 'u', 'r', false, true, 'x', '[]'::jsonb, '[]'::jsonb);`);
     const prune = () => value("set role service_role; select public.prune_page_html(now() - interval '30 days', 1000);");
     expect(prune()).toBe("2");
     const rows = () => psqlRows(`select id, payload ? 'html' or coalesce(payload -> 0 ? 'html', false), coalesce(payload->>'readAt', payload->0->>'readAt'), cost_cents from fetches where scan_id = '${scanId}' order by id;`);
     const after = rows();
-    expect(Object.fromEntries(after.map(([id, has]) => [id, has]))).toEqual({ [young]: "t", [old]: "f", [rendered]: "f", [bare]: "t" });
+    expect(Object.fromEntries(after.map(([id, has]) => [id, has]))).toEqual({ [young]: "t", [old]: "f", [rendered]: "f", [bare]: "t", [untexted]: "t" });
     expect(after.every(([, , readAt, cost]) => readAt === "2026-10-01T00:00:00Z" && Number(cost) === 3)).toBe(true);
-    expect(value(`select count(*) from fetch_facts where scan_id = '${scanId}';`)).toBe("3");
+    expect(value(`select (select count(*) from fetch_facts where scan_id = '${scanId}') + (select count(*) from fetch_text where scan_id = '${scanId}');`)).toBe("7");
     expect([prune(), rows()]).toEqual(["0", after]);
     expect(value("select has_function_privilege('authenticated', 'public.prune_page_html(timestamptz, integer)', 'execute');")).toBe("f");
   });
