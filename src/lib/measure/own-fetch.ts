@@ -94,3 +94,9 @@ export function renderedDocumentOf(payload: unknown): StoredDocument | null {
   const first: unknown = Array.isArray(payload) ? payload[0] : null;
   return siteDocumentOf(first);
 }
+
+/** Whether a stored own or rendered read still holds its page: past its window the prune removes `html` and keeps the rest. */
+export function holdsHtml(payload: unknown): boolean {
+  const read: unknown = Array.isArray(payload) ? payload[0] : payload;
+  return read !== null && typeof read === "object" && typeof (read as { html?: unknown }).html === "string";
+}

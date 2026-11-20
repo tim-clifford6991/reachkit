@@ -1,8 +1,10 @@
 // src/lib/scan/fetch-facts.ts — the re-score's facts of stored reads, kept in
 // `fetch_facts` at one facts version: read for the ids asked, and for a read
 // with none at that version, its payload downloaded once, its facts derived
-// (`page-facts.ts`) and kept. Every id is asked for once per run.
+// (`page-facts.ts`) and kept. A read whose html was pruned keeps the facts it
+// had at any version (owner, 2026-11-20). Every id is asked for once per run.
 import { offline } from "@/lib/egress/offline";
+import { holdsHtml } from "@/lib/measure/own-fetch";
 import { onceById } from "./own-reads";
 import { pageFactsOf, type PageFacts } from "./page-facts";
 
@@ -45,16 +47,19 @@ export function factsLoader(client: () => Promise<MinimalClient>, version: strin
   const batch = async (ids: readonly string[]): Promise<Map<string, PageFacts>> => {
     const db = await client();
     const out = new Map<string, PageFacts>();
+    const older = new Map<string, PageFacts>();
     if (version !== null) {
-      const kept = got(await db.from<{ fetch_id: string; facts: PageFacts }>("fetch_facts").select("fetch_id, facts").eq("facts_version", version).in("fetch_id", ids));
-      for (const row of kept ?? []) out.set(row.fetch_id, row.facts);
+      const kept = got(await db.from<{ fetch_id: string; facts_version: string; facts: PageFacts }>("fetch_facts").select("fetch_id, facts_version, facts").in("fetch_id", ids));
+      for (const row of kept ?? []) (row.facts_version === version ? out : older).set(row.fetch_id, row.facts);
     }
     const missing = ids.filter((id) => !out.has(id));
     if (missing.length === 0) return out;
     const rows = got(await db.from<{ id: string; scan_id: string; cache_key: string; payload: unknown }>("fetches").select("id, scan_id, cache_key, payload").in("id", missing), true) ?? [];
     const at = new Date().toISOString();
+    const pruned = (r: { id: string; payload: unknown }) => older.has(r.id) && !holdsHtml(r.payload);
+    for (const r of rows) if (pruned(r)) out.set(r.id, older.get(r.id)!);
     const derived = offline("scan/rescore", "A page's facts are read from its stored payload.", () =>
-      rows.map((r) => ({ fetch_id: r.id, scan_id: r.scan_id, facts_version: version, facts: pageFactsOf(r.cache_key, r.payload), computed_at: at }))
+      rows.filter((r) => !pruned(r)).map((r) => ({ fetch_id: r.id, scan_id: r.scan_id, facts_version: version, facts: pageFactsOf(r.cache_key, r.payload), computed_at: at }))
     );
     for (const row of derived) out.set(row.fetch_id, row.facts);
     if (version !== null && derived.length > 0) checked(await db.from("fetch_facts").upsert(derived, { onConflict: "fetch_id" }));

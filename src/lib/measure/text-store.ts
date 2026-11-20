@@ -1,7 +1,7 @@
 // src/lib/measure/text-store.ts — one stored page read's text, derived once
 // from its payload and kept in `fetch_text` at the deployed text version, so
 // a reader downloads only the payloads that have none there yet.
-import { RENDERED_FETCH_SOURCE, renderedDocumentOf, siteDocumentOf } from "./own-fetch";
+import { holdsHtml, RENDERED_FETCH_SOURCE, renderedDocumentOf, siteDocumentOf } from "./own-fetch";
 import { prose } from "./prose";
 import type { MeasuredText } from "./text";
 
@@ -67,29 +67,32 @@ export interface FetchRead {
   source: string;
 }
 
-async function keptRows(client: TextClient, ids: readonly string[], version: string): Promise<(TextRow & { fetch_id: string })[]> {
+type KeptRow = TextRow & { fetch_id: string; text_version: string };
+
+async function keptRows(client: TextClient, ids: readonly string[]): Promise<KeptRow[]> {
   const kept = await client
-    .from<TextRow & { fetch_id: string }>("fetch_text")
-    .select("fetch_id, url, read_at, rendered, document, text, examples, questions")
-    .eq("text_version", version)
+    .from<KeptRow>("fetch_text")
+    .select("fetch_id, text_version, url, read_at, rendered, document, text, examples, questions")
     .in("fetch_id", ids);
   return rows(kept, "fetch_text");
 }
 
-/** The text of reads with none kept: their payloads are downloaded, derived and kept. */
-async function derive(client: TextClient, reads: readonly FetchRead[], version: string): Promise<(TextRow & { fetch_id: string })[]> {
+/** The text of reads with none kept at `version`: their payloads are downloaded, derived and kept. A read whose html was pruned keeps the text it had. */
+async function derive(client: TextClient, reads: readonly FetchRead[], version: string, older: ReadonlyMap<string, TextRow>): Promise<(TextRow & { fetch_id: string })[]> {
   const fetched = await client
     .from<{ id: string; payload: unknown }>("fetches")
     .select("id, payload")
     .in("id", reads.map((read) => read.id));
   const payloads = new Map(rows(fetched, "fetches").map((row) => [row.id, row.payload]));
-  const derived = reads.filter((read) => payloads.has(read.id)).map((r) => ({ fetch_id: r.id, scan_id: r.scan_id, text_version: version, ...textRowOf(r.source, payloads.get(r.id)) }));
+  const pruned = (id: string) => older.has(id) && !holdsHtml(payloads.get(id));
+  const had = reads.filter((read) => payloads.has(read.id) && pruned(read.id)).map((read) => ({ ...older.get(read.id)!, fetch_id: read.id }));
+  const derived = reads.filter((read) => payloads.has(read.id) && !pruned(read.id)).map((r) => ({ fetch_id: r.id, scan_id: r.scan_id, text_version: version, ...textRowOf(r.source, payloads.get(r.id)) }));
   if (derived.length > 0) {
     // A row Postgres refuses is derived again next time; the text read now is the same.
     const wrote = await client.from("fetch_text").upsert(derived.map((row) => ({ ...row, computed_at: new Date().toISOString() })), { onConflict: "fetch_id" });
     if (wrote.error) console.warn(`text.ts: write to fetch_text failed: ${wrote.error.message}`);
   }
-  return derived;
+  return [...had, ...derived];
 }
 
 function batches<T>(items: readonly T[]): T[][] {
@@ -103,9 +106,10 @@ function batches<T>(items: readonly T[]): T[][] {
  *  other read here does: a request never downloads payloads it already kept. */
 export async function storedText(client: TextClient, reads: readonly FetchRead[], version: string): Promise<Map<string, MeasuredText | null>> {
   const byId = new Map<string, TextRow>();
-  for (const batch of await Promise.all(batches(reads).map((batch) => keptRows(client, batch.map((read) => read.id), version)))) for (const row of batch) byId.set(row.fetch_id, row);
+  const older = new Map<string, TextRow>();
+  for (const batch of await Promise.all(batches(reads).map((batch) => keptRows(client, batch.map((read) => read.id))))) for (const { text_version, ...row } of batch) (text_version === version ? byId : older).set(row.fetch_id, row);
   const missing = reads.filter((read) => !byId.has(read.id));
-  for (const batch of await Promise.all(batches(missing).map((batch) => derive(client, batch, version)))) for (const row of batch) byId.set(row.fetch_id, row);
+  for (const batch of await Promise.all(batches(missing).map((batch) => derive(client, batch, version, older)))) for (const row of batch) byId.set(row.fetch_id, row);
   const out = new Map<string, MeasuredText | null>();
   for (const read of reads) {
     const row = byId.get(read.id);

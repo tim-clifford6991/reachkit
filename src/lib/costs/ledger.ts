@@ -136,6 +136,25 @@ export async function nameDraftOnRows(rowIds: readonly string[], draftId: string
   }
 }
 
+/** How long an own or rendered page read keeps its html; past it the facts kept from it stand in. */
+export const PAGE_HTML_KEPT_DAYS = 30;
+// Rows one call empties, so the first day's backlog drains over ticks rather than in one long statement.
+const PRUNE_ROWS = 1000;
+
+/** Empties the html of page reads older than the window, the cutoff fixed for the UTC day so a second tick that day
+ *  empties nothing new. Cost columns and derived facts stay. A failure is a log: the next tick tries again. */
+export async function prunePageHtml(now: Date = new Date()): Promise<void> {
+  const before = new Date(Date.parse(now.toISOString().slice(0, 10)) - PAGE_HTML_KEPT_DAYS * 86_400_000).toISOString();
+  try {
+    const rpc = dbAdmin() as unknown as { rpc(fn: string, args: object): PromiseLike<{ data: number | null; error: { message: string } | null }> };
+    const { data, error } = await rpc.rpc("prune_page_html", { p_before: before, p_limit: PRUNE_ROWS });
+    if (error !== null) throw new Error(error.message);
+    if (data) console.log(JSON.stringify({ event: "page_html_pruned", rows: data, before }));
+  } catch (error) {
+    console.warn(JSON.stringify({ event: "page_html_pruned", outcome: "failed", message: error instanceof Error ? error.message : String(error) }));
+  }
+}
+
 /** The payload as `jsonb` can hold it: Postgres refuses a
  *  string with a NUL in it ("unsupported Unicode escape sequence"), whoever
  *  sent it — a page, a vendor or a model — and the row is the ledger, so

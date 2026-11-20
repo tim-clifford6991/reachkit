@@ -178,7 +178,7 @@ not in it is unreachable over HTTP. `src/jobs/client.ts` is the only file that n
 | `publish/retry` | cron `0 * * * *` | claims failed pages whose retry moment has come round | ● |
 | `weekly/refresh` | cron `41 * * * *` | weekly scan per active site, gated on that site's local Monday. The tick's step is `due`; each due site is sent as `weekly/refresh/subject`, keyed `weekly:{site}:{week}`, to its own run; an hour with no site due enters no step, (`weekly-refresh-subject`, bounded as the draft one), whose steps are `measure-…`, up to three `late-answers-…` (free reads of queued answers, #1160), `search-…` and `tell-…` | (stopped inside the run, not by the runner) |
 | `lead/nurture` | cron `26 * * * *` | advances sequences over `next_touch_at` | |
-| `account/maintenance` | cron `*/15 * * * *` | five due-work queries: a payment awaiting sign-in, a payment with no account, a hosting-end notice, a hosting stop, an account due for purge | |
+| `account/maintenance` | cron `*/15 * * * *` | five due-work queries: a payment awaiting sign-in, a payment with no account, a hosting-end notice, a hosting stop, an account due for purge; and the page-html prune (§8) | |
 | `scan/rescore` | cron `7 * * * *` (hourly) | answers the oldest `rescore_runs` request: every stored scan and rival set scored again, dry or applied (issue 1433, "Re-scoring every stored scan" below). Steps: `claim`, then `answer-<id>`; `skipped` / `no-subject`, with no step entered, when a read-only check finds nothing asked or due | |
 | `scan/finish-reads` | event `scan/finish-reads` | sent by a free pass that stored a report with searches it chose and did not read (issue 1440): reads only those, once, inside the free cap the pass already spent from, and rewrites the report through `rescore_scan`. Step: `finish`; `degraded` where a search failed again, `skipped` / `no-subject` where the report has nothing left to finish. Log line `finish_reads` | ● |
 
@@ -576,7 +576,8 @@ and replay with calls refused.
 
 The pass is read from `scripts/pass/snapshot/<first 8 of the scan id>.json`. To add one, run the
 statement in `scripts/pass/export.sql` through the Supabase connector, read-only, in the checked
-chunks `scripts/pass/assemble.mjs` describes, and commit the file it writes.
+chunks `scripts/pass/assemble.mjs` describes, and commit the file it writes. A pass older than 30 days
+can no longer be exported: its pages' html was pruned (§8). A committed snapshot replays as before.
 
 | Flag | Does |
 |---|---|
@@ -610,7 +611,9 @@ kept at the deployed `RK_FACTS_VERSION`, the same fingerprint over the extractor
 downloaded once and its facts kept, so only the first run after an extractor change reads pages;
 the summary's `read ≈ N MB (facts refresh ≈ M MB)` line says how much it read and how much of that
 was pages read for their facts. `fetch_facts` is a cache: a row is never trusted at another version,
-the account purge deletes a scan's facts by `scan_id` before its `fetches` rows (no cascade, ADR-051), and dropping every row costs one refresh. Production's tick,
+except for a read whose html was pruned after 30 days (§8), which keeps the facts it had and is scored
+from those, never counted as unreadable (owner ruling 50, 2026-11-20); `fetch_text` keeps such a read's
+text the same way. Old public reports keep working and stop following extractor changes. The account purge deletes a scan's facts by `scan_id` before its `fetches` rows (no cascade, ADR-051), and dropping every row costs one refresh. Production's tick,
 every hour, finds no run at the deployed derivation and asks one apply itself
 (`auto = true`; `docs/SPEC.md` §2 Re-score follows each scoring deploy). That run scores every stored
 scan in memory and decides the guard before it writes anything (`RESCORE_GUARD` in
@@ -879,6 +882,14 @@ select source, sum(cost_cents) as cents, count(*) as calls
  where created_at >= now() - interval '30 days'
  group by 1 order by 2 desc;
 ```
+
+**Retention.** An own or rendered page read keeps its html 30 days (owner, 2026-11-18, #2836).
+`account/maintenance` calls `prune_page_html`, which removes `html` from older reads whose facts are
+kept in `fetch_facts`, up to 1000 rows a tick, with the cutoff fixed for the UTC day; the log line is
+`page_html_pruned`. The cost columns, the rest of the payload and every derived row stay; a read with
+no kept facts keeps its html. The daily check reports the database's size against the plan's limit.
+Emptied rows free space inside the table; returning it to the plan's count (`vacuum full fetches`)
+is an operator step, done and recorded on its own.
 
 ### Where the free scans and payments came from
 

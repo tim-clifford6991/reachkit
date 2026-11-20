@@ -28,6 +28,7 @@ const APPLIED = [
   "20260903080000_fetches.sql",
   "20261101140000_fetches_facts.sql",
   "20261102120000_fetches_text.sql",
+  "20261120150000_fetches_prune_page_html.sql",
 ];
 const FACTS = "20261101140000_fetches_facts.sql";
 const IDS_FIRST = "20261103180000_scans_rescore_reads_ids_first.sql";
@@ -425,5 +426,25 @@ describe("fetch_text — the grounding's text of each stored read", () => {
     for (const [role, can] of [["anon", "f"], ["authenticated", "f"], ["service_role", "t"]]) {
       for (const privilege of ["select", "insert", "update", "delete"]) expect(value(`select has_table_privilege('${role}', 'fetch_text', '${privilege}');`)).toBe(can);
     }
+  });
+});
+
+describe("prune_page_html — raw page html kept 30 days", () => {
+  it("empties html past the cutoff only where facts are kept, keeps cost and the rest, and a second run empties nothing", () => {
+    const scanId = scan();
+    const html = `{"url":"https://gusto.com/","status":200,"html":"<p>x</p>","bytes":8,"readAt":"2026-10-01T00:00:00Z"}`;
+    const read = (days: number, payload: string) =>
+      value(`insert into fetches (scan_id, source, cache_key, policy_version, cost_cents, reserved_cents, payload, created_at) values ('${scanId}', 'egress.safeFetch', 'https://gusto.com/', 1, 3, 3, '${payload}'::jsonb, now() - interval '${days} days') returning id;`)!;
+    const [young, old, rendered, bare] = [read(29, html), read(31, html), read(31, `[${html}]`), read(90, html)];
+    for (const id of [young, old, rendered]) run(`insert into fetch_facts (fetch_id, scan_id, facts_version, facts) values ('${id}', '${scanId}', 'v1', '{}'::jsonb);`);
+    const prune = () => value("set role service_role; select public.prune_page_html(now() - interval '30 days', 1000);");
+    expect(prune()).toBe("2");
+    const rows = () => psqlRows(`select id, payload ? 'html' or coalesce(payload -> 0 ? 'html', false), coalesce(payload->>'readAt', payload->0->>'readAt'), cost_cents from fetches where scan_id = '${scanId}' order by id;`);
+    const after = rows();
+    expect(Object.fromEntries(after.map(([id, has]) => [id, has]))).toEqual({ [young]: "t", [old]: "f", [rendered]: "f", [bare]: "t" });
+    expect(after.every(([, , readAt, cost]) => readAt === "2026-10-01T00:00:00Z" && Number(cost) === 3)).toBe(true);
+    expect(value(`select count(*) from fetch_facts where scan_id = '${scanId}';`)).toBe("3");
+    expect([prune(), rows()]).toEqual(["0", after]);
+    expect(value("select has_function_privilege('authenticated', 'public.prune_page_html(timestamptz, integer)', 'execute');")).toBe("f");
   });
 });
