@@ -990,6 +990,7 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
       expect([theDraftRow().state, wordpress.posts.length]).toEqual(["approved", 0]);
       expect((await readCalendarFacts({ site: { siteId: SITE_ID, timeZone: TIME_ZONE }, month: monthOf(dayKeyOf(at, TIME_ZONE)), now: at })).customerChangeHoldsPages).toBe("unpaid");
       const subscription = subscriptionDouble({ id: `sub_${USER_ID}`, customer: `cus_${USER_ID}`, periodEnd: new Date(Date.now() + 30 * 86_400_000) });
+      setStripe(stripeDouble({ ...newStripeDouble(), subscriptions: new Map([[`sub_${USER_ID}`, subscription]]) }));
       const pay = async (id: string) => expect(await onSubscriptionEvent({ id, type: "invoice.paid", data: { object: { parent: { type: "subscription_details", subscription_details: { subscription } } } } } as never)).toEqual({ applied: true });
       await pay("evt_paid_1");
 
@@ -1163,9 +1164,7 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
         now,
       });
 
-      // The date the evening tick wrote the page for carries that page —
-      // the draft §9 has, in the state §9 has it in, not a planned
-      // placeholder (#175).
+      // The date the evening tick wrote the page for carries that page, in the state §9 has it in, not a planned placeholder.
       const page = facts.drafts.find((draft) => draft.draftId === draftId);
       expect(page).toBeDefined();
       expect(page?.state).toBe("in_review");
