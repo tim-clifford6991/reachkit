@@ -297,7 +297,7 @@ function pathOf(address: string): string | null {
   }
 }
 
-function pageOf(row: DraftRow): StoredPage {
+export function pageOf(row: DraftRow): StoredPage {
   const reportPassages = withheldReportPassages(row.meta);
   return { ref: row.id, title: row.title ?? "", markdown: row.body_md ?? "", ...(reportPassages.length === 0 ? {} : { reportPassages }) };
 }

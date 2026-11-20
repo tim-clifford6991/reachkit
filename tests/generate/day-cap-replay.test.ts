@@ -35,6 +35,7 @@ import { generateDraft } from "@/lib/generate/pipeline";
 import { siteRulesOf } from "@/lib/generate/pipeline/battery";
 import { readAllFacts } from "@/lib/generate/pipeline/grounding";
 import { generateStore, setGenerateStore } from "@/lib/generate/store";
+import { missingFrom } from "@/lib/generate/standard";
 import { insertFor } from "@/lib/opportunities/derive/persist";
 
 const SITE = SAAS_HOSTED.siteId;
@@ -179,7 +180,7 @@ describe("a replayed day's page spends at most CAP_DRAFT for its date in total",
     await world();
     model(() => 1);
     ledgerDown.on = true;
-    expect(await fallback()).toMatchObject({ ok: false, why: "update:cap" });
+    expect(await fallback()).toMatchObject({ ok: false, why: "update:cap;last:no_topic" });
     expect([ledger().length, db.rows("drafts").filter((row) => row.scheduled_for === D).length]).toEqual([0, 0]);
   });
 
@@ -192,4 +193,13 @@ describe("a replayed day's page spends at most CAP_DRAFT for its date in total",
     const aged = db.rows("opportunities").find((row) => row.type === "refresh_page" && (row.evidence as { shortfall: { cause: string } }).shortfall.cause === "aged");
     expect(db.rows("drafts").some((row) => row.opportunity_id === aged?.id)).toBe(true);
   });
+});
+it("a planned refresh with no title packs its address's live text, so live_page and new_fact hold (reached production)", async () => {
+  const w = await world();
+  model(() => 1);
+  pick.mockResolvedValueOnce({ ...w.update, title: null });
+  await attempt();
+  const live = db.rows("drafts").find((row) => row.id === db.rows("publications").find((row) => row.id === "p-written")!.draft_id)!;
+  const pack = (db.rows("drafts").find((row) => row.opportunity_id === UPDATE_ID)!.meta as { pack: Parameters<typeof missingFrom>[0] }).pack;
+  expect([pack.live?.markdown, missingFrom(pack).filter((need) => need === "live_page" || need === "new_fact")]).toEqual([live.body_md, []]);
 });

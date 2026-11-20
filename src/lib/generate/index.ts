@@ -67,7 +67,7 @@ import { namedRivals } from "./rules/rivals";
 import { TEMPLATES } from "./templates";
 import { writingMarket } from "./voice/market";
 import { REWRITTEN, owedToRow, withFirstAsk } from "./interrupted";
-import { DraftDateTaken, PageStopped, generateStore, type RestartedDraft, type SiteFacts } from "./store";
+import { DraftDateTaken, PageStopped, generateStore, pageOf, type RestartedDraft, type SiteFacts } from "./store";
 
 export type { GroundedFact, HardRule, RuleFailure, ComparisonSet, SiteRuleInputs } from "./rules/types";
 
@@ -418,8 +418,8 @@ async function fixPage(a: PageInput, cost: CostContext): Promise<DayPageOutcome>
   return { ok: false, because: "rules", draftId: fixed.draftId, attempts: fixed.attempt };
 }
 
-/** The page an update refreshes, as the pack holds it: ReachKit's own page
- *  as it was written, else the site's own page as the measurement read it. */
+/** The page an update refreshes, as the pack holds it: ReachKit's own page live at its address (a planned refresh's
+ *  row has no title), by title only where we never published there, else the site's own page as the measurement read it. */
 async function livePageOf(
   a: PageInput,
   opportunity: Opportunity,
@@ -428,9 +428,10 @@ async function livePageOf(
 ): Promise<PackLivePage | null> {
   const url = opportunity.targetRef;
   const key = urlKey(url);
+  const version = await generateStore().liveVersionAt(a.siteId, url);
   const listed = known.find((page) => page.url !== null && urlKey(page.url) === key);
-  const title = listed?.title ?? opportunity.title ?? "";
-  const ours = title === "" ? undefined : (await generateStore().publishedPages(a.siteId)).find((page) => page.title === title);
+  const title = version?.draft.title ?? listed?.title ?? opportunity.title ?? "";
+  const ours = version !== null ? pageOf(version.draft) : title === "" ? undefined : (await generateStore().publishedPages(a.siteId)).find((page) => page.title === title);
   // A page of ours is refreshed from its text with what code can repair of the consistency rules repaired, never edited live.
   const markdown =
     (ours === undefined ? undefined : repairStructure(ours.markdown, { title: ours.title })) ?? facts.find((sourced) => urlKey(sourced.fact.url) === key)?.sourceText ?? "";
@@ -438,7 +439,6 @@ async function livePageOf(
   const evidence = opportunity.evidence as { shortfall?: { kind?: unknown; cause?: unknown; place?: unknown } } | undefined;
   const linkTo = linkBackOf(opportunity);
   // The date the live version is dated as, which a refresh that says nothing new keeps.
-  const version = ours === undefined ? null : await generateStore().liveVersionAt(a.siteId, url);
   const versionMeta = (version?.draft.meta ?? null) as Record<string, unknown> | null;
   const datedAs = version === null ? undefined : typeof versionMeta?.datedAs === "string" ? versionMeta.datedAs : version.publishedAt.toISOString();
   const queries = await answeredHere(a.siteId, opportunity, answeredQueries(version?.reading));

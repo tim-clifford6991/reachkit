@@ -476,10 +476,10 @@ export async function generateDraft(a: {
   if (a.again === true) await step("release", () => releaseStoppedDate(day));
   await step("recheck", async () => { const rescued = await recheckStopped(day); if (rescued !== null) await schedulePublish({ draftId: rescued }); return rescued; });
   const decided = await step("select", () => decideDayPage(day));
-  const instead = async (trigger: string, from: "select" | "write", stopped: string | null): Promise<EngineResult> => {
+  const instead = async (trigger: string, from: "select" | "write", stopped: string | null, topic = ""): Promise<EngineResult> => {
     const taken = trigger === "generate:no_site" || trigger === "generate:no_scan" ? null : await step("refresh", () => refreshForDay({ siteId: a.siteId, publishDate: a.publishDate, trigger, from, stopped, now: a.now }));
-    if (taken === null || (!taken.ok && taken.because === "already_drafted")) return taken === null ? { degraded: trigger } : { done: true };
-    if (!taken.ok && taken.because === "passed") return { degraded: `${trigger};${taken.why}` };
+    if (taken === null || (!taken.ok && taken.because === "already_drafted")) return taken === null ? { degraded: `${trigger}${topic}` } : { done: true };
+    if (!taken.ok && taken.because === "passed") return { degraded: `${trigger}${topic};${taken.why}` };
     const reviewed = await step("refresh-review", () => reviewWritten(taken, a.now));
     return "done" in reviewed ? { done: true, instead: `refresh:${trigger}` } : reviewed;
   };
@@ -490,14 +490,14 @@ export async function generateDraft(a: {
   let left = await step("research-post", () => askDayResearch({ ...research, waitMs: COLLECT.askMs }));
   for (let round = 1; a.step !== undefined && left > 0 && round <= COLLECT.rounds; round++) left = await step(`research-collect-${round}`, () => askDayResearch({ ...research, waitMs: COLLECT.stepMs }));
   // The write never waits on the queue: research still out is no page today and no rest, and the next tick asks again.
-  if (left > 0) return instead("generate:research_pending", "select", null);
+  if (left > 0) return instead("generate:research_pending", "select", null, `;topic:${decided.opportunityId}`);
   let outcome = await step("write", () => generateDayPage({ ...day, opportunityId: decided.opportunityId }));
   // A committed cosmetic page never keeps the day: it is set aside undated, and the day takes a spare as after a stop.
   const aside = outcome.ok ? outcome.draftId : null;
   if (aside !== null && (await step("cosmetic", () => setAside(aside)))) outcome = await step("spare", () => generateDayPage({ ...day, updatesTried: true }));
   if (!outcome.ok && outcome.because === "already_drafted") return { done: true };
   const reviewed = await step("review", () => reviewWritten(outcome, a.now));
-  return !("degraded" in reviewed) || !reviewed.degraded.startsWith("generate:") ? reviewed : instead(reviewed.degraded, "write", !outcome.ok && "draftId" in outcome ? outcome.draftId : null);
+  return !("degraded" in reviewed) || !reviewed.degraded.startsWith("generate:") ? reviewed : instead(reviewed.degraded, "write", !outcome.ok && "draftId" in outcome ? outcome.draftId : null, `;topic:${decided.opportunityId}`);
 }
 
 /** Of these site days, the ones owed and no due hour recorded an ending for, and those to decide `again`. */

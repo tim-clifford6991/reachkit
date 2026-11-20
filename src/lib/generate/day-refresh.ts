@@ -146,6 +146,8 @@ export async function dayTopic(day: { siteId: string; site: SiteFacts; report: S
 /** A day the fallback kept no page for: each update candidate's gate, and `harm_stop` where a harm rule ended it. */
 type Passed = { ok: false; because: "passed"; why: string };
 const HARM_STOP = { ok: false, because: "harm_stop" } as const;
+// A last step that tried no topic, which the reason keeps apart from one whose topics all failed.
+const NO_TOPIC = { ok: false, because: "no_topic" } as const;
 
 type Day = { siteId: string; site: SiteFacts; report: StoredReport; publishDate: string };
 type Candidate = { page: OwnLivePage; standard: { parts: PartMark[]; met: boolean } | null; early: boolean };
@@ -279,7 +281,7 @@ async function weekTopics(siteId: string, date: string): Promise<Opportunity[]> 
  * the topic is written anyway, as its type where its research holds the minimum, else as documentation from the
  * site's own facts; a topic neither can source costs no write, and the week's next short topic is tried. One write.
  */
-async function lastStep(day: Day, a: { trigger: string; stopped: string | null; giveUp: () => Promise<void> }, now: Date, cost: CostContext): Promise<DayPageOutcome | typeof HARM_STOP | null> {
+async function lastStep(day: Day, a: { trigger: string; stopped: string | null; giveUp: () => Promise<void> }, now: Date, cost: CostContext): Promise<DayPageOutcome | typeof HARM_STOP | typeof NO_TOPIC> {
   const store = generateStore();
   const row = a.stopped === null ? null : await store.draftById(a.stopped);
   const failures = readRecordedRules(row?.rule_failures) ?? [];
@@ -297,7 +299,7 @@ async function lastStep(day: Day, a: { trigger: string; stopped: string | null; 
   await a.giveUp();
   const { writeFallback } = await import(".");
   const startedAt = Date.now();
-  let ended: DayPageOutcome | null = null;
+  let ended: DayPageOutcome | typeof NO_TOPIC = NO_TOPIC;
   for (const topic of await weekTopics(day.siteId, day.publishDate)) {
     for (const opportunity of contentTypeOf(topic) === "documentation" ? [topic] : [topic, { ...topic, writeAs: "documentation" as const }]) {
       if (cost.capHit() || Date.now() - startedAt > PIPELINE.nextTopicBeforeMs) return ended;
@@ -348,7 +350,7 @@ export async function refreshForDay(a: {
       throw error;
     });
   const passed: string[] = [];
-  const ended = (outcome: DayPageOutcome | typeof HARM_STOP | null) => {
+  const ended = (outcome: DayPageOutcome | typeof HARM_STOP | typeof NO_TOPIC | null) => {
     if (outcome !== null && (outcome.ok || outcome.because === "already_drafted")) return outcome;
     const last = outcome === null ? "" : outcome.because === "harm_stop" ? ";harm_stop" : `;last:${outcome.because}${"step" in outcome ? `:${outcome.step}` : ""}`;
     return { ok: false, because: "passed", why: `${tally(passed)}${last}` } as const;
