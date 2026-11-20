@@ -40,17 +40,6 @@
 // "nav **Overview / Calendar / Settings**" and §4.3's "Autopilot (default,
 // selected) vs Copilot". Nothing here is composed.
 //
-// 2026-09-06, issue #20 (REQ-091/REQ-092): seven values moved from `""` to
-// `TODO(copy)` — `stopped.work.resumes-on`, `stopped.work.no-time-promised`,
-// `stopped.work.partial-pass` and the four unfilled `next-publish.*` lines.
-// The reason is the standing ruling in #93 ("owner-owed copy keys on fixture
-// screens render as the visible marker `TODO(copy)`; mail keeps the
-// throw"), reached here by REQ-091 c2: a place holding nothing must carry
-// **one written line, never a blank**, so an empty value — which `copy()`
-// refuses to render — is the one thing these keys may not hold. Still the
-// owner's sentences; the owner's words replaced the marker on 2026-09-10
-// (below).
-//
 // 2026-09-10, issue #460: every sentence this partition still owed is now
 // written — the owner approved the drafted set ("copy proposal
 // approved", proposal sheet
@@ -60,131 +49,117 @@
 import type { CopyPartition } from "../registry.ts";
 
 export const LAWS_COPY = Object.freeze({
-  "stopped.work.line": ["We stopped our own work today, so no page was written. Your market didn’t change.", { law: "stopped-work", slots: {}, fixedBy: "REQ-092 c1" }],
+  "stopped.work.line": ["We stopped our own work today, so no page was written. Your market didn’t change.", { law: "stopped-work", slots: {} }],
   "stopped.work.needs-nothing": [
     "Nothing is needed from you. We start again on our own.",
-    { law: "stopped-work", slots: {}, fixedBy: "REQ-092 c2" },
+    { law: "stopped-work", slots: {} },
   ],
   "stopped.work.resumes-on": [
     "We expect to start again on {date}.",
-    { law: "stopped-work", slots: { date: "date" }, fixedBy: "REQ-092 c4" },
+    { law: "stopped-work", slots: { date: "date" } },
   ],
   "stopped.work.no-time-promised": [
     "We can’t say yet when we’ll resume.",
-    { law: "stopped-work", slots: {}, fixedBy: "REQ-092 c4" },
+    { law: "stopped-work", slots: {} },
   ],
   "stopped.work.partial-pass": [
     "This page was written from a check that didn’t finish.",
-    { law: "stopped-work", slots: {}, fixedBy: "REQ-092 c6" },
+    { law: "stopped-work", slots: {} },
   ],
-  "next-publish.stopped": ["We stopped our own work, so no page is scheduled.", { law: "next-publish", slots: {}, fixedBy: "REQ-092 c7" }],
+  "next-publish.stopped": ["We stopped our own work, so no page is scheduled.", { law: "next-publish", slots: {} }],
   "next-publish.scheduled": [
     "Next page goes live {at}",
-    { law: "next-publish", slots: { at: "date" }, fixedBy: "REQ-040 c4" },
+    { law: "next-publish", slots: { at: "date" } },
   ],
   // The hosted address is not connected yet, so no page can go live (the
   // OverviewDNS board's sidebar line). Drafted; the owner corrects it.
-  "next-publish.address-waiting": ["Waiting for your website", { law: "next-publish", slots: {}, fixedBy: "issue 1595" }],
-  "next-publish.paused": ["Publishing is paused.", { law: "next-publish", slots: {}, fixedBy: "REQ-040 c4; issue 2657 S2, issue 2669 (drafted)" }],
+  "next-publish.address-waiting": ["Waiting for your website", { law: "next-publish", slots: {} }],
+  "next-publish.paused": ["Publishing is paused.", { law: "next-publish", slots: {} }],
   // The site has an invoice outstanding, so publishing waits on payment; opens with Billing's own words. Drafted; the owner corrects it.
   "next-publish.unpaid": [
     "Your last payment didn’t go through, so no page goes live. Pay in Settings › Billing and pages resume.",
-    { law: "next-publish", slots: {}, fixedBy: "SPEC §3 Paid means no outstanding invoice; issue 2840 (drafted)" },
+    { law: "next-publish", slots: {} },
   ],
   // The paid term has ended, so publishing waits; "access has ended" is the hosting-end mail's word, and no fix is promised.
-  "next-publish.ended": ["Your access has ended, so no page goes live.", { law: "next-publish", slots: {}, fixedBy: "SPEC §3; issue 2840 (drafted)" }],
+  "next-publish.ended": ["Your access has ended, so no page goes live.", { law: "next-publish", slots: {} }],
   // What happens next when nothing holds publishing back. Drafted; the owner corrects it.
   "next-publish.page": [
     "Next page goes live {at}: {title}",
-    { law: "next-publish", slots: { at: "date", title: "text" }, fixedBy: "issue 2471" },
+    { law: "next-publish", slots: { at: "date", title: "text" } },
   ],
   // The next page has no moment yet, so the line names its day and how far it got. Drafted; the owner corrects it.
   "next-publish.writing": [
     "Next page, {on}: {title}. Being written.",
-    { law: "next-publish", slots: { on: "date", title: "text" }, fixedBy: "issue 2639; issue 2657 S2, issue 2669 (drafted)" },
+    { law: "next-publish", slots: { on: "date", title: "text" } },
   ],
   "next-publish.ready": [
     "Next page, {on}: {title}. Ready.",
-    { law: "next-publish", slots: { on: "date", title: "text" }, fixedBy: "issue 2639; issue 2657 S2, issue 2669 (drafted)" },
+    { law: "next-publish", slots: { on: "date", title: "text" } },
   ],
   "next-publish.topic": [
     "Next page planned for {on}: {topic}",
-    { law: "next-publish", slots: { on: "date", topic: "text" }, fixedBy: "issue 2471" },
+    { law: "next-publish", slots: { on: "date", topic: "text" } },
   ],
   "next-publish.monday-check": [
     "The Monday check on {on} plans the next pages.",
-    { law: "next-publish", slots: { on: "date" }, fixedBy: "issue 2471" },
+    { law: "next-publish", slots: { on: "date" } },
   ],
-  // 2026-09-06, issue #17: value moved from "" to `TODO(copy)`, on exactly
-  // the footing the sibling key below records for 2026-09-05. §4.6's draft
-  // view renders a *written* page's body, which is model text and therefore
-  // reaches the screen only through `renderGenerated` — and
-  // `renderGenerated` resolves this key for the label that must ride with
-  // it (REQ-093 c2). Left empty, `copy()` throws and the whole draft view
-  // goes down; `TODO(copy)` renders as itself, so the label is visibly
-  // present and visibly unwritten. Still the owner's sentence; no string is
-  // written here. With this, both `generated.page.*` keys are awaiting copy
-  // and neither is owner-owed-and-empty.
+  // §4.6's draft view renders a written page's body only through
+  // `renderGenerated`, which resolves this key for the label that must ride
+  // with it (REQ-093 c2).
   // 2026-09-09, issue #377: filled from UI-SPEC S16, which draws the label
   // on the draft's own card head as `generated by ReachKit · labelled` —
   // unbracketed, so approved copy under ruling 11a. The `{pageTitle}` slot
   // stays declared and stays supplied: the set puts the label on the card
   // rather than inside the sentence, so the `{pageTitle}` slot this key
-  // declared goes with the marker: a declared slot the sentence never
+  // declared is dropped: a declared slot the sentence never
   // spends is a placeholder nothing substitutes, which
   // `tests/presentation/copy/registry.test.ts` refuses. Callers may still
   // pass the title — `copy()` ignores a var no slot names — and the label
   // rides beside the page it labels, which is what REQ-093 c2 asks.
   "generated.page.written": [
     "generated by ReachKit · labelled",
-    { slots: {}, fixedBy: "REQ-093 c2 · S16 (11a)" },
+    { slots: {} },
   ],
   // A written page the customer has saved an edit to credits them.
   "generated.page.edited": [
     "Written by ReachKit · edited by you",
-    { slots: {}, fixedBy: "issue 2892 (drafted)" },
+    { slots: {} },
   ],
-  // 2026-09-05, issue #13: value moved from "" to `TODO(copy)` per
-  // `CLAUDE.md`'s standing rule. The free report's free-page card
-  // (`BUILD.md` §4.1 module 5) renders a proposed page's title, which is
-  // model text and therefore reaches the screen only through
-  // `renderGenerated` — and `renderGenerated` resolves this key for the
-  // label that must ride with it. Left empty, `copy()` throws and the
-  // whole report screen goes down; `TODO(copy)` renders as itself, so the
-  // label is visibly present and visibly unwritten. Still the owner's
-  // sentence, written on 2026-09-10 (#460). `generated.page.written` is
-  // untouched — no surface renders it yet, and
-  // `tests/presentation/generated/text.test.ts` asserts the owner-owed
-  // throw against it.
+  // The free report's free-page card (`BUILD.md` §4.1 module 5) renders a
+  // proposed page's title, which is model text and therefore reaches the
+  // screen only through `renderGenerated`, which resolves this key for the
+  // label that must ride with it. The owner's sentence, written on
+  // 2026-09-10 (#460).
   "generated.page.proposed": [
     "proposed by ReachKit · not yet written · {pageTitle}",
-    { slots: { pageTitle: "text" }, fixedBy: "REQ-093 c2" },
+    { slots: { pageTitle: "text" } },
   ],
-  "unmeasured.undeterminable": ["We couldn’t check {what} this time.", { law: "unmeasured", slots: { what: "text" }, fixedBy: "REQ-004 c6" }],
-  "unmeasured.not-attempted": ["We didn’t check {what}, because the check stopped early.", { law: "unmeasured", slots: { what: "text" }, fixedBy: "REQ-004 c9" }],
-  "unmeasured.not-yet": ["We couldn’t check this yet.", { law: "unmeasured", slots: {}, fixedBy: "issue 1599 · owner 2026-11-03 · issue 2123" }],
-  "unmeasured.dash": ["—", { law: "unmeasured", slots: {}, fixedBy: "REQ-004 c2" }],
+  "unmeasured.undeterminable": ["We couldn’t check {what} this time.", { law: "unmeasured", slots: { what: "text" } }],
+  "unmeasured.not-attempted": ["We didn’t check {what}, because the check stopped early.", { law: "unmeasured", slots: { what: "text" } }],
+  "unmeasured.not-yet": ["We couldn’t check this yet.", { law: "unmeasured", slots: {} }],
+  "unmeasured.dash": ["—", { law: "unmeasured", slots: {} }],
   // The label the screen set draws over the three nav rows, in the eyebrow
   // role (S12, UI-SPEC §2's sidebar row). Approved as written (11a); the
   // uppercase is the role's, not the string's.
-  "shell.workspace": ["Workspace", { slots: {}, fixedBy: "S12" }],
-  "shell.nav.overview": ["Overview", { slots: {}, fixedBy: "REQ-040 c1" }],
+  "shell.workspace": ["Workspace", { slots: {} }],
+  "shell.nav.overview": ["Overview", { slots: {} }],
   // SPEC §4 (2026-09-20, #908): "Menu: **Overview · Plan · Settings**" —
   // *Plan* is the calendar's on-screen name, so the destination keeps its
   // address and loses its old word. The key was `shell.nav.calendar`; a
   // renamed key rather than a re-worded one, so nothing can go on speaking
   // "Calendar" from a name that no longer means it.
-  "shell.nav.plan": ["This Week", { slots: {}, fixedBy: "owner R8 (2026-10-31)" }],
-  "shell.nav.settings": ["Settings", { slots: {}, fixedBy: "REQ-040 c1" }],
+  "shell.nav.plan": ["This Week", { slots: {} }],
+  "shell.nav.settings": ["Settings", { slots: {} }],
   /** SPEC §4 (2026-09-20, #908) — the side panel that "collapses to an icon
    *  rail", and below the large breakpoint is a drawer. The checkbox that
    *  holds that choice is the one control keyboard and screen readers
    *  reach, so it carries the panel's name; the two icon-only labels that
    *  drive it carry the state each one moves to, as their tooltips.
    *  Drafted in the registry's voice (issue #911); the owner may correct. */
-  "shell.panel.label": ["Side panel", { slots: {}, fixedBy: "issue 911" }],
-  "shell.panel.collapse": ["Collapse the side panel", { slots: {}, fixedBy: "issue 911" }],
-  "shell.panel.open": ["Open the side panel", { slots: {}, fixedBy: "issue 911" }],
+  "shell.panel.label": ["Side panel", { slots: {} }],
+  "shell.panel.collapse": ["Collapse the side panel", { slots: {} }],
+  "shell.panel.open": ["Open the side panel", { slots: {} }],
   /** The name of the frame every `/app` screen is drawn inside — the top
    *  bar, the content well and the side panel together — so the one control
    *  that opens and collapses that panel stands inside a landmark that says
@@ -194,7 +169,7 @@ export const LAWS_COPY = Object.freeze({
    *  A reader moving by landmarks hears it once, on arrival, and it is the
    *  word the panel's own heading already uses for the same thing.
    *  Drafted in the registry's voice (#328); the owner may correct. */
-  "shell.frame.label": ["Workspace", { slots: {}, fixedBy: "issue 328" }],
+  "shell.frame.label": ["Workspace", { slots: {} }],
   /** SPEC §4 (2026-09-20) — the side panel's card for the page in review:
    *  its title, and when it publishes if the customer does nothing. It asks
    *  for nothing (owner 2026-10-08, issue 1337): the page publishes on its
@@ -204,23 +179,23 @@ export const LAWS_COPY = Object.freeze({
    *  time is the shell's own formatted date-time in the customer's zone
    *  (`format.ts`), never a composed "tomorrow": the shell states the day
    *  it knows rather than a word it would have to work out. */
-  "shell.waiting.head": ["Next Page", { slots: {}, fixedBy: "issue 1362" }],
+  "shell.waiting.head": ["Next Page", { slots: {} }],
   "shell.waiting.goes-live": [
     "Goes live on its own {when}. Edit or stop it until then.",
-    { slots: { when: "date" }, fixedBy: "issue 1337" },
+    { slots: { when: "date" } },
   ],
   /** SPEC §4 (2026-09-20) — the side panel's two shortcuts. Each is drawn
    *  only where it can act (SPEC §4, 2026-09-20: "a control that cannot act
    *  is not drawn"), so the blog link is absent until a blog is live. */
-  "shell.shortcut.blog": ["Open Your Pages", { slots: {}, fixedBy: "issue 911" }],
-  "shell.shortcut.help": ["Help", { slots: {}, fixedBy: "issue 911" }],
-  "shell.publishing.mode.autopilot": ["Autopilot", { slots: {}, fixedBy: "REQ-040 c3" }],
+  "shell.shortcut.blog": ["Open Your Pages", { slots: {} }],
+  "shell.shortcut.help": ["Help", { slots: {} }],
+  "shell.publishing.mode.autopilot": ["Autopilot", { slots: {} }],
   // What the mode is doing, under the mode's own word (UI-SPEC S12's
   // autopilot card: the eyebrow, then "Publishing on", then the next
   // line). The autopilot arm is unbracketed in the set and so approved
   // (11a); the set draws no copilot sidebar, so its sentence is the
   // owner's (#460).
-  "shell.publishing.state.autopilot": ["Publishing on", { slots: {}, fixedBy: "S12" }],
+  "shell.publishing.state.autopilot": ["Publishing on", { slots: {} }],
   // UI-SPEC S13: before the first weekly pass, what the mode is doing is
   // waiting on the deep pass. The *next* line beside it is still
   // `nextPublishStatement`'s — the set draws "deep pass running" there,
@@ -229,7 +204,7 @@ export const LAWS_COPY = Object.freeze({
   // only, and the owner decides whether c4 gains a cause.
   "shell.publishing.state.week-zero": [
     "First page after your first check",
-    { slots: {}, fixedBy: "S13" },
+    { slots: {} },
   ],
   /** Issue #782: Overview and Calendar while the onboarding pass and the
    *  first draft run in the background, the founder already in the app.
@@ -243,42 +218,42 @@ export const LAWS_COPY = Object.freeze({
     // when it ends. One heading, then the answer, rather than a heading
     // that answers.
     "Your first page is being written.",
-    { slots: {}, fixedBy: "issue 782 · issue 912" },
+    { slots: {} },
   ],
   /** SPEC §4 (2026-09-20), issue 912 — the first day after setup, and the
    *  three states a named pass step can be in. Drafted under the owner's
    *  2026-09-16 ruling (#759); the first three are issue 912's own proposed
    *  wording, taken byte for byte. */
-  "shell.pass-step.done": ["done", { slots: {}, fixedBy: "SPEC §4 2026-09-20 · issue 912" }],
-  "shell.pass-step.now": ["now", { slots: {}, fixedBy: "SPEC §4 2026-09-20 · issue 912" }],
-  "shell.pass-step.next": ["next", { slots: {}, fixedBy: "SPEC §4 2026-09-20 · issue 912" }],
+  "shell.pass-step.done": ["done", { slots: {} }],
+  "shell.pass-step.now": ["now", { slots: {} }],
+  "shell.pass-step.next": ["next", { slots: {} }],
   /** Issue 1196 — the side panel's one status line for a pass: when its
    *  step began, and how it ended. Drafted in the registry's voice; the
    *  owner may correct them. */
-  "shell.pass.remeasure-head": ["Checking your market again", { slots: {}, fixedBy: "issue 1196" }],
+  "shell.pass.remeasure-head": ["Checking your market again", { slots: {} }],
   "shell.pass.ended.done": [
     "Check finished at {time}. Your screens show what it found.",
-    { slots: { time: "text" }, fixedBy: "issue 1196" },
+    { slots: { time: "text" } },
   ],
   "shell.pass.ended.degraded": [
     "Check finished at {time}. Some parts couldn’t be read this time; the next check fills them in.",
-    { slots: { time: "text" }, fixedBy: "issue 2654" },
+    { slots: { time: "text" } },
   ],
   "shell.pass.ended.failed": [
     "The check failed at {time}, on our side. The next check, on {due}, fills in the rest.",
-    { slots: { time: "text", due: "date" }, fixedBy: "issue 1196; issue 2657 S2, issue 2669 (drafted)" },
+    { slots: { time: "text", due: "date" } },
   ],
   "shell.pass.ended.site-unreadable": [
     "We couldn’t read your site at {time}. Check that it’s online, then check again in Settings.",
-    { slots: { time: "text" }, fixedBy: "issue 1196" },
+    { slots: { time: "text" } },
   ],
   "shell.pass.ended.time-ceiling": [
     "The check ran out of time at {time}. The next check, on {due}, fills in the rest.",
-    { slots: { time: "text", due: "date" }, fixedBy: "issue 1196; issue 2657 S2, issue 2669 (drafted)" },
+    { slots: { time: "text", due: "date" } },
   ],
   "shell.pass.ended.spend-ceiling": [
     "The check stopped early at {time}, on our side. The next check fills in the rest.",
-    { slots: { time: "text" }, fixedBy: "issue 1196; issue 2657 S2, issue 2669 (drafted)" },
+    { slots: { time: "text" } },
   ],
   // Both approved as written by the screen set (ruling 11a): S12's domain
   // block reads "Week 6 · re-measured Mon 1 Sep" and S13's — the week the
@@ -287,16 +262,16 @@ export const LAWS_COPY = Object.freeze({
   // owner drew, so neither shape moved to fit the words.
   "shell.domain.measured-weeks": [
     "Week {weeks} · checked {on}",
-    { slots: { weeks: "text", on: "date" }, fixedBy: "REQ-040 c6 · S12" },
+    { slots: { weeks: "text", on: "date" } },
   ],
   "shell.domain.not-measured": [
     "not checked yet · first on {due}",
-    { slots: { due: "date" }, fixedBy: "REQ-040 c7 · S13" },
+    { slots: { due: "date" } },
   ],
   // Before the first weekly pass, the onboarding pass is what the line names: running, or the day it checked.
-  "shell.domain.checking": ["checking now", { slots: {}, fixedBy: "issue 2654" }],
+  "shell.domain.checking": ["checking now", { slots: {} }],
   "shell.domain.checked": [
     "checked {on} · next on {due}",
-    { slots: { on: "date", due: "date" }, fixedBy: "issue 2654" },
+    { slots: { on: "date", due: "date" } },
   ],
 }) satisfies CopyPartition;

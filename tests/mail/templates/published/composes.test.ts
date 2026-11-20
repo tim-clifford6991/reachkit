@@ -10,32 +10,10 @@
 // found-arm published mail with it. The empty-key throw fired first, so
 // the registry's own emptiness was hiding the defect.
 //
-// Since issue #458 (the owner's 2026-09-10 approval) that future is the
-// registry itself: the paragraph carries its approved, slotted sentence,
-// so the mock below fills only keys still owed elsewhere, and the
-// paragraph assertion reads the real sentence. The mock stays: it is the
-// one shape
-// the suite beside it cannot express, which is why this file mocks the
-// registry and lives on its own — `index.test.ts` asserts the standing
-// where the keys are still owed, and both must stay true.
-import { describe, expect, it, vi } from "vitest";
+// Since issue #458 (the owner's 2026-09-10 approval) the paragraph carries
+// its approved, slotted sentence, and the assertions read the real one.
+import { describe, expect, it } from "vitest";
 import type { PublishedTelling } from "@/lib/publish/verify";
-
-/** Every owner-owed key resolves to a written sentence, so composing
- *  reaches the label instead of stopping at the first empty key. The
- *  paragraph gets its slot marker; the rest need only be non-empty.
- *  `COPY_META` and the key union are the real ones, so a slot this
- *  fixture forgets is still a real `copy()` throw. */
-const PARAGRAPH_SENTENCE = "It is live, and it answered every check on {checkedAt}.";
-
-vi.mock("@/lib/presentation/copy/registry", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/lib/presentation/copy/registry")>();
-  const written: Record<string, string> = { ...actual.COPY };
-  for (const key of actual.OWNER_OWED) {
-    written[key] = key === "mail.published.verified" ? PARAGRAPH_SENTENCE : `Written: ${key}`;
-  }
-  return { ...actual, COPY: written, OWNER_OWED: [] as readonly string[] };
-});
 
 const { COPY } = await import("@/lib/presentation/copy");
 const { buildPublished, formatCheckedAt } = await import("@/lib/mail/templates/published");
@@ -91,7 +69,6 @@ describe("issue #457 — the found arm composes once its paragraph is written", 
     const { text } = renderBlocksText(mail().blocks);
     const paragraph = COPY["mail.published.verified"];
     expect(paragraph).toContain("{checkedAt}");
-    expect(paragraph).not.toBe(PARAGRAPH_SENTENCE);
     expect(text).toContain(paragraph.replace("{checkedAt}", STAMP));
     expect(text).not.toContain("{checkedAt}");
   });

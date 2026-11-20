@@ -333,7 +333,6 @@ describe("S19 — the customer is the publisher, and the page says so", () => {
       "hosted.footer",
     ] as const) {
       expect(COPY[key]).not.toBe("");
-      expect(COPY[key]).not.toContain("TODO(copy)");
     }
   });
 });

@@ -30,22 +30,15 @@
 //      `draft.editor.tab.*`    — §4.6's two panes, named there: "Edit =
 //                                Markdown textarea with a live preview pane".
 //
-//  - **Awaiting copy (8), value `TODO(copy)` until filled.** `CLAUDE.md`'s
-//    standing rule,
-//    and the standing DECISIONS 2026-09-05 gives a key "a screen must render
-//    something for": a badge with no word, a link with no label and an
-//    indicator that says nothing are each worse than a visibly unwritten
-//    one. The four claim words, the grounded block's heading, the back
-//    link, the unsaved indicator and the not-found line were all of that
-//    kind; #355 (ruling 11a) and #460 have written every one.
+//  - **Screen words (8).** The four claim words, the grounded block's
+//    heading, the back link, the unsaved indicator and the not-found line;
+//    #355 (ruling 11a) and #460 have written every one.
 //
 //  - **Owner-owed and empty (4) until #460.** Every *composed sentence* this screen
 //    speaks: the two "if you do nothing" outcomes, the edited-since note,
 //    and the line naming the do-not-claim entry that held the draft. Each
-//    is read through the shell's `writtenLine`, which renders an owner-owed
-//    key as nothing (issue #9) — a marker is the wrong standing for a
-//    sentence a customer would otherwise read as product copy (issue #15's
-//    rule, unchanged).
+//    is read through the shell's `writtenLine`, which renders an empty
+//    key as nothing (issue #9).
 //
 // The values customer-facing here that are *not* keys are values, not
 // voice: the source URL, the date it was read, the matched entry's own
@@ -61,7 +54,7 @@ import type { CopyPartition } from "../registry.ts";
 
 export const DRAFT_COPY = Object.freeze({
   // §4.6's three controls, over the declared publishing interface.
-  "draft.action.edit": ["Edit This Page", { slots: {}, fixedBy: "BUILD §4.6" }],
+  "draft.action.edit": ["Edit This Page", { slots: {} }],
   // SPEC §7 (2026-09-20, #908, issue #914) — "Screens and mail say *Stop
   // this page*. 'Veto' remains the internal word and the name of the
   // mechanism in this file." The key, the command, the column and the
@@ -70,7 +63,7 @@ export const DRAFT_COPY = Object.freeze({
   // canvas reserves the short *Stop it* for the day panel's secondary row.
   "draft.action.veto": [
     "Stop This Page",
-    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
+    { slots: {} },
   ],
 
   // SPEC §7 (2026-09-20, #908, issue #913) — "every action answers". The
@@ -84,11 +77,11 @@ export const DRAFT_COPY = Object.freeze({
   // than a blank where a time should be.
   "draft.answer.veto": [
     "Stopped. This page won’t go live.",
-    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
+    { slots: {} },
   ],
   "draft.answer.refused": [
     "That didn’t work, so the page is unchanged. Try again.",
-    { slots: {}, fixedBy: "SPEC §7 2026-09-20 · issue 2657 S1 (issue 2668, drafted)" },
+    { slots: {} },
   ],
 
   // §9's copy-out, "always shown" — the card the approved S16 draws it on,
@@ -113,29 +106,29 @@ export const DRAFT_COPY = Object.freeze({
      date to print. */
   "draft.search-result.title": [
     "In Search Results",
-    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
+    { slots: {} },
   ],
   "draft.written-from.title": [
     "Written from Your Business",
-    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
+    { slots: {} },
   ],
   "draft.written-from.lead": [
     "The facts this page uses, each with the page of your site it came from.",
-    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
+    { slots: {} },
   ],
   // What the profile items are, as against the quoted passages above them.
   // They carry no address because their source is the customer: they
   // confirmed every one on Settings › Your business.
   "draft.written-from.profile": [
     "From your business profile",
-    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
+    { slots: {} },
   ],
   // A page written before the source was recorded beside the passage
   // (#927's first shape). The sentence is still what the page stands on, so
   // it is listed and said to be unsourced rather than dropped.
   "draft.written-from.source-unknown": [
     "From your site. We didn’t save which page.",
-    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
+    { slots: {} },
   ],
   // SPEC §7 (2026-10-04, D41 stage 2; issue 1252, drafted): the context
   // pack, readable under *Written from your business* — one fold, and a
@@ -143,130 +136,130 @@ export const DRAFT_COPY = Object.freeze({
   // the fold, so it holds the rest of what the writer was handed.
   "draft.written-from.pack.title": [
     "Everything this page was written from",
-    { slots: {}, fixedBy: "issue 1252 (drafted)" },
+    { slots: {} },
   ],
   "draft.written-from.pack.question": [
     "The question it answers",
-    { slots: {}, fixedBy: "issue 1252 (drafted)" },
+    { slots: {} },
   ],
   "draft.written-from.pack.claims.read": [
     "read {at}",
-    { slots: { at: "text" }, fixedBy: "issue 1252 (drafted)" },
+    { slots: { at: "text" } },
   ],
   // SPEC §7 (owner D59, 2026-10-06; issue 1287, drafted): each fact's age,
   // beside the fact — how long ago the page it stands on was read.
-  "draft.written-from.age.today": ["read today", { slots: {}, fixedBy: "issue 1287 (drafted)" }],
-  "draft.written-from.age.one": ["read 1 day ago", { slots: {}, fixedBy: "issue 1287 (drafted)" }],
+  "draft.written-from.age.today": ["read today", { slots: {} }],
+  "draft.written-from.age.one": ["read 1 day ago", { slots: {} }],
   "draft.written-from.age.days": [
     "read {days} days ago",
-    { slots: { days: "text" }, fixedBy: "issue 1287 (drafted)" },
+    { slots: { days: "text" } },
   ],
   "draft.written-from.pack.pages": [
     "Your pages it knew about",
-    { slots: {}, fixedBy: "issue 1252 (drafted)" },
+    { slots: {} },
   ],
   "draft.written-from.pack.pages.more": [
     "and {n} more",
-    { slots: { n: "text" }, fixedBy: "issue 1252 (drafted)" },
+    { slots: { n: "text" } },
   ],
   "draft.written-from.pack.never-claim": [
     "Never say",
-    { slots: {}, fixedBy: "issue 1252 (drafted)" },
+    { slots: {} },
   ],
   "draft.written-from.pack.missing": [
     "What was missing",
-    { slots: {}, fixedBy: "issue 1252 (drafted)" },
+    { slots: {} },
   ],
   // SPEC §7 (2026-09-29, D12; issue 1143): what the page says that neither
   // the top results for its search nor the customer's own pages say, and —
   // where a new page says too little of that — the one line that asks the
   // founder for the missing fact. Drafted under issue 759's ruling; the
   // owner corrects the wording.
-  "draft.adds.title": ["What This Page Adds", { slots: {}, fixedBy: "issue 1143 (drafted)" }],
+  "draft.adds.title": ["What This Page Adds", { slots: {} }],
   "draft.adds.lead": [
     "What it says that the pages ranking today don’t.",
-    { slots: {}, fixedBy: "issue 1143 (drafted)" },
+    { slots: {} },
   ],
   "draft.adds.none": [
     "Nothing yet. All of it is already on your site or in Google’s top results.",
-    { slots: {}, fixedBy: "issue 1143 (drafted)" },
+    { slots: {} },
   ],
-  "draft.adds.business": ["About your business", { slots: {}, fixedBy: "issue 1143 (drafted)" }],
+  "draft.adds.business": ["About your business", { slots: {} }],
   "draft.adds.ask": [
     "We set this page aside. It added too little that’s new, so the next topic took its place.",
-    { slots: {}, fixedBy: "issue 1143 (drafted)" },
+    { slots: {} },
   ],
   // Links on this page (SPEC §7, 2026-10-10, issue 1391).
-  "draft.links.title": ["Links on This Page", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
-  "draft.links.lead": ["Links to your service pages and to your other live pages.", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
-  "draft.links.site": ["Your site", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
-  "draft.links.articles": ["Your pages", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
-  "draft.links.sources": ["Sources", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
-  "draft.links.why.buy": ["Where a reader acts on this page: your pricing or product page.", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
-  "draft.links.why.main": ["One of your site’s main pages.", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
-  "draft.links.why.cluster": ["An earlier page of yours on the same subject.", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
-  "draft.links.why.known": ["A page you already have on a close topic.", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
-  "draft.links.why.newer": ["A newer page of yours. We updated this page to link it.", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
-  "draft.links.why.fact": ["A fact on this page was read there.", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
-  "draft.links.why.source": ["Linked for a figure or claim on this page.", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
-  "draft.links.why.written": ["Linked in the text.", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
-  "draft.links.live": ["Live", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
-  "draft.links.unchecked": ["Could not be checked", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
-  "draft.links.pending": ["Checked when the page goes live", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
-  "draft.links.removed": ["Removed when the page went live", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
-  "draft.links.removed.site": ["The address was gone, so the link was taken off. The sentence stayed.", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
-  "draft.links.removed.source": ["The source was gone, so the claim it backed was taken out.", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
-  "draft.links.why.topic": ["Its title or address shares “{words}” with this page’s topic.", { slots: { words: "text" }, fixedBy: "issue 1391 (drafted)" }],
+  "draft.links.title": ["Links on This Page", { slots: {} }],
+  "draft.links.lead": ["Links to your service pages and to your other live pages.", { slots: {} }],
+  "draft.links.site": ["Your site", { slots: {} }],
+  "draft.links.articles": ["Your pages", { slots: {} }],
+  "draft.links.sources": ["Sources", { slots: {} }],
+  "draft.links.why.buy": ["Where a reader acts on this page: your pricing or product page.", { slots: {} }],
+  "draft.links.why.main": ["One of your site’s main pages.", { slots: {} }],
+  "draft.links.why.cluster": ["An earlier page of yours on the same subject.", { slots: {} }],
+  "draft.links.why.known": ["A page you already have on a close topic.", { slots: {} }],
+  "draft.links.why.newer": ["A newer page of yours. We updated this page to link it.", { slots: {} }],
+  "draft.links.why.fact": ["A fact on this page was read there.", { slots: {} }],
+  "draft.links.why.source": ["Linked for a figure or claim on this page.", { slots: {} }],
+  "draft.links.why.written": ["Linked in the text.", { slots: {} }],
+  "draft.links.live": ["Live", { slots: {} }],
+  "draft.links.unchecked": ["Could not be checked", { slots: {} }],
+  "draft.links.pending": ["Checked when the page goes live", { slots: {} }],
+  "draft.links.removed": ["Removed when the page went live", { slots: {} }],
+  "draft.links.removed.site": ["The address was gone, so the link was taken off. The sentence stayed.", { slots: {} }],
+  "draft.links.removed.source": ["The source was gone, so the claim it backed was taken out.", { slots: {} }],
+  "draft.links.why.topic": ["Its title or address shares “{words}” with this page’s topic.", { slots: { words: "text" } }],
 
   // The two copy-out buttons' group name: they sit at the foot of the
   // Decide panel without a heading of their own (board R12-6-Page).
   "draft.copy.title": [
     "Copy it out",
-    { slots: {}, fixedBy: "BUILD §9 · S16 (11a)" },
+    { slots: {} },
   ],
   "draft.copy.markdown": [
     "Markdown",
-    { slots: {}, fixedBy: "BUILD §9 · S16 (11a)" },
+    { slots: {} },
   ],
-  "draft.copy.html": ["HTML", { slots: {}, fixedBy: "BUILD §9 · S16 (11a)" }],
+  "draft.copy.html": ["HTML", { slots: {} }],
 
   // §4.6's info box: the phone bar has one line, so it states the time.
   "draft.do-nothing.autopilot": [
     "It goes live on its own at {at}. Edit or stop it until then.",
-    { slots: { at: "date" }, fixedBy: "SPEC §7 2026-09-20" },
+    { slots: { at: "date" } },
   ],
 
   // §4.6's two editor panes.
   "draft.editor.tab.markdown": [
     "Markdown",
-    { slots: {}, fixedBy: "BUILD §4.6" },
+    { slots: {} },
   ],
-  "draft.editor.tab.preview": ["Preview", { slots: {}, fixedBy: "BUILD §4.6" }],
+  "draft.editor.tab.preview": ["Preview", { slots: {} }],
 
   // The four claim-check outcomes REQ-045 c3 requires to be stated in every
   // case, including the empty list. Each is a badge's word.
   "draft.claim.passed": [
     "Claims checked",
-    { slots: {}, fixedBy: "REQ-045 c3 · S16 (11a)" },
+    { slots: {} },
   ],
   "draft.claim.failed": [
     "Claim check failed",
-    { slots: {}, fixedBy: "REQ-045 c11" },
+    { slots: {} },
   ],
   "draft.claim.outstanding": [
     "Checking claims",
-    { slots: {}, fixedBy: "REQ-045 c9 · S17 (11a)" },
+    { slots: {} },
   ],
   "draft.claim.nothing-to-check": [
     "No Never say list",
-    { slots: {}, fixedBy: "REQ-045 c3" },
+    { slots: {} },
   ],
   // c11's own sentence. The entry itself renders beside it as a value, so
   // the customer is told which entry held the draft whether or not this
   // sentence has been written.
   "draft.claim.matched": [
     "This page matches “{entry}” on your Never say list. It waits until the text changes.",
-    { slots: { entry: "text" }, fixedBy: "REQ-045 c11" },
+    { slots: { entry: "text" } },
   ],
 
   // §4.6's grounded-fact block, its heading and — where the customer has
@@ -280,49 +273,49 @@ export const DRAFT_COPY = Object.freeze({
   // arm, rather than a block of blanks.
   "draft.target.fix": [
     "This page fixes something on your site, so it has no search to win.",
-    { slots: {}, fixedBy: "issue 867" },
+    { slots: {} },
   ],
   // Where the opportunity behind this draft is no longer readable — it was
   // purged, or the draft was written before the row carried its target.
   "draft.target.unknown": [
     "We can’t show what this page is for. We no longer have its record.",
-    { slots: {}, fixedBy: "issue 867" },
+    { slots: {} },
   ],
 
   "draft.grounded.title": [
     "Fact from your site",
-    { slots: {}, fixedBy: "REQ-045 c2" },
+    { slots: {} },
   ],
   "draft.authorship.edited": [
     "edited by you since {at}",
-    { slots: { at: "date" }, fixedBy: "REQ-045 c1" },
+    { slots: { at: "date" } },
   ],
 
   // The back link §4.6 asks for, the unsaved indicator c7 asks for, and the
   // one written line an unknown draft id resolves to.
-  "draft.back": ["Back to This Week", { slots: {}, fixedBy: "SPEC §7 2026-09-20" }],
+  "draft.back": ["Back to This Week", { slots: {} }],
   /** Issue 1196: a page pressed *Write it again*, while the draft tick has
    *  not written it yet. Drafted; the owner may correct it. */
   "draft.rewriting": [
     "We’re writing this page again. It’s ready within the hour, and this screen updates itself when it is.",
-    { slots: {}, fixedBy: "issue 1196" },
+    { slots: {} },
   ],
   // Under the chip of a page set aside for a newer standard.
-  "draft.set-aside.standard": ["Our page checks changed and this version no longer passed, so we set it aside. This week shows what goes live on its date.", { slots: {}, fixedBy: "issue 2888 (UX review)" }],
+  "draft.set-aside.standard": ["Our page checks changed and this version no longer passed, so we set it aside. This week shows what goes live on its date.", { slots: {} }],
   "draft.unsaved": [
     "Not saved. Your text is kept here; check your connection, then make any change to save it.",
-    { slots: {}, fixedBy: "REQ-045 c7 · S17 (11a) · issue 2657 S1 (issue 2668, drafted)" },
+    { slots: {} },
   ],
   "draft.not-found": [
     "This page isn’t here. It may have been stopped or replaced.",
-    { slots: {}, fixedBy: "REQ-045 c1" },
+    { slots: {} },
   ],
 
   // S16's provenance line, under the title: roughly how long the page is.
   // When it was written is the day's timeline's, so it is not said twice.
   "draft.words": [
     "About {words} words",
-    { slots: { words: "text" }, fixedBy: "S16 (11a)" },
+    { slots: { words: "text" } },
   ],
 
   // S16's right-hand rail: the two labels above its two blocks. The
@@ -330,12 +323,12 @@ export const DRAFT_COPY = Object.freeze({
   // "Checks" are `draft.checks.*` below.
   "draft.decide.title": [
     "This page",
-    { slots: {}, fixedBy: "REQ-045 c4 · S16 (11a)" },
+    { slots: {} },
   ],
-  "draft.checks.title": ["Checks", { slots: {}, fixedBy: "S16 (11a)" }],
+  "draft.checks.title": ["Checks", { slots: {} }],
 
   // The rail's go-live line: an absolute time in the site's zone, and no clock.
-  "draft.decide.goes-live": ["Goes live", { slots: {}, fixedBy: "issue 1574 · board AppDraft v36" }],
+  "draft.decide.goes-live": ["Goes live", { slots: {} }],
 
   // SPEC §7 (2026-10-10, issue 1394): the Checks list. The headline is the
   // glance; the closed note under it holds every hard rule in plain words,
@@ -343,117 +336,117 @@ export const DRAFT_COPY = Object.freeze({
   // the rule list and the ceiling is `NEAR_DUPLICATE_MAX`.
   "draft.checks.headline": [
     "Checks: {passed} of {total} passed",
-    { slots: { passed: "text", total: "text" }, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
+    { slots: { passed: "text", total: "text" } },
   ],
   "draft.checks.count.fixed": [
     "{n} fixed automatically",
-    { slots: { n: "text" }, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
+    { slots: { n: "text" } },
   ],
   "draft.checks.count.skipped": [
     "{n} not needed for this page",
-    { slots: { n: "text" }, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
+    { slots: { n: "text" } },
   ],
   "draft.checks.count.failed": [
     "{n} not passed",
-    { slots: { n: "text" }, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
+    { slots: { n: "text" } },
   ],
   "draft.checks.status.skipped": [
     "Not needed for this page",
-    { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
+    { slots: {} },
   ],
   "draft.checks.status.failed": [
     "Not passed",
-    { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
+    { slots: {} },
   ],
   "draft.checks.rule.grounding": [
     "States a fact read from your own site",
-    { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
+    { slots: {} },
   ],
   "draft.checks.rule.traceable-numerals": [
     "Every number traces to a source",
-    { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
+    { slots: {} },
   ],
   "draft.checks.rule.rival-source": [
     "Every figure about a competitor links to its source",
-    { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
+    { slots: {} },
   ],
   "draft.checks.rule.no-invented-test": [
     "No invented tests",
-    { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
+    { slots: {} },
   ],
   "draft.checks.rule.no-invented-provenance": [
     "No invented case studies",
-    { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
+    { slots: {} },
   ],
   "draft.checks.rule.no-placeholder-cell": [
     "No empty cell in a table",
-    { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
+    { slots: {} },
   ],
   "draft.checks.rule.no-invented-people": [
     "No invented people",
-    { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
+    { slots: {} },
   ],
   "draft.checks.rule.no-unsourced-testimonial": [
     "No review or quote without a source",
-    { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
+    { slots: {} },
   ],
   "draft.checks.rule.do-not-claim": [
     "Nothing on your Never say list",
-    { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
+    { slots: {} },
   ],
   "draft.checks.rule.fit-claim": [
     "No claim that your business does something it does not",
-    { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
+    { slots: {} },
   ],
   "draft.checks.rule.honest-row": [
     "Your business is in the comparison and does not rank itself first",
-    { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
+    { slots: {} },
   ],
   "draft.checks.rule.rival-negative": [
     "Nothing a competitor lacks unless a source says so",
-    { slots: {}, fixedBy: "SPEC §7 2026-10-17 · issue 1485 · drafted" },
+    { slots: {} },
   ],
   "draft.checks.rule.no-hidden-text": [
     "No hidden text",
-    { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
+    { slots: {} },
   ],
   "draft.checks.rule.no-machine-address": [
     "No instructions aimed at AI",
-    { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
+    { slots: {} },
   ],
   // A title's specific detail is tried for and never stops a page (SPEC §7, 2026-10-11): this row names what it stops on.
   "draft.checks.rule.title": [
     "Title fits, and the heading matches",
-    { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
+    { slots: {} },
   ],
   "draft.checks.rule.first-block-answers": [
     "Answers its own question in the first lines",
-    { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
+    { slots: {} },
   ],
   "draft.checks.rule.required-blocks": [
     "Every section this kind of page needs is there",
-    { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
+    { slots: {} },
   ],
   "draft.checks.rule.cites-market": [
     "Links the outside sources it is built from",
-    { slots: {}, fixedBy: "SPEC §7 2026-10-17 · issue 1486 · drafted" },
+    { slots: {} },
   ],
   "draft.checks.rule.distinct-headings": [
     "Each heading asks a different question",
-    { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
+    { slots: {} },
   ],
   "draft.checks.rule.no-demo-text": [
     "No menu or sample text from your site",
-    { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
+    { slots: {} },
   ],
-  "draft.checks.rule.standalone-lead": ["Each section starts with a sentence that makes sense on its own", { slots: {}, fixedBy: "SPEC §7 2026-11-16 · issue 2736 · drafted" }],
+  "draft.checks.rule.standalone-lead": ["Each section starts with a sentence that makes sense on its own", { slots: {} }],
   "draft.checks.rule.plain-prose": [
     "Reads like a person wrote it: no stock phrases, few dashes, varied sentences",
-    { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1390 · drafted" },
+    { slots: {} },
   ],
   "draft.checks.rule.near-duplicate": [
     "Not a repeat of a page you have ({percent}% at most)",
-    { slots: { percent: "text" }, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
+    { slots: { percent: "text" } },
   ],
   // SPEC §7 (2026-09-20, #928) — "The page's checks say it is not a repeat
   // and name the closest existing page." The owner's own drafted sentence,
@@ -463,11 +456,11 @@ export const DRAFT_COPY = Object.freeze({
   // above — there is no page to name and no number worth stating.
   "draft.checks.not-a-repeat": [
     "Not a repeat of your {n} other pages. The closest is “{title}”, and this page links to it.",
-    { slots: { n: "text", title: "text" }, fixedBy: "SPEC §7 2026-09-20" },
+    { slots: { n: "text", title: "text" } },
   ],
   "draft.checks.not-a-repeat.unlinked": [
     "Not a repeat of your {n} other pages. The closest is “{title}”.",
-    { slots: { n: "text", title: "text" }, fixedBy: "SPEC §7 2026-09-20" },
+    { slots: { n: "text", title: "text" } },
   ],
 
   // S17, the edit arm. The back link, the two state badges the read view's
@@ -476,59 +469,59 @@ export const DRAFT_COPY = Object.freeze({
   // panes, and the two controls that leave the editor.
   "draft.edit.back": [
     "Back to the Page",
-    { slots: {}, fixedBy: "REQ-045 c5 · S17 (11a)" },
+    { slots: {} },
   ],
   "draft.edit.state.edited": [
     "edited · checked again on save",
-    { slots: {}, fixedBy: "REQ-045 c9 · S17 (11a)" },
+    { slots: {} },
   ],
   "draft.edit.state.unsaved": [
     "unsaved",
-    { slots: {}, fixedBy: "REQ-045 c7 · S17 (11a)" },
+    { slots: {} },
   ],
   "draft.edit.saving": [
     "saving…",
-    { slots: {}, fixedBy: "REQ-045 c6 · S17 (11a)" },
+    { slots: {} },
   ],
   "draft.edit.saved": [
     "Saved {at}",
-    { slots: { at: "date" }, fixedBy: "REQ-045 c6 · S17 (11a)" },
+    { slots: { at: "date" } },
   ],
   "draft.edit.footnote": [
     // One literal, not a concatenation: `registry.test.ts` reads every value
     // back out of this source verbatim, and `"a" + "b"` is not a string it
     // can find there.
     "Saves as you type. Every save is checked again, and the page waits until it passes.",
-    { slots: {}, fixedBy: "REQ-045 c6, c8, c9 · S17 (11a) · issue 789" },
+    { slots: {} },
   ],
   // #789: the founder edits the title and the meta description beside the
   // body, and is told when a saved edit breaks a page rule. Drafted (#759);
   // the owner corrects the wording.
   "draft.edit.title-label": [
     "Title",
-    { slots: {}, fixedBy: "SPEC §7 · issue 789" },
+    { slots: {} },
   ],
   "draft.edit.description-label": [
     "Description in search results",
-    { slots: {}, fixedBy: "SPEC §7 · issue 789" },
+    { slots: {} },
   ],
   "draft.edit.rules-held": [
     "This edit breaks a page rule, so the page won’t go live until it passes. Your words are saved.",
-    { slots: {}, fixedBy: "SPEC §7 · issue 789" },
+    { slots: {} },
   ],
   // #1180: a page the rules stopped, fixed by the founder, enters review
   // on a passing save. Drafted (#759); the owner corrects the wording.
   "draft.edit.entered-review": [
     "Your edit passes every rule. This page now goes live on its own, on schedule.",
-    { slots: {}, fixedBy: "SPEC §7 · issue 1180" },
+    { slots: {} },
   ],
   "draft.edit.done": [
     "Done Editing",
-    { slots: {}, fixedBy: "REQ-045 c5 · S17 (11a)" },
+    { slots: {} },
   ],
   "draft.edit.discard": [
     "Discard Changes",
-    { slots: {}, fixedBy: "REQ-045 c5 · S17 (11a)" },
+    { slots: {} },
   ],
 
   // ── the editor, SPEC §7's own (2026-09-20, #908; issue 932) ───────────
@@ -547,21 +540,21 @@ export const DRAFT_COPY = Object.freeze({
   // The pane the live page stands in, and the two frames it is drawn in.
   "draft.editor.preview.lead": [
     "As your readers will see it · updates as you type",
-    { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" },
+    { slots: {} },
   ],
   "draft.editor.frame.desktop": [
     "Desktop",
-    { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" },
+    { slots: {} },
   ],
   "draft.editor.frame.phone": [
     "Phone",
-    { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" },
+    { slots: {} },
   ],
   /** The third pane on a phone: §7's "search-result description" as a
    *  reader meets it in a result. */
   "draft.editor.tab.search": [
     "Search result",
-    { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" },
+    { slots: {} },
   ],
 
   // The formatting bar. Seven controls, seven words — each the name of the
@@ -569,40 +562,40 @@ export const DRAFT_COPY = Object.freeze({
   // can read these.
   "draft.editor.format.title": [
     "Formatting",
-    { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" },
+    { slots: {} },
   ],
   "draft.editor.format.heading": [
     "Heading",
-    { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" },
+    { slots: {} },
   ],
-  "draft.editor.format.bold": ["Bold", { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" }],
+  "draft.editor.format.bold": ["Bold", { slots: {} }],
   "draft.editor.format.italic": [
     "Italic",
-    { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" },
+    { slots: {} },
   ],
-  "draft.editor.format.link": ["Link", { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" }],
-  "draft.editor.format.list": ["List", { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" }],
+  "draft.editor.format.link": ["Link", { slots: {} }],
+  "draft.editor.format.list": ["List", { slots: {} }],
   "draft.editor.format.quote": [
     "Quote",
-    { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" },
+    { slots: {} },
   ],
   "draft.editor.format.table": [
     "Table",
-    { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" },
+    { slots: {} },
   ],
   /** The placeholder text each control writes when there is no selection to
    *  wrap. A word, so the founder can see where the cursor landed. */
   "draft.editor.format.placeholder.heading": [
     "Heading",
-    { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" },
+    { slots: {} },
   ],
   "draft.editor.format.placeholder.text": [
     "text",
-    { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" },
+    { slots: {} },
   ],
   "draft.editor.format.placeholder.label": [
     "label",
-    { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" },
+    { slots: {} },
   ],
 
   // The length count beside the description. §7 asks for "a length count",
@@ -612,7 +605,7 @@ export const DRAFT_COPY = Object.freeze({
   // run.
   "draft.editor.description-count": [
     "{n} characters",
-    { slots: { n: "text" }, fixedBy: "SPEC §7 (2026-09-20) · issue 932" },
+    { slots: { n: "text" } },
   ],
 
   // What the rules say, live. The banner when nothing is broken is the
@@ -620,7 +613,7 @@ export const DRAFT_COPY = Object.freeze({
   // the one that speaks for a *saved* break, and is unchanged.
   "draft.editor.rules-ok": [
     "All your rules hold. Every save is checked again.",
-    { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" },
+    { slots: {} },
   ],
 
   // One sentence per rule the editor can decide as the founder types — the
@@ -629,58 +622,58 @@ export const DRAFT_COPY = Object.freeze({
   // change it. None of them names the model or the rule's handle.
   "draft.editor.break.do-not-claim": [
     "“{entry}” is on your Never say list. Your change is saved, but the page waits until you change this sentence.",
-    { slots: { entry: "text" }, fixedBy: "SPEC §7 (2026-09-20) · issue 932" },
+    { slots: { entry: "text" } },
   ],
   "draft.editor.break.rival-source": [
     "This competitor figure has no source link. Add a source, or take the number out.",
-    { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" },
+    { slots: {} },
   ],
   "draft.editor.break.no-invented-people": [
     "This quotes a named person. The page waits until you remove the name or the quote.",
-    { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" },
+    { slots: {} },
   ],
   "draft.editor.break.no-unsourced-testimonial": [
     "This reads like a customer review with no source. Add a source or remove it.",
-    { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" },
+    { slots: {} },
   ],
   "draft.editor.break.honest-row": [
     "This page compares businesses, so yours needs its own row. It can’t call itself “#1” or the best.",
-    { slots: {}, fixedBy: "SPEC §7 (2026-09-29, D20) · issue 1136" },
+    { slots: {} },
   ],
   "draft.editor.break.no-hidden-text": [
     "Some text here is hidden from readers. Every word must be visible to visitors.",
-    { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" },
+    { slots: {} },
   ],
   "draft.editor.break.no-machine-address": [
     "This text speaks to an AI assistant. Rewrite it for your reader.",
-    { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" },
+    { slots: {} },
   ],
   "draft.editor.break.no-invented-test": [
     "This says you tested something we can’t confirm. Remove the claim to continue.",
-    { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" },
+    { slots: {} },
   ],
   "draft.editor.break.no-invented-provenance": [
     "This adds an author, date or case study your site doesn’t show. Remove it to continue.",
-    { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" },
+    { slots: {} },
   ],
   "draft.editor.break.traceable-numerals": [
     "This number isn’t on your site and has no source link. Add a source or take it out.",
-    { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" },
+    { slots: {} },
   ],
   "draft.editor.break.first-block-answers": [
     "Start the page with a short, plain answer to its question. Use a paragraph, not a list or heading.",
-    { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" },
+    { slots: {} },
   ],
   // SPEC §7 (D41 stage 4; issue 1252, drafted): the two checks stage 4
   // added. The first is marked as it is typed; the second is the save's,
   // which holds the site's demo phrases and menu lines.
   "draft.editor.break.no-placeholder-cell": [
     "A table cell is empty or says “unknown”. Fill it with a fact, or remove that row or column.",
-    { slots: {}, fixedBy: "issue 1252 (drafted)" },
+    { slots: {} },
   ],
   "draft.editor.break.no-demo-text": [
     "A sentence here is copied from your site’s menu or sample text. Remove it to continue.",
-    { slots: {}, fixedBy: "issue 1252 (drafted)" },
+    { slots: {} },
   ],
   // The sources list a page ends with (SPEC §7, 2026-09-29, *Two pools of
   // facts*; issue 1135): its heading, and what follows each linked page
@@ -688,11 +681,11 @@ export const DRAFT_COPY = Object.freeze({
   // page meets them. Drafted; the owner corrects the wording.
   "body.sources.heading": [
     "Sources",
-    { slots: {}, fixedBy: "SPEC §7 (2026-09-29) · issue 1135 · drafted" },
+    { slots: {} },
   ],
   "body.sources.read": [
     "read on {date}",
-    { slots: { date: "date" }, fixedBy: "SPEC §7 (2026-09-29) · issue 1135 · drafted" },
+    { slots: { date: "date" } },
   ],
   // The comparison table code lays out on a listicle (SPEC §7, owner, D47;
   // issue 1258): the header over the options, the two criteria, and the
@@ -701,25 +694,25 @@ export const DRAFT_COPY = Object.freeze({
   // owner corrects the wording.
   "body.table.option": [
     "Option",
-    { slots: {}, fixedBy: "SPEC §7 (D47) · issue 1258 · drafted" },
+    { slots: {} },
   ],
   "body.table.pricing": [
     "Pricing",
-    { slots: {}, fixedBy: "SPEC §7 (D47) · issue 1258 · drafted" },
+    { slots: {} },
   ],
   "body.table.does": [
     "What it does",
-    { slots: {}, fixedBy: "SPEC §7 (D47) · issue 1258 · drafted" },
+    { slots: {} },
   ],
   "body.table.stated": [
     "What its own page says",
-    { slots: {}, fixedBy: "SPEC §7 (D47) · issue 1258 · drafted" },
+    { slots: {} },
   ],
   // The line under that table (SPEC §7, owner, D52; issue 1267): the day the
   // options' pages were read. Drafted; the owner corrects the wording.
   "body.table.checked": [
     "Prices last checked {date}.",
-    { slots: { date: "date" }, fixedBy: "SPEC §7 (D52) · issue 1267 · drafted" },
+    { slots: { date: "date" } },
   ],
   // D56 (SPEC §7, owner, 2026-10-06; issue 1282): the pricing cell of a rival
   // whose own page says its price is agreed, not published, and the line
@@ -727,18 +720,18 @@ export const DRAFT_COPY = Object.freeze({
   // owner corrects the wording.
   "body.table.custom": [
     "Custom pricing",
-    { slots: {}, fixedBy: "SPEC §7 (D56) · issue 1282 · drafted" },
+    { slots: {} },
   ],
   "body.table.currencies": [
     "Prices are shown in the currency each vendor publishes; none is converted.",
-    { slots: {}, fixedBy: "SPEC §7 (D56) · issue 1282 · drafted" },
+    { slots: {} },
   ],
   // Issue 1508 (SPEC §7, 2026-10-18): the row of the product an alternatives
   // page lists alternatives to. It is compared against and is not counted.
   // Drafted; the owner corrects the wording.
   "body.table.baseline": [
     "{name} (for comparison)",
-    { slots: { name: "text" }, fixedBy: "SPEC §7 (2026-10-18) · issue 1508 · drafted" },
+    { slots: { name: "text" } },
   ],
   // The report's measurements, stated as facts a page may quote (SPEC §7,
   // 2026-10-03, issue 1163). Each is composed from stored figures only and
@@ -746,120 +739,120 @@ export const DRAFT_COPY = Object.freeze({
   // the wording.
   "fact.report.score": [
     "ReachKit measured {domain} on {date} and gave it a Visibility Score of {score} out of 100.",
-    { slots: { domain: "text", date: "date", score: "text" }, fixedBy: "SPEC §7 (2026-10-03) · issue 1163 · drafted" },
+    { slots: { domain: "text", date: "date", score: "text" } },
   ],
   "fact.report.answers": [
     "On {date}, AI answers mentioned {domain} for {count} of the {total} buyer searches they answered in ReachKit's measurement.",
-    { slots: { domain: "text", date: "date", count: "text", total: "text" }, fixedBy: "SPEC §7 (2026-10-03) · issue 1163 · drafted" },
+    { slots: { domain: "text", date: "date", count: "text", total: "text" } },
   ],
   "fact.report.rival": [
     "On {date}, AI answers linked to {rival} for {count} of the {total} buyer searches they answered in ReachKit's measurement of {domain}.",
-    { slots: { domain: "text", date: "date", rival: "text", count: "text", total: "text" }, fixedBy: "SPEC §7 (2026-10-03) · issue 1163 · drafted" },
+    { slots: { domain: "text", date: "date", rival: "text", count: "text", total: "text" } },
   ],
   "fact.report.method": [
     "ReachKit's measurement of {domain} on {date} read Google's first page and the answers of {engines}; it does not measure Perplexity.",
-    { slots: { domain: "text", date: "date", engines: "text" }, fixedBy: "SPEC §7 (2026-10-03) · issue 1163 · drafted" },
+    { slots: { domain: "text", date: "date", engines: "text" } },
   ],
 
   // ── SPEC §4 (2026-10-10, issue 1395): why this topic, the topics set
   // aside, and the two sources a page is written from. Drafted.
   "draft.why.title": [
     "Why This Page",
-    { slots: {}, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+    { slots: {} },
   ],
   "draft.why.fit.answer": [
     "Fit: what you sell is the answer to this search",
-    { slots: {}, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+    { slots: {} },
   ],
   "draft.why.fit.helps": [
     "Fit: what you sell helps with this search",
-    { slots: {}, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+    { slots: {} },
   ],
   "draft.written-from.counts": [
     "Facts from your site: {site} · Market sources: {market}",
-    { slots: { site: "text", market: "text" }, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+    { slots: { site: "text", market: "text" } },
   ],
   "draft.written-from.site": [
     "From your site",
-    { slots: {}, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+    { slots: {} },
   ],
   "draft.written-from.market": [
     "From market research",
-    { slots: {}, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+    { slots: {} },
   ],
 
   // A live page's own screen, board PageDetail (canvas V22), and its Stop
   // as owner ruling R9 (2026-10-22) sets it: one press, the topic dropped
   // for good, Put it back for 7 days on a hosted page. Drafted (#759).
-  "draft.live.since": ["Live since {date}", { slots: { date: "date" }, fixedBy: "issue 1749 (drafted)" }],
-  "draft.live.new-tab": ["(opens in a new tab)", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
-  "draft.live.week": ["This Week in Google", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
-  "draft.live.place": ["place for {search}", { slots: { search: "text" }, fixedBy: "issue 1749 (drafted)" }],
-  "draft.live.places": ["{n} places", { slots: { n: "text" }, fixedBy: "issue 1749 (drafted)" }],
-  "draft.live.places.one": ["one place", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
-  "draft.live.up": ["Up {places} since {date}.", { slots: { places: "text", date: "date" }, fixedBy: "issue 1749 (drafted)" }],
-  "draft.live.up.near": ["Up {places} since {date}, {gap} from the first page.", { slots: { places: "text", date: "date", gap: "text" }, fixedBy: "issue 1749 (drafted)" }],
-  "draft.live.down": ["Down {places} since {date}.", { slots: { places: "text", date: "date" }, fixedBy: "issue 1749 (drafted)" }],
-  "draft.live.same": ["The same place as on {date}.", { slots: { date: "date" }, fixedBy: "issue 1749 (drafted)" }],
-  "draft.live.furthest": ["{step} on {date}. Not in results yet.", { slots: { step: "text", date: "date" }, fixedBy: "issue 1749 (drafted)" }],
-  "draft.live.visits": ["{n} visits from Google in the last {days} days.", { slots: { n: "text", days: "text" }, fixedBy: "issue 1749 (drafted)" }],
-  "draft.live.band": ["shaded band: Google’s first page", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
-  "draft.live.chart": ["Its place on Google, week by week", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
-  "draft.ladder.google": ["On Google", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
-  "draft.ladder.ai": ["In AI answers", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
-  "draft.ladder.live": ["Live", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
-  "draft.ladder.found": ["Found by Google", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
-  "draft.ladder.showing": ["Showing on Google", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
-  "draft.ladder.first-page": ["Google’s first page", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
-  "draft.ladder.read": ["Read by AI", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
-  "draft.ladder.linked": ["Linked by AI", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
-  "draft.ladder.visit": ["Visit from AI", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
-  "draft.ladder.places": ["place {from} → {to}", { slots: { from: "text", to: "text" }, fixedBy: "issue 1749 (drafted)" }],
-  "draft.live.first-page": ["First page", { slots: {}, fixedBy: "board PageDetail v36 (drafted)" }],
-  "draft.ladder.unmeasured": ["not checked yet", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
-  "draft.ladder.not-yet": ["not yet", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
-  "draft.next.title": ["Next:", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
-  "draft.next.working": ["working, so we leave it alone. If it slips, it gets an update.", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
-  "draft.next.climbing": ["still climbing, so we leave it alone. If it slips, it gets an update.", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
-  "draft.next.not_moving": ["it has stopped gaining, so a Monday check may pick it for an update.", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
-  "draft.next.too_early": ["it’s too early to tell. We check it again every Monday.", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
-  "draft.next.unmeasured": ["we check it on Google and in AI answers every Monday.", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
-  "draft.live.stop-note": ["Stop takes this page off your site and drops its topic. Tomorrow’s page is not affected.", { slots: {}, fixedBy: "issue 1749 · R9 (drafted)" }],
-  "draft.live.pause-lead": ["To pause every page:", { slots: {}, fixedBy: "issue 1749 · R9 (drafted)" }],
-  "draft.live.pause-link": ["Settings › Pages", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
-  "draft.stop.done": ["Stopped. This page is off your site.", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
-  "draft.stop.refused": ["That didn’t work, so the page is still live. Try again.", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
-  "draft.stopped.badge": ["Stopped", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
-  "draft.stopped.line": ["Tomorrow’s page goes live as planned.", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
-  "draft.stopped.wordpress": ["Your WordPress post was returned to draft. To bring it back, publish it in WordPress.", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
-  "draft.action.put-back": ["Put It Back Live", { slots: {}, fixedBy: "issue 1749 · issue 2657 S1 (issue 2668, drafted)" }],
-  "draft.put-back.until": ["You can put it back until {date}.", { slots: { date: "date" }, fixedBy: "issue 1749 (drafted)" }],
-  "draft.put-back.done": ["It’s back on your site.", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
-  "draft.put-back.refused": ["That didn’t work, so the page is still off your site. Try again.", { slots: {}, fixedBy: "issue 1749 (drafted)" }],
+  "draft.live.since": ["Live since {date}", { slots: { date: "date" } }],
+  "draft.live.new-tab": ["(opens in a new tab)", { slots: {} }],
+  "draft.live.week": ["This Week in Google", { slots: {} }],
+  "draft.live.place": ["place for {search}", { slots: { search: "text" } }],
+  "draft.live.places": ["{n} places", { slots: { n: "text" } }],
+  "draft.live.places.one": ["one place", { slots: {} }],
+  "draft.live.up": ["Up {places} since {date}.", { slots: { places: "text", date: "date" } }],
+  "draft.live.up.near": ["Up {places} since {date}, {gap} from the first page.", { slots: { places: "text", date: "date", gap: "text" } }],
+  "draft.live.down": ["Down {places} since {date}.", { slots: { places: "text", date: "date" } }],
+  "draft.live.same": ["The same place as on {date}.", { slots: { date: "date" } }],
+  "draft.live.furthest": ["{step} on {date}. Not in results yet.", { slots: { step: "text", date: "date" } }],
+  "draft.live.visits": ["{n} visits from Google in the last {days} days.", { slots: { n: "text", days: "text" } }],
+  "draft.live.band": ["shaded band: Google’s first page", { slots: {} }],
+  "draft.live.chart": ["Its place on Google, week by week", { slots: {} }],
+  "draft.ladder.google": ["On Google", { slots: {} }],
+  "draft.ladder.ai": ["In AI answers", { slots: {} }],
+  "draft.ladder.live": ["Live", { slots: {} }],
+  "draft.ladder.found": ["Found by Google", { slots: {} }],
+  "draft.ladder.showing": ["Showing on Google", { slots: {} }],
+  "draft.ladder.first-page": ["Google’s first page", { slots: {} }],
+  "draft.ladder.read": ["Read by AI", { slots: {} }],
+  "draft.ladder.linked": ["Linked by AI", { slots: {} }],
+  "draft.ladder.visit": ["Visit from AI", { slots: {} }],
+  "draft.ladder.places": ["place {from} → {to}", { slots: { from: "text", to: "text" } }],
+  "draft.live.first-page": ["First page", { slots: {} }],
+  "draft.ladder.unmeasured": ["not checked yet", { slots: {} }],
+  "draft.ladder.not-yet": ["not yet", { slots: {} }],
+  "draft.next.title": ["Next:", { slots: {} }],
+  "draft.next.working": ["working, so we leave it alone. If it slips, it gets an update.", { slots: {} }],
+  "draft.next.climbing": ["still climbing, so we leave it alone. If it slips, it gets an update.", { slots: {} }],
+  "draft.next.not_moving": ["it has stopped gaining, so a Monday check may pick it for an update.", { slots: {} }],
+  "draft.next.too_early": ["it’s too early to tell. We check it again every Monday.", { slots: {} }],
+  "draft.next.unmeasured": ["we check it on Google and in AI answers every Monday.", { slots: {} }],
+  "draft.live.stop-note": ["Stop takes this page off your site and drops its topic. Tomorrow’s page is not affected.", { slots: {} }],
+  "draft.live.pause-lead": ["To pause every page:", { slots: {} }],
+  "draft.live.pause-link": ["Settings › Pages", { slots: {} }],
+  "draft.stop.done": ["Stopped. This page is off your site.", { slots: {} }],
+  "draft.stop.refused": ["That didn’t work, so the page is still live. Try again.", { slots: {} }],
+  "draft.stopped.badge": ["Stopped", { slots: {} }],
+  "draft.stopped.line": ["Tomorrow’s page goes live as planned.", { slots: {} }],
+  "draft.stopped.wordpress": ["Your WordPress post was returned to draft. To bring it back, publish it in WordPress.", { slots: {} }],
+  "draft.action.put-back": ["Put It Back Live", { slots: {} }],
+  "draft.put-back.until": ["You can put it back until {date}.", { slots: { date: "date" } }],
+  "draft.put-back.done": ["It’s back on your site.", { slots: {} }],
+  "draft.put-back.refused": ["That didn’t work, so the page is still off your site. Try again.", { slots: {} }],
   // The draft screen as board AppDraft draws it (canvas V22, issue 1748).
   // Drafted under issue 759's ruling; the owner corrects the wording.
-  "draft.preview.caption": ["Preview on your site", { slots: {}, fixedBy: "board AppDraft v36 (drafted)" }],
-  "draft.search.title": ["The search and who answers it", { slots: {}, fixedBy: "issue 1748 (drafted)" }],
-  "draft.search.query": ["The search", { slots: {}, fixedBy: "issue 1748 (drafted)" }],
-  "draft.search.volume": ["Searched a month", { slots: {}, fixedBy: "issue 1748 (drafted)" }],
-  "draft.search.rival": ["Who answers it today", { slots: {}, fixedBy: "issue 1748 (drafted)" }],
+  "draft.preview.caption": ["Preview on your site", { slots: {} }],
+  "draft.search.title": ["The search and who answers it", { slots: {} }],
+  "draft.search.query": ["The search", { slots: {} }],
+  "draft.search.volume": ["Searched a month", { slots: {} }],
+  "draft.search.rival": ["Who answers it today", { slots: {} }],
   "draft.search-result.caption": [
     "Google can choose other words.",
-    { slots: {}, fixedBy: "issue 1748 (drafted)" },
+    { slots: {} },
   ],
-  "draft.checks.more": ["and {n} more", { slots: { n: "text" }, fixedBy: "issue 1748 (drafted)" }],
+  "draft.checks.more": ["and {n} more", { slots: { n: "text" } }],
   "draft.checks.decided": [
     "A page that fails a check on facts, honesty, spam or repeats doesn’t go live. The other checks show where a page could be better.",
-    { slots: {}, fixedBy: "SPEC §7 What stops a page, in order · issue 2878 · UX review" },
+    { slots: {} },
   ],
   // Q6 (owner 2026-10-20, #1718): a stopped topic is dropped for good.
   "draft.decide.stop-note": [
     "It won’t go live, and this topic is dropped. Tomorrow’s page is not affected.",
-    { slots: {}, fixedBy: "issue 1748 (drafted)" },
+    { slots: {} },
   ],
-  "draft.day.title": ["This page’s day", { slots: {}, fixedBy: "issue 1748 (drafted)" }],
-  "draft.day.written": ["Written and checked", { slots: {}, fixedBy: "issue 1748 (drafted)" }],
-  "draft.day.emailed": ["Emailed to you", { slots: {}, fixedBy: "issue 1748 (drafted)" }],
-  "draft.day.live": ["Goes live on your site", { slots: {}, fixedBy: "issue 1748 (drafted)" }],
-  "draft.day.reading": ["First reading in Google and AI", { slots: {}, fixedBy: "issue 1748 (drafted)" }],
+  "draft.day.title": ["This page’s day", { slots: {} }],
+  "draft.day.written": ["Written and checked", { slots: {} }],
+  "draft.day.emailed": ["Emailed to you", { slots: {} }],
+  "draft.day.live": ["Goes live on your site", { slots: {} }],
+  "draft.day.reading": ["First reading in Google and AI", { slots: {} }],
 }) satisfies CopyPartition;

@@ -1,4 +1,4 @@
-// SPEC §8, Retention — the `win-back` mail. Every sentence is a key, and `sendEmail` refuses one still carrying `TODO(copy)`.
+// SPEC §8, Retention — the `win-back` mail. Every sentence is a key, and `sendEmail` refuses an empty subject or body.
 import { RETENTION_MAIL, WEEK_PLAN } from "@/lib/config/constants";
 import type { CopyKey } from "@/lib/presentation/copy";
 import { appHref, type RetentionMail } from "../../retention/mail";

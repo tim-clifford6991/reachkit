@@ -14,7 +14,6 @@ import { describe, expect, it } from "vitest";
 import { chooseWholeMailLine, composeMail, type MeasurementState } from "../../../src/lib/mail/shell/compose";
 import { COPY, copy } from "../../../src/lib/presentation/copy";
 import type { CopyKey } from "../../../src/lib/presentation/copy";
-import { OWNER_OWED } from "../../../src/lib/presentation/copy/registry";
 import { measured, measuredZero } from "../../../src/lib/measure/measured";
 import * as f from "../fixtures";
 
@@ -43,7 +42,6 @@ async function expectLine(
   rendered: string
 ): Promise<void> {
   expect(COPY[key], key).not.toBe("");
-  expect(OWNER_OWED, key).not.toContain(key);
   const mail = await compose();
   expect(mail.text).toContain(rendered);
   expect(mail.html.replace(/&#x27;/g, "'")).toContain(rendered);

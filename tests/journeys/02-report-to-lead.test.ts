@@ -59,7 +59,7 @@ const db = fakeDb();
 vi.mock("@/lib/db", () => ({ dbAdmin: () => db.client, db: () => db.client }));
 
 // Every key resolves to itself, slots substituted — see the header. The
-// registry itself is untouched: `COPY_META`, `OWNER_OWED` and the key
+// registry itself is untouched: `COPY_META` and the key
 // union are the real ones, so a key this journey names that does not exist
 // is still a type error.
 vi.mock("@/lib/presentation/copy", async (importOriginal) => {

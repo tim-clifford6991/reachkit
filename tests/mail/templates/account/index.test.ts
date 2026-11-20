@@ -8,7 +8,7 @@ const { buildAddressMoved, buildChaseWithLink, buildChaseWithoutLink, buildSecon
   await import("../../../../src/lib/mail/templates/account");
 const { MAIL_KINDS } = await import("../../../../src/lib/mail/kinds");
 const { COPY } = await import("../../../../src/lib/presentation/copy");
-const { COPY_META, OWNER_OWED } = await import("../../../../src/lib/presentation/copy/registry");
+const { COPY_META } = await import("../../../../src/lib/presentation/copy/registry");
 const { composeMail } = await import("../../../../src/lib/mail/shell/compose");
 const { escapeHtml } = await import("../../escape");
 
@@ -123,7 +123,6 @@ describe("the register row, and the sentences it speaks", () => {
     expect(ACCOUNT_MAIL_KEYS).toHaveLength(8);
     for (const key of ACCOUNT_MAIL_KEYS) {
       expect(COPY[key], key).not.toBe("");
-      expect(OWNER_OWED, key).not.toContain(key);
     }
 
     const spoken = new Set<string>();

@@ -19,8 +19,7 @@
 // The archived plan is WO-235.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fakeDb, type Row } from "../harness";
-import { COPY, copy, TODO_COPY_MARKER } from "@/lib/presentation/copy";
-import { OWNER_OWED } from "@/lib/presentation/copy/registry";
+import { COPY, copy } from "@/lib/presentation/copy";
 
 const db = fakeDb();
 vi.mock("@/lib/db", () => ({ dbAdmin: () => db.client, db: () => db.client }));
@@ -190,8 +189,6 @@ describe("tellingFor — the three keys, and the two that must stay two (ADR-085
     const payload = JSON.stringify(telling);
     for (const key of Object.values(TELLING_COPY)) {
       expect(COPY[key].trim(), key).not.toBe("");
-      expect(COPY[key], key).not.toBe(TODO_COPY_MARKER);
-      expect(OWNER_OWED).not.toContain(key);
       expect(copy(key, { checkedAt: "<checked-at>" }), key).toContain("<checked-at>");
       for (const part of COPY[key].split(/\{[^}]*\}/)) {
         if (/[a-z]{3,}/i.test(part)) expect(payload, key).not.toContain(part.trim());

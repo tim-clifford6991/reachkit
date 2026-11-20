@@ -6,7 +6,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { COPY, TODO_COPY_MARKER } from "@/lib/presentation/copy";
+import { COPY } from "@/lib/presentation/copy";
 import { unmeasured, measuredZero } from "@/lib/measure/measured";
 import {
   PLACES,
@@ -82,7 +82,6 @@ describe("REQ-091 c2 — null, [] and unmeasured are accounted, never empty", ()
     expect(accounted.state === "accounted" && accounted.line).toBe(
       COPY["place.overview.weekly-presence.chart"]
     );
-    expect(accounted.state === "accounted" && accounted.line).not.toBe(TODO_COPY_MARKER);
   });
 
   it("an unmeasured measurement is accounted, and says so through its own cause", () => {

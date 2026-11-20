@@ -25,24 +25,23 @@
 // every key this partition still owed ("copy proposal approved"; proposal
 // sheet artifact 546f45a0-a996-4d25-b85e-fb03fda7b102), and the 6 approved
 // strings — `price.vat_included`, `plan.single` and the four `*.value`
-// lines — are applied here byte for byte. No key in this partition is
-// owner-owed or `TODO(copy)` any more.
+// lines — are applied here byte for byte.
 import type { CopyPartition } from "../registry.ts";
 
 export const OFFER_COPY = Object.freeze({
-  "price.amount": ["€49", { slots: {}, fixedBy: "REQ-022 c1" }],
-  "price.vat_included": ["Tax included", { slots: {}, fixedBy: "REQ-022 c1" }],
-  "price.interval": ["a month · tax included", { slots: {}, fixedBy: "REQ-022 c1" }],
-  "offer.cadence.page": ["Up to {weekPages} pages a week, new or updated", { slots: { weekPages: "text" }, fixedBy: "REQ-021 c2 · owner A1 2026-10-19" }],
-  "offer.cadence.movement": ["A Monday email shows what went live and your totals so far.", { slots: {}, fixedBy: "REQ-021 c2 · owner 2026-11-17 · issue 2738" }],
-  "offer.veto.window": ["Stop or edit any page before it goes live.", { slots: {}, fixedBy: "REQ-021 c2 · board PubReport · owner O6 2026-10-31" }],
+  "price.amount": ["€49", { slots: {} }],
+  "price.vat_included": ["Tax included", { slots: {} }],
+  "price.interval": ["a month · tax included", { slots: {} }],
+  "offer.cadence.page": ["Up to {weekPages} pages a week, new or updated", { slots: { weekPages: "text" } }],
+  "offer.cadence.movement": ["A Monday email shows what went live and your totals so far.", { slots: {} }],
+  "offer.veto.window": ["Stop or edit any page before it goes live.", { slots: {} }],
   // Issue 1068, board R12-2: the price close's heading on the report.
   // Drafted; the owner corrects the wording.
-  "offer.close.heading": ["Gain Ground Every Week", { slots: {}, fixedBy: "issue 1068 · owner A1 2026-10-19" }],
+  "offer.close.heading": ["Gain Ground Every Week", { slots: {} }],
   // Board PubReport (issue 1724, drafted): the offer where the report found pages to write.
-  "offer.found.heading": ["We Write These Pages for You", { slots: {}, fixedBy: "board PubReport · owner O6 2026-10-31" }],
-  "offer.found.line": ["Written from facts on your own site. All on autopilot.", { slots: {}, fixedBy: "board PubReport · owner O6 2026-10-31" }],
-  "offer.start": ["Start ReachKit", { slots: {}, fixedBy: "REQ-021 c4" }],
+  "offer.found.heading": ["We Write These Pages for You", { slots: {} }],
+  "offer.found.line": ["Written from facts on your own site. All on autopilot.", { slots: {} }],
+  "offer.start": ["Start ReachKit", { slots: {} }],
   /** The **control's** own label, and the one the approved set draws on it:
    *  "Start ReachKit €49" (11a). `offer.start` stays exactly as the owner
    *  ruled it on 2026-09-04 and is what the pricing page's eyebrow says;
@@ -50,7 +49,7 @@ export const OFFER_COPY = Object.freeze({
    *  there — the amount is REQ-022 c1's €49, written into the words rather
    *  than composed beside them, so the control cannot say one price while
    *  the card above it says another. */
-  "offer.start.priced": ["Start ReachKit €49", { slots: {}, fixedBy: "S4 · REQ-022 c1" }],
+  "offer.start.priced": ["Start ReachKit €49", { slots: {} }],
 
   // ── The same four terms, in S4's own words (issue #369) ──────────────
   //
@@ -73,7 +72,7 @@ export const OFFER_COPY = Object.freeze({
   // `src/lib/config/constants.ts`, and never twice.
   "offer.pricing.veto": [
     "{hours} hours to stop any page before it goes live",
-    { slots: { hours: "text" }, fixedBy: "S4 · REQ-021 c2" },
+    { slots: { hours: "text" } },
   ],
 
   // 2026-09-06, issue #34: the plan's own name, which §4.7's Billing card
@@ -83,33 +82,32 @@ export const OFFER_COPY = Object.freeze({
   // in `settings.*` because it is the same public product fact the price
   // surfaces state, not a sentence about one customer's account —
   // REQ-097's own non-goal draws that line.
-  "plan.single": ["Up to {weekPages} pages a week", { slots: { weekPages: "text" }, fixedBy: "REQ-022 c1 · owner A1 2026-10-19" }],
+  "plan.single": ["Up to {weekPages} pages a week", { slots: { weekPages: "text" } }],
 
   // 2026-09-13, issue #624: what the offer says when the vendor refuses to
-  // open checkout. Owner-owed — the approved set draws no refused state on
-  // S4 — so it carries the marker rather than a sentence written here.
+  // open checkout. The approved set draws no refused state on S4.
   "offer.checkout.refused": [
     "We couldn’t start checkout. Try again in a moment.",
-    { slots: {}, fixedBy: "SPEC §3 (issue 624)" },
+    { slots: {} },
   ],
 
   // The first-50 offer: figures are slots ({of} OFFER_SPOTS, {minutes} SETUP_MINUTES, {price} price.amount); {endsOn} is the UTC day, so no zone prints 1 Feb.
-  "offer.banner.pace": ["Up to {weekPages} pages a week, {price} a month", { slots: { weekPages: "text", price: "text" }, fixedBy: "owner ruling 57 2026-11-20 · issue 2981" }],
-  "offer.banner.promise": ["Set up in about {minutes} minutes, or we do it with you", { slots: { minutes: "text" }, fixedBy: "owner ruling 57 2026-11-20 · issue 2981" }],
-  "offer.spots.before": ["Open to the first {of} customers until {endsOn}", { slots: { of: "text", endsOn: "text" }, fixedBy: "owner ruling 57 2026-11-20 · issue 2981" }],
-  "offer.spots.left": ["{left} of {of} spots left until {endsOn}", { slots: { left: "text", of: "text", endsOn: "text" }, fixedBy: "owner ruling 57 2026-11-20 · issue 2981" }],
-  "offer.spots.taken": ["All {of} spots are taken. ReachKit is {price} a month, cancel any time.", { slots: { of: "text", price: "text" }, fixedBy: "owner ruling 57 2026-11-20 · issue 2981" }],
-  "offer.spots.ended": ["Our offer for the first {of} customers has ended. ReachKit is {price} a month, cancel any time.", { slots: { of: "text", price: "text" }, fixedBy: "owner ruling 56 2026-11-20 · issue 2989" }],
-  "offer.banner.see": ["See the Offer", { slots: {}, fixedBy: "owner ruling 57 2026-11-20 · issue 2981" }],
-  "offer.card.title": ["First {of} Customers", { slots: { of: "text" }, fixedBy: "owner ruling 57 2026-11-20 · issue 2981" }],
-  "offer.card.until": ["Until {endsOn}", { slots: { endsOn: "text" }, fixedBy: "owner ruling 57 2026-11-20 · issue 2981" }],
-  "offer.card.setup": ["The founder sets you up personally, on a 15-minute call if you want one", { slots: {}, fixedBy: "owner ruling 57 2026-11-20 · issue 2981" }],
-  "offer.card.video": ["A short video of your report, explained by the founder", { slots: {}, fixedBy: "owner ruling 57 2026-11-20 · issue 2981" }],
-  "offer.card.checkins": ["We check in with you after two weeks and after a month", { slots: {}, fixedBy: "owner ruling 57 2026-11-20 · issue 2981" }],
-  "offer.card.email": ["Email the founder directly, any time", { slots: {}, fixedBy: "owner ruling 57 2026-11-20 · issue 2981" }],
-  "offer.promise.title": ["Set Up in About {minutes} Minutes", { slots: { minutes: "text" }, fixedBy: "owner ruling 57 2026-11-20 · issue 2981" }],
-  "offer.promise.line": ["Three short steps and you’re done. If it takes longer, we do it with you on a call, at no cost.", { slots: {}, fixedBy: "owner ruling 57 2026-11-20 · issue 2981" }],
-  "offer.before.title": ["Before You Pay", { slots: {}, fixedBy: "owner ruling 57 2026-11-20 · issue 2981" }],
-  "offer.before.read": ["Read your report and first page before you pay", { slots: {}, fixedBy: "owner ruling 57 2026-11-20 · issue 2981" }],
-  "offer.before.export": ["Download all your pages any time", { slots: {}, fixedBy: "owner ruling 57 2026-11-20 · issue 2981" }],
+  "offer.banner.pace": ["Up to {weekPages} pages a week, {price} a month", { slots: { weekPages: "text", price: "text" } }],
+  "offer.banner.promise": ["Set up in about {minutes} minutes, or we do it with you", { slots: { minutes: "text" } }],
+  "offer.spots.before": ["Open to the first {of} customers until {endsOn}", { slots: { of: "text", endsOn: "text" } }],
+  "offer.spots.left": ["{left} of {of} spots left until {endsOn}", { slots: { left: "text", of: "text", endsOn: "text" } }],
+  "offer.spots.taken": ["All {of} spots are taken. ReachKit is {price} a month, cancel any time.", { slots: { of: "text", price: "text" } }],
+  "offer.spots.ended": ["Our offer for the first {of} customers has ended. ReachKit is {price} a month, cancel any time.", { slots: { of: "text", price: "text" } }],
+  "offer.banner.see": ["See the Offer", { slots: {} }],
+  "offer.card.title": ["First {of} Customers", { slots: { of: "text" } }],
+  "offer.card.until": ["Until {endsOn}", { slots: { endsOn: "text" } }],
+  "offer.card.setup": ["The founder sets you up personally, on a 15-minute call if you want one", { slots: {} }],
+  "offer.card.video": ["A short video of your report, explained by the founder", { slots: {} }],
+  "offer.card.checkins": ["We check in with you after two weeks and after a month", { slots: {} }],
+  "offer.card.email": ["Email the founder directly, any time", { slots: {} }],
+  "offer.promise.title": ["Set Up in About {minutes} Minutes", { slots: { minutes: "text" } }],
+  "offer.promise.line": ["Three short steps and you’re done. If it takes longer, we do it with you on a call, at no cost.", { slots: {} }],
+  "offer.before.title": ["Before You Pay", { slots: {} }],
+  "offer.before.read": ["Read your report and first page before you pay", { slots: {} }],
+  "offer.before.export": ["Download all your pages any time", { slots: {} }],
 }) satisfies CopyPartition;

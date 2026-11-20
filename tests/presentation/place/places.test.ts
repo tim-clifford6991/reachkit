@@ -5,8 +5,7 @@
 // is the registry's shape and the standing of each seeded line — never a
 // sentence, which is the owner's.
 import { describe, expect, it } from "vitest";
-import { AWAITING_COPY, COPY, type CopyKey } from "@/lib/presentation/copy";
-import { OWNER_OWED } from "@/lib/presentation/copy/registry";
+import { COPY } from "@/lib/presentation/copy";
 import { PLACES, isPlaceKey, type PlaceKey } from "@/lib/presentation/place";
 
 const KEYS = Object.keys(PLACES) as PlaceKey[];
@@ -53,37 +52,6 @@ describe("REQ-091 c2 — a fixed line is asserted, not assumed", () => {
       if (fixedBy === undefined) continue;
       expect(fixedBy, key).toMatch(/^REQ-\d{3} c\d+$/);
     }
-  });
-
-  it("a line still owed is recorded as owed, so it cannot render as a blank", () => {
-    // "Where a sibling requirement already fixes the wording for a place,
-    // that fixed line is the one line and must itself say both things."
-    // Until the owner writes it, the key is on one of the two standing
-    // lists — and neither of them renders as nothing: an owner-owed key
-    // makes `copy()` throw, the marker renders as itself.
-    const owed: CopyKey[] = [];
-    const awaiting: CopyKey[] = [];
-    const written: CopyKey[] = [];
-    for (const key of KEYS) {
-      const line = PLACES[key].line;
-      if (OWNER_OWED.includes(line)) owed.push(line);
-      else if (AWAITING_COPY.includes(line)) awaiting.push(line);
-      else written.push(line);
-      // An owner-owed line is empty, and that is the point: `copy()`
-      // refuses it, so `account()` throws naming the key rather than
-      // handing the place a blank. What is asserted is that the key
-      // exists and has a standing — not that a sentence has been written.
-      expect(Object.keys(COPY), key).toContain(line);
-    }
-    // Rule 5.5 — the suite states its own coverage rather than passing
-    // quietly. Five places today, and since #460 all five lines written.
-    console.log(
-      `tests/presentation/place: ${KEYS.length} place(s) seeded — ` +
-        `${written.length} line(s) written, ${awaiting.length} awaiting copy, ${owed.length} owner-owed`
-    );
-    expect(KEYS.length).toBe(5);
-    expect(written.length).toBe(5);
-    expect(owed.length + awaiting.length).toBe(0);
   });
 
   it("every place's line is tagged with the law it serves, or with the clause that fixes it", () => {

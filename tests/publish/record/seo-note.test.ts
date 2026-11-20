@@ -20,7 +20,7 @@ import { readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fakeDb, type Row } from "../harness";
-import { AWAITING_COPY, COPY, TODO_COPY_MARKER } from "@/lib/presentation/copy";
+import { COPY } from "@/lib/presentation/copy";
 
 const db = fakeDb();
 vi.mock("@/lib/db", () => ({ dbAdmin: () => db.client, db: () => db.client }));
@@ -79,8 +79,6 @@ describe("the line is carried where the delivery found no SEO plugin", () => {
   it("the sentence is the owner's: the key is registered and carries the approved line", () => {
     // Approved 2026-09-10 (#459).
     expect(Object.keys(COPY)).toContain(SEO_COPY.noSeoPlugin);
-    expect(AWAITING_COPY).not.toContain(SEO_COPY.noSeoPlugin);
-    expect(COPY[SEO_COPY.noSeoPlugin]).not.toBe(TODO_COPY_MARKER);
     expect(COPY[SEO_COPY.noSeoPlugin]).toBe(
       "No SEO plugin was found on your site, so the title and description weren’t written into one. The page is live all the same."
     );
@@ -108,9 +106,8 @@ describe("#2091 — a detected plugin that did not accept is never 'no SEO plugi
     expect(await note()).toBeNull();
   });
 
-  it("the not-accepted line is a registered sentence, not TODO(copy)", () => {
+  it("the not-accepted line is a registered sentence", () => {
     expect(Object.keys(COPY)).toContain(SEO_COPY.seoNotAccepted);
-    expect(COPY[SEO_COPY.seoNotAccepted]).not.toBe(TODO_COPY_MARKER);
     expect(COPY[SEO_COPY.seoNotAccepted]).toBe(
       "A plugin was found, and it didn’t take the title and description. The page is live all the same."
     );

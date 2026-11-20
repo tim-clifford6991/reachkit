@@ -12,17 +12,15 @@
 //
 // So this is the shell's one reader: the sentence when there is one, and
 // `null` — a state the caller must handle, not a fallback string — when the
-// owner still owes it. `COPY[key] === ''` is exactly how `OWNER_OWED` is
-// derived in `registry.ts` ("a key is owner-owed exactly when its value is
-// the empty string"), read through the module's public `COPY`, so the two
-// cannot drift.
+// owner still owes it: an empty value is the one way a key is unwritten,
+// the same test `copy()` throws on.
 //
 // It invents nothing and hides nothing: `tests/app/shell/frame.test.tsx`
 // reports which of the shell's keys are owed today, so filling one is a
 // visible change and forgetting one is not silence.
 import { COPY, copy, type CopyKey } from "@/lib/presentation/copy";
 
-export function isOwnerOwed(key: CopyKey): boolean {
+export function isUnwritten(key: CopyKey): boolean {
   return COPY[key] === "";
 }
 
@@ -32,6 +30,6 @@ export function writtenLine(
   key: CopyKey,
   vars?: Record<string, string | number>
 ): string | null {
-  if (isOwnerOwed(key)) return null;
+  if (isUnwritten(key)) return null;
   return copy(key, vars);
 }

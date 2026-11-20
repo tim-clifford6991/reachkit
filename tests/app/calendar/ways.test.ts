@@ -12,7 +12,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { AWAITING_COPY, COPY, TODO_COPY_MARKER } from "@/lib/presentation/copy";
+import { COPY } from "@/lib/presentation/copy";
 import type { PageRecord } from "@/lib/publish/record";
 import type { VerifyDisposition } from "@/lib/publish/types";
 import { REFUSAL_COPY, wayAsVisitor } from "@/app/(account)/app/calendar/ways";
@@ -160,9 +160,7 @@ describe("wayAsVisitor — the page as a visitor sees it (REQ-043 c12)", () => {
   it("every refusal carries a key, and no returned value carries a sentence", () => {
     for (const key of Object.values(REFUSAL_COPY)) {
       // Written since #460 (the owner's approved set of 2026-09-10).
-      expect(COPY[key]).not.toBe(TODO_COPY_MARKER);
       expect(COPY[key]).not.toBe("");
-      expect(AWAITING_COPY).not.toContain(key);
     }
     const refusal = wayAsVisitor(record({ verification: PAGE_NOT_FOUND }));
     expect(refusal).toMatchObject({ copy: expect.stringMatching(/^waythrough\./) as unknown as string });

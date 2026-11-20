@@ -6,8 +6,7 @@
 // bodies are the documents, and a contents list that named sections the
 // body does not have would be the product inventing legal structure. So
 // the list is **built from the document's own headings**, and if a body
-// has none (which is every one of them today, while they hold the
-// `TODO(copy)` marker) there is no list and no room kept for one.
+// has none there is no list and no room kept for one.
 //
 // The body still goes through the product's one Markdown renderer. What
 // this adds is the cut: the parsed blocks are split into runs at each

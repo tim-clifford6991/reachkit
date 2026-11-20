@@ -18,7 +18,6 @@ applyEnvFixture();
 const { buildSpendCeilingAlert } = await import("../../../src/lib/mail/templates/ops");
 const { MAIL_KINDS } = await import("../../../src/lib/mail/kinds");
 const { COPY } = await import("../../../src/lib/presentation/copy");
-const { OWNER_OWED, TODO_COPY_MARKER } = await import("../../../src/lib/presentation/copy/registry");
 const { composeMail } = await import("../../../src/lib/mail/shell/compose");
 
 /** Every sentence this kind speaks. */
@@ -144,11 +143,9 @@ describe("the template — five occasions, one shape", () => {
     }
   });
 
-  it("every sentence is written, none is a `TODO(copy)` placeholder, and each occasion composes", async () => {
+  it("every sentence is written, and each occasion composes", async () => {
     for (const key of OPS_MAIL_KEYS) {
       expect(COPY[key], key).not.toBe("");
-      expect(COPY[key], key).not.toBe(TODO_COPY_MARKER);
-      expect(OWNER_OWED as readonly string[], key).not.toContain(key);
     }
     for (const occasion of OCCASIONS) {
       const alert = buildSpendCeilingAlert({ occasion, spentCents: 4000, ceilingCents: 5000 });
