@@ -86,6 +86,13 @@ export const LAWS_COPY = Object.freeze({
   // OverviewDNS board's sidebar line). Drafted; the owner corrects it.
   "next-publish.address-waiting": ["Waiting for your website", { law: "next-publish", slots: {}, fixedBy: "issue 1595" }],
   "next-publish.paused": ["Publishing is paused.", { law: "next-publish", slots: {}, fixedBy: "REQ-040 c4; issue 2657 S2, issue 2669 (drafted)" }],
+  // The site has an invoice outstanding, so publishing waits on payment; opens with Billing's own words. Drafted; the owner corrects it.
+  "next-publish.unpaid": [
+    "Your last payment didn’t go through, so no page goes live. Pay in Settings › Billing and pages resume.",
+    { law: "next-publish", slots: {}, fixedBy: "SPEC §3 Paid means no outstanding invoice; issue 2840 (drafted)" },
+  ],
+  // The paid term has ended, so publishing waits; "access has ended" is the hosting-end mail's word, and no fix is promised.
+  "next-publish.ended": ["Your access has ended, so no page goes live.", { law: "next-publish", slots: {}, fixedBy: "SPEC §3; issue 2840 (drafted)" }],
   // What happens next when nothing holds publishing back. Drafted; the owner corrects it.
   "next-publish.page": [
     "Next page goes live {at}: {title}",

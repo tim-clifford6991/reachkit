@@ -19,6 +19,7 @@
 // that shortens a body, so none can be introduced by accident.
 import type { LinkRecord } from "./links-panel";
 import type { CopyKey } from "@/lib/presentation/copy";
+import type { AccessCause } from "@/lib/account/billing";
 import type { RecordedFact } from "@/lib/generate/fact";
 import type { PackNeed } from "@/lib/generate/templates/types";
 import type { PageRecord } from "@/lib/publish/record";
@@ -86,6 +87,8 @@ export interface DoNothing {
    *  with no `at` to make it with. */
   key: CopyKey | null;
   publishesAt: Date | null;
+  /** The site is not paid for, so the page waits and this line stands where a time would. */
+  held?: CopyKey;
 }
 
 /**
@@ -453,6 +456,8 @@ export interface DraftFacts extends Standing {
   /** §9's veto window: when this page goes out if nothing is done. `null`
    *  under copilot, and `null` for a page that is not awaiting review. */
   autoApprovesAt: Date | null;
+  /** A page on its way whose site is not paid for: the line that names why; absent is paid. */
+  held?: CopyKey;
   lastSavedAt: Date | null;
   /** The page's own record, or `null` where none could be read (#217). */
   record: PageRecord | null;
@@ -479,23 +484,16 @@ export interface DraftFacts extends Standing {
   ruleFacts: RuleFacts;
 }
 
-/** The key criterion 4's outcome is spoken through. Named by the mode §9
- *  names, never by a renderer. */
-export const DO_NOTHING_COPY_KEY: Readonly<Record<PublishingMode, CopyKey>> =
-  Object.freeze({
-    autopilot: "draft.do-nothing.autopilot",
-  });
+/** The line a page on its way states, by the paid check's cause, while it holds the page; a store that cannot say asks nothing of the customer. */
+export const HELD_KEY = { active: undefined, past_due: "next-publish.unpaid", ended: "next-publish.ended", unreadable: "next-publish.stopped" } as const satisfies Record<AccessCause, CopyKey | undefined>;
+
+/** The key criterion 4's outcome is spoken through, named by §9's mode, never by a renderer. */
+export const DO_NOTHING_COPY_KEY: Readonly<Record<PublishingMode, CopyKey>> = Object.freeze({ autopilot: "draft.do-nothing.autopilot" });
 
 /** Criterion 4. */
 export function doNothingOf(facts: DraftFacts): DoNothing {
-  // **Autopilot with no window left says nothing at all.** `store.ts` reads
-  // `autoApprovesAt` as non-null only while a page is `in_review`, so every
-  // published, vetoed or stopped page on an autopilot site arrives here with
-  // none — and the autopilot sentence takes a `{at}` slot. Naming the key
-  // anyway made `copy()` throw the moment a customer on autopilot opened a
-  // page that had already gone out: `copy(): "draft.do-nothing.autopilot"
-  // requires slot "at"`, and the whole screen 500'd. The rule this follows
-  // is the draft view's own, stated in `PageRecord`: no row without a fact.
+  // No window left, or a site waiting on payment, names no key: the autopilot sentence needs an `{at}` (no row without a fact).
+  if (facts.held !== undefined) return { key: null, publishesAt: null, held: facts.held };
   const publishesAt = facts.autoApprovesAt;
   return {
     key: publishesAt === null ? null : DO_NOTHING_COPY_KEY[facts.mode],

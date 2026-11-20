@@ -49,6 +49,7 @@ import {
 import { seedWordPressUnconnectedAccount, WORDPRESS_UNCONNECTED_ACCOUNT } from "./seed-wordpress";
 import { seedThinMarketAccount, THIN_MARKET_ACCOUNT } from "./seed-thin-market";
 import { BECAME_UPDATE_ACCOUNT, seedBecameUpdateAccount } from "./seed-became-update";
+import { UNPAID_ACCOUNT, seedUnpaidAccount } from "./seed-unpaid";
 import { SWEEP_NOW } from "./seed-rows";
 
 const ROOT = path.resolve(__dirname, "../../..");
@@ -101,6 +102,7 @@ interface BrowserState {
   /** The same, for a first-week customer whose market was too small. */
   thinMarketAccountCookie: string;
   becameUpdateAccountCookie: string;
+  unpaidAccountCookie: string;
 }
 
 /** ADR-093 decision 6, amended 2026-09-03: "the viewport carries a height …
@@ -227,6 +229,7 @@ export default async function setup(): Promise<() => Promise<void>> {
   seedWordPressUnconnectedAccount();
   seedThinMarketAccount();
   seedBecameUpdateAccount();
+  seedUnpaidAccount();
   seedFreeScans();
   seedLedger();
   seedLongReadAs();
@@ -243,6 +246,7 @@ export default async function setup(): Promise<() => Promise<void>> {
   const wordpressUnconnectedAccountCookie = seededSessionCookie(authStub, WORDPRESS_UNCONNECTED_ACCOUNT);
   const thinMarketAccountCookie = seededSessionCookie(authStub, THIN_MARKET_ACCOUNT);
   const becameUpdateAccountCookie = seededSessionCookie(authStub, BECAME_UPDATE_ACCOUNT);
+  const unpaidAccountCookie = seededSessionCookie(authStub, UNPAID_ACCOUNT);
 
   const routes = enumerateRoutes(path.join(ROOT, "src/app"), { accountCookie });
   let baseURL: string | null = null;
@@ -266,6 +270,7 @@ export default async function setup(): Promise<() => Promise<void>> {
     wordpressUnconnectedAccountCookie,
     thinMarketAccountCookie,
     becameUpdateAccountCookie,
+    unpaidAccountCookie,
   };
   const stateDir = mkdtempSync(path.join(os.tmpdir(), STATE_DIR_PREFIX));
   const stateFile = path.join(stateDir, "browser-state.json");
@@ -361,6 +366,11 @@ export function getThinMarketAccountCookie(): string {
 /** The seeded session for the customer whose planned new page became an update of a live page. */
 export function getBecameUpdateAccountCookie(): string {
   return readState().becameUpdateAccountCookie;
+}
+
+/** The seeded session for the customer whose billing the unpaid-times case moves. */
+export function getUnpaidAccountCookie(): string {
+  return readState().unpaidAccountCookie;
 }
 
 /**

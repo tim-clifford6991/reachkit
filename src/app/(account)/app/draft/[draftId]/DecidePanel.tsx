@@ -151,6 +151,10 @@ export function DecidePanel(p: {
 
         {counting && publishesAt !== null ? (
           <GoesLive at={publishesAt} timeZone={view.timeZone} />
+        ) : view.doNothing.held !== undefined ? (
+          <p className="text-sm text-base-content/70" data-testid="draft-unpaid">
+            {copy(view.doNothing.held)}
+          </p>
         ) : null}
 
         {/* The bar. In flow inside the card from `md` up, and fixed to the

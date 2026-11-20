@@ -69,6 +69,7 @@ import { askedAs, doneWhen } from "../../calendar/store";
 import type { Choice } from "@/lib/opportunities/derive/explain";
 import { pageTargetOf } from "../../_shell/page-target";
 import {
+  HELD_KEY,
   NO_RULE_FACTS,
   PACK_PAGES_SHOWN,
   knownNeeds,
@@ -545,19 +546,16 @@ export async function readDraftRow(a: {
     state: row.state as State,
     ...standingAtRead({ state: row.state as State, transitions: row.transitions, meta: row.meta }, at),
     firstEditedAt: firstEdited === null ? null : new Date(firstEdited),
-    // §8's recorded fact, from its own column and through the one reader
-    // (`@/lib/generate/fact`). `null` where generation recorded no
-    // grounding: `assembleDraft` draws no highlight and no source line for
-    // one, rather than an empty address beside a stand-in date (#268).
+    // §8's recorded fact through the one reader (`@/lib/generate/fact`); `null` where generation recorded no
+    // grounding, so `assembleDraft` draws no highlight and no source line rather than an empty address.
     groundedFact: readRecordedFact(row.grounded_fact),
     claim: claimStateOf(row.claim_check),
     mode: a.site.mode,
     // §9's veto window, and only where one is running: a page that is not
     // awaiting review has no time at which doing nothing publishes it.
-    autoApprovesAt:
-      row.state === "in_review" && row.veto_deadline !== null
-        ? new Date(row.veto_deadline)
-        : null,
+    autoApprovesAt: row.state === "in_review" && row.veto_deadline !== null ? new Date(row.veto_deadline) : null,
+    // Only a page still on its way can be held by the paid check.
+    held: ["in_review", "approved", "publishing", "failed"].includes(row.state) ? HELD_KEY[await (await import("@/lib/account/billing")).accessCause(a.site.siteId)] : undefined,
     lastSavedAt: lastSaved === null ? null : new Date(lastSaved),
     record,
     // The page's own publication, after the same ownership proof.

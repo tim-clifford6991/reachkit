@@ -73,7 +73,7 @@ describe("`publishable_and_due` is publishable AND due", () => {
  *  draft with no recorded claim check is outstanding, which is the safe
  *  direction and would hold every page below. `rule` stays the real one,
  *  which is the seam this suite exists to prove is wired. */
-const RULE_DEPS: GuardDeps = { ...DEFAULT_GUARD_DEPS, claimRecheckOutstanding: async () => false };
+const RULE_DEPS: GuardDeps = { ...DEFAULT_GUARD_DEPS, claimRecheckOutstanding: async () => false, hasActiveAccess: async () => true };
 
 describe("the seam is filled — the machine's default deps carry this rule", () => {
   it("`DEFAULT_GUARD_DEPS.rule` is the real rule, not the refusing one", () => {

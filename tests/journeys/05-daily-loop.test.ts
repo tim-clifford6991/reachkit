@@ -674,10 +674,6 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
     // A full window before the publish date's own publish time.
     expect(nextPublishDate(EVENING, SITE_CLOCK)).toBe("2026-09-02");
 
-    // The two holes in this chain are filled (#173), so this asserts what
-    // they now do rather than that they throw. The tick walks a real list:
-    // this founder's site is on it, with the zone the gate above is decided
-    // in, and the composition of the two is the tick's own selection.
     const selection = await engine.activeSites();
     expect(selection).toEqual({ sites: [{ siteId: SITE_ID, ...SITE_CLOCK }], held: null });
     expect(selection.sites.filter((site) => isDraftDue(EVENING, site))).toHaveLength(1);
@@ -748,11 +744,6 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
       // The draft's own spend stays the draft's: the context is opened with
       // the roll-up off, so nothing wrote to the scan at all.
       expect(db.queries.filter((q) => q.table === "scans" && q.verb === "update")).toEqual([]);
-      // It is on the draft instead, where §10 reads it — to the fraction
-      // of a cent it cost. `drafts.cost_cents` is `numeric(12,4)` (issue
-      // #449) and the pipeline no longer rounds on the way in: a day's
-      // page costs well under a cent here, which the whole-cent column
-      // recorded as 1¢.
       expect(Number(generateStore.rows.get(draftId)?.cost_cents)).toBeCloseTo(spent, 10);
     },
     JOURNEY_TIMEOUT_MS
@@ -814,9 +805,6 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
       // searched, read from the evidence stored at creation. This journey
       // measured that volume once, in the deep pass — the mail states that
       // number and does not go and ask again.
-      // #933 draws them as the board does: the search is a row of the fact
-      // block and the volume is the one number up top. Both are still the
-      // evidence stored at creation.
       expect(mails[0]!.html).toContain("mail.draftReady.fact.search");
       expect(mails[0]!.html).toContain("mail.draftReady.why.volume");
       // The one veto link, and it is a link the database will accept: the
@@ -955,10 +943,6 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
         by: { kind: "system", job: "publish/execute" },
         at,
         deps: {
-          // The claim re-check is opened here so the stop is the reason
-          // this attempt does not begin — which is what the assertion
-          // below is about. The guard's own occasions are
-          // `tests/publish/machine/claim-recheck.test.ts`'s.
           claimRecheckOutstanding: async () => false,
           outstandingMatch: async () => null,
           reachKitStopped: async () => true,
@@ -995,6 +979,20 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
       await enterReviewAndTell(draftId);
       const at = whenItIsDue();
       await closeTheWindow(draftId, at);
+
+      // SPEC §3: unpaid, the due page waits where it is and the calendar names no time; paid, the next tick attempts it.
+      const billing = billingDoubles.newMemoryBilling();
+      const pastDue = () => (billing.users[0] = billingDoubles.account({ id: USER_ID, plan_status: "past_due" }));
+      pastDue();
+      billing.sites.push(billingDoubles.site({ id: SITE_ID, user_id: USER_ID }));
+      setBillingStore(billingDoubles.memoryBillingStore(billing));
+      expect(await engine.publishApproved({ draftId, destinationId: DEST_ID })).toEqual({ degraded: "held:unpaid" });
+      expect([theDraftRow().state, wordpress.posts.length]).toEqual(["approved", 0]);
+      expect((await readCalendarFacts({ site: { siteId: SITE_ID, timeZone: TIME_ZONE }, month: monthOf(dayKeyOf(at, TIME_ZONE)), now: at })).customerChangeHoldsPages).toBe("unpaid");
+      const subscription = subscriptionDouble({ id: `sub_${USER_ID}`, customer: `cus_${USER_ID}`, periodEnd: new Date(Date.now() + 30 * 86_400_000) });
+      setStripe(stripeDouble({ ...newStripeDouble(), subscriptions: new Map([[`sub_${USER_ID}`, subscription]]) }));
+      const pay = async (id: string) => expect(await onSubscriptionEvent({ id, type: "invoice.paid", data: { object: { parent: { type: "subscription_details", subscription_details: { subscription } } } } } as never)).toEqual({ applied: true });
+      await pay("evt_paid_1");
 
       // The customer's site answers 5xx to the create. §9: "Failed publish: back in the queue with a written reason."
       wordpress.failCreates = true;
@@ -1038,6 +1036,11 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
       expect(theDraftRow().state).toBe("failed");
       expect(wordpress.posts).toEqual([]);
       await setPublishing(SITE_ID, true, { kind: "customer", userId: USER_ID });
+      // A due retry is held the same way while the site is unpaid, and goes out on the tick after payment.
+      pastDue();
+      expect(await engine.publishApproved({ draftId, destinationId: DEST_ID })).toEqual({ degraded: "held:unpaid" });
+      expect([theDraftRow().state, wordpress.posts.length]).toEqual(["failed", 0]);
+      await pay("evt_paid_2");
 
       // The tick re-enters through the same seam an approval does, and the site is answering again.
       wordpress.failCreates = false;
@@ -1088,8 +1091,6 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
         reason: "retries_exhausted",
       });
       expect(actionsFor({ page: { state: "needs_attention", stage: "needs_you", draftId, enteredReview: true, liveUrl: null, needsYou: { kind: "delivery" } } } as unknown as Parameters<typeof actionsFor>[0]).find((action) => action.kind === "link" && action.href.startsWith("/app/settings"))).toMatchObject({ href: "/app/settings/pages#publishing" });
-      // One publication throughout, and no post: the at-most-once
-      // guarantee is the row, and it held across four attempts.
       expect(db.rows("publications")).toHaveLength(1);
       expect(wordpress.posts).toEqual([]);
 
@@ -1163,9 +1164,7 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
         now,
       });
 
-      // The date the evening tick wrote the page for carries that page —
-      // the draft §9 has, in the state §9 has it in, not a planned
-      // placeholder (#175).
+      // The date the evening tick wrote the page for carries that page, in the state §9 has it in, not a planned placeholder.
       const page = facts.drafts.find((draft) => draft.draftId === draftId);
       expect(page).toBeDefined();
       expect(page?.state).toBe("in_review");

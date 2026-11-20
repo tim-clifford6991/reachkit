@@ -25,6 +25,8 @@ export type HeldBy =
    *  re-check passes against the list in force. */
   | "claim_recheck"
   | "switch_off"
+  /** The site is not paid for (SPEC §3); it publishes on the next tick after payment. */
+  | "unpaid"
   | "ceiling_day"
   /** The ceilings could not be counted: held, never counted as none published. */
   | "ceiling_unreadable"
@@ -178,6 +180,8 @@ async function heldWord(
   switch (failedGuard) {
     case "no_outstanding_claim_recheck":
       return "claim_recheck";
+    case "site_paid":
+      return "unpaid";
     case "publishing_switch_on":
       return "switch_off";
     case "destination_working":

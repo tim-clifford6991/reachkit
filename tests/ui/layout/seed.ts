@@ -200,6 +200,7 @@ const EMAIL_OF: Readonly<Record<string, string>> = {
   "00000000-0000-0000-0000-0000000000a7": "layout-sweep-wordpress@example.com", // seed-wordpress.ts
   "00000000-0000-0000-0000-0000000000a8": "layout-sweep-thin-market@example.com", // seed-thin-market.ts
   "00000000-0000-0000-0000-0000000000a9": "layout-sweep-became-update@example.com", // seed-became-update.ts
+  "00000000-0000-0000-0000-0000000000aa": "layout-sweep-unpaid@example.com", // seed-unpaid.ts
 };
 
 const SEEDED_EMAIL = EMAIL_OF[RESERVED_ACCOUNT.userId] as string;
@@ -1190,9 +1191,8 @@ export function seedSite(
   }
 }
 
-/** A string as a SQL literal's body. One escape, used by every statement
- *  above that writes prose a fixture wrote rather than an identifier this
- *  file chose. */
+/** A string as a SQL literal's body: one escape, for every statement above that writes a fixture's prose, not
+ *  an identifier this file chose. */
 function quote(value: string): string {
   return value.replaceAll("'", "''");
 }

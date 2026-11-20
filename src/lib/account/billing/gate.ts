@@ -24,8 +24,31 @@ import { billingStore } from "./store";
  *  below uses; p95 ≤ 10 ms, because three subsystems call it per unit of
  *  scheduled work. */
 export async function hasActiveAccess(siteId: string): Promise<boolean> {
+  return (await paying(siteId)) === "active";
+}
+
+/** The gate's one read: a store that answers but cannot count is `unreadable`, and one that throws throws. */
+async function paying(siteId: string): Promise<"active" | "inactive" | "unreadable"> {
   const read = await billingStore().payingSiteCount(new Date(), siteId);
-  return read.ok && read.count > 0;
+  return !read.ok ? "unreadable" : read.count > 0 ? "active" : "inactive";
+}
+
+/** Why a site has access or not, so a screen names the same hold the engine keeps. */
+export type AccessCause = "active" | "past_due" | "ended" | "unreadable";
+
+/** Only a site the gate refuses pays a second read for its cause, an outstanding invoice before a lapsed term;
+ *  a store that cannot say is never taken for either. */
+export async function accessCause(siteId: string): Promise<AccessCause> {
+  try {
+    const gate = await paying(siteId);
+    if (gate !== "inactive") return gate;
+    const site = await billingStore().hosting(siteId);
+    const owner = site.ok && site.site !== null ? await billingStore().account(site.site.user_id) : null;
+    if (owner === null || !owner.ok || owner.account === null) return "unreadable";
+    return owner.account.plan_status === "past_due" ? "past_due" : "ended";
+  } catch {
+    return "unreadable";
+  }
 }
 
 /** Which of these sites' owners have active access right now, asked once

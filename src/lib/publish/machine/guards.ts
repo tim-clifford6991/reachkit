@@ -1,4 +1,4 @@
-// BUILD §9 — the ten named guards, one function each, each delegating every fact it does not own (the switch, the
+// BUILD §9 — the named guards, one function each, each delegating every fact it does not own (the switch, the
 // ceilings, the veto leaf's rule), since a second copy of a rule drifts.
 // Evaluated lazily in `GUARDS` order, the first failure naming itself, so a move the switch refuses never counts a week first.
 import type { Actor, DraftView, TransitionRecord } from "../types";
@@ -44,6 +44,9 @@ export interface GuardDeps {
   isPublishingOn(siteId: string): Promise<boolean>;
   hasCeilingRoom(siteId: string, at: Date): Promise<boolean>;
   destinationWorking(siteId: string): Promise<boolean>;
+  /** SPEC §3: paid through today with no outstanding invoice, the billing gate's one answer. A suite that injects its
+   *  facts and names none here is a paid site. */
+  hasActiveAccess?(siteId: string): Promise<boolean>;
   rule: PublishableRule;
 }
 
@@ -63,6 +66,11 @@ export const DEFAULT_GUARD_DEPS: GuardDeps = Object.freeze({
     return (await ceilingRoom(siteId, at)).room;
   },
   destinationWorking,
+  // At the call, as above: the billing gate reaches `@/lib/db`.
+  async hasActiveAccess(siteId: string): Promise<boolean> {
+    const { hasActiveAccess } = await import("@/lib/account/billing");
+    return hasActiveAccess(siteId);
+  },
   // By file, not the `publishable/` barrel, which re-exports `veto.ts` and would close a cycle (ADR-092).
   rule: PUBLISHABLE_RULE,
 });
@@ -83,7 +91,7 @@ export interface EarningAddress {
 }
 
 /** One function per `GuardId`, named for the id. Total over the union, so
- *  a tenth guard cannot be named on an edge without one. */
+ *  no guard can be named on an edge without one. */
 export const GUARD_FNS: Readonly<Record<GuardId, (c: GuardContext) => Promise<boolean>>> =
   Object.freeze({
     async draft_passed_hard_rules(c: GuardContext): Promise<boolean> {
@@ -129,6 +137,10 @@ export const GUARD_FNS: Readonly<Record<GuardId, (c: GuardContext) => Promise<bo
      *  publishable rule cannot disagree. An unreadable draft is outstanding, the safe direction. */
     async no_outstanding_claim_recheck(c: GuardContext): Promise<boolean> {
       return !c.draft.claimRecheckOutstanding;
+    },
+
+    async site_paid(c: GuardContext): Promise<boolean> {
+      return c.deps.hasActiveAccess === undefined || (await c.deps.hasActiveAccess(c.draft.siteId));
     },
 
     async publishing_switch_on(c: GuardContext): Promise<boolean> {

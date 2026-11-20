@@ -133,6 +133,7 @@ describe("GUARDS names guards only on edges that exist", () => {
     "publishable_and_due",
     "reachkit_not_stopped",
     "no_outstanding_claim_recheck",
+    "site_paid",
     "publishing_switch_on",
     "within_ceilings",
     "destination_working",
