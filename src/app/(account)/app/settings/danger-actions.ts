@@ -105,10 +105,15 @@ export async function runDangerAction(
 
   const ticket = await ticketFromCookie();
   if (ticket === null) return { ran: false, lineKey: refusalLineKey("no_ticket") };
+  // A browser's ticket only acts for whoever is signed in on it now.
+  const { currentSession } = await import("@/lib/account/identity");
+  const session = await currentSession();
+  if (session?.siteId == null) return { ran: false, lineKey: refusalLineKey("no_ticket") };
 
   const { confirmDangerAction, confirmationFor } = await lifecycle();
   const confirmed = await confirmDangerAction({
     ticket,
+    siteId: session.siteId,
     // The engine's own internal word, handed over here and nowhere a
     // customer can see it.
     typedConfirmation: confirmationFor(action),

@@ -51,6 +51,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { SIGNIN_PATH } from "@/lib/account/identity/addresses";
 import type { ActionOutcome } from "./actions";
+import { DANGER_TICKET_COOKIE, DANGER_TICKET_PATH } from "./danger-ticket";
 import { NEW_EMAIL_FIELD, type EmailChangeState } from "./account-state";
 
 /** The screen these three write to. Revalidated after a change so the card
@@ -86,6 +87,8 @@ async function identity(): Promise<typeof import("@/lib/account/identity")> {
 export async function signOutAction(): Promise<ActionOutcome> {
   const { signOut } = await identity();
   await signOut();
+  // A confirmation begun before signing out must not survive into the next sign-in.
+  (await cookies()).delete({ name: DANGER_TICKET_COOKIE, path: DANGER_TICKET_PATH });
   return { done: "elsewhere", href: AFTER_SIGN_OUT };
 }
 

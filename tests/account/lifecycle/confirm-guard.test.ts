@@ -30,7 +30,8 @@ vi.mock("@/lib/publish/switch", () => ({
   },
 }));
 
-const { confirmDangerAction, setLifecycleStore } = await import("@/lib/account/lifecycle");
+const { confirmDangerAction: confirmAs, setLifecycleStore } = await import("@/lib/account/lifecycle");
+const confirmDangerAction = (a: Omit<Parameters<typeof confirmAs>[0], "siteId">) => confirmAs({ siteId: "site-1", ...a });
 const { memoryLifecycleStore, newMemoryLifecycle } = await import("./memory-store");
 
 const NOW = new Date("2026-09-06T12:00:00.000Z");
@@ -81,6 +82,13 @@ describe("REQ-079 c2 — five refusals, and each changes nothing", () => {
       ok: false,
       reason: "no_ticket",
     });
+    nothingHappened();
+  });
+
+  it("a ticket another account began refuses and changes nothing", async () => {
+    ticket();
+    const run = await confirmAs({ siteId: "site-2", ticket: "t-1", typedConfirmation: "unpublish_all", now: LATER });
+    expect(run).toEqual({ ok: false, reason: "no_ticket" });
     nothingHappened();
   });
 

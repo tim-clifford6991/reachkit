@@ -24,7 +24,7 @@ export const DANGER_TICKET_COOKIE = "rk_danger_ticket";
 
 /** Where it is sent back: the settings screen's own tree and nothing
  *  wider. The confirming Server Function is posted to the page it is on. */
-const DANGER_TICKET_PATH = "/app";
+export const DANGER_TICKET_PATH = "/app";
 
 const SECONDS_PER_MINUTE = 60;
 
