@@ -17,8 +17,7 @@ it("every table referring to a purged table is purged before it", () => {
     // The free report a site was bought from belongs to no site, so the purge never deletes that scan.
     "sites_provisioned_from_scan_id_fkey",
     // The purge clears the links from scans outside the account; its own scans go in one statement by site.
-    "scans_supersedes_scan_id_fkey",
-    "scans_remeasure_of_fkey",
+    "scans_supersedes_scan_id_fkey", "scans_remeasure_of_fkey",
     // A merge names a page of the same site, and one statement deletes all of a site's pages.
     "publications_merged_into_fkey",
   ];
