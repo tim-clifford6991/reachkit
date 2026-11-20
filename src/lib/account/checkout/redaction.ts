@@ -7,9 +7,8 @@
 // therefore a property of the type, checked by the compiler on every call,
 // rather than a review comment somebody has to remember.
 //
-// The session id is here on purpose — it is the handle that correlates a
-// checkout with the account it opened, and it reaches no customer and buys
-// nobody anything.
+// Only the session id's tail is logged: it correlates a checkout with its
+// account, and a whole id signs a new buyer in on its checkout return.
 import type { CheckoutOrigin } from "./origin";
 
 export interface CheckoutEvent {
@@ -19,5 +18,5 @@ export interface CheckoutEvent {
 }
 
 export function checkoutEvent(e: CheckoutEvent): void {
-  console.log(JSON.stringify({ event: "checkout", ...e }));
+  console.log(JSON.stringify({ event: "checkout", ...e, sessionId: `…${e.sessionId.slice(-6)}` }));
 }

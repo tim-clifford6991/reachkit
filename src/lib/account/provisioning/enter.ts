@@ -21,7 +21,7 @@ export type EnterAfterPayment =
   | { ok: true }
   | { ok: false; because: "not_paid" | "no_account" | "no_session" | "spent" };
 
-/** How long after the account opens its checkout return still signs it in. */
+/** How long after the payment its checkout return still signs the buyer in. */
 const RETURN_WINDOW_MS = 60 * 60 * 1000;
 
 export async function enterAfterPayment(
@@ -35,7 +35,9 @@ export async function enterAfterPayment(
   const read = await accountStore().accountByCheckoutSession(sessionId);
   if (!read.ok || read.account === null) return { ok: false, because: "no_account" };
   const { first_signed_in_at, created_at } = read.account;
-  if (first_signed_in_at !== null || Date.parse(created_at) + RETURN_WINDOW_MS <= now.getTime()) {
+  // Stripe's own time too: an account first opened by this visit is new, the payment may not be.
+  const startedAt = Math.min(Date.parse(created_at), (provisioned.openedAt ?? Number.NaN) * 1000);
+  if (first_signed_in_at !== null || !(startedAt + RETURN_WINDOW_MS > now.getTime())) {
     return { ok: false, because: "spent" };
   }
 
