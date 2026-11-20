@@ -92,4 +92,23 @@ export const OFFER_COPY = Object.freeze({
     "We couldn’t start checkout. Try again in a moment.",
     { slots: {}, fixedBy: "SPEC §3 (issue 624)" },
   ],
+
+  // The first-50 offer: figures are slots ({of} OFFER_SPOTS, {minutes} SETUP_MINUTES, {price} price.amount); {endsOn} is the UTC day, so no zone prints 1 Feb.
+  "offer.banner.pace": ["Up to {weekPages} pages a week, {price} a month", { slots: { weekPages: "text", price: "text" }, fixedBy: "owner ruling 57 2026-11-20 · issue 2981" }],
+  "offer.banner.promise": ["Set up in about {minutes} minutes, or we do it with you", { slots: { minutes: "text" }, fixedBy: "owner ruling 57 2026-11-20 · issue 2981" }],
+  "offer.spots.before": ["Open to the first {of} customers until {endsOn}", { slots: { of: "text", endsOn: "text" }, fixedBy: "owner ruling 57 2026-11-20 · issue 2981" }],
+  "offer.spots.left": ["{left} of {of} spots left until {endsOn}", { slots: { left: "text", of: "text", endsOn: "text" }, fixedBy: "owner ruling 57 2026-11-20 · issue 2981" }],
+  "offer.spots.taken": ["All {of} spots are taken. ReachKit is {price} a month, cancel any time.", { slots: { of: "text", price: "text" }, fixedBy: "owner ruling 57 2026-11-20 · issue 2981" }],
+  "offer.banner.see": ["See the Offer", { slots: {}, fixedBy: "owner ruling 57 2026-11-20 · issue 2981" }],
+  "offer.card.title": ["First {of} Customers", { slots: { of: "text" }, fixedBy: "owner ruling 57 2026-11-20 · issue 2981" }],
+  "offer.card.until": ["Until {endsOn}", { slots: { endsOn: "text" }, fixedBy: "owner ruling 57 2026-11-20 · issue 2981" }],
+  "offer.card.setup": ["The founder sets you up personally, on a 15-minute call if you want one", { slots: {}, fixedBy: "owner ruling 57 2026-11-20 · issue 2981" }],
+  "offer.card.video": ["A short video of your report, explained by the founder", { slots: {}, fixedBy: "owner ruling 57 2026-11-20 · issue 2981" }],
+  "offer.card.checkins": ["We check in with you after two weeks and after a month", { slots: {}, fixedBy: "owner ruling 57 2026-11-20 · issue 2981" }],
+  "offer.card.email": ["Email the founder directly, any time", { slots: {}, fixedBy: "owner ruling 57 2026-11-20 · issue 2981" }],
+  "offer.promise.title": ["Set Up in About {minutes} Minutes", { slots: { minutes: "text" }, fixedBy: "owner ruling 57 2026-11-20 · issue 2981" }],
+  "offer.promise.line": ["Three short steps and you’re done. If it takes longer, we do it with you on a call, at no cost.", { slots: {}, fixedBy: "owner ruling 57 2026-11-20 · issue 2981" }],
+  "offer.before.title": ["Before You Pay", { slots: {}, fixedBy: "owner ruling 57 2026-11-20 · issue 2981" }],
+  "offer.before.read": ["Read your report and first page before you pay", { slots: {}, fixedBy: "owner ruling 57 2026-11-20 · issue 2981" }],
+  "offer.before.export": ["Download all your pages any time", { slots: {}, fixedBy: "owner ruling 57 2026-11-20 · issue 2981" }],
 }) satisfies CopyPartition;
