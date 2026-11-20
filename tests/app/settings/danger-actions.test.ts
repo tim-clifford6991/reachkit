@@ -89,6 +89,8 @@ vi.mock("@/lib/account/lifecycle", () => ({
         : null,
 }));
 
+vi.mock("@/lib/account/identity", () => ({ currentSession: async () => ({ userId: "u-1", siteId: "site-1" }) }));
+
 const { DANGER_TICKET_COOKIE } = await import("@/app/(account)/app/settings/danger-ticket");
 const { handoverState, runDangerAction } = await import("@/app/(account)/app/settings/danger-actions");
 const { CONFIRM_WORD_KEY, canConfirm } = await import("@/app/(account)/app/settings/danger-state");
@@ -129,7 +131,7 @@ describe("REQ-079 c2 — the customer types the word §4.7 prints, never the eng
   it("and what the engine is handed is its own internal word, not the customer's", async () => {
     jar.set(DANGER_TICKET_COOKIE, "delete");
     await runDangerAction("delete_account", WORD);
-    expect(confirmed).toEqual([{ ticket: "delete", typedConfirmation: "delete_account" }]);
+    expect(confirmed).toEqual([{ ticket: "delete", siteId: "site-1", typedConfirmation: "delete_account" }]);
   });
 });
 

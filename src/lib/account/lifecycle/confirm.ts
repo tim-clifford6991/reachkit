@@ -51,6 +51,8 @@ export function confirmationFor(action: DangerAction): string {
 
 export async function confirmDangerAction(a: {
   ticket: string;
+  /** The signed-in session's site: a ticket only ever acts for the account that began it. */
+  siteId: string;
   typedConfirmation: string;
   now?: Date;
 }): Promise<ConfirmDangerAction> {
@@ -60,7 +62,7 @@ export async function confirmDangerAction(a: {
   const read = await store.ticket(a.ticket);
   if (!read.ok) return { ok: false, reason: "store" };
   const ticket = read.ticket;
-  if (ticket === null) return { ok: false, reason: "no_ticket" };
+  if (ticket === null || ticket.site_id !== a.siteId) return { ok: false, reason: "no_ticket" };
   if (!isDangerAction(ticket.action)) return { ok: false, reason: "no_ticket" };
 
   if (ticket.spent_at !== null) return { ok: false, reason: "spent" };

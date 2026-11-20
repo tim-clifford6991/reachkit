@@ -423,7 +423,7 @@ describe("settings → cancel → export → erasure, and the pages stop being s
     // archive exists is the shape in which an action runs against a
     // customer who was handed nothing.
     await expect(
-      lifecycle.confirmDangerAction({ ticket: begun.ticket, typedConfirmation: "delete_account" })
+      lifecycle.confirmDangerAction({ ticket: begun.ticket, typedConfirmation: "delete_account", siteId: SITE_ID })
     ).resolves.toEqual({ ok: false, reason: "export_not_taken" });
 
     await lifecycle.markExportTaken(begun.ticket);
@@ -432,11 +432,11 @@ describe("settings → cancel → export → erasure, and the pages stop being s
     // refused.
     expect(lifecycle.confirmationFor("delete_account")).toBe("delete_account");
     await expect(
-      lifecycle.confirmDangerAction({ ticket: begun.ticket, typedConfirmation: "yes" })
+      lifecycle.confirmDangerAction({ ticket: begun.ticket, typedConfirmation: "yes", siteId: SITE_ID })
     ).resolves.toEqual({ ok: false, reason: "not_confirmed" });
     // A ticket nobody issued is refused too, and says nothing about which.
     await expect(
-      lifecycle.confirmDangerAction({ ticket: "not-a-ticket", typedConfirmation: "delete_account" })
+      lifecycle.confirmDangerAction({ ticket: "not-a-ticket", typedConfirmation: "delete_account", siteId: SITE_ID })
     ).resolves.toEqual({ ok: false, reason: "no_ticket" });
   });
 
