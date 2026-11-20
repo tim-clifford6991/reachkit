@@ -128,7 +128,7 @@ const DUE_WORK: readonly {
   jobDaysPrune,
   // The privacy page keeps a hashed network address and its limit counts for two days, so every tick forgets older ones.
   { due: () => import("@/lib/limits").then((l) => l.forgetOldHashes()).then(() => []), handOff: async () => ({ done: true as const }) },
-  // Raw page html is kept 30 days; the read's cost and its kept facts stay.
+  // The 30-day html prune is off; the entry only logs that until its rework.
   { due: () => import("@/lib/costs/ledger").then((l) => l.prunePageHtml()).then(() => []), handOff: async () => ({ done: true as const }) },
 ]);
 
