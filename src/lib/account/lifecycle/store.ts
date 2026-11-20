@@ -118,6 +118,9 @@ export interface LifecycleStore {
     values: readonly string[];
   }): Promise<{ ok: true } | { ok: false; message: string }>;
 
+  /** Clears the link from each scan outside these sites to these scans, so a free correction or retry of one does not hold it. */
+  unlinkScans(a: { siteIds: readonly string[]; scanIds: readonly string[] }): Promise<{ ok: true } | { ok: false; message: string }>;
+
   /** The ids a purge needs to reach the rows that hang off them. */
   purgeScope(userId: string): Promise<{ ok: true; scope: PurgeScope } | { ok: false }>;
 }
@@ -141,6 +144,7 @@ interface MinimalQueryBuilder<T> extends PromiseLike<QueryResult<T>> {
   not(column: string, operator: string, value: null): MinimalQueryBuilder<T>;
   lte(column: string, value: string): MinimalQueryBuilder<T>;
   limit(count: number): MinimalQueryBuilder<T>;
+  or(filters: string): MinimalQueryBuilder<T>;
   order(column: string): MinimalQueryBuilder<T>;
   range(from: number, to: number): MinimalQueryBuilder<T>;
 }
@@ -329,6 +333,20 @@ export function supabaseLifecycleStore(): LifecycleStore {
           .delete()
           .in(a.column, a.values.slice(i, i + IDS_PER_DELETE));
         if (error !== null) return { ok: false, message: error.message };
+      }
+      return { ok: true };
+    },
+
+    async unlinkScans(a) {
+      for (const column of ["supersedes_scan_id", "remeasure_of"]) {
+        for (let i = 0; i < a.scanIds.length; i += IDS_PER_DELETE) {
+          const { error } = await untyped()
+            .from<{ id: string }>("scans")
+            .update({ [column]: null })
+            .in(column, a.scanIds.slice(i, i + IDS_PER_DELETE))
+            .or(`site_id.is.null,site_id.not.in.(${a.siteIds.join(",")})`);
+          if (error !== null) return { ok: false, message: error.message };
+        }
       }
       return { ok: true };
     },

@@ -152,6 +152,9 @@ export function memoryLifecycleStore(state: MemoryLifecycle): LifecycleStore {
       if (a.table === "sites") state.sites = state.sites.filter((row) => !a.values.includes(row.user_id));
       return { ok: true };
     },
+    async unlinkScans() {
+      return { ok: true };
+    },
     async purgeScope(userId) {
       if (state.unreadable) return { ok: false };
       const siteIds = state.sites.filter((row) => row.user_id === userId).map((row) => row.id);

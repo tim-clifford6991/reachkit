@@ -147,11 +147,11 @@ export async function purgeAccount(userId: string): Promise<{ purged: true }> {
   };
 
   for (const step of PURGE_ORDER) {
-    const done = await store.purgeStep({
-      table: step.table,
-      column: step.column,
-      values: ids[step.from],
-    });
+    // A free correction or retry outside the account may name one of its scans, and would refuse the delete.
+    const unlinked = step.table === "scans" ? await store.unlinkScans(scope.scope) : { ok: true as const };
+    const done = !unlinked.ok
+      ? unlinked
+      : await store.purgeStep({ table: step.table, column: step.column, values: ids[step.from] });
     if (!done.ok) {
       console.error(
         JSON.stringify({

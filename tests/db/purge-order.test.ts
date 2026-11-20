@@ -13,7 +13,15 @@ beforeAll(() => {
 });
 it("every table referring to a purged table is purged before it", () => {
   const at = (table = ""): number => PURGE_ORDER.findIndex((step) => step.table === table);
-  // The free report a site was bought from belongs to no site, so the purge never deletes that scan.
-  const refs = psqlRows("select conrelid::regclass::text, confrelid::regclass::text from pg_constraint where contype = 'f' and connamespace = 'public'::regnamespace and conrelid <> confrelid and conname <> 'sites_provisioned_from_scan_id_fkey';");
+  const exempt = [
+    // The free report a site was bought from belongs to no site, so the purge never deletes that scan.
+    "sites_provisioned_from_scan_id_fkey",
+    // The purge clears the links from scans outside the account; its own scans go in one statement by site.
+    "scans_supersedes_scan_id_fkey",
+    "scans_remeasure_of_fkey",
+    // A merge names a page of the same site, and one statement deletes all of a site's pages.
+    "publications_merged_into_fkey",
+  ];
+  const refs = psqlRows(`select conrelid::regclass::text, confrelid::regclass::text from pg_constraint where contype = 'f' and connamespace = 'public'::regnamespace and conname not in ('${exempt.join("','")}');`);
   expect(refs.filter(([child, parent]) => at(parent) >= 0 && !(at(child) >= 0 && at(child) < at(parent)))).toEqual([]);
 });
