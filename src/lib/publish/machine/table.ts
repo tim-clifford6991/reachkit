@@ -10,7 +10,7 @@
 //
 // Seventeen edges, ten states, one terminal, as data only so it is asserted without a database; `transition()`
 // (`./index.ts`) is the only thing that moves a page along it.
-import type { State } from "../types";
+import type { Actor, State } from "../types";
 
 /** The ten states, in the order §9 draws them. */
 export const STATES: readonly State[] = Object.freeze([
@@ -49,10 +49,11 @@ export const STATES: readonly State[] = Object.freeze([
  *    daily re-check under today's rules, enters review with a fresh veto window (docs/SPEC.md §7 A stopped page re-checked at 0¢).
  *  - `unpublished → published` — SPEC §7: the customer puts
  *    back a page they took down themselves, the same version at the same
- *    address, inside `TAKE_DOWN.PUT_BACK_DAYS`. Only the customer, and only
- *    after their own take-down (`put_back_window`): a page the system or
- *    *unpublish everything* took down, or one taken down longer ago, has no
- *    way back.
+ *    address, inside `TAKE_DOWN.PUT_BACK_DAYS`, after their own take-down
+ *    (`put_back_window`). Its one other guard set is the system's, reason
+ *    `RESTORE_EARNING` (`SYSTEM_GUARDS`): a version a move or merge took down
+ *    returns, once, where its address still earns Google impressions. A page
+ *    the customer or *unpublish everything* took down has no other way back.
  *
  * There is no edge back out of `skipped`, and none into `planned`: a page
  * the customer stopped is never returned to a destination by any later
@@ -83,6 +84,9 @@ export const TERMINAL: readonly State[] = Object.freeze(["skipped"] as const);
 
 /** Not one of the seventeen, or a named guard said no; never an exception, never the page moved elsewhere. */
 export type Refusal = "not_a_transition" | "guard";
+
+/** The reason the system's restore of an earning address is recorded and guarded under. */
+export const RESTORE_EARNING = "restore:earning";
 
 /** The ten named guards. A guard is a condition on an *edge*, evaluated
  *  in list order; the first that fails names itself in the refusal. */
@@ -125,7 +129,14 @@ export type GuardId =
   /** every edge whose target is `publishing`. */
   | "destination_working"
   /** unpublished → published: the page's last move is its customer's own take-down, inside `TAKE_DOWN.PUT_BACK_DAYS`. */
-  | "put_back_window";
+  | "put_back_window"
+  /** unpublished → published by the system: the page's last move took it down for a move or merge, and the customer
+   *  never took it down. */
+  | "unpublished_by_move"
+  /** unpublished → published by the system: its address holds measured Google impressions above 0. */
+  | "address_earning"
+  /** unpublished → published by the system: neither this page nor its address was restored before. */
+  | "address_not_restored";
 
 /** The key an edge is looked up under, spelled once. */
 export function edgeKey(from: State, to: State): string {
@@ -206,6 +217,18 @@ export const GUARDS: Readonly<Record<string, readonly GuardId[]>> = Object.freez
     "put_back_window",
   ] as const),
 });
+
+/** The system's guard set, used in place of `GUARDS` only for a system actor with reason `RESTORE_EARNING`. */
+export const SYSTEM_GUARDS: Readonly<Record<string, readonly GuardId[]>> = Object.freeze({
+  [edgeKey("unpublished", "published")]: Object.freeze(["unpublished_by_move", "address_earning", "address_not_restored"] as const),
+});
+
+/** The guards a move is held to: the system's restore set where it names this edge, else the edge's one set. */
+export function guardsOf(from: State, to: State, by: Actor, reason: string | undefined): readonly GuardId[] {
+  const key = edgeKey(from, to);
+  const restore = by.kind === "system" && reason === RESTORE_EARNING ? SYSTEM_GUARDS[key] : undefined;
+  return restore ?? GUARDS[key] ?? [];
+}
 
 /**
  * Whether the founder may edit a draft's text (SPEC §7): while
