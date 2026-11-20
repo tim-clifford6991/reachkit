@@ -157,6 +157,7 @@ interface HostedRow {
   merged_into: string | null;
   search_reading: unknown;
   drafts: {
+    state?: string;
     first_edited_at?: unknown;
     transitions?: unknown;
     opportunities: { family: string | null; target_ref: string | null; target_query: string | null; cluster_key: string | null } | null;
@@ -164,16 +165,17 @@ interface HostedRow {
 }
 
 const restoredBy = (transitions: unknown): boolean => Array.isArray(transitions) && (transitions as Partial<TransitionRecord>[]).some((move) => move?.reason === RESTORE_EARNING);
+const lastRestored = (transitions: unknown): boolean => Array.isArray(transitions) && (transitions as Partial<TransitionRecord>[]).at(-1)?.reason === RESTORE_EARNING;
 
 /** Each address moved or merged away within `RESTORE_WITHIN_D` days that Google shows, where the live page it 301s to
  *  shows nothing, serves its newest version the move took down again; the machine refuses a customer's take-down and a
  *  second restore. The page it went into answers 301 to it where both are one question; one the customer edited or took
- *  down, or itself restored, is left alone. */
+ *  down, or itself restored, is left alone. A restore whose row was not written is finished first, with no second edge. */
 async function restoreShown(a: { siteId: string; totals: readonly { page: string; impressions: number }[]; now: Date }): Promise<void> {
   const db = publishDb();
   const { data, error } = await db
     .from<HostedRow>("publications")
-    .select("id, draft_id, live_url, published_at, unpublished_at, merged_into, search_reading, drafts(first_edited_at:meta->first_edited_at, transitions, opportunities(family, target_ref, target_query, cluster_key))")
+    .select("id, draft_id, live_url, published_at, unpublished_at, merged_into, search_reading, drafts(state, first_edited_at:meta->first_edited_at, transitions, opportunities(family, target_ref, target_query, cluster_key))")
     .eq("site_id", a.siteId)
     .eq("destination", "hosted");
   if (error !== null || data === null) return;
@@ -184,32 +186,44 @@ async function restoreShown(a: { siteId: string; totals: readonly { page: string
   const by = { kind: "system", job: "weekly/refresh" } as const;
   // An address a restore changed this pass is read again next week, from its new rows.
   const changed = new Set<string>();
-  for (const slug of new Set(left.map((row) => slugOf(row.live_url!)))) {
-    if (slug === null || changed.has(slug)) continue;
+  const holderOf = (slug: string): HostedRow | undefined => {
     const address = addressOf(rows, slug);
     const holder = address.state === "moved" ? data.find((row) => row.id === address.publicationId) : undefined;
-    if (holder?.live_url == null || typeof holder.drafts?.first_edited_at === "string" || takenDownByCustomer(holder.drafts?.transitions) || restoredBy(holder.drafts?.transitions)) continue;
-    if (shown(holder.live_url) > 0 || changed.has(slugOf(holder.live_url) ?? "")) continue;
+    const kept = holder?.live_url == null || typeof holder.drafts?.first_edited_at === "string" || takenDownByCustomer(holder.drafts?.transitions) || restoredBy(holder.drafts?.transitions);
+    return kept ? undefined : holder;
+  };
+  /** Serves a version whose draft took the restore edge, and 301s the page it went into to it where both are one question. */
+  const serve = async (slug: string, version: HostedRow, holder: HostedRow | undefined, impressions: number): Promise<void> => {
+    const served = await db.from<{ id: string }>("publications").update({ unpublished_at: null }).eq("id", version.id);
+    if (served.error !== null && served.error !== undefined) {
+      log("search_engine_restore_row_refused", { siteId: a.siteId, publicationId: version.id, message: served.error.message });
+      return;
+    }
+    invalidateHosted({ siteId: a.siteId, publicationId: version.id });
+    changed.add(slug).add(slugOf(holder?.live_url ?? "") ?? "");
+    // A move is the same page at a new address; a merge's two pages stay two unless they answer one question.
+    const was = version.drafts?.opportunities;
+    const into = holder?.drafts?.opportunities;
+    const sameKey = (x?: string | null, y?: string | null): boolean => (x ?? "").trim() !== "" && x!.trim().toLowerCase() === (y ?? "").trim().toLowerCase();
+    const oneQuestion = holder?.live_url != null && (version.merged_into === null || sameKey(was?.cluster_key, into?.cluster_key) || sameKey(was?.target_query, into?.target_query));
+    if (oneQuestion) await moveAddress({ from: holder.live_url!, to: { publicationId: version.id, url: version.live_url! }, at: a.now, by, merge: true });
+    log("search_engine_restored", { siteId: a.siteId, reason: RESTORE_EARNING, address: version.live_url, impressions, from: holder?.live_url ?? null, redirected: oneQuestion });
+  };
+  // A restore stopped between the edge and the row: the draft reads live, so its row is served now, whatever its age.
+  for (const version of data.filter((row) => row.live_url !== null && row.unpublished_at !== null && row.drafts?.state === "published" && lastRestored(row.drafts.transitions))) {
+    const slug = slugOf(version.live_url!);
+    if (slug !== null && !changed.has(slug)) await serve(slug, version, holderOf(slug), shown(version.live_url!));
+  }
+  for (const slug of new Set(left.map((row) => slugOf(row.live_url!)))) {
+    if (slug === null || changed.has(slug)) continue;
+    const holder = holderOf(slug);
+    if (holder?.live_url == null || shown(holder.live_url) > 0 || changed.has(slugOf(holder.live_url) ?? "")) continue;
     const version = left.filter((row) => slugOf(row.live_url!) === slug).sort((x, y) => (y.published_at ?? "").localeCompare(x.published_at ?? ""))[0]!;
     const atAddress = data.filter((row) => slugOf(row.live_url ?? "") === slug);
     const restoredBefore = atAddress.some((row) => restoredBy(row.drafts?.transitions)) || data.some((row) => slugOf(readingOf(row.search_reading)?.restored ?? "") === slug);
     const impressions = shown(version.live_url!);
     const back = await transition(version.draft_id, "published", by, { at: a.now, reason: RESTORE_EARNING, earning: { impressions, restoredBefore } });
-    if (!back.ok) continue;
-    const served = await db.from<{ id: string }>("publications").update({ unpublished_at: null }).eq("id", version.id);
-    if (served.error !== null && served.error !== undefined) {
-      log("search_engine_restore_row_refused", { siteId: a.siteId, publicationId: version.id, message: served.error.message });
-      continue;
-    }
-    invalidateHosted({ siteId: a.siteId, publicationId: version.id });
-    changed.add(slug).add(slugOf(holder.live_url) ?? "");
-    // A move is the same page at a new address; a merge's two pages stay two unless they answer one question.
-    const was = version.drafts?.opportunities;
-    const into = holder.drafts?.opportunities;
-    const sameKey = (x?: string | null, y?: string | null): boolean => (x ?? "").trim() !== "" && x!.trim().toLowerCase() === (y ?? "").trim().toLowerCase();
-    const oneQuestion = version.merged_into === null || sameKey(was?.cluster_key, into?.cluster_key) || sameKey(was?.target_query, into?.target_query);
-    if (oneQuestion) await moveAddress({ from: holder.live_url, to: { publicationId: version.id, url: version.live_url! }, at: a.now, by, merge: true });
-    log("search_engine_restored", { siteId: a.siteId, reason: RESTORE_EARNING, address: version.live_url, impressions, from: holder.live_url, redirected: oneQuestion });
+    if (back.ok) await serve(slug, version, holder, impressions);
   }
 }
 
