@@ -7,6 +7,7 @@
 //   node scripts/eval-models.mjs --fake  --driver writer --cases /root/ops/reachkit/eval/cases/writer --model claude-opus-5 --repeat 3
 //   node scripts/eval-models.mjs --prove-isolation
 //   node scripts/eval-models.mjs --report
+//   node scripts/eval-models.mjs --rescore /root/ops/reachkit/eval/answers/pass.jsonl   (agreement again from kept answers, 0¢)
 //   node scripts/eval-models.mjs --live  ... (spends: the ledger refuses past min(--cap-cents, 5,900¢) and after the deadline)
 //
 // Running live. Prices are `models.json`'s, each with the page it was read from and the day; re-read that page before a
@@ -30,7 +31,7 @@ const flag = (name, fallback) => {
   const at = argv.indexOf(name);
   return at === -1 || at + 1 >= argv.length ? fallback : argv[at + 1];
 };
-const MODES = ["live", "fake", "plan", "report", "prove-isolation"];
+const MODES = ["live", "fake", "plan", "report", "prove-isolation", "rescore"];
 
 const PLACEHOLDERS = {
   SUPABASE_URL: "https://eval.invalid",
@@ -76,7 +77,8 @@ async function main() {
   if (insideRepo(ledgerFile)) throw new Error("The ledger lives outside the repository (it is public).");
   const cases = path.resolve(flag("--cases", path.join(EVAL_DIR, "cases/writer")));
   const results = path.resolve(flag("--results", path.join(EVAL_DIR, "results", mode === "live" ? "writer.jsonl" : `writer-${mode}.jsonl`)));
-  if (insideRepo(cases) || insideRepo(results)) throw new Error("Cases and results live outside the repository (it is public).");
+  const answers = path.resolve(mode === "rescore" ? flag("--rescore", "") : flag("--answers", path.join(EVAL_DIR, "answers", mode === "live" ? "writer.jsonl" : `writer-${mode}.jsonl`)));
+  if (insideRepo(cases) || insideRepo(results) || insideRepo(answers)) throw new Error("Cases and results live outside the repository (it is public).");
   const driver = flag("--driver", "probe");
   if (driver !== "probe" && driver !== "writer") throw new Error("--driver is probe or writer.");
   const capText = flag("--cap-cents", "5900");
@@ -127,6 +129,7 @@ async function main() {
       root: ROOT,
       cases,
       results,
+      answers,
     });
   } finally {
     await server.close();

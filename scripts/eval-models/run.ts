@@ -8,12 +8,13 @@ import type { Tier } from "@/lib/llm/tiers";
 import { passThrough } from "./context";
 import { blocked, EvalIsolation, isolate, socketsOpened } from "./isolate";
 import { HARD_CAP_CENTS, Ledger } from "./ledger";
+import { rescorePass } from "./pass-site";
 import { report } from "./report";
 import { configure, type Mode, type Run } from "./transport";
 import { readCases, runWriter } from "./writer";
 
 export interface Options {
-  mode: Mode | "report" | "prove-isolation";
+  mode: Mode | "report" | "prove-isolation" | "rescore";
   ledgerFile: string;
   capCents: number;
   site: LlmCallSite;
@@ -24,6 +25,8 @@ export interface Options {
   /** The writer's case folder, and the file its scored lines are appended to; both outside the repository. */
   cases: string;
   results: string;
+  /** Where every answer is kept (the writer's and the probe's), or with `--rescore` the kept file to score again. */
+  answers: string;
   root: string;
 }
 
@@ -60,6 +63,7 @@ const WRITER_SITES = ["generate.write", "generate.write_free", "generate.fix"];
 export async function main(o: Options): Promise<number> {
   if (o.mode === "report") return console.log(report(o.ledgerFile)), 0;
   if (o.mode === "prove-isolation") return proveIsolation();
+  if (o.mode === "rescore") return rescorePass(o.answers), 0;
   isolate(o.mode === "live");
   const run: Run = {
     mode: o.mode,
@@ -69,6 +73,7 @@ export async function main(o: Options): Promise<number> {
     sends: 0,
     plan: { calls: 0, cents: 0, unpriced: 0 },
     halted: null,
+    answers: o.mode === "plan" ? undefined : o.answers,
   };
   configure(run);
   const outcomes: string[] = [];

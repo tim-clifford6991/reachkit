@@ -5,6 +5,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { INFERENCE_MAX_OUTPUT_TOKENS } from "@/lib/config/constants";
 import { appendSpend } from "../spend-log.mjs";
 import config from "./models.json";
+import { answerOf, keepAnswer, type From } from "./answers";
 import { anthropicFetch, throughTransport } from "./isolate";
 import { priceCents, type Ledger, type ModelPrice } from "./ledger";
 
@@ -22,8 +23,13 @@ export interface Run {
   fakeAnswers?: Record<string, unknown>;
   /** Where set, the only call sites the run evaluates; any other model call is refused, never sent or booked. */
   only?: ReadonlySet<string>;
-  /** Each answer an evaluated call came back with: the tool's input, or `null` where the model called no tool. */
-  onAnswer?: (site: string, value: unknown, stop: string | null) => void;
+  /** Each answer an evaluated call came back with, from the tool's input or the JSON in its text. */
+  onAnswer?: (site: string, value: unknown, stop: string | null, from: From) => void;
+  /** Where every answer is kept (mode 600), each line tagged with what the driver knows of the call. */
+  answers?: string;
+  tag?: (site: string) => object;
+  /** Fake and plan runs: answer as the tool's input (the default) or as JSON in text, as many models now do. */
+  fakeAs?: "tool" | "text";
 }
 
 type Spec = ModelPrice & { drop: string[]; set: Record<string, unknown> };
@@ -62,14 +68,14 @@ export function requestFor(params: Params, site: string, swap: Record<string, st
 const estimateTokens = (request: Params): number =>
   Math.ceil(JSON.stringify([request.system, request.messages, request.tools]).length / 2);
 
-function fakeMessage(request: Params, tokensIn: number, answer: unknown = {}): Anthropic.Message {
-  const tool = request.tools?.[0];
+function fakeMessage(request: Params, tokensIn: number, answer: unknown = {}, as: "tool" | "text" = "tool"): Anthropic.Message {
+  const tool = as === "tool" ? request.tools?.[0] : undefined;
   return {
     id: "msg_eval_fake",
     type: "message",
     role: "assistant",
     model: request.model,
-    content: [tool === undefined ? { type: "text", text: "{}", citations: null } : { type: "tool_use", id: "toolu_eval_fake", name: tool.name, input: answer }],
+    content: [tool === undefined ? { type: "text", text: `Here is the answer:\n\`\`\`json\n${JSON.stringify(answer)}\n\`\`\``, citations: null } : { type: "tool_use", id: "toolu_eval_fake", name: tool.name, input: answer }],
     stop_reason: tool === undefined ? "end_turn" : "tool_use",
     stop_sequence: null,
     usage: { input_tokens: tokensIn, output_tokens: request.max_tokens },
@@ -82,7 +88,9 @@ async function evalCreate(client: Anthropic, send: (p: Params, o: unknown) => Pr
   if (run.halted !== null) throw new EvalRefused(run.halted);
   if (run.only !== undefined && !run.only.has(site)) throw new EvalRefused("not_evaluated");
   const answered = (message: Anthropic.Message): Anthropic.Message => {
-    run.onAnswer?.(site, message.content.find((block) => block.type === "tool_use")?.input ?? null, message.stop_reason);
+    const { from, value } = answerOf(message);
+    run.onAnswer?.(site, value, message.stop_reason, from);
+    if (run.answers !== undefined) keepAnswer(run.answers, { at: new Date().toISOString(), mode: run.mode, site, model: message.model, from, stop: message.stop_reason, value, ...run.tag?.(site) });
     return message;
   };
   const { request, spec } = requestFor(params, site, run.swap);
@@ -98,7 +106,7 @@ async function evalCreate(client: Anthropic, send: (p: Params, o: unknown) => Pr
     run.plan.calls += 1;
     if (reserved === null) run.plan.unpriced += 1;
     else run.plan.cents += reserved;
-    return answered(fakeMessage(request, tokensIn, run.fakeAnswers?.[site]));
+    return answered(fakeMessage(request, tokensIn, run.fakeAnswers?.[site], run.fakeAs));
   }
   const ledger = run.ledger as Ledger;
   const held = ledger.reserve(request.model, site, reserved);
@@ -113,7 +121,7 @@ async function evalCreate(client: Anthropic, send: (p: Params, o: unknown) => Pr
   };
   let message: Anthropic.Message;
   try {
-    if (run.mode === "fake") message = fakeMessage(request, tokensIn, run.fakeAnswers?.[site]);
+    if (run.mode === "fake") message = fakeMessage(request, tokensIn, run.fakeAnswers?.[site], run.fakeAs);
     else {
       run.sends += 1;
       message = await throughTransport(() => send(request, options));

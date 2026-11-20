@@ -131,10 +131,13 @@ function evalTransport() {
 function evalOptions(scan, sites, mode) {
   const ledgerFile = path.resolve(flag("--ledger", path.join(EVAL_DIR, mode === "live" ? "ledger.jsonl" : "fake-ledger.jsonl")));
   const results = path.resolve(flag("--results", path.join(EVAL_DIR, "results", mode === "live" ? "pass.jsonl" : `pass-${mode}.jsonl`)));
-  for (const file of [ledgerFile, results]) if (!path.relative(ROOT, file).startsWith("..")) throw new Error("The ledger and results live outside the repository (it is public).");
+  const answers = path.resolve(flag("--answers", path.join(EVAL_DIR, "answers", mode === "live" ? "pass.jsonl" : `pass-${mode}.jsonl`)));
+  const fakeAs = flag("--fake-as", "tool");
+  if (fakeAs !== "tool" && fakeAs !== "text") throw new Error("--fake-as is tool or text.");
+  for (const file of [ledgerFile, results, answers]) if (!path.relative(ROOT, file).startsWith("..")) throw new Error("The ledger and results live outside the repository (it is public).");
   const capText = flag("--eval-cap-cents", "5900");
   if (!/^\d+(\.\d+)?$/.test(capText)) throw new Error(`--eval-cap-cents takes a number of cents, 0 or more; got "${capText}".`);
-  return { scan, sites, model: flag("--model", null), mode, ledgerFile, capCents: Number(capText), results, local: new URL(process.env.SUPABASE_URL).origin };
+  return { scan, sites, model: flag("--model", null), mode, ledgerFile, capCents: Number(capText), results, answers, fakeAs, local: new URL(process.env.SUPABASE_URL).origin };
 }
 
 async function main() {
