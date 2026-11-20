@@ -38,9 +38,22 @@ async function proveIsolation(): Promise<number> {
   } catch (error) {
     direct = error instanceof EvalIsolation ? "EvalIsolation" : String((error as Error).name);
   }
+  // An IP literal with no lookup: only the socket wall stands in its way (a documentation address, never reached).
+  const ipLiteral = await import("node:https").then(
+    (https) =>
+      new Promise<string>((resolve) => {
+        try {
+          const request = https.request({ host: "192.0.2.1", headers: { host: "api.dataforseo.com" }, path: "/v3/appendix/user_data" });
+          request.on("error", (e) => resolve(e.name));
+          request.end(() => resolve("sent"));
+        } catch (e) {
+          resolve((e as Error).name);
+        }
+      })
+  );
   const dnsBlocked = await import("node:dns").then((dns) => dns.promises.lookup("api.dataforseo.com").then(() => "resolved", (e: Error) => e.name));
-  console.log(JSON.stringify({ readAccount: reading, directFetch: direct, dnsLookup: dnsBlocked, blocked, socketsOpened: socketsOpened() }));
-  return reading === null && direct === "EvalIsolation" && dnsBlocked === "EvalIsolation" && socketsOpened() === 0 ? 0 : 1;
+  console.log(JSON.stringify({ readAccount: reading, directFetch: direct, dnsLookup: dnsBlocked, ipLiteral, blocked, socketsOpened: socketsOpened() }));
+  return reading === null && direct === "EvalIsolation" && dnsBlocked === "EvalIsolation" && ipLiteral === "EvalIsolation" && socketsOpened() === 0 ? 0 : 1;
 }
 
 export async function main(o: Options): Promise<number> {

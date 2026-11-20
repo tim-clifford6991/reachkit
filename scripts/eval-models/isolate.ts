@@ -51,7 +51,12 @@ export function isolate(live: boolean): void {
   dns.promises.lookup = ((host: string, ...rest: unknown[]) =>
     !live || host !== HOST ? Promise.reject(refuse(host)) : (realResolve as (...a: unknown[]) => unknown)(host, ...rest)) as typeof dns.promises.lookup;
   const realConnect = net.Socket.prototype.connect;
+  // The wall under every client, whatever its lookup or address: a socket opens only during a live transport send.
   net.Socket.prototype.connect = function (this: net.Socket, ...args: unknown[]) {
+    if (!live || armed === 0) {
+      const target = args[0] as { host?: string; path?: string } | number;
+      throw refuse(typeof target === "object" ? (target.host ?? target.path ?? "socket") : String(args[1] ?? "socket"));
+    }
     sockets += 1;
     return (realConnect as (...a: unknown[]) => net.Socket).apply(this, args);
   } as typeof net.Socket.prototype.connect;

@@ -50,7 +50,7 @@ export class Ledger {
     process.on("exit", () => existsSync(lock) && unlinkSync(lock));
     this.rows = readRows(file);
     this.fd = openSync(file, "a");
-    this.limitCents = Math.min(capCents, HARD_CAP_CENTS);
+    this.limitCents = Number.isFinite(capCents) && capCents >= 0 ? Math.min(capCents, HARD_CAP_CENTS) : HARD_CAP_CENTS;
   }
 
   spent(): number {
@@ -68,7 +68,8 @@ export class Ledger {
     const id = `${process.pid}-${Date.now()}-${this.next++}`;
     const at = new Date().toISOString();
     const why =
-      cents === null ? "unpriced"
+      cents === null || !Number.isFinite(cents) ? "unpriced"
+      : !Number.isFinite(this.limitCents) ? "cap"
       : this.enforceUntil && Date.now() > Date.parse(config.until) ? "deadline"
       : this.spent() + cents > this.limitCents ? "cap"
       : null;

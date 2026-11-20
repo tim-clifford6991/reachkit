@@ -64,9 +64,13 @@ async function main() {
   const modes = MODES.filter((m) => argv.includes(`--${m}`));
   if (modes.length !== 1) throw new Error(`Pass exactly one of ${MODES.map((m) => `--${m}`).join(", ")}.`);
   const mode = modes[0];
+  // The $60 is one total, so a live run books into the one ledger and cannot be pointed at a fresh one.
+  if (mode === "live" && argv.includes("--ledger")) throw new Error("A live run always books into the one ledger; --ledger is refused with --live.");
   const ledgerFile = path.resolve(flag("--ledger", path.join(EVAL_DIR, mode === "fake" ? "fake-ledger.jsonl" : "ledger.jsonl")));
   if (insideRepo(ledgerFile)) throw new Error("The ledger lives outside the repository (it is public).");
-  if (mode === "live" && path.basename(ledgerFile) !== "ledger.jsonl") throw new Error("A live run books into the one ledger.jsonl.");
+  const capText = flag("--cap-cents", "5900");
+  if (!/^\d+(\.\d+)?$/.test(capText)) throw new Error(`--cap-cents takes a number of cents, 0 or more; got "${capText}".`);
+  const capCents = Number(capText);
 
   for (const name of Object.keys(process.env)) if (STRIPPED.test(name)) delete process.env[name];
   Object.assign(process.env, PLACEHOLDERS);
@@ -97,7 +101,7 @@ async function main() {
     return await run.main({
       mode,
       ledgerFile,
-      capCents: Number(flag("--cap-cents", "5900")),
+      capCents,
       site: flag("--site", "opportunity-typing"),
       tier: flag("--tier", "haiku"),
       model: flag("--model", null),
