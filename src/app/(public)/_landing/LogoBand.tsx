@@ -22,7 +22,7 @@ export function LogoBand(p: { label: string; pause: string; play: string }): Rea
   const loop = (): Animation | undefined => track.current?.getAnimations()[0];
 
   useEffect(() => {
-    fetch("/scans/recent")
+    fetch("/scans/recent", { signal: AbortSignal.timeout(LOGO_BAND.wait) })
       .then((r) => (r.ok ? (r.json() as Promise<{ entries: Slide[] }>) : { entries: [] }))
       .then((body) => setSlides(body.entries))
       .catch(() => setSlides([]));
@@ -46,6 +46,8 @@ export function LogoBand(p: { label: string; pause: string; play: string }): Rea
   };
 
   const shown = slides === null || slides.length >= LOGO_BAND.from;
+  // Without scripts no list will come, so the skeletons and Pause give way to the label alone.
+  const noScript = slides === null ? "[@media(scripting:none)]:hidden" : "";
 
   return (
     <section className="pb-12 lg:pb-16">
@@ -55,7 +57,7 @@ export function LogoBand(p: { label: string; pause: string; play: string }): Rea
           {shown && (
             <button
               type="button"
-              className="btn btn-ghost btn-xs min-h-6 min-w-6 motion-reduce:hidden"
+              className={`btn btn-ghost btn-xs min-h-6 min-w-6 motion-reduce:hidden ${noScript}`}
               aria-label={paused ? p.play : p.pause}
               onClick={() => setPaused(!paused)}
             >
@@ -68,7 +70,7 @@ export function LogoBand(p: { label: string; pause: string; play: string }): Rea
             ref={row}
             role="region"
             aria-label={p.label}
-            className="carousel w-full py-1 motion-safe:overflow-hidden"
+            className={`carousel w-full py-1 motion-safe:overflow-hidden ${noScript}`}
             onMouseEnter={() => loop()?.updatePlaybackRate(0.25)}
             onMouseLeave={() => loop()?.updatePlaybackRate(1)}
             onFocus={focus}
