@@ -258,6 +258,10 @@ describe("idempotence, and the direction the gate may move", () => {
 
     expect(await deliver(late)).toBe(200);
     expect(storedUser(state).plan_status).toBe("active");
+
+    vendor.subscriptionRetrieveError = stripeErrors.disputed();
+    expect(await deliver({ ...late, id: "evt_late_2" })).toBe(200);
+    expect(storedUser(state).plan_status).toBe("active");
   });
 
   it("a store failure on invoice.paid answers 500 and the redelivery advances the gate", async () => {
@@ -389,7 +393,7 @@ describe("openSubscription — provisioning's own stamp", () => {
       subscriptionDouble({ id: "sub_1", customer: "cus_u1", periodEnd })
     );
 
-    expect(await openSubscription({ userId: "u1", subscriptionId: "sub_1" })).toEqual({ ok: true });
+    expect(await openSubscription({ userId: "u1", subscriptionId: "sub_1" })).toEqual({ ok: true, transient: false });
     expect(storedUser(state).paid_through).toBe(periodEnd.toISOString());
     expect(storedUser(state).stripe_subscription_id).toBe("sub_1");
   });
@@ -412,6 +416,7 @@ describe("openSubscription — provisioning's own stamp", () => {
     vendor.subscriptionRetrieveError = new Error("stripe is down");
     expect(await openSubscription({ userId: "u1", subscriptionId: "sub_1" })).toEqual({
       ok: false,
+      transient: false,
     });
     expect(storedUser(state).paid_through).toBe(NOW.toISOString());
   });

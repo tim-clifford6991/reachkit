@@ -62,7 +62,7 @@ export async function provisionFromPayment(sessionId: string): Promise<Provision
   if (!recorded.ok) {
     const refused = recorded.reason === "session_incomplete_facts" ? "vendor" : recorded.reason;
     logProvision({ sessionId, outcome: refused });
-    const retry = recorded.reason === "vendor" || recorded.reason === "store";
+    const retry = recorded.reason === "store" || (recorded.reason === "vendor" && recorded.transient === true);
     return { userId: null, siteId: null, created: false, refused, retry };
   }
   const facts = recorded.facts;
@@ -123,7 +123,8 @@ export async function provisionFromPayment(sessionId: string): Promise<Provision
   let opened = true;
   if (facts.subscriptionId !== null) {
     const { openSubscription } = await import("@/lib/account/billing");
-    opened = (await openSubscription({ userId, subscriptionId: facts.subscriptionId })).ok;
+    const opening = await openSubscription({ userId, subscriptionId: facts.subscriptionId });
+    opened = opening.ok || !opening.transient;
   }
 
   // 3. The site. Its domain is the report's, or null where there was no
@@ -172,12 +173,14 @@ async function replayOf(
   };
 }
 
-/** Opens the subscription unless an account already holds it. */
+/** Opens the subscription unless an account already holds it; false only where a redelivery could succeed. */
 async function openIfMissing(userId: string, subscriptionId: string): Promise<boolean> {
   const { billingStore, openSubscription } = await import("@/lib/account/billing");
   const held = await billingStore().accountBySubscription(subscriptionId);
   if (!held.ok) return false;
-  return held.account !== null || (await openSubscription({ userId, subscriptionId })).ok;
+  if (held.account !== null) return true;
+  const opening = await openSubscription({ userId, subscriptionId });
+  return opening.ok || !opening.transient;
 }
 
 /** The domain the purchase carries in. Reads the scan the checkout metadata

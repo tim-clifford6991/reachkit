@@ -146,6 +146,9 @@ describe("STRIPE_EVENTS is the closed list", () => {
     vendor.sessionRetrieveError = stripeErrors.connection();
     await expect(handleStripeWebhook(body(COMPLETED), "t_good")).rejects.toThrow();
     expect(accounts.users).toEqual([]);
+
+    vendor.sessionRetrieveError = stripeErrors.disputed();
+    expect((await handleStripeWebhook(body(COMPLETED), "t_good")).handled).toBe(true);
   });
 
   it("a subscription event routes to the subscription handler and provisions nothing", async () => {

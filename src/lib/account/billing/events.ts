@@ -51,8 +51,9 @@ export type SubscriptionEventOutcome =
  *  `customer.subscription.*` carries a snapshot; the two invoice events
  *  carry an invoice whose parent names it. Either way the current object is
  *  read, because a snapshot delivered late or out of order would otherwise
- *  write an old status over a newer one. */
-async function subscriptionOf(event: Stripe.Event): Promise<Stripe.Subscription | null> {
+ *  write an old status over a newer one. `current` is false where only the
+ *  snapshot could be had. */
+async function subscriptionOf(event: Stripe.Event): Promise<{ subscription: Stripe.Subscription; current: boolean } | null> {
   let named: string | Stripe.Subscription | null;
   if (event.type.startsWith("customer.subscription.")) {
     named = event.data.object as Stripe.Subscription;
@@ -63,10 +64,10 @@ async function subscriptionOf(event: Stripe.Event): Promise<Stripe.Subscription 
   if (named === null) return null;
 
   try {
-    return await stripe().subscriptions.retrieve(typeof named === "string" ? named : named.id);
+    return { subscription: await stripe().subscriptions.retrieve(typeof named === "string" ? named : named.id), current: true };
   } catch (error) {
     if (isTransient(error)) redeliver("subscription");
-    return typeof named === "string" ? null : named;
+    return typeof named === "string" ? null : { subscription: named, current: false };
   }
 }
 
@@ -88,8 +89,9 @@ async function accountOf(subscription: Stripe.Subscription): Promise<BillingRow 
 }
 
 export async function onSubscriptionEvent(event: Stripe.Event): Promise<SubscriptionEventOutcome> {
-  const subscription = await subscriptionOf(event);
-  if (subscription === null) return { applied: false, because: "vendor" };
+  const read = await subscriptionOf(event);
+  if (read === null) return { applied: false, because: "vendor" };
+  const { subscription, current } = read;
 
   const account = await accountOf(subscription);
   if (account === null) {
@@ -118,7 +120,8 @@ export async function onSubscriptionEvent(event: Stripe.Event): Promise<Subscrip
   const written = await billingStore().writeSubscriptionFacts(account.id, {
     stripe_subscription_id: subscription.id,
     paid_through: paidThrough,
-    plan_status: recordedStatus(subscription.status) ?? account.plan_status,
+    // A snapshot may be older than the stored status, so only a current read moves it.
+    plan_status: (current ? recordedStatus(subscription.status) : null) ?? account.plan_status,
     eventId: event.id,
   });
   if (!written.ok) redeliver("subscription_facts");
@@ -153,19 +156,19 @@ async function mirrorCancellation(account: BillingRow, subscription: Stripe.Subs
 export async function openSubscription(a: {
   userId: string;
   subscriptionId: string;
-}): Promise<{ ok: boolean }> {
+}): Promise<{ ok: boolean; transient: boolean }> {
   let subscription: Stripe.Subscription;
   try {
     subscription = await stripe().subscriptions.retrieve(a.subscriptionId);
-  } catch {
+  } catch (error) {
     console.warn(JSON.stringify({ event: "billing_open_subscription", outcome: "vendor" }));
-    return { ok: false };
+    return { ok: false, transient: isTransient(error) };
   }
 
   const paidThrough = paidThroughOf(subscription);
   if (paidThrough === null) {
     console.warn(JSON.stringify({ event: "billing_open_subscription", outcome: "no_period" }));
-    return { ok: false };
+    return { ok: false, transient: false };
   }
 
   const written = await billingStore().writeSubscriptionFacts(a.userId, {
@@ -174,5 +177,5 @@ export async function openSubscription(a: {
     plan_status: recordedStatus(subscription.status) ?? "active",
     eventId: null,
   });
-  return { ok: written.ok };
+  return { ok: written.ok, transient: !written.ok };
 }
