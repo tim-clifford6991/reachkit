@@ -13,20 +13,9 @@
 // what each step reads and returns is BP-023's `## Error & edge behavior`
 // table.
 //
-// **The last two steps are issue 885's, and they are here rather than in
-// the route for the reason every other step is: `POST /api/scan` takes a
-// domain from the public landing page and calls straight into
-// `claimFreeScanSlot`, so a bound anywhere above this file is a bound a
-// script skips.** They close the two ways the existing five left the free
-// path open. `checkHourly` bounds a network's hour but nothing bounded its
-// day, so one script that waited ran 5 an hour for 24 hours; and the
-// stored report that makes a repeat of one domain free is read at the
-// report address (`resolve.ts` row 3), never here, so one address claimed
-// from enough networks cost 12¢ every time. What was already closed is
-// left alone: the removal table step 1 reads through `./removal` is a
-// takedown list with no writer anywhere in the product, not a rate limit,
-// and the day's product-wide spend ceiling (issue #329) is already the
-// `daily` step's first question. `evaluateAdmission`, below, is that order extracted once (WO-058
+// The last two steps are here, not in the route, because `POST /api/scan`
+// calls straight into `claimFreeScanSlot`: a bound above this file is one a
+// script skips. `evaluateAdmission`, below, is that order extracted once (WO-058
 // `## Steps` step 2, rule 2.4): both `admitFreeScan` and `claimFreeScanSlot`
 // call it, so the order exists exactly once in this file.
 //
@@ -270,15 +259,8 @@ interface InsertedScanRow {
 
 type Client = ReturnType<typeof dbAdmin>;
 
-/** Whether the domain's report was taken down on a written request
- *  (REQ-002 c4). Exported because this file is the one place under `src/`
- *  that reads the removal table at all, and the correction offer
- *  (`src/lib/scan/correction.ts`) has to know the same fact the admission
- *  order's first step reads — one reader of that table in the product, not
- *  two. Since #104 that reader is `./removal`, which imports the database
- *  client and nothing else so the report address's own removal check can
- *  reach it from the Edge runtime without dragging `node:crypto` along;
- *  this export stays as the name admission's callers already use. */
+/** Whether the domain's report was taken down on a written request (REQ-002 c4); the
+ *  correction offer reads it here so the removal table has one reader. */
 export function isDomainRemoved(domain: CanonicalDomain): Promise<boolean> {
   return isRemovedWith(dbAdmin(), domain);
 }
@@ -606,6 +588,20 @@ export async function admitFreeScan(a: {
   const client = dbAdmin();
   const { result, step } = await evaluateAdmission(client, a.domain, a.network);
   return finish(result, step, a.network, a.domain);
+}
+
+/** A correction's share of the visitor's free bounds: it re-measures a stored report, so only the network's own three apply. Fails closed. */
+export async function networkAdmits(network: NetworkKey): Promise<boolean> {
+  const client = dbAdmin();
+  try {
+    const held =
+      (await checkInFlight(client, network, "" as CanonicalDomain)) ??
+      (await checkHourly(client, network)) ??
+      (await checkNetworkDaily(client, network)).result;
+    return held === null;
+  } catch {
+    return false;
+  }
 }
 
 /** `error.code === '23505'` — Postgres's unique-violation SQLSTATE. The
