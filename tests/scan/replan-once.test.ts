@@ -58,6 +58,12 @@ it("re-commits the week once per planner, after an apply cut short too, and tell
   expect(mails[0]).toContain(`2026-10-20 · ${handSet.target_query}`);
 });
 
+it("applies a week whose lost day held a topic the select cannot take, and dates that day with a ready one", async () => {
+  for (const row of state.rows) Object.assign(row, (row.planned_for ?? "") < "2026-10-20" ? { status: "dismissed" } : row.planned_for === "2026-10-21" ? { ready: false, unready_reason: "resting", rest_until: "2027-01-01T00:00:00Z" } : {});
+  expect(await tick(0).catch(() => tick(1))).toEqual({ replanned: [SITE_ID], held: [], empty: [] });
+  expect(state.rows.find((row) => row.planned_for === "2026-10-21")?.ready).toBe(true);
+});
+
 it("claims a week that dates no day empty, commits nothing, and does not dry-run it again at the same planner", async () => {
   for (const row of state.rows) Object.assign(row, { ready: false, unready_reason: "resting", rest_until: "2027-01-01T00:00:00Z", ...(row.planned_for == null ? {} : { planned_for: "2026-10-01" }) });
   expect(await tick(0)).toEqual({ replanned: [], held: [], empty: [SITE_ID] });

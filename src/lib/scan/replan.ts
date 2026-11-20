@@ -7,8 +7,8 @@
 // is bought. The owner's OK of each new week stands (owner, 2026-11-16).
 //
 // Each site is dry-run first through a store that writes nothing and logged
-// (`week_replan_dry_run`); a week that would date fewer days than the
-// committed one is held (`replan-held`) and its old week stands; one that dates
+// (`week_replan_dry_run`); a week that would date fewer days the product can
+// write than the committed one is held (`replan-held`) and its old week stands; one that dates
 // no day is claimed `empty` (`replan-empty`), so the next planner tries it again. The owner is
 // mailed each site's old and new week once per planner, for information:
 // production holds no GitHub key. One claim per (planner, site) in
@@ -176,15 +176,23 @@ export async function dryReplan(
     held: null,
     empty: null,
   };
-  const days = (week: WeekRow[]) => week.filter((row) => row.date !== null).length;
-  if (days(plan.after) === 0) {
+  // A day counts as kept only where its row is one the day's select can take, as `pageForDay` reads it.
+  const count = (week: [string | null, OpportunityRow | undefined][]) => {
+    const dated = week.filter(([date]) => date !== null);
+    return { dated: dated.length, writable: dated.filter(([, row]) => row?.status === "open" && row.ready).length };
+  };
+  const days = {
+    before: count(before.map((row) => [row.planned_for ?? null, rows.get(row.id) ?? row])),
+    after: count(entries.map((entry) => [entry.plannedFor, rows.get(entry.opportunityId)])),
+  };
+  if (days.after.dated === 0) {
     plan.empty = {};
     for (const id of entries.rejected.unready?.ids ?? []) {
       const reason = rows.get(id)?.unready_reason ?? "unknown";
       plan.empty[reason] = (plan.empty[reason] ?? 0) + 1;
     }
-  } else if (days(plan.after) < days(plan.before)) plan.held = `${days(plan.after)} dated days where the committed week has ${days(plan.before)}`;
-  console.log(JSON.stringify({ event: "week_replan_dry_run", ...plan, rejected: entries.rejected }));
+  } else if (days.after.writable < days.before.writable) plan.held = `${days.after.writable} writable days where the committed week has ${days.before.writable}`;
+  console.log(JSON.stringify({ event: "week_replan_dry_run", ...plan, days, rejected: entries.rejected }));
   return plan;
 }
 
