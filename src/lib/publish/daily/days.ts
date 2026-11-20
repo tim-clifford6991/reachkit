@@ -6,6 +6,7 @@
 // The runs are sent for `sitesForDailyTick`'s sites, so a stopped or lapsed site is never checked.
 // Nothing here throws into the tick: a failed record or alert logs one line and must not cost the site its page.
 import { AUTOPILOT_STALL } from "@/lib/config/constants";
+import { localDay } from "@/lib/scan/weekly/week";
 import { nextPublishTimeAtOrAfter, publishDateAtOrAfter } from "../settings/clock";
 import { publishDb } from "../db";
 import type { DailySite } from "./sites";
@@ -190,11 +191,6 @@ const GOING_OUT: ReadonlySet<string> = new Set(["in_review", "approved", "publis
 
 const MS_PER_DAY = 86_400_000;
 
-/** A calendar date, as the site's own zone reads the instant. */
-function localDate(at: Date, timeZone: string): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(at);
-}
-
 /** The site-local date of the latest publish time at or before the hour `hour` starts: one already passed when the run
  *  reads it, so a page owed then has had its publish time. */
 export function lastPublishDate(hour: Date, site: DailySite): string {
@@ -223,7 +219,7 @@ async function claimedMiss(days: DraftDayStore, siteId: string, date: string, at
 async function claimedStall(days: DraftDayStore, site: DailySite, date: string, at: Date): Promise<{ lastDelivered: string; days: number } | null> {
   const last = (await days.lastDeliveredAt?.(site.siteId)) ?? null;
   if (last === null || days.claimStallAlert === undefined) return null;
-  const lastDelivered = localDate(last, site.timeZone);
+  const lastDelivered = localDay(last, site.timeZone);
   const since = Math.round((Date.parse(`${date}T00:00:00Z`) - Date.parse(`${lastDelivered}T00:00:00Z`)) / MS_PER_DAY);
   if (since < AUTOPILOT_STALL.cadenceDays * AUTOPILOT_STALL.stallFactor) return null;
   return (await days.claimStallAlert(site.siteId, lastDelivered, at)) ? { lastDelivered, days: since } : null;

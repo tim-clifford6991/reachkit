@@ -22,7 +22,8 @@
 import type { BandHandle } from "@/lib/measure/bands";
 import type { ChangeMarker } from "@/lib/market/changes/markers";
 import type { AnswerEngine } from "@/lib/opportunities/types";
-import { weekOf, withBreaks, type SeriesEntry } from "./changes";
+import { storedWeek, withBreaks, type SeriesEntry } from "./changes";
+import { weekStartFor } from "@/lib/scan/weekly/week";
 import type { Measured } from "@/lib/measure/measured";
 import type { CopyKey } from "@/lib/presentation/copy";
 import type { DnsRecord } from "@/lib/publish/setup/cards";
@@ -306,6 +307,7 @@ export function assembleOverview(facts: OverviewFacts): OverviewModel {
     points: facts.points,
     firstDueOn: facts.firstDueOn,
     changes: facts.changes,
+    timeZone: facts.timeZone,
     ...(facts.deepPass === undefined ? {} : { deepPass: facts.deepPass }),
   });
   // The week-0 arm is the growth module's own answer, not a second test of
@@ -335,7 +337,7 @@ export function assembleOverview(facts: OverviewFacts): OverviewModel {
     facts.today
   );
   const supply = readSupplyStatement(facts.supply);
-  const window = aiWindow(facts.points, facts.aiPresence, facts.changes, facts.aiWeekZero);
+  const window = aiWindow(facts.points, facts.aiPresence, facts.changes, facts.timeZone, facts.aiWeekZero);
   const scoreDelta =
     facts.scorePrevious === undefined
       ? undefined
@@ -350,7 +352,7 @@ export function assembleOverview(facts: OverviewFacts): OverviewModel {
     lastLive: facts.lastLive ?? null,
     head: {
       direction,
-      weeksMeasured: weeksSinceChange(measuredPoints, facts.changes),
+      weeksMeasured: weeksSinceChange(measuredPoints, facts.changes, facts.timeZone),
     },
     growth,
     score: {
@@ -437,24 +439,17 @@ export function assembleOverview(facts: OverviewFacts): OverviewModel {
  */
 function weeksSinceChange(
   measuredPoints: readonly WeeklyPoint[],
-  changes: readonly ChangeMarker[]
+  changes: readonly ChangeMarker[],
+  zone: string
 ): number {
   const last = changes.reduce<Date | null>(
     (latest, marker) => (latest === null || marker.on > latest ? marker.on : latest),
     null
   );
   if (last === null) return measuredPoints.length;
-  const changed = weekOf(last);
-  return measuredPoints.filter((point) => weekOf(point.weekStart) >= changed).length;
+  const changed = weekStartFor({ at: last, zone });
+  return measuredPoints.filter((point) => storedWeek(point.weekStart) >= changed).length;
 }
-
-/** The Monday of the week a date falls in, as a calendar date.
- *
- *  Compared as a **week** and never as an instant: a marker is stamped with
- *  the measurement's own time of day and a point with its week's, so two
- *  dates inside one week would otherwise order by hours and drop the very
- *  week the change happened in — the first week under the new answer, and
- *  the one the count must start from. */
 
 /** The change since the previous measurement. Never computed across an
  *  unmeasured arm: a difference from a number that was never taken is not a
@@ -477,6 +472,7 @@ function aiWindow(
   points: readonly WeeklyPoint[],
   presence: readonly (boolean | null)[],
   changes: readonly ChangeMarker[],
+  zone: string,
   weekZero?: AiPresenceWeek
 ): AiPresenceWindow {
   const weekly = points.map(
@@ -511,7 +507,7 @@ function aiWindow(
   const weeks = [...padding, ...inWindow];
   return {
     weeks,
-    entries: withBreaks(weeks, changes, (week) => week.weekStart),
+    entries: withBreaks(weeks, changes, (week) => week.weekStart, zone),
     of: OVERVIEW_TRAILING_WEEKS,
   };
 }

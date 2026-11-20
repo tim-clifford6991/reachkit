@@ -81,6 +81,8 @@ export function readGrowth(input: {
    *  ordinary case and means the same as empty: most sites never change
    *  one. */
   changes?: readonly ChangeMarker[];
+  /** The site's zone, which places each change in its week. */
+  timeZone: string;
 }): GrowthModule {
   const window = input.points.slice(-OVERVIEW_TRAILING_WEEKS);
   const anyMeasured = window.some((p) => p.value.kind !== "unmeasured");
@@ -101,6 +103,6 @@ export function readGrowth(input: {
   return {
     kind: "series",
     points: window,
-    entries: withBreaks(window, input.changes ?? [], (week) => week.weekStart),
+    entries: withBreaks(window, input.changes ?? [], (week) => week.weekStart, input.timeZone),
   };
 }

@@ -67,6 +67,11 @@ export function localClock(instant: Date, zone: string): LocalClock {
   return { weekday: getISODay(local), hour: local.getHours(), date: format(local, "yyyy-MM-dd") };
 }
 
+/** The calendar day `at` falls on in `zone`, `YYYY-MM-DD`. A site with no zone set is read in UTC, here and nowhere else. */
+export function localDay(at: Date | number, zone: string | null | undefined): string {
+  return format(inZone(at, zone ?? "UTC"), "yyyy-MM-dd");
+}
+
 /** The local midnight a site's week begins at. */
 function weekStartOf(a: SiteZone): TZDate {
   return startOfWeek(inZone(a.at, a.zone), { weekStartsOn: WEEK_STARTS_ON });

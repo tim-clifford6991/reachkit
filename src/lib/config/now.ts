@@ -33,6 +33,7 @@
 // No caching: the value is read on every call, so a test can change it
 // without a module reset, and the cost is one `process.env` lookup and one
 // date parse against reads that touch a database.
+import { localDay } from "@/lib/scan/weekly/week";
 
 /** The binding, named once. */
 export const FIXED_NOW_BINDING = "RK_FIXED_NOW";
@@ -95,7 +96,7 @@ export function now(): Date {
 
 /** The Europe/Berlin calendar day of `at`, as `YYYY-MM-DD`: the owner's day, whatever the server's zone. */
 export function berlinDay(at: Date): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Berlin", year: "numeric", month: "2-digit", day: "2-digit" }).format(at);
+  return localDay(at, "Europe/Berlin");
 }
 
 /**

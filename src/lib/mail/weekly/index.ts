@@ -22,6 +22,7 @@ import { heldPages } from "@/lib/publish/switch";
 import { pauseTokenFor } from "@/lib/publish/switch/pause-link";
 import { readPublishingSettings } from "@/lib/publish/settings/settings";
 import { accountForWeek, weekStartFor, type UnmeasuredPart } from "@/lib/scan/weekly";
+import { localDay } from "@/lib/scan/weekly/week";
 import { formatMailClock } from "../blocks/format";
 import { unsubscribeTokenFor } from "../notifications/unsubscribe";
 import type { MeasurementState } from "../shell/compose";
@@ -108,13 +109,13 @@ export async function sendWeeklyDigest(a: {
   const settings = await readPublishingSettings(a.siteId).catch(() => null);
   const zone = settings?.timezone ?? "UTC";
   // `created_at` is not null in the schema; a row read without one counts this as its first week.
-  const since = recipient.createdAt === null ? a.weekStart : dayIn(recipient.createdAt, zone);
+  const since = recipient.createdAt === null ? a.weekStart : localDay(recipient.createdAt, zone);
   const greeting = { name: recipient.name, week: serviceWeek(since, a.weekStart), business: recipient.domain };
   const calendar: WeeklyCalendar | undefined =
     settings === null
       ? undefined
       : {
-          today: dayIn(now, zone),
+          today: localDay(now, zone),
           time: formatMailClock(settings.publishTime),
           planHref: appHref("/app/calendar"),
         };
@@ -160,11 +161,6 @@ type Connect = { host: string; href: string; text?: CopyKey };
 
 function appHref(path: string): string {
   return new URL(path, env.NEXT_PUBLIC_APP_URL).toString();
-}
-
-/** The site-local date an instant falls on, `YYYY-MM-DD`. */
-function dayIn(at: Date, timeZone: string): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(at);
 }
 
 /** The date `days` after `day`, both `YYYY-MM-DD`. */

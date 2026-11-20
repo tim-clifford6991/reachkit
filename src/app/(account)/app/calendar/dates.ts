@@ -17,10 +17,10 @@
 // its reason (DECISIONS 2026-08-28: "MVP is US-English only: one
 // `SERP_LOCATION` constant"; `Intl` needs the BCP-47 spelling of that
 // pair). This file reuses that choice rather than minting a second one, and
-// the `DayKey` itself is assembled from `formatToParts` so the key's own
-// shape is locale-independent whatever that choice later becomes.
+// the `DayKey` itself comes from `localDay`, so its shape owes nothing to
+// that choice.
 import { tz } from "@date-fns/tz";
-import { eachDayOfInterval, endOfISOWeek, endOfMonth, startOfISOWeek, startOfMonth } from "date-fns";
+import { eachDayOfInterval, endOfISOWeek, endOfMonth, getISODay, startOfISOWeek, startOfMonth } from "date-fns";
 import { SHELL_LOCALE } from "../_shell/format";
 
 /** A site-local calendar day, `YYYY-MM-DD`. */
@@ -28,15 +28,8 @@ export type DayKey = string;
 /** A site-local calendar month, `YYYY-MM`. */
 export type MonthKey = string;
 
-const KEY_PARTS = { year: "numeric", month: "2-digit", day: "2-digit" } as const;
-
 /** The site-local day an instant falls on. */
-export function dayKeyOf(at: Date, timeZone: string): DayKey {
-  const parts = new Intl.DateTimeFormat(SHELL_LOCALE, { timeZone, ...KEY_PARTS }).formatToParts(at);
-  const get = (type: Intl.DateTimeFormatPartTypes): string =>
-    parts.find((p) => p.type === type)?.value ?? "";
-  return `${get("year")}-${get("month")}-${get("day")}`;
-}
+export { localDay as dayKeyOf } from "@/lib/scan/weekly/week";
 
 export function monthOf(day: DayKey): MonthKey {
   return day.slice(0, 7);
@@ -51,6 +44,9 @@ function utcOf(day: DayKey): Date {
   return new Date(Date.UTC(y ?? 0, (m ?? 1) - 1, d ?? 1));
 }
 
+// date-fns walks in UTC so a `DayKey` never picks up the server's zone.
+const IN_UTC = { in: tz("UTC") };
+
 function keyOfUtc(at: Date): DayKey {
   return at.toISOString().slice(0, 10);
 }
@@ -58,7 +54,7 @@ function keyOfUtc(at: Date): DayKey {
 /** Monday is column 0. §4.6 says "Mon–Sun", and `Date`'s own week starts on
  *  Sunday — the shift is here, once, rather than in the grid. */
 export function weekdayIndex(day: DayKey): number {
-  return (utcOf(day).getUTCDay() + 6) % 7;
+  return getISODay(utcOf(day), IN_UTC) - 1;
 }
 
 export function addDays(day: DayKey, delta: number): DayKey {
@@ -85,9 +81,6 @@ export function planWeek(today: DayKey): readonly DayKey[] {
   const monday = addDays(today, -weekdayIndex(today));
   return Array.from({ length: 7 }, (_, at) => addDays(monday, at));
 }
-
-// date-fns walks in UTC so a `DayKey` never picks up the server's zone.
-const IN_UTC = { in: tz("UTC") };
 
 /** Every date in a month, in order. */
 export function daysOfMonth(month: MonthKey): readonly DayKey[] {

@@ -6,7 +6,10 @@
 // Refusals disclose nothing: `unknown` and `expired` name no draft, and `not_in_review` lets the surface offer the take-down.
 // No log line here carries a token or its hash.
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
-import { VETO_TOKEN_BYTES, WEEK_START } from "@/lib/config/constants";
+import { tz } from "@date-fns/tz";
+import { addDays, format, startOfWeek } from "date-fns";
+import { VETO_TOKEN_BYTES } from "@/lib/config/constants";
+import { WEEK_STARTS_ON } from "@/lib/scan/weekly/week";
 import type { PlanReason } from "@/lib/opportunities/types";
 import { publishDb } from "../db";
 import { machineDraftFor, transition } from "../machine";
@@ -311,16 +314,12 @@ function mailedAtOf(told: ToldRecord | null): Date | null {
   return Number.isNaN(at.getTime()) ? null : at;
 }
 
-const WEEKDAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
-const DAY_MS = 86_400_000;
-
 /** A stopped page's week as Plan holds it: a day with a written page says
  *  whether it was stopped, a day still planned goes ahead, and a day whose
  *  planned page was stopped before writing claims nothing, since a spare may take it. */
 async function weekOf(siteId: string, day: string): Promise<readonly WeekDay[] | null> {
-  const at = Date.parse(`${day}T00:00:00Z`);
-  const back = (new Date(at).getUTCDay() - WEEKDAYS.indexOf(WEEK_START) + 7) % 7;
-  const dates = Array.from({ length: 7 }, (_, i) => new Date(at + (i - back) * DAY_MS).toISOString().slice(0, 10));
+  const start = startOfWeek(`${day}T00:00:00Z`, { weekStartsOn: WEEK_STARTS_ON, in: tz("UTC") });
+  const dates = Array.from({ length: 7 }, (_, i) => format(addDays(start, i), "yyyy-MM-dd"));
   const [drafts, planned] = await Promise.all([
     publishDb()
       .from<{ scheduled_for: string; state: State }>("drafts")
