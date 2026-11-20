@@ -332,8 +332,8 @@ export async function refreshForDay(a: {
   /** Whether the day's run ended before any page was written, so it has spent nothing. */
   from: "select" | "write";
   stopped: string | null;
-  /** The run's due hour, which a topic's rest is read against and the day's spend so far is read since. */
-  now?: Date;
+  /** The run's due hour, which a topic's rest is read against and the day's spend so far is read since unless `since` says otherwise. */
+  now?: Date; since?: Date;
 }): Promise<{ ok: true; draftId: string } | { ok: false; because: "already_drafted" } | Passed | null> {
   const store = generateStore();
   const [site, report] = await Promise.all([store.siteFacts(a.siteId), store.latestReport(a.siteId)]);
@@ -347,7 +347,7 @@ export async function refreshForDay(a: {
   const giveUp = async () => void (holds ? await store.patchDraft(a.stopped!, { scheduled_for: null }) : undefined);
   const inDay = <T>(body: (cost: CostContext) => Promise<T>): Promise<T | { ok: false; because: "already_drafted" } | null> =>
     // Opened at what the date has already spent, so the day keeps its one CAP_DRAFT.
-    openDayCost({ scanId: report.scanId, siteId: a.siteId, since: now }, body).catch((error: unknown) => {
+    openDayCost({ scanId: report.scanId, siteId: a.siteId, since: a.since ?? now }, body).catch((error: unknown) => {
       if (error instanceof DraftDateTaken) return { ok: false, because: "already_drafted" } as const;
       // The customer stopped this page as it was saved: the day ends as its own did.
       if (error instanceof PageStopped) return null;
@@ -364,7 +364,7 @@ export async function refreshForDay(a: {
   // A day whose select found no topic has spent nothing, so it recommits before its last step.
   if (a.trigger === "generate:no_opportunity" && a.from === "select") {
     const { generateDayPage } = await import(".");
-    const page = await generateDayPage({ siteId: a.siteId, publishDate: a.publishDate, updatesTried: true, now });
+    const page = await generateDayPage({ siteId: a.siteId, publishDate: a.publishDate, updatesTried: true, now, since: a.since });
     if (page.ok || page.because !== "no_opportunity") return ended(page);
   }
   // A topic whose research is still on the queue is not short: the next tick writes it.

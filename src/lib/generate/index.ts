@@ -156,8 +156,8 @@ export async function generateDayPage(a: {
   siteId: string;
   /** The site-local calendar date the page is for. */
   publishDate: string;
-  /** The run's due hour: what a topic's rest is counted from, and what the day's spend so far is read since. */
-  now?: Date;
+  /** The run's due hour: what a topic's rest is counted from, and what the day's spend so far is read since unless `since` says otherwise. */
+  now?: Date; since?: Date;
   /** The day's topic as `decideDayPage` chose it, where a step of its own did. */
   opportunityId?: string;
   updatesTried?: boolean;
@@ -175,7 +175,7 @@ export async function generateDayPage(a: {
 
   try {
     // One `CAP_DRAFT` context for the day, whichever topic fills it, opened at what the date has already spent.
-    return await openDayCost({ scanId: report.scanId, siteId: a.siteId, since: now }, async (cost): Promise<DayPageOutcome> => {
+    return await openDayCost({ scanId: report.scanId, siteId: a.siteId, since: a.since ?? now }, async (cost): Promise<DayPageOutcome> => {
       let opportunity = first;
       // The topics whose page was written: D26's "at most once more" counts these.
       let written = 0;
@@ -291,9 +291,9 @@ export async function regenerateRestarted(a: { siteId: string; draftId: string; 
 
 /** A page the day's fallback writes in its one cost context (SPEC §7): an update from the day's research, or the last
  *  step's page written anyway (`completeness`). Its one fix call is the pipeline's own. `now` is the run's due hour. */
-export async function writeFallback(page: PageInput & { publishDate: string }, now: Date, day?: CostContext, completeness?: "warn"): Promise<DayPageOutcome> {
+export async function writeFallback(page: PageInput & { publishDate: string }, now: Date, day?: CostContext, completeness?: "warn", since = now): Promise<DayPageOutcome> {
   const write = (cost: CostContext) => writePage({ ...page, attempts: 1, ...(completeness === undefined ? {} : { completeness }) }, cost);
-  const outcome = day === undefined ? await openDayCost({ scanId: page.report.scanId, siteId: page.siteId, since: now }, write) : await write(day);
+  const outcome = day === undefined ? await openDayCost({ scanId: page.report.scanId, siteId: page.siteId, since }, write) : await write(day);
   await settle(outcome, page.opportunity.id, now, page.site);
   return outcome;
 }

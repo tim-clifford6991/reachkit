@@ -459,14 +459,14 @@ export async function finishReads(a: { readonly scanId: string; readonly now: Da
 export async function generateDraft(a: {
   readonly siteId: string;
   readonly publishDate: string;
-  readonly now: Date;
+  readonly now: Date; readonly since?: Date; // the day's spend is read since this: its due hour, or a re-decided day's own run
   /** The per-site run's durable steps: decide, write (in one cost context) and review, then refresh where the day's own page did not pass. */
   readonly step?: StepRunner;
   readonly again?: boolean; // decided again against a newer week: a page the system stopped gives up the date first
 }): Promise<EngineResult> {
   const step: StepRunner = a.step ?? ((_name, body) => body());
   const [{ decideDayPage, generateDayPage, refreshForDay }, { setAside }] = await Promise.all([import("@/lib/generate"), import("@/lib/generate/day-refresh")]);
-  const day = { siteId: a.siteId, publishDate: a.publishDate, now: a.now };
+  const day = { siteId: a.siteId, publishDate: a.publishDate, now: a.now, since: a.since ?? a.now };
   // Before the plan is read: deciding a day's page writes the week's plan.
   const { dayHold } = await import("@/lib/publish/daily");
   const held = await step("hold", () => dayHold(a.siteId, a.publishDate));
@@ -477,16 +477,16 @@ export async function generateDraft(a: {
   await step("recheck", async () => { const rescued = await recheckStopped(day); if (rescued !== null) await schedulePublish({ draftId: rescued }); return rescued; });
   const decided = await step("select", () => decideDayPage(day));
   const instead = async (trigger: string, from: "select" | "write", stopped: string | null, topic = ""): Promise<EngineResult> => {
-    const taken = trigger === "generate:no_site" || trigger === "generate:no_scan" ? null : await step("refresh", () => refreshForDay({ siteId: a.siteId, publishDate: a.publishDate, trigger, from, stopped, now: a.now }));
+    const taken = trigger === "generate:no_site" || trigger === "generate:no_scan" ? null : await step("refresh", () => refreshForDay({ siteId: a.siteId, publishDate: a.publishDate, trigger, from, stopped, now: a.now, since: day.since }));
     if (taken === null || (!taken.ok && taken.because === "already_drafted")) return taken === null ? { degraded: `${trigger}${topic}` } : { done: true };
     if (!taken.ok && taken.because === "passed") return { degraded: `${trigger}${topic};${taken.why}` };
-    const reviewed = await step("refresh-review", () => reviewWritten(taken, a.now));
+    const reviewed = await step("refresh-review", () => reviewWritten(taken, a.now, day.since));
     return "done" in reviewed ? { done: true, instead: `refresh:${trigger}` } : reviewed;
   };
   if (!decided.ok) return decided.because === "already_drafted" ? { done: true } : instead(`generate:${decided.because}`, "select", null);
   // Research SERPs are queued before the write, which reads them at 0¢; run inline (the first draft), no step waits.
   const { askDayResearch, COLLECT } = await import("@/lib/generate/research-queue");
-  const research = { siteId: a.siteId, opportunityId: decided.opportunityId, now: a.now };
+  const research = { siteId: a.siteId, opportunityId: decided.opportunityId, now: a.now, since: day.since };
   let left = await step("research-post", () => askDayResearch({ ...research, waitMs: COLLECT.askMs }));
   for (let round = 1; a.step !== undefined && left > 0 && round <= COLLECT.rounds; round++) left = await step(`research-collect-${round}`, () => askDayResearch({ ...research, waitMs: COLLECT.stepMs }));
   // The write never waits on the queue: research still out is no page today and no rest, and the next tick asks again.
@@ -496,7 +496,7 @@ export async function generateDraft(a: {
   const aside = outcome.ok ? outcome.draftId : null;
   if (aside !== null && (await step("cosmetic", () => setAside(aside)))) outcome = await step("spare", () => generateDayPage({ ...day, updatesTried: true }));
   if (!outcome.ok && outcome.because === "already_drafted") return { done: true };
-  const reviewed = await step("review", () => reviewWritten(outcome, a.now));
+  const reviewed = await step("review", () => reviewWritten(outcome, a.now, day.since));
   return !("degraded" in reviewed) || !reviewed.degraded.startsWith("generate:") ? reviewed : instead(reviewed.degraded, "write", !outcome.ok && "draftId" in outcome ? outcome.draftId : null, `;topic:${decided.opportunityId}`);
 }
 
@@ -528,9 +528,9 @@ export async function regenerateDraft(a: { readonly siteId: string; readonly dra
   return reviewWritten(await regenerateRestarted({ siteId: a.siteId, draftId: a.draftId, now: a.now }), a.now);
 }
 
-async function reviewWritten(outcome: DayPageOutcome, now: Date): Promise<EngineResult> {
+async function reviewWritten(outcome: DayPageOutcome, now: Date, since = now): Promise<EngineResult> {
   // A page its write step had no room to fix takes its one fix call here, in this step's own time, before review.
-  if (!outcome.ok && outcome.because === "fix_owed") return reviewWritten(await (await import("@/lib/generate/fix-step")).fixOwedPage({ draftId: outcome.draftId, now }), now);
+  if (!outcome.ok && outcome.because === "fix_owed") return reviewWritten(await (await import("@/lib/generate/fix-step")).fixOwedPage({ draftId: outcome.draftId, now, since }), now, since);
   // Issue 1536: a step names itself, and a short pack what it lacked, so the day's kept reason says which stage left it without a page.
   if (!outcome.ok) return { degraded: outcome.because === "step_failed" || outcome.because === "no_own_facts" ? `generate:${outcome.because}:${outcome.step}` : `generate:${(outcome.because === "rules" ? outcome.stop : undefined) ?? outcome.because}` };
   const { enterReview } = await import("@/lib/publish/attempt/window");
