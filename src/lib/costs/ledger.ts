@@ -1,6 +1,8 @@
 // BUILD §6.5 — the ledger write — every vendor call recorded before it is answered.
 // One row for every call that reached the vendor, a parse failure included; this module writes the two figures it is given.
 import { dbAdmin } from "@/lib/db";
+import type { TextClient } from "@/lib/measure/text-store";
+import type { MinimalClient as ReadsClient } from "@/lib/scan/fetch-facts";
 
 /** One `fetches` row, declared here because the generated types do not hold
  *  the table. `payload` is `unknown`; each caller knows its own shape.
@@ -140,12 +142,45 @@ export async function nameDraftOnRows(rowIds: readonly string[], draftId: string
 export const PAGE_HTML_KEPT_DAYS = 30;
 // Rows one call empties, so the first day's backlog drains over ticks rather than in one long statement.
 const PRUNE_ROWS = 1000;
+// Due reads one tick derives: one `in` batch of the facts and text loaders.
+const DERIVE_ROWS = 100;
+
+interface UnderivedRead { id: string; scan_id: string; source: string; has_facts: boolean; has_text: boolean }
+
+/** A due read missing its facts or its text gets them from its own html, so the prune loses nothing derived. Production
+ *  only: dev shares the database, and a row derived by dev's code would outlive the html it came from. */
+async function deriveDueReads(before: string): Promise<void> {
+  const [{ deployedFactsVersion }, { checked, factsLoader }, { storedText }] = await Promise.all([import("@/lib/scan/derivation"), import("@/lib/scan/fetch-facts"), import("@/lib/measure/text-store")]);
+  const facts = deployedFactsVersion();
+  const text = process.env.RK_TEXT_VERSION;
+  if (process.env.VERCEL_ENV !== "production" || facts === null || !text) return;
+  const client = dbAdmin() as unknown as ReadsClient;
+  const due: readonly UnderivedRead[] = checked(await client.rpc<UnderivedRead[]>("page_reads_underived", { p_before: before, p_limit: DERIVE_ROWS })) ?? [];
+  const derive = async (reads: readonly UnderivedRead[]) => {
+    const factless = reads.filter((r) => !r.has_facts).map((r) => r.id);
+    if (factless.length > 0) await factsLoader(async () => client, facts, checked)(factless);
+    const textless = reads.filter((r) => !r.has_text);
+    if (textless.length > 0) await storedText(client as unknown as TextClient, textless, text);
+  };
+  let failed = 0;
+  // A read that still fails alone keeps its html: the prune empties only reads with both rows.
+  await derive(due).catch(async () => {
+    for (const read of due) {
+      await derive([read]).catch((error: unknown) => {
+        failed += 1;
+        console.warn(JSON.stringify({ event: "page_derive_failed", id: read.id, message: error instanceof Error ? error.message : String(error) }));
+      });
+    }
+  });
+  if (due.length > 0) console.log(JSON.stringify({ event: "page_reads_derived", rows: due.length - failed, failed }));
+}
 
 /** Empties the html of page reads older than the window, the cutoff fixed for the UTC day so a second tick that day
- *  empties nothing new. Cost columns and derived facts stay. A failure is a log: the next tick tries again. */
+ *  empties nothing new, once their missing facts and text are derived. Cost columns and derived facts stay. A failure is a log: the next tick tries again. */
 export async function prunePageHtml(now: Date = new Date()): Promise<void> {
   const before = new Date(Date.parse(now.toISOString().slice(0, 10)) - PAGE_HTML_KEPT_DAYS * 86_400_000).toISOString();
   try {
+    await deriveDueReads(before).catch((error: unknown) => console.warn(JSON.stringify({ event: "page_reads_derived", outcome: "failed", message: error instanceof Error ? error.message : String(error) })));
     const rpc = dbAdmin() as unknown as { rpc(fn: string, args: object): PromiseLike<{ data: number | null; error: { message: string } | null }> };
     const { data, error } = await rpc.rpc("prune_page_html", { p_before: before, p_limit: PRUNE_ROWS });
     if (error !== null) throw new Error(error.message);

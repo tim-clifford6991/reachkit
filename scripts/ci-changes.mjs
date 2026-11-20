@@ -77,7 +77,8 @@ const DB = [
   /^src\/lib\/opportunities\/(verdicts\/)?types\.ts$/,
   /^src\/lib\/opportunities\/store\.ts$/,
   /^src\/lib\/ops\/events\.ts$/,
-  /^src\/lib\/costs\/(index|daily)\.ts$/,
+  /^src\/lib\/costs\/(index|daily|ledger)\.ts$/,
+  /^src\/lib\/measure\/text-store\.ts$/,
   /^src\/lib\/scan\/admission\.ts$/,
   /^src\/lib\/scan\/(challenged|page-facts)\.ts$/,
   /^src\/lib\/publish\/attempt\/unpublish\.ts$/,
@@ -88,7 +89,7 @@ const DB = [
   /^scripts\/daily-check\/(settings-reads|runway)\.mjs$/,
   /^scripts\/local-run\.mjs$/,
   /^tests\/ui\/layout\/seed-rows\.ts$/,
-  /^tests\/(mail\/env-fixture|opportunities\/env)\.ts$/,
+  /^tests\/(mail\/env-fixture|jobs\/env-fixture|opportunities\/env)\.ts$/,
 ];
 
 const FULL_UNIT = [
