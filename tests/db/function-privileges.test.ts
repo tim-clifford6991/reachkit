@@ -191,48 +191,23 @@ describe("issue 1483 — a function the next migration creates is closed by defa
       run("drop function widgets_count();");
     }
   });
-
-  it("a trigger it backs still fires on a session's own write", () => {
-    // Postgres checks `execute` on a trigger function when the trigger is
-    // created, never when it fires — why revoking the four trigger
-    // functions leaves every customer write as it was.
-    const user = "aaaaaaaa-1483-0000-0000-000000000001";
-    run(
-      `insert into users (id, email, plan_status) values ('${user}', 'owner@example.com', 'active');` +
-        "create function users_mark() returns trigger language plpgsql set search_path = '' as $$ begin new.email := 'marked@example.com'; return new; end; $$;" +
-        "create trigger users_mark before update on users for each row execute function users_mark();"
-    );
-    try {
-      expect(psqlRows("select has_function_privilege('authenticated', 'users_mark()', 'execute');")).toEqual([["f"]]);
-      run(
-        "begin; set local role authenticated;" +
-          `select set_config('request.jwt.claims', '{"sub":"${user}","role":"authenticated"}', true);` +
-          `update users set stripe_customer_id = 'cus_1' where id = '${user}'; commit;`
-      );
-      expect(psqlRows(`select email, stripe_customer_id from users where id = '${user}';`)).toEqual([
-        ["marked@example.com", "cus_1"],
-      ]);
-    } finally {
-      run(`drop trigger users_mark on users; drop function users_mark(); delete from users where id = '${user}';`);
-    }
-  });
 });
 
 describe("issue 1483 — advisor `auth_rls_initplan`: every policy reads `auth.uid()` once per statement", () => {
   it("finds the policies, and no fewer", () => {
-    expect(policies().length).toBeGreaterThanOrEqual(22);
+    expect(policies().length).toBeGreaterThanOrEqual(13);
   });
 
   it("no policy calls an auth function bare", () => {
     expect(bareAuthCalls()).toEqual([]);
   });
 
-  it("every policy is the one it was — same command, roles and predicate, with the call wrapped", () => {
+  it("every read policy is the one it was — same command, roles and predicate, with the call wrapped — and no write policy is left", () => {
     const unwrapped = policies().map((policy) => ({
       name: policy.name,
       shape: policy.shape.replace(INITPLAN, (_match, fn: string) => `auth.${fn}()`),
     }));
-    expect(unwrapped).toEqual(policiesBefore);
+    expect(unwrapped).toEqual(policiesBefore.filter((policy) => /^\S+ (SELECT|ALL) /.test(policy.shape)));
   });
 
   it("a bare call is what fails — the mutation this test guards against", () => {
