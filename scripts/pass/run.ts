@@ -77,6 +77,7 @@ import { parseHealth } from "@/lib/scan/health";
 import { readStoredReport } from "@/lib/scan/report";
 import { insertRows, psql, rebuild, waitForSchema } from "../local-run.mjs";
 import { appendSpend } from "../spend-log.mjs";
+import { evalMiss } from "../eval-models/pass-site";
 import { replayWeekly } from "./weekly";
 
 export interface Options {
@@ -129,7 +130,7 @@ const short = (id: string): string => id.slice(0, 8);
 
 // ── The snapshot, and the state the pass started from ──────────────────────
 function readSnapshot(o: Options): { snapshot: Snapshot; bought: FetchRow[]; boughtFile: string } {
-  const dir = path.join(o.root, "scripts/pass/snapshot");
+  const dir = process.env.RK_PASS_SNAPSHOTS ?? path.join(o.root, "scripts/pass/snapshot");
   const file = path.join(dir, `${short(o.scan)}.json`);
   if (!existsSync(file)) {
     throw new Error(`No snapshot at ${file}. Export the pass first: scripts/pass/export.sql, then scripts/pass/assemble.mjs.`);
@@ -301,9 +302,10 @@ function watchNetwork(a: { o: Options; snapshot: Snapshot; bought: readonly Fetc
       if (pending !== undefined) pending.served = "bought now";
       return real(input, init);
     }
-    const source = url.searchParams.get("source")?.replace(/^eq\./, "");
-    const key = url.searchParams.get("cache_key")?.replace(/^eq\./, "");
+    const [source, key] = ["source", "cache_key"].map((name) => url.searchParams.get(name)?.replace(/^eq\./, ""));
     if (method !== "GET" || !url.pathname.endsWith("/fetches") || source === undefined || key === undefined) return real(input, init);
+    // A call site under model evaluation always misses, so it goes to the candidate model.
+    if (evalMiss(source, key, a.snapshot.fetches)) return answer([]);
 
     const response = await real(input, init);
     const rows = (await response.clone().json().catch(() => null)) as { payload: unknown }[] | null;
@@ -336,11 +338,9 @@ function watchNetwork(a: { o: Options; snapshot: Snapshot; bought: readonly Fetc
 // ── The run ────────────────────────────────────────────────────────────────
 export async function main(o: Options): Promise<number> {
   const { snapshot, bought, boughtFile } = readSnapshot(o);
-  const { scan } = snapshot;
-  const siteId = snapshot.site.id;
+  const { scan, site: { id: siteId, country, language } } = snapshot as Snapshot & { site: { country?: unknown; language?: unknown } };
   // D66: the replay measures in the country and language the site holds.
-  const stored = snapshot.site as { country?: unknown; language?: unknown };
-  const locale = localeOf(stored.country, stored.language) ?? DEFAULT_LOCALE;
+  const locale = localeOf(country, language) ?? DEFAULT_LOCALE;
   const start = startingState(snapshot);
 
   console.log(`Pass ${short(scan.id)} of ${o.site} (${scan.tier}, ${scan.created_at.slice(0, 16).replace("T", " ")} UTC, stored cost ${cents(Number(scan.cost_cents))})`);
