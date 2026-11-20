@@ -208,10 +208,12 @@ it("a day whose own committed update is under the floor writes it as its last st
   db.rows("opportunities").forEach((row) => Object.assign(row, row.id === UPDATE_ID ? { planned_for: D } : row.id === NEW_ID ? { status: "done" } : {}));
   expect([await fallback(), db.rows("drafts").find((row) => row.scheduled_for === D)?.opportunity_id]).toMatchObject([{ ok: true }, UPDATE_ID]);
 });
-it("a day decided again counts its spend from its own run, and the same date not decided again stays refused", async () => {
-  const w = await world();
-  model(() => 9);
-  db.seed("fetches", [{ site_id: SITE, activity: "draft", cost_cents: 40, created_at: HOUR.toISOString() }]);
-  pick.mockResolvedValue(w.update);
-  expect([(await attempt()).ok, (await generateDayPage({ siteId: SITE, publishDate: D, now: HOUR, since: new Date(HOUR.getTime() + 1) })).ok]).toEqual([false, true]);
+it("a day decided again counts its 45¢ from its run's start, though each step and retry is an invocation with a later `now`, and the date not decided again stays refused", async () => {
+  const w = await world(), held = new Map<string, unknown>(), { draftGenerate } = await import("@/jobs/draft-generate"), next = new Error("next invocation");
+  void [model(() => 30), db.seed("fetches", [{ site_id: SITE, activity: "draft", cost_cents: 40, created_at: HOUR.toISOString() }]), pick.mockResolvedValue(w.update)];
+  // As the platform runs it: held steps answer from their record, one new step runs and ends the invocation, and a thrown one is retried.
+  const invoke = (again: boolean, now = new Date(Date.now() + 1), ran = false) => draftGenerate.perSubject!({ data: { siteId: SITE, publishDate: D, hour: HOUR.toISOString(), again }, now, step: async (name, body) => { if (held.has(name)) return held.get(name) as never; if (ran && again) throw next; ran = true; held.set(name, await body()); return held.get(name) as never; } });
+  expect(await invoke(false, HOUR)).toMatchObject({ outcome: "degraded" });
+  for (let n = (throwOnFirstSave(), held.clear(), 0); n < 30 && (await invoke(true).then(() => false, () => (stamp(), true))); n++);
+  expect([spent() - 40 >= 30, spent() - 40 <= CAPS.DRAFT_C]).toEqual([true, true]);
 });
