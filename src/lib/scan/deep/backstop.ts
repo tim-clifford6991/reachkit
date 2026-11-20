@@ -14,7 +14,9 @@
 //
 // **Why a re-send is harmless.** The event carries the key setup's own send
 // carries, and `scan/run` is idempotent on it — a pass that is queued or
-// still running is not started twice. The query only looks back
+// still running is not started twice. A pass that started and died keeps
+// its row `running` and has spent that key, so past `REMEASURE.runningHoldMin`
+// it is read as failed and re-measured on a fresh key. The query only looks back
 // `TIMING.deepPassBackstopH` hours, the platform's idempotency window, so a
 // pass that ran and crashed is not re-sent past it on every tick for ever.
 //
@@ -39,9 +41,8 @@
 // does not decay with a clock is the cut-short pass itself: this file hands
 // its id back, the re-measure records it as `scans.remeasure_of`, and
 // `scans_one_remeasure_per_pass` lets exactly one of them through.
-import { TIMING } from "@/lib/config/constants";
+import { REMEASURE, TIMING } from "@/lib/config/constants";
 import { dbAdmin } from "@/lib/db";
-import { readSiteCategory } from "@/lib/scan/site-category";
 
 interface QueryResult<T> {
   data: T[] | null;
@@ -78,15 +79,15 @@ export async function sitesWithoutDeepPass(now: Date): Promise<readonly string[]
   const after = new Date(now.getTime() - TIMING.deepPassBackstopH * 60 * MS_PER_MINUTE).toISOString();
 
   const sites = await untyped()
-    .from<{ id: string; category?: string | null }>("sites")
-    .select("id, category")
+    .from<SiteRow>("sites")
+    .select("id, category, setup_completed_at")
     .lt("setup_completed_at", before)
     .gt("setup_completed_at", after)
     .limit(SITES_PER_TICK);
   if (sites.error) throw new Error(`sitesWithoutDeepPass: could not read sites: ${sites.error.message}`);
-  const ids = (sites.data ?? []).map((row) => row.id);
+  const siteRows = sites.data ?? [];
+  const ids = siteRows.map((row) => row.id);
   if (ids.length === 0) return [];
-  const categorised = new Set((sites.data ?? []).filter((row) => (row.category ?? "").trim() !== "").map((row) => row.id));
 
   const passes = await untyped()
     .from<PassRow>("scans")
@@ -95,7 +96,22 @@ export async function sitesWithoutDeepPass(now: Date): Promise<readonly string[]
     .in("site_id", ids);
   if (passes.error) throw new Error(`sitesWithoutDeepPass: could not read scans: ${passes.error.message}`);
   const rows = passes.data ?? [];
-  return ids.filter((id) => owed(rows.filter((row) => row.site_id === id), categorised.has(id)) !== null);
+  return siteRows.filter((site) => owed(settled(rows.filter((row) => row.site_id === site.id), site, now), hasCategory(site)) !== null).map((site) => site.id);
+}
+
+interface SiteRow {
+  id: string;
+  category?: string | null;
+  setup_completed_at?: string | null;
+}
+
+const hasCategory = (site: SiteRow | undefined): boolean => (site?.category ?? "").trim() !== "";
+
+/** A pass not ended past the hold, counted from its own start and from setup's end, died: read it as failed. */
+function settled(rows: readonly PassRow[], site: SiteRow | undefined, now: Date): PassRow[] {
+  const lost = now.getTime() - REMEASURE.runningHoldMin * MS_PER_MINUTE;
+  if (!(Date.parse(site?.setup_completed_at ?? "") < lost)) return [...rows];
+  return rows.map((row) => (row.status === "running" && Date.parse(row.created_at ?? "") < lost ? { ...row, status: "failed" } : row));
 }
 
 interface PassRow {
@@ -149,15 +165,17 @@ function owed(rows: readonly PassRow[], hasCategory: boolean): "never_ran" | "cu
  * deliveries of one maintenance tick that both read this pass race on that
  * column and exactly one of them starts a paid pass.
  */
-export async function deepPassCutShort(siteId: string): Promise<string | null> {
+export async function deepPassCutShort(siteId: string, now: Date = new Date()): Promise<string | null> {
+  const site = await untyped().from<SiteRow>("sites").select("id, category, setup_completed_at").eq("id", siteId).limit(1);
+  if (site.error) throw new Error(`deepPassCutShort: could not read site ${siteId}: ${site.error.message}`);
   const { data, error } = await untyped()
     .from<PassRow>("scans")
     .select(`id, site_id, status, stopped_reason, created_at, ${MARKET_COLUMNS}`)
     .eq("tier", "deep")
     .eq("site_id", siteId);
   if (error) throw new Error(`deepPassCutShort: could not read scans: ${error.message}`);
-  const rows = data ?? [];
-  if (owed(rows, (await readSiteCategory(siteId)) !== undefined) !== "cut_short") return null;
+  const rows = settled(data ?? [], site.data?.[0], now);
+  if (owed(rows, hasCategory(site.data?.[0])) !== "cut_short") return null;
   return newestOf(rows)?.id ?? null;
 }
 
