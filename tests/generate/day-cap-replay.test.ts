@@ -203,3 +203,8 @@ it("a planned refresh with no title packs its address's live text, so live_page 
   const pack = (db.rows("drafts").find((row) => row.opportunity_id === UPDATE_ID)!.meta as { pack: Parameters<typeof missingFrom>[0] }).pack;
   expect([pack.live?.markdown, missingFrom(pack).filter((need) => need === "live_page" || need === "new_fact")]).toEqual([live.body_md, []]);
 });
+it("a day whose own committed update is under the floor writes it as its last step, never an empty one (reached production)", async () => {
+  await world().then(() => Object.assign(db.rows("publications").find((row) => row.id === "p-written")!, { published_at: new Date(Date.now() - 10 * DAY_MS).toISOString() }));
+  db.rows("opportunities").forEach((row) => Object.assign(row, row.id === UPDATE_ID ? { planned_for: D } : row.id === NEW_ID ? { status: "done" } : {}));
+  expect([await fallback(), db.rows("drafts").find((row) => row.scheduled_for === D)?.opportunity_id]).toMatchObject([{ ok: true }, UPDATE_ID]);
+});
