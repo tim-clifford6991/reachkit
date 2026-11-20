@@ -136,9 +136,9 @@ export async function dayHold(siteId: string, publishDate: string): Promise<stri
 }
 
 /** The owed days no due hour recorded (a missed tick, or a run killed first) or one left with research still queued;
- *  a first day was not owed. And, `again`, a day the generator left with no page before a newer weekly commit, decided
- *  once more against that week, or whose waiting page a newer standard set aside, under that standard's own key, or
- *  else re-sent once under `retry`. An unreadable store gives none, and the next tick asks again. Never throws. */
+ *  a first day was not owed. And, `again`, a day the generator left with no page, short of a harm stop, before a newer
+ *  commit (a weekly pass's or an applied re-plan's), decided once more against that week, or whose waiting page a newer
+ *  standard set aside, under that standard's own key, or else re-sent once under `retry`. An unreadable store gives none, and the next tick asks again. Never throws. */
 export async function missedDays<T extends DraftDay & { readonly hour?: Date }>(days: readonly T[]): Promise<readonly (T & { again?: true; rewrite?: string })[]> {
   if (days.length === 0) return [];
   try {
@@ -154,11 +154,11 @@ export async function missedDays<T extends DraftDay & { readonly hour?: Date }>(
       } else if (kept.ended?.startsWith("no_page:generate:research_pending") === true) {
         // Research still on the queue measured nothing, so the open day is asked again and the next ask reads it at 0¢.
         missed.push(day);
-      } else if (kept.ended?.startsWith("no_page:generate:") && kept.decidedAt !== undefined) {
+      } else if (kept.ended?.startsWith("no_page:generate:") && !kept.ended.includes(";harm_stop") && kept.decidedAt !== undefined) {
         const committed = (await store.committedAt?.(day.siteId)) ?? null;
+        // Once, while the publish time is ahead, and never behind a harm stop: a newer commit, else the due hour's own run.
         if (committed !== null && Date.parse(committed) > Date.parse(kept.decidedAt)) missed.push({ ...day, again: true });
-        // Once, while the publish time is ahead: only the due hour's own run records that hour, and never behind a harm stop.
-        else if (!kept.ended.includes(";harm_stop") && Date.parse(kept.decidedAt) === day.hour?.getTime()) missed.push({ ...day, again: true, rewrite: "retry" });
+        else if (Date.parse(kept.decidedAt) === day.hour?.getTime()) missed.push({ ...day, again: true, rewrite: "retry" });
       }
     }
     return missed;
@@ -382,11 +382,15 @@ function databaseDraftDayStore(): DraftDayStore {
         .limit(1);
       if (error !== null) throw new Error(error.message);
       const week = data?.[0]?.week_start;
-      if (week === undefined) return null;
       // The week's plan is committed minutes after its scan closes; the commit step's own record is the time it was.
-      const commit = await publishDb().from<{ at: string }>("ops_events").select("at").eq("kind", "week_research").eq("site_id", siteId).eq("code", week).limit(1);
-      if (commit.error !== null) throw new Error(commit.error.message);
-      return commit.data?.[0]?.at ?? null;
+      const commit = week === undefined ? null : await publishDb().from<{ at: string }>("ops_events").select("at").eq("kind", "week_research").eq("site_id", siteId).eq("code", week).limit(1);
+      // An applied re-plan commits the week again; its claim reads the date it planned from, else `held`, `empty` or `no-week`.
+      const replan = await publishDb().from<{ at: string }>("ops_events").select("at").eq("kind", "week_replanned").eq("site_id", siteId)
+        .not("read", "in", '("held","empty","no-week")').order("at", { ascending: false }).limit(1);
+      const failed = commit?.error ?? replan.error;
+      if (failed != null) throw new Error(failed.message);
+      const times = [commit?.data?.[0]?.at, replan.data?.[0]?.at].filter((at) => at !== undefined);
+      return times.length === 0 ? null : times.reduce((a, b) => (Date.parse(a) >= Date.parse(b) ? a : b));
     },
     async domainOf(siteId) {
       const { data, error } = await publishDb().from<{ domain: string }>("sites").select("domain").eq("id", siteId).limit(1);

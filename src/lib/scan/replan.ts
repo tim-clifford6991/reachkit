@@ -98,7 +98,7 @@ export async function replanSites(
     const id = site.siteId;
     const plan = await inStep(`replan-dry-${id}`, () => dryReplan(id, { now: a.now, clock: site, fingerprint }));
     const state = plan === null ? "no-week" : plan.empty !== null ? "empty" : plan.held === null ? plan.from : "held";
-    // Claimed only after the apply, so an apply that never ran is tried again on the next tick.
+    // Claimed only after the apply, so an apply that never ran is tried again on the next tick; an applied claim's time is a commit the daily tick reads.
     if (plan !== null && state === plan.from) await inStep(`replan-apply-${id}`, () => applyReplan(id, plan.from, a.now));
     if (!(await inStep(`replan-claim-${id}`, () => claimOpsEvent(KIND, id, fingerprint, state))) || plan === null) continue;
     told.push(plan);
