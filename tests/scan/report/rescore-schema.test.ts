@@ -29,6 +29,7 @@ const APPLIED = [
   "20261101140000_fetches_facts.sql",
   "20261102120000_fetches_text.sql",
   "20261120150000_fetches_prune_page_html.sql",
+  "20261120190000_fetches_page_reads_underived.sql",
 ];
 const FACTS = "20261101140000_fetches_facts.sql";
 const IDS_FIRST = "20261103180000_scans_rescore_reads_ids_first.sql";
@@ -446,6 +447,9 @@ describe("prune_page_html — raw page html kept 30 days", () => {
     expect(after.every(([, , readAt, cost]) => readAt === "2026-10-01T00:00:00Z" && Number(cost) === 3)).toBe(true);
     expect(value(`select (select count(*) from fetch_facts where scan_id = '${scanId}') + (select count(*) from fetch_text where scan_id = '${scanId}');`)).toBe("7");
     expect([prune(), rows()]).toEqual(["0", after]);
+    const underived = () => psqlRows(`set role service_role; select id, has_facts, has_text from public.page_reads_underived(now() - interval '30 days', 100) where scan_id = '${scanId}' order by has_facts;`);
+    expect(underived()).toEqual([[bare, "f", "f"], [untexted, "t", "f"]]);
+    expect(value("select has_function_privilege('authenticated', 'public.page_reads_underived(timestamptz, integer)', 'execute');")).toBe("f");
     expect(value("select has_function_privilege('authenticated', 'public.prune_page_html(timestamptz, integer)', 'execute');")).toBe("f");
   });
 });
