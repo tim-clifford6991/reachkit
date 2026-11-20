@@ -184,12 +184,13 @@ export async function updateSearch(siteId: string, at: Date): Promise<string | n
   return (await updateCandidates(siteId, at).catch(() => []))[0]?.page.row.targetQuery ?? null;
 }
 
-/** The candidate's ready open refresh where it has one, else an `aged` one planned and assessed as Monday's are, beside
- *  any resting or unready row at the address (a retarget); else why none is. */
+/** The candidate's open refresh that is not resting, where it has one, else an `aged` one planned and assessed as
+ *  Monday's are, beside any resting row at the address (a retarget); else why none is. */
 async function refreshRow(siteId: string, page: OwnLivePage, at: Date, plan = true): Promise<Opportunity | "row_resting" | "row_unready"> {
   const store = opportunityStore();
   const openAt = async () => (await store.openRankable(siteId)).map(readOpportunity).filter((o) => o.type === "refresh_page" && addressKey(o.targetRef ?? "") === addressKey(page.url));
-  const usable = (rows: Opportunity[]) => rows.find((o) => o.ready && !isResting(o, at));
+  // Only a harm or customer stop (`resting`) holds a row back from its page's update; a gate on a new topic does not.
+  const usable = (rows: Opportunity[]) => rows.find((o) => o.unreadyReason !== "resting" && !isResting(o, at));
   let open = await openAt();
   // Titled as the page is, so the writer finds its live text even before the known-content copy lists it.
   const planned = { ...refreshOfPage(page, "aged", at), title: page.title || null };
@@ -268,11 +269,13 @@ function tally(passed: readonly string[]): string {
   return counts.size === 0 ? "no_candidate" : `update:${[...counts].map(([why, n]) => (n > 1 ? `${why}×${n}` : why)).join(",")}`;
 }
 
-/** The week's new topics a day's last step may write, its own date's first, then the spares, never an update or a fix. */
+/** The topics a day's last step may write: its own date's first, an update too since it was committed for the date,
+ *  then the spares that are new topics. Never a fix. */
 async function weekTopics(siteId: string, date: string): Promise<Opportunity[]> {
   const { days, spares } = await committedWeek(siteId);
   const own = days.filter((day) => day.date === date).map((day) => day.opportunity);
-  return [...own, ...spares].filter((o) => o.type !== "fix_page" && !mendable(o) && contentTypeOf(o) !== null && contentTypeOf(o) !== "update");
+  const writable = (o: Opportunity) => o.type !== "fix_page" && !mendable(o) && contentTypeOf(o) !== null;
+  return [...own.filter(writable), ...spares.filter((o) => writable(o) && contentTypeOf(o) !== "update")];
 }
 
 /**
@@ -301,7 +304,8 @@ async function lastStep(day: Day, a: { trigger: string; stopped: string | null; 
   const startedAt = Date.now();
   let ended: DayPageOutcome | typeof NO_TOPIC = NO_TOPIC;
   for (const topic of await weekTopics(day.siteId, day.publishDate)) {
-    for (const opportunity of contentTypeOf(topic) === "documentation" ? [topic] : [topic, { ...topic, writeAs: "documentation" as const }]) {
+    // An update is its live page's new version, never a new page beside it.
+    for (const opportunity of contentTypeOf(topic) === "documentation" || contentTypeOf(topic) === "update" ? [topic] : [topic, { ...topic, writeAs: "documentation" as const }]) {
       if (cost.capHit() || Date.now() - startedAt > PIPELINE.nextTopicBeforeMs) return ended;
       const outcome = await writeFallback({ ...day, opportunity }, now, cost, "warn");
       const draftId = outcome.ok ? outcome.draftId : "draftId" in outcome ? outcome.draftId : null;
