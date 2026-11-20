@@ -143,6 +143,34 @@ describe("put back (issue 1532): only the customer, only after their own take-do
   });
 });
 
+describe("the system restores an earning address once, never a page the customer took down", () => {
+  const RESTORER: Actor = { kind: "system", job: "weekly/refresh" };
+  const down = (actor: Actor, reason: string): TransitionRecord => ({ from: "published", to: "unpublished", actor, reason, at: AT.toISOString() });
+  const restore = (earning: { impressions: number | null; restoredBefore: boolean }) =>
+    transition("d1", "published", RESTORER, { at: AT, reason: "restore:earning", earning });
+
+  it("a version a move took down returns where its address earns, and the record names the reason", async () => {
+    seedDraft("unpublished", { transitions: [down(SYSTEM, "moved")] });
+    expect(await restore({ impressions: 40, restoredBefore: false })).toEqual({ ok: true, state: "published" });
+    expect((draftRow().transitions as TransitionRecord[]).at(-1)?.reason).toBe("restore:earning");
+  });
+
+  it("is refused after the customer's take-down, for an unmeasured or unearning address, and a second time", async () => {
+    const cases: [TransitionRecord[], number | null, boolean, string][] = [
+      [[down(CUSTOMER, "take_down")], 40, false, "unpublished_by_move"],
+      [[down(CUSTOMER, "take_down"), { ...down(CUSTOMER, "put_back"), from: "unpublished", to: "published" }, down(SYSTEM, "moved")], 40, false, "unpublished_by_move"],
+      [[down(SYSTEM, "moved")], null, false, "address_earning"],
+      [[down(SYSTEM, "moved")], 0, false, "address_earning"],
+      [[down(SYSTEM, "moved")], 40, true, "address_not_restored"],
+      [[{ ...down(RESTORER, "restore:earning"), from: "unpublished", to: "published" }, down(SYSTEM, "moved")], 40, false, "address_not_restored"],
+    ];
+    for (const [transitions, impressions, restoredBefore, failedGuard] of cases) {
+      seedDraft("unpublished", { transitions });
+      expect(await restore({ impressions, restoredBefore })).toEqual({ ok: false, refused: "guard", failedGuard, state: "unpublished" });
+    }
+  });
+});
+
 describe("a move that is one of the fifteen moves the page and records it", () => {
   it("in_review → skipped: the customer's veto, recorded with who and why", async () => {
     seedDraft("in_review");

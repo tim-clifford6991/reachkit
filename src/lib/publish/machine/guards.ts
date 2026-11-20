@@ -6,8 +6,8 @@ import { isPublishingOn, reachKitStopped } from "../switch";
 import { ceilingRoom } from "../ceilings";
 import { destinationWorking } from "../destinations";
 import { PUBLISHABLE_RULE } from "../publishable/rule";
-import { canPutBack } from "../take-down/standing";
-import type { GuardId } from "./table";
+import { canPutBack, takenDownByCustomer } from "../take-down/standing";
+import { RESTORE_EARNING, type GuardId } from "./table";
 
 /** The draft as the machine reads it: the view the rules take, plus the two
  *  row facts only the machine consults. */
@@ -72,6 +72,14 @@ export interface GuardContext {
   by: Actor;
   at: Date;
   deps: GuardDeps;
+  /** The address's facts a restore is judged on, read by its caller from Search Console and the address's rows. */
+  earning?: EarningAddress;
+}
+
+/** `impressions` is `null` where the address is not measured, which never counts as 0. */
+export interface EarningAddress {
+  impressions: number | null;
+  restoredBefore: boolean;
 }
 
 /** One function per `GuardId`, named for the id. Total over the union, so
@@ -92,6 +100,19 @@ export const GUARD_FNS: Readonly<Record<GuardId, (c: GuardContext) => Promise<bo
 
     async put_back_window(c: GuardContext): Promise<boolean> {
       return canPutBack(c.draft.transitions, c.at);
+    },
+
+    async unpublished_by_move(c: GuardContext): Promise<boolean> {
+      const last = c.draft.transitions[c.draft.transitions.length - 1];
+      return last?.to === "unpublished" && last.reason === "moved" && !takenDownByCustomer(c.draft.transitions);
+    },
+
+    async address_earning(c: GuardContext): Promise<boolean> {
+      return (c.earning?.impressions ?? 0) > 0;
+    },
+
+    async address_not_restored(c: GuardContext): Promise<boolean> {
+      return c.earning?.restoredBefore === false && !c.draft.transitions.some((record) => record.reason === RESTORE_EARNING);
     },
 
     async publishable_and_due(c: GuardContext): Promise<boolean> {

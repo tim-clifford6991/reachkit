@@ -9,7 +9,8 @@
 //   3. Per page: URL Inspection, and impressions and clicks (by page alone) and best place by
 //      query over `SEARCH_READING_WINDOW_D`; a property younger than `PROPERTY_NEW_D` gets URL Inspection only.
 //      An address moved or merged away in the last `RESTORE_WITHIN_D` days that holds impressions, while the page it
-//      301s to holds none, has that page put back, once (SPEC §7), and the page is read there.
+//      301s to holds none, serves the version the move took down again, once (SPEC §7, the machine's `RESTORE_EARNING`),
+//      and the page it went into answers 301 to it where both are one question.
 //   4. A hosted page Google has still not crawled `UNCRAWLED_AFTER_D` days after going live is announced again, once.
 //   5. One `search_reading` per live page, assembled by
 //      `@/lib/measure/page-reading` from the newest stored report, the
@@ -22,10 +23,13 @@ import { gscClient, gscPool, type GscAccount, type GscRefusal, type GscSend } fr
 import { knownPlaces } from "@/lib/measure/known-places";
 import { addressOf as pageAddress, assembleReading, engineReadingOf, pageSearchOf, readingOf, statedOf, uncrawled, type GoogleReading, type GoogleUnread } from "@/lib/measure/page-reading";
 import { readStoredReport, type StoredReport } from "@/lib/scan/report";
-import { restoreAddress } from "../../attempt/move";
+import { moveAddress } from "../../attempt/move";
 import { publishDb } from "../../db";
+import { RESTORE_EARNING, transition } from "../../machine";
 import { takenDownByCustomer } from "../../take-down/standing";
+import type { TransitionRecord } from "../../types";
 import { announceHosted, announceUnannounced, type AnnounceSend } from "./announce";
+import { invalidateHosted } from "./cache";
 import { addressOf, slugOf, type AddressRow } from "./moved";
 
 const DAY_MS = 86_400_000;
@@ -98,8 +102,8 @@ async function readGoogle(a: {
   onRefused: (refusal: GscRefusal) => void;
   verification: SearchVerification;
   save: () => Promise<void>;
-  /** Puts back the addresses Google still shows; returns each moved page's new address by its old one. */
-  restore: (totals: readonly { page: string; impressions: number }[]) => Promise<ReadonlyMap<string, string>>;
+  /** Restores the addresses Google still shows, from the week's measured totals. */
+  restore: (totals: readonly { page: string; impressions: number }[]) => Promise<void>;
 }): Promise<Map<string, GoogleReading> | GoogleUnread> {
   const { entries, accounts } = a.pool;
   if (accounts.length < entries) log("gsc_key_unreadable", { entries, usable: accounts.length });
@@ -139,55 +143,74 @@ async function readGoogle(a: {
   const totals = await client.performance(a.siteUrl, start, day(a.now), false);
   const rows = totals === null ? null : await client.performance(a.siteUrl, start, day(a.now));
   if (totals === null || rows === null) return "performance_unread";
-  const moved = await a.restore(totals);
-  for (const page of a.pages) {
-    const url = moved.get(page.url) ?? page.url;
-    readings.set(page.url, engineReadingOf(totals, rows, url, page.search, await client.inspect(a.siteUrl, url)));
-  }
+  await a.restore(totals);
+  for (const page of a.pages) readings.set(page.url, engineReadingOf(totals, rows, page.url, page.search, await client.inspect(a.siteUrl, page.url)));
   return readings;
 }
 
 interface HostedRow {
   id: string;
+  draft_id: string;
   live_url: string | null;
   published_at: string | null;
   unpublished_at: string | null;
   merged_into: string | null;
   search_reading: unknown;
-  drafts: { first_edited_at?: unknown; transitions?: unknown; opportunities: { id: string; family: string | null; target_ref: string | null } | null } | null;
+  drafts: {
+    first_edited_at?: unknown;
+    transitions?: unknown;
+    opportunities: { family: string | null; target_ref: string | null; target_query: string | null; cluster_key: string | null } | null;
+  } | null;
 }
 
+const restoredBy = (transitions: unknown): boolean => Array.isArray(transitions) && (transitions as Partial<TransitionRecord>[]).some((move) => move?.reason === RESTORE_EARNING);
+
 /** Each address moved or merged away within `RESTORE_WITHIN_D` days that Google shows, where the live page it 301s to
- *  shows nothing, gets that page back, unless the customer edited or took it down or the address was put back before. */
-async function restoreShown(a: { siteId: string; totals: readonly { page: string; impressions: number }[]; now: Date }): Promise<Map<string, string>> {
-  const out = new Map<string, string>();
-  const { data, error } = await publishDb()
+ *  shows nothing, serves its newest version the move took down again; the machine refuses a customer's take-down and a
+ *  second restore. The page it went into answers 301 to it where both are one question; one the customer edited or took
+ *  down, or itself restored, is left alone. */
+async function restoreShown(a: { siteId: string; totals: readonly { page: string; impressions: number }[]; now: Date }): Promise<void> {
+  const db = publishDb();
+  const { data, error } = await db
     .from<HostedRow>("publications")
-    .select("id, live_url, published_at, unpublished_at, merged_into, search_reading, drafts(first_edited_at:meta->first_edited_at, transitions, opportunities(id, family, target_ref))")
+    .select("id, draft_id, live_url, published_at, unpublished_at, merged_into, search_reading, drafts(first_edited_at:meta->first_edited_at, transitions, opportunities(family, target_ref, target_query, cluster_key))")
     .eq("site_id", a.siteId)
     .eq("destination", "hosted");
-  if (error !== null || data === null) return out;
+  if (error !== null || data === null) return;
   const rows: AddressRow[] = data.map((row) => ({ ...row, updates: row.drafts?.opportunities?.family === "improve" ? row.drafts.opportunities.target_ref : null }));
   const shown = (url: string): number => a.totals.filter((row) => pageAddress(row.page) === pageAddress(url)).reduce((sum, row) => sum + row.impressions, 0);
   const since = a.now.getTime() - RESTORE_WITHIN_D * DAY_MS;
   const left = data.filter((row) => row.live_url !== null && row.unpublished_at !== null && Date.parse(row.unpublished_at) >= since);
+  const by = { kind: "system", job: "weekly/refresh" } as const;
+  // An address a restore changed this pass is read again next week, from its new rows.
+  const changed = new Set<string>();
   for (const slug of new Set(left.map((row) => slugOf(row.live_url!)))) {
-    if (slug === null) continue;
-    const old = left.find((row) => slugOf(row.live_url!) === slug)!.live_url!;
+    if (slug === null || changed.has(slug)) continue;
     const address = addressOf(rows, slug);
     const holder = address.state === "moved" ? data.find((row) => row.id === address.publicationId) : undefined;
-    const opportunity = holder?.drafts?.opportunities;
-    if (holder?.live_url == null || opportunity == null || opportunity.family !== "improve") continue;
-    if (typeof holder.drafts?.first_edited_at === "string" || takenDownByCustomer(holder.drafts?.transitions)) continue;
-    if (data.some((row) => slugOf(readingOf(row.search_reading)?.restored ?? "") === slug)) continue;
-    if (shown(old) === 0 || shown(holder.live_url) > 0) continue;
-    const by = { kind: "system", job: "weekly/refresh" } as const;
-    if (await restoreAddress({ siteId: a.siteId, publicationId: holder.id, opportunityId: opportunity.id, from: holder.live_url, to: old, at: a.now, by })) {
-      out.set(holder.live_url, old);
-      log("search_engine_restored", { siteId: a.siteId, from: holder.live_url, to: old, impressions: shown(old) });
+    if (holder?.live_url == null || typeof holder.drafts?.first_edited_at === "string" || takenDownByCustomer(holder.drafts?.transitions) || restoredBy(holder.drafts?.transitions)) continue;
+    if (shown(holder.live_url) > 0 || changed.has(slugOf(holder.live_url) ?? "")) continue;
+    const version = left.filter((row) => slugOf(row.live_url!) === slug).sort((x, y) => (y.published_at ?? "").localeCompare(x.published_at ?? ""))[0]!;
+    const atAddress = data.filter((row) => slugOf(row.live_url ?? "") === slug);
+    const restoredBefore = atAddress.some((row) => restoredBy(row.drafts?.transitions)) || data.some((row) => slugOf(readingOf(row.search_reading)?.restored ?? "") === slug);
+    const impressions = shown(version.live_url!);
+    const back = await transition(version.draft_id, "published", by, { at: a.now, reason: RESTORE_EARNING, earning: { impressions, restoredBefore } });
+    if (!back.ok) continue;
+    const served = await db.from<{ id: string }>("publications").update({ unpublished_at: null }).eq("id", version.id);
+    if (served.error !== null && served.error !== undefined) {
+      log("search_engine_restore_row_refused", { siteId: a.siteId, publicationId: version.id, message: served.error.message });
+      continue;
     }
+    invalidateHosted({ siteId: a.siteId, publicationId: version.id });
+    changed.add(slug).add(slugOf(holder.live_url) ?? "");
+    // A move is the same page at a new address; a merge's two pages stay two unless they answer one question.
+    const was = version.drafts?.opportunities;
+    const into = holder.drafts?.opportunities;
+    const sameKey = (x?: string | null, y?: string | null): boolean => (x ?? "").trim() !== "" && x!.trim().toLowerCase() === (y ?? "").trim().toLowerCase();
+    const oneQuestion = version.merged_into === null || sameKey(was?.cluster_key, into?.cluster_key) || sameKey(was?.target_query, into?.target_query);
+    if (oneQuestion) await moveAddress({ from: holder.live_url, to: { publicationId: version.id, url: version.live_url! }, at: a.now, by, merge: true });
+    log("search_engine_restored", { siteId: a.siteId, reason: RESTORE_EARNING, address: version.live_url, impressions, from: holder.live_url, redirected: oneQuestion });
   }
-  return out;
 }
 
 /** The weekly step for one site. Never throws. */
@@ -221,7 +244,6 @@ export async function readSearchEngines(a: { siteId: string; now: Date; deps?: S
       pageSearchOf(page.acceptance ?? page.drafts?.opportunities?.acceptance, page.drafts?.opportunities?.target_query);
     // Every live hosted page ends the pass with a reading or the reason it has none.
     let google: Map<string, GoogleReading> | GoogleUnread = "not_in_property";
-    let restored: ReadonlyMap<string, string> = new Map();
     let refusal: GscRefusal | undefined;
     const siteUrl = host === null || host === "" ? null : `https://${host}/`;
     if (destination !== undefined && siteUrl !== null) {
@@ -239,8 +261,7 @@ export async function readSearchEngines(a: { siteId: string; now: Date; deps?: S
         verification,
         save,
         // A failed restore leaves the week's Google reading standing.
-        restore: async (totals) =>
-          (restored = await restoreShown({ siteId: a.siteId, totals, now: a.now }).catch((error: unknown) => (log("search_engine_restore_failed", { siteId: a.siteId, message: String(error) }), new Map()))),
+        restore: (totals) => restoreShown({ siteId: a.siteId, totals, now: a.now }).catch((error: unknown) => log("search_engine_restore_failed", { siteId: a.siteId, message: String(error) })),
       }).catch((): GoogleUnread => "performance_unread");
     }
     const googleOf = (page: PageRow & { live_url: string }): GoogleReading | null => {
@@ -289,13 +310,12 @@ export async function readSearchEngines(a: { siteId: string; now: Date; deps?: S
     for (const page of pages) {
       // Reads are counted on the pages ReachKit serves; elsewhere they are not measured.
       const counted = page.destination === "hosted" && readsError === null;
-      const back = restored.get(page.live_url);
       const reading = assembleReading({
         before: readingOf(page.search_reading),
         report,
         page: {
           id: page.id,
-          liveUrl: back ?? page.live_url,
+          liveUrl: page.live_url,
           search: searchOf(page),
           crawled: hitsOf(page.id, ["crawl"]) > 0,
           aiReads: counted ? hitsOf(page.id, ["answer_fetch", "index_fetch"]) : null,
@@ -305,7 +325,7 @@ export async function readSearchEngines(a: { siteId: string; now: Date; deps?: S
         now: a.now,
       });
       const stamped = reannounced && due.includes(page.live_url) ? { ...reading, reannounced: a.now.toISOString() } : reading;
-      await db.from("publications").update({ search_reading: back === undefined ? stamped : { ...stamped, restored: back } }).eq("id", page.id);
+      await db.from("publications").update({ search_reading: stamped }).eq("id", page.id);
     }
   } catch (error) {
     log("search_engines_failed", { siteId: a.siteId, message: String(error) });

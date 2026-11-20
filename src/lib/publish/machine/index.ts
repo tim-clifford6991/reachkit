@@ -12,27 +12,31 @@ import type { Actor, DraftView, State, ToldRecord, TransitionRecord } from "../t
 import {
   DEFAULT_GUARD_DEPS,
   GUARD_FNS,
+  type EarningAddress,
   type GuardDeps,
   type MachineDraft,
 } from "./guards";
 import {
   GUARDS,
+  RESTORE_EARNING,
   STATES,
   TERMINAL,
   TRANSITIONS,
   edgeKey,
+  guardsOf,
   isTransition,
   type GuardId,
   type Refusal,
 } from "./table";
 
-export { STATES, TRANSITIONS, TERMINAL, GUARDS, edgeKey, isTransition };
+export { STATES, TRANSITIONS, TERMINAL, GUARDS, RESTORE_EARNING, edgeKey, isTransition };
 export type { GuardId, Refusal };
 export {
   DEFAULT_GUARD_DEPS,
   GUARD_FNS,
   PUBLISHABLE_RULE_NOT_BUILT,
   type GuardDeps,
+  type EarningAddress,
   type GuardContext,
   type MachineDraft,
   type PublishableRule,
@@ -57,6 +61,8 @@ export interface TransitionOptions<To extends State = State> {
   deps?: GuardDeps;
   /** The guards' clock; a caller that fixed a moment passes it so its whole pass agrees. */
   at?: Date;
+  /** A system restore's address facts (`RESTORE_EARNING`). */
+  earning?: EarningAddress;
 }
 
 export async function transition<To extends State>(
@@ -88,8 +94,8 @@ export async function transition<To extends State>(
       ? { ...draft, claimRecheckOutstanding: await deps.claimRecheckOutstanding(draftId) }
       : draft;
 
-  for (const guard of GUARDS[edgeKey(from, to)] ?? []) {
-    const passed = await GUARD_FNS[guard]({ draft: gated, by, at, deps });
+  for (const guard of guardsOf(from, to, by, options.reason)) {
+    const passed = await GUARD_FNS[guard]({ draft: gated, by, at, deps, ...(options.earning === undefined ? {} : { earning: options.earning }) });
     if (!passed) {
       // The customer's own words travel in the refusal, never into the log line.
       const held =
