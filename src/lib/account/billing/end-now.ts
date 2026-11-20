@@ -23,8 +23,8 @@
 // **The vendor first.** A store write that landed before the vendor call
 // failed would leave a customer with no access and a live subscription
 // still charging them.
-import { stripe } from "../stripe/client";
-import { isTransient } from "../stripe/transient";
+import { stripe, type Stripe } from "../stripe/client";
+import { isTransient, redeliver } from "../stripe/transient";
 import { billingStore } from "./store";
 
 export type EndSubscriptionNow =
@@ -67,4 +67,33 @@ export async function endSubscriptionNow(
   if (!stamped.ok) return { ok: false, reason: "store" };
 
   return { ok: true, endedAt: at };
+}
+
+/** SPEC §3: a full refund or an opened dispute ends access and paid generation at once; a partial refund changes nothing. */
+export async function onRefundOrDispute(event: Stripe.Event): Promise<{ ended: boolean }> {
+  let charge: Stripe.Charge;
+  if (event.type === "charge.refunded") {
+    charge = event.data.object as Stripe.Charge;
+    if (!charge.refunded) return { ended: false };
+  } else {
+    const named = (event.data.object as Stripe.Dispute).charge;
+    try {
+      charge = typeof named === "string" ? await stripe().charges.retrieve(named) : named;
+    } catch {
+      redeliver("dispute_charge");
+    }
+  }
+  if (charge.customer === null) return { ended: false };
+
+  const read = await billingStore().accountByStripeCustomer(typeof charge.customer === "string" ? charge.customer : charge.customer.id);
+  if (!read.ok) redeliver("account");
+  const account = read.account;
+  // Already ended, so a redelivery calls Stripe for nothing and moves no date.
+  if (account === null || (account.plan_status === "canceled" && new Date(account.paid_through).getTime() <= Date.now())) {
+    return { ended: false };
+  }
+
+  const ended = await endSubscriptionNow(account.id);
+  if (!ended.ok) redeliver(`end_now_${ended.reason}`);
+  return { ended: true };
 }

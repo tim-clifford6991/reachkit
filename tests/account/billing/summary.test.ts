@@ -52,6 +52,7 @@ describe("REQ-076 c1 — what the card reads", () => {
       priceKeys: PRICE_COPY_KEYS,
       paidThrough: PAID_THROUGH,
       cancelledAt: null,
+      pagesOfflineOn: null,
       planStatus: "active",
       invoicesVia: "portal",
     });

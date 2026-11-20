@@ -95,6 +95,9 @@ export async function handleStripeWebhook(
   } else if (route === "subscription") {
     const handler = subscriptionHandler ?? (await defaultSubscriptionHandler());
     await handler(event);
+  } else if (route === "end") {
+    const { onRefundOrDispute } = await import("../billing");
+    await onRefundOrDispute(event);
   }
 
   log({ outcome: route, type: event.type });

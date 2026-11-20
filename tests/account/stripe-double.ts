@@ -179,6 +179,7 @@ export function stripeDouble(state: StripeDoubleState): Stripe {
         state.chargesCreated += 1;
         return { id: "ch_should_never_happen" };
       },
+      retrieve: async (id: string) => ({ id, customer: "cus_u1" }), // the suites' one paying customer
     },
     checkout: {
       sessions: {

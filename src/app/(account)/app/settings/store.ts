@@ -113,6 +113,7 @@ export async function readBilling(userId: string): Promise<BillingFacts> {
     readable: true,
     state: summary.value.summary.state,
     paidThrough: summary.value.summary.paidThrough,
+    pagesOfflineOn: summary.value.summary.pagesOfflineOn,
     paymentFailed: paymentFailedOf(summary.value.summary.planStatus),
     surfaceHref: BILLING_SURFACE,
   };

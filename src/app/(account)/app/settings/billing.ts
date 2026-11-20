@@ -44,7 +44,7 @@ import { PRICE_COPY_KEYS } from "@/lib/account/checkout/copy-keys";
  *  fact Stripe reported and this product recorded — and never a comparison
  *  against the paid-through date: ADR-050 keeps that date the access gate,
  *  and a cancelled customer inside their paid period still has access. */
-export type PlanState = "active" | "cancelled";
+export type PlanState = "active" | "cancelled" | "ended";
 
 /** Whether Stripe last reported a failed payment: `null` where `plan_status`
  *  holds no word we know, so an unread status is never shown as paid. */
@@ -96,6 +96,8 @@ export interface BillingCard {
    *  Written in the customer's own stated zone by `assembleSettings`
    *  (REQ-073 c3) — this card never formats one itself. */
   accessUntil: string;
+  /** The ended arm's offline day, written in the customer's zone; `null` without hosted pages. */
+  pagesOfflineOn: string | null;
   paymentFailed: boolean | null;
   /** REQ-097 c1's one destination: Stripe's own billing surface, where the
    *  card, the invoices, the billing address, the VAT number and cancelling
