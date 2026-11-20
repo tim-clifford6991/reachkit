@@ -319,6 +319,7 @@ export async function takeSnapshot(keys, now = new Date()) {
 
 const hours = (seconds) => `${(seconds / 3600).toFixed(2)} CPU-hours`;
 const percent = (part, whole) => `${Math.round((part / whole) * 100)}%`;
+export const TARGET = `the monthly efficiency target (${ACTIVE_CPU_BUDGET_CPU_HOURS_PER_MONTH} CPU-hours)`;
 
 /** Month to date plus the last three complete days' mean for the rest of the
  *  month; `undefined` where none of those days was measured. */
@@ -334,10 +335,20 @@ export function projectedCpuSeconds(reading, now) {
   return mtd + (recent.reduce((sum, value) => sum + value, 0) / recent.length) * (daysInMonth - now.getUTCDate());
 }
 
+/** "N of M days read": the month's complete days before today that this
+ *  reading or a stored one has an Active CPU figure for, so a missing day shows. */
+export function monthDaysRead(readings, now) {
+  const today = now.toISOString().slice(0, 10);
+  const read = new Set();
+  for (const reading of readings)
+    for (const [day, figures] of Object.entries(reading?.days ?? {})) if (day.startsWith(today.slice(0, 7)) && day < today && figures.cpuSeconds !== undefined) read.add(day);
+  return `${read.size} of ${now.getUTCDate() - 1} days read`;
+}
+
 /** The mails one reading owes against the budget, and the state each marks
  *  once it is sent. Pure, so a clock double drives it. A new UTC month
  *  starts with nothing mailed. */
-export function budgetStep(last, reading, now) {
+export function budgetStep(last, reading, now, readings = []) {
   const month = now.toISOString().slice(0, 7);
   const state = last?.month === month ? { month, levels: [...(last.levels ?? [])], projected: last.projected === true } : { month, levels: [], projected: false };
   const mtd = reading?.month === month ? reading.monthToDate?.cpuSeconds : undefined;
@@ -345,23 +356,26 @@ export function budgetStep(last, reading, now) {
   const budget = ACTIVE_CPU_BUDGET_CPU_HOURS_PER_MONTH * 3600;
   const projected = projectedCpuSeconds(reading, now);
   const project = reading.monthToDate.projectCpuSeconds;
+  // The projection adds one mean a remaining day, so it passes the target after this share of those days.
+  const left = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0)).getUTCDate() - now.getUTCDate();
+  const crossing = projected !== undefined && projected > budget && mtd < budget ? new Date(Date.parse(now.toISOString().slice(0, 10)) + Math.ceil(((budget - mtd) / (projected - mtd)) * left) * DAY_MS).toISOString().slice(0, 10) : undefined;
   const body = [
-    `Vercel Active CPU for the whole team, ${month} to date (UTC): ${hours(mtd)}, ${percent(mtd, budget)} of the ${ACTIVE_CPU_BUDGET_CPU_HOURS_PER_MONTH} CPU-hour monthly budget.`,
+    `Vercel Active CPU for the whole team, ${month} to date (UTC): ${hours(mtd)} (${monthDaysRead([reading, ...readings], now)}), ${percent(mtd, budget)} of ${TARGET}.`,
     `The reachkit project's share: ${project === undefined ? "not measured" : `${hours(project)} (${percent(project, mtd)})`}.`,
-    `At the last three days' mean the month ends at ${projected === undefined ? "a figure not measured" : `${hours(projected)} (${percent(projected, budget)})`}.`,
+    `At the last three days' mean the month ends at ${projected === undefined ? "a figure not measured" : `${hours(projected)} (${percent(projected, budget)})`}${crossing === undefined ? "" : `, passing the target on ${crossing}`}.`,
     "",
-    "The team's figure includes its other projects, and it is the one Vercel enforces. Vercel's own hard cap is Spend Management (team, Settings, Billing).",
+    "The team's figure includes its other projects. The target is ours: Vercel's own limit is Spend Management (team, Settings, Billing), which the owner set to notify only.",
     "`npm run costs` on the box shows the days; docs/RUNBOOK.md §8 says what to do.",
   ].join("\n");
   const mails = [];
   const crossed = BUDGET_LEVELS.filter((level) => (mtd / budget) * 100 >= level && !state.levels.includes(level));
   if (crossed.length > 0) {
     const level = Math.max(...crossed);
-    mails.push({ subject: `Vercel Active CPU has passed ${level}% of this month's budget`, text: body, marks: { levels: crossed } });
+    mails.push({ subject: `Vercel Active CPU has passed ${level}% of this month's efficiency target`, text: body, marks: { levels: crossed } });
   }
   const atCap = state.levels.includes(100) || crossed.includes(100);
   if (!state.projected && !atCap && projected !== undefined && projected > budget) {
-    mails.push({ subject: "Vercel Active CPU is on course to pass this month's budget", text: body, marks: { projected: true } });
+    mails.push({ subject: "Vercel Active CPU is on course to pass this month's efficiency target", text: body, marks: { projected: true } });
   }
   return { state, mails };
 }
@@ -380,10 +394,10 @@ async function sendMail(keys, mail) {
 
 /** Mails what the reading owes and keeps what was mailed. A mail Resend did
  *  not accept is not marked, so the next hour tries again. */
-/** @param {{ reading: import("./costs/report").VercelReading, keys: Record<string, string | undefined>, now?: Date, statePath?: string }} options */
-export async function checkBudget({ reading, keys, now = new Date(), statePath = process.env.RK_CPU_BUDGET_STATE ?? DEFAULT_BUDGET_STATE }) {
+/** @param {{ reading: import("./costs/report").VercelReading, keys: Record<string, string | undefined>, now?: Date, statePath?: string, readings?: unknown[] }} options */
+export async function checkBudget({ reading, keys, now = new Date(), statePath = process.env.RK_CPU_BUDGET_STATE ?? DEFAULT_BUDGET_STATE, readings = [] }) {
   const last = existsSync(statePath) ? JSON.parse(readFileSync(statePath, "utf8")) : null;
-  const { state, mails } = budgetStep(last, reading, now);
+  const { state, mails } = budgetStep(last, reading, now, readings);
   const said = [];
   for (const mail of mails) {
     if (await sendMail(keys, mail)) {
@@ -470,7 +484,7 @@ if (process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.a
   for (const problem of problems) console.error(`vendor-snapshot: ${problem}`);
   const kept = appendSnapshot(row);
   if (row.vercel !== undefined) {
-    const said = await checkBudget({ reading: row.vercel, keys }).catch((error) => [`budget not checked: ${String(error?.message ?? error)}`]);
+    const said = await checkBudget({ reading: row.vercel, keys, readings: readSnapshots().map((r) => r.vercel) }).catch((error) => [`budget not checked: ${String(error?.message ?? error)}`]);
     for (const line of said) console.error(`vendor-snapshot: ${line}`);
   }
   const since = new Date(Date.now() - (REPORT_DAYS - 1) * DAY_MS).toISOString().slice(0, 10);

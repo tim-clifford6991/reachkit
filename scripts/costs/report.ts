@@ -20,7 +20,7 @@
 // Pure: it reads no file and calls nothing. `scripts/costs.mjs` hands it the
 // rows.
 import { TEST_DAY_EUR, USD_PER_EUR } from "@/lib/config/constants";
-import { ACTIVE_CPU_BUDGET_CPU_HOURS_PER_MONTH } from "../vendor-snapshot.mjs";
+import { ACTIVE_CPU_BUDGET_CPU_HOURS_PER_MONTH, monthDaysRead, TARGET } from "../vendor-snapshot.mjs";
 
 /** D34: €2 a day across all live testing, and where the warning starts —
  *  the pin the owner's cost page reads too (issue 1478). */
@@ -90,6 +90,8 @@ export interface VercelCpu {
   month: string;
   /** `null` where the latest reading is of an earlier month. */
   monthToDate: VercelFigures | null;
+  /** "N of M days read" across every stored reading. */
+  daysRead: string;
   budgetSeconds: number;
   sitesOnAutopilot?: number;
   cpuSecondsPerSite?: number;
@@ -199,6 +201,7 @@ function vercelCpu(snapshots: readonly Snapshot[], today: string): VercelCpu | n
     weekMean: week.length === 0 ? null : { cpuSeconds: week.reduce((sum, v) => sum + v, 0) / week.length, days: week.length },
     month: today.slice(0, 7),
     monthToDate: month === today.slice(0, 7) ? monthToDate : null,
+    daysRead: monthDaysRead(snapshots.map((s) => s.vercel), new Date(startOf(today))),
     budgetSeconds: ACTIVE_CPU_BUDGET_CPU_HOURS_PER_MONTH * 3600,
     ...(sitesOnAutopilot === undefined ? {} : { sitesOnAutopilot }),
     ...(cpuSecondsPerSite === undefined ? {} : { cpuSecondsPerSite }),
@@ -292,7 +295,7 @@ export function renderVercel(cpu: VercelCpu | null): string[] {
     `Vercel Active CPU, team-wide, which includes the team's other projects (read ${cpu.at})`,
     `  Yesterday (${yesterday.day}): ${yesterday.cpuSeconds === undefined ? NOT_MEASURED : cpuHours(yesterday.cpuSeconds)}; ${ours(yesterday)}`,
     `  7-day mean: ${weekMean === null ? NOT_MEASURED : `${cpuHours(weekMean.cpuSeconds)} a day (${weekMean.days} of 7 days measured)`}`,
-    `  Month to date (${cpu.month}): ${mtd === undefined ? NOT_MEASURED : `${cpuHours(mtd)} of the ${budgetSeconds / 3600} CPU-hour budget${share(mtd, budgetSeconds)}`}; ${ours(monthToDate ?? {})}`,
+    `  Month to date (${cpu.month}): ${mtd === undefined ? NOT_MEASURED : `${cpuHours(mtd)} (${cpu.daysRead}), ${Math.round((mtd / budgetSeconds) * 100)}% of ${TARGET}`}; ${ours(monthToDate ?? {})}`,
     `  Per site yesterday: ${
       cpu.cpuSecondsPerSite === undefined || cpu.sitesOnAutopilot === undefined ? NOT_MEASURED : `${cpu.cpuSecondsPerSite.toFixed(1)} CPU-seconds across ${cpu.sitesOnAutopilot} sites on autopilot`
     }`,

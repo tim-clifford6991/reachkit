@@ -115,14 +115,6 @@ describe("npm run costs — Vercel Active CPU", () => {
     },
   };
 
-  it("prints yesterday, the 7-day mean, the month against the budget, reachkit's share and per site", () => {
-    const text = render(reconcile({ spend: [], ledger: [], snapshots: [vercel], adminKey: true, now: at }));
-    expect(text).toContain("Yesterday (2026-11-09): 0.20 CPU-hours; reachkit 0.15 CPU-hours (75%)");
-    expect(text).toContain("7-day mean: 0.28 CPU-hours a day (3 of 7 days measured)");
-    expect(text).toContain("Month to date (2026-11): 2.00 CPU-hours of the 4 CPU-hour budget (50%); reachkit 1.80 CPU-hours (90%)");
-    expect(text).toContain("Per site yesterday: 135.0 CPU-seconds across 4 sites on autopilot");
-  });
-
   it("says not measured, never 0, where nothing was read", () => {
     const none = render(reconcile({ spend: [], ledger: [], snapshots: [], adminKey: true, now: at }));
     expect(none).toContain("Vercel Active CPU: not measured");

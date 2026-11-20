@@ -165,7 +165,7 @@ describe("hygiene holds the line budgets against the pull request's base", () =>
 
     expect(r.pr(() => r.write("src/big.ts", lines(699)))).toEqual([]);
     expect(r.pr(() => r.write("src/big.ts", lines(700).replace(/^\/\/ a [0-4]$/gm, "// b")))).toEqual([]);
-    expect(r.pr(() => (r.write("tests/a.test.ts", lines(300)), r.write("src/feature.ts", lines(600))))).toEqual([]);
+    expect(r.pr(() => (r.write("tests/a.test.ts", lines(300)), r.write("src/feature.ts", lines(451)), r.write("src/more.ts", lines(451))))).toEqual([]);
   });
 
   it("fails a key file whose plain-words count rises from the base, and passes a fall or an exempt file", () => {
