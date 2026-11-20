@@ -1,17 +1,12 @@
-// src/lib/scan/market-evidence.ts — a stored report and the site's read
-// pages, as the evidence ReachKit concludes a market from (#1185).
-//
-// It lives on the scan side because it reads the stored report's own type;
-// `src/lib/market` never imports `src/lib/scan`'s report (the cycle
-// `market/setup/state.ts` explains).
+// A stored report and the site's read pages, as the evidence a market is concluded from. On the scan side because it reads the stored report's type,
+// which `src/lib/market` never imports (see `market/setup/state.ts`).
 import type { EvidenceAnswer, EvidencePage, EvidenceTopTen, MarketEvidence } from "@/lib/market/infer/evidence";
 import { resolvedHost } from "@/lib/market/rivals/domains";
 import type { PlaceSignals } from "@/lib/locale/place";
 import type { Measured } from "@/lib/measure/measured";
 import type { AnswerCell, StoredReport } from "./report";
 
-/** What evidence reads of a report: the stored report, or the slice of it
- *  the re-score exports (issue 1426). */
+/** What evidence reads of a report: the stored report, or the slice of it the re-score exports. */
 export interface EvidenceReport {
   marketPrompts?: StoredReport["marketPrompts"];
   aiAnswers: {
@@ -30,9 +25,7 @@ function bare(domain: string): string {
   return domain.toLowerCase().replace(/^www\./, "");
 }
 
-/** The AI answers of a report: the market's buyer prompts first (#1195),
- *  each with the start of its answer, then each question with every domain
- *  any engine cited for it, once. */
+/** The AI answers of a report: the market's buyer prompts first, each with the start of its answer, then each question with every domain any engine cited for it, once. */
 function answersOf(report: EvidenceReport | null): EvidenceAnswer[] {
   const prompts: EvidenceAnswer[] = (report?.marketPrompts ?? []).map((p) => ({
     question: p.prompt,
@@ -54,17 +47,14 @@ function answersOf(report: EvidenceReport | null): EvidenceAnswer[] {
   })];
 }
 
-/** The domains of a report's measured top tens, with how many of the
- *  measured searches each appears on and one of its titles. A domain with
- *  two results for one search holds that search once (issue 1365): the
- *  count is what the rivals are chosen by, and what the Rivals tab draws. */
+/** The domains of a report's measured top tens, with how many measured searches each appears on and one title.
+ *  A domain with two results for one search holds it once: the count is what rivals are chosen by and what the Rivals tab draws. */
 function topTensOf(report: EvidenceReport | null, own: string): EvidenceTopTen[] {
   const tally = new Map<string, EvidenceTopTen>();
   for (const serp of report?.serps ?? []) {
     if (serp.kind !== "measured") continue;
     const here = new Set<string>();
-    // D67: a business in the local pack is found for this search as one
-    // in the top ten is.
+    // A business in the local pack is found for this search as one in the top ten is.
     for (const row of [...serp.value.organic.map((each) => ({ ...each, domain: resolvedHost(each) ?? "" })), ...(serp.value.localPack ?? [])]) {
       const domain = bare(row.domain);
       if (domain === "" || domain === own || here.has(domain)) continue;
@@ -77,8 +67,7 @@ function topTensOf(report: EvidenceReport | null, own: string): EvidenceTopTen[]
   return [...tally.values()];
 }
 
-/** Whether a measured search of the report showed the site in Google's
- *  local pack (issue 1370). */
+/** Whether a measured search of the report showed the site in Google's local pack. */
 function inLocalPack(report: EvidenceReport | null, own: string): boolean {
   return (report?.serps ?? []).some(
     (serp) => serp.kind === "measured" && (serp.value.localPack ?? []).some((row) => bare(row.domain) === own)
@@ -93,7 +82,7 @@ export function marketEvidence(a: {
   products: readonly string[];
   claims: readonly string[];
   report: EvidenceReport | null;
-  /** What the home page's structured data states of its address (D67). */
+  /** What the home page's structured data states of its address. */
   stated?: PlaceSignals;
 }): MarketEvidence {
   const own = bare(a.domain);

@@ -1,17 +1,7 @@
-// SPEC §6 (#1160) — the tracked-prompt answers a pass paid for and did not
-// wait for, read after it.
-//
-// A weekly pass asks its tracked prompts on the standard queue and stops
-// waiting `TIMING.paidPassAskReserveS` before its ceiling. On 2026-10-05
-// that left 50 of 50 ChatGPT asks and 23 of 50 AI Mode asks unanswered,
-// each billed, in a pass that ended `complete`. The vendor still finishes
-// those tasks, and reading one is free. So the ledger row keeps the task's
-// id, and this reads the answers in a job step of its own, before the week
-// is judged and told. It buys nothing and raises no cap.
-//
-// Only the tracked prompts are read here: their answers are a list on the
-// report, so a late one joins it without the pass being scored again. A
-// question's SERP that was not ready stays unmeasured for the week.
+// The tracked-prompt answers a weekly pass paid for and stopped waiting for (`TIMING.paidPassAskReserveS` before its ceiling), read after it.
+// The vendor still finishes those billed tasks and reading one is free, so the ledger row keeps the task id and a job step of its own reads them
+// before the week is judged. It buys nothing. Only tracked prompts: their answers are a list a late one can join without re-scoring;
+// a question's SERP that was not ready stays unmeasured for the week.
 import { dbAdmin } from "@/lib/db";
 import { readPromptAnswer } from "@/lib/market/prompts/answer";
 import { PROMPT_ENGINES, localeOfReport, readStoredReport, type PromptAnswer, type PromptEngine, type PromptsSection } from "../report";
@@ -135,7 +125,7 @@ export async function collectLateAnswers(a: {
 
     const { readSiteMarket } = await import("@/lib/market/infer/stored");
     const rivals = (await readSiteMarket(a.siteId))?.stored.current?.rivals ?? [];
-    // Issue 1539: the language the prompts were asked in, as the pass stored it.
+    // The language the prompts were asked in, as the pass stored it.
     const language = first === null ? "en" : localeOfReport(readStoredReport(first)).language;
 
     const late: PromptAnswer[] = [];

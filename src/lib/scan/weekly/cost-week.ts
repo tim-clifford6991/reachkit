@@ -1,30 +1,13 @@
-// SPEC §6 (owner, D57, 2026-10-06, issue 1286) — what a week cost, for the
-// Monday owner digest (`./market-digest`).
-//
-// The week is the one the digest already reports stalled pages for: the seven
-// dates before `week_start`, which every zone has finished. Three stores are
-// read and none is recomputed:
-//
-//   * `scans` — a paid pass's `cost_cents` is what that measurement cost; a
-//     free pass's is a free scan's, or a smoke test's where `scans.smoke`
-//     says `scripts/smoke.sh` started it. A scan is in the week by the UTC
-//     instant it was created.
-//   * `drafts` — a page's `cost_cents`, for every page of the week's dates,
-//     stopped or not (the same pages `stalledBySite` counts as written).
-//   * `fetches` — the ledger's own total for the week, product-wide, and
-//     (owner D63, issue 1298) the week's Google SERP reads: how many there
-//     were, how many met our own request bound, and what those cost. The
-//     vendor bills a read we stopped waiting for. And each source's rows the
-//     vendor priced, billed beside estimated, so a price book that drifts
-//     from the bill reaches the owner unasked.
-//
-// No cost figure is ever rendered to a customer (`docs/RUNBOOK.md` §8): this
-// is read for the owner's mail and for nothing else.
+// What a week cost, for the Monday owner digest: the seven dates before `week_start`, which every zone has finished. Three stores, none recomputed:
+//   * `scans`: each pass's `cost_cents`, free ones split from smoke tests by `scans.smoke`; a scan is in the week by its UTC creation instant.
+//   * `drafts`: each page's `cost_cents` for the week's dates, stopped or not.
+//   * `fetches`: the ledger's product-wide total; the week's Google SERP reads, how many met our request bound and what timed-out ones were billed;
+//     and each source's priced rows, billed beside estimated, so price-book drift reaches the owner.
+// No cost figure is ever rendered to a customer: this is for the owner's mail only.
 import { dbAdmin } from "@/lib/db";
 import { FAILURE_KIND, SERP_SOURCES } from "../health-record";
 
-/** Owner ruling W1, 2026-10-20: a source billed more than this many times
- *  its estimate is named in the digest. The caps still decide on estimates. */
+/** A source billed more than this many times its estimate is named in the digest. The caps still decide on estimates. */
 export const BILLED_DRIFT = 1.1;
 
 export interface CostLine {
@@ -171,8 +154,7 @@ export function costWeek(a: {
   };
 }
 
-// `scans.smoke` and the money columns are on disk and not in the generated
-// `Database` type — the same narrow cast `./market-digest` carries.
+// `scans.smoke` and the money columns are not in the generated `Database` type; the same narrow cast as `./market-digest`.
 interface QueryResult<T> {
   data: T[] | null;
   error: { message: string } | null;

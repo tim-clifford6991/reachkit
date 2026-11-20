@@ -1,17 +1,5 @@
-// BUILD §4.1 — the screen's sections, built from the engine's own values.
-//
-// Issue #13 declared what `/scan/{domain}` renders; issues #21, #26 and
-// #27 built what the engine measures. Three of the screen's members are
-// not any single engine value as it stands, and this file is where the two
-// meet — the reconciliation `src/lib/scan/report.ts` names as `#25`'s job,
-// kept out of `store.ts` so that `assembleReport` stays a copy with no
-// transformation in it, and out of `run.ts` so the pipeline stays an
-// ordering of calls.
-//
-// Nothing here measures anything. Every figure it returns was already
-// measured by the call that produced its input; this file re-shapes,
-// filters and labels, and where an input is missing it returns `null` or
-// an empty list rather than a zero.
+// BUILD §4.1: the screen's sections, built from the engine's own values, kept out of `store.ts` (a plain copy) and `run.ts` (an ordering of calls).
+// Nothing here measures: it re-shapes, filters and labels, and a missing input is `null` or an empty list, never a zero.
 import { AI_READER_AGENTS, AI_TRAINING_CRAWLERS, TRACKED_QUESTIONS_MAX } from "@/lib/config/constants";
 import {
   engineColumns,
@@ -54,9 +42,7 @@ export function blockedAgentsOf(
   return AI_READER_AGENTS.filter((token) => policy.disallowedAgents[token] === true);
 }
 
-/** The training crawlers the access rules turn away by name (SPEC §9,
- *  2026-09-29, D14). A choice the founder made, shown as one and never
- *  counted: a blanket `Disallow` names nobody and is not read as one. */
+/** The training crawlers the access rules turn away by name: a founder's choice, shown and never counted. A blanket `Disallow` names nobody. */
 export function trainingOptOutOf(
   robots: Measured<RobotsPolicy>
 ): readonly (typeof AI_TRAINING_CRAWLERS)[number][] {
@@ -65,40 +51,20 @@ export function trainingOptOutOf(
   return AI_TRAINING_CRAWLERS.filter((token) => policy.disallowedAgents[token] === true);
 }
 
-/** The market category the profile inferred, shown beside the score. A
- *  market that was not measured, and a profile whose category came back
- *  empty or as a placeholder (`<UNKNOWN>`, issue 1377), all read the same
- *  way — `null`, "the scan never reached one" — because none is a category
- *  and none may be guessed into one. */
+/** The category the profile inferred, shown beside the score. Unmeasured, empty or a placeholder (`<UNKNOWN>`) all read `null`: none may be guessed into one. */
 export function categoryOf(market: Measured<MarketSet>): string | null {
   if (market.kind === "unmeasured") return null;
   const category = market.value.profile.category.trim();
   return isPlaceholder(category) ? null : category;
 }
 
-/** Whether the report's market stands, read from the report alone. Its
- *  searches, answers and rivals were measured in that market (ADR-095), so
- *  none is drawn where the market was withdrawn or never measured. */
+/** Whether the report's market stands, from the report alone: its searches, answers and rivals were measured in it, so none is drawn where it was withdrawn or never measured. */
 export function marketStands(report: { market: Measured<unknown> }): boolean {
   return report.market.kind !== "unmeasured";
 }
 
-/**
- * One question, as the *screen* stores it: numbered, its wording gated
- * behind `GeneratedText` so no surface can reach it except through
- * `renderQuestion`, and carrying no volume — the owner removed
- * per-question `{vol}/mo` on 2026-09-03, and a field that does not exist
- * cannot be rendered by mistake.
- *
- * **This is the one place the screen's shape is built** (#103's ruling in
- * `report.ts`'s header): a projection of the record's twelve, derived
- * here and written nowhere else, so the two can never come to disagree.
- *
- * It no longer takes the answer cell. `namedBrands` used to be built from
- * it, and that was a fact about the *answer* riding on the question — a
- * third copy of `cell.citedDomains`, on an object the row already holds
- * the cell beside.
- */
+/** One question as the screen stores it: numbered, the wording behind `GeneratedText` (reached only through `renderQuestion`), and no volume.
+ *  The one place the screen's projection of the twelve is built, so the two never disagree. */
 function storedQuestionOf(question: Question, n: number): StoredQuestion {
   return {
     n,
@@ -122,29 +88,10 @@ export function rivalCellsOf(cells: readonly AnswerCell[], rivalDomain: string):
   });
 }
 
-/**
- * #27's `AiAnswersCard` as the screen stores it. Three things the card
- * does not carry, and each is a decision `src/lib/scan/report.ts` records:
- * the measurement date its source chip shows, the customer's own domain so
- * the matrix can label its own row, and one row per rival — the dot matrix
- * §4.1 draws is rival rows against the customer's.
- *
- * §6.2's three answer columns travel with each row (issue #128), taken
- * from the card rather than re-derived. A question the card had no row for
- * gets the columns `engineColumns` builds from its own cell and no
- * battery — one implementation of the order, so the two paths can never
- * disagree about which column is which.
- *
- * **The rival rows keep the AI-Overview reading, and that is deliberate.**
- * `rivalCellsOf` counts a rival over Google's answers alone, which is
- * exactly what the approved card renders and what "cited on n of m" means
- * on it today. Counting a rival across three engines changes a rendered
- * figure, and that is the design decision the three-column visual is
- * gated behind — not something to slip in under a data change.
- *
- * `null` where the twelve were never phrased: the section is then absent
- * and named, never an empty card.
- */
+/** `AiAnswersCard` as the screen stores it, plus the measurement date, the customer's own domain and one row per rival for the dot matrix.
+ *  §6.2's three columns travel with each row from the card; a question without a card row gets `engineColumns` of its own cell, one implementation.
+ *  Rival rows count Google's answers alone, as the approved card renders; counting across engines would change a rendered figure.
+ *  `null` where the twelve were never phrased: the section is absent and named, never an empty card. */
 export function answersSectionOf(a: {
   card: AiAnswersCard;
   questions: Measured<Question[]>;
@@ -174,30 +121,9 @@ export function answersSectionOf(a: {
   };
 }
 
-/**
- * SPEC §6 (2026-09-20, #908 · #919) — the page questions as the report
- * stores them, **beside the twelve**.
- *
- * The rows have the AI-answers row's shape — the AI-Overview cell that
- * rode free on the question's own SERP, and §6.2's three columns with that
- * cell first — built by `engineColumns`, the same function the card uses,
- * so the two lists can never disagree about which column is which.
- *
- * **It counts nothing.** There is no `measuredSearches`, no
- * `answeredSearches` and no `customerCitations` here, and there will not
- * be: those three are what the score's AI Presence reads, they are
- * `aiAnswers`', and a second set of them under a section that must not move
- * the score would be a denominator waiting to be added to the wrong sum.
- *
- * **The numbering continues the twelve** (13, 14, …) because the screen
- * draws one list of tracked questions and a reader counts through it, and
- * the cap is a cap on that one list.
- *
- * `null` where this pass asked no page question and retired none — the free
- * and onboarding passes, and a site with no live page. An empty section
- * would say a pass went looking and found nothing to ask, which is a
- * different fact and one no reader wants told twice.
- */
+/** The page questions as the report stores them, beside the twelve, rows shaped by `engineColumns` like the card's.
+ *  It counts nothing: the score's AI Presence counts are `aiAnswers`', and a second set here would invite the wrong sum.
+ *  Numbered on from the twelve, since the screen draws one list and the cap is on it. `null` where none were asked or retired, never an empty section. */
 export function pageQuestionsSectionOf(a: {
   asked: readonly PageQuestionCandidate[];
   /** One per asked question, in the order they were asked — the same
@@ -234,8 +160,7 @@ export function pageQuestionsSectionOf(a: {
         ownDomain,
         siteName: a.siteName ?? null,
       }),
-      // Issue 1548: the result is bought for the page's own search, so its
-      // rows are kept for the page's place, not only its AI cell.
+      // The result is bought for the page's own search, so its rows are kept for the page's place, not only its AI cell.
       organic:
         serp === undefined || serp.kind === "unmeasured"
           ? null

@@ -1,29 +1,12 @@
-// BUILD §11 — the hourly selection: whose local Monday has arrived
-//
-// ADR-060: the tick is hourly and due-ness is site-local. "Mon 06:00 UTC"
-// is not the trigger, and a weekly cron on that hour would silently re-file
-// every measurement west of UTC−6 into the previous customer-week — which
-// is the mutation `tests/scan/weekly/due.test.ts` fails on.
-//
-// Four predicates, each owned once and none re-derived here:
-//   1. the site's own local Monday, at its own due hour, or any later
-//      hour of its week where it has a row for the week before — `week.ts`
-//   2. active access                                     — billing (`access.ts`)
-//   3. no weekly scan row for `(site_id, week_start)`,
-//      or a released (`failed`) one inside the week      — `store.ts`
-//   4. a zone to decide 1 in                             — `store.ts`
-//
-// Three statements per tick, whatever the number of sites: the sites, the
-// weeks' rows, the gate. The local-clock filter is arithmetic
-// over rows already in hand, because no PostgREST filter can ask a
-// question in each row's own zone.
-//
-// The already-stamped exclusion is what makes a retry possible: a site
-// whose run failed, or was refused for credit, had its claim released to a
-// `failed` row, and is selected again on every hourly tick after it until
-// its own week ends. A retry opens no new budget: it spends only what is
-// left of that row's `WEEKLY` cap. A site whose run completed, wholly or
-// partly, carries its row and is never selected again for that week.
+// BUILD §11: the hourly selection of whose local Monday has arrived. Due-ness is site-local: a weekly cron at one UTC hour would re-file
+// every measurement west of UTC−6 into the previous week. Four predicates, each owned elsewhere:
+// 1. the site's local Monday at its due hour, or any later hour of its week where it has a row for the week before (`week.ts`)
+// 2. active access (billing)
+// 3. no weekly row for `(site_id, week_start)`, or a released (`failed`) one inside the week (`store.ts`)
+// 4. a zone to decide 1 in (`store.ts`)
+// Three statements per tick whatever the site count; the local-clock filter is arithmetic in hand, since no PostgREST filter asks in each row's zone.
+// A failed or credit-refused run releases its claim to a `failed` row and is retried each hour until its week ends, spending only what is left
+// of that row's `WEEKLY` cap. A completed run is never selected again that week.
 import { sitesWithActiveAccess } from "@/lib/account/billing";
 import { sitesWithAZone, weekStatuses } from "./store";
 import { isWeeklyDue, weekHasBegun, weekKey, weekStartFor } from "./week";

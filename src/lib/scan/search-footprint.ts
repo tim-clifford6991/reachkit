@@ -1,13 +1,6 @@
-// SPEC §2 (owner, 2026-10-10, issue 1387) — a site whose bot protection kept
-// the reader off its own pages has its market read from how it appears in
-// search: the searches it ranks for, and the title and snippet Google shows
-// for each page that ranks. The pass already buys those rows
-// (`ranked_keywords`), so nothing more is bought.
-//
-// This file turns the rows into the text the profile call reads in place of
-// the home page, or says that they are too thin to name a market from. It
-// reads no domain list and no rule about one site: the brand is the
-// domain's own label.
+// A site whose bot protection kept the reader off has its market read from how it appears in search: the searches it ranks for and each ranking page's
+// title and snippet, rows the pass already buys (`ranked_keywords`). This turns them into the text the profile call reads, or says they are too thin.
+// No domain list and no per-site rule: the brand is the domain's own label.
 import { SEARCH_FOOTPRINT } from "@/lib/config/constants";
 import { domainBrand } from "@/lib/site-profile/site-name";
 import type { RankedRow } from "@/lib/vendors/dataforseo/types";

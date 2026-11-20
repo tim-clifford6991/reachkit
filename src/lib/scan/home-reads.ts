@@ -1,7 +1,5 @@
-// src/lib/scan/home-reads.ts — the stored reads of a site's home page the
-// re-score scores a scan with, and the one request that loads their facts:
-// the home read each report's on-page facts came from, and the rendered reads
-// after it. The rest of the history changes no score, so it is never asked for.
+// The stored reads of a site's home page the re-score scores a scan with, and the one request that loads their facts: the home read each report's
+// on-page facts came from, and the rendered reads after it. The rest of the history changes no score, so it is never asked for.
 import type { PageFacts } from "./page-facts";
 
 /** A stored read of a site's home page (`fetches`), as its facts. */

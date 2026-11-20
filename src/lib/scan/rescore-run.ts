@@ -1,24 +1,10 @@
-// src/lib/scan/rescore-run.ts — the production re-score (issue 1433): every
-// stored scan and site rival set, read straight from the database, scored
-// again by the deployed code with `rescoreScan` and `rehomeSite`, and the
-// before and after written back where the master session reads it.
-//
-// The owner's ruling of 2026-10-14 (SPEC §2, issue 1426) fits every scoring,
-// rival or market change to every stored scan at 0¢. Only the stored rows a
-// score is read from are downloaded, never through a connector; each
-// computation runs inside `offline`, so no vendor, model or site can be
-// reached while a scan is scored. The database reads and writes are the only
-// network this does, and they happen outside it.
-//
-// Each stored read is scored from its facts (`fetch-facts.ts`), which are
-// a cache outside these writes.
-//
-// A dry run, or an apply its guard holds, writes the summary only. An apply
-// writes each scan that moves through `rescore_scan`: only the moved paths,
-// the replaced report under `report.previous`, the stamps, and the report's
-// checksum as the guard, so a scan written since it was read is left alone and
-// a second apply changes nothing. The function raises on a change that did not
-// land, so only a scan left alone is read again.
+// The production re-score: every stored scan and site rival set read from the database, scored again by the deployed code (`rescoreScan`, `rehomeSite`),
+// and the before and after written back. Every scoring, rival or market change reaches every stored scan at 0¢: only stored rows are downloaded,
+// and each computation runs inside `offline`, so no vendor, model or site is reachable; the database is the only network, outside it.
+// Each stored read is scored from its facts (`fetch-facts.ts`), a cache outside these writes.
+// A dry run, or an apply its guard holds, writes the summary only. An apply writes each moved scan through `rescore_scan`: only moved paths,
+// the old report under `report.previous`, the stamps, and the checksum as guard, so a scan written since it was read is left alone and a second apply
+// changes nothing. It raises on a change that did not land.
 import { offline } from "@/lib/egress/offline";
 import type { Measured } from "@/lib/measure/measured";
 import type { Drivers, ScoreFactorName } from "@/lib/measure/score";
@@ -75,9 +61,7 @@ export interface ScanWrite {
   by: string;
 }
 
-/** A stored profile's name as the column holds it, with its stored home
- *  title, which says how the site cases its name. Read only through
- *  `storedSiteName` (issue 1479). */
+/** A stored profile's name as the column holds it, with its stored home title (which cases the name). Read only through `storedSiteName`. */
 export interface StoredProfileName {
   domain: string;
   site_name: string | null;
@@ -106,13 +90,9 @@ export interface RescoreStore {
   homeReads(domain: string, onPageAt?: readonly number[]): Promise<readonly StoredRead[]>;
   sites(): Promise<readonly StoredSiteRow[]>;
   profiles(): Promise<readonly StoredProfileName[]>;
-  /** Issue 1551: a paying site's scan's own-document reads (`fetches` under
-   *  its id, in the order it read them), and the stored reads of the pages
-   *  ReachKit had live for the site when it ran (`livePagesAt`). */
+  /** A paying site's scan's own-document reads, in the order read, and the stored reads of the pages ReachKit had live for the site then (`livePagesAt`). */
   ownReads(scan: Pick<StoredScanRow, "id" | "siteId" | "createdAt">): Promise<OwnReads>;
-  /** The AI Mode and ChatGPT answers a scan bought, as `fetches` keeps them
-   *  under it (issue 1420). Asked only for a site's current scan, the one
-   *  whose report carries those engines' cells. */
+  /** The AI Mode and ChatGPT answers a scan bought, as `fetches` keeps them; asked only for a site's current scan, whose report carries those cells. */
   answers(scanId: string): Promise<readonly StoredAnswer[]>;
   /** False where the report's checksum is no longer `md5`: nothing written. */
   writeScan(write: ScanWrite): Promise<boolean>;
@@ -126,11 +106,11 @@ export interface RescoreStore {
 
 export interface RescoreOptions {
   apply: boolean;
-  /** Where set, the guard (issue 1481) is decided before any write. */
+  /** Where set, the guard is decided before any write. */
   guard?: { unreadableBefore: number | null };
   /** The deployed commit. */
   version: string;
-  /** The deployed derivation (issue 1481); `null` where the build carried none. */
+  /** The deployed derivation; `null` where the build carried none. */
   derivation?: string | null;
   at: Date;
 }
@@ -138,8 +118,7 @@ export interface RescoreOptions {
 export interface RescoreAnswer {
   scansRead: number;
   scansChanged: number;
-  /** Site-level rows that move: a paying site's rival set, and a stored
-   *  profile's name (issue 1479). */
+  /** Site-level rows that move: a paying site's rival set, and a stored profile's name. */
   sitesMoved: number;
   /** Apply only; 0 on a dry run. */
   scansWritten: number;
@@ -150,7 +129,7 @@ export interface RescoreAnswer {
   /** The scans that still read differently from the deployed code after
    *  this run: every one a dry run would move, the ones an apply left. */
   stale: readonly string[];
-  /** Every score or rival count the run moves, for the guard (issue 1481). */
+  /** Every score or rival count the run moves, for the guard. */
   scoreMoves: readonly ScoreMove[];
   /** Why the guard stopped the run, or the apply still lags; `null` otherwise. */
   held: string | null;
@@ -202,9 +181,7 @@ function reportOf(stored: unknown): RescoreReport {
   return read;
 }
 
-/** The lists the re-score reads, each still a list where it was measured: a
- *  report that lost one (issue 1431) is named here, not met deep in
- *  `cardsOf`. */
+/** The lists the re-score reads, each still a list where it was measured: a report that lost one is named here, not met deep in `cardsOf`. */
 function valuesKept(report: RescoreReport): void {
   for (const name of ["questions", "rivalSizes"] as const) {
     const m = report[name];
@@ -268,7 +245,7 @@ function marketOfSite(market: Record<string, unknown> | null): NonNullable<Resco
   if (market === null) return null;
   const current = (market.current ?? null) as { kind?: unknown; serves?: unknown } | null;
   const area = market.area as { place?: unknown } | undefined;
-  // Issue 1539: the rivals a tracked-prompt answer's lines are read against.
+  // The rivals a tracked-prompt answer's lines are read against.
   const rivals = rivalsOf(market)?.map((rival) => ({ name: rival.name, domain: rival.domain }));
   return {
     ...(current?.kind === undefined ? {} : { kind: current.kind }),
@@ -480,10 +457,9 @@ async function readAll(store: RescoreStore) {
   const scans = await store.scans();
   const profiles = await store.profiles();
   const sites = await store.sites();
-  // A paying site's market, read beside each of its scans' profiles (issue 1470).
+  // A paying site's market, read beside each of its scans' profiles.
   const markets = new Map(sites.map((site) => [site.id, marketOfSite(site.market)] as const));
-  // The name an AI answer is read for (issue 1420), as the pass reads it:
-  // by the name rule, never the column as stored (issue 1479).
+  // The name an AI answer is read for, as the pass reads it: by the name rule, never the column as stored.
   const names = new Map(profiles.map((p) => [p.domain, promptSiteName(storedSiteName(p, p.home_title), p.domain)] as const));
   const renamed = profiles.flatMap((p) => {
     const name = rewrittenSiteName(p, p.home_title);
@@ -513,7 +489,7 @@ async function readAll(store: RescoreStore) {
     .map(({ scan, result: { before, after } }) => ({ domain: scan.domain, before: scoreOf(before), after: scoreOf(after), rivalsBefore: rivalsIn(before), rivalsAfter: rivalsIn(after) }))
     .filter((m) => m.before !== m.after || m.rivalsBefore !== m.rivalsAfter);
   const ids = (pick: (row: Row) => boolean) => rows.filter(pick).map((row) => row.scan.id);
-  // A scan that stands as stored though the code reads it differently (issue 1504) stays stale once written.
+  // A scan that stands as stored though the code reads it differently stays stale once written.
   const [moving, standing] = [ids(moves), ids((row) => row.result.stale)];
   return { profiles, sites, renamed, rows, unreadable, scoreMoves, moving, standing, stale: [...new Set([...moving, ...standing])], movedSites: quietly(() => rehome(sites, rows)) };
 }
@@ -562,8 +538,7 @@ export async function rescoreStored(store: RescoreStore, o: RescoreOptions): Pro
 
 // ── The request ─────────────────────────────────────────────────────────
 
-/** A `rescore_runs` row the master session inserted, or the tick asked for
- *  itself (issue 1481), claimed by this run. */
+/** A `rescore_runs` row inserted by hand or asked for by the tick itself, claimed by this run. */
 export interface RescoreRequest {
   id: string;
   mode: "dry" | "apply";
@@ -605,10 +580,8 @@ export async function answerRequest(
   }
 }
 
-/** The request this tick answers: the oldest one waiting, or, where none
- *  waits and production's deployed derivation has no run, the guarded apply
- *  the tick asks for itself (issue 1481). `held` where the guard or a failure
- *  stopped it: nothing is asked, and the tick says so. */
+/** The request this tick answers: the oldest one waiting, or where none waits and production's derivation has no run, the guarded apply it asks itself.
+ *  `held` where the guard or a failure stopped it: nothing is asked, and the tick says so. */
 export async function claimRequest(
   at: Date,
   derivation: string | null,

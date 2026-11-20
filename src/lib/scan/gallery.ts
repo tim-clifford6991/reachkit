@@ -1,16 +1,6 @@
-// SPEC.md §2 Gallery lists every report — the free scans, as `/scans` and
-// the landing's strip list them.
-// src/lib/scan/gallery.ts — issue #1069
-//
-// Everything here reads `free_scan_listing`, the one view that decides what
-// is listed: each domain's newest finished free scan, never a removed or an
-// unreadable site (`supabase/migrations/*_scans_gallery.sql`). Search, the
-// kind filter, the order and the page are all the database's, so the page
-// is server-rendered and paged rather than a list shipped whole.
-//
-// A view's read is cached, keyed by the view and by an uncached fingerprint
-// of what may change the listing at once, so a crawler walking every filter
-// costs one read per view per window and a removal still shows at once.
+// The gallery's reads of `free_scan_listing`, the one view that decides what is listed: each domain's newest finished free scan, never a removed or unreadable site.
+// Search, kind, order and page are the database's, so the page is server-rendered and paged.
+// Reads are cached per view and keyed by an uncached fingerprint, so a crawler costs one read per view per window and a removal still shows at once.
 import { unstable_cache } from "next/cache";
 import nlp from "compromise";
 import { kindOfProfile } from "@/lib/business/retrofit";
@@ -92,8 +82,7 @@ interface MinimalClient {
   from<T>(table: string): MinimalQuery<T>;
 }
 
-/** The view is not in the generated `Database` type — the same narrow cast
- *  `src/lib/scan/removal.ts` documents for the takedown list. */
+/** The view is not in the generated `Database` type; the same narrow cast as `removal.ts`. */
 function untyped(): MinimalClient {
   return dbAdmin() as unknown as MinimalClient;
 }
@@ -115,9 +104,7 @@ export function searchTerm(raw: string | undefined): string {
     .slice(0, 80);
 }
 
-/** A stored category as the gallery may show it: a placeholder the
- *  inference once stored (`<UNKNOWN>`, issue 1377) is no category, on a
- *  card or as a kind. */
+/** A stored category as the gallery may show it: a placeholder the inference stored (`<UNKNOWN>`) is no category. */
 export function listedCategory(raw: string | null | undefined): string | null {
   const category = (raw ?? "").trim();
   return isPlaceholder(category) ? null : category;
@@ -129,13 +116,8 @@ export function kindOfCategory(category: string | null): BusinessKind | null {
   return category === null ? null : kindOfProfile(category, "", false);
 }
 
-/** The stored name as a card shows it: the brand, never a page title's
- *  tagline (issue 1380), and never the name a bot-protection page gave the
- *  site (issue 1379: sage.com was listed as "Cloudflare"). The view answers
- *  the domain where no name is stored; a card with no name of the site's
- *  own shows the domain's brand. A stored call to action or category is no
- *  name either, and the domain's brand is cased as the site's own home
- *  title cases it — "HubSpot" (issue 1384). */
+/** The stored name as a card shows it: the brand, never a page title's tagline, a bot-protection page's name, a call to action or a category.
+ *  With no name of its own a card shows the domain's brand, cased as the site's home title cases it. */
 export function shownCompany(row: { company: string; domain: string }, homeTitle?: string): string {
   return brandName([unnamed(row) ? domainBrand(row.domain) : row.company], row.domain, [homeTitle]) ?? row.domain;
 }
@@ -145,12 +127,7 @@ function unnamed(row: { company: string; domain: string }): boolean {
   return row.company === row.domain || isProtectionName(row.company, row.domain);
 }
 
-/**
- * Each listed site's stored home title — row one of the inventory its scan
- * kept — which says how the site cases its own name. The view does not
- * carry it. A card is still a card without it, so a failed read is no
- * titles, never a failed gallery.
- */
+/** Each listed site's stored home title, which says how the site cases its name. A failed read is no titles, never a failed gallery. */
 async function homeTitles(domains: readonly string[]): Promise<ReadonlyMap<string, string>> {
   if (domains.length === 0) return new Map();
   const { data, error } = await untyped()
@@ -253,8 +230,7 @@ async function readListing(a: GalleryView): Promise<GalleryPage> {
     );
 
   const titles = await homeTitles((page.data ?? []).map((row) => row.domain));
-  // Issue 1383: a card never states a score measured off a bot-protection
-  // page. Only a scored card is asked about; an unscored one states none.
+  // A card never states a score measured off a bot-protection page; only scored cards are asked about.
   const entries = (page.data ?? []).map((row) => toEntry(row, titles.get(row.domain)));
   const challenged = await challengedHomes(
     entries.filter((entry) => entry.score !== null).map((entry) => ({ domain: entry.domain, at: entry.scannedAt })),
@@ -282,11 +258,7 @@ async function categoriesOf(kind: BusinessKind, search: string, withdrawn: reado
   return [...stored].filter((category) => kindOfCategory(listedCategory(category)) === kind);
 }
 
-/**
- * What may change the listing at once: the takedown list's size and newest
- * row, and the newest finished free scan. Read uncached on every request,
- * so a removal or a new scan is a new key, never a wait (#1069).
- */
+/** What may change the listing at once: the takedown list's size and newest row, and the newest finished free scan. Read uncached, so a change is a new key, never a wait. */
 async function listingFingerprint(): Promise<string> {
   const [blocks, newest] = await Promise.all([
     removalsMark().catch((e: unknown) => {
@@ -319,7 +291,7 @@ export async function readGallery(a: GalleryView): Promise<GalleryPage> {
   return { ...page, entries: page.entries.map((entry) => ({ ...entry, scannedAt: new Date(entry.scannedAt) })) };
 }
 
-/** One slide of the landing's logo band: the site's logo and name, never a score or a date (SPEC §1, owner on #1058). */
+/** One slide of the landing's logo band: the site's logo and name, never a score or a date. */
 export type StripEntry = Pick<GalleryEntry, "domain" | "company">;
 
 const TITLED = /(?:^|\s)(?:Mr|Mrs|Ms|Dr|Herr|Frau|Prof)\.?\s+\p{Lu}/u;

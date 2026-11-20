@@ -8,9 +8,7 @@ import type { DomainMeasurement } from "@/lib/measure";
 import type { ReportLocale } from "../report";
 import type { Sections } from "./sections";
 
-/** What the report records of where it was measured (D66): nothing for the
- *  United States in English with no fallback, which is what every report
- *  before D66 was. */
+/** What the report records of where it was measured: nothing for the United States in English with no fallback. */
 export function reportLocale(m: DomainMeasurement): ReportLocale | null {
   const usual = m.locale.country === DEFAULT_LOCALE.country && m.locale.language === DEFAULT_LOCALE.language;
   const place = m.locale.place;
@@ -21,8 +19,7 @@ export function reportLocale(m: DomainMeasurement): ReportLocale | null {
   return {
     country: m.locale.country,
     language: m.locale.language,
-    // D67 (issue 1441): the town the pass was measured in, which the
-    // measurement line names.
+    // The town the pass was measured in, which the measurement line names.
     ...(place === undefined ? {} : { place }),
     ...(m.localeFellBack === null ? {} : { fellBack: m.localeFellBack }),
     ...(alsoServes.length === 0 ? {} : { alsoServes }),
@@ -31,22 +28,19 @@ export function reportLocale(m: DomainMeasurement): ReportLocale | null {
   };
 }
 
-/** What a pass stores as the site's market where the founder set none: what
- *  it read of the site, else the country its listing reads as, and never a
- *  guess (D66). */
+/** What a pass stores as the site's market where the founder set none: what it read of the site, else the country its listing reads as, never a guess. */
 export function readSiteLocale(m: DomainMeasurement): Locale | null {
   return m.localeBasis === "default" ? listingLocaleOf(m.ownRankedRows) : m.locale;
 }
 
-/** The pass measures in `placed` from here on (issue 1441). */
+/** The pass measures in `placed` from here on. */
 export function inPlace(sections: Sections, placed: PassPlace): void {
   if (sections.measurement === null) return;
   sections.measurement = { ...sections.measurement, locale: { ...sections.measurement.locale, place: placed.place } };
   sections.placeFrom = placed.from;
 }
 
-/** The pass measures in its country again (issues 1454, 1480): the town
- *  `inPlace` set is not this business's market. */
+/** The pass measures in its country again: the town `inPlace` set is not this business's market. */
 export function outOfPlace(sections: Sections): void {
   if (sections.measurement === null) return;
   const locale: Locale = { ...sections.measurement.locale };
@@ -82,17 +76,9 @@ function logPassPlace(fields: { from: PlaceFrom | null; place: string | null; lo
   console.log(JSON.stringify({ event: "free_place_located", ...fields }));
 }
 
-/**
- * The town a free pass measures in from the home page's structured data
- * (D67; owner ruling 2026-10-15, issue 1441), in the order of the
- * evidence, stopping at the first that holds: the structured address
- * `statedPlace` reads, which stands even where the vendor's list does not
- * hold it (the town is searched by name and read in its country); then a
- * business's `areaServed`, and an address written as one string, each only
- * where the list holds the town in the site's country. `null` where none
- * holds or the pass already has a place: the profile call's reading of the
- * page is tried next (`townFromPage`). Never throws.
- */
+/** The town a free pass measures in from the home page's structured data, first that holds: the structured address `statedPlace` reads
+ *  (which stands even where the vendor's list lacks it); then `areaServed`, then an address written as one string, each only where the list holds it
+ *  in the site's country. `null` where none holds or the pass already has a place; `townFromPage` is tried next. Never throws. */
 export async function statedPlaceOfPass(m: DomainMeasurement): Promise<PassPlace | null> {
   if (m.locale.place !== undefined || m.stated === undefined) return null;
   const candidates = placeCandidates(m.stated);
@@ -109,8 +95,7 @@ export async function statedPlaceOfPass(m: DomainMeasurement): Promise<PassPlace
   return null;
 }
 
-/** Whether a free pass measures in `place` (issue 1480): `townHolds` over
- *  the profile and the home page the pass read, the paid path's rule. */
+/** Whether a free pass measures in `place`: `townHolds` over the profile and home page it read, the paid path's rule. */
 export function holdsTown(place: Place, profile: Profile, m: DomainMeasurement, domain: string): boolean {
   const held = townHolds({
     place,
@@ -122,9 +107,7 @@ export function holdsTown(place: Place, profile: Profile, m: DomainMeasurement, 
   return held;
 }
 
-/** The town the profile call read off the home page's own words (rule 4 of
- *  issue 1441), where the vendor's list holds it in the site's country: a
- *  town the model made up, or one abroad, is dropped. */
+/** The town the profile call read off the home page's own words, where the vendor's list holds it in the site's country: a made-up or foreign town is dropped. */
 export async function townFromPage(town: string | undefined, m: DomainMeasurement): Promise<PassPlace | null> {
   const place = placeOf(town);
   if (place === null) return null;

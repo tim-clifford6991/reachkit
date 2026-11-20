@@ -1,18 +1,9 @@
-// SPEC §7 *Re-plan follows each planner deploy* (owner, 2026-11-16): the
-// deployment carries `RK_PLANNER`, `scripts/derivation.mjs`'s fingerprint of
-// the code a week is chosen with. Finding no re-plan at it, the `scan/rescore`
-// tick re-commits each paying site's week from its stored rows, from the first
-// date no draft holds and no daily run can have claimed, at 0¢: the same
-// `planWeek(from)` the on-demand recommit calls, so no pass runs and nothing
-// is bought. The owner's OK of each new week stands (owner, 2026-11-16).
-//
-// Each site is dry-run first through a store that writes nothing and logged
-// (`week_replan_dry_run`); a week that would date fewer days the product can
-// write than the committed one is held (`replan-held`) and its old week stands; one that dates
-// no day is claimed `empty` (`replan-empty`), so the next planner tries it again. The owner is
-// mailed each site's old and new week once per planner, for information:
-// production holds no GitHub key. One claim per (planner, site) in
-// `ops_events`; the tick runs one at a time.
+// SPEC §7: the re-plan follows each planner deploy. The deployment carries `RK_PLANNER`, `scripts/derivation.mjs`'s fingerprint of the week-choosing code;
+// finding no re-plan at it, the `scan/rescore` tick re-commits each paying site's week from its stored rows at 0¢, from the first date no draft holds
+// and no daily run can have claimed, through the same `planWeek(from)` as the on-demand recommit. The owner's OK of each week stands.
+// Each site is dry-run first (`week_replan_dry_run`): a week dating fewer writable days than the committed one is held (`replan-held`); one dating none
+// is claimed `empty` (`replan-empty`) so the next planner retries. The owner is mailed old and new weeks once per planner. One claim per (planner, site)
+// in `ops_events`; the tick runs one at a time.
 import { unmeasuredPartsOf } from "@/lib/scan/weekly/account";
 import { reportIncident } from "@/lib/mail/ops/incident";
 import { claimOpsEvent } from "@/lib/ops/events";

@@ -6,14 +6,9 @@ import { untyped } from "./sections";
 
 interface RunningScanRow {
   id: string;
-  /** Read under an alias, so the column name appears in this file only
-   *  inside the select string. `admission.ts` is the one place the column
-   *  is ever *written*, and its own suite asserts that by pattern over
-   *  `src/`; a read shape that spelled the column as a property would read
-   *  to that check as a second writer. */
+  /** Read under an alias, so the column name appears only inside the select string: `admission.ts` is its one writer, and its suite asserts that by pattern over `src/`. */
   fromIncompleteRescan: boolean;
-  /** What the row already carries — setup's rival suggestion, on the
-   *  onboarding row (issue 798). Counted into the pass's own context. */
+  /** What the row already carries (setup's rival suggestion, on the onboarding row), counted into the pass's own context. */
   costCents?: number | string | null;
 }
 
@@ -55,21 +50,9 @@ export async function closeWithoutSpending(scanId: string): Promise<void> {
   if (error) throw new Error(`runScan: could not close the adopted row: ${error.message}`);
 }
 
-/**
- * Inserts the `running` row a paid pass writes to, before any spend.
- *
- * `fetches.scan_id` and `opportunities.scan_id` both reference `scans
- * (id)`, so a pass whose row does not exist yet can neither ledger a
- * vendor call nor persist an opportunity against it. The free path adopts
- * the row admission already claimed, the deep pass adopts the one
- * `claimOnboardingPass` claimed, and the weekly pass claims its own (that
- * claim is also the once-a-week guarantee and carries `week_start`, which
- * is why it stays `runWeekly`'s); every other pass claims here, and
- * `store_current_report` then updates this row rather than inserting one.
- *
- * No `week_start`, no `is_current`, no cost: this is the row, not the
- * report. Nothing about the pass is decided by it.
- */
+/** Inserts the `running` row a paid pass writes to, before any spend: `fetches.scan_id` and `opportunities.scan_id` reference it.
+ *  The free path, deep pass and weekly pass adopt or claim their own rows; every other pass claims here, and `store_current_report` updates it.
+ *  No `week_start`, `is_current` or cost: this is the row, not the report. */
 export async function claimPassRow(a: {
   scanId: string;
   domain: CanonicalDomain;
@@ -96,31 +79,9 @@ export async function claimPassRow(a: {
 
 const UNIQUE_VIOLATION = "23505";
 
-/**
- * Claims the onboarding pass's row for one site, before anything is spent
- * against it, and answers its id (owner ruling, 2026-09-16).
- *
- * Setup calls this when it accepts the founder's address, so the rival
- * suggestion a stated market needs — `competitors_domain`, a vendor call —
- * is ledgered against a row that exists (`fetches.scan_id` is `not null`).
- * The deep pass calls it again as it starts, then adopts the row
- * (`adoptsClaim`), so a founder whose address was never sought through
- * setup still gets exactly one.
- *
- * **One row per site, held by the primary key.** The id is derived from
- * the site id, so a second claim — the same founder's next address, a
- * request racing another, the pass itself — conflicts on insert rather
- * than adding a row, and only moves the address the row is for, while it
- * is still running. Setup completes once, so a site has one onboarding
- * pass, and a pass that has already ended is not re-opened: the pass
- * started for it adopts nothing and stops.
- *
- * **A founder who abandons setup leaves the row `running`**, with no
- * report, no `is_current`, no network hash and no cost beyond the ledgered
- * suggestion. No guard is held by it: admission's in-flight bound and the
- * stuck-row sweep are both the free tier's, the account's own screens open
- * only once setup is complete, and account deletion takes it with the site.
- */
+/** Claims one site's onboarding row before anything is spent and answers its id: setup calls it on accepting the address, so its rival suggestion
+ *  ledgers against a row that exists, and the deep pass calls it again and adopts it. The id derives from the site id, so a second claim conflicts
+ *  and only moves the address while still running; an ended pass is not re-opened. A row abandoned in setup stays `running` and guards nothing. */
 export async function claimOnboardingPass(a: { siteId: string; domain: string }): Promise<string> {
   const parsed = parseDomain(a.domain);
   if (!parsed.ok) throw new Error(`claimOnboardingPass: ${parsed.problem}`);

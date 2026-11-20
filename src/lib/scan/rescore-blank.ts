@@ -13,9 +13,7 @@ import type { Row, SiteWrite, StoredSiteRow } from "./rescore-run";
 import type { StoredReport } from "./report";
 import { marketStands } from "./sections";
 
-/** The stored profile with every field that names nothing taken out
- *  (issue 1479): a placeholder, or a protection page's words where the scan
- *  read one. `null` where no profile is stored. */
+/** The stored profile with every field that names nothing taken out: a placeholder, or a protection page's words. `null` where no profile is stored. */
 export function clearedProfileOf(r: RescoreReport): Record<string, unknown> | null {
   if (r.market.kind === "unmeasured") return null;
   const profile: unknown = r.market.value.profile;
@@ -23,14 +21,8 @@ export function clearedProfileOf(r: RescoreReport): Record<string, unknown> | nu
   return withoutPlaceholders(profile as Profile, (text) => isPlaceholder(text) || isProtectionName(text, r.domain)) as unknown as Record<string, unknown>;
 }
 
-/**
- * A market read off a home page that held none of the site's words — a
- * protection's page, or a page of the site's that says nothing — is no
- * reading of its market. It is withdrawn with why, and so is the page
- * proposed from it, so the domain's next requested scan reads its market
- * from its listing (`awaitsMarketFromSearch`). One read from the listing
- * stands. `null` where nothing is withdrawn.
- */
+/** A market read off a home page that held none of the site's words (a protection's page, or one that says nothing) is withdrawn with why,
+ *  and so is the page proposed from it, so the next requested scan reads the market from its listing. One read from the listing stands. `null` where nothing is withdrawn. */
 export function withdrawnMarketOf(
   r: RescoreReport & Partial<Pick<StoredReport, "marketFrom" | "freePage">>,
   scan: Pick<RescoreScan, "home" | "rendered">,

@@ -1,9 +1,5 @@
-// SPEC §4 (D22) · §6 (D19, #1162) — the tracked prompts' rolling window,
-// read from stored weekly passes. It measures nothing and buys nothing.
-//
-// One read for the window, never one per week. A week whose pass stored no
-// prompts section is absent, not empty: an empty week would lower the rate
-// as though its prompts had been asked and every answer ignored the site.
+// The tracked prompts' rolling window, read from stored passes; it measures and buys nothing. One read for the window, never one per week.
+// A week whose pass stored no prompts section is absent, not empty: an empty week would lower the rate as though every answer ignored the site.
 import { ANSWER_RATE_WEEKS } from "@/lib/config/constants";
 import type { PromptSample, PromptWeek, PromptWindow } from "@/lib/market/prompts/rate";
 import type { PromptsSection } from "../report";
@@ -58,12 +54,7 @@ function isSection(value: unknown): value is PromptsSection {
   return Array.isArray(section.asked) && Array.isArray(section.answers);
 }
 
-/**
- * The re-measures inside the window that asked the prompts (owner,
- * 2026-10-03, #1162), each under the site-local week it ran in. Only the
- * prompts member is read, never the whole report. Degrades to none: the
- * weekly passes are still the window.
- */
+/** The re-measures inside the window that asked the prompts, each under its site-local week; only the prompts member is read. Degrades to none. */
 async function readRemeasures(a: {
   siteId: string;
   zone: string;
@@ -88,18 +79,9 @@ async function readRemeasures(a: {
   return out;
 }
 
-/**
- * The rolling window ending at `weekStart`. **One pass a week**: where a
- * week holds a weekly pass and a re-measure, or two re-measures, the newest
- * that asked the prompts is that week's sample. Counting both would double
- * the answers read without doubling what was learned. **One set**: a week
- * that asked the set as it was before a rebuild (D54) is left out, so the
- * rate starts again with the rebuilt set and never mixes the two.
- * **Healthy passes only** (D58, issue 1287): a pass one of its own health
- * checks failed on is nobody's sample, so the headline numbers stay on the
- * last healthy pass. Its data stays stored, and a healthy pass of the same
- * week stands in for it.
- */
+/** The rolling window ending at `weekStart`. One pass a week: the newest that asked the prompts, since counting two doubles answers, not learning.
+ *  One set: a week that asked the set before a rebuild is left out, so the rate never mixes two sets.
+ *  Healthy passes only: a pass that failed its own health check is nobody's sample; its data stays stored and a healthy pass of that week stands in. */
 export async function readPromptWindow(a: { siteId: string; weekStart: string; zone?: string }): Promise<PromptWindow> {
   const weekStarts = promptWindowWeeks(a.weekStart);
   const zone = a.zone ?? (await readSiteZone(a.siteId));
@@ -128,9 +110,7 @@ export async function readPromptWindow(a: { siteId: string; weekStart: string; z
     return read;
   };
   const read = weeksOf(unhealthy);
-  // D64 (issue 1301): where no pass in the window is healthy, the newest
-  // pass that asked the prompts is shown as a first measurement — its own
-  // week alone, never a rate over several.
+  // Where no pass in the window is healthy, the newest pass that asked the prompts is shown as a first measurement: its own week, never a rate.
   if (read.length === 0 && unhealthy.size > 0) {
     const first = weeksOf(new Set()).at(-1);
     if (first !== undefined) return { weeks: [first.week], prompts: first.section.asked, firstMeasurement: true };

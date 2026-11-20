@@ -1,66 +1,7 @@
-// src/lib/scan/admission.ts — BP-023 `## Public interface`, WO-057, WO-058
-//
-// `admitFreeScan` answers *may a free scan start* against the free path's
-// bounds, in BP-012's fixed order, without side effects and without
-// consuming an allowance — every render of a report address can ask the
-// question (BP-023 decision 5: this function checks, `claimFreeScanSlot`,
-// WO-058, consumes). The order is BP-012's, reproduced here as the step
-// list only; the reasoning lives in BP-012's `## Decisions` (rule 2.4):
-//
-//   removed → cooldown → switched off / daily ceiling → in-flight → hourly
-//     → network's day → domain's day   (the last two: issue 885)
-//
-// what each step reads and returns is BP-023's `## Error & edge behavior`
-// table.
-//
-// The last two steps are here, not in the route, because `POST /api/scan`
-// calls straight into `claimFreeScanSlot`: a bound above this file is one a
-// script skips. `evaluateAdmission`, below, is that order extracted once (WO-058
-// `## Steps` step 2, rule 2.4): both `admitFreeScan` and `claimFreeScanSlot`
-// call it, so the order exists exactly once in this file.
-//
-// **`claimFreeScanSlot`'s transaction, and a deviation flagged once here
-// (constitution rule 4.2) — full reasoning in `supabase/migrations/
-// 00000000000006_scans_freepath_claim.sql`'s own header:** BP-023's NFR
-// budget calls `claimFreeScanSlot` "one serialisable transaction". Reached
-// only through `dbAdmin()` (`@supabase/supabase-js`, a PostgREST client), a
-// literal client-driven `BEGIN` / `SET TRANSACTION ISOLATION LEVEL
-// SERIALIZABLE` / `COMMIT` spanning the six-step re-evaluation and the
-// insert is not reachable from this module alone — each `.from(...)` call
-// is its own HTTP request and its own implicit transaction, and neither a
-// stored procedure (a migration function body) nor a raw `pg` connection is
-// in WO-058's file plan. `claimFreeScanSlot` instead re-evaluates the same
-// order and then attempts the insert; two concurrent claims for one
-// network can both pass the in-memory re-evaluation, but the migration
-// above's partial unique index — at most one `running` scan per network —
-// lets Postgres allow only one of the resulting inserts to succeed,
-// atomically and regardless of the calling transaction's isolation level.
-// The loser's insert is rejected by the database, not raced against in
-// application code, and is reported as an `in_flight` refusal below — the
-// same outcome the NFR budget names, reached by a constraint rather than
-// an isolation level this client cannot request.
-//
-// **Two schema gaps, each flagged once here (constitution rule 4.2), not
-// fabricated around:**
-//
-//  1. The removal table (`20260905120000_domainblocks.sql`) has no entry in
-//     the generated `Database` type (`src/lib/db/types.generated.ts`).
-//  2. `scans.network_hash` and `scans.from_incomplete_rescan` were added to
-//     the live schema by WO-056's migration (`supabase/migrations/
-//     00000000000005_scans_freepath.sql`), but `types.generated.ts` was not
-//     regenerated in that WO's own file plan, so both columns are absent
-//     from the generated `Database` type too, even though they exist.
-//
-// Both gaps are worked around the same way: a minimal, locally declared
-// row shape and a narrow, explicitly cast query builder (`untyped`,
-// below) for exactly the calls that touch them — the removal table
-// entirely (its own reader is `./removal` since #104);
-// `scans.network_hash` on the in-flight and hourly reads and on
-// `claimFreeScanSlot`'s insert; `scans.from_incomplete_rescan` on that same
-// insert (WO-058). Every other query in this file is fully typed against
-// the generated `Database`. Regenerating `types.generated.ts` closes both
-// gaps at once and is its own change (a WO-267-shaped one, not an
-// admission-order one); the migration half of gap 1 is closed.
+// Free-scan admission: `admitFreeScan` only checks (every render of a report address asks), `claimFreeScanSlot` consumes; both run `evaluateAdmission`, so the order exists once.
+// Order: removed → cooldown → switched off / daily ceiling → in-flight → hourly → network's day → domain's day. The last two live here, not in the route, because `POST /api/scan` calls `claimFreeScanSlot` directly.
+// PostgREST cannot hold a serialisable transaction, so two concurrent claims are settled by the partial unique index of one `running` scan per network; the loser is an `in_flight` refusal.
+// The removal table and `scans.network_hash`/`from_incomplete_rescan` are missing from the generated `Database` type, so those calls go through `untyped` below.
 import { createHmac } from "node:crypto";
 import { isIP } from "node:net";
 import { env } from "@/lib/config/env";
@@ -87,10 +28,9 @@ import { isRemovedWith } from "./removal";
 import type { CanonicalDomain } from "./domain";
 import type { RefTag } from "@/lib/analytics/ref";
 
-// ── NetworkKey — BP-023 decision 3 ──────────────────────────────────────
+// ── NetworkKey ───────────────────────────────────────────────────────────
 
-/** Opaque, salted, non-reversible. REQ-003 counts by network; no raw address is
- *  stored or logged anywhere in the product. */
+/** Opaque, salted, non-reversible: free scans count by network, and no raw address is stored or logged anywhere. */
 export type NetworkKey = string & { readonly __networkKey: unique symbol };
 
 const UNKNOWN_NETWORK_SEED = "unknown";
@@ -102,9 +42,7 @@ export function clientAddressOf(headers: Pick<Headers, "get">): string | null {
   return platform ?? (process.env.VERCEL === "1" ? null : firstEntry(headers.get("x-forwarded-for")));
 }
 
-/** Truncates IPv6 to its /64 (BP-023 decision 3) and HMACs with `IP_HASH_SALT`, never
- *  keeping the raw address. A missing or unparseable address yields one shared
- *  stable key, so a malformed header is still counted; this function never throws. */
+/** Truncates IPv6 to its /64 and HMACs with `IP_HASH_SALT`; a missing or unparseable address yields one shared key, so a malformed header is still counted. Never throws. */
 export function networkKeyOf(headers: Pick<Headers, "get">): NetworkKey {
   try {
     const entry = clientAddressOf(headers);
@@ -157,44 +95,32 @@ function hashSeed(seed: string): NetworkKey {
   return createHmac("sha256", env.IP_HASH_SALT).update(seed).digest("hex") as NetworkKey;
 }
 
-// ── Admission — BP-012's declared union, reproduced verbatim ────────────
+// ── Admission ────────────────────────────────────────────────────────────
 
-/** Verbatim BP-012's declared union — the refusal reasons and their fields are
- *  that node's contract and are not restated differently here — plus one
- *  field it lacked: `in_flight`'s `runningSince`, the running row's
- *  `created_at`, so a refusal can say how long the network stays held
- *  (issue #510). Absent only when no running row could be re-read. */
+/** Why a free scan may not start; `in_flight.runningSince` (the running row's `created_at`) says how long the network stays held, absent when it could not be re-read. */
 export type Admission =
   | { admit: true }
   | { refuse: "hourly"; retryAfterSeconds: number }
-  /** Issue 885 — this network has had every free scan one network gets in
-   *  a day (`FREE_BOUNDS.scansPerIpPerDay`). Its own arm rather than
-   *  `hourly`'s: the sentence `hourly` renders names the hour. */
+  /** This network has had its day's free scans (`FREE_BOUNDS.scansPerIpPerDay`); its own arm, since `hourly`'s sentence names the hour. */
   | { refuse: "network_daily"; retryAfterSeconds: number }
-  /** Issue 885 — this domain has been measured as often as one address is
-   *  measured in a day (`FREE_BOUNDS.scansPerDomainPerDay`), whoever
-   *  asked. */
+  /** This domain has had its day's free scans (`FREE_BOUNDS.scansPerDomainPerDay`), whoever asked. */
   | { refuse: "domain_daily"; retryAfterSeconds: number }
   | { refuse: "in_flight"; sameDomain: boolean; runningScanId?: string; runningSince?: Date }
   | { refuse: "daily"; retryAfterSeconds: number }
   | { refuse: "switched_off" }
   | { refuse: "cooldown"; retryAfterSeconds: number }
   | { refuse: "removed" }
-  /** A bound could not be read (issue 792). No scan starts on a count
-   *  nobody has; the visitor did not cause it. */
+  /** A bound could not be read: no scan starts on a count nobody has, and the visitor did not cause it. */
   | { refuse: "unreadable" };
 
-// ── The narrow, explicitly cast escape hatch for the two schema gaps ────
+// ── Cast escape hatch for the two schema gaps ─────────────────────────────
 
 interface QueryResult<T> {
   data: T[] | null;
   error: { message: string } | null;
 }
 
-/** PostgREST's own error shape carries `code` — the Postgres SQLSTATE
- *  (`23505` for a unique-violation) — alongside `message`; the read-only
- *  queries above never need it, `claimFreeScanSlot`'s insert does
- *  (`isUniqueViolation`, below). */
+/** PostgREST's error carries the SQLSTATE `code`, which `isUniqueViolation` reads. */
 interface MutationError {
   message: string;
   code?: string;
@@ -205,11 +131,7 @@ interface SingleResult<T> {
   error: MutationError | null;
 }
 
-/** The subset of the PostgREST filter-builder chain this file calls,
- *  typed against a locally declared row shape rather than the generated
- *  `Database` (see the module header's two gaps). Thenable, matching the
- *  real client's own builder. `insert` and `single` are WO-058's addition,
- *  for `claimFreeScanSlot`'s write; every other member is WO-057's. */
+/** The filter-builder chain this file calls, typed against a local row shape instead of the generated `Database`. */
 interface MinimalQueryBuilder<T> extends PromiseLike<QueryResult<T>> {
   select(columns: string): MinimalQueryBuilder<T>;
   eq(column: string, value: string): MinimalQueryBuilder<T>;
@@ -224,8 +146,7 @@ interface MinimalClient {
   from<T>(table: string): MinimalQueryBuilder<T>;
 }
 
-/** Cast boundary for gap 1 and gap 2 (module header). Nothing else in this
- *  file bypasses the generated `Database` type. */
+/** Cast boundary for the two schema gaps; nothing else here bypasses the generated `Database` type. */
 function untyped(client: ReturnType<typeof dbAdmin>): MinimalClient {
   return client as unknown as MinimalClient;
 }
@@ -236,16 +157,14 @@ interface ScanNetworkRow {
   created_at: string;
 }
 
-/** The row `claimFreeScanSlot` inserts — BP-023 `## Data model delta`'s
- *  three added columns plus the base columns every `scans` row carries. */
+/** The `scans` row `claimFreeScanSlot` inserts. */
 interface FreeScanInsert {
   domain: string;
   tier: "free";
   status: "running";
   network_hash: string;
   from_incomplete_rescan: boolean;
-  /** `scans.smoke` (issue 1286). Present only on a smoke test's row: every
-   *  other insert leaves the column to its default. */
+  /** `scans.smoke`: set only on a smoke test's row. */
   smoke?: true;
   /** `scans.ref`: the landing link's allow-listed channel tag, only where there was one. */
   ref?: RefTag;
@@ -255,12 +174,11 @@ interface InsertedScanRow {
   id: string;
 }
 
-// ── The six-step order — BP-012's, evaluated here ───────────────────────
+// ── The admission order ──────────────────────────────────────────────────
 
 type Client = ReturnType<typeof dbAdmin>;
 
-/** Whether the domain's report was taken down on a written request (REQ-002 c4); the
- *  correction offer reads it here so the removal table has one reader. */
+/** Whether the domain's report was taken down on a written request; the correction offer reads it here so the removal table has one reader. */
 export function isDomainRemoved(domain: CanonicalDomain): Promise<boolean> {
   return isRemovedWith(dbAdmin(), domain);
 }
@@ -282,28 +200,8 @@ async function checkCooldown(client: Client, domain: CanonicalDomain): Promise<A
   return { refuse: "cooldown", retryAfterSeconds: Math.ceil((windowMs - elapsedMs) / 1000) };
 }
 
-/**
- * The day's spend, as a refusal — the free path's half of the product-wide
- * daily ceiling (issue #329, BUILD §6.5).
- *
- * "Free scans refuse first, paid passes hold": a paid pass that meets the
- * ceiling mid-flight degrades and keeps its report (`src/lib/costs/`),
- * because the customer has already paid for the pass. A free scan is the
- * spend the product chooses to make, so on a day that has reached its
- * ceiling it is not started at all — refusing at the door costs a visitor
- * a wait, where admitting them would cost them a report that stops
- * half-measured.
- *
- * It refuses under the **existing** `daily` arm rather than a new one.
- * REQ-003 c8's sentence is already the true one for this cause — free
- * scanning is paused for the day and resumes at a stated time — and the
- * time it promises is honest here in a way it is nowhere else: the day's
- * ledger goes to zero at the next UTC midnight whatever anyone does.
- *
- * An unreadable ledger refuses: `readDaySpendCents` answers `null`, this
- * throws, and the handler answers `unreadable`, since nothing is spent on a
- * figure nobody has. The read itself tells the owner, once a UTC day.
- */
+/** The day's spend ceiling (BUILD §6.5) as a refusal under the existing `daily` arm: free scans refuse first, paid passes hold (they degrade, having been paid for).
+ *  An unreadable ledger refuses, since nothing is spent on a figure nobody has. */
 async function checkDailySpend(): Promise<Admission | null> {
   const at = now();
   const [spentCents, ceilingCents] = await Promise.all([readDaySpendCents(at), readDayCeilingCents(at)]);
@@ -376,23 +274,8 @@ async function checkHourly(client: Client, network: NetworkKey): Promise<Admissi
   return { refuse: "hourly", retryAfterSeconds: Math.ceil(remainingMs / 1000) };
 }
 
-/**
- * Issue 885 — how many free scans one network has had today.
- *
- * `checkHourly` above bounds a network's hour; nothing bounded its day, so
- * 5 an hour for 24 hours is 120 scans, `120 x CAPS.FREE_C` = 1440¢, more
- * than half the whole free path's worst case, from one script that simply
- * waits. This is that missing bound.
- *
- * It counts free-tier rows only — a paid pass carries no `network_hash`,
- * and naming the tier is also what keeps this read distinguishable from
- * `checkHourly`'s against the same index.
- *
- * `fills` is the at-most-once rule for the owner's telling: it is true
- * where this request, if it claims, takes the count *to* the bound. The
- * claim that fills a bound tells the owner; every request refused
- * afterwards is refused in silence.
- */
+/** Free scans one network has had today: `checkHourly` alone allows 120 a day. Counts free-tier rows only.
+ *  `fills` is true where this claim takes the count to the bound, so the owner is told once. */
 async function checkNetworkDaily(
   client: Client,
   network: NetworkKey
@@ -414,16 +297,7 @@ async function checkNetworkDaily(
   return { result: refusalAfter(rows, windowMs, "network_daily"), fills: false };
 }
 
-/**
- * Issue 885 — how many free scans one domain has had today, whoever asked.
- *
- * The stored report is what makes a repeat of the same domain cheap, but
- * it is read at the report address (`resolve.ts` row 3) and not here, and
- * `POST /api/scan` calls straight into `claimFreeScanSlot`. So a script
- * holding one address and enough networks paid 12¢ a time, however many
- * reports were already stored for it. This is the bound that stops that,
- * in the one place a caller cannot go around.
- */
+/** Free scans one domain has had today, whoever asked: a script with many networks could otherwise re-buy one domain's report. */
 async function checkDomainDaily(
   client: Client,
   domain: CanonicalDomain
@@ -445,9 +319,7 @@ async function checkDomainDaily(
   return { result: refusalAfter(rows, windowMs, "domain_daily"), fills: false };
 }
 
-/** The wait the two new bounds promise: until the oldest row inside the
- *  window ages out of it, whole seconds rounded up — the shape
- *  `checkHourly` and `checkDaily` already use. */
+/** Seconds until the oldest row in the window ages out, rounded up, as `checkHourly` and `checkDaily` answer. */
 function refusalAfter(
   rows: readonly { created_at: string }[],
   windowMs: number,
@@ -477,10 +349,7 @@ type FreeStep =
   | "domain_daily"
   | "none";
 
-/** BP-023 NFR budget: "one line per admission carrying the decision, the
- *  step that produced it, the network key (hashed) and the domain. Never a
- *  raw address." `network` is already the HMAC output — `networkKeyOf`
- *  never returns a raw address. */
+/** One line per admission: decision, step, hashed network key and domain, never a raw address. */
 function logAdmission(result: Admission, step: FreeStep, network: NetworkKey, domain: CanonicalDomain): void {
   const decision = "admit" in result ? "admit" : result.refuse;
   console.log(
@@ -498,21 +367,13 @@ function finish<T extends Admission>(
   return result;
 }
 
-/** The six-step order (WO-058 `## Steps` step 2, rule 2.4: stated once,
- *  called by both `admitFreeScan` and `claimFreeScanSlot`). Returns the
- *  `Admission` the order settles on and the step that produced it, for the
- *  caller's own logging — this function does not log itself, so a caller
- *  that discards the result without calling `finish` cannot double-log. */
+/** The admission order, stated once for `admitFreeScan` and `claimFreeScanSlot`. It does not log, so a caller that discards the result cannot double-log. */
 async function evaluateAdmission(
   client: Client,
   domain: CanonicalDomain,
   network: NetworkKey
 ): Promise<{ result: Admission; step: FreeStep; fills: FreeScanBound | null }> {
-  // Step 1 — removed. Outside the handler below (WO-057 `## Steps`
-  // step 4, BP-023 `## Error & edge behavior`): a removal-table read
-  // that errors refuses rather than admits, because failing open there
-  // would serve a removed report, which REQ-002 criterion 3 forbids
-  // absolutely.
+  // Step 1, outside the handler: a removal read that errors refuses, because failing open would serve a removed report.
   let removed: boolean;
   try {
     removed = await isRemovedWith(client, domain);
@@ -521,10 +382,7 @@ async function evaluateAdmission(
   }
   if (removed) return { result: { refuse: "removed" }, step: "removed", fills: null };
 
-  // Steps 2 to 6 — cooldown, switched off, daily, in-flight, hourly — are
-  // wrapped in one handler that fails closed (issue 792; SPEC §2 states
-  // the bounds and no fail-open): any read error here refuses, and the
-  // log line names the step that threw. The next request asks again.
+  // Steps 2–6 fail closed: any read error refuses and the log names the step that threw.
   let step: FreeStep = "cooldown";
   try {
     const cooldown = await checkCooldown(client, domain);
@@ -533,11 +391,7 @@ async function evaluateAdmission(
     step = "switched_off";
     if (env.KILL_SWITCH) return { result: { refuse: "switched_off" }, step: "switched_off", fills: null };
 
-    // The `daily` step now asks two questions, in the order of what
-    // outranks what: the product's daily *spend* ceiling first (one figure
-    // for everyone, BUILD §6.5), then BUILD §11's count of free scans.
-    // Both settle on the same refusal — free scanning is paused for the
-    // day — so the visitor is told one thing and the step keeps its name.
+    // `daily` asks the spend ceiling (BUILD §6.5) before BUILD §11's free-scan count; both settle on the same refusal.
     step = "daily";
     const dailySpend = await checkDailySpend();
     if (dailySpend) return { result: dailySpend, step: "daily", fills: null };
@@ -553,9 +407,7 @@ async function evaluateAdmission(
     const hourly = await checkHourly(client, network);
     if (hourly) return { result: hourly, step: "hourly", fills: null };
 
-    // The two bounds issue 885 adds, last: they are the widest windows in
-    // the order, so a visitor inside a narrower one is told about that
-    // first and is never sent away with a day's wait for an hour's cause.
+    // The widest windows go last, so a visitor is never sent away with a day's wait for an hour's cause.
     step = "network_daily";
     const networkDaily = await checkNetworkDaily(client, network);
     if (networkDaily.result) return { result: networkDaily.result, step: "network_daily", fills: null };
@@ -564,10 +416,7 @@ async function evaluateAdmission(
     const domainDaily = await checkDomainDaily(client, domain);
     if (domainDaily.result) return { result: domainDaily.result, step: "domain_daily", fills: null };
 
-    // Admitted. Where this claim would take one of the two counts to its
-    // bound, that is the crossing the owner is told about — and only one
-    // is reported where a claim fills both, the same way the day's spend
-    // reports the more serious of its two lines rather than both.
+    // Where this claim takes a count to its bound the owner is told, once even where it fills both.
     const fills: FreeScanBound | null = networkDaily.fills
       ? "network-day"
       : domainDaily.fills
@@ -579,8 +428,7 @@ async function evaluateAdmission(
   }
 }
 
-/** Idempotent and free of side effects: BP-022 calls it on every render of a
- *  report address, and a render must never consume an allowance. */
+/** Free of side effects: every render of a report address calls it, and a render must never consume an allowance. */
 export async function admitFreeScan(a: {
   domain: CanonicalDomain;
   network: NetworkKey;
@@ -604,21 +452,12 @@ export async function networkAdmits(network: NetworkKey): Promise<boolean> {
   }
 }
 
-/** `error.code === '23505'` — Postgres's unique-violation SQLSTATE. The
- *  only error `insertRunningScan` treats as "lost the race" rather than
- *  rethrowing; every other insert failure propagates (WO-058's own test
- *  plan and BP-023 `## Error & edge behavior` name no other insert-failure
- *  contract for `claimFreeScanSlot` to honour, unlike the counting reads'
- *  explicit fail-open budget). */
+/** Postgres's unique-violation SQLSTATE: the only insert error read as losing the race; any other rethrows. */
 function isUniqueViolation(error: MutationError): boolean {
   return error.code === "23505";
 }
 
-/** The insert `claimFreeScanSlot` guards with `idx_scans_one_running_per_
- *  network` (`supabase/migrations/00000000000006_scans_freepath_claim.sql`).
- *  Returns the new row's id, or `{ conflict: true }` when the database
- *  itself refused a second `running` row for this network — the mutual
- *  exclusion mechanism the module header describes. */
+/** Inserts the running row; `{ conflict: true }` where the one-running-per-network index refused it. */
 async function insertRunningScan(
   client: Client,
   row: FreeScanInsert
@@ -636,18 +475,12 @@ async function insertRunningScan(
   return { id: data.id };
 }
 
-/** BP-023 decision 5: consumes. Re-evaluates the same six-step order
- *  `admitFreeScan` checks, then inserts the `scans` row that *is* the
- *  in-flight record — the module header explains how two concurrent
- *  claims for one network can only ever resolve to one insert succeeding.
- *  A refusal at either the re-evaluation or the insert produces no
- *  `scans` row at all (BP-023, "produces no report of its own"). */
+/** Consumes: re-runs the admission order, then inserts the `scans` row that is the in-flight record. A refusal at either step writes no row. */
 export async function claimFreeScanSlot(a: {
   domain: CanonicalDomain;
   network: NetworkKey;
   fromIncompleteRescan: boolean;
-  /** `scripts/smoke.sh` started it (SPEC §6, D57). Recorded on the row and
-   *  never an argument to a limit. */
+  /** `scripts/smoke.sh` started it: recorded on the row, never an argument to a limit. */
   smoke?: boolean;
   /** The channel tag the scan was started under; recorded, never read by admission. */
   ref?: RefTag;
@@ -680,11 +513,7 @@ export async function claimFreeScanSlot(a: {
     return { claimed: false, refusal };
   }
 
-  // Issue 885: the one claim that fills a free-path bound tells the owner,
-  // and it tells them after the row exists — a claim that lost its race or
-  // raised on the insert did not fill anything. Every request refused by
-  // that bound afterwards is refused in silence, which is what keeps this
-  // one telling a piece of news rather than a stream.
+  // The claim that fills a bound tells the owner, after the row exists; later refusals are silent, so the telling stays news.
   if (fills !== null) publishFreeScanBoundReached(fills, BOUND_SIZE[fills]);
 
   finish({ admit: true }, "none", a.network, a.domain);

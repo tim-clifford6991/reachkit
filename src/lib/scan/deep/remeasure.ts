@@ -1,22 +1,6 @@
-// SPEC §6 (owner ruling 2026-09-17, issue 837) — a thin market is measured
-// again now, never "on Monday".
-//
-// "Picking one re-measures right away as a background job with the
-// side-panel loader, then fills the calendar. A category change in Settings
-// also re-measures right away." And, from the issue: bounded to a sensible
-// rate per site per day so it cannot be spammed.
-//
-// **There is no second pipeline here.** A re-measure is the onboarding pass
-// again — `scan/run` at the deep tier, through `runDeepPass`, with its stages
-// on `sites.setup_stage` and the first draft it starts before it ends — on a
-// fresh claimed row instead of the site's onboarding row. This file decides
-// whether the site may start one, claims the row, and sends the event.
-//
-// **The rate is read from `scans`, not from a counter.** Every paid deep pass
-// is a row with the site's id and the instant it was claimed, so "how many
-// started in the last day" and "is one still under way" are both questions
-// about rows that already exist; no column records a request that could
-// drift from the passes it started.
+// A thin market is measured again now, never "on Monday", bounded per site per day so it cannot be spammed.
+// No second pipeline: a re-measure is the onboarding pass again (`scan/run` at the deep tier) on a fresh claimed row; this file decides, claims and sends.
+// The rate is read from `scans` rows, not a counter that could drift from the passes it started.
 import { REMEASURE } from "@/lib/config/constants";
 import { dbAdmin } from "@/lib/db";
 import { parseDomain } from "../domain";
@@ -60,8 +44,7 @@ interface MinimalClient {
   from<T>(table: string): MinimalQuery<T>;
 }
 
-/** `scans.status` and `sites.setup_stage` are outside the generated
- *  `Database` type — the same narrow cast `release.ts` documents. */
+/** `scans.status` and `sites.setup_stage` are outside the generated `Database` type; the same narrow cast as `release.ts`. */
 function untyped(): MinimalClient {
   return dbAdmin() as unknown as MinimalClient;
 }
@@ -107,19 +90,9 @@ export async function remeasureAllowed(siteId: string, now: Date = new Date()): 
   return null;
 }
 
-/**
- * Claims a fresh `running` deep row for this site before anything is spent,
- * and answers its id — not the onboarding row, which is held by the site's
- * own id and has ended. A new id per press, so the `scan/run` delivery keyed
- * on it starts exactly this pass, and the deep pass adopts it as the site's
- * newest running row. Written here rather than through the pipeline's own
- * claim so that the screens this is sent from reach no vendor client.
- *
- * `remeasureOf` is the cut-short pass this one measures again, where the
- * maintenance tick started it (issue 886). `scans_one_remeasure_per_pass`
- * makes that insert the thing two deliveries of one tick race on: the loser
- * is answered `null` here and starts nothing, having spent nothing.
- */
+/** Claims a fresh `running` deep row before anything is spent and answers its id; a new id per press, so `scan/run` keyed on it starts exactly this pass.
+ *  Written here so the screens this is sent from reach no vendor client. `remeasureOf` makes two deliveries of one tick race on
+ *  `scans_one_remeasure_per_pass`: the loser gets `null` and spends nothing. */
 async function claimFreshPass(a: {
   siteId: string;
   domain: string;
@@ -143,25 +116,13 @@ async function claimFreshPass(a: {
   return scanId;
 }
 
-/**
- * Starts one paid pass for this site now, or says why not.
- *
- * `category`, where given, is the founder's choice from the suggestions or
- * their own words: it is saved as the site's confirmed category only once the
- * pass may start, so a refused press changes nothing. Settings saves its own
- * change first and calls this without one.
- *
- * The side panel is told at once — the stage is written before the event is
- * sent, so the founder's next render already shows the loader — and a send
- * that fails closes the row it claimed rather than leaving it to block the
- * next press for the hold.
- */
+/** Starts one paid pass now, or says why not. `category` is saved as confirmed only once the pass may start, so a refused press changes nothing.
+ *  The stage is written before the event is sent so the next render shows the loader; a failed send closes the row it claimed. */
 export async function startRemeasure(a: {
   siteId: string;
   domain: string;
   category?: string;
-  /** The cut-short pass this one measures again, where a maintenance tick
-   *  started it (issue 886). Absent for a founder's own press. */
+  /** The cut-short pass this one measures again, where a maintenance tick started it; absent for a founder's press. */
   remeasureOf?: string;
   now?: Date;
 }): Promise<RemeasureStart> {
@@ -175,9 +136,7 @@ export async function startRemeasure(a: {
   }
 
   const scanId = await claimFreshPass(a);
-  // Another delivery of the same maintenance tick claimed this cut-short
-  // pass's one re-measure first (issue 886). A pass for this site is under
-  // way — the other delivery's — which is the refusal this already has.
+  // Another delivery of the same tick claimed this pass's one re-measure first, so one is under way.
   if (scanId === null) return { started: false, because: "running" };
 
   await untyped()

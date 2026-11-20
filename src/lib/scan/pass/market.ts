@@ -22,18 +22,9 @@ import { attempt, failed, localeOfPass, ownRankedValue, poolOf, type StageArgs, 
 import { holdsTown, inPlace, outOfPlace, townFromPage } from "./place";
 import { sizeTrackedRivals } from "./rivals";
 
-/**
- * What the profile call reads (§6.7 step 1): the site's own home and pricing
- * text, or `null` where there is none to read.
- *
- * **A site its bot protection kept the reader off** (SPEC §2, owner
- * 2026-10-10, issue 1387), or whose home page did not answer in time
- * (issue 1449), has no text of its own, and neither has one whose home
- * page says nothing of what it sells; only then is its
- * listing in search read in its place: the ranked rows stage one already
- * bought, with the title and snippet Google shows for each page. A listing
- * too thin to name a market from is not read, and the reason is kept.
- */
+/** What the profile call reads (§6.7 step 1): the site's own home and pricing text, or `null` where there is none.
+ *  A site bot protection kept the reader off, whose home page did not answer in time or says nothing of what it sells has no text of its own;
+ *  only then is its listing in search (stage one's ranked rows, with titles and snippets) read instead. A listing too thin to name a market is not read, and the reason kept. */
 export function marketReadingOf(
   a: StageArgs,
   measurement: DomainMeasurement
@@ -44,7 +35,7 @@ export function marketReadingOf(
       ...(measurement.text.pricing === null ? {} : { pricing: measurement.text.pricing }),
     };
   }
-  // Issue 1449: and so is one whose home page did not answer in time.
+  // And so is one whose home page did not answer in time.
   if (measurement.protection === undefined && measurement.homeTimedOut !== true && measurement.homeWordless !== true) return null;
   return listingReadingOf(a, measurement);
 }
@@ -62,10 +53,7 @@ function listingReadingOf(a: StageArgs, measurement: DomainMeasurement): { searc
   return { search: footprint.text };
 }
 
-/** Issue 1450: whether the stage still has the time for a second profile
- *  call — at least half its own seconds left. A first call that failed
- *  fast (a refused request) leaves it; one that ran out its budget does
- *  not, so the free pass's inference arithmetic is not stretched. */
+/** Whether the stage still has time for a second profile call: at least half its own seconds left, so a fast failure leaves room and a timeout does not. */
 function roomForAnotherProfile(bounds: Bounds): boolean {
   return bounds.stopNow() === null && bounds.remainingMs() >= (STAGE_BUDGETS.reading_your_market.seconds * 1000) / 2;
 }
@@ -75,24 +63,16 @@ function logMarketFromSearch(fields: { read: boolean; because?: ThinFootprint; s
   console.log(JSON.stringify({ event: "market_from_search", ...fields }));
 }
 
-/**
- * Whether a stored report is one this build would measure further (issue
- * 1387): bot protection kept the reader off the site, and the pass that
- * stored it never tried to read a market from search; or (issue 1450) the
- * site ranks, its market was not read, and that pass is a day old. Such a
- * report is not served inside the re-scan window. One whose listing was read and found too thin
- * carries that reason, and is served as any other.
- */
+/** Whether a stored report is one this build would measure further, so it is not served inside the re-scan window: bot protection kept the reader off
+ *  and no market was read from search, or the site ranks, its market was not read and the pass is a day old. One whose listing was too thin is served as any other. */
 export function awaitsMarketFromSearch(report: StoredReport, now: Date): boolean {
   if (report.market.kind !== "unmeasured") return false;
   // A market the re-score withdrew, read off a page that was not the site's words.
   if (report.market.because === BOT_PROTECTION || report.market.because === HOME_WORDLESS) return true;
   if (report.market.because !== undefined) return false;
   if (report.onPage.kind === "unmeasured" && report.onPage.because === BOT_PROTECTION) return true;
-  // Issue 1450: a site that ranks, whose market a vendor or the model did
-  // not answer for. This build reads one from its ranked rows instead —
-  // but a pass that failed so is measured again at most once a day, so a
-  // site that keeps failing costs at most one extra free pass a day.
+  // A site that ranks whose market a vendor or the model did not answer for is read from its ranked rows now, but re-measured at most once a day,
+  // so a site that keeps failing costs at most one extra free pass a day.
   const ageMs = now.getTime() - new Date(report.verdict.measuredAt).getTime();
   return report.market.reason === "undeterminable" && report.ownRankedRows.length > 0 && ageMs >= MARKET_REMEASURE_H * 3_600_000;
 }
@@ -111,11 +91,8 @@ export async function readMarket(a: StageArgs, abandoned: () => boolean): Promis
 
   let profile = await attempt("reading_your_market", () => deriveProfile(cost, { locale: localeOfPass(a), ...pages }));
   if (abandoned()) return;
-  // Issue 1450: the site's pages were read and the model gave no profile of
-  // them (trello.com's call came back `http_400`), or named no category. A site that ranks has a
-  // listing in search, and that is read in their place, as for a site its
-  // bot protection kept the reader off — but only where the pass still has
-  // the time for this call and the phrasing after it.
+  // The pages were read but the model gave no profile or named no category: a site that ranks has a listing in search, read in their place
+  // as for a bot-protected site, but only where the pass still has time for this call and the phrasing after it.
   if ((failed(profile) || profile.kind === "unmeasured" || profile.value.category === "") && "home" in reading && roomForAnotherProfile(bounds)) {
     const listing = listingReadingOf(a, measurement);
     if (listing !== null) {
@@ -143,25 +120,17 @@ export async function readMarket(a: StageArgs, abandoned: () => boolean): Promis
   if ("search" in reading && profile.kind !== "unmeasured") sections.marketFrom = "search";
   sections.profile = profile;
   if (profile.kind === "unmeasured") return;
-  // Issue 1454: on a paying site the customer's corrections to who buys
-  // and what the business does are what its searches are chosen by. The
-  // report keeps the profile as read.
+  // On a paying site the customer's corrections to who buys and what the business does choose its searches; the report keeps the profile as read.
   const selecting = a.siteId !== undefined && a.concludesMarket === true ? await withFounderEdits(a.siteId, profile.value) : profile.value;
   if (abandoned()) return;
-  // Issues 1454 and 1480: a town is the market of a business that sells
-  // there, by the rule a paid pass holds its place to. One the profile
-  // reads as selling across its country or beyond, or as software, is
-  // measured there, whatever address its home page states (hubspot.com
-  // states Cambridge, MA, and was asked one search of it). Nothing has been
-  // bought in the town yet: the place is first read by the seeds below.
+  // A town is the market of a business that sells there, by the rule a paid pass holds its place to; one read as selling nationally or beyond,
+  // or as software, is measured in its country whatever address its home page states. The seeds below first read the town.
   const placedIn = sections.measurement?.locale.place;
   if (a.concludesMarket !== true && sections.placeFrom !== null && placedIn !== undefined && !holdsTown(placedIn, selecting, measurement, a.domain)) {
     outOfPlace(sections);
   }
 
-  // SPEC §6 (owner D28, #1185): the market is ReachKit's to keep current.
-  // Re-checked here, before anything is bought for it, so this pass seeds
-  // and measures the market that stands after the check.
+  // The market is ReachKit's to keep current: re-checked here, before anything is bought, so this pass seeds and measures the market that stands.
   let synonyms: readonly string[] = [];
   if (a.concludesMarket === true && a.siteId !== undefined && sections.pagesRead !== null) {
     try {
@@ -178,8 +147,7 @@ export async function readMarket(a: StageArgs, abandoned: () => boolean): Promis
       });
       if (abandoned()) return;
       if (concluded !== null) {
-        // D67 (issue 1318): from here the pass measures where the business
-        // serves — the place this conclusion settled, or none.
+        // From here the pass measures where the business serves: the place this conclusion settled, or none.
         const country: Locale = { country: measurement.locale.country, language: measurement.locale.language };
         sections.measurement = { ...measurement, locale: concluded.place === null ? country : { ...country, place: concluded.place } };
         measuredUnder = concluded.category;
@@ -201,28 +169,21 @@ export async function readMarket(a: StageArgs, abandoned: () => boolean): Promis
     }
   }
 
-  // Issue 1441, rule 4: where the structured data named no town, the town
-  // the profile call read off the page's own words, once the vendor's list
-  // holds it.
+  // Where the structured data named no town, the town the profile call read off the page's own words, once the vendor's list holds it.
   if (a.parameters.measuresStatedPlace && a.concludesMarket !== true && sections.measurement !== null && localeOfPass(a).place === undefined) {
     const fromPage = await townFromPage(selecting.town, sections.measurement);
     if (abandoned()) return;
     if (fromPage !== null && holdsTown(fromPage.place, selecting, measurement, a.domain)) inPlace(sections, fromPage);
   }
 
-  // SPEC §6 thin markets (#778): the first seed is the one every pass buys.
-  // The rest of the ladder is bought one seed at a time, only while short —
-  // except the market's other names, which are bought with the first inside
-  // the same three extra purchases (#1159): its searched terms where it
-  // holds any (D65, issue 1303), else a concluded market's synonyms.
+  // Thin markets: the first seed is the one every pass buys; the rest of the ladder is bought one seed at a time, only while short,
+  // except the market's other names (its searched terms, else a concluded market's synonyms), bought with the first inside the three extra purchases.
   const place = localeOfPass(a).place;
   const searched = marketSeeds(sections.market, place);
-  // D67: a local business's market is bought for its place, so every seed
-  // is the service plus the place.
+  // A local business's market is bought for its place, so every seed is the service plus the place.
   const ladder = seedLadder(selecting, measuredUnder, synonyms, searched);
   const seeds = place === undefined ? ladder : [...new Set(ladder.map((seed) => localSearch(seed, place)))];
-  // Issue 1454: the other lines the business sells are bought with the
-  // first while the purse holds each of them and the questions after.
+  // The other lines the business sells are bought with the first while the purse holds each of them and the questions after.
   const lines = offeringSeeds(selecting).filter((_, i) =>
     affordsSeed({ remainingCents: bounds.remainingCents() - (i + 1) * PRICE_BOOK.SUGGESTIONS_COST_C, selected: BATTERY.QUESTIONS })
   );
@@ -230,46 +191,34 @@ export async function readMarket(a: StageArgs, abandoned: () => boolean): Promis
   const boughtWithFirst = (seed: string): boolean => withFirst.some((x) => x.trim().toLowerCase() === seed.toLowerCase());
   const leading = seeds.slice(1).findIndex((seed) => !boughtWithFirst(seed));
   const upfront = Math.min(leading === -1 ? seeds.length - 1 : leading, a.parameters.extraSeeds);
-  // The site's own footprint, the same number derivation bands by, read
-  // before any market is bought: every suggestions purchase asks only for
-  // rows inside its window (issue 846), and selection never takes a search
-  // outsized for it (SPEC §6 right-sizing, issue 830).
+  // The site's own footprint, read before any market is bought: each suggestions purchase asks only for rows inside its window,
+  // and selection never takes a search outsized for it (SPEC §6 right-sizing).
   const ownRanked = ownRankedValue(measurement.ownRanked);
   if (bounds.stopNow() !== null) return;
   const market = await attempt("reading_your_market", () =>
     deriveMarketSet(cost, { seeds: seeds.slice(0, 1 + upfront), ownRanked, locale: localeOfPass(a) })
   );
   if (abandoned()) return;
-  // Issue 1450: suggestions that did not come back (hiverhq.com's timed
-  // out) are not the end of the market. The site's own ranked rows, and
-  // any rival's the pass reads below, are the pool selection already
-  // widens into, and the ladder's further seeds are still bought while the
-  // pass is short. Where none of them answered either, the questions are
-  // chosen from the pool alone and the record keeps that the suggestions
-  // were not read.
+  // Suggestions that did not come back are not the end of the market: the site's ranked rows and any rival's are the pool selection widens into,
+  // and further seeds are still bought while short. Where none answered, the questions come from the pool alone and the record says the suggestions were not read.
   const suggestionsRead = !failed(market) && market.kind !== "unmeasured";
   sections.marketRows = failed(market) ? unmeasured("undeterminable", a.startedAt) : market;
   if (!suggestionsRead && poolOf(sections).length === 0) return;
   const bought: readonly SuggestionRow[] = suggestionsRead ? market.value : [];
 
-  // The market's other names are its words too (#1195): a search in them is
-  // about this market, not off it. And the market in force says which of
-  // its own searches are measured and which searches never are (D65).
+  // The market's other names are its words too, so a search in them is on-market; the market in force says which searches are measured and which never are.
   let measuredMarket = measuredMarketOf(sections.market, place);
-  // Issue 1549: what this site's passes measured in the last weeks, so the
-  // week's twelve read something new. A correction re-reads its own week.
+  // What this site's passes measured in the last weeks, so the week's twelve read something new. A correction re-reads its own week.
   const recent = a.siteId === undefined || a.tier !== "weekly" || a.correction ? [] : await recentSearches(a.siteId, a.startedAt);
   const category = (): Pick<Parameters<typeof selectTwelve>[0], "category" | "synonyms" | "measured" | "place" | "recent"> => ({
     ...(measuredUnder === undefined ? {} : { category: measuredUnder }),
     ...(recent.length === 0 ? {} : { recent }),
     synonyms: [...synonyms, ...searched],
     ...(measuredMarket === undefined ? {} : { measured: measuredMarket }),
-    // Issue 1441: a free pass with a town has no market to say where it
-    // measures; the town is no part of what the business sells.
+    // A free pass with a town has no market to say where it measures; the town is no part of what the business sells.
     ...(place === undefined ? {} : { place }),
   });
-  // Issue 1454: a business that sells several lines has its searches
-  // spread across them by their weight, chosen from twice as many.
+  // A business that sells several lines has its searches spread across them by weight, chosen from twice as many.
   const offerings = offeringsOf(selecting);
   const spread = (pick: (limit: number) => SelectedSearch[], limit: number = BATTERY.QUESTIONS): SelectedSearch[] =>
     offerings.length < 2 ? pick(limit) : spreadAcrossOfferings(pick(limit * 2), offerings, limit, selecting.language);
@@ -289,9 +238,8 @@ export async function readMarket(a: StageArgs, abandoned: () => boolean): Promis
       limit
     );
   };
-  // D65: before a search is worded and asked, the ones the market holds no
-  // judgement for are judged — the twelve and their runners-up in one call —
-  // and the twelve are chosen again without the ones that are off it.
+  // Before a search is worded and asked, those the market holds no judgement for are judged (the twelve and runners-up in one call)
+  // and the twelve are chosen again without the off-market ones.
   const judgeThenPhrase = async (): Promise<void> => {
     const marketNow = sections.market;
     if (measuredMarket !== undefined && marketNow !== null && a.siteId !== undefined && bounds.stopNow() === null) {
@@ -335,8 +283,7 @@ export async function readMarket(a: StageArgs, abandoned: () => boolean): Promis
 
   for (const seed of seeds.slice(1 + upfront, 1 + a.parameters.extraSeeds)) {
     if (readEnough() || bounds.stopNow() !== null) break;
-    // Widening never spends what the questions already held are asked
-    // with (issues 835 and 1235).
+    // Widening never spends what the questions already held are asked with.
     if (!affordsSeed({ remainingCents: bounds.remainingCents(), selected: held() })) break;
     const more = await attempt("reading_your_market", () => deriveMarketSet(cost, { seeds: [seed], ownRanked, locale: localeOfPass(a) }));
     if (abandoned()) return;
@@ -349,9 +296,7 @@ export async function readMarket(a: StageArgs, abandoned: () => boolean): Promis
   return judgeThenPhrase();
 }
 
-/** Issue 1549: the searches this site's passes measured in the
- *  `SELECTION.freshWeeks` weeks before `at`, from their stored reports.
- *  None where they cannot be read: the twelve are then chosen as before. */
+/** The searches this site's passes measured in the `SELECTION.freshWeeks` weeks before `at`, from stored reports; none where unreadable. */
 async function recentSearches(siteId: string, at: Date): Promise<string[]> {
   try {
     const since = new Date(at.getTime() - SELECTION.freshWeeks * 7 * 86_400_000).toISOString();
@@ -373,8 +318,7 @@ async function recentSearches(siteId: string, at: Date): Promise<string[]> {
   }
 }
 
-/** The profile with the customer's own corrections applied (issue 1454);
- *  the profile as read where their edits cannot be read. */
+/** The profile with the customer's own corrections applied; the profile as read where their edits cannot be read. */
 async function withFounderEdits(siteId: string, profile: Profile): Promise<Profile> {
   try {
     const [{ readBusinessEdits }, { profileWithEdits }] = await Promise.all([
@@ -387,8 +331,7 @@ async function withFounderEdits(siteId: string, profile: Profile): Promise<Profi
   }
 }
 
-/** §6.7 step 4: the selected searches, worded — as many of them as the
- *  pass can pay to ask (issue 873). */
+/** §6.7 step 4: the selected searches, worded, as many as the pass can pay to ask. */
 async function phrase(a: StageArgs, abandoned: () => boolean): Promise<void> {
   const { bounds, cost, sections } = a;
   if (bounds.stopNow() !== null) return;
@@ -401,14 +344,8 @@ async function phrase(a: StageArgs, abandoned: () => boolean): Promise<void> {
   if (!failed(questions) && !abandoned()) sections.questions = questions;
 }
 
-/**
- * The searches a free pass asks for a business with a town, each asked of
- * the town (owner ruling 2026-10-15, issue 1441): a "near me" search is
- * answered for wherever it is asked from, and one that names no place for
- * the whole country, so each becomes the service plus the town
- * (`localSearch`). Two that become one search are asked once, in the
- * selection's order; each keeps the volume the vendor listed it at.
- */
+/** The searches a free pass asks for a business with a town, each asked of the town: a "near me" search answers for wherever it is asked from,
+ *  so each becomes the service plus the town (`localSearch`). Two that become one are asked once, in selection order, each keeping its listed volume. */
 function inTheTown(selected: readonly SelectedSearch[], place: Place): SelectedSearch[] {
   const seen = new Set<string>();
   const out: SelectedSearch[] = [];
@@ -422,26 +359,9 @@ function inTheTown(selected: readonly SelectedSearch[], place: Place): SelectedS
   return out.map((search, i) => (search.rank === i + 1 ? search : { ...search, rank: i + 1 }));
 }
 
-/**
- * **The questions the money left can actually ask** (issue 873).
- *
- * The free path's market ladder and its twelve spend one purse (issue 835),
- * so a pass that widened its market twice has less left for the SERPs. It
- * still selected twelve, phrased twelve and showed twelve — and the ones at
- * the end of the list were dropped unasked, which is a free report with
- * gaps in it where a visitor is deciding whether this product measures
- * anything. Fewer questions, each with an answer, is the trade this makes.
- *
- * It runs before the phrasing, so no model call words a question nobody
- * will see. The purse is read the same way `asking_the_twelve` will read
- * it — its own row, or whatever the market left of the shared purse
- * (`twelveCentsAfter`), whichever is smaller, and never more than the pass
- * itself has left.
- *
- * Nothing here is a floor of its own: too few questions to plan a page from
- * is `MARKET_QUESTION_FLOOR`'s reading (`market-floor.ts`), reached through
- * the same `zero` arm a market that was simply too small reaches.
- */
+/** The questions the money left can ask: the market ladder and the twelve share one purse, and fewer questions each with an answer beat a report with gaps.
+ *  Runs before phrasing, so no model call words an unasked question. The purse is read as `asking_the_twelve` reads it: its row or what the market left
+ *  (`twelveCentsAfter`), whichever is smaller, never more than the pass has. Too few to plan from is `MARKET_QUESTION_FLOOR`'s reading, not a floor here. */
 function whatThePurseCanAsk(a: StageArgs): SelectedSearch[] {
   const purse = Math.min(STAGE_BUDGETS.asking_the_twelve.cents, a.bounds.remainingCents());
   const afforded = questionsAffordable(purse);

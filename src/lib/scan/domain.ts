@@ -1,33 +1,6 @@
-// src/lib/scan/domain.ts — ADR-020
-//
-// WO-051. The product's one domain parser: every written form of one domain
-// canonicalises to one CanonicalDomain, and every malformed value fails to
-// one of five named DomainProblem handles and no others. No DNS, no fetch,
-// no clock (ADR-020 decision 3) — canonicalisation and public-suffix
-// membership are both pure, local, in-memory operations; `parseDomain`
-// throws for no input.
-//
-// The public-suffix table (this WO's first `rests-on` row, inherited from
-// ADR-020) is `psl` (npm, github.com/lupomontero/psl), which embeds the
-// Mozilla/ICANN Public Suffix List at build time — no network call at
-// module load or at request time. Chosen here as a parameter (constitution
-// rule 1.1: an internal dependency, not a customer promise) over `tldts`:
-// `psl` is the narrower tool — "does this ASCII hostname carry a listed
-// public suffix" and its RFC 1035 label/total-length grammar check — and is
-// not asked to do the scheme/userinfo/port/path/www/IDN stripping this
-// module does itself first, in ADR-020 decision 1's order, using the
-// platform's own WHATWG URL host parser (which lowercases and IDNA-encodes
-// to punycode as one operation) and `node:net.isIP` for the IP-literal
-// rejection.
-//
-// `psl`'s own `types/index.d.ts` (bundled in the package) is unreachable
-// under `moduleResolution: "bundler"`: its `package.json` `exports` map
-// declares no `types` condition, so TypeScript refuses the root `types`
-// field fallback — see `src/lib/scan/psl.d.ts`, an ambient shim carrying
-// the narrow slice of `psl`'s published types this module calls, which is
-// how packages missing an `exports`-`types` condition are conventionally
-// typed rather than by widening `tsconfig.json`'s resolution mode for the
-// whole repo.
+// The product's one domain parser: every written form of a domain canonicalises to one `CanonicalDomain`; a malformed value fails to one of five `DomainProblem` handles.
+// Pure: no DNS, no fetch, no clock, never throws. The WHATWG URL host parser lowercases and IDNA-encodes, `node:net.isIP` rejects IP literals, and `psl` checks the public suffix.
+// `psl`'s types are unreachable under `moduleResolution: "bundler"`, hence the shim in `psl.d.ts`.
 import { isIP } from "node:net";
 import { parse as pslParse } from "psl";
 
@@ -73,9 +46,7 @@ function stripBrackets(host: string): string {
   return host.startsWith("[") && host.endsWith("]") ? host.slice(1, -1) : host;
 }
 
-/** Accepts every written form REQ-001 criterion 2 names — scheme or none, `www`
- *  or none, trailing path, any letter case, trailing dot, IDN — and returns one
- *  value for all of them. Does not resolve DNS and does not fetch. */
+/** Accepts every written form (scheme or none, `www` or none, trailing path, any case, trailing dot, IDN) and returns one value. No DNS, no fetch. */
 export function parseDomain(raw: string): DomainParse {
   try {
     const trimmed = raw.trim();
@@ -83,9 +54,7 @@ export function parseDomain(raw: string): DomainParse {
 
     let url: URL;
     try {
-      // ADR-020 decision 1: lowercase, strip scheme, strip userinfo/port/
-      // path/query/fragment, and convert IDN labels to punycode A-labels —
-      // the WHATWG URL host parser does all four as one operation.
+      // Lowercase, strip scheme, userinfo, port, path, query and fragment, and punycode IDN labels: the WHATWG URL host parser does all of it at once.
       url = new URL(toUrlString(trimmed));
     } catch {
       return { ok: false, problem: "not_a_hostname" };
@@ -95,7 +64,7 @@ export function parseDomain(raw: string): DomainParse {
     const unbracketed = stripBrackets(rawHost);
     if (isIP(unbracketed) !== 0) return { ok: false, problem: "ip_literal" };
 
-    // ADR-020 decision 1: strip a leading `www.`, then a trailing dot.
+    // Strip a leading `www.`, then a trailing dot.
     let host = rawHost.startsWith("www.") ? rawHost.slice(4) : rawHost;
     host = host.replace(/\.+$/, "");
     if (host === "") return { ok: false, problem: "not_a_hostname" };
@@ -111,8 +80,7 @@ export function parseDomain(raw: string): DomainParse {
 
     return { ok: true, domain: host as CanonicalDomain };
   } catch {
-    // Defence in depth: nothing above should throw, but c4's "never throws"
-    // property test binds this function to zero exceptions for any input.
+    // Defence in depth: this function must never throw for any input.
     return { ok: false, problem: "not_a_hostname" };
   }
 }

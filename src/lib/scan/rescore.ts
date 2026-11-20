@@ -1,27 +1,8 @@
-// src/lib/scan/rescore.ts — a stored scan, scored again by the current code
-// from what was stored (owner ruling 2026-10-14, issue 1426).
-//
-// "For any of the new calculations to our scoring or similar, you should
-// retro fit this to all existing scans and profiles WITHOUT incurring any new
-// dataforseo costs." So this reads only what a pass kept — the report's
-// SERPs, AI Overview references, ranked rows, on-page facts and access rules,
-// the home read in `fetches`, and the stored rival sets — and runs them
-// through the same functions a new pass runs: `verdictOf`, the four
-// drivers, `cardsOf`, `unreadByProtection`, `rivalHome`. It buys nothing,
-// asks no model and reaches no network: every function here is pure.
-//
-// What a pass never kept is not re-bought; it stands as stored and the scan
-// says so (`kept`). Answerability (Content) is read from the home page, the
-// pricing page and the site's measured pages (issue 1551): from their reads
-// in `fetches` where they are stored, and as stored where they are not.
-//
-// `src/lib/scan/rescore-run.ts` reads the stored rows in production (the
-// `scan/rescore` job, issue 1433), writes the before and after, and on apply
-// writes the change, keeping the original report under `report.previous`.
-//
-// Issue 1539: what each tracked-prompt answer states of the business is read
-// again from the answer's stored text (`statementsOf`), so a stored report
-// carries it without a new pass.
+// A stored scan scored again by the current code from what was stored, at no new DataForSEO cost: the report's SERPs, AI Overview references,
+// ranked rows, on-page facts and access rules, the home read in `fetches` and the stored rival sets go through the same pure functions a new pass runs
+// (`verdictOf`, the drivers, `cardsOf`, `unreadByProtection`, `rivalHome`). It buys nothing, asks no model and reaches no network.
+// What a pass never kept stands as stored and the scan says so (`kept`). Content is read from the stored reads of the home, pricing and measured pages
+// where stored. Tracked-prompt answers' statements are re-read from their stored text (`statementsOf`). `rescore-run.ts` reads and writes in production.
 import { retrofitReading, type Retrofit } from "@/lib/business/retrofit";
 import { aiPresenceOf, aiPresenceRangeOf, aiSampleOf, classifyReferences, foundationsOf, searchPresenceOf, searchPresenceRangeOf } from "@/lib/measure/drivers";
 import { contentOf, measuredPagesOf } from "@/lib/measure/pages";
@@ -91,8 +72,7 @@ export interface RescoreReport extends Pick<
   | "locale"
   | "prompts"
 > {
-  /** The page questions beside the twelve (#919), whose AI-Overview cells
-   *  count toward AI presence (issue 1551). Absent or `null`: none. */
+  /** The page questions beside the twelve, whose AI-Overview cells count toward AI presence. Absent or `null`: none. */
   pageQuestions?: StoredReport["pageQuestions"];
   ownRankedRows: readonly (Pick<RankedRow, "position"> & { keyword?: string })[];
   serps: readonly Measured<MarketSerp>[];
@@ -116,25 +96,17 @@ export interface RescoreScan {
    *  of that page's rendered reads; `null` where it is no longer stored. */
   home: { created_at: string; facts: PageFacts } | null;
   rendered: readonly { created_at: string; facts: PageFacts }[];
-  /** The site's name as an AI answer is read for it (`promptSiteName` over
-   *  the stored profile), `null` where no profile is stored (issue 1420). */
+  /** The site's name as an AI answer is read for it (`promptSiteName` over the stored profile); `null` where no profile is stored. */
   siteName: string | null;
-  /** The AI Mode and ChatGPT answers this scan bought, as `fetches` keeps
-   *  them: the ledger source, the cache key (the search first) and what the
-   *  answer said (issue 1420). Empty where none is stored under this scan. */
+  /** The AI Mode and ChatGPT answers this scan bought, as `fetches` keeps them: source, cache key (search first) and what it said. Empty where none. */
   answers: readonly StoredAnswer[];
   /** A paying site's market (`sites.market`): the kind and place its pass
    *  concluded and the place the founder gave; absent on a free scan. */
   market?: { kind?: unknown; serves?: unknown; area?: { place?: unknown }; rivals?: readonly { name: string; domain: string }[] } | null;
-  /** Issue 1551: the site's measured pages as this scan's own reads hold
-   *  them — the pages ReachKit had live when it ran, newest first, then the
-   *  pages it read itself, in the order it read them — and each address's
-   *  stored read's facts, the home's and the pricing page's among them. Absent
-   *  where the scan ledgered no read of its own: Content stands as stored. */
+  /** The site's measured pages as this scan's own reads hold them (ReachKit's live pages newest first, then its own reads in order),
+   *  with each address's stored read facts. Absent where the scan ledgered no read of its own: Content stands as stored. */
   measured?: { pages: readonly string[]; reads: ReadonlyMap<string, PageFacts> };
-  /** When the scan was asked for (`scans.created_at`): a report dated
-   *  before it was dated by a stored read of a page (issue 1392), and is
-   *  dated again by it (issue 1479). Absent, the stored date stands. */
+  /** When the scan was asked for (`scans.created_at`): a report dated before it was dated by a cached page read, and is re-dated by it. Absent, the stored date stands. */
   startedAt?: string;
 }
 
@@ -144,8 +116,7 @@ export interface StoredAnswer {
   key: string;
   text: string | null;
   citedUrls: readonly string[] | null;
-  /** The whole text, where `text` is cut to the AI Overview's length: a
-   *  tracked prompt's answer is read whole (issue 1539). */
+  /** The whole text, where `text` is cut to the AI Overview's length: a tracked prompt's answer is read whole. */
   whole?: string | null;
 }
 
@@ -179,12 +150,9 @@ export interface Rescored {
   status: ScanStatus;
   /** What stands as stored on this scan, and why. */
   kept: readonly string[];
-  /** The current code reads this scan's market elsewhere than its stored
-   *  searches were bought (issue 1504): it stands as stored, and the run
-   *  lists it as stale until it is scanned again. */
+  /** The current code reads this scan's market elsewhere than its stored searches were bought: it stands as stored, and the run lists it stale until rescanned. */
   stale: boolean;
-  /** What the stored profile gains of the business's reading (issue 1470):
-   *  empty where it holds it all, or nothing stored decides the rest. */
+  /** What the stored profile gains of the business's reading; empty where it holds it all, or nothing stored decides the rest. */
   reading: Retrofit;
 }
 
@@ -238,9 +206,7 @@ function cardsAfter(
           customerCitations: cards.card.customerCitations,
           reusedFrom: cards.card.reusedFrom,
           rivals: cards.rivals.map((rival) => ({ domain: rival.domain, cells: rivalCellsOf(cells, rival.domain) })),
-          // The AI Overview column is the SERP's; the two battery engines
-          // were bought answers, kept as they were read except whether they
-          // name the site, read again from their stored text (issue 1420).
+          // The AI Overview column is the SERP's; the two battery engines are kept as read, except whether they name the site, re-read from their stored text.
           rows: r.aiAnswers.rows.map((row, i) => {
             const cell = cells[i] ?? row.cell;
             return {
@@ -264,11 +230,8 @@ function cardsAfter(
 export const KEPT_CONTENT_UNREAD = "content: the reads of its home or pricing page are not stored under this scan, so its stored value stands";
 export const KEPT_CONTENT_PAGES = "content: some of the pages it would read have no stored read, so it reads the ones that do";
 
-/**
- * Issue 1551: Content over the home page, the pricing page and the site's
- * measured pages, from their stored reads, as `withMeasuredPages` reads them
- * on a pass. `null` where this cannot be read from what is stored.
- */
+/** Content over the home page, the pricing page and the site's measured pages from their stored reads, as `withMeasuredPages` reads them.
+ *  `null` where this cannot be read from what is stored. */
 function contentFrom(r: RescoreReport, scan: RescoreScan, at: Date, kept: string[]): Measured<number> | null {
   const m = scan.measured;
   if (m === undefined || r.onPage.kind === "unmeasured") return null;
@@ -299,7 +262,7 @@ function contentFrom(r: RescoreReport, scan: RescoreScan, at: Date, kept: string
  *  text, and of a battery answer whose text is no longer stored. */
 export const KEPT_NO_OVERVIEW_TEXT = "AI presence: its AI Overviews were stored without their text, so a brand they name only in words is not counted";
 export const KEPT_NO_ANSWER_TEXT = "AI answers: an AI Mode or ChatGPT answer's text is not stored under this scan, so whether it names the site stands as read";
-/** Issue 1504: a free scan's town its profile no longer reads as its market. */
+/** A free scan's town its profile no longer reads as its market. */
 export const KEPT_TOWN_BOUGHT = "town: its searches were bought in a town its profile no longer reads as its market, so its place and rivals stand until its next scan";
 
 /** A battery engine's answered cell, its `named` read again from the text
@@ -349,11 +312,8 @@ export function rescoreScan(scan: RescoreScan): Rescored {
   // not stored, the stored value stands.
   const answerability = contentFrom(r, scan, at, kept) ?? dated(stored?.answerability ?? r.verdict.factors.answerability, at);
 
-  // The profile as this re-score completes it (issue 1470). A free scan's
-  // town that profile reads as no market of its own (issue 1480) still
-  // stands: its searches were bought there and are read as they were, and
-  // the scan is stale until its next pass measures it nationally (issue
-  // 1504), as a stored country stands.
+  // The profile as this re-score completes it. A free scan's town its profile no longer reads as a market still stands: its searches were bought there,
+  // and the scan is stale until its next pass measures it nationally.
   const profile = clearedProfileOf(r);
   const reading = readingOf(r, profile, scan.market ?? null);
   const read = withReading(r, profile, reading);
@@ -368,9 +328,7 @@ export function rescoreScan(scan: RescoreScan): Rescored {
 
   const searchPresence = cards.presence === null || cards.presence.measuredSearches === 0 ? null : searchPresenceOf({ card: cards.presence, serps: r.serps, at });
   if (searchPresence === null && none === undefined) kept.push("search presence: the report kept no measured search, so its stored value stands");
-  // Issue 1551: the page questions' stored AI-Overview cells count beside
-  // the twelve's, read as stored. A report written before the section has
-  // none.
+  // The page questions' stored AI-Overview cells count beside the twelve's, as stored; older reports have none.
   const pageCells = r.pageQuestions?.rows.map((row) => row.cell) ?? [];
   const aiPresence = aiPresenceOf({ serps: r.serps, pageCells, ownDomain: r.domain, siteName: scan.siteName, at });
   const textless = r.serps.some(
@@ -451,11 +409,7 @@ function servedChanges(r: RescoreReport, scan: Pick<RescoreScan, "home">): Repor
   return [{ path: ["locale"], value: alsoServes.length === 0 ? locale : { ...locale, alsoServes } }];
 }
 
-/**
- * Issue 1539: each tracked-prompt answer's statements of the business, read
- * again from its stored text as the pass reads them (`readPromptAnswer`).
- * An answer whose text is no longer stored stands as stored.
- */
+/** Each tracked-prompt answer's statements of the business, re-read from its stored text (`readPromptAnswer`); one whose text is gone stands. */
 function promptChanges(r: RescoreReport, scan: Pick<RescoreScan, "siteName" | "answers" | "market">): ReportChange[] {
   const section = r.prompts;
   // A stored blob is not checked by its type: a section that lost a list is
@@ -487,9 +441,7 @@ function promptChanges(r: RescoreReport, scan: Pick<RescoreScan, "siteName" | "a
   return changes;
 }
 
-/** The date the report wears: the scan's start (issue 1392). A stored date
- *  before the scan was asked for is a cached page read's, so the scan's own
- *  replaces it; any other stands. */
+/** The date the report wears: the scan's start. A stored date before the scan was asked for is a cached page read's, so it is replaced; any other stands. */
 function scanDate(stored: Date | string, startedAt: string | undefined): Date {
   const measured = new Date(stored);
   if (startedAt === undefined) return measured;
@@ -497,8 +449,7 @@ function scanDate(stored: Date | string, startedAt: string | undefined): Date {
   return Number.isNaN(started.getTime()) || measured.getTime() >= started.getTime() ? measured : started;
 }
 
-/** Issue 1470: the lines, kind and reach a stored profile lacks, read from
- *  what the scan stored (`retrofitReading`). None where no profile is. */
+/** The lines, kind and reach a stored profile lacks, read from what the scan stored (`retrofitReading`). None where no profile is. */
 function readingOf(r: RescoreReport, profile: Record<string, unknown> | null, market: RescoreScan["market"] | null): Retrofit {
   if (profile === null) return {};
   const serps: MarketSerp[] = [];
@@ -591,7 +542,7 @@ export interface RescoreSite {
   competitors: readonly string[];
   /** `sites.market.current.rivals`; `null` where no market is stored. */
   rivals: readonly RivalConclusion[] | null;
-  /** The founder chose the rivals: they stand (D28). */
+  /** The founder chose the rivals: they stand. */
   overridden: boolean;
   /** The site's current report. */
   report: EvidenceReport | null;
@@ -603,13 +554,8 @@ export interface RehomedSite {
   moved: readonly { name: string; from: string; to: string | null }[];
 }
 
-/**
- * A stored rival set read again with the current rule for where a rival is
- * kept (issue 1417's `rivalHome`): a rival stored under a store, a directory
- * or a platform is moved to its own site where the stored answers give one,
- * and dropped where they do not. The stored model answer is what is re-read;
- * no model is asked. `null` where nothing moves.
- */
+/** A stored rival set re-read with the current `rivalHome` rule: a rival stored under a store, directory or platform moves to its own site
+ *  where the stored answers give one, else is dropped. No model is asked. `null` where nothing moves. */
 export function rehomeSite(site: RescoreSite): RehomedSite | null {
   if (site.overridden || site.rivals === null) return null;
   const evidence = marketEvidence({

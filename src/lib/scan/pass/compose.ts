@@ -21,18 +21,8 @@ import { assembleReport } from "../store";
 import { marketOf, type Sections, type StageArgs } from "./sections";
 import { reportLocale } from "./place";
 
-/** The last stage buys nothing: the rivals, both cards and the coherence
- *  verdict are all counted over SERPs the pass has already paid for
- *  (§6.6's "zero extra cost"). */
-/**
- * The scoring, run again over a section that arrived late (issue 875).
- *
- * `score` buys nothing and reads nothing but `sections` — §6.6's "zero
- * extra cost" — so deriving again from a set one SERP larger is the cheap
- * way to keep the cards, the rivals and the coherence verdict agreeing with
- * the SERPs the report carries. It is skipped where the stage has not
- * scored yet: the scoring stage will read the late answer on its own.
- */
+/** The scoring, run again over a section that arrived late: `score` reads only `sections` and buys nothing (§6.6's "zero extra cost"),
+ *  so the cards, rivals and coherence verdict keep agreeing with the SERPs stored. Skipped before the scoring stage has run. */
 export function rescore(a: StageArgs): void {
   if (a.sections.sealed || a.sections.presence === null) return;
   score(a);
@@ -67,11 +57,7 @@ export function score(a: Pick<StageArgs, "domain" | "sections" | "parameters" | 
     measuredAt: sections.questions.at,
   });
 
-  // Beside the card, never inside it (#919): the page questions are
-  // composed from their own three arrays, and none of the four values
-  // above — the rivals, the presence card, the AI-answers card and the
-  // coherence verdict — has seen one. The score's AI Presence reads their
-  // cells beside the twelve's (owner, 2026-10-19, issue 1551).
+  // Beside the card, never inside it: the page questions are composed from their own three arrays, and the score's AI Presence reads their cells beside the twelve's.
   sections.pageQuestions = pageQuestionsSectionOf({
     asked: sections.pageAsked,
     serps: sections.pageSerps as readonly Measured<MarketSerp>[],
@@ -88,10 +74,7 @@ export function score(a: Pick<StageArgs, "domain" | "sections" | "parameters" | 
 
 // ── Composition ─────────────────────────────────────────────────────────
 
-/** BUILD §4.1 module 3's two counts. The opportunities engine (issue #40)
- *  derives them and is not built, so they are `not_attempted` — the arm
- *  that says we did not get to it. A 0 would be a claim about the
- *  customer's site that nobody has made. */
+/** BUILD §4.1 module 3's two counts, derived by the opportunities engine, so `not_attempted` here: a 0 would be a claim about the site nobody made. */
 function UNMEASURED_SUPPLY(at: Date): SupplySection {
   return { missingPages: unmeasured("not_attempted", at), unquotablePages: unmeasured("not_attempted", at) };
 }
@@ -102,8 +85,7 @@ const READ_AND_EMPTY: InputOutcome = { read: true, empty: true };
 
 export function composeReport(a: {
   scanId: string;
-  /** `RunScanArgs.category` — the category this pass measured under, kept on
-   *  the record (issue 866). */
+  /** `RunScanArgs.category`: the category this pass measured under, kept on the record. */
   category?: string;
   domain: CanonicalDomain;
   tier: Tier;
@@ -112,44 +94,26 @@ export function composeReport(a: {
   sections: Sections;
   startedAt: Date;
   correctionState: CorrectionState;
-  /**
-   * Issue 715 — the report a retry started from.
-   *
-   * A retry re-measures one part and carries the rest, so a section this
-   * pass did not produce falls back to the one the earlier report already
-   * had rather than to `null`. The order is always "what this pass
-   * measured, else what the report already held": a retry can only ever
-   * add to a report, never take a card off it.
-   *
-   * Absent on every ordinary pass, where a section nothing produced is
-   * genuinely absent and `null` is the truth about it.
-   */
+  /** The report a retry started from: a section this pass did not produce falls back to the earlier report's, so a retry only ever adds to a report.
+   *  Absent on an ordinary pass, where `null` is the truth about a section nothing produced. */
   carried?: StoredReport;
 }): {
   report: StoredReport;
   drivers: Drivers;
   sectionMissing: boolean;
   marketTooSmall: boolean;
-  /** Which step of §6.7 left this pass with no market to read (issue 898),
-   *  or `null` where the market was read. Named by the `ScanInput` that
-   *  step feeds, so the pass's log line and the verdict's own record of
-   *  what went unread say one word between them. */
+  /** Which §6.7 step left this pass with no market, or `null`; named by its `ScanInput` so the log line and the verdict say one word. */
   marketUnread: MarketUnread;
 } {
   const s = a.sections;
   const m = s.measurement;
-  // Issue 715: what a retry carries forward, read once. `undefined` and
-  // `null` are one thing here — "there is nothing carried" — so the three
-  // fallbacks below read a single value rather than an optional chain each.
+  // What a retry carries forward, read once; `undefined` and `null` both mean nothing carried.
   const carried = a.carried ?? null;
   const carriedSiteIssues = carried === null ? null : carried.siteIssues;
-  // Issue 1551: the page questions' AI Overviews count toward AI presence
-  // beside the twelve's — the section the report stores, read as stored.
+  // The page questions' AI Overviews count toward AI presence beside the twelve's, read as stored.
   const pageCells = (s.pageQuestions ?? carried?.pageQuestions)?.rows.map((row) => row.cell) ?? [];
 
-  // One date: the moment the pass started (issue 1392), which the
-  // measurement was handed and every `Measured` under the verdict carries;
-  // `verdictOf` asserts it. A stored read of the home page does not date it.
+  // One date: the moment the pass started, which every `Measured` under the verdict carries (`verdictOf` asserts it). A stored home read does not date it.
   const measuredAt = m === null ? a.startedAt : m.drivers.foundations.at;
 
   const onPage: Measured<OnPageFacts> = m === null ? unmeasured("not_attempted", measuredAt) : m.onPage;
@@ -182,8 +146,7 @@ export function composeReport(a: {
           : outcomeOf(m.pricing.facts),
     access_rules: outcomeOf(robots),
     business_profile: outcomeOf(s.profile),
-    // Issue 1450: a market chosen from the ranked pool, where the
-    // suggestions did not answer, is a market read.
+    // A market chosen from the ranked pool, where the suggestions did not answer, is a market read.
     market_suggestions: outcomeOf(s.marketRows.kind === "unmeasured" && market.kind !== "unmeasured" ? market : s.marketRows),
     own_ranked_rows: m === null ? { read: false, because: "not_attempted" } : outcomeOf(m.ownRanked),
     question_serps: outcomeOf(foldSerps(s.serps, measuredAt)),
@@ -201,10 +164,7 @@ export function composeReport(a: {
     searchesRead: aiSample.read,
   });
 
-  // Issue 898: which step left the pass with no market — the profile call
-  // that did not answer, or the suggestions that did not. It is the same
-  // branch the `market` section takes below, read once so the log and the
-  // report cannot disagree.
+  // Which step left the pass with no market, read once so the log and the report cannot disagree.
   const marketUnread: MarketUnread =
     s.profile.kind === "unmeasured"
       ? "business_profile"
@@ -238,27 +198,21 @@ export function composeReport(a: {
     sources: s.sources,
     onPage,
     robots,
-    // Issue 715: a retry whose crawl did not run again keeps the checks
-    // the report already carried. `checkSite` over a `null` crawl reports
-    // every check as "could not run", which on a retry would be a report
-    // losing nine measurements to gain one.
+    // A retry whose crawl did not run again keeps the checks already carried: `checkSite` over a `null` crawl would lose nine measurements to gain one.
     siteIssues:
       s.siteCrawl === null && carriedSiteIssues !== null
         ? carriedSiteIssues
         : checkSite({ crawl: s.siteCrawl, robots, blockedAgents: blockedAgentsOf(robots) }),
     coherence: s.coherence,
     correctionState: a.correctionState,
-    // Issue 866: the category the pass was handed, so REQ-071's comparison
-    // can see a category change and see it cleared. `null` where the pass
-    // seeded from the profile — the inferred category is not this fact.
+    // The category the pass was handed, so a category change and its clearing are visible; `null` where it seeded from the profile.
     measuredCategory: a.category ?? null,
     marketPrompts: s.marketPrompts,
     prompts: s.prompts,
   });
-  // SPEC §2 (issue 787): the one first-page proposal is the best right-sized
-  // Write target this pass measured — derived, never padded.
+  // The one first-page proposal is the best right-sized Write target this pass measured: derived, never padded.
   const measuredIn = m === null ? null : reportLocale(m);
-  // D67 and issue 1370: only a page that says it serves a place states one.
+  // Only a page that says it serves a place states one.
   const statedPlace = m?.stated === undefined ? null : statedPlaceOf(m.stated);
   const report: StoredReport = {
     ...assembled,
@@ -269,31 +223,17 @@ export function composeReport(a: {
     ...(s.marketFrom === null || market.kind === "unmeasured" ? {} : { marketFrom: s.marketFrom }),
   };
 
-  // #770: a market read and found too small buys no SERP, so AI presence
-  // has nothing to be read from. That is the market's answer and not a
-  // missing section. Never for a pass a ceiling stopped (issue 855): it did
-  // not finish. Since issue 1439 Presence is never missing — what was not
-  // read widens the score's range instead — so a pass whose own ranked read
-  // failed is named missing here, as it was before.
+  // A market read and found too small buys no SERP, so presence is the market's answer, not a missing section; never for a pass a ceiling stopped.
+  // A pass whose own ranked read failed is still named missing here.
   const tooSmall = marketTooSmall(s.questions) && !stoppedOnCeiling(a.stoppedReason);
   const missingFactors = verdict.missing;
   const searchUnread = !inputs.own_ranked_rows.read;
 
-  // Issue 865: **the twelve are a battery, not a section.** One question
-  // whose SERP the vendor dropped used to mark the whole pass `degraded` —
-  // ten of twelve measured, inside its budget, ending `complete`, carried
-  // the same word as a pass that lost its market or was cut off by a
-  // ceiling, and the app's states read that word. A battery says what it
-  // measured and what it did not: every cell carries its own arm and its
-  // `because`, and the pass is only missing this section when *no*
-  // question was measured at all. Everything else here is unchanged — a
-  // section that is wholly absent still degrades the pass, and so does a
-  // ceiling or a cap (`spend.degraded`, `stoppedReason`).
+  // The twelve are a battery, not a section: each cell carries its own arm and `because`, so the pass misses this section only when no question was measured.
+  // A wholly absent section, a ceiling or a cap still degrade the pass.
   const noQuestionMeasured = s.serps.length > 0 && s.serps.every((serp) => serp.kind === "unmeasured");
 
-  // Read off the composed report and not off `sections` (issue 715): a
-  // retry that carried a card forward has that card, so the pass is not
-  // missing it. Everything else here is `sections`' as before.
+  // Read off the composed report, not `sections`: a retry that carried a card forward has it.
   const sectionMissing =
     report.aiAnswers === null ||
     report.presence === null ||
@@ -306,6 +246,5 @@ export function composeReport(a: {
   return { report, drivers, sectionMissing, marketTooSmall: tooSmall, marketUnread };
 }
 
-/** Issue 898 — the two §6.7 steps that can leave a pass with no market at
- *  all, under the `ScanInput` names the verdict already reads them under. */
+/** The two §6.7 steps that can leave a pass with no market, under the `ScanInput` names the verdict reads them by. */
 type MarketUnread = Extract<ScanInput, "business_profile" | "market_suggestions"> | null;

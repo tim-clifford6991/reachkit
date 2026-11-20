@@ -1,46 +1,8 @@
-// SPEC §5 — a finished setup whose onboarding pass never started (issue #782).
-//
-// Setup sends `scan/run` once, retried inside the submit, and swallows the
-// last failure so the founder is never put back in front of the three
-// decisions. The founder now waits for that pass inside the app, so a send
-// the queue never received is a side panel that never clears and a first
-// page that never comes. This is the query `account/maintenance` asks every
-// tick to find those sites; `src/jobs/deep-pass-backstop.ts` re-sends.
-//
-// **Due:** setup completed more than `TIMING.deepPassBackstopMin` ago, and
-// no deep scan row for the site that a pass has ended. A `running` row does
-// not count: setup claims the onboarding row when it accepts the address
-// (`claimOnboardingPass`), before any pass exists.
-//
-// **Why a re-send is harmless.** The event carries the key setup's own send
-// carries, and `scan/run` is idempotent on it — a pass that is queued or
-// still running is not started twice. A pass that started and died keeps
-// its row `running` and has spent that key, so past `REMEASURE.runningHoldMin`
-// it is read as failed and re-measured on a fresh key. The query only looks back
-// `TIMING.deepPassBackstopH` hours, the platform's idempotency window, so a
-// pass that ran and crashed is not re-sent past it on every tick for ever.
-//
-// **A pass a ceiling stopped is measured again** (issue 855, owner). A first
-// pass that ended on `time_ceiling` or `spend_ceiling` did not finish reading
-// the market; it is not a market too small and the founder is not asked to
-// change a category. Where the site's newest deep pass ended that way, the
-// same tick starts it again as a re-measure (`startRemeasure`, issue 837) —
-// a fresh row under that bound: one pass at a time, at most
-// `REMEASURE.perDay` in a day, the onboarding pass included — inside the same
-// `TIMING.deepPassBackstopH` window after setup. A first pass that ended
-// `failed` is measured again the same way, once: its re-measure is a second
-// ended pass, so a second failure is owed nothing. A first pass that ended
-// with no market measured, on a site that now holds a category, is measured
-// again the same way and under the same once (owner, 2026-11-13).
-//
-// **Why a re-measure is harmless too** (issue 886). `account/maintenance` is
-// a clock tick and carries no idempotency key, so the same tick can be
-// delivered twice. 837's bound refuses the second start once the first has
-// claimed its row, but it reads before it writes, so two deliveries arriving
-// together would both read no running pass and both claim one. The key that
-// does not decay with a clock is the cut-short pass itself: this file hands
-// its id back, the re-measure records it as `scans.remeasure_of`, and
-// `scans_one_remeasure_per_pass` lets exactly one of them through.
+// A finished setup whose onboarding pass never started: setup swallows its last send failure, so `account/maintenance` asks this every tick and `src/jobs/deep-pass-backstop.ts` re-sends.
+// Due: setup completed over `TIMING.deepPassBackstopMin` ago and no ended deep pass; a `running` row does not count, since setup claims it before any pass exists.
+// A re-send is harmless: `scan/run` is idempotent on setup's key. A pass that died stays `running`, so past `REMEASURE.runningHoldMin` it is read as failed; the look-back is the platform's idempotency window.
+// A pass a ceiling stopped did not finish reading the market and is re-measured (`startRemeasure`), as is a first pass that failed, or read no market on a site that now holds a category — each once.
+// The tick has no idempotency key, so this answers the cut-short pass's id and `scans_one_remeasure_per_pass` lets exactly one re-measure through.
 import { REMEASURE, TIMING } from "@/lib/config/constants";
 import { dbAdmin } from "@/lib/db";
 
@@ -72,8 +34,7 @@ const MS_PER_MINUTE = 60_000;
 /** At most this many sites a tick. One day of setups is far below it. */
 const SITES_PER_TICK = 200;
 
-/** Every site whose finished setup has no ended deep pass, whose newest deep
- *  pass a ceiling stopped (issue 855), or whose only ended one failed. */
+/** Every site whose finished setup has no ended deep pass, whose newest deep pass a ceiling stopped, or whose only ended one failed. */
 export async function sitesWithoutDeepPass(now: Date): Promise<readonly string[]> {
   const before = new Date(now.getTime() - TIMING.deepPassBackstopMin * MS_PER_MINUTE).toISOString();
   const after = new Date(now.getTime() - TIMING.deepPassBackstopH * 60 * MS_PER_MINUTE).toISOString();
@@ -155,16 +116,8 @@ function owed(rows: readonly PassRow[], hasCategory: boolean): "never_ran" | "cu
   return newest.status === "failed" || (hasCategory && marketUnread(newest)) ? "cut_short" : null;
 }
 
-/**
- * The pass a ceiling stopped, where that is what a site the query named is
- * owed, rather than its onboarding pass never having run — which decides
- * whether the tick re-sends setup's event or re-measures.
- *
- * It answers the **row's id**, not a yes (issue 886): the id is the key the
- * re-measure it starts is unique on (`scans.remeasure_of`), so two
- * deliveries of one maintenance tick that both read this pass race on that
- * column and exactly one of them starts a paid pass.
- */
+/** The pass a ceiling stopped, where that is what the site is owed, which decides re-send versus re-measure.
+ *  Answers the row's id: the re-measure is unique on it (`scans.remeasure_of`), so two deliveries of one tick start one paid pass. */
 export async function deepPassCutShort(siteId: string, now: Date = new Date()): Promise<string | null> {
   const site = await untyped().from<SiteRow>("sites").select("id, category, setup_completed_at").eq("id", siteId).limit(1);
   if (site.error) throw new Error(`deepPassCutShort: could not read site ${siteId}: ${site.error.message}`);

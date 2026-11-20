@@ -1,22 +1,7 @@
-// src/lib/scan/finish-reads.ts — SPEC §2 (owner, 2026-10-15, issue 1440)
-//
-// A free pass that ends with searches it chose and never read — `not_attempted`
-// where its 50 s ran out first, `undeterminable` where the vendor timed out or
-// failed — stores its report saying so (`finishingReads`) and sends
-// `scan/finish-reads`. That job reads only those searches, once, with the
-// pass's own query, locale and settings, from the SERP cache first, on the
-// spend ledger the pass used: the row's `cost_cents` is what the 12¢ free cap
-// has already spent, and the close adds this job's spend to it
-// (`withStoredPassSpend`). No second budget.
-//
-// The report is then rewritten with the new cells and scored again through
-// the re-score's own path (`rescoreRow`, `rescore_scan`): guarded by the
-// report's checksum, keeping the stored one under `report.previous`. A search
-// that fails again stays unmeasured with its reason. One attempt; nothing
-// here asks a second time.
-//
-// Stored scans are never read again by this: that would be new DataForSEO
-// spend (owner rule, issue 1426). Only a report a pass marked is finished.
+// A free pass that ends with chosen searches unread (`not_attempted` or `undeterminable`) stores `finishingReads` and sends `scan/finish-reads`.
+// That job reads only those searches, once, with the pass's own query, locale and settings, cache first, on the pass's own ledger under the 12¢ free cap; no second budget.
+// The report is rewritten and re-scored through `rescoreRow`/`rescore_scan`, checksum-guarded, keeping the old one under `report.previous`.
+// Stored scans are never read again by this: that would be new DataForSEO spend. Only a report a pass marked is finished.
 import { CAPS, CACHE_WINDOWS_D, TIMING } from "@/lib/config/constants";
 import type { CostContext, VendorFailure } from "@/lib/costs";
 import { unmeasured, type Measured } from "@/lib/measure/measured";
@@ -141,8 +126,7 @@ export async function finishReads(
   const at = report.questions.at;
   const cells = new Map<number, Measured<SerpResult>>();
   if (unread.length > 0 && leftCents(row.costCents ?? CAPS.FREE_C) > 0) {
-    // D67 (issue 1441): a free pass measured in its town finishes its reads
-    // there too, not in the country.
+    // A free pass measured in its town finishes its reads there too, not in the country.
     const place = report.locale?.place;
     const locale = place === undefined ? localeOfReport(report) : { ...localeOfReport(report), place };
     const untilMs = Date.now() + TIMING.paidPassCeilingS * 1000;
@@ -291,7 +275,7 @@ export function databaseFinish(): FinishStore {
         report: s.report,
         siteId: s.site_id,
         isCurrent: s.is_current === true,
-        // An unreadable total is the whole cap spent (SPEC §2, #792).
+        // An unreadable total is the whole cap spent.
         costCents: s.cost_cents === null || !Number.isFinite(spent) ? null : spent,
       };
     },
@@ -304,8 +288,7 @@ export function databaseFinish(): FinishStore {
         .limit(1);
       if (error !== null) throw new Error(error.message);
       const row = data?.[0];
-      // Read by the name rule, so a placeholder, a protection's page or a
-      // call to action is never the name an answer is read for (issue 1479).
+      // Read by the name rule, so a placeholder, a protection's page or a call to action is never the name an answer is read for.
       return row === undefined ? null : storedSiteName(row, row.home_title);
     },
     async writeScan(w) {

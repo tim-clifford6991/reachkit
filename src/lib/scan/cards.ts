@@ -1,11 +1,5 @@
-// src/lib/scan/cards.ts — the rivals, the two cards and the coherence
-// verdict, counted over SERPs a pass already holds (§6.6's "zero extra
-// cost").
-//
-// One function for the two callers that count them: a pass's last stage
-// (`score` in `run.ts`) and the re-score of a stored report (`rescore.ts`,
-// issue 1426). Both read the same stored inputs, so a report re-scored with
-// the current code says what a new pass over the same SERPs would say.
+// The rivals, both cards and the coherence verdict, counted over SERPs a pass already holds. One function for a pass's last stage and the re-score of a stored report,
+// so a re-scored report says what a new pass over the same SERPs would.
 import { checkCoherence, type CoherenceVerdict } from "@/lib/market/coherence/check";
 import { buildAiAnswersCard, type AiAnswersCard, type BatteryAnswers } from "@/lib/market/questions/matrix";
 import type { RivalSizeBand } from "@/lib/market/rivals/band";
@@ -17,16 +11,8 @@ import type { Measured } from "@/lib/measure/measured";
 
 type StoredReachProfile = { town?: string; offeringType?: string; category?: string | null; reach?: unknown; kind?: unknown };
 
-/**
- * Whether the town a stored report measured in is still its market (issue
- * 1480). A free pass's town (`placeFrom`) stands while its profile still
- * reads a town it sells in (`profileTown`); one read as selling beyond a
- * town, or as software, has none, and a new pass measures it nationally. A
- * paid pass's place was held to the site's evidence when it was settled,
- * and stands. Where it does not stand, the stored searches were still bought
- * there (issue 1504), so the report is read in that town until it is
- * scanned again, and the re-score lists it as stale.
- */
+/** Whether a stored report's town is still its market: a free pass's stands while its profile reads a town it sells in; a paid pass's stands.
+ *  Where it does not, the searches were bought there, so the report is read in that town until rescanned and the re-score lists it stale. */
 export function placeStands(r: {
   locale?: { place?: unknown; placeFrom?: unknown } | null;
   market: Measured<{ profile: StoredReachProfile }>;
@@ -37,9 +23,7 @@ export function placeStands(r: {
   return profileTown(profile) !== "";
 }
 
-/** The reach a stored report holds (issue 1468): the town its searches were
- *  bought in, as a new pass reads its own (issue 1504), its profile read,
- *  and its home page's structured data. */
+/** A stored report's reach: the town its searches were bought in, its profile read and its home page's structured data. */
 export function reachOfReport(r: {
   locale?: { place?: unknown; placeFrom?: unknown } | null;
   market: Measured<{ profile: StoredReachProfile }>;
@@ -86,9 +70,7 @@ export function cardsOf(a: {
   /** `RivalSize` as far as a band goes: a stored sizing, or its slim export. */
   rivalSizes: Measured<readonly { domain: string; state: string; band?: RivalSizeBand }[]>;
   ownDomain: string;
-  /** What the site says of its reach (`readsLocal`, issue 1468): a local
-   *  business's local pack leads its rivals (issue 1449). Absent is a
-   *  national market. */
+  /** What the site says of its reach: a local business's local pack leads its rivals. Absent is a national market. */
   reach?: Omit<Parameters<typeof readsLocal>[0], "serps">;
   /** The site's name, as `namesSite` reads it; `null` where none is known. */
   siteName?: string | null;
@@ -97,8 +79,7 @@ export function cardsOf(a: {
   const readSerps: MarketSerp[] = [];
   for (const serp of a.serps) if (serp.kind !== "unmeasured") readSerps.push(serp.value);
 
-  // The bands this pass already holds (issue 858): a far domain is never
-  // one of the report's rivals, and the nearest lead.
+  // The bands this pass already holds: a far domain is never one of the report's rivals, and the nearest lead.
   const sizes = new Map<string, RivalSizeBand>();
   if (a.rivalSizes.kind !== "unmeasured") {
     for (const size of a.rivalSizes.value) if (size.state === "sized" && size.band !== undefined) sizes.set(size.domain, size.band);

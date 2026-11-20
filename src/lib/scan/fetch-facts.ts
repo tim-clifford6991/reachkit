@@ -1,8 +1,5 @@
-// src/lib/scan/fetch-facts.ts — the re-score's facts of stored reads, kept in
-// `fetch_facts` at one facts version: read for the ids asked, and for a read
-// with none at that version, its payload downloaded once, its facts derived
-// (`page-facts.ts`) and kept. A read whose html was pruned keeps the facts it
-// had at any version (owner, 2026-11-20). Every id is asked for once per run.
+// The re-score's facts of stored reads, kept in `fetch_facts` at one facts version: read for the ids asked; where none exists at that version,
+// the payload is downloaded once, its facts derived (`page-facts.ts`) and kept. A read whose html was pruned keeps the facts it had at any version. Each id is asked once per run.
 import { offline } from "@/lib/egress/offline";
 import { holdsHtml } from "@/lib/measure/own-fetch";
 import { onceById } from "./own-reads";

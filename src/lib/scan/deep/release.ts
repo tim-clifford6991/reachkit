@@ -1,36 +1,11 @@
-// BUILD §4.3 — the release latch: four triggers, one monotonic write, no
-// scheduled job.
-//
-// "on completion straight to the app with the first draft already in the
-// calendar. A degraded pass still releases setup (zero proposals is legal,
-// never faked)." (§4.3)
-//
-// The founder leaves the waiting screen exactly once, and four different
-// things can be the reason: the pass finished, it degraded, it failed
-// outright, or `TIMING.deepReleaseMin` minutes passed since they submitted
-// setup and it has still not ended. All four write the same latch, the
-// first writer wins, and no caller can clear it — so "the wait is over for
-// that founder for good" is a property of the write, not of every reader
-// remembering to check first.
-//
-// **No scheduled job anywhere in this file.** The deadline is not a timer
-// that has to fire; it is a fact about `setup_completed_at` that becomes
-// true on its own, and `isReleased` latches it on the read path the first
-// time anybody asks. A founder whose pass never reported and who signs in
-// a week later is released by their own first read, with nothing having
-// run in between.
-//
-// **It consults no opportunity count.** A pass that produced nothing
-// releases down the identical path as one that produced twelve
-// proposals — the emptiness is something the app states plainly (§7), never
-// a reason to hold somebody on a progress screen.
+// BUILD §4.3: the release latch. The founder leaves the waiting screen once, for any of four reasons (finished, degraded, failed, or `TIMING.deepReleaseMin` passed);
+// all write the same latch, the first writer wins and no caller can clear it.
+// No scheduled job: the deadline is a fact about `setup_completed_at` that `isReleased` latches on the first read.
+// It consults no opportunity count: an empty pass releases down the same path.
 import { TIMING } from "@/lib/config/constants";
 import { dbAdmin } from "@/lib/db";
 
-/** Why the latch was written. Closed: a fifth reason is a change here and
- *  a change to the check constraint in
- *  `supabase/migrations/20260906130000_sites_setup.sql`, never a string a
- *  caller invents. */
+/** Closed: a fifth reason needs a change here and to the check constraint on `sites`. */
 export type ReleaseReason = "completed" | "degraded" | "failed" | "deadline";
 
 export const RELEASE_REASONS: readonly ReleaseReason[] = Object.freeze([
@@ -44,12 +19,7 @@ export type Released = { released: true; at: Date; reason: ReleaseReason };
 
 export type ReleaseState = { released: false; deadlineAt: Date } | Released;
 
-/** The generated `Database` type carries none of the `sites.setup_*`
- *  columns this issue's own migration adds. One narrow, explicitly cast
- *  boundary — the same worked-around gap `src/lib/scan/report.ts` and
- *  `admission.ts` already carry; regenerating `types.generated.ts` needs
- *  the Supabase CLI against a live database and is not this change's to
- *  do. */
+/** The generated `Database` type carries none of the `sites.setup_*` columns: one narrow cast boundary. */
 interface SetupRow {
   id: string;
   setup_completed_at: string | null;
@@ -80,8 +50,7 @@ function untyped(client: ReturnType<typeof dbAdmin>): MinimalClient {
 
 const MS_PER_MINUTE = 60_000;
 
-/** When a founder who submitted at `completedAt` is released whatever the
- *  pass is doing. */
+/** When a founder who submitted at `completedAt` is released whatever the pass is doing. */
 export function deadlineFrom(completedAt: Date): Date {
   return new Date(completedAt.getTime() + TIMING.deepReleaseMin * MS_PER_MINUTE);
 }
@@ -105,16 +74,8 @@ function latched(row: SetupRow): Released | null {
   };
 }
 
-/**
- * Writes the latch, or reports the one already there.
- *
- * A single conditional update — `set … where setup_released_at is null` —
- * so two triggers racing produce one release and one of them learns it
- * lost. The loser does not overwrite, does not retry and does not report
- * its own reason: the first writer's reason is the one that stands, which
- * is what makes a pass that finishes *after* the deadline unable to
- * un-say "the measurement did not complete".
- */
+/** Writes the latch, or reports the one already there: one conditional update, so racing triggers produce one release.
+ *  The first writer's reason stands, so a pass finishing after the deadline cannot un-say it. */
 export async function releaseToApp(a: {
   siteId: string;
   reason: ReleaseReason;
@@ -144,15 +105,7 @@ export async function releaseToApp(a: {
   return { releasedAt: already.at, reason: already.reason };
 }
 
-/**
- * Whether this founder has been released, latching the deadline if it has
- * passed.
- *
- * The read path is the deadline's only trigger. A founder who is still
- * inside the window gets `{ released: false }` and the instant they will
- * be released at — a fact about their own submit, not a countdown, and
- * nothing renders it.
- */
+/** Whether this founder has been released, latching the deadline if it passed; the read path is the deadline's only trigger. */
 export async function isReleased(siteId: string, now: Date = new Date()): Promise<ReleaseState> {
   const row = await readSetupRow(siteId);
   if (row === null) throw new Error(`isReleased: no site ${siteId}`);

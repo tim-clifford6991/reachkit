@@ -1,24 +1,8 @@
-// BUILD §4.1, §6.5 — the composition that omits no section, and the one
-// transaction that flips the current-report pointer.
-//
-// `assembleReport` is **pure and total**: one required member per section
-// of `StoredReport`, so a section a stage never produced is a compile
-// error rather than a missing key, and the caller must pass the arm that
-// says why — `null` for a screen section, the `unmeasured` arm for a
-// record one. It computes nothing — no score, no rate, no count, no band —
-// re-derives no figure, and re-shapes nothing (that is `sections.ts`'s).
-// It derives exactly two fields from what it is given: `complete`, which
-// is `stoppedReason === 'complete'`, and `version`, the one blob version
-// this build writes. It reads no clock: the report's one date is
-// `verdict.measuredAt`, the caller's, so the date is the measurement's and
-// not the storage's, and every `Measured.at` under it still agrees.
-//
-// `storeCurrentReport` is the write. The row and the pointer flip are one
-// transaction — `store_current_report` in
-// `supabase/migrations/20260905120000_scans_current_flip.sql`, which
-// explains why the two statements the partial unique index forces cannot
-// be two PostgREST round trips. A `stoppedReason` of `'failed'` never sets
-// `is_current` and never clears the previous one.
+// BUILD §4.1, §6.5: the composition that omits no section, and the one transaction that flips the current-report pointer.
+// `assembleReport` is pure and total: one required member per section, so a missing section is a compile error. It computes and re-shapes nothing,
+// deriving only `complete` and `version`, and reads no clock: the report's one date is the caller's `verdict.measuredAt`.
+// `storeCurrentReport` writes the row and flips the pointer in one transaction (`store_current_report`), since the partial unique index forces
+// two statements that cannot be two PostgREST round trips. A `failed` pass never sets `is_current` nor clears the previous one.
 import { dbAdmin } from "@/lib/db";
 import type { CoherenceVerdict } from "@/lib/market/coherence/check";
 import type { CorrectionState } from "@/lib/market/coherence/state";
@@ -50,30 +34,19 @@ import type {
   Tier,
 } from "./report";
 
-/**
- * One required member per section of `StoredReport`. Required, not
- * optional, and that is the whole point: a section that could not be
- * measured is present with its `Measured` arms saying so, because an
- * absent key and a `not_attempted` value read the same to a consumer. An
- * optional member here would make that a convention; a required one makes
- * it a compile error.
- */
+/** One required member per section: an unmeasurable section is present with its `Measured` arms saying so, since an absent key and `not_attempted`
+ *  read the same; required makes that a compile error, not a convention. */
 export interface ReportSections {
   scanId: string;
   domain: CanonicalDomain;
   tier: Tier;
   stoppedReason: StoppedReason;
   fromIncompleteRescan: boolean;
-  /** One date governs the whole blob and it lives here: `verdict.measuredAt`
-   *  (issue #13's own rule). There is no second `measuredAt` on the
-   *  report, so the two cannot drift. */
+  /** The one date governing the whole blob, `verdict.measuredAt`; there is no second, so they cannot drift. */
   verdict: Verdict;
   blockedAgents: readonly (typeof AI_READER_AGENTS)[number][];
   aiAnswers: AiAnswersSection | null;
-  /** SPEC §6's page questions (#919), or `null` on a pass that asked none.
-   *  Required like every other member here: a pass that asked none says so
-   *  with `null`, and a missing key would read the same way while meaning
-   *  "nobody handed this section over". */
+  /** The page questions, or `null` on a pass that asked none: required, since a missing key would mean "nobody handed this over". */
   pageQuestions: PageQuestionsSection | null;
   presence: PresenceSection | null;
   supply: SupplySection;
@@ -91,14 +64,11 @@ export interface ReportSections {
   siteIssues: SiteIssuesSection | null;
   coherence: CoherenceVerdict;
   correctionState: CorrectionState;
-  /** The category the pass was handed, or `null` where it seeded from the
-   *  profile (issue 866). */
+  /** The category the pass was handed, or `null` where it seeded from the profile. */
   measuredCategory: string | null;
-  /** #1195: the buyer prompts a pass asked, empty where it asked none;
-   *  the blob omits the member then. */
+  /** The buyer prompts a pass asked, empty where none; the blob omits the member then. */
   marketPrompts: readonly MarketPromptAnswer[];
-  /** D19 (#1162): the tracked prompts a weekly pass asked, `null` where
-   *  it asked none; the blob omits the member then. */
+  /** The tracked prompts a weekly pass asked, `null` where none; the blob omits the member then. */
   prompts: PromptsSection | null;
 }
 
@@ -152,11 +122,7 @@ export function statusOf(a: { stoppedReason: StoppedReason; degraded: boolean })
   return "done";
 }
 
-// The generated `Database` type carries neither `scans.is_current` nor the
-// `store_current_report` function, both of which are on disk in
-// `supabase/migrations/`. One narrow, explicitly cast boundary, the same
-// worked-around gap `admission.ts` and `report.ts` already carry;
-// regenerating `types.generated.ts` is not this change's to do.
+// The generated `Database` type carries neither `scans.is_current` nor `store_current_report`: one narrow cast boundary.
 interface MinimalRpcClient {
   rpc(fn: string, args: Record<string, unknown>): PromiseLike<{ error: { message: string } | null }>;
 }
@@ -197,10 +163,7 @@ export async function storeCurrentReport(a: {
     p_score: shownScore(a.report),
     p_drivers: a.drivers,
     p_report: a.report,
-    // The figure the seam settled, not a cent it was rounded up to:
-    // `scans.cost_cents` and `store_current_report`'s parameter are
-    // `numeric(12,4)` since #449, so a free pass that spent 0.72¢
-    // records 0.72¢ rather than the 1¢ the `integer` column forced.
+    // The figure the seam settled, not rounded to a cent: `cost_cents` is `numeric(12,4)`.
     p_cost_cents: a.costCents,
     p_stopped_reason: a.report.stoppedReason,
     p_correction_state: a.report.correctionState,
