@@ -119,6 +119,7 @@ async function main() {
       model: flag("--model", null),
       repeat: Number(flag("--repeat", "1")),
       driver,
+      root: ROOT,
       cases,
       results,
     });

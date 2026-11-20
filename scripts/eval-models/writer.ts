@@ -1,6 +1,6 @@
 // The writer group: each case through the product's own `generateDraft` (write, checks, fix, claim check) against the
 // page script's in-memory store, scored only by what the product recorded on the row. No model judges another.
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { generateDraft, type GenerateInputs, type GenerateOutcome } from "@/lib/generate/pipeline";
 import { readRecordedRules } from "@/lib/generate/record";
@@ -8,6 +8,7 @@ import { HARD_RULES } from "@/lib/generate/rules/types";
 import { setGenerateStore } from "@/lib/generate/store";
 import { servePages } from "../page/measured-text";
 import { memoryStore, type PageSnapshot } from "../page/run";
+import { loadCaseFile } from "./cases";
 import { passThrough, type Seen } from "./context";
 import type { Run } from "./transport";
 
@@ -36,12 +37,13 @@ function revive(inputs: GenerateInputs): GenerateInputs {
   };
 }
 
-export function readCases(dir: string): WriterCase[] {
+/** Every case in the folder, each file through the shared loader, which refuses it whole on any one rule. */
+export function readCases(dir: string, repoRoot: string): WriterCase[] {
   if (!existsSync(dir)) throw new Error(`No writer cases at ${dir}.`);
   return readdirSync(dir)
-    .filter((name) => name.endsWith(".json"))
+    .filter((name) => name.endsWith(".json") || name.endsWith(".csv"))
     .sort()
-    .map((name) => JSON.parse(readFileSync(path.join(dir, name), "utf8")) as WriterCase);
+    .flatMap((name) => loadCaseFile(path.join(dir, name), repoRoot) as WriterCase[]);
 }
 
 const outcomeOf = (o: GenerateOutcome): string => (o.ok ? "ok" : o.reason === "rules" ? "rules" : `step_failed:${o.step}`);

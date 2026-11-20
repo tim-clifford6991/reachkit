@@ -24,6 +24,7 @@ export interface Options {
   /** The writer's case folder, and the file its scored lines are appended to; both outside the repository. */
   cases: string;
   results: string;
+  root: string;
 }
 
 async function proveIsolation(): Promise<number> {
@@ -73,7 +74,7 @@ export async function main(o: Options): Promise<number> {
   const outcomes: string[] = [];
   if (o.driver === "writer") {
     mkdirSync(path.dirname(o.results), { recursive: true });
-    await runWriter(run, readCases(o.cases), o.repeat, (line) => {
+    await runWriter(run, readCases(o.cases, o.root), o.repeat, (line) => {
       outcomes.push((line as { outcome: string }).outcome);
       console.log(JSON.stringify(line));
       if (o.mode !== "plan") appendFileSync(o.results, `${JSON.stringify({ at: new Date().toISOString(), mode: o.mode, ...line })}\n`);
