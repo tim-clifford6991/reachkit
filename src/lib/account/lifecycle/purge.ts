@@ -42,7 +42,7 @@ import { AUTH_USERS_TABLE, lifecycleStore } from "./store";
 const PURGE_ORDER: readonly {
   readonly table: string;
   readonly column: string;
-  readonly from: "publicationIds" | "draftIds" | "scanIds" | "siteIds" | "userIds";
+  readonly from: "scanIds" | "siteIds" | "userIds";
 }[] = Object.freeze([
   // The danger-zone ticket and its record of the action that ended the
   // account.
@@ -65,12 +65,12 @@ const PURGE_ORDER: readonly {
   { table: "llm_mentions", column: "site_id", from: "siteIds" },
   { table: "llm_mention_reads", column: "site_id", from: "siteIds" },
   // The weekly verdict on each published page.
-  { table: "page_verdicts", column: "publication_id", from: "publicationIds" },
+  { table: "page_verdicts", column: "site_id", from: "siteIds" },
   // How often an answer engine read each hosted page, and how many visitors
   // an AI answer sent (#921). Counts, never a reader — but they are this
   // customer's counts about this customer's pages, and the retention the
   // writer enforces is a ceiling on age, not a replacement for a purge.
-  { table: "publication_reads", column: "publication_id", from: "publicationIds" },
+  { table: "publication_reads", column: "site_id", from: "siteIds" },
   // The page records: what went live, where, and when it came down.
   { table: "publications", column: "site_id", from: "siteIds" },
   // The ledger-cache-raw-store in one: every byte fetched for a measurement
@@ -99,6 +99,8 @@ const PURGE_ORDER: readonly {
   { table: "ops_events", column: "site_id", from: "siteIds" },
   // Each job's invocations and CPU for the site a day; no foreign key, so it goes by value.
   { table: "job_days", column: "site_id", from: "siteIds" },
+  // The site's own pages, indexed so a new page does not repeat one.
+  { table: "known_content", column: "site_id", from: "siteIds" },
   // Destination credentials.
   { table: "destinations", column: "site_id", from: "siteIds" },
   { table: "sites", column: "user_id", from: "userIds" },
@@ -139,8 +141,6 @@ export async function purgeAccount(userId: string): Promise<{ purged: true }> {
   if (!scope.ok) throw new PurgeIncomplete("sites", "the account's rows could not be read");
 
   const ids: Record<(typeof PURGE_ORDER)[number]["from"], readonly string[]> = {
-    publicationIds: scope.scope.publicationIds,
-    draftIds: scope.scope.draftIds,
     scanIds: scope.scope.scanIds,
     siteIds: scope.scope.siteIds,
     userIds: [userId],

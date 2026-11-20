@@ -160,8 +160,6 @@ export function memoryLifecycleStore(state: MemoryLifecycle): LifecycleStore {
         scope: {
           siteIds,
           scanIds: siteIds.length === 0 ? [] : ["scan-1"],
-          draftIds: siteIds.length === 0 ? [] : ["draft-1"],
-          publicationIds: siteIds.length === 0 ? [] : ["pub-1"],
         },
       };
     },
