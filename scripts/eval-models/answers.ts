@@ -3,6 +3,7 @@
 import { appendFileSync, chmodSync, closeSync, existsSync, mkdirSync, openSync, readFileSync } from "node:fs";
 import path from "node:path";
 import type Anthropic from "@anthropic-ai/sdk";
+import { underEvalDir } from "./paths.mjs";
 
 export type From = "tool" | "text" | "none";
 
@@ -14,10 +15,20 @@ const parse = (text: string): { ok: true; value: unknown } | { ok: false } => {
   }
 };
 
-/** The first balanced object or array in the text, outside strings. */
+/** The first balanced object or array in the text that parses, outside strings: a span that does not parse (a stray
+ *  bracket in a sentence) is passed over and the scan goes on, as the product's own text reader does. */
 function firstBalanced(text: string): string | null {
-  const start = text.search(/[[{]/);
-  if (start < 0) return null;
+  for (let start = text.search(/[[{]/); start >= 0; ) {
+    const span = balancedAt(text, start);
+    if (span !== null && parse(span).ok) return span;
+    const next = text.slice(start + 1).search(/[[{]/);
+    start = next < 0 ? -1 : start + 1 + next;
+  }
+  return null;
+}
+
+/** The balanced span opening at `start`, or `null` where it never closes. */
+function balancedAt(text: string, start: number): string | null {
   let depth = 0;
   let quoted = false;
   for (let i = start; i < text.length; i++) {
@@ -47,11 +58,13 @@ export function answerOf(message: Anthropic.Message): { from: From; value: unkno
   return { from: "none", value: null };
 }
 
-/** One line appended to a file only its owner can read, in a folder only its owner can open. */
+/** One line appended to a file only its owner can read, in a folder only its owner can open. Only a file under the
+ *  evaluation folder is written, and only its own folder there is ever re-moded, never a shared one elsewhere. */
 export function keepAnswer(file: string, line: object): void {
+  if (!underEvalDir(file)) throw new Error(`kept answers are written only under the evaluation folder; refused ${file}`);
   if (!existsSync(file)) {
     mkdirSync(path.dirname(file), { recursive: true, mode: 0o700 });
-    chmodSync(path.dirname(file), 0o700);
+    if (underEvalDir(path.dirname(file))) chmodSync(path.dirname(file), 0o700);
     closeSync(openSync(file, "a", 0o600));
   }
   chmodSync(file, 0o600);

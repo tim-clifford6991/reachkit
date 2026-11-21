@@ -23,9 +23,9 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { createServer } from "vite";
+import { EVAL_DIR, evalFile } from "./eval-models/paths.mjs";
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
-const EVAL_DIR = "/root/ops/reachkit/eval";
 const argv = process.argv.slice(2);
 const flag = (name, fallback) => {
   const at = argv.indexOf(name);
@@ -73,12 +73,11 @@ async function main() {
   const mode = modes[0];
   // The $60 is one total, so a live run books into the one ledger and cannot be pointed at a fresh one.
   if (mode === "live" && argv.includes("--ledger")) throw new Error("A live run always books into the one ledger; --ledger is refused with --live.");
-  const ledgerFile = path.resolve(flag("--ledger", path.join(EVAL_DIR, mode === "fake" ? "fake-ledger.jsonl" : "ledger.jsonl")));
-  if (insideRepo(ledgerFile)) throw new Error("The ledger lives outside the repository (it is public).");
+  const ledgerFile = evalFile("--ledger", path.resolve(flag("--ledger", path.join(EVAL_DIR, mode === "fake" ? "fake-ledger.jsonl" : "ledger.jsonl"))));
   const cases = path.resolve(flag("--cases", path.join(EVAL_DIR, "cases/writer")));
-  const results = path.resolve(flag("--results", path.join(EVAL_DIR, "results", mode === "live" ? "writer.jsonl" : `writer-${mode}.jsonl`)));
-  const answers = path.resolve(mode === "rescore" ? flag("--rescore", "") : flag("--answers", path.join(EVAL_DIR, "answers", mode === "live" ? "writer.jsonl" : `writer-${mode}.jsonl`)));
-  if (insideRepo(cases) || insideRepo(results) || insideRepo(answers)) throw new Error("Cases and results live outside the repository (it is public).");
+  const results = evalFile("--results", path.resolve(flag("--results", path.join(EVAL_DIR, "results", mode === "live" ? "writer.jsonl" : `writer-${mode}.jsonl`))));
+  const answers = mode === "rescore" ? path.resolve(flag("--rescore", "")) : evalFile("--answers", path.resolve(flag("--answers", path.join(EVAL_DIR, "answers", mode === "live" ? "writer.jsonl" : `writer-${mode}.jsonl`))));
+  if (insideRepo(cases) || insideRepo(answers)) throw new Error("Cases and results live outside the repository (it is public).");
   const driver = flag("--driver", "probe");
   if (driver !== "probe" && driver !== "writer") throw new Error("--driver is probe or writer.");
   const capText = flag("--cap-cents", "5900");

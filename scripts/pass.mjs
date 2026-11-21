@@ -48,6 +48,7 @@ import { existsSync, readFileSync, rmSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { createServer } from "vite";
+import { EVAL_DIR, evalFile } from "./eval-models/paths.mjs";
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
 const argv = process.argv.slice(2);
@@ -108,7 +109,6 @@ function substrateDown() {
   }
 }
 
-const EVAL_DIR = "/root/ops/reachkit/eval";
 
 /** The one key a live evaluation needs, read from the env file without loading anything else in it. */
 function anthropicKey(file) {
@@ -129,12 +129,11 @@ function evalTransport() {
 }
 
 function evalOptions(scan, sites, mode) {
-  const ledgerFile = path.resolve(flag("--ledger", path.join(EVAL_DIR, mode === "live" ? "ledger.jsonl" : "fake-ledger.jsonl")));
-  const results = path.resolve(flag("--results", path.join(EVAL_DIR, "results", mode === "live" ? "pass.jsonl" : `pass-${mode}.jsonl`)));
-  const answers = path.resolve(flag("--answers", path.join(EVAL_DIR, "answers", mode === "live" ? "pass.jsonl" : `pass-${mode}.jsonl`)));
+  const ledgerFile = evalFile("--ledger", path.resolve(flag("--ledger", path.join(EVAL_DIR, mode === "live" ? "ledger.jsonl" : "fake-ledger.jsonl"))));
+  const results = evalFile("--results", path.resolve(flag("--results", path.join(EVAL_DIR, "results", mode === "live" ? "pass.jsonl" : `pass-${mode}.jsonl`))));
+  const answers = evalFile("--answers", path.resolve(flag("--answers", path.join(EVAL_DIR, "answers", mode === "live" ? "pass.jsonl" : `pass-${mode}.jsonl`))));
   const fakeAs = flag("--fake-as", "tool");
   if (fakeAs !== "tool" && fakeAs !== "text") throw new Error("--fake-as is tool or text.");
-  for (const file of [ledgerFile, results, answers]) if (!path.relative(ROOT, file).startsWith("..")) throw new Error("The ledger and results live outside the repository (it is public).");
   const capText = flag("--eval-cap-cents", "5900");
   if (!/^\d+(\.\d+)?$/.test(capText)) throw new Error(`--eval-cap-cents takes a number of cents, 0 or more; got "${capText}".`);
   return { scan, sites, model: flag("--model", null), mode, ledgerFile, capCents: Number(capText), results, answers, fakeAs, local: new URL(process.env.SUPABASE_URL).origin };
