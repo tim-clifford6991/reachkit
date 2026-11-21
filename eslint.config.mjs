@@ -1,12 +1,6 @@
 // Flat config extending `next/core-web-vitals` + `@typescript-eslint`: the cross-module lint invariants land here (BP-001
 // decision 2), and each project rule below carries a comment naming its source.
-//
-// ADR-050's other half is not recast here (WO-001 step 3, verbatim):
-// "'Computes no access predicate' is not a lexical property an import rule
-// can decide: a rule claiming to enforce it would report nothing on a
-// hand-rolled `paid_through > now()` comparison in a job body and would
-// read, in CI, exactly like a rule that holds." That half stays ADR-050
-// point 4's three mutation tests in `tests/account/billing/`.
+// ADR-050's "computes no access predicate" is not lexical: no rule claims it; tests/account/billing/'s mutation tests do.
 import { existsSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -778,6 +772,12 @@ export default tseslint.config(
         { paths: [{ name: "lucide-react", message: "Hosted pages draw Glyph from ./chrome; lucide-react is a client component." }] },
       ],
     },
+  },
+  {
+    // A promise nobody awaits can drop a write or a send without an error.
+    files: ["src/app/**/*.{ts,tsx}", "src/jobs/**/*.ts"],
+    languageOptions: { parserOptions: { projectService: true, tsconfigRootDir: path.dirname(SRC_DIR) } },
+    rules: { "@typescript-eslint/no-floating-promises": "error", "@typescript-eslint/no-misused-promises": "error" },
   },
   {
     // The archive is kept for reference only; nothing builds, runs or lints it.
