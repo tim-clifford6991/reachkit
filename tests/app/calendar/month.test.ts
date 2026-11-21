@@ -86,15 +86,15 @@ describe("BUILD §4.6 — the grid is Mon–Sun and weekends are ordinary dates"
   });
 
   it("a weekend date carries a page like any other", () => {
-    // 2026-09-05 is a Saturday and 2026-09-06 a Sunday.
+    // 2026-09-19 is a Saturday and 2026-09-20 a Sunday, both in the plan.
     const model = assembleMonth(
-      { ...BARE, drafts: [draft("2026-09-05", "published"), draft("2026-09-06", "planned")] },
+      { ...BARE, drafts: [draft("2026-09-19", "published"), draft("2026-09-20", "planned")] },
       "2026-09"
     );
-    expect(cellFor(model, "2026-09-05")?.page?.stage).toBe("live");
-    expect(cellFor(model, "2026-09-06")?.page?.stage).toBe("planned");
-    expect(weekdayIndex("2026-09-05")).toBe(5);
-    expect(weekdayIndex("2026-09-06")).toBe(6);
+    expect(cellFor(model, "2026-09-19")?.page?.stage).toBe("live");
+    expect(cellFor(model, "2026-09-20")?.page?.stage).toBe("planned");
+    expect(weekdayIndex("2026-09-19")).toBe(5);
+    expect(weekdayIndex("2026-09-20")).toBe(6);
   });
 
   it("an out-of-month cell holds a column position and nothing else — it is not padding", () => {
@@ -128,7 +128,7 @@ describe("REQ-043 c1 — one page per date, and no page invented to fill one", (
   });
 
   it("assembleMonth creates nothing: the same drafts in, the same pages out", () => {
-    const drafts = [draft("2026-09-02", "planned")];
+    const drafts = [draft("2026-09-02", "in_review")];
     const model = assembleMonth({ ...BARE, drafts, unusedSupply: 0 }, "2026-09");
     const pages = model.cells.filter((c) => c.page !== null);
     expect(pages).toHaveLength(1);
