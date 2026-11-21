@@ -6,6 +6,7 @@
 // site whose pages ReachKit does not host keeps no server logs (X2), so its
 // reads and visits cannot be counted. A hosted site with no visit yet leaves
 // the visits tile out, as the board's state does.
+import { AI_MARK } from "./ai-mark";
 import type React from "react";
 import Link from "next/link";
 import { ANSWER_RATE_WEEKS, MENTION_RATE_MIN_WEEKS } from "@/lib/config/constants";
@@ -88,7 +89,7 @@ export function AiLead(p: { model: PromptsModel; pages: AiPages | null; reads: B
           <Line
             testId="ai-line-linked"
             label={copy("overview.answers.pages-cited.label")}
-            value={pages === null ? UNCHECKED : `${formatCount(pages.linked)} ${copy("overview.answers.pages-cited.of", { of: formatCount(pages.asked) })}`}
+            value={pages === null ? UNCHECKED : `${formatCount(pages.linked)} ${copy("overview.tile.ai.of", { m: formatCount(pages.asked), weeks: formatCount(pages.weeks) })}`}
             note={
               pages === null || pages.mentioned === 0
                 ? null
@@ -126,6 +127,17 @@ const MARK_TILE: Readonly<Record<AnswerMark, string>> = Object.freeze({
   not_measured: "bg-base-200 text-base-content/30",
 });
 
+/** The row's one count, said with its icon: the shared AI mark. */
+function MarkLabel(p: { mark: AiPageRow["mark"] }): React.JSX.Element {
+  const { icon: Icon, key } = AI_MARK[p.mark];
+  return (
+    <span className="flex items-center gap-1" data-testid="ai-page-mark" data-mark={p.mark}>
+      <Icon className="size-4" strokeWidth={1.75} aria-hidden />
+      {copy(key)}
+    </span>
+  );
+}
+
 function PageRow(p: { row: AiPageRow }): React.JSX.Element {
   const { row } = p;
   const pair =
@@ -157,7 +169,7 @@ function PageRow(p: { row: AiPageRow }): React.JSX.Element {
               <span key={dot.name} aria-hidden className={`size-2.5 rounded-full ${dot.reached ? "bg-primary" : "border border-base-300"}`} />
             ))}
           </span>
-          <span data-testid="ai-page-step">{row.step === null ? copy("overview.answers.pages.unread") : copy(row.step)}</span>
+          <MarkLabel mark={row.mark} />
         </span>
       </div>
       {row.question === null ? null : (

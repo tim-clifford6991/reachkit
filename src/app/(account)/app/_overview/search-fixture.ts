@@ -143,7 +143,5 @@ const POSITIONS: ReadonlyMap<string, Measured<number>> = new Map(
 export const FIXTURE_SEARCH_FACTS: SearchFacts = Object.freeze({
   targets: TARGETS,
   positions: POSITIONS,
-  // Your market: the twelve, three of them with a first-page place.
-  market: { top10: 3, measured: 12 },
   measuredAt: MEASURED_AT,
 });

@@ -1,12 +1,12 @@
 // SPEC §4 (board AppAI) — each live page whose own question was asked: the
-// question, the page's highest AI step and one mark per engine. Pure; the
-// count is Overview's own `aiPagesOf`, so the two screens state one number.
-import { aiPagesOf } from "@/lib/measure/figures";
+// question, what the answers did with it over the window, and one mark per engine. Pure; the
+// pages are Linked by AI's own window (`tiles.ts`); every count is a count of these rows, so the tile, the lead and the list state one number.
 import { pageLadderOf, type StepDot } from "@/lib/measure/page-ladder";
 import { addressOf } from "@/lib/measure/page-reading";
 import type { PublishedPage } from "@/lib/measure/published";
-import type { CopyKey } from "@/lib/presentation/copy";
 import type { AnswerQuestion } from "./answers-model";
+import type { AiMark } from "./ai-mark";
+import type { AiWindow } from "./tiles";
 
 export interface AiPageRow {
   id: string;
@@ -15,47 +15,57 @@ export interface AiPageRow {
   href: string | null;
   /** The page's own question as the pass asked it; `null` where the pass kept none for its address. */
   question: AnswerQuestion | null;
-  /** Its highest AI step; `null` where AI has not read it yet. */
-  step: CopyKey | null;
+  /** What the answers did with it over the window: the one count it is in. */
+  mark: Exclude<AiMark, "unchecked">;
   dots: readonly StepDot[];
 }
 
 export interface AiPages {
   rows: readonly AiPageRow[];
+  /** The weeks every count here and on the tile is read over. */
+  weeks: number;
+  /** Every row: the tile's and the lead's total. */
   asked: number;
+  /** Rows marked `links`: the tile's and the lead's figure. */
   linked: number;
-  /** Asked pages an answer named without linking. */
+  /** Rows marked `mentions`. */
   mentioned: number;
 }
 
-// The tab's subject first: a link, then a visit, then a read.
-const STEP_RANK: Readonly<Record<string, number>> = { "draft.ladder.linked": 0, "draft.ladder.visit": 1, "draft.ladder.read": 2 };
+const MARK_RANK: Readonly<Record<AiPageRow["mark"], number>> = { links: 0, mentions: 1, none: 2 };
 
-/** `null` where no live page's question has been asked yet. */
-export function aiPagesFor(all: readonly PublishedPage[], pageQuestions: readonly AnswerQuestion[], now: Date): AiPages | null {
-  const pages = aiPagesOf(all.filter((page) => page.publishedAt <= now));
-  if (pages === null) return null;
-  const ladder = pageLadderOf(pages.asked, now);
+/** The window's pages, one row per address; `null` where none was asked. */
+export function aiPagesFor(all: readonly PublishedPage[], pageQuestions: readonly AnswerQuestion[], now: Date, window: AiWindow | null): AiPages | null {
+  if (window === null) return null;
+  const asked = new Set(window.asked);
+  const one = new Map<string, PublishedPage>();
+  for (const page of all) {
+    const address = page.url === null ? null : addressOf(page.url);
+    if (address !== null && page.publishedAt <= now && asked.has(address) && !one.has(address)) one.set(address, page);
+  }
+  if (one.size === 0) return null;
+  const linked = new Set(window.linked);
+  const mentioned = new Set(window.mentioned);
+  const ladder = pageLadderOf([...one.values()], now);
   const byAddress = new Map(pageQuestions.flatMap((q) => (q.page === null ? [] : [[addressOf(q.page.url), q] as const])));
-  const linked = new Set(pages.linked.map((page) => page.id));
-  const rows = pages.asked.map((page): AiPageRow => {
+  const rows = [...one].map(([address, page]): AiPageRow => {
     const row = ladder?.rows.find((r) => r.id === page.id);
     return {
       id: page.id,
       title: page.title,
       ...(page.titleLabel === undefined ? {} : { titleLabel: page.titleLabel }),
       href: row?.href ?? null,
-      question: page.url === null ? null : (byAddress.get(addressOf(page.url)) ?? null),
-      step: row?.ai ?? null,
+      question: byAddress.get(address) ?? null,
+      mark: linked.has(address) ? "links" : mentioned.has(address) ? "mentions" : "none",
       dots: row?.dots.ai ?? [],
     };
   });
-  const rank = (row: AiPageRow): number => (row.step === null ? 3 : (STEP_RANK[row.step] ?? 3));
-  rows.sort((a, b) => rank(a) - rank(b) || a.title.localeCompare(b.title));
+  rows.sort((a, b) => MARK_RANK[a.mark] - MARK_RANK[b.mark] || a.title.localeCompare(b.title));
   return {
     rows,
-    asked: pages.asked.length,
-    linked: pages.linked.length,
-    mentioned: rows.filter((row) => !linked.has(row.id) && (row.question?.marks.includes("names_you") ?? false)).length,
+    weeks: window.weeks,
+    asked: rows.length,
+    linked: rows.filter((row) => row.mark === "links").length,
+    mentioned: rows.filter((row) => row.mark === "mentions").length,
   };
 }

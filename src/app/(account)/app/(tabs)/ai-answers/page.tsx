@@ -13,38 +13,38 @@
 import type React from "react";
 import type { Metadata } from "next";
 import { copy } from "@/lib/presentation/copy";
-import { contentOf } from "@/lib/measure/published";
 import { formatDay } from "../../_shell/format";
 import { readShell } from "../../_shell/provider";
 import { readAnswers } from "../../_overview/answers-provider";
 import { readBlogReads } from "../../_overview/blog-reads-provider";
-import { readPublished } from "../../_overview/content-provider";
 import { readOverview } from "../../_overview/provider";
 import { readPromptsAt } from "../../_overview/prompts-provider";
-import { aiPagesFor } from "../../_overview/ai-pages";
 import { AnswerGrid } from "../../_overview/AnswerGrid";
 import { AiLead, AiPagesCard, Reputation, WhoReads } from "../../_overview/AiTab";
 import { OVERVIEW } from "../../_overview/frame";
 import { TabHead } from "../../_overview/TabHead";
+import { DetailTiles } from "../../_overview/Tiles";
+import { readTiles } from "../../_overview/tiles-provider";
 
 /** /app/ai-answers's own `<title>` (#945). */
 export const metadata: Metadata = { title: copy("meta.app.ai-answers.title") };
 
 export default async function AiAnswersTabPage(): Promise<React.JSX.Element> {
-  const [shell, model, reads, published, overview] = await Promise.all([
+  const [shell, model, reads, overview, tiles] = await Promise.all([
     readShell(),
     readAnswers(),
     readBlogReads(),
-    readPublished(),
     readOverview(),
+    readTiles(0, false),
   ]);
   const reputation = await readPromptsAt(overview.months?.reading?.week ?? null);
-  const content = contentOf(published);
-  const pages = content === null ? null : aiPagesFor(content.pages, model.pageQuestions, published.now);
+  // The lead and the list read the Linked by AI tile's own model: one count, one window, the same rows.
+  const pages = tiles?.ai ?? null;
   const grid = model.questions.length === 0 ? null : <AnswerGrid model={model} />;
 
   return (
     <div className={OVERVIEW} data-testid="ai-answers-tab">
+      <DetailTiles model={tiles} tab="ai" />
       <TabHead
         eyebrow={shell.weeks.kind === "counted" ? copy("overview.tab.eyebrow", { n: String(shell.weeks.weeks) }) : null}
         title={copy("overview.tile.ai-answers.label")}

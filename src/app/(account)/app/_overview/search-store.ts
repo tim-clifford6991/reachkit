@@ -198,12 +198,6 @@ export async function readSearchFacts(site: SearchSite, at: Date): Promise<Searc
   return {
     targets,
     positions,
-    // Issue 1551: your market is the stored presence card's own count over
-    // the twelve, so this tab and the Competitors tab say one number.
-    market:
-      report?.presence == null
-        ? null
-        : { top10: report.presence.you.top10Count, measured: report.presence.measuredSearches },
     measuredAt,
   };
 }

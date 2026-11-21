@@ -96,20 +96,22 @@ export function SearchTiles(p: {
       testId: "search-tile-pages",
       label: copy("overview.search.tile.your-pages"),
       means: copy("overview.search.tile.your-pages.means"),
-      ...(pages === null || pages.read === 0
+      ...(pages === null || pages.counts.unread === pages.live
         ? NOT_MEASURED
         : {
-            figure: formatCount(pages.showing),
-            quiet: pages.showing === 0,
-            against: copy("overview.search.tile.your-pages.of", { of: formatCount(pages.read) }),
-            spark: <progress className="progress progress-primary w-full" value={pages.showing} max={pages.read} aria-hidden />,
+            figure: formatCount(pages.placed),
+            quiet: pages.placed === 0,
+            against: copy("overview.search.tile.your-pages.of", { of: formatCount(pages.live) }),
+            spark: <progress className="progress progress-primary w-full" value={pages.placed} max={pages.live} aria-hidden />,
             split: [
-              copy("overview.search.tile.your-pages.split", {
-                first: formatCount(pages.firstPage),
-                further: formatCount(pages.showing - pages.firstPage),
-                unseen: formatCount(pages.read - pages.showing),
+              // Every row is in exactly one of these counts (`GoogleBucket`).
+              copy(pages.counts.console === 0 ? "overview.search.tile.your-pages.split" : "overview.search.tile.your-pages.split.console", {
+                first: formatCount(pages.counts.first),
+                further: formatCount(pages.counts.further),
+                console: formatCount(pages.counts.console),
+                unseen: formatCount(pages.counts.unseen),
               }),
-              ...(pages.live === pages.read ? [] : [copy("overview.ladder.unread", { k: formatCount(pages.live - pages.read) })]),
+              ...(pages.counts.unread === 0 ? [] : [copy("overview.ladder.unread", { k: formatCount(pages.counts.unread) })]),
             ].join(" · "),
           }),
     },

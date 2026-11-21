@@ -7,10 +7,12 @@ import { TILE_GRID } from "../../_overview/present";
 import { GooglePagesSkeleton, MeasuredSkeleton, NumberTilesSkeleton, SearchTableSkeleton } from "../../_overview/skeletons";
 import { OVERVIEW } from "../../_overview/frame";
 import { TabHead } from "../../_overview/TabHead";
+import { DetailTilesSkeleton } from "../../_overview/Tiles";
 
 export default function SearchLoading(): React.JSX.Element {
   return (
     <div className={OVERVIEW} data-testid="search-waiting">
+      <DetailTilesSkeleton />
       <TabHead title={copy("overview.tab.search")} testId="search" measured={<MeasuredSkeleton />} />
       <NumberTilesSkeleton count={3} grid={TILE_GRID.search} />
       <GooglePagesSkeleton />

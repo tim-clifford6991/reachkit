@@ -22,7 +22,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { TAB_HREF } from "./tabs";
 import { publishing } from "../calendar/publishing";
 
 export async function stopPage(draftId: string): Promise<boolean> {
@@ -32,6 +31,6 @@ export async function stopPage(draftId: string): Promise<boolean> {
   } catch {
     return false;
   }
-  revalidatePath(TAB_HREF.overview);
+  revalidatePath("/app");
   return true;
 }

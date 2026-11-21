@@ -57,7 +57,7 @@ import AccountNotFound from "../../../src/app/(account)/not-found";
 import AccountError from "../../../src/app/(account)/error";
 import AppError from "../../../src/app/(account)/app/error";
 import ReportLoading from "../../../src/app/(public)/scan/[domain]/loading";
-import OverviewLoading from "../../../src/app/(account)/app/(tabs)/loading";
+import OverviewLoading from "../../../src/app/(account)/app/(tabs)/(overview)/loading";
 
 export interface UnenumeratedSurface {
   /** What its baselines are named after. Never a route slug: five of these

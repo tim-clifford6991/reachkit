@@ -25,5 +25,6 @@ export const readPublishedFor = cache(async function readPublishedFor(siteId: st
   // parses the deployment's own bindings at module load, and the reserved
   // account reaches no database.
   const { readPublishedPages } = await import("@/lib/measure/published-store");
-  return { pages: await readPublishedPages(siteId), now: now() };
+  const at = now();
+  return { pages: await readPublishedPages(siteId, at), now: at };
 });

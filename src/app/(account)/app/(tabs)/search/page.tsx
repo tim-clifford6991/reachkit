@@ -20,17 +20,18 @@ import { copy } from "@/lib/presentation/copy";
 import { formatDay } from "../../_shell/format";
 import { readShell } from "../../_shell/provider";
 import { readSearch } from "../../_overview/search-provider";
-import { readPublished } from "../../_overview/content-provider";
 import { readGoogleVisitWeeks } from "../../_overview/blog-reads-provider";
 import { doingOf, type Doing } from "../../_overview/search-model";
-import { climbingSearches, googlePagesOf, readPlanned } from "../../_overview/google-pages";
-import { contentOf } from "@/lib/measure/published";
+import { climbingSearches, readPlanned } from "../../_overview/google-pages";
 import { GooglePages } from "../../_overview/GooglePages";
 import { SearchTable } from "../../_overview/SearchTable";
 import { SearchTiles } from "../../_overview/SearchTiles";
 import { SearchTableSkeleton } from "../../_overview/skeletons";
 import { OVERVIEW } from "../../_overview/frame";
 import { TabHead } from "../../_overview/TabHead";
+import { DetailTiles } from "../../_overview/Tiles";
+import { readTiles } from "../../_overview/tiles-provider";
+import { marketOf } from "../../_overview/tiles";
 
 /** /app/search's own `<title>` (#945). Without it this screen announced
  *  nothing at all — the `(account)` layout's fallback is the floor, not
@@ -38,21 +39,22 @@ import { TabHead } from "../../_overview/TabHead";
 export const metadata: Metadata = { title: copy("meta.app.search.title") };
 
 export default async function SearchTabPage(): Promise<React.JSX.Element> {
-  const [shell, model, published, visits, planned] = await Promise.all([
+  const [shell, model, visits, planned, tiles] = await Promise.all([
     readShell(),
     readSearch(),
-    readPublished(),
     readGoogleVisitWeeks(),
     readPlanned(),
+    readTiles(0, false),
   ]);
-  const content = contentOf(published);
-  const pages = content === null ? null : googlePagesOf(content.pages, published.now);
+  // The card and the list read the On Google tile's own model: one count, from the same rows.
+  const pages = tiles?.google ?? null;
   const climbing = pages === null ? new Set<string>() : climbingSearches(pages);
   const doing: Record<string, Doing> = {};
   for (const row of model.rows) doing[row.id] = doingOf(row, planned, climbing);
 
   return (
     <div className={OVERVIEW} data-testid="search-tab">
+      <DetailTiles model={tiles} tab="google" />
       <TabHead
         eyebrow={shell.weeks.kind === "counted" ? copy("overview.tab.eyebrow", { n: String(shell.weeks.weeks) }) : null}
         title={copy("overview.tab.search")}
@@ -66,7 +68,7 @@ export default async function SearchTabPage(): Promise<React.JSX.Element> {
         }
       />
 
-      <SearchTiles pages={pages} visits={visits} market={model.market} />
+      <SearchTiles pages={pages} visits={visits} market={marketOf(tiles)} />
 
       <GooglePages pages={pages} planned={planned} timeZone={shell.timeZone} />
 

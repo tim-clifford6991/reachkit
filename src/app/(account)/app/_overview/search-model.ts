@@ -94,9 +94,8 @@ export interface SearchRow {
   status: SearchStatus;
 }
 
-/** Your market: of the twelve searches the market sizes the site against,
- *  those on which it holds a first-page place — the stored presence card's
- *  own count. `null` where the report holds no presence card. */
+/** Your market: of the twelve main searches, those the site is on Google's
+ *  first page for — the Competitors count (`marketOf` in `tiles.ts`). */
 export interface MarketTile {
   top10: number;
   of: number;
@@ -108,7 +107,6 @@ export interface SearchModel {
   /** How many rows each chip stands for, `all` included. Counted over the
    *  whole set, once, so the chips and the table can never disagree. */
   counts: Readonly<Record<SearchFilter, number>>;
-  market: MarketTile | null;
   /** The date the positions and the ranked count were measured, for the
    *  line that says when. `null` where the site has no readable report. */
   measuredAt: Date | null;
@@ -124,10 +122,6 @@ export interface SearchFacts {
    *  — the current stored report's `ownRankedRows`, projected. A search
    *  absent from the map is one the site holds no place for. */
   positions: ReadonlyMap<string, Measured<number>>;
-  /** The twelve market searches the current report measured, and how many
-   *  the site holds a first-page place on (`presence.you.top10Count`).
-   *  `null` where the report holds no presence card. */
-  market: { top10: number; measured: number } | null;
   measuredAt: Date | null;
 }
 
@@ -206,7 +200,6 @@ export function assembleSearch(facts: SearchFacts, at: Date): SearchModel {
   return {
     rows,
     counts,
-    market: facts.market === null ? null : { top10: facts.market.top10, of: facts.market.measured },
     measuredAt: facts.measuredAt,
   };
 }

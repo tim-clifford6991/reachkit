@@ -234,7 +234,7 @@ describe("on a phone the bottom bar is the navigation, and the top bar sticks (o
           expect(after.scrolled, "the screen is taller than the viewport, so it scrolled").toBeGreaterThan(0);
           expect(after.bar, "the bar does not move").toEqual(before.bar);
           expect(after.publishing).toBe(before.publishing);
-          expect(after.tabs?.top, "the tab bar is directly under the bar").toBeCloseTo(after.bar?.bottom ?? -1, 0);
+          if (path !== "/app") expect(after.tabs?.top, "the tab bar is directly under the bar").toBeCloseTo(after.bar?.bottom ?? -1, 0);
         },
         PER_CASE_MS
       );
