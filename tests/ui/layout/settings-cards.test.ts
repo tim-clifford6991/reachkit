@@ -1,9 +1,9 @@
 // tests/ui/layout/settings-cards.test.ts — SPEC §4, E37, E38, E39
 //
-// Cards stack at every width on every Settings tab: every top-level card shares one left edge,
-// columns live only inside a card on a `data-layout` grid, the only card inside one is a competitor
-// tile, Billing's month is two tracks on a phone and four from 768, and Market's tiles and the
-// wells of Market and Your business fold to one track on a phone. Rendered and hydrated, light and
+// Cards stack at every width on every Settings tab, except Your business's two independent columns
+// from `lg` (plate F1a): every top-level card shares one left edge per column, columns live only
+// inside a card on a `data-layout` grid, the only card inside one is a competitor tile, and
+// Billing's month is two tracks on a phone and four from 768. Rendered and hydrated, light and
 // dark; the canaries below prove the ruler sees two card columns, a card inside a layout grid, and a
 // month that does not fold.
 import { describe, expect, it } from "vitest";
@@ -32,8 +32,6 @@ interface Seen {
 function measureCards(root: string): Seen {
   const panel = document.querySelector(root);
   const scope = panel ?? document.body;
-  // Your business keeps its wells in a fold that is closed by default.
-  scope.querySelector('details[data-testid="settings-business-knowledge"]')?.setAttribute("open", "");
   const cards = Array.from(scope.querySelectorAll(".card:not(.card .card)")).filter(
     (card) => card.getBoundingClientRect().width > 0
   );
@@ -56,12 +54,11 @@ function measureCards(root: string): Seen {
 }
 
 /** What a measurement breaks, as lines; empty where the tab keeps every rule. */
-function offences(seen: Seen, width: number): string[] {
+function offences(seen: Seen, width: number, columns = 1): string[] {
   const out: string[] = [];
   if (seen.cards === 0) out.push("no card was measured");
-  const first = seen.lefts[0] ?? 0;
-  const apart = seen.lefts.filter((left) => Math.abs(left - first) > EDGE_PX);
-  if (apart.length > 0) out.push(`cards off the first card's left edge ${first}px: ${apart.join(", ")}`);
+  const edges = seen.lefts.reduce<number[]>((kept, left) => (kept.some((edge) => Math.abs(edge - left) <= EDGE_PX) ? kept : [...kept, left]), []);
+  if (edges.length > columns) out.push(`cards off the first card's left edge ${edges[0]}px: ${edges.slice(columns).join(", ")}`);
   for (const card of seen.nested) out.push(`a card inside a data-layout grid: ${card}`);
   if (seen.monthTracks !== null) {
     const want = width < 768 ? 2 : 4;
@@ -105,14 +102,12 @@ for (const tab of SETTINGS_TABS) {
             },
             { extraHTTPHeaders: { Cookie: getAccountCookie() } }
           );
+          // Your business is two columns from `lg` (1024px), one below it.
+          const columns = tab === "business" && width >= 1024 ? 2 : 1;
           for (const [theme, measured] of seen) {
-            expect(offences(measured, width), `${href} @ ${width}px ${theme}`).toEqual([]);
+            expect(offences(measured, width, columns), `${href} @ ${width}px ${theme}`).toEqual([]);
             // The month is what Billing is checked for; a tab that lost it would pass vacuously.
             if (tab === "account") expect(measured.monthTracks, `${href} @ ${width}px ${theme}`).not.toBeNull();
-            if (tab === "business") {
-              expect(measured.wellsTracks, `${href} @ ${width}px ${theme}`).not.toBeNull();
-              expect(measured.tilesTracks, `${href} @ ${width}px ${theme}`).not.toBeNull();
-            }
           }
         },
         PER_CASE_MS
@@ -138,7 +133,7 @@ async function canary(width: number, body: string): Promise<string[]> {
 
 describe("the ruler sees what it is for (canaries)", () => {
   it(
-    "two cards side by side, as Your business drew them at xl, are refused",
+    "two cards side by side on a one-column tab are refused",
     async () => {
       const found = await canary(
         1280,

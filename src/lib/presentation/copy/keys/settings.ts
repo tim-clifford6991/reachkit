@@ -93,8 +93,6 @@ export const SETTINGS_COPY = Object.freeze({
      stored field, and a field the site was not read for has no group on the
      screen at all rather than an empty one — so there is no "not measured"
      sentence per field, only the one for a profile nobody has read. */
-  // The three folds under the card, named for a screen reader.
-  "settings.business.more": "More about your business",
   "settings.business.title": "What We Read from Your Site",
   "settings.business.lead": "Change any line. Your next page follows it.",
   // The group heads (#926).
@@ -105,22 +103,10 @@ export const SETTINGS_COPY = Object.freeze({
   "settings.business.audienceTerms": "Who you serve",
   "settings.business.vocabulary": "Words you use",
 
-  // The controls. `remove` is an icon-only button's accessible name, which
-  // is why it names the item it removes.
+  // The controls. `remove` is an icon-only button's accessible name, which names the item it removes.
   "settings.business.add": "Add",
   "settings.business.add.label": "Add to {group}",
   "settings.business.remove": "Remove {item}",
-  "settings.business.reword": "Reword",
-  // The two marks on an item. "new" is what
-  // `@/lib/site-profile/business/confirm` sets on a derived item the
-  // customer has never been shown — the visible half of "the refresh may
-  // only add new findings as suggestions". "yours" is an item they typed,
-  // which no refresh will touch.
-  "settings.business.mark.new": "new",
-  "settings.business.mark.yours": "yours",
-  // The one sentence for a site nobody has read. Not per field: a profile
-  // with nothing in it has nothing to say field by field.
-  "settings.business.unread": "We haven’t read your site yet. The next read fills this in.",
 
   // Facts we can quote — #926's own head and its own second clause.
   "settings.business.facts.title": "Facts we can quote",
@@ -139,6 +125,14 @@ export const SETTINGS_COPY = Object.freeze({
   // `remeasureNowAction`'s — #837's bounded re-measure, reused rather than
   // given a second bound — so its refusals speak `setup.remeasure.*`, which
   // the registry already carries.
+  // One setting line and its dialog: *Change* is named for its line, a list shows two and how many more.
+  "settings.change.name": "Change {label}",
+  "settings.close": "Close",
+  "settings.line.empty": "Nothing read yet",
+  "settings.line.more": "+{n}",
+  "settings.dialog.add.placeholder": "Add one",
+  "settings.business.asks.value": "{n} questions",
+  "settings.business.asks.one": "1 question",
   "settings.business.read-at": "Last read {on}",
   "settings.business.read-never": "Not read yet",
   "settings.business.read-line": "Last read {on} · {count} pages",
@@ -146,21 +140,10 @@ export const SETTINGS_COPY = Object.freeze({
   // pages were read to say, each with its page, and the founder's five
   // answers. Every line is drafted for the owner; the five questions
   // themselves are `setup.business.question.*`.
-  "settings.knowledge.title": "What buyers ask and why you",
   "settings.knowledge.lead": "Read from your own pages, each with the page it came from. Your pages are written from this.",
   "settings.knowledge.things.lead": "Optional. Each one you add can appear on a page.",
-  "settings.knowledge.thing": "Thing {n}",
-  "settings.knowledge.none": "Nothing read yet. Read your site again and this fills in.",
-  "settings.knowledge.offerings": "What you sell",
-  "settings.knowledge.audience": "Who you serve",
-  "settings.knowledge.problems": "Problems you solve",
-  "settings.knowledge.differentiators": "How you differ",
-  "settings.knowledge.proof": "Proof",
   "settings.knowledge.questions": "What buyers ask",
-  "settings.knowledge.integrations": "Works with",
-  "settings.knowledge.places": "Places",
   "settings.knowledge.from-you": "You told us",
-  "settings.knowledge.against": "against {rival}",
   "settings.business.read-again": "Read My Site Again Now",
 
   // ── The tab bar (owner R7, 2026-10-31): Your business · Pages · Account. Account reuses `settings.account.title`.
@@ -169,16 +152,10 @@ export const SETTINGS_COPY = Object.freeze({
   "settings.tab.pages": "Pages",
 
   "settings.market.title": "Your Site and Market",
-  "settings.market.category": "market",
   "settings.market.domain": "Your website",
   "settings.market.your-market": "Your market",
   // What a pass reads for this market, from the same stored rows the Competitors tab reads.
-  "settings.market.sets.title": "Checked every Monday",
-  "settings.market.sets.searches": "{n} searches your buyers make",
-  "settings.market.sets.questions": "{n} questions we ask AI",
-  "settings.market.sets.competitors": "{n} competitors",
   // Issue 837 (owner ruling 2026-09-17): a category change measures again right away.
-  "settings.market.consequence.website": "Change it and your searches restart next Monday.",
   "settings.market.consequence.market": "Read from your site. Change it and we check it again at once.",
   // REQ-071's two dated statements about the market (issue #204). Both take
   // their date from `effectiveOn()` and neither computes one: c1 states the
@@ -203,6 +180,9 @@ export const SETTINGS_COPY = Object.freeze({
   // (`setup.remeasure.refused.*`), because the bound and the remedy are the
   // same one.
   "settings.market.remeasure.action": "Check My Market Now",
+  // The weekday is the weekly pass's own, read off the next check, never written in.
+  "settings.market.checked": "Checked every {day}: {searches} searches, {questions} questions to AI, {competitors} competitors",
+  "settings.market.next": "Next check {date}",
   "settings.market.remeasure.started": "We’re checking your market again. Your pages follow when it’s done.",
   "settings.market.effectiveOn": "Saved. Takes effect with the check on {date}.",
   // The word each change kind is named by. One key per kind, because
@@ -233,7 +213,6 @@ export const SETTINGS_COPY = Object.freeze({
   // is a key. Both numerals are slots, so the cap comes from
   // `BATTERY.COMPETITORS_MAX` and never from a five typed twice.
   "settings.competitors.count": "{taken} of {max}",
-  "settings.competitors.add": "Add",
   // The add field's own name, apart from the card's heading (issue #270).
   "settings.competitors.add-label": "Add a competitor",
   // REQ-071 c16. An empty rival set is a state the product designed (§2.5),
@@ -246,11 +225,12 @@ export const SETTINGS_COPY = Object.freeze({
   "settings.competitors.ai": "In AI answers",
   "settings.competitors.figure": "{n} of {of}",
   "settings.competitors.not-measured": "not checked yet",
-  "settings.competitors.measured-from": "Checked from {date}.",
-  "settings.competitors.remove": "Remove",
+  "settings.competitors.measured-from": "First check {date}",
   "settings.competitors.you": "You",
-  "settings.competitors.you.ai": "In AI answers, last {weeks} weeks",
   // Issue 858: a far larger competitor stays named apart from the comparison.
+  "settings.competitors.full": "You can follow up to {max} competitors. Remove one to add another.",
+  "settings.competitors.row": "On Google’s first page {google} · In AI answers {ai}",
+  "settings.competitors.you.line": "You, for comparison: on Google’s first page {google} · in AI answers {ai}",
   "settings.competitors.leaders": "For now we don’t compare you with {names}. They’re far larger.",
   "settings.competitors.none-yet": "No competitors yet. Comparison begins when you add one.",
   // `addRival`'s own five refusals, one sentence each (issue #231). The
@@ -556,12 +536,10 @@ export const SETTINGS_COPY = Object.freeze({
   "settings.voice.title": "How Your Pages Sound",
   "settings.voice.never-claim": "Never say",
   "settings.voice.add-claim": "Add something your pages must never say",
-  "settings.voice.add": "Add",
   // The accessible name on a never-claim tag's × (issue #488), naming the
   // claim it takes out. The set draws the glyph and no words — the footing
   // `setup.competitors.remove` is on — so the sentence was the owner's, and
   // was owed until they approved it on 2026-09-11 (#516).
-  "settings.voice.remove-claim": "Remove {claim}",
   // REQ-053's own promise, in the set's words: the list is a filter and not
   // a preference, and a draft that matches one is held and named back.
   "settings.voice.filter-note": "A page that says one of these doesn’t go live. We show you which one it matched.",
@@ -569,12 +547,12 @@ export const SETTINGS_COPY = Object.freeze({
    *  voice summary is editable in settings"). The field itself is
    *  `settings.content.voice`, which the owner has already written; this
    *  is the press that stores it, and it is owner-owed. */
-  "settings.voice.save": "Save",
   // SPEC §7 (owner, 2026-10-10; issue 1390): who speaks on the customer's
   // pages. Drafted (issue 759); the pull request lists each for the owner.
   "settings.voice.writing.label": "Write as",
   "settings.voice.writing.ours": "Your business, as “we”",
   "settings.voice.writing.guide": "A neutral guide, naming your business",
+  "settings.voice.writing.unset": "ReachKit chooses for each page",
   // Board SettingsVoice and E15 (ux-designer, 2026-10-24): fixed example words, one set for every
   // kind of business, never a model's output and never presented as written for this customer.
   "settings.voice.lead": "In your own words. Every new page follows it.",

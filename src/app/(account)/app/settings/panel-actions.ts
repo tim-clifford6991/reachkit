@@ -41,6 +41,7 @@ import type { Actor } from "@/lib/publish/types";
 import { DESTINATION_HREF } from "../_shell/destinations";
 import {
   CLAIM_FIELD,
+  CLAIM_REMOVED_FIELD,
   NOTIFY_KIND_FIELD,
   NOTIFY_ON_FIELD,
   ON,
@@ -170,13 +171,13 @@ export async function setNotificationAction(form: FormData): Promise<SettingAnsw
 }
 
 /**
- * REQ-053's never-claim list — one entry added, or one taken out.
+ * REQ-053's never-claim list — the entries a dialog added, and the ones it took out.
  *
  * **The list is read here, not sent here**, for the reason the rival set
  * is (`./change-actions.ts`): a list from the browser is a list a browser
  * can rewrite, and `saveDoNotClaim` writes whatever it is given. The
- * stored list is read, the entry is added to or removed from it, and that
- * is what is written.
+ * stored list is read, the entries are added to or removed from it, and
+ * that is what is written.
  *
  * `saveDoNotClaim` is the product's **one** writer of the column, and it
  * re-checks every page the change affects in the same call — which is why
@@ -205,15 +206,10 @@ async function writeClaims(change: (stored: readonly string[]) => readonly strin
   return saved("now");
 }
 
-export async function addClaimAction(form: FormData): Promise<SettingAnswer> {
-  const entry = typed(form, CLAIM_FIELD).trim();
-  // An empty entry is not a claim, and `normaliseClaimList` would drop it
-  // silently — which would look exactly like a save that worked.
-  if (entry === "") return REFUSED;
-  return writeClaims((stored) => [...stored, entry]);
-}
-
-export async function removeClaimAction(form: FormData): Promise<SettingAnswer> {
-  const entry = typed(form, CLAIM_FIELD);
-  return writeClaims((stored) => stored.filter((claim) => claim !== entry));
+export async function saveClaimsAction(form: FormData): Promise<SettingAnswer> {
+  const entries = (field: string): string[] =>
+    form.getAll(field).map((value) => (typeof value === "string" ? value.trim() : "")).filter((value) => value !== "");
+  const added = entries(CLAIM_FIELD);
+  const removed = entries(CLAIM_REMOVED_FIELD);
+  return writeClaims((stored) => [...stored.filter((claim) => !removed.includes(claim)), ...added]);
 }

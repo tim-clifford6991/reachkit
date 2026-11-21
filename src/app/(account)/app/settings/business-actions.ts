@@ -1,6 +1,6 @@
 // Issue #926 — the five things a customer may do to their business profile.
 //
-// Remove an item, add one, reword what the business does, switch a quotable
+// Save a list, reword what the business does, switch a quotable
 // fact off, switch it back on. Each is a Server Function, each reads the
 // stored decisions, changes one of them and writes the row back — the
 // read-modify-write shape `./panel-actions.ts`'s `writeClaims` already uses
@@ -41,6 +41,7 @@ import {
   BUSINESS_ANSWER_FIELD,
   BUSINESS_JOB_FIELD,
   BUSINESS_LIST_FIELD,
+  BUSINESS_REMOVED_FIELD,
   type SettingAnswer,
 } from "./panel-state";
 
@@ -124,43 +125,29 @@ function withoutEntry(
 }
 
 /**
- * Removes an item.
+ * Saves one list as a dialog left it: every item taken out and every one added, in one write.
  *
- * **Both halves, because an item may be either kind.** A derived item is
- * removed by recording the decision; one the customer added is removed by
- * dropping it from their own list. Doing only the first would leave an added
- * item on screen with a remove control that did nothing; doing only the
- * second would let Monday's refresh bring a derived item back.
+ * A derived item is removed by recording the decision and one the customer added by dropping it from their own
+ * list, so Monday's refresh cannot bring it back. An addition clears a standing removal of the same text: a
+ * customer who types it back in means to have it.
  */
-export async function removeBusinessItemAction(form: FormData): Promise<SettingAnswer> {
+export async function saveBusinessListAction(form: FormData): Promise<SettingAnswer> {
   const list = listOf(form);
-  const entry = typed(form, BUSINESS_ITEM_FIELD).trim();
-  if (list === undefined || entry === "") return REFUSED;
-  return write((stored) => ({
-    ...stored,
-    removed: withEntry(stored.removed, list, entry),
-    added: withoutEntry(stored.added, list, entry),
-  }));
-}
-
-/**
- * Adds an item.
- *
- * It also clears any standing removal of the same text: a customer who took
- * something out and types it back in means to have it, and leaving the
- * removal in place would make their own addition invisible.
- */
-export async function addBusinessItemAction(form: FormData): Promise<SettingAnswer> {
-  const list = listOf(form);
-  const entry = typed(form, BUSINESS_ITEM_FIELD).trim();
-  // An empty entry is not an item, and storing it would put a row with a
-  // remove control on it and no text — which reads as a bug, not as a save.
-  if (list === undefined || entry === "") return REFUSED;
-  return write((stored) => ({
-    ...stored,
-    added: withEntry(stored.added, list, entry),
-    removed: withoutEntry(stored.removed, list, entry),
-  }));
+  const entries = (field: string): string[] =>
+    form.getAll(field).map((value) => (typeof value === "string" ? value.trim() : "")).filter((value) => value !== "");
+  const removed = entries(BUSINESS_REMOVED_FIELD);
+  const added = entries(BUSINESS_ITEM_FIELD);
+  if (list === undefined) return REFUSED;
+  return write((stored) => {
+    let next = stored;
+    for (const entry of removed) {
+      next = { ...next, removed: withEntry(next.removed, list, entry), added: withoutEntry(next.added, list, entry) };
+    }
+    for (const entry of added) {
+      next = { ...next, added: withEntry(next.added, list, entry), removed: withoutEntry(next.removed, list, entry) };
+    }
+    return next;
+  });
 }
 
 /**
