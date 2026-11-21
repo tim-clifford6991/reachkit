@@ -99,8 +99,24 @@ function MostSearched(p: { most: NonNullable<PresenceSection["mostSearched"]> })
   );
 }
 
+/** The card's figure, or `null` where no search was measured: a count over none is never a result. */
+export function presenceFigureOf(section: PresenceSection): string | null {
+  return section.measuredSearches === 0 ? null : copy("report.figure.of", { count: String(section.you.top10Count), total: String(section.measuredSearches) });
+}
+
 export function GooglePresenceCard(p: { section: PresenceSection }): React.JSX.Element {
   const { section } = p;
+  const figure = presenceFigureOf(section);
+  if (figure === null) {
+    return (
+      <section className="card bg-base-100 shadow-(--shadow-card) min-w-0">
+        <div className="card-body gap-4">
+          <Head />
+          <p className="grow-0 text-base-content/70 text-sm">{copy("report.presence.unmeasured")}</p>
+        </div>
+      </section>
+    );
+  }
   const absentTitle = copy("presence.absent-from.title");
   const rows = [
     ...section.rivals.map((rival) => waffleRow(rival.domain, rival.top10Count, section.measuredSearches, false)),
@@ -115,12 +131,7 @@ export function GooglePresenceCard(p: { section: PresenceSection }): React.JSX.E
             the waffle's own row tallies it beside the competitors'. */}
         <p className="flex grow-0 flex-col gap-1">
           <span className="text-3xl">
-            <Num figure>
-              {copy("report.figure.of", {
-                count: String(section.you.top10Count),
-                total: String(section.measuredSearches),
-              })}
-            </Num>
+            <Num figure>{figure}</Num>
           </span>
           <span>{copy("presence.finding")}</span>
         </p>

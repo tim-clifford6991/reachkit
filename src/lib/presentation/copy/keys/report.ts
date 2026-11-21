@@ -361,8 +361,7 @@ export const REPORT_COPY = Object.freeze({
 
   // ── Module 2, right card — Google presence (REQ-008) ──────────────────
   "presence.title": "Google",
-  // Issue 1309: the count is the card's own denominator, never the literal
-  // twelve — the chip said 12 over a report that measured two.
+  // The count is the card's own denominator, never a literal.
   "presence.source": "Out of {measured} searches buyers in your market make.",
   // Issue 1444: the card's figure is `{count} of {total}` — the searches
   // the customer is on the first page for, of those measured — and this is
@@ -376,6 +375,7 @@ export const REPORT_COPY = Object.freeze({
   "presence.absent-from.column.volume": "Searches a month",
   "presence.absent-from.column.holder": "Who’s first",
   "presence.absent-from.empty": "You show up in every search we scanned.",
+  "report.presence.unmeasured": "We couldn’t measure Google searches for this market yet.",
   "presence.absent": "We couldn’t scan Google this time. The rest of the report still holds.",
 
   // ── Module 3, the three problem cards (REQ-009) ───────────────────────
