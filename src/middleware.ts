@@ -533,12 +533,12 @@ async function hostedRewrite(
 }
 
 
-/** The two transport-only adapters (`## File plan`): Stripe and the job
+/** The transport-only adapters (`## File plan`): Stripe, the mail vendor and the job
  *  platform hold no session of this product's, so an adapter denying them
  *  would be denying their own caller. `/api/jobs` matches its own
  *  `[[...slug]]` catch-all — the segment is optional. */
 function isAdapterPath(pathname: string): boolean {
-  if (pathname === "/api/stripe/webhook") return true;
+  if (pathname === "/api/stripe/webhook" || pathname === "/api/mail/webhook") return true;
   return pathname === "/api/jobs" || pathname.startsWith("/api/jobs/");
 }
 

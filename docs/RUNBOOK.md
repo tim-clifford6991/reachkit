@@ -146,7 +146,7 @@ Sensitive rows are write-only. Agents never see a value.
 
 | Where it lives | Names |
 |---|---|
-| Vercel, both targets | `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_ID`, `RESEND_API_KEY`, `MAIL_FROM`, `DATAFORSEO_LOGIN`, `DATAFORSEO_PASSWORD`, `ANTHROPIC_API_KEY`, `NANO_API_KEY`, `INNGEST_SIGNING_KEY`, `INNGEST_EVENT_KEY`, `IP_HASH_SALT`, `KILL_SWITCH`, `OWNER_EMAILS`, `NEXT_PUBLIC_APP_URL`, `HOSTED_EDGE_CNAME_TARGET`, `VERCEL_API_TOKEN`, `VERCEL_PROJECT_ID`, `VERCEL_TEAM_ID`, `POSTHOG_API_KEY`, `POSTHOG_HOST`, `ANTHROPIC_ADMIN_KEY` (optional) |
+| Vercel, both targets | `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_ID`, `RESEND_API_KEY`, `MAIL_FROM`, `DATAFORSEO_LOGIN`, `DATAFORSEO_PASSWORD`, `ANTHROPIC_API_KEY`, `NANO_API_KEY`, `INNGEST_SIGNING_KEY`, `INNGEST_EVENT_KEY`, `IP_HASH_SALT`, `KILL_SWITCH`, `OWNER_EMAILS`, `NEXT_PUBLIC_APP_URL`, `HOSTED_EDGE_CNAME_TARGET`, `VERCEL_API_TOKEN`, `VERCEL_PROJECT_ID`, `VERCEL_TEAM_ID`, `POSTHOG_API_KEY`, `POSTHOG_HOST`, `ANTHROPIC_ADMIN_KEY` (optional), `RESEND_WEBHOOK_SECRET` (optional; unset refuses every mail webhook) |
 | Vercel, dev and preview only | `HOSTED_TEST_HOST` (ignored on production) |
 | The owner's shell only, never Vercel | `DATABASE_URL` (Supabase → Project Settings → Database) |
 | Nowhere | `RK_FIXED_NOW`, a test fixture; a real deployment refuses to boot with it |
@@ -845,6 +845,17 @@ must be one somebody reads. Resend's dashboard shows what left; the runtime log 
 | DMARC | `_dmarc.reachkit.app` = `v=DMARC1; p=none; rua=mailto:hello@reachkit.app; fo=1` since 2026-09-23 (#1043). Once 7 days of `rua` reports are clean, `p=quarantine; pct=100`, then after 14 clean days `p=reject` (#1048). Rollback is `p=none` |
 | BIMI | only after quarantine: TXT `default._bimi` = `v=BIMI1; l=https://reachkit.app/brand/mark-bimi.svg; a=;`. Gmail draws it only with a VMC or CMC (a paid, yearly owner decision), whose PEM goes to `public/brand/bimi.pem` and into `a=` |
 | Inbound | Cloudflare Email Routing (MX `route{1,2,3}.mx.cloudflare.net`) forwards `hello@` to the owner |
+
+**Bounces and complaints** (owner or release QA, once per environment): Resend → Webhooks → Add
+endpoint `https://<host>/api/mail/webhook` with the events `email.bounced`, `email.complained`,
+`email.suppressed` and `suppression.added`, then paste its signing secret into `RESEND_WEBHOOK_SECRET`
+on that Vercel target. A hard bounce, a complaint or a vendor suppression writes the address into
+`email_suppressions` (cause `bounced` or `complained`), which stops follow-up mail to it; when the
+address is a paying account's, `OWNER_EMAILS` get one incident mail per event. A soft bounce changes
+nothing. Smoke on dev: send to `bounced@resend.dev` and `complained@resend.dev`, then
+`select cause from email_suppressions where email in ('bounced@resend.dev','complained@resend.dev');`;
+Resend → Webhooks → the event → Resend shows a second 200 and no second row or mail. A request with
+a bad signature is answered 400.
 
 The free sender picture is a Google account on `hello@reachkit.app` with `public/brand/mark-512.png`
 as its photo, visible to Anyone, and 2-Step Verification on.

@@ -18,6 +18,7 @@ export const OPS_COPY = Object.freeze({
   "ops.replan.fact.committed": "Committed before",
   "ops.replan.fact.replanned": "Committed now",
   "ops.serp.unreadable": "Google results bought on the normal queue came back unreadable: most of the links were Google redirects, or a search that had results came back with none. Places read from them show as not measured until a clean read. This is the first today; later ones are only counted.",
+  "ops.mail-stopped": "Mail to a paying customer’s address bounced or was marked as spam, so ReachKit has stopped its follow-up mail to that address. Their weekly and account mail may not arrive either. Ask them for an address that works.",
   "ops.promise.week": "Each paying site's daily promise for the week of {week}: days kept, days the customer stopped, pages that met the content standard, and the research behind the coming week. A missed day shows its recorded cause. A site with fewer than {spares} researched spares or a day left uncovered is listed first.",
   "ops.promise.low": "Coming week below its margin",
   "ops.promise.held": "The other paying sites",

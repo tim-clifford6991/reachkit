@@ -210,6 +210,13 @@ describe("ADR-042 — two stores, and this is the address-keyed one", () => {
     expect(raises(`insert into email_suppressions (email, cause) values ('bounce@example.com', 'bounced');`)).toBe(true);
   });
 
+  it("the bounce migration keeps every stored row and admits only bounced and complained besides", () => {
+    psql(["-v", "ON_ERROR_STOP=1", "-f", path.join(MIGRATIONS, migrationName("suppressions_bounce_cause"))]);
+    expect(raises(`insert into email_suppressions (email, cause) values ('bounce@example.com', 'bounced');`)).toBe(false);
+    expect(raises(`insert into email_suppressions (email, cause) values ('spam@example.com', 'complained');`)).toBe(false);
+    expect(raises(`insert into email_suppressions (email, cause) values ('other@example.com', 'soft_bounce');`)).toBe(true);
+  });
+
   it("it names no user and no notification kind — the other mechanism is reachable from nowhere here", () => {
     const columns = psqlRows(
       `select column_name from information_schema.columns where table_schema = 'public' and table_name = 'email_suppressions' order by column_name;`
