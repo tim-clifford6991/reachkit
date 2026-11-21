@@ -375,11 +375,14 @@ function Head(p: { right?: React.ReactNode }): React.JSX.Element {
 /** The longest quote the card shows, in characters: one sentence, never a page. */
 const QUOTE_MAX = 240;
 
-/** The answer's words without its markdown marks, which a quote would show raw.
+/** The answer's words without its markdown marks, images or link targets, which a quote would show raw.
  *  A mark that starts a word (".NET", ".io") keeps the space before it. */
 function plainOf(text: string | undefined): string | undefined {
-  return text?.replace(/\*\*|`/g, "").replace(/\s+([.,!?;:])(?=\s|$)/g, "$1").trim();
+  return text?.replace(/!\[[^\]]*\]\([^)]*\)/g, "").replace(/\[([^\]]*)\]\([^)]*\)/g, "$1").replace(/\*\*|`/g, "").replace(/\s+([.,!?;:])(?=\s|$)/g, "$1").trim();
 }
+
+/** What no quote may still hold: an address or a markdown mark the cleaning left. */
+const NOT_WORDS = /https?:\/\/|www\.|!\[|\]\(/i;
 
 /** One AI answer's first sentence, quoted as it was written, with the search
  *  it was asked for and the names the answer itself set in bold. The first
@@ -396,7 +399,7 @@ export function answerQuoteOf(
     const text = plainOf(raw);
     if (raw === undefined || text === undefined || text === "") continue;
     const sentence = /^[\s\S]*?[.!?](?=\s|$)/.exec(text)?.[0] ?? text;
-    if (sentence.length > QUOTE_MAX) continue;
+    if (sentence.length > QUOTE_MAX || NOT_WORDS.test(sentence)) continue;
     const bold = [...raw.matchAll(/\*\*([^*]+)\*\*/g)].map((m) => m[1]!.trim()).filter((name) => name !== "" && sentence.includes(name));
     return { search: row.question.search, text: sentence, bold: [...new Set(bold)] };
   }
