@@ -34,7 +34,7 @@
 import type React from "react";
 import { Suspense } from "react";
 import { ArrowRight, Check } from "lucide-react";
-import { OFFER_ENDS_ON, OFFER_SPOTS, SETUP_MINUTES, VETO, WEEK_PLAN } from "@/lib/config/constants";
+import { OFFER_ENDS_AT, OFFER_ENDS_ON, OFFER_SPOTS, SETUP_MINUTES, VETO, WEEK_PLAN } from "@/lib/config/constants";
 import type { SpotsLeft } from "@/lib/account/offer/spots";
 import { copy } from "@/lib/presentation/copy";
 import { HOW_FACTS } from "@/app/(public)/_how/facts";
@@ -43,6 +43,7 @@ import { FLOAT } from "@/ui/lift";
 import { Num } from "../_address/measured";
 import { WhenRefused } from "../../../pricing/refused";
 import { FirstFifty } from "./first-fifty";
+import { BarStart, OfferBar } from "./offer-bar";
 
 /** The static pricing page's `refused`: the marker is read in the browser. */
 export const REFUSED_IN_QUERY = "query" as const;
@@ -93,11 +94,6 @@ function PriceBox(p: {
   offer: React.ReactNode;
   free?: React.ReactNode;
 }): React.JSX.Element {
-  const refusedLine = (
-    <div role="alert" className="alert alert-error">
-      <span>{copy("offer.checkout.refused")}</span>
-    </div>
-  );
   return (
     <div className="flex flex-col gap-4">
       {/* REQ-022 c1: "€49 per month and says that VAT is included". */}
@@ -111,19 +107,30 @@ function PriceBox(p: {
       {p.offer}
       {/* Issue #624: the vendor refused to open checkout. One written line
           on the offer itself, above the control that will try again. */}
-      {p.refused === REFUSED_IN_QUERY ? (
-        <Suspense fallback={null}>
-          <WhenRefused>{refusedLine}</WhenRefused>
-        </Suspense>
-      ) : p.refused === true ? (
-        refusedLine
-      ) : null}
+      {whenRefused(
+        p.refused,
+        <div role="alert" className="alert alert-error">
+          <span>{copy("offer.checkout.refused")}</span>
+        </div>
+      )}
       {p.start}
       <p className="text-base-content/70 text-center text-xs">{p.cancel}</p>
       {p.close === true && p.free !== undefined ? <div className="divider my-0" /> : null}
       {p.free ?? null}
     </div>
   );
+}
+
+/** The refused line where checkout was refused; on the static page the marker is read in the browser. */
+function whenRefused(refused: boolean | typeof REFUSED_IN_QUERY | undefined, line: React.ReactNode): React.ReactNode {
+  if (refused === REFUSED_IN_QUERY) {
+    return (
+      <Suspense fallback={null}>
+        <WhenRefused>{line}</WhenRefused>
+      </Suspense>
+    );
+  }
+  return refused === true ? line : null;
 }
 
 function Terms(p: { specs: readonly string[] }): React.JSX.Element {
@@ -199,6 +206,26 @@ export function PricingCard(
   );
   const control = p.startAction ? <form action={p.startAction}>{start}</form> : start;
   const offer = <Offer spots={p.spots ?? null} built={p.built === true} />;
+  // Below `md` the same action, in a second form, stays in reach once the card's Start scrolls away.
+  const bar = p.startAction ? (
+    <OfferBar
+      read={p.built === true}
+      spots={p.spots ?? null}
+      endsAt={OFFER_ENDS_AT}
+      words={{
+        label: copy("offer.banner.label"),
+        before: copy("offer.spots.before", { of: String(OFFER_SPOTS), endsOn: OFFER_ENDS_ON }),
+        left: copy("offer.card.left", { left: "{left}", of: String(OFFER_SPOTS) }),
+        promise: copy("offer.banner.promise", { minutes: String(SETUP_MINUTES) }),
+      }}
+      refused={whenRefused(p.refused, <p className="text-error text-sm">{copy("offer.checkout.refused")}</p>)}
+      start={
+        <form action={p.startAction}>
+          <BarStart label={copy("offer.start.priced")} />
+        </form>
+      }
+    />
+  ) : null;
 
   if (p.close === true) {
     return (
@@ -214,6 +241,7 @@ export function PricingCard(
             <PriceBox start={control} close cancel={cancel} refused={p.refused} offer={offer} free={p.free} />
           </div>
         </div>
+        {bar}
       </section>
     );
   }
@@ -242,6 +270,7 @@ export function PricingCard(
           free={p.free}
         />
       </div>
+      {bar}
     </section>
   );
 }
