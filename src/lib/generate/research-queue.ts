@@ -69,7 +69,8 @@ export async function dayTypes(siteId: string, o: Opportunity, now: Date, cost?:
 export async function heldResearch(cost: CostContext, a: { key: string; reuse: boolean; researched: boolean; line: { site: string; draft: string | null; opportunity: string; type: ContentType } }, stored: () => MarketResearch, buy: () => Promise<MarketResearch>): Promise<MarketResearch> {
   const skipped = (reason: "type" | "held" | "cap", research: MarketResearch) => (console.log(JSON.stringify({ event: "draft_researched", skipped: reason, ...a.line })), research);
   if (!a.researched) return skipped("type", stored());
-  const held = await cost.recordFetch({ source: "generate.research.held", cacheKey: a.key, freshnessDays: a.reuse ? 1 : 0, costCents: 0, unusable: (payload) => (payload as MarketResearch).pending === true, run: () => (a.reuse ? Promise.resolve(NO_RESEARCH) : buy()) });
+  // A 0¢ reservation passes at the cap, where research itself would stop at once without a line.
+  const held = await cost.recordFetch({ source: "generate.research.held", cacheKey: a.key, freshnessDays: a.reuse ? 1 : 0, costCents: 0, unusable: (payload) => (payload as MarketResearch).pending === true, run: () => (a.reuse ? Promise.resolve(NO_RESEARCH) : cost.capHit() ? Promise.resolve(skipped("cap", NO_RESEARCH)) : buy()) });
   if ("skipped" in held) return skipped("cap", NO_RESEARCH);
   // A held row is jsonb, which keeps a date as its string.
   const research = { ...held.payload, facts: held.payload.facts.map((fact) => ({ ...fact, readAt: new Date(fact.readAt) })) };
