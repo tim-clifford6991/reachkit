@@ -1,7 +1,8 @@
 // SPEC §4 *Overview's four tiles* — the reserved account's weekly passes, rebuilt from its own fixture
 // pages' readings, so its tiles go through the same builder as every account's.
 import type { PublishedPage } from "@/lib/measure/published";
-import type { PlaceReport } from "@/lib/measure/page-reading";
+import { addressOf, type PlaceReport } from "@/lib/measure/page-reading";
+import type { AnswerQuestion } from "./answers-model";
 import { TILE_WEEKS, type TilePage, type TilePass } from "./tiles";
 
 const WEEK_MS = 7 * 86_400_000;
@@ -16,7 +17,11 @@ export const tilePageOf = (page: PublishedPage): TilePage => ({
 });
 
 /** The reserved account's six Mondays, rebuilt from its own pages' readings: more placed and linked each week, one week unhealthy. */
-export function fixturePasses(pages: readonly PublishedPage[], week: string): TilePass[] {
+export function fixturePasses(pages: readonly PublishedPage[], week: string, pageQuestions: readonly AnswerQuestion[]): TilePass[] {
+  // The pages the account's own answers name without a link: the latest pass records those mentions.
+  const named = new Set(
+    pageQuestions.flatMap((q) => (q.page !== null && q.marks.includes("names_you") && !q.marks.includes("links_to_you") ? [addressOf(q.page.url)] : []))
+  );
   return Array.from({ length: TILE_WEEKS }, (_, k) => {
     const weekStart = new Date(Date.parse(`${week}T06:00:00Z`) - (TILE_WEEKS - 1 - k) * WEEK_MS).toISOString().slice(0, 10);
     const at = `${weekStart}T06:00:00.000Z`;
@@ -25,7 +30,11 @@ export function fixturePasses(pages: readonly PublishedPage[], week: string): Ti
       .map((page, j) => ({
         publicationId: page.id,
         question: { search: page.reading?.place?.query ?? page.title },
-        cell: { kind: "answered", ownUrls: (page.reading?.linkedBy ?? []).length > 0 && k >= 4 ? [page.url!] : [] },
+        cell: {
+          kind: "answered",
+          ownUrls: (page.reading?.linkedBy ?? []).length > 0 && k >= 4 ? [page.url!] : [],
+          ...(k === TILE_WEEKS - 1 && named.has(addressOf(page.url!)) ? { named: true } : {}),
+        },
         engines: [],
         organic: page.reading?.place != null && j % TILE_WEEKS <= k ? [{ url: page.url!, position: page.reading.place.value }] : [],
       }));

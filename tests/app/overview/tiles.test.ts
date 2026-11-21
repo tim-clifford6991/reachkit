@@ -53,13 +53,14 @@ function site(pages: PublishedPage[], passes: TilePass[]): TilesView {
 
 const fixtureWeek = weekStartFor({ at: CONTENT_FIXTURE_NOW, zone: "UTC" });
 const firstPage = assembleRivals(FIXTURE_RIVALS_FACTS).firstPage;
+const fixtureQuestions = assembleAnswers(FIXTURE_ANSWERS_FACTS).pageQuestions;
 const FIXTURES: Record<string, TilesView> = {
   "the reserved account": buildTiles({
     published: { pages: FIXTURE_PUBLISHED, now: CONTENT_FIXTURE_NOW },
-    passes: fixturePasses(FIXTURE_PUBLISHED, fixtureWeek),
+    passes: fixturePasses(FIXTURE_PUBLISHED, fixtureWeek, fixtureQuestions),
     rows: FIXTURE_PUBLISHED.map(tilePageOf),
     rivals: { you: firstPage.you.count, of: firstPage.of, rivals: firstPage.rivals, measuredAt: null },
-    pageQuestions: assembleAnswers(FIXTURE_ANSWERS_FACTS).pageQuestions,
+    pageQuestions: fixtureQuestions,
     domain: "example.com",
     week: fixtureWeek,
     coming: 0,
@@ -121,6 +122,11 @@ describe.each(Object.entries(FIXTURES))("%s", (_, view) => {
 });
 
 describe("weeks compare like with like", () => {
+  it("the reserved account's passes carry the mentions its answers record: 2 named without a link", () => {
+    const namedOnly = fixtureQuestions.filter((q) => q.marks.includes("names_you") && !q.marks.includes("links_to_you")).length;
+    expect([FIXTURES["the reserved account"]!.ai?.mentioned, namedOnly]).toEqual([2, 2]);
+  });
+
   it("two publications on one address, nothing changed: Same, 2 of 2", () => {
     const t = tile(FIXTURES["two publications on one address"]!, "pages");
     expect([t.n, t.of, t.change]).toEqual([2, { kind: "count", m: 2 }, { kind: "same" }]);
