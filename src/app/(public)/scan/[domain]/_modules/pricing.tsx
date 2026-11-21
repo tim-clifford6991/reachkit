@@ -34,7 +34,7 @@
 import type React from "react";
 import { Suspense } from "react";
 import { ArrowRight, Check } from "lucide-react";
-import { OFFER_ENDS_AT, OFFER_ENDS_ON, OFFER_SPOTS, SETUP_MINUTES, VETO, WEEK_PLAN } from "@/lib/config/constants";
+import { OFFER_ENDS_ON, OFFER_SPOTS, SETUP_MINUTES, VETO, WEEK_PLAN } from "@/lib/config/constants";
 import type { SpotsLeft } from "@/lib/account/offer/spots";
 import { copy } from "@/lib/presentation/copy";
 import { HOW_FACTS } from "@/app/(public)/_how/facts";
@@ -140,7 +140,11 @@ function Terms(p: { specs: readonly string[] }): React.JSX.Element {
 }
 
 /** The first-50 block, the setup promise every buyer gets, and the spots line directly above Start. */
-function Offer(p: { spots: SpotsLeft | null | undefined }): React.JSX.Element {
+function Offer(p: { spots: SpotsLeft | null; built: boolean }): React.JSX.Element {
+  const spots = p.spots;
+  const promise = <p className="text-sm font-semibold">{copy("offer.promise.call", { minutes: String(SETUP_MINUTES) })}</p>;
+  // A failed read says nothing true about the offer, so the card draws it only where the read says open.
+  if (spots === null || (spots.state !== "open" && spots.state !== "few")) return promise;
   const of = String(OFFER_SPOTS);
   const block = (
     <div className="border-base-300 flex flex-col gap-3 border-t pt-4">
@@ -153,11 +157,11 @@ function Offer(p: { spots: SpotsLeft | null | undefined }): React.JSX.Element {
   );
   return (
     <FirstFifty
-      read={p.spots === undefined}
-      spots={p.spots ?? null}
-      endsAt={Date.parse(OFFER_ENDS_AT)}
+      read={p.built}
+      // A static page drops the count it would keep until the next deploy; the browser fills it.
+      spots={p.built ? { state: "open" } : spots}
       block={block}
-      promise={<p className="text-sm font-semibold">{copy("offer.promise.call", { minutes: String(SETUP_MINUTES) })}</p>}
+      promise={promise}
       words={{ before: copy("offer.spots.before", { of, endsOn: OFFER_ENDS_ON }), left: copy("offer.card.left", { left: "{left}", of }) }}
     />
   );
@@ -178,8 +182,10 @@ export function PricingCard(
     line?: string;
     /** The free path, under Start. */
     free?: React.ReactNode;
-    /** The server's read of the first-50 spots; left out, a static page asks after paint. */
+    /** The read of the first-50 spots, `null` where it failed; without one no first-50 block is drawn. */
     spots?: SpotsLeft | null;
+    /** The read was made at build, so the browser fills the count and any state that moved since. */
+    built?: boolean;
   } = {}
 ): React.JSX.Element {
   const terms = p.terms ?? "report";
@@ -192,7 +198,7 @@ export function PricingCard(
     </button>
   );
   const control = p.startAction ? <form action={p.startAction}>{start}</form> : start;
-  const offer = <Offer spots={p.spots} />;
+  const offer = <Offer spots={p.spots ?? null} built={p.built === true} />;
 
   if (p.close === true) {
     return (

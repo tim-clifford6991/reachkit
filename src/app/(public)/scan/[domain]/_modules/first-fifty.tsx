@@ -5,31 +5,26 @@ import { useEffect, useState } from "react";
 import { Clock } from "lucide-react";
 import type { SpotsLeft } from "@/lib/account/offer/spots";
 
-type Shown = Pick<SpotsLeft, "left"> & { state: SpotsLeft["state"] | "before" };
-
-/** Unknown is never 0: before the end it is the before line, after it no offer is drawn. */
-const unread = (endsAt: number): Shown => ({ state: Date.now() >= endsAt ? "ended" : "before" });
-
-/** `read` asks `/offer/spots` after paint; else `spots` is the server's read, `null` where it failed. */
+/** Drawn only while the offer is open; with `read`, `/offer/spots` fills the count and closes a state that moved since the build. */
 export function FirstFifty(p: {
   read: boolean;
-  spots: SpotsLeft | null;
-  endsAt: number;
+  spots: Pick<SpotsLeft, "state" | "left">;
   block: React.ReactNode;
   promise: React.ReactNode;
   words: { before: string; left: string };
 }): React.JSX.Element {
-  const [spots, setSpots] = useState<Shown>(() => (p.read ? { state: "before" } : (p.spots ?? unread(p.endsAt))));
+  const [spots, setSpots] = useState(p.spots);
   useEffect(() => {
     if (!p.read) return;
+    // A failed or unknown read keeps the build's block, as the offer line keeps its line.
     fetch("/offer/spots")
       .then((r) => (r.ok ? (r.json() as Promise<SpotsLeft | { state: "unknown" }>) : null))
-      .then((body) => setSpots(body === null || body.state === "unknown" ? unread(p.endsAt) : body))
-      .catch(() => setSpots(unread(p.endsAt)));
-  }, [p.read, p.endsAt]);
+      .then((body) => body !== null && body.state !== "unknown" && setSpots(body))
+      .catch(() => undefined);
+  }, [p.read]);
 
   // Once all are taken or the offer has ended there is no way to claim it, so only the promise stays.
-  const open = spots.state === "before" || spots.state === "open" || spots.state === "few";
+  const open = spots.state === "open" || spots.state === "few";
   const few = spots.state === "few";
   return (
     <>

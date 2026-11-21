@@ -194,7 +194,9 @@ function questions(): readonly Question[] {
   ];
 }
 
-export default function PricingPage(): React.JSX.Element {
+export default async function PricingPage(): Promise<React.JSX.Element> {
+  // Read at build, as the offer line is; loaded here because the database client checks its environment when it loads.
+  const spots = await import("@/lib/account/offer/spots").then((m) => m.spotsLeft()).catch(() => null);
   return (
     <>
     <OfferLine pitch see={false} />
@@ -223,7 +225,7 @@ export default function PricingPage(): React.JSX.Element {
             }
             aside={
               <div className="flex min-w-0 flex-col gap-4">
-                <PricingCard startAction={startCheckout} terms="pricing" refused={REFUSED_IN_QUERY} free={<FreeFirst />} />
+                <PricingCard startAction={startCheckout} terms="pricing" refused={REFUSED_IN_QUERY} spots={spots} built free={<FreeFirst />} />
                 <NotDone />
               </div>
             }
