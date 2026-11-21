@@ -136,9 +136,71 @@ export async function nameDraftOnRows(rowIds: readonly string[], draftId: string
   }
 }
 
-/** Off: its database functions stalled production, so the tick only says so until the prune is reworked. */
-export async function prunePageHtml(): Promise<void> {
-  console.log(JSON.stringify({ event: "page_html_prune", outcome: "off" }));
+/** How long an own or rendered page read keeps its html; past it the facts and text kept from it stand in. */
+export const PAGE_HTML_KEPT_DAYS = 30;
+// One tick's ceiling: reads listed, payload moved and time spent, so a tick stays small beside production traffic.
+const PRUNE_READS = 10;
+const PRUNE_BYTES = 4_000_000;
+const PRUNE_MS = 20_000;
+// After any failure the prune waits this long, so a struggling database is not asked again every tick.
+const PRUNE_BACKOFF_MS = 6 * 3_600_000;
+
+interface DueRead { id: string; scan_id: string; source: string; cache_key: string; stored_bytes: number; has_facts: boolean; has_text: boolean }
+interface Rows<T> extends PromiseLike<QueryResult<T>> { upsert(row: object, opts: { onConflict: string; ignoreDuplicates: boolean }): Rows<T> }
+interface PruneClient extends MinimalClient { rpc<T>(fn: string, args: object): PromiseLike<{ data: T | null; error: { message: string; code?: string } | null }> }
+
+function ok<T>(result: { data: T | null; error: { message: string; code?: string } | null }): T | null {
+  if (result.error !== null) throw Object.assign(new Error(result.error.message), { name: `db_${result.error.code ?? "error"}` });
+  return result.data;
+}
+
+/** Empties the html of page reads older than the window, the cutoff fixed for the UTC day, one payload at a time
+ *  under a byte and time budget, once each read's facts and text are kept. Production only: dev shares the database,
+ *  and a row derived by dev's code would outlive the html it came from. Any failure is one `ops_events` row and a
+ *  6 h pause, never a retry. */
+export async function prunePageHtml(now: Date = new Date()): Promise<void> {
+  const factsVersion = process.env.RK_FACTS_VERSION;
+  const textVersion = process.env.RK_TEXT_VERSION;
+  if (process.env.VERCEL_ENV !== "production" || !factsVersion || !textVersion) return;
+  const started = Date.now();
+  const client = dbAdmin() as unknown as PruneClient;
+  try {
+    const recent = ok(await client.from<{ id: number }>("ops_events").select("id").eq("kind", "page_html_prune").gte("at", new Date(now.getTime() - PRUNE_BACKOFF_MS).toISOString()).limit(1));
+    if ((recent ?? []).length > 0) {
+      console.log(JSON.stringify({ event: "page_html_prune", outcome: "backoff" }));
+      return;
+    }
+    const before = new Date(Date.parse(now.toISOString().slice(0, 10)) - PAGE_HTML_KEPT_DAYS * 86_400_000).toISOString();
+    const due = ok(await client.rpc<DueRead[]>("fetches_html_due", { p_before: before, p_limit: PRUNE_READS })) ?? [];
+    const [{ pageFactsOf }, { textRowOf }] = await Promise.all([import("@/lib/scan/page-facts"), import("@/lib/measure/text-store")]);
+    const dealt: string[] = [];
+    let bytes = 0;
+    let derived = 0;
+    for (const read of due) {
+      if (read.has_facts && read.has_text) {
+        dealt.push(read.id);
+        continue;
+      }
+      // The first payload goes through whatever its size, so one read over the budget cannot hold the queue.
+      if (Date.now() - started >= PRUNE_MS || (bytes > 0 && bytes + read.stored_bytes > PRUNE_BYTES)) break;
+      bytes += read.stored_bytes;
+      const [row] = ok(await client.from<{ payload: unknown }>("fetches").select("payload").eq("id", read.id)) ?? [];
+      if (row === undefined) continue;
+      const at = new Date().toISOString();
+      // `ignoreDuplicates`: a row kept at an older version stands, as it does wherever the html has gone.
+      const keep = (table: string, values: object) => (client.from(table) as unknown as Rows<unknown>).upsert({ fetch_id: read.id, scan_id: read.scan_id, computed_at: at, ...values }, { onConflict: "fetch_id", ignoreDuplicates: true });
+      if (!read.has_facts) ok(await keep("fetch_facts", { facts_version: factsVersion, facts: pageFactsOf(read.cache_key, row.payload) }));
+      if (!read.has_text) ok(await keep("fetch_text", { text_version: textVersion, ...textRowOf(read.source, row.payload) }));
+      derived += 1;
+      dealt.push(read.id);
+    }
+    const pruned = dealt.length === 0 ? 0 : (ok(await client.rpc<number>("fetches_html_prune", { p_ids: dealt })) ?? 0);
+    console.log(JSON.stringify({ event: "page_html_pruned", listed: due.length, derived, pruned, bytes, ms: Date.now() - started }));
+  } catch (error) {
+    const { failureCode, recordOpsEvent } = await import("@/lib/ops/events");
+    await recordOpsEvent("page_html_prune", "fetches", failureCode(error));
+    console.warn(JSON.stringify({ event: "page_html_prune", outcome: "failed", message: error instanceof Error ? error.message : String(error) }));
+  }
 }
 
 /** The payload as `jsonb` can hold it: Postgres refuses a
