@@ -114,6 +114,11 @@ export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element 
 
   const since = billing.readable ? billing.customerSince : null;
   const checkIn = billing.readable ? billing.nextCheckIn : null;
+  const spot = (
+    <span className="badge badge-ghost h-auto min-h-5 wrap-anywhere" data-testid="billing-spot">
+      {copy("offer.billing.spot", { of: String(OFFER_SPOTS) })}
+    </span>
+  );
   const founder = (
     <a className="link link-primary inline-flex min-h-6 items-center" href={`mailto:${copy("chrome.footer.contact.address")}`} data-testid="billing-founder">
       {copy("offer.founder")}
@@ -152,11 +157,10 @@ export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element 
         {/* The settable-row shape every Settings tab draws (`SettingRow`,
             #1089): the name at the near edge, the value at the far one. */}
         <div className="flex min-w-0 flex-col">
-          {badge === null && since === null ? null : (
+          {badge === null ? null : (
             <SettingRow name={copy("settings.billing.status")} testId="billing-row-status">
               {/* One group, so the two badges sit together and wrap on a phone. */}
               <span className="flex min-w-0 flex-wrap items-center gap-2">
-              {badge === null ? null : (
                 <span
                   className={badge === "active" ? "badge badge-success badge-soft" : "badge badge-ghost"}
                   data-testid="billing-state"
@@ -164,12 +168,7 @@ export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element 
                   {badge === "active" ? <Check size={14} strokeWidth={1.75} aria-hidden /> : null}
                   {copy(`settings.billing.${badge}`)}
                 </span>
-              )}
-              {since === null ? null : (
-                <span className="badge badge-ghost h-auto min-h-5 wrap-anywhere" data-testid="billing-spot">
-                  {copy("offer.billing.spot", { of: String(OFFER_SPOTS) })}
-                </span>
-              )}
+                {since === null ? null : spot}
               </span>
             </SettingRow>
           )}
@@ -200,6 +199,8 @@ export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element 
           {since === null ? null : (
             <SettingRow name={copy("offer.billing.since")} testId="billing-row-since">
               <span className="num num-phrase min-w-0 wrap-anywhere">{since}</span>
+              {/* With no state badge drawn, the spot never stands in for the status. */}
+              {badge === null ? spot : null}
             </SettingRow>
           )}
           {checkIn === null ? null : (

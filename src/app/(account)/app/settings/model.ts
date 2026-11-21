@@ -409,8 +409,9 @@ export function localeChoices(current: Locale, alsoServes: readonly string[]): s
 /** The billing card from its facts alone, so the billing tab needs no other read. */
 export function billingSummaryOf(billing: BillingFacts, timeZone: string, now: Date): BillingSummary {
   const taken = billing.readable && billing.state !== "ended" ? billing.spotTakenAt : null;
-  // Only the next check-in is drawn, so a passed date is never shown.
-  const checkIn = taken === null ? undefined : OFFER_CHECKIN_DAYS.map((days) => new Date(taken.getTime() + days * 86_400_000)).find((at) => at > now);
+  // Only the next check-in is drawn, and it stays until its own day has ended in the account's zone.
+  const day = (at: Date) => new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(at);
+  const checkIn = taken === null ? undefined : OFFER_CHECKIN_DAYS.map((days) => new Date(taken.getTime() + days * 86_400_000)).find((at) => day(at) >= day(now));
   return billing.readable
     ? {
         readable: true,

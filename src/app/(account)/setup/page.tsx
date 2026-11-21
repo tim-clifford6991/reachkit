@@ -51,9 +51,8 @@ export default async function SetupPage(): Promise<React.JSX.Element> {
   const [model, holder] = await Promise.all([readSetupScreen(), readSpotHolder()]);
   // Every buyer is offered the call; only a spot holder is told they hold one.
   const offer = (
-    <p className="flex min-w-0 flex-wrap gap-x-1 text-(length:--t-sm) text-base-content/80 wrap-anywhere" data-testid="setup-offer">
-      {holder ? <span>{copy("offer.setup.holder", { of: String(OFFER_SPOTS) })}</span> : null}
-      <span>{copy("offer.setup.help")}</span>
+    <p className="min-w-0 text-(length:--t-sm) text-base-content/80 wrap-anywhere" data-testid="setup-offer">
+      {`${[holder ? copy("offer.setup.holder", { of: String(OFFER_SPOTS) }) : null, copy("offer.setup.help")].filter((part) => part !== null).join(" ")} `}
       {OFFER_BOOKING_URL === "" ? (
         <a className="link link-primary" href={`mailto:${copy("chrome.footer.contact.address")}`}>
           {copy("offer.founder")}
