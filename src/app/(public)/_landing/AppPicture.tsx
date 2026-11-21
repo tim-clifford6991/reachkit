@@ -1,11 +1,11 @@
 // The hero's right column: the example business's Overview in a browser frame, in the order Overview runs
-// (Today's Page, Your Results So Far, This Week), with the same keys, so the picture cannot say what the app does not.
+// (Today's Page, the four tiles, This Week), with the same keys, so the picture cannot say what the app does not.
 // Nothing inside is focusable: the controls are drawings, and the caption describes the figure.
 import type React from "react";
 import { Clock4, CircleStop, Eye } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { FLOAT } from "@/ui/lift";
-import { EXAMPLES, EXAMPLE_TOTALS, LIVE_AT, weekDays, type PlannedDay } from "../_how/specimen";
+import { EXAMPLES, EXAMPLE_TILES, LIVE_AT, weekDays, type PlannedDay } from "../_how/specimen";
 
 /** Bound to names: the copy sweep reads a bare JSX string as voice. */
 const APP_HOST = "app.reachkit.app";
@@ -13,10 +13,11 @@ const TEST_ID = "landing-app";
 const ICON = { size: 16, strokeWidth: 1.75, "aria-hidden": true } as const;
 const TITLE = "text-sm font-bold";
 
-const STATS = [
-  { of: "ai", label: "overview.totals.ai.label" },
-  { of: "google", label: "overview.totals.google.label" },
-  { of: "pages", label: "overview.totals.pages.label" },
+const TILES = [
+  { key: "pages", name: "overview.tile.pages.name", of: "overview.tile.pages.of" },
+  { key: "google", name: "overview.tile.google.name", of: "overview.tile.google.of" },
+  { key: "ai", name: "overview.tile.ai.name", of: "overview.tile.ai.of" },
+  { key: "rivals", name: "overview.tile.rivals.name", of: "overview.tile.rivals.of" },
 ] as const;
 
 const STATE: Readonly<Record<PlannedDay["state"], CopyKey>> = {
@@ -57,18 +58,24 @@ export function AppPicture(): React.JSX.Element {
               </span>
             </div>
           </div>
-          <p className={TITLE}>{copy("overview.totals.title")}</p>
-          <div className="stats stats-vertical lg:stats-horizontal card-border bg-base-100 w-full">
-            {STATS.map((stat) => (
-              <div key={stat.of} className="stat min-w-0">
-                <p className="stat-title text-base-content/70 whitespace-normal">{copy(stat.label)}</p>
-                <p className="stat-value font-semibold tabular-nums">{EXAMPLE_TOTALS[stat.of].total}</p>
-                <p className="stat-desc text-base-content/70 whitespace-normal">
-                  {copy("overview.totals.added", { n: String(EXAMPLE_TOTALS[stat.of].added) })}
-                </p>
-              </div>
-            ))}
-          </div>
+          <ul className="grid min-w-0 grid-cols-2 gap-3 lg:grid-cols-4">
+            {TILES.map(({ key, name, of }) => {
+              const tile = EXAMPLE_TILES[key];
+              const m = String(tile.of);
+              return (
+                <li key={key} className="card card-border bg-base-100 min-w-0">
+                  <span className="card-body min-w-0 gap-1.5 p-3">
+                    <span className="min-w-0 text-sm font-semibold">{copy(name)}</span>
+                    <span className="text-3xl leading-snug font-semibold tabular-nums">{tile.n}</span>
+                    <span className="text-base-content/70 text-sm">{key === "pages" ? copy(of, { total: m }) : copy(of, { m })}</span>
+                    <span className={`text-sm ${tile.up > 0 ? "text-success" : "text-base-content/70"}`}>
+                      {tile.up > 0 ? copy("overview.tile.change.up", { n: String(tile.up) }) : copy("overview.tile.change.same")}
+                    </span>
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
           <p className={TITLE}>{copy("overview.week.title")}</p>
           <ol className="flex min-w-0 flex-col gap-2">
             {plan.slice(TODAY + 1, TODAY + 4).map((day, i) => (
