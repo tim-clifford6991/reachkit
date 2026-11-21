@@ -36,7 +36,11 @@ For each one, report the evidence and PASS / FAIL / NO-DATA. NO-DATA is not a fa
    - Vercel runtime errors in 24 h (`get_runtime_errors`).
 7. **Deploys:** `prod-redeploy.log` in 24 h, covering production deploys, their Ready and Inngest-sync lines, production check results, and dev-check failures.
 8. **Spend:** vendor spend in 24 h from `vendor_days` and scan costs, against the daily caps. Anything near a cap is a WARN.
-9. **Database size:** `select pg_size_pretty(pg_database_size(current_database())), pg_size_pretty(pg_total_relation_size('public.fetches'));`, against the plan's limit (the plan is in `docs/RUNBOOK.md` §2; Free is 500 MB, Pro 8 GB), because at the limit the database goes read-only. Report the size, the limit, the percentage and the change since the last report. 80% is a WARN; 95% is a FAIL.
+9. **Database size:** `select pg_size_pretty(pg_database_size(current_database())), pg_size_pretty(pg_total_relation_size('public.fetches'));`, against the plan's limit (the plan is in `docs/RUNBOOK.md` §2; Free is 500 MB, Pro 8 GB), because at the limit the database goes read-only. Report the size, the limit, the percentage and the change since the last report. 80% is a WARN; 95% is a FAIL. Then the html prune, from the catalog and plain columns only:
+   - **due:** `select count(*) from public.fetches where html_pruned_at is null and source in ('egress.safeFetch', 'on_page/instant_pages') and created_at < date_trunc('day', now(), 'UTC') - interval '30 days';`, the partial index's own predicate, so it is answered from `idx_fetches_html_due`. 100 or more from 2026-11-27 is a WARN.
+   - **dead space:** `select t.n_dead_tup from pg_class c join pg_stat_all_tables t on t.relid = c.reltoastrelid where c.oid = 'public.fetches'::regclass;`, the dead chunks the prune leaves in `fetches`' TOAST table.
+   - **back-offs:** `select count(*) from public.ops_events where kind = 'page_html_prune' and at > now() - interval '24 hours';`. Any row is a WARN: the prune failed and paused for 6 h.
+   - From 2026-11-28, `pg_database_size` moving more than 5 MB from the report a week earlier is a WARN.
 
 ## Output
 - Write `/root/ops/reachkit/reports/daily-check/<YYYY-MM-DD>.md`, made of:
