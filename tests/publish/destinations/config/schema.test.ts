@@ -51,7 +51,7 @@ describe("the migration is on the destinations topic", () => {
     const onTopic = readdirSync(MIGRATIONS)
       .filter((name) => name.endsWith(".sql"))
       .filter((name) => topicOf(name)?.token === "destinations");
-    expect(onTopic).toEqual([FILE, STAMP_FILE, HOSTNAME_FILE]);
+    expect(onTopic).toEqual([FILE, STAMP_FILE, HOSTNAME_FILE, "20261121120000_destinations_hosted_hostname_backfill.sql"]);
   });
 });
 
