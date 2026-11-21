@@ -304,9 +304,7 @@ export const REPORT_COPY = Object.freeze({
   "retry-part.refused.no-budget": "This part can’t be scanned again. Scan the whole site again instead.",
   "retry-part.refused.already-measured": "This part is done. Reload the page to see it.",
   "retry-part.refused.unavailable": "That didn’t start. Try again in a few minutes.",
-  // Issue 1444: the card's figure is `{count} of {total}` (`report.figure.of`)
-  // — the answers that mention the customer of those that appeared — and
-  // this is the one line under it.
+  // The one line under the card's figure: the answers that mention the customer, of those that appeared.
   "ai-answers.finding": "AI answers that mention you",
   // Issue 1439: AI answered none of the searches read, so AI presence is not
   // judged and the score counts search alone. Short, as titles are (#1444).
@@ -357,12 +355,12 @@ export const REPORT_COPY = Object.freeze({
   // report's two battery columns, and any question a ceiling stopped the
   // pass reaching. It states a fact about the measurement, never a miss.
   "ai-answers.engine.not-measured": "not measured",
+  "report.ai.unmeasured": "We couldn’t measure AI answers for this market yet.",
   "ai-answers.absent": "We couldn’t scan AI answers this time. The rest of the report still holds.",
 
   // ── Module 2, right card — Google presence (REQ-008) ──────────────────
   "presence.title": "Google",
-  // Issue 1309: the count is the card's own denominator, never the literal
-  // twelve — the chip said 12 over a report that measured two.
+  // The count is the card's own denominator, never a literal.
   "presence.source": "Out of {measured} searches buyers in your market make.",
   // Issue 1444: the card's figure is `{count} of {total}` — the searches
   // the customer is on the first page for, of those measured — and this is
@@ -376,6 +374,7 @@ export const REPORT_COPY = Object.freeze({
   "presence.absent-from.column.volume": "Searches a month",
   "presence.absent-from.column.holder": "Who’s first",
   "presence.absent-from.empty": "You show up in every search we scanned.",
+  "report.presence.unmeasured": "We couldn’t measure Google searches for this market yet.",
   "presence.absent": "We couldn’t scan Google this time. The rest of the report still holds.",
 
   // ── Module 3, the three problem cards (REQ-009) ───────────────────────

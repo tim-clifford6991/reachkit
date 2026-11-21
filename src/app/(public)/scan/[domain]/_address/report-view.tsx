@@ -33,7 +33,7 @@ import { copy, type CopyKey } from "@/lib/presentation/copy";
 import type { ScoreFactorName } from "@/lib/measure/score";
 import { COUNTRIES, isCountry, isLanguage, measuredLocale } from "@/lib/locale/locales";
 import { countryOfDomain } from "@/lib/locale/read";
-import { stillReading, type StoredReport } from "@/lib/scan/report";
+import { localeOfReport, stillReading, type StoredReport } from "@/lib/scan/report";
 import type { CanonicalDomain } from "@/lib/scan/domain";
 import type { CorrectionOffer } from "@/lib/market/coherence/offer";
 import { AiAnswersAbsent, AiAnswersCard } from "../_modules/ai-answers";
@@ -547,7 +547,7 @@ export function ReportView(p: {
           {aiAnswers === null ? (
             <AiAnswersAbsent cutOff={cutOff} domain={report.domain} />
           ) : (
-            <AiAnswersCard section={aiAnswers} serps={report.serps} />
+            <AiAnswersCard section={aiAnswers} serps={report.serps} language={localeOfReport(report).language} />
           )}
           {presence === null ? (
             <GooglePresenceAbsent cutOff={cutOff} domain={report.domain} />

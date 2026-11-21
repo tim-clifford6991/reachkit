@@ -4,6 +4,7 @@ import { shownLimitingOf } from "@/lib/measure/verdict";
 import { copy } from "@/lib/presentation/copy";
 import { SCORE_BANDS } from "@/lib/presentation/bands";
 import { readStoredReport, type StoredReport } from "@/lib/scan/report";
+import { aiFigureOf, presenceFigureOf } from "@/lib/scan/sections";
 import { sendEmail } from "../send";
 import { buildReport, type ReportFacts } from "../templates/report";
 import { leadStore } from "./store";
@@ -12,20 +13,12 @@ import { leadStore } from "./store";
 export function reportFacts(report: StoredReport): ReportFacts {
   const reading = report.verdict.scoreAndBand;
   const notMeasured = copy("mail.report.notMeasured");
-  const ai = report.aiAnswers;
-  const google = report.presence;
   return {
     domain: report.domain,
     score: reading.kind === "unmeasured" ? notMeasured : String(reading.value.score),
     band: reading.kind === "unmeasured" ? null : copy(SCORE_BANDS[reading.value.band]),
-    aiAnswers:
-      ai === null || ai.answeredSearches === 0
-        ? notMeasured
-        : copy("report.figure.of", { count: String(ai.customerCitations), total: String(ai.answeredSearches) }),
-    googleSearch:
-      google === null || google.measuredSearches === 0
-        ? notMeasured
-        : copy("report.figure.of", { count: String(google.you.top10Count), total: String(google.measuredSearches) }),
+    aiAnswers: aiFigureOf(report.aiAnswers) ?? notMeasured,
+    googleSearch: presenceFigureOf(report.presence) ?? notMeasured,
     limiting: reading.kind === "unmeasured" ? null : shownLimitingOf(report.verdict),
   };
 }

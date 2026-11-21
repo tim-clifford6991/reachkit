@@ -16,16 +16,22 @@ import { isOwnDomain, registrableDomain } from "@/lib/market/rivals/domains";
 import type { RobotsPolicy } from "@/lib/egress/types";
 import type { Measured } from "@/lib/measure/measured";
 import { isPlaceholder } from "@/lib/measure/placeholder";
+import { copy } from "@/lib/presentation/copy";
 import { fromStored } from "@/lib/presentation/generated";
+import { fromMarkdown } from "mdast-util-from-markdown";
+import { gfmTable } from "micromark-extension-gfm-table";
+import { gfmTableFromMarkdown } from "mdast-util-gfm-table";
 import type { MarketSerp } from "@/lib/market/views";
 import { slotDepth, type PageQuestionCandidate } from "@/lib/market/questions/tracked";
 import type {
   AiAnswersSection,
   AnswerCell,
+  PresenceSection,
   PageQuestionRow,
   PageQuestionsSection,
   RetiredPageQuestion,
   StoredQuestion,
+  StoredReport,
 } from "./report";
 
 /** Which AI readers the home document's access rules block, in the pinned
@@ -205,4 +211,85 @@ export function pageQuestionsSectionOf(a: {
     rows,
     retired: a.retired,
   };
+}
+
+/** Each result card's figure, `null` where it counted over no search: nothing measured is said plainly, never as a count. */
+export function aiFigureOf(section: AiAnswersSection | null): string | null {
+  return section === null || section.answeredSearches === 0 ? null : copy("report.figure.of", { count: String(section.customerCitations), total: String(section.answeredSearches) });
+}
+
+export function presenceFigureOf(section: PresenceSection | null): string | null {
+  return section === null || section.measuredSearches === 0 ? null : copy("report.figure.of", { count: String(section.you.top10Count), total: String(section.measuredSearches) });
+}
+
+/** The longest quote the card shows, in characters: one sentence, never a page. */
+const QUOTE_MAX = 240;
+
+/** A node of the parsed answer, as far as a quote reads it. */
+type Md = { type: string; value?: string; children?: Md[] };
+
+/** Citation markers the Markdown parser reads as words: `[1]`, `[1, 2]`, `[1-3]`, `[^note]`, `【1】`, `^1^`, and a
+ *  superscript number, except a unit's own power ("m²"). */
+const CITATION = /\[\^[^\]]*\]|\[\d+(?:\s*[,–-]\s*\d+)*\]|【[^】]*】|\^\d+\^|(?<!\b(?:[kcmd]?m|ft|in|yd|mi))[⁰¹²³⁴⁵⁶⁷⁸⁹]+/g;
+
+/** A link whose words are only a citation number: the citation, not the answer's words. */
+const CITATION_LINK = /^\s*[[【]?\^?\d+(?:\s*[,–-]\s*\d+)*[\]】]?\s*$/;
+
+/** What a quote may not hold after the parse: an address, a bracket, a tag or strikethrough mark, a table bar or a list mark. */
+const NOT_WORDS = /https?:|www\.|[[\]【】<>|*]|~~|^(?:\d+[.)]|[•+–-])\s/;
+
+/** A phrase's own words: a link keeps its words, a line break is a space, and images, raw HTML and anything else go. */
+function wordsOf(node: Md, bold: string[]): string {
+  if (node.type === "text" || node.type === "inlineCode") return node.value ?? "";
+  if (node.type === "break" || node.type === "html") return " ";
+  if (!["strong", "emphasis", "link", "linkReference"].includes(node.type)) return "";
+  const words = (node.children ?? []).map((child) => wordsOf(child, bold)).join("");
+  if (node.type.startsWith("link") && CITATION_LINK.test(words)) return "";
+  if (node.type === "strong") bold.push(words.trim());
+  return words;
+}
+
+/** The answer's paragraphs in order, list items and quotes included; headings, code and tables are not prose. */
+function paragraphsOf(node: Md): Md[] {
+  if (node.type === "paragraph") return [node];
+  return ["root", "list", "listItem", "blockquote"].includes(node.type) ? (node.children ?? []).flatMap(paragraphsOf) : [];
+}
+
+/** The first sentence of the answer's first paragraph that holds words, with the names it set in bold; `null` where that is no clean sentence. */
+function sentenceOf(raw: string, language?: string): { text: string; bold: string[] } | null {
+  const tree = fromMarkdown(raw, { extensions: [gfmTable()], mdastExtensions: [gfmTableFromMarkdown()] }) as Md;
+  for (const paragraph of paragraphsOf(tree)) {
+    const bold: string[] = [];
+    // A mark that starts a word (".NET", ".io") keeps the space before it.
+    const said = (paragraph.children ?? []).map((child) => wordsOf(child, bold)).join("");
+    // A footnote's own definition is a source, not the answer.
+    if (/^\s*\[\^[^\]]*\]:/.test(said)) continue;
+    const words = said.replace(CITATION, "").replace(/\s+/g, " ").replace(/ ([.,!?;:)])(?= |$|[.,!?;:)])/g, "$1").trim();
+    if (words === "") continue;
+    // The platform's sentence rules hold in any script and leave the answer's own "e.g." a word; a quote is a whole sentence.
+    const text = [...new Intl.Segmenter(language, { granularity: "sentence" }).segment(words)][0]?.segment.trim();
+    if (text === undefined || !/[.!?。！？؟…]["”’»)]?$/u.test(text) || text.length > QUOTE_MAX || text.split(" ").length < 4 || NOT_WORDS.test(text)) return null;
+    return { text, bold: bold.filter((name) => name !== "" && text.includes(name)) };
+  }
+  return null;
+}
+
+/** One AI answer's first sentence, quoted as it was written, with the search
+ *  it was asked for and the names the answer itself set in bold. The first
+ *  answer that named a competitor and kept its text; `null` where no answer
+ *  kept any, so nothing is ever made up. */
+export function answerQuoteOf(
+  section: AiAnswersSection,
+  serps: StoredReport["serps"],
+  language?: string
+): { search: string; text: string; bold: readonly string[] } | null {
+  for (const [i, row] of section.rows.entries()) {
+    if (row.cell.kind !== "answered" || row.cell.citedDomains.length === 0) continue;
+    const serp = serps[i];
+    const raw = serp !== undefined && serp.kind !== "unmeasured" ? serp.value.aiOverview.text : undefined;
+    const quote = raw === undefined ? null : sentenceOf(raw, language);
+    if (quote === null) continue;
+    return { search: row.question.search, text: quote.text, bold: [...new Set(quote.bold)] };
+  }
+  return null;
 }
