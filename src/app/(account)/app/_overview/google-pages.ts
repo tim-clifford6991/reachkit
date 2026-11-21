@@ -1,6 +1,7 @@
 // SPEC §4 (board AppGoogle) — each live page in Google: where it sits this
 // week, how it got there, and its label, read from its stored weekly reading.
 // Pure. A page no reading reached is not measured, never a place of 0.
+import { FIRST_PAGE_PLACES } from "@/lib/measure/page-reading";
 import { verdict } from "@/lib/opportunities/verdicts/verdict";
 import type { Label } from "@/lib/opportunities/verdicts/types";
 import type { PublishedPage } from "@/lib/measure/published";
@@ -33,15 +34,33 @@ export interface GooglePageRow {
   place: number | null;
   /** The place the reading before this one held. */
   before: number | null;
+  /** The one count this row is in. */
+  bucket: GoogleBucket;
 }
+
+/** Each row is in exactly one: on the first page or further down on a stored Google result, placed only by
+ *  Search Console, read with no place, or not read yet. Every count on the tile and the card is a count of these. */
+export const GOOGLE_BUCKETS = ["first", "further", "console", "unseen", "unread"] as const;
+export type GoogleBucket = (typeof GOOGLE_BUCKETS)[number];
 
 export interface GooglePages {
   rows: readonly GooglePageRow[];
+  /** The rows in each bucket. */
+  counts: Readonly<Record<GoogleBucket, number>>;
+  /** Every row: the tile's and the card's total. */
   live: number;
-  /** Pages a weekly reading reached; the figures below count only these. */
-  read: number;
-  showing: number;
-  firstPage: number;
+  /** First page and further down: the tile's and the card's figure. */
+  placed: number;
+}
+
+/** Which count a page is in. A Search Console place is its own count: no stored report holds it, so the weeks
+ *  before could not count it alike with a place read on a stored result. */
+export function bucketOf(page: Pick<PublishedPage, "reading">): GoogleBucket {
+  const place = page.reading?.place ?? null;
+  if (page.reading == null) return "unread";
+  if (place === null) return "unseen";
+  if (place.source === "gsc") return "console";
+  return place.value <= FIRST_PAGE_PLACES ? "first" : "further";
 }
 
 const LABEL_ORDER: Readonly<Record<Label, number>> = { working: 0, climbing: 1, not_moving: 2, too_early: 3 };
@@ -60,7 +79,6 @@ function lineOf(page: PublishedPage, now: Date): PlaceLine {
 
 export function googlePagesOf(all: readonly PublishedPage[], now: Date): GooglePages {
   const pages = all.filter((page) => page.publishedAt <= now);
-  const read = pages.filter((page) => page.reading != null);
   const rows = pages.map((page): GooglePageRow => {
     const reading = page.reading ?? null;
     return {
@@ -74,17 +92,13 @@ export function googlePagesOf(all: readonly PublishedPage[], now: Date): GoogleP
       estimate: reading?.place?.source === "labs",
       place: reading?.place?.value ?? null,
       before: reading?.prev ?? null,
+      bucket: bucketOf(page),
     };
   });
   const rank = (row: GooglePageRow): number => (row.label === null ? 4 : LABEL_ORDER[row.label]);
   rows.sort((a, b) => rank(a) - rank(b) || (a.place ?? Infinity) - (b.place ?? Infinity) || a.title.localeCompare(b.title));
-  return {
-    rows,
-    live: pages.length,
-    read: read.length,
-    showing: read.filter((page) => page.reading!.reached.showing !== undefined).length,
-    firstPage: read.filter((page) => page.reading!.reached.firstPage !== undefined).length,
-  };
+  const counts = Object.fromEntries(GOOGLE_BUCKETS.map((bucket) => [bucket, rows.filter((row) => row.bucket === bucket).length])) as Record<GoogleBucket, number>;
+  return { rows, counts, live: rows.length, placed: counts.first + counts.further };
 }
 
 /** The searches whose live page is still climbing, so it is left alone. */

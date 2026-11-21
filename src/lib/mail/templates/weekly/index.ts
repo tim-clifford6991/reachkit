@@ -1,7 +1,7 @@
 // SPEC §8 — the Monday mail tells one story in a fixed shape: the greeting, then the calm line or the critical needs-you and
 // connect notices, what we did, the running totals (gains only), this week's pages, the pace line and one button.
-// A block list only (ADR-040). The totals are Overview's, read with Overview's reader and drawn under its words; a fall is
-// never drawn, and the standing line says where every figure is. Footer links are the caller's: each carries a token only it can sign.
+// A block list only (ADR-040). The totals are read by the one totals reader and drawn under its words; a fall is
+// never drawn, and the standing line sends the reader to Overview. Footer links are the caller's: each carries a token only it can sign.
 // A page and an opportunity are named by their search: titles are model text, which REQ-093 keeps out (§8, ADR-012).
 import { env } from "@/lib/config/env";
 import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
@@ -26,7 +26,7 @@ const SET_ASIDE = {
   unreplaced: { one: "mail.weekly.setAside.one.unreplaced", many: "mail.weekly.setAside.many.unreplaced" },
   updated: { one: "mail.weekly.setAside.one.updated", many: "mail.weekly.setAside.many.updated" },
 } as const satisfies Record<string, Record<string, CopyKey>>;
-// Overview's own words: the mail's sections and figures read as the app's (DESIGN › Names).
+// The totals' own words: one name per figure wherever it is drawn (DESIGN › Names).
 const TOTALS = "overview.totals.title" satisfies CopyKey;
 const TOTAL_LABEL = {
   ai: "overview.totals.ai.label",

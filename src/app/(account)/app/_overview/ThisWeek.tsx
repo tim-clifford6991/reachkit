@@ -45,6 +45,8 @@ export interface WeekList {
   firstSkip: DayKey | null;
   /** How many days hold a page. */
   pages: number;
+  /** Of those, the ones still to go live (`pagesToComeThisWeek`). */
+  coming: number;
   timeZone: string;
   days: readonly WeekDay[];
 }

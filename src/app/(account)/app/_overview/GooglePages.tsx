@@ -40,7 +40,8 @@ function lineText(line: PlaceLine, timeZone: string): string {
 function Row(p: { row: GooglePageRow; planned: ReadonlyMap<string, Planned>; timeZone: string }): React.JSX.Element {
   const { row } = p;
   const update = row.search === null ? undefined : p.planned.get(searchKey(row.search));
-  const line = lineText(row.line, p.timeZone);
+  // A Search Console place is said as one, the count the card puts it in.
+  const line = row.bucket === "console" && row.place !== null ? copy("overview.place.gsc", { n: formatCount(row.place) }) : lineText(row.line, p.timeZone);
   return (
     <li className="list-row items-center px-0" data-testid="search-page">
       <div className="list-col-grow flex min-w-0 flex-col gap-0.5">

@@ -26,6 +26,12 @@ const MIXED: CalendarFacts = {
   ),
 };
 
+/** The fixture's week with Monday's page in review rather than live. */
+const MONDAY_IN_REVIEW: CalendarFacts = {
+  ...FIXTURE_CALENDAR_FACTS,
+  drafts: FIXTURE_CALENDAR_FACTS.drafts.map((draft) => (draft.scheduledFor === "2026-09-14" ? { ...draft, state: "in_review" } : draft)),
+};
+
 /** Monday before its pass (last week's commit, Tue to Mon), Monday after it (this commit, Tue to Mon), and Wednesday. */
 const CLOCKS: readonly [string, Date, PlanHeadFacts, string][] = [
   ["Monday before the pass", at("2026-09-14T15:00:00Z"), { ...FIXTURE_PLAN_HEAD, lastCheck: "2026-09-07", commitStart: "2026-09-08" }, "2026-09-14"],
@@ -42,7 +48,7 @@ function screenOf(facts: CalendarFacts, head: PlanHeadFacts, bodies?: ReadonlySe
 }
 
 describe.each(CLOCKS)("This Week on the %s", (_, now, head, next) => {
-  describe.each([["fixture", FIXTURE_CALENDAR_FACTS], ["every arm", ALL_ARMS], ["mixed", MIXED]] as const)("over the %s week", (__, base) => {
+  describe.each([["fixture", FIXTURE_CALENDAR_FACTS], ["every arm", ALL_ARMS], ["mixed", MIXED], ["Monday in review", MONDAY_IN_REVIEW]] as const)("over the %s week", (__, base) => {
     const { today, shown, week, screen } = screenOf({ ...base, now }, head);
     const commit = new Set(shown.days);
 
@@ -57,6 +63,13 @@ describe.each(CLOCKS)("This Week on the %s", (_, now, head, next) => {
     it("counts the commit's dated pages, as the stored days hold them, on This Week and Overview alike", () => {
       const stored = base.drafts.filter((draft) => commit.has(draft.scheduledFor) && STAGE_OF[draft.state] !== null).length;
       expect([screen.head.pages, weekListOf(week)?.pages]).toEqual([stored, stored]);
+    });
+
+    it("counts the pages still to come from the same commit, never more than the week's pages", () => {
+      const toCome = base.drafts.filter((d) => commit.has(d.scheduledFor) && d.scheduledFor >= today && STAGE_OF[d.state] !== null && STAGE_OF[d.state] !== "live").length;
+      const list = weekListOf(week);
+      expect(list?.coming).toBe(toCome);
+      expect(list!.coming <= list!.pages).toBe(true);
     });
 
     it("was chosen no later than today, and is checked next on the Monday still to come", () => {

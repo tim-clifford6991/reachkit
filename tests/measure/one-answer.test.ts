@@ -79,14 +79,13 @@ describe.each([
         ],
         // What the keyword database's rows give the search: nothing.
         positions: new Map(),
-        market: null,
         measuredAt: NOW,
       },
       NOW
     );
     expect(search.rows[0]?.position).toMatchObject({ kind: "measured", value: 7 });
     const pages = googlePagesOf([{ id: "pub-1", title: "t", url: null, publishedAt: new Date(0), reading }], NOW);
-    expect(pages).toMatchObject({ live: 1, read: 1, showing: 1, firstPage: 1 });
+    expect(pages).toMatchObject({ live: 1, placed: 1, counts: { first: 1, further: 0, console: 0, unseen: 0, unread: 0 } });
 
     // The verdict, through the real verdict store over the same rows: the
     // place it stores is the one the mail's top-twenty number counts.

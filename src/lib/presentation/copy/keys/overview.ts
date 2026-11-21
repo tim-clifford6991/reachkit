@@ -1,46 +1,4 @@
-// src/lib/presentation/copy/keys/overview.ts — BP-020 decision 5, WO-041
-//
-// Overview's sentences. Three keys seeded (WO-041 step 3): the
-// no-presence-yet lines for the weekly-presence chart, week and
-// partial-week states. The block that owns Overview fills every other
-// sentence this surface needs.
-//
-// 2026-09-05, separately: issue #15 (BUILD §4.5, as amended by DECISIONS
-// 2026-09-03) builds the screen itself and adds the keys its five modules
-// speak. Two categories, and the line between them is the one issue #9's own
-// keys already drew:
-//
-//   **The owner's** — every composed sentence: the three further
-//   head lines and the badge, the two goal-meaning lines this screen says in
-//   its own words, the AI-answers window reading, the cold-start rival line,
-//   the four alert lines and the three supply lines. Nothing here invents
-//   one; each was owed until the owner approved it (#460).
-//
-//   **Filled, and every one a transcription** of a word or sentence
-//   `BUILD.md` §4.5 itself prints — the same footing as the thirteen band
-//   words and the five `shell.*` words. §4.5 prints the module headings
-//   ("How far ahead each rival is", "This week"), two tile names ("AI
-//   answers", "Pages published"), the strip's three day words
-//   ("done/today/next"), its two controls ("Open calendar →", "Read it"),
-//   the goal form ("goal: 6"), the two figure forms (`78×`, `was 276×`), the
-//   dim rival line ("Every line pointing down is the gap shrinking.") and
-//   the growth footnote ("At 400 the big category terms unlock."). Where a
-//   printed sentence carries a pinned number, the number is a slot: the
-//   value is `GOAL_VALUES`' and is never re-written here.
-//
-// The two delta glyphs are the same kind of thing as `unmeasured.dash` —
-// §4.5's own "▲delta" mark, transcribed once so no arrow character is
-// written at a call site.
-// 2026-09-06, issue #20 (REQ-091 c2): the three `place.overview.*` keys are
-// the ones `src/lib/presentation/place/` registers as places, and Overview
-// reads these through `writtenLine`.
-//
-// 2026-09-10, issue #460: every sentence this partition still owed is now
-// written — the owner approved the drafted set ("copy proposal
-// approved", proposal sheet
-// https://claude.ai/code/artifact/546f45a0-a996-4d25-b85e-fb03fda7b102) and
-// the strings land here byte for byte. The values named in the approval
-// file are the owner's; nothing here is composed.
+// src/lib/presentation/copy/keys/overview.ts — Overview's sentences, in the registry's voice.
 import type { CopyPartition } from "../registry.ts";
 
 export const OVERVIEW_COPY = Object.freeze({
@@ -206,29 +164,9 @@ export const OVERVIEW_COPY = Object.freeze({
   // quietly comparing across one.
   "overview.comparison.window": "Shown from {since}, when your settings changed. Older figures are kept apart.",
 
-  // ── 2026-09-20 (#908, #915): Overview's four tabs, the header, the page
-  // waiting for review, and the three linked tiles.
-  //
-  // Every sentence below is **drafted** under the owner's 2026-09-16 ruling
-  // (#759): a customer-visible string is written in the registry's voice and
-  // shipped, never left as a marker, and the PR names each one so the owner
-  // can correct it.
-
-  // The tab bar. Three of the four words already exist in the registry and
-  // are reused (`shell.nav.overview`, `overview.tile.ai-answers.label`); a
-  // fourth spelling of a word the product already says would be a second
-  // place to change it.
-  "overview.tabs.label": "Overview sections",
+  // The detail screens' names.
   "overview.tab.search": "Google",
   "overview.tab.rivals": "Competitors",
-
-  // Every one of Overview's four tabs has its screen, so the line a tab
-  // carried while it had only an address is gone with the last placeholder
-  // that carried it. `_overview/tabs.ts` is where the four live.
-
-  // Every sparkline's accessible name: what it is a reading of, over how
-  // many weeks. One key, because every trend on this screen is the same kind
-  // of thing and a chart with no name is a chart a screen reader skips.
 
   // ── The page waiting for review.
   // A page in review with no window running: nothing publishes it on a
@@ -279,6 +217,7 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.search.tile.your-pages": "Your Pages in Google",
   "overview.search.tile.your-pages.of": "of {of} pages showing on Google",
   "overview.search.tile.your-pages.split": "{first} on Google’s first page · {further} further down · {unseen} not showing yet",
+  "overview.search.tile.your-pages.split.console": "{first} on page 1 · {further} further down · {console} Search Console only · {unseen} not showing",
   "overview.search.tile.your-pages.means": "A page counts once Google shows it for its own search. Most new pages take weeks to show.",
   "overview.search.tile.market": "Your Market",
   "overview.search.tile.market.means": "How many of your market’s biggest searches show you on Google’s first page. This takes months, not weeks.",
@@ -367,7 +306,6 @@ export const OVERVIEW_COPY = Object.freeze({
   // published pages' own questions whose AI answer links the site — the
   // signal a page moves first. Drafted (#759).
   "overview.answers.pages-cited.label": "Pages Linked by AI",
-  "overview.answers.pages-cited.of": "of {of} pages asked",
   "overview.answers.pages-cited.none": "Shows once a page is live and we’ve asked its question.",
   // Board AppAI: the tiles, each page in AI answers, and which AI read and sent visits. Drafted (#759).
   "overview.answers.linked.mentioned.one": "1 more mentioned you without a link.",
@@ -377,7 +315,6 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.answers.visits.label": "Visits from AI",
   "overview.answers.visits.of": "this week",
   "overview.answers.pages.title": "Each Page in AI Answers",
-  "overview.answers.pages.unread": "not read by AI yet",
   "overview.answers.pages.engines": "Answers from ChatGPT and Google’s AI",
   "overview.answers.who.title": "Which AI Read and Sent Visits",
   "overview.answers.who.reads": "Reads",
@@ -682,23 +619,64 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.paused.line": "Publishing is paused. Your pages are kept.",
   "overview.paused.action": "Turn Publishing On",
 
-  // ── Your results so far: three totals that only rise (owner 2026-11-16, #2737).
-  // "Mentioned", never "named"; the AI line never says the count is ReachKit's doing.
+  // ── The three running totals: read by the Monday mail and the landing's sample picture (owner P4, 2026-11-16, #2737).
   "overview.totals.title": "Your Results So Far",
   "overview.totals.ai.label": "Times AI Mentioned You",
   "overview.totals.google.label": "Google Searches That Have Shown You",
   "overview.totals.pages.label": "Pages Published So Far",
   "overview.totals.added": "+{n} this week",
-  // Flat is said as flat, never "+0".
-  "overview.totals.added.none": "None new this week",
   // The first count is a starting point, not this week's gain.
   "overview.totals.first": "First count, {date}",
   "overview.totals.first.due": "First count on {date}",
-  "overview.totals.unread.ai": "We couldn’t check AI this week",
-  "overview.totals.unmeasured.sr": "Not counted yet",
-  "overview.totals.how.title": "What these numbers count",
-  "overview.totals.how.ai": "Each week we ask AI the questions your buyers ask. This counts answers that mention or link you, not visits.",
-  "overview.totals.how.ai.brand": "Questions that use your business name are not counted.",
-  "overview.totals.how.google": "Searches where a page we published appeared in Google’s first 10 pages of results. Each search counts once.",
-  "overview.totals.how.pages": "Every page we have published on your site. A page you stopped later still counts, because it went live.",
+
+  // ── Overview's four tiles (owner, 2026-11-20, #2982). A week down is information, never an alarm.
+  "overview.tiles.label": "Your results",
+  "overview.tile.pages.name": "Pages Live",
+  "overview.tile.pages.of": "of {total} published",
+  "overview.tile.pages.none.of": "None live yet",
+  "overview.tile.pages.none.change": "First page goes live {day}",
+  // "Up to": a planned day can still be stopped or skipped.
+  "overview.tile.pages.coming": "Up to {n} more this week",
+  "overview.tile.google.name": "On Google",
+  "overview.tile.google.of": "of {m} pages showing",
+  "overview.tile.google.none.of": "No live pages yet",
+  "overview.tile.ai.name": "Linked by AI",
+  "overview.tile.ai.of": "of {m} pages asked, last {weeks} weeks",
+  "overview.tile.rivals.name": "Against Competitors",
+  "overview.tile.rivals.of": "of {m} main searches on page 1",
+  "overview.tile.rivals.start": "Starting point, scan {date}",
+  "overview.tile.see": "See Details",
+  "overview.tile.change.up": "Up {n} on last week",
+  "overview.tile.change.down": "Down {n} on last week",
+  "overview.tile.change.same": "Same as last week",
+  // The first count is a starting point, never "+n".
+  "overview.tile.change.first": "First count, {date}",
+  "overview.tile.change.unread": "We couldn’t check {what} this week.",
+  "overview.tile.unread.ai": "AI answers",
+  "overview.tile.due.of": "Not counted yet",
+  "overview.tile.due.change": "First check {date}",
+  "overview.tile.due.sr": "Not counted yet",
+  "overview.tile.short.pages": "Pages",
+  "overview.tile.short.google": "Google",
+  "overview.tile.short.ai": "AI",
+  "overview.tile.short.rivals": "Competitors",
+  "overview.tiles.how.title": "What These Numbers Count",
+  "overview.tiles.how.pages": "Pages Live: our pages on your site now, out of every page we have published.",
+  "overview.tiles.how.google": "On Google: your live pages Google shows for their own search, places 1 to 100.",
+  "overview.tiles.how.ai": "Linked by AI: pages whose question an AI answer linked you on. We count it over the pages we asked about in the last {weeks} weeks.",
+  "overview.tiles.how.rivals": "Against Competitors: your main searches that show you on Google’s first page. The two competitors with the most stand beside you.",
+  "overview.tiles.how.change": "Each change compares with the week before. A week we couldn’t check is a gap, never a 0.",
+  "overview.detail.checked": "Checked {date}",
+
+  // ── The AI mark and the place words every Overview detail states.
+  "overview.mark.links": "Links to you",
+  "overview.mark.mentions": "Mentions you",
+  "overview.mark.none": "Doesn’t mention you",
+  "overview.mark.unchecked": "Not checked",
+  "overview.place.up": "Place {n}, up {k}",
+  "overview.place.down": "Place {n}, down {k}",
+  "overview.place.new": "Place {n}, new this week",
+  "overview.place.same": "Place {n}, same for {k} weeks",
+  "overview.place.gsc": "About place {n}, from your Search Console",
+  "overview.place.none": "Not in results yet",
 }) satisfies CopyPartition;

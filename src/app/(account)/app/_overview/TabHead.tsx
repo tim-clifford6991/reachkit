@@ -16,10 +16,11 @@ export function TabHead(p: {
   testId: string;
   /** "Measured 1 Oct 2026." — or its box, or nothing where no pass ran. */
   measured: React.ReactNode;
+  /** The detail's one lead line. */
+  lead?: string | null;
 }): React.JSX.Element {
   return (
-    // Drawn above the tab bar, as Overview's head is (`HEAD` in frame.ts).
-    <header className="-order-1 flex min-w-0 flex-col gap-1.5">
+    <header className="flex min-w-0 flex-col gap-1.5">
       {p.eyebrow == null ? null : (
         <p className="eyebrow" data-testid={`${p.testId}-eyebrow`}>
           {p.eyebrow}
@@ -28,6 +29,7 @@ export function TabHead(p: {
       <h1 className="min-w-0" data-testid={`${p.testId}-title`}>
         {p.title}
       </h1>
+      {p.lead == null ? null : <p className="min-w-0">{p.lead}</p>}
       {p.measured}
     </header>
   );

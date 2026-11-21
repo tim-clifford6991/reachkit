@@ -45,7 +45,6 @@ function facts(over: Partial<SearchFacts> = {}): SearchFacts {
   return {
     targets: [],
     positions: new Map<string, Measured<number>>(),
-    market: null,
     measuredAt: AT,
     ...over,
   };
@@ -127,14 +126,6 @@ describe("the chips count the rows they stand for", () => {
       expect(rowsFor(model.rows, filter)).toHaveLength(model.counts[filter]);
     }
     expect(rowsFor(model.rows, "all")).toHaveLength(5);
-  });
-});
-
-describe("your market is the report's own count, apart from the pages", () => {
-  it("reads the presence card's twelve, and with no card it is not measured rather than 0", () => {
-    const rows = facts({ targets: [target("a", "x", "live")], market: { top10: 1, measured: 12 } });
-    expect(assembleSearch(rows, AT).market).toEqual({ top10: 1, of: 12 });
-    expect(assembleSearch({ ...rows, market: null }, AT).market).toBeNull();
   });
 });
 

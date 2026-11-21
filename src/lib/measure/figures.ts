@@ -4,20 +4,6 @@
 // a figure nothing measured is `null`, never 0.
 import { shownScore } from "@/lib/scan/shown-score";
 import type { Measured } from "./measured";
-import type { PublishedPage } from "./published";
-
-/** The live pages whose own question was asked, and those an answer linked. */
-export interface AiPages {
-  asked: readonly PublishedPage[];
-  linked: readonly PublishedPage[];
-}
-
-/** `null` where no live page's question has been asked yet. */
-export function aiPagesOf(pages: readonly PublishedPage[]): AiPages | null {
-  const asked = pages.filter((page) => page.reading?.linkedBy != null);
-  if (asked.length === 0) return null;
-  return { asked, linked: asked.filter((page) => (page.reading?.linkedBy ?? []).length > 0) };
-}
 
 // ── The months-scale figures ──────────────────────────────────────────────
 

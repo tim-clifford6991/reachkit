@@ -32,3 +32,5 @@ Show all 12 pages	sample data: the count is the account’s own asked pages
 ChatGPT and Google’s AI mentioned you in 11 of 184 answers	sample data: the counts are the account’s own month reading
 Answers vary, so the true rate is 3% to 10%.	sample data: the range is the account’s own month reading
 3 of 23 questions. We leave out questions with your name.	sample data: the counts are the account’s own questions
+Visit from AI	SPEC §4 Overview's four tiles (owner 2026-11-20, #2982, ruling 58 on #2722; owner approved 2026-11-21 on PR #3089): board AppAI superseded by plate O3; each row shows its 4-week AI mark, not a ladder step
+not read by AI yet	SPEC §4 Overview's four tiles (owner 2026-11-20, #2982, ruling 58 on #2722; owner approved 2026-11-21 on PR #3089): board AppAI superseded by plate O3; a page not yet asked has no row, so there is no unread label

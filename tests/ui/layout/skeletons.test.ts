@@ -114,6 +114,7 @@ function mismatches(waiting: Record<string, Region>, loaded: Record<string, Regi
 const SCREENS: readonly { route: () => EnumeratedRoute }[] = [
   { route: () => ({ path: "/app", cookie: getAccountCookie() }) },
   { route: () => ({ path: "/app/calendar", cookie: getAccountCookie() }) },
+  ...["/app/search", "/app/ai-answers", "/app/rivals"].map((path) => ({ route: () => ({ path, cookie: getAccountCookie() }) })),
   { route: () => ({ path: "/setup", cookie: getSetupAccountCookie() }) },
 ];
 

@@ -420,6 +420,12 @@ export function pagesThisWeek(week: Pick<WeekModel, "cells" | "commit">): number
   return week.cells.filter((cell) => cell.page !== null && commit.has(cell.day)).length;
 }
 
+/** Of those, the ones still to go live: from today on, and not live yet. Overview's "Up to {n} more this week". */
+export function pagesToComeThisWeek(week: Pick<WeekModel, "cells" | "commit" | "today">): number {
+  const commit = new Set(week.commit);
+  return week.cells.filter((cell) => cell.page !== null && commit.has(cell.day) && cell.day >= week.today && cell.page.stage !== "live").length;
+}
+
 /** The cell a day panel is opened on. `undefined` only for a day outside
  *  the month that was assembled — never for a date the grid drew. */
 export function cellFor(model: MonthModel, day: DayKey): DayCell | undefined {

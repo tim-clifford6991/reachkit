@@ -1,6 +1,6 @@
 // SPEC §4 (2026-10-08, issue 1339) — below the large breakpoint the top bar
-// sticks to the top of the viewport, and Overview's and Settings' tab bars
-// stick directly under it.
+// sticks to the top of the viewport, and Settings' tab bar sticks directly
+// under it.
 //
 // "Directly under" needs the bar's height in two places, so the bar is one
 // fixed height and both classes are spelled here, side by side: change one
