@@ -114,6 +114,9 @@ function DayActions(p: {
   );
 }
 
+/** What Tab can reach inside the pane. */
+const FOCUSABLE = 'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"]), summary';
+
 function Panel(p: {
   card: CardModel;
   cell: DayCell;
@@ -131,6 +134,20 @@ function Panel(p: {
   useEffect(() => {
     if (takesFocus) back.current?.focus();
   }, [takesFocus]);
+
+  /** While the pane covers the screen, Tab wraps inside it rather than leaving for the document. */
+  function wrap(event: React.KeyboardEvent<HTMLElement>): void {
+    if (!takesFocus || event.key !== "Tab") return;
+    const focusable = Array.from(event.currentTarget.querySelectorAll<HTMLElement>(FOCUSABLE)).filter((el) => el.offsetParent !== null);
+    const first = focusable[0];
+    const last = focusable.at(-1);
+    if (first === undefined || last === undefined) return;
+    const at = document.activeElement;
+    if (event.shiftKey ? at === first || !event.currentTarget.contains(at) : at === last) {
+      event.preventDefault();
+      (event.shiftKey ? last : first).focus();
+    }
+  }
   return (
     <aside
       // Below `lg` the pane is the whole screen over the list, with its own Back; from `lg` it is the right column.
@@ -139,8 +156,10 @@ function Panel(p: {
       }`}
       data-testid="day-panel"
       data-implicit={p.hiddenOnPhone ? "" : undefined}
+      onKeyDown={wrap}
     >
-      <div className="card-body min-w-0 gap-3 p-4 lg:min-h-0">
+      {/* The body scrolls alone where there is room; a short screen scrolls the whole card. */}
+      <div className="card-body min-w-0 gap-3 p-4 lg:min-h-0 lg:overflow-y-auto">
         <button ref={back} type="button" className="btn btn-ghost btn-sm self-start lg:hidden" data-testid="day-panel-close" onClick={p.onClose}>
           <ArrowLeft aria-hidden className="size-4" />
           {copy("draft.back")}
