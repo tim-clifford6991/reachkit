@@ -30,17 +30,26 @@ function onWidth(change: () => void): () => void {
   return () => query.removeEventListener("change", change);
 }
 
-/** Makes everything outside `el` inert (the shell's dock and top bar included), so focus stays in it; returns the undo. */
+/** Where answers are announced: the toasts and Next's route announcer stay live while the pane holds the focus. */
+const LIVE = '[aria-live], [data-sonner-toaster], next-route-announcer';
+
+/** Makes everything outside `el` inert (the shell's dock and top bar included), so focus stays in it, but never a live
+ *  region: one is left alone, and a box holding one is entered and its other children held. Returns the undo. */
 function holdFocusIn(el: HTMLElement): () => void {
   const held: HTMLElement[] = [];
-  for (let at: HTMLElement | null = el; at !== null && at !== document.body; at = at.parentElement) {
-    for (const sibling of Array.from(at.parentElement?.children ?? [])) {
-      if (sibling === at || !(sibling instanceof HTMLElement) || sibling.inert) continue;
-      sibling.inert = true;
-      held.push(sibling);
+  const hold = (node: Element): void => {
+    if (!(node instanceof HTMLElement) || node.inert || node.matches(LIVE)) return;
+    if (node.querySelector(LIVE) === null) {
+      node.inert = true;
+      held.push(node);
+      return;
     }
+    for (const child of Array.from(node.children)) hold(child);
+  };
+  for (let at: HTMLElement | null = el; at !== null && at !== document.body; at = at.parentElement) {
+    for (const sibling of Array.from(at.parentElement?.children ?? [])) if (sibling !== at) hold(sibling);
   }
-  return () => held.forEach((sibling) => (sibling.inert = false));
+  return () => held.forEach((node) => (node.inert = false));
 }
 
 /** The `?day=` value that means "no day open". */

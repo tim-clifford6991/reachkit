@@ -247,7 +247,7 @@ function cardOf(
   if (page === null) {
     const lines =
       state === "stopped" && stateLine !== null
-        ? [stateLine, copy("calendar.pane.stopped.next", { weekday: weekdayLong(cell.day) })]
+        ? [stateLine, ...(cell.day < week.today ? [] : [copy("calendar.pane.stopped.next", { weekday: weekdayLong(cell.day) })])]
         : state === "skipped"
           ? [copy("calendar.day.skipped.line")]
           : emptyAccount(cell, week);
@@ -279,7 +279,8 @@ function cardOf(
         title: copy("calendar.pane.planned.title", { search: page.why.search || page.title }),
         why: page.whyLine,
         facts,
-        next: time === null ? null : copy("calendar.pane.planned.next", { time, day: goesOn }),
+        // A past day promises nothing, whatever its state.
+        next: time === null || cell.day < week.today ? null : copy("calendar.pane.planned.next", { time, day: goesOn }),
       },
     };
   }
@@ -297,7 +298,7 @@ function cardOf(
   if (needsYou !== null) lines.push(copy(needsYou));
   // While no time can be promised, the law's own line says why the page waits.
   const held =
-    page.publishAt === null || time !== null
+    page.publishAt === null || time !== null || cell.day < week.today
       ? null
       : nextPublishStatement({
           stopped: week.stopped !== null || week.held === "billing_unreadable",

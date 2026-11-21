@@ -2,11 +2,12 @@
 // per state, and the pane each card opens.
 import { describe, expect, it } from "vitest";
 import { FIXTURE_CALENDAR_FACTS, FIXTURE_PLAN_HEAD } from "@/app/(account)/app/calendar/fixture";
-import { assembleMonth, dayStateOf, weekOf, type CalendarFacts } from "@/app/(account)/app/calendar/month";
+import { assembleMonth, dayStateOf, weekOf, type CalendarFacts, type DraftOnDay } from "@/app/(account)/app/calendar/month";
 import { STAGE_OF } from "@/app/(account)/app/calendar/stages";
 import { copy } from "@/lib/presentation/copy";
 import { weekListOf } from "@/app/(account)/app/_overview/this-week";
-import { commitDays, commitEnd, dayKeyOf, monthOf } from "@/app/(account)/app/calendar/dates";
+import { clockTime, commitDays, commitEnd, dayKeyOf, monthOf } from "@/app/(account)/app/calendar/dates";
+import type { State } from "@/lib/publish/types";
 import { checkDays, weekScreen, writtenDrafts } from "@/app/(account)/app/calendar/week-screen";
 import type { PlanHeadFacts } from "@/app/(account)/app/calendar/provider";
 import { ALL_ARMS } from "./arms";
@@ -59,14 +60,6 @@ describe.each(CLOCKS)("This Week on the %s", (_, now, head, next) => {
       expect([screen.head.pages, weekListOf(week)?.pages]).toEqual([stored, stored]);
     });
 
-    it("never says a day before today goes live", () => {
-      for (const card of screen.cards.filter((each) => each.day < today)) {
-        const promised = copy("calendar.card.goes-live", { day: card.dayLabel, time: "9:00 AM" });
-        expect(card.lines.includes(promised), card.day).toBe(false);
-        if (card.pane.kind === "page") expect(card.pane.next, card.day).toBeNull();
-      }
-    });
-
     it("was chosen no later than today, and is checked next on the Monday still to come", () => {
       const check = checkDays(head, today);
       expect(check.chosen! <= today).toBe(true);
@@ -100,5 +93,35 @@ describe("the pane and the head", () => {
 
   it("never dates the choice after today, whatever the stored check says", () => {
     expect(checkDays({ ...FIXTURE_PLAN_HEAD, lastCheck: "2026-09-21" }, "2026-09-16").chosen).toBe("2026-09-16");
+  });
+});
+
+describe.each([
+  ["planned, no draft", { draftId: null, state: "planned" }],
+  ["planned, started", { draftId: null, state: "planned", startedAt: at("2026-09-15T12:00:00Z") }],
+  ["being written", { state: "generating" }],
+  ["in review", { state: "in_review" }],
+  ["approved", { state: "approved", publishAt: at("2026-09-15T13:00:00Z") }],
+  ["failed for good", { state: "needs_attention", needsYou: { kind: "live_edit" } }],
+  ["stopped", { state: "skipped", stoppedByYou: true }],
+  ["live", { state: "published" }],
+] as const satisfies readonly [string, Partial<DraftOnDay> & { state: State }][])("a day before today, %s", (_, as) => {
+  const facts: CalendarFacts = {
+    ...FIXTURE_CALENDAR_FACTS,
+    now: at("2026-09-16T15:00:00Z"),
+    drafts: FIXTURE_CALENDAR_FACTS.drafts.map((draft) => (draft.scheduledFor === "2026-09-15" ? { ...draft, ...as } : draft)),
+  };
+  const time = clockTime(FIXTURE_PLAN_HEAD.publishTime!);
+
+  it("carries no future-tense line, on its card or in its pane", () => {
+    const { today, screen } = screenOf(facts, FIXTURE_PLAN_HEAD);
+    const past = screen.cards.filter((card) => card.day < today);
+    expect(past.length).toBeGreaterThan(0);
+    for (const card of past) {
+      const promised = [copy("calendar.card.goes-live", { day: card.dayLabel, time }), copy("calendar.week.today", { time })];
+      expect(card.lines.some((line) => promised.includes(line)), card.day).toBe(false);
+      expect(card.pane.kind === "lines" ? null : card.pane.next, card.day).toBeNull();
+      if (card.state === "stopped" && card.pane.kind === "lines") expect(card.pane.lines, card.day).toEqual([card.stateLine]);
+    }
   });
 });
