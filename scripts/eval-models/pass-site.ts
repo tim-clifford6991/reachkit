@@ -3,6 +3,7 @@
 // as stored and any other miss is refused, so the rest of the pass is the stored pass. Scored against the stored answer.
 import { appendFileSync, chmodSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { keptAnswers, type From } from "./answers";
 import { loadCaseFile } from "./cases";
 import { isolate } from "./isolate";
 import { Ledger } from "./ledger";
@@ -16,6 +17,10 @@ export interface PassEval {
   ledgerFile: string;
   capCents: number;
   results: string;
+  /** Where every evaluated answer is kept, with its call's key and stored answer, for `rescorePass`. */
+  answers: string;
+  /** Fake and plan runs only: answer as the tool's input or as JSON in text. */
+  fakeAs?: "tool" | "text";
   /** The replay's own database origin, the one host besides Anthropic the run may reach. */
   local: string;
 }
@@ -25,7 +30,7 @@ interface Call {
   key: string;
   faithful: "faithful" | "rebuilt";
   stored: unknown;
-  answers: { value: unknown; stop: string | null }[];
+  answers: { value: unknown; stop: string | null; from: From }[];
 }
 
 /** An exported pass (E3, through the shared loader) staged where the replay reads its snapshots: a private folder under
@@ -42,6 +47,8 @@ export function stagePassCase(file: string, scan: string, repoRoot: string, unde
 
 const STATE = Symbol.for("reachkit.eval-models.pass");
 type State = { e: PassEval; run: Run; calls: Call[] };
+const runId = `${new Date().toISOString()}-${process.pid}`;
+const latest = (s: State, site: string): Call | undefined => [...s.calls].reverse().find((call) => call.site === site);
 const state = (): State | undefined => (globalThis as Record<symbol, State | undefined>)[STATE];
 
 export function startPassEval(e: PassEval): void {
@@ -57,7 +64,13 @@ export function startPassEval(e: PassEval): void {
       halted: null,
       fakeAnswers: {},
       only: new Set(e.sites),
-      onAnswer: (site, value, stop) => [...s.calls].reverse().find((call) => call.site === site)?.answers.push({ value, stop }),
+      onAnswer: (site, value, stop, from) => latest(s, site)?.answers.push({ value, stop, from }),
+      answers: e.mode === "plan" ? undefined : e.answers,
+      fakeAs: e.fakeAs,
+      tag: (site) => {
+        const call = latest(s, site);
+        return { run: runId, scan: e.scan.slice(0, 8), key: call?.key ?? null, faithful: call?.faithful ?? null, stored: call?.stored ?? null };
+      },
     },
   };
   (globalThis as Record<symbol, State>)[STATE] = s;
@@ -118,10 +131,32 @@ export function finishPassEval(exit: number): void {
       faithful: call.faithful,
       attempts: call.answers.length,
       stop: last?.stop ?? null,
-      agreement: call.stored === null || last === undefined || last.value === null ? "not measured" : Math.round(agreement(last.value, call.stored) * 1000) / 1000,
+      from: last?.from ?? "none",
+      agreement: call.stored === null || last === undefined || last.from === "none" ? "not measured" : Math.round(agreement(last.value, call.stored) * 1000) / 1000,
     };
     say(line);
     if (e.mode !== "plan") appendFileSync(e.results, `${JSON.stringify({ at: new Date().toISOString(), mode: e.mode, ...line })}\n`);
   }
   say({ eval: e.mode, scan: e.scan.slice(0, 8), sites: e.sites, model: e.model ?? "today", calls: s.calls.length, sends: run.sends, plan: e.mode === "plan" ? run.plan : undefined, spentCents: run.ledger?.spent() ?? null, halted: run.halted, acceptance: exit === 0 ? "holds" : "fails" });
+}
+
+/** Agreement again from kept answers, at 0¢: per call site, model and where the answer came from, each call scored on
+ *  its last answer against the stored one. A call with no stored answer, or whose answer said nothing, is not measured. */
+export function rescorePass(file: string): void {
+  const last = new Map<string, Record<string, unknown>>();
+  for (const line of keptAnswers(file)) if (line.key !== null && line.key !== undefined) last.set(`${line.run}|${line.scan}|${line.site}|${line.key}`, line);
+  const by = new Map<string, { scores: number[]; unmeasured: number; from: Record<string, number> }>();
+  for (const line of last.values()) {
+    const group = by.get(`${line.site}|${line.model}`) ?? { scores: [], unmeasured: 0, from: {} };
+    const from = String(line.from);
+    group.from[from] = (group.from[from] ?? 0) + 1;
+    if (line.stored === null || from === "none") group.unmeasured += 1;
+    else group.scores.push(agreement(line.value, line.stored));
+    by.set(`${line.site}|${line.model}`, group);
+  }
+  for (const [key, g] of [...by].sort()) {
+    const [site, model] = key.split("|");
+    const mean = g.scores.length === 0 ? "not measured" : Math.round((g.scores.reduce((t, v) => t + v, 0) / g.scores.length) * 1000) / 1000;
+    process.stdout.write(`${JSON.stringify({ site, model, calls: g.scores.length + g.unmeasured, measured: g.scores.length, unmeasured: g.unmeasured, from: g.from, agreement: mean })}\n`);
+  }
 }
