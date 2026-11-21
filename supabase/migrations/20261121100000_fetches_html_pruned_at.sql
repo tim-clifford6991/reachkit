@@ -21,15 +21,18 @@ security invoker
 set search_path = ''
 set statement_timeout = '5s'
 as $$
-  select f.id, f.scan_id, f.source, f.cache_key, pg_column_size(f.payload),
-         exists (select 1 from public.fetch_facts ff where ff.fetch_id = f.id),
-         exists (select 1 from public.fetch_text ft where ft.fetch_id = f.id)
-  from public.fetches f
-  where f.source in ('egress.safeFetch', 'on_page/instant_pages')
-    and f.html_pruned_at is null
-    and f.created_at < p_before
-  order by f.created_at
-  limit least(p_limit, 25);
+  -- The limit comes first and each derived-row check is a lateral key lookup, which the planner can neither hash nor turn into a scan.
+  select f.id, f.scan_id, f.source, f.cache_key, pg_column_size(f.payload), ff.found is not null, ft.found is not null
+  from (select d.id, d.scan_id, d.source, d.cache_key, d.payload, d.created_at
+        from public.fetches d
+        where d.source in ('egress.safeFetch', 'on_page/instant_pages')
+          and d.html_pruned_at is null
+          and d.created_at < p_before
+        order by d.created_at
+        limit least(p_limit, 25)) f
+  left join lateral (select true as found from public.fetch_facts x where x.fetch_id = f.id limit 1) ff on true
+  left join lateral (select true as found from public.fetch_text x where x.fetch_id = f.id limit 1) ft on true
+  order by f.created_at;
 $$;
 
 create or replace function public.fetches_html_prune(p_ids uuid[])
@@ -49,8 +52,9 @@ begin
          html_pruned_at = now()
    where f.id = any(p_ids)
      and f.html_pruned_at is null
-     and exists (select 1 from public.fetch_facts ff where ff.fetch_id = f.id)
-     and exists (select 1 from public.fetch_text ft where ft.fetch_id = f.id);
+     -- The repeated `any(p_ids)` lets each check look up only the given keys, never scan the derived tables.
+     and exists (select 1 from public.fetch_facts ff where ff.fetch_id = f.id and ff.fetch_id = any(p_ids))
+     and exists (select 1 from public.fetch_text ft where ft.fetch_id = f.id and ft.fetch_id = any(p_ids));
   get diagnostics emptied = row_count;
   return emptied;
 end;
