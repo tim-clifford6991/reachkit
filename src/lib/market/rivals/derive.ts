@@ -20,7 +20,7 @@
 // all `./domains`' — one implementation in the product, not two.
 import { BATTERY, RIVAL_SCORE } from "@/lib/config/constants";
 import type { MarketSerp } from "../views";
-import { googleWrapper, isArticleRow, isArticleUrl, isExplainerTitle, isHomeUrl, isJobRow, isJobSearch, isOccupationTitle, isOthersPage, isOwnContentUrl, isOwnDomain, isPlaceTitle, isRoundupPage, isSourceDomain, pageClass, pageKey, registrableDomain, resolvedOf, servesJobSeekers } from "./domains";
+import { googleWrapper, isArticleRow, isArticleUrl, isExplainerTitle, isHomeUrl, isJobHome, isJobRow, isJobSearch, isOccupationTitle, isOthersPage, isOwnContentUrl, isOwnDomain, isPlaceTitle, isRoundupPage, isSourceDomain, pageClass, pageKey, registrableDomain, resolvedOf, servesJobSeekers } from "./domains";
 
 /** `band.ts`'s `RivalSizeBand`, spelled out: the free card's modules name no
  *  sizing module, not even for a type (§6.4, `size.test.ts`). */
@@ -171,10 +171,10 @@ export function deriveRivals(a: {
       ? isOthersPage(row, true)
       : pageClass(row) === "third_party" ||
         ((isArticleRow(row) || (row.title !== undefined && isExplainerTitle(row.title))) && (row.url === undefined || !isOwnContentUrl(row.url)));
-  // A job page unless job seekers are its buyers (outside a local market not in its own blog), or locally an explainer or occupation guide; a home page only by a job host.
+  // A job page unless job seekers are its buyers (outside a local market not in its own blog), or locally an explainer or occupation guide; a home page by its host or a job seeker's word in its title.
   const jobs = !servesJobSeekers(a.category);
   const isGuide = (row: { domain: string; url?: string; title?: string }): boolean =>
-    row.url !== undefined && isHomeUrl(row.url) ? jobs && isJobRow({ domain: row.domain }) : (jobs && (local || row.url === undefined || !isOwnContentUrl(row.url)) && isJobRow(row)) || (local && row.title !== undefined && (isExplainerTitle(row.title) || isOccupationTitle(row.title)));
+    row.url !== undefined && isHomeUrl(row.url) ? jobs && isJobHome(row) : (jobs && (local || row.url === undefined || !isOwnContentUrl(row.url)) && isJobRow(row)) || (local && row.title !== undefined && (isExplainerTitle(row.title) || isOccupationTitle(row.title)));
   // The share of a search's titled top ten that `test` holds, at least half.
   const mostly = (serp: MarketSerp, test: (title: string) => boolean): boolean => {
     const titles = serp.organic.flatMap((row) => (row.title === undefined ? [] : [row.title]));

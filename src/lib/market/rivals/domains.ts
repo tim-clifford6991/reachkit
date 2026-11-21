@@ -319,9 +319,12 @@ export function isPublicHost(hostOrUrl: string): boolean {
  *  or training path ("Baker | Your Career", "Ausbildung Bäcker/in"). */
 const JOB_HOST = /^(jobs|careers?|karriere|stellen)\./;
 const JOB_SEGMENT = /^(jobs?|job-details|vacanc(y|ies)|careers?|stellen(angebote)?|stellenmarkt|jobsuche)$/;
+const SEEKER_WORDS = String.raw`careers?|vacanc(y|ies)|salary|salaries|apprenticeships?|traineeships?|how to become|stellenangebote?|gehalt|ausbildung|(?<!mode\s+d['’]\s*)emploi|empleos?|vacatures?`;
+const wordIn = (words: string): RegExp => new RegExp(String.raw`(?<![\p{L}\p{N}])(${words})(?![\p{L}\p{N}])`, "iu");
 // A job lot, "no job too small" and a "mode d'emploi" are a business's own words.
-const JOB_TITLE =
-  /(?<![\p{L}\p{N}])(jobs?(?!\s+(?:lots?|too\s+small)(?![\p{L}\p{N}]))|careers?|vacanc(y|ies)|salary|salaries|apprenticeships?|traineeships?|how to become|stellenangebote?|gehalt|ausbildung|(?<!mode\s+d['’]\s*)emploi|empleos?|vacatures?)(?![\p{L}\p{N}])/iu;
+const JOB_TITLE = wordIn(String.raw`jobs?(?!\s+(?:lots?|too\s+small)(?![\p{L}\p{N}]))|${SEEKER_WORDS}`);
+// A trade's home page says "jobs" of its own work ("Small jobs and rewiring"); a career or a vacancy is a job seeker's word alone.
+const SEEKER_TITLE = wordIn(SEEKER_WORDS);
 /** An occupation guide's title ("What does a baker do", "Was macht ein Bäcker"), which a product's explainer shares ("What does a CRM do"). */
 const OCCUPATION_TITLE = /(?<![\p{L}\p{N}])(what does an?\s+(?:[\p{L}-]+\s+){1,4}do|duties of an?|was macht eine?|que fait une?|qu[ée] hace una?|wat doet een)(?![\p{L}\p{N}])/iu;
 export function isOccupationTitle(title: string): boolean {
@@ -332,6 +335,12 @@ const JOB_TRADE = /(?<![\p{L}\p{N}])(recruit\p{L}*|staffing|headhunt\p{L}*|emplo
 
 export function servesJobSeekers(category: string | null | undefined): boolean {
   return category != null && (JOB_TITLE.test(category) || JOB_TRADE.test(category));
+}
+
+/** A home page for job seekers: a job host's, or titled with a job seeker's word ("Baking Career - Everything you need to know"). */
+export function isJobHome(row: { domain: string; title?: string }): boolean {
+  const parsed = parseDomain(row.domain);
+  return (parsed.ok && JOB_HOST.test(parsed.domain)) || (row.title !== undefined && SEEKER_TITLE.test(row.title));
 }
 
 export function isJobRow(row: { domain: string; url?: string; title?: string }): boolean {
