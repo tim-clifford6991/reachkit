@@ -377,6 +377,8 @@ function countsOf(cells: readonly DayCell[]): Record<StageFilter, number> {
  *  shows beside them, and the week's spares. */
 export interface WeekModel extends Pick<MonthModel, "timeZone" | "stopped" | "destination" | "held" | "today" | "spares"> {
   cells: readonly DayCell[];
+  /** The committed week's days; a cell outside them is today's page from the commit before. */
+  commit: readonly DayKey[];
   counts: Readonly<Record<StageFilter, number>>;
 }
 
@@ -409,7 +411,14 @@ export function weekOf(months: readonly MonthModel[], today: DayKey, commitStart
   // month starts in the month before it.
   const home = months.find((model) => cellFor(model, today) !== undefined) ?? months[0]!;
   const { timeZone, stopped, destination, held, spares } = home;
-  return { cells, counts: countsOf(cells), timeZone, stopped, destination, held, today, spares };
+  return { cells, commit: shown.days, counts: countsOf(cells), timeZone, stopped, destination, held, today, spares };
+}
+
+/** "Pages this week", as This Week and Overview both state it: the commit's days that hold a page. Today's page from
+ *  the commit before is drawn and never counted. */
+export function pagesThisWeek(week: Pick<WeekModel, "cells" | "commit">): number {
+  const commit = new Set(week.commit);
+  return week.cells.filter((cell) => cell.page !== null && commit.has(cell.day)).length;
 }
 
 /** The cell a day panel is opened on. `undefined` only for a day outside

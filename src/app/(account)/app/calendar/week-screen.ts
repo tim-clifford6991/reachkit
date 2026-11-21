@@ -14,9 +14,9 @@ import { ENGINE_LABEL } from "../_shell/page-target-words";
 import { cardLineFor, stateLineOf } from "./DayCard";
 import { cardLabel } from "./card-lines";
 import { CHANGE_COPY_KEY } from "./change-line";
-import { addDays, cardDate, commitDays, dayNumber, fullDate, weekdayShort, type DayKey } from "./dates";
+import { addDays, cardDate, dayNumber, fullDate, weekdayShort, type DayKey } from "./dates";
 import { EMPTY_ACCOUNT_COPY_KEY, HELD_BY_SETTING_COPY_KEY, isLawCause, isSupplyCause, stopForEmptyDay, type OneLineCause } from "./empty";
-import { dayStateOf, type DayCell, type PageOnDay, type WeekModel } from "./month";
+import { dayStateOf, pagesThisWeek, type DayCell, type PageOnDay, type WeekModel } from "./month";
 import type { PlanHeadFacts } from "./provider";
 import { DAY_STATE_COPY_KEY, type DayState } from "./stages";
 import { weekGoesLive } from "./WeekCard";
@@ -119,14 +119,8 @@ export function checkDays(facts: PlanHeadFacts, today: DayKey): { chosen: DayKey
   };
 }
 
-/** The commit's pages: today's page from the commit before is shown, and not counted. */
-function pagesOf(cards: readonly CardModel[], facts: PlanHeadFacts, today: DayKey): number {
-  const days = new Set(commitDays(today, facts.commitStart).days);
-  return cards.filter((card) => card.cell.page !== null && days.has(card.day)).length;
-}
-
-export function headOf(facts: PlanHeadFacts, week: WeekModel, cards: readonly CardModel[]): ScreenHead {
-  const pages = pagesOf(cards, facts, week.today);
+export function headOf(facts: PlanHeadFacts, week: WeekModel): ScreenHead {
+  const pages = pagesThisWeek(week);
   const time = weekGoesLive(week, facts.publishTime);
   const check = checkDays(facts, week.today);
   const next = shortDay(check.next);
@@ -290,7 +284,8 @@ function cardOf(
     };
   }
 
-  const waiting = page.stage === "your_review" || page.stage === "scheduled";
+  // A page still to go out promises its day only while that day is to come; a past day never says it goes live.
+  const waiting = (page.stage === "your_review" || page.stage === "scheduled") && cell.day >= week.today;
   const ready = waiting && cell.today;
   const needsYou = needsYouLine(page.needsYou);
   const lines =
@@ -354,7 +349,7 @@ export function weekScreen(a: { week: WeekModel; head: PlanHeadFacts; published:
   const today = cards.find((card) => card.day === week.today);
   const written = cards.find((card) => card.day >= week.today && card.pane.kind === "page");
   return {
-    head: headOf(a.head, week, cards),
+    head: headOf(a.head, week),
     cards,
     opensOn: (today?.cell.page != null ? today : (written ?? cards[0]))?.day ?? null,
   };

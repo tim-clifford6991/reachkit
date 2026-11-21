@@ -10,7 +10,7 @@
 "use client";
 
 import type React from "react";
-import { useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { parseAsString, useQueryState } from "nuqs";
 import { copy } from "@/lib/presentation/copy";
 import { DayPanelView } from "./DayPanelView";
@@ -28,6 +28,19 @@ function onWidth(change: () => void): () => void {
   const query = window.matchMedia(WIDE);
   query.addEventListener("change", change);
   return () => query.removeEventListener("change", change);
+}
+
+/** Makes everything outside `el` inert (the shell's dock and top bar included), so focus stays in it; returns the undo. */
+function holdFocusIn(el: HTMLElement): () => void {
+  const held: HTMLElement[] = [];
+  for (let at: HTMLElement | null = el; at !== null && at !== document.body; at = at.parentElement) {
+    for (const sibling of Array.from(at.parentElement?.children ?? [])) {
+      if (sibling === at || !(sibling instanceof HTMLElement) || sibling.inert) continue;
+      sibling.inert = true;
+      held.push(sibling);
+    }
+  }
+  return () => held.forEach((sibling) => (sibling.inert = false));
 }
 
 /** The `?day=` value that means "no day open". */
@@ -50,16 +63,27 @@ export function CalendarView(p: {
   // Below `lg` the pane covers the list, and an implicit day opens nothing there.
   const shown = card === undefined || (implicit && !wide) ? null : card.day;
   const covers = shown !== null && !wide;
+  useEffect(() => {
+    const pane = covers ? document.querySelector<HTMLElement>('[data-testid="day-panel"]') : null;
+    if (pane === null) return undefined;
+    const release = holdFocusIn(pane);
+    // On close the page behind is live again first, then focus returns to the card that opened the pane.
+    return () => {
+      release();
+      document.querySelector<HTMLElement>(`[data-testid="calendar-cell-${shown}"] button`)?.focus();
+    };
+  }, [covers, shown]);
 
   function close(): void {
     void setDay(DAY_CLOSED).then(() => {
-      if (selected !== null) document.querySelector<HTMLElement>(`[data-testid="calendar-cell-${selected}"] button`)?.focus();
+      // From `lg` nothing was held, so focus returns here.
+      if (wide && selected !== null) document.querySelector<HTMLElement>(`[data-testid="calendar-cell-${selected}"] button`)?.focus();
     });
   }
 
   return (
     <div className={BODY} data-frame={REGION.body}>
-      <div className={COLUMN} data-testid="plan-week-card" inert={covers}>
+      <div className={COLUMN} data-testid="plan-week-card">
         <WeekGrid cards={p.screen.cards} selected={shown} onSelect={(next) => void setDay(next)} />
 
         {/* The week's spares, used only where a day's page cannot be written. */}

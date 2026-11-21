@@ -3,6 +3,9 @@
 import { describe, expect, it } from "vitest";
 import { FIXTURE_CALENDAR_FACTS, FIXTURE_PLAN_HEAD } from "@/app/(account)/app/calendar/fixture";
 import { assembleMonth, dayStateOf, weekOf, type CalendarFacts } from "@/app/(account)/app/calendar/month";
+import { STAGE_OF } from "@/app/(account)/app/calendar/stages";
+import { copy } from "@/lib/presentation/copy";
+import { weekListOf } from "@/app/(account)/app/_overview/this-week";
 import { commitDays, commitEnd, dayKeyOf, monthOf } from "@/app/(account)/app/calendar/dates";
 import { checkDays, weekScreen, writtenDrafts } from "@/app/(account)/app/calendar/week-screen";
 import type { PlanHeadFacts } from "@/app/(account)/app/calendar/provider";
@@ -40,7 +43,7 @@ function screenOf(facts: CalendarFacts, head: PlanHeadFacts, bodies?: ReadonlySe
 
 describe.each(CLOCKS)("This Week on the %s", (_, now, head, next) => {
   describe.each([["fixture", FIXTURE_CALENDAR_FACTS], ["every arm", ALL_ARMS], ["mixed", MIXED]] as const)("over the %s week", (__, base) => {
-    const { today, shown, screen } = screenOf({ ...base, now }, head);
+    const { today, shown, week, screen } = screenOf({ ...base, now }, head);
     const commit = new Set(shown.days);
 
     it("draws the committed week, and today's page from the commit before, in date order, counting the commit's pages", () => {
@@ -49,6 +52,19 @@ describe.each(CLOCKS)("This Week on the %s", (_, now, head, next) => {
       for (const card of screen.cards) expect(commit.has(card.day) || (card.day === today && card.cell.page !== null), card.day).toBe(true);
       expect(shown.days.filter((day) => monthOf(day) === monthOf(today)).every((day) => days.includes(day))).toBe(true);
       expect(screen.head.pages).toBe(screen.cards.filter((card) => card.cell.page !== null && commit.has(card.day)).length);
+    });
+
+    it("counts the commit's dated pages, as the stored days hold them, on This Week and Overview alike", () => {
+      const stored = base.drafts.filter((draft) => commit.has(draft.scheduledFor) && STAGE_OF[draft.state] !== null).length;
+      expect([screen.head.pages, weekListOf(week)?.pages]).toEqual([stored, stored]);
+    });
+
+    it("never says a day before today goes live", () => {
+      for (const card of screen.cards.filter((each) => each.day < today)) {
+        const promised = copy("calendar.card.goes-live", { day: card.dayLabel, time: "9:00 AM" });
+        expect(card.lines.includes(promised), card.day).toBe(false);
+        if (card.pane.kind === "page") expect(card.pane.next, card.day).toBeNull();
+      }
     });
 
     it("was chosen no later than today, and is checked next on the Monday still to come", () => {
