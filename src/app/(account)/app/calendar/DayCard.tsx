@@ -7,8 +7,8 @@
 // `rk-cal-empty` — the truncations this screen declared to the layout sweep
 // in #354.
 import type React from "react";
-import { Calendar, CircleStop, Plus, RefreshCw, type LucideIcon } from "lucide-react";
-import { copy } from "@/lib/presentation/copy";
+import { Calendar, CircleCheck, CircleStop, Clock, PencilLine, Plus, RefreshCw, type LucideIcon } from "lucide-react";
+import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { SITE_CHECK_TITLE } from "@/lib/presentation/site-issues";
 import { horizonShortFor, shortCauseFor } from "./card-lines";
 import { dayNumber, weekdayShort } from "./dates";
@@ -54,18 +54,22 @@ export function KindChip(p: { update: boolean }): React.JSX.Element {
  *  else the week's first skip. */
 export function stateLineOf(cell: DayCell, firstSkip: boolean): string | null {
   if (cell.page !== null) return cell.page.becameUpdate === true ? copy("calendar.day.became-update") : null;
-  if (cell.empty?.cause === "page_cannot_go_live") return copy("calendar.day.stopped.line", { day: `${weekdayShort(cell.day)} ${dayNumber(cell.day)}` });
+  // "by you" only where the customer's own move stopped it.
+  if (cell.empty?.cause === "page_cannot_go_live") return copy(cell.stoppedByYou === true ? "calendar.day.stopped.line" : "calendar.day.stopped.line.system", { day: `${weekdayShort(cell.day)} ${dayNumber(cell.day)}` });
   return firstSkip ? copy("calendar.day.skipped.line") : null;
 }
 
-/** The icon a state badge opens with, only where board Plan draws one. */
+/** The icon a state badge opens with (DESIGN E29), only where the boards draw one. */
 const DAY_STATE_ICON: Readonly<Partial<Record<DayState, LucideIcon>>> = {
   planned: Calendar,
+  writing: PencilLine,
+  written: Clock,
+  live: CircleCheck,
   stopped: CircleStop,
 };
 
 /** A day's state as a badge, or nothing for a day with nothing to say. */
-export function DayStateBadge(p: { cell: DayCell; filter: StageFilter }): React.JSX.Element | null {
+export function DayStateBadge(p: { cell: DayCell; filter: StageFilter; word?: CopyKey }): React.JSX.Element | null {
   // A stage filter narrows to pages; a hidden page states no state either.
   if (p.cell.page !== null && pageShownBy(p.cell, p.filter) === null) return null;
   if (p.cell.page === null && p.filter !== "all") return null;
@@ -80,7 +84,7 @@ export function DayStateBadge(p: { cell: DayCell; filter: StageFilter }): React.
       data-state={state}
     >
       {Icon === undefined ? null : <Icon aria-hidden className="size-3" />}
-      {copy(DAY_STATE_COPY_KEY[state])}
+      {copy(p.word ?? DAY_STATE_COPY_KEY[state])}
     </span>
   );
 }
