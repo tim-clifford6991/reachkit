@@ -34,13 +34,15 @@
 import type React from "react";
 import { Suspense } from "react";
 import { ArrowRight, Check } from "lucide-react";
-import { VETO, WEEK_PLAN } from "@/lib/config/constants";
+import { OFFER_ENDS_ON, OFFER_SPOTS, SETUP_MINUTES, VETO, WEEK_PLAN } from "@/lib/config/constants";
+import type { SpotsLeft } from "@/lib/account/offer/spots";
 import { copy } from "@/lib/presentation/copy";
 import { HOW_FACTS } from "@/app/(public)/_how/facts";
 import { BrandMark } from "@/app/_brand/Brand";
 import { FLOAT } from "@/ui/lift";
 import { Num } from "../_address/measured";
 import { WhenRefused } from "../../../pricing/refused";
+import { FirstFifty } from "./first-fifty";
 
 /** The static pricing page's `refused`: the marker is read in the browser. */
 export const REFUSED_IN_QUERY = "query" as const;
@@ -88,6 +90,7 @@ function PriceBox(p: {
   cancel: string;
   refused?: boolean | typeof REFUSED_IN_QUERY;
   terms?: React.ReactNode;
+  offer: React.ReactNode;
   free?: React.ReactNode;
 }): React.JSX.Element {
   const refusedLine = (
@@ -105,6 +108,7 @@ function PriceBox(p: {
         <span className="text-base-content/70 text-sm">{copy("price.interval")}</span>
       </div>
       {p.terms ?? null}
+      {p.offer}
       {/* Issue #624: the vendor refused to open checkout. One written line
           on the offer itself, above the control that will try again. */}
       {p.refused === REFUSED_IN_QUERY ? (
@@ -135,6 +139,34 @@ function Terms(p: { specs: readonly string[] }): React.JSX.Element {
   );
 }
 
+/** The first-50 block, the setup promise every buyer gets, and the spots line directly above Start. */
+function Offer(p: { spots: SpotsLeft | null; built: boolean }): React.JSX.Element {
+  const spots = p.spots;
+  const promise = <p className="text-sm font-semibold">{copy("offer.promise.call", { minutes: String(SETUP_MINUTES) })}</p>;
+  // A failed read says nothing true about the offer, so the card draws it only where the read says open.
+  if (spots === null || (spots.state !== "open" && spots.state !== "few")) return promise;
+  const of = String(OFFER_SPOTS);
+  const block = (
+    <div className="border-base-300 flex flex-col gap-3 border-t pt-4">
+      <div>
+        <h3 className="text-base font-semibold">{copy("offer.card.title", { of })}</h3>
+        <p className="text-base-content/70 text-sm">{copy("offer.card.until", { endsOn: OFFER_ENDS_ON })}</p>
+      </div>
+      <Terms specs={[copy("offer.card.setup"), copy("offer.card.video"), copy("offer.card.checkins"), copy("offer.card.email")]} />
+    </div>
+  );
+  return (
+    <FirstFifty
+      read={p.built}
+      // A static page drops the count it would keep until the next deploy; the browser fills it.
+      spots={p.built ? { state: "open" } : spots}
+      block={block}
+      promise={promise}
+      words={{ before: copy("offer.spots.before", { of, endsOn: OFFER_ENDS_ON }), left: copy("offer.card.left", { left: "{left}", of }) }}
+    />
+  );
+}
+
 export function PricingCard(
   p: {
     startAction?: () => Promise<void>;
@@ -150,6 +182,10 @@ export function PricingCard(
     line?: string;
     /** The free path, under Start. */
     free?: React.ReactNode;
+    /** The read of the first-50 spots, `null` where it failed; without one no first-50 block is drawn. */
+    spots?: SpotsLeft | null;
+    /** The read was made at build, so the browser fills the count and any state that moved since. */
+    built?: boolean;
   } = {}
 ): React.JSX.Element {
   const terms = p.terms ?? "report";
@@ -162,6 +198,7 @@ export function PricingCard(
     </button>
   );
   const control = p.startAction ? <form action={p.startAction}>{start}</form> : start;
+  const offer = <Offer spots={p.spots ?? null} built={p.built === true} />;
 
   if (p.close === true) {
     return (
@@ -174,7 +211,7 @@ export function PricingCard(
             <p className="text-base-content/70 text-sm">{copy("how.steps.part")}</p>
           </div>
           <div className={`bg-base-100 rounded-box shrink-0 p-6 lg:w-96 ${FLOAT}`}>
-            <PriceBox start={control} close cancel={cancel} refused={p.refused} free={p.free} />
+            <PriceBox start={control} close cancel={cancel} refused={p.refused} offer={offer} free={p.free} />
           </div>
         </div>
       </section>
@@ -201,6 +238,7 @@ export function PricingCard(
           cancel={cancel}
           refused={p.refused}
           terms={<Terms specs={specs} />}
+          offer={offer}
           free={p.free}
         />
       </div>

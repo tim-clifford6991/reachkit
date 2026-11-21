@@ -35,9 +35,8 @@ const EXAMPLE_REPORT = "/scan/example.com";
 
 export function AddressView(p: {
   state: AddressState;
-  /** Issue #785: the report's checkout came back refused. Read by the
-   *  report arm's offer only. */
-  checkoutRefused?: boolean;
+  /** Whether the report's checkout came back refused, and the first-50 spots; read by the report's offer only. */
+  offer?: React.ComponentProps<typeof ReportView>["offer"];
 }): React.JSX.Element {
   const state = p.state;
   switch (state.kind) {
@@ -152,7 +151,7 @@ export function AddressView(p: {
       );
 
     case "report":
-      return <ReportView state={state} checkoutRefused={p.checkoutRefused} />;
+      return <ReportView state={state} offer={p.offer} />;
 
     default: {
       const exhaustive: never = state;

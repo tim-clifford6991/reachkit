@@ -459,7 +459,7 @@ export function ReportView(p: {
     writtenPage?: WrittenPage;
     hasLogo?: boolean;
   };
-  checkoutRefused?: boolean;
+  offer?: Pick<NonNullable<Parameters<typeof PricingCard>[0]>, "refused" | "spots">;
 }): React.JSX.Element {
   const { report, notice, control, correction } = p.state;
   const measuredOn = writePageDate(report.verdict.measuredAt, null);
@@ -572,7 +572,7 @@ export function ReportView(p: {
           <MissingPagesSection pages={missingPages} freeSearch={report.freePage?.target.keyword ?? null} />
           <PricingCard
             startAction={startReportCheckout.bind(null, report.domain, report.scanId)}
-            refused={p.checkoutRefused === true}
+            {...p.offer}
             close
             {...offerOf(report, cards)}
           />

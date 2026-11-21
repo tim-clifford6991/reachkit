@@ -55,6 +55,7 @@ import { KIND_ICON, KIND_WORD } from "./scans/kinds";
 import { BUSINESS_KIND_NAMES } from "@/lib/market/kinds";
 import { FAQ_SECTION_ID, FIELD_SECTION_ID, HOW_SECTION_ID, PRICE_SECTION_ID, SECTION_HEADING, WHY_SECTION_ID } from "./_landing/sections";
 import { HOW_FACTS } from "./_how/facts";
+import { SETUP_MINUTES } from "@/lib/config/constants";
 import { PUBLIC_ROUTE_SEO } from "./_seo/routes";
 import { staticMetadata } from "./_seo/metadata";
 import { JsonLd, homeSchemas } from "./_seo/structured";
@@ -72,7 +73,11 @@ const STEPS = [
 ] as const;
 
 /** The offer under the field, one tick line each. */
-const offer = (): readonly string[] => [copy("landing.hero.offer.free"), copy("landing.hero.offer.price", { price: PRICE() })];
+const offer = (): readonly string[] => [
+  copy("landing.hero.offer.free"),
+  copy("landing.hero.offer.price", { weekPages: WEEK_PAGES, price: PRICE() }),
+  copy("offer.banner.promise", { minutes: String(SETUP_MINUTES) }),
+];
 
 /** The questions and their short answers, in the board's order; How it
  *  works holds the full ones. *Cancel your contract* waits for the launch
@@ -158,7 +163,7 @@ export default function LandingPage(props: {
                   <ScanForm hero initial={prefill} words={words} />
                 )}
               </div>
-              <ul className="flex flex-col items-center gap-1.5 sm:flex-row sm:justify-center sm:gap-6">
+              <ul className="flex flex-col items-center gap-1.5">
                 {offer().map((line) => (
                   <li key={line} className="text-base-content flex items-center gap-2 text-base font-semibold">
                     <Check size={20} strokeWidth={1.75} className="text-success shrink-0" aria-hidden />
