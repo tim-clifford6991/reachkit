@@ -60,7 +60,7 @@ describe("Site Fixes' one model", () => {
 
   it("broken links count the pages that hold them where the report kept them, else the links", () => {
     const broken = FIXTURE_SITE_ISSUES.issues.find((i) => i.check === "broken_links")!;
-    const holders = [READ[30], READ[31], READ[32]];
+    const holders = READ.slice(30, 33);
     const withFrom = screenOf(swap(current, { ...(broken as Extract<SiteIssue, { ran: true }>), from: holders }));
     agrees(withFrom);
     expect(withFrom.rows.find((r) => r.id === "broken_links")?.pages.map((p) => p.url)).toEqual(holders);
