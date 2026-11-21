@@ -1,10 +1,11 @@
 "use client";
 // The phone offer bar at the foot of Pricing and the report; it holds no copy key, so the registry stays out of the public bundle.
 import type React from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal, useFormStatus } from "react-dom";
 import { Clock } from "lucide-react";
 import type { SpotsLeft } from "@/lib/account/offer/spots";
+import { CHECKOUT_QUERY_KEY, REFUSED_MARKER } from "../../../pricing/state";
 
 type Read = Pick<SpotsLeft, "state" | "left"> | { state: "unknown"; left?: undefined };
 
@@ -16,10 +17,18 @@ export function BarStart(p: { label: string }): React.JSX.Element {
   const { pending } = useFormStatus();
   return (
     <button type="submit" className="btn btn-primary relative min-h-11 shrink-0" disabled={pending} aria-busy={pending || undefined}>
-      <span className={pending ? "invisible" : undefined}>{p.label}</span>
+      {/* Transparent, not invisible: the label stays the button's name while it is busy. */}
+      <span className={pending ? "opacity-0" : undefined}>{p.label}</span>
       {pending && <span aria-hidden className="loading loading-spinner loading-xs absolute" />}
     </button>
   );
+}
+
+/** The bar's one line: from the end date no state, read or not, makes a first-50 claim. */
+export function barLine(spots: Read, ended: boolean, words: { before: string; left: string; promise: string }): string {
+  const open = !ended && (spots.state === "open" || spots.state === "few" || spots.state === "unknown");
+  if (!open) return words.promise;
+  return spots.left === undefined ? words.before : words.left.replace("{left}", String(spots.left));
 }
 
 /**
@@ -30,21 +39,24 @@ export function OfferBar(p: {
   read: boolean;
   spots: SpotsLeft | null;
   endsAt: string;
-  words: { label: string; before: string; left: string; promise: string };
-  refused: React.ReactNode;
+  words: { before: string; left: string; promise: string; refused: string };
+  /** A refusal's line is drawn in place of the spots line, so it never makes the bar taller; `query` reads it from the address. */
+  refused: boolean | "query" | undefined;
   start: React.ReactNode;
 }): React.JSX.Element {
   // A static page drops the count it would keep until the next deploy.
   const [spots, setSpots] = useState<Read>(p.spots === null ? { state: "unknown" } : p.read ? { state: p.spots.state } : p.spots);
-  const [at, setAt] = useState<{ body: HTMLElement; ended: boolean } | null>(null);
+  const [at, setAt] = useState<{ body: HTMLElement; ended: boolean; refused: boolean } | null>(null);
   const [shown, setShown] = useState(false);
+  const bar = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const ended = Date.now() >= Date.parse(p.endsAt);
+    const refused = p.refused === true || (p.refused === "query" && new URLSearchParams(location.search).get(CHECKOUT_QUERY_KEY) === REFUSED_MARKER);
     const onScreen = new Set<Element>();
     // The first answer comes once the page is laid out; only then is the bar drawn.
     const seen = new IntersectionObserver((entries) => {
-      setAt((was) => was ?? { body: document.body, ended });
+      setAt((was) => was ?? { body: document.body, ended, refused });
       for (const e of entries) {
         if (e.isIntersecting) onScreen.add(e.target);
         else onScreen.delete(e.target);
@@ -53,7 +65,20 @@ export function OfferBar(p: {
     });
     document.querySelectorAll(SOLID).forEach((el) => seen.observe(el));
     return () => seen.disconnect();
-  }, [p.endsAt]);
+  }, [p.endsAt, p.refused]);
+
+  // The page's foot reserve is the tallest the bar has been, so it never covers the footer or a focused link.
+  useEffect(() => {
+    const el = bar.current;
+    if (el === null) return;
+    const root = document.documentElement;
+    const sized = new ResizeObserver(() => {
+      const was = Number.parseFloat(root.style.getPropertyValue("--offer-bar-h")) || 0;
+      if (el.offsetHeight > was) root.style.setProperty("--offer-bar-h", `${el.offsetHeight}px`);
+    });
+    sized.observe(el);
+    return () => sized.disconnect();
+  }, [at]);
 
   useEffect(() => {
     if (!p.read) return;
@@ -63,31 +88,32 @@ export function OfferBar(p: {
       .catch(() => undefined);
   }, [p.read]);
 
-  // A count not read is never a claim after the end; all taken or ended leaves only the promise.
-  const open = spots.state === "open" || spots.state === "few" || (spots.state === "unknown" && at?.ended === false);
-  const few = spots.state === "few" && spots.left !== undefined;
-  const text = !open ? p.words.promise : spots.left === undefined ? p.words.before : p.words.left.replace("{left}", String(spots.left));
+  const ended = at?.ended !== false;
+  const few = !ended && spots.state === "few" && spots.left !== undefined;
 
   return (
     <>
-      {/* The page reserves the bar's height from this marker, before any script runs. */}
+      {/* The page reserves the bar's height from this marker, before any script runs; the bar then sets it to its own. */}
       <span data-offer-bar hidden />
       {at !== null &&
         createPortal(
-          <aside
-            aria-label={p.words.label}
+          // Not a landmark: the offer line above the header is the page's one "Offer".
+          <div
+            ref={bar}
             data-nosnippet
-            className={`bg-base-100 border-base-300 fixed inset-x-0 bottom-0 z-20 flex-col gap-2 border-t px-4 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] md:hidden ${shown ? "flex" : "hidden"}`}
+            data-testid="offer-bar"
+            className={`bg-base-100 border-base-300 fixed inset-x-0 bottom-0 z-20 items-center justify-between gap-3 border-t px-4 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] md:hidden ${shown ? "flex" : "hidden"}`}
           >
-            {p.refused}
-            <div className="flex items-center justify-between gap-3">
+            {at.refused ? (
+              <p className="text-error min-w-0 text-sm">{p.words.refused}</p>
+            ) : (
               <p className={`flex min-w-0 items-center gap-1.5 text-sm ${few ? "font-semibold" : ""}`}>
                 {few && <Clock size={16} strokeWidth={1.75} aria-hidden className="shrink-0" />}
-                {text}
+                {barLine(spots, ended, p.words)}
               </p>
-              {p.start}
-            </div>
-          </aside>,
+            )}
+            {p.start}
+          </div>,
           at.body
         )}
     </>

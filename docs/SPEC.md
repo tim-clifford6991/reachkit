@@ -72,7 +72,7 @@ A new dated ruling is its own file under `docs/spec/decisions/`, headed by the s
 
 | name | block/warn | outcome protected | ruling |
 |---|---|---|---|
-| One field | warn | The landing has exactly one text input and one submit. No sign-in or payment comes before submit. Every other call to action brings that field into view with the cursor in it, except the phone offer bar, which starts checkout (owner, 2026-11-20, #2991). | SPEC |
+| One field | warn | The landing has exactly one text input and one submit. No sign-in or payment comes before submit. Every other call to action brings that field into view with the cursor in it, except the phone offer bar, which starts checkout (owner, 2026-11-20, #2981). | SPEC |
 | Any written domain | warn | Any written domain (scheme, `www`, path, case) reaches one report. A malformed value stays on the page with the typed text and one error line. | SPEC |
 | One plan | warn | One plan only: no tiers, seats, annual plan or add-ons. Businesses only, month to month: no consumer or contract-term copy. | SPEC; owner, 2026-11-06, #2452 |
 | One offer component | warn | The offer is one component, used on the report and on `/pricing`; only the Start target differs. The offer line sits above the header on both while the first-50 offer runs; on `/pricing` it has no *See the Offer* link. | SPEC; owner, 2026-11-20, #2981 |
