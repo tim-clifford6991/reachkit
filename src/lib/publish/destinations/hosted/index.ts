@@ -28,7 +28,6 @@ export { slugDescribesTitle } from "./moved";
 export {
   hostedAddressNow,
   hostedIdentity,
-  hostedSiteForDomain,
   hostedOwnPagesOfSite,
   hostedSiteForHostname,
   livePageBySlug,

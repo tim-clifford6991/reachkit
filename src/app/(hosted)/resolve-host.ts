@@ -6,12 +6,9 @@
 // from the disposition this module returns, and nothing on the surface
 // re-derives it.
 //
-// **Resolution is exact and never falls back.** A `content.` label on a
-// domain no `sites` row claims is `unknown`, which is a 404 and not a
-// ReachKit page: on a stranger's domain the operator is not named, no other
-// customer's content is served in its place, and there is no default site
-// to land on. `hostedSiteForDomain` is where that property lives — one
-// indexed lookup, one exact match — and this module adds no second path.
+// **Resolution is exact and never falls back.** The Host is matched whole
+// against the host stored on a live destination row; a host no row holds is
+// `unknown`, which is a 404 and not a ReachKit page.
 //
 // **No `*.reachkit.app` host serves customer content**: a draft is read on
 // the app host (`/app/draft/{draftId}`, `/veto/{token}`), so customer content
@@ -33,10 +30,10 @@
 // is produced by the page route rather than here, because whether a *page*
 // was taken down is not a fact about a *host* — the disposition is shared
 // so that all three reasons still yield one `gone` response and not three.
-import { HOSTED_SUBDOMAIN_LABEL, HOSTED_UNAVAILABLE_INIT } from "@/lib/config/constants";
+import { HOSTED_UNAVAILABLE_INIT } from "@/lib/config/constants";
 import { env } from "@/lib/config/env";
 import { hostedServingState } from "@/lib/account/billing";
-import { hostedSiteForDomain, hostedSiteForHostname } from "@/lib/publish/destinations/hosted";
+import { hostedSiteForHostname } from "@/lib/publish/destinations/hosted";
 
 export { tags } from "@/lib/publish/destinations/hosted";
 
@@ -49,8 +46,6 @@ export type HostDisposition =
 export function unavailableResponse(): Response {
   return new Response(null, HOSTED_UNAVAILABLE_INIT);
 }
-
-const CONTENT_PREFIX = `${HOSTED_SUBDOMAIN_LABEL}.`;
 
 /** The Host header as a hostname: lower-cased, port removed, trailing dot
  *  removed. A header is whatever a client sent, and every comparison below
@@ -97,13 +92,7 @@ export function isAppHost(host: string): boolean {
   return name === appHost();
 }
 
-/**
- * The lifecycle question, asked once for whichever lookup found the site.
- *
- * Both paths into a served page end here, so a customer whose access has
- * ended stops being served whether their host was matched whole or by the
- * default label — one question, one answer, no second place to forget it.
- */
+/** The lifecycle question, asked once for the site the host names. */
 async function dispositionFor(site: {
   siteId: string;
   domain: string;
@@ -125,8 +114,7 @@ function goneFor(because: "retention_elapsed" | "account_deleted", siteId: strin
 /**
  * What this Host is, to us.
  *
- * One lookup on `sites.domain` for a `content.` host, then one lifecycle
- * question. Nothing here is cached: a `gone` disposition must not outlive
+ * One lookup of the stored host, then one lifecycle question. Nothing here is cached: a `gone` disposition must not outlive
  * the request that found it, because a takedown is immediate (WO-028's
  * NFR) and a cached "serve" would keep a departed customer's pages up. The
  * cached article (issue 1242) does not change that: `src/middleware.ts`
@@ -140,40 +128,12 @@ export async function resolveHost(host: string): Promise<HostDisposition> {
   // The deployment's own address is not a customer.
   if (name === appHost()) return { kind: "unknown" };
 
-  // **The host as the customer chose it** (SPEC §5, 2026-09-12). The label
-  // is theirs, so the Host is matched whole against the host stored on
-  // their destination row — `blog.example.com` and `news.example.com` are
-  // two customers' choices and neither is derivable from a pinned label.
-  // First, because a stored host is the exact and authoritative answer;
-  // the lookup below it is what still serves a site whose destination row
-  // predates the ruling.
-  let chosen: Awaited<ReturnType<typeof hostedSiteForHostname>> = null;
-  let unread = false;
+  // The label is the customer's (SPEC §5), so the host is matched whole against the one stored on their row.
+  let chosen: Awaited<ReturnType<typeof hostedSiteForHostname>>;
   try {
     chosen = await hostedSiteForHostname(name);
   } catch {
-    // **A throw here is "no answer from this lookup", not "no site".** The
-    // default-label lookup below may still resolve the host; if nothing
-    // does, the host is `unavailable`, never `unknown`.
-    unread = true;
+    return { kind: "unavailable" };
   }
-  if (chosen !== null) return dispositionFor(chosen);
-  const unknown: HostDisposition = unread ? { kind: "unavailable" } : { kind: "unknown" };
-
-  if (name.startsWith(CONTENT_PREFIX)) {
-    const domain = name.slice(CONTENT_PREFIX.length);
-    if (domain === "") return unknown;
-
-    let site: Awaited<ReturnType<typeof hostedSiteForDomain>>;
-    try {
-      site = await hostedSiteForDomain(domain);
-    } catch {
-      return { kind: "unavailable" };
-    }
-    if (site === null) return unknown;
-
-    return dispositionFor(site);
-  }
-
-  return unknown;
+  return chosen === null ? { kind: "unknown" } : dispositionFor(chosen);
 }

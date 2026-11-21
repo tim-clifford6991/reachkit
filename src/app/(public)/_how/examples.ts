@@ -10,8 +10,8 @@
 //
 // **Nothing stored, nothing said.** A deployment with no such site, no live
 // page, or a database that does not answer draws neither line.
-import { PREVIEW_HOST_SUFFIX } from "@/lib/config/constants";
-import { hostedHostOfSite, hostedSiteForDomain, livePagesForSite } from "@/lib/publish/destinations/hosted/store";
+import { HOSTED_SUBDOMAIN_LABEL, PREVIEW_HOST_SUFFIX } from "@/lib/config/constants";
+import { hostedSiteForHostname, livePagesForSite } from "@/lib/publish/destinations/hosted/store";
 import { isListed } from "@/lib/scan/gallery";
 import { personOf } from "@/app/(hosted)/hosted-page/[[...slug]]/seo";
 
@@ -41,10 +41,10 @@ export interface LiveExamples {
 const NONE: LiveExamples = Object.freeze({ report: null, page: null, founder: null });
 
 async function ownNewestPage(): Promise<Pick<LiveExamples, "page" | "founder">> {
-  const site = await hostedSiteForDomain(OWN_DOMAIN);
+  // By the stored host, which exactly one live destination holds.
+  const site = await hostedSiteForHostname(`${HOSTED_SUBDOMAIN_LABEL}.${OWN_DOMAIN}`);
   if (site === null) return NONE;
-  const host = (await hostedHostOfSite(site.siteId)) ?? site.host;
-  const newest = (await livePagesForSite(site.siteId, host))[0];
+  const newest = (await livePagesForSite(site.siteId, site.host))[0];
   if (newest === undefined) return NONE;
   const byline = newest.byline === null ? null : personOf(newest.byline);
   return {
