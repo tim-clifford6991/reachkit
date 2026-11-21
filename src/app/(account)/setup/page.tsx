@@ -35,9 +35,7 @@
 import type React from "react";
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { ExternalLink } from "lucide-react";
-import { readSetupScreen, readSpotHolder } from "./_setup/provider";
-import { OFFER_BOOKING_URL, OFFER_SPOTS } from "@/lib/config/constants";
+import { readSetupScreen } from "./_setup/provider";
 import { SetupForm } from "./SetupForm";
 import { SetupSkeleton } from "./SetupSkeleton";
 import { copy } from "@/lib/presentation/copy";
@@ -48,30 +46,13 @@ import { copy } from "@/lib/presentation/copy";
 export const metadata: Metadata = { title: copy("meta.app.setup.title") };
 
 export default async function SetupPage(): Promise<React.JSX.Element> {
-  const [model, holder] = await Promise.all([readSetupScreen(), readSpotHolder()]);
-  // Every buyer is offered the call; only a spot holder is told they hold one.
-  const offer = (
-    <p className="min-w-0 text-(length:--t-sm) text-base-content/80 wrap-anywhere" data-testid="setup-offer">
-      {`${[holder ? copy("offer.setup.holder", { of: String(OFFER_SPOTS) }) : null, copy("offer.setup.help")].filter((part) => part !== null).join(" ")} `}
-      {OFFER_BOOKING_URL === "" ? (
-        <a className="link link-primary" href={`mailto:${copy("chrome.footer.contact.address")}`}>
-          {copy("offer.founder")}
-        </a>
-      ) : (
-        <a className="link link-primary inline-flex items-center gap-1" href={OFFER_BOOKING_URL} target="_blank" rel="noopener">
-          {copy("offer.setup.book")}
-          <ExternalLink aria-hidden size={16} strokeWidth={1.75} />
-          <span className="sr-only">{copy("draft.live.new-tab")}</span>
-        </a>
-      )}
-    </p>
-  );
+  const model = await readSetupScreen();
 
   return (
     // The fallback is the step's own regions (#1327), and it leaves by the
     // reveal of #1065: `Waiting` carries the exit, the step crossfades in.
     <Suspense fallback={<SetupSkeleton />}>
-      <SetupForm model={model} offer={offer} />
+      <SetupForm model={model} />
     </Suspense>
   );
 }
