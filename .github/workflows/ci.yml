@@ -188,6 +188,13 @@ jobs:
         uses: actions/checkout@v4
       - if: ${{ needs.changes.outputs.ui != 'false' }}
         uses: ./.github/actions/layout-suite
+      # The sweep runs `next build`; its compiler cache is kept so a rerun rebuilds only what changed.
+      - if: ${{ needs.changes.outputs.ui != 'false' }}
+        uses: actions/cache@v4
+        with:
+          path: .next/cache
+          key: next-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ hashFiles('src/**', 'public/**', 'next.config.*') }}
+          restore-keys: next-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-
       # The whole `layout` project, the landing's script budget included
       # (#988).
       # A pull request sweeps each width in one theme (`noOverflowCasesFor`).
