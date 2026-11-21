@@ -153,22 +153,6 @@ const LIST_COLUMNS = (body: boolean): string =>
   (body ? "body_md, " : "") +
   "opportunities!inner(id, target_query, business_fit, cluster_key, scans(created_at)))";
 
-/** The site served on this domain, or `null`: exact match, no fallback, so an unknown Host 404s by construction. A failed
- *  read throws, because `null` says no site is here. */
-export async function hostedSiteForDomain(domain: string): Promise<HostedSite | null> {
-  const name = domain.trim().toLowerCase();
-  if (name === "") return null;
-  const { data, error } = await publishDb()
-    .from<SiteRow>("sites")
-    .select("id, domain")
-    .eq("domain", name)
-    .limit(1);
-  if (error !== null || data === null) throw new Error("hosted site read failed");
-  const row = data[0];
-  if (row === undefined) return null;
-  return { siteId: row.id, domain: row.domain, host: hostFor({ label: null, domain: row.domain }) };
-}
-
 /** The site served on this host, or `null`. The label is the customer's (SPEC §5), so the host is stored and matched
  *  whole: exact match, no fallback, and the partial unique index gives one answer. */
 export async function hostedSiteForHostname(host: string): Promise<HostedSite | null> {

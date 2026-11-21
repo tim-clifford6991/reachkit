@@ -536,6 +536,7 @@ describe("settings → cancel → export → erasure, and the pages stop being s
     "after they leave, the hosted address answers 410 — and an address that never held a page does not",
     async () => {
       db.seed("sites", [{ id: SITE_ID, user_id: USER_ID, domain: DOMAIN }]);
+      db.seed("destinations", [{ id: "dest-1", site_id: SITE_ID, kind: "hosted", hostname: `content.${DOMAIN}`, hostname_state: "live", deleted_at: null }]);
       db.seed("drafts", [{ id: "draft-1", site_id: SITE_ID, opportunity_id: "opp-1" }]);
       db.seed("opportunities", [{ id: "opp-1", proposed_slug: "a-page" }]);
       db.seed("publications", [
@@ -554,7 +555,6 @@ describe("settings → cancel → export → erasure, and the pages stop being s
       const host = `content.${DOMAIN}`;
       expect(normaliseHost(`${host}:443.`)).toBe(host);
       expect(pageSlug("/a-page")).toBe("a-page");
-      // A deeper path is not a deeper page — it is not a page at all.
       expect(pageSlug("/a/b")).toBeNull();
 
       // While the account stands and the window is open, the host is the

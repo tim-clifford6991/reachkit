@@ -16,7 +16,7 @@ import { cache } from "react";
 import { unstable_cache } from "next/cache";
 import { PHASE_PRODUCTION_BUILD } from "next/constants";
 import { tags } from "@/lib/publish/destinations/hosted/cache";
-import { PREVIEW_HOST_SUFFIX } from "@/lib/config/constants";
+import { HOSTED_SUBDOMAIN_LABEL, PREVIEW_HOST_SUFFIX } from "@/lib/config/constants";
 import { INDEX_PATH } from "@/app/(hosted)/hosted-page/[[...slug]]/chrome";
 
 /** How many of the newest articles the landing links. */
@@ -32,12 +32,11 @@ export interface OwnArticles {
 async function read(): Promise<OwnArticles | null> {
   // Imported here, not at the top: the database client checks its
   // environment when it loads, and the public pages render without one.
-  const { hostedHostOfSite, hostedSiteForDomain, livePagesForSite } = await import(
-    "@/lib/publish/destinations/hosted/store"
-  );
-  const site = await hostedSiteForDomain(PREVIEW_HOST_SUFFIX);
+  const { hostedSiteForHostname, livePagesForSite } = await import("@/lib/publish/destinations/hosted/store");
+  // By the stored host, which exactly one live destination holds.
+  const site = await hostedSiteForHostname(`${HOSTED_SUBDOMAIN_LABEL}.${PREVIEW_HOST_SUFFIX}`);
   if (site === null) return null;
-  const host = (await hostedHostOfSite(site.siteId)) ?? site.host;
+  const host = site.host;
   const pages = await livePagesForSite(site.siteId, host);
   if (pages.length === 0) return null;
   // Newest by the day the article first went live: a refresh does not make

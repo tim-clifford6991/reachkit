@@ -554,9 +554,7 @@ export function seedWeekZeroAccount(): void {
  * note is composed from the domain and the slug. Nothing on the surface is
  * a fixture branch: this is the same live read a visitor's request makes.
  *
- * The 404 arm keeps its own picture — `routes.ts`'s `HOST_FIXTURES` still
- * sends `content.example.com`, which still resolves to a site that has
- * published no page at this address.
+ * The 404 arm keeps its own picture: no destination holds `content.example.com`.
  */
 export function seedHostedPublisher(): void {
   seedSite(PUBLISHER_ACCOUNT, {
@@ -574,6 +572,8 @@ export function seedHostedPublisher(): void {
     published: { slug: PUBLISHER_PAGE.slug, at: PUBLISHER_PAGE.publishedAt },
     publishing: PUBLISHER_PUBLISHING,
   });
+  // The edge serves a host only by the one stored on the destination row.
+  sql(`update destinations set hostname = '${DEFAULT_HOSTED_LABEL}.${PUBLISHER_ACCOUNT.domain}', hostname_state = 'live' where site_id = '${PUBLISHER_ACCOUNT.siteId}';`);
 
   // The business as its blog draws it (issue 1140): a name, a kept logo and
   // the boards' one line, so the header, the about card and the index are measured with
