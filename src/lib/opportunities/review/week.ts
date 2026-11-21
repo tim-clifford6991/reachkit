@@ -16,6 +16,7 @@ export interface WeekChoice {
 }
 
 export interface CommittedRow {
+  id: string;
   place: number;
   /** `YYYY-MM-DD`; `null` for a spare. */
   day: string | null;
@@ -41,10 +42,7 @@ export interface NotChosenRow {
   reason: string;
 }
 
-export interface ReviewWeek {
-  committed: CommittedRow[];
-  rejected: NotChosenRow[];
-}
+export interface ReviewWeek { committed: CommittedRow[]; rejected: NotChosenRow[] }
 
 export function reviewWeek(rows: readonly OpportunityRow[], choice: WeekChoice): ReviewWeek {
   const byId = new Map(rows.map((row) => [row.id, row]));
@@ -53,6 +51,7 @@ export function reviewWeek(rows: readonly OpportunityRow[], choice: WeekChoice):
     if (row === undefined) return [];
     return [
       {
+        id: row.id,
         place: entry.place,
         day: entry.plannedFor,
         search: row.target_query,

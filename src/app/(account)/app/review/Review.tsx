@@ -1,15 +1,18 @@
-// The owner's review screen: the Week tab holds each paying site's committed
-// week and what was left out and why; the Pages tab, how each live page
-// stands. Read-only.
+// The owner's review screen, on one screen: the week's figures across every paying site, then one site's committed
+// week with an OK or Flag per row, its live pages, and every row still flagged. A mark changes nothing but itself.
 import type React from "react";
-import { ChevronDown } from "lucide-react";
+import Link from "next/link";
+import { ChevronDown, FileText } from "lucide-react";
 import type { ContentType } from "@/lib/opportunities/content-type";
-import type { CommittedRow, NotChosenRow } from "@/lib/opportunities/review/week";
+import type { CommittedRow } from "@/lib/opportunities/review/week";
 import type { PlanWriteAs, PointPart } from "@/lib/opportunities/types";
 import type { Label } from "@/lib/opportunities/verdicts/types";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
+import { LinkMapPanel } from "../settings/panels/LinkMapPanel";
 import { whyLineOf } from "../calendar/card-lines";
-import type { LivePage, ReviewSite } from "./store";
+import { markRow } from "./marks";
+import { MarkForm } from "./MarkForm";
+import { markKey, type LivePage, type Marks, type Review as ReviewData, type ReviewSite } from "./model";
 
 const COL = "col";
 const NONE = "—";
@@ -17,6 +20,14 @@ const SEP = ": ";
 const TABS = "review-tab";
 const WEEK = "week";
 const PAGES = "pages";
+const FLAGGED = "flagged";
+// Only one section opens at a time, and its content scrolls in its own box, so the week keeps its rows in view.
+const SECTIONS = "review-section";
+// A topic the commit or a stop rested is set aside; every other held row was not chosen.
+const RESTING = "resting";
+// From `lg` a tab's rows scroll in their own box, sized so the screen holds them with one section open below; on a
+// short screen the box keeps 12rem and the page scrolls instead.
+const BOX = "lg:max-h-[max(12rem,calc(100dvh-34rem))] lg:overflow-y-auto";
 // Below `sm` each row stacks, as the board draws it at 390; from `sm` the Page column keeps its width.
 const TABLE = "table table-sm max-sm:block";
 const STACK = "max-sm:block";
@@ -88,22 +99,15 @@ function Head(p: { cols: readonly CopyKey[] }): React.JSX.Element {
   );
 }
 
-/** A table wider than its card scrolls inside its own box, reachable from a keyboard. */
-function Scroll(p: { label: string; children: React.ReactNode }): React.JSX.Element {
-  return (
-    <div className="min-w-0 overflow-x-auto" tabIndex={0} role="region" aria-label={p.label}>
-      {p.children}
-    </div>
-  );
-}
 
-function Committed(p: { domain: string; rows: readonly CommittedRow[] }): React.JSX.Element {
+/** A table wider or taller than its card scrolls inside its own box, reachable from a keyboard. */
+function Committed(p: { site: ReviewSite; marks: Marks }): React.JSX.Element {
   return (
-    <Scroll label={p.domain}>
+    <div className={`min-w-0 overflow-x-auto ${BOX}`} tabIndex={0} role="region" aria-label={p.site.domain}>
       <table className={TABLE} data-testid="review-week">
-        <Head cols={["review.col.day", "review.col.page", "review.col.search", "review.col.points", "review.col.why"]} />
+        <Head cols={["review.col.day", "review.col.page", "review.col.search", "review.col.points", "review.col.why", "review.col.mark"]} />
         <tbody className={STACK}>
-          {p.rows.map((row) => (
+          {p.site.committed.map((row) => (
             <tr key={row.place} className={ROW}>
               <td className={`${CELL} whitespace-nowrap max-sm:text-xs max-sm:font-semibold max-sm:uppercase max-sm:text-base-content/70`}>
                 {row.day === null ? copy("review.spare") : WEEKDAY.format(dateOf(row.day))}
@@ -123,60 +127,95 @@ function Committed(p: { domain: string; rows: readonly CommittedRow[] }): React.
                   ))}
                 </span>
               </td>
-              <td className={`${CELL} sm:min-w-50`}>
-                {whyLineOf({ points: row.points ?? 0, parts: [...row.parts], rule: null }) ?? NONE}
+              <td className={`${CELL} sm:min-w-50`}>{whyOf(row)}</td>
+              <td className={CELL}>
+                <MarkForm action={markRow} siteId={p.site.id} opportunityId={row.id} row={nameOf(row)} mark={p.marks.get(markKey(p.site.id, row.id))?.mark ?? null} />
               </td>
             </tr>
           ))}
         </tbody>
       </table>
-    </Scroll>
+    </div>
   );
 }
 
-function NotChosen(p: { rows: readonly NotChosenRow[] }): React.JSX.Element {
+const nameOf = (row: CommittedRow): string => row.title ?? cell(row.search);
+
+function whyOf(row: CommittedRow): string {
+  return whyLineOf({ points: row.points ?? 0, parts: [...row.parts], rule: null }) ?? NONE;
+}
+
+/** A quiet link that opens in place, as Plan draws it: the chevron leads and turns. */
+function Opens(p: { title: string; children: React.ReactNode }): React.JSX.Element {
   return (
-    // A quiet link that opens in place, as Plan draws it: the chevron leads and turns.
-    <details className="collapse group min-w-0 rounded-none">
+    <details name={SECTIONS} className="collapse group w-fit min-w-0 rounded-none open:order-last open:w-full open:basis-full">
       <summary className="collapse-title link link-primary flex min-h-11 w-fit cursor-pointer list-none items-center gap-1.5 p-0 text-sm font-semibold no-underline [&::-webkit-details-marker]:hidden">
         <ChevronDown aria-hidden className="size-4 shrink-0 transition-transform group-open:rotate-180" />
-        {copy("review.rejected.title", { count: String(p.rows.length) })}
+        {p.title}
       </summary>
-      <ul className="collapse-content min-w-0 list-disc px-0 ps-5 pt-2 text-sm">
-        {p.rows.map((row, n) => (
-          <li key={n} className="break-words">
-            <span className="font-mono">{cell(row.search)}</span>
-            {SEP}
-            {row.reason}
-          </li>
-        ))}
-      </ul>
+      <div className="collapse-content min-w-0 px-0 pt-1 text-sm">
+        <div className="max-h-20 min-w-0 overflow-y-auto" tabIndex={0} role="region" aria-label={p.title}>
+          {p.children}
+        </div>
+      </div>
     </details>
   );
 }
 
-function SiteCard(p: { domain: string; children: React.ReactNode }): React.JSX.Element {
+function Searches(p: { rows: readonly { search: string | null; line: string }[] }): React.JSX.Element {
+  return (
+    <ul className="min-w-0 list-disc ps-5">
+      {p.rows.map((row, n) => (
+        <li key={n} className="break-words">
+          <span className="font-mono">{cell(row.search)}</span>
+          {SEP}
+          {row.line}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** A site's card; the week's card is titled by the site picker above it. */
+function SiteCard(p: { domain: string | null; children: React.ReactNode }): React.JSX.Element {
   return (
     <section className="card card-border min-w-0 bg-base-100" data-testid="review-site">
-      <div className="card-body min-w-0 gap-3 p-4">
-        <h2 className="card-title font-mono text-base break-all">{p.domain}</h2>
+      <div className="card-body min-w-0 gap-3 p-3">
+        {p.domain === null ? null : <h2 className="card-title font-mono text-base break-all">{p.domain}</h2>}
         {p.children}
       </div>
     </section>
   );
 }
 
-function Week(p: { site: ReviewSite }): React.JSX.Element {
+function Week(p: { site: ReviewSite; marks: Marks }): React.JSX.Element {
   const { week } = p.site;
+  const notChosen = week.rejected.filter((row) => row.reason !== RESTING);
+  const setAside = week.rejected.filter((row) => row.reason === RESTING);
   return (
-    <SiteCard domain={p.site.domain}>
-      {week.committed.length === 0 ? (
-        <p className={MUTED}>{copy("review.week.empty")}</p>
-      ) : (
-        <Committed domain={p.site.domain} rows={week.committed} />
-      )}
-      {week.rejected.length === 0 ? null : <NotChosen rows={week.rejected} />}
-    </SiteCard>
+    <>
+      <SiteCard domain={null}>
+        {p.site.committed.length === 0 ? <p className={MUTED}>{copy("review.week.empty")}</p> : <Committed site={p.site} marks={p.marks} />}
+      </SiteCard>
+      <div className="flex min-w-0 shrink-0 flex-wrap gap-x-6">
+        {notChosen.length === 0 ? null : (
+          <Opens title={copy("review.rejected.title", { count: String(notChosen.length) })}>
+            <Searches rows={notChosen.map((row) => ({ search: row.search, line: row.reason }))} />
+          </Opens>
+        )}
+        {p.site.committed.length === 0 ? null : (
+          <Opens title={copy("review.difficulty.title")}>
+            <Searches rows={p.site.committed.map((row) => ({ search: row.search, line: String(p.site.difficulty.get(row.id) ?? copy("review.label.unmeasured")) }))} />
+          </Opens>
+        )}
+        <Opens title={copy("review.aside.title")}>
+          {setAside.length === 0 ? <p className={MUTED}>{copy("review.aside.empty")}</p> : <Searches rows={setAside.map((row) => ({ search: row.search, line: row.type }))} />}
+        </Opens>
+        <Opens title={copy("review.links.title")}>
+          <LinkMapPanel map={p.site.links} />
+        </Opens>
+      </div>
+    </>
   );
 }
 
@@ -187,6 +226,7 @@ function Pages(p: { site: ReviewSite }): React.JSX.Element {
       {pages.length === 0 ? (
         <p className={MUTED}>{copy("review.pages.empty")}</p>
       ) : (
+        <div className={`min-w-0 ${BOX}`} tabIndex={0} role="region" aria-label={p.site.domain}>
         <ul className="list min-w-0" data-testid="review-pages">
           {pages.map((page) => {
             const label = page.label === null ? null : LABEL[page.label];
@@ -198,63 +238,166 @@ function Pages(p: { site: ReviewSite }): React.JSX.Element {
             );
           })}
         </ul>
+        </div>
       )}
     </SiteCard>
   );
 }
 
-/** The first day any site's committed week starts; `null` where none has one. */
-function weekOf(sites: readonly ReviewSite[]): string | null {
-  const days = sites.flatMap((site) => site.week.committed.flatMap((row) => (row.day === null ? [] : [row.day]))).sort();
-  return days[0] ?? null;
+function Flagged(p: { review: ReviewData }): React.JSX.Element {
+  const rows = p.review.flagged;
+  return (
+    <section className="card card-border min-w-0 bg-base-100">
+      <div className="card-body min-w-0 p-4">
+        {rows.length === 0 ? (
+          <p className={MUTED}>{copy("review.flagged.empty")}</p>
+        ) : (
+          <div className={`min-w-0 ${BOX}`} tabIndex={0} role="region" aria-label={copy("review.tab.flagged")}>
+          <ul className="list min-w-0" data-testid="review-flagged">
+            {rows.map(({ site, row, mark }) => (
+              <li key={markKey(site.id, row.id)} className="list-row min-w-0 items-start max-sm:flex max-sm:flex-col">
+                <span className="list-col-grow flex min-w-0 flex-col">
+                  <span className="text-sm text-base-content/70">
+                    <span className="font-mono break-all">{site.domain}</span>
+                    {` · ${row.day === null ? copy("review.spare") : WEEKDAY.format(dateOf(row.day))}`}
+                  </span>
+                  <strong>{nameOf(row)}</strong>
+                </span>
+                <MarkForm action={markRow} siteId={site.id} opportunityId={row.id} row={nameOf(row)} mark={mark.mark} note={mark.note} />
+              </li>
+            ))}
+          </ul>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function Figure(p: { kind: CopyKey; value: number; desc?: string }): React.JSX.Element {
+  return (
+    <div className="stat px-4 py-2">
+      <div className="stat-title text-base-content/70">{copy(p.kind)}</div>
+      <div className={`stat-value text-2xl ${NUM}`}>{p.value}</div>
+      {p.desc === undefined ? null : <div className="stat-desc text-base-content/70">{p.desc}</div>}
+    </div>
+  );
+}
+
+/** Every figure comes from the one model, so all six count the week the header names. */
+function Figures(p: { review: ReviewData }): React.JSX.Element {
+  const f = p.review.figures;
+  return (
+    <div className="stats stats-vertical grid-cols-2 card-border min-w-0 bg-base-100 sm:grid-cols-3 lg:stats-horizontal lg:grid-cols-none" data-testid="review-figures">
+      <Figure kind="review.fig.sites" value={f.sites} />
+      <Figure kind="review.fig.committed" value={f.committed} desc={copy("review.fig.committed.of", { count: String(f.of) })} />
+      <Figure kind="review.fig.short" value={f.short} />
+      <Figure kind="review.fig.stopped" value={f.stopped} />
+      <Figure kind="review.fig.flips" value={f.flips} desc={copy(f.measured ? "review.fig.flips.since" : "review.fig.flips.pending")} />
+      <Figure kind="review.fig.flags" value={f.flags} />
+    </div>
+  );
+}
+
+const md = (value: string | number | null) => cell(value).replace(/\|/g, "\\|").replace(/\s+/g, " ");
+
+/** The week as Markdown, every site, for the owner to keep. */
+function markdownOf(review: ReviewData, heading: string): string {
+  const cols = (["review.col.day", "review.col.page", "review.col.search", "review.col.points", "review.col.why", "review.col.mark"] as const).map((key) => copy(key));
+  const lines = [`# ${heading}`];
+  for (const site of review.sites) {
+    lines.push("", `## ${site.domain}`, "", `| ${cols.join(" | ")} |`, `|${cols.map(() => " --- |").join("")}`);
+    for (const row of site.committed) {
+      const mark = review.marks.get(markKey(site.id, row.id));
+      const marked = mark === undefined ? NONE : `${copy(mark.mark === "ok" ? "review.mark.ok" : "review.mark.flag")}${mark.note === null ? "" : `${SEP}${mark.note}`}`;
+      const day = row.day === null ? copy("review.spare") : WEEKDAY.format(dateOf(row.day));
+      lines.push(`| ${[day, `${row.title ?? NONE} (${pageWord(row)})`, row.search, row.points, whyOf(row), marked].map(md).join(" | ")} |`);
+    }
+  }
+  return `${lines.join("\n")}\n`;
 }
 
 // Native radios pick the panel through CSS alone; the panels sit outside the
 // tab bar so neither escapes the other's box.
-function Tabs(p: { sites: readonly ReviewSite[] }): React.JSX.Element {
+function Tabs(p: { review: ReviewData; site: ReviewSite }): React.JSX.Element {
+  const panel = "min-w-0 flex-col gap-3";
   return (
-    <div className="group flex min-w-0 flex-col gap-4">
-      <div role="radiogroup" aria-label={copy("review.tabs")} className="tabs tabs-border min-w-0">
-        <label className={TAB}>
-          <input type="radio" name={TABS} value={WEEK} className="sr-only" defaultChecked />
-          {copy("review.tab.week")}
-        </label>
-        <label className={TAB}>
-          <input type="radio" name={TABS} value={PAGES} className="sr-only" />
-          {copy("review.tab.pages")}
-        </label>
-      </div>
-      <div className="flex min-w-0 flex-col gap-4 group-has-[[value=pages]:checked]:hidden" data-testid="review-tab-week">
-        {p.sites.map((site) => (
-          <Week key={site.id} site={site} />
+    <div className="group flex min-w-0 flex-col gap-3">
+      <div role="radiogroup" aria-label={copy("review.tabs")} className="tabs tabs-border min-w-0 shrink-0">
+        {([[WEEK, "review.tab.week"], [PAGES, "review.tab.pages"], [FLAGGED, "review.tab.flagged"]] as const).map(([value, key]) => (
+          <label key={value} className={TAB}>
+            <input type="radio" name={TABS} value={value} className="sr-only" defaultChecked={value === WEEK} />
+            {copy(key)}
+          </label>
         ))}
       </div>
-      <div className="hidden min-w-0 flex-col gap-4 group-has-[[value=pages]:checked]:flex" data-testid="review-tab-pages">
-        {p.sites.map((site) => (
-          <Pages key={site.id} site={site} />
-        ))}
+      <div className={`flex ${panel} group-has-[[value=pages]:checked]:hidden group-has-[[value=flagged]:checked]:hidden`} data-testid="review-tab-week">
+        <Week site={p.site} marks={p.review.marks} />
+      </div>
+      <div className={`hidden ${panel} group-has-[[value=pages]:checked]:flex`} data-testid="review-tab-pages">
+        <Pages site={p.site} />
+      </div>
+      <div className={`hidden ${panel} group-has-[[value=flagged]:checked]:flex`} data-testid="review-tab-flagged">
+        <Flagged review={p.review} />
       </div>
     </div>
   );
 }
 
-/** `sites` is `null` where they could not be read. */
-export function Review(p: { sites: readonly ReviewSite[] | null }): React.JSX.Element {
-  const week = p.sites === null ? null : weekOf(p.sites);
+/** The site to show, of those read: the one asked for, else the first. */
+function SitePick(p: { sites: readonly ReviewSite[]; site: ReviewSite }): React.JSX.Element {
   return (
-    <div className="flex min-w-0 flex-col gap-6" data-testid="review">
-      <header className="flex min-w-0 flex-col gap-1">
-        <span className="eyebrow">{week === null ? copy("review.eyebrow") : copy("review.eyebrow.week", { date: WEEK_OF.format(dateOf(week)) })}</span>
-        <h1>{copy("review.title")}</h1>
+    <details className="dropdown sm:dropdown-end">
+      <summary className="btn btn-soft btn-sm max-w-64 font-mono" aria-label={copy("review.site")}>
+        <span className="truncate">{p.site.domain}</span>
+        <ChevronDown aria-hidden className="size-4 shrink-0" />
+      </summary>
+      <ul className="menu dropdown-content z-10 mt-1 w-72 rounded-box bg-base-100 p-2 shadow-sm">
+        {p.sites.map((site) => (
+          <li key={site.id}>
+            <Link href={`?site=${site.id}`} aria-current={site.id === p.site.id ? "page" : undefined} className="font-mono break-all">
+              {site.domain}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </details>
+  );
+}
+
+/** `review` is `null` where it could not be read; `siteId` is the site asked for. */
+export function Review(p: { review: ReviewData | null; siteId: string | null }): React.JSX.Element {
+  const site = p.review === null ? undefined : (p.review.sites.find((one) => one.id === p.siteId) ?? p.review.sites[0]);
+  const heading = p.review === null ? null : copy("review.eyebrow.week", { date: WEEK_OF.format(dateOf(p.review.week)) });
+  return (
+    <div className="flex min-w-0 flex-col gap-4" data-testid="review">
+      <header className="flex min-w-0 shrink-0 flex-wrap items-end justify-between gap-3">
+        <div className="flex min-w-0 flex-col gap-1">
+          {heading === null ? null : <span className="eyebrow">{heading}</span>}
+          <h1>{copy("review.title")}</h1>
+        </div>
+        {p.review === null || site === undefined || heading === null ? null : (
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <span className={MUTED}>{copy("review.site")}</span>
+            <SitePick key={site.id} sites={p.review.sites} site={site} />
+            <a className="btn btn-soft btn-sm" download={`review-${p.review.week}.md`} href={`data:text/markdown;charset=utf-8,${encodeURIComponent(markdownOf(p.review, heading))}`}>
+              <FileText aria-hidden className="size-4" />
+              {copy("review.export")}
+            </a>
+          </div>
+        )}
       </header>
-      {p.sites === null ? (
+      {p.review === null ? (
         <div role="alert" className="alert alert-soft alert-warning">
           {copy("review.unreadable")}
         </div>
-      ) : p.sites.length === 0 ? (
+      ) : site === undefined ? (
         <p className={MUTED}>{copy("review.no-sites")}</p>
       ) : (
-        <Tabs sites={p.sites} />
+        <>
+          <Figures review={p.review} />
+          <Tabs review={p.review} site={site} />
+        </>
       )}
     </div>
   );
