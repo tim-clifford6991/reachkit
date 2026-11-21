@@ -3,6 +3,7 @@
 // The default is data on the option, so a submit with no choice records what the founder was shown.
 // `dns` has exactly two shapes, the record or the stated pending one, never a blank (REQ-028 c2).
 // Every option carries a copy key and this module writes no sentence. Pure: the edge hostname is passed in.
+import { HOSTED_SITE_EDGE_FROM } from "@/lib/config/constants/publish";
 import type { CopyKey } from "@/lib/presentation/copy";
 import { DEFAULT_HOSTED_LABEL, hostFor } from "../destinations/hosted/label";
 
@@ -38,17 +39,28 @@ export interface SetupCards {
   destination: readonly DestinationOption[];
 }
 
-/** The record a host waiting for DNS still needs, composed from the host, so setup, Settings and Overview state one
- *  record. A host the record would not name exactly gets none rather than a different one. */
+/** Whether a hosted host connected at `since` keeps the shared edge; `null` is one not connected yet. */
+export function keepsSharedEdge(since: Date | null): boolean {
+  return since !== null && since.getTime() < Date.parse(HOSTED_SITE_EDGE_FROM);
+}
+
+/** The value a site's record names: the site's own name under the edge, so the record itself says which site set it. */
+export function edgeForSite(a: { edge: string; siteId: string; since: Date | null }): string {
+  return keepsSharedEdge(a.since) ? a.edge : `${a.siteId.replaceAll("-", "").toLowerCase()}.${a.edge}`;
+}
+
+/** The record a host waiting for DNS still needs, composed from the host, so setup, Settings, Overview and the mails
+ *  state one record. A host the record would not name exactly gets none rather than a different one. */
 export function recordForHost(a: {
   hostname: string;
-  cnameTarget: string;
+  /** `edgeForSite`'s value for the host's site, never the bare edge. */
+  siteEdge: string;
 }): DnsRecord | null {
   const dot = a.hostname.indexOf(".");
   if (dot === -1) return null;
   const record = dnsRecordFor({
     siteDomain: a.hostname.slice(dot + 1),
-    cnameTarget: a.cnameTarget,
+    cnameTarget: a.siteEdge,
     label: a.hostname.slice(0, dot),
   });
   return "pending" in record || record.name !== a.hostname ? null : record;

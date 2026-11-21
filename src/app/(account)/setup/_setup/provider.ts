@@ -24,7 +24,6 @@
 // and the form each ask.
 import { cache } from "react";
 import { redirect } from "next/navigation";
-import { env } from "@/lib/config/env";
 import { assembleSetup, type SetupFacts, type SetupQuestions, type SetupScreenModel } from "./facts";
 import type { StoredReport } from "@/lib/scan/report";
 import { liveSetupStore, savedSetupFor, siteAddressFor } from "./store";
@@ -102,9 +101,8 @@ export const readSetupScreen = cache(async function readSetupScreen(): Promise<S
     profile: business.profile,
     market: business.market,
     edits: business.edits,
-    // §9's edge hostname is a deployment binding, never a string in a
-    // card and never a fixture value in production.
-    cnameTarget: env.HOSTED_EDGE_CNAME_TARGET,
+    // The record's value: this site's own under the deployment's edge, never a fixture value in production.
+    cnameTarget: await (await import("@/lib/publish/destinations/hosted/hostname")).siteEdgeOf(founder.siteId),
     // SPEC §5 (2026-09-20, #922): the answers this founder already gave and
     // the step they left, so `/setup` reopens where they stopped.
     saved: await savedSetupFor(founder.userId),

@@ -104,11 +104,11 @@ export function ConnectAddress(p: {
             {fields.map((field) => (
               <div key={field.testId} className="contents">
                 <dt className="text-base-content/70">{field.label}</dt>
-                <dd className="num wrap-anywhere" data-testid={field.testId}>
+                <dd className="min-w-0 font-mono break-all" data-testid={field.testId}>
                   {field.value}
                 </dd>
                 <dd>
-                  <CopyValue text={field.value} name={field.name} />
+                  <CopyValue text={field.value} field={field.label} name={field.name} />
                 </dd>
               </div>
             ))}

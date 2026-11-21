@@ -962,8 +962,8 @@ async function addressWaiting(siteId: string): Promise<AddressWaiting | null> {
     const { hostedHostFor } = await import("@/lib/publish/destinations/hosted/hostname");
     const host = await hostedHostFor(siteId);
     if (host === null || host.state === "live") return null;
-    const [{ recordForHost }, { env }] = await Promise.all([import("@/lib/publish/setup/cards"), import("@/lib/config/env")]);
-    const record = recordForHost({ hostname: host.hostname, cnameTarget: env.HOSTED_EDGE_CNAME_TARGET });
+    const [{ edgeForSite, recordForHost }, { env }] = await Promise.all([import("@/lib/publish/setup/cards"), import("@/lib/config/env")]);
+    const record = recordForHost({ hostname: host.hostname, siteEdge: edgeForSite({ edge: env.HOSTED_EDGE_CNAME_TARGET, siteId, since: host.since }) });
     return record === null ? null : { hostname: host.hostname, record, checkedAt: host.checkedAt, since: host.since };
   } catch {
     return null;

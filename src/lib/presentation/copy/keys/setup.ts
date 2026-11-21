@@ -420,6 +420,7 @@ export const SETUP_COPY = Object.freeze({
   "setup.connect.record.usually": "Look for its DNS settings.",
   /** A copy button's name: `{field}` is the row's own label. */
   "setup.connect.record.copy": "Copy {field}",
+  "setup.connect.copied.sr": "{field} copied",
   "setup.connect.steps": "Show the Steps",
   "setup.connect.steps.1": "Sign in where you bought your web address.",
   "setup.connect.steps.2": "Open the DNS settings and add a new record.",

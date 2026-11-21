@@ -93,11 +93,11 @@ function named(checked: HostnameCheck, dns: PublicDns): ConnectionCheck {
   }
 }
 
-/** Public DNS about `hostname`, against the deployment's edge. */
-async function publicDnsOf(hostname: string): Promise<PublicDns> {
+/** Public DNS about `hostname`, against the value this site is shown. */
+async function publicDnsOf(hostname: string, siteId: string): Promise<PublicDns> {
   const { checkPublicDns } = await import("@/lib/publish/destinations/hosted/dns-check");
-  const { env } = await import("@/lib/config/env");
-  return checkPublicDns({ hostname, edge: env.HOSTED_EDGE_CNAME_TARGET });
+  const { siteEdgeOf } = await import("@/lib/publish/destinations/hosted/hostname");
+  return checkPublicDns({ hostname, edge: await siteEdgeOf(siteId) });
 }
 
 export async function checkConnection(a: {
@@ -122,7 +122,7 @@ export async function checkConnection(a: {
 
   if (a.draft === null) {
     if (destination === null) return { outcome: "refused", because: "no_host" };
-    const dns = await publicDnsOf(destination.hostname);
+    const dns = await publicDnsOf(destination.hostname, site.siteId);
     // A deployment that cannot verify any host asks the vendor nothing,
     // writes nothing and spends no floor: the founder is told what DNS
     // confirmed, and that the second step is not set up (issue 840).
@@ -159,7 +159,7 @@ export async function checkConnection(a: {
   }
   if (taken) return { outcome: "refused", because: "taken" };
 
-  const dns = await publicDnsOf(hostname);
+  const dns = await publicDnsOf(hostname, site.siteId);
   if (!domainsConfigured()) return { outcome: "could_not_ask", because: "not_configured", dns };
 
   const checked = await checkHostnameNow({

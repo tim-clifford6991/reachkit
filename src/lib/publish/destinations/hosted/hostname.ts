@@ -9,8 +9,11 @@ import {
   DESTINATION_HOSTNAME_CHECK_FLOOR_S,
   DESTINATION_HOSTNAME_RECHECK_H,
 } from "@/lib/config/constants";
+import { env } from "@/lib/config/env";
 import { publishDb } from "../../db";
 import { addProjectDomain } from "@/lib/vendors/vercel/domains";
+import { edgeForSite, keepsSharedEdge } from "../../setup/cards";
+import { checkPublicDns } from "./dns-check";
 
 const HOUR_MS = 3_600_000;
 
@@ -27,6 +30,8 @@ interface HostnameRow {
 /** What the domain list last said, and when it was asked. */
 interface HostnameCheckRow {
   id: string;
+  site_id: string;
+  created_at: string | null;
   hostname_state: HostnameState | null;
   hostname_checked_at: string | null;
 }
@@ -63,8 +68,8 @@ export async function hostnameTakenStrict(a: {
   return data.some((row) => row.site_id !== a.exceptSiteId);
 }
 
-/** Attaches the host and records the domain list's word, the vendor's answer alone: our resolver cannot see whether the
- *  record resolves at a project that holds the host, so only attached and verified is "live", else "waiting for DNS".
+/** Attaches the host and records the domain list's word: attached and verified, and (`askVendor`) the record names this
+ *  site, is "live", else "waiting for DNS".
  *  A pass that could not ask leaves the word standing. At most one call per host per `DESTINATION_HOSTNAME_RECHECK_H`,
  *  gated on `hostname_checked_at`. No vendor message reaches a screen. */
 export async function syncHostname(a: {
@@ -79,7 +84,12 @@ export async function syncHostname(a: {
   if (askedRecently(row?.hostname_checked_at ?? null, now)) return recorded;
 
   // A `/setup` press that verified this host is already the vendor's answer, kept rather than lost to a second ask.
-  const answer = takeVerifiedAtSetup(a.hostname, now) ?? (await askVendor(a.hostname));
+  const proof = { siteId: row?.site_id ?? "", since: dateOrNull(row?.created_at) };
+  // No row is no site to prove the host for, so nothing is asked.
+  const answer: VendorAnswer =
+    proof.siteId === ""
+      ? { asked: false }
+      : (takeVerifiedAtSetup(proof.siteId, a.hostname, now) ?? (await askVendor(a.hostname, proof)));
   await writeHostnameState({
     destinationId: a.destinationId,
     state: answer.asked ? answer.state : null,
@@ -91,12 +101,24 @@ export async function syncHostname(a: {
 /** "Nothing was asked" kept apart from "waiting for DNS": a scheduled pass folds it, a founder's press reports it. */
 type VendorAnswer = { asked: true; state: HostnameState } | { asked: false };
 
-/** Attaches the host (idempotent, per `addProjectDomain`) and judges the answer, in one place for every caller. */
-async function askVendor(hostname: string): Promise<VendorAnswer> {
+/** Attaches the host (idempotent, per `addProjectDomain`) and judges the answer, in one place for every caller. The
+ *  vendor verifies any record that reaches our edge, so a host is this site's only once its record names this site's own
+ *  edge; a host connected before the cutover keeps the vendor's word alone, as it was live on. */
+async function askVendor(hostname: string, proof: { siteId: string; since: Date | null }): Promise<VendorAnswer> {
   const vendor = await addProjectDomain(hostname);
   // "Could not ask" is no answer; `elsewhere` is one: another project holds the host.
   if (!vendor.ok && vendor.because !== "elsewhere") return { asked: false };
-  return { asked: true, state: vendor.ok && vendor.verified ? "live" : "pending_dns" };
+  if (!(vendor.ok && vendor.verified)) return { asked: true, state: "pending_dns" };
+  if (keepsSharedEdge(proof.since)) return { asked: true, state: "live" };
+  const dns = await checkPublicDns({ hostname, edge: edgeForSite({ edge: env.HOSTED_EDGE_CNAME_TARGET, ...proof }) });
+  if (dns.state === "unknown") return { asked: false };
+  return { asked: true, state: dns.state === "points_here" ? "live" : "pending_dns" };
+}
+
+/** The record value this site is shown and judged by, from its hosted row's age; no row is a new connection. */
+export async function siteEdgeOf(siteId: string): Promise<string> {
+  const host = await hostedHostFor(siteId).catch(() => null);
+  return edgeForSite({ edge: env.HOSTED_EDGE_CNAME_TARGET, siteId, since: host?.since ?? null });
 }
 
 /**
@@ -127,14 +149,15 @@ export type HostnameCheck =
  *  row's `hostname_checked_at` is read beside it. */
 const lastPressed = new Map<string, number>();
 
-/** Hosts a `/setup` press verified before any destination held them, per instance; read once by the submit's
- *  `syncHostname` and good for `DESTINATION_HOSTNAME_RECHECK_H`. Another instance just asks the vendor. */
+/** Hosts a `/setup` press verified before any destination held them, per instance and keyed by site, since the proof is
+ *  that site's; read once by the submit's `syncHostname` and good for `DESTINATION_HOSTNAME_RECHECK_H`. */
 const verifiedAtSetup = new Map<string, number>();
 
-function takeVerifiedAtSetup(hostname: string, now: Date): VendorAnswer | null {
-  const at = verifiedAtSetup.get(hostname);
+function takeVerifiedAtSetup(siteId: string, hostname: string, now: Date): VendorAnswer | null {
+  const key = `${siteId} ${hostname}`;
+  const at = verifiedAtSetup.get(key);
   if (at === undefined) return null;
-  verifiedAtSetup.delete(hostname);
+  verifiedAtSetup.delete(key);
   const age = now.getTime() - at;
   return age >= 0 && age < DESTINATION_HOSTNAME_RECHECK_H * HOUR_MS
     ? { asked: true, state: "live" }
@@ -172,7 +195,7 @@ export async function checkHostnameNow(a: {
   }
 
   lastPressed.set(a.siteId, now.getTime());
-  const answer = await askVendor(a.hostname);
+  const answer = await askVendor(a.hostname, { siteId: a.siteId, since: dateOrNull(row?.created_at) });
   if (a.destinationId !== null) {
     await writeHostnameState({
       destinationId: a.destinationId,
@@ -180,7 +203,7 @@ export async function checkHostnameNow(a: {
       at: now,
     });
   } else if (answer.asked && answer.state === "live") {
-    verifiedAtSetup.set(a.hostname, now.getTime());
+    verifiedAtSetup.set(`${a.siteId} ${a.hostname}`, now.getTime());
   }
   return answer.asked ? { outcome: "asked", state: answer.state } : { outcome: "could_not_ask" };
 }
@@ -241,7 +264,7 @@ function dateOrNull(at: string | null | undefined): Date | null {
 async function readHostnameCheck(destinationId: string): Promise<HostnameCheckRow | null> {
   const { data, error } = await publishDb()
     .from<HostnameCheckRow>("destinations")
-    .select("id, hostname_state, hostname_checked_at")
+    .select("id, site_id, created_at, hostname_state, hostname_checked_at")
     .eq("id", destinationId)
     .limit(1);
   if (error !== null || data === null) return null;

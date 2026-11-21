@@ -69,8 +69,8 @@ export function DnsCard(p: { record: DnsRecord; state?: HostnameState; name?: Re
           {rows.map((row) => (
             <div key={row.field} className="flex min-h-14 min-w-0 items-center gap-2 border-t border-base-300 py-1.5">
               <span className={`w-11 shrink-0 ${QUIET}`}>{row.field}</span>
-              {row.own ?? <span className="num min-w-0 grow text-sm wrap-anywhere">{row.value}</span>}
-              <CopyValue text={row.value} name={copy("setup.connect.record.copy", { field: row.field })} className={COPY_BUTTON} />
+              {row.own ?? <span className="min-w-0 grow font-mono text-sm break-all">{row.value}</span>}
+              <CopyValue text={row.value} field={row.field} name={copy("setup.connect.record.copy", { field: row.field })} className={COPY_BUTTON} />
             </div>
           ))}
         </div>
