@@ -44,15 +44,15 @@ describe("BUILD §12 — the register of mail kinds", () => {
     expect([...TOGGLE_KINDS].sort()).toEqual(["draft-ready", "published", "weekly"]);
   });
 
-  it("the lead sequence and the win-back are the address-wide opt-out kinds", () => {
+  it("the lead sequence, the win-back and the web-person mail are the address-wide opt-out kinds", () => {
     const optOut = (Object.keys(MAIL_KINDS) as MailKind[]).filter(
       (kind) => MAIL_KINDS[kind].stoppable === "opt-out"
     );
-    expect(optOut).toEqual(["nurture", "win-back"]);
+    expect(optOut).toEqual(["nurture", "win-back", "web-person"]);
   });
 
   it("the sign-in, account and setup mails can be stopped by nothing", () => {
-    for (const kind of ["magic-link", "account", "setup-reminder", "payment-failed", "cancellation", "web-person"] as const) {
+    for (const kind of ["magic-link", "account", "setup-reminder", "payment-failed", "cancellation"] as const) {
       expect(MAIL_KINDS[kind].stoppable, kind).toBe(false);
     }
   });

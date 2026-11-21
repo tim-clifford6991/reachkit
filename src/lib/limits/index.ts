@@ -1,5 +1,5 @@
 // The one door to `take_rate_limits`: every abuse limit is counted in Postgres, so it holds across instances
-// and cold starts. Keys are HMACs, so no raw email, address or id is stored. A dead limiter allows.
+// and cold starts. Keys are HMACs, so no raw email, address or id is stored. A dead limiter allows unless the caller says otherwise.
 import { createHmac, hkdfSync } from "node:crypto";
 import { env } from "@/lib/config/env";
 import { dbAdmin } from "@/lib/db";
@@ -56,8 +56,9 @@ function hashOf(name: KeyName, value: string): string {
   return createHmac("sha256", hashSecret).update(`${name}:${normal}`).digest("hex");
 }
 
-/** Counts this attempt against every limit of `rule` the request has a key for; `false` once any is over. */
-export async function takeLimits(rule: LimitRule, keys: LimitKeys): Promise<boolean> {
+/** Counts this attempt against every limit of `rule` the request has a key for; `false` once any is over.
+ *  `whenDown` is the answer while the database cannot be read: an open door unless the caller's cap must hold. */
+export async function takeLimits<D = true>(rule: LimitRule, keys: LimitKeys, whenDown: D = true as D): Promise<boolean | D> {
   const limits = RULES[rule].flatMap((limit) => {
     const value = keys[limit.key];
     return value === undefined ? [] : [{ ...limit, hash: hashOf(limit.key, value) }];
@@ -74,7 +75,7 @@ export async function takeLimits(rule: LimitRule, keys: LimitKeys): Promise<bool
     // Falls through to the log line below; the cause can carry request detail.
   }
   console.warn(JSON.stringify({ event: "rate_limit_unavailable", rule }));
-  return true;
+  return whenDown;
 }
 
 /** How long a hashed network address or limit count is kept; the privacy page promises it. */
