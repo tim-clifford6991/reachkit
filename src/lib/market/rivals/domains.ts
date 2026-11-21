@@ -318,6 +318,12 @@ export function isPublicHost(hostOrUrl: string): boolean {
  *  language the product reads: a job board, a vacancy, a salary, a career
  *  or training path ("Baker | Your Career", "Ausbildung Bäcker/in"). */
 const JOB_HOST = /^(jobs|careers?|karriere|stellen)\./;
+// Named for careers or hiring ("bakingcareer", "jobsnsw"): a publisher on every page, though one search's page is not a job seeker's.
+const JOB_NAME = /careers?|karriere|jobs|recruit/;
+export function isJobHost(host: string): boolean {
+  const parsed = parseDomain(host);
+  return parsed.ok && (JOB_HOST.test(parsed.domain) || JOB_NAME.test(registrableDomain(host)?.split(".")[0] ?? ""));
+}
 const JOB_SEGMENT = /^(jobs?|job-details|vacanc(y|ies)|careers?|stellen(angebote)?|stellenmarkt|jobsuche)$/;
 // A job lot, "no job too small" and a "mode d'emploi" are a business's own words.
 const JOB_TITLE =

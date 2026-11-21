@@ -397,6 +397,7 @@ describe("a public body and a job seeker's search give no rival, except to a bus
     ["www.woolworths.com.au", "Bread | Woolworths"],
     ["www.coles.com.au", "Bread | Coles"],
     ["www.phillippas.com.au", "Phillippa's Bakery"],
+    ["bakingcareer.com.au", "Baking Career - Everything you need to know"],
     ["www.seek.com.au", "Bakery Jobs in Sydney - SEEK"],
   ]);
   const warehouse = titled([
