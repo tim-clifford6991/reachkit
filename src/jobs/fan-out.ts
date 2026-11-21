@@ -37,27 +37,30 @@ export async function fanOut<S, T>(
   return results;
 }
 
+/** The holds the customer's own state causes: the page waits, and the tick is decided by the other pages. */
+const CUSTOMER_HOLDS: ReadonlySet<string> = new Set(["held:unpaid", "held:switch_off"]);
+
 /** Turns a completed fan-out into the tick's one outcome.
  *
- *  A subject that degraded degrades the tick, naming its step — the fan-out
- *  ran out of budget and says where. A subject that *threw* is not
- *  swallowed: every subject was still attempted (that is the point of
- *  collecting results rather than failing fast), and then the first error
- *  is rethrown so the platform records a failed run. Nothing here reports a
- *  success it did not have. */
+ *  A subject that *threw* wins: every subject was still attempted (that is
+ *  the point of collecting results rather than failing fast), and then the
+ *  first error is rethrown so the platform records a failed run. Otherwise a
+ *  subject that degraded degrades the tick, naming its step, except a
+ *  customer hold, which is that page waiting rather than the tick failing.
+ *  Nothing here reports a success it did not have. */
 export function settle<T extends { readonly done: true } | { readonly degraded: string }>(
   results: readonly FanOutResult<T>[],
   subjectId: string | null
 ):
   | { readonly outcome: "ran"; readonly subjectId: string | null }
   | { readonly outcome: "degraded"; readonly subjectId: string | null; readonly step: string } {
+  const failure = results.find((result) => !result.ok);
+  if (failure !== undefined && !failure.ok) throw failure.error;
   for (const result of results) {
-    if (result.ok && "degraded" in result.value) {
+    if (result.ok && "degraded" in result.value && !CUSTOMER_HOLDS.has(result.value.degraded)) {
       return { outcome: "degraded", subjectId, step: result.value.degraded };
     }
   }
-  const failure = results.find((result) => !result.ok);
-  if (failure !== undefined && !failure.ok) throw failure.error;
   return { outcome: "ran", subjectId };
 }
 

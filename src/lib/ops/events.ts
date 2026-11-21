@@ -75,3 +75,10 @@ export async function claimOpsEvent(kind: string, siteId: string, code: string, 
   if (error !== null) throw new Error(`ops_events claim: ${error.message}`);
   return true;
 }
+
+/** The `code` of the newest `kind` row whose `read` is this, or `null` where there is none. */
+export async function latestOpsEventCode(kind: string, read: string): Promise<string | null> {
+  const latest = await (await events())().select("code").eq("kind", kind).eq("read", read).order("id", { ascending: false }).limit(1);
+  if (latest.error !== null) throw new Error(`ops_events read: ${latest.error.message}`);
+  return (latest.data[0] as { code: string } | undefined)?.code ?? null;
+}
