@@ -6,23 +6,11 @@ import { isOwner } from "@/lib/account/owner";
 import { dbAdmin } from "@/lib/db";
 import { weekStartFor } from "@/lib/scan/weekly/week";
 import { appAccountForWrite } from "../_session/account";
+import { markKey, type Mark, type MarkResult, type MarkValue, type Marks } from "./model";
 
 const KIND = "review_mark";
 const NOTE_MAX = 280;
 const CODE_MAX = 40;
-
-export type MarkValue = "ok" | "flag";
-
-export interface Mark {
-  mark: MarkValue;
-  note: string | null;
-  at: string;
-}
-
-/** The marks of one week, keyed `site:opportunity`. */
-export type Marks = ReadonlyMap<string, Mark>;
-
-export const markKey = (siteId: string, opportunityId: string): string => `${siteId}:${opportunityId}`;
 
 /** The review's week, as its UTC Monday: the owner reviews every site at once, whatever its zone. */
 export const reviewWeekOf = (at: Date): string => weekStartFor({ at, zone: "UTC" });
@@ -61,9 +49,7 @@ export async function readMarks(siteIds: readonly string[], week: string): Promi
   return latestMarks(data ?? [], week);
 }
 
-/** Records the owner's press; awaited and throwing, so a press that did not land is never shown as landed. */
-export async function markRow(form: FormData): Promise<void> {
-  "use server";
+async function record(form: FormData): Promise<void> {
   const asking = await appAccountForWrite();
   if (!asking.ok || !(await isOwner(asking.account.userId))) throw new Error("review.mark: not the owner");
   const siteId = String(form.get("site") ?? ""), code = String(form.get("opportunity") ?? ""), mark = form.get("mark");
@@ -72,5 +58,18 @@ export async function markRow(form: FormData): Promise<void> {
   const read = encode(reviewWeekOf(now()), mark, note === "" ? null : note);
   const { error } = await dbAdmin().from("ops_events").insert({ kind: KIND, site_id: siteId, code, read });
   if (error !== null) throw new Error(`review.mark: ${error.message}`);
+}
+
+/** Records the owner's press, awaited: a press that did not land answers `failed` beside its row and is never shown as
+ *  landed, and the screen stays. */
+export async function markRow(_prev: MarkResult, form: FormData): Promise<MarkResult> {
+  "use server";
+  try {
+    await record(form);
+  } catch (failure) {
+    console.warn(JSON.stringify({ event: "review_mark_failed", detail: String(failure) }));
+    return "failed";
+  }
   revalidatePath("/app/review");
+  return "saved";
 }
