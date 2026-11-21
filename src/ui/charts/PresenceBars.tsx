@@ -72,6 +72,8 @@ export function PresenceBars(p: {
    *  not the largest bar. */
   measured: number;
   label: string;
+  /** Beside words that already say it: no tab stop, for an `aria-hidden` mark. */
+  decorative?: boolean;
 }): React.JSX.Element {
   const rows: Row[] = [
     ...p.rivals.map((bar) => ({ bar, kind: "rival" as const })),
@@ -114,6 +116,7 @@ export function PresenceBars(p: {
           </div>
           <BarChart
             responsive
+            accessibilityLayer={p.decorative !== true}
             layout={KEY.vertical}
             data={[row]}
             barSize={BAR_HEIGHT}

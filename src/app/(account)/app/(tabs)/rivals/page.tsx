@@ -35,12 +35,14 @@ import { RivalTable } from "../../_overview/RivalTable";
 import { RivalTableSkeleton } from "../../_overview/skeletons";
 import { OVERVIEW } from "../../_overview/frame";
 import { TabHead } from "../../_overview/TabHead";
+import { DetailTiles } from "../../_overview/Tiles";
+import { readTiles } from "../../_overview/tiles-provider";
 
 /** /app/rivals's own `<title>` (#945). */
 export const metadata: Metadata = { title: copy("meta.app.rivals.title") };
 
 export default async function RivalsTabPage(): Promise<React.JSX.Element> {
-  const [shell, model, overview, planned] = await Promise.all([readShell(), readRivals(), readOverview(), readPlanned()]);
+  const [shell, model, overview, planned, tiles] = await Promise.all([readShell(), readRivals(), readOverview(), readPlanned(), readTiles(0, false)]);
   const reputation = await readPromptsAt(overview.months?.reading?.week ?? null);
 
   const after = model.top.searches.filter((search) => planned.has(searchKey(search))).length;
@@ -65,6 +67,7 @@ export default async function RivalsTabPage(): Promise<React.JSX.Element> {
 
   return (
     <div className={OVERVIEW} data-testid="rivals-tab">
+      <DetailTiles model={tiles} tab="rivals" />
       <TabHead
         eyebrow={shell.weeks.kind === "counted" ? copy("overview.tab.eyebrow", { n: String(shell.weeks.weeks) }) : null}
         title={copy("overview.tab.rivals")}

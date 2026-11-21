@@ -26,17 +26,20 @@ import { AnswerGrid } from "../../_overview/AnswerGrid";
 import { AiLead, AiPagesCard, Reputation, WhoReads } from "../../_overview/AiTab";
 import { OVERVIEW } from "../../_overview/frame";
 import { TabHead } from "../../_overview/TabHead";
+import { DetailTiles } from "../../_overview/Tiles";
+import { readTiles } from "../../_overview/tiles-provider";
 
 /** /app/ai-answers's own `<title>` (#945). */
 export const metadata: Metadata = { title: copy("meta.app.ai-answers.title") };
 
 export default async function AiAnswersTabPage(): Promise<React.JSX.Element> {
-  const [shell, model, reads, published, overview] = await Promise.all([
+  const [shell, model, reads, published, overview, tiles] = await Promise.all([
     readShell(),
     readAnswers(),
     readBlogReads(),
     readPublished(),
     readOverview(),
+    readTiles(0, false),
   ]);
   const reputation = await readPromptsAt(overview.months?.reading?.week ?? null);
   const content = contentOf(published);
@@ -45,6 +48,7 @@ export default async function AiAnswersTabPage(): Promise<React.JSX.Element> {
 
   return (
     <div className={OVERVIEW} data-testid="ai-answers-tab">
+      <DetailTiles model={tiles} tab="ai" />
       <TabHead
         eyebrow={shell.weeks.kind === "counted" ? copy("overview.tab.eyebrow", { n: String(shell.weeks.weeks) }) : null}
         title={copy("overview.tile.ai-answers.label")}

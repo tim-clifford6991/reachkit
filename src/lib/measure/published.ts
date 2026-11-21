@@ -33,6 +33,15 @@ export interface PublishedPage {
   wordpress?: boolean;
 }
 
+/** A publication standing at `at`: published by then, not taken down by then. The live list and Pages Live's earlier weeks both count with it. */
+export function standingAt(p: { publishedAt: Date | string; unpublishedAt: Date | string | null }, at: Date): boolean {
+  const t = at.getTime();
+  return new Date(p.publishedAt).getTime() <= t && (p.unpublishedAt === null || new Date(p.unpublishedAt).getTime() > t);
+}
+
+/** The name a page is listed by: its stored title, else its address; "" is a page no list can name. */
+export const listedName = (title: string | null | undefined, url: string | null): string => title?.trim() || url || "";
+
 export interface PublishedRead {
   /** `null` where the pages could not be read — never an empty list,
    *  which would say nothing was published. */

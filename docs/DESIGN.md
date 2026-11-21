@@ -129,11 +129,11 @@ The owner looks at `dev.reachkit.app` for taste: voice, and an asset only the ow
 | Stop a page from the mail, and stopped | `/veto/{token}` | [board](design/boards/canvas/Veto.dc.html) · [render](design/boards/canvas/renders/Veto.jpg) |
 | Unsubscribe | `/opt-out/{token}` | [board](design/boards/canvas/OptOut.dc.html) · [render](design/boards/canvas/renders/OptOut.jpg) |
 | Legal (drawn as Privacy) | `/privacy`, `/terms`, `/imprint` | [board](design/boards/canvas/Legal.dc.html) · [render](design/boards/canvas/renders/Legal.jpg) |
-| Overview | `/app` | [board](design/boards/canvas/Main.dc.html) · [render](design/boards/canvas/renders/Main.jpg) |
+| Overview | `/app` | [board](design/boards/canvas/Main.dc.html) · [render](design/boards/canvas/renders/Main.jpg) · superseded by plates O1–O8, owner 2026-11-20, #2982 |
 | Overview: domain not connected | `/app` | [board](design/boards/canvas/OverviewDNS.dc.html) · [render](design/boards/canvas/renders/OverviewDNS.jpg) |
-| Google | `/app/search` | [board](design/boards/canvas/AppGoogle.dc.html) · [render](design/boards/canvas/renders/AppGoogle.jpg) |
-| AI | `/app/ai-answers` | [board](design/boards/canvas/AppAI.dc.html) · [render](design/boards/canvas/renders/AppAI.jpg) |
-| Competitors | `/app/rivals` | [board](design/boards/canvas/AppCompetitors.dc.html) · [render](design/boards/canvas/renders/AppCompetitors.jpg) |
+| Google | `/app/search` | [board](design/boards/canvas/AppGoogle.dc.html) · [render](design/boards/canvas/renders/AppGoogle.jpg) · superseded by plates O1–O8, owner 2026-11-20, #2982 |
+| AI | `/app/ai-answers` | [board](design/boards/canvas/AppAI.dc.html) · [render](design/boards/canvas/renders/AppAI.jpg) · superseded by plates O1–O8, owner 2026-11-20, #2982 |
+| Competitors | `/app/rivals` | [board](design/boards/canvas/AppCompetitors.dc.html) · [render](design/boards/canvas/renders/AppCompetitors.jpg) · superseded by plates O1–O8, owner 2026-11-20, #2982 |
 | Plan: this week's 7 | `/app/calendar` | [board](design/boards/canvas/Plan.dc.html) · [render](design/boards/canvas/renders/Plan.jpg) |
 | A live page | `/app/draft/{draftId}` | [board](design/boards/canvas/PageDetail.dc.html) · [render](design/boards/canvas/renders/PageDetail.jpg) |
 | Draft: a page in review, and editing | `/app/draft/{draftId}` | [board](design/boards/canvas/AppDraft.dc.html) · [render](design/boards/canvas/renders/AppDraft.jpg) |
