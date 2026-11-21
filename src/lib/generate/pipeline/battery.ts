@@ -161,7 +161,7 @@ export function batteryInputs(b: BatteryBasis, page: CheckedPage, markdown: stri
     distinctHeadings: pack.type === "qa",
     // Issue 1486: a how-to or a Q&A links the outside pages it is built
     // from.
-    ...(builtFromOutside(pack.type) ? { cites: { claimUrls: sourcingUrls(pack.claims), min: b.citesMin } } : {}),
+    ...(builtFromOutside(pack.type, pack.own) ? { cites: { claimUrls: sourcingUrls(pack.claims), min: b.citesMin } } : {}),
     heading: page.heading,
     rivalsNamed: b.rivalsNamed,
     ...(b.demoPhrases === undefined ? {} : { demoPhrases: b.demoPhrases }),

@@ -132,7 +132,7 @@ export function writerAsked(a: BriefLineInputs): HardRule[] {
       distinctHeadings: pack.type === "qa",
       titleRule: true,
       prose: true,
-      ...(builtFromOutside(pack.type) ? { cites: true } : {}),
+      ...(builtFromOutside(pack.type, pack.own) ? { cites: true } : {}),
     },
     { fit: { state: "passed" }, fitAsked: pack.type === "listicle" }
   );

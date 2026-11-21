@@ -147,6 +147,7 @@ export interface AddsRecord {
 export interface ContextPack {
   version: 1;
   type: ContentType;
+  /** The query's own type, where the ladder fell from it to `type`: the needs the page keeps of it (`packNeeds`). */ own?: ContentType;
   builtAt: string;
   /** The site's country and language (SPEC §6, owner D66, issue 1311),
    *  where they are not the United States and English: the page is written
@@ -591,6 +592,7 @@ export function correctionsFor(a: {
 
 export interface PackInputs {
   type: ContentType;
+  /** The query's own type, where the ladder fell from it to `type`. */ own?: ContentType;
   opportunity: Pick<Opportunity, "family" | "targetQuery" | "targetRef" | "absorbedQueries" | "title"> & { evidence?: Opportunity["evidence"] };
   site: { businessName: string | null; domain: string; doNotClaim: readonly string[]; rivals: readonly string[] };
   category: string;
@@ -713,7 +715,7 @@ export function buildPack(a: PackInputs): ContextPack {
   const gaps = covered === null ? [] : headingGaps({ topResults: a.research.topResults ?? [], covered, target: question, claims, searched: a.live?.queries ?? [] });
   const pack: Omit<ContextPack, "missing"> = {
     version: 1,
-    type: a.type,
+    type: a.type, ...(a.own === undefined ? {} : { own: a.own }),
     builtAt: a.now.toISOString(),
     ...(a.locale === undefined || modelInstruction({ country: a.locale.country, language: a.locale.language }) === null ? {} : { locale: { country: a.locale.country, language: a.locale.language } }),
     target: { question, searches },
@@ -740,13 +742,7 @@ export function buildPack(a: PackInputs): ContextPack {
     measurements: a.type === "research" ? measurementsOf(a.report) : null,
     live: a.live ?? null,
     ...(gaps.length === 0 ? {} : { gaps }),
-    adds: packAdds({
-      facts,
-      claims,
-      topResults: a.research.topResults ?? [],
-      newPage: newPage && a.type !== "update",
-      reportCounts: !builtFromOutside(a.type),
-    }),
+    adds: packAdds({ facts, claims, topResults: a.research.topResults ?? [], newPage: newPage && a.type !== "update", reportCounts: !builtFromOutside(a.type, a.own) }),
   };
   const missing = missingFrom(pack, a.previousResearch ?? null);
   const corrections = correctionsFor({ report: a.report, knowledge: a.profile?.knowledge, target: [question, ...searches], language: a.locale?.language ?? "en" });

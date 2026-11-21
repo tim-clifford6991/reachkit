@@ -60,7 +60,7 @@ export function incomplete(failure: RuleFailure): boolean {
 const mark = (part: Part, have: number, need: number, short: boolean, pending = false): PartMark => ({ part, have: short && pending ? null : have, need, state: !short ? "met" : pending ? "pending" : "short" });
 
 /** What the research half reads: the pack, whether its research is still queued, and the room for the type's floor. */
-interface ResearchHalf { pack: Pick<ContextPack, "type" | "missing">; pending?: boolean; words?: { have: number; need: number; short: boolean } | null }
+interface ResearchHalf { pack: Pick<ContextPack, "type" | "missing" | "own">; pending?: boolean; words?: { have: number; need: number; short: boolean } | null }
 /** What a row's cached research holds: on-topic readable results (`R`) and their addresses, the buyer questions they
  *  answer (`Q`), the results stating a recent figure (`F`), the results laid out in three or more steps, its
  *  "People also ask", its first organic results (`top`), the site's own facts on its topic (`facts`), and on a rival-only
@@ -106,7 +106,7 @@ export function meetsStandard(a: ResearchHalf | PageHalf | ReadHalf): Standard {
       ...((a.notes ?? 0) > 0 ? [mark("style", 0, 1, true)] : []),
     ];
   } else {
-    const asked = mustHold(a.pack.type);
+    const asked = mustHold(a.pack.type, a.pack.own);
     const missing = a.pack.missing;
     parts = (["sections", "sources", "figures"] as const).flatMap((part) => {
       const need = asked.filter((requirement) => NEED_PART[requirement.need] === part).length;
@@ -153,7 +153,7 @@ const VENDOR_TOP = 5;
  *  None filled, the first type it may take, which the commit finds short; with nothing cached, its shape's own. */
 export function typeTheResearchFills(o: Pick<Opportunity, "type" | "targetQuery" | "evidence" | "volume">, read: ResearchRead | null): ContentType | null {
   const top = read?.top ?? [];
-  const start = SHAPED.has(o.type) && offeringTopTen({ rows: top }, null, o.targetQuery ?? "") ? "offering" : contentTypeOf(o);
+  const start = ownTypeOf(o, read);
   if (read === null || start === null || READ_MARKS[start] === undefined) return start;
   const vendors = top.slice(0, VENDOR_TOP).filter((row) => pageClass(row) === "provider").length;
   const vendor = vendors > 0 && vendors * 2 >= Math.min(VENDOR_TOP, top.length);
@@ -162,9 +162,29 @@ export function typeTheResearchFills(o: Pick<Opportunity, "type" | "targetQuery"
   return rungs.find((type) => meetsStandard({ type, read, demand: mustShowDemand(o, type) }).met) ?? rungs[0]!;
 }
 
+/** A query's own type: its shape's, or an offering where its own results page asks for one. */
+export const ownTypeOf = (o: Pick<Opportunity, "type" | "targetQuery" | "evidence">, read: ResearchRead | null): ContentType | null =>
+  SHAPED.has(o.type) && offeringTopTen({ rows: read?.top ?? [] }, null, o.targetQuery ?? "") ? "offering" : contentTypeOf(o);
+
+/** Whether the ladder falls from a query's own type to `type`: down its rungs, or to documentation, never to an offering. */
+export const fellTo = (type: ContentType, own: ContentType | null): own is ContentType =>
+  own !== null && own !== type && (type === "documentation" || (LADDER.indexOf(own) >= 0 && LADDER.indexOf(type) > LADDER.indexOf(own)));
+
+/** What a type the ladder fell to keeps of its query's own type: thin research must not drop the page's sources or questions. */
+const KEPT: ReadonlySet<PackNeed> = new Set<PackNeed>(["outside_sources", "buyer_questions"]);
+/** A type's pack needs, with its query's own type's kept needs where the ladder fell from it, each at the larger count. */
+export function packNeeds(type: ContentType, own?: ContentType): readonly PackRequirement[] {
+  const needs = TEMPLATES[type].packMustHold;
+  const kept = own === undefined ? [] : TEMPLATES[own].packMustHold.filter((each) => KEPT.has(each.need));
+  const most = (need: PackRequirement) => ("min" in need ? need.min : 0);
+  return [...needs.filter((each) => !kept.some((one) => one.need === each.need && most(one) > most(each))), ...kept.filter((one) => !needs.some((each) => each.need === one.need && most(each) >= most(one)))];
+}
+/** The type whose research a page buys: its own, else its query's own type's where the ladder fell from a researched one. */
+export const researchedAs = (type: ContentType, own?: ContentType): ContentType => (TEMPLATES[type].research || own === undefined ? type : own);
+
 /** What a type's pack must hold. R31: every page but an update, whatever its template, is held to first-hand rival evidence. */
-function mustHold(type: ContentType): PackRequirement[] {
-  return [...TEMPLATES[type].packMustHold, ...(type === "update" ? [] : [{ need: "rival_evidence" as const }])];
+function mustHold(type: ContentType, own?: ContentType): PackRequirement[] {
+  return [...packNeeds(type, own), ...(type === "update" ? [] : [{ need: "rival_evidence" as const }])];
 }
 
 /** A claim about a rival read first-hand: off its own site, or off a study
@@ -230,8 +250,8 @@ function holds(requirement: PackRequirement, pack: Omit<ContextPack, "missing">,
 
 /** Whether a type's page is built from cited outside facts (issue 1486):
  *  its template asks its pack for outside sources. A how-to and a Q&A. */
-export function builtFromOutside(type: ContentType): boolean {
-  return TEMPLATES[type].packMustHold.some((requirement) => requirement.need === "outside_sources");
+export function builtFromOutside(type: ContentType, own?: ContentType): boolean {
+  return packNeeds(type, own).some((requirement) => requirement.need === "outside_sources");
 }
 
 /** The needs a page written anyway goes without: never first-hand rival evidence, which an ungrounded page would be harm. */
@@ -248,7 +268,7 @@ export function writtenAnyway(pack: ContextPack, missing: readonly PackNeed[], a
 
 /** What the template asks of the pack that it does not hold, by handle. */
 export function missingFrom(pack: Omit<ContextPack, "missing">, previousResearch: PackMeasurements | null = null): PackNeed[] {
-  const held = mustHold(pack.type);
+  const held = mustHold(pack.type, pack.own);
   return held.filter((requirement) => !holds(requirement, pack, previousResearch)).map((requirement) => (requirement.need === "facts_on_topic" && factTexts(pack).length < requirement.min ? "facts_few" : requirement.need));
 }
 
@@ -277,7 +297,7 @@ function factsHeld(facts: SectionFacts, pack: ContextPack): number {
  * sections and maximum (owner Q9/D, 2026-11-16).
  */
 export function fittedTemplate(pack: ContextPack, kept = false): Template {
-  const template = TEMPLATES[pack.type];
+  const template = pack.own === undefined ? TEMPLATES[pack.type] : { ...TEMPLATES[pack.type], packMustHold: packNeeds(pack.type, pack.own) };
   const sections = template.sections.filter(
     (slot) => (slot.onlyWith === undefined || factsHeld(slot.onlyWith.facts, pack) >= slot.onlyWith.min) && !(kept && slot.when === "gaps")
   );
