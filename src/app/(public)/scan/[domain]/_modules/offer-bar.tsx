@@ -9,7 +9,7 @@ import { CHECKOUT_QUERY_KEY, REFUSED_MARKER } from "../../../pricing/state";
 
 type Read = Pick<SpotsLeft, "state" | "left"> | { state: "unknown"; left?: undefined };
 
-/** The page's solid buttons: the bar is one too, so it shows only while none of them is on screen. */
+/** The page's solid buttons: the bar is one too, so it shows only once one has scrolled away and while none is on screen. */
 const SOLID = "main .btn-primary:not(.btn-soft, .btn-outline, .btn-ghost, .btn-link)";
 
 /** The bar's Start: busy while its checkout opens, at its label's width. */
@@ -53,18 +53,28 @@ export function OfferBar(p: {
   useEffect(() => {
     const ended = Date.now() >= Date.parse(p.endsAt);
     const refused = p.refused === true || (p.refused === "query" && new URLSearchParams(location.search).get(CHECKOUT_QUERY_KEY) === REFUSED_MARKER);
-    const onScreen = new Set<Element>();
-    // The first answer comes once the page is laid out; only then is the bar drawn.
-    const seen = new IntersectionObserver((entries) => {
+    // Read on each scroll rather than observed: a solid button that hydration or a later step swaps in is counted too.
+    let frame = 0;
+    const check = (): void => {
+      frame = 0;
+      const boxes = Array.from(document.querySelectorAll(SOLID), (el) => el.getBoundingClientRect()).filter((box) => box.width > 0);
+      // Once the page's own action has scrolled away above, and while no solid button is on screen.
+      const passed = boxes.some((box) => box.bottom <= 0);
+      const onScreen = boxes.some((box) => box.bottom > 0 && box.top < window.innerHeight);
       setAt((was) => was ?? { body: document.body, ended, refused });
-      for (const e of entries) {
-        if (e.isIntersecting) onScreen.add(e.target);
-        else onScreen.delete(e.target);
-      }
-      setShown(onScreen.size === 0);
-    });
-    document.querySelectorAll(SOLID).forEach((el) => seen.observe(el));
-    return () => seen.disconnect();
+      setShown(passed && !onScreen);
+    };
+    const soon = (): void => {
+      if (frame === 0) frame = requestAnimationFrame(check);
+    };
+    soon();
+    window.addEventListener("scroll", soon, { passive: true });
+    window.addEventListener("resize", soon);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", soon);
+      window.removeEventListener("resize", soon);
+    };
   }, [p.endsAt, p.refused]);
 
   // The page's foot reserve is the tallest the bar has been, so it never covers the footer or a focused link.

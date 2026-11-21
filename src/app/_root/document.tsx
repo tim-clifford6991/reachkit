@@ -80,7 +80,7 @@ export default function ReachKitDocument({ children }: { children: React.ReactNo
     <html
       lang="en"
       // A page with the phone offer bar keeps its height free at the foot, so the bar covers no content and no focus.
-      className={`${fontVariables} max-md:has-[[data-offer-bar]]:scroll-pb-[var(--offer-bar-h,calc(6rem+env(safe-area-inset-bottom)))] max-md:has-[[data-offer-bar]]:pb-[var(--offer-bar-h,calc(6rem+env(safe-area-inset-bottom)))]`}
+      className={`${fontVariables} max-md:has-[[data-offer-bar]]:scroll-pb-[var(--offer-bar-h)] max-md:has-[[data-offer-bar]]:pb-[var(--offer-bar-h)]`}
       suppressHydrationWarning
     >
       <head>

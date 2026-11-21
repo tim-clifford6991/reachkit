@@ -27,9 +27,12 @@ for (const width of [320, 390]) {
       const at = await withPage(width, async (page) => {
         await page.setViewportSize({ width, height: 700 });
         await page.goto(`${getBaseURL()}${path}`);
-        // Past the card's Start, where the bar shows.
-        await page.evaluate(() => document.querySelector("main .btn-primary")?.scrollIntoView({ block: "end" }));
-        await page.evaluate(() => window.scrollBy(0, window.innerHeight * 1.5));
+        // Just past the page's own action (the card's Start, or the hero's submit on /), where the bar shows.
+        await page.evaluate(() => {
+          const action = document.querySelector("main .btn-primary.btn-lg");
+          action?.scrollIntoView({ block: "start" });
+          window.scrollBy(0, (action?.getBoundingClientRect().bottom ?? 0) + 1);
+        });
         await page.waitForSelector('[data-testid="offer-bar"]:not(.hidden)', { timeout: 10_000 });
         const middle = await page.evaluate(measure);
         await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
@@ -49,4 +52,24 @@ for (const width of [320, 390]) {
       expect(at.landmarks).toEqual([]);
     }, 60_000);
   }
+}
+
+for (const viewport of [{ width: 390, height: 844 }, { width: 320, height: 568 }]) {
+  it(`/ at ${viewport.width}×${viewport.height}: the bar is hidden on load and with the field focused, while the hero's Scan My Site is on screen`, async () => {
+    const hidden = () => {
+      const bar = document.querySelector<HTMLElement>('[data-testid="offer-bar"]');
+      return bar !== null && getComputedStyle(bar).display === "none";
+    };
+    const at = await withPage(viewport.width, async (page) => {
+      await page.setViewportSize(viewport);
+      await page.goto(`${getBaseURL()}/`);
+      // The bar is attached at the observer's first answer, so it is read only once the observer has seen the hero.
+      await page.waitForSelector('[data-testid="offer-bar"]', { state: "attached" });
+      const load = await page.evaluate(hidden);
+      await page.evaluate(() => document.querySelector<HTMLElement>("main input")?.focus());
+      await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
+      return { load, focused: await page.evaluate(hidden) };
+    });
+    expect(at).toEqual({ load: true, focused: true });
+  }, 60_000);
 }

@@ -224,3 +224,8 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* The phone offer bar's height until the bar measures itself; a page that carries the bar reserves it at its foot. */
+:root {
+  --offer-bar-h: calc(6rem + env(safe-area-inset-bottom));
+}
