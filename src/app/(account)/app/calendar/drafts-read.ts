@@ -35,6 +35,7 @@ import { scheduledPagesFor, type ScheduledPage } from "@/lib/publish/record";
 import { publishMoment } from "@/lib/publish/publishable/predicate";
 import { readPublishingSettings } from "@/lib/publish/settings";
 import { placedByDay } from "@/lib/opportunities/days";
+import { startedBetween } from "@/lib/publish/daily";
 import { heldPages, isPublishingOn } from "@/lib/publish/switch";
 import type { DestinationKind, State } from "@/lib/publish/types";
 import { daysOfMonth, type DayKey, type MonthKey } from "./dates";
@@ -84,6 +85,8 @@ export interface PublishingFacts {
    *  fact they need. A destination that is not working because its host
    *  is still waiting for DNS is named as that (#754). */
   customerChangeHoldsPages: HeldBySetting | null;
+  /** When work on each date began: the day job's own stamp, else its page's insert at the write. */
+  startedAt: ReadonlyMap<DayKey, Date>;
 }
 
 /**
@@ -102,6 +105,7 @@ const UNREADABLE: PublishingFacts = Object.freeze({
   heldDays: Object.freeze([]),
   destination: null,
   customerChangeHoldsPages: null,
+  startedAt: new Map<DayKey, Date>(),
 });
 
 export async function readPublishingFacts(a: {
@@ -153,8 +157,14 @@ export async function readPublishingFacts(a: {
     publishAt.set(page.draftId, publishMoment(became, date, settings));
   }
 
+  // The stamp is extra: unreadable, the month still reads, with each page's own insert time.
+  const stamped = await startedBetween(a.siteId, from, to).catch(() => new Map<string, Date>());
+  const startedAt = new Map<DayKey, Date>([...pagesByDay].flatMap(([day, page]) => (page.createdAt === null ? [] : [[day, page.createdAt] as const])));
+  for (const [day, at] of stamped) startedAt.set(day as DayKey, at);
+
   return {
     readable: true,
+    startedAt,
     pagesByDay,
     publishAt,
     heldDays,

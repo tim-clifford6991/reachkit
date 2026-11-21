@@ -176,6 +176,7 @@ export type Database = {
           reason: string | null
           site_id: string
           stall_alerted_at: string | null
+          started_at: string | null
         }
         Insert: {
           decided_at?: string | null
@@ -185,6 +186,7 @@ export type Database = {
           reason?: string | null
           site_id: string
           stall_alerted_at?: string | null
+          started_at?: string | null
         }
         Update: {
           decided_at?: string | null
@@ -194,6 +196,7 @@ export type Database = {
           reason?: string | null
           site_id?: string
           stall_alerted_at?: string | null
+          started_at?: string | null
         }
         Relationships: [
           {

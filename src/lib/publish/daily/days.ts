@@ -67,6 +67,8 @@ export interface DraftDayStore {
   /** When the plan of the site's latest weekly pass that measured its week was committed, or `null` until it is; absent, no day is decided again. */
   committedAt?(siteId: string): Promise<string | null>;
   domainOf(siteId: string): Promise<string | null>;
+  /** Stamps when the day's job first began work on the date, once; absent, no stamp. */
+  claimStarted?(siteId: string, publishDate: string, at: Date): Promise<boolean>;
   /** Marks the date told about once; true only for the caller that made the claim and sends the mail. */
   claimMissingAlert(siteId: string, publishDate: string, at: Date): Promise<boolean>;
   /** When the site's latest page was delivered, or `null`; absent, no stall is checked. */
@@ -124,16 +126,32 @@ export async function markStandardRewrite(a: { siteId: string; publishDate: stri
   await draftDays().record({ siteId: a.siteId, publishDate: a.publishDate, outcome: "no_page", reason: `${STANDARD_REWRITE}:${a.fingerprint}`, at: a.at });
 }
 
-/** Why the day's page is held, or `null`: until the address is connected only the first page is written. Never throws. */
-export async function dayHold(siteId: string, publishDate: string): Promise<string | null> {
+/** Why the day's page is held, or `null`: until the address is connected only the first page is written. A day not held
+ *  is stamped as started, once, so This Week can say since when it is being worked on. Never throws. */
+export async function startDay(siteId: string, publishDate: string): Promise<string | null> {
   try {
     const store = draftDays();
     const held = (await store.waitingForAddress?.(siteId)) === true && (await store.draftedBefore(siteId, publishDate));
-    return held ? WAITING_FOR_ADDRESS : null;
+    if (held) return WAITING_FOR_ADDRESS;
   } catch {
     warn("hold-read-failed");
     return null;
   }
+  await draftDays().claimStarted?.(siteId, publishDate, new Date()).catch(() => warn("start-stamp-failed"));
+  return null;
+}
+
+/** When the day's job first began work on each of the site's dates `from`…`to`, by date. Throws when unreadable. */
+export async function startedBetween(siteId: string, from: string, to: string): Promise<ReadonlyMap<string, Date>> {
+  const { data, error } = await publishDb()
+    .from<{ publish_date: string; started_at: string }>("draft_days")
+    .select("publish_date, started_at")
+    .eq("site_id", siteId)
+    .gte("publish_date", from)
+    .lte("publish_date", to)
+    .not("started_at", "is", null);
+  if (error !== null) throw new Error(error.message);
+  return new Map((data ?? []).map((row) => [row.publish_date, new Date(row.started_at)]));
 }
 
 /** The owed days no due hour recorded (a missed tick, or a run killed first) or one left with research still queued;
@@ -418,6 +436,7 @@ function databaseDraftDayStore(): DraftDayStore {
       const at = data?.[0]?.published_at;
       return at === undefined ? null : new Date(at);
     },
+    claimStarted: (siteId, publishDate, at) => claimOnce(siteId, publishDate, "started_at", at),
     claimMissingAlert: (siteId, publishDate, at) => claimOnce(siteId, publishDate, "missing_alerted_at", at),
     // Keyed to the day last delivered, so the next delivery starts a new episode with its own claim.
     claimStallAlert: (siteId, lastDelivered, at) => claimOnce(siteId, lastDelivered, "stall_alerted_at", at),
@@ -425,7 +444,7 @@ function databaseDraftDayStore(): DraftDayStore {
 }
 
 /** Seeds the date's row if there is none, then sets `column` only where it is still null: one caller wins. */
-async function claimOnce(siteId: string, publishDate: string, column: "missing_alerted_at" | "stall_alerted_at", at: Date): Promise<boolean> {
+async function claimOnce(siteId: string, publishDate: string, column: "started_at" | "missing_alerted_at" | "stall_alerted_at", at: Date): Promise<boolean> {
   const seeded = await publishDb()
     .from("draft_days")
     .upsert({ site_id: siteId, publish_date: publishDate }, { onConflict: "site_id,publish_date", ignoreDuplicates: true });

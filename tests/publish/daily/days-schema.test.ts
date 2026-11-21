@@ -13,7 +13,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { psql, psqlRows } from "../../db/substrate";
 
 const MIGRATIONS = path.resolve(import.meta.dirname, "../../../supabase/migrations");
-const APPLIED = ["00000000000001_baseline.sql", "00000000000002_rls.sql", "20261015120000_jobs_draft_days.sql", "20261101120000_jobs_draft_days_stall_claim.sql"];
+const APPLIED = ["00000000000001_baseline.sql", "00000000000002_rls.sql", "20261015120000_jobs_draft_days.sql", "20261101120000_jobs_draft_days_stall_claim.sql", "20261121160000_jobs_draft_days_started_at.sql"];
 
 function run(sql: string): void {
   psql(["-v", "ON_ERROR_STOP=1", "-c", sql]);
@@ -81,6 +81,17 @@ describe("draft_days — every draft day, with its reason", () => {
     expect(claim(id, "2026-10-14", "stall_alerted_at")).toBe(false);
     expect(claim(id, "2026-10-14")).toBe(true);
     expect(claim(id, "2026-10-20", "stall_alerted_at")).toBe(true);
+  });
+
+  it("a day's job run twice, then decided again, keeps its first start and one row with the last ending", () => {
+    const id = site();
+    const decide = (reason: string) => run(`insert into draft_days (site_id, publish_date, outcome, reason, decided_at) values ('${id}', '2026-11-21', 'no_page', '${reason}', now()) on conflict (site_id, publish_date) do update set outcome = excluded.outcome, reason = excluded.reason, decided_at = excluded.decided_at;`);
+    expect(claim(id, "2026-11-21", "started_at")).toBe(true);
+    const first = value(`select started_at from draft_days where site_id = '${id}';`);
+    decide("generate:research_pending");
+    expect(claim(id, "2026-11-21", "started_at")).toBe(false);
+    decide("generate:no_opportunity");
+    expect(psqlRows(`select started_at, reason from draft_days where site_id = '${id}';`)).toEqual([[first, "generate:no_opportunity"]]);
   });
 
   it("refuses an outcome no tick writes, and a site is deleted only after its days (ADR-051)", () => {

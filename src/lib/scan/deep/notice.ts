@@ -35,7 +35,7 @@ export function unmeasuredParts(report: StoredReport): readonly string[] {
 /** The reason the site's newest recorded day kept, or `null`; a read that fails claims nothing. */
 async function newestDayReason(siteId: string): Promise<string | null> {
   const { dbAdmin } = await import("@/lib/db");
-  const { data, error } = await (dbAdmin() as unknown as SupabaseClient).from("draft_days").select("reason").eq("site_id", siteId).order("publish_date", { ascending: false }).limit(1);
+  const { data, error } = await (dbAdmin() as unknown as SupabaseClient).from("draft_days").select("reason").eq("site_id", siteId).not("outcome", "is", null).order("publish_date", { ascending: false }).limit(1);
   if (error !== null) console.warn(JSON.stringify({ event: "release_notice_day_unread", error: error.message }));
   return (data?.[0] as { reason?: string | null } | undefined)?.reason ?? null;
 }
