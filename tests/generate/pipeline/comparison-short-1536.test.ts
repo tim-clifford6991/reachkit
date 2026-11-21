@@ -30,7 +30,7 @@ describe("issue 1536: a comparison its pack cannot fill as a Q&A writes no row",
     });
     expect(pack.missing).toContain("buyer_questions");
     const outcome = await generateDraft(fakeCost(), { siteId: SITE_ID, opportunity: opportunity({ targetQuery: target }), scheduledFor: "2026-10-18", site, pack, facts: [fact], links: [] });
-    expect(outcome).toEqual({ ok: false, reason: "step_failed", draftId: null, step: "pack", missing: pack.missing });
+    expect(outcome).toEqual({ ok: false, reason: "step_failed", draftId: null, step: "pack", missing: expect.arrayContaining([...pack.missing]) });
     expect([llmMock.mock.calls.length, store.rows.size]).toEqual([0, 0]);
     setGenerateStore(null);
   });

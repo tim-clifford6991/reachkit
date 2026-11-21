@@ -13,7 +13,7 @@ export const PIPELINE = Object.freeze({
 } as const);
 
 /** SPEC §7 — whether a page still missing its sections, sources or words after its fix call stops, or is only recorded. */
-export const COMPLETENESS_STOPS: boolean = false;
+export const COMPLETENESS_STOPS: boolean = true;
 
 /** What a context pack carries at most (SPEC §7, D41 stage 2): the business
  *  passages handed to the writer, the site's published and planned pages
