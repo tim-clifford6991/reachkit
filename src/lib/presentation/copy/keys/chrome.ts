@@ -105,14 +105,7 @@ export const CHROME_COPY = Object.freeze({
      makes them approved copy as written. **The error page's are not, all
      three of them.** S8 says only "the error page is the same shape with
      one written line" and draws none of it, so its eyebrow, its heading
-     and its line are the owner's (approved 2026-09-10, #459).
-
-     The eyebrow was once written here — "Something went wrong", issue
-     #372's own Done-when wording — and was returned to owed on the review
-     of #407 (2026-09-09): a Done-when is a brief, not
-     the owner's pen, and rule 6 leaves exactly two footings for a rendered
-     string, the set's unbracketed word (11a) or a BUILD/REQ line quoted
-     verbatim. It had neither. Nothing in BUILD or the archived REQ set writes it. */
+     and its line are the owner's (approved 2026-09-10, #459). */
   "chrome.notfound.eyebrow": ["404", { slots: {} }],
   /** Changed 2026-09-21 (#936). S8's "There is no page at this address."
    *  was the sentence for a screen that then offered a scan field and a
@@ -156,6 +149,13 @@ export const CHROME_COPY = Object.freeze({
   "chrome.error.eyebrow": ["Error", { slots: {} }],
   "chrome.error.heading": ["This Page Didn’t Load", { slots: {} }],
   "chrome.error.line": ["Try again in a minute.", { slots: {} }],
+  /** A screen that failed inside the app's frame: "screen", because "page" there means the customer's own pages. */
+  "chrome.error.app.title": ["This Screen Didn’t Load", { slots: {} }],
+  "chrome.error.app.line": ["We couldn’t load this screen. Your pages, your settings and this week’s plan are not changed by it.", { slots: {} }],
+  "chrome.error.app.retry": ["Try Again", { slots: {} }],
+  "chrome.error.app.again": ["It still didn’t load. Try again in a few minutes.", { slots: {} }],
+  "chrome.error.app.offline": ["You’re offline. Check your connection, then try again.", { slots: {} }],
+  "chrome.error.app.code": ["If it keeps happening, reply to any ReachKit email with this code: {digest}", { slots: { digest: "text" } }],
 
   /** The legal pages' own contents list, built from the document's
      headings (#936, the 2026-09-20 `R6-7` board). Drafted (#759). */
