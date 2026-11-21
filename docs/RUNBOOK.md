@@ -892,11 +892,9 @@ select source, sum(cost_cents) as cents, count(*) as calls
 ```
 
 **Retention.** An own or rendered page read keeps its html 30 days (owner, 2026-11-18, #2836).
-Off since 2026-11-20 (owner ruling 63, #2722) pending its rework (#3047): the tick logs `page_html_prune` `off` and calls neither function.
-`account/maintenance` calls `prune_page_html`, which removes `html` from older reads whose facts and
-text are kept in `fetch_facts` and `fetch_text`, up to 1000 rows a tick, with the cutoff fixed for the UTC day; the log line is
-`page_html_pruned`. The cost columns, the rest of the payload and every derived row stay; a read without
-both keeps its html. The daily check reports the database's size against the plan's limit.
+The prune is off since 2026-11-20 (owner ruling 63); its rework is #3047, steps listed there. The
+`account/maintenance` tick logs `page_html_prune` `off` and calls neither database function. The daily
+check reports the database's size against the plan's limit.
 Emptied rows free space inside the table; returning it to the plan's count (`vacuum full fetches`)
 is an operator step, done and recorded on its own.
 
@@ -1018,6 +1016,19 @@ for f in $(ls supabase/migrations/*.sql | sort); do
 done
 psql -h 127.0.0.1 -U reachkit -d postgres -c "drop database reachkit_check"
 ```
+
+### Changing a large table
+
+Any statement on `fetches`, or on any table over 50 MB, ships with its cost in the PR body:
+buffers touched × 8 KB ÷ 5 MB/s × calls a day.
+
+1. Measure it on the substrate (below), seeded at N and at 4N rows with production-sized payloads
+   (about 60 KB each), with `explain (analyze, buffers)`. The figure is buffers, not milliseconds:
+   buffers do not depend on the hardware.
+2. A statement whose buffers grow with the table, or that reads TOAST it does not need, does not ship.
+3. A jsonb operator over `payload` (`?`, `->`, `#>`, `@>`) is never a filter.
+4. DDL against `fetches` runs with `set lock_timeout = '3s'`. An index on it is built `concurrently`,
+   in its own migration file.
 
 ### Advisor findings — the standing dispositions
 
