@@ -41,10 +41,15 @@ export interface SiteRead {
   /** When each of its drafts was stopped by the hard rules while it was written. */
   stops: readonly string[];
   verdicts: readonly { publication_id: string; week_start: string; verdict: string }[];
+  /** The site's own current week, as its Monday in its zone; `null` where it has no zone yet. */
+  siteWeek: string | null;
+  /** The week its last weekly commit was made for; `null` before its first. */
+  weeklyCommit: string | null;
 }
 
-/** A site as the screen shows it: its committed rows are the week's dated ones and its spares. */
-export type ReviewSite = SiteRead & { committed: CommittedRow[]; dated: number };
+/** A site as the screen shows it: its committed rows are its current commit's, or none where this week's is not made
+ *  yet; `dated` counts the commit's days, whatever weekday it starts on. */
+export type ReviewSite = SiteRead & { current: boolean; committed: CommittedRow[]; dated: number };
 
 export interface Review {
   /** `YYYY-MM-DD`, the Monday the week starts; the window is `[week, week + 7 days)`. */
@@ -53,9 +58,10 @@ export interface Review {
   marks: Marks;
   figures: {
     sites: number;
+    /** Dated pages of the sites whose week is committed, out of `of`: a week's days for each of them. */
     committed: number;
     of: number;
-    /** Sites whose week holds fewer dated pages than a week has days. */
+    /** Committed sites whose week holds fewer dated pages than a week has days. */
     short: number;
     stopped: number;
     flips: number;
@@ -79,13 +85,14 @@ function flipsOf(rows: SiteRead["verdicts"], week: string): number {
 }
 
 export function reviewModel(week: string, read: readonly SiteRead[], marks: Marks): Review {
-  const end = dayAfter(week, 7);
-  const inWeek = (day: string) => day >= week && day < end;
-  const from = Date.parse(`${week}T00:00:00.000Z`), to = Date.parse(`${end}T00:00:00.000Z`);
+  // Dated events (stops, flips, marks) are counted in the header's week; a site's pages, in its own committed week.
+  const from = Date.parse(`${week}T00:00:00.000Z`), to = Date.parse(`${dayAfter(week, 7)}T00:00:00.000Z`);
   const sites = read.map((site): ReviewSite => {
-    const committed = site.week.committed.filter((row) => row.day === null || inWeek(row.day));
-    return { ...site, committed, dated: committed.filter((row) => row.day !== null).length };
+    const current = site.weeklyCommit !== null && site.siteWeek !== null && site.weeklyCommit >= site.siteWeek;
+    const committed = current ? site.week.committed : [];
+    return { ...site, current, committed, dated: committed.filter((row) => row.day !== null).length };
   });
+  const counted = sites.filter((site) => site.current);
   const flagged = sites.flatMap((site) =>
     site.committed.flatMap((row) => {
       const mark = marks.get(markKey(site.id, row.id));
@@ -100,8 +107,8 @@ export function reviewModel(week: string, read: readonly SiteRead[], marks: Mark
     figures: {
       sites: sites.length,
       committed: sum((site) => site.dated),
-      of: WEEK_PLAN.days * sites.length,
-      short: sites.filter((site) => site.dated < WEEK_PLAN.days).length,
+      of: WEEK_PLAN.days * counted.length,
+      short: counted.filter((site) => site.dated < WEEK_PLAN.days).length,
       stopped: sum((site) => site.stops.filter((at) => Date.parse(at) >= from && Date.parse(at) < to).length),
       flips: sum((site) => flipsOf(site.verdicts, week)),
       measured: sites.some((site) => site.verdicts.some((row) => row.week_start === week)),

@@ -4,7 +4,8 @@ import { hasActiveAccess } from "@/lib/account/billing";
 import { siteLinkMap } from "@/lib/known-content/link-map";
 import { readingOf } from "@/lib/measure/page-reading";
 import { pageLabel, reviewWeek, storedChoice } from "@/lib/opportunities/review/week";
-import { COLUMNS, readOpportunity, untyped, type OpportunityRow } from "@/lib/opportunities/store";
+import { COLUMNS, opportunityStore, readOpportunity, untyped, type OpportunityRow } from "@/lib/opportunities/store";
+import { weekStartFor } from "@/lib/scan/weekly/week";
 import type { TargetFacts } from "@/lib/opportunities/types";
 import { readMarks, reviewWeekOf } from "./marks";
 import { reviewModel, type Review, type SiteRead } from "./model";
@@ -29,9 +30,11 @@ function rulesStops(transitions: unknown): string[] {
   return moves.flatMap((m) => (m?.from === "generating" && m.to === "needs_attention" && (m.reason ?? "").startsWith("rules:") && typeof m.at === "string" ? [m.at] : []));
 }
 
-async function readSite(site: { id: string; domain: string }, now: Date, week: string): Promise<SiteRead> {
+type Site = { id: string; domain: string; timezone: string | null };
+
+async function readSite({ timezone, ...site }: Site, now: Date, week: string): Promise<SiteRead> {
   const back = new Date(Date.parse(`${week}T00:00:00.000Z`) - LOOK_BACK_DAYS * DAY_MS).toISOString();
-  const [planned, held, live, drafts, verdicts, links] = await Promise.all([
+  const [planned, held, live, drafts, verdicts, links, weeklyCommit] = await Promise.all([
     untyped().from<OpportunityRow>("opportunities").select(COLUMNS).eq("site_id", site.id).not("plan_place", "is", null),
     untyped()
       .from<OpportunityRow>("opportunities")
@@ -56,6 +59,7 @@ async function readSite(site: { id: string; domain: string }, now: Date, week: s
       .eq("site_id", site.id)
       .gte("week_start", back.slice(0, 10)),
     siteLinkMap(site.id),
+    opportunityStore().weeklyCommit(site.id),
   ]);
   const rows = [...rowsOrThrow("planned", planned), ...rowsOrThrow("held", held)];
   return {
@@ -66,16 +70,19 @@ async function readSite(site: { id: string; domain: string }, now: Date, week: s
     difficulty: new Map(rows.map((row) => [row.id, difficultyOf(row)])),
     stops: rowsOrThrow("drafts", drafts).flatMap((draft) => rulesStops(draft.transitions)),
     verdicts: rowsOrThrow("verdicts", verdicts),
+    // A site with no zone has no Monday yet, as the weekly pass reads it.
+    siteWeek: timezone === null ? null : weekStartFor({ at: now, zone: timezone }),
+    weeklyCommit,
   };
 }
 
 export async function readReview(now: Date): Promise<Review> {
   const sites = rowsOrThrow(
     "sites",
-    await untyped().from<{ id: string; domain: string }>("sites").select("id, domain").order("domain", { ascending: true })
+    await untyped().from<Site>("sites").select("id, domain, timezone").order("domain", { ascending: true })
   );
   const paying = (await Promise.all(sites.map(async (site) => ((await hasActiveAccess(site.id)) ? site : null)))).filter(
-    (site): site is { id: string; domain: string } => site !== null
+    (site): site is Site => site !== null
   );
   const week = reviewWeekOf(now);
   const [read, marks] = await Promise.all([Promise.all(paying.map((site) => readSite(site, now, week))), readMarks(paying.map((site) => site.id), week)]);
