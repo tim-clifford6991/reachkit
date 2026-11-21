@@ -31,6 +31,8 @@ import { SearchTiles } from "../../_overview/SearchTiles";
 import { SearchTableSkeleton } from "../../_overview/skeletons";
 import { OVERVIEW } from "../../_overview/frame";
 import { TabHead } from "../../_overview/TabHead";
+import { DetailTiles } from "../../_overview/Tiles";
+import { readTiles } from "../../_overview/tiles-provider";
 
 /** /app/search's own `<title>` (#945). Without it this screen announced
  *  nothing at all — the `(account)` layout's fallback is the floor, not
@@ -38,12 +40,13 @@ import { TabHead } from "../../_overview/TabHead";
 export const metadata: Metadata = { title: copy("meta.app.search.title") };
 
 export default async function SearchTabPage(): Promise<React.JSX.Element> {
-  const [shell, model, published, visits, planned] = await Promise.all([
+  const [shell, model, published, visits, planned, tiles] = await Promise.all([
     readShell(),
     readSearch(),
     readPublished(),
     readGoogleVisitWeeks(),
     readPlanned(),
+    readTiles(0, false),
   ]);
   const content = contentOf(published);
   const pages = content === null ? null : googlePagesOf(content.pages, published.now);
@@ -53,6 +56,7 @@ export default async function SearchTabPage(): Promise<React.JSX.Element> {
 
   return (
     <div className={OVERVIEW} data-testid="search-tab">
+      <DetailTiles model={tiles} tab="google" />
       <TabHead
         eyebrow={shell.weeks.kind === "counted" ? copy("overview.tab.eyebrow", { n: String(shell.weeks.weeks) }) : null}
         title={copy("overview.tab.search")}
