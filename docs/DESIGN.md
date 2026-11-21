@@ -103,8 +103,8 @@ The owner looks at `dev.reachkit.app` for taste: voice, and an asset only the ow
 
 | Screen | Route | Board |
 |---|---|---|
-| Landing | `/` | [board](design/boards/canvas/PubLanding.dc.html) · [render](design/boards/canvas/renders/PubLanding.jpg) |
-| Landing on a phone | `/` at 390 | [board](design/boards/canvas/PubLandingPhone.dc.html) · [render](design/boards/canvas/renders/PubLandingPhone.jpg) |
+| Landing | `/` | [board](design/boards/canvas/PubLanding.dc.html) · [render](design/boards/canvas/renders/PubLanding.jpg) · amended by plate P5, owner 2026-11-20, #2981 |
+| Landing on a phone | `/` at 390 | [board](design/boards/canvas/PubLandingPhone.dc.html) · [render](design/boards/canvas/renders/PubLandingPhone.jpg) · amended by plate P5, owner 2026-11-20, #2981 |
 | How it works | `/how-it-works` | [board](design/boards/canvas/PubHowItWorks.dc.html) · [render](design/boards/canvas/renders/PubHowItWorks.jpg) |
 | Pricing | `/pricing` | [board](design/boards/canvas/Pricing.dc.html) · [render](design/boards/canvas/renders/Pricing.jpg) · amended by plates P4a/P6, owner 2026-11-20, #2981 |
 | Free scan in progress | `/scan/{domain}` | [board](design/boards/canvas/PubScanning.dc.html) · [render](design/boards/canvas/renders/PubScanning.jpg) |
