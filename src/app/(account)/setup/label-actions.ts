@@ -31,6 +31,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { z } from "zod";
 import { SIGNIN_PATH } from "@/lib/account/identity/addresses";
 import { checkLabel, hostFor, type LabelRefusal } from "@/lib/publish/destinations/hosted/label";
 import { registrableDomain } from "@/lib/market/rivals/domains";
@@ -44,12 +45,16 @@ export interface LabelAnswer {
   refusal: LabelRefusal | null;
 }
 
-export async function checkSubdomainLabel(a: {
+// The browser can send anything; a wrong shape throws, which the field reads as no refusal and the save re-checks.
+const LabelQuestion = z.object({ label: z.string(), domain: z.string().nullable() });
+
+export async function checkSubdomainLabel(input: {
   label: string;
   /** The site address as the founder has typed it, or `null` before they
    *  have given one. */
   domain: string | null;
 }): Promise<LabelAnswer> {
+  const a = LabelQuestion.parse(input);
   const { currentSession } = await import("@/lib/account/identity");
   const session = await currentSession();
   if (session === null) redirect(SIGNIN_PATH);

@@ -15,12 +15,22 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import { DESTINATION_HREF } from "../../_shell/destinations";
 import { isReservedFixtureAccount, requireAppAccount } from "../../_session/account";
 import type { LiveEditOutcome } from "@/lib/generate/edit-live";
 import type { SaveBody, SaveResult } from "./save";
 
-export async function saveDraft(body: SaveBody): Promise<SaveResult> {
+// The browser can send anything; a wrong shape throws, which the editor's store answers as a retryable refusal.
+const SaveBodySchema = z.object({
+  draftId: z.string(),
+  title: z.string(),
+  bodyMd: z.string(),
+  description: z.string(),
+}) satisfies z.ZodType<SaveBody>;
+
+export async function saveDraft(input: SaveBody): Promise<SaveResult> {
+  const body = SaveBodySchema.parse(input);
   const account = await requireAppAccount("write");
   if (isReservedFixtureAccount(account)) return { ok: false, refused: "not_editable" };
 
@@ -68,7 +78,8 @@ export async function saveDraft(body: SaveBody): Promise<SaveResult> {
 
 /** SPEC §7 (R19): a live page's edit, saved as a new version at the same
  *  address. `draftId` is the live version; the new one is in the answer. */
-export async function saveLiveEdit(body: SaveBody): Promise<LiveEditOutcome> {
+export async function saveLiveEdit(input: SaveBody): Promise<LiveEditOutcome> {
+  const body = SaveBodySchema.parse(input);
   const account = await requireAppAccount("write");
   if (isReservedFixtureAccount(account)) return { ok: false, refused: "not_editable" };
 
