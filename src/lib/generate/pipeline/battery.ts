@@ -123,6 +123,7 @@ export function blockInputs(b: BatteryBasis, page: CheckedPage) {
     sections: page.sections,
     length: b.length,
     faq: page.faq,
+    questions: pack.questions,
     domain: site.domain,
     // D52: the rivals the verdict may name as the better pick.
     // Issue 1508: never the baseline, which no verdict may choose.

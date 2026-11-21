@@ -41,7 +41,7 @@ import { generateDraft, targetSearches, type GenerateOutcome } from "@/lib/gener
 import { allowedFacts, readAllFacts } from "@/lib/generate/pipeline/grounding";
 import { buildPack, type ContextPack } from "@/lib/generate/pipeline/pack";
 import { builtFromOutside } from "@/lib/generate/standard";
-import { NO_RESEARCH, researchMarket, type MarketResearch } from "@/lib/generate/pipeline/research";
+import { researchMarket, storedAsk, type MarketResearch } from "@/lib/generate/pipeline/research";
 import { readRecordedRules, readRecordedVerdict } from "@/lib/generate/record";
 import { HARD_RULES } from "@/lib/generate/rules/types";
 import { setGenerateStore, type DraftInsert, type DraftPatch, type DraftRow, type GenerateStore } from "@/lib/generate/store";
@@ -343,7 +343,7 @@ export async function main(opts: Options): Promise<number> {
     let cached: CachedResearch | null = !opts.fresh && existsSync(packFile) ? reviveResearch(JSON.parse(readFileSync(packFile, "utf8")) as CachedResearch) : null;
     if (cached === null) {
       const research = !template.research
-        ? NO_RESEARCH
+        ? storedAsk(report, targetSearches(opportunity))
         : await researchMarket(cost, {
             siteId: SITE_ID,
             locale,

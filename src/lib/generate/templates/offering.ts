@@ -40,7 +40,7 @@ export const offering: Template = {
       onlyWith: { facts: "difference", min: 1 },
     },
   ],
-  blocks: { steps: { min: 3, max: 6 }, faq: { min: 3, max: 6, asked: true } },
+  blocks: { steps: { min: 3, max: 6 }, faq: { min: 3, max: 6 } },
   length: { floor: 600, target: 900, ceiling: 1200 },
   // No outside read: its questions are the stored search's "People also ask".
   research: false,

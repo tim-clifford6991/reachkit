@@ -27,6 +27,7 @@ import { PAGE_BLOCKS } from "@/lib/config/constants";
 import { bodyWords, sectionWords, type LengthRange } from "../length";
 import type { Template } from "../templates";
 import { newSectionsHold } from "./gaps";
+import { alikeHeadings } from "./headings";
 import { hasLink, headingKey, sourceBlocksOf, type SourceBlock } from "./text";
 import type { RuleFailure } from "./types";
 
@@ -71,6 +72,8 @@ export interface BlockRuleInputs {
   length: LengthRange | null;
   /** The buyer questions stored beside the page (`drafts.meta.faq`). */
   faq: readonly { question: string; answer: string }[];
+  /** The questions buyers asked about the target (`pack.questions`): each FAQ question is one of them. Absent, not read. */
+  questions?: readonly string[];
   /** The business's own domain: what makes a link "to its product". */
   domain: string;
   /** A listicle's rivals, as its table names them (D52, issue 1267): the
@@ -461,6 +464,8 @@ export function missingBlock(a: { markdown: string; title: string; blocks: Block
   if (template.blocks.faq !== null) {
     const faq = blocks.faq.length;
     if (faq < template.blocks.faq.min || faq > template.blocks.faq.max) return "faq";
+    const asked = blocks.questions;
+    if (asked !== undefined && blocks.faq.some((entry) => !asked.some((question) => alikeHeadings(entry.question, question)))) return "faq";
   }
 
   const last = [...sourceBlocksOf(markdown)].reverse().find(isParagraph);

@@ -587,7 +587,7 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number; 
     //    read beside the market's searched terms too (owner, D62; issue
     //    1297): the pack says when it holds enough.
     const market = !TEMPLATES[as].research
-      ? type === "offering" ? storedAsk(report, targetSearches(o)) : NO_RESEARCH
+      ? storedAsk(report, targetSearches(o))
       : await heldResearch(cost, { key: `${a.siteId}:${o.id}:${type}:${a.publishDate}`, reuse: a.completeness === "warn" || a.fixStep === "owed" }, () => researchMarket(cost, {
           siteId: a.siteId,
           locale,

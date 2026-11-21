@@ -87,11 +87,9 @@ export interface Template {
     /** A numbered list of this many steps, at most `own` of them the
      *  business's own (issue 1486). Absent `own`, any may be. */
     steps?: { min: number; max: number; own?: number };
-    /** Buyer questions stored beside the page. `null`: the page's own
-     *  questions are its FAQ data and it stores no others. `asked`: none
-     *  at all unless the pack holds `min` answerable questions buyers asked
-     *  (E10). */
-    faq: { min: number; max: number; asked?: true } | null;
+    /** Buyer questions stored beside the page, each one of `pack.questions`. `null`: the page's own
+     *  questions are its FAQ data and it stores no others. */
+    faq: { min: number; max: number } | null;
     /** Every repeated section carries a date and a link to its source. */
     datedSources?: boolean;
   };
