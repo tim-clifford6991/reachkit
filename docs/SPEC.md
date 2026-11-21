@@ -55,6 +55,7 @@ A new dated ruling is its own file under `docs/spec/decisions/`, headed by the s
 | Billing names its real control | warn | The billing card's cancel line names its real control, filled from `settings.billing.manage`, on the Plan row. | owner R24, 2026-10-23, #1853 |
 | Pages read at weeks 2, 4 and 8 | warn | Each page is read at weeks 2, 4 and 8, with adaptive depth, at no added cost (§6). | owner D2, 2026-10-19, #1581 |
 | Pages kept 30 days | warn | After cancelling, pages are kept 30 days, with the export (§3). | owner D5, 2026-10-19, #1581 |
+| Raw page html kept 30 days | warn | An own or rendered page read keeps its html 30 days. Past that, a prune removes `html` from its payload once its facts and text are kept in `fetch_facts` and `fetch_text`. The cost columns, the rest of the payload and every derived row stay, and no row is deleted. | owner, 2026-11-18, #2836 |
 | Google visits | warn | Google visits are counted, after a light trust check (§7). | owner D6, 2026-10-19, #1581; owner, 2026-11-16, #2733 |
 | Daily spend ceiling | warn | The product spends at most 1,000¢ a day plus 100¢ per paying site (§6). | owner D7, 2026-10-19, #1581 |
 | Labs fallback for Showing | warn | "Showing" may come from a labelled Labs fallback (§7). | owner D8, 2026-10-19, #1581 |

@@ -891,10 +891,14 @@ select source, sum(cost_cents) as cents, count(*) as calls
  group by 1 order by 2 desc;
 ```
 
-**Retention.** An own or rendered page read keeps its html 30 days (owner, 2026-11-18, #2836).
-The prune is off since 2026-11-20 (owner ruling 63); its rework is #3047, steps listed there. The
-`account/maintenance` tick logs `page_html_prune` `off` and calls neither database function. The daily
-check reports the database's size against the plan's limit.
+**Retention.** An own or rendered page read keeps its html 30 days (SPEC §0). Each `account/maintenance`
+tick in production lists at most 10 due reads (`fetches_html_due`), then reads one payload at a time
+to write the facts and text a read lacks, never overwriting a kept row. It stops at 20 s or 4 MB of payload,
+then empties those reads' html once (`fetches_html_prune`). The log line is `page_html_pruned`
+(`listed`, `derived`, `pruned`, `bytes`, `ms`). Any failure writes one `ops_events` row of kind
+`page_html_prune`, and the prune logs `backoff` and does nothing for 6 h. To stop it, revoke execute on
+both functions from `service_role`: each tick then fails soft into back-off. The daily check reports the
+database's size against the plan's limit.
 Emptied rows free space inside the table; returning it to the plan's count (`vacuum full fetches`)
 is an operator step, done and recorded on its own.
 
