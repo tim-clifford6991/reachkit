@@ -76,6 +76,7 @@ import type { AccountStore } from "../../src/lib/account/store";
 
 const db = fakeDb();
 vi.mock("@/lib/db", () => ({ dbAdmin: () => db.client, db: () => db.client }));
+vi.mock("next/headers", () => ({ headers: async () => new Headers({ "x-forwarded-for": "203.0.113.7" }) }));
 
 // Every key resolves to itself, slots substituted — see the header.
 vi.mock("@/lib/presentation/copy", async (importOriginal) => {
@@ -125,12 +126,7 @@ const ADDRESS = "Anna@Acme.example";
 const NORMALISED = "anna@acme.example";
 const CUSTOMER_ID = "cus_journey_03";
 const SUBSCRIPTION_ID = "sub_journey_03";
-/** A period end a month ahead of the run, on a whole second. It was a fixed
- *  date, and the journey went red on main the day that date passed
- *  (2026-10-05): the gate reads it against the clock. */
 const PAID_THROUGH = new Date((Math.floor(Date.now() / 1000) + 30 * 86_400) * 1000);
-/** Before the payment, `users.paid_through` is the column's own default and
- *  the gate is shut. The journey is about what opens it. */
 const NEVER_PAID = new Date(0).toISOString();
 
 let accounts: MemoryAccounts;
@@ -320,8 +316,6 @@ function theReportsStart(): () => Promise<void> {
   return found[0] as () => Promise<void>;
 }
 
-/** Presses Start: the action answers with a redirect, and its digest names
- *  where the buyer is sent. */
 async function pressStart(): Promise<string> {
   const thrown: unknown = await theReportsStart()().then(
     () => undefined,
@@ -413,6 +407,12 @@ describe("Start → Checkout → webhook → magic link → /setup (JN-002 steps
     accounts.scans.set(SCAN_ID, { status: "running", domain: DOMAIN });
     const digest = await pressStart();
     expect(digest).toContain(`/scan/${DOMAIN}?checkout=refused`);
+    expect(vendor.created).toEqual([]);
+  });
+
+  it("a visitor past the checkout limit comes back with the marker and opens no session", async () => {
+    vi.spyOn(db.client, "rpc").mockImplementationOnce(() => Promise.resolve({ data: false, error: null }));
+    expect(await pressStart()).toContain(`/scan/${DOMAIN}?checkout=refused`);
     expect(vendor.created).toEqual([]);
   });
 
