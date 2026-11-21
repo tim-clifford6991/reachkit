@@ -75,7 +75,11 @@ export const publishRetry: JobDefinition = {
     const seen = new Set(retries.map((page) => page.draftId));
     const due = [...retries, ...approvals.filter((page) => !seen.has(page.draftId))];
     // Due pages go first so a slow re-check cannot run the hour out before they publish.
-    const results = await fanOut(due, (page) => publishApproved(page));
+    const results = await fanOut(due, async (page) => {
+      const result = await publishApproved(page);
+      await reportHold(page.draftId, "degraded" in result && result.degraded.startsWith("held:") ? result.degraded.slice("held:".length) : null);
+      return result;
+    });
     const { withdrawn } = await recheckLivePages(input.now);
     const { moved } = await repairMovedPages(input.now);
     // A live check whose request was lost at delivery is asked for again; the receiving job's key keeps it to one.
@@ -87,3 +91,16 @@ export const publishRetry: JobDefinition = {
     return settle(results, null);
   },
 };
+
+const HELD = "publish_held";
+
+/** A page's hold is reported when it begins or changes guard, not every hour; its end is kept so a later hold reports
+ *  again. An unreadable history reports the hold rather than lose it. */
+async function reportHold(draftId: string, guard: string | null): Promise<void> {
+  const code = guard ?? "released";
+  const { latestOpsEventCode, recordOpsEvent } = await import("@/lib/ops/events");
+  const last = await latestOpsEventCode(HELD, draftId).then((found) => found ?? "released", () => null);
+  if (last === code || (last === null && guard === null)) return;
+  if (guard !== null) console.log(JSON.stringify({ event: HELD, draftId, guard }));
+  await recordOpsEvent(HELD, draftId, code);
+}
