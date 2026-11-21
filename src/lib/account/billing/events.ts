@@ -45,7 +45,7 @@ export type SubscriptionEventOutcome =
   /** Received, understood, and correctly nothing: a replay, an event about
    *  a subscription no account here owns, or one carrying no period to
    *  advance to. None of the three is a failure. */
-  | { applied: false; because: "replay" | "no_account" | "no_period" | "vendor" };
+  | { applied: false; because: "replay" | "no_account" | "no_period" };
 
 /** The subscription an event is about, as the vendor holds it now.
  *  `customer.subscription.*` carries a snapshot; the two invoice events
@@ -90,7 +90,8 @@ async function accountOf(subscription: Stripe.Subscription): Promise<BillingRow 
 
 export async function onSubscriptionEvent(event: Stripe.Event): Promise<SubscriptionEventOutcome> {
   const read = await subscriptionOf(event);
-  if (read === null) return { applied: false, because: "vendor" };
+  // Every invoice here is a subscription's, so one naming none is a payload shape or read gone wrong, not an answer.
+  if (read === null) redeliver("invoice_subscription");
   const { subscription, current } = read;
 
   const account = await accountOf(subscription);

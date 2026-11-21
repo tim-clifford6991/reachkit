@@ -26,7 +26,9 @@ let client: Stripe | null = null;
  *  bindings `src/lib/config/env.ts` marks server-only, so reading it from a
  *  client bundle throws there rather than leaking a key here. */
 export function stripe(): Stripe {
-  if (client === null) client = new Stripe(env.STRIPE_SECRET_KEY);
+  // The live webhook endpoint's version, so API reads and delivered events share one shape (docs/RUNBOOK.md › Stripe dashboard).
+  // @ts-expect-error the SDK types only its own latest version.
+  if (client === null) client = new Stripe(env.STRIPE_SECRET_KEY, { apiVersion: "2026-05-27.dahlia" });
   return client;
 }
 

@@ -299,12 +299,11 @@ describe("idempotence, and the direction the gate may move", () => {
     expect(storedUser(state).paid_through).toBe(periodEnd.toISOString());
   });
 
-  it("a subscription Stripe does not hold is `vendor` with 200, and writes nothing", async () => {
+  it("a subscription Stripe does not hold answers 500, so it is delivered again, and writes nothing", async () => {
     paying({ paidThrough: NOW });
     const event = invoiceEvent({ type: "invoice.paid" });
 
-    expect(await onSubscriptionEvent(event)).toEqual({ applied: false, because: "vendor" });
-    expect(await deliver(event)).toBe(200);
+    expect(await deliver(event)).toBe(500);
     expect(storedUser(state).paid_through).toBe(NOW.toISOString());
   });
 
@@ -363,14 +362,14 @@ describe("events with nothing to apply", () => {
     expect(await deliver(event)).toBe(200);
   });
 
-  it("an invoice with no subscription parent is `vendor`, and writes nothing", async () => {
+  it("an invoice with no subscription parent is redelivered, and writes nothing", async () => {
     paying({ paidThrough: NOW });
     const orphan = {
       id: "evt_x",
       type: "invoice.paid",
       data: { object: { id: "in_1", parent: null } },
     } as unknown as Parameters<typeof onSubscriptionEvent>[0];
-    expect(await onSubscriptionEvent(orphan)).toEqual({ applied: false, because: "vendor" });
+    await expect(onSubscriptionEvent(orphan)).rejects.toThrow("redelivered");
     expect(storedUser(state).paid_through).toBe(NOW.toISOString());
   });
 
