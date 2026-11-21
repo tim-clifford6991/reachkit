@@ -37,7 +37,10 @@ export async function sendToWebPerson(a: { host: string; to: string }): Promise<
   if (buyer === null) return { outcome: "failed" };
 
   const { takeLimits } = await import("@/lib/limits");
-  if (!(await takeLimits("web_person", { site: site.siteId }))) return { outcome: "refused", because: "limited" };
+  // The 3-a-day cap protects the sender's reputation, so an unreadable count refuses instead of allowing.
+  const taken = await takeLimits("web_person", { site: site.siteId }, "unavailable" as const);
+  if (taken === "unavailable") return { outcome: "failed" };
+  if (!taken) return { outcome: "refused", because: "limited" };
 
   const { dnsWhereFrom, dnsZoneOf } = await import("@/lib/publish/destinations/hosted/dns-provider");
   const { guideView } = await import("@/lib/publish/destinations/hosted/dns-guide");
@@ -47,6 +50,8 @@ export async function sendToWebPerson(a: { host: string; to: string }): Promise<
 
   const { buildWebPersonMail } = await import("@/lib/mail/templates/web-person");
   const { sendEmail } = await import("@/lib/mail/send");
+  const { wireSuppressionReader } = await import("@/lib/mail/leads/wire");
+  wireSuppressionReader();
   const mail = buildWebPersonMail({ domain, host, view: guideView({ record, where, zone }) });
   const sent = await sendEmail({ kind: "web-person", to, replyTo: buyer.email, event: `${host}/${new Date().toISOString().slice(0, 10)}`, ...mail });
   return sent.sent ? { outcome: "sent" } : { outcome: "failed" };
