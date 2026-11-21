@@ -31,7 +31,7 @@ import { dayKeyOf, gridDays, monthOf, planHorizonEnd, planWeek, type DayKey, typ
  *
  *  **One name and one shape since issue 930**: `TargetFacts` is the single
  *  projection the day panel and the draft screen both read, and
- *  `TargetRows` is the single renderer of it. What used to be this screen's
+ *  This Week's model (`week-screen.ts`) is the single reader of it. What used to be this screen's
  *  own interface — `PageTarget` plus two members nobody else had — is that
  *  type, so there is nothing left here to drift.
  *
@@ -126,6 +126,10 @@ export interface DraftOnDay {
   /** The one line saying why the week holds this page, from the reason its
    *  commit stored; `null` where none is stored. */
   whyLine: string | null;
+  /** When work on the day began: the day job's stamp, else the draft's insert. */
+  startedAt?: Date | null;
+  /** The customer took the page off its day, by a transition they made. */
+  stoppedByYou?: boolean;
 }
 
 export interface PageOnDay extends DraftOnDay {
@@ -162,6 +166,8 @@ export interface DayCell {
    *  after the horizon that holds no written page (issue 857). */
   page: PageOnDay | null;
   empty: EmptyAccount | null;
+  /** A stopped day whose stop the customer made. */
+  stoppedByYou?: boolean;
 }
 
 export interface MonthModel {
@@ -312,7 +318,7 @@ export function assembleMonth(facts: CalendarFacts, month: MonthKey): MonthModel
     }
     const dayFacts = emptyFactsFor(day, facts, draft);
     const empty = when === "past" ? pastAccount(dayFacts) : when === "plan" ? accountFor(dayFacts) : null;
-    return { ...base, page: null, empty };
+    return { ...base, page: null, empty, ...(draft?.stoppedByYou === true ? { stoppedByYou: true } : {}) };
   });
 
   // Each site-wide statement once (issue 857): supply at the calendar's top
@@ -413,6 +419,7 @@ export function cellFor(model: MonthModel, day: DayKey): DayCell | undefined {
  *  day supply had nothing worth writing for is `skipped`. */
 export function dayStateOf(cell: DayCell): DayState | null {
   if (cell.page !== null) {
+    if (cell.page.state === "generating") return "writing";
     return cell.page.stage === "live" ? "live" : cell.page.stage === "planned" ? "planned" : "written";
   }
   const cause = cell.empty?.cause;

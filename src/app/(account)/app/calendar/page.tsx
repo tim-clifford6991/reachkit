@@ -1,11 +1,10 @@
-// SPEC §7 — Plan, at `/app/calendar`: the committed week as one row per day
-// (E5, 2026-10-19), its spares under it, and every page published.
+// SPEC §7 *This week*, at `/app/calendar`: one card a day and the pane a
+// card opens, its spares and every page published under the cards.
 //
-// The screen reads the week once — `readWeek`, request-cached — and hands
-// it to one client component that owns the two interactions (`CalendarView`:
-// which stage is showing, which day the panel is on). Everything else here
-// is server-rendered, and what the week does not need streams in after it
-// in its own boundary, with no fallback: `loading.tsx` draws no box for it.
+// The screen reads the week once — `readWeek`, request-cached — builds the
+// one screen model from it (`weekScreen`), and hands that to the one client
+// component that owns which day the pane is on. The bodies of the week's
+// written pages are rendered here, on the server.
 //
 // **`Suspense`**: `nuqs` reads the query string through Next's own
 // `useSearchParams`, which a client component may only do inside a boundary
@@ -19,65 +18,60 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import { copy } from "@/lib/presentation/copy";
 import { CalendarView } from "./CalendarView";
-import { PlanHead, planHeadWords } from "./PlanHead";
-import { WeekFoot, WeekHead, weekGoesLive } from "./WeekCard";
-import { addDays, longDate, weekRange } from "./dates";
-import { zonePlace } from "../settings/format";
+import { PlanHead } from "./PlanHead";
 import { PlanSkeleton } from "./PlanSkeleton";
 import { PLAN } from "./frame";
-import { planToday, readPlanHead, readPlanPublished, readStalledWeek, readSupplyNotice, readWeek } from "./provider";
+import { planToday, readPlanHead, readPlanPublished, readStalledWeek, readSupplyNotice, readWeek, readWeekBodies } from "./provider";
 import { stalledLine, supplyLine } from "./supply";
 import { readOnboarding } from "../_shell/onboarding";
 import { FirstPageNotice } from "../_shell/OnboardingStatus";
 import { SupplyNotice } from "./SupplyNotice";
 import { PublishedList, updateDays } from "./PublishedList";
 import { contentOf } from "@/lib/measure/published";
-import type { WeekModel } from "./month";
+import { demoteHeadings, parseMarkdown, toHtml } from "@/lib/publish/render/markdown";
+import { DRAFT_BODY_CLASSES } from "../draft/[draftId]/present";
+import { weekScreen } from "./week-screen";
 
-/** /app/calendar's own `<title>` (#945). Without it this screen announced
- *  nothing at all — the `(account)` layout's fallback is the floor, not
- *  the name of this screen. */
+/** /app/calendar's own `<title>`. */
 export const metadata: Metadata = { title: copy("meta.app.plan.title") };
 
 export default async function CalendarPage(): Promise<React.JSX.Element> {
   // Started before the week is awaited and awaited in their own boundaries below, so none holds it.
-  for (const read of [readSupplyNotice(), readStalledWeek(), readPlanPublished()]) read.catch(() => null);
-  const [week, onboarding, head] = await Promise.all([planToday().then(readWeek), readOnboarding(), readPlanHead()]);
-  const first = week.cells[0]?.day ?? week.today;
-  const last = week.cells.at(-1)?.day ?? week.today;
-  const time = weekGoesLive(week, head.publishTime);
+  for (const read of [readSupplyNotice(), readStalledWeek()]) read.catch(() => null);
+  const [week, onboarding, head, published] = await Promise.all([planToday().then(readWeek), readOnboarding(), readPlanHead(), readPlanPublished().catch(() => null)]);
+  const screen = weekScreen({ week, head, published });
+  const written = screen.cards.flatMap((card) => (card.pane.kind === "page" && card.cell.page?.draftId != null ? [card.cell.page.draftId] : []));
+  const bodies = Object.fromEntries(
+    [...(await readWeekBodies(written).catch(() => new Map<string, string>()))].map(([id, bodyMd]) => [
+      id,
+      // The one serialiser escapes every text node, so its HTML is safe to set as is.
+      <div key={id} className="min-w-0 break-words" dangerouslySetInnerHTML={{ __html: toHtml(demoteHeadings(parseMarkdown(bodyMd)), DRAFT_BODY_CLASSES) }} />,
+    ])
+  );
   return (
     <div className={PLAN}>
-      <PlanHead words={planHeadWords(head, week.counts.all)} />
+      <PlanHead words={screen.head} />
 
       <FirstPageNotice state={onboarding} />
-      {/* §7's one statement of supply, at the calendar's top and nowhere
-          else: no cell and no day panel repeats it (issue 857). */}
+      {/* §7's one statement of supply, at the screen's top and nowhere else. */}
       <Suspense fallback={null}>
         <Supply timeZone={week.timeZone} />
       </Suspense>
-      {/* Issue 1184: why pages stall, as one line under the statement of supply. */}
+      {/* Why pages stall, as one line under the statement of supply. */}
       <Suspense fallback={null}>
         <Stalled />
       </Suspense>
       <Suspense fallback={<PlanSkeleton />}>
         <CalendarView
           week={week}
-          goesLive={time}
-          head={
-            <WeekHead
-              range={weekRange(first, last)}
-              time={time === null ? null : copy("calendar.week.time", { time, place: zonePlace(week.timeZone) })}
-            />
+          screen={screen}
+          bodies={bodies}
+          published={
+            published === null ? null : (
+              <PublishedList content={contentOf(published)} timeZone={week.timeZone} now={published.now} updates={updateDays(week)} />
+            )
           }
-          foot={<WeekFoot next={longDate(addDays(first, 7))} />}
         />
-      </Suspense>
-
-      {/* Every page published (issue 1457): what Overview's Content tile
-          counts, and where it opens. */}
-      <Suspense fallback={null}>
-        <Published week={week} />
       </Suspense>
     </div>
   );
@@ -96,9 +90,4 @@ async function Stalled(): Promise<React.JSX.Element | null> {
       {line}
     </p>
   );
-}
-
-async function Published({ week }: { week: WeekModel }): Promise<React.JSX.Element> {
-  const published = await readPlanPublished();
-  return <PublishedList content={contentOf(published)} timeZone={week.timeZone} now={published.now} updates={updateDays(week)} />;
 }

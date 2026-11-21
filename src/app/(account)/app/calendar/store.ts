@@ -59,6 +59,7 @@ import { readStop } from "../_shell/stop";
 import { plannedByDay } from "@/lib/opportunities/days";
 import { opportunityStore } from "@/lib/opportunities/store";
 import { readPublishingFacts, type ScheduledPage } from "./drafts-read";
+import { publishDb } from "@/lib/publish/db";
 import { weekStartFor } from "@/lib/scan/weekly/week";
 import type { PageStanding } from "./day-number";
 import type { BestRival } from "./target";
@@ -196,6 +197,8 @@ function pageOn(a: {
   standing: PageStanding | null;
   /** Whether the committed week's row for the page's date reads as a new page; `false` where none can be read. */
   plannedNew: boolean;
+  /** When work on the page's day began. */
+  startedAt: Date | null;
   now: Date;
 }): DraftOnDay {
   const at = measuredAtOf(a.choice, a.now);
@@ -229,6 +232,8 @@ function pageOn(a: {
     update: isUpdate(a.choice),
     ...replacesOf(a.choice),
     whyLine: whySentenceOf(a.choice.planReason),
+    startedAt: a.startedAt,
+    stoppedByYou: a.page.stoppedByCustomer,
   };
 }
 
@@ -397,6 +402,17 @@ export const siteDepth = cache((siteId: string) => supplyDepth(siteId));
  * prove, which would tell a customer their market is empty on a day the
  * database merely broke.
  */
+/** The stored body of each of these drafts of the site that has one. */
+export async function bodiesOf(siteId: string, draftIds: readonly string[]): Promise<ReadonlyMap<string, string>> {
+  const { data, error } = await publishDb()
+    .from<{ id: string; body_md: string | null }>("drafts")
+    .select("id, body_md")
+    .eq("site_id", siteId)
+    .in("id", [...draftIds]);
+  if (error !== null || data === null) throw new Error(`bodiesOf(${siteId}): could not read the week's bodies`);
+  return new Map(data.flatMap((row) => (row.body_md === null || row.body_md.trim() === "" ? [] : [[row.id, row.body_md] as const])));
+}
+
 export async function readCalendarFacts(a: {
   site: CalendarSite;
   month: MonthKey;
@@ -468,6 +484,7 @@ export async function readCalendarFacts(a: {
         publishAt: publishing.publishAt.get(page.draftId) ?? null,
         standing: page.liveUrl === null ? null : (standings.get(page.liveUrl) ?? null),
         plannedNew: planned === "write" || planned === "earn",
+        startedAt: publishing.startedAt.get(page.scheduledFor as DayKey) ?? null,
         now: a.now,
       })
     );

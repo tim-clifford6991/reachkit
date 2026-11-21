@@ -189,3 +189,11 @@ export const readPlanHead = cache(async function readPlanHead(): Promise<PlanHea
     publishTime: settings?.publishTime ?? null,
   };
 });
+
+/** The body as written of each of the week's written pages, by draft; empty for the fixture account. */
+export const readWeekBodies = cache(async function readWeekBodies(draftIds: readonly string[]): Promise<ReadonlyMap<string, string>> {
+  const site = await currentCalendarSite();
+  if (site === null || draftIds.length === 0) return new Map();
+  const { bodiesOf } = await import("./store");
+  return bodiesOf(site.siteId, draftIds);
+});
