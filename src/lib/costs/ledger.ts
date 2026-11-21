@@ -181,7 +181,8 @@ export async function prunePageHtml(now: Date = new Date()): Promise<void> {
         dealt.push(read.id);
         continue;
       }
-      if (Date.now() - started >= PRUNE_MS || bytes + read.stored_bytes > PRUNE_BYTES) break;
+      // The first payload goes through whatever its size, so one read over the budget cannot hold the queue.
+      if (Date.now() - started >= PRUNE_MS || (bytes > 0 && bytes + read.stored_bytes > PRUNE_BYTES)) break;
       bytes += read.stored_bytes;
       const [row] = ok(await client.from<{ payload: unknown }>("fetches").select("payload").eq("id", read.id)) ?? [];
       if (row === undefined) continue;

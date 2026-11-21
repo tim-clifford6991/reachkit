@@ -893,9 +893,10 @@ select source, sum(cost_cents) as cents, count(*) as calls
 
 **Retention.** An own or rendered page read keeps its html 30 days (SPEC §0). Each `account/maintenance`
 tick in production lists at most 10 due reads (`fetches_html_due`), then reads one payload at a time
-to write the facts and text a read lacks, never overwriting a kept row. It stops at 20 s or 4 MB of payload,
-then empties those reads' html once (`fetches_html_prune`). The log line is `page_html_pruned`
-(`listed`, `derived`, `pruned`, `bytes`, `ms`). Any failure writes one `ops_events` row of kind
+to write the facts and text a read lacks, never overwriting a kept row. It stops at 20 s or 4 MB of stored
+payload, though a tick's first read goes through whatever its size, so one oversized read cannot stall it.
+It then empties those reads' html once (`fetches_html_prune`). The log line is `page_html_pruned`
+(`listed`, `derived`, `pruned`, `bytes` as stored, `ms`). Any failure writes one `ops_events` row of kind
 `page_html_prune`, and the prune logs `backoff` and does nothing for 6 h. To stop it, revoke execute on
 both functions from `service_role`: each tick then fails soft into back-off. The daily check reports the
 database's size against the plan's limit.
