@@ -47,19 +47,15 @@
 // there is no document to stand it on and standing it on one would be
 // photographing something it never is. `screens.test.tsx` holds its shape.
 import type { Page } from "playwright";
+import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { getAccountCookie, getSetupAccountCookie } from "./browser";
 import { SEGMENT_FIXTURES, type EnumeratedRoute } from "./routes";
-// Relative, not `@/`, and for one reason: these are the same imports
-// `tests/app/fallback/screens.test.tsx` and `loading.test.tsx` already make,
-// written the same way. A route group's parentheses and a dynamic segment's
-// brackets are ordinary path characters, but they are ordinary path
-// characters that only one spelling in this repository has ever been run.
-// The screen, not the boundary: `(public)/error.tsx` is a `lazy()` wrapper
-// since #988 and renders nothing synchronously.
+// The screen, not the boundary: `(public)/error.tsx` is a `lazy()` wrapper that renders nothing synchronously.
 import PublicError from "../../../src/app/(public)/_fallback/PublicErrorBody";
 import AccountNotFound from "../../../src/app/(account)/not-found";
 import AccountError from "../../../src/app/(account)/error";
+import AppError from "../../../src/app/(account)/app/error";
 import ReportLoading from "../../../src/app/(public)/scan/[domain]/loading";
 import OverviewLoading from "../../../src/app/(account)/app/(tabs)/loading";
 
@@ -151,6 +147,12 @@ export function unenumeratedSurfaces(): readonly UnenumeratedSurface[] {
       route: { path: "/setup", cookie: getSetupAccountCookie() },
       stand: { selector: SCREEN_ROOT, markup: renderToStaticMarkup(AccountError()) },
     },
+    // A failed /app screen replaces the Overview's content well, inside the shell.
+    {
+      name: "fallback-app-error",
+      route: { path: "/app", cookie: getAccountCookie() },
+      stand: { selector: OVERVIEW_ROOT, markup: renderToStaticMarkup(createElement(AppError, { error: Object.assign(new Error("x"), { digest: "1234567890" }), retry: () => {} })) },
+    },
     // The two waiting states (#327). The report's is a screen root of its
     // own, like the seven arms it stands in for; the app's is not — it
     // replaces the Overview's content well and the shell stays drawn around
@@ -195,9 +197,7 @@ export function unenumeratedSurfaces(): readonly UnenumeratedSurface[] {
  */
 const HYDRATED = "next-route-announcer";
 
-/** Long enough for the report to hydrate on a cold CI runner, short enough
- *  that a page which never hydrates fails saying so rather than timing out
- *  the whole `it`. */
+/** Long enough for a cold CI runner to hydrate the report; short enough to fail saying so. */
 const HYDRATION_MS = 30_000;
 
 /**
