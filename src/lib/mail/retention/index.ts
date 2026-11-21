@@ -60,7 +60,7 @@ export async function sendPaymentFailed(userId: string, now: Date = new Date()):
   if (account === null || !paymentFailedDue(account)) return notDue(kind, userId);
 
   const mail = buildPaymentFailed();
-  const result = await sendEmail({ kind, to: account.email, event: userId, ...mail });
+  const result = await sendEmail({ kind, to: account.email, event: `${userId}/${account.paidThrough.toISOString()}`, ...mail });
   if (!result.sent) return withheld(kind, userId, result);
   await store.stampAccount(userId, "payment_failed_mailed_at", now);
   return sentTouch(kind, userId);

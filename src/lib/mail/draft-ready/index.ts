@@ -28,6 +28,7 @@ import {
 } from "@/lib/publish/publishable";
 import type { DestinationKind } from "@/lib/publish/types";
 import { sendEmail } from "../send";
+import { pairKeyOf } from "@/lib/publish/settings/pair";
 import {
   buildDraftReady,
   type DraftReadyPage,
@@ -148,8 +149,8 @@ export async function sendDraftReadyMail(a: {
   const result = await sendEmail({
     kind: "draft-ready",
     to: account.email,
-    // The draft, not its date: a draft set aside and its date written again is a new draft and a new mail.
-    event: a.draftId,
+    // The draft and its pair, not its date: a new draft, or a changed mode or window, is owed a fresh telling.
+    event: `${a.draftId}/${pairKeyOf(draft.governing)}`,
     userId: account.userId,
     subject: mail.subject,
     preheader: mail.preheader,

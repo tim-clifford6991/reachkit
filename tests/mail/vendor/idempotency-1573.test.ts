@@ -65,4 +65,15 @@ describe("Idempotency-Key on every send", () => {
     expect(keys[1]).toBe(keys[0]);
     expect(new Set(keys).size).toBe(2);
   });
+
+  it("one draft told again under a changed mode or window carries a second key; the same pair, one", async () => {
+    const { pairKeyOf } = await import("../../../src/lib/publish/settings/pair");
+    const pair = { mode: "autopilot" as const, vetoHours: 24, publishTime: "09:00", timezone: "Europe/Dublin" };
+    await sendViaVendor(mail("draft-ready", "the text body", `draft-1/${pairKeyOf(pair)}`));
+    await sendViaVendor(mail("draft-ready", "reworded", `draft-1/${pairKeyOf({ ...pair })}`));
+    await sendViaVendor(mail("draft-ready", "the text body", `draft-1/${pairKeyOf({ ...pair, vetoHours: 0 })}`));
+    const keys = requests.map((request) => request.headers["Idempotency-Key"]);
+    expect(keys[1]).toBe(keys[0]);
+    expect(new Set(keys).size).toBe(2);
+  });
 });

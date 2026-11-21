@@ -15,7 +15,7 @@ export {
   type PublishingSettings,
   type SettingsField,
 } from "./settings";
-export { pairOf, samePair, settingsOf } from "./pair";
+export { pairKeyOf, pairOf, samePair, settingsOf } from "./pair";
 export { nextPublishTimeAtOrAfter, publishDateAtOrAfter } from "./clock";
 export { NOT_YET_PUBLISHED, isNotYetPublished, newVetoDeadline, type ReDeadlineInput } from "./apply";
 export {
