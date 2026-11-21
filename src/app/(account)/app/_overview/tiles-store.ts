@@ -74,7 +74,7 @@ export async function readTileRows(a: { siteId: string; domain: string; week: st
       firstPage: firstPageOf(row.serps, a.domain),
       report: {
         questions: row.questions ?? NOT_READ,
-        serps: (row.serps ?? []) as PlaceReport["serps"],
+        serps: (row.serps ?? []) as unknown as PlaceReport["serps"],
         ownRanked: row.ownRanked ?? NOT_READ,
         ownRankedRows: row.ownRankedRows ?? [],
         pageQuestions: row.pageQuestions ?? null,
