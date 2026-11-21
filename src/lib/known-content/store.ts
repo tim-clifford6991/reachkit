@@ -7,8 +7,7 @@
 //   `writeKnownSource`  replaces one source's rows for one site, whole. A
 //                       refresh is the same fact re-read, not a second fact:
 //                       a post deleted on the customer's blog must leave the
-//                       index, and a per-row upsert would leave it behind
-//                       for ever.
+//                       index, so the rows the refresh did not see go.
 //   `readKnownContent`  the site's whole index, for the readers that do no
 //                       matching — the link candidates and the count.
 //   `nearKnownContent`  the rows worth scoring against one planned topic,
@@ -34,11 +33,12 @@ interface MinimalResult<T> {
 }
 interface MinimalQuery<T> extends PromiseLike<MinimalResult<T>> {
   select(columns: string, options?: { count: "exact"; head: true }): MinimalQuery<T>;
-  insert(values: Record<string, unknown>[]): MinimalQuery<T>;
+  upsert(values: Record<string, unknown>[], options: { onConflict: string }): MinimalQuery<T>;
   delete(): MinimalQuery<T>;
   eq(column: string, value: unknown): MinimalQuery<T>;
   in(column: string, values: readonly unknown[]): MinimalQuery<T>;
   is(column: string, value: unknown): MinimalQuery<T>;
+  lt(column: string, value: unknown): MinimalQuery<T>;
   not(column: string, operator: string, value: unknown): MinimalQuery<T>;
   order(column: string, options: { ascending: boolean; nullsFirst?: boolean }): MinimalQuery<T>;
   limit(n: number): MinimalQuery<T>;
@@ -99,8 +99,9 @@ function isSource(value: string): value is KnownSource {
   return value === "reachkit" || value === "wordpress" || value === "site";
 }
 
-function rowOf(siteId: string, page: KnownPage): Record<string, unknown> {
+function rowOf(siteId: string, page: KnownPage, seenAt: string): Record<string, unknown> {
   return {
+    seen_at: seenAt,
     site_id: siteId,
     source: page.source,
     ref: page.ref,
@@ -115,11 +116,12 @@ function rowOf(siteId: string, page: KnownPage): Record<string, unknown> {
 /**
  * Replaces everything this site holds from one source.
  *
- * Delete then insert, in that order and not as an upsert: the index must
- * mirror the source, and a post the customer deleted is gone from their blog
- * the moment they delete it. A refresh that could only add would make the
- * index grow for ever and would answer "already covered" about a page that
- * no longer exists.
+ * The new rows are written first, stamped with this refresh's `seen_at`, and
+ * only then are the rows it did not see removed: a post the customer deleted
+ * leaves the index, and a write that fails half way leaves the previous
+ * reading whole rather than an empty index the planner would read as "nothing
+ * covered". A removal that fails leaves extra rows until the next refresh,
+ * never too few.
  *
  * One source at a time, so a WordPress read that fails leaves our own pages
  * and the crawl's exactly as they were.
@@ -130,21 +132,23 @@ export async function writeKnownSource(a: {
   pages: readonly KnownPage[];
 }): Promise<void> {
   const client = untyped();
+  const seenAt = new Date().toISOString();
+  if (a.pages.length > 0) {
+    const written = await client
+      .from<KnownRow>("known_content")
+      .upsert(a.pages.map((page) => rowOf(a.siteId, page, seenAt)), { onConflict: "site_id,source,ref" });
+    if (written.error) {
+      throw new Error(`known content: writing ${a.source} for ${a.siteId}: ${written.error.message}`);
+    }
+  }
   const removed = await client
     .from<KnownRow>("known_content")
     .delete()
     .eq("site_id", a.siteId)
-    .eq("source", a.source);
+    .eq("source", a.source)
+    .lt("seen_at", seenAt);
   if (removed.error) {
     throw new Error(`known content: clearing ${a.source} for ${a.siteId}: ${removed.error.message}`);
-  }
-  if (a.pages.length === 0) return;
-
-  const inserted = await client
-    .from<KnownRow>("known_content")
-    .insert(a.pages.map((page) => rowOf(a.siteId, page)));
-  if (inserted.error) {
-    throw new Error(`known content: writing ${a.source} for ${a.siteId}: ${inserted.error.message}`);
   }
 }
 
