@@ -110,6 +110,9 @@ const schema = z.object({
   // product calls the model with cannot read it. `.optional()`: without it AI
   // spend is shown as estimated, and nothing else changes.
   ANTHROPIC_ADMIN_KEY: z.string().min(1).optional(),
+  // The mail vendor's webhook signing secret. `.optional()`: without it every
+  // webhook is refused, and mail goes out as before.
+  RESEND_WEBHOOK_SECRET: z.string().min(1).optional(),
   // ReachKit verifies every hosted host in Search Console under its own
   // account. The binding is the service-account key JSON, or a JSON array of
   // them: Search Console holds 1,000 properties per account, so the array is
@@ -147,6 +150,8 @@ const SERVER_ONLY_KEYS = [
   "POSTHOG_API_KEY",
   // An admin key reads the organisation's billing.
   "ANTHROPIC_ADMIN_KEY",
+  // A signing secret is what makes a forged bounce unacceptable.
+  "RESEND_WEBHOOK_SECRET",
   // A service-account key that acts on every verified host.
   "GOOGLE_SEARCH_CONSOLE_KEYS",
 ] as const satisfies readonly (keyof Env)[];

@@ -9,7 +9,7 @@ export type SequenceState = "waiting" | "running" | "finished" | "dropped" | "st
 /** Criterion 8's two owed things, each written-but-unsent state, and the terminal state where neither arrived. */
 export type FirstPageState = "pending" | "written" | "sent" | "notice_sent" | "abandoned";
 
-export type SuppressionCause = "opt_out" | "subscribed";
+export type SuppressionCause = "opt_out" | "subscribed" | "bounced" | "complained";
 
 /** The report's one free page, on the scan. `writing` is a claim, `written` carries the page, `refused` is recorded once; unclaimed is `null`. */
 export type ScanFirstPage =

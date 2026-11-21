@@ -86,7 +86,9 @@ export type OpsIncident =
   // No error: a Google result bought on the normal queue read as nothing. `wrapped`: its links are Google redirects; `empty`: no result where the last read had some.
   | { occasion: "serp-unreadable"; cause: "wrapped" | "empty" }
   // No error: DataForSEO credit runs out within a week. Days left is null where last week's spend was not measured.
-  | { occasion: "vendor-low"; balanceCents: number; daysLeft: number | null; dashboard: string };
+  | { occasion: "vendor-low"; balanceCents: number; daysLeft: number | null; dashboard: string }
+  // No error: a paying account's address bounced or complained, and its follow-up mail stopped. Owner-only, so each paying site is named.
+  | { occasion: "mail-stopped"; domains: readonly string[]; cause: "bounced" | "complained" };
 
 type ReplanRow = { date: string | null; search: string | null; page: string; type: string; points: number | null };
 
@@ -114,6 +116,7 @@ const BODY: Readonly<Record<OpsIncident["occasion"], CopyKey>> = Object.freeze({
   "vendor-low": "mail.ops.incident.vendor-low",
   "replan-committed": "ops.replan.committed",
   "serp-unreadable": "ops.serp.unreadable",
+  "mail-stopped": "ops.mail-stopped",
 });
 
 /** A stopped page's sentence on one line, cut where a mail row stops being readable. */
@@ -213,6 +216,9 @@ function factsOf(incident: OpsIncident): FactRow[] {
         ...site.after.map((r): FactRow => ({ label: "ops.replan.fact.replanned", value: row(r) })),
       ]),
     ];
+  }
+  if (incident.occasion === "mail-stopped") {
+    return [...incident.domains.map((domain): FactRow => ({ label: "mail.ops.incident.fact.site", value: closedDomain(domain) })), { label: "mail.ops.incident.fact.cause", value: closedName(incident.cause) }];
   }
   if (incident.occasion === "serp-unreadable") return [{ label: "mail.ops.incident.fact.cause", value: closedName(incident.cause) }];
   if (incident.occasion === "market-too-small") {
