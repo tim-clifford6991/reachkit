@@ -426,7 +426,7 @@ const { chooseWholeMailLine } = await import("../../src/lib/mail/shell/compose")
 const { sendEmail } = await import("../../src/lib/mail/send");
 const { sendWeeklyDigest } = await import("../../src/lib/mail/weekly");
 const { copy } = await import("../../src/lib/presentation/copy");
-const { COPY, COPY_META } = await import("../../src/lib/presentation/copy/registry");
+const { COPY, slotsOf } = await import("../../src/lib/presentation/copy/registry");
 const { escapeHtml } = await import("../mail/escape");
 const { readWeek: weekStrip, CALENDAR_HREF } = await import("../../src/app/(account)/app/_overview/week");
 const { measured, unmeasured } = await import("../../src/lib/measure/measured");
@@ -819,7 +819,7 @@ describe("Monday: the week is re-measured, judged, and told (JN-005)", () => {
       expect(Object.keys(COPY), key).toContain(key);
       expect(COPY[key], key).not.toBe("");
       // `copy()` renders it, every declared slot filled with its value.
-      const slots = Object.keys(COPY_META[key].slots);
+      const slots = slotsOf(COPY[key]);
       const said = copy(key, Object.fromEntries(slots.map((slot) => [slot, `${slot}-value`])));
       expect(said, key).not.toBe("");
       expect(said, key).not.toMatch(/\{\w+\}/);

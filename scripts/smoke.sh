@@ -118,7 +118,7 @@ pin() {
 # `copy_text <key>` — the sentence the copy registry binds to <key>. The
 # script never carries a user-facing sentence of its own (CLAUDE.md).
 copy_text() {
-  sed -n "s/.*\"$1\": *\[\"\([^\"]*\)\".*/\1/p" "$REPO"/src/lib/presentation/copy/keys/*.ts | head -1
+  sed -n "s/.*\"$1\": *\"\([^\"]*\)\".*/\1/p" "$REPO"/src/lib/presentation/copy/keys/*.ts | head -1
 }
 
 # `notices_clear <page>` — the report says neither that it is incomplete nor

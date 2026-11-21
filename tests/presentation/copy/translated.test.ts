@@ -3,7 +3,7 @@
 // promises: it fills the same slots, and a key with no translation is shown
 // in English rather than breaking the screen.
 import { describe, expect, it } from "vitest";
-import { COPY, COPY_META, copy, type CopyKey } from "@/lib/presentation/copy";
+import { COPY, copy, slotsOf, type CopyKey } from "@/lib/presentation/copy";
 import { TRANSLATIONS, copyIn, translationOf } from "@/lib/presentation/copy/translated";
 
 const slotsIn = (text: string): string[] => [...new Set([...text.matchAll(/\{([A-Za-z0-9_]+)\}/g)].map((match) => match[1]!))].sort();
@@ -18,7 +18,7 @@ describe("the German overlay", () => {
         wrong.push(`${key}: not a registry key`);
         continue;
       }
-      const declared = Object.keys(COPY_META[key as CopyKey].slots).sort();
+      const declared = slotsOf(COPY[key as CopyKey]).sort();
       if (text === undefined || text.trim() === "") wrong.push(`${key}: no sentence`);
       else if (JSON.stringify(slotsIn(text)) !== JSON.stringify(declared.filter((slot) => COPY[key as CopyKey].includes(`{${slot}}`)))) {
         wrong.push(`${key}: slots ${slotsIn(text).join(",") || "none"}, the key has ${declared.join(",") || "none"}`);
@@ -37,7 +37,7 @@ describe("the German overlay", () => {
 
   it("shows English for a key the overlay does not hold, and still refuses a missing slot", () => {
     const untranslated = (Object.keys(COPY) as CopyKey[]).find(
-      (key) => translationOf(key, "de") === undefined && Object.keys(COPY_META[key].slots).length === 0 && COPY[key] !== ""
+      (key) => translationOf(key, "de") === undefined && slotsOf(COPY[key]).length === 0 && COPY[key] !== ""
     )!;
     expect(copyIn("de", untranslated)).toBe(copy(untranslated));
     expect(() => copyIn("de", "ai-answers.reused-from")).toThrow(/date/);

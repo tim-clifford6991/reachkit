@@ -1,30 +1,12 @@
 // BUILD §2.5 — the closed partition list — every sentence the product speaks.
-// src/lib/presentation/copy/registry.ts — BP-020, WO-041
 //
-// The closed partition list, written once (BP-020 decision 5). Every
-// sentence the product speaks in its own voice is composed here from the
-// sixteen `keys/*.ts` partitions — no seventeenth import, no re-export by
-// name. (Twelve until issue #19 added `keys/signin.ts` for the sign-in
-// screen's sentences, on the footing `keys/offer.ts`'s own header records
-// for the twelfth: BP-020 decision 5 named eleven partitions before the
-// BP-001-owned surfaces existed, and a surface's sentences must land in
-// some partition. `registry.test.ts` pins the list; growing it is a
-// two-line change here and a named row there, never a silent spread.
-// `keys/meta.ts` is the fifteenth, issue #326: every public route's
-// document title, description and share-image alt. `keys/review.ts` is the
-// sixteenth: the owner's review screen. `keys/ops.ts` is the seventeenth: the
-// owner-only lines of the operations mails. `keys/landing.ts` is the
-// eighteenth: the landing above How it works.) `COPY` and `COPY_META` are frozen object literals in the bundle,
-// never a fetch, a template store or an i18n catalogue (REQ-093 criterion
-// 5): with every language model unavailable, every value here still reads
-// the same, because nothing here ever reached for one.
-//
-// `CopyMeta` and `CopyPartition` are declared here — the one place the file
-// plan assigns them — and every `keys/*.ts` partition imports them back with
-// `import type`, never a value import. A type-only import is erased before
-// the bundle exists, so the apparent cycle (this file value-imports the
-// partitions; the partitions type-import this file) is not a runtime cycle
-// at all: nothing survives to `require`/`import` at either end.
+// Every sentence ReachKit speaks in its own voice is composed here from the
+// `keys/*.ts` partitions. Each entry is the sentence itself; a `{name}` in it
+// is a slot its caller fills. `COPY` is a frozen object literal in the
+// bundle, never a fetch, a template store or an i18n catalogue (REQ-093
+// criterion 5): with every language model unavailable, it still reads the
+// same. A partition imports `CopyPartition` back with `import type`, which
+// is erased, so the apparent import cycle is not a runtime one.
 import { REPORT_COPY } from "./keys/report.ts";
 import { OVERVIEW_COPY } from "./keys/overview.ts";
 import { CALENDAR_COPY } from "./keys/calendar.ts";
@@ -44,31 +26,8 @@ import { REVIEW_COPY } from "./keys/review.ts";
 import { OPS_COPY } from "./keys/ops.ts";
 import { LANDING_COPY } from "./keys/landing.ts";
 
-export interface CopyMeta {
-  /** Which cross-cutting law, if any, governs this sentence. The conformance
-   *  suites enumerate their own scope from this tag rather than from a list a
-   *  developer maintains. */
-  law?: "next-publish" | "stopped-work" | "no-presence-yet" | "unmeasured";
-  /** Named text slots and what each accepts. A slot of kind 'measured' may be
-   *  filled only through `explain()`; `copy()` refuses such a key. */
-  slots: Readonly<Record<string, "text" | "date" | "measured">>;
-}
+export type CopyPartition = Readonly<Record<string, string>>;
 
-export type CopyPartition = Readonly<Record<string, readonly [string, CopyMeta]>>;
-
-// Step 2: spread every partition, in a fixed order, into one object literal.
-// `satisfies`, not a type annotation — an annotation would widen each
-// entry's `slots` to `Record<string, 'text'|'date'|'measured'>` and destroy
-// the per-key slot literals WO-042's `ExplainKey` is computed from, while
-// `satisfies` keeps the literal types and still keeps this object checked
-// against the shape every partition must have.
-//
-// A key declared in two partitions is not a duplicate-identifier error at
-// this spread — TypeScript does not diagnose overlapping keys contributed
-// by two different spread expressions, it silently lets the later one win.
-// `registry.test.ts` — "the partition list is closed and total" — is what
-// actually catches a collision, by checking the source partitions
-// pairwise for a shared key before this spread ever runs.
 const ENTRIES = {
   ...REPORT_COPY,
   ...OVERVIEW_COPY,
@@ -88,21 +47,14 @@ const ENTRIES = {
   ...REVIEW_COPY,
   ...OPS_COPY,
   ...LANDING_COPY,
-} as const satisfies Record<string, readonly [string, CopyMeta]>;
+};
 
-type Entries = typeof ENTRIES;
+export type CopyKey = keyof typeof ENTRIES;
 
-/** Every sentence the product speaks in its own voice, composed from the
- *  closed partition list. A frozen object literal in the bundle. */
-export const COPY: Readonly<{ [K in keyof Entries]: Entries[K][0] }> = Object.freeze(
-  Object.fromEntries(Object.entries(ENTRIES).map(([key, entry]) => [key, entry[0]]))
-) as { [K in keyof Entries]: Entries[K][0] };
+/** Every sentence the product speaks in its own voice. */
+export const COPY: Readonly<Record<CopyKey, string>> = Object.freeze(ENTRIES);
 
-export type CopyKey = keyof typeof COPY;
-
-/** The parallel, exhaustive metadata map, projected from the same
- *  partitions. `Record<CopyKey, CopyMeta>` is total, so a key added without
- *  meta is a compile error. */
-export const COPY_META: Readonly<{ [K in keyof Entries]: Entries[K][1] }> = Object.freeze(
-  Object.fromEntries(Object.entries(ENTRIES).map(([key, entry]) => [key, entry[1]]))
-) as { [K in keyof Entries]: Entries[K][1] };
+/** The slot names a sentence holds, in the order they first appear. */
+export function slotsOf(text: string): string[] {
+  return [...new Set(Array.from(text.matchAll(/\{([A-Za-z0-9_]+)\}/g), (match) => match[1]!))];
+}

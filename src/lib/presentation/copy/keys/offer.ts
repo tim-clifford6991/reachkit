@@ -29,27 +29,24 @@
 import type { CopyPartition } from "../registry.ts";
 
 export const OFFER_COPY = Object.freeze({
-  "price.amount": ["€49", { slots: {} }],
-  "price.vat_included": ["Tax included", { slots: {} }],
-  "price.interval": ["a month · tax included", { slots: {} }],
-  "offer.cadence.page": ["Up to {weekPages} pages a week, new or updated", { slots: { weekPages: "text" } }],
-  "offer.cadence.movement": ["A Monday email shows what went live and your totals so far.", { slots: {} }],
-  "offer.veto.window": ["Stop or edit any page before it goes live.", { slots: {} }],
+  "price.amount": "€49",
+  "price.vat_included": "Tax included",
+  "price.interval": "a month · tax included",
+  "offer.cadence.page": "Up to {weekPages} pages a week, new or updated",
+  "offer.cadence.movement": "A Monday email shows what went live and your totals so far.",
+  "offer.veto.window": "Stop or edit any page before it goes live.",
   // Issue 1068, board R12-2: the price close's heading on the report.
   // Drafted; the owner corrects the wording.
-  "offer.close.heading": ["Gain Ground Every Week", { slots: {} }],
+  "offer.close.heading": "Gain Ground Every Week",
   // Board PubReport (issue 1724, drafted): the offer where the report found pages to write.
-  "offer.found.heading": ["We Write These Pages for You", { slots: {} }],
-  "offer.found.line": ["Written from facts on your own site. All on autopilot.", { slots: {} }],
-  "offer.start": ["Start ReachKit", { slots: {} }],
+  "offer.found.heading": "We Write These Pages for You",
+  "offer.found.line": "Written from facts on your own site. All on autopilot.",
   /** The **control's** own label, and the one the approved set draws on it:
-   *  "Start ReachKit €49" (11a). `offer.start` stays exactly as the owner
-   *  ruled it on 2026-09-04 and is what the pricing page's eyebrow says;
-   *  this is the button, which carries the price because the set puts it
-   *  there — the amount is REQ-022 c1's €49, written into the words rather
+   *  "Start ReachKit €49" (11a). The button carries the price because the
+   *  set puts it there — the amount is REQ-022 c1's €49, written into the words rather
    *  than composed beside them, so the control cannot say one price while
    *  the card above it says another. */
-  "offer.start.priced": ["Start ReachKit €49", { slots: {} }],
+  "offer.start.priced": "Start ReachKit €49",
 
   // ── The same four terms, in S4's own words (issue #369) ──────────────
   //
@@ -70,10 +67,7 @@ export const OFFER_COPY = Object.freeze({
   // does: `VETO.defaultHours` renders "24" and the sentence reads as the
   // set draws it, so the window is written down once, in
   // `src/lib/config/constants.ts`, and never twice.
-  "offer.pricing.veto": [
-    "{hours} hours to stop any page before it goes live",
-    { slots: { hours: "text" } },
-  ],
+  "offer.pricing.veto": "{hours} hours to stop any page before it goes live",
 
   // 2026-09-06, issue #34: the plan's own name, which §4.7's Billing card
   // states beside the price. One key, because there is one plan and no
@@ -82,48 +76,40 @@ export const OFFER_COPY = Object.freeze({
   // in `settings.*` because it is the same public product fact the price
   // surfaces state, not a sentence about one customer's account —
   // REQ-097's own non-goal draws that line.
-  "plan.single": ["Up to {weekPages} pages a week", { slots: { weekPages: "text" } }],
+  "plan.single": "Up to {weekPages} pages a week",
 
   // 2026-09-13, issue #624: what the offer says when the vendor refuses to
   // open checkout. The approved set draws no refused state on S4.
-  "offer.checkout.refused": [
-    "We couldn’t start checkout. Try again in a moment.",
-    { slots: {} },
-  ],
+  "offer.checkout.refused": "We couldn’t start checkout. Try again in a moment.",
   // The visitor's network is past the checkout limit, which is counted per clock hour.
-  "offer.checkout.refused.limit": [
-    "Your network has started too many checkouts this hour. Checkout works again within the hour, or now on another connection, like mobile data.",
-    { slots: {} },
-  ],
+  "offer.checkout.refused.limit": "Your network has started too many checkouts this hour. Checkout works again within the hour, or now on another connection, like mobile data.",
 
   // The first-50 offer: figures are slots ({of} OFFER_SPOTS, {minutes} SETUP_MINUTES, {price} price.amount); {endsOn} is the UTC day, so no zone prints 1 Feb.
-  "offer.banner.pace": ["Up to {weekPages} pages a week, {price} a month", { slots: { weekPages: "text", price: "text" } }],
-  "offer.banner.promise": ["Set up in about {minutes} minutes, or we do it with you", { slots: { minutes: "text" } }],
-  "offer.spots.before": ["Open to the first {of} customers until {endsOn}", { slots: { of: "text", endsOn: "text" } }],
-  "offer.spots.left": ["{left} of {of} spots left until {endsOn}", { slots: { left: "text", of: "text", endsOn: "text" } }],
-  "offer.spots.taken": ["All {of} spots are taken. ReachKit is {price} a month, cancel any time.", { slots: { of: "text", price: "text" } }],
-  "offer.spots.ended": ["Our offer for the first {of} customers has ended. ReachKit is {price} a month, cancel any time.", { slots: { of: "text", price: "text" } }],
-  "offer.banner.see": ["See the Offer", { slots: {} }],
-  "offer.banner.label": ["Offer", { slots: {} }],
-  "offer.card.title": ["First {of} Customers", { slots: { of: "text" } }],
-  "offer.card.until": ["Until {endsOn}", { slots: { endsOn: "text" } }],
-  "offer.card.setup": ["The founder sets you up personally, on a 15-minute call if you want one", { slots: {} }],
-  "offer.card.video": ["A short video of your report, explained by the founder", { slots: {} }],
-  "offer.card.checkins": ["We check in with you after two weeks and after a month", { slots: {} }],
-  "offer.card.email": ["Email the founder directly, any time", { slots: {} }],
-  "offer.card.left": ["{left} of {of} spots left", { slots: { left: "text", of: "text" } }],
-  "offer.promise.call": ["Set up in about {minutes} minutes, or we do it with you on a call", { slots: { minutes: "text" } }],
-  "offer.promise.title": ["Set Up in About {minutes} Minutes", { slots: { minutes: "text" } }],
-  "offer.promise.line": ["Three short steps and you’re done. If it takes longer, we do it with you on a call, at no cost.", { slots: {} }],
-  "offer.before.title": ["Before You Pay", { slots: {} }],
-  "offer.before.read": ["Read your report and first page before you pay", { slots: {} }],
-  "offer.before.export": ["Download all your pages any time", { slots: {} }],
+  "offer.banner.pace": "Up to {weekPages} pages a week, {price} a month",
+  "offer.banner.promise": "Set up in about {minutes} minutes, or we do it with you",
+  "offer.spots.before": "Open to the first {of} customers until {endsOn}",
+  "offer.spots.left": "{left} of {of} spots left until {endsOn}",
+  "offer.spots.taken": "All {of} spots are taken. ReachKit is {price} a month, cancel any time.",
+  "offer.spots.ended": "Our offer for the first {of} customers has ended. ReachKit is {price} a month, cancel any time.",
+  "offer.banner.see": "See the Offer",
+  "offer.banner.label": "Offer",
+  "offer.card.title": "First {of} Customers",
+  "offer.card.until": "Until {endsOn}",
+  "offer.card.setup": "The founder sets you up personally, on a 15-minute call if you want one",
+  "offer.card.video": "A short video of your report, explained by the founder",
+  "offer.card.checkins": "We check in with you after two weeks and after a month",
+  "offer.card.email": "Email the founder directly, any time",
+  "offer.card.left": "{left} of {of} spots left",
+  "offer.promise.call": "Set up in about {minutes} minutes, or we do it with you on a call",
+  "offer.before.title": "Before You Pay",
+  "offer.before.read": "Read your report and first page before you pay",
+  "offer.before.export": "Download all your pages any time",
   // A spot holder's Settings › Billing rows and setup's help line; the line's help half is for every buyer.
-  "offer.billing.spot": ["One of our first {of} customers", { slots: { of: "text" } }],
-  "offer.billing.since": ["Customer since", { slots: {} }],
-  "offer.billing.checkin": ["Next check-in", { slots: {} }],
-  "offer.founder": ["Email the Founder", { slots: {} }],
-  "offer.setup.holder": ["You’re one of our first {of} customers.", { slots: { of: "text" } }],
-  "offer.setup.help": ["Stuck? We’ll do it with you on a call, at no cost.", { slots: {} }],
-  "offer.setup.book": ["Book 15 Minutes", { slots: {} }],
+  "offer.billing.spot": "One of our first {of} customers",
+  "offer.billing.since": "Customer since",
+  "offer.billing.checkin": "Next check-in",
+  "offer.founder": "Email the Founder",
+  "offer.setup.holder": "You’re one of our first {of} customers.",
+  "offer.setup.help": "Stuck? We’ll do it with you on a call, at no cost.",
+  "offer.setup.book": "Book 15 Minutes",
 }) satisfies CopyPartition;
