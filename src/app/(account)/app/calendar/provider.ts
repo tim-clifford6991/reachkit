@@ -47,7 +47,7 @@ import { addDays, commitEnd, dayKeyOf, monthOf, serviceWeek, type DayKey, type M
 import type { StalledCount } from "@/lib/publish/record/stalled";
 import { FIXTURE_CALENDAR_FACTS, FIXTURE_PLAN_HEAD } from "./fixture";
 import { FIXTURE_DOMAIN } from "../_shell/fixture";
-import type { CalendarSite } from "./store";
+import type { CalendarSite, StoredBody } from "./store";
 import { readPublishedFor } from "../_overview/content-provider";
 import type { PublishedRead } from "@/lib/measure/published";
 
@@ -203,7 +203,7 @@ export const readPlanHead = cache(async function readPlanHead(): Promise<PlanHea
 });
 
 /** The body as written of each of the week's written pages, by draft; empty for the fixture account. */
-export const readWeekBodies = cache(async function readWeekBodies(draftIds: readonly string[]): Promise<ReadonlyMap<string, string>> {
+export const readWeekBodies = cache(async function readWeekBodies(draftIds: readonly string[]): Promise<ReadonlyMap<string, StoredBody>> {
   const site = await currentCalendarSite();
   if (site === null || draftIds.length === 0) return new Map();
   const { bodiesOf } = await import("./store");

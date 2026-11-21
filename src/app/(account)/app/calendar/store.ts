@@ -60,6 +60,7 @@ import { plannedByDay } from "@/lib/opportunities/days";
 import { opportunityStore } from "@/lib/opportunities/store";
 import { readPublishingFacts, type ScheduledPage } from "./drafts-read";
 import { publishDb } from "@/lib/publish/db";
+import { urlKey } from "@/lib/generate/links/select";
 import { weekStartFor } from "@/lib/scan/weekly/week";
 import type { PageStanding } from "./day-number";
 import type { BestRival } from "./target";
@@ -402,15 +403,48 @@ export const siteDepth = cache((siteId: string) => supplyDepth(siteId));
  * prove, which would tell a customer their market is empty on a day the
  * database merely broke.
  */
-/** The stored body of each of these drafts of the site that has one. */
-export async function bodiesOf(siteId: string, draftIds: readonly string[]): Promise<ReadonlyMap<string, string>> {
+/** A written page as its row keeps it, with the packs of the earlier versions an update replaced. */
+export interface StoredBody {
+  bodyMd: string;
+  meta: unknown;
+  groundedFact: unknown;
+  writtenAt: string;
+  earlier: { meta: unknown; at: string }[];
+}
+
+/** The stored body of each of these drafts of the site that has one. An update's earlier versions are the drafts
+ *  published at the address its row targets. */
+export async function bodiesOf(siteId: string, draftIds: readonly string[]): Promise<ReadonlyMap<string, StoredBody>> {
+  type Row = { id: string; body_md: string | null; meta: unknown; grounded_fact: unknown; created_at: string; opportunities: { target_ref: string | null } | null };
   const { data, error } = await publishDb()
-    .from<{ id: string; body_md: string | null }>("drafts")
-    .select("id, body_md")
+    .from<Row>("drafts")
+    .select("id, body_md, meta, grounded_fact, created_at, opportunities(target_ref)")
     .eq("site_id", siteId)
     .in("id", [...draftIds]);
   if (error !== null || data === null) throw new Error(`bodiesOf(${siteId}): could not read the week's bodies`);
-  return new Map(data.flatMap((row) => (row.body_md === null || row.body_md.trim() === "" ? [] : [[row.id, row.body_md] as const])));
+  const rows = data.filter((row) => row.body_md !== null && row.body_md.trim() !== "");
+  const targets = new Set(rows.flatMap((row) => urlKey(row.opportunities?.target_ref ?? "") ?? []));
+  // The earlier versions are extra: unreadable, a kept link is a plain link.
+  const versions =
+    targets.size === 0
+      ? []
+      : ((
+          await publishDb()
+            .from<{ live_url: string | null; published_at: string | null; drafts: { id: string; meta: unknown } | null }>("publications")
+            .select("live_url, published_at, drafts(id, meta)")
+            .eq("site_id", siteId)
+            .not("published_at", "is", null)
+            .order("published_at", { ascending: false })
+        ).data ?? []);
+  return new Map(
+    rows.map((row) => {
+      const target = urlKey(row.opportunities?.target_ref ?? "");
+      const earlier = versions.flatMap((v) =>
+        target === null || v.drafts === null || v.drafts.id === row.id || v.published_at === null || urlKey(v.live_url ?? "") !== target ? [] : [{ meta: v.drafts.meta, at: v.published_at }]
+      );
+      return [row.id, { bodyMd: row.body_md!, meta: row.meta, groundedFact: row.grounded_fact, writtenAt: row.created_at, earlier }] as const;
+    })
+  );
 }
 
 export async function readCalendarFacts(a: {

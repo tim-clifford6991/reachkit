@@ -8,6 +8,7 @@ import { needsYouLine } from "@/lib/publish/record/lines";
 import { nextPublishStatement, stoppedWorkStatement } from "@/lib/presentation/stopped";
 import type { PublishedPage, PublishedRead } from "@/lib/measure/published";
 import type { AnswerEngine } from "@/lib/opportunities/types";
+import type { CitationEntry, PageCitations } from "@/lib/generate/citations";
 import { formatCount, formatDate, formatDateTime, formatShortDay, formatTime } from "../_shell/format";
 import { writtenLine } from "../_shell/written";
 import { ENGINE_LABEL } from "../_shell/page-target-words";
@@ -60,9 +61,34 @@ export type PaneModel =
       next: string | null;
       /** Said in the body's place where the body could not be read. */
       unread: string | null;
+      sources: SourcesModel | null;
     }
   | { kind: "planned"; date: string; title: string; why: string | null; facts: PaneFact[]; next: string | null }
   | { kind: "lines"; date: string; lines: string[] };
+
+export interface SourceEntryModel {
+  n: number | null;
+  kind: "site" | "public";
+  /** Its accessible name where it carries a number. */
+  name: string | null;
+  kindLine: string;
+  url: string;
+  passages: string[];
+  many: string | null;
+  read: string | null;
+  used: string | null;
+  kept: string | null;
+}
+
+/** A written page's sources, every word said: no component counts or dates one. */
+export interface SourcesModel {
+  summary: string | null;
+  /** The swap to the list; `null` where no sentence carries a number. */
+  toggle: string | null;
+  note: string | null;
+  entries: SourceEntryModel[];
+  foot: string;
+}
 
 export interface CardModel {
   cell: DayCell;
@@ -76,6 +102,8 @@ export interface CardModel {
   /** The title is a search, drawn in mono. */
   search: boolean;
   lines: string[];
+  /** How many sources the page's sentences link, where they link any. */
+  sources: string | null;
   /** The day's own state sentence: now an update, stopped, nothing worth writing. */
   stateLine: string | null;
   /** The quiet two words a day with no page says, where it says them. */
@@ -218,9 +246,63 @@ function emptyAccount(cell: DayCell, week: WeekModel): string[] {
   return line === null ? [] : [line];
 }
 
+/** "4 Oct", a read date as the list states it. */
+function dayMonth(iso: string, timeZone: string): string | null {
+  const at = new Date(iso);
+  return Number.isNaN(at.getTime()) ? null : formatShortDay(at, timeZone).split(" ").slice(1).join(" ");
+}
+
+function entryOf(entry: CitationEntry, timeZone: string): SourceEntryModel {
+  const n = entry.n === null ? null : formatCount(entry.n);
+  const read = entry.readAt === null ? null : dayMonth(entry.readAt, timeZone);
+  const kept = entry.keptFrom === null ? null : dayMonth(entry.keptFrom, timeZone);
+  return {
+    n: entry.n,
+    kind: entry.kind,
+    name: n === null ? null : copy(entry.kind === "site" ? "calendar.sources.mark.site" : "calendar.sources.mark.public", { n }),
+    // A market fact saved before the pack kept no title: its host names it.
+    kindLine: entry.kind === "site" ? copy("calendar.sources.kind.site") : copy("calendar.sources.kind.public", { title: entry.title ?? hostOf(entry.url) ?? entry.url }),
+    url: entry.url,
+    passages: entry.passages,
+    many: entry.many > 1 ? copy("calendar.sources.many", { k: formatCount(entry.many) }) : null,
+    read: read === null ? null : copy("calendar.sources.read", { date: read }),
+    used: entry.n === null ? null : entry.used === 1 ? copy("calendar.sources.used.one") : copy("calendar.sources.used", { n: formatCount(entry.used) }),
+    kept: kept === null ? null : copy("calendar.sources.kept", { date: kept }),
+  };
+}
+
+/** The summary, the list and the foot for a written or live page. */
+export function sourcesOf(read: PageCitations, live: boolean, timeZone: string): SourcesModel {
+  const foot = copy(live ? "calendar.sources.foot.live" : "calendar.sources.foot.written");
+  if (read.kind === "unread") return { summary: null, toggle: null, note: copy("calendar.sources.unread"), entries: [], foot };
+  const { sentences, entries } = read.citations;
+  const kindOf = new Map(entries.flatMap((e) => (e.n === null ? [] : [[e.n, e.kind] as const])));
+  const site = sentences.filter((n) => n !== null && kindOf.get(n) === "site").length;
+  const pub = sentences.filter((n) => n !== null && kindOf.get(n) === "public").length;
+  const pages = entries.filter((e) => e.n !== null && e.kind === "public" && e.used > 0).length;
+  const vars = { n: formatCount(sentences.length), a: formatCount(site), b: formatCount(pub), m: formatCount(pages), c: formatCount(sentences.length - site - pub) };
+  const numbered = entries.filter((e) => e.n !== null).length;
+  const old = read.old === null ? null : dayMonth(read.old, timeZone);
+  return {
+    summary: copy(pages === 1 ? "calendar.sources.summary.one-page" : "calendar.sources.summary", vars),
+    toggle: numbered === 0 && entries.length === 0 ? null : copy("calendar.sources.toggle", { n: formatCount(entries.length) }),
+    note: old !== null ? copy("calendar.sources.old", { date: old }) : numbered === 0 ? copy("calendar.sources.none") : null,
+    entries: entries.map((entry) => entryOf(entry, timeZone)),
+    foot,
+  };
+}
+
 function cardOf(
   cell: DayCell,
-  a: { week: WeekModel; time: string | null; next: string; firstSkip: boolean; published: ReadonlyMap<string, PublishedPage>; bodies: ReadonlySet<string> | null }
+  a: {
+    week: WeekModel;
+    time: string | null;
+    next: string;
+    firstSkip: boolean;
+    published: ReadonlyMap<string, PublishedPage>;
+    bodies: ReadonlySet<string> | null;
+    sources: ReadonlyMap<string, PageCitations>;
+  }
 ): CardModel {
   const { week, time } = a;
   const page = cell.page;
@@ -241,6 +323,7 @@ function cardOf(
     emptyLine,
     fix: emptyLine !== null && cell.empty?.cause === "instruction" ? cell.empty.check : null,
     ariaLabel: cardLabel({ cell, page, line: emptyLine ?? stateLine, date: spoken }),
+    sources: null,
   };
   // A page's label names the stage its badge shows.
   const labelled = (title: string): string =>
@@ -307,8 +390,12 @@ function cardOf(
           stopped: week.stopped !== null || week.held === "billing_unreadable",
           otherwise: week.held === "unpaid" || week.held === "ended" ? { tag: week.held } : { tag: "scheduled", at: formatDateTime(page.publishAt, week.timeZone) },
         }).line;
+  const read = page.draftId === null ? undefined : a.sources.get(page.draftId);
+  const sources = read === undefined ? null : sourcesOf(read, page.stage === "live", week.timeZone);
+  const count = sources?.entries.filter((entry) => entry.n !== null).length ?? 0;
   return {
     ...base,
+    sources: count === 0 ? null : count === 1 ? copy("calendar.card.sources.one") : copy("calendar.card.sources", { n: formatCount(count) }),
     ariaLabel: labelled(page.title),
     kind,
     title: page.title,
@@ -326,6 +413,7 @@ function cardOf(
       notes: [...(needsYou === null ? [] : [copy(needsYou)]), ...(held === null ? [] : [held])],
       next: waiting && time !== null ? copy("calendar.pane.written.next", { time, day: goesOn }) : null,
       unread: page.draftId !== null && a.bodies?.has(page.draftId) === true ? null : copy("calendar.pane.body.unread"),
+      sources,
     },
   };
 }
@@ -340,7 +428,14 @@ export function writtenDrafts(week: WeekModel): string[] {
 
 /** The whole screen: head, one card a day in date order, and which card the pane opens on. `bodies` holds the drafts
  *  whose body was read, `null` where the read failed. */
-export function weekScreen(a: { week: WeekModel; head: PlanHeadFacts; published: PublishedRead | null; bodies?: ReadonlySet<string> | null }): WeekScreen {
+export function weekScreen(a: {
+  week: WeekModel;
+  head: PlanHeadFacts;
+  published: PublishedRead | null;
+  bodies?: ReadonlySet<string> | null;
+  /** Each written page's sources, by draft. */
+  sources?: ReadonlyMap<string, PageCitations>;
+}): WeekScreen {
   const { week } = a;
   const time = weekGoesLive(week, a.head.publishTime);
   const next = shortDay(checkDays(a.head, week.today).next);
@@ -349,7 +444,7 @@ export function weekScreen(a: { week: WeekModel; head: PlanHeadFacts; published:
   const bodies = a.bodies === undefined ? new Set(writtenDrafts(week)) : a.bodies;
   const cards = [...week.cells]
     .sort((x, y) => x.day.localeCompare(y.day))
-    .map((cell) => cardOf(cell, { week, time, next, firstSkip: cell.day === firstSkip, published, bodies }));
+    .map((cell) => cardOf(cell, { week, time, next, firstSkip: cell.day === firstSkip, published, bodies, sources: a.sources ?? new Map() }));
   const today = cards.find((card) => card.day === week.today);
   const written = cards.find((card) => card.day >= week.today && card.pane.kind === "page");
   const live = [...cards].reverse().find((card) => card.day < week.today && card.state === "live");

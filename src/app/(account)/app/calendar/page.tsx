@@ -31,6 +31,7 @@ import { contentOf } from "@/lib/measure/published";
 import { demoteHeadings, parseMarkdown, toHtml } from "@/lib/publish/render/markdown";
 import { DRAFT_BODY_CLASSES } from "../draft/[draftId]/present";
 import { weekScreen, writtenDrafts } from "./week-screen";
+import { bracketed, numbered, pageCitations, type PageCitations } from "@/lib/generate/citations";
 
 /** /app/calendar's own `<title>`. */
 export const metadata: Metadata = { title: copy("meta.app.plan.title") };
@@ -40,13 +41,24 @@ export default async function CalendarPage(): Promise<React.JSX.Element> {
   for (const read of [readSupplyNotice(), readStalledWeek()]) read.catch(() => null);
   const [week, onboarding, head, published] = await Promise.all([planToday().then(readWeek), readOnboarding(), readPlanHead(), readPlanPublished().catch(() => null)]);
   const read = await readWeekBodies(writtenDrafts(week)).catch(() => null);
-  const screen = weekScreen({ week, head, published, bodies: read === null ? null : new Set(read.keys()) });
+  const sources = new Map<string, PageCitations>([...(read ?? [])].map(([id, row]) => [id, pageCitations(row)]));
+  const screen = weekScreen({ week, head, published, bodies: read === null ? null : new Set(read.keys()), sources });
   const bodies = Object.fromEntries(
-    [...(read ?? new Map<string, string>())].map(([id, bodyMd]) => [
-      id,
-      // The one serialiser escapes every text node, so its HTML is safe to set as is.
-      <div key={id} className="min-w-0 break-words" dangerouslySetInnerHTML={{ __html: toHtml(demoteHeadings(parseMarkdown(bodyMd)), DRAFT_BODY_CLASSES) }} />,
-    ])
+    [...(read ?? [])].map(([id, row]) => {
+      const blocks = demoteHeadings(parseMarkdown(row.bodyMd));
+      const cited = sources.get(id);
+      const entries = screen.cards.find((card) => card.pane.kind === "page" && card.pane.draftId === id)?.pane;
+      const named = entries?.kind === "page" ? (entries.sources?.entries ?? []) : [];
+      // The one serialiser escapes every text node, so its HTML is safe to set as is; the numbers are the app's only.
+      const html =
+        cited?.kind === "matched"
+          ? numbered(toHtml(bracketed(blocks, cited.citations.sentences), DRAFT_BODY_CLASSES), (n) => {
+              const entry = named.find((e) => e.n === n);
+              return { site: entry?.kind === "site", name: entry?.name ?? String(n) };
+            })
+          : toHtml(blocks, DRAFT_BODY_CLASSES);
+      return [id, <div key={id} className="min-w-0 break-words" dangerouslySetInnerHTML={{ __html: html }} />];
+    })
   );
   return (
     <div className={PLAN}>

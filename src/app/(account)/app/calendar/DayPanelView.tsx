@@ -27,6 +27,7 @@ import { TakeDownControl } from "./TakeDown";
 import { stopWords } from "./take-down-words";
 import type { DayCell } from "./month";
 import type { CardModel, PaneModel } from "./week-screen";
+import { SourcedBody } from "./PageSources";
 
 /** This Week draws every stage. */
 const ALL = "all" as const;
@@ -291,7 +292,11 @@ function PageDayPanel(p: {
         <p className="text-sm" data-testid="day-body-unread">
           {pane.unread}
         </p>
-      ) : p.body === undefined ? null : (
+      ) : p.body === undefined ? null : pane.sources !== null ? (
+        <SourcedBody sources={pane.sources} draftId={pane.draftId} label={copy("calendar.pane.body.label", { title: pane.title })}>
+          {p.body}
+        </SourcedBody>
+      ) : (
         <div
           className="prose min-w-0 max-w-none border-t border-base-300 pt-3 lg:min-h-0 lg:flex-1 lg:overflow-y-auto"
           tabIndex={0}

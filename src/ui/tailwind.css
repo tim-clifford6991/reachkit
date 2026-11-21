@@ -40,7 +40,7 @@
   themes: false;
   include: properties, rootcolor, rootscrollgutter, rootscrolllock, scrollbar, svg, join, radius, typography,
     alert, avatar, badge, breadcrumbs, button, card, carousel, collapse, divider, dock, drawer, dropdown, fieldset, footer,
-    input, label, link, list, loading, menu, mockup, modal, navbar, progress, radialprogress, radio, select, skeleton,
+    filter, input, label, link, list, loading, menu, mockup, modal, navbar, progress, radialprogress, radio, select, skeleton,
     stat, status, steps, tab, table, textarea, timeline, toggle, tooltip;
 }
 
