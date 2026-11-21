@@ -33,7 +33,7 @@ import { needsYouLine } from "@/lib/publish/record/lines";
 import { critical, waitsOnDestination, type NeedsYouCause } from "@/lib/publish/record/needs-you";
 import { SITE_CHECK_FIX, SITE_CHECK_TITLE, SITE_SEVERITY_WORD } from "@/lib/presentation/site-issues";
 import { OVERVIEW_ALERT_CAP } from "@/lib/config/constants";
-import { SITE_CHECKS, type SiteCheck, type SiteIssue, type SiteIssuesSection } from "@/lib/site-issues/types";
+import { DOER_OF, SITE_CHECKS, type SiteCheck, type SiteIssue, type SiteIssuesSection } from "@/lib/site-issues/types";
 
 /** The kinds, in the order they outrank each other. */
 export const ALERT_KINDS = ["needs_you", "pending_veto", "site_issue"] as const;
@@ -146,7 +146,8 @@ function actionable(
 ): { fix: CopyKey; pages: readonly string[]; ms?: readonly number[] } | null {
   const fix = SITE_CHECK_FIX[issue.check];
   if (fix === undefined) return null;
-  const pages = issue.pages ?? [];
+  // Broken links name the crawled pages that hold them where the report kept those.
+  const pages = issue.check === "broken_links" && issue.from !== undefined && issue.from.length > 0 ? issue.from : (issue.pages ?? []);
   const named = issue.unit === "pages" || issue.unit === "links";
   if (named && pages.length === 0) return null;
   if (issue.check !== "slow_pages") return { fix, pages };
@@ -172,7 +173,7 @@ export function waitingIssues(section: SiteIssuesSection | null, at: { measuredA
       severity: issue.severity,
       since: at.measuredAt,
       ...act,
-      href: `${ISSUES_HREF}#${issue.check}`,
+      href: `${ISSUES_HREF}?fix=${issue.check}`,
     });
   }
   return out;
@@ -185,14 +186,26 @@ export interface IssuesReading {
   issues: readonly WaitingIssue[];
   pagesChecked: number | null;
   measuredAt: Date | null;
+  /** The customer's checks that could not run. */
+  notRun: readonly SiteCheck[];
+  /** The pages read, by address, where a split of them into fine and not is true: every page check of the
+   *  customer's ran and named what it counted. `null` otherwise, and on a report that kept no addresses. */
+  splittable: readonly string[] | null;
 }
 
 export function issuesReading(section: SiteIssuesSection | null, measuredAt: Date | null): IssuesReading {
   // A scan with no section, or with no check that ran, measured nothing.
   if (measuredAt === null || section === null || !section.issues.some((issue) => issue.ran)) {
-    return { issues: [], pagesChecked: null, measuredAt: null };
+    return { issues: [], pagesChecked: null, measuredAt: null, notRun: [], splittable: null };
   }
-  return { issues: waitingIssues(section, { measuredAt }), pagesChecked: section.pagesChecked, measuredAt };
+  const issues = waitingIssues(section, { measuredAt });
+  const theirs = section.issues.filter((issue) => DOER_OF[issue.check] === "free_fix");
+  const notRun = theirs.filter((issue) => !issue.ran).map((issue) => issue.check);
+  // A page check not run, or a count kept without its addresses, leaves "nothing to fix" unmeasured.
+  const unsure =
+    notRun.some((check) => check !== "sitemap") ||
+    theirs.some((issue) => issue.ran && issue.count > 0 && issue.severity !== "nothing_to_fix" && issue.unit !== "site" && !issues.some((w) => w.check === issue.check));
+  return { issues, pagesChecked: section.pagesChecked, measuredAt, notRun, splittable: unsure ? null : section.checkedPages };
 }
 
 export function readAlerts(

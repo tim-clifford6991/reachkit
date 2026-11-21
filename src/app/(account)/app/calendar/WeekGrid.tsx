@@ -66,7 +66,7 @@ function DayRow(p: { card: CardModel; selected: boolean; onSelect: (day: DayKey)
         )}
       </button>
       {card.fix === null ? null : (
-        <Link href={`/app/issues#${card.fix}`} className="link link-primary link-hover inline-flex min-h-11 items-center text-sm" data-testid="cell-fix-link">
+        <Link href={`/app/issues?fix=${card.fix}`} className="link link-primary link-hover inline-flex min-h-11 items-center text-sm" data-testid="cell-fix-link">
           {copy("calendar.day.held-for-fix.link")}
         </Link>
       )}

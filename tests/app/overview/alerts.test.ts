@@ -224,7 +224,7 @@ describe("technical issues in Needs you", () => {
       MONDAY
     );
     expect(waiting.map((w) => w.check)).toEqual(["slow_pages"]);
-    expect(waiting[0]).toMatchObject({ count: 3, over: 40, href: "/app/issues#slow_pages" });
+    expect(waiting[0]).toMatchObject({ count: 3, over: 40, href: "/app/issues?fix=slow_pages" });
   });
 
   it("a fault fixed by Monday is a zero on Monday's report, so it is gone", () => {
@@ -242,7 +242,7 @@ describe("technical issues in Needs you", () => {
     );
     const { alerts, overflow, issuesOverflow } = readAlerts([...issues, item()], AT);
     expect(alerts.map((a) => a.kind)).toEqual(["pending_veto", "site_issue"]);
-    expect(alerts[1]).toMatchObject({ severity: "critical", figure: { count: 1, over: 1 }, href: "/app/issues#sitemap" });
+    expect(alerts[1]).toMatchObject({ severity: "critical", figure: { count: 1, over: 1 }, href: "/app/issues?fix=sitemap" });
     expect(overflow).toBeUndefined();
     expect(issuesOverflow).toEqual({ remaining: 2, whereKey: ISSUE_OVERFLOW_WHERE_KEY });
   });
