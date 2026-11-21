@@ -586,9 +586,8 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number; 
     //    stops it. A Q&A its target's own SERP leaves short of questions is
     //    read beside the market's searched terms too (owner, D62; issue
     //    1297): the pack says when it holds enough.
-    const market = !TEMPLATES[as].research
-      ? storedAsk(report, targetSearches(o))
-      : await heldResearch(cost, { key: `${a.siteId}:${o.id}:${type}:${a.publishDate}`, reuse: a.completeness === "warn" || a.fixStep === "owed" }, () => researchMarket(cost, {
+    const line = { site: a.siteId, draft: a.draftId ?? null, opportunity: o.id, type };
+    const market = await heldResearch(cost, { key: `${a.siteId}:${o.id}:${type}:${a.publishDate}`, reuse: a.completeness === "warn" || a.fixStep === "owed", researched: TEMPLATES[as].research, line }, () => storedAsk(report, targetSearches(o)), () => researchMarket(cost, {
           siteId: a.siteId,
           locale,
           domain: site.domain,

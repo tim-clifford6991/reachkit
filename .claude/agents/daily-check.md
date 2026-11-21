@@ -28,6 +28,7 @@ For each one, report the evidence and PASS / FAIL / NO-DATA. NO-DATA is not a fa
 1. **Free scans:** `scans` created in 24 h, how they ended (`stopped_reason`), cost per scan against its cap, and any stuck or failed scan.
 2. **Monday checks and re-score:** `job_runs` for `weekly/refresh` and `scan/rescore`; any weekly scan rows with `cost_cents` ≤ 40; `rescore_runs` outcomes. Spot a weekly pass that was due but did not run.
 3. **Generation:** `draft_days` per site. Count outcomes and reasons. A `no_page` with a rule or `step_failed` reason is a FAIL; name the reason. Report `drafts` created and their `state`, and `rule_failures` grouped by rule.
+   - **Research:** from `get_runtime_logs`, the `draft_researched` and `draft_research_failed` lines of 24 h. A draft the type ladder moves logs one per type tried, so keep the last `skipped` line of each `opportunity`, then count by outcome: researched (no `skipped`), failed, or `skipped` with its reason (`type`, `held`, `cap`). A `type` skip whose opportunity's `target_query` reads as a how-to (the `guide` and `guideStart` words in `src/lib/locale/language/`) is a WARN; name the query.
 4. **Posting and serving:** new `publications`; live hosted pages answer 200 (sample up to 3 from the sitemap); the sitemap and RSS answer 200; a page that should be live is not 404 or 410.
 5. **Mails:** the mail and job tables show sends, or show none due; `job_error_mails` rows (each one is an incident).
 6. **Jobs:**
