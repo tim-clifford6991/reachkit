@@ -64,11 +64,16 @@ export async function dayTypes(siteId: string, o: Opportunity, now: Date, cost?:
 }
 
 /** A topic's research for its date, ledgered at 0¢ beside its own calls, so the day's last step counts its minimum from
- *  what the run already bought (SPEC §7): that step reads only what is held, and never buys a topic's research again. */
-export async function heldResearch(cost: CostContext, a: { key: string; reuse: boolean }, buy: () => Promise<MarketResearch>): Promise<MarketResearch> {
+ *  what the run already bought (SPEC §7): that step reads only what is held, and never buys a topic's research again.
+ *  Research bought logs its own `draft_researched`; any other outcome logs one saying why, so a skip reads as one. */
+export async function heldResearch(cost: CostContext, a: { key: string; reuse: boolean; researched: boolean; line: { site: string; draft: string | null; opportunity: string; type: ContentType } }, stored: () => MarketResearch, buy: () => Promise<MarketResearch>): Promise<MarketResearch> {
+  const skipped = (reason: "type" | "held" | "cap", research: MarketResearch) => (console.log(JSON.stringify({ event: "draft_researched", skipped: reason, ...a.line })), research);
+  if (!a.researched) return skipped("type", stored());
   const held = await cost.recordFetch({ source: "generate.research.held", cacheKey: a.key, freshnessDays: a.reuse ? 1 : 0, costCents: 0, unusable: (payload) => (payload as MarketResearch).pending === true, run: () => (a.reuse ? Promise.resolve(NO_RESEARCH) : buy()) });
+  if ("skipped" in held) return skipped("cap", NO_RESEARCH);
   // A held row is jsonb, which keeps a date as its string.
-  return "skipped" in held ? NO_RESEARCH : { ...held.payload, facts: held.payload.facts.map((fact) => ({ ...fact, readAt: new Date(fact.readAt) })) };
+  const research = { ...held.payload, facts: held.payload.facts.map((fact) => ({ ...fact, readAt: new Date(fact.readAt) })) };
+  return a.reuse || !held.fresh ? skipped("held", research) : research;
 }
 
 /** seo-master's test of a result: the first `results` organic rows are read, a readable one holds `words`, and a
