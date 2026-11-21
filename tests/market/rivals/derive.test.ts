@@ -419,6 +419,11 @@ describe("a public body and a job seeker's search give no rival, except to a bus
     expect(rivals).toEqual(["woolworths.com.au", "coles.com.au", "phillippas.com.au", "seek.com.au"]);
   });
 
+  it("a hiring-software maker keeps the applicant-tracking vendors named for jobs and careers", () => {
+    const ats = titled([["recruitee.com", "Recruitee - Applicant Tracking System"], ["www.jobscore.com", "JobScore: Applicant Tracking Software"], ["www.careerplug.com", "CareerPlug | Applicant Tracking System"]]);
+    expect(domains({ serps: [ats, ats], ownDomain: "customer.com", category: "applicant tracking software" })).toEqual(["recruitee.com", "jobscore.com", "careerplug.com"]);
+  });
+
   it("a recruitment agency keeps the same searches' rivals", () => {
     const rivals = domains({ serps: [baker, warehouse], ownDomain: "agency.com.au", category: "recruitment agency" });
     expect(rivals).toEqual(expect.arrayContaining(["bakingcareer.com.au", "seek.com.au", "adecco.com.au"]));
