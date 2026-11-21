@@ -90,6 +90,11 @@ export const OFFER_COPY = Object.freeze({
     "We couldn’t start checkout. Try again in a moment.",
     { slots: {} },
   ],
+  // The visitor's network is past the checkout limit, which is counted per clock hour.
+  "offer.checkout.refused.limit": [
+    "Your network has started too many checkouts this hour. Checkout works again within the hour, or now on another connection, like mobile data.",
+    { slots: {} },
+  ],
 
   // The first-50 offer: figures are slots ({of} OFFER_SPOTS, {minutes} SETUP_MINUTES, {price} price.amount); {endsOn} is the UTC day, so no zone prints 1 Feb.
   "offer.banner.pace": ["Up to {weekPages} pages a week, {price} a month", { slots: { weekPages: "text", price: "text" } }],

@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal, useFormStatus } from "react-dom";
 import { Clock } from "lucide-react";
 import type { SpotsLeft } from "@/lib/account/offer/spots";
-import { CHECKOUT_QUERY_KEY, REFUSED_MARKER } from "../../../pricing/state";
+import { CHECKOUT_QUERY_KEY, refusalIn, type CheckoutRefusal } from "../../../pricing/state";
 
 type Read = Pick<SpotsLeft, "state" | "left"> | { state: "unknown"; left?: undefined };
 
@@ -39,20 +39,20 @@ export function OfferBar(p: {
   read: boolean;
   spots: SpotsLeft | null;
   endsAt: string;
-  words: { before: string; left: string; promise: string; refused: string };
+  words: { before: string; left: string; promise: string; refused: Record<CheckoutRefusal, string> };
   /** A refusal's line is drawn in place of the spots line, so it never makes the bar taller; `query` reads it from the address. */
-  refused: boolean | "query" | undefined;
+  refused: CheckoutRefusal | null | "query" | undefined;
   start: React.ReactNode;
 }): React.JSX.Element {
   // A static page drops the count it would keep until the next deploy.
   const [spots, setSpots] = useState<Read>(p.spots === null ? { state: "unknown" } : p.read ? { state: p.spots.state } : p.spots);
-  const [at, setAt] = useState<{ body: HTMLElement; ended: boolean; refused: boolean } | null>(null);
+  const [at, setAt] = useState<{ body: HTMLElement; ended: boolean; refused: CheckoutRefusal | null } | null>(null);
   const [shown, setShown] = useState(false);
   const bar = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const ended = Date.now() >= Date.parse(p.endsAt);
-    const refused = p.refused === true || (p.refused === "query" && new URLSearchParams(location.search).get(CHECKOUT_QUERY_KEY) === REFUSED_MARKER);
+    const refused = p.refused === "query" ? refusalIn(new URLSearchParams(location.search).get(CHECKOUT_QUERY_KEY)) : (p.refused ?? null);
     // Read on each scroll rather than observed: a solid button that hydration or a later step swaps in is counted too.
     let frame = 0;
     const check = (): void => {
@@ -115,7 +115,7 @@ export function OfferBar(p: {
             className={`bg-base-100 border-base-300 fixed inset-x-0 bottom-0 z-20 items-center justify-between gap-3 border-t px-4 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] md:hidden ${shown ? "flex" : "hidden"}`}
           >
             {at.refused ? (
-              <p className="text-error min-w-0 text-sm">{p.words.refused}</p>
+              <p className="text-error min-w-0 text-sm">{p.words.refused[at.refused]}</p>
             ) : (
               <p className={`flex min-w-0 items-center gap-1.5 text-sm ${few ? "font-semibold" : ""}`}>
                 {few && <Clock size={16} strokeWidth={1.75} aria-hidden className="shrink-0" />}

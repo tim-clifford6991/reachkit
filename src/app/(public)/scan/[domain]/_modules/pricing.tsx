@@ -36,17 +36,23 @@ import { Suspense } from "react";
 import { ArrowRight, Check } from "lucide-react";
 import { OFFER_ENDS_AT, OFFER_ENDS_ON, OFFER_SPOTS, SETUP_MINUTES, VETO, WEEK_PLAN } from "@/lib/config/constants";
 import type { SpotsLeft } from "@/lib/account/offer/spots";
-import { copy } from "@/lib/presentation/copy";
+import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { HOW_FACTS } from "@/app/(public)/_how/facts";
 import { BrandMark } from "@/app/_brand/Brand";
 import { FLOAT } from "@/ui/lift";
 import { Num } from "../_address/measured";
 import { WhenRefused } from "../../../pricing/refused";
+import type { CheckoutRefusal } from "../../../pricing/state";
 import { FirstFifty } from "./first-fifty";
 import { BarStart, OfferBar } from "./offer-bar";
 
 /** The static pricing page's `refused`: the marker is read in the browser. */
 export const REFUSED_IN_QUERY = "query" as const;
+
+type Refused = CheckoutRefusal | null | typeof REFUSED_IN_QUERY;
+
+/** Each refusal's line: the vendor's, or the visitor's network past the checkout limit. */
+const REFUSAL_LINE = { refused: "offer.checkout.refused", limited: "offer.checkout.refused.limit" } as const satisfies Record<CheckoutRefusal, CopyKey>;
 
 /** Which of the two approved wordings of the same four terms this card
  *  states.
@@ -89,14 +95,14 @@ function PriceBox(p: {
   /** The report's close: a rule sets the free path apart. */
   close?: boolean;
   cancel: string;
-  refused?: boolean | typeof REFUSED_IN_QUERY;
+  refused?: Refused;
   terms?: React.ReactNode;
   offer: React.ReactNode;
   free?: React.ReactNode;
 }): React.JSX.Element {
-  const refusedLine = (
+  const refusedLine = (refusal: CheckoutRefusal): React.JSX.Element => (
     <div role="alert" className="alert alert-error">
-      <span>{copy("offer.checkout.refused")}</span>
+      <span>{copy(REFUSAL_LINE[refusal])}</span>
     </div>
   );
   return (
@@ -114,10 +120,10 @@ function PriceBox(p: {
           on the offer itself, above the control that will try again. */}
       {p.refused === REFUSED_IN_QUERY ? (
         <Suspense fallback={null}>
-          <WhenRefused>{refusedLine}</WhenRefused>
+          <WhenRefused lines={{ refused: refusedLine("refused"), limited: refusedLine("limited") }} />
         </Suspense>
-      ) : p.refused === true ? (
-        refusedLine
+      ) : p.refused ? (
+        refusedLine(p.refused)
       ) : null}
       {p.start}
       <p className="text-base-content/70 text-center text-xs">{p.cancel}</p>
@@ -173,7 +179,7 @@ export function PhoneOfferBar(p: {
   startAction: () => Promise<void>;
   spots: SpotsLeft | null;
   built: boolean;
-  refused?: boolean | typeof REFUSED_IN_QUERY;
+  refused?: Refused;
 }): React.JSX.Element {
   return (
     <OfferBar
@@ -184,7 +190,7 @@ export function PhoneOfferBar(p: {
         before: copy("offer.spots.before", { of: String(OFFER_SPOTS), endsOn: OFFER_ENDS_ON }),
         left: copy("offer.card.left", { left: "{left}", of: String(OFFER_SPOTS) }),
         promise: copy("offer.banner.promise", { minutes: String(SETUP_MINUTES) }),
-        refused: copy("offer.checkout.refused"),
+        refused: { refused: copy(REFUSAL_LINE.refused), limited: copy(REFUSAL_LINE.limited) },
       }}
       refused={p.refused}
       start={
@@ -200,7 +206,7 @@ export function PricingCard(
   p: {
     startAction?: () => Promise<void>;
     terms?: OfferTerms;
-    refused?: boolean | typeof REFUSED_IN_QUERY;
+    refused?: Refused;
     /** The report's price close (#1068, board `R12-2-Report`): a heading and
      *  the terms on the left, the price and Start in a panel on the right.
      *  The same component and the same facts; only the shape is wider. */

@@ -29,6 +29,7 @@ const RULES = {
     { key: "scanId", windowS: DAY_S, max: 5 },
   ],
   tool_check: [{ key: "network", windowS: HOUR_S, max: 30 }],
+  checkout: [{ key: "network", windowS: HOUR_S, max: 10 }],
   web_person: [{ key: "site", windowS: DAY_S, max: 3 }],
 } as const satisfies Record<string, readonly Limit[]>;
 
