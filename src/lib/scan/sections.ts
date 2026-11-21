@@ -18,6 +18,9 @@ import type { Measured } from "@/lib/measure/measured";
 import { isPlaceholder } from "@/lib/measure/placeholder";
 import { copy } from "@/lib/presentation/copy";
 import { fromStored } from "@/lib/presentation/generated";
+import { fromMarkdown } from "mdast-util-from-markdown";
+import { gfmTable } from "micromark-extension-gfm-table";
+import { gfmTableFromMarkdown } from "mdast-util-gfm-table";
 import type { MarketSerp } from "@/lib/market/views";
 import { slotDepth, type PageQuestionCandidate } from "@/lib/market/questions/tracked";
 import type {
@@ -222,22 +225,46 @@ export function presenceFigureOf(section: PresenceSection | null): string | null
 /** The longest quote the card shows, in characters: one sentence, never a page. */
 const QUOTE_MAX = 240;
 
-/** A link target, with one level of parentheses inside it (`/a_(b)`). */
-const TARGET = String.raw`\((?:[^()\s]|\([^()\s]*\))*\)`;
+/** A node of the parsed answer, as far as a quote reads it. */
+type Md = { type: string; value?: string; children?: Md[] };
 
-/** The answer's words without its images, citation markers, link targets or emphasis marks, which a quote would show raw.
- *  A mark that starts a word (".NET", ".io") keeps the space before it. */
-function plainOf(text: string | undefined): string | undefined {
-  return text
-    ?.replace(new RegExp(String.raw`!\[[^\]]*\]${TARGET}|\[\[\^?\d+\]\]${TARGET}|\[\^?\d+\]`, "g"), "")
-    .replace(new RegExp(String.raw`\[([^\]]*)\]${TARGET}`, "g"), "$1")
-    .replace(/\*|`|(?<=^|\s)_|_(?=\s|[.,!?;:]|$)/g, "")
-    .replace(/[ \t]+([.,!?;:)])(?=\s|$|[.,!?;:])/g, "$1")
-    .trim();
+/** Citation markers the Markdown parser reads as words: `[1]`, `[1, 2]`, `[1-3]`, `[^note]`, `【1】`. */
+const CITATION = /\[\^[^\]]*\]|\[\d+(?:\s*[,–-]\s*\d+)*\]|【[^】]*】/g;
+
+/** What a quote may not hold after the parse: an address, a bracket, a tag mark, a table bar or a list mark. */
+const NOT_WORDS = /https?:|www\.|[[\]【】<>|*]|^(?:\d+[.)]|[•+–-])\s/;
+
+/** A phrase's own words: a link keeps its words, a line break is a space, and images, raw HTML and anything else go. */
+function wordsOf(node: Md, bold: string[]): string {
+  if (node.type === "text" || node.type === "inlineCode") return node.value ?? "";
+  if (node.type === "break" || node.type === "html") return " ";
+  if (!["strong", "emphasis", "link", "linkReference"].includes(node.type)) return "";
+  const words = (node.children ?? []).map((child) => wordsOf(child, bold)).join("");
+  if (node.type === "strong") bold.push(words.trim());
+  return words;
 }
 
-/** What a quote may not hold: an address, a markdown mark, a citation, a block mark or a line break. */
-const NOT_WORDS = /!\[|\]\(|https?:|www\.|\[\^?\d+\]|\n|^[#>|*-]|\*|\|/i;
+/** The answer's paragraphs in order, list items and quotes included; headings, code and tables are not prose. */
+function paragraphsOf(node: Md): Md[] {
+  if (node.type === "paragraph") return [node];
+  return ["root", "list", "listItem", "blockquote"].includes(node.type) ? (node.children ?? []).flatMap(paragraphsOf) : [];
+}
+
+/** The first sentence of the answer's first paragraph that holds words, with the names it set in bold; `null` where that is no clean sentence. */
+function sentenceOf(raw: string): { text: string; bold: string[] } | null {
+  const tree = fromMarkdown(raw, { extensions: [gfmTable()], mdastExtensions: [gfmTableFromMarkdown()] }) as Md;
+  for (const paragraph of paragraphsOf(tree)) {
+    const bold: string[] = [];
+    // A mark that starts a word (".NET", ".io") keeps the space before it.
+    const words = (paragraph.children ?? []).map((child) => wordsOf(child, bold)).join("").replace(CITATION, "").replace(/\s+/g, " ").replace(/ ([.,!?;:)])(?= |$|[.,!?;:)])/g, "$1").trim();
+    if (words === "") continue;
+    // A sentence ends before a capital, a digit or the end, so the answer's own "e.g." stays a word.
+    const text = /^.*?[.!?](?= [\p{Lu}\p{N}"“‘(]|$)/u.exec(words)?.[0];
+    if (text === undefined || text.length > QUOTE_MAX || text.split(" ").length < 4 || NOT_WORDS.test(text)) return null;
+    return { text, bold: bold.filter((name) => name !== "" && text.includes(name)) };
+  }
+  return null;
+}
 
 /** One AI answer's first sentence, quoted as it was written, with the search
  *  it was asked for and the names the answer itself set in bold. The first
@@ -251,13 +278,9 @@ export function answerQuoteOf(
     if (row.cell.kind !== "answered" || row.cell.citedDomains.length === 0) continue;
     const serp = serps[i];
     const raw = serp !== undefined && serp.kind !== "unmeasured" ? serp.value.aiOverview.text : undefined;
-    const text = plainOf(raw);
-    if (raw === undefined || text === undefined || text === "") continue;
-    // One line of prose: a first line that does not end its sentence is no quote.
-    const sentence = /^[^\n]*?[.!?](?=\s|$)/.exec(text)?.[0];
-    if (sentence === undefined || sentence.length > QUOTE_MAX || NOT_WORDS.test(sentence)) continue;
-    const bold = [...raw.matchAll(/\*\*([^*]+)\*\*/g)].map((m) => m[1]!.trim()).filter((name) => name !== "" && sentence.includes(name));
-    return { search: row.question.search, text: sentence, bold: [...new Set(bold)] };
+    const quote = raw === undefined ? null : sentenceOf(raw);
+    if (quote === null) continue;
+    return { search: row.question.search, text: quote.text, bold: [...new Set(quote.bold)] };
   }
   return null;
 }

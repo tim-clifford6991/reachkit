@@ -7,7 +7,7 @@ import { readStoredReport } from "@/lib/scan/report";
 
 const dir = path.resolve(import.meta.dirname, "../../fixtures/walk/free");
 const reports = readdirSync(dir).flatMap((f) => (JSON.parse(readFileSync(path.join(dir, f), "utf8")) as { sites: { stored: { scan: { report: unknown } } | null }[] }).sites.flatMap((s) => (s.stored ? [readStoredReport(s.stored.scan.report)] : [])));
-const NOT_WORDS = /!\[|\]\(|https?:|www\.|\[\^?\d+\]|\n|^[#>|*-]|\*|\|/;
+const NOT_WORDS = /https?:|www\.|[[\]【】<>|*_\n]|&[#a-z0-9]+;|^(?:\d+[.)]|[•+#>-])\s/;
 
 it("quotes one line of words and draws no figure over zero searches, on every stored report", () => {
   const quotes = reports.flatMap((r) => (r.aiAnswers ? [answerQuoteOf(r.aiAnswers, r.serps)?.text] : [])).filter((q) => q !== undefined);
@@ -24,8 +24,23 @@ it("cleans images, citations, bracketed addresses and lists out of an answer's f
   const r = reports.find((x) => x.aiAnswers && answerQuoteOf(x.aiAnswers, x.serps))!;
   const i = r.aiAnswers!.rows.findIndex((row) => row.cell.kind === "answered" && row.cell.citedDomains.length > 0);
   const quote = (text: string) => answerQuoteOf({ ...r.aiAnswers!, rows: [r.aiAnswers!.rows[i]!] }, [r.serps[i]!].map((s) => (s.kind === "unmeasured" ? s : { ...s, value: { ...s.value, aiOverview: { ...s.value.aiOverview, text } } })))?.text;
-  expect(quote("![x](https://api.dataforseo.com/cdn/i/1) Bread is a baked food. More.")).toBe("Bread is a baked food.");
-  expect(quote("Bread (a food [1]) is baked.[[1]](https://a.example/x)[[2]](https://b.example) More.")).toBe("Bread (a food) is baked.");
-  expect(quote("[t](https://x.example/a_(b)) Bread is food.")).toBe("t Bread is food.");
-  expect(quote("To find specialty coffee beans near you, check out local roasters:\n\n- **Local Roasters:** Visit shops.")).toBeUndefined();
+  const cases: [string, string | undefined][] = [
+    ["![x](https://api.dataforseo.com/cdn/i/1) Bread is a baked food. More.", "Bread is a baked food."],
+    ["Bread (a food [1]) is baked.[[1]](https://a.example/x)[[2]](https://b.example) More.", "Bread (a food) is baked."],
+    ["[t](https://x.example/a_(b)) Bread is food.", "t Bread is food."],
+    ["Coffee is sold online:\n\n- Trade Coffee – A shop.", undefined],
+    ["1. **Local Roasters:** Visit shops.", "Local Roasters: Visit shops."],
+    ["e.g. bread is baked. More.", "e.g. bread is baked."],
+    ["Bread is a baked food[^note] [1, 2] [1-3] 【1】. More.", "Bread is a baked food."],
+    ["Bread is a baked food [a]. More.", undefined],
+    ["<b>Bread</b> is a baked food.<br>More.", "Bread is a baked food."],
+    ["Bread &amp; butter is a food.", "Bread & butter is a food."],
+    ["__Bread__ is a _baked_ food.", "Bread is a baked food."],
+    ["Bread is a baked food\u00a0[1]. More.", "Bread is a baked food."],
+    ["### Breads\n\n| a | b |\n| - | - |\n| 1 | 2 |\n\n```\ncode\n```\n\nBread is a baked food.", "Bread is a baked food."],
+  ];
+  for (const [text, want] of cases) expect(quote(text), text).toBe(want);
+  const stored = reports.flatMap((x) => x.serps).flatMap((sv) => (sv.kind !== "unmeasured" && sv.value.aiOverview.text?.includes("subscriptions:\n\n- ") ? [sv.value.aiOverview.text] : []));
+  expect(stored.length).toBeGreaterThan(0);
+  for (const text of stored) expect(quote(text)).toBeUndefined();
 });
