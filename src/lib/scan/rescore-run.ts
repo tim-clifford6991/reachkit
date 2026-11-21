@@ -15,6 +15,7 @@ import { AI_ANSWER_SOURCES, AI_OVERVIEW_TEXT_MAX_CHARS } from "@/lib/vendors/dat
 import { OWN_FETCH_SOURCE } from "@/lib/measure/own-fetch";
 import { checked, factsLoader, type MinimalClient, type MinimalResult } from "./fetch-facts";
 import { readStoredReport } from "./report";
+import { unreadPageRivals } from "./page-rivals";
 import { withdrawnSitesOf, type SiteWithdrawal } from "./rescore-blank";
 import { readingLines } from "./rescore-reading";
 import { scanWriteOf } from "./rescore-write";
@@ -451,9 +452,8 @@ function summaryOf(a: {
 
 // ── The run ─────────────────────────────────────────────────────────────
 
-/** Every stored scan, site rival set and stored name read again by the
- *  deployed code, nothing written. */
-async function readAll(store: RescoreStore) {
+/** Every stored scan, site rival set and stored name read again by the deployed code, nothing written. */
+async function readAll(store: RescoreStore, at: Date) {
   const scans = await store.scans();
   const profiles = await store.profiles();
   const sites = await store.sites();
@@ -473,7 +473,7 @@ async function readAll(store: RescoreStore) {
     // A domain's home reads are held only while its own scans are scored.
     const reads = await store.homeReads(domain, ofDomain.flatMap((scan) => onPageAtOf(scan.report) ?? []));
     for (const scan of ofDomain) {
-      const answers = scan.siteId !== null && scan.isCurrent ? await store.answers(scan.id) : [];
+      const answers = scan.siteId !== null && (scan.isCurrent || unreadPageRivals(scan, at)) ? await store.answers(scan.id) : [];
       const market = scan.siteId === null ? undefined : markets.get(scan.siteId);
       const measured = scan.siteId === null ? undefined : measuredOf(await store.ownReads(scan));
       const said = { siteName: names.get(domain) ?? null, answers, ...(market === undefined ? {} : { market }), ...(measured === undefined ? {} : { measured }) };
@@ -497,7 +497,7 @@ async function readAll(store: RescoreStore) {
 /** Every stored scan and site rival set scored again; on apply, each one
  *  that moves written back unless the guard holds. */
 export async function rescoreStored(store: RescoreStore, o: RescoreOptions): Promise<RescoreAnswer> {
-  const { profiles, sites, renamed, rows, unreadable, scoreMoves, moving, standing, ...read } = await readAll(store);
+  const { profiles, sites, renamed, rows, unreadable, scoreMoves, moving, standing, ...read } = await readAll(store, o.at);
   // A withdrawn site's rivals are its market's, kept under `withdrawn`: it is not rehomed as well.
   const withdrawn = withdrawnSitesOf(sites, rows, { at: o.at, by: o.derivation ?? o.version });
   const movedSites = read.movedSites.filter(({ site }) => !withdrawn.some((w) => w.id === site.id));
@@ -517,7 +517,7 @@ export async function rescoreStored(store: RescoreStore, o: RescoreOptions): Pro
     stale = standing;
     if (written.left.length > 0) {
       // A scan written since it was read may now read as the code does, or not.
-      const again = await readAll(store);
+      const again = await readAll(store, o.at);
       held = heldBecause({ moves: again.scoreMoves, unreadable: again.unreadable.length, unreadableBefore: unreadable.length, afterApply: true, changed: again.moving.length });
       stale = again.stale;
     }

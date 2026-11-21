@@ -80,6 +80,9 @@ export type SiteIssue =
        *  agreed. Absent on a report written before a second read was taken,
        *  whose count rests on one read. */
       ms?: readonly number[];
+      /** Broken links only: the crawled pages that hold one, in crawl order, which a page count reads. Absent on a report written
+       *  before they were recorded, which draws the link count. */
+      from?: readonly string[];
     }
   | { check: SiteCheck; ran: false; because: CouldNotRun };
 

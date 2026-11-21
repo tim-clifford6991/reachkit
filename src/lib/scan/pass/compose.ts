@@ -63,6 +63,7 @@ export function score(a: Pick<StageArgs, "domain" | "sections" | "parameters" | 
     serps: sections.pageSerps as readonly Measured<MarketSerp>[],
     battery: sections.pageBattery,
     retired: sections.pageRetired,
+    rivals: sections.pageRivals,
     selected: sections.questions.kind === "unmeasured" ? 0 : sections.questions.value.length,
     ownDomain: domain,
     siteName: sections.siteName,

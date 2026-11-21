@@ -82,6 +82,19 @@ export function foundNotLinked(
   return holds(answer.retrievedUrls) && !holds(answer.citedUrls);
 }
 
+/** The market's rivals an answer named or cited, by domain: the one reading a tracked prompt's and a page question's answers share. */
+export function rivalsNamed(a: { text: string; citedDomains: readonly string[]; ownDomain: string; rivals: readonly { name: string; domain: string }[] }): string[] {
+  const own = bare(a.ownDomain);
+  const cited = a.citedDomains.map(bare);
+  const rivals: string[] = [];
+  for (const rival of a.rivals) {
+    const domain = bare(rival.domain);
+    if (domain === own || rivals.includes(domain)) continue;
+    if (says(a.text, rival.name) || says(a.text, domain) || cited.some((host) => within(host, domain))) rivals.push(domain);
+  }
+  return rivals;
+}
+
 export function readPromptAnswer(a: {
   text: string;
   citedDomains: readonly string[];
@@ -102,12 +115,7 @@ export function readPromptAnswer(a: {
   const linked = ownUrls.size > 0 || cited.some((host) => within(host, own));
   const named = namesSite(a.text, a.siteName, own);
 
-  const rivals: string[] = [];
-  for (const rival of a.rivals) {
-    const domain = bare(rival.domain);
-    if (domain === own || rivals.includes(domain)) continue;
-    if (says(a.text, rival.name) || says(a.text, domain) || cited.some((host) => within(host, domain))) rivals.push(domain);
-  }
+  const rivals = rivalsNamed({ ...a, citedDomains: cited });
   const alternatives = [...new Set(a.citedUrls.flatMap((url) => pageOf(url) ?? []))].filter((page) =>
     /alternativ/u.test(page.toLowerCase())
   );

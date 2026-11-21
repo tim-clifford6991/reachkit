@@ -59,6 +59,8 @@ export interface Sections {
   pageBattery: BatteryAnswers[];
   /** The pages whose question ran out of weeks this pass. */
   pageRetired: RetiredPageQuestion[];
+  /** The market's rivals the page questions' answers are read for; `null` where none is concluded or it could not be read. */
+  pageRivals: readonly { name: string; domain: string }[] | null;
   /** The composed section, rebuilt by `score` beside the AI-answers card. */
   pageQuestions: PageQuestionsSection | null;
   /** The site's name as an AI answer is read for it (`promptSiteName`), from this pass's profile; `null` until built, then the domain's label is read. */
@@ -148,6 +150,7 @@ export function freshSections(at: Date): Sections {
     pageSerps: [],
     pageBattery: [],
     pageRetired: [],
+    pageRivals: null,
     pageQuestions: null,
     siteName: null,
     rivals: unmeasured("not_attempted", at),

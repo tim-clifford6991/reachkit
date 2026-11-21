@@ -30,6 +30,7 @@ import { readAsProtection, unreadByProtection } from "./challenged";
 import { clearedProfileOf, withdrawnMarketOf, withdrawnPresenceOf } from "./rescore-blank";
 import { marketEvidence, type EvidenceReport } from "./market-evidence";
 import { onPageOf, type PageFacts } from "./page-facts";
+import { pageRivalChanges } from "./page-rivals";
 import { localeOfReport, type AnswerCell, type EngineCell, type PromptAnswer, type StoredReport } from "./report";
 import { rivalCellsOf } from "./sections";
 import { shownScore } from "./shown-score";
@@ -386,7 +387,7 @@ export function rescoreScan(scan: RescoreScan): Rescored {
   const before = membersOf(r);
   // The run hands over the whole stored report; its type names only what a score reads.
   const freePage = withdrawn ?? freePageChanges({ ...read, ...after, scanId: scan.id } as unknown as StoredReport);
-  const changes = [...changesOf(before, after), ...(withdrawn === null ? profileChanges(r, profile, reading) : []), ...promptChanges(r, scan), ...servedChanges(r, scan), ...freePage];
+  const changes = [...changesOf(before, after), ...(withdrawn === null ? profileChanges(r, profile, reading) : []), ...promptChanges(r, scan), ...pageRivalChanges(r, scan), ...servedChanges(r, scan), ...freePage];
   // A new date is a change though `same` reads past dates: the whole
   // verdict is written again, every member of it carrying that date.
   if (at.getTime() !== new Date(r.verdict.measuredAt).getTime() && !changes.some((c) => c.path.length === 1 && c.path[0] === "verdict")) {

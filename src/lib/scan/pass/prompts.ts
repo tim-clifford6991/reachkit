@@ -212,11 +212,14 @@ export async function askThePageQuestions(a: StageArgs, abandoned: () => boolean
 
   const at = sections.questions.at;
   const selected = sections.questions.kind === "unmeasured" ? 0 : sections.questions.value.length;
-  const [candidates, misses] = await Promise.all([
+  const [candidates, misses, market] = await Promise.all([
     pageQuestionCandidates({ siteId, ownRankedRows: sections.measurement?.ownRankedRows ?? [] }),
     pageQuestionMisses(siteId),
+    // The rivals the tracked prompts read answers for; an unreadable market leaves each answer's rivals unread, never none.
+    sections.market ?? import("@/lib/market/infer/stored").then(({ readSiteMarket }) => readSiteMarket(siteId)).then((m) => m?.stored.current ?? null, () => null),
   ]);
   if (candidates.length === 0) return;
+  sections.pageRivals = market?.rivals ?? null;
 
   const tracked = trackedQuestions({ selected, candidates, misses, now: a.startedAt });
   logPageQuestions({

@@ -28,6 +28,7 @@ import type { Verdict } from "@/lib/measure/verdict";
 import type { RankedRow, SerpResult } from "@/lib/vendors/dataforseo/types";
 import { readPastProtection } from "./challenged";
 import type { CanonicalDomain } from "./domain";
+import { upgradeFromVersion13 } from "./upgrade-v14";
 
 export type Tier = "free" | "deep" | "weekly";
 
@@ -38,11 +39,8 @@ export const SITE_PASS_TIERS = ["weekly", "deep"] as const satisfies readonly Ti
  *  so nothing after it is attempted and it is never called `complete`. */
 export type StoppedReason = "complete" | "time_ceiling" | "spend_ceiling" | "site_unreadable" | "failed";
 
-/** The one blob version this build writes. A reader that meets a version
- *  it does not know throws rather than returning a partially-populated
- *  value: `null` would be indistinguishable from "no report" at every call
- *  site. */
-export const REPORT_VERSION = 13;
+/** The one blob version this build writes; an unknown version throws, since `null` would read as "no report". */
+export const REPORT_VERSION = 14;
 
 /** One cell of the AI-answers matrix: one question, one measured SERP (`matrix.ts` owns it). `unmeasured` lowers the denominator and is never a place the customer was ignored. */
 export type AnswerCell =
@@ -374,7 +372,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 /** The versions this build's upgrade chain can lift. */
-const MIGRATABLE_VERSIONS: readonly number[] = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+const MIGRATABLE_VERSIONS: readonly number[] = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
 
 /** The two battery columns of a report written before anything bought them: `not_attempted`, not `no_answer`, since nobody asked.
  *  Frozen literals, not `engineColumns(...)`: a migration does not follow a moving helper. */
@@ -540,6 +538,7 @@ const UPGRADES: readonly ((blob: Record<string, unknown>) => Record<string, unkn
   upgradeFromVersion10,
   upgradeFromVersion11,
   upgradeFromVersion12,
+  upgradeFromVersion13,
 ];
 
 /** The version guard and upgrade. Throws loudly on a blob this build can neither read nor lift: `null` would read as "no report" and take

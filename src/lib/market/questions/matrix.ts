@@ -104,6 +104,9 @@ export interface BatteryAnswers {
 export interface EngineCell {
   engine: BatteryEngine;
   cell: AnswerCell;
+  /** A page question's answered cell: the market's rivals its text named or it cited, by domain. Absent where the text was not read,
+   *  which is not none. */
+  rivals?: readonly string[];
 }
 
 /** The row is a **view**, not the `Question` value. It carries the wording
