@@ -879,8 +879,7 @@ export function seedSetupAccount(): void {
       `('${siteId}', '${userId}', '${domain}', '${timeZone}', '${SETUP_STAGE}', ` +
       `'${JSON.stringify(SETUP_STAGE_TIMES)}'::jsonb);`
   );
-  // A hosted address still waiting for its record, so `/setup/connect` draws its screen
-  // rather than sending this founder on.
+  // A hosted address waiting for its record, dated from the cutover so `/setup/connect` draws the site's own value.
   sql(
     `insert into destinations (site_id, kind, config, health, health_reason, hostname, hostname_state, created_at) values ` +
       `('${siteId}', 'hosted', null, 'expired', 'dns_unset', '${DEFAULT_HOSTED_LABEL}.${domain}', 'pending_dns', '${HOSTED_SITE_EDGE_FROM}');`
