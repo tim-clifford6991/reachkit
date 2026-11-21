@@ -4,30 +4,18 @@ import type React from "react";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Clock } from "lucide-react";
-import type { SpotsLeft } from "@/lib/account/offer/spots";
+import type { Said } from "./offer-sentence";
 
-export type OfferWords = {
-  label: string;
-  pitch: readonly string[];
-  before: string;
-  /** Carries `{left}` for the count. */
-  left: string;
-  taken: string;
-  ended: string;
-  see: string | null;
-};
-
-type Arm = { state: "before" | "open" | "few" | "full" | "ended"; left?: number };
+export type OfferWords = { label: string; pitch: readonly string[]; see: string | null };
 
 const SEP = " · ";
-/** Every line the read can bring, drawn unseen in one cell, so the box is the tallest of them at every width. */
-const ARMS: readonly Arm[] = [{ state: "before" }, { state: "few", left: 50 }, { state: "full" }, { state: "ended" }];
+/** The tallest line's height at each width, so the read changes words and never the box. */
+const HELD = "min-h-19 sm:min-h-15 lg:min-h-10";
 
-function Line(p: { arm: Arm; words: OfferWords; urgent: boolean }): React.JSX.Element {
+function Line(p: { said: Said; words: OfferWords; urgent: boolean }): React.JSX.Element {
   const w = p.words;
-  if (p.arm.state === "full") return <>{w.taken}</>;
-  if (p.arm.state === "ended") return <>{w.ended}</>;
-  const few = p.urgent && p.arm.state === "few";
+  if (p.said.mark === "closed") return <>{p.said.text}</>;
+  const few = p.urgent && p.said.mark === "few";
   return (
     <>
       {w.pitch.map((part) => (
@@ -38,7 +26,7 @@ function Line(p: { arm: Arm; words: OfferWords; urgent: boolean }): React.JSX.El
       ))}
       <span className={few ? "font-semibold" : undefined}>
         {few && <Clock size={16} strokeWidth={1.75} aria-hidden className="mr-1 inline align-text-bottom" />}
-        {p.arm.left === undefined ? w.before : w.left.replace("{left}", String(p.arm.left))}
+        {p.said.text}
       </span>
       {w.see !== null && (
         <>
@@ -52,31 +40,24 @@ function Line(p: { arm: Arm; words: OfferWords; urgent: boolean }): React.JSX.El
   );
 }
 
-/** `spots` is the server's read; with `read`, the line stays unseen until `/offer/spots` answers, so no stale wording paints. */
-export function OfferLineLeaf(p: { read: boolean; spots: SpotsLeft | null; endsAt: number; words: OfferWords }): React.JSX.Element | null {
-  const [spots, setSpots] = useState<SpotsLeft | Arm | null>(p.spots);
+/** `said` is the server's read; with `read`, `/offer/spots` fills the count in the browser and corrects a state that moved since the build. */
+export function OfferLineLeaf(p: { read: boolean; said: Said | null; words: OfferWords }): React.JSX.Element {
+  const [said, setSaid] = useState<Said | null>(p.said);
   useEffect(() => {
     if (!p.read) return;
-    // Unknown is never 0: before the end it is the before line, after it the ended line, true whether full or not.
-    const unread = (): void => setSpots({ state: Date.now() >= p.endsAt ? "ended" : "before" });
+    // A failed read keeps the build's line; the route itself answers an unread count with a line that has no number.
     fetch("/offer/spots")
-      .then((r) => (r.ok ? (r.json() as Promise<SpotsLeft | { state: "unknown" }>) : null))
-      .then((body) => (body === null || body.state === "unknown" ? unread() : setSpots(body as SpotsLeft)))
-      .catch(unread);
-  }, [p.read, p.endsAt]);
+      .then((r) => (r.ok ? (r.json() as Promise<{ line: Said | null }>) : null))
+      .then((body) => body?.line && setSaid(body.line))
+      .catch(() => undefined);
+  }, [p.read]);
 
-  if (spots?.state === "over") return null;
   // A paid reader in setup cannot act on few-left, so only a selling page draws its style.
   const urgent = p.words.see !== null || p.words.pitch.length > 0;
   return (
     // First in the shell's column, above the header; it scrolls away.
-    <aside aria-label={p.words.label} className="bg-base-200 text-base-content order-first grid px-4 py-2 text-center text-sm">
-      {ARMS.map((arm) => (
-        <div key={arm.state} aria-hidden className="invisible [grid-area:1/1]">
-          <Line arm={arm} words={p.words} urgent />
-        </div>
-      ))}
-      <div className="[grid-area:1/1]">{spots !== null && <Line arm={spots as Arm} words={p.words} urgent={urgent} />}</div>
+    <aside aria-label={p.words.label} data-nosnippet className={`bg-base-200 text-base-content order-first grid content-center px-4 py-2 text-center text-sm ${HELD}`}>
+      <div>{said !== null && <Line said={said} words={p.words} urgent={urgent} />}</div>
     </aside>
   );
 }
