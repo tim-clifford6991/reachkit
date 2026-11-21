@@ -6,6 +6,8 @@ import { ESLint } from "eslint";
 const ROOT = path.resolve(__dirname, "../..");
 const RULE = "local/no-client-address-header";
 const ESLINT_BOOT_MS = 30_000;
+// A real route: type-aware linting under src/app only parses a file its TypeScript project knows.
+const ROUTE = "src/app/api/health/route.ts";
 
 async function ruleHits(source: string, filePath: string): Promise<number> {
   const eslint = new ESLint({ cwd: ROOT });
@@ -18,7 +20,7 @@ describe(RULE, () => {
     "a route that reads %s itself is an error",
     async (header) => {
       const source = `export function ip(request: Request): string | null {\n  return request.headers.get("${header}");\n}\n`;
-      expect(await ruleHits(source, "src/app/api/fixture/route.ts")).toBe(1);
+      expect(await ruleHits(source, ROUTE)).toBe(1);
     },
     ESLINT_BOOT_MS
   );
@@ -27,7 +29,7 @@ describe(RULE, () => {
     "a route that passes its headers to networkKeyOf is clean",
     async () => {
       const source = `import { networkKeyOf } from "@/lib/scan/admission";\n// the key never comes from x-forwarded-for directly\nexport const key = (request: Request) => networkKeyOf(request.headers);\n`;
-      expect(await ruleHits(source, "src/app/api/fixture/route.ts")).toBe(0);
+      expect(await ruleHits(source, ROUTE)).toBe(0);
     },
     ESLINT_BOOT_MS
   );
