@@ -1,9 +1,9 @@
-// The phone offer bar on the landing, Pricing and the report covers no footer link and no focused link, at 320 and 390, with a refused checkout too; its page names one "Offer".
+// The phone offer bar on the landing, Pricing and the report covers no footer link and no focused link, at 320 and 390, with a refused or limited checkout too; its page names one "Offer".
 import AxeBuilder from "@axe-core/playwright";
 import { expect, it } from "vitest";
 import { getBaseURL, withPage } from "./browser";
 
-const PAGES = ["/", "/pricing", "/pricing?checkout=refused", "/scan/example.com", "/scan/example.com?checkout=refused"] as const;
+const PAGES = ["/", "/pricing", "/pricing?checkout=refused", "/pricing?checkout=limited", "/scan/example.com", "/scan/example.com?checkout=refused", "/scan/example.com?checkout=limited"] as const;
 
 /** Read in the page. Closure-free: `page.evaluate` serialises its text. */
 function measure() {

@@ -117,6 +117,7 @@ const { MAIL_KINDS } = await import("../../src/lib/mail/kinds");
 const { SETUP_PATH, APP_PATH, setupRedirectFor } = await import(
   "../../src/app/(account)/setup/gate"
 );
+const { startCheckout: startPricingCheckout } = await import("../../src/app/(public)/pricing/actions");
 const { POST: webhookRoute } = await import("../../src/app/api/stripe/webhook/route");
 const { GET: confirmRoute } = await import("../../src/app/(public)/auth/confirm/route");
 
@@ -131,8 +132,7 @@ const NEVER_PAID = new Date(0).toISOString();
 
 let accounts: MemoryAccounts;
 let identity: MemoryIdentity;
-/** Supabase Auth, in memory (#468): the user, the one live token, the
- *  session `verifyOtp` writes. */
+/** Supabase Auth, in memory: the user, the one live token, the session `verifyOtp` writes. */
 let auth: FakeAuthState;
 let billing: MemoryBilling;
 let leads: MemoryState;
@@ -191,8 +191,7 @@ function signedHeader(body: string, at: Date, secret = env.STRIPE_WEBHOOK_SECRET
   return `t=${t},v1=${v1}`;
 }
 
-/** The double, with its boolean `constructEvent` replaced by the real
- *  verification. Everything else is the shared double. */
+/** The shared double, with its boolean `constructEvent` replaced by the real verification. */
 function verifyingStripe(): ReturnType<typeof stripeDouble> {
   const base = stripeDouble(vendor) as unknown as Record<string, unknown>;
   return {
@@ -288,10 +287,7 @@ afterEach(() => {
 
 // ── The journey, in the steps a founder takes ───────────────────────────
 
-/** Issue #785: the report as the page renders it, for this journey's scan
- *  and domain, and the one action its offer's Start posts to — found on the
- *  rendered tree rather than imported, so a report that stops passing it
- *  fails here. */
+/** The report's Start action, found on the rendered tree so a report that stops passing it fails here. */
 function theReportsStart(): () => Promise<void> {
   const tree = ReportView({
     state: {
@@ -326,8 +322,7 @@ async function pressStart(): Promise<string> {
   return digest;
 }
 
-/** Step 1 — Start. Both price surfaces reach this one function; only the
- *  origin differs. */
+/** Step 1 — Start: both price surfaces reach this one function. */
 async function startCheckout(origin: { kind: "report"; scanId: string } | { kind: "pricing" }) {
   return createCheckoutSession({
     origin,
@@ -335,9 +330,7 @@ async function startCheckout(origin: { kind: "report"; scanId: string } | { kind
   });
 }
 
-/** Step 2 — Stripe tells us the payment completed. The body is signed as
- *  Stripe signs it and arrives at the route, which verifies nothing itself
- *  and hands the bytes on. */
+/** Step 2 — Stripe says the payment completed, with the body signed as Stripe signs it. */
 async function stripeSaysItCompleted(
   sessionId: string,
   at = new Date(),
@@ -410,9 +403,16 @@ describe("Start → Checkout → webhook → magic link → /setup (JN-002 steps
     expect(vendor.created).toEqual([]);
   });
 
-  it("a visitor past the checkout limit comes back with the marker and opens no session", async () => {
+  it("a visitor past the checkout limit comes back to the report with the limit marker and opens no session", async () => {
     vi.spyOn(db.client, "rpc").mockImplementationOnce(() => Promise.resolve({ data: false, error: null }));
-    expect(await pressStart()).toContain(`/scan/${DOMAIN}?checkout=refused`);
+    expect(await pressStart()).toContain(`/scan/${DOMAIN}?checkout=limited`);
+    expect(vendor.created).toEqual([]);
+  });
+
+  it("Pricing's Start, which the landing's phone bar posts too, sends a visitor past the limit to Pricing with the limit marker", async () => {
+    vi.spyOn(db.client, "rpc").mockImplementationOnce(() => Promise.resolve({ data: false, error: null }));
+    const thrown: unknown = await startPricingCheckout().catch((error: unknown) => error);
+    expect((thrown as { digest?: string }).digest).toContain("/pricing?checkout=limited");
     expect(vendor.created).toEqual([]);
   });
 

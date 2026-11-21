@@ -6,7 +6,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { parseDomain } from "@/lib/scan/domain";
-import { CHECKOUT_QUERY_KEY, REFUSED_MARKER } from "../../../pricing/state";
+import { CHECKOUT_QUERY_KEY, LIMITED_MARKER, REFUSED_MARKER } from "../../../pricing/state";
 
 export async function startReportCheckout(domain: string, scanId: string): Promise<void> {
   const { createCheckoutSession } = await import("@/lib/account/checkout/session");
@@ -15,10 +15,8 @@ export async function startReportCheckout(domain: string, scanId: string): Promi
   const { networkKeyOf } = await import("@/lib/scan/admission");
   const parsed = parseDomain(domain);
   const reportPath = parsed.ok ? `/scan/${parsed.domain}` : "/pricing";
-  const admitted = await takeLimits("checkout", { network: networkKeyOf(await headers()) });
-  const result = admitted
-    ? await createCheckoutSession({ origin: { kind: "report", scanId }, returnTo: new URL(reportPath, env.NEXT_PUBLIC_APP_URL).toString() })
-    : { ok: false as const };
   // Outside any `try`: `redirect` throws its own control-flow error.
+  if (!(await takeLimits("checkout", { network: networkKeyOf(await headers()) }))) redirect(`${reportPath}?${CHECKOUT_QUERY_KEY}=${LIMITED_MARKER}`);
+  const result = await createCheckoutSession({ origin: { kind: "report", scanId }, returnTo: new URL(reportPath, env.NEXT_PUBLIC_APP_URL).toString() });
   redirect(result.ok ? result.url : `${reportPath}?${CHECKOUT_QUERY_KEY}=${REFUSED_MARKER}`);
 }
