@@ -28,7 +28,7 @@ vi.mock("@/lib/opportunities", () => ({
 }));
 
 const { LIVE_ACCOUNT, resetAccount, signedInAs } = await import("../account-door");
-const { default: OverviewPage } = await import("@/app/(account)/app/(tabs)/page");
+const { default: OverviewPage } = await import("@/app/(account)/app/(tabs)/(overview)/page");
 const { default: OverviewTabsLayout } = await import("@/app/(account)/app/(tabs)/layout");
 const { copy } = await import("@/lib/presentation/copy");
 

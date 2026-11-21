@@ -42,7 +42,12 @@ export interface GooglePages {
   read: number;
   showing: number;
   firstPage: number;
+  /** Live pages whose reading holds a place this week: the On Google tile's figure. */
+  placed: number;
 }
+
+/** A live page Google shows for its own search this week. */
+export const placedNow = (page: PublishedPage): boolean => page.reading?.place != null;
 
 const LABEL_ORDER: Readonly<Record<Label, number>> = { working: 0, climbing: 1, not_moving: 2, too_early: 3 };
 
@@ -84,6 +89,7 @@ export function googlePagesOf(all: readonly PublishedPage[], now: Date): GoogleP
     read: read.length,
     showing: read.filter((page) => page.reading!.reached.showing !== undefined).length,
     firstPage: read.filter((page) => page.reading!.reached.firstPage !== undefined).length,
+    placed: pages.filter(placedNow).length,
   };
 }
 

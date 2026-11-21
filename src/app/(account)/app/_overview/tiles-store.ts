@@ -3,7 +3,7 @@
 import { dbAdmin } from "@/lib/db";
 import { failingChecks, parseHealth } from "@/lib/scan/health";
 import { resolvedRows } from "@/lib/market/rivals/domains";
-import { pageSearchOf, readingOf, type PlaceReport } from "@/lib/measure/page-reading";
+import { pageSearchOf, type PlaceReport } from "@/lib/measure/page-reading";
 import type { SerpResult } from "@/lib/vendors/dataforseo/types";
 import { onFirstPage } from "./rivals-store";
 import { AI_WINDOW_WEEKS, TILE_WEEKS, type TilePage, type TilePass } from "./tiles";
@@ -37,7 +37,6 @@ interface PageRow {
   published_at: string;
   unpublished_at: string | null;
   acceptance: unknown;
-  search_reading: unknown;
   drafts: { opportunities: { acceptance: unknown; target_query: string | null } | null } | null;
 }
 
@@ -60,7 +59,7 @@ export async function readTileRows(a: { siteId: string; domain: string; week: st
       .gte("week_start", since)
       .not("report", "is", null),
     from<PageRow>("publications")
-      .select("id, live_url, published_at, unpublished_at, acceptance, search_reading, drafts(opportunities(acceptance, target_query))")
+      .select("id, live_url, published_at, unpublished_at, acceptance, drafts(opportunities(acceptance, target_query))")
       .eq("site_id", a.siteId)
       .not("published_at", "is", null),
   ]);
@@ -87,7 +86,6 @@ export async function readTileRows(a: { siteId: string; domain: string; week: st
       publishedAt: row.published_at,
       unpublishedAt: row.unpublished_at,
       search: pageSearchOf(row.acceptance ?? row.drafts?.opportunities?.acceptance, row.drafts?.opportunities?.target_query),
-      placed: readingOf(row.search_reading)?.place != null,
     })),
   };
 }

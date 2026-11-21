@@ -1,38 +1,64 @@
 // SPEC §4 *Overview's four tiles* — the signed-in account's tiles, read once a request.
+// Pages and Google are counted by the functions that build the lists they open.
 import { cache } from "react";
-import { now } from "@/lib/config/now";
+import { contentOf, type PublishedPage } from "@/lib/measure/published";
+import type { PlaceReport } from "@/lib/measure/page-reading";
 import { weekStartFor } from "@/lib/scan/weekly/week";
 import { isReservedFixtureAccount, requireSetUpAccount } from "../_session/account";
+import { readPublished } from "./content-provider";
+import { googlePagesOf } from "./google-pages";
 import { readRivals } from "./rivals-provider";
-import { tilesOf, type TilesModel } from "./tiles";
+import { TILE_WEEKS, tilesOf, type TilePage, type TilePass, type TilesModel } from "./tiles";
 
-/** The reserved fixture account's: one tile in each state the row draws. */
-const FIXTURE_TILES: TilesModel = {
-  tiles: [
-    { key: "pages", n: 9, of: { kind: "count", m: 10 }, change: { kind: "up", n: 2 }, series: [3, 4, 5, 6, 7, 9] },
-    { key: "google", n: 4, of: { kind: "count", m: 9 }, change: { kind: "same" }, series: [1, 2, null, 3, 4, 4] },
-    { key: "ai", n: 2, of: { kind: "count", m: 7 }, change: { kind: "unread" }, series: [0, 1, 1, 2, 2, null] },
-    { key: "rivals", n: 3, of: { kind: "count", m: 12 }, change: { kind: "down", n: 1 }, series: null },
-  ],
-  bars: { you: 3, of: 12, rivals: [{ name: "bigcompetitor.com", value: 7 }, { name: "secondplace.io", value: 5 }] },
-};
+const WEEK_MS = 7 * 86_400_000;
+const NOT_READ = { kind: "unmeasured", reason: "not_attempted" } as const;
+
+const tilePageOf = (page: PublishedPage): TilePage => ({
+  id: page.id,
+  liveUrl: page.url,
+  publishedAt: page.publishedAt.toISOString(),
+  unpublishedAt: null,
+  search: page.reading?.place?.query ?? null,
+});
+
+/** The reserved account's six Mondays, rebuilt from its own pages' readings: more placed and linked each week, one week unhealthy. */
+function fixturePasses(pages: readonly PublishedPage[], week: string): TilePass[] {
+  return Array.from({ length: TILE_WEEKS }, (_, k) => {
+    const weekStart = new Date(Date.parse(`${week}T06:00:00Z`) - (TILE_WEEKS - 1 - k) * WEEK_MS).toISOString().slice(0, 10);
+    const at = `${weekStart}T06:00:00.000Z`;
+    const rows = pages
+      .filter((page) => page.url !== null && page.reading?.linkedBy != null && page.publishedAt.toISOString() <= at)
+      .map((page, j) => ({
+        publicationId: page.id,
+        question: { search: page.reading?.place?.query ?? page.title },
+        cell: { kind: "answered", ownUrls: (page.reading?.linkedBy ?? []).length > 0 && k >= 4 ? [page.url!] : [] },
+        engines: [],
+        organic: page.reading?.place != null && j % TILE_WEEKS <= k ? [{ url: page.url!, position: page.reading.place.value }] : [],
+      }));
+    const report = { questions: NOT_READ, serps: [], ownRanked: NOT_READ, ownRankedRows: [], pageQuestions: { rows }, verdict: { measuredAt: new Date(at) } };
+    return { weekStart, at, healthy: k !== 3, firstPage: k === 3 ? null : Math.max(0, k - 2), report: report as unknown as PlaceReport };
+  });
+}
 
 /** `null` where the rows could not be read: the row is not drawn, never zeros. */
 export const readTiles = cache(async function readTiles(coming: number, goLive: boolean): Promise<TilesModel | null> {
   const account = await requireSetUpAccount();
-  if (isReservedFixtureAccount(account)) return FIXTURE_TILES;
   try {
-    const at = now();
+    const [published, rivals] = await Promise.all([readPublished(), readRivals().catch(() => null)]);
+    const content = contentOf(published);
+    if (content === null) return null;
+    const at = published.now;
     const week = weekStartFor({ at, zone: account.timeZone });
+    const fixture = isReservedFixtureAccount(account);
     // Imported at the call: the store resolves `@/lib/db`, which the reserved account never reaches.
-    const { readTileRows } = await import("./tiles-store");
-    const [rows, rivals] = await Promise.all([
-      readTileRows({ siteId: account.siteId, domain: account.domain, week }),
-      readRivals().catch(() => null),
-    ]);
+    const rows = fixture
+      ? { passes: fixturePasses(content.pages, week), pages: content.pages.map(tilePageOf) }
+      : await import("./tiles-store").then((m) => m.readTileRows({ siteId: account.siteId, domain: account.domain, week }));
+    const google = googlePagesOf(content.pages, at);
     const firstPage = rivals?.firstPage;
     return tilesOf({
       ...rows,
+      lists: { live: content.pages.length, firstLive: content.pages.at(-1)?.publishedAt ?? null, google: { live: google.live, placed: google.placed } },
       rivals:
         firstPage === undefined
           ? null

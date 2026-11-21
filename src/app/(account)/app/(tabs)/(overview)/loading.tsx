@@ -2,8 +2,8 @@
 // the loaded screen draws with (`_overview/frame.ts`): the head, today's page,
 // the four tiles on the row's own grid, then this week's pages.
 import type React from "react";
-import { Box, CardSkeleton, Waiting } from "../_shell/skeletons";
-import { HEAD, OVERVIEW, REGION } from "../_overview/frame";
+import { Box, CardSkeleton, Waiting } from "../../_shell/skeletons";
+import { HEAD, OVERVIEW, REGION } from "../../_overview/frame";
 
 export default function OverviewLoading(): React.JSX.Element {
   return (

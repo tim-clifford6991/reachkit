@@ -30,8 +30,16 @@ export interface TilePage {
   unpublishedAt: string | null;
   /** The search its place is read on. */
   search: string | null;
-  /** Its stored reading holds a place this week. */
-  placed: boolean;
+}
+
+/** This week's counts, taken by the functions that build the lists the tiles open. */
+export interface TileLists {
+  /** The rows of This Week's *Live pages* (`contentOf`). */
+  live: number;
+  /** The first one's go-live, for a first count. */
+  firstLive: Date | null;
+  /** `googlePagesOf`: the live pages, and those placed on Google this week. */
+  google: { live: number; placed: number };
 }
 
 export type TileChange =
@@ -141,6 +149,7 @@ export function tilesOf(a: {
   passes: readonly TilePass[];
   pages: readonly TilePage[];
   rivals: RivalsFirstPage | null;
+  lists: TileLists;
   now: Date;
   /** This site-local week's Monday. */
   week: string;
@@ -151,43 +160,42 @@ export function tilesOf(a: {
 }): TilesModel {
   const passes = [...a.passes].sort((x, y) => x.weekStart.localeCompare(y.weekStart));
   const t = a.now.getTime();
-  const live = liveAt(a.pages, t);
+  const live = a.lists.live;
   const latest = passes.at(-1);
 
   // Pages: every address ever published, merged and taken-down ones included.
   const ever = new Set(a.pages.map((page) => (page.liveUrl === null ? `#${page.id}` : addressOf(page.liveUrl))));
-  const weekly = Array.from({ length: TILE_WEEKS }, (_, i) => liveAt(a.pages, t - (TILE_WEEKS - 1 - i) * WEEK_MS).size);
+  const weekly = Array.from({ length: TILE_WEEKS }, (_, i) => (i === TILE_WEEKS - 1 ? live : liveAt(a.pages, t - (TILE_WEEKS - 1 - i) * WEEK_MS).size));
   const lastWeek = weekly.at(-2)!;
-  const firstLive = [...live.values()].map((page) => page.publishedAt).sort()[0];
   const pages: Tile =
-    live.size === 0
+    live === 0
       ? { key: "pages", n: 0, of: { kind: "none" }, change: a.goLive ? { kind: "golive" } : null, series: null }
       : {
           key: "pages",
-          n: live.size,
+          n: live,
           of: { kind: "count", m: ever.size },
           change:
             latest === undefined
               ? a.coming > 0 ? { kind: "coming", n: a.coming } : null
-              : lastWeek === 0 ? { kind: "first", at: new Date(firstLive!) } : diff(live.size, lastWeek),
+              : lastWeek === 0 && a.lists.firstLive !== null ? { kind: "first", at: a.lists.firstLive } : diff(live, lastWeek),
           series: weekly,
         };
 
   const none = (key: TileKey): Tile => ({ key, n: null, of: { kind: "none" }, change: null, series: null });
   const due = (key: TileKey): Tile => ({ key, n: null, of: { kind: "due" }, change: { kind: "due" }, series: null });
 
-  // On Google: the figure is the stored readings'; the weeks before are rebuilt from their reports.
-  const placed = [...live.values()].filter((page) => page.placed).length;
+  // On Google: the figure is the Google list's; the weeks before are rebuilt from their reports.
+  const { placed, live: googleLive } = a.lists.google;
   const googleValue = (pass: TilePass): number => (pass === latest ? placed : placedIn(pass, a.pages));
   const google: Tile =
-    live.size === 0
+    googleLive === 0
       ? none("google")
       : latest === undefined
         ? due("google")
         : {
             key: "google",
             n: placed,
-            of: { kind: "count", m: live.size },
+            of: { kind: "count", m: googleLive },
             change: weeklyChange(passes, placed, googleValue),
             series: seriesOf(passes, a.week, googleValue),
           };
@@ -196,7 +204,7 @@ export function tilesOf(a: {
   const aiValue = (pass: TilePass): number => aiWindowOf(passes, a.pages, pass.weekStart).linked.size;
   const window = latest === undefined ? null : aiWindowOf(passes, a.pages, latest.weekStart);
   const ai: Tile =
-    live.size === 0
+    live === 0
       ? none("ai")
       : window === null || window.asked.size === 0
         ? due("ai")

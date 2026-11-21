@@ -8,6 +8,7 @@ import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { GrowthLine, type GrowthWeek } from "@/ui/charts/GrowthLine";
 import { PresenceBars } from "@/ui/charts/PresenceBars";
 import { formatCount, formatDate, formatShortDay } from "../_shell/format";
+import { Box, Waiting } from "../_shell/skeletons";
 import { REGION } from "./frame";
 import type { Tile, TileChange, TileKey, TilesModel } from "./tiles";
 
@@ -126,7 +127,11 @@ function Trend(p: { tile: Tile; bars: TilesModel["bars"] }): React.JSX.Element |
   );
 }
 
-const CARD = "card card-border h-full w-full bg-base-100 transition-[translate,border-color] duration-200 hover:border-primary motion-safe:hover:-translate-y-0.5";
+const CARD = "card card-border h-full w-full bg-base-100 transition-[translate,border-color] duration-200";
+/** A card that opens another screen lifts; the current tile opens this one, so it does not move. */
+const LIFT = "hover:border-primary motion-safe:hover:-translate-y-0.5";
+/** The detail strip: 2×2 on a narrow phone, so no fixed name is cut, then one row. */
+const STRIP = "grid min-w-0 grid-cols-2 gap-2 sm:grid-cols-4 lg:gap-3";
 
 /** The full row: `/app`, after the head and today's page. */
 export function Tiles(p: { model: TilesModel; dates: TileDates }): React.JSX.Element {
@@ -138,12 +143,12 @@ export function Tiles(p: { model: TilesModel; dates: TileDates }): React.JSX.Ele
           const change = tile.change === null ? null : changeLine(tile.key, tile.change, p.dates);
           return (
             <li key={tile.key} className="flex min-w-0">
-              <Link className={`${CARD} group`} href={TILE_HREF[tile.key]} prefetch={true} data-testid={`overview-tile-${tile.key}`}>
-                <span className="card-body min-w-0 gap-1.5 p-4">
+              <Link className={`${CARD} ${LIFT} group`} href={TILE_HREF[tile.key]} prefetch={true} data-testid={`overview-tile-${tile.key}`}>
+                <span className="card-body min-w-0 gap-1.5 p-3 sm:p-4">
                   <span className="flex min-w-0 items-center gap-2 text-sm font-semibold">
                     <Icon className="size-4 shrink-0 text-primary" aria-hidden />
                     <span className="min-w-0">{copy(NAME[tile.key])}</span>
-                    <ChevronRight className="ms-auto size-4 shrink-0 text-base-content/50" aria-hidden />
+                    <ChevronRight className="ms-auto hidden size-4 shrink-0 text-base-content/50 sm:block" aria-hidden />
                   </span>
                   <Figure tile={tile} className="text-3xl font-semibold tabular-nums" />
                   <span className={INK}>{ofLine(tile)}</span>
@@ -169,26 +174,24 @@ export function Tiles(p: { model: TilesModel; dates: TileDates }): React.JSX.Ele
 export function DetailTiles(p: { model: TilesModel | null; tab: TileKey }): React.JSX.Element {
   return (
     <div className="flex min-w-0 flex-col gap-3">
-      <Link className="link link-hover inline-flex min-h-11 w-fit items-center text-sm" href="/app" prefetch={true}>
-        {copy("chrome.back-to-overview")}
-      </Link>
+      <BackToOverview />
       {p.model === null ? null : (
         <nav className="min-w-0" aria-label={copy("overview.tiles.label")} data-testid="overview-tiles">
-          <ul className="grid min-w-0 grid-cols-4 gap-2 lg:gap-3">
+          <ul className={STRIP} data-frame={REGION.detailTiles}>
             {p.model.tiles.map((tile) => {
               const here = tile.key === p.tab;
               const Icon = ICON[tile.key];
               return (
                 <li key={tile.key} className="flex min-w-0">
                   <Link
-                    className={`${CARD} ${here ? "border-primary" : ""}`}
+                    className={`${CARD} ${here ? "border-primary" : LIFT}`}
                     href={TILE_HREF[tile.key]}
                     prefetch={true}
                     aria-current={here ? "page" : undefined}
                     data-testid={`overview-tile-${tile.key}`}
                   >
                     <span className="card-body min-h-11 min-w-0 justify-center gap-0.5 p-2 text-center text-sm lg:hidden">
-                      <span className="truncate">{copy(SHORT[tile.key])}</span>
+                      <span>{copy(SHORT[tile.key])}</span>
                       <Figure tile={tile} className="font-semibold tabular-nums" />
                     </span>
                     <span className="card-body hidden min-w-0 gap-1 p-3 lg:flex">
@@ -206,6 +209,28 @@ export function DetailTiles(p: { model: TilesModel | null; tab: TileKey }): Reac
           </ul>
         </nav>
       )}
+    </div>
+  );
+}
+
+function BackToOverview(): React.JSX.Element {
+  return (
+    <Link className="link link-hover inline-flex min-h-11 w-fit items-center text-sm" href="/app" prefetch={true}>
+      {copy("chrome.back-to-overview")}
+    </Link>
+  );
+}
+
+/** A detail while it loads: the same link and strip, so nothing moves when the detail arrives. */
+export function DetailTilesSkeleton(): React.JSX.Element {
+  return (
+    <div className="flex min-w-0 flex-col gap-3">
+      <BackToOverview />
+      <Waiting testId="detail-tiles-skeleton" className={STRIP} frame={REGION.detailTiles}>
+        {[0, 1, 2, 3].map((i) => (
+          <Box key={i} className="h-14 w-full lg:h-24" />
+        ))}
+      </Waiting>
     </div>
   );
 }
