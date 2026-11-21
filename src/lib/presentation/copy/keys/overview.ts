@@ -147,31 +147,31 @@ export const OVERVIEW_COPY = Object.freeze({
   // owner corrects the wording.
   "overview.alert.pending-veto.no-window": "has no go-live time yet",
   "overview.alert.overflow": "{remaining} more in This week.",
-  // A technical issue the customer fixes (SPEC §9, #572): its title is the
-  // check's own, its line the severity word. The control's word and the
-  // count of the issues not shown are owner-owed.
+  // A technical issue the customer fixes (SPEC §9): its title is the check's own, its line the severity word.
+  // The control's word and the count of the issues not shown are owner-owed.
   "overview.alert.site-issue.action": "See the Fix",
-  "overview.alert.site-issue.overflow": "{remaining} more in Site fixes.",
+  "overview.alert.site-issue.overflow": "{remaining} more in Site Fixes.",
   /* ── Technical issues, the account's view of the checks it fixes (issue 1550, drafted) */
   "overview.issues.title": "Site Fixes",
   "overview.issues.lead": "Optional. Whoever runs your website can make them; ReachKit can’t.",
   "overview.issues.found": "Found {date}.",
-  "overview.issues.empty": "Nothing on your site needs fixing. We check again on Monday.",
+  "overview.issues.empty": "Nothing to fix. We read {count} pages on {date}.",
   "overview.issues.unscanned": "Your site hasn’t been checked yet. What the first check finds shows here.",
   "overview.issues.unreadable": "This list didn’t load. Try again in a minute.",
   "overview.issues.site": "Applies to the whole site.",
   "overview.issues.seconds": "{seconds} s",
   "overview.issues.slow-note": "Each took {seconds} seconds or more, twice.",
+  "overview.issues.unnamed": "This check counted pages with a problem but kept no list of them.",
   "overview.issues.read": "Your site, {count} pages read",
   "overview.issues.fine": "pages with nothing to fix",
   "overview.issues.affected": "{pages} pages have a problem.",
   "overview.issues.affected.one-page": "One page has a problem.",
   "overview.issues.ours": "Your ReachKit pages are checked before they go live.",
-  "overview.issues.share": "{count} of {over}",
-  "overview.issues.share.unit": "pages",
+  "overview.issues.share": "{count} of {over} pages",
   "overview.issues.fix": "The fix:",
-  "overview.issues.show": "Show the {count} Pages",
-  "overview.issues.show.one": "Show the Page",
+  "overview.issues.pages": "The {count} Pages",
+  "overview.issues.pages.one": "The Page",
+  "overview.issues.back": "Back to Site Fixes",
   "overview.alerts.empty": "Nothing needs you today.",
 
   // ── The one supply statement Overview may make, resolved in this order.

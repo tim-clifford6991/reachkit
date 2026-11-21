@@ -178,7 +178,7 @@ export const FIXTURE_OVERVIEW_FACTS: OverviewFacts = Object.freeze({
       fix: SITE_CHECK_FIX[check]!,
       pages: check === "sitemap" ? [] : ["https://example.com/a", "https://example.com/b", "https://example.com/c"],
       ...(check === "slow_pages" ? { ms: [4100, 3900, 3800] } : {}),
-      href: `/app/issues#${check}`,
+      href: `/app/issues?fix=${check}`,
     })),
     {
       kind: "pending_veto" as const,

@@ -137,7 +137,7 @@ The owner looks at `dev.reachkit.app` for taste: voice, and an asset only the ow
 | Plan: this week's 7 | `/app/calendar` | [board](design/boards/canvas/Plan.dc.html) · [render](design/boards/canvas/renders/Plan.jpg); superseded by plates W1–W5, owner 2026-11-20, #2984 |
 | A live page | `/app/draft/{draftId}` | [board](design/boards/canvas/PageDetail.dc.html) · [render](design/boards/canvas/renders/PageDetail.jpg) |
 | Draft: a page in review, and editing | `/app/draft/{draftId}` | [board](design/boards/canvas/AppDraft.dc.html) · [render](design/boards/canvas/renders/AppDraft.jpg) |
-| Technical issues | `/app/issues` | [board](design/boards/canvas/AppIssues.dc.html) · [render](design/boards/canvas/renders/AppIssues.jpg) |
+| Site Fixes | `/app/issues` | [board](design/boards/canvas/AppIssues.dc.html) · [render](design/boards/canvas/renders/AppIssues.jpg) · superseded by plate F5 (owner, 2026-11-20, #2985) |
 | Costs (owner only) | `/app/costs` | [board](design/boards/canvas/AppCosts.dc.html) · [render](design/boards/canvas/renders/AppCosts.jpg) |
 | Review (owner only) | `/app/review` | [board](design/boards/canvas/Review.dc.html) · [render](design/boards/canvas/renders/Review.jpg) |
 | Settings, Your business | `/app/settings` | [board](design/boards/canvas/SettingsIndex.dc.html) · [render](design/boards/canvas/renders/SettingsIndex.jpg) |

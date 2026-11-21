@@ -9,3 +9,7 @@ harborplumbing.com/reviews opens in a new tab	sample data
 harborplumbing.com/specials-2024 opens in a new tab	sample data
 harborplumbing.com/blog/old-post opens in a new tab	sample data
 Theme: light	DESIGN.md: the /app shell's theme control is the Light / Dark / System dropdown named Theme (#681)
+Show the 3 pages	owner 2026-11-20, #2985: plate F5 opens a fix from its row in the list; the Show collapse is gone
+Show the 4 pages	owner 2026-11-20, #2985: plate F5 opens a fix from its row in the list; the Show collapse is gone
+Show the 2 pages	owner 2026-11-20, #2985: plate F5 opens a fix from its row in the list; the Show collapse is gone
+component:icon:chevron-down 3	owner 2026-11-20, #2985: plate F5 opens a fix from its row in the list; the collapse and its arrow are gone

@@ -1,4 +1,4 @@
-// Issue 1550 — Technical issues, at `/app/issues`.
+// Site Fixes, at `/app/issues`.
 //
 // The account's own view of the checks the customer fixes (SPEC §9's "Free
 // fix · 10 min"): each one names what it applies to and says what to do in
@@ -12,6 +12,7 @@ import type { Metadata } from "next";
 import { copy } from "@/lib/presentation/copy";
 import { requireSetUpAccount } from "../_session/account";
 import { readIssues } from "./provider";
+import { siteFixesScreen } from "./screen";
 import { IssuesView } from "./view";
 
 export const metadata: Metadata = { title: copy("meta.app.issues.title") };
@@ -19,5 +20,5 @@ export const metadata: Metadata = { title: copy("meta.app.issues.title") };
 export default async function IssuesPage(): Promise<React.JSX.Element> {
   const reading = await readIssues();
   const { timeZone } = await requireSetUpAccount();
-  return <IssuesView reading={reading} timeZone={timeZone} />;
+  return <IssuesView screen={siteFixesScreen(reading, timeZone)} />;
 }
