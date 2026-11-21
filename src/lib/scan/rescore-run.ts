@@ -15,7 +15,7 @@ import { AI_ANSWER_SOURCES, AI_OVERVIEW_TEXT_MAX_CHARS } from "@/lib/vendors/dat
 import { OWN_FETCH_SOURCE } from "@/lib/measure/own-fetch";
 import { checked, factsLoader, type MinimalClient, type MinimalResult } from "./fetch-facts";
 import { readStoredReport } from "./report";
-import { unreadPageRivals } from "./page-rivals";
+import { pageAnswerKeys } from "./page-rivals";
 import { withdrawnSitesOf, type SiteWithdrawal } from "./rescore-blank";
 import { readingLines } from "./rescore-reading";
 import { scanWriteOf } from "./rescore-write";
@@ -93,8 +93,8 @@ export interface RescoreStore {
   profiles(): Promise<readonly StoredProfileName[]>;
   /** A paying site's scan's own-document reads, in the order read, and the stored reads of the pages ReachKit had live for the site then (`livePagesAt`). */
   ownReads(scan: Pick<StoredScanRow, "id" | "siteId" | "createdAt">): Promise<OwnReads>;
-  /** The AI Mode and ChatGPT answers a scan bought, as `fetches` keeps them; asked only for a site's current scan, whose report carries those cells. */
-  answers(scanId: string): Promise<readonly StoredAnswer[]>;
+  /** The AI Mode and ChatGPT answers a scan bought, as `fetches` keeps them; `keep` narrows them by cache key before any payload is read. */
+  answers(scanId: string, keep?: (key: string) => boolean): Promise<readonly StoredAnswer[]>;
   /** False where the report's checksum is no longer `md5`: nothing written. */
   writeScan(write: ScanWrite): Promise<boolean>;
   writeSite(write: SiteWrite): Promise<void>;
@@ -206,7 +206,7 @@ function onPageAtOf(stored: unknown): number | null {
 export function rescoreRow(
   scan: StoredScanRow,
   reads: readonly StoredRead[],
-  said: { siteName: string | null; answers: readonly StoredAnswer[]; market?: RescoreScan["market"]; measured?: RescoreScan["measured"] } = { siteName: null, answers: [] }
+  said: Pick<RescoreScan, "siteName" | "answers" | "market" | "measured" | "answersRead"> = { siteName: null, answers: [] }
 ): Row | { id: string; because: string } {
   let report: RescoreReport;
   try {
@@ -225,11 +225,8 @@ export function rescoreRow(
     drivers: driversOf(scan.drivers),
     report,
     ...read,
-    siteName: said.siteName,
-    answers: said.answers,
+    ...said,
     startedAt: scan.createdAt,
-    ...(said.market === undefined ? {} : { market: said.market }),
-    ...(said.measured === undefined ? {} : { measured: said.measured }),
   });
   return { scan, report, result, read };
 }
@@ -453,7 +450,7 @@ function summaryOf(a: {
 // ── The run ─────────────────────────────────────────────────────────────
 
 /** Every stored scan, site rival set and stored name read again by the deployed code, nothing written. */
-async function readAll(store: RescoreStore, at: Date) {
+async function readAll(store: RescoreStore, at: Date, pagesToo = true) {
   const scans = await store.scans();
   const profiles = await store.profiles();
   const sites = await store.sites();
@@ -473,10 +470,13 @@ async function readAll(store: RescoreStore, at: Date) {
     // A domain's home reads are held only while its own scans are scored.
     const reads = await store.homeReads(domain, ofDomain.flatMap((scan) => onPageAtOf(scan.report) ?? []));
     for (const scan of ofDomain) {
-      const answers = scan.siteId !== null && (scan.isCurrent || unreadPageRivals(scan, at)) ? await store.answers(scan.id) : [];
       const market = scan.siteId === null ? undefined : markets.get(scan.siteId);
+      // A past scan's page answers are read once, and only where its site's rivals can read them; the check after an apply reads none.
+      const pages = pagesToo && scan.siteId !== null && !scan.isCurrent && market?.rivals !== undefined ? pageAnswerKeys(scan, at) : null;
+      const answers = scan.siteId !== null && scan.isCurrent ? await store.answers(scan.id) : pages === null ? [] : await store.answers(scan.id, pages);
       const measured = scan.siteId === null ? undefined : measuredOf(await store.ownReads(scan));
-      const said = { siteName: names.get(domain) ?? null, answers, ...(market === undefined ? {} : { market }), ...(measured === undefined ? {} : { measured }) };
+      const read = (scan.siteId !== null && scan.isCurrent) || pages !== null;
+      const said = { siteName: names.get(domain) ?? null, answers, ...(read ? { answersRead: true as const } : {}), ...(market === undefined ? {} : { market }), ...(measured === undefined ? {} : { measured }) };
       const row = quietly(() => rescoreRow(scan, reads, said));
       if ("result" in row) rows.push(row);
       else unreadable.push(row);
@@ -517,7 +517,7 @@ export async function rescoreStored(store: RescoreStore, o: RescoreOptions): Pro
     stale = standing;
     if (written.left.length > 0) {
       // A scan written since it was read may now read as the code does, or not.
-      const again = await readAll(store, o.at);
+      const again = await readAll(store, o.at, false);
       held = heldBecause({ moves: again.scoreMoves, unreadable: again.unreadable.length, unreadableBefore: unreadable.length, afterApply: true, changed: again.moving.length });
       stale = again.stale;
     }
@@ -705,14 +705,13 @@ export function databaseRescore(client: () => Promise<MinimalClient> = adminClie
       };
       return { own: own.flatMap(asRead), ours, oursReads: rows.filter((r) => picked.has(r.id)).flatMap(asRead) } satisfies OwnReads;
     },
-    async answers(scanId) {
-      const rows = got(
-        await (await client())
-          .from<{ source: string; cache_key: string; payload: unknown }>("fetches")
-          .select("source, cache_key, payload")
-          .eq("scan_id", scanId)
-          .in("source", Object.values(AI_ANSWER_SOURCES))
-      );
+    async answers(scanId, keep) {
+      type Answer = { id: string; source: string; cache_key: string; payload: unknown };
+      const ofScan = async (columns: string) => (await client()).from<Answer>("fetches").select(columns).eq("scan_id", scanId).in("source", Object.values(AI_ANSWER_SOURCES));
+      // The keys first where only some are kept: a payload is detoasted only for an answer that is read.
+      const ids = keep === undefined ? null : (got(await ofScan("id, cache_key")) ?? []).filter((r) => keep(r.cache_key)).map((r) => r.id);
+      if (ids !== null && ids.length === 0) return [];
+      const rows = got(ids === null ? await ofScan("source, cache_key, payload") : await (await client()).from<Answer>("fetches").select("source, cache_key, payload").in("id", ids));
       return (rows ?? []).map((r) => {
         const answer = (Array.isArray(r.payload) ? r.payload[0] : null) as { text?: unknown; citedUrls?: unknown } | null;
         return {

@@ -101,6 +101,8 @@ export interface RescoreScan {
   siteName: string | null;
   /** The AI Mode and ChatGPT answers this scan bought, as `fetches` keeps them: source, cache key (search first) and what it said. Empty where none. */
   answers: readonly StoredAnswer[];
+  /** The stored answers were read for this scan, so a page question's unread rivals are settled now, filled or not. */
+  answersRead?: true;
   /** A paying site's market (`sites.market`): the kind and place its pass
    *  concluded and the place the founder gave; absent on a free scan. */
   market?: { kind?: unknown; serves?: unknown; area?: { place?: unknown }; rivals?: readonly { name: string; domain: string }[] } | null;

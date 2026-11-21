@@ -107,8 +107,7 @@ export interface AiAnswersSection {
  *  `null` where the pass asked none (free and onboarding passes, no live page, older reports); never an empty section. */
 export interface PageQuestionsSection {
   measuredAt: Date;
-  /** The site's own registrable domain, so a row can be read for a mention
-   *  without the reader deciding what "the site" is a second time. */
+  /** The site's own registrable domain, so a row is read for a mention without deciding what "the site" is twice. */
   ownDomain: string;
   /** How many questions this pass tracked in all, stored so a screen states the number the pass obeyed even after the cap changes. */
   tracked: number;
@@ -117,12 +116,13 @@ export interface PageQuestionsSection {
   rows: readonly PageQuestionRow[];
   /** The pages whose question left the set this week: a page's verdict reads it, and it says which week a retired question stopped. */
   retired: readonly RetiredPageQuestion[];
+  /** The re-score read this section's stored answers for rivals: it reads none again, filled or not. Absent where it has not. */
+  rivalsRead?: true;
 }
 
 /** One published page's own question as this pass asked it, shaped like the AI-answers row so one reader draws both. */
 export interface PageQuestionRow {
-  /** The publication this question belongs to: its identity across weeks,
-   *  and what a verdict for the page is keyed by. */
+  /** The publication this question belongs to: its identity across weeks, and what a page's verdict is keyed by. */
   publicationId: string;
   /** Where the page is, as it was live this week. */
   liveUrl: string;
