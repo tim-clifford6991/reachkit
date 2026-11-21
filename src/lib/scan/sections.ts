@@ -6,7 +6,9 @@ import {
   overviewCellFor,
   type AiAnswersCard,
   type BatteryAnswers,
+  type EngineCell,
 } from "@/lib/market/questions/matrix";
+import { rivalsNamed } from "@/lib/market/prompts/answer";
 import type { Question } from "@/lib/market/questions/phrase";
 import type { MarketSet } from "@/lib/market/questions/market-set";
 import type { RivalCandidate } from "@/lib/market/rivals/derive";
@@ -121,6 +123,20 @@ export function answersSectionOf(a: {
   };
 }
 
+/** Each answered column with the rivals its text named, read from what it said in `BATTERY_ENGINES` order; a column whose text was not read stays without. */
+function withRivals(
+  engines: readonly EngineCell[],
+  said: readonly ({ text?: string; citedDomains: readonly string[] } | undefined)[],
+  ownDomain: string,
+  rivals: readonly { name: string; domain: string }[] | null
+): EngineCell[] {
+  return engines.map((engine, j) => {
+    const text = said[j]?.text;
+    if (rivals === null || engine.cell.kind !== "answered" || text === undefined) return engine;
+    return { ...engine, rivals: rivalsNamed({ text, citedDomains: said[j]?.citedDomains ?? [], ownDomain, rivals }) };
+  });
+}
+
 /** The page questions as the report stores them, beside the twelve, rows shaped by `engineColumns` like the card's.
  *  It counts nothing: the score's AI Presence counts are `aiAnswers`', and a second set here would invite the wrong sum.
  *  Numbered on from the twelve, since the screen draws one list and the cap is on it. `null` where none were asked or retired, never an empty section. */
@@ -137,6 +153,8 @@ export function pageQuestionsSectionOf(a: {
   ownDomain: string;
   /** The site's name, as `namesSite` reads it; `null` where none is known. */
   siteName?: string | null;
+  /** The market's rivals each answer is read for; `null` where no market is concluded, which leaves `rivals` unread. */
+  rivals?: readonly { name: string; domain: string }[] | null;
   measuredAt: Date;
 }): PageQuestionsSection | null {
   if (a.asked.length === 0 && a.retired.length === 0) return null;
@@ -154,12 +172,20 @@ export function pageQuestionsSectionOf(a: {
         search: candidate.search,
       },
       cell,
-      engines: engineColumns({
-        overview: cell,
-        ...(a.battery[index] === undefined ? {} : { battery: a.battery[index] as BatteryAnswers }),
+      engines: withRivals(
+        engineColumns({
+          overview: cell,
+          ...(a.battery[index] === undefined ? {} : { battery: a.battery[index] as BatteryAnswers }),
+          ownDomain,
+          siteName: a.siteName ?? null,
+        }),
+        [
+          serp === undefined || serp.kind === "unmeasured" ? undefined : { text: serp.value.aiOverview.text, citedDomains: serp.value.aiOverview.referenceDomains },
+          ...[a.battery[index]?.aiMode, a.battery[index]?.chatgpt].map((m) => (m === undefined || m.kind === "unmeasured" ? undefined : m.value)),
+        ],
         ownDomain,
-        siteName: a.siteName ?? null,
-      }),
+        a.rivals ?? null
+      ),
       // The result is bought for the page's own search, so its rows are kept for the page's place, not only its AI cell.
       organic:
         serp === undefined || serp.kind === "unmeasured"

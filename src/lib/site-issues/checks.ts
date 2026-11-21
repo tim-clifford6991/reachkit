@@ -269,15 +269,14 @@ export function checkSite(a: {
   const linked = new Set<string>();
   for (const page of pages) for (const key of page.links) linked.add(key);
   const checkedTargets = [...linked].filter((key) => a.crawl?.fetchedKeys.has(key));
+  const brokenTargets = checkedTargets.filter((key) => a.crawl?.brokenKeys.has(key));
   const broken =
     linked.size > 0 && checkedTargets.length === 0
       ? couldNot("broken_links", "no_links_checked")
-      : perPage(
-          "broken_links",
-          checkedTargets.filter((key) => a.crawl?.brokenKeys.has(key)),
-          checkedTargets.length,
-          "links"
-        );
+      : {
+          ...perPage("broken_links", brokenTargets, checkedTargets.length, "links"),
+          from: keysOf(pages.filter((p) => p.links.some((key) => a.crawl?.brokenKeys.has(key) && a.crawl.fetchedKeys.has(key)))),
+        };
 
   const issues: Record<SiteCheck, SiteIssue> = {
     page_titles: perPage("page_titles", titles.affected, total, "pages", {
