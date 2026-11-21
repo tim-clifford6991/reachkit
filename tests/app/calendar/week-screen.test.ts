@@ -36,8 +36,7 @@ const CLOCKS: readonly [string, Date, PlanHeadFacts, string][] = [
 function screenOf(facts: CalendarFacts, head: PlanHeadFacts, bodies?: ReadonlySet<string> | null) {
   const today = dayKeyOf(facts.now, facts.timeZone);
   const shown = commitDays(today, head.commitStart);
-  const planned = { ...facts, planEnd: commitEnd(today, head.commitStart) };
-  const months = [...new Set([...shown.days, today].map(monthOf))].map((month) => assembleMonth(planned, month));
+  const months = [...new Set([...shown.days, today].map(monthOf))].map((month) => assembleMonth(facts, month, commitEnd(today, head.commitStart)));
   const week = weekOf(months, today, head.commitStart);
   return { today, shown, week, screen: weekScreen({ week, head, published: null, ...(bodies === undefined ? {} : { bodies }) }) };
 }

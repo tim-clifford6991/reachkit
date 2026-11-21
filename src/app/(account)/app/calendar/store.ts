@@ -530,6 +530,5 @@ export async function readCalendarFacts(a: {
     // beside pages nobody could see is not one.
     unusedSupply: publishing.readable ? depth : null,
     supplyMeasured: publishing.readable ? measured : null,
-    ...(a.planEnd === undefined ? {} : { planEnd: a.planEnd }),
   };
 }

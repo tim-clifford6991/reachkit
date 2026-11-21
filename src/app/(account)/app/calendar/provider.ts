@@ -110,9 +110,9 @@ export async function planToday(): Promise<DayKey> {
 export const readMonth = cache(async function readMonth(month: MonthKey): Promise<MonthModel> {
   const site = await currentCalendarSite();
   const planEnd = commitEnd(await planToday(), (await readPlanHead()).commitStart);
-  if (site === null) return assembleMonth({ ...FIXTURE_CALENDAR_FACTS, planEnd }, month);
+  if (site === null) return assembleMonth(FIXTURE_CALENDAR_FACTS, month, planEnd);
   const { readCalendarFacts } = await import("./store");
-  return assembleMonth(await readCalendarFacts({ site, month, now: clock(), planEnd }), month);
+  return assembleMonth(await readCalendarFacts({ site, month, now: clock(), planEnd }), month, planEnd);
 });
 
 /**

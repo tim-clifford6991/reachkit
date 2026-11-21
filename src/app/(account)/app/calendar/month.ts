@@ -237,8 +237,6 @@ export interface CalendarFacts {
   unusedSupply: number | null;
   /** `supplyMeasured()`, read where supply is zero — or `null` (#765). */
   supplyMeasured: boolean | null;
-  /** The last date the plan reaches, where the commit runs past the six days after today. */
-  planEnd?: DayKey;
 }
 
 /** Thrown rather than rendered: two pages on one date is a data defect and
@@ -292,7 +290,8 @@ function emptyFactsFor(day: DayKey, facts: CalendarFacts, draft: DraftOnDay | un
   };
 }
 
-export function assembleMonth(facts: CalendarFacts, month: MonthKey): MonthModel {
+/** `planEnd` is the last date the plan reaches, where the commit runs past the six days after today. */
+export function assembleMonth(facts: CalendarFacts, month: MonthKey, planEnd?: DayKey): MonthModel {
   const today = dayKeyOf(facts.now, facts.timeZone);
 
   const byDay = new Map<DayKey, DraftOnDay>();
@@ -302,7 +301,7 @@ export function assembleMonth(facts: CalendarFacts, month: MonthKey): MonthModel
     byDay.set(draft.scheduledFor, draft);
   }
 
-  const horizonEnd = facts.planEnd !== undefined && facts.planEnd > planHorizonEnd(today) ? facts.planEnd : planHorizonEnd(today);
+  const horizonEnd = planEnd !== undefined && planEnd > planHorizonEnd(today) ? planEnd : planHorizonEnd(today);
 
   const cells: DayCell[] = gridDays(month).map((day) => {
     const inMonth = monthOf(day) === month;
