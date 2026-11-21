@@ -8,9 +8,9 @@ and how to put them back, and the deploy, rollback and restore commands. How wor
 
 ## 1. Landing a change
 
-A change reaches `main` through the four gates (`typecheck · lint · unit`, `audit`, `schema · RLS`,
-`no overflow · axe`) and GitHub auto-merge (`docs/PROCESS.md` rule 4). This page starts after the
-merge.
+A change reaches `main` through the four gates (`typecheck · lint · unit`, `audit`, `schema · RLS`, `no overflow · axe`) and GitHub
+auto-merge (`docs/PROCESS.md` rule 4). The gates run on GitHub Actions, not the box (rule 6, Where checks run); `heavy.sh` and
+the local suites below are its exception path only (CI down, or a failure only CI shows). This page starts after the merge.
 
 **The box's own checks.** `scripts/hygiene.mjs` is part of `audit`. The nightly drift-audit run, and
 `rk-hygiene.timer` at 05:30 UTC, open one `[hygiene]` issue when it is red and comment while it stays
@@ -1070,7 +1070,7 @@ buffers touched × 8 KB ÷ 5 MB/s × calls a day.
 
 ```sh
 eval "$(scripts/db-substrate/up.sh --run)"   # one worktree, one database
-npx vitest run --project db --maxWorkers=1
+npx vitest run --project db --maxWorkers=1   # exception path only; `schema · RLS` runs it in CI
 scripts/db-substrate/down.sh                 # the moment the suite finishes
 ```
 

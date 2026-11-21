@@ -41,4 +41,4 @@ Put files under `marketing/<topic>/`, one folder per campaign or asset set, as M
 - **Rollout and enablement**: a launch checklist, a one-page demo script, help or onboarding copy as suggested copy keys (an engineer ships them), and an engagement-loop proposal (activation, retention, referral) with what to measure using the three existing analytics events (`scan_started`, `paid`, `draft_published`). A fourth event is an owner ruling.
 
 ## Your standard
-Every piece names its audience, its single message, its call to action and the evidence that the claim is live (file:line or URL). Mark anything that needs the owner (recording, approval, spend) in a short "Owner to do" list at the top. Run `node scripts/hygiene.mjs` before you push.
+Every piece names its audience, its single message, its call to action and the evidence that the claim is live (file:line or URL). Mark anything that needs the owner (recording, approval, spend) in a short "Owner to do" list at the top. `audit` runs `scripts/hygiene.mjs` on the pull request; run nothing else on the box (`docs/PROCESS.md` rule 6, Where checks run).
