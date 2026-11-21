@@ -10,14 +10,25 @@
 "use client";
 
 import type React from "react";
+import { useSyncExternalStore } from "react";
 import { parseAsString, useQueryState } from "nuqs";
 import { copy } from "@/lib/presentation/copy";
 import { DayPanelView } from "./DayPanelView";
 import { WeekGrid } from "./WeekGrid";
+import { WeekFoot } from "./WeekCard";
 import { BODY, COLUMN, REGION } from "./frame";
 import type { DayKey } from "./dates";
 import type { WeekModel } from "./month";
 import type { WeekScreen } from "./week-screen";
+
+/** Tailwind's `lg`: from here the pane sits beside the cards rather than over them. */
+const WIDE = "(min-width: 64rem)";
+
+function onWidth(change: () => void): () => void {
+  const query = window.matchMedia(WIDE);
+  query.addEventListener("change", change);
+  return () => query.removeEventListener("change", change);
+}
 
 /** The `?day=` value that means "no day open". */
 export const DAY_CLOSED = "none";
@@ -32,9 +43,13 @@ export function CalendarView(p: {
 }): React.JSX.Element {
   const [day, setDay] = useQueryState("day", parseAsString.withOptions({ history: "push" }));
 
+  const wide = useSyncExternalStore(onWidth, () => window.matchMedia(WIDE).matches, () => true);
   const implicit = day === null;
   const selected: DayKey | null = day === DAY_CLOSED ? null : (day ?? p.screen.opensOn);
   const card = selected === null ? undefined : p.screen.cards.find((found) => found.day === selected);
+  // Below `lg` the pane covers the list, and an implicit day opens nothing there.
+  const shown = card === undefined || (implicit && !wide) ? null : card.day;
+  const covers = shown !== null && !wide;
 
   function close(): void {
     void setDay(DAY_CLOSED).then(() => {
@@ -44,8 +59,8 @@ export function CalendarView(p: {
 
   return (
     <div className={BODY} data-frame={REGION.body}>
-      <div className={COLUMN} data-testid="plan-week-card">
-        <WeekGrid cards={p.screen.cards} selected={selected} implicit={implicit} onSelect={(next) => void setDay(next)} />
+      <div className={COLUMN} data-testid="plan-week-card" inert={covers}>
+        <WeekGrid cards={p.screen.cards} selected={shown} onSelect={(next) => void setDay(next)} />
 
         {/* The week's spares, used only where a day's page cannot be written. */}
         {p.week.spares.length === 0 ? null : (
@@ -65,6 +80,7 @@ export function CalendarView(p: {
             </ul>
           </details>
         )}
+        <WeekFoot words={p.screen.head.foot} />
         {p.published}
       </div>
 
@@ -75,6 +91,7 @@ export function CalendarView(p: {
           body={card.cell.page?.draftId == null ? undefined : p.bodies?.[card.cell.page.draftId]}
           destination={p.week.destination}
           hiddenOnPhone={implicit}
+          takesFocus={covers}
           onClose={close}
         />
       )}

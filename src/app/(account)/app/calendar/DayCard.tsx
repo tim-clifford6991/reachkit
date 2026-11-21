@@ -8,7 +8,7 @@
 // in #354.
 import type React from "react";
 import { Calendar, CircleCheck, CircleStop, Clock, PencilLine, Plus, RefreshCw, type LucideIcon } from "lucide-react";
-import { copy, type CopyKey } from "@/lib/presentation/copy";
+import { copy } from "@/lib/presentation/copy";
 import { SITE_CHECK_TITLE } from "@/lib/presentation/site-issues";
 import { horizonShortFor, shortCauseFor } from "./card-lines";
 import { dayNumber, weekdayShort } from "./dates";
@@ -69,7 +69,7 @@ const DAY_STATE_ICON: Readonly<Partial<Record<DayState, LucideIcon>>> = {
 };
 
 /** A day's state as a badge, or nothing for a day with nothing to say. */
-export function DayStateBadge(p: { cell: DayCell; filter: StageFilter; word?: CopyKey }): React.JSX.Element | null {
+export function DayStateBadge(p: { cell: DayCell; filter: StageFilter }): React.JSX.Element | null {
   // A stage filter narrows to pages; a hidden page states no state either.
   if (p.cell.page !== null && pageShownBy(p.cell, p.filter) === null) return null;
   if (p.cell.page === null && p.filter !== "all") return null;
@@ -84,7 +84,7 @@ export function DayStateBadge(p: { cell: DayCell; filter: StageFilter; word?: Co
       data-state={state}
     >
       {Icon === undefined ? null : <Icon aria-hidden className="size-3" />}
-      {copy(p.word ?? DAY_STATE_COPY_KEY[state])}
+      {copy(DAY_STATE_COPY_KEY[state])}
     </span>
   );
 }

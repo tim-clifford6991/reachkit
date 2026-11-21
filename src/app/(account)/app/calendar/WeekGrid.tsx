@@ -14,14 +14,14 @@ import type { CardModel } from "./week-screen";
 /** This Week draws every stage. */
 const ALL = "all" as const;
 
-function DayRow(p: { card: CardModel; selected: "chosen" | "implicit" | null; onSelect: (day: DayKey) => void }): React.JSX.Element {
+function DayRow(p: { card: CardModel; selected: boolean; onSelect: (day: DayKey) => void }): React.JSX.Element {
   const { card } = p;
   return (
     <li
       className={[
         DAY_ROW,
         card.state === "skipped" ? "border-dashed" : "",
-        p.selected === "chosen" ? "border-primary" : p.selected === "implicit" ? "lg:border-primary" : "",
+        p.selected ? "border-primary" : "",
       ].join(" ")}
       data-testid={`calendar-cell-${card.day}`}
       data-today={card.cell.today ? "" : undefined}
@@ -30,7 +30,7 @@ function DayRow(p: { card: CardModel; selected: "chosen" | "implicit" | null; on
       <button
         type="button"
         className="flex min-w-0 flex-col items-start gap-1.5 text-left"
-        aria-current={p.selected === null ? undefined : "true"}
+        aria-current={p.selected ? "true" : undefined}
         aria-label={card.ariaLabel}
         onClick={() => p.onSelect(card.day)}
       >
@@ -40,7 +40,7 @@ function DayRow(p: { card: CardModel; selected: "chosen" | "implicit" | null; on
           </span>
           {card.kind === null ? null : <KindChip update={card.kind === "update"} />}
           <span className="ms-auto">
-            <DayStateBadge cell={card.cell} filter={ALL} word={card.word} />
+            <DayStateBadge cell={card.cell} filter={ALL} />
           </span>
         </span>
         {card.title === null ? null : (
@@ -76,20 +76,14 @@ function DayRow(p: { card: CardModel; selected: "chosen" | "implicit" | null; on
 
 export function WeekGrid(p: {
   cards: readonly CardModel[];
+  /** The day the pane shows, where it shows one. */
   selected: DayKey | null;
-  /** Nobody chose the open day, so below `lg`, where the pane covers the list, it is not open. */
-  implicit?: boolean;
   onSelect: (day: DayKey) => void;
 }): React.JSX.Element {
   return (
     <ol className={WEEK_LIST} data-testid="calendar-week" data-frame={REGION.week}>
       {p.cards.map((card) => (
-        <DayRow
-          key={card.day}
-          card={card}
-          selected={card.day !== p.selected ? null : p.implicit === true ? "implicit" : "chosen"}
-          onSelect={p.onSelect}
-        />
+        <DayRow key={card.day} card={card} selected={card.day === p.selected} onSelect={p.onSelect} />
       ))}
     </ol>
   );

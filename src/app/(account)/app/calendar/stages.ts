@@ -129,15 +129,16 @@ export const STAGE_BEACON: Readonly<Record<Stage, string>> = Object.freeze({
   needs_you: "",
 });
 
-/** Plan's five day states (SPEC §7, E5): what became of a day, in the
- *  customer's words rather than §9's. */
-export const DAY_STATES = ["planned", "writing", "written", "live", "stopped", "skipped", "set_aside"] as const;
+/** This Week's day states (SPEC §7): what became of a day, in the customer's words rather than §9's. One word each,
+ *  read by This Week and Overview alike. */
+export const DAY_STATES = ["planned", "writing", "written", "needs_you", "live", "stopped", "skipped", "set_aside"] as const;
 export type DayState = (typeof DAY_STATES)[number];
 
 export const DAY_STATE_COPY_KEY: Readonly<Record<DayState, CopyKey>> = Object.freeze({
   planned: "calendar.stage.planned",
   writing: "calendar.day.writing",
   written: "calendar.day.written",
+  needs_you: "calendar.stage.needs-you",
   live: "calendar.stage.live",
   stopped: "calendar.day.stopped",
   skipped: "calendar.day.skipped",
@@ -148,6 +149,7 @@ export const DAY_STATE_TONE: Readonly<Record<DayState, Tone>> = Object.freeze({
   planned: "neutral",
   writing: "neutral",
   written: "accent",
+  needs_you: "bad",
   live: "ok",
   stopped: "warn",
   skipped: "neutral",

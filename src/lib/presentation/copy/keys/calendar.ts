@@ -207,7 +207,7 @@ export const CALENDAR_COPY = Object.freeze({
   // app knows which it is. Split into one line per setting — and a host
   // waiting for its CNAME points at the record Settings shows. Drafted and
   // shipped under the owner ruling of 2026-09-16 (#759).
-  "calendar.empty.customer-change-holds-pages.publishing-off": "Publishing is off, so this page is waiting. Turn it on in Settings and pages resume.",
+  "calendar.empty.customer-change-holds-pages.publishing-off": "Publishing is paused, so this page is waiting. It goes live once you turn publishing on in Settings.",
   "calendar.empty.customer-change-holds-pages.destination-pending-dns": "This page is ready. It goes live once your website is connected.",
   "calendar.empty.customer-change-holds-pages.destination-pending-connect": "This page is ready. It goes live once you connect your WordPress in Settings › Pages.",
   "calendar.empty.customer-change-holds-pages.destination-disconnected": "This page is ready. It goes live once you reconnect your website in Settings.",
@@ -389,7 +389,7 @@ export const CALENDAR_COPY = Object.freeze({
   "calendar.live.all": "Show All {m} Live Pages",
   "calendar.head.line": "Chosen {date} · each goes live at {time} unless you stop it · next check {next}",
   "calendar.head.line.held": "Chosen {date} · next check {next}",
-  "calendar.head.paused": "Publishing is off, so nothing goes live. Turn it on in Settings › Pages.",
+  "calendar.head.paused": "Publishing is paused, so nothing goes live. Turn it on in Settings › Pages.",
   "calendar.day.writing": "Being written",
   "calendar.day.writing.line": "Being written now, started {time}",
   "calendar.day.stopped.line.system": "Stopped on {day}. Other days are not affected.",
@@ -412,5 +412,10 @@ export const CALENDAR_COPY = Object.freeze({
   "calendar.pane.stopped.next": "Nothing goes live on {weekday}. Monday’s check picks the next 7.",
   "calendar.pane.writing": "Being written now, started {time}. It shows here to read when it’s done.",
   "calendar.pane.body.label": "{title}, the page",
+  "calendar.next": "{date}: we check again and pick the next {n}.",
+  "calendar.chosen.title": "How this week’s pages were chosen",
+  "calendar.chosen.body": "Every Monday we check where your pages stand on Google and in AI answers. Then we pick the {n} most likely to bring you buyers.",
+  "calendar.chosen.stored": "Each reason is the one saved when the page was chosen.",
+  "calendar.pane.body.unread": "We couldn’t load the page here. Read the Full Page to see it.",
   "calendar.live.none": "No page is live yet. Each shows here once it goes live, with how far it has got.",
 }) satisfies CopyPartition;

@@ -30,7 +30,7 @@ import { PublishedList, updateDays } from "./PublishedList";
 import { contentOf } from "@/lib/measure/published";
 import { demoteHeadings, parseMarkdown, toHtml } from "@/lib/publish/render/markdown";
 import { DRAFT_BODY_CLASSES } from "../draft/[draftId]/present";
-import { weekScreen } from "./week-screen";
+import { weekScreen, writtenDrafts } from "./week-screen";
 
 /** /app/calendar's own `<title>`. */
 export const metadata: Metadata = { title: copy("meta.app.plan.title") };
@@ -39,10 +39,10 @@ export default async function CalendarPage(): Promise<React.JSX.Element> {
   // Started before the week is awaited and awaited in their own boundaries below, so none holds it.
   for (const read of [readSupplyNotice(), readStalledWeek()]) read.catch(() => null);
   const [week, onboarding, head, published] = await Promise.all([planToday().then(readWeek), readOnboarding(), readPlanHead(), readPlanPublished().catch(() => null)]);
-  const screen = weekScreen({ week, head, published });
-  const written = screen.cards.flatMap((card) => (card.pane.kind === "page" && card.cell.page?.draftId != null ? [card.cell.page.draftId] : []));
+  const read = await readWeekBodies(writtenDrafts(week)).catch(() => null);
+  const screen = weekScreen({ week, head, published, bodies: read === null ? null : new Set(read.keys()) });
   const bodies = Object.fromEntries(
-    [...(await readWeekBodies(written).catch(() => new Map<string, string>()))].map(([id, bodyMd]) => [
+    [...(read ?? new Map<string, string>())].map(([id, bodyMd]) => [
       id,
       // The one serialiser escapes every text node, so its HTML is safe to set as is.
       <div key={id} className="min-w-0 break-words" dangerouslySetInnerHTML={{ __html: toHtml(demoteHeadings(parseMarkdown(bodyMd)), DRAFT_BODY_CLASSES) }} />,

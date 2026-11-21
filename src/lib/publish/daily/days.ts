@@ -141,7 +141,7 @@ export async function startDay(siteId: string, publishDate: string): Promise<str
   return null;
 }
 
-/** When the day's job first began work on each of the site's dates `from`…`to`, by date. Throws when unreadable. */
+/** When the day's job first began work on each of the site's dates `from`…`to` still under way, by date. Throws when unreadable. */
 export async function startedBetween(siteId: string, from: string, to: string): Promise<ReadonlyMap<string, Date>> {
   const { data, error } = await publishDb()
     .from<{ publish_date: string; started_at: string }>("draft_days")
@@ -149,7 +149,9 @@ export async function startedBetween(siteId: string, from: string, to: string): 
     .eq("site_id", siteId)
     .gte("publish_date", from)
     .lte("publish_date", to)
-    .not("started_at", "is", null);
+    .not("started_at", "is", null)
+    // A day that ended is no longer being written.
+    .is("outcome", null);
   if (error !== null) throw new Error(error.message);
   return new Map((data ?? []).map((row) => [row.publish_date, new Date(row.started_at)]));
 }

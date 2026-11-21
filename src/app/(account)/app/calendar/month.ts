@@ -25,7 +25,7 @@ import { accountFor, isLawCause, isSupplyCause, type EmptyAccount, type EmptyFac
 import type { PageStanding } from "./day-number";
 import type { WorkStop } from "@/lib/presentation/stopped";
 import { stageOf, type DayState, type State, type Stage, type StageFilter } from "./stages";
-import { dayKeyOf, gridDays, monthOf, planHorizonEnd, planWeek, type DayKey, type MonthKey } from "./dates";
+import { commitDays, dayKeyOf, gridDays, monthOf, planHorizonEnd, type DayKey, type MonthKey } from "./dates";
 
 /** REQ-043 criterion 8's evidence, and §7's day-panel rows.
  *
@@ -237,6 +237,8 @@ export interface CalendarFacts {
   unusedSupply: number | null;
   /** `supplyMeasured()`, read where supply is zero — or `null` (#765). */
   supplyMeasured: boolean | null;
+  /** The last date the plan reaches, where the commit runs past the six days after today. */
+  planEnd?: DayKey;
 }
 
 /** Thrown rather than rendered: two pages on one date is a data defect and
@@ -300,7 +302,7 @@ export function assembleMonth(facts: CalendarFacts, month: MonthKey): MonthModel
     byDay.set(draft.scheduledFor, draft);
   }
 
-  const horizonEnd = planHorizonEnd(today);
+  const horizonEnd = facts.planEnd !== undefined && facts.planEnd > planHorizonEnd(today) ? facts.planEnd : planHorizonEnd(today);
 
   const cells: DayCell[] = gridDays(month).map((day) => {
     const inMonth = monthOf(day) === month;
@@ -390,12 +392,15 @@ export interface WeekModel extends Pick<MonthModel, "timeZone" | "stopped" | "de
  * A law cause is stated once per plan (issue 857), and each month states
  * its own first — so across a month's end the second is dropped here.
  */
-export function weekOf(months: readonly MonthModel[], today: DayKey): WeekModel {
+export function weekOf(months: readonly MonthModel[], today: DayKey, commitStart: DayKey | null): WeekModel {
   let lawStated = false;
   const cells: DayCell[] = [];
-  for (const day of planWeek(today)) {
+  const shown = commitDays(today, commitStart);
+  for (const day of [...(shown.today === null ? [] : [shown.today]), ...shown.days]) {
     const cell = months.map((model) => cellFor(model, day)).find((found) => found !== undefined);
     if (cell === undefined) continue;
+    // Today before the commit shows only for the page the last commit put on it.
+    if (day === shown.today && cell.page === null) continue;
     const law = cell.statesLine && cell.when === "plan" && cell.empty !== null && isLawCause(cell.empty.cause);
     cells.push(law && lawStated ? { ...cell, statesLine: false } : cell);
     lawStated ||= law;
@@ -419,7 +424,9 @@ export function cellFor(model: MonthModel, day: DayKey): DayCell | undefined {
  *  day supply had nothing worth writing for is `skipped`. */
 export function dayStateOf(cell: DayCell): DayState | null {
   if (cell.page !== null) {
-    if (cell.page.state === "generating") return "writing";
+    // A day whose write has started reads as being written, with or without its draft row yet.
+    if (cell.page.state === "generating" || (cell.page.draftId === null && cell.page.startedAt != null)) return "writing";
+    if (cell.page.stage === "needs_you") return "needs_you";
     return cell.page.stage === "live" ? "live" : cell.page.stage === "planned" ? "planned" : "written";
   }
   const cause = cell.empty?.cause;

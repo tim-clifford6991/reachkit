@@ -19,7 +19,12 @@ export function PlanHead(p: { words: ScreenHead | null }): React.JSX.Element {
         <Box className="h-5 w-96 max-w-full" />
       ) : (
         <>
-          {w.line === null ? null : <p className="min-w-0 text-sm text-base-content/70 wrap-anywhere" data-testid="plan-head-line">{w.line}</p>}
+          {w.line === null ? null : (
+            // The line carries the publish time only where one is promised.
+            <p className="min-w-0 text-sm text-base-content/70 wrap-anywhere" data-testid={w.timed ? "plan-week-time" : "plan-head-line"}>
+              {w.line}
+            </p>
+          )}
           {w.paused === null ? null : <p className="min-w-0 text-sm wrap-anywhere" data-testid="plan-head-paused">{w.paused}</p>}
         </>
       )}

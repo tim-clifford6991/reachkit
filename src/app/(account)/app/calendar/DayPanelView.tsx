@@ -15,7 +15,7 @@
 
 import type React from "react";
 import Link from "next/link";
-import { useOptimistic, useState, useTransition } from "react";
+import { useEffect, useOptimistic, useRef, useState, useTransition } from "react";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { actionsFor, type DayCommand, type DestinationStanding } from "./actions";
@@ -121,9 +121,16 @@ function Panel(p: {
   host?: string | null;
   /** Opened by nobody (an absent `?day`): shown from `lg`, not below it. */
   hiddenOnPhone: boolean;
+  /** The pane covers the list (a phone): focus moves to its Back on opening. */
+  takesFocus: boolean;
   onClose: () => void;
   children: React.ReactNode;
 }): React.JSX.Element {
+  const back = useRef<HTMLButtonElement>(null);
+  const takesFocus = p.takesFocus;
+  useEffect(() => {
+    if (takesFocus) back.current?.focus();
+  }, [takesFocus]);
   return (
     <aside
       // Below `lg` the pane is the whole screen over the list, with its own Back; from `lg` it is the right column.
@@ -134,13 +141,13 @@ function Panel(p: {
       data-implicit={p.hiddenOnPhone ? "" : undefined}
     >
       <div className="card-body min-w-0 gap-3 p-4 lg:min-h-0">
-        <button type="button" className="btn btn-ghost btn-sm self-start lg:hidden" data-testid="day-panel-close" onClick={p.onClose}>
+        <button ref={back} type="button" className="btn btn-ghost btn-sm self-start lg:hidden" data-testid="day-panel-close" onClick={p.onClose}>
           <ArrowLeft aria-hidden className="size-4" />
           {copy("draft.back")}
         </button>
         <div className="flex min-w-0 flex-wrap items-center gap-2" data-testid="day-head" aria-live="polite">
           <span className="num min-w-0 text-xs opacity-70">{p.date}</span>
-          <DayStateBadge cell={p.cell} filter={ALL} word={p.cell === p.card.cell ? p.card.word : undefined} />
+          <DayStateBadge cell={p.cell} filter={ALL} />
           {p.host == null ? null : <span className="num ms-auto min-w-0 text-xs opacity-70 wrap-anywhere">{p.host}</span>}
         </div>
         {p.children}
@@ -155,17 +162,20 @@ export function DayPanelView(p: {
   body?: React.ReactNode;
   destination?: DestinationStanding | null;
   hiddenOnPhone?: boolean;
+  /** The pane covers the list, so it takes the focus. */
+  takesFocus?: boolean;
   onClose: () => void;
 }): React.JSX.Element {
   const { card } = p;
+  const frame = { card, hiddenOnPhone: p.hiddenOnPhone ?? false, takesFocus: p.takesFocus ?? false, onClose: p.onClose };
   const pane = card.pane;
   const page = card.cell.page;
   if (pane.kind === "page" && page !== null) {
-    return <PageDayPanel card={card} pane={pane} state={page.state} body={p.body} destination={p.destination ?? null} hiddenOnPhone={p.hiddenOnPhone ?? false} onClose={p.onClose} />;
+    return <PageDayPanel {...frame} pane={pane} state={page.state} body={p.body} destination={p.destination ?? null} />;
   }
   if (pane.kind === "planned") {
     return (
-      <Panel card={card} cell={card.cell} date={pane.date} hiddenOnPhone={p.hiddenOnPhone ?? false} onClose={p.onClose}>
+      <Panel {...frame} cell={card.cell} date={pane.date}>
         <h2 className="card-title min-w-0 wrap-anywhere" data-testid="day-title">
           {pane.title}
         </h2>
@@ -184,7 +194,7 @@ export function DayPanelView(p: {
     );
   }
   return (
-    <Panel card={card} cell={card.cell} date={pane.date} hiddenOnPhone={p.hiddenOnPhone ?? false} onClose={p.onClose}>
+    <Panel {...frame} cell={card.cell} date={pane.date}>
       <div className="flex flex-col gap-2 text-sm" data-testid="day-account">
         {(pane.kind === "lines" ? pane.lines : []).map((line) => (
           <p key={line} data-testid="day-empty-line">
@@ -218,6 +228,7 @@ function PageDayPanel(p: {
   body: React.ReactNode;
   destination: DestinationStanding | null;
   hiddenOnPhone: boolean;
+  takesFocus: boolean;
   onClose: () => void;
 }): React.JSX.Element {
   const { card, pane } = p;
@@ -244,8 +255,8 @@ function PageDayPanel(p: {
   const takeDown = page.stage === "live" && page.liveUrl !== null && page.draftId !== null ? page.draftId : null;
 
   return (
-    <Panel card={card} cell={shown} date={pane.date} host={pane.host} hiddenOnPhone={p.hiddenOnPhone} onClose={p.onClose}>
-      <h2 className="card-title rk-cal-label line-clamp-2 min-w-0 wrap-anywhere" data-testid="day-title">
+    <Panel card={card} cell={shown} date={pane.date} host={pane.host} hiddenOnPhone={p.hiddenOnPhone} takesFocus={p.takesFocus} onClose={p.onClose}>
+      <h2 className="card-title min-w-0 wrap-anywhere" data-testid="day-title">
         {pane.title}
       </h2>
       {pane.titleLabel === undefined ? null : <span className="text-xs text-base-content/70" data-testid="day-title-label">{pane.titleLabel}</span>}
@@ -256,7 +267,12 @@ function PageDayPanel(p: {
         </p>
       ))}
       <DayActions cell={shown} destination={p.destination} onCommand={command} busy={busy} pressed={busy ? pressed : null} takeDown={stage === null ? null : takeDown} />
-      {p.body === undefined ? null : (
+      {pane.next === null ? null : <p className="text-sm" data-testid="day-next">{pane.next}</p>}
+      {pane.unread !== null ? (
+        <p className="text-sm" data-testid="day-body-unread">
+          {pane.unread}
+        </p>
+      ) : p.body === undefined ? null : (
         <div
           className="prose min-w-0 max-w-none border-t border-base-300 pt-3 lg:min-h-0 lg:flex-1 lg:overflow-y-auto"
           tabIndex={0}
@@ -266,7 +282,6 @@ function PageDayPanel(p: {
           {p.body}
         </div>
       )}
-      {pane.next === null ? null : <p className="text-sm" data-testid="day-next">{pane.next}</p>}
     </Panel>
   );
 }

@@ -22,7 +22,7 @@ import { weekScreen, type WeekScreen } from "@/app/(account)/app/calendar/week-s
  *  The fixture's week lies inside its month, so one model is every month
  *  the week touches. */
 export function shown(model: MonthModel): { week: WeekModel; screen: WeekScreen } {
-  const week = weekOf([model], model.today);
+  const week = weekOf([model], model.today, null);
   return { week, screen: weekScreen({ week, head: FIXTURE_PLAN_HEAD, published: null }) };
 }
 
