@@ -213,9 +213,9 @@ export function anthropicFor(a: {
 }) {
   class FakeAnthropic {
     messages = {
-      create: async (request: { messages: { content: string }[] }) => {
+      create: async (request: { system?: string; messages: { content: string }[] }) => {
         const input = request.messages[0]?.content ?? "";
-        const asked = JSON.parse(input) as Record<string, unknown> & { task?: string };
+        const asked = { ...JSON.parse(input), ...JSON.parse(request.system?.split("\n\n")[2] ?? "{}") } as Record<string, unknown> & { task?: string };
         const task = String(asked.task ?? (input.includes('"home"') ? "profile" : "unknown"));
         a.tasks.push(task);
         const text = (answer: unknown) => ({

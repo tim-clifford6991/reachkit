@@ -538,7 +538,7 @@ async function recentPages(
     site: "generate.news_fit",
     tier: "haiku",
     locale: a.locale,
-    schema: NEWS_FIT_SCHEMA,
+    schema: NEWS_FIT_SCHEMA, instructions: ["task", "locale"],
     input: {
       task:
         "Each of `results` is a news story a search returned for `market.category`. Say for each whether it " +

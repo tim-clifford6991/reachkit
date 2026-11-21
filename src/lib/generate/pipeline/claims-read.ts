@@ -46,6 +46,7 @@ export async function readClaims(
       tier: "haiku",
       locale: a.locale,
       schema: CLAIMS_SCHEMA,
+      instructions: ["task", "locale"],
       input: {
         task:
           "Copy out the claims a writer answering `search` could cite from these pages: prices and what " +

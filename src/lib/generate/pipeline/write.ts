@@ -393,6 +393,9 @@ function inputFor(a: WriteInputs, extra: Record<string, unknown> = {}): Record<s
   };
 }
 
+/** The writer's own instructions; `pack`, the title brief built from it, the voice and the page travel apart as quoted material. */
+const INSTRUCTIONS = ["task", "template", "honesty", "avoid", "rules", "locale"] as const;
+
 /** Stage 3: the page, in one call. */
 export async function writePage(c: CostContext, a: WriteInputs): Promise<Measured<PageParts>> {
   if (c.capHit()) return unmeasured("not_attempted", new Date());
@@ -402,6 +405,7 @@ export async function writePage(c: CostContext, a: WriteInputs): Promise<Measure
       tier: a.tier ?? "writer",
       schema: ANSWER_SCHEMA,
       input: inputFor(a),
+      instructions: INSTRUCTIONS,
       ...(a.pack.locale === undefined ? {} : { locale: a.pack.locale }),
     })
   );
@@ -427,6 +431,7 @@ export async function fixPage(
     site: "generate.fix",
     tier: a.tier ?? "writer",
     schema: ANSWER_SCHEMA,
+    instructions: INSTRUCTIONS,
     ...(a.pack.locale === undefined ? {} : { locale: a.pack.locale }),
     input: inputFor(a, {
       task:

@@ -121,6 +121,7 @@ export async function fitCheck(
     site: FIT_CHECK_CALL_SITE,
     tier: "nano",
     schema: FIT_CHECK_SCHEMA,
+    instructions: ["task"],
     input: {
       task:
         "`sentences` are taken from a page written for the business in `business`. `knowledge` is " +
