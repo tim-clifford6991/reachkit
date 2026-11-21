@@ -20,7 +20,7 @@ import type { Opportunity, PlanWriteAs } from "@/lib/opportunities/types";
 import { cachedSerp, serpOrganic } from "@/lib/vendors/dataforseo/serp";
 import { DRAFT_POLICY_VERSION, openDayCost } from "./cost";
 import { targetSearches } from "./pipeline";
-import { builtFromOutside, ownTypeOf, researchedAs, typeTheResearchFills, type ResearchRead } from "./standard";
+import { builtFromOutside, fellTo, ownTypeOf, researchedAs, typeTheResearchFills, type ResearchRead } from "./standard";
 import { NO_RESEARCH, RESEARCH_READ_SOURCE, fetchBody, readFresh, researchSerps, rivalPage, sitemapOf, type MarketResearch } from "./pipeline/research";
 import { knowledgeTexts, shares, topicWords } from "./pipeline/pack";
 import { alikeHeadings } from "./rules/headings";
@@ -55,11 +55,12 @@ export async function askDayResearch(a: { siteId: string; opportunityId: string;
 }
 
 /** A day's page type, its stored one else the one its cached research fills, and its query's own type where the ladder
- *  fell from it, read at 0¢; a stored type that is its shape's own reads nothing, and nothing cached keeps the shape's. */
+ *  fell from it, read at 0¢; a stored type that is its shape's own reads nothing, and nothing cached keeps the shape's.
+ *  An offering is never fallen to, so one whose cached results page is not held keeps no other type's needs. */
 export async function dayTypes(siteId: string, o: Opportunity, now: Date, cost?: CostContext): Promise<{ type: ContentType | null; own?: ContentType }> {
   const read = o.writeAs !== undefined && o.writeAs === contentTypeOf(o) ? null : ((await researchHeld(siteId, [{ id: o.id, target_query: o.targetQuery }], now, o.writeAs === undefined ? cost : undefined)).get(o.id) ?? null);
   const type = o.writeAs ?? typeTheResearchFills(o, read), own = ownTypeOf(o, read);
-  return { type, ...(own === null || own === type ? {} : { own }) };
+  return { type, ...(type !== null && fellTo(type, own) ? { own } : {}) };
 }
 
 /** A topic's research for its date, ledgered at 0¢ beside its own calls, so the day's last step counts its minimum from

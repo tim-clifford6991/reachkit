@@ -166,6 +166,10 @@ export function typeTheResearchFills(o: Pick<Opportunity, "type" | "targetQuery"
 export const ownTypeOf = (o: Pick<Opportunity, "type" | "targetQuery" | "evidence">, read: ResearchRead | null): ContentType | null =>
   SHAPED.has(o.type) && offeringTopTen({ rows: read?.top ?? [] }, null, o.targetQuery ?? "") ? "offering" : contentTypeOf(o);
 
+/** Whether the ladder falls from a query's own type to `type`: down its rungs, or to documentation, never to an offering. */
+export const fellTo = (type: ContentType, own: ContentType | null): own is ContentType =>
+  own !== null && own !== type && (type === "documentation" || (LADDER.indexOf(own) >= 0 && LADDER.indexOf(type) > LADDER.indexOf(own)));
+
 /** What a type the ladder fell to keeps of its query's own type: thin research must not drop the page's sources or questions. */
 const KEPT: ReadonlySet<PackNeed> = new Set<PackNeed>(["outside_sources", "buyer_questions"]);
 /** A type's pack needs, with its query's own type's kept needs where the ladder fell from it, each at the larger count. */
