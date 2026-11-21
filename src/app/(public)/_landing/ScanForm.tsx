@@ -99,7 +99,7 @@ export function ScanForm(props: ScanFormProps): React.JSX.Element {
   }
 
   return (
-    <form action="/api/scan" method="post" onSubmit={handleSubmit} className="flex w-full flex-col gap-2">
+    <form action="/api/scan" method="post" onSubmit={(event) => void handleSubmit(event)} className="flex w-full flex-col gap-2">
       <label htmlFor={fieldId} className={hero ? "text-base font-bold" : "text-sm font-semibold"}>
         {props.words.fieldLabel}
       </label>

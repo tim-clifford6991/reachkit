@@ -60,7 +60,7 @@ export function CnameRecord(p: {
   // Asked once per address, not once per label typed.
   useEffect(() => {
     let current = true;
-    whereDnsIs({ domain: address })
+    void whereDnsIs({ domain: address })
       .catch((): DnsWhereAnswer => ({ where: UNKNOWN, zone: null }))
       .then((found) => {
         if (current) setAnswer({ address, found });

@@ -123,7 +123,7 @@ export function RescanControl(p: {
   }
 
   return (
-    <form action="/api/scan" method="post" onSubmit={onSubmit}>
+    <form action="/api/scan" method="post" onSubmit={(event) => void onSubmit(event)}>
       <input type="hidden" name="value" value={p.domain} />
       {p.incomplete ? <input type="hidden" name={RESCAN_FIELD} value={RESCAN_INCOMPLETE} /> : null}
       <button type="submit" className="btn btn-soft btn-primary btn-sm" disabled={step.kind === "sending"} data-testid={p.testId}>

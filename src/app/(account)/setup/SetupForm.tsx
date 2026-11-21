@@ -190,7 +190,7 @@ export function SetupForm(p: { model: SetupScreenModel & { spotHolder?: boolean 
   useEffect(() => {
     if (soughtDomain === null || !unsettled) return;
     let current = true;
-    seekRivals(soughtDomain, soughtCategory)
+    void seekRivals(soughtDomain, soughtCategory)
       .then(
         (answer) => answer,
         (): SeekRivalsResponse => ({ candidates: [], reasons: {}, market: null }),
