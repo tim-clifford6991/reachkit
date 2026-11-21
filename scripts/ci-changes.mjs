@@ -84,6 +84,7 @@ const DB = [
   /^src\/lib\/scan\/(challenged|page-facts)\.ts$/,
   /^src\/lib\/publish\/attempt\/unpublish\.ts$/,
   /^src\/lib\/limits\//,
+  /^src\/lib\/known-content\/store\.ts$/,
   /^src\/lib\/scan\/weekly\/(index|access)\.ts$/,
   /^src\/lib\/account\/billing\/index\.ts$/,
   /^src\/lib\/account\/lifecycle\/purge\.ts$/,
