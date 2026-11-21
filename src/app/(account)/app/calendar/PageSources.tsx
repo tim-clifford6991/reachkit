@@ -131,7 +131,8 @@ export function SourcedBody(p: { sources: SourcesModel; draftId: string; label: 
 
   const entry = sheet === null ? undefined : p.sources.entries.find((e) => e.n === sheet);
   return (
-    <div className="flex min-w-0 flex-col gap-3 lg:min-h-0 lg:flex-1" onKeyDown={clear}>
+    // No box of its own: the summary and the scroller sit in the pane's card body, which scrolls on a short screen.
+    <div className="contents" onKeyDown={clear}>
       {p.sources.summary === null && p.sources.toggle === null ? null : (
         <div className="flex min-w-0 flex-wrap items-center gap-2">
           {p.sources.summary === null ? null : <p className="min-w-0 flex-1 text-sm text-base-content/70" data-testid="sources-summary">{p.sources.summary}</p>}
