@@ -77,6 +77,8 @@ export const LIVE_SCHEMA_TESTS = [
   "tests/db/rate-limits.test.ts",
   "tests/opportunities/asked-beside.test.ts",
   "tests/scan/report/challenged-facts.test.ts",
+  // The html prune's listing and prune cost the same at N and 4N reads.
+  "tests/scan/report/fetches-cost.test.ts",
   // The panel's evidence and a pass snapshot, loaded with the attribution trigger off.
   "tests/scripts/panel-evidence-load.test.ts",
 ];
