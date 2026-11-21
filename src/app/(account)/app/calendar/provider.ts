@@ -43,7 +43,7 @@ import { now as clock } from "@/lib/config/now";
 import type { CalendarSupplyNotice } from "./supply";
 import { isReservedFixtureAccount, redirectForMissingZone, requireAppAccount } from "../_session/account";
 import { assembleMonth, weekOf, type MonthModel, type WeekModel } from "./month";
-import { addDays, commitDays, commitEnd, dayKeyOf, monthOf, serviceWeek, type DayKey, type MonthKey } from "./dates";
+import { addDays, commitEnd, dayKeyOf, monthOf, serviceWeek, type DayKey, type MonthKey } from "./dates";
 import type { StalledCount } from "@/lib/publish/record/stalled";
 import { FIXTURE_CALENDAR_FACTS, FIXTURE_PLAN_HEAD } from "./fixture";
 import { FIXTURE_DOMAIN } from "../_shell/fixture";
@@ -115,15 +115,11 @@ export const readMonth = cache(async function readMonth(month: MonthKey): Promis
   return assembleMonth(await readCalendarFacts({ site, month, now: clock(), planEnd }), month, planEnd);
 });
 
-/**
- * Plan's week (SPEC §7, E5): Monday to Sunday around `today`, read through
- * `readMonth` for each month the week touches.
- */
+/** Plan's week (SPEC §7, E5): the site's own week that holds `today`, read through `readMonth` for each month it touches. */
 export const readWeek = cache(async function readWeek(today: DayKey): Promise<WeekModel> {
-  const { commitStart } = await readPlanHead();
-  const shown = commitDays(today, commitStart);
-  const months = [...new Set([...shown.days, ...(shown.today === null ? [] : [shown.today])].map(monthOf))];
-  return weekOf(await Promise.all(months.map((month) => readMonth(month))), today, commitStart);
+  const { weekStart, setupDay } = await readPlanHead();
+  const months = [...new Set([weekStart, today, addDays(weekStart, 6)].map(monthOf))];
+  return weekOf(await Promise.all(months.map((month) => readMonth(month))), { today, weekStart, setupDay });
 });
 
 /**

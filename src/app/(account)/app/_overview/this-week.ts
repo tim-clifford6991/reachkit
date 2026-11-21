@@ -40,12 +40,13 @@ export function weekListOf(week: WeekModel, time: string | null = null): WeekLis
   // Edit and Stop sit on the next page to go live only, as on Plan.
   const next = week.cells.find((cell) => cell.page !== null && stoppable(cell, week))?.day ?? null;
   return {
+    weekStart: week.weekStart,
     first: first.day,
     last: last.day,
     timeZone: week.timeZone,
     today: week.today,
     skippedToday: today !== undefined && dayStateOf(today) === "skipped",
-    firstSkip: week.cells.find((cell) => dayStateOf(cell) === "skipped")?.day ?? null,
+    firstSkip: week.cells.find((cell) => cell.day >= week.today && dayStateOf(cell) === "skipped")?.day ?? null,
     pages: pagesThisWeek(week),
     coming: pagesToComeThisWeek(week),
     days: week.cells.map((cell) => dayOf(cell, week, cell.day === next, time)),

@@ -67,7 +67,7 @@ export type PaneModel =
 export interface CardModel {
   cell: DayCell;
   day: DayKey;
-  /** "Mon 23", the card's own date. */
+  /** "Mon 23", the card's own date; "Today, Mon 23" on today's. */
   dayLabel: string;
   kind: "new" | "update" | null;
   state: DayState | null;
@@ -226,7 +226,9 @@ function cardOf(
   const page = cell.page;
   const state = dayStateOf(cell);
   const date = fullDate(cell.day);
-  const dayLabel = `${weekdayShort(cell.day)} ${dayNumber(cell.day)}`;
+  const goesOn = `${weekdayShort(cell.day)} ${dayNumber(cell.day)}`;
+  const dayLabel = cell.today ? copy("calendar.card.day.today", { day: goesOn }) : goesOn;
+  const spoken = cell.today ? dayLabel : cardDate(cell.day);
   const stateLine = stateLineOf(cell, a.firstSkip);
   // A stopped or skipped day's own sentence says it; its two words would repeat the badge.
   const emptyLine = stateLine !== null && (state === "stopped" || state === "skipped") ? null : cardLineFor(cell, "all");
@@ -238,18 +240,18 @@ function cardOf(
     stateLine,
     emptyLine,
     fix: emptyLine !== null && cell.empty?.cause === "instruction" ? cell.empty.check : null,
-    ariaLabel: cardLabel({ cell, page, line: emptyLine }),
+    ariaLabel: cardLabel({ cell, page, line: emptyLine ?? stateLine, date: spoken }),
   };
   // A page's label names the stage its badge shows.
   const labelled = (title: string): string =>
-    state === null ? base.ariaLabel : copy("calendar.card.aria.page", { date: cardDate(cell.day), stage: copy(DAY_STATE_COPY_KEY[state]), title });
+    state === null ? base.ariaLabel : copy("calendar.card.aria.page", { date: spoken, stage: copy(DAY_STATE_COPY_KEY[state]), title });
 
   if (page === null) {
     const lines =
       state === "stopped" && stateLine !== null
         ? [stateLine, ...(cell.day < week.today ? [] : [copy("calendar.pane.stopped.next", { weekday: weekdayLong(cell.day) })])]
         : state === "skipped"
-          ? [copy("calendar.day.skipped.line")]
+          ? [stateLine ?? copy("calendar.day.skipped.line")]
           : emptyAccount(cell, week);
     return { ...base, kind: null, title: null, search: false, lines: [], pane: { kind: "lines", date, lines } };
   }
@@ -263,7 +265,6 @@ function cardOf(
     return { ...base, ariaLabel: labelled(title), kind, title, search: true, lines, pane: { kind: "lines", date, lines: [pane] } };
   }
 
-  const goesOn = `${weekdayShort(cell.day)} ${dayNumber(cell.day)}`;
   if (page.stage === "planned" && page.state === "planned") {
     const { lines, facts } = plannedFacts(page);
     return {
@@ -294,7 +295,9 @@ function cardOf(
       ? liveLines(page.draftId === null ? undefined : a.published.get(page.draftId), week.timeZone, a.next)
       : waiting && time !== null
         ? [ready ? copy("calendar.week.today", { time }) : copy("calendar.card.goes-live", { day: goesOn, time })]
-        : [];
+        : cell.day < week.today && (page.stage === "your_review" || page.stage === "scheduled")
+          ? [copy("calendar.day.written.past.line")]
+          : [];
   if (needsYou !== null) lines.push(copy(needsYou));
   // While no time can be promised, the law's own line says why the page waits.
   const held =
@@ -341,7 +344,7 @@ export function weekScreen(a: { week: WeekModel; head: PlanHeadFacts; published:
   const { week } = a;
   const time = weekGoesLive(week, a.head.publishTime);
   const next = shortDay(checkDays(a.head, week.today).next);
-  const firstSkip = week.cells.find((cell) => dayStateOf(cell) === "skipped")?.day ?? null;
+  const firstSkip = week.cells.find((cell) => cell.day >= week.today && dayStateOf(cell) === "skipped")?.day ?? null;
   const published = new Map((a.published?.pages ?? []).flatMap((page) => (page.draftId === undefined ? [] : [[page.draftId, page] as const])));
   const bodies = a.bodies === undefined ? new Set(writtenDrafts(week)) : a.bodies;
   const cards = [...week.cells]
@@ -349,9 +352,10 @@ export function weekScreen(a: { week: WeekModel; head: PlanHeadFacts; published:
     .map((cell) => cardOf(cell, { week, time, next, firstSkip: cell.day === firstSkip, published, bodies }));
   const today = cards.find((card) => card.day === week.today);
   const written = cards.find((card) => card.day >= week.today && card.pane.kind === "page");
+  const live = [...cards].reverse().find((card) => card.day < week.today && card.state === "live");
   return {
     head: headOf(a.head, week),
     cards,
-    opensOn: (today?.cell.page != null ? today : (written ?? cards[0]))?.day ?? null,
+    opensOn: (today?.cell.page != null ? today : (written ?? live))?.day ?? week.today,
   };
 }

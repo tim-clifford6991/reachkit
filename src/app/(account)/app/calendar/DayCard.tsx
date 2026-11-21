@@ -51,11 +51,13 @@ export function KindChip(p: { update: boolean }): React.JSX.Element {
 }
 
 /** A day's state line: a page that became an update says so; a day with no page names the day the customer stopped,
- *  else the week's first skip. */
+ *  a past day what became of it, else the week's first skip. */
 export function stateLineOf(cell: DayCell, firstSkip: boolean): string | null {
   if (cell.page !== null) return cell.page.becameUpdate === true ? copy("calendar.day.became-update") : null;
+  const past = cell.when === "past" ? dayStateOf(cell) : null;
+  if (past === "skipped") return copy("calendar.day.past.none.line");
   // "by you" only where the customer's own move stopped it.
-  if (cell.empty?.cause === "page_cannot_go_live") return copy(cell.stoppedByYou === true ? "calendar.day.stopped.line" : "calendar.day.stopped.line.system", { day: `${weekdayShort(cell.day)} ${dayNumber(cell.day)}` });
+  if (cell.empty?.cause === "page_cannot_go_live" || past === "stopped") return copy(cell.stoppedByYou === true ? "calendar.day.stopped.line" : "calendar.day.stopped.line.system", { day: `${weekdayShort(cell.day)} ${dayNumber(cell.day)}` });
   return firstSkip ? copy("calendar.day.skipped.line") : null;
 }
 

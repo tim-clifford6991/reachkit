@@ -76,16 +76,9 @@ export function planHorizonEnd(today: DayKey): DayKey {
   return addDays(today, 6);
 }
 
-/** This Week's days (SPEC §7, *The week is committed on Monday*): the commit's seven from its first date, else seven
- *  from today before any commit or once it has run out; `today` is offered first where it falls before the commit. */
-export function commitDays(today: DayKey, commitStart: DayKey | null): { days: readonly DayKey[]; today: DayKey | null } {
-  const start = commitStart !== null && addDays(commitStart, WEEK_PLAN.days - 1) >= today ? commitStart : today;
-  return { days: Array.from({ length: WEEK_PLAN.days }, (_, at) => addDays(start, at)), today: today < start ? today : null };
-}
-
-/** The last day This Week draws, which is as far as the plan reaches. */
+/** The last date the plan reaches: the commit's seventh day, else six days after today, whichever is later. */
 export function commitEnd(today: DayKey, commitStart: DayKey | null): DayKey {
-  const last = commitDays(today, commitStart).days.at(-1) ?? today;
+  const last = commitStart === null ? today : addDays(commitStart, WEEK_PLAN.days - 1);
   return last > planHorizonEnd(today) ? last : planHorizonEnd(today);
 }
 
