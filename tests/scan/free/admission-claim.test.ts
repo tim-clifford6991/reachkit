@@ -43,6 +43,7 @@ import { readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 import { promisify } from "node:util";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { GENERATED_DB_TYPES } from "../../../scripts/lib/budgets.mjs";
 
 vi.mock("@/lib/db", () => ({ dbAdmin: vi.fn() }));
 
@@ -572,13 +573,12 @@ describe(
       function* walk(dir: string): Generator<string> {
         for (const entry of readdirSync(dir)) {
           const full = path.join(dir, entry);
-          const stat = statSync(full);
-          if (stat.isDirectory()) yield* walk(full);
+          if (statSync(full).isDirectory()) yield* walk(full);
           else if (/\.tsx?$/.test(entry)) yield full;
         }
       }
       const offenders = [...walk(SRC_DIR)]
-        .filter((file) => file !== admissionPath)
+        .filter((file) => file !== admissionPath && file !== path.resolve(SRC_DIR, "..", GENERATED_DB_TYPES))
         .filter((file) => /from_incomplete_rescan\s*:/.test(readFileSync(file, "utf8")));
       expect(offenders).toEqual([]);
     });

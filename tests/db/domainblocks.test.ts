@@ -25,6 +25,7 @@
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { GENERATED_DB_TYPES } from "../../scripts/lib/budgets.mjs";
 import { topicOf } from "../../src/lib/db/topics";
 import {
   psql,
@@ -177,7 +178,7 @@ describe('`structure.md` rule 3 — "`*_domainblocks*.sql` (REQ-002\'s table has
 });
 
 describe('REQ-002 c4 — "a report is taken down only by a removal request received at the address criterion 1 names, never at ReachKit\'s own initiative"', () => {
-  const mentioning = SOURCES.filter((s) => s.text.includes("domain_blocks"));
+  const mentioning = SOURCES.filter((s) => s.file !== GENERATED_DB_TYPES && s.text.includes("domain_blocks"));
 
   it("exactly one file under `src/` names the table at all — the one reader of it", () => {
     // #104 moved that reader out of `admission.ts` into its own module, so
