@@ -75,6 +75,7 @@ export const LIVE_SCHEMA_TESTS = [
   "tests/account/identity/signin-links-schema.test.ts",
   // The shared abuse-limit count, its windows, sweep and grants.
   "tests/db/rate-limits.test.ts",
+  "tests/db/known-content-replace.test.ts",
   "tests/opportunities/asked-beside.test.ts",
   "tests/scan/report/challenged-facts.test.ts",
   // The html prune's listing and prune cost the same at N and 4N reads.
