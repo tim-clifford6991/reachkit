@@ -229,11 +229,12 @@ const TIDYSLOT: Example = {
 
 export const EXAMPLES: Readonly<Record<ExampleKind, Example>> = { plumber: HARBOR, software: TIDYSLOT };
 
-/** Tidyslot's three so-far totals as the landing's app picture draws them: an example, never a forecast. */
-export const EXAMPLE_TOTALS = Object.freeze({
-  ai: { total: 9, added: 2 },
-  google: { total: 146, added: 18 },
-  pages: { total: TIDYSLOT.mail.live, added: 1 },
+/** Tidyslot's four Overview tiles as the landing's app picture draws them: an example, never a forecast. */
+export const EXAMPLE_TILES = Object.freeze({
+  pages: { n: TIDYSLOT.mail.live, of: TIDYSLOT.mail.live, up: 1 },
+  google: { n: 9, of: TIDYSLOT.mail.live, up: 2 },
+  ai: { n: 3, of: 10, up: 1 },
+  rivals: { n: 4, of: 10, up: 0 },
 });
 
 /** The hour a page goes live, as the landing's week shows it. */

@@ -230,10 +230,10 @@ export const MAIL_COPY = Object.freeze({
   "mail.weekly.setAside.many.unreplaced": ["{n} pages didn’t pass our checks, so we held them back.", { slots: { n: "text" } }],
   "mail.weekly.setAside.one.updated": ["One page didn’t pass our checks. We set it aside and improved a live page instead.", { slots: {} }],
   "mail.weekly.setAside.many.updated": ["{n} pages didn’t pass our checks. We set them aside and improved live pages instead.", { slots: { n: "text" } }],
-  // The totals are drawn under Overview's own `overview.totals.*` words; these are the mail's two lines beside them.
+  // The totals are drawn under the `overview.totals.*` words; these are the mail's two lines beside them.
   "mail.weekly.totals.ai.none": ["We asked. None mentioned you yet.", { slots: {} }],
   "mail.weekly.totals.ai.how": ["Each week we ask AI {n} questions about your kind of business. We count from when you joined.", { slots: { n: "text" } }],
-  "mail.weekly.standing": ["Every figure, up or down, is in your overview.", { slots: {} }],
+  "mail.weekly.standing": ["Your Overview shows where each page stands this week.", { slots: {} }],
   // The first row while the hosted address waits for its record, every Monday until it is connected. Drafted (#759).
   "mail.weekly.connect": ["Your pages are written but can't go live at {host} yet. Add one line at the company you bought your address from.", { slots: { host: "text" } }],
   "mail.weekly.connect.wordpress": ["Your pages are written but can't go live on {host} yet. Connect your WordPress in Settings › Pages.", { slots: { host: "text" } }],
