@@ -1,10 +1,9 @@
-// The owner's review screen, `/app/review`: each paying site's week and why
-// each page was chosen. Owner-only; no customer reads these.
+// The owner's review screen, `/app/review`: each paying site's week, why each
+// page was chosen, and the owner's marks. Owner-only; no customer reads these.
 import type { CopyPartition } from "../registry.ts";
 
 export const REVIEW_COPY = Object.freeze({
   "review.meta.title": ["Review · ReachKit", { slots: {} }],
-  "review.eyebrow": ["Owner only", { slots: {} }],
   "review.eyebrow.week": ["Owner only · week of {date}", { slots: { date: "text" } }],
   "review.title": ["Review", { slots: {} }],
   "review.unreadable": ["The sites could not be read just now.", { slots: {} }],
@@ -12,6 +11,27 @@ export const REVIEW_COPY = Object.freeze({
   "review.tabs": ["Review sections", { slots: {} }],
   "review.tab.week": ["Week", { slots: {} }],
   "review.tab.pages": ["Pages", { slots: {} }],
+  "review.tab.flagged": ["Flagged", { slots: {} }],
+  "review.site": ["Site", { slots: {} }],
+  "review.export": ["Export (.md)", { slots: {} }],
+  "review.fig.sites": ["Sites", { slots: {} }],
+  "review.fig.committed": ["Pages committed", { slots: {} }],
+  "review.fig.committed.of": ["of {count}", { slots: { count: "text" } }],
+  "review.fig.short": ["Short weeks", { slots: {} }],
+  "review.fig.stopped": ["Stopped by rules", { slots: {} }],
+  "review.fig.flips": ["Verdict flips", { slots: {} }],
+  "review.fig.flips.since": ["since Monday", { slots: {} }],
+  "review.fig.flags": ["Flags open", { slots: {} }],
+  "review.col.mark": ["Mark", { slots: {} }],
+  "review.mark.ok": ["OK", { slots: {} }],
+  "review.mark.flag": ["Flag", { slots: {} }],
+  "review.note": ["Note", { slots: {} }],
+  "review.note.save": ["Save Note", { slots: {} }],
+  "review.flagged.empty": ["No row is flagged this week.", { slots: {} }],
+  "review.difficulty.title": ["Difficulty per Search", { slots: {} }],
+  "review.aside.title": ["Topics Set Aside", { slots: {} }],
+  "review.aside.empty": ["No topic is set aside.", { slots: {} }],
+  "review.links.title": ["How Pages Link the Site", { slots: {} }],
   "review.week.empty": ["No week committed yet", { slots: {} }],
   "review.spare": ["Spare", { slots: {} }],
   "review.col.day": ["Day", { slots: {} }],
