@@ -126,6 +126,7 @@ export async function generatePageFix(
       site: "generate.page_fix",
       tier: "nano",
       schema: FIX_SCHEMA,
+      instructions: ["task", "rewrite", "locale"],
       // D66: the customer's own page is rewritten in its own language.
       locale,
       input: {
