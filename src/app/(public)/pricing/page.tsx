@@ -31,6 +31,7 @@ import { Head } from "../_library/head";
 import { PUBLIC_ROUTE_SEO } from "../_seo/routes";
 import { staticMetadata } from "../_seo/metadata";
 import { startCheckout } from "./actions";
+import { OfferLine } from "../_chrome/OfferLine";
 
 export const metadata: Metadata = staticMetadata(PUBLIC_ROUTE_SEO.pricing);
 
@@ -172,6 +173,8 @@ function questions(): readonly Question[] {
 
 export default function PricingPage(): React.JSX.Element {
   return (
+    <>
+    <OfferLine pitch see={false} />
     <Surface
       arms={{
         compact: {
@@ -255,5 +258,6 @@ export default function PricingPage(): React.JSX.Element {
         </div>
       </main>
     </Surface>
+    </>
   );
 }

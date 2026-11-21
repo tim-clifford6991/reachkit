@@ -39,6 +39,8 @@ import { readSetupScreen } from "./_setup/provider";
 import { SetupForm } from "./SetupForm";
 import { SetupSkeleton } from "./SetupSkeleton";
 import { copy } from "@/lib/presentation/copy";
+import { spotsLeft } from "@/lib/account/offer/spots";
+import { OfferLine } from "@/app/(public)/_chrome/OfferLine";
 
 /** /setup's own `<title>` (#945). Without it this screen announced
  *  nothing at all — the `(account)` layout's fallback is the floor, not
@@ -46,13 +48,17 @@ import { copy } from "@/lib/presentation/copy";
 export const metadata: Metadata = { title: copy("meta.app.setup.title") };
 
 export default async function SetupPage(): Promise<React.JSX.Element> {
-  const model = await readSetupScreen();
+  const [model, spots] = await Promise.all([readSetupScreen(), spotsLeft().catch(() => null)]);
 
   return (
     // The fallback is the step's own regions (#1327), and it leaves by the
     // reveal of #1065: `Waiting` carries the exit, the step crossfades in.
-    <Suspense fallback={<SetupSkeleton />}>
-      <SetupForm model={model} />
-    </Suspense>
+    <>
+      {/* Paid already: the count alone, with no pitch and no way out of setup. */}
+      <OfferLine spots={spots} pitch={false} see={false} />
+      <Suspense fallback={<SetupSkeleton />}>
+        <SetupForm model={model} />
+      </Suspense>
+    </>
   );
 }

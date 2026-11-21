@@ -99,6 +99,7 @@ export const OFFER_COPY = Object.freeze({
   "offer.spots.taken": ["All {of} spots are taken. ReachKit is {price} a month, cancel any time.", { slots: { of: "text", price: "text" } }],
   "offer.spots.ended": ["Our offer for the first {of} customers has ended. ReachKit is {price} a month, cancel any time.", { slots: { of: "text", price: "text" } }],
   "offer.banner.see": ["See the Offer", { slots: {} }],
+  "offer.banner.label": ["Offer", { slots: {} }],
   "offer.card.title": ["First {of} Customers", { slots: { of: "text" } }],
   "offer.card.until": ["Until {endsOn}", { slots: { endsOn: "text" } }],
   "offer.card.setup": ["The founder sets you up personally, on a 15-minute call if you want one", { slots: {} }],

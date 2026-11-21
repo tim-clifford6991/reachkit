@@ -49,6 +49,8 @@ import { headers } from "next/headers";
 import { networkKeyOf } from "@/lib/scan/admission";
 import { canonicalRedirect } from "./_address/canonical";
 import { AddressView } from "./_address/view";
+import { OfferLine } from "../../_chrome/OfferLine";
+import { spotsLeft } from "@/lib/account/offer/spots";
 import type { AddressState } from "./_address/state";
 import { resolveAddress } from "./_address/resolve";
 import { fixtureStateFor } from "./_fixture/states";
@@ -125,7 +127,7 @@ export default async function ScanAddressPage({
   const redirectTo = canonicalRedirect(raw);
   if (redirectTo !== null) permanentRedirect(redirectTo.redirectTo);
 
-  const state = await resolve(raw);
+  const [state, spots] = await Promise.all([resolve(raw), spotsLeft().catch(() => null)]);
   // No `Surface` here. ADR-093 decision 6 puts one at every *screen* root,
   // and seven arms are seven screens with seven different band behaviours —
   // a long report that goes two columns at `medium`, and six short panes
@@ -135,5 +137,10 @@ export default async function ScanAddressPage({
   // Issue #785: a refused checkout from this report's offer comes back
   // here with the marker, and the offer states it in its own line.
   const checkoutRefused = (await searchParams)?.[CHECKOUT_QUERY_KEY] === REFUSED_MARKER;
-  return <AddressView state={state} checkoutRefused={checkoutRefused} />;
+  return (
+    <>
+      <OfferLine spots={spots} pitch see />
+      <AddressView state={state} checkoutRefused={checkoutRefused} />
+    </>
+  );
 }
