@@ -15,7 +15,7 @@ export const LANDING_COPY = Object.freeze({
   "gallery.heading.mark": ["in the Open", { slots: {} }],
   /** The offer under the field, one tick line each. */
   "landing.hero.offer.free": ["Free scan and first page", { slots: {} }],
-  "landing.hero.offer.price": ["{price} a month, cancel any time", { slots: { price: "text" } }],
+  "landing.hero.offer.price": ["Then up to {weekPages} pages a week, {price} a month", { slots: { weekPages: "text", price: "text" } }],
   /** The count of sites scanned, drawn only from a stored count of 100 or more. */
   "landing.hero.proof.scanned": ["{count}+ sites scanned", { slots: { count: "text" } }],
   "landing.hero.proof.scanned.line": ["with the free scan", { slots: {} }],

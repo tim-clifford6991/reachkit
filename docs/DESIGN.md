@@ -106,9 +106,9 @@ The owner looks at `dev.reachkit.app` for taste: voice, and an asset only the ow
 | Landing | `/` | [board](design/boards/canvas/PubLanding.dc.html) · [render](design/boards/canvas/renders/PubLanding.jpg) |
 | Landing on a phone | `/` at 390 | [board](design/boards/canvas/PubLandingPhone.dc.html) · [render](design/boards/canvas/renders/PubLandingPhone.jpg) |
 | How it works | `/how-it-works` | [board](design/boards/canvas/PubHowItWorks.dc.html) · [render](design/boards/canvas/renders/PubHowItWorks.jpg) |
-| Pricing | `/pricing` | [board](design/boards/canvas/Pricing.dc.html) · [render](design/boards/canvas/renders/Pricing.jpg) |
+| Pricing | `/pricing` | [board](design/boards/canvas/Pricing.dc.html) · [render](design/boards/canvas/renders/Pricing.jpg) · amended by plates P4a/P6, owner 2026-11-20, #2981 |
 | Free scan in progress | `/scan/{domain}` | [board](design/boards/canvas/PubScanning.dc.html) · [render](design/boards/canvas/renders/PubScanning.jpg) |
-| Free report and the paid offer | `/scan/{domain}` | [board](design/boards/canvas/PubReport.dc.html) · [render](design/boards/canvas/renders/PubReport.jpg) |
+| Free report and the paid offer | `/scan/{domain}` | [board](design/boards/canvas/PubReport.dc.html) · [render](design/boards/canvas/renders/PubReport.jpg) · amended by plates P4a/P6, owner 2026-11-20, #2981 |
 | About | `/about` | [board](design/boards/canvas/PubAbout.dc.html) · [render](design/boards/canvas/renders/PubAbout.jpg) |
 | Compare index | `/compare` | [board](design/boards/canvas/PubCompare.dc.html) · [render](design/boards/canvas/renders/PubCompare.jpg) |
 | Compare: ReachKit vs ChatGPT | `/compare/{tool}` | [board](design/boards/canvas/PubCompareTool.dc.html) · [render](design/boards/canvas/renders/PubCompareTool.jpg) |

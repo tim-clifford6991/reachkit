@@ -140,7 +140,7 @@ export default async function ScanAddressPage({
   return (
     <>
       <OfferLine spots={spots} pitch see />
-      <AddressView state={state} checkoutRefused={checkoutRefused} />
+      <AddressView state={state} offer={{ refused: checkoutRefused, spots }} />
     </>
   );
 }

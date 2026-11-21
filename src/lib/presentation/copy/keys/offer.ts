@@ -106,6 +106,8 @@ export const OFFER_COPY = Object.freeze({
   "offer.card.video": ["A short video of your report, explained by the founder", { slots: {} }],
   "offer.card.checkins": ["We check in with you after two weeks and after a month", { slots: {} }],
   "offer.card.email": ["Email the founder directly, any time", { slots: {} }],
+  "offer.card.left": ["{left} of {of} spots left", { slots: { left: "text", of: "text" } }],
+  "offer.promise.call": ["Set up in about {minutes} minutes, or we do it with you on a call", { slots: { minutes: "text" } }],
   "offer.promise.title": ["Set Up in About {minutes} Minutes", { slots: { minutes: "text" } }],
   "offer.promise.line": ["Three short steps and you’re done. If it takes longer, we do it with you on a call, at no cost.", { slots: {} }],
   "offer.before.title": ["Before You Pay", { slots: {} }],

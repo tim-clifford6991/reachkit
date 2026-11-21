@@ -18,9 +18,9 @@
 // is no money-back line and no refund answer: the plan is month to month.
 import React from "react";
 import type { Metadata } from "next";
-import { CircleCheck, CircleStop, Clock4, Eye, Gift, Mail, Pen, Plug, Search, Store, Timer, TrendingUp, X, type LucideIcon } from "lucide-react";
+import { Check, CircleCheck, CircleStop, Clock4, Eye, Gift, Mail, Pen, Plug, Search, Store, Timer, TrendingUp, X, type LucideIcon } from "lucide-react";
 import { Surface } from "@/ui/layout";
-import { WEEK_PLAN } from "@/lib/config/constants";
+import { SETUP_MINUTES, WEEK_PLAN } from "@/lib/config/constants";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { PricingCard, REFUSED_IN_QUERY } from "../scan/[domain]/_modules/pricing";
 import { ScanForm } from "../_landing/ScanForm";
@@ -113,6 +113,29 @@ function NotDone(): React.JSX.Element {
   );
 }
 
+/** What a visitor can count on before paying, under the head's lead. */
+function BeforeYouPay(): React.JSX.Element {
+  const lines = [
+    copy("offer.before.read"),
+    copy("offer.promise.call", { minutes: String(SETUP_MINUTES) }),
+    copy("pricing.plan.cancel"),
+    copy("offer.before.export"),
+  ];
+  return (
+    <div className="flex flex-col gap-2">
+      <h2 className="text-base font-semibold">{copy("offer.before.title")}</h2>
+      <ul className="flex flex-col gap-1.5">
+        {lines.map((line) => (
+          <li key={line} className="flex items-start gap-2">
+            <Check size={16} strokeWidth={1.75} className="text-success mt-1 shrink-0" aria-hidden />
+            {line}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 function FromWeekOne(): React.JSX.Element {
   // The first three steps are ReachKit's own work, so they read as done; the rest wait on Google.
   const steps = [
@@ -192,7 +215,12 @@ export default function PricingPage(): React.JSX.Element {
             top={<p className="eyebrow">{copy("chrome.nav.pricing")}</p>}
             title={copy("pricing.title")}
             mark={copy("pricing.title.mark")}
-            lead={<p className={LEAD}>{copy("pricing.subline", weekPages)}</p>}
+            lead={
+              <>
+                <p className={LEAD}>{copy("pricing.subline", weekPages)}</p>
+                <BeforeYouPay />
+              </>
+            }
             aside={
               <div className="flex min-w-0 flex-col gap-4">
                 <PricingCard startAction={startCheckout} terms="pricing" refused={REFUSED_IN_QUERY} free={<FreeFirst />} />
