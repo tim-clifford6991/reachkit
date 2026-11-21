@@ -2,7 +2,7 @@
 import type { OfferStore } from "@/lib/account/offer/spots";
 
 export const memoryOfferStore = (rows: { place: number; user_id: string; subscription_id: string; taken_at: Date; freed_at: Date | null }[], fail = { next: false }): OfferStore => ({
-  heldPlaces: async () => (fail.next ? null : rows.filter((r) => r.freed_at === null).map((r) => r.place)),
+  heldPlaces: async () => (fail.next ? null : rows.filter((r) => r.freed_at === null).map((r) => ({ place: r.place, takenAt: r.taken_at }))),
   insert: async (row) =>
     rows.some((r) => r.subscription_id === row.subscription_id) ? "subscription"
     : rows.some((r) => r.place === row.place && r.freed_at === null) ? "place"

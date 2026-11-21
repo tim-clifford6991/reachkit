@@ -1,12 +1,12 @@
 // src/lib/account/offer/spots.ts — the first-50 offer's spots: taken by the first paid checkout, kept on cancel, freed only by a full refund in the first 14 days.
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { OFFER_ENDS_AT, OFFER_FEW_LEFT, OFFER_FREE_REFUND_DAYS, OFFER_SPOTS } from "@/lib/config/constants";
+import { OFFER_ENDS_AT, OFFER_FEW_LEFT, OFFER_FREE_REFUND_DAYS, OFFER_SHOWN_DAYS, OFFER_SPOTS } from "@/lib/config/constants";
 import { env } from "@/lib/config/env";
 import { dbAdmin } from "@/lib/db";
 
 export interface OfferStore {
-  /** The places held now (not freed), or `null` where the table could not be read. */
-  heldPlaces(): Promise<number[] | null>;
+  /** The spots held now (not freed), or `null` where the table could not be read. */
+  heldPlaces(): Promise<{ place: number; takenAt: Date }[] | null>;
   /** `taken`, or which unique key refused it, or `failed`. */
   insert(row: { place: number; user_id: string; subscription_id: string }): Promise<"taken" | "place" | "subscription" | "failed">;
   /** Frees the account's held spots taken at or after `takenSince`; false where the write failed. */
@@ -18,8 +18,8 @@ const spots = () => (dbAdmin() as unknown as SupabaseClient).from("offer_spots")
 function supabaseOfferStore(): OfferStore {
   return {
     async heldPlaces() {
-      const { data, error } = await spots().select("place").is("freed_at", null);
-      return error === null ? (data ?? []).map((row: { place: number }) => row.place) : null;
+      const { data, error } = await spots().select("place, taken_at").is("freed_at", null);
+      return error === null ? (data ?? []).map((row: { place: number; taken_at: string }) => ({ place: row.place, takenAt: new Date(row.taken_at) })) : null;
     },
     async insert(row) {
       const { error } = await spots().insert(row);
@@ -64,7 +64,7 @@ export async function takeSpot(a: {
     for (let attempt = 0; attempt < OFFER_SPOTS; attempt++) {
       const held = await offerStore().heldPlaces();
       if (held === null) return "failed";
-      const place = Array.from({ length: OFFER_SPOTS }, (_, i) => i + 1).find((p) => !held.includes(p));
+      const place = Array.from({ length: OFFER_SPOTS }, (_, i) => i + 1).find((p) => !held.some((spot) => spot.place === p));
       if (place === undefined) return "full";
       const inserted = await offerStore().insert({ place, user_id: a.userId, subscription_id: a.subscriptionId });
       if (inserted === "taken") return "taken";
@@ -88,11 +88,13 @@ export async function freeSpotOnRefund(userId: string, refundedAt: Date): Promis
 }
 
 export interface SpotsLeft {
-  readonly left: number;
+  /** Only where the count is drawn: `open`, `few` and `full`. */
+  readonly left?: number;
   readonly of: number;
-  /** The offer's last day, `YYYY-MM-DD` in UTC. */
+  /** The offer's last day in UTC, as printed: "31 Jan 2027". */
   readonly endsOn: string;
-  readonly state: "open" | "few" | "full" | "ended";
+  /** `over` is 30 days after the last spot was taken or the offer ended, whichever came first: nothing is drawn. */
+  readonly state: "open" | "few" | "full" | "ended" | "over";
 }
 
 /** The count every screen reads; `null` where the table could not be read, never `left: 0`. */
@@ -100,8 +102,11 @@ export async function spotsLeft(now: Date = new Date()): Promise<SpotsLeft | nul
   const held = await offerStore().heldPlaces().catch(() => null);
   if (held === null) return null;
   const left = Math.max(0, OFFER_SPOTS - held.length);
-  const endsOn = new Date(Date.parse(OFFER_ENDS_AT) - 1).toISOString().slice(0, 10);
-  const state =
-    now.getTime() >= Date.parse(OFFER_ENDS_AT) ? "ended" : left === 0 ? "full" : left <= OFFER_FEW_LEFT ? "few" : "open";
-  return { left, of: OFFER_SPOTS, endsOn, state };
+  const endsAt = Date.parse(OFFER_ENDS_AT);
+  const endsOn = new Date(endsAt - 1).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+  const closedAt = Math.min(endsAt, left === 0 ? Math.max(...held.map((spot) => spot.takenAt.getTime())) : Infinity);
+  if (now.getTime() >= closedAt + OFFER_SHOWN_DAYS * 86_400_000) return { of: OFFER_SPOTS, endsOn, state: "over" };
+  // "All taken" only when it is true; an end by date with spots free says the offer ended.
+  if (left > 0 && now.getTime() >= endsAt) return { of: OFFER_SPOTS, endsOn, state: "ended" };
+  return { left, of: OFFER_SPOTS, endsOn, state: left === 0 ? "full" : left <= OFFER_FEW_LEFT ? "few" : "open" };
 }
