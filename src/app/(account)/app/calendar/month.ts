@@ -104,7 +104,7 @@ export interface DraftOnDay {
    * recorded it (issue 930). `null` for a page that is not live, and for a
    * live page this week's pass measured no place for — which is not a zero
    * and not an outage: the page went out and the next weekly pass is when
-   * it is first placed (`day-number.ts`'s `first-measure` arm).
+   * it is first placed.
    *
    * **Read, never derived.** `Movement` is written by `judgeWeek` and read
    * back by `readWeek`; nothing on this screen re-measures a place or

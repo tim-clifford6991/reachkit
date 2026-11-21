@@ -109,28 +109,6 @@ export function TopBarSkeleton(): React.JSX.Element {
   );
 }
 
-// ── a screen's own shapes ───────────────────────────────────────────────
-
-/** A stat tile: eyebrow, number, trend. The three tiles a row draws.
- *  `grid` is the arriving row's own grid class, read from that screen's
- *  frame, and `frame` its region's name. */
-export function TilesSkeleton(p: { count?: number; grid?: string; frame?: string }): React.JSX.Element {
-  const count = p.count ?? 3;
-  return (
-    <Waiting className={p.grid ?? "grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-3"} testId="tiles-skeleton" frame={p.frame}>
-      {Array.from({ length: count }, (_, at) => (
-        <div key={at} className="card card-border bg-base-100 min-w-0">
-          <div className="card-body min-w-0 gap-3">
-            <Box className="h-3 w-28" />
-            <Box className="h-9 w-20" />
-            <Box className="h-3 w-full" />
-          </div>
-        </div>
-      ))}
-    </Waiting>
-  );
-}
-
 /** One card: its head and a body of `rows` lines. The shape most of this
  *  product's screens are made of. */
 export function CardSkeleton(p: {

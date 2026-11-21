@@ -69,12 +69,6 @@ export function observeKillSwitchEngaged(): boolean {
   return first && engaged;
 }
 
-/** Puts this process back to having never looked — a test fixture, and the
- *  only writer of that state besides `observeKillSwitchEngaged` itself. */
-export function __resetKillSwitchObservationForTesting(): void {
-  lastObserved = null;
-}
-
 /** The guard `runJob()` applies before a job body runs — so it runs before
  *  the body's first spend and before its first write, structurally, rather
  *  than by each job remembering to ask. */

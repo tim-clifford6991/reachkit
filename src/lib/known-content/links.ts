@@ -87,24 +87,3 @@ export function knownLinkTargets(pages: readonly KnownPage[], q: LinkQuery): Kno
     .map(({ page }) => ({ url: page.url as string, label: page.title.trim(), source: page.source }));
 }
 
-/**
- * The same list, for the caller that asks the index rather than holding it
- * (#973's related-guides block). Reads the site's index and vets it here, so
- * no caller assembles link candidates of its own.
- */
-export async function publishedGuideLinks(a: {
-  siteId: string;
-  domain: string;
-  about: string;
-  selfUrl?: string | null;
-  max?: number;
-}): Promise<KnownLink[]> {
-  const { readKnownContent } = await import("./store");
-  const pages = await readKnownContent(a.siteId);
-  return knownLinkTargets(pages, {
-    domain: a.domain,
-    about: a.about,
-    ...(a.selfUrl === undefined ? {} : { selfUrl: a.selfUrl }),
-    ...(a.max === undefined ? {} : { max: a.max }),
-  });
-}

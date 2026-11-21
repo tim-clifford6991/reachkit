@@ -271,7 +271,7 @@ function Panel(p: {
       //   phone   the sheet SPEC §7 asks for, opened from the bottom and
       //           clear of the 68px bottom menu (#940) plus the device's
       //           own safe area — the same number the answer stack stands
-      //           above (`_toast/Answers.tsx`'s `BOTTOM_MENU_PX`). The
+      //           above (`_toast/Answers.tsx`'s `BOTTOM`). The
       //           month behind it is a list, which the sheet is meant to
       //           sit over.
       //   lg      in flow, under the week. A sheet fixed over a week that

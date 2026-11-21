@@ -97,21 +97,13 @@ export type SafeFetchOpts = {
 // the document through this very module with `respectRobots: false`, so the
 // import cycle below is deliberate and terminates. When the reader cannot
 // determine — `{ ok: false }`, REQ-004 criterion 6's undeterminable — this
-// module never fabricates a disallow. Overridable only from test files, so
-// a real caller always gets the wired default.
+// module never fabricates a disallow.
 export type RobotsPort = (
   origin: string,
   userAgent: string
 ) => Promise<RobotsPolicy | { ok: false; reason: string }>;
 
-const wiredReader: RobotsPort = (origin) => readRobots(origin);
-
-let robotsPort: RobotsPort = wiredReader;
-
-/** Test-only seam. Never called from production code. */
-export function __setRobotsPortForTesting(port: RobotsPort | null): void {
-  robotsPort = port ?? wiredReader;
-}
+const robotsPort: RobotsPort = (origin) => readRobots(origin);
 
 /** RFC 9309 §2.2.1: the group that names our product token decides, and the
  *  wildcard group applies only where no group names us — so a document that

@@ -26,13 +26,6 @@ export function __resetHealthDebounceForTesting(): void {
   lastCheckedHere.clear();
 }
 
-/** What the capability probe last recorded. `null` is "not asked" (hosted, or WordPress no check has reached), never
- *  `false`, which would tell a customer they cannot publish before anything asked (ADR-086 decision 1). */
-export async function publishCapability(destinationId: string): Promise<boolean | null> {
-  const row = await readDestination(destinationId);
-  return row?.publish_capable ?? null;
-}
-
 function isStale(row: DestinationRecord, now: Date): boolean {
   const checkedAt = Date.parse(row.last_checked_at);
   if (Number.isNaN(checkedAt)) return true;

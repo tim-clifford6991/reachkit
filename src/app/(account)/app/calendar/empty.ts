@@ -172,23 +172,6 @@ export interface EmptyFacts {
   supplyMeasured: boolean | null;
 }
 
-/**
- * The two causes this module does **not** speak for (issue #113).
- *
- * REQ-092 is a law over surfaces, and ADR-011 gives it one home:
- * `stoppedWorkStatement()` in `src/lib/presentation/stopped/`. It returns
- * three lines — c1's "ReachKit stopped its own work", c2's what is needed
- * from the customer (and, when nothing is, that nothing is) and c4's
- * resumption date or the explicit statement that none is promised. A
- * direct read of `stopped.work.line` returns the first of the three and
- * silently drops the other two, which is what this file used to do.
- *
- * `unattributed` is not one of them (SPEC §7, 2026-10-07, issue 1321): a
- * day says ReachKit stopped only where a stop is recorded for it. A day the
- * product cannot explain is the calendar's own cause, with its own line.
- */
-export const LAW_CAUSES: readonly EmptyCause[] = Object.freeze(["reachkit_stopped"] as const);
-
 /** Issue 857: the two supply arms are a fact about the site's market, not
  *  about one date. The calendar states supply once, at its top
  *  (`readSupplyNotice`), and no cell or day panel repeats it. */

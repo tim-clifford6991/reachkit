@@ -45,10 +45,10 @@
 // spacing, weight, lists, links and code, and never a heading size, which
 // the element's own ladder step decides. No stylesheet.
 //
-// Setting HTML is safe by construction, not by review, and for exactly the
-// reason `RenderedBody` gives: that module escapes every text node and every
-// attribute it emits and never passes source HTML through, so the string
-// below cannot carry markup the key contained.
+// Setting HTML is safe by construction, not by review: the markdown renderer
+// escapes every text node and every attribute it emits and never passes
+// source HTML through, so the string below cannot carry markup the key
+// contained.
 //
 // Server Components that read nothing: no session, no cookie, no store.
 import type React from "react";
@@ -65,7 +65,7 @@ import {
   type Block,
   type HtmlClasses,
 } from "@/lib/publish/render/markdown";
-import { legalBodyWithIds, legalHeadings, legalSections, type LegalHeading, type LegalSection } from "./sections";
+import { legalHeadings, legalSections, type LegalHeading, type LegalSection } from "./sections";
 import { LEGAL_DOCUMENTS, type LegalDocument, type LegalFigure } from "./documents";
 import { Head } from "../_library/head";
 
@@ -91,15 +91,6 @@ export const LEGAL_BODY_CLASSES: HtmlClasses = Object.freeze({
   strong: "font-bold text-base-content",
   em: "italic",
 });
-
-/** A legal body, Markdown in, HTML out: the one renderer's parse and
- *  serialiser with the headings levelled under the page's own `<h1>`, and
- *  since #936 an `id` on each section heading for the contents list to
- *  link to. Still one renderer and still one call site — the ids are put
- *  on by `legalBodyWithIds`, which calls it block by block. */
-export function legalBodyHtml(md: string): string {
-  return legalBodyWithIds(headingsUnderTitle(parseMarkdown(md)), LEGAL_BODY_CLASSES);
-}
 
 /** The contents list, from the document's own headings: open above the text on a phone, as the board draws it, and a column beside it from `lg`. */
 export function OnThisPage(p: { headings: readonly Pick<LegalHeading, "id" | "number" | "title">[] }): React.JSX.Element | null {

@@ -53,9 +53,6 @@ export function paymentFailedOf(planStatus: string): boolean | null {
   return planStatus === "active" || planStatus === "canceled" ? false : null;
 }
 
-/** The one plan (REQ-022 c3). A key, because the words are the owner's. */
-export const PLAN_KEY = "plan.single" satisfies CopyKey;
-
 /** The price, through the three keys every price surface already speaks it
  *  through. Re-exported rather than re-listed: two lists of price keys is
  *  how two surfaces come to quote two prices. */

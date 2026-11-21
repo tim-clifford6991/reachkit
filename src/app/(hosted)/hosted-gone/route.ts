@@ -57,8 +57,6 @@ export function emptyGoneDocument(lang: string | null = null): string {
   );
 }
 
-export const GONE_DOCUMENT = emptyGoneDocument();
-
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 

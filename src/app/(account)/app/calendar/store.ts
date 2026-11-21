@@ -260,7 +260,7 @@ function plannedOn(day: DayKey, choice: Choice, now: Date): DraftOnDay {
     needsYou: null,
     // Nothing is published for a planned date, so there is no place to
     // stand in (issue 930): its card carries the demand it was planned
-    // against, which is `day-number.ts`'s `volume` arm.
+    // against.
     standing: null,
     update: isUpdate(choice),
     ...replacesOf(choice),

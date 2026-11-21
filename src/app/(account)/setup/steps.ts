@@ -54,7 +54,3 @@ export function previousStep(step: SetupStepId): SetupStepId | null {
   return at <= 0 ? null : (SETUP_STEPS[at - 1] ?? null);
 }
 
-/** Whether this step is the last — the one whose control finishes setup. */
-export function isLastStep(step: SetupStepId): boolean {
-  return nextStep(step) === null;
-}

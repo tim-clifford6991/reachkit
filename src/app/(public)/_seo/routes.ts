@@ -210,8 +210,6 @@ export const PUBLIC_ROUTE_SEO = Object.freeze({
   },
 }) satisfies Readonly<Record<string, PublicRouteSeo>>;
 
-export type PublicRouteName = keyof typeof PUBLIC_ROUTE_SEO;
-
 export const PUBLIC_ROUTE_SEO_ROWS: readonly PublicRouteSeo[] = Object.freeze(
   Object.values(PUBLIC_ROUTE_SEO)
 );

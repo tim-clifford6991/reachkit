@@ -47,7 +47,6 @@ export const SETTABLE = [
 ] as const;
 
 export type SettableKey = (typeof SETTABLE)[number];
-export type SettingsPatch = Partial<Record<SettableKey, unknown>>;
 
 /** REQ-070 criterion 2's list. Each is an action, not a setting; each
  *  delegates to the module that owns the consequence (`actions.ts`). */

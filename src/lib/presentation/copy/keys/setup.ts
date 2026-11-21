@@ -44,11 +44,6 @@ export const SETUP_COPY = Object.freeze({
    *  may correct it. */
   "setup.refused.could-not-ask": "This step wasn’t saved. Check your connection and press again.",
   "setup.refused.no-access": "We found no subscription on this account, so setup can’t start. You can still cancel or export in Settings.",
-  // ── The progress strip (UI-SPEC S10 · S11, issue #356) ──────────────
-  "setup.progress.paid": "Paid",
-  "setup.progress.setup": "Setup",
-  "setup.progress.first-page": "First page live",
-
   // ── The two arms' own lines (UI-SPEC S10, issue #356) ───────────────
   "setup.address.assurance": "We check this site and put your pages live on it.",
   "setup.competitors.add.placeholder.first": "competitor.com",

@@ -137,7 +137,7 @@ export const META_COPY = Object.freeze({
      Each word is the one the product already says on the screen itself —
      `shell.nav.overview`, `overview.tab.search`,
      `overview.tile.ai-answers.label`, `overview.tab.rivals`,
-     `shell.nav.plan`, `shell.nav.settings`, `setup.progress.setup`. They
+     `shell.nav.plan`, `shell.nav.settings`. They
      are spelled out rather than composed from those keys because a `<title>`
      is a sentence in its own right and this partition's whole point is that
      the sentence a reader sees is the string written here (rule 8). The
