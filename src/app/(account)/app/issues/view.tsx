@@ -11,29 +11,28 @@ import type { SiteFixesScreen } from "./screen";
 
 const OVERVIEW = "/app";
 
-function Stats(p: { stats: NonNullable<SiteFixesScreen["stats"]> }): React.JSX.Element {
-  const { stats } = p;
+function Summary(p: { summary: NonNullable<SiteFixesScreen["summary"]> }): React.JSX.Element {
+  const { read, split } = p.summary;
   return (
-    <div className="stats stats-vertical card-border min-w-0 bg-base-100 lg:stats-horizontal" data-testid="issues-summary">
-      <div className="stat">
-        <div className="stat-title">{stats.site}</div>
-        <div className="stat-value tabular-nums">{formatCount(stats.read)}</div>
-        <div className="stat-desc">{stats.readLabel}</div>
+    <section className="card card-border min-w-0 bg-base-100" aria-labelledby="issues-read" data-testid="issues-summary">
+      <div className="card-body min-w-0 gap-1.5 p-5 max-sm:px-4">
+        <p id="issues-read" className="eyebrow">
+          {read}
+        </p>
+        {split === null ? null : (
+          <>
+            <p className="flex flex-wrap items-baseline gap-x-2.5" data-testid="issues-fine">
+              <span className="figure text-4xl leading-none">{formatCount(split.fine)}</span>
+              <span className="text-sm text-base-content/70">{split.fineLabel}</span>
+            </p>
+            <p className="text-sm">
+              {split.problemLine === null ? null : `${split.problemLine} `}
+              {split.ours}
+            </p>
+          </>
+        )}
       </div>
-      {stats.split === null ? null : (
-        <>
-          <div className="stat">
-            <div className="stat-value tabular-nums">{formatCount(stats.split.fine)}</div>
-            <div className="stat-desc">{stats.split.fineLabel}</div>
-          </div>
-          <div className="stat">
-            <div className="stat-value tabular-nums">{formatCount(stats.split.problem)}</div>
-            <div className="stat-desc">{stats.split.problemLabel}</div>
-            <div className="stat-desc whitespace-normal">{stats.split.ours}</div>
-          </div>
-        </>
-      )}
-    </div>
+    </section>
   );
 }
 
@@ -51,7 +50,7 @@ export function IssuesView(p: { screen: SiteFixesScreen }): React.JSX.Element {
           {screen.lead}
         </p>
       </header>
-      {screen.stats === null ? null : <Stats stats={screen.stats} />}
+      {screen.summary === null ? null : <Summary summary={screen.summary} />}
     </>
   );
   return (
@@ -71,7 +70,7 @@ export function IssuesView(p: { screen: SiteFixesScreen }): React.JSX.Element {
         <p className="text-sm" data-testid="issues-unscanned">
           {screen.line}
         </p>
-      ) : screen.state === "empty" && screen.line !== null ? (
+      ) : screen.state === "empty" ? (
         <p className="flex min-w-0 items-center gap-2 text-sm" data-testid="issues-empty">
           <Check size={16} strokeWidth={2} className="shrink-0 text-success" aria-hidden />
           {screen.line}

@@ -5,15 +5,32 @@ import type React from "react";
 import Link from "next/link";
 import { parseAsString, useQueryState } from "nuqs";
 import { ArrowLeft, ExternalLink, Wrench } from "lucide-react";
+import { SITE_CHECK_ICON } from "@/lib/presentation/site-issues";
 import type { FixRow, FixTone, SiteFixesScreen } from "./screen";
 
 const WIDE = "(min-width: 64rem)";
 
+// Plate F5: critical in the warning tone and the rest quiet, since a site fix is optional, never an alarm.
 const BADGE: Readonly<Record<FixTone, string>> = {
-  critical: "badge badge-soft badge-error",
-  worth_fixing: "badge badge-soft badge-warning",
-  not_run: "badge badge-ghost",
+  critical: "badge badge-soft badge-warning",
+  worth_fixing: "badge border-0 bg-base-200 text-base-content/70",
+  not_run: "badge border-0 bg-base-200 text-base-content/70",
 };
+
+const TILE: Readonly<Record<FixTone, string>> = {
+  critical: "bg-(--warn-bg) text-warning",
+  worth_fixing: "bg-base-200 text-base-content/70",
+  not_run: "bg-base-200 text-base-content/70",
+};
+
+function Tile(p: { row: FixRow }): React.JSX.Element {
+  const Icon = SITE_CHECK_ICON[p.row.id];
+  return (
+    <span aria-hidden className={`rounded-field grid size-9 shrink-0 place-items-center ${TILE[p.row.tone]}`}>
+      <Icon className="size-5" strokeWidth={1.75} aria-hidden />
+    </span>
+  );
+}
 
 const rowLink = (id: string) => document.querySelector<HTMLElement>(`[data-testid="fix-row-${id}"] a`);
 
@@ -21,11 +38,11 @@ function Detail(p: { row: FixRow; words: SiteFixesScreen["words"]; onBack: () =>
   const { row, words } = p;
   return (
     <section
-      className={`card card-border min-w-0 bg-base-100 lg:col-span-3 lg:min-h-0 ${p.hiddenOnPhone ? "max-lg:hidden" : ""}`}
+      className={`card card-border min-w-0 bg-base-100 lg:col-span-3 lg:flex lg:min-h-0 lg:flex-col ${p.hiddenOnPhone ? "max-lg:hidden" : ""}`}
       aria-labelledby="fix-name"
       data-testid="fix-detail"
     >
-      <div className="card-body min-w-0 gap-3.5 p-5 max-sm:px-4 lg:min-h-0">
+      <div className="card-body min-w-0 gap-3.5 p-5 max-sm:px-4 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
         <button type="button" className="btn btn-ghost btn-sm w-fit lg:hidden" onClick={p.onBack} data-testid="fix-back">
           <ArrowLeft className="size-4" strokeWidth={1.75} aria-hidden />
           {words.back}
@@ -46,8 +63,10 @@ function Detail(p: { row: FixRow; words: SiteFixesScreen["words"]; onBack: () =>
         </div>
         {row.heading === null ? null : (
           <>
-            <h3 className="text-sm font-semibold">{row.heading}</h3>
-            <div className="min-w-0 lg:min-h-0 lg:overflow-y-auto" tabIndex={0} aria-label={row.heading} data-testid="fix-pages">
+            <p className="eyebrow" id="fix-pages-name">
+              {row.heading}
+            </p>
+            <div className="min-w-0 lg:min-h-0 lg:flex-1 lg:overflow-y-auto" tabIndex={0} aria-labelledby="fix-pages-name" data-testid="fix-pages">
               <ul className="list min-w-0">
                 {row.pages.map((page) => (
                   <li key={page.url} className="list-row min-w-0 items-baseline px-0 py-2">
@@ -106,6 +125,7 @@ export function FixList(p: { screen: SiteFixesScreen; head: React.ReactNode }): 
                     aria-current={row.id === chosen.id ? "true" : undefined}
                     className={`list-row min-w-0 items-center rounded-none border-l-4 hover:bg-base-200 ${row.id === chosen.id ? "border-l-primary bg-base-200" : "border-l-transparent"}`}
                   >
+                    <Tile row={row} />
                     <span className="list-col-grow min-w-0">
                       <span className="block font-semibold">{row.name}</span>
                       {row.share === null ? null : <span className="block text-sm text-base-content/70">{row.share}</span>}

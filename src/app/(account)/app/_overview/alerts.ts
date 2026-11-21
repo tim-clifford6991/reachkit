@@ -191,21 +191,24 @@ export interface IssuesReading {
   /** The pages read, by address, where a split of them into fine and not is true: every page check of the
    *  customer's ran and named what it counted. `null` otherwise, and on a report that kept no addresses. */
   splittable: readonly string[] | null;
+  /** A check of the customer's counted pages with a problem but kept no list of them. */
+  unnamed: boolean;
 }
 
 export function issuesReading(section: SiteIssuesSection | null, measuredAt: Date | null): IssuesReading {
   // A scan with no section, or with no check that ran, measured nothing.
   if (measuredAt === null || section === null || !section.issues.some((issue) => issue.ran)) {
-    return { issues: [], pagesChecked: null, measuredAt: null, notRun: [], splittable: null };
+    return { issues: [], pagesChecked: null, measuredAt: null, notRun: [], splittable: null, unnamed: false };
   }
   const issues = waitingIssues(section, { measuredAt });
   const theirs = section.issues.filter((issue) => DOER_OF[issue.check] === "free_fix");
   const notRun = theirs.filter((issue) => !issue.ran).map((issue) => issue.check);
   // A page check not run, or a count kept without its addresses, leaves "nothing to fix" unmeasured.
-  const unsure =
-    notRun.some((check) => check !== "sitemap") ||
-    theirs.some((issue) => issue.ran && issue.count > 0 && issue.severity !== "nothing_to_fix" && issue.unit !== "site" && !issues.some((w) => w.check === issue.check));
-  return { issues, pagesChecked: section.pagesChecked, measuredAt, notRun, splittable: unsure ? null : section.checkedPages };
+  const unnamed = theirs.some(
+    (issue) => issue.ran && issue.count > 0 && issue.severity !== "nothing_to_fix" && issue.unit !== "site" && !issues.some((w) => w.check === issue.check)
+  );
+  const unsure = unnamed || notRun.some((check) => check !== "sitemap");
+  return { issues, pagesChecked: section.pagesChecked, measuredAt, notRun, splittable: unsure ? null : section.checkedPages, unnamed };
 }
 
 export function readAlerts(

@@ -147,14 +147,13 @@ export const OVERVIEW_COPY = Object.freeze({
   // owner corrects the wording.
   "overview.alert.pending-veto.no-window": "has no go-live time yet",
   "overview.alert.overflow": "{remaining} more in This week.",
-  // A technical issue the customer fixes (SPEC §9, #572): its title is the
-  // check's own, its line the severity word. The control's word and the
-  // count of the issues not shown are owner-owed.
+  // A technical issue the customer fixes (SPEC §9): its title is the check's own, its line the severity word.
+  // The control's word and the count of the issues not shown are owner-owed.
   "overview.alert.site-issue.action": "See the Fix",
   "overview.alert.site-issue.overflow": "{remaining} more in Site Fixes.",
   /* ── Technical issues, the account's view of the checks it fixes (issue 1550, drafted) */
   "overview.issues.title": "Site Fixes",
-  "overview.issues.lead": "Optional. Whoever runs your website can make these fixes. ReachKit can’t.",
+  "overview.issues.lead": "Optional. Whoever runs your website can make them; ReachKit can’t.",
   "overview.issues.found": "Found {date}.",
   "overview.issues.empty": "Nothing to fix. We read {count} pages on {date}.",
   "overview.issues.unscanned": "Your site hasn’t been checked yet. What the first check finds shows here.",
@@ -162,11 +161,12 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.issues.site": "Applies to the whole site.",
   "overview.issues.seconds": "{seconds} s",
   "overview.issues.slow-note": "Each took {seconds} seconds or more, twice.",
-  "overview.issues.stat.site": "Your site",
-  "overview.issues.stat.read": "pages read",
-  "overview.issues.stat.fine": "pages with nothing to fix",
-  "overview.issues.stat.problem": "pages have a problem",
-  "overview.issues.stat.ours": "Your ReachKit pages are checked before they go live.",
+  "overview.issues.unnamed": "This check counted pages with a problem but kept no list of them.",
+  "overview.issues.read": "Your site, {count} pages read",
+  "overview.issues.fine": "pages with nothing to fix",
+  "overview.issues.affected": "{pages} pages have a problem.",
+  "overview.issues.affected.one-page": "One page has a problem.",
+  "overview.issues.ours": "Your ReachKit pages are checked before they go live.",
   "overview.issues.share": "{count} of {over} pages",
   "overview.issues.fix": "The fix:",
   "overview.issues.pages": "The {count} Pages",

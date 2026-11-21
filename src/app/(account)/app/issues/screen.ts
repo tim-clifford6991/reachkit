@@ -40,8 +40,8 @@ export interface SiteFixesScreen {
   state: "unreadable" | "unscanned" | "empty" | "fixes";
   /** The state's one line, where it has one. */
   line: string | null;
-  /** The pages read, and how they split where the split is measured; `null` before a check. */
-  stats: { site: string; read: number; readLabel: string; split: { fine: number; problem: number; fineLabel: string; problemLabel: string; ours: string } | null } | null;
+  /** "Your site, {n} pages read", and how they split where the split is measured; `null` before a check. */
+  summary: { read: string; split: { fine: number; fineLabel: string; problem: number; problemLine: string | null; ours: string } | null } | null;
   rows: readonly FixRow[];
   words: { back: string; fixLabel: string; newTab: string; list: string };
 }
@@ -87,8 +87,8 @@ export function siteFixesScreen(reading: IssuesReading | null, timeZone: string)
   const words = { back: copy("overview.issues.back"), fixLabel: copy("overview.issues.fix"), newTab: copy("draft.live.new-tab"), list: copy("overview.issues.title") };
   const date = reading?.measuredAt == null ? null : scanDay(reading.measuredAt, timeZone);
   const lead = date === null ? copy("overview.issues.lead") : `${copy("overview.issues.lead")} ${copy("overview.issues.found", { date })}`;
-  if (reading === null) return { lead, state: "unreadable", line: copy("overview.issues.unreadable"), stats: null, rows: [], words };
-  if (date === null || reading.pagesChecked === null) return { lead, state: "unscanned", line: copy("overview.issues.unscanned"), stats: null, rows: [], words };
+  if (reading === null) return { lead, state: "unreadable", line: copy("overview.issues.unreadable"), summary: null, rows: [], words };
+  if (date === null || reading.pagesChecked === null) return { lead, state: "unscanned", line: copy("overview.issues.unscanned"), summary: null, rows: [], words };
 
   const read = reading.pagesChecked;
   const rows = [...reading.issues.map((issue) => rowOf(issue, read)), ...reading.notRun.map(notRunRow)].sort(byRank);
@@ -98,9 +98,15 @@ export function siteFixesScreen(reading: IssuesReading | null, timeZone: string)
   const split =
     problem === null
       ? null
-      : { fine: read - problem, problem, fineLabel: copy("overview.issues.stat.fine"), problemLabel: copy("overview.issues.stat.problem"), ours: copy("overview.issues.stat.ours") };
-  const stats = { site: copy("overview.issues.stat.site"), read, readLabel: copy("overview.issues.stat.read"), split };
-  if (rows.length > 0) return { lead, state: "fixes", line: null, stats, rows, words };
-  // "Nothing to fix" only where every check of the customer's ran and named what it counted.
-  return { lead, state: "empty", line: split === null ? null : copy("overview.issues.empty", { count: formatCount(read), date }), stats, rows, words };
+      : {
+          fine: read - problem,
+          fineLabel: copy("overview.issues.fine"),
+          problem,
+          problemLine: problem === 0 ? null : problem === 1 ? copy("overview.issues.affected.one-page") : copy("overview.issues.affected", { pages: formatCount(problem) }),
+          ours: copy("overview.issues.ours"),
+        };
+  const summary = { read: copy("overview.issues.read", { count: formatCount(read) }), split };
+  if (rows.length > 0) return { lead, state: "fixes", line: null, summary, rows, words };
+  // With no row, every check of the customer's ran: nothing to fix, unless a count kept no list of its pages.
+  return { lead, state: "empty", line: reading.unnamed ? copy("overview.issues.unnamed") : copy("overview.issues.empty", { count: formatCount(read), date }), summary, rows, words };
 }
