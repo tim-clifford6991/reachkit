@@ -14,7 +14,8 @@ const OVER_AT_BUILD = Date.now() >= Date.parse(OFFER_ENDS_AT) + OFFER_SHOWN_DAYS
  * `pitch` draws the pace and promise from `sm`; `see` links to Pricing.
  */
 export function OfferLine(p: { spots?: SpotsLeft | null; pitch: boolean; see: boolean }): React.JSX.Element | null {
-  if (p.spots === undefined && OVER_AT_BUILD) return null;
+  // A failed server read can say nothing true after the end, so it draws nothing at any time.
+  if (p.spots === null || (p.spots === undefined && OVER_AT_BUILD)) return null;
   const of = String(OFFER_SPOTS);
   const price = copy("price.amount");
   const endsOn = OFFER_ENDS_ON;
