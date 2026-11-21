@@ -1,7 +1,7 @@
 "use client";
 // The phone offer bar at the foot of Pricing and the report; it holds no copy key, so the registry stays out of the public bundle.
 import type React from "react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal, useFormStatus } from "react-dom";
 import { Clock } from "lucide-react";
 import type { SpotsLeft } from "@/lib/account/offer/spots";
@@ -78,17 +78,20 @@ export function OfferBar(p: {
   }, [p.endsAt, p.refused]);
 
   // The page's foot reserve is the tallest the bar has been, so it never covers the footer or a focused link.
-  useEffect(() => {
+  // Measured before paint as the bar shows, since the observer reports a frame after the bar already covers the foot.
+  useLayoutEffect(() => {
     const el = bar.current;
     if (el === null) return;
     const root = document.documentElement;
-    const sized = new ResizeObserver(() => {
+    const grow = (): void => {
       const was = Number.parseFloat(root.style.getPropertyValue("--offer-bar-h")) || 0;
       if (el.offsetHeight > was) root.style.setProperty("--offer-bar-h", `${el.offsetHeight}px`);
-    });
+    };
+    grow();
+    const sized = new ResizeObserver(grow);
     sized.observe(el);
     return () => sized.disconnect();
-  }, [at]);
+  }, [at, shown]);
 
   useEffect(() => {
     if (!p.read) return;

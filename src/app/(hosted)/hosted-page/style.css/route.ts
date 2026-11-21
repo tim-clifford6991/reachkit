@@ -18,6 +18,8 @@ const HOSTED_SOURCES: readonly string[] = [
   '@source "../ui/layout/Surface.tsx";',
   '@source "../ui/SiteMark.tsx";',
   '@source "../app/(account)/app/draft/[draftId]/present.ts";',
+  // The renderer builds a table column's alignment class at runtime, so no scanned file spells it.
+  '@source inline("text-left text-center text-right");',
 ];
 
 export async function GET(): Promise<Response> {
