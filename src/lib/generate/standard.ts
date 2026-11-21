@@ -290,9 +290,9 @@ function factsHeld(facts: SectionFacts, pack: ContextPack): number {
 
 /**
  * The template a pack's page is written and checked to (E10): a section the
- * pack holds too few facts for is left out, questions buyers asked fewer than
- * the template's least leave no FAQ, and the length's ceiling keeps each
- * section's share, so a page with fewer sections is never padded. A `kept`
+ * pack holds too few facts for is left out, the FAQ holds no more entries
+ * than the pack's buyer questions and none without one, and the length's
+ * ceiling keeps each section's share, so a page is never padded. A `kept`
  * page (a product page, a lead's free page) keeps its type's former
  * sections and maximum (owner Q9/D, 2026-11-16).
  */
@@ -301,8 +301,9 @@ export function fittedTemplate(pack: ContextPack, kept = false): Template {
   const sections = template.sections.filter(
     (slot) => (slot.onlyWith === undefined || factsHeld(slot.onlyWith.facts, pack) >= slot.onlyWith.min) && !(kept && slot.when === "gaps")
   );
-  const faq = template.blocks.faq;
-  const asked = faq === null || faq.asked !== true || holds({ need: "buyer_questions", min: faq.min }, pack, null);
+  const held = template.blocks.faq;
+  const faq = held === null ? null : { min: Math.min(held.min, pack.questions.length), max: Math.min(held.max, pack.questions.length) };
+  const asked = held === null || faq?.max === held.max;
   const length = template.length;
   const max = "ceiling" in length ? (kept ? (length.kept ?? length.ceiling) : length.ceiling) : null;
   if (sections.length === template.sections.length && asked && (max === null || max === ("ceiling" in length ? length.ceiling : null))) return template;
@@ -312,7 +313,7 @@ export function fittedTemplate(pack: ContextPack, kept = false): Template {
   return {
     ...template,
     sections,
-    blocks: { ...template.blocks, faq: asked ? faq : { min: 0, max: 0 } },
+    blocks: { ...template.blocks, faq },
     length: "ceiling" in length ? { ...length, ceiling: Math.round(max! * share) } : length,
   };
 }

@@ -5,7 +5,7 @@
 - Stopped on: no_demo_text, title
 - Today: passes, 0¢
 - Title: "Answer engine optimization tool: up to 7 pages a week" → "How to answer engine optimization"
-- Warns required_blocks: {"block":"length"}
+- Warns required_blocks: {"block":"faq","length":true}
 - Warns standalone_lead: {"headings":["What do you do next?"]}
 
 ## a6d24b00: qa, "ai search visibility tool"
@@ -34,7 +34,7 @@
 - Title: "5 AI search visibility tools for founders (2026)" → "Best AI search visibility tools (2026)"
 - Dropped: "ReachKit and Analyze AI are the two that name writers or pages as part of what you get, which matters if your actual problem is empty pages rather than a missing dashboard."
 - Dropped: "The limit from its own description: it frames itself around measuring and improving presence, which reads as tracking plus guidance rather than ReachKit's own page publishing."
-- Warns required_blocks: {"block":"length"}
+- Warns required_blocks: {"block":"faq","length":true}
 - Warns title: {"faults":["specific"]} (goes on at 0¢ once it is the only failure)
 - Warns standalone_lead: {"headings":["How do these options compare at a glance?","How were these tools compared?"]}
 - A price linked to the site's own page, which no passage read there states, [$29](https://reachkit.app/compare/seositecheckup): caught by no rule

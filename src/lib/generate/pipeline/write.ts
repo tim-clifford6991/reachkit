@@ -339,8 +339,8 @@ function taskFor(a: WriteInputs): string {
     faq === null
       ? "`faq` is empty: this page's own questions are its buyer questions."
       : faq.max === 0
-      ? "`faq` is empty: too few buyer questions this pack can answer were asked, so the page carries none."
-      : `\`faq\`: ${faq.min} to ${faq.max} questions buyers ask about the target that the headings do not already ask, each answered in two or three sentences under the same \`rules\`; they are stored with the page, not printed in it.`,
+      ? "`faq` is empty: no buyer question this pack can answer was asked, so the page carries none."
+      : `\`faq\`: ${faq.min} to ${faq.max} questions, each one of \`pack.questions\` in its own words, those the headings do not already ask first, and never a question about the business, its product or this site; each is answered in two or three sentences under the same \`rules\`; they are stored with the page, not printed in it.`,
     a.pack.type === "update"
       ? a.pack.live?.linkTo?.replaces !== undefined
         ? "`pack.live` is the page as it is live, its link to a page that moved already pointed in code at that page's new address (`pack.live.linkTo.url`) and named `pack.live.linkTo.title`. Return every section of it under its own heading, as it stands, that link included. Change nothing else, and say in `updated`, in one sentence, that a link now points at the page's new address."

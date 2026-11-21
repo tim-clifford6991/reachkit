@@ -58,7 +58,7 @@ describe("the fit repair drops exactly the sentences the verdict named", () => {
     const repaired = repairRecorded(BODY, ["fit_claim"], { brief: BASIS.brief, sources: [], fit: NAMED });
     expect(repaired.dropped).toEqual({ fit_claim: NAMED });
     expect(texts(repaired.markdown)).toEqual(texts(BODY).filter((text) => !NAMED.includes(text)));
-    expect(missingBlock({ markdown: repaired.markdown, title: KEPT.title, blocks: { ...KEPT.blocks, length: null } })).toBeNull();
+    expect(missingBlock({ markdown: repaired.markdown, title: KEPT.title, blocks: { ...KEPT.blocks, length: null } })).toBe("faq");
   });
 
   it("the October drafts' verdicts named their links' labels, which the fit check no longer reads: no line is dropped", async () => {
