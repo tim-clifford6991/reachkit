@@ -13,7 +13,7 @@
 // **Run this file, `baseline.test.ts` and `rls.test.ts` with
 // `--no-file-parallelism`** — see `baseline.test.ts`'s header for why.
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -29,24 +29,20 @@ import {
 const REPO_ROOT = path.resolve(import.meta.dirname, "../..");
 const TYPES_FILE_PATH = path.join(REPO_ROOT, "src/lib/db/types.generated.ts");
 
-const MIGRATIONS = [
-  path.join(REPO_ROOT, "supabase/migrations/00000000000001_baseline.sql"),
-  path.join(REPO_ROOT, "supabase/migrations/00000000000002_rls.sql"),
-];
+// Every migration, in the order they apply, so the types cannot fall behind a new one.
+const MIGRATIONS_DIR = path.join(REPO_ROOT, "supabase/migrations");
+const MIGRATIONS = readdirSync(MIGRATIONS_DIR).filter((f) => f.endsWith(".sql")).sort().map((f) => path.join(MIGRATIONS_DIR, f));
 // The generator `supabase gen types typescript --local` shells out to,
 // asked directly. Issue #6 moved this script into the repository
 // (`scripts/db-substrate/`) so CI can run this row too; it was an absolute
 // path outside the tree while the substrate was one machine's fixture.
 const GEN_TYPES_SCRIPT = path.join(REPO_ROOT, "scripts/db-substrate/gen-types.sh");
 
+const RESET = "drop schema public cascade; create schema public; grant usage on schema public to anon, authenticated, service_role;";
+
+// One psql process for the whole replay: one per file outlasts the hook timeout.
 function resetAndApplySchema(): void {
-  psql([
-    "-v",
-    "ON_ERROR_STOP=1",
-    "-c",
-    "drop schema public cascade; create schema public; grant usage on schema public to anon, authenticated, service_role;",
-  ]);
-  for (const file of MIGRATIONS) psql(["-v", "ON_ERROR_STOP=1", "-f", file]);
+  psql(["-v", "ON_ERROR_STOP=1", "-c", RESET, ...MIGRATIONS.flatMap((file) => ["-f", file])]);
 }
 
 function generateTypes(): string {
@@ -167,13 +163,7 @@ describe('BP-002 public interface — "export type { Database } from \'./types.g
   });
 
   afterAll(() => {
-    resetAndApplySchema();
-    psql([
-      "-v",
-      "ON_ERROR_STOP=1",
-      "-c",
-      "drop schema public cascade; create schema public; grant usage on schema public to anon, authenticated, service_role;",
-    ]);
+    psql(["-v", "ON_ERROR_STOP=1", "-c", RESET]);
   });
 
   it("matches a fresh generation against the applied schema", () => {

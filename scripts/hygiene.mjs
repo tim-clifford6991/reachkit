@@ -9,7 +9,7 @@ import { existsSync, lstatSync, readFileSync, readdirSync, unlinkSync, writeFile
 import path from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
-import { blockRuleFindings, blockRules, budgetFindings, isMeasured, lineCount, lineFindings, plainWordsFindings } from "./lib/budgets.mjs";
+import { blockRuleFindings, blockRules, budgetFindings, GENERATED_DB_TYPES, isMeasured, lineCount, lineFindings, plainWordsFindings } from "./lib/budgets.mjs";
 import { ENTRY_RE, keyFileCounts } from "./lib/plain-words.mjs";
 import { mainCheckoutFinding } from "./lib/main-checkout.mjs";
 import { fetchesPayloadFilters } from "./lib/fetches-payload-filter.mjs";
@@ -281,7 +281,8 @@ function checkRepo() {
 // One module counts abuse limits, so every rule is shared across instances and none drifts into a local copy.
 function checkLimiterSeam(texts) {
   const inSrc = (token) => texts.filter((t) => t.rel.startsWith("src/") && t.text.includes(token)).map((t) => t.rel);
-  const callers = inSrc("take_rate_limits");
+  // The generated types name the function's signature; they never call it.
+  const callers = inSrc("take_rate_limits").filter((rel) => rel !== GENERATED_DB_TYPES);
   if (callers.join() !== "src/lib/limits/index.ts") add("repo", `take_rate_limits is called from ${callers.join(", ") || "nowhere"}; only src/lib/limits may`);
   for (const rel of inSrc("takeCheck")) add("repo", `${rel} names takeCheck; free checks count through src/lib/limits`);
 }
