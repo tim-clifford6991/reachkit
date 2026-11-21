@@ -94,7 +94,6 @@ export const CALENDAR_COPY = Object.freeze({
   // exactly that split for supply.
   "cause.supply-exhausted": "nothing worth publishing",
   // Plan's lead, cut to the board's first two sentences (SPEC §0 ≤20 words, owner R12 B11).
-  "calendar.head": "Chosen {date}. Each goes live on its day unless you stop it.",
 
   // §4.6's stage filter cards. `all` is a filter, not a stage.
   "calendar.stage.all": "All",
@@ -187,53 +186,11 @@ export const CALENDAR_COPY = Object.freeze({
   // signal and is never shown.
   "calendar.answer.refused": "That didn’t work, so the page is unchanged. Try again.",
 
-  // §4.6's "Why this page" block and its five rows.
-  "calendar.why.title": "Why this page",
-  // SPEC §7 (2026-09-20, #908, issue 930): the day panel is label-and-value
-  // rows, and the labels are the founder's words for the facts rather than
-  // the measurement's own names. Four of the six below were reworded for
-  // that pass; every one of them is still the same fact, stated once and
-  // read by both screens (`calendar/TargetRows.tsx`).
-  "calendar.why.search": "Going after",
-  "calendar.why.asked": "Asked",
-  "calendar.why.answered-today-by": "Best competitor",
-  // The rival and where it stands, as one value: a domain alone does not
-  // say it is ahead of you.
-  "calendar.why.answered-today-by.value": "{domain} · #{position}",
-  "calendar.why.you": "You today",
-  // §6.6's cold-start law: a measured zero is a measurement — the site
-  // holds no place — and it is said in words rather than as a 0, which
-  // would read as a position. An *unmeasured* place still renders the dash
-  // and its own line, and never this.
-  "calendar.why.not-ranking": "Not on Google yet",
-  "calendar.why.done-when": "Done when",
-
-  // Issue 867 (owner, 2026-09-17): "I don't believe we are currently showing
-  // the users the SEO or GEO metrics their content is currently optimizing
-  // for." The rows that state them, on the day panel and — the same labels,
-  // one place the product words them — in the draft screen's "What this page
-  // is for" block. Plain words for both dimensions, never "SEO" or "GEO" as
-  // jargon (SPEC §4, 2026-09-17). Drafted under issue 759's ruling; the
-  // owner corrects the wording.
-  "calendar.why.volume": "Each month",
-  // The demand as a value, with its unit in words: a bare count in a row
-  // labelled "Each month" does not say what is counted.
-  "calendar.why.volume.value": "{count} searches",
-  "calendar.why.difficulty": "Difficulty",
-  // The difficulty with its verdict against the site's ceiling (§6), never the ceiling's number.
-  "calendar.why.difficulty.within-reach": "{difficulty} · within reach",
-  "calendar.why.band": "Chance to win",
-  // Where the AI engines stood on this question when the pass measured it.
-  "calendar.why.engines": "AI",
-  // Issue 930: each standing is a chip beside its engine rather than half
-  // of a composed phrase, so each one is now a statement of its own and is
-  // capitalised as one.
+  // An answer engine's standing: a chip beside its engine, a chip beside its engine, each a statement of its own.
   "calendar.why.engine.names-you": "Mentions you",
   "calendar.why.engine.names-others": "Mentions competitors",
   "calendar.why.engine.names-no-one": "Names no one",
   "calendar.why.engine.no-answer": "No answer",
-  // One engine's standing, as one phrase: "ChatGPT — names others".
-  "calendar.why.engine.line": "{engine}: {standing}",
 
   // Issue 857 (owner, 2026-09-17): the plan reaches only the day before the
   // next weekly pass. The one quiet marker on the first date after it —
@@ -250,7 +207,7 @@ export const CALENDAR_COPY = Object.freeze({
   // app knows which it is. Split into one line per setting — and a host
   // waiting for its CNAME points at the record Settings shows. Drafted and
   // shipped under the owner ruling of 2026-09-16 (#759).
-  "calendar.empty.customer-change-holds-pages.publishing-off": "Publishing is off, so this page is waiting. Turn it on in Settings and pages resume.",
+  "calendar.empty.customer-change-holds-pages.publishing-off": "Publishing is paused, so this page is waiting. It goes live once you turn publishing on in Settings.",
   "calendar.empty.customer-change-holds-pages.destination-pending-dns": "This page is ready. It goes live once your website is connected.",
   "calendar.empty.customer-change-holds-pages.destination-pending-connect": "This page is ready. It goes live once you connect your WordPress in Settings › Pages.",
   "calendar.empty.customer-change-holds-pages.destination-disconnected": "This page is ready. It goes live once you reconnect your website in Settings.",
@@ -266,7 +223,6 @@ export const CALENDAR_COPY = Object.freeze({
   "calendar.empty.supply-unmeasured": "We haven’t found enough searches for your market yet. Name a broader one in Settings and we’ll check again.",
   // S15's `empty` arm leads with a chip carrying this word, so a date with
   // no page is named rather than left as a bare numeral. Approved (11a).
-  "calendar.empty.day-badge": "Empty day",
   // REQ-071 c11 (issue #204). A market change holds generation until the
   // pass that adopts it, so the day names which change is holding pages and
   // the date they resume — both read from `generationHold()`, which has
@@ -284,9 +240,7 @@ export const CALENDAR_COPY = Object.freeze({
   // are not: two of the three name a fact the month model does not carry,
   // and inventing a timestamp to print is the one thing this registry
   // exists to prevent. Named in #354's PR as engine-owed.
-  "calendar.provenance.measured": "checked {date}",
   // SPEC §7 (2026-09-20, #914): the customer's word for the interval.
-  "calendar.status.veto-deadline": "It goes live on its own. You can edit or stop it until {at}.",
 
   // §7's one statement of supply, as §4.6's calendar makes it: the three
   // arms of `supplyNotice`, in the engine's own precedence (exhausted >
@@ -383,8 +337,6 @@ export const CALENDAR_COPY = Object.freeze({
   "calendar.card.new-page": "New page",
 
   // The panel's two section heads, and the one control that closes it.
-  "calendar.panel.search": "Search",
-  "calendar.panel.close": "Close",
 
   // 2026-09-06, issue #50 (REQ-043 c12). The three grounds on which the
   // day panel says a way through leads nowhere **in place of** offering
@@ -408,14 +360,8 @@ export const CALENDAR_COPY = Object.freeze({
   "calendar.title.none": "This Week’s Pages",
   "calendar.head.undated": "Each goes live on its day unless you stop it.",
   "calendar.first-week": "Your first week is being chosen. It shows here by Monday morning.",
-  "calendar.week.time": "Each goes live at {time}, {place} time",
-  "calendar.week.why": "Why",
   "calendar.week.today": "Goes live today, {time}",
   "calendar.chip.new": "New",
-  "calendar.next": "{date}: we check again and pick the next {n}.",
-  "calendar.chosen.title": "How this week’s pages were chosen",
-  "calendar.chosen.body": "Every Monday we check where your pages stand on Google and in AI answers. Then we pick the {n} most likely to bring you buyers.",
-  "calendar.chosen.stored": "Each reason is the one saved when the page was chosen.",
   // Why the week holds a page, as a sentence from its most specific stored part.
   "calendar.reason.near-page-one": "Your page is close to Google’s first page for this search. This update adds what the pages above cover.",
   "calendar.reason.not-moving": "Your page has not moved in 8 weeks. This rewrite matches what Google now shows for it.",
@@ -441,5 +387,35 @@ export const CALENDAR_COPY = Object.freeze({
   "calendar.live.showing": "Showing in results",
   "calendar.live.unread": "Live since {date}. We check it on Monday.",
   "calendar.live.all": "Show All {m} Live Pages",
+  "calendar.head.line": "Chosen {date} · each goes live at {time} unless you stop it · next check {next}",
+  "calendar.head.line.held": "Chosen {date} · next check {next}",
+  "calendar.head.paused": "Publishing is paused, so nothing goes live. Turn it on in Settings › Pages.",
+  "calendar.day.writing": "Being written",
+  "calendar.day.writing.line": "Being written now, started {time}",
+  "calendar.day.stopped.line.system": "Stopped on {day}. Other days are not affected.",
+  "calendar.card.live": "Live since {date} · Google reading {next}",
+  "calendar.card.place": "Place {n}, up {k} since {date}",
+  "calendar.card.place.now": "Place {n}",
+  "calendar.card.linked": "Linked by {engine}",
+  "calendar.card.goes-live": "Goes live {day}, {time}",
+  "calendar.card.volume": "{n} a month",
+  "calendar.card.rival.place": "{domain}, place {n}",
+  "calendar.card.yours": "Yours: place {n}",
+  "calendar.pane.planned.title": "Going after “{search}”",
+  "calendar.pane.searched": "Searched",
+  "calendar.why.volume": "Each month",
+  "calendar.why.volume.value": "{count} searches",
+  "calendar.why.answered-today-by": "Best competitor",
+  "calendar.pane.yours": "Your page",
+  "calendar.pane.planned.next": "We write it before its day, and you can read it here once it’s written. It goes live on its own at {time} on {day}, unless you stop it.",
+  "calendar.pane.written.next": "It goes live on its own at {time} on {day}. You can edit or stop it until then.",
+  "calendar.pane.stopped.next": "Nothing goes live on {weekday}. Monday’s check picks the next 7.",
+  "calendar.pane.writing": "Being written now, started {time}. It shows here to read when it’s done.",
+  "calendar.pane.body.label": "{title}, the page",
+  "calendar.next": "{date}: we check again and pick the next {n}.",
+  "calendar.chosen.title": "How this week’s pages were chosen",
+  "calendar.chosen.body": "Every Monday we check where your pages stand on Google and in AI answers. Then we pick the {n} most likely to bring you buyers.",
+  "calendar.chosen.stored": "Each reason is the one saved when the page was chosen.",
+  "calendar.pane.body.unread": "We couldn’t load the page here. Read the Full Page to see it.",
   "calendar.live.none": "No page is live yet. Each shows here once it goes live, with how far it has got.",
 }) satisfies CopyPartition;

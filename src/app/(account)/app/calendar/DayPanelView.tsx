@@ -1,197 +1,84 @@
-// SPEC §7 (2026-09-20, #908, issue 930) — the day panel: **closable**, and
-// label-and-value rows rather than sentences.
+// SPEC §7 *This week* — the pane a card opens: about half the screen beside
+// the cards from `lg`, the whole screen with a Back below it.
 //
-//   head      the stage word, the date, and the control that closes it
-//   title     the page, two lines
-//   chips     what the page is (new or an update), its band
-//   actions   `actions.ts`, exactly as #942 left them — every one answers.
-//             They sit with the title (SPEC §7, 2026-10-07, issue 1326):
-//             the actions are what the day is for
-//   goes live the one dated line the page's own stage earns
-//   why       one closed line that opens in place onto the rows
-//             `TargetRows` draws — Search and AI answers, one projection,
-//             one renderer, shared with the draft screen
+//   a written or live page  its title, the existing actions, then the body
+//                           as written, which scrolls inside the pane
+//   a planned day           the search it goes after, why, what is known of
+//                           it, and when it goes live on its own; no control,
+//                           as nothing is written yet
+//   any other day           its own lines, and no control
 //
-// Two arms, and the union `DayCell` gives them is what keeps them apart:
-//
-//  - **A page.** The whole of the above.
-//  - **No page.** The date's **one** account, in full — the card states two
-//    words and the panel states all of it (#209) — and nothing else. "An
-//    empty day states its cause and offers no publish" (§7); `actionsFor`
-//    returns nothing for a cell with no page, so there is no filter to
-//    forget.
-//
-// Every sentence is read through `writtenLine`, not `copy`: a line the
-// owner has not written renders as nothing rather than throwing on a route
-// the customer reaches.
-//
-// The commands call the declared publishing seam (`publishing.ts`), and
-// **every one of them answers** (SPEC §7, 2026-09-20, #908, issue #913):
-// the stage changes on the press (React 19 `useOptimistic`), the seam's
-// answer is spoken as a `sonner` toast drawn with daisyUI `alert` classes,
-// and a refusal rolls the stage back to the one the page still holds. None
-// of that changed here; the controls moved and the writes did not.
+// Every word is the screen model's (`week-screen.ts`). The commands go to the
+// publishing seam and every one answers: the stage moves on the press
+// (`useOptimistic`), the seam's answer is a toast, and a refusal rolls back.
 "use client";
 
 import type React from "react";
 import Link from "next/link";
-import { useOptimistic, useState, useTransition } from "react";
-import { X } from "lucide-react";
+import { useEffect, useOptimistic, useRef, useState, useTransition } from "react";
+import { ArrowLeft, ExternalLink } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
-import type { Tone } from "@/ui/types";
-import {
-  needsYouLine,
-  unpublishedLine,
-  verificationLine,
-  type VerificationKind,
-} from "@/lib/publish/record/lines";
-import { formatDate, formatDateTime } from "../_shell/format";
-import { writtenLine } from "../_shell/written";
 import { actionsFor, type DayCommand, type DestinationStanding } from "./actions";
-import { EMPTY_ACCOUNT_COPY_KEY, HELD_BY_SETTING_COPY_KEY, isLawCause, isSupplyCause, stopForEmptyDay, type HeldBySetting, type OneLineCause } from "./empty";
-import { kindWord } from "./card-lines";
-import { nextPublishStatement, stoppedWorkStatement, type WorkStop } from "@/lib/presentation/stopped";
-import { fullDate } from "./dates";
-import { STAGE_FILTER_COPY_KEY, STAGE_OF, STAGE_TONE, TONE_BADGE } from "./stages";
+import { DayStateBadge } from "./DayCard";
+import { STAGE_OF } from "./stages";
 import { COMMAND_TARGET, publishing } from "./publishing";
 import { say } from "../../../_toast/say";
-import { TargetRows } from "./TargetRows";
-import type { DayCell, PageOnDay } from "./month";
-import type { State } from "@/lib/publish/types";
-import { CHANGE_COPY_KEY } from "./change-line";
+import { TakeDownControl } from "./TakeDown";
+import { stopWords } from "./take-down-words";
+import type { DayCell } from "./month";
+import type { CardModel, PaneModel } from "./week-screen";
 
-/** What each write says when it lands. Total over the three commands the
- *  panel can offer, so a fourth cannot ship without a sentence — which is
- *  the mechanical half of "every action answers". A refused write says the
- *  one thing every refusal has in common, and never the machine's own word
- *  for why. */
+/** This Week draws every stage. */
+const ALL = "all" as const;
+import type { State } from "@/lib/publish/types";
+
+/** What each write says when it lands; a refusal says the one thing every refusal has in common. */
 export const ANSWER_COPY_KEY: Readonly<Record<DayCommand, CopyKey>> = Object.freeze({
   skip: "calendar.answer.skip",
   veto: "calendar.answer.veto",
   regenerate: "calendar.answer.regenerate",
 });
 
-/** The writes the panel can ask for. All three are §9 edges and go to the
- *  state machine through the seam. */
+/** The writes the pane can ask for. All three are §9 edges and go to the state machine through the seam. */
 export function ask(command: DayCommand, draftId: string): ReturnType<typeof publishing.skip> {
   if (command === "skip") return publishing.skip({ draftId });
   if (command === "veto") return publishing.veto({ draftId });
   return publishing.regenerate({ draftId });
 }
 
-/** How each standing looks — the same map the draft view's record block
- *  keeps, total over `VerificationKind`. `page_not_found` warns and
- *  `could_not_confirm` does not (ADR-085). */
-const VERIFICATION_TONE: Readonly<Record<VerificationKind, Tone>> = Object.freeze({
-  found: "ok",
-  page_not_found: "warn",
-  could_not_confirm: "neutral",
-  not_yet: "neutral",
-  due: "neutral",
-  never_taken_down_first: "neutral",
-  never_no_live_address: "neutral",
-});
-
-/** The record's one line, or `null` where the page has nothing to report —
- *  a page nothing has delivered says nothing here. */
-function recordSummary(page: PageOnDay): { text: string; tone: Tone; at: Date | null } | null {
-  if (page.unpublishOutcome !== null) {
-    const text = writtenLine(unpublishedLine(page.unpublishOutcome));
-    return text === null ? null : { text, tone: "neutral", at: null };
-  }
-  const line = verificationLine(page.verification);
-  if (line.kind === "never_no_live_address") return null;
-  const text = writtenLine(line.copy);
-  return text === null ? null : { text, tone: VERIFICATION_TONE[line.kind], at: line.at };
-}
-
-/** A `DayKey` as the instant that calendar day is marked by — UTC midnight,
- *  the day having already been resolved in the site's zone. Never rendered. */
-function dayMarker(day: string): Date {
-  return new Date(`${day}T00:00:00.000Z`);
-}
-
-/**
- * The whole account a date with no page carries — the panel's half of the
- * two forms every cause now has (`card-lines.ts`; DECISIONS 2026-09-07,
- * #209). The card states two words; this states all of it.
- *
- * It lives here rather than in `card-lines.ts` because two of its arms need
- * this panel's own inputs: the stop the law causes are read from, and the
- * site's zone the held date is formatted in.
- */
-function accountLine(a: {
-  cell: DayCell;
-  stopped: WorkStop | null;
-  timeZone: string;
-}): string | null {
-  const empty = a.cell.empty;
-  // Issue 857's horizon, in full. The card has room for two words
-  // ("Planned later"); this is the sentence they stand for, and it is the
-  // whole account of a date past the seven days the plan reaches (issue 1455).
-  if (empty === null) return a.cell.horizonMarker ? writtenLine("calendar.horizon.marker") : null;
-  // Issue 857: a supply cause is the calendar's one supply statement, at
-  // its top, and is never repeated here.
-  if (isSupplyCause(empty.cause) || isLawCause(empty.cause)) return null;
-  // REQ-043 c4: the setting that holds pages, each with its own line (#754).
-  if (empty.cause === "customer_change_holds_pages") {
-    return writtenLine(HELD_BY_SETTING_COPY_KEY[empty.setting]);
-  }
-  // REQ-071 c11's two slots. Both values are the engine's — the held answer
-  // named through its own registry key, and the resumption date formatted
-  // in the site's zone (issue #204).
-  if (empty.cause === "change_holds_generation") {
-    // Issue 866: a category is measured again at once, so its held day names
-    // the measurement it waits on and no date.
-    if (empty.because === "category") {
-      return writtenLine("calendar.empty.change-holds-pages.category");
-    }
-    return writtenLine(EMPTY_ACCOUNT_COPY_KEY.change_holds_generation, {
-      change: copy(CHANGE_COPY_KEY[empty.because]),
-      date: formatDate(empty.resumesOn, a.timeZone),
-    });
-  }
-  return writtenLine(EMPTY_ACCOUNT_COPY_KEY[empty.cause as OneLineCause]);
-}
-
-/**
- * The panel's controls. The day's one way in (at most one, from
- * `actionsFor`) takes the full width: solid primary where it leads further
- * into the customer's own work, outline where it leaves the product for the
- * live page. A stop (veto, skip) is the warning outline; a restart is ghost.
- * The rest share a two-column row.
- */
+/** The day's controls, from `actionsFor`: the one way in is primary, the live page opens in a new tab, a stop warns. */
 function DayActions(p: {
   cell: DayCell;
   destination: DestinationStanding | null;
-  /** Ask for a write. The panel owns the optimistic state, so the press
-   *  reports up rather than calling the seam here. */
   onCommand: (command: DayCommand, draftId: string) => void;
-  /** Whether a write this panel asked for is still in flight. Every
-   *  command control is inert while one is: a second press would ask the
-   *  machine for an edge the page has already left, and would answer with
-   *  a refusal for a write that in fact worked. */
+  /** A write is in flight: every command is inert, so a second press cannot ask for an edge the page has left. */
   busy: boolean;
   pressed: DayCommand | null;
+  /** A live page's own stop, which takes it off the site. */
+  takeDown: string | null;
+  /** Only the commands: a day with nothing written has nothing to open. */
+  commandsOnly?: boolean;
 }): React.JSX.Element | null {
-  const actions = actionsFor(p.cell, p.destination);
-  if (actions.length === 0) return null;
+  const actions = actionsFor(p.cell, p.destination).filter((action) => p.commandsOnly !== true || action.kind === "command");
+  if (actions.length === 0 && p.takeDown === null) return null;
   return (
-    <div className="grid grid-cols-2 gap-2" data-testid="day-actions">
+    <div className="flex min-w-0 flex-wrap gap-2" data-testid="day-actions">
       {actions.map((action) => {
         if (action.kind === "link") {
-          // The live page leaves the product, so it is a plain link; the
-          // draft and Settings are screens of the app (SPEC §4, issue 1341).
           if (action.key === "calendar.action.view-live-page") {
             return (
               // eslint-disable-next-line local/no-plain-app-link -- the customer's live page, not a screen of the app
               <a
                 key={action.key}
                 href={action.href}
-                className="btn btn-sm col-span-2 btn-soft btn-primary"
+                target="_blank"
+                rel="noopener"
+                className="btn btn-sm btn-primary"
                 data-testid={`day-action-${action.key}`}
               >
+                <ExternalLink aria-hidden className="size-4" />
                 {copy(action.key)}
+                <span className="sr-only"> {copy("draft.live.new-tab")}</span>
               </a>
             );
           }
@@ -200,7 +87,7 @@ function DayActions(p: {
               key={action.key}
               href={action.href}
               prefetch={true}
-              className="btn btn-sm col-span-2 btn-primary"
+              className={`btn btn-sm ${p.cell.page?.stage === "live" ? "btn-ghost" : "btn-primary"}`}
               data-testid={`day-action-${action.key}`}
             >
               {copy(action.key)}
@@ -212,7 +99,7 @@ function DayActions(p: {
           <button
             key={action.key}
             type="button"
-            className={`btn btn-sm ${stop ? "btn-ghost btn-warning" : "btn-ghost"}`}
+            className={`btn btn-sm btn-ghost ${stop ? "btn-warning" : ""}`}
             data-testid={`day-action-${action.key}`}
             disabled={p.busy}
             onClick={() => p.onCommand(action.command, action.draftId)}
@@ -222,77 +109,66 @@ function DayActions(p: {
           </button>
         );
       })}
+      {p.takeDown === null ? null : <TakeDownControl draftId={p.takeDown} mode="stop" words={stopWords()} />}
     </div>
   );
 }
 
-/** The head (issue 1071, board R12-5-Plan): the date at the near edge, the
- *  stage as a soft badge beside it, and the close control at the far one.
- *  The panel is a whole column wide at every width it is drawn at, so the
- *  badge that could not shrink inside a day card (#944) has room here; the
- *  cards keep their dot and word. */
-function Heading(p: { word: string; tone: Tone; date: string; onClose: () => void }): React.JSX.Element {
-  const badge = p.tone === "neutral" ? "badge-ghost" : `badge-soft ${TONE_BADGE[p.tone]}`;
-  return (
-    <div className="flex min-w-0 items-center gap-2" data-testid="day-head">
-      <span className="num rk-cal-label min-w-0 truncate text-xs opacity-70">{p.date}</span>
-      {/* A stage word is never truncated (owner, PR #961). */}
-      <span
-        className={`badge badge-sm ml-auto shrink-0 whitespace-nowrap font-semibold ${badge}`}
-        data-testid="panel-stage-word"
-      >
-        {p.word}
-      </span>
-      <button
-        type="button"
-        className="btn btn-sm btn-ghost btn-square shrink-0"
-        aria-label={copy("calendar.panel.close")}
-        data-testid="day-panel-close"
-        onClick={p.onClose}
-      >
-        <X size={16} strokeWidth={1.75} aria-hidden />
-      </button>
-    </div>
-  );
-}
+/** What Tab can reach inside the pane. */
+const FOCUSABLE = 'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"]), summary';
 
 function Panel(p: {
-  heading: React.ReactNode;
-  /** Whether this day was opened by nobody — an absent `?day`. Such a
-   *  panel is open from `lg` up and closed below it (`CalendarView`'s
-   *  header). One utility, on one DOM. */
+  card: CardModel;
+  cell: DayCell;
+  date: string;
+  host?: string | null;
+  /** Opened by nobody (an absent `?day`): shown from `lg`, not below it. */
   hiddenOnPhone: boolean;
+  /** The pane covers the list (a phone): focus moves to its Back on opening. */
+  takesFocus: boolean;
+  onClose: () => void;
   children: React.ReactNode;
 }): React.JSX.Element {
+  const back = useRef<HTMLButtonElement>(null);
+  const takesFocus = p.takesFocus;
+  useEffect(() => {
+    if (takesFocus) back.current?.focus();
+  }, [takesFocus]);
+
+  /** While the pane covers the screen, Tab wraps inside it rather than leaving for the document. */
+  function wrap(event: React.KeyboardEvent<HTMLElement>): void {
+    if (!takesFocus || event.key !== "Tab") return;
+    const focusable = Array.from(event.currentTarget.querySelectorAll<HTMLElement>(FOCUSABLE)).filter((el) => el.offsetParent !== null);
+    const first = focusable[0];
+    const last = focusable.at(-1);
+    if (first === undefined || last === undefined) return;
+    const at = document.activeElement;
+    if (event.shiftKey ? at === first || !event.currentTarget.contains(at) : at === last) {
+      event.preventDefault();
+      (event.shiftKey ? last : first).focus();
+    }
+  }
   return (
     <aside
-      // One element and three layouts, never three copies of the panel:
-      //
-      //   phone   the sheet SPEC §7 asks for, opened from the bottom and
-      //           clear of the 68px bottom menu (#940) plus the device's
-      //           own safe area — the same number the answer stack stands
-      //           above (`_toast/Answers.tsx`'s `BOTTOM`). The
-      //           month behind it is a list, which the sheet is meant to
-      //           sit over.
-      //   lg      in flow, under the week. A sheet fixed over a week that
-      //           is a seven-column grid would cover the very dates it is
-      //           about.
-      //
-      // On the phone alone it is capped and scrolls. The cap is what keeps
-      // a sheet from growing off the top of the screen, where its own head
-      // and its close control would be out of reach; the scroll is the
-      // honest answer for a day whose account is longer than the room —
-      // the same answer a `textarea` and an `overflow-x-auto` table give,
-      // and the proof measures that neither the fixture's longest day nor
-      // the owner's stress case reaches it.
-      className={`card card-border bg-base-100 fixed inset-x-2 bottom-[calc(80px+env(safe-area-inset-bottom,0px))] z-30 max-h-[calc(100dvh-104px)] min-w-0 overflow-y-auto shadow-2xl lg:static lg:inset-auto lg:z-auto lg:max-h-none lg:overflow-visible lg:shadow-none ${
+      // Below `lg` the pane is the whole screen over the list, with its own Back; from `lg` it is the right column.
+      className={`card card-border bg-base-100 fixed inset-0 z-50 min-w-0 overflow-y-auto rounded-none lg:static lg:z-auto lg:min-h-0 lg:overflow-hidden lg:rounded-box ${
         p.hiddenOnPhone ? "hidden lg:flex" : ""
       }`}
       data-testid="day-panel"
       data-implicit={p.hiddenOnPhone ? "" : undefined}
+      onKeyDown={wrap}
     >
-      <div className="card-body min-w-0 gap-3 p-4">
-        {p.heading}
+      {/* The body scrolls alone where there is room; a short screen scrolls the whole card. */}
+      <div className="card-body min-w-0 gap-3 p-4 lg:min-h-0 lg:overflow-y-auto">
+        <button ref={back} type="button" className="btn btn-ghost btn-sm self-start lg:hidden" data-testid="day-panel-close" onClick={p.onClose}>
+          <ArrowLeft aria-hidden className="size-4" />
+          {copy("draft.back")}
+        </button>
+        <div className="flex min-w-0 flex-wrap items-center gap-2" data-testid="day-head" aria-live="polite">
+          <span className="num min-w-0 text-xs opacity-70">{p.date}</span>
+          <DayStateBadge cell={p.cell} filter={ALL} />
+          {p.host == null ? null : <span className="num ms-auto min-w-0 text-xs opacity-70 wrap-anywhere">{p.host}</span>}
+        </div>
         {p.children}
       </div>
     </aside>
@@ -300,126 +176,86 @@ function Panel(p: {
 }
 
 export function DayPanelView(p: {
-  cell: DayCell;
-  timeZone: string;
-  /** SPEC §7 / REQ-043 c7 as the owner now reads it (PR #961): a day
-   *  nobody asked for is open from `lg` up and closed below it, because
-   *  below `lg` this panel is a sheet over the month. `false` for a day
-   *  the address names — an explicit `?day` is obeyed at every width. */
-  hiddenOnPhone?: boolean;
-  /** What the site publishes to (issue 880) — which decides whether a page
-   *  waiting on delivery is offered a reconnect or the neutral control. */
+  card: CardModel;
+  /** The page's body as written, rendered on the server. */
+  body?: React.ReactNode;
   destination?: DestinationStanding | null;
-  /** REQ-092 c3's fact, carried from the model. Both of this panel's law
-   *  statements — the publish line and a stopped day's account — turn on
-   *  it, and they must turn on the same one. */
-  stopped: WorkStop | null;
-  /** What holds pages back; a hold the paid check keeps names itself in place of a page's time. */
-  held?: HeldBySetting | null;
-  /** SPEC §7 (2026-09-20): the panel is closable. Closing clears the open
-   *  day from the address, so a closed panel survives a reload too. */
+  hiddenOnPhone?: boolean;
+  /** The pane covers the list, so it takes the focus. */
+  takesFocus?: boolean;
   onClose: () => void;
 }): React.JSX.Element {
-  const { cell } = p;
-  const date = fullDate(cell.day);
-
-  if (cell.page === null) {
-    // Exactly one account. A law-caused day is that one account in the three
-    // lines REQ-092 owes it — that ReachKit stopped, what is needed from the
-    // customer, and when it resumes — read from `stoppedWorkStatement`
-    // together and never assembled here (ADR-011, issue #113).
-    const law =
-      cell.empty !== null && isLawCause(cell.empty.cause)
-        ? stoppedWorkStatement(
-            stopForEmptyDay({
-              stop: p.stopped,
-              since: dayMarker(cell.day),
-            }),
-            { formatDate: (on) => formatDate(on, p.timeZone) }
-          )
-        : null;
-    const account = accountLine({ cell, stopped: p.stopped, timeZone: p.timeZone });
-    // No provenance line: a date holding no page carries no measurement.
+  const { card } = p;
+  const frame = { card, hiddenOnPhone: p.hiddenOnPhone ?? false, takesFocus: p.takesFocus ?? false, onClose: p.onClose };
+  const pane = card.pane;
+  const page = card.cell.page;
+  if (pane.kind === "page" && page !== null) {
+    return <PageDayPanel {...frame} pane={pane} state={page.state} body={p.body} destination={p.destination ?? null} />;
+  }
+  if (pane.kind === "planned") {
     return (
-      <Panel
-        hiddenOnPhone={p.hiddenOnPhone ?? false}
-        heading={
-          <Heading
-            word={copy("calendar.empty.day-badge")}
-            tone="neutral"
-            date={date}
-            onClose={p.onClose}
-          />
-        }
-      >
-        <div className="flex flex-col gap-2 text-sm" data-testid="day-account">
-          {account === null ? null : <p data-testid="day-empty-line">{account}</p>}
-          {law === null ? null : (
-            <>
-              <p data-testid="day-empty-line">{law.line}</p>
-              <p data-testid="day-stopped-needs">{law.needsLine}</p>
-              <p data-testid="day-stopped-resumes">{law.resumesLine}</p>
-            </>
-          )}
-        </div>
+      <Panel {...frame} cell={card.cell} date={pane.date}>
+        <h2 className="card-title min-w-0 wrap-anywhere" data-testid="day-title">
+          {pane.title}
+        </h2>
+        {pane.why === null ? null : <p className="text-sm">{pane.why}</p>}
+        <dl className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1 text-sm" data-testid="day-facts">
+          {pane.facts.map((fact) => (
+            <div key={fact.label} className="contents">
+              <dt className="text-base-content/70">{fact.label}</dt>
+              <dd className={`min-w-0 wrap-anywhere ${fact.mono === true ? "num" : ""}`}>{fact.value}</dd>
+            </div>
+          ))}
+        </dl>
+        {pane.next === null ? null : <p className="text-sm" data-testid="day-next">{pane.next}</p>}
+        <PlannedStop cell={card.cell} />
       </Panel>
     );
   }
-
   return (
-    <PageDayPanel
-      cell={cell}
-      page={cell.page}
-      date={date}
-      timeZone={p.timeZone}
-      destination={p.destination ?? null}
-      stopped={p.stopped}
-      held={p.held ?? null}
-      hiddenOnPhone={p.hiddenOnPhone ?? false}
-      onClose={p.onClose}
-    />
+    <Panel {...frame} cell={card.cell} date={pane.date}>
+      <div className="flex flex-col gap-2 text-sm" data-testid="day-account">
+        {(pane.kind === "lines" ? pane.lines : []).map((line) => (
+          <p key={line} data-testid="day-empty-line">
+            {line}
+          </p>
+        ))}
+      </div>
+    </Panel>
   );
 }
 
-/**
- * The arm for a date that holds a page — and the one place on this screen
- * that owns a write in flight.
- *
- * Its own component because of the hooks. `useOptimistic` and
- * `useTransition` may not be called on a path a render can skip, and the
- * empty arm above returns before any of this exists; splitting the arm is
- * how the page arm gets state without the empty one pretending to have a
- * page.
- *
- * **What the optimism is.** The value is §9's own state, not the stage's
- * word: the stage, the controls and the head are all projections of the
- * state (`STAGE_OF`, `actionsFor`), so moving the one value moves all three
- * together and none of them can disagree. On a press the panel shows the
- * state the command asks for (`COMMAND_TARGET`); when the transition ends
- * React drops the optimistic value and the panel renders the state the
- * server now reports — which, after a write that landed, is the state it
- * guessed, and after a refusal is the state the page never left.
- */
+/** A planned day that already has its row offers its stop, as the actions allow. */
+function PlannedStop(p: { cell: DayCell }): React.JSX.Element | null {
+  const [busy, startTransition] = useTransition();
+  const [pressed, setPressed] = useState<DayCommand | null>(null);
+  function command(asked: DayCommand, draftId: string): void {
+    setPressed(asked);
+    startTransition(async () => {
+      const outcome = await ask(asked, draftId);
+      say(copy(outcome.ok ? ANSWER_COPY_KEY[asked] : "calendar.answer.refused"), outcome.ok ? "ok" : "bad");
+    });
+  }
+  return <DayActions cell={p.cell} destination={null} onCommand={command} busy={busy} pressed={busy ? pressed : null} takeDown={null} commandsOnly />;
+}
+
+/** The arm for a written or live page, and the one place on this screen that owns a write in flight. */
 function PageDayPanel(p: {
-  cell: DayCell;
-  page: PageOnDay;
-  date: string;
-  timeZone: string;
+  card: CardModel;
+  pane: Extract<PaneModel, { kind: "page" }>;
+  state: State;
+  body: React.ReactNode;
   destination: DestinationStanding | null;
-  stopped: WorkStop | null;
-  held: HeldBySetting | null;
   hiddenOnPhone: boolean;
+  takesFocus: boolean;
   onClose: () => void;
 }): React.JSX.Element {
-  const { cell, date, page, timeZone, stopped } = p;
-  const [state, expect] = useOptimistic<State>(page.state);
+  const { card, pane } = p;
+  const page = card.cell.page!;
+  const [state, expect] = useOptimistic<State>(p.state);
   const [busy, startTransition] = useTransition();
-  /** Which button the pending press is, so only it spins (issue 1196). */
   const [pressed, setPressed] = useState<DayCommand | null>(null);
 
-  /** One press: show what the command asks for, ask for it, and say what
-   *  came back. The sentence is read from the registry either way — there
-   *  is no silent arm and no arm that invents a line. */
   function command(asked: DayCommand, draftId: string): void {
     setPressed(asked);
     startTransition(async () => {
@@ -429,103 +265,41 @@ function PageDayPanel(p: {
     });
   }
 
-  // The stage as this render believes it, which during a write is the stage
-  // the write is asking for. `null` is a state that occupies no date at all
-  // (`skipped`, `unpublished`) — a stopped page — and the panel then shows
-  // what an empty date shows and offers nothing, which is exactly what the
-  // server renders once the re-read lands.
+  // During a write the page shows the state the write asks for; a stopped page offers nothing.
   const stage = state === page.state ? page.stage : STAGE_OF[state];
   const shown: DayCell =
-    stage === null ? { ...cell, page: null } : { ...cell, page: { ...page, state, stage } };
-
-  const provenance = writtenLine("calendar.provenance.measured", {
-    date: formatDateTime(page.measuredAt, timeZone),
-  });
-  // The veto window, for the one stage that has one.
-  const vetoLine =
-    page.vetoDeadline === null
-      ? null
-      : writtenLine("calendar.status.veto-deadline", {
-          at: formatDateTime(page.vetoDeadline, timeZone),
-        });
-  // The scheduled publish, spoken through the cross-cutting `next-publish`
-  // law (issue #113): while ReachKit has stopped its own work the statement
-  // names the stop and the date is not shown beside it.
-  const publishLine =
-    page.publishAt === null
-      ? null
-      : nextPublishStatement({
-          stopped: stopped !== null || p.held === "billing_unreadable",
-          otherwise: p.held === "unpaid" || p.held === "ended" ? { tag: p.held } : { tag: "scheduled", at: formatDateTime(page.publishAt, timeZone) },
-        }).line;
-  // What became of the page, in one line (issue #217) — the same keys the
-  // draft view's record block reads, so the two cannot disagree.
-  const recordLine = recordSummary(page);
-  // Why the page needs them (issue 880), from its own record and never from
-  // its stage. One sentence per cause, chosen once in `NEEDS_YOU_COPY`, so
-  // this panel and the Overview alert cannot tell one page's story two ways.
-  const causeKey = needsYouLine(page.needsYou);
-  const needsYouSentence = causeKey === null ? null : writtenLine(causeKey);
+    stage === null
+      ? { ...card.cell, page: null, empty: { cause: "page_cannot_go_live", state: "skipped" }, stoppedByYou: true }
+      : { ...card.cell, page: { ...page, state, stage } };
+  const takeDown = page.stage === "live" && page.liveUrl !== null && page.draftId !== null ? page.draftId : null;
 
   return (
-    <Panel
-      hiddenOnPhone={p.hiddenOnPhone}
-      heading={
-        <Heading
-          word={copy(stage === null ? "calendar.empty.day-badge" : STAGE_FILTER_COPY_KEY[stage])}
-          tone={stage === null ? "neutral" : STAGE_TONE[stage]}
-          date={date}
-          onClose={p.onClose}
-        />
-      }
-    >
-      <div className="flex min-w-0 flex-col gap-3" data-testid="day-account">
-        {/* The panel's title. `card-title` is a class and the `h2` size rule
-            in `src/ui/type.css` is an element selector, so the class wins —
-            which is the approach already working on main, and this PR
-            changes no heading rule (#941 is rk-900's). */}
-        <h2 className="card-title rk-cal-label line-clamp-2 min-w-0" data-testid="day-title">
-          {page.title}
-        </h2>
-        <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-          <span className="badge badge-sm badge-ghost max-w-full" data-testid="day-kind">
-            {kindWord(page.update)}
-          </span>
-          {page.titleLabel === undefined ? null : <span className="min-w-0 text-xs text-base-content/70" data-testid="day-title-label">{page.titleLabel}</span>}
-        </span>
-        {page.becameUpdate === true ? <p className="text-sm" data-testid="day-became-update-line">{copy("calendar.day.became-update.line")}</p> : null}
-        <DayActions cell={shown} destination={p.destination} onCommand={command} busy={busy} pressed={busy ? pressed : null} />
-
-        <div className="flex flex-col gap-1 text-sm">
-          {needsYouSentence === null ? null : <p data-testid="day-needs-you-line">{needsYouSentence}</p>}
-          {publishLine === null ? null : <p data-testid="day-publish-line">{publishLine}</p>}
-          {vetoLine === null ? null : <p data-testid="day-veto-line">{vetoLine}</p>}
-        </div>
-        {recordLine === null ? null : (
-          <p className="flex flex-wrap items-baseline gap-2" data-testid="day-record-line">
-            <span className="text-sm">{recordLine.text}</span>
-            {recordLine.at === null ? null : (
-              <span className="num text-xs opacity-70">{formatDate(recordLine.at, timeZone)}</span>
-            )}
-          </p>
-        )}
-        {/* The measurements start closed, one line, and open in place
-            (SPEC §7, 2026-10-07, issue 1326). `details`, so the rows are in
-            the document with no JavaScript; the line is the block's own
-            name (REQ-043 c8). Flush with the panel's edge, under a rule: the
-            panel is 20rem beside the month, and the collapse's own side
-            padding would come out of the value column. */}
-        <details className="collapse collapse-arrow border-base-300 rounded-none border-t" data-testid="day-why">
-          <summary className="collapse-title py-3 pl-0 text-sm">{copy("calendar.why.title")}</summary>
-          <div className="collapse-content min-w-0 px-0">
-            <TargetRows facts={page.why} />
-          </div>
-        </details>
-      </div>
-      {provenance === null ? null : (
-        <p className="text-xs opacity-70" data-testid="day-provenance">
-          {provenance}
+    <Panel card={card} cell={shown} date={pane.date} host={pane.host} hiddenOnPhone={p.hiddenOnPhone} takesFocus={p.takesFocus} onClose={p.onClose}>
+      <h2 className="card-title min-w-0 wrap-anywhere" data-testid="day-title">
+        {pane.title}
+      </h2>
+      {pane.titleLabel === undefined ? null : <span className="text-xs text-base-content/70" data-testid="day-title-label">{pane.titleLabel}</span>}
+      {pane.becameUpdate === null ? null : <p className="text-sm" data-testid="day-became-update-line">{pane.becameUpdate}</p>}
+      {pane.notes.map((note) => (
+        <p key={note} className="text-sm" data-testid="day-needs-you-line">
+          {note}
         </p>
+      ))}
+      <DayActions cell={shown} destination={p.destination} onCommand={command} busy={busy} pressed={busy ? pressed : null} takeDown={stage === null ? null : takeDown} />
+      {pane.next === null ? null : <p className="text-sm" data-testid="day-next">{pane.next}</p>}
+      {pane.unread !== null ? (
+        <p className="text-sm" data-testid="day-body-unread">
+          {pane.unread}
+        </p>
+      ) : p.body === undefined ? null : (
+        <div
+          className="prose min-w-0 max-w-none border-t border-base-300 pt-3 lg:min-h-0 lg:flex-1 lg:overflow-y-auto"
+          tabIndex={0}
+          aria-label={copy("calendar.pane.body.label", { title: pane.title })}
+          data-testid="day-body"
+        >
+          {p.body}
+        </div>
       )}
     </Panel>
   );

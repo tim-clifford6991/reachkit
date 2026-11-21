@@ -22,6 +22,7 @@
 import { tz } from "@date-fns/tz";
 import { eachDayOfInterval, endOfISOWeek, endOfMonth, getISODay, startOfISOWeek, startOfMonth } from "date-fns";
 import { SHELL_LOCALE } from "../_shell/format";
+import { WEEK_PLAN } from "@/lib/config/constants";
 
 /** A site-local calendar day, `YYYY-MM-DD`. */
 export type DayKey = string;
@@ -75,11 +76,17 @@ export function planHorizonEnd(today: DayKey): DayKey {
   return addDays(today, 6);
 }
 
-/** Plan's week (SPEC §7, E5): Monday to Sunday of the site-local week that
- *  contains today, seven dates. */
-export function planWeek(today: DayKey): readonly DayKey[] {
-  const monday = addDays(today, -weekdayIndex(today));
-  return Array.from({ length: 7 }, (_, at) => addDays(monday, at));
+/** This Week's days (SPEC §7, *The week is committed on Monday*): the commit's seven from its first date, else seven
+ *  from today before any commit or once it has run out; `today` is offered first where it falls before the commit. */
+export function commitDays(today: DayKey, commitStart: DayKey | null): { days: readonly DayKey[]; today: DayKey | null } {
+  const start = commitStart !== null && addDays(commitStart, WEEK_PLAN.days - 1) >= today ? commitStart : today;
+  return { days: Array.from({ length: WEEK_PLAN.days }, (_, at) => addDays(start, at)), today: today < start ? today : null };
+}
+
+/** The last day This Week draws, which is as far as the plan reaches. */
+export function commitEnd(today: DayKey, commitStart: DayKey | null): DayKey {
+  const last = commitDays(today, commitStart).days.at(-1) ?? today;
+  return last > planHorizonEnd(today) ? last : planHorizonEnd(today);
 }
 
 /** Every date in a month, in order. */

@@ -7,7 +7,7 @@
 // `rk-cal-empty` — the truncations this screen declared to the layout sweep
 // in #354.
 import type React from "react";
-import { Calendar, CircleStop, Plus, RefreshCw, type LucideIcon } from "lucide-react";
+import { Calendar, CircleCheck, CircleStop, Clock, PencilLine, Plus, RefreshCw, type LucideIcon } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import { SITE_CHECK_TITLE } from "@/lib/presentation/site-issues";
 import { horizonShortFor, shortCauseFor } from "./card-lines";
@@ -54,13 +54,17 @@ export function KindChip(p: { update: boolean }): React.JSX.Element {
  *  else the week's first skip. */
 export function stateLineOf(cell: DayCell, firstSkip: boolean): string | null {
   if (cell.page !== null) return cell.page.becameUpdate === true ? copy("calendar.day.became-update") : null;
-  if (cell.empty?.cause === "page_cannot_go_live") return copy("calendar.day.stopped.line", { day: `${weekdayShort(cell.day)} ${dayNumber(cell.day)}` });
+  // "by you" only where the customer's own move stopped it.
+  if (cell.empty?.cause === "page_cannot_go_live") return copy(cell.stoppedByYou === true ? "calendar.day.stopped.line" : "calendar.day.stopped.line.system", { day: `${weekdayShort(cell.day)} ${dayNumber(cell.day)}` });
   return firstSkip ? copy("calendar.day.skipped.line") : null;
 }
 
-/** The icon a state badge opens with, only where board Plan draws one. */
+/** The icon a state badge opens with (DESIGN E29), only where the boards draw one. */
 const DAY_STATE_ICON: Readonly<Partial<Record<DayState, LucideIcon>>> = {
   planned: Calendar,
+  writing: PencilLine,
+  written: Clock,
+  live: CircleCheck,
   stopped: CircleStop,
 };
 

@@ -43,7 +43,7 @@ import { now as clock } from "@/lib/config/now";
 import type { CalendarSupplyNotice } from "./supply";
 import { isReservedFixtureAccount, redirectForMissingZone, requireAppAccount } from "../_session/account";
 import { assembleMonth, weekOf, type MonthModel, type WeekModel } from "./month";
-import { addDays, dayKeyOf, monthOf, planWeek, serviceWeek, type DayKey, type MonthKey } from "./dates";
+import { addDays, commitDays, commitEnd, dayKeyOf, monthOf, serviceWeek, type DayKey, type MonthKey } from "./dates";
 import type { StalledCount } from "@/lib/publish/record/stalled";
 import { FIXTURE_CALENDAR_FACTS, FIXTURE_PLAN_HEAD } from "./fixture";
 import { FIXTURE_DOMAIN } from "../_shell/fixture";
@@ -109,9 +109,10 @@ export async function planToday(): Promise<DayKey> {
 
 export const readMonth = cache(async function readMonth(month: MonthKey): Promise<MonthModel> {
   const site = await currentCalendarSite();
-  if (site === null) return assembleMonth(FIXTURE_CALENDAR_FACTS, month);
+  const planEnd = commitEnd(await planToday(), (await readPlanHead()).commitStart);
+  if (site === null) return assembleMonth(FIXTURE_CALENDAR_FACTS, month, planEnd);
   const { readCalendarFacts } = await import("./store");
-  return assembleMonth(await readCalendarFacts({ site, month, now: clock() }), month);
+  return assembleMonth(await readCalendarFacts({ site, month, now: clock(), planEnd }), month, planEnd);
 });
 
 /**
@@ -119,8 +120,10 @@ export const readMonth = cache(async function readMonth(month: MonthKey): Promis
  * `readMonth` for each month the week touches.
  */
 export const readWeek = cache(async function readWeek(today: DayKey): Promise<WeekModel> {
-  const months = [...new Set(planWeek(today).map(monthOf))];
-  return weekOf(await Promise.all(months.map((month) => readMonth(month))), today);
+  const { commitStart } = await readPlanHead();
+  const shown = commitDays(today, commitStart);
+  const months = [...new Set([...shown.days, ...(shown.today === null ? [] : [shown.today])].map(monthOf))];
+  return weekOf(await Promise.all(months.map((month) => readMonth(month))), today, commitStart);
 });
 
 /**
@@ -166,26 +169,47 @@ export const readStalledWeek = cache(async function readStalledWeek(): Promise<S
   return counts?.get(site.siteId) ?? null;
 });
 
-/** What Plan's head and week card say about the week as a whole. */
+/** What This Week's head says about the week as a whole, every date site-local. */
 export interface PlanHeadFacts {
   /** The week of service, counting the sign-up week as 1. */
   week: number | null;
-  /** The day the pass chose this week; `null` before the first commit. */
-  chosen: DayKey | null;
   /** `HH:mm` in the site's zone; `null` where it could not be read. */
   publishTime: string | null;
+  /** The Monday of the site's own week that holds today (`weekStartFor`). */
+  weekStart: DayKey;
+  /** The Monday of the last weekly check that ran; `null` before the first. */
+  lastCheck: DayKey | null;
+  /** The day the account was set up, whose pass chose the first week. */
+  setupDay: DayKey | null;
+  /** The commit's first date; `null` before any commit. */
+  commitStart: DayKey | null;
 }
 
 export const readPlanHead = cache(async function readPlanHead(): Promise<PlanHeadFacts> {
   const site = await currentCalendarSite();
   if (site === null) return FIXTURE_PLAN_HEAD;
-  const [chosen, settings] = await Promise.all([
+  const now = clock();
+  const [commitStart, settings, lastCheck, { weekStartFor }] = await Promise.all([
     import("@/lib/opportunities").then(({ weekChosenOn }) => weekChosenOn(site.siteId)).catch(() => null),
     import("@/lib/publish/settings/settings").then(({ readPublishingSettings }) => readPublishingSettings(site.siteId)).catch(() => null),
+    import("@/lib/opportunities/store").then(({ opportunityStore }) => opportunityStore().weeklyCommit(site.siteId)).catch(() => null),
+    import("@/lib/scan/weekly"),
   ]);
+  const setupDay = site.createdAt === undefined ? null : dayKeyOf(site.createdAt, site.timeZone);
   return {
-    week: site.createdAt === undefined ? null : serviceWeek(dayKeyOf(site.createdAt, site.timeZone), dayKeyOf(clock(), site.timeZone)),
-    chosen,
+    week: setupDay === null ? null : serviceWeek(setupDay, dayKeyOf(now, site.timeZone)),
     publishTime: settings?.publishTime ?? null,
+    weekStart: weekStartFor({ at: now, zone: site.timeZone }),
+    lastCheck,
+    setupDay,
+    commitStart,
   };
+});
+
+/** The body as written of each of the week's written pages, by draft; empty for the fixture account. */
+export const readWeekBodies = cache(async function readWeekBodies(draftIds: readonly string[]): Promise<ReadonlyMap<string, string>> {
+  const site = await currentCalendarSite();
+  if (site === null || draftIds.length === 0) return new Map();
+  const { bodiesOf } = await import("./store");
+  return bodiesOf(site.siteId, draftIds);
 });

@@ -59,6 +59,7 @@ import { readStop } from "../_shell/stop";
 import { plannedByDay } from "@/lib/opportunities/days";
 import { opportunityStore } from "@/lib/opportunities/store";
 import { readPublishingFacts, type ScheduledPage } from "./drafts-read";
+import { publishDb } from "@/lib/publish/db";
 import { weekStartFor } from "@/lib/scan/weekly/week";
 import type { PageStanding } from "./day-number";
 import type { BestRival } from "./target";
@@ -196,6 +197,8 @@ function pageOn(a: {
   standing: PageStanding | null;
   /** Whether the committed week's row for the page's date reads as a new page; `false` where none can be read. */
   plannedNew: boolean;
+  /** When work on the page's day began. */
+  startedAt: Date | null;
   now: Date;
 }): DraftOnDay {
   const at = measuredAtOf(a.choice, a.now);
@@ -229,6 +232,8 @@ function pageOn(a: {
     update: isUpdate(a.choice),
     ...replacesOf(a.choice),
     whyLine: whySentenceOf(a.choice.planReason),
+    startedAt: a.startedAt,
+    stoppedByYou: a.page.stoppedByCustomer,
   };
 }
 
@@ -281,8 +286,8 @@ function plannedOn(day: DayKey, choice: Choice, now: Date): DraftOnDay {
  *
  * And no later than the plan horizon, six days after today (issue 1455).
  */
-export function fillableDates(a: { month: MonthKey; today: DayKey }): readonly DayKey[] {
-  const last = planHorizonEnd(a.today);
+export function fillableDates(a: { month: MonthKey; today: DayKey; last?: DayKey }): readonly DayKey[] {
+  const last = a.last !== undefined && a.last > planHorizonEnd(a.today) ? a.last : planHorizonEnd(a.today);
   return daysOfMonth(a.month).filter((day) => day >= a.today && day <= last);
 }
 
@@ -397,10 +402,23 @@ export const siteDepth = cache((siteId: string) => supplyDepth(siteId));
  * prove, which would tell a customer their market is empty on a day the
  * database merely broke.
  */
+/** The stored body of each of these drafts of the site that has one. */
+export async function bodiesOf(siteId: string, draftIds: readonly string[]): Promise<ReadonlyMap<string, string>> {
+  const { data, error } = await publishDb()
+    .from<{ id: string; body_md: string | null }>("drafts")
+    .select("id, body_md")
+    .eq("site_id", siteId)
+    .in("id", [...draftIds]);
+  if (error !== null || data === null) throw new Error(`bodiesOf(${siteId}): could not read the week's bodies`);
+  return new Map(data.flatMap((row) => (row.body_md === null || row.body_md.trim() === "" ? [] : [[row.id, row.body_md] as const])));
+}
+
 export async function readCalendarFacts(a: {
   site: CalendarSite;
   month: MonthKey;
   now: Date;
+  /** The last date the commit reaches, past the six days after today. */
+  planEnd?: DayKey;
 }): Promise<CalendarFacts> {
   const today = dayKeyOf(a.now, a.site.timeZone);
   const [depth, week, publishing, stop, changeHold] = await Promise.all([
@@ -447,7 +465,7 @@ export async function readCalendarFacts(a: {
 
   // Each committed row on the date it was committed for; a date no commit
   // covers stays empty and says why (issue 1559).
-  const dates = fillableDates({ month: a.month, today });
+  const dates = fillableDates({ month: a.month, today, ...(a.planEnd === undefined ? {} : { last: a.planEnd }) });
 
   const drafts: DraftOnDay[] = [];
 
@@ -468,6 +486,7 @@ export async function readCalendarFacts(a: {
         publishAt: publishing.publishAt.get(page.draftId) ?? null,
         standing: page.liveUrl === null ? null : (standings.get(page.liveUrl) ?? null),
         plannedNew: planned === "write" || planned === "earn",
+        startedAt: publishing.startedAt.get(page.scheduledFor as DayKey) ?? null,
         now: a.now,
       })
     );
@@ -484,7 +503,7 @@ export async function readCalendarFacts(a: {
   const rows = new Map(week.days.map((day) => [day.opportunity.id, day.opportunity]));
   for (const [day, opportunityId] of plannedByDay(week.days, publishing.pagesByDay, publishing.readable ? dates : [])) {
     const row = rows.get(opportunityId);
-    if (row !== undefined) drafts.push(plannedOn(day, choiceOf(row), a.now));
+    if (row !== undefined) drafts.push({ ...plannedOn(day, choiceOf(row), a.now), startedAt: publishing.startedAt.get(day) ?? null });
   }
 
   return {

@@ -23,6 +23,7 @@
 // about. 2026-09-15 is a Tuesday in the site's zone; the month it sits in
 // carries every state the grid can draw, including both weekend columns, so
 // one screenshot exercises the whole of §4.6.
+import type { PlanHeadFacts } from "./provider";
 import { measured, measuredZero, unmeasured } from "@/lib/measure/measured";
 import { whySentenceOf } from "./card-lines";
 import type { CalendarFacts, DraftOnDay, WhyThisPage } from "./month";
@@ -288,6 +289,13 @@ export const FIXTURE_CALENDAR_FACTS: CalendarFacts = Object.freeze({
   supplyMeasured: true,
 });
 
-/** The fixture account's week: its third, chosen on its Monday, going live at
- *  the hour its scheduled pages carry (13:00 UTC is 09:00 in New York). */
-export const FIXTURE_PLAN_HEAD = Object.freeze({ week: 3, chosen: "2026-09-14", publishTime: "09:00" });
+/** The fixture account's week: its third, checked on its Monday, committed from the Tuesday as a real pass commits
+ *  (the first date with no page), going live at the hour its scheduled pages carry (13:00 UTC is 09:00 in New York). */
+export const FIXTURE_PLAN_HEAD: PlanHeadFacts = Object.freeze({
+  week: 3,
+  publishTime: "09:00",
+  weekStart: "2026-09-14",
+  lastCheck: "2026-09-14",
+  setupDay: "2026-09-01",
+  commitStart: "2026-09-15",
+});

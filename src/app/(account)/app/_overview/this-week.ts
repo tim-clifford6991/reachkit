@@ -4,7 +4,7 @@
 import { actionsFor } from "../calendar/actions";
 import { dayKeyOf } from "../calendar/dates";
 import { BILLING_HOLDS } from "../calendar/empty";
-import { dayStateOf, type DayCell, type WeekModel } from "../calendar/month";
+import { dayStateOf, pagesThisWeek, type DayCell, type WeekModel } from "../calendar/month";
 import type { WeekDay, WeekList } from "./ThisWeek";
 
 export { ThisWeek } from "./ThisWeek";
@@ -46,7 +46,7 @@ export function weekListOf(week: WeekModel, time: string | null = null): WeekLis
     today: week.today,
     skippedToday: today !== undefined && dayStateOf(today) === "skipped",
     firstSkip: week.cells.find((cell) => dayStateOf(cell) === "skipped")?.day ?? null,
-    pages: week.cells.filter((cell) => cell.page !== null).length,
+    pages: pagesThisWeek(week),
     days: week.cells.map((cell) => dayOf(cell, week, cell.day === next, time)),
   };
 }

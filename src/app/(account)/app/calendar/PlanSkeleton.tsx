@@ -1,52 +1,40 @@
-// SPEC §4 (2026-09-20, #908) and §7 (E5) — Plan below its head, while it
-// waits: the week as its seven rows, and the day panel.
-//
-// Every region is drawn with `frame.ts`'s classes, which are the ones
-// `CalendarView` and `WeekGrid` draw Plan with, so the same media queries
-// choose the same shape here that they choose when Plan lands (issue 1484).
+// The waiting shape of This Week: the cards' column, and the pane beside it
+// from `lg`, in the screen's own frame so the two are one shape.
 import type React from "react";
 import { Box, Waiting } from "../_shell/skeletons";
-import { BODY, DAY_OPEN, DAY_ROW, DAY_STATUS, REGION, WEEK_CARD, WEEK_CARD_BODY, WEEK_DAYS, WEEK_LIST } from "./frame";
+import { BODY, COLUMN, DAY_ROW, REGION, WEEK_DAYS, WEEK_LIST } from "./frame";
 
 export function PlanSkeleton(): React.JSX.Element {
   return (
-    <Waiting className="flex min-w-0 flex-col gap-4" testId="plan-skeleton">
-      <div className={BODY} data-frame={REGION.body}>
-        <div className={WEEK_CARD}>
-          <div className={WEEK_CARD_BODY}>
-            <Box className="h-6 w-64 max-w-full" />
-            <div className={WEEK_LIST} data-testid="plan-skeleton-list" data-frame={REGION.week}>
-              {Array.from({ length: WEEK_DAYS }, (_, at) => (
-                <div key={at} className={DAY_ROW}>
-                  <div className={DAY_OPEN}>
-                    <Box className="h-4 w-full" />
-                    <div className="flex min-w-0 flex-col gap-2">
-                      <Box className="h-5 w-14" />
-                      <Box className="h-4 w-3/4" />
-                      <Box className="h-4 w-full" />
-                    </div>
-                  </div>
-                  <div className={DAY_STATUS}>
-                    <Box className="h-5 w-20" />
-                  </div>
-                </div>
-              ))}
+    <Waiting className={BODY} testId="plan-skeleton" frame={REGION.body}>
+      <div className={COLUMN}>
+        <div
+          className={WEEK_LIST}
+          data-testid="plan-skeleton-list"
+          data-frame={REGION.week}
+        >
+          {Array.from({ length: WEEK_DAYS }, (_, at) => (
+            <div key={at} className={DAY_ROW}>
+              <Box className="h-5 w-full" />
+              <Box className="h-4 w-3/4" />
+              <Box className="h-4 w-1/2" />
             </div>
-          </div>
+          ))}
         </div>
+      </div>
 
-        {/* The day panel's place: under the week from `lg`. Below `lg` an
-            unopened Plan has no panel, so nor has this. */}
-        <div className="card card-border bg-base-100 hidden min-w-0 lg:flex" data-testid="plan-skeleton-panel">
-          <div className="card-body min-w-0 gap-3 p-4">
-            <Box className="h-8 w-full" />
-            <Box className="h-6 w-4/5" />
-            <Box className="h-5 w-24" />
-            <Box className="h-4 w-full" />
-            <Box className="h-4 w-full" />
-            <Box className="h-4 w-2/3" />
-            <Box className="h-8 w-full" />
-          </div>
+      {/* The pane's place, beside the cards from `lg`. Below `lg` an unopened week has no pane, so nor has this. */}
+      <div
+        className="card card-border bg-base-100 hidden min-w-0 lg:flex"
+        data-testid="plan-skeleton-panel"
+      >
+        <div className="card-body min-w-0 gap-3 p-4">
+          <Box className="h-5 w-1/2" />
+          <Box className="h-7 w-4/5" />
+          <Box className="h-8 w-40" />
+          <Box className="h-4 w-full" />
+          <Box className="h-4 w-full" />
+          <Box className="h-4 w-2/3" />
         </div>
       </div>
     </Waiting>

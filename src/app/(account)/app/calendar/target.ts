@@ -1,5 +1,5 @@
 // SPEC §7 (2026-09-20, #908, issue 930) — **one** projection of what a page
-// is for, and one renderer of it (`TargetRows.tsx`).
+// is for, read by This Week's model (`week-screen.ts`).
 //
 // Two screens stated these facts and worded them twice. `calendar/
 // WhyThisPage.tsx` drew a definition list of seven rows; `draft/[draftId]/
