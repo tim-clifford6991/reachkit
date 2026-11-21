@@ -76,7 +76,7 @@ export const readBillingSummary = cache(async function readBillingSummary(): Pro
   const account = await requireSetUpAccount();
   if (isReservedFixtureAccount(account)) return assembleSettings(FIXTURE_SETTINGS_FACTS).billing;
   const { readBilling } = await import("./store");
-  return billingSummaryOf(await readBilling(account.userId), account.timeZone);
+  return billingSummaryOf(await readBilling(account.userId), account.timeZone, new Date());
 });
 
 /**

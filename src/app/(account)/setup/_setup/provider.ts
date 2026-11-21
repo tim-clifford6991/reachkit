@@ -74,8 +74,10 @@ const currentFounder = cache(async function currentFounder(): Promise<{
  * card opens seeking and `POST /api/setup/rivals` concludes, once the
  * founder has given an address.
  */
-export const readSetupScreen = cache(async function readSetupScreen(): Promise<SetupScreenModel> {
+export const readSetupScreen = cache(async function readSetupScreen(): Promise<SetupScreenModel & { spotHolder: boolean }> {
   const founder = await currentFounder();
+  // Started first and never awaited alone, so the spot read adds no wait; a failed read is `false`.
+  const holding = import("@/lib/account/offer/spots").then(({ spotOf }) => spotOf(founder.userId)).catch(() => null);
   // The site row's own address is held even where no report is: it came
   // from provisioning, never from the payment (REQ-021 c7).
   const measured = founder.domain === "" ? null : { domain: founder.domain, report: await readReportFor(founder.domain) };
@@ -93,7 +95,7 @@ export const readSetupScreen = cache(async function readSetupScreen(): Promise<S
   // out of a stranger's report. Each part fails soft on its own.
   const business = await readConfirmedBusiness(founder);
 
-  return assembleSetup({
+  const model = assembleSetup({
     measured,
     concluded,
     questions,
@@ -117,6 +119,7 @@ export const readSetupScreen = cache(async function readSetupScreen(): Promise<S
     // for.
     ...(await passFor(founder.siteId)),
   });
+  return { ...model, spotHolder: (await holding) !== null };
 });
 
 /**

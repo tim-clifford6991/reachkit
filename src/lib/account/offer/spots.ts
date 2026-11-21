@@ -46,6 +46,17 @@ export function setOfferStore(next: OfferStore | null): void {
   store = next;
 }
 
+/** The account's held spot, or `null` without one or where the read failed: a screen never guesses a spot. */
+export async function spotOf(userId: string): Promise<{ place: number; takenAt: Date } | null> {
+  try {
+    const { data, error } = await spots().select("place, taken_at").eq("user_id", userId).is("freed_at", null).order("taken_at").limit(1).maybeSingle();
+    const row = data as { place: number; taken_at: string } | null;
+    return error === null && row !== null ? { place: row.place, takenAt: new Date(row.taken_at) } : null;
+  } catch {
+    return null;
+  }
+}
+
 export type SpotOutcome = "taken" | "held" | "excluded" | "full" | "ended" | "failed";
 
 /** The lowest free place for this checkout's subscription. Never throws: provisioning goes on whatever this returns. */

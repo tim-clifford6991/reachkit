@@ -39,7 +39,8 @@ import type React from "react";
 import { useEffect, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { parseAsStringLiteral, useQueryState } from "nuqs";
-import { Clock4 } from "lucide-react";
+import { Clock4, ExternalLink } from "lucide-react";
+import { OFFER_BOOKING_URL, OFFER_SPOTS } from "@/lib/config/constants";
 import { Surface } from "@/ui/layout";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import {
@@ -144,7 +145,7 @@ function statedCategory(state: SetupState): string | null {
   return state.market.state === "stated" ? state.market.category : null;
 }
 
-export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
+export function SetupForm(p: { model: SetupScreenModel & { spotHolder?: boolean } }): React.JSX.Element {
   const router = useRouter();
   const defaults = preselected(p.model.cards);
 
@@ -381,6 +382,23 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
     // of a short page and stays pinned over a long one.
     <div className={FRAME}>
       <SetupHeader step={step}>
+        {step === "site" ? (
+          // Every buyer is offered the call; only a spot holder is told they hold one. One sentence, so it flows inline.
+          <p className="min-w-0 text-(length:--t-sm) text-base-content/80 wrap-anywhere" data-testid="setup-offer">
+            {`${[p.model.spotHolder === true ? copy("offer.setup.holder", { of: String(OFFER_SPOTS) }) : null, copy("offer.setup.help")].filter((part) => part !== null).join(" ")} `}
+            {OFFER_BOOKING_URL === "" ? (
+              <a className="link link-primary" href={`mailto:${copy("chrome.footer.contact.address")}`}>
+                {copy("offer.founder")}
+              </a>
+            ) : (
+              <a className="link link-primary inline-flex items-center gap-1" href={OFFER_BOOKING_URL} target="_blank" rel="noopener">
+                {copy("offer.setup.book")}
+                <ExternalLink aria-hidden size={16} strokeWidth={1.75} />
+                <span className="sr-only">{copy("draft.live.new-tab")}</span>
+              </a>
+            )}
+          </p>
+        ) : null}
         {step === "check" && started !== null ? (
           <p className="text-(length:--t-sm) text-base-content/80" role="status" data-testid="setup-check-status">
             {copy("setup.check.status", { time: started })}
