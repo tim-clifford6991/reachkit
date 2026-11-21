@@ -63,6 +63,7 @@ import type { CanonicalDomain } from "@/lib/scan/domain";
 import type { RetryPart } from "@/lib/scan/retry";
 import { dash, MonoIn, Num, SLOT } from "../_address/measured";
 import { RetryPartControl } from "../_address/retry-part";
+import { aiFigureOf, answerQuoteOf } from "@/lib/scan/sections";
 import { WaffleLead } from "./buyers";
 
 /** Which part this card's retry re-runs. A bound handle, not an inline
@@ -372,40 +373,6 @@ function Head(p: { right?: React.ReactNode }): React.JSX.Element {
   );
 }
 
-/** The longest quote the card shows, in characters: one sentence, never a page. */
-const QUOTE_MAX = 240;
-
-/** The answer's words without its markdown marks, images or link targets, which a quote would show raw.
- *  A mark that starts a word (".NET", ".io") keeps the space before it. */
-function plainOf(text: string | undefined): string | undefined {
-  return text?.replace(/!\[[^\]]*\]\([^)]*\)/g, "").replace(/\[([^\]]*)\]\([^)]*\)/g, "$1").replace(/\*\*|`/g, "").replace(/\s+([.,!?;:])(?=\s|$)/g, "$1").trim();
-}
-
-/** What no quote may still hold: an address or a markdown mark the cleaning left. */
-const NOT_WORDS = /https?:\/\/|www\.|!\[|\]\(/i;
-
-/** One AI answer's first sentence, quoted as it was written, with the search
- *  it was asked for and the names the answer itself set in bold. The first
- *  answer that named a competitor and kept its text; `null` where no answer
- *  kept any, so nothing is ever made up. */
-export function answerQuoteOf(
-  section: AiAnswersSection,
-  serps: StoredReport["serps"]
-): { search: string; text: string; bold: readonly string[] } | null {
-  for (const [i, row] of section.rows.entries()) {
-    if (row.cell.kind !== "answered" || row.cell.citedDomains.length === 0) continue;
-    const serp = serps[i];
-    const raw = serp !== undefined && serp.kind !== "unmeasured" ? serp.value.aiOverview.text : undefined;
-    const text = plainOf(raw);
-    if (raw === undefined || text === undefined || text === "") continue;
-    const sentence = /^[\s\S]*?[.!?](?=\s|$)/.exec(text)?.[0] ?? text;
-    if (sentence.length > QUOTE_MAX || NOT_WORDS.test(sentence)) continue;
-    const bold = [...raw.matchAll(/\*\*([^*]+)\*\*/g)].map((m) => m[1]!.trim()).filter((name) => name !== "" && sentence.includes(name));
-    return { search: row.question.search, text: sentence, bold: [...new Set(bold)] };
-  }
-  return null;
-}
-
 /** The quote inside its quotation marks, the names its answer set in bold drawn bold. */
 function Quoted(p: { sentence: string; text: string; bold: readonly string[] }): React.JSX.Element {
   const [open = "", close = ""] = p.sentence.split(SLOT);
@@ -475,6 +442,17 @@ function QuestionRows(p: { rows: AnswerRows }): React.JSX.Element {
   );
 }
 
+function Unmeasured(): React.JSX.Element {
+  return (
+    <section className="card bg-base-100 shadow-(--shadow-card) min-w-0">
+      <div className="card-body gap-4">
+        <Head />
+        <p className="grow-0 text-base-content/70 text-sm">{copy("report.ai.unmeasured")}</p>
+      </div>
+    </section>
+  );
+}
+
 export function AiAnswersCard(p: {
   section: AiAnswersSection;
   /** The SERPs the card was counted over, in question order, for the one
@@ -490,6 +468,9 @@ export function AiAnswersCard(p: {
   const partial = section.measuredSearches < section.rows.length;
   const quote = answerQuoteOf(section, p.serps);
   const matrix = matrixRows(section);
+  const figure = aiFigureOf(section);
+  // Too few reads to say AI doesn't answer: the card says nothing was measured, as Google's does.
+  if (figure === null && section.measuredSearches < SCORE_ESTIMATE.noneMinReads) return <Unmeasured />;
 
   return (
     <section className="card bg-base-100 shadow-(--shadow-card) min-w-0">
@@ -498,17 +479,12 @@ export function AiAnswersCard(p: {
         {/* The card leads with its answer, not with its metric (#1068).
             Issue 1439: "AI doesn't answer" is only said over enough reads,
             the rule AI presence keeps. */}
-        {section.answeredSearches === 0 && section.measuredSearches >= SCORE_ESTIMATE.noneMinReads ? (
+        {figure === null ? (
           <p className="grow-0 text-lg font-semibold">{copy("ai-answers.finding.unanswered")}</p>
         ) : (
           <p className="flex grow-0 flex-col gap-1">
             <span className="text-3xl">
-              <Num figure>
-                {copy("report.figure.of", {
-                  count: String(section.customerCitations),
-                  total: String(section.answeredSearches),
-                })}
-              </Num>
+              <Num figure>{figure}</Num>
             </span>
             <span>{copy("ai-answers.finding")}</span>
           </p>

@@ -16,16 +16,19 @@ import { isOwnDomain, registrableDomain } from "@/lib/market/rivals/domains";
 import type { RobotsPolicy } from "@/lib/egress/types";
 import type { Measured } from "@/lib/measure/measured";
 import { isPlaceholder } from "@/lib/measure/placeholder";
+import { copy } from "@/lib/presentation/copy";
 import { fromStored } from "@/lib/presentation/generated";
 import type { MarketSerp } from "@/lib/market/views";
 import { slotDepth, type PageQuestionCandidate } from "@/lib/market/questions/tracked";
 import type {
   AiAnswersSection,
   AnswerCell,
+  PresenceSection,
   PageQuestionRow,
   PageQuestionsSection,
   RetiredPageQuestion,
   StoredQuestion,
+  StoredReport,
 } from "./report";
 
 /** Which AI readers the home document's access rules block, in the pinned
@@ -205,4 +208,56 @@ export function pageQuestionsSectionOf(a: {
     rows,
     retired: a.retired,
   };
+}
+
+/** Each result card's figure, `null` where it counted over no search: nothing measured is said plainly, never as a count. */
+export function aiFigureOf(section: AiAnswersSection | null): string | null {
+  return section === null || section.answeredSearches === 0 ? null : copy("report.figure.of", { count: String(section.customerCitations), total: String(section.answeredSearches) });
+}
+
+export function presenceFigureOf(section: PresenceSection | null): string | null {
+  return section === null || section.measuredSearches === 0 ? null : copy("report.figure.of", { count: String(section.you.top10Count), total: String(section.measuredSearches) });
+}
+
+/** The longest quote the card shows, in characters: one sentence, never a page. */
+const QUOTE_MAX = 240;
+
+/** A link target, with one level of parentheses inside it (`/a_(b)`). */
+const TARGET = String.raw`\((?:[^()\s]|\([^()\s]*\))*\)`;
+
+/** The answer's words without its images, citation markers, link targets or emphasis marks, which a quote would show raw.
+ *  A mark that starts a word (".NET", ".io") keeps the space before it. */
+function plainOf(text: string | undefined): string | undefined {
+  return text
+    ?.replace(new RegExp(String.raw`!\[[^\]]*\]${TARGET}|\[\[\^?\d+\]\]${TARGET}|\[\^?\d+\]`, "g"), "")
+    .replace(new RegExp(String.raw`\[([^\]]*)\]${TARGET}`, "g"), "$1")
+    .replace(/\*|`|(?<=^|\s)_|_(?=\s|[.,!?;:]|$)/g, "")
+    .replace(/[ \t]+([.,!?;:)])(?=\s|$|[.,!?;:])/g, "$1")
+    .trim();
+}
+
+/** What a quote may not hold: an address, a markdown mark, a citation, a block mark or a line break. */
+const NOT_WORDS = /!\[|\]\(|https?:|www\.|\[\^?\d+\]|\n|^[#>|*-]|\*|\|/i;
+
+/** One AI answer's first sentence, quoted as it was written, with the search
+ *  it was asked for and the names the answer itself set in bold. The first
+ *  answer that named a competitor and kept its text; `null` where no answer
+ *  kept any, so nothing is ever made up. */
+export function answerQuoteOf(
+  section: AiAnswersSection,
+  serps: StoredReport["serps"]
+): { search: string; text: string; bold: readonly string[] } | null {
+  for (const [i, row] of section.rows.entries()) {
+    if (row.cell.kind !== "answered" || row.cell.citedDomains.length === 0) continue;
+    const serp = serps[i];
+    const raw = serp !== undefined && serp.kind !== "unmeasured" ? serp.value.aiOverview.text : undefined;
+    const text = plainOf(raw);
+    if (raw === undefined || text === undefined || text === "") continue;
+    // One line of prose: a first line that does not end its sentence is no quote.
+    const sentence = /^[^\n]*?[.!?](?=\s|$)/.exec(text)?.[0];
+    if (sentence === undefined || sentence.length > QUOTE_MAX || NOT_WORDS.test(sentence)) continue;
+    const bold = [...raw.matchAll(/\*\*([^*]+)\*\*/g)].map((m) => m[1]!.trim()).filter((name) => name !== "" && sentence.includes(name));
+    return { search: row.question.search, text: sentence, bold: [...new Set(bold)] };
+  }
+  return null;
 }

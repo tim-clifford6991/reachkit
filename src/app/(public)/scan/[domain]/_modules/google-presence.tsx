@@ -19,6 +19,7 @@ import type React from "react";
 import { Search } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import type { PresenceSection } from "@/lib/scan/report";
+import { presenceFigureOf } from "@/lib/scan/sections";
 import type { CanonicalDomain } from "@/lib/scan/domain";
 import type { RetryPart } from "@/lib/scan/retry";
 import { LinkSummary } from "../_address/link-summary";
@@ -97,11 +98,6 @@ function MostSearched(p: { most: NonNullable<PresenceSection["mostSearched"]> })
       </span>
     </p>
   );
-}
-
-/** The card's figure, or `null` where no search was measured: a count over none is never a result. */
-export function presenceFigureOf(section: PresenceSection): string | null {
-  return section.measuredSearches === 0 ? null : copy("report.figure.of", { count: String(section.you.top10Count), total: String(section.measuredSearches) });
 }
 
 export function GooglePresenceCard(p: { section: PresenceSection }): React.JSX.Element {
