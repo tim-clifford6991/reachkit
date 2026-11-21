@@ -175,8 +175,8 @@ export type Database = {
           publish_date: string
           reason: string | null
           site_id: string
-          started_at: string | null
           stall_alerted_at: string | null
+          started_at: string | null
         }
         Insert: {
           decided_at?: string | null
@@ -185,8 +185,8 @@ export type Database = {
           publish_date: string
           reason?: string | null
           site_id: string
-          started_at?: string | null
           stall_alerted_at?: string | null
+          started_at?: string | null
         }
         Update: {
           decided_at?: string | null
@@ -195,8 +195,8 @@ export type Database = {
           publish_date?: string
           reason?: string | null
           site_id?: string
-          started_at?: string | null
           stall_alerted_at?: string | null
+          started_at?: string | null
         }
         Relationships: [
           {
