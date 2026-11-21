@@ -91,6 +91,9 @@ Each setting is the owner's, in live and in test mode separately unless it says 
 - **Developers → Webhooks:** the endpoint `{app origin}/api/stripe/webhook` subscribes to exactly the
   events in `src/lib/account/provisioning/events.ts` (any other answers `400`); its signing secret is
   `STRIPE_WEBHOOK_SECRET`.
+- **API version `2026-05-27.dahlia`**, the live endpoint's (read 2026-10-02); `src/lib/account/stripe/client.ts`
+  pins the same, so reads and events share one shape. To change it: create a new endpoint on the new
+  version, move `STRIPE_WEBHOOK_SECRET` to it and the pin in one deploy, then delete the old endpoint.
 - **The price:** `unit_amount 4900` · `eur` · `month` · `tax_behavior inclusive`, the four fields
   `scripts/check-price.mjs` compares on every build. They are immutable on a Stripe price: a wrong
   one is fixed with a new price, never an edit.
