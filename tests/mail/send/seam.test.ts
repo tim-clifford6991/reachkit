@@ -50,14 +50,14 @@ afterEach(() => {
 describe("BUILD §12 — one send, one request", () => {
   it("sends and reports the vendor's own id", async () => {
     await expect(
-      sendEmail({ kind: "report", to: "reader@example.com", subject: f.HEADING_KEY, blocks: [f.HEADING] })
+      sendEmail({ event: "e", kind: "report", to: "reader@example.com", subject: f.HEADING_KEY, blocks: [f.HEADING] })
     ).resolves.toEqual({ sent: true, id: "vendor-1" });
     expect(requests).toHaveLength(1);
   });
 
   it("passes composeMail's two bodies to the vendor unchanged", async () => {
     const blocks = [f.HEADING, f.stat(f.num(3))];
-    await sendEmail({ kind: "report", to: "reader@example.com", subject: f.HEADING_KEY, blocks });
+    await sendEmail({ event: "e", kind: "report", to: "reader@example.com", subject: f.HEADING_KEY, blocks });
 
     const composed = await composeMail({ kind: "report", subject: f.HEADING_KEY, blocks });
     expect(requests[0]?.html).toBe(composed.html);
@@ -70,7 +70,7 @@ describe("BUILD §12 — one send, one request", () => {
     // whose sentence the owner has not written yet (asserted below).
     const blocks = [f.HEADING, f.stat(f.missing<number>()), f.stat(f.num(0))];
     await expect(
-      sendEmail({ kind: "report", to: "reader@example.com", subject: f.HEADING_KEY, blocks })
+      sendEmail({ event: "e", kind: "report", to: "reader@example.com", subject: f.HEADING_KEY, blocks })
     ).resolves.toEqual({ sent: true, id: "vendor-1" });
     expect(requests[0]?.text).toContain("0");
   });
@@ -78,7 +78,7 @@ describe("BUILD §12 — one send, one request", () => {
   it("maps a permanent vendor rejection to reason 'vendor' with no retry deadline", async () => {
     vendorReturns(422, "");
     await expect(
-      sendEmail({ kind: "report", to: "reader@example.com", subject: f.HEADING_KEY, blocks: [f.HEADING] })
+      sendEmail({ event: "e", kind: "report", to: "reader@example.com", subject: f.HEADING_KEY, blocks: [f.HEADING] })
     ).resolves.toEqual({ sent: false, reason: "vendor" });
   });
 
@@ -87,7 +87,7 @@ describe("BUILD §12 — one send, one request", () => {
       throw new Error("socket refused");
     });
     await expect(
-      sendEmail({ kind: "report", to: "reader@example.com", subject: f.HEADING_KEY, blocks: [f.HEADING] })
+      sendEmail({ event: "e", kind: "report", to: "reader@example.com", subject: f.HEADING_KEY, blocks: [f.HEADING] })
     ).resolves.toEqual({ sent: false, reason: "vendor" });
   });
 
@@ -131,7 +131,7 @@ describe("the stop control reaches the inbox as well as the reader", () => {
   } as const;
 
   it("a mail carrying a stop control sends the one-click address as the header", async () => {
-    await sendEmail({
+    await sendEmail({ event: "e",
       kind: "report",
       to: "reader@example.com",
       subject: f.HEADING_KEY,
@@ -145,7 +145,7 @@ describe("the stop control reaches the inbox as well as the reader", () => {
   });
 
   it("the header is the one-click endpoint, never the page the reader lands on", async () => {
-    await sendEmail({
+    await sendEmail({ event: "e",
       kind: "report",
       to: "reader@example.com",
       subject: f.HEADING_KEY,
@@ -157,7 +157,7 @@ describe("the stop control reaches the inbox as well as the reader", () => {
   });
 
   it("a sign-in mail claims no unsubscribe — it is the credential, and nothing stops it", async () => {
-    await sendEmail({
+    await sendEmail({ event: "e",
       kind: "magic-link",
       to: "reader@example.com",
       subject: f.HEADING_KEY,

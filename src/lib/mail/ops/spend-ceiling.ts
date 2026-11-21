@@ -31,6 +31,7 @@ export async function sendOpsAlert(a: SpendAlertInput): Promise<boolean> {
       const result = await sendEmail({
         kind: "ops",
         to,
+        event: `${new Date().toISOString().slice(0, 10)}/${JSON.stringify(a)}`,
         subject: mail.subject,
         blocks: mail.blocks,
       });

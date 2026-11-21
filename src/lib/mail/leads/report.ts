@@ -30,8 +30,8 @@ export function reportFacts(report: StoredReport): ReportFacts {
   };
 }
 
-/** Never throws; `false` where there is no stored report or the send did not go. `period` is the scan, so a double submit shares one vendor key. */
-export async function mailReport(a: { scanId: string; email: string; period: string }): Promise<boolean> {
+/** Never throws; `false` where there is no stored report or the send did not go. `event` is the scan, so a double submit shares one vendor key. */
+export async function mailReport(a: { scanId: string; email: string; event: string }): Promise<boolean> {
   const read = await leadStore().scanReport(a.scanId);
   if (!read.ok || read.report === null) return false;
   let report: StoredReport;
@@ -56,7 +56,7 @@ export async function mailReport(a: { scanId: string; email: string; period: str
     blocks: mail.blocks,
     reason: mail.reason,
     reasonVars: mail.reasonVars,
-    period: a.period,
+    event: a.event,
   });
   return result.sent;
 }

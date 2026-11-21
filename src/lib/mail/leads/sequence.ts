@@ -254,6 +254,7 @@ async function advanceLead(
   const result = await sendEmail({
     kind: "nurture",
     to: lead.email,
+    event: `${lead.id}/${touch}`,
     subject: mail.subject,
     blocks: mail.blocks,
     reason: mail.reason,

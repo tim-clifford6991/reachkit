@@ -70,7 +70,7 @@ export async function reportIncident(incident: OpsIncident, period?: string): Pr
   let accepted = false;
   for (const to of owners) {
     try {
-      const result = await sendEmail({ kind: "ops", to, subject: mail.subject, blocks: mail.blocks, ...(period === undefined ? {} : { period }) });
+      const result = await sendEmail({ kind: "ops", to, subject: mail.subject, blocks: mail.blocks, event: `${period ?? new Date().toISOString().slice(0, 10)}/${JSON.stringify(incident)}` });
       log(incident.occasion, result.sent ? "sent" : result.reason);
       if (result.sent) accepted = true;
     } catch {

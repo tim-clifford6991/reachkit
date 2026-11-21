@@ -23,6 +23,11 @@ export function settingsOf(pair: GoverningPair): PublishingSettings {
   };
 }
 
+/** The pair as one string, so a mail key changes exactly where `samePair` would say the pair changed. */
+export function pairKeyOf(p: GoverningPair): string {
+  return [p.mode, p.vetoHours, p.publishTime, p.timezone ?? ""].join("|");
+}
+
 /** The same pair when all four members agree. Written out, not deep-compared, so a new `GoverningPair` member must be
  *  decided here rather than silently left out of the comparison REQ-057 c8 turns on. */
 export function samePair(a: GoverningPair, b: GoverningPair): boolean {

@@ -2,7 +2,7 @@
 // `stoppable` row names (ADR-042), never both: merging them would silently take a magic-link customer's sign-in mail away.
 // The store is asked immediately before the vendor call, never at schedule time, so a mail switched off in between is not sent.
 // The stop control leaves twice: as a link in both bodies and as RFC 8058's headers, since an inbox does not read the body.
-// It never throws, retries nothing, and is not idempotent: a caller that must send once carries its own key.
+// It never throws and retries nothing; the caller's `event` makes a retry of the same occasion one mail.
 import type { CopyKey } from "@/lib/presentation/copy";
 import type { CopyVars, MailBlock } from "./blocks/types";
 import { MAIL_KINDS, type MailKind } from "./kinds";
@@ -30,8 +30,8 @@ interface SendCommon {
   /** A page going live under autopilot at a zero veto window, where the mail is the whole telling
    *  (`MAIL_KINDS['draft-ready'].unsuppressibleWhen`). Only `false`, so no `true` is left lying around. */
   suppressible?: false;
-  /** The vendor idempotency key's day, for a caller whose once-ness is not the UTC day. */
-  period?: string;
+  /** The occasion this mail tells (a draft, a touch, a request), never its text: a retry names the same one, another occasion another. */
+  event: string;
   /** Where a reply goes, where it is a person and not our mailbox. */
   replyTo?: string;
 }
@@ -147,7 +147,7 @@ export async function sendEmail(m: SendInput): Promise<SendResult> {
     text: composed.text,
     // RFC 8058: the headers go out exactly where the mail carries a stop control, so an unstoppable kind never claims it can.
     listUnsubscribe: m.optOut?.oneClickHref,
-    ...(m.period === undefined ? {} : { period: m.period }),
+    event: m.event,
     ...(m.replyTo === undefined ? {} : { replyTo: m.replyTo }),
   });
 

@@ -90,7 +90,7 @@ async function neverConnected(row: DestinationRecord): Promise<boolean> {
   return row.hostname_state !== "live" && !(await hasPublication(row.site_id));
 }
 
-type Occasion = Extract<BreakageMail, { due: true }> & { userId: string };
+type Occasion = Extract<BreakageMail, { due: true }> & { userId: string; brokeAt: string };
 
 async function occasionFor(siteId: string, now: Date): Promise<Occasion | null> {
   const rows = await liveDestinations(siteId);
@@ -115,6 +115,7 @@ async function occasionFor(siteId: string, now: Date): Promise<Occasion | null> 
     to: owner.email,
     copy: "mail.account.destinationBroken.subject",
     userId: owner.userId,
+    brokeAt: broken.health_changed_at,
   };
 }
 
@@ -154,7 +155,7 @@ export async function sendBreakageMail(siteId: string, now: Date): Promise<Break
     const href = await pagesLink({ userId: due.userId, to: due.to });
     if (href === null) return { sent: false, reason: "no-link" };
     const mail = buildDestinationBroken({ held: due.held, href, at: now });
-    const result = await sendEmail({ kind: "account", to: due.to, ...mail });
+    const result = await sendEmail({ kind: "account", to: due.to, event: `breakage/${due.destinationId}/${due.brokeAt}`, ...mail });
     if (!result.sent) return { sent: false, reason: "mail" };
     await markBreakageMailSent(due.destinationId, now);
     return { sent: true, destinationId: due.destinationId, held: due.held };

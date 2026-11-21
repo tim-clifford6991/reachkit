@@ -25,7 +25,7 @@ function account(a: { notify: Row; digestSentAt: string | null }): void {
 }
 
 const pageReady = () =>
-  sendEmail({ kind: "draft-ready", to: "dana@example.com", userId: USER, subject: f.HEADING_KEY, blocks: [f.HEADING] });
+  sendEmail({ event: "e", kind: "draft-ready", to: "dana@example.com", userId: USER, subject: f.HEADING_KEY, blocks: [f.HEADING] });
 
 beforeEach(() => {
   vendorCalls = 0;
@@ -70,7 +70,7 @@ describe("D3 — the page-ready mail by default", () => {
   it("leaves the other two mails on after the first Monday mail", async () => {
     account({ notify: {}, digestSentAt: "2026-10-19T08:00:00Z" });
     await expect(
-      sendEmail({ kind: "published", to: "dana@example.com", userId: USER, subject: f.HEADING_KEY, blocks: [f.HEADING] })
+      sendEmail({ event: "e", kind: "published", to: "dana@example.com", userId: USER, subject: f.HEADING_KEY, blocks: [f.HEADING] })
     ).resolves.toEqual({ sent: true, id: "vendor-1" });
   });
 });

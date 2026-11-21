@@ -154,6 +154,7 @@ export async function beginEmailChange(
   const sent = await sendEmail({
     kind: "magic-link",
     to: candidate,
+    event: `email-change/${issued.tokenHash}`,
     subject: mail.subject,
     preheader: mail.preheader,
     blocks: mail.blocks,

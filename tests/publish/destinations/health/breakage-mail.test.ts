@@ -238,6 +238,10 @@ describe("no further mail until it is reconnected and breaks again", () => {
     row.health = "expired";
     row.health_changed_at = new Date(later.getTime() - 24 * HOUR_MS).toISOString();
     expect((await breakageMailDue("site-1", later)).due).toBe(true);
+    // A second breakage is a second vendor key, so the vendor cannot swallow it as a repeat of the first.
+    await sendBreakageMail("site-1", later);
+    const [first, second] = mail.sent.map((m) => (m as { event?: string }).event);
+    expect(second).not.toBe(first);
   });
 });
 
@@ -274,8 +278,10 @@ describe("the send stamps the guard, and only after the mail has gone", () => {
     mail.result = { sent: false, id: "" };
     expect(await sendBreakageMail("site-1", NOW)).toEqual({ sent: false, reason: "mail" });
     expect(db.rows("destinations")[0]!.broken_mail_sent_at).toBeNull();
-    // And it is still due, which is the point of not stamping.
+    // And it is still due, which is the point of not stamping; the retry carries the same vendor key.
     expect((await breakageMailDue("site-1", NOW)).due).toBe(true);
+    await sendBreakageMail("site-1", NOW);
+    expect((mail.sent[1] as { event?: string }).event).toBe((mail.sent[0] as { event?: string }).event);
   });
 
   it("it never throws: the daily loop it rides must not lose tomorrow's page to a mail that failed", async () => {

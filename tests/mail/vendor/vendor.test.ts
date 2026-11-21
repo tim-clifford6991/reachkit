@@ -9,7 +9,7 @@ const { __setVendorTransportForTesting, recipientDigest, sendViaVendor } = await
 );
 
 const SEND = {
-  kind: "report",
+  kind: "report", event: "scan-1",
   to: "Reader@Example.com",
   subject: "A subject, already rendered",
   html: "<p>the html body</p>",
@@ -127,6 +127,11 @@ describe("BUILD §12 — every outcome is a value, never an exception", () => {
     const result = await sendViaVendor(SEND);
     expect(result).toMatchObject({ ok: false, retriable: true });
     expect((result as { retryUntil?: Date }).retryUntil).toBeInstanceOf(Date);
+  });
+
+  it("a 409 for a reworded retry of a sent event is that send, not a failure", async () => {
+    respond(409, JSON.stringify({ name: "invalid_idempotent_request" }));
+    await expect(sendViaVendor(SEND)).resolves.toMatchObject({ ok: true });
   });
 
   it("a 5xx is retriable", async () => {

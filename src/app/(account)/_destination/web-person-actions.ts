@@ -48,6 +48,6 @@ export async function sendToWebPerson(a: { host: string; to: string }): Promise<
   const { buildWebPersonMail } = await import("@/lib/mail/templates/web-person");
   const { sendEmail } = await import("@/lib/mail/send");
   const mail = buildWebPersonMail({ domain, host, view: guideView({ record, where, zone }) });
-  const sent = await sendEmail({ kind: "web-person", to, replyTo: buyer.email, ...mail });
+  const sent = await sendEmail({ kind: "web-person", to, replyTo: buyer.email, event: `${host}/${new Date().toISOString().slice(0, 10)}`, ...mail });
   return sent.sent ? { outcome: "sent" } : { outcome: "failed" };
 }

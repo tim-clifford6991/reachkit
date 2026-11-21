@@ -628,7 +628,7 @@ describe("settings → cancel → export → erasure, and the pages stop being s
       return { status: 200, headers: {}, body: JSON.stringify({ id: `resend-${mails}` }) };
     });
     const mail = buildAccountDeleted({ stillLive: 2, leftInWordPress: {} });
-    const sent = await sendEmail({
+    const sent = await sendEmail({ event: "e",
       kind: "account",
       to: EMAIL,
       userId: USER_ID,

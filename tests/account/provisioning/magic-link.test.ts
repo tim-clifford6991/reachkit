@@ -98,7 +98,7 @@ describe('REQ-024 c4 — "when they ask for a new sign-in link using the address
     vi.setSystemTime(new Date("2026-11-13T15:55:00Z"));
     await requestMagicLink("founder@acme.example", NETWORK);
     vi.useRealTimers();
-    expect(sendCalls.map((c) => (c as { period?: string }).period)).toEqual(["2026-11-13T15:50:00.000Z", "2026-11-13T15:55:00.000Z"]);
+    expect(sendCalls.map((c) => (c as { event?: string }).event)).toEqual(["2026-11-13T15:50:00.000Z", "2026-11-13T15:55:00.000Z"]);
   });
 
   it("an address in a different case resolves to the same account", async () => {

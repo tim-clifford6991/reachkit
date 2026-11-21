@@ -11,8 +11,8 @@ export interface VendorSend {
   text: string;
   /** RFC 8058's one-click address, present exactly where the mail carries a stop control; absent sends no headers, never empty ones. */
   listUnsubscribe?: string;
-  /** The idempotency key's day, where the caller's once-ness is not the UTC day; absent keeps the UTC day. */
-  period?: string;
+  /** What the mail is about; with kind and recipient it is the vendor's duplicate key. */
+  event: string;
   /** Where a reply goes; absent is `MAIL_FROM`, the mailbox we read. */
   replyTo?: string;
 }

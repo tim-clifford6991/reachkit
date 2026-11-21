@@ -103,7 +103,7 @@ export async function deleteAccount(a: {
   });
   if (!kept.ok) console.error(JSON.stringify({ event: "churned_contact_unwritten", userId }));
 
-  // 6 — one Goodbye, always; the user id as the period makes a retried deletion's second send a no-op.
+  // 6 — one Goodbye, always; the user id as the event makes a retried deletion's second send a no-op.
   const stillLive = takenDown.result.stillLive;
   const stillLiveCount = stillLive.reduce((sum, row) => sum + row.liveUrls.length, 0);
   const mail = buildGoodbye({
@@ -117,7 +117,7 @@ export async function deleteAccount(a: {
     subject: mail.subject,
     blocks: mail.blocks,
     userId,
-    period: userId,
+    event: `goodbye/${userId}`,
   });
   const mailSent = sent.sent;
 
