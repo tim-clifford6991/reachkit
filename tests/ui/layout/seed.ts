@@ -54,6 +54,7 @@ import type { MainSite } from "@/lib/site-profile/main-site-row";
 import { assembleReport } from "@/lib/scan/store";
 import { previousWeekStart, weekStartFor } from "@/lib/scan/weekly";
 import { DEFAULT_HOSTED_LABEL } from "@/lib/publish/destinations/hosted/label";
+import { HOSTED_SITE_EDGE_FROM } from "@/lib/config/constants/publish";
 import { windowStartDay } from "@/lib/publish/reads/model";
 import type { AppAccount } from "@/app/(account)/app/_session/account";
 import type { AuthStub } from "./auth-stub";
@@ -494,8 +495,8 @@ export function seedUnconnectedAccount(): void {
     publishing: WEEK_ZERO_PUBLISHING,
   });
   sql(
-    `insert into destinations (site_id, kind, config, health, health_reason, hostname, hostname_state) values ` +
-      `('${siteId}', 'hosted', null, 'expired', 'dns_unset', '${UNCONNECTED_HOST}', 'pending_dns');`
+    `insert into destinations (site_id, kind, config, health, health_reason, hostname, hostname_state, created_at) values ` +
+      `('${siteId}', 'hosted', null, 'expired', 'dns_unset', '${UNCONNECTED_HOST}', 'pending_dns', '${HOSTED_SITE_EDGE_FROM}');`
   );
 }
 
@@ -881,8 +882,8 @@ export function seedSetupAccount(): void {
   // A hosted address still waiting for its record, so `/setup/connect` draws its screen
   // rather than sending this founder on.
   sql(
-    `insert into destinations (site_id, kind, config, health, health_reason, hostname, hostname_state) values ` +
-      `('${siteId}', 'hosted', null, 'expired', 'dns_unset', '${DEFAULT_HOSTED_LABEL}.${domain}', 'pending_dns');`
+    `insert into destinations (site_id, kind, config, health, health_reason, hostname, hostname_state, created_at) values ` +
+      `('${siteId}', 'hosted', null, 'expired', 'dns_unset', '${DEFAULT_HOSTED_LABEL}.${domain}', 'pending_dns', '${HOSTED_SITE_EDGE_FROM}');`
   );
 
   // What the crawl read of the site, so Check draws its pages-read figure and each section's reading.

@@ -39,9 +39,10 @@ export interface SetupCards {
   destination: readonly DestinationOption[];
 }
 
-/** Whether a hosted host connected at `since` keeps the shared edge; `null` is one not connected yet. */
-export function keepsSharedEdge(since: Date | null): boolean {
-  return since !== null && since.getTime() < Date.parse(HOSTED_SITE_EDGE_FROM);
+/** Whether a hosted host connected at `since` keeps the shared edge. `null`, not connected yet, is read as connecting
+ *  now, so a site sees one value before and after its row is written. */
+export function keepsSharedEdge(since: Date | null, now: Date = new Date()): boolean {
+  return (since ?? now).getTime() < Date.parse(HOSTED_SITE_EDGE_FROM);
 }
 
 /** The value a site's record names: the site's own name under the edge, so the record itself says which site set it. */

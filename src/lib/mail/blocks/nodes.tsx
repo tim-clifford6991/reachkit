@@ -202,8 +202,8 @@ function Facts({ rows, body }: { rows: readonly { label: string; value: string }
           <Column style={{ ...FACT_CELL, fontFamily: face, color: token("--ink-2") }}>
             {item.label}
           </Column>
-          {/* `break-all` wraps a long record value inside a phone's width rather than widening the mail. */}
-          <Column align={RIGHT} style={{ ...FACT_CELL, color: token("--color-base-content"), wordBreak: "break-all" }}>
+          {/* A value with no space (a record, an address) may break anywhere rather than widen the mail; words wrap at spaces. */}
+          <Column align={RIGHT} style={{ ...FACT_CELL, color: token("--color-base-content"), ...(/\s/.test(item.value) ? {} : { wordBreak: "break-all" }) }}>
             {body ? <strong>{item.value}</strong> : <Mono>{item.value}</Mono>}
           </Column>
         </Row>
