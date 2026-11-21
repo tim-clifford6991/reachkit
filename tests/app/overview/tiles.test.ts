@@ -33,6 +33,7 @@ describe("Overview's tiles", () => {
   it("two publications on one address, nothing published or taken down: Same, and the line ends on the figure", () => {
     const { pages } = tiles([page("a", "https://ex.com/a"), page("b", "https://ex.com/a")]);
     expect(pages.change).toEqual({ kind: "same" });
+    expect([pages.n, pages.of]).toEqual([2, { kind: "count", m: 2 }]);
     expect(pages.series?.at(-1)).toBe(pages.n);
   });
 
@@ -49,6 +50,6 @@ describe("Overview's tiles", () => {
       page("c", "https://ex.com/c", null, false),
     ]);
     expect([google.n, google.of]).toEqual([card.placed, { kind: "count", m: card.live }]);
-    expect([card.placed, card.live]).toEqual([1, 3]);
+    expect([card.placed, card.live, card.unseen]).toEqual([1, 3, 0]);
   });
 });

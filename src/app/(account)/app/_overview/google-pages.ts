@@ -45,6 +45,8 @@ export interface GooglePages {
   placed: number;
   /** Of those, the ones on Google's first page. */
   placedFirstPage: number;
+  /** Read pages with no place at all; a Search Console place is a place, so it is never counted here. */
+  unseen: number;
 }
 
 /** A live page Google showed for its own search this week, read on a stored result. Search Console's
@@ -90,6 +92,7 @@ export function googlePagesOf(all: readonly PublishedPage[], now: Date): GoogleP
     live: pages.length,
     read: read.length,
     placed: pages.filter(placedNow).length,
+    unseen: read.filter((page) => page.reading!.place == null).length,
     placedFirstPage: pages.filter((page) => placedNow(page) && page.reading!.place!.value <= FIRST_PAGE_PLACES).length,
   };
 }

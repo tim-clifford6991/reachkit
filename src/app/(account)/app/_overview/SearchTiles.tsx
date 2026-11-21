@@ -107,7 +107,7 @@ export function SearchTiles(p: {
               copy("overview.search.tile.your-pages.split", {
                 first: formatCount(pages.placedFirstPage),
                 further: formatCount(pages.placed - pages.placedFirstPage),
-                unseen: formatCount(pages.read - pages.placed),
+                unseen: formatCount(pages.unseen),
               }),
               ...(pages.live === pages.read ? [] : [copy("overview.ladder.unread", { k: formatCount(pages.live - pages.read) })]),
             ].join(" · "),

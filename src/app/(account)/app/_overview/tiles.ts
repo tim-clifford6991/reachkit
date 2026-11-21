@@ -168,7 +168,8 @@ export function tilesOf(a: {
   const latest = passes.at(-1);
 
   // Pages: every address ever published, merged and taken-down ones included.
-  const ever = new Set(a.pages.map((page) => (page.liveUrl === null ? `#${page.id}` : addressOf(page.liveUrl))));
+  // Every publication ever published, taken-down ones included: the same unit as the figure.
+  const ever = new Set(a.pages.map((page) => page.id));
   const weekly = Array.from({ length: TILE_WEEKS }, (_, i) => (i === TILE_WEEKS - 1 ? live : standing(a.pages, t - (TILE_WEEKS - 1 - i) * WEEK_MS).length));
   const lastWeek = weekly.at(-2)!;
   const pages: Tile =
