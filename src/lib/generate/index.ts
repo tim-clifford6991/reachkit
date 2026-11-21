@@ -48,7 +48,7 @@ import { pageTypeOf } from "@/lib/opportunities/page-type";
 import { intentFor } from "@/lib/opportunities/intent";
 import { openDayCost, roomForFix, withDraftCost } from "./cost";
 import { readRecordedRules } from "./record";
-import { COLLECT, askDayResearch, heldResearch, researchHeld } from "./research-queue";
+import { COLLECT, askDayResearch, dayTypes, heldResearch } from "./research-queue";
 import { repairStructure } from "./rules/structure";
 import { completenessOf, dayTopic, mendPage, mendable, versusRivals } from "./day-refresh";
 import { writtenFor } from "./fix-step";
@@ -59,7 +59,7 @@ import { competitorOf, generateDraft, targetSearches, type GenerateOutcome } fro
 import { allowedFacts, readAllFacts, readDemoPhrases, type SourcedFact } from "./pipeline/grounding";
 import { siteRulesOf } from "./pipeline/battery";
 import { buildPack, readPack, type ContextPack, type PackLivePage, type PackMeasurements } from "./pipeline/pack";
-import { builtFromOutside, meetsStandard, typeTheResearchFills } from "./standard";
+import { builtFromOutside, meetsStandard, researchedAs } from "./standard";
 import { generatePageFix } from "./pipeline/page-fix";
 import type { FixNote } from "./pipeline/repair";
 import { NO_RESEARCH, researchMarket, storedAsk, type MarketResearch } from "./pipeline/research";
@@ -544,15 +544,15 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number; 
   const packFor = async (o: Opportunity): Promise<{ pack: ContextPack; links: LinkTarget[]; pending?: true } | null> => {
     // 1. Decide (code only): new or an update, and which of the seven types.
     // The commit's stored type stands; a row with none takes the type its cached research fills, read at 0¢.
-    const type = o.writeAs ?? typeTheResearchFills(o, (await researchHeld(a.siteId, [{ id: o.id, target_query: o.targetQuery }], new Date(), cost)).get(o.id) ?? null);
+    const { type, own } = await dayTypes(a.siteId, o, new Date(), cost);
     if (type === null) return null;
-    const template = TEMPLATES[type];
+    const as = researchedAs(type, own);
     const links = linksFor(o).filter((link) => link.url !== o.targetRef);
     const live = type === "update" ? await livePageOf(a, o, known, facts) : null;
     const previousResearch = type === "research" ? await previousResearchOf(a.siteId) : null;
     const packOf = (research: MarketResearch): ContextPack =>
       buildPack({
-        type,
+        type, ...(own === undefined ? {} : { own }),
         opportunity: o,
         site: ruleInputs,
         category,
@@ -586,7 +586,7 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number; 
     //    stops it. A Q&A its target's own SERP leaves short of questions is
     //    read beside the market's searched terms too (owner, D62; issue
     //    1297): the pack says when it holds enough.
-    const market = !template.research
+    const market = !TEMPLATES[as].research
       ? type === "offering" ? storedAsk(report, targetSearches(o)) : NO_RESEARCH
       : await heldResearch(cost, { key: `${a.siteId}:${o.id}:${type}:${a.publishDate}`, reuse: a.completeness === "warn" || a.fixStep === "owed" }, () => researchMarket(cost, {
           siteId: a.siteId,
@@ -598,7 +598,7 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number; 
           rivals: [...versusRivals(site, report, o), ...(competitorOf(o) ?? []), ...site.rivals],
           // Issue 1508: a listicle counts its top results' options, and an alternatives search's product is its baseline.
           rivalNames: namedRivals(site.rivals, writingFor.market),
-          options: type === "listicle",
+          options: as === "listicle",
           marketWords: [category, ...writingFor.synonyms],
           today: new Date(),
           // Issue 1390: every page that is researched reads what buyers
@@ -606,8 +606,8 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number; 
           questions: true,
           // Issue 1486: a how-to or a Q&A is built from cited outside facts,
           // so its one search reads the target's own guidance.
-          guidance: builtFromOutside(type), study: type !== "update",
-          ...(type === "insights"
+          guidance: builtFromOutside(as), study: as !== "update",
+          ...(as === "insights"
             ? { recent: { searches: [category === "" ? (targetSearches(o)[0] ?? "") : category, ...writingFor.synonyms], days: RESEARCH.recentDays, market: writingFor } }
             : {}),
         }).catch((error: unknown) => {

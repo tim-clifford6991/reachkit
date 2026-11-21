@@ -15,11 +15,12 @@ import { isListingAddress, isMarketplaceHost, isOwnDomain, isPlatformDomain, goo
 import { stemKey } from "@/lib/market/questions/select";
 import { opportunityById } from "@/lib/opportunities";
 import type { OpportunityRow } from "@/lib/opportunities/store";
-import type { PlanWriteAs } from "@/lib/opportunities/types";
+import { contentTypeOf, type ContentType } from "@/lib/opportunities/content-type";
+import type { Opportunity, PlanWriteAs } from "@/lib/opportunities/types";
 import { cachedSerp, serpOrganic } from "@/lib/vendors/dataforseo/serp";
 import { DRAFT_POLICY_VERSION, openDayCost } from "./cost";
 import { targetSearches } from "./pipeline";
-import { builtFromOutside, typeTheResearchFills, type ResearchRead } from "./standard";
+import { builtFromOutside, ownTypeOf, researchedAs, typeTheResearchFills, type ResearchRead } from "./standard";
 import { NO_RESEARCH, RESEARCH_READ_SOURCE, fetchBody, readFresh, researchSerps, rivalPage, sitemapOf, type MarketResearch } from "./pipeline/research";
 import { knowledgeTexts, shares, topicWords } from "./pipeline/pack";
 import { alikeHeadings } from "./rules/headings";
@@ -36,12 +37,12 @@ export const COLLECT = Object.freeze({ rounds: 11, stepMs: 240_000, askMs: 20_00
  *  the queue; a type that reads no research has none. */
 export async function askDayResearch(a: { siteId: string; opportunityId: string; writeAs?: PlanWriteAs; now: Date; since?: Date; waitMs: number }): Promise<number> {
   const [o, report] = await Promise.all([opportunityById(a.opportunityId), generateStore().latestReport(a.siteId)]);
-  // A row with no stored type asks the reads of the type its cached research fills so far.
-  const type = o === null ? null : (a.writeAs ?? o.writeAs ?? typeTheResearchFills(o, (await researchHeld(a.siteId, [{ id: o.id, target_query: o.targetQuery }], a.now)).get(o.id) ?? null));
+  const { type, own } = o === null ? { type: null } : await dayTypes(a.siteId, { ...o, writeAs: a.writeAs ?? o.writeAs }, a.now);
   const target = o === null ? undefined : targetSearches(o)[0];
   if (report === null) return 0;
   const locale = await siteLocale(a.siteId);
-  const reads = type === null || !TEMPLATES[type].research || target === undefined ? [] : researchSerps({ siteId: a.siteId, locale, target, guidance: builtFromOutside(type), ...(type === "insights" ? { recent: true } : {}) }, a.waitMs);
+  const as = type === null ? null : researchedAs(type, own);
+  const reads = as === null || !TEMPLATES[as].research || target === undefined ? [] : researchSerps({ siteId: a.siteId, locale, target, guidance: builtFromOutside(as), ...(as === "insights" ? { recent: true } : {}) }, a.waitMs);
   const update = await (await import("./day-refresh")).updateSearch(a.siteId, a.now);
   const beside = update === null ? [] : researchSerps({ siteId: a.siteId, locale, target: update, study: false }, a.waitMs).filter((read) => !reads.some((own) => own.query === read.query));
   if (reads.length + beside.length === 0) return 0;
@@ -51,6 +52,14 @@ export async function askDayResearch(a: { siteId: string; opportunityId: string;
     await Promise.all([...reads.map((read) => serpOrganic(cost, { ...read, onFailure: (failed) => void (waiting += failed.taskId === undefined ? 0 : 1) })), ...beside.map((read) => serpOrganic(cost, read))]);
     return waiting;
   });
+}
+
+/** A day's page type, its stored one else the one its cached research fills, and its query's own type where the ladder
+ *  fell from it, read at 0¢; a stored type that is its shape's own reads nothing, and nothing cached keeps the shape's. */
+export async function dayTypes(siteId: string, o: Opportunity, now: Date, cost?: CostContext): Promise<{ type: ContentType | null; own?: ContentType }> {
+  const read = o.writeAs !== undefined && o.writeAs === contentTypeOf(o) ? null : ((await researchHeld(siteId, [{ id: o.id, target_query: o.targetQuery }], now, o.writeAs === undefined ? cost : undefined)).get(o.id) ?? null);
+  const type = o.writeAs ?? typeTheResearchFills(o, read), own = ownTypeOf(o, read);
+  return { type, ...(own === null || own === type ? {} : { own }) };
 }
 
 /** A topic's research for its date, ledgered at 0¢ beside its own calls, so the day's last step counts its minimum from
