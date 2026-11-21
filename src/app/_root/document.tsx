@@ -77,7 +77,12 @@ export default function ReachKitDocument({ children }: { children: React.ReactNo
   // `suppressHydrationWarning`: the script sets `data-theme` on `<html>`
   // before React hydrates, which is the point, not a mismatch.
   return (
-    <html lang="en" className={fontVariables} suppressHydrationWarning>
+    <html
+      lang="en"
+      // A page with the phone offer bar keeps its height free at the foot, so the bar covers no content and no focus.
+      className={`${fontVariables} max-md:has-[[data-offer-bar]]:scroll-pb-[var(--offer-bar-h)] max-md:has-[[data-offer-bar]]:pb-[var(--offer-bar-h)]`}
+      suppressHydrationWarning
+    >
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>

@@ -61,6 +61,8 @@ import { staticMetadata } from "./_seo/metadata";
 import { JsonLd, homeSchemas } from "./_seo/structured";
 import { marked } from "./_library/head";
 import { OfferLine } from "./_chrome/OfferLine";
+import { PhoneOfferBar } from "./scan/[domain]/_modules/pricing";
+import { startCheckout } from "./pricing/actions";
 
 const WEEK_PAGES = String(HOW_FACTS.weekPages);
 const PRICE = (): string => copy("price.amount");
@@ -309,8 +311,16 @@ export default function LandingPage(props: {
             </div>
           </div>
         </section>
+        <LandingOfferBar />
       </main>
     </Surface>
     </>
   );
+}
+
+/** The landing has no price card, so its phone bar reads the spots at build, as the offer line does, and starts Pricing's checkout. */
+async function LandingOfferBar(): Promise<React.JSX.Element> {
+  // Loaded here: the database client checks its environment when it loads.
+  const spots = await import("@/lib/account/offer/spots").then((m) => m.spotsLeft()).catch(() => null);
+  return <PhoneOfferBar startAction={startCheckout} spots={spots} built />;
 }

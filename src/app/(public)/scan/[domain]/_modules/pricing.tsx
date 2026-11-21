@@ -34,7 +34,7 @@
 import type React from "react";
 import { Suspense } from "react";
 import { ArrowRight, Check } from "lucide-react";
-import { OFFER_ENDS_ON, OFFER_SPOTS, SETUP_MINUTES, VETO, WEEK_PLAN } from "@/lib/config/constants";
+import { OFFER_ENDS_AT, OFFER_ENDS_ON, OFFER_SPOTS, SETUP_MINUTES, VETO, WEEK_PLAN } from "@/lib/config/constants";
 import type { SpotsLeft } from "@/lib/account/offer/spots";
 import { copy } from "@/lib/presentation/copy";
 import { HOW_FACTS } from "@/app/(public)/_how/facts";
@@ -43,6 +43,7 @@ import { FLOAT } from "@/ui/lift";
 import { Num } from "../_address/measured";
 import { WhenRefused } from "../../../pricing/refused";
 import { FirstFifty } from "./first-fifty";
+import { BarStart, OfferBar } from "./offer-bar";
 
 /** The static pricing page's `refused`: the marker is read in the browser. */
 export const REFUSED_IN_QUERY = "query" as const;
@@ -167,6 +168,34 @@ function Offer(p: { spots: SpotsLeft | null; built: boolean }): React.JSX.Elemen
   );
 }
 
+/** The phone offer bar: `startAction` is the page's own checkout start, posted from a second form. */
+export function PhoneOfferBar(p: {
+  startAction: () => Promise<void>;
+  spots: SpotsLeft | null;
+  built: boolean;
+  refused?: boolean | typeof REFUSED_IN_QUERY;
+}): React.JSX.Element {
+  return (
+    <OfferBar
+      read={p.built}
+      spots={p.spots}
+      endsAt={OFFER_ENDS_AT}
+      words={{
+        before: copy("offer.spots.before", { of: String(OFFER_SPOTS), endsOn: OFFER_ENDS_ON }),
+        left: copy("offer.card.left", { left: "{left}", of: String(OFFER_SPOTS) }),
+        promise: copy("offer.banner.promise", { minutes: String(SETUP_MINUTES) }),
+        refused: copy("offer.checkout.refused"),
+      }}
+      refused={p.refused}
+      start={
+        <form action={p.startAction}>
+          <BarStart label={copy("offer.start.priced")} />
+        </form>
+      }
+    />
+  );
+}
+
 export function PricingCard(
   p: {
     startAction?: () => Promise<void>;
@@ -199,6 +228,8 @@ export function PricingCard(
   );
   const control = p.startAction ? <form action={p.startAction}>{start}</form> : start;
   const offer = <Offer spots={p.spots ?? null} built={p.built === true} />;
+  // Below `md` the same action, in a second form, stays in reach once the card's Start scrolls away.
+  const bar = p.startAction ? <PhoneOfferBar startAction={p.startAction} spots={p.spots ?? null} built={p.built === true} refused={p.refused} /> : null;
 
   if (p.close === true) {
     return (
@@ -214,6 +245,7 @@ export function PricingCard(
             <PriceBox start={control} close cancel={cancel} refused={p.refused} offer={offer} free={p.free} />
           </div>
         </div>
+        {bar}
       </section>
     );
   }
@@ -242,6 +274,7 @@ export function PricingCard(
           free={p.free}
         />
       </div>
+      {bar}
     </section>
   );
 }
