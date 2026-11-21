@@ -41,6 +41,7 @@ import type { ACCOUNT_NOTE_KEYS } from "@/lib/account/identity/notes";
 import type { PublishingMode } from "../_shell/model";
 import { formatDate, formatDateTime, formatDayDate } from "../_shell/format";
 import type { BillingSummary, PlanState } from "./billing";
+import { OFFER_CHECKIN_DAYS } from "@/lib/config/constants";
 import { notificationRows, type NotificationRow, type NotifyKind } from "./notifications";
 
 /** The destination read model, entire — **the registry's own
@@ -115,6 +116,8 @@ export type BillingFacts =
       paymentFailed: boolean | null;
       /** REQ-097 c1's one destination. */
       surfaceHref: string;
+      /** When the account's first-50 spot was taken; `null` without one or where it could not be read. */
+      spotTakenAt: Date | null;
     }
   | { readable: false; surfaceHref: string };
 
@@ -404,7 +407,10 @@ export function localeChoices(current: Locale, alsoServes: readonly string[]): s
 }
 
 /** The billing card from its facts alone, so the billing tab needs no other read. */
-export function billingSummaryOf(billing: BillingFacts, timeZone: string): BillingSummary {
+export function billingSummaryOf(billing: BillingFacts, timeZone: string, now: Date): BillingSummary {
+  const taken = billing.readable && billing.state !== "ended" ? billing.spotTakenAt : null;
+  // Only the next check-in is drawn, so a passed date is never shown.
+  const checkIn = taken === null ? undefined : OFFER_CHECKIN_DAYS.map((days) => new Date(taken.getTime() + days * 86_400_000)).find((at) => at > now);
   return billing.readable
     ? {
         readable: true,
@@ -417,6 +423,8 @@ export function billingSummaryOf(billing: BillingFacts, timeZone: string): Billi
         pagesOfflineOn: billing.pagesOfflineOn === null ? null : formatDayDate(billing.pagesOfflineOn, timeZone),
         paymentFailed: billing.paymentFailed,
         surfaceHref: billing.surfaceHref,
+        customerSince: taken === null ? null : formatDayDate(taken, timeZone),
+        nextCheckIn: checkIn === undefined || billing.state !== "active" ? null : formatDayDate(checkIn, timeZone),
       }
     : { readable: false, surfaceHref: billing.surfaceHref };
 }
@@ -465,7 +473,7 @@ export function assembleSettings(facts: SettingsFacts): SettingsModel {
             },
       noteKeys: facts.noteKeys,
     },
-    billing: billingSummaryOf(facts.billing, facts.timeZone),
+    billing: billingSummaryOf(facts.billing, facts.timeZone, facts.now),
     content: { pages: facts.publishedPages },
     unread: facts.unread ?? [],
   };

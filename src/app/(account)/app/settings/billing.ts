@@ -99,6 +99,9 @@ export interface BillingCard {
   /** The ended arm's offline day, written in the customer's zone; `null` without hosted pages. */
   pagesOfflineOn: string | null;
   paymentFailed: boolean | null;
+  /** A first-50 spot holder's taken day and next check-in, written in the customer's zone; `null` for anyone else. */
+  customerSince: string | null;
+  nextCheckIn: string | null;
   /** REQ-097 c1's one destination: Stripe's own billing surface, where the
    *  card, the invoices, the billing address, the VAT number and cancelling
    *  are all done. Every billing control on the screen leads here. */

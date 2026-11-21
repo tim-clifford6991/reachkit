@@ -144,7 +144,8 @@ function statedCategory(state: SetupState): string | null {
   return state.market.state === "stated" ? state.market.category : null;
 }
 
-export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
+/** `offer` is the help line the first step draws above the steps' question, in the header band. */
+export function SetupForm(p: { model: SetupScreenModel; offer?: React.ReactNode }): React.JSX.Element {
   const router = useRouter();
   const defaults = preselected(p.model.cards);
 
@@ -381,6 +382,7 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
     // of a short page and stays pinned over a long one.
     <div className={FRAME}>
       <SetupHeader step={step}>
+        {step === "site" ? p.offer : null}
         {step === "check" && started !== null ? (
           <p className="text-(length:--t-sm) text-base-content/80" role="status" data-testid="setup-check-status">
             {copy("setup.check.status", { time: started })}

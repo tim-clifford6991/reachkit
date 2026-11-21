@@ -110,4 +110,12 @@ export const OFFER_COPY = Object.freeze({
   "offer.before.title": ["Before You Pay", { slots: {} }],
   "offer.before.read": ["Read your report and first page before you pay", { slots: {} }],
   "offer.before.export": ["Download all your pages any time", { slots: {} }],
+  // A spot holder's Settings › Billing rows and setup's help line; the line's help half is for every buyer.
+  "offer.billing.spot": ["One of our first {of} customers", { slots: { of: "text" } }],
+  "offer.billing.since": ["Customer since", { slots: {} }],
+  "offer.billing.checkin": ["Next check-in", { slots: {} }],
+  "offer.founder": ["Email the Founder", { slots: {} }],
+  "offer.setup.holder": ["You’re one of our first {of} customers.", { slots: { of: "text" } }],
+  "offer.setup.help": ["Stuck? We’ll do it with you on a call, at no cost.", { slots: {} }],
+  "offer.setup.book": ["Book 15 Minutes", { slots: {} }],
 }) satisfies CopyPartition;

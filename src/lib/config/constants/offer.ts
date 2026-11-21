@@ -8,3 +8,7 @@ export const OFFER_FEW_LEFT = 4 as const;
 export const OFFER_FREE_REFUND_DAYS = 14 as const;
 /** The ended or all-taken line stays this many days after the offer closed, then nothing is drawn. */
 export const OFFER_SHOWN_DAYS = 30 as const;
+/** The founder's free booking link; empty until the owner makes one, and "Book 15 Minutes" is drawn only when it is set. */
+export const OFFER_BOOKING_URL: string = "";
+/** The founder checks in with a spot holder this many days after the spot was taken. */
+export const OFFER_CHECKIN_DAYS = [14, 30] as const;

@@ -53,6 +53,8 @@ const FIXTURE_BILLING: BillingFacts = Object.freeze({
   pagesOfflineOn: null,
   paymentFailed: false,
   surfaceHref: "https://billing.stripe.com/p/session/fixture",
+  // A spot holder, so the layout sweep measures the longest card.
+  spotTakenAt: new Date("2026-09-05T09:00:00.000Z"),
 });
 
 export const FIXTURE_SETTINGS_FACTS: SettingsFacts = Object.freeze({

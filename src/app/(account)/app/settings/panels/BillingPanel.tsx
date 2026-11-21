@@ -44,6 +44,7 @@ import { writtenLine } from "../../_shell/written";
 import { useAction } from "./useAction";
 import { SettingRow } from "./SettingRow";
 import { PRICE_KEYS, type BillingSummary } from "../billing";
+import { OFFER_SPOTS, WEEK_PLAN } from "@/lib/config/constants";
 
 /** REQ-097 c6's three statements, in the order the criterion names them.
  *  One key each: a single key would let the second and third be lost by
@@ -111,6 +112,14 @@ export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element 
         ? "active"
         : null;
 
+  const since = billing.readable ? billing.customerSince : null;
+  const checkIn = billing.readable ? billing.nextCheckIn : null;
+  const founder = (
+    <a className="link link-primary inline-flex min-h-6 items-center" href={`mailto:${copy("chrome.footer.contact.address")}`} data-testid="billing-founder">
+      {copy("offer.founder")}
+    </a>
+  );
+
   const pill = (key: CopyKey, run: () => void): React.JSX.Element => (
     <button type="button" className="btn btn-soft btn-primary min-h-11" onClick={run} disabled={action.pending !== null}>
       {action.pending === "resume" ? <span className="loading loading-spinner loading-xs" aria-hidden /> : null}
@@ -143,14 +152,24 @@ export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element 
         {/* The settable-row shape every Settings tab draws (`SettingRow`,
             #1089): the name at the near edge, the value at the far one. */}
         <div className="flex min-w-0 flex-col">
-          {badge === null ? null : (
+          {badge === null && since === null ? null : (
             <SettingRow name={copy("settings.billing.status")} testId="billing-row-status">
-              <span
-                className={badge === "active" ? "badge badge-success badge-soft" : "badge badge-ghost"}
-                data-testid="billing-state"
-              >
-                {badge === "active" ? <Check size={14} strokeWidth={1.75} aria-hidden /> : null}
-                {copy(`settings.billing.${badge}`)}
+              {/* One group, so the two badges sit together and wrap on a phone. */}
+              <span className="flex min-w-0 flex-wrap items-center gap-2">
+              {badge === null ? null : (
+                <span
+                  className={badge === "active" ? "badge badge-success badge-soft" : "badge badge-ghost"}
+                  data-testid="billing-state"
+                >
+                  {badge === "active" ? <Check size={14} strokeWidth={1.75} aria-hidden /> : null}
+                  {copy(`settings.billing.${badge}`)}
+                </span>
+              )}
+              {since === null ? null : (
+                <span className="badge badge-ghost h-auto min-h-5 wrap-anywhere" data-testid="billing-spot">
+                  {copy("offer.billing.spot", { of: String(OFFER_SPOTS) })}
+                </span>
+              )}
               </span>
             </SettingRow>
           )}
@@ -175,9 +194,22 @@ export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element 
             }
           >
             <p className="min-w-0 wrap-anywhere" data-testid="billing-price">
-              {[amount, interval].filter((part) => part !== null).join(" ")}
+              {[copy("plan.single", { weekPages: String(WEEK_PLAN.days) }), [amount, interval].filter((part) => part !== null).join(" ")].join(" · ")}
             </p>
           </SettingRow>
+          {since === null ? null : (
+            <SettingRow name={copy("offer.billing.since")} testId="billing-row-since">
+              <span className="num num-phrase min-w-0 wrap-anywhere">{since}</span>
+            </SettingRow>
+          )}
+          {checkIn === null ? null : (
+            <SettingRow name={copy("offer.billing.checkin")} testId="billing-row-checkin">
+              <span className="flex min-w-0 flex-wrap items-center gap-x-3">
+                <span className="num num-phrase wrap-anywhere">{checkIn}</span>
+                {founder}
+              </span>
+            </SettingRow>
+          )}
           {nextInvoice === null ? null : (
             <SettingRow name={copy("settings.billing.next-invoice")} testId="billing-row-next-invoice">
               <span className="num num-phrase min-w-0 wrap-anywhere" data-testid="billing-next-invoice">

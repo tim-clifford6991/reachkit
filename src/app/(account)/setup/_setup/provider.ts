@@ -61,6 +61,13 @@ const currentFounder = cache(async function currentFounder(): Promise<{
   };
 });
 
+/** Whether the signed-in founder holds a first-50 spot; a failed read is `false`, so it draws nothing. */
+export const readSpotHolder = cache(async function readSpotHolder(): Promise<boolean> {
+  const founder = await currentFounder();
+  const { spotOf } = await import("@/lib/account/offer/spots");
+  return (await spotOf(founder.userId)) !== null;
+});
+
 /**
  * §4.3's screen, for the founder who is signed in.
  *

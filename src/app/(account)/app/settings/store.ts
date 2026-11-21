@@ -103,11 +103,10 @@ const BILLING_SURFACE = "/app/settings";
  * exist as keys (#136).
  */
 export async function readBilling(userId: string): Promise<BillingFacts> {
-  const summary = await read(
-    "billing",
-    () => import("@/lib/account/billing"),
-    ({ billingSummary }) => billingSummary(userId)
-  );
+  const [summary, spot] = await Promise.all([
+    read("billing", () => import("@/lib/account/billing"), ({ billingSummary }) => billingSummary(userId)),
+    import("@/lib/account/offer/spots").then(({ spotOf }) => spotOf(userId)).catch(() => null),
+  ]);
   if (!summary.ok || !summary.value.ok) return { readable: false, surfaceHref: BILLING_SURFACE };
   return {
     readable: true,
@@ -116,6 +115,7 @@ export async function readBilling(userId: string): Promise<BillingFacts> {
     pagesOfflineOn: summary.value.summary.pagesOfflineOn,
     paymentFailed: paymentFailedOf(summary.value.summary.planStatus),
     surfaceHref: BILLING_SURFACE,
+    spotTakenAt: spot?.takenAt ?? null,
   };
 }
 
