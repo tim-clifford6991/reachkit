@@ -37,32 +37,6 @@ export function formatCount(value: number): string {
   return new Intl.NumberFormat(NUMBER_LOCALE).format(value);
 }
 
-/** A day of the month, in the given zone — the shortest label that still
- *  names which day a chart mark is.
- *
- *  **Chart labels are sized to the viewBox, not to the sentence.** §2.4
- *  fixes charts as "hand-sized viewBoxes" and requires every mark to be
- *  direct-labelled; a label wider than the room the drawing leaves it is
- *  drawn outside the viewBox and clipped by the `<svg>`'s own overflow,
- *  which the layout sweep reports as a containment offender and a reader
- *  sees as a half-printed date. So this screen hands its charts the
- *  shortest label that is still unambiguous in its own context: a
- *  day-of-month inside one named week or one twelve-week window, and
- *  `formatMonthDay` where a series spans months. The full date is still
- *  reachable — it is what the mark's own tooltip carries. */
-export function formatDayOfMonth(at: Date, timeZone: string): string {
-  return new Intl.DateTimeFormat(NUMBER_LOCALE, { timeZone, day: "numeric" }).format(at);
-}
-
-/** A month and a day, in the given zone — a growth point's own week, in the
- *  room a weekly column leaves it. The year is the shell's to state, and it
- *  does (`Week n · measured 31 Aug 2026`). */
-export function formatMonthDay(at: Date, timeZone: string): string {
-  return new Intl.DateTimeFormat(NUMBER_LOCALE, { timeZone, month: "short", day: "numeric" }).format(
-    at
-  );
-}
-
 export interface RenderedValue {
   text: string;
   isDash: boolean;

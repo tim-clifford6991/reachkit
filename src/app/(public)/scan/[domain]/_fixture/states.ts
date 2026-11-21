@@ -29,7 +29,7 @@ import type { CanonicalDomain } from "@/lib/scan/domain";
 import type { Question } from "@/lib/market/questions/phrase";
 import type { AnswerCell, EngineCell, StoredQuestion, StoredReport } from "@/lib/scan/report";
 import type { AddressState } from "../_address/state";
-import { FIXTURE_SUFFIX, isFixtureDomain } from "./domains";
+import { isFixtureDomain } from "./domains";
 
 export { isFixtureDomain };
 
@@ -571,9 +571,6 @@ const FIXTURE_ARMS: Readonly<Record<string, (domain: CanonicalDomain) => Address
     "cooldown.example.com": (domain) => ({ kind: "cooldown", domain }),
     "removed.example.com": (domain) => ({ kind: "removed", domain }),
   });
-
-/** Every domain with an arm of its own, and the reserved name itself. */
-export const FIXTURE_DOMAINS: readonly string[] = [FIXTURE_SUFFIX, ...Object.keys(FIXTURE_ARMS)];
 
 /**
  * What a reserved domain resolves to, or `null` for every domain that is

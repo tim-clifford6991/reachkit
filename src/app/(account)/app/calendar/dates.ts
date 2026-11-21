@@ -116,11 +116,6 @@ export function fullDate(day: DayKey): string {
   }).format(utcOf(day));
 }
 
-/** A known Monday — the one date in this file that is written down. Every
- *  weekday name the screen speaks is formatted from it, so "Mon–Sun" and
- *  the weekly pass's own day are one fact rather than several strings. */
-const MONDAY: DayKey = "2026-09-07";
-
 /** The date a day card and a day of the phone list name, in words — "8
  *  September". The card itself draws the numeral alone; this is the form
  *  its label speaks, where "8" on its own would say nothing (issue 930). */
@@ -140,22 +135,6 @@ export function weekdayShort(day: DayKey): string {
     utcOf(day)
   );
 }
-
-/**
- * The word a live page's card carries where this week's pass has not
- * measured a place for it yet — the name of the day it will be: "Mon"
- * (SPEC §7, 2026-09-20; issue 930).
- *
- * It is the **weekday's own name**, taken from a known Monday and not
- * written down: "Mon–Sun" is one fact and
- * not seven strings, and the day the weekly pass runs on is the same
- * Monday §7's plan horizon is cut at. So it is a value, like a date
- * numeral, rather than a sentence the registry owes.
- */
-export function firstMeasuredLabel(): string {
-  return weekdayShort(MONDAY);
-}
-
 
 /** A date with its weekday in words, the head's "Chosen …" and the
  *  next-Monday line. */

@@ -44,13 +44,13 @@
 // offered it: a page in `needs_attention` could be reconnected or skipped,
 // and not written again, which is the one thing §9 gives the customer at
 // that state.
-import { TRANSITIONS, isTransition } from "@/lib/publish/machine/table";
+import { isTransition } from "@/lib/publish/machine/table";
 import { waitsOnDestination } from "@/lib/publish/record/needs-you";
 import type { DestinationKind } from "@/lib/publish/types";
 import type { CopyKey } from "@/lib/presentation/copy";
 import type { DayCell } from "./month";
 import type { RestartCommand, StopCommand } from "./publishing";
-import { STATES, type State } from "./stages";
+import type { State } from "./stages";
 
 /**
  * The word the one `→ skipped` edge is offered under, at each tail that
@@ -316,16 +316,3 @@ export function actionsFor(
   return actions;
 }
 
-/** The tails of the `→ skipped` edge, read straight off the imported table
- *  rather than filtered through a second question. Exported for the test
- *  that couples `STOP_COMMAND` to it; no renderer reads it. */
-export const STATES_WITH_STOP_EDGE: readonly State[] = STATES.filter((state) =>
-  TRANSITIONS.some(([from, to]) => from === state && to === "skipped")
-);
-
-/** The tails of the `→ generating` edge, likewise. `RESTART_COMMAND` is a
- *  **subset** of these and not an equality: `planned` is a tail of the
- *  edge and is §8's own move, not a control (see `RESTART_COMMAND`). */
-export const STATES_WITH_RESTART_EDGE: readonly State[] = STATES.filter((state) =>
-  TRANSITIONS.some(([from, to]) => from === state && to === "generating")
-);

@@ -123,8 +123,6 @@ const LIST = (
   // measures:end
 ) as const satisfies readonly Measure[];
 
-export const MEASURES: readonly Measure[] = Object.freeze(LIST);
-
 type Keys = { readonly [M in (typeof LIST)[number] as M["id"]]: M["shown"]["key"] };
 export type MeasureId = keyof Keys;
 

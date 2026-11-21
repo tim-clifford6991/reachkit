@@ -18,8 +18,6 @@ export const TERMS_SCHEMA = z.strictObject({
   ),
 });
 
-export type TermsAnswer = z.infer<typeof TERMS_SCHEMA>;
-
 export const TERMS_TASK = [
   "You list the search terms with the most monthly Google searches for the market given.",
   "The market's category and synonyms are labels taken from one company's own copy and may be invented: do not repeat one unless it is what the industry really calls this. Start from what you know of the industry: the names analysts, vendors and trade press use for this category, each acronym spelled out, and the short head terms a buyer types when they shop for it. Most of the list is those established names, 2 or 3 words each, with and without a word like \"tool\" or \"software\". At most three are the outcome in a buyer's own words (for a project-tracking market: \"track team tasks\").",

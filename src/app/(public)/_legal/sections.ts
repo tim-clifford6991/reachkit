@@ -108,13 +108,3 @@ export function legalSections(blocks: readonly Block[], classes: HtmlClasses): L
   return out;
 }
 
-/**
- * The body as HTML, through the one renderer, with an `id` on each of the
- * headings `legalHeadings` listed: the sections joined the way `toHtml` joins.
- */
-export function legalBodyWithIds(blocks: readonly Block[], classes: HtmlClasses): string {
-  return legalSections(blocks, classes)
-    .flatMap((s) => [s.headingHtml, ...s.blocks.map((b) => toHtml([b], classes))])
-    .filter((html) => html !== "")
-    .join("\n");
-}

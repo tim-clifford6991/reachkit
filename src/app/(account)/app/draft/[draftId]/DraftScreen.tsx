@@ -526,9 +526,6 @@ export function DraftScreen(p: {
    * `PublishedPageView` says how, and why there is no second renderer. It
    * replaces the dense in-card rendering this arm used to draw: a reviewer
    * approving a page is owed the page, not a transcription of it.
-   *
-   * `RenderedBody` is still the editor's: its preview sits inside a card
-   * among other cards, where a `prose` measure would fight the card.
    */
   const body = (
     <PublishedPageView

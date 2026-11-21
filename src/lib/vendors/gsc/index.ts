@@ -218,4 +218,3 @@ export function gscClient(account: GscAccount, send: GscSend = safeFetch, onRefu
   };
 }
 
-export type GscClient = ReturnType<typeof gscClient>;

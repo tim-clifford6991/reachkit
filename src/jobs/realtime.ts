@@ -50,8 +50,6 @@ export const setupStageMessage = z.object({
   stage: z.string().nullable(),
 });
 
-export type SetupStageMessage = z.infer<typeof setupStageMessage>;
-
 /** One site's setup channel. The id is the only thing in the name, so a
  *  token is per-founder by construction. */
 export const setupChannel = channel({

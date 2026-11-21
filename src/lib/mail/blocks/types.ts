@@ -139,8 +139,6 @@ export type MailBlock =
  *  `facts` is not one: its rows restate the heading, so losing them is not losing the mail's point. */
 export const CONDITIONAL_BLOCKS = ["stat", "hero", "stats", "list", "verdicts"] as const;
 
-export type ConditionalBlock = (typeof CONDITIONAL_BLOCKS)[number];
-
 export function isConditional(block: MailBlock): boolean {
   return (CONDITIONAL_BLOCKS as readonly string[]).includes(block.block);
 }
