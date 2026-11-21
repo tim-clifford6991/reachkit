@@ -468,8 +468,8 @@ export async function generateDraft(a: {
   const [{ decideDayPage, generateDayPage, refreshForDay }, { setAside }] = await Promise.all([import("@/lib/generate"), import("@/lib/generate/day-refresh")]);
   const day = { siteId: a.siteId, publishDate: a.publishDate, now: a.now, since: a.since ?? a.now };
   // Before the plan is read: deciding a day's page writes the week's plan.
-  const { dayHold } = await import("@/lib/publish/daily");
-  const held = await step("hold", () => dayHold(a.siteId, a.publishDate));
+  const { startDay } = await import("@/lib/publish/daily");
+  const held = await step("hold", () => startDay(a.siteId, a.publishDate));
   if (held !== null) return { degraded: held };
   // A stopped page that passes today's rules takes the date at 0¢, so the day's write answers `already_drafted`.
   const { recheckStopped, releaseStoppedDate } = await import("@/lib/generate/recheck");

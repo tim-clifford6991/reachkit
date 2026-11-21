@@ -1,3 +1,3 @@
 // BUILD §11 — the daily tick's own reads.
 export { sitesForDailyTick, type DailySelection, type DailySite } from "./sites";
-export { alertSiteDay, dayHold, firstDays, recordDraftDay, setDraftDayStore, markStandardRewrite, missedDays, untoldMisses, type DayOutcome, type DraftDay, type DraftDayStore } from "./days";
+export { alertSiteDay, startDay, startedBetween, firstDays, recordDraftDay, setDraftDayStore, markStandardRewrite, missedDays, untoldMisses, type DayOutcome, type DraftDay, type DraftDayStore } from "./days";
