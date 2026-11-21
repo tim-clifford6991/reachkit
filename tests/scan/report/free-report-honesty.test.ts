@@ -38,6 +38,15 @@ it("cleans images, citations, bracketed addresses and lists out of an answer's f
     ["__Bread__ is a _baked_ food.", "Bread is a baked food."],
     ["Bread is a baked food\u00a0[1]. More.", "Bread is a baked food."],
     ["### Breads\n\n| a | b |\n| - | - |\n| 1 | 2 |\n\n```\ncode\n```\n\nBread is a baked food.", "Bread is a baked food."],
+    ["Bread is a baked food[1](https://a.example). More.", "Bread is a baked food."],
+    ["Bread is ~~not~~ a baked food. More.", undefined],
+    ["Bread is a baked food¹. More.", "Bread is a baked food."],
+    ["Bread is a baked food^1^. More.", "Bread is a baked food."],
+    ["A bakery of 100 m² bakes bread. More.", "A bakery of 100 m² bakes bread."],
+    ["[^1]: Source text here is long.\n\nBread is a baked food. More.", "Bread is a baked food."],
+    ["El pan es un alimento básico. ¿Dónde comprarlo? Aquí.", "El pan es un alimento básico."],
+    ["לחם הוא מזון בסיסי בכל בית. נמכר במאפיות.", "לחם הוא מזון בסיסי בכל בית."],
+    ["الخبز طعام أساسي في كل بيت. يباع في المخابز.", "الخبز طعام أساسي في كل بيت."],
   ];
   for (const [text, want] of cases) expect(quote(text), text).toBe(want);
   const stored = reports.flatMap((x) => x.serps).flatMap((sv) => (sv.kind !== "unmeasured" && sv.value.aiOverview.text?.includes("subscriptions:\n\n- ") ? [sv.value.aiOverview.text] : []));

@@ -228,11 +228,15 @@ const QUOTE_MAX = 240;
 /** A node of the parsed answer, as far as a quote reads it. */
 type Md = { type: string; value?: string; children?: Md[] };
 
-/** Citation markers the Markdown parser reads as words: `[1]`, `[1, 2]`, `[1-3]`, `[^note]`, `【1】`. */
-const CITATION = /\[\^[^\]]*\]|\[\d+(?:\s*[,–-]\s*\d+)*\]|【[^】]*】/g;
+/** Citation markers the Markdown parser reads as words: `[1]`, `[1, 2]`, `[1-3]`, `[^note]`, `【1】`, `^1^`, and a
+ *  superscript number, except a unit's own power ("m²"). */
+const CITATION = /\[\^[^\]]*\]|\[\d+(?:\s*[,–-]\s*\d+)*\]|【[^】]*】|\^\d+\^|(?<!\b(?:[kcmd]?m|ft|in|yd|mi))[⁰¹²³⁴⁵⁶⁷⁸⁹]+/g;
 
-/** What a quote may not hold after the parse: an address, a bracket, a tag mark, a table bar or a list mark. */
-const NOT_WORDS = /https?:|www\.|[[\]【】<>|*]|^(?:\d+[.)]|[•+–-])\s/;
+/** A link whose words are only a citation number: the citation, not the answer's words. */
+const CITATION_LINK = /^\s*[[【]?\^?\d+(?:\s*[,–-]\s*\d+)*[\]】]?\s*$/;
+
+/** What a quote may not hold after the parse: an address, a bracket, a tag or strikethrough mark, a table bar or a list mark. */
+const NOT_WORDS = /https?:|www\.|[[\]【】<>|*]|~~|^(?:\d+[.)]|[•+–-])\s/;
 
 /** A phrase's own words: a link keeps its words, a line break is a space, and images, raw HTML and anything else go. */
 function wordsOf(node: Md, bold: string[]): string {
@@ -240,6 +244,7 @@ function wordsOf(node: Md, bold: string[]): string {
   if (node.type === "break" || node.type === "html") return " ";
   if (!["strong", "emphasis", "link", "linkReference"].includes(node.type)) return "";
   const words = (node.children ?? []).map((child) => wordsOf(child, bold)).join("");
+  if (node.type.startsWith("link") && CITATION_LINK.test(words)) return "";
   if (node.type === "strong") bold.push(words.trim());
   return words;
 }
@@ -251,16 +256,19 @@ function paragraphsOf(node: Md): Md[] {
 }
 
 /** The first sentence of the answer's first paragraph that holds words, with the names it set in bold; `null` where that is no clean sentence. */
-function sentenceOf(raw: string): { text: string; bold: string[] } | null {
+function sentenceOf(raw: string, language?: string): { text: string; bold: string[] } | null {
   const tree = fromMarkdown(raw, { extensions: [gfmTable()], mdastExtensions: [gfmTableFromMarkdown()] }) as Md;
   for (const paragraph of paragraphsOf(tree)) {
     const bold: string[] = [];
     // A mark that starts a word (".NET", ".io") keeps the space before it.
-    const words = (paragraph.children ?? []).map((child) => wordsOf(child, bold)).join("").replace(CITATION, "").replace(/\s+/g, " ").replace(/ ([.,!?;:)])(?= |$|[.,!?;:)])/g, "$1").trim();
+    const said = (paragraph.children ?? []).map((child) => wordsOf(child, bold)).join("");
+    // A footnote's own definition is a source, not the answer.
+    if (/^\s*\[\^[^\]]*\]:/.test(said)) continue;
+    const words = said.replace(CITATION, "").replace(/\s+/g, " ").replace(/ ([.,!?;:)])(?= |$|[.,!?;:)])/g, "$1").trim();
     if (words === "") continue;
-    // A sentence ends before a capital, a digit or the end, so the answer's own "e.g." stays a word.
-    const text = /^.*?[.!?](?= [\p{Lu}\p{N}"“‘(]|$)/u.exec(words)?.[0];
-    if (text === undefined || text.length > QUOTE_MAX || text.split(" ").length < 4 || NOT_WORDS.test(text)) return null;
+    // The platform's sentence rules hold in any script and leave the answer's own "e.g." a word; a quote is a whole sentence.
+    const text = [...new Intl.Segmenter(language, { granularity: "sentence" }).segment(words)][0]?.segment.trim();
+    if (text === undefined || !/[.!?。！？؟…]["”’»)]?$/u.test(text) || text.length > QUOTE_MAX || text.split(" ").length < 4 || NOT_WORDS.test(text)) return null;
     return { text, bold: bold.filter((name) => name !== "" && text.includes(name)) };
   }
   return null;
@@ -272,13 +280,14 @@ function sentenceOf(raw: string): { text: string; bold: string[] } | null {
  *  kept any, so nothing is ever made up. */
 export function answerQuoteOf(
   section: AiAnswersSection,
-  serps: StoredReport["serps"]
+  serps: StoredReport["serps"],
+  language?: string
 ): { search: string; text: string; bold: readonly string[] } | null {
   for (const [i, row] of section.rows.entries()) {
     if (row.cell.kind !== "answered" || row.cell.citedDomains.length === 0) continue;
     const serp = serps[i];
     const raw = serp !== undefined && serp.kind !== "unmeasured" ? serp.value.aiOverview.text : undefined;
-    const quote = raw === undefined ? null : sentenceOf(raw);
+    const quote = raw === undefined ? null : sentenceOf(raw, language);
     if (quote === null) continue;
     return { search: row.question.search, text: quote.text, bold: [...new Set(quote.bold)] };
   }

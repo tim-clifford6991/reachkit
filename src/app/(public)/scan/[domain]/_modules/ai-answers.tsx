@@ -458,6 +458,8 @@ export function AiAnswersCard(p: {
   /** The SERPs the card was counted over, in question order, for the one
    *  answer it quotes. */
   serps: StoredReport["serps"];
+  /** The language the report measured in, where the quote's sentence is cut. */
+  language?: string;
 }): React.JSX.Element {
   const { section } = p;
   // Issue 1309: the list holds every question the pass found, and the pass
@@ -466,7 +468,7 @@ export function AiAnswersCard(p: {
   const total = String(section.rows.length);
   const measured = String(section.measuredSearches);
   const partial = section.measuredSearches < section.rows.length;
-  const quote = answerQuoteOf(section, p.serps);
+  const quote = answerQuoteOf(section, p.serps, p.language);
   const matrix = matrixRows(section);
   const figure = aiFigureOf(section);
   // Too few reads to say AI doesn't answer: the card says nothing was measured, as Google's does.
