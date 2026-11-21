@@ -11,6 +11,7 @@ import { HARD_CAP_CENTS, Ledger } from "./ledger";
 import { rescorePass } from "./pass-site";
 import { report } from "./report";
 import { configure, type Mode, type Run } from "./transport";
+import { runSetup } from "./setup";
 import { readCases, runWriter } from "./writer";
 
 export interface Options {
@@ -21,7 +22,7 @@ export interface Options {
   tier: Tier;
   model: string | null;
   repeat: number;
-  driver: "probe" | "writer";
+  driver: "probe" | "writer" | "setup";
   /** The writer's case folder, and the file its scored lines are appended to; both outside the repository. */
   cases: string;
   results: string;
@@ -77,14 +78,14 @@ export async function main(o: Options): Promise<number> {
   };
   configure(run);
   const outcomes: string[] = [];
-  if (o.driver === "writer") {
-    mkdirSync(path.dirname(o.results), { recursive: true });
-    await runWriter(run, readCases(o.cases, o.root), o.repeat, (line) => {
-      outcomes.push((line as { outcome: string }).outcome);
-      console.log(JSON.stringify(line));
-      if (o.mode !== "plan") appendFileSync(o.results, `${JSON.stringify({ at: new Date().toISOString(), mode: o.mode, ...line })}\n`);
-    });
-  }
+  const emit = (line: object, outcome: string) => {
+    outcomes.push(outcome);
+    console.log(JSON.stringify(line));
+    if (o.mode !== "plan") appendFileSync(o.results, `${JSON.stringify({ at: new Date().toISOString(), mode: o.mode, ...line })}\n`);
+  };
+  if (o.driver !== "probe") mkdirSync(path.dirname(o.results), { recursive: true });
+  if (o.driver === "writer") await runWriter(run, readCases(o.cases, o.root), o.repeat, (line) => emit(line, (line as { outcome: string }).outcome));
+  if (o.driver === "setup") await runSetup(run, o.root, o.model, o.repeat, (line) => emit(line, (line as { answered: boolean }).answered ? "answered" : "unmeasured"));
   for (let i = 0; o.driver === "probe" && i < o.repeat && run.halted === null; i++) {
     const answer = await llm(passThrough(), { site: o.site, tier: o.tier, schema: z.object({ ok: z.boolean() }), input: { probe: "eval harness self-check", i } });
     outcomes.push(answer.kind === "unmeasured" ? answer.reason : answer.kind);

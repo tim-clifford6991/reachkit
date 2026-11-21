@@ -5,6 +5,7 @@
 //   node scripts/eval-models.mjs --plan  --site opportunity-typing --tier haiku --model claude-haiku-5-5 --repeat 3
 //   node scripts/eval-models.mjs --fake  --site opportunity-typing --tier haiku --cap-cents 10 --repeat 100
 //   node scripts/eval-models.mjs --fake  --driver writer --cases /root/ops/reachkit/eval/cases/writer --model claude-opus-5 --repeat 3
+//   node scripts/eval-models.mjs --plan  --driver setup --model claude-haiku-5-5 --repeat 3   (profile, site-profile, site-knowledge)
 //   node scripts/eval-models.mjs --prove-isolation
 //   node scripts/eval-models.mjs --report
 //   node scripts/eval-models.mjs --rescore /root/ops/reachkit/eval/answers/pass.jsonl   (agreement again from kept answers, 0¢)
@@ -73,13 +74,13 @@ async function main() {
   const mode = modes[0];
   // The $60 is one total, so a live run books into the one ledger and cannot be pointed at a fresh one.
   if (mode === "live" && argv.includes("--ledger")) throw new Error("A live run always books into the one ledger; --ledger is refused with --live.");
+  const driver = flag("--driver", "probe");
+  if (!["probe", "writer", "setup"].includes(driver)) throw new Error("--driver is probe, writer or setup.");
   const ledgerFile = evalFile("--ledger", path.resolve(flag("--ledger", path.join(EVAL_DIR, mode === "fake" ? "fake-ledger.jsonl" : "ledger.jsonl"))));
   const cases = path.resolve(flag("--cases", path.join(EVAL_DIR, "cases/writer")));
-  const results = evalFile("--results", path.resolve(flag("--results", path.join(EVAL_DIR, "results", mode === "live" ? "writer.jsonl" : `writer-${mode}.jsonl`))));
-  const answers = mode === "rescore" ? path.resolve(flag("--rescore", "")) : evalFile("--answers", path.resolve(flag("--answers", path.join(EVAL_DIR, "answers", mode === "live" ? "writer.jsonl" : `writer-${mode}.jsonl`))));
+  const results = evalFile("--results", path.resolve(flag("--results", path.join(EVAL_DIR, "results", mode === "live" ? `${driver}.jsonl` : `${driver}-${mode}.jsonl`))));
+  const answers = mode === "rescore" ? path.resolve(flag("--rescore", "")) : evalFile("--answers", path.resolve(flag("--answers", path.join(EVAL_DIR, "answers", mode === "live" ? `${driver}.jsonl` : `${driver}-${mode}.jsonl`))));
   if (insideRepo(cases) || insideRepo(answers)) throw new Error("Cases and results live outside the repository (it is public).");
-  const driver = flag("--driver", "probe");
-  if (driver !== "probe" && driver !== "writer") throw new Error("--driver is probe or writer.");
   const capText = flag("--cap-cents", "5900");
   if (!/^\d+(\.\d+)?$/.test(capText)) throw new Error(`--cap-cents takes a number of cents, 0 or more; got "${capText}".`);
   const capCents = Number(capText);
