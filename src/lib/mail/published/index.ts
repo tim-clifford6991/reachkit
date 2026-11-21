@@ -74,6 +74,7 @@ export async function sendPublishedMail(publicationId: string): Promise<Publishe
   const result = await sendEmail({
     kind: "published",
     to,
+    event: publicationId,
     userId: site.user_id,
     subject: mail.subject,
     preheader: mail.preheader,

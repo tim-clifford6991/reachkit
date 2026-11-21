@@ -836,7 +836,7 @@ describe("Monday: the week is re-measured, judged, and told (JN-005)", () => {
       return { status: 200, headers: {}, body: JSON.stringify({ id: "resend-1" }) };
     });
     const mail = buildWeekly({ greeting: { name: null, week: 1, business: "acme.example" }, did: { at: MONDAY, pages: [] }, next: measured([], MONDAY) });
-    const sent = await sendEmail({
+    const sent = await sendEmail({ event: "e",
       kind: "weekly",
       to: "founder@acme.example",
       // The journey's own customer: the weekly toggle is read off their row.

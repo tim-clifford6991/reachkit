@@ -79,6 +79,7 @@ export async function sendHostingEndNotice(siteId: string): Promise<HostingNotic
   const result = await sendEmail({
     kind: "account",
     to: site.owner_email,
+    event: `hosting-${which}/${siteId}`,
     subject: mail.subject,
     preheader: mail.preheader,
     blocks: mail.blocks,

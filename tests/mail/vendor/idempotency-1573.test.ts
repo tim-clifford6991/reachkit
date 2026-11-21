@@ -1,5 +1,5 @@
 // tests/mail/vendor/idempotency-1573.test.ts — every Resend request carries
-// `Idempotency-Key: {template}:{subject}:{period}`, read off the request the
+// `Idempotency-Key: {kind}/{recipient and event}`, read off the request the
 // real https transport writes, so a retried send is one mail.
 import { EventEmitter } from "node:events";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -29,7 +29,8 @@ const { MAIL_KINDS } = await import("../../../src/lib/mail/kinds");
 type MailKind = import("../../../src/lib/mail/kinds").MailKind;
 
 const KINDS = Object.keys(MAIL_KINDS) as MailKind[];
-const mail = (kind: MailKind, text = "the text body") => ({
+const mail = (kind: MailKind, text = "the text body", event = "draft-1") => ({
+  event,
   kind,
   to: "reader@example.com",
   subject: "A subject",
@@ -50,29 +51,18 @@ afterEach(() => {
 });
 
 describe("Idempotency-Key on every send", () => {
-  it.each(KINDS)("%s carries {template}:{subject}:{period}", async (kind) => {
+  it.each(KINDS)("%s carries {kind}/{recipient and event}", async (kind) => {
     await expect(sendViaVendor(mail(kind))).resolves.toMatchObject({ ok: true });
     expect(requests).toHaveLength(1);
-    expect(requests[0]!.headers["Idempotency-Key"]).toMatch(new RegExp(`^${kind}:[0-9a-f]{32}:2026-10-19$`));
+    expect(requests[0]!.headers["Idempotency-Key"]).toMatch(new RegExp(`^${kind}/[0-9a-f]{32}$`));
   });
 
-  it("the same mail sent again that day carries the same key; another mail, or the next day, does not", async () => {
-    await sendViaVendor(mail("ops"));
-    await sendViaVendor(mail("ops"));
-    await sendViaVendor(mail("ops", "another body"));
-    vi.setSystemTime(new Date("2026-10-20T09:30:00Z"));
-    await sendViaVendor(mail("ops"));
+  it("one draft sent again, even reworded, carries one key; two drafts for one date carry two", async () => {
+    await sendViaVendor(mail("draft-ready"));
+    await sendViaVendor(mail("draft-ready", "reworded"));
+    await sendViaVendor(mail("draft-ready", "the text body", "draft-2"));
     const keys = requests.map((request) => request.headers["Idempotency-Key"]);
     expect(keys[1]).toBe(keys[0]);
-    expect(new Set(keys).size).toBe(3);
-  });
-
-  it("a caller's period replaces the UTC day, and a mail without one keeps it", async () => {
-    vi.setSystemTime(new Date("2026-07-14T22:30:00Z"));
-    await sendViaVendor({ ...mail("ops"), period: "2026-07-15" });
-    await sendViaVendor(mail("ops"));
-    const [withPeriod, without] = requests.map((request) => String(request.headers["Idempotency-Key"]));
-    expect(withPeriod).toMatch(/^ops:[0-9a-f]{32}:2026-07-15$/);
-    expect(without).toBe(withPeriod!.replace(/2026-07-15$/, "2026-07-14"));
+    expect(new Set(keys).size).toBe(2);
   });
 });

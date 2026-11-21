@@ -63,7 +63,7 @@ export async function captureLead(a: {
   }
 
   // A report mail that does not go is logged by the seam and never refuses the lead.
-  if (firstForScan) await mailReport({ scanId: a.scanId, email, period: scanKey });
+  if (firstForScan) await mailReport({ scanId: a.scanId, email, event: scanKey });
 
   // Last statement in the function, and after the write: the row exists.
   return { captured: true, leadId: inserted.id };

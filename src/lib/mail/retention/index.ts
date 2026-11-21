@@ -60,7 +60,7 @@ export async function sendPaymentFailed(userId: string, now: Date = new Date()):
   if (account === null || !paymentFailedDue(account)) return notDue(kind, userId);
 
   const mail = buildPaymentFailed();
-  const result = await sendEmail({ kind, to: account.email, ...mail });
+  const result = await sendEmail({ kind, to: account.email, event: userId, ...mail });
   if (!result.sent) return withheld(kind, userId, result);
   await store.stampAccount(userId, "payment_failed_mailed_at", now);
   return sentTouch(kind, userId);
@@ -75,7 +75,7 @@ export async function sendCancellation(userId: string, now: Date = new Date()): 
   const mail = buildCancellation({
     accessEndsOn: formatMailDate(account.paidThrough, site?.timezone ?? null),
   });
-  const result = await sendEmail({ kind, to: account.email, ...mail });
+  const result = await sendEmail({ kind, to: account.email, event: `${userId}/${account.cancelledAt.toISOString()}`, ...mail });
   if (!result.sent) return withheld(kind, userId, result);
   await store.stampAccount(userId, "cancellation_mailed_at", now);
   return sentTouch(kind, userId);
@@ -90,7 +90,7 @@ export async function sendWinback(userId: string, now: Date = new Date()): Promi
   // Besides a resume, the address-wide opt-out stops the win-back: `sendEmail` asks the suppression store for this kind.
   wireSuppressionReader();
   const mail = buildWinback({ email: account.email });
-  const result = await sendEmail({ kind, to: account.email, ...mail });
+  const result = await sendEmail({ kind, to: account.email, event: userId, ...mail });
   if (!result.sent) return withheld(kind, userId, result);
   await store.stampAccount(userId, "winback_sent_at", now);
   return sentTouch(kind, userId);

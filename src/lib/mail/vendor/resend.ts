@@ -28,15 +28,11 @@ interface TransportResponse {
 /** The one HTTP call, isolated so a test can replace it without replacing the outcome mapping. */
 export type VendorTransport = (payload: string, idempotencyKey: string) => Promise<TransportResponse>;
 
-/** `{template}:{subject}:{period}`: the kind, this recipient's mail as
- *  rendered, and the caller's period or else the UTC day. The vendor sends one mail per key for a day,
- *  so a retry, or the same alert from the next tick, is not a second mail. */
-export function idempotencyKeyOf(v: VendorSend, now: Date): string {
-  const subject = createHash("sha256")
-    .update([v.to.trim().toLowerCase(), v.subject, v.html, v.text].join("\n"))
-    .digest("hex")
-    .slice(0, 32);
-  return `${v.kind}:${subject}:${v.period ?? now.toISOString().slice(0, 10)}`;
+/** `{kind}/{digest of recipient and event}`: what the mail is about, never its text, so a retry after a wording change is the same key.
+ *  The vendor keeps a key 24 hours and sends one mail per key. */
+export function idempotencyKeyOf(v: VendorSend): string {
+  const about = createHash("sha256").update(`${v.to.trim().toLowerCase()}\n${v.event}`).digest("hex").slice(0, 32);
+  return `${v.kind}/${about}`;
 }
 
 function httpsTransport(payload: string, idempotencyKey: string): Promise<TransportResponse> {
@@ -82,7 +78,7 @@ export function __setVendorTransportForTesting(next: VendorTransport | null): vo
 
 /** A non-rate-limit 4xx is a permanent refusal (bad address, blocked domain); everything else is worth another attempt. */
 function isRetriable(status: number): boolean {
-  if (status === 429) return true;
+  if (status === 429 || status === 409) return true;
   return status < 400 || status >= 500;
 }
 
@@ -93,6 +89,16 @@ function retryUntilFrom(headers: TransportResponse["headers"], now: Date): Date 
   const seconds = Number(value);
   if (!Number.isFinite(seconds) || seconds <= 0) return undefined;
   return new Date(now.getTime() + seconds * 1000);
+}
+
+/** The vendor's answer to a known key with a changed body: this event's mail already went, so it is not sent again. */
+function alreadySent(body: string): boolean {
+  try {
+    const parsed: unknown = JSON.parse(body);
+    return parsed !== null && typeof parsed === "object" && (parsed as { name?: unknown }).name === "invalid_idempotent_request";
+  } catch {
+    return false;
+  }
 }
 
 function readId(body: string): string | null {
@@ -136,7 +142,7 @@ export async function sendViaVendor(v: VendorSend): Promise<VendorResult> {
     ...(Object.keys(headers).length === 0 ? {} : { headers }),
   });
 
-  const idempotencyKey = idempotencyKeyOf(v, new Date());
+  const idempotencyKey = idempotencyKeyOf(v);
   // Two lines with the same `key` are one mail: the vendor answers a repeated key with the first send's id and sends nothing.
   const key = createHash("sha256").update(idempotencyKey).digest("hex").slice(0, 12);
   const logSend = (outcome: string, status: number | null, vendorId: string | null): void =>
@@ -160,6 +166,11 @@ export async function sendViaVendor(v: VendorSend): Promise<VendorResult> {
     }
     logSend("sent", response.status, id);
     return { ok: true, id };
+  }
+
+  if (response.status === 409 && alreadySent(response.body)) {
+    logSend("already_sent", response.status, null);
+    return { ok: true, id: `already-sent:${key}` };
   }
 
   const retriable = isRetriable(response.status);

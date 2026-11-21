@@ -148,6 +148,8 @@ export async function sendDraftReadyMail(a: {
   const result = await sendEmail({
     kind: "draft-ready",
     to: account.email,
+    // The draft, not its date: a draft set aside and its date written again is a new draft and a new mail.
+    event: a.draftId,
     userId: account.userId,
     subject: mail.subject,
     preheader: mail.preheader,

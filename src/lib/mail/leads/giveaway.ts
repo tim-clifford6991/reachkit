@@ -152,6 +152,7 @@ export async function deliverFirstPage(leadId: string, now = new Date()): Promis
   const result = await sendEmail({
     kind: "first-page",
     to: lead.email,
+    event: lead.id,
     subject: mail.subject,
     preheader: mail.preheader,
     blocks: mail.blocks,
@@ -251,6 +252,7 @@ async function sendNotice(
   const result = await sendEmail({
     kind: "first-page-unavailable",
     to: lead.email,
+    event: lead.id,
     subject: mail.subject,
     preheader: mail.preheader,
     blocks: mail.blocks,

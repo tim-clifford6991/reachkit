@@ -53,6 +53,7 @@ export async function chaseSignIn(sessionId: string, now: Date = new Date()): Pr
   const sent = await sendEmail({
     kind: "account",
     to: account.email,
+    event: `chase/${account.id}`,
     subject: mail.subject,
     preheader: mail.preheader,
     blocks: mail.blocks,

@@ -105,8 +105,8 @@ async function claimAndSend(site: SiteRow, stamp: Stamp, to: string, now: Date, 
   let result: Awaited<ReturnType<typeof sendEmail>> = { sent: false, reason: "not-composable" };
   try {
     const mail = await build();
-    // The site in the vendor key, so two sites of one founder are two mails.
-    result = await sendEmail({ kind: "account", to, period: site.id, ...mail });
+    // The site and the stamp in the vendor key, so two sites, or two onboarding mails, are two mails.
+    result = await sendEmail({ kind: "account", to, event: `${stamp}/${site.id}`, ...mail });
   } finally {
     if (!result.sent) await untyped().from<never>("sites").update({ [stamp]: null }).eq("id", site.id).eq(stamp, at);
   }

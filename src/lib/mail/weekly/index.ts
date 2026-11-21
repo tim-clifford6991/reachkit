@@ -134,6 +134,7 @@ export async function sendWeeklyDigest(a: {
   const result = await sendEmail({
     kind: "weekly",
     to: recipient.email,
+    event: `${a.siteId}/${a.weekStart}`,
     userId: recipient.userId,
     subject: mail.subject,
     ...(mail.subjectVars === undefined ? {} : { subjectVars: mail.subjectVars }),

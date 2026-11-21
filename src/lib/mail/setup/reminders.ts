@@ -220,6 +220,7 @@ export async function sendSetupReminder(
   const result = await sendEmail({
     kind: "setup-reminder",
     to,
+    event: `${siteId}/${index}`,
     subject: mail.subject,
     preheader: mail.preheader,
     blocks: mail.blocks,

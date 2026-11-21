@@ -154,7 +154,7 @@ export async function sendBreakageMail(siteId: string, now: Date): Promise<Break
     const href = await pagesLink({ userId: due.userId, to: due.to });
     if (href === null) return { sent: false, reason: "no-link" };
     const mail = buildDestinationBroken({ held: due.held, href, at: now });
-    const result = await sendEmail({ kind: "account", to: due.to, ...mail });
+    const result = await sendEmail({ kind: "account", to: due.to, event: `breakage/${due.destinationId}`, ...mail });
     if (!result.sent) return { sent: false, reason: "mail" };
     await markBreakageMailSent(due.destinationId, now);
     return { sent: true, destinationId: due.destinationId, held: due.held };

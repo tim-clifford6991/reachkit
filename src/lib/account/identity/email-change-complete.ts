@@ -82,6 +82,7 @@ export async function completeEmailChange(a: {
   const notice = await sendEmail({
     kind: "account",
     to: oldAddress,
+    event: `address-moved/${account.id}`,
     subject: mail.subject,
     preheader: mail.preheader,
     blocks: mail.blocks,

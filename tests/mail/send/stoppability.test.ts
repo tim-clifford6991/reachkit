@@ -61,7 +61,7 @@ describe("ADR-042 — one store per send", () => {
   it("a 'toggle' kind switched off returns preference-off and never reaches the vendor", async () => {
     state.rows = { [USER]: { notify: { published: false } } };
     await expect(
-      sendEmail({ kind: "published", to: TO, userId: USER, subject: f.HEADING_KEY, blocks: [f.HEADING] })
+      sendEmail({ event: "e", kind: "published", to: TO, userId: USER, subject: f.HEADING_KEY, blocks: [f.HEADING] })
     ).resolves.toEqual({ sent: false, reason: "preference-off" });
     expect(sent).toBe(0);
     // The other store was not asked.
@@ -70,7 +70,7 @@ describe("ADR-042 — one store per send", () => {
 
   it("a 'toggle' kind consults the toggles and never the address store", async () => {
     await expect(
-      sendEmail({ kind: "published", to: TO, userId: USER, subject: f.HEADING_KEY, blocks: [f.HEADING] })
+      sendEmail({ event: "e", kind: "published", to: TO, userId: USER, subject: f.HEADING_KEY, blocks: [f.HEADING] })
     ).resolves.toEqual({ sent: true, id: "vendor-1" });
     expect(state.reads).toEqual([USER]);
     expect(suppressionAsked).toEqual([]);
@@ -82,7 +82,7 @@ describe("ADR-042 — one store per send", () => {
       return "suppressed";
     });
     await expect(
-      sendEmail({ kind: "nurture", to: TO, subject: f.HEADING_KEY, blocks: [f.HEADING] })
+      sendEmail({ event: "e", kind: "nurture", to: TO, subject: f.HEADING_KEY, blocks: [f.HEADING] })
     ).resolves.toEqual({ sent: false, reason: "suppressed" });
     expect(suppressionAsked).toEqual([TO]);
     expect(state.reads).toEqual([]);
@@ -97,7 +97,7 @@ describe("ADR-042 — one store per send", () => {
       state.reads = [];
       suppressionAsked = [];
       await expect(
-        sendEmail({ kind, to: TO, subject: f.HEADING_KEY, blocks: [f.HEADING] }),
+        sendEmail({ event: "e", kind, to: TO, subject: f.HEADING_KEY, blocks: [f.HEADING] }),
         kind
       ).resolves.toEqual({ sent: true, id: "vendor-1" });
       // Neither store was consulted at all — not "consulted and allowed".
@@ -111,7 +111,7 @@ describe("ADR-042 — one store per send", () => {
     registerSuppressionReader(async () => "suppressed");
     for (const kind of ["first-page", "first-page-unavailable", "report"] as const) {
       await expect(
-        sendEmail({ kind, to: TO, subject: f.HEADING_KEY, blocks: [f.HEADING] }),
+        sendEmail({ event: "e", kind, to: TO, subject: f.HEADING_KEY, blocks: [f.HEADING] }),
         kind
       ).resolves.toEqual({ sent: true, id: "vendor-1" });
     }
@@ -121,7 +121,7 @@ describe("ADR-042 — one store per send", () => {
   it("suppressible: false skips both consults and reaches the vendor", async () => {
     state.rows = { [USER]: { notify: { "draft-ready": false } } };
     await expect(
-      sendEmail({
+      sendEmail({ event: "e",
         kind: "draft-ready",
         to: TO,
         userId: USER,
@@ -137,7 +137,7 @@ describe("ADR-042 — one store per send", () => {
   it("an unreadable toggle store stops the send, and says so distinctly", async () => {
     state.failRead = true;
     await expect(
-      sendEmail({ kind: "weekly", to: TO, userId: USER, subject: f.HEADING_KEY, blocks: [f.HEADING], measurement: { state: "complete" } })
+      sendEmail({ event: "e", kind: "weekly", to: TO, userId: USER, subject: f.HEADING_KEY, blocks: [f.HEADING], measurement: { state: "complete" } })
     ).resolves.toEqual({ sent: false, reason: "preference-unreadable" });
     expect(sent).toBe(0);
   });
@@ -145,7 +145,7 @@ describe("ADR-042 — one store per send", () => {
   it("an unwired suppression store fails closed — the nurture mail is not sent on a guess", async () => {
     registerSuppressionReader(null);
     await expect(
-      sendEmail({ kind: "nurture", to: TO, subject: f.HEADING_KEY, blocks: [f.HEADING] })
+      sendEmail({ event: "e", kind: "nurture", to: TO, subject: f.HEADING_KEY, blocks: [f.HEADING] })
     ).resolves.toEqual({ sent: false, reason: "suppression-unreadable" });
     expect(sent).toBe(0);
   });
@@ -153,10 +153,10 @@ describe("ADR-042 — one store per send", () => {
   it("the consult happens at send time, not at schedule time", async () => {
     // Two sends, one store read each: nothing is cached between them, so a
     // customer who switches a mail off between the two does not get it.
-    await sendEmail({ kind: "published", to: TO, userId: USER, subject: f.HEADING_KEY, blocks: [f.HEADING] });
+    await sendEmail({ event: "e", kind: "published", to: TO, userId: USER, subject: f.HEADING_KEY, blocks: [f.HEADING] });
     state.rows = { [USER]: { notify: { published: false } } };
     await expect(
-      sendEmail({ kind: "published", to: TO, userId: USER, subject: f.HEADING_KEY, blocks: [f.HEADING] })
+      sendEmail({ event: "e", kind: "published", to: TO, userId: USER, subject: f.HEADING_KEY, blocks: [f.HEADING] })
     ).resolves.toEqual({ sent: false, reason: "preference-off" });
     expect(state.reads).toEqual([USER, USER]);
   });
@@ -167,8 +167,8 @@ describe("ADR-042 — one store per send", () => {
       suppressionAsked = [];
       await sendEmail(
         MAIL_KINDS[kind].stoppable === "toggle"
-          ? ({ kind, to: TO, userId: USER, subject: f.HEADING_KEY, blocks: [f.HEADING], measurement: { state: "complete" } } as Parameters<typeof sendEmail>[0])
-          : ({ kind, to: TO, subject: f.HEADING_KEY, blocks: [f.HEADING] } as Parameters<typeof sendEmail>[0])
+          ? ({ event: "e", kind, to: TO, userId: USER, subject: f.HEADING_KEY, blocks: [f.HEADING], measurement: { state: "complete" } } as Parameters<typeof sendEmail>[0])
+          : ({ event: "e", kind, to: TO, subject: f.HEADING_KEY, blocks: [f.HEADING] } as Parameters<typeof sendEmail>[0])
       );
       expect(state.reads.length + suppressionAsked.length, kind).toBeLessThanOrEqual(1);
     }

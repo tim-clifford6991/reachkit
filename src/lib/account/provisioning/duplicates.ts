@@ -67,7 +67,7 @@ export async function handleSecondPurchase(a: {
   const cancelled = await cancelSecondSubscription(a.sessionId);
 
   const mail = buildSecondPurchase();
-  const sent = await sendEmail({ kind: "account", to: a.email, subject: mail.subject, preheader: mail.preheader, blocks: mail.blocks });
+  const sent = await sendEmail({ kind: "account", to: a.email, event: `second-purchase/${a.sessionId}`, subject: mail.subject, preheader: mail.preheader, blocks: mail.blocks });
 
   console.log(
     JSON.stringify({
