@@ -1,5 +1,5 @@
-// SPEC §4 *Overview's four tiles* — a tile's trend, drawn from `md` up only. Below `md`
-// it is not mounted at all, so no chart waits unseen at no size.
+// SPEC §4 *Overview's four tiles* — a tile's trend, drawn from `md` up only. Below `md` the
+// client unmounts it, so no chart waits unseen at no size.
 "use client";
 
 import type React from "react";
@@ -14,7 +14,8 @@ const subscribe = (change: () => void): (() => void) => {
   query.addEventListener("change", change);
   return () => query.removeEventListener("change", change);
 };
-const useAtLeastMd = (): boolean => useSyncExternalStore(subscribe, () => window.matchMedia(MD).matches, () => false);
+// The server draws it (the page's own HTML holds the trend); the client drops it below `md` once it knows the width.
+const useAtLeastMd = (): boolean => useSyncExternalStore(subscribe, () => window.matchMedia(MD).matches, () => true);
 
 /** One bar's label line (20px), its gap (4px) and its bar (10px), with 12px between rows: `PresenceBars`' own sizes. */
 const barsHeight = (rows: number): number => rows * 34 + (rows - 1) * 12;

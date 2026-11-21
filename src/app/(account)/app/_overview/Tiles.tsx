@@ -8,6 +8,7 @@ import { copy, type CopyKey } from "@/lib/presentation/copy";
 import type { GrowthWeek } from "@/ui/charts/GrowthLine";
 import { TileTrend } from "./TileTrend";
 import { formatCount, formatDate, formatShortDay } from "../_shell/format";
+import { ARROW_NUDGE, CARD_LIFT } from "@/ui/lift";
 import { Box, Waiting } from "../_shell/skeletons";
 import { REGION } from "./frame";
 import { AI_WINDOW_WEEKS, type Tile, type TileChange, type TileKey, type TilesModel } from "./tiles";
@@ -114,9 +115,9 @@ function Trend(p: { tile: Tile; bars: TilesModel["bars"] }): React.JSX.Element |
   return <TileTrend weeks={weeks as [GrowthWeek, ...GrowthWeek[]]} />;
 }
 
-const CARD = "card card-border h-full w-full bg-base-100 transition-[translate,border-color] duration-200";
+const CARD = "card card-border h-full w-full bg-base-100";
 /** A card that opens another screen lifts; the current tile opens this one, so it does not move. */
-const LIFT = "hover:border-primary motion-safe:hover:-translate-y-0.5";
+const LIFT = `${CARD_LIFT} hover:border-primary`;
 /** The detail strip: 2×2 on a narrow phone, so no fixed name is cut, then one row. */
 const STRIP = "grid min-w-0 grid-cols-2 gap-2 sm:grid-cols-4 lg:gap-3";
 
@@ -130,8 +131,8 @@ export function Tiles(p: { model: TilesModel; dates: TileDates }): React.JSX.Ele
           const change = tile.change === null ? null : changeLine(tile.key, tile.change, p.dates);
           return (
             <li key={tile.key} className="flex min-w-0">
-              <Link className={`${CARD} ${LIFT} group`} href={TILE_HREF[tile.key]} prefetch={true} data-testid={`overview-tile-${tile.key}`}>
-                <span className="card-body min-w-0 gap-1.5 p-3 sm:p-4">
+              <Link className={`${CARD} ${LIFT}`} href={TILE_HREF[tile.key]} prefetch={true} data-testid={`overview-tile-${tile.key}`}>
+                <span className="card-body min-w-0 gap-1.5 p-3 sm:p-5">
                   <span className="flex min-w-0 items-center gap-2 text-sm font-semibold">
                     <Icon className="size-4 shrink-0 text-primary" aria-hidden />
                     <span className="min-w-0">{copy(NAME[tile.key])}</span>
@@ -145,7 +146,7 @@ export function Tiles(p: { model: TilesModel; dates: TileDates }): React.JSX.Ele
                   <Trend tile={tile} bars={p.model.bars} />
                   <span className="mt-auto flex items-center gap-1 pt-2 text-sm font-semibold text-primary">
                     {copy("overview.tile.see")}
-                    <ArrowRight className="size-4 transition-transform duration-200 motion-safe:group-hover:translate-x-[3px]" aria-hidden />
+                    <ArrowRight className={`size-4 ${ARROW_NUDGE}`} aria-hidden />
                   </span>
                 </span>
               </Link>

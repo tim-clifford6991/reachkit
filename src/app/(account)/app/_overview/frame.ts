@@ -27,7 +27,7 @@ export const ROWS = { lg: 8, below: 5 } as const;
 
 /** Row `i`'s class: every row is drawn, and until *Show All* those past `ROWS` are hidden at the width they fall past. */
 export function rowClass(i: number, all: boolean): string {
-  return all || i < ROWS.below ? "" : i < ROWS.lg ? "max-lg:hidden" : "hidden";
+  return all || i < ROWS.below ? "" : i < ROWS.lg ? "hidden lg:block" : "hidden";
 }
 
 /** The regions the layout gate compares, by name. */
