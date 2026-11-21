@@ -271,9 +271,9 @@ vi.mock("@/lib/generate/pipeline/pack", async (importOriginal) => (await import(
 vi.mock("@anthropic-ai/sdk", () => {
   class FakeAnthropic {
     messages = {
-      create: async (request: { messages: { content: string }[] }) => {
+      create: async (request: { system?: string; messages: { content: string }[] }) => {
         const input = request.messages[0]?.content ?? "";
-        const asked = JSON.parse(input) as { task: string };
+        const asked = JSON.parse(request.system?.split("\n\n")[2] ?? input) as { task: string };
         modelCalls.push({ task: asked.task, tokens: input.length });
         // The one write call's answer: the page in its template's parts.
         const { partsFromPage } = await import("../generate/fixtures");
