@@ -30,6 +30,7 @@ import { EXAMPLES } from "../_how/specimen";
 import { ThreeWays } from "../_how/compare";
 import { Head } from "../_library/head";
 import { AsWeRead, PageWithSources, QuestionList, WeekOfPages, WhatToExpect, WhoGetsThem, YourPart } from "../_how/visuals";
+import { OfferLine } from "../_chrome/OfferLine";
 
 export const metadata: Metadata = staticMetadata(PUBLIC_ROUTE_SEO.how);
 
@@ -233,6 +234,8 @@ function questions(): readonly Question[] {
 
 export default function HowItWorksPage(): React.JSX.Element {
   return (
+    <>
+    <OfferLine pitch see />
     <Surface
       arms={{
         compact: {
@@ -308,5 +311,6 @@ export default function HowItWorksPage(): React.JSX.Element {
         </Section>
       </main>
     </Surface>
+    </>
   );
 }

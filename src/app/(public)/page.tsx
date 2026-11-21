@@ -59,6 +59,7 @@ import { PUBLIC_ROUTE_SEO } from "./_seo/routes";
 import { staticMetadata } from "./_seo/metadata";
 import { JsonLd, homeSchemas } from "./_seo/structured";
 import { marked } from "./_library/head";
+import { OfferLine } from "./_chrome/OfferLine";
 
 const WEEK_PAGES = String(HOW_FACTS.weekPages);
 const PRICE = (): string => copy("price.amount");
@@ -122,6 +123,8 @@ export default function LandingPage(props: {
   const prefill = props.searchParams instanceof Promise ? undefined : props.searchParams;
   const words = scanFormWords();
   return (
+    <>
+    <OfferLine pitch see />
     <Surface
       arms={{
         compact: {
@@ -303,5 +306,6 @@ export default function LandingPage(props: {
         </section>
       </main>
     </Surface>
+    </>
   );
 }

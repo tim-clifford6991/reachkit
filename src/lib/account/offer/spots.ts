@@ -1,6 +1,6 @@
 // src/lib/account/offer/spots.ts — the first-50 offer's spots: taken by the first paid checkout, kept on cancel, freed only by a full refund in the first 14 days.
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { OFFER_ENDS_AT, OFFER_FEW_LEFT, OFFER_FREE_REFUND_DAYS, OFFER_SHOWN_DAYS, OFFER_SPOTS } from "@/lib/config/constants";
+import { OFFER_ENDS_AT, OFFER_ENDS_ON, OFFER_FEW_LEFT, OFFER_FREE_REFUND_DAYS, OFFER_SHOWN_DAYS, OFFER_SPOTS } from "@/lib/config/constants";
 import { env } from "@/lib/config/env";
 import { dbAdmin } from "@/lib/db";
 
@@ -114,7 +114,7 @@ export async function spotsLeft(now: Date = new Date()): Promise<SpotsLeft | nul
   if (held === null) return null;
   const left = Math.max(0, OFFER_SPOTS - held.length);
   const endsAt = Date.parse(OFFER_ENDS_AT);
-  const endsOn = new Date(endsAt - 1).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+  const endsOn = OFFER_ENDS_ON;
   const closedAt = Math.min(endsAt, left === 0 ? Math.max(...held.map((spot) => spot.takenAt.getTime())) : Infinity);
   if (now.getTime() >= closedAt + OFFER_SHOWN_DAYS * 86_400_000) return { of: OFFER_SPOTS, endsOn, state: "over" };
   // "All taken" only when it is true; an end by date with spots free says the offer ended.
