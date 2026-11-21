@@ -12,6 +12,7 @@ import { fileURLToPath } from "node:url";
 import { blockRuleFindings, blockRules, budgetFindings, isMeasured, lineCount, lineFindings, plainWordsFindings } from "./lib/budgets.mjs";
 import { ENTRY_RE, keyFileCounts } from "./lib/plain-words.mjs";
 import { mainCheckoutFinding } from "./lib/main-checkout.mjs";
+import { fetchesPayloadFilters } from "./lib/fetches-payload-filter.mjs";
 import { staleBaselines } from "./design/baseline.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -273,6 +274,7 @@ function checkRepo() {
   }
   checkBudgets(texts);
   checkLimiterSeam(texts);
+  for (const finding of fetchesPayloadFilters(texts)) add("repo", finding);
   for (const finding of staleBaselines()) add("repo", `parity: ${finding}`);
 }
 
