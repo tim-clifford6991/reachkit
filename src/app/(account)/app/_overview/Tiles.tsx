@@ -5,8 +5,8 @@ import type React from "react";
 import Link from "next/link";
 import { ArrowRight, ChevronRight, CircleCheck, Search, Sparkles, Users, type LucideIcon } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
-import { GrowthLine, type GrowthWeek } from "@/ui/charts/GrowthLine";
-import { PresenceBars } from "@/ui/charts/PresenceBars";
+import type { GrowthWeek } from "@/ui/charts/GrowthLine";
+import { TileTrend } from "./TileTrend";
 import { formatCount, formatDate, formatShortDay } from "../_shell/format";
 import { Box, Waiting } from "../_shell/skeletons";
 import { REGION } from "./frame";
@@ -105,26 +105,13 @@ function changeLine(key: TileKey, change: TileChange, d: TileDates): string | nu
 function Trend(p: { tile: Tile; bars: TilesModel["bars"] }): React.JSX.Element | null {
   if (p.tile.key === "rivals") {
     if (p.bars === null) return null;
-    return (
-      <span className="hidden md:block" aria-hidden>
-        <PresenceBars
-          you={{ name: copy("report.you"), value: p.bars.you }}
-          rivals={p.bars.rivals}
-          measured={p.bars.of}
-          label={copy("overview.tile.rivals.name")}
-        />
-      </span>
-    );
+    return <TileTrend you={{ name: copy("report.you"), value: p.bars.you }} rivals={p.bars.rivals} measured={p.bars.of} label={copy("overview.tile.rivals.name")} />;
   }
   const series = p.tile.series;
   if (series === null || series.every((v) => v === null)) return null;
   const unread = copy("overview.tile.change.unread", { what: copy(UNREAD[p.tile.key]) });
   const weeks = series.map((value, i): GrowthWeek => (value === null ? { name: String(i), value: null, account: unread, cuts: true } : { name: String(i), value }));
-  return (
-    <span className="hidden md:block">
-      <GrowthLine weeks={weeks as [GrowthWeek, ...GrowthWeek[]]} compact />
-    </span>
-  );
+  return <TileTrend weeks={weeks as [GrowthWeek, ...GrowthWeek[]]} />;
 }
 
 const CARD = "card card-border h-full w-full bg-base-100 transition-[translate,border-color] duration-200";
@@ -150,7 +137,7 @@ export function Tiles(p: { model: TilesModel; dates: TileDates }): React.JSX.Ele
                     <span className="min-w-0">{copy(NAME[tile.key])}</span>
                     <ChevronRight className="ms-auto hidden size-4 shrink-0 text-base-content/50 sm:block" aria-hidden />
                   </span>
-                  <Figure tile={tile} className="text-3xl font-semibold tabular-nums" />
+                  <Figure tile={tile} className="text-3xl leading-snug font-semibold tabular-nums" />
                   <span className={INK}>{ofLine(tile)}</span>
                   {change === null ? null : (
                     <span className={`text-sm ${tile.change?.kind === "up" ? "text-success" : "text-base-content/70"}`}>{change}</span>
@@ -199,7 +186,7 @@ export function DetailTiles(p: { model: TilesModel | null; tab: TileKey }): Reac
                         <Icon className="size-4 shrink-0 text-primary" aria-hidden />
                         <span className="min-w-0">{copy(NAME[tile.key])}</span>
                       </span>
-                      <Figure tile={tile} className="text-xl font-semibold tabular-nums" />
+                      <Figure tile={tile} className="text-xl leading-snug font-semibold tabular-nums" />
                       <span className={INK}>{ofLine(tile)}</span>
                     </span>
                   </Link>

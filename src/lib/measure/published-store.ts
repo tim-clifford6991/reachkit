@@ -5,7 +5,7 @@
 import { dbAdmin } from "@/lib/db";
 import { fromStored, renderGenerated } from "@/lib/presentation/generated";
 import { readLadders } from "@/lib/publish/reads/store";
-import type { PublishedPage } from "./published";
+import { listedName, standingAt, type PublishedPage } from "./published";
 
 interface PublicationRow {
   id: string;
@@ -31,7 +31,7 @@ interface MinimalClient {
 
 /** The pages, or `null` where they could not be read — never an empty
  *  list, which would say nothing was published. */
-export async function readPublishedPages(siteId: string): Promise<readonly PublishedPage[] | null> {
+export async function readPublishedPages(siteId: string, at: Date = new Date()): Promise<readonly PublishedPage[] | null> {
   let read: { data: PublicationRow[] | null; error: { message: string } | null };
   try {
     read = await (dbAdmin() as unknown as MinimalClient)
@@ -48,12 +48,12 @@ export async function readPublishedPages(siteId: string): Promise<readonly Publi
   const ladders = new Map((await readLadders(siteId).catch(() => null))?.map((row) => [row.publicationId, row]) ?? []);
   const pages: PublishedPage[] = [];
   for (const row of read.data) {
-    if (row.unpublished_at !== null || row.published_at === null) continue;
+    if (row.published_at === null || !standingAt({ publishedAt: row.published_at, unpublishedAt: row.unpublished_at }, at)) continue;
     const publishedAt = new Date(row.published_at);
     // A page with no stored title is named by its address; one with
     // neither cannot be listed, so it is counted nowhere.
     const stored = row.drafts?.title?.trim() ?? "";
-    const title = stored || row.live_url || "";
+    const title = listedName(stored, row.live_url);
     if (Number.isNaN(publishedAt.getTime()) || title === "") continue;
     // Model-written, so it is listed only with its label (ADR-012).
     const generated = fromStored("drafts.title", stored);

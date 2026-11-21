@@ -4,6 +4,7 @@ import { dbAdmin } from "@/lib/db";
 import { failingChecks, parseHealth } from "@/lib/scan/health";
 import { resolvedRows } from "@/lib/market/rivals/domains";
 import { pageSearchOf, type PlaceReport } from "@/lib/measure/page-reading";
+import { listedName } from "@/lib/measure/published";
 import type { SerpResult } from "@/lib/vendors/dataforseo/types";
 import { onFirstPage } from "./rivals-store";
 import { AI_WINDOW_WEEKS, TILE_WEEKS, type TilePage, type TilePass } from "./tiles";
@@ -37,7 +38,7 @@ interface PageRow {
   published_at: string;
   unpublished_at: string | null;
   acceptance: unknown;
-  drafts: { opportunities: { acceptance: unknown; target_query: string | null } | null } | null;
+  drafts: { title: string | null; opportunities: { acceptance: unknown; target_query: string | null } | null } | null;
 }
 
 const NOT_READ = { kind: "unmeasured", reason: "not_attempted" } as const;
@@ -59,7 +60,7 @@ export async function readTileRows(a: { siteId: string; domain: string; week: st
       .gte("week_start", since)
       .not("report", "is", null),
     from<PageRow>("publications")
-      .select("id, live_url, published_at, unpublished_at, acceptance, drafts(opportunities(acceptance, target_query))")
+      .select("id, live_url, published_at, unpublished_at, acceptance, drafts(title, opportunities(acceptance, target_query))")
       .eq("site_id", a.siteId)
       .not("published_at", "is", null),
   ]);
@@ -80,7 +81,8 @@ export async function readTileRows(a: { siteId: string; domain: string; week: st
         verdict: { measuredAt: new Date(row.created_at) },
       } as PlaceReport,
     })),
-    pages: pages.data.map((row) => ({
+    // The rows the live list can name, so a week before counts what the list counts now.
+    pages: pages.data.filter((row) => listedName(row.drafts?.title, row.live_url) !== "").map((row) => ({
       id: row.id,
       liveUrl: row.live_url,
       publishedAt: row.published_at,

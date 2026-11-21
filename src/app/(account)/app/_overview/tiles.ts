@@ -2,6 +2,7 @@
 // before and its 6-week series, from stored rows. Pure; a week no healthy pass
 // read is a gap, never 0.
 import { addressOf, linkedByIn, ownPlaceIn, searchRowsFor, type PlaceReport } from "@/lib/measure/page-reading";
+import { standingAt } from "@/lib/measure/published";
 
 export const TILE_KEYS = ["pages", "google", "ai", "rivals"] as const;
 export type TileKey = (typeof TILE_KEYS)[number];
@@ -117,13 +118,16 @@ function seriesOf(passes: readonly TilePass[], week: string, value: (pass: TileP
   });
 }
 
-/** The live pages a pass put on Google for their own search, as the stored reading counts a place. */
+/** The rows standing at `at`, one per publication, as the live list counts them. */
+const standing = (pages: readonly TilePage[], at: number): TilePage[] => pages.filter((page) => standingAt(page, new Date(at)));
+
+/** The standing pages a pass put on Google for their own search: a place read on its stored result, as `placedNow` counts one. */
 function placedIn(pass: TilePass, pages: readonly TilePage[]): number {
   let n = 0;
-  for (const page of liveAt(pages, Date.parse(pass.at)).values()) {
-    if (page.search === null) continue;
+  for (const page of standing(pages, Date.parse(pass.at))) {
+    if (page.search === null || page.liveUrl === null) continue;
     const rows = searchRowsFor(pass.report, page.search, { tracked: false });
-    if (rows.kind !== "unmeasured" && ownPlaceIn(rows.value, [page.liveUrl!]) !== null) n += 1;
+    if (rows.kind !== "unmeasured" && ownPlaceIn(rows.value, [page.liveUrl]) !== null) n += 1;
   }
   return n;
 }
@@ -165,7 +169,7 @@ export function tilesOf(a: {
 
   // Pages: every address ever published, merged and taken-down ones included.
   const ever = new Set(a.pages.map((page) => (page.liveUrl === null ? `#${page.id}` : addressOf(page.liveUrl))));
-  const weekly = Array.from({ length: TILE_WEEKS }, (_, i) => (i === TILE_WEEKS - 1 ? live : liveAt(a.pages, t - (TILE_WEEKS - 1 - i) * WEEK_MS).size));
+  const weekly = Array.from({ length: TILE_WEEKS }, (_, i) => (i === TILE_WEEKS - 1 ? live : standing(a.pages, t - (TILE_WEEKS - 1 - i) * WEEK_MS).length));
   const lastWeek = weekly.at(-2)!;
   const pages: Tile =
     live === 0

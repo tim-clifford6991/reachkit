@@ -99,15 +99,15 @@ export function SearchTiles(p: {
       ...(pages === null || pages.read === 0
         ? NOT_MEASURED
         : {
-            figure: formatCount(pages.showing),
-            quiet: pages.showing === 0,
-            against: copy("overview.search.tile.your-pages.of", { of: formatCount(pages.read) }),
-            spark: <progress className="progress progress-primary w-full" value={pages.showing} max={pages.read} aria-hidden />,
+            figure: formatCount(pages.placed),
+            quiet: pages.placed === 0,
+            against: copy("overview.search.tile.your-pages.of", { of: formatCount(pages.live) }),
+            spark: <progress className="progress progress-primary w-full" value={pages.placed} max={pages.live} aria-hidden />,
             split: [
               copy("overview.search.tile.your-pages.split", {
-                first: formatCount(pages.firstPage),
-                further: formatCount(pages.showing - pages.firstPage),
-                unseen: formatCount(pages.read - pages.showing),
+                first: formatCount(pages.placedFirstPage),
+                further: formatCount(pages.placed - pages.placedFirstPage),
+                unseen: formatCount(pages.read - pages.placed),
               }),
               ...(pages.live === pages.read ? [] : [copy("overview.ladder.unread", { k: formatCount(pages.live - pages.read) })]),
             ].join(" · "),

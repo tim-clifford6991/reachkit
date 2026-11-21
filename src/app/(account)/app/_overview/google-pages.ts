@@ -1,6 +1,7 @@
 // SPEC §4 (board AppGoogle) — each live page in Google: where it sits this
 // week, how it got there, and its label, read from its stored weekly reading.
 // Pure. A page no reading reached is not measured, never a place of 0.
+import { FIRST_PAGE_PLACES } from "@/lib/measure/page-reading";
 import { verdict } from "@/lib/opportunities/verdicts/verdict";
 import type { Label } from "@/lib/opportunities/verdicts/types";
 import type { PublishedPage } from "@/lib/measure/published";
@@ -38,16 +39,17 @@ export interface GooglePageRow {
 export interface GooglePages {
   rows: readonly GooglePageRow[];
   live: number;
-  /** Pages a weekly reading reached; the figures below count only these. */
+  /** Pages a weekly reading reached. */
   read: number;
-  showing: number;
-  firstPage: number;
-  /** Live pages whose reading holds a place this week: the On Google tile's figure. */
+  /** Live pages placed this week (`placedNow`): the On Google tile's and the Google card's figure. */
   placed: number;
+  /** Of those, the ones on Google's first page. */
+  placedFirstPage: number;
 }
 
-/** A live page Google shows for its own search this week. */
-export const placedNow = (page: PublishedPage): boolean => page.reading?.place != null;
+/** A live page Google showed for its own search this week, read on a stored result. Search Console's
+ *  estimate is not counted: no stored report holds it, so the weeks before could not count it alike. */
+export const placedNow = (page: PublishedPage): boolean => page.reading?.place != null && page.reading.place.source !== "gsc";
 
 const LABEL_ORDER: Readonly<Record<Label, number>> = { working: 0, climbing: 1, not_moving: 2, too_early: 3 };
 
@@ -87,9 +89,8 @@ export function googlePagesOf(all: readonly PublishedPage[], now: Date): GoogleP
     rows,
     live: pages.length,
     read: read.length,
-    showing: read.filter((page) => page.reading!.reached.showing !== undefined).length,
-    firstPage: read.filter((page) => page.reading!.reached.firstPage !== undefined).length,
     placed: pages.filter(placedNow).length,
+    placedFirstPage: pages.filter((page) => placedNow(page) && page.reading!.place!.value <= FIRST_PAGE_PLACES).length,
   };
 }
 
