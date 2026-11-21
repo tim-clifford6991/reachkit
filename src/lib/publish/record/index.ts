@@ -235,6 +235,8 @@ export interface ScheduledPage {
   readonly edited: boolean;
   /** When the row was inserted, at the day's write. */
   readonly createdAt: Date | null;
+  /** Whether the customer, not the system, took the page off its day. */
+  readonly stoppedByCustomer: boolean;
 }
 
 interface ScheduledDraftRow {
@@ -273,6 +275,15 @@ function enteredReviewFrom(transitions: unknown): boolean {
   return transitions.some(
     (record) => typeof record === "object" && record !== null && (record as { to?: unknown }).to === "in_review"
   );
+}
+
+/** Whether the last move to `skipped` was the customer's own. */
+function stoppedByCustomerFrom(transitions: unknown): boolean {
+  if (!Array.isArray(transitions)) return false;
+  const last = transitions.filter((record) => typeof record === "object" && record !== null && (record as { to?: unknown }).to === "skipped").at(-1) as
+    | { actor?: { kind?: unknown } }
+    | undefined;
+  return last?.actor?.kind === "customer";
 }
 
 /** Every page scheduled between two site-local dates, inclusive, in two indexed reads whatever the window; empty is legitimate. */
@@ -331,6 +342,7 @@ export async function scheduledPagesFor(a: {
       becameUpdate: becameUpdate(row.meta),
       edited: typeof (row.meta as { first_edited_at?: unknown } | null)?.first_edited_at === "string",
       createdAt: asDate(row.created_at),
+      stoppedByCustomer: state === "skipped" && stoppedByCustomerFrom(row.transitions),
       // The address now; `readStandings` re-addresses its side of the join too, so a moved host never empties it.
       liveUrl:
         state === "published" && publication?.made_live_by_us === true && publication.live_url !== null

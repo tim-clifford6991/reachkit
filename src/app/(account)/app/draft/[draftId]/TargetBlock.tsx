@@ -6,7 +6,7 @@ import type React from "react";
 import { ChevronDown, Search } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import { whyLineOf } from "../../calendar/card-lines";
-import { targetReadings } from "../../calendar/TargetRows";
+import { targetReadings } from "../../calendar/target-readings";
 import type { DraftTarget } from "./model";
 import { NOTE } from "./ReviewCards";
 
