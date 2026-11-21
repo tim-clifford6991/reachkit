@@ -7,8 +7,7 @@ applyEnvFixture();
 const { buildAddressMoved, buildChaseWithLink, buildChaseWithoutLink, buildSecondPurchase } =
   await import("../../../../src/lib/mail/templates/account");
 const { MAIL_KINDS } = await import("../../../../src/lib/mail/kinds");
-const { COPY } = await import("../../../../src/lib/presentation/copy");
-const { COPY_META } = await import("../../../../src/lib/presentation/copy/registry");
+const { COPY, slotsOf } = await import("../../../../src/lib/presentation/copy");
 const { composeMail } = await import("../../../../src/lib/mail/shell/compose");
 const { escapeHtml } = await import("../../escape");
 
@@ -92,7 +91,7 @@ describe('REQ-077 c3 (issue #35) — the address has moved, and the old one is t
     // an `{email}` slot is one edit away from putting the account's live
     // sign-in address in the mailbox the customer is leaving.
     for (const key of ["mail.account.address_moved.subject", "mail.account.address_moved"] as const) {
-      expect(COPY_META[key].slots).toEqual({});
+      expect(slotsOf(COPY[key])).toEqual([]);
     }
   });
 });

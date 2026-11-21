@@ -27,24 +27,24 @@
 import type { CopyPartition } from "../registry.ts";
 
 export const DANGER_COPY = Object.freeze({
-  "danger.zone.title": ["Danger Zone", { slots: {} }],
-  "danger.unpublish-all": ["Take Every Page Down", { slots: {} }],
-  "danger.delete-account": ["Delete My Account", { slots: {} }],
+  "danger.zone.title": "Danger Zone",
+  "danger.unpublish-all": "Take Every Page Down",
+  "danger.delete-account": "Delete My Account",
   // The fold's lead and the pause pointer ("pause publishing" is its link), issue 1751.
-  "danger.zone.lead": ["Take every page down, or delete your account.", { slots: {} }],
-  "danger.pause.line": ["To stop new pages without taking any down, pause publishing instead.", { slots: {} }],
-  "danger.pause.link": ["pause publishing", { slots: {} }],
-  "danger.unpublish-all.consequence": ["We send your export first, then take every page down and pause publishing. Your account stays, and you can turn publishing on again.", { slots: {} }],
-  "danger.delete-account.consequence": ["We send your export, take every page down and close your account for good. You pay nothing more; we mail you goodbye and erase the rest in {days} days.", { slots: { days: "text" } }],
+  "danger.zone.lead": "Take every page down, or delete your account.",
+  "danger.pause.line": "To stop new pages without taking any down, pause publishing instead.",
+  "danger.pause.link": "pause publishing",
+  "danger.unpublish-all.consequence": "We send your export first, then take every page down and pause publishing. Your account stays, and you can turn publishing on again.",
+  "danger.delete-account.consequence": "We send your export, take every page down and close your account for good. You pay nothing more; we mail you goodbye and erase the rest in {days} days.",
   // The "Are you sure?" step before deletion runs: one line per consequence, then the two buttons.
-  "danger.delete-account.sure.title": ["Are You Sure?", { slots: {} }],
-  "danger.delete-account.sure.hosted": ["Every page we host for you is taken down now.", { slots: {} }],
-  "danger.delete-account.sure.plan": ["Your subscription ends now, with no refund for this period and no more charges.", { slots: {} }],
-  "danger.delete-account.sure.closed": ["Your account closes, and you are signed out on every device.", { slots: {} }],
-  "danger.delete-account.sure.erased": ["The rest is erased within {days} days and cannot be recovered.", { slots: { days: "text" } }],
-  "danger.delete-account.sure.wordpress": ["Pages already copied into your WordPress stay there.", { slots: {} }],
-  "danger.delete-account.sure.kept": ["We keep invoices, refund records, your name and email, and any opt-out from our mail.", { slots: {} }],
-  "danger.delete-account.keep": ["Keep My Account", { slots: {} }],
+  "danger.delete-account.sure.title": "Are You Sure?",
+  "danger.delete-account.sure.hosted": "Every page we host for you is taken down now.",
+  "danger.delete-account.sure.plan": "Your subscription ends now, with no refund for this period and no more charges.",
+  "danger.delete-account.sure.closed": "Your account closes, and you are signed out on every device.",
+  "danger.delete-account.sure.erased": "The rest is erased within {days} days and cannot be recovered.",
+  "danger.delete-account.sure.wordpress": "Pages already copied into your WordPress stay there.",
+  "danger.delete-account.sure.kept": "We keep invoices, refund records, your name and email, and any opt-out from our mail.",
+  "danger.delete-account.keep": "Keep My Account",
 
   // Issue #52 — the three lines the danger zone's own outcomes are told in.
   // The words are the owner's: REQ-079 states what each must convey and no
@@ -52,15 +52,15 @@ export const DANGER_COPY = Object.freeze({
   //
   // c3, the refusal: "if it cannot be produced, or they do not take it, the
   // action does not proceed and says why."
-  "danger.export-failed": ["Your export didn’t finish, so nothing was changed.", { slots: {} }],
+  "danger.export-failed": "Your export didn’t finish, so nothing was changed.",
   // The refusal a customer fixes themselves: this step's download is missing, used or out of date.
-  "danger.export-again": ["Download this step’s pages again, then confirm.", { slots: {} }],
+  "danger.export-again": "Download this step’s pages again, then confirm.",
   // c4's last clause, the two arms of what an unpublish-everything run
   // leaves behind: "the pages at any destination that could not be reached
   // are listed as still live with one written line saying so", and the line
   // for a run that left none.
-  "danger.some-still-live": ["We couldn’t reach your site, so some pages are still live. They’re listed below.", { slots: {} }],
-  "danger.all-taken-down": ["Every page is down.", { slots: {} }],
+  "danger.some-still-live": "We couldn’t reach your site, so some pages are still live. They’re listed below.",
+  "danger.all-taken-down": "Every page is down.",
 
   // 2026-09-07, issue #259 — the sentences the ticket-and-download
   // handshake speaks, now that a screen reaches it. Every one is a
@@ -71,16 +71,16 @@ export const DANGER_COPY = Object.freeze({
   // the strongest claim anything on this side can make — `markExportTaken`
   // is stamped after the last byte, and nothing here can know the customer
   // holds the file.
-  "danger.export-take": ["Get your pages first", { slots: {} }],
+  "danger.export-take": "Get your pages first",
   // No slots: `danger_tickets` keeps the stamp and not the archive's name
   // or its page count, so the line says the archive left and no more. A
   // slot naming a file this side cannot re-derive would be a sentence the
   // screen could not fill.
-  "danger.export-taken": ["Your pages are downloaded", { slots: {} }],
+  "danger.export-taken": "Your pages are downloaded",
 
   // c2's typed confirmation. The label and the placeholder are one key —
   // the `/signin` precedent — and `{word}` is what the customer must type.
-  "danger.type-to-confirm": ["Type “{word}” to confirm", { slots: { word: "text" } }],
+  "danger.type-to-confirm": "Type “{word}” to confirm",
 
   /* The word itself, one key per action (owner ruling, 2026-09-07).
    *
@@ -94,8 +94,8 @@ export const DANGER_COPY = Object.freeze({
    * Two keys and not one with the action interpolated: they are two words
    * the owner writes, and a single key with a slot would make the product's
    * two most destructive confirmations share one sentence. */
-  "danger.confirm-word.unpublish-all": ["unpublish all", { slots: {} }],
-  "danger.confirm-word.delete-account": ["delete account", { slots: {} }],
+  "danger.confirm-word.unpublish-all": "unpublish all",
+  "danger.confirm-word.delete-account": "delete account",
 
   /* What a refused handshake leaves behind, and what a completed one took.
    *
@@ -108,9 +108,6 @@ export const DANGER_COPY = Object.freeze({
    * `taken-down-count` carries c5's switch: a run that took pages down also
    * switches publishing off, and it stays off until the customer switches
    * it on themselves. The count is the run's own `takenDown`. */
-  "danger.nothing-changed": ["Nothing changed. Your pages and account are as they were.", { slots: {} }],
-  "danger.taken-down-count": [
-    "Pages taken down: {pages}. Publishing is now off and stays off until you switch it on.",
-    { slots: { pages: "text" } },
-  ],
+  "danger.nothing-changed": "Nothing changed. Your pages and account are as they were.",
+  "danger.taken-down-count": "Pages taken down: {pages}. Publishing is now off and stays off until you switch it on.",
 }) satisfies CopyPartition;

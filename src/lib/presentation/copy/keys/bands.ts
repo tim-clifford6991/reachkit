@@ -10,26 +10,26 @@ import type { CopyPartition } from "../registry.ts";
 
 export const BANDS_COPY = Object.freeze({
   // BP-019 decision 6 (owner ruling, 2026-08-31): winnability band words.
-  "band.winnability.winnable": ["Winnable", { slots: {} }],
-  "band.winnability.reach": ["Reach", { slots: {} }],
+  "band.winnability.winnable": "Winnable",
+  "band.winnability.reach": "Reach",
   // Unhyphenated: "Not yet" is the rendered term; the hyphenated
   // 'not-yet' is the internal handle and never renders.
-  "band.winnability.notYet": ["Not yet", { slots: {} }],
+  "band.winnability.notYet": "Not yet",
 
   // BP-019 decision 6 (owner ruling, 2026-08-31): rival-size band words.
-  "band.rivalSize.near": ["Similar size", { slots: {} }],
-  "band.rivalSize.middle": ["Larger", { slots: {} }],
-  "band.rivalSize.far": ["Much larger", { slots: {} }],
+  "band.rivalSize.near": "Similar size",
+  "band.rivalSize.middle": "Larger",
+  "band.rivalSize.far": "Much larger",
 
   // BP-019 decision 6 (owner ruling, 2026-08-31): REQ-009 criterion 8's
   // three severity words.
-  "severity.low": ["Minor", { slots: {} }],
-  "severity.mid": ["Worth fixing", { slots: {} }],
-  "severity.high": ["Critical", { slots: {} }],
+  "severity.low": "Minor",
+  "severity.mid": "Worth fixing",
+  "severity.high": "Critical",
 
   // REQ-004 criterion 1, whose own words these are.
-  "band.score.invisible": ["Invisible", { slots: {} }],
-  "band.score.hard-to-find": ["Hard to find", { slots: {} }],
-  "band.score.findable": ["Findable", { slots: {} }],
-  "band.score.dominant": ["Dominant", { slots: {} }],
+  "band.score.invisible": "Invisible",
+  "band.score.hard-to-find": "Hard to find",
+  "band.score.findable": "Findable",
+  "band.score.dominant": "Dominant",
 }) satisfies CopyPartition;

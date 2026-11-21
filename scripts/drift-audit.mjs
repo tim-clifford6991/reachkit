@@ -8,6 +8,7 @@ import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
 import path from "node:path";
 import { readDecisions, specSections } from "./spec-decisions.mjs";
 import { blockRules } from "./lib/budgets.mjs";
+import { ENTRY_RE } from "./lib/plain-words.mjs";
 
 const rootAt = process.argv.indexOf("--root");
 const ROOT = rootAt > 0
@@ -49,9 +50,6 @@ const add = (area, status, subject, detail, isHard = false) => {
 const plain = (s) =>
   s.replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/\s+/g, " ").trim();
 
-// A partition entry is `"the.key": ["the sentence", { ... }]`, and one key's
-// sentence sits on the line after its key — the whitespace class spans both.
-const ENTRY_RE = /"([\w$.-]+)"\s*:\s*\[\s*"((?:[^"\\]|\\.)*)"/g;
 const registry = new Map();
 for (const f of walk("src/lib/presentation/copy/keys", (f) => f.endsWith(".ts"))) {
   for (const m of read(f).matchAll(ENTRY_RE)) {

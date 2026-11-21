@@ -31,10 +31,10 @@
 import type { CopyPartition } from "../registry.ts";
 
 export const PUBLISH_COPY = Object.freeze({
-  "verdict.page.working": ["Working", { slots: {} }],
-  "verdict.page.too_early": ["Too early to judge", { slots: {} }],
-  "verdict.page.not_working": ["Not working", { slots: {} }],
-  "verdict.page.not_judgeable": ["No longer judgeable", { slots: {} }],
+  "verdict.page.working": "Working",
+  "verdict.page.too_early": "Too early to judge",
+  "verdict.page.not_working": "Not working",
+  "verdict.page.not_judgeable": "No longer judgeable",
 
   // 2026-09-06, issue #46 (BUILD §9, REQ-045 c4). The two things the three
   // draft actions can answer when the state machine refuses.
@@ -48,14 +48,8 @@ export const PUBLISH_COPY = Object.freeze({
   //
   // The `{state}` slot is the state the page still holds — the refusal
   // never leaves it somewhere else.
-  "publish.action.refused.notATransition": [
-    "Nothing changed. That can’t be done while the page is {state}.",
-    { slots: { state: "text" } },
-  ],
-  "publish.action.refused.guard": [
-    "Nothing changed. The reason is shown on this page.",
-    { slots: {} },
-  ],
+  "publish.action.refused.notATransition": "Nothing changed. That can’t be done while the page is {state}.",
+  "publish.action.refused.guard": "Nothing changed. The reason is shown on this page.",
 
   // 2026-09-06, issue #50 (REQ-062 / REQ-056 c6). The page record's
   // address labels. Three keys, all three sentences the owner's.
@@ -74,9 +68,9 @@ export const PUBLISH_COPY = Object.freeze({
   // never made live at its destination: that arm of `RecordedAddress`
   // carries no `url` field at all, so this line is the whole of what the
   // record offers there.
-  "record.address.publiclyReadableAt": ["Publicly readable at", { slots: {} }],
-  "record.address.wasPublishedAt": ["Was published at", { slots: {} }],
-  "record.address.neverMadeLive": ["This page hasn’t been made live, so it has no address yet.", { slots: {} }],
+  "record.address.publiclyReadableAt": "Publicly readable at",
+  "record.address.wasPublishedAt": "Was published at",
+  "record.address.neverMadeLive": "This page hasn’t been made live, so it has no address yet.",
 
   // The record as a customer reads it (issue #217): the block's heading,
   // its three row labels, the seven verification lines and the five
@@ -95,22 +89,22 @@ export const PUBLISH_COPY = Object.freeze({
   // date printed beside it would read as an observation ReachKit has not
   // made. The two `never` arms state none either: no check will run, so
   // there is nothing to date.
-  "record.title": ["Page Record", { slots: {} }],
-  "record.label.address": ["Address", { slots: {} }],
-  "record.label.checked": ["Checked", { slots: {} }],
-  "record.label.taken-down": ["Taken down", { slots: {} }],
-  "record.verification.found": ["found live", { slots: {} }],
-  "record.verification.pageNotFound": ["no page found at this address", { slots: {} }],
-  "record.verification.couldNotConfirm": ["check not confirmed", { slots: {} }],
-  "record.verification.notYet": ["first check at", { slots: {} }],
-  "record.verification.due": ["check due now", { slots: {} }],
-  "record.verification.never.takenDownFirst": ["taken down before its check", { slots: {} }],
-  "record.verification.never.noLiveAddress": ["not checked", { slots: {} }],
-  "record.unpublished.removed": ["removed from your hosted blog", { slots: {} }],
-  "record.unpublished.returnedToDraft": ["returned to draft in your WordPress", { slots: {} }],
-  "record.unpublished.namedForRemoval": ["never live there, yours to remove", { slots: {} }],
-  "record.unpublished.alreadyGone": ["already gone from your site", { slots: {} }],
-  "record.unpublished.unreachable": ["your site couldn’t be reached; the post may still be live", { slots: {} }],
+  "record.title": "Page Record",
+  "record.label.address": "Address",
+  "record.label.checked": "Checked",
+  "record.label.taken-down": "Taken down",
+  "record.verification.found": "found live",
+  "record.verification.pageNotFound": "no page found at this address",
+  "record.verification.couldNotConfirm": "check not confirmed",
+  "record.verification.notYet": "first check at",
+  "record.verification.due": "check due now",
+  "record.verification.never.takenDownFirst": "taken down before its check",
+  "record.verification.never.noLiveAddress": "not checked",
+  "record.unpublished.removed": "removed from your hosted blog",
+  "record.unpublished.returnedToDraft": "returned to draft in your WordPress",
+  "record.unpublished.namedForRemoval": "never live there, yours to remove",
+  "record.unpublished.alreadyGone": "already gone from your site",
+  "record.unpublished.unreachable": "your site couldn’t be reached; the post may still be live",
 
   // The eight below are the destination lines (§9, issue #48): one written
   // line per `HealthReason`, which is what a broken destination says under
@@ -132,106 +126,34 @@ export const PUBLISH_COPY = Object.freeze({
   // credential is valid and the page has already failed rather than been
   // held. Wording that distinction is the owner's.
   // What a short pack lacked, one phrase per handle; the draft's pack card lists them.
-  "publish.needs-you.pack.need.options": [
-    "three options to compare, each competitor with a fact from its own pricing or feature page",
-    { slots: {} },
-  ],
-  "publish.needs-you.pack.need.own_price": [
-    "your own price, from your business profile or a page of your site",
-    { slots: {} },
-  ],
-  "publish.needs-you.pack.need.difference": [
-    "one thing that sets you apart, from your business profile or your answers",
-    { slots: {} },
-  ],
-  "publish.needs-you.pack.need.facts_on_topic": [
-    "enough facts about your business that speak to this page’s question",
-    { slots: {} },
-  ],
-  "publish.needs-you.pack.need.facts_few": [
-    "more facts about what you sell and who you serve",
-    { slots: {} },
-  ],
-  "publish.needs-you.pack.need.outside_sources": [
-    "public pages, such as the official guidance on this task, with facts to cite",
-    { slots: {} },
-  ],
-  "publish.needs-you.pack.need.product_page": [
-    "a product, features or pricing page on your site to link to",
-    { slots: {} },
-  ],
-  "publish.needs-you.pack.need.measured_questions": [
-    "a finished scan of your site with enough searches measured",
-    { slots: {} },
-  ],
-  "publish.needs-you.pack.need.changed_figures": [
-    "a figure that has changed since your last research page",
-    { slots: {} },
-  ],
-  "publish.needs-you.pack.need.buyer_questions": [
-    "enough questions that buyers were measured or recorded asking",
-    { slots: {} },
-  ],
-  "publish.needs-you.pack.need.recent_results": [
-    "enough recent web results, each with its date and something it says",
-    { slots: {} },
-  ],
-  "publish.needs-you.pack.need.live_page": [
-    "the text of the live page this one updates",
-    { slots: {} },
-  ],
-  "publish.needs-you.pack.need.new_fact": [
-    "a fact the live page doesn’t already state",
-    { slots: {} },
-  ],
-  "publish.needs-you.pack.need.rival_evidence": [
-    "a fact about each competitor from its own site or a study",
-    { slots: {} },
-  ],
+  "publish.needs-you.pack.need.options": "three options to compare, each competitor with a fact from its own pricing or feature page",
+  "publish.needs-you.pack.need.own_price": "your own price, from your business profile or a page of your site",
+  "publish.needs-you.pack.need.difference": "one thing that sets you apart, from your business profile or your answers",
+  "publish.needs-you.pack.need.facts_on_topic": "enough facts about your business that speak to this page’s question",
+  "publish.needs-you.pack.need.facts_few": "more facts about what you sell and who you serve",
+  "publish.needs-you.pack.need.outside_sources": "public pages, such as the official guidance on this task, with facts to cite",
+  "publish.needs-you.pack.need.product_page": "a product, features or pricing page on your site to link to",
+  "publish.needs-you.pack.need.measured_questions": "a finished scan of your site with enough searches measured",
+  "publish.needs-you.pack.need.changed_figures": "a figure that has changed since your last research page",
+  "publish.needs-you.pack.need.buyer_questions": "enough questions that buyers were measured or recorded asking",
+  "publish.needs-you.pack.need.recent_results": "enough recent web results, each with its date and something it says",
+  "publish.needs-you.pack.need.live_page": "the text of the live page this one updates",
+  "publish.needs-you.pack.need.new_fact": "a fact the live page doesn’t already state",
+  "publish.needs-you.pack.need.rival_evidence": "a fact about each competitor from its own site or a study",
   // Why a page needs the customer, one sentence per cause that can be critical (owner O7), from the page's own record
   // (`src/lib/publish/record/needs-you.ts`). Drafted under issue 759's ruling; the owner corrects the wording.
-  "publish.needs-you.destination": [
-    "This page is written but couldn’t reach your site. It goes live once your site connects again.",
-    { slots: {} },
-  ],
-  "publish.needs-you.delivery": [
-    "We tried several times, but this page didn’t reach your site. Nothing is lost, so check your connection.",
-    { slots: {} },
-  ],
-  "publish.needs-you.live-edit": [
-    "Your change to this page breaks one of our checks. Open it to fix your words.",
-    { slots: {} },
-  ],
-  "publish.needs-you.unknown": [
-    "This page stopped before going live. Read it to see why, or write it again.",
-    { slots: {} },
-  ],
-  "publish.destination.line.never-connected": [
-    "Not connected yet. Your pages wait here, and you can read them.",
-    { slots: {} },
-  ],
-  "publish.destination.line.dns-unset": ["We can’t see your setting yet. Your pages wait, and nothing is lost.", { slots: {} }],
-  "publish.destination.line.dns-elsewhere": [
-    "Your setting points somewhere else, so pages are waiting. Fix it and they go live.",
-    { slots: {} },
-  ],
-  "publish.destination.line.credentials-expired": [
-    "The connection expired. Reconnect and your waiting pages go live.",
-    { slots: {} },
-  ],
-  "publish.destination.line.credentials-invalid": [
-    "Your site refused our password, so pages are waiting. Reconnect with a new application password.",
-    { slots: {} },
-  ],
-  "publish.destination.line.unreachable": ["We couldn’t reach your site, so pages are waiting. They go live once it’s back.", { slots: {} }],
-  "publish.destination.line.destination-rejected": [
-    "Your site refused the page, so pages are waiting. Reconnect to try again.",
-    { slots: {} },
-  ],
-  "publish.destination.line.cannot-publish": [
-    "Connected, but this WordPress account can’t publish. Use an account that can.",
-    { slots: {} },
-  ],
+  "publish.needs-you.destination": "This page is written but couldn’t reach your site. It goes live once your site connects again.",
+  "publish.needs-you.delivery": "We tried several times, but this page didn’t reach your site. Nothing is lost, so check your connection.",
+  "publish.needs-you.live-edit": "Your change to this page breaks one of our checks. Open it to fix your words.",
+  "publish.needs-you.unknown": "This page stopped before going live. Read it to see why, or write it again.",
+  "publish.destination.line.never-connected": "Not connected yet. Your pages wait here, and you can read them.",
+  "publish.destination.line.dns-unset": "We can’t see your setting yet. Your pages wait, and nothing is lost.",
+  "publish.destination.line.dns-elsewhere": "Your setting points somewhere else, so pages are waiting. Fix it and they go live.",
+  "publish.destination.line.credentials-expired": "The connection expired. Reconnect and your waiting pages go live.",
+  "publish.destination.line.credentials-invalid": "Your site refused our password, so pages are waiting. Reconnect with a new application password.",
+  "publish.destination.line.unreachable": "We couldn’t reach your site, so pages are waiting. They go live once it’s back.",
+  "publish.destination.line.destination-rejected": "Your site refused the page, so pages are waiting. Reconnect to try again.",
+  "publish.destination.line.cannot-publish": "Connected, but this WordPress account can’t publish. Use an account that can.",
 
   // 2026-09-06, issue #144 (§9, §12's `draft-ready` "one veto link"). The
   // four lines `GET /veto/{token}` can speak — one per arm of the closed
@@ -250,26 +172,17 @@ export const PUBLISH_COPY = Object.freeze({
   // no line for the three refusals below — a link that was already used,
   // has run out, or names no page; those are the owner's approved
   // sentences of 2026-09-10 (#459).
-  "publish.veto.ask.head": [
-    "Goes Live {when}",
-    { slots: { when: "text" } },
-  ],
+  "publish.veto.ask.head": "Goes Live {when}",
   // Owner ruling Q11 (2026-10-20): no go-live time while the address is unconnected.
-  "publish.veto.ask.head.unconnected": ["Goes Live Once Your Website Is Connected", { slots: {} }],
-  "publish.veto.ask.row.search": ["Search", { slots: {} }],
+  "publish.veto.ask.head.unconnected": "Goes Live Once Your Website Is Connected",
+  "publish.veto.ask.row.search": "Search",
   // After the search itself, which is set in the code face as the board draws it.
-  "publish.veto.ask.row.volume": ["· searched about {volume} times a month", { slots: { volume: "text" } }],
-  "publish.veto.ask.action": ["Stop This Page", { slots: {} }],
+  "publish.veto.ask.row.volume": "· searched about {volume} times a month",
+  "publish.veto.ask.action": "Stop This Page",
   // Board Veto v36: the choice not to act, then the way to the page.
-  "publish.veto.ask.do-nothing": [
-    "Do nothing and it goes live on its own.",
-    { slots: {} },
-  ],
-  "publish.veto.ask.signin": [
-    "Sign In to Edit It",
-    { slots: {} },
-  ],
-  "publish.veto.done.head": ["Stopped", { slots: {} }],
+  "publish.veto.ask.do-nothing": "Do nothing and it goes live on its own.",
+  "publish.veto.ask.signin": "Sign In to Edit It",
+  "publish.veto.done.head": "Stopped",
   // SPEC §4 (2026-09-20, #914): *Plan* is the calendar's on-screen name.
   // The key keeps the internal word, as the route `/veto/{token}` does.
   /** Changed 2026-09-21 (#937), and the destination with it. This control
@@ -278,60 +191,39 @@ export const PUBLISH_COPY = Object.freeze({
    *  which `src/middleware.ts` gates: the reader was bounced to a sign-in
    *  wall with no word about why. It goes to `/signin` now and says so, so
    *  the word and the destination cannot come apart. Drafted (#759). */
-  "publish.veto.calendar": ["Sign In to Open This Week", { slots: {} }],
+  "publish.veto.calendar": "Sign In to Open This Week",
   /** The Veto board's line: other pages are unaffected, and the topic is dropped for good. */
-  "publish.veto.stopped": [
-    "Your other pages go ahead. ReachKit won’t write this topic again.",
-    { slots: {} },
-  ],
+  "publish.veto.stopped": "Your other pages go ahead. ReachKit won’t write this topic again.",
   /** The rest of the done arm's alert, after `publish.veto.done.head`'s
    *  "Stopped" — two keys because the board bolds the first word and reads
    *  on, and one key holding "Stopped. This page won’t go live." would
    *  make the bold a matter of where a full stop happens to fall.
    *  Drafted (#759). */
-  "publish.veto.done.line": ["This page won’t go live.", { slots: {} }],
+  "publish.veto.done.line": "This page won’t go live.",
   /** The pill on the stopped page in the accent half, as the board draws it. */
-  "publish.veto.panel.stopped": ["Won’t go live", { slots: {} }],
-  "publish.veto.alreadyUsed": ["This link was already used. The page is stopped.", { slots: {} }],
+  "publish.veto.panel.stopped": "Won’t go live",
+  "publish.veto.alreadyUsed": "This link was already used. The page is stopped.",
   // Board Veto v36's line, with "stop" for its "take it down" (E7: Stop is Stop everywhere).
-  "publish.veto.expired": [
-    "The time to stop it from your mail has passed, so it may be live. Sign in to stop it from This week.",
-    { slots: {} },
-  ],
-  "publish.veto.unknown": [
-    "ReachKit can’t act on this link. Sign in to stop or edit a page.",
-    { slots: {} },
-  ],
+  "publish.veto.expired": "The time to stop it from your mail has passed, so it may be live. Sign in to stop it from This week.",
+  "publish.veto.unknown": "ReachKit can’t act on this link. Sign in to stop or edit a page.",
   // The heads of the arms where nothing was stopped; the line under each says why.
-  "publish.veto.closed.head": ["This Link Has Closed", { slots: {} }],
-  "publish.veto.unknown.head": ["We Can’t Use This Link", { slots: {} }],
-  "publish.veto.used.head": ["Already Stopped", { slots: {} }],
+  "publish.veto.closed.head": "This Link Has Closed",
+  "publish.veto.unknown.head": "We Can’t Use This Link",
+  "publish.veto.used.head": "Already Stopped",
   // The stop that did not go through: never says Stopped.
-  "publish.veto.failed.head": ["Not Stopped Yet", { slots: {} }],
-  "publish.veto.failed": [
-    "That didn’t go through. Press Stop This Page again, or sign in to stop it.",
-    { slots: {} },
-  ],
-  "publish.veto.failed.still": ["Still goes live {when}, unless stopped.", { slots: { when: "text" } }],
+  "publish.veto.failed.head": "Not Stopped Yet",
+  "publish.veto.failed": "That didn’t go through. Press Stop This Page again, or sign in to stop it.",
+  "publish.veto.failed.still": "Still goes live {when}, unless stopped.",
   // The ask arm: why the week chose the page, the window, and what Stop does.
-  "publish.veto.why": ["Why ReachKit chose it:", { slots: {} }],
-  "publish.veto.timeline.sent": ["Mail sent {at}", { slots: { at: "text" } }],
-  "publish.veto.consequence": [
-    "It won’t go live and the topic is dropped. Other pages are not affected.",
-    { slots: {} },
-  ],
+  "publish.veto.why": "Why ReachKit chose it:",
+  "publish.veto.timeline.sent": "Mail sent {at}",
+  "publish.veto.consequence": "It won’t go live and the topic is dropped. Other pages are not affected.",
   // Issue 1674: the Monday mail's link to a page planned but not written yet (drafted).
-  "publish.veto.planned.title": ["Planned for {day}", { slots: { day: "text" } }],
-  "publish.veto.written": [
-    "This page is written now. Sign in to edit or stop it from This week.",
-    { slots: {} },
-  ],
+  "publish.veto.planned.title": "Planned for {day}",
+  "publish.veto.written": "This page is written now. Sign in to edit or stop it from This week.",
   // A page set aside for a newer standard: its old link stops nothing, and what goes live has its own.
-  "publish.veto.set-aside.head": ["This Version Was Set Aside", { slots: {} }],
-  "publish.veto.set-aside": [
-    "Our page checks changed, so this version won’t go live. Sign in to stop or edit what goes live on This week.",
-    { slots: {} },
-  ],
+  "publish.veto.set-aside.head": "This Version Was Set Aside",
+  "publish.veto.set-aside": "Our page checks changed, so this version won’t go live. Sign in to stop or edit what goes live on This week.",
 
   // 2026-09-06, issue #54 (BUILD §9 · REQ-060). The two sentences the
   // WordPress destination speaks, and they are the only two: everything
@@ -371,46 +263,31 @@ export const PUBLISH_COPY = Object.freeze({
   //
   // The set also drew a canonical note naming `reachkit.app`; SPEC §5 puts
   // no ReachKit text on a customer's page, so it is gone (#1129).
-  "hosted.published": [
-    "published {date} · by {publisher}",
-    { slots: { date: "date", publisher: "text" } },
-  ],
+  "hosted.published": "published {date} · by {publisher}",
   // SPEC §7 (2026-09-29, issue 1137): the same line once the page has been
   // refreshed. `{publisher}` is the byline — the founder's name and line
   // from setup, else the business's name — on both. Drafted under #759's
   // ruling; the owner corrects it.
-  "hosted.updated": [
-    "published {date} · updated {updated} · by {publisher}",
-    { slots: { date: "date", updated: "date", publisher: "text" } },
-  ],
+  "hosted.updated": "published {date} · updated {updated} · by {publisher}",
   // Owner R1 (2026-10-22): an offering page is the business's own, so its
   // line states the dates and no byline. Drafted under #759's ruling.
-  "hosted.dated": ["Published {date}", { slots: { date: "date" } }],
-  "hosted.dated.updated": [
-    "Published {date} · Updated {updated}",
-    { slots: { date: "date", updated: "date" } },
-  ],
+  "hosted.dated": "Published {date}",
+  "hosted.dated.updated": "Published {date} · Updated {updated}",
   // Owner R1 (2026-10-22): an address a live site no longer serves names
   // whose site it is and the way back to its guides. Board HostedGone.
-  "hosted.gone.heading": ["This page is no longer available", { slots: {} }],
-  "hosted.gone.line": ["{publisher} has removed this guide.", { slots: { publisher: "text" } }],
-  "hosted.gone.index": ["Browse all guides", { slots: {} }],
+  "hosted.gone.heading": "This page is no longer available",
+  "hosted.gone.line": "{publisher} has removed this guide.",
+  "hosted.gone.index": "Browse all guides",
   // A sentence, drawn as a link to the page it names.
-  "hosted.source": [
-    "Source: {source} · retrieved {date}.",
-    { slots: { source: "text", date: "date" } },
-  ],
+  "hosted.source": "Source: {source} · retrieved {date}.",
   // The customer's own footer line. A key rather than a bare "©" in the
   // markup, so this surface has no string outside the registry at all —
   // and one slot rather than two, because the set's second half is an
   // imprint line the customer states and no column carries yet (#375's PR
   // body names it under owner owes).
-  "hosted.footer": [
-    "© {publisher}",
-    { slots: { publisher: "text" } },
-  ],
+  "hosted.footer": "© {publisher}",
   // The footer's link to the site's feed.
-  "hosted.footer.rss": ["RSS", { slots: {} }],
+  "hosted.footer.rss": "RSS",
   // The hosted index at `/` (owner 2026-09-16): every live page of the
   // site, newest first, with a search. Drafted under #759's ruling; the
   // owner corrects the wording. None names ReachKit — the index is served
@@ -423,16 +300,16 @@ export const PUBLISH_COPY = Object.freeze({
   // (`R2-VW-C`) rather than headings, so neither joins the page's heading
   // outline — a structural claim about the page is not theirs to make.
   // Drafted under the 2026-09-16 ruling (#759); the owner corrects them.
-  "body.answer.heading": ["The short answer", { slots: {} }],
+  "body.answer.heading": "The short answer",
   // SPEC §7 (owner, 2026-09-29, D4): the label over the `:::takeaways` box,
   // an eyebrow like the one above. Drafted under #759's ruling (issue 1137);
   // the owner corrects it.
-  "body.takeaways.heading": ["Key takeaways", { slots: {} }],
+  "body.takeaways.heading": "Key takeaways",
   // SPEC §7 (owner, 2026-10-17, issue 1489): the heading over the buyer
   // questions code draws above the sources list. A heading, not an
   // eyebrow: the section is part of the page's outline. Drafted under
   // #759's ruling; the owner corrects it.
-  "body.faq.heading": ["Questions buyers ask", { slots: {} }],
+  "body.faq.heading": "Questions buyers ask",
   // The name the table's own scrolling box carries (owner, PR #973). It is
   // a **landmark label**, not a caption: a box that scrolls has to be
   // reachable from a keyboard (axe `scrollable-region-focusable`, the rule
@@ -440,101 +317,77 @@ export const PUBLISH_COPY = Object.freeze({
   // a name to be announced by. The second clause is what a reader who
   // lands on it needs to know, because the columns past the edge are the
   // reason it is focusable at all.
-  "body.table.label": [
-    "Table: scroll sideways to see every column",
-    { slots: {} },
-  ],
+  "body.table.label": "Table: scroll sideways to see every column",
   // The publisher is the customer, by name: these are their other guides
   // on their own domain, and the line says so rather than naming ReachKit.
-  "body.guides.heading": [
-    "More guides from {publisher}",
-    { slots: { publisher: "text" } },
-  ],
+  "body.guides.heading": "More guides from {publisher}",
 
-  "hosted.index.heading": ["Articles", { slots: {} }],
-  "hosted.index.searchLabel": ["Search the guides", { slots: {} }],
-  "hosted.index.searchSubmit": ["Search", { slots: {} }],
-  "hosted.index.empty": [
-    "Nothing has been published here yet.",
-    { slots: {} },
-  ],
-  "hosted.index.noMatch": [
-    "No articles match “{query}”.",
-    { slots: { query: "text" } },
-  ],
+  "hosted.index.heading": "Articles",
+  "hosted.index.searchLabel": "Search the guides",
+  "hosted.index.searchSubmit": "Search",
+  "hosted.index.empty": "Nothing has been published here yet.",
+  "hosted.index.noMatch": "No articles match “{query}”.",
 
   // SPEC §7 (2026-09-29, issue 1140) — the hosted blog carries the
   // customer's identity. Every line is structure around their own name and
   // pages, and none names ReachKit. Drafted under #759's ruling; the owner
   // corrects the wording.
-  "hosted.visit": ["Visit {site}", { slots: { site: "text" } }],
-  "hosted.toc": ["On this page", { slots: {} }],
-  "hosted.readingTime": ["{minutes} min read", { slots: { minutes: "text" } }],
-  "hosted.about": ["About {publisher}", { slots: { publisher: "text" } }],
+  "hosted.visit": "Visit {site}",
+  "hosted.toc": "On this page",
+  "hosted.readingTime": "{minutes} min read",
+  "hosted.about": "About {publisher}",
   // Issue 1509: the about card names the person a page is by, where it is
   // by a person — linked to the main site's page that names them, where it
   // has one. Drafted under #759's ruling; the owner corrects the wording.
-  "hosted.about.author": ["Written by {author}", { slots: { author: "text" } }],
+  "hosted.about.author": "Written by {author}",
   // The one place the adopted market stores that the business serves, never
   // inferred: a business with none says nothing. Drafted; the owner corrects it.
-  "hosted.about.serves": ["Serves {place}.", { slots: { place: "text" } }],
+  "hosted.about.serves": "Serves {place}.",
   // The business's own actions: its stored phone, and its main site's own
   // book and quote pages. None claims more than that the number or page
   // exists. The headline asks in the adopted market's own category and
   // place, else names the business. Drafted under #759's ruling; the owner
   // corrects the wording.
-  "hosted.action.call": ["Call {phone}", { slots: { phone: "text" } }],
-  "hosted.action.book": ["Book a visit", { slots: {} }],
-  "hosted.action.book.demo": ["Book a demo", { slots: {} }],
-  "hosted.action.book.call": ["Book a call", { slots: {} }],
-  "hosted.action.book.online": ["Book online", { slots: {} }],
-  "hosted.action.quote": ["Ask for a quote", { slots: {} }],
-  "hosted.compact.heading": ["Need {category}?", { slots: { category: "text" } }],
-  "hosted.compact.heading.place": ["Need {category} in {place}?", { slots: { category: "text", place: "text" } }],
-  "hosted.compact.heading.name": ["Questions for {publisher}?", { slots: { publisher: "text" } }],
+  "hosted.action.call": "Call {phone}",
+  "hosted.action.book": "Book a visit",
+  "hosted.action.book.demo": "Book a demo",
+  "hosted.action.book.call": "Book a call",
+  "hosted.action.book.online": "Book online",
+  "hosted.action.quote": "Ask for a quote",
+  "hosted.compact.heading": "Need {category}?",
+  "hosted.compact.heading.place": "Need {category} in {place}?",
+  "hosted.compact.heading.name": "Questions for {publisher}?",
   // SPEC §7 (2026-10-11, issue 1397): how the page was made, under its
   // byline. Both numbers are read off the page's own row and neither is
   // typed here; `.one` is the same line for a page with a single fact.
   // `.sources` follows it, as a link, where the body ends with its sources
   // list. None names ReachKit. Drafted under #759's ruling; the owner
   // corrects the wording.
-  "hosted.made": [
-    "Written with AI from {facts} facts on {site}, checked against {rules} rules before publishing.",
-    { slots: { facts: "text", site: "text", rules: "text" } },
-  ],
-  "hosted.made.one": [
-    "Written with AI from one fact on {site}, checked against {rules} rules before publishing.",
-    { slots: { site: "text", rules: "text" } },
-  ],
-  "hosted.made.sources": ["Sources are listed below.", { slots: {} }],
+  "hosted.made": "Written with AI from {facts} facts on {site}, checked against {rules} rules before publishing.",
+  "hosted.made.one": "Written with AI from one fact on {site}, checked against {rules} rules before publishing.",
+  "hosted.made.sources": "Sources are listed below.",
   // The breadcrumb's name as a landmark; its three parts are the
   // customer's name, `hosted.index.heading` and the page's own title.
-  "hosted.breadcrumb": ["Breadcrumb", { slots: {} }],
+  "hosted.breadcrumb": "Breadcrumb",
   // The index's description in a search result and in the feed, for a
   // business with no line of its own (issue 1141). Drafted under #759's
   // ruling; the owner corrects the wording.
-  "hosted.index.description": [
-    "Articles and guides from {publisher}.",
-    { slots: { publisher: "text" } },
-  ],
-  "hosted.index.latest": ["Latest", { slots: {} }],
-  "hosted.index.pages": ["Pages of articles", { slots: {} }],
-  "hosted.index.newer": ["Previous page", { slots: {} }],
-  "hosted.index.older": ["Next page", { slots: {} }],
+  "hosted.index.description": "Articles and guides from {publisher}.",
+  "hosted.index.latest": "Latest",
+  "hosted.index.pages": "Pages of articles",
+  "hosted.index.newer": "Previous page",
+  "hosted.index.older": "Next page",
   // The index's H1 and its grid's heading; the head, breadcrumb and feed keep `hosted.index.heading`.
-  "hosted.index.title": ["Guides from {publisher}", { slots: { publisher: "text" } }],
-  "hosted.index.recent": ["Recent guides", { slots: {} }],
-  "hosted.index.pageOf": [
-    "Page {page} of {pages}",
-    { slots: { page: "text", pages: "text" } },
-  ],
+  "hosted.index.title": "Guides from {publisher}",
+  "hosted.index.recent": "Recent guides",
+  "hosted.index.pageOf": "Page {page} of {pages}",
   // Every live guide one click from the index, by topic (owner R1, 2026-10-22).
-  "hosted.index.all": ["All guides", { slots: {} }],
-  "hosted.index.allLead": ["Every guide on this site, by topic.", { slots: {} }],
-  "hosted.index.topicCount": ["{count} guides", { slots: { count: "text" } }],
-  "hosted.index.other": ["Other guides", { slots: {} }],
+  "hosted.index.all": "All guides",
+  "hosted.index.allLead": "Every guide on this site, by topic.",
+  "hosted.index.topicCount": "{count} guides",
+  "hosted.index.other": "Other guides",
 
   // Issue 2091: a plugin was detected but did not take the title and description (drafted).
-  "publish.wordpress.seoNotAccepted": ["A plugin was found, and it didn’t take the title and description. The page is live all the same.", { slots: {} }],
-  "publish.wordpress.noSeoPlugin": ["No SEO plugin was found on your site, so the title and description weren’t written into one. The page is live all the same.", { slots: {} }],
+  "publish.wordpress.seoNotAccepted": "A plugin was found, and it didn’t take the title and description. The page is live all the same.",
+  "publish.wordpress.noSeoPlugin": "No SEO plugin was found on your site, so the title and description weren’t written into one. The page is live all the same.",
 }) satisfies CopyPartition;

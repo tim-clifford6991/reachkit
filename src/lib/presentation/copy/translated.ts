@@ -6,7 +6,7 @@
 // in. What is printed on the customer's own site — a written page, its
 // facts, the hosted blog and the WordPress post — is the customer's content
 // and is in the site's language. English stays the registry
-// (`./registry.ts`): its keys, its slots and its laws are the one
+// (`./registry.ts`): its keys and its slots are the one
 // definition. A language other than English is an overlay of sentences on
 // those same keys (`./keys/<language>/`), and a key the overlay does not
 // hold is shown in English — a missing translation never takes a page down.
@@ -15,7 +15,7 @@
 // client bundle that imports `copy` does not carry them.
 import type { Language } from "@/lib/locale/locales";
 import { copy } from "./copy.ts";
-import { COPY_META, type CopyKey, type CopyMeta } from "./registry.ts";
+import { COPY, slotsOf, type CopyKey } from "./registry.ts";
 import { PAGE_COPY_DE } from "./keys/de/page.ts";
 
 /** One language's sentences, on the registry's own keys. */
@@ -54,8 +54,7 @@ export function copyIn(language: Language, key: CopyKey, vars?: Record<string, s
   // sentence past that English would have stopped.
   const english = copy(key, vars);
   if (translated === undefined) return english;
-  const meta: CopyMeta = COPY_META[key];
   let text = translated;
-  for (const slot of Object.keys(meta.slots)) text = text.split(`{${slot}}`).join(String(vars?.[slot]));
+  for (const slot of slotsOf(COPY[key])) text = text.split(`{${slot}}`).join(String(vars?.[slot]));
   return text;
 }

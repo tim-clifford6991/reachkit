@@ -5,7 +5,8 @@
 export const LIMITS = { sentence: 15, heading: 6, paragraph: 2 };
 
 // One entry per match: the key, its value, and where the value's literal sits in the file.
-export const ENTRY_RE = /"([\w$.-]+)"\s*:\s*\[\s*"((?:[^"\\]|\\.)*)"/g;
+// The bracket is optional so a base commit holding `"key": ["text", {...}]` still counts.
+export const ENTRY_RE = /"([\w$.-]+)"\s*:\s*\[?\s*"((?:[^"\\]|\\.)*)"/g;
 export const TITLE_KEY = /\.(title|heading|subject)$/;
 
 // Owner-only screens and the German hosted partition are never customer copy in this sense.
