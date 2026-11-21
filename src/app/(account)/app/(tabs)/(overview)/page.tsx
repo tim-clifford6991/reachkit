@@ -93,8 +93,7 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
 
   const week = thisWeek?.week ?? null;
   const weekPages = week?.pages ?? 0;
-  const coming = week?.days.filter((day) => day.cell.day >= week.today && day.cell.page !== null && day.cell.page.stage !== "live").length ?? 0;
-  const tiles = await readTiles(coming, shell.publishing.next !== null);
+  const tiles = await readTiles(week?.coming ?? 0, shell.publishing.next !== null);
 
   // The head. A page that cannot go out without the customer outranks "nothing needs you".
   const today = formatDay(overview.today, shell.timeZone);
