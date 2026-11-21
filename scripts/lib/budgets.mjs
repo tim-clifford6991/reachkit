@@ -111,8 +111,11 @@ export function plainWordsFindings({ base, head }) {
 // The archive is kept for reference only, so a move into it is not new code.
 const MEASURED = /^(?:src|tests(?!\/archive\/)|scripts)\/.*\.(?:ts|tsx|mjs|js|css)$/;
 
+// The generator writes the whole schema in one file, so it cannot be split by concept.
+export const GENERATED_DB_TYPES = "src/lib/db/types.generated.ts";
+
 export function isMeasured(rel) {
-  return MEASURED.test(rel);
+  return MEASURED.test(rel) && rel !== GENERATED_DB_TYPES;
 }
 
 export function lineCount(text) {

@@ -77,6 +77,7 @@ const DB = [
   /^src\/lib\/opportunities\/(verdicts\/)?types\.ts$/,
   /^src\/lib\/opportunities\/store\.ts$/,
   /^src\/lib\/ops\/events\.ts$/,
+  /^scripts\/lib\/budgets\.mjs$/,
   /^src\/lib\/costs\/(index|daily|ledger)\.ts$/,
   /^src\/lib\/measure\/text-store\.ts$/,
   /^src\/lib\/scan\/admission\.ts$/,
