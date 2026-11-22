@@ -755,7 +755,7 @@ export const REPORT_COPY = Object.freeze({
   "verdict.score.parts.three": "Three parts, combined into one score. They are not added up.",
   // The top names Google's AI, the one AI the free scan asks, and never sums a count over both cards.
   "report.top.title": "{domain}: {score}/100, {verdict}",
-  "report.top.line": "Buyers who ask Google’s AI or Google about {category} are sent to {competitor} most.",
+  "report.top.line": "Buyers who ask Google’s AI or Google about {category} see {competitor} most.",
   "report.top.line.you-lead": "Buyers who ask Google’s AI or Google about {category} find you most.",
   "report.top.line.none": "Buyers who ask Google’s AI or Google about {category} can’t find you yet.",
   "report.top.ai": "Google’s AI answers mentioned you in {a} of {A}.",
