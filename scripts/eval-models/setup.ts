@@ -24,7 +24,9 @@ const home = (pages: readonly Page[], domain: string): Page | undefined =>
 /** One answer per committed site and setup call site, each through the product's own function. */
 async function answersFor(root: string): Promise<Answer[]> {
   const out: Answer[] = [];
-  for (const file of SNAPSHOTS) {
+  // EVAL_SETUP_SITES (comma-separated domains) runs a subset, so one job stays inside its time limit.
+  const only = process.env.EVAL_SETUP_SITES?.split(",").filter(Boolean);
+  for (const file of SNAPSHOTS.filter((f) => only === undefined || only.some((d) => f.endsWith(`/${d}.json`)))) {
     const snap = JSON.parse(readFileSync(path.join(root, file), "utf8")) as { domain: string; pages: Page[] };
     const pages = snap.pages.filter((p) => typeof p.text === "string" && p.text.length > 0);
     const front = home(pages, snap.domain);
