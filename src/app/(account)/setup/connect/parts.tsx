@@ -1,6 +1,6 @@
 // SPEC §5, board Setup — the parts setup's Connect step and `/setup/connect`
-// both draw: the record to paste with its steps behind one press, sending it
-// to a web person, doing it later, and the week that needs nothing more. daisyUI and lucide only.
+// both draw, as plate F7 lays them out: the record to paste with its steps and the web person behind one press, the
+// week that needs nothing more, and the foot bar with doing it later beside the check. daisyUI and lucide only.
 "use client";
 
 import type React from "react";
@@ -11,15 +11,17 @@ import type { DnsRecord } from "@/lib/publish/setup/cards";
 import type { HostnameState } from "@/lib/publish/destinations/hosted/hostname";
 import type { CheckWords } from "../../_destination/CheckConnection";
 import { CnameRecord, CopyValue, SendSteps } from "../../_destination/CnameRecord";
-import { QUIET } from "../frame";
+import { PRIMARY, QUIET, REGION } from "../frame";
 
 /** Where doing it later leads. An internal route name, not a sentence. */
 export const APP_PATH = "/app";
 
 const ICON = { strokeWidth: 1.75, "aria-hidden": true } as const;
 const BOX = "card border border-base-300 bg-base-100 shadow-(--shadow-card)";
-const COPY_BUTTON = "btn btn-outline h-11 border-(--accent-line) bg-base-100 text-(length:--t-sm) text-primary";
-const LATER = "btn btn-outline btn-block h-11 border-primary text-(length:--t-body) text-primary";
+const COPY_BUTTON = "btn btn-ghost btn-sm min-h-11 shrink-0 text-primary";
+const LATER = "btn btn-ghost h-11 shrink-0 text-(length:--t-body) text-primary";
+/** Two rows on a phone (doing it later over Back and the check), one row from `lg`, on the two columns' measure. */
+const CONNECT_BAR = "mx-auto grid w-full max-w-[calc(var(--w-wide)+2rem)] min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-2 px-4 py-3 lg:flex";
 
 const STEPS = [
   "setup.connect.steps.1",
@@ -67,8 +69,8 @@ export function DnsCard(p: { record: DnsRecord; state?: HostnameState; name?: Re
         <p className={`mb-1 ${QUIET}`}>{copy("setup.connect.record.usually")}</p>
         <div data-testid="setup-record">
           {rows.map((row) => (
-            <div key={row.field} className="flex min-h-14 min-w-0 items-center gap-2 border-t border-base-300 py-1.5">
-              <span className={`w-11 shrink-0 ${QUIET}`}>{row.field}</span>
+            <div key={row.field} className="grid min-h-14 min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 border-t border-base-300 py-1.5 sm:grid-cols-[3rem_minmax(0,1fr)_auto]">
+              <span className={`max-sm:col-span-2 ${QUIET}`}>{row.field}</span>
               {row.own ?? <span className="min-w-0 grow font-mono text-sm break-all">{row.value}</span>}
               <CopyValue text={row.value} field={row.field} name={copy("setup.connect.record.copy", { field: row.field })} className={COPY_BUTTON} />
             </div>
@@ -93,51 +95,74 @@ export function DnsCard(p: { record: DnsRecord; state?: HostnameState; name?: Re
                 <CnameRecord record={p.record} send={false} {...(p.state === undefined ? {} : { state: p.state })} />
               </div>
             </details>
+            <SendSteps host={p.record.name} />
           </div>
         </details>
-        <SendSteps host={p.record.name} />
       </div>
     </section>
   );
 }
 
-/** Doing it later: a real way out, and the line saying why that is fine.
- *  `onLater` is setup's, which saves the step first; without it this is a plain link to the app. */
-export function Later(p: { live: boolean; onLater?: () => void; busy?: boolean }): React.JSX.Element {
-  const words = copy(p.live ? "setup.connect.onward.live" : "setup.connect.later");
+/** The bar's way out: later while waiting, onward once connected. */
+const ONWARD = { later: "setup.connect.later", live: "setup.connect.onward.live" } as const satisfies Record<string, CopyKey>;
+
+/** Doing it later, or going on once connected: setup's `onLater` saves the step first; without it this is a plain link to the app. */
+function Onward(p: { words: CopyKey; className: string; onLater?: () => void; busy?: boolean }): React.JSX.Element {
+  return p.onLater === undefined ? (
+    <Link className={p.className} href={APP_PATH} prefetch={true} data-testid="setup-connect-later-action">
+      {copy(p.words)}
+    </Link>
+  ) : (
+    <button type="button" className={p.className} disabled={p.busy} onClick={p.onLater} data-testid="setup-connect-later-action">
+      {copy(p.words)}
+    </button>
+  );
+}
+
+/** The foot bar: Back, doing it later with the line saying why that is fine, and the check as the one primary.
+ *  Once connected, going on is the primary and the press steps aside; `children` is the check, its answers beneath it. */
+export function ConnectBar(p: {
+  back?: React.ReactNode;
+  live: boolean;
+  onLater?: () => void;
+  busy?: boolean;
+  children: React.ReactNode;
+}): React.JSX.Element {
+  const onward = { ...(p.onLater === undefined ? {} : { onLater: p.onLater }), ...(p.busy === undefined ? {} : { busy: p.busy }) };
   return (
-    <div className="grid gap-2">
-      {p.onLater === undefined ? (
-        <Link className={LATER} href={APP_PATH} prefetch={true} data-testid="setup-connect-later-action">
-          {words}
-        </Link>
-      ) : (
-        <button type="button" className={LATER} disabled={p.busy} onClick={p.onLater} data-testid="setup-connect-later-action">
-          {words}
-        </button>
-      )}
+    <div className={CONNECT_BAR} data-frame={REGION.bar}>
+      {p.back ?? null}
       {p.live ? null : (
-        <p className={`text-center ${QUIET}`} data-testid="setup-connect-later">
-          {copy("setup.connect.skipping")}
-        </p>
+        <div className="col-span-2 flex min-w-0 items-center justify-between gap-3 max-lg:order-first lg:ms-auto">
+          <p className={QUIET} data-testid="setup-connect-later">
+            {copy("setup.connect.skipping")}
+          </p>
+          <Onward words={ONWARD.later} className={LATER} {...onward} />
+        </div>
       )}
+      <div className={`grid min-w-0 justify-items-end gap-2 ${p.back === undefined ? "col-span-2" : ""} ${p.live ? "lg:ms-auto" : ""}`}>
+        {p.live ? <Onward words={ONWARD.live} className={PRIMARY} {...onward} /> : null}
+        {p.children}
+      </div>
     </div>
   );
 }
 
-/** The week after setup, which needs nothing more. */
-export function WeekCard(): React.JSX.Element {
+/** The week after setup, which needs nothing more. `time` is the site's publish time; unread, its line is not drawn. */
+export function WeekCard(p: { time: string | null }): React.JSX.Element {
   return (
     <section className="card border border-(--ok-line) bg-(--ok-bg)" data-testid="setup-connect-week">
       <div className="card-body gap-4 p-5">
         <h2 className="text-(length:--h3)">{copy("setup.next.after")}</h2>
         <ul className="grid gap-3">
-          {WEEK_LINES.map((line) => (
-            <li key={line} className="flex gap-2.5">
-              <Check {...ICON} size={20} className="mt-0.5 shrink-0 text-success" />
-              <span>{copy(line)}</span>
-            </li>
-          ))}
+          {WEEK_LINES.map((line) =>
+            line === "setup.connect.week.2" && p.time === null ? null : (
+              <li key={line} className="flex gap-2.5">
+                <Check {...ICON} size={20} className="mt-0.5 shrink-0 text-success" />
+                <span>{copy(line, { time: p.time ?? "" })}</span>
+              </li>
+            )
+          )}
         </ul>
       </div>
     </section>

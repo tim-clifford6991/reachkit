@@ -1,7 +1,8 @@
-// SPEC §5 — setup's Connect step, as board Setup draws it on one screen:
-// where pages live, then for the hosted address the record to paste (its
-// Name row is the label the founder chooses), doing it later and the week
-// after; for WordPress, what connecting it will ask for. No mode pair:
+// SPEC §5 — setup's Connect step, as plate F7 draws it on one screen: the
+// question and, where there is a choice, where pages live, then for the hosted
+// address the record to paste (its Name row is the label the founder chooses);
+// for WordPress, what connecting it will ask for. The week after stands beside
+// them from `lg`; doing it later is the foot bar's. No mode pair:
 // Autopilot is the only mode (SPEC §7, #476). The record no longer waits for
 // a screen of its own after setup (#2270, superseding #924's separate step);
 // `/setup/connect` stays the way back to it from Overview and Settings.
@@ -24,7 +25,7 @@ import {
 import { checkLabel, type LabelRefusal } from "@/lib/publish/destinations/hosted/label";
 import type { HostnameState } from "@/lib/publish/destinations/hosted/hostname";
 import { checkSubdomainLabel } from "./label-actions";
-import { DnsCard, Later, WeekCard } from "./connect/parts";
+import { DnsCard, WeekCard } from "./connect/parts";
 
 /** SPEC §5's two refusals, the same two keys the submit's own resolve to. */
 const LABEL_REFUSAL_COPY = {
@@ -48,10 +49,10 @@ export function PublishingCard(p: {
   onDestination: (destination: DestinationKind) => void;
   label: string;
   onLabel: (label: string) => void;
-  /** Doing it later: the caller saves the step and leaves for the app. */
-  onLater: () => void;
-  /** Whether the step is saving, so doing it later cannot be pressed twice. */
-  busy: boolean;
+  /** The step's heading and line, at the head of the first column. */
+  head: React.ReactNode;
+  /** The site's publish time as the reader's clock writes it; `null` where unread. */
+  publishTime: string | null;
   /** What the founder's last check said of the host; `undefined` is "not asked". */
   connection?: HostnameState;
 }): React.JSX.Element {
@@ -92,31 +93,35 @@ export function PublishingCard(p: {
   const record = "pending" in dns ? null : dns;
 
   return (
-    <section className="grid min-w-0 gap-6" data-testid={TEST_ID}>
-      <fieldset className="grid min-w-0 gap-3">
-        <legend className="pb-3 text-(length:--t-body) font-bold">{copy("setup.destination.where")}</legend>
-        <div className="grid gap-3" data-testid="setup-destination">
-          {p.cards.destination.map((option) => (
-            <Option
-              key={option.kind}
-              icon={DESTINATION_ICON[option.kind]}
-              title={copy(option.name)}
-              line={copy(option.copy)}
-              detail={option.kind === "hosted" ? host : null}
-              chosen={p.destination === option.kind}
-              onChoose={() => p.onDestination(option.kind)}
-              testId={`setup-destination-${option.kind}`}
-            />
-          ))}
-        </div>
-      </fieldset>
+    <section className="grid min-w-0 gap-6 lg:grid-cols-2 lg:items-start" data-testid={TEST_ID}>
+      <div className="grid min-w-0 gap-6">
+        {p.head}
+        {/* One option is not a choice: the question is drawn only where WordPress is switched on. */}
+        {p.cards.destination.length < 2 ? null : (
+          <fieldset className="grid min-w-0 gap-3">
+            <legend className="pb-3 text-(length:--t-body) font-bold">{copy("setup.destination.where")}</legend>
+            <div className="grid gap-3" data-testid="setup-destination">
+              {p.cards.destination.map((option) => (
+                <Option
+                  key={option.kind}
+                  icon={DESTINATION_ICON[option.kind]}
+                  title={copy(option.name)}
+                  line={copy(option.copy)}
+                  detail={option.kind === "hosted" ? host : null}
+                  chosen={p.destination === option.kind}
+                  onChoose={() => p.onDestination(option.kind)}
+                  testId={`setup-destination-${option.kind}`}
+                />
+              ))}
+            </div>
+          </fieldset>
+        )}
 
-      {p.destination === "wordpress" ? (
-        <WordPressAsks />
-      ) : record === null ? (
-        "pending" in dns ? <DnsPendingLine dns={dns} /> : null
-      ) : (
-        <>
+        {p.destination === "wordpress" ? (
+          <WordPressAsks />
+        ) : record === null ? (
+          "pending" in dns ? <DnsPendingLine dns={dns} /> : null
+        ) : (
           <DnsCard
             record={record}
             {...(p.connection === undefined ? {} : { state: p.connection })}
@@ -142,11 +147,10 @@ export function PublishingCard(p: {
               </span>
             }
           />
-          <Later live={p.connection === "live"} onLater={p.onLater} busy={p.busy} />
-        </>
-      )}
+        )}
+      </div>
 
-      <WeekCard />
+      <WeekCard time={p.publishTime} />
     </section>
   );
 }
@@ -181,7 +185,7 @@ function Option(p: {
       </span>
       <span className="flex min-w-0 flex-col">
         <strong className="text-(length:--t-body)">{p.title}</strong>
-        {p.detail === null ? null : <span className="num text-(length:--t-sm) wrap-anywhere">{p.detail}</span>}
+        {p.detail === null ? null : <span className="font-mono text-(length:--t-sm) break-all">{p.detail}</span>}
         <span className={QUIET} data-testid="setup-option-line">
           {p.line}
         </span>

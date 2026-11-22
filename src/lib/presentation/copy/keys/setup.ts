@@ -320,7 +320,6 @@ export const SETUP_COPY = Object.freeze({
   "setup.step.publishing": "Connect",
 
   "setup.step.time": "The three steps take about 10 minutes.",
-  "setup.step.publishing.time": "5–10 min, or send it to your web person",
 
   /** One question per step — the screen's `<h1>`. */
   "setup.step.site.question": "Is This Your Business?",
@@ -332,6 +331,8 @@ export const SETUP_COPY = Object.freeze({
   "setup.step.check.line": "Open a section to change it, or carry on.",
   /** No hour: each site sets its own publish time. */
   "setup.step.publishing.line": "Your first page is ready or nearly ready. It goes live once your website is connected.",
+  /** Connect's line where no pass is writing the first page. */
+  "setup.connect.lead": "Your first page goes live once your website is connected.",
 
   /** The controls at the foot of every step, Check included. */
   "setup.back": "Back",
@@ -441,9 +442,9 @@ export const SETUP_COPY = Object.freeze({
   "setup.connect.notfound": "It can take a few minutes to show. We keep checking every hour, so you can leave this page.",
   "setup.connect.connected": "Connected. Your first page goes live on its day, with nothing more to do.",
 
-  // The week after setup. No go-live hour: the address is not connected yet (Q11).
+  // The week after setup, with the site's own publish time, as plate F7 draws it.
   "setup.connect.week.1": "Every Monday we plan up to 7 pages, new or updated.",
-  "setup.connect.week.2": "Each page goes live on its day, by itself.",
+  "setup.connect.week.2": "Each page goes live at {time} on its day, by itself.",
   "setup.wordpress.later": "You’ll connect it in Settings › Pages, with your site address, username and an app password.",
   "setup.connect.week.3": "You can edit or stop any page first. You never have to.",
   "setup.connect.week.4": "Cancel or export in Settings at any time.",

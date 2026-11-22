@@ -20,7 +20,6 @@
   "AuthExpired": { "read": "state", "why": "the expired arm needs a used link", "render": "tests/app/signin/board.test.tsx", "chrome": "PubHowItWorks" },
   "Setup1": { "read": "page", "paths": ["/setup"], "account": "setup" },
   "Setup2": { "read": "page", "paths": ["/setup?step=check"], "account": "setup" },
-  "Setup": { "read": "page", "paths": ["/setup?step=publishing", "/setup/connect"], "account": "setup" },
   "SetupZone": { "read": "state", "why": "every sweep account has a time zone", "render": "tests/app/setup/connect-board.test.tsx" },
   "Veto": { "read": "state", "why": "the sweep's token does not verify, so it renders the failed arm", "render": "tests/app/veto/page.test.tsx", "chrome": "PubHowItWorks" },
   "OptOut": { "read": "state", "why": "the sweep's token does not verify, so it renders the invalid arm", "render": "tests/app/opt-out/board.test.tsx", "chrome": "PubHowItWorks" },

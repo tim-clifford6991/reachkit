@@ -73,7 +73,7 @@ const currentFounder = cache(async function currentFounder(): Promise<{
  * card opens seeking and `POST /api/setup/rivals` concludes, once the
  * founder has given an address.
  */
-export const readSetupScreen = cache(async function readSetupScreen(): Promise<SetupScreenModel & { spotHolder: boolean }> {
+export const readSetupScreen = cache(async function readSetupScreen(): Promise<SetupScreenModel & { spotHolder: boolean; publishTime: string | null }> {
   const founder = await currentFounder();
   // Started first and never awaited alone, so the spot read adds no wait; a failed read is `false`.
   const holding = import("@/lib/account/offer/spots").then(({ spotOf }) => spotOf(founder.userId)).catch(() => null);
@@ -117,8 +117,20 @@ export const readSetupScreen = cache(async function readSetupScreen(): Promise<S
     // for.
     ...(await passFor(founder.siteId)),
   });
-  return { ...model, spotHolder: (await holding) !== null };
+  return { ...model, spotHolder: (await holding) !== null, publishTime: await publishTimeOf(founder.siteId) };
 });
+
+/** The site's publish time as "4:00 PM", for the week Connect promises; an unread row is `null`, never a guess. */
+export async function publishTimeOf(siteId: string): Promise<string | null> {
+  if (siteId === "") return null;
+  const [{ readPublishingSettings }, { clockTime }] = await Promise.all([
+    import("@/lib/publish/settings"),
+    import("../../app/calendar/dates"),
+  ]);
+  return readPublishingSettings(siteId)
+    .then((settings) => clockTime(settings.publishTime))
+    .catch(() => null);
+}
 
 /**
  * The pass's step and this founder's channel, for the status line (#923).
