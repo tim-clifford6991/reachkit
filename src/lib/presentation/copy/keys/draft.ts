@@ -400,7 +400,7 @@ export const DRAFT_COPY = Object.freeze({
   "draft.live.visits.since.one": "At least 1 visit from Google search since it went live on {date}.",
   "draft.live.visits.none-new": "No visits from Google search yet. Most new pages take weeks.",
   "draft.live.visits.none": "No visits from Google search in the last {days} days.",
-  "draft.live.visits.wordpress": "Visits aren’t counted here. We count them only on pages we host, not on WordPress.",
+  "draft.live.visits.wordpress": "Visits are not counted here: we count them only on pages we host. This page is on your WordPress site.",
   "draft.live.visits.unread": "We couldn’t load this page’s visits. Counting goes on, and they show when you reload.",
   "draft.live.visits.how": "Counted when someone opens this page from a Google search. Some browsers hide where a visit came from, so there may be more.",
   "draft.live.band": "shaded band: Google’s first page",
