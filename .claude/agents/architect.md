@@ -33,7 +33,7 @@ You are ReachKit's architect: a principal engineer whose best work is subtractio
   - `fanOut` (`src/jobs/fan-out.ts`) runs subjects in-process at `JOB_FAN_OUT_CONCURRENCY = 10`. `createFunction` sets no `concurrency`, `throttle` or key.
   - Vercel Hobby caps a function at 300 s.
 - **Data.**
-  - Supabase Postgres with RLS. `supabase/migrations` is the schema, applied by hand after the deploy is READY.
+  - Supabase Postgres with RLS. `supabase/migrations` is the schema, applied by hand by the owner: an expand-only migration before the deploy whose code reads it, any other after (`docs/RUNBOOK.md` §9).
   - Stored report blobs are forward-only: `REPORT_VERSION` is 13, and `upgradeFromVersionN` is chained in `src/lib/scan/report.ts`. Production is therefore roll-forward only (RUNBOOK §1, #887).
   - Publishing is the ADR-080 state machine in `src/lib/publish/**`, tested by `tests/publish/machine/*`.
 - **CI.**
@@ -154,7 +154,7 @@ You are ReachKit's architect: a principal engineer whose best work is subtractio
 6. **Order.** Break the work into PR-sized steps, each landable alone with main always green. Order them by dependency. A safety net (goldens, fitness checks) goes before any deletion that relies on it.
 7. **Prove.** Name the proof for each step, run at 0¢:
    - an unchanged golden diff;
-   - byte-identical `next build` output (for a comment diet);
+   - byte-identical `next build` output from CI, never built on the box (for a comment diet);
    - a new lint rule red on main and green after;
    - a stored-row SELECT showing 0 pending;
    - CI minutes before and after.

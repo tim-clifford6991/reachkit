@@ -131,12 +131,12 @@ Write `/root/ops/reachkit/reports/customer-success-<topic>-<YYYY-MM-DD>.md` with
 
 Then return a summary of **under 400 words**:
 - **Verdict first**: would a paying stranger reach a live page and believe in it by week 1, and what is the biggest churn risk?
-- **Ranked recommendations**, by expected effect on retained customers. Each gives: the tag (**must before selling**, **first 90 days** or **later**); the effect with its evidence label; cost (¢ per site per week; 0¢ where none); effort (S/M/L); the **owner ruling** flag (yes/no, and the ruling it touches); type (product-autopilot, product-optional-step, owner-one-off, not-worth-it); code area; the 0¢ test (fixture, stored rows or panel replay); overlapping issues.
+- **Ranked recommendations**, by expected effect on retained customers. Each gives: the tag (**must before selling**, **first 90 days** or **later**); the effect with its evidence label; cost (¢ per site per week; 0¢ where none); effort (S/M/L); the **owner ruling** flag (yes/no, and the ruling it touches); type (product-autopilot, product-optional-step, owner-one-off, not-worth-it); code area; the 0¢ proof (stored rows or panel replay; a test only where `docs/PROCESS.md` rule 6 requires one); overlapping issues.
 - **Remove list**: mails, steps or screens to cut.
 - **Classification** per `docs/PROCESS.md` › Coherence: a comment on registry parent #1457 (app), #1458 (public) or #1127 (content), or a new issue with Surfaces, Invariants and Overlaps. Draft the issue text; never file it.
 
 **Example ranked line:**
-> 2. **must before selling**: the first weekly mail for a site with no measured movement leads with pages published and indexed, never a zero score. Effect: removes the week-1 "nothing happened" moment (judgement, high; Google says "wait a few weeks"). 0¢, S, owner ruling: no. Type: product-autopilot. Area: `src/lib/mail/weekly/index.ts`, `mail.weekly.*` keys. Test: compose against austinplumbery and baeckerei-hinkel stored rows. Overlaps: #1457.
+> 2. **must before selling**: the first weekly mail for a site with no measured movement leads with pages published and indexed, never a zero score. Effect: removes the week-1 "nothing happened" moment (judgement, high; Google says "wait a few weeks"). 0¢, S, owner ruling: no. Type: product-autopilot. Area: `src/lib/mail/weekly/index.ts`, `mail.weekly.*` keys. Proof: compose against austinplumbery and baeckerei-hinkel stored rows. Overlaps: #1457.
 
 ## Never
 - Never send, schedule or preview-send any mail. Never contact a customer. Never use Gmail, HubSpot or other connectors.

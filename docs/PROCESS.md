@@ -20,11 +20,11 @@ An issue is Ready when it carries Conditions, Invariants, Surfaces and Overlaps.
 
 ### 3. Space and the one loop
 
-One issue, one worktree, one session; no session directs another. There is no master and no orchestrator, with one exception: the box loop in `/root/ops/reachkit/box-loop/RULES.md` (owner, 2026-11-08), which starts the next eligible issue from #2513's wave table, starts `release-qa` on a green `risk:*` pull request, and removes merged worktrees; it reads #2513 and does not copy its dependencies.
+One issue, one worktree, one session; no session directs another. There is no master and no orchestrator, with one exception: the coordinator session, whose loop is `/root/ops/reachkit/box-loop/scripts/autopilot.md` (owner, 2026-11-08 and 2026-11-22). It starts the next eligible issue from #2513's queue, starts `release-qa` on a green `risk:*` pull request and `ux-designer` on a built UI pull request, and removes merged worktrees; it reads #2513 and does not copy its dependencies.
 
 A session is started with `space.sh reachkit <issue> [role]` in the Herdr workspace `reachkit`, one tab per issue. The engineer works in `/root/projects/reachkit/.wt/issue-<N>`, branched from `origin/main`, and stops at one pull request or one comment. The checkout at `/root/projects/reachkit` stays on `main`. A worktree is removed when its pull request merges. The agent roles are the files in `.claude/agents/`.
 
-The one scheduled agent is the Monday weekly review, `.claude/skills/weekly-review/`: read-only, 0¢, at most five unready `from-weekly` issues.
+Two agents are scheduled, both read-only and 0¢. The first is the Monday weekly review, `.claude/skills/weekly-review/`, which opens at most five unready `from-weekly` issues. The second is the daily check, `.claude/agents/daily-check.md`, run by `rk-daily-check.timer`.
 
 ### 4. Merge and deploy
 
@@ -53,14 +53,14 @@ The speed-first test policy (owner, 2026-11-08, https://github.com/tim-clifford6
 - Test lines changed are at most a third of `src` lines changed. A pull request without money in it adds zero test lines.
 - `tests/archive/` holds the old suite, outside the runner, typecheck, lint and CI. A test outside the safety net that goes red only because code moved goes there in the same pull request; it is not repaired. The archive is deleted when the owner says the new system has proven itself.
 
-**Where checks run.** The repository is public, so GitHub Actions minutes are free and unlimited, and nothing that CI can run is run on the box (owner, 2026-11-21, #3134). An engineer opens the pull request early as a draft (`gh pr create --draft`), pushes, and lets the four gates prove the change (`gh pr checks <n>`). On the box an engineer runs only eslint on the changed files and the single unit test file being edited (`npm run test:unit -- <file>`): no local typecheck, `next build`, layout suite, db suite, full unit suite or `scripts/hygiene.mjs`. `bash /root/ops/reachkit/bin/heavy.sh` is the exception path, used only while CI is down, to reproduce a failure that happens only in CI, or for release QA to check two open pull requests merged together, which no CI run sees. When the gates are green the draft is marked ready (`gh pr ready <n>`) and armed as rule 4 says. Every other page links here rather than restating this.
+**Where checks run.** The repository is public, so GitHub Actions minutes are free and unlimited, and nothing that CI can run is run on the box (owner, 2026-11-21, #3134). An engineer opens the pull request early as a draft (`gh pr create --draft`), pushes, and lets the four gates prove the change, watching them in the same turn (`gh pr checks <n> --watch`); a red gate is fixed and pushed before the engineer stops. On the box an engineer runs only eslint on the changed files and the single unit test file being edited (`npm run test:unit -- <file>`): no local typecheck, `next build`, layout suite, db suite, full unit suite or `scripts/hygiene.mjs`. `bash /root/ops/reachkit/bin/heavy.sh` is the exception path, used only while CI is down, to reproduce a failure that happens only in CI, or for release QA to check two open pull requests merged together, which no CI run sees. When the gates are green the draft is marked ready (`gh pr ready <n>`) and armed as rule 4 says. Every other page links here rather than restating this.
 
 ### 7. Owner, copy and gates
 
-- `blocked-on-owner` is not built around: ask on the issue and stop.
+- `blocked-on-owner` is not built around. What a ruling, this page, SPEC or DESIGN answers is decided, with its basis recorded on the issue. Anything else is asked on the issue, and the session stops.
 - Never ship `TODO(copy)` (#759): draft the string in the voice of `src/lib/presentation/copy/keys/` and name every new or changed string in the pull request body.
 - Never a fifth gate.
-- At most 4 engineers at once while 2.5 GB is free (owner, 2026-10-31).
+- Agents at once: as many as the box's free memory allows, keeping at least 2,500 MB free. The old cap of 4 was set for the local heavy runs that rule 6 retired (coordinator, 2026-11-21, under the owner's 2026-11-22 ruling that the coordinator decides the most efficient path).
 
 ### 8. UX review before a UI build
 
@@ -69,7 +69,7 @@ Owner, 2026-11-15 (#2712): "ensure for any future UX improvements or fixes, teh 
 - Any issue that changes what a person sees, reads or does (a screen, dialog, mail, copy or layout) gets a **ux-designer** review before an engineer builds it.
 - A screen only the owner can see (for example `/app/review` and other owner-only keys and boards) needs no UX review; customer-facing screens, mail and public pages always do.
 - The product manager copies the ux-designer's conditions into the issue as a comment headed `UX review`. Until that comment exists the issue is not Ready.
-- A pull request that changes a screen, dialog, mail, public page or customer-facing wording also gets a ux-designer read of the built change (390 and 1280, the strings as built) before merge, labelled or not; the read is a PR comment headed `UX check`, and until it exists the pull request is not armed (owner, 2026-11-20, #2722 ruling 55).
+- A pull request that changes a screen, dialog, mail, public page or customer-facing wording also gets a ux-designer read of the built change (390 and 1280, the strings as built) before merge, labelled or not; the read is a PR comment headed `UX check`, and until it exists the pull request is not armed (owner, 2026-11-20, #2722 ruling 55). It is one pass: the designer names blocking defects only and never asks for a test, and a non-blocking note goes to one follow-up issue. The coordinator verifies the fixes from `git diff <passed sha> <head> -- src` and asks for a second pass only when that delta changes layout structure (owner, 2026-11-22).
 - The pull request lists those conditions under Conditions, and its body says it meets each one with its proof.
 - Release QA returns NO-GO on a pull request that touches a customer-facing screen, mail or public page without the issue's `UX review` comment and the pull request's `UX check` comment.
 - The automatic half is the daisyUI include-list check from #2711: it fails when `src/**/*.tsx` uses a daisyUI component that `src/ui/tailwind.css`'s `include:` leaves out. It runs inside the existing gates; it is not a fifth gate.

@@ -46,16 +46,14 @@ You test an alert, a switch or a runbook by tracing it end to end, not by readin
   - **Roll forward only** (#887). Stored report blobs only lift forward (`REPORT_VERSION` 13 in `src/lib/scan/report.ts`), so an older build fails on newer blobs.
   - `rk-deployer` deploys dev on every SHA and production at most every 2 h. The production path is `/root/ops/reachkit/bin/redeploy.sh`.
   - After every Ready deploy, run `PUT https://reachkit.app/api/jobs` to sync Inngest. Jobs always run on production code.
-  - Migrations are applied by hand after the deploy is READY. Then run `scripts/smoke.sh`.
+  - The owner's OK, then a hand apply: an expand-only migration before the deploy whose code reads it, any other after (`docs/RUNBOOK.md` §9).
 - **The box.** 4 cores and 7.6 GB. Its tools:
-  - `heavy.sh` (a flock queue on cores 0–1);
+  - `heavy.sh` (a flock queue on cores 0–1; the exception path only, `docs/PROCESS.md` rule 6);
   - `resource-guard.sh`;
-  - `runner-watchdog.sh`;
   - the `rk-hygiene.timer` at 05:30 UTC;
-  - `layout-nightly.yml` at 02:41;
-  - the CI minutes switch.
+  - `layout-nightly.yml` at 02:41.
 
-  `rk-merger.sh` is written but not installed. RUNBOOK is 1,517 lines.
+  RUNBOOK is 1,517 lines.
 - **Open items:**
   - Search Console and Bing keys (#1563);
   - sender and logo (#1568);

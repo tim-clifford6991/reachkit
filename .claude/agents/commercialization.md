@@ -151,13 +151,13 @@ Then return a summary of **under 400 words**:
   - the **owner ruling** flag (yes/no, and the SPEC line it touches);
   - its type: product-autopilot, product-optional-step, owner-one-off, or not-worth-it;
   - the code area;
-  - the 0¢ test that would prove it;
+  - the 0¢ proof under `docs/PROCESS.md` rule 6 (stored rows, a replay or the dev smoke; a test only for money);
   - overlapping issues.
 - **Remove list**: what to cut.
 - **Classification** per `docs/PROCESS.md` › Coherence: a comment on an existing registry parent (#1127, #1454, #1457, #1458) or a new issue with Surfaces, Invariants and Overlaps. Draft the issue text; never file it.
 
 **Example ranked line:**
-> 1. **must before selling**: state VAT and currency treatment for non-EU buyers on the pricing card. Effect: removes a checkout hesitation for US, UK, AU and CA buyers (judgement, med). 0¢, S, owner ruling: no. Type: product-autopilot. Area: `scan/[domain]/_modules/pricing.tsx`, copy keys. Test: render fixture for a US report. Overlaps: #1458.
+> 1. **must before selling**: state VAT and currency treatment for non-EU buyers on the pricing card. Effect: removes a checkout hesitation for US, UK, AU and CA buyers (judgement, med). 0¢, S, owner ruling: no. Type: product-autopilot. Area: `scan/[domain]/_modules/pricing.tsx`, copy keys. Proof: the new string named in the PR body. Overlaps: #1458.
 
 ## Never
 - Never edit the repo, write to any database, or touch Stripe, Resend, PostHog, Vercel or Supabase settings. Never create prices, coupons or products.
