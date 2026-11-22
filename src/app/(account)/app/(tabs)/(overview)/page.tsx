@@ -19,7 +19,7 @@ import { Tiles, TilesHow } from "../../_overview/Tiles";
 import { overviewNotice, readOnboarding, readReleaseNotice } from "../../_shell/onboarding";
 import { FirstPageNotice, ReleaseNoticeLine } from "../../_shell/OnboardingStatus";
 import { writtenLine } from "../../_shell/written";
-import { formatDate, formatDay, formatTime, SHELL_LOCALE } from "../../_shell/format";
+import { formatDate, formatDay, formatShortDay, formatTime, SHELL_LOCALE } from "../../_shell/format";
 import { copy } from "@/lib/presentation/copy";
 import { dayKeyOf } from "../../calendar/dates";
 import { ISSUES_HREF } from "../../_overview/alerts";
@@ -37,6 +37,9 @@ const PUBLISHING_SETTINGS = "/app/settings/pages";
 function weekdayOf(day: string): string {
   return new Intl.DateTimeFormat(SHELL_LOCALE, { timeZone: "UTC", weekday: "long" }).format(new Date(`${day}T00:00:00Z`));
 }
+
+/** "Mon 16 Nov": a site-local day, as This Week dates its checks. */
+const shortDay = (day: string): string => formatShortDay(new Date(`${day}T12:00:00Z`), "UTC");
 
 export default async function OverviewPage(): Promise<React.JSX.Element> {
   const [shell, overview, onboarding, wordpressWaiting] = await Promise.all([
@@ -99,13 +102,19 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
   const today = formatDay(overview.today, shell.timeZone);
   const eyebrow = shell.weeks.kind === "counted" ? copy("overview.head.eyebrow", { n: String(shell.weeks.weeks), day: today }) : today;
   const needs = overview.alerts.find((alert) => alert.kind === "needs_you") ?? null;
-  // The lead names no Google figure: the tiles below are the one place for them.
+  // The lead names no Google figure: the tiles below are the one place for them. Before the first Monday check it names that check.
+  const n = String(weekPages);
   const lead =
-    week === null || weekPages === 0
+    week === null || weekPages === 0 || week.chosen === null
       ? null
-      : week.today === week.first
-        ? copy("overview.head.lead.chosen", { n: String(weekPages) })
-        : copy("overview.head.lead.chosen-on", { n: String(weekPages), weekday: weekdayOf(week.first) });
+      : week.checked === null
+        ? week.nextCheck === null
+          ? null
+          : copy("overview.head.lead.week1", { n, weekday: weekdayOf(week.chosen), date: shortDay(week.nextCheck) })
+        : week.chosen === week.today
+          ? copy("overview.head.lead.chosen", { n })
+          : copy("overview.head.lead.chosen-on", { n, weekday: weekdayOf(week.chosen), date: shortDay(week.checked) });
+  const firstLive = week?.checked === null ? (tiles?.firstLive ?? null) : null;
 
   // In place of the today card: paused, or one quiet line about today.
   const paused = shell.publishing.next === null && shell.publishing.because === "publishing_paused";
@@ -133,6 +142,11 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
           action={needs === null ? null : { label: copy(needs.actionKey), href: needs.href }}
           lead={lead}
         />
+        {firstLive === null ? null : (
+          <p className="min-w-0 text-sm text-base-content/70" data-testid="overview-first-live">
+            {copy("overview.head.first-live", { date: formatShortDay(firstLive, shell.timeZone) })}
+          </p>
+        )}
       </div>
 
       {paused ? (
@@ -171,7 +185,7 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
         </div>
       ) : thisWeek !== null && week !== null && weekPages > 0 ? (
         <div className="min-w-0" data-frame={REGION.week}>
-          <thisWeek.ThisWeek week={week} scheduled={shell.publishing.next !== null} />
+          <thisWeek.ThisWeek week={week} />
         </div>
       ) : supply === null ? null : (
         <p className="min-w-0 text-sm text-base-content/70" data-testid="overview-supply">
