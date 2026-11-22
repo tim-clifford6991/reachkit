@@ -37,5 +37,5 @@ export default async function ConnectPage(): Promise<React.JSX.Element> {
   // Pages, and anything else belongs in the app.
   if (model === null) redirect((await wordpressWaiting()) ? PAGES_LANDING_PATH : "/app");
 
-  return <ConnectScreen hostname={model.hostname} record={model.record} />;
+  return <ConnectScreen hostname={model.hostname} record={model.record} publishTime={model.publishTime} />;
 }

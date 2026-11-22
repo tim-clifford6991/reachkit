@@ -125,7 +125,7 @@ The owner looks at `dev.reachkit.app` for taste: voice, and an asset only the ow
 | Link expired | `/signin` | [board](design/boards/canvas/AuthExpired.dc.html) · [render](design/boards/canvas/renders/AuthExpired.jpg) |
 | Setup 1 of 3: Site, phone | `/setup` | [board](design/boards/canvas/Setup1.dc.html) · [render](design/boards/canvas/renders/Setup1.jpg) |
 | Setup 2 of 3: Check, phone | `/setup` | [board](design/boards/canvas/Setup2.dc.html) · [render](design/boards/canvas/renders/Setup2.jpg) |
-| Setup 3 of 3: Connect, phone (E11; the board's title still says *Publish*) | `/setup`, `/setup/connect` | [board](design/boards/canvas/Setup.dc.html) · [render](design/boards/canvas/renders/Setup.jpg) |
+| Setup 3 of 3: Connect, phone (E11; the board's title still says *Publish*) | `/setup`, `/setup/connect` | [board](design/boards/canvas/Setup.dc.html) · [render](design/boards/canvas/renders/Setup.jpg) · superseded by plate F7, owner 2026-11-20, #2985 |
 | Time zone, phone | `/setup/zone` | [board](design/boards/canvas/SetupZone.dc.html) · [render](design/boards/canvas/renders/SetupZone.jpg) |
 | Stop a page from the mail, and stopped | `/veto/{token}` | [board](design/boards/canvas/Veto.dc.html) · [render](design/boards/canvas/renders/Veto.jpg) |
 | Unsubscribe | `/opt-out/{token}` | [board](design/boards/canvas/OptOut.dc.html) · [render](design/boards/canvas/renders/OptOut.jpg) |

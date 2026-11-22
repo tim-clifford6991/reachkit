@@ -589,8 +589,6 @@ describe("three decisions → deep pass → the first page already on the calend
     expect(onStep("site")).not.toContain("setup.competitors.title");
     expect(onStep("check")).toContain("setup.competitors.title");
     const publishing = onStep("publishing");
-    expect(publishing).toContain("setup.destination.where");
-    expect(publishing).toContain('data-testid="setup-destination"');
     expect(publishing).toContain("setup.connect.check");
     // Nothing that tunes the engine is on any of them: no cadence, no cap,
     // no question count, no model choice (REQ-025 c1).

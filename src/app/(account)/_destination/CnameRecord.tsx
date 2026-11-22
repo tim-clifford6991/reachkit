@@ -208,6 +208,9 @@ export function SendSteps(p: { host: string }): React.JSX.Element {
   );
 }
 
+/** How long a copy button reads "Copied". */
+const COPIED_MS = 2000;
+
 /** One value's copy button, 44px: the lucide glyph turns to a tick once the
  *  clipboard has it, and a screen reader hears which `field` was copied. A
  *  browser that refuses the clipboard leaves the value on screen to select by
@@ -227,7 +230,11 @@ export function CopyValue(p: { text: string; field: string; name?: string; class
       onClick={() => {
         void navigator.clipboard
           ?.writeText(p.text)
-          .then(() => setCopied(true))
+          .then(() => {
+            setCopied(true);
+            // The word goes back after a beat, so a second copy is announced again.
+            setTimeout(() => setCopied(false), COPIED_MS);
+          })
           .catch(() => undefined);
       }}
     >

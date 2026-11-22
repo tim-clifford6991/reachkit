@@ -14,6 +14,13 @@ export const SETUP_ARMS: Record<Band, Arm> = {
   wide: { kind: "same-as-below" },
 };
 
+/** Connect's arms: two columns from `lg`, as plate F7 draws it, so the surface takes the wide measure. */
+export const CONNECT_ARMS: Record<Band, Arm> = {
+  compact: { kind: "columns", count: 1 },
+  medium: { kind: "columns", count: 2 },
+  wide: { kind: "same-as-below" },
+};
+
 /** At least the viewport tall: the header, the step, and the bar as the last row. */
 export const FRAME = "grid min-h-svh grid-rows-[auto_1fr_auto]";
 

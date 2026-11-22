@@ -61,6 +61,7 @@ import {
   BAR,
   BAR_INNER,
   BODY,
+  CONNECT_ARMS,
   FRAME,
   PRIMARY,
   QUESTION,
@@ -81,7 +82,7 @@ import type { SetupRefusal, SetupResult, SetupStepResult, SetupSubmission } from
 import type { ResolveDomainResponse } from "@/app/api/setup/domain/route";
 import type { HostnameState } from "@/lib/publish/destinations/hosted/hostname";
 import { CheckConnection } from "../_destination/CheckConnection";
-import { CHECK_WORDS } from "./connect/parts";
+import { CHECK_WORDS, ConnectBar } from "./connect/parts";
 import type { SeekRivalsResponse } from "@/app/api/setup/rivals/route";
 
 /** Every refusal the founder can be shown, as a written line. `SetupResult`'s
@@ -145,7 +146,7 @@ function statedCategory(state: SetupState): string | null {
   return state.market.state === "stated" ? state.market.category : null;
 }
 
-export function SetupForm(p: { model: SetupScreenModel & { spotHolder?: boolean } }): React.JSX.Element {
+export function SetupForm(p: { model: SetupScreenModel & { spotHolder?: boolean; publishTime?: string | null } }): React.JSX.Element {
   const router = useRouter();
   const defaults = preselected(p.model.cards);
 
@@ -375,6 +376,29 @@ export function SetupForm(p: { model: SetupScreenModel & { spotHolder?: boolean 
   // The site's own mark stands beside its domain only while the domain is the one the profile was read for.
   const profile = p.model.profile;
   const hasLogo = profile?.hasLogo === true && profile.domain === state.siteDomain;
+  const connecting = step === "publishing";
+  // Connect's line promises a first page only while a pass is writing it.
+  const line = connecting && p.model.passStage === null ? "setup.connect.lead" : STEP_COPY[step].line;
+  const head = (
+    <div className={QUESTION_HEAD}>
+      {step === "site" ? (
+        <p className="flex items-center gap-1.5 text-sm text-base-content/70" data-testid="setup-step-time">
+          <Clock4 {...ICON} size={16} />
+          {copy("setup.step.time")}
+        </p>
+      ) : null}
+      <h1 className="text-(length:--h1) leading-tight tracking-[-0.03em] wrap-anywhere">{copy(STEP_COPY[step].question)}</h1>
+      <p className="text-base-content/80" data-testid="setup-step-line">
+        {copy(line)}
+      </p>
+    </div>
+  );
+  const backButton =
+    at === 0 ? undefined : (
+      <button type="button" className="btn btn-ghost h-11 text-(length:--t-body) text-primary" disabled={saving} onClick={back}>
+        {copy("setup.back")}
+      </button>
+    );
 
   return (
     // The page frame (owner's review of #938): at least the viewport tall,
@@ -409,22 +433,11 @@ export function SetupForm(p: { model: SetupScreenModel & { spotHolder?: boolean 
         ) : null}
       </SetupHeader>
 
-      <Surface arms={SETUP_ARMS}>
+      <Surface arms={connecting ? CONNECT_ARMS : SETUP_ARMS}>
         <main className={BODY} data-testid="setup-form" data-step={step}>
           {/* The step is keyed, so each step mounts fresh and rises in once; reduced motion draws it in place. */}
           <div key={step} className={`${QUESTION} motion-safe:animate-rise`} data-frame={REGION.columns}>
-            <div className={QUESTION_HEAD}>
-              {step === "check" ? null : (
-                <p className="flex items-center gap-1.5 text-sm text-base-content/70" data-testid="setup-step-time">
-                  <Clock4 {...ICON} size={16} />
-                  {copy(step === "site" ? "setup.step.time" : "setup.step.publishing.time")}
-                </p>
-              )}
-              <h1 className="text-(length:--h1) leading-tight tracking-[-0.03em] wrap-anywhere">{copy(STEP_COPY[step].question)}</h1>
-              <p className="text-base-content/80" data-testid="setup-step-line">
-                {copy(STEP_COPY[step].line)}
-              </p>
-            </div>
+            {connecting ? null : head}
 
             {step === "site" ? (
               <SiteCard
@@ -469,8 +482,8 @@ export function SetupForm(p: { model: SetupScreenModel & { spotHolder?: boolean 
                 onDestination={setDestination}
                 label={label}
                 onLabel={setLabel}
-                onLater={() => startSaving(finishAndLeave)}
-                busy={saving}
+                head={head}
+                publishTime={p.model.publishTime ?? null}
                 {...(connection === undefined ? {} : { connection })}
               />
             ) : null}
@@ -492,27 +505,23 @@ export function SetupForm(p: { model: SetupScreenModel & { spotHolder?: boolean 
           as a `<div>` it was content in no landmark at all. Edge to edge and
           pinned, so the step's action is always on screen (SPEC §5, 2026-09-20). */}
       <footer className={BAR}>
-        <div className={BAR_INNER} data-frame={REGION.bar}>
-          {at === 0 ? null : (
-            <button type="button" className="btn btn-ghost h-11 text-(length:--t-body) text-primary" disabled={saving} onClick={back}>
-              {copy("setup.back")}
-            </button>
-          )}
-          {/* The screen's one solid primary. On the hosted address it is the check, which saves the step first. */}
-          {step === "publishing" && destination === "hosted" ? (
-            <div className="grid min-w-0 flex-1">
-              <CheckConnection
-                draft={null}
-                words={CHECK_WORDS}
-                pressClass={`${PRIMARY} self-end`}
-                prepare={finish}
-                pressTestId={ONWARDS_TEST_ID}
-                onAnswer={(answer) => {
-                  if (answer.outcome === "asked") setConnection(answer.state);
-                }}
-              />
-            </div>
-          ) : (
+        {/* On the hosted address the check is the one primary, and it saves the step first. */}
+        {connecting && destination === "hosted" ? (
+          <ConnectBar back={backButton} live={connection === "live"} onLater={() => startSaving(finishAndLeave)} busy={saving}>
+            <CheckConnection
+              draft={null}
+              words={CHECK_WORDS}
+              pressClass={connection === "live" ? "hidden" : PRIMARY}
+              prepare={finish}
+              pressTestId={ONWARDS_TEST_ID}
+              onAnswer={(answer) => {
+                if (answer.outcome === "asked") setConnection(answer.state);
+              }}
+            />
+          </ConnectBar>
+        ) : (
+          <div className={BAR_INNER} data-frame={REGION.bar}>
+            {backButton}
             <button
               type="button"
               className={`${PRIMARY} ms-auto`}
@@ -524,8 +533,8 @@ export function SetupForm(p: { model: SetupScreenModel & { spotHolder?: boolean 
               {saving ? <span className="loading loading-spinner loading-sm" aria-hidden /> : null}
               {copy("setup.continue")}
             </button>
-          )}
-        </div>
+          </div>
+        )}
       </footer>
     </div>
   );

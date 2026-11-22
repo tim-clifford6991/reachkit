@@ -20,13 +20,15 @@
 import { cache } from "react";
 import { env } from "@/lib/config/env";
 import type { DnsRecord } from "@/lib/publish/setup/cards";
-import { readSetupSiteId } from "./provider";
+import { publishTimeOf, readSetupSiteId } from "./provider";
 
 export interface ConnectModel {
   /** The host the record points at — the customer's own address. */
   hostname: string;
   /** The record itself, as both other screens state it. */
   record: DnsRecord;
+  /** The site's publish time as the shell's clock writes it; `null` where unread. */
+  publishTime: string | null;
 }
 
 export const readConnect = cache(async function readConnect(): Promise<ConnectModel | null> {
@@ -42,7 +44,7 @@ export const readConnect = cache(async function readConnect(): Promise<ConnectMo
 
   const { edgeForSite, recordForHost } = await import("@/lib/publish/setup/cards");
   const record = recordForHost({ hostname: host.hostname, siteEdge: edgeForSite({ edge: env.HOSTED_EDGE_CNAME_TARGET, siteId, since: host.since }) });
-  return record === null ? null : { hostname: host.hostname, record };
+  return record === null ? null : { hostname: host.hostname, record, publishTime: await publishTimeOf(siteId) };
 });
 
 /** A WordPress set up without its credentials is connected in Settings › Pages, so this step sends it there. */
