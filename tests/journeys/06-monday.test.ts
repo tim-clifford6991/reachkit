@@ -578,8 +578,7 @@ describe("Monday: the week is re-measured, judged, and told (JN-005)", () => {
       // The AI panel, each item asked once on both engines and none branded, every one under the cap.
       const asks = rows.filter((row) => row.source !== "serp/google/organic" && row.source.includes("/"));
       const panel = asks.filter((row) => row.source === "ai_optimization/chat_gpt/llm_scraper").length;
-      expect(panel).toBeGreaterThan(0);
-      expect(panel).toBeLessThanOrEqual(TRACKED_PROMPTS.PANEL);
+      expect(panel > 0 && panel <= TRACKED_PROMPTS.PANEL).toBe(true);
       expect(asks.filter((row) => row.source === "serp/google/ai_mode")).toHaveLength(panel);
 
       // Once, and the claim is what makes it so: the row carries the week,
