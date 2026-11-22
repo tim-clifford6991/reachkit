@@ -14,7 +14,6 @@ import { sendEmail } from "../send";
 import { daysAfter, hoursAfter } from "./clock";
 import { leadStore, type LeadRow } from "./store";
 import { normaliseAddress, suppressionState } from "./suppress";
-import { wireSuppressionReader } from "./wire";
 
 function log(a: Record<string, unknown>): void {
   // Ids, transition, touch index and outcomes; never an address or a page body.
@@ -80,7 +79,6 @@ export async function advanceSequences(now: Date): Promise<{
   released: number;
   sent: number;
 }> {
-  wireSuppressionReader();
   const dropped = await sweep(now);
   const released = await release(now);
   const sent = await sendDueTouches(now);
@@ -288,7 +286,6 @@ export async function advanceOneTouch(a: {
   touchIndex: number;
   now: Date;
 }): Promise<TouchOutcome> {
-  wireSuppressionReader();
   const read = await leadStore().readLead(a.leadId);
   if (!read.ok || read.lead === null) {
     log({ leadId: a.leadId, outcome: "touch-not-sent", reason: "no-lead" });

@@ -29,6 +29,5 @@ export function sendMock(): Record<string, unknown> {
       sendCalls.push(m);
       return sendOutcome.next;
     },
-    registerSuppressionReader: () => undefined,
   };
 }

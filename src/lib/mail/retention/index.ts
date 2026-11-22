@@ -2,7 +2,6 @@
 // Due at send time, never queued: each send re-reads the row and re-asks `rules.ts`, so a payment or resume leaves nothing to cancel.
 // Stamped only after the mail left; a touch that did not send keeps its stamp unset and logs why. The hosting-end notice is `account/billing`'s.
 import { formatMailDate } from "../blocks/format";
-import { wireSuppressionReader } from "../leads/wire";
 import { sendEmail, type SendResult } from "../send";
 import { buildCancellation } from "../templates/cancellation";
 import { buildPaymentFailed } from "../templates/payment-failed";
@@ -88,7 +87,6 @@ export async function sendWinback(userId: string, now: Date = new Date()): Promi
   if (account === null || !winbackDue({ account, now })) return notDue(kind, userId);
 
   // Besides a resume, the address-wide opt-out stops the win-back: `sendEmail` asks the suppression store for this kind.
-  wireSuppressionReader();
   const mail = buildWinback({ email: account.email });
   const result = await sendEmail({ kind, to: account.email, event: userId, ...mail });
   if (!result.sent) return withheld(kind, userId, result);

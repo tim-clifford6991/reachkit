@@ -7,9 +7,7 @@
 // a **port** with a fail-closed default: with nothing registered it answers
 // `{ issued: false, reason: 'not_wired' }` and no magic-link mail is
 // composed around a URL that does not exist. This module is what fills it,
-// and it is the only place that does — the same shape, and for the same
-// reason, as `src/lib/mail/leads/wire.ts` filling the send seam's
-// stoppability port.
+// and it is the only place that does.
 //
 // Idempotent, and called from `./index.ts` at module load and from
 // `sendSignInLink` itself, so no caller has to remember to wire it and no

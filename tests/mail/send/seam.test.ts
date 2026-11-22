@@ -17,7 +17,7 @@ vi.mock("@/lib/db", () => ({
 }));
 const fakeDbRef = { current: fakeDb(state) };
 
-const { sendEmail, registerSuppressionReader } = await import("../../../src/lib/mail/send");
+const { sendEmail } = await import("../../../src/lib/mail/send");
 type SendInput = import("../../../src/lib/mail/send").SendInput;
 const { composeMail } = await import("../../../src/lib/mail/shell/compose");
 const { __setVendorTransportForTesting } = await import("../../../src/lib/mail/vendor/resend");
@@ -43,7 +43,6 @@ beforeEach(() => {
 
 afterEach(() => {
   __setVendorTransportForTesting(null);
-  registerSuppressionReader(null);
   vi.restoreAllMocks();
 });
 

@@ -17,7 +17,6 @@ import { readFirstPageOffer, type FirstPageOffer } from "./offer";
 import { writeDraft } from "./ports";
 import { scheduleSequence } from "./sequence";
 import { leadStore, type LeadRow } from "./store";
-import { wireSuppressionReader } from "./wire";
 
 /** The four ways a page can fail to arrive; a fifth is a change to this union and the map below. */
 export type FirstPageFailure =
@@ -73,7 +72,6 @@ export async function dueFirstPageDeliveries(now: Date): Promise<readonly string
 }
 
 export async function deliverFirstPage(leadId: string, now = new Date()): Promise<DeliveryOutcome> {
-  wireSuppressionReader();
   const store = leadStore();
   const read = await store.readLead(leadId);
   if (!read.ok) return { delivered: "none", cause: "delivery-failed" };
