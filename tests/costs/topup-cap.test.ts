@@ -5,13 +5,17 @@ import { CAPS } from "@/lib/config/constants";
 import { DEFAULT_LOCALE } from "@/lib/locale/locales";
 
 const SCAN = "33333333-3333-4333-8333-333333333333";
-const calls = { vendor: [] as string[], rows: [] as Record<string, unknown>[] };
+const calls = { vendor: [] as string[], rows: [] as Record<string, unknown>[], model: 0 };
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
 vi.stubGlobal("fetch", async (input: string | URL | Request, init?: RequestInit) => {
   const url = new URL(typeof input === "string" ? input : input instanceof URL ? input.href : input.url);
   if (url.host === "api.dataforseo.com") {
     calls.vendor.push(url.pathname);
     return json({ status_code: 20000, tasks: [{ status_code: 20000, cost: 0.018, result: [{ items: [{ keyword: "plumber near me", keyword_info: { search_volume: 90 } }] }] }] });
+  }
+  if (url.host === "api.anthropic.com") {
+    calls.model++;
+    return json({ id: "m", type: "message", role: "assistant", model: "m", content: [{ type: "text", text: '{"claims":[]}' }], stop_reason: "end_turn", usage: { input_tokens: 1, output_tokens: 1 } });
   }
   // The weekly pass's row already holds its whole cap.
   if (url.pathname.endsWith("/scans") && (init?.method ?? "GET") === "GET") return json([{ cost_cents: CAPS.WEEKLY_C, site_id: "44444444-4444-4444-8444-444444444444" }]);
@@ -28,6 +32,7 @@ const buy = (c: Parameters<typeof buyTopUp>[0]) =>
 beforeEach(() => {
   calls.vendor.length = 0;
   calls.rows.length = 0;
+  calls.model = 0;
 });
 
 describe("the top-up's own cap", () => {
@@ -66,5 +71,18 @@ describe("the top-up's own cap", () => {
     );
     expect(changes).toEqual([]);
     expect(calls.vendor).toEqual([]);
+  });
+
+  it("after its three news searches and a judgement, the week's market changes still have room for one full claims call", async () => {
+    const { readClaims } = await import("@/lib/generate/pipeline/claims-read");
+    const { costCentsFor } = await import("@/lib/llm/tiers");
+    const { INFERENCE_MAX_OUTPUT_TOKENS, RESEARCH } = await import("@/lib/config/constants");
+    const spent = 3 * 0.2 + costCentsFor("haiku", 4_000, INFERENCE_MAX_OUTPUT_TOKENS["generate.news_fit"]);
+    const text = "Boilers ".repeat(RESEARCH.readWords);
+    const pages = Array.from({ length: RESEARCH.pagesPerCall - 1 }, (_, at) => ({ url: `https://news${at}.example/story`, title: "Boiler grant changes", text, readAt: "2026-11-20", kind: "recent" as const }));
+    await withCostContext({ scanId: SCAN, cap: "WEEK_NEWS", policyVersion: 1, rollUp: "none", activity: "weekly", priorCents: spent }, (c) =>
+      readClaims(c, pages, { locale: DEFAULT_LOCALE, search: "plumbing", rivals: [], today: new Date(), calls: 1 })
+    );
+    expect(calls.model).toBe(1);
   });
 });

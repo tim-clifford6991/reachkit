@@ -7,7 +7,7 @@
 -- finds the row and buys nothing. `changes` is null until the pass stores what it found; a null week was not measured,
 -- never an empty one. Each change in `changes` is a story at least two independent publishers reported within 30 days:
 -- its title, its topic words, its claims (each with its address, publisher and date), and the weeks it was first and
--- last seen. At most five a week.
+-- last seen.
 
 create table if not exists market_changes (
   site_id uuid not null references sites (id),

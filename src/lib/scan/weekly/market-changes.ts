@@ -101,12 +101,12 @@ export async function buyMarketChanges(
     });
   }
   const facts: MarketFact[] = [];
-  const perCall = RESEARCH.pagesPerCall * RESEARCH.calls;
-  // Dealt a report a story in turn, so every story's first two reports are read before any story's third.
-  const pages = Array.from({ length: Math.max(0, ...kept.map(({ story }) => story.length)) }, (_, at) => kept.flatMap(({ story }) => (story[at] === undefined ? [] : [story[at]]))).flat();
+  // One call at a time, each holding whole pairs, so the first call the cap allows can already store a change.
+  const perCall = RESEARCH.pagesPerCall - (RESEARCH.pagesPerCall % MARKET_CHANGES.sources);
+  const pages = [...kept.flatMap(({ story }) => story.slice(0, MARKET_CHANGES.sources)), ...kept.flatMap(({ story }) => story.slice(MARKET_CHANGES.sources))];
   for (let at = 0; at < pages.length && !c.capHit(); at += perCall) {
     facts.push(...(await readClaims(c, pages.slice(at, at + perCall).map((page) => ({ ...page, kind: "recent" as const })), {
-      locale: a.locale, search: a.terms[0] ?? "", rivals: [], today: a.today, siteId: a.siteId,
+      locale: a.locale, search: a.terms[0] ?? "", rivals: [], today: a.today, siteId: a.siteId, calls: 1,
     })));
   }
   return kept.flatMap(({ story, names }) => {
