@@ -92,7 +92,7 @@ export function buildPublished(a: {
     { block: "paragraph", text: telling.copy, vars: { checkedAt } },
     // The date is in the line above, so the address is the one fact row.
     { block: "facts", items: [{ label: ADDRESS, value: telling.liveUrl }] },
-    { block: "action", label: ACTION, href: telling.liveUrl },
+    { block: "action", label: ACTION, href: telling.opens ?? telling.liveUrl },
   ];
 
   if (telling.result.outcome === "found") {

@@ -31,6 +31,7 @@ const APPLIED = [
   "00000000000002_rls.sql",
   "20260922120000_publications_reads.sql",
   "20261019170000_publications_search_ladder.sql",
+  "20261122160000_publications_reads_visits_clicks.sql",
 ];
 
 function raises(sql: string): boolean {
@@ -225,6 +226,15 @@ describe("the closed sets, refused by the database", () => {
     count(OWNED.siteId, OWNED.pageId, "2026-09-23", "bing", "crawl");
     expect(hits(OWNED.pageId, "2026-09-23", "google", "crawl")).toBe(1);
     expect(hits(OWNED.pageId, "2026-09-23", "bing", "crawl")).toBe(1);
+  });
+
+  it("a visit by source and a click count, and a click is never filed as a visit", () => {
+    count(OWNED.siteId, OWNED.pageId, "2026-09-23", "none", "referral");
+    count(OWNED.siteId, OWNED.pageId, "2026-09-23", "site", "outbound");
+    expect(hits(OWNED.pageId, "2026-09-23", "none", "referral")).toBe(1);
+    expect(hits(OWNED.pageId, "2026-09-23", "site", "outbound")).toBe(1);
+    expect(raises(`select record_publication_read('${OWNED.siteId}', '${OWNED.pageId}', '2026-09-23', 'site', 'referral', 28);`)).toBe(true);
+    expect(raises(`select record_publication_read('${OWNED.siteId}', '${OWNED.pageId}', '2026-09-23', 'other', 'outbound', 28);`)).toBe(true);
   });
 
   it("a zero count is refused — a row exists because something was counted", () => {

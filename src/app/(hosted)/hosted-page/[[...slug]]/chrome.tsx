@@ -7,6 +7,7 @@
 import type React from "react";
 import { createElement } from "react";
 import { copy } from "@/lib/presentation/copy/reader";
+import { pingOf } from "@/lib/publish/reads/count";
 import type { HostedIdentity } from "@/lib/publish/destinations/hosted";
 import type { BookKind } from "@/lib/site-profile/main-site-row";
 import { SiteMark } from "@/ui/SiteMark";
@@ -143,9 +144,9 @@ function Logo({ business, large = false }: { business: HostedBusiness; large?: b
 
 /** `width` is the most of its row the button may take: a long name is cut
  *  with an ellipsis rather than pushing its neighbour off the row. */
-function VisitButton({ business, width }: { business: HostedBusiness; width: string }): React.JSX.Element {
+function VisitButton({ business, width, ping }: { business: HostedBusiness; width: string; ping: boolean }): React.JSX.Element {
   return (
-    <a href={mainSiteOf(business)} className={`btn btn-sm btn-outline min-h-11 min-w-0 ${width}`}>
+    <a href={mainSiteOf(business)} ping={ping ? pingOf("site") : undefined} className={`btn btn-sm btn-outline min-h-11 min-w-0 ${width}`}>
       <span className="truncate">{copy("hosted.visit", { site: mainSiteName(business) })}</span>
       <Glyph name="arrow-up-right" />
     </a>
@@ -187,9 +188,9 @@ export function actionsOf(business: HostedBusiness): { primary: Action | null; q
   return { primary: all[0] ?? null, quiet: all.slice(1, 3) };
 }
 
-function PrimaryButton({ action, text, width }: { action: Action; text: string; width: string }): React.JSX.Element {
+function PrimaryButton({ action, text, width, ping }: { action: Action; text: string; width: string; ping: boolean }): React.JSX.Element {
   return (
-    <a href={action.href} className={`btn btn-sm border-base-content bg-base-content text-base-100 min-h-11 min-w-0 ${width}`}>
+    <a href={action.href} ping={ping ? pingOf(action.kind) : undefined} className={`btn btn-sm border-base-content bg-base-content text-base-100 min-h-11 min-w-0 ${width}`}>
       <Glyph name={action.glyph} />
       <span className="truncate">{text}</span>
     </a>
@@ -200,7 +201,8 @@ function PrimaryButton({ action, text, width }: { action: Action; text: string; 
 const HEADER_BUTTON = "max-w-full sm:max-w-[16rem]";
 const CARD_BUTTON = "max-w-full";
 
-export function HostedHeader({ business }: { business: HostedBusiness }): React.JSX.Element {
+/** `ping`: a live article's links to the business report a click to it; the index and the 410 count none. */
+export function HostedHeader({ business, ping = false }: { business: HostedBusiness; ping?: boolean }): React.JSX.Element {
   const { primary } = actionsOf(business);
   return (
     <header className="border-base-300 border-b">
@@ -209,8 +211,8 @@ export function HostedHeader({ business }: { business: HostedBusiness }): React.
           <Logo business={business} />
           <span className="truncate">{business.name}</span>
         </a>
-        {primary === null ? null : <PrimaryButton action={primary} text={primary.short} width={HEADER_BUTTON} />}
-        <VisitButton business={business} width={HEADER_BUTTON} />
+        {primary === null ? null : <PrimaryButton action={primary} text={primary.short} width={HEADER_BUTTON} ping={ping} />}
+        <VisitButton business={business} width={HEADER_BUTTON} ping={ping} />
       </div>
     </header>
   );
@@ -264,7 +266,7 @@ function compactHeading(business: HostedBusiness): string {
 /** The compact block: one question, the primary action and Visit, never a quiet
  *  link. Nothing where no action is stored. Where it draws the business
  *  (`described`), its line and place follow the question in one sentence. */
-export function CompactAction({ business, described = false }: { business: HostedBusiness; described?: boolean }): React.JSX.Element | null {
+export function CompactAction({ business, described = false, ping = false }: { business: HostedBusiness; described?: boolean; ping?: boolean }): React.JSX.Element | null {
   const { primary } = actionsOf(business);
   if (primary === null) return null;
   const heading = compactHeading(business);
@@ -285,8 +287,8 @@ export function CompactAction({ business, described = false }: { business: Hoste
             </p>
           </div>
         )}
-        <PrimaryButton action={primary} text={primary.label} width={CARD_BUTTON} />
-        <VisitButton business={business} width={CARD_BUTTON} />
+        <PrimaryButton action={primary} text={primary.label} width={CARD_BUTTON} ping={ping} />
+        <VisitButton business={business} width={CARD_BUTTON} ping={ping} />
       </div>
     </aside>
   );
@@ -298,9 +300,11 @@ export function CompactAction({ business, described = false }: { business: Hoste
 export function AboutCard({
   business,
   author = null,
+  ping = false,
 }: {
   business: HostedBusiness;
   author?: { name: string; url: string | null } | null;
+  ping?: boolean;
 }): React.JSX.Element {
   const written = author === null ? null : copy("hosted.about.author", { author: author.name });
   const { primary, quiet } = actionsOf(business);
@@ -321,7 +325,7 @@ export function AboutCard({
             </p>
           )}
         </div>
-        {primary === null ? null : <PrimaryButton action={primary} text={primary.label} width={CARD_BUTTON} />}
+        {primary === null ? null : <PrimaryButton action={primary} text={primary.label} width={CARD_BUTTON} ping={ping} />}
         {/* Plain links only where the main site links the page itself; `role` keeps a styled list a list in Safari. */}
         {quiet.length === 0 ? null : (
           <ul role="list" className="flex flex-wrap gap-x-5 gap-y-1 text-sm">
@@ -335,7 +339,7 @@ export function AboutCard({
             ))}
           </ul>
         )}
-        <VisitButton business={business} width={CARD_BUTTON} />
+        <VisitButton business={business} width={CARD_BUTTON} ping={ping} />
       </div>
     </aside>
   );

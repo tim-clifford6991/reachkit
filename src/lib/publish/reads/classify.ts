@@ -11,6 +11,7 @@ import {
   AI_REFERRER_SOURCES,
   AI_SEARCH_INDEXERS,
   AI_TRAINING_CRAWLERS,
+  ONWARD_CLICK_ACTIONS,
   SEARCH_CRAWLERS,
   SEARCH_REFERRER_HOSTS,
 } from "@/lib/config/constants";
@@ -34,12 +35,19 @@ export type CrawlEngine = (typeof SEARCH_CRAWLERS)[keyof typeof SEARCH_CRAWLERS]
 export const BLOG_READ_KINDS = ["answer_fetch", "index_fetch", "referral"] as const;
 export type BlogReadKind = (typeof BLOG_READ_KINDS)[number];
 
+/** A person's arrival from a source the product does not name: another site (Bing included), or no referrer at all. */
+export type VisitSource = "other" | "none";
+
+/** Which of the business's own links a reader followed off a hosted page. */
+export type OnwardClick = (typeof ONWARD_CLICK_ACTIONS)[number];
+
 export type BlogRead =
   | { readonly engine: BlogEngine; readonly kind: BlogReadKind }
   /** Googlebot by agent string, still to be checked by address (`crawler.ts`). */
   | { readonly engine: CrawlEngine; readonly kind: "crawl" }
-  /** A person arriving from Google search. */
-  | { readonly engine: CrawlEngine; readonly kind: "referral" };
+  /** A person arriving from Google search, from another site or directly. */
+  | { readonly engine: CrawlEngine | VisitSource; readonly kind: "referral" }
+  | { readonly engine: OnwardClick; readonly kind: "outbound" };
 
 /** What a request offers; each is absent from some real request, and none is stored. */
 export interface RequestFacts {
@@ -55,7 +63,7 @@ function carries(agent: string, token: string): boolean {
 
 /** The referrer's host, parsed rather than searched since `Referer` is attacker-controlled: a path containing
  *  `chatgpt.com` is not a referral from ChatGPT. */
-function hostOf(referer: string): string | null {
+export function hostOf(referer: string): string | null {
   try {
     return new URL(referer).hostname.toLowerCase();
   } catch {

@@ -11,7 +11,7 @@
 // footnotes, any future extension) renders as its own source text, sliced by position, so `<script>` in a body is
 // escaped text. No allowlist and no blocklist: no input markup reaches the output as markup.
 // The attributes are closed too, all written here: `href` (vetted against `MARKDOWN_LINK_SCHEMES`, the only value a
-// body influences), `class` (the caller's table), `tabindex`, `role` and `aria-label` on the two scrolling boxes
+// body influences), `ping` and `class` (the caller's), `tabindex`, `role` and `aria-label` on the two scrolling boxes
 // (constants, the name from the registry), `id` on a heading (from `withHeadingIds`, letters, digits and hyphens
 // only), and `role="list"` on every list, since WebKit drops a styled list's semantics. A body has no syntax that
 // reaches an attribute.
@@ -38,7 +38,7 @@ export type Inline =
   | { kind: "code"; text: string }
   | { kind: "strong"; children: readonly Inline[] }
   | { kind: "em"; children: readonly Inline[] }
-  | { kind: "link"; href: string; children: readonly Inline[] }
+  | { kind: "link"; href: string; ping?: string; children: readonly Inline[] }
   /** REQ-045 criterion 2's mark. Produced only by `markPassage`, never by
    *  the parser: a body cannot mint its own highlight. */
   | { kind: "mark"; children: readonly Inline[] };
@@ -467,17 +467,17 @@ export function markPassage(
   return { blocks: out, marked: done.hit };
 }
 
-// ── links to a moved address ────────────────────────────────────────────
-
-function redirectInline(nodes: readonly Inline[], finalOf: (href: string) => string | null): Inline[] {
+// ── links redrawn at render: a moved address, or a click report ──────────
+type Redrawn = Partial<{ href: string; ping: string }>;
+function redirectInline(nodes: readonly Inline[], finalOf: (href: string) => Redrawn | null): Inline[] {
   return nodes.map((node) => {
-    if (node.kind === "link") return { ...node, href: finalOf(node.href) ?? node.href, children: redirectInline(node.children, finalOf) };
+    if (node.kind === "link") return { ...node, ...finalOf(node.href), children: redirectInline(node.children, finalOf) };
     if (node.kind === "strong" || node.kind === "em" || node.kind === "mark") return { ...node, children: redirectInline(node.children, finalOf) };
     return node;
   });
 }
 
-function redirectBlock(block: Block, finalOf: (href: string) => string | null): Block {
+function redirectBlock(block: Block, finalOf: (href: string) => Redrawn | null): Block {
   switch (block.kind) {
     case "list":
       return { ...block, items: block.items.map((item) => redirectInline(item, finalOf)) };
@@ -499,9 +499,9 @@ function redirectBlock(block: Block, finalOf: (href: string) => string | null): 
   }
 }
 
-/** SPEC §7: a link to a moved address is drawn at where it answers now, by `finalOf` (`null` keeps it), at render, so
- *  the stored body is not edited (ADR-080) and the page's dates do not move. */
-export function withLinksMoved(blocks: readonly Block[], finalOf: (href: string) => string | null): Block[] {
+/** SPEC §7: a link is redrawn by `finalOf` (`null` keeps it) at render, at where a moved address answers now or with
+ *  its click report, so the stored body is not edited (ADR-080) and the page's dates do not move. */
+export function withLinksMoved(blocks: readonly Block[], finalOf: (href: string) => Redrawn | null): Block[] {
   return blocks.map((block) => redirectBlock(block, finalOf));
 }
 
@@ -600,7 +600,7 @@ function inlineHtml(nodes: readonly Inline[], classes: HtmlClasses): string {
         case "mark":
           return `${open("mark", classes)}${inlineHtml(node.children, classes)}</mark>`;
         case "link":
-          return `${open("a", classes, ` href="${escapeHtml(node.href)}"`)}${inlineHtml(node.children, classes)}</a>`;
+          return `${open("a", classes, ` href="${escapeHtml(node.href)}"${node.ping === undefined ? "" : ` ping="${escapeHtml(node.ping)}"`}`)}${inlineHtml(node.children, classes)}</a>`;
       }
     })
     .join("");
