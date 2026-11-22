@@ -10,7 +10,8 @@ export const SHAPE = Object.freeze({
   screen: `${PLAN} max-md:pb-32`,
   grid: "grid min-w-0 gap-4 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:grid-rows-[auto_minmax(0,1fr)]",
   head: "flex min-w-0 flex-col gap-2 lg:col-start-1 lg:row-start-1",
-  rail: "card card-border bg-base-100 min-w-0 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-start",
+  // On a short screen the rail scrolls inside itself, as the panel does.
+  rail: "card card-border bg-base-100 min-w-0 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:min-h-0 lg:overflow-y-auto",
   tabs: "card card-border bg-base-100 min-w-0 lg:col-start-1 lg:row-start-2 lg:min-h-0",
   // Back to This week is a link, not a button, at a 44px target.
   back: "link link-primary link-hover inline-flex min-h-11 items-center gap-1.5 self-start text-sm font-semibold no-underline",
