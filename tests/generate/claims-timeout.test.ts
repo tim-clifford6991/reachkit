@@ -16,7 +16,7 @@ it("the first claims call timing out still leaves claims from every top result",
   createMock.mockRejectedValueOnce(new Error("Request timed out."));
   createMock.mockImplementation(async (request: { messages: { content: string }[] }) => {
     const quotes = [...request.messages[0]!.content.matchAll(/Study \d+ finds that buyers compare three plans before they pay\./g)].map((match) => match[0]);
-    return toolUseMessage({ claims: quotes.map((quote, at) => ({ page: at + 1, quote, year: null, about: "price", plan: null, rival: null, timeliness: "dated" })) });
+    return toolUseMessage({ claims: quotes.map((quote, at) => ({ page: at + 1, quote, year: null, about: "price", plan: null, rival: null })) });
   });
   const facts = await readClaims(cost, pages, { locale: { country: "US", language: "en" }, search: "plan pricing", rivals: [], today: new Date("2026-11-22") });
   expect(createMock).toHaveBeenCalledTimes(4);
