@@ -204,10 +204,10 @@ export const INFERENCE_MAX_OUTPUT_TOKENS = Object.freeze({
   /** `{ pairs: { search, sameAs }[] }` over at most the pass's candidates:
    *  ~25 a pair. */
   "topic-same-question": 512,
-  /** `{ scores: { i, fit, fact, why, angles }[], strongest: number[] }` over at
-   *  most `TOPIC_FIT.maxCandidates` searches: ~12 a score, and ~175 on each
-   *  scored 2 or 3 (a sentence of why, two or three angles of ~50). */
-  "topic-fit": 12288,
+  /** `{ scores: { i, fit, fact, angles }[], strongest: number[] }` over at
+   *  most `TOPIC_FIT.maxCandidates` searches: ~12 a score, and ~45 an angle,
+   *  three on a 3 and two on a 2. Bounded by `TYPING_RESERVE_C`. */
+  "topic-fit": 6144,
   /** `{ problems: string[], solutions: string[] }`, at most
    *  `BUYER_SEARCHES.max` searches of under ten words: ~15 each. */
   "topic-buyer-searches": 700,

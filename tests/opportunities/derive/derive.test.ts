@@ -307,7 +307,7 @@ describe("the pass says how much new-page supply each source gave, at no added c
       [BUYER_SEARCHES_CALL_SITE]: () => ({ problems: ["how to cut onboarding churn", "why users drop off after signup"], solutions: [] }),
       [TYPED_CALL_SITE]: (input) => ({ typed: input.searches!.filter(({ search }) => search.startsWith("how")).map(({ i }) => i) }),
       [FIT_CALL_SITE]: (input) => {
-        const scores = input.searches!.map(({ i }) => ({ i, fit: 3, fact: 0, why: "", angles: [] }));
+        const scores = input.searches!.map(({ i }) => ({ i, fit: 3, fact: 0, angles: [] }));
         return { scores, strongest: scores.map(({ i }) => i) };
       },
       [SAME_QUESTION_CALL_SITE]: () => ({ pairs: [] }),
@@ -337,7 +337,7 @@ describe("the pass says how much new-page supply each source gave, at no added c
       const site = request.tools?.[0]?.name ?? "";
       const searches = (JSON.parse(request.messages[0]!.content) as { searches?: { i: number; search: string }[] }).searches ?? [];
       judged[site] = searches.map(({ search }) => search);
-      const scores = searches.map(({ i, search }) => ({ i, fit: search === "product analytics pricing" ? 2 : 3, fact: 0, why: "", angles: [] }));
+      const scores = searches.map(({ i, search }) => ({ i, fit: search === "product analytics pricing" ? 2 : 3, fact: 0, angles: [] }));
       const answer = { [BUYER_SEARCHES_CALL_SITE]: { problems: [], solutions: [] }, [TYPED_CALL_SITE]: { typed: searches.map(({ i }) => i) }, [FIT_CALL_SITE]: { scores, strongest: [] }, [SAME_QUESTION_CALL_SITE]: { pairs: [] } }[site];
       if (answer === undefined) throw new Error(`no model for ${site}`);
       return toolUseMessage(answer, 100, 50, site);

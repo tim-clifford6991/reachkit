@@ -241,7 +241,7 @@ export type Evidence =
       shape?: "offering";
       /** `null` once judged with no passage; absent where not judged since the call named one. */
       fitFact?: FitFact | null;
-      /** The angle the topic keeps and why it fits the business (`market/questions/angle.ts`); `null` where none passed, absent where judged before. */
+      /** The angle the topic keeps (`market/questions/angle.ts`); `null` where none passed, absent where judged before. */
       angle?: TopicAngle | null;
     }
   | {

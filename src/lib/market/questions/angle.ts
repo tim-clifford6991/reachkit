@@ -15,11 +15,10 @@ export interface ProposedAngle {
   fact: number | null;
 }
 
-/** The angle a topic keeps, stored on its evidence: `why` is the one plain sentence of why it fits the business. */
+/** The angle a topic keeps, stored on its evidence beside `fitFact`, the passage that says why it fits the business. */
 export interface TopicAngle {
   pattern: AnglePattern;
   promise: string;
-  why: string;
   /** How many of the top results' titles carry its promise words; fewer is the gap the page fills. */
   gap: number;
 }

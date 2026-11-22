@@ -79,7 +79,7 @@ beforeEach(() => {
   createMock.mockImplementation(async (request: { messages: { content: string }[]; tools?: { name: string }[] }) => {
     const input = JSON.parse(request.messages[0]!.content) as { searches?: { i: number; search: string }[] };
     if (request.tools?.[0]?.name !== FIT_CALL_SITE || input.searches === undefined) throw new Error("no model for this call");
-    const scores = input.searches.map(({ i }) => ({ i, fit: 2, fact: 0, why: "", angles: [] }));
+    const scores = input.searches.map(({ i }) => ({ i, fit: 2, fact: 0, angles: [] }));
     return toolUseMessage({ scores, strongest: [] }, 900, 300, FIT_CALL_SITE);
   });
   state = newMemoryState({ profile: PROFILE, market: MARKET, now: AT });
