@@ -149,8 +149,8 @@ export default function LandingPage(props: {
       <main className="flex flex-col" data-page={PAGE_NAME}>
         <JsonLd blocks={homeSchemas()} />
         {/* ══ HERO ══ */}
-        {/* First paint waits for the whole hero: painted half-parsed, the centred columns jump as the example's frame fills in. */}
-        <link rel="expect" href={`#${FIELD_SECTION_ID}`} blocking={BLOCKS_PAINT} />
+        {/* First paint waits until the section after the hero is parsed: painted half-parsed, the centred columns jump as the example's frame fills in. */}
+        <link rel="expect" href={`#${HOW_SECTION_ID}`} blocking={BLOCKS_PAINT} />
         <section id={FIELD_SECTION_ID} className="scroll-mt-20 pt-6 pb-12 lg:pt-10 lg:pb-22">
           <div className={`${INNER} grid grid-cols-1 items-center gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:gap-12`}>
             <div className="flex min-w-0 flex-col items-center gap-5 text-center lg:gap-6">
