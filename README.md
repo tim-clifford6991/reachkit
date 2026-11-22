@@ -9,7 +9,7 @@ Production <https://reachkit.app> · dev <https://dev.reachkit.app> · repo `tim
 
 ## The nine MVP features
 
-All nine are on `main`. None of them counts as delivered until a stranger walks the path on production. That walk is #1044. What is left before it is the #2513 queue and the owner's list on #2299. This table does not carry a second status.
+All nine are on `main`. None of them counts as delivered until a stranger walks the path on production. That walk is #2916. What is left before it is the #2513 queue and the owner's list on #2299. This table does not carry a second status.
 
 | # | Feature | What the user gets |
 |---|---|---|

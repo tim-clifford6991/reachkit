@@ -1,6 +1,6 @@
 # The stranger walk — the pack
 
-What #1044 needs ready before the owner runs the walk on production: one person the owner picks, a
+What #2916 needs ready before the owner runs the walk on production: one person the owner picks, a
 real site, unaided, refunded afterwards (owner ruling 2026-09-23). The walk is the last open item on
 the owner's list (#2299). This folder holds no rules and no launch status of its own.
 Where it quotes RUNBOOK and they disagree, RUNBOOK is right and this one is stale.
@@ -26,7 +26,7 @@ none behind them. The demo video (#1030) is optional.
 | # | Must be true | Blocks the walk? | Whose |
 |---|---|---|---|
 | 1 | **The jobs fire on production.** On the day, every `job_runs` row is inside its interval (`docs/walk/watch.md`). | **Yes** | owner |
-| 2 | **The owner has picked the tester and the site** (#1044). A WordPress site with an application password, or a domain whose DNS the tester can change. | **Yes** | owner |
+| 2 | **The owner has picked the tester and the site** (#2916). A WordPress site with an application password, or a domain whose DNS the tester can change. | **Yes** | owner |
 
 ## How long the walk takes
 
@@ -45,4 +45,4 @@ The tester should plan for **two or three days**. The walk is not one sitting:
 Nobody helps during the walk. The owner watches (`docs/walk/watch.md`) and writes down what the
 tester did, but does not answer questions. After the walk: one issue per finding, sized for one PR,
 unless the finding is an example of a parent in `docs/PROCESS.md` Coherence, which is a comment on
-that parent. Then the refund (`docs/walk/refund.md`), then #1044 is closed with the walk's timeline.
+that parent. Then the refund (`docs/walk/refund.md`), then #2916 is closed with the walk's timeline.
