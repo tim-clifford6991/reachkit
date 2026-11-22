@@ -9,7 +9,7 @@
 // §6), the one with fewer Google impressions, or the newer of a measured 0–0 pair, is merged into the other once both are
 // read. A page on the customer's own host has no 301 of ours: it stays live and is named in the run's report. A page is
 // never corrected by a row edit alone (ADR-080).
-import { REFRESH_MIN_AGE_DAYS } from "@/lib/config/constants";
+import { AI_BLOG_ENGINES, REFRESH_MIN_AGE_DAYS } from "@/lib/config/constants";
 import { registrableDomain } from "@/lib/market/rivals/domains";
 import { canonicalUrl, googleRead, readingOf } from "@/lib/measure/page-reading";
 import { oneQuestion, queryKey } from "./cluster";
@@ -435,7 +435,7 @@ async function defaultDeps(): Promise<LiveTopicDeps> {
                 .from<{ publication_id: string; kind: string; hits: number }>("publication_reads")
                 .select("publication_id, kind, hits")
                 .in("publication_id", ids)
-                .in("kind", ["answer_fetch", "referral"]).neq("engine", "bing"),
+                .in("kind", ["answer_fetch", "referral"]).in("engine", [...AI_BLOG_ENGINES, "google"]),
             ]).then(([v, r]) => {
               if (v.error !== null || r.error !== null) throw new Error(`live-topics: reading signals: ${(v.error ?? r.error)?.message}`);
               return [v.data ?? [], r.data ?? []] as const;

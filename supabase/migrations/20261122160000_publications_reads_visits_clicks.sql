@@ -21,6 +21,7 @@ alter table publication_reads
     kind in ('answer_fetch', 'index_fetch', 'referral', 'crawl', 'outbound')
   ),
   -- A click is never a visit, and a link's name is never a source.
+  drop constraint if exists publication_reads_outbound_paired,
   add constraint publication_reads_outbound_paired check (
     (kind = 'outbound') = (engine in ('site', 'book', 'quote', 'call', 'link'))
   );
