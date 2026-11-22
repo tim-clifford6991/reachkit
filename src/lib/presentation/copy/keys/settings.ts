@@ -276,7 +276,6 @@ export const SETTINGS_COPY = Object.freeze({
   "settings.publishing.time-zone": "Time zone",
   "settings.publishing.destinations": "Where pages go live",
   "settings.publishing.saving": "Saving…",
-  "settings.publishing.where.waiting": "Waiting for DNS",
   "settings.publishing.time.note": "Your next page goes live at the new time.",
   "settings.publishing.veto.note": "Each page is written and emailed this long before it goes live.",
   "settings.publishing.flow.none": "Each page is written and emailed {window} before it goes live at {time}.",
@@ -358,7 +357,7 @@ export const SETTINGS_COPY = Object.freeze({
   // customer's own record has resolved yet, and a destination can be
   // perfectly healthy with a record nobody has pointed.
   "settings.destination.hostname.live": "Live",
-  "settings.destination.hostname.waiting": "waiting for the setting",
+  "settings.destination.hostname.waiting": "Waiting for DNS",
 
   // ── Check connection (issue #757; owner ruling 2026-09-16) ────────────
   //
@@ -595,6 +594,7 @@ export const SETTINGS_COPY = Object.freeze({
   "settings.linkmap.note": "We choose and check these links. When a page goes live, we update older pages to link it.",
   "settings.linkmap.receiving.count": "Linked from {count} pages",
   "settings.known.head": "Content We Already Know About",
+  "settings.known.line": "Known",
   "settings.known.note": "Checked before every page, so we link to what exists and never write it twice.",
   "settings.known.ours": "{count} pages we wrote",
   "settings.known.site": "{count} pages on your site",

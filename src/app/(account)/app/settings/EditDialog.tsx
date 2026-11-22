@@ -30,13 +30,26 @@ function Body(p: {
     return null;
   }, null);
 
-  // Each opening mounts a fresh body, so focus lands on its first field.
+  // Each opening mounts a fresh body, so focus lands on its first field; a read-only body keeps it on ✕.
   useEffect(() => {
-    if (p.dialog.current?.open !== true) return;
+    if (p.save === undefined || p.dialog.current?.open !== true) return;
     form.current?.querySelector<HTMLElement>(FIELD)?.focus();
-  }, [p.dialog]);
+  }, [p.dialog, p.save]);
 
   const close = (): void => p.dialog.current?.close();
+  // Read-only holds no form of its own, so a form inside it (the record's send) is never nested.
+  if (p.save === undefined) {
+    return (
+      <div className="flex min-w-0 flex-col gap-4">
+        {p.children}
+        <div className="modal-action mt-0 flex-wrap items-center">
+          <button type="button" className="btn btn-soft min-h-11" onClick={close}>
+            {copy("settings.close")}
+          </button>
+        </div>
+      </div>
+    );
+  }
   return (
     <form ref={form} action={act} className="flex min-w-0 flex-col gap-4">
       {p.children}
@@ -46,21 +59,13 @@ function Body(p: {
             {refused}
           </p>
         )}
-        {p.save === undefined ? (
-          <button type="button" className="btn btn-soft min-h-11" onClick={close}>
-            {copy("settings.close")}
-          </button>
-        ) : (
-          <>
-            <button type="submit" className="btn btn-primary min-h-11" disabled={pending}>
-              {pending ? <span className="loading loading-spinner loading-xs" aria-hidden /> : null}
-              {copy("settings.save")}
-            </button>
-            <button type="button" className="btn btn-ghost min-h-11" onClick={close}>
-              {copy("settings.cancel-edit")}
-            </button>
-          </>
-        )}
+        <button type="submit" className="btn btn-primary min-h-11" disabled={pending}>
+          {pending ? <span className="loading loading-spinner loading-xs" aria-hidden /> : null}
+          {copy("settings.save")}
+        </button>
+        <button type="button" className="btn btn-ghost min-h-11" onClick={close}>
+          {copy("settings.cancel-edit")}
+        </button>
       </div>
     </form>
   );

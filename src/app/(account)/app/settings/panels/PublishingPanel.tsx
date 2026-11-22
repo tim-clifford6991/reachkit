@@ -114,7 +114,7 @@ function Where(p: { destination: SettingsDestination }): React.JSX.Element {
           {d.kind !== "hosted" ? null : (
             <span className={live ? "badge badge-success badge-soft" : "badge badge-warning badge-soft"}>
               {live ? <Check size={14} strokeWidth={1.75} aria-hidden /> : null}
-              {copy(live ? "settings.destination.hostname.live" : "settings.publishing.where.waiting")}
+              {copy(live ? "settings.destination.hostname.live" : "settings.destination.hostname.waiting")}
             </span>
           )}
           {d.health === "ok" ? null : <span className={HEALTH_BADGE[d.health]}>{copy(d.copy.state)}</span>}

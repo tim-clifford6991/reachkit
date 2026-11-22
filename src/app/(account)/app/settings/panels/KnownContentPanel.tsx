@@ -38,7 +38,7 @@ export function KnownContentPanel(p: { known: KnownContentCounts }): React.JSX.E
           <p className={CARD_LEAD}>{copy("settings.known.note")}</p>
         </div>
         <SettingLine
-          label={label}
+          label={copy("settings.known.line")}
           value={none ? { kind: "empty", text: value } : { kind: "text", text: value, full: value }}
           testId="settings-known-total"
           action={none ? null : <ShowList label={label} testId="settings-known-dialog" rows={known.pages.map((page) => ({ key: page, text: page }))} />}

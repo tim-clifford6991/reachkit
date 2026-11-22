@@ -44,7 +44,7 @@ export function SettingLine(p: {
     >
       <span className="col-span-2 min-w-0 pt-1 text-sm font-semibold wrap-anywhere md:col-span-1 md:pt-0">{p.label}</span>
       <span
-        className={`flex min-w-0 items-center gap-2 text-sm ${v.kind === "address" ? "num break-all" : v.kind === "empty" ? "text-base-content/70" : "wrap-anywhere"}`}
+        className={`flex min-w-0 items-center gap-2 text-sm ${v.kind === "address" ? "font-mono break-all" : v.kind === "empty" ? "text-base-content/70" : "wrap-anywhere"}`}
         title={v.kind === "text" || v.kind === "list" ? v.full : undefined}
       >
         <span className="min-w-0">{v.text}</span>
