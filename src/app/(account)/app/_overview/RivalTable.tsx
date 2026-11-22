@@ -74,7 +74,8 @@ export function RivalTable(p: {
   const ofYou = copy("overview.rivals.first.you", { n: formatCount(firstPage.you.count), m: formatCount(firstPage.of) });
   return (
     <section className="card card-border min-w-0 bg-base-100" data-testid="rivals-table">
-      <div className="hidden min-w-0 overflow-x-auto md:block">
+      {/* Five competitors can scroll this box between md and lg, so a keyboard can reach it (axe scrollable-region-focusable). */}
+      <div className="hidden min-w-0 overflow-x-auto md:block" tabIndex={0} role="region" aria-label={copy("overview.tab.rivals")}>
         <table className="table">
           <caption className="sr-only">{copy("overview.tab.rivals")}</caption>
           <thead className={INK}>
