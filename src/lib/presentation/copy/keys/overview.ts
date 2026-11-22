@@ -18,13 +18,6 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.delta.down": "▼",
 
   // ── How far ahead each rival is.
-  "overview.rivals.title": "How Far Ahead Competitors Are",
-  "overview.rivals.spark.label": "How far ahead {rival} is",
-  "overview.rivals.ratio": "{ratio}× your size",
-  "overview.rivals.from": "from {ratio}×",
-  "overview.rivals.flat": "no clear change",
-  "overview.rivals.ahead.sub": "Moves over months, not weeks.",
-  "overview.rivals.ahead.size": "Size is how many searches a site shows up for.",
   "overview.rivals.line.shrinking": "A line going down means the gap is closing.",
   // §6.6's own "render the rivals' absolute numbers with `you: 0`" — the
   // word that names whose number the cold-start arm shows beside the rivals'.
@@ -33,37 +26,6 @@ export const OVERVIEW_COPY = Object.freeze({
   // constrained by what it must **not** say: nothing is shrinking yet, so it
   // can never be `overview.rivals.line.shrinking` (REQ-041 c9).
   "overview.rivals.line.absolute": "Each line is a competitor’s own count beside yours.",
-  // The week-0 arm's one line, in place of the rows: nothing has been
-  // sized yet, and the card says when it will be rather than drawing three
-  // empty plots.
-  "overview.rivals.line.week-zero": "Shown after the first Monday check, {due}.",
-
-  // #793: the deep pass sized the rivals, so week 0 draws their rows from
-  // it and says so. Drafted (#759); the owner corrects the wording.
-  "overview.rivals.line.starting": "Starting sizes from your first check, {on}. Updated every Monday from {due}.",
-
-  // ── REQ-096 c6 as right-sized by issue 858 (owner walk, 2026-09-17): the
-  // far rivals the customer tracks are market leaders on one secondary line,
-  // never "your rivals" and never leading the card. The line names them and
-  // says why they are apart; it does not name a replacement or suggest
-  // removing them — the customer changes the set from the competitors card.
-  // Drafted (issue 759); the owner corrects the wording.
-  "overview.rivals.leaders": "Far larger sites, like {rivals}, are left out.",
-  // The same sentence for the Rivals tab, where the line sits under bars
-  // that **do** show the leaders (owner ruling, 2026-09-21, #983). On the
-  // Overview the card is the gap card and nothing else, so "they aren't
-  // shown as your rivals" is true there; on the tab the first-page and
-  // answer-engine cards above it name every one of them, and the same
-  // sentence read as a contradiction of what the reader could see.
-  //
-  // Two keys and not one sentence with a slot: what differs is the clause
-  // that says *where* they are left out, and a slot that carried a clause
-  // would be a sentence assembled at the call site. The owner's draft, used
-  // as written, with the existing key's slot name — the two take the same
-  // vars, which is what lets the one module fill either.
-  "overview.rivals.none-reachable": "None of the competitors you track is within reach yet. Add one closer to your size.",
-  // The one control c6 allows, and the whole of it. Never "remove".
-  "overview.rivals.leaders.swap": "Change Your Competitors",
 
   // ── This week.
   "overview.week.title": "This Week",
@@ -252,6 +214,23 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.ai.also.unrecorded.sr": "Not recorded that week",
   "overview.ai.none": "We ask about each page’s question on the Monday after it goes live. First check {date}.",
   "overview.detail.show-all.questions": "Show All {n} Questions",
+  "overview.detail.show-all.searches": "Show All {n} Searches",
+  // Against Competitors' detail (plate O5): competitors are read on Google's first page, the site to place 100.
+  "overview.rivals.lead": "Your {m} main searches on Google, you beside each competitor. Bold is Google’s first page.",
+  "overview.rivals.failed": "We couldn’t check Google this week. These are the places from {date}.",
+  "overview.rivals.first": "First page on",
+  "overview.rivals.first.you": "{n} of {m}",
+  "overview.rivals.started": "You started at {k}",
+  "overview.rivals.col.search": "Search",
+  "overview.rivals.col.volume": "Searches a Month",
+  "overview.rivals.col.you": "You",
+  "overview.rivals.col.doing": "What We’re Doing",
+  "overview.rivals.off-page.sr": "Not on page 1",
+  "overview.rivals.off-top.sr": "Not in the top 100",
+  "overview.rivals.caption": "We read Google’s first page for competitors, and your place down to 100. A dash means not on page 1.",
+  // Questions with the business's own name are answered about it, so they are not counted.
+  "overview.rivals.ai": "AI answers that mentioned each, last {w} weeks: {list}, of {m}. Questions with your business name are left out.",
+  "overview.rivals.ai.one": "AI answers that mentioned each, last week: {list}, of {m}. Questions with your business name are left out.",
   // A pass no check passed yet: its count is the first, with no rate.
   "overview.tile.mention-rate.first": "First check. A rate shows after {weeks} weeks.",
   "overview.prompts.share.you": "You",
@@ -267,71 +246,23 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.blog.engine.claude": "Claude",
   "overview.blog.engine.gemini": "Gemini",
   "overview.blog.engine.copilot": "Microsoft Copilot",
-  // ── 2026-09-20 (#908, #917): Overview › Rivals.
-  //
-  // SPEC §4 of that date: "who is on the first page for the twelve
-  // searches, who the three answer engines name, how far ahead each rival's
-  // footprint is over twelve weeks, and the searches rivals win that the
-  // site does not, each with what ReachKit is doing about it." Every
-  // sentence below is **drafted** under the owner's 2026-09-16 ruling (#759)
-  // and the PR names each one so the owner can correct it. The card that
-  // was already built keeps its own words — `overview.rivals.title`,
-  // `overview.rivals.ratio`, the two line keys and
-  // the market-leaders sentence are the Overview's and are reused here
-  // rather than spelled a second time.
-  // The first counting card: who holds a place on Google's first page for
-  // the twelve searches the pass buys a top ten for.
-  "overview.rivals.first-page.title": "Who’s on Google’s First Page",
-  "overview.rivals.first-page.started": "You were on {count} of {of} when you started.",
-
-  // The second: who the three answer engines name, counted the way the AI
-  // answers tab draws it, with the link to that tab beneath.
-  "overview.rivals.named.title": "Who AI Answers Mention",
-  "overview.rivals.named.lead": "{answers} AI answers, last {weeks} weeks.",
-  "overview.rivals.named.lead.none": "From the AI answers to your buyers’ questions.",
-  "overview.rivals.first.title": "Who Your Buyers See First",
-  "overview.rivals.first.lead": "The top Google result on your {of} main searches.",
-  "overview.rivals.first.of": "{n} of {of}",
-  "overview.rivals.first.others": "others",
-  "overview.rivals.first.line": "You’re top on none yet, and on Google’s first page for {n}.",
-  "overview.rivals.first.you": "You’re the top result on {n} of the {of}.",
-  "overview.rivals.first.after": "This week’s pages go after {m}.",
-
   // A card that was measured and counted no tracked rival anywhere says so
   // once, in place of a row of empty bars, and the rivals neither card
   // counted are named under them (SPEC §4, 2026-10-09). Drafted (issue
   // 759); the owner corrects the wording.
   "overview.rivals.first-page.none": "None of your competitors is on Google’s first page here.",
   "overview.rivals.first-page.none.holders": "None of your competitors is on Google’s first page here. Most often there: {holders}.",
-  "overview.rivals.named.none": "None of these answers mentioned one of your competitors.",
-
-  // `overview.rivals.gap.lead` is gone: no screen says what the ratio is a
-  // ratio of (D24, SPEC §4 2026-10-02; issue 1324).
 
   // A card whose reading the pass never took. It claims nothing about the
   // rivals; it says what is true of the measurement.
   "overview.rivals.card.unmeasured": "Not checked yet. The first Monday check fills this in.",
 
-  // The table: every search a rival wins that the site does not.
-  "overview.rivals.table.title": "Searches Competitors Win",
-  "overview.rivals.table.lead": "This week’s pages come from this list.",
-  "overview.rivals.table.label": "Searches competitors win and you don’t",
-  "overview.rivals.table.empty": "No competitor wins a search you’re missing.",
-  "overview.rivals.column.winner": "Who wins it",
-  "overview.rivals.won-by": "Won by",
-  "overview.rivals.column.doing": "What we’re doing",
-
-  // SPEC §4's four words for what ReachKit is doing about a search a rival
-  // wins. None of them is "live": a search the customer already wins is not
-  // in this table at all.
+  // What ReachKit is doing about one of the twelve; the site already on page 1 with nothing planned is "Page is live".
   "overview.rivals.status.in-review": "Page scheduled",
   "overview.rivals.status.up-next": "Up next",
   "overview.rivals.status.needs-page": "Needs a page on your main site",
   "overview.rivals.status.too-big": "Too hard for now",
 
-  // The filter over the table.
-  "overview.rivals.filter.label": "Show one competitor",
-  "overview.rivals.filter.all": "All competitors",
   // SPEC §5 (2026-09-20): Overview while the address waits for its DNS
   // record, as board OverviewDNS draws it. No line names a go-live time:
   // none is true until it is live (Q11). Drafted (#759); the PR names each.

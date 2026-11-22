@@ -1,50 +1,15 @@
-// SPEC §4 (2026-09-20, #908) — the Rivals tab's facts, for a real account.
-//
-// The other half of `rivals-provider.ts`. It measures nothing, buys nothing
-// and creates nothing: "read from the stored weekly report" is that date's
-// own rule for this tab, and every value below is a projection of rows the
-// pass already wrote.
-//
-// **What is read, and whose rows it is:**
-//
-//   who you track   `sites.competitors`, through `trackedRivals` — the
-//                   confirmed set, in the customer's own order
-//   first page      the stored report's `serps[]` — the twelve top tens
-//                   the pass bought, one per question. Only counts have
-//                   ever been rendered from them; this is the first screen
-//                   to read the rows
-//   top result      the same `serps[]`, place 1 of each of the twelve
-//   what they win   `market.value.pool[]` — every search the site's own and
-//                   its rivals' ranked rows carry — minus the searches the
-//                   site itself ranks for
-//   what we do      `opportunities`, joined on the target search
-//
-// **Two reads, and neither of them per row.** The report comes back whole
-// and is projected in memory; a read per search would be one query per row
-// on a table that draws a hundred and forty.
-//
-// **One implementation of "does this host belong to that domain", and it is
-// the score's.** `classifyReferences` (`@/lib/measure/drivers.ts`) is what
-// `aiPresenceOf` splits its two rates with and what #918's marks are
-// derived from; reading its `cited` arm is how a SERP host and a cited
-// domain are matched to a rival here. A second normaliser would be a second
-// answer to "is this them".
+// SPEC §4 *Competitors tab* — the tab's facts for a real account, projected
+// from the stored weekly report and the opportunities; it measures and buys
+// nothing. A host is matched to a domain by the score's own `classifyReferences`.
 import { dbAdmin } from "@/lib/db";
 import { classifyReferences } from "@/lib/measure/drivers";
-import { measured, type Measured } from "@/lib/measure/measured";
 import type { StoredReport } from "@/lib/scan/report";
 import type { SerpResult } from "@/lib/vendors/dataforseo/types";
 import { previousWeekStart, readWeekScans, weekStartFor } from "@/lib/scan/weekly";
 import { OVERVIEW_TRAILING_WEEKS, RIVAL_PRESENCE } from "@/lib/config/constants";
 import { isPlatformDomain, registrableDomain, resolvedRows } from "@/lib/market/rivals/domains";
 import { trackedRivals } from "@/lib/market/rivals/tracked";
-import {
-  counted,
-  notTaken,
-  type RivalPoolFacts,
-  type RivalSearchStatus,
-  type RivalsFacts,
-} from "./rivals-model";
+import type { RivalSearchRow, RivalSearchStatus, RivalsFacts } from "./rivals-model";
 
 export interface RivalsSite {
   siteId: string;
@@ -63,6 +28,9 @@ export function isTheirs(domain: string, hosts: readonly string[]): boolean {
 /** Google's first page. Ten results to a page is what it means to the
  *  customer, and it is the same ten the Search tab's own tile counts to. */
 const FIRST_PAGE = 10;
+
+/** How deep the site's own place is stated. */
+const OWN_DEPTH = 100;
 
 export async function readRivalFacts(site: RivalsSite, at: Date): Promise<RivalsFacts> {
   const { opportunityStore } = await import("@/lib/opportunities/store");
@@ -91,68 +59,20 @@ export async function readRivalFacts(site: RivalsSite, at: Date): Promise<Rivals
     }
   }
 
-  const { holders: top, searches } = firstPlacesOf(report, domains);
-
-  // ── The searches the rivals win and the site does not.
-  const own = new Set((report?.ownRankedRows ?? []).map((row) => row.keyword.trim().toLowerCase()));
-  const places = positionsOf(report, tracked);
-  const pool: RivalPoolFacts[] = [];
-  const seen = new Set<string>();
-  for (const row of report?.market.kind === "unmeasured" ? [] : (report?.market.value.pool ?? [])) {
-    const rival = row.rival === null ? null : tracked.find((domain) => isTheirs(domain, [row.rival as string]));
-    if (rival === undefined || rival === null) continue;
-    const key = row.keyword.trim().toLowerCase();
-    // The site already ranks for it, so it is not a search a rival wins and
-    // the customer does not — it is one they are both in.
-    if (own.has(key)) continue;
-    // One row per search: the pool carries a row per rival per keyword, and
-    // a table that drew the same search three times would be a list of
-    // rivals wearing a list of searches' clothes.
-    if (seen.has(key)) continue;
-    seen.add(key);
-    pool.push({
-      search: row.keyword,
-      volume: counted(row.volume, at),
-      rival,
-      position: places.get(`${rival}\u0000${key}`) ?? notTaken(at),
-      status: statuses.get(key) ?? "needs_page",
-    });
-  }
+  const rows = rowsOf(report, site.domain, tracked, statuses);
 
   return {
     rivals: tracked,
     ownDomain: site.domain,
     firstPage,
     firstPageOf,
-    top: { holders: top, of: searches.length, searches },
     firstPageAtStart: await startedAt(site, domains, at),
     firstPageHolders: holdersOf(serps, domains),
-    pool,
+    rows,
     // One date governs the whole blob (`src/lib/scan/report.ts`): the
     // verdict's own `measuredAt`.
     measuredAt: report?.verdict.measuredAt ?? null,
   };
-}
-
-/** Who holds place 1 on each of the twelve: the customer, a tracked rival,
- *  or any other site by its registrable domain. A search whose top ten Google
- *  hides is left out, never held by google.com or by no one. */
-export function firstPlacesOf(report: StoredReport | null, domains: readonly string[]): { holders: Map<string, number>; searches: string[] } {
-  const holders = new Map<string, number>();
-  const searches: string[] = [];
-  const questions = report?.questions;
-  const twelve = questions === undefined || questions.kind === "unmeasured" ? [] : questions.value;
-  twelve.forEach((question, i) => {
-    const serp = report?.serps[i];
-    const organic = serp === undefined || serp.kind === "unmeasured" ? null : resolvedRows(serp.value.organic);
-    if (organic === null) return;
-    searches.push(question.search.keyword);
-    const first = organic.sort((a, b) => a.position - b.position)[0];
-    if (first === undefined) return;
-    const holder = domains.find((domain) => isTheirs(domain, [first.domain])) ?? registrableDomain(first.domain) ?? first.domain;
-    holders.set(holder, (holders.get(holder) ?? 0) + 1);
-  });
-  return { holders, searches };
 }
 
 /** Whether a domain holds a first-page place on one measured search: one
@@ -201,33 +121,43 @@ export function holdersOf(
     .map(([domain]) => domain);
 }
 
-/**
- * Where each tracked rival stands on each of the twelve, keyed
- * `rival\0search`.
- *
- * The pool is the rivals' whole ranked footprint and carries no position at
- * all, so this is the only place on this screen a place can honestly come
- * from: the top tens the pass actually bought. Every other row states the
- * dash, which is what REQ-004 asks of a reading nobody took.
- */
-export function positionsOf(
+/** Best organic place of a domain in the top ten, or `null`. Competitors are read no deeper: the pass buys ten (`VENDOR.serpDepth`). */
+function placeIn(organic: readonly { domain: string; position: number }[], domain: string): number | null {
+  const places = organic.filter((row) => row.position <= FIRST_PAGE && isTheirs(domain, [row.domain])).map((row) => row.position);
+  return places.length === 0 ? null : Math.min(...places);
+}
+
+/** One row per search of the twelve whose top ten was read; a search not read is left out, never shown as an absence. */
+export function rowsOf(
   report: StoredReport | null,
-  tracked: readonly string[]
-): ReadonlyMap<string, Measured<number>> {
-  const places = new Map<string, Measured<number>>();
+  ownDomain: string,
+  tracked: readonly string[],
+  statuses: ReadonlyMap<string, RivalSearchStatus>
+): RivalSearchRow[] {
   const questions = report?.questions;
-  if (report === null || questions === undefined || questions.kind === "unmeasured") return places;
+  if (report === null || questions === undefined || questions.kind === "unmeasured") return [];
+  // The site's place below the first page comes from its own ranked rows, which reach 100.
+  const ranked = new Map<string, number>();
+  for (const row of report.ownRankedRows) {
+    const key = row.keyword.trim().toLowerCase();
+    if (row.position <= OWN_DEPTH && row.position < (ranked.get(key) ?? Infinity)) ranked.set(key, row.position);
+  }
+  const rows: RivalSearchRow[] = [];
   questions.value.forEach((question, i) => {
     const serp = report.serps[i];
-    if (serp === undefined || serp.kind === "unmeasured") return;
+    const organic = serp === undefined || serp.kind === "unmeasured" ? null : resolvedRows(serp.value.organic);
+    if (organic === null) return;
     const key = question.search.keyword.trim().toLowerCase();
+    const you = placeIn(organic, ownDomain) ?? ranked.get(key) ?? null;
+    const places: Record<string, number> = {};
     for (const rival of tracked) {
-      const row = resolvedRows(serp.value.organic)?.find((organic) => isTheirs(rival, [organic.domain]));
-      if (row === undefined) continue;
-      places.set(`${rival}\u0000${key}`, measured(row.position, report.verdict.measuredAt));
+      const place = placeIn(organic, rival);
+      if (place !== null) places[rival] = place;
     }
+    const status = statuses.get(key) ?? (you !== null && you <= FIRST_PAGE ? "live" : "needs_page");
+    rows.push({ search: question.search.keyword, volume: question.search.volume, you, places, status });
   });
-  return places;
+  return rows;
 }
 
 /**
@@ -327,4 +257,5 @@ const RANK: Readonly<Record<RivalSearchStatus, number>> = Object.freeze({
   up_next: 1,
   needs_page: 2,
   too_big: 3,
+  live: 4,
 });
