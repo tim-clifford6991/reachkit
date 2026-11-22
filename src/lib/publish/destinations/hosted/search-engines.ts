@@ -14,7 +14,7 @@
 //   4. A hosted page Google has still not crawled `UNCRAWLED_AFTER_D` days after going live is announced again, once.
 //   5. One `search_reading` per live page, assembled by
 //      `@/lib/measure/page-reading` from the newest stored report, the
-//      reads counted on the page, and Google's reading.
+//      reads counted on the page, and Google's reading; each closed week not yet on file goes to `publication_weeks`.
 //
 // Without credentials steps 1 and 5 still run, so the ladder shows what ReachKit can prove. 0¢: every call is free.
 // It never throws: a refusal or failed read stores its reason on each hosted page, logs it once per host, and the verdicts and mail still run.
@@ -28,6 +28,7 @@ import { publishDb } from "../../db";
 import { RESTORE_EARNING, transition } from "../../machine";
 import { takenDownByCustomer } from "../../take-down/standing";
 import type { TransitionRecord } from "../../types";
+import { keepWeeks, pageWeeks, type WeekRow } from "../../reads/weeks";
 import { announceHosted, announceUnannounced, type AnnounceSend } from "./announce";
 import { invalidateHosted } from "./cache";
 import { addressOf, slugOf, type AddressRow } from "./moved";
@@ -65,6 +66,7 @@ interface PageRow {
 
 interface ReadRow {
   publication_id: string;
+  day: string;
   engine: string;
   kind: string;
   hits: number;
@@ -241,7 +243,8 @@ export async function readSearchEngines(a: { siteId: string; now: Date; deps?: S
       .is("unpublished_at", null);
     if (error !== null) return;
     const pages = (pageRows ?? []).filter((row): row is PageRow & { live_url: string } => typeof row.live_url === "string");
-    if (pages.length === 0) return;
+    // A site with no live page still has its old weeks trimmed.
+    if (pages.length === 0) return await keepWeeks({ siteId: a.siteId, rows: [], now: a.now });
 
     const { data: destinations } = await db
       .from<DestinationRow>("destinations")
@@ -306,7 +309,7 @@ export async function readSearchEngines(a: { siteId: string; now: Date; deps?: S
 
     const { data: reads, error: readsError } = await db
       .from<ReadRow>("publication_reads")
-      .select("publication_id, engine, kind, hits")
+      .select("publication_id, day, engine, kind, hits")
       .eq("site_id", a.siteId)
       // Bing's rows from before only Google counted stay on file, unread.
       .neq("engine", "bing");
@@ -320,6 +323,7 @@ export async function readSearchEngines(a: { siteId: string; now: Date; deps?: S
     const reannounced = due.length > 0 && (await announceHosted({ siteId: a.siteId, urls: due, at: a.now, ...(deps.announce === undefined ? {} : { send: deps.announce }) }));
     if (reannounced) log("search_engine_reannounced", { host, siteId: a.siteId, pages: due.length });
 
+    const weeks: WeekRow[] = [];
     for (const page of pages) {
       // Reads are counted on the pages ReachKit serves; elsewhere they are not measured.
       const counted = page.destination === "hosted" && readsError === null;
@@ -340,7 +344,9 @@ export async function readSearchEngines(a: { siteId: string; now: Date; deps?: S
       });
       const stamped = reannounced && due.includes(page.live_url) ? { ...reading, reannounced: a.now.toISOString() } : reading;
       await db.from("publications").update({ search_reading: stamped }).eq("id", page.id);
+      if (counted) weeks.push(...pageWeeks({ siteId: a.siteId, page, reads: reads ?? [], reading, now: a.now }));
     }
+    await keepWeeks({ siteId: a.siteId, rows: weeks, now: a.now });
   } catch (error) {
     log("search_engines_failed", { siteId: a.siteId, message: String(error) });
   }

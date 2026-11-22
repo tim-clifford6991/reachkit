@@ -90,6 +90,8 @@ export const AI_REFERRER_SOURCES = Object.freeze({
  *  `record_publication_read`. */
 export const BLOG_READS_WINDOW_D = 7 as const;
 export const BLOG_READS_RETENTION_W = 4 as const;
+/** How long each hosted page's weekly counts are kept: 13 months, as the privacy notice and DPA say. */
+export const BLOG_WEEKS_KEPT_W = 57 as const;
 
 /** The business's own links a hosted page counts a click on, each named in the ping it sends: the main site, the primary
  *  action and an in-body link to the business's own domain. */

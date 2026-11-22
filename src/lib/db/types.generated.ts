@@ -1070,6 +1070,45 @@ export type Database = {
           },
         ]
       }
+      publication_weeks: {
+        Row: {
+          counts: Json
+          publication_id: string
+          reading: Json | null
+          site_id: string
+          week_start: string
+        }
+        Insert: {
+          counts?: Json
+          publication_id: string
+          reading?: Json | null
+          site_id: string
+          week_start: string
+        }
+        Update: {
+          counts?: Json
+          publication_id?: string
+          reading?: Json | null
+          site_id?: string
+          week_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "publication_weeks_publication_id_fkey"
+            columns: ["publication_id"]
+            isOneToOne: false
+            referencedRelation: "publications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "publication_weeks_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       publications: {
         Row: {
           acceptance: Json | null
