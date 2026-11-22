@@ -44,7 +44,7 @@ const TASK = [
   "At most a quarter of the searches may be 3. List the indexes you scored 3 in `strongest`, strongest first.",
   "For each search scored 2 or 3, give `fact`: the `i` of the `product.knowledge` passage that shows this business can answer it from what it sells, does or knows. A search no passage answers is 1 at most. For 0 and 1, null.",
   "For each search scored 3, give `angles`: three different pages, and for each scored 2, two different pages that would answer it for this buyer. Each joins the search to a passage in `product.knowledge` (`fact`) and uses one `pattern`: P1 a problem and how this business's method fixes it; P2 the question answered from the business's own facts; P3 a comparison where the business is a real option; P4 how to do the job with a new thing the search or `ranks` names; P5 the search for a place or segment the business serves.",
-  "Each angle's `title` is at most 65 characters in Title Case, starts with the search's own words or its main noun phrase, and states what the reader gets, which none of the search's `ranks` already promises. `promise` says that in at most eight words. A title names a product, model, version, number, price or date only when it is written in the search, `product.knowledge` or `ranks`. A bare search with a number or a price appended is not an angle, and a price leads only a pricing or comparison search. For 0 and 1, no angles.",
+  "Each angle's `title` is at most 65 characters in Title Case, starts with the search's own words or its main noun phrase, and states what the reader gets, which none of the search's `ranks` already promises. `promise` says that in at most eight words. A title names a product, model, version, number, price or date only when it is written in the search, `product.knowledge` or `ranks`. A bare search with a number or a price appended is not an angle, and a price leads only a pricing or comparison search. A comparison title never says what a named competitor does, lacks or who uses it; it names the decision the page helps the reader make. For 0 and 1, no angles.",
 ].join(" ");
 
 export interface FitSearch {
@@ -76,9 +76,9 @@ export function boundTopFit(
   strongest: readonly number[],
   searches: readonly Pick<FitSearch, "update" | "query" | "ranks">[],
   knowledge: KnowledgeDigest | null = null,
-  names: readonly string[] = []
+  names: { own: readonly string[]; rivals: readonly string[] } = { own: [], rivals: [] }
 ): Map<number, FitJudgement> {
-  const sources = [...(knowledge ?? []).map((passage) => passage.text), ...names];
+  const sources = [...(knowledge ?? []).map((passage) => passage.text), ...names.own, ...names.rivals];
   const out = new Map<number, FitJudgement>();
   for (const score of scores) {
     if (score.i < 0 || score.i >= searches.length || out.has(score.i)) continue;
@@ -86,7 +86,7 @@ export function boundTopFit(
     const passage = newTopic ? (knowledge?.[score.fact ?? -1] ?? null) : null;
     const fit = (newTopic && passage === null ? 1 : score.fit) as BusinessFit;
     const search = searches[score.i]!;
-    const chosen = fit < TOPIC_FIT.gate ? null : pickAngle(score.angles ?? [], { search: search.query ?? "", sources, ranks: search.ranks ?? [], ...(knowledge === null ? {} : { passages: knowledge.length }) });
+    const chosen = fit < TOPIC_FIT.gate ? null : pickAngle(score.angles ?? [], { search: search.query ?? "", sources, ranks: search.ranks ?? [], rivals: names.rivals, ...(knowledge === null ? {} : { passages: knowledge.length }) });
     const angle = chosen && { pattern: chosen.pattern, promise: chosen.promise, gap: chosen.gap };
     out.set(score.i, { fit, title: chosen?.title ?? null, angle, fact: passage && { text: passage.text, source: passage.source } });
   }
@@ -154,5 +154,5 @@ export async function judgeFit(
     ...(a.locale === undefined ? {} : { locale: a.locale }),
   });
   if (answer.kind === "unmeasured") return new Map();
-  return boundTopFit(answer.value.scores, answer.value.strongest, searches, a.knowledge ?? null, [a.domain, ...(a.market?.rivals.flatMap((rival) => [rival.name, rival.domain]) ?? [])]);
+  return boundTopFit(answer.value.scores, answer.value.strongest, searches, a.knowledge ?? null, { own: [a.domain], rivals: a.market?.rivals.flatMap((rival) => [rival.name, rival.domain]) ?? [] });
 }

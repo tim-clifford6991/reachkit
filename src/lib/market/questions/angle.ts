@@ -32,6 +32,8 @@ export interface AngleContext {
   ranks: readonly string[];
   /** How many knowledge passages were shown; an angle's `fact` must be one of them. Absent, any passage or none is shown. */
   passages?: number;
+  /** The rivals' names and domains: a comparison's title names none beyond the search's own. */
+  rivals?: readonly string[];
 }
 
 const HEAD_CHARS = 30;
@@ -69,9 +71,22 @@ function namesAreReal(title: string, a: AngleContext): boolean {
 }
 
 /** A price leads only a price or comparison page: anywhere else the business's price or a rival's plan is no promise. */
-function priceLed(title: string, search: string): boolean {
+export function priceLed(title: string, search: string): boolean {
   const text = lowered(search);
   return /[$€£¥]\s?\d|\d\s?[$€£¥]/u.test(title) && !SHAPES.price.test(text) && !SHAPES.comparison.test(text);
+}
+
+/** A comparison that names a rival the search does not makes a claim about that rival nothing here supports. */
+function namesOtherRival(angle: ProposedAngle, a: AngleContext): boolean {
+  if (angle.pattern !== "P3") return false;
+  const [title, searched] = [` ${lowered(angle.title)} `, ` ${lowered(a.search)} `];
+  return (a.rivals ?? []).map(lowered).some((rival) => rival !== "" && !searched.includes(` ${rival} `) && title.includes(` ${rival} `));
+}
+
+/** A title whose every content word is the search's is the search restated, with no promise. */
+function restates(title: string, search: string): boolean {
+  const searched = new Set(contentTokens(search));
+  return contentTokens(title).every((word) => searched.has(word));
 }
 
 /** How many of the top results' titles carry the promise's own words, beyond the search's. */
@@ -98,8 +113,9 @@ function intentPoint(pattern: AnglePattern, search: string): number {
 
 /**
  * The one angle a search keeps, or `null` where none passes: its fact is a passage shown, its pattern fits the
- * search's intent, it leads with the search, every figure and name in it is in the search or a source, and it is
- * not led by a price off a price or comparison page. Of those, the one whose promise the fewest top results make,
+ * search's intent, it leads with the search, every figure and name in it is in the search or a source, it is
+ * not led by a price off a price or comparison page, a comparison names no rival the search does not, and it adds a
+ * word to the search. Of those, the one whose promise the fewest top results make,
  * then the one whose pattern fits the intent, then the model's order. Pure.
  */
 export function pickAngle(proposed: readonly ProposedAngle[], a: AngleContext): (ProposedAngle & { gap: number }) | null {
@@ -108,7 +124,7 @@ export function pickAngle(proposed: readonly ProposedAngle[], a: AngleContext): 
     .filter((angle) => angle.title !== "" && ANGLE_PATTERNS.includes(angle.pattern))
     .filter((angle) => a.passages === undefined || angle.fact === null || (angle.fact >= 0 && angle.fact < a.passages))
     .filter((angle) => patternAllowed(angle.pattern, a.search) && leadsWithSearch(angle.title, a.search))
-    .filter((angle) => namesAreReal(angle.title, a) && !priceLed(angle.title, a.search))
+    .filter((angle) => namesAreReal(angle.title, a) && !priceLed(angle.title, a.search) && !namesOtherRival(angle, a) && !restates(angle.title, a.search))
     .map((angle) => ({ ...angle, gap: gapOf(angle.promise, a) }));
   const score = (angle: (typeof kept)[number]): number => GAP_POINTS(angle.gap) + intentPoint(angle.pattern, a.search);
   const best = kept.sort((left, right) => score(right) - score(left) || left.order - right.order)[0];

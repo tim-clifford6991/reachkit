@@ -167,6 +167,9 @@ export const DE: LanguagePack = {
       "umfassend",
       "kompletter leitfaden",
       "vollständiger leitfaden",
+      "garantiert",
+      "mühelos",
+      "revolutionär",
     ],
     // Drafted (issue 1389): the German counterparts of the English tropes.
     tropes: ["(?:entfessel|entmystifizier|navigier)\\p{L}*", "warum .+ wichtig(?: ist| sind)?", "in der heutigen", "in zeiten von"],
