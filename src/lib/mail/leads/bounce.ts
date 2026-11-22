@@ -32,7 +32,7 @@ export async function handleMailWebhook(payload: string, headers: WebhookHeaders
   for (const stop of stops) {
     const written = await suppressAddress(stop.address, stop.cause);
     if (!written.suppressed) return { handled: false };
-    await tellOwnerIfPaying(stop);
+    await tellOwnerIfPaying(stop.address, stop.cause);
   }
   console.log(JSON.stringify({ event: "mail_webhook", type: event.type, stops: stops.length }));
   return { handled: true };
@@ -55,15 +55,15 @@ function stopsOf(event: WebhookEventPayload): Stop[] {
 }
 
 /** One owner mail per address and cause, ever: the vendor emits an event for every later send it drops, so the claim is not per event or day. */
-async function tellOwnerIfPaying(stop: Stop): Promise<void> {
+export async function tellOwnerIfPaying(email: string, cause: Stop["cause"] | "sign-in-blocked"): Promise<void> {
   try {
-    const address = normaliseAddress(stop.address);
+    const address = normaliseAddress(email);
     const domains = await payingDomainsOf(address);
     if (domains.length === 0) return;
-    const once = `${address}/${stop.cause}`;
+    const once = `${address}/${cause}`;
     const key = { jobId: "mail/stopped", errorName: once, day: "1970-01-01" };
     if (!(await claimOwnerMail(key, new Date()))) return;
-    const told = await reportIncident({ occasion: "mail-stopped", domains, cause: stop.cause }, once);
+    const told = await reportIncident({ occasion: "mail-stopped", domains, cause }, once);
     if (!told) await releaseOwnerMail(key);
   } catch {
     // The stop is already written; a failed alert is logged and does not make the vendor redeliver.

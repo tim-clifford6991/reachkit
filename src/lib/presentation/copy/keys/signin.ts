@@ -52,6 +52,9 @@ export const SIGNIN_COPY = Object.freeze({
    *  the same place is not what they want. The board says so. Drafted
    *  (#759). */
   "signin.sent.resend": "Use a Different Email",
+  // An address the mail vendor stopped after a bounce or complaint: no link can arrive, so the way in is support.
+  "signin.blocked.head": "We Can’t Email This Address",
+  "signin.blocked.line": "Mail to {email} was refused before, so we stopped sending to it. Write to {support} from another address, and we’ll help you sign in.",
   "signin.expired.head": "This Link No Longer Works",
   "signin.expired.submit": "Send a New Link",
   "signin.expired.field": "The email you paid with",

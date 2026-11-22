@@ -853,9 +853,7 @@ must be one somebody reads. Resend's dashboard shows what left; the runtime log 
 endpoint `https://<host>/api/mail/webhook` with the events `email.bounced`, `email.complained`,
 `email.suppressed` and `suppression.added`, then paste its signing secret into `RESEND_WEBHOOK_SECRET`
 on that Vercel target. A hard bounce, a complaint or a vendor suppression writes the address into
-`email_suppressions` (cause `bounced` or `complained`), which stops follow-up mail to it; when the
-address is a paying account's, `OWNER_EMAILS` get one incident mail per event. A soft bounce changes
-nothing. Smoke on dev: send to `bounced@resend.dev` and `complained@resend.dev`, then
+`email_suppressions` (cause `bounced` or `complained`); a paying account's address gets `OWNER_EMAILS` one mail per cause, and a sign-in asked for by a stopped address is refused on screen and mailed once as `sign-in-blocked`: confirm the customer by another channel, then remove the address at Resend → Suppressions and its `email_suppressions` row by hand, or change the account's email. A soft bounce changes nothing. Smoke on dev: send to `bounced@resend.dev` and `complained@resend.dev`, then
 `select cause from email_suppressions where email in ('bounced@resend.dev','complained@resend.dev');`;
 Resend → Webhooks → the event → Resend shows a second 200 and no second row or mail. A request with
 a bad signature is answered 400.

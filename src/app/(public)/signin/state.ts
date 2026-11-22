@@ -10,8 +10,9 @@
 export interface SignInState {
   /** Which answer the screen is carrying. `none` is before any submission;
    *  `requested` is the one answer every well-formed address gets, whether
-   *  or not it has an account (SPEC §3, issue 718). */
-  answer: "none" | "invalid" | "requested";
+   *  or not it has an account (SPEC §3, issue 718); `blocked` is an address
+   *  the mail vendor has stopped, with or without an account. */
+  answer: "none" | "invalid" | "requested" | "blocked";
   /** What was typed, so a refused address is still there when the screen
    *  comes back (REQ-098 criterion 6) — including with no client runtime. */
   value: string;
