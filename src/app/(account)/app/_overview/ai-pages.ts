@@ -1,6 +1,6 @@
 // SPEC §4 (plate O3) — each live page whose own question was asked: the
 // question, what the answers did with it over the window, and one mark per engine. Pure; the
-// pages are the AI tile's own window (`tiles.ts`); the tile's figure is `aiAnswersOf`, these rows are its page-question marks.
+// pages are the AI tile's own window (`tiles.ts`); the tile's figure is `aiAnswersOf` over the panel; these rows are each page's own evidence, never in its N.
 import { pageLadderOf } from "@/lib/measure/page-ladder";
 import { addressOf, type PlaceReport } from "@/lib/measure/page-reading";
 import type { PublishedPage } from "@/lib/measure/published";

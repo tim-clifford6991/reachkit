@@ -12,6 +12,7 @@ import { readOverview } from "../_overview/provider";
 import { readPromptsAt } from "../_overview/prompts-provider";
 import { readRivals } from "../_overview/rivals-provider";
 import { namedOf } from "../_overview/rivals-model";
+import { readTiles } from "../_overview/tiles-provider";
 import { aiSearchesOf } from "../_overview/prompts-model";
 import { readBusiness } from "./business-provider";
 import { businessScreen } from "./business-screen";
@@ -38,13 +39,14 @@ async function readReputation(): Promise<Awaited<ReturnType<typeof readPromptsAt
 
 export default async function SettingsBusinessTab(): Promise<React.JSX.Element> {
   const account = await requireSetUpAccount();
-  const [business, understanding, all, rivals, overview, reputation, name] = await Promise.all([
+  const [business, understanding, all, rivals, overview, reputation, tiles, name] = await Promise.all([
     landed(readBusiness(), "business"),
     landed(readUnderstanding(), "understanding"),
     landed(readSettings(), "settings"),
     landed(readRivals(), "rivals"),
     landed(readOverview(), "overview"),
     readReputation(),
+    landed(readTiles(0, false), "tiles"),
     landed(readBusinessName(), "businessName"),
   ]);
   const measured = readsLanded(all, "answers", "measured");
@@ -61,7 +63,7 @@ export default async function SettingsBusinessTab(): Promise<React.JSX.Element> 
             competitors: measured.competitors,
             measured: measured.measuredRivals,
             firstPage: rivals.firstPage,
-            named: namedOf(reputation),
+            named: namedOf(tiles?.answers ?? null, rivals.rivals),
           }),
           leaders: overview.rivals.leaders.domains,
         };

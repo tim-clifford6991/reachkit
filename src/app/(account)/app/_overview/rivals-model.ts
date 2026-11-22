@@ -2,7 +2,7 @@
 // place beside each tracked competitor's, and who is on the first page, from
 // the stored weekly report. Pure: facts in, model out; `rivals-store.ts` and
 // `rivals-fixture.ts` read the facts.
-import type { PromptsModel } from "./prompts-model";
+import { namedCount, type AiAnswers } from "@/lib/measure/results";
 
 /** One site on the first-page count: a tracked competitor, or the customer. */
 export interface PresenceRow {
@@ -92,15 +92,10 @@ function cardOf(rivals: readonly string[], ownDomain: string, counts: ReadonlyMa
   };
 }
 
-/** Who the window's AI answers mention: the customer, and each site they named.
+/** Who the AI tile's panel answers mention: the customer, and each tracked competitor, on the tile's own N.
  *  Read by the Competitors tab and by Settings › Market, so both state one figure. */
-export function namedOf(reputation: PromptsModel): PresenceCard {
-  if (reputation.kind !== "measured") return { rivals: [], you: { domain: "", count: 0 }, of: 0, noRival: false };
-  const rivals = reputation.rivals.map((rival) => ({ domain: rival.domain, count: rival.answers }));
-  return {
-    rivals,
-    you: { domain: "", count: reputation.rate.linked + reputation.rate.named },
-    of: reputation.rate.samples,
-    noRival: rivals.every((row) => row.count === 0),
-  };
+export function namedOf(answers: AiAnswers | null, rivals: readonly string[]): PresenceCard {
+  if (answers === null) return { rivals: [], you: { domain: "", count: 0 }, of: 0, noRival: false };
+  const rows = rivals.map((domain) => ({ domain, count: namedCount(answers, domain) }));
+  return { rivals: rows, you: { domain: "", count: answers.k }, of: answers.n, noRival: rows.every((row) => row.count === 0) };
 }

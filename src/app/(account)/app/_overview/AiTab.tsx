@@ -19,11 +19,9 @@ import { ShowAll } from "./ShowAll";
 
 const INK = "text-base-content/70";
 
-/** The head's lead: the tile's own figure, and where its answers came from. */
-export function aiLead(answers: AiAnswers): string {
-  const figure = copy("overview.ai.lead", { k: formatCount(answers.k), n: formatCount(answers.n), weeks: formatCount(AI_WINDOW_WEEKS) });
-  return `${figure} ${copy("overview.ai.lead.split", { pages: formatCount(answers.fromPages), prompts: formatCount(answers.fromPrompts) })}`;
-}
+/** The head's lead: the tile's own figure. */
+export const aiLead = (answers: AiAnswers): string =>
+  copy("overview.ai.lead", { k: formatCount(answers.k), n: formatCount(answers.n), weeks: formatCount(AI_WINDOW_WEEKS) });
 
 export function Mark(p: { mark: AiMark }): React.JSX.Element {
   const { icon: Icon, key } = AI_MARK[p.mark];
