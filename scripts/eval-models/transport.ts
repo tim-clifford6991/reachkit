@@ -24,7 +24,7 @@ export interface Run {
   /** Where set, the only call sites the run evaluates; any other model call is refused, never sent or booked. */
   only?: ReadonlySet<string>;
   /** Each answer an evaluated call came back with, from the tool's input or the JSON in its text. */
-  onAnswer?: (site: string, value: unknown, stop: string | null, from: From) => void;
+  onAnswer?: (site: string, value: unknown, stop: string | null, from: From, call: { request: Params; ms: number; cents: number; tokensOut: number | null }) => void;
   /** Where every answer is kept (mode 600), each line tagged with what the driver knows of the call. */
   answers?: string;
   tag?: (site: string) => object;
@@ -87,9 +87,9 @@ async function evalCreate(client: Anthropic, send: (p: Params, o: unknown) => Pr
   const site = SITE_OF_TOOL.get(params.tools?.[0]?.name ?? "") ?? "unknown";
   if (run.halted !== null) throw new EvalRefused(run.halted);
   if (run.only !== undefined && !run.only.has(site)) throw new EvalRefused("not_evaluated");
-  const answered = (message: Anthropic.Message): Anthropic.Message => {
+  const answered = (message: Anthropic.Message, call = { ms: 0, cents: 0 }): Anthropic.Message => {
     const { from, value } = answerOf(message);
-    run.onAnswer?.(site, value, message.stop_reason, from);
+    run.onAnswer?.(site, value, message.stop_reason, from, { request, ...call, tokensOut: message.usage?.output_tokens ?? null });
     if (run.answers !== undefined) keepAnswer(run.answers, { at: new Date().toISOString(), mode: run.mode, site, model: message.model, from, stop: message.stop_reason, value, ...run.tag?.(site) });
     return message;
   };
@@ -124,7 +124,9 @@ async function evalCreate(client: Anthropic, send: (p: Params, o: unknown) => Pr
     if (run.mode === "fake") message = fakeMessage(request, tokensIn, run.fakeAnswers?.[site], run.fakeAs);
     else {
       run.sends += 1;
-      message = await throughTransport(() => send(request, options));
+      // EVAL_TIMEOUT_MS lets a call run past the product's bound, so a model's whole latency is seen and the bound it needs read off it.
+      const bound = process.env.EVAL_TIMEOUT_MS === undefined ? options : { ...(options as object), timeout: Number(process.env.EVAL_TIMEOUT_MS) };
+      message = await throughTransport(() => send(request, bound));
     }
   } catch (error) {
     const status = (error as { status?: unknown }).status;
@@ -134,8 +136,9 @@ async function evalCreate(client: Anthropic, send: (p: Params, o: unknown) => Pr
     throw error;
   }
   const { input_tokens, output_tokens } = message.usage;
-  book(priceCents(spec as Spec, input_tokens, output_tokens) ?? (reserved as number), { tokensIn: input_tokens, tokensOut: output_tokens, stop: message.stop_reason, outcome: "answered" });
-  return answered(message);
+  const cents = priceCents(spec as Spec, input_tokens, output_tokens) ?? (reserved as number);
+  book(cents, { tokensIn: input_tokens, tokensOut: output_tokens, stop: message.stop_reason, outcome: "answered" });
+  return answered(message, { ms: Date.now() - started, cents });
 }
 
 export default class EvalAnthropic extends Anthropic {
