@@ -77,7 +77,7 @@ Never register a self-hosted runner on this repository while it is public.
 | Production | `reachkit.app` (and `www.`) |
 | Development host | `dev.reachkit.app` — the same project, bound to `main`, and the same database. It is where the owner steers; it is not a separate environment |
 | Preview | none; Git deployments are off |
-| Database | one Supabase project, `reachkit` (`kleepxxddbcnfsfwudoe`), Postgres 17, us-east-1, **Free plan**. v2's objects sit in schema `v2_archive`, the rollback path (§9). The org is Vercel-Marketplace-managed: uninstalling that integration would delete the org and the database; the exit path is a transfer to a Supabase-managed org. Free pauses a project after seven idle days; unpause is a button in the Supabase dashboard |
+| Database | one Supabase project, `reachkit` (`kleepxxddbcnfsfwudoe`), Postgres 17, us-east-1, **Free plan**. The org is Vercel-Marketplace-managed: uninstalling that integration would delete the org and the database; the exit path is a transfer to a Supabase-managed org. Free pauses a project after seven idle days; unpause is a button in the Supabase dashboard |
 | Jobs | Inngest app `reachkit`, registered at `https://reachkit.app/api/jobs` |
 | Mail | Resend, sending domain `reachkit.app`; `MAIL_FROM` is `hello@reachkit.app` (§6) |
 | Payments | Stripe: one product `ReachKit`, one €49/month tax-inclusive price bound as `STRIPE_PRICE_ID`, Stripe Tax off; webhook `/api/stripe/webhook`; customer portal on. Production's three Stripe bindings are live-mode values; the preview target, which `dev.reachkit.app` answers on, carries the test-mode trio and its own test webhook |
@@ -1021,6 +1021,8 @@ migration reaches the live project by hand, through the Supabase SQL editor or t
 4. A migration pasted as SQL is not in the connector's migration list; its record is the
    constraint read-back posted on its PR.
 
+`schema_migrations` is the connector's log, not the schema's record; the files are.
+
 Verify a migration against a throwaway database first, never the shared scratch one:
 
 ```sh
@@ -1053,10 +1055,9 @@ buffers touched × 8 KB ÷ 5 MB/s × calls a day.
 
 | Finding | Disposition |
 |---|---|
-| `rls_enabled_no_policy` on the `dbAdmin()`-only tables in `public`, and `fetches`, `leads` in `v2_archive` | **By design.** Each `public` table carries a `comment on table` naming the rule. The `v2_archive` ones go with the v2 rollback path |
+| `rls_enabled_no_policy` on the `dbAdmin()`-only tables in `public` | **By design.** Each `public` table carries a `comment on table` naming the rule |
 | `extension_in_public` — `pg_trgm` | **Accepted.** Its functions read no table; the one reader through it, `known_content_near`, is `service_role`'s alone |
 | `auth_leaked_password_protection` | **Not applicable.** There are no passwords (`supabase/config.toml` `enable_password_signin = false`); this WARN is expected on every run |
-| `auth_rls_initplan` in `v2_archive` | **Left**: v2's frozen rollback path |
 | `unindexed_foreign_keys` on columns referencing `scans` | **Accepted.** Nothing deletes a `scans` row and no query filters by them. Revisit when one does |
 | `unindexed_foreign_keys` on `publications_merged_into_fkey` | **Accepted.** No `publications` row is deleted and no query filters by `merged_into`. Revisit when one does: a partial index `where merged_into is not null` |
 | `no_primary_key` on `job_days` | **By design.** A primary key cannot hold the nullable `site_id`; the unique index `job_days_key (job_id, day, site_id) nulls not distinct` is the row's identity |
@@ -1112,8 +1113,7 @@ pg_dump "$DATABASE_URL" --format=custom --no-owner --no-privileges \
 ```
 
 Name the schemas: a bare `pg_dump` reaches internal schemas and errors, and `public` alone restores
-rows nobody can sign in to. Add `-n v2_archive` only while the v2 rollback path is wanted. Keep the
-file off the box; it holds every customer's data.
+rows nobody can sign in to. Keep the file off the box; it holds every customer's data.
 
 **The drill**, against a local scratch database, never the live project:
 
@@ -1128,10 +1128,6 @@ file off the box; it holds every customer's data.
 
 **Restoring for real** from a dump: flip `KILL_SWITCH` (§5) and redeploy, restore, verify, release.
 Everything after the dump is lost.
-
-**The rollback to v2** is a different procedure: `alter table v2_archive.<t> set schema public` per
-table, then promote the frozen v2 production deployment (`dpl_2NEUXishMXAkzXG4Ti85yTy7NDda`,
-23 Aug 2026).
 
 ---
 
