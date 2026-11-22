@@ -89,8 +89,8 @@ export async function redeemVeto(
   return { ok: true, draftId: row.draft_id };
 }
 
-/** A stop link's path; the mail's composer adds the origin, as for `/opt-out/{token}`. `PUBLIC_PATHS` carries
- *  `/veto/:token`, since its holder has no session. */
+/** A stop link's path; the mail's composer adds the origin, as for `/opt-out/{token}`. `/veto` is under no
+ *  segment `src/middleware.ts` guards, since its holder has no session. */
 export function vetoLinkPath(token: string): string {
   return `/veto/${encodeURIComponent(token)}`;
 }

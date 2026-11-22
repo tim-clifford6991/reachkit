@@ -13,9 +13,8 @@
 // the customer's site, not ours (BUILD §9, §14 guardrail 6). The cost is
 // that Next gives a metadata route under a route group a six-character
 // hash suffix — `/opengraph-image-<hash>` rather than `/opengraph-image`
-// (`next/dist/esm/lib/metadata/get-metadata-route.js`) — which is why
-// `src/middleware.ts` recognises this class of address by shape rather
-// than by literal path.
+// (`next/dist/esm/lib/metadata/get-metadata-route.js`); it is public
+// because it stands under no guarded segment.
 //
 // **It says only the brand and the address.** Every other sentence a public
 // route speaks is a `keys/meta.ts` key and stays in the `<head>`. The origin is written because it is a value, not a
