@@ -170,6 +170,8 @@ export interface OpportunityStore {
   openFootprint?(siteId: string, row: string): Promise<void>;
   /** Each row's research as the cache holds it, at 0¢; absent, none is read and the week keeps the ranking's order. */
   researchHeld?(siteId: string, rows: readonly OpportunityRow[], now: Date): Promise<ReadonlyMap<string, import("@/lib/generate/standard").ResearchRead | null>>;
+  /** SPEC §7: the dated events a date's write may answer (`src/lib/hot`). Optional: absent reads none. */
+  hotEvents?(siteId: string, day: string): Promise<readonly import("@/lib/hot/detect").HotEvent[]>;
   /** Writes a row's cluster and the searches it absorbed. */
   setCluster(opportunityId: string, clusterKey: string, absorbedQueries: readonly string[]): Promise<void>;
   /** The site's current stored report, or `null` where it has no readable one. */
@@ -788,6 +790,7 @@ export function supabaseOpportunityStore(): OpportunityStore {
     claimRecommit: async (siteId, date) => (await import("@/lib/ops/events")).claimOpsEvent("week_recommitted", siteId, date, date),
     footprintOpened: async (siteId) => (await import("@/lib/ops/events")).opsEventHeld("market_footprint", siteId, "open"),
     researchHeld: async (siteId, rows, now) => (await import("@/lib/generate/research-queue")).researchHeld(siteId, rows, now),
+    hotEvents: async (siteId, day) => (await import("@/lib/hot/detect")).readHotEvents(siteId, day),
     openFootprint: async (siteId, row) => void (await (await import("@/lib/ops/events")).claimOpsEvent("market_footprint", siteId, "open", row)),
 
     setReadiness: (opportunityId, reason) => updateRow("setReadiness", opportunityId, { ready: reason === null, unready_reason: reason }),

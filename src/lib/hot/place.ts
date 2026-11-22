@@ -16,7 +16,7 @@ import type { PlanReason } from "@/lib/opportunities/types";
 import { claimOpsEvent } from "@/lib/ops/events";
 import { weekStartFor } from "@/lib/scan/weekly/week";
 import { angleFor } from "./angle";
-import { readHotEvents, type HotEvent } from "./detect";
+import type { HotEvent } from "./detect";
 
 const DAY_MS = 86_400_000;
 const dayAfter = (day: string, n = 1): string => new Date(Date.parse(`${day}T00:00:00Z`) + n * DAY_MS).toISOString().slice(0, 10);
@@ -49,7 +49,7 @@ export function movesFor(rows: readonly Pick<OpportunityRow, "id" | "planned_for
 /** Places the day's hot page on `date` where one passes; `true` where it did. Never throws: the day is written either way. */
 export async function placeHotPage(siteId: string, date: string, now: Date): Promise<boolean> {
   try {
-    const events = await readHotEvents(siteId, date);
+    const events = (await opportunityStore().hotEvents?.(siteId, date)) ?? [];
     // One judgement a date at most, claimed first, and never a second of one event.
     if (events.length === 0 || !(await claimOpsEvent("hot_day", siteId, date, now.toISOString()))) return false;
     for (const event of events) {
