@@ -478,7 +478,7 @@ export const CHROME_COPY = Object.freeze({
   "library.close.loop.3.title": "Your pages go live",
   "library.close.loop.3.when": "on your website",
   "library.close.loop.3.line": "Written from facts on your own site. Edit or stop any page first.",
-  "library.close.loop.4.title": "You see how your pages are doing",
+  "library.close.loop.4.title": "You see how pages are doing",
   "library.close.loop.4.when": "from week 1",
   "library.close.loop.4.line": "The Monday email shows what went live and how your pages are doing.",
   "library.close.loop.4.sample": "{live} pages published so far",
