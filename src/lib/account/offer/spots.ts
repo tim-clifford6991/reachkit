@@ -11,6 +11,8 @@ export interface OfferStore {
   insert(row: { place: number; user_id: string; subscription_id: string }): Promise<"taken" | "place" | "subscription" | "failed">;
   /** Frees the account's held spots taken at or after `takenSince`; false where the write failed. */
   free(userId: string, takenSince: Date, at: Date): Promise<boolean>;
+  /** The account's earliest held spot, or `null` without one; throws where the table could not be read. */
+  heldBy(userId: string): Promise<{ place: number; takenAt: Date } | null>;
 }
 
 const spots = () => (dbAdmin() as unknown as SupabaseClient).from("offer_spots");
@@ -35,6 +37,12 @@ function supabaseOfferStore(): OfferStore {
         .gte("taken_at", takenSince.toISOString());
       return error === null;
     },
+    async heldBy(userId) {
+      const { data, error } = await spots().select("place, taken_at").eq("user_id", userId).is("freed_at", null).order("taken_at").limit(1).maybeSingle();
+      if (error !== null) throw new Error(error.message);
+      const row = data as { place: number; taken_at: string } | null;
+      return row === null ? null : { place: row.place, takenAt: new Date(row.taken_at) };
+    },
   };
 }
 
@@ -49,9 +57,7 @@ export function setOfferStore(next: OfferStore | null): void {
 /** The account's held spot, or `null` without one or where the read failed: a screen never guesses a spot. */
 export async function spotOf(userId: string): Promise<{ place: number; takenAt: Date } | null> {
   try {
-    const { data, error } = await spots().select("place, taken_at").eq("user_id", userId).is("freed_at", null).order("taken_at").limit(1).maybeSingle();
-    const row = data as { place: number; taken_at: string } | null;
-    return error === null && row !== null ? { place: row.place, takenAt: new Date(row.taken_at) } : null;
+    return await offerStore().heldBy(userId);
   } catch {
     return null;
   }
