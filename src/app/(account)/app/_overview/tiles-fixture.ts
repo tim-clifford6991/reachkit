@@ -41,7 +41,7 @@ export function fixturePasses(pages: readonly PublishedPage[], week: string, pag
         organic: page.reading?.place != null && j % TILE_WEEKS <= k ? [{ url: page.url!, position: page.reading.place.value }] : [],
       }));
     const report = { questions: NOT_READ, serps: [], ownRanked: NOT_READ, ownRankedRows: [], pageQuestions: { rows }, verdict: { measuredAt: new Date(at) } };
-    return { weekStart, at, healthy: k !== 3, firstPage: k === 3 ? null : Math.max(0, k - 2), report: report as unknown as PlaceReport };
+    return { weekStart, at, healthy: k !== 3, firstPage: k === 3 ? null : new Map(Array.from({ length: 12 }, (_, i) => [`search ${i}`, i < k - 2])), report: report as unknown as PlaceReport };
   });
 }
 

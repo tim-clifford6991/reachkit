@@ -105,6 +105,13 @@ function shownLine(tile: Tile, d: TileDates): string | null {
 }
 
 function changeLine(key: TileKey, change: TileChange, d: TileDates): string | null {
+  const said = changeWords(key, change, d);
+  const moved = "moved" in change ? (change.moved ?? 0) : 0;
+  if (said === null || moved === 0) return said;
+  return moved === 1 ? copy("overview.tile.change.moved.one", { change: said }) : copy("overview.tile.change.moved", { change: said, n: formatCount(moved) });
+}
+
+function changeWords(key: TileKey, change: TileChange, d: TileDates): string | null {
   switch (change.kind) {
     case "up":
       return copy("overview.tile.change.up", { n: formatCount(change.n) });

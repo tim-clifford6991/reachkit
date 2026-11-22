@@ -470,6 +470,9 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.tile.change.up": "Up {n} on last week",
   "overview.tile.change.down": "Down {n} on last week",
   "overview.tile.change.same": "Same as last week",
+  // The change compares only the searches both weeks checked; this says how many were swapped.
+  "overview.tile.change.moved": "{change} · {n} searches changed",
+  "overview.tile.change.moved.one": "{change} · 1 search changed",
   // The first count is a starting point, never "+n".
   "overview.tile.change.first": "First count, {date}",
   "overview.tile.change.unread": "We couldn’t check {what} this week.",

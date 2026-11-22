@@ -49,10 +49,15 @@ interface PageRow {
 
 const NOT_READ = { kind: "unmeasured", reason: "not_attempted" } as const;
 
-/** The main searches a pass put `domain` on the first page for; `null` where it read none. */
-function firstPageOf(serps: PassRow["serps"], domain: string): number | null {
-  const read = (serps ?? []).flatMap((serp) => (serp.kind !== "unmeasured" && serp.value !== undefined && resolvedRows(serp.value.organic) !== null ? [serp.value] : []));
-  return read.length === 0 ? null : read.filter((serp) => onFirstPage(serp, domain)).length;
+/** Each main search a pass asked: whether it put `domain` on the first page, `null` where its top ten was not read; `null` where it read none. */
+function firstPageOf(questions: PassRow["questions"], serps: PassRow["serps"], domain: string): Map<string, boolean | null> | null {
+  const out = new Map<string, boolean | null>();
+  (questions == null || questions.kind === "unmeasured" ? [] : questions.value).forEach((question, i) => {
+    const serp = serps?.[i];
+    const read = serp !== undefined && serp.kind !== "unmeasured" && serp.value !== undefined && resolvedRows(serp.value.organic) !== null;
+    out.set(question.search.keyword.trim().toLowerCase(), read ? onFirstPage(serp.value!, domain) : null);
+  });
+  return [...out.values()].some((on) => on !== null) ? out : null;
 }
 
 export async function readTileRows(a: { siteId: string; domain: string; week: string }): Promise<{ passes: TilePass[]; pages: TilePage[]; gsc: GoogleConsole | null }> {
@@ -85,7 +90,7 @@ export async function readTileRows(a: { siteId: string; domain: string; week: st
       weekStart: row.week_start,
       at: row.created_at,
       healthy: failingChecks(parseHealth(row.health)).length === 0,
-      firstPage: firstPageOf(row.serps, a.domain),
+      firstPage: firstPageOf(row.questions, row.serps, a.domain),
       prompts: row.prompts,
       report: {
         questions: row.questions ?? NOT_READ,

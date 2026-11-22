@@ -23,8 +23,8 @@ export interface TilePass {
   at: string;
   healthy: boolean;
   report: PlaceReport;
-  /** The main searches it put the site on Google's first page for; `null` where it read none. */
-  firstPage: number | null;
+  /** Each main search it asked: whether it put the site on Google's first page, `null` where its top ten was not read; `null` where it read none. */
+  firstPage: ReadonlyMap<string, boolean | null> | null;
   /** Its tracked buyer prompts; absent or `null` where it asked none. */
   prompts?: PromptsSection | null;
 }
@@ -54,8 +54,8 @@ export interface TileLists {
 }
 
 export type TileChange =
-  | { kind: "up" | "down"; n: number }
-  | { kind: "same" }
+  | { kind: "up" | "down"; n: number; moved?: number }
+  | { kind: "same"; moved?: number }
   | { kind: "first"; at: Date }
   | { kind: "unread" }
   | { kind: "due" }
@@ -243,6 +243,19 @@ function aiChange(passes: readonly TilePass[], domain: string): TileChange {
   return diff(answersIn(passes, latest.weekStart, domain, both).answers!.k, answersIn(passes, prior.weekStart, domain, both).answers!.k);
 }
 
+/** Against the healthy pass before, only on the searches both read; `moved` counts the searches this pass asked that the one before did not. */
+function rivalsChange(passes: readonly TilePass[]): TileChange {
+  const latest = passes.at(-1)!;
+  const now = latest.firstPage;
+  if (!latest.healthy || now === null) return { kind: "unread" };
+  const prior = passes.slice(0, -1).filter((pass) => pass.healthy && pass.firstPage !== null).at(-1)?.firstPage;
+  const both = prior == null ? [] : [...now].filter(([search, on]) => on !== null && prior.get(search) != null);
+  if (prior == null || both.length === 0) return { kind: "first", at: new Date(latest.at) };
+  const change = diff(both.filter(([, on]) => on === true).length, both.filter(([search]) => prior.get(search) === true).length);
+  const moved = [...now.keys()].filter((search) => !prior.has(search)).length;
+  return moved === 0 ? change : { ...change, moved };
+}
+
 export function tilesOf(a: {
   passes: readonly TilePass[];
   pages: readonly TilePage[];
@@ -319,7 +332,7 @@ export function tilesOf(a: {
             series: seriesOf(current, a.week, aiValue),
           };
 
-  // Against Competitors: the Competitors screen's own count; the week before is the pass before.
+  // Against Competitors: the Competitors screen's own count; the change is on the searches both passes read.
   const r = a.rivals;
   const rivals: Tile =
     r === null || r.of === 0
@@ -331,7 +344,7 @@ export function tilesOf(a: {
           change:
             latest === undefined
               ? r.measuredAt === null ? null : { kind: "start", at: r.measuredAt }
-              : weeklyChange(passes, r.you, (pass) => pass.firstPage),
+              : rivalsChange(passes),
           series: null,
         };
 

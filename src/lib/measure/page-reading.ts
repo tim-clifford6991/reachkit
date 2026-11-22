@@ -290,7 +290,7 @@ export interface PageReading {
   place: Place | null;
   first: { at: string; place: number } | null;
   best: { place: number; at: string } | null;
-  /** The place the reading before this one held. */
+  /** The place the reading before this one held, from the same source; `null` where that source did not place it. */
   prev: number | null;
   /** The answer engines whose answer to the page's own question linked it;
    *  `null` where that question was not asked. */
@@ -479,9 +479,10 @@ export function assembleReading(a: { before: PageReading | null; report: PlaceRe
     place = { value: Math.round(google.bestPlace), source: "gsc", query: page.search };
   }
 
-  // A second read in the same week keeps the week before as `prev`.
+  // A second read in the same week keeps the week before as `prev`; a place is never differenced across two sources.
   const sameWeek = before !== null && a.now.getTime() - Date.parse(before.at) < WEEK_MS;
-  const prev = sameWeek ? before.prev : (before?.place?.value ?? null);
+  const sameSource = place !== null && before?.place?.source === place.source;
+  const prev = !sameSource ? null : sameWeek ? before!.prev : before!.place!.value;
   const best = place !== null && (before?.best == null || place.value < before.best.place) ? { place: place.value, at: nowIso } : (before?.best ?? null);
   const linkedBy = report === null ? null : linkedByIn(report, page.id, page.liveUrl);
   const variants = report === null ? [] : variantsIn(report, page.search, [page.liveUrl]);
