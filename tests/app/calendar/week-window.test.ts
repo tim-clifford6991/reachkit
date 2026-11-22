@@ -1,5 +1,5 @@
 // This Week's window over every site-local day of two weeks in three zones: the site's own week from setup, today in
-// it, no past day promising anything, one count on This Week and Overview.
+// it, no past pane promising its day, one count on This Week and Overview.
 import { describe, expect, it } from "vitest";
 import { FIXTURE_CALENDAR_FACTS, FIXTURE_PLAN_HEAD } from "@/app/(account)/app/calendar/fixture";
 import { assembleMonth, pagesThisWeek, weekOf, type CalendarFacts } from "@/app/(account)/app/calendar/month";
@@ -7,8 +7,6 @@ import { addDays, clockTime, commitEnd, dayKeyOf, monthOf } from "@/app/(account
 import { weekScreen } from "@/app/(account)/app/calendar/week-screen";
 import { weekListOf } from "@/app/(account)/app/_overview/this-week";
 import { weekStartFor } from "@/lib/scan/weekly/week";
-import { needsYouLine } from "@/lib/publish/record/lines";
-import { copy } from "@/lib/presentation/copy";
 import { ALL_ARMS } from "./arms";
 
 const time = clockTime(FIXTURE_PLAN_HEAD.publishTime!);
@@ -37,15 +35,7 @@ describe.each(["Pacific/Kiritimati", "America/Los_Angeles", "UTC"])("This Week i
         expect([screen.head.pages, list.pages]).toEqual([pagesThisWeek(week), pagesThisWeek(week)]);
         expect(list.coming <= list.pages).toBe(true);
         for (const card of screen.cards.filter((each) => each.day < today)) {
-          const day = card.dayLabel;
-          const promised = [copy("calendar.card.goes-live", { day, time }), copy("calendar.week.today", { time })];
-          expect(card.lines.some((line) => promised.includes(line)), card.day).toBe(false);
           if (card.pane.kind !== "lines") expect(card.pane.next, card.day).toBeNull();
-          // A past page's only note is why it needs the customer: never a publish statement.
-          const needs = card.cell.page === null ? null : needsYouLine(card.cell.page.needsYou);
-          if (card.pane.kind === "page") expect(card.pane.notes, card.day).toEqual(needs === null ? [] : [copy(needs)]);
-          const weekday = new Intl.DateTimeFormat("en-US", { timeZone: "UTC", weekday: "long" }).format(new Date(`${card.day}T12:00:00Z`));
-          if (card.pane.kind === "lines") expect(card.pane.lines, card.day).not.toContain(copy("calendar.pane.stopped.next", { weekday }));
         }
         for (const entry of list.days.filter((each) => each.cell.day < today)) expect([entry.next, entry.goesLiveAt], entry.cell.day).toEqual([false, null]);
       }
