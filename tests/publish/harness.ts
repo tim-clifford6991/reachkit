@@ -317,16 +317,19 @@ export function fakeDb(): FakeDb {
         inserted = [row];
         return self;
       },
-      /** PostgREST's upsert on its conflict columns (`id` by default): a row equal on all of them is merged, else inserted. */
-      upsert(values: Row, opts?: { onConflict?: string }) {
+      /** PostgREST's upsert on its conflict columns (`id` by default): a row equal on all of them is merged, or left
+       *  as it is with `ignoreDuplicates`, else inserted. */
+      upsert(values: Row | Row[], opts?: { onConflict?: string; ignoreDuplicates?: boolean }) {
         const keys = (opts?.onConflict ?? "id").split(",").map((k) => k.trim());
-        const hit = keys.every((k) => k in values)
-          ? db.rows(table).find((row) => keys.every((k) => row[k] === values[k]))
-          : undefined;
-        if (hit === undefined) return self.insert(values);
-        query.verb = "insert";
-        query.values = values;
-        inserted = [Object.assign(hit, values)];
+        for (const one of [values].flat()) {
+          const hit = keys.every((k) => k in one) ? db.rows(table).find((row) => keys.every((k) => row[k] === one[k])) : undefined;
+          if (hit === undefined) self.insert(one);
+          else if (opts?.ignoreDuplicates !== true) {
+            query.verb = "insert";
+            query.values = one;
+            inserted = [Object.assign(hit, one)];
+          }
+        }
         return self;
       },
       update(values: Row) {

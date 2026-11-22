@@ -170,6 +170,20 @@ describe("issue 1553 — a live hosted host is verified, and each page's way to 
     expect(hub()).toHaveLength(1);
   });
 
+  it("a duplicate run writes each closed week once, and the trim drops only weeks older than 57", async () => {
+    db.rows("publication_reads").push({ site_id: "s1", publication_id: "pub-old", day: "2026-10-05", engine: "google", kind: "referral", hits: 3 });
+    const aged = (week_start: string) => ({ publication_id: "pub-old", site_id: "s1", week_start, counts: {}, reading: null });
+    db.seed("publication_weeks", [aged("2025-09-15"), aged("2025-09-08")]);
+    const run = () => readSearchEngines({ siteId: "s1", now: NOW, deps: { accounts: [], announce: async () => ok({}) } });
+    await run();
+    const first = structuredClone(db.rows("publication_weeks"));
+    await run();
+    expect(db.rows("publication_weeks")).toEqual(first);
+    expect(first.map((row) => `${row.publication_id} ${row.week_start}`).sort()).toEqual(["pub-new 2026-10-12", "pub-old 2025-09-15", "pub-old 2026-09-28", "pub-old 2026-10-05", "pub-old 2026-10-12"]);
+    expect(first.find((row) => row.week_start === "2026-10-05")?.counts).toEqual({ "referral:google": 3 });
+    expect(first.find((row) => row.publication_id === "pub-new")).toMatchObject({ counts: { "crawl:google": 2 }, reading: { indexed: null, linkedBy: ["ai_overview"] } });
+  });
+
   it("issue 1538's seen state reads URL Inspection: a page Google calls indexed is seen", async () => {
     await readSearchEngines({ siteId: "s1", now: NOW, deps: { accounts: [ACCOUNT], gscSend: google, announce: async () => ok({}) } });
     const seen = await verdictStore().seenUrls?.("s1");

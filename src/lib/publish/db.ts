@@ -28,12 +28,14 @@ export interface PublishQuery<T> extends PromiseLike<QueryResult<T>> {
   in(column: string, values: readonly (string | number)[]): PublishQuery<T>;
   gte(column: string, value: string): PublishQuery<T>;
   lte(column: string, value: string): PublishQuery<T>;
+  lt(column: string, value: string): PublishQuery<T>;
   is(column: string, value: null): PublishQuery<T>;
   not(column: string, operator: string, value: unknown): PublishQuery<T>;
   order(column: string, opts: { ascending: boolean }): PublishQuery<T>;
   limit(count: number): PublishQuery<T>;
   insert<R extends object>(row: R): PublishQuery<T>;
   update<R extends object>(values: R): PublishQuery<T>;
+  delete(): PublishQuery<T>;
   upsert<R extends object>(row: R, options: { onConflict: string; ignoreDuplicates?: boolean }): PublishQuery<T>;
   single(): PromiseLike<SingleResult<T>>;
 }
