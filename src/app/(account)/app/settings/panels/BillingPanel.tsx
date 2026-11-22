@@ -1,40 +1,6 @@
-// BUILD §4.7 — "**Billing** (plan, next invoice, card, invoices link, Update
-// card / Cancel plan + 'cancelling keeps everything running until {date}')".
-//
-// **This card states no billing value at all.** REQ-097 c5: "no ReachKit
-// surface states" the date or amount of the next invoice, the card on file,
-// or the invoice history — and REQ-097's first open question, which of
-// §4.7's four things survive that, was answered by the owner on issue #34:
-// the plan, the price and the control. So the next-invoice row and the card
-// row are gone, and the control stands in their place, which is exactly
-// what criterion 5's last clause asks for.
-//
-// What is rendered is the plan name and the price, from the copy registry —
-// REQ-097's own non-goal keeps "€49/mo" a public product fact rather than a
-// value Stripe holds about one customer — and, where §4.7's cancelling line
-// has a day to name, the day access ends. That day is `users.paid_through`,
-// this product's own gate (ADR-050) and the date REQ-076 criterion 3
-// requires the customer be told. Nothing here formats it: it arrives
-// written, in the customer's own zone.
-//
-// **One affordance, one destination** (#925). REQ-097 c1: "ReachKit offers
-// no separate control per item and presents no field, form, stepper,
-// cancellation control, confirmation step or consequence screen" for the
-// card, the invoices, the billing address, the VAT number or cancelling —
-// "the only thing ReachKit offers for it is a control to that same one
-// destination". §4.7's three controls all led to `billing.surfaceHref`, and
-// for a while this card drew all three of them: three pills in front of one
-// destination, which reads as three destinations and leaves the customer
-// guessing which pill holds the thing they came for. There is one now —
-// *Manage billing in Stripe* — with §4.7's three things named in the line
-// under it. Cancel plan is that control: cancelling is done on Stripe's
-// surface, and this screen shows no confirmation step of its own.
-//
-// **`cancel` and `resume` are one position, two plan states** (REQ-076 c6).
-// A running plan offers Cancel plan; a cancelled one offers resume. That is
-// why the closed offer of seven actions is stated across the two states
-// rather than in one render — `tests/app/settings/screen.test.tsx` asserts
-// the union.
+// BUILD §4.7 — Billing, plate F3: the state, the plan and price (ours), the first-50 lines, the day access runs to,
+// and one control to the one Stripe destination. No amount is read from Stripe (owner ruling, #34) and no refund
+// date is shown (SPEC); `paid_through` arrives written, in the customer's own zone.
 "use client";
 
 import type React from "react";
@@ -42,14 +8,12 @@ import { Check } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { writtenLine } from "../../_shell/written";
 import { useAction } from "./useAction";
-import { SettingRow } from "./SettingRow";
+import { SettingLine } from "./SettingRow";
 import { PRICE_KEYS, type BillingSummary } from "../billing";
+import { CARD, CARD_BODY, CARD_FOOT, CARD_LEAD, CARD_TITLE, TARGET } from "../frame";
 import { OFFER_SPOTS, WEEK_PLAN } from "@/lib/config/constants";
 
-/** REQ-097 c6's three statements, in the order the criterion names them.
- *  One key each: a single key would let the second and third be lost by
- *  writing the first (#136's own reasoning, applied to the read as well as
- *  to the press). */
+/** REQ-097 c6's three statements, one key each, so the owner can write each one. */
 const BILLING_UNREADABLE_KEYS: readonly CopyKey[] = [
   "settings.billing.unreachable",
   "settings.billing.try-again",
@@ -59,220 +23,144 @@ const BILLING_UNREADABLE_KEYS: readonly CopyKey[] = [
 export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element {
   const { billing } = p;
   const action = useAction();
-  // REQ-097 c5 keeps every billing *value* off this surface, so an
-  // unreadable read costs the customer two statements and no number: the
-  // plan word, the price and the one control still stand, and the date and
-  // the cancel/resume choice — the two things that depend on having read
-  // the account — are replaced by REQ-097 c6's three sentences (#228).
-  // Under the plan: why work stopped once access ended, else the cancelled arm's date, else how billing runs.
   const ended = billing.readable && billing.state === "ended";
-  const planLine = !billing.readable
-    ? null
-    : ended
-      ? writtenLine("settings.billing.ended.line")
-      : billing.state === "cancelled"
-        ? writtenLine("settings.billing.cancelling", { date: billing.accessUntil })
-        : writtenLine("settings.billing.billed");
+  const cancelled = billing.readable && billing.state === "cancelled";
+  const failed = billing.readable && !ended && billing.paymentFailed === true;
+  const planLine = !billing.readable ? null : writtenLine(ended ? "settings.billing.ended.line" : "settings.billing.billed");
   const offline = billing.readable && ended && billing.pagesOfflineOn !== null ? writtenLine("settings.billing.ended.pages", { date: billing.pagesOfflineOn }) : null;
-
-  // **One of the two lines beside the figure, not both** (owner,
-  // 2026-09-21, on #925). `PRICE_COPY_KEYS` is `price.amount`,
-  // `price.vat_included` and `price.interval`, and this card drew the last
-  // two together — "€49 VAT included per month, VAT included", because
-  // `price.interval` already says it. `price.interval` is the one drawn:
-  // it carries both facts a price needs beside the figure, the interval and
-  // the VAT, where `price.vat_included` alone would state the VAT and lose
-  // the interval. No key changed and no word was rewritten — the other
-  // surfaces that speak the offer are untouched, and `PRICE_KEYS` is still
-  // what this card reads the figure and the line from, so a price stated
-  // two ways is still impossible.
-  const interval = writtenLine("price.interval");
-
-  // S18's "next invoice" row, and **neither half of it is a second copy of
-  // anything** (#374): the day is `users.paid_through` — the access gate
-  // this card already states in its cancelling line — and the amount is the
-  // same `price.amount` key every price surface speaks. One read, no vendor
-  // value, and the two cannot disagree with the line below them because
-  // they are the same date.
-  // The AMOUNT alone beside the day — `price.amount`, which is the figure
-  // the set draws on this row. The interval ("per month, VAT included") is
-  // a fact about the plan and belongs beside the headline, not on a row
-  // stating one invoice.
   const amount = writtenLine(PRICE_KEYS[0] ?? "price.amount");
-  const nextInvoice = billing.readable && !ended
-    ? [billing.accessUntil, amount].filter((part) => part !== null).join(" · ")
-    : null;
-
+  const price = [copy("plan.single", { weekPages: String(WEEK_PLAN.days) }), [amount, writtenLine("price.interval")].filter((part) => part !== null).join(" ")].join(" · ");
   // Active only where the status was read and is paid: an unread status makes no claim.
-  const badge = !billing.readable
-    ? null
-    : billing.state !== "active"
-      ? billing.state
-      : billing.paymentFailed === false
-        ? "active"
-        : null;
-
+  const badge = !billing.readable ? null : billing.state !== "active" ? billing.state : billing.paymentFailed === false ? "active" : null;
   const since = billing.readable ? billing.customerSince : null;
   const checkIn = billing.readable ? billing.nextCheckIn : null;
+  const busy = (key: "invoices" | "resume"): React.ReactNode =>
+    action.pending === key ? <span className="loading loading-spinner loading-xs" aria-hidden /> : null;
+
   const spot = (
-    <span className="badge badge-ghost h-auto min-h-5 wrap-anywhere" data-testid="billing-spot">
+    <span className="badge badge-ghost badge-sm h-auto min-h-5 wrap-anywhere" data-testid="billing-spot">
       {copy("offer.billing.spot", { of: String(OFFER_SPOTS) })}
     </span>
   );
-  const founder = (
-    <a className="link link-primary inline-flex min-h-6 items-center" href={`mailto:${copy("chrome.footer.contact.address")}`} data-testid="billing-founder">
-      {copy("offer.founder")}
-    </a>
-  );
-
-  const pill = (key: CopyKey, run: () => void): React.JSX.Element => (
-    <button type="button" className="btn btn-soft btn-primary min-h-11" onClick={run} disabled={action.pending !== null}>
-      {action.pending === "resume" ? <span className="loading loading-spinner loading-xs" aria-hidden /> : null}
-      {copy(key)}
-    </button>
-  );
-
-  /** The one way to the one destination, and this card's one solid primary. */
-  const manage = (run: () => void): React.JSX.Element => (
-    <button type="button" className="btn btn-primary min-h-11" onClick={run} disabled={action.pending !== null}>
-      {action.pending === "invoices" ? <span className="loading loading-spinner loading-xs" aria-hidden /> : null}
+  // The card's one solid primary, unless a failed payment's Pay holds it.
+  const manage = (
+    <button type="button" className={`btn ${failed ? "btn-soft" : "btn-primary"} ${TARGET}`} onClick={() => action.run("invoices")} disabled={action.pending !== null}>
+      {busy("invoices")}
       {copy("settings.billing.manage")}
     </button>
   );
 
   return (
-    <section className="card card-border min-w-0 bg-base-100">
-      <div className="card-body gap-5">
-        <h2 className="card-title text-(length:--h3)">{copy("settings.billing.title")}</h2>
+    <section className={CARD}>
+      <div className={CARD_BODY}>
+        <h2 className={CARD_TITLE}>{copy("settings.billing.title")}</h2>
 
-        {billing.readable && !ended && billing.paymentFailed === true ? (
-          <div className="alert alert-warning alert-soft flex min-w-0 flex-wrap" data-testid="billing-payment-failed">
-            <p className="min-w-0 wrap-anywhere">{copy("settings.billing.payment-failed")}</p>
-            <button type="button" className="btn btn-warning min-h-11" onClick={() => action.run("invoices")} disabled={action.pending !== null}>
+        {failed ? (
+          <div className="alert alert-warning alert-soft flex min-w-0 flex-wrap py-2" data-testid="billing-payment-failed">
+            <p className="min-w-0 grow text-sm wrap-anywhere">{copy("settings.billing.payment-failed")}</p>
+            <button type="button" className={`btn btn-primary ${TARGET}`} onClick={() => action.run("invoices")} disabled={action.pending !== null}>
               {copy("settings.billing.pay")}
             </button>
           </div>
         ) : null}
 
-        {/* The settable-row shape every Settings tab draws (`SettingRow`,
-            #1089): the name at the near edge, the value at the far one. */}
         <div className="flex min-w-0 flex-col">
           {badge === null ? null : (
-            <SettingRow name={copy("settings.billing.status")} testId="billing-row-status">
-              {/* One group, so the two badges sit together and wrap on a phone. */}
-              <span className="flex min-w-0 flex-wrap items-center gap-2">
-                <span
-                  className={badge === "active" ? "badge badge-success badge-soft" : "badge badge-ghost"}
-                  data-testid="billing-state"
-                >
-                  {badge === "active" ? <Check size={14} strokeWidth={1.75} aria-hidden /> : null}
-                  {copy(`settings.billing.${badge}`)}
-                </span>
-                {since === null ? null : spot}
-              </span>
-            </SettingRow>
+            <SettingLine
+              label={copy("settings.billing.status")}
+              testId="billing-row-status"
+              value={{
+                kind: "node",
+                text: (
+                  <span className="flex min-w-0 flex-wrap items-center gap-2">
+                    <span className={badge === "active" ? "badge badge-success badge-soft" : "badge badge-ghost"} data-testid="billing-state">
+                      {badge === "active" ? <Check size={14} strokeWidth={1.75} aria-hidden /> : null}
+                      {copy(`settings.billing.${badge}`)}
+                    </span>
+                    {since === null ? null : spot}
+                  </span>
+                ),
+              }}
+            />
           )}
-          <SettingRow
-            name={copy("settings.billing.plan")}
-            testId="billing-row-plan"
-            below={
-              <div className="flex min-w-0 flex-col gap-1 text-sm text-base-content/70">
-                {planLine === null ? null : (
-                  <p
-                    className="wrap-anywhere"
-                    data-testid={ended ? "billing-ended" : billing.readable && billing.state === "cancelled" ? "billing-cancelling" : "billing-billed"}
-                  >
-                    {planLine}
-                  </p>
-                )}
-                {offline === null ? null : <p className="wrap-anywhere" data-testid="billing-offline">{offline}</p>}
-                <p className="wrap-anywhere" data-testid="billing-route">
-                  {ended ? copy("settings.billing.ended.contact") : copy("settings.billing.route", { control: copy("settings.billing.manage") })}
-                </p>
-              </div>
-            }
-          >
-            <p className="min-w-0 wrap-anywhere" data-testid="billing-price">
-              {[copy("plan.single", { weekPages: String(WEEK_PLAN.days) }), [amount, interval].filter((part) => part !== null).join(" ")].join(" · ")}
+          <SettingLine label={copy("settings.billing.plan")} testId="billing-row-plan" value={{ kind: "text", text: price, full: price }} />
+          <div className={`${CARD_LEAD} flex min-w-0 flex-col pb-1`}>
+            {planLine === null ? null : <p data-testid={ended ? "billing-ended" : "billing-billed"}>{planLine}</p>}
+            {offline === null ? null : <p data-testid="billing-offline">{offline}</p>}
+            <p data-testid="billing-route">
+              {ended ? copy("settings.billing.ended.contact") : copy("settings.billing.route", { control: copy("settings.billing.manage") })}
             </p>
-          </SettingRow>
+          </div>
           {since === null ? null : (
-            <SettingRow name={copy("offer.billing.since")} testId="billing-row-since">
-              <span className="num num-phrase min-w-0 wrap-anywhere">{since}</span>
-              {/* With no state badge drawn, the spot never stands in for the status. */}
-              {badge === null ? spot : null}
-            </SettingRow>
+            <SettingLine
+              label={copy("offer.billing.since")}
+              testId="billing-row-since"
+              value={{ kind: "node", text: <span className="flex min-w-0 flex-wrap items-center gap-2"><span className="num num-phrase">{since}</span>{badge === null ? spot : null}</span> }}
+            />
           )}
           {checkIn === null ? null : (
-            <SettingRow name={copy("offer.billing.checkin")} testId="billing-row-checkin">
-              <span className="flex min-w-0 flex-wrap items-center gap-x-3">
-                <span className="num num-phrase wrap-anywhere">{checkIn}</span>
-                {founder}
-              </span>
-            </SettingRow>
+            <SettingLine
+              label={copy("offer.billing.checkin")}
+              testId="billing-row-checkin"
+              value={{
+                kind: "node",
+                text: (
+                  <span className="flex min-w-0 flex-wrap items-center gap-x-3">
+                    <span className="num num-phrase">{checkIn}</span>
+                    <a className="link link-primary" href={`mailto:${copy("chrome.footer.contact.address")}`} data-testid="billing-founder">
+                      {copy("offer.founder")}
+                    </a>
+                  </span>
+                ),
+              }}
+            />
           )}
-          {nextInvoice === null ? null : (
-            <SettingRow name={copy("settings.billing.next-invoice")} testId="billing-row-next-invoice">
-              <span className="num num-phrase min-w-0 wrap-anywhere" data-testid="billing-next-invoice">
-                {nextInvoice}
-              </span>
-            </SettingRow>
+          {/* The date only: `paid_through`, the day the next invoice falls or, once cancelled, the day access ends. */}
+          {!billing.readable || ended ? null : (
+            <SettingLine
+              label={copy(cancelled ? "settings.billing.access-until" : "settings.billing.next-invoice")}
+              testId="billing-row-next-invoice"
+              value={{ kind: "node", text: <span className="num num-phrase" data-testid="billing-next-invoice">{billing.accessUntil}</span> }}
+            />
           )}
         </div>
 
-        {/* **One control, and the line says what is behind it** (#925).
-            REQ-097 c1 always said there was one destination — "the only
-            thing ReachKit offers for it is a control to that same one
-            destination" — and three pills in front of it read as three
-            destinations, so the customer had to guess which one held the
-            thing they came for. Update card, invoices and Cancel plan were
-            all `openPortal()` (`../billing-actions.ts`); now they are one
-            press, and the sentence under it names all three.
-
-            **`action-cancel` marks this same control**, because cancelling
-            *is* what pressing it does: `cancel` and `invoices` are one
-            affordance now, and the closed offer of seven actions
-            (`../settable.ts`) is still complete on the screen rather than
-            complete in a list. `resume` is the one that does not belong
-            here — after the paid-through date it opens a new subscription
-            instead of the portal (`resumePlan`), so it stays its own
-            control in its own plan state, which is the position §4.7 gave
-            it and REQ-076 c6's "two plan states, one position". */}
-        <div className="border-base-300 flex min-w-0 flex-col gap-2 border-t pt-4">
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
-          {!billing.readable || billing.state !== "cancelled" ? (
-            // Each marker is a flex box, so it is as tall as its button and the button never overflows it.
-            <span className="flex min-w-0" data-testid="action-cancel">
-              <span className="flex min-w-0" data-testid="action-invoices">
-                {manage(() => action.run("invoices"))}
+        {/* One control to one destination: card, invoices and cancel all live behind it; resume is its own. */}
+        <div className={CARD_FOOT}>
+          <p className={`${CARD_LEAD} min-w-0`} data-testid="billing-manage-note">
+            {copy("settings.billing.manage.note")}
+          </p>
+          <span className="flex min-w-0 flex-wrap items-center gap-2">
+            {cancelled ? (
+              <>
+                <span className="flex min-w-0" data-testid="action-resume">
+                  <button type="button" className={`btn btn-soft btn-primary ${TARGET}`} onClick={() => action.run("resume")} disabled={action.pending !== null}>
+                    {busy("resume")}
+                    {copy("settings.billing.resume")}
+                  </button>
+                </span>
+                <span className="flex min-w-0" data-testid="action-invoices">{manage}</span>
+              </>
+            ) : (
+              <span className="flex min-w-0" data-testid="action-cancel">
+                <span className="flex min-w-0" data-testid="action-invoices">{manage}</span>
               </span>
-            </span>
-          ) : (
-            <>
-              <span className="flex min-w-0" data-testid="action-invoices">{manage(() => action.run("invoices"))}</span>
-              <span className="flex min-w-0" data-testid="action-resume">
-                {pill("settings.billing.resume", () => action.run("resume"))}
-              </span>
-            </>
-          )}
-        </div>
-        <p className="text-sm text-base-content/70 wrap-anywhere" data-testid="billing-manage-note">
-          {copy("settings.billing.manage.note")}
-        </p>
+            )}
+          </span>
         </div>
 
         {billing.readable ? null : (
-          <div className="flex min-w-0 flex-col gap-1" data-testid="billing-unreadable">
+          <div className="flex min-w-0 flex-col" data-testid="billing-unreadable">
             {BILLING_UNREADABLE_KEYS.map((key) => ({ key, line: writtenLine(key) }))
               .filter((written) => written.line !== null)
               .map((written) => (
-                <p className="text-sm text-base-content/70 wrap-anywhere" key={written.key}>
+                <p className={CARD_LEAD} key={written.key}>
                   {written.line}
                 </p>
               ))}
           </div>
         )}
-        {action.line === null ? null : <p className="text-sm text-base-content/70 wrap-anywhere">{action.line}</p>}
+        {action.line === null ? null : <p className={CARD_LEAD}>{action.line}</p>}
       </div>
     </section>
   );

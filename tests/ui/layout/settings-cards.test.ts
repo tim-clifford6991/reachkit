@@ -1,11 +1,10 @@
 // tests/ui/layout/settings-cards.test.ts — SPEC §4, E37, E38, E39
 //
-// Cards stack at every width on every Settings tab, except Your business's two independent columns
-// from `lg` (plate F1a): every top-level card shares one left edge per column, columns live only
-// inside a card on a `data-layout` grid, the only card inside one is a competitor tile, and
-// Billing's month is two tracks on a phone and four from 768. Rendered and hydrated, light and
-// dark; the canaries below prove the ruler sees two card columns, a card inside a layout grid, and a
-// month that does not fold.
+// Cards stack below `lg` on every Settings tab, and from `lg` each tab is two independent columns
+// (plates F1a, F2, F3): every top-level card shares one left edge per column, columns live only
+// inside a card on a `data-layout` grid, and the only card inside one is a competitor tile. Rendered
+// and hydrated, light and dark; the canaries below prove the ruler sees two card columns and a card
+// inside a layout grid.
 import { describe, expect, it } from "vitest";
 import { SETTINGS_TABS, SETTINGS_TAB_HREF } from "@/app/(account)/app/settings/tabs";
 import { getAccountCookie, getBaseURL, withPage } from "./browser";
@@ -21,8 +20,6 @@ interface Seen {
   readonly lefts: readonly number[];
   /** Cards inside a `data-layout` grid other than `tiles`, by their first words. */
   readonly nested: readonly string[];
-  /** Billing's month tiles, in grid tracks, or null where the tab draws none. */
-  readonly monthTracks: number | null;
   /** Market's competitor tiles and Your business's wells, in occupied-or-open grid tracks, or null where the tab draws none. */
   readonly tilesTracks: number | null;
   readonly wellsTracks: number | null;
@@ -35,7 +32,6 @@ function measureCards(root: string): Seen {
   const cards = Array.from(scope.querySelectorAll(".card:not(.card .card)")).filter(
     (card) => card.getBoundingClientRect().width > 0
   );
-  const month = scope.querySelector('[data-layout="month"]');
   const tiles = scope.querySelector('[data-layout="tiles"]');
   // Five competitors, the most a site tracks, whatever the fixture holds: copies of its first tile.
   const first = tiles?.querySelector(":scope > li");
@@ -47,7 +43,6 @@ function measureCards(root: string): Seen {
     cards: cards.length,
     lefts: cards.map((card) => Math.round(card.getBoundingClientRect().left)),
     nested: Array.from(scope.querySelectorAll('[data-layout]:not([data-layout="tiles"]) .card')).map((card) => (card.textContent ?? "").trim().slice(0, 40)),
-    monthTracks: tracks(month),
     tilesTracks: tracks(tiles),
     wellsTracks: tracks(scope.querySelector('[data-layout="wells"]')),
   };
@@ -60,10 +55,6 @@ function offences(seen: Seen, width: number, columns = 1): string[] {
   const edges = seen.lefts.reduce<number[]>((kept, left) => (kept.some((edge) => Math.abs(edge - left) <= EDGE_PX) ? kept : [...kept, left]), []);
   if (edges.length > columns) out.push(`cards off the first card's left edge ${edges[0]}px: ${edges.slice(columns).join(", ")}`);
   for (const card of seen.nested) out.push(`a card inside a data-layout grid: ${card}`);
-  if (seen.monthTracks !== null) {
-    const want = width < 768 ? 2 : 4;
-    if (seen.monthTracks !== want) out.push(`the month has ${seen.monthTracks} tracks at ${width}px, not ${want}`);
-  }
   if (seen.tilesTracks !== null) {
     if (width < 768 ? seen.tilesTracks !== 1 : width >= 1280 && seen.tilesTracks < 2)
       out.push(`the tiles have ${seen.tilesTracks} tracks at ${width}px`);
@@ -102,12 +93,10 @@ for (const tab of SETTINGS_TABS) {
             },
             { extraHTTPHeaders: { Cookie: getAccountCookie() } }
           );
-          // Your business and Pages are two columns from `lg` (1024px), one below it.
-          const columns = tab !== "account" && width >= 1024 ? 2 : 1;
+          // Two columns from `lg` (1024px), one below it.
+          const columns = width >= 1024 ? 2 : 1;
           for (const [theme, measured] of seen) {
             expect(offences(measured, width, columns), `${href} @ ${width}px ${theme}`).toEqual([]);
-            // The month is what Billing is checked for; a tab that lost it would pass vacuously.
-            if (tab === "account") expect(measured.monthTracks, `${href} @ ${width}px ${theme}`).not.toBeNull();
           }
         },
         PER_CASE_MS
@@ -145,15 +134,13 @@ describe("the ruler sees what it is for (canaries)", () => {
   );
 
   it(
-    "a card inside a data-layout grid, and a month of seven tracks on a phone, are refused",
+    "a card inside a data-layout grid is refused",
     async () => {
       const found = await canary(
         390,
-        '<div id="panel" class="stack"><section class="card"><div data-layout="pair"><div class="card">Inner</div></div>' +
-          '<div data-layout="month" class="seven"><span>M</span></div></section></div>'
+        '<div id="panel" class="stack"><section class="card"><div data-layout="pair"><div class="card">Inner</div></div></section></div>'
       );
       expect(found.some((line) => line.startsWith("a card inside a data-layout grid"))).toBe(true);
-      expect(found).toContain("the month has 7 tracks at 390px, not 2");
     },
     PER_CASE_MS
   );

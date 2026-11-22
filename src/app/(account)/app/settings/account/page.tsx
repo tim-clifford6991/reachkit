@@ -1,7 +1,6 @@
-// `docs/SPEC.md §4 Settings has three tabs`: Settings › Account, at `/app/settings/account`, in
-// board SettingsAccount's order: billing, the month it paid for, the account card, the shortcuts, then the danger
-// zone at the foot. Billing is the one read awaited before the first flush, so cancelling never waits on another;
-// every other card is its own boundary, so one slow read leaves only that card on the plain line.
+// `docs/SPEC.md §4 Settings has three tabs`: Settings › Account, at `/app/settings/account`, plate F3: billing and
+// the month it paid for on the left from `lg`, the account and the danger zone on the right. Billing is the one read
+// awaited before the first flush, so cancelling never waits on another; every other card is its own boundary.
 import type React from "react";
 import type { Metadata } from "next";
 import { Suspense } from "react";
@@ -9,10 +8,10 @@ import { copy } from "@/lib/presentation/copy";
 import { readBillingSummary, readMonthGot, readSettings } from "../provider";
 import { readsLanded } from "../model";
 import { ANCHORED, SETTINGS_ANCHOR } from "../tabs";
+import { CARD_COLUMN, CARD_GRID } from "../frame";
 import { landed, Unread } from "../Unread";
 import { readShell } from "../../_shell/provider";
 import { CardSkeleton } from "../../_shell/skeletons";
-import { Shortcuts } from "../../_shell/Shortcuts";
 import { planToday, readWeek } from "../../calendar/provider";
 import { nextPageOf } from "../next-page";
 import { AccountPanel } from "../panels/AccountPanel";
@@ -25,20 +24,21 @@ export const metadata: Metadata = { title: copy("meta.app.settings.account.title
 export default async function SettingsAccountTab(): Promise<React.JSX.Element> {
   const billing = await readBillingSummary();
   return (
-    <div className="flex min-w-0 flex-col gap-6" data-testid="settings-tab-panel-account">
+    <div className={CARD_GRID} data-testid="settings-tab-panel-account">
       <div id={SETTINGS_ANCHOR.billing} className={ANCHORED}>
-        <BillingPanel billing={billing} />
-        <Suspense fallback={<CardSkeleton testId="billing-month-skeleton" rows={3} />}>
-          <Month />
-        </Suspense>
+        <div className={CARD_COLUMN}>
+          <BillingPanel billing={billing} />
+          <Suspense fallback={<CardSkeleton testId="billing-month-skeleton" rows={3} />}>
+            <Month />
+          </Suspense>
+        </div>
       </div>
-      <Suspense fallback={<CardSkeleton testId="settings-account-skeleton" />}>
-        <Account />
-      </Suspense>
-      <Suspense fallback={<CardSkeleton testId="settings-shortcuts-skeleton" rows={2} head={false} />}>
-        <ShortcutsCard />
-      </Suspense>
-      <DangerZone />
+      <div className={CARD_COLUMN}>
+        <Suspense fallback={<CardSkeleton testId="settings-account-skeleton" />}>
+          <Account />
+        </Suspense>
+        <DangerZone />
+      </div>
     </div>
   );
 }
@@ -64,19 +64,8 @@ async function Month(): Promise<React.JSX.Element> {
 }
 
 async function Account(): Promise<React.JSX.Element> {
-  const settings = readsLanded(await landed(readSettings(), "settings"), "card", "pages");
-  return settings === null ? <Unread testId="settings-unread-account" /> : <AccountPanel account={settings.account} pages={settings.content.pages} />;
-}
-
-/** *Visit your blog* and *Help* are reached here; the side panel draws only what board Main draws (issue 1339). */
-async function ShortcutsCard(): Promise<React.JSX.Element> {
-  const shell = await landed(readShell(), "shell");
-  if (shell === null) return <Unread testId="settings-unread-shortcuts" />;
-  return (
-    <section className="card card-border bg-base-100 min-w-0" data-testid="settings-shortcuts">
-      <div className="card-body min-w-0 p-2">
-        <Shortcuts blog={shell.blog} />
-      </div>
-    </section>
-  );
+  const [all, shell] = await Promise.all([landed(readSettings(), "settings"), landed(readShell(), "shell")]);
+  const settings = readsLanded(all, "card", "pages");
+  // The shortcuts need the shell's blog; without it the card still stands, with Help and no blog link.
+  return settings === null ? <Unread testId="settings-unread-account" /> : <AccountPanel account={settings.account} pages={settings.content.pages} blog={shell?.blog ?? null} />;
 }
