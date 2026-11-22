@@ -156,6 +156,7 @@ describe("the index, not the schedule, is what makes it once a week (ADR-060)", 
     const market = `insert into market_changes (site_id, week_start, scan_id) select site_id, week_start, id from scans where tier = 'weekly' and week_start = '2026-09-07';`;
     expect(raises(market)).toBe(false);
     expect(raises(market)).toBe(true);
+    psql(["-c", "delete from market_changes;"]);
   });
 
   it("scopes to weekly, so a domain may still be scanned freely as often as §6.4 allows", () => {

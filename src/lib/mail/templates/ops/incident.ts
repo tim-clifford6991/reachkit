@@ -368,7 +368,7 @@ function weekBlocks(incident: Extract<OpsIncident, { occasion: "market-too-small
   }
   if (incident.changes !== undefined) {
     const rows = incident.changes.sites.map((site): ListRow => ({ label: "ops.changes.line", vars: { domain: closedDomain(site.domain), recorded: count(site.recorded), cited: count(site.cited) } }));
-    blocks.push({ block: "paragraph", text: CHANGES_WEEK, vars: { week: closedDate(incident.changes.weekStart) } }, { block: "list", items: rows, emptyLine: "ops.promise.not-measured" });
+    blocks.push({ block: "paragraph", text: CHANGES_WEEK, vars: { week: closedDate(incident.changes.weekStart) } }, { block: "list", items: measured(rows, new Date(`${closedDate(incident.changes.weekStart)}T00:00:00Z`)), emptyLine: "ops.promise.not-measured" });
   }
   if (incident.untold !== undefined) {
     blocks.push(

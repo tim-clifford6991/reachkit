@@ -114,16 +114,20 @@ async function changesBefore(weekStart: string): Promise<ChangesWeek | null> {
     if (weeks.length === 0) return null;
     const ids = weeks.map((week) => week.siteId);
     const [sites, drafts] = await Promise.all([
-      untyped().from<SiteRow>("sites").select("id, domain").in("id", ids),
-      untyped().from<{ site_id: string; meta: { marketFacts?: { url?: unknown }[] } | null }>("drafts").select("site_id, meta").in("site_id", ids).gte("created_at", `${from}T00:00:00Z`).lt("created_at", `${weekStart}T00:00:00Z`),
+      dbAdmin().from("sites").select("id, domain").in("id", ids),
+      dbAdmin().from("drafts").select("site_id, meta").in("site_id", ids).gte("created_at", `${from}T00:00:00Z`).lt("created_at", `${weekStart}T00:00:00Z`),
     ]);
     if (sites.error || drafts.error) throw new Error((sites.error ?? drafts.error)!.message);
     const domains = new Map((sites.data ?? []).map((site) => [site.id, site.domain]));
+    const urlsOf = (meta: unknown): unknown[] => {
+      const facts = (meta as { marketFacts?: unknown } | null)?.marketFacts;
+      return Array.isArray(facts) ? facts.map((fact) => (fact as { url?: unknown } | null)?.url) : [];
+    };
     return {
       weekStart: from,
       sites: weeks
         .map((week) => {
-          const cited = new Set((drafts.data ?? []).filter((draft) => draft.site_id === week.siteId).flatMap((draft) => (draft.meta?.marketFacts ?? []).map((fact) => fact.url)));
+          const cited = new Set((drafts.data ?? []).filter((draft) => draft.site_id === week.siteId).flatMap((draft) => urlsOf(draft.meta)));
           const changes = week.changes as { claims?: { url?: unknown }[] }[];
           return { domain: domains.get(week.siteId) ?? "unknown", recorded: changes.length, cited: changes.filter((change) => (change.claims ?? []).some((claim) => cited.has(claim.url))).length };
         })
