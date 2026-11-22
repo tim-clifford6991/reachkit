@@ -151,19 +151,21 @@ function placedIn(pass: TilePass, pages: readonly TilePage[]): number {
 }
 
 /** A stored answer cell names the site: the mention the AI detail's marks count (`answers-store.ts`). */
-function namesSite(cell: unknown, domain: string): boolean {
+export function namesSite(cell: unknown, domain: string): boolean {
   const c = cell as { kind?: string; citedDomains?: readonly string[]; named?: boolean } | null;
   return c?.kind === "answered" && (c.named === true || classifyReferences(c.citedDomains ?? [], domain).mentioned);
 }
 
+/** A healthy pass in the AI window ending at `week`: the only weeks that count toward "asked". */
+export const inAiWindow = (pass: TilePass, week: string): boolean => pass.healthy && pass.weekStart >= weeksBefore(week, AI_WINDOW_WEEKS - 1) && pass.weekStart <= week;
+
 /** The pages asked over the weeks ending at `week`, those an answer linked, and those only named. */
 export function aiWindowOf(passes: readonly TilePass[], pages: readonly TilePage[], week: string, domain = ""): { asked: Set<string>; linked: Set<string>; mentioned: Set<string> } {
-  const from = weeksBefore(week, AI_WINDOW_WEEKS - 1);
   const asked = new Set<string>();
   const linked = new Set<string>();
   const named = new Set<string>();
   for (const pass of passes) {
-    if (!pass.healthy || pass.weekStart < from || pass.weekStart > week) continue;
+    if (!inAiWindow(pass, week)) continue;
     for (const [address, page] of liveAt(pages, Date.parse(pass.at))) {
       const by = linkedByIn(pass.report, page.id, page.liveUrl!);
       if (by === null) continue;

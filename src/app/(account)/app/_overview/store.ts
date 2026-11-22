@@ -100,6 +100,7 @@ import { needsYouOf } from "@/lib/publish/record/needs-you";
 import type { State } from "@/lib/publish/types";
 import { issuesReading, waitingIssues, type IssuesReading, type WaitingItem } from "./alerts";
 import type { WaitingPageFacts, WaitingTarget } from "./waiting";
+import { enginesAsked } from "./ai-mark";
 import type { CopyKey } from "@/lib/presentation/copy";
 import { STAGE_FILTER_COPY_KEY, stageOf } from "../calendar/stages";
 
@@ -258,15 +259,7 @@ interface WeekDrafts {
  * line says.
  */
 function enginesMeasured(report: StoredReport | null): readonly AnswerEngine[] {
-  const rows = report?.aiAnswers?.rows ?? [];
-  const asked: AnswerEngine[] = [];
-  for (const row of rows) {
-    for (const column of row.engines) {
-      const engine = column.engine as AnswerEngine;
-      if (column.cell.kind !== "unmeasured" && !asked.includes(engine)) asked.push(engine);
-    }
-  }
-  return asked;
+  return enginesAsked(report?.aiAnswers?.rows ?? []);
 }
 
 /**

@@ -1,27 +1,20 @@
-// SPEC §4 · §6 (board AppAI) — the AI tab: the week and the day AI was asked,
-// the month's mention rate with three lines under it, each page in AI answers,
-// which AI read and sent visits, and the questions card that closes on the grid.
+// SPEC §4 (plate O3) — Linked by AI's detail: back to Overview, the tiles with
+// this one current, the head and its lead, then each page question asked in
+// the last four weeks.
 //
-// **Every read is a stored one, and Overview's own.** The pages linked, the
-// reads and the visits are the readers Overview's AI figure draws; the
-// reputation is the month's reading Overview's months card draws. So a figure
-// here and on Overview is one number. No measurement, vendor call or model
-// call happens on render. "'AI rank position' and sentiment are never shown."
+// **Every read is a stored one, and the tile's own**: the rows are the Linked
+// by AI tile's pages, so the tile, the lead and the table state one number. No
+// measurement, vendor call or model call happens on render.
 //
 // **It declares no `Surface`**: the shell's own layout owns this route's
-// screen root, and the tab bar above it is `(tabs)/layout.tsx`'s.
+// screen root.
 import type React from "react";
 import type { Metadata } from "next";
 import { copy } from "@/lib/presentation/copy";
-import { formatDay } from "../../_shell/format";
+import { formatShortDay } from "../../_shell/format";
 import { readShell } from "../../_shell/provider";
-import { readAnswers } from "../../_overview/answers-provider";
-import { readBlogReads } from "../../_overview/blog-reads-provider";
-import { readOverview } from "../../_overview/provider";
-import { readPromptsAt } from "../../_overview/prompts-provider";
-import { AnswerGrid } from "../../_overview/AnswerGrid";
-import { AiLead, AiPagesCard, Reputation, WhoReads } from "../../_overview/AiTab";
-import { OVERVIEW } from "../../_overview/frame";
+import { aiLead, AiNone, AiQuestionsCard } from "../../_overview/AiTab";
+import { loadShowAll, OVERVIEW } from "../../_overview/frame";
 import { TabHead } from "../../_overview/TabHead";
 import { DetailTiles } from "../../_overview/Tiles";
 import { readTiles } from "../../_overview/tiles-provider";
@@ -29,46 +22,27 @@ import { readTiles } from "../../_overview/tiles-provider";
 /** /app/ai-answers's own `<title>` (#945). */
 export const metadata: Metadata = { title: copy("meta.app.ai-answers.title") };
 
-export default async function AiAnswersTabPage(): Promise<React.JSX.Element> {
-  const [shell, model, reads, overview, tiles] = await Promise.all([
-    readShell(),
-    readAnswers(),
-    readBlogReads(),
-    readOverview(),
-    readTiles(0, false),
-  ]);
-  const reputation = await readPromptsAt(overview.months?.reading?.week ?? null);
-  // The lead and the list read the Linked by AI tile's own model: one count, one window, the same rows.
-  const pages = tiles?.ai ?? null;
-  const grid = model.questions.length === 0 ? null : <AnswerGrid model={model} />;
+export default async function AiAnswersTabPage(p: { searchParams: Promise<Record<string, string | string[] | undefined>> }): Promise<React.JSX.Element> {
+  const [shell, tiles, { all }] = await Promise.all([readShell(), readTiles(0, false), p.searchParams.then(loadShowAll)]);
+  const model = tiles?.questions ?? null;
+  const shown = model !== null && model.rows.length > 0 && model.engines.length > 0 ? model : null;
 
   return (
     <div className={OVERVIEW} data-testid="ai-answers-tab">
       <DetailTiles model={tiles} tab="ai" />
       <TabHead
-        eyebrow={shell.weeks.kind === "counted" ? copy("overview.tab.eyebrow", { n: String(shell.weeks.weeks) }) : null}
         title={copy("overview.tile.ai-answers.label")}
         testId="ai-answers"
+        lead={shown === null ? null : aiLead(shown)}
         measured={
-          model.measuredAt === null ? null : (
+          shown?.checkedAt == null ? null : (
             <p className="text-base-content/70" data-testid="ai-answers-measured">
-              {copy("overview.search.measured", { on: formatDay(model.measuredAt, shell.timeZone) })}
+              {copy("overview.detail.checked", { date: formatShortDay(shown.checkedAt, shell.timeZone) })}
             </p>
           )
         }
       />
-
-      <AiLead model={reputation} pages={pages} reads={reads} answered={grid !== null} />
-
-      <AiPagesCard pages={pages} />
-
-      <WhoReads reads={reads} />
-
-      {reputation.kind === "measured" ? (
-        <Reputation model={reputation}>{grid}</Reputation>
-      ) : grid === null ? null : (
-        <section className="card card-border min-w-0 bg-base-100 px-4">{grid}</section>
-      )}
+      {shown === null ? <AiNone due={shell.nextDueOn} timeZone={shell.timeZone} /> : <AiQuestionsCard model={shown} all={all} timeZone={shell.timeZone} />}
     </div>
   );
 }
