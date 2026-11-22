@@ -29,7 +29,7 @@ Mon 19 – Sun 25 Oct	sample data: the range is the account's week
 Next Monday, 26 Oct, we pick the next 7.	sample data: the screen draws its own week's date and count
 Next on Mon 16 Nov	sample data: the day is the account's next first Monday
 component:icon:calendar 3	#2272: the icon ships on every Planned day, and the fixture week holds fewer Planned days than the board's
-component:icon:plus 2	#2272: the icon ships on every new page, and the fixture week holds fewer new pages than the board's (ux ruling, #3125 comment 7069922848; owner ruling 58, #2722)
+component:icon:plus 1	#2272: the icon ships on every new page, and the fixture week holds fewer new pages than the board's (ux ruling, #3125 comment 7069922848; owner ruling 58, #2722; tightened to 1 by #3138 comment 7071251177)
 In AI answers	SPEC §4 Overview is board Main (owner 2026-11-16, #2737): the ladder, best mover and Checked monthly are not drawn; the board is not redrawn, the SPEC row wins
 How long each step takes	SPEC §4 Overview is board Main (owner 2026-11-16, #2737): the ladder, best mover and Checked monthly are not drawn; the board is not redrawn, the SPEC row wins
 Pages show on Google within weeks. Google’s first page takes months, and not every page gets there.	SPEC §4 Overview is board Main (owner 2026-11-16, #2737): the ladder, best mover and Checked monthly are not drawn; the board is not redrawn, the SPEC row wins
