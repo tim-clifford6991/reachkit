@@ -2,7 +2,7 @@
 // (a registry job id, an attempt, an error class, a boot check). No customer input, payload, error message or subject id reaches it.
 // The exception is a draft the writing rules stopped twice: the owner cannot investigate a rule without its words, so that alert names
 // the site, each rule and the breaking sentences, and goes to `OWNER_EMAILS` only.
-import { WEEK_PLAN } from "@/lib/config/constants";
+import { SEARCH_READING_WINDOW_D, WEEK_PLAN } from "@/lib/config/constants";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import type { FactRow, ListRow, MailBlock } from "../../blocks/types";
 import { measured } from "@/lib/measure/measured";
@@ -35,6 +35,8 @@ export type OpsIncident =
           low: boolean;
         }[];
       };
+      // Each paying hosted site's visits by source over the week (`null`: not measured) and its live pages' Search Console clicks.
+      visits?: { weekStart: string; sites: readonly { domain: string; visits: readonly { source: string; visits: number }[] | null; clicks: number | null }[] };
       // What the week cost: per site a measurement and a page, then free scans and smoke tests, then the ledger total, in cents.
       costs?: {
         weekStart: string;
@@ -103,6 +105,8 @@ const HEALTH_WEEK = "mail.ops.incident.health-week" satisfies CopyKey;
 const UNTOLD_WEEK = "mail.ops.incident.untold-days-week" satisfies CopyKey;
 const DRIFT_WEEK = "ops.cost-drift.week" satisfies CopyKey;
 const UNCRAWLED_WEEK = "ops.uncrawled.week" satisfies CopyKey;
+const VISITS_WEEK = "ops.visits.week" satisfies CopyKey;
+const VISITS_SOURCE = "ops.visits.source" satisfies CopyKey;
 
 const BODY: Readonly<Record<OpsIncident["occasion"], CopyKey>> = Object.freeze({
   "job-failed": "mail.ops.incident.job-failed",
@@ -329,10 +333,24 @@ function promiseRow(site: PromiseSite): ListRow {
   };
 }
 
+type VisitsSite = NonNullable<Extract<OpsIncident, { occasion: "market-too-small-week" }>["visits"]>["sites"][number];
+
+/** One site's Google and AI visits and clicks, every other source it was visited from under it. */
+function visitsRow(site: VisitsSite): ListRow {
+  const unmeasured = copy("ops.promise.not-measured");
+  const of = (source: string) => site.visits?.find((line) => line.source === source)?.visits;
+  const figure = (n: number | undefined | null) => (n === undefined || n === null ? unmeasured : count(n));
+  return {
+    label: "ops.visits.line",
+    vars: { domain: closedDomain(site.domain), google: figure(of("google")), ai: figure(of("ai")), clicks: figure(site.clicks), days: SEARCH_READING_WINDOW_D },
+    detail: (site.visits ?? []).filter((line) => line.source !== "google" && line.source !== "ai").map((line) => ({ text: VISITS_SOURCE, vars: { source: closedName(line.source), n: count(line.visits) } }) as const),
+  };
+}
+
 /** The Monday digest: each part drawn only where it has something to say. */
 function weekBlocks(incident: Extract<OpsIncident, { occasion: "market-too-small-week" }>): MailBlock[] {
   const blocks: MailBlock[] = [];
-  if (incident.scanIds.length > 0 || (incident.promise === undefined && incident.untold === undefined && incident.costs === undefined && incident.unhealthy === undefined && incident.uncrawled === undefined)) {
+  if (incident.scanIds.length > 0 || (incident.promise === undefined && incident.visits === undefined && incident.untold === undefined && incident.costs === undefined && incident.unhealthy === undefined && incident.uncrawled === undefined)) {
     blocks.push({ block: "paragraph", text: BODY[incident.occasion] }, { block: "facts", items: factsOf(incident) });
   }
   if (incident.promise !== undefined) {
@@ -341,6 +359,9 @@ function weekBlocks(incident: Extract<OpsIncident, { occasion: "market-too-small
     for (const [label, group] of [["ops.promise.low", sites.filter((site) => site.low)], ["ops.promise.held", sites.filter((site) => !site.low)]] as const) {
       if (group.length > 0) blocks.push({ block: "list", label, items: measured(group.map(promiseRow), new Date(`${closedDate(weekStart)}T00:00:00Z`)), emptyLine: "ops.promise.not-measured" });
     }
+  }
+  if (incident.visits !== undefined) {
+    blocks.push({ block: "paragraph", text: VISITS_WEEK, vars: { week: closedDate(incident.visits.weekStart) } }, { block: "list", items: measured(incident.visits.sites.map(visitsRow), new Date(`${closedDate(incident.visits.weekStart)}T00:00:00Z`)), emptyLine: "ops.promise.not-measured" });
   }
   if (incident.untold !== undefined) {
     blocks.push(
