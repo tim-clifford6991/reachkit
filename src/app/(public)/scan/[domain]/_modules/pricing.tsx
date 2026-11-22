@@ -63,7 +63,7 @@ const REFUSAL_LINE = { refused: "offer.checkout.refused", limited: "offer.checko
  *  `pricing` is UI-SPEC S4's, which the approved set spells out
  *  unbracketed and ruling 11a therefore makes approved copy (issue #369).
  *
- *  **Same four facts, two sentences each.** Nothing about what is offered
+ *  **Same facts, two wordings.** Nothing about what is offered
  *  differs, which is what keeps REQ-021 c4's "on the same terms" true
  *  across the two screens; and neither wording is a draft of the other, so
  *  a ruling is not re-opened by a later drawing. It is not a tier, a
@@ -74,6 +74,7 @@ const TERM_LINES: Readonly<Record<OfferTerms, () => readonly string[]>> = {
   report: () => [
     copy("offer.cadence.page", { weekPages: WEEK_PLAN.days }),
     copy("offer.cadence.movement"),
+    copy("offer.cadence.visits"),
     copy("offer.veto.window"),
   ],
   pricing: () => [
@@ -81,6 +82,7 @@ const TERM_LINES: Readonly<Record<OfferTerms, () => readonly string[]>> = {
     copy("pricing.plan.chosen"),
     copy("pricing.plan.rivals", { rivals: String(HOW_FACTS.rivals) }),
     copy("pricing.plan.mail"),
+    copy("offer.cadence.visits"),
     // The window is the pin's, in both wordings: one home, two sentences.
     copy("offer.pricing.veto", { hours: String(VETO.defaultHours) }),
   ],
