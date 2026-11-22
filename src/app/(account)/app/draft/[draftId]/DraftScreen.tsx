@@ -398,21 +398,8 @@ export function DraftScreen(p: {
    */
   const breaks = useMemo(() => liveBreaks(bodyMd, markInputs), [bodyMd, markInputs]);
 
-  /**
-   * §7's banner, in the editor: one box, and it means *held*.
-   *
-   * **Either source holds the page.** A live break is one of the thirteen
-   * `marks.ts` can decide as the founder types; a recorded one is the save
-   * reporting a rule the editor cannot run (`grounding`, `near_duplicate`). Both are the same fact about the same page, so
-   * they draw the same sentence under the same name — #789's
-   * `draft.edit.rules-held`, unchanged, because what it says is still
-   * exactly true.
-   *
-   * The green arm is only ever reached when **neither** has anything: a
-   * page with one break and twelve passes is held, and "all your rules
-   * hold" beside an underlined sentence would be the card contradicting
-   * itself.
-   */
+  /** §7's banner, in the editor: one box meaning *held*. A live break or a recorded one holds the page alike, so
+   *  the green arm shows only when neither has anything (issue 932). */
   const rulesLive =
     breaks.length > 0 || (current && checked.rulesFailed) ? (
       heldAlert
@@ -606,22 +593,8 @@ export function DraftScreen(p: {
     }
   };
 
-  /**
-   * SPEC §7's search result, as a reader meets one (issue 932).
-   *
-   * The address, the title and the description, in a result's own order,
-   * drawn off the **buffer** so it moves as the founder types — which is
-   * the only reading of "title and search-result description" that makes
-   * the pane worth having. It is a rendering of their text and never a
-   * verdict on it: no length score, no "too long", because nothing in §8
-   * bounds either field and a bar that said otherwise would be this screen
-   * inventing a rule.
-   *
-   * The address is the domain and stops there. A page in review has no
-   * path — the destination decides the slug at publication — and a guessed
-   * one under the word *address* would be the one invented fact on a pane
-   * whose job is to show what publishes.
-   */
+  /** SPEC §7's search result in the editor, off the buffer: the domain alone, since a page in review has no path yet,
+   *  and never a verdict on the text (issue 932). */
   const searchResult = (
     <section className="card card-border bg-base-100 min-w-0" data-testid="draft-search-result">
       <div className="card-body min-w-0 gap-1">
