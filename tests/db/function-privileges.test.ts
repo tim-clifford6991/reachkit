@@ -209,6 +209,7 @@ describe("issue 1483 — advisor `auth_rls_initplan`: every policy reads `auth.u
     }));
     // A policy a later migration adds is held to the bare-call check below, not to this one's before and after.
     expect(unwrapped.filter((policy) => policiesBefore.some((before) => before.name === policy.name))).toEqual(policiesBefore.filter((policy) => /^\S+ (SELECT|ALL) /.test(policy.shape)));
+    expect(unwrapped.filter((p) => !policiesBefore.some((b) => b.name === p.name)).every((p) => /^\S+ SELECT /.test(p.shape))).toBe(true);
   });
 
   it("a bare call is what fails — the mutation this test guards against", () => {
