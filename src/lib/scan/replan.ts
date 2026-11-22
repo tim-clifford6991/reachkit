@@ -2,7 +2,7 @@
 // finding no re-plan at it, the `scan/rescore` tick re-commits each paying site's week from its stored rows at 0¢, from the first date no draft holds
 // and no daily run can have claimed, through the same `planWeek(from)` as the on-demand recommit. The owner's OK of each week stands.
 // Each site is dry-run first (`week_replan_dry_run`): a week dating fewer writable days than the committed one is held (`replan-held`); one dating none
-// is claimed `empty` (`replan-empty`) so the next planner retries. The owner is mailed old and new weeks once per planner. One claim per (planner, site)
+// is claimed `empty` (`replan-empty`) so the next planner retries. The owner is mailed the old and new weeks of the sites whose week changed, once per planner. One claim per (planner, site)
 // in `ops_events`; the tick runs one at a time.
 import { unmeasuredPartsOf } from "@/lib/scan/weekly/account";
 import { reportIncident } from "@/lib/mail/ops/incident";
@@ -92,9 +92,10 @@ export async function replanSites(
     // Claimed only after the apply, so an apply that never ran is tried again on the next tick; a changed week's claim time is a commit the daily tick reads.
     if (plan !== null && (state === plan.from || state === "unchanged")) await inStep(`replan-apply-${id}`, () => applyReplan(id, plan.from, a.now));
     if (!(await inStep(`replan-claim-${id}`, () => claimOpsEvent(KIND, id, fingerprint, state))) || plan === null) continue;
-    told.push(plan);
+    if (state === plan.from) told.push(plan);
     (state === "empty" ? empty : state === "held" ? held : replanned).push(id);
   }
+  if (told.length === 0 && due.length > 0) console.log(JSON.stringify({ event: "week_replan_unchanged", fingerprint, sites: due.length }));
   if (told.length > 0 && !events.some((e) => e.kind === TOLD)) await inStep("replan-told", () => tellOwner(told, fingerprint));
   return { replanned, held, empty };
 }

@@ -64,6 +64,11 @@ it("applies a week whose lost day held a topic the select cannot take, and dates
   expect(state.rows.find((row) => row.planned_for === "2026-10-21")?.ready).toBe(true);
 });
 
+it("sends no mail at a next planner that leaves the week as committed, and logs it once", async () => {
+  await tick(0).catch(() => tick(1)).then(() => vi.stubEnv("RK_PLANNER", "0fa2"));
+  expect([await tick(2), mails.length, vi.mocked(console.log).mock.calls.filter(([line]) => String(line).includes("week_replan_unchanged")).length]).toEqual([{ replanned: [SITE_ID], held: [], empty: [] }, 1, 1]);
+});
+
 it("claims a week that dates no day empty, commits nothing, and does not dry-run it again at the same planner", async () => {
   for (const row of state.rows) Object.assign(row, { ready: false, unready_reason: "resting", rest_until: "2027-01-01T00:00:00Z", ...(row.planned_for == null ? {} : { planned_for: "2026-10-01" }) });
   expect(await tick(0)).toEqual({ replanned: [], held: [], empty: [SITE_ID] });
