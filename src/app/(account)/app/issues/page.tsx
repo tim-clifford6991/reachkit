@@ -11,6 +11,8 @@ import type React from "react";
 import type { Metadata } from "next";
 import { copy } from "@/lib/presentation/copy";
 import { requireSetUpAccount } from "../_session/account";
+import { checkDays } from "../calendar/week-screen";
+import { planToday, readPlanHead } from "../calendar/provider";
 import { readIssues } from "./provider";
 import { siteFixesScreen } from "./screen";
 import { IssuesView } from "./view";
@@ -20,5 +22,7 @@ export const metadata: Metadata = { title: copy("meta.app.issues.title") };
 export default async function IssuesPage(): Promise<React.JSX.Element> {
   const reading = await readIssues();
   const { timeZone } = await requireSetUpAccount();
-  return <IssuesView screen={siteFixesScreen(reading, timeZone)} />;
+  // The same next Monday check This Week's head names.
+  const [head, today] = await Promise.all([readPlanHead(), planToday()]);
+  return <IssuesView screen={siteFixesScreen(reading, timeZone, checkDays(head, today).next)} />;
 }

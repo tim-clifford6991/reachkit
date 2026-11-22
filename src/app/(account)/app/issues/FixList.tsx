@@ -53,7 +53,12 @@ function Detail(p: { row: FixRow; words: SiteFixesScreen["words"]; onBack: () =>
           </h2>
           <span className={BADGE[row.tone]}>{row.badge}</span>
         </div>
-        {row.share === null ? null : <p className="text-sm">{row.share}</p>}
+        {row.share === null ? null : (
+          <p className="text-sm">
+            <span className="font-semibold">{row.share.slice(0, row.figure)}</span>
+            {row.share.slice(row.figure)}
+          </p>
+        )}
         <div className="flex min-w-0 gap-2 rounded-box bg-base-200 p-3 text-sm">
           <Wrench size={16} strokeWidth={1.75} className="mt-0.5 shrink-0 text-primary" aria-hidden />
           <p className="min-w-0" data-testid="fix-text">
