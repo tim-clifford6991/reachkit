@@ -12,11 +12,38 @@
 // Pure. The screens read it; the weekly pass writes the reading.
 import { googleRead, type PageReading, type PlaceSource } from "./page-reading";
 
+/** Where a live page stands with Google: added (indexed), shown in a search, on Google (either),
+ *  and checked (any part read). `null` is a part nothing read; one definition for every screen. */
+export interface GoogleState {
+  added: boolean | null;
+  shown: boolean | null;
+  on: boolean;
+  checked: boolean;
+}
+
+/** `serpRead`: the latest healthy pass read the page's own search's result page. */
+export function googleStateOf(reading: Pick<PageReading, "place" | "variants" | "google"> | null, serpRead: boolean): GoogleState {
+  const read = googleRead(reading?.google);
+  const seen = reading != null && (reading.place !== null || reading.variants.length > 0 || (read?.impressions ?? 0) > 0);
+  const shown = seen ? true : read !== null || serpRead ? false : null;
+  // A page Google shows in a search is one it has added, whether or not URL Inspection was read.
+  const indexed = reading?.google?.indexed;
+  const added = seen || indexed === true ? true : indexed === false ? false : null;
+  const on = added === true || shown === true;
+  return { added, shown, on, checked: on || added !== null || read !== null || serpRead };
+}
+
+/** The first reading date the page was on Google; a page shown before the date was kept counts from then. */
+export function onGoogleSince(reading: Pick<PageReading, "reached"> | null | undefined): string | null {
+  const dates = [reading?.reached.onGoogle, reading?.reached.showing].filter((at): at is string => at !== undefined);
+  return dates.length === 0 ? null : dates.reduce((a, b) => (Date.parse(a) <= Date.parse(b) ? a : b));
+}
+
 export interface Ladder {
   crawled: boolean | null;
   indexed: boolean | null;
   impressions: number | null;
-  /** Seen in a search: a place on its own search, or an impression. */
+  /** Shown in a search (`googleStateOf`). */
   showing: boolean | null;
   /** The page's place on its own search, from the reading. */
   bestPlace: number | null;
@@ -37,16 +64,13 @@ export function ladderOf(reading: PageReading | null, crawls: number | null): La
   const crawledProved = reading?.googlebot === true || (crawls ?? 0) > 0 || reading?.google?.lastCrawl != null;
   const crawled = crawledProved ? true : crawls !== null || google !== null ? false : null;
 
-  const inspected = reading?.google?.indexed ?? null;
-  const seen = reading?.reached.showing !== undefined || (impressions ?? 0) > 0;
-  const indexed = inspected === true || seen ? true : inspected === false ? false : null;
-  const showing = reading?.place != null || (impressions ?? 0) > 0 ? true : impressions === null ? null : false;
+  const state = googleStateOf(reading, false);
 
   return {
     crawled,
-    indexed,
+    indexed: state.added,
     impressions,
-    showing,
+    showing: state.shown,
     bestPlace: reading?.place == null ? null : Math.round(reading.place.value),
     placeSource: reading?.place?.source ?? null,
     cited: reading?.linkedBy == null ? null : reading.linkedBy.length > 0,

@@ -18,7 +18,7 @@
 //
 // Without credentials steps 1 and 5 still run, so the ladder shows what ReachKit can prove. 0¢: every call is free.
 // It never throws: a refusal or failed read stores its reason on each hosted page, logs it once per host, and the verdicts and mail still run.
-import { AI_BLOG_ENGINES, SEARCH_READING_WINDOW_D, GSC_PROPERTIES_PER_ACCOUNT, UNCRAWLED_AFTER_D } from "@/lib/config/constants";
+import { AI_BLOG_ENGINES, SEARCH_READING_WINDOW_D, GSC_PROPERTIES_PER_ACCOUNT, PROPERTY_NEW_D, UNCRAWLED_AFTER_D } from "@/lib/config/constants";
 import { gscClient, gscPool, type GscAccount, type GscRefusal, type GscSend } from "@/lib/vendors/gsc";
 import { knownPlaces } from "@/lib/measure/known-places";
 import { addressOf as pageAddress, assembleReading, engineReadingOf, pageSearchOf, readingOf, statedOf, uncrawled, type GoogleReading, type GoogleUnread } from "@/lib/measure/page-reading";
@@ -33,8 +33,6 @@ import { invalidateHosted } from "./cache";
 import { addressOf, slugOf, type AddressRow } from "./moved";
 
 const DAY_MS = 86_400_000;
-// Google starts a new property's data "in a few days" and Search Analytics lags 2–3 days more, so an empty answer before then is not a zero.
-const PROPERTY_NEW_D = 4;
 const RESTORE_WITHIN_D = 90;
 
 /** `destinations.search_verification`. */

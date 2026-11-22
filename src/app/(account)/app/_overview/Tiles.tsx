@@ -76,6 +76,7 @@ function ofLine(tile: Tile): string {
   if (tile.of.kind === "due") return copy("overview.tile.due.of");
   if (tile.of.kind === "none") return copy(NONE_OF[tile.key]);
   const m = formatCount(tile.of.m);
+  if (tile.key === "google" && (tile.of.u ?? 0) > 0) return copy("overview.tile.google.of.unchecked", { m, u: formatCount(tile.of.u!) });
   return tile.key === "pages" ? copy("overview.tile.pages.of", { total: m }) : copy(OF[tile.key], { m, n: m, weeks: formatCount(AI_WINDOW_WEEKS) });
 }
 
@@ -89,6 +90,18 @@ function openedLine(o: { fetches: number; visits: number }): string {
         : copy("overview.tile.ai.opened", { f: formatCount(o.fetches) });
   if (o.visits === 0) return opened;
   return `${opened} · ${o.visits === 1 ? copy("overview.tile.ai.visits.one") : copy("overview.tile.ai.visits", { r: formatCount(o.visits) })}`;
+}
+
+/** On Google's line beneath the of-line; `null` on every other tile. */
+function shownLine(tile: Tile, d: TileDates): string | null {
+  const s = tile.shown;
+  if (s === undefined) return null;
+  if (s.kind === "no-console") return copy("overview.tile.google.no-console");
+  if (s.kind === "shown") return s.n === 0 ? copy("overview.tile.google.shown.none") : s.n === 1 ? copy("overview.tile.google.shown.one") : copy("overview.tile.google.shown", { n: formatCount(s.n) });
+  const date = s.start === null ? null : formatShortDay(new Date(`${s.start}T12:00:00Z`), d.timeZone);
+  const c = formatCount(s.visited);
+  if (s.visited === 0) return date === null ? copy("overview.tile.google.not-in") : copy("overview.tile.google.counts-start", { date });
+  return date === null ? copy("overview.tile.google.visited.not-in", { c }) : copy("overview.tile.google.visited", { c, date });
 }
 
 function changeLine(key: TileKey, change: TileChange, d: TileDates): string | null {
@@ -140,6 +153,7 @@ export function Tiles(p: { model: TilesModel; dates: TileDates }): React.JSX.Ele
         {p.model.tiles.map((tile) => {
           const Icon = ICON[tile.key];
           const change = tile.change === null ? null : changeLine(tile.key, tile.change, p.dates);
+          const shown = shownLine(tile, p.dates);
           return (
             <li key={tile.key} className="flex min-w-0">
               <Link className={`${CARD} ${LIFT}`} href={TILE_HREF[tile.key]} prefetch={true} data-testid={`overview-tile-${tile.key}`}>
@@ -150,7 +164,8 @@ export function Tiles(p: { model: TilesModel; dates: TileDates }): React.JSX.Ele
                     <ChevronRight className="ms-auto hidden size-4 shrink-0 text-base-content/50 sm:block" aria-hidden />
                   </span>
                   <Figure tile={tile} className="text-3xl leading-snug font-semibold tabular-nums" />
-                  <span className={INK}>{ofLine(tile)}</span>
+                  <span className={`${INK} break-words`}>{ofLine(tile)}</span>
+                  {shown === null ? null : <span className={`${INK} break-words`}>{shown}</span>}
                   {tile.key === "ai" && p.model.aiOpened != null ? <span className={INK}>{openedLine(p.model.aiOpened)}</span> : null}
                   {change === null ? null : (
                     <span className={`text-sm ${tile.change?.kind === "up" ? "text-success" : "text-base-content/70"}`}>{change}</span>
@@ -236,13 +251,14 @@ export function DetailTilesSkeleton(): React.JSX.Element {
 }
 
 /** The closed account of what each tile counts. */
-export function TilesHow(p: { hosted: boolean }): React.JSX.Element {
+export function TilesHow(p: { hosted: boolean; noConsole: boolean }): React.JSX.Element {
   return (
     <details className="collapse collapse-arrow card-border min-w-0 bg-base-100" data-testid="overview-tiles-how">
       <summary className="collapse-title font-semibold">{copy("overview.tiles.how.title")}</summary>
       <div className="collapse-content flex flex-col gap-2 text-sm">
         <p>{copy("overview.tiles.how.pages")}</p>
         <p>{copy("overview.tiles.how.google")}</p>
+        {p.noConsole ? <p>{copy("overview.tiles.how.google.no-console")}</p> : null}
         <p>{copy("overview.tiles.how.ai", { weeks: formatCount(AI_WINDOW_WEEKS) })}</p>
         {p.hosted ? <p>{copy("overview.tiles.how.ai.opened")}</p> : null}
         <p>{copy("overview.tiles.how.rivals")}</p>

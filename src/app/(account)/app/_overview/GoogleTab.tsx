@@ -5,10 +5,10 @@ import type React from "react";
 import { Suspense } from "react";
 import Link from "next/link";
 import { copy } from "@/lib/presentation/copy";
-import { formatCount, formatShortDay } from "../_shell/format";
+import { formatCount } from "../_shell/format";
 import type { GoogleSearchRow } from "./google-pages";
 import { PhoneRow } from "./LivePages";
-import { placeWords } from "./place-words";
+import { googleWords } from "./place-words";
 import { rowClass } from "./frame";
 import { searchKey, type Planned } from "./search-model";
 import { ShowAll } from "./ShowAll";
@@ -36,16 +36,6 @@ function Search(p: { row: GoogleSearchRow; plain?: boolean }): React.JSX.Element
   );
 }
 
-/** The place words every Overview detail says; a page not read yet says when it will be. */
-function place(row: GoogleSearchRow, first: string): string {
-  const { page } = row;
-  if (page.bucket === "unread") return first;
-  if (page.place === null) return copy("overview.place.none");
-  const source = page.bucket === "console" ? "gsc" : page.estimate ? "labs" : "serp";
-  const weeks = page.line.kind === "flat" ? page.line.weeks : 0;
-  return placeWords({ place: { value: page.place, source, query: page.search ?? "" }, prev: page.before }, weeks);
-}
-
 function doing(row: GoogleSearchRow, planned: ReadonlyMap<string, Planned>): string {
   const update = row.search === null ? undefined : planned.get(searchKey(row.search));
   if (update?.update === true) return copy("overview.search.doing.update", { day: update.day });
@@ -55,8 +45,8 @@ function doing(row: GoogleSearchRow, planned: ReadonlyMap<string, Planned>): str
 export function GoogleTable(p: {
   rows: readonly GoogleSearchRow[];
   all: boolean;
-  /** "First reading {date}", for a page no pass has read yet. */
-  first: string;
+  /** The next check's day, for a page not checked yet. */
+  next: string;
   planned: ReadonlyMap<string, Planned>;
   empty: string;
   /** "Checked {date}", where a pass read the places. */
@@ -90,7 +80,7 @@ export function GoogleTable(p: {
                       <Search row={row} />
                     </td>
                     <td className="whitespace-nowrap">{row.volume === null ? <Dash sr={copy("overview.google.unmeasured.sr")} /> : formatCount(row.volume)}</td>
-                    <td>{place(row, p.first)}</td>
+                    <td>{googleWords(row.page.reading, row.page.state, row.page.line.kind === "flat" ? row.page.line.weeks : 0, p.next)}</td>
                     <td className="break-words">
                       {row.rival === null ? <Dash sr={copy("overview.google.unread.sr")} /> : copy("overview.google.rival", { name: row.rival.name, n: formatCount(row.rival.place) })}
                     </td>
@@ -104,7 +94,7 @@ export function GoogleTable(p: {
             {rows.map((row, i) => (
               <PhoneRow key={row.page.id} href={row.page.href} className={rowClass(i, all)} testId="google-page-card">
                 <Search row={row} plain />
-                <span className="font-semibold">{place(row, p.first)}</span>
+                <span className="font-semibold">{googleWords(row.page.reading, row.page.state, row.page.line.kind === "flat" ? row.page.line.weeks : 0, p.next)}</span>
                 <span className={`text-sm ${INK}`}>{doing(row, p.planned)}</span>
               </PhoneRow>
             ))}
@@ -121,6 +111,3 @@ export function GoogleTable(p: {
     </section>
   );
 }
-
-/** "First reading Mon 24": the next pass, for pages none has read. */
-export const firstReading = (due: Date, timeZone: string): string => copy("overview.pages.first-reading", { date: formatShortDay(due, timeZone) });

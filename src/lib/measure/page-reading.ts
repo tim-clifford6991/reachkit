@@ -9,6 +9,7 @@
 //
 // Pure. Nothing is bought, and a field nothing measured is `null`, never 0.
 import { VENDOR } from "@/lib/config/constants";
+import { googleStateOf, onGoogleSince } from "./ladder";
 import { measured, measuredZero, unmeasured, type Measured } from "./measured";
 
 /** One address a week read on a search, and the place it held. */
@@ -193,6 +194,8 @@ export interface Place {
 export interface Reached {
   found?: string;
   showing?: string;
+  /** Added by Google or shown in a search (`googleStateOf`). */
+  onGoogle?: string;
   firstPage?: string;
   readByAi?: string;
   linkedByAi?: string;
@@ -306,7 +309,7 @@ export interface PageReading {
   reannounced?: string;
 }
 
-const REACHED_KEYS = ["found", "showing", "firstPage", "readByAi", "linkedByAi", "aiVisit"] as const;
+const REACHED_KEYS = ["found", "showing", "onGoogle", "firstPage", "readByAi", "linkedByAi", "aiVisit"] as const;
 const PLACE_SOURCES: readonly PlaceSource[] = ["serp", "labs", "gsc"];
 export const VARIANTS_MAX = 3;
 
@@ -488,9 +491,11 @@ export function assembleReading(a: { before: PageReading | null; report: PlaceRe
   const weeksBefore = before?.unindexedWeeks ?? 0;
   const unindexedWeeks = out === null ? weeksBefore : !out ? 0 : sameWeek ? Math.max(weeksBefore, 1) : weeksBefore + 1;
 
+  const state = googleStateOf({ place, variants, google: page.google }, false);
   const now: Record<(typeof REACHED_KEYS)[number], boolean> = {
     found: googlebot || page.google?.lastCrawl != null || page.google?.indexed === true,
-    showing: place !== null || variants.length > 0 || (google?.impressions ?? 0) > 0,
+    showing: state.shown === true,
+    onGoogle: state.on,
     firstPage: place !== null && place.value <= FIRST_PAGE_PLACES,
     readByAi: (page.aiReads ?? 0) > 0,
     linkedByAi: (linkedBy ?? []).length > 0,
@@ -498,7 +503,7 @@ export function assembleReading(a: { before: PageReading | null; report: PlaceRe
   };
   const reached: Reached = {};
   for (const key of REACHED_KEYS) {
-    const kept = key === "found" && before?.googlebot === null ? undefined : before?.reached[key];
+    const kept = key === "found" && before?.googlebot === null ? undefined : key === "onGoogle" ? (onGoogleSince(before) ?? undefined) : before?.reached[key];
     const at = kept ?? (now[key] ? nowIso : undefined);
     if (at !== undefined) reached[key] = at;
   }
