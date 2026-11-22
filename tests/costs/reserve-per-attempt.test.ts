@@ -28,7 +28,7 @@ const FIX_OUT = 8192;
 /** One attempt at the writer's list price, Opus 5.5's 400¢ in and 2000¢ out per million, recomputed here. */
 const ONE_ATTEMPT = (INPUT_TOKENS / 1e6) * 400 + (FIX_OUT / 1e6) * 2000;
 /** The most a day's research has cost before its write. */
-const RESEARCH_C = 7;
+const RESEARCH_C = 14;
 
 const rows = () => writeFetchRowMock.mock.calls.map(([row]) => row as { source: string; reservedCents: number; costCents: number });
 const fix = (cost: Parameters<typeof llm>[0]) => llm(cost, { site: "generate.fix", tier: "writer", input: INPUT, schema: SCHEMA });

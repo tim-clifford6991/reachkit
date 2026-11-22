@@ -41,10 +41,10 @@ export const PRICE_BOOK = Object.freeze({
  *  the same ledger, for every paid call made against a scan row that carries
  *  a `site_id`; a free scan has no site and is bounded by `FREE_BOUNDS`.
  *  A drafted default the owner may correct, sized from two readings:
- *   - one deep pass (`DEEP_C` 150¢) plus a day's draft (`DRAFT_C` 80¢) is
- *     230¢;
+ *   - one deep pass (`DEEP_C` 150¢) plus a day's draft (`DRAFT_C` 87¢) is
+ *     237¢;
  *   - the largest day SPEC §6 allows a site, 3 deep passes in 24 hours (450¢)
- *     and the day's one draft (80¢), is 530¢.
+ *     and the day's one draft (87¢), is 537¢.
  *  550¢ covers both, and is about half the product's smallest day (1000¢), so
  *  one runaway site never takes the whole of it.
  *
@@ -53,9 +53,10 @@ export const PRICE_BOOK = Object.freeze({
  *  different windows inside a single refusal. */
 export const CAPS = Object.freeze({
   FREE_C: 12, DEEP_C: 150, WEEKLY_C: 40,
-  /** A day's pages on Opus 5.5: its research, a write cut off at 8 192 tokens (21¢), the retry (22¢) and the fix (23¢)
-   *  reserve 73¢ at most, so a write is never refused its fix; a measured page costs 18¢ (p50) to 31¢ (max). */
-  DRAFT_C: 80,
+  /** A day's pages on Opus 5.5: its research on Sonnet 5.5 (14¢ at most measured), a write cut off at 8 192 tokens
+   *  (21¢), the retry (22¢) and the fix (23¢) reserve 80¢ at most, so a write is never refused its fix; a measured
+   *  page costs 18¢ (p50) to 31¢ (max) before its research. */
+  DRAFT_C: 87,
   DAILY_SITE_C: 550,
   /** SPEC §7 *Pages left*: a short week's top-up buys under its own 7¢ a site a week, outside `WEEKLY_C`. */
   TOPUP_C: 7,
@@ -133,6 +134,9 @@ export const INFERENCE_PRICE_BOOK = Object.freeze({
    *  4 US dollars in and 20 out per million tokens, the standard price on
    *  https://platform.claude.com/docs/en/about-claude/pricing. */
   writer: Object.freeze({ inCentsPerM: 400, outCentsPerM: 2000 } as const),
+  /** `claude-sonnet-5-5`'s list price per million tokens, in cents: the research step's claims reading. 2 US dollars in
+   *  and 10 out, the standard price on https://platform.claude.com/docs/en/about-claude/pricing. */
+  research: Object.freeze({ inCentsPerM: 200, outCentsPerM: 1000 } as const),
 } as const);
 
 /** The wall clock one `llm()` call may hold, per tier, in milliseconds: the
@@ -160,6 +164,8 @@ export const INFERENCE_TIMEOUT_MS = Object.freeze({
    *  fixes 33 s. The draft job's invocation is bounded by
    *  `TIMING.jobsCeilingS`; `PIPELINE.fixBeforeMs` keeps the fix call inside it. */
   writer: 120_000,
+  /** The claims reading of up to seven pages: Sonnet 5.5 took 14.2 s at p95 and 14.7 s at most on the cited pages. */
+  research: 20_000,
 } as const);
 
 /** The vendor SDK's own retry layer, off. `@anthropic-ai/sdk` defaults

@@ -47,7 +47,7 @@ export async function readClaims(
     if (c.capHit()) return { lost: batch, because: "cap" };
     const answer = await llm(c, {
       site: "generate.research",
-      tier: "haiku",
+      tier: "research",
       locale: a.locale,
       schema: CLAIMS_SCHEMA,
       instructions: ["task", "locale"],
