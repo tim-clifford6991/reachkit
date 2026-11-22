@@ -206,6 +206,7 @@ const HOUSE_RULES = [
   "State one opinion of the business's own, once: its judgement on a fact of its own in `pack` (that a number is low, which step it would take first, what it would not bother with), in the paragraph that states that fact and in plain words, without labelling it an opinion. It is never a claim about what most people, businesses or sites do or get wrong: `pack` holds no such fact.",
   "Do not sum the page up at its end, and do not announce what a section is about to say: the last section ends on its last fact or instruction.",
   `Where \`pack.claims\` or \`pack.facts\` hold a statistic or a sentence worth quoting, use ${VOICE.evidence.min} to ${VOICE.evidence.max} of them on the page, each with who measured or said it and its link. Use only the ones \`pack\` holds, as it states them; where it holds fewer, use fewer, and never invent a figure, a quotation or a name.`,
+  "A claim of `pack.claims` whose `tier` is `vendor` or `other` is one company's or writer's word: state it as theirs, naming who says it (\"Position Digital's roundup lists…\"), or of its own `product` or `about`; never as a general fact in a sentence that names no one, unless a claim of another tier says the same.",
 ];
 
 /** A table the writer lays out itself: every cell a fact (`no_placeholder_cell` says what a cell never is). */

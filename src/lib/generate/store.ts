@@ -7,9 +7,8 @@
 // `auth.uid()` for a row policy to match; so every call below is site-scoped by an explicit `site_id` predicate,
 // the scoping the policy would have applied.
 //
-// **The voice text is read and never written.** `sites.voice_text` is the
-// customer's field; nothing here copies it onto a draft, caches it, or
-// carries an earlier version of it. See `voice/inputs.ts`.
+// **The voice text is read and never written.** `sites.voice_text` is the customer's field; nothing here copies it
+// onto a draft, caches it, or carries an earlier version of it. See `voice/inputs.ts`.
 import { dbAdmin } from "@/lib/db";
 import type { KnownPage } from "@/lib/known-content/types";
 import { readStoredReport, type StoredReport } from "@/lib/scan/report";
@@ -127,8 +126,7 @@ export interface StoredPage {
 
 export interface GenerateStore {
   siteFacts(siteId: string): Promise<SiteFacts | null>;
-  /** `sites.writing_voice` (issue 1390): the voice the customer fixed in
-   *  Settings, or `null` where they left it to be chosen. */
+  /** `sites.writing_voice` (issue 1390): the voice the customer fixed in Settings, or `null` where they left it to be chosen. */
   writingVoice(siteId: string): Promise<WritingVoice | null>;
   /** The freshest stored report for the site — the scan a day's page is
    *  generated from (§8: "from the freshest scan"). `null` where the site
@@ -144,11 +142,9 @@ export interface GenerateStore {
   /** SPEC §7 (issue 1507): the version live at an address — its row, and
    *  when it went live, and its stored search reading — or `null` where none is. */
   liveVersionAt(siteId: string, url: string): Promise<{ draft: DraftRow; publishedAt: Date; reading?: unknown } | null>;
-  /** Every version that went live at an address, live now or not, by its
-   *  draft id. */
+  /** Every version that went live at an address, live now or not, by its draft id. */
   versionsAt(siteId: string, url: string): Promise<string[]>;
-  /** Issue 1509: each address of this site live now, with the Markdown of
-   *  the version it serves. */
+  /** Issue 1509: each address of this site live now, with the Markdown of the version it serves. */
   livePages(siteId: string): Promise<{ url: string; markdown: string }[]>;
   queuedPages(siteId: string, exceptDraftId: string | null): Promise<StoredPage[]>;
   /** SPEC §7 (D13, issue 1144): the text of every draft and live page
@@ -157,14 +153,11 @@ export interface GenerateStore {
    *  returns the Markdown alone — no id, title or site — so nothing that
    *  could name another customer's page leaves the store. */
   pagesElsewhere(siteId: string, since: Date, limit: number): Promise<string[]>;
-  /** Drafts short of hand-off, for the claim sweep — never one already
-   *  handed to a destination or already live. */
+  /** Drafts short of hand-off, for the claim sweep — never one already handed to a destination or already live. */
   draftsShortOfHandOff(siteId: string, limit: number): Promise<DraftRow[]>;
-  /** How many of them there are, so a truncated sweep can report the rest
-   *  as deferred rather than as finished. */
+  /** How many of them there are, so a truncated sweep can report the rest as deferred rather than as finished. */
   countShortOfHandOff(siteId: string): Promise<number>;
-  /** The site profile's page inventory for the domain — every page the
-   *  last crawl read, with its purpose. Empty where no pass has built one. */
+  /** The site profile's page inventory for the domain — every page the last crawl read, with its purpose. Empty where no pass has built one. */
   siteInventory(domain: string): Promise<readonly InventoryRow[]>;
   /** SPEC §7 (2026-09-20, #928): every page this site already has — ours,
    *  a connected WordPress's and the crawl's — for the links a new page may
@@ -184,9 +177,10 @@ export interface GenerateStore {
   /** Drafts on these sites in `generating` that no run is still writing: the customer's restart (#788), or a row a
    *  run saved and then stopped on (`./interrupted.ts`). */
   restartedDrafts(siteIds: readonly string[], now: Date): Promise<readonly RestartedDraft[]>;
-  /** The `meta` of the site's newest draft of one content type (D42), or
-   *  `null` where it has none. */
+  /** The `meta` of the site's newest draft of one content type (D42), or `null` where it has none. */
   lastMetaOfType(siteId: string, type: string): Promise<unknown>;
+  /** Each dated draft of the site from `from` on, with the market facts it was handed (SPEC §7, a site's week). */
+  citedFrom?(siteId: string, from: string): Promise<{ day: string; facts: unknown }[]>;
 }
 
 export interface RestartedDraft {
@@ -523,6 +517,12 @@ export function supabaseGenerateStore(): GenerateStore {
         .limit(1);
       if (result.error) throw new Error(`generate/store: read from drafts failed: ${result.error.message}`);
       return (result.data ?? []).length > 0;
+    },
+
+    async citedFrom(siteId, from) {
+      const result = await untyped().from<{ scheduled_for: string; facts: unknown }>("drafts").select("scheduled_for, facts:meta->marketFacts").eq("site_id", siteId).gte("scheduled_for", from);
+      if (result.error) throw new Error(`generate/store: read from drafts failed: ${result.error.message}`);
+      return (result.data ?? []).map((row) => ({ day: row.scheduled_for, facts: row.facts }));
     },
 
     async lastMetaOfType(siteId, type) {
