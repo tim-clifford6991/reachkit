@@ -112,7 +112,8 @@ const TIER_EFFORT: Readonly<Partial<Record<Tier, "low">>> = Object.freeze({ writ
 const FIXED_REQUEST: ReadonlySet<Tier> = new Set<Tier>(["sonnet", "writer", "research"]);
 
 /** The thinking a tier's model is sent in place of turning it off: Sonnet 5.5 refuses `disabled` and, left to think,
- *  spends its output cap on it, so the research tier sends `between_tools`, the setting its reading was measured at. */
+ *  spends its output cap on it, so the research tier sends `between_tools`, the setting its reading was measured at.
+ *  The SDK's types predate `between_tools`, so `index.ts` casts it; the API documents it as Sonnet 5.5's lowest. */
 const TIER_THINKING: Readonly<Partial<Record<Tier, "between_tools">>> = Object.freeze({ research: "between_tools" });
 
 export interface TierBinding {
