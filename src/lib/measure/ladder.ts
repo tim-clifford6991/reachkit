@@ -24,10 +24,11 @@ export interface GoogleState {
 /** `serpRead`: the latest healthy pass read the page's own search's result page. */
 export function googleStateOf(reading: Pick<PageReading, "place" | "variants" | "google"> | null, serpRead: boolean): GoogleState {
   const read = googleRead(reading?.google);
-  const indexed = reading?.google?.indexed;
-  const added = typeof indexed === "boolean" ? indexed : null;
   const seen = reading != null && (reading.place !== null || reading.variants.length > 0 || (read?.impressions ?? 0) > 0);
   const shown = seen ? true : read !== null || serpRead ? false : null;
+  // A page Google shows in a search is one it has added, whether or not URL Inspection was read.
+  const indexed = reading?.google?.indexed;
+  const added = seen || indexed === true ? true : indexed === false ? false : null;
   const on = added === true || shown === true;
   return { added, shown, on, checked: on || added !== null || read !== null || serpRead };
 }
