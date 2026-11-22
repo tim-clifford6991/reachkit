@@ -86,7 +86,7 @@ import { googleWrapper, isPlatformDomain, nameLetters, registrableDomain } from 
 import type { Locale } from "@/lib/locale/locales";
 import type { NewsRow } from "@/lib/vendors/dataforseo/types";
 import { inTurn, ownPagesFirst } from "./claims";
-import { byTier, cappedSites, comparesOptions, hostOf, mixOf, namedIn, primaryAddress, rivalsInScope, sameSite, tiered, type SourceMix, type SourceTier } from "./source-tier";
+import { byTier, cappedSites, compares, hostOf, mixOf, namedIn, primaryAddress, rivalsInScope, sameSite, tiered, type SourceMix, type SourceTier } from "./source-tier";
 import { readClaims } from "./claims-read";
 import { publishedOf, sourcedBlocks, toOriginals, type SourcedBlock } from "./original";
 import { keywordOverview, serpNews, serpOrganic } from "@/lib/vendors/dataforseo";
@@ -768,7 +768,7 @@ export async function researchMarket(
   const dealt = byTier(tiered(ownPagesFirst(facts), tiers), (tier) => inTurn(tier, pages)).slice(0, RESEARCH.briefFacts);
   const ordered = byTier(tiered(await toOriginals(dealt, pages, (url) => readFresh(c, url)), tiers));
   for (const fact of ordered) if (fact.capped === true) skipped.add(registrableDomain(fact.url) ?? hostOf(fact.url));
-  const minimum = a.study === false ? 0 : comparesOptions({ target, options: a.options }) ? 1 : 2;
+  const minimum = a.study === false ? 0 : compares({ target, options: a.options }) ? 1 : 2;
   const products = rivalDomains
     .map((domain) => {
       const name = names.get(domain);

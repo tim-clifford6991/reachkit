@@ -520,9 +520,9 @@ export function supabaseGenerateStore(): GenerateStore {
     },
 
     async citedFrom(siteId, from) {
-      const result = await untyped().from<{ scheduled_for: string; meta: unknown }>("drafts").select("scheduled_for, meta").eq("site_id", siteId).gte("scheduled_for", from);
+      const result = await untyped().from<{ scheduled_for: string; facts: unknown }>("drafts").select("scheduled_for, facts:meta->marketFacts").eq("site_id", siteId).gte("scheduled_for", from);
       if (result.error) throw new Error(`generate/store: read from drafts failed: ${result.error.message}`);
-      return (result.data ?? []).map((row) => ({ day: row.scheduled_for, facts: (row.meta as { marketFacts?: unknown } | null)?.marketFacts }));
+      return (result.data ?? []).map((row) => ({ day: row.scheduled_for, facts: row.facts }));
     },
 
     async lastMetaOfType(siteId, type) {

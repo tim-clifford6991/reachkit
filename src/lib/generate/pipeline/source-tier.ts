@@ -60,8 +60,10 @@ export function namedIn(search: string, products: readonly { domain: string; nam
     .map((product) => product.domain);
 }
 
-/** A page that compares options: a listicle, or a target shaped "X vs Y" or "X alternatives" in any language. */
-export const comparesOptions = (a: { target: string; options?: boolean }): boolean => a.options === true || SHAPES.comparison.test(said(a.target));
+/** A page that compares options: a listicle, or a target shaped "X alternatives" in any language. */
+const comparesOptions = (a: { target: string; options?: boolean }): boolean => a.options === true || SHAPES.alternatives.test(said(a.target));
+/** A page that compares: one that compares options, or a target shaped "X vs Y" (which reads only what it names). */
+export const compares = (a: { target: string; options?: boolean }): boolean => comparesOptions(a) || SHAPES.versus.test(said(a.target));
 
 /** The rivals whose own pages a page reads: every one where it compares options, else those its searches name and any
  *  the site does not list as its own (a row's named competitor). A rival's page is read only where it is the subject. */
