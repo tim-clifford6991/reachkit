@@ -52,9 +52,8 @@ const EXACT: Readonly<Record<string, MovedAnswer>> = {
   "/reachkit-logo.svg": to("/brand/mark.svg"),
   "/reachkit-logo.png": to("/brand/logo.png"),
   "/reachkit-logo-white-bg.png": to("/brand/logo.png"),
-  // The site's share card. Today's carries a build hash in its address
-  // (`isMetadataAsset` in the middleware), so the old one is served from a
-  // fixed address of its own.
+  // The site's share card. Today's carries a build hash in its address, so
+  // the old one is served from a fixed address of its own.
   "/opengraph-image": { status: 200, rewrite: "/share-card" },
   // Nothing in their place: no affiliate scheme, no public roadmap, no
   // status page. `/gone` itself, v2's own 410 responder, is a route again.

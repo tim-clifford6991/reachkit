@@ -3,12 +3,9 @@
 // "Authorisation: default-deny. `src/app/(account)/**` requires a session;
 // `src/app/(public)/**` explicitly declares itself public in one middleware
 // allow-list, so a new account route cannot leak by omission." This file is
-// the one allow-list. Every request under a segment this product serves is
-// denied unless it matches `PUBLIC_PATHS` (BP-001 `## Public interface`,
-// "Routes (public)"), one of the two transport-only adapters (`decision 1`:
-// "every file under `src/app/api/**` is BP-001's ... a transport-only
-// adapter"), the sign-in address prompt itself (below), or a Next.js
-// internal.
+// the one allow-list. Every request under a guarded segment is denied
+// unless it matches `PUBLIC_PATHS` or is a transport-only adapter; every
+// other path is public without a row.
 //
 // **A path under no segment this product serves is not denied — it does not
 // exist** (#405). Denying it too meant a stranger who mistyped a ReachKit
@@ -61,12 +58,7 @@ import { contentSecurityPolicy, isStaticHost, isStaticPage } from "@/app/_root/c
 // imports nothing at all — precisely so this file can share the session
 // cookie's name and the two routes with the module that issues them,
 // instead of holding a second copy of each.
-import {
-  CHECKOUT_RETURN_PATH,
-  CONFIRM_PATH,
-  isAuthCookieName,
-  SIGNIN_PATH,
-} from "@/lib/account/identity/addresses";
+import { isAuthCookieName, SIGNIN_PATH } from "@/lib/account/identity/addresses";
 import type { CookieToSet } from "@/lib/account/identity/auth";
 
 // ── Issue #331: the Content-Security-Policy, and the nonce it turns on ──
@@ -120,133 +112,19 @@ function mintNonce(): string {
  *  (issue 1458, `src/app/(public)/gone/route.ts`). */
 const GONE_PATH = "/gone";
 
-/** One entry per BP-001 `## Public interface` "Routes (public)" row
- *  (`## Steps` step 1). A leading `:` marks a single dynamic path segment —
- *  matched against exactly one non-empty segment, never across a `/`. */
+/** The public rows under a guarded segment; a path under no guarded segment is answered without a session anyway.
+ *  A leading `:` matches exactly one non-empty segment. */
 export const PUBLIC_PATHS: readonly string[] = [
-  "/",
-  "/scan/:domain",
   "/api/scan",
   "/api/scan/:scanId/progress",
   "/api/report/:domain/correct",
   "/api/lead",
   // The outside uptime monitor has no session; the route reads job_runs only.
   "/api/health",
-  "/opt-out/:token",
-  // Issue 889: RFC 8058's one-click unsubscribe endpoint, over the same
-  // token as the page above it. Public by necessity and for the same
-  // reason — the request comes from a mail client on behalf of a reader who
-  // has no session, and refusing it would answer a pressed Unsubscribe
-  // control with a redirect to a sign-in screen.
+  // RFC 8058 one-click unsubscribe: the request comes from a mail client with no session.
   "/api/opt-out/:token",
-  // The Monday mail's Unsubscribe and Pause publishing links, and the one-click
-  // endpoint its List-Unsubscribe header names: a mail's reader has no session.
-  "/unsubscribe/:token",
   "/api/unsubscribe/:token",
-  "/pause/:token",
-  "/pricing",
-  // The free-scans gallery (SPEC §2), each card's logo from our own origin, the landing's logo band and the offer's count.
-  "/scans",
-  "/scans/logo/:domain",
-  "/scans/recent", "/offer/spots",
-  // Issue #19: the sign-in address prompt now exists as a route
-  // (`src/app/(public)/signin/page.tsx`), so it takes a row on this list
-  // like every other public surface. `SIGNIN_PATH` stays used below: it is
-  // this file's redirect *target*, and a target that is not itself public
-  // would redirect a denied visitor to a denied page forever — a property
-  // worth holding independently of any row on this list.
-  SIGNIN_PATH,
-  // Issue #468 (was `/signin/:token`, #35): the page a sign-in or
-  // email-change link lands on; its one button posts to the redeem route.
-  // Unauthenticated by necessity — the whole point of the link is that its
-  // holder has no session yet, so a denial here would send a working link
-  // to the screen that says links do not work.
-  CONFIRM_PATH,
-  // After Stripe Checkout: the buyer has paid and has no session yet.
-  CHECKOUT_RETURN_PATH,
-  // Issue #144: the address the one veto link in the `draft-ready` mail
-  // lands on. Unauthenticated by necessity, like `/opt-out/:token` above
-  // it — a mail's reader has no session, and the token is the whole of the
-  // credential the stop link carries.
-  "/veto/:token",
-  // BUILD §9, issue #49. The two documents the hosted edge serves. They
-  // are public by their own nature — a robots policy nobody may read is
-  // not a policy — and each route resolves the Host itself and answers 404
-  // on one it does not serve, so a row here grants no read of anything.
-  // They are deliberately *not* rewritten into the hosted group with the
-  // rest of a `content.` host's paths: the same two routes answer the app
-  // host's own documents too.
-  "/robots.txt",
-  "/sitemap.xml",
-  // Issue #350: the legal pages. Public by their own nature: a privacy
-  // notice or a processing agreement nobody may read is not one, and a
-  // footer link that asks a stranger to sign in to read an imprint fails
-  // the one audience an imprint has. §14's compliance guardrails are built
-  // as features precisely so they are readable without an account.
-  //
-  // They read nothing: each page renders its own copy keys and reaches no
-  // store, so a row here grants access to no customer's data.
-  "/privacy",
-  "/terms",
-  "/imprint",
-  "/dpa",
-  // Issue 1396: how the product works and who builds it. Each reads only
-  // what is already public: a listed report's domain and the newest live
-  // page of ReachKit's own site.
-  "/how-it-works",
-  "/about",
-  // Issue #326: the web app manifest. It is a Next metadata route rather
-  // than a file of ours (`src/app/manifest.ts`), and Next will serve a
-  // manifest only from the top level of `app/` — so unlike the icons and
-  // the share images it has one fixed, unhashed address and takes an
-  // ordinary row. It reads nothing: the document is a copy key, two
-  // tokens and a start URL.
-  "/manifest.webmanifest",
-  // Issue 1458: the pages Google still ranks from earlier versions, the
-  // two free tools, the 410 and the share card those addresses are served
-  // from, and the plain-text summary for AI readers. Each reads nothing but
-  // the articles in `src/app/(public)/_library/`; a tool reads the one
-  // public page its visitor names, through `safeFetch`.
-  "/compare",
-  "/compare/:tool",
-  "/teardowns",
-  "/teardowns/:site",
-  "/answers/:question",
-  "/tools",
-  "/tools/meta-preview",
-  "/tools/on-page-check",
-  GONE_PATH,
-  "/share-card",
-  "/llms.txt",
-  // RFC 9116: a researcher has no session.
-  "/.well-known/security.txt",
 ];
-
-/** The addresses of Next's own generated metadata assets under `(public)`:
- *  the tab icon, the apple-touch icon and the two share images (issue
- *  #326).
- *
- *  **They are matched by shape because they have no fixed spelling.** A
- *  metadata route inside a route group is given a six-character build-time
- *  hash — `/icon-a1b2c3`, not `/icon`
- *  (`next/dist/esm/lib/metadata/get-metadata-route.js`) — and the files
- *  are inside `(public)` on purpose, so that ReachKit's mark and share
- *  card are not put on `(account)` and `(hosted)` documents as well.
- *
- *  **The match is anchored to the two segments that own an image**, `/`
- *  and `/scan/{domain}`, and not to a last segment anywhere. A bare
- *  suffix rule would make `/app/draft/opengraph-image-a1b2c3` public, and
- *  that path is not a missing asset — it is the draft screen with a
- *  `draftId` that happens to look like one, rendered with no session. */
-const METADATA_ASSET = /^(icon|apple-icon|opengraph-image)\d?(-[a-z0-9]{6})?(\.[a-z0-9]+)?$/;
-
-export function isMetadataAsset(pathname: string): boolean {
-  const segments = pathname.split("/");
-  const last = segments[segments.length - 1] ?? "";
-  if (!METADATA_ASSET.test(last)) return false;
-  const parent = segments.slice(0, -1).join("/");
-  return parent === "" || /^\/scan\/[^/]+$/.test(parent);
-}
 
 /** SPEC §5's hosted edge: `<label>.{customer-domain}`, by CNAME.
  *
@@ -542,11 +420,7 @@ function isAdapterPath(pathname: string): boolean {
   return pathname === "/api/jobs" || pathname.startsWith("/api/jobs/");
 }
 
-/** Every request whose path is not covered by `config.matcher`'s
- *  exclusion never reaches this function; these two are Next.js's own
- *  internals and are allowed again here so this function is correct even
- *  when called directly, independent of the matcher (`## File plan`:
- *  "... and Next.js internals"). */
+/** Next.js's own internals, which a hosted host must not rewrite even when the matcher lets them through. */
 function isNextInternal(pathname: string): boolean {
   return pathname.startsWith("/_next/") || pathname === "/favicon.ico";
 }
@@ -594,10 +468,9 @@ function matchesPublicPath(pathname: string): boolean {
  *
  *  **Nothing may leak by omission.** BP-001's own property — "a new account
  *  route cannot leak by omission" — is now a checked invariant rather than
- *  a side effect of the default: `tests/app/middleware.test.ts` walks
- *  `src/app/**` and fails, naming the route, if any non-`(public)` route
- *  stands under a segment named neither here nor in `PUBLIC_PATHS`. A new
- *  account route whose row is missing fails CI; it does not ship open. */
+ *  a side effect of the default: `scripts/hygiene.mjs` fails `audit`,
+ *  naming the segment, when a top-level segment under `src/app/(account)`
+ *  or `src/app/api` is missing here. It does not ship open. */
 export const GUARDED_SEGMENTS: readonly string[] = [
   // `src/app/api/**` — transport-only adapters (`decision 1`).
   "api",
@@ -625,13 +498,7 @@ function isGuarded(pathname: string): boolean {
 }
 
 function isPublic(pathname: string): boolean {
-  return (
-    isNextInternal(pathname) ||
-    pathname === SIGNIN_PATH ||
-    isAdapterPath(pathname) ||
-    isMetadataAsset(pathname) ||
-    matchesPublicPath(pathname)
-  );
+  return isAdapterPath(pathname) || matchesPublicPath(pathname);
 }
 
 // How long the removal read may take before the report renders anyway.
@@ -893,8 +760,7 @@ export async function middleware(
 }
 
 export const config = {
-  // `proxy.md` "Negative matching": static internals never invoke this function (`isNextInternal`
-  // covers them when it is called directly). The machine endpoints and the static pages
+  // `proxy.md` "Negative matching": static internals never invoke this function. The machine endpoints and the static pages
   // (`@/app/_root/csp`, the same two lists) skip it only on ReachKit's own hosts, where
   // `next.config.ts` gives them a fixed policy and a CDN hit runs no function; elsewhere the
   // hosted edge answers.

@@ -5,8 +5,7 @@
 // hashed, single-use, draft-bound token that performs exactly one
 // transition. This file is the surface that spends it for a reader who has
 // no session, because a mail's reader has none: the link is the whole of the
-// credential, and `/veto/:token` says so on `src/middleware.ts`'s one public
-// allow-list.
+// credential, and `/veto` is under no segment `src/middleware.ts` guards.
 //
 // **Two arms, because the approved set draws two** (S6, issue #371): an
 // *ask* — the page named, the search it targets, the site it goes to, the

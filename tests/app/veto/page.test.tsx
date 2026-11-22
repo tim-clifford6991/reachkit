@@ -766,11 +766,6 @@ describe("the surface owns no token knowledge", () => {
 });
 
 describe("the address: public, and never indexed", () => {
-  it("the route is on the public allow-list", async () => {
-    const { PUBLIC_PATHS } = await import("../../../src/middleware");
-    expect(PUBLIC_PATHS).toContain("/veto/:token");
-  });
-
   it("the route's exported metadata turns indexing and following off", async () => {
     // Issue #326 moved the directive off this page and onto the route's
     // row in `_seo/routes.ts` — the same row the app host's sitemap reads.

@@ -13,6 +13,7 @@ import { blockRuleFindings, blockRules, budgetFindings, GENERATED_DB_TYPES, isMe
 import { duplicateKeys, ENTRY_RE, keyFileCounts } from "./lib/plain-words.mjs";
 import { mainCheckoutFinding } from "./lib/main-checkout.mjs";
 import { fetchesPayloadFilters } from "./lib/fetches-payload-filter.mjs";
+import { unguardedSegments } from "./lib/guarded-segments.mjs";
 import { staleBaselines } from "./design/baseline.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -275,6 +276,7 @@ function checkRepo() {
   checkBudgets(texts);
   checkLimiterSeam(texts);
   for (const finding of fetchesPayloadFilters(texts)) add("repo", finding);
+  for (const finding of unguardedSegments(ROOT)) add("repo", finding);
   for (const finding of staleBaselines()) add("repo", `parity: ${finding}`);
 }
 
