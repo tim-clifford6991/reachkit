@@ -74,14 +74,15 @@ export async function readClaims(
     facts.push(...admittedClaims(answer.value.claims, batch, a.today, a.rivals));
     return { lost: [], because: "" };
   };
-  for (const batch of batches) {
+  // Together, batches and halves alike, so a retry adds one call's time and never two to the job's ceiling.
+  await Promise.all(batches.map(async (batch) => {
     const first = await claimsOf(batch);
     const half = Math.ceil(batch.length / 2);
-    const tried = first.because === "timeout" && batch.length > 1 ? [await claimsOf(batch.slice(0, half)), await claimsOf(batch.slice(half))] : [first];
+    const tried = first.because === "timeout" && batch.length > 1 ? await Promise.all([claimsOf(batch.slice(0, half)), claimsOf(batch.slice(half))]) : [first];
     const lost = tried.flatMap((each) => each.lost.map((page) => page.url));
     // A page whose claims were never read is counted by the daily check, never dropped unseen.
     if (lost.length > 0) void recordOpsEvent("research_claims_dropped", JSON.stringify({ page: a.page ?? a.search, lost }), tried.find((each) => each.lost.length > 0)!.because.slice(0, 40), a.siteId ?? null);
-  }
+  }));
 
   return facts;
 }
