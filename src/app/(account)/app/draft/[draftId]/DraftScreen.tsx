@@ -1,8 +1,6 @@
-// SPEC §7 — the draft view's one client component: the whole draft to read,
-// the grounded-fact highlight with its source line, the claim-check badge,
-// Approve / Edit / Veto, "what happens if you do nothing", Markdown edit with
-// live preview, and a back link to the calendar. daisyUI cards, badges and
-// buttons in the route; lucide for the two glyphs.
+// SPEC §7 *A page's screen* — its one client component: the head, the rail with Edit and Stop, and the page's notes
+// as tabs above the article (plates F4b/F8), the grounded-fact highlight with its source line, Markdown edit with
+// live preview in the Page tab, and a back link to This Week.
 //
 // One component owns the four things that change on this screen — which
 // arm is on display (read or edit), what the buffer holds,
@@ -50,9 +48,10 @@ import { AUTOSAVE_DEBOUNCE_MS, TIMING } from "@/lib/config/constants";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { parseAsString, useQueryState } from "nuqs";
 import { useRefreshWhenMoved } from "@/app/_poll/useRefreshWhenMoved";
 import { copy } from "@/lib/presentation/copy";
-import { ArrowLeft, Check, CircleCheck, LoaderCircle, Plus, RefreshCw, TriangleAlert } from "lucide-react";
+import { ArrowLeft, Check, CircleCheck, LoaderCircle, Plus, RefreshCw, Search, TriangleAlert } from "lucide-react";
 import { formatCount, formatDate, formatTime } from "../../_shell/format";
 import { PageSkeleton } from "../../_shell/skeletons";
 import { writtenLine } from "../../_shell/written";
@@ -60,20 +59,22 @@ import { COMMAND_TARGET, publishing } from "../../calendar/publishing";
 import { STAGE_OF, TONE_BADGE } from "../../calendar/stages";
 import { say } from "../../../../_toast/say";
 import { CLAIM_COPY_KEY, CLAIM_TONE, claimAfterSave } from "./claim";
-import { DecidePanel } from "./DecidePanel";
+import { DayTimeline, DecidePanel, daySteps } from "./DecidePanel";
 import type { DraftCommand } from "./actions";
 import { draftStore, type SaveBody } from "./save";
 import type { EditorPane, PreviewFrame } from "./Editor";
 import { liveBreaks, type MarkInputs } from "./marks";
 import { PageRecordBlock } from "./PageRecordBlock";
-import { LivePage } from "./LivePage";
-import { WhyThisPage } from "./TargetBlock";
+import { HowItsDoing, LiveAddress, LiveRail } from "./LivePage";
+import { PageTabs, type PageTab } from "./PageTabs";
 import { factPresentIn } from "./grounded";
 import { PublishedPageView } from "./PublishedPageView";
-import { ChecksCard, LinksCard, SearchResult, WhatAddsCard, WrittenFromCard } from "./ReviewCards";
+import { ChecksCard, LinksCard, SearchFacts, SearchResult, WhatAddsCard } from "./ReviewCards";
 import { checkList } from "./checks";
-import { kindWord } from "../../calendar/card-lines";
-import { NO_LINK_RECORD, linksOnPage } from "./links-panel";
+import { kindWord, whySentenceOf } from "../../calendar/card-lines";
+import { PageSources } from "../../calendar/PageSources";
+import type { SourcesModel } from "../../calendar/week-screen";
+import { NO_LINK_RECORD, linksOnPage, pageLinksEmpty } from "./links-panel";
 import { useDebounced } from "./useDebounced";
 import { SHAPE } from "./shape";
 import { wordCount, type ClaimState, type DraftView } from "./model";
@@ -134,9 +135,18 @@ export function DraftScreen(p: {
   /** REQ-093 c2's label, resolved on the server by `renderGenerated`, the one sink for model text, as a plain string. */
   generatedLabel: string;
   facts?: React.ReactNode; // Facts we can quote: a server boundary the live arm draws.
+  reads?: React.ReactNode; // A hosted page's AI reads, in How It's Doing.
+  /** The page's sources in This Week's own model; `null` where its body could not be read. */
+  sources: SourcesModel | null;
 }): React.JSX.Element {
   const { view } = p;
   const [editing, setEditing] = useState(false);
+  const [, setTab] = useQueryState("tab", parseAsString.withOptions({ history: "replace", scroll: false }));
+  /** The editor lives in the Page tab, so Edit opens it from whichever tab is showing. */
+  const openEditor = (): void => {
+    setEditing(true);
+    void setTab(null);
+  };
   const [pane, setPane] = useState<EditorPane>("markdown");
   /** SPEC §7's desktop/phone switch. The frame the preview is drawn in,
    *  and nothing else: the page inside it is the same three calls either
@@ -388,21 +398,8 @@ export function DraftScreen(p: {
    */
   const breaks = useMemo(() => liveBreaks(bodyMd, markInputs), [bodyMd, markInputs]);
 
-  /**
-   * §7's banner, in the editor: one box, and it means *held*.
-   *
-   * **Either source holds the page.** A live break is one of the thirteen
-   * `marks.ts` can decide as the founder types; a recorded one is the save
-   * reporting a rule the editor cannot run (`grounding`, `near_duplicate`). Both are the same fact about the same page, so
-   * they draw the same sentence under the same name — #789's
-   * `draft.edit.rules-held`, unchanged, because what it says is still
-   * exactly true.
-   *
-   * The green arm is only ever reached when **neither** has anything: a
-   * page with one break and twelve passes is held, and "all your rules
-   * hold" beside an underlined sentence would be the card contradicting
-   * itself.
-   */
+  /** §7's banner, in the editor: one box meaning *held*. A live break or a recorded one holds the page alike, so
+   *  the green arm shows only when neither has anything (issue 932). */
   const rulesLive =
     breaks.length > 0 || (current && checked.rulesFailed) ? (
       heldAlert
@@ -596,22 +593,8 @@ export function DraftScreen(p: {
     }
   };
 
-  /**
-   * SPEC §7's search result, as a reader meets one (issue 932).
-   *
-   * The address, the title and the description, in a result's own order,
-   * drawn off the **buffer** so it moves as the founder types — which is
-   * the only reading of "title and search-result description" that makes
-   * the pane worth having. It is a rendering of their text and never a
-   * verdict on it: no length score, no "too long", because nothing in §8
-   * bounds either field and a bar that said otherwise would be this screen
-   * inventing a rule.
-   *
-   * The address is the domain and stops there. A page in review has no
-   * path — the destination decides the slug at publication — and a guessed
-   * one under the word *address* would be the one invented fact on a pane
-   * whose job is to show what publishes.
-   */
+  /** SPEC §7's search result in the editor, off the buffer: the domain alone, since a page in review has no path yet,
+   *  and never a verdict on the text (issue 932). */
   const searchResult = (
     <section className="card card-border bg-base-100 min-w-0" data-testid="draft-search-result">
       <div className="card-body min-w-0 gap-1">
@@ -635,286 +618,289 @@ export function DraftScreen(p: {
    *  from whichever arm is showing. */
   const openVersion = newVersion === null || unsaved ? null : <OpenVersion draftId={newVersion} />;
 
-  if (editing) {
-    const stateBadge = refused ? (
-      <span
-        className="badge badge-error"
-        data-testid="draft-edit-state-unsaved"
-      >
-        {copy("draft.edit.state.unsaved")}
-      </span>
-    ) : unsaved ? (
-      <span className="badge badge-ghost" data-testid="draft-edit-state-edited">
-        {copy("draft.edit.state.edited")}
-      </span>
-    ) : (
-      claimBadge
-    );
+  const stateBadge = refused ? (
+    <span className="badge badge-error" data-testid="draft-edit-state-unsaved">
+      {copy("draft.edit.state.unsaved")}
+    </span>
+  ) : unsaved ? (
+    <span className="badge badge-ghost" data-testid="draft-edit-state-edited">
+      {copy("draft.edit.state.edited")}
+    </span>
+  ) : (
+    claimBadge
+  );
+  const saveLine = refused
+    ? copy("draft.unsaved")
+    : unsaved
+      ? copy("draft.edit.saving")
+      : savedAt === null
+        ? null
+        : copy("draft.edit.saved", {
+            at: formatTime(savedAt, view.timeZone),
+          });
 
-    const saveLine = refused
-      ? copy("draft.unsaved")
-      : unsaved
-        ? copy("draft.edit.saving")
-        : savedAt === null
-          ? null
-          : copy("draft.edit.saved", {
-              at: formatTime(savedAt, view.timeZone),
-            });
-
-    return (
-      <div className="flex min-w-0 flex-col gap-4" data-testid="draft-view">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <nav data-testid="draft-edit-back">
-            <button
-              type="button"
-              className="btn btn-sm btn-ghost"
-              onClick={() => setEditing(false)}
-            >
-              <ArrowLeft size={16} strokeWidth={1.75} aria-hidden />
-              {copy("draft.edit.back")}
-            </button>
-          </nav>
-          <span
-            className="flex flex-wrap items-center gap-2"
-            data-testid="draft-claim"
-          >
-            {stageBadge}
-            {stateBadge}
-          </span>
-        </div>
-
-        <section
-          className="card card-border bg-base-100 min-w-0"
-          data-testid="draft-edit-card"
-        >
-          <div className="card-body min-w-0 gap-4">
-            <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <h1 className="card-title break-words text-2xl">{text.title}</h1>
-              {saveLine === null ? null : (
-                <span
-                  className="text-xs text-base-content/70"
-                  data-testid="draft-save-line"
-                >
-                  {saveLine}
-                </span>
-              )}
-            </div>
-            {rulesLive}
-            {/* **`label`, not `legend`** (issue 932). daisyUI's
-                `fieldset-legend` is a `<legend>`: it names the *group*, and
-                a `<legend>` is not the accessible name of the control under
-                it — axe reports both of these fields `label` (critical),
-                which is a merge gate. The class is daisyUI's own and stays;
-                the element it sits on is the one that can carry a name. */}
-            <fieldset className="fieldset gap-2">
-              <label className={KEY_LABEL} htmlFor={TITLE_FIELD_ID}>
-                {copy("draft.edit.title-label")}
-              </label>
-              <input
-                id={TITLE_FIELD_ID}
-                type="text"
-                className="input w-full"
-                value={text.title}
-                onChange={(e) => edit({ title: e.target.value })}
-                onBlur={flush}
-                data-testid="draft-editor-title"
-              />
-              <label className={KEY_LABEL} htmlFor={DESCRIPTION_FIELD_ID}>
-                {copy("draft.edit.description-label")}
-                {/* SPEC §7's "length count". A count and not a verdict:
-                    nothing in §8 bounds a meta description, so a bar that
-                    turned red at 160 would be this screen inventing a rule
-                    the battery does not run. It is a number, so it is set
-                    in the mono face and is never clamped. */}
-                <span className="num ms-auto text-xs text-base-content/70" data-testid="draft-description-count">
-                  {copy("draft.editor.description-count", {
-                    n: formatCount(text.description.length),
-                  })}
-                </span>
-              </label>
-              <textarea
-                id={DESCRIPTION_FIELD_ID}
-                className="textarea h-20 w-full"
-                value={text.description}
-                onChange={(e) => edit({ description: e.target.value })}
-                onBlur={flush}
-                data-testid="draft-editor-description"
-              />
-            </fieldset>
-            <div className="divider my-0" />
-            <Editor
-              bodyMd={bodyMd}
-              onChange={(next) => edit({ bodyMd: next })}
-              onFlush={flush}
-              markFact={grounded ? view.grounded.passage : null}
-              pane={pane}
-              onPane={setPane}
-              frame={frame}
-              onFrame={setFrame}
-              inputs={markInputs}
-              address={view.publisher.url}
-              searchResult={searchResult}
-            />
-            <p className="text-sm text-base-content/70" data-testid="draft-edit-footnote">
-              {copy("draft.edit.footnote")}
-            </p>
-          </div>
-        </section>
-
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            className="btn btn-sm btn-primary"
-            data-testid="draft-edit-done"
-            onClick={leaveEditor}
-          >
-            {copy("draft.edit.done")}
-          </button>
-          <button
-            type="button"
-            className="btn btn-sm btn-ghost"
-            data-testid="draft-edit-discard"
-            // Back to the text the store last confirmed — never to something
-            // the store never saw.
-            onClick={() => setText(savedText)}
-          >
-            {copy("draft.edit.discard")}
-          </button>
-        </div>
-        {openVersion}
+  /** *Edit This Page* swaps the Page panel for the editor; the tabs and the rail stay. */
+  const editor = (
+    <>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <button type="button" className="btn btn-sm btn-ghost" onClick={() => setEditing(false)} data-testid="draft-edit-back">
+          <ArrowLeft size={16} strokeWidth={1.75} aria-hidden />
+          {copy("draft.edit.back")}
+        </button>
+        {stateBadge}
       </div>
-    );
-  }
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="text-xl font-semibold break-words">{text.title}</h2>
+        {saveLine === null ? null : (
+          <span
+            className="text-xs text-base-content/70"
+            data-testid="draft-save-line"
+          >
+            {saveLine}
+          </span>
+        )}
+      </div>
+      {rulesLive}
+      {/* **`label`, not `legend`** (issue 932). daisyUI's
+          `fieldset-legend` is a `<legend>`: it names the *group*, and
+          a `<legend>` is not the accessible name of the control under
+          it — axe reports both of these fields `label` (critical),
+          which is a merge gate. The class is daisyUI's own and stays;
+          the element it sits on is the one that can carry a name. */}
+      <fieldset className="fieldset gap-2">
+        <label className={KEY_LABEL} htmlFor={TITLE_FIELD_ID}>
+          {copy("draft.edit.title-label")}
+        </label>
+        <input
+          id={TITLE_FIELD_ID}
+          type="text"
+          className="input w-full"
+          value={text.title}
+          onChange={(e) => edit({ title: e.target.value })}
+          onBlur={flush}
+          data-testid="draft-editor-title"
+        />
+        <label className={KEY_LABEL} htmlFor={DESCRIPTION_FIELD_ID}>
+          {copy("draft.edit.description-label")}
+          {/* SPEC §7's "length count". A count and not a verdict:
+              nothing in §8 bounds a meta description, so a bar that
+              turned red at 160 would be this screen inventing a rule
+              the battery does not run. It is a number, so it is set
+              in the mono face and is never clamped. */}
+          <span className="num ms-auto text-xs text-base-content/70" data-testid="draft-description-count">
+            {copy("draft.editor.description-count", {
+              n: formatCount(text.description.length),
+            })}
+          </span>
+        </label>
+        <textarea
+          id={DESCRIPTION_FIELD_ID}
+          className="textarea h-20 w-full"
+          value={text.description}
+          onChange={(e) => edit({ description: e.target.value })}
+          onBlur={flush}
+          data-testid="draft-editor-description"
+        />
+      </fieldset>
+      <div className="divider my-0" />
+      <Editor
+        bodyMd={bodyMd}
+        onChange={(next) => edit({ bodyMd: next })}
+        onFlush={flush}
+        markFact={grounded ? view.grounded.passage : null}
+        pane={pane}
+        onPane={setPane}
+        frame={frame}
+        onFrame={setFrame}
+        inputs={markInputs}
+        address={view.publisher.url}
+        searchResult={searchResult}
+      />
+      <p className="text-sm text-base-content/70" data-testid="draft-edit-footnote">
+        {copy("draft.edit.footnote")}
+      </p>
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          className="btn btn-sm btn-primary"
+          data-testid="draft-edit-done"
+          onClick={leaveEditor}
+        >
+          {copy("draft.edit.done")}
+        </button>
+        <button
+          type="button"
+          className="btn btn-sm btn-ghost"
+          data-testid="draft-edit-discard"
+          // Back to the text the store last confirmed — never to something
+          // the store never saw.
+          onClick={() => setText(savedText)}
+        >
+          {copy("draft.edit.discard")}
+        </button>
+      </div>
+    </>
+  );
 
-  // ── the read arm ────────────────────────────────────────────────────
+  // ── the screen ──────────────────────────────────────────────────────
   // A page that went live, and one its customer stopped: board `PageDetail`.
-  if (view.takeDown !== null && view.live !== null)
-    return (
-      <>
-        <LivePage view={view} live={view.live} onEdit={() => setEditing(true)} facts={p.facts} />
-        {openVersion}
-      </>
-    );
+  const live = view.takeDown !== null && view.live !== null ? view.live : null;
+  const stopped = view.takeDown?.kind === "stopped";
+  const n = wordCount(bodyMd);
+  // Near enough to read at a glance: the nearest hundred from 200, else the nearest ten.
+  const words = copy("draft.words", { words: formatCount(n >= 200 ? Math.round(n / 100) * 100 : Math.round(n / 10) * 10) });
+  const why = view.target.kind === "target" ? whySentenceOf(view.target.why?.planReason) : view.target.kind === "fix" ? copy("draft.target.fix") : null;
+  const checks = checkList({ grounded, claim, recorded: recordedChecks, known: view.knownCheck });
+  const links = linksOnPage(bodyMd, { domain: view.domain, record: view.linkRecord ?? NO_LINK_RECORD });
+  const publishesAt = view.doNothing.publishesAt;
+  const timeline = live === null && publishesAt !== null && state === view.state ? (
+    <div className="lg:hidden">
+      <DayTimeline steps={daySteps(view, publishesAt)} />
+    </div>
+  ) : null;
 
-  // The day's timeline carries when it was written, so the header states the length alone.
-  const written = copy("draft.words", { words: formatCount(wordCount(bodyMd)) });
+  const page = editing ? (
+    editor
+  ) : (
+    <>
+      {rulesHeld}
+      {live === null || stopped ? null : <LiveAddress url={live.url} />}
+      {body}
+      {droppedGrounding}
+      {/* Where the customer has edited, the note that keeps the generated-content label from speaking for their words. */}
+      {editedNote === null ? null : (
+        <p className="text-xs text-base-content/70" data-testid="draft-edited-note">
+          {editedNote}
+        </p>
+      )}
+      {/* c7: the change is unsaved and the customer is told so, while their words stay in the buffer. */}
+      {unsaved ? (
+        <p className="text-xs text-base-content/70" data-testid="draft-unsaved">
+          {copy("draft.unsaved")}
+        </p>
+      ) : null}
+      {/* What became of this page (issue #217), absent for a draft whose record could not be read. */}
+      {view.record === null ? null : <PageRecordBlock record={view.record} timeZone={view.timeZone} />}
+      {timeline}
+    </>
+  );
+
+  const tabs: PageTab[] = [
+    { id: "page", label: copy("draft.tab.page"), panel: page },
+    ...(live === null ? [] : [{ id: "doing", label: copy("draft.tab.doing"), panel: (
+            <>
+              <HowItsDoing live={live} stopped={stopped} timeZone={view.timeZone} />
+              {p.reads}
+            </>
+          ) }]),
+    ...(checks.rows.length === 0
+      ? []
+      : [
+          // A re-check still running says so, rather than a count that is about to change.
+          claim.state === "outstanding"
+            ? { id: "checks", label: copy("draft.claim.outstanding"), panel: <ChecksCard list={checks} /> }
+            : checks.counts === null
+            ? { id: "checks", label: copy("draft.checks.title"), panel: <ChecksCard list={checks} /> }
+            : {
+                id: "checks",
+                label: copy("draft.tab.checks", { passed: checks.counts.passed, asked: checks.counts.total }),
+                name: copy("draft.tab.checks.name", { passed: checks.counts.passed, asked: checks.counts.total }),
+                panel: <ChecksCard list={checks} />,
+              },
+        ]),
+    {
+      id: "search",
+      label: copy("draft.tab.search"),
+      panel: (
+        <>
+          <SearchResult title={text.title} description={text.description} publisher={view.publisher} />
+          {view.target.kind === "target" ? <SearchFacts target={view.target} /> : null}
+        </>
+      ),
+    },
+    ...(p.sources === null && p.facts === undefined
+      ? []
+      : [
+          {
+            id: "sources",
+            label: copy("draft.tab.sources"),
+            panel: (
+              <>
+                {p.sources === null ? null : <PageSources sources={p.sources} draftId={view.draftId} picked={null} />}
+                {p.facts}
+              </>
+            ),
+          },
+        ]),
+    ...(view.adds === undefined ? [] : [{ id: "adds", label: copy("draft.tab.adds"), panel: <WhatAddsCard adds={view.adds} /> }]),
+    ...(pageLinksEmpty(links) ? [] : [{ id: "links", label: copy("draft.tab.links"), panel: <LinksCard links={links} /> }]),
+  ];
 
   return (
-    // **Room under the page for the Decide bar** (owner's review of #931).
-    // Below `md` the three controls are fixed above the shell's dock
-    // (`DecidePanel` says why there), so the last card would sit under them
-    // without this. The shell already reserves the dock's own 4rem below
-    // `lg` (`app/layout.tsx`: `pb-20`); this is the bar's height on top of
-    // it, measured in Chromium at 390 rather than guessed — see the PR body.
-    <div
-      className="flex min-w-0 flex-col gap-4 max-md:pb-20"
-      data-testid="draft-view"
-    >
-      <nav data-testid="draft-back">
-        <Link href="/app/calendar" prefetch={true} className={SHAPE.back}>
-          <ArrowLeft size={16} strokeWidth={1.75} aria-hidden />
-          {copy("draft.back")}
-        </Link>
-      </nav>
+    <div className={SHAPE.screen} data-testid="draft-view">
+      <Link href="/app/calendar" prefetch={true} className={SHAPE.back} data-testid="draft-back">
+        <ArrowLeft size={16} strokeWidth={1.75} aria-hidden />
+        {copy("draft.back")}
+      </Link>
 
-      {state === "generating" ? <Rewriting draftId={view.draftId} /> : null}
-
-      {/* SPEC §7 (2026-10-07, issue 1325; board `R12-6-Page`, #1072): the
-          page, then the Decide panel, then the notes. From `xl` the panel
-          is sticky beside both; below it the panel stands between the
-          article and the notes (`shape.ts`). */}
-      {/* The header: the title, then the status badges and one meta
-          line. The title is drawn twice on purpose — here as the
-          screen's heading, and in the frame as the page publishes it. */}
-      <header className="flex min-w-0 flex-col gap-2" data-testid="draft-head">
-        <h1 className="min-w-0 wrap-anywhere" data-testid="draft-title">
-          {view.title}
-        </h1>
-        <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
-          <span
-            className="flex min-w-0 flex-wrap items-center gap-2"
-            data-testid="draft-claim"
-          >
-            {stageBadge}
+      <div className={SHAPE.grid}>
+        <header className={SHAPE.head} data-testid="draft-head">
+          {state === "generating" ? <Rewriting draftId={view.draftId} /> : null}
+          <h1 className="line-clamp-2 min-w-0 wrap-anywhere" title={view.title} data-testid="draft-title">
+            {view.title}
+          </h1>
+          <p className="flex min-w-0 flex-wrap items-center gap-2 text-sm text-base-content/70" data-testid="draft-claim">
+            {stopped ? (
+              <span className="badge badge-soft badge-warning" data-testid="live-stopped">
+                {copy("draft.stopped.badge")}
+              </span>
+            ) : (
+              stageBadge
+            )}
             {kind === null ? null : (
               <span className="badge badge-ghost gap-1" data-testid="draft-kind">
                 <KindIcon className="size-3.5 shrink-0" strokeWidth={1.75} aria-hidden />
                 {kind}
               </span>
             )}
-            {claimBadge}
-            {claim.state === "failed" ? (
-              // c11: the customer is told which entry held the draft.
-              // The entry is their own recorded text and renders as a
-              // value, whether or not the sentence beside it is written.
-              <span className="num text-sm" data-testid="draft-claim-entry">
-                {claim.matchedEntry}
-              </span>
-            ) : null}
-          </span>
-          {/* One meta line: when it was written, how long it is, and
-              REQ-093 c2's label, bound to the text it speaks for. */}
-          <p className="min-w-0 text-sm text-base-content/70">
-            <span data-testid="draft-written">{written}</span>
+            <span data-testid="draft-written">{words}</span>
+            {/* REQ-093 c2's label, bound to the text it speaks for. */}
             <span aria-hidden>{META_SEPARATOR}</span>
             <span data-testid="draft-generated-label">{p.generatedLabel}</span>
           </p>
-        </div>
-        {matchedLine === null ? null : <p className="text-sm">{matchedLine}</p>}
-        {stage === "set_aside_standard" ? <p className="text-sm" data-testid="draft-set-aside-standard">{copy("draft.set-aside.standard")}</p> : null}
-      </header>
-
-      <div className={SHAPE.grid}>
-        <div className={SHAPE.page} data-testid="draft-page">
-          <WhyThisPage target={view.target} />
-
-          {rulesHeld}
-          {body}
-          {droppedGrounding}
-          {/* Where the customer has edited, the note that keeps the
-              generated-content label from speaking for their words. */}
-          {editedNote === null ? null : (
-            <p className="text-xs text-base-content/70" data-testid="draft-edited-note">
-              {editedNote}
+          {why === null ? null : (
+            <p className="flex min-w-0 items-start gap-2 text-sm" data-testid="draft-why">
+              <Search size={16} strokeWidth={1.75} className="text-primary mt-0.5 shrink-0" aria-hidden />
+              <span className="min-w-0 wrap-anywhere">
+                <strong>{copy("draft.why.title")}</strong>
+                {META_SEPARATOR}
+                {why}
+              </span>
             </p>
           )}
-          {/* c7: the change is unsaved and the customer is told so, in the
-              view, while their words stay in the buffer. */}
-          {unsaved ? (
-            <p className="text-xs text-base-content/70" data-testid="draft-unsaved">
-              {copy("draft.unsaved")}
-            </p>
-          ) : null}
-        </div>
+          {matchedLine === null ? null : <p className="text-sm">{matchedLine}</p>}
+          {stage === "set_aside_standard" ? <p className="text-sm" data-testid="draft-set-aside-standard">{copy("draft.set-aside.standard")}</p> : null}
+        </header>
 
+        {live === null ? (
+          <DecidePanel
+            view={view}
+            state={state}
+            deciding={deciding}
+            pressed={deciding ? pressed : null}
+            bodyMd={bodyMd}
+            onEdit={openEditor}
+            onCommand={decide}
+          />
+        ) : (
+          <LiveRail view={view} live={live} onEdit={openEditor} />
+        )}
 
-        <DecidePanel
-          view={view}
-          state={state}
-          deciding={deciding}
-          pressed={deciding ? pressed : null}
-          bodyMd={bodyMd}
-          onEdit={() => setEditing(true)}
-          onCommand={decide}
-        />
-
-        {/* The notes: each one closed line that opens in place. The
-            article above them is never one of these. */}
-        <div className={SHAPE.notes} data-testid="draft-notes">
-          {/* Board `AppDraft`'s notes, in its order. */}
-          <ChecksCard list={checkList({ grounded, claim, recorded: recordedChecks, known: view.knownCheck })} />
-          <SearchResult title={view.title} description={view.description} publisher={view.publisher} />
-          <WrittenFromCard writtenFrom={view.writtenFrom} timeZone={view.timeZone} />
-          <WhatAddsCard adds={view.adds} />
-          <LinksCard links={linksOnPage(bodyMd, { domain: view.domain, record: view.linkRecord ?? NO_LINK_RECORD })} />
-
-          {/* What became of this page (issue #217) — absent rather than empty
-              for a draft whose record could not be read. */}
-          {view.record === null ? null : (
-            <PageRecordBlock record={view.record} timeZone={view.timeZone} />
-          )}
-        </div>
+        <section className={SHAPE.tabs} aria-label={copy("draft.tabs.label")} data-testid="draft-page">
+          <PageTabs label={copy("draft.tabs.label")} tabs={tabs} />
+        </section>
       </div>
+      {openVersion}
     </div>
   );
 }

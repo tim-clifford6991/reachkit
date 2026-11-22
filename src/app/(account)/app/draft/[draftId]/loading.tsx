@@ -1,39 +1,24 @@
-// SPEC §4 (2026-09-20, #908), issue 912 — the page, while its read is in
-// flight.
-//
-// SPEC §7 (2026-10-07, issue 1325): the shape this screen settles into, at
-// every width — the page in its frame, the Decide panel, and the notes as
-// the closed lines they arrive as. `shape.ts` places the three for this
-// file and for `DraftScreen` alike, so the panel is under the page on a
-// phone and beside it from `xl` in both.
+// SPEC §4 (2026-09-20, #908), issue 912 — the page, while its read is in flight: the shape `shape.ts` places for
+// this file and for `DraftScreen` alike — the head, the rail, then the tabs with the page in its frame.
 import type React from "react";
 import { Box, CardSkeleton, PageSkeleton, Waiting } from "../../_shell/skeletons";
-import { NOTE } from "./ReviewCards";
 import { SHAPE } from "./shape";
-
-/** The notes a page in review most often holds. */
-const NOTES = 5;
 
 export default function DraftLoading(): React.JSX.Element {
   return (
-    <div className="flex min-w-0 flex-col gap-4 max-md:pb-20" data-testid="draft-waiting">
+    <div className={SHAPE.screen} data-testid="draft-waiting">
       <div className={SHAPE.grid}>
-        <div className={SHAPE.page}>
-          <CardSkeleton testId="why-skeleton" rows={2} />
-          <PageSkeleton />
-        </div>
-        <div className={SHAPE.decide}>
+        <Waiting className={SHAPE.head} testId="head-skeleton">
+          <Box className="h-8 w-3/4" />
+          <Box className="h-4 w-60" />
+        </Waiting>
+        <div className={`${SHAPE.rail} border-0`}>
           <CardSkeleton testId="decide-skeleton" rows={4} />
         </div>
-        <Waiting className={SHAPE.notes} testId="notes-skeleton">
-          {Array.from({ length: NOTES }, (_, at) => (
-            <div key={at} className={NOTE.card}>
-              <div className={NOTE.pad}>
-                <Box className="h-4 w-40" />
-              </div>
-            </div>
-          ))}
-        </Waiting>
+        <div className={`${SHAPE.tabs} p-4`}>
+          <Box className="mb-4 h-8 w-full" />
+          <PageSkeleton />
+        </div>
       </div>
     </div>
   );

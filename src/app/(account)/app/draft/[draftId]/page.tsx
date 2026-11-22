@@ -33,6 +33,9 @@ import { AiReads } from "./AiReads";
 import { DraftScreen } from "./DraftScreen";
 import { PageFacts } from "./PageFacts";
 import { readDraft } from "./provider";
+import { readWeekBodies } from "../../calendar/provider";
+import { sourcesOf } from "../../calendar/week-screen";
+import { pageCitations } from "@/lib/generate/citations";
 
 /**
  * /app/draft/{draftId}'s own `<title>`.
@@ -110,16 +113,13 @@ export default async function DraftPage(p: {
     body: fromStored("drafts.body", view.bodyMdGenerated),
   });
 
-  // Only the live arm draws the facts, so only it starts their read; only a hosted page has the reads.
-  const facts =
-    view.takeDown !== null && view.live !== null ? (
-      <>
-        {view.live.wordpress ? null : <AiReads />}
-        <PageFacts />
-      </>
-    ) : null;
+  // Only the live arm draws the facts and a hosted page's AI reads, so only it starts their reads.
+  const live = view.takeDown !== null && view.live !== null;
+  const facts = live ? <PageFacts /> : undefined;
+  const reads = live && view.live?.wordpress === false ? <AiReads /> : undefined;
+  // The Sources tab reads the page as This Week's pane does; an unread body leaves the tab out.
+  const row = (await readWeekBodies([draftId]).catch(() => null))?.get(draftId);
+  const sources = row === undefined ? null : sourcesOf(pageCitations(row), { live, goesLive: !live && view.doNothing.publishesAt !== null }, view.timeZone);
 
-  return (
-    <DraftScreen view={view} generatedLabel={generated.label} facts={facts} />
-  );
+  return <DraftScreen view={view} generatedLabel={generated.label} facts={facts} reads={reads} sources={sources} />;
 }

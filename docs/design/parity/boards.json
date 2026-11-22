@@ -27,8 +27,6 @@
   "Legal": { "read": "page", "paths": ["/privacy", "/terms", "/imprint"] },
   "MondayMail": { "read": "mail", "fixture": "weekly" },
   "OverviewDNS": { "read": "state", "why": "no sweep account is unconnected", "render": "tests/app/overview/unconnected.test.tsx" },
-  "PageDetail": { "read": "page", "paths": ["/app/draft/00000000-0000-0000-0000-0000000000e2"], "account": "live" },
-  "AppDraft": { "read": "page", "paths": ["/app/draft/draft-2026-09-15"] },
   "AppCosts": { "read": "page", "paths": ["/app/costs"] },
   "Review": { "read": "page", "paths": ["/app/review"] },
   "SettingsPublishing": { "read": "page", "paths": ["/app/settings/pages"] },
