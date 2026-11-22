@@ -78,7 +78,7 @@ function CheckNow(p: { next: string }): React.JSX.Element {
         {copy("settings.market.remeasure.action")}
       </button>
       {answer.answer === "refused" ? (
-        <p className="w-full text-xs text-error wrap-anywhere" role="alert" data-testid="market-remeasure-line">
+        <p className="w-full text-sm text-error wrap-anywhere" role="alert" data-testid="market-remeasure-line">
           {answer.line}
         </p>
       ) : null}
