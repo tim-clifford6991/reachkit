@@ -7,6 +7,7 @@ import Link from "next/link";
 import { copy } from "@/lib/presentation/copy";
 import { formatCount, formatShortDay } from "../_shell/format";
 import type { GoogleSearchRow } from "./google-pages";
+import { PhoneRow } from "./LivePages";
 import { placeWords } from "./place-words";
 import { rowClass } from "./frame";
 import { searchKey, type Planned } from "./search-model";
@@ -100,33 +101,19 @@ export function GoogleTable(p: {
             </table>
           </div>
           <ul className="list min-w-0 md:hidden" aria-label={copy("overview.google.title")}>
-            {rows.map((row, i) => {
-              // On a phone the whole row is the page's link.
-              const body = (
-                <>
-                  <Search row={row} plain />
-                  <span className="font-semibold">{place(row, p.first)}</span>
-                  <span className={`text-sm ${INK}`}>{doing(row, p.planned)}</span>
-                </>
-              );
-              return (
-                <li key={row.page.id} className={`list-row min-w-0 p-0 ${rowClass(i, all)}`} data-testid="google-page-card">
-                  {row.page.href === null ? (
-                    <div className="list-col-grow flex min-w-0 flex-col gap-1 p-4">{body}</div>
-                  ) : (
-                    <Link className="list-col-grow flex min-h-11 min-w-0 flex-col gap-1 p-4" href={row.page.href} prefetch={false}>
-                      {body}
-                    </Link>
-                  )}
-                </li>
-              );
-            })}
+            {rows.map((row, i) => (
+              <PhoneRow key={row.page.id} href={row.page.href} className={rowClass(i, all)} testId="google-page-card">
+                <Search row={row} plain />
+                <span className="font-semibold">{place(row, p.first)}</span>
+                <span className={`text-sm ${INK}`}>{doing(row, p.planned)}</span>
+              </PhoneRow>
+            ))}
           </ul>
         </>
       )}
       <div className="flex min-w-0 flex-col items-center gap-2 p-3 text-center">
         <Suspense fallback={null}>
-          <ShowAll total={rows.length} label={copy("overview.google.show-all", { n: formatCount(rows.length) })} />
+          <ShowAll total={rows.length} label={copy("overview.detail.show-all.pages", { n: formatCount(rows.length) })} />
         </Suspense>
         <p className={`text-xs ${INK}`}>{copy("overview.google.caption")}</p>
         {p.checked === null ? null : <p className={`text-xs ${INK}`} data-testid="search-measured">{p.checked}</p>}
@@ -136,4 +123,4 @@ export function GoogleTable(p: {
 }
 
 /** "First reading Mon 24": the next pass, for pages none has read. */
-export const firstReading = (due: Date, timeZone: string): string => copy("overview.google.first", { date: formatShortDay(due, timeZone) });
+export const firstReading = (due: Date, timeZone: string): string => copy("overview.pages.first-reading", { date: formatShortDay(due, timeZone) });

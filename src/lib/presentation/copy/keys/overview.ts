@@ -227,9 +227,7 @@ export const OVERVIEW_COPY = Object.freeze({
   // A dash alone reads as "none"; these say why the cell is empty.
   "overview.google.unread.sr": "Not read this week",
   "overview.google.unmeasured.sr": "Not measured",
-  "overview.google.first": "First reading {date}",
   "overview.google.caption": "Place 1 is the top result, not counting maps.",
-  "overview.google.show-all": "Show All {n} Pages",
   "overview.google.none": "No page is live yet, so Google has nothing of yours to show.",
   "overview.google.none.next": "Your first goes live {day} at {time}.",
   "overview.google.empty.showing": "No page is showing on Google yet. Most new pages take weeks.",
