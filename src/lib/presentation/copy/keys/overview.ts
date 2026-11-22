@@ -201,7 +201,6 @@ export const OVERVIEW_COPY = Object.freeze({
 
   // ── Linked by AI's detail (plate O3): each page's question, one mark per engine asked, and who else the answer named.
   "overview.ai.lead": "{k} of {n} AI answers mentioned or linked you in the last {weeks} weeks.",
-  "overview.ai.lead.split": "{pages} came from your pages’ questions and {prompts} from the buyer questions we track.",
   "overview.ai.caption": "Your pages’ questions in AI answers",
   "overview.ai.col.question": "Question",
   "overview.ai.col.page": "Your Page",
@@ -233,7 +232,6 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.rivals.caption": "We read Google’s first page for competitors, and your place down to 100. A dash means not on page 1.",
   // Questions with the business's own name are answered about it, so they are not counted.
   "overview.rivals.ai": "AI answers that mentioned each, last {w} weeks: {list}, of {m}. Questions with your business name are left out.",
-  "overview.rivals.ai.one": "AI answers that mentioned each, last week: {list}, of {m}. Questions with your business name are left out.",
   // A pass no check passed yet: its count is the first, with no rate.
   "overview.tile.mention-rate.first": "First check. A rate shows after {weeks} weeks.",
   "overview.prompts.share.you": "You",
@@ -448,11 +446,8 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.tile.google.none.of": "No live pages yet",
   "overview.tile.ai.name": "AI Answers Mentioning You",
   "overview.tile.ai.of": "of {n} answers, last {weeks} weeks",
-  "overview.tile.ai.opened": "AI engines opened your pages {f} times in 28 days",
-  "overview.tile.ai.opened.one": "AI engines opened your pages once in 28 days",
-  "overview.tile.ai.opened.none": "No AI engine opened your pages in 28 days",
-  "overview.tile.ai.visits": "{r} visits from AI",
-  "overview.tile.ai.visits.one": "1 visit from AI",
+  "overview.tile.ai.read": "AI apps read {x} of your pages in 28 days",
+  "overview.tile.ai.read.none": "No AI app read your pages in 28 days",
   "overview.tile.rivals.name": "Against Competitors",
   "overview.tile.rivals.of": "of {m} main searches on page 1",
   "overview.tile.rivals.start": "Starting point, scan {date}",
@@ -479,7 +474,7 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.tiles.how.google": "Pages on Google: live pages Google has added or shown in a search. “Shown” is how often Google showed them in the last 28 days.",
   "overview.tiles.how.google.no-console": "Without Search Console, we only see the searches we check ourselves.",
   "overview.tiles.how.ai": "AI answers mentioning you: answers that name or link your site. We ask AI your buyers’ questions over {weeks} weeks, leaving out ones that name you.",
-  "overview.tiles.how.ai.opened": "AI engines opened: times an AI opened your page to answer someone.",
+  "overview.tiles.how.ai.read": "AI apps read: your pages an AI app opened to answer someone, last 28 days.",
   "overview.tiles.how.rivals": "Against Competitors: your main searches that show you on Google’s first page. The two competitors with the most stand beside you.",
   "overview.tiles.how.change": "Each change compares with the week before. A week we couldn’t check is a gap, never a 0.",
   "overview.detail.checked": "Checked {date}",

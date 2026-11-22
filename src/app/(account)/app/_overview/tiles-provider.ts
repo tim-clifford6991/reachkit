@@ -18,11 +18,7 @@ export const readTiles = cache(async function readTiles(coming: number, goLive: 
   const account = await requireSetUpAccount();
   // Every day kept, never the blog card's week; a failed read is the error screen, never "no line" or 0.
   const reads = await readBlogReads(BLOG_READS_RETENTION_W * 7);
-  let aiOpened: TilesView["aiOpened"] = null;
-  if (reads.show) {
-    if (reads.fetches.kind === "unmeasured" || reads.referrals.kind === "unmeasured") throw new Error("tiles: could not read the AI reads");
-    aiOpened = { fetches: reads.fetches.value, visits: reads.referrals.value };
-  }
+  if (reads.show && reads.fetches.kind === "unmeasured") throw new Error("tiles: could not read the AI reads");
   try {
     const [published, rivals, answers] = await Promise.all([readPublished(), readRivals().catch(() => null), readAnswers().catch(() => null)]);
     if (published.pages === null) return null;
@@ -44,7 +40,7 @@ export const readTiles = cache(async function readTiles(coming: number, goLive: 
       coming,
       goLive,
     });
-    return view === null ? null : { ...view, aiOpened, questions: aiQuestionsOf(view.ai, stored.passes, account.domain), search: googleSearchOf(view.google, stored.pages, stored.passes, account.domain) };
+    return view === null ? null : { ...view, aiRead: reads.show ? view.pages.pages.filter((page) => reads.readPages.includes(page.id)).length : null, questions: aiQuestionsOf(view.ai, stored.passes, account.domain), search: googleSearchOf(view.google, stored.pages, stored.passes, account.domain) };
   } catch {
     return null;
   }
