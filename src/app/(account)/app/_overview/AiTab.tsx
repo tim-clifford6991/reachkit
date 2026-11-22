@@ -81,14 +81,14 @@ export function AiQuestionsCard(p: { model: AiQuestions; all: boolean; timeZone:
       <div className="hidden min-w-0 overflow-x-auto md:block">
         <table className="table">
           <caption className="sr-only">{copy("overview.ai.caption")}</caption>
-          <thead>
+          <thead className="text-base-content/70">
             <tr>
-              <th className="w-[31%]">{copy("overview.ai.col.question")}</th>
+              <th scope="col" className="w-[31%]">{copy("overview.ai.col.question")}</th>
               {model.engines.map((engine) => (
-                <th key={engine}>{copy(ENGINE_LABEL[engine])}</th>
+                <th key={engine} scope="col">{copy(ENGINE_LABEL[engine])}</th>
               ))}
-              <th>{copy("overview.ai.col.page")}</th>
-              <th>{copy("overview.ai.col.also")}</th>
+              <th scope="col">{copy("overview.ai.col.page")}</th>
+              <th scope="col">{copy("overview.ai.col.also")}</th>
             </tr>
           </thead>
           <tbody>
