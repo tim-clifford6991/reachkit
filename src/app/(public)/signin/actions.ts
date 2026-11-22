@@ -40,7 +40,6 @@ import { z } from "zod";
 import { pendingCookieFor } from "@/lib/account/signin-pending";
 import { requestMagicLink } from "@/lib/account/provisioning/magic-link";
 import { tellOwnerIfPaying } from "@/lib/mail/leads/bounce";
-import { suppressionState } from "@/lib/mail/leads/suppress";
 import { networkKeyOf } from "@/lib/scan/admission";
 import { EMAIL_FIELD, type SignInState } from "./state";
 
@@ -57,13 +56,11 @@ export async function sendLink(_previous: SignInState, form: FormData): Promise<
     return { answer: "invalid", value };
   }
 
-  // Suppression is address-wide, so this answer is the same with or without an account; a read that fails still sends.
-  if (await suppressionState(value).then((state) => state === "suppressed", () => false)) {
+  const link = await requestMagicLink(value.trim(), networkKeyOf(await headers()));
+  if (link.stopped) {
     after(() => tellOwnerIfPaying(value, "sign-in-blocked"));
     return { answer: "blocked", value };
   }
-
-  await requestMagicLink(value.trim(), networkKeyOf(await headers()));
   // Set for every valid address, account or not, so the answer stays one answer.
   const pending = pendingCookieFor("magiclink");
   (await cookies()).set(pending.name, pending.value, pending.options);
