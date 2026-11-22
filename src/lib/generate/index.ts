@@ -28,7 +28,6 @@
 //     (`refreshForDay`). A page that adds too little rests named.
 //
 // `regenerateRestarted` is the customer's Regenerate carried out: the next draft tick rewrites the row for its date.
-import { siteLocale } from "@/lib/locale/site";
 import { answeredQueries } from "@/lib/measure/page-reading";
 import { answeredHere } from "@/lib/opportunities/cluster";
 import {
@@ -36,36 +35,31 @@ import {
   pageForDay,
   queueForDraft,
   restTopic,
-  sitePagesFor,
   updateInstead,
   type Opportunity,
 } from "@/lib/opportunities";
 import type { StoredReport } from "@/lib/scan/report";
 import type { CostContext } from "@/lib/costs";
-import { DAY_TOPICS_MAX, PIPELINE, RESEARCH } from "@/lib/config/constants";
+import { DAY_TOPICS_MAX, PIPELINE } from "@/lib/config/constants";
 import type { KnownPage } from "@/lib/known-content/types";
 import { pageTypeOf } from "@/lib/opportunities/page-type";
 import { intentFor } from "@/lib/opportunities/intent";
 import { openDayCost, roomForFix, withDraftCost } from "./cost";
 import { readRecordedRules } from "./record";
-import { COLLECT, askDayResearch, dayTypes, heldResearch } from "./research-queue";
+import { COLLECT, askDayResearch, dayTypes, researchFor } from "./research-queue";
+import { dayInputs, linkBackOf } from "./day-inputs";
 import { repairStructure } from "./rules/structure";
-import { completenessOf, dayTopic, mendPage, mendable, versusRivals } from "./day-refresh";
+import { dayTopic, mendPage, mendable } from "./day-refresh";
 import { writtenFor } from "./fix-step";
-import { confirmedForWriting } from "./voice/confirmed";
-import { clusterLinkTargets, knownLinkTargets as knownContentTargets, siteLinkTargets, urlKey, type LinkTarget } from "./links/select";
+import { urlKey, type LinkTarget } from "./links/select";
 import { withMovedLink } from "./links/moved";
-import { competitorOf, generateDraft, targetSearches, type GenerateOutcome } from "./pipeline";
-import { allowedFacts, readAllFacts, readDemoPhrases, type SourcedFact } from "./pipeline/grounding";
-import { siteRulesOf } from "./pipeline/battery";
+import { generateDraft, type GenerateOutcome } from "./pipeline";
+import type { SourcedFact } from "./pipeline/grounding";
 import { buildPack, readPack, type ContextPack, type PackLivePage, type PackMeasurements } from "./pipeline/pack";
-import { builtFromOutside, meetsStandard, researchedAs } from "./standard";
+import { meetsStandard, researchedAs } from "./standard";
 import { generatePageFix } from "./pipeline/page-fix";
 import type { FixNote } from "./pipeline/repair";
-import { NO_RESEARCH, researchMarket, storedAsk, type MarketResearch } from "./pipeline/research";
-import { namedRivals } from "./rules/rivals";
-import { TEMPLATES } from "./templates";
-import { siteWritingMarket } from "./voice/market";
+import type { MarketResearch } from "./pipeline/research";
 import { REWRITTEN, owedToRow, withFirstAsk } from "./interrupted";
 import { DraftDateTaken, PageStopped, generateStore, pageOf, type RestartedDraft, type SiteFacts } from "./store";
 
@@ -462,79 +456,12 @@ async function livePageOf(
   };
 }
 
-/** SPEC §7 (2026-10-10, issue 1391): the newer live page a refresh planned
- *  for `link` adds a link to, as its row records it. */
-function linkBackOf(opportunity: Opportunity): { url: string; title: string; replaces?: string } | null {
-  const shortfall = (opportunity.evidence as { shortfall?: { cause?: unknown; link?: { url?: unknown; title?: unknown; replaces?: unknown } } } | undefined)?.shortfall;
-  const link = shortfall?.cause === "link" ? shortfall.link : undefined;
-  if (typeof link?.url !== "string" || typeof link.title !== "string") return null;
-  return { url: link.url, title: link.title, ...(typeof link.replaces === "string" ? { replaces: link.replaces } : {}) };
-}
-
 async function writePage(a: PageInput & { attempts: number; startedAt?: number; completeness?: "warn" }, cost: CostContext): Promise<DayPageOutcome> {
-  const store = generateStore();
   const { site, report } = a;
   const startedAt = a.startedAt ?? Date.now();
   let opportunity = a.opportunity;
 
-  const ruleInputs = siteRulesOf(site, report, await completenessOf(a.siteId, new Date(), a.completeness === "warn"));
-  // The confirmed business profile, the customer's corrections over the crawl, as both screens read it, once for the day.
-  const confirmed = await confirmedForWriting({ siteId: a.siteId, domain: site.domain });
-  // D66: the page is researched and written in the site's own country and language.
-  const locale = await siteLocale(a.siteId);
-  // Issue 1390: the voice the customer fixed in Settings, where they did.
-  const writingVoice = await store.writingVoice(a.siteId);
-
-  // SPEC §7 (2026-10-04, issue 1248): the page is written for the site's
-  // market in force (`sites.market`, D28) — the report's category is the one
-  // that pass was bought under, and stands in only where no market is stored.
-  const writingFor = siteWritingMarket(site, report, confirmed.buyers);
-  const category = writingFor.category;
-
-  // SPEC §7 (2026-09-12): the site's own pages from the profile's inventory,
-  // the cluster's earlier live pages, and the pages the site already has
-  // (#928) — what the page links, read once for the day.
-  const inventory = await store.siteInventory(site.domain);
-  const earlier =
-    opportunity.clusterKey === null ? [] : await store.clusterPages(a.siteId, opportunity.clusterKey);
-  const known = await store.knownPages(a.siteId);
-  const linksFor = (o: Opportunity): LinkTarget[] => {
-    const selfUrl = o.family === "improve" ? o.targetRef : null;
-    // Issue 1391: a refresh planned to link a newer page links it first.
-    const newer = linkBackOf(o);
-    const chosen: LinkTarget[] = [
-      ...siteLinkTargets({ domain: site.domain, inventory, query: o.targetQuery ?? "", selfUrl }),
-      ...(newer === null ? [] : [{ source: "known" as const, url: newer.url, label: newer.title, why: { kind: "newer" as const } }]),
-      ...clusterLinkTargets(earlier).filter((target) => newer === null || urlKey(target.url) !== urlKey(newer.url)),
-    ];
-    return [
-      ...chosen,
-      ...knownContentTargets(known, { domain: site.domain, query: o.targetQuery ?? "", selfUrl, already: chosen }),
-    ];
-  };
-  // SPEC §7 (2026-10-03, D36, issue 1209): every page the site has published
-  // or planned, each with its address where the index knows it.
-  const sitePages = (await sitePagesFor(a.siteId, { except: opportunity.id })).map((page) => ({
-    ...page,
-    url: page.title === null ? null : (known.find((held) => held.title === page.title)?.url ?? null),
-  }));
-
-  // The customer's own passages, the pages that speak to the target first
-  // (issue 900), minus the ones they switched off (#927).
-  const facts = allowedFacts(
-    await readAllFacts({ siteId: a.siteId, scanId: report.scanId, target: targetSearches(opportunity)[0] }),
-    confirmed.factsOff
-  );
-  // What no page may repeat whole (issue 1249): the site's demo phrases —
-  // the ones kept with its knowledge base ride in `factsOff`.
-  const demoPhrases = [
-    ...(await readDemoPhrases({ siteId: a.siteId, scanId: report.scanId }).catch(() => [])),
-    ...confirmed.factsOff,
-  ];
-
-  // Issue 1509: what the site's live pages already say, so a fact said on
-  // two of them is offered last. A read that fails offers them as before.
-  const livePages = await store.livePages(a.siteId).catch(() => []);
+  const { ruleInputs, confirmed, locale, writingVoice, writingFor, category, known, linksFor, sitePages, facts, demoPhrases, livePages } = await dayInputs(a);
 
   /** Stages 1 and 2 for one opportunity: its type, then its context pack. */
   const packFor = async (o: Opportunity): Promise<{ pack: ContextPack; links: LinkTarget[]; pending?: true } | null> => {
@@ -575,40 +502,8 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number; 
         // An update is not held to what its own live text says.
         livePages: livePages.filter((page) => urlKey(page.url) !== urlKey(o.targetRef)).map((page) => page.markdown),
       });
-    // 2. Research, for the types that read public pages (SPEC §7, *Two pools
-    //    of facts*; issue 1135): at most two model calls, and for *current
-    //    insights* one more that holds its news to the market (issue 1262).
-    //    A read that fails leaves the page to its business facts and never
-    //    stops it. A Q&A its target's own SERP leaves short of questions is
-    //    read beside the market's searched terms too (owner, D62; issue
-    //    1297): the pack says when it holds enough.
-    const line = { site: a.siteId, draft: a.draftId ?? null, opportunity: o.id, type };
-    const market = await heldResearch(cost, { key: `${a.siteId}:${o.id}:${type}:${a.publishDate}`, reuse: a.completeness === "warn" || a.fixStep === "owed", researched: TEMPLATES[as].research, line }, () => storedAsk(report, targetSearches(o)), () => researchMarket(cost, {
-          siteId: a.siteId, page: `${o.id}:${a.publishDate}`,
-          locale,
-          domain: site.domain,
-          searches: targetSearches(o),
-          urls: o.planReason?.research?.urls,
-          report,
-          rivals: [...versusRivals(site, report, o), ...(competitorOf(o) ?? []), ...site.rivals],
-          // Issue 1508: a listicle counts its top results' options, and an alternatives search's product is its baseline.
-          rivalNames: namedRivals(site.rivals, writingFor.market),
-          options: as === "listicle",
-          marketWords: [category, ...writingFor.synonyms],
-          today: new Date(),
-          // Issue 1390: every page that is researched reads what buyers
-          // ask beside its target, for its headings.
-          questions: true,
-          // Issue 1486: a how-to or a Q&A is built from cited outside facts,
-          // so its one search reads the target's own guidance.
-          guidance: builtFromOutside(as), study: as !== "update",
-          ...(as === "insights"
-            ? { recent: { searches: [category === "" ? (targetSearches(o)[0] ?? "") : category, ...writingFor.synonyms], days: RESEARCH.recentDays, market: writingFor } }
-            : {}),
-        }).catch((error: unknown) => {
-          console.warn(JSON.stringify({ event: "draft_research_failed", siteId: a.siteId, error: String(error).slice(0, 200) }));
-          return NO_RESEARCH;
-        }));
+    // 2. Research, for the types that read public pages (`researchFor`).
+    const market = await researchFor(cost, { ...a, o, type, as, locale, writingFor });
     return { pack: packOf(market), links, ...(market.pending === true ? { pending: true as const } : {}) };
   };
 

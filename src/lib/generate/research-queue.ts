@@ -17,17 +17,20 @@ import { opportunityById } from "@/lib/opportunities";
 import type { OpportunityRow } from "@/lib/opportunities/store";
 import { contentTypeOf, type ContentType } from "@/lib/opportunities/content-type";
 import type { Opportunity, PlanWriteAs } from "@/lib/opportunities/types";
+import type { Locale } from "@/lib/locale/locales";
+import type { StoredReport } from "@/lib/scan/report";
 import { cachedSerp, serpOrganic } from "@/lib/vendors/dataforseo/serp";
 import { DRAFT_POLICY_VERSION, openDayCost } from "./cost";
-import { targetSearches } from "./pipeline";
+import { competitorOf, targetSearches } from "./pipeline";
 import { builtFromOutside, fellTo, ownTypeOf, researchedAs, typeTheResearchFills, type ResearchRead } from "./standard";
-import { NO_RESEARCH, RESEARCH_READ_SOURCE, fetchBody, readFresh, researchSerps, rivalPage, sitemapOf, type MarketResearch } from "./pipeline/research";
+import { NO_RESEARCH, RESEARCH_READ_SOURCE, fetchBody, readFresh, researchMarket, researchSerps, rivalPage, sitemapOf, storedAsk, type MarketResearch } from "./pipeline/research";
 import { knowledgeTexts, shares, topicWords } from "./pipeline/pack";
 import { alikeHeadings } from "./rules/headings";
+import { namedRivals } from "./rules/rivals";
 import { isQuestionShaped } from "./rules/text";
-import { generateStore } from "./store";
+import { generateStore, type SiteFacts } from "./store";
 import { TEMPLATES } from "./templates";
-import { siteWritingMarket } from "./voice/market";
+import { siteWritingMarket, type WritingMarket } from "./voice/market";
 
 /** The asking steps: the first waits `askMs` for a read that is ready at once, then each round its own invocation inside
  *  the job route's 300 s, about 45 minutes in all, the queue's own turnaround (`VENDOR.stdQueueDeadlineMin`). */
@@ -76,6 +79,46 @@ export async function heldResearch(cost: CostContext, a: { key: string; reuse: b
   // A held row is jsonb, which keeps a date as its string.
   const research = { ...held.payload, facts: held.payload.facts.map((fact) => ({ ...fact, readAt: new Date(fact.readAt) })) };
   return a.reuse || !held.fresh ? skipped("held", research) : research;
+}
+
+/** Research, for the types that read public pages (SPEC §7, *Two pools of facts*; issue 1135): at most two model calls,
+ *  and for *current insights* one more that holds its news to the market (issue 1262). A read that fails leaves the page
+ *  to its business facts and never stops it. A Q&A its target's own SERP leaves short of questions is read beside the
+ *  market's searched terms too (owner, D62; issue 1297): the pack says when it holds enough. */
+export async function researchFor(
+  cost: CostContext,
+  a: { siteId: string; site: SiteFacts; report: StoredReport; draftId?: string; publishDate: string | null; completeness?: "warn"; fixStep?: "owe" | "owed"; o: Opportunity; type: ContentType; as: ContentType; locale: Locale; writingFor: WritingMarket }
+): Promise<MarketResearch> {
+  const { site, report, o, type, as, locale, writingFor } = a;
+  const category = writingFor.category;
+  const { versusRivals } = await import("./day-refresh");
+  const line = { site: a.siteId, draft: a.draftId ?? null, opportunity: o.id, type };
+  return heldResearch(cost, { key: `${a.siteId}:${o.id}:${type}:${a.publishDate}`, reuse: a.completeness === "warn" || a.fixStep === "owed", researched: TEMPLATES[as].research, line }, () => storedAsk(report, targetSearches(o)), () => researchMarket(cost, {
+          siteId: a.siteId, page: `${o.id}:${a.publishDate}`,
+          locale,
+          domain: site.domain,
+          searches: targetSearches(o),
+          urls: o.planReason?.research?.urls,
+          report,
+          rivals: [...versusRivals(site, report, o), ...(competitorOf(o) ?? []), ...site.rivals],
+          // Issue 1508: a listicle counts its top results' options, and an alternatives search's product is its baseline.
+          rivalNames: namedRivals(site.rivals, writingFor.market),
+          options: as === "listicle",
+          marketWords: [category, ...writingFor.synonyms],
+          today: new Date(),
+          // Issue 1390: every page that is researched reads what buyers
+          // ask beside its target, for its headings.
+          questions: true,
+          // Issue 1486: a how-to or a Q&A is built from cited outside facts,
+          // so its one search reads the target's own guidance.
+          guidance: builtFromOutside(as), study: as !== "update",
+          ...(as === "insights"
+            ? { recent: { searches: [category === "" ? (targetSearches(o)[0] ?? "") : category, ...writingFor.synonyms], days: RESEARCH.recentDays, market: writingFor } }
+            : {}),
+        }).catch((error: unknown) => {
+          console.warn(JSON.stringify({ event: "draft_research_failed", siteId: a.siteId, error: String(error).slice(0, 200) }));
+          return NO_RESEARCH;
+        }));
 }
 
 /** seo-master's test of a result: the first `results` organic rows are read, a readable one holds `words`, and a
