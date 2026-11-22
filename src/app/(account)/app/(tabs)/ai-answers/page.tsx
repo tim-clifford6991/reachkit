@@ -1,10 +1,10 @@
-// SPEC §4 (plate O3) — Linked by AI's detail: back to Overview, the tiles with
+// SPEC §4 (plate O3) — the AI tile's detail: back to Overview, the tiles with
 // this one current, the head and its lead, then each page question asked in
 // the last four weeks.
 //
-// **Every read is a stored one, and the tile's own**: the rows are the Linked
-// by AI tile's pages, so the tile, the lead and the table state one number. No
-// measurement, vendor call or model call happens on render.
+// **Every read is a stored one, and the tile's own**: the lead states the
+// tile's own figure (`aiAnswersOf`). No measurement, vendor call or model call
+// happens on render.
 //
 // **It declares no `Surface`**: the shell's own layout owns this route's
 // screen root.
@@ -35,7 +35,7 @@ export default async function AiAnswersTabPage(p: { searchParams: Promise<Record
       <TabHead
         title={copy("overview.tile.ai-answers.label")}
         testId="ai-answers"
-        lead={shown === null ? null : aiLead(shown)}
+        lead={tiles.answers === null ? null : aiLead(tiles.answers)}
         measured={
           shown?.checkedAt == null ? null : (
             <p className="text-base-content/70" data-testid="ai-answers-measured">

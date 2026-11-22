@@ -18,7 +18,7 @@
 //
 // Without credentials steps 1 and 5 still run, so the ladder shows what ReachKit can prove. 0¢: every call is free.
 // It never throws: a refusal or failed read stores its reason on each hosted page, logs it once per host, and the verdicts and mail still run.
-import { SEARCH_READING_WINDOW_D, GSC_PROPERTIES_PER_ACCOUNT, UNCRAWLED_AFTER_D } from "@/lib/config/constants";
+import { AI_BLOG_ENGINES, SEARCH_READING_WINDOW_D, GSC_PROPERTIES_PER_ACCOUNT, UNCRAWLED_AFTER_D } from "@/lib/config/constants";
 import { gscClient, gscPool, type GscAccount, type GscRefusal, type GscSend } from "@/lib/vendors/gsc";
 import { knownPlaces } from "@/lib/measure/known-places";
 import { addressOf as pageAddress, assembleReading, engineReadingOf, pageSearchOf, readingOf, statedOf, uncrawled, type GoogleReading, type GoogleUnread } from "@/lib/measure/page-reading";
@@ -67,6 +67,7 @@ interface PageRow {
 
 interface ReadRow {
   publication_id: string;
+  engine: string;
   kind: string;
   hits: number;
 }
@@ -307,12 +308,12 @@ export async function readSearchEngines(a: { siteId: string; now: Date; deps?: S
 
     const { data: reads, error: readsError } = await db
       .from<ReadRow>("publication_reads")
-      .select("publication_id, kind, hits")
+      .select("publication_id, engine, kind, hits")
       .eq("site_id", a.siteId)
       // Bing's rows from before only Google counted stay on file, unread.
       .neq("engine", "bing");
-    const hitsOf = (id: string, kinds: readonly string[]): number =>
-      (reads ?? []).filter((row) => row.publication_id === id && kinds.includes(row.kind)).reduce((sum, row) => sum + row.hits, 0);
+    const hitsOf = (id: string, kinds: readonly string[], engines?: readonly string[]): number =>
+      (reads ?? []).filter((row) => row.publication_id === id && kinds.includes(row.kind) && (engines === undefined || engines.includes(row.engine))).reduce((sum, row) => sum + row.hits, 0);
 
     const dueAt = a.now.getTime() - UNCRAWLED_AFTER_D * DAY_MS;
     const due = pages
@@ -333,7 +334,8 @@ export async function readSearchEngines(a: { siteId: string; now: Date; deps?: S
           search: searchOf(page),
           crawled: hitsOf(page.id, ["crawl"]) > 0,
           aiReads: counted ? hitsOf(page.id, ["answer_fetch", "index_fetch"]) : null,
-          aiVisits: counted ? hitsOf(page.id, ["referral"]) : null,
+          // A Google search visit is a referral too, never one from AI.
+          aiVisits: counted ? hitsOf(page.id, ["referral"], AI_BLOG_ENGINES) : null,
           google: googleOf(page),
         },
         now: a.now,

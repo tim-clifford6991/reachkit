@@ -21,18 +21,18 @@ import { FIXTURE_BLOG_READS_FACTS } from "./blog-reads-fixture";
  *  fixture on this screen measures on, so the sweeps are deterministic. */
 const FIXTURE_AT = new Date(Date.UTC(2026, 7, 31, 6, 0, 0));
 
-export const readBlogReads = cache(async function readBlogReads(): Promise<BlogReadsModel> {
+export const readBlogReads = cache(async function readBlogReads(windowDays: number = BLOG_READS_WINDOW_D): Promise<BlogReadsModel> {
   const account = await requireSetUpAccount();
   if (isReservedFixtureAccount(account)) {
-    return assembleBlogReads(FIXTURE_BLOG_READS_FACTS, BLOG_READS_WINDOW_D, FIXTURE_AT);
+    return assembleBlogReads(FIXTURE_BLOG_READS_FACTS, windowDays, FIXTURE_AT);
   }
 
   const { readBlogReadFacts } = await import("@/lib/publish/reads/facts");
   const { now } = await import("@/lib/config/now");
   const at = now();
   return assembleBlogReads(
-    await readBlogReadFacts({ siteId: account.siteId }, at, BLOG_READS_WINDOW_D),
-    BLOG_READS_WINDOW_D,
+    await readBlogReadFacts({ siteId: account.siteId }, at, windowDays),
+    windowDays,
     at
   );
 });

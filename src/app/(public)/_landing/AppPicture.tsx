@@ -68,7 +68,7 @@ export function AppPicture(): React.JSX.Element {
                   <span className="card-body min-w-0 gap-1.5 p-3">
                     <span className="min-w-0 text-sm font-semibold">{copy(name)}</span>
                     <span className="text-3xl leading-snug font-semibold tabular-nums">{tile.n}</span>
-                    <span className="text-base-content/70 text-sm">{key === "pages" ? copy(of, { total: m }) : copy(of, { m, weeks: String(AI_WINDOW_WEEKS) })}</span>
+                    <span className="text-base-content/70 text-sm">{key === "pages" ? copy(of, { total: m }) : copy(of, key === "ai" ? { n: m, weeks: String(AI_WINDOW_WEEKS) } : { m })}</span>
                     <span className={`text-sm ${tile.up > 0 ? "text-success" : "text-base-content/70"}`}>
                       {tile.up > 0 ? copy("overview.tile.change.up", { n: String(tile.up) }) : copy("overview.tile.change.same")}
                     </span>

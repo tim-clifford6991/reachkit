@@ -233,7 +233,7 @@ export const EXAMPLES: Readonly<Record<ExampleKind, Example>> = { plumber: HARBO
 export const EXAMPLE_TILES = Object.freeze({
   pages: { n: TIDYSLOT.mail.live, of: TIDYSLOT.mail.live, up: 1 },
   google: { n: 9, of: TIDYSLOT.mail.live, up: 2 },
-  ai: { n: 3, of: 10, up: 1 },
+  ai: { n: 34, of: 200, up: 5 },
   rivals: { n: 4, of: 10, up: 0 },
 });
 
