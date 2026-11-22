@@ -6,6 +6,7 @@
 // arithmetic: all of those are the pipeline's own and none is repeated
 // here. In the kill switch's scope.
 import { runScan, type ScanTier } from "@/jobs/engine";
+import { parseDomain } from "@/lib/scan/domain";
 import { oneOf, optionalString, requiredString } from "./payload";
 import type { JobDefinition, Outcome } from "./types";
 
@@ -17,9 +18,12 @@ export const scanRun: JobDefinition = {
   idempotencyKey: ["scanId"],
   async run(input): Promise<Outcome> {
     const scanId = requiredString(input, "scanId");
+    const domain = requiredString(input, "domain");
+    // A retry reads the same public-suffix list, so an unlisted domain stops here once instead of dead-lettering.
+    if (!parseDomain(domain).ok) return { outcome: "stopped", subjectId: scanId, by: "domain_unlisted" };
     const result = await runScan({
       scanId,
-      domain: requiredString(input, "domain"),
+      domain,
       tier: oneOf(input, "tier", TIERS),
       // The onboarding pass belongs to a site, and the deep tier is the
       // only one that needs to know which: the founder's stage and their

@@ -89,7 +89,7 @@ export type Outcome =
   | { readonly outcome: "ran"; readonly subjectId: SubjectId }
   /** The kill switch stopped it before any spend and before any write.
    *  Recorded, so §14's "we stopped" line has a fact to read. */
-  | { readonly outcome: "stopped"; readonly subjectId: SubjectId; readonly by: "kill-switch" }
+  | { readonly outcome: "stopped"; readonly subjectId: SubjectId; readonly by: "kill-switch" | "domain_unlisted" }
   | { readonly outcome: "skipped"; readonly subjectId: SubjectId; readonly reason: SkipReason }
   /** The run exceeded its own budget and stopped. Carries which step
    *  degraded — never a vendor payload. */

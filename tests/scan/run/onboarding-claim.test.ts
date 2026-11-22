@@ -15,6 +15,8 @@ let db: FakeDb = fakeDb();
 vi.mock("@/lib/db", () => ({ dbAdmin: () => db.client, db: () => db.client }));
 
 const { claimOnboardingPass } = await import("../../../src/lib/scan/run");
+const { runJob } = await import("@/jobs/run");
+const { scanRun } = await import("@/jobs/scan-run");
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
@@ -57,5 +59,14 @@ describe("claimOnboardingPass — one onboarding row per site", () => {
   it("an address that is not a domain claims nothing", async () => {
     await expect(claimOnboardingPass({ siteId: "site-1", domain: "not a domain" })).rejects.toThrow();
     expect(db.tables.scans).toHaveLength(0);
+  });
+
+  it("a deep pass for a domain with no public suffix stops once: it resolves, so the queue never retries it", async () => {
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    const outcome = await runJob(scanRun, { data: { scanId: "setup-s", domain: "x.example", tier: "deep", siteId: "s" }, now: new Date(), attempt: 0 });
+    expect(outcome).toEqual({ outcome: "stopped", subjectId: "setup-s", by: "domain_unlisted" });
+    expect(log.mock.calls.map(([line]) => JSON.parse(String(line)))).toContainEqual(expect.objectContaining({ jobId: "scan/run", outcome: "stopped", step: "domain_unlisted" }));
+    expect(db.tables.scans).toHaveLength(0);
+    log.mockRestore();
   });
 });

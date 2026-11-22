@@ -21,7 +21,7 @@ export interface Invocation {
   readonly subjectId: SubjectId;
   readonly outcome: LoggedOutcome;
   readonly durationMs: number;
-  /** Present only on `degraded`; the name of the step, never a payload. */
+  /** Present only on `degraded` or a `stopped` the body chose; the name of the step, never a payload. */
   readonly step?: string;
 }
 
@@ -43,7 +43,7 @@ export function lineFor(invocation: Invocation): Record<string, unknown> {
     outcome: invocation.outcome,
     durationMs: invocation.durationMs,
   };
-  if (invocation.outcome === "degraded" && invocation.step !== undefined) {
+  if ((invocation.outcome === "degraded" || invocation.outcome === "stopped") && invocation.step !== undefined) {
     line.step = invocation.step;
   }
   return line;
