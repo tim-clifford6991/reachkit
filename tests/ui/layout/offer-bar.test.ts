@@ -34,6 +34,9 @@ for (const width of [320, 390]) {
           window.scrollBy(0, (action?.getBoundingClientRect().bottom ?? 0) + 1);
         });
         await page.waitForSelector('[data-testid="offer-bar"]:not(.hidden)', { timeout: 10_000 });
+        // The spots read can land after the bar shows and change its line; the reserve is read as painted once it has.
+        await page.waitForLoadState("networkidle");
+        await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
         const middle = await page.evaluate(measure);
         await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
         const foot = await page.evaluate(measure);
