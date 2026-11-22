@@ -31,9 +31,5 @@ export function sendMock(): Record<string, unknown> {
       sendCalls.push(m);
       return sendOutcome.next;
     },
-    // `wire.ts` fills §12's suppression port through this export; the flow
-    // suites drive the store directly, so recording the registration is
-    // enough.
-    registerSuppressionReader: () => undefined,
   };
 }

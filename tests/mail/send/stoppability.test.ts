@@ -23,7 +23,11 @@ vi.mock("@/lib/db", () => ({
 }));
 const fakeDbRef = { current: fakeDb(state) };
 
-const { sendEmail, registerSuppressionReader } = await import("../../../src/lib/mail/send");
+const { sendEmail } = await import("../../../src/lib/mail/send");
+const { setLeadStore } = await import("../../../src/lib/mail/leads/store");
+/** The suppression store doubled at its own seam; `null` is a store that cannot be read. */
+const suppressionAnswers = (read: ((a: string) => Promise<"send" | "suppressed">) | null): void =>
+  setLeadStore({ isSuppressed: async (a: string) => (read === null ? { ok: false } : { ok: true, suppressed: (await read(a)) === "suppressed" }) } as unknown as Parameters<typeof setLeadStore>[0]);
 const { MAIL_KINDS } = await import("../../../src/lib/mail/kinds");
 const { __setVendorTransportForTesting } = await import("../../../src/lib/mail/vendor/resend");
 
@@ -43,7 +47,7 @@ beforeEach(() => {
     sent += 1;
     return { status: 200, headers: {}, body: JSON.stringify({ id: "vendor-1" }) };
   });
-  registerSuppressionReader(async (address) => {
+  suppressionAnswers(async (address) => {
     suppressionAsked.push(address);
     return "send";
   });
@@ -53,7 +57,7 @@ beforeEach(() => {
 
 afterEach(() => {
   __setVendorTransportForTesting(null);
-  registerSuppressionReader(null);
+  setLeadStore(null);
   vi.restoreAllMocks();
 });
 
@@ -77,7 +81,7 @@ describe("ADR-042 — one store per send", () => {
   });
 
   it("an 'opt-out' kind consults the address store and never the toggles", async () => {
-    registerSuppressionReader(async (address) => {
+    suppressionAnswers(async (address) => {
       suppressionAsked.push(address);
       return "suppressed";
     });
@@ -91,7 +95,7 @@ describe("ADR-042 — one store per send", () => {
 
   it("magic-link, account and setup-reminder reach the vendor with every toggle off and the address suppressed", async () => {
     state.rows = { [USER]: { notify: { "draft-ready": false, published: false, weekly: false } } };
-    registerSuppressionReader(async () => "suppressed");
+    suppressionAnswers(async () => "suppressed");
 
     for (const kind of ["magic-link", "account", "setup-reminder"] as const) {
       state.reads = [];
@@ -108,7 +112,7 @@ describe("ADR-042 — one store per send", () => {
   });
 
   it("the giveaway page a reader asked for is not stopped by their opt-out", async () => {
-    registerSuppressionReader(async () => "suppressed");
+    suppressionAnswers(async () => "suppressed");
     for (const kind of ["first-page", "first-page-unavailable", "report"] as const) {
       await expect(
         sendEmail({ event: "e", kind, to: TO, subject: f.HEADING_KEY, blocks: [f.HEADING] }),
@@ -142,8 +146,8 @@ describe("ADR-042 — one store per send", () => {
     expect(sent).toBe(0);
   });
 
-  it("an unwired suppression store fails closed — the nurture mail is not sent on a guess", async () => {
-    registerSuppressionReader(null);
+  it("an unreadable suppression store fails closed — the nurture mail is not sent on a guess", async () => {
+    suppressionAnswers(null);
     await expect(
       sendEmail({ event: "e", kind: "nurture", to: TO, subject: f.HEADING_KEY, blocks: [f.HEADING] })
     ).resolves.toEqual({ sent: false, reason: "suppression-unreadable" });

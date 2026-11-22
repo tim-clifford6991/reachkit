@@ -17,8 +17,8 @@
 // The 15-minute chase (REQ-024 c5) is what carries the link, and it is
 // written to work from either state — the issuer registered, or not.
 //
-// The registration door is the same one `registerCorrectionRunner` and
-// `registerSuppressionReader` use, for the same reason: a `src/lib` module
+// The registration door is the same one `registerCorrectionRunner` uses,
+// for the same reason: a `src/lib` module
 // cannot import the module that will own the thing, and a fake is worse
 // than an honest refusal.
 

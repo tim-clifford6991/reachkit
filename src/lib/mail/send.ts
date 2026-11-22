@@ -55,19 +55,6 @@ export type SendResult =
       retryUntil?: Date;
     };
 
-/** The address-wide suppression read (§4.2), owned by `src/lib/mail/leads/**`; the seam holds the port only. */
-export type SuppressionReader = (address: string) => Promise<"send" | "suppressed" | "unreadable">;
-
-/** Fails closed: unwired, an `'opt-out'` kind is not sent, since "cannot tell" must not mail. Other kinds never ask it. */
-const notWiredYet: SuppressionReader = async () => "unreadable";
-
-let suppressionReader: SuppressionReader = notWiredYet;
-
-/** Wired by the suppression store's owner; `null` restores the fail-closed default. */
-export function registerSuppressionReader(reader: SuppressionReader | null): void {
-  suppressionReader = reader ?? notWiredYet;
-}
-
 function log(a: {
   kind: MailKind;
   recipient: string;
@@ -96,7 +83,9 @@ async function consultOneStore(m: SendInput): Promise<Stopped | "send"> {
   }
 
   if (stoppable === "opt-out") {
-    const answer = await suppressionReader(m.to);
+    // Imported at the call so no entry point has to wire the store first; a store that cannot be read answers "unreadable" and fails closed.
+    const { suppressionState } = await import("./leads/suppress");
+    const answer = await suppressionState(m.to);
     if (answer === "suppressed") return { sent: false, reason: "suppressed" };
     if (answer === "unreadable") return { sent: false, reason: "suppression-unreadable" };
     return "send";

@@ -90,7 +90,7 @@ const { fromStored } = await import("../../src/lib/presentation/generated");
 const { setLeadStore } = await import("../../src/lib/mail/leads/store");
 const { setAccountStore } = await import("../../src/lib/account/store");
 const { registerDraftWriter } = await import("../../src/lib/mail/leads/ports");
-const { unwireSuppressionReader } = await import("../../src/lib/mail/leads/wire");
+const { sendEmail } = await import("../../src/lib/mail/send");
 const { __setVendorTransportForTesting } = await import("../../src/lib/mail/vendor/resend");
 const { dueFirstPageDeliveries, deliverFirstPage } = await import(
   "../../src/lib/mail/leads/giveaway"
@@ -213,7 +213,6 @@ afterEach(() => {
   setAccountStore(null);
   registerDraftWriter(null);
   __setVendorTransportForTesting(null);
-  unwireSuppressionReader();
 });
 
 // ── The journey, in the steps a founder takes ───────────────────────────
@@ -481,6 +480,9 @@ describe('"Email me the full page" → lead → first page → a follow-up that 
     const { applyOptOutToken } = await import("../../src/lib/mail/leads/optout");
     await expect(applyOptOutToken(token)).resolves.toEqual({ email: NORMALISED });
     expect(leads.suppressions.get(NORMALISED)).toBe("opt_out");
+    // Every 'opt-out' kind asks the store itself, with no wiring call: the web-person mail skips this address too.
+    const web = { kind: "web-person", to: ADDRESS, event: "e", subject: "mail.firstPage.subject" } as const;
+    await expect(sendEmail({ ...web, blocks: [{ block: "heading", text: web.subject }] })).resolves.toEqual({ sent: false, reason: "suppressed" });
 
     // Nothing further is sent about this domain, or any other.
     expect((await advanceSequences(atTouch(startedAt, 0))).sent).toBe(0);
