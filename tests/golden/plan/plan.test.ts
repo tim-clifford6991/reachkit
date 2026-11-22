@@ -26,7 +26,7 @@ const FROM = AT.toISOString().slice(0, 10);
 const REJECTED_SHOWN = 20;
 
 function chosen(site: PanelSite, linkedClusters: readonly string[] = []): Choice {
-  return choose({ rows: site.rows, fixRows: [], profile: site.profile, market: site.market, cited: [], topTens: new Map(), prompts: site.prompts, linkedClusters, at: AT, from: FROM });
+  return choose({ rows: site.rows, fixRows: [], profile: site.profile, market: site.market, cited: [], topTens: new Map(), linkedClusters, at: AT, from: FROM });
 }
 
 function render(site: PanelSite, choice: Choice): string {

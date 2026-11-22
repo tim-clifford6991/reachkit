@@ -6,16 +6,16 @@ Supply: 10 of 10 committed, short 0; stored topics product 10, best_x 3.
 
 | Place | Day | Search | Type | Page | Fit | Volume | Points | Parts | Rule | Written as |
 |---|---|---|---|---|---|---|---|---|---|---|
-| 0 | 2026-10-19 | waterbar alternatives | comparison_page | listicle | 3 | — | 4 | fit 3 + demand 1 | best | — |
-| 1 | 2026-10-20 | rich table alternatives | comparison_page | listicle | 3 | — | 4 | fit 3 + demand 1 | best | — |
-| 2 | 2026-10-21 | lazy bear alternatives | comparison_page | listicle | 3 | — | 4 | fit 3 + demand 1 | best | — |
-| 3 | 2026-10-22 | zuni café vs waterbar | comparison_page | listicle | 3 | — | 4 | fit 3 + demand 1 | best | — |
-| 4 | 2026-10-23 | zuni café vs rich table | comparison_page | listicle | 3 | — | 4 | fit 3 + demand 1 | best | — |
-| 5 | 2026-10-24 | zuni café vs lazy bear | comparison_page | listicle | 3 | — | 4 | fit 3 + demand 1 | best | — |
-| 6 | 2026-10-25 | zuni café vs sisterita | comparison_page | listicle | 3 | — | 4 | fit 3 + demand 1 | best | — |
-| 7 | spare | zuni café vs rooftop 25 | comparison_page | listicle | 3 | — | 4 | fit 3 + demand 1 | best | — |
-| 8 | spare | sisterita alternatives | comparison_page | listicle | 3 | — | 3 | fit 3 | best | — |
-| 9 | spare | rooftop 25 alternatives | comparison_page | listicle | 3 | — | 3 | fit 3 | best | — |
+| 0 | 2026-10-19 | waterbar alternatives | comparison_page | listicle | 3 | — | 3 | fit 3 | best | — |
+| 1 | 2026-10-20 | rich table alternatives | comparison_page | listicle | 3 | — | 3 | fit 3 | best | — |
+| 2 | 2026-10-21 | lazy bear alternatives | comparison_page | listicle | 3 | — | 3 | fit 3 | best | — |
+| 3 | 2026-10-22 | sisterita alternatives | comparison_page | listicle | 3 | — | 3 | fit 3 | best | — |
+| 4 | 2026-10-23 | rooftop 25 alternatives | comparison_page | listicle | 3 | — | 3 | fit 3 | best | — |
+| 5 | 2026-10-24 | zuni café vs waterbar | comparison_page | listicle | 3 | — | 3 | fit 3 | best | — |
+| 6 | 2026-10-25 | zuni café vs rich table | comparison_page | listicle | 3 | — | 3 | fit 3 | best | — |
+| 7 | spare | zuni café vs lazy bear | comparison_page | listicle | 3 | — | 3 | fit 3 | best | — |
+| 8 | spare | zuni café vs sisterita | comparison_page | listicle | 3 | — | 3 | fit 3 | best | — |
+| 9 | spare | zuni café vs rooftop 25 | comparison_page | listicle | 3 | — | 3 | fit 3 | best | — |
 
 | Not chosen | Type | Fit | Volume | Reason |
 |---|---|---|---|---|

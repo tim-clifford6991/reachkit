@@ -11,8 +11,7 @@
 // read off the run's own market conclusion. A row's shape is what readiness
 // stores from the site's newest stored SERP for its search
 // (`scripts/panel/evidence/<domain>.json`). A stored topic that is no search
-// is left out, as the next pass dismisses it. The tracked prompts are the
-// run's own `sites[].prompts`, as the store reads them. 0¢: nothing is measured.
+// is left out, as the next pass dismisses it. 0¢: nothing is measured.
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import type { Language } from "@/lib/locale/locales";
 import type { MarketConclusion } from "@/lib/market/infer/types";
@@ -20,7 +19,6 @@ import type { Profile } from "@/lib/market/questions/profile";
 import { malformedSearch } from "@/lib/market/questions/well-formed";
 import { measured, unmeasured } from "@/lib/measure/measured";
 import { queryKey } from "@/lib/opportunities/cluster";
-import type { IntentPrompt } from "@/lib/opportunities/intent";
 import { freshRead, type KindOfBusiness, type TopTenRead } from "@/lib/opportunities/derive/top-ten-kind";
 import { shapedEvidence } from "@/lib/opportunities/readiness";
 import { readOpportunity, type OpportunityRow } from "@/lib/opportunities/store";
@@ -48,7 +46,6 @@ interface StoredSite {
   siteName: string | null;
   market: MarketConclusion | null;
   topics?: StoredTopic[];
-  prompts?: { text: string }[];
 }
 
 export interface PanelSite {
@@ -59,8 +56,6 @@ export interface PanelSite {
   /** The run's own market conclusion, as readiness reads it. */
   market: MarketConclusion;
   rows: OpportunityRow[];
-  /** The run's tracked prompts, as `trackedPrompts` returns them. */
-  prompts: IntentPrompt[];
 }
 
 /** The customer panel, in its run order. */
@@ -88,8 +83,7 @@ export function panelSite(domain: string): PanelSite {
       const read = freshRead(serps.get(queryKey(row.target_query ?? "")), AT);
       return { ...row, evidence: shapedEvidence(readOpportunity(row), read, business) };
     });
-    const prompts = (site.prompts ?? []).map((prompt, n) => ({ id: `${domain}~${n}`, text: prompt.text }));
-    return { domain, run, profile: profileOf(site), market: site.market, rows, prompts };
+    return { domain, run, profile: profileOf(site), market: site.market, rows };
   }
   throw new Error(`no stored panel run holds topics for ${domain}`);
 }
