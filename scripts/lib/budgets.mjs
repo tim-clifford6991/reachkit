@@ -108,6 +108,21 @@ export function plainWordsFindings({ base, head }) {
     .map(([name, n]) => `plain words: ${name} rises from ${base[name]} to ${n} findings; the count only goes down (docs/SPEC.md §0 Plain words)`);
 }
 
+// Patterns the codebase is shedding: the count of src files holding each may fall and never rise.
+export const RATCHETS = { dbAdminCasts: "dbAdmin() as", minimalClients: "interface MinimalClient", fixtureBranches: "isReservedFixtureAccount" };
+
+// `baseFiles` maps a ratchet to the src files holding it at the base, or is null where no base exists.
+export function ratchetFindings({ budget, files, baseFiles }) {
+  return Object.entries(RATCHETS).flatMap(([name, token]) => {
+    if (typeof budget?.[name] !== "number") return [`scripts/budgets.json has no ratchets.${name} count`];
+    const head = files.filter((f) => f.rel.startsWith("src/") && f.text.includes(token)).map((f) => f.rel);
+    const was = baseFiles?.[name];
+    if (head.length <= Math.min(budget[name], was?.length ?? Infinity)) return [];
+    const added = was ? `; new in ${head.filter((rel) => !was.includes(rel)).join(", ")}` : "";
+    return [`${head.length} src files hold "${token}", over ratchets.${name} ${budget[name]} in scripts/budgets.json or the base's ${was?.length ?? "count"}; it only goes down${added}`];
+  });
+}
+
 // The archive is kept for reference only, so a move into it is not new code.
 const MEASURED = /^(?:src|tests(?!\/archive\/)|scripts)\/.*\.(?:ts|tsx|mjs|js|css)$/;
 

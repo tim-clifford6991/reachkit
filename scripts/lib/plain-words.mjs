@@ -5,8 +5,7 @@
 export const LIMITS = { sentence: 15, heading: 6, paragraph: 2 };
 
 // One entry per match: the key, its value, and where the value's literal sits in the file.
-// The bracket is optional so a base commit holding `"key": ["text", {...}]` still counts.
-export const ENTRY_RE = /"([\w$.-]+)"\s*:\s*\[?\s*"((?:[^"\\]|\\.)*)"/g;
+export const ENTRY_RE = /"([\w$.-]+)"\s*:\s*"((?:[^"\\]|\\.)*)"/g;
 export const TITLE_KEY = /\.(title|heading|subject)$/;
 
 // Owner-only screens and the German hosted partition are never customer copy in this sense.
@@ -127,6 +126,19 @@ export function entries(source) {
     const [whole, key = "", raw = ""] = m;
     const start = m.index + whole.length - raw.length - 1;
     out.push({ key, value: JSON.parse(`"${raw}"`), start, end: start + raw.length });
+  }
+  return out;
+}
+
+/** Each key two partitions define: the registry spreads them, so the later value would silently win. */
+export function duplicateKeys(files) {
+  const where = new Map();
+  const out = [];
+  for (const { name, source } of files) {
+    for (const { key } of entries(source)) {
+      if (where.has(key) && where.get(key) !== name) out.push(`copy key "${key}" is defined in both ${where.get(key)} and ${name}`);
+      else where.set(key, name);
+    }
   }
   return out;
 }
