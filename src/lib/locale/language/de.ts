@@ -187,6 +187,7 @@ export const DE: LanguagePack = {
   priceSearch: (name) => `${name} preise`,
   forBuyerSearch: (name, buyer) => `${name} für ${buyer}`,
   jobSearch: (job) => `wie kann man ${job}`,
+  datedLines: { updated: "zuletzt aktualisiert|aktualisiert|stand", published: "veröffentlicht|erschienen" },
   studySearch: (target) => `${target} Studie Umfrage Ergebnisse`,
   officialHosts: /(?:^|\.)(?:w3\.org|schema\.org|iso\.org|din\.de|destatis\.de|bundesnetzagentur\.de|verbraucherzentrale\.de|ihk\.de|bitkom\.org)$/,
   studyMethod: /(?:wir haben (?:\S+ ){0,3}(?:befragt|analysiert|untersucht|ausgewertet)|unsere (?:Umfrage|Studie|Analyse)|Methodik|Stichprobe|Befragte|n ?= ?\d)/i,

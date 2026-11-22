@@ -5,7 +5,6 @@ import { appendFileSync, chmodSync, existsSync, mkdirSync, readFileSync } from "
 import path from "node:path";
 import { admittedClaims, squash } from "@/lib/generate/pipeline/claims";
 import { readClaims } from "@/lib/generate/pipeline/claims-read";
-import { publishedOf } from "@/lib/generate/pipeline/original";
 import { fetchPage, type MarketPageKind, type ReadPage, type Wanted } from "@/lib/generate/pipeline/research";
 import { DEFAULT_LOCALE } from "@/lib/locale/locales";
 import { passThrough } from "./context";
@@ -16,7 +15,7 @@ const SET = path.join(EVAL_DIR, "research-set");
 const CACHE = path.join(SET, "cache", "pages.jsonl");
 
 /** A page as read: the product's `ReadPage`, its markup's publication day, and `null` text where it did not read. */
-type Cached = ReadPage & { publishedAt: string | null; unread?: string };
+type Cached = Omit<ReadPage, "publishedAt"> & { publishedAt: string | null; unread?: string };
 /** `topics.json`: each topic's search, its pages in the order a draft reads them, the words that place a claim on the
  *  topic, and the pages a careful editor would cite. `classes` names each page's source class. */
 interface Topics {
@@ -35,7 +34,7 @@ export async function fetchSet(): Promise<number> {
   const urls = readFileSync(path.join(SET, "urls-2026-11-22.txt"), "utf8").split("\n").map((l) => l.trim()).filter((l) => /^https?:\/\//.test(l));
   for (const url of urls.filter((u) => !cached.has(u))) {
     const read = await fetchPage(url);
-    const row: Cached = read === null ? { url, title: "", text: "", readAt: new Date().toISOString(), publishedAt: null, unread: "refused, failed or under the word floor" } : { ...read.page, sourced: undefined, publishedAt: publishedOf(read.html) };
+    const row: Cached = read === null ? { url, title: "", text: "", readAt: new Date().toISOString(), publishedAt: null, unread: "refused, failed or under the word floor" } : { ...read.page, sourced: undefined, publishedAt: read.page.publishedAt ?? null };
     appendFileSync(CACHE, `${JSON.stringify(row)}\n`, { mode: 0o600 });
     console.log(JSON.stringify({ url, read: row.unread === undefined, words: row.text.split(/\s+/).length, publishedAt: row.publishedAt }));
     await new Promise((resolve) => setTimeout(resolve, 1000));

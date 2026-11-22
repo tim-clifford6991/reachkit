@@ -19,6 +19,7 @@ import { voiceLength } from "../voice/register";
 import type { LaidSection } from "./compose";
 import { closeElsewhere } from "./elsewhere";
 import type { SourcedFact } from "./grounding";
+import { ageDays } from "./claims";
 import { sourcingUrls } from "./original";
 import { packStatements, type ContextPack, type PackClaim } from "./pack";
 import { builtFromOutside, fittedTemplate } from "../standard";
@@ -172,6 +173,7 @@ export function batteryInputs(b: BatteryBasis, page: CheckedPage, markdown: stri
     prose: {
       language: pack.locale?.language ?? "en",
       passages: [...pack.facts.map((fact) => fact.passage), ...pack.claims.map((claim) => claim.passage)],
+      dated: pack.claims.flatMap((claim) => (claim.timeliness === "dated" && claim.ageAt !== undefined && (ageDays(claim.ageAt, new Date(pack.builtAt)) ?? 0) > 183 ? [{ url: claim.url, ageAt: claim.ageAt }] : [])),
       subjects: [...b.searches, ...b.names.filter((name) => name !== ""), ...pack.claims.map((claim) => claim.title), ...pack.links.map((link) => link.label)],
     },
   };

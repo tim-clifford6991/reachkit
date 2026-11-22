@@ -25,6 +25,8 @@ export const CLAIMS_SCHEMA = z.strictObject({
       /** Issue 1485: the domain of the one of `rivals` the claim is about,
        *  or null. */
       rival: z.string().nullable(),
+      /** Whether the claim can go out of date (a figure, price, feature, policy, ranking or share) or not (a definition, law, standard or historical fact). */
+      timeliness: z.enum(["evergreen", "dated"]),
     })
   ),
 });
@@ -63,7 +65,10 @@ export async function readClaims(
           "domain of the one of `rivals` it is about, or null. Say what each claim is `about`: " +
           "`price` where it states what the product whose page it is on costs, or how it is priced; `product` " +
           "where it says what that product does, includes or limits; `other` for anything else — a customer " +
-          "count, a slogan, a statistic about the market or about another company's product.",
+          "count, a slogan, a statistic about the market or about another company's product. Give each claim's " +
+          "`timeliness`: `dated` where it can go out of date (a statistic, a price or plan, what a tool does, how a " +
+          "platform behaves or its policy, a ranking or a market share); `evergreen` for a definition, a law, a " +
+          "standard or a historical fact.",
         search: a.search,
         rivals: a.rivals,
         today: a.today.toISOString().slice(0, 10),

@@ -113,6 +113,7 @@ export const EN: LanguagePack = {
   priceSearch: (name) => `${name} pricing`,
   forBuyerSearch: (name, buyer) => `${name} for ${buyer}`,
   jobSearch: (job) => `how to ${job.length === 0 ? job : job[0]!.toLowerCase() + job.slice(1)}`,
+  datedLines: { updated: "last updated|last modified|updated|revised", published: "first published|published|posted" },
   studySearch: (target) => `${target} study survey findings`,
   officialHosts: /(?:^|\.)(?:w3\.org|whatwg\.org|schema\.org|iso\.org|ietf\.org|oecd\.org|ico\.org\.uk|ofcom\.org\.uk|fca\.org\.uk|asa\.org\.uk|blog\.google|about\.google)$/,
   studyMethod: /\b(?:we (?:surveyed|polled|interviewed|analy[sz]ed|studied|tracked|measured)\b|our (?:survey|study|analysis|research) (?:of|found|shows)\b|methodology\b|sample (?:size|of)\b|respondents\b|n ?= ?\d)/i,

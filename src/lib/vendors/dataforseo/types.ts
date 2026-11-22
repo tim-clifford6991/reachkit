@@ -74,6 +74,8 @@ export interface SerpOrganicRow {
   domain: string;
   url: string;
   title: string;
+  /** The day Google dates the result (its `timestamp`), where it shows one. */
+  publishedAt?: string;
   /** Google sent the result through its redirect and the response named no site for it: the row is nobody's. */
   unresolved?: true;
 }
