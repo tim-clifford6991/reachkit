@@ -8,9 +8,9 @@ Supply: 6 of 10 committed, short 0; stored topics product 4, category 8, best_x 
 |---|---|---|---|---|---|---|---|---|---|---|
 | 0 | 2026-10-19 | user experience research agency | listed_page | offering | 3 | 50 | 5 | fit 3 + demand 2 | best | — |
 | 1 | 2026-10-20 | best ux design agency | listed_page | offering | 3 | 40 | 5 | fit 3 + demand 2 | best | — |
-| 2 | 2026-10-21 | ideo alternatives | comparison_page | listicle | 3 | — | 3 | fit 3 | best | — |
-| 3 | 2026-10-22 | koos alternatives | comparison_page | listicle | 3 | — | 3 | fit 3 | best | — |
-| 4 | 2026-10-23 | work & co alternatives | comparison_page | listicle | 3 | — | 3 | fit 3 | best | — |
+| 2 | 2026-10-21 | ideo alternatives | comparison_page | listicle | 3 | — | 4 | fit 3 + demand 1 | best | — |
+| 3 | 2026-10-22 | work & co alternatives | comparison_page | listicle | 3 | — | 4 | fit 3 + demand 1 | best | — |
+| 4 | 2026-10-23 | koos alternatives | comparison_page | listicle | 3 | — | 3 | fit 3 | best | — |
 | 5 | 2026-10-24 | make it clear alternatives | comparison_page | listicle | 3 | — | 3 | fit 3 | best | — |
 
 | Not chosen | Type | Fit | Volume | Reason |
