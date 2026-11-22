@@ -1,5 +1,5 @@
 // SPEC §7 *This week*, at `/app/calendar`: one card a day and the pane a
-// card opens, its spares and every page published under the cards.
+// card opens, its spares and one link to the live pages under the cards.
 //
 // The screen reads the week once — `readWeek`, request-cached — builds the
 // one screen model from it (`weekScreen`), and hands that to the one client
@@ -26,8 +26,6 @@ import { stalledLine, supplyLine } from "./supply";
 import { readOnboarding } from "../_shell/onboarding";
 import { FirstPageNotice } from "../_shell/OnboardingStatus";
 import { SupplyNotice } from "./SupplyNotice";
-import { PublishedList, updateDays } from "./PublishedList";
-import { contentOf } from "@/lib/measure/published";
 import { demoteHeadings, parseMarkdown, toHtml } from "@/lib/publish/render/markdown";
 import { DRAFT_BODY_CLASSES } from "../draft/[draftId]/present";
 import { weekScreen, writtenDrafts } from "./week-screen";
@@ -78,11 +76,7 @@ export default async function CalendarPage(): Promise<React.JSX.Element> {
           week={week}
           screen={screen}
           bodies={bodies}
-          published={
-            published === null ? null : (
-              <PublishedList content={contentOf(published)} timeZone={week.timeZone} now={published.now} updates={updateDays(week)} />
-            )
-          }
+          anyLive={(published?.pages?.length ?? 0) > 0}
         />
       </Suspense>
     </div>
