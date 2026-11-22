@@ -189,9 +189,10 @@ export const SERP_RIVAL_SIZING = Object.freeze({
  *  report is stored, and four Haiku calls at `INFERENCE_PRICE_BOOK.haiku`
  *  come to about a cent. The peak is the fit judgement's one-attempt
  *  reservation (`INFERENCE_ATTEMPTS`): its input plus
- *  `INFERENCE_MAX_OUTPUT_TOKENS["topic-fit"]` at the Sonnet price, about 4¢
- *  at a 4–5k-token input, after the buyer searches and their check have
- *  settled about 0.4¢. Eight covers a fit input of up to about 22k tokens. */
+ *  `INFERENCE_MAX_OUTPUT_TOKENS["topic-fit"]` at the Sonnet price, 4.6¢ of
+ *  output, after the buyer searches and their check have settled about 0.4¢.
+ *  Eight covers a fit input, each search's top titles included, of up to
+ *  about 15k tokens. */
 export const TYPING_RESERVE_C = 8;
 
 /** SPEC §6 (D64; a drafted default the owner may correct): how many of a

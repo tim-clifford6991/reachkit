@@ -47,6 +47,10 @@ export interface ShapeWords {
   /** A question about a word itself — its meaning, a synonym, how it is
    *  said (issue 1506): another sense than a product's name. */
   wordSense: string;
+  /** A title's tail that joins one more thing on: "and", "including", "plus" at the start. */
+  appended: string;
+  /** The same anywhere in a tail: "also", "too", "instead". */
+  addedOn: string;
 }
 
 /** The tracked buyer prompts' wording (SPEC §6, D19), one language's. Each

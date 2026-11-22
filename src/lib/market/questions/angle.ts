@@ -1,7 +1,7 @@
 // SPEC §6 *Every topic is an angle* (owner rulings 91–92, #2722): the one place a found search becomes a page's angle.
 // The model proposes two or three angles per search in one of five patterns; code keeps the one that passes every gate
 // and promises most of what the top results miss. The weekly topic step and the hot-topic lane both call `pickAngle`.
-import { SHAPES } from "@/lib/locale/language";
+import { LANGUAGE_PACKS, SHAPES } from "@/lib/locale/language";
 import { contentTokens } from "@/lib/market/questions/select";
 
 export const ANGLE_PATTERNS = ["P1", "P2", "P3", "P4", "P5"] as const;
@@ -83,6 +83,18 @@ function namesOtherRival(angle: ProposedAngle, a: AngleContext): boolean {
   return (a.rivals ?? []).map(lowered).some((rival) => rival !== "" && !searched.includes(` ${rival} `) && title.includes(` ${rival} `));
 }
 
+/** On a list or comparison search, a clause joined on after the title's break ("— and the tool that…") is a claim about
+ *  the business, not the decision the page helps the reader make. */
+export function appendsClaim(title: string, search: string): boolean {
+  const lead = /[:?—–]|\s-\s/u.exec(title);
+  return lead !== null && SHAPES.listicle.test(lowered(search)) && SHAPES.appended.test(lowered(title.slice(lead.index + lead[0].length)));
+}
+
+const HYPE = LANGUAGE_PACKS.flatMap((pack) => pack.title.banned);
+
+/** A banned or hype phrase the searcher did not use themselves. */
+const hyped = (title: string, search: string): boolean => HYPE.some((phrase) => title.toLowerCase().includes(phrase) && !search.toLowerCase().includes(phrase));
+
 /** A title whose every content word is the search's is the search restated, with no promise. */
 function restates(title: string, search: string): boolean {
   const searched = new Set(contentTokens(search));
@@ -114,8 +126,8 @@ function intentPoint(pattern: AnglePattern, search: string): number {
 /**
  * The one angle a search keeps, or `null` where none passes: its fact is a passage shown, its pattern fits the
  * search's intent, it leads with the search, every figure and name in it is in the search or a source, it is
- * not led by a price off a price or comparison page, a comparison names no rival the search does not, and it adds a
- * word to the search. Of those, the one whose promise the fewest top results make,
+ * not led by a price off a price or comparison page, a comparison names no rival the search does not and appends no claim,
+ * it adds a word to the search, and it says no banned or hype phrase. Of those, the one whose promise the fewest top results make,
  * then the one whose pattern fits the intent, then the model's order. Pure.
  */
 export function pickAngle(proposed: readonly ProposedAngle[], a: AngleContext): (ProposedAngle & { gap: number }) | null {
@@ -124,7 +136,7 @@ export function pickAngle(proposed: readonly ProposedAngle[], a: AngleContext): 
     .filter((angle) => angle.title !== "" && ANGLE_PATTERNS.includes(angle.pattern))
     .filter((angle) => a.passages === undefined || angle.fact === null || (angle.fact >= 0 && angle.fact < a.passages))
     .filter((angle) => patternAllowed(angle.pattern, a.search) && leadsWithSearch(angle.title, a.search))
-    .filter((angle) => namesAreReal(angle.title, a) && !priceLed(angle.title, a.search) && !namesOtherRival(angle, a) && !restates(angle.title, a.search))
+    .filter((angle) => namesAreReal(angle.title, a) && !priceLed(angle.title, a.search) && !namesOtherRival(angle, a) && !appendsClaim(angle.title, a.search) && !restates(angle.title, a.search) && !hyped(angle.title, a.search))
     .map((angle) => ({ ...angle, gap: gapOf(angle.promise, a) }));
   const score = (angle: (typeof kept)[number]): number => GAP_POINTS(angle.gap) + intentPoint(angle.pattern, a.search);
   const best = kept.sort((left, right) => score(right) - score(left) || left.order - right.order)[0];

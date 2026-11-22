@@ -68,7 +68,7 @@
 import { languagePack } from "@/lib/locale/language";
 import type { Language } from "@/lib/locale/locales";
 import { TITLE } from "@/lib/config/constants";
-import { priceLed } from "@/lib/market/questions/angle";
+import { appendsClaim, priceLed } from "@/lib/market/questions/angle";
 import type { ContentType } from "@/lib/opportunities/content-type";
 import { figuresOf, numeralsOf, REGISTER_FLOOR, valuesStated } from "./figures";
 import { renderOf } from "./text";
@@ -96,7 +96,9 @@ export type TitleFault =
   /** A figure beside a rival's name that no owner the title names holds. */
   | "figure_owner"
   /** A price leads a page that is no offering and answers no price or comparison search. */
-  | "promise_figure";
+  | "promise_figure"
+  /** A list or comparison title that joins a claim about the business on after its break. */
+  | "claim";
 
 /** Who may own a figure a title states: the names it goes by and its own passages. */
 export interface FigureOwner {
@@ -350,6 +352,7 @@ function wordingFaults(title: string, a: TitleRuleInputs): TitleFault[] {
     a.business !== undefined && a.business.length > 0 && !a.business.some((name) => names(title, name)) && "business",
     figureUnowned(title, a) && "figure_owner",
     a.type !== "offering" && a.terms.length > 0 && a.terms.every((term) => priceLed(title, term)) && "promise_figure",
+    a.terms.some((term) => appendsClaim(title, term)) && "claim",
   ];
   return faults.filter((fault) => fault !== false);
 }
@@ -506,6 +509,7 @@ export function titleNotes(title: string, a: TitleRuleInputs, faults: readonly T
     description: `description: write one of ${TITLE.description.min} to ${TITLE.description.max} characters, opening with the answer`,
     figure_owner: "title: a figure beside a product's name must be one that product's own pages state, or the business's own where the title names the business too; state no figure that belongs to another",
     promise_figure: "title: a price is no promise on this page; state what the reader gets, and leave the business's price or a rival's plan to the body",
+    claim: "title: after the break it names the decision the comparison helps the reader make, never a clause joined on with \"and\", \"including\" or \"plus\" about one option",
     description_figures: `description: every figure it states is one the body states; ${descriptionFiguresMissing(a.description, markdown, figureReading(a))
       .map((figure) => `"${figure}"`)
       .join(", ")} is not in the body`,

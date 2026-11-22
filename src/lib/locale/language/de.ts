@@ -108,6 +108,8 @@ export const DE: LanguagePack = {
     // Drafted (issue 1506); the owner may correct the lists.
     agency: "agentur(?:en)?|berater|beratung|beratungen|dienstleister|dienstleistungen?|firmen|unternehmen",
     wordSense: "synonyme?|gegenteil|anderes wort|wort|wörter|bedeutung|definition|aussprache|duden|kreuzworträtsel",
+    appended: "und|plus|inklusive|einschließlich|aber|oder|stattdessen",
+    addedOn: "auch|ebenfalls|stattdessen",
   },
   stopWords: new Set([
     "der", "die", "das", "den", "dem", "des", "ein", "eine", "einen", "einem", "einer", "eines",

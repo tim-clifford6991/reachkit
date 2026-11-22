@@ -56,6 +56,8 @@ export const EN: LanguagePack = {
     // Drafted (issue 1506); the owner may correct the lists.
     agency: "agency|agencies|consultants?|consultancy|consultancies|consulting|services|service providers?|companies|firms?",
     wordSense: "synonyms?|antonyms?|another word|other words?|word for|words?|meaning|define|definition|pronounce|pronunciation|thesaurus|dictionary|crossword",
+    appended: "and|plus|including|but|or|instead",
+    addedOn: "also|too|instead",
   },
   stopWords: new Set([
     "a", "an", "the", "and", "or", "of", "for", "to", "in", "on", "at", "by",
