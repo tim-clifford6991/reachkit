@@ -4,6 +4,7 @@
 import { addressOf, linkedByIn, type PlaceReport } from "@/lib/measure/page-reading";
 import { standingAt } from "@/lib/measure/published";
 import { classifyReferences, namesOrLinks, namesSite as textNamesSite } from "@/lib/measure/drivers";
+import { newestSet } from "@/lib/market/prompts/rate";
 import type { PromptsSection } from "@/lib/scan/report";
 import type { GoogleShown } from "./google-pages";
 
@@ -193,18 +194,25 @@ export function aiWindowOf(passes: readonly TilePass[], pages: readonly TilePage
   return { asked, linked, mentioned: new Set([...named].filter((address) => !linked.has(address))) };
 }
 
-/** The window ending at `week`'s answers; `null` where no healthy pass in it read one. A question that names the site proves nothing, so it is left out. */
-export function aiAnswersOf(passes: readonly TilePass[], week: string, domain: string): AiAnswers | null {
+/** The window ending at `week`'s answers, over the weeks that asked its newest set, and the questions they answered; with `only`, those questions alone.
+ *  `answers` is `null` where no healthy pass in it read one. A question that names the site proves nothing, so it is left out. */
+function answersIn(passes: readonly TilePass[], week: string, domain: string, only?: ReadonlySet<string>): { answers: AiAnswers | null; asked: Set<string> } {
+  const asked = new Set<string>();
+  const counts = (question: string): boolean => {
+    if (only !== undefined && !only.has(question)) return false;
+    asked.add(question);
+    return true;
+  };
   let k = 0;
   let fromPages = 0;
   let fromPrompts = 0;
-  for (const pass of passes) {
-    if (!inAiWindow(pass, week)) continue;
+  const window = passes.filter((pass) => inAiWindow(pass, week)).sort((x, y) => x.weekStart.localeCompare(y.weekStart));
+  for (const pass of newestSet(window, (p) => p.prompts)) {
     const prompts = pass.prompts ?? null;
     const kinds = new Map((prompts?.asked ?? []).map((prompt) => [prompt.id, prompt.kind]));
     for (const answer of prompts?.answers ?? []) {
       const kind = kinds.get(answer.promptId);
-      if (kind === undefined || kind === "branded") continue;
+      if (kind === undefined || kind === "branded" || !counts(`prompt:${answer.promptId}`)) continue;
       fromPrompts += 1;
       if (namesOrLinks({ namesCustomer: answer.linked, ...(answer.named ? { named: true as const } : {}) })) k += 1;
     }
@@ -212,14 +220,27 @@ export function aiAnswersOf(passes: readonly TilePass[], week: string, domain: s
       if (textNamesSite(row.question.search, prompts?.siteName ?? null, domain)) continue;
       // A row stored before per-engine cells carries the AI Overview's cell alone; after, `engines` holds it too.
       for (const cell of row.engines.length === 0 ? [row.cell] : row.engines.map((e) => e.cell)) {
-        if (cell.kind !== "answered") continue;
+        if (cell.kind !== "answered" || !counts(`page:${row.publicationId}:${row.question.search}`)) continue;
         fromPages += 1;
         if (namesOrLinks(cell as unknown as Parameters<typeof namesOrLinks>[0])) k += 1;
       }
     }
   }
   const n = fromPages + fromPrompts;
-  return n === 0 ? null : { k, n, fromPages, fromPrompts };
+  return { answers: n === 0 ? null : { k, n, fromPages, fromPrompts }, asked };
+}
+
+export const aiAnswersOf = (passes: readonly TilePass[], week: string, domain: string): AiAnswers | null => answersIn(passes, week, domain).answers;
+
+/** Against the window before, on the questions both answered: unread where the latest is not healthy, first where they share none. */
+function aiChange(passes: readonly TilePass[], domain: string): TileChange {
+  const latest = passes.at(-1)!;
+  if (!latest.healthy) return { kind: "unread" };
+  const prior = passes.slice(0, -1).filter((pass) => pass.healthy && aiAnswersOf(passes, pass.weekStart, domain) !== null).at(-1);
+  const now = answersIn(passes, latest.weekStart, domain).asked;
+  const both = new Set(prior === undefined ? [] : [...answersIn(passes, prior.weekStart, domain).asked].filter((question) => now.has(question)));
+  if (prior === undefined || both.size === 0) return { kind: "first", at: new Date(latest.at) };
+  return diff(answersIn(passes, latest.weekStart, domain, both).answers!.k, answersIn(passes, prior.weekStart, domain, both).answers!.k);
 }
 
 export function tilesOf(a: {
@@ -280,9 +301,11 @@ export function tilesOf(a: {
             series: seriesOf(passes, a.week, googleValue),
           };
 
-  // AI answers mentioning you: each week is its own window's figure.
-  const aiValue = (pass: TilePass): number | null => aiAnswersOf(passes, pass.weekStart, a.domain)?.k ?? null;
-  const answers = latest === undefined ? null : aiAnswersOf(passes, latest.weekStart, a.domain);
+  // AI answers mentioning you: each week is its own window's figure, and a week that asked an older set is a gap.
+  const newest = new Set(newestSet(passes.filter((pass) => pass.healthy), (pass) => pass.prompts));
+  const current = passes.filter((pass) => !pass.healthy || newest.has(pass));
+  const aiValue = (pass: TilePass): number | null => aiAnswersOf(current, pass.weekStart, a.domain)?.k ?? null;
+  const answers = latest === undefined ? null : aiAnswersOf(current, latest.weekStart, a.domain);
   const ai: Tile =
     live === 0
       ? none("ai")
@@ -292,8 +315,8 @@ export function tilesOf(a: {
             key: "ai",
             n: answers.k,
             of: { kind: "count", m: answers.n },
-            change: weeklyChange(passes, answers.k, aiValue),
-            series: seriesOf(passes, a.week, aiValue),
+            change: aiChange(current, a.domain),
+            series: seriesOf(current, a.week, aiValue),
           };
 
   // Against Competitors: the Competitors screen's own count; the week before is the pass before.
