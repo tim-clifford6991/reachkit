@@ -1,11 +1,11 @@
-// SPEC §4 (owner, 2026-10-19, E3) — Billing's "This month": the period and
-// four tiles, as board SettingsAccount draws them.
+// SPEC §4 (owner, 2026-10-19, E3) — Billing's "This month": the period and four counted lines, as plate F3 draws them.
 import type React from "react";
 import { Fragment } from "react";
 import { copy } from "@/lib/presentation/copy";
 import type { MonthGot } from "@/lib/account/billing";
 import type { DayKey } from "../../calendar/dates";
 import { SHELL_LOCALE } from "../../_shell/format";
+import { CARD, CARD_BODY, CARD_LEAD, CARD_TITLE } from "../frame";
 
 const INK = "text-base-content/70";
 
@@ -19,17 +19,17 @@ export interface MonthContext {
   first: string | null;
 }
 
-/** One tile: a count and what it counts. A zero is quiet; an unread count says so in words. */
+/** One line: a count and what it counts. A zero is written as 0; an unread count says so in words. */
 function Tile(p: { value: number | null; label: string; cap?: string | null; testId: string }): React.JSX.Element {
   return (
-    <li className="bg-base-200 rounded-box flex min-w-0 flex-col gap-1 p-4" data-testid={p.testId}>
+    <li className="border-base-300 flex min-w-0 flex-wrap items-baseline gap-x-2 border-t py-1.5 first:border-t-0" data-testid={p.testId}>
       {p.value === null ? (
-        <span className={`text-base wrap-anywhere ${INK}`}>{copy("settings.month.not-measured")}</span>
+        <span className={`text-sm wrap-anywhere ${INK}`}>{copy("settings.month.not-measured")}</span>
       ) : (
-        <span className={`figure text-3xl ${p.value === 0 ? INK : ""}`}>{p.value}</span>
+        <span className="text-base font-semibold tabular-nums">{p.value}</span>
       )}
-      <span className="text-sm wrap-anywhere">{p.label}</span>
-      {p.cap == null ? null : <span className={`text-sm wrap-anywhere ${INK}`}>{p.cap}</span>}
+      <span className="min-w-0 text-sm wrap-anywhere">{p.label}</span>
+      {p.cap == null ? null : <span className={`basis-full text-sm wrap-anywhere ${INK}`}>{p.cap}</span>}
     </li>
   );
 }
@@ -42,12 +42,12 @@ function dayMonth(at: Date, timeZone: string): string {
 
 export function MonthPanel(p: { got: MonthGot | null; context: MonthContext }): React.JSX.Element {
   const { got, context } = p;
-  const title = <h2 className="card-title text-(length:--h3)">{copy("settings.month.title")}</h2>;
+  const title = <h2 className={CARD_TITLE}>{copy("settings.month.title")}</h2>;
   // A month that could not be read is never drawn as zeros.
   if (got === null) {
     return (
-      <section className="card card-border min-w-0 bg-base-100" data-testid="billing-month">
-        <div className="card-body gap-4">
+      <section className={CARD} data-testid="billing-month">
+        <div className={CARD_BODY}>
           {title}
           <p className={`text-sm wrap-anywhere ${INK}`} data-testid="billing-month-unread">
             {copy("settings.month.unread")}
@@ -61,11 +61,11 @@ export function MonthPanel(p: { got: MonthGot | null; context: MonthContext }): 
   const period = copy("settings.month.period", { from: "\u0000", to: "\u0000", price: context.price }).split("\u0000");
 
   return (
-    <section className="card card-border min-w-0 bg-base-100" data-testid="billing-month">
-      <div className="card-body gap-5">
-        <div className="flex min-w-0 flex-col gap-1">
+    <section className={CARD} data-testid="billing-month">
+      <div className={CARD_BODY}>
+        <div className="flex min-w-0 flex-col">
           {title}
-          <p className={`text-sm wrap-anywhere ${INK}`} data-testid="billing-month-period">
+          <p className={CARD_LEAD} data-testid="billing-month-period">
             {period.map((text, i) => (
               <Fragment key={i}>
                 {text}
@@ -75,7 +75,7 @@ export function MonthPanel(p: { got: MonthGot | null; context: MonthContext }): 
           </p>
         </div>
 
-        <ul className="grid min-w-0 grid-cols-2 gap-3 md:grid-cols-4" data-layout="month">
+        <ul className="flex min-w-0 flex-col" data-layout="month">
           <Tile value={got.live} label={copy("settings.month.live")} testId="billing-month-live" />
           <Tile value={got.reports.length} label={copy("settings.month.reports")} testId="billing-month-reports" />
           <Tile
@@ -87,7 +87,7 @@ export function MonthPanel(p: { got: MonthGot | null; context: MonthContext }): 
           <Tile value={context.planned === null ? null : context.planned.length} label={copy("settings.month.planned")} testId="billing-month-planned" />
         </ul>
         {got.live === 0 && context.first !== null ? (
-          <p className={`text-sm wrap-anywhere ${INK}`} data-testid="billing-month-first">
+          <p className={CARD_LEAD} data-testid="billing-month-first">
             {copy("settings.month.first", { when: context.first })}
           </p>
         ) : null}

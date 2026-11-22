@@ -143,7 +143,7 @@ The owner looks at `dev.reachkit.app` for taste: voice, and an asset only the ow
 | Review (owner only) | `/app/review` | [board](design/boards/canvas/Review.dc.html) · [render](design/boards/canvas/renders/Review.jpg) |
 | Settings, Your business | `/app/settings` | [board](design/boards/canvas/SettingsIndex.dc.html) · [render](design/boards/canvas/renders/SettingsIndex.jpg) · superseded by plates F1a/F9, owner 2026-11-20 |
 | Settings, Pages | `/app/settings/pages` | [board](design/boards/canvas/SettingsPublishing.dc.html) · [render](design/boards/canvas/renders/SettingsPublishing.jpg) · superseded by plate F2, owner 2026-11-20, #2985 |
-| Settings, Account | `/app/settings/account` | [board](design/boards/canvas/SettingsAccount.dc.html) · [render](design/boards/canvas/renders/SettingsAccount.jpg) |
+| Settings, Account | `/app/settings/account` | [board](design/boards/canvas/SettingsAccount.dc.html) · [render](design/boards/canvas/renders/SettingsAccount.jpg) · superseded by plate F3, owner 2026-11-20, #2985 |
 | Mail: Monday, phone | Resend | [board](design/boards/canvas/MondayMail.dc.html) · [render](design/boards/canvas/renders/MondayMail.jpg) |
 | Hosted index | `<label>.<customer-domain>/` | [board](design/boards/canvas/HostedIndex.dc.html) · [render](design/boards/canvas/renders/HostedIndex.jpg) |
 | Hosted article (a guide) | `<label>.<customer-domain>/{slug}` | [board](design/boards/canvas/HostedArticle.dc.html) · [render](design/boards/canvas/renders/HostedArticle.jpg) |

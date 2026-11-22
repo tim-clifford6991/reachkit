@@ -424,6 +424,7 @@ export const SETTINGS_COPY = Object.freeze({
   "settings.billing.payment-failed": "Your last payment didn’t go through.",
   "settings.billing.pay": "Pay in Stripe",
   "settings.billing.next-invoice": "Next invoice",
+  "settings.billing.access-until": "Access until",
   "settings.billing.status": "Status",
   "settings.billing.plan": "Plan",
   "settings.billing.billed": "Billed in euros. Cancel any time, and it all runs until the period ends.",
@@ -455,14 +456,11 @@ export const SETTINGS_COPY = Object.freeze({
   "settings.billing.resumed": "Your subscription is running again.",
   "settings.billing.reach-a-person": "Or write to hello@reachkit.app.",
 
-  // The cancelled arm, in the board's words. The date is `paid_through`.
-  "settings.billing.cancelling": "Cancelled. Everything keeps running until {date}.",
 
   // The cancel route (owner E13, 2026-10-19). Drafted.
   // {control} is filled from `settings.billing.manage`, so the line names the card's real button.
   "settings.billing.route": "Reply to any ReachKit email or use {control}.",
 
-  // Billing's "What you got this month" (owner E3, 2026-10-19). Drafted.
   "settings.month.title": "This Month",
   "settings.month.period": "{from} to {to}. All included in {price}.",
   "settings.month.live": "pages went live",
@@ -521,8 +519,8 @@ export const SETTINGS_COPY = Object.freeze({
   "settings.account.cancel-change": "Undo Change",
   // The export row, in the board's words. Two keys: this registry does not pluralise.
   "settings.account.pages": "Your pages",
-  "settings.account.pages.count": "{pages} pages, with images",
-  "settings.account.pages.one": "1 page, with images",
+  "settings.account.pages.count": "{pages} pages",
+  "settings.account.pages.one": "1 page",
 
   // ── Your content ───────────────────────────────────────────────────────
   // 2026-09-08, issue #374 — the approved screen set's S18 gives the two

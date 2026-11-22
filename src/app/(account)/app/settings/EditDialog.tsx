@@ -18,6 +18,7 @@ const FIELD = "input:not([type=hidden]), textarea, select";
 function Body(p: {
   dialog: React.RefObject<HTMLDialogElement | null>;
   save?: (form: FormData) => Promise<DialogAnswer>;
+  verb?: string;
   children: React.ReactNode;
 }): React.JSX.Element {
   const form = useRef<HTMLFormElement>(null);
@@ -61,7 +62,7 @@ function Body(p: {
         )}
         <button type="submit" className="btn btn-primary min-h-11" disabled={pending}>
           {pending ? <span className="loading loading-spinner loading-xs" aria-hidden /> : null}
-          {copy("settings.save")}
+          {p.verb ?? copy("settings.save")}
         </button>
         <button type="button" className="btn btn-ghost min-h-11" onClick={close}>
           {copy("settings.cancel-edit")}
@@ -79,6 +80,8 @@ export function EditDialog(p: {
   save?: (form: FormData) => Promise<DialogAnswer>;
   /** A read-only list opens on *Show*, not *Change*. */
   show?: boolean;
+  /** A line whose change has its own name opens on it, and saves on it. */
+  verb?: string;
   children: React.ReactNode;
 }): React.JSX.Element {
   const dialog = useRef<HTMLDialogElement>(null);
@@ -97,12 +100,12 @@ export function EditDialog(p: {
         ref={opener}
         type="button"
         className={`btn btn-ghost ${TARGET} shrink-0 text-primary`}
-        aria-label={copy(p.show === true ? "settings.show.name" : "settings.change.name", { label: p.label })}
+        aria-label={p.verb ?? copy(p.show === true ? "settings.show.name" : "settings.change.name", { label: p.label })}
         aria-haspopup="dialog"
         onClick={open}
         data-testid={`${p.testId}-change`}
       >
-        {copy(p.show === true ? "settings.show" : "settings.change")}
+        {p.verb ?? copy(p.show === true ? "settings.show" : "settings.change")}
       </button>
       <dialog ref={dialog} className="modal" aria-labelledby={title} onClose={() => opener.current?.focus()} data-testid={p.testId}>
         <div className={DIALOG_BOX}>
@@ -124,7 +127,7 @@ export function EditDialog(p: {
             </button>
           </div>
           {opened === 0 ? null : (
-            <Body key={opened} dialog={dialog} save={p.save}>
+            <Body key={opened} dialog={dialog} save={p.save} {...(p.verb === undefined ? {} : { verb: p.verb })}>
               {p.children}
             </Body>
           )}
@@ -246,7 +249,7 @@ export function fromSetting(answer: SettingAnswer): DialogAnswer {
 }
 
 /** One text field, held as typed so a refused save keeps the words. */
-export function TextField(p: { name: string; label: string; value: string; rows?: number; placeholder?: string | null }): React.JSX.Element {
+export function TextField(p: { name: string; label: string; value: string; rows?: number; placeholder?: string | null; email?: boolean }): React.JSX.Element {
   const [text, setText] = useState(p.value);
   const shared = {
     name: p.name,
@@ -255,7 +258,7 @@ export function TextField(p: { name: string; label: string; value: string; rows?
     ...(p.placeholder == null ? {} : { placeholder: p.placeholder }),
   };
   return p.rows === undefined ? (
-    <input className="input w-full min-w-0" {...shared} onChange={(e) => setText(e.target.value)} />
+    <input className="input w-full min-w-0" {...shared} {...(p.email === true ? { type: "email", autoComplete: "email" } : {})} onChange={(e) => setText(e.target.value)} />
   ) : (
     <textarea className="textarea h-auto w-full min-w-0" rows={p.rows} {...shared} onChange={(e) => setText(e.target.value)} />
   );

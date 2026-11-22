@@ -35,7 +35,7 @@ export const DANGER_COPY = Object.freeze({
   "danger.pause.line": "To stop new pages without taking any down, pause publishing instead.",
   "danger.pause.link": "pause publishing",
   "danger.unpublish-all.consequence": "We send your export first, then take every page down and pause publishing. Your account stays, and you can turn publishing on again.",
-  "danger.delete-account.consequence": "We send your export, take every page down and close your account for good. You pay nothing more; we mail you goodbye and erase the rest in {days} days.",
+  "danger.delete-account.consequence": "We send your export, then take every page down. Your account closes for good, with no more charges.",
   // The "Are you sure?" step before deletion runs: one line per consequence, then the two buttons.
   "danger.delete-account.sure.title": "Are You Sure?",
   "danger.delete-account.sure.hosted": "Every page we host for you is taken down now.",
