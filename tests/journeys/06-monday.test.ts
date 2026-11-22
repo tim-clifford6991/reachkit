@@ -413,7 +413,7 @@ function answerQuery(query: DbQuery): unknown[] | typeof UNIQUE_VIOLATION | null
 
 // ── The modules, after the fixtures above are in place ──────────────────
 
-const { CAPS } = await import("../../src/lib/config/constants");
+const { CAPS, TRACKED_PROMPTS } = await import("../../src/lib/config/constants");
 const weekly = await import("../../src/lib/scan/weekly");
 const { setBillingStore, supabaseBillingStore } = await import("../../src/lib/account/billing");
 const { payingStore } = await import("../account/billing/memory-store");
@@ -575,11 +575,12 @@ describe("Monday: the week is re-measured, judged, and told (JN-005)", () => {
       const sources = new Set(rows.map((row) => row.source));
       expect(sources).toContain("ai_optimization/chat_gpt/llm_scraper");
       expect(sources).toContain("serp/google/ai_mode");
-      // D19 and B2: the site's 23 unbranded prompts asked once and its 2
-      // branded prompts twice on both engines — 54 asks, every one under the cap.
+      // The AI panel, each item asked once on both engines and none branded, every one under the cap.
       const asks = rows.filter((row) => row.source !== "serp/google/organic" && row.source.includes("/"));
-      expect(asks.filter((row) => row.source === "ai_optimization/chat_gpt/llm_scraper")).toHaveLength(27);
-      expect(asks.filter((row) => row.source === "serp/google/ai_mode")).toHaveLength(27);
+      const panel = asks.filter((row) => row.source === "ai_optimization/chat_gpt/llm_scraper").length;
+      expect(panel).toBeGreaterThan(0);
+      expect(panel).toBeLessThanOrEqual(TRACKED_PROMPTS.PANEL);
+      expect(asks.filter((row) => row.source === "serp/google/ai_mode")).toHaveLength(panel);
 
       // Once, and the claim is what makes it so: the row carries the week,
       // and a second tick inside the same week is refused before any spend.

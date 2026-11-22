@@ -79,7 +79,9 @@ export async function askTheTrackedPrompts(a: StageArgs): Promise<void> {
     }
     const siteName = promptSiteName((await readSiteProfile(a.domain))?.siteName ?? null, a.domain);
     const stored = await readPromptSet(siteId);
-    const searches = [...sections.selected.map((search) => search.keyword), ...sections.runnersUp];
+    // The twelve as this pass asks them, then the runners-up.
+    const twelve = sections.questions.kind === "unmeasured" ? sections.selected : sections.questions.value.map((question) => question.search);
+    const searches = [...twelve.map((search) => search.keyword), ...sections.runnersUp];
     const { language, place } = localeOfPass(a);
     const panel = searches.length === 0 ? [] : panelOf({ searches, questions: await storedQuestions(siteId), siteName, rivals: market.rivals, language, ...(place === undefined ? {} : { place }) });
     const set = nextPromptSet(stored, panel, new Date());
@@ -177,10 +179,14 @@ export async function askTheTrackedPrompts(a: StageArgs): Promise<void> {
 
 /** The "People also ask" questions stored for the site, from its current report's SERPs and its research SERPs; none where unreadable. */
 async function storedQuestions(siteId: string): Promise<string[]> {
-  const [{ opportunityStore }, { askedOfReport }] = await Promise.all([import("@/lib/opportunities/store"), import("@/lib/opportunities/derive/topics")]);
-  const store = opportunityStore();
-  const [report, beside] = await Promise.all([store.currentReport(siteId).catch(() => null), store.askedBeside(siteId, ASKED_TOPICS.maxAgeDays).catch(() => [])]);
-  return [...(report === null ? [] : askedOfReport(report)), ...beside].flatMap((serp) => serp.peopleAlsoAsk);
+  try {
+    const [{ opportunityStore }, { askedOfReport }] = await Promise.all([import("@/lib/opportunities/store"), import("@/lib/opportunities/derive/topics")]);
+    const store = opportunityStore();
+    const [report, beside] = await Promise.all([store.currentReport(siteId).catch(() => null), store.askedBeside(siteId, ASKED_TOPICS.maxAgeDays).catch(() => [])]);
+    return [...(report === null ? [] : askedOfReport(report)), ...beside].flatMap((serp) => serp.peopleAlsoAsk);
+  } catch {
+    return [];
+  }
 }
 
 /** The published pages' own questions, asked after the twelve inside their budget, each with one SERP (its AI Overview free) and the battery's two engines.
