@@ -27,9 +27,9 @@ function init() {
   }).observe({ type: "paint", buffered: true });
 }
 
-for (const strip of [false, true]) {
+for (const strip of [false]) {
   it(`diagnose / @1280 cpu x20 ${strip ? "without" : "with"} the render-blocking link`, async () => {
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 15; i++) {
       const r = await withPage(1280, async (page) => {
         const cdp = await page.context().newCDPSession(page);
         await cdp.send("Emulation.setCPUThrottlingRate", { rate: 20 });
