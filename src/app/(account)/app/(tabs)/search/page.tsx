@@ -1,80 +1,83 @@
-// SPEC §4 (board AppGoogle) — the Google tab: the week and the day its places
-// were read, the three tiles, each live page in Google, then your market's
-// searches and what ReachKit is doing about each this week.
+// SPEC §4 (plates O4, O8) — On Google's detail: back to Overview, the tiles with this one current,
+// the head and its pills, then each live page on its own search.
 //
-// **Every read is a stored one.** The pages and visits are Overview's own
-// readers, so a figure here and on Overview is one number; Plan's week is
-// reached at the call, as Overview reaches it, so this graph holds no vendor
-// client. No measurement, vendor call or model call happens on render.
-//
-// **It declares no `Surface`**: the shell's own layout owns this route's
-// screen root, and the tab bar above it is `(tabs)/layout.tsx`'s.
-//
-// **`Suspense`**: the table holds the chosen chip in the URL through `nuqs`,
-// which reads `useSearchParams` and so wants a `<Suspense/>` boundary
-// (`01-app/03-api-reference/04-functions/use-search-params.md`).
+// **Every read is a stored one, and the tile's own**: the rows are the On Google tile's pages, split as
+// the tile counts them, so the tile and the pills state one number. No measurement, vendor call or model
+// call happens on render.
 import type React from "react";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { copy } from "@/lib/presentation/copy";
-import { formatDay } from "../../_shell/format";
+import { formatCount, formatDay, formatShortDay, formatTime } from "../../_shell/format";
 import { readShell } from "../../_shell/provider";
-import { readSearch } from "../../_overview/search-provider";
-import { readGoogleVisitWeeks } from "../../_overview/blog-reads-provider";
-import { doingOf, type Doing } from "../../_overview/search-model";
-import { climbingSearches, readPlanned } from "../../_overview/google-pages";
-import { GooglePages } from "../../_overview/GooglePages";
-import { SearchTable } from "../../_overview/SearchTable";
-import { SearchTiles } from "../../_overview/SearchTiles";
-import { SearchTableSkeleton } from "../../_overview/skeletons";
-import { OVERVIEW } from "../../_overview/frame";
+import { readPlanned } from "../../_overview/google-pages";
+import { GoogleFilter } from "../../_overview/GoogleFilter";
+import { firstReading, GoogleTable } from "../../_overview/GoogleTab";
+import { loadShowAll, loadShowGoogle, OVERVIEW } from "../../_overview/frame";
 import { TabHead } from "../../_overview/TabHead";
 import { DetailTiles } from "../../_overview/Tiles";
 import { readTiles } from "../../_overview/tiles-provider";
-import { marketOf } from "../../_overview/tiles";
 
-/** /app/search's own `<title>` (#945). Without it this screen announced
- *  nothing at all — the `(account)` layout's fallback is the floor, not
- *  the name of this screen. */
+/** /app/search's own `<title>` (#945). */
 export const metadata: Metadata = { title: copy("meta.app.search.title") };
 
-export default async function SearchTabPage(): Promise<React.JSX.Element> {
-  const [shell, model, visits, planned, tiles] = await Promise.all([
-    readShell(),
-    readSearch(),
-    readGoogleVisitWeeks(),
-    readPlanned(),
-    readTiles(0, false),
-  ]);
-  // The card and the list read the On Google tile's own model: one count, from the same rows.
-  const pages = tiles?.google ?? null;
-  const climbing = pages === null ? new Set<string>() : climbingSearches(pages);
-  const doing: Record<string, Doing> = {};
-  for (const row of model.rows) doing[row.id] = doingOf(row, planned, climbing);
+const INK = "text-base-content/70";
+
+export default async function SearchTabPage(p: { searchParams: Promise<Record<string, string | string[] | undefined>> }): Promise<React.JSX.Element> {
+  const params = await p.searchParams;
+  const [shell, tiles, planned] = await Promise.all([readShell(), readTiles(0, false), readPlanned()]);
+  // Unread rows are an error, never the no-pages line.
+  if (tiles === null) throw new Error("search: tiles unreadable");
+  const { all } = loadShowAll(params);
+  const { show } = loadShowGoogle(params);
+  const tile = tiles.tiles.find((t) => t.key === "google");
+  const { showing, notYet, readAt } = tiles.search;
+  const live = showing.length + notYet.length;
+  // Before the first pass no page is counted either way.
+  const counted = tile?.of.kind === "count";
+  const n = (k: number): string => (counted ? formatCount(k) : copy("unmeasured.dash"));
+  const labels = {
+    all: copy("overview.google.filter.all", { n: formatCount(live) }),
+    showing: copy("overview.google.filter.showing", { k: n(showing.length) }),
+    "not-yet": copy("overview.google.filter.not-yet", { m: n(notYet.length) }),
+  };
+  const rows = show === "showing" ? showing : show === "not-yet" ? notYet : [...showing, ...notYet];
+  const next = shell.publishing.next;
+  const read = readAt === null ? null : formatShortDay(new Date(readAt), shell.timeZone);
 
   return (
     <div className={OVERVIEW} data-testid="search-tab">
       <DetailTiles model={tiles} tab="google" />
-      <TabHead
-        eyebrow={shell.weeks.kind === "counted" ? copy("overview.tab.eyebrow", { n: String(shell.weeks.weeks) }) : null}
-        title={copy("overview.tab.search")}
-        testId="search"
-        measured={
-          model.measuredAt === null ? null : (
-            <p className="text-base-content/70" data-testid="search-measured">
-              {copy("overview.search.measured", { on: formatDay(model.measuredAt, shell.timeZone) })}
+      <div className="flex min-w-0 flex-wrap items-end justify-between gap-4">
+        <TabHead title={copy("overview.google.title")} testId="search" lead={copy("overview.google.lead")} measured={null} />
+        {live === 0 ? null : (
+          <Suspense fallback={null}>
+            <GoogleFilter labels={labels} />
+          </Suspense>
+        )}
+      </div>
+      {live === 0 ? (
+        <p className={`max-w-prose ${INK}`} data-testid="google-none">
+          {copy("overview.google.none")}
+          {next === null ? null : ` ${copy("overview.google.none.next", { day: formatDay(next, shell.timeZone), time: formatTime(next, shell.timeZone) })}`}
+        </p>
+      ) : (
+        <>
+          {tile?.change?.kind === "unread" && read !== null ? (
+            <p role="status" data-testid="google-unread">
+              {copy("overview.google.unread", { date: read })}
             </p>
-          )
-        }
-      />
-
-      <SearchTiles pages={pages} visits={visits} market={marketOf(tiles)} />
-
-      <GooglePages pages={pages} planned={planned} timeZone={shell.timeZone} />
-
-      <Suspense fallback={<SearchTableSkeleton />}>
-        <SearchTable model={model} doing={doing} />
-      </Suspense>
+          ) : null}
+          <GoogleTable
+            rows={rows}
+            all={all}
+            first={firstReading(shell.nextDueOn, shell.timeZone)}
+            planned={planned}
+            empty={copy(show === "not-yet" ? "overview.google.empty.not-yet" : "overview.google.empty.showing")}
+            checked={read === null ? null : copy("overview.detail.checked", { date: read })}
+          />
+        </>
+      )}
     </div>
   );
 }

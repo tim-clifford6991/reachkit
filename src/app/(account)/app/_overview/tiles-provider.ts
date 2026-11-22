@@ -7,11 +7,12 @@ import { readAnswers } from "./answers-provider";
 import { readPublished } from "./content-provider";
 import { readRivals } from "./rivals-provider";
 import { aiQuestionsOf, type AiQuestions } from "./ai-pages";
+import { googleSearchOf, type GoogleSearch } from "./google-pages";
 import { buildTiles, type TilesView } from "./tiles-build";
 import { fixturePasses, tilePageOf } from "./tiles-fixture";
 
 /** `null` where the rows could not be read: the row is not drawn, never zeros. */
-export const readTiles = cache(async function readTiles(coming: number, goLive: boolean): Promise<(TilesView & { questions: AiQuestions | null }) | null> {
+export const readTiles = cache(async function readTiles(coming: number, goLive: boolean): Promise<(TilesView & { questions: AiQuestions | null; search: GoogleSearch }) | null> {
   const account = await requireSetUpAccount();
   try {
     const [published, rivals, answers] = await Promise.all([readPublished(), readRivals().catch(() => null), readAnswers().catch(() => null)]);
@@ -33,7 +34,7 @@ export const readTiles = cache(async function readTiles(coming: number, goLive: 
       coming,
       goLive,
     });
-    return view === null ? null : { ...view, questions: aiQuestionsOf(view.ai, stored.passes, account.domain) };
+    return view === null ? null : { ...view, questions: aiQuestionsOf(view.ai, stored.passes, account.domain), search: googleSearchOf(view.google, stored.pages, stored.passes, account.domain) };
   } catch {
     return null;
   }

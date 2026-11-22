@@ -1,13 +1,15 @@
-// SPEC §4 (board AppGoogle) — each live page in Google: where it sits this
-// week, how it got there, and its label, read from its stored weekly reading.
+// SPEC §4 (plate O4) — each live page in Google: its own search, where it sits this
+// week, how it got there, its label and the best competitor there, read from stored rows.
 // Pure. A page no reading reached is not measured, never a place of 0.
-import { FIRST_PAGE_PLACES } from "@/lib/measure/page-reading";
+import { registrableDomain, isOwnDomain } from "@/lib/market/rivals/domains";
+import { addressOf, FIRST_PAGE_PLACES, searchRowsFor, type PlaceReport } from "@/lib/measure/page-reading";
 import { verdict } from "@/lib/opportunities/verdicts/verdict";
 import type { Label } from "@/lib/opportunities/verdicts/types";
 import type { PublishedPage } from "@/lib/measure/published";
 import { dayNumber, weekdayShort } from "../calendar/dates";
 import type { WeekModel } from "../calendar/month";
 import { searchKey, type Planned } from "./search-model";
+import type { TilePage, TilePass } from "./tiles";
 
 const MS_PER_WEEK = 7 * 86_400_000;
 
@@ -101,9 +103,59 @@ export function googlePagesOf(all: readonly PublishedPage[], now: Date): GoogleP
   return { rows, counts, live: rows.length, placed: counts.first + counts.further };
 }
 
-/** The searches whose live page is still climbing, so it is left alone. */
-export function climbingSearches(pages: GooglePages): ReadonlySet<string> {
-  return new Set(pages.rows.flatMap((row) => (row.label === "climbing" && row.search !== null ? [searchKey(row.search)] : [])));
+/** One row of On Google's detail: the page, its own search, that search's demand and who leads it. */
+export interface GoogleSearchRow {
+  page: GooglePageRow;
+  search: string | null;
+  /** `null` where never measured, which is not 0. */
+  volume: number | null;
+  /** The best other site on that search where the week read it; `null` where it read none. */
+  rival: { name: string; place: number } | null;
+  publishedAt: string;
+}
+
+export interface GoogleSearch {
+  /** The pages the tile counts, top place first. */
+  showing: readonly GoogleSearchRow[];
+  /** The rest of the tile's live pages, newest live first. */
+  notYet: readonly GoogleSearchRow[];
+  /** The healthy pass the competitors were read on. */
+  readAt: string | null;
+}
+
+/** The best result on `search` that is neither this site nor this page. */
+function rivalOn(report: PlaceReport, search: string, domain: string, own: string | null): GoogleSearchRow["rival"] {
+  const rows = searchRowsFor(report, search, { tracked: false });
+  if (rows.kind === "unmeasured" || rows.value.serp === null) return null;
+  for (const hit of [...rows.value.serp].sort((a, b) => a.position - b.position)) {
+    const name = registrableDomain(hit.url);
+    if (name !== null && !isOwnDomain(name, domain) && addressOf(hit.url) !== own) return { name, place: hit.position };
+  }
+  return null;
+}
+
+/** On Google's detail rows: the tile's own pages, split as the tile counts them, so the pills and the tile state one number. */
+export function googleSearchOf(google: GooglePages, pages: readonly TilePage[], passes: readonly TilePass[], domain: string): GoogleSearch {
+  const byId = new Map(pages.map((page) => [page.id, page]));
+  const healthy = [...passes].filter((pass) => pass.healthy).sort((x, y) => x.weekStart.localeCompare(y.weekStart)).at(-1);
+  const rows = google.rows.map((page): GoogleSearchRow => {
+    const stored = byId.get(page.id);
+    const search = stored?.search ?? page.search;
+    const own = stored?.liveUrl == null ? null : addressOf(stored.liveUrl);
+    return {
+      page,
+      search,
+      volume: stored?.volume ?? null,
+      rival: search === null || healthy === undefined ? null : rivalOn(healthy.report, search, domain, own),
+      publishedAt: stored?.publishedAt ?? "",
+    };
+  });
+  const placed = (row: GoogleSearchRow): boolean => row.page.bucket === "first" || row.page.bucket === "further";
+  return {
+    showing: rows.filter(placed).sort((a, b) => (a.page.place ?? Infinity) - (b.page.place ?? Infinity)),
+    notYet: rows.filter((row) => !placed(row)).sort((a, b) => b.publishedAt.localeCompare(a.publishedAt)),
+    readAt: healthy?.at ?? null,
+  };
 }
 
 /** Plan's pages still to go live this week, by the search each targets. */

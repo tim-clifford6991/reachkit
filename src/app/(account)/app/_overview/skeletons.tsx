@@ -19,29 +19,6 @@ export function MeasuredSkeleton(): React.JSX.Element {
   return <Box className="h-4 w-36" />;
 }
 
-/** A row of number tiles, in the arriving row's own grid: the name, then
- *  the figure's row at the height `SearchTiles` holds
- *  (`TILE_FIGURE`). `name` is the name's own height where it is not one
- *  line: four tiles across leave Search's names two. */
-export function NumberTilesSkeleton(p: {
-  count: number;
-  grid: string;
-  name?: string;
-}): React.JSX.Element {
-  return (
-    <Waiting className={`grid min-w-0 gap-4 ${p.grid}`} testId="tiles-skeleton">
-      {Array.from({ length: p.count }, (_, at) => (
-        <div key={at} className="card card-border bg-base-100 min-w-0">
-          <div className="flex min-w-0 flex-col gap-2 p-4">
-            <Box className={`w-36 max-w-full ${p.name ?? "h-4"}`} />
-            <Box className="h-9.5 w-24" />
-          </div>
-        </div>
-      ))}
-    </Waiting>
-  );
-}
-
 /** A filtered table in its card — the Search table and the Rivals table:
  *  an optional title, the chips, the rows in both of their shapes, and the
  *  foot. `row` is one row's height: a block below `sm`, a table row under
@@ -86,37 +63,7 @@ export function FilteredTableSkeleton(p: {
 /** One row's height in each table, measured from the loaded screens at
  *  390, 768 and 1280. Constants and not attribute literals: a string of
  *  words in JSX is what the copy sweep reads as a sentence. */
-const SEARCH_ROW = "h-27 sm:h-9 xl:h-6";
 const RIVAL_ROW = "h-21 sm:h-8 xl:h-7";
-
-/** The Search table's shape: its name and lead, the chips, nine rows. */
-export function SearchTableSkeleton(): React.JSX.Element {
-  return (
-    <FilteredTableSkeleton
-      testId="search-table-skeleton"
-      title
-      note
-      chips={["w-28", "w-32", "w-24", "w-36"]}
-      rows={9}
-      row={SEARCH_ROW}
-    />
-  );
-}
-
-/** Each page in Google: its name, the chart's well and six page rows. */
-export function GooglePagesSkeleton(): React.JSX.Element {
-  return (
-    <Waiting className="card card-border bg-base-100 min-w-0" testId="search-pages-skeleton">
-      <div className="flex min-w-0 flex-col gap-4 p-4 sm:p-5">
-        <Box className="h-6 w-56 max-w-full" />
-        <Box className="h-28 w-full" />
-        {Array.from({ length: 6 }, (_, at) => (
-          <Box key={at} className="h-16 w-full" />
-        ))}
-      </div>
-    </Waiting>
-  );
-}
 
 /** The Rivals table's shape: its name, a chip per rival, nine rows. */
 export function RivalTableSkeleton(): React.JSX.Element {

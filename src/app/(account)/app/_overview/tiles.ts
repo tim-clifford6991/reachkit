@@ -32,6 +32,8 @@ export interface TilePage {
   unpublishedAt: string | null;
   /** The search its place is read on. */
   search: string | null;
+  /** That search's searches a month; `null` where never measured. */
+  volume?: number | null;
 }
 
 /** This week's counts, taken by the functions that build the lists the tiles open. */

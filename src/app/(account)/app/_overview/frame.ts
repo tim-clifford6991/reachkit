@@ -10,7 +10,7 @@
 // paint and once Overview has arrived — at 390 and 1280
 // (`tests/ui/layout/skeletons.test.ts`).
 
-import { createLoader, parseAsBoolean } from "nuqs/server";
+import { createLoader, parseAsBoolean, parseAsStringLiteral } from "nuqs/server";
 
 /** The screen: its parts join the layout's column. */
 export const OVERVIEW = "contents";
@@ -21,6 +21,11 @@ export const HEAD = "flex min-w-0 flex-col gap-6";
 /** `?all=true`: the one address a detail's *Show All* writes, read by the server and the control alike. */
 export const SHOW_ALL = { all: parseAsBoolean.withDefault(false) };
 export const loadShowAll = createLoader(SHOW_ALL);
+
+/** `?show=`: On Google's pill, the pages the tile counts by default. */
+export const GOOGLE_SHOWN = ["showing", "not-yet", "all"] as const;
+export const SHOW_GOOGLE = { show: parseAsStringLiteral(GOOGLE_SHOWN).withDefault("showing") };
+export const loadShowGoogle = createLoader(SHOW_GOOGLE);
 
 /** The rows a detail's list shows before *Show All*: 8 at `lg` and up, 5 below. */
 export const ROWS = { lg: 8, below: 5 } as const;
