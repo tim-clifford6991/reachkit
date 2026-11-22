@@ -262,8 +262,8 @@ function ownUrlsOf(urls: readonly string[], ownDomain: string): string[] {
  *  - the engine answered nothing → `no_answer`. §6.2's own denominator
  *    rule applied to an engine: an engine that gave no answer is not a
  *    place the customer was ignored.
- *  - otherwise `answered`, with the domains it cited and whether the
- *    customer is among them.
+ *  - otherwise `answered`, with the domains it cited, whether the
+ *    customer is among them, and the site's own addresses it cited.
  */
 function cellForAnswer(answer: Measured<MarketAiAnswer> | undefined, ownDomain: string, siteName: string | null): AnswerCell {
   if (answer === undefined) return { kind: "unmeasured", reason: "not_attempted" };
@@ -271,15 +271,17 @@ function cellForAnswer(answer: Measured<MarketAiAnswer> | undefined, ownDomain: 
   if (!answer.value.answered) return { kind: "no_answer" };
 
   const citedDomains = citedDomainsOf(answer.value.citedDomains);
+  const urls = answer.value.citedUrls;
   return unlessUnresolved(
     {
       kind: "answered",
       citedDomains,
       namesCustomer: citedDomains.some((domain) => isOwnDomain(domain, ownDomain)),
-      ...namedOf(answer.value.citedDomains, ownDomain, { urls: answer.value.citedUrls, text: answer.value.text, siteName }),
+      ...(urls === undefined ? {} : { ownUrls: ownUrlsOf(urls, ownDomain) }),
+      ...namedOf(answer.value.citedDomains, ownDomain, { urls, text: answer.value.text, siteName }),
     },
     answer.value.citedDomains,
-    answer.value.citedUrls
+    urls
   );
 }
 

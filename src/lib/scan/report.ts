@@ -49,7 +49,7 @@ export type AnswerCell =
       citedDomains: readonly string[];
       namesCustomer: boolean;
       /** The site's own pages this answer cited, which a page's verdict reads before crediting it. Absent where the addresses were not read
-       *  (older cells, the two battery engines): absent is not empty and decides nothing. */
+       *  (older cells): absent is not empty and decides nothing. */
       ownUrls?: readonly string[];
       /** The answer names the site (`classifyReferences`' mention, from its text or a cited address elsewhere). Absent where it does not, and on older cells. */
       named?: true;
