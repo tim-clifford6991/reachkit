@@ -371,22 +371,9 @@ function savedChange(facts: SettingsFacts): MarketChange | null {
   };
 }
 
-/**
- * The record a hosted destination waiting for DNS still needs (#754).
- *
- * Setup shows it once; a founder who did not act then reads it here. It is
- * `recordForHost()`'s record, composed from the host the destination
- * stores, so no two screens can state two records for one host. A host the
- * record would not name exactly is shown no record rather than a different
- * one.
- */
+/** The one CNAME a hosted address is reached by, live or still waiting: `recordForHost`'s, never composed twice. */
 function dnsFor(view: DestinationView, cnameTarget: string): DnsRecord | null {
-  if (view.kind !== "hosted" || view.hostname === null || view.hostnameState !== "pending_dns") {
-    return null;
-  }
-  // `recordForHost`'s, not composed again here (#924): setup's connect step
-  // shows the same record, and two compositions is how one host comes to
-  // have two records.
+  if (view.kind !== "hosted" || view.hostname === null) return null;
   return recordForHost({ hostname: view.hostname, cnameTarget });
 }
 

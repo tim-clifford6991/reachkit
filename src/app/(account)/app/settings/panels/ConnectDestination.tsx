@@ -1,14 +1,6 @@
-// BUILD §4.7 · REQ-060 — the one place a WordPress credential is typed.
-//
-// One form, reached from three states (`connect`, `reconnect`,
-// `reconnect_other_account`); the word on the control is the engine's
-// choice. Three fields: site, WordPress user, application password
-// (2026-09-07). In the card, under its row — not a modal, not a route.
-//
-// The password is cleared on every outcome that sent it. A refused credential
-// renders no sentence of its own: the redrawn card states the destination's
-// health (SPEC §5 — no vendor text). Only a non-https address is refused here.
-
+// The one place a WordPress credential is typed (REQ-060): site, user and application password, in the *Where pages go
+// live* dialog. The password is cleared on every outcome that sent it; a refused credential is the redrawn line's state
+// (SPEC §5, no vendor text). Only a non-https address is refused here.
 "use client";
 
 import type React from "react";
@@ -22,11 +14,6 @@ import { connectWordPress } from "../destination-actions";
  *  not here, because neither is asking for one. */
 export type CredentialAction = "connect" | "reconnect" | "reconnect_other_account";
 
-/** The test ids here are `wp-`, not `destination-`: `screen.test.tsx`
- *  counts `[data-testid^="destination-"]` to hold "one live destination per
- *  site" to a single row, and a second element under that prefix would be a
- *  second destination as far as that assertion can tell. */
-
 const ACTION_COPY_KEY: Record<CredentialAction, CopyKey> = {
   connect: "settings.publishing.connect",
   reconnect: "settings.publishing.reconnect",
@@ -34,7 +21,6 @@ const ACTION_COPY_KEY: Record<CredentialAction, CopyKey> = {
 };
 
 export function ConnectDestination(p: { action: CredentialAction }): React.JSX.Element {
-  const [open, setOpen] = useState(false);
   const [siteUrl, setSiteUrl] = useState("");
   const [username, setUsername] = useState("");
   const [applicationPassword, setApplicationPassword] = useState("");
@@ -56,7 +42,6 @@ export function ConnectDestination(p: { action: CredentialAction }): React.JSX.E
       // rejected form (ADR-086).
       setApplicationPassword("");
       if (outcome === null) setLine("settings.answer.could-not-ask");
-      else if (outcome.connected) setOpen(false);
     });
   }, [applicationPassword, siteUrl, username]);
 
@@ -84,42 +69,37 @@ export function ConnectDestination(p: { action: CredentialAction }): React.JSX.E
 
   return (
     <div className="flex min-w-0 flex-col gap-2" data-testid="wp-credential">
-      <button type="button" className="btn btn-soft btn-primary btn-sm" onClick={() => setOpen((was) => !was)}>
-        {copy(ACTION_COPY_KEY[p.action])}
-      </button>
-
-      {open ? (
-        <div className="flex min-w-0 flex-col gap-2" data-testid="wp-credential-form">
-          {field(
-            copy("settings.destination.site-url"),
-            "site-url",
-            siteUrl,
-            setSiteUrl,
-            "text",
-            line === "settings.destination.https-only" ? "wp-credential-line" : undefined
-          )}
-          {field(copy("settings.destination.username"), "wp-username", username, setUsername)}
-          {/* `type="password"`: a credential in clear text is a credential in
-              a screenshot. */}
-          {field(
-            copy("settings.destination.app-password"),
-            "application-password",
-            applicationPassword,
-            setApplicationPassword,
-            "password"
-          )}
-          {help === null ? null : <p className="text-xs text-base-content/70 wrap-anywhere">{help}</p>}
-          <button type="button" className="btn btn-primary btn-sm" disabled={running} onClick={submit}>
-            {running ? <span className="loading loading-spinner loading-xs" aria-hidden /> : null}
-            {copy("settings.destination.submit")}
-          </button>
-          {line !== null ? (
-            <p id="wp-credential-line" role="alert" className="text-xs text-error wrap-anywhere">
-              {copy(line)}
-            </p>
-          ) : null}
-        </div>
-      ) : null}
+      <h4 className="text-sm font-semibold">{copy(ACTION_COPY_KEY[p.action])}</h4>
+      <div className="flex min-w-0 flex-col gap-2" data-testid="wp-credential-form">
+        {field(
+          copy("settings.destination.site-url"),
+          "site-url",
+          siteUrl,
+          setSiteUrl,
+          "text",
+          line === "settings.destination.https-only" ? "wp-credential-line" : undefined
+        )}
+        {field(copy("settings.destination.username"), "wp-username", username, setUsername)}
+        {/* `type="password"`: a credential in clear text is a credential in
+            a screenshot. */}
+        {field(
+          copy("settings.destination.app-password"),
+          "application-password",
+          applicationPassword,
+          setApplicationPassword,
+          "password"
+        )}
+        {help === null ? null : <p className="text-xs text-base-content/70 wrap-anywhere">{help}</p>}
+        <button type="button" className="btn btn-primary min-h-11 self-start" disabled={running} onClick={submit}>
+          {running ? <span className="loading loading-spinner loading-xs" aria-hidden /> : null}
+          {copy("settings.destination.submit")}
+        </button>
+        {line !== null ? (
+          <p id="wp-credential-line" role="alert" className="text-xs text-error wrap-anywhere">
+            {copy(line)}
+          </p>
+        ) : null}
+      </div>
     </div>
   );
 }

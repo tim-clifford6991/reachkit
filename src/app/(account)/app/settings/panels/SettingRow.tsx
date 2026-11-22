@@ -39,12 +39,12 @@ export function SettingLine(p: {
   const v = p.value;
   return (
     <div
-      className={`border-base-300 grid min-h-11 min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 border-t first:border-t-0 md:grid-cols-[12.5rem_minmax(0,1fr)_auto] lg:min-h-10 lg:grid-cols-[9rem_minmax(0,1fr)_auto]`}
+      className={`border-base-300 grid min-h-11 min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 border-t first:border-t-0 md:grid-cols-[minmax(0,12.5rem)_minmax(0,1fr)_auto] lg:min-h-10 lg:grid-cols-[minmax(0,9rem)_minmax(0,1fr)_auto]`}
       data-testid={p.testId}
     >
       <span className="col-span-2 min-w-0 pt-1 text-sm font-semibold wrap-anywhere md:col-span-1 md:pt-0">{p.label}</span>
       <span
-        className={`flex min-w-0 items-center gap-2 text-sm ${v.kind === "address" ? "num break-all" : v.kind === "empty" ? "text-base-content/70" : "wrap-anywhere"}`}
+        className={`flex min-w-0 items-center gap-2 text-sm ${v.kind === "address" ? "font-mono break-all" : v.kind === "empty" ? "text-base-content/70" : "wrap-anywhere"}`}
         title={v.kind === "text" || v.kind === "list" ? v.full : undefined}
       >
         <span className="min-w-0">{v.text}</span>

@@ -128,6 +128,11 @@ export const SETTINGS_COPY = Object.freeze({
   // One setting line and its dialog: *Change* is named for its line, a list shows two and how many more.
   "settings.change.name": "Change {label}",
   "settings.close": "Close",
+  "settings.show": "Show",
+  "settings.show.name": "Show {label}",
+  "settings.none": "None",
+  "settings.pages.one": "1 page",
+  "settings.pages.count": "{count} pages",
   "settings.line.empty": "Nothing read yet",
   "settings.line.more": "+{n}",
   "settings.dialog.add.placeholder": "Add one",
@@ -270,20 +275,18 @@ export const SETTINGS_COPY = Object.freeze({
   "settings.publishing.publish-time": "Publish time",
   "settings.publishing.time-zone": "Time zone",
   "settings.publishing.destinations": "Where pages go live",
-  // The card's head, the timeline and the help lines, in the board's words (issue 1751).
-  "settings.publishing.on": "On",
-  "settings.publishing.off": "Off",
+  "settings.publishing.saving": "Saving…",
+  "settings.publishing.time.note": "Your next page goes live at the new time.",
+  "settings.publishing.veto.note": "Each page is written and emailed this long before it goes live.",
+  "settings.publishing.flow.none": "Each page is written and emailed {window} before it goes live at {time}.",
   "settings.publishing.on.lead": "On. A page goes live on each planned day.",
   "settings.publishing.off.lead": "Paused: no page goes live until you turn publishing on. Your pages are kept.",
   "settings.publishing.flow.title": "How each page goes out",
   "settings.publishing.flow.written": "Written and emailed",
   "settings.publishing.flow.window": "{window} to edit or stop it",
-  // "This week" is the link to the calendar.
-  "settings.publishing.flow.window.note": "From the mail or This week",
+  "settings.publishing.flow.window.note": "From the mail or This Week",
   "settings.publishing.flow.live": "Goes live",
-  "settings.publishing.flow.paused": "Paused: nothing goes live",
   "settings.publishing.where.same": "Your website stays as it is.",
-  "settings.publishing.time-zone.note": "From your browser.",
   "settings.publishing.reconnect": "Reconnect WordPress",
   // Issue #240 — the control on a destination that has never held a
   // credential. **Its own key, not `reconnect` reused**: a founder who
@@ -341,7 +344,6 @@ export const SETTINGS_COPY = Object.freeze({
   // typecheck rather than failing a copy review — this key is the label
   // for the control that member selects.
   "settings.publishing.reconnect-other-account": "Connect a Different Account",
-  "settings.publishing.set-dns": "Connect Your Website",
 
   // ── The customer's own subdomain (SPEC §5, ruling of 2026-09-12) ───────
   //
@@ -355,7 +357,7 @@ export const SETTINGS_COPY = Object.freeze({
   // customer's own record has resolved yet, and a destination can be
   // perfectly healthy with a record nobody has pointed.
   "settings.destination.hostname.live": "Live",
-  "settings.destination.hostname.waiting": "waiting for the setting",
+  "settings.destination.hostname.waiting": "Waiting for DNS",
 
   // ── Check connection (issue #757; owner ruling 2026-09-16) ────────────
   //
@@ -583,23 +585,17 @@ export const SETTINGS_COPY = Object.freeze({
   // voice under the 2026-09-16 ruling (#759), and the PR names each one.
   // The site link map (SPEC §7, 2026-10-10, issue 1391).
   "settings.linkmap.head": "How Your Pages Link Your Site",
-  "settings.linkmap.none": "None of our pages is live yet. Once one is, this shows which of your pages it links.",
   "settings.linkmap.receiving": "Pages on your site we link to",
-  "settings.linkmap.receiving.none": "None of our pages link to your site yet.",
   "settings.linkmap.alone": "Pages that stand alone",
-  "settings.linkmap.alone.none": "Every live page links to your site, and another page links to it.",
   "settings.linkmap.alone.in": "No other page links to it yet.",
   "settings.linkmap.alone.out": "It links to no page of yours.",
   "settings.linkmap.alone.both": "No other page links to it, and it links to none of yours.",
   "settings.linkmap.receiving.one": "Linked from 1 page",
   "settings.linkmap.note": "We choose and check these links. When a page goes live, we update older pages to link it.",
   "settings.linkmap.receiving.count": "Linked from {count} pages",
-  "settings.known.head": "Content we already know about",
+  "settings.known.head": "Content We Already Know About",
+  "settings.known.line": "Known",
   "settings.known.note": "Checked before every page, so we link to what exists and never write it twice.",
-  "settings.known.total": "{count} pages, from three places:",
-  "settings.known.none": "Nothing yet. We read your site on Monday, and your blog the moment you connect one.",
   "settings.known.ours": "{count} pages we wrote",
-  "settings.known.wordpress": "{count} posts on your blog",
-  "settings.known.wordpress.unread": "Posts on your blog: not read",
   "settings.known.site": "{count} pages on your site",
 }) satisfies CopyPartition;
