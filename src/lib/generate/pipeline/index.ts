@@ -54,7 +54,7 @@ import { batteryCleared, type BatteryOutcome } from "../rules";
 import { answerBoxWords, ownStepsNote, renumberSteps, withoutBrokenLinks } from "../rules/blocks";
 import { proseNotes } from "../rules/prose";
 import { linksOf, renderOf } from "../rules/text";
-import { pickTitle, titleNotes, type TitleCandidate } from "../rules/title";
+import { titleNotes, type TitleCandidate } from "../rules/title";
 import { brandTokens, namesBrand } from "../rules/brand";
 import { RIVAL_SCOPE_VERSION } from "../live-recheck";
 import { HARD_RULES, type GroundedFact, type HardRule, type RuleFailure, type SiteRuleInputs } from "../rules/types";
@@ -71,7 +71,7 @@ import { fixNotes, withFitFact, withoutBusiness, withoutWriterNotes, type FixNot
 import { languagePack } from "@/lib/locale/language";
 import { completeTables, withSources } from "./sources";
 import { withTable } from "./table";
-import { floorTitle, titleRuleFor, unclaimedSuperlatives } from "./title";
+import { pickCased, titleRuleFor, unclaimedSuperlatives } from "./title";
 import { competitorOf, fixPage, writePage, type PageParts } from "./write";
 import { carriedMark } from "../interrupted";
 
@@ -316,7 +316,7 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
     const shaped = layoutPage(parts, template, {
       ...tidy,
       pickTitle: (proposed, on) => {
-        const picked = pickTitle(proposed, titleRuleFor(pack, on), floorTitle(pack));
+        const picked = pickCased(pack, proposed, on);
         titles = picked.candidates;
         return picked.chosen;
       },

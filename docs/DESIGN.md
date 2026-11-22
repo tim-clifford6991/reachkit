@@ -192,6 +192,7 @@ A dependency is admitted only where it deletes hand-written UI code. This is the
 | `sonner`, drawn with daisyUI `alert` classes | Silent actions: every action answers. |
 | `react-email` on Resend | A custom mail block system. The one package; every `@react-email/*` package is deprecated. It renders through its own `render()`, never `react-dom/server`, which the App Router refuses to build. |
 | `@axe-core/playwright` | Hand checks of accessibility, run with the no-overflow check. |
+| `title-case` | A hand-kept small-word list: an English page's title in Title Case, its brand casing kept (owner ruling 88.4, 2026-11-22). |
 
 Use what is installed before adding anything: daisyUI `drawer` and its `is-drawer-open` / `is-drawer-close` variants, `inngest/realtime` and `inngest/react`, React 19 `useActionState` / `useOptimistic`, Next `after()`, Postgres `pg_trgm` and full-text search.
 

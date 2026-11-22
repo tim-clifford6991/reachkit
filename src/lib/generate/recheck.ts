@@ -33,6 +33,7 @@ import { readRecordedRules, readRecordedRun, recordedRulesValue, recordedRunValu
 import { batteryCleared } from "./rules";
 import { answerBoxOf } from "./rules/blocks";
 import { pickTitle } from "./rules/title";
+import { pageTitle } from "@/lib/presentation/page-title";
 import type { HardRule, RuleFailure, SiteRuleInputs } from "./rules/types";
 import type { StoredReport } from "@/lib/scan/report";
 import { deployedStandard, meetsStandard, type Standard } from "./standard";
@@ -173,13 +174,14 @@ function mend(row: DraftRow, written: string, pack: ContextPack, basis: BatteryB
   const description = fitDescription(before.trim() === "" ? answer : before, answer);
   const proposed = (Array.isArray(meta.titles) ? (meta.titles as { title?: unknown }[]) : []).flatMap((each) => (typeof each?.title === "string" ? [each.title] : []));
   const unpromised = (each: string | null): each is string => each !== null && promiseFigures(each, pack).length === 0;
-  const clean = [...proposed, stored].filter(unpromised);
+  const cased = (each: string): string => pageTitle(each, pack.locale?.language);
+  const clean = [...proposed, stored].filter(unpromised).map(cased);
   const rule = titleRuleFor(pack, { description, sections });
   // Nothing after the re-check mends a title, so a floor that stops the page as more than a want of a specific is not taken.
-  const floor = [floorTitle(pack)].find((each) => unpromised(each) && pickTitle([each], rule).candidates.every((one) => one.faults.every((fault) => fault === "specific"))) ?? null;
-  const title = clean.length === 0 && floor === null ? stored : pickTitle(clean, rule, floor).chosen;
+  const floor = [floorTitle(pack)].map((each) => (each === null ? null : cased(each))).find((each) => unpromised(each) && pickTitle([each], rule).candidates.every((one) => one.faults.every((fault) => fault === "specific"))) ?? null;
+  const title = clean.length === 0 && floor === null ? cased(stored) : pickTitle(clean, rule, floor).chosen;
   const faq = withoutBrokenPairs(noted.faq, { min: basis.template.blocks.faq?.min ?? 0, rivals: basis.rivalsNamed, facts: basis.brief.marketFacts });
-  const page: CheckedPage = { title, heading: title === stored && typeof meta.heading === "string" ? meta.heading : title, description, sections, faq: faq.faq };
+  const page: CheckedPage = { title, heading: title === cased(stored) && typeof meta.heading === "string" ? cased(meta.heading) : title, description, sections, faq: faq.faq };
   const claimed = withoutClaimed(body, basis.site.doNotClaim);
   // Issue 2375: the sentences the stored fit verdict named go as the write's repair drops them; only those today's
   // reading still asks about (a link's label is not one).

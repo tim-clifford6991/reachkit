@@ -4,6 +4,7 @@
 // `content-provider.ts` at the call, and the Monday mail reads it the same way.
 import { dbAdmin } from "@/lib/db";
 import { fromStored, renderGenerated } from "@/lib/presentation/generated";
+import { pageTitle } from "@/lib/presentation/page-title";
 import { readLadders } from "@/lib/publish/reads/store";
 import { listedName, standingAt, type PublishedPage } from "./published";
 
@@ -14,6 +15,7 @@ interface PublicationRow {
   published_at: string | null;
   unpublished_at: string | null;
   drafts: { title: string | null; first_edited_at?: unknown } | null;
+  sites?: { language: string | null } | null;
 }
 
 interface MinimalClient {
@@ -36,7 +38,7 @@ export async function readPublishedPages(siteId: string, at: Date = new Date()):
   try {
     read = await (dbAdmin() as unknown as MinimalClient)
       .from("publications")
-      .select("id, draft_id, live_url, published_at, unpublished_at, drafts(title, first_edited_at:meta->first_edited_at)")
+      .select("id, draft_id, live_url, published_at, unpublished_at, drafts(title, first_edited_at:meta->first_edited_at), sites(language)")
       .eq("site_id", siteId)
       .not("published_at", "is", null);
   } catch {
@@ -52,7 +54,7 @@ export async function readPublishedPages(siteId: string, at: Date = new Date()):
     const publishedAt = new Date(row.published_at);
     // A page with no stored title is named by its address; one with
     // neither cannot be listed, so it is counted nowhere.
-    const stored = row.drafts?.title?.trim() ?? "";
+    const stored = pageTitle(row.drafts?.title?.trim() ?? "", row.sites?.language);
     const title = listedName(stored, row.live_url);
     if (Number.isNaN(publishedAt.getTime()) || title === "") continue;
     // Model-written, so it is listed only with its label (ADR-012).
