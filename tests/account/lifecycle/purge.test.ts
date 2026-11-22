@@ -18,6 +18,7 @@ applyEnvFixture();
 const { accountsDueForPurge, purgeAccount, PurgeIncomplete, PURGE_ORDER, setLifecycleStore } =
   await import("@/lib/account/lifecycle");
 const { memoryLifecycleStore, newMemoryLifecycle, account } = await import("./memory-store");
+const { HOSTED_HOSTS_TABLE } = await import("@/lib/account/lifecycle/store");
 
 const NOW = new Date("2026-10-06T12:00:00.000Z");
 let state = newMemoryLifecycle();
@@ -153,6 +154,16 @@ describe("REQ-079 c7 — idempotent, resumable, and loud when it cannot finish",
     expect(tables()).toEqual(["sites", "signin_links", "users", "auth.users"]);
     expect(state.accounts).toEqual([]);
     expect(state.sites).toEqual([]);
+  });
+
+  it("each hosted address is released once, before the row naming it goes, however often the purge runs", async () => {
+    state.hostedHosts = ["content.acme.com"];
+    await purgeAccount("u-1");
+    await purgeAccount("u-1");
+    expect(state.deleted.filter((step) => step.table === HOSTED_HOSTS_TABLE)).toEqual([
+      { table: HOSTED_HOSTS_TABLE, column: "hostname", values: ["content.acme.com"] },
+    ]);
+    expect(tables().indexOf(HOSTED_HOSTS_TABLE)).toBeLessThan(tables().indexOf("destinations"));
   });
 
   it("an interrupted purge resumes and completes on the next run", async () => {

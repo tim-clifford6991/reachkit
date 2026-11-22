@@ -14,8 +14,8 @@ const VERCEL_API = "https://api.vercel.com";
  *  call and the one that answers with the domain's verification state. */
 const ADD_PATH = (projectId: string): string => `/v10/projects/${projectId}/domains`;
 
-/** Reading one of a project's domains back. v9 is the current revision of
- *  the single-domain read. */
+/** Reading one of a project's domains back, or removing it. v9 is the
+ *  current revision of both single-domain calls. */
 const READ_PATH = (projectId: string, hostname: string): string =>
   `/v9/projects/${projectId}/domains/${hostname}`;
 
@@ -23,6 +23,9 @@ const READ_PATH = (projectId: string, hostname: string): string =>
  *  the arm matters: our own project holding it already is the idempotent
  *  case, and the read below is what tells the two apart. */
 const CONFLICT = 409;
+
+/** Vercel answers a hostname the project no longer lists with 404. */
+const NOT_FOUND = 404;
 
 /**
  * What the project's domain list says about one hostname.
@@ -126,4 +129,20 @@ export async function projectDomainState(hostname: string): Promise<DomainState>
   }
   // Not ours. After a conflict that means another project holds it, the one refusal a customer can act on.
   return { ok: false, because: "elsewhere" };
+}
+
+/** Takes the hostname off this project's list, so it no longer serves here; a hostname already off it is the same done. */
+export async function removeProjectDomain(hostname: string): Promise<{ ok: boolean }> {
+  const held = credentials();
+  // A deployment with no token never added a hostname, so it has none to take off.
+  if (held === null) return { ok: true };
+
+  const outcome = await safeFetch(urlFor(READ_PATH(held.projectId, hostname), held.teamId), {
+    method: "DELETE",
+    respectRobots: false,
+    headers: { Authorization: authorization(held.token), Accept: "application/json" },
+  });
+
+  if (!outcome.ok) return { ok: false };
+  return { ok: (outcome.status >= 200 && outcome.status < 300) || outcome.status === NOT_FOUND };
 }
