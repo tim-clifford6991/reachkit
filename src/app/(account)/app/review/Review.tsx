@@ -10,6 +10,8 @@ import type { Label } from "@/lib/opportunities/verdicts/types";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { LinkMapPanel } from "../settings/panels/LinkMapPanel";
 import { whyLineOf } from "../calendar/card-lines";
+import { Answers } from "./Answers";
+import type { OpenedAnswer, SiteAnswers } from "./answers";
 import { markRow } from "./marks";
 import { MarkForm } from "./MarkForm";
 import { markKey, type LivePage, type Marks, type Review as ReviewData, type ReviewSite } from "./model";
@@ -21,6 +23,7 @@ const TABS = "review-tab";
 const WEEK = "week";
 const PAGES = "pages";
 const FLAGGED = "flagged";
+const ANSWERS = "answers";
 // Only one section opens at a time, and its content scrolls in its own box, so the week keeps its rows in view.
 const SECTIONS = "review-section";
 // A topic the commit or a stop rested is set aside; every other held row was not chosen.
@@ -319,19 +322,20 @@ function markdownOf(review: ReviewData, heading: string): string {
 
 // Native radios pick the panel through CSS alone; the panels sit outside the
 // tab bar so neither escapes the other's box.
-function Tabs(p: { review: ReviewData; site: ReviewSite }): React.JSX.Element {
+function Tabs(p: { review: ReviewData; site: ReviewSite; answers?: AnswersRead }): React.JSX.Element {
   const panel = "min-w-0 flex-col gap-3";
+  const open = p.answers?.asked === true ? ANSWERS : WEEK;
   return (
     <div className="group flex min-w-0 flex-col gap-3">
       <div role="radiogroup" aria-label={copy("review.tabs")} className="tabs tabs-border min-w-0 shrink-0">
-        {([[WEEK, "review.tab.week"], [PAGES, "review.tab.pages"], [FLAGGED, "review.tab.flagged"]] as const).map(([value, key]) => (
+        {([[WEEK, "review.tab.week"], [PAGES, "review.tab.pages"], [FLAGGED, "review.tab.flagged"], [ANSWERS, "review.tab.answers"]] as const).map(([value, key]) => (
           <label key={value} className={TAB}>
-            <input type="radio" name={TABS} value={value} className="sr-only" defaultChecked={value === WEEK} />
+            <input type="radio" name={TABS} value={value} className="sr-only" defaultChecked={value === open} />
             {copy(key)}
           </label>
         ))}
       </div>
-      <div className={`flex ${panel} group-has-[[value=pages]:checked]:hidden group-has-[[value=flagged]:checked]:hidden`} data-testid="review-tab-week">
+      <div className={`flex ${panel} group-has-[[value=pages]:checked]:hidden group-has-[[value=flagged]:checked]:hidden group-has-[[value=answers]:checked]:hidden`} data-testid="review-tab-week">
         <Week site={p.site} marks={p.review.marks} />
       </div>
       <div className={`hidden ${panel} group-has-[[value=pages]:checked]:flex`} data-testid="review-tab-pages">
@@ -339,6 +343,9 @@ function Tabs(p: { review: ReviewData; site: ReviewSite }): React.JSX.Element {
       </div>
       <div className={`hidden ${panel} group-has-[[value=flagged]:checked]:flex`} data-testid="review-tab-flagged">
         <Flagged review={p.review} />
+      </div>
+      <div className={`hidden ${panel} group-has-[[value=answers]:checked]:flex`} data-testid="review-tab-answers">
+        <Answers read={p.answers?.read ?? null} opened={p.answers?.opened ?? null} href={(n) => `?site=${p.site.id}&answer=${n ?? ""}`} />
       </div>
     </div>
   );
@@ -365,9 +372,19 @@ function SitePick(p: { sites: readonly ReviewSite[]; site: ReviewSite }): React.
   );
 }
 
+/** The shown site's AI answers, the one opened, and whether the address asked for their tab. */
+export interface AnswersRead {
+  read: SiteAnswers | null;
+  opened: OpenedAnswer | null;
+  asked: boolean;
+}
+
+/** The site to show, of those read: the one asked for, else the first. */
+export const shownSite = (review: ReviewData, siteId: string | null): ReviewSite | undefined => review.sites.find((one) => one.id === siteId) ?? review.sites[0];
+
 /** `review` is `null` where it could not be read; `siteId` is the site asked for. */
-export function Review(p: { review: ReviewData | null; siteId: string | null }): React.JSX.Element {
-  const site = p.review === null ? undefined : (p.review.sites.find((one) => one.id === p.siteId) ?? p.review.sites[0]);
+export function Review(p: { review: ReviewData | null; siteId: string | null; answers?: AnswersRead }): React.JSX.Element {
+  const site = p.review === null ? undefined : shownSite(p.review, p.siteId);
   const heading = p.review === null ? null : copy("review.eyebrow.week", { date: WEEK_OF.format(dateOf(p.review.week)) });
   return (
     <div className="flex min-w-0 flex-col gap-4" data-testid="review">
@@ -396,7 +413,7 @@ export function Review(p: { review: ReviewData | null; siteId: string | null }):
       ) : (
         <>
           <Figures review={p.review} />
-          <Tabs review={p.review} site={site} />
+          <Tabs review={p.review} site={site} {...(p.answers === undefined ? {} : { answers: p.answers })} />
         </>
       )}
     </div>

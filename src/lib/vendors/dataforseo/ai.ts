@@ -86,7 +86,10 @@ export function parseLlmScraper(result: unknown): AiAnswer[] | undefined {
     const text = asString(item.markdown) ?? asString(item.text);
     const cited = referenceDomains(item.sources);
     if (!text && cited.length === 0) continue;
-    return [{ answered: true, text: text ?? "", citedDomains: cited, citedUrls: referenceUrls(item.sources), ...searchedAndRead(item) }];
+    const model = asString(result.model);
+    // The vendor documents its searches on the result, not the item.
+    const searched = Array.isArray(item.fan_out_queries) || Array.isArray(item.search_results) ? item : result;
+    return [{ answered: true, text: text ?? "", citedDomains: cited, citedUrls: referenceUrls(item.sources), ...searchedAndRead(searched), ...(model ? { model } : {}) }];
   }
   return [];
 }

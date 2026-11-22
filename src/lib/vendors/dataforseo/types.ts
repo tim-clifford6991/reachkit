@@ -146,6 +146,8 @@ export interface AiAnswer {
   fanOuts?: readonly string[];
   /** ChatGPT only: the pages it retrieved, cited or not; never a citation. Absent where not measured. */
   retrievedUrls?: readonly string[];
+  /** ChatGPT only: the vendor's model id, where it returned one. */
+  model?: string;
 }
 
 /**
