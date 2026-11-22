@@ -37,7 +37,6 @@ import {
 import type { PageRecord } from "@/lib/publish/record";
 import { formatDateTime } from "../../_shell/format";
 import { writtenLine } from "../../_shell/written";
-import { CLOSED } from "../../_overview/present";
 import { NOTE } from "./ReviewCards";
 
 /**
@@ -151,25 +150,10 @@ export function PageRecordBlock(p: {
     </>
   );
 
-  // A note under the page (SPEC §7, 2026-10-07, issue 1325): one closed
-  // line named by its title. With no title written there is nothing to
-  // close it under, so the rows stand open rather than behind a blank line.
   return (
-    <section className={NOTE.card} data-testid="draft-record">
-      <div className={NOTE.pad}>
-        {title === null ? (
-          <div className={NOTE.inner}>{rows}</div>
-        ) : (
-          <details className={CLOSED.root}>
-            <summary className={CLOSED.head}>
-              <h2 className="text-sm font-semibold">{title}</h2>
-            </summary>
-            <div className={CLOSED.body}>
-              <div className={NOTE.inner}>{rows}</div>
-            </div>
-          </details>
-        )}
-      </div>
+    <section className={NOTE.inner} data-testid="draft-record">
+      {title === null ? null : <h2 className="text-sm font-semibold">{title}</h2>}
+      {rows}
     </section>
   );
 }

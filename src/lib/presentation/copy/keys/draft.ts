@@ -95,33 +95,18 @@ export const DRAFT_COPY = Object.freeze({
      of ours that used to sit inside it (the hosted byline) is not drawn at
      all — `PublishedPageView` says why a review screen holds no publication
      date to print. */
-  "draft.search-result.title": "In Search Results",
-  "draft.written-from.title": "Written from Your Business",
-  "draft.written-from.lead": "The facts this page uses, each with the page of your site it came from.",
   // What the profile items are, as against the quoted passages above them.
   // They carry no address because their source is the customer: they
   // confirmed every one on Settings › Your business.
-  "draft.written-from.profile": "From your business profile",
   // A page written before the source was recorded beside the passage
   // (#927's first shape). The sentence is still what the page stands on, so
   // it is listed and said to be unsourced rather than dropped.
-  "draft.written-from.source-unknown": "From your site. We didn’t save which page.",
   // SPEC §7 (2026-10-04, D41 stage 2; issue 1252, drafted): the context
   // pack, readable under *Written from your business* — one fold, and a
   // label for each group inside it. The business facts already list above
   // the fold, so it holds the rest of what the writer was handed.
-  "draft.written-from.pack.title": "Everything this page was written from",
-  "draft.written-from.pack.question": "The question it answers",
-  "draft.written-from.pack.claims.read": "read {at}",
   // SPEC §7 (owner D59, 2026-10-06; issue 1287, drafted): each fact's age,
   // beside the fact — how long ago the page it stands on was read.
-  "draft.written-from.age.today": "read today",
-  "draft.written-from.age.one": "read 1 day ago",
-  "draft.written-from.age.days": "read {days} days ago",
-  "draft.written-from.pack.pages": "Your pages it knew about",
-  "draft.written-from.pack.pages.more": "and {n} more",
-  "draft.written-from.pack.never-claim": "Never say",
-  "draft.written-from.pack.missing": "What was missing",
   // SPEC §7 (2026-09-29, D12; issue 1143): what the page says that neither
   // the top results for its search nor the customer's own pages say, and —
   // where a new page says too little of that — the one line that asks the
@@ -190,7 +175,6 @@ export const DRAFT_COPY = Object.freeze({
   "draft.target.fix": "This page fixes something on your site, so it has no search to win.",
   // Where the opportunity behind this draft is no longer readable — it was
   // purged, or the draft was written before the row carried its target.
-  "draft.target.unknown": "We can’t show what this page is for. We no longer have its record.",
 
   "draft.grounded.title": "Fact from your site",
   "draft.authorship.edited": "edited by you since {at}",
@@ -395,11 +379,6 @@ export const DRAFT_COPY = Object.freeze({
   // ── SPEC §4 (2026-10-10, issue 1395): why this topic, the topics set
   // aside, and the two sources a page is written from. Drafted.
   "draft.why.title": "Why This Page",
-  "draft.why.fit.answer": "Fit: what you sell is the answer to this search",
-  "draft.why.fit.helps": "Fit: what you sell helps with this search",
-  "draft.written-from.counts": "Facts from your site: {site} · Market sources: {market}",
-  "draft.written-from.site": "From your site",
-  "draft.written-from.market": "From market research",
 
   // A live page's own screen, board PageDetail (canvas V22), and its Stop
   // as owner ruling R9 (2026-10-22) sets it: one press, the topic dropped
@@ -452,15 +431,27 @@ export const DRAFT_COPY = Object.freeze({
   // The draft screen as board AppDraft draws it (canvas V22, issue 1748).
   // Drafted under issue 759's ruling; the owner corrects the wording.
   "draft.preview.caption": "Preview on your site",
-  "draft.search.title": "The search and who answers it",
-  "draft.search.query": "The search",
-  "draft.search.volume": "Searched a month",
-  "draft.search.rival": "Who answers it today",
   "draft.search-result.caption": "Google can choose other words.",
   "draft.checks.more": "and {n} more",
   "draft.checks.decided": "A page that fails a check on facts, honesty, spam or repeats doesn’t go live. The other checks show where a page could be better.",
   // Q6 (owner 2026-10-20, #1718): a stopped topic is dropped for good.
-  "draft.decide.stop-note": "It won’t go live, and this topic is dropped. Tomorrow’s page is not affected.",
+  "draft.decide.stop-note": "It won’t go live, and this topic is dropped. Other days are not affected.",
+  "draft.rail.today": "Today, {time}",
+  "draft.rail.day": "{day}, {time}",
+  "draft.tabs.label": "About this page",
+  "draft.tab.page": "Page",
+  "draft.tab.checks": "Checks {passed}/{asked}",
+  "draft.tab.checks.name": "Checks, {passed} of {asked} passed",
+  "draft.tab.search": "In Search",
+  "draft.tab.sources": "Sources",
+  "draft.tab.adds": "What It Adds",
+  "draft.tab.links": "Links",
+  "draft.tab.doing": "How It’s Doing",
+  "draft.why.fit.answer": "Fit: what you sell is the answer to this search",
+  "draft.why.fit.helps": "Fit: what you sell helps with this search",
+  "draft.search.query": "The search",
+  "draft.search.volume": "Searched a month",
+  "draft.search.rival": "Who answers it today",
   "draft.day.title": "This page’s day",
   "draft.day.written": "Written and checked",
   "draft.day.emailed": "Emailed to you",

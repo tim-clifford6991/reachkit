@@ -229,13 +229,6 @@ export interface PageAdds {
   readonly ask: boolean;
 }
 
-/** Whether there is anything to show. A page whose record carries neither
- *  list draws no card, rather than an empty one — a draft written before
- *  the record existed is not a page written from nothing. */
-export function writtenFromIsEmpty(w: WrittenFrom): boolean {
-  return w.profileItems.length === 0 && w.facts.length === 0 && w.pack === undefined;
-}
-
 /**
  * The site-scoped facts the editor's live rule pass reads (issue 932).
  *

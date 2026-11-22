@@ -1,9 +1,7 @@
-// SPEC §7 — a live page's own screen (board `PageDetail`): back to Plan, the
-// title with when it went live and its label, this week in Google, how far
-// it has got on Google and in AI answers, what happens next, then why this
-// page with Edit and Stop under the reason. The header's address opens the
-// page itself. After a Stop (R9) the controls leave and one line stays, with
-// Put it back while a hosted page's window is open.
+// SPEC §7 — a live page's two parts on its screen (board `PageDetail`, plates F4b/F8): *How It's Doing* — this week
+// in Google, how far it has got on Google and in AI answers, what happens next — and the rail, with when it went
+// live, Edit and Stop. After a Stop (R9) the controls leave and one line stays, with Put it back while a hosted
+// page's window is open.
 //
 // Every value is the weekly pass's stored reading (`search_reading`); a step
 // nothing has read says so and is never drawn as reached or as 0. On
@@ -11,22 +9,20 @@
 // not drawn.
 import type React from "react";
 import Link from "next/link";
-import { ArrowLeft, Check, ExternalLink, Globe, Pencil, RefreshCw, Sparkles, type LucideIcon } from "lucide-react";
+import { Check, ExternalLink, Pencil, RefreshCw, Sparkles, type LucideIcon } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { FIRST_PAGE_PLACES, googleRead } from "@/lib/measure/page-reading";
 import { SEARCH_READING_WINDOW_D } from "@/lib/config/constants";
 import type { Label } from "@/lib/opportunities/verdicts/types";
 import type { AnswerEngine } from "@/lib/opportunities/types";
 import { PlaceLine } from "@/ui/charts/PlaceLine";
-import { formatCount, formatDate } from "../../_shell/format";
+import { formatCount, formatDate, formatShortDay } from "../../_shell/format";
 import { LabelBadge } from "../../_shell/verdict";
 import { ENGINE_LABEL } from "../../_shell/page-target-words";
 import { TakeDownControl } from "../../calendar/TakeDown";
 import { putBackWords, stopWords } from "../../calendar/take-down-words";
 import type { DraftView, LiveFacts } from "./model";
-import { NOTE } from "./ReviewCards";
 import { SHAPE } from "./shape";
-import { WhyThisPage } from "./TargetBlock";
 
 const NEXT: Readonly<Record<Label, CopyKey>> = {
   working: "draft.next.working",
@@ -41,8 +37,8 @@ const LADDER = {
   ai: { title: "draft.ladder.ai", testId: "live-ladder-ai", icon: Sparkles, reached: "bg-primary text-primary-content" },
 } as const satisfies Record<string, { title: CopyKey; testId: string; icon: LucideIcon; reached: string }>;
 const STOP_NOTE_ID = "live-stop-note";
-// Full width on a phone, side by side from `sm`, each a 44px target.
-const EDIT = "btn btn-soft btn-primary min-h-11 max-sm:w-full";
+// A 44px target, as wide as the rail.
+const EDIT = "btn btn-soft btn-primary min-h-11";
 const WEEK_ID = "live-week";
 
 /** One step of the ladder: reached on a date, not yet, or not measured. */
@@ -225,64 +221,47 @@ function EditControl(p: { edit: LiveFacts["edit"]; onEdit: () => void }): React.
   );
 }
 
-export function LivePage(p: { view: DraftView; live: LiveFacts; onEdit: () => void; facts?: React.ReactNode }): React.JSX.Element {
+/** *How It's Doing*: the week's figure, the two ladders and what happens next. */
+export function HowItsDoing(p: { live: LiveFacts; stopped: boolean; timeZone: string }): React.JSX.Element {
+  const { live, timeZone } = p;
+  return (
+    <section className="flex min-w-0 flex-col gap-5" aria-labelledby={WEEK_ID} data-testid="live-week">
+      {live.label === null ? <span className="badge badge-ghost">{copy("review.label.unmeasured")}</span> : <LabelBadge label={live.label} />}
+      <ThisWeek live={live} timeZone={timeZone} />
+      <Ladder {...LADDER.google} steps={googleSteps(live, timeZone)} measured={live.reading !== null} />
+      <div className="border-base-300 border-t pt-4">
+        <Ladder {...LADDER.ai} steps={aiSteps(live, timeZone)} measured={live.reading !== null} />
+      </div>
+      {p.stopped ? null : (
+        <p className="rounded-box bg-base-200 flex min-w-0 items-start gap-2.5 p-3 text-sm" data-testid="live-next">
+          <RefreshCw size={16} strokeWidth={1.75} className="text-primary mt-0.5 shrink-0" aria-hidden />
+          <span className="min-w-0 wrap-anywhere">
+            <strong>{copy("draft.next.title")}</strong> {copy(live.label === null ? "draft.next.unmeasured" : NEXT[live.label])}
+          </span>
+        </p>
+      )}
+    </section>
+  );
+}
+
+/** The page's own address, which opens it; a stopped page has none. */
+export function LiveAddress(p: { url: string }): React.JSX.Element {
+  return (
+    <a href={p.url} target="_blank" rel="noopener" className="link link-primary link-hover min-w-0 font-mono text-sm break-all" data-testid="live-address">
+      {p.url}
+      <ExternalLink size={14} strokeWidth={1.75} className="ms-1 inline align-baseline" aria-hidden />
+      <span className="sr-only"> {copy("draft.live.new-tab")}</span>
+    </a>
+  );
+}
+
+/** The live page's rail: since when, Edit and Stop with Stop's line, or the stopped page's line and Put it back. */
+export function LiveRail(p: { view: DraftView; live: LiveFacts; onEdit: () => void }): React.JSX.Element {
   const { view, live } = p;
   const standing = view.takeDown;
-  const stopped = standing?.kind === "stopped";
   return (
-    <div className="flex min-w-0 flex-col gap-6" data-testid="draft-view">
-      <nav data-testid="draft-back">
-        <Link href="/app/calendar" prefetch={true} className={SHAPE.back}>
-          <ArrowLeft size={16} strokeWidth={1.75} aria-hidden />
-          {copy("draft.back")}
-        </Link>
-      </nav>
-
-      <header className="flex min-w-0 flex-col gap-2" data-testid="draft-head">
-        <h1 className="min-w-0 wrap-anywhere" data-testid="draft-title">
-          {view.title}
-        </h1>
-        <p className="flex min-w-0 flex-wrap items-center gap-2" data-testid="live-badges">
-          {stopped ? (
-            <span className="badge badge-soft badge-warning" data-testid="live-stopped">
-              {copy("draft.stopped.badge")}
-            </span>
-          ) : (
-            <span className="badge badge-soft badge-success gap-1">
-              <Globe className="size-3.5 shrink-0" strokeWidth={1.75} aria-hidden />
-              {copy("draft.live.since", { date: formatDate(live.since, view.timeZone) })}
-            </span>
-          )}
-          {live.label === null ? <span className="badge badge-ghost">{copy("review.label.unmeasured")}</span> : <LabelBadge label={live.label} />}
-        </p>
-        {stopped ? null : (
-          <a href={live.url} target="_blank" rel="noopener" className="link link-primary link-hover min-w-0 font-mono text-sm break-all" data-testid="live-address">
-            {live.url}
-            <ExternalLink size={14} strokeWidth={1.75} className="ms-1 inline align-baseline" aria-hidden />
-            <span className="sr-only"> {copy("draft.live.new-tab")}</span>
-          </a>
-        )}
-      </header>
-
-      <section className={NOTE.card} aria-labelledby={WEEK_ID} data-testid="live-week">
-        <div className="card-body min-w-0 gap-5 p-6">
-          <ThisWeek live={live} timeZone={view.timeZone} />
-          <Ladder {...LADDER.google} steps={googleSteps(live, view.timeZone)} measured={live.reading !== null} />
-          <div className="border-base-300 border-t pt-4">
-            <Ladder {...LADDER.ai} steps={aiSteps(live, view.timeZone)} measured={live.reading !== null} />
-          </div>
-          {stopped ? null : (
-            <p className="rounded-box bg-base-200 flex min-w-0 items-start gap-2.5 p-3 text-sm" data-testid="live-next">
-              <RefreshCw size={16} strokeWidth={1.75} className="text-primary mt-0.5 shrink-0" aria-hidden />
-              <span className="min-w-0 wrap-anywhere">
-                <strong>{copy("draft.next.title")}</strong> {copy(live.label === null ? "draft.next.unmeasured" : NEXT[live.label])}
-              </span>
-            </p>
-          )}
-        </div>
-      </section>
-
-      <WhyThisPage target={view.target}>
+    <aside className={SHAPE.rail} aria-label={copy("draft.decide.title")} data-testid="live-rail">
+      <div className="card-body min-w-0 gap-4 p-5">
         {standing?.kind === "stopped" ? (
           <div className="flex min-w-0 flex-col items-start gap-3 text-sm" data-testid="live-stopped-state">
             <p>{copy("draft.stopped.line")}</p>
@@ -297,22 +276,26 @@ export function LivePage(p: { view: DraftView; live: LiveFacts; onEdit: () => vo
             )}
           </div>
         ) : (
-          <div className="flex min-w-0 flex-col gap-3" data-testid="live-controls">
-            <div className="flex flex-wrap gap-3">
-              <EditControl edit={live.edit} onEdit={p.onEdit} />
-              <TakeDownControl draftId={view.draftId} mode="stop" words={stopWords()} describedBy={STOP_NOTE_ID} />
-            </div>
-            <p id={STOP_NOTE_ID} className="text-sm text-base-content/70" data-testid="live-stop-note">
-              {copy("draft.live.stop-note")} {copy("draft.live.pause-lead")}
-              {/* Underlined because it sits in a sentence: colour alone does not mark a link (WCAG 1.4.1, axe link-in-text-block). */}
-              <Link href={PAUSE_HREF} className="link link-primary ms-1 decoration-1 underline-offset-2">
-                {copy("draft.live.pause-link")}
-              </Link>
+          <>
+            <p className="text-lg font-bold" data-testid="live-since">
+              {copy("draft.live.since", { date: formatShortDay(live.since, view.timeZone).split(" ").slice(1).join(" ") })}
             </p>
-          </div>
+            <div className={SHAPE.foot} role="group" aria-label={copy("draft.decide.title")} data-testid="live-controls">
+              <div className="grid grid-cols-1 gap-2 max-lg:auto-cols-fr max-lg:grid-flow-col max-lg:grid-cols-none">
+                <EditControl edit={live.edit} onEdit={p.onEdit} />
+                <TakeDownControl draftId={view.draftId} mode="stop" words={stopWords()} describedBy={STOP_NOTE_ID} />
+              </div>
+              <p id={STOP_NOTE_ID} className="text-xs text-base-content/70 max-md:order-first" data-testid="live-stop-note">
+                {copy("draft.live.stop-note")} {copy("draft.live.pause-lead")}
+                {/* Underlined because it sits in a sentence: colour alone does not mark a link (WCAG 1.4.1, axe link-in-text-block). */}
+                <Link href={PAUSE_HREF} className="link link-primary ms-1 decoration-1 underline-offset-2">
+                  {copy("draft.live.pause-link")}
+                </Link>
+              </p>
+            </div>
+          </>
         )}
-      </WhyThisPage>
-      {p.facts}
-    </div>
+      </div>
+    </aside>
   );
 }
