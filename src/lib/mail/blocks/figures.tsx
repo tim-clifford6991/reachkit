@@ -52,7 +52,7 @@ export function Tiles({ items }: { items: readonly StatRowText[] }): ReactNode {
         </div>
       )}
       <div style={{ paddingTop: "4px", fontSize: SMALL_SIZE, lineHeight: 1.3, color: token("--color-base-content") }}>{item.label}</div>
-      {item.line === null ? null : <div style={{ paddingTop: "2px", fontSize: token("--t-sm"), color: token("--ink-2") }}>{item.line}</div>}
+      {[item.line, item.detail].map((line, i) => (line === null ? null : <div key={i} style={{ paddingTop: "2px", fontSize: token("--t-sm"), color: token("--ink-2") }}>{line}</div>))}
     </td>
   );
   const rows: ReactNode[] = [];

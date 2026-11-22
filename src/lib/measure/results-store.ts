@@ -1,16 +1,15 @@
-// SPEC §4 *Overview's four tiles* — the two reads the tiles count over: the
+// SPEC §4 *Overview's four tiles* — the reads the tiles and the Monday mail's results count over: the
 // weekly passes of the last nine weeks and every page ever published, and the site's Search Console property.
 import { dbAdmin } from "@/lib/db";
 import { failingChecks, parseHealth } from "@/lib/scan/health";
 import { resolvedRows } from "@/lib/market/rivals/domains";
+import { classifyReferences } from "@/lib/measure/drivers";
 import { onGoogleSince } from "@/lib/measure/ladder";
-import { pageSearchOf, readingOf, type PlaceReport } from "@/lib/measure/page-reading";
-import type { GoogleConsole } from "./google-pages";
+import { FIRST_PAGE_PLACES, pageSearchOf, readingOf, type PlaceReport } from "@/lib/measure/page-reading";
 import { listedName } from "@/lib/measure/published";
 import type { SerpResult } from "@/lib/vendors/dataforseo/types";
 import type { PromptsSection } from "@/lib/scan/report";
-import { onFirstPage } from "./rivals-store";
-import { AI_WINDOW_WEEKS, TILE_WEEKS, type TilePage, type TilePass } from "./tiles";
+import { AI_WINDOW_WEEKS, TILE_WEEKS, type GoogleConsole, type TilePage, type TilePass } from "./results";
 
 interface Query<T> extends PromiseLike<{ data: T[] | null; error: { message: string } | null }> {
   select(columns: string): Query<T>;
@@ -48,6 +47,12 @@ interface PageRow {
 }
 
 const NOT_READ = { kind: "unmeasured", reason: "not_attempted" } as const;
+
+/** Whether a domain holds a first-page place on one measured search: one of the ten, or the local pack above them (SPEC §6, D67). */
+export function onFirstPage(serp: SerpResult, domain: string): boolean {
+  const theirs = (host: string): boolean => classifyReferences([host], domain).cited;
+  return (resolvedRows(serp.organic) ?? []).some((row) => row.position <= FIRST_PAGE_PLACES && theirs(row.domain)) || (serp.localPack ?? []).some((row) => theirs(row.domain));
+}
 
 /** Each main search a pass asked: whether it put `domain` on the first page, `null` where its top ten was not read; `null` where it read none. */
 function firstPageOf(questions: PassRow["questions"], serps: PassRow["serps"], domain: string): Map<string, boolean | null> | null {

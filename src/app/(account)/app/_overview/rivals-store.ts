@@ -9,6 +9,7 @@ import { previousWeekStart, readWeekScans, weekStartFor } from "@/lib/scan/weekl
 import { OVERVIEW_TRAILING_WEEKS, RIVAL_PRESENCE } from "@/lib/config/constants";
 import { isPlatformDomain, registrableDomain, resolvedRows } from "@/lib/market/rivals/domains";
 import { trackedRivals } from "@/lib/market/rivals/tracked";
+import { onFirstPage } from "@/lib/measure/results-store";
 import type { RivalSearchRow, RivalSearchStatus, RivalsFacts } from "./rivals-model";
 
 export interface RivalsSite {
@@ -72,16 +73,6 @@ export async function readRivalFacts(site: RivalsSite, at: Date): Promise<Rivals
     // verdict's own `measuredAt`.
     measuredAt: report?.verdict.measuredAt ?? null,
   };
-}
-
-/** Whether a domain holds a first-page place on one measured search: one
- *  of the ten, or the local pack above them (SPEC §6, D67) — the same
- *  reading the rivals are chosen by (issue 1365). */
-export function onFirstPage(serp: SerpResult, domain: string): boolean {
-  return (
-    (resolvedRows(serp.organic) ?? []).some((row) => row.position <= FIRST_PAGE && isTheirs(domain, [row.domain])) ||
-    (serp.localPack ?? []).some((row) => isTheirs(domain, [row.domain]))
-  );
 }
 
 /**

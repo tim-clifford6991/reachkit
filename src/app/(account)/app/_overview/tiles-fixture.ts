@@ -4,7 +4,7 @@ import type { PublishedPage } from "@/lib/measure/published";
 import { onGoogleSince } from "@/lib/measure/ladder";
 import { addressOf, type PlaceReport } from "@/lib/measure/page-reading";
 import type { AnswerQuestion } from "./answers-model";
-import { TILE_WEEKS, type TilePage, type TilePass } from "./tiles";
+import { TILE_WEEKS, type TilePage, type TilePass } from "@/lib/measure/results";
 
 const WEEK_MS = 7 * 86_400_000;
 const NOT_READ = { kind: "unmeasured", reason: "not_attempted" } as const;

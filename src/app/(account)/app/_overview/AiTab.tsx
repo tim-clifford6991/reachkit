@@ -13,7 +13,7 @@ import { formatShortDay } from "../_shell/format";
 import { AI_MARK, type AiMark } from "./ai-mark";
 import type { AiQuestionRow, AiQuestions } from "./ai-pages";
 import { rowClass } from "./frame";
-import { AI_WINDOW_WEEKS, type AiAnswers } from "./tiles";
+import { AI_WINDOW_WEEKS, type AiAnswers } from "@/lib/measure/results";
 import { formatCount } from "./present";
 import { ShowAll } from "./ShowAll";
 

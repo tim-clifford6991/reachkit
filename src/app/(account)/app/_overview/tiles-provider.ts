@@ -30,7 +30,7 @@ export const readTiles = cache(async function readTiles(coming: number, goLive: 
     // Imported at the call: the store resolves `@/lib/db`, which the reserved account never reaches.
     const stored = isReservedFixtureAccount(account)
       ? { passes: fixturePasses(published.pages, week, answers?.pageQuestions ?? []), pages: published.pages.map(tilePageOf), gsc: null }
-      : await import("./tiles-store").then((m) => m.readTileRows({ siteId: account.siteId, domain: account.domain, week }));
+      : await import("@/lib/measure/results-store").then((m) => m.readTileRows({ siteId: account.siteId, domain: account.domain, week }));
     const firstPage = rivals?.firstPage;
     const view = buildTiles({
       published,

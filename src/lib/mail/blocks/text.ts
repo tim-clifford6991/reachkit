@@ -91,11 +91,10 @@ export function renderBlocksText(blocks: readonly MailBlock[]): {
         parts.push(
           statRowsOf(block)
             .map((item) => {
-              // An unmeasured number is its written line, where its figure would stand.
-              if (item.value === null) return `${item.label}: ${item.line ?? ""}`;
               const value = item.before === null ? item.value : `${item.before} ${item.value}`;
-              const figure = item.change === null ? value : `${value} (${item.change})`;
-              return item.line === null ? `${item.label}: ${figure}` : `${item.label}: ${figure} · ${item.line}`;
+              const figure = item.value === null ? null : item.change === null ? value : `${value} (${item.change})`;
+              // An unmeasured number is its written line, where its figure would stand.
+              return `${item.label}: ${[figure, item.line, item.detail].filter((part) => part !== null).join(" · ")}`;
             })
             .join("\n")
         );

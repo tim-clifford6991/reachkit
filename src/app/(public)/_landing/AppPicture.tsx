@@ -5,7 +5,7 @@ import type React from "react";
 import { Clock4, CircleStop, Eye } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { FLOAT } from "@/ui/lift";
-import { AI_WINDOW_WEEKS } from "@/app/(account)/app/_overview/tiles";
+import { AI_WINDOW_WEEKS } from "@/lib/measure/results";
 import { EXAMPLES, EXAMPLE_TILES, LIVE_AT, weekDays, type PlannedDay } from "../_how/specimen";
 
 /** Bound to names: the copy sweep reads a bare JSX string as voice. */

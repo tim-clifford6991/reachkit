@@ -11,7 +11,8 @@ import { formatCount, formatDate, formatShortDay } from "../_shell/format";
 import { ARROW_NUDGE, CARD_LIFT } from "@/ui/lift";
 import { Box, Waiting } from "../_shell/skeletons";
 import { REGION } from "./frame";
-import { AI_WINDOW_WEEKS, type Tile, type TileChange, type TileKey, type TilesModel } from "./tiles";
+import { AI_WINDOW_WEEKS, type Tile, type TileChange, type TileKey, type TilesModel } from "@/lib/measure/results";
+import { changeWords, ofWords, TILE_NAME, TILE_UNREAD } from "@/lib/measure/results-words";
 
 export const TILE_HREF: Readonly<Record<TileKey, string>> = {
   pages: "/app/pages",
@@ -21,37 +22,18 @@ export const TILE_HREF: Readonly<Record<TileKey, string>> = {
 };
 
 const ICON: Readonly<Record<TileKey, LucideIcon>> = { pages: CircleCheck, google: Search, ai: Sparkles, rivals: Users };
-const NAME: Readonly<Record<TileKey, CopyKey>> = {
-  pages: "overview.tile.pages.name",
-  google: "overview.tile.google.name",
-  ai: "overview.tile.ai.name",
-  rivals: "overview.tile.rivals.name",
-};
 const SHORT: Readonly<Record<TileKey, CopyKey>> = {
   pages: "overview.tile.short.pages",
   google: "overview.tile.short.google",
   ai: "overview.tile.short.ai",
   rivals: "overview.tile.short.rivals",
 };
-const OF: Readonly<Record<Exclude<TileKey, "pages">, CopyKey>> = {
-  google: "overview.tile.google.of",
-  ai: "overview.tile.ai.of",
-  rivals: "overview.tile.rivals.of",
-};
-const NONE_OF: Readonly<Record<TileKey, CopyKey>> = {
-  pages: "overview.tile.pages.none.of",
-  google: "overview.tile.google.none.of",
-  ai: "overview.tile.google.none.of",
-  rivals: "overview.tile.due.of",
-};
-/** What a week that could not be checked names. */
-const UNREAD: Readonly<Record<TileKey, CopyKey>> = {
-  pages: "overview.tile.short.google",
-  google: "overview.tile.short.google",
-  ai: "overview.tile.unread.ai",
-  rivals: "overview.tile.short.google",
-};
 const INK = "text-sm text-base-content/70";
+
+const ofLine = (tile: Tile): string => {
+  const of = ofWords(tile, formatCount);
+  return copy(of.text, of.vars);
+};
 
 export interface TileDates {
   /** The next Monday's check. */
@@ -70,14 +52,6 @@ function Figure(p: { tile: Tile; className: string }): React.JSX.Element {
   ) : (
     <span className={p.className}>{formatCount(p.tile.n)}</span>
   );
-}
-
-function ofLine(tile: Tile): string {
-  if (tile.of.kind === "due") return copy("overview.tile.due.of");
-  if (tile.of.kind === "none") return copy(NONE_OF[tile.key]);
-  const m = formatCount(tile.of.m);
-  if (tile.key === "google" && (tile.of.u ?? 0) > 0) return copy("overview.tile.google.of.unchecked", { m, u: formatCount(tile.of.u!) });
-  return tile.key === "pages" ? copy("overview.tile.pages.of", { total: m }) : copy(OF[tile.key], { m, n: m, weeks: formatCount(AI_WINDOW_WEEKS) });
 }
 
 /** The AI tile's hosted-site line: fetches, then visits only where there were any. */
@@ -105,33 +79,8 @@ function shownLine(tile: Tile, d: TileDates): string | null {
 }
 
 function changeLine(key: TileKey, change: TileChange, d: TileDates): string | null {
-  const said = changeWords(key, change, d);
-  const moved = "moved" in change ? (change.moved ?? 0) : 0;
-  if (said === null || moved === 0) return said;
-  return moved === 1 ? copy("overview.tile.change.moved.one", { change: said }) : copy("overview.tile.change.moved", { change: said, n: formatCount(moved) });
-}
-
-function changeWords(key: TileKey, change: TileChange, d: TileDates): string | null {
-  switch (change.kind) {
-    case "up":
-      return copy("overview.tile.change.up", { n: formatCount(change.n) });
-    case "down":
-      return copy("overview.tile.change.down", { n: formatCount(change.n) });
-    case "same":
-      return copy("overview.tile.change.same");
-    case "first":
-      return copy("overview.tile.change.first", { date: formatDate(change.at, d.timeZone) });
-    case "unread":
-      return copy("overview.tile.change.unread", { what: copy(UNREAD[key]) });
-    case "due":
-      return copy("overview.tile.due.change", { date: formatShortDay(d.due, d.timeZone) });
-    case "start":
-      return copy("overview.tile.rivals.start", { date: formatDate(change.at, d.timeZone) });
-    case "coming":
-      return copy("overview.tile.pages.coming", { n: formatCount(change.n) });
-    case "golive":
-      return d.goLive === null ? null : copy("overview.tile.pages.none.change", { day: formatShortDay(d.goLive, d.timeZone) });
-  }
+  const said = changeWords(key, change, d, { count: formatCount, date: (at) => formatDate(at, d.timeZone), day: (at) => formatShortDay(at, d.timeZone) });
+  return said === null ? null : copy(said.text, said.vars);
 }
 
 function Trend(p: { tile: Tile; bars: TilesModel["bars"] }): React.JSX.Element | null {
@@ -141,7 +90,7 @@ function Trend(p: { tile: Tile; bars: TilesModel["bars"] }): React.JSX.Element |
   }
   const series = p.tile.series;
   if (series === null || series.every((v) => v === null)) return null;
-  const unread = copy("overview.tile.change.unread", { what: copy(UNREAD[p.tile.key]) });
+  const unread = copy("overview.tile.change.unread", { what: copy(TILE_UNREAD[p.tile.key]) });
   const weeks = series.map((value, i): GrowthWeek => (value === null ? { name: String(i), value: null, account: unread, cuts: true } : { name: String(i), value }));
   return <TileTrend weeks={weeks as [GrowthWeek, ...GrowthWeek[]]} />;
 }
@@ -167,7 +116,7 @@ export function Tiles(p: { model: TilesModel; dates: TileDates }): React.JSX.Ele
                 <span className="card-body min-w-0 gap-1.5 p-3 sm:p-5">
                   <span className="flex min-w-0 items-center gap-2 text-sm font-semibold">
                     <Icon className="size-4 shrink-0 text-primary" aria-hidden />
-                    <span className="min-w-0">{copy(NAME[tile.key])}</span>
+                    <span className="min-w-0">{copy(TILE_NAME[tile.key])}</span>
                     <ChevronRight className="ms-auto hidden size-4 shrink-0 text-base-content/50 sm:block" aria-hidden />
                   </span>
                   <Figure tile={tile} className="text-3xl leading-snug font-semibold tabular-nums" />
@@ -219,7 +168,7 @@ export function DetailTiles(p: { model: TilesModel | null; tab: TileKey }): Reac
                     <span className="card-body hidden min-w-0 gap-1 p-3 lg:flex">
                       <span className="flex min-w-0 items-center gap-2 text-sm font-semibold">
                         <Icon className="size-4 shrink-0 text-primary" aria-hidden />
-                        <span className="min-w-0">{copy(NAME[tile.key])}</span>
+                        <span className="min-w-0">{copy(TILE_NAME[tile.key])}</span>
                       </span>
                       <Figure tile={tile} className="text-xl leading-snug font-semibold tabular-nums" />
                       <span className={INK}>{ofLine(tile)}</span>

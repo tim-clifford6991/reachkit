@@ -32,7 +32,7 @@ export const OFFER_COPY = Object.freeze({
   "price.amount": "€49",
   "price.interval": "a month",
   "offer.cadence.page": "Up to {weekPages} pages a week, new or updated",
-  "offer.cadence.movement": "A Monday email shows what went live and your totals so far.",
+  "offer.cadence.movement": "A Monday email shows what went live and how your pages are doing.",
   "offer.veto.window": "Stop or edit any page before it goes live.",
   // Issue 1068, board R12-2: the price close's heading on the report.
   // Drafted; the owner corrects the wording.

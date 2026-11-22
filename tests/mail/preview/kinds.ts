@@ -24,7 +24,8 @@ import type {
   DraftReadyPage,
   TellableTelling,
 } from "../../../src/lib/mail/templates/draft-ready";
-import type { WeeklyDid, WeeklyTotals } from "../../../src/lib/mail/templates/weekly";
+import type { Tile } from "../../../src/lib/measure/results";
+import type { WeeklyDid } from "../../../src/lib/mail/templates/weekly";
 import { COPY, type CopyKey } from "../../../src/lib/presentation/copy";
 import type { PublishedTelling } from "../../../src/lib/publish/verify/telling";
 
@@ -261,30 +262,31 @@ const DID_PAGES = ["water heater repair austin", "drain cleaning cost austin", "
   liveUrl: `https://example.com/${search.replace(/ /g, "-")}`,
   update: i === 2,
 }));
-const DUE = { measured: "2026-10-26", pages: WEEK_DAYS[0]! };
+const DUE = "2026-10-26";
+const tile = (key: Tile["key"], n: number | null, m: number | null, change: Tile["change"]): Tile => ({ key, n, of: m === null ? { kind: "due" } : { kind: "count", m }, change, series: null });
 
-/** The four weeks `mail:samples` renders (SPEC §8): every total rose; only a page did; a hard week with nothing new and a
+/** The four weeks `mail:samples` renders (SPEC §8): every tile rose; only a page did; a hard week with a fall and a
  *  short plan; and a site's first week, waiting on its address, before anything was counted. */
 export const SAMPLE_WEEKS = {
   gains: {
     did: { at: AT, pages: DID_PAGES, setAside: { n: 2, arm: "updated" } },
-    totals: { ai: { kind: "added", total: 37, n: 4 }, google: { kind: "added", total: 12, n: 3 }, pages: { kind: "added", total: 12, n: 1 } },
+    tiles: [tile("pages", 12, 12, { kind: "up", n: 1 }), tile("google", 8, 12, { kind: "up", n: 3 }), tile("ai", 6, 40, { kind: "up", n: 2 })],
   },
   page: {
     did: { at: AT, pages: DID_PAGES.slice(0, 1) },
-    totals: { ai: { kind: "flat", total: 37 }, google: { kind: "flat", total: 12 }, pages: { kind: "added", total: 13, n: 1 } },
+    tiles: [tile("pages", 13, 13, { kind: "up", n: 1 }), tile("google", 8, 13, { kind: "same" }), tile("ai", 5, 40, { kind: "down", n: 1 })],
   },
   hard: {
     did: { at: AT, pages: [], setAside: { n: 1, arm: "unreplaced" }, checked: { searches: 12, questions: 12 } },
-    totals: { ai: { kind: "flat", total: 0 }, google: { kind: "flat", total: 3 }, pages: { kind: "flat", total: 5 } },
+    tiles: [tile("pages", 5, 5, { kind: "same" }), tile("google", 3, 5, { kind: "down", n: 1 }), tile("ai", 0, 36, { kind: "first", at: AT })],
     days: 4,
   },
   first: {
     did: { at: AT, pages: DID_PAGES.slice(0, 1), setAside: { n: 1, arm: "unreplaced" } },
-    totals: { ai: { kind: "due" }, google: { kind: "due" }, pages: { kind: "first", total: 1, week: "2026-10-19" } },
+    tiles: [tile("pages", 1, 1, { kind: "first", at: AT }), tile("google", null, null, { kind: "due" }), tile("ai", null, null, { kind: "due" })],
     blocked: true,
   },
-} as const satisfies Record<string, { did: WeeklyDid; totals: WeeklyTotals["of"]; days?: number; blocked?: boolean }>;
+} as const satisfies Record<string, { did: WeeklyDid; tiles: readonly Tile[]; days?: number; blocked?: boolean }>;
 
 /** Board MondayMail's sample week, or another of the four. */
 export async function composeWeekly(
@@ -293,7 +295,7 @@ export async function composeWeekly(
 ): Promise<PreviewMail> {
   const composeMail = await composer();
   const { buildWeekly } = await import("../../../src/lib/mail/templates/weekly");
-  const sample: { did: WeeklyDid; totals: WeeklyTotals["of"]; days?: number; blocked?: boolean } = SAMPLE_WEEKS[week];
+  const sample: { did: WeeklyDid; tiles: readonly Tile[]; days?: number; blocked?: boolean } = SAMPLE_WEEKS[week];
   const mail = buildWeekly({
     greeting: { name: "Dana", week: sample.blocked ? 1 : 3, business: "harborplumbing.example" },
     calendar: WEEKLY_CALENDAR,
@@ -301,7 +303,7 @@ export async function composeWeekly(
       ? { connect, needsYou: { line: "mail.weekly.needsYou", vars: { page: "emergency plumber austin" }, href: `${APP}/app/draft/preview` } }
       : {}),
     did: sample.did,
-    totals: { of: sample.totals, at: AT, asked: 10, due: DUE },
+    results: { tiles: sample.tiles, at: AT, due: DUE, goLive: null, zone: PREVIEW_ZONE, firstPage: false },
     next: measured(WEEKLY_NEXT.slice(0, sample.days ?? WEEKLY_NEXT.length), AT),
   });
   return composeMail({
