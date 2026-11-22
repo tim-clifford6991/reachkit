@@ -4,6 +4,7 @@ import { SITE_ISSUES } from "@/lib/config/constants";
 import { copy } from "@/lib/presentation/copy";
 import { SITE_CHECK_TITLE, SITE_SEVERITY_WORD } from "@/lib/presentation/site-issues";
 import { SITE_CHECKS, type SiteCheck } from "@/lib/site-issues/types";
+import type { DayKey } from "../calendar/dates";
 import type { IssuesReading, WaitingIssue } from "../_overview/alerts";
 import { formatCount } from "../_overview/present";
 import { SHELL_LOCALE } from "../_shell/format";
@@ -25,6 +26,8 @@ export interface FixRow {
   badge: string;
   /** "{n} of {total} pages", the whole-site line, or `null` for a check that could not run. */
   share: string | null;
+  /** How much of `share` the detail draws bold: the "{n} of {total}" figure, or 0 for the whole-site line (plate F5). */
+  figure: number;
   /** The pages the row names; 0 for a fault of the whole site or a check not run. */
   named: number;
   /** The one sentence that says what to do, or why nothing is known. */
@@ -54,12 +57,15 @@ function scanDay(at: Date, timeZone: string): string {
 
 function rowOf(issue: WaitingIssue, total: number): FixRow {
   const named = issue.pages.length;
+  const over = formatCount(total);
+  const share = named === 0 ? copy("overview.issues.site") : copy("overview.issues.share", { count: formatCount(named), over });
   return {
     id: issue.check,
     name: copy(SITE_CHECK_TITLE[issue.check]),
     tone: issue.severity,
     badge: copy(SITE_SEVERITY_WORD[issue.severity]),
-    share: named === 0 ? copy("overview.issues.site") : copy("overview.issues.share", { count: formatCount(named), over: formatCount(total) }),
+    share,
+    figure: named === 0 ? 0 : share.lastIndexOf(over) + over.length,
     named,
     fix: copy(issue.fix),
     heading: named === 0 ? null : named === 1 ? copy("overview.issues.pages.one") : copy("overview.issues.pages", { count: formatCount(named) }),
@@ -73,7 +79,7 @@ function rowOf(issue: WaitingIssue, total: number): FixRow {
 }
 
 function notRunRow(check: SiteCheck): FixRow {
-  return { id: check, name: copy(SITE_CHECK_TITLE[check]), tone: "not_run", badge: copy("check.status.not-run"), share: null, named: 0, fix: copy("check.not-run"), heading: null, pages: [], note: null };
+  return { id: check, name: copy(SITE_CHECK_TITLE[check]), tone: "not_run", badge: copy("check.status.not-run"), share: null, figure: 0, named: 0, fix: copy("check.not-run"), heading: null, pages: [], note: null };
 }
 
 /** Critical first, then the most pages, then SPEC §9's order; a check that could not run last. */
@@ -82,8 +88,8 @@ function byRank(a: FixRow, b: FixRow): number {
   return rank(a) - rank(b) || b.named - a.named || SITE_CHECKS.indexOf(a.id) - SITE_CHECKS.indexOf(b.id);
 }
 
-/** The screen for one reading: `null` where the stored report could not be read. */
-export function siteFixesScreen(reading: IssuesReading | null, timeZone: string): SiteFixesScreen {
+/** The screen for one reading: `null` where the stored report could not be read. `next` is the plan's next Monday check. */
+export function siteFixesScreen(reading: IssuesReading | null, timeZone: string, next: DayKey): SiteFixesScreen {
   const words = { back: copy("overview.issues.back"), fixLabel: copy("overview.issues.fix"), newTab: copy("draft.live.new-tab"), list: copy("overview.issues.title") };
   const date = reading?.measuredAt == null ? null : scanDay(reading.measuredAt, timeZone);
   const lead = date === null ? copy("overview.issues.lead") : `${copy("overview.issues.lead")} ${copy("overview.issues.found", { date })}`;
@@ -108,5 +114,5 @@ export function siteFixesScreen(reading: IssuesReading | null, timeZone: string)
   const summary = { read: copy("overview.issues.read", { count: formatCount(read) }), split };
   if (rows.length > 0) return { lead, state: "fixes", line: null, summary, rows, words };
   // With no row, every check of the customer's ran: nothing to fix, unless a count kept no list of its pages.
-  return { lead, state: "empty", line: reading.unnamed ? copy("overview.issues.unnamed") : copy("overview.issues.empty", { count: formatCount(read), date }), summary, rows, words };
+  return { lead, state: "empty", line: reading.unnamed ? copy("overview.issues.unnamed") : copy("overview.issues.empty", { count: formatCount(read), date, next: scanDay(new Date(`${next}T12:00:00Z`), "UTC") }), summary, rows, words };
 }

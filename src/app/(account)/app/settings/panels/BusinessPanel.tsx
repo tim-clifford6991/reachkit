@@ -128,7 +128,7 @@ function ReadAgain(p: { lastRead: string }): React.JSX.Element {
         {copy("settings.business.read-again")}
       </button>
       {line === null ? null : (
-        <p role="alert" className="w-full text-xs text-error wrap-anywhere" data-testid="business-read-again-line">
+        <p role="alert" className="w-full text-sm text-error wrap-anywhere" data-testid="business-read-again-line">
           {line}
         </p>
       )}

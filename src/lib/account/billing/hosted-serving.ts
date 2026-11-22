@@ -33,27 +33,34 @@ export type HostedServingState =
   | { serve: false; because: "retention_elapsed" | "account_deleted" | "unreadable" };
 
 /** REQ-076 criterion 10 — what the hosted edge asks before serving a hosted
- *  address. Server-only, on the request path: p95 ≤ 10 ms, cacheable for
- *  60 s. */
+ *  address, read through the billing store. */
 export async function hostedServingState(siteId: string): Promise<HostedServingState> {
   const read = await billingStore().hosting(siteId);
 
   // Whether this account was erased is unknown, so it is neither served nor gone.
   if (!read.ok) return { serve: false, because: "unreadable" };
+  return servingStateOf(read.site, new Date());
+}
 
+/** The serving rule itself, pure, so the edge's own read and the billing store answer by one function. `null` is a
+ *  site, or an owner, that no longer exists. */
+export function servingStateOf(
+  site: { owner_deleted_at: string | null; hosted_serving_ends_at: string | null } | null,
+  now: Date
+): HostedServingState {
   // A site that does not exist is not a site whose retention elapsed.
-  if (read.site === null) return { serve: false, because: "account_deleted" };
+  if (site === null) return { serve: false, because: "account_deleted" };
 
   // Deletion outranks retention, and needs no window: the two endings are
   // asked in this order because a deleted account may also have an elapsed
   // window, and the reason an operator needs is the one the customer chose.
-  if (read.site.owner_deleted_at !== null) return { serve: false, because: "account_deleted" };
+  if (site.owner_deleted_at !== null) return { serve: false, because: "account_deleted" };
 
-  const endsAt = read.site.hosted_serving_ends_at;
+  const endsAt = site.hosted_serving_ends_at;
   if (endsAt === null) return { serve: true };
 
   // The boundary is inclusive: on the day serving stops, it has stopped.
-  return new Date(endsAt).getTime() <= Date.now()
+  return new Date(endsAt).getTime() <= now.getTime()
     ? { serve: false, because: "retention_elapsed" }
     : { serve: true };
 }

@@ -47,6 +47,10 @@ it("cleans images, citations, bracketed addresses and lists out of an answer's f
     ["El pan es un alimento básico. ¿Dónde comprarlo? Aquí.", "El pan es un alimento básico."],
     ["לחם הוא מזון בסיסי בכל בית. נמכר במאפיות.", "לחם הוא מזון בסיסי בכל בית."],
     ["الخبز طعام أساسي في كل بيت. يباع في المخابز.", "الخبز طعام أساسي في كل بيت."],
+    ["The best bakery is run by Dr. Smith in town. It opens at 7.", undefined],
+    ["Bread is a baked food<sup>1</sup>. It is old.", undefined],
+    ["Bread is a baked food ([1](https://a.com), [2](https://b.com)). It is old.", undefined],
+    ["Bread is a baked food^[1]. It is old.", undefined],
   ];
   for (const [text, want] of cases) expect(quote(text), text).toBe(want);
   const stored = reports.flatMap((x) => x.serps).flatMap((sv) => (sv.kind !== "unmeasured" && sv.value.aiOverview.text?.includes("subscriptions:\n\n- ") ? [sv.value.aiOverview.text] : []));

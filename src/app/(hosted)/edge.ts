@@ -18,10 +18,10 @@
 // slug that was unpublished and later published again answers with the
 // page — the `unpublished` rows behind it are history, not a verdict.
 //
-// **One narrow read for the address** (issue 1194). This runs before
-// routing on every request to a customer's host, inside the middleware's
-// deadline, so it asks `hostedAddress` — four short columns — and never
-// loads a page. The page route loads the page, once, if there is one.
+// **One read for the host and the address.** This runs before routing on
+// every request to a customer's host, inside the middleware's deadline, so
+// the slug's state comes off the same embedded row `resolveHost` read, and
+// no page is loaded. The page route loads the page, once, if there is one.
 //
 // **A live page is named, and only a live page reaches the cache** (issue
 // 1242). The article is cached by its host and slug (`hosted-live/`), and a
@@ -44,8 +44,7 @@
 // and a failed query can say neither. Any other throw yields `page`: the
 // uncached route resolves the Host again for itself. A cached copy is never
 // served on a failed read.
-import { hostedAddress } from "@/lib/publish/destinations/hosted";
-import { resolveHost } from "./resolve-host";
+import { hostedRead } from "./resolve-host";
 
 /** A page that is live now, on a site that is served now. */
 export interface LiveAnswer {
@@ -77,17 +76,17 @@ export function pageSlug(pathname: string): string | null {
 
 export async function hostedAnswer(host: string, pathname: string): Promise<HostedAnswer> {
   try {
-    const disposition = await resolveHost(host);
+    const { disposition, row } = await hostedRead(host);
     // A customer whose access ended, or whose account was deleted: every
     // address on the host is gone, not only the ones that held a page.
     if (disposition.kind === "gone") return "gone";
     if (disposition.kind === "unavailable") return "unavailable";
-    if (disposition.kind !== "site") return "page";
+    if (disposition.kind !== "site" || row === null) return "page";
 
     const slug = pageSlug(pathname);
     if (slug === null) return "page";
 
-    const address = await hostedAddress(disposition.siteId, slug);
+    const address = row.addressAt(slug);
     if (address.state === "retired") return "gone";
     if (address.state === "moved") return { kind: "moved", host: disposition.host, slug: address.slug };
     if (address.state !== "live" || address.publicationId === null) return "page";

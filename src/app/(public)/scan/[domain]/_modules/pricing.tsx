@@ -34,12 +34,13 @@
 import type React from "react";
 import { Suspense } from "react";
 import { ArrowRight, Check } from "lucide-react";
-import { OFFER_ENDS_AT, OFFER_ENDS_ON, OFFER_SPOTS, SETUP_MINUTES, VETO, WEEK_PLAN } from "@/lib/config/constants";
+import { OFFER_ENDS_ON, OFFER_SPOTS, SETUP_MINUTES, VETO, WEEK_PLAN } from "@/lib/config/constants";
 import type { SpotsLeft } from "@/lib/account/offer/spots";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { HOW_FACTS } from "@/app/(public)/_how/facts";
 import { BrandMark } from "@/app/_brand/Brand";
 import { FLOAT } from "@/ui/lift";
+import { offerOf } from "../../../_chrome/offer-sentence";
 import { Num } from "../_address/measured";
 import { WhenRefused } from "../../../pricing/refused";
 import type { CheckoutRefusal } from "../../../pricing/state";
@@ -147,11 +148,9 @@ function Terms(p: { specs: readonly string[] }): React.JSX.Element {
 }
 
 /** The first-50 block, the setup promise every buyer gets, and the spots line directly above Start. */
-function Offer(p: { spots: SpotsLeft | null; built: boolean }): React.JSX.Element {
-  const spots = p.spots;
+function Offer(p: { spots: SpotsLeft | null | undefined; built: boolean }): React.JSX.Element {
   const promise = <p className="text-sm font-semibold">{copy("offer.promise.call", { minutes: String(SETUP_MINUTES) })}</p>;
-  // A failed read says nothing true about the offer, so the card draws it only where the read says open.
-  if (spots === null || (spots.state !== "open" && spots.state !== "few")) return promise;
+  if (p.spots === undefined) return promise;
   const of = String(OFFER_SPOTS);
   const block = (
     <div className="border-base-300 flex flex-col gap-3 border-t pt-4">
@@ -163,14 +162,7 @@ function Offer(p: { spots: SpotsLeft | null; built: boolean }): React.JSX.Elemen
     </div>
   );
   return (
-    <FirstFifty
-      read={p.built}
-      // A static page drops the count it would keep until the next deploy; the browser fills it.
-      spots={p.built ? { state: "open" } : spots}
-      block={block}
-      promise={promise}
-      words={{ before: copy("offer.spots.before", { of, endsOn: OFFER_ENDS_ON }), left: copy("offer.card.left", { left: "{left}", of }) }}
-    />
+    <FirstFifty read={p.built} offer={offerOf(p.spots, p.built)} block={block} promise={promise} before={copy("offer.spots.before", { of, endsOn: OFFER_ENDS_ON })} />
   );
 }
 
@@ -184,11 +176,9 @@ export function PhoneOfferBar(p: {
   return (
     <OfferBar
       read={p.built}
-      spots={p.spots}
-      endsAt={OFFER_ENDS_AT}
+      offer={offerOf(p.spots, p.built)}
       words={{
         before: copy("offer.spots.before", { of: String(OFFER_SPOTS), endsOn: OFFER_ENDS_ON }),
-        left: copy("offer.card.left", { left: "{left}", of: String(OFFER_SPOTS) }),
         promise: copy("offer.banner.promise", { minutes: String(SETUP_MINUTES) }),
         refused: { refused: copy(REFUSAL_LINE.refused), limited: copy(REFUSAL_LINE.limited) },
       }}
@@ -233,7 +223,7 @@ export function PricingCard(
     </button>
   );
   const control = p.startAction ? <form action={p.startAction}>{start}</form> : start;
-  const offer = <Offer spots={p.spots ?? null} built={p.built === true} />;
+  const offer = <Offer spots={p.spots} built={p.built === true} />;
   // Below `md` the same action, in a second form, stays in reach once the card's Start scrolls away.
   const bar = p.startAction ? <PhoneOfferBar startAction={p.startAction} spots={p.spots ?? null} built={p.built === true} refused={p.refused} /> : null;
 

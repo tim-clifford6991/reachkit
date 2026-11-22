@@ -32,8 +32,8 @@
 // so that all three reasons still yield one `gone` response and not three.
 import { HOSTED_UNAVAILABLE_INIT } from "@/lib/config/constants";
 import { env } from "@/lib/config/env";
-import { hostedServingState } from "@/lib/account/billing";
-import { hostedSiteForHostname } from "@/lib/publish/destinations/hosted";
+import { servingStateOf } from "@/lib/account/billing";
+import { hostedAnswerRow, type HostedAnswerRow } from "@/lib/publish/destinations/hosted";
 
 export { tags } from "@/lib/publish/destinations/hosted";
 
@@ -92,13 +92,9 @@ export function isAppHost(host: string): boolean {
   return name === appHost();
 }
 
-/** The lifecycle question, asked once for the site the host names. */
-async function dispositionFor(site: {
-  siteId: string;
-  domain: string;
-  host: string;
-}): Promise<HostDisposition> {
-  const serving = await hostedServingState(site.siteId).catch(() => ({ serve: false, because: "unreadable" }) as const);
+/** The lifecycle question, asked once for the site the host names, of the row already read. */
+function dispositionFor(site: HostedAnswerRow): HostDisposition {
+  const serving = servingStateOf(site.serving, new Date());
   if (!serving.serve) return serving.because === "unreadable" ? { kind: "unavailable" } : goneFor(serving.because, site.siteId);
   return { kind: "site", siteId: site.siteId, domain: site.domain, host: site.host, indexable: true };
 }
@@ -114,26 +110,30 @@ function goneFor(because: "retention_elapsed" | "account_deleted", siteId: strin
 /**
  * What this Host is, to us.
  *
- * One lookup of the stored host, then one lifecycle question. Nothing here is cached: a `gone` disposition must not outlive
- * the request that found it, because a takedown is immediate (WO-028's
- * NFR) and a cached "serve" would keep a departed customer's pages up. The
- * cached article (issue 1242) does not change that: `src/middleware.ts`
- * asks this again on every request, before the cache, and sends only a
- * host that is a site now to the cached copy.
+ * One embedded read of the stored host, its site, owner and addresses, then the lifecycle question on it. Nothing here
+ * is cached: a `gone` disposition must not outlive the request that found it, because a takedown is immediate (WO-028's
+ * NFR) and a cached "serve" would keep a departed customer's pages up. The cached article (issue 1242) does not change
+ * that: `src/middleware.ts` asks this again on every request, before the cache, and sends only a host that is a site now
+ * to the cached copy.
  */
 export async function resolveHost(host: string): Promise<HostDisposition> {
+  return (await hostedRead(host)).disposition;
+}
+
+/** `resolveHost`'s disposition and the row it came from, so the edge asks a slug's state without a second read. */
+export async function hostedRead(host: string): Promise<{ disposition: HostDisposition; row: HostedAnswerRow | null }> {
   const name = normaliseHost(host);
-  if (name === "") return { kind: "unknown" };
+  if (name === "") return { disposition: { kind: "unknown" }, row: null };
 
   // The deployment's own address is not a customer.
-  if (name === appHost()) return { kind: "unknown" };
+  if (name === appHost()) return { disposition: { kind: "unknown" }, row: null };
 
   // The label is the customer's (SPEC §5), so the host is matched whole against the one stored on their row.
-  let chosen: Awaited<ReturnType<typeof hostedSiteForHostname>>;
+  let row: HostedAnswerRow | null;
   try {
-    chosen = await hostedSiteForHostname(name);
+    row = await hostedAnswerRow(name);
   } catch {
-    return { kind: "unavailable" };
+    return { disposition: { kind: "unavailable" }, row: null };
   }
-  return chosen === null ? { kind: "unknown" } : dispositionFor(chosen);
+  return row === null ? { disposition: { kind: "unknown" }, row } : { disposition: dispositionFor(row), row };
 }
