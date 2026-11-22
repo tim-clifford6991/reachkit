@@ -19,12 +19,15 @@ export interface MonthContext {
   first: string | null;
 }
 
-/** One line: a count and what it counts. A zero is written as 0; an unread count says so in words. */
+/** One line: a count and what it counts. A zero is written as 0; an unread count is a dash, and says so to a screen reader. */
 function Tile(p: { value: number | null; label: string; cap?: string | null; testId: string }): React.JSX.Element {
   return (
     <li className="border-base-300 flex min-w-0 flex-wrap items-baseline gap-x-2 border-t py-1.5 first:border-t-0" data-testid={p.testId}>
       {p.value === null ? (
-        <span className={`text-sm wrap-anywhere ${INK}`}>{copy("settings.month.not-measured")}</span>
+        <>
+          <span className="text-base font-semibold tabular-nums" aria-hidden>{copy("unmeasured.dash")}</span>
+          <span className="sr-only">{copy("settings.month.not-measured")}</span>
+        </>
       ) : (
         <span className="text-base font-semibold tabular-nums">{p.value}</span>
       )}

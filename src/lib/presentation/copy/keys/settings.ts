@@ -565,7 +565,7 @@ export const SETTINGS_COPY = Object.freeze({
   // three off is a decision rather than a risk. Approved (11a).
   "settings.notifications.always-on": "Sign-in and account mail can’t be switched off.",
 
-  "settings.content.export": "Download All My Pages",
+  "settings.content.export": "Export Everything",
   // REQ-078 c5 (issue #52): "Given an export cannot be produced, when the
   // customer requests one, then they are told so in one written line and are
   // not given a partial archive presented as complete." One line, whatever
