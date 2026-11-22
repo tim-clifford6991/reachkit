@@ -175,16 +175,11 @@ export async function startWeeklyScan(
     for (let round = 1; round <= TIMING.weeklyCollectRounds; round += 1) {
       const { left } = await step(`late-answers-${a.siteId}-${round}`, async () => {
         const { collectLateAnswers } = await import("@/lib/scan/weekly/collect");
-        const untilMs = Date.now() + TIMING.paidPassCeilingS * 1000;
-        return collectLateAnswers({ scanId, siteId: a.siteId, domain: a.domain, untilMs });
+        return collectLateAnswers({ scanId, siteId: a.siteId, domain: a.domain, untilMs: Date.now() + TIMING.paidPassCeilingS * 1000 });
       });
       if (left === 0) break;
     }
-    // SPEC §6 *Market changes*: the week's news, under its own cap; the week's row makes a second run buy nothing.
-    await step(`market-changes-${a.siteId}`, async () => {
-      const { recordMarketChanges } = await import("@/lib/scan/weekly/market-changes");
-      return recordMarketChanges({ scanId, siteId: a.siteId, weekStart: a.weekStart, now: a.now });
-    });
+    await step(`market-changes-${a.siteId}`, async () => (await import("@/lib/scan/weekly/market-changes")).recordMarketChanges({ scanId, siteId: a.siteId, weekStart: a.weekStart, now: a.now }));
   }
 
   // Issue 1553: Search Console and the stored rows, per page, before

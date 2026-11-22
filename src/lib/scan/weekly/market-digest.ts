@@ -5,7 +5,7 @@
 // next tick retries. `running` and `failed` rows are not read; one that later finishes too small is sent alone.
 // The same mail carries, each left out where its read fails and never holding the digest back: each paying site's daily-promise line
 // (`./promise-week`), its visits and clicks (`./visits-week`) and its untold empty days; the week's cost (`./cost-week`); the passes a health check failed on;
-// live hosted pages Google has not crawled `UNCRAWLED_AFTER_D` days after going live; and each site's market changes and how many were cited.
+// live hosted pages Google has not crawled `UNCRAWLED_AFTER_D` days after going live; and each site's market changes and how many pages used.
 import { tz } from "@date-fns/tz";
 import { addDays, format } from "date-fns";
 import { UNCRAWLED_AFTER_D } from "@/lib/config/constants";
@@ -104,7 +104,7 @@ async function untoldBefore(weekStart: string): Promise<UntoldWeek | null> {
 
 type ChangesWeek = NonNullable<Extract<OpsIncident, { occasion: "market-too-small-week" }>["changes"]>;
 
-/** Each site's market changes the week before `weekStart` recorded, and how many of them that week's drafts cite; `null`
+/** Each site's market changes the week before `weekStart` recorded, and how many of them that week's drafts use; `null`
  *  where no site recorded a week or they could not be read. */
 async function changesBefore(weekStart: string): Promise<ChangesWeek | null> {
   try {
@@ -129,7 +129,7 @@ async function changesBefore(weekStart: string): Promise<ChangesWeek | null> {
         .map((week) => {
           const cited = new Set((drafts.data ?? []).filter((draft) => draft.site_id === week.siteId).flatMap((draft) => urlsOf(draft.meta)));
           const changes = week.changes as { claims?: { url?: unknown }[] }[];
-          return { domain: domains.get(week.siteId) ?? "unknown", recorded: changes.length, cited: changes.filter((change) => (change.claims ?? []).some((claim) => cited.has(claim.url))).length };
+          return { domain: domains.get(week.siteId) ?? "unknown", recorded: changes.length, used: changes.filter((change) => (change.claims ?? []).some((claim) => cited.has(claim.url))).length };
         })
         .sort((a, b) => a.domain.localeCompare(b.domain)),
     };

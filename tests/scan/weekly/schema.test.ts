@@ -47,7 +47,7 @@ const TIMEZONE_MIGRATION = path.join(MIGRATIONS, "00000000000004_sites_timezone_
 const SUBSCRIPTION_MIGRATION = path.join(MIGRATIONS, "20260906120000_users_subscription_columns.sql");
 // The week's market changes are claimed on their own row; its policy reads `users.deleted_at`, which the RLS migration adds.
 const RLS_MIGRATION = path.join(MIGRATIONS, "00000000000002_rls.sql");
-const MARKET_MIGRATION = path.join(MIGRATIONS, "20261122200000_market_changes.sql");
+const MARKET_MIGRATION = path.join(MIGRATIONS, "20261122200000_scans_market_changes.sql");
 
 /** One tuple-only row per line, `|`-separated columns — easy to split. */
 /** Runs `sql` and returns whether it raised (never throws itself). */

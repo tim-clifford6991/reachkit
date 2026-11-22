@@ -37,8 +37,8 @@ export type OpsIncident =
       };
       // Each paying hosted site's visits by source over the week (`null`: not measured) and its live pages' Search Console clicks.
       visits?: { weekStart: string; sites: readonly { domain: string; visits: readonly { source: string; visits: number }[] | null; clicks: number | null }[] };
-      // Each site's market changes its week's pass recorded, and how many of them that week's drafts cite.
-      changes?: { weekStart: string; sites: readonly { domain: string; recorded: number; cited: number }[] };
+      // Each site's market changes its week's pass recorded, and how many of them that week's drafts use.
+      changes?: { weekStart: string; sites: readonly { domain: string; recorded: number; used: number }[] };
       // What the week cost: per site a measurement and a page, then free scans and smoke tests, then the ledger total, in cents.
       costs?: {
         weekStart: string;
@@ -367,7 +367,7 @@ function weekBlocks(incident: Extract<OpsIncident, { occasion: "market-too-small
     blocks.push({ block: "paragraph", text: VISITS_WEEK, vars: { week: closedDate(incident.visits.weekStart) } }, { block: "list", items: measured(incident.visits.sites.map(visitsRow), new Date(`${closedDate(incident.visits.weekStart)}T00:00:00Z`)), emptyLine: "ops.promise.not-measured" });
   }
   if (incident.changes !== undefined) {
-    const rows = incident.changes.sites.map((site): ListRow => ({ label: "ops.changes.line", vars: { domain: closedDomain(site.domain), recorded: count(site.recorded), cited: count(site.cited) } }));
+    const rows = incident.changes.sites.map((site): ListRow => ({ label: "ops.changes.line", vars: { domain: closedDomain(site.domain), recorded: count(site.recorded), used: count(site.used) } }));
     blocks.push({ block: "paragraph", text: CHANGES_WEEK, vars: { week: closedDate(incident.changes.weekStart) } }, { block: "list", items: measured(rows, new Date(`${closedDate(incident.changes.weekStart)}T00:00:00Z`)), emptyLine: "ops.promise.not-measured" });
   }
   if (incident.untold !== undefined) {

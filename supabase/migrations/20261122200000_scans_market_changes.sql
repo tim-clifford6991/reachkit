@@ -1,4 +1,4 @@
--- supabase/migrations/20261122200000_market_changes.sql
+-- supabase/migrations/20261122200000_scans_market_changes.sql
 --
 -- SPEC §6 *Market changes* (owner ruling 90, 2026-11-22): what changed in a site's market, recorded by its weekly pass.
 -- Expand-only: one new table, and the file re-runs cleanly.
