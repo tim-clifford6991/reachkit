@@ -38,7 +38,7 @@ create policy publication_weeks_select_own on publication_weeks for select to au
         from sites s
         join users u on u.id = s.user_id
        where s.id = publication_weeks.site_id
-         and s.user_id = auth.uid()
+         and s.user_id = (select auth.uid())
          and u.deleted_at is null
     )
   );

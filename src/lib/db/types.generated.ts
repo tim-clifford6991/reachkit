@@ -1072,21 +1072,21 @@ export type Database = {
       }
       publication_weeks: {
         Row: {
-          counts: Json
+          counts: NonNullable<Json>
           publication_id: string
           reading: Json | null
           site_id: string
           week_start: string
         }
         Insert: {
-          counts?: Json
+          counts?: NonNullable<Json>
           publication_id: string
           reading?: Json | null
           site_id: string
           week_start: string
         }
         Update: {
-          counts?: Json
+          counts?: NonNullable<Json>
           publication_id?: string
           reading?: Json | null
           site_id?: string
