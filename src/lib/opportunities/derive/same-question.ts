@@ -28,6 +28,7 @@ const TASK = [
   "Never pair a search with itself. Leave a search out when no other topic asks its question.",
   "An audience that is the market's own buyer (`buyer`, where given) is the same question; a different audience, a different product or a comparison is a different question, and so is a thing's price against the thing itself.",
   "Two wordings of one price are the same question: 'acme pricing', 'acme cost' and 'how much is acme' are one.",
+  "Where a topic has an `angle`, the page it would be, judge by what that page answers for the buyer: two angles that answer one question are the same question however their searches are worded, and a list of tools, a page of software and a 'best' page for one category are one.",
 ].join(" ");
 
 /**
@@ -43,7 +44,7 @@ const TASK = [
  */
 export async function judgeSameQuestion(
   c: CostContext,
-  a: { searches: readonly string[]; topics: readonly string[]; buyer?: string | null }
+  a: { searches: readonly string[]; topics: readonly string[]; buyer?: string | null; angles?: ReadonlyMap<string, string> }
 ): Promise<ReadonlyMap<string, string>> {
   const asked = new Set(a.searches.map(queryKey));
   const topics = [...new Set([...a.searches, ...a.topics].map(queryKey))];
@@ -55,7 +56,7 @@ export async function judgeSameQuestion(
     input: {
       task: TASK,
       ...((a.buyer ?? "").trim() === "" ? {} : { buyer: a.buyer }),
-      topics: topics.map((search, i) => (asked.has(search) ? { i, search, ask: true } : { i, search })),
+      topics: topics.map((search, i) => ({ i, search, ...(a.angles?.has(search) ? { angle: a.angles.get(search) } : {}), ...(asked.has(search) ? { ask: true } : {}) })),
     },
     schema: SAME_QUESTION_SCHEMA,
     tier: "haiku",

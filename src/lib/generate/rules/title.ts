@@ -24,7 +24,8 @@
 //   * **A specific, from the pack.** A number the pack states or the page
 //     counts out, a year aside; a price is such a number, and "free" where
 //     the pack says it; an engine's name; on a comparison, a rival the pack
-//     names; the place the business serves. A name the search itself
+//     names; the place the business serves; a word of the topic's angle's
+//     promise the search does not carry. A name the search itself
 //     carries is the search and no detail added to it. Asking a question is
 //     not one, and neither is who the page is for. A number that only counts
 //     an episode, an issue, a volume or a chapter ("ep. 16") is not one.
@@ -116,6 +117,8 @@ export interface TitleRuleInputs {
    *  itself, what was measured — and the counts of the page's own parts: a
    *  number in the title is a specific where this holds it. */
   holds: string;
+  /** What the topic's kept angle promises the reader, where it kept one: its own words count as the title's specific. */
+  promise?: string;
   /** The current year. */
   year: number;
   /** Every title the site has published or planned. */
@@ -224,9 +227,19 @@ function heldIn(passages: string, language: Language): (stated: { figure: string
 
 const statedIn = (title: string, language: Language) => unitsOf(withoutSerials(title, language).replace(YEAR_RE, ""));
 
+/** Whether a title states its angle's promise in a word the searches do not already carry. */
+function carriesPromise(title: string, a: TitleRuleInputs): boolean {
+  const language = languageOf(a);
+  const searched = new Set(a.terms.flatMap((term) => subjectOf(term, language)));
+  const own = new Set(wordsOf(title, language));
+  return subjectOf(a.promise ?? "", language).some((word) => !searched.has(word) && own.has(word));
+}
+
 function hasSpecific(title: string, a: TitleRuleInputs): boolean {
   const language = languageOf(a);
   const stated = statedIn(title, language);
+  // Owner rulings 91–92: the angle's own element is the title's specific, so no figure need be appended.
+  if (stated.length === 0 && carriesPromise(title, a)) return true;
   // One held figure does not carry another the pack never states.
   if (stated.length > 0) return stated.every(heldIn(a.holds, language));
   const free = wordsPattern(languagePack(language).title.free, false);
@@ -425,7 +438,7 @@ function carried(title: ReadonlySet<string>, text: string, language: Language): 
 
 /**
  * The writer proposes, code picks (issue 1389). Of the titles proposed, the
- * one that fails no rule and sits closest to the search and its follow-up
+ * one that fails no rule, states its angle's promise, and sits closest to the search and its follow-up
  * questions; among equals, one inside the aimed length, then a statement,
  * then the writer's own order. Where none passes, the one that fails fewest
  * of the rules that stop a page, then fewest in all — so a title that lacks
@@ -454,6 +467,7 @@ export function pickTitle(proposed: readonly string[], a: TitleRuleInputs, floor
       stopping(left) - stopping(right) ||
       Number(built.includes(left.title)) - Number(built.includes(right.title)) ||
       left.faults.length - right.faults.length ||
+      Number(carriesPromise(right.title, a)) - Number(carriesPromise(left.title, a)) ||
       right.closeness - left.closeness ||
       aimed(left.title) - aimed(right.title) ||
       Number(asksQuestion(left.title, language)) - Number(asksQuestion(right.title, language))

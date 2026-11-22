@@ -14,6 +14,7 @@ import { llm } from "@/lib/llm";
 import type { MarketConclusion } from "@/lib/market/infer/types";
 import type { Profile } from "@/lib/market/questions/profile";
 import type { BusinessFit, TopicSource } from "../types";
+import { ANGLE_PATTERNS, pickAngle, type ProposedAngle, type TopicAngle } from "./angle";
 
 export const FIT_CALL_SITE = "topic-fit";
 
@@ -22,8 +23,11 @@ const FIT_SCHEMA = z.strictObject({
     z.strictObject({
       i: z.number().int(),
       fit: z.number().int().min(0).max(3),
-      title: z.string(),
       fact: z.number().int().nullable(),
+      why: z.string(),
+      angles: z.array(
+        z.strictObject({ pattern: z.enum(ANGLE_PATTERNS), title: z.string(), promise: z.string(), fact: z.number().int().nullable() })
+      ),
     })
   ),
   strongest: z.array(z.number().int()),
@@ -40,19 +44,25 @@ const TASK = [
   "Judge against `market` and `product` only. Volume, and how the search is worded, say nothing about fit.",
   "At most a quarter of the searches may be 3. List the indexes you scored 3 in `strongest`, strongest first.",
   "For each search scored 2 or 3, give `fact`: the `i` of the `product.knowledge` passage that shows this business can answer it from what it sells, does or knows. A search no passage answers is 1 at most. For 0 and 1, null.",
-  "For each search scored 2 or 3, give `title`: the angle of the page that would answer it for this buyer, under 70 characters — what the page shows or argues, not the search restated, and naming the product only where the search does. For 0 and 1, an empty string.",
+  "For each search scored 2 or 3, give `why`: one plain sentence a customer reads, saying why this business is the one to answer it, from what it sells and who buys it. For 0 and 1, an empty string.",
+  "For each search scored 2 or 3, give `angles`: two or three different pages that would answer it for this buyer. Each joins the search to a passage in `product.knowledge` (`fact`) and uses one `pattern`: P1 a problem and how this business's method fixes it; P2 the question answered from the business's own facts; P3 a comparison where the business is a real option; P4 how to do the job with a new thing the search or `ranks` names; P5 the search for a place or segment the business serves.",
+  "Each angle's `title` is at most 65 characters in Title Case, starts with the search's own words or its main noun phrase, and states what the reader gets, which none of the search's `ranks` already promises. `promise` says that in at most twelve words. A title names a product, model, version, number, price or date only when it is written in the search, `product.knowledge` or `ranks`. A bare search with a number or a price appended is not an angle, and a price leads only a pricing or comparison search. For 0 and 1, no angles.",
 ].join(" ");
 
 export interface FitSearch {
   query: string;
+  /** The first titles of its stored top ten: what already ranks, which an angle must not merely repeat. */
+  ranks?: readonly string[];
   source: TopicSource;
   update?: boolean; // An update of the site's own page is no new topic, so it needs no passage.
 }
 
 export interface FitJudgement {
   fit: BusinessFit;
-  /** The page's angle, where the model gave one for a fit of 2 or 3. */
+  /** The page's angle title, where one of the model's angles passed for a fit of 2 or 3. */
   title: string | null;
+  /** The angle kept, with why the topic fits; `null` where none passed. */
+  angle: TopicAngle | null;
   fact: FitFact | null; // The passage that answers a new topic of fit 2 or 3.
 }
 
@@ -64,19 +74,23 @@ export function topFitAllowance(count: number): number {
 /** The scores as stored: one per index shown, a new topic of 2 or 3 naming no passage shown held at 1, and the top fit
  *  kept by the first `topFitAllowance` in the model's `strongest` order (an unranked 3 last), the rest at 2. Pure. */
 export function boundTopFit(
-  scores: readonly { i: number; fit: number; title: string; fact?: number | null }[],
+  scores: readonly { i: number; fit: number; fact?: number | null; why?: string; angles?: readonly ProposedAngle[] }[],
   strongest: readonly number[],
-  searches: readonly Pick<FitSearch, "update">[],
-  knowledge: KnowledgeDigest | null = null
+  searches: readonly Pick<FitSearch, "update" | "query" | "ranks">[],
+  knowledge: KnowledgeDigest | null = null,
+  names: readonly string[] = []
 ): Map<number, FitJudgement> {
+  const sources = [...(knowledge ?? []).map((passage) => passage.text), ...names];
   const out = new Map<number, FitJudgement>();
   for (const score of scores) {
     if (score.i < 0 || score.i >= searches.length || out.has(score.i)) continue;
     const newTopic = score.fit >= TOPIC_FIT.gate && searches[score.i]!.update !== true;
     const passage = newTopic ? (knowledge?.[score.fact ?? -1] ?? null) : null;
     const fit = (newTopic && passage === null ? 1 : score.fit) as BusinessFit;
-    const title = fit >= TOPIC_FIT.gate && score.title.trim() !== "" ? score.title.trim() : null;
-    out.set(score.i, { fit, title, fact: passage && { text: passage.text, source: passage.source } });
+    const search = searches[score.i]!;
+    const chosen = fit < TOPIC_FIT.gate ? null : pickAngle(score.angles ?? [], { search: search.query ?? "", sources, ranks: search.ranks ?? [], ...(knowledge === null ? {} : { passages: knowledge.length }) });
+    const angle = chosen && { pattern: chosen.pattern, promise: chosen.promise, why: (score.why ?? "").trim(), gap: chosen.gap };
+    out.set(score.i, { fit, title: chosen?.title ?? null, angle, fact: passage && { text: passage.text, source: passage.source } });
   }
   const order = new Map<number, number>();
   strongest.forEach((index, place) => {
@@ -135,12 +149,12 @@ export async function judgeFit(
         ...(a.knowledge == null ? {} : { knowledge: a.knowledge.map((passage, i) => ({ i, about: passage.about, text: passage.text })) }),
       },
       market,
-      searches: searches.map((search, i) => ({ i, search: search.query, source: search.source })),
+      searches: searches.map((search, i) => ({ i, search: search.query, source: search.source, ...(search.ranks?.length ? { ranks: search.ranks } : {}) })),
     },
     schema: FIT_SCHEMA,
     tier: "sonnet",
     ...(a.locale === undefined ? {} : { locale: a.locale }),
   });
   if (answer.kind === "unmeasured") return new Map();
-  return boundTopFit(answer.value.scores, answer.value.strongest, searches, a.knowledge ?? null);
+  return boundTopFit(answer.value.scores, answer.value.strongest, searches, a.knowledge ?? null, [a.domain, ...(a.market?.rivals.flatMap((rival) => [rival.name, rival.domain]) ?? [])]);
 }

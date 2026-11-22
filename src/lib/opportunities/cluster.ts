@@ -4,7 +4,7 @@
 import { PRICE_WORDS } from "@/lib/locale/language";
 import { SAME_TOPIC_SHARED_ADDRESSES, TOPIC_FIT } from "@/lib/config/constants";
 import { marketTokens, type MarketWords } from "@/lib/market/infer/terms";
-import { GENERIC_TOKENS, ownBrandTokens, stemKey } from "@/lib/market/questions/select";
+import { contentTokens, GENERIC_TOKENS, ownBrandTokens, stemKey } from "@/lib/market/questions/select";
 import { googleWrapper, registrableDomain, resolvedOf } from "@/lib/market/rivals/domains";
 import { canonicalUrl, EARNING, type EarnedSearch } from "@/lib/measure/page-reading";
 import type { StoredReport } from "@/lib/scan/report";
@@ -137,14 +137,19 @@ export function coveredTopics(report: StoredReport, brandTokens: readonly string
 }
 
 
+const SOLUTION_TOKENS: ReadonlySet<string> = new Set(["tool", "software", "app", "platform", "solution"].flatMap((word) => contentTokens(word)));
+const LIST_TOKENS: ReadonlySet<string> = new Set(["best", "top", "compare", "comparison"].flatMap((word) => contentTokens(word)));
+
 /** The parent topic of a query, or `null` where it has none: no query, or nothing left once stop words and brands are
  *  gone. Given the site's market, its own names are one word and its buyer is no qualifier. */
 export function clusterKey(query: string | null, brandTokens: readonly string[], market?: MarketWords | null): string | null {
   if (query === null) return null;
   const brands = new Set(brandTokens.flatMap((token) => stemKey(token).split(" ")).filter((t) => t !== ""));
   const tokens = market == null ? stemKey(query).split(" ") : marketTokens(query, market).tokens;
-  // A price is one word however it is asked: "x pricing" and "x cost" are one topic.
-  const all = [...new Set(tokens.map((token) => (PRICE_WORDS.has(token) ? "pricing" : token)))]
+  // A price is one word however it is asked: "x pricing" and "x cost" are one topic. Given the market, "best x tools",
+  // "x software" and "top x apps" are one list: the solution nouns are one word and the list words and the year none.
+  const folded = (token: string): string => (market == null ? token : SOLUTION_TOKENS.has(token) ? "solution" : LIST_TOKENS.has(token) || /^(?:19|20)\d\d$/.test(token) ? "" : token);
+  const all = [...new Set(tokens.map((token) => (PRICE_WORDS.has(token) ? "pricing" : folded(token))))]
     .filter((token) => token !== "")
     .sort();
   const words = all.filter((token) => !brands.has(token));

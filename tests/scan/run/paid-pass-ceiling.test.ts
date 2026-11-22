@@ -540,7 +540,7 @@ describe("a weekly pass whose measurement would spend its whole cap", () => {
         "topic-buyer-searches": [{ problems: phrased.slice(0, BUYER_SEARCHES.max), solutions: phrased.slice(BUYER_SEARCHES.max, 2 * BUYER_SEARCHES.max) }, 400],
         "topic-typed": [{ typed: searches.map((entry) => entry.i) }, 80],
         "topic-fit": [
-          { scores: searches.map((entry) => ({ i: entry.i, fit: fitOf.get(entry.search) ?? 2, title: entry.search, fact: 0 })), strongest: [] },
+          { scores: searches.map((entry) => ({ i: entry.i, fit: fitOf.get(entry.search) ?? 2, fact: 0, why: "", angles: [] })), strongest: [] },
           44 * searches.length,
         ],
         "opportunity-typing": [{ type: input.derivedType, slug: input.derivedSlug, title: input.targetQuery }, 60],

@@ -2,7 +2,7 @@
 // An empty `created` is a success with counts, never a throw: the counters tell "supply ran out" from "unreadable".
 import type { Locale } from "@/lib/locale/locales";
 import { siteLocale } from "@/lib/locale/site";
-import type { FitFact, KnowledgeDigest } from "@/lib/site-profile/knowledge/read";
+import type { KnowledgeDigest } from "@/lib/site-profile/knowledge/read";
 import { ASKED_TOPICS, PLAN_DEPTH, TOPIC_FIT, WEEK_RESEARCH } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import { ownSearched } from "@/lib/market/infer/demand";
@@ -18,7 +18,7 @@ import type { Candidate } from "./candidate";
 import { earnCandidates } from "./earn";
 import { fixCandidates } from "./fix";
 import { improveCandidates } from "./improve";
-import { brandTokensOf, collapse, coveredTopics, queryKey, topTensOf } from "../cluster";
+import { brandTokensOf, collapse, coveredTopics, queryKey, topTenRowsOf, topTensOf } from "../cluster";
 import { rebandFor } from "../readiness";
 import { opportunityStore, readOpportunity, type DismissedSearch } from "../store";
 import { persist } from "./persist";
@@ -26,7 +26,7 @@ import { judgeSameQuestion } from "./same-question";
 import { refineType } from "./typing";
 import { applyKnownContent, type KnownContentGate } from "./known";
 import { writeCandidates } from "./write";
-import { judgeFit, type FitSearch } from "./fit";
+import { judgeFit, type FitJudgement, type FitSearch } from "./fit";
 import { askedOfReport, askedSupply, askedTopics, brandsOf, type AskedSupply, type ProposedTopic, candidateFor, comparisonWithoutDemand, namesOwnOnly, noLongerRelevant, productsNamed, proposedTopics, rivalBrandOnly, rivalNamesOf, rivalPriceOf, sourceOf } from "./topics";
 import { judgeTyped, writeBuyerSearches } from "./buyer-searches";
 import { ledgerSourceOf, supplyLedger, writable, type LedgerSource, type SupplyLedger } from "./ledger";
@@ -302,12 +302,15 @@ export async function deriveOpportunities(
   const derivedClasses = derivedPages.map((candidate) => classed({ query: candidate.targetQuery!, source: sourceFor(candidate) }));
   const offeredClasses = proposing.map(classed);
   const scoredAsked = unreached.filter(({ topic }) => !proposals.some((one) => queryKey(one.query) === queryKey(topic.query)));
+  // What already ranks for each search, from its stored top ten at 0¢: an angle promises what these titles do not.
+  const ranked = topTenRowsOf(a.report);
+  const ranks = (query: string): string[] => (ranked.get(queryKey(query))?.rows ?? []).slice(0, 5).map((row) => row.title);
   const searches: FitSearch[] = [
     ...judgedHere.map((candidate) => ({ query: candidate.targetQuery!, source: sourceFor(candidate), update: !isNewPage(candidate) })),
     ...unjudged.map((row) => ({ query: row.targetQuery!, source: sourceFor(row), update: !isNewPage(row) })),
     ...proposals.map((topic) => ({ query: topic.query, source: topic.source })),
     ...scoredAsked.map(({ topic }) => ({ query: topic.query, source: topic.source })),
-  ];
+  ].map((search) => ({ ...search, ranks: ranks(search.query) }));
   const fits = await judgeFit(c, {
     searches,
     market,
@@ -324,7 +327,7 @@ export async function deriveOpportunities(
     const sourced = { ...candidate, source: sourceFor(candidate) };
     const judged = fits.get(judgedHere.indexOf(candidate));
     if (judged === undefined) return sourced;
-    const withFit = withFact({ ...sourced, businessFit: judged.fit }, judged.fact);
+    const withFit = withFact({ ...sourced, businessFit: judged.fit }, judged);
     if (judged.title !== null) angle.set(withFit, judged.title);
     return withFit;
   });
@@ -333,7 +336,7 @@ export async function deriveOpportunities(
     if (judged === undefined) continue;
     const source = sourceFor(row);
     await store.setBusinessFit(row.id, judged.fit, source, pageTypeOf({ ...row, source }));
-    if (isNewPage(row)) await store.setEvidence(row.id, withFact(row, judged.fact).evidence);
+    if (isNewPage(row)) await store.setEvidence(row.id, withFact(row, judged).evidence);
   }
   // A proposal is a write target only at the top fit, as only its fit speaks for it; one the fit call left unanswered is kept unscored for the next pass, but an asked question, which the asked supply guards.
   const proposed: Candidate[] = [];
@@ -351,7 +354,7 @@ export async function deriveOpportunities(
       else {
         const candidate = candidateFor(topic, { ...base, market, ownRanked });
         if (candidate === null) continue;
-        proposed.push(judged === undefined ? { ...candidate, businessFit: null } : withFact({ ...candidate, businessFit: judged.fit, title: judged.title }, judged.fact));
+        proposed.push(judged === undefined ? { ...candidate, businessFit: null } : withFact({ ...candidate, businessFit: judged.fit, title: judged.title }, judged));
         topUp.sources[source].added += 1;
         lacking -= 1;
       }
@@ -360,16 +363,16 @@ export async function deriveOpportunities(
     // An earned search is kept at the fit it was judged, so readiness holds a low one and an unscored one waits.
     if (topic.source === "earned") {
       const candidate = candidateFor(topic, { ...base, market, ownRanked });
-      if (candidate !== null) proposed.push(judged === undefined ? { ...candidate, businessFit: null } : withFact({ ...candidate, businessFit: judged.fit, title: judged.title }, judged.fact));
+      if (candidate !== null) proposed.push(judged === undefined ? { ...candidate, businessFit: null } : withFact({ ...candidate, businessFit: judged.fit, title: judged.title }, judged));
       continue;
     }
     if (topic.asked !== undefined && judged !== undefined && judged.fit < TOPIC_FIT.writeAt) {
-      if (judged.fit >= TOPIC_FIT.gate) spare.push({ topic, fit: judged.fit, fact: judged.fact });
+      if (judged.fit >= TOPIC_FIT.gate) spare.push({ topic, fit: judged.fit, fact: judged.fact, angle: judged.angle });
       else refused.push(topic.query);
     }
     if (judged === undefined ? topic.asked !== undefined : judged.fit < TOPIC_FIT.writeAt) continue;
     const candidate = candidateFor(topic, { ...base, market, ownRanked });
-    if (candidate !== null) proposed.push(judged === undefined ? { ...candidate, businessFit: null } : withFact({ ...candidate, title: judged.title }, judged.fact));
+    if (candidate !== null) proposed.push(judged === undefined ? { ...candidate, businessFit: null } : withFact({ ...candidate, title: judged.title }, judged));
   }
 
   const labelled: Candidate[] = [];
@@ -392,7 +395,7 @@ export async function deriveOpportunities(
   scoredAsked.forEach(({ topic }, index) => {
     const judged = fits.get(judgedHere.length + unjudged.length + proposals.length + index);
     if (judged === undefined) return;
-    if (judged.fit >= TOPIC_FIT.gate) spare.push({ topic, fit: judged.fit, fact: judged.fact });
+    if (judged.fit >= TOPIC_FIT.gate) spare.push({ topic, fit: judged.fit, fact: judged.fact, angle: judged.angle });
     else refused.push(topic.query);
   });
   const questions = askedSupply({
@@ -404,9 +407,9 @@ export async function deriveOpportunities(
     taken: [...labelled.flatMap((row) => row.targetQuery ?? []), ...existing.flatMap((row) => [row.targetQuery ?? [], ...row.absorbedQueries].flat())],
     dismissed: dismissed.map((row) => row.query),
     now: a.report.verdict.measuredAt,
-  }).flatMap(({ topic, fit, fact }) => {
+  }).flatMap(({ topic, fit, fact, angle }) => {
     const candidate = candidateFor(topic, { ...base, market, ownRanked });
-    return candidate === null ? [] : [fact === undefined ? { ...candidate, businessFit: fit } : withFact({ ...candidate, businessFit: fit }, fact)];
+    return candidate === null ? [] : [fact === undefined ? { ...candidate, businessFit: fit } : withFact({ ...candidate, businessFit: fit }, { fact, angle: angle ?? null })];
   });
 
   // One survivor per parent topic over held rows and this pass's, after labelling since the type decides precedence.
@@ -425,6 +428,7 @@ export async function deriveOpportunities(
     ],
     topics: existing.flatMap((row) => row.targetQuery ?? []),
     buyer: market?.buyer,
+    angles: new Map([...existing, ...labelled].flatMap((row) => (row.targetQuery === null || row.title == null ? [] : [[queryKey(row.targetQuery), row.title] as const]))),
   });
   // Two searches that name different products are never one question, whatever the judgement says.
   const products = (query: string): string => productsNamed(query, { market, rivals: named.rivals });
@@ -502,7 +506,7 @@ export function earnedTopics(pages: readonly { reading?: unknown; row: Pick<Oppo
   });
 }
 
-/** A new page's evidence with the passage its fit was judged on, `null` where judged with none; unjudged has no key. */
-function withFact<T extends { evidence: Evidence }>(row: T, fact: FitFact | null): T {
-  return row.evidence.family === "write" || row.evidence.family === "earn" ? { ...row, evidence: { ...row.evidence, fitFact: fact } } : row;
+/** A new page's evidence with the passage its fit was judged on and the angle it keeps, `null` where judged with none; unjudged has neither key. */
+function withFact<T extends { evidence: Evidence }>(row: T, judged: Pick<FitJudgement, "fact" | "angle">): T {
+  return row.evidence.family === "write" || row.evidence.family === "earn" ? { ...row, evidence: { ...row.evidence, fitFact: judged.fact, angle: judged.angle } } : row;
 }

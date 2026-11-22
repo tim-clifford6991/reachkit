@@ -698,7 +698,7 @@ export function candidateFor(
 }
 
 /** A question buyers were seen asking, with the fit and passage a pass judged for it, `null` where no pass has. */
-export type AskedSupply = { topic: ProposedTopic; fit: BusinessFit | null; fact?: Extract<Evidence, { family: "write" }>["fitFact"] };
+export type AskedSupply = { topic: ProposedTopic; fit: BusinessFit | null; fact?: Extract<Evidence, { family: "write" }>["fitFact"]; angle?: Extract<Evidence, { family: "write" }>["angle"] };
 
 /**
  * SPEC §7 (issue 1549): the questions buyers were seen asking that a pass

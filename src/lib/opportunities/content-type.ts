@@ -52,6 +52,8 @@ export function contentTypeOf(
   const text = (o.targetQuery ?? "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
   if (LISTICLE_SHAPES.test(text)) return "listicle";
   if (HOW_TO_SHAPES.test(text)) return "how_to";
+  // "{category} tools" or "software" asks for a list of options, as its results page of round-ups shows; its price asks a question.
+  if (SHAPES.solution.test(text) && !SHAPES.price.test(text)) return "listicle";
   if (INSIGHTS_SHAPES.test(text) || isRising(o.evidence)) return "insights";
   if (RESEARCH_SHAPES.test(text)) return "research";
   if (DOCUMENTATION_SHAPES.test(text)) return "documentation";
