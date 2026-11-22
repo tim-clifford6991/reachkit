@@ -301,14 +301,6 @@ function reviveDates(value: unknown): unknown {
   return value;
 }
 
-/**
- * The row as the engine reads it. The database's check constraints are
- * what make the casts below sound: `type`, `family`, `fit_band` and
- * `status` are constrained to their closed sets in the schema, so a value
- * outside one cannot be on disk to be read. Dates inside `evidence` and
- * `volume` are revived, so an explanation reads back with the dates it was
- * measured on and not with strings.
- */
 export interface DismissedSearch {
   query: string;
   volume: number | null;
@@ -322,6 +314,8 @@ export function dismissedSearchesOf(row: Pick<OpportunityRow, "target_query" | "
   return queries.flatMap((query) => (query === null ? [] : [{ query, volume: row.volume, stopped }]));
 }
 
+/** The row as the engine reads it: the schema's check constraints keep each cast's closed set, and dates in `evidence`
+ *  and `volume` are revived, so an explanation reads back with the dates it was measured on. */
 export function readOpportunity(row: OpportunityRow): Opportunity {
   const stored = reviveDates(row.evidence) as Evidence;
   // A row stored before rivals left sources out can still name one as its holder.
