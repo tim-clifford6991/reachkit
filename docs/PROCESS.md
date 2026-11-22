@@ -24,7 +24,7 @@ One issue, one worktree, one session; no session directs another. There is no ma
 
 A session is started with `space.sh reachkit <issue> [role]` in the Herdr workspace `reachkit`, one tab per issue. The engineer works in `/root/projects/reachkit/.wt/issue-<N>`, branched from `origin/main`, and stops at one pull request or one comment. The checkout at `/root/projects/reachkit` stays on `main`. A worktree is removed when its pull request merges. The agent roles are the files in `.claude/agents/`.
 
-Two agents are scheduled, both read-only and 0¢. The first is the Monday weekly review, `.claude/skills/weekly-review/`, which opens at most five unready `from-weekly` issues. The second is the daily check, `.claude/agents/daily-check.md`, run by `rk-daily-check.timer`.
+Two agents are scheduled, both read-only and 0¢. The first is the Monday weekly review, `.claude/skills/weekly-review/`, which reads through six lenses, the sixth the instruction files in the repo and across the box, and opens at most five unready `from-weekly` issues plus one instruction-files issue. The second is the daily check, `.claude/agents/daily-check.md`, run by `rk-daily-check.timer`.
 
 ### 4. Merge and deploy
 

@@ -1,6 +1,6 @@
 ---
 name: weekly-review
-description: ReachKit's one scheduled weekly review (PROCESS.md rule 3, C7). Reports the six ideas as measured outcomes, reads code, CI and production read-only through five lenses (bloat, production health, SEO, dependencies, flaky tests), classifies each finding under Coherence, files at most five unready issues (at most one of them a deletion), and republishes the pinned "ReachKit this week" page. Use when the rk-weekly timer starts a run, or when asked for the weekly review or its dry run.
+description: ReachKit's one scheduled weekly review (PROCESS.md rule 3, C7). Reports the six ideas as measured outcomes, reads code, CI and production read-only through six lenses (bloat, production health, SEO, dependencies, flaky tests, instructions), classifies each finding under Coherence, files at most five unready issues (at most one of them a deletion) plus one instruction-files issue, and republishes the pinned "ReachKit this week" page. Use when the rk-weekly timer starts a run, or when asked for the weekly review or its dry run.
 ---
 
 # Weekly review
@@ -11,7 +11,7 @@ One run a week. It measures, it reads, it classifies, it files at most five issu
 
 - **Read-only.** Never edit, commit, push, merge or deploy. Never run a migration, `redeploy.sh`, `smoke.sh`, or a command that writes to production. The only file written is under `.review/weekly/` (ignored by git).
 - **0¢.** No paid vendor or model API call. Never run `npm run panel` (other than `--recheck`), `scripts/page.mjs`, `pass.mjs`, `free-scan.mjs`, `eval-content.mjs`, `d19-cost.mjs`, `market-inference.mjs`, or `npm run costs` without `--stored`. Do not use DataForSEO, Anthropic, Resend or Stripe. The run's own model use is the box's Claude subscription; `ANTHROPIC_API_KEY` is unset by the wrapper (README).
-- **At most five issues**, every one labelled `from-weekly` and none Ready. At most one of them is a deletion issue (§0). The product manager classifies them; this run never starts an engineer.
+- **At most five issues**, every one labelled `from-weekly` and none Ready. At most one of them is a deletion issue (§0). The one instruction-files issue (lens 6) is outside the five. The product manager classifies them; this run never starts an engineer.
 - **Not measured is never shown as 0.** A source that cannot be read is written as not read, with why.
 - **Every customer.** A finding is a general condition that holds for SaaS and local sites alike, never a tune for reachkit.app.
 
@@ -28,9 +28,9 @@ Read `date -u +%F` (DAY) and `date -u -d '7 days ago' +%F` (SINCE) once and writ
 
 Its last line names the worst measured rate and its SPEC section. Give that line to an `architect` subagent: it names the rule row in that section most tied to the outcome, and the lines its deletion would remove. That is the week's one deletion candidate, filed with `--label from-weekly --label simplify`; the architect owns deletion, and it is never Ready. It counts within the five. `Worst: none` files no deletion issue.
 
-## 1. Five lenses
+## 1. Six lenses
 
-Run the commands in the table yourself, one plain command each, then give each lens's output to a subagent of the expert agent named, in parallel; subagents read with Read, Grep, Glob and WebFetch only. Each returns at most three findings, each with: what, evidence (command and output line), the surface (`scan`, `content`, `app`, `public`, `jobs`, `mail`, `db` or none), and the smallest change that fixes it.
+For lenses 1 to 5, run the commands in the table yourself, one plain command each, then give each lens's output to a subagent of the expert agent named, in parallel; subagents read with Read, Grep, Glob and WebFetch only. Each returns at most three findings, each with: what, evidence (command and output line), the surface (`scan`, `content`, `app`, `public`, `jobs`, `mail`, `db` or none), and the smallest change that fixes it.
 
 | Lens | Agent | Reads |
 |---|---|---|
@@ -39,6 +39,22 @@ Run the commands in the table yourself, one plain command each, then give each l
 | SEO | `seo-master` | The live hosted pages (plain GETs) and the stored rows and decisions it already reads, in its own ranked-conditions format. No DataForSEO and no paid tool. |
 | Dependencies | `architect` | `npm outdated --json` and `npm audit --omit=dev --json`. One grouped upgrade finding on the first Monday of a month only; Next.js is excluded (its upgrade is its own issue). |
 | Flaky tests | `architect` | CI history: `gh api 'repos/tim-clifford6991/reachkit/actions/runs?per_page=100' --jq '.workflow_runs[] \| select(.created_at >= "SINCE" and .run_attempt > 1 and .conclusion == "success") \| [.name, .head_sha, .html_url] \| @tsv'` (a job that failed and passed on the same SHA), and open issues whose title starts `Flaky` or `[flaky]`. A root-cause note on the oldest. |
+
+### Lens 6: instructions
+
+An `architect` subagent with Read, Grep and Glob only; it never edits an instruction file. It reads:
+
+- **repo:** `CLAUDE.md`, `docs/PROCESS.md`, `.claude/agents/*.md`, and each `.claude/skills/*/SKILL.md` written for this repo (not a vendor skill);
+- **home:** `/root/.claude/CLAUDE.md`, `/root/.claude/agents/*.md`;
+- **ops:** `/root/ops/box/*.md`, `/root/ops/reachkit/box-loop/**/*.md`;
+- **memory:** each `MEMORY.md` index and file under `/root/.claude/projects/*/memory/`;
+- **other projects:** each `/root/projects/*/CLAUDE.md` and `.claude/agents/*.md` outside reachkit, against the home and ops rules only.
+
+It looks for: a rule stated in two places with different words or numbers; an instruction that contradicts PROCESS or an owner ruling newer than it; a tool, script, path, label, wave or ruling named that no longer exists (checked with Glob and Grep); an instruction to run on the box what CI runs; a test demand beyond PROCESS rule 6; a step that makes an agent stop, ask or end its turn where a ruling answers; an agent `description` that would mis-route work; a dated note in the coordinator's loop file (PROCESS rule 3) that is done, or that file at 100 lines or more. It counts the lines of each group from Read and takes last week's counts from the newest earlier report in `.review/weekly/`.
+
+Every week, even when clean, the report gets a section **Instructions**: a table of lines per group (repo, home, ops, memory, other projects) with last week's count (or not read), then each finding as exact old text → new text. Repo findings come first; home, ops, memory and other-project findings go under **Box**.
+
+Live, with repo findings: ONE issue, `gh issue create --label from-weekly --label simplify --title "Instruction files: week DAY" --body-file <file>`, holding the repo findings only. None when there are no repo findings. Box findings are never filed in this public repository, and no text from a file outside the repo is quoted in an issue.
 
 ## 2. Classify under Coherence first
 
@@ -77,10 +93,10 @@ Live: `gh label create from-weekly --color BFD4F2 --description "Filed by the we
 
 ## 3. Republish "ReachKit this week"
 
-`node scripts/this-week.mjs`, and write its output with the Write tool to `.review/weekly/this-week-DAY.md`.
+`node scripts/this-week.mjs`, and write its output with the Write tool to `.review/weekly/this-week-DAY.md`, adding one last line: `box instruction edits: N, see the box report` (N is the count under Box).
 
 Run it after filing, so Found holds this week's issues. Live: the page is the pinned issue titled `ReachKit this week`. Find it with `gh issue list --state open --search '"ReachKit this week" in:title' --json number`; if there is none, `gh issue create --title "ReachKit this week" --body-file …` and `gh issue pin <n>`. Otherwise `gh issue edit <n> --body-file .review/weekly/this-week-DAY.md`. It is the only issue the run edits.
 
 ## 4. Report
 
-Write `.review/weekly/DAY.md`: the mode, the six outcomes and the deletion candidate (or none), each lens's findings with evidence (or "not read: why"), the classification of each, what was filed or commented (live) or would be (dry run), and what was left out over the cap. Print its path and stop.
+Write `.review/weekly/DAY.md`: the mode, the six outcomes and the deletion candidate (or none), each lens's findings with evidence (or "not read: why"), the Instructions section and its Box part, the classification of each, what was filed or commented (live) or would be (dry run), and what was left out over the cap. Print its path and stop.
