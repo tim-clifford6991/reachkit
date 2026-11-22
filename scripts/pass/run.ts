@@ -73,7 +73,7 @@ import type { MarketSerp } from "@/lib/market/views";
 import { withStoredPassSpend } from "@/lib/scan/ceilings";
 import { afterDeepReport } from "@/lib/scan/deep/run";
 import { judgeSearchesForPass } from "@/lib/scan/market-conclusion";
-import { parseHealth } from "@/lib/scan/health";
+import { HEALTH_CHECKS, parseHealth } from "@/lib/scan/health";
 import { readStoredReport } from "@/lib/scan/report";
 import { insertRows, psql, rebuild, waitForSchema } from "../local-run.mjs";
 import { appendSpend } from "../spend-log.mjs";
@@ -573,7 +573,7 @@ export async function main(o: Options): Promise<number> {
     [reads.length <= 6, `ranked_keywords reads ≤ 6: ${reads.length}`],
     [cost <= 45, `pass cost ≤ 45¢: ${cents(cost)}`],
     [weeklyEstimate !== null && weeklyEstimate < 40, `weekly-tier estimate under 40¢: ${weeklyEstimate === null ? "no stored weekly pass to estimate from" : cents(weeklyEstimate)}`],
-    [health !== null && health.checks.length === 5 && health.checks.every((check) => check.pass), `all 5 health checks pass: ${health?.checks.filter((check) => check.pass).length ?? 0} of ${health?.checks.length ?? 0}`],
+    [health !== null && health.checks.length === HEALTH_CHECKS.length && health.checks.every((check) => check.pass), `all ${HEALTH_CHECKS.length} health checks pass: ${health?.checks.filter((check) => check.pass).length ?? 0} of ${HEALTH_CHECKS.length}`],
     [!before.has(topics.find((row) => row.target_query === "otterly alternatives")?.id ?? "") || open("otterly alternatives"), `"otterly alternatives" is kept: ${topics.find((row) => row.target_query === "otterly alternatives")?.status ?? "not held"}`],
     [brandOnly.length === 0, `no topic is only a rival's brand name${brandOnly.length === 0 ? "" : `: ${brandOnly.map((row) => row.target_query).join(", ")}`}`],
     [comparisons.length > 0 && withVolume.length > 0, `comparison topics carry volumes: ${withVolume.length} of ${comparisons.length} open (${comparisons.map((row) => `${row.target_query} ${row.volume ?? "none"}`).join(", ")})`],
