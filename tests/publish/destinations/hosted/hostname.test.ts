@@ -20,6 +20,9 @@ const vendor = vi.hoisted(() => ({
   answer: { ok: true, attached: true, verified: false } as Answer,
   asked: [] as string[],
 }));
+// The one record public DNS answers for the host: where it points.
+const cname = vi.hoisted(() => ({ target: "" }));
+vi.mock("node:dns", () => ({ default: { promises: { resolveCname: async () => [cname.target] } } }));
 vi.mock("@/lib/vendors/vercel/domains", () => ({
   addProjectDomain: async (hostname: string) => {
     vendor.asked.push(hostname);
@@ -57,7 +60,7 @@ function seedDestination(over: Record<string, unknown> = {}): void {
       health: "expired",
       hostname: "blog.example.com",
       hostname_state: "pending_dns",
-      deleted_at: null,
+      deleted_at: null, created_at: AGES_AGO,
       ...over,
     },
   ]);
@@ -131,6 +134,16 @@ describe("§5 — the hostname is attached, and the customer reads one of two wo
     answers({ ok: false, because: "not_configured" });
     await expect(sync()).resolves.toBe("pending_dns");
     expect(db.rows("destinations")[0]?.hostname_state).toBe("pending_dns");
+  });
+
+  it("a host claimed after the cutover is live only once its record names this site, never on a departed customer's record", async () => {
+    const { env } = await import("@/lib/config/env");
+    seedDestination({ created_at: "2027-01-01T00:00:00.000Z" });
+    answers({ ok: true, attached: true, verified: true });
+    cname.target = env.HOSTED_EDGE_CNAME_TARGET;
+    await expect(sync()).resolves.toBe("pending_dns");
+    cname.target = `site1.${env.HOSTED_EDGE_CNAME_TARGET}`;
+    await expect(sync(new Date(NOW.getTime() + 2 * 3_600_000))).resolves.toBe("live");
   });
 
   it("a host another project holds is an answer, and it is not live", async () => {

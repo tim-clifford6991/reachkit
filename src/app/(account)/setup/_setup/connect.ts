@@ -40,8 +40,8 @@ export const readConnect = cache(async function readConnect(): Promise<ConnectMo
   // and Settings is where a connected blog is read about.
   if (host === null || host.state === "live") return null;
 
-  const { recordForHost } = await import("@/lib/publish/setup/cards");
-  const record = recordForHost({ hostname: host.hostname, cnameTarget: env.HOSTED_EDGE_CNAME_TARGET });
+  const { edgeForSite, recordForHost } = await import("@/lib/publish/setup/cards");
+  const record = recordForHost({ hostname: host.hostname, siteEdge: edgeForSite({ edge: env.HOSTED_EDGE_CNAME_TARGET, siteId, since: host.since }) });
   return record === null ? null : { hostname: host.hostname, record };
 });
 

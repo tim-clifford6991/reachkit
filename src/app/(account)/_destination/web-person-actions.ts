@@ -24,11 +24,11 @@ export async function sendToWebPerson(a: { host: string; to: string }): Promise<
   const { siteAddressFor } = await import("../setup/_setup/store");
   const { hostFor } = await import("@/lib/publish/destinations/hosted/label");
   const { recordForHost } = await import("@/lib/publish/setup/cards");
-  const { env } = await import("@/lib/config/env");
+  const { siteEdgeOf } = await import("@/lib/publish/destinations/hosted/hostname");
   const site = await siteAddressFor(session.userId);
   const domain = site?.domain.trim().toLowerCase() ?? "";
   const host = a.host.trim().toLowerCase();
-  const record = recordForHost({ hostname: host, cnameTarget: env.HOSTED_EDGE_CNAME_TARGET });
+  const record = site === null ? null : recordForHost({ hostname: host, siteEdge: await siteEdgeOf(site.siteId) });
   if (site === null || domain === "" || record === null || hostFor({ label: host.split(".")[0] ?? "", domain }) !== host) {
     return { outcome: "refused", because: "no_host" };
   }

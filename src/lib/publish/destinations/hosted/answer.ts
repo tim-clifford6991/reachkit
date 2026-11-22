@@ -26,7 +26,7 @@ export function toAddressRow(row: AddressJoin): AddressRow {
   };
 }
 
-/** What the edge answers a host from, by the same match as `hostedSiteForHostname`. */
+/** What the edge answers a host from, by the same match as `hostedSiteForHostname`: only a live host serves. */
 export interface HostedAnswerRow extends HostedSite {
   /** The owner's deletion and the retention end, as `servingStateOf` reads them; `null` where the owner is gone. */
   serving: { owner_deleted_at: string | null; hosted_serving_ends_at: string | null } | null;
@@ -35,8 +35,8 @@ export interface HostedAnswerRow extends HostedSite {
 }
 
 /** The destination, its site, the owner's deletion and the hosted publications, in one embedded select, because the
- *  edge asks all of them before its cache on every request. `null` where no live destination holds the host; a failed
- *  read throws. */
+ *  edge asks all of them before its cache on every request. `null` where no live destination holds the host, so a host
+ *  still waiting for DNS has not proved it is this site's and serves nothing; a failed read throws. */
 export async function hostedAnswerRow(host: string): Promise<HostedAnswerRow | null> {
   const name = host.trim().toLowerCase();
   if (name === "") return null;
@@ -51,6 +51,7 @@ export async function hostedAnswerRow(host: string): Promise<HostedAnswerRow | n
     .select(`site_id, sites!inner(domain, hosted_serving_ends_at, users(deleted_at), publications(destination, ${ADDRESS_COLUMNS}))`)
     .eq("hostname", name)
     .eq("kind", "hosted")
+    .eq("hostname_state", "live")
     .is("deleted_at", null)
     .limit(1);
   if (error !== null || data === null) throw new Error("hosted answer read failed");

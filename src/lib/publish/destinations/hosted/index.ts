@@ -19,8 +19,7 @@ import { invalidateHosted } from "./cache";
 import { addressesOwnPage } from "./own-page";
 import { livePagesForSite, siteForDraft } from "./store";
 
-export { hostedDnsRecord, hostedHostFor, liveUrlFor } from "./address";
-export type { DnsPending, DnsRecord } from "./address";
+export { hostedHostFor, liveUrlFor } from "./address";
 export { invalidateHosted, taggedForHosted, tags } from "./cache";
 export type { HostedOwnPages } from "./own-page";
 export type { LabelCheck, LabelRefusal } from "./label";

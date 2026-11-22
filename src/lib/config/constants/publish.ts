@@ -227,6 +227,10 @@ export const PUBLISH_VERIFY_DELAY_H = 24 as const;            // BUILD §11
  *  deployment; this label does not. */
 export const HOSTED_SUBDOMAIN_LABEL = "content" as const;     // BUILD §4.3
 
+/** A hosted host connected before this instant keeps the shared edge as its record value, so no live customer changes
+ *  DNS; one connected from it on names its own site's edge. Set at or after the deploy that ships it. */
+export const HOSTED_SITE_EDGE_FROM = "2026-11-24T00:00:00.000Z" as const;
+
 /** Whether a site without a WordPress destination is offered one. Off at launch: DNS is the only connect path until
  *  WordPress is proven on a real site (owner, 2026-11-06). A site that already has one keeps it either way. */
 export const WORDPRESS_CONNECT: boolean = false;

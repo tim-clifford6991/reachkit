@@ -155,7 +155,8 @@ const LIST_COLUMNS = (body: boolean): string =>
   "opportunities!inner(id, target_query, business_fit, cluster_key, scans(created_at)))";
 
 /** The site served on this host, or `null`. The label is the customer's (SPEC §5), so the host is stored and matched
- *  whole: exact match, no fallback, and the partial unique index gives one answer. */
+ *  whole: exact match, no fallback, and the partial unique index gives one answer. Only a live host serves: a site
+ *  waiting for DNS has not yet proved the host is its own. */
 export async function hostedSiteForHostname(host: string): Promise<HostedSite | null> {
   const name = host.trim().toLowerCase();
   if (name === "") return null;
@@ -164,6 +165,7 @@ export async function hostedSiteForHostname(host: string): Promise<HostedSite | 
     .select("site_id, hostname, sites!inner(domain)")
     .eq("hostname", name)
     .eq("kind", "hosted")
+    .eq("hostname_state", "live")
     .is("deleted_at", null)
     .limit(1);
   if (error !== null || data === null) throw new Error("hosted site read failed");

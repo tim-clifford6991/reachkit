@@ -285,10 +285,7 @@ export interface SettingsFacts {
    *  an unreadable one are different facts, and only the first is one the
    *  customer can act on. */
   destinationsReadable: boolean;
-  /** §9's edge hostname, from `HOSTED_EDGE_CNAME_TARGET` — the value of the
-   *  record a hosted destination is waiting on. Setup's own binding, read
-   *  by the store here too, so the record Settings shows is the one setup
-   *  showed (#754). */
+  /** The value of the record a hosted destination is waiting on: this site's own (`siteEdgeOf`), the one setup showed. */
   cnameTarget: string;
   /** `users` (§10), plus the notify preferences the toggles read. A kind
    *  absent from the record reads as on. `name` is `null` where the account
@@ -374,7 +371,7 @@ function savedChange(facts: SettingsFacts): MarketChange | null {
 /** The one CNAME a hosted address is reached by, live or still waiting: `recordForHost`'s, never composed twice. */
 function dnsFor(view: DestinationView, cnameTarget: string): DnsRecord | null {
   if (view.kind !== "hosted" || view.hostname === null) return null;
-  return recordForHost({ hostname: view.hostname, cnameTarget });
+  return recordForHost({ hostname: view.hostname, siteEdge: cnameTarget });
 }
 
 /** The pair a declared BCP-47 tag names on the list: `de-at`, or a country

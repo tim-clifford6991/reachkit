@@ -51,7 +51,7 @@ export interface SetupFacts {
   /** SPEC §5's read-only questions for the measured market, or `null`
    *  where no report phrased any. */
   questions: SetupQuestions | null;
-  /** §9's edge hostname, from `HOSTED_EDGE_CNAME_TARGET`. Read by the
+  /** The record's value, this site's own (`siteEdgeOf`). Read by the
    *  provider, never by the cards. */
   cnameTarget: string;
   /** SPEC.md §5 (2026-09-12), "The site profile is confirmed here": what

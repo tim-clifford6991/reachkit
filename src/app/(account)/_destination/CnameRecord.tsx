@@ -115,7 +115,7 @@ export function CnameRecord(p: {
                 >
                   {text}
                 </span>
-                <CopyValue text={text} className="btn btn-ghost btn-square size-11 shrink-0 lg:size-8" />
+                <CopyValue text={text} field={copy(row.label)} className="btn btn-ghost btn-square size-11 shrink-0 lg:size-8" />
               </span>
             </li>
           );
@@ -208,19 +208,20 @@ export function SendSteps(p: { host: string }): React.JSX.Element {
   );
 }
 
-/** One value's copy button: the lucide glyph turns to a tick once the
- *  clipboard has it. A browser that refuses the clipboard leaves the value
- *  on screen to select by hand. With a `name` it shows its word beside the
- *  glyph and says which value it copies. */
-export function CopyValue(p: { text: string; name?: string; className?: string }): React.JSX.Element {
+/** One value's copy button, 44px: the lucide glyph turns to a tick once the
+ *  clipboard has it, and a screen reader hears which `field` was copied. A
+ *  browser that refuses the clipboard leaves the value on screen to select by
+ *  hand. With a `name` it shows its word beside the glyph. */
+export function CopyValue(p: { text: string; field: string; name?: string; className?: string }): React.JSX.Element {
   const [copied, setCopied] = useState(false);
   const label = copy(copied ? "setup.destination.guide.copied" : "setup.destination.guide.copy");
   const named = p.name !== undefined;
+  const heard = copy("setup.connect.copied.sr", { field: p.field });
   return (
     <button
       type="button"
-      className={p.className ?? (named ? "btn btn-ghost btn-sm" : "btn btn-ghost btn-xs btn-square")}
-      aria-label={copied ? label : (p.name ?? label)}
+      className={p.className ?? (named ? "btn btn-ghost btn-sm h-11" : "btn btn-ghost btn-square h-11 w-11")}
+      aria-label={copied ? heard : (p.name ?? label)}
       title={label}
       data-testid="dns-copy"
       onClick={() => {
@@ -232,6 +233,9 @@ export function CopyValue(p: { text: string; name?: string; className?: string }
     >
       {copied ? <Check aria-hidden size={16} strokeWidth={1.75} /> : <Copy aria-hidden size={16} strokeWidth={1.75} />}
       {named ? label : null}
+      <span role="status" className="sr-only">
+        {copied ? heard : ""}
+      </span>
     </button>
   );
 }

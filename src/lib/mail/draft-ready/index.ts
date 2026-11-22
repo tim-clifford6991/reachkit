@@ -75,11 +75,12 @@ function stopHref(token: string): string {
   return new URL(vetoLinkPath(token), env.NEXT_PUBLIC_APP_URL).toString();
 }
 
-/** The setting an unconnected hosted address needs, written as the Overview writes it. */
-function withRecord(telling: TellableTelling): { record?: DraftReadyRecord } {
+/** The setting an unconnected hosted address needs, written as the Overview writes it, with this site's own value. */
+async function withRecord(telling: TellableTelling, siteId: string): Promise<{ record?: DraftReadyRecord }> {
   if (telling.destination?.copy !== "mail.draftReady.dest.addressNotConnected") return {};
   const host = telling.destination.site;
-  const record = recordForHost({ hostname: host, cnameTarget: env.HOSTED_EDGE_CNAME_TARGET });
+  const { siteEdgeOf } = await import("@/lib/publish/destinations/hosted/hostname");
+  const record = recordForHost({ hostname: host, siteEdge: await siteEdgeOf(siteId) });
   if (record === null) return {};
   return { record: { type: record.type, name: nameInZone(record.name, host.slice(host.indexOf(".") + 1)), value: record.value } };
 }
@@ -140,7 +141,7 @@ export async function sendDraftReadyMail(a: {
     ...(telling.kind === "interval" && telling.stopAction.token !== ""
       ? { stopHref: stopHref(telling.stopAction.token) }
       : {}),
-    ...withRecord(telling as TellableTelling),
+    ...(await withRecord(telling as TellableTelling, draft.siteId)),
     ...(await withConnect(telling as TellableTelling, account)),
   });
 
