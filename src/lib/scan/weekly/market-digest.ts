@@ -4,7 +4,7 @@
 // Once: `scans.market_digest_at` is stamped on every weekly row read, only when the seam accepted the mail; a refusal stamps nothing and the
 // next tick retries. `running` and `failed` rows are not read; one that later finishes too small is sent alone.
 // The same mail carries, each left out where its read fails and never holding the digest back: each paying site's daily-promise line
-// (`./promise-week`) and its untold empty days; the week's cost (`./cost-week`); the passes a health check failed on;
+// (`./promise-week`), its visits and clicks (`./visits-week`) and its untold empty days; the week's cost (`./cost-week`); the passes a health check failed on;
 // and live hosted pages Google has not crawled `UNCRAWLED_AFTER_D` days after going live.
 import { tz } from "@date-fns/tz";
 import { addDays, format } from "date-fns";
@@ -16,6 +16,7 @@ import type { OpsIncident } from "@/lib/mail/templates/ops";
 import type { UnhealthyPass } from "../health-record";
 import type { CostWeek } from "./cost-week";
 import type { PromiseWeek } from "./promise-week";
+import type { VisitsWeek } from "./visits-week";
 
 // `scans.week_start` and `scans.market_digest_at` are not in the generated `Database` type; the same narrow cast as `./store`.
 interface QueryResult<T> {
@@ -62,6 +63,17 @@ async function promiseOf(weekStart: string): Promise<PromiseWeek | null> {
     return await readPromiseWeek(shiftDay(weekStart, -7), weekStart);
   } catch (error) {
     console.warn(JSON.stringify({ event: "market_digest_promise_unread", error: error instanceof Error ? error.name : "unknown" }));
+    return null;
+  }
+}
+
+/** Each paying hosted site's visits and clicks (`./visits-week`), or `null` where none is hosted or they could not be read. */
+async function visitsOf(weekStart: string): Promise<VisitsWeek | null> {
+  try {
+    const { readVisitsWeek } = await import("./visits-week");
+    return await readVisitsWeek(shiftDay(weekStart, -7));
+  } catch (error) {
+    console.warn(JSON.stringify({ event: "market_digest_visits_unread", error: error instanceof Error ? error.name : "unknown" }));
     return null;
   }
 }
@@ -209,17 +221,19 @@ export async function sendMarketDigest(weekStart: string, now: Date): Promise<bo
   }
 
   const promise = await promiseOf(weekStart);
+  const visits = await visitsOf(weekStart);
   const untold = await untoldBefore(weekStart);
   const costs = await costBefore(weekStart);
   const unhealthy = await unhealthyBefore(weekStart);
   const uncrawled = await uncrawledAt(now);
-  if (tooSmall.length > 0 || promise !== null || untold !== null || costs !== null || unhealthy !== null || uncrawled !== null) {
+  if (tooSmall.length > 0 || promise !== null || visits !== null || untold !== null || costs !== null || unhealthy !== null || uncrawled !== null) {
     const { reportIncident } = await import("@/lib/mail/ops");
     const accepted = await reportIncident({
       occasion: "market-too-small-week",
       weekStart,
       scanIds: tooSmall,
       ...(promise === null ? {} : { promise }),
+      ...(visits === null ? {} : { visits }),
       ...(untold === null ? {} : { untold }),
       ...(costs === null ? {} : { costs }),
       ...(unhealthy === null ? {} : { unhealthy }),
@@ -235,6 +249,6 @@ export async function sendMarketDigest(weekStart: string, now: Date): Promise<bo
     .in("id", ids)
     .is("market_digest_at", null);
   if (stamped.error) throw new Error(`sendMarketDigest: could not stamp the week: ${stamped.error.message}`);
-  console.log(JSON.stringify({ event: "market_digest", weekStart, read: ids.length, tooSmall: tooSmall.length, promiseSites: promise?.sites.length ?? 0, untold: untold?.length ?? 0, costs: costs !== null, drifting: costs?.drift?.sources.length ?? 0, unhealthy: unhealthy?.length ?? 0, uncrawled: uncrawled?.length ?? 0 }));
+  console.log(JSON.stringify({ event: "market_digest", weekStart, read: ids.length, tooSmall: tooSmall.length, promiseSites: promise?.sites.length ?? 0, visitsSites: visits?.sites.length ?? 0, untold: untold?.length ?? 0, costs: costs !== null, drifting: costs?.drift?.sources.length ?? 0, unhealthy: unhealthy?.length ?? 0, uncrawled: uncrawled?.length ?? 0 }));
   return true;
 }
