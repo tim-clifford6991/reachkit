@@ -244,13 +244,15 @@ function aiChange(passes: readonly TilePass[], domain: string): TileChange {
 }
 
 /** Against the healthy pass before, only on the searches both read; `moved` counts the searches this pass asked that the one before did not. */
-function rivalsChange(passes: readonly TilePass[]): TileChange {
+function rivalsChange(passes: readonly TilePass[]): TileChange | null {
   const latest = passes.at(-1)!;
   const now = latest.firstPage;
   if (!latest.healthy || now === null) return { kind: "unread" };
   const prior = passes.slice(0, -1).filter((pass) => pass.healthy && pass.firstPage !== null).at(-1)?.firstPage;
   const both = prior == null ? [] : [...now].filter(([search, on]) => on !== null && prior.get(search) != null);
-  if (prior == null || both.length === 0) return { kind: "first", at: new Date(latest.at) };
+  if (prior == null) return { kind: "first", at: new Date(latest.at) };
+  // No search in common: there is no change to state, and it is not a first count.
+  if (both.length === 0) return null;
   const change = diff(both.filter(([, on]) => on === true).length, both.filter(([search]) => prior.get(search) === true).length);
   const moved = [...now.keys()].filter((search) => !prior.has(search)).length;
   return moved === 0 ? change : { ...change, moved };
