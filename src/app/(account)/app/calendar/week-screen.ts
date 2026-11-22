@@ -85,9 +85,12 @@ export interface SourcesModel {
   summary: string | null;
   /** The swap to the list; `null` where no sentence carries a number. */
   toggle: string | null;
+  /** The list's heading; `null` where the pack could not be read and the note alone is said. */
+  heading: string | null;
   note: string | null;
   entries: SourceEntryModel[];
-  foot: string;
+  /** Said only where a number is drawn, and on a page not live only where its go-live is promised. */
+  foot: string | null;
 }
 
 export interface CardModel {
@@ -271,10 +274,9 @@ function entryOf(entry: CitationEntry, timeZone: string): SourceEntryModel {
   };
 }
 
-/** The summary, the list and the foot for a written or live page. */
-export function sourcesOf(read: PageCitations, live: boolean, timeZone: string): SourcesModel {
-  const foot = copy(live ? "calendar.sources.foot.live" : "calendar.sources.foot.written");
-  if (read.kind === "unread") return { summary: null, toggle: null, note: copy("calendar.sources.unread"), entries: [], foot };
+/** The summary, the list and the foot for a written or live page; `goesLive` is whether the pane promises its time. */
+export function sourcesOf(read: PageCitations, stage: { live: boolean; goesLive: boolean }, timeZone: string): SourcesModel {
+  if (read.kind === "unread") return { summary: null, toggle: null, heading: null, note: copy("calendar.sources.unread"), entries: [], foot: null };
   const { sentences, entries } = read.citations;
   const kindOf = new Map(entries.flatMap((e) => (e.n === null ? [] : [[e.n, e.kind] as const])));
   const site = sentences.filter((n) => n !== null && kindOf.get(n) === "site").length;
@@ -287,8 +289,9 @@ export function sourcesOf(read: PageCitations, live: boolean, timeZone: string):
     summary: copy(pages === 1 ? "calendar.sources.summary.one-page" : "calendar.sources.summary", vars),
     toggle: numbered === 0 && entries.length === 0 ? null : copy("calendar.sources.toggle", { n: formatCount(entries.length) }),
     note: old !== null ? copy("calendar.sources.old", { date: old }) : numbered === 0 ? copy("calendar.sources.none") : null,
+    heading: copy("calendar.sources.heading"),
     entries: entries.map((entry) => entryOf(entry, timeZone)),
-    foot,
+    foot: numbered === 0 ? null : stage.live ? copy("calendar.sources.foot.live") : stage.goesLive ? copy("calendar.sources.foot.written") : null,
   };
 }
 
@@ -391,8 +394,9 @@ function cardOf(
           otherwise: week.held === "unpaid" || week.held === "ended" ? { tag: week.held } : { tag: "scheduled", at: formatDateTime(page.publishAt, week.timeZone) },
         }).line;
   const read = page.draftId === null ? undefined : a.sources.get(page.draftId);
-  const sources = read === undefined ? null : sourcesOf(read, page.stage === "live", week.timeZone);
-  const count = sources?.entries.filter((entry) => entry.n !== null).length ?? 0;
+  const sources = read === undefined ? null : sourcesOf(read, { live: page.stage === "live", goesLive: waiting && time !== null }, week.timeZone);
+  // One count of a page's sources, the toggle's and the card's: its distinct entries.
+  const count = sources?.entries.length ?? 0;
   return {
     ...base,
     sources: count === 0 ? null : count === 1 ? copy("calendar.card.sources.one") : copy("calendar.card.sources", { n: formatCount(count) }),

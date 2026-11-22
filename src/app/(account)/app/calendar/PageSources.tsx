@@ -43,14 +43,26 @@ function Entry(p: { entry: SourceEntryModel; id: string; picked: boolean; onShow
 }
 
 /** The summary, the filter, the entries and the foot: the pane's list and the page screen's Sources tab alike. */
-export function PageSources(p: { sources: SourcesModel; draftId: string; picked: number | null; onShow?: (n: number) => void }): React.JSX.Element {
-  const [shown, setShown] = useState<Shown>("all");
+export function PageSources(p: {
+  sources: SourcesModel;
+  draftId: string;
+  picked: number | null;
+  onShow?: (n: number) => void;
+  /** The filter, where the caller resets it. */
+  shown?: Shown;
+  onShown?: (shown: Shown) => void;
+}): React.JSX.Element {
+  const [own, setOwn] = useState<Shown>("all");
+  const shown = p.shown ?? own;
+  const setShown = p.onShown ?? setOwn;
   const entries = p.sources.entries.filter((entry) => shown === "all" || entry.kind === shown);
   return (
-    <section className="flex min-w-0 flex-col gap-3" aria-labelledby={`sources-${p.draftId}`} data-testid="page-sources">
-      <h3 id={`sources-${p.draftId}`} className="font-semibold">
-        {copy("calendar.sources.heading")}
-      </h3>
+    <section className="flex min-w-0 flex-col gap-3" aria-labelledby={p.sources.heading === null ? undefined : `sources-${p.draftId}`} data-testid="page-sources">
+      {p.sources.heading === null ? null : (
+        <h3 id={`sources-${p.draftId}`} className="font-semibold">
+          {p.sources.heading}
+        </h3>
+      )}
       {p.sources.note === null ? null : <p className="text-sm">{p.sources.note}</p>}
       {p.sources.entries.length === 0 ? null : (
         <form className="filter" aria-label={copy("calendar.sources.filter.label")}>
@@ -67,12 +79,14 @@ export function PageSources(p: { sources: SourcesModel; draftId: string; picked:
           ))}
         </form>
       )}
-      <ol className="list min-w-0">
-        {entries.map((entry) => (
-          <Entry key={entry.url} entry={entry} id={`source-${p.draftId}-${entry.n ?? entry.url}`} picked={entry.n !== null && entry.n === p.picked} {...(p.onShow === undefined ? {} : { onShow: p.onShow })} />
-        ))}
-      </ol>
-      <p className="text-xs text-base-content/70">{p.sources.foot}</p>
+      {entries.length === 0 ? null : (
+        <ol className="list min-w-0">
+          {entries.map((entry) => (
+            <Entry key={entry.url} entry={entry} id={`source-${p.draftId}-${entry.n ?? entry.url}`} picked={entry.n !== null && entry.n === p.picked} {...(p.onShow === undefined ? {} : { onShow: p.onShow })} />
+          ))}
+        </ol>
+      )}
+      {p.sources.foot === null ? null : <p className="text-xs text-base-content/70">{p.sources.foot}</p>}
     </section>
   );
 }
@@ -82,6 +96,7 @@ export function SourcedBody(p: { sources: SourcesModel; draftId: string; label: 
   const [list, setList] = useState(false);
   const [picked, setPicked] = useState<number | null>(null);
   const [sheet, setSheet] = useState<number | null>(null);
+  const [shown, setShown] = useState<Shown>("all");
   const article = useRef<HTMLDivElement>(null);
   const dialog = useRef<HTMLDialogElement>(null);
   const from = useRef<HTMLElement | null>(null);
@@ -110,6 +125,8 @@ export function SourcedBody(p: { sources: SourcesModel; draftId: string; label: 
     if (number === null || !Number.isInteger(n)) return;
     from.current = number;
     if (window.matchMedia(SWAPS).matches) {
+      // A filtered list may not hold the picked entry.
+      setShown("all");
       setPicked(n);
       setList(true);
       focus.current = `source-${p.draftId}-${n}`;
@@ -150,12 +167,13 @@ export function SourcedBody(p: { sources: SourcesModel; draftId: string; label: 
         </div>
         {/* From `sm` the list takes the article's place; below it, or with nothing to swap to, it follows the article. */}
         <div className={list || p.sources.toggle === null ? "" : "sm:hidden"}>
-          <PageSources sources={p.sources} draftId={p.draftId} picked={picked} onShow={show} />
+          <PageSources sources={p.sources} draftId={p.draftId} picked={picked} onShow={show} shown={shown} onShown={setShown} />
         </div>
       </div>
       <dialog
         ref={dialog}
         className="modal modal-bottom"
+        aria-label={entry?.name ?? undefined}
         onClose={() => {
           setSheet(null);
           from.current?.focus();
