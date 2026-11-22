@@ -12,7 +12,7 @@ import { formatCount, formatShortDay, formatTime } from "../../_shell/format";
 import { readShell } from "../../_shell/provider";
 import { readPlanned } from "../../_overview/google-pages";
 import { GoogleFilter } from "../../_overview/GoogleFilter";
-import { firstReading, GoogleTable } from "../../_overview/GoogleTab";
+import { GoogleTable } from "../../_overview/GoogleTab";
 import { loadShowAll, loadShowGoogle, OVERVIEW } from "../../_overview/frame";
 import { TabHead } from "../../_overview/TabHead";
 import { DetailTiles } from "../../_overview/Tiles";
@@ -31,17 +31,17 @@ export default async function SearchTabPage(p: { searchParams: Promise<Record<st
   const { all } = loadShowAll(params);
   const { show } = loadShowGoogle(params);
   const tile = tiles.tiles.find((t) => t.key === "google");
-  const { showing, notYet, readAt } = tiles.search;
-  const live = showing.length + notYet.length;
+  const { on, notYet, readAt } = tiles.search;
+  const live = on.length + notYet.length;
   // Before the first pass no page is counted either way.
   const counted = tile?.of.kind === "count";
   const n = (k: number): string => (counted ? formatCount(k) : copy("unmeasured.dash"));
   const labels = {
     all: copy("overview.google.filter.all", { n: formatCount(live) }),
-    showing: copy("overview.google.filter.showing", { k: n(showing.length) }),
+    showing: copy("overview.google.filter.on", { k: n(on.length) }),
     "not-yet": copy("overview.google.filter.not-yet", { m: n(notYet.length) }),
   };
-  const rows = show === "showing" ? showing : show === "not-yet" ? notYet : [...showing, ...notYet];
+  const rows = show === "showing" ? on : show === "not-yet" ? notYet : [...on, ...notYet];
   const next = shell.publishing.next;
   const read = readAt === null ? null : formatShortDay(new Date(readAt), shell.timeZone);
 
@@ -71,7 +71,7 @@ export default async function SearchTabPage(p: { searchParams: Promise<Record<st
           <GoogleTable
             rows={rows}
             all={all}
-            first={firstReading(shell.nextDueOn, shell.timeZone)}
+            next={formatShortDay(shell.nextDueOn, shell.timeZone)}
             planned={planned}
             empty={!counted ? copy("overview.google.empty.due", { date: formatShortDay(shell.nextDueOn, shell.timeZone) }) : copy(show === "not-yet" ? "overview.google.empty.not-yet" : "overview.google.empty.showing")}
             checked={read === null ? null : copy("overview.detail.checked", { date: read })}

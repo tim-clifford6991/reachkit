@@ -1,6 +1,7 @@
 // SPEC §4 *Overview's four tiles* — the reserved account's weekly passes, rebuilt from its own fixture
 // pages' readings, so its tiles go through the same builder as every account's.
 import type { PublishedPage } from "@/lib/measure/published";
+import { onGoogleSince } from "@/lib/measure/ladder";
 import { addressOf, type PlaceReport } from "@/lib/measure/page-reading";
 import type { AnswerQuestion } from "./answers-model";
 import { TILE_WEEKS, type TilePage, type TilePass } from "./tiles";
@@ -14,6 +15,7 @@ export const tilePageOf = (page: PublishedPage): TilePage => ({
   publishedAt: page.publishedAt.toISOString(),
   unpublishedAt: null,
   search: page.reading?.place?.query ?? null,
+  onGoogle: onGoogleSince(page.reading),
 });
 
 /** The reserved account's six Mondays, rebuilt from its own pages' readings: more placed and linked each week, one week unhealthy. */

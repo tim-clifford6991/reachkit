@@ -2,7 +2,8 @@
 // week, how it got there, its label and the best competitor there, read from stored rows.
 // Pure. A page no reading reached is not measured, never a place of 0.
 import { registrableDomain, isOwnDomain } from "@/lib/market/rivals/domains";
-import { addressOf, FIRST_PAGE_PLACES, searchRowsFor, type PlaceReport } from "@/lib/measure/page-reading";
+import { googleStateOf, type GoogleState } from "@/lib/measure/ladder";
+import { addressOf, googleRead, searchRowsFor, type PageReading, type PlaceReport } from "@/lib/measure/page-reading";
 import { verdict } from "@/lib/opportunities/verdicts/verdict";
 import type { Label } from "@/lib/opportunities/verdicts/types";
 import type { PublishedPage } from "@/lib/measure/published";
@@ -31,38 +32,47 @@ export interface GooglePageRow {
   search: string | null;
   line: PlaceLine;
   label: Label | null;
-  /** The place came from Google's estimate rather than a live result (D8). */
-  estimate: boolean;
   place: number | null;
-  /** The place the reading before this one held. */
-  before: number | null;
-  /** The one count this row is in. */
-  bucket: GoogleBucket;
+  reading: PageReading | null;
+  /** Added, shown, on Google and checked: the one rule every count here is taken from. */
+  state: GoogleState;
 }
 
-/** Each row is in exactly one: on the first page or further down on a stored Google result, placed only by
- *  Search Console, read with no place, or not read yet. Every count on the tile and the card is a count of these. */
-export const GOOGLE_BUCKETS = ["first", "further", "console", "unseen", "unread"] as const;
-export type GoogleBucket = (typeof GOOGLE_BUCKETS)[number];
+/** The line under the tile's of-line: how often Google showed the live pages, or why that is not read yet. */
+export type GoogleShown =
+  | { kind: "shown"; n: number }
+  | { kind: "waiting"; visited: number; start: string | null }
+  | { kind: "no-console" };
 
 export interface GooglePages {
   rows: readonly GooglePageRow[];
-  /** The rows in each bucket. */
-  counts: Readonly<Record<GoogleBucket, number>>;
-  /** Every row: the tile's and the card's total. */
+  /** Every row: the tile's and the pills' total. */
   live: number;
-  /** First page and further down: the tile's and the card's figure. */
-  placed: number;
+  /** The rows on Google: the tile's figure. */
+  on: number;
+  /** The rows nothing has read yet. */
+  unchecked: number;
+  shown: GoogleShown;
 }
 
-/** Which count a page is in. A Search Console place is its own count: no stored report holds it, so the weeks
- *  before could not count it alike with a place read on a stored result. */
-export function bucketOf(page: Pick<PublishedPage, "reading">): GoogleBucket {
-  const place = page.reading?.place ?? null;
-  if (page.reading == null) return "unread";
-  if (place === null) return "unseen";
-  if (place.source === "gsc") return "console";
-  return place.value <= FIRST_PAGE_PLACES ? "first" : "further";
+/** The site's Search Console property: `null` where it has none (WordPress, or never verified). */
+export interface GoogleConsole {
+  sitemapAt: string | null;
+}
+
+/** The first Monday check on or after the property is old enough to be asked for impressions; `null` before the sitemap went in. */
+export function countsStartOf(gsc: GoogleConsole, newDays: number): string | null {
+  if (gsc.sitemapAt === null) return null;
+  const day = new Date(Date.parse(gsc.sitemapAt) + newDays * 86_400_000);
+  day.setUTCDate(day.getUTCDate() + ((8 - day.getUTCDay()) % 7));
+  return day.toISOString().slice(0, 10);
+}
+
+/** The pages the latest healthy pass read their own search's result page for. */
+export function serpReadOf(passes: readonly TilePass[], pages: readonly TilePage[]): ReadonlySet<string> {
+  const healthy = [...passes].filter((pass) => pass.healthy).sort((x, y) => x.weekStart.localeCompare(y.weekStart)).at(-1);
+  if (healthy === undefined) return new Set();
+  return new Set(pages.flatMap((page) => (page.search !== null && searchRowsFor(healthy.report, page.search, { tracked: false }).kind !== "unmeasured" ? [page.id] : [])));
 }
 
 const LABEL_ORDER: Readonly<Record<Label, number>> = { working: 0, climbing: 1, not_moving: 2, too_early: 3 };
@@ -79,7 +89,7 @@ function lineOf(page: PublishedPage, now: Date): PlaceLine {
   return weeks >= 2 ? { kind: "flat", place: place.value, search: place.query, weeks } : { kind: "now", place: place.value, search: place.query };
 }
 
-export function googlePagesOf(all: readonly PublishedPage[], now: Date): GooglePages {
+export function googlePagesOf(all: readonly PublishedPage[], now: Date, serpRead: ReadonlySet<string>, gsc: GoogleConsole | null, start: string | null): GooglePages {
   const pages = all.filter((page) => page.publishedAt <= now);
   const rows = pages.map((page): GooglePageRow => {
     const reading = page.reading ?? null;
@@ -91,16 +101,22 @@ export function googlePagesOf(all: readonly PublishedPage[], now: Date): GoogleP
       search: reading?.place?.query ?? null,
       line: lineOf(page, now),
       label: reading === null ? null : verdict(reading, now),
-      estimate: reading?.place?.source === "labs",
       place: reading?.place?.value ?? null,
-      before: reading?.prev ?? null,
-      bucket: bucketOf(page),
+      reading,
+      state: googleStateOf(reading, serpRead.has(page.id)),
     };
   });
   const rank = (row: GooglePageRow): number => (row.label === null ? 4 : LABEL_ORDER[row.label]);
   rows.sort((a, b) => rank(a) - rank(b) || (a.place ?? Infinity) - (b.place ?? Infinity) || a.title.localeCompare(b.title));
-  const counts = Object.fromEntries(GOOGLE_BUCKETS.map((bucket) => [bucket, rows.filter((row) => row.bucket === bucket).length])) as Record<GoogleBucket, number>;
-  return { rows, counts, live: rows.length, placed: counts.first + counts.further };
+  const read = pages.flatMap((page) => googleRead(page.reading?.google) ?? []);
+  const visited = pages.filter((page) => page.reading?.googlebot === true || page.reading?.google?.lastCrawl != null).length;
+  const shown: GoogleShown =
+    read.length > 0
+      ? { kind: "shown", n: read.reduce((sum, google) => sum + google.impressions, 0) }
+      : gsc === null
+        ? { kind: "no-console" }
+        : { kind: "waiting", visited, start };
+  return { rows, live: rows.length, on: rows.filter((row) => row.state.on).length, unchecked: rows.filter((row) => !row.state.checked).length, shown };
 }
 
 /** One row of On Google's detail: the page, its own search, that search's demand and who leads it. */
@@ -116,7 +132,7 @@ export interface GoogleSearchRow {
 
 export interface GoogleSearch {
   /** The pages the tile counts, top place first. */
-  showing: readonly GoogleSearchRow[];
+  on: readonly GoogleSearchRow[];
   /** The rest of the tile's live pages, newest live first. */
   notYet: readonly GoogleSearchRow[];
   /** The healthy pass the competitors were read on. */
@@ -150,9 +166,9 @@ export function googleSearchOf(google: GooglePages, pages: readonly TilePage[], 
       publishedAt: stored?.publishedAt ?? "",
     };
   });
-  const placed = (row: GoogleSearchRow): boolean => row.page.bucket === "first" || row.page.bucket === "further";
+  const placed = (row: GoogleSearchRow): boolean => row.page.state.on;
   return {
-    showing: rows.filter(placed).sort((a, b) => (a.page.place ?? Infinity) - (b.page.place ?? Infinity)),
+    on: rows.filter(placed).sort((a, b) => (a.page.place ?? Infinity) - (b.page.place ?? Infinity)),
     notYet: rows.filter((row) => !placed(row)).sort((a, b) => b.publishedAt.localeCompare(a.publishedAt)),
     readAt: healthy?.at ?? null,
   };

@@ -141,6 +141,9 @@ export const SEARCH_READING_WINDOW_D = 28 as const;
 /** Days after going live a hosted page Google has still not crawled is announced again, once, and listed in the owner digest. */
 export const UNCRAWLED_AFTER_D = 7 as const;
 
+/** Google starts a new property's data "in a few days" and Search Analytics lags 2–3 days more, so a property younger than this is asked for URL Inspection only. */
+export const PROPERTY_NEW_D = 4 as const;
+
 /** SPEC §7: how long a cached hosted article may take to its first byte,
  *  read by `scripts/smoke.sh` from where it runs. A text page's largest paint
  *  is mostly this and its fonts. */

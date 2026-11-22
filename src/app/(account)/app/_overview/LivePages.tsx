@@ -11,7 +11,7 @@ import { formatCount, formatDate, formatShortDay } from "../_shell/format";
 import type { AiMark } from "./ai-mark";
 import { Mark } from "./AiTab";
 import { rowClass } from "./frame";
-import { placeWords } from "./place-words";
+import { googleWords } from "./place-words";
 import { ShowAll } from "./ShowAll";
 import type { TilesView } from "./tiles-build";
 import { AI_WINDOW_WEEKS } from "./tiles";
@@ -21,11 +21,11 @@ const INK = "text-base-content/70";
 interface LiveRow {
   page: PublishedPage;
   href: string | null;
-  google: { text: string; sub: string | null; dash: boolean };
+  google: string;
   mark: AiMark;
 }
 
-/** The tile's own rows; a page no question was asked for in the window is "Not checked", never "none". */
+/** The tile's own rows; a page no question was asked for in the window is "Not checked", never "none". Its Google line is the On Google list's. */
 export function liveRowsOf(view: TilesView, due: Date, timeZone: string): LiveRow[] {
   const google = new Map(view.google.rows.map((row) => [row.id, row]));
   const unread = view.tiles.find((tile) => tile.key === "google")?.change?.kind === "unread";
@@ -37,15 +37,15 @@ export function liveRowsOf(view: TilesView, due: Date, timeZone: string): LiveRo
   }
   return view.pages.pages.map((page): LiveRow => {
     const reading = page.reading ?? null;
-    const line = google.get(page.id)?.line;
+    const row = google.get(page.id);
     const found = reading?.reached.found;
     const words = unread
-      ? { text: copy("overview.tile.change.unread", { what: copy("overview.tile.short.google") }), sub: null, dash: false }
-      : reading === null
-        ? { text: copy("unmeasured.dash"), sub: copy("overview.pages.first-reading", { date: formatShortDay(due, timeZone) }), dash: true }
-        : reading.place === null && page.wordpress !== true && found !== undefined
-          ? { text: copy("overview.pages.crawled", { date: formatShortDay(new Date(found), timeZone) }), sub: null, dash: false }
-          : { text: placeWords(reading, line?.kind === "flat" ? line.weeks : 2), sub: null, dash: false };
+      ? copy("overview.tile.change.unread", { what: copy("overview.tile.short.google") })
+      : row === undefined
+        ? copy("overview.google.line.unchecked", { date: formatShortDay(due, timeZone) })
+        : row.state.checked && !row.state.on && page.wordpress !== true && found !== undefined
+          ? copy("overview.pages.crawled", { date: formatShortDay(new Date(found), timeZone) })
+          : googleWords(reading, row.state, row.line.kind === "flat" ? row.line.weeks : 2, formatShortDay(due, timeZone));
     return {
       page,
       href: page.draftId === undefined ? null : `/app/draft/${page.draftId}`,
@@ -59,15 +59,6 @@ export function liveRowsOf(view: TilesView, due: Date, timeZone: string): LiveRo
 export function checkedOf(view: TilesView): Date | null {
   const at = view.pages.pages.flatMap((page) => (page.reading == null ? [] : [Date.parse(page.reading.at)]));
   return at.length === 0 ? null : new Date(Math.max(...at));
-}
-
-function Google(p: { google: LiveRow["google"] }): React.JSX.Element {
-  return (
-    <span className="flex min-w-0 flex-col">
-      <span aria-hidden={p.google.dash || undefined}>{p.google.text}</span>
-      {p.google.sub === null ? null : <span className={`text-sm ${INK}`}>{p.google.sub}</span>}
-    </span>
-  );
 }
 
 function Title(p: { page: PublishedPage }): React.JSX.Element {
@@ -124,9 +115,7 @@ export function LivePages(p: { rows: readonly LiveRow[]; all: boolean; timeZone:
                   </span>
                 </td>
                 <td className="font-mono whitespace-nowrap">{formatDate(row.page.publishedAt, timeZone)}</td>
-                <td>
-                  <Google google={row.google} />
-                </td>
+                <td>{row.google}</td>
                 <td>
                   <Mark mark={row.mark} />
                 </td>
@@ -152,7 +141,7 @@ export function LivePages(p: { rows: readonly LiveRow[]; all: boolean; timeZone:
           <PhoneRow key={row.page.id} href={row.href} className={rowClass(i, all)} testId="live-page-card">
             <Title page={row.page} />
             <span className="text-sm">
-              {copy("overview.pages.live", { date: formatDate(row.page.publishedAt, timeZone), place: (row.google.dash ? row.google.sub : null) ?? row.google.text })}
+              {copy("overview.pages.live", { date: formatDate(row.page.publishedAt, timeZone), place: row.google })}
             </span>
             <Mark mark={row.mark} />
           </PhoneRow>

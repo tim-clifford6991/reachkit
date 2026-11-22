@@ -1,10 +1,11 @@
 // SPEC §4 *Overview's four tiles* — each tile's figure, its change on the week
 // before and its 6-week series, from stored rows. Pure; a week no healthy pass
 // read is a gap, never 0.
-import { addressOf, linkedByIn, ownPlaceIn, searchRowsFor, type PlaceReport } from "@/lib/measure/page-reading";
+import { addressOf, linkedByIn, type PlaceReport } from "@/lib/measure/page-reading";
 import { standingAt } from "@/lib/measure/published";
 import { classifyReferences, namesOrLinks, namesSite as textNamesSite } from "@/lib/measure/drivers";
 import type { PromptsSection } from "@/lib/scan/report";
+import type { GoogleShown } from "./google-pages";
 
 export const TILE_KEYS = ["pages", "google", "ai", "rivals"] as const;
 export type TileKey = (typeof TILE_KEYS)[number];
@@ -37,6 +38,8 @@ export interface TilePage {
   search: string | null;
   /** That search's searches a month; `null` where never measured. */
   volume?: number | null;
+  /** The first reading it was on Google (`onGoogleSince`); `null` where none was. */
+  onGoogle?: string | null;
 }
 
 /** This week's counts, taken by the functions that build the lists the tiles open. */
@@ -45,8 +48,8 @@ export interface TileLists {
   live: number;
   /** The first one's go-live, for a first count. */
   firstLive: Date | null;
-  /** `googlePagesOf`: the live pages, and those placed on Google this week. */
-  google: { live: number; placed: number };
+  /** `googlePagesOf`: the live pages, those on Google, those not checked yet, and the line beneath. */
+  google: { live: number; on: number; unchecked: number; shown: GoogleShown };
 }
 
 export type TileChange =
@@ -63,8 +66,10 @@ export interface Tile {
   key: TileKey;
   /** `null` is not counted yet, drawn as a dash. */
   n: number | null;
-  /** The "of" line: a count, not counted yet, or no live page yet. */
-  of: { kind: "count"; m: number } | { kind: "due" } | { kind: "none" };
+  /** The "of" line: a count (with the pages not checked yet, on Google), not counted yet, or no live page yet. */
+  of: { kind: "count"; m: number; u?: number } | { kind: "due" } | { kind: "none" };
+  /** On Google's line beneath the of-line. */
+  shown?: GoogleShown;
   change: TileChange | null;
   /** Oldest first; `null` is a week with no healthy pass. Absent on Competitors. */
   series: readonly (number | null)[] | null;
@@ -144,15 +149,12 @@ function seriesOf(passes: readonly TilePass[], week: string, value: (pass: TileP
 /** The rows standing at `at`, one per publication, as the live list counts them. */
 const standing = (pages: readonly TilePage[], at: number): TilePage[] => pages.filter((page) => standingAt(page, new Date(at)));
 
-/** The standing pages a pass put on Google for their own search: a place read on its stored result, as the On Google list counts one (`bucketOf`). */
-function placedIn(pass: TilePass, pages: readonly TilePage[]): number {
-  let n = 0;
-  for (const page of standing(pages, Date.parse(pass.at))) {
-    if (page.search === null || page.liveUrl === null) continue;
-    const rows = searchRowsFor(pass.report, page.search, { tracked: false });
-    if (rows.kind !== "unmeasured" && ownPlaceIn(rows.value, [page.liveUrl]) !== null) n += 1;
-  }
-  return n;
+/** The pages standing at a pass that were on Google by then; `null` before any page's first count, so those weeks are gaps. */
+function onGoogleIn(pass: TilePass, pages: readonly TilePage[]): number | null {
+  const at = Date.parse(pass.at);
+  const since = pages.flatMap((page) => (page.onGoogle == null ? [] : [Date.parse(page.onGoogle)]));
+  if (since.length === 0 || Math.min(...since) > at) return null;
+  return standing(pages, at).filter((page) => page.onGoogle != null && Date.parse(page.onGoogle) <= at).length;
 }
 
 /** A stored answer cell names the site: the mention the AI detail's marks count (`answers-store.ts`). */
@@ -261,19 +263,20 @@ export function tilesOf(a: {
   const none = (key: TileKey): Tile => ({ key, n: null, of: { kind: "none" }, change: null, series: null });
   const due = (key: TileKey): Tile => ({ key, n: null, of: { kind: "due" }, change: { kind: "due" }, series: null });
 
-  // On Google: the figure is the Google list's; the weeks before are rebuilt from their reports.
-  const { placed, live: googleLive } = a.lists.google;
-  const googleValue = (pass: TilePass): number => (pass === latest ? placed : placedIn(pass, a.pages));
+  // On Google: the figure is the Google list's; the weeks before are rebuilt from each page's first date on Google.
+  const g = a.lists.google;
+  const googleValue = (pass: TilePass): number | null => (pass === latest ? g.on : onGoogleIn(pass, a.pages));
   const google: Tile =
-    googleLive === 0
+    g.live === 0
       ? none("google")
-      : latest === undefined
+      : g.unchecked === g.live && !passes.some((pass) => pass.healthy)
         ? due("google")
         : {
             key: "google",
-            n: placed,
-            of: { kind: "count", m: googleLive },
-            change: weeklyChange(passes, placed, googleValue),
+            n: g.on,
+            of: { kind: "count", m: g.live, u: g.unchecked },
+            shown: g.shown,
+            change: latest === undefined ? null : weeklyChange(passes, g.on, googleValue),
             series: seriesOf(passes, a.week, googleValue),
           };
 

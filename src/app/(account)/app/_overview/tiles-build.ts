@@ -4,7 +4,8 @@
 import { contentOf, type ContentModel, type PublishedRead } from "@/lib/measure/published";
 import type { AnswerQuestion } from "./answers-model";
 import { aiPagesFor, type AiPages } from "./ai-pages";
-import { googlePagesOf, type GooglePages } from "./google-pages";
+import { PROPERTY_NEW_D } from "@/lib/config/constants";
+import { countsStartOf, googlePagesOf, serpReadOf, type GoogleConsole, type GooglePages } from "./google-pages";
 import { AI_WINDOW_WEEKS, aiAnswersOf, aiWindowOf, tilesOf, type AiAnswers, type RivalsFirstPage, type TilePage, type TilePass, type TilesModel } from "./tiles";
 
 /** The tiles, and the models of the lists they open: Pages Live's (This Week's *Live pages*), On Google's and the AI tile's. */
@@ -27,6 +28,8 @@ export function buildTiles(a: {
   pageQuestions: readonly AnswerQuestion[];
   /** The site's domain, which a stored answer's mention is read against. */
   domain: string;
+  /** The site's Search Console property; `null` where it has none. */
+  gsc: GoogleConsole | null;
   week: string;
   coming: number;
   goLive: boolean;
@@ -34,7 +37,9 @@ export function buildTiles(a: {
   const pages = contentOf(a.published);
   if (pages === null) return null;
   const now = a.published.now;
-  const google = googlePagesOf(pages.pages, now);
+  // A start that has passed is no longer known: the line then gives no date.
+  const start = a.gsc === null ? null : countsStartOf(a.gsc, PROPERTY_NEW_D);
+  const google = googlePagesOf(pages.pages, now, serpReadOf(a.passes, a.rows), a.gsc, start !== null && start >= now.toISOString().slice(0, 10) ? start : null);
   const latest = [...a.passes].sort((x, y) => x.weekStart.localeCompare(y.weekStart)).at(-1);
   const window = latest === undefined ? null : aiWindowOf(a.passes, a.rows, latest.weekStart, a.domain);
   const ai =
@@ -49,7 +54,7 @@ export function buildTiles(a: {
     lists: {
       live: pages.pages.length,
       firstLive,
-      google: { live: google.live, placed: google.placed },
+      google: { live: google.live, on: google.on, unchecked: google.unchecked, shown: google.shown },
     },
     now,
     week: a.week,
