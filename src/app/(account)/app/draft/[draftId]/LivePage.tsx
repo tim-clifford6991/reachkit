@@ -11,8 +11,8 @@ import type React from "react";
 import Link from "next/link";
 import { Check, ExternalLink, Pencil, RefreshCw, Sparkles, type LucideIcon } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
-import { FIRST_PAGE_PLACES, googleRead } from "@/lib/measure/page-reading";
-import { SEARCH_READING_WINDOW_D } from "@/lib/config/constants";
+import { FIRST_PAGE_PLACES } from "@/lib/measure/page-reading";
+import { READS_KEPT_D } from "@/lib/publish/reads/model";
 import type { Label } from "@/lib/opportunities/verdicts/types";
 import type { AnswerEngine } from "@/lib/opportunities/types";
 import { PlaceLine } from "@/ui/charts/PlaceLine";
@@ -129,9 +129,22 @@ function Ladder(p: { title: CopyKey; steps: readonly Step[]; measured: boolean; 
   );
 }
 
+/** Google search visits as counted on the hosted page: one of five fixed lines, and never a 0. */
+function visitsLine(live: LiveFacts, timeZone: string): string {
+  const { visits } = live;
+  const days = formatCount(READS_KEPT_D);
+  const date = formatDate(live.since, timeZone);
+  if (visits.kind === "wordpress") return copy("draft.live.visits.wordpress");
+  if (visits.kind === "unread") return copy("draft.live.visits.unread");
+  if (visits.kind === "none") return visits.young ? copy("draft.live.visits.none-new") : copy("draft.live.visits.none", { days });
+  const n = formatCount(visits.n);
+  if (visits.young) return visits.n === 1 ? copy("draft.live.visits.since.one", { date }) : copy("draft.live.visits.since", { n, date });
+  return visits.n === 1 ? copy("draft.live.visits.one", { days }) : copy("draft.live.visits", { n, days });
+}
+
 /** The week's figure: its place and how far it moved, or the furthest step
  *  reached while it is not in results yet. */
-function ThisWeek(p: { live: LiveFacts; timeZone: string }): React.JSX.Element {
+function ThisWeek(p: { live: LiveFacts; stopped: boolean; timeZone: string }): React.JSX.Element {
   const { live, timeZone } = p;
   const { reading } = live;
   const place = reading?.place ?? null;
@@ -149,7 +162,6 @@ function ThisWeek(p: { live: LiveFacts; timeZone: string }): React.JSX.Element {
           ? copy("draft.live.up.near", { places: placesWord(gain), date: since, gap: placesWord(place.value - FIRST_PAGE_PLACES) })
           : copy("draft.live.up", { places: placesWord(gain), date: since });
   const found = live.wordpress ? undefined : reading?.reached.found;
-  const google = live.wordpress ? null : googleRead(reading?.google);
   return (
     <div className="flex min-w-0 flex-wrap items-center justify-between gap-5" data-testid="live-week-figure">
       <div className="flex min-w-0 flex-1 basis-80 flex-col gap-1.5">
@@ -174,14 +186,13 @@ function ThisWeek(p: { live: LiveFacts; timeZone: string }): React.JSX.Element {
             {line === null ? null : <p className="min-w-0 font-semibold wrap-anywhere" data-testid="live-moved">{line}</p>}
           </>
         )}
-        {google === null ? null : (
+        {/* A stopped page is off the site, and its Stopped line already says so. */}
+        {p.stopped ? null : (
           <p className="text-sm text-base-content/70" data-testid="live-visits">
-            {copy("draft.live.visits", {
-              n: formatCount(google.clicks),
-              days: formatCount(SEARCH_READING_WINDOW_D),
-            })}
+            {visitsLine(live, timeZone)}
           </p>
         )}
+        {p.stopped || live.visits.kind !== "counted" ? null : <p className="text-xs text-base-content/70">{copy("draft.live.visits.how")}</p>}
       </div>
       {moved ? (
         <div className="flex w-full max-w-xs min-w-0 flex-col gap-1" data-testid="live-chart">
@@ -227,7 +238,7 @@ export function HowItsDoing(p: { live: LiveFacts; stopped: boolean; timeZone: st
   return (
     <section className="flex min-w-0 flex-col gap-5" aria-labelledby={WEEK_ID} data-testid="live-week">
       {live.label === null ? <span className="badge badge-ghost">{copy("review.label.unmeasured")}</span> : <LabelBadge label={live.label} />}
-      <ThisWeek live={live} timeZone={timeZone} />
+      <ThisWeek live={live} stopped={p.stopped} timeZone={timeZone} />
       <Ladder {...LADDER.google} steps={googleSteps(live, timeZone)} measured={live.reading !== null} />
       <div className="border-base-300 border-t pt-4">
         <Ladder {...LADDER.ai} steps={aiSteps(live, timeZone)} measured={live.reading !== null} />

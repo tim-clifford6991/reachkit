@@ -63,6 +63,7 @@ import type { State } from "../../calendar/stages";
 import { pageRecordFor } from "@/lib/publish/record";
 import { standingAtRead } from "./stage";
 import { readingOf } from "@/lib/measure/page-reading";
+import { readPageVisits } from "@/lib/publish/reads/store";
 import { verdict } from "@/lib/opportunities/verdicts/verdict";
 import { takeDownStanding } from "@/lib/publish/take-down/standing";
 import { askedAs, doneWhen } from "../../calendar/store";
@@ -573,26 +574,23 @@ export async function readDraftRow(a: {
     // page record: asking first would answer about a page the caller may
     // not see.
     target: await targetOf(row.opportunity_id),
-    // #928, and after the same ownership proof: what the site already has,
-    // and the closest of it to this page.
+    // After the same ownership proof: what the site already has, and the closest of it to this page.
     knownCheck: await knownCheckFor({
       siteId: a.site.siteId,
       query: await targetQueryOf(row.opportunity_id),
       body: bodyMd,
     }),
     timeZone: a.site.timeZone,
-    // Read after the row above proved this account owns the draft, like
-    // the page record and the target.
+    // Read after the row above proved this account owns the draft, like the page record and the target.
     ruleFacts: await ruleFactsOf(a.site.siteId, row.opportunity_id),
   };
 }
 
-/** The newest publication of this draft that went live, with the weekly
- *  pass's reading of it, or `null`. */
+/** The newest publication of this draft that went live, with its weekly reading and counted visits, or `null`. */
 async function liveOfDraft(client: MinimalClient, siteId: string, draftId: string, url: string, at: Date): Promise<LiveFacts | null> {
   const { data, error } = await client
-    .from<{ published_at: string | null; destination: string; search_reading: unknown }>("publications")
-    .select("published_at, destination, search_reading")
+    .from<{ id: string; published_at: string | null; destination: string; search_reading: unknown }>("publications")
+    .select("id, published_at, destination, search_reading")
     .eq("draft_id", draftId)
     .eq("site_id", siteId);
   if (error !== null || data === null) return null;
@@ -601,12 +599,14 @@ async function liveOfDraft(client: MinimalClient, siteId: string, draftId: strin
     .sort((x, y) => y.published_at!.localeCompare(x.published_at!))[0];
   if (row === undefined) return null;
   const reading = readingOf(row.search_reading);
+  const since = new Date(row.published_at!);
   return {
-    since: new Date(row.published_at!),
+    since,
     url,
     wordpress: row.destination === "wordpress",
     reading,
     label: reading === null ? null : verdict(reading, at),
+    visits: row.destination === "wordpress" ? { kind: "wordpress" } : await readPageVisits({ siteId, publicationId: row.id, since, now: at }),
     edit: await liveEditOf(siteId, draftId),
   };
 }

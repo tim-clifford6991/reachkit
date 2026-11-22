@@ -24,6 +24,7 @@ import type { RecordedFact } from "@/lib/generate/fact";
 import type { PackNeed } from "@/lib/generate/templates/types";
 import type { PageRecord } from "@/lib/publish/record";
 import type { PageReading } from "@/lib/measure/page-reading";
+import type { PageVisits } from "@/lib/publish/reads/model";
 import type { Label } from "@/lib/opportunities/verdicts/types";
 import type { TakeDownStanding } from "@/lib/publish/take-down/standing";
 import type { PageTarget } from "../../_shell/page-target";
@@ -372,6 +373,7 @@ export interface LiveFacts {
   wordpress: boolean;
   reading: PageReading | null;
   label: Label | null;
+  visits: PageVisits;
   /** What *Edit this page* does (R19): opens the editor on this version, or
    *  opens the version of this address already waiting; `null` draws no
    *  button (a version being written or going out, the reserved account). */
