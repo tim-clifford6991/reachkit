@@ -39,7 +39,7 @@ export const NO_KEYS = {
   STRIPE_PRICE_ID: "panel",
   RESEND_API_KEY: "panel",
   MAIL_FROM: "panel@example.com",
-  IP_HASH_SALT: "panel",
+  IP_HASH_SALT: "panel-panel-panel-panel-panel-panel",
   OWNER_EMAILS: "panel@example.com",
   NEXT_PUBLIC_APP_URL: "http://127.0.0.1",
   HOSTED_EDGE_CNAME_TARGET: "panel.example.com",

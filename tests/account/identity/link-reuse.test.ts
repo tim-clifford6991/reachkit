@@ -127,8 +127,8 @@ describe("sealed under its own label", () => {
   });
 
   it("a credential sealed before the move still opens under publish's label", () => {
-    // Sealed by the pre-move module under `salt-fixture`; byte compatibility is the whole contract.
-    const golden = "v1.BwcHBwcHBwcHBwcH.LJDzox7KzicaSlLEGaBiOQ.nLWVt9GHqaz0TF4mauOONlT5cFMh";
+    // Sealed by the pre-move module under the fixture salt; byte compatibility is the whole contract.
+    const golden = "v1.BwcHBwcHBwcHBwcH.MUF2eRfypAApL9HYP3HqIQ.QBP5PuI9Rr6cldQyx1UHrtHayxE5";
     expect(unseal(golden)).toEqual({ password: "golden" });
   });
 });

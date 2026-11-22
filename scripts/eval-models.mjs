@@ -46,7 +46,7 @@ const PLACEHOLDERS = {
   DATAFORSEO_LOGIN: "PENDING_eval",
   DATAFORSEO_PASSWORD: "PENDING_eval",
   ANTHROPIC_API_KEY: "PENDING_eval",
-  IP_HASH_SALT: "PENDING_eval",
+  IP_HASH_SALT: "PENDING_eval-PENDING_eval-PENDING_eval",
   KILL_SWITCH: "false",
   OWNER_EMAILS: "eval@example.com",
   NEXT_PUBLIC_APP_URL: "https://eval.invalid",

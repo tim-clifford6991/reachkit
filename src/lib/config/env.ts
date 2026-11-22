@@ -61,7 +61,8 @@ const schema = z.object({
   NANO_API_KEY: z.string().min(1).optional(),
   INNGEST_SIGNING_KEY: z.string().min(1).optional(),
   INNGEST_EVENT_KEY: z.string().min(1).optional(),
-  IP_HASH_SALT: z.string().min(1),
+  // Every sealing, token and hashing key is derived from it, so a short one is refused at boot.
+  IP_HASH_SALT: z.string().min(32, "IP_HASH_SALT must be at least 32 characters"),
   // Boolean-ish.
   KILL_SWITCH: z.stringbool(),
   // A comma-separated list.

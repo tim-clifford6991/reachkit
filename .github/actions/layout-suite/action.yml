@@ -41,7 +41,7 @@ runs:
           echo "DATAFORSEO_LOGIN=fixture"
           echo "DATAFORSEO_PASSWORD=fixture"
           echo "ANTHROPIC_API_KEY=sk-ant-fixture"
-          echo "IP_HASH_SALT=fixture"
+          echo "IP_HASH_SALT=fixture-fixture-fixture-fixture-fixture"
           echo "KILL_SWITCH=false"
           # The sweep's own account is an owner, so `/app/costs` (issue 1478) is
           # measured as the page, not as its 404.

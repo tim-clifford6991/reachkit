@@ -156,7 +156,7 @@ Sensitive rows are write-only. Agents never see a value.
 | The box, `/root/projects/reachkit/.env.local` | the keys box scripts read (`scripts/vendor-snapshot.mjs`, `npm run costs`); its `SUPABASE_*` are placeholders |
 
 `VERCEL_API_TOKEN` must be scoped to the team `timclifford`; a token of another scope is answered 403
-even with `VERCEL_TEAM_ID` set. `IP_HASH_SALT` is a fresh random value per environment.
+even with `VERCEL_TEAM_ID` set. `IP_HASH_SALT` is a fresh random value per environment, at least 32 characters, or the app does not start.
 
 ### Rotating a secret
 

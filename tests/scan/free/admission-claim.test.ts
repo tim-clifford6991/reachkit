@@ -60,7 +60,7 @@ import {
   SERVICE_ROLE_KEY,
   } from "../../db/substrate";
 
-const IP_HASH_SALT = "test-salt-fixture";
+const IP_HASH_SALT = "test-salt-fixture-test-salt-fixture";
 
 // ── Live-substrate connection facts (REQ-003 c7's concurrency suite only;
 // every other suite below never lets these values reach a socket) ────────
