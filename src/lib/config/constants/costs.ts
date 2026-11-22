@@ -122,10 +122,9 @@ const HAIKU_INFERENCE_PRICE = Object.freeze({ inCentsPerM: 100, outCentsPerM: 50
 export const INFERENCE_PRICE_BOOK = Object.freeze({
   nano: HAIKU_INFERENCE_PRICE,
   haiku: HAIKU_INFERENCE_PRICE,
-  /** `claude-sonnet-4-6`'s list price per million tokens, in cents. Its one
-   *  call is the pass's business-fit judgement (SPEC §6): about 5¢ a site,
-   *  once a pass. */
-  sonnet: Object.freeze({ inCentsPerM: 300, outCentsPerM: 1500 } as const),
+  /** `claude-sonnet-5`'s list price per million tokens, in cents: the pass's
+   *  market, rival and business-fit judgements (SPEC §6). */
+  sonnet: Object.freeze({ inCentsPerM: 200, outCentsPerM: 1000 } as const),
   /** `claude-sonnet-5`'s list price per million tokens, in cents: the tier a
    *  customer's page and its critic are written on (SPEC §7, *Length and the
    *  writer*). 2 US dollars in and 10 out per million tokens, the standard
@@ -259,16 +258,10 @@ export const INFERENCE_MAX_OUTPUT_TOKENS = Object.freeze({
 } as const);
 
 /** A call site's sampling temperature, where it has one pinned. Absent, the
- *  vendor's default (1.0) stands. The market a site is measured in must not
- *  change because one call drew a different sample: a market is replaced
- *  only on a conclusion seen twice, which a sampled answer would rarely give. */
+ *  vendor's default (1.0) stands. A `FIXED_REQUEST` tier's model refuses a
+ *  temperature, so the sonnet tier's sites carry none. */
 export const INFERENCE_TEMPERATURE: Readonly<Partial<Record<keyof typeof INFERENCE_MAX_OUTPUT_TOKENS, number>>> =
   Object.freeze({
-    "market-inference": 0,
-    "rival-inference": 0,
-    "market-terms": 0,
-    "market-searches": 0,
-    "topic-fit": 0,
     "topic-buyer-searches": 0,
     "topic-typed": 0,
     // The same page read twice says the same thing about the business.
@@ -276,8 +269,7 @@ export const INFERENCE_TEMPERATURE: Readonly<Partial<Record<keyof typeof INFEREN
   });
 
 /** A call site asked fewer times than the seam's two, where a retry buys
- *  nothing: a temperature-0 answer asked again is the same answer; what it
- *  missed is asked again next pass. */
+ *  nothing: what it missed is asked again next pass. */
 export const INFERENCE_ATTEMPTS: Readonly<Partial<Record<keyof typeof INFERENCE_MAX_OUTPUT_TOKENS, 1>>> = Object.freeze({
   "topic-fit": 1,
   "rival-inference": 1,

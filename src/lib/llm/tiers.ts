@@ -88,10 +88,9 @@ export type Tier = "nano" | "haiku" | "sonnet" | "writer";
 const TIER_MODEL_IDS: Readonly<Record<Tier, string>> = Object.freeze({
   nano: "claude-haiku-4-5",
   haiku: "claude-haiku-4-5",
-  // The business-fit judgement's tier (owner, issue 1134, 2026-10-02: "Run
-  // it on Sonnet"). 4.6 and not a later Sonnet because `llm()` pins a
-  // temperature here, and the later ones refuse it.
-  sonnet: "claude-sonnet-4-6",
+  // Market inference, rivals, terms, searches and business fit: the one
+  // judgement tier, sent the writer's fixed request (`FIXED_REQUEST`).
+  sonnet: "claude-sonnet-5",
   // The page's sections and its critic (SPEC §7, 2026-09-29, *Length and
   // the writer*; issue 1138). Sonnet 5 refuses a sampling parameter and
   // thinks unless told not to — `FIXED_REQUEST`.
@@ -103,7 +102,7 @@ const TIER_MODEL_IDS: Readonly<Record<Tier, string>> = Object.freeze({
  *  sends such a tier no temperature and turns thinking off: the call's
  *  `max_tokens` and its clock are sized for the answer, and thinking would
  *  spend both. */
-const FIXED_REQUEST: ReadonlySet<Tier> = new Set<Tier>(["writer"]);
+const FIXED_REQUEST: ReadonlySet<Tier> = new Set<Tier>(["sonnet", "writer"]);
 
 export interface TierBinding {
   tier: Tier;
