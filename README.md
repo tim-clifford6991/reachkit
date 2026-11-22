@@ -3,7 +3,7 @@
 For a founder who owns a small company website and knows nothing about SEO. They give us one domain;
 the product says the rest in its own approved words: "See what AI tells buyers about your market —
 and write your way in." and "A free scan shows where AI answers and Google search send buyers to
-your rivals instead of you. Then ReachKit writes one page a day to change that." One plan, "€49" "per month, VAT included".
+your rivals instead of you. Then ReachKit writes one page a day to change that." One plan, "€49" "per month".
 
 Production <https://reachkit.app> · dev <https://dev.reachkit.app> · repo `tim-clifford6991/reachkit`.
 
