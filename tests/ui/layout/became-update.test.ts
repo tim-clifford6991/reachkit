@@ -23,7 +23,7 @@ function read(selectors: { row: string; panel: string }) {
 }
 
 const CALENDAR = `/app/calendar?day=${BECAME_UPDATE_DAY}`;
-const CASES = [...NO_OVERFLOW_WIDTHS.flatMap((width) => NO_OVERFLOW_THEMES.map((theme) => [CALENDAR, width, theme] as const)), ...NO_OVERFLOW_THEMES.map((theme) => ["/app", 390, theme] as const)];
+const CASES = [...NO_OVERFLOW_WIDTHS.flatMap((width) => NO_OVERFLOW_THEMES.map((theme) => [CALENDAR, width, theme] as const)), ...NO_OVERFLOW_THEMES.map((theme) => ["/app", 1280, theme] as const)];
 
 it.each(CASES)("%s at %i in %s: the row says Now an update and the panel why, each fitting", async (path, width, theme) => {
   const calendar = path === CALENDAR;

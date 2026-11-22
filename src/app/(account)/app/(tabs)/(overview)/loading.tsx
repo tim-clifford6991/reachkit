@@ -21,8 +21,22 @@ export default function OverviewLoading(): React.JSX.Element {
           <Box key={i} className="h-40 w-full" />
         ))}
       </Waiting>
+      {/* One line below `lg`, the seven-day grid from `lg`, as `ThisWeek` draws them. */}
       <div className="min-w-0" data-frame={REGION.week}>
-        <CardSkeleton testId="week-skeleton" rows={7} />
+        <Waiting testId="week-skeleton" className="card card-border min-w-0 bg-base-100">
+          <div className="card-body gap-2 p-4 lg:hidden">
+            <Box className="h-5 w-40" />
+            <Box className="h-4 w-28" />
+          </div>
+          <div className="card-body hidden gap-3.5 p-6 lg:flex">
+            <Box className="h-7 w-56" />
+            <div className="grid grid-cols-7 gap-2.5">
+              {[0, 1, 2, 3, 4, 5, 6].map((i) => (
+                <Box key={i} className="h-32 w-full" />
+              ))}
+            </div>
+          </div>
+        </Waiting>
       </div>
     </div>
   );

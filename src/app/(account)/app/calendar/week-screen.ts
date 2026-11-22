@@ -287,7 +287,7 @@ function cardOf(
   }
 
   // A page still to go out promises its day only while that day is to come; a past day never says it goes live.
-  const waiting = (page.stage === "your_review" || page.stage === "scheduled") && cell.day >= week.today;
+  const waiting = waitsToGoLive(cell, week.today);
   const ready = waiting && cell.today;
   const needsYou = needsYouLine(page.needsYou);
   const lines =
@@ -328,6 +328,11 @@ function cardOf(
       unread: page.draftId !== null && a.bodies?.has(page.draftId) === true ? null : copy("calendar.pane.body.unread"),
     },
   };
+}
+
+/** A written page still to go out, whose day is to come: the one day a go-live time is promised, on This Week and Overview alike. */
+export function waitsToGoLive(cell: DayCell, today: DayKey): boolean {
+  return (cell.page?.stage === "your_review" || cell.page?.stage === "scheduled") && cell.day >= today;
 }
 
 /** The drafts whose body the pane draws: a page written or live, never one still planned or being written. */

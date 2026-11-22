@@ -1,18 +1,14 @@
-// SPEC §4 (board Main) — this week's pages, Monday to Sunday: one row per day
-// on a phone (the date, then the page and its status) and seven columns from
-// `lg`. The cells are Plan's week (`this-week.ts`) and its parts (`DayCard`),
-// so the two screens cannot draw two weeks.
+// SPEC §4 (board Main) — this week's pages: from `lg` a seven-column grid of the
+// days that exist, below `lg` one line-card to Plan. The cells are Plan's week
+// (`this-week.ts`) and its badge (`DayCard`), so the two screens say the same word.
 import type React from "react";
 import Link from "next/link";
-import { RefreshCw } from "lucide-react";
-import { copy } from "@/lib/presentation/copy";
+import { ChevronRight, Clock, RefreshCw } from "lucide-react";
 import { WEEK_PLAN } from "@/lib/config/constants";
-import { formatShortDay, formatTime, SHELL_LOCALE } from "../_shell/format";
-import { addDays, dayNumber, weekdayShort, type DayKey } from "../calendar/dates";
+import { copy } from "@/lib/presentation/copy";
+import { SHELL_LOCALE } from "../_shell/format";
+import { dayNumber, weekdayShort, type DayKey } from "../calendar/dates";
 import { DayStateBadge, KindChip, cardLineFor, stateLineOf } from "../calendar/DayCard";
-import { TakeDownControl, type ControlWords } from "../calendar/TakeDown";
-import { stopWords } from "../calendar/take-down-words";
-import { shortCauseFor } from "../calendar/card-lines";
 import { dayStateOf, type DayCell } from "../calendar/month";
 import type { StageFilter } from "../calendar/stages";
 import { CALENDAR_HREF } from "./week";
@@ -20,180 +16,106 @@ import { CALENDAR_HREF } from "./week";
 export interface WeekDay {
   /** Plan's own cell for the day. */
   cell: DayCell;
-  /** When a written page goes live, where that is today. */
-  goesLiveToday: Date | null;
-  /** The page's own screen; `null` before it is written. */
-  href: string | null;
-  /** The next page to go live: the one row with Edit and Stop, as on Plan. */
-  next: boolean;
-  /** The site's publish time on the next page's day, as Plan states it; `null` where none is promised. */
-  goesLiveAt: string | null;
-  /** A live page's draft, which its row can take down; `null` otherwise. */
-  liveDraft: string | null;
-  /** The next page, held back while the site has an invoice outstanding. */
-  heldBack: boolean;
+  /** A written page's go-live time, as This Week promises it; `null` where none is promised. */
+  time: string | null;
 }
 
 export interface WeekList {
-  /** The first day of the site's own week, which a first week drawn from setup does not start on. */
-  weekStart: DayKey;
-  /** The week's first and last day drawn. */
-  first: DayKey;
-  last: DayKey;
   /** Today, in the site's zone. */
   today: DayKey;
   /** Today holds no page because nothing was worth writing. */
   skippedToday: boolean;
-  /** The week's first skipped day, which alone says what a skip is. */
-  firstSkip: DayKey | null;
   /** How many days hold a page. */
   pages: number;
   /** Of those, the ones still to go live (`pagesToComeThisWeek`). */
   coming: number;
+  /** Of those, the ones live. */
+  live: number;
+  /** The day the week's pages were picked, and the last and next Monday check; `null` where unread. */
+  chosen: DayKey | null;
+  checked: DayKey | null;
+  nextCheck: DayKey | null;
   timeZone: string;
   days: readonly WeekDay[];
 }
 
-/** "Oct": the month a day falls in, short. */
-function monthShort(day: DayKey): string {
-  return new Intl.DateTimeFormat(SHELL_LOCALE, { timeZone: "UTC", month: "short" }).format(new Date(`${day}T00:00:00Z`));
-}
-
-/** "Mon 19": a day as the week's rows name it. */
-const dayName = (day: DayKey): string => `${weekdayShort(day)} ${dayNumber(day)}`;
+/** "26 Oct": a day as the week's foot names it. */
+const dayMonth = (day: DayKey): string =>
+  new Intl.DateTimeFormat(SHELL_LOCALE, { timeZone: "UTC", day: "numeric", month: "short" }).format(new Date(`${day}T12:00:00Z`));
 
 /** Overview draws the whole week: no stage filter narrows it. */
 const ALL: StageFilter = "all";
 
-const QUIET = "link link-hover inline-flex min-h-11 items-center text-sm no-underline";
-
-/** Under the page: when the next page goes live today (else Plan's state badge),
- *  then Edit and Stop on its own screen; a live page's quiet Stop; else the badge. */
-function DayControls(p: { day: WeekDay; timeZone: string; scheduled: boolean; words: ControlWords }): React.JSX.Element {
-  const { day } = p;
-  // The page's own moment, else, on the next page, the site's publish time on its day.
-  const time = !p.scheduled ? null : day.goesLiveToday !== null ? formatTime(day.goesLiveToday, p.timeZone) : day.goesLiveAt;
-  const when =
-    time === null
-      ? null
-      : day.cell.today
-        ? copy("overview.week.today-at", { time })
-        : day.goesLiveAt !== null
-          ? copy("overview.week.on-at", { day: dayName(day.cell.day), time })
-          : null;
-  return (
-    <span className="flex min-w-0 flex-col items-start" data-testid={when === null ? undefined : "overview-week-goes-live"}>
-      {when === null && day.heldBack ? (
-        <span className="badge badge-sm badge-soft badge-warning shrink-0 whitespace-nowrap font-semibold" data-testid="overview-week-held">
-          {copy("calendar.empty.short.customer-change-holds-pages")}
-        </span>
-      ) : when === null ? (
-        <DayStateBadge cell={day.cell} filter={ALL} />
-      ) : (
-        <span className="text-xs font-semibold">
-          {copy("overview.week.goes-live")}
-          <br />
-          {when}
-        </span>
-      )}
-      {!day.next || day.href === null ? null : (
-        <span className="flex gap-4" data-testid="overview-week-next-controls">
-          <Link className={`${QUIET} link-primary`} href={day.href} prefetch={true}>
-            {copy("how.week.edit")}
-          </Link>
-          <Link className={`${QUIET} link-warning`} href={day.href} prefetch={true}>
-            {copy("calendar.week.stop")}
-          </Link>
-        </span>
-      )}
-      {day.liveDraft === null ? null : <TakeDownControl draftId={day.liveDraft} mode="stop" words={p.words} quiet />}
-    </span>
-  );
-}
-
-function Day(p: { day: WeekDay; firstSkip: boolean; timeZone: string; scheduled: boolean; words: ControlWords }): React.JSX.Element {
-  const { cell } = p.day;
+function Day(p: { day: WeekDay }): React.JSX.Element {
+  const { cell, time } = p.day;
   const page = cell.page;
-  const line = cardLineFor(cell, ALL);
-  const state = stateLineOf(cell, p.firstSkip);
+  const state = dayStateOf(cell);
+  const stateLine = stateLineOf(cell, false);
+  // Plan's rule: a stopped or skipped day's own sentence says it, so its two words would repeat it.
+  const line = page !== null ? page.title : stateLine !== null && (state === "stopped" || state === "skipped") ? null : cardLineFor(cell, ALL);
   return (
     <li
-      className={[
-        "card card-border grid min-w-0 grid-cols-[3.75rem_minmax(0,1fr)] items-start gap-3 bg-base-100 p-4 lg:flex lg:flex-col lg:gap-2 lg:p-3",
-        dayStateOf(cell) === "skipped" ? "border-dashed" : "",
-        cell.today ? "border-primary bg-primary/5" : "",
-      ].join(" ")}
+      className={`card min-w-0 items-start gap-1.5 p-3 ${cell.today ? "bg-primary/10 ring-1 ring-primary" : "bg-base-200"}`}
       data-testid={`calendar-cell-${cell.day}`}
       data-today={cell.today ? "" : undefined}
-      data-empty={page === null ? "" : undefined}
     >
-      <span className="num pt-0.5 text-xs whitespace-nowrap text-base-content/70" data-testid="cell-date">
-        {dayName(cell.day)}
-      </span>
-      <span className="flex min-w-0 flex-col items-start gap-1.5 lg:flex-1 lg:self-stretch">
-        {page === null ? (
-          line === null ? null : (
-            <span
-              className="rk-cal-empty min-w-0 text-sm wrap-anywhere text-base-content/70 lg:line-clamp-2 lg:text-xs"
-              data-testid={shortCauseFor(cell) !== null ? "cell-empty-line" : "calendar-horizon-marker"}
-            >
-              {line}
-            </span>
-          )
+      <span className="num text-xs whitespace-nowrap text-base-content/70">{`${weekdayShort(cell.day)} ${dayNumber(cell.day)}`}</span>
+      {page === null ? null : <KindChip update={page.update} />}
+      {line === null ? null : (
+        <span className={`min-w-0 line-clamp-2 wrap-anywhere ${page === null ? "rk-cal-empty text-xs text-base-content/70" : "rk-cal-label text-sm font-semibold leading-snug"}`} title={line}>
+          {line}
+        </span>
+      )}
+      {stateLine === null ? null : (
+        <span className="min-w-0 text-xs wrap-anywhere text-base-content/70" data-testid="cell-state-line">
+          {stateLine}
+        </span>
+      )}
+      <span className="mt-auto flex min-w-0">
+        {time !== null && state === "written" ? (
+          <span className="badge badge-sm badge-soft badge-primary shrink-0 gap-1 whitespace-nowrap font-semibold" data-testid="day-state" data-state={state}>
+            <Clock aria-hidden className="size-3" />
+            {time}
+          </span>
         ) : (
-          <>
-            <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-              <KindChip update={page.update} />
-              {page.titleLabel === undefined ? null : <span className="min-w-0 text-xs text-base-content/70" data-testid="cell-title-label">{page.titleLabel}</span>}
-            </span>
-            <span className="rk-cal-label min-w-0 text-sm font-semibold leading-snug wrap-anywhere lg:line-clamp-3" data-testid="cell-label">
-              {page.title}
-            </span>
-          </>
-        )}
-        {state === null ? null : (
-          <span className="min-w-0 text-xs wrap-anywhere text-base-content/70" data-testid="cell-state-line">
-            {state}
-          </span>
-        )}
-        {/* A day with no state and nothing going live draws no empty box. */}
-        {dayStateOf(cell) === null && !p.day.next && p.day.liveDraft === null ? null : (
-          <span className="flex min-w-0 lg:mt-auto">
-            <DayControls day={p.day} timeZone={p.timeZone} scheduled={p.scheduled} words={p.words} />
-          </span>
+          <DayStateBadge cell={cell} filter={ALL} />
         )}
       </span>
     </li>
   );
 }
 
-export function ThisWeek(p: { week: WeekList; scheduled: boolean }): React.JSX.Element | null {
+export function ThisWeek(p: { week: WeekList }): React.JSX.Element | null {
   const { week } = p;
   if (week.pages === 0) return null;
   const title = copy("overview.week.pages", { n: String(week.pages) });
-  const next = addDays(week.weekStart, 7);
-  const words = stopWords();
   return (
-    <section className="card card-border min-w-0 bg-base-100" aria-labelledby="overview-week-title" data-testid="overview-week">
-      <div className="card-body min-w-0 gap-3.5 p-4 sm:p-6">
-        <div className="flex min-w-0 flex-wrap items-center justify-between gap-x-4 gap-y-2">
-          <span className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1">
-            <h2 id="overview-week-title" className="text-xl font-bold tracking-tight">{title}</h2>
-            <span className="num text-xs text-base-content/70">{`${dayName(week.first)} – ${formatShortDay(new Date(`${week.last}T12:00:00Z`), "UTC")}`}</span>
-          </span>
+    <section className="card card-border min-w-0 bg-base-100" aria-label={title} data-testid="overview-week">
+      <Link className="card-body min-h-11 min-w-0 flex-row items-center gap-3 p-4 lg:hidden" href={CALENDAR_HREF} prefetch={true}>
+        <span className="flex min-w-0 flex-1 flex-col">
+          <h2 className="text-base font-bold">{title}</h2>
+          <span className="num text-sm text-base-content/70">{copy("overview.week.summary", { live: String(week.live), left: String(week.coming) })}</span>
+        </span>
+        <ChevronRight aria-hidden className="size-5 shrink-0 text-base-content/70" />
+      </Link>
+      <div className="card-body hidden min-w-0 gap-3.5 p-6 lg:flex">
+        <div className="flex min-w-0 items-center justify-between gap-4">
+          <h2 className="text-xl font-bold tracking-tight">{title}</h2>
           <Link className="link link-primary link-hover inline-flex min-h-11 items-center text-sm font-semibold" href={CALENDAR_HREF} prefetch={true}>
             {copy("overview.week.calendar-link")}
           </Link>
         </div>
-        <ol className="flex min-w-0 flex-col gap-2.5 lg:grid lg:grid-cols-7" aria-label={title}>
+        <ol className="grid min-w-0 auto-cols-fr grid-flow-col gap-2.5" aria-label={title}>
           {week.days.map((day) => (
-            <Day key={day.cell.day} day={day} firstSkip={day.cell.day === week.firstSkip} timeZone={week.timeZone} scheduled={p.scheduled} words={words} />
+            <Day key={day.cell.day} day={day} />
           ))}
         </ol>
-        <p className="flex min-w-0 items-center gap-2 text-sm text-base-content/70" data-testid="overview-week-next">
-          <RefreshCw size={16} strokeWidth={1.75} aria-hidden className="shrink-0" />
-          {copy("overview.week.next", { date: `${dayNumber(next)} ${monthShort(next)}`, n: String(WEEK_PLAN.days) })}
-        </p>
+        {week.nextCheck === null ? null : (
+          <p className="flex min-w-0 items-center gap-2 text-sm text-base-content/70" data-testid="overview-week-next">
+            <RefreshCw size={16} strokeWidth={1.75} aria-hidden className="shrink-0" />
+            {copy("overview.week.next", { date: dayMonth(week.nextCheck), n: String(WEEK_PLAN.days) })}
+          </p>
+        )}
       </div>
     </section>
   );

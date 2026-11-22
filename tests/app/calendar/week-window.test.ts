@@ -37,7 +37,7 @@ describe.each(["Pacific/Kiritimati", "America/Los_Angeles", "UTC"])("This Week i
         for (const card of screen.cards.filter((each) => each.day < today)) {
           if (card.pane.kind !== "lines") expect(card.pane.next, card.day).toBeNull();
         }
-        for (const entry of list.days.filter((each) => each.cell.day < today)) expect([entry.next, entry.goesLiveAt], entry.cell.day).toEqual([false, null]);
+        for (const entry of list.days.filter((each) => each.cell.day < today)) expect(entry.time, entry.cell.day).toBeNull();
       }
     });
   });

@@ -12,6 +12,8 @@ export interface TilesView extends TilesModel {
   pages: ContentModel;
   google: GooglePages;
   ai: AiPages | null;
+  /** The first live page's go-live, as the Pages tile counts it. */
+  firstLive: Date | null;
 }
 
 export function buildTiles(a: {
@@ -37,13 +39,14 @@ export function buildTiles(a: {
     window === null
       ? null
       : aiPagesFor(pages.pages, a.pageQuestions, now, { weeks: AI_WINDOW_WEEKS, asked: [...window.asked], linked: [...window.linked], mentioned: [...window.mentioned] });
+  const firstLive = pages.pages.at(-1)?.publishedAt ?? null;
   const model = tilesOf({
     passes: a.passes,
     pages: a.rows,
     rivals: a.rivals,
     lists: {
       live: pages.pages.length,
-      firstLive: pages.pages.at(-1)?.publishedAt ?? null,
+      firstLive,
       google: { live: google.live, placed: google.placed },
       ai: ai === null ? null : { asked: ai.asked, linked: ai.linked },
     },
@@ -52,5 +55,5 @@ export function buildTiles(a: {
     coming: a.coming,
     goLive: a.goLive,
   });
-  return { ...model, pages, google, ai };
+  return { ...model, pages, google, ai, firstLive };
 }
