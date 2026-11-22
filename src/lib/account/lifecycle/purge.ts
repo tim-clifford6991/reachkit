@@ -28,7 +28,7 @@
 // The schedule is not here. `src/jobs/account-maintenance.ts` ticks, and
 // this module takes an explicit `now`, so no test needs a scheduler and no
 // cadence is stated twice.
-import { AUTH_USERS_TABLE, lifecycleStore } from "./store";
+import { AUTH_USERS_TABLE, HOSTED_HOSTS_TABLE, lifecycleStore } from "./store";
 
 /** Children first. Each row is one table, the column that reaches it, and
  *  which set of ids fills that column — so the order is a value a reader can
@@ -42,7 +42,7 @@ import { AUTH_USERS_TABLE, lifecycleStore } from "./store";
 const PURGE_ORDER: readonly {
   readonly table: string;
   readonly column: string;
-  readonly from: "scanIds" | "siteIds" | "userIds";
+  readonly from: "scanIds" | "siteIds" | "userIds" | "hostedHosts";
 }[] = Object.freeze([
   // The danger-zone ticket and its record of the action that ended the
   // account.
@@ -101,6 +101,8 @@ const PURGE_ORDER: readonly {
   { table: "job_days", column: "site_id", from: "siteIds" },
   // The site's own pages, indexed so a new page does not repeat one.
   { table: "known_content", column: "site_id", from: "siteIds" },
+  // The hosted addresses, released at the host while the rows that name them still stand, so a failed release is retried.
+  { table: HOSTED_HOSTS_TABLE, column: "hostname", from: "hostedHosts" },
   // Destination credentials.
   { table: "destinations", column: "site_id", from: "siteIds" },
   { table: "sites", column: "user_id", from: "userIds" },
@@ -144,6 +146,7 @@ export async function purgeAccount(userId: string): Promise<{ purged: true }> {
     scanIds: scope.scope.scanIds,
     siteIds: scope.scope.siteIds,
     userIds: [userId],
+    hostedHosts: scope.scope.hostedHosts,
   };
 
   for (const step of PURGE_ORDER) {

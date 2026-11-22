@@ -30,6 +30,7 @@ export interface MemoryLifecycle {
   writes: string[];
   unreadable: boolean;
   refuseDelete: string | null;
+  hostedHosts: string[];
 }
 
 export function newMemoryLifecycle(): MemoryLifecycle {
@@ -45,6 +46,7 @@ export function newMemoryLifecycle(): MemoryLifecycle {
     churned: [],
     unreadable: false,
     refuseDelete: null,
+    hostedHosts: [],
   };
 }
 
@@ -163,6 +165,7 @@ export function memoryLifecycleStore(state: MemoryLifecycle): LifecycleStore {
         scope: {
           siteIds,
           scanIds: siteIds.length === 0 ? [] : ["scan-1"],
+          hostedHosts: siteIds.length === 0 ? [] : state.hostedHosts,
         },
       };
     },

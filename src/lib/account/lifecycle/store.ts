@@ -21,11 +21,15 @@
 // key in this schema carries a cascade that could do it by accident, and
 // `tests/account/lifecycle/schema.test.ts` holds that true.
 import { dbAdmin } from "@/lib/db";
+import { removeProjectDomain } from "@/lib/vendors/vercel/domains";
 import { identityAuth } from "../identity/auth";
 
 /** The purge's last step: the account's Supabase Auth user (#468). Named
  *  as a table so `PURGE_ORDER` stays one list a reader can check. */
 export const AUTH_USERS_TABLE = "auth.users";
+
+/** The account's hosted addresses on the hosting project, named as a table for the same reason. */
+export const HOSTED_HOSTS_TABLE = "vercel.project_domains";
 
 export interface LifecycleSiteRow {
   readonly id: string;
@@ -67,6 +71,8 @@ export type Ok = { ok: true } | { ok: false };
 export interface PurgeScope {
   readonly siteIds: readonly string[];
   readonly scanIds: readonly string[];
+  /** Hostnames the account's hosted destinations hold that no other account's live one does. */
+  readonly hostedHosts: readonly string[];
 }
 
 export interface LifecycleStore {
@@ -327,6 +333,13 @@ export function supabaseLifecycleStore(): LifecycleStore {
         }
         return { ok: true };
       }
+      if (a.table === HOSTED_HOSTS_TABLE) {
+        for (const hostname of a.values) {
+          const gone = await removeProjectDomain(hostname);
+          if (!gone.ok) return { ok: false, message: "a hosted address could not be released" };
+        }
+        return { ok: true };
+      }
       for (let i = 0; i < a.values.length; i += IDS_PER_DELETE) {
         const { error } = await untyped()
           .from<{ id: string }>(a.table)
@@ -370,9 +383,33 @@ export function supabaseLifecycleStore(): LifecycleStore {
         scanIds.push(...page.data.map((row) => row.id));
         if (page.data.length < PAGE) break;
       }
-      return { ok: true, scope: { siteIds, scanIds } };
+      const hostedHosts = await hostedHostsOf(siteIds);
+      if (hostedHosts === null) return { ok: false };
+      return { ok: true, scope: { siteIds, scanIds, hostedHosts } };
     },
   };
+}
+
+/** A hostname another account's live destination now holds is theirs to serve, so it is never released. */
+async function hostedHostsOf(siteIds: readonly string[]): Promise<readonly string[] | null> {
+  if (siteIds.length === 0) return [];
+  const own = await untyped()
+    .from<{ hostname: string }>("destinations")
+    .select("hostname")
+    .in("site_id", siteIds)
+    .eq("kind", "hosted")
+    .not("hostname", "is", null);
+  if (own.error !== null || own.data === null) return null;
+  const hosts = [...new Set(own.data.map((row) => row.hostname))];
+  if (hosts.length === 0) return [];
+  const live = await untyped()
+    .from<{ hostname: string; site_id: string }>("destinations")
+    .select("hostname, site_id")
+    .in("hostname", hosts)
+    .is("deleted_at", null);
+  if (live.error !== null || live.data === null) return null;
+  const elsewhere = new Set(live.data.filter((row) => !siteIds.includes(row.site_id)).map((row) => row.hostname));
+  return hosts.filter((host) => !elsewhere.has(host));
 }
 
 let store: LifecycleStore | null = null;
