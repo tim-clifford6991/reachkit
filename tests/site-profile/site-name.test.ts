@@ -7,7 +7,7 @@
 // no name, because a guessed one would put a word in the customer's mouth.
 import { describe, expect, it } from "vitest";
 import { namesSite } from "../../src/lib/measure/drivers";
-import { promptSiteName } from "../../src/lib/market/prompts/generate";
+import { promptSiteName } from "../../src/lib/market/prompts/names";
 import { brandName, imageAlts, publishedNames, storedSiteName } from "../../src/lib/site-profile/site-name";
 
 const nameOf = (html: string, domain: string) => brandName(publishedNames(html), domain);

@@ -9,7 +9,7 @@ import { offline } from "@/lib/egress/offline";
 import type { Measured } from "@/lib/measure/measured";
 import type { Drivers, ScoreFactorName } from "@/lib/measure/score";
 import type { RivalConclusion } from "@/lib/market/infer/types";
-import { promptSiteName } from "@/lib/market/prompts/generate";
+import { promptSiteName } from "@/lib/market/prompts/names";
 import { rewrittenSiteName, storedSiteName } from "@/lib/site-profile/site-name";
 import { AI_ANSWER_SOURCES, AI_OVERVIEW_TEXT_MAX_CHARS } from "@/lib/vendors/dataforseo/types";
 import { OWN_FETCH_SOURCE } from "@/lib/measure/own-fetch";

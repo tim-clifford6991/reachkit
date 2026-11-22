@@ -1,11 +1,12 @@
 // src/lib/scan/pass/prompts.ts — asking the AI engines the market's prompts, the tracked prompts and the page questions.
 import { PAGE_QUESTION_RETIRE_WEEKS, TRACKED_PROMPTS } from "@/lib/config/constants";
 import { EVIDENCE_BOUNDS } from "@/lib/market/infer/evidence";
-import { searchedName, spokenMarket } from "@/lib/market/infer/terms";
+import { spokenMarket } from "@/lib/market/infer/terms";
 import { buyerPrompts } from "@/lib/market/questions/buyer-prompts";
 import { readPromptAnswer } from "@/lib/market/prompts/answer";
-import { generatePrompts, promptSiteName } from "@/lib/market/prompts/generate";
-import { nextPromptSet, settlePrechecks, type TrackedPrompt } from "@/lib/market/prompts/set";
+import { panelOf } from "@/lib/market/prompts/generate";
+import { promptSiteName } from "@/lib/market/prompts/names";
+import { nextPromptSet, type TrackedPrompt } from "@/lib/market/prompts/set";
 import { slotDepth, trackedQuestions } from "@/lib/market/questions/tracked";
 import { askedIn } from "@/lib/locale/place";
 import { classifyReferences } from "@/lib/measure";
@@ -54,10 +55,10 @@ export async function askTheMarketPrompts(a: StageArgs): Promise<void> {
   );
 }
 
-/** The site's tracked buyer prompts, asked by the weekly pass and a founder's re-measure beside the twelve, inside the same clock, `WEEKLY` cap and deadline.
- *  The set is `sites.tracked_prompts`: built from the market in force once, then rotated only as `nextPromptSet` allows. Each prompt is asked of both engines,
- *  `TRACKED_PROMPTS.RUNS` (or `BRANDED_RUNS`) times at once, each run with its own cache key so it is a second answer, not the first again.
- *  Each answer's reading is stored, never the prose; an unanswered ask leaves the denominator. Unbranded non-comparison answers join the rival evidence. Never throws. */
+/** The site's AI panel, asked by the weekly pass and a founder's re-measure beside the twelve, inside the same clock, `WEEKLY` cap and deadline.
+ *  The set is `sites.tracked_prompts`: drawn from the twelve and their runners-up once, then rotated only as `nextPromptSet` allows. Each item is asked
+ *  of AI Mode as searched and of ChatGPT as its closest "People also ask" question on the current report, `TRACKED_PROMPTS.RUNS` times, each run with its own cache key.
+ *  Each answer's reading is stored, never the prose; an unanswered ask leaves the denominator. Its answers join the rival evidence. Never throws. */
 export async function askTheTrackedPrompts(a: StageArgs): Promise<void> {
   const { bounds, cost, parameters, sections, siteId } = a;
   const asks = parameters.trackedPrompts || (a.asksTrackedPrompts === true && parameters.battery);
@@ -66,13 +67,11 @@ export async function askTheTrackedPrompts(a: StageArgs): Promise<void> {
   // A retry the same day is served what it already bought.
   const asOf = a.startedAt.toISOString().slice(0, 10);
   try {
-    const [{ readPromptSet, writePromptSet }, { readSiteMarket }, { readSiteProfile }, { readBusinessEdits }] =
-      await Promise.all([
-        import("@/lib/market/prompts/store"),
-        import("@/lib/market/infer/stored"),
-        import("@/lib/site-profile/store"),
-        import("@/lib/site-profile/business/edits"),
-      ]);
+    const [{ readPromptSet, writePromptSet }, { readSiteMarket }, { readSiteProfile }] = await Promise.all([
+      import("@/lib/market/prompts/store"),
+      import("@/lib/market/infer/stored"),
+      import("@/lib/site-profile/store"),
+    ]);
     const market = sections.market ?? (await readSiteMarket(siteId))?.stored.current ?? null;
     if (market === null) {
       console.log(JSON.stringify({ event: "tracked_prompts", asked: 0, because: "no_market" }));
@@ -80,27 +79,19 @@ export async function askTheTrackedPrompts(a: StageArgs): Promise<void> {
     }
     const siteName = promptSiteName((await readSiteProfile(a.domain))?.siteName ?? null, a.domain);
     const stored = await readPromptSet(siteId);
-    // A prompt names the market by its searched terms, never a label nobody searches, and the buyer by the founder's own answer.
-    const buyer =
-      sections.market === null
-        ? ((await readBusinessEdits(siteId).catch(() => null))?.answers.buyers ?? null)
-        : sections.founderBuyer;
-    // A set built from another label is rebuilt whole from the search term once; one worded for software is rebuilt once for the market's kind of business,
-    // and a local business's prompts name its place.
-    const set = nextPromptSet(
-      stored,
-      generatePrompts(spokenMarket(market, buyer), siteName, localeOfPass(a).language, localeOfPass(a).place),
-      new Date(),
-      searchedName(market),
-      market.kind ?? null
-    );
+    // The twelve as this pass asks them, then the runners-up.
+    const twelve = sections.questions.kind === "unmeasured" ? sections.selected : sections.questions.value.map((question) => question.search);
+    const searches = [...twelve.map((search) => search.keyword), ...sections.runnersUp];
+    const { language, place } = localeOfPass(a);
+    const panel = searches.length === 0 ? [] : panelOf({ searches, questions: await storedQuestions(siteId), siteName, rivals: market.rivals, language, ...(place === undefined ? {} : { place }) });
+    const set = nextPromptSet(stored, panel, new Date());
     if (set.prompts.length === 0 || sections.sealed) return;
     if (set !== stored) await writePromptSet(siteId, set);
     if (set.rebuiltAt !== undefined && set.rebuiltAt !== stored.rebuiltAt) {
       console.log(JSON.stringify({ event: "tracked_prompts_rebuilt", siteId, from: stored.prompts.length, to: set.prompts.length }));
     }
 
-    const answers: (PromptAnswer & { namesABrand: boolean })[] = [];
+    const answers: PromptAnswer[] = [];
     const evidence = new Map<string, MarketPromptAnswer>();
     let asked = 0;
     const askOne = async (prompt: TrackedPrompt, engine: PromptEngine, run: number): Promise<void> => {
@@ -111,7 +102,7 @@ export async function askTheTrackedPrompts(a: StageArgs): Promise<void> {
       const locale = localeOfPass(a);
       const got = await attempt("asking_the_twelve", () =>
         engine === "chatgpt"
-          ? llmScraper(cost, { query: prompt.text, mode: "std", scope, locale, untilMs, run, asOf })
+          ? llmScraper(cost, { query: prompt.question ?? prompt.text, mode: "std", scope, locale, untilMs, run, asOf })
           : // The standard queue on every tier: the same ask whichever pass makes it, at one price.
             aiMode(cost, { query: prompt.text, mode: "std", scope, locale, untilMs, run, asOf, abortMs: serpAbortFor(bounds, parameters) })
       );
@@ -136,7 +127,6 @@ export async function askTheTrackedPrompts(a: StageArgs): Promise<void> {
         ...(reading.alternatives.length === 0 ? {} : { alternatives: reading.alternatives }),
         ...(reading.cited.length === 0 ? {} : { cited: reading.cited }),
         ...(reading.states.length === 0 ? {} : { states: reading.states }),
-        namesABrand: reading.namesABrand,
       });
       if (prompt.kind !== "branded" && prompt.kind !== "comparison" && !evidence.has(prompt.id)) {
         evidence.set(prompt.id, {
@@ -150,34 +140,21 @@ export async function askTheTrackedPrompts(a: StageArgs): Promise<void> {
     const asks: Promise<void>[] = [];
     for (const prompt of set.prompts) {
       for (const engine of PROMPT_ENGINES) {
-        for (let run = 1; run <= runsOf(prompt); run += 1) asks.push(askOne(prompt, engine, run));
+        for (let run = 1; run <= TRACKED_PROMPTS.RUNS; run += 1) asks.push(askOne(prompt, engine, run));
       }
     }
     await Promise.all(asks);
 
-    // A prompt rotated in stays only if an answer to it named a brand.
-    const verdicts = new Map<string, "keep" | "drop">();
-    for (const prompt of set.prompts) {
-      if (prompt.precheck !== true) continue;
-      const own = answers.filter((answer) => answer.promptId === prompt.id);
-      if (own.length > 0) verdicts.set(prompt.id, own.some((answer) => answer.namesABrand) ? "keep" : "drop");
-    }
-    const settled = settlePrechecks(set, verdicts);
-    if (settled !== set) await writePromptSet(siteId, settled);
-
     console.log(
-      JSON.stringify({ event: "tracked_prompts", prompts: settled.prompts.length, asked, answered: answers.length })
+      JSON.stringify({ event: "tracked_prompts", prompts: set.prompts.length, asked, answered: answers.length })
     );
     if (sections.sealed) return;
-    const kept = new Set(settled.prompts.map((prompt) => prompt.id));
     sections.prompts = {
       siteName,
-      asked: settled.prompts.map((prompt) => ({ id: prompt.id, kind: prompt.kind, text: prompt.text })),
-      asks: settled.prompts.reduce((sum, prompt) => sum + PROMPT_ENGINES.length * runsOf(prompt), 0),
-      ...(settled.rebuiltAt === undefined ? {} : { restartedAt: settled.rebuiltAt }),
-      answers: answers
-        .filter((answer) => kept.has(answer.promptId))
-        .map((answer) => ({
+      asked: set.prompts.map((prompt) => ({ id: prompt.id, kind: prompt.kind, text: prompt.text, ...(prompt.question === undefined ? {} : { question: prompt.question }) })),
+      asks: set.prompts.length * PROMPT_ENGINES.length * TRACKED_PROMPTS.RUNS,
+      ...(set.rebuiltAt === undefined ? {} : { restartedAt: set.rebuiltAt }),
+      answers: answers.map((answer) => ({
           promptId: answer.promptId,
           engine: answer.engine,
           run: answer.run,
@@ -189,7 +166,7 @@ export async function askTheTrackedPrompts(a: StageArgs): Promise<void> {
           ...(answer.cited === undefined ? {} : { cited: answer.cited }),
         })),
     };
-    for (const [id, answer] of evidence) if (kept.has(id)) sections.marketPrompts.push(answer);
+    for (const answer of evidence.values()) sections.marketPrompts.push(answer);
   } catch (error) {
     console.log(
       JSON.stringify({
@@ -197,6 +174,17 @@ export async function askTheTrackedPrompts(a: StageArgs): Promise<void> {
         because: error instanceof Error ? error.message : String(error),
       })
     );
+  }
+}
+
+/** The "People also ask" questions on the SERPs of the site's current report; none where it cannot be read. Read from `scans`, never `fetches`. */
+async function storedQuestions(siteId: string): Promise<string[]> {
+  try {
+    const [{ opportunityStore }, { askedOfReport }] = await Promise.all([import("@/lib/opportunities/store"), import("@/lib/opportunities/derive/topics")]);
+    const report = await opportunityStore().currentReport(siteId);
+    return report === null ? [] : askedOfReport(report).flatMap((serp) => serp.peopleAlsoAsk);
+  } catch {
+    return [];
   }
 }
 
@@ -289,11 +277,6 @@ export async function askThePageQuestions(a: StageArgs, abandoned: () => boolean
   await Promise.all(
     Array.from({ length: Math.min(parameters.serpFanout, tracked.asked.length) }, () => buyOne())
   );
-}
-
-/** How many times each engine asks a tracked prompt in one pass. */
-function runsOf(prompt: TrackedPrompt): number {
-  return prompt.kind === "branded" ? TRACKED_PROMPTS.BRANDED_RUNS : TRACKED_PROMPTS.RUNS;
 }
 
 /** One line per pass over the page questions: candidates, slots, retired, waiting. No customer, page or question text. */

@@ -139,7 +139,7 @@ function phraseIsPresent(phrase: string, tokens: ReadonlySet<string>, language: 
   return wanted.length > 0 && wanted.every((token) => tokens.has(token));
 }
 
-function namesAnyOf(keyword: string, phrases: readonly string[], language: Language = "en"): boolean {
+export function namesAnyOf(keyword: string, phrases: readonly string[], language: Language = "en"): boolean {
   const tokens = new Set(contentTokens(keyword, language));
   return phrases.some((phrase) => phraseIsPresent(phrase, tokens, language));
 }

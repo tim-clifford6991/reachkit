@@ -1,5 +1,5 @@
 // src/lib/scan/pass/market.ts — reading the market: the profile, the searches and the twelve chosen.
-import { BATTERY, MARKET_REMEASURE_H, PRICE_BOOK, SELECTION } from "@/lib/config/constants";
+import { BATTERY, MARKET_REMEASURE_H, PRICE_BOOK, SELECTION, TRACKED_PROMPTS } from "@/lib/config/constants";
 import { dbAdmin } from "@/lib/db";
 import { deriveMarketSet, joinMarketSets, type SuggestionRow } from "@/lib/market/questions/market-set";
 import { phraseQuestions } from "@/lib/market/questions/phrase";
@@ -258,6 +258,10 @@ export async function readMarket(a: StageArgs, abandoned: () => boolean): Promis
           sections.selected = widen();
         }
       }
+    }
+    if (a.parameters.trackedPrompts || a.asksTrackedPrompts === true) {
+      const twelve = new Set(sections.selected.map((search) => search.keyword));
+      sections.runnersUp = widen(undefined, TRACKED_PROMPTS.PANEL + SELECTION.maxRivalBrand).map((search) => search.keyword).filter((keyword) => !twelve.has(keyword));
     }
     return phrase(a, abandoned);
   };

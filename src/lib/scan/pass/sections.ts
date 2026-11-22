@@ -47,6 +47,8 @@ export interface Sections {
   placeFrom: PlaceFrom | null;
   marketRows: Measured<readonly SuggestionRow[]>;
   selected: SelectedSearch[];
+  /** The searches after the twelve by the same selection score, which the AI panel is drawn from beside them. */
+  runnersUp: string[];
   questions: Measured<Question[]>;
   serps: Measured<SerpResult>[];
   /** §6.2's battery, one entry per question in question order, parallel to `serps`. It reaches the blob only as the AI-answers card's engine columns:
@@ -142,6 +144,7 @@ export function freshSections(at: Date): Sections {
     placeFrom: null,
     marketRows: unmeasured("not_attempted", at),
     selected: [],
+    runnersUp: [],
     sealed: false,
     questions: unmeasured("not_attempted", at),
     serps: [],

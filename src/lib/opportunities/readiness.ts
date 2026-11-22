@@ -107,7 +107,7 @@ async function heldAllowed(siteId: string, open: readonly OpportunityRow[], ctx:
   const week = mondayOf(a.date ?? new Date(firstOpenDay(pages, ctx.now) * 86_400_000).toISOString().slice(0, 10)), inWeek = (date?: string | null) => date != null && mondayOf(date) === week;
   if (pages.some((page) => inWeek(page.date) && waitsForFootprint(readOpportunity(page.row)))) return null;
   const held = open.filter((row) => waitsForFootprint(readOpportunity(row)) && !a.stopped(readOpportunity(row)) && eligible(readOpportunity(row), { ...ctx, footprint: true }) === null);
-  const seen = { cited: new Set<string>(), prompts: held.length === 0 ? [] : await store.trackedPrompts(siteId).catch(() => []) };
+  const seen = { cited: new Set<string>() };
   const ranked = orderRanked(held.map((row) => ({ opportunity: readOpportunity(row), ...pointsOf(readOpportunity(row), seen) }))).map((entry) => held.find((row) => row.id === entry.opportunityId)!);
   return (ranked.find((row) => inWeek(row.planned_for)) ?? (a.evening ? ranked.find((row) => row.planned_for != null) : undefined) ?? ranked.find((row) => row.source === "ai_gap") ?? ranked[0])?.id ?? null;
 }

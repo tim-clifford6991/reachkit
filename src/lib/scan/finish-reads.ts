@@ -6,7 +6,7 @@ import { CAPS, CACHE_WINDOWS_D, TIMING } from "@/lib/config/constants";
 import type { CostContext, VendorFailure } from "@/lib/costs";
 import { unmeasured, type Measured } from "@/lib/measure/measured";
 import type { Locale } from "@/lib/locale/locales";
-import { promptSiteName } from "@/lib/market/prompts/generate";
+import { promptSiteName } from "@/lib/market/prompts/names";
 import type { SerpResult } from "@/lib/vendors/dataforseo/types";
 import { storedSiteName } from "@/lib/site-profile/site-name";
 import { PAID_SERP_FANOUT } from "./budgets";

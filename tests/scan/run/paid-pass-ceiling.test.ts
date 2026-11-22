@@ -218,7 +218,7 @@ function stillQueueing(onFailure?: (failure: { vendorFailure: string; endpoint: 
   };
 }
 
-/** A site whose market yields the full set of 25 tracked prompts. */
+/** A site whose market is concluded, so its pass draws the AI panel. */
 const SITE_WITH_A_MARKET = {
         domain: DOMAIN,
         category: "user onboarding software",
@@ -380,11 +380,10 @@ describe("the weekly pass at production's measured queue waits (issue 1160)", ()
   // one after another, a question cost more than the 240 s ceiling. Asked
   // together, it costs the slowest of the three.
   //
-  // Owner D19 final (issue 1162) and B2 (2026-10-19): the weekly pass asks
-  // the site's 23 unbranded prompts once and its 2 branded prompts twice on
+  // The weekly pass asks the site's AI panel, drawn from the twelve, once on
   // both engines, all at once beside the twelve, and the twelve keep their
-  // Google searches alone. Fifty-four asks cost the pass the same wait as one.
-  it("ends `complete` inside its ceiling, an unbranded prompt asked once and a branded one twice on both engines, and its rivals sized", async () => {
+  // Google searches alone. Twenty-four asks cost the pass the same wait as one.
+  it("ends `complete` inside its ceiling, each panel item asked once on both engines, and its rivals sized", async () => {
     db.rows.set("sites", [SITE_WITH_A_MARKET]);
     await loadedOnce({ domain: DOMAIN, siteId: "site-1160", tier: "weekly" });
     serpOrganic.mockImplementation(answersAfter(177, measured(SERP, AT)));
@@ -410,24 +409,17 @@ describe("the weekly pass at production's measured queue waits (issue 1160)", ()
       for (const row of rows) {
         expect(row.engines.map((engine) => engine.cell.kind)).toEqual(["answered", "unmeasured", "unmeasured"]);
       }
-      // The set was built from the market and stored with the site; each
-      // run of a prompt was asked under its own key.
+      // The panel was drawn from the twelve and stored with the site, and no item is branded or asked twice.
       const stored = db.queries.find((q) => q.table === "sites" && q.verb === "update" && q.values?.tracked_prompts !== undefined);
       const set = (stored?.values?.tracked_prompts as { prompts: { text: string; kind: string }[] }).prompts;
-      expect(set).toHaveLength(25);
-      expect(report.prompts?.asked).toHaveLength(25);
-      expect(report.prompts?.asks).toBe(54);
-      expect(report.prompts?.answers).toHaveLength(54);
-      expect(llmScraper).toHaveBeenCalledTimes(27);
-      expect(aiMode).toHaveBeenCalledTimes(27);
-      const branded = new Set(set.filter((p) => p.kind === "branded").map((p) => p.text));
-      expect(branded.size).toBe(2);
+      expect(set).toHaveLength(BATTERY_PINS.QUESTIONS);
+      expect(set.every((p) => p.kind === "search")).toBe(true);
+      expect(report.prompts?.asks).toBe(2 * BATTERY_PINS.QUESTIONS);
+      expect(report.prompts?.answers).toHaveLength(2 * BATTERY_PINS.QUESTIONS);
       for (const engine of [llmScraper, aiMode]) {
         const asks = (engine.mock.calls as unknown as [unknown, { query: string; run?: number }][]).map((call) => call[1]);
-        expect(asks.filter((ask) => ask.run === 1)).toHaveLength(25);
-        // Only the two branded prompts get a second run.
-        expect(new Set(asks.filter((ask) => ask.run === 2).map((ask) => ask.query))).toEqual(branded);
-        expect(asks.filter((ask) => ask.run === 2)).toHaveLength(2);
+        expect(asks.filter((ask) => ask.run === 1)).toHaveLength(BATTERY_PINS.QUESTIONS);
+        expect(asks.filter((ask) => ask.run !== 1)).toHaveLength(0);
       }
       // ChatGPT cited the site in every answer; AI Mode cited a rival.
       const chatgpt = report.prompts?.answers.filter((answer) => answer.engine === "chatgpt") ?? [];
@@ -615,14 +607,14 @@ describe("Measure again now asks the tracked prompts too (owner, 2026-10-03, iss
 
     const report = storedReport();
     expect(report.stoppedReason).toBe("complete");
-    expect(report.prompts?.asked).toHaveLength(25);
-    expect(report.prompts?.answers).toHaveLength(54);
-    // The deep pass's own battery on the twelve, and the set beside it.
-    expect(llmScraper).toHaveBeenCalledTimes(BATTERY_PINS.QUESTIONS + 27);
+    expect(report.prompts?.asked).toHaveLength(BATTERY_PINS.QUESTIONS);
+    expect(report.prompts?.answers).toHaveLength(2 * BATTERY_PINS.QUESTIONS);
+    // The deep pass's own battery on the twelve, and the panel beside it.
+    expect(llmScraper).toHaveBeenCalledTimes(2 * BATTERY_PINS.QUESTIONS);
     const tracked = (aiMode.mock.calls as unknown as [unknown, { asOf?: string; mode: string }][])
       .map((call) => call[1])
       .filter((call) => call.asOf !== undefined);
-    expect(tracked).toHaveLength(27);
+    expect(tracked).toHaveLength(BATTERY_PINS.QUESTIONS);
     // The standard queue, as the weekly pass asks them, and keyed by day.
     expect(tracked.every((call) => call.mode === "std" && /^\d{4}-\d{2}-\d{2}$/.test(call.asOf ?? ""))).toBe(true);
 

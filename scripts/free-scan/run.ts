@@ -26,7 +26,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { CAPS, TIMING } from "@/lib/config/constants";
 import { offline } from "@/lib/egress/offline";
-import { promptSiteName } from "@/lib/market/prompts/generate";
+import { promptSiteName } from "@/lib/market/prompts/names";
 import { isOwnDomain } from "@/lib/market/rivals/domains";
 import type { Measured } from "@/lib/measure/measured";
 import { claimFreeScanSlot, networkKeyOf } from "@/lib/scan/admission";

@@ -520,7 +520,7 @@ and never faked, and the calendar then states which kind of empty each date is.
 ### A pass's health
 
 Every deep pass, weekly pass and re-measure ends by checking what it stored (SPEC §6, D58, #1287)
-and keeps the answers on its own row, `scans.health`: `brand_volume`, `prompt_rivals`,
+and keeps the answers on its own row, `scans.health`: `brand_volume`,
 `market_terms`, `mention_rate` and `serp_timeouts` (D63, #1298: more than a fifth of the pass's
 Google SERP reads met our own request bound), each with `pass`, a one-line `detail` and the
 `items` that failed. The log line is `{"event":"pass_health"}` with the failing checks; `pass_health_failed`

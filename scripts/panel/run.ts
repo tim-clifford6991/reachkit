@@ -11,7 +11,7 @@
 // seeded and asked, the knowledge base built, the rivals concluded with
 // their demand (D50) and the topics derived. Two of the pass's steps are not
 // run: the first page is not written and no second pass is started for a
-// rival change. A first pass asks no tracked prompts, so the 25 are not
+// rival change. A first pass asks no tracked prompts, so the panel is not
 // bought.
 //
 // # Where it runs
@@ -38,10 +38,7 @@ import { createHash } from "node:crypto";
 import dns from "node:dns";
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { isLanguage } from "@/lib/locale/locales";
 import { parseStoredMarket } from "@/lib/market/infer/stored";
-import { spokenMarket } from "@/lib/market/infer/terms";
-import { generatePrompts, promptSiteName } from "@/lib/market/prompts/generate";
 import { verdictOf } from "@/lib/market/rivals/verify";
 import { OWN_FETCH_SOURCE, RENDERED_FETCH_SOURCE } from "@/lib/measure/own-fetch";
 import { runDeepPass, type PassStep } from "@/lib/scan/deep/run";
@@ -361,16 +358,8 @@ export async function collect(a: { site: PanelSite; bought: readonly FetchRow[];
         ...(report?.marketPrompts ?? []).flatMap((prompt) => prompt.citedDomains),
       ]),
     ],
-    // D69: the 25 the market yields. A first pass asks none of them.
-    prompts:
-      market === null
-        ? []
-        : generatePrompts(
-            spokenMarket(market, null),
-            promptSiteName(typeof stored.profile?.site_name === "string" ? stored.profile.site_name : null, site.domain),
-            isLanguage(stored.site?.language) ? stored.site.language : "en",
-            area?.place ?? undefined
-          ).map((prompt) => ({ kind: prompt.kind, text: prompt.text })),
+    // The panel the pass asked; a first pass asks none.
+    prompts: (report?.prompts?.asked ?? []).map((prompt) => ({ kind: prompt.kind, text: prompt.text })),
   };
   const health = (parseHealth(stored.scan?.health)?.checks ?? []).map((check) => ({ check: check.check, pass: check.pass, detail: check.detail }));
   const telling = /unmeasured|failed|undeterminable|skipped|threw|too_small|refus|not_stored/;

@@ -8,8 +8,6 @@ import { siteLocale } from "@/lib/locale/site";
 import type { CostContext } from "@/lib/costs";
 import { evidenceDomains, type EvidencePage } from "@/lib/market/infer/evidence";
 import type { BrandDemand, MarketConclusion, RivalConclusion } from "@/lib/market/infer/types";
-import type { GeneratedPrompt } from "@/lib/market/prompts/generate";
-import type { PromptSet } from "@/lib/market/prompts/set";
 import { marketEvidence } from "./market-evidence";
 import type { StoredReport } from "./report";
 
@@ -467,67 +465,11 @@ async function weighByDemand(a: {
   }
 }
 
-/** The market in force, the stored prompt set and what that market yields today, read once: what the set follows and what a pass's health is checked against. `null` where no market. */
-export async function promptsInForce(a: { siteId: string; domain: string }): Promise<{
-  market: MarketConclusion;
-  stored: PromptSet;
-  generated: GeneratedPrompt[];
-  siteName: string;
-} | null> {
-  const [{ readPromptSet }, { generatePrompts, promptSiteName }, { readSiteMarket }, { spokenMarket }] = await Promise.all([
-    import("@/lib/market/prompts/store"),
-    import("@/lib/market/prompts/generate"),
-    import("@/lib/market/infer/stored"),
-    import("@/lib/market/infer/terms"),
-  ]);
-  const market = (await readSiteMarket(a.siteId))?.stored.current ?? null;
-  if (market === null) return null;
-  const stored = await readPromptSet(a.siteId);
-  const siteName = promptSiteName((await siteText(a.domain)).siteName, a.domain);
-  const locale = await siteLocale(a.siteId);
-  return { market, stored, siteName, generated: generatePrompts(spokenMarket(market, await founderBuyer(a.siteId)), siteName, locale.language, locale.place) };
-}
-
-/** The stored set's comparison and branded prompts, brought to the rivals a pass just concluded from its own answers, after it asked the set;
- *  without this the set names the previous pass's rivals. The next pass asks these. Never throws. */
-export async function trackedPromptsFollowRivals(a: { siteId: string; domain: string }): Promise<void> {
-  try {
-    const [{ writePromptSet }, { followRivals }] = await Promise.all([
-      import("@/lib/market/prompts/store"),
-      import("@/lib/market/prompts/set"),
-    ]);
-    const inForce = await promptsInForce(a);
-    if (inForce === null) return;
-    const { stored, generated } = inForce;
-    if (stored.prompts.length === 0) return;
-    const set = followRivals(stored, generated, new Date());
-    if (set === stored) return;
-    await writePromptSet(a.siteId, set);
-    const held = new Set(stored.prompts.map((prompt) => prompt.id));
-    console.log(
-      JSON.stringify({
-        event: "tracked_prompts_follow_rivals",
-        siteId: a.siteId,
-        replaced: set.prompts.filter((prompt) => !held.has(prompt.id)).length,
-      })
-    );
-  } catch (error) {
-    console.log(
-      JSON.stringify({
-        event: "tracked_prompts_follow_rivals_failed",
-        siteId: a.siteId,
-        because: error instanceof Error ? error.message : String(error),
-      })
-    );
-  }
-}
-
 /** The rivals re-checked on the pass's own money and stamped with its own date, never the clock's. A failure
  *  changes nothing and says so in the log; the pass goes on. */
 export async function recheckRivalsOf(a: { siteId: string; domain: string; cost: CostContext; report: StoredReport; at: Date }): Promise<void> {
   try {
     await recheckRivals(a);
-    await trackedPromptsFollowRivals(a);
   } catch (error) {
     console.log(
       JSON.stringify({

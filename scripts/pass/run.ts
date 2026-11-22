@@ -58,9 +58,7 @@ import path from "node:path";
 import { BATTERY, PRICE_BOOK, SELECTION, SERP_RIVAL_SIZING, WEEKLY_RIVAL_RESIZES } from "@/lib/config/constants";
 import { brandKeywords, ownKeywords } from "@/lib/market/infer/demand";
 import { parseStoredMarket } from "@/lib/market/infer/stored";
-import { spokenMarket } from "@/lib/market/infer/terms";
 import type { MarketConclusion } from "@/lib/market/infer/types";
-import { generatePrompts, promptSiteName } from "@/lib/market/prompts/generate";
 import { parsePromptSet } from "@/lib/market/prompts/set";
 import { deriveMarketSet, type SuggestionRow } from "@/lib/market/questions/market-set";
 import { marketSeeds, measuredMarketOf, neverMeasured, searchKey, unjudged } from "@/lib/market/questions/measured";
@@ -185,31 +183,18 @@ function startingState(snapshot: Snapshot): { site: Row; opportunities: Row[]; n
   const report = readStoredReport(scan.report);
   const stored = parseStoredMarket(site.market);
   const market = stored.current;
-  const raw = (site.market ?? {}) as { current?: Row; lastChange?: { added?: unknown[] } };
+  const raw = (site.market ?? {}) as { current?: Row };
   let current: Row | undefined = raw.current;
   let competitors: string[] | null = null;
 
   if (market !== null && current !== undefined) {
-    // The rivals' order: the one that yields the comparison prompts this pass asked.
-    const asked = new Set((report.prompts?.asked ?? []).filter((p) => p.kind === "comparison").map((p) => p.text));
-    const siteName = promptSiteName(snapshot.siteProfile?.site_name ?? null, site.domain);
-    const buyers = (snapshot.siteProfileEdits[0]?.answers as { buyers?: string } | undefined)?.buyers ?? null;
-    const yields = (rivals: MarketConclusion["rivals"]): boolean => {
-      const comparisons = generatePrompts(spokenMarket({ ...market, rivals }, buyers), siteName).filter((p) => p.kind === "comparison");
-      return comparisons.length > 0 && comparisons.every((p) => asked.has(p.text));
-    };
-    const before = parseStoredMarket({ ...raw, current: { ...current, rivals: raw.lastChange?.added ?? [] } }).current?.rivals ?? [];
+    // The rivals: as they stood before this pass changed them, where it did.
     const undone = beforeOwnChange(snapshot, market);
-    if (undone !== null && yields(undone.rivals)) {
+    if (undone !== null) {
       current = { ...current, rivals: undone.rivals };
       competitors = undone.rivals.map((rival) => rival.domain);
-      notes.push(`the rivals start as they stood before this pass changed them (${undone.rivals.map((r) => r.name).join(", ")}): that set yields the prompts the pass asked${undone.note}`);
-    } else if (asked.size === 0) notes.push("the pass asked no comparison prompts, so the rivals start in the order they are stored in now");
-    else if (yields(market.rivals)) notes.push("the rivals start in the order they are stored in now: it yields the prompts the pass asked");
-    else if (before.length > 0 && yields(before)) {
-      current = { ...current, rivals: raw.lastChange?.added };
-      notes.push(`the rivals start as the last rival change stored them (${before.map((r) => r.name).join(", ")}): that order yields the prompts the pass asked`);
-    } else notes.push("no stored order of the rivals yields the prompts the pass asked; they start in the order they are stored in now");
+      notes.push(`the rivals start as they stood before this pass changed them (${undone.rivals.map((r) => r.name).join(", ")})${undone.note}`);
+    } else notes.push("the rivals start in the order they are stored in now");
 
     // The brand volumes: without what this pass bought.
     const boughtHere = new Set(snapshot.fetches.filter((f) => f.scan_id === scan.id && f.source === KEYWORDS).flatMap(keywordsOf));
@@ -547,7 +532,7 @@ export async function main(o: Options): Promise<number> {
   const ownNames = new Set(ownKeywords({ domain: o.site, siteName: snapshot.siteProfile?.site_name ?? null }));
   const everNamed = [...new Set([...names, ...Object.keys(market?.demand?.brands ?? {})])].filter((name) => !ownNames.has(name.toLowerCase()));
   const old = [snapshot.site.category ?? "", market?.job ?? ""].filter((phrase) => phrase.length > 8);
-  const naming = set.prompts.filter((prompt) => prompt.kind === "comparison" || prompt.kind === "branded");
+  const naming = set.prompts.filter((prompt) => everNamed.some((name) => name.length > 2 && ` ${prompt.text.toLowerCase()} `.includes(` ${name.toLowerCase()} `)));
   const usesOld = set.prompts.filter((prompt) => old.some((phrase) => prompt.text.toLowerCase().includes(phrase.toLowerCase())));
   say(`\nPrompts: ${set.prompts.length} in force, ${naming.length} name rivals`);
   for (const prompt of naming) say(`  ${prompt.text}`);
