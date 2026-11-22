@@ -60,7 +60,7 @@ Write a report to `/root/ops/reachkit/reports/seo-<topic>-<YYYY-MM-DD>.md`. Then
   - whether it is a system defect or an expert judgement;
   - its type: product-autopilot, product-optional-step, owner-one-off, or not-worth-it;
   - the code area it lands in;
-  - the test that proves it, at 0¢ on fixtures or stored rows;
+  - the proof under `docs/PROCESS.md` rule 6, at 0¢: a replay of stored rows or a golden diff, and a test only where rule 6 requires one;
   - its overlaps with SPEC rulings and open issues (`gh issue list`).
 - **Classification per `docs/PROCESS.md` › Coherence:** an example of an existing registry parent (#1127 content, #1454 scan, #1457 app, #1458 public) is a comment on that parent; a new condition is an issue with Surfaces, Invariants and Overlaps filled.
 - **No issue filing.** Draft issue text where useful; draft the issue text in the comment and stop.

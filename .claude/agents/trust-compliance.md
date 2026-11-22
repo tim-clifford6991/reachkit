@@ -170,7 +170,7 @@ Then return a summary of **under 400 words**:
   - **LAWYER CONFIRM** or **ACCOUNTANT CONFIRM** where it applies;
   - the source;
   - the code or page it lands in;
-  - the 0¢ test that proves the fix: a unit test on headers or copy keys, a curl or dig check, or a strategy test.
+  - the 0¢ proof of the fix: a curl or dig check, or a test only where `docs/PROCESS.md` rule 6 requires one (money or data loss).
 - **Owner-only acts** (dashboards, DNS, contracts), listed separately and kept off the product's critical path.
 
 ## Never
