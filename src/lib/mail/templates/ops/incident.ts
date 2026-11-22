@@ -82,7 +82,7 @@ export type OpsIncident =
   | {
       occasion: "replan-committed";
       fingerprint: string;
-      sites: readonly { domain: string; from: string; before: readonly ReplanRow[]; after: readonly ReplanRow[]; unmeasured: readonly string[]; held: string | null; empty: Readonly<Record<string, number>> | null }[];
+      sites: readonly { domain: string; from: string; before: readonly ReplanRow[]; after: readonly ReplanRow[]; unmeasured: readonly string[] }[];
     }
   // No error: a Google result bought on the normal queue read as nothing. `wrapped`: its links are Google redirects; `empty`: no result where the last read had some.
   | { occasion: "serp-unreadable"; cause: "wrapped" | "empty" }
@@ -211,8 +211,6 @@ function factsOf(incident: OpsIncident): FactRow[] {
         { label: "mail.ops.incident.fact.site", value: closedDomain(site.domain) },
         { label: "ops.replan.fact.from", value: closedDate(site.from) },
         { label: "ops.replan.fact.unmeasured", value: site.unmeasured.map(closedName).join(", ") || "—" },
-        ...(site.held === null ? [] : [{ label: "ops.replan.fact.held", value: sentenceValue(site.held) } as const]),
-        ...(site.empty === null ? [] : [{ label: "ops.replan.fact.empty", value: Object.entries(site.empty).map(([why, n]) => `${closedName(why)} ${count(n)}`).join(", ") || "—" } as const]),
         ...site.before.map((r): FactRow => ({ label: "ops.replan.fact.committed", value: row(r) })),
         ...site.after.map((r): FactRow => ({ label: "ops.replan.fact.replanned", value: row(r) })),
       ]),
