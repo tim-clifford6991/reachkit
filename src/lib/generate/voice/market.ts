@@ -11,6 +11,7 @@
 // (`@/lib/market/infer/stored`).
 import { spoken, unsearched } from "@/lib/market/infer/terms";
 import type { StoredMarket } from "@/lib/market/infer/types";
+import type { StoredReport } from "@/lib/scan/report";
 
 /** The caps a prompt holds the market to — a founder cannot lengthen it. */
 const MARKET_PROMPT = { rivals: 5, notOurMarket: 6, chars: 200 } as const;
@@ -105,4 +106,13 @@ export function writingMarket(a: {
         .slice(0, MARKET_PROMPT.notOurMarket),
     },
   };
+}
+
+/** The market a site's pages are written for, from its stored facts and its latest report. */
+export function siteWritingMarket(site: { category: string | null; rivals: readonly string[]; market?: StoredMarket }, report: Pick<StoredReport, "market">, founderBuyer?: string | null): WritingMarket {
+  return writingMarket({
+    site: site.market === undefined ? null : { category: site.category, competitors: site.rivals, stored: site.market },
+    reportCategory: report.market.kind === "unmeasured" ? "" : report.market.value.profile.category,
+    founderBuyer,
+  });
 }

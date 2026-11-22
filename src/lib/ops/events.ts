@@ -76,6 +76,12 @@ export async function claimOpsEvent(kind: string, siteId: string, code: string, 
   return true;
 }
 
+/** A page written anyway after its day's pack fell short, `reason` what it fell short of: one row per draft however often
+ *  its day's job runs. Never throws, since the page it reports on stands. */
+export function recordWrittenAnyway(siteId: string, draftId: string, reason: string): Promise<boolean> {
+  return claimOpsEvent("page_written_anyway", siteId, draftId, reason).catch(() => false);
+}
+
 /** The `code` of the newest `kind` row whose `read` is this, or `null` where there is none. */
 export async function latestOpsEventCode(kind: string, read: string): Promise<string | null> {
   const latest = await (await events())().select("code").eq("kind", kind).eq("read", read).order("id", { ascending: false }).limit(1);

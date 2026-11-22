@@ -5,6 +5,7 @@ import { RESEARCH } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import { llm } from "@/lib/llm";
 import type { Locale } from "@/lib/locale/locales";
+import { recordOpsEvent } from "@/lib/ops/events";
 import { admittedClaims } from "./claims";
 import type { MarketFact, ReadPage, Wanted } from "./research";
 
@@ -29,18 +30,19 @@ export const CLAIMS_SCHEMA = z.strictObject({
 });
 
 /** The claims call of the research step, on pages already read: a few pages a call, each claim kept only where its
- *  page says it, at most `RESEARCH.calls` calls (SPEC §7, D41: "two for research"). Its own function so that stored
- *  page reads can be put through it again without reading the pages. */
+ *  page says it, at most `RESEARCH.calls` calls (SPEC §7, D41: "two for research"), and a call that times out tried
+ *  once more as two halves. Its own function so that stored page reads can be put through it again without reading them. */
 export async function readClaims(
   c: CostContext,
   pages: readonly (ReadPage & Wanted)[],
-  a: { locale: Locale; search: string; rivals: readonly string[]; today: Date }
+  a: { locale: Locale; search: string; rivals: readonly string[]; today: Date; siteId?: string; page?: string }
 ): Promise<MarketFact[]> {
   const facts: MarketFact[] = [];
-  const perCall = Math.max(1, Math.ceil(Math.min(pages.length, RESEARCH.pagesPerCall * RESEARCH.calls) / RESEARCH.calls));
-  for (let at = 0, call = 0; at < pages.length && call < RESEARCH.calls; at += perCall, call++) {
-    if (c.capHit()) break;
-    const batch = pages.slice(at, at + perCall);
+  const read = pages.slice(0, RESEARCH.pagesPerCall * RESEARCH.calls);
+  // Dealt in turn, so the first pages read, the top results, never all ride the one call that can time out.
+  const batches = Array.from({ length: Math.min(RESEARCH.calls, read.length) }, (_, call) => read.filter((_, at) => at % RESEARCH.calls === call));
+  const claimsOf = async (batch: readonly (ReadPage & Wanted)[]) => {
+    if (c.capHit()) return { lost: batch, because: "cap" };
     const answer = await llm(c, {
       site: "generate.research",
       tier: "haiku",
@@ -68,8 +70,17 @@ export async function readClaims(
         pages: batch.map((page, index) => ({ page: index + 1, url: page.url, text: page.text })),
       },
     });
-    if (answer.kind === "unmeasured") continue;
+    if (answer.kind === "unmeasured") return { lost: batch, because: answer.because ?? answer.reason };
     facts.push(...admittedClaims(answer.value.claims, batch, a.today, a.rivals));
+    return { lost: [], because: "" };
+  };
+  for (const batch of batches) {
+    const first = await claimsOf(batch);
+    const half = Math.ceil(batch.length / 2);
+    const tried = first.because === "timeout" && batch.length > 1 ? [await claimsOf(batch.slice(0, half)), await claimsOf(batch.slice(half))] : [first];
+    const lost = tried.flatMap((each) => each.lost.map((page) => page.url));
+    // A page whose claims were never read is counted by the daily check, never dropped unseen.
+    if (lost.length > 0) void recordOpsEvent("research_claims_dropped", JSON.stringify({ page: a.page ?? a.search, lost }), tried.find((each) => each.lost.length > 0)!.because.slice(0, 40), a.siteId ?? null);
   }
 
   return facts;

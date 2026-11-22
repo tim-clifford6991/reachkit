@@ -81,4 +81,10 @@ describe("ops_events — the daily check's count of failed Settings reads", () =
     expect(await claim(site, "2026-11-09", "2026-11-10")).toBe(true);
     expect(value(`select count(*) from ops_events where kind = 'week_recommitted' and site_id = '${site}';`)).toBe("2");
   });
+
+  it("a page written anyway is one row however often its day's job runs", async () => {
+    const [site, draft] = psqlRows("select gen_random_uuid(), gen_random_uuid();")[0]!;
+    for (const run of [1, 2]) expect(await events.recordWrittenAnyway(site!, draft!, "generate:step_failed:pack:outside_sources")).toBe(run === 1);
+    expect(value(`select count(*) from ops_events where kind = 'page_written_anyway' and code = '${draft}';`)).toBe("1");
+  });
 });
