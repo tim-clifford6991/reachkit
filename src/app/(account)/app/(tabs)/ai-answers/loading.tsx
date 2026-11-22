@@ -1,5 +1,4 @@
-// SPEC §4 (board AppAI) — the AI tab while its read is in flight: the head,
-// the month's figure, then the card of each page in AI answers.
+// SPEC §4 (plate O3) — Linked by AI's detail while its read is in flight: the tiles, the head, then the questions' card.
 import type React from "react";
 import { copy } from "@/lib/presentation/copy";
 import { CardSkeleton } from "../../_shell/skeletons";
@@ -13,8 +12,7 @@ export default function AiAnswersLoading(): React.JSX.Element {
     <div className={OVERVIEW} data-testid="ai-answers-waiting">
       <DetailTilesSkeleton />
       <TabHead title={copy("overview.tile.ai-answers.label")} testId="ai-answers" measured={<MeasuredSkeleton />} />
-      <CardSkeleton testId="ai-lead-skeleton" rows={4} />
-      <CardSkeleton testId="ai-pages-skeleton" rows={6} />
+      <CardSkeleton testId="ai-questions-skeleton" rows={6} />
     </div>
   );
 }

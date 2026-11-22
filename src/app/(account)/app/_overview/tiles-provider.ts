@@ -6,11 +6,12 @@ import { isReservedFixtureAccount, requireSetUpAccount } from "../_session/accou
 import { readAnswers } from "./answers-provider";
 import { readPublished } from "./content-provider";
 import { readRivals } from "./rivals-provider";
+import { aiQuestionsOf, type AiQuestions } from "./ai-pages";
 import { buildTiles, type TilesView } from "./tiles-build";
 import { fixturePasses, tilePageOf } from "./tiles-fixture";
 
 /** `null` where the rows could not be read: the row is not drawn, never zeros. */
-export const readTiles = cache(async function readTiles(coming: number, goLive: boolean): Promise<TilesView | null> {
+export const readTiles = cache(async function readTiles(coming: number, goLive: boolean): Promise<(TilesView & { questions: AiQuestions | null }) | null> {
   const account = await requireSetUpAccount();
   try {
     const [published, rivals, answers] = await Promise.all([readPublished(), readRivals().catch(() => null), readAnswers().catch(() => null)]);
@@ -21,7 +22,7 @@ export const readTiles = cache(async function readTiles(coming: number, goLive: 
       ? { passes: fixturePasses(published.pages, week, answers?.pageQuestions ?? []), pages: published.pages.map(tilePageOf) }
       : await import("./tiles-store").then((m) => m.readTileRows({ siteId: account.siteId, domain: account.domain, week }));
     const firstPage = rivals?.firstPage;
-    return buildTiles({
+    const view = buildTiles({
       published,
       passes: stored.passes,
       rows: stored.pages,
@@ -32,6 +33,7 @@ export const readTiles = cache(async function readTiles(coming: number, goLive: 
       coming,
       goLive,
     });
+    return view === null ? null : { ...view, questions: aiQuestionsOf(view.ai, stored.passes, account.domain) };
   } catch {
     return null;
   }

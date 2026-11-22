@@ -28,8 +28,7 @@ import type { AnswerEngine } from "@/lib/opportunities/types";
  * It is the product's existing four-state reading of a cell
  * (`EngineStanding` in `@/lib/opportunities/types`) with its `names_you`
  * arm split in two and its `names_others` arm split from `names_no_one`.
- * A new mark is a requirement change, not a new member, and `Record<AnswerMark, …>` in `answers-words.ts` makes one a
- * compile error beside every word it would need.
+ * A new mark is a requirement change, not a new member.
  */
 export const ANSWER_MARKS = [
   "links_to_you",

@@ -292,100 +292,30 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.search.doing.update": "Update {day}",
   "overview.search.doing.climbing": "Climbing, so we wait",
 
-  // ── 2026-09-20 (#908, #918): Overview › AI answers.
-  //
-  // SPEC §6 of that date: "a rolling four-week rate — answers that name or
-  // link the site over all answers asked — beside this week's n of 12; named
-  // and linked are counted apart." Every sentence below is **drafted** under
-  // the owner's 2026-09-16 ruling (#759) and the PR names each one so the
-  // owner can correct it. Three words the product already says are reused
-  // rather than spelled again: the tile name ("Questions that name you"),
-  // the window's "of {of}", and the three engine names, which are the
-  // report screen's own keys.
-  // Issue 1551 (owner, 2026-10-19; SEO review R5.1): the tab leads with the
-  // published pages' own questions whose AI answer links the site — the
-  // signal a page moves first. Drafted (#759).
-  "overview.answers.pages-cited.label": "Pages Linked by AI",
-  "overview.answers.pages-cited.none": "Shows once a page is live and we’ve asked its question.",
-  // Board AppAI: the tiles, each page in AI answers, and which AI read and sent visits. Drafted (#759).
-  "overview.answers.linked.mentioned.one": "1 more mentioned you without a link.",
-  "overview.answers.linked.mentioned": "{n} more mentioned you without a link.",
-  "overview.answers.reads.label": "Read by AI",
-  "overview.answers.reads.of": "times this week",
+  // ── Linked by AI's detail (plate O3): each page's question, one mark per engine asked, and who else the answer named.
+  "overview.ai.lead": "Your pages’ questions, asked of {engines} in the last {weeks} weeks.",
+  "overview.ai.lead.mentioned": "{k} more answers mentioned you without a link.",
+  "overview.ai.lead.mentioned.one": "1 more answer mentioned you without a link.",
+  "overview.ai.caption": "Your pages’ questions in AI answers",
+  "overview.ai.col.question": "Question",
+  "overview.ai.col.page": "Your Page",
+  "overview.ai.col.also": "Also Mentioned",
+  // The wording never appears without the search it was phrased from.
+  // A phone's engine line: "ChatGPT:" before its mark.
+  "overview.ai.engine": "{engine}:",
+  "overview.ai.from": "from {search} · last asked {date}",
+  "overview.ai.also.none": "no one else",
+  // A report from before rivals were kept: not recorded is not "no one".
+  "overview.ai.also.unrecorded.sr": "Not recorded that week",
+  "overview.ai.none": "We ask about each page’s question on the Monday after it goes live. First check {date}.",
+  "overview.detail.show-all.questions": "Show All {n} Questions",
+  // A pass no check passed yet: its count is the first, with no rate.
+  "overview.tile.mention-rate.first": "First check. A rate shows after {weeks} weeks.",
+  "overview.prompts.share.you": "You",
+  // The hosted pages' readers, on a live page's screen.
   "overview.answers.visits.label": "Visits from AI",
-  "overview.answers.visits.of": "this week",
-  "overview.answers.pages.title": "Each Page in AI Answers",
-  "overview.answers.pages.engines": "Answers from ChatGPT and Google’s AI",
   "overview.answers.who.title": "Which AI Read and Sent Visits",
   "overview.answers.who.reads": "Reads",
-  // The four-week rate over the twelve, its denominator, the split the
-  // owner's ruling asks for, and the one line saying why four weeks.
-
-  // The second tile: this week's n of 12, and the engine it is counted
-  // from — the Overview's own rule, said on this screen too.
-
-  // The grid: its head, the line under it, and the names a reader needs to
-  // read a mark without seeing its colour.
-  "overview.answers.grid.title": "What AI Says on Your Searches",
-  "overview.answers.grid.lead": "Your {of} searches, asked of each AI.",
-  "overview.answers.grid.label": "Each search, and what each AI engine said",
-  // ── 2026-09-20 (#908, #919): the cap, stated on the grid it bounds.
-  //
-  // SPEC §6 of that date: "at most 24 tracked questions in all (the twelve
-  // plus twelve) … the set never grows past the cap, so its cost is flat",
-  // confirmed as written by the owner on 2026-09-21 (§12, #985). The board
-  // (R4-06) states it as "21 of 24 at most". **Drafted** under the owner's
-  // 2026-09-16 ruling (#759); the PR names it so the owner can correct it.
-
-  // The three marks, and "Not checked", which is never a miss. The last mark
-  // covers an answer that mentions someone else, names no one or is not given.
-  "overview.answers.mark.links": "Links to you",
-  "overview.answers.mark.names": "Mentions you",
-  "overview.answers.mark.not-you": "Doesn’t mention you",
-  "overview.answers.mark.not-measured": "Not checked",
-  // One cell's accessible name: which question, which engine, what it said.
-  // Never the colour, and never the mark alone.
-  "overview.answers.cell": "{question} · {engine}: {mark}",
-  // The search a question was phrased from — REQ-093 c3's other half, which
-  // is why the wording never appears without it.
-  "overview.answers.from": "from {search}",
-  // The customer's own page for a question, where one is live.
-  "overview.answers.page": "Your page",
-  // Nothing measured yet — a site whose first weekly pass has not run. It
-  // claims nothing about the engines; it says what is true of the record.
-  "overview.answers.empty": "No AI answers yet. The first Monday check asks AI your questions.",
-
-  // ── 2026-10-03 (#1162): the tracked buyer prompts — owner D19 final, and
-  // D22's AI mention rate and Your pages cited.
-  //
-  // The weekly AI measure is about 25 buyer prompts, each put to Google AI
-  // Mode and ChatGPT twice. Every sentence below is **drafted** under the
-  // owner's 2026-09-16 ruling (#759); the PR names each one so the owner
-  // can correct it. No sentence states an AI position or sentiment.
-  // The 95% range beside the figure: where the true rate very likely sits.
-  // D58 (issue 1287, drafted): no rate is shown until two weeks of the
-  // current prompt set exist, and one line says when the rate appears.
-  "overview.tile.mention-rate.early": "AI answers that mentioned you so far. A rate shows after {weeks} weeks.",
-  // D64 (issue 1301, drafted): no pass has passed its own checks yet, so
-  // the newest pass's count is shown and said to be the first.
-  "overview.tile.mention-rate.first": "First check. A rate shows after {weeks} weeks.",
-
-  // The AI answers tab: the rate's own card. Issue 1551 (SEO review R5.1)
-  // labels it as what it measures. Drafted (#759).
-  "overview.prompts.rate.reputation": "How often AI names you when buyers ask for a business like yours. It moves over months.",
-  "overview.prompts.rate.count": "ChatGPT and Google’s AI mentioned you in {n} of {m} answers",
-  "overview.prompts.rate.first": "last {weeks} weeks · first reading",
-  "overview.prompts.rate.monthly": "last {weeks} weeks · checked monthly",
-  "overview.prompts.rate.band": "Answers vary, so the true rate is {low}% to {high}%.",
-
-  // The site beside its rivals, by answers that named each; the lead heads the block (owner R6).
-  "overview.prompts.share.label": "You and your competitors, by AI answers that mentioned each",
-  "overview.prompts.share.you": "You",
-  "overview.prompts.share.none": "No answer mentioned you or a competitor yet.",
-
-  // The set itself, so a founder can read what is asked.
-  "overview.prompts.list.title": "Questions We Ask AI",
-  "overview.prompts.list.count": "{n} of {m} questions. We leave out questions with your name.",
 
   // ── 2026-09-20 (#908, #921): the AI engines that read the hosted pages.
   // ChatGPT is `ai-answers.engine.chatgpt` — a second spelling of it would be

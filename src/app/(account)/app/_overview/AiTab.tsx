@@ -1,312 +1,149 @@
-// SPEC §4 (board AppAI) — the AI tab's parts below its head: the month's
-// mention rate with three supporting lines, each page in AI answers, which AI
-// read and sent visits, and the questions card that closes on the grid.
-//
-// **A figure nothing measured says "not measured"**, never 0 (REQ-004): a
-// site whose pages ReachKit does not host keeps no server logs (X2), so its
-// reads and visits cannot be counted. A hosted site with no visit yet leaves
-// the visits tile out, as the board's state does.
-import { AI_MARK } from "./ai-mark";
+// SPEC §4 (plate O3) — Linked by AI's detail below its head: one row per page
+// question asked in the window, a mark per engine asked, the page it belongs
+// to and who else the answer named. A table from `md`, one row per question
+// on a phone. "AI rank position", sentiment and a share of voice are never shown.
 import type React from "react";
+import { Suspense } from "react";
 import Link from "next/link";
-import { ANSWER_RATE_WEEKS, MENTION_RATE_MIN_WEEKS } from "@/lib/config/constants";
-import { copy, type CopyKey } from "@/lib/presentation/copy";
+import { copy } from "@/lib/presentation/copy";
 import { renderQuestion } from "@/lib/presentation/generated";
-import type { BlogEngine } from "@/lib/publish/reads/classify";
-import type { BlogReadsModel } from "@/lib/publish/reads/model";
+import type { AnswerEngine } from "@/lib/opportunities/types";
 import { ENGINE_LABEL } from "../_shell/page-target-words";
-import { MARK_COPY_KEY, MARK_ICON } from "./answers-words";
-import type { AnswerMark } from "./answers-model";
-import type { AiPageRow, AiPages } from "./ai-pages";
-import { CLOSED, formatCount } from "./present";
-import { percent, type PromptsModel } from "./prompts-model";
+import { formatShortDay } from "../_shell/format";
+import { AI_MARK, type AiMark } from "./ai-mark";
+import type { AiQuestionRow, AiQuestions } from "./ai-pages";
+import { rowClass } from "./frame";
+import { formatCount } from "./present";
+import { ShowAll } from "./ShowAll";
 
 const INK = "text-base-content/70";
-const CARD = "card card-border min-w-0 bg-base-100";
-const SHOWN = 6;
-const UNCHECKED = copy("draft.ladder.unmeasured");
+const LIST = new Intl.ListFormat("en", { type: "conjunction" });
 
-const BLOG_ENGINE: Readonly<Record<BlogEngine, CopyKey>> = Object.freeze({
-  chatgpt: "ai-answers.engine.chatgpt",
-  perplexity: "overview.blog.engine.perplexity",
-  claude: "overview.blog.engine.claude",
-  gemini: "overview.blog.engine.gemini",
-  copilot: "overview.blog.engine.copilot",
-});
-
-/** The board's order of a page's engines: the two asked directly, then the Overview. */
-const PAGE_ENGINES = [
-  { engine: "chatgpt", index: 2 },
-  { engine: "ai_mode", index: 1 },
-  { engine: "ai_overview", index: 0 },
-] as const;
-
-/** Counted reads and visits, or `null` where none can be (no hosted page, or the counts could not be read). */
-function countedReads(reads: BlogReadsModel): { fetches: number; referrals: number } | null {
-  if (!reads.show || reads.fetches.kind === "unmeasured" || reads.referrals.kind === "unmeasured") return null;
-  return { fetches: reads.fetches.value, referrals: reads.referrals.value };
+/** The head's lead: the engines asked, and the answers that named the site without a link. */
+export function aiLead(model: AiQuestions): string {
+  const asked = copy("overview.ai.lead", { engines: LIST.format(model.engines.map((engine) => copy(ENGINE_LABEL[engine]))), weeks: formatCount(model.weeks) });
+  if (model.mentioned === 0) return asked;
+  const more = model.mentioned === 1 ? copy("overview.ai.lead.mentioned.one") : copy("overview.ai.lead.mentioned", { k: formatCount(model.mentioned) });
+  return `${asked} ${more}`;
 }
 
-function Line(p: { label: string; value: string; testId: string; note?: string | null }): React.JSX.Element {
-  return (
-    <li className="flex min-w-0 flex-wrap items-baseline justify-between gap-x-3 border-t border-base-300 pt-2" data-testid={p.testId}>
-      <span>{p.label}</span>
-      <span className="font-semibold">{p.value}</span>
-      {p.note == null ? null : <span className={`basis-full text-xs ${INK}`}>{p.note}</span>}
-    </li>
-  );
-}
-
-/** The tab's one figure, the month's mention rate Overview's months reading anchors, and three lines under it. */
-export function AiLead(p: { model: PromptsModel; pages: AiPages | null; reads: BlogReadsModel; answered: boolean }): React.JSX.Element {
-  const { model, pages } = p;
-  const counted = countedReads(p.reads);
-  const weeks = formatCount(ANSWER_RATE_WEEKS);
-  return (
-    <section className={CARD} data-testid="ai-lead">
-      <div className="card-body min-w-0 gap-3 p-4 sm:p-5">
-        {model.kind !== "measured" ? (
-          p.answered ? null : (
-            <p className={`text-sm ${INK}`} data-testid="ai-empty">
-              {copy("overview.answers.empty")}
-            </p>
-          )
-        ) : (
-          <>
-            <p className="eyebrow">{copy(model.firstMeasurement ? "overview.prompts.rate.first" : "overview.prompts.rate.monthly", { weeks })}</p>
-            <h2 className="text-xl font-bold tracking-tight" data-testid="ai-reputation-count">
-              {copy("overview.prompts.rate.count", { n: formatCount(model.rate.linked + model.rate.named), m: formatCount(model.rate.samples) })}
-            </h2>
-            <p className="max-w-prose text-sm" data-testid="ai-reputation-band">
-              {model.rateShown
-                ? copy("overview.prompts.rate.band", { low: formatCount(percent(model.rate.low)), high: formatCount(percent(model.rate.high)) })
-                : copy(model.firstMeasurement ? "overview.tile.mention-rate.first" : "overview.tile.mention-rate.early", { weeks: formatCount(MENTION_RATE_MIN_WEEKS) })}
-            </p>
-            <p className={`max-w-prose text-sm ${INK}`}>{copy("overview.prompts.rate.reputation")}</p>
-          </>
-        )}
-        <ul className="flex min-w-0 flex-col gap-2 text-sm" data-testid="ai-lines">
-          <Line
-            testId="ai-line-linked"
-            label={copy("overview.answers.pages-cited.label")}
-            value={pages === null ? UNCHECKED : `${formatCount(pages.linked)} ${copy("overview.tile.ai.of", { m: formatCount(pages.asked), weeks: formatCount(pages.weeks) })}`}
-            note={
-              pages === null || pages.mentioned === 0
-                ? null
-                : pages.mentioned === 1
-                  ? copy("overview.answers.linked.mentioned.one")
-                  : copy("overview.answers.linked.mentioned", { n: formatCount(pages.mentioned) })
-            }
-          />
-          <Line
-            testId="ai-line-reads"
-            label={copy("overview.answers.reads.label")}
-            value={counted === null ? UNCHECKED : `${formatCount(counted.fetches)} ${copy("overview.answers.reads.of")}`}
-          />
-          {/* No visit yet: the line waits for the first one. */}
-          {counted !== null && counted.referrals === 0 ? null : (
-            <Line
-              testId="ai-line-visits"
-              label={copy("overview.answers.visits.label")}
-              value={counted === null ? UNCHECKED : `${formatCount(counted.referrals)} ${copy("overview.answers.visits.of")}`}
-            />
-          )}
-        </ul>
-      </div>
-    </section>
-  );
-}
-
-/** The board's tile per mark: a filled tile where AI links the page, a tint where it only names someone. */
-const MARK_TILE: Readonly<Record<AnswerMark, string>> = Object.freeze({
-  links_to_you: "bg-primary text-primary-content",
-  names_you: "bg-primary/15 text-primary",
-  names_others: "bg-base-200 text-base-content/70",
-  names_no_one: "bg-base-200 text-base-content/70",
-  no_answer: "bg-base-200 text-base-content/70",
-  not_measured: "bg-base-200 text-base-content/30",
-});
-
-/** The row's one count, said with its icon: the shared AI mark. */
-function MarkLabel(p: { mark: AiPageRow["mark"] }): React.JSX.Element {
+function Mark(p: { mark: AiMark }): React.JSX.Element {
   const { icon: Icon, key } = AI_MARK[p.mark];
   return (
-    <span className="flex items-center gap-1" data-testid="ai-page-mark" data-mark={p.mark}>
-      <Icon className="size-4" strokeWidth={1.75} aria-hidden />
+    <span className="inline-flex items-center gap-1" data-mark={p.mark}>
+      <Icon className="size-4 shrink-0" strokeWidth={1.75} aria-hidden />
       {copy(key)}
     </span>
   );
 }
 
-function PageRow(p: { row: AiPageRow }): React.JSX.Element {
-  const { row } = p;
-  const pair =
-    row.question === null
-      ? null
-      : renderQuestion({ wording: row.question.wording, provenance: copy("overview.answers.from", { search: row.question.search }) });
+function Question(p: { row: AiQuestionRow; timeZone: string }): React.JSX.Element {
+  const from = copy("overview.ai.from", { search: p.row.search, date: formatShortDay(p.row.lastAsked, p.timeZone) });
+  // The wording is shown only beside the search it came from.
+  const pair = p.row.wording === null ? null : renderQuestion({ wording: p.row.wording, provenance: from });
   return (
-    <li className="flex min-w-0 flex-col gap-2 border-t border-base-300 py-4" data-testid="ai-page">
-      <div className="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
-        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-          {row.href === null ? (
-            <span className="font-semibold">{row.title}</span>
-          ) : (
-            <Link className="link link-hover link-primary font-semibold" href={row.href} prefetch={false}>
-              {row.title}
-            </Link>
-          )}
-          {row.titleLabel === undefined ? null : <span className={`text-xs ${INK}`} data-testid="ai-page-title-label">{row.titleLabel}</span>}
-          {pair === null ? null : (
-            // REQ-093 c3: the wording is shown only beside the search it came from.
-            <p className={`text-xs break-words ${INK}`}>
-              <span className="font-mono">{pair[0].text}</span> <span>{pair[1].text}</span>
-            </p>
-          )}
-        </div>
-        <span className="flex shrink-0 items-center gap-2 text-sm font-semibold">
-          <span className="flex items-center gap-1" aria-hidden>
-            {row.dots.map((dot) => (
-              <span key={dot.name} aria-hidden className={`size-2.5 rounded-full ${dot.reached ? "bg-primary" : "border border-base-300"}`} />
-            ))}
-          </span>
-          <MarkLabel mark={row.mark} />
-        </span>
-      </div>
-      {row.question === null ? null : (
-        // One 44px row per engine on a phone, three tinted boxes from `sm`.
-        <ul className="grid min-w-0 sm:grid-cols-3 sm:gap-2" aria-label={copy("overview.answers.pages.engines")}>
-          {PAGE_ENGINES.map(({ engine, index }) => {
-            const mark = row.question!.marks[index] ?? "not_measured";
-            const Glyph = MARK_ICON[mark];
-            return (
-              <li key={engine} className="flex min-h-11 min-w-0 items-center gap-3 text-sm sm:rounded-box sm:bg-base-200 sm:p-2" data-mark={mark}>
-                <span className={`grid size-7 shrink-0 place-items-center rounded-full ${MARK_TILE[mark]}`} aria-hidden>
-                  <Glyph className="size-4" strokeWidth={1.75} />
-                </span>
-                <span className="grid min-w-0 flex-1 grid-cols-[7rem_minmax(0,1fr)] items-baseline gap-x-2 sm:flex sm:flex-col sm:gap-0">
-                  <span className="sm:text-xs">{copy(ENGINE_LABEL[engine])}</span>
-                  <span className="font-semibold">{copy(MARK_COPY_KEY[mark])}</span>
-                </span>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-    </li>
+    <span className="flex min-w-0 flex-col gap-0.5">
+      {pair === null ? null : <span className="line-clamp-2 font-semibold break-words">{pair[0].text}</span>}
+      <span className={`font-mono text-xs break-words ${INK}`}>{pair === null ? from : pair[1].text}</span>
+    </span>
   );
 }
 
-export function AiPagesCard(p: { pages: AiPages | null }): React.JSX.Element {
-  const rows = p.pages?.rows ?? [];
-  const list = (part: readonly AiPageRow[]) => (
-    <ul className="flex min-w-0 flex-col">
-      {part.map((row) => (
-        <PageRow key={row.id} row={row} />
-      ))}
-    </ul>
+function Page(p: { row: AiQuestionRow }): React.JSX.Element {
+  const { page } = p.row;
+  return page.href === null ? (
+    <span className="break-words">{page.title}</span>
+  ) : (
+    <Link className="link link-hover link-primary break-words" href={page.href} prefetch={false}>
+      {page.title}
+    </Link>
   );
+}
+
+/** Who else the latest answer named; a report from before rivals were kept says it was not recorded, never "no one". */
+function Also(p: { rivals: AiQuestionRow["rivals"] }): React.JSX.Element {
+  if (p.rivals === null)
+    return (
+      <span>
+        <span aria-hidden>{copy("unmeasured.dash")}</span>
+        <span className="sr-only">{copy("overview.ai.also.unrecorded.sr")}</span>
+      </span>
+    );
+  return <span className="break-words">{p.rivals.length === 0 ? copy("overview.ai.also.none") : p.rivals.join(" · ")}</span>;
+}
+
+const markOf = (row: AiQuestionRow, engine: AnswerEngine): AiMark => row.marks[engine] ?? "unchecked";
+
+export function AiQuestionsCard(p: { model: AiQuestions; all: boolean; timeZone: string }): React.JSX.Element {
+  const { model, all, timeZone } = p;
   return (
-    <section className={CARD} aria-labelledby="ai-pages-title" data-testid="ai-pages">
-      <div className="card-body min-w-0 gap-3 p-4 sm:p-5">
-        <h2 id="ai-pages-title" className="text-lg font-semibold">
-          {copy("overview.answers.pages.title")}
-        </h2>
-        {rows.length === 0 ? (
-          <p className={`text-sm ${INK}`} data-testid="ai-pages-none">
-            {copy("overview.answers.pages-cited.none")}
-          </p>
-        ) : (
-          <>
-            {list(rows.slice(0, SHOWN))}
-            {rows.length <= SHOWN ? null : (
-              <details className="collapse min-w-0">
-                <summary className="collapse-title flex min-h-11 items-center p-0 text-sm font-semibold text-primary" data-testid="ai-pages-all">
-                  {copy("overview.search.pages.all", { total: formatCount(rows.length) })}
-                </summary>
-                <div className="collapse-content min-w-0 px-0">{list(rows.slice(SHOWN))}</div>
-              </details>
-            )}
-          </>
-        )}
+    <section className="card card-border min-w-0 bg-base-100" data-testid="ai-questions">
+      <div className="hidden min-w-0 overflow-x-auto md:block">
+        <table className="table">
+          <caption className="sr-only">{copy("overview.ai.caption")}</caption>
+          <thead className="text-base-content/70">
+            <tr>
+              <th scope="col" className="w-[31%]">{copy("overview.ai.col.question")}</th>
+              {model.engines.map((engine) => (
+                <th key={engine} scope="col">{copy(ENGINE_LABEL[engine])}</th>
+              ))}
+              <th scope="col">{copy("overview.ai.col.page")}</th>
+              <th scope="col">{copy("overview.ai.col.also")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {model.rows.map((row, i) => (
+              <tr key={row.page.id} className={rowClass(i, all, true)} data-testid="ai-question">
+                <td>
+                  <Question row={row} timeZone={timeZone} />
+                </td>
+                {model.engines.map((engine) => (
+                  <td key={engine}>
+                    <Mark mark={markOf(row, engine)} />
+                  </td>
+                ))}
+                <td>
+                  <Page row={row} />
+                </td>
+                <td>
+                  <Also rivals={row.rivals} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <ul className="list min-w-0 md:hidden" aria-label={copy("overview.ai.caption")}>
+        {model.rows.map((row, i) => (
+          <li key={row.page.id} className={`list-row min-w-0 ${rowClass(i, all)}`} data-testid="ai-question-card">
+            <div className="flex min-w-0 flex-col gap-2">
+              <Question row={row} timeZone={timeZone} />
+              <ul className="flex min-w-0 flex-col gap-1 text-sm">
+                {model.engines.map((engine) => (
+                  <li key={engine} className="flex min-w-0 flex-wrap items-center gap-x-1">
+                    <span>{copy("overview.ai.engine", { engine: copy(ENGINE_LABEL[engine]) })}</span>
+                    <Mark mark={markOf(row, engine)} />
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </li>
+        ))}
+      </ul>
+      <div className="flex min-w-0 justify-center p-3 empty:hidden">
+        <Suspense fallback={null}>
+          <ShowAll total={model.rows.length} label={copy("overview.detail.show-all.questions", { n: formatCount(model.rows.length) })} />
+        </Suspense>
       </div>
     </section>
   );
 }
 
-/** One bar per name: its count, and a track as long as the largest. */
-function Bars(p: { rows: readonly { name: string; count: number; own?: boolean }[]; label: string }): React.JSX.Element {
-  const most = Math.max(1, ...p.rows.map((row) => row.count));
+/** No page's question asked yet: when the first one is. */
+export function AiNone(p: { due: Date; timeZone: string }): React.JSX.Element {
   return (
-    <ul className="flex min-w-0 flex-col gap-2" aria-label={p.label}>
-      {p.rows.map((row) => (
-        <li key={row.name} className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1">
-          <span className={`min-w-0 text-sm break-words ${row.own === true ? "font-semibold" : ""}`}>{row.name}</span>
-          <span className="num text-sm">{formatCount(row.count)}</span>
-          <progress className={`progress col-span-full ${row.own === true ? "progress-primary" : ""}`} value={row.count} max={most} aria-hidden />
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-/** Which engines read the pages and sent people, this week; hosted pages only. */
-export function WhoReads(p: { reads: BlogReadsModel }): React.JSX.Element | null {
-  const counted = countedReads(p.reads);
-  if (counted === null) return null;
-  const rows = (pick: "fetches" | "referrals") =>
-    p.reads.byEngine.filter((row) => row[pick] > 0).map((row) => ({ name: copy(BLOG_ENGINE[row.engine]), count: row[pick] }));
-  return (
-    <details className={`${CARD} ${CLOSED.root}`} data-testid="ai-who">
-      <summary className="collapse-title flex min-h-0 min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1 p-4 pe-10">
-        <h2 className="text-base font-semibold">{copy("overview.answers.who.title")}</h2>
-      </summary>
-      <div className="collapse-content flex min-w-0 flex-col gap-2 px-4">
-        <h3 className="font-semibold">{copy("overview.answers.who.reads")}</h3>
-        <Bars rows={rows("fetches")} label={copy("overview.answers.who.reads")} />
-        <h3 className="mt-2 font-semibold">{copy("overview.answers.visits.label")}</h3>
-        <Bars rows={rows("referrals")} label={copy("overview.answers.visits.label")} />
-      </div>
-    </details>
-  );
-}
-
-const QUESTIONS_SHOWN = 3;
-
-/** The questions asked, who else the answers mentioned, closing on the grid of the twelve. */
-export function Reputation(p: { model: PromptsModel; children: React.ReactNode }): React.JSX.Element | null {
-  if (p.model.kind !== "measured") return null;
-  const { rate } = p.model;
-  const asked = p.model.prompts.filter((prompt) => prompt.kind !== "branded");
-  return (
-    <details className={`${CARD} ${CLOSED.root}`} data-testid="ai-reputation">
-      <summary className="collapse-title flex min-h-0 min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1 p-4 pe-10">
-        <h2 className="text-base font-semibold">{copy("overview.prompts.list.title")}</h2>
-      </summary>
-      <div className="collapse-content flex min-w-0 flex-col gap-3 px-4">
-        <ul className="flex min-w-0 list-disc flex-col gap-1 ps-5 text-sm">
-          {asked.slice(0, QUESTIONS_SHOWN).map((prompt) => (
-            <li key={prompt.id}>{prompt.text}</li>
-          ))}
-        </ul>
-        <p className={`text-sm ${INK}`}>
-          {copy("overview.prompts.list.count", {
-            n: formatCount(Math.min(QUESTIONS_SHOWN, asked.length)),
-            m: formatCount(asked.length),
-          })}
-        </p>
-        {p.model.shareOfVoice === null ? (
-          <p className={`text-sm ${INK}`}>{copy("overview.prompts.share.none")}</p>
-        ) : (
-          <Bars
-            label={copy("overview.prompts.share.label")}
-            rows={[
-              { name: copy("overview.prompts.share.you"), count: rate.linked + rate.named, own: true },
-              ...p.model.rivals.map((rival) => ({ name: rival.domain, count: rival.answers })),
-            ]}
-          />
-        )}
-        {p.children}
-      </div>
-    </details>
+    <p className={`max-w-prose ${INK}`} data-testid="ai-none">
+      {copy("overview.ai.none", { date: formatShortDay(p.due, p.timeZone) })}
+    </p>
   );
 }
