@@ -6,8 +6,8 @@ Supply: 5 of 10 committed, short 3; stored topics product 5, category 5, best_x 
 
 | Place | Day | Search | Type | Page | Fit | Volume | Points | Parts | Rule | Written as |
 |---|---|---|---|---|---|---|---|---|---|---|
-| 0 | 2026-10-19 | inkbox alternatives | comparison_page | listicle | 3 | 390 | 3 | fit 3 + demand 2 + outsized -2 | best | — |
-| 1 | 2026-10-20 | inked by dani alternatives | comparison_page | listicle | 3 | — | 3 | fit 3 | best | — |
+| 0 | 2026-10-19 | inked by dani alternatives | comparison_page | listicle | 3 | — | 4 | fit 3 + demand 1 | best | — |
+| 1 | 2026-10-20 | inkbox alternatives | comparison_page | listicle | 3 | 390 | 3 | fit 3 + demand 2 + outsized -2 | best | — |
 | 2 | 2026-10-21 | easytatt alternatives | comparison_page | listicle | 3 | — | 3 | fit 3 | best | — |
 | 3 | 2026-10-22 | ink bond alternatives | comparison_page | listicle | 3 | — | 3 | fit 3 | best | — |
 | 4 | 2026-10-23 | tattooed now alternatives | comparison_page | listicle | 3 | — | 3 | fit 3 | best | — |
