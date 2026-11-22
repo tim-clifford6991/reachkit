@@ -6,6 +6,7 @@
 import type React from "react";
 import Link from "next/link";
 import { copy } from "@/lib/presentation/copy";
+import { Quote } from "lucide-react";
 import { DayStateBadge, KindChip } from "./DayCard";
 import type { DayKey } from "./dates";
 import { DAY_ROW, REGION, WEEK_LIST } from "./frame";
@@ -52,6 +53,12 @@ function DayRow(p: { card: CardModel; selected: boolean; onSelect: (day: DayKey)
         {card.lines.length === 0 ? null : (
           <span className="min-w-0 text-sm text-base-content/70 wrap-anywhere" data-testid="cell-lines">
             {card.lines.join(" · ")}
+          </span>
+        )}
+        {card.sources === null ? null : (
+          <span className="flex min-w-0 items-center gap-1 text-sm text-base-content/70" data-testid="cell-sources">
+            <Quote aria-hidden className="size-4 shrink-0" />
+            {card.sources}
           </span>
         )}
         {card.emptyLine === null ? null : (
