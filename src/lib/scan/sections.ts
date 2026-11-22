@@ -235,13 +235,15 @@ const CITATION = /\[\^[^\]]*\]|\[\d+(?:\s*[,–-]\s*\d+)*\]|【[^】]*】|\^\d+\
 /** A link whose words are only a citation number: the citation, not the answer's words. */
 const CITATION_LINK = /^\s*[[【]?\^?\d+(?:\s*[,–-]\s*\d+)*[\]】]?\s*$/;
 
-/** What a quote may not hold after the parse: an address, a bracket, a tag or strikethrough mark, a table bar or a list mark. */
-const NOT_WORDS = /https?:|www\.|[[\]【】<>|*]|~~|^(?:\d+[.)]|[•+–-])\s/;
+/** What a quote may not hold after the parse: an address, a bracket or one emptied of its citations, a tag, note or strikethrough mark, a table bar or a list mark. */
+const NOT_WORDS = /https?:|www\.|[[\]【】<>|*^]|\([^\p{L}\p{N}]*\)|~~|^(?:\d+[.)]|[•+–-])\s/u;
 
 /** A phrase's own words: a link keeps its words, a line break is a space, and images, raw HTML and anything else go. */
 function wordsOf(node: Md, bold: string[]): string {
   if (node.type === "text" || node.type === "inlineCode") return node.value ?? "";
-  if (node.type === "break" || node.type === "html") return " ";
+  // A superscript's number would read as the answer's own word, so it marks the sentence as no clean quote.
+  if (node.type === "html") return /^<sup\b/i.test(node.value ?? "") ? "<" : " ";
+  if (node.type === "break") return " ";
   if (!["strong", "emphasis", "link", "linkReference"].includes(node.type)) return "";
   const words = (node.children ?? []).map((child) => wordsOf(child, bold)).join("");
   if (node.type.startsWith("link") && CITATION_LINK.test(words)) return "";
@@ -269,6 +271,9 @@ function sentenceOf(raw: string, language?: string): { text: string; bold: strin
     // The platform's sentence rules hold in any script and leave the answer's own "e.g." a word; a quote is a whole sentence.
     const text = [...new Intl.Segmenter(language, { granularity: "sentence" }).segment(words)][0]?.segment.trim();
     if (text === undefined || !/[.!?。！？؟…]["”’»)]?$/u.test(text) || text.length > QUOTE_MAX || text.split(" ").length < 4 || NOT_WORDS.test(text)) return null;
+    // A cut after an initial or a short title ("J.", "Dr.", "z.") is half a sentence when the paragraph goes on.
+    const last = [...new Intl.Segmenter(language, { granularity: "word" }).segment(text)].filter((w) => w.isWordLike).at(-1)?.segment ?? "";
+    if (text.length < words.length && text.endsWith(`${last}.`) && /^(?:\p{L}|\p{Lu}\p{Ll}{1,2})$/u.test(last)) return null;
     return { text, bold: bold.filter((name) => name !== "" && text.includes(name)) };
   }
   return null;
