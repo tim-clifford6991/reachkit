@@ -23,10 +23,10 @@ function Dash(p: { sr: string }): React.JSX.Element {
   );
 }
 
-function Search(p: { row: GoogleSearchRow }): React.JSX.Element {
+function Search(p: { row: GoogleSearchRow; plain?: boolean }): React.JSX.Element {
   const text = p.row.search ?? p.row.page.title;
   const { href } = p.row.page;
-  return href === null ? (
+  return href === null || p.plain === true ? (
     <span className="font-mono text-sm break-words">{text}</span>
   ) : (
     <Link className="link link-hover font-mono text-sm break-words" href={href} prefetch={false}>
@@ -100,15 +100,27 @@ export function GoogleTable(p: {
             </table>
           </div>
           <ul className="list min-w-0 md:hidden" aria-label={copy("overview.google.title")}>
-            {rows.map((row, i) => (
-              <li key={row.page.id} className={`list-row min-w-0 ${rowClass(i, all)}`} data-testid="google-page-card">
-                <div className="flex min-w-0 flex-col gap-1">
-                  <Search row={row} />
+            {rows.map((row, i) => {
+              // On a phone the whole row is the page's link.
+              const body = (
+                <>
+                  <Search row={row} plain />
                   <span className="font-semibold">{place(row, p.first)}</span>
                   <span className={`text-sm ${INK}`}>{doing(row, p.planned)}</span>
-                </div>
-              </li>
-            ))}
+                </>
+              );
+              return (
+                <li key={row.page.id} className={`list-row min-w-0 p-0 ${rowClass(i, all)}`} data-testid="google-page-card">
+                  {row.page.href === null ? (
+                    <div className="list-col-grow flex min-w-0 flex-col gap-1 p-4">{body}</div>
+                  ) : (
+                    <Link className="list-col-grow flex min-h-11 min-w-0 flex-col gap-1 p-4" href={row.page.href} prefetch={false}>
+                      {body}
+                    </Link>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </>
       )}

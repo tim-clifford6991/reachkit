@@ -233,6 +233,7 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.google.none": "No page is live yet, so Google has nothing of yours to show.",
   "overview.google.none.next": "Your first goes live {day} at {time}.",
   "overview.google.empty.showing": "No page is showing on Google yet. Most new pages take weeks.",
+  "overview.google.empty.due": "Google is first checked {date}. Until then, All shows your live pages.",
   "overview.google.empty.not-yet": "Every live page is showing on Google.",
   "overview.google.unread": "We couldn’t check Google this week. These are the places from {date}.",
 

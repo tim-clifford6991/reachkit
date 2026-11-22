@@ -8,7 +8,7 @@ import type React from "react";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { copy } from "@/lib/presentation/copy";
-import { formatCount, formatDay, formatShortDay, formatTime } from "../../_shell/format";
+import { formatCount, formatShortDay, formatTime } from "../../_shell/format";
 import { readShell } from "../../_shell/provider";
 import { readPlanned } from "../../_overview/google-pages";
 import { GoogleFilter } from "../../_overview/GoogleFilter";
@@ -59,7 +59,7 @@ export default async function SearchTabPage(p: { searchParams: Promise<Record<st
       {live === 0 ? (
         <p className={`max-w-prose ${INK}`} data-testid="google-none">
           {copy("overview.google.none")}
-          {next === null ? null : ` ${copy("overview.google.none.next", { day: formatDay(next, shell.timeZone), time: formatTime(next, shell.timeZone) })}`}
+          {next === null ? null : ` ${copy("overview.google.none.next", { day: formatShortDay(next, shell.timeZone), time: formatTime(next, shell.timeZone) })}`}
         </p>
       ) : (
         <>
@@ -73,7 +73,7 @@ export default async function SearchTabPage(p: { searchParams: Promise<Record<st
             all={all}
             first={firstReading(shell.nextDueOn, shell.timeZone)}
             planned={planned}
-            empty={copy(show === "not-yet" ? "overview.google.empty.not-yet" : "overview.google.empty.showing")}
+            empty={!counted ? copy("overview.google.empty.due", { date: formatShortDay(shell.nextDueOn, shell.timeZone) }) : copy(show === "not-yet" ? "overview.google.empty.not-yet" : "overview.google.empty.showing")}
             checked={read === null ? null : copy("overview.detail.checked", { date: read })}
           />
         </>
