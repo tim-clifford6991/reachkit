@@ -122,7 +122,7 @@ function liveAt(pages: readonly TilePage[], t: number): Map<string, TilePage> {
   return out;
 }
 
-function diff(now: number, before: number): TileChange {
+function diff(now: number, before: number): Extract<TileChange, { kind: "up" | "down" | "same" }> {
   return now > before ? { kind: "up", n: now - before } : now < before ? { kind: "down", n: before - now } : { kind: "same" };
 }
 
