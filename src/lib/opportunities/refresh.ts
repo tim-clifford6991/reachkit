@@ -16,7 +16,9 @@
 //   close          its own address ranks 4–30 for its search and `GAP_REFRESH.stalledReadings` readings hold no gain;
 //                  it may add up to three sections the top results cover (`headingGaps`);
 //   stale_prices   a listicle or comparison states a rival price read more than 30 days ago;
-//   not_indexed    Google's coverage line kept it out of the index for `NOT_INDEXED_WEEKS` weekly readings in a row.
+//   not_indexed    Google's coverage line kept it out of the index for `NOT_INDEXED_WEEKS` weekly readings in a row;
+//   snippet        a hosted page Google showed `SNIPPET_REFRESH_IMPRESSIONS` times in 28 days with no click and no
+//                  counted visit: its title and description are rewritten, nothing else.
 // §6's floor (`REFRESH_MIN_AGE_DAYS`) stands for every cause. A page the customer edited, stopped a refresh of, or took
 // down is theirs: no cause plans it. A climbing page is left alone by every cause its results drive; one still not
 // moving 8 weeks after its refresh has its question retired. A page never seen in a stored SERP or ranked row is not
@@ -32,6 +34,7 @@ import {
   PACE,
   REFRESH_MIN_AGE_DAYS,
   RIVAL_PRICE_MAX_AGE_D,
+  SNIPPET_REFRESH_IMPRESSIONS,
   UNSEEN_AFTER_DAYS,
   UNSEEN_LINK_EVERY_DAYS,
 } from "@/lib/config/constants";
@@ -42,7 +45,7 @@ import { ownMeasurementIn } from "@/lib/generate/rules/figures";
 import { storedStructure, structureDefects, type StructureDefect } from "@/lib/generate/rules/structure";
 import { takenDownByCustomer } from "@/lib/publish/take-down/standing";
 import { measured } from "@/lib/measure/measured";
-import { canonicalUrl, readingOf, type PageReading } from "@/lib/measure/page-reading";
+import { canonicalUrl, googleRead, readingOf, type PageReading } from "@/lib/measure/page-reading";
 import type { Candidate } from "./derive/candidate";
 import { persist } from "./derive/persist";
 import { closestPrompt, measuredVolume } from "./intent";
@@ -107,6 +110,11 @@ export interface OwnLivePage {
   reading?: Pick<PageReading, "first" | "best"> & Partial<Pick<PageReading, "place" | "unindexedWeeks">>;
   /** A version of this page was already refreshed for not moving. */
   flatRefreshed?: boolean;
+  /** On a hosted page, its current publication and Search Console's 28 days; `searchVisits` are its counted Google
+   *  visits over the same days, absent where unread. */
+  publicationId?: string;
+  shown?: { impressions: number; clicks: number };
+  searchVisits?: number;
 }
 
 export interface RefreshPools {
@@ -114,13 +122,9 @@ export interface RefreshPools {
   siteText: readonly { url: string; text: string; measuredAt: Date }[];
   /** Every market claim the site's drafts recorded. */
   market: readonly (RecordedPassage & { readAt: Date })[];
-  /** The searches the current report measured, with their monthly volume:
-   *  what an unmet page with no measured search is retargeted among (D60).
-   *  Absent reads as none. */
+  /** The searches the current report measured, which an unmet page with no measured search is retargeted among (D60). */
   searches?: readonly { keyword: string; volume: number }[];
-  /** Issue 1521: the site's own ranked rows the current report holds — each
-   *  search, the address that ranks for it and its place. Absent reads as
-   *  none. */
+  /** The site's own ranked rows the current report holds; absent reads as none. */
   ranked?: readonly { keyword: string; url: string; position: number }[];
 }
 
@@ -154,8 +158,7 @@ function hasNewerFact(page: OwnLivePage, pools: RefreshPools): boolean {
   );
 }
 
-/** Issue 1521: the best place the page's own address holds for its search
- *  in the stored ranked rows, or `null` where it holds none. */
+/** The best place the page's own address holds for its search in the stored ranked rows, or `null`. */
 export function ownPlace(page: Pick<OwnLivePage, "url" | "row">, pools: Pick<RefreshPools, "ranked">): number | null {
   const search = squashed(page.row.targetQuery ?? "");
   if (search === "") return null;
@@ -172,15 +175,13 @@ function isClose(page: OwnLivePage, pools: RefreshPools): boolean {
   return place !== null && place >= CLOSE_PAGE_POSITION_BAND.min && place <= GAP_REFRESH.maxPlace && stalled(page.readings ?? []);
 }
 
-/** The last `GAP_REFRESH.stalledReadings` readings hold no place better than
- *  the first of them. */
+/** The last `GAP_REFRESH.stalledReadings` readings hold no place better than the first of them. */
 export function stalled(readings: readonly number[]): boolean {
   const last = readings.slice(-GAP_REFRESH.stalledReadings);
   return last.length === GAP_REFRESH.stalledReadings && Math.min(...last.slice(1)) >= last[0]!;
 }
 
-/** Its results plan no refresh: it is climbing, or it is still not moving
- *  after its one refresh for that. */
+/** Its results plan no refresh: it is climbing, or still not moving after its one refresh for that. */
 function leftAlone(page: OwnLivePage, at: Date): boolean {
   return (page.reading !== undefined && climbing(page.reading, at)) || (page.flatRefreshed === true && page.unmet === true);
 }
@@ -190,10 +191,17 @@ function isFlatRefresh(o: Pick<Opportunity, "evidence">): boolean {
   return o.evidence?.family === "improve" && o.evidence.shortfall?.kind === "due" && o.evidence.shortfall.cause === "unmet";
 }
 
-/** Issue 1521: a rival price the page was written from is older than D59
- *  lets a pack hold one. */
+/** A rival price the page was written from is older than D59 lets a pack hold one. */
 function pricesStale(page: Pick<OwnLivePage, "oldestPrice">, at: Date): boolean {
   return page.oldestPrice !== undefined && at.getTime() - page.oldestPrice.getTime() > RIVAL_PRICE_MAX_AGE_D * DAY_MS;
+}
+
+const shownUnclicked = (page: OwnLivePage): boolean =>
+  page.publicationId !== undefined && (page.shown?.impressions ?? 0) >= SNIPPET_REFRESH_IMPRESSIONS && page.shown?.clicks === 0;
+
+/** Google shows it and nobody comes: read only where both counts were read, and never on a page the customer owns. */
+function snippetDue(page: OwnLivePage): boolean {
+  return shownUnclicked(page) && page.searchVisits === 0 && page.edited !== true && page.stopped !== true;
 }
 
 /** Why this page is due at `at`, or `null` where it is not. */
@@ -207,6 +215,7 @@ export function refreshCauseOf(page: OwnLivePage, pools: RefreshPools, at: Date)
   if (!held && page.unmet === true && page.seen !== false) return "unmet";
   if (!held && page.declined) return "lost_position";
   if (!held && isClose(page, pools)) return "close";
+  if (!held && snippetDue(page)) return "snippet";
   if (hasNewerFact(page, pools)) return "newer_fact";
   if (pricesStale(page, at)) return "stale_prices";
   if (age >= PACE.REFRESH_AGE_DAYS * DAY_MS) return "aged";
@@ -214,8 +223,7 @@ export function refreshCauseOf(page: OwnLivePage, pools: RefreshPools, at: Date)
   return (page.structure ?? []).length > 0 && page.edited !== true ? "structure" : null;
 }
 
-/** Issue 1538: a live page of ours whose reading holds no Found step,
- *  `UNSEEN_AFTER_DAYS` after its version went live. */
+/** A live page of ours whose reading holds no Found step `UNSEEN_AFTER_DAYS` after its version went live. */
 export function unseenDue(page: OwnLivePage, at: Date): boolean {
   return (
     page.found === false &&
@@ -225,16 +233,8 @@ export function unseenDue(page: OwnLivePage, at: Date): boolean {
   );
 }
 
-/**
- * Issue 1538: for each page `unseenDue`, one link in from the strongest live
- * page of its cluster — the sibling not itself unfound whose stored reading
- * holds the best place, the oldest first among equals — planned as that
- * page's `link` refresh (issue 1391). A sibling the customer edited, stopped
- * or took down, or younger than the floor, is passed over. Nothing is
- * planned where a sibling already links the page, where a link into it was
- * planned lately, or where the page has no cluster or no such sibling. One
- * row a sibling. Pure.
- */
+/** For each page `unseenDue`, a `link` refresh of its cluster's best-placed found sibling the customer left alone,
+ *  past the floor; none where a sibling links it, one was planned lately, or no sibling qualifies. One row a sibling. Pure. */
 export function unseenLinkCandidates(pages: readonly OwnLivePage[], at: Date): Candidate[] {
   const planned = new Map<string, Candidate>();
   for (const page of pages) {
@@ -264,34 +264,24 @@ export function unseenLinkCandidates(pages: readonly OwnLivePage[], at: Date): C
       )[0];
     if (strongest === undefined || planned.has(addressKey(strongest.url))) continue;
     const title = (page.title ?? "").trim() || (page.row.targetQuery ?? "");
-    planned.set(addressKey(strongest.url), refreshOf(strongest, "link", at, { url: page.url, title }));
+    planned.set(addressKey(strongest.url), refreshOfPage(strongest, "link", at, { url: page.url, title }));
   }
   return [...planned.values()];
 }
 
-/** The address as two addresses are compared: host without `www.`, no
- *  trailing slash, case folded. */
+/** The address as two addresses are compared: host without `www.`, no trailing slash, case folded. */
 export function addressKey(url: string): string {
   return url.trim().toLowerCase().replace(/^https?:\/\/(www\.)?/, "").replace(/[#?].*$/, "").replace(/\/+$/, "");
 }
 
-/**
- * Links in both directions (issue 1391): the older live pages that gain a
- * link to the page at `freshUrl`, nearest first, at most
- * `CROSS_LINKS.BACK_PAGES_MAX`. Pure.
- *
- * Nearest is read off the site's own pages: the words two pages' titles and
- * searches share, each weighed by how few of the site's pages carry it — so
- * "best" and "how", which half the titles hold, count for little, and the
- * subject the two have in common counts for most. A page of the same
- * cluster comes first. A page that shares no word of four letters or more
- * is not near at all.
- */
+/** The older live pages that gain a link to the page at `freshUrl`, nearest first, at most `CROSS_LINKS.BACK_PAGES_MAX`.
+ *  Nearest weighs each shared title or search word by how few pages carry it, so the common subject counts most and
+ *  "best" little; the same cluster comes first, and no shared word of four letters is not near. Pure. */
 export function linkBackCandidates(pages: readonly OwnLivePage[], freshUrl: string, at: Date): Candidate[] {
   return linkBacksAmong(pages, freshUrl, at).filter((candidate) => !takenDownAt(pages, candidate.targetRef));
 }
 
-/** Whether the page at `url` is one its customer took down (issue 1532). */
+/** Whether the page at `url` is one its customer took down. */
 function takenDownAt(pages: readonly OwnLivePage[], url: string | null): boolean {
   return url !== null && pages.some((page) => page.takenDown === true && addressKey(page.url) === addressKey(url));
 }
@@ -331,22 +321,12 @@ function linkBacksAmong(pages: readonly OwnLivePage[], freshUrl: string, at: Dat
     .filter((each) => each.score > 0)
     .sort((x, y) => y.score - x.score || y.page.publishedAt.getTime() - x.page.publishedAt.getTime())
     .slice(0, CROSS_LINKS.BACK_PAGES_MAX)
-    .map(({ page }) => refreshOf(page, "link", at, { url: fresh.url, title: freshTitle }));
+    .map(({ page }) => refreshOfPage(page, "link", at, { url: fresh.url, title: freshTitle }));
 }
 
-/** The refresh of one page, for one cause. A live page the topic recheck
- *  keeps for what it already earns is refreshed this way too (issue 1506). */
+/** The refresh of one page, for one cause; a live page the topic recheck keeps is refreshed this way too. */
 export function refreshOfPage(
-  page: Pick<OwnLivePage, "url" | "publishedAt" | "row">,
-  cause: RefreshCause,
-  at: Date,
-  link?: { url: string; title: string; replaces?: string }
-): Candidate {
-  return refreshOf(page, cause, at, link);
-}
-
-function refreshOf(
-  page: Pick<OwnLivePage, "url" | "publishedAt" | "row"> & Partial<Pick<OwnLivePage, "structure">>,
+  page: Pick<OwnLivePage, "url" | "publishedAt" | "row"> & Partial<Pick<OwnLivePage, "structure" | "shown">>,
   cause: RefreshCause,
   at: Date,
   link?: { url: string; title: string; replaces?: string },
@@ -366,6 +346,7 @@ function refreshOf(
       ...(link === undefined ? {} : { link }),
       ...(cause === "structure" ? { defects: [...(page.structure ?? [])] } : {}),
       ...(place === null ? {} : { place }),
+      ...(cause === "snippet" && page.shown !== undefined ? { shown: page.shown.impressions } : {}),
     },
     ...("target" in row.evidence && row.evidence.target !== undefined ? { target: row.evidence.target } : {}),
   };
@@ -395,9 +376,7 @@ export function refreshCandidates(pages: readonly OwnLivePage[], pools: RefreshP
     if (page.takenDown === true) return [];
     const cause = refreshCauseOf(page, pools, at);
     if (cause === null || row.targetQuery === null) return [];
-    // SPEC §6 (D60, issue 1288): an unmet page whose own search has no
-    // measured volume is rewritten for the closest measured search, where
-    // one is close; otherwise it is refreshed for the search it has.
+    // D60: an unmet page whose search has no measured volume is rewritten for the closest measured one, if any.
     if (cause === "unmet" && measuredVolume(row.volume) === null) {
       const taken = new Set(pages.map((other) => squashed(other.row.targetQuery ?? "")));
       const open = (pools.searches ?? [])
@@ -406,7 +385,7 @@ export function refreshCandidates(pages: readonly OwnLivePage[], pools: RefreshP
       const target = closestPrompt(row.targetQuery, open);
       if (target !== null) return [retargetCandidate(page, { target: target.text, volume: target.volume, at })];
     }
-    return [refreshOf(page, cause, at, undefined, page.readPlace ?? ownPlace(page, pools))];
+    return [refreshOfPage(page, cause, at, undefined, page.readPlace ?? ownPlace(page, pools))];
   });
 }
 
@@ -437,12 +416,7 @@ function passagesOf(value: unknown): (RecordedPassage & { readAt: Date | null })
   });
 }
 
-/**
- * Whether a version that is not a research page states one of the site's
- * own measurements (issue 1490): a measurement of a report sentence its
- * pack held, found in its body. A research page, and a version written
- * before the pack, state none.
- */
+/** Whether a version that is not a research page states a measurement of a report sentence its pack held. */
 export function statesOwnFigures(meta: unknown, markdown: string): boolean {
   const own = withheldMeasurements({ facts: [], queries: [], reportPassages: withheldReportPassages(meta) });
   return ownMeasurementIn(markdown.replace(/\s+/g, " "), own) !== null;
@@ -500,8 +474,7 @@ export async function ownLivePages(siteId: string): Promise<OwnLivePage[]> {
     if (publication.live_url === null || publication.published_at === null || opportunity === null) continue;
     if (typeof opportunity.family !== "string" || typeof opportunity.id !== "string") continue;
     const url = now(publication.live_url);
-    // A retarget of one of ours moved it to an address of its own (issue
-    // 1487): the page there is still ours.
+    // A retarget of one of ours moved it to an address of its own: the page there is still ours.
     if (opportunity.family === "write" || opportunity.family === "earn" || isRetarget(readOpportunity(opportunity))) ours.add(url);
     // A fix of a page's metadata is not a version of its content.
     if (opportunity.family === "fix") continue;
@@ -512,9 +485,9 @@ export async function ownLivePages(siteId: string): Promise<OwnLivePage[]> {
     const reading = readingOf(publication.search_reading);
     const readPlace = reading?.place?.value;
     const found = foundIn(publication.search_reading, publication.destination);
+    const shown = publication.destination === "hosted" ? googleRead(reading?.google) : null;
     if (isFlatRefresh(readOpportunity(opportunity))) flat.add(url);
-    // Issue 1507: a mended version is dated as the one it mended, so a
-    // repair in code does not make a page look newer than its words.
+    // A mended version is dated as the one it mended, so a repair in code does not make a page look newer than its words.
     const dated = typeof meta.datedAs === "string" ? new Date(meta.datedAs) : null;
     pages.set(url, {
       url,
@@ -536,6 +509,7 @@ export async function ownLivePages(siteId: string): Promise<OwnLivePage[]> {
       readings: readings.get(publication.id) ?? [],
       ...(reading === null ? {} : { reading }),
       flatRefreshed: flat.has(url),
+      ...(shown === null ? {} : { publicationId: publication.id, shown: { impressions: shown.impressions, clicks: shown.clicks } }),
       structure: structureDefects(
         storedStructure({
           markdown: publication.drafts?.body_md ?? "",
@@ -550,16 +524,13 @@ export async function ownLivePages(siteId: string): Promise<OwnLivePage[]> {
   return [...pages.values()].filter((page) => ours.has(page.url));
 }
 
-/** Issue 1538: whether a stored search reading reached Found; `undefined`
- *  where nothing measures it — no reading, or a WordPress page, which has
- *  no server logs and no Search Console property of ours. */
+/** Whether a stored search reading reached Found; `undefined` with no reading or on WordPress, which we cannot measure. */
 export function foundIn(searchReading: unknown, destination: string | undefined): boolean | undefined {
   const reading = readingOf(searchReading);
   return reading === null || destination === "wordpress" ? undefined : reading.reached.found !== undefined;
 }
 
-/** Issue 1521: when the oldest rival price among a version's recorded
- *  market facts was read, or `undefined` where it records none. */
+/** When the oldest rival price among a version's recorded market facts was read, or `undefined`. */
 export function oldestPriceOf(value: unknown): Date | undefined {
   if (!Array.isArray(value)) return undefined;
   let oldest: Date | undefined;
@@ -599,30 +570,23 @@ async function readPools(siteId: string): Promise<RefreshPools> {
     report === null || report.questions.kind === "unmeasured"
       ? []
       : report.questions.value.map((question) => ({ keyword: question.search.keyword, volume: question.search.volume }));
-  // Issue 1521: the ranked rows the pass already bought, which `close` reads.
+  // The ranked rows the pass already bought, which `close` reads.
   const ranked = (report?.ownRankedRows ?? []).map((row) => ({ keyword: row.keyword, url: row.url, position: row.position }));
   return { siteText: await readMeasuredText({ siteId }), market, searches, ranked };
 }
 
-/**
- * Writes the refresh of every live page of ours that is due, after the
- * Monday verdicts and before readiness is recorded. Returns how many rows it
- * added. It never throws: a week whose pages could not be read plans no
- * refresh, and the week's new pages are untouched.
- */
+/** Writes the refresh of every live page of ours that is due, after the Monday verdicts and before readiness; returns
+ *  the rows added. It never throws: a week whose pages could not be read plans no refresh. */
 export async function planRefreshes(a: { siteId: string; at: Date }): Promise<number> {
   try {
     const store = opportunityStore();
     const { pages, pools } = await store.refreshInputs(a.siteId);
     if (pages.length === 0) return 0;
-    // A refresh whose version is live is finished. Nothing else moves a
-    // written row out of `queued`, and a queued refresh would hold the
-    // page's one place in the index against every later one.
+    // A refresh whose version is live is finished; a queued one would hold the page's one open place forever.
     for (const { row } of pages) {
       if (row.status === "queued" && isOwnRefresh(row)) await store.markDone(row.id);
     }
-    // Issue 1538: D13's check, run again on the live text of each page no
-    // stored search result has held. A database read; nothing is bought.
+    // D13's check, run again on the live text of each page no stored search result has held: a database read.
     const unseen = pages.filter((page) => unseenDue(page, a.at));
     const close = new Set<OwnLivePage>();
     if (unseen.length > 0) {
@@ -631,8 +595,13 @@ export async function planRefreshes(a: { siteId: string; at: Date }): Promise<nu
         if ((await closeElsewhere({ siteId: a.siteId, markdown: page.markdown ?? "", now: a.at })) !== null) close.add(page);
       }
     }
-    const checked = pages.map((page) => (close.has(page) ? { ...page, closeElsewhere: true } : page));
-    const stopped = unseen.length === 0 ? new Set<string>() : await stoppedRefreshes(a.siteId);
+    const visits = await searchVisits(a.siteId, pages, a.at);
+    const stopped = unseen.length === 0 && visits.size === 0 ? new Set<string>() : await stoppedRefreshes(a.siteId);
+    const checked = pages.map((page) => ({
+      ...page,
+      ...(close.has(page) ? { closeElsewhere: true } : {}),
+      ...(visits.has(page) ? { ...visits.get(page), stopped: stopped.has(addressKey(page.url)) } : {}),
+    }));
     const linked = unseen.length === 0 ? new Set<string>() : await linkedLately(a.siteId, a.at);
     const candidates = [
       ...refreshCandidates(checked, pools, a.at),
@@ -642,7 +611,7 @@ export async function planRefreshes(a: { siteId: string; at: Date }): Promise<nu
       ),
     ];
     const { created } = await persist({ candidates });
-    // Issue 1521: a close page's refresh is its one open row.
+    // A close page's refresh is its one open row.
     if (candidates.some(isCloseRefresh)) {
       const open = (await store.openRankable(a.siteId)).map(readOpportunity);
       for (const id of absorbedBy(candidates, open)) await store.markDismissed(id);
@@ -652,6 +621,18 @@ export async function planRefreshes(a: { siteId: string; at: Date }): Promise<nu
     console.error(JSON.stringify({ event: "refresh_plan_failed", siteId: a.siteId, message: String(error) }));
     return 0;
   }
+}
+
+/** Each hosted page Google showed with no click, with its counted Google visits; a page whose count was unread is left out. */
+async function searchVisits(siteId: string, pages: readonly OwnLivePage[], at: Date): Promise<Map<OwnLivePage, { searchVisits: number }>> {
+  const { readPageVisits } = await import("@/lib/publish/reads/store");
+  const read = new Map<OwnLivePage, { searchVisits: number }>();
+  for (const page of pages) {
+    if (!shownUnclicked(page)) continue;
+    const visits = await readPageVisits({ siteId, publicationId: page.publicationId!, since: page.publishedAt, now: at });
+    if (visits.kind === "counted" || visits.kind === "none") read.set(page, { searchVisits: visits.kind === "counted" ? visits.n : 0 });
+  }
+  return read;
 }
 
 /** Writes rows planned between Mondays and assesses them at once, so their own week can see them; a failed read leaves them `not_assessed` for Monday. */
@@ -665,15 +646,13 @@ function isCloseRefresh(candidate: Candidate): boolean {
   return candidate.evidence.family === "improve" && candidate.evidence.shortfall.kind === "due" && candidate.evidence.shortfall.cause === "close";
 }
 
-/** Issue 1521: the open `answerable_page` rows a `close` refresh among
- *  `candidates` takes the place of — the update of the same address. Pure. */
+/** The open `answerable_page` rows a `close` refresh among `candidates` takes the place of, at its address. Pure. */
 export function absorbedBy(candidates: readonly Candidate[], open: readonly Pick<Opportunity, "id" | "type" | "targetRef">[]): string[] {
   const close = new Set(candidates.filter(isCloseRefresh).map((candidate) => canonicalUrl(candidate.targetRef)));
   return open.filter((row) => row.type === "answerable_page" && close.has(canonicalUrl(row.targetRef))).map((row) => row.id);
 }
 
-/** The addresses whose refresh the customer stopped: a stopped draft
- *  dismisses its row (SPEC §7, 2026-09-15). */
+/** The addresses whose refresh the customer stopped: a stopped draft dismisses its row. */
 export async function stoppedRefreshes(siteId: string): Promise<Set<string>> {
   const { data, error } = await untyped()
     .from<{ target_ref: string | null }>("opportunities")
@@ -685,8 +664,7 @@ export async function stoppedRefreshes(siteId: string): Promise<Set<string>> {
   return new Set((data ?? []).flatMap((row) => (row.target_ref === null ? [] : [addressKey(row.target_ref)])));
 }
 
-/** The addresses a `link` refresh planned within `UNSEEN_LINK_EVERY_DAYS`
- *  links to, whatever became of it. */
+/** The addresses a `link` refresh planned within `UNSEEN_LINK_EVERY_DAYS` links to, whatever became of it. */
 async function linkedLately(siteId: string, at: Date): Promise<Set<string>> {
   const { data, error } = await untyped()
     .from<{ evidence: unknown }>("opportunities")
@@ -703,13 +681,8 @@ async function linkedLately(siteId: string, at: Date): Promise<Set<string>> {
   );
 }
 
-/**
- * Links in both directions (SPEC §7, 2026-10-10, issue 1391): when the page
- * at `url` goes live, the one or two nearest older live pages are each
- * planned a refresh that links to it. Returns how many rows it added. It
- * never throws: a page that went live is live whether or not its neighbours
- * could be read.
- */
+/** When the page at `url` goes live, the nearest older live pages are each planned a refresh linking it; returns the
+ *  rows added. It never throws: a page that went live is live whether or not its neighbours could be read. */
 export async function planLinkBacks(a: { siteId: string; url: string; at: Date }): Promise<number> {
   try {
     const store = opportunityStore();
@@ -734,12 +707,8 @@ function linkInto(markdown: string, from: readonly string[]): string | null {
   return null;
 }
 
-/**
- * A page that moved (SPEC §7, issue 1487): the live pages that link its old
- * address, each planned a `link` refresh whose new version links `to`,
- * named `title`. A page the customer edited, whose refresh they stopped, or
- * younger than the floor is not planned. Pure.
- */
+/** A page that moved: each live page linking its old address is planned a `link` refresh linking `to`, named `title`,
+ *  unless the customer edited or stopped it or it is younger than the floor. Pure. */
 export function movedLinkCandidates(
   pages: readonly OwnLivePage[],
   moved: { from: readonly string[]; to: string; title: string },
@@ -750,12 +719,11 @@ export function movedLinkCandidates(
     if (page.edited === true || page.stopped === true || page.takenDown === true) return [];
     if (at.getTime() - page.publishedAt.getTime() < REFRESH_MIN_AGE_DAYS * DAY_MS) return [];
     const replaces = linkInto(page.markdown ?? "", moved.from);
-    return replaces === null ? [] : [refreshOf(page, "link", at, { url: moved.to, title: moved.title, replaces })];
+    return replaces === null ? [] : [refreshOfPage(page, "link", at, { url: moved.to, title: moved.title, replaces })];
   });
 }
 
-/** Plans `movedLinkCandidates` for one site. Returns how many rows it
- *  added; a row already open for a page adds nothing. It never throws. */
+/** Plans `movedLinkCandidates` for one site; returns the rows added, and never throws. */
 export async function planMovedLinks(a: { siteId: string; from: readonly string[]; to: string; title: string; at: Date }): Promise<number> {
   try {
     const store = opportunityStore();
@@ -773,39 +741,29 @@ export async function planMovedLinks(a: { siteId: string; from: readonly string[
   }
 }
 
-/**
- * Consistency (SPEC §7, issue 1507): the live pages of ours that break a
- * rule of issue 1507, each planned a `structure` refresh. A page the
- * customer edited, whose refresh they stopped, or younger than the floor is
- * not planned. Pure.
- */
+/** The live pages of ours that break a consistency rule, each planned a `structure` refresh, unless the customer
+ *  edited or stopped it or it is younger than the floor. Pure. */
 export function structureCandidates(pages: readonly OwnLivePage[], at: Date): Candidate[] {
   return pages.flatMap((page): Candidate[] => {
     if (page.row.targetQuery === null || page.edited === true || page.stopped === true || page.takenDown === true) return [];
     if ((page.structure ?? []).length === 0) return [];
     if (at.getTime() - page.publishedAt.getTime() < REFRESH_MIN_AGE_DAYS * DAY_MS) return [];
-    return [refreshOf(page, "structure", at)];
+    return [refreshOfPage(page, "structure", at)];
   });
 }
 
-/**
- * Prices (issue 1521): the live listicles and comparisons of ours whose
- * oldest rival price is older than D59's 30 days, each planned a
- * `stale_prices` refresh. A page whose refresh the customer stopped, or
- * younger than the floor, is not planned. Pure.
- */
+/** The live listicles and comparisons of ours whose oldest rival price is older than D59's 30 days, each planned a
+ *  `stale_prices` refresh, unless the customer stopped it or it is younger than the floor. Pure. */
 export function stalePriceCandidates(pages: readonly OwnLivePage[], at: Date): Candidate[] {
   return pages.flatMap((page): Candidate[] => {
     if (page.row.targetQuery === null || page.stopped === true || page.takenDown === true || !pricesStale(page, at)) return [];
     if (at.getTime() - page.publishedAt.getTime() < REFRESH_MIN_AGE_DAYS * DAY_MS) return [];
-    return [refreshOf(page, "stale_prices", at)];
+    return [refreshOfPage(page, "stale_prices", at)];
   });
 }
 
-/** Plans `stalePriceCandidates`, then `structureCandidates`, for one site:
- *  a page due both is refreshed for its prices, from text already repaired.
- *  Returns how many rows it added; a row already open for a page adds
- *  nothing. It never throws. */
+/** Plans `stalePriceCandidates`, then `structureCandidates`, for one site, so a page due both is refreshed for its
+ *  prices from repaired text; returns the rows added, and never throws. */
 export async function planStructureRefreshes(a: { siteId: string; at: Date }): Promise<number> {
   try {
     const store = opportunityStore();
@@ -821,9 +779,7 @@ export async function planStructureRefreshes(a: { siteId: string; at: Date }): P
   }
 }
 
-/** `planStructureRefreshes` for every site with a live page: the hourly
- *  live re-check's second half (issue 1507). Returns how many rows it added
- *  in all. It never throws. */
+/** `planStructureRefreshes` for every site with a live page, the hourly re-check's second half; never throws. */
 export async function planStructureRefreshesEverywhere(a: { at: Date }): Promise<number> {
   try {
     const live = await untyped()

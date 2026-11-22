@@ -108,6 +108,8 @@ export type Shortfall =
       /** The page's own place for its search when planned, where one was
        *  read; a growing refresh adds sections only near page one. */
       place?: number;
+      /** Google impressions over 28 days, on a `snippet` refresh only. */
+      shown?: number;
     }
   /** SPEC §7 (D53, issue 1268): one of ReachKit's own live pages is rewritten for a new search, at its own address.
    *  The row's `targetQuery` is the new search, and the page is written as that search's own type, not as a refresh
@@ -119,8 +121,9 @@ export type Shortfall =
  *  related page went live that it does not link (issue 1391), it breaks a consistency rule of issue 1507
  *  (`structure`), no stored search result has held it and D13's check finds it close to a page written for another
  *  site (`unseen`, issue 1538), its own address ranks 4–20 for its search (`close`), or a comparison's rival prices
- *  are older than D59's 30 days (`stale_prices`), Google kept it out of the index four weeks running (`not_indexed`), or
- *  its customer saved changed words for it (`edited`). */
+ *  are older than D59's 30 days (`stale_prices`), Google kept it out of the index four weeks running (`not_indexed`),
+ *  Google showed it 100 times in 28 days with no click or visit from it (`snippet`), or its customer saved changed
+ *  words for it (`edited`). */
 export type RefreshCause =
   | "aged"
   | "lost_position"
@@ -133,6 +136,7 @@ export type RefreshCause =
   | "close"
   | "stale_prices"
   | "not_indexed"
+  | "snippet"
   | "edited";
 
 /** §7's Fix trigger — "any access gate fails" — as the closed set of gates the measurement engine can actually
@@ -406,13 +410,14 @@ export type PlaceRule =
   | "linked by AI: one more in its cluster";
 
 /** One part of a row's points, as the plan stores it. */
-export type PointPart = "fit" | "demand" | "ai_gap" | "rising" | "near_page_one" | "linked_by_ai" | "not_moving" | "new_site" | "outsized" | "no_demand";
+export type PointPart = "fit" | "demand" | "ai_gap" | "rising" | "near_page_one" | "linked_by_ai" | "not_moving" | "shown_no_visits" | "new_site" | "outsized" | "no_demand";
 
 /** `opportunities.plan_reason`: the points a committed row ranked by, the
  *  parts they sum from, and the rule that placed it. */
 export interface PlanReason {
   points: number;
-  parts: { part: PointPart; n: number }[];
+  /** `shown` is the Google impressions a `shown_no_visits` part's sentence states. */
+  parts: { part: PointPart; n: number; shown?: number }[];
   rule: PlaceRule | null;
   /** What the commit read of its research: `queued` where none is cached, `short` under its type's pass mark, by part. */
   research?: { state: "met" | "at_margin" | "queued" | "short"; R: number | null; Q: number | null; F: number | null; estWords: number | null; urls: string[]; short?: string[] };

@@ -2,7 +2,9 @@
 // and spares ended without a page takes, in the same run, the writer's update of the live page furthest below the
 // standard, kept only where it adds real substance; else its last step, the committed topic written anyway. It ends
 // empty only behind a harm stop, or where nothing can be sourced.
-import { DAY_TOPICS_MAX, PIPELINE, REFRESH_MIN_AGE_DAYS, RESEARCH } from "@/lib/config/constants";
+import { z } from "zod";
+import { DAY_TOPICS_MAX, PIPELINE, REFRESH_MIN_AGE_DAYS, RESEARCH, SITE_PROFILE, TITLE } from "@/lib/config/constants";
+import { googleRead, readingOf } from "@/lib/measure/page-reading";
 import { siteLocale } from "@/lib/locale/site";
 import { committedWeek, opportunityById, pageForDay, restTopic, type Opportunity } from "@/lib/opportunities";
 import { addressKey, persistAssessed, refreshOfPage, stoppedRefreshes, type OwnLivePage } from "@/lib/opportunities/refresh";
@@ -70,11 +72,11 @@ async function mendedVersion(a: MendInput): Promise<Mended | null> {
   return checked.kind === "checked" ? { version, body, checked } : null;
 }
 
-async function insertMended(a: MendInput, { version, body, checked }: Mended): Promise<string> {
+async function insertMended(a: MendInput, { version, body, checked }: Mended, cents = 0): Promise<string> {
   const store = generateStore();
   const { title, grounded_fact, attribution } = version;
-  const draftId = await store.insertDraft({ site_id: a.siteId, opportunity_id: a.opportunity.id, state: "generating", title, body_md: body, grounded_fact, attribution, scheduled_for: a.publishDate, cost_cents: 0, meta: version.meta });
-  await store.patchDraft(draftId, { ...checked.patch, cost_cents: 0 });
+  const draftId = await store.insertDraft({ site_id: a.siteId, opportunity_id: a.opportunity.id, state: "generating", title, body_md: body, grounded_fact, attribution, scheduled_for: a.publishDate, cost_cents: cents, meta: version.meta });
+  await store.patchDraft(draftId, { ...checked.patch, cost_cents: cents });
   console.log(JSON.stringify({ event: "page_mended", siteId: a.siteId, draftId, mendOf: version.id, passed: checked.passed, failed: checked.failed.map((failure) => failure.rule).join(",") }));
   return draftId;
 }
@@ -88,12 +90,57 @@ async function insertMended(a: MendInput, { version, body, checked }: Mended): P
  * a renumbered list is not a change of what the page says, so its updated
  * date, `dateModified` and `lastmod` stay. It enters review only where it
  * passes today's whole battery, as a stored page re-checked does, at 0¢.
+ * A `snippet` refresh takes the same path with one small call (`snippetPage`).
  */
-export async function mendPage(a: MendInput): Promise<DayPageOutcome> {
+export async function mendPage(a: MendInput, cost: CostContext): Promise<DayPageOutcome> {
+  if (snippetOnly(a.opportunity)) return snippetPage(a, cost);
   const mended = await mendedVersion(a);
   if (mended === null) return { ok: false, because: "step_failed", draftId: a.draftId ?? null, step: "mend" };
   const draftId = await insertMended(a, mended);
   return mended.checked.passed ? { ok: true, draftId } : { ok: false, because: "rules", draftId, attempts: 1 };
+}
+
+/** A refresh planned for the page's title and description alone (owner ruling 75). */
+export function snippetOnly(opportunity: Opportunity): boolean {
+  return opportunity.type === "refresh_page" && (opportunity.evidence as { shortfall?: { cause?: unknown } } | undefined)?.shortfall?.cause === "snippet";
+}
+
+/** The live page with a new title and description and every word of its body kept: one small call, a new version
+ *  through the refresh path (ADR-080), dated as the version it rewrites, entering review only on today's battery. */
+export async function snippetPage(a: MendInput, cost: CostContext): Promise<DayPageOutcome> {
+  const failed = { ok: false, because: "step_failed", draftId: a.draftId ?? null, step: "snippet" } as const;
+  const store = generateStore();
+  const live = await store.liveVersionAt(a.siteId, a.opportunity.targetRef);
+  if (live === null || cost.capHit()) return failed;
+  const meta = metaOf(live.draft.meta);
+  const body = live.draft.body_md ?? "";
+  const current = { title: live.draft.title ?? "", description: typeof meta.description === "string" ? meta.description : "" };
+  const { llm } = await import("@/lib/llm");
+  const written = await llm(cost, {
+    site: "generate.page_fix",
+    tier: "nano",
+    schema: z.strictObject({ title: z.string(), description: z.string() }),
+    instructions: ["task", "locale"],
+    locale: await siteLocale(a.siteId),
+    input: {
+      task: `Google shows this page for the searches in shownFor, and nobody clicks it. Rewrite its HTML title (${TITLE.chars.min} to ${TITLE.chars.max} characters, leading with the search) and its meta description (${TITLE.description.min} to ${TITLE.description.max} characters, whole sentences) so a searcher sees the page answers them. Use only what the page text states.`,
+      search: a.opportunity.targetQuery,
+      shownFor: (googleRead(readingOf(live.reading)?.google)?.queries ?? []).slice(0, 5).map((q) => q.query),
+      current,
+      text: body.slice(0, SITE_PROFILE.VOICE_INPUT_MAX_CHARS),
+    },
+  });
+  if (written.kind === "unmeasured" || written.value.title.trim() === "" || written.value.description.trim() === "") return failed;
+  // The H1 stays the page's own: only what Google shows changes.
+  const heading = typeof meta.heading === "string" && meta.heading !== "" ? meta.heading : current.title;
+  const datedAs = typeof meta.datedAs === "string" ? meta.datedAs : live.publishedAt.toISOString();
+  const version = { ...live.draft, title: written.value.title.trim(), meta: { ...meta, heading, description: written.value.description.trim(), datedAs, snippetOf: live.draft.id } };
+  const sets = await siteSets(a.siteId, a.site, a.report);
+  const checked = await checkStoredAt0(version, body, { ...sets, opportunity: a.opportunity, now: new Date(), versionsAt: { url: a.opportunity.targetRef, draftIds: await store.versionsAt(a.siteId, a.opportunity.targetRef) } });
+  if (checked.kind !== "checked") return failed;
+  const draftId = await insertMended(a, { version, body, checked }, cost.spentCents());
+  await cost.forDraft?.(draftId);
+  return checked.passed ? { ok: true, draftId } : { ok: false, because: "rules", draftId, attempts: 1 };
 }
 
 /** SPEC §7 (owner, 2026-11-17 ~23:45): a committed 0¢ `structure` mend or a `link`/`unseen` refresh never keeps the day.
@@ -275,7 +322,7 @@ function tally(passed: readonly string[]): string {
 async function weekTopics(siteId: string, date: string): Promise<Opportunity[]> {
   const { days, spares } = await committedWeek(siteId);
   const own = days.filter((day) => day.date === date).map((day) => day.opportunity);
-  const writable = (o: Opportunity) => o.type !== "fix_page" && !mendable(o) && contentTypeOf(o) !== null;
+  const writable = (o: Opportunity) => o.type !== "fix_page" && !mendable(o) && !snippetOnly(o) && contentTypeOf(o) !== null;
   return [...own.filter(writable), ...spares.filter((o) => writable(o) && contentTypeOf(o) !== "update")];
 }
 

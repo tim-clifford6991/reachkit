@@ -49,7 +49,7 @@ import { readRecordedRules } from "./record";
 import { COLLECT, askDayResearch, dayTypes, researchFor } from "./research-queue";
 import { dayInputs, linkBackOf } from "./day-inputs";
 import { repairStructure } from "./rules/structure";
-import { dayTopic, mendPage, mendable } from "./day-refresh";
+import { dayTopic, mendPage, mendable, snippetOnly } from "./day-refresh";
 import { writtenFor } from "./fix-step";
 import { urlKey, type LinkTarget } from "./links/select";
 import { withMovedLink } from "./links/moved";
@@ -185,8 +185,8 @@ export async function generateDayPage(a: {
           outcome =
             opportunity.type === "fix_page"
               ? await fixPage(page, own)
-              : mendable(opportunity)
-                ? await mendPage(page)
+              : mendable(opportunity) || snippetOnly(opportunity)
+                ? await mendPage(page, own)
                 : await writePage({ ...page, attempts: MAX_AUTOMATIC_ATTEMPTS, startedAt: topic === 1 ? startedAt : Date.now(), fixStep: "owe" }, own);
         } catch (error) {
           // The customer stopped this page while it was written: nothing was saved, and the day takes the week's next spare.
