@@ -11,6 +11,7 @@ import { contentTypeOf } from "@/lib/opportunities/content-type";
 import { isResting } from "@/lib/opportunities/types";
 import { serpOrganic } from "@/lib/vendors/dataforseo/serp";
 import type { CostContext } from "@/lib/costs";
+import { recordWrittenAnyway } from "@/lib/ops/events";
 import type { StoredReport } from "@/lib/scan/report";
 import type { DayPageOutcome } from ".";
 import { openDayCost, roomForFix } from "./cost";
@@ -316,6 +317,7 @@ async function lastStep(day: Day, a: { trigger: string; stopped: string | null; 
         continue;
       }
       await store.patchDraft(draftId, { meta: { ...metaOf((await store.draftById(draftId))?.meta), fallbackFor: a.trigger, anyway: true } });
+      await recordWrittenAnyway(day.siteId, draftId, a.trigger);
       return outcome;
     }
   }

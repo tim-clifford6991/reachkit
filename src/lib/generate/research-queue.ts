@@ -27,6 +27,7 @@ import { alikeHeadings } from "./rules/headings";
 import { isQuestionShaped } from "./rules/text";
 import { generateStore } from "./store";
 import { TEMPLATES } from "./templates";
+import { siteWritingMarket } from "./voice/market";
 
 /** The asking steps: the first waits `askMs` for a read that is ready at once, then each round its own invocation inside
  *  the job route's 300 s, about 45 minutes in all, the queue's own turnaround (`VENDOR.stdQueueDeadlineMin`). */
@@ -36,13 +37,13 @@ export const COLLECT = Object.freeze({ rounds: 11, stepMs: 240_000, askMs: 20_00
  *  one SERP beside them, so a fallback update writes from the cache. Returns how many of the topic's own are still on
  *  the queue; a type that reads no research has none. */
 export async function askDayResearch(a: { siteId: string; opportunityId: string; writeAs?: PlanWriteAs; now: Date; since?: Date; waitMs: number }): Promise<number> {
-  const [o, report] = await Promise.all([opportunityById(a.opportunityId), generateStore().latestReport(a.siteId)]);
+  const [o, report, site] = await Promise.all([opportunityById(a.opportunityId), generateStore().latestReport(a.siteId), generateStore().siteFacts(a.siteId)]);
   const { type, own } = o === null ? { type: null } : await dayTypes(a.siteId, { ...o, writeAs: a.writeAs ?? o.writeAs }, a.now);
   const target = o === null ? undefined : targetSearches(o)[0];
   if (report === null) return 0;
   const locale = await siteLocale(a.siteId);
   const as = type === null ? null : researchedAs(type, own);
-  const reads = as === null || !TEMPLATES[as].research || target === undefined ? [] : researchSerps({ siteId: a.siteId, locale, target, guidance: builtFromOutside(as), ...(as === "insights" ? { recent: true } : {}) }, a.waitMs);
+  const reads = as === null || !TEMPLATES[as].research || target === undefined ? [] : researchSerps({ siteId: a.siteId, locale, target, market: site === null ? "" : siteWritingMarket(site, report).category, guidance: builtFromOutside(as), ...(as === "insights" ? { recent: true } : {}) }, a.waitMs);
   const update = await (await import("./day-refresh")).updateSearch(a.siteId, a.now);
   const beside = update === null ? [] : researchSerps({ siteId: a.siteId, locale, target: update, study: false }, a.waitMs).filter((read) => !reads.some((own) => own.query === read.query));
   if (reads.length + beside.length === 0) return 0;

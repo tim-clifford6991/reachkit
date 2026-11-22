@@ -65,7 +65,7 @@ import type { FixNote } from "./pipeline/repair";
 import { NO_RESEARCH, researchMarket, storedAsk, type MarketResearch } from "./pipeline/research";
 import { namedRivals } from "./rules/rivals";
 import { TEMPLATES } from "./templates";
-import { writingMarket } from "./voice/market";
+import { siteWritingMarket } from "./voice/market";
 import { REWRITTEN, owedToRow, withFirstAsk } from "./interrupted";
 import { DraftDateTaken, PageStopped, generateStore, pageOf, type RestartedDraft, type SiteFacts } from "./store";
 
@@ -488,11 +488,7 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number; 
   // SPEC §7 (2026-10-04, issue 1248): the page is written for the site's
   // market in force (`sites.market`, D28) — the report's category is the one
   // that pass was bought under, and stands in only where no market is stored.
-  const writingFor = writingMarket({
-    site: site.market === undefined ? null : { category: site.category, competitors: site.rivals, stored: site.market },
-    reportCategory: report.market.kind === "unmeasured" ? "" : report.market.value.profile.category,
-    founderBuyer: confirmed.buyers,
-  });
+  const writingFor = siteWritingMarket(site, report, confirmed.buyers);
   const category = writingFor.category;
 
   // SPEC §7 (2026-09-12): the site's own pages from the profile's inventory,
@@ -588,7 +584,7 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number; 
     //    1297): the pack says when it holds enough.
     const line = { site: a.siteId, draft: a.draftId ?? null, opportunity: o.id, type };
     const market = await heldResearch(cost, { key: `${a.siteId}:${o.id}:${type}:${a.publishDate}`, reuse: a.completeness === "warn" || a.fixStep === "owed", researched: TEMPLATES[as].research, line }, () => storedAsk(report, targetSearches(o)), () => researchMarket(cost, {
-          siteId: a.siteId,
+          siteId: a.siteId, page: `${o.id}:${a.publishDate}`,
           locale,
           domain: site.domain,
           searches: targetSearches(o),
