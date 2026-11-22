@@ -22,7 +22,7 @@ const vendor = vi.hoisted(() => ({
 }));
 // The one record public DNS answers for the host: where it points.
 const cname = vi.hoisted(() => ({ target: "" }));
-vi.mock("node:dns", () => ({ default: { promises: { resolveCname: async () => [cname.target], lookup: async () => ({ address: "76.76.21.21", family: 4 }) } } }));
+vi.mock("node:dns", () => ({ default: { promises: { resolveCname: async () => [cname.target] } } }));
 vi.mock("@/lib/vendors/vercel/domains", () => ({
   addProjectDomain: async (hostname: string) => {
     vendor.asked.push(hostname);
@@ -222,7 +222,8 @@ describe("the migration this module reads and writes through", () => {
 });
 
 describe("the job that refreshes hosted health, run twice", () => {
-  it("a waiting host that resolves is never healthy, and stays due at the short clock", async () => {
+  it("a waiting host whose record points elsewhere is never healthy, and stays due at the short clock", async () => {
+    cname.target = "elsewhere.example.net";
     seedDestination({ last_checked_at: AGES_AGO, health_changed_at: AGES_AGO });
     db.seed("sites", [{ id: "site-1", domain: "example.com" }]);
     const { checkHealth } = await import("@/lib/publish/destinations/health/check");

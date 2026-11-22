@@ -2,9 +2,9 @@
 // state, in one conclusion and one write.
 // It never writes to the customer's site: every arm is a read, so it cannot interfere with a delivery, and a credential
 // is never proved by creating something. `health_changed_at` moves only on a change (`breakage-mail.ts` counts from it).
-import { resolvesInDns } from "@/lib/egress";
 import { hostFor } from "../hosted/label";
-import { syncHostname } from "../hosted/hostname";
+import { siteEdgeOf, syncHostname } from "../hosted/hostname";
+import { checkPublicDns } from "../hosted/dns-check";
 import { publishDb } from "../../db";
 import type { DestinationHealth, HealthReason } from "../../types";
 import { NoConfigError, withConfig } from "../config";
@@ -34,8 +34,8 @@ async function siteDomain(siteId: string): Promise<string | null> {
 }
 
 /** The hosted destination's state. Only a live host is `ok`: a waiting one serves nothing, so it stays off the healthy
- *  clock and is re-checked at the short one. A name that does not resolve is a record never set; one that resolves while
- *  waiting points somewhere other than the record it was given.
+ *  clock and is re-checked at the short one. Only a record that points somewhere else is "elsewhere"; one that points here
+ *  and is still being verified, or none yet, is "not seen yet".
  *  The name is the customer's chosen host off the row, else the default label, never an empty first label.
  *  The host is attached to the project again here, throttled by `syncHostname`, so a save made while the vendor was down
  *  is repaired. No domain yet is `never_connected`, nobody's DNS failure. */
@@ -49,7 +49,8 @@ async function hostedHealth(row: DestinationRecord): Promise<{ health: Destinati
   const state = await syncHostname({ destinationId: row.id, hostname: host });
   // A host the domain list verified is `ok` whatever this resolver sees: the record points here and the certificate exists.
   if (state === "live") return { health: "ok", reason: null };
-  return { health: "expired", reason: (await resolvesInDns(host)) ? "dns_elsewhere" : "dns_unset" };
+  const dns = await checkPublicDns({ hostname: host, edge: await siteEdgeOf(row.site_id) });
+  return { health: "expired", reason: dns.state === "points_elsewhere" ? "dns_elsewhere" : "dns_unset" };
 }
 
 /** A credential-bearing destination's state. No credential is `never_connected`, `expired` not `error`, since the
