@@ -102,8 +102,8 @@ for (const tab of SETTINGS_TABS) {
             },
             { extraHTTPHeaders: { Cookie: getAccountCookie() } }
           );
-          // Your business is two columns from `lg` (1024px), one below it.
-          const columns = tab === "business" && width >= 1024 ? 2 : 1;
+          // Your business and Pages are two columns from `lg` (1024px), one below it.
+          const columns = tab !== "account" && width >= 1024 ? 2 : 1;
           for (const [theme, measured] of seen) {
             expect(offences(measured, width, columns), `${href} @ ${width}px ${theme}`).toEqual([]);
             // The month is what Billing is checked for; a tab that lost it would pass vacuously.

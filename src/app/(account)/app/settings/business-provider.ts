@@ -35,6 +35,8 @@ export interface KnownContentCounts {
   readonly wordpress: number | null;
   readonly site: number;
   readonly total: number;
+  /** Every page the index holds, by its address, or its title where it has none yet. */
+  readonly pages: readonly string[];
 }
 
 export interface BusinessModel {
@@ -57,7 +59,7 @@ export const readBusiness = cache(async function readBusiness(): Promise<Busines
   const account = await requireSetUpAccount();
 
   if (isReservedFixtureAccount(account)) {
-    const { FIXTURE_BUSINESS_PROFILE, FIXTURE_KNOWLEDGE, FIXTURE_MARKET_READING } = await import(
+    const { FIXTURE_BUSINESS_PROFILE, FIXTURE_KNOWLEDGE, FIXTURE_KNOWN_PAGES, FIXTURE_MARKET_READING } = await import(
       "./business-fixture"
     );
     const { NO_EDITS } = await import("@/lib/site-profile/business/types");
@@ -71,7 +73,7 @@ export const readBusiness = cache(async function readBusiness(): Promise<Busines
       edited: false,
       // The reserved account's own index: four pages we wrote, six posts on
       // its WordPress and the nine pages the crawl read.
-      known: { ours: 4, wordpress: 6, site: 9, total: 19 },
+      known: { ours: 4, wordpress: 6, site: 9, total: 19, pages: FIXTURE_KNOWN_PAGES },
       knowledge: knowledgeBase({ stored: FIXTURE_KNOWLEDGE, answers: {} }),
       answers: {},
     };
@@ -110,7 +112,7 @@ export const readBusinessQuotable = cache(async function readBusinessQuotable():
 });
 
 /** What a failed index read draws: nothing known yet, never a 0 for a blog not read. */
-export const UNREAD_INDEX: KnownContentCounts = { ours: 0, wordpress: null, site: 0, total: 0 };
+export const UNREAD_INDEX: KnownContentCounts = { ours: 0, wordpress: null, site: 0, total: 0, pages: [] };
 
 /** The three counts, off the index. */
 async function knownCountsFor(siteId: string): Promise<KnownContentCounts> {
@@ -126,7 +128,7 @@ async function knownCountsFor(siteId: string): Promise<KnownContentCounts> {
       wordpress: blog === null ? null : pages.filter((page) => page.source === "wordpress").length,
       site: pages.filter((page) => page.source === "site").length,
     };
-    return { ...counts, total: pages.length };
+    return { ...counts, total: pages.length, pages: pages.map((page) => page.url ?? page.title) };
   } catch {
     return UNREAD_INDEX;
   }

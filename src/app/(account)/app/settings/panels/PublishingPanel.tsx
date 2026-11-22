@@ -1,29 +1,6 @@
-// BUILD §4.7 — Publishing: veto window, publish time, time zone, whether
-// pages publish at all, and the destinations with their health.
-//
-// SPEC §4: the customer may set the veto window, publish time and time zone.
-// Mode is not a customer-facing value (2026-09-10) — autopilot is the only
-// mode — so this card offers no mode control.
-//
-// **Health is a state, not an error** (ADR-086). Each destination shows its
-// state as a written badge and, under it, the registry's line; the control is
-// the one the engine chose (`DestinationView.action`). A valid credential
-// that cannot publish gets `reconnect_other_account`, never plain Reconnect.
-//
-// A hosted destination still waiting for DNS shows the record to create,
-// under the action that names it (#754) — the same block setup showed, so a
-// founder who did not act then can act now — and the press that asks the
-// domain list about it now (#757), the same press setup offers.
-//
-// **The four settings write** through `../panel-actions.ts`, and each press
-// answers in words through `useSetting`. Nothing about *what* a window or a
-// zone may be is decided here: `savePublishingSettings` refuses a patch
-// whole, and a refusal is what the customer is told.
-//
-// The zone list is the **runtime's own** (`Intl.supportedValuesOf`), read
-// at the press rather than at render: there is no second list of zones to
-// fall out of date, and a list of four hundred options belongs in the
-// document only once a founder has asked to change theirs.
+// SPEC §4 *Pages tab*, plate F2: the Publishing switch, the next page's three moments, and four lines whose *Change*
+// opens a dialog. Autopilot is the only mode, so there is no mode control; every write is `../panel-actions.ts`'s, and
+// its refusal is what the customer is told. Health is a state, not an error (ADR-086).
 "use client";
 
 import type React from "react";
@@ -35,22 +12,12 @@ import { vetoHoursFromDays } from "@/lib/publish/settings/veto";
 import { CheckConnection } from "../../../_destination/CheckConnection";
 import { CnameRecord } from "../../../_destination/CnameRecord";
 import { ConnectDestination, type CredentialAction } from "./ConnectDestination";
-import { SettingRow } from "./SettingRow";
-import { SAVED_BADGE_CLASS, useSetting } from "./useSetting";
-import {
-  savePublishTimeAction,
-  saveTimeZoneAction,
-  saveVetoHoursAction,
-  setPublishingAction,
-} from "../panel-actions";
-import {
-  OFF,
-  ON,
-  PUBLISHING_ENABLED_FIELD,
-  PUBLISH_TIME_FIELD,
-  TIME_ZONE_FIELD,
-  VETO_HOURS_FIELD,
-} from "../panel-state";
+import { SettingLine } from "./SettingRow";
+import { useSetting } from "./useSetting";
+import { EditDialog, fromSetting } from "../EditDialog";
+import { CARD, CARD_BODY, CARD_LEAD, CARD_TITLE } from "../frame";
+import { savePublishTimeAction, saveTimeZoneAction, saveVetoHoursAction, setPublishingAction } from "../panel-actions";
+import { OFF, ON, PUBLISHING_ENABLED_FIELD, PUBLISH_TIME_FIELD, TIME_ZONE_FIELD, VETO_HOURS_FIELD } from "../panel-state";
 import { formatVetoWindow, vetoIsWholeDays, vetoWindowDays, zoneLabel } from "../format";
 import type { DestinationAction, DestinationHealth, DestinationKind, SettingsDestination, SettingsModel } from "../model";
 import { NO_NEXT_PAGE, type NextPage } from "../next-page";
@@ -58,14 +25,11 @@ import { Linked } from "../Linked";
 import { CALENDAR_HREF } from "../../_overview/week";
 import { SHELL_LOCALE } from "../../_shell/format";
 
-/** The window as a written line. A stored window that is not whole days
- *  renders as the hours it is, never as "1.5 days". */
+/** The window as a written line. A stored window that is not whole days renders as the hours it is, never "1.5 days". */
 export function vetoWindowLabel(hours: number): string {
   if (!vetoIsWholeDays(hours)) return formatVetoWindow(hours);
   const days = vetoWindowDays(hours);
-  return copy(days === 1 ? "settings.publishing.veto.one-day" : "settings.publishing.veto.days", {
-    days: String(days),
-  });
+  return copy(days === 1 ? "settings.publishing.veto.one-day" : "settings.publishing.veto.days", { days: String(days) });
 }
 
 const KIND_COPY_KEY: Record<DestinationKind, CopyKey> = {
@@ -73,45 +37,15 @@ const KIND_COPY_KEY: Record<DestinationKind, CopyKey> = {
   wordpress: "settings.destination.wordpress",
 };
 
-/** A broken credential is the customer's problem shown to them; a healthy
- *  destination is a quiet success. */
 const HEALTH_BADGE: Record<DestinationHealth, string> = {
   ok: "badge badge-success badge-soft",
   expired: "badge badge-warning badge-soft",
   error: "badge badge-error badge-soft",
 };
 
-/** The one act this card states and does not run itself. It is never a
- *  control: where the record is known it is the record's heading, with the
- *  record and its check under it; where it is not, it is a statement of
- *  what the destination is waiting on (issue #913 — nothing is drawn as a
- *  button that has no handler behind it). */
-const ACTION_COPY_KEY: Record<Extract<DestinationAction, "set_dns">, CopyKey> = {
-  set_dns: "settings.publishing.set-dns",
-};
-
 function needsCredential(action: DestinationAction): action is CredentialAction {
   return action === "connect" || action === "reconnect" || action === "reconnect_other_account";
 }
-
-/** The zones the runtime resolves, alphabetically. Read at the press and
- *  not at module scope: it is four hundred strings, and a card nobody is
- *  editing has no use for them. A runtime that does not offer the list
- *  answers with the one zone the site already has, which is still a
- *  choice the select can render honestly. */
-function resolvableZones(current: string): readonly string[] {
-  const offered =
-    typeof Intl.supportedValuesOf === "function" ? Intl.supportedValuesOf("timeZone") : [];
-  return offered.length === 0 ? [current] : offered;
-}
-
-/** A hosted address that is live and healthy: the board's "where pages go live" figure. */
-function isLiveHost(d: SettingsDestination): d is SettingsDestination & { hostname: string } {
-  return d.kind === "hosted" && d.hostname !== null && d.hostnameState === "live" && d.health === "ok";
-}
-
-/** The board's soft Check connection, 44px tall. */
-const CHECK_PRESS = "btn btn-soft btn-primary min-h-11 self-start";
 
 /** Every hour of the day, and the stored time where it is not on the hour. */
 function publishTimes(current: string): readonly string[] {
@@ -126,15 +60,92 @@ function clockLabel(time: string): string {
   return new Intl.DateTimeFormat(SHELL_LOCALE, { timeZone: "UTC", hour: "numeric", minute: "2-digit" }).format(Date.UTC(2026, 0, 1, h, m));
 }
 
-/** One of the three steps each page goes through. */
-function Step(p: { icon: React.ReactNode; title: string; tone: string; children: React.ReactNode }): React.JSX.Element {
+const NOTE = "text-sm text-base-content/70 wrap-anywhere";
+const CHECK_PRESS = "btn btn-soft btn-primary min-h-11 self-start";
+
+/** The runtime's own zones, read only once the dialog opens: four hundred options belong in the page only then. */
+function ZoneSelect(p: { current: string }): React.JSX.Element {
+  const offered = typeof Intl.supportedValuesOf === "function" ? Intl.supportedValuesOf("timeZone") : [];
+  const zones = offered.includes(p.current) ? offered : [p.current, ...offered];
   return (
-    <li className="bg-base-200 rounded-box flex min-w-0 flex-col gap-1 p-4 text-sm">
-      <span className={`flex min-w-0 items-center gap-2 font-semibold ${p.tone}`}>
-        {p.icon}
-        <span className="min-w-0 wrap-anywhere">{p.title}</span>
+    <select className="select num w-full min-w-0" name={TIME_ZONE_FIELD} aria-label={copy("settings.publishing.time-zone")} defaultValue={p.current}>
+      {zones.map((zone) => (
+        <option key={zone} value={zone}>
+          {zoneLabel(zone)}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+/** − and +, whole days within `VETO`'s bounds; the form carries the hours the writer stores. */
+function WindowStepper(p: { hours: number }): React.JSX.Element {
+  const [days, setDays] = useState(vetoWindowDays(p.hours));
+  const hours = days === vetoWindowDays(p.hours) ? p.hours : vetoHoursFromDays(days);
+  const press = "btn btn-outline btn-square border-base-300 text-primary size-11";
+  return (
+    <div className="flex items-center gap-3">
+      <input type="hidden" name={VETO_HOURS_FIELD} value={hours} />
+      <button type="button" className={press} aria-label={copy("settings.publishing.veto.less.label")} disabled={days <= VETO.minDays} data-testid="veto-less" onClick={() => setDays(days - 1)}>
+        <Minus size={16} strokeWidth={1.75} aria-hidden />
+      </button>
+      <span className="text-sm font-semibold" aria-live="polite" data-testid="veto-value">
+        {vetoWindowLabel(hours)}
       </span>
-      {p.children}
+      <button type="button" className={press} aria-label={copy("settings.publishing.veto.more.label")} disabled={days >= VETO.maxDays} data-testid="veto-more" onClick={() => setDays(days + 1)}>
+        <Plus size={16} strokeWidth={1.75} aria-hidden />
+      </button>
+    </div>
+  );
+}
+
+/** Where pages go live: the address and its word, and a dialog holding the record or the WordPress form. */
+function Where(p: { destination: SettingsDestination }): React.JSX.Element {
+  const d = p.destination;
+  const label = copy("settings.publishing.destinations");
+  const live = d.hostnameState === "live";
+  return (
+    <SettingLine
+      label={label}
+      value={d.hostname === null ? { kind: "text", text: copy(KIND_COPY_KEY[d.kind]), full: copy(KIND_COPY_KEY[d.kind]) } : { kind: "address", text: d.hostname }}
+      testId={`destination-${d.id}`}
+      action={
+        <span className="flex min-w-0 flex-wrap items-center justify-end gap-2">
+          {d.kind !== "hosted" ? null : (
+            <span className={live ? "badge badge-success badge-soft" : "badge badge-warning badge-soft"}>
+              {live ? <Check size={14} strokeWidth={1.75} aria-hidden /> : null}
+              {copy(live ? "settings.destination.hostname.live" : "settings.publishing.where.waiting")}
+            </span>
+          )}
+          {d.health === "ok" ? null : <span className={HEALTH_BADGE[d.health]}>{copy(d.copy.state)}</span>}
+          <EditDialog label={label} lead={copy("settings.publishing.where.same")} testId="setting-destinations">
+            {d.copy.line === null ? null : <p className={NOTE}>{copy(d.copy.line)}</p>}
+            {needsCredential(d.action) ? <ConnectDestination action={d.action} /> : null}
+            {d.dns === null ? null : (
+              <>
+                <CnameRecord record={d.dns} {...(live ? { state: "live" as const } : {})} />
+                {/* The destination names its own host: nothing is sent. */}
+                <CheckConnection draft={null} pressClass={CHECK_PRESS} />
+              </>
+            )}
+          </EditDialog>
+        </span>
+      }
+    />
+  );
+}
+
+/** One moment of the next page, on the daisyUI vertical timeline. */
+function Moment(p: { icon: React.ReactNode; title: string; first?: boolean; last?: boolean; children: React.ReactNode }): React.JSX.Element {
+  return (
+    <li>
+      {p.first === true ? null : <hr className="bg-base-300" />}
+      <div className="timeline-middle text-primary">{p.icon}</div>
+      <div className="timeline-end flex min-w-0 flex-col py-1 text-sm">
+        <span className="font-semibold wrap-anywhere">{p.title}</span>
+        {p.children}
+      </div>
+      {p.last === true ? null : <hr className="bg-base-300" />}
     </li>
   );
 }
@@ -143,21 +154,10 @@ export function PublishingPanel(p: { settings: SettingsModel; next?: NextPage })
   const next = p.next ?? NO_NEXT_PAGE;
   const { publishing, destinations } = p.settings;
   const writer = useSetting();
-  const [editingZone, setEditingZone] = useState(false);
-  /** The stepper and the switch are drawn from the stored value; without an
-   *  optimistic arm each snaps back the instant it is pressed. A refused
-   *  write drops the optimistic value. */
-  const [vetoHours, expectVetoHours] = useOptimistic(publishing.vetoHours);
+  /** Without an optimistic arm the switch snaps back the instant it is pressed; a refused write drops it. */
   const [enabled, expectEnabled] = useOptimistic(publishing.enabled);
-
-  /** Whole days, the unit the control offers; a press past `VETO`'s bounds is not offered. */
-  const days = vetoWindowDays(vetoHours);
-  function step(to: number): void {
-    const hours = vetoHoursFromDays(to);
-    const form = new FormData();
-    form.set(VETO_HOURS_FIELD, String(hours));
-    writer.press(saveVetoHoursAction, form, () => expectVetoHours(hours));
-  }
+  const stop = vetoWindowLabel(publishing.vetoHours);
+  const time = clockLabel(publishing.publishTime);
 
   function toggle(on: boolean): void {
     const form = new FormData();
@@ -165,245 +165,107 @@ export function PublishingPanel(p: { settings: SettingsModel; next?: NextPage })
     writer.press(setPublishingAction, form, () => expectEnabled(on));
   }
 
-  function savePublishTime(time: string): void {
-    const form = new FormData();
-    form.set(PUBLISH_TIME_FIELD, time);
-    writer.press(savePublishTimeAction, form);
-  }
-
-  const live = enabled && next.live !== null;
+  const icon = { size: 16, strokeWidth: 1.75, "aria-hidden": true } as const;
   return (
-    <>
-      <section className="card card-border min-w-0 bg-base-100" data-testid="publishing-flow">
-        <div className="card-body gap-5">
-          <div className="flex min-w-0 flex-wrap items-start justify-between gap-3">
-            <div className="flex min-w-0 flex-col gap-1">
-              <h2 className="card-title min-w-0 flex-wrap text-(length:--h3)">
-                <span className="min-w-0 wrap-anywhere">{copy("settings.publishing.title")}</span>
-                {writer.saved ? (
-                  <span className={SAVED_BADGE_CLASS} data-testid="publishing-saved">
-                    {copy("settings.answer.saved-badge")}
-                  </span>
-                ) : null}
-              </h2>
-              <p className="text-sm text-base-content/70 wrap-anywhere" data-testid="publishing-lead">
-                {copy(enabled ? "settings.publishing.on.lead" : "settings.publishing.off.lead")}
-              </p>
-            </div>
-            <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm font-semibold" data-testid="setting-publishing_enabled">
-              <span>{copy(enabled ? "settings.publishing.on" : "settings.publishing.off")}</span>
-              <input
-                type="checkbox"
-                role="switch"
-                className="toggle toggle-primary"
-                aria-label={copy("settings.publishing.title")}
-                checked={enabled}
-                disabled={writer.busy}
-                data-testid="publishing-enabled"
-                onChange={(e) => toggle(e.target.checked)}
-              />
-            </label>
+    <section className={CARD} data-testid="publishing-flow">
+      <div className={CARD_BODY}>
+        <div className="flex min-w-0 items-start justify-between gap-3">
+          <div className="flex min-w-0 flex-col">
+            <h2 className={CARD_TITLE}>{copy("settings.publishing.title")}</h2>
+            <p className={CARD_LEAD} data-testid="publishing-lead">
+              {copy(writer.busy ? "settings.publishing.saving" : enabled ? "settings.publishing.on.lead" : "settings.publishing.off.lead")}
+            </p>
           </div>
+          <label className="flex min-h-11 shrink-0 cursor-pointer items-center lg:min-h-8" data-testid="setting-publishing_enabled">
+            <input
+              type="checkbox"
+              role="switch"
+              className="toggle toggle-primary"
+              aria-label={copy("settings.publishing.title")}
+              checked={enabled}
+              disabled={writer.busy}
+              data-testid="publishing-enabled"
+              onChange={(e) => toggle(e.target.checked)}
+            />
+          </label>
+        </div>
 
-          <ol className="grid min-w-0 grid-cols-1 gap-3 md:grid-cols-3" aria-label={copy("settings.publishing.flow.title")} data-layout="steps" data-testid="publishing-timeline">
-            <Step icon={<Mail size={16} strokeWidth={1.75} aria-hidden />} title={copy("settings.publishing.flow.written")} tone="">
-              {live ? <span className="num text-sm">{next.written}</span> : null}
-            </Step>
-            <Step icon={<Clock4 size={16} strokeWidth={1.75} aria-hidden />} title={copy("settings.publishing.flow.window", { window: vetoWindowLabel(vetoHours) })} tone="text-primary">
+        {!enabled ? null : next.live === null ? (
+          <p className={NOTE} data-testid="publishing-timeline">
+            {copy("settings.publishing.flow.none", { window: stop, time })}
+          </p>
+        ) : (
+          <ul className="timeline timeline-vertical timeline-compact min-w-0" aria-label={copy("settings.publishing.flow.title")} data-testid="publishing-timeline">
+            <Moment icon={<Mail {...icon} />} title={copy("settings.publishing.flow.written")} first>
+              <span className="num text-base-content/70">{next.written}</span>
+            </Moment>
+            <Moment icon={<Clock4 {...icon} />} title={copy("settings.publishing.flow.window", { window: stop })}>
               <span className="text-base-content/70 wrap-anywhere">
                 <Linked sentence={copy("settings.publishing.flow.window.note")} word={copy("shell.nav.plan")} href={CALENDAR_HREF} />
               </span>
-            </Step>
-            <Step icon={<Globe size={16} strokeWidth={1.75} aria-hidden />} title={copy(enabled ? "settings.publishing.flow.live" : "settings.publishing.flow.paused")} tone={enabled ? "text-success" : ""}>
-              {live ? <span className="num text-sm">{next.live}</span> : null}
-            </Step>
-          </ol>
-        </div>
-      </section>
+            </Moment>
+            <Moment icon={<Globe {...icon} />} title={copy("settings.publishing.flow.live")} last>
+              <span className="num text-base-content/70">{next.live}</span>
+            </Moment>
+          </ul>
+        )}
 
-      <section className="card card-border min-w-0 bg-base-100">
-        <div className="card-body flex min-w-0 flex-col">
-          <SettingRow
-            name={copy("settings.publishing.destinations")}
-            testId="setting-destinations"
-            below={
-              <div className="flex min-w-0 flex-col gap-3">
-              {destinations.map((destination) => isLiveHost(destination) ? (
-                <div className="flex min-w-0 flex-col gap-2" key={destination.id} data-testid={`destination-${destination.id}`}>
-                  <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
-                    <span className="num min-w-0 wrap-anywhere" data-testid={`hostname-${destination.id}`}>{destination.hostname}</span>
-                    <span className="badge badge-success badge-soft">
-                      <Check size={14} strokeWidth={1.75} aria-hidden />
-                      {copy("settings.destination.hostname.live")}
-                    </span>
-                  </div>
-                  <p className="text-sm text-base-content/70 wrap-anywhere">{copy("settings.publishing.where.same")}</p>
-                  <CheckConnection draft={null} pressClass={CHECK_PRESS} />
-                </div>
-              ) : (
-                <div className="flex min-w-0 flex-col gap-1" key={destination.id} data-testid={`destination-${destination.id}`}>
-                  <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
-                    <span className="flex min-w-0 flex-wrap items-baseline gap-2">
-                      <span className="min-w-0 text-sm font-semibold wrap-anywhere">
-                        {copy(KIND_COPY_KEY[destination.kind])}
-                      </span>
-                      {destination.hostname === null ? null : (
-                        <span
-                          className="num min-w-0 text-xs text-base-content/70 wrap-anywhere"
-                          data-testid={`hostname-${destination.id}`}
-                        >
-                          {destination.hostname}
-                        </span>
-                      )}
-                    </span>
-                    <span className="flex min-w-0 flex-wrap items-center gap-2">
-                      {/* SPEC §5: "live" / "waiting for DNS", beside health and
-                          never instead of it. Where the record is shown below,
-                          the record's own badge says it, beside the record. */}
-                      {destination.copy.hostname === null || destination.dns !== null ? null : (
-                        <span
-                          className={
-                            destination.hostnameState === "live"
-                              ? "badge badge-success badge-soft"
-                              : "badge badge-warning badge-soft"
-                          }
-                        >
-                          {copy(destination.copy.hostname)}
-                        </span>
-                      )}
-                      <span className={HEALTH_BADGE[destination.health]}>{copy(destination.copy.state)}</span>
-                      {needsCredential(destination.action) ? (
-                        <ConnectDestination action={destination.action} />
-                      ) : destination.action === "none" || destination.dns !== null ? null : (
-                        // **A statement, not a control** (issue #913). This
-                        // names the act a hosted destination is waiting on
-                        // while the record itself could not be read, so there
-                        // is nothing here to press: it was drawn as a button
-                        // with no handler, which is a control that cannot act.
-                        // Where the record *is* known it is the heading of the
-                        // block below, with the record under it and the one
-                        // press that checks it — which is the act, and does
-                        // work.
-                        <span className="text-sm font-semibold wrap-anywhere" data-testid="dns-needed">
-                          {copy(ACTION_COPY_KEY[destination.action])}
-                        </span>
-                      )}
-                    </span>
-                  </div>
-                  {destination.copy.line === null ? null : (
-                    <p className="text-xs text-base-content/70 wrap-anywhere">{copy(destination.copy.line)}</p>
-                  )}
-                  {destination.dns === null ? null : (
-                    <div className="mt-2 flex min-w-0 flex-col gap-1" data-testid={`dns-${destination.id}`}>
-                      <h4 className="text-sm font-semibold">{copy(ACTION_COPY_KEY.set_dns)}</h4>
-                      <CnameRecord record={destination.dns} />
-                      {/* The destination names its own host: nothing is sent. */}
-                      <CheckConnection draft={null} />
-                    </div>
-                  )}
-                </div>
-              ))}
-              </div>
+        <div className="flex min-w-0 flex-col">
+          {destinations.map((destination) => (
+            <Where key={destination.id} destination={destination} />
+          ))}
+          <SettingLine
+            label={copy("settings.publishing.publish-time")}
+            value={{ kind: "text", text: time, full: time }}
+            testId="setting-publish_time"
+            action={
+              <EditDialog
+                label={copy("settings.publishing.publish-time")}
+                lead={copy("settings.publishing.time.note")}
+                testId="setting-publish_time-dialog"
+                save={async (form) => fromSetting(await savePublishTimeAction(form))}
+              >
+                <select className="select w-full min-w-0" name={PUBLISH_TIME_FIELD} aria-label={copy("settings.publishing.publish-time")} defaultValue={publishing.publishTime} data-testid="publish-time">
+                  {publishTimes(publishing.publishTime).map((each) => (
+                    <option key={each} value={each}>
+                      {clockLabel(each)}
+                    </option>
+                  ))}
+                </select>
+              </EditDialog>
             }
           />
-          <SettingRow name={copy("settings.publishing.publish-time")} testId="setting-publish_time">
-            {/* Writes on choice, like the switch and the stepper; the answer line says when it bites. */}
-            <select
-              className="select min-h-11 w-auto min-w-0"
-              aria-label={copy("settings.publishing.publish-time")}
-              value={publishing.publishTime}
-              disabled={writer.busy}
-              data-testid="publish-time"
-              onChange={(e) => savePublishTime(e.target.value)}
-            >
-              {publishTimes(publishing.publishTime).map((time) => (
-                <option key={time} value={time}>
-                  {clockLabel(time)}
-                </option>
-              ))}
-            </select>
-          </SettingRow>
-
-          <SettingRow name={copy("settings.publishing.veto")} testId="setting-veto_hours">
-            {/* The range is the writer's; a press past it is not offered. */}
-            <span className="flex items-center gap-3">
-              <button
-                type="button"
-                className="btn btn-outline btn-square border-base-300 text-primary size-11"
-                aria-label={copy("settings.publishing.veto.less.label")}
-                disabled={writer.busy || days <= VETO.minDays}
-                data-testid="veto-less"
-                onClick={() => step(days - 1)}
+          <SettingLine
+            label={copy("settings.publishing.veto")}
+            value={{ kind: "text", text: stop, full: stop }}
+            testId="setting-veto_hours"
+            action={
+              <EditDialog
+                label={copy("settings.publishing.veto")}
+                lead={copy("settings.publishing.veto.note")}
+                testId="setting-veto_hours-dialog"
+                save={async (form) => fromSetting(await saveVetoHoursAction(form))}
               >
-                <Minus size={16} strokeWidth={1.75} aria-hidden />
-              </button>
-              <span className="text-sm font-semibold" data-testid="veto-value">{vetoWindowLabel(vetoHours)}</span>
-              <button
-                type="button"
-                className="btn btn-outline btn-square border-base-300 text-primary size-11"
-                aria-label={copy("settings.publishing.veto.more.label")}
-                disabled={writer.busy || days >= VETO.maxDays}
-                data-testid="veto-more"
-                onClick={() => step(days + 1)}
-              >
-                <Plus size={16} strokeWidth={1.75} aria-hidden />
-              </button>
-            </span>
-          </SettingRow>
-
-          <SettingRow
-            name={copy("settings.publishing.time-zone")}
-            testId="setting-time_zone"
-            below={
-              editingZone ? (
-                <form
-                  action={(form) => {
-                    writer.press(saveTimeZoneAction, form);
-                    setEditingZone(false);
-                  }}
-                  className="flex min-w-0 flex-wrap items-end gap-2"
-                  data-testid="edit-time_zone"
-                >
-                  <select
-                    className="select num min-h-11 min-w-0 grow"
-                    name={TIME_ZONE_FIELD}
-                    aria-label={copy("settings.publishing.time-zone")}
-                    defaultValue={publishing.timeZone}
-                  >
-                    {resolvableZones(publishing.timeZone).map((zone) => (
-                      <option key={zone} value={zone}>
-                        {zoneLabel(zone)}
-                      </option>
-                    ))}
-                  </select>
-                  <button type="submit" className="btn btn-primary min-h-11" disabled={writer.busy}>
-                    {copy("settings.save")}
-                  </button>
-                  <button type="button" className="btn btn-ghost min-h-11" onClick={() => setEditingZone(false)}>
-                    {copy("settings.cancel-edit")}
-                  </button>
-                </form>
-              ) : (
-                <p className="text-sm text-base-content/70 min-w-0 wrap-anywhere" data-testid="time-zone-note">
-                  {copy("settings.publishing.time-zone.note")}
-                </p>
-              )
+                <WindowStepper hours={publishing.vetoHours} />
+              </EditDialog>
             }
-          >
-            {editingZone ? null : (
-              <>
-                <span className="num num-phrase min-w-0 wrap-anywhere" data-testid="time-zone-label">
-                  {zoneLabel(publishing.timeZone)}
-                </span>
-                {/* SPEC §4: the customer may set the zone, so the row keeps its Change. */}
-                <button type="button" className="btn btn-ghost min-h-11" onClick={() => setEditingZone(true)}>
-                  {copy("settings.change")}
-                </button>
-              </>
-            )}
-          </SettingRow>
+          />
+          <SettingLine
+            label={copy("settings.publishing.time-zone")}
+            value={{ kind: "address", text: publishing.timeZone }}
+            testId="setting-time_zone"
+            action={
+              <EditDialog
+                label={copy("settings.publishing.time-zone")}
+                testId="setting-time_zone-dialog"
+                save={async (form) => fromSetting(await saveTimeZoneAction(form))}
+              >
+                <ZoneSelect current={publishing.timeZone} />
+              </EditDialog>
+            }
+          />
         </div>
-      </section>
-    </>
+      </div>
+    </section>
   );
 }

@@ -129,8 +129,6 @@ export const SETUP_COPY = Object.freeze({
   // zone — and `{host}` the full name. Field labels and values are the
   // provider's own words as its dashboard prints them. Drafted; the owner
   // corrects the wording.
-  "setup.destination.guide.column.field": "Field",
-  "setup.destination.guide.column.value": "Enter",
   "setup.destination.guide.copy": "Copy",
   "setup.destination.guide.copied": "Copied",
   "setup.destination.guide.open": "Open Your {provider} DNS Settings",

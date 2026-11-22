@@ -9,7 +9,7 @@
 // **A guide the founder can follow** (issue 856; owner 2026-09-17). Where
 // the record is added is looked up from the domain's nameservers (issue
 // 760), and that answer chooses the steps: numbered steps in that
-// provider's words, the record as a table in that provider's field labels
+// provider's words, the record as rows in that provider's field labels
 // with a copy button per value, a link to the provider's DNS page where it
 // has one, and — on Cloudflare only — the one proxy instruction. The Name
 // row says exactly what goes in the name field: the host less its zone.
@@ -18,7 +18,7 @@
 // generic steps and the static line, and the answer replaces them when it
 // arrives; a lookup that throws or hangs leaves them on screen.
 //
-// daisyUI in place — `steps`, `table`, `badge`, `btn`, `alert`, `link` —
+// daisyUI in place — `steps`, `list`, `badge`, `btn`, `alert`, `link` —
 // and lucide glyphs; no wrapper. It holds buttons and a link, so it is
 // never drawn inside a button.
 "use client";
@@ -99,40 +99,28 @@ export function CnameRecord(p: {
         ))}
       </ol>
 
-      <div className="overflow-x-auto rounded-box bg-base-200">
-        <table className="table table-sm" data-testid="dns-record" data-host={p.record.name}>
-          <thead className="text-base-content/70">
-            <tr>
-              <th>{copy("setup.destination.guide.column.field")}</th>
-              <th>{copy("setup.destination.guide.column.value")}</th>
-              <th>
-                <span className="sr-only">{copy("setup.destination.guide.copy")}</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {view.rows.map((row) => {
-              const text = "word" in row ? copy(row.word) : row.text;
-              return (
-                <tr key={row.label} data-testid="dns-field">
-                  <th className="font-medium" data-testid="dns-field-label">
-                    {copy(row.label)}
-                  </th>
-                  <td
-                    className={"word" in row ? "wrap-anywhere" : "num wrap-anywhere"}
-                    {...("word" in row ? {} : { "data-testid": `dns-${row.from === "target" ? "value" : row.from}` })}
-                  >
-                    {text}
-                  </td>
-                  <td className="w-0">
-                    <CopyValue text={text} />
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+      {/* Rows, never a table: the per-site value wraps and never scrolls sideways. */}
+      <ul className="list rounded-box bg-base-200 min-w-0" data-testid="dns-record" data-host={p.record.name}>
+        {view.rows.map((row) => {
+          const text = "word" in row ? copy(row.word) : row.text;
+          return (
+            <li key={row.label} className="list-row min-w-0 flex-col items-stretch gap-1 sm:flex-row sm:items-center" data-testid="dns-field">
+              <span className="text-sm font-semibold sm:w-20 sm:shrink-0" data-testid="dns-field-label">
+                {copy(row.label)}
+              </span>
+              <span className="flex min-w-0 grow items-center justify-between gap-2">
+                <span
+                  className={"word" in row ? "min-w-0 text-sm wrap-anywhere" : "min-w-0 font-mono text-sm break-all"}
+                  {...("word" in row ? {} : { "data-testid": `dns-${row.from === "target" ? "value" : row.from}` })}
+                >
+                  {text}
+                </span>
+                <CopyValue text={text} className="btn btn-ghost btn-square size-11 shrink-0 lg:size-8" />
+              </span>
+            </li>
+          );
+        })}
+      </ul>
 
       <span className={QUIET} data-testid="dns-full-name">
         {copy("setup.destination.guide.full-name", { host: p.record.name })}

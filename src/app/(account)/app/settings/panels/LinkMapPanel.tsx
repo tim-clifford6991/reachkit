@@ -1,98 +1,60 @@
-// SPEC §7 (2026-10-10, issue 1391) — the site link map, on Settings ›
-// Publishing.
-//
-// One card, two lists, read off the articles that are live: which of the
-// customer's own pages the articles send readers to, and which articles
-// stand alone — nothing of theirs links to them, or they link to nothing of
-// theirs.
-//
-// **It states and offers no control**, like *Content we already know
-// about*: links are chosen and repaired by ReachKit (a new page links the
-// older ones, and the nearest older pages are updated to link it), so there
-// is nothing here for the customer to do but see it.
-//
-// daisyUI in the route: `card`, `list`, `list-row`.
+// SPEC §7 (2026-10-10) the site link map, off the live articles: which of the customer's pages they link, and which
+// stand alone, each a count with its list behind *Show*. ReachKit chooses and repairs links, so it offers no control.
 import type React from "react";
 import { copy } from "@/lib/presentation/copy";
 import type { LinkMap } from "@/lib/known-content/link-map";
-
-function readable(url: string): string {
-  try {
-    const parsed = new URL(url);
-    return `${parsed.host}${parsed.pathname === "/" ? "" : parsed.pathname}`;
-  } catch {
-    return url;
-  }
-}
+import { CARD, CARD_BODY, CARD_LEAD, CARD_TITLE } from "../frame";
+import { ShowList } from "./KnownContentPanel";
+import { SettingLine } from "./SettingRow";
 
 function aloneLine(article: { linkedFrom: number; linksOut: number }): string {
   if (article.linkedFrom === 0 && article.linksOut === 0) return copy("settings.linkmap.alone.both");
   return copy(article.linkedFrom === 0 ? "settings.linkmap.alone.in" : "settings.linkmap.alone.out");
 }
 
-export function LinkMapPanel(p: { map: LinkMap }): React.JSX.Element {
+const pages = (n: number): string => (n === 1 ? copy("settings.pages.one") : copy("settings.pages.count", { count: String(n) }));
+
+function Count(p: { label: string; testId: string; rows: readonly { key: string; text: React.ReactNode; line: string }[] }): React.JSX.Element {
+  const none = p.rows.length === 0;
   return (
-    <section className="card card-border min-w-0 bg-base-100" data-testid="settings-link-map">
-      <div className="card-body min-w-0 gap-3 p-4">
-        <h2 className="min-w-0 text-base font-semibold">
-          {copy("settings.linkmap.head")}
-        </h2>
+    <SettingLine
+      label={p.label}
+      value={none ? { kind: "empty", text: copy("settings.none") } : { kind: "text", text: pages(p.rows.length), full: pages(p.rows.length) }}
+      testId={p.testId}
+      action={none ? null : <ShowList label={p.label} testId={`${p.testId}-dialog`} rows={p.rows} />}
+    />
+  );
+}
 
-        {p.map.articles === 0 ? (
-          <p className="text-sm text-base-content/70" data-testid="settings-link-map-empty">
-            {copy("settings.linkmap.none")}
-          </p>
-        ) : (
-          <>
-            <div className="flex min-w-0 flex-col gap-1">
-              <h3 className="eyebrow">{copy("settings.linkmap.receiving")}</h3>
-              {p.map.receiving.length === 0 ? (
-                <p className="text-sm text-base-content/70">{copy("settings.linkmap.receiving.none")}</p>
-              ) : (
-                <ul className="list min-w-0 rounded-box" data-testid="settings-link-map-receiving">
-                  {p.map.receiving.map((page) => (
-                    <li className="list-row min-w-0 px-0" key={page.url}>
-                      <span className="list-col-grow min-w-0">
-                        <a className="link link-hover font-mono break-all text-sm" href={page.url} target="_blank" rel="noreferrer">
-                          {readable(page.url)}
-                        </a>
-                      </span>
-                      <span className="list-col-wrap min-w-0 text-xs text-base-content/70 wrap-anywhere">
-                        {copy(page.articles === 1 ? "settings.linkmap.receiving.one" : "settings.linkmap.receiving.count", {
-                          count: String(page.articles),
-                        })}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-
-            <div className="flex min-w-0 flex-col gap-1">
-              <h3 className="eyebrow">{copy("settings.linkmap.alone")}</h3>
-              {p.map.alone.length === 0 ? (
-                <p className="text-sm text-base-content/70">{copy("settings.linkmap.alone.none")}</p>
-              ) : (
-                <ul className="list min-w-0 rounded-box" data-testid="settings-link-map-alone">
-                  {p.map.alone.map((article) => (
-                    <li className="list-row min-w-0 px-0" key={article.url}>
-                      <span className="list-col-grow min-w-0 text-sm wrap-anywhere">
-                        <a className="link link-hover" href={article.url} target="_blank" rel="noreferrer">
-                          {article.title === "" ? readable(article.url) : article.title}
-                        </a>
-                      </span>
-                      <span className="list-col-wrap min-w-0 text-xs text-base-content/70 wrap-anywhere">
-                        {aloneLine(article)}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </>
-        )}
-
-        <p className="text-sm text-base-content/70">{copy("settings.linkmap.note")}</p>
+export function LinkMapPanel(p: { map: LinkMap }): React.JSX.Element {
+  const link = (url: string, text: string): React.ReactNode => (
+    <a className="link link-hover" href={url} target="_blank" rel="noreferrer">
+      {text}
+    </a>
+  );
+  return (
+    <section className={CARD} data-testid="settings-link-map">
+      <div className={CARD_BODY}>
+        <div className="flex min-w-0 flex-col">
+          <h2 className={CARD_TITLE}>{copy("settings.linkmap.head")}</h2>
+          <p className={CARD_LEAD}>{copy("settings.linkmap.note")}</p>
+        </div>
+        <div className="flex min-w-0 flex-col">
+          <Count
+            label={copy("settings.linkmap.receiving")}
+            testId="settings-link-map-receiving"
+            rows={p.map.receiving.map((page) => ({
+              key: page.url,
+              text: link(page.url, page.url),
+              line: page.articles === 1 ? copy("settings.linkmap.receiving.one") : copy("settings.linkmap.receiving.count", { count: String(page.articles) }),
+            }))}
+          />
+          <Count
+            label={copy("settings.linkmap.alone")}
+            testId="settings-link-map-alone"
+            rows={p.map.alone.map((article) => ({ key: article.url, text: link(article.url, article.url), line: aloneLine(article) }))}
+          />
+        </div>
       </div>
     </section>
   );

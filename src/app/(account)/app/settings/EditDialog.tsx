@@ -72,6 +72,8 @@ export function EditDialog(p: {
   lead?: string | null;
   testId: string;
   save?: (form: FormData) => Promise<DialogAnswer>;
+  /** A read-only list opens on *Show*, not *Change*. */
+  show?: boolean;
   children: React.ReactNode;
 }): React.JSX.Element {
   const dialog = useRef<HTMLDialogElement>(null);
@@ -90,12 +92,12 @@ export function EditDialog(p: {
         ref={opener}
         type="button"
         className={`btn btn-ghost ${TARGET} shrink-0 text-primary`}
-        aria-label={copy("settings.change.name", { label: p.label })}
+        aria-label={copy(p.show === true ? "settings.show.name" : "settings.change.name", { label: p.label })}
         aria-haspopup="dialog"
         onClick={open}
         data-testid={`${p.testId}-change`}
       >
-        {copy("settings.change")}
+        {copy(p.show === true ? "settings.show" : "settings.change")}
       </button>
       <dialog ref={dialog} className="modal" aria-labelledby={title} onClose={() => opener.current?.focus()} data-testid={p.testId}>
         <div className={DIALOG_BOX}>

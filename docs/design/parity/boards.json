@@ -31,7 +31,6 @@
   "AppDraft": { "read": "page", "paths": ["/app/draft/draft-2026-09-15"] },
   "AppCosts": { "read": "page", "paths": ["/app/costs"] },
   "Review": { "read": "page", "paths": ["/app/review"] },
-  "SettingsPublishing": { "read": "page", "paths": ["/app/settings/pages"] },
   "SettingsAccount": { "read": "page", "paths": ["/app/settings/account"] },
   "HostedIndex": { "read": "hosted", "host": "content.publisher.test", "paths": ["/"] },
   "HostedArticle": { "read": "hosted", "host": "content.publisher.test", "paths": ["/best-onboarding-tools"] },

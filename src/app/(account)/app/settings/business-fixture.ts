@@ -160,3 +160,10 @@ export const FIXTURE_KNOWLEDGE: StoredKnowledge = Object.freeze({
   readAt: READ_AT.toISOString(),
   demoPhrases: [],
 });
+
+/** The reserved account's index, one address long enough to prove a URL wraps. */
+export const FIXTURE_KNOWN_PAGES: readonly string[] = Object.freeze([
+  ...["pricing", "book", "about", "e-bikes", "blog/winter", "contact", "servicing", "repairs", "wheels"].map((path) => `https://example.com/${path}`),
+  "https://example.com/blog/how-often-should-an-e-bike-drivetrain-be-serviced-through-a-wet-winter-of-daily-commuting",
+  ...Array.from({ length: 9 }, (_, n) => `https://blog.example.com/page-${n + 1}`),
+]);

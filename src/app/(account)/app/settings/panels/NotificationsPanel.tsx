@@ -19,7 +19,8 @@ import { writtenLine } from "../../_shell/written";
 import { setNotificationAction } from "../panel-actions";
 import { NOTIFY_KIND_FIELD, NOTIFY_ON_FIELD, OFF, ON } from "../panel-state";
 import { vetoWindowLabel } from "./PublishingPanel";
-import { SAVED_BADGE_CLASS, useSetting } from "./useSetting";
+import { useSetting } from "./useSetting";
+import { CARD, CARD_BODY, CARD_LEAD, CARD_TITLE } from "../frame";
 import type { NotificationRow } from "../notifications";
 import { Linked } from "../Linked";
 import { CALENDAR_HREF } from "../../_overview/week";
@@ -66,20 +67,13 @@ export function NotificationsPanel(p: { settings: SettingsModel }): React.JSX.El
   const [sentTo = "", afterTo = ""] = copy("settings.notifications.to", { email: "\u0000" }).split("\u0000");
 
   return (
-    <section className="card card-border min-w-0 bg-base-100">
-      <div className="card-body gap-5">
-        <div className="flex min-w-0 flex-col gap-1">
-          <h2 className="card-title min-w-0 flex-wrap text-(length:--h3)">
-            <span className="min-w-0 wrap-anywhere">{copy("settings.notifications.title")}</span>
-            {writer.saved ? (
-              <span className={SAVED_BADGE_CLASS} data-testid="notifications-saved">
-                {copy("settings.answer.saved-badge")}
-              </span>
-            ) : null}
-          </h2>
-          <p className={`text-sm wrap-anywhere ${INK}`} data-testid="notifications-to">
+    <section className={CARD}>
+      <div className={CARD_BODY}>
+        <div className="flex min-w-0 flex-col">
+          <h2 className={CARD_TITLE}>{copy("settings.notifications.title")}</h2>
+          <p className={CARD_LEAD} data-testid="notifications-to">
             {sentTo}
-            <span className="num">{p.settings.account.email}</span>
+            <span className="font-mono break-all">{p.settings.account.email}</span>
             {afterTo}
           </p>
         </div>
@@ -88,14 +82,14 @@ export function NotificationsPanel(p: { settings: SettingsModel }): React.JSX.El
           {rows.map((row) => (
             <div
               key={row.kind}
-              className="border-base-300 flex min-w-0 items-start justify-between gap-3 border-t py-4 first:border-t-0 first:pt-0 last:pb-0"
+              className="border-base-300 flex min-w-0 items-start justify-between gap-3 border-t py-2 first:border-t-0"
               data-testid={`notification-${row.kind}`}
             >
               <div className="flex min-w-0 flex-col gap-1">
                 <label htmlFor={`notify-${row.kind}`} className="text-sm font-semibold wrap-anywhere">{copy(row.copyKey)}</label>
                 <RowLine row={row} vetoHours={p.settings.publishing.vetoHours} />
               </div>
-              <label className="flex min-h-11 shrink-0 cursor-pointer items-center">
+              <label className="flex min-h-11 shrink-0 cursor-pointer items-center lg:min-h-8">
                 <input
                   id={`notify-${row.kind}`}
                   type="checkbox"
@@ -116,7 +110,7 @@ export function NotificationsPanel(p: { settings: SettingsModel }): React.JSX.El
           </p>
         )}
         {alwaysOn === null ? null : (
-          <p className={`border-base-300 border-t pt-4 text-sm wrap-anywhere ${INK}`} data-testid="notifications-always-on">
+          <p className={`border-base-300 border-t pt-2 text-sm wrap-anywhere ${INK}`} data-testid="notifications-always-on">
             {alwaysOn}
           </p>
         )}
