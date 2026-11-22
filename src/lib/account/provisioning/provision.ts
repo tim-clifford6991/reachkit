@@ -36,6 +36,7 @@
 import { recordCheckoutFacts, type CheckoutFacts } from "../checkout/record";
 import { capture } from "@/lib/analytics";
 import { takeSpot } from "@/lib/account/offer/spots";
+import { reportPaid } from "@/lib/mail/ops/paid";
 import { recordOpsEvent } from "@/lib/ops/events";
 import { accountStore } from "../store";
 import { handleSecondPurchase } from "./duplicates";
@@ -155,6 +156,8 @@ export async function provisionFromPayment(sessionId: string, paidAt?: Date): Pr
   // the seam swallows every failure, so a vendor that is down never makes a
   // provisioned account look unprovisioned.
   await capture("paid", { subject: userId });
+  // Only the account's first opening tells the owner, so a redelivery or a retried provisioning mails nothing.
+  await reportPaid({ userId, domain });
 
   return { userId, siteId, created: true, signIn, openedAt: facts.openedAt, retry: !opened };
 }

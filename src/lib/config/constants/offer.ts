@@ -14,3 +14,10 @@ export const OFFER_SHOWN_DAYS = 30 as const;
 export const OFFER_BOOKING_URL: string = "";
 /** The founder checks in with a spot holder this many days after the spot was taken. */
 export const OFFER_CHECKIN_DAYS = [14, 30] as const;
+/** The founder sends the report video within a day (`marketing/first-customers/walkthrough-video.md`). */
+export const OFFER_VIDEO_DAYS = 1 as const;
+/** A spot's founder due dates, the Billing tab's and the owner's paid mail's one source. */
+export const founderDates = (takenAt: Date): { video: Date; checkIns: Date[] } => ({
+  video: new Date(takenAt.getTime() + OFFER_VIDEO_DAYS * 86_400_000),
+  checkIns: OFFER_CHECKIN_DAYS.map((days) => new Date(takenAt.getTime() + days * 86_400_000)),
+});

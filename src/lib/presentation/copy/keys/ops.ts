@@ -33,4 +33,13 @@ export const OPS_COPY = Object.freeze({
   "ops.uncrawled.fact.page": "Page",
   "ops.uncrawled.fact.state": "Google says",
   "ops.uncrawled.fact.published": "Went live",
+  "ops.paid.subject": "A customer paid",
+  "ops.paid.heading": "A Customer Paid",
+  "ops.paid.spot": "{domain} took first-50 spot {place} of {of}. Their offer promises a 15-minute setup call if they want one, a short video of their report, and check-ins after two weeks and after a month. The day each is due is below, in UTC.",
+  "ops.paid.no-spot": "{domain} paid. This is not a first-50 spot, so no setup call, report video or check-ins were promised.",
+  "ops.paid.no-domain": "A site with no address yet (asked at setup)",
+  "ops.paid.fact.call": "Setup call",
+  "ops.paid.call.no-link": "Offered, with no booking link set: email them to arrange it",
+  "ops.paid.fact.video": "Report video due",
+  "ops.paid.fact.check-in": "Day-{days} check-in",
 }) satisfies CopyPartition;

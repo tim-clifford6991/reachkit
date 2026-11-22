@@ -41,7 +41,7 @@ import type { ACCOUNT_NOTE_KEYS } from "@/lib/account/identity/notes";
 import type { PublishingMode } from "../_shell/model";
 import { formatDate, formatDateTime, formatDayDate } from "../_shell/format";
 import type { BillingSummary, PlanState } from "./billing";
-import { OFFER_CHECKIN_DAYS } from "@/lib/config/constants";
+import { founderDates } from "@/lib/config/constants";
 import { notificationRows, type NotificationRow, type NotifyKind } from "./notifications";
 
 /** The destination read model, entire — **the registry's own
@@ -411,7 +411,7 @@ export function billingSummaryOf(billing: BillingFacts, timeZone: string, now: D
   const taken = billing.readable && billing.state !== "ended" ? billing.spotTakenAt : null;
   // Only the next check-in is drawn, and it stays until its own day has ended in the account's zone.
   const day = (at: Date) => new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(at);
-  const checkIn = taken === null ? undefined : OFFER_CHECKIN_DAYS.map((days) => new Date(taken.getTime() + days * 86_400_000)).find((at) => day(at) >= day(now));
+  const checkIn = taken === null ? undefined : founderDates(taken).checkIns.find((at) => day(at) >= day(now));
   return billing.readable
     ? {
         readable: true,
