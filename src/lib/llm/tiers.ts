@@ -70,7 +70,7 @@
 import { env } from "@/lib/config/env";
 import { INFERENCE_PRICE_BOOK, INFERENCE_TIMEOUT_MS } from "@/lib/config/constants";
 
-export type Tier = "nano" | "haiku" | "sonnet" | "writer";
+export type Tier = "nano" | "haiku" | "sonnet" | "writer" | "research";
 
 /** Not exported — the only way a caller reaches a model id is through
  *  `tierBinding()`, keyed by the closed `Tier` union. There is no second
@@ -94,6 +94,9 @@ const TIER_MODEL_IDS: Readonly<Record<Tier, string>> = Object.freeze({
   // The page and its fix (SPEC §7, *Five stages*). Opus 5.5 refuses a
   // sampling parameter and always thinks — `FIXED_REQUEST`, `TIER_EFFORT`.
   writer: "claude-opus-5-5",
+  // The research step's claims reading of outside pages (SPEC §7, *Five stages*): on the cited pages it quoted 2% off
+  // its page against Haiku 4.5's 13%, and answered inside its 20 s at p95. It thinks only between tools (`TIER_THINKING`).
+  research: "claude-sonnet-5-5",
 });
 
 /** The effort a tier's model is asked for, where it cannot turn thinking off:
@@ -106,7 +109,12 @@ const TIER_EFFORT: Readonly<Partial<Record<Tier, "low">>> = Object.freeze({ writ
  *  sends such a tier no temperature and turns thinking off: the call's
  *  `max_tokens` and its clock are sized for the answer, and thinking would
  *  spend both. */
-const FIXED_REQUEST: ReadonlySet<Tier> = new Set<Tier>(["sonnet", "writer"]);
+const FIXED_REQUEST: ReadonlySet<Tier> = new Set<Tier>(["sonnet", "writer", "research"]);
+
+/** The thinking a tier's model is sent in place of turning it off: Sonnet 5.5 refuses `disabled` and, left to think,
+ *  spends its output cap on it, so the research tier sends `between_tools`, the setting its reading was measured at.
+ *  The SDK's types predate `between_tools`, so `index.ts` casts it; the API documents it as Sonnet 5.5's lowest. */
+const TIER_THINKING: Readonly<Partial<Record<Tier, "between_tools">>> = Object.freeze({ research: "between_tools" });
 
 export interface TierBinding {
   tier: Tier;
@@ -117,6 +125,8 @@ export interface TierBinding {
   fixedRequest: boolean;
   /** Sent as `output_config.effort`, in place of turning thinking off (`TIER_EFFORT`). */
   effort?: "low";
+  /** Sent as `thinking.type`, in place of turning thinking off (`TIER_THINKING`). */
+  thinking?: "between_tools";
   inCentsPerM: number;
   outCentsPerM: number;
 }
@@ -134,6 +144,7 @@ export function tierBinding(tier: Tier): TierBinding {
     timeoutMs: INFERENCE_TIMEOUT_MS[tier],
     fixedRequest: FIXED_REQUEST.has(tier),
     ...(TIER_EFFORT[tier] === undefined ? {} : { effort: TIER_EFFORT[tier] }),
+    ...(TIER_THINKING[tier] === undefined ? {} : { thinking: TIER_THINKING[tier] }),
     inCentsPerM: priceBook.inCentsPerM,
     outCentsPerM: priceBook.outCentsPerM,
   });
