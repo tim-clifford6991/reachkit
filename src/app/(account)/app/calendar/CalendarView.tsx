@@ -12,6 +12,7 @@
 import type React from "react";
 import { useEffect, useSyncExternalStore } from "react";
 import { parseAsString, useQueryState } from "nuqs";
+import Link from "next/link";
 import { copy } from "@/lib/presentation/copy";
 import { DayPanelView } from "./DayPanelView";
 import { WeekGrid } from "./WeekGrid";
@@ -60,8 +61,8 @@ export function CalendarView(p: {
   screen: WeekScreen;
   /** Each written page's body as written, rendered on the server, by draft. */
   bodies?: Readonly<Record<string, React.ReactNode>>;
-  /** Every page published, under the cards. */
-  published?: React.ReactNode;
+  /** At least one page is live, so the link to the one list of them is drawn. */
+  anyLive?: boolean;
 }): React.JSX.Element {
   const [day, setDay] = useQueryState("day", parseAsString.withOptions({ history: "push" }));
 
@@ -114,7 +115,13 @@ export function CalendarView(p: {
           </details>
         )}
         <WeekFoot words={p.screen.head.foot} />
-        {p.published}
+        {p.anyLive === true ? (
+          <p className="min-w-0 text-sm">
+            <Link href="/app/pages" className="link link-primary inline-flex min-h-11 items-center" data-testid="calendar-pages-link">
+              {copy("calendar.pages.link")}
+            </Link>
+          </p>
+        ) : null}
       </div>
 
       {card === undefined ? null : (

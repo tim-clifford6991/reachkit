@@ -7,7 +7,7 @@ import { clockTime } from "./dates";
 import type { WeekModel } from "./month";
 
 /** A go-live moment is promised only where the address works (Q11), publishing is not held and ReachKit has not stopped. */
-export function promisesGoLive(week: Pick<WeekModel, "destination" | "held" | "stopped">): boolean {
+function promisesGoLive(week: Pick<WeekModel, "destination" | "held" | "stopped">): boolean {
   return week.destination?.healthy === true && week.held === null && week.stopped === null;
 }
 
