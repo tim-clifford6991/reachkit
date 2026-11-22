@@ -55,13 +55,15 @@ export async function readSiteAnswers(siteId: string): Promise<SiteAnswers | nul
   const row = data?.[0];
   const section = row?.prompts;
   if (row === undefined || !Array.isArray(section?.answers) || !Array.isArray(section.asked)) return null;
-  const texts = new Map(section.asked.map((prompt) => [prompt.id, prompt.text]));
+  const asked = new Map(section.asked.map((prompt) => [prompt.id, prompt]));
+  // The AI tile leaves out branded and unknown questions, so the list does too.
+  const answers = section.answers.filter((answer) => { const kind = asked.get(answer.promptId)?.kind; return kind !== undefined && kind !== "branded"; });
   return {
     scanId: row.id,
     day: row.created_at.slice(0, 10),
     siteName: section.siteName,
-    answers: section.answers,
-    items: section.answers.map((answer) => ({ question: texts.get(answer.promptId) ?? "", engine: answer.engine, run: answer.run, counted: counts(answer) })),
+    answers,
+    items: answers.map((answer) => ({ question: asked.get(answer.promptId)?.text ?? "", engine: answer.engine, run: answer.run, counted: counts(answer) })),
   };
 }
 
