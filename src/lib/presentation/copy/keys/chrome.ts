@@ -90,7 +90,7 @@ export const CHROME_COPY = Object.freeze({
   "pricing.compare.title": "{price} Against the Other Ways",
   "pricing.compare.limit": "An agency often also handles your Maps listing, ads and links. We don’t.",
   "pricing.faq.title": "Questions Before You Pay",
-  "pricing.close.title": "Not Sure Yet? See Your Free Report",
+  "pricing.close.title": "Not Sure? See Your Free Report",
   /* ── The two pages every route falls back to (UI-SPEC S8) ────────────
      Not found and error. They are the *shell's* own pages rather than any
      screen's — no route serves them, both route groups mount them, and the
