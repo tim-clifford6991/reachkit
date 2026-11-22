@@ -21,9 +21,9 @@ const APP_ROOT = path.resolve(__dirname, "../../../src/app");
 const routes = enumerateRoutes(APP_ROOT, { accountCookie: getAccountCookie() });
 
 /** One public screen and one account screen that draw the rung: S4's "start"
- *  label, and S18's nine card heads. */
+ *  label, and the Plan head's eyebrow, drawn loaded and waiting (PlanHead.tsx). */
 const PUBLIC_ROUTE = "/pricing";
-const ACCOUNT_ROUTE = "/app/settings";
+const ACCOUNT_ROUTE = "/app/calendar";
 
 /** Chromium starts per call (`browser.ts`); same bound as the sweep's. */
 const PER_ROUTE_BROWSER_MS = 60_000;

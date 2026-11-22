@@ -11,7 +11,8 @@ export default function SettingsLayout({
 }): React.JSX.Element {
   return (
     <div className="flex min-w-0 flex-col gap-4" data-testid="settings">
-      <h1>{copy("shell.nav.settings")}</h1>
+      {/* 8px to the tabs, as plate F1a draws the head; a wrapper would end the tab bar's stick at its own edge. */}
+      <h1 className="-mb-2">{copy("shell.nav.settings")}</h1>
       <SettingsTabs />
       {children}
     </div>

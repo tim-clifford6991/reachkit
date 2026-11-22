@@ -30,6 +30,7 @@ export const PUBLISHING_ENABLED_FIELD = "publishing_enabled";
 export const NOTIFY_KIND_FIELD = "notify_kind";
 export const NOTIFY_ON_FIELD = "notify_on";
 export const CLAIM_FIELD = "do_not_claim";
+export const CLAIM_REMOVED_FIELD = "do_not_claim_removed";
 
 /** Issue #926's four, on the same footing and for the same reason this file
  *  exists at all: a `"use server"` module may export **only async
@@ -40,6 +41,8 @@ export const CLAIM_FIELD = "do_not_claim";
  *  `next build` is what does. */
 export const BUSINESS_LIST_FIELD = "business_list";
 export const BUSINESS_ITEM_FIELD = "business_item";
+/** An item a list dialog took out; `BUSINESS_ITEM_FIELD` carries the ones it added. */
+export const BUSINESS_REMOVED_FIELD = "business_removed";
 export const BUSINESS_JOB_FIELD = "business_job";
 export const BUSINESS_FACT_FIELD = "business_fact";
 /** #1133: the five answers' fields are this prefix and the question's name. */

@@ -1,278 +1,130 @@
-// BUILD §4.7 — "**Competitors** (chips ×5, add/remove)".
-//
-// One settable key, `competitors`, and the whole of what §4.7 asks of it: the
-// set as chips, a remove beside each, and a way to add. `COMPETITORS_MAX` is
-// five (§6.1) and is a pinned engine constant — it bounds the set, it is not a
-// number this screen offers anyone to change, and the add control is simply
-// absent once the set is full rather than present-and-refusing.
-//
-// The set is the customer's own answer, not a derivation: §6.6 rules that
-// "the customer can always type a rival manually — a cold-start founder knows
-// their competitors even when no dataset does". Suggestions from the market
-// (`deriveRivals`) are a setup-time offer (issue #37), not a settings-screen
-// list, so none is rendered here.
-//
-// Each card states its figures from the Competitors tab's own readers
-// (`../market-figures.ts`) in a label/figure grid (canvas v36), and one that joined after the last scan says when
-// it is measured from rather than drawing a zero. Only a rival the customer added carries a badge: found is the default.
-//
-// Cold start (§6.6): an empty set renders the add control and no chips —
-// and, since issue #204, REQ-071 c16's one line where the chips would be.
-//
-// **That reverses this file's earlier reading, on the criterion's own
-// words.** It said no empty-state sentence was owed, because a customer
-// looking at an add control is looking at the one thing there is to do.
-// c16 is about a different fact: not what the customer may do next, but
-// what the *product* will not do until they do it — there is no rival
-// comparison to make, so none is made. A control cannot say that, and §2.5
-// requires an empty state to be designed rather than blank.
-//
-// **Add and remove write, since issue #231.** Both go through
-// `../change-actions.ts` and therefore through `addRival` / `removeRival`
-// and `saveRivals` — REQ-071 c4's "the same rules" as setup, applied on the
-// server against the stored set. This card sends one typed domain and one
-// pressed chip; it never sends the set. A set from the browser is a set a
-// browser can rewrite, and it is also a stale one, which is how a fifth
-// rival gets added to a set that already holds five.
-//
-// **The refusal belongs to the field, not to the chips.** Every one of
-// `addRival`'s five is about the value that was typed, so it is shown on
-// the field that holds it, with the value intact.
-//
-// **The field has its own name, since issue #270.** It was labelled with
-// the card's heading key, so the card read "Competitors … Competitors": a
-// heading naming the set and a field under it repeating the word rather
-// than naming what is typed into it. `settings.competitors.add-label` is
-// the field's label and nothing else — no placeholder repeating it (ADR-093's
-// "one string, once"). The heading key is read once, by the heading.
+// SPEC §4 *Market and competitors*: who the site is measured against, each with its first-page and AI-answer
+// figures from the Competitors tab's readers, then the site itself. Add and remove go through `addRival` and
+// `removeRival` on the server, under setup's rules; the set is never sent from the browser.
 "use client";
 
 import type React from "react";
-import { Plus, X } from "lucide-react";
-import { useState, useTransition } from "react";
+import { BATTERY } from "@/lib/config/constants";
 import { copy } from "@/lib/presentation/copy";
-import { ANSWER_RATE_WEEKS, BATTERY } from "@/lib/config/constants";
 import { writtenLine } from "../../_shell/written";
+import type { BusinessScreen, CompetitorRow } from "../business-screen";
 import { addRivalAction, removeRivalAction } from "../change-actions";
-import {
-  MARKET_CHANGE_INITIAL,
-  RIVAL_FIELD,
-  refusalKeyOf,
-  type MarketChangeState,
-} from "../market-state";
-import type { Half, MarketFigures } from "../market-figures";
-import type { SettingsModel } from "../model";
+import { EditDialog, listChange, StagedList, type DialogAnswer } from "../EditDialog";
+import { CARD, CARD_BODY, CARD_LEAD, CARD_TITLE } from "../frame";
+import { RIVAL_FIELD } from "../market-state";
 
-/** c16's line, or nothing while the owner has not written it — never a
- *  placeholder standing where a sentence belongs (REQ-091 c2). */
-function EmptyLine(): React.JSX.Element | null {
-  const line = writtenLine("settings.competitors.none-yet");
-  return line === null ? null : (
-    <p className="text-xs text-base-content/70 wrap-anywhere" data-testid="competitors-none-yet-line">
-      {line}
-    </p>
-  );
-}
+type Competitors = NonNullable<BusinessScreen["competitors"]>;
 
-// The board draws a rival as two letters: a hyphenated name's word initials, else its first two letters.
-const rivalInitials = (domain: string): string => {
-  const words = domain.replace(/^www\./i, "").split(".")[0]!.split(/[-_]+/).filter(Boolean);
-  return (words.length > 1 ? words[0]!.charAt(0) + words[1]!.charAt(0) : (words[0] ?? domain).slice(0, 2)).toUpperCase();
-};
-
-function Avatar(p: { domain: string }): React.JSX.Element {
-  return (
-    <span className="avatar avatar-placeholder" aria-hidden>
-      <span className="grid size-11 place-items-center rounded-field bg-base-200 font-bold">{rivalInitials(p.domain)}</span>
-    </span>
-  );
-}
-
-/** The board's bordered secondary button, at the 44px target. */
-const OUTLINE = "btn btn-outline border-base-300 bg-base-100 text-primary min-h-11 self-start";
-
-/** One figure row of the label/figure grid: `n of m`, or what stands in for an unread half. */
-function FigureRow(p: { label: string; half: Half; pending: string | null; testId: string }): React.JSX.Element {
-  const value =
-    p.pending ?? (p.half === null ? copy("settings.competitors.not-measured") : copy("settings.competitors.figure", { n: String(p.half.n), of: String(p.half.of) }));
-  return (
-    <div className="flex min-w-0 justify-between gap-4" data-testid={p.testId}>
-      <dt className="min-w-0 text-base-content/70 wrap-anywhere">{p.label}</dt>
-      <dd className="min-w-0 text-right font-bold wrap-anywhere">{value}</dd>
-    </div>
-  );
-}
-
-/** The set, its figures and the add field: a client panel takes what it renders. */
-export function CompetitorsPanel(p: {
-  competitors: SettingsModel["competitors"];
-  /** D28 (#1185): ReachKit's conclusion, for each rival's one line. */
-  concluded?: SettingsModel["concluded"];
-  figures: MarketFigures;
-  /** When a competitor added now is first measured, written in the site's zone. */
-  measuredFrom: string;
-  /** Far larger competitors, kept apart from the comparison (issue 858). */
-  leaders: readonly string[];
-}): React.JSX.Element {
-  const concluded = p.concluded ?? null;
-  const more = BATTERY.COMPETITORS_MAX - p.competitors.length;
-  // The typed domain, kept across a refusal, and the answer the last press
-  // gave. Neither is a copy of the set: the set is the model's, re-read
-  // after every save, and this card holds no second one to fall out of
-  // step with it.
-  const [value, setValue] = useState("");
-  const [answer, setAnswer] = useState<MarketChangeState>(MARKET_CHANGE_INITIAL);
-  // Issue 1196: one press at a time, and the pressed control spins.
-  const [busy, startWriting] = useTransition();
-  const [removing, setRemoving] = useState<string | null>(null);
-
-  async function add(form: FormData): Promise<void> {
-    const next = await addRivalAction(form);
-    setAnswer(next);
-    // A rival that went in is no longer a value being typed; a refused one
-    // stays in the field with the reason beside it.
-    setValue(next.answer === "refused" ? next.value : "");
+/** Removals first, so a full set makes room; the first refused addition stops the save and says why. */
+async function saveRivals(form: FormData, stored: readonly string[]): Promise<DialogAnswer> {
+  const { added, removed } = listChange(form, RIVAL_FIELD, stored);
+  const one = (domain: string): FormData => {
+    const out = new FormData();
+    out.set(RIVAL_FIELD, domain);
+    return out;
+  };
+  try {
+    for (const domain of removed) await removeRivalAction(one(domain));
+    for (const domain of added) {
+      const answer = await addRivalAction(one(domain));
+      if (answer.answer === "refused") return { ok: false, line: writtenLine(answer.lineKey) ?? copy("settings.answer.refused") };
+    }
+  } catch {
+    return { ok: false, line: copy("settings.answer.refused") };
   }
+  return { ok: true };
+}
 
-  async function remove(form: FormData): Promise<void> {
-    // `removeRival` cannot refuse: the card is gone from the next read.
-    setAnswer(await removeRivalAction(form));
-  }
+function Figures(p: { row: CompetitorRow }): React.JSX.Element {
+  return p.row.pending !== null ? (
+    <td colSpan={2} className="text-base-content/70">
+      {p.row.pending}
+    </td>
+  ) : (
+    <>
+      <td className="num">{p.row.google}</td>
+      <td className="num">{p.row.ai}</td>
+    </>
+  );
+}
 
-  const refusal = refusalKeyOf(answer);
-  const refusalLine = refusal === null ? null : writtenLine(refusal);
-  const pending = copy("settings.competitors.measured-from", { date: p.measuredFrom });
-  const you = p.figures.you;
+export function CompetitorsPanel(p: { competitors: Competitors }): React.JSX.Element {
+  const c = p.competitors;
+  const domains = c.rows.map((row) => row.domain);
+  const byDomain = new Map(c.rows.map((row) => [row.domain, row]));
+  const head = (
+    // daisyUI's head text is 60%: too faint to read; the card's quiet 70% is the floor.
+    <tr className="whitespace-nowrap text-base-content/70">
+      <th scope="col">{copy("settings.competitors.title")}</th>
+      <th scope="col">{copy("settings.competitors.google")}</th>
+      <th scope="col">{copy("settings.competitors.ai")}</th>
+    </tr>
+  );
   return (
-    <section className="card card-border min-w-0 bg-base-100">
-      <div className="card-body gap-5">
-        <div className="flex min-w-0 flex-wrap items-start justify-between gap-2">
-          <div className="flex min-w-0 flex-1 basis-60 flex-col gap-1">
-            <h2 className="card-title text-(length:--h3)">{copy("settings.competitors.title")}</h2>
-            {concluded === null ? null : (
-              <p className="text-sm text-base-content/70 wrap-anywhere" data-testid="competitors-concluded">
-                {copy(concluded.rivalsOverridden ? "settings.competitors.overridden" : "settings.competitors.concluded")}
-              </p>
-            )}
-          </div>
-          <span className="text-sm text-base-content/70" data-testid="competitor-count">
-            {copy("settings.competitors.count", {
-              taken: String(p.competitors.length),
-              max: String(BATTERY.COMPETITORS_MAX),
-            })}
+    <section className={CARD} data-testid="settings-competitors">
+      <div className={CARD_BODY}>
+        <div className="flex min-w-0 flex-wrap items-baseline justify-between gap-2">
+          <h2 className={CARD_TITLE}>{copy("settings.competitors.title")}</h2>
+          <span className="num text-sm text-base-content/70" data-testid="competitor-count">
+            {c.count}
           </span>
         </div>
-
-        <div className="flex min-w-0 flex-col gap-4" data-testid="setting-competitors">
-          {p.competitors.length > 0 ? null : <EmptyLine />}
-          <ul className="grid min-w-0 grid-cols-[repeat(auto-fill,minmax(min(100%,250px),1fr))] gap-3" data-layout="tiles">
-            {p.competitors.map((domain) => {
-              const figures = p.figures.cards[domain] ?? null;
-              const found = concluded !== null && concluded.reasons[domain] !== undefined;
-              return (
-                <li className="card card-border min-w-0" key={domain} data-testid={`competitor-${domain}`}>
-                  <div className="card-body gap-4 p-5">
-                    <div className="flex min-w-0 flex-wrap items-center gap-3">
-                      <Avatar domain={domain} />
-                      <span className="num min-w-0 text-sm wrap-anywhere">{domain}</span>
-                      {found ? null : <span className="badge badge-soft badge-primary badge-sm">{copy("settings.competitors.added")}</span>}
-                    </div>
-                    <dl className="flex min-w-0 flex-col gap-2 text-sm">
-                      <FigureRow
-                        label={copy("settings.competitors.google")}
-                        half={figures?.google ?? null}
-                        pending={figures === null ? pending : null}
-                        testId={`competitor-google-${domain}`}
-                      />
-                      <FigureRow
-                        label={copy("settings.competitors.ai")}
-                        half={figures?.ai ?? null}
-                        pending={figures === null ? pending : null}
-                        testId={`competitor-ai-${domain}`}
-                      />
-                    </dl>
-                    {/* Each rival is its own form's submit: pressing it removes that one rival on the server. */}
-                    <form
-                      action={(form) => {
-                        setRemoving(domain);
-                        startWriting(() => remove(form));
-                      }}
-                      className="mt-auto"
-                    >
-                      <input type="hidden" name={RIVAL_FIELD} value={domain} readOnly />
-                      <button
-                        type="submit"
-                        className={OUTLINE}
-                        aria-label={copy("setup.competitors.remove", { rival: domain })}
-                        disabled={busy}
-                      >
-                        {busy && removing === domain ? (
-                          <span className="loading loading-spinner loading-xs" aria-hidden />
-                        ) : (
-                          <X size={16} strokeWidth={1.75} aria-hidden />
-                        )}
-                        {copy("settings.competitors.remove")}
-                      </button>
-                    </form>
-                  </div>
-                </li>
-              );
-            })}
-
-            {more <= 0 ? null : (
-              <li className="flex min-w-0 flex-col gap-2 rounded-box border border-dashed border-base-300 p-5">
-                <form
-                  action={(form) => {
-                    setRemoving(null);
-                    startWriting(() => add(form));
-                  }}
-                  className="flex min-w-0 flex-col gap-3"
-                  data-testid="add-competitor"
-                >
-                  <label htmlFor="add-competitor-field" className="font-bold">
-                    {copy("settings.competitors.add-label")}
-                  </label>
-                  <input
-                    id="add-competitor-field"
-                    className={refusalLine === null ? "input w-full" : "input input-error w-full"}
-                    name={RIVAL_FIELD}
-                    placeholder={copy("settings.competitors.placeholder")}
-                    value={value}
-                    onChange={(e) => setValue(e.target.value)}
-                    aria-invalid={refusalLine !== null}
-                  />
-                  {refusalLine === null ? null : <p className="text-xs text-error wrap-anywhere">{refusalLine}</p>}
-                  <button type="submit" className={OUTLINE} disabled={busy}>
-                    {busy && removing === null ? (
-                      <span className="loading loading-spinner loading-xs" aria-hidden />
-                    ) : (
-                      <Plus size={16} strokeWidth={1.75} aria-hidden />
-                    )}
-                    {copy("settings.competitors.add")}
-                  </button>
-                </form>
-              </li>
-            )}
-          </ul>
-
-          <div className="flex min-w-0 flex-col gap-2 rounded-box bg-base-200 px-4 py-3 text-sm" data-testid="competitors-you">
-            <span className="font-bold">{copy("settings.competitors.you")}</span>
-            <dl className="flex min-w-0 flex-col gap-2">
-              <FigureRow label={copy("settings.competitors.google")} half={you.google} pending={null} testId="competitors-you-google" />
-              <FigureRow
-                label={copy("settings.competitors.you.ai", { weeks: String(ANSWER_RATE_WEEKS) })}
-                half={you.ai}
-                pending={null}
-                testId="competitors-you-ai"
-              />
-            </dl>
-          </div>
-
-          {p.leaders.length === 0 ? null : (
-            <p className="text-sm text-base-content/70 wrap-anywhere" data-testid="competitors-leaders">
-              {copy("settings.competitors.leaders", { names: p.leaders.join(", ") })}
-            </p>
-          )}
+        {c.none === null ? null : <p className={CARD_LEAD}>{c.none}</p>}
+        {/* A table wider than a phone scrolls sideways, so the keyboard can reach it. */}
+        <div className="overflow-x-auto" tabIndex={0} role="region" aria-label={copy("settings.competitors.title")}>
+          <table className="table-sm table min-w-0" data-testid="setting-competitors">
+            <thead>{head}</thead>
+            <tbody>
+              {c.rows.map((row) => (
+                <tr key={row.domain} data-testid={`competitor-${row.domain}`}>
+                  <th scope="row" className="font-normal">
+                    <span className="num break-all">{row.domain}</span>
+                    {row.addedByYou ? <span className="badge badge-soft badge-primary badge-sm ms-2">{copy("settings.competitors.added")}</span> : null}
+                  </th>
+                  <Figures row={row} />
+                </tr>
+              ))}
+              <tr className="font-semibold" data-testid="competitors-you">
+                <th scope="row">{copy("settings.competitors.you")}</th>
+                <td className="num">{c.you.google}</td>
+                <td className="num">{c.you.ai}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        {c.leaders === null ? null : (
+          <p className="text-xs text-base-content/70 wrap-anywhere" data-testid="competitors-leaders">
+            {c.leaders}
+          </p>
+        )}
+        {/* The table's last row already rules it off, so this foot draws no line of its own. */}
+        <div className="flex min-w-0 flex-wrap items-center justify-between gap-x-4 gap-y-1">
+          <p className={CARD_LEAD}>{c.foot}</p>
+          <EditDialog
+            label={copy("settings.competitors.title")}
+            lead={c.foot}
+            testId="competitors-dialog"
+            save={(form) => saveRivals(form, domains)}
+          >
+            <StagedList
+              items={domains}
+              name={RIVAL_FIELD}
+              addLabel={copy("settings.competitors.add-label")}
+              placeholder={copy("settings.competitors.placeholder")}
+              max={BATTERY.COMPETITORS_MAX}
+              full={copy("settings.competitors.full", { max: String(BATTERY.COMPETITORS_MAX) })}
+              detail={(domain) => {
+                const row = byDomain.get(domain);
+                return row === undefined ? null : (
+                  <span className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-xs text-base-content/70">
+                    {row.addedByYou ? <span className="badge badge-soft badge-primary badge-sm">{copy("settings.competitors.added")}</span> : null}
+                    {row.detail}
+                  </span>
+                );
+              }}
+            />
+            <p className="text-sm text-base-content/70 wrap-anywhere">{c.you.line}</p>
+          </EditDialog>
         </div>
       </div>
     </section>

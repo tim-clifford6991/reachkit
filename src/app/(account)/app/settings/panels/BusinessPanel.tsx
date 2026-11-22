@@ -1,297 +1,134 @@
-// SPEC §7 (2026-09-20, #908) · issue #926 — what ReachKit knows about the
-// business, and the controls that correct it.
-//
-// "**What a page is written from.** The confirmed business profile — what the
-// business does, sells and promises, who it serves, its vocabulary — joins
-// the writer's inputs."
-//
-// daisyUI classes in the route; each field is a `SettingRow`, the row every Settings board draws (canvas v36).
-// Only groups that have something in them are drawn (#926), and a group that is drawn keeps its Add, because
-// the customer adds or takes out a buyer term (SPEC §4, 2026-10-15, issue 1454). Words you use is drawn in the
-// voice card (`ListEditor`); tone, how the business refers to itself and the voice summary's claim lists are not drawn.
+// SPEC §4 *Your business*: "What We Read from Your Site" as one line per answer, each changed in its own dialog. The
+// customer's corrections choose the next pass's searches and write the pages (`profileWithEdits`).
 "use client";
 
 import type React from "react";
 import { useState, useTransition } from "react";
-import { Pencil, Plus, RefreshCcw, X } from "lucide-react";
-import { copy, type CopyKey } from "@/lib/presentation/copy";
+import { RefreshCw } from "lucide-react";
 import { say } from "@/app/_toast/say";
-import {
-  type BusinessItem,
-  type BusinessList,
-  type BusinessProfile,
-} from "@/lib/site-profile/business/types";
-import {
-  addBusinessItemAction,
-  removeBusinessItemAction,
-  rewordBusinessJobAction,
-} from "../business-actions";
-import { remeasureNowAction } from "../change-actions";
-import { MARKET_REMEASURE_INITIAL, type MarketRemeasureState } from "../market-state";
-import { formatDayDate } from "../../_shell/format";
+import { KNOWLEDGE_BASE } from "@/lib/config/constants";
+import { copy } from "@/lib/presentation/copy";
+import type { BusinessList, BusinessProfile } from "@/lib/site-profile/business/types";
+import { FOUNDER_QUESTIONS, type FounderAnswers, type KnowledgeBase } from "@/lib/site-profile/knowledge/types";
+import { QUESTION_COPY } from "../../../setup/_setup/business";
 import { writtenLine } from "../../_shell/written";
+import { rewordBusinessJobAction, saveBusinessListAction, saveFounderAnswersAction } from "../business-actions";
+import type { BusinessScreen, Line } from "../business-screen";
+import { remeasureNowAction } from "../change-actions";
+import { EditDialog, fromSetting, listChange, StagedList, TextField } from "../EditDialog";
+import { CARD, CARD_BODY, CARD_FOOT, CARD_LEAD, CARD_TITLE, SOFT } from "../frame";
+import { MARKET_REMEASURE_INITIAL, type MarketRemeasureState } from "../market-state";
 import {
+  BUSINESS_ANSWER_FIELD,
   BUSINESS_ITEM_FIELD,
   BUSINESS_JOB_FIELD,
   BUSINESS_LIST_FIELD,
+  BUSINESS_REMOVED_FIELD,
 } from "../panel-state";
-import { SAVED_BADGE_CLASS, useSetting } from "./useSetting";
-import { SettingRow } from "./SettingRow";
+import { SettingLine } from "./SettingRow";
 
-/** The lists the business card draws, in the board's order, and Words you use, which the voice card draws. */
-const GROUP_COPY: Readonly<Partial<Record<BusinessList, CopyKey>>> = {
-  products: "settings.business.products",
-  audienceTerms: "settings.business.audienceTerms",
-  claims: "settings.business.claims",
-  vocabulary: "settings.business.vocabulary",
-};
-const LIST_ORDER: readonly BusinessList[] = ["products", "audienceTerms", "claims"];
-
-/** An item's remove control, named for the item it removes. */
-function RemoveButton(p: {
-  list: BusinessList;
-  item: BusinessItem;
-  writer: ReturnType<typeof useSetting>;
-}): React.JSX.Element {
+/** A business list's dialog: its items, and Save writes what the customer left in one write. */
+export function ListDialog(p: { list: BusinessList; label: string; items: readonly string[]; lead?: string | null }): React.JSX.Element {
+  async function save(form: FormData): Promise<ReturnType<typeof fromSetting>> {
+    const { added, removed } = listChange(form, BUSINESS_ITEM_FIELD, p.items);
+    const out = new FormData();
+    out.set(BUSINESS_LIST_FIELD, p.list);
+    for (const item of added) out.append(BUSINESS_ITEM_FIELD, item);
+    for (const item of removed) out.append(BUSINESS_REMOVED_FIELD, item);
+    return fromSetting(await saveBusinessListAction(out));
+  }
   return (
-    // A flex box, never `display: contents`: a form with no box of its own
-    // puts its button outside a parent every containment check reads.
-    <form
-      action={(form) => p.writer.press(removeBusinessItemAction, form)}
-      className="flex shrink-0 items-center"
+    <EditDialog label={p.label} lead={p.lead ?? copy("settings.business.lead")} testId={`business-dialog-${p.list}`} save={save}>
+      <StagedList items={p.items} name={BUSINESS_ITEM_FIELD} addLabel={copy("settings.business.add.label", { group: p.label })} />
+    </EditDialog>
+  );
+}
+
+function shortAddress(url: string): string {
+  try {
+    const parsed = new URL(url);
+    return parsed.pathname === "/" ? parsed.host : parsed.pathname;
+  } catch {
+    return url;
+  }
+}
+
+/** What buyers ask, as read from the pages, and the five things only the founder knows, which it saves. */
+function AsksDialog(p: { label: string; knowledge: KnowledgeBase; answers: FounderAnswers }): React.JSX.Element {
+  return (
+    <EditDialog
+      label={p.label}
+      lead={copy("settings.knowledge.lead")}
+      testId="business-dialog-asks"
+      save={async (form) => fromSetting(await saveFounderAnswersAction(form))}
     >
-      <input type="hidden" name={BUSINESS_LIST_FIELD} value={p.list} />
-      <input type="hidden" name={BUSINESS_ITEM_FIELD} value={p.item.text} />
-      <button
-        type="submit"
-        // The board's 44px target at the chip's end.
-        className="btn btn-ghost btn-circle size-11 shrink-0"
-        disabled={p.writer.busy}
-        aria-label={copy("settings.business.remove", { item: p.item.text })}
-      >
-        <X size={16} strokeWidth={1.75} aria-hidden />
-      </button>
-    </form>
-  );
-}
-
-/** *new* for a found item the customer has not seen, *yours* for one they typed. */
-function Mark(p: { item: BusinessItem }): React.JSX.Element | null {
-  const key = p.item.isNew
-    ? ("settings.business.mark.new" as const)
-    : p.item.source === "yours"
-      ? ("settings.business.mark.yours" as const)
-      : null;
-  if (key === null) return null;
-  return (
-    <span className={`text-xs font-semibold uppercase ${p.item.isNew ? "text-primary" : "text-base-content/70"}`}>
-      {copy(key)}
-    </span>
-  );
-}
-
-/** One item, as the board's 44px chip whose text folds inside it rather than overflow or clamp. */
-function Chip(p: {
-  list: BusinessList;
-  item: BusinessItem;
-  writer: ReturnType<typeof useSetting>;
-}): React.JSX.Element {
-  return (
-    <span
-      className={`badge h-auto min-h-11 max-w-full min-w-0 items-center gap-1.5 py-0 pr-0 pl-3.5 text-sm whitespace-normal wrap-anywhere ${
-        p.item.source === "yours" ? "badge-outline" : "badge-ghost"
-      }`}
-      data-testid="business-item"
-    >
-      <span className="min-w-0">{p.item.text}</span>
-      <Mark item={p.item} />
-      <RemoveButton list={p.list} item={p.item} writer={p.writer} />
-    </span>
-  );
-}
-
-/** One list's chips, and an Add at the end of them that opens its field. */
-function Chips(p: {
-  list: BusinessList;
-  items: readonly BusinessItem[];
-  writer: ReturnType<typeof useSetting>;
-}): React.JSX.Element {
-  const [adding, setAdding] = useState(false);
-  const [entry, setEntry] = useState("");
-  const label = copy("settings.business.add.label", { group: copy(GROUP_COPY[p.list]!) });
-
-  return (
-    <div className="flex min-w-0 flex-wrap items-center gap-2">
-      {p.items.map((item) => (
-        <Chip key={`${item.source}:${item.text}`} list={p.list} item={item} writer={p.writer} />
-      ))}
-      {adding ? (
-        <form
-          action={(form) => {
-            p.writer.press(addBusinessItemAction, form);
-            setEntry("");
-            setAdding(false);
-          }}
-          className="flex w-full min-w-0 items-center gap-2 sm:w-auto"
-          data-testid={`business-add-${p.list}`}
-        >
-          <input type="hidden" name={BUSINESS_LIST_FIELD} value={p.list} />
-          {/* `aria-label`, not an `sr-only` label: a one-pixel box of text reads as overflow. */}
-          <input name={BUSINESS_ITEM_FIELD} className="input min-w-0 grow" aria-label={label} value={entry} onChange={(e) => setEntry(e.target.value)} autoFocus />
-          <button type="submit" className={OUTLINE} aria-label={label} disabled={p.writer.busy || entry.trim() === ""}>
-            {p.writer.busy ? <span className="loading loading-spinner loading-xs" aria-hidden /> : null}
-            {copy("settings.business.add")}
-          </button>
-        </form>
-      ) : (
-        <button type="button" className="btn btn-ghost min-h-11 px-3 text-primary" aria-label={label} onClick={() => setAdding(true)} data-testid={`business-open-add-${p.list}`}>
-          <Plus size={16} strokeWidth={1.75} aria-hidden />
-          {copy("settings.business.add")}
-        </button>
-      )}
-    </div>
-  );
-}
-
-/** One group of the business card: its head beside its chips. */
-function Group(p: { list: BusinessList; items: readonly BusinessItem[]; writer: ReturnType<typeof useSetting> }): React.JSX.Element {
-  return <SettingRow name={copy(GROUP_COPY[p.list]!)} testId={`business-group-${p.list}`} below={<Chips {...p} />} />;
-}
-
-/** One list edited on another card, with a writer of its own. */
-export function ListEditor(p: { list: BusinessList; items: readonly BusinessItem[] }): React.JSX.Element {
-  const writer = useSetting();
-  return <Chips list={p.list} items={p.items} writer={writer} />;
-}
-
-/** The board's bordered secondary button, at the 44px target. */
-const OUTLINE = "btn btn-outline border-base-300 bg-base-100 text-primary min-h-11 shrink-0";
-
-/** *What you do*, the one rewordable field, and *Kind of business* under it as a read. */
-function Job(p: {
-  profile: BusinessProfile;
-  kind: string | null;
-  writer: ReturnType<typeof useSetting>;
-}): React.JSX.Element {
-  const [editing, setEditing] = useState(false);
-  const { job } = p.profile;
-  const kind = p.kind ?? p.profile.offeringType;
-
-  return (
-    <>
-      <SettingRow name={copy("settings.business.job")} testId="business-job" below={
-        editing ? (
-          <form
-            action={(form) => {
-              p.writer.press(rewordBusinessJobAction, form);
-              setEditing(false);
-            }}
-            className="flex min-w-0 flex-col gap-2"
-            data-testid="business-job-edit"
-          >
-            <textarea
-              name={BUSINESS_JOB_FIELD}
-              className="textarea min-w-0 w-full"
-              rows={2}
-              aria-label={copy("settings.business.job")}
-              defaultValue={job?.text ?? ""}
+      <ul className="list min-w-0">
+        {p.knowledge.questions.map((item) => (
+          <li key={item.text} className="list-row min-w-0 flex-col items-start gap-1 px-0">
+            <span className="min-w-0 wrap-anywhere">{item.text}</span>
+            {item.source.kind === "founder" ? (
+              <span className="badge badge-ghost badge-sm">{copy("settings.knowledge.from-you")}</span>
+            ) : (
+              <a className="link link-hover num min-w-0 break-all text-xs" href={item.source.url} target="_blank" rel="noreferrer">
+                {shortAddress(item.source.url)}
+              </a>
+            )}
+          </li>
+        ))}
+      </ul>
+      <fieldset className="flex min-w-0 flex-col gap-3">
+        <legend className="mb-1 font-semibold">{copy("setup.business.questions")}</legend>
+        <p className="text-sm text-base-content/70 wrap-anywhere">{copy("settings.knowledge.things.lead")}</p>
+        {FOUNDER_QUESTIONS.map((question) => (
+          <label key={question} className="flex min-w-0 flex-col gap-1">
+            <span className="min-w-0 text-sm text-base-content/70 wrap-anywhere">{copy(QUESTION_COPY[question])}</span>
+            <input
+              name={`${BUSINESS_ANSWER_FIELD}${question}`}
+              className="input w-full min-w-0"
+              maxLength={KNOWLEDGE_BASE.ANSWER_CHARS}
+              defaultValue={p.answers[question] ?? ""}
             />
-            <div className="flex min-w-0 flex-wrap gap-2">
-              <button type="submit" className="btn btn-primary min-h-11" disabled={p.writer.busy}>
-                {p.writer.busy ? <span className="loading loading-spinner loading-xs" aria-hidden /> : null}
-                {copy("settings.save")}
-              </button>
-              <button type="button" className="btn btn-ghost min-h-11" onClick={() => setEditing(false)}>
-                {copy("settings.cancel-edit")}
-              </button>
-            </div>
-          </form>
-        ) : (
-          <div className="flex min-w-0 flex-col items-start gap-2">
-            <p className="min-w-0 wrap-anywhere">
-              {job === null ? copy("settings.business.unread") : job.text}
-              {job?.source === "yours" ? (
-                <> <span className="badge badge-ghost badge-sm">{copy("settings.business.mark.yours")}</span></>
-              ) : null}
-            </p>
-            <button type="button" className={OUTLINE} onClick={() => setEditing(true)}>
-              <Pencil size={16} strokeWidth={1.75} aria-hidden />
-              {copy("settings.business.reword")}
-            </button>
-          </div>
-        )
-      } />
-      {kind === null ? null : (
-        <SettingRow name={copy("settings.business.offering")} testId="business-offering" below={
-          <p className="min-w-0 wrap-anywhere">{kind}</p>
-        } />
-      )}
-    </>
+          </label>
+        ))}
+      </fieldset>
+    </EditDialog>
   );
 }
 
-/** The last read, and the bounded re-read `remeasureNowAction` already owns. */
-function ReadAgain(p: { profile: BusinessProfile; timeZone: string }): React.JSX.Element {
-  const [remeasure, setRemeasure] = useState<MarketRemeasureState>(MARKET_REMEASURE_INITIAL);
-  const [busy, startReading] = useTransition();
+/** The last read, and the bounded re-read `remeasureNowAction` owns; its progress is the status line's. */
+function ReadAgain(p: { lastRead: string }): React.JSX.Element {
+  const [answer, setAnswer] = useState<MarketRemeasureState>(MARKET_REMEASURE_INITIAL);
+  const [busy, start] = useTransition();
   const [failed, setFailed] = useState(false);
 
   function readAgain(): void {
-    startReading(async () => {
+    start(async () => {
       setFailed(false);
       try {
         const next = await remeasureNowAction();
-        // A started pass answers once; the side panel then carries it.
         if (next.answer === "started") {
           const started = writtenLine("settings.market.remeasuring");
           if (started !== null) say(started, "ok");
-          setRemeasure(MARKET_REMEASURE_INITIAL);
-        } else setRemeasure(next);
+          setAnswer(MARKET_REMEASURE_INITIAL);
+        } else setAnswer(next);
       } catch {
         setFailed(true);
       }
     });
   }
-
-  const line = failed ? copy("settings.answer.could-not-ask") : remeasure.answer === "refused" ? remeasure.line : null;
-  const { readAt, pagesRead } = p.profile;
-  // The boards' date: "Mon 12 Oct 2026", mono.
-  const on = readAt === null ? null : formatDayDate(readAt, p.timeZone);
-  const readLine =
-    on === null
-      ? copy("settings.business.read-never")
-      : pagesRead === null
-        ? copy("settings.business.read-at", { on })
-        : copy("settings.business.read-line", { on, count: String(pagesRead) });
-  const at = on === null ? -1 : readLine.indexOf(on);
+  const line = failed ? copy("settings.answer.could-not-ask") : answer.answer === "refused" ? answer.line : null;
 
   return (
-    <div className="flex min-w-0 flex-col gap-2 border-t border-base-300 pt-5">
-      <div className="flex min-w-0 flex-wrap items-center justify-between gap-x-4 gap-y-3">
-        <p className="text-sm text-base-content/70 wrap-anywhere" data-testid="business-read-line">
-          {at === -1 ? (
-            readLine
-          ) : (
-            <>
-              {readLine.slice(0, at)}
-              <span className="num whitespace-nowrap">{on}</span>
-              {readLine.slice(at + on!.length)}
-            </>
-          )}
-        </p>
-        <button
-          type="button"
-          className="btn btn-soft btn-primary border-primary/30 min-h-11"
-          disabled={busy}
-          onClick={readAgain}
-          data-testid="business-read-again"
-        >
-          {busy ? <span className="loading loading-spinner loading-xs" aria-hidden /> : <RefreshCcw size={16} strokeWidth={1.75} aria-hidden />}
-          {copy("settings.business.read-again")}
-        </button>
-      </div>
+    <div className={CARD_FOOT}>
+      <p className="text-xs text-base-content/70 wrap-anywhere" data-testid="business-read-line">
+        {p.lastRead}
+      </p>
+      <button type="button" className={SOFT} disabled={busy} onClick={readAgain} data-testid="business-read-again">
+        {busy ? <span className="loading loading-spinner loading-xs" aria-hidden /> : <RefreshCw size={16} strokeWidth={1.75} aria-hidden />}
+        {copy("settings.business.read-again")}
+      </button>
       {line === null ? null : (
-        <p role="alert" className="text-xs text-error wrap-anywhere" data-testid="business-read-again-line">
+        <p role="alert" className="w-full text-xs text-error wrap-anywhere" data-testid="business-read-again-line">
           {line}
         </p>
       )}
@@ -300,43 +137,50 @@ function ReadAgain(p: { profile: BusinessProfile; timeZone: string }): React.JSX
 }
 
 export function BusinessPanel(p: {
+  read: NonNullable<BusinessScreen["read"]>;
   profile: BusinessProfile;
-  /** The kind of business in the report's word; `null` draws the read's own text where it has one. */
-  kind?: string | null;
-  /** Whether anything at all has been read, decided by the caller from `profileIsEmpty`. */
-  empty: boolean;
-  timeZone: string;
+  knowledge: KnowledgeBase;
+  answers: FounderAnswers;
 }): React.JSX.Element {
-  // The one writer every control on this card presses through, and its one Saved badge.
-  const writer = useSetting();
-
-  const lists = LIST_ORDER.filter((list) => p.profile.lists[list].length > 0);
+  const job = p.profile.job?.text ?? "";
+  function action(line: Line): React.ReactNode {
+    if (!line.change) return null;
+    switch (line.id) {
+      case "job":
+        return (
+          <EditDialog
+            label={line.label}
+            lead={copy("settings.business.lead")}
+            testId="business-dialog-job"
+            save={async (form) => fromSetting(await rewordBusinessJobAction(form))}
+          >
+            <TextField name={BUSINESS_JOB_FIELD} label={line.label} value={job} rows={3} />
+          </EditDialog>
+        );
+      case "products":
+      case "audienceTerms":
+      case "claims":
+        return <ListDialog list={line.id} label={line.label} items={p.profile.lists[line.id].map((item) => item.text)} />;
+      case "asks":
+        return <AsksDialog label={line.label} knowledge={p.knowledge} answers={p.answers} />;
+      default:
+        return null;
+    }
+  }
 
   return (
-    <section className="card card-border min-w-0 bg-base-100" data-testid="settings-business">
-      <div className="card-body gap-5">
-        <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
-          <div className="flex min-w-0 flex-col gap-1">
-            <h2 className="card-title min-w-0 flex-wrap text-(length:--h3)">{copy("settings.business.title")}</h2>
-            <p className="text-sm text-base-content/70 wrap-anywhere">{copy("settings.business.lead")}</p>
-          </div>
-          {writer.saved ? <span className={SAVED_BADGE_CLASS}>{copy("settings.answer.saved-badge")}</span> : null}
+    <section className={CARD} data-testid="settings-business">
+      <div className={CARD_BODY}>
+        <div className="flex min-w-0 flex-col">
+          <h2 className={CARD_TITLE}>{copy("settings.business.title")}</h2>
+          <p className={CARD_LEAD}>{copy("settings.business.lead")}</p>
         </div>
-
-        {p.empty ? (
-          <p className="text-sm wrap-anywhere" data-testid="business-unread">
-            {copy("settings.business.unread")}
-          </p>
-        ) : (
-          <div className="flex min-w-0 flex-col">
-            <Job profile={p.profile} kind={p.kind ?? null} writer={writer} />
-            {lists.map((list) => (
-              <Group key={list} list={list} items={p.profile.lists[list]} writer={writer} />
-            ))}
-          </div>
-        )}
-
-        <ReadAgain profile={p.profile} timeZone={p.timeZone} />
+        <div className="flex min-w-0 flex-col">
+          {p.read.lines.map((line) => (
+            <SettingLine key={line.id} label={line.label} value={line.value} testId={`business-${line.id}`} action={action(line)} />
+          ))}
+        </div>
+        <ReadAgain lastRead={p.read.lastRead} />
       </div>
     </section>
   );

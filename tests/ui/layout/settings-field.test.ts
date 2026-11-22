@@ -1,20 +1,9 @@
-// tests/ui/layout/settings-field.test.ts — BUILD §2, §4.7 (issue #231)
+// tests/ui/layout/settings-field.test.ts — Settings › Your Business with a dialog open (plates F1a, F9)
 //
-// The width sweep next door measures every route **at rest**. Settings has
-// a state no route enumeration can reach: a field open inside a card, put
-// there by a press in the browser. That state changes the card's box — a
-// value and a small Edit become a labelled input, two buttons and, when a
-// save is refused, a line under the field — and it is exactly the kind of
-// change §2's layout law exists to catch.
-//
-// So this file presses Edit and then runs the same four checks the sweep
-// runs, at the same widths. It is a browser suite because the state
-// only exists in a browser: the field is opened by a client component's own
-// state, and no server render produces it.
-//
-// One route and one field: the domain's. The two fields are the same
-// element with a different label and the domain's is the longer of the two
-// values, so it is the wider box; a card that fits it fits the category's.
+// The width sweep measures every route at rest. A setting's dialog is a state only a press in the browser
+// reaches, so this file presses the website's *Change* and runs the same four checks at the same widths. It also
+// holds what the dialog promises a keyboard and a phone: focus goes in and comes back, Escape discards, a refusal
+// is announced with the dialog still open, the dialog is the whole screen at 390, and the tab fits 1280×800.
 import { describe, expect, it } from "vitest";
 import type { Page } from "playwright";
 import { getAccountCookie, getBaseURL, withPage } from "./browser";
@@ -30,12 +19,9 @@ import {
 import { headersFor } from "./routes";
 import { sweepWidths as widths } from "./matrix";
 
-/** The route, and the session it is swept under — the same seeded account
- *  `browser.ts` put in the database (#193), through the same header builder
- *  the sweep uses, so a change to how an `(account)` route is reached moves
- *  this file with it. */
-// The domain's Edit is `MarketPanel`'s, on Your business since Settings became three tabs (owner R7).
 const SETTINGS = { path: "/app/settings", cookie: getAccountCookie() };
+const CHANGE = '[data-testid="setting-domain-dialog-change"]';
+const DIALOG = '[data-testid="setting-domain-dialog"]';
 
 /** Long enough for the field to appear once the press lands. */
 const HYDRATED_MS = 15_000;
@@ -54,22 +40,13 @@ function url(): string {
   return `${baseURL}${SETTINGS.path}`;
 }
 
-/**
- * Presses the domain's Edit and waits for its field.
- *
- * The press is retried rather than made once: Playwright waits for the
- * button to be there and clickable, which is not the same as React having
- * hydrated the card and attached its handler, and a click that lands in
- * between is simply lost. Retrying is the honest wait — the assertion is
- * about the layout of an open field, and a test that measured a closed card
- * and passed would be the failure this file exists to prevent.
- */
+/** Presses the website's *Change* until its dialog opens: a click before hydration is lost, so it is retried. */
 async function openDomainField(page: Page): Promise<void> {
   const deadline = Date.now() + HYDRATED_MS;
   for (;;) {
-    await page.click('[data-testid="setting-domain"] button');
+    await page.click(CHANGE);
     try {
-      await page.waitForSelector('[data-testid="edit-domain"]', { timeout: 500 });
+      await page.waitForSelector(`${DIALOG}[open] [data-testid="edit-domain"] input`, { timeout: 500 });
       return;
     } catch (err) {
       if (Date.now() > deadline) throw err;
@@ -80,7 +57,7 @@ async function openDomainField(page: Page): Promise<void> {
 describe(`layout sweep — ${SETTINGS.path} with a field open × ${widths().length} width(s)`, () => {
   for (const width of widths()) {
     it(
-      `${SETTINGS.path} @ ${width}px reports no offender on checks 1-4 with the domain field open`,
+      `${SETTINGS.path} @ ${width}px reports no offender on checks 1-4 with the website dialog open`,
       async () => {
         const offenders = await withPage(
           width,
@@ -108,4 +85,97 @@ describe(`layout sweep — ${SETTINGS.path} with a field open × ${widths().leng
       PER_WIDTH_MS
     );
   }
+});
+
+describe(`${SETTINGS.path}: the edit dialog`, () => {
+  it(
+    "takes focus, announces a refusal and stays open, and Escape returns focus to its Change",
+    async () => {
+      const seen = await withPage(
+        1280,
+        async (page) => {
+          await page.goto(url());
+          await openDomainField(page);
+          const focusedInside = await page.evaluate((d) => document.querySelector(d)?.contains(document.activeElement) === true && document.activeElement?.tagName === "INPUT", DIALOG);
+          await page.fill(`${DIALOG} input`, "no-such-site.invalid");
+          await page.click(`${DIALOG} button[type="submit"]`);
+          const alert = await page.waitForSelector(`${DIALOG}[open] [role="alert"]`, { timeout: HYDRATED_MS });
+          const said = (await alert.textContent())?.trim() ?? "";
+          await page.keyboard.press("Escape");
+          await page.waitForSelector(`${DIALOG}:not([open])`, { state: "attached" });
+          const back = await page.evaluate((c) => document.activeElement === document.querySelector(c), CHANGE);
+          return { focusedInside, said, back };
+        },
+        headersFor(SETTINGS)
+      );
+      expect(seen.focusedInside).toBe(true);
+      expect(seen.said).not.toBe("");
+      expect(seen.back).toBe(true);
+    },
+    PER_WIDTH_MS
+  );
+
+  it(
+    "is the whole screen at 390px",
+    async () => {
+      const box = await withPage(
+        390,
+        async (page) => {
+          await page.goto(url());
+          await openDomainField(page);
+          return page.evaluate((d) => {
+            const r = document.querySelector(`${d} .modal-box`)!.getBoundingClientRect();
+            return { width: Math.round(r.width), height: Math.round(r.height), vw: window.innerWidth, vh: window.innerHeight };
+          }, DIALOG);
+        },
+        headersFor(SETTINGS)
+      );
+      expect(box.width).toBe(box.vw);
+      expect(box.height).toBe(box.vh);
+    },
+    PER_WIDTH_MS
+  );
+
+  it(
+    "leaves the tab fitting 1280×800 with no page scroll and no column scroll, with the fixture's competitors and with 5",
+    async () => {
+      const seen = await withPage(
+        1280,
+        async (page) => {
+          await page.setViewportSize({ width: 1280, height: 800 });
+          await page.goto(url());
+          // Closure-free: each evaluate serialises its own text.
+          const measure = () =>
+            page.evaluate(() => {
+              const content = document.querySelector(".drawer-content")!;
+              const doc = document.scrollingElement ?? document.documentElement;
+              const columns = Array.from(document.querySelectorAll('[data-testid="settings-tab-panel-business"] > *'));
+              return {
+                content: content.scrollHeight - content.clientHeight,
+                document: doc.scrollHeight - doc.clientHeight,
+                columns: columns.map((column) => column.scrollHeight - column.clientHeight),
+                inCards: Array.from(document.querySelectorAll('[data-testid="settings-tab-panel-business"] .card')).map(
+                  (card) => card.scrollHeight - card.clientHeight,
+                ),
+              };
+            });
+          const fixture = await measure();
+          // Five competitors, the most a site follows: copies of the table's first competitor row.
+          await page.evaluate(() => {
+            const body = document.querySelector('[data-testid="setting-competitors"] tbody')!;
+            const first = body.querySelector('tr[data-testid^="competitor-"]');
+            const you = body.querySelector('[data-testid="competitors-you"]');
+            while (first && body.querySelectorAll('tr[data-testid^="competitor-"]').length < 5) body.insertBefore(first.cloneNode(true), you);
+          });
+          return { fixture, five: await measure() };
+        },
+        headersFor(SETTINGS)
+      );
+      for (const [name, over] of Object.entries(seen)) {
+        expect(over.columns.length, name).toBe(2);
+        expect(over, name).toEqual({ content: 0, document: 0, columns: [0, 0], inCards: over.inCards.map(() => 0) });
+      }
+    },
+    PER_WIDTH_MS
+  );
 });
