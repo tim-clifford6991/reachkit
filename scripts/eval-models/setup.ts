@@ -1,6 +1,7 @@
 // The setup group: the calls a pass replay never makes alone (the site's reading calls, market inference and terms,
 // question phrasing, the claim check and the page fix) run through the product's own functions on the committed
-// snapshots and pipeline pages. Each answer is scored against today's model's first answer on the same input, with
+// snapshots and pipeline pages, and the research step's claims call on each snapshot's own page text as a proxy for
+// the pages a draft reads. Each answer is scored against today's model's first answer on the same input, with
 // today's own repeats as the noise; question phrasing is also scored against the phrasing the report stored.
 import { readFileSync } from "node:fs";
 import path from "node:path";
@@ -9,6 +10,8 @@ import { readMarketTerms } from "@/lib/market/infer/read-terms";
 import { phraseQuestions } from "@/lib/market/questions/phrase";
 import { deriveProfile } from "@/lib/market/questions/profile";
 import { fitCheck } from "@/lib/generate/claims/fit";
+import { readClaims } from "@/lib/generate/pipeline/claims-read";
+import { RESEARCH } from "@/lib/config/constants";
 import { generatePageFix } from "@/lib/generate/pipeline/page-fix";
 import { setGenerateStore } from "@/lib/generate/store";
 import { DEFAULT_LOCALE } from "@/lib/locale/locales";
@@ -24,7 +27,7 @@ import { passThrough } from "./context";
 import { agreement } from "./pass-site";
 import type { Run } from "./transport";
 
-export const SETUP_SITES = ["profile", "site-profile", "site-knowledge", "market-inference", "market-terms", "question-phrasing", "generate.fit_check", "generate.page_fix"] as const;
+export const SETUP_SITES = ["profile", "site-profile", "site-knowledge", "market-inference", "market-terms", "question-phrasing", "generate.fit_check", "generate.page_fix", "generate.research"] as const;
 const PIPELINE_PAGES = ["documentation", "how_to", "research", "qa", "update", "listicle", "insights"];
 /** Pages per site whose title and description the page fix rewrites. */
 const FIX_PAGES = 2;
@@ -33,8 +36,8 @@ const SNAPSHOTS = ["scripts/page/snapshot/reachkit.app.json", ...["linear.app", 
 const KNOWLEDGE_PAGES = 4;
 
 interface Page { url: string; title?: string | null; h1?: string | null; text: string }
-type Answer = { site: string; call: string; value: unknown; stored?: unknown };
-type Snapshot = { domain: string; pages: Page[]; report: unknown; siteProfile?: { siteName?: string | null; products?: string[]; claims?: string[] } | null };
+type Answer = { site: string; call: string; value: unknown; stored?: unknown; extra?: object };
+type Snapshot = { domain: string; pages: Page[]; report: unknown; scan?: { finishedAt?: string }; siteProfile?: { siteName?: string | null; products?: string[]; claims?: string[] } | null };
 /** Today's first market conclusion per site: every model's terms call reads the same market. */
 const markets = new Map<string, unknown>();
 
@@ -111,6 +114,18 @@ async function answersFor(root: string): Promise<Answer[]> {
         out.push({ site: snap.domain, call: `generate.fit_check ${type}`, value: verdict.state === "unrun" ? null : verdict });
       }
     }
+    if (wants("generate.research")) {
+      // The site's own pages stand in for a rival's: its pricing page as pricing, the rest as its features, read as
+      // `fetchPage` trims them, so plan and rival attribution run as they do on a draft's reads.
+      const read = pages
+        .filter((p) => p.text.split(/\s+/).length >= RESEARCH.minWords)
+        .map((p) => ({ url: p.url, title: p.title ?? p.url, text: p.text.split(/\s+/).slice(0, RESEARCH.readWords).join(" "), readAt: snap.scan?.finishedAt ?? new Date().toISOString(), kind: /pric/i.test(p.url) ? ("rival_pricing" as const) : ("rival_features" as const), product: snap.domain }));
+      const market = (report as { market?: { kind: string; value?: { profile?: { category?: string } } } }).market;
+      const search = market?.kind === "measured" ? (market.value?.profile?.category ?? snap.domain) : snap.domain;
+      const facts = await readClaims(passThrough(), read, { locale: DEFAULT_LOCALE, search, rivals: [snap.domain], today: new Date(snap.scan?.finishedAt ?? Date.now()) });
+      const claimed = new Set(facts.map((f) => f.url));
+      out.push({ site: snap.domain, call: "generate.research", value: facts.length === 0 ? null : facts.map((f) => f.passage).sort(), extra: { pagesSent: Math.min(read.length, RESEARCH.pagesPerCall * RESEARCH.calls), pagesWithClaims: claimed.size, claims: facts.length, priced: facts.filter((f) => f.kind === "rival_pricing").length, planned: facts.filter((f) => typeof f.plan === "string").length } });
+    }
     if (wants("generate.page_fix")) {
       // The page fix asks the site's row for its locale; the case has no row, so none is stored and nothing is written.
       registerSiteLocaleStore({ read: async () => null, write: async () => { throw new Error("eval: no site row to write"); } });
@@ -134,10 +149,11 @@ async function answersFor(root: string): Promise<Answer[]> {
   return out;
 }
 
-/** `repeat` rounds of today's model, then of the candidate; one scored line per answer, `null` where none came back. */
+/** `repeat` rounds of today's model, then of each candidate (comma-separated), so today is bought once for them all;
+ *  one scored line per answer, `null` where none came back. */
 export async function runSetup(run: Run, root: string, candidate: string | null, repeat: number, emit: (line: object) => void): Promise<void> {
   const reference = new Map<string, unknown>();
-  for (const model of candidate === null ? [null] : [null, candidate]) {
+  for (const model of [null, ...(candidate?.split(",").filter(Boolean) ?? [])]) {
     run.swap = model === null ? {} : Object.fromEntries(SETUP_SITES.map((site) => [site, model]));
     for (let r = 1; r <= repeat && run.halted === null; r++) {
       for (const a of await answersFor(root)) {
@@ -146,7 +162,7 @@ export async function runSetup(run: Run, root: string, candidate: string | null,
         const ref = reference.get(key);
         const scored = a.value === null || ref === undefined || ref === null || (model === null && r === 1);
         const [call, page] = a.call.split(" ");
-        const extra = call === "generate.page_fix" && a.value !== null ? { fix: a.value } : {};
+        const extra = call === "generate.page_fix" && a.value !== null ? { fix: a.value } : (a.extra ?? {});
         const stored = a.stored === undefined ? {} : { storedAgreement: a.value === null ? "not measured" : Math.round(agreement(a.value, a.stored) * 1000) / 1000 };
         emit({ site: a.site, call, page: page ?? null, model: model ?? "today", repeat: r, answered: a.value !== null, agreement: scored ? "not measured" : Math.round(agreement(a.value, ref) * 1000) / 1000, ...stored, ...extra });
       }
