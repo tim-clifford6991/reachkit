@@ -79,7 +79,7 @@ const NO_KEYS = {
   DATAFORSEO_LOGIN: "replay",
   DATAFORSEO_PASSWORD: "replay",
   ANTHROPIC_API_KEY: "replay",
-  IP_HASH_SALT: "replay-replay-replay-replay-replay",
+  IP_HASH_SALT: "replay",
   OWNER_EMAILS: "replay@example.com",
   NEXT_PUBLIC_APP_URL: "http://127.0.0.1",
   HOSTED_EDGE_CNAME_TARGET: "replay.example.com",

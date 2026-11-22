@@ -17,7 +17,7 @@ export const ENV_FIXTURE: Readonly<Record<string, string>> = Object.freeze({
   DATAFORSEO_PASSWORD: "dfs-password-fixture",
   ANTHROPIC_API_KEY: "sk-ant-fixture",
   NANO_API_KEY: "nano-fixture",
-  IP_HASH_SALT: "salt-fixture-salt-fixture-salt-fixture",
+  IP_HASH_SALT: "salt-fixture",
   KILL_SWITCH: "false",
   OWNER_EMAILS: "owner@example.com",
   NEXT_PUBLIC_APP_URL: "https://reachkit.example",
