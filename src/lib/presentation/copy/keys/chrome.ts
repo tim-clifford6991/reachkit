@@ -77,9 +77,9 @@ export const CHROME_COPY = Object.freeze({
   "pricing.plan.scan": "Scan your site free first",
   "pricing.all.not": "What ReachKit doesn’t do:",
   "pricing.all.not.maps": "Your Google Maps listing (Business Profile)",
-  "pricing.first.title": "What you see from week 1",
+  "pricing.first.title": "What You See From Week 1",
   "pricing.first.body": "Your pages go live in week 1, and each Monday email shows where they stand.",
-  "pricing.months.title": "Your first months",
+  "pricing.months.title": "Your First Months",
   "pricing.months.day1.at": "Day 1",
   "pricing.months.day1.what": "You answer a few questions and connect your site. Your first page is written while you do it.",
   "pricing.months.day2.at": "Day 2",
@@ -87,9 +87,9 @@ export const CHROME_COPY = Object.freeze({
   "pricing.months.monday.at": "First Monday",
   "pricing.months.monday.what": "Your first Monday email: what went live, and where you stand.",
   "pricing.compare.eyebrow": "How it compares",
-  "pricing.compare.title": "{price} against the other ways",
+  "pricing.compare.title": "{price} Against the Other Ways",
   "pricing.compare.limit": "An agency often also handles your Maps listing, ads and links. We don’t.",
-  "pricing.faq.title": "Before you pay",
+  "pricing.faq.title": "Questions Before You Pay",
   "pricing.close.title": "See your free report",
   /* ── The two pages every route falls back to (UI-SPEC S8) ────────────
      Not found and error. They are the *shell's* own pages rather than any

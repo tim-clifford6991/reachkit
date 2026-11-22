@@ -27,7 +27,7 @@ export const LANDING_COPY = Object.freeze({
   "landing.hero.kinds.label": "Works for any business with a website",
   /** The walkthrough band, drawn only once the video file exists. */
   "landing.walkthrough.eyebrow": "Walkthrough",
-  "landing.walkthrough.heading": "See ReachKit in 2 minutes",
+  "landing.walkthrough.heading": "See ReachKit in 2 Minutes",
   /** How it works: step 1's report header, step 2's days, step 3's Monday email (v36). */
   "landing.glance.more": "+{more} more",
   "landing.glance.free": "Free report",
