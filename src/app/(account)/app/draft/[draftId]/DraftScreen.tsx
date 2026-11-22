@@ -48,6 +48,7 @@ import { AUTOSAVE_DEBOUNCE_MS, TIMING } from "@/lib/config/constants";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { parseAsString, useQueryState } from "nuqs";
 import { useRefreshWhenMoved } from "@/app/_poll/useRefreshWhenMoved";
 import { copy } from "@/lib/presentation/copy";
 import { ArrowLeft, Check, CircleCheck, LoaderCircle, Plus, RefreshCw, Search, TriangleAlert } from "lucide-react";
@@ -140,6 +141,12 @@ export function DraftScreen(p: {
 }): React.JSX.Element {
   const { view } = p;
   const [editing, setEditing] = useState(false);
+  const [, setTab] = useQueryState("tab", parseAsString.withOptions({ history: "replace", scroll: false }));
+  /** The editor lives in the Page tab, so Edit opens it from whichever tab is showing. */
+  const openEditor = (): void => {
+    setEditing(true);
+    void setTab(null);
+  };
   const [pane, setPane] = useState<EditorPane>("markdown");
   /** SPEC §7's desktop/phone switch. The frame the preview is drawn in,
    *  and nothing else: the page inside it is the same three calls either
@@ -816,7 +823,10 @@ export function DraftScreen(p: {
     ...(checks.rows.length === 0
       ? []
       : [
-          checks.counts === null
+          // A re-check still running says so, rather than a count that is about to change.
+          claim.state === "outstanding"
+            ? { id: "checks", label: copy("draft.claim.outstanding"), panel: <ChecksCard list={checks} /> }
+            : checks.counts === null
             ? { id: "checks", label: copy("draft.checks.title"), panel: <ChecksCard list={checks} /> }
             : {
                 id: "checks",
@@ -906,11 +916,11 @@ export function DraftScreen(p: {
             deciding={deciding}
             pressed={deciding ? pressed : null}
             bodyMd={bodyMd}
-            onEdit={() => setEditing(true)}
+            onEdit={openEditor}
             onCommand={decide}
           />
         ) : (
-          <LiveRail view={view} live={live} onEdit={() => setEditing(true)} />
+          <LiveRail view={view} live={live} onEdit={openEditor} />
         )}
 
         <section className={SHAPE.tabs} aria-label={copy("draft.tabs.label")} data-testid="draft-page">

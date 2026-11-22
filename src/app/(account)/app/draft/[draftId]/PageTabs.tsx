@@ -16,7 +16,7 @@ export interface PageTab {
 }
 
 // The bars above and below the scroller never cover what takes the focus (WCAG 2.4.11).
-const CLEAR = "scroll-mt-20 max-md:scroll-mb-40";
+const CLEAR = "scroll-mt-20 max-md:scroll-mb-52";
 
 export function PageTabs(p: { label: string; tabs: readonly PageTab[] }): React.JSX.Element {
   const [asked, setAsked] = useQueryState("tab", parseAsString.withOptions({ history: "replace", scroll: false }));
@@ -69,7 +69,7 @@ export function PageTabs(p: { label: string; tabs: readonly PageTab[] }): React.
           role="tabpanel"
           aria-labelledby={`draft-tab-${tab.id}`}
           tabIndex={0}
-          className={tab.id === on ? `flex min-w-0 flex-col gap-4 p-4 lg:min-h-0 lg:flex-1 lg:overflow-y-auto ${CLEAR}` : "hidden"}
+          className={tab.id === on ? `flex min-w-0 flex-col gap-4 p-4 lg:min-h-0 lg:flex-1 lg:overflow-y-auto max-md:[&_*]:scroll-mb-52 ${CLEAR}` : "hidden"}
         >
           {tab.panel}
         </div>
