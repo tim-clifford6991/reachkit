@@ -66,9 +66,15 @@ function answerLine(answer: ConnectionCheck, words: CheckWords): { key: CopyKey;
     case "asked":
     case "too_soon":
       if (answer.state === null) return null;
-      return answer.state === "live"
-        ? { key: words.live, tone: GOOD, id: "live" }
-        : { key: words.pending, ...(words.pendingTitle ? { title: words.pendingTitle } : {}), tone: WAITING, id: "pending_dns" };
+      if (answer.state === "live") return { key: words.live, tone: GOOD, id: "live" };
+      // One line per answer: a record to fix or a lookup that failed says only that, and a record found is not "not found".
+      if (answer.dns?.state === "points_elsewhere" || answer.dns?.state === "unknown") return null;
+      return {
+        key: words.pending,
+        ...(words.pendingTitle && answer.dns?.state !== "points_here" ? { title: words.pendingTitle } : {}),
+        tone: WAITING,
+        id: "pending_dns",
+      };
     case "could_not_ask":
       if (answer.because === "no_answer") {
         return { key: "settings.destination.check.could-not-ask", tone: NOT_ASKED, id: "could_not_ask" };
@@ -99,6 +105,8 @@ function dnsLine(answer: ConnectionCheck): { text: string; tone: string; id: Pub
         id: dns.state,
       };
     case "not_yet":
+      // The pending answer already says nothing is there yet.
+      if ((answer.outcome === "asked" || answer.outcome === "too_soon") && answer.state !== null) return null;
       return { text: copy("settings.destination.check.dns.not-yet"), tone: WAITING, id: dns.state };
     case "unknown":
       return { text: copy("settings.destination.check.dns.unknown"), tone: NOT_ASKED, id: dns.state };
