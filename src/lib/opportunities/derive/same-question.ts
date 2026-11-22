@@ -1,17 +1,5 @@
-// SPEC §6 (2026-09-29, #1131) — one URL per question.
-//
-// Two searches whose top tens barely overlap can still ask one question in
-// different words, and Google's guide calls a page per wording scaled
-// content abuse. The pass asks the small tier **once**: of the searches this
-// pass would write, which asks the same question as another search already
-// planned, live or proposed? The answer is a map the collapse joins topics
-// by (`cluster.ts`), and it is stored as the survivor's `cluster_key` and
-// `absorbed_queries` — nothing downstream asks again.
-//
-// The model names pairs; it cannot add a search, drop one, or re-target
-// one. A pair naming a search it was not shown does not count. An
-// unavailable model or a reached cap is no judgement at all, and the
-// overlap rule stands alone.
+// SPEC §6 *One URL per question*: one small-tier call a pass names which planned searches ask another's question in
+// other words; the collapse joins by it. It cannot add, drop or re-target a search, and no answer is no judgement.
 import { z } from "zod";
 import type { CostContext } from "@/lib/costs";
 import { llm } from "@/lib/llm";
@@ -31,17 +19,8 @@ const TASK = [
   "Where a topic has an `angle`, the page it would be, judge by what that page answers for the buyer: two angles that answer one question are the same question however their searches are worded, and a list of tools, a page of software and a 'best' page for one category are one.",
 ].join(" ");
 
-/**
- * `search → sameAs`, by `queryKey`, for each of `searches` the model judged
- * to ask the same question as another of `topics`. No call where there is
- * nothing to compare.
- *
- * The topics are shown by index and a search is never offered itself (issue
- * 1208): shown as two lists of strings, the model paired every search with
- * its own copy among the topics — ten pairs on reachkit.app's pass of
- * 2026-10-03, all dropped — and "meltwater pricing" and "meltwater cost"
- * both became pages.
- */
+/** `search → sameAs`, by `queryKey`, for each of `searches` judged to ask another topic's question. Topics are shown by
+ *  index and a search is never offered itself, as two lists of strings drew self-pairs. */
 export async function judgeSameQuestion(
   c: CostContext,
   a: { searches: readonly string[]; topics: readonly string[]; buyer?: string | null; angles?: ReadonlyMap<string, string> }

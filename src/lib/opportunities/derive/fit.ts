@@ -14,7 +14,7 @@ import { llm } from "@/lib/llm";
 import type { MarketConclusion } from "@/lib/market/infer/types";
 import type { Profile } from "@/lib/market/questions/profile";
 import type { BusinessFit, TopicSource } from "../types";
-import { ANGLE_PATTERNS, pickAngle, type ProposedAngle, type TopicAngle } from "./angle";
+import { ANGLE_PATTERNS, pickAngle, type ProposedAngle, type TopicAngle } from "@/lib/market/questions/angle";
 
 export const FIT_CALL_SITE = "topic-fit";
 

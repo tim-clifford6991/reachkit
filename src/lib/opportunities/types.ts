@@ -4,7 +4,7 @@ import type { Measured } from "@/lib/measure/measured";
 import type { KnownSource } from "@/lib/known-content/types";
 import type { SiteCheck } from "@/lib/site-issues/types";
 import type { FitFact } from "@/lib/site-profile/knowledge/read";
-import type { TopicAngle } from "./derive/angle";
+import type { TopicAngle } from "@/lib/market/questions/angle";
 import type { SearchTrend } from "@/lib/vendors/dataforseo/types";
 
 /** §7's table, read down the `Type` column, plus SPEC §0's Earn family: a source names a rival and not the customer,
@@ -241,7 +241,7 @@ export type Evidence =
       shape?: "offering";
       /** `null` once judged with no passage; absent where not judged since the call named one. */
       fitFact?: FitFact | null;
-      /** The angle the topic keeps and why it fits the business (`derive/angle.ts`); `null` where none passed, absent where judged before. */
+      /** The angle the topic keeps and why it fits the business (`market/questions/angle.ts`); `null` where none passed, absent where judged before. */
       angle?: TopicAngle | null;
     }
   | {
