@@ -90,8 +90,8 @@ export type OpsIncident =
   | { occasion: "serp-unreadable"; cause: "wrapped" | "empty" }
   // No error: DataForSEO credit runs out within a week. Days left is null where last week's spend was not measured.
   | { occasion: "vendor-low"; balanceCents: number; daysLeft: number | null; dashboard: string }
-  // No error: a paying account's address bounced or complained, and its follow-up mail stopped. Owner-only, so each paying site is named.
-  | { occasion: "mail-stopped"; domains: readonly string[]; cause: "bounced" | "complained" };
+  // No error: a paying account's address bounced or complained, and its follow-up mail stopped, or it asked to sign in while stopped. Owner-only, so each paying site is named.
+  | { occasion: "mail-stopped"; domains: readonly string[]; cause: "bounced" | "complained" | "sign-in-blocked" };
 
 type ReplanRow = { date: string | null; search: string | null; page: string; type: string; points: number | null };
 

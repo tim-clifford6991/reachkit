@@ -6,7 +6,7 @@
 "use client";
 
 import Link from "next/link";
-import { CircleAlert, Clock, Send } from "lucide-react";
+import { CircleAlert, Clock, MailX, Send } from "lucide-react";
 import { use, useActionState, useState, useSyncExternalStore } from "react";
 import { Surface } from "@/ui/layout";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
@@ -50,6 +50,7 @@ const ANSWER_COPY_KEY = {
   none: undefined,
   invalid: "signin.address.invalid",
   requested: "signin.link_requested",
+  blocked: undefined,
 } as const satisfies Record<SignInState["answer"], CopyKey | undefined>;
 
 /** A link here with no query clears the dead-link marker; `src/middleware.ts` redirects to the same path. */
@@ -146,6 +147,19 @@ export default function SignInPage(props: {
               <h1 className="t-hero">{copy("signin.expired.head")}</h1>
               <p className={LEAD}>{copy("signin.link_dead")}</p>
               {askForLink(copy("signin.expired.field"), copy("signin.expired.submit"))}
+            </>
+          ) : state.answer === "blocked" ? (
+            <>
+              <span className={`${MARK} bg-(--warn-bg) text-warning`} data-tone="warning">
+                <MailX {...ICON} />
+              </span>
+              <h1 className="t-hero">{copy("signin.blocked.head")}</h1>
+              <p role="status" aria-live="polite" className={`${LEAD} wrap-break-word`}>
+                {copy("signin.blocked.line", { email: value.trim(), support: copy("chrome.footer.contact.address") })}
+              </p>
+              <Link href={SIGN_IN_PATH} className="btn btn-soft btn-primary h-11 self-start border-transparent text-(length:--t-body)">
+                {copy("signin.sent.resend")}
+              </Link>
             </>
           ) : answered ? (
             <>

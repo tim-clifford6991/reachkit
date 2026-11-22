@@ -18,7 +18,8 @@
 //
 // **One answer for every address** (SPEC §3, issue 718): the seam returns
 // the same value whether or not the address has an account, and this action
-// turns it into the one state `requested`. There is nothing here to branch
+// turns it into the one state `requested`; a stopped address, refused for every
+// account or none, is `blocked`. There is nothing here to branch
 // on, so the screen cannot say who has an account.
 //
 // **Nothing here reveals whether an address has an account before a
@@ -34,9 +35,12 @@
 "use server";
 
 import { cookies, headers } from "next/headers";
+import { after } from "next/server";
 import { z } from "zod";
 import { pendingCookieFor } from "@/lib/account/signin-pending";
 import { requestMagicLink } from "@/lib/account/provisioning/magic-link";
+import { tellOwnerIfPaying } from "@/lib/mail/leads/bounce";
+import { suppressionState } from "@/lib/mail/leads/suppress";
 import { networkKeyOf } from "@/lib/scan/admission";
 import { EMAIL_FIELD, type SignInState } from "./state";
 
@@ -51,6 +55,12 @@ export async function sendLink(_previous: SignInState, form: FormData): Promise<
   // line, not two, so this makes no second distinction of its own.
   if (!address.safeParse(value.trim()).success) {
     return { answer: "invalid", value };
+  }
+
+  // Suppression is address-wide, so this answer is the same with or without an account; a read that fails still sends.
+  if (await suppressionState(value).then((state) => state === "suppressed", () => false)) {
+    after(() => tellOwnerIfPaying(value, "sign-in-blocked"));
+    return { answer: "blocked", value };
   }
 
   await requestMagicLink(value.trim(), networkKeyOf(await headers()));

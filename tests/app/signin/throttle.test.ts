@@ -27,6 +27,7 @@ let limiter: "up" | "down" = "up";
 let trail: string[] = [];
 
 function fakeTakeRateLimits(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  if (String(input).includes("/rest/v1/email_suppressions")) return Promise.resolve(new Response("[]", { headers: { "content-type": "application/json" } }));
   if (!String(input).endsWith("/rest/v1/rpc/take_rate_limits")) throw new Error(`unexpected fetch ${String(input)}`);
   trail.push("limit");
   if (limiter === "down") return Promise.resolve(new Response("{}", { status: 503 }));
