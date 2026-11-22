@@ -25,7 +25,6 @@
 import { SHAPES, modelInstruction } from "@/lib/locale/language";
 import type { Language, Locale } from "@/lib/locale/locales";
 import { ADDS, PACK } from "@/lib/config/constants";
-import { promptTemplateOf } from "@/lib/market/prompts/generate";
 import { misstatedFacts, siteFactsOf } from "@/lib/market/prompts/misstated";
 import { GENERIC_TOKENS, brandOf } from "@/lib/market/questions/select";
 import { templateQuestion } from "@/lib/market/questions/template";
@@ -479,13 +478,8 @@ function buyerQuestions(a: {
     .filter((text) => answerable(text, { facts: a.facts, claims: a.claims, knowledge: a.knowledge, rivals, target: a.target }));
   const words = topicWords(a.target);
   const kept: string[] = [];
-  const templates = new Set<string>();
   for (const text of [...all.filter((each) => shares(words, each)), ...all.filter((each) => !shares(words, each))]) {
-    const template = promptTemplateOf(text);
-    if (template !== null && templates.has(template)) continue;
-    if (kept.some((held) => alikeHeadings(held, text))) continue;
-    if (template !== null) templates.add(template);
-    kept.push(text);
+    if (!kept.some((held) => alikeHeadings(held, text))) kept.push(text);
   }
   // Owner, 2026-11-17 (#2722): short of five on-topic buyer questions, a Q&A takes the question headings of the top
   // pages it read, each on the topic and answered by a claim off its own page; off-topic ones only fill what is left.

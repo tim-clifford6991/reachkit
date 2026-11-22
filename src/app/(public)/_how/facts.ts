@@ -9,7 +9,7 @@ import { HARD_RULES } from "@/lib/generate/rules/types";
 
 export const HOW_FACTS = Object.freeze({
   searches: BATTERY.QUESTIONS,
-  prompts: Object.values(TRACKED_PROMPTS.SPLIT).reduce((sum, n) => sum + n, 0),
+  prompts: TRACKED_PROMPTS.PANEL,
   rivals: BATTERY.COMPETITORS_MAX,
   weekPages: WEEK_PLAN.days,
   checks: HARD_RULES.length,

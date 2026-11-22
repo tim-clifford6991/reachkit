@@ -30,8 +30,6 @@ export interface PromptAnswerReading {
   /** The pages it cited on other sites, their homes left out: where a
    *  competitor's page that AI links is read from. */
   cited: readonly string[];
-  /** The answer named or cited any product at all — D33's pre-check. */
-  namesABrand: boolean;
   /** Issue 1539: the prices, counts and countries it gave the business. */
   states: readonly AnswerStatement[];
 }
@@ -126,7 +124,6 @@ export function readPromptAnswer(a: {
     rivals,
     alternatives,
     cited: citedPagesOf(a.citedUrls, own),
-    namesABrand: named || linked || rivals.length > 0 || cited.length > 0,
     states: named ? statementsOf({ text: a.text, siteName: a.siteName, ownDomain: own, rivals: a.rivals, language: a.language ?? "en" }) : [],
   };
 }

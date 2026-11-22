@@ -3,7 +3,7 @@
 // commit, the supply count and the free report's first page all score here.
 import { CLOSE_PAGE_POSITION_BAND, WRITE_VOLUME_FLOOR_PER_MONTH } from "@/lib/config/constants";
 import { canonicalUrl } from "@/lib/measure/page-reading";
-import { closestPrompt, measuredVolume, type IntentPrompt } from "../intent";
+import { measuredVolume } from "../intent";
 import { OUTSIZED, type Opportunity, type PlanReason, type PointPart, type Shortfall } from "../types";
 
 /** The points each part is worth (owner ruling of 2026-10-19, "all as
@@ -33,11 +33,9 @@ export function isRising(evidence: Opportunity["evidence"] | null | undefined): 
 /** The fit a row ranks and scores in: one no pass has judged as a judged 2, neither lifted nor dropped. */
 export const fitOf = (o: Pick<Opportunity, "businessFit">): number => o.businessFit ?? 2;
 
-/** What the parts read beyond the row: the site's own pages a stored AI
- *  answer linked (canonical addresses) and its tracked prompts. */
+/** What the parts read beyond the row: the site's own pages a stored AI answer linked (canonical addresses). */
 export interface Seen {
   cited: ReadonlySet<string>;
-  prompts: readonly IntentPrompt[];
 }
 
 type Scorable = Pick<Opportunity, "businessFit" | "volume" | "source" | "targetQuery"> & {
@@ -52,12 +50,11 @@ function improveOf(o: Scorable): { shortfall: Shortfall | undefined; pageUrl: st
   return { shortfall: evidence.shortfall as Shortfall | undefined, pageUrl: evidence.pageUrl as string | undefined };
 }
 
-function demandOf(o: Scorable, seen: Seen): number {
+function demandOf(o: Scorable): number {
   const volume = measuredVolume(o.volume ?? null);
   if (volume !== null && volume >= WRITE_VOLUME_FLOOR_PER_MONTH) return POINTS.demand.measured;
   const askedBeside = o.evidence?.family === "write" && o.evidence.askedBeside !== undefined;
-  const prompted = (o.targetQuery ?? "") !== "" && closestPrompt(o.targetQuery!, seen.prompts) !== null;
-  return volume !== null || askedBeside || prompted ? POINTS.demand.asked : 0;
+  return volume !== null || askedBeside ? POINTS.demand.asked : 0;
 }
 
 function aiGapOf(o: Scorable): boolean {
@@ -88,7 +85,7 @@ export function pointsOf(o: Scorable, seen: Seen): Omit<PlanReason, "rule"> {
   const parts: { part: PointPart; n: number }[] = [];
   const fit = POINTS.fit[fitOf(o)] ?? 0;
   if (fit > 0) parts.push({ part: "fit", n: fit });
-  const demand = demandOf(o, seen);
+  const demand = demandOf(o);
   if (demand > 0) parts.push({ part: "demand", n: demand });
   if (aiGapOf(o)) parts.push({ part: "ai_gap", n: POINTS.aiGap });
   if (isRising(o.evidence)) parts.push({ part: "rising", n: POINTS.rising });

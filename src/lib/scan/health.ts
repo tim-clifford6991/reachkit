@@ -1,6 +1,5 @@
 // Every paid pass checks what it stored and keeps the answers on its own row (`scans.health`), so a bad number never reaches the screens unflagged:
 // brand_volume   no rival's brand volume exceeds what the keywords its brand is read under hold (`brandKeywords`);
-// prompt_rivals  every tracked prompt names only current rivals;
 // market_terms   the market has at least one searched term with volume;
 // mention_rate   the mention rate states its sample size and margin;
 // serp_timeouts  no more than a fifth of the pass's SERP reads, AI Mode's included, timed out;
@@ -9,11 +8,9 @@
 // Pure: no I/O and no clock. `./health-record.ts` reads and writes.
 import { brandKeywords } from "@/lib/market/infer/demand";
 import type { MarketConclusion } from "@/lib/market/infer/types";
-import type { GeneratedPrompt, PromptKind } from "@/lib/market/prompts/generate";
 import { measurePrompts, type PromptSample } from "@/lib/market/prompts/rate";
-import { followRivals } from "@/lib/market/prompts/set";
 
-export const HEALTH_CHECKS = ["brand_volume", "prompt_rivals", "market_terms", "mention_rate", "serp_timeouts", "knowledge_base"] as const;
+export const HEALTH_CHECKS = ["brand_volume", "market_terms", "mention_rate", "serp_timeouts", "knowledge_base"] as const;
 
 /** The share of a pass's SERP reads that may time out. More fails. */
 export const SERP_TIMEOUT_SHARE = 0.2;
@@ -47,8 +44,6 @@ export function failingChecks(health: ScanHealth | null): readonly HealthResult[
   return health === null ? [] : health.checks.filter((result) => !result.pass);
 }
 
-const key = (text: string): string => text.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
-
 const result = (check: HealthCheck, items: readonly string[], detail: string): HealthResult => ({
   check,
   pass: items.length === 0,
@@ -72,66 +67,6 @@ function brandVolume(market: MarketConclusion | null): HealthResult {
     "brand_volume",
     polluted,
     polluted.length === 0 ? `${market.rivals.length} rivals read under their own keywords` : `${polluted.length} of ${market.rivals.length} rivals polluted`
-  );
-}
-
-/** The products a pass read as rival candidates and did not keep, as the
- *  keyword each was read under. */
-export function formerRivals(market: MarketConclusion, own: readonly string[] = []): string[] {
-  const held = new Set(
-    market.rivals.flatMap((rival) => [rival.name, rival.domain.split(".")[0] ?? "", ...(rival.searchNames ?? []), ...brandKeywords(rival)].map(key))
-  );
-  const mine = new Set(own.map(key));
-  return Object.keys(market.demand?.brands ?? {})
-    .map(key)
-    .filter((brand) => brand.length > 2 && !held.has(brand) && !mine.has(brand));
-}
-
-/** Whether `text` names one of `brands`, as a word of its own. */
-export function namesAny(text: string, brands: readonly string[]): boolean {
-  const padded = ` ${key(text)} `;
-  return brands.some((brand) => padded.includes(` ${brand} `));
-}
-
-/** The prompts that name a rival that is not current: a comparison or branded prompt today's rivals do not yield (`followRivals`),
- *  and any prompt naming a product a pass read and did not keep. */
-const literal = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-/** Whether this prompt names only rivals in force. The order is not read, since a pass re-orders its rivals after asking them:
- *  a prompt passes where the rivals in force yield it in any of the places a rival's name takes, and every name it puts there is current. */
-function namesCurrentRivals(
-  prompt: { kind: PromptKind; text: string },
-  generated: readonly GeneratedPrompt[],
-  rivals: readonly string[]
-): boolean {
-  const current = new Set(rivals.map(key));
-  const names = [...rivals].sort((x, y) => y.length - x.length).map(literal);
-  if (names.length === 0) return false;
-  const anyRival = new RegExp(`\\b(?:${names.join("|")})\\b`, "g");
-  for (const yielded of generated) {
-    if (yielded.kind !== prompt.kind) continue;
-    const parts = yielded.text.split(anyRival);
-    if (parts.length === 1) continue;
-    const shape = new RegExp(`^${parts.map(literal).join("(.+?)")}$`, "i");
-    const named = shape.exec(prompt.text);
-    if (named !== null && named.slice(1).every((name) => current.has(key(name)))) return true;
-  }
-  return false;
-}
-
-function promptRivals(a: Pick<HealthInput, "market" | "asked" | "generated" | "ownNames" | "at">): HealthResult {
-  if (a.asked.length === 0) return result("prompt_rivals", [], "no tracked prompts");
-  const stored = { prompts: a.asked.map((prompt) => ({ ...prompt, addedAt: "" })), rotations: [] };
-  const followed = new Set(followRivals(stored, a.generated, a.at).prompts.map((prompt) => prompt.id));
-  const former = a.market === null ? [] : formerRivals(a.market, a.ownNames);
-  const rivals = (a.market?.rivals ?? []).map((rival) => rival.name);
-  const stale = a.asked.filter(
-    (prompt) => (!followed.has(prompt.id) && !namesCurrentRivals(prompt, a.generated, rivals)) || namesAny(prompt.text, former)
-  );
-  return result(
-    "prompt_rivals",
-    stale.map((prompt) => prompt.text),
-    stale.length === 0 ? `${a.asked.length} prompts name only current rivals` : `${stale.length} of ${a.asked.length} prompts name a rival that is not current`
   );
 }
 
@@ -180,12 +115,6 @@ function knowledgeBase(pages: number | null | undefined): HealthResult {
 export interface HealthInput {
   /** The market in force when the pass ended. */
   market: MarketConclusion | null;
-  /** The business's own brand keywords, never a rival's. */
-  ownNames?: readonly string[];
-  /** The prompts the pass asked; where it asked none, the stored set. */
-  asked: readonly { id: string; kind: PromptKind; text: string }[];
-  /** What the market in force yields (`generatePrompts`). */
-  generated: readonly GeneratedPrompt[];
   /** The pass's answers as samples; `null` where the pass asks no prompts. */
   samples: readonly PromptSample[] | null;
   /** The pass's SERP reads; `null` where the ledger could not be read. */
@@ -199,7 +128,7 @@ export interface HealthInput {
 export function checkHealth(a: HealthInput): ScanHealth {
   return {
     at: a.at.toISOString(),
-    checks: [brandVolume(a.market), promptRivals(a), marketTerms(a.market), mentionRate(a.samples), serpTimeouts(a.serp), knowledgeBase(a.knowledgePages)],
+    checks: [brandVolume(a.market), marketTerms(a.market), mentionRate(a.samples), serpTimeouts(a.serp), knowledgeBase(a.knowledgePages)],
   };
 }
 

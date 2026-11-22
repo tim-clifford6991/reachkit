@@ -1,5 +1,5 @@
 // src/lib/scan/pass/sequence.ts — the six stages in order, each caught at its own stage.
-import { promptSiteName } from "@/lib/market/prompts/generate";
+import { promptSiteName } from "@/lib/market/prompts/names";
 import { writeSiteLocale } from "@/lib/locale/site";
 import { measureDomain, withMeasuredPages, type DomainMeasurement } from "@/lib/measure";
 import { MARKET_PURSE_CENTS, twelveCentsAfter, withStageBudget, type StageOutcome } from "../budgets";

@@ -1,26 +1,13 @@
-// src/lib/market/prompts/set.ts — the set a site tracks, stored with the
-// site (`sites.tracked_prompts`), and how it changes (SPEC §6, owner D19
-// and D33 of 2026-10-03, #1162).
+// src/lib/market/prompts/set.ts — the panel a site tracks, stored with the site (`sites.tracked_prompts`), and how it changes
+// (SPEC §6, owner ruling 73, 2026-11-22).
 //
-// A rate over four weeks means something only while the questions stay the
-// same, so the set is stored and not regenerated each pass. It is built
-// once, whole and unchecked (D33). After that at most
-// `TRACKED_PROMPTS.ROTATION_SHARE` of it changes in any
-// `TRACKED_PROMPTS.ROTATION_WEEKS`: a prompt the market no longer yields —
-// it names a rival since dropped — gives its place to one the market now
-// yields. Only a prompt added that way is pre-checked.
-//
-// One exception, once (owner D54 of 2026-10-06, issue 1281): a set built
-// from a label other than the market's search term (D49) is rebuilt whole
-// from it, and the rate starts again from that date.
-//
-// And one kind of change is not rotation (issue 1285): the comparison and
-// branded prompts name the rivals, so they are always the ones today's
-// rivals yield.
+// A rate over four weeks means something only while the questions stay the same, so the set is stored and not drawn again each pass.
+// It grows to `TRACKED_PROMPTS.PANEL` freely; after that at most `TRACKED_PROMPTS.ROTATION_SHARE` of it is replaced in any
+// `TRACKED_PROMPTS.ROTATION_WEEKS`, an item the searches no longer yield giving its place to one they now yield. A set of templates is
+// rebuilt whole as the panel once, under the restart mark.
 //
 // Pure: no I/O and no clock of its own.
 import { TRACKED_PROMPTS } from "@/lib/config/constants";
-import { DEFAULT_KIND, isBusinessKind, type BusinessKind } from "@/lib/market/kinds";
 import { PROMPT_KINDS, type GeneratedPrompt, type PromptKind } from "./generate";
 
 export interface TrackedPrompt {
@@ -28,27 +15,17 @@ export interface TrackedPrompt {
   id: string;
   kind: PromptKind;
   text: string;
+  /** The question ChatGPT is asked in the search's place; absent, it is asked the search. */
+  question?: string;
   addedAt: string;
-  /** Added by rotation and not yet answered once: its first answers decide
-   *  whether it stays (D33). */
-  precheck?: true;
 }
 
 export interface PromptSet {
   prompts: readonly TrackedPrompt[];
-  /** When prompts were rotated in, and how many: the quarter's allowance
-   *  is counted over these. */
+  /** When prompts were rotated in, and how many: the quarter's allowance is counted over these. */
   rotations: readonly { at: string; added: number }[];
-  /** The market's name the set was built from (D54). Absent on a set built
-   *  before the name was kept. */
-  builtFrom?: string;
-  /** When the set was rebuilt whole from the search term (D54), ISO. It
-   *  happens once; the four-week rate starts again here. */
+  /** When the set was rebuilt whole, ISO; the four-week rate starts again here. */
   rebuiltAt?: string;
-  /** The kind of business the set is worded for (owner D69, issue 1318).
-   *  Absent on a set built before a kind was recorded, which is worded
-   *  for software. */
-  kind?: BusinessKind;
 }
 
 export const EMPTY_PROMPT_SET: PromptSet = Object.freeze({ prompts: [], rotations: [] });
@@ -67,8 +44,7 @@ function isKind(value: unknown): value is PromptKind {
   return typeof value === "string" && (PROMPT_KINDS as readonly string[]).includes(value);
 }
 
-/** The stored column as a set; anything unreadable is the empty set, which
- *  the next pass builds afresh. */
+/** The stored column as a set; anything unreadable is the empty set, which the next pass builds afresh. */
 export function parsePromptSet(value: unknown): PromptSet {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return EMPTY_PROMPT_SET;
   const record = value as Record<string, unknown>;
@@ -81,8 +57,8 @@ export function parsePromptSet(value: unknown): PromptSet {
       id: typeof p.id === "string" ? p.id : promptId(p.text),
       kind: p.kind,
       text: p.text,
+      ...(typeof p.question === "string" && p.question.trim() !== "" ? { question: p.question } : {}),
       addedAt: typeof p.addedAt === "string" ? p.addedAt : "",
-      ...(p.precheck === true ? { precheck: true as const } : {}),
     });
   }
   const rotations: { at: string; added: number }[] = [];
@@ -91,156 +67,37 @@ export function parsePromptSet(value: unknown): PromptSet {
     const r = entry as Record<string, unknown>;
     if (typeof r.at === "string" && typeof r.added === "number") rotations.push({ at: r.at, added: r.added });
   }
-  return {
-    prompts,
-    rotations,
-    ...(typeof record.builtFrom === "string" ? { builtFrom: record.builtFrom } : {}),
-    ...(typeof record.rebuiltAt === "string" ? { rebuiltAt: record.rebuiltAt } : {}),
-    ...(isBusinessKind(record.kind) ? { kind: record.kind } : {}),
-  };
-}
-
-const named = (text: string): string => text.toLowerCase().replace(/\s+/g, " ").trim();
-
-/**
- * D54: whether the stored set was built from a label other than
- * `searchTerm`, the market's name as its prompts say it. A set that kept
- * no name is read by its wording: none of its prompts says the term. A set
- * already rebuilt is never rebuilt again.
- */
-export function builtFromAnotherLabel(stored: PromptSet, searchTerm: string): boolean {
-  const term = named(searchTerm);
-  if (term === "" || stored.prompts.length === 0 || stored.rebuiltAt !== undefined) return false;
-  if (stored.builtFrom !== undefined) return named(stored.builtFrom) !== term;
-  return !stored.prompts.some((p) => named(p.text).includes(term));
-}
-
-/**
- * D69: whether the stored set is worded for another kind of business than
- * the one now recorded. It is so once: a set with no kind was worded for
- * software, and a site whose kind is first recorded as anything else asks
- * its buyers' own questions from then on. A set that holds a kind is never
- * rebuilt for another: a kind that changes later moves the set at the
- * rotation rate only, as a search term does (D54).
- */
-export function wordedForAnotherKind(stored: PromptSet, kind: BusinessKind | null): boolean {
-  return kind !== null && stored.prompts.length > 0 && stored.kind === undefined && kind !== DEFAULT_KIND;
-}
-
-/** The kinds whose wording names a rival. */
-const NAMES_RIVALS: readonly PromptKind[] = ["comparison", "branded"];
-
-/**
- * The stored set with its comparison and branded prompts as today's rivals
- * yield them (issue 1285). The rivals are concluded from a pass's answers,
- * so after the prompts were asked: reachkit.app's rebuilt set named three
- * rivals the same pass dropped, and rotation would have kept them for
- * months. A prompt of those kinds the market still yields keeps its date;
- * the rest give way whole, unchecked, and the rotation allowance is not
- * touched. A kind the market yields none of is left as it is. The same
- * object where nothing changed.
- */
-export function followRivals(stored: PromptSet, generated: readonly GeneratedPrompt[], now: Date): PromptSet {
-  if (stored.prompts.length === 0) return stored;
-  const held = new Map(stored.prompts.map((p) => [p.id, p]));
-  let prompts = [...stored.prompts];
-  let changed = false;
-  for (const kind of NAMES_RIVALS) {
-    const yielded = generated.filter((p) => p.kind === kind);
-    const ids = yielded.map((p) => promptId(p.text));
-    const mine = prompts.filter((p) => p.kind === kind);
-    if (yielded.length === 0 || (mine.length === ids.length && mine.every((p, i) => p.id === ids[i]))) continue;
-    const next = yielded.map(
-      (p, i): TrackedPrompt => held.get(ids[i]!) ?? { id: ids[i]!, kind, text: p.text, addedAt: now.toISOString() }
-    );
-    const at = prompts.findIndex((p) => p.kind === kind);
-    const rest = prompts.filter((p) => p.kind !== kind);
-    const before = at < 0 ? rest.length : prompts.slice(0, at).filter((p) => p.kind !== kind).length;
-    prompts = [...rest.slice(0, before), ...next, ...rest.slice(before)];
-    changed = true;
-  }
-  return changed ? { ...stored, prompts } : stored;
+  return { prompts, rotations, ...(typeof record.rebuiltAt === "string" ? { rebuiltAt: record.rebuiltAt } : {}) };
 }
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
-/**
- * The set this pass asks, from the stored one and what the market yields
- * today. A site with no set gets the whole of `generated`. A site with one
- * keeps it, and swaps in what the allowance still has room for.
- * `searchTerm` is the market's name in `generated` where the market holds a
- * searched term (D49), else `null`: a set built from another label is
- * rebuilt whole from it, once (D54). `kind` is the kind of business
- * `generated` is worded for, where the market records one: a set worded for
- * software is rebuilt whole for it, once (D69), under the same mark. Its
- * comparison and branded prompts follow the rivals first (`followRivals`),
- * outside the allowance.
- */
-export function nextPromptSet(
-  before: PromptSet,
-  generated: readonly GeneratedPrompt[],
-  now: Date,
-  searchTerm: string | null = null,
-  kind: BusinessKind | null = null
-): PromptSet {
+/** The set this pass asks, from the stored one and the panel the searches yield today. The same object where nothing changed. */
+export function nextPromptSet(before: PromptSet, generated: readonly GeneratedPrompt[], now: Date): PromptSet {
   const at = now.toISOString();
-  const whole = (): TrackedPrompt[] => generated.map((p) => ({ id: promptId(p.text), kind: p.kind, text: p.text, addedAt: at }));
-  const from = { ...(searchTerm === null ? {} : { builtFrom: searchTerm }), ...(kind === null ? {} : { kind }) };
-  if (before.prompts.length === 0) return { prompts: whole(), rotations: [], ...from };
-  if (generated.length > 0 && wordedForAnotherKind(before, kind)) {
-    return { prompts: whole(), rotations: [], ...from, rebuiltAt: at };
-  }
-  if (searchTerm !== null && generated.length > 0 && builtFromAnotherLabel(before, searchTerm)) {
-    return { prompts: whole(), rotations: [], ...from, rebuiltAt: at };
-  }
-  // A software set's kind is recorded without a rebuild: its wording is
-  // the one it already has.
-  const known = before.kind === undefined && kind !== null ? { ...before, kind } : before;
-  const stored = followRivals(known, generated, now);
+  const entry = (p: GeneratedPrompt): TrackedPrompt => ({ id: promptId(p.text), kind: p.kind, text: p.text, ...(p.question === undefined ? {} : { question: p.question }), addedAt: at });
+  if (generated.length === 0) return before;
+  if (before.prompts.length === 0) return { prompts: generated.map(entry), rotations: [] };
+  if (before.prompts.some((p) => p.kind !== "search")) return { prompts: generated.map(entry), rotations: [], rebuiltAt: at };
 
   const yielded = new Set(generated.map((p) => promptId(p.text)));
-  const held = new Set(stored.prompts.map((p) => p.id));
+  const held = new Set(before.prompts.map((p) => p.id));
   const fresh = generated.filter((p) => !held.has(promptId(p.text)));
-  if (fresh.length === 0) return stored;
+  if (fresh.length === 0) return before;
 
+  const prompts = [...before.prompts];
+  while (prompts.length < TRACKED_PROMPTS.PANEL && fresh.length > 0) prompts.push(entry(fresh.shift()!));
   const since = now.getTime() - TRACKED_PROMPTS.ROTATION_WEEKS * WEEK_MS;
-  const rotations = stored.rotations.filter((r) => Date.parse(r.at) >= since);
-  const used = rotations.reduce((sum, r) => sum + r.added, 0);
-  let room = Math.floor(stored.prompts.length * TRACKED_PROMPTS.ROTATION_SHARE) - used;
-  if (room <= 0) return stored;
-
-  const prompts = [...stored.prompts];
+  const rotations = before.rotations.filter((r) => Date.parse(r.at) >= since);
+  let room = Math.floor(prompts.length * TRACKED_PROMPTS.ROTATION_SHARE) - rotations.reduce((sum, r) => sum + r.added, 0);
   let added = 0;
   for (const candidate of fresh) {
-    if (room <= 0) break;
-    const entry: TrackedPrompt = { id: promptId(candidate.text), kind: candidate.kind, text: candidate.text, addedAt: at, precheck: true };
-    const stale = prompts.findIndex((p) => p.kind === candidate.kind && !yielded.has(p.id));
-    if (stale >= 0) prompts[stale] = entry;
-    else if (prompts.filter((p) => p.kind === candidate.kind).length < TRACKED_PROMPTS.SPLIT[candidate.kind]) prompts.push(entry);
-    else continue;
+    const stale = prompts.findIndex((p) => !yielded.has(p.id));
+    if (room <= 0 || stale < 0) break;
+    prompts[stale] = entry(candidate);
     added += 1;
     room -= 1;
   }
-  if (added === 0) return stored;
-  return { ...stored, prompts, rotations: [...rotations, { at, added }] };
-}
-
-/**
- * The set after its rotated-in prompts have been answered once (D33): one
- * whose answers named no brand leaves, one whose answers named any stays
- * and is no longer pending, and one nobody answered waits for next week.
- */
-export function settlePrechecks(
-  set: PromptSet,
-  outcome: ReadonlyMap<string, "keep" | "drop">
-): PromptSet {
-  if (!set.prompts.some((p) => p.precheck === true)) return set;
-  const prompts: TrackedPrompt[] = [];
-  for (const prompt of set.prompts) {
-    const verdict = prompt.precheck === true ? outcome.get(prompt.id) : undefined;
-    if (verdict === "drop") continue;
-    if (verdict === "keep") prompts.push({ id: prompt.id, kind: prompt.kind, text: prompt.text, addedAt: prompt.addedAt });
-    else prompts.push(prompt);
-  }
-  return { ...set, prompts };
+  if (prompts.length === before.prompts.length && added === 0) return before;
+  return { ...before, prompts, rotations: added === 0 ? before.rotations : [...rotations, { at, added }] };
 }

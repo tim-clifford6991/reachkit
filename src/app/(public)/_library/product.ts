@@ -11,7 +11,7 @@ export const PRODUCT = Object.freeze({
   price: `€${PRICE_EUR_CENTS / 100}`,
   /** Google searches measured per site: "12". */
   searches: String(HOW_FACTS.searches),
-  /** Questions put to AI each Monday: "25". */
+  /** Questions put to AI each Monday: "24". */
   prompts: String(HOW_FACTS.prompts),
   /** The AI answers asked. */
   engines: "ChatGPT and Google AI Mode",

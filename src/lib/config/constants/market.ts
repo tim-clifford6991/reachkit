@@ -62,20 +62,14 @@ export const RIVAL_DEMAND = Object.freeze({ MIN_VOLUME: 100, REFRESH_DAYS: 30, P
 export const RIVAL_PRESENCE = Object.freeze({ FIRST_PAGE_PLACES: 2, HOLDERS: 3 } as const);
 
 /**
- * SPEC §6 (D19, D32, D33) — the tracked buyer prompts, which are the weekly
- * AI measure.
- *
- * `SPLIT` is the set's shape, 25 in all. Each engine asks an unbranded
- * prompt `RUNS` times and a branded one `BRANDED_RUNS` times in one weekly
- * pass: 23 + 4 asks an engine, 54 at the measured 0.12¢ each, 6.48¢ a set.
- * At most `ROTATION_SHARE` of the set is replaced in any `ROTATION_WEEKS`,
- * and only a prompt added that way is pre-checked (D33).
+ * SPEC §6 (owner ruling 73, 2026-11-22) — the AI panel, which is the weekly AI measure: `PANEL` items, each asked of each engine `RUNS`
+ * times in one weekly pass, 48 asks at the measured 0.12¢ each, 5.76¢ a set. At most `ROTATION_SHARE` of the set is replaced in any
+ * `ROTATION_WEEKS`.
  */
 export const TRACKED_PROMPTS = Object.freeze({
-  SPLIT: Object.freeze({ category: 5, "use-case": 7, persona: 4, comparison: 4, problem: 3, branded: 2 }),
+  PANEL: 24,
   ENGINES: 2,
   RUNS: 1,
-  BRANDED_RUNS: 2,
   ROTATION_SHARE: 0.2,
   ROTATION_WEEKS: 13,
 } as const);

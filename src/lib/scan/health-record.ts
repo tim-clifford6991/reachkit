@@ -55,13 +55,9 @@ export async function recordPassHealth(a: {
   asksPrompts: boolean;
 }): Promise<ScanHealth | null> {
   try {
-    const [{ promptsInForce }, { samplesOf }, { ownKeywords }] = await Promise.all([
-      import("./market-conclusion"),
-      import("./weekly/prompts"),
-      import("@/lib/market/infer/demand"),
-    ]);
-    const [inForce, serp, knowledgePages] = await Promise.all([
-      promptsInForce({ siteId: a.siteId, domain: a.domain }),
+    const [{ readSiteMarket }, { samplesOf }] = await Promise.all([import("@/lib/market/infer/stored"), import("./weekly/prompts")]);
+    const [market, serp, knowledgePages] = await Promise.all([
+      readSiteMarket(a.siteId).then((read) => read?.stored.current ?? null),
       serpReadsOf(a.scanId).catch(() => null),
       import("@/lib/site-profile/knowledge/store")
         .then(({ readStoredKnowledge }) => readStoredKnowledge(a.domain))
@@ -70,10 +66,7 @@ export async function recordPassHealth(a: {
     ]);
     const section = a.report.prompts;
     const health = checkHealth({
-      market: inForce?.market ?? null,
-      ownNames: ownKeywords({ domain: a.domain, siteName: inForce?.siteName ?? null }),
-      asked: section?.asked ?? inForce?.stored.prompts ?? [],
-      generated: inForce?.generated ?? [],
+      market,
       samples: a.asksPrompts ? (section === undefined ? [] : samplesOf(section)) : null,
       serp,
       knowledgePages,

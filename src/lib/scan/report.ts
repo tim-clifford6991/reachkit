@@ -28,7 +28,7 @@ import type { Verdict } from "@/lib/measure/verdict";
 import type { RankedRow, SerpResult } from "@/lib/vendors/dataforseo/types";
 import { readPastProtection } from "./challenged";
 import type { CanonicalDomain } from "./domain";
-import { upgradeFromVersion13 } from "./upgrade-v14";
+import { upgradeFromVersion13, upgradeFromVersion14 } from "./upgrade-v14";
 
 export type Tier = "free" | "deep" | "weekly";
 
@@ -40,7 +40,7 @@ export const SITE_PASS_TIERS = ["weekly", "deep"] as const satisfies readonly Ti
 export type StoppedReason = "complete" | "time_ceiling" | "spend_ceiling" | "site_unreadable" | "failed";
 
 /** The one blob version this build writes; an unknown version throws, since `null` would read as "no report". */
-export const REPORT_VERSION = 14;
+export const REPORT_VERSION = 15;
 
 /** One cell of the AI-answers matrix: one question, one measured SERP (`matrix.ts` owns it). `unmeasured` lowers the denominator and is never a place the customer was ignored. */
 export type AnswerCell =
@@ -301,11 +301,12 @@ export interface PromptAnswer {
   rivals: readonly string[];
   /** The cited addresses that hold "alternative": buyers asking it were shown a rival's alternatives. Absent where none, and on older answers. */
   alternatives?: readonly string[];
-  /** The pages it cited on other sites, their homes left out. Absent where
-   *  it cited none, and on an answer no pass or re-score has read since. */
+  /** The pages it cited on other sites, their homes left out. Absent where none, and on an answer no pass or re-score has read since. */
   cited?: readonly string[];
   /** The prices, counts and countries it gave the business, each with the few words around it. Absent where none, and on older answers. */
   states?: readonly AnswerStatement[];
+  /** The name it gave may be another business's, so it is not counted. Absent where not, and on older answers. */
+  possiblyOther?: true;
 }
 
 /** One weekly pass's tracked prompts. */
@@ -313,19 +314,17 @@ export interface PromptsSection {
   /** The name the answers were read for. */
   siteName: string;
   /** The set as this pass asked it. */
-  asked: readonly { id: string; kind: PromptKind; text: string }[];
+  asked: readonly { id: string; kind: PromptKind; text: string; question?: string }[];
   /** How many asks the set is: prompts × engines × runs. */
   asks: number;
-  /** The asks that answered. One that did not is absent, so it leaves the
-   *  rate's denominator and is never a miss. */
+  /** The asks that answered. One that did not is absent, so it leaves the rate's denominator and is never a miss. */
   answers: readonly PromptAnswer[];
   /** When the set asked was rebuilt whole; a week with another mark asked another set, and the rolling rate leaves it out. */
   restartedAt?: string;
 }
 
-/** What one pass checked: the searches it read a result page for, and the
- *  AI questions it put. A pass with no prompts block measured no AI
- *  question, so its count is `null`, never 0. */
+/** What one pass checked: the searches it read a result page for, and the AI questions it put. A pass with no prompts block measured no
+ *  AI question, so its count is `null`, never 0. */
 export function askedOf(report: Pick<StoredReport, "serps" | "prompts">): { searches: number; questions: number | null } {
   return {
     searches: report.serps.filter((serp) => serp.kind !== "unmeasured").length,
@@ -372,7 +371,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 /** The versions this build's upgrade chain can lift. */
-const MIGRATABLE_VERSIONS: readonly number[] = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
+const MIGRATABLE_VERSIONS: readonly number[] = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14];
 
 /** The two battery columns of a report written before anything bought them: `not_attempted`, not `no_answer`, since nobody asked.
  *  Frozen literals, not `engineColumns(...)`: a migration does not follow a moving helper. */
@@ -539,6 +538,7 @@ const UPGRADES: readonly ((blob: Record<string, unknown>) => Record<string, unkn
   upgradeFromVersion11,
   upgradeFromVersion12,
   upgradeFromVersion13,
+  upgradeFromVersion14,
 ];
 
 /** The version guard and upgrade. Throws loudly on a blob this build can neither read nor lift: `null` would read as "no report" and take

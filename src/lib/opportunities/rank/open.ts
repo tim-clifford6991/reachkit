@@ -10,7 +10,6 @@
 // cluster, and while clusters are not derived, ahead of the first Write row.
 import { PLAN_DEPTH, REFRESH_MIN_AGE_DAYS } from "@/lib/config/constants";
 import type { Profile } from "@/lib/market/questions/profile";
-import type { IntentPrompt } from "../intent";
 import type { MarketConclusion } from "@/lib/market/infer/types";
 import type { OwnLivePage } from "../refresh";
 import { opportunityStore } from "../store";
@@ -148,8 +147,6 @@ export interface RankLoad {
   cited: readonly string[];
   /** The top tens already stored for the eligible rows' searches (#1181). */
   topTens: ReadonlyMap<string, readonly string[]>;
-  /** The site's tracked prompts, which a search with no measured volume matches to count as asked. */
-  prompts?: readonly IntentPrompt[];
   /** The clusters of the site's own pages a stored answer cited. */
   linkedClusters?: readonly string[];
   /** The searches the site ranks for, as its current report counts them;
@@ -175,14 +172,12 @@ export function eligible(row: OpportunityRow): Rejection | null {
  *  where it is given (a week's spares, issue 1559). */
 export async function loadRanking(siteId: string, at: Date, only?: ReadonlySet<string>): Promise<RankLoad> {
   const store = opportunityStore();
-  const [open, profile, fixRows, cited, prompts, report, market, live] = await Promise.all([
+  const [open, profile, fixRows, cited, report, market, live] = await Promise.all([
     store.openRankable(siteId),
     store.profileForSite(siteId),
     store.openFixPages(siteId),
     // A window that cannot be read lifts no update: the order is the one before it.
     store.citedPages(siteId, at).catch(() => [] as readonly string[]),
-    // Prompts that cannot be read add no demand.
-    store.trackedPrompts(siteId).catch(() => [] as readonly IntentPrompt[]),
     // A report that cannot be read orders the site as an established one.
     Promise.resolve()
       .then(() => store.currentReport(siteId))
@@ -200,7 +195,7 @@ export async function loadRanking(siteId: string, at: Date, only?: ReadonlySet<s
   const topTens = await topTensFor(rows, only, live.map((page) => page.row.scanId));
   // A cluster that cannot be read earns no page.
   const linkedClusters = cited.length === 0 ? [] : await store.clustersAt(siteId, cited).catch(() => [] as readonly string[]);
-  return { rows, fixRows, profile, cited, topTens, prompts, linkedClusters, ownRanked, market, live, floored: open.filter(young).map((row) => row.id) };
+  return { rows, fixRows, profile, cited, topTens, linkedClusters, ownRanked, market, live, floored: open.filter(young).map((row) => row.id) };
 }
 
 function topTensFor(rows: readonly OpportunityRow[], only?: ReadonlySet<string>, live: readonly string[] = []) {
@@ -232,7 +227,7 @@ export function rankingOf(
   const mixed = load.rows.filter((row) => named(row, only) && keep(row)).map(readOpportunity);
   if (mixed.length === 0) return { scored: [], fixes, rotation: {}, rejected };
 
-  const seen: Seen = { cited: new Set(load.cited.map(canonicalUrl)), prompts: load.prompts ?? [] };
+  const seen: Seen = { cited: new Set(load.cited.map(canonicalUrl)) };
   const scored = mixed.map((opportunity) => ({ opportunity, ...pointsOf(opportunity, seen) }));
   // A cluster an AI answer linked earns one more page: its best new page.
   for (const cluster of new Set(load.linkedClusters ?? [])) {
