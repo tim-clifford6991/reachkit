@@ -140,7 +140,7 @@ The owner looks at `dev.reachkit.app` for taste: voice, and an asset only the ow
 | Site Fixes | `/app/issues` | [board](design/boards/canvas/AppIssues.dc.html) · [render](design/boards/canvas/renders/AppIssues.jpg) · superseded by plate F5 (owner, 2026-11-20, #2985) |
 | Costs (owner only) | `/app/costs` | [board](design/boards/canvas/AppCosts.dc.html) · [render](design/boards/canvas/renders/AppCosts.jpg) |
 | Review (owner only) | `/app/review` | [board](design/boards/canvas/Review.dc.html) · [render](design/boards/canvas/renders/Review.jpg) |
-| Settings, Your business | `/app/settings` | [board](design/boards/canvas/SettingsIndex.dc.html) · [render](design/boards/canvas/renders/SettingsIndex.jpg) |
+| Settings, Your business | `/app/settings` | [board](design/boards/canvas/SettingsIndex.dc.html) · [render](design/boards/canvas/renders/SettingsIndex.jpg) · superseded by plates F1a/F9, owner 2026-11-20 |
 | Settings, Pages | `/app/settings/pages` | [board](design/boards/canvas/SettingsPublishing.dc.html) · [render](design/boards/canvas/renders/SettingsPublishing.jpg) |
 | Settings, Account | `/app/settings/account` | [board](design/boards/canvas/SettingsAccount.dc.html) · [render](design/boards/canvas/renders/SettingsAccount.jpg) |
 | Mail: Monday, phone | Resend | [board](design/boards/canvas/MondayMail.dc.html) · [render](design/boards/canvas/renders/MondayMail.jpg) |
@@ -156,6 +156,7 @@ The owner looks at `dev.reachkit.app` for taste: voice, and an asset only the ow
 - 2026-10-19  **Overview leads with today's page, then the ladder** (owner, E4, #1581). This reverses #1319 and #1364 for Overview only: the page going live today comes first, then how far the pages have got, as the canvas board *Overview* draws it. Google, AI, Competitors, Plan and Draft keep their numbers first. The screen keeps #1364's order until Overview is rebuilt in Phase B's app work.
 - 2026-09-26  **Brand files** (#1121). The favicon set is `src/app/icon.svg`, `icon.ico` and `apple-icon.png`; the stable addresses for the manifest, mail, Stripe and BIMI are `public/brand/` (`mark-*.png`, `mark-maskable-512.png`, `logo*.png`, `mark.svg`, `mark-bimi.svg`). All of them are generated from `src/lib/brand/mark.ts` by `node scripts/brand/render.mjs`; never edit one by hand.
 - 2026-11-16  **Boards amended by the public-heads ruling** (owner, #2745): PubLanding, PubLandingPhone, PubHowItWorks, Pricing, PubAbout, PubScans, PubCompare, PubCompareTool, PubTeardowns, PubTeardown, PubAnswer, PubTools, PubToolMeta, PubToolOnPage, Legal; casing on every board. The `.dc.html` are not redrawn; the SPEC rows win. Each build PR records the strings it drops from a board in that board's `docs/design/parity/<Board>.allow`, citing this line.
+- 2026-11-22  **A superseded board has no parity row** (owner ruling 68, #2722): a board this table marks superseded by an approved plate has no row in `docs/design/parity/boards.json` and no `.allow` file.
 
 ## Libraries
 
