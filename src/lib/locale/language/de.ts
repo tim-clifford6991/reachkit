@@ -109,7 +109,7 @@ export const DE: LanguagePack = {
     agency: "agentur(?:en)?|berater|beratung|beratungen|dienstleister|dienstleistungen?|firmen|unternehmen",
     wordSense: "synonyme?|gegenteil|anderes wort|wort|wörter|bedeutung|definition|aussprache|duden|kreuzworträtsel",
     appended: "und|plus|inklusive|einschließlich|aber|oder|stattdessen",
-    addedOn: "auch|ebenfalls|stattdessen",
+    addedOn: "auch|ebenfalls|stattdessen|nicht nur|statt|mehr als",
   },
   stopWords: new Set([
     "der", "die", "das", "den", "dem", "des", "ein", "eine", "einen", "einem", "einer", "eines",
