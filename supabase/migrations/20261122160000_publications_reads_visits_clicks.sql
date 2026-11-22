@@ -1,4 +1,4 @@
--- supabase/migrations/20261122160000_publication_reads_visits_clicks.sql
+-- supabase/migrations/20261122160000_publications_reads_visits_clicks.sql
 --
 -- SPEC §7 *Hosted reads are counts*, owner rulings 74, 76 and 77 (2026-11-22). A hosted page counts every person's
 -- visit by its source, and the clicks from it to the business's own links. Expand-only: two checks widen and one is
