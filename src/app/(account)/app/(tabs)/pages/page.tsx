@@ -18,9 +18,10 @@ const INK = "min-w-0 text-sm text-base-content/70";
 
 export default async function PagesLivePage(p: { searchParams: Promise<Record<string, string | string[] | undefined>> }): Promise<React.JSX.Element> {
   const [shell, tiles, { all }] = await Promise.all([readShell(), readTiles(0, false), p.searchParams.then(loadShowAll)]);
+  if (tiles === null) throw new Error("pages: tiles unreadable");
   const tz = shell.timeZone;
-  const rows = tiles === null ? null : liveRowsOf(tiles, shell.nextDueOn, tz);
-  const checked = tiles === null ? null : checkedOf(tiles);
+  const rows = liveRowsOf(tiles, shell.nextDueOn, tz);
+  const checked = checkedOf(tiles);
   const next = shell.publishing.next;
   const paused = next === null && shell.publishing.because === "publishing_paused";
 
@@ -38,7 +39,7 @@ export default async function PagesLivePage(p: { searchParams: Promise<Record<st
           {copy("overview.pages.paused")}
         </Link>
       ) : null}
-      {rows === null ? null : rows.length > 0 ? (
+      {rows.length > 0 ? (
         <LivePages rows={rows} all={all} timeZone={tz} />
       ) : paused ? null : (
         <p className={INK} data-testid="pages-none">
