@@ -269,7 +269,7 @@ export function tilesOf(a: {
   const google: Tile =
     g.live === 0
       ? none("google")
-      : g.unchecked === g.live && !passes.some((pass) => pass.healthy)
+      : g.unchecked === g.live
         ? due("google")
         : {
             key: "google",

@@ -6,7 +6,7 @@ import { googleStateOf, type GoogleState } from "@/lib/measure/ladder";
 import { addressOf, googleRead, searchRowsFor, type PageReading, type PlaceReport } from "@/lib/measure/page-reading";
 import { verdict } from "@/lib/opportunities/verdicts/verdict";
 import type { Label } from "@/lib/opportunities/verdicts/types";
-import type { PublishedPage } from "@/lib/measure/published";
+import { standingAt, type PublishedPage } from "@/lib/measure/published";
 import { dayNumber, weekdayShort } from "../calendar/dates";
 import type { WeekModel } from "../calendar/month";
 import { searchKey, type Planned } from "./search-model";
@@ -68,11 +68,13 @@ export function countsStartOf(gsc: GoogleConsole, newDays: number): string | nul
   return day.toISOString().slice(0, 10);
 }
 
-/** The pages the latest healthy pass read their own search's result page for. */
+/** The pages live at the latest healthy pass that it read their own search's result page for. */
 export function serpReadOf(passes: readonly TilePass[], pages: readonly TilePage[]): ReadonlySet<string> {
   const healthy = [...passes].filter((pass) => pass.healthy).sort((x, y) => x.weekStart.localeCompare(y.weekStart)).at(-1);
   if (healthy === undefined) return new Set();
-  return new Set(pages.flatMap((page) => (page.search !== null && searchRowsFor(healthy.report, page.search, { tracked: false }).kind !== "unmeasured" ? [page.id] : [])));
+  // A result read before the page went live says nothing of the page.
+  const at = new Date(healthy.at);
+  return new Set(pages.flatMap((page) => (standingAt(page, at) && page.search !== null && searchRowsFor(healthy.report, page.search, { tracked: false }).kind !== "unmeasured" ? [page.id] : [])));
 }
 
 const LABEL_ORDER: Readonly<Record<Label, number>> = { working: 0, climbing: 1, not_moving: 2, too_early: 3 };
