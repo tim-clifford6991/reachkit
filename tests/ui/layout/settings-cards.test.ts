@@ -183,3 +183,53 @@ describe("the ruler sees what it is for (canaries)", () => {
     PER_CASE_MS
   );
 });
+
+describe("/app/settings: a dialog holds its line's second field (plate F1a)", () => {
+  it(
+    "Write as holds your note and Your market holds where your buyers are, and Escape discards both",
+    async () => {
+      const seen = await withPage(
+        1280,
+        async (page) => {
+          await page.goto(urlFor(SETTINGS_TAB_HREF.business));
+          const out: Record<string, { second: boolean; kept: boolean }> = {};
+          for (const [dialog, field] of [
+            ["voice-dialog-writing", "textarea[name=voice_text]"],
+            ["setting-category-dialog", "select[name=market_locale]"],
+          ] as const) {
+            const open = async (): Promise<void> => {
+              // A press before hydration is lost, so it is repeated until the dialog opens.
+              for (let tries = 0; tries < 30; tries++) {
+                await page.click(`[data-testid="${dialog}-change"]`);
+                if (await page.locator(`[data-testid="${dialog}"][open] ${field}`).count()) return;
+                await page.waitForTimeout(500);
+              }
+              throw new Error(`${dialog} did not open`);
+            };
+            await open();
+            const box = page.locator(`[data-testid="${dialog}"] ${field}`);
+            const before = await box.inputValue();
+            if ((await box.evaluate((el) => el.tagName)) === "SELECT") {
+              const other = await box.evaluate(
+                (el) => Array.from((el as HTMLSelectElement).options).map((o) => o.value).find((v) => v !== (el as HTMLSelectElement).value) ?? null
+              );
+              if (other !== null) await box.selectOption(other);
+            } else await box.fill(`${before} changed`);
+            await page.keyboard.press("Escape");
+            await page.waitForSelector(`[data-testid="${dialog}"]:not([open])`, { state: "attached" });
+            await open();
+            out[dialog] = { second: true, kept: (await page.locator(`[data-testid="${dialog}"] ${field}`).inputValue()) === before };
+            await page.keyboard.press("Escape");
+          }
+          return out;
+        },
+        { extraHTTPHeaders: { Cookie: getAccountCookie() } }
+      );
+      expect(seen).toEqual({
+        "voice-dialog-writing": { second: true, kept: true },
+        "setting-category-dialog": { second: true, kept: true },
+      });
+    },
+    PER_CASE_MS
+  );
+});

@@ -16,5 +16,7 @@ export const CARD_FOOT = "flex min-w-0 flex-wrap items-center justify-between ga
 export const DIALOG_BOX =
   "modal-box flex max-h-[90dvh] min-w-0 flex-col gap-4 max-sm:h-dvh max-sm:max-h-none max-sm:w-full max-sm:max-w-none max-sm:rounded-none";
 
+/** A control's target: 44px below `lg`, the plate's 32px on a pointer screen from `lg` (WCAG 2.5.8). */
+export const TARGET = "btn-sm min-h-11 lg:min-h-8";
 /** The secondary button that starts work from a card's foot. */
-export const SOFT = "btn btn-soft btn-primary min-h-11";
+export const SOFT = `btn btn-soft btn-primary ${TARGET}`;

@@ -6,7 +6,6 @@ import type { Metadata } from "next";
 import { now } from "@/lib/config/now";
 import { copy } from "@/lib/presentation/copy";
 import { profileIsEmpty } from "@/lib/site-profile/business/confirm";
-import { AlsoServesNote } from "@/app/_business/WhatWeRead";
 import { requireSetUpAccount } from "../_session/account";
 import { readUnderstanding } from "../_overview/understanding-provider";
 import { readOverview } from "../_overview/provider";
@@ -111,10 +110,10 @@ export default async function SettingsBusinessTab(): Promise<React.JSX.Element> 
               domain={market.settings.domain}
               category={market.settings.market.category}
               locale={market.settings.locale}
+              alsoServes={understanding?.where.alsoServes}
               overridden={market.settings.concluded?.categoryOverridden === true}
               timeZone={account.timeZone}
             />
-            {understanding === null ? null : <AlsoServesNote n={understanding.where.alsoServes} />}
             <CompetitorsPanel competitors={screen.competitors} />
           </>
         )}

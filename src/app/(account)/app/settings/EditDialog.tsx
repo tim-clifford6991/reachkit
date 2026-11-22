@@ -7,7 +7,7 @@ import { useActionState, useEffect, useId, useRef, useState } from "react";
 import { Plus, X } from "lucide-react";
 import { say } from "@/app/_toast/say";
 import { copy } from "@/lib/presentation/copy";
-import { DIALOG_BOX } from "./frame";
+import { DIALOG_BOX, TARGET } from "./frame";
 import type { SettingAnswer } from "./panel-state";
 
 /** What a dialog's save answered: saved, with the panel's own line where its save started work, or why not. */
@@ -89,7 +89,7 @@ export function EditDialog(p: {
       <button
         ref={opener}
         type="button"
-        className="btn btn-ghost btn-sm min-h-11 shrink-0 text-primary"
+        className={`btn btn-ghost ${TARGET} shrink-0 text-primary`}
         aria-label={copy("settings.change.name", { label: p.label })}
         aria-haspopup="dialog"
         onClick={open}

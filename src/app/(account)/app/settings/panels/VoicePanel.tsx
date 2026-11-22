@@ -80,29 +80,28 @@ export function VoicePanel(p: {
     if (!line.change) return null;
     switch (line.id) {
       case "writing":
+        // Your note is this dialog's second field: one Save writes the choice, then the note.
         return (
           <EditDialog
             label={line.label}
             lead={copy("settings.voice.lead")}
             testId="voice-dialog-writing"
-            save={(form) => plain(() => saveWritingVoiceAction(form))}
+            save={(form) =>
+              plain(async () => {
+                await saveWritingVoiceAction(form);
+                await saveVoiceAction(form);
+              })
+            }
           >
             <WritingChoice chosen={p.writing} business={p.business} />
+            <label className="flex min-w-0 flex-col gap-1">
+              <span className="text-sm font-semibold">{copy("settings.content.voice")}</span>
+              <TextField name={VOICE_FIELD} label={copy("settings.content.voice")} value={p.note} rows={4} placeholder={writtenLine("settings.voice.placeholder")} />
+            </label>
           </EditDialog>
         );
       case "vocabulary":
         return p.words === null ? null : <ListDialog list={WORDS} label={line.label} items={p.words} lead={copy("settings.voice.lead")} />;
-      case "note":
-        return (
-          <EditDialog
-            label={line.label}
-            lead={copy("settings.voice.lead")}
-            testId="voice-dialog-note"
-            save={(form) => plain(() => saveVoiceAction(form))}
-          >
-            <TextField name={VOICE_FIELD} label={line.label} value={p.note} rows={4} placeholder={writtenLine("settings.voice.placeholder")} />
-          </EditDialog>
-        );
       case "never":
         return (
           <EditDialog
@@ -128,7 +127,7 @@ export function VoicePanel(p: {
   return (
     <section className={CARD} data-testid="settings-voice">
       <div className={CARD_BODY}>
-        <div className="flex min-w-0 flex-col gap-1">
+        <div className="flex min-w-0 flex-col">
           <h2 className={CARD_TITLE}>{copy("settings.voice.title")}</h2>
           <p className={CARD_LEAD}>{copy("settings.voice.lead")}</p>
         </div>

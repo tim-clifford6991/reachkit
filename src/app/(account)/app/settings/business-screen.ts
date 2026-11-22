@@ -1,7 +1,6 @@
 // Settings › Your Business, as one pure function: every line, count, label and date the tab draws, from stored reads.
 // The cards render only from this, so a figure stated twice is computed once and cannot disagree with itself.
 import { BATTERY } from "@/lib/config/constants";
-import { COUNTRIES, LANGUAGES, localeFromKey } from "@/lib/locale/locales";
 import { effectiveOn } from "@/lib/market/changes/pending";
 import { copy } from "@/lib/presentation/copy";
 import type { BusinessItem, BusinessList, BusinessProfile } from "@/lib/site-profile/business/types";
@@ -20,8 +19,8 @@ export type LineValue =
 
 export type LineId =
   | "job" | "offering" | "products" | "audienceTerms" | "claims" | "asks"
-  | "writing" | "vocabulary" | "note" | "never"
-  | "domain" | "category" | "locale";
+  | "writing" | "vocabulary" | "never"
+  | "domain" | "category";
 
 export interface Line {
   id: LineId;
@@ -159,7 +158,6 @@ function voiceCard(input: BusinessScreenInput): BusinessScreen["voice"] {
       },
       // Words you use is a business list; where that read failed the line says nothing was read rather than "none".
       { id: "vocabulary", label: copy("settings.business.vocabulary"), value: listValue(words), change: input.business !== null },
-      { id: "note", label: copy("settings.content.voice"), value: textValue(settings.voice.text), change: true },
       { id: "never", label: copy("settings.voice.never-claim"), value: listValue(settings.doNotClaim), change: true },
     ],
   };
@@ -192,12 +190,6 @@ function marketCards(input: BusinessScreenInput, nextAt: Date, nextDay: string):
     { id: "domain", label: copy("settings.market.domain"), value: { kind: "address", text: settings.domain }, change: true },
     { id: "category", label: copy("settings.market.your-market"), value: textValue(settings.market.category), change: true },
   ];
-  const pair = localeFromKey(settings.locale.current);
-  const locale =
-    pair === null
-      ? null
-      : copy("setup.locale.option", { country: COUNTRIES[pair.country].location, language: LANGUAGES[pair.language].name });
-  lines.push({ id: "locale", label: copy("setup.locale.label"), value: textValue(locale), change: true });
   const concluded = settings.concluded;
   return {
     market: {

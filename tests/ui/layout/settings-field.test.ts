@@ -160,6 +160,9 @@ describe(`${SETTINGS.path}: the edit dialog`, () => {
                 content: content.scrollHeight - content.clientHeight,
                 document: doc.scrollHeight - doc.clientHeight,
                 columns: columns.map((column) => column.scrollHeight - column.clientHeight),
+                inCards: Array.from(document.querySelectorAll('[data-testid="settings-tab-panel-business"] .card')).map(
+                  (card) => card.scrollHeight - card.clientHeight,
+                ),
                 cards,
               };
             });
@@ -178,7 +181,7 @@ describe(`${SETTINGS.path}: the edit dialog`, () => {
       for (const [name, over] of Object.entries(seen)) {
         expect(over.columns.length, name).toBe(2);
         const { cards, ...scroll } = over;
-        expect(scroll, `${name}: cards ${cards.join(" | ")}`).toEqual({ content: 0, document: 0, columns: [0, 0] });
+        expect(scroll, `${name}: cards ${cards.join(" | ")}`).toEqual({ content: 0, document: 0, columns: [0, 0], inCards: scroll.inCards.map(() => 0) });
       }
     },
     PER_WIDTH_MS

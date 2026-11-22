@@ -171,7 +171,7 @@ export function BusinessPanel(p: {
   return (
     <section className={CARD} data-testid="settings-business">
       <div className={CARD_BODY}>
-        <div className="flex min-w-0 flex-col gap-1">
+        <div className="flex min-w-0 flex-col">
           <h2 className={CARD_TITLE}>{copy("settings.business.title")}</h2>
           <p className={CARD_LEAD}>{copy("settings.business.lead")}</p>
         </div>

@@ -11,8 +11,11 @@ export default function SettingsLayout({
 }): React.JSX.Element {
   return (
     <div className="flex min-w-0 flex-col gap-4" data-testid="settings">
-      <h1>{copy("shell.nav.settings")}</h1>
-      <SettingsTabs />
+      {/* The heading and its tabs are one block, as plate F1a draws the head. */}
+      <div className="flex min-w-0 flex-col gap-2">
+        <h1>{copy("shell.nav.settings")}</h1>
+        <SettingsTabs />
+      </div>
       {children}
     </div>
   );

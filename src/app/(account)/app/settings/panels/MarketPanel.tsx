@@ -7,6 +7,7 @@ import type React from "react";
 import { useState, useTransition } from "react";
 import { RefreshCw } from "lucide-react";
 import { say } from "@/app/_toast/say";
+import { AlsoServesNote } from "@/app/_business/WhatWeRead";
 import { COUNTRIES, LANGUAGES, localeFromKey } from "@/lib/locale/locales";
 import { copy } from "@/lib/presentation/copy";
 import { formatShortDay } from "../../_shell/format";
@@ -41,12 +42,16 @@ function answered(state: MarketChangeState, timeZone: string): DialogAnswer {
   return { ok: true, said: writtenLine("settings.market.effectiveOn", { date: formatShortDay(new Date(state.effectiveOn), timeZone) }) };
 }
 
-async function saveLocale(form: FormData): Promise<DialogAnswer> {
-  const state = await saveLocaleAction(form);
+/** The market, then the country and language: a refusal of either keeps the dialog open; a changed country speaks
+ *  for itself, else the market's own answer is the one said. */
+async function saveMarket(form: FormData, timeZone: string): Promise<DialogAnswer> {
+  const market = answered(await saveCategoryAction(form).catch(() => ({ answer: "idle" }) as const), timeZone);
+  if (!market.ok) return market;
+  const state = await saveLocaleAction(form).catch(() => null);
+  if (state === null || state.answer === "idle") return REFUSED();
   if (state.answer === "refused") return { ok: false, line: writtenLine("settings.locale.refused") ?? copy("settings.answer.refused") };
-  if (state.answer === "unchanged") return { ok: true, said: writtenLine("settings.locale.unchanged") };
-  if (state.answer !== "saved") return REFUSED();
-  return { ok: true, said: state.remeasure.started ? writtenLine("settings.market.remeasuring") : state.remeasure.line };
+  if (state.answer === "unchanged") return market;
+  return { ok: true, said: state.remeasure.started ? writtenLine("settings.market.remeasuring") : market.said ?? state.remeasure.line };
 }
 
 /** *Check My Market Now*: the same pass and bound as a changed market; a refusal says why beside the button. */
@@ -86,6 +91,8 @@ export function MarketPanel(p: {
   domain: string;
   category: string;
   locale: SettingsModel["locale"];
+  /** How many other markets the site declares, said in the Your market dialog. */
+  alsoServes: number | undefined;
   /** The site's own market, not one the founder set: its dialog says it is read from the site. */
   overridden: boolean;
   timeZone: string;
@@ -106,30 +113,31 @@ export function MarketPanel(p: {
           </EditDialog>
         );
       case "category":
+        // Where your buyers are is this dialog's second field; each save keeps its own answer.
         return (
           <EditDialog
             label={line.label}
             lead={writtenLine("settings.market.category.starts-now")}
             testId="setting-category-dialog"
-            save={async (form) => answered(await saveCategoryAction(form).catch(() => ({ answer: "idle" }) as const), p.timeZone)}
+            save={(form) => saveMarket(form, p.timeZone)}
           >
             <TextField name={MARKET_CATEGORY_FIELD} label={line.label} value={p.category} />
             <p className={CARD_LEAD}>{copy(p.overridden ? "settings.market.overridden" : "settings.market.consequence.market")}</p>
-          </EditDialog>
-        );
-      case "locale":
-        return (
-          <EditDialog label={line.label} lead={copy("settings.locale.note")} testId="setting-locale-dialog" save={saveLocale}>
-            <select name={MARKET_LOCALE_FIELD} className="select w-full min-w-0" aria-label={line.label} defaultValue={p.locale.current}>
-              {p.locale.options.map((key) => {
-                const pair = localeFromKey(key);
-                return pair === null ? null : (
-                  <option key={key} value={key}>
-                    {copy("setup.locale.option", { country: COUNTRIES[pair.country].location, language: LANGUAGES[pair.language].name })}
-                  </option>
-                );
-              })}
-            </select>
+            <label className="flex min-w-0 flex-col gap-1">
+              <span className="text-sm font-semibold">{copy("setup.locale.label")}</span>
+              <select name={MARKET_LOCALE_FIELD} className="select w-full min-w-0" defaultValue={p.locale.current}>
+                {p.locale.options.map((key) => {
+                  const pair = localeFromKey(key);
+                  return pair === null ? null : (
+                    <option key={key} value={key}>
+                      {copy("setup.locale.option", { country: COUNTRIES[pair.country].location, language: LANGUAGES[pair.language].name })}
+                    </option>
+                  );
+                })}
+              </select>
+            </label>
+            <p className={CARD_LEAD}>{copy("settings.locale.note")}</p>
+            <AlsoServesNote n={p.alsoServes} />
           </EditDialog>
         );
       default:
