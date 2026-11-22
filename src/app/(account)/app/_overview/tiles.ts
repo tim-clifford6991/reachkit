@@ -212,7 +212,7 @@ export function aiAnswersOf(passes: readonly TilePass[], week: string, domain: s
       for (const cell of row.engines.length === 0 ? [row.cell] : row.engines.map((e) => e.cell)) {
         if (cell.kind !== "answered") continue;
         fromPages += 1;
-        if (namesOrLinks(cell as Parameters<typeof namesOrLinks>[0])) k += 1;
+        if (namesOrLinks(cell as unknown as Parameters<typeof namesOrLinks>[0])) k += 1;
       }
     }
   }
