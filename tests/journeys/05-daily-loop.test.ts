@@ -749,6 +749,15 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
     JOURNEY_TIMEOUT_MS
   );
 
+  it("the daily write run twice for one date leaves one page and one meta.citations, the same both times", async () => {
+    const draftId = await generateTonightsPage();
+    const citations = (generateStore.rows.get(draftId)?.meta as { citations?: { sentences: unknown[] } }).citations;
+    expect(citations?.sentences.length).toBeGreaterThan(0);
+    expect(await generateDayPage({ siteId: SITE_ID, publishDate: nextPublishDate(EVENING, SITE_CLOCK) })).toEqual({ ok: false, because: "already_drafted" });
+    expect(db.rows("drafts")).toHaveLength(1);
+    expect((generateStore.rows.get(draftId)?.meta as { citations?: unknown }).citations).toEqual(citations);
+  }, JOURNEY_TIMEOUT_MS);
+
   it(
     "the veto window: the page enters review and the customer is told",
     async () => {

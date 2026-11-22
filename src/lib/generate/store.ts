@@ -23,6 +23,7 @@ import type { InventoryRow } from "@/lib/site-profile/types";
 import type { ClusterPage } from "./links/select";
 import { waitingForRun } from "./interrupted";
 import { withheldReportPassages } from "./pipeline/report-scope";
+import { withCitations } from "./citations";
 
 /** The `drafts` row, as §10 and this issue's two migrations leave it. */
 export interface DraftRow {
@@ -67,10 +68,8 @@ export interface DraftInsert {
   meta?: unknown;
 }
 
-/** The columns one run may change. Every one is written by the engine and
- *  none by a customer; `grounded_fact`'s passage is frozen by a trigger the
- *  moment the row exists, so a patch that tried to rewrite it would raise
- *  rather than succeed quietly. */
+/** The columns one run may change. `grounded_fact`'s passage is frozen by a trigger the moment the row exists, so a
+ *  patch that tried to rewrite it would raise rather than succeed quietly. */
 export interface DraftPatch {
   state?: string;
   title?: string | null;
@@ -616,14 +615,15 @@ function stringsOf(payload: unknown): string[] {
 
 let override: GenerateStore | null = null;
 
-/** Test seam. Production callers never call this; `generateStore()` returns
- *  the Postgres-backed implementation above unless a test has replaced it. */
+/** Test seam: `generateStore()` is the Postgres store above unless a test has replaced it. */
 export function setGenerateStore(store: GenerateStore | null): void {
   override = store;
 }
 
+/** Every write of a body records, in the same write, which source each sentence cites. */
 export function generateStore(): GenerateStore {
-  return override ?? supabaseGenerateStore();
+  const store = override ?? supabaseGenerateStore();
+  return Object.assign(Object.create(store) as GenerateStore, { insertDraft: (row: DraftInsert) => store.insertDraft(withCitations(row)), patchDraft: (id: string, patch: DraftPatch) => store.patchDraft(id, withCitations(patch)) });
 }
 
 export { HANDED_OVER, SHORT_OF_HAND_OFF };
