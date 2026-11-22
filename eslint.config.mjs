@@ -562,6 +562,18 @@ export const localImportRules = {
   },
 };
 
+const RAW_SITE_NAME = {
+  selector: "MemberExpression[property.name='site_name'], ObjectPattern > Property[key.name='site_name']",
+  message: "Issue 1479: read site_profiles.site_name through storedSiteName (src/lib/site-profile/site-name.ts), never raw.",
+};
+
+// One place derives every key, so rotating the root secret has one place to change.
+const ROOT_SECRET_READERS = ["src/lib/crypto/**", "src/lib/config/env.ts"];
+const ROOT_SECRET = {
+  selector: "Identifier[name='IP_HASH_SALT'], Literal[value='IP_HASH_SALT']",
+  message: "Derive a key with keyFor or macFor (src/lib/crypto/keys.ts); only src/lib/crypto/ reads the root secret.",
+};
+
 export default tseslint.config(
   ...nextConfig,
   ...tseslint.configs.recommended,
@@ -727,17 +739,11 @@ export default tseslint.config(
     // its one reader. A placeholder, a protection page's name or a call to
     // action was shown and counted as naming the business.
     files: ["src/**/*.{ts,tsx}"],
-    ignores: ["src/lib/site-profile/**"],
-    rules: {
-      "no-restricted-syntax": [
-        "error",
-        {
-          selector: "MemberExpression[property.name='site_name'], ObjectPattern > Property[key.name='site_name']",
-          message: "Issue 1479: read site_profiles.site_name through storedSiteName (src/lib/site-profile/site-name.ts), never raw.",
-        },
-      ],
-    },
+    ignores: ["src/lib/site-profile/**", ...ROOT_SECRET_READERS],
+    rules: { "no-restricted-syntax": ["error", RAW_SITE_NAME, ROOT_SECRET] },
   },
+  { files: ["src/lib/site-profile/**/*.{ts,tsx}"], rules: { "no-restricted-syntax": ["error", ROOT_SECRET] } },
+  { files: ROOT_SECRET_READERS, rules: { "no-restricted-syntax": ["error", RAW_SITE_NAME] } },
   {
     // (i) Plan shows the week the weekly pass committed and never ranks
     // again, so a view cannot disagree with the job that writes the days.

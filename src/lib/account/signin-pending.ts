@@ -1,16 +1,15 @@
 // SPEC §3 — "this browser asked for a link of this kind before this time", and nothing else.
 // A mail scanner never holds it, so a link opened in the browser that asked counts as a person's open;
 // spending still needs the mailed `token_hash`. Stateless: an HMAC keyed by HKDF from an existing secret.
-import { createHmac, hkdfSync, timingSafeEqual } from "node:crypto";
+import { timingSafeEqual } from "node:crypto";
 import { EMAIL_CHANGE_TTL_H, SIGNIN_LINK_TTL_H } from "@/lib/config/constants";
-import { env } from "@/lib/config/env";
+import { macFor } from "@/lib/crypto/keys";
 import type { ConfirmType } from "./identity/addresses";
 
 /** `__Host-` so a subdomain cannot plant it. */
 export const PENDING_COOKIE = "__Host-rk_signin_pending";
 
 const HKDF_INFO = "reachkit/signin-pending/v1";
-const KEY_BYTES = 32;
 const MS_PER_HOUR = 3_600_000;
 const TTL_H: Record<ConfirmType, number> = { magiclink: SIGNIN_LINK_TTL_H, email_change: EMAIL_CHANGE_TTL_H };
 const ATTRIBUTES = { httpOnly: true, secure: true, sameSite: "lax", path: "/" } as const;
@@ -22,8 +21,7 @@ export type PendingCookie = {
 };
 
 function macOf(purpose: ConfirmType, expiresAtMs: number): Buffer {
-  const key = Buffer.from(hkdfSync("sha256", env.IP_HASH_SALT, "", HKDF_INFO, KEY_BYTES));
-  return createHmac("sha256", key).update(`signin-pending:${purpose}:${expiresAtMs}`).digest();
+  return macFor(HKDF_INFO, `signin-pending:${purpose}:${expiresAtMs}`);
 }
 
 /** The cookie to set when a link of `purpose` is asked for; it lives as long as the link does. */

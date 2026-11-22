@@ -1,7 +1,6 @@
 // The one door to `take_rate_limits`: every abuse limit is counted in Postgres, so it holds across instances
 // and cold starts. Keys are HMACs, so no raw email, address or id is stored. A dead limiter allows unless the caller says otherwise.
-import { createHmac, hkdfSync } from "node:crypto";
-import { env } from "@/lib/config/env";
+import { macFor } from "@/lib/crypto/keys";
 import { dbAdmin } from "@/lib/db";
 import type { NetworkKey } from "@/lib/scan/admission";
 
@@ -48,12 +47,10 @@ interface RpcClient {
 
 /** Its own HKDF label, so a count key is never a key any other feature derives. */
 const HKDF_INFO = "rate-limit-v1";
-let hashSecret: Buffer | null = null;
 
 function hashOf(name: KeyName, value: string): string {
-  hashSecret ??= Buffer.from(hkdfSync("sha256", env.IP_HASH_SALT, "", HKDF_INFO, 32));
   const normal = name === "email" ? value.trim().toLowerCase() : value;
-  return createHmac("sha256", hashSecret).update(`${name}:${normal}`).digest("hex");
+  return macFor(HKDF_INFO, `${name}:${normal}`).toString("hex");
 }
 
 /** Counts this attempt against every limit of `rule` the request has a key for; `false` once any is over.
