@@ -41,6 +41,13 @@ export interface PromptWindow {
   firstMeasurement?: true;
 }
 
+/** The entries, oldest first, that asked the newest set: a rebuilt set carries a new restart mark, so a count never mixes two sets. */
+export function newestSet<T>(entries: readonly T[], sectionOf: (entry: T) => { restartedAt?: string } | null | undefined): T[] {
+  const newest = entries.filter((entry) => sectionOf(entry) != null).at(-1);
+  const mark = newest === undefined ? undefined : sectionOf(newest)?.restartedAt;
+  return entries.filter((entry) => sectionOf(entry)?.restartedAt === mark);
+}
+
 export interface MentionRate {
   /** Answers read. */
   samples: number;
