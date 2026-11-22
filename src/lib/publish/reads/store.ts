@@ -8,7 +8,7 @@ import { BLOG_READS_RETENTION_W } from "@/lib/config/constants";
 import type { BlogEngine, BlogRead, BlogReadKind } from "./classify";
 import { ladderOf, type Ladder } from "@/lib/measure/ladder";
 import { readingOf, type PageReading } from "@/lib/measure/page-reading";
-import { windowStartDay, type VisitWeek } from "./model";
+import { READS_KEPT_D, windowStartDay, type PageVisits, type VisitWeek } from "./model";
 
 /** So the retention pin stays in weeks, as §6 states every window here. */
 const DAYS_PER_WEEK = 7;
@@ -152,6 +152,26 @@ export async function readSearchVisitsWeekly(a: { siteId: string; now: Date }): 
   }
   const first = weeks.findIndex((week) => week.visits > 0);
   return first === -1 ? [] : weeks.slice(first);
+}
+
+/** One hosted page's visits from Google search over the days kept; a failed read is `unread` rather than the screen's. */
+export async function readPageVisits(a: { siteId: string; publicationId: string; since: Date; now: Date }): Promise<PageVisits> {
+  try {
+    const { data, error } = await untyped()
+      .from<{ hits: number }>("publication_reads")
+      .select("hits")
+      .eq("site_id", a.siteId)
+      .eq("publication_id", a.publicationId)
+      .eq("engine", "google")
+      .eq("kind", "referral")
+      .gte("day", windowStartDay(a.now, READS_KEPT_D));
+    if (error) return { kind: "unread" };
+    const n = (data ?? []).reduce((sum, row) => sum + row.hits, 0);
+    const young = a.now.getTime() - a.since.getTime() < READS_KEPT_D * 86_400_000;
+    return n > 0 ? { kind: "counted", n, young } : { kind: "none", young };
+  } catch {
+    return { kind: "unread" };
+  }
 }
 
 /** One live page's ladder, keyed by publication and draft. */

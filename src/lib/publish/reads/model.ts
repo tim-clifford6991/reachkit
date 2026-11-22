@@ -47,6 +47,17 @@ export interface VisitWeek {
   visits: number;
 }
 
+/** The days the counts are kept, and so the most a page's visits line can claim. */
+export const READS_KEPT_D = BLOG_READS_RETENTION_W * 7;
+
+/** A live page's visits from Google search: a count that could not be read is `unread`, never 0. `young` is live for
+ *  less than the days kept, so the line counts from the day it went live. */
+export type PageVisits =
+  | { kind: "counted"; n: number; young: boolean }
+  | { kind: "none"; young: boolean }
+  | { kind: "wordpress" }
+  | { kind: "unread" };
+
 /** The window's first day as the stored `date`, inclusive: seven days is today and the six before, never eight. */
 export function windowStartDay(at: Date, windowDays: number): string {
   const start = new Date(at.getTime());
