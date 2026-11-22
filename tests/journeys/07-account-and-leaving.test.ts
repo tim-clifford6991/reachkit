@@ -559,33 +559,20 @@ describe("settings → cancel → export → erasure, and the pages stop being s
 
       // While the account stands and the window is open, the host is the
       // customer's site.
-      billing.sites = [billingDoubles.site({ id: SITE_ID, user_id: USER_ID })];
+      db.seed("users", [{ id: USER_ID, deleted_at: null }]);
       const serving = await resolveHost(host);
       expect(serving.kind).toBe("site");
 
       // The account is erased: every address on the host is gone, and the
       // reason travels for an operator without changing the answer.
-      billing.users = [
-        billingDoubles.account({
-          ...billingDoubles.storedUser(billing),
-          deleted_at: TODAY.toISOString(),
-        }),
-      ];
+      db.rows("users")[0]!.deleted_at = TODAY.toISOString();
       const gone = await resolveHost(host);
       expect(gone).toEqual({ kind: "gone", reason: "account_deleted", siteId: SITE_ID });
 
       // The retention window elapsing is the other ending, and it answers
       // the same way.
-      billing.users = [
-        billingDoubles.account({ ...billingDoubles.storedUser(billing), deleted_at: null }),
-      ];
-      billing.sites = [
-        billingDoubles.site({
-          id: SITE_ID,
-          user_id: USER_ID,
-          hosted_serving_ends_at: new Date(TODAY.getTime() - MS_PER_DAY).toISOString(),
-        }),
-      ];
+      db.rows("users")[0]!.deleted_at = null;
+      db.rows("sites")[0]!.hosted_serving_ends_at = new Date(TODAY.getTime() - MS_PER_DAY).toISOString();
       await expect(resolveHost(host)).resolves.toEqual({
         kind: "gone",
         reason: "access_ended",
@@ -594,7 +581,7 @@ describe("settings → cancel → export → erasure, and the pages stop being s
 
       // A page that was taken down is gone; one that never existed is not,
       // because 410 would be a claim about a page nobody ever served.
-      billing.sites = [billingDoubles.site({ id: SITE_ID, user_id: USER_ID })];
+      db.rows("sites")[0]!.hosted_serving_ends_at = null;
       await expect(hostedAnswer(host, "/a-page")).resolves.toBe("gone");
       await expect(hostedAnswer(host, "/never-a-page")).resolves.toBe("page");
 

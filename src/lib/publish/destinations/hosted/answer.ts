@@ -62,7 +62,7 @@ export async function hostedAnswerRow(host: string): Promise<HostedAnswerRow | n
     siteId: row.site_id,
     domain: site.domain,
     host: name,
-    serving: site.users === null ? null : { owner_deleted_at: site.users.deleted_at, hosted_serving_ends_at: site.hosted_serving_ends_at },
+    serving: site.users === null ? null : { owner_deleted_at: site.users.deleted_at ?? null, hosted_serving_ends_at: site.hosted_serving_ends_at ?? null },
     addressAt: (slug) => addressOf(rows, slug),
   };
 }
