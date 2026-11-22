@@ -592,9 +592,9 @@ export const MAIL_COPY = Object.freeze({
   // ── The owner's incident alert (issue 330): a job invocation failed, a
   // job exhausted its retries, or a deployment refused to boot. Drafted and
   // shipped under the owner ruling of 2026-09-16 (#759). The fact values are closed
-  // names — a job id, an attempt number, an error class, a boot check —
-  // never a message, a payload or an address.
+  // names (a job id, an attempt, an error class, a boot check), never a message, a payload or an address.
   "mail.ops.incident.subject": "ReachKit incident",
+  "mail.ops.incident.subject.down": "ReachKit is down: the database is not answering",
   "mail.ops.incident.heading": "Something Needs Your Attention",
   "mail.ops.incident.job-failed": "A job failed.",
   "mail.ops.incident.dead-lettered": "A job ran out of retries and was set aside.",

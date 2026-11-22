@@ -37,15 +37,19 @@ async function reportToOwners(
   try {
     const { errorNameOf, reportIncident } = await import("@/lib/mail/ops");
     const errorName = errorNameOf(incident.error);
+    // Once per job, error class and Berlin day, decided by our own row rather than the vendor's key.
+    const now = incident.occasion === "job-failed" ? incident.now : new Date();
+    const key = { jobId: incident.jobId, errorName, day: berlinDay(now) };
+    const claim = await claimErrorMail(key, now);
+    const down = claim === "unavailable" ? { down: true as const } : {};
     if (incident.occasion === "dead-lettered") {
-      await reportIncident({ occasion: "dead-lettered", jobId: incident.jobId, errorName });
+      // The claim only asks whether the database answers; a dead-letter is told every time.
+      if (claim === "claimed") await releaseErrorMail(key);
+      await reportIncident({ occasion: "dead-lettered", jobId: incident.jobId, errorName, ...down });
       return;
     }
-    // Once per job, error class and Berlin day, decided by our own row rather than the vendor's key.
-    const key = { jobId: incident.jobId, errorName, day: berlinDay(incident.now) };
-    const claim = await claimErrorMail(key, incident.now);
     if (claim === "taken") return;
-    const sent = await reportIncident({ occasion: "job-failed", jobId: incident.jobId, attempt: incident.attempt, errorName }, key.day);
+    const sent = await reportIncident({ occasion: "job-failed", jobId: incident.jobId, attempt: incident.attempt, errorName, ...down }, key.day);
     if (!sent && claim === "claimed") await releaseErrorMail(key);
   } catch {
     console.warn(JSON.stringify({ event: "ops_incident_alert", occasion: incident.occasion, outcome: "threw" }));

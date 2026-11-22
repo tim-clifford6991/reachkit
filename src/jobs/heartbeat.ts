@@ -205,16 +205,16 @@ export async function beat(jobId: JobId, outcome: LoggedOutcome, now: Date): Pro
   }
 }
 
-/** Whether this tick mails the owner about a failing job. A store that
- *  cannot answer mails anyway: a duplicate alert is better than a missing one.
+/** Whether this tick mails the owner about a failing job. A store that cannot
+ *  answer (`unavailable`) mails anyway: a duplicate alert is better than a missing one.
  *  With no store installed there is nothing to claim against, so it mails. */
-export async function claimErrorMail(key: ErrorMailKey, now: Date): Promise<"claimed" | "taken" | "unclaimed"> {
+export async function claimErrorMail(key: ErrorMailKey, now: Date): Promise<"claimed" | "taken" | "unclaimed" | "unavailable"> {
   if (installed === null) return "unclaimed";
   try {
     return (await installed.store.claimErrorMail(key, now)) ? "claimed" : "taken";
   } catch {
     warn("ops_incident_alert", "claim_unavailable");
-    return "unclaimed";
+    return "unavailable";
   }
 }
 
