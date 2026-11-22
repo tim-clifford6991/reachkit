@@ -39,7 +39,7 @@ export function SettingLine(p: {
   const v = p.value;
   return (
     <div
-      className={`border-base-300 grid min-h-11 min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 border-t first:border-t-0 md:grid-cols-[12.5rem_minmax(0,1fr)_auto] lg:min-h-10 lg:grid-cols-[9rem_minmax(0,1fr)_auto]`}
+      className={`border-base-300 grid min-h-11 min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 border-t first:border-t-0 md:grid-cols-[minmax(0,12.5rem)_minmax(0,1fr)_auto] lg:min-h-10 lg:grid-cols-[minmax(0,9rem)_minmax(0,1fr)_auto]`}
       data-testid={p.testId}
     >
       <span className="col-span-2 min-w-0 pt-1 text-sm font-semibold wrap-anywhere md:col-span-1 md:pt-0">{p.label}</span>
