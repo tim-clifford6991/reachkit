@@ -75,7 +75,7 @@ export function MonthPanel(p: { got: MonthGot | null; context: MonthContext }): 
           </p>
         </div>
 
-        <ul className="flex min-w-0 flex-col" data-layout="month">
+        <ul className="flex min-w-0 flex-col">
           <Tile value={got.live} label={copy("settings.month.live")} testId="billing-month-live" />
           <Tile value={got.reports.length} label={copy("settings.month.reports")} testId="billing-month-reports" />
           <Tile
