@@ -23,6 +23,7 @@ import type {
 import { checkPageLinks, type AskAddress } from "../links/live";
 import { slugify } from "@/lib/opportunities/derive/candidate";
 import { isRetarget } from "@/lib/opportunities/types";
+import { withCitations } from "@/lib/generate/citations";
 import { claim, type HeldBy } from "./claim";
 import type { AnnounceSend } from "../destinations/hosted/announce";
 import type { RetargetPaths } from "./move";
@@ -186,7 +187,8 @@ async function withLiveLinks(page: RenderedPage, draftId: string, at: Date, ask?
 
     const checked = await checkPageLinks({ markdown: page.bodyMd, domain, at, ...(ask === undefined ? {} : { ask }) });
     if (checked.record.links.length === 0) return page;
-    const meta = { ...page.meta, linkCheck: checked.record };
+    // A removed link takes its sentence's source with it, so the sources are matched again for the body that goes out.
+    const meta = withCitations({ body_md: checked.markdown, meta: { ...page.meta, linkCheck: checked.record } }).meta;
     const changed = checked.markdown !== page.bodyMd;
     const written = await publishDb()
       .from<{ id: string }>("drafts")

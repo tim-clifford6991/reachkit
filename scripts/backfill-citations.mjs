@@ -54,9 +54,14 @@ async function main() {
       console.log(`rows read: ${rows.length}\nwould write: ${written.length} (${sourced} with a sourced sentence)\nskipped, no readable pack: ${rows.length - written.length}`);
       return 0;
     }
-    // Guarded on the key's absence, so a second run writes nothing.
-    for (const { id, citations } of written) {
-      console.log(`update drafts set meta = jsonb_set(meta, '{citations}', ${quoted(JSON.stringify(citations))}::jsonb) where id = ${quoted(id)} and not meta ? 'citations';`);
+    // Guarded on the key's absence, so a second run writes nothing; a slow row stops its batch of 100, not the rest.
+    console.log("set statement_timeout = '5s';");
+    for (let at = 0; at < written.length; at += 100) {
+      console.log("begin;");
+      for (const { id, citations } of written.slice(at, at + 100)) {
+        console.log(`update drafts set meta = jsonb_set(meta, '{citations}', ${quoted(JSON.stringify(citations))}::jsonb) where id = ${quoted(id)} and not meta ? 'citations';`);
+      }
+      console.log("commit;");
     }
     return 0;
   } finally {
