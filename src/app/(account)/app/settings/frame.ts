@@ -6,7 +6,7 @@ export const CARD_COLUMN = "flex min-w-0 flex-col gap-4";
 
 /** A Settings card, kept short enough that a tab fits a 1280×800 window. */
 export const CARD = "card card-border min-w-0 bg-base-100";
-export const CARD_BODY = "card-body min-w-0 gap-2 p-4";
+export const CARD_BODY = "card-body min-w-0 gap-1.5 p-4";
 export const CARD_TITLE = "card-title min-w-0 flex-wrap text-(length:--h3)";
 export const CARD_LEAD = "text-sm text-base-content/70 wrap-anywhere";
 /** A card's last row: a dated line and the one action that starts work. */

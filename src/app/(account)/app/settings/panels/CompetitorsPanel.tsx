@@ -10,7 +10,7 @@ import { writtenLine } from "../../_shell/written";
 import type { BusinessScreen, CompetitorRow } from "../business-screen";
 import { addRivalAction, removeRivalAction } from "../change-actions";
 import { EditDialog, listChange, StagedList, type DialogAnswer } from "../EditDialog";
-import { CARD, CARD_BODY, CARD_FOOT, CARD_LEAD, CARD_TITLE } from "../frame";
+import { CARD, CARD_BODY, CARD_LEAD, CARD_TITLE } from "../frame";
 import { RIVAL_FIELD } from "../market-state";
 
 type Competitors = NonNullable<BusinessScreen["competitors"]>;
@@ -97,7 +97,8 @@ export function CompetitorsPanel(p: { competitors: Competitors }): React.JSX.Ele
             {c.leaders}
           </p>
         )}
-        <div className={CARD_FOOT}>
+        {/* The table's last row already rules it off, so this foot draws no line of its own. */}
+        <div className="flex min-w-0 flex-wrap items-center justify-between gap-x-4 gap-y-1">
           <p className={CARD_LEAD}>{c.foot}</p>
           <EditDialog
             label={copy("settings.competitors.title")}
