@@ -101,10 +101,10 @@ export function ownPagesFirst(facts: readonly MarketFact[]): MarketFact[] {
 const PRICE_RE = /[$€£¥]\s?\d|\d\s?(?:usd|eur|gbp)\b/i;
 const TIMELY_PAGES: ReadonlySet<MarketFact["kind"]> = new Set(["primary", "recent", "rival_pricing", "rival_features"]);
 
-/** Whether a claim can go out of date, in code so the claims call writes nothing more: a statistic, a price, what a
+/** Whether a claim can go out of date, in code so the claims call writes nothing more: a statistic (any figure but a year), a price, what a
  *  product does, and anything a platform's own documentation, the news or a rival's own page says; else evergreen. */
 function timeliness(about: string, kind: MarketFact["kind"], passage: string, year: number | null): "dated" | "evergreen" {
-  return year !== null || about !== "other" || PRICE_RE.test(passage) || TIMELY_PAGES.has(kind) ? "dated" : "evergreen";
+  return year !== null || /\d/.test(passage.replace(YEAR_RE, "")) || about !== "other" || PRICE_RE.test(passage) || TIMELY_PAGES.has(kind) ? "dated" : "evergreen";
 }
 
 /** A claim's dates with its age date (SPEC §7): the data year it states, else its page's modified day where the
