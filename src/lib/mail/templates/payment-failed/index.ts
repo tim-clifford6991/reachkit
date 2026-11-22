@@ -6,6 +6,7 @@ import { appHref, type RetentionMail } from "../../retention/mail";
 const SUBJECT = "mail.paymentFailed.subject" satisfies CopyKey;
 const HEADING = "mail.paymentFailed.heading" satisfies CopyKey;
 const LINE = "mail.paymentFailed.line" satisfies CopyKey;
+const STOPS = "mail.paymentFailed.stops" satisfies CopyKey;
 const PREHEADER = "mail.paymentFailed.preheader" satisfies CopyKey;
 const ACTION = "mail.paymentFailed.action" satisfies CopyKey;
 
@@ -17,6 +18,7 @@ export function buildPaymentFailed(): RetentionMail {
     blocks: [
       { block: "heading", text: HEADING },
       { block: "paragraph", text: LINE, vars: { price: `€${PRICE_EUR_CENTS / 100}` } },
+      { block: "paragraph", text: STOPS },
       { block: "action", label: ACTION, href: appHref("/app/settings/account#billing") },
     ],
   };

@@ -653,11 +653,11 @@ export const MAIL_COPY = Object.freeze({
   // can supply.
   "mail.paymentFailed.subject": "Your payment didn’t go through",
   "mail.paymentFailed.heading": "Your Payment Didn’t Go Through",
-  "mail.paymentFailed.line": "Your latest {price} payment didn't go through. Update your payment details to keep ReachKit running.",
+  "mail.paymentFailed.line": "Your latest {price} payment didn’t go through. Update your payment details to keep ReachKit running.",
+  "mail.paymentFailed.stops": "Until it goes through, no new page is written or goes live. Pages already live stay live for at least 30 days.",
   "mail.paymentFailed.preheader": "Updating your payment details fixes it.",
   "mail.paymentFailed.action": "Update Payment Details",
-  /** `{accessEndsOn}` is the day access ends (`paid_through`), in the
-   *  customer's zone — SPEC §8's "cancellation (end date)". */
+  /** `{accessEndsOn}` is the day access ends (`paid_through`), in the customer's zone — SPEC §8's "cancellation (end date)". */
   "mail.cancellation.subject": "Your subscription is cancelled",
   "mail.cancellation.heading": "Your Subscription Is Cancelled",
   "mail.cancellation.preheader": "Nothing more is charged.",
