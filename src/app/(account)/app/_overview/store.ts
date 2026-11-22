@@ -725,15 +725,8 @@ async function weeklySeries(
   // with no report contributes `null`, never a floor it never sat on.
   const scorePoints = measuredWeeks.map((week) => shownScore(scans.get(week)?.report));
 
-  // The dates the series breaks at (REQ-071 c12/c13). Derived from the
-  // scans themselves — this screen states no change of its own — and
-  // bounded by the window it draws, so a change from before the first
-  // point cannot break a chart that does not span it.
-  const changes = await changeMarkers({
-    siteId: site.siteId,
-    from: points[0]?.weekStart ?? now,
-    to: now,
-  });
+  // Read off the reports this window already holds: a second read of every scan's report ran past the statement timeout.
+  const changes = changeMarkers([weekZero?.report, ...measured.map((week) => scans.get(week)?.report)].filter((r) => r != null));
 
   return {
     points,

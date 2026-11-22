@@ -24,4 +24,3 @@ export {
 export type { GenerationHold, PendingChange } from "./pending";
 export { effectiveOn, generationHold, pendingChanges } from "./pending";
 export type { ChangeMarker } from "./markers";
-export { changeMarkers, domainHistory, weeksMeasured } from "./markers";
