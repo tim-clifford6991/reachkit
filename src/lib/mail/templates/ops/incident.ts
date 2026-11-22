@@ -8,8 +8,9 @@ import type { FactRow, ListRow, MailBlock } from "../../blocks/types";
 import { measured } from "@/lib/measure/measured";
 
 export type OpsIncident =
-  | { occasion: "job-failed"; jobId: string; attempt: number; errorName: string }
-  | { occasion: "dead-lettered"; jobId: string; errorName: string }
+  // `down`: the job's error-mail claim could not be written, so the database is not answering.
+  | { occasion: "job-failed"; jobId: string; attempt: number; errorName: string; down?: true }
+  | { occasion: "dead-lettered"; jobId: string; errorName: string; down?: true }
   | { occasion: "boot-refused"; check: string; errorName: string }
   // No error: the market was read and was too small. The scan's id and tier, never the domain.
   | { occasion: "market-too-small"; scanId: string; tier: string }
@@ -400,7 +401,7 @@ export function buildIncidentAlert(incident: OpsIncident): { subject: CopyKey; b
     return { subject: SUBJECT, blocks: [{ block: "heading", text: HEADING }, ...weekBlocks(incident)] };
   }
   return {
-    subject: SUBJECT,
+    subject: "down" in incident && incident.down ? ("mail.ops.incident.subject.down" satisfies CopyKey) : SUBJECT,
     blocks: [
       { block: "heading", text: HEADING },
       { block: "paragraph", text: BODY[incident.occasion] },

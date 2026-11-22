@@ -19,6 +19,7 @@ class TimeoutError extends Error {
 }
 
 let keys: string[] = [];
+let subjects: string[] = [];
 let refuseNext = 0;
 let claims: Set<string>;
 
@@ -64,15 +65,17 @@ async function tick(definition: JobDefinition, at: string): Promise<void> {
 
 beforeEach(() => {
   keys = [];
+  subjects = [];
   refuseNext = 0;
   claims = new Set();
   setHeartbeatStore(store());
-  __setVendorTransportForTesting(async (_payload, key) => {
+  __setVendorTransportForTesting(async (payload, key) => {
     if (refuseNext > 0) {
       refuseNext -= 1;
       return { status: 422, headers: {}, body: "{}" };
     }
     keys.push(key);
+    subjects.push(JSON.parse(payload).subject);
     return { status: 200, headers: {}, body: JSON.stringify({ id: `vendor-${keys.length}` }) };
   });
   vi.useFakeTimers({ toFake: ["Date"] });
@@ -141,7 +144,10 @@ describe("a mail not sent does not use up the day, and a broken store never sile
     const definition: JobDefinition = { ...failing(TimeoutError), run: async () => Promise.reject(original) };
     vi.setSystemTime(new Date("2026-10-19T06:00:00Z"));
     await expect(runJob(definition, { data: {}, now: new Date("2026-10-19T06:00:00Z"), attempt: 0 })).rejects.toBe(original);
-    expect(keys).toHaveLength(1);
+    expect(subjects).toEqual(["ReachKit is down: the database is not answering"]);
+    setHeartbeatStore(store());
+    await tick(failing(TypeError), "2026-10-19T08:00:00Z");
+    expect(subjects.slice(1)).toEqual(["ReachKit incident"]);
     expect(vi.mocked(console.warn).mock.calls.map(([line]) => JSON.parse(String(line)))).toContainEqual({
       event: "ops_incident_alert",
       outcome: "claim_unavailable",
