@@ -52,7 +52,7 @@ ends at the end of **31 Jan 2027** UTC, or sooner when all 50 spots are taken (D
 > https://reachkit.app/?ref=whatsapp
 
 Evidence: the report's first card is *Who gets your buyers* (`report.buyers.title`,
-`report.ts:876`), and its headline names the business buyers are sent to most (`report.top.line`,
+`report.ts:876`), and its headline names the business buyers see most (`report.top.line`,
 `report.ts:869`). No account before the scan (SPEC §1 *One field*).
 
 ## 2. Cold signal opener (LinkedIn)
