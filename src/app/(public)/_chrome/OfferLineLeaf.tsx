@@ -41,16 +41,21 @@ function Line(p: { said: Said; words: OfferWords; urgent: boolean }): React.JSX.
 }
 
 /** `said` is the server's read; with `read`, `/offer/spots` fills the count in the browser and corrects a state that moved since the build. */
-export function OfferLineLeaf(p: { read: boolean; said: Said | null; words: OfferWords }): React.JSX.Element {
-  // A route that did not answer keeps the build's line; the route itself answers an unread count with a line that has no number.
-  const said = useSpots(p.read)?.line ?? p.said;
+export function OfferLineLeaf(p: { read: boolean; said: Said | null; words: OfferWords }): React.JSX.Element | null {
+  const spots = useSpots(p.read);
+  // A route that did not answer keeps the build's line only while the offer is open at the browser's clock.
+  const said = spots === null ? p.said : (spots.line ?? (spots.open ? p.said : null));
+  // Never an empty "Offer" region.
+  if (said === null) return null;
 
   // A paid reader in setup cannot act on few-left, so only a selling page draws its style.
   const urgent = p.words.see !== null || p.words.pitch.length > 0;
   return (
     // First in the shell's column, above the header; it scrolls away.
     <aside aria-label={p.words.label} data-nosnippet className={`bg-base-200 text-base-content order-first grid content-center px-4 py-2 text-center text-sm ${HELD}`}>
-      <div>{said !== null && <Line said={said} words={p.words} urgent={urgent} />}</div>
+      <div>
+        <Line said={said} words={p.words} urgent={urgent} />
+      </div>
     </aside>
   );
 }
