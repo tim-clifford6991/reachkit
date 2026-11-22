@@ -67,7 +67,7 @@ export async function runResearch(run: Run, models: string | null, repeat: numbe
         });
         const calls: { value: unknown; stop: string | null; urls: string[]; ms: number; cents: number; tokensOut: number | null }[] = [];
         run.onAnswer = (_site, value, stop, _from, call) => {
-          const urls = [...JSON.stringify(call.request.messages).matchAll(/\\"url\\":\\"([^\\]+)\\"/g)].map((m) => m[1]);
+          const urls = [...JSON.stringify(call.request.messages).matchAll(/\\"url\\":\\"([^\\]+)\\"/g)].map((m) => m[1] ?? "");
           calls.push({ value, stop, urls, ms: call.ms, cents: call.cents, tokensOut: call.tokensOut });
         };
         await readClaims(passThrough(), batch, { locale: DEFAULT_LOCALE, search: topic.search, rivals: set.rivals, today });
