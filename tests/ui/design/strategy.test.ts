@@ -262,7 +262,7 @@ describe("UI strategy: plain words (O6, docs/SPEC.md §0 Plain words)", () => {
   });
 
   it("never counts an exempt key, file or board", () => {
-    const long = `"k": ["${"word ".repeat(20)}"]`;
+    const long = `"k": "${"word ".repeat(20)}"`;
     const keys = ["hosted.a", "body.a", "fact.a", "ai-answers.engine.a", "legal.terms.body", "legal.withdraw.entry", "offer.start.priced"];
     const source = keys.map((key) => long.replace('"k"', `"${key}"`)).join(",\n");
     expect(keys.every((key) => isExempt(key))).toBe(true);
