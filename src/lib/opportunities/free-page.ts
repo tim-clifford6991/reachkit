@@ -57,7 +57,7 @@ export function rankedFreePages(report: Omit<StoredReport, "freePage">): Candida
   const ranked = candidates
     .map((candidate) => {
       const band: Winnability = sized ? (candidate.fitBand ?? "not-yet") : demandBand({ volume: volumeOf(candidate), ownRanked });
-      const { points } = pointsOf(candidate, { cited: new Set(), prompts: [] });
+      const { points } = pointsOf(candidate, { cited: new Set() });
       return { candidate, band, points };
     })
     .filter((entry) => entry.band !== "not-yet")
