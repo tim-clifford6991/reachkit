@@ -29,24 +29,24 @@ describe("issue 1553 — a search crawler is a claim until its address proves it
   });
 
   it("an address inside the engine's published ranges is counted", async () => {
-    expect(await crawlerVerdict("google", "66.249.64.7", ranges)).toBe("verified");
-    expect(await crawlerVerdict("google", "2001:4860:4801:10::2a", ranges)).toBe("verified");
+    expect(await crawlerVerdict(SEARCH_CRAWLER_RANGES.google, "66.249.64.7", ranges)).toBe("verified");
+    expect(await crawlerVerdict(SEARCH_CRAWLER_RANGES.google, "2001:4860:4801:10::2a", ranges)).toBe("verified");
   });
 
   it("a Googlebot agent from an unverified address is not counted", async () => {
-    expect(await crawlerVerdict("google", "203.0.113.9", ranges)).toBe("unverified_crawler");
+    expect(await crawlerVerdict(SEARCH_CRAWLER_RANGES.google, "203.0.113.9", ranges)).toBe("unverified_crawler");
     // Bing's address is not Google's crawler.
-    expect(await crawlerVerdict("google", "157.55.39.200", ranges)).toBe("unverified_crawler");
-    expect(await crawlerVerdict("google", null, ranges)).toBe("unverified_crawler");
-    expect(await crawlerVerdict("google", "not-an-address", ranges)).toBe("unverified_crawler");
+    expect(await crawlerVerdict(SEARCH_CRAWLER_RANGES.google, "157.55.39.200", ranges)).toBe("unverified_crawler");
+    expect(await crawlerVerdict(SEARCH_CRAWLER_RANGES.google, null, ranges)).toBe("unverified_crawler");
+    expect(await crawlerVerdict(SEARCH_CRAWLER_RANGES.google, "not-an-address", ranges)).toBe("unverified_crawler");
   });
 
   it("a list that could not be read verifies nobody, and is asked again next time", async () => {
     const failing = async (): Promise<unknown> => {
       throw new Error("offline");
     };
-    expect(await crawlerVerdict("google", "66.249.64.7", failing)).toBe("ranges_unreadable");
-    expect(await crawlerVerdict("google", "66.249.64.7", async () => ({ prefixes: [] }))).toBe("ranges_unreadable");
-    expect(await crawlerVerdict("google", "66.249.64.7", ranges)).toBe("verified");
+    expect(await crawlerVerdict(SEARCH_CRAWLER_RANGES.google, "66.249.64.7", failing)).toBe("ranges_unreadable");
+    expect(await crawlerVerdict(SEARCH_CRAWLER_RANGES.google, "66.249.64.7", async () => ({ prefixes: [] }))).toBe("ranges_unreadable");
+    expect(await crawlerVerdict(SEARCH_CRAWLER_RANGES.google, "66.249.64.7", ranges)).toBe("verified");
   });
 });

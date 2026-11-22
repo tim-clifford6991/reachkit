@@ -135,6 +135,14 @@ export const SEARCH_CRAWLER_RANGES = Object.freeze({
 } as const);
 export const SEARCH_CRAWLER_RANGES_TTL_H = 24 as const;
 
+/** Where OpenAI and Perplexity publish each fetcher's addresses, in the same `prefixes` shape, by kind and engine
+ *  (OpenAI "Overview of OpenAI crawlers", Perplexity "Perplexity Crawlers"). A claimed fetcher is counted only from one;
+ *  an engine missing here publishes no list and is counted on its agent string. */
+export const AI_FETCHER_RANGES = Object.freeze({
+  answer_fetch: { chatgpt: "https://openai.com/chatgpt-user.json", perplexity: "https://www.perplexity.ai/perplexity-user.json" },
+  index_fetch: { chatgpt: "https://openai.com/searchbot.json", perplexity: "https://www.perplexity.ai/perplexitybot.json" },
+} as const);
+
 /** Search Console's limit of properties per account (Google, "Usage
  *  limits"). The pool hands a new host to the first account below it. */
 export const GSC_PROPERTIES_PER_ACCOUNT = 1000 as const;

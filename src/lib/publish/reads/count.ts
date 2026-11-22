@@ -4,9 +4,9 @@
 // skip logs its reason alone. The write is handed to `waitUntil` and swallows its own failure, so a page never waits on it.
 import { isbot } from "isbot";
 import type { NextFetchEvent, NextRequest } from "next/server";
-import { ONWARD_CLICK_ACTIONS, ONWARD_CLICKS_COUNTED } from "@/lib/config/constants";
+import { AI_FETCHER_RANGES, ONWARD_CLICK_ACTIONS, ONWARD_CLICKS_COUNTED, SEARCH_CRAWLER_RANGES } from "@/lib/config/constants";
 import { env } from "@/lib/config/env";
-import { classifyBlogRead, hostOf, type BlogRead, type OnwardClick } from "./classify";
+import { classifyBlogRead, hostOf, type BlogEngine, type BlogRead, type OnwardClick } from "./classify";
 
 /** The query a ReachKit mail adds to its links to a hosted page, so the customer opening their own page is not a visit. */
 const MAIL_TAG = { name: "rk", value: "mail" } as const;
@@ -96,6 +96,13 @@ function readOf(req: NextRequest): BlogRead | null {
   }
 }
 
+/** The list of addresses this claimed crawler or fetcher must come from, or `null` when its vendor publishes none. */
+function rangesOf(read: BlogRead): string | null {
+  if (read.kind === "crawl") return SEARCH_CRAWLER_RANGES[read.engine];
+  if (read.kind !== "answer_fetch" && read.kind !== "index_fetch") return null;
+  return (AI_FETCHER_RANGES[read.kind] as Partial<Record<BlogEngine, string>>)[read.engine] ?? null;
+}
+
 /** The page lookup ran out of time, so a read it would have counted is not. */
 export function lookupMissed(req: NextRequest): void {
   if (readOf(req) !== null) skipped("page_lookup_deadline");
@@ -104,7 +111,7 @@ export function lookupMissed(req: NextRequest): void {
 /**
  * Counts this request against the live page it reached, after the response. `"ping"` says the request was a click
  * report, which middleware answers with an empty 204 rather than the page.
- * A search crawler is counted only from its own engine's addresses: the client address is checked inside the deferred
+ * A search crawler or AI fetcher is counted only from its vendor's published addresses: the client address is checked inside the deferred
  * write and dropped.
  */
 export function countHostedRequest(
@@ -116,9 +123,10 @@ export function countHostedRequest(
   const read = readOf(req);
   if (read === null) return answer;
   const write = (async (): Promise<void> => {
-    if (read.kind === "crawl") {
+    const ranges = rangesOf(read);
+    if (ranges !== null) {
       const [{ clientAddressOf }, { crawlerVerdict }] = await Promise.all([import("@/lib/scan/admission"), import("./crawler")]);
-      const verdict = await crawlerVerdict(read.engine, clientAddressOf(req.headers));
+      const verdict = await crawlerVerdict(ranges, clientAddressOf(req.headers));
       if (verdict !== "verified") return skipped(verdict);
     }
     const [{ recordBlogRead }, { now }] = await Promise.all([import("./store"), import("@/lib/config/now")]);
