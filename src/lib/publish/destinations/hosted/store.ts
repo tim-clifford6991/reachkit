@@ -11,6 +11,7 @@ import { publishDb } from "../../db";
 import { liveUrlOnHost } from "./address";
 import { hostFor } from "./label";
 import { addressOf, slugOf as addressSlug, type AddressRow, type HostedAddress } from "./moved";
+import { ADDRESS_COLUMNS, toAddressRow, type AddressJoin } from "./answer";
 import type { HostedOwnPages } from "./own-page";
 import { storedSiteName } from "@/lib/site-profile/site-name";
 import { datedAt, emptyToNull, readDescription, readHeading, readSectionHeading } from "./page-fields";
@@ -378,31 +379,13 @@ export async function hostedAddress(siteId: string, slug: string): Promise<Hoste
   return rows === null ? NO_ADDRESS : addressOf(rows, slug);
 }
 
-/** Every hosted publication of a site, as `addressOf` reads them; `null`
- *  where the read failed. */
+/** Every hosted publication of a site, as `addressOf` reads them;
+ *  `null` where the read failed. */
 async function addressRows(siteId: string): Promise<AddressRow[] | null> {
-  type Row = {
-    id: string;
-    live_url: string | null;
-    published_at: string | null;
-    unpublished_at: string | null;
-    merged_into: string | null;
-    drafts: { opportunities: { family: string | null; target_ref: string | null } | null } | null;
-  };
-  const { data, error } = await publishDb().from<Row>("publications")
-    .select("id, live_url, published_at, unpublished_at, merged_into, drafts(opportunities(family, target_ref))").eq("site_id", siteId).eq("destination", "hosted");
+  const { data, error } = await publishDb().from<AddressJoin>("publications")
+    .select(ADDRESS_COLUMNS).eq("site_id", siteId).eq("destination", "hosted");
   if (error !== null || data === null) return null;
-  return data.map((row) => {
-    const opportunity = row.drafts?.opportunities ?? null;
-    return {
-      id: row.id,
-      live_url: row.live_url,
-      published_at: row.published_at,
-      unpublished_at: row.unpublished_at,
-      updates: opportunity?.family === "improve" ? (opportunity.target_ref ?? null) : null,
-      merged_into: row.merged_into ?? null,
-    };
-  });
+  return data.map(toAddressRow);
 }
 
 /** The slugs answering 410, by `addressOf`; moved and merged ones answer 301. A failed read is none, never unwrapping on a guess. */
