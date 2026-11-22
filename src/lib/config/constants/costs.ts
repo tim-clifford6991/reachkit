@@ -41,19 +41,22 @@ export const PRICE_BOOK = Object.freeze({
  *  the same ledger, for every paid call made against a scan row that carries
  *  a `site_id`; a free scan has no site and is bounded by `FREE_BOUNDS`.
  *  A drafted default the owner may correct, sized from two readings:
- *   - one deep pass (`DEEP_C` 150¢) plus a week of drafts (7 x `DRAFT_C` =
- *     315¢) is 465¢;
+ *   - one deep pass (`DEEP_C` 150¢) plus a day's draft (`DRAFT_C` 80¢) is
+ *     230¢;
  *   - the largest day SPEC §6 allows a site, 3 deep passes in 24 hours (450¢)
- *     and the day's one draft (45¢), is 495¢.
- *  500¢ covers both, and is half the product's smallest day (1000¢), so one
- *  runaway site never takes the whole of it.
+ *     and the day's one draft (80¢), is 530¢.
+ *  550¢ covers both, and is about half the product's smallest day (1000¢), so
+ *  one runaway site never takes the whole of it.
  *
  *  The UTC day and not the site's, because the two figures are read off one
  *  ledger in one call, and a site-local day would make "today" mean two
  *  different windows inside a single refusal. */
 export const CAPS = Object.freeze({
-  FREE_C: 12, DEEP_C: 150, WEEKLY_C: 40, DRAFT_C: 45,
-  DAILY_SITE_C: 500,
+  FREE_C: 12, DEEP_C: 150, WEEKLY_C: 40,
+  /** A day's pages on Opus 5.5: its research, a write cut off at 8 192 tokens (21¢), the retry (22¢) and the fix (23¢)
+   *  reserve 73¢ at most, so a write is never refused its fix; a measured page costs 18¢ (p50) to 31¢ (max). */
+  DRAFT_C: 80,
+  DAILY_SITE_C: 550,
   /** SPEC §7 *Pages left*: a short week's top-up buys under its own 7¢ a site a week, outside `WEEKLY_C`. */
   TOPUP_C: 7,
   /** SPEC §6 *Weekly cap*: the Monday commit's target SERPs, under their own 2¢ a site a week, outside `WEEKLY_C`. */
@@ -125,11 +128,11 @@ export const INFERENCE_PRICE_BOOK = Object.freeze({
   /** `claude-sonnet-5`'s list price per million tokens, in cents: the pass's
    *  market, rival and business-fit judgements (SPEC §6). */
   sonnet: Object.freeze({ inCentsPerM: 200, outCentsPerM: 1000 } as const),
-  /** `claude-sonnet-5`'s list price per million tokens, in cents: the tier a
-   *  customer's page and its critic are written on (SPEC §7, *Length and the
-   *  writer*). 2 US dollars in and 10 out per million tokens, the standard
-   *  price on https://platform.claude.com/docs/en/about-claude/pricing. */
-  writer: Object.freeze({ inCentsPerM: 200, outCentsPerM: 1000 } as const),
+  /** `claude-opus-5-5`'s list price per million tokens, in cents: the tier a
+   *  customer's page and its fix are written on (SPEC §7, *Five stages*).
+   *  4 US dollars in and 20 out per million tokens, the standard price on
+   *  https://platform.claude.com/docs/en/about-claude/pricing. */
+  writer: Object.freeze({ inCentsPerM: 400, outCentsPerM: 2000 } as const),
 } as const);
 
 /** The wall clock one `llm()` call may hold, per tier, in milliseconds: the
@@ -153,9 +156,9 @@ export const INFERENCE_TIMEOUT_MS = Object.freeze({
    *  the free path. */
   sonnet: 60_000,
   /** One call that writes a whole page, or fixes one (SPEC §7, D41): up to
-   *  8 192 output tokens on Sonnet 5. The draft job's invocation is bounded
-   *  by `TIMING.jobsCeilingS`; `PIPELINE.fixBeforeMs` keeps the fix call
-   *  inside it. */
+   *  8 192 output tokens on Opus 5.5, whose writes took 61 s at p95 and its
+   *  fixes 33 s. The draft job's invocation is bounded by
+   *  `TIMING.jobsCeilingS`; `PIPELINE.fixBeforeMs` keeps the fix call inside it. */
   writer: 120_000,
 } as const);
 
