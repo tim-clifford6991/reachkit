@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 import { buildTiles, type TilesView } from "@/app/(account)/app/_overview/tiles-build";
 import { fixturePasses, tilePageOf } from "@/app/(account)/app/_overview/tiles-fixture";
-import { AI_WINDOW_WEEKS, marketOf, type TilePass, type Tile } from "@/app/(account)/app/_overview/tiles";
+import { marketOf, type TilePass, type Tile } from "@/app/(account)/app/_overview/tiles";
 import { CONTENT_FIXTURE_NOW, FIXTURE_PUBLISHED } from "@/app/(account)/app/_overview/content-fixture";
 import { FIXTURE_ANSWERS_FACTS } from "@/app/(account)/app/_overview/answers-fixture";
 import { assembleAnswers } from "@/app/(account)/app/_overview/answers-model";
@@ -103,13 +103,9 @@ describe.each(Object.entries(FIXTURES))("%s", (_, view) => {
     }
   });
 
-  it("Linked by AI: the tile, the lead and the list count the same rows over the same window", () => {
+  it("AI: the tile and its detail's lead state one k of N", () => {
     const t = tile(view, "ai");
-    const ai = view.ai;
-    if (ai === null) return expect(t.n).toBeNull();
-    expect(ai.weeks).toBe(AI_WINDOW_WEEKS);
-    expect([t.n, total(t)]).toEqual([ai.rows.filter((r) => r.mark === "links").length, ai.rows.length]);
-    expect([ai.linked, ai.asked, ai.mentioned]).toEqual([t.n, ai.rows.length, ai.rows.filter((r) => r.mark === "mentions").length]);
+    expect([t.n, total(t)]).toEqual(view.answers === null ? [null, null] : [view.answers.k, view.answers.n]);
     if (t.series !== null) expect(t.series.at(-1)).toBe(t.n);
   });
 
@@ -122,11 +118,6 @@ describe.each(Object.entries(FIXTURES))("%s", (_, view) => {
 });
 
 describe("weeks compare like with like", () => {
-  it("the reserved account's passes carry the mentions its answers record: 2 named without a link", () => {
-    const namedOnly = fixtureQuestions.filter((q) => q.marks.includes("names_you") && !q.marks.includes("links_to_you")).length;
-    expect([FIXTURES["the reserved account"]!.ai?.mentioned, namedOnly]).toEqual([2, 2]);
-  });
-
   it("two publications on one address, nothing changed: Same, 2 of 2", () => {
     const t = tile(FIXTURES["two publications on one address"]!, "pages");
     expect([t.n, t.of, t.change]).toEqual([2, { kind: "count", m: 2 }, { kind: "same" }]);

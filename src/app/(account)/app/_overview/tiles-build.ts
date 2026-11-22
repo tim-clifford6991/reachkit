@@ -5,13 +5,15 @@ import { contentOf, type ContentModel, type PublishedRead } from "@/lib/measure/
 import type { AnswerQuestion } from "./answers-model";
 import { aiPagesFor, type AiPages } from "./ai-pages";
 import { googlePagesOf, type GooglePages } from "./google-pages";
-import { AI_WINDOW_WEEKS, aiWindowOf, tilesOf, type RivalsFirstPage, type TilePage, type TilePass, type TilesModel } from "./tiles";
+import { AI_WINDOW_WEEKS, aiAnswersOf, aiWindowOf, tilesOf, type AiAnswers, type RivalsFirstPage, type TilePage, type TilePass, type TilesModel } from "./tiles";
 
-/** The tiles, and the models of the lists they open: Pages Live's (This Week's *Live pages*), On Google's and Linked by AI's. */
+/** The tiles, and the models of the lists they open: Pages Live's (This Week's *Live pages*), On Google's and the AI tile's. */
 export interface TilesView extends TilesModel {
   pages: ContentModel;
   google: GooglePages;
   ai: AiPages | null;
+  /** The AI tile's own figure, which its detail's lead states; `null` where none was read. */
+  answers: AiAnswers | null;
   /** The first live page's go-live, as the Pages tile counts it. */
   firstLive: Date | null;
 }
@@ -48,12 +50,12 @@ export function buildTiles(a: {
       live: pages.pages.length,
       firstLive,
       google: { live: google.live, placed: google.placed },
-      ai: ai === null ? null : { asked: ai.asked, linked: ai.linked },
     },
     now,
     week: a.week,
+    domain: a.domain,
     coming: a.coming,
     goLive: a.goLive,
   });
-  return { ...model, pages, google, ai, firstLive };
+  return { ...model, pages, google, ai, answers: latest === undefined ? null : aiAnswersOf(a.passes, latest.weekStart, a.domain), firstLive };
 }

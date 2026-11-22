@@ -6,6 +6,7 @@ import { resolvedRows } from "@/lib/market/rivals/domains";
 import { pageSearchOf, type PlaceReport } from "@/lib/measure/page-reading";
 import { listedName } from "@/lib/measure/published";
 import type { SerpResult } from "@/lib/vendors/dataforseo/types";
+import type { PromptsSection } from "@/lib/scan/report";
 import { onFirstPage } from "./rivals-store";
 import { AI_WINDOW_WEEKS, TILE_WEEKS, type TilePage, type TilePass } from "./tiles";
 
@@ -30,6 +31,7 @@ interface PassRow {
   pageQuestions: PlaceReport["pageQuestions"];
   ownRankedRows: PlaceReport["ownRankedRows"] | null;
   ownRanked: PlaceReport["ownRanked"] | null;
+  prompts: PromptsSection | null;
 }
 
 interface PageRow {
@@ -53,7 +55,7 @@ export async function readTileRows(a: { siteId: string; domain: string; week: st
   const since = new Date(Date.parse(`${a.week}T12:00:00Z`) - (TILE_WEEKS + AI_WINDOW_WEEKS) * 7 * 86_400_000).toISOString().slice(0, 10);
   const [passes, pages] = await Promise.all([
     from<PassRow>("scans")
-      .select("week_start, created_at, health, questions:report->questions, serps:report->serps, pageQuestions:report->pageQuestions, ownRankedRows:report->ownRankedRows, ownRanked:report->ownRanked")
+      .select("week_start, created_at, health, questions:report->questions, serps:report->serps, pageQuestions:report->pageQuestions, ownRankedRows:report->ownRankedRows, ownRanked:report->ownRanked, prompts:report->prompts")
       .eq("site_id", a.siteId)
       .eq("tier", "weekly")
       .neq("status", "failed")
@@ -72,6 +74,7 @@ export async function readTileRows(a: { siteId: string; domain: string; week: st
       at: row.created_at,
       healthy: failingChecks(parseHealth(row.health)).length === 0,
       firstPage: firstPageOf(row.serps, a.domain),
+      prompts: row.prompts,
       report: {
         questions: row.questions ?? NOT_READ,
         serps: (row.serps ?? []) as unknown as PlaceReport["serps"],

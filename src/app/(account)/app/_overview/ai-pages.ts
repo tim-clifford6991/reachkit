@@ -1,6 +1,6 @@
 // SPEC §4 (plate O3) — each live page whose own question was asked: the
 // question, what the answers did with it over the window, and one mark per engine. Pure; the
-// pages are Linked by AI's own window (`tiles.ts`); every count is a count of these rows, so the tile, the lead and the list state one number.
+// pages are the AI tile's own window (`tiles.ts`); the tile's figure is `aiAnswersOf`, these rows are its page-question marks.
 import { pageLadderOf } from "@/lib/measure/page-ladder";
 import { addressOf, type PlaceReport } from "@/lib/measure/page-reading";
 import type { PublishedPage } from "@/lib/measure/published";
@@ -26,12 +26,6 @@ export interface AiPages {
   rows: readonly AiPageRow[];
   /** The weeks every count here and on the tile is read over. */
   weeks: number;
-  /** Every row: the tile's and the lead's total. */
-  asked: number;
-  /** Rows marked `links`: the tile's and the lead's figure. */
-  linked: number;
-  /** Rows marked `mentions`. */
-  mentioned: number;
 }
 
 const MARK_RANK: Readonly<Record<AiPageRow["mark"], number>> = { links: 0, mentions: 1, none: 2 };
@@ -63,16 +57,10 @@ export function aiPagesFor(all: readonly PublishedPage[], pageQuestions: readonl
     };
   });
   rows.sort((a, b) => MARK_RANK[a.mark] - MARK_RANK[b.mark] || a.title.localeCompare(b.title));
-  return {
-    rows,
-    weeks: window.weeks,
-    asked: rows.length,
-    linked: rows.filter((row) => row.mark === "links").length,
-    mentioned: rows.filter((row) => row.mark === "mentions").length,
-  };
+  return { rows, weeks: window.weeks };
 }
 
-/** One page question on Linked by AI's detail: its marks are each engine's best over the window. */
+/** One page question on the AI tile's detail: its marks are each engine's best over the window. */
 export interface AiQuestionRow {
   page: AiPageRow;
   wording: GeneratedText | null;
@@ -89,8 +77,6 @@ export interface AiQuestions {
   engines: readonly AnswerEngine[];
   rows: readonly AiQuestionRow[];
   weeks: number;
-  /** Asked, never linked, and an answer named the site: the tile's own count. */
-  mentioned: number;
   checkedAt: Date | null;
 }
 
@@ -110,7 +96,7 @@ function markOf(cell: Cell, address: string, domain: string): AiMark {
   return namesSite(cell, domain) ? "mentions" : "none";
 }
 
-/** Linked by AI's detail: one row per page the tile counts, with each engine's best mark over the window's healthy passes. */
+/** The AI tile's detail: one row per page the tile counts, with each engine's best mark over the window's healthy passes. */
 export function aiQuestionsOf(pages: AiPages | null, passes: readonly TilePass[], domain: string): AiQuestions | null {
   const sorted = [...passes].sort((x, y) => x.weekStart.localeCompare(y.weekStart));
   const week = sorted.at(-1)?.weekStart;
@@ -145,5 +131,5 @@ export function aiQuestionsOf(pages: AiPages | null, passes: readonly TilePass[]
     ];
   });
   rows.sort((a, b) => SORT[a.best] - SORT[b.best] || b.lastAsked.getTime() - a.lastAsked.getTime());
-  return { engines, rows, weeks: pages.weeks, mentioned: pages.mentioned, checkedAt: inWindow.length === 0 ? null : new Date(inWindow.at(-1)!.at) };
+  return { engines, rows, weeks: pages.weeks, checkedAt: inWindow.length === 0 ? null : new Date(inWindow.at(-1)!.at) };
 }

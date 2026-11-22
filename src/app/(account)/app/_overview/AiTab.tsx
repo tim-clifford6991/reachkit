@@ -13,18 +13,16 @@ import { formatShortDay } from "../_shell/format";
 import { AI_MARK, type AiMark } from "./ai-mark";
 import type { AiQuestionRow, AiQuestions } from "./ai-pages";
 import { rowClass } from "./frame";
+import { AI_WINDOW_WEEKS, type AiAnswers } from "./tiles";
 import { formatCount } from "./present";
 import { ShowAll } from "./ShowAll";
 
 const INK = "text-base-content/70";
-const LIST = new Intl.ListFormat("en", { type: "conjunction" });
 
-/** The head's lead: the engines asked, and the answers that named the site without a link. */
-export function aiLead(model: AiQuestions): string {
-  const asked = copy("overview.ai.lead", { engines: LIST.format(model.engines.map((engine) => copy(ENGINE_LABEL[engine]))), weeks: formatCount(model.weeks) });
-  if (model.mentioned === 0) return asked;
-  const more = model.mentioned === 1 ? copy("overview.ai.lead.mentioned.one") : copy("overview.ai.lead.mentioned", { k: formatCount(model.mentioned) });
-  return `${asked} ${more}`;
+/** The head's lead: the tile's own figure, and where its answers came from. */
+export function aiLead(answers: AiAnswers): string {
+  const figure = copy("overview.ai.lead", { k: formatCount(answers.k), n: formatCount(answers.n), weeks: formatCount(AI_WINDOW_WEEKS) });
+  return `${figure} ${copy("overview.ai.lead.split", { pages: formatCount(answers.fromPages), prompts: formatCount(answers.fromPrompts) })}`;
 }
 
 export function Mark(p: { mark: AiMark }): React.JSX.Element {

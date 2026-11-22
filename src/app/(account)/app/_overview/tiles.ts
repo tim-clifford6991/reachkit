@@ -3,14 +3,15 @@
 // read is a gap, never 0.
 import { addressOf, linkedByIn, ownPlaceIn, searchRowsFor, type PlaceReport } from "@/lib/measure/page-reading";
 import { standingAt } from "@/lib/measure/published";
-import { classifyReferences } from "@/lib/measure/drivers";
+import { classifyReferences, namesOrLinks, namesSite as textNamesSite } from "@/lib/measure/drivers";
+import type { PromptsSection } from "@/lib/scan/report";
 
 export const TILE_KEYS = ["pages", "google", "ai", "rivals"] as const;
 export type TileKey = (typeof TILE_KEYS)[number];
 
 /** The weeks a tile's line draws. */
 export const TILE_WEEKS = 6;
-/** At most 12 page questions are asked a week, so AI is read over four. */
+/** AI answers are pooled over four weeks, so the sample is large enough to read. */
 export const AI_WINDOW_WEEKS = 4;
 const WEEK_MS = 7 * 86_400_000;
 
@@ -22,6 +23,8 @@ export interface TilePass {
   report: PlaceReport;
   /** The main searches it put the site on Google's first page for; `null` where it read none. */
   firstPage: number | null;
+  /** Its tracked buyer prompts; absent or `null` where it asked none. */
+  prompts?: PromptsSection | null;
 }
 
 /** One publication ever published. */
@@ -44,8 +47,6 @@ export interface TileLists {
   firstLive: Date | null;
   /** `googlePagesOf`: the live pages, and those placed on Google this week. */
   google: { live: number; placed: number };
-  /** `aiPagesFor`: the window's rows, and those an answer linked; `null` where none was asked. */
-  ai: { asked: number; linked: number } | null;
 }
 
 export type TileChange =
@@ -93,6 +94,8 @@ export function marketOf(model: TilesModel | null): { top10: number; of: number 
 export interface TilesModel {
   tiles: readonly Tile[];
   bars: RivalBars | null;
+  /** On a hosted site: AI engines' fetches of its pages and visits from AI over the days kept; absent off one. */
+  aiOpened?: { fetches: number; visits: number } | null;
 }
 
 /** What Competitors reads from the Competitors screen's own selector. */
@@ -158,6 +161,14 @@ export function namesSite(cell: unknown, domain: string): boolean {
   return c?.kind === "answered" && (c.named === true || classifyReferences(c.citedDomains ?? [], domain).mentioned);
 }
 
+/** The AI tile's one figure: every answered, unbranded AI answer the window's healthy passes read, and those that mentioned or linked the site. */
+export interface AiAnswers {
+  k: number;
+  n: number;
+  fromPages: number;
+  fromPrompts: number;
+}
+
 /** A healthy pass in the AI window ending at `week`: the only weeks that count toward "asked". */
 export const inAiWindow = (pass: TilePass, week: string): boolean => pass.healthy && pass.weekStart >= weeksBefore(week, AI_WINDOW_WEEKS - 1) && pass.weekStart <= week;
 
@@ -180,6 +191,35 @@ export function aiWindowOf(passes: readonly TilePass[], pages: readonly TilePage
   return { asked, linked, mentioned: new Set([...named].filter((address) => !linked.has(address))) };
 }
 
+/** The window ending at `week`'s answers; `null` where no healthy pass in it read one. A question that names the site proves nothing, so it is left out. */
+export function aiAnswersOf(passes: readonly TilePass[], week: string, domain: string): AiAnswers | null {
+  let k = 0;
+  let fromPages = 0;
+  let fromPrompts = 0;
+  for (const pass of passes) {
+    if (!inAiWindow(pass, week)) continue;
+    const prompts = pass.prompts ?? null;
+    const kinds = new Map((prompts?.asked ?? []).map((prompt) => [prompt.id, prompt.kind]));
+    for (const answer of prompts?.answers ?? []) {
+      const kind = kinds.get(answer.promptId);
+      if (kind === undefined || kind === "branded") continue;
+      fromPrompts += 1;
+      if (namesOrLinks({ namesCustomer: answer.linked, ...(answer.named ? { named: true as const } : {}) })) k += 1;
+    }
+    for (const row of pass.report.pageQuestions?.rows ?? []) {
+      if (textNamesSite(row.question.search, prompts?.siteName ?? null, domain)) continue;
+      // A row stored before per-engine cells carries the AI Overview's cell alone; after, `engines` holds it too.
+      for (const cell of row.engines.length === 0 ? [row.cell] : row.engines.map((e) => e.cell)) {
+        if (cell.kind !== "answered") continue;
+        fromPages += 1;
+        if (namesOrLinks(cell as Parameters<typeof namesOrLinks>[0])) k += 1;
+      }
+    }
+  }
+  const n = fromPages + fromPrompts;
+  return n === 0 ? null : { k, n, fromPages, fromPrompts };
+}
+
 export function tilesOf(a: {
   passes: readonly TilePass[];
   pages: readonly TilePage[];
@@ -188,6 +228,8 @@ export function tilesOf(a: {
   now: Date;
   /** This site-local week's Monday. */
   week: string;
+  /** The site's domain, which an AI answer and a branded question are read against. */
+  domain: string;
   /** Pages planned to go live later this week. */
   coming: number;
   /** A page is set to go live. */
@@ -235,19 +277,19 @@ export function tilesOf(a: {
             series: seriesOf(passes, a.week, googleValue),
           };
 
-  // Linked by AI: the figure is the AI list's; the weeks before are each one's own window over the reports.
-  const listed = a.lists.ai;
-  const aiValue = (pass: TilePass): number => (pass === latest && listed !== null ? listed.linked : aiWindowOf(passes, a.pages, pass.weekStart).linked.size);
+  // AI answers mentioning you: each week is its own window's figure.
+  const aiValue = (pass: TilePass): number | null => aiAnswersOf(passes, pass.weekStart, a.domain)?.k ?? null;
+  const answers = latest === undefined ? null : aiAnswersOf(passes, latest.weekStart, a.domain);
   const ai: Tile =
     live === 0
       ? none("ai")
-      : listed === null
+      : answers === null
         ? due("ai")
         : {
             key: "ai",
-            n: listed.linked,
-            of: { kind: "count", m: listed.asked },
-            change: weeklyChange(passes, listed.linked, aiValue),
+            n: answers.k,
+            of: { kind: "count", m: answers.n },
+            change: weeklyChange(passes, answers.k, aiValue),
             series: seriesOf(passes, a.week, aiValue),
           };
 
