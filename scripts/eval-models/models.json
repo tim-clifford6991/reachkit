@@ -7,9 +7,9 @@
     "claude-haiku-5-5": {"in": 10, "out": 50, "longAbove": 100000, "longIn": 50, "longOut": 250, "source": "https://platform.claude.com/docs/en/about-claude/pricing", "checkedAt": "2026-11-20", "drop": ["temperature"], "set": {"thinking": {"type": "disabled"}}},
     "claude-sonnet-4-6": {"in": 300, "out": 1500, "source": "https://platform.claude.com/docs/en/about-claude/pricing", "checkedAt": "2026-11-20", "drop": [], "set": {}},
     "claude-sonnet-5": {"in": 200, "out": 1000, "source": "https://platform.claude.com/docs/en/about-claude/pricing", "checkedAt": "2026-11-20", "drop": ["temperature"], "set": {"thinking": {"type": "disabled"}}},
-    "claude-sonnet-5-5": {"in": 200, "out": 1000, "source": "https://platform.claude.com/docs/en/about-claude/pricing", "checkedAt": "2026-11-20", "drop": ["temperature", "thinking"], "set": {}},
+    "claude-sonnet-5-5": {"in": 200, "out": 1000, "source": "https://platform.claude.com/docs/en/about-claude/pricing", "checkedAt": "2026-11-20", "drop": ["temperature"], "set": {"thinking": {"type": "between_tools"}}},
     "claude-opus-5": {"in": 500, "out": 2500, "source": "https://platform.claude.com/docs/en/about-claude/pricing", "checkedAt": "2026-11-20", "drop": ["temperature"], "set": {"thinking": {"type": "disabled"}}},
-    "claude-opus-5-5": {"in": 400, "out": 2000, "source": "https://platform.claude.com/docs/en/about-claude/pricing", "checkedAt": "2026-11-20", "drop": ["temperature", "thinking"], "set": {}},
+    "claude-opus-5-5": {"in": 400, "out": 2000, "source": "https://platform.claude.com/docs/en/about-claude/pricing", "checkedAt": "2026-11-20", "drop": ["temperature", "thinking"], "set": {"output_config": {"effort": "low"}}},
     "claude-fable-5-2": {"in": 800, "out": 4000, "source": "https://platform.claude.com/docs/en/about-claude/pricing", "checkedAt": "2026-11-20", "drop": ["temperature", "thinking"], "set": {}}
   }
 }
