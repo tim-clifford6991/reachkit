@@ -260,7 +260,7 @@ export async function inferMarketFields(
     site: "market-inference",
     input: { task: MARKET_TASK, fields: MARKET_FIELDS, kinds: KINDS_FOR_MODEL, evidence },
     schema: MARKET_SCHEMA,
-    tier: "haiku",
+    tier: "sonnet",
     ...(locale === undefined ? {} : { locale }),
   });
   if (answer.kind === "unmeasured") return unmeasured(answer.reason, answer.at, answer.because);
