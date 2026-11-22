@@ -1930,21 +1930,6 @@ export type Database = {
           isSetofReturn: true
         }
       }
-      page_reads_underived: {
-        Args: { p_before: string; p_limit: number }
-        Returns: {
-          cache_key: string
-          has_facts: boolean
-          has_text: boolean
-          id: string
-          scan_id: string
-          source: string
-        }[]
-      }
-      prune_page_html: {
-        Args: { p_before: string; p_limit: number }
-        Returns: number
-      }
       publish_transition: {
         Args: {
           p_draft_id: string

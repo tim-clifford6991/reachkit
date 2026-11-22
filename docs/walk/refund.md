@@ -47,7 +47,7 @@ was done.
 
 ## Where to record it
 
-Record it as **one comment on #1044**, with these fields:
+Record it as **one comment on #2916**, with these fields:
 
 ```
 Refund — <date, UTC>
@@ -58,5 +58,5 @@ Access check: /app refused in a private window · <time>
 Published page: left live / unpublished by <who, how>
 ```
 
-Also add it to the walk's timeline when #1044 is closed. Put no card detail and no address in the
+Also add it to the walk's timeline when #2916 is closed. Put no card detail and no address in the
 comment. The Stripe ids are enough to find everything else.

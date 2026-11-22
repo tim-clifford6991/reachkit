@@ -24,20 +24,25 @@
 // eslint fence (`local/no-billing-internal-import`) makes that structural
 // rather than remembered.
 import { takeLimits } from "@/lib/limits";
+import { suppressionState } from "@/lib/mail/leads/suppress";
 import type { NetworkKey } from "@/lib/scan/admission";
 import { accountStore } from "../store";
 import { sendSignInLink } from "./sign-in-mail";
 
-/** The one answer every request gets. No member says whether a link left. */
-export type MagicLinkAnswer = { readonly answered: true };
+/** The one answer every request gets. No member says whether a link left; `stopped` is address-wide, so it says nothing about an account. */
+export type MagicLinkAnswer = { readonly answered: true; readonly stopped?: true };
 
 const ANSWERED: MagicLinkAnswer = Object.freeze({ answered: true });
+const STOPPED: MagicLinkAnswer = Object.freeze({ answered: true, stopped: true });
 
 export async function requestMagicLink(email: string, network: NetworkKey): Promise<MagicLinkAnswer> {
   const address = email.trim().toLowerCase();
 
   // Counted before the account read, so a limited request does the same work whether or not an account exists.
   if (!(await takeLimits("sign_in", { network, email: address }))) return ANSWERED;
+
+  // Behind the limit, so the stopped answer cannot be asked for without bound; a read that fails still sends.
+  if (await suppressionState(address).then((state) => state === "suppressed", () => false)) return STOPPED;
 
   const read = await accountStore().accountByEmail(address);
   if (read.ok && read.account !== null) {

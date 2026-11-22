@@ -1,7 +1,7 @@
 // The tracked prompts' rolling window, read from stored passes; it measures and buys nothing. One read for the window, never one per week.
 // A week whose pass stored no prompts section is absent, not empty: an empty week would lower the rate as though every answer ignored the site.
 import { ANSWER_RATE_WEEKS } from "@/lib/config/constants";
-import type { PromptSample, PromptWeek, PromptWindow } from "@/lib/market/prompts/rate";
+import { newestSet, type PromptSample, type PromptWeek, type PromptWindow } from "@/lib/market/prompts/rate";
 import type { PromptsSection } from "../report";
 import { previousWeekStart } from "./movement";
 import { dbAdmin } from "@/lib/db";
@@ -115,9 +115,5 @@ export async function readPromptWindow(a: { siteId: string; weekStart: string; z
     const first = weeksOf(new Set()).at(-1);
     if (first !== undefined) return { weeks: [first.week], prompts: first.section.asked, firstMeasurement: true };
   }
-  const newest = read.at(-1)?.section;
-  return {
-    weeks: read.filter((entry) => entry.section.restartedAt === newest?.restartedAt).map((entry) => entry.week),
-    prompts: newest?.asked ?? [],
-  };
+  return { weeks: newestSet(read, (entry) => entry.section).map((entry) => entry.week), prompts: read.at(-1)?.section.asked ?? [] };
 }
