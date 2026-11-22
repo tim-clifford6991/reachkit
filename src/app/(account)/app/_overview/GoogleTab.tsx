@@ -15,7 +15,7 @@ import { ShowAll } from "./ShowAll";
 
 const INK = "text-base-content/70";
 
-function Dash(p: { sr: string }): React.JSX.Element {
+export function Dash(p: { sr: string }): React.JSX.Element {
   return (
     <span>
       <span aria-hidden>{copy("unmeasured.dash")}</span>
