@@ -180,6 +180,15 @@ export function readCitations(meta: unknown): Citations | null {
   return stored as Citations;
 }
 
+/** A draft write carrying a body, with `meta.citations` recomputed for that body from the pack beside it; a body with
+ *  no pack, as a page from before the pack has, records none. */
+export function withCitations<T extends { body_md?: string | null; meta?: unknown }>(row: T): T {
+  if (typeof row.body_md !== "string" || typeof row.meta !== "object" || row.meta === null) return row;
+  const meta = Object.fromEntries(Object.entries(row.meta).filter(([key]) => key !== "citations"));
+  const pack = readPack(meta);
+  return { ...row, meta: pack === null || row.body_md.trim() === "" ? meta : { ...meta, citations: citationsOf(row.body_md, pack) } };
+}
+
 /** The day the pack was first stored with a page: a row from before it never had one. */
 export const PACK_SINCE = "2026-10-04";
 
@@ -191,12 +200,13 @@ const passagesAt = (value: unknown): SavedSources["market"] =>
     return typeof fact?.passage === "string" && typeof fact.url === "string" ? [{ passage: fact.passage, url: fact.url, readAt: typeof fact.readAt === "string" ? fact.readAt : null }] : [];
   });
 
-/** A written page's sources: the stored output where it still fits the body, else the matcher over its pack; a page
- *  from before the pack over what it saved, and one whose pack cannot be read, unread. */
+/** A written page's sources: the stored output where it still fits the body and no earlier version's pack (which the
+ *  write never reads) could add a kept link, else the matcher over its pack; a page from before the pack over what it
+ *  saved, and one whose pack cannot be read, unread. */
 export function pageCitations(row: { bodyMd: string; meta: unknown; groundedFact: unknown; writtenAt: string; earlier: readonly { meta: unknown; at: string }[] }): PageCitations {
   const blocks = parseMarkdown(row.bodyMd);
   const stored = readCitations(row.meta);
-  if (stored !== null && stored.sentences.length === runsOf(blocks).reduce((n, { run }) => n + sentencesIn(run).length, 0)) return { kind: "matched", citations: stored, old: null };
+  if (stored !== null && row.earlier.length === 0 && stored.sentences.length === runsOf(blocks).reduce((n, { run }) => n + sentencesIn(run).length, 0)) return { kind: "matched", citations: stored, old: null };
   const pack = readPack(row.meta);
   const earlier = row.earlier.flatMap(({ meta, at }) => {
     const from = readPack(meta);
