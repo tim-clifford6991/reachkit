@@ -49,6 +49,7 @@ import type { LinkRecord } from "./links-panel";
 import { now as clock } from "@/lib/config/now";
 import { dbAdmin } from "@/lib/db";
 import { readRecordedFact } from "@/lib/generate/fact";
+import { pageTitle } from "@/lib/presentation/page-title";
 import { readPack } from "@/lib/generate/pipeline/pack";
 import {
   checkedAgainstNothing,
@@ -94,6 +95,7 @@ interface DraftRow {
   body_md: string | null;
   meta: Record<string, unknown> | null;
   grounded_fact: unknown;
+  sites?: { language: string | null } | null;
   claim_check: unknown;
   rule_failures: unknown;
   veto_deadline: string | null;
@@ -117,11 +119,10 @@ interface MinimalClient {
   from<T>(table: string): MinimalQuery<T>;
 }
 
-/** The one select list. `drafts` carries no credential and this names no
- *  column of another account's. */
+/** The one select list. `drafts` carries no credential and this names no column of another account's. */
 const DRAFT_COLUMNS =
   "id, site_id, opportunity_id, state, title, body_md, meta, grounded_fact, claim_check, rule_failures, " +
-  "veto_deadline, created_at, transitions, told";
+  "veto_deadline, created_at, transitions, told, sites(language)";
 
 /** §9's ten states, as this screen reads them. A row carrying anything else
  *  is a row this screen cannot draw, and it takes the `null` arm rather
@@ -506,17 +507,16 @@ export async function readDraftRow(a: {
   const lastSaved = stringAt(row.meta, "last_saved_at");
   // One clock read for the screen: every fact's age is as of this read.
   const at = clock();
-  // What became of this page (#217). One further read, made only once
-  // the row above has proved this account owns the draft — asking first
-  // would answer about a page the caller may not see. `pageRecordFor`
-  // is the one read behind every surface that states a page's standing;
-  // nothing here re-derives liveness from a column.
+  // What became of this page (#217). One further read, made only once the row above has proved this account owns the
+  // draft — asking first would answer about a page the caller may not see. `pageRecordFor` is the one read behind every
+  // surface that states a page's standing; nothing here re-derives liveness from a column.
   const record = await pageRecordFor(a.draftId);
   const { pack } = packAt(row.meta, at);
 
   return {
     draftId: row.id,
     title: row.title,
+    shownTitle: pageTitle(row.title, row.sites?.language),
     description: stringAt(row.meta, "description") ?? "",
     writtenAt: new Date(row.created_at),
     emailedAt: emailedAtOf(row.told),

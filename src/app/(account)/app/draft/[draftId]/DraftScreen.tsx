@@ -526,7 +526,7 @@ export function DraftScreen(p: {
    */
   const body = (
     <PublishedPageView
-      title={view.title}
+      title={view.shownTitle}
       bodyMd={bodyMd}
       grounded={view.grounded}
       publisher={view.publisher}
@@ -846,8 +846,8 @@ export function DraftScreen(p: {
       <div className={SHAPE.grid}>
         <header className={SHAPE.head} data-testid="draft-head">
           {state === "generating" ? <Rewriting draftId={view.draftId} /> : null}
-          <h1 className="line-clamp-2 min-w-0 wrap-anywhere" title={view.title} data-testid="draft-title">
-            {view.title}
+          <h1 className="line-clamp-2 min-w-0 wrap-anywhere" title={view.shownTitle} data-testid="draft-title">
+            {view.shownTitle}
           </h1>
           <p className="flex min-w-0 flex-wrap items-center gap-2 text-sm text-base-content/70" data-testid="draft-claim">
             {stopped ? (

@@ -24,7 +24,7 @@ const AT = new Date(Date.UTC(2026, 9, 18, 7, 0, 0));
 const HOST = "content.reachkit.app";
 const OLD = `https://${HOST}/tools-to-track-where-ai-sends-potential-customers`;
 const NEW = `https://${HOST}/how-to-rank-on-chatgpt`;
-const RETARGET_TITLE = "How to rank on ChatGPT when buyers search your market";
+const RETARGET_TITLE = "How to Rank on ChatGPT when Buyers Search Your Market";
 const VOLUME = { kind: "zero", value: 0, at: "2026-10-05T00:00:00.000Z" };
 const NOV_10 = new Date(Date.UTC(2026, 10, 10, 7, 0, 0));
 

@@ -99,7 +99,7 @@ describe("a hosted site updates a page ReachKit published there", () => {
   it("the edge serves the new version at that address, and lists the page once", async () => {
     await publishUpdate();
 
-    expect((await livePageBySlug("s1", "onboarding-checklist", "blog.example.com"))?.page.title).toBe("The checklist, answered");
+    expect((await livePageBySlug("s1", "onboarding-checklist", "blog.example.com"))?.page.title).toBe("The Checklist, Answered");
     expect((await livePagesForSite("s1", "blog.example.com")).map((page) => page.slug)).toEqual(["onboarding-checklist"]);
   });
 });
@@ -115,7 +115,7 @@ describe("a hosted site cannot update a page outside ReachKit", () => {
       const result = await publishUpdate();
 
       expect(result).toMatchObject({ ok: false, reason: "destination_rejected", retryable: false });
-      expect((await livePagesForSite("s1", "blog.example.com")).map((page) => page.title)).toEqual(["The checklist"]);
+      expect((await livePagesForSite("s1", "blog.example.com")).map((page) => page.title)).toEqual(["The Checklist"]);
     });
   }
 });
