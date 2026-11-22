@@ -34,6 +34,7 @@ import {
   PACE,
   REFRESH_MIN_AGE_DAYS,
   RIVAL_PRICE_MAX_AGE_D,
+  SEARCH_READING_WINDOW_D,
   SNIPPET_REFRESH_IMPRESSIONS,
   UNSEEN_AFTER_DAYS,
   UNSEEN_LINK_EVERY_DAYS,
@@ -115,6 +116,8 @@ export interface OwnLivePage {
   publicationId?: string;
   shown?: { impressions: number; clicks: number };
   searchVisits?: number;
+  /** When this version itself went live, whatever date it carries. */
+  liveSince?: Date;
 }
 
 export interface RefreshPools {
@@ -200,8 +203,10 @@ const shownUnclicked = (page: OwnLivePage): boolean =>
   page.publicationId !== undefined && (page.shown?.impressions ?? 0) >= SNIPPET_REFRESH_IMPRESSIONS && page.shown?.clicks === 0;
 
 /** Google shows it and nobody comes: read only where both counts were read, and never on a page the customer owns. */
-function snippetDue(page: OwnLivePage): boolean {
-  return shownUnclicked(page) && page.searchVisits === 0 && page.edited !== true && page.stopped !== true;
+function snippetDue(page: OwnLivePage, at: Date): boolean {
+  // A snippet version keeps its date, so the 28 days judged must all be this version's own title.
+  const ownWindow = page.liveSince !== undefined && at.getTime() - page.liveSince.getTime() >= SEARCH_READING_WINDOW_D * DAY_MS;
+  return ownWindow && shownUnclicked(page) && page.searchVisits === 0 && page.edited !== true && page.stopped !== true;
 }
 
 /** Why this page is due at `at`, or `null` where it is not. */
@@ -215,7 +220,7 @@ export function refreshCauseOf(page: OwnLivePage, pools: RefreshPools, at: Date)
   if (!held && page.unmet === true && page.seen !== false) return "unmet";
   if (!held && page.declined) return "lost_position";
   if (!held && isClose(page, pools)) return "close";
-  if (!held && snippetDue(page)) return "snippet";
+  if (!held && snippetDue(page, at)) return "snippet";
   if (hasNewerFact(page, pools)) return "newer_fact";
   if (pricesStale(page, at)) return "stale_prices";
   if (age >= PACE.REFRESH_AGE_DAYS * DAY_MS) return "aged";
@@ -492,6 +497,7 @@ export async function ownLivePages(siteId: string): Promise<OwnLivePage[]> {
     pages.set(url, {
       url,
       publishedAt: dated !== null && !Number.isNaN(dated.getTime()) ? dated : new Date(publication.published_at),
+      liveSince: new Date(publication.published_at),
       row: readOpportunity(opportunity),
       declined: declined.get(publication.id) ?? false,
       unmet: unmetAfter(judged.get(publication.id)),
