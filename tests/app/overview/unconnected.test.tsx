@@ -147,7 +147,6 @@ beforeAll(async () => {
   await Promise.all([
     import("@/app/(account)/app/_overview/store"),
     import("@/app/(account)/app/_overview/ConnectAddress"),
-    import("@/app/(account)/app/_overview/search-provider"),
     import("@/app/(account)/app/_shell/store"),
   ]);
 }, 60_000);

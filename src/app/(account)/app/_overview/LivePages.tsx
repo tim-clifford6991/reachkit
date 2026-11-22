@@ -81,6 +81,21 @@ function Title(p: { page: PublishedPage }): React.JSX.Element {
   );
 }
 
+/** A phone's row on an Overview detail: the whole row is the page's link where it has one. */
+export function PhoneRow(p: { href: string | null; className: string; testId: string; children: React.ReactNode }): React.JSX.Element {
+  return (
+    <li className={`list-row min-w-0 p-0 ${p.className}`} data-testid={p.testId}>
+      {p.href === null ? (
+        <div className="list-col-grow flex min-w-0 flex-col gap-1 p-4">{p.children}</div>
+      ) : (
+        <Link className="list-col-grow flex min-h-11 min-w-0 flex-col gap-1 p-4" href={p.href}>
+          {p.children}
+        </Link>
+      )}
+    </li>
+  );
+}
+
 export function LivePages(p: { rows: readonly LiveRow[]; all: boolean; timeZone: string }): React.JSX.Element {
   const { rows, all, timeZone } = p;
   const scroll = all ? { tabIndex: 0, "aria-label": copy("overview.pages.all.label") } : {};
@@ -133,28 +148,15 @@ export function LivePages(p: { rows: readonly LiveRow[]; all: boolean; timeZone:
         </table>
       </div>
       <ul className="list min-w-0 md:hidden" aria-label={copy("overview.pages.caption")}>
-        {rows.map((row, i) => {
-          const body = (
-            <>
-              <Title page={row.page} />
-              <span className="text-sm">
-                {copy("overview.pages.live", { date: formatDate(row.page.publishedAt, timeZone), place: (row.google.dash ? row.google.sub : null) ?? row.google.text })}
-              </span>
-              <Mark mark={row.mark} />
-            </>
-          );
-          return (
-            <li key={row.page.id} className={`list-row min-w-0 p-0 ${rowClass(i, all)}`} data-testid="live-page-card">
-              {row.href === null ? (
-                <div className="list-col-grow flex min-w-0 flex-col gap-1 p-4">{body}</div>
-              ) : (
-                <Link className="list-col-grow flex min-h-11 min-w-0 flex-col gap-1 p-4" href={row.href}>
-                  {body}
-                </Link>
-              )}
-            </li>
-          );
-        })}
+        {rows.map((row, i) => (
+          <PhoneRow key={row.page.id} href={row.href} className={rowClass(i, all)} testId="live-page-card">
+            <Title page={row.page} />
+            <span className="text-sm">
+              {copy("overview.pages.live", { date: formatDate(row.page.publishedAt, timeZone), place: (row.google.dash ? row.google.sub : null) ?? row.google.text })}
+            </span>
+            <Mark mark={row.mark} />
+          </PhoneRow>
+        ))}
       </ul>
       <div className="flex min-w-0 flex-col items-center gap-2 p-3 text-center">
         <Suspense fallback={null}>

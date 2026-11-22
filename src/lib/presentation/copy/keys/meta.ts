@@ -135,7 +135,7 @@ export const META_COPY = Object.freeze({
      twenty tabs can tell which screen they are on.
 
      Each word is the one the product already says on the screen itself —
-     `shell.nav.overview`, `overview.tab.search`,
+     `shell.nav.overview`, `overview.google.title`,
      `overview.tile.ai-answers.label`, `overview.tab.rivals`,
      `shell.nav.plan`, `shell.nav.settings`. They
      are spelled out rather than composed from those keys because a `<title>`

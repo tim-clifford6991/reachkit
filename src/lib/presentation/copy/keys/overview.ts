@@ -165,7 +165,6 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.comparison.window": "Shown from {since}, when your settings changed. Older figures are kept apart.",
 
   // The detail screens' names.
-  "overview.tab.search": "Google",
   "overview.tab.rivals": "Competitors",
 
   // ── The page waiting for review.
@@ -197,100 +196,44 @@ export const OVERVIEW_COPY = Object.freeze({
   // The five stage words are the calendar's own (`calendar.stage.*`).
   "overview.week.day.no-page": "No page",
 
-  // ── SPEC §4 (2026-09-20, #908), the Search tab (#916) — every search
-  // ReachKit is going after, and where the customer stands on it. Every
-  // sentence below is drafted under the 2026-09-16 ruling (#759) and named
-  // in the PR body for the owner to correct; the four status words and the
-  // ceiling line are the issue's own drafts, taken verbatim.
-  // The screen's own lead sentence is gone (SPEC §4, 2026-10-07, issue
-  // 1324): Search, AI answers and Rivals open on their numbers.
-  //
-  // The line in the head: which measurement this whole screen is read
-  // from. No vendor and no cost — the date the pass was taken, and nothing
-  // else.
+  // ── The search words Competitors and On Google share: the head's date, the columns, and what is done this week.
   "overview.search.measured": "Checked {on}.",
-
-  // Issue 1551 (owner, 2026-10-19): the searches the live pages target,
-  // split by how far Google has got with each — the tile Overview's Google
-  // figure is read from — and the market's twelve, labelled as the outcome
-  // that takes months. Drafted (#759).
-  "overview.search.tile.your-pages": "Your Pages in Google",
-  "overview.search.tile.your-pages.of": "of {of} pages showing on Google",
-  "overview.search.tile.your-pages.split": "{first} on Google’s first page · {further} further down · {unseen} not showing yet",
-  "overview.search.tile.your-pages.split.console": "{first} on page 1 · {further} further down · {console} Search Console only · {unseen} not showing",
-  "overview.search.tile.your-pages.means": "A page counts once Google shows it for its own search. Most new pages take weeks to show.",
-  "overview.search.tile.market": "Your Market",
-  "overview.search.tile.market.means": "How many of your market’s biggest searches show you on Google’s first page. This takes months, not weeks.",
-  "overview.search.tile.searches.of": "of {of} searches on Google’s first page",
-  "overview.search.tile.market.split": "{first} on Google’s first page · {rest} not yet",
-
-  // The column heads.
   "overview.search.column.search": "Search",
   "overview.search.column.volume": "Searches a month",
   // The phone shape has no column heads, so a volume says what it counts.
   "overview.search.a-month": "a month",
-  "overview.search.column.you": "You",
-  "overview.search.column.rival": "Best competitor",
-  "overview.search.column.status": "What we’re doing",
-
-  // SPEC §4's four status words, and the chip that stands for all of them.
-  "overview.search.status.all": "All",
   "overview.search.status.live": "Page is live",
-  "overview.search.status.your-review": "Page scheduled",
-  "overview.search.status.up-next": "Up next",
-  "overview.search.status.too-big": "Too hard for now",
-  // A filter chip's whole text. It is one string because daisyUI's `filter`
-  // draws a radio's own `aria-label`, so the word and its count reach the
-  // screen as one attribute rather than as two elements.
-  "overview.search.chip": "{status} {count}",
-  "overview.search.filter.label": "Show",
-  "overview.search.table.label": "Every search ReachKit is going after",
-
-  // A place on a search results page, and the week's move. The glyphs are
-  // `overview.delta.up` / `overview.delta.down`, already written.
-  "overview.search.position": "#{position}",
-  // A page with a verdict and nothing recorded to compare it with: its
-  // first week, which is a fact and not a change of zero.
-  "overview.search.you.first": "new",
-  // An Improve target: the page that answers this search is the customer's
-  // own, so no rival holds it.
-  "overview.search.rival.yours": "Your own page",
-
-  // The foot of the table: how much of it is on screen, in what order, and
-  // the one control that shows the rest.
   "overview.search.show-all": "Show All {total} Searches",
-  // Nothing on file at all — a site whose first pass has not finished, or
-  // one whose market was too small. It claims neither: it says what is
-  // true of the list, and the Overview's own supply statement says why.
-  "overview.search.empty": "No searches yet. They arrive with your first check.",
-
-  // Board AppGoogle (issue 1746): the tab's head, the visits tile, each live
-  // page in Google, and what is done about each search this week. Drafted (#759).
   "overview.tab.eyebrow": "Overview · week {n}",
   "overview.means": "What this means",
-  "overview.search.visits.label": "Visits from Google",
-  "overview.search.visits.of": "this week, to your pages",
-  "overview.search.visits.none": "none yet",
-  "overview.search.visits.chart": "Visits from Google, week by week",
-  "overview.search.visits.means": "People who came to your pages from Google. Shown once there is one.",
-  "overview.search.pages.title": "Each Page in Google",
-  "overview.search.pages.caption": "place 1 is the top result, maps not counted",
-  "overview.search.pages.all": "Show All {total} Pages",
-  "overview.search.pages.none": "No page is live yet. Each shows here once it’s live, with its place in Google.",
-  "overview.search.place.up": "Place {n}, up {gain} since {date}.",
-  "overview.search.place.flat": "Place {n}, flat for {weeks} weeks.",
-  "overview.search.place.now": "Place {n}.",
-  "overview.search.place.update": "Update goes live {day}.",
-  "overview.search.place.found": "Found by Google {date}. Not in results yet.",
-  "overview.search.place.unseen": "Not in results yet.",
-  // D8: a place read from the keyword database is an estimate, and says so.
-  "overview.search.place.estimate": "Based on Google’s estimate, not this week’s check.",
-  "overview.search.table.title": "Your Market’s Searches",
-  // A business that sells beyond one place: the lead names none.
   "overview.search.doing.today": "Goes live today",
   "overview.search.doing.page": "Page {day}",
   "overview.search.doing.update": "Update {day}",
   "overview.search.doing.climbing": "Climbing, so we wait",
+
+  // ── On Google's detail (plates O4, O8): each live page on its own search, its place and who leads it.
+  "overview.google.title": "Google",
+  "overview.google.lead": "A page counts once Google shows it for its own search. Most new pages take weeks.",
+  "overview.google.filter.label": "Show pages",
+  "overview.google.filter.all": "All {n}",
+  "overview.google.filter.showing": "Showing {k}",
+  "overview.google.filter.not-yet": "Not yet {m}",
+  "overview.google.col.search": "Your Page’s Search",
+  "overview.google.col.volume": "Searches a Month",
+  "overview.google.col.place": "Place",
+  "overview.google.col.rival": "Best Competitor",
+  "overview.google.col.doing": "What We’re Doing",
+  "overview.google.rival": "{name}, place {n}",
+  // A dash alone reads as "none"; these say why the cell is empty.
+  "overview.google.unread.sr": "Not read this week",
+  "overview.google.unmeasured.sr": "Not measured",
+  "overview.google.caption": "Place 1 is the top result, not counting maps.",
+  "overview.google.none": "No page is live yet, so Google has nothing of yours to show.",
+  "overview.google.none.next": "Your first goes live {day} at {time}.",
+  "overview.google.empty.showing": "No page is showing on Google yet. Most new pages take weeks.",
+  "overview.google.empty.due": "Google is first checked {date}. Until then, All shows your live pages.",
+  "overview.google.empty.not-yet": "Every live page is showing on Google.",
+  "overview.google.unread": "We couldn’t check Google this week. These are the places from {date}.",
 
   // ── Linked by AI's detail (plate O3): each page's question, one mark per engine asked, and who else the answer named.
   "overview.ai.lead": "Your pages’ questions, asked of {engines} in the last {weeks} weeks.",

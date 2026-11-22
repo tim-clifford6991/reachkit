@@ -38,7 +38,7 @@ interface PageRow {
   published_at: string;
   unpublished_at: string | null;
   acceptance: unknown;
-  drafts: { title: string | null; opportunities: { acceptance: unknown; target_query: string | null } | null } | null;
+  drafts: { title: string | null; opportunities: { acceptance: unknown; target_query: string | null; volume: number | null } | null } | null;
 }
 
 const NOT_READ = { kind: "unmeasured", reason: "not_attempted" } as const;
@@ -60,7 +60,7 @@ export async function readTileRows(a: { siteId: string; domain: string; week: st
       .gte("week_start", since)
       .not("report", "is", null),
     from<PageRow>("publications")
-      .select("id, live_url, published_at, unpublished_at, acceptance, drafts(title, opportunities(acceptance, target_query))")
+      .select("id, live_url, published_at, unpublished_at, acceptance, drafts(title, opportunities(acceptance, target_query, volume))")
       .eq("site_id", a.siteId)
       .not("published_at", "is", null),
   ]);
@@ -88,6 +88,7 @@ export async function readTileRows(a: { siteId: string; domain: string; week: st
       publishedAt: row.published_at,
       unpublishedAt: row.unpublished_at,
       search: pageSearchOf(row.acceptance ?? row.drafts?.opportunities?.acceptance, row.drafts?.opportunities?.target_query),
+      volume: row.drafts?.opportunities?.volume ?? null,
     })),
   };
 }
