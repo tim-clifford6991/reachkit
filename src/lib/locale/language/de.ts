@@ -155,7 +155,8 @@ export const DE: LanguagePack = {
     free: "kostenlos|kostenfrei|gratis",
     serial: "folge|episode|ep|ausgabe|heft|band|bd|kapitel|staffel|teil",
     // Drafted (issue 759): the German counterparts of D51's banned patterns.
-    news: ["eilmeldung", "neu", "neueste", "jetzt", "diese woche", "gerade erschienen"],
+    // Whole words, so each inflection is listed: the stem keeps four letters, and "neue" is not "neu" to it.
+    news: ["eilmeldung", "neu", "neue", "neuer", "neues", "neuen", "neuem", "neueste", "neuesten", "neuester", "neuestes", "jetzt", "diese woche", "gerade erschienen", "ab sofort"],
     banned: [
       "fragen, beantwortet",
       "fragen beantwortet",
