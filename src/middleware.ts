@@ -45,7 +45,7 @@
 // a work order that touches BP-001's own `code:` list.
 import { NextResponse } from "next/server";
 import type { NextFetchEvent, NextRequest } from "next/server";
-import { HOSTED_SUBDOMAIN_LABEL, HOSTED_UNAVAILABLE_INIT, PREVIEW_HOST_SUFFIX } from "@/lib/config/constants/publish";
+import { HOSTED_UNAVAILABLE_INIT, PREVIEW_HOST_SUFFIX } from "@/lib/config/constants/publish";
 import { env } from "@/lib/config/env";
 import { countHostedRequest, lookupMissed } from "@/lib/publish/reads/count";
 import { isDomainRemoved } from "@/lib/scan/removal";
@@ -153,26 +153,16 @@ export const PUBLIC_PATHS: readonly string[] = [
  *  falls through to the hosted group's own 404 rather than to a ReachKit
  *  screen.
  *
- *  Four things are ours. `NEXT_PUBLIC_APP_URL`'s own host is the
- *  deployment's address and is read from the binding rather than assumed —
- *  it is `dev.reachkit.app` today, the apex at go-live, and a test
- *  fixture is not under `reachkit.app` at all, so a
- *  subtraction that only knew the product's own suffix would rewrite the
- *  app's own screens. `PREVIEW_HOST_SUFFIX` covers the apex and every
- *  `*.reachkit.app` address beside it; the platform's preview hosts and
+ *  `NEXT_PUBLIC_APP_URL`'s own host is the deployment's address and is
+ *  read from the binding rather than assumed. Under the product's domain
+ *  only the apex, `www.` and the development host are ours: any other name
+ *  there is answered as a customer's host is, so the landing page never
+ *  shows under a name that is not live. The platform's preview hosts and
  *  the loopback names a local build and the layout suite answer on
  *  complete the set. */
-const OURS_SUFFIX = `.${PREVIEW_HOST_SUFFIX}`;
+const OWN_NAMES: ReadonlySet<string> = new Set(["", "www.", "dev."].map((label) => `${label}${PREVIEW_HOST_SUFFIX}`));
 const PLATFORM_SUFFIX = ".vercel.app";
 const LOCAL_HOSTS: ReadonlySet<string> = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
-
-/** The dogfood's own hosted host (owner, 2026-10-02, #1045: "fix this to be
- *  content.reachkit.app for dogfooding purposes"). ReachKit's own site is
- *  `reachkit.app`, so its hosted host is under `PREVIEW_HOST_SUFFIX` and the
- *  subtraction above would keep it as one of ours. Exactly this host is let
- *  through; `resolveHost` still decides it from the destination row that
- *  claims it, and no other `*.reachkit.app` address changes. */
-const DOGFOOD_HOSTED_HOST = `${HOSTED_SUBDOMAIN_LABEL}.${PREVIEW_HOST_SUFFIX}`;
 
 /** This deployment's own address, from the one binding that carries it.
  *  Computed per call rather than memoised: the suites that drive this file
@@ -241,8 +231,7 @@ function isHostedEdgeHost(req: NextRequest): boolean {
   // Before the two exclusions below, which would otherwise refuse it: the
   // test host is a `.vercel.app` address.
   if (name === hostedTestHost()) return true;
-  if (name === DOGFOOD_HOSTED_HOST) return true;
-  if (name === PREVIEW_HOST_SUFFIX || name.endsWith(OURS_SUFFIX)) return false;
+  if (OWN_NAMES.has(name)) return false;
   if (name.endsWith(PLATFORM_SUFFIX)) return false;
   return !LOCAL_HOSTS.has(name);
 }
