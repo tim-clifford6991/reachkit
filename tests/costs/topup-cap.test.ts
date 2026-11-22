@@ -57,4 +57,14 @@ describe("the top-up's own cap", () => {
     expect(serp.kind).toBe("unmeasured");
     expect(calls.vendor).toEqual([]);
   });
+
+  it("the week's market changes are refused at their own 6¢: no news search is bought, and the pass goes on", async () => {
+    const { buyMarketChanges } = await import("@/lib/scan/weekly/market-changes");
+    const market = { category: "plumbing", from: "site", synonyms: ["plumber"], unsearched: [], concluded: [], market: null } as const;
+    const changes = await withCostContext({ scanId: SCAN, cap: "WEEK_NEWS", policyVersion: 1, rollUp: "none", activity: "weekly", priorCents: CAPS.WEEK_NEWS_C }, (c) =>
+      buyMarketChanges(c, { siteId: "s", locale: DEFAULT_LOCALE, terms: ["plumbing", "plumber"], notOurs: new Set(), market, today: new Date() })
+    );
+    expect(changes).toEqual([]);
+    expect(calls.vendor).toEqual([]);
+  });
 });

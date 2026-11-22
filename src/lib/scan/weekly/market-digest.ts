@@ -5,7 +5,7 @@
 // next tick retries. `running` and `failed` rows are not read; one that later finishes too small is sent alone.
 // The same mail carries, each left out where its read fails and never holding the digest back: each paying site's daily-promise line
 // (`./promise-week`), its visits and clicks (`./visits-week`) and its untold empty days; the week's cost (`./cost-week`); the passes a health check failed on;
-// and live hosted pages Google has not crawled `UNCRAWLED_AFTER_D` days after going live.
+// live hosted pages Google has not crawled `UNCRAWLED_AFTER_D` days after going live; and each site's market changes and how many were cited.
 import { tz } from "@date-fns/tz";
 import { addDays, format } from "date-fns";
 import { UNCRAWLED_AFTER_D } from "@/lib/config/constants";
@@ -98,6 +98,39 @@ async function untoldBefore(weekStart: string): Promise<UntoldWeek | null> {
       .sort((a, b) => a.domain.localeCompare(b.domain) || a.date.localeCompare(b.date));
   } catch (error) {
     console.warn(JSON.stringify({ event: "market_digest_untold_unread", error: error instanceof Error ? error.name : "unknown" }));
+    return null;
+  }
+}
+
+type ChangesWeek = NonNullable<Extract<OpsIncident, { occasion: "market-too-small-week" }>["changes"]>;
+
+/** Each site's market changes the week before `weekStart` recorded, and how many of them that week's drafts cite; `null`
+ *  where no site recorded a week or they could not be read. */
+async function changesBefore(weekStart: string): Promise<ChangesWeek | null> {
+  try {
+    const from = shiftDay(weekStart, -7);
+    const { readMarketChanges } = await import("./store");
+    const weeks = await readMarketChanges({ from, to: from });
+    if (weeks.length === 0) return null;
+    const ids = weeks.map((week) => week.siteId);
+    const [sites, drafts] = await Promise.all([
+      untyped().from<SiteRow>("sites").select("id, domain").in("id", ids),
+      untyped().from<{ site_id: string; meta: { marketFacts?: { url?: unknown }[] } | null }>("drafts").select("site_id, meta").in("site_id", ids).gte("created_at", `${from}T00:00:00Z`).lt("created_at", `${weekStart}T00:00:00Z`),
+    ]);
+    if (sites.error || drafts.error) throw new Error((sites.error ?? drafts.error)!.message);
+    const domains = new Map((sites.data ?? []).map((site) => [site.id, site.domain]));
+    return {
+      weekStart: from,
+      sites: weeks
+        .map((week) => {
+          const cited = new Set((drafts.data ?? []).filter((draft) => draft.site_id === week.siteId).flatMap((draft) => (draft.meta?.marketFacts ?? []).map((fact) => fact.url)));
+          const changes = week.changes as { claims?: { url?: unknown }[] }[];
+          return { domain: domains.get(week.siteId) ?? "unknown", recorded: changes.length, cited: changes.filter((change) => (change.claims ?? []).some((claim) => cited.has(claim.url))).length };
+        })
+        .sort((a, b) => a.domain.localeCompare(b.domain)),
+    };
+  } catch (error) {
+    console.warn(JSON.stringify({ event: "market_digest_changes_unread", error: error instanceof Error ? error.name : "unknown" }));
     return null;
   }
 }
@@ -226,7 +259,8 @@ export async function sendMarketDigest(weekStart: string, now: Date): Promise<bo
   const costs = await costBefore(weekStart);
   const unhealthy = await unhealthyBefore(weekStart);
   const uncrawled = await uncrawledAt(now);
-  if (tooSmall.length > 0 || promise !== null || visits !== null || untold !== null || costs !== null || unhealthy !== null || uncrawled !== null) {
+  const changes = await changesBefore(weekStart);
+  if (tooSmall.length > 0 || promise !== null || visits !== null || untold !== null || costs !== null || unhealthy !== null || uncrawled !== null || changes !== null) {
     const { reportIncident } = await import("@/lib/mail/ops");
     const accepted = await reportIncident({
       occasion: "market-too-small-week",
@@ -238,6 +272,7 @@ export async function sendMarketDigest(weekStart: string, now: Date): Promise<bo
       ...(costs === null ? {} : { costs }),
       ...(unhealthy === null ? {} : { unhealthy }),
       ...(uncrawled === null ? {} : { uncrawled }),
+      ...(changes === null ? {} : { changes }),
     });
     if (!accepted) return false;
   }
@@ -249,6 +284,6 @@ export async function sendMarketDigest(weekStart: string, now: Date): Promise<bo
     .in("id", ids)
     .is("market_digest_at", null);
   if (stamped.error) throw new Error(`sendMarketDigest: could not stamp the week: ${stamped.error.message}`);
-  console.log(JSON.stringify({ event: "market_digest", weekStart, read: ids.length, tooSmall: tooSmall.length, promiseSites: promise?.sites.length ?? 0, visitsSites: visits?.sites.length ?? 0, untold: untold?.length ?? 0, costs: costs !== null, drifting: costs?.drift?.sources.length ?? 0, unhealthy: unhealthy?.length ?? 0, uncrawled: uncrawled?.length ?? 0 }));
+  console.log(JSON.stringify({ event: "market_digest", weekStart, read: ids.length, tooSmall: tooSmall.length, promiseSites: promise?.sites.length ?? 0, visitsSites: visits?.sites.length ?? 0, untold: untold?.length ?? 0, costs: costs !== null, drifting: costs?.drift?.sources.length ?? 0, unhealthy: unhealthy?.length ?? 0, uncrawled: uncrawled?.length ?? 0, changesSites: changes?.sites.length ?? 0 }));
   return true;
 }

@@ -218,3 +218,26 @@ export async function readSiteZone(siteId: string): Promise<string | null> {
   if (error) throw new Error(`weekly: could not read the site's zone: ${error.message}`);
   return data?.[0]?.timezone ?? null;
 }
+
+/** Inserts one site's market week before any of its news is bought: `false` where the week already has its row. */
+export async function claimMarketWeek(a: { siteId: string; weekStart: string; scanId: string }): Promise<boolean> {
+  const { error } = await dbAdmin().from("market_changes").insert({ site_id: a.siteId, week_start: a.weekStart, scan_id: a.scanId });
+  if (error === null) return true;
+  if (error.code === UNIQUE_VIOLATION) return false;
+  throw new Error(`weekly: could not claim the market week: ${error.message}`);
+}
+
+export async function storeMarketChanges(a: { siteId: string; weekStart: string; changes: readonly object[] }): Promise<void> {
+  const { error } = await dbAdmin().from("market_changes").update({ changes: JSON.parse(JSON.stringify(a.changes)) }).eq("site_id", a.siteId).eq("week_start", a.weekStart);
+  if (error) throw new Error(`weekly: could not store the market changes: ${error.message}`);
+}
+
+/** The stored market weeks from `from` through `to`, of `siteIds` where named; a week whose pass stored nothing is left out. */
+export async function readMarketChanges(a: { siteIds?: readonly string[]; from: string; to?: string }): Promise<{ siteId: string; weekStart: string; changes: unknown[] }[]> {
+  let query = dbAdmin().from("market_changes").select("site_id, week_start, changes").gte("week_start", a.from).not("changes", "is", null);
+  if (a.to !== undefined) query = query.lte("week_start", a.to);
+  if (a.siteIds !== undefined) query = query.in("site_id", [...a.siteIds]);
+  const { data, error } = await query;
+  if (error) throw new Error(`weekly: could not read the market changes: ${error.message}`);
+  return (data ?? []).map((row) => ({ siteId: row.site_id, weekStart: row.week_start, changes: Array.isArray(row.changes) ? row.changes : [] }));
+}

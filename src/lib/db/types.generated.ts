@@ -799,6 +799,42 @@ export type Database = {
           },
         ]
       }
+      market_changes: {
+        Row: {
+          changes: Json | null
+          scan_id: string
+          site_id: string
+          week_start: string
+        }
+        Insert: {
+          changes?: Json | null
+          scan_id: string
+          site_id: string
+          week_start: string
+        }
+        Update: {
+          changes?: Json | null
+          scan_id?: string
+          site_id?: string
+          week_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "market_changes_scan_id_fkey"
+            columns: ["scan_id"]
+            isOneToOne: false
+            referencedRelation: "scans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "market_changes_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       offer_spots: {
         Row: {
           freed_at: string | null

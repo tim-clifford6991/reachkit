@@ -45,6 +45,9 @@ const WEEKLY_MIGRATION = path.join(MIGRATIONS, MIGRATION_NAME);
 // not just the index it rests on.
 const TIMEZONE_MIGRATION = path.join(MIGRATIONS, "00000000000004_sites_timezone_column.sql");
 const SUBSCRIPTION_MIGRATION = path.join(MIGRATIONS, "20260906120000_users_subscription_columns.sql");
+// The week's market changes are claimed on their own row; its policy reads `users.deleted_at`, which the RLS migration adds.
+const RLS_MIGRATION = path.join(MIGRATIONS, "00000000000002_rls.sql");
+const MARKET_MIGRATION = path.join(MIGRATIONS, "20261122200000_market_changes.sql");
 
 /** One tuple-only row per line, `|`-separated columns — easy to split. */
 /** Runs `sql` and returns whether it raised (never throws itself). */
@@ -74,6 +77,7 @@ beforeAll(() => {
   // it is built on come with it; `week_start` is the last thing applied.
   for (const file of [
     BASELINE_MIGRATION,
+    RLS_MIGRATION,
     TIMEZONE_MIGRATION,
     SUBSCRIPTION_MIGRATION,
     FREEPATH_MIGRATION,
@@ -81,6 +85,7 @@ beforeAll(() => {
     VERDICT_MIGRATION,
     FLIP_MIGRATION,
     WEEKLY_MIGRATION,
+    MARKET_MIGRATION,
   ]) {
     psql(["-v", "ON_ERROR_STOP=1", "-f", file]);
   }
@@ -147,6 +152,10 @@ describe("the index, not the schedule, is what makes it once a week (ADR-060)", 
     expect(claim({ tier: "weekly", weekStart: "2026-09-07" })).toBe(false);
     expect(claim({ tier: "weekly", weekStart: "2026-09-07" })).toBe(true);
     expect(claim({ tier: "weekly", weekStart: "2026-09-14" })).toBe(false);
+    // A second run of the week's market changes finds its row and buys no second news search.
+    const market = `insert into market_changes (site_id, week_start, scan_id) select site_id, week_start, id from scans where tier = 'weekly' and week_start = '2026-09-07';`;
+    expect(raises(market)).toBe(false);
+    expect(raises(market)).toBe(true);
   });
 
   it("scopes to weekly, so a domain may still be scanned freely as often as §6.4 allows", () => {

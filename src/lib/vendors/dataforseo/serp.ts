@@ -112,9 +112,11 @@ export function parseSerp(result: unknown): SerpResult[] | undefined {
   const relatedSearches: string[] = [];
   // SPEC §6 (D67): the local pack rides on the same SERP; only businesses with a site are kept.
   const localPack: { title: string; domain: string; unresolved?: true }[] = [];
+  let topStories = false;
   for (const item of result.items) {
     if (!isRecord(item)) continue;
-    if (item.type === "organic") {
+    if (item.type === "top_stories") topStories = true;
+    else if (item.type === "organic") {
       const position = asNumber(item.rank_group) ?? asNumber(item.rank_absolute);
       const domain = asString(item.domain)?.toLowerCase();
       if (position === undefined || !domain) continue;
@@ -150,6 +152,7 @@ export function parseSerp(result: unknown): SerpResult[] | undefined {
       ...(peopleAlsoAsk.length === 0 ? {} : { peopleAlsoAsk }),
       ...(relatedSearches.length === 0 ? {} : { relatedSearches }),
       ...(localPack.length === 0 ? {} : { localPack }),
+      ...(topStories ? { topStories: true as const } : {}),
     },
   ];
 }

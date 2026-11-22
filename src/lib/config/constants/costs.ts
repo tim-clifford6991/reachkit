@@ -62,6 +62,8 @@ export const CAPS = Object.freeze({
   TOPUP_C: 7,
   /** SPEC §6 *Weekly cap*: the Monday commit's target SERPs, under their own 2¢ a site a week, outside `WEEKLY_C`. */
   WEEK_RESEARCH_C: 2,
+  /** SPEC §6 *Market changes*: the weekly pass's news searches and their two judgements, under their own 6¢ a site a week, outside `WEEKLY_C`. */
+  WEEK_NEWS_C: 6,
 } as const);
 
 /** The product-wide ceiling for one UTC day, in cents: `baseC` plus

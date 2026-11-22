@@ -37,6 +37,8 @@ export type OpsIncident =
       };
       // Each paying hosted site's visits by source over the week (`null`: not measured) and its live pages' Search Console clicks.
       visits?: { weekStart: string; sites: readonly { domain: string; visits: readonly { source: string; visits: number }[] | null; clicks: number | null }[] };
+      // Each site's market changes its week's pass recorded, and how many of them that week's drafts cite.
+      changes?: { weekStart: string; sites: readonly { domain: string; recorded: number; cited: number }[] };
       // What the week cost: per site a measurement and a page, then free scans and smoke tests, then the ledger total, in cents.
       costs?: {
         weekStart: string;
@@ -107,6 +109,7 @@ const DRIFT_WEEK = "ops.cost-drift.week" satisfies CopyKey;
 const UNCRAWLED_WEEK = "ops.uncrawled.week" satisfies CopyKey;
 const VISITS_WEEK = "ops.visits.week" satisfies CopyKey;
 const VISITS_SOURCE = "ops.visits.source" satisfies CopyKey;
+const CHANGES_WEEK = "ops.changes.week" satisfies CopyKey;
 
 const BODY: Readonly<Record<OpsIncident["occasion"], CopyKey>> = Object.freeze({
   "job-failed": "mail.ops.incident.job-failed",
@@ -350,7 +353,7 @@ function visitsRow(site: VisitsSite): ListRow {
 /** The Monday digest: each part drawn only where it has something to say. */
 function weekBlocks(incident: Extract<OpsIncident, { occasion: "market-too-small-week" }>): MailBlock[] {
   const blocks: MailBlock[] = [];
-  if (incident.scanIds.length > 0 || (incident.promise === undefined && incident.visits === undefined && incident.untold === undefined && incident.costs === undefined && incident.unhealthy === undefined && incident.uncrawled === undefined)) {
+  if (incident.scanIds.length > 0 || (incident.promise === undefined && incident.visits === undefined && incident.untold === undefined && incident.costs === undefined && incident.unhealthy === undefined && incident.uncrawled === undefined && incident.changes === undefined)) {
     blocks.push({ block: "paragraph", text: BODY[incident.occasion] }, { block: "facts", items: factsOf(incident) });
   }
   if (incident.promise !== undefined) {
@@ -362,6 +365,10 @@ function weekBlocks(incident: Extract<OpsIncident, { occasion: "market-too-small
   }
   if (incident.visits !== undefined) {
     blocks.push({ block: "paragraph", text: VISITS_WEEK, vars: { week: closedDate(incident.visits.weekStart) } }, { block: "list", items: measured(incident.visits.sites.map(visitsRow), new Date(`${closedDate(incident.visits.weekStart)}T00:00:00Z`)), emptyLine: "ops.promise.not-measured" });
+  }
+  if (incident.changes !== undefined) {
+    const rows = incident.changes.sites.map((site): ListRow => ({ label: "ops.changes.line", vars: { domain: closedDomain(site.domain), recorded: count(site.recorded), cited: count(site.cited) } }));
+    blocks.push({ block: "paragraph", text: CHANGES_WEEK, vars: { week: closedDate(incident.changes.weekStart) } }, { block: "list", items: rows, emptyLine: "ops.promise.not-measured" });
   }
   if (incident.untold !== undefined) {
     blocks.push(

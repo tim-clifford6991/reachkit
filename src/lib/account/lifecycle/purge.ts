@@ -73,6 +73,8 @@ const PURGE_ORDER: readonly {
   { table: "publication_reads", column: "site_id", from: "siteIds" },
   // Each page's weekly counts, kept 13 months, go the same way and before the pages they name.
   { table: "publication_weeks", column: "site_id", from: "siteIds" },
+  // A site's weekly market changes name the pass that recorded them.
+  { table: "market_changes", column: "site_id", from: "siteIds" },
   // The page records: what went live, where, and when it came down.
   { table: "publications", column: "site_id", from: "siteIds" },
   // The ledger-cache-raw-store in one: every byte fetched for a measurement

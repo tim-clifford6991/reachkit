@@ -30,6 +30,8 @@ export const OPS_COPY = Object.freeze({
   "ops.visits.week": "Visits to each paying hosted site's pages for the week of {week}, counted on the pages ReachKit serves, and the clicks Search Console reports for its live pages. Robots reading a page are not visits. Anything else counted on those pages is listed under the site by its source.",
   "ops.visits.line": "{domain} · Google search visits: {google} · visits from AI apps: {ai} · Search Console clicks, last {days} days: {clicks}",
   "ops.visits.source": "Also counted, {source}: {n}",
+  "ops.changes.week": "What changed in each site's market, as its weekly pass of {week} recorded it: stories at least two independent publishers reported in the last 30 days, and how many of them that week's pages cited.",
+  "ops.changes.line": "{domain} · Market changes recorded: {recorded} · cited: {cited}",
   "ops.uncrawled.week": "Google has still not crawled these live pages a week or more after they went live. ReachKit announces each to Google again, once. Each shows the site, the page, what Google says of it and the day it went live.",
   "ops.uncrawled.fact.page": "Page",
   "ops.uncrawled.fact.state": "Google says",
