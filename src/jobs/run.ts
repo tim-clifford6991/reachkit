@@ -92,7 +92,7 @@ export async function runJob(definition: JobDefinition, input: JobInput): Promis
       subjectId: outcome.subjectId,
       outcome: outcome.outcome,
       durationMs: Date.now() - started,
-      ...(outcome.outcome === "degraded" ? { step: outcome.step } : {}),
+      ...(outcome.outcome === "degraded" ? { step: outcome.step } : outcome.outcome === "stopped" && outcome.by !== "kill-switch" ? { step: outcome.by } : {}),
     });
     // Issue #799: the job's last run and outcome, and the stale-job check.
     await beat(definition.id, outcome.outcome, input.now);

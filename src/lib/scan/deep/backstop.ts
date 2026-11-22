@@ -5,6 +5,7 @@
 // The tick has no idempotency key, so this answers the cut-short pass's id and `scans_one_remeasure_per_pass` lets exactly one re-measure through.
 import { REMEASURE, TIMING } from "@/lib/config/constants";
 import { dbAdmin } from "@/lib/db";
+import { parseDomain } from "../domain";
 
 interface QueryResult<T> {
   data: T[] | null;
@@ -41,12 +42,13 @@ export async function sitesWithoutDeepPass(now: Date): Promise<readonly string[]
 
   const sites = await untyped()
     .from<SiteRow>("sites")
-    .select("id, category, setup_completed_at")
+    .select("id, domain, category, setup_completed_at")
     .lt("setup_completed_at", before)
     .gt("setup_completed_at", after)
     .limit(SITES_PER_TICK);
   if (sites.error) throw new Error(`sitesWithoutDeepPass: could not read sites: ${sites.error.message}`);
-  const siteRows = sites.data ?? [];
+  // A domain the pass cannot parse would only stop again, so it is never owed one.
+  const siteRows = (sites.data ?? []).filter((row) => parseDomain(row.domain ?? "").ok);
   const ids = siteRows.map((row) => row.id);
   if (ids.length === 0) return [];
 
@@ -62,6 +64,7 @@ export async function sitesWithoutDeepPass(now: Date): Promise<readonly string[]
 
 interface SiteRow {
   id: string;
+  domain?: string | null;
   category?: string | null;
   setup_completed_at?: string | null;
 }
