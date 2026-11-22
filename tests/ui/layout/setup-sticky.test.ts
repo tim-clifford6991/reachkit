@@ -43,10 +43,11 @@ describe("setup's action stays in view at 390×844 on every step", () => {
           await page.goto(baseURL + route.path, { waitUntil: "load" });
           await page.waitForSelector(route.action);
           const before = await page.evaluate(placed, route.action);
-          await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
-          await page.waitForFunction(
-            () => Math.ceil(window.scrollY + window.innerHeight) >= document.documentElement.scrollHeight - 1,
-          );
+          // Scrolled again on each poll: a step that grows after the first scroll would otherwise leave the end out of reach.
+          await page.waitForFunction(() => {
+            window.scrollTo(0, document.documentElement.scrollHeight);
+            return Math.ceil(window.scrollY + window.innerHeight) >= document.documentElement.scrollHeight - 1;
+          });
           const after = await page.evaluate(placed, route.action);
           return { before, after, url: page.url() };
         },
