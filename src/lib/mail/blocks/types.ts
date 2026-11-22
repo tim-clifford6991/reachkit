@@ -52,6 +52,8 @@ export interface StatRow {
   readonly before?: CopyKey;
   /** What the figure is read against (range, sample, window); it travels with the figure. */
   readonly note?: { readonly text: CopyKey; readonly vars?: CopyVars };
+  /** A second line under the note, measured or not: a tile's change on the week before. */
+  readonly detail?: { readonly text: CopyKey; readonly vars?: CopyVars };
   /** SPEC §8: an unmeasured row with this line is kept and says so; without it the row is omitted. Never a zero. */
   readonly unmeasuredLine?: CopyKey;
   readonly unmeasuredVars?: CopyVars;

@@ -3,14 +3,14 @@
 // Pure. A page no reading reached is not measured, never a place of 0.
 import { registrableDomain, isOwnDomain } from "@/lib/market/rivals/domains";
 import { googleStateOf, type GoogleState } from "@/lib/measure/ladder";
-import { addressOf, googleRead, searchRowsFor, type PageReading, type PlaceReport } from "@/lib/measure/page-reading";
+import { addressOf, searchRowsFor, type PageReading, type PlaceReport } from "@/lib/measure/page-reading";
 import { verdict } from "@/lib/opportunities/verdicts/verdict";
 import type { Label } from "@/lib/opportunities/verdicts/types";
-import { standingAt, type PublishedPage } from "@/lib/measure/published";
+import type { PublishedPage } from "@/lib/measure/published";
 import { dayNumber, weekdayShort } from "../calendar/dates";
 import type { WeekModel } from "../calendar/month";
 import { searchKey, type Planned } from "./search-model";
-import type { TilePage, TilePass } from "./tiles";
+import { googleCountsOf, type GoogleConsole, type GoogleCounts, type TilePage, type TilePass } from "@/lib/measure/results";
 
 const MS_PER_WEEK = 7 * 86_400_000;
 
@@ -38,43 +38,8 @@ export interface GooglePageRow {
   state: GoogleState;
 }
 
-/** The line under the tile's of-line: how often Google showed the live pages, or why that is not read yet. */
-export type GoogleShown =
-  | { kind: "shown"; n: number }
-  | { kind: "waiting"; visited: number; start: string | null }
-  | { kind: "no-console" };
-
-export interface GooglePages {
+export interface GooglePages extends GoogleCounts {
   rows: readonly GooglePageRow[];
-  /** Every row: the tile's and the pills' total. */
-  live: number;
-  /** The rows on Google: the tile's figure. */
-  on: number;
-  /** The rows nothing has read yet. */
-  unchecked: number;
-  shown: GoogleShown;
-}
-
-/** The site's Search Console property: `null` where it has none (WordPress, or never verified). */
-export interface GoogleConsole {
-  sitemapAt: string | null;
-}
-
-/** The first Monday check on or after the property is old enough to be asked for impressions; `null` before the sitemap went in. */
-export function countsStartOf(gsc: GoogleConsole, newDays: number): string | null {
-  if (gsc.sitemapAt === null) return null;
-  const day = new Date(Date.parse(gsc.sitemapAt) + newDays * 86_400_000);
-  day.setUTCDate(day.getUTCDate() + ((8 - day.getUTCDay()) % 7));
-  return day.toISOString().slice(0, 10);
-}
-
-/** The pages live at the latest healthy pass that it read their own search's result page for. */
-export function serpReadOf(passes: readonly TilePass[], pages: readonly TilePage[]): ReadonlySet<string> {
-  const healthy = [...passes].filter((pass) => pass.healthy).sort((x, y) => x.weekStart.localeCompare(y.weekStart)).at(-1);
-  if (healthy === undefined) return new Set();
-  // A result read before the page went live says nothing of the page.
-  const at = new Date(healthy.at);
-  return new Set(pages.flatMap((page) => (standingAt(page, at) && page.search !== null && searchRowsFor(healthy.report, page.search, { tracked: false }).kind !== "unmeasured" ? [page.id] : [])));
 }
 
 const LABEL_ORDER: Readonly<Record<Label, number>> = { working: 0, climbing: 1, not_moving: 2, too_early: 3 };
@@ -110,15 +75,7 @@ export function googlePagesOf(all: readonly PublishedPage[], now: Date, serpRead
   });
   const rank = (row: GooglePageRow): number => (row.label === null ? 4 : LABEL_ORDER[row.label]);
   rows.sort((a, b) => rank(a) - rank(b) || (a.place ?? Infinity) - (b.place ?? Infinity) || a.title.localeCompare(b.title));
-  const read = pages.flatMap((page) => googleRead(page.reading?.google) ?? []);
-  const visited = pages.filter((page) => page.reading?.googlebot === true || page.reading?.google?.lastCrawl != null).length;
-  const shown: GoogleShown =
-    read.length > 0
-      ? { kind: "shown", n: read.reduce((sum, google) => sum + google.impressions, 0) }
-      : gsc === null
-        ? { kind: "no-console" }
-        : { kind: "waiting", visited, start };
-  return { rows, live: rows.length, on: rows.filter((row) => row.state.on).length, unchecked: rows.filter((row) => !row.state.checked).length, shown };
+  return { rows, ...googleCountsOf(pages, serpRead, gsc, start) };
 }
 
 /** One row of On Google's detail: the page, its own search, that search's demand and who leads it. */

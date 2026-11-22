@@ -92,7 +92,7 @@ with a price, and the first with the offer. Record the video with `walkthrough-v
 > does a bathroom refit cost'."}
 >
 > ReachKit closes that gap for you: up to 7 pages a week, new or updated, written from facts on
-> your own site and published there. Each Monday an email shows what went live and your totals so far.
+> your own site and published there. Each Monday an email shows what went live and how your pages are doing.
 >
 > I'm setting up the first 50 customers personally. It's set up in about 10 minutes, or I do it
 > with you on a call. You also get a check-in after two weeks and after a month, and you can email
@@ -116,7 +116,7 @@ D2; F7 wording):
 > You read your report and a first page before you pay. Payments aren't refunded unless the law
 > requires it. Setup takes about 10 minutes, and if it takes longer, we do it together on a call.
 > Each page goes live on its day, by itself, once your site is connected. Google takes weeks to
-> months; each Monday email shows your totals so far.
+> months; each Monday email shows how your pages are doing.
 
 Evidence: the free page (`landing.faq.trial.a`, `report.ts:674`); refunds are Terms §4
 (`legal.terms.body`, `chrome.ts:197`); about 10 minutes (`setup.ts:396`); each page on its day is
@@ -174,7 +174,7 @@ and their row in the private `leads.csv`.
 |---|---|---|
 | "Too expensive" | "Compare it with what one page costs. In one survey of 213 freelance writers, from about 2021, the most common rate for a 1,500-word post was $250–399. This is €49 a month for up to 7 pages a week, written by AI from your own site." | `price-anchors.md` A1 (F5 wording) |
 | "I'll think about it" | "Sure. What would you need to see? There are {left} of 50 spots left until 31 Jan 2027." | D4 (replaced 2026-11-20); trust-compliance F6: say only the real count |
-| "SEO didn't work before" | "You've seen the report before paying. And every Monday the email shows your totals so far, so you're never guessing." | `offer.ts:37` |
+| "SEO didn't work before" | "You've seen the report before paying. And every Monday the email shows how your pages are doing, so you're never guessing." | `offer.ts:37` |
 | "I can do it with ChatGPT" | "You can. The question is whether you'll research, write, check and publish up to 7 pages every week." | `offer.ts:36` |
 | "Is this AI spam?" | "No. Claude, an AI model, writes each page from your site and linked sources. A page that fails its checks twice never goes live." | `landing.faq.spam.a`, `report.ts:658` |
 | "Will Google penalise AI pages?" | "No. Google has said that using AI to write pages isn't against its rules. What it acts on is pages churned out in bulk just to game search, with nothing new in them, however they were written. ReachKit writes each page from facts on your own site and linked public sources. It holds back any page with an invented fact or one that repeats a page you already have. And it only writes a new page when it has something the top results don't already say." Then send the written answer (§7). | seo-master on #2693; §7 |

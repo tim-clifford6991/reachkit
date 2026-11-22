@@ -1,12 +1,13 @@
 // SPEC §4 *Overview's four tiles* — each tile's figure, its change on the week
-// before and its 6-week series, from stored rows. Pure; a week no healthy pass
-// read is a gap, never 0.
-import { addressOf, linkedByIn, type PlaceReport } from "@/lib/measure/page-reading";
-import { standingAt } from "@/lib/measure/published";
+// before and its 6-week series, from stored rows. Overview's tiles and the Monday
+// mail's results both read it. Pure; a week no healthy pass read is a gap, never 0.
+import { PROPERTY_NEW_D } from "@/lib/config/constants";
+import { googleStateOf } from "@/lib/measure/ladder";
+import { addressOf, googleRead, linkedByIn, searchRowsFor, type PlaceReport } from "@/lib/measure/page-reading";
+import { contentOf, standingAt, type ContentModel, type PublishedPage, type PublishedRead } from "@/lib/measure/published";
 import { classifyReferences, namesOrLinks, namesSite as textNamesSite } from "@/lib/measure/drivers";
 import { newestSet } from "@/lib/market/prompts/rate";
 import type { PromptsSection } from "@/lib/scan/report";
-import type { GoogleShown } from "./google-pages";
 
 export const TILE_KEYS = ["pages", "google", "ai", "rivals"] as const;
 export type TileKey = (typeof TILE_KEYS)[number];
@@ -41,6 +42,25 @@ export interface TilePage {
   volume?: number | null;
   /** The first reading it was on Google (`onGoogleSince`); `null` where none was. */
   onGoogle?: string | null;
+}
+
+/** The line under On Google's of-line: how often Google showed the live pages, or why that is not read yet. */
+export type GoogleShown =
+  | { kind: "shown"; n: number }
+  | { kind: "waiting"; visited: number; start: string | null }
+  | { kind: "no-console" };
+
+/** The site's Search Console property: `null` where it has none (WordPress, or never verified). */
+export interface GoogleConsole {
+  sitemapAt: string | null;
+}
+
+/** On Google's counts over the live pages: every page, those on Google (the figure), those nothing has read yet, and the line beneath. */
+export interface GoogleCounts {
+  live: number;
+  on: number;
+  unchecked: number;
+  shown: GoogleShown;
 }
 
 /** This week's counts, taken by the functions that build the lists the tiles open. */
@@ -360,4 +380,60 @@ export function tilesOf(a: {
         };
 
   return { tiles: [pages, google, ai, rivals], bars };
+}
+
+/** The first Monday check on or after the property is old enough to be asked for impressions; `null` before the sitemap went in. */
+export function countsStartOf(gsc: GoogleConsole, newDays: number): string | null {
+  if (gsc.sitemapAt === null) return null;
+  const day = new Date(Date.parse(gsc.sitemapAt) + newDays * 86_400_000);
+  day.setUTCDate(day.getUTCDate() + ((8 - day.getUTCDay()) % 7));
+  return day.toISOString().slice(0, 10);
+}
+
+/** The pages live at the latest healthy pass that it read their own search's result page for. */
+export function serpReadOf(passes: readonly TilePass[], pages: readonly TilePage[]): ReadonlySet<string> {
+  const healthy = [...passes].filter((pass) => pass.healthy).sort((x, y) => x.weekStart.localeCompare(y.weekStart)).at(-1);
+  if (healthy === undefined) return new Set();
+  // A result read before the page went live says nothing of the page.
+  const at = new Date(healthy.at);
+  return new Set(pages.flatMap((page) => (standingAt(page, at) && page.search !== null && searchRowsFor(healthy.report, page.search, { tracked: false }).kind !== "unmeasured" ? [page.id] : [])));
+}
+
+/** On Google's counts: the rule each row of its detail is also given (`googleStateOf`). */
+export function googleCountsOf(pages: readonly PublishedPage[], serpRead: ReadonlySet<string>, gsc: GoogleConsole | null, start: string | null): GoogleCounts {
+  const states = pages.map((page) => googleStateOf(page.reading ?? null, serpRead.has(page.id)));
+  const read = pages.flatMap((page) => googleRead(page.reading?.google) ?? []);
+  const visited = pages.filter((page) => page.reading?.googlebot === true || page.reading?.google?.lastCrawl != null).length;
+  const shown: GoogleShown =
+    read.length > 0
+      ? { kind: "shown", n: read.reduce((sum, google) => sum + google.impressions, 0) }
+      : gsc === null
+        ? { kind: "no-console" }
+        : { kind: "waiting", visited, start };
+  return { live: pages.length, on: states.filter((state) => state.on).length, unchecked: states.filter((state) => !state.checked).length, shown };
+}
+
+/** The tiles from the stored reads, with the live list they count and On Google's counts start; `null` where the pages were not read. */
+export function resultsOf(a: {
+  published: PublishedRead;
+  passes: readonly TilePass[];
+  rows: readonly TilePage[];
+  rivals: RivalsFirstPage | null;
+  gsc: GoogleConsole | null;
+  week: string;
+  domain: string;
+  coming: number;
+  goLive: boolean;
+}): { model: TilesModel; pages: ContentModel; start: string | null; firstLive: Date | null } | null {
+  const pages = contentOf(a.published);
+  if (pages === null) return null;
+  const now = a.published.now;
+  // A start that has passed is no longer known: the line then gives no date.
+  const begins = a.gsc === null ? null : countsStartOf(a.gsc, PROPERTY_NEW_D);
+  const start = begins !== null && begins >= now.toISOString().slice(0, 10) ? begins : null;
+  const live = pages.pages.filter((page) => page.publishedAt <= now);
+  const google = googleCountsOf(live, serpReadOf(a.passes, a.rows), a.gsc, start);
+  const firstLive = pages.pages.at(-1)?.publishedAt ?? null;
+  const model = tilesOf({ ...a, pages: a.rows, lists: { live: pages.pages.length, firstLive, google }, now });
+  return { model, pages, start, firstLive };
 }

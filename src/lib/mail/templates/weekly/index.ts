@@ -1,12 +1,14 @@
 // SPEC §8 — the Monday mail tells one story in a fixed shape: the greeting, then the calm line or the critical needs-you and
-// connect notices, what we did, the running totals (gains only), this week's pages, the pace line and one button.
-// A block list only (ADR-040). The totals are read by the one totals reader and drawn under its words; a fall is
-// never drawn, and the standing line sends the reader to Overview. Footer links are the caller's: each carries a token only it can sign.
+// connect notices, what we did, the results, this week's pages, the pace line and one button.
+// A block list only (ADR-040). The results are Overview's own tiles in their own words, a fall in words and muted ink
+// like any change; the standing line sends the reader to Overview. Footer links are the caller's: each carries a token only it can sign.
 // A page and an opportunity are named by their search: titles are model text, which REQ-093 keeps out (§8, ADR-012).
 import { env } from "@/lib/config/env";
 import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
-import type { Total, Totals } from "@/lib/measure/totals";
+import type { Tile } from "@/lib/measure/results";
+import { changeWords, ofWords, TILE_NAME, type TileFormat } from "@/lib/measure/results-words";
 import type { CopyKey } from "@/lib/presentation/copy";
+import { localDay } from "@/lib/scan/weekly/week";
 import { formatMailDayMonth, formatMailWeekday } from "../../blocks/format";
 import type { CopyVars, ListRow, MailBlock, StatRow } from "../../blocks/types";
 
@@ -26,18 +28,7 @@ const SET_ASIDE = {
   unreplaced: { one: "mail.weekly.setAside.one.unreplaced", many: "mail.weekly.setAside.many.unreplaced" },
   updated: { one: "mail.weekly.setAside.one.updated", many: "mail.weekly.setAside.many.updated" },
 } as const satisfies Record<string, Record<string, CopyKey>>;
-// The totals' own words: one name per figure wherever it is drawn (DESIGN › Names).
-const TOTALS = "overview.totals.title" satisfies CopyKey;
-const TOTAL_LABEL = {
-  ai: "overview.totals.ai.label",
-  google: "overview.totals.google.label",
-  pages: "overview.totals.pages.label",
-} as const satisfies Record<keyof Totals, CopyKey>;
-const TOTAL_UP = "overview.totals.added" satisfies CopyKey;
-const TOTAL_FIRST = "overview.totals.first" satisfies CopyKey;
-const TOTAL_DUE = "overview.totals.first.due" satisfies CopyKey;
-const AI_NONE = "mail.weekly.totals.ai.none" satisfies CopyKey;
-const AI_HOW = "mail.weekly.totals.ai.how" satisfies CopyKey;
+const RESULTS = "mail.weekly.results" satisfies CopyKey;
 const STANDING = "mail.weekly.standing" satisfies CopyKey;
 const NEXT = "mail.weekly.next" satisfies CopyKey;
 const NEXT_NONE = "mail.weekly.next.none" satisfies CopyKey;
@@ -52,12 +43,15 @@ const PACE = "mail.weekly.pace" satisfies CopyKey;
 /** The subject is the first of these that applies (owner E). */
 const SUBJECT = {
   blocked: "mail.weekly.blocked.subject",
-  ai: { one: "mail.weekly.ai.one.subject", many: "mail.weekly.ai.subject" },
-  google: { one: "mail.weekly.google.one.subject", many: "mail.weekly.google.subject" },
+  firstPage: "mail.weekly.first-page.subject",
   pages: { one: "mail.weekly.pages.one.subject", many: "mail.weekly.pages.subject" },
   week: "mail.weekly.week.subject",
 } as const;
-const PREHEADER = { blocked: "mail.weekly.preheader.blocked", week: "mail.weekly.preheader" } as const satisfies Record<string, CopyKey>;
+const PREHEADER = {
+  blocked: "mail.weekly.preheader.blocked",
+  firstPage: "mail.weekly.first-page.preheader",
+  week: "mail.weekly.preheader",
+} as const satisfies Record<string, CopyKey>;
 
 /** A page's day line, by whether it updates a page and whether it goes live today. */
 const DAY_LINE = {
@@ -127,15 +121,17 @@ export interface WeeklyDid {
   readonly checked?: { readonly searches: number; readonly questions: number };
 }
 
-/** Overview's three totals at send time, the unbranded questions AI is asked each week, and when a first count is due. */
-export interface WeeklyTotals {
-  readonly of: Totals;
-  /** When the totals were read: the send. */
+/** Overview's Pages Live, Pages on Google and AI tiles at send time, and the days their lines name. */
+export interface WeeklyResults {
+  readonly tiles: readonly Tile[];
+  /** When the rows were read: the send. */
   readonly at: Date;
-  /** `null` where no pass stored its questions. */
-  readonly asked: number | null;
-  /** `YYYY-MM-DD`: the next pass, and the first planned page's day. */
-  readonly due: { readonly measured: string; readonly pages: string };
+  /** `YYYY-MM-DD`: the next pass, and the first planned page's day, `null` where none is planned. */
+  readonly due: string;
+  readonly goLive: string | null;
+  readonly zone: string;
+  /** A live page reached Google's first page for the first time since the pass before. */
+  readonly firstPage: boolean;
 }
 
 export function buildWeekly(a: {
@@ -147,8 +143,8 @@ export function buildWeekly(a: {
   needsYou?: WeeklyNeedsYou;
   /** Absent on a week that measured nothing: the whole-mail line says so once, and no number is stated. */
   did?: WeeklyDid;
-  /** Absent where the week measured nothing or the totals could not be read. */
-  totals?: WeeklyTotals;
+  /** Absent where the week measured nothing or the tiles' rows could not be read. */
+  results?: WeeklyResults;
   /** In date order. `unmeasured` omits the section; measured-empty states the supply's empty line, never padded. */
   next: Measured<readonly WeeklyNext[]>;
   /** The week's dates and publish time; absent, no calm line. */
@@ -156,11 +152,11 @@ export function buildWeekly(a: {
 }): WeeklyMail {
   const g = a.greeting;
   const blocked = a.needsYou !== undefined || a.connect !== undefined;
-  const subject = subjectOf(blocked, a.totals?.of, g);
+  const subject = subjectOf(blocked, a.results?.firstPage === true, a.did, g);
   const measuredWeek = a.did !== undefined;
   return {
     ...subject,
-    preheader: blocked ? PREHEADER.blocked : PREHEADER.week,
+    preheader: blocked ? PREHEADER.blocked : subject.subject === SUBJECT.firstPage ? PREHEADER.firstPage : PREHEADER.week,
     reason: REASON,
     blocks: [
       g.name === null || g.name.trim() === ""
@@ -181,7 +177,7 @@ export function buildWeekly(a: {
             { block: "action", label: NEEDS_YOU_ACTION, href: a.needsYou.href, variant: "secondary" },
           ] as const)),
       ...(a.did === undefined ? [] : didBlocks(a.did, a.calendar)),
-      ...(a.totals === undefined ? [] : totalBlocks(a.totals)),
+      ...(a.results === undefined ? [] : resultBlocks(a.results)),
       ...(measuredWeek ? [{ block: "paragraph", text: STANDING, tone: "quiet" } as const] : []),
       ...weekBlocks(a.next, a.calendar),
       ...(measuredWeek ? [{ block: "paragraph", text: PACE, tone: "quiet" } as const] : []),
@@ -193,15 +189,12 @@ export function buildWeekly(a: {
   };
 }
 
-/** Blocked, then AI rose, Google rose, pages rose, else the week (owner E). A first count is never a rise. */
-function subjectOf(blocked: boolean, totals: Totals | undefined, g: { week: number; business: string }): { subject: CopyKey; subjectVars?: CopyVars } {
+/** Blocked, then a first-ever event, then pages that went live last week, else the week. */
+function subjectOf(blocked: boolean, firstPage: boolean, did: WeeklyDid | undefined, g: { week: number; business: string }): { subject: CopyKey; subjectVars?: CopyVars } {
   if (blocked) return { subject: SUBJECT.blocked };
-  for (const which of ["ai", "google", "pages"] as const) {
-    const total = totals?.[which];
-    if (total?.kind === "added" && total.n > 0) {
-      return total.n === 1 ? { subject: SUBJECT[which].one } : { subject: SUBJECT[which].many, subjectVars: { n: String(total.n) } };
-    }
-  }
+  if (firstPage) return { subject: SUBJECT.firstPage };
+  const live = did?.pages.filter((page) => !page.update).length ?? 0;
+  if (live > 0) return live === 1 ? { subject: SUBJECT.pages.one } : { subject: SUBJECT.pages.many, subjectVars: { n: String(live) } };
   return { subject: SUBJECT.week, subjectVars: { week: String(g.week), business: g.business } };
 }
 
@@ -232,32 +225,21 @@ function didBlocks(did: WeeklyDid, calendar: WeeklyCalendar | undefined): readon
   ];
 }
 
-/** AI first, its one explaining line under it, then Google and pages. A figure is never drawn falling, a first count never
- *  as growth, and a count not taken yet names its day, never a zero. */
-function totalBlocks(t: WeeklyTotals): readonly MailBlock[] {
-  const row = (which: keyof Totals, total: Total): StatRow => {
-    const label = TOTAL_LABEL[which];
-    const due = (date: string): StatRow => ({
-      label,
-      value: unmeasured("not_attempted", t.at),
-      format: "integer",
-      unmeasuredLine: TOTAL_DUE,
-      unmeasuredVars: { date: formatMailDayMonth(date) },
-    });
-    if (total.kind === "due") return due(which === "pages" ? t.due.pages : t.due.measured);
-    // No answer has mentioned the site yet: the row's line says we asked, in place of a bare 0.
-    if (which === "ai" && total.total === 0) return { label, value: unmeasured("not_attempted", t.at), format: "integer", unmeasuredLine: AI_NONE };
-    const value = measured(total.total, t.at);
-    if (total.kind === "added" && total.n > 0) return { label, value, format: "integer", note: { text: TOTAL_UP, vars: { n: String(total.n) } } };
-    if (total.kind === "first") return { label, value, format: "integer", note: { text: TOTAL_FIRST, vars: { date: formatMailDayMonth(total.week) } } };
-    return { label, value, format: "integer" };
+/** Pages Live, Pages on Google and AI Answers Mentioning You, each with its tile's figure, of line and change line. */
+function resultBlocks(r: WeeklyResults): readonly MailBlock[] {
+  // A change's date is an instant, read in the site's zone; the due and go-live days are already its days, held at noon UTC.
+  const f: TileFormat = { count: String, date: (at) => formatMailDayMonth(localDay(at, r.zone)), day: (at) => formatMailDayMonth(at.toISOString().slice(0, 10)) };
+  const dates = { due: new Date(`${r.due}T12:00:00Z`), goLive: r.goLive === null ? null : new Date(`${r.goLive}T12:00:00Z`) };
+  const row = (tile: Tile): StatRow => {
+    const of = ofWords(tile, f.count);
+    const change = tile.change === null ? null : changeWords(tile.key, tile.change, dates, f);
+    const detail = change === null ? {} : { detail: change };
+    // Not counted yet is the tile's dash: its of line stands where the figure would.
+    if (tile.n === null) return { label: TILE_NAME[tile.key], value: unmeasured("not_attempted", r.at), format: "integer", unmeasuredLine: of.text, ...(of.vars === undefined ? {} : { unmeasuredVars: of.vars }), ...detail };
+    return { label: TILE_NAME[tile.key], value: measured(tile.n, r.at), format: "integer", note: of, ...detail };
   };
-  return [
-    { block: "heading", level: 2, text: TOTALS },
-    { block: "stats", shape: "tiles", items: [row("ai", t.of.ai)] },
-    ...(t.asked === null ? [] : [{ block: "paragraph", text: AI_HOW, vars: { n: String(t.asked) }, tone: "quiet" } as const]),
-    { block: "stats", shape: "tiles", items: [row("google", t.of.google), row("pages", t.of.pages)] },
-  ];
+  const items = r.tiles.filter((tile) => tile.key !== "rivals").map(row);
+  return items.length === 0 ? [] : [{ block: "heading", level: 2, text: RESULTS }, { block: "stats", shape: "tiles", items }];
 }
 
 /** "This week's pages": title, the first pages with why and two links, a link to Plan, and a short week said as such. */

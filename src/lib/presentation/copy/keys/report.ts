@@ -561,7 +561,7 @@ export const REPORT_COPY = Object.freeze({
   // brief (DECISIONS 2026-09-10) rules that out — a page goes live when one
   // is ready, at most one a day. Approved 2026-09-11 (#516).
   "landing.step.3.title": "You See Progress",
-  "landing.step.3.body": "Each page goes live on its own day. Every Monday an email shows what went live and your totals so far.",
+  "landing.step.3.body": "Each page goes live on its own day. Every Monday an email shows what went live and how your pages are doing.",
 
   /* ── The landing in its 2026-09-24 order (#1067) ─────────────────────
      Boards `R12-1-Landing`, `R12-8-Phone-landing`, `R12-10-Dark-landing`
@@ -601,7 +601,7 @@ export const REPORT_COPY = Object.freeze({
   "landing.faq.approve.q": "Do I have to approve each page?",
   "landing.faq.approve.a": "No. Each page goes live by itself {hours} hours after it is written. You can edit or stop it first, or do nothing.",
   "landing.faq.results.q": "How long until I see results?",
-  "landing.faq.results.a": "Your pages go live in week 1. Each Monday email shows what went live and your totals so far.",
+  "landing.faq.results.a": "Your pages go live in week 1. Each Monday email shows what went live and how your pages are doing.",
   "landing.faq.stop.q": "What if I want to stop?",
   "landing.faq.stop.a": "Cancel any time from Settings, and you’re not charged again. Section four of our Terms says when your access ends. Pages on the blog address we run for you stay live for {days} days after your access ends, and we email you a week before they stop. Your export of every page stays available, with no end date.",
   "landing.faq.any.q": "Will it work for my business?",
@@ -614,7 +614,7 @@ export const REPORT_COPY = Object.freeze({
   "landing.faq.trial.a": "The scan and your first page are free, so you see the work first. Then it’s one plan at {price} a month.",
   /** The landing's short answers; How it works and Pricing keep the full ones above. */
   "landing.faq.approve.short": "No. Each page goes live by itself {hours} hours after it is written. You can edit or stop it first.",
-  "landing.faq.results.short": "Pages go live in week 1. Google takes weeks to months; each Monday email shows your totals so far.",
+  "landing.faq.results.short": "Pages go live in week 1. Google takes weeks to months; each Monday email shows how your pages are doing.",
   "landing.faq.stop.short": "Cancel any time in Settings; you’re not charged again. Your export of every page stays available.",
   "landing.faq.german.short": "Yes, sites in {germanCountries} are checked and written in German. Everywhere else gets English.",
   "landing.faq.trial.short": "The scan and your first page are free, so you see the work first.",

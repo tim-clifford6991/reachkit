@@ -14,7 +14,7 @@ import { rowClass } from "./frame";
 import { googleWords } from "./place-words";
 import { ShowAll } from "./ShowAll";
 import type { TilesView } from "./tiles-build";
-import { AI_WINDOW_WEEKS } from "./tiles";
+import { AI_WINDOW_WEEKS } from "@/lib/measure/results";
 
 const INK = "text-base-content/70";
 

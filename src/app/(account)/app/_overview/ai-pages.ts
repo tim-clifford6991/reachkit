@@ -8,7 +8,7 @@ import type { AnswerEngine } from "@/lib/opportunities/types";
 import type { GeneratedText } from "@/lib/presentation/generated";
 import type { AnswerQuestion } from "./answers-model";
 import { bestMark, enginesAsked, type AiMark } from "./ai-mark";
-import { inAiWindow, namesSite, type AiWindow, type TilePass } from "./tiles";
+import { inAiWindow, namesSite, type AiWindow, type TilePass } from "@/lib/measure/results";
 
 export interface AiPageRow {
   id: string;

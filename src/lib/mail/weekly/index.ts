@@ -9,8 +9,9 @@ import { env } from "@/lib/config/env";
 import { PAGES_LANDING_PATH } from "@/lib/account/identity/addresses";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { unmeasured, measured, type Measured } from "@/lib/measure/measured";
-import { totalsOf, type TotalsPass } from "@/lib/measure/totals";
-import { readTotalsRows } from "@/lib/measure/totals-store";
+import { readPublishedPages } from "@/lib/measure/published-store";
+import { resultsOf, type TilePass } from "@/lib/measure/results";
+import { readTileRows } from "@/lib/measure/results-store";
 import { committedWeek, opportunityById } from "@/lib/opportunities";
 import { placedByDay, plannedByDay, serviceWeek } from "@/lib/opportunities/days";
 import { plannedStopToken } from "@/lib/opportunities/stop";
@@ -36,7 +37,7 @@ import {
   type WeeklyDidPage,
   type WeeklyNeedsYou,
   type WeeklyNext,
-  type WeeklyTotals,
+  type WeeklyResults,
 } from "../templates/weekly";
 
 /** Why a digest did not go out. `not-composable` is its own arm: "the line is not written yet" is owed distinctly to whoever asks why Monday was quiet. */
@@ -126,7 +127,7 @@ export async function sendWeeklyDigest(a: {
       ? // No numbers: the whole-mail line already says the week was not measured.
         { mail: buildWeekly({ ...head, next: unmeasured("undeterminable", now) }), measurement: { state: "none", nextDueOn: account.nextDueOn } as const }
       : {
-          mail: buildWeekly({ ...head, ...(calendar === undefined ? {} : { calendar }), ...(await measuredWeek(a.siteId, a.weekStart, zone, now)) }),
+          mail: buildWeekly({ ...head, ...(calendar === undefined ? {} : { calendar }), ...(await measuredWeek({ siteId: a.siteId, domain: recipient.domain, weekStart: a.weekStart, zone, now })) }),
           measurement: measurementStateOf(account),
         };
 
@@ -198,16 +199,20 @@ async function addressToConnect(siteId: string, recipient: { userId: string; ema
   }
 }
 
-/** A measured week, whole or in part: what we did last week, Overview's totals at send time, and this week's pages. */
-async function measuredWeek(
-  siteId: string,
-  weekStart: string,
-  zone: string,
-  now: Date
-): Promise<{ did: WeeklyDid; totals?: WeeklyTotals; next: Measured<readonly WeeklyNext[]> }> {
-  // The totals are Overview's reader over the same rows, read at the send; a failed read draws no totals, never zeros.
-  const [rows, pages, setAside, market, next] = await Promise.all([
-    readTotalsRows({ siteId, zone }).catch(() => null),
+/** A measured week, whole or in part: what we did last week, Overview's tiles at send time, and this week's pages. */
+async function measuredWeek(a: {
+  siteId: string;
+  domain: string;
+  weekStart: string;
+  zone: string;
+  now: Date;
+}): Promise<{ did: WeeklyDid; results?: WeeklyResults; next: Measured<readonly WeeklyNext[]> }> {
+  const { siteId, weekStart, zone, now } = a;
+  // Overview's own reads over the same rows, read at the send; a failed read draws no results, never zeros.
+  const week = weekStartFor({ at: now, zone });
+  const [rows, published, pages, setAside, market, next] = await Promise.all([
+    readTileRows({ siteId, domain: a.domain, week }).catch(() => null),
+    readPublishedPages(siteId, now).catch(() => null),
     pagesLiveLastWeek(siteId, weekStart, zone).catch(() => []),
     setAsideLastWeek(siteId, weekStart).catch(() => undefined),
     marketChangesSince(siteId, weekStart),
@@ -220,33 +225,29 @@ async function measuredWeek(
     pages,
     ...(setAside === undefined ? {} : { setAside }),
     market,
-    ...(asked === null || asked.searches === 0 ? {} : { checked: { searches: asked.searches, questions: asked.all } }),
+    ...(asked === null || asked.searches === 0 ? {} : { checked: asked }),
   };
-  if (rows === null) return { did, next };
   const firstDay = next.kind === "unmeasured" ? undefined : next.value[0]?.day;
+  if (rows === null || published === null) return { did, next };
+  const results = resultsOf({ published: { pages: published, now }, passes: rows.passes, rows: rows.pages, rivals: null, gsc: rows.gsc, week, domain: a.domain, coming: 0, goLive: firstDay !== undefined });
+  if (results === null) return { did, next };
+  // Told once: readings are written by the weekly pass, so the site's first page-1 date falls inside this week's pass only once.
+  const reached = published.flatMap((page) => (page.reading?.reached.firstPage === undefined ? [] : [Date.parse(page.reading.reached.firstPage)]));
+  const first = reached.length === 0 ? null : Math.min(...reached);
+  const firstPage = pass !== undefined && first !== null && first > Date.parse(pass.at) && first <= now.getTime();
   return {
     did,
     next,
-    totals: {
-      of: totalsOf({ ...rows, week: weekStartFor({ at: now, zone }) }),
-      at: now,
-      asked: asked?.unbranded ?? null,
-      due: { measured: plusDays(weekStart, 7), pages: firstDay ?? plusDays(weekStart, 7) },
-    },
+    results: { tiles: results.model.tiles, at: now, due: plusDays(weekStart, 7), goLive: firstDay ?? null, zone, firstPage },
   };
 }
 
-/** This week's pass: the Google searches it read and the AI questions it asked, branded ones apart; `null` with no questions stored. */
-function askedOf(pass: TotalsPass): { searches: number; all: number; unbranded: number } | null {
-  const questions = pass.questions as { kind?: unknown; value?: unknown } | null;
-  const prompts = pass.prompts as { asked?: unknown } | null;
-  const asked = Array.isArray(prompts?.asked) ? (prompts.asked as { kind?: unknown }[]) : null;
-  if (asked === null) return null;
-  return {
-    searches: questions?.kind !== "unmeasured" && Array.isArray(questions?.value) ? questions.value.length : 0,
-    all: asked.length,
-    unbranded: asked.filter((prompt) => prompt.kind !== "branded").length,
-  };
+/** This week's pass: the Google searches it read and the AI questions it asked; `null` with no questions stored. */
+function askedOf(pass: TilePass): { searches: number; questions: number } | null {
+  const asked = pass.prompts?.asked;
+  if (!Array.isArray(asked)) return null;
+  const questions = pass.report.questions;
+  return { searches: questions.kind === "unmeasured" ? 0 : questions.value.length, questions: asked.length };
 }
 
 /** The pages that went live in the site-local week before `weekStart` and are still up, newest last, each by its search. */

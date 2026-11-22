@@ -99,7 +99,7 @@ export const MAIL_COPY = Object.freeze({
   "mail.nurture.subject.2": "What changes once the pages ship",
   "mail.nurture.subject.3": "One last note about your report",
   "mail.nurture.body.1": "You have page 1 for {domain}. ReachKit takes it from here. Up to {weekPages} pages a week, new or updated, published for you. Each goes live on its own unless you stop it first. €49 a month, cancel any time.",
-  "mail.nurture.body.2": "Every page ReachKit writes for {domain} targets one search your competitors already answer. Each Monday it scans your market again and sends your totals so far.",
+  "mail.nurture.body.2": "Every page ReachKit writes for {domain} targets one search your competitors already answer. Each Monday it scans your market again and shows how your pages are doing.",
   "mail.nurture.body.3": "This is the last follow-up about {domain}. Your report and your first page stay yours. When you want the rest written and published, ReachKit starts at €49 a month, cancel any time.",
 
   // BUILD §4.3's setup reminder (REQ-025 c6); the last three ask a stamped founder who is not live to connect (R15).
@@ -200,18 +200,16 @@ export const MAIL_COPY = Object.freeze({
   "mail.account.address_moved.preheader": "This address can no longer sign in.",
   "mail.account.address_moved": "Your ReachKit account now signs in with a different email address. This address can't sign in, and our mail goes to the new one.",
 
-  // The `weekly` mail (owner P5, 2026-11-16): what we did, the running totals in Overview's words (gains only), this
-  // week's pages. A page is named by its search, never by a model-written title (§8, REQ-093). The subject is the first
-  // that applies of blocked, AI rose, Google rose, pages rose, else the week (owner E); each is at most six words.
+  // The `weekly` mail (owner ruling 78, 2026-11-22): what we did, Overview's tiles in their own words, this week's pages.
+  // A page is named by its search, never by a model-written title (§8, REQ-093). The subject is the first that applies of
+  // blocked, a first-ever event, pages went live, else the week; each is at most six words.
   "mail.weekly.blocked.subject": "Your pages are waiting on you",
-  "mail.weekly.ai.subject": "AI mentioned you {n} more times",
-  "mail.weekly.ai.one.subject": "AI mentioned you once more",
-  "mail.weekly.google.subject": "Shown in {n} new Google searches",
-  "mail.weekly.google.one.subject": "Shown in a new Google search",
   "mail.weekly.pages.subject": "{n} new pages went live",
   "mail.weekly.pages.one.subject": "Your new page went live",
+  "mail.weekly.first-page.subject": "Your page reached Google's first page",
+  "mail.weekly.first-page.preheader": "What we did, how your pages are doing, and this week's pages.",
   "mail.weekly.week.subject": "Week {week} for {business}",
-  "mail.weekly.preheader": "What we did, your totals so far, and this week's pages.",
+  "mail.weekly.preheader": "What we did, how your pages are doing, and this week's pages.",
   "mail.weekly.preheader.blocked": "One thing needs you before your pages can go live.",
   "mail.weekly.needsYou": "One page needs you: {page}.",
   "mail.weekly.needsYou.action": "Open the Page",
@@ -227,9 +225,7 @@ export const MAIL_COPY = Object.freeze({
   "mail.weekly.setAside.many.unreplaced": "{n} pages didn’t pass our checks, so we held them back.",
   "mail.weekly.setAside.one.updated": "One page didn’t pass our checks. We set it aside and improved a live page instead.",
   "mail.weekly.setAside.many.updated": "{n} pages didn’t pass our checks. We set them aside and improved live pages instead.",
-  // The totals are drawn under the `overview.totals.*` words; these are the mail's two lines beside them.
-  "mail.weekly.totals.ai.none": "We asked. None mentioned you yet.",
-  "mail.weekly.totals.ai.how": "Each week we ask AI {n} questions about your kind of business. We count from when you joined.",
+  "mail.weekly.results": "How Your Pages Are Doing",
   "mail.weekly.standing": "Your Overview shows where each page stands this week.",
   // The first row while the hosted address waits for its record, every Monday until it is connected. Drafted (#759).
   "mail.weekly.connect": "Your pages are written but can't go live at {host} yet. Add one line at the company you bought your address from.",

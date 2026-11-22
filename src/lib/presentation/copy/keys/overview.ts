@@ -426,16 +426,6 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.paused.line": "Publishing is paused. Your pages are kept.",
   "overview.paused.action": "Turn Publishing On",
 
-  // ── The three running totals: read by the Monday mail and the landing's sample picture (owner P4, 2026-11-16, #2737).
-  "overview.totals.title": "Your Results So Far",
-  "overview.totals.ai.label": "Times AI Mentioned You",
-  "overview.totals.google.label": "Google Searches That Have Shown You",
-  "overview.totals.pages.label": "Pages Published So Far",
-  "overview.totals.added": "+{n} this week",
-  // The first count is a starting point, not this week's gain.
-  "overview.totals.first": "First count, {date}",
-  "overview.totals.first.due": "First count on {date}",
-
   // ── Overview's four tiles (owner, 2026-11-20, #2982). A week down is information, never an alarm.
   "overview.tiles.label": "Your results",
   "overview.tile.pages.name": "Pages Live",

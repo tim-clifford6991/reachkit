@@ -95,30 +95,6 @@ const LIST = (
       source: "src/lib/measure/figures.ts#monthFiguresOf",
       cadence: "Monthly, on the first Monday.",
     },
-    {
-      id: "overview-total-ai",
-      shown: { on: "tile", key: "overview-total-ai" },
-      definition:
-        "Times AI mentioned you, so far: the sum over each week's weekly pass that passed its own health checks of the tracked-prompt answers that mention or link the site, the branded prompts left out, from the first such pass. A week with no healthy pass adds nothing and says so; an answer not read is not counted. Before the first, a dash and the day it is taken.",
-      source: "src/lib/measure/totals.ts#totalsOf",
-      cadence: "Weekly, each Monday's pass.",
-    },
-    {
-      id: "overview-total-google",
-      shown: { on: "tile", key: "overview-total-google" },
-      definition:
-        "Google searches that have shown you, so far: the distinct searches on which a page ReachKit published, live at the time, was read at places 1 to 100 in any weekly pass, each counted once from the first week it was. Counted from the first pass after a page went live.",
-      source: "src/lib/measure/totals.ts#totalsOf",
-      cadence: "Weekly, each Monday's pass.",
-    },
-    {
-      id: "overview-total-pages",
-      shown: { on: "tile", key: "overview-total-pages" },
-      definition:
-        "Pages published so far: every distinct address ReachKit has published a page at, counted from the week it first went live; a page stopped or merged later stays counted.",
-      source: "src/lib/measure/totals.ts#totalsOf",
-      cadence: "As each page goes live.",
-    },
   ]
   // measures:end
 ) as const satisfies readonly Measure[];

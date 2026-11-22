@@ -421,7 +421,6 @@ const { setOpportunityStore } = await import("../../src/lib/opportunities");
 const verdicts = await import("../../src/lib/opportunities/verdicts");
 const { readStoredReport } = await import("../../src/lib/scan/report");
 const { buildWeekly } = await import("../../src/lib/mail/templates/weekly");
-const { omittedIndexes } = await import("../../src/lib/mail/blocks/omit");
 const { chooseWholeMailLine } = await import("../../src/lib/mail/shell/compose");
 const { sendEmail } = await import("../../src/lib/mail/send");
 const { sendWeeklyDigest } = await import("../../src/lib/mail/weekly");
@@ -518,10 +517,8 @@ async function measureTheWeek(now = MONDAY) {
 /** §12's four weekly sections, and the lines that speak them; none is owed any more. */
 const DIGEST_KEYS = [
   "mail.weekly.week.subject",
-  "mail.weekly.google.subject",
   "mail.weekly.standing",
   "mail.weekly.did.checked",
-  "mail.weekly.totals.ai.how",
   "mail.weekly.next",
   "mail.weekly.next.none",
   "mail.weekly.next.item",
@@ -758,31 +755,8 @@ describe("Monday: the week is re-measured, judged, and told (JN-005)", () => {
     JOURNEY_TIMEOUT_MS
   );
 
-  it("the digest tells gains only: a total that did not rise draws no increment and no fall, and an unmeasured week states no number", async () => {
+  it("an unmeasured week states no number, and the digest is told once", async () => {
     const greeting = { name: "Dana", week: 3, business: "acme.example" };
-    // AI did not rise this week; Google did. The subject names the first rise in the fixed order.
-    const whole = buildWeekly({
-      greeting,
-      did: { at: MONDAY, pages: [], checked: { searches: 12, questions: 12 } },
-      totals: {
-        of: { ai: { kind: "flat", total: 5 }, google: { kind: "added", total: 9, n: 2 }, pages: { kind: "flat", total: 1 } },
-        at: MONDAY,
-        asked: 10,
-        due: { measured: "2026-09-07", pages: "2026-09-01" },
-      },
-      next: measured([{ targetQuery: "agency capacity planning tool" }], MONDAY),
-    });
-    expect(whole.subject).toBe("mail.weekly.google.subject");
-    expect(whole.subjectVars).toEqual({ n: "2" });
-    const rows = whole.blocks.flatMap((block) => (block.block === "stats" ? block.items : []));
-    const ai = rows.find((row) => row.label === "overview.totals.ai.label");
-    expect(ai?.value).toEqual(measured(5, MONDAY));
-    expect(ai?.note).toBeUndefined();
-    expect(rows.find((row) => row.label === "overview.totals.google.label")?.note).toEqual({ text: "overview.totals.added", vars: { n: "2" } });
-    expect(JSON.stringify(whole.blocks)).not.toMatch(/down|fell|declin/i);
-    expect(whole.blocks.filter((block) => block.block === "paragraph" && block.text === "mail.weekly.standing")).toHaveLength(1);
-    expect(omittedIndexes(whole.blocks)).toEqual([]);
-
     // A week that measured nothing states no number; the whole-mail line says so, and the standing line follows it.
     const partial = buildWeekly({ greeting, next: unmeasured("not_attempted", MONDAY) });
     expect(partial.blocks.map((block) => block.block)).toEqual(["heading", "action", "paragraph"]);

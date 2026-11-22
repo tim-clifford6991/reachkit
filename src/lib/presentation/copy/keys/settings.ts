@@ -404,7 +404,7 @@ export const SETTINGS_COPY = Object.freeze({
   "settings.notifications.weekly": "Monday mail",
   // The card's lead and each row's line (issue 1751; Q10 for the page-ready row). No send time: owner R29, 2026-10-23.
   "settings.notifications.to": "Sent to {email}",
-  "settings.notifications.weekly.note": "Mondays. What went live, your totals so far, and the next {days} pages.",
+  "settings.notifications.weekly.note": "Mondays. What went live, how your pages are doing, and the next {days} pages.",
   "settings.notifications.draft-ready.note": "One mail per page, {window} before it goes live, until your first Monday mail. Turn on to keep getting them.",
   "settings.notifications.none": "You get no ReachKit mail except sign-in and account mail. Pages still go live on their day.",
 
