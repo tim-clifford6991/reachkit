@@ -18,6 +18,7 @@ import { whyOf } from "@/lib/opportunities/why";
 import { vetoLinkPath } from "@/lib/publish/publishable";
 import { scheduledPagesFor } from "@/lib/publish/record";
 import { becameUpdate, critical, needsYouOf, setAsideOf } from "@/lib/publish/record/needs-you";
+import { fromMail } from "@/lib/publish/reads/count";
 import { heldPages } from "@/lib/publish/switch";
 import { pauseTokenFor } from "@/lib/publish/switch/pause-link";
 import { readPublishingSettings } from "@/lib/publish/settings/settings";
@@ -252,6 +253,7 @@ function askedOf(pass: TotalsPass): { searches: number; all: number; unbranded: 
 async function pagesLiveLastWeek(siteId: string, weekStart: string, zone: string): Promise<readonly WeeklyDidPage[]> {
   type Row = {
     live_url: string | null;
+    destination: string;
     published_at: string;
     unpublished_at: string | null;
     drafts: { meta: unknown; opportunities: { target_query: string | null; family: string | null } | null } | null;
@@ -259,7 +261,7 @@ async function pagesLiveLastWeek(siteId: string, weekStart: string, zone: string
   const lastWeek = plusDays(weekStart, -7);
   const { data, error } = await untyped()
     .from<Row>("publications")
-    .select("live_url, published_at, unpublished_at, drafts(meta, opportunities(target_query, family))")
+    .select("live_url, destination, published_at, unpublished_at, drafts(meta, opportunities(target_query, family))")
     .eq("site_id", siteId)
     .gte("published_at", `${plusDays(lastWeek, -1)}T00:00:00Z`);
   if (error !== null) return [];
@@ -270,7 +272,7 @@ async function pagesLiveLastWeek(siteId: string, weekStart: string, zone: string
       const opportunity = row.drafts?.opportunities ?? null;
       return {
         search: nameOf(opportunity?.target_query, row.live_url!),
-        liveUrl: row.live_url!,
+        liveUrl: row.destination === "hosted" ? fromMail(row.live_url!) : row.live_url!,
         update: opportunity?.family === "improve" || opportunity?.family === "fix" || becameUpdate(row.drafts?.meta),
       };
     });

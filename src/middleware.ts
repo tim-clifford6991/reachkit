@@ -47,9 +47,9 @@ import { NextResponse } from "next/server";
 import type { NextFetchEvent, NextRequest } from "next/server";
 import { HOSTED_SUBDOMAIN_LABEL, HOSTED_UNAVAILABLE_INIT, PREVIEW_HOST_SUFFIX } from "@/lib/config/constants/publish";
 import { env } from "@/lib/config/env";
-import { classifyBlogRead } from "@/lib/publish/reads/classify";
+import { countHostedRequest, lookupMissed } from "@/lib/publish/reads/count";
 import { isDomainRemoved } from "@/lib/scan/removal";
-import type { HostedAnswer, LiveAnswer } from "@/app/(hosted)/edge";
+import type { HostedAnswer } from "@/app/(hosted)/edge";
 import { isFixtureDomain } from "@/app/(public)/scan/[domain]/_fixture/domains";
 import { GATE_PATH_HEADER } from "@/app/(account)/setup/gate";
 import { movedAnswer } from "@/app/(public)/_seo/moved";
@@ -247,75 +247,6 @@ function isHostedEdgeHost(req: NextRequest): boolean {
   return !LOCAL_HOSTS.has(name);
 }
 
-function blogReadOf(req: NextRequest): ReturnType<typeof classifyBlogRead> {
-  return classifyBlogRead({
-    userAgent: req.headers.get("user-agent"),
-    referer: req.headers.get("referer"),
-    utmSource: req.nextUrl.searchParams.get("utm_source"),
-  });
-}
-
-/** A classified read that was not written. The reason and nothing else:
- *  no header, address or path of the request reaches a log. */
-function blogReadSkipped(
-  reason: "unverified_crawler" | "ranges_unreadable" | "page_lookup_deadline"
-): void {
-  console.warn(JSON.stringify({ event: "blog_read_skipped", reason }));
-}
-
-/**
- * SPEC §6 (2026-09-20, #908) measure (d) · SPEC §7 of the same date, issue
- * #921 — count this read of this page, after the response has gone.
- *
- * **Counted here, because this is the one place every request passes**
- * (issue 1242). The article is cached, and a cached page is rendered once:
- * a count made in the render would see the first answer-engine fetch and
- * none after it. This file runs on every request and before the cache.
- *
- * **The three strings are read and reduced here.** `classifyBlogRead` turns
- * the agent, the referrer and `utm_source` into one `{ engine, kind }` or
- * into nothing, so none of them reaches the store. §7: "no cookie, no
- * visitor identity … nothing else about a visit is kept."
- *
- * **Ordinary traffic schedules nothing**, and the store is imported only
- * for a read that is counted. The write is handed to `waitUntil`, so it
- * does not stand between the reader and the page. Next always passes the
- * event; the suites that call `middleware` with a request alone do not.
- *
- * **A search crawler is counted only from its own engine's addresses**
- * (issue 1553). The platform's client address is checked against the
- * engine's published ranges inside the same deferred write, and dropped:
- * it is never stored.
- */
-function countBlogRead(
-  req: NextRequest,
-  live: LiveAnswer,
-  event: Pick<NextFetchEvent, "waitUntil"> | undefined
-): void {
-  const read = blogReadOf(req);
-  if (read === null) return;
-
-  const write = (async (): Promise<void> => {
-    if (read.kind === "crawl") {
-      const [{ clientAddressOf }, { crawlerVerdict }] = await Promise.all([import("@/lib/scan/admission"), import("@/lib/publish/reads/crawler")]);
-      const verdict = await crawlerVerdict(read.engine, clientAddressOf(req.headers));
-      if (verdict !== "verified") {
-        blogReadSkipped(verdict);
-        return;
-      }
-    }
-    const { recordBlogRead } = await import("@/lib/publish/reads/store");
-    const { now } = await import("@/lib/config/now");
-    await recordBlogRead({
-      siteId: live.siteId,
-      publicationId: live.publicationId,
-      at: now(),
-      read,
-    });
-  })().catch(() => undefined);
-  event?.waitUntil(write);
-}
-
 /**
  * The hosted edge's own rewrite, on a customer's own host and nowhere else.
  *
@@ -366,7 +297,7 @@ async function hostedRewrite(
     );
   } catch {
     // `hostedAnswer` answers its own failures, so what lands here is the deadline.
-    if (blogReadOf(req) !== null) blogReadSkipped("page_lookup_deadline");
+    lookupMissed(req);
   }
 
   if (answer === "unavailable") return { response: new NextResponse(null, HOSTED_UNAVAILABLE_INIT), scriptFree: false };
@@ -377,7 +308,8 @@ async function hostedRewrite(
     return { response: NextResponse.redirect(`https://${answer.host}/${answer.slug}`, 301), scriptFree: false };
   }
   if (typeof answer === "object") {
-    countBlogRead(req, answer, event);
+    // A click report gets an empty answer, never the page; counting itself runs after the response.
+    if (countHostedRequest(req, answer, event) === "ping") return { response: new NextResponse(null, { status: 204 }), scriptFree: false };
     // The host that resolved and the segment as it was asked for: the
     // article is a function of this path and of nothing else in the
     // request, which is what lets it be cached.

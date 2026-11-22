@@ -62,6 +62,7 @@ import {
   shareTags,
 } from "./seo";
 import { pageAuthorOf } from "./author";
+import { pingOf } from "@/lib/publish/reads/count";
 
 export interface Resolved {
   page: HostedPage;
@@ -323,17 +324,18 @@ export async function articleDocument(host: string, slug: string): Promise<strin
   });
 }
 
-/** Where `href` answers now, when it is an address of the page's own host
- *  that moved (issue 1511); `null` for every other link. */
-function movedHere(href: string, canonical: string, moved: ReadonlyMap<string, string> | undefined): string | null {
-  if (moved === undefined || moved.size === 0) return null;
+/** Where `href` answers now, when it is an address of the page's own host that moved; a link to the business's own
+ *  domain off this host reports its click; `null` for every other link. */
+function redrawn(href: string, canonical: string, moved: ReadonlyMap<string, string> | undefined, domain: string): { href?: string; ping?: string } | null {
   try {
     const target = new URL(href, canonical);
     const host = new URL(canonical).host;
-    if (target.host !== host) return null;
+    const own = domain.replace(/^www\./, "").toLowerCase();
+    if (target.host !== host) return target.hostname === own || target.hostname.endsWith(`.${own}`) ? { ping: pingOf("link") } : null;
+    if (moved === undefined || moved.size === 0) return null;
     const slug = slugOf(target.href);
     const to = slug === null ? undefined : moved.get(slug);
-    return to === undefined ? null : `https://${host}/${to}`;
+    return to === undefined ? null : { href: `https://${host}/${to}` };
   } catch {
     return null;
   }
@@ -358,7 +360,7 @@ export function HostedArticle({ resolved }: { resolved: Resolved }): React.JSX.E
   // page that moved is drawn at its address now, so no link waits on a redirect.
   const levelled = withLinksMoved(
     withoutLinksTo(headingsUnderTitle(asked.blocks), (href, text) => unlinkedHere(href, text, { canonical, retired: resolved.retired, domain: business.domain })),
-    (href) => movedHere(href, canonical, resolved.moved)
+    (href) => redrawn(href, canonical, resolved.moved, business.domain)
   );
   const offering = page.offering === true;
   const grounded = page.grounded;
@@ -406,8 +408,8 @@ export function HostedArticle({ resolved }: { resolved: Resolved }): React.JSX.E
   const cards = offering ? (page.carded ?? []).flatMap((heading) => sectionAt(blocks, heading) ?? []) : [];
   const cardOf = (i: number): number => cards.findIndex((card) => i >= card.from && i < card.to);
   const inserts: { after: number; node: React.ReactNode }[] = [
-    ...(stored && offering && answerAt >= 0 ? [{ after: answerAt, node: <AboutCard key="full" business={business} /> }] : []),
-    ...(compactAt >= 0 ? [{ after: compactAt, node: <CompactAction key="compact" business={business} /> }] : []),
+    ...(stored && offering && answerAt >= 0 ? [{ after: answerAt, node: <AboutCard key="full" business={business} ping /> }] : []),
+    ...(compactAt >= 0 ? [{ after: compactAt, node: <CompactAction key="compact" business={business} ping /> }] : []),
     ...whereParts,
     ...cards.flatMap((card) => [{ after: card.from - 1, node: null }, { after: card.to - 1, node: null }]).filter((split) => split.after >= 0),
   ].sort((a, b) => a.after - b.after);
@@ -481,7 +483,7 @@ export function HostedArticle({ resolved }: { resolved: Resolved }): React.JSX.E
         <script key={block} type="application/ld+json" dangerouslySetInnerHTML={{ __html: block }} />
       ))}
 
-      <HostedHeader business={business} />
+      <HostedHeader business={business} ping />
 
       <main lang={readerLanguage()} className="mx-auto w-full max-w-5xl px-4 py-10 lg:grid lg:grid-cols-[minmax(0,1fr)_14rem] lg:gap-10">
         <article className="mx-auto w-full max-w-2xl min-w-0">
@@ -557,7 +559,7 @@ export function HostedArticle({ resolved }: { resolved: Resolved }): React.JSX.E
             </section>
           )}
 
-          <AboutCard business={business} author={offering ? null : pageAuthorOf(page.byline, business)} />
+          <AboutCard business={business} author={offering ? null : pageAuthorOf(page.byline, business)} ping />
 
           {guides === "" ? null : <div dangerouslySetInnerHTML={{ __html: guides }} />}
 

@@ -91,6 +91,13 @@ export const AI_REFERRER_SOURCES = Object.freeze({
 export const BLOG_READS_WINDOW_D = 7 as const;
 export const BLOG_READS_RETENTION_W = 4 as const;
 
+/** The business's own links a hosted page counts a click on, each named in the ping it sends: the main site, the primary
+ *  action and an in-body link to the business's own domain. */
+export const ONWARD_CLICK_ACTIONS = Object.freeze(["site", "book", "quote", "call", "link"] as const);
+
+/** The one switch for onward clicks: off, no page asks for a ping, none is counted and no screen or mail draws a click. */
+export const ONWARD_CLICKS_COUNTED = true as boolean;
+
 /** The one search crawler a hosted page counts, by the token Google
  *  documents for its agent string. An agent claiming it is counted only from
  *  an address inside Google's published ranges (`SEARCH_CRAWLER_RANGES`):

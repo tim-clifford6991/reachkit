@@ -53,6 +53,7 @@
     "feed": "6.0.0",
     "image-size": "2.0.4",
     "inngest": "4.26.2",
+    "isbot": "^5.2.3",
     "lucide-react": "1.39.0",
     "mdast-util-directive": "3.2.0",
     "mdast-util-from-markdown": "2.1.0",

@@ -7,6 +7,7 @@
 import type { CopyKey } from "@/lib/presentation/copy";
 import { publishDb } from "../db";
 import { hostedAddressNow } from "../destinations/hosted";
+import { fromMail } from "../reads/count";
 import type { SiteCondition, VerifyOutcome } from "../types";
 import { dispositionFor } from "./due";
 import { CHECK_IDS, type CheckId } from "./checks";
@@ -24,6 +25,8 @@ export type TellingCopyKey = (typeof TELLING_COPY)[keyof typeof TELLING_COPY];
 export interface PublishedTelling {
   publicationId: string;
   liveUrl: string;
+  /** Where the mail's button opens a hosted page: tagged so the customer's own look is not counted as a visit. */
+  opens?: string;
   result: VerifyOutcome;
   /** Possibly non-empty only under `found`; never a reason not to send. */
   failed: readonly CheckId[];
@@ -65,13 +68,12 @@ export async function tellingFor(publicationId: string): Promise<PublishedTellin
   const recorded = readStoredCheck(row.verify);
   if (recorded === null) return null;
 
+  // SPEC §7: where the page is live now; a hosted page follows its site's current host.
+  const liveUrl = row.destination === "hosted" ? await hostedAddressNow({ siteId: row.site_id, liveUrl: row.live_url }) : row.live_url;
   return {
     publicationId: row.id,
-    // SPEC §7: where the page is live now; a hosted page follows its site's current host.
-    liveUrl:
-      row.destination === "hosted"
-        ? await hostedAddressNow({ siteId: row.site_id, liveUrl: row.live_url })
-        : row.live_url,
+    liveUrl,
+    ...(row.destination === "hosted" ? { opens: fromMail(liveUrl) } : {}),
     result: recorded.result,
     failed: failedChecks(recorded.result),
     siteCondition: recorded.siteCondition,
