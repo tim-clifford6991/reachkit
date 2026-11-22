@@ -9,6 +9,7 @@
 // is erased, so the apparent import cycle is not a runtime one.
 import { REPORT_COPY } from "./keys/report.ts";
 import { OVERVIEW_COPY } from "./keys/overview.ts";
+import { OVERVIEW_PAGES_COPY } from "./keys/overview-pages.ts";
 import { CALENDAR_COPY } from "./keys/calendar.ts";
 import { DRAFT_COPY } from "./keys/draft.ts";
 import { SETTINGS_COPY } from "./keys/settings.ts";
@@ -31,6 +32,7 @@ export type CopyPartition = Readonly<Record<string, string>>;
 const ENTRIES = {
   ...REPORT_COPY,
   ...OVERVIEW_COPY,
+  ...OVERVIEW_PAGES_COPY,
   ...CALENDAR_COPY,
   ...DRAFT_COPY,
   ...SETTINGS_COPY,

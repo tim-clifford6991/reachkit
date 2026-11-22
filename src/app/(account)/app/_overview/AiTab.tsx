@@ -27,7 +27,7 @@ export function aiLead(model: AiQuestions): string {
   return `${asked} ${more}`;
 }
 
-function Mark(p: { mark: AiMark }): React.JSX.Element {
+export function Mark(p: { mark: AiMark }): React.JSX.Element {
   const { icon: Icon, key } = AI_MARK[p.mark];
   return (
     <span className="inline-flex items-center gap-1" data-mark={p.mark}>

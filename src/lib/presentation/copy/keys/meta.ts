@@ -149,6 +149,7 @@ export const META_COPY = Object.freeze({
   "meta.app.overview.title": "Overview · ReachKit",
   "meta.app.search.title": "Google · ReachKit",
   "meta.app.ai-answers.title": "AI · ReachKit",
+  "meta.app.pages.title": "Pages · ReachKit",
   "meta.app.rivals.title": "Competitors · ReachKit",
   "meta.app.plan.title": "This week · ReachKit",
   "meta.app.draft.title": "Your page · ReachKit",

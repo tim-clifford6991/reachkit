@@ -13,9 +13,8 @@ import { Box, Waiting } from "../_shell/skeletons";
 import { REGION } from "./frame";
 import { AI_WINDOW_WEEKS, type Tile, type TileChange, type TileKey, type TilesModel } from "./tiles";
 
-/** Pages Live opens This Week's live pages until its own screen is built. */
 export const TILE_HREF: Readonly<Record<TileKey, string>> = {
-  pages: "/app/calendar#published",
+  pages: "/app/pages",
   google: "/app/search",
   ai: "/app/ai-answers",
   rivals: "/app/rivals",
