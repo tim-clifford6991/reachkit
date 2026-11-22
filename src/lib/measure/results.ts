@@ -234,7 +234,8 @@ function answersIn(passes: readonly TilePass[], week: string, domain: string, on
     const kinds = new Map((prompts?.asked ?? []).map((prompt) => [prompt.id, prompt.kind]));
     for (const answer of prompts?.answers ?? []) {
       const kind = kinds.get(answer.promptId);
-      if (kind === undefined || kind === "branded" || !counts(`prompt:${answer.promptId}`)) continue;
+      // Only a panel item counts: a template week's prompts, branded ones included, are no panel answer.
+      if (kind !== "search" || !counts(`prompt:${answer.promptId}`)) continue;
       named.push(answer.rivals);
       if (namesOrLinks({ namesCustomer: answer.linked, ...(answer.named ? { named: true as const } : {}) })) k += 1;
     }
