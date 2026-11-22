@@ -135,6 +135,8 @@ export const writeLeadPage: DraftWriter = async (a) => {
         pageType,
         length: length ?? { floor: 0, target: 0, ceiling: Number.MAX_SAFE_INTEGER },
         free: true,
+        // Sonnet 5: Opus 5.5 was never measured on a 3 072-token free page, and two attempts at its price pass `FREE_C`.
+        tier: "sonnet",
       });
       if (written.kind === "unmeasured") return stepFailed(a.leadId, "write");
 

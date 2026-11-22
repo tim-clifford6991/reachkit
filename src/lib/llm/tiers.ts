@@ -89,13 +89,17 @@ const TIER_MODEL_IDS: Readonly<Record<Tier, string>> = Object.freeze({
   nano: "claude-haiku-4-5",
   haiku: "claude-haiku-4-5",
   // Market inference, rivals, terms, searches and business fit: the one
-  // judgement tier, sent the writer's fixed request (`FIXED_REQUEST`).
+  // judgement tier, sent the fixed request with thinking off (`FIXED_REQUEST`).
   sonnet: "claude-sonnet-5",
-  // The page's sections and its critic (SPEC §7, 2026-09-29, *Length and
-  // the writer*; issue 1138). Sonnet 5 refuses a sampling parameter and
-  // thinks unless told not to — `FIXED_REQUEST`.
-  writer: "claude-sonnet-5",
+  // The page and its fix (SPEC §7, *Five stages*). Opus 5.5 refuses a
+  // sampling parameter and always thinks — `FIXED_REQUEST`, `TIER_EFFORT`.
+  writer: "claude-opus-5-5",
 });
+
+/** The effort a tier's model is asked for, where it cannot turn thinking off:
+ *  Opus 5.5 answers `thinking: disabled` with a 400, so the writer sends
+ *  `low` instead, the setting its pages were measured at. */
+const TIER_EFFORT: Readonly<Partial<Record<Tier, "low">>> = Object.freeze({ writer: "low" });
 
 /** The tiers whose model refuses a sampling parameter and runs adaptive
  *  thinking when the request does not say otherwise (Sonnet 5). `llm()`
@@ -109,8 +113,10 @@ export interface TierBinding {
   modelId: string;
   apiKey: string;
   timeoutMs: number;
-  /** No temperature is sent and thinking is turned off (`FIXED_REQUEST`). */
+  /** No temperature is sent and thinking is turned off (`FIXED_REQUEST`), unless an effort is set. */
   fixedRequest: boolean;
+  /** Sent as `output_config.effort`, in place of turning thinking off (`TIER_EFFORT`). */
+  effort?: "low";
   inCentsPerM: number;
   outCentsPerM: number;
 }
@@ -127,6 +133,7 @@ export function tierBinding(tier: Tier): TierBinding {
     apiKey: tier === "nano" ? env.NANO_API_KEY : env.ANTHROPIC_API_KEY,
     timeoutMs: INFERENCE_TIMEOUT_MS[tier],
     fixedRequest: FIXED_REQUEST.has(tier),
+    ...(TIER_EFFORT[tier] === undefined ? {} : { effort: TIER_EFFORT[tier] }),
     inCentsPerM: priceBook.inCentsPerM,
     outCentsPerM: priceBook.outCentsPerM,
   });
