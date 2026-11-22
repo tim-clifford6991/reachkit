@@ -150,10 +150,17 @@ describe(`${SETTINGS.path}: the edit dialog`, () => {
               const content = document.querySelector(".drawer-content")!;
               const doc = document.scrollingElement ?? document.documentElement;
               const columns = Array.from(document.querySelectorAll('[data-testid="settings-tab-panel-business"] > *'));
+              // Each card's height and each column's bottom, so a failure says which card to shorten.
+              const cards = columns.map(
+                (column) =>
+                  Array.from(column.querySelectorAll(".card")).map((card) => Math.round(card.getBoundingClientRect().height)).join("+") +
+                  ` ends ${Math.round(column.getBoundingClientRect().bottom)}`,
+              );
               return {
                 content: content.scrollHeight - content.clientHeight,
                 document: doc.scrollHeight - doc.clientHeight,
                 columns: columns.map((column) => column.scrollHeight - column.clientHeight),
+                cards,
               };
             });
           const fixture = await measure();
@@ -170,7 +177,8 @@ describe(`${SETTINGS.path}: the edit dialog`, () => {
       );
       for (const [name, over] of Object.entries(seen)) {
         expect(over.columns.length, name).toBe(2);
-        expect(over, name).toEqual({ content: 0, document: 0, columns: [0, 0] });
+        const { cards, ...scroll } = over;
+        expect(scroll, `${name}: cards ${cards.join(" | ")}`).toEqual({ content: 0, document: 0, columns: [0, 0] });
       }
     },
     PER_WIDTH_MS
