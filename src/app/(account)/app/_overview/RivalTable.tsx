@@ -4,6 +4,7 @@ import type React from "react";
 import { Fragment, Suspense } from "react";
 import { copy } from "@/lib/presentation/copy";
 import { rowClass } from "./frame";
+import { Dash } from "./GoogleTab";
 import { formatCount } from "./present";
 import type { PresenceRow, RivalSearchRow, RivalsModel } from "./rivals-model";
 import { RIVAL_STATUS_COPY_KEY } from "./rivals-words";
@@ -12,15 +13,6 @@ import { ShowAll } from "./ShowAll";
 
 const INK = "text-base-content/70";
 const FIRST_PAGE = 10;
-
-function Dash(p: { sr: string }): React.JSX.Element {
-  return (
-    <span className={INK}>
-      <span aria-hidden>{copy("unmeasured.dash")}</span>
-      <span className="sr-only">{p.sr}</span>
-    </span>
-  );
-}
 
 /** Bold is Google's first page: a weight, never a colour. */
 function You(p: { place: number | "map" | null }): React.JSX.Element {
