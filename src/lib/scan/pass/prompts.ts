@@ -1,5 +1,5 @@
 // src/lib/scan/pass/prompts.ts — asking the AI engines the market's prompts, the tracked prompts and the page questions.
-import { ASKED_TOPICS, PAGE_QUESTION_RETIRE_WEEKS, TRACKED_PROMPTS } from "@/lib/config/constants";
+import { PAGE_QUESTION_RETIRE_WEEKS, TRACKED_PROMPTS } from "@/lib/config/constants";
 import { EVIDENCE_BOUNDS } from "@/lib/market/infer/evidence";
 import { spokenMarket } from "@/lib/market/infer/terms";
 import { buyerPrompts } from "@/lib/market/questions/buyer-prompts";
@@ -57,7 +57,7 @@ export async function askTheMarketPrompts(a: StageArgs): Promise<void> {
 
 /** The site's AI panel, asked by the weekly pass and a founder's re-measure beside the twelve, inside the same clock, `WEEKLY` cap and deadline.
  *  The set is `sites.tracked_prompts`: drawn from the twelve and their runners-up once, then rotated only as `nextPromptSet` allows. Each item is asked
- *  of AI Mode as searched and of ChatGPT as its closest stored "People also ask" question, `TRACKED_PROMPTS.RUNS` times, each run with its own cache key.
+ *  of AI Mode as searched and of ChatGPT as its closest "People also ask" question on the current report, `TRACKED_PROMPTS.RUNS` times, each run with its own cache key.
  *  Each answer's reading is stored, never the prose; an unanswered ask leaves the denominator. Its answers join the rival evidence. Never throws. */
 export async function askTheTrackedPrompts(a: StageArgs): Promise<void> {
   const { bounds, cost, parameters, sections, siteId } = a;
@@ -177,13 +177,12 @@ export async function askTheTrackedPrompts(a: StageArgs): Promise<void> {
   }
 }
 
-/** The "People also ask" questions stored for the site, from its current report's SERPs and its research SERPs; none where unreadable. */
+/** The "People also ask" questions on the SERPs of the site's current report; none where it cannot be read. Read from `scans`, never `fetches`. */
 async function storedQuestions(siteId: string): Promise<string[]> {
   try {
     const [{ opportunityStore }, { askedOfReport }] = await Promise.all([import("@/lib/opportunities/store"), import("@/lib/opportunities/derive/topics")]);
-    const store = opportunityStore();
-    const [report, beside] = await Promise.all([store.currentReport(siteId).catch(() => null), store.askedBeside(siteId, ASKED_TOPICS.maxAgeDays).catch(() => [])]);
-    return [...(report === null ? [] : askedOfReport(report)), ...beside].flatMap((serp) => serp.peopleAlsoAsk);
+    const report = await opportunityStore().currentReport(siteId);
+    return report === null ? [] : askedOfReport(report).flatMap((serp) => serp.peopleAlsoAsk);
   } catch {
     return [];
   }
