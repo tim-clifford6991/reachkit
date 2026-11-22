@@ -126,6 +126,10 @@ export interface DraftOnDay {
   /** The one line saying why the week holds this page, from the reason its
    *  commit stored; `null` where none is stored. */
   whyLine: string | null;
+  /** A page placed for a dated event: its short reason; a page one moved: its first day and that page's search; the pages it moved out of the week. */
+  hotLine?: string | null;
+  moved?: { from: string; search: string };
+  movedOut?: readonly { search: string; day: string }[];
   /** When work on the day began: the day job's stamp, else the draft's insert. */
   startedAt?: Date | null;
   /** The customer took the page off its day, by a transition they made. */

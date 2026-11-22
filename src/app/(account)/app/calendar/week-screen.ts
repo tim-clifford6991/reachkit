@@ -4,6 +4,7 @@
 import type { SiteCheck } from "@/lib/site-issues/types";
 import { WEEK_PLAN } from "@/lib/config/constants";
 import { copy } from "@/lib/presentation/copy";
+import { writtenDay } from "@/lib/opportunities/why";
 import { needsYouLine } from "@/lib/publish/record/lines";
 import { nextPublishStatement, stoppedWorkStatement } from "@/lib/presentation/stopped";
 import type { PublishedPage, PublishedRead } from "@/lib/measure/published";
@@ -57,13 +58,15 @@ export type PaneModel =
       title: string;
       titleLabel?: string;
       becameUpdate: string | null;
+      /** A hot page's reason, drawn as the planned pane draws its own. */
+      why: string | null;
       notes: string[];
       next: string | null;
       /** Said in the body's place where the body could not be read. */
       unread: string | null;
       sources: SourcesModel | null;
     }
-  | { kind: "planned"; date: string; title: string; why: string | null; facts: PaneFact[]; next: string | null }
+  | { kind: "planned"; date: string; title: string; why: string | null; moved: string | null; facts: PaneFact[]; next: string | null }
   | { kind: "lines"; date: string; lines: string[] };
 
 export interface SourceEntryModel {
@@ -173,7 +176,7 @@ export function headOf(facts: PlanHeadFacts, week: WeekModel): ScreenHead {
     foot: {
       next: copy("calendar.next", { date: next, n: formatCount(WEEK_PLAN.days) }),
       title: copy("calendar.chosen.title"),
-      body: `${copy("calendar.chosen.body", { n: formatCount(WEEK_PLAN.days) })} ${copy("calendar.chosen.stored")}`,
+      body: `${copy("calendar.chosen.body", { n: formatCount(WEEK_PLAN.days) })} ${copy("calendar.chosen.added")} ${copy("calendar.chosen.stored")}`,
     },
   };
 }
@@ -353,6 +356,7 @@ function cardOf(
 
   if (page.stage === "planned" && page.state === "planned") {
     const { lines, facts } = plannedFacts(page);
+    if (page.hotLine != null) lines.unshift(page.hotLine);
     return {
       ...base,
       ariaLabel: labelled(page.why.search || page.title),
@@ -365,6 +369,7 @@ function cardOf(
         date,
         title: copy("calendar.pane.planned.title", { search: page.why.search || page.title }),
         why: page.whyLine,
+        moved: movedLine(page, cell.day),
         facts,
         // A past day promises nothing, whatever its state.
         next: time === null || cell.day < week.today ? null : copy("calendar.pane.planned.next", { time, day: goesOn }),
@@ -385,6 +390,7 @@ function cardOf(
           ? [copy("calendar.day.written.past.line")]
           : [];
   if (needsYou !== null) lines.push(copy(needsYou));
+  if (page.hotLine != null && page.stage !== "live") lines.unshift(page.hotLine);
   // While no time can be promised, the law's own line says why the page waits.
   const held =
     page.publishAt === null || time !== null || cell.day < week.today
@@ -414,12 +420,25 @@ function cardOf(
       title: page.title,
       ...(page.titleLabel === undefined ? {} : { titleLabel: page.titleLabel }),
       becameUpdate: page.becameUpdate === true ? copy("calendar.day.became-update.line") : null,
-      notes: [...(needsYou === null ? [] : [copy(needsYou)]), ...(held === null ? [] : [held])],
+      why: page.hotLine == null ? null : page.whyLine,
+      notes: [...[movedLine(page, cell.day)].filter((line) => line !== null), ...movedOut(page), ...(needsYou === null ? [] : [copy(needsYou)]), ...(held === null ? [] : [held])],
       next: waiting && time !== null ? copy("calendar.pane.written.next", { time, day: goesOn }) : null,
       unread: page.draftId !== null && a.bodies?.has(page.draftId) === true ? null : copy("calendar.pane.body.unread"),
       sources,
     },
   };
+}
+
+/** A page a hot page moved, on its new day; `null` on any other. */
+function movedLine(page: PageOnDay, day: DayKey): string | null {
+  const short = (on: string) => `${weekdayShort(on as DayKey)} ${dayNumber(on as DayKey)}`;
+  return page.moved === undefined ? null : copy("calendar.day.moved.line", { from: short(page.moved.from), to: short(day), search: page.moved.search });
+}
+
+/** The pages a hot page pushed out of the week, each waiting for the next Monday's check. */
+function movedOut(page: PageOnDay): string[] {
+  const monday = (day: string) => writtenDay(addDays(day as DayKey, 7 - ((new Date(`${day}T00:00:00Z`).getUTCDay() + 6) % 7)), true);
+  return (page.movedOut ?? []).map((out) => copy("calendar.pane.moved-out", { search: out.search, day: `${weekdayShort(out.day as DayKey)} ${dayNumber(out.day as DayKey)}`, date: monday(out.day) }));
 }
 
 /** A written page still to go out, whose day is to come: the one day a go-live time is promised, on This Week and Overview alike. */

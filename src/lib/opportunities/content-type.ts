@@ -1,6 +1,5 @@
-// SPEC §7 — the content types, read off what the row already stores (its opportunity type, search and evidence), so no
-// model decides one. An update is `ASSET_KIND_OF`'s; an offering shape comes first, then the search's first shape in the
-// order below, and a rising search with no stronger shape is current insights; else the opportunity type's own.
+// SPEC §7 — the content types, read off what the row stores, so no model decides one. An update is `ASSET_KIND_OF`'s; a
+// hot page is current insights; then an offering shape, the search's first shape below, a rising search, the type's own.
 import { SHAPES } from "@/lib/locale/language";
 import { isRising } from "./rank/points";
 import { ASSET_KIND_OF, isRetarget, type Opportunity, type OpportunityType } from "./types";
@@ -48,6 +47,7 @@ export function contentTypeOf(
   if (asset === null) return null;
   if (asset === "update" && !isRetarget(o)) return "update";
   if (o.type === "comparison_page") return "listicle";
+  if (o.evidence?.family === "write" && o.evidence.hot !== undefined) return "insights";
   if (SHAPED.has(o.type) && o.evidence !== undefined && o.evidence !== null && "shape" in o.evidence && o.evidence.shape === "offering") return "offering";
   const text = (o.targetQuery ?? "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
   if (LISTICLE_SHAPES.test(text)) return "listicle";

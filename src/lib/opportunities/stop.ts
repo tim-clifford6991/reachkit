@@ -1,12 +1,9 @@
-// SPEC §8 — the Monday mail's stop link for a page the week planned but has
-// not written yet. No draft exists to bind a veto token to, so the token is
-// signed over (site, opportunity, day) and stores nothing. Stopping dismisses
-// the page while it is still `open`, and that day then takes the week's next
-// spare (`pageForDay`). No draft moves, so ADR-080 is not reached. Once the
-// page is written, its own draft-bound link applies.
+// SPEC §8 — the Monday mail's stop link for a page planned but not written: signed over (site, opportunity, day), storing
+// nothing. Stopping dismisses the open row, so no draft moves and ADR-080 is not reached; a written page has its own link.
 import { timingSafeEqual } from "node:crypto";
 import { macFor } from "@/lib/crypto/keys";
 import { dbAdmin } from "@/lib/db";
+import { weekStartFor } from "@/lib/scan/weekly/week";
 import { opportunityStore } from "./store";
 import type { PlanReason } from "./types";
 
@@ -17,8 +14,11 @@ export interface PlannedPage {
   readonly query: string | null;
   readonly volume: number | null;
   readonly domain: string | null;
-  /** The ISO date the page was planned for. */
-  readonly day: string;
+  /** The ISO date the page is planned for now; `null` where a hot page moved it out of the week until `waitsFor`. */
+  readonly day: string | null;
+  readonly waitsFor: string | null;
+  /** The first day it was planned for, where a hot page moved it. */
+  readonly movedFrom: string | null;
   /** Why the week chose it; `null` where the commit kept no reason. */
   readonly reason: PlanReason | null;
 }
@@ -61,10 +61,12 @@ export async function previewPlannedStop(token: string, at: Date = new Date()): 
   if (row === null || row.site_id !== read.siteId) return { ok: false, reason: "unknown" };
   const domain = await domainOf(read.siteId);
   if (row.status === "dismissed") return { ok: false, reason: "used", domain };
-  // The page goes live on its day, so after that day there is nothing to stop.
-  if (read.day < at.toISOString().slice(0, 10)) return { ok: false, reason: "expired" };
+  // The token's day only names the link: a page still in the week is read at its current day, which it goes live on.
+  const today = at.toISOString().slice(0, 10), day = row.plan_place == null ? read.day : (row.planned_for ?? null);
+  if (day !== null && day < today) return { ok: false, reason: "expired" };
   if (row.status !== "open") return { ok: false, reason: "written" };
-  return { ok: true, planned: { query: row.target_query, volume: row.volume, domain, day: read.day, reason: row.plan_reason ?? null } };
+  const waitsFor = day === null ? new Date(Date.parse(`${weekStartFor({ at, zone: "UTC" })}T00:00:00Z`) + 7 * 86_400_000).toISOString().slice(0, 10) : null;
+  return { ok: true, planned: { query: row.target_query, volume: row.volume, domain, day, waitsFor, movedFrom: row.plan_reason?.moved?.from ?? null, reason: row.plan_reason ?? null } };
 }
 
 /** Stops the planned page where the preview would still offer it. */
@@ -77,11 +79,5 @@ export async function stopPlannedPage(token: string, at: Date = new Date()): Pro
 }
 
 async function domainOf(siteId: string): Promise<string | null> {
-  const { data } = await (dbAdmin() as unknown as {
-    from(t: string): { select(c: string): { eq(c: string, v: string): PromiseLike<{ data: { domain: string | null }[] | null }> } };
-  })
-    .from("sites")
-    .select("domain")
-    .eq("id", siteId);
-  return data?.[0]?.domain ?? null;
+  return (await dbAdmin().from("sites").select("domain").eq("id", siteId)).data?.[0]?.domain ?? null;
 }

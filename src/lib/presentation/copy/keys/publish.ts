@@ -220,6 +220,8 @@ export const PUBLISH_COPY = Object.freeze({
   "publish.veto.consequence": "It won’t go live and the topic is dropped. Other pages are not affected.",
   // Issue 1674: the Monday mail's link to a page planned but not written yet (drafted).
   "publish.veto.planned.title": "Planned for {day}",
+  "publish.veto.planned.moved": "Moved from {day}.",
+  "publish.veto.planned.waiting": "Waiting for the Monday check on {date}",
   "publish.veto.written": "This page is written now. Sign in to edit or stop it from This week.",
   // A page set aside for a newer standard: its old link stops nothing, and what goes live has its own.
   "publish.veto.set-aside.head": "This Version Was Set Aside",

@@ -116,12 +116,12 @@ export function kindWord(update: boolean): string {
  *  `null` where none is stored or no part says more than the fit. */
 export function whyLineOf(reason: PlanReason | null | undefined): string | null {
   const found = whyOf(reason);
-  return found === undefined ? null : writtenLine(found.key);
+  return found === undefined ? null : writtenLine(found.key, found.values);
 }
 
 /** The same reason as Plan's day row says it: one sentence, never invented
  *  where nothing is stored. */
 export function whySentenceOf(reason: PlanReason | null | undefined): string | null {
   const found = whyOf(reason);
-  return found === undefined ? null : writtenLine(found.sentence);
+  return found === undefined ? null : writtenLine(found.sentence, found.values);
 }

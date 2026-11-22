@@ -14,8 +14,18 @@ const WHY_LINE: readonly { part: PointPart; n?: number; key: CopyKey; sentence: 
   { part: "fit", n: 3, key: "calendar.week.why.fit", sentence: "calendar.reason.fit" },
 ];
 
-/** The stored reason's one why, or `undefined` where none is stored. */
-export function whyOf(reason: PlanReason | null | undefined): { key: CopyKey; sentence: CopyKey } | undefined {
+/** A stored `YYYY-MM-DD` as the reason lines write it: "19 Nov", or with its year "19 Nov 2026". */
+export function writtenDay(iso: string, year = false): string {
+  return new Intl.DateTimeFormat("en-GB", { timeZone: "UTC", day: "numeric", month: "short", ...(year ? { year: "numeric" } : {}) }).format(new Date(`${iso}T00:00:00Z`));
+}
+
+/** The stored reason's one why and its slot values, or `undefined` where none is stored. A dated event comes first and
+ *  is stated only with every slot it stored. */
+export function whyOf(reason: PlanReason | null | undefined): { key: CopyKey; sentence: CopyKey; values?: Record<string, string> } | undefined {
+  const hot = reason?.hot;
+  if (hot?.signal === "news" && [hot.event, hot.date, hot.a, hot.b].every((slot) => typeof slot === "string" && slot !== "")) {
+    return { key: "calendar.week.why.news", sentence: "calendar.reason.news", values: { event: hot.event, day: writtenDay(hot.date), date: writtenDay(hot.date, true), a: hot.a, b: hot.b } };
+  }
   const parts = reason?.parts ?? [];
   return WHY_LINE.find((line) => parts.some((part) => part.part === line.part && (line.n === undefined || part.n === line.n)));
 }

@@ -11,7 +11,7 @@ import { Calendar, CircleCheck, CircleStop, Clock, PencilLine, Plus, RefreshCw, 
 import { copy } from "@/lib/presentation/copy";
 import { SITE_CHECK_TITLE } from "@/lib/presentation/site-issues";
 import { horizonShortFor, shortCauseFor } from "./card-lines";
-import { dayNumber, weekdayShort } from "./dates";
+import { dayNumber, weekdayShort, type DayKey } from "./dates";
 import { dayStateOf, type DayCell, type PageOnDay } from "./month";
 import { DAY_STATE_COPY_KEY, DAY_STATE_TONE, TONE_BADGE, type DayState, type StageFilter } from "./stages";
 
@@ -53,7 +53,10 @@ export function KindChip(p: { update: boolean }): React.JSX.Element {
 /** A day's state line: a page that became an update says so; a day with no page names the day the customer stopped,
  *  a past day what became of it, else the week's first skip. */
 export function stateLineOf(cell: DayCell, firstSkip: boolean): string | null {
-  if (cell.page !== null) return cell.page.becameUpdate === true ? copy("calendar.day.became-update") : null;
+  if (cell.page !== null) {
+    const moved = cell.page.moved?.from as DayKey | undefined;
+    return cell.page.becameUpdate === true ? copy("calendar.day.became-update") : moved === undefined ? null : copy("calendar.day.moved", { day: `${weekdayShort(moved)} ${dayNumber(moved)}` });
+  }
   const past = cell.when === "past" ? dayStateOf(cell) : null;
   if (past === "skipped") return copy("calendar.day.past.none.line");
   // "by you" only where the customer's own move stopped it.

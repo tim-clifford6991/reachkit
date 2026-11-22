@@ -28,6 +28,7 @@ import { ADDS, PACK } from "@/lib/config/constants";
 import { misstatedFacts, siteFactsOf } from "@/lib/market/prompts/misstated";
 import { GENERIC_TOKENS, brandOf } from "@/lib/market/questions/select";
 import { templateQuestion } from "@/lib/market/questions/template";
+import { hotFacts } from "@/lib/hot/facts";
 import type { ContentType } from "@/lib/opportunities/content-type";
 import type { SitePage } from "@/lib/opportunities/site-pages";
 import type { Opportunity, PageType } from "@/lib/opportunities/types";
@@ -659,9 +660,7 @@ export function buildPack(a: PackInputs): ContextPack {
   // SPEC §7 (owner D59, issue 1287): a rival's price read more than 30
   // days ago is not handed to the writer. A product left with no claim of
   // its own is no longer one the page may name.
-  const current = a.research.facts.filter(
-    (fact) => !neverASource(fact.url) && !staleRivalPrice({ kind: fact.kind, readAt: fact.readAt.toISOString() }, a.now)
-  );
+  const current = [...hotFacts(a.opportunity), ...a.research.facts].filter((fact) => !neverASource(fact.url) && !staleRivalPrice({ kind: fact.kind, readAt: fact.readAt.toISOString() }, a.now));
   const products = a.research.products
     .map((product) => ({ ...product, pages: product.pages.filter((url) => current.some((fact) => fact.product === product.domain && fact.url === url)) }))
     .filter((product) => product.pages.length > 0);

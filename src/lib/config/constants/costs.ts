@@ -237,6 +237,8 @@ export const INFERENCE_MAX_OUTPUT_TOKENS = Object.freeze({
   /** `{ results: { result, about }[] }` over at most
    *  `RESEARCH.recentJudged` news results: ~12 a result. */
   "generate.news_fit": 400,
+  /** `{ changes, sensitive, angles: string[] }`, at most three searches of under fifteen words. */
+  "generate.hot_angle": 300,
   "generate.fit_check": 512,
   /** The site profile's one call (SPEC §2): the site name, its products and
    *  claims, and the five-member brand-voice summary with the paragraph the
