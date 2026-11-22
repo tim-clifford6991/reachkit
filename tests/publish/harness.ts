@@ -112,7 +112,12 @@ function project(columns: string, row: Row): Row {
 function embed(db: FakeDb, table: string, columns: string, row: Row): Row {
   const out = project(columns, row);
   if (names(columns, "sites")) {
-    out.sites = db.rows("sites").find((s) => s.id === row.site_id) ?? null;
+    const site = db.rows("sites").find((s) => s.id === row.site_id) ?? null;
+    // A destination's site carries its own embeds, as the hosted edge's one read nests them.
+    out.sites = site !== null && table === "destinations" ? embed(db, "sites", columns, site) : site;
+  }
+  if (table === "sites" && names(columns, "publications")) {
+    out.publications = db.rows("publications").filter((p) => p.site_id === row.id).map((p) => embed(db, "publications", columns, p));
   }
   // A site's owner, and its destinations as a list — the hosted edge's
   // serving question reads both (`account/billing/store.ts`).

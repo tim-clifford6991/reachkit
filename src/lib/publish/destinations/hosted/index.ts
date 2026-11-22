@@ -37,6 +37,7 @@ export {
   retiredSlugsForSite,
   hostedAddress,
 } from "./store";
+export { hostedAnswerRow, type HostedAnswerRow } from "./answer";
 export type {
   AddressNow,
   HostedAddress,
