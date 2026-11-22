@@ -9,8 +9,8 @@ import { existsSync, lstatSync, readFileSync, readdirSync, unlinkSync, writeFile
 import path from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
-import { blockRuleFindings, blockRules, budgetFindings, GENERATED_DB_TYPES, isMeasured, lineCount, lineFindings, plainWordsFindings } from "./lib/budgets.mjs";
-import { ENTRY_RE, keyFileCounts } from "./lib/plain-words.mjs";
+import { blockRuleFindings, blockRules, budgetFindings, GENERATED_DB_TYPES, isMeasured, lineCount, lineFindings, plainWordsFindings, RATCHETS, ratchetFindings } from "./lib/budgets.mjs";
+import { duplicateKeys, ENTRY_RE, keyFileCounts } from "./lib/plain-words.mjs";
 import { mainCheckoutFinding } from "./lib/main-checkout.mjs";
 import { fetchesPayloadFilters } from "./lib/fetches-payload-filter.mjs";
 import { staleBaselines } from "./design/baseline.mjs";
@@ -312,6 +312,8 @@ function checkBudgets(texts) {
   const baseSpec = diffed ? run("git", ["-C", ROOT, "show", "HEAD^1:docs/SPEC.md"]) : null;
   const rules = { head: blockRules(readRel("docs/SPEC.md") ?? ""), base: baseSpec?.ok ? blockRules(baseSpec.stdout) : null };
   for (const finding of blockRuleFindings({ budget: budgets?.blockRules, ...rules, named: added.map(readRel).join("\n") })) add("repo", finding);
+  const grep = (token) => run("git", ["-C", ROOT, "grep", "-l", "-F", token, "HEAD^1", "--", "src"]).stdout.split("\n").filter(Boolean).map((l) => l.slice(7));
+  for (const finding of ratchetFindings({ budget: budgets?.ratchets, files: texts, baseFiles: diffed ? Object.fromEntries(Object.entries(RATCHETS).map(([n, t]) => [n, grep(t)])) : null })) add("repo", finding);
   if (!diffed) return;
   const numstat = diff("--numstat", "--", "src", "tests", "scripts");
   if (!numstat.ok) return add("repo", `git diff --numstat HEAD^1 failed (${numstat.stderr.trim() || numstat.status})`);
@@ -324,14 +326,11 @@ function checkBudgets(texts) {
   checkEmptyCopy();
 }
 
-// SPEC §8 "unwritten keys send nothing": a key is drafted and shipped, so no value is left empty.
+// SPEC §8: no value is left empty, and no two registry partitions share a key (the German one repeats those it translates).
 function checkEmptyCopy() {
-  for (const abs of walkFiles(path.join(ROOT, "src/lib/presentation/copy/keys"))) {
-    if (!abs.endsWith(".ts")) continue;
-    for (const [, key, value] of readFileSync(abs, "utf8").matchAll(ENTRY_RE)) {
-      if (value === "") add("repo", `${path.relative(ROOT, abs)}: copy key "${key}" is empty`);
-    }
-  }
+  const partitions = walkFiles(path.join(ROOT, "src/lib/presentation/copy/keys")).filter((abs) => abs.endsWith(".ts")).map((abs) => ({ name: path.relative(ROOT, abs), source: readFileSync(abs, "utf8") }));
+  for (const { name, source } of partitions) for (const [, key, value] of source.matchAll(ENTRY_RE)) if (value === "") add("repo", `${name}: copy key "${key}" is empty`);
+  for (const finding of duplicateKeys(partitions.filter((p) => !p.name.includes("/keys/de/")))) add("repo", finding);
 }
 
 // The base holds the last merged count, so no number is stored and a gain is kept the moment it merges.
