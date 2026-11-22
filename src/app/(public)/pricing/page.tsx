@@ -277,7 +277,7 @@ export default async function PricingPage(): Promise<React.JSX.Element> {
           >
             <div className="card-body items-center gap-4 px-5 py-10 text-center lg:px-10">
               <h2 id={`${START_ID}-h`} className="m-0 max-w-md">
-                {copy("pricing.plan.unsure")} {copy("pricing.close.title")}
+                {copy("pricing.close.title")}
               </h2>
               <div className="w-full max-w-xl text-left">
                 <ScanForm words={scanFormWords(copy("landing.start.cta"))} />

@@ -60,7 +60,7 @@ export const LANDING_COPY = Object.freeze({
   "landing.plan.control": "Edit or Stop Any Page",
   "landing.plan.control.line": "Each page waits {hours} hours before it goes live. Edit it, stop it, or do nothing.",
   "landing.plan.one": "One Plan, Everything in It",
-  "landing.plan.terms": "VAT included. Cancel any time.",
+  "landing.plan.terms": "Cancel any time.",
   /** The article band under the questions: one line under its heading, and each card's way in. */
   "landing.articles.sub": "ReachKit wrote and published each article, the same way it works for you.",
   "landing.articles.read": "Read",

@@ -108,7 +108,7 @@ function PriceBox(p: {
   );
   return (
     <div className="flex flex-col gap-4">
-      {/* REQ-022 c1: "€49 per month and says that VAT is included". */}
+      {/* The price alone: no tax wording, for every buyer. */}
       <div className={`flex flex-wrap items-baseline gap-2 ${p.left === true ? "" : "justify-center text-center"}`}>
         <span className="text-5xl leading-none">
           <Num figure>{copy("price.amount")}</Num>

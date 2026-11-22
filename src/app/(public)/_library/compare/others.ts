@@ -204,7 +204,7 @@ export const OTHERS: readonly Comparison[] = [
       { label: "Writes with AI", reachkit: "partly: whole pages, from your site", them: true },
       { label: "Tracks AI answers about you", reachkit: true, them: true },
       { label: "Technical issues on your site", reachkit: true, them: false },
-      { label: "One plan, VAT included", reachkit: true, them: "partly: several plans" },
+      { label: "One plan, one price", reachkit: true, them: "partly: several plans" },
       { label: "Free to start", reachkit: true, them: "partly: free tools and an AI audit" },
     ],
     pickThem: [

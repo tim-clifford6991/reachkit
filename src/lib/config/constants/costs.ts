@@ -378,7 +378,7 @@ export const LLM_RUN_THROTTLE = Object.freeze({ limit: 10, periodSeconds: 60 } a
  *  multiplies by a hundred.
  *
  *  No sentence about the price lives here. What a founder reads is
- *  `PRICE_COPY_KEYS`' three keys in the copy registry, and this file holds
+ *  `PRICE_COPY_KEYS`' two keys in the copy registry, and this file holds
  *  no key and no currency sign — `tests/config/constants.test.ts` asserts
  *  both. */
 export const PRICE_EUR_CENTS = 4900 as const;

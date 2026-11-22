@@ -18,20 +18,19 @@
 // 2026-09-04: the owner ruled on seven of the nine (WO-041 `## Log`, this
 // date's ruling) — `price.amount`, `price.interval`, `offer.start` and the
 // four `offer.cadence.*`/`offer.veto.*` slotted lines — filled verbatim,
-// byte for byte, and no longer owner-owed. `price.vat_included` and
-// `offer.cancel_self_service` were not part of this ruling.
+// byte for byte, and no longer owner-owed. `offer.cancel_self_service` was
+// not part of this ruling.
 //
 // 2026-09-10, issue #459: the owner approved the drafted copy for
 // every key this partition still owed ("copy proposal approved"; proposal
 // sheet artifact 546f45a0-a996-4d25-b85e-fb03fda7b102), and the 6 approved
-// strings — `price.vat_included`, `plan.single` and the four `*.value`
+// strings — `plan.single` and the four `*.value`
 // lines — are applied here byte for byte.
 import type { CopyPartition } from "../registry.ts";
 
 export const OFFER_COPY = Object.freeze({
   "price.amount": "€49",
-  "price.vat_included": "Tax included",
-  "price.interval": "a month · tax included",
+  "price.interval": "a month",
   "offer.cadence.page": "Up to {weekPages} pages a week, new or updated",
   "offer.cadence.movement": "A Monday email shows what went live and your totals so far.",
   "offer.veto.window": "Stop or edit any page before it goes live.",
