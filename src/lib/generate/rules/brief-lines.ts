@@ -93,6 +93,7 @@ export const RULE_BRIEF: Readonly<Record<HardRule, (a: BriefLineInputs) => strin
       dated ? "It may carry `year`, in brackets or before a colon, never as its last word, and no other year." : "It carries no year.",
       `Never ${words.banned.map((phrase) => `"${phrase}"`).join(", ")}, a filler verb or stock phrase like ${words.tropeSamples.map((phrase) => `"${phrase}"`).join(", ")}, two things joined by "and" after "How to", a square bracket, a pipe, or the same word twice.`,
       "It does not read like the title of any page in `pack.pages`.",
+      ...(rule.hot === true ? [`This page stays live for years: its title never says ${words.news.slice(0, -1).join(", ")} or ${words.news.at(-1)}.`] : []),
       ...(rule.business === undefined ? [] : [`The search compares products and this page is the business's own, so it names the business, as "${rule.business[0]}", beside the products the search names.`]),
     ];
   },

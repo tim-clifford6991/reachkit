@@ -6,6 +6,7 @@ import { llm } from "@/lib/llm";
 import type { Locale } from "@/lib/locale/locales";
 import type { MarketConclusion } from "@/lib/market/infer/types";
 import type { Profile } from "@/lib/market/questions/profile";
+import { newsWords } from "@/lib/generate/rules/title";
 import { judgeFit } from "@/lib/opportunities/derive/fit";
 import type { FitFact, KnowledgeDigest } from "@/lib/site-profile/knowledge/read";
 import type { HotEvent } from "./detect";
@@ -26,8 +27,6 @@ const TASK = [
   "Where no honest angle joins the event to what this business sells, give no angles.",
 ].join(" ");
 
-/** Words that present news as news (ruling 91; the UX review of this lane), refused in an angle or its title. */
-const NEWSY = /\b(?:breaking|just released|just announced|new|latest|now|this week)\b/i;
 
 /** Whether `text` names only what the event's sources do: every token with a digit is theirs. Pure. */
 export function namesOnlySourced(text: string, sources: string): boolean {
@@ -67,7 +66,9 @@ export async function angleFor(
   });
   if (answer.kind === "unmeasured" || !answer.value.changes || answer.value.sensitive) return null;
   const sources = [a.event.event, a.event.title, ...a.event.claims.map((claim) => claim.quote)].join(" ");
-  const fair = (text: string): boolean => text.trim() !== "" && !NEWSY.test(text) && namesOnlySourced(text, sources);
+  // The language's news words, which the page's own title is held to as well.
+  const news = newsWords(a.locale.language);
+  const fair = (text: string): boolean => text.trim() !== "" && !news.test(text) && namesOnlySourced(text, sources);
   const angles = [...new Set(answer.value.angles.map((angle) => angle.trim()))].filter(fair);
   if (angles.length === 0 || c.capHit()) return null;
   const fits = await judgeFit(c, { searches: angles.map((query) => ({ query, source: "category" })), market: a.market, profile: a.profile, domain: a.domain, knowledge: a.knowledge, locale: a.locale });

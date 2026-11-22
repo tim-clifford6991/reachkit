@@ -96,6 +96,7 @@ export const EN: LanguagePack = {
     free: "free",
     serial: "episode|ep|issue|volume|vol|chapter|season|part",
     banned: TITLE.banned,
+    news: ["breaking", "just released", "just announced", "new", "latest", "now", "this week"],
     tropes: ["(?:unleash|elevat|navigat|demystif)(?:e[sd]?|ing|y|ies|ied|ying)?", "why .+ matters?", "in today['’]s"],
     tropeSamples: ["unleash", "elevate", "navigate", "demystify", "why X matters", "in today's … world"],
     double: "how to [^:(]*? (?:and|&)",

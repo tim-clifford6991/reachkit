@@ -135,6 +135,8 @@ export interface TitleRuleInputs {
   /** The page's language (SPEC §6, owner D66): the filler words, the banned
    *  phrases and how a question opens are that language's. Absent is English. */
   language?: Language;
+  /** A page on a dated event in the market: its title says none of the language's news words. */
+  hot?: true;
   /** Set once the page has had its fix call: a title that lacks only its
    *  specific then goes on (ruling 2026-10-11). */
   settled?: boolean;
@@ -157,6 +159,11 @@ const WORD_RE = /[\p{L}\p{N}]+/gu;
 const languageOf = (a: Pick<TitleRuleInputs, "language">): Language => a.language ?? "en";
 
 /** A whole word or phrase of `alternation`, at the start or anywhere. */
+/** The language's news words as one whole-word pattern: what a hot page's title and its angle never say. */
+export function newsWords(language: Language): RegExp {
+  return wordsPattern(languagePack(language).title.news.map((word) => word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|"), false);
+}
+
 function wordsPattern(alternation: string, anchored: boolean): RegExp {
   return new RegExp(`${anchored ? "^" : "(?<![\\p{L}\\p{N}])"}(?:${alternation})(?![\\p{L}\\p{N}])`, "iu");
 }
@@ -297,6 +304,7 @@ function hasBanned(title: string, a: TitleRuleInputs): boolean {
   const trope = (said: string | undefined): boolean => said !== undefined && !searched.some((term) => term.includes(said.trim()));
   if (/[[\]|]/.test(title) || pack.title.banned.some((phrase) => lower.includes(phrase) && trope(phrase))) return true;
   if ([...pack.title.tropes.map((each) => wordsPattern(each, false)), wordsPattern(pack.title.double, true)].some((each) => trope(each.exec(lower)?.[0]))) return true;
+  if (a.hot === true && newsWords(language).test(title)) return true;
   return saidTwice(title, language) !== null;
 }
 

@@ -413,7 +413,7 @@ export const CALENDAR_COPY = Object.freeze({
   "calendar.next": "{date}: we check again and pick the next {n}.",
   "calendar.chosen.title": "How this week’s pages were chosen",
   "calendar.chosen.body": "Every Monday we check where your pages stand on Google and in AI answers. Then we pick the {n} most likely to bring you buyers.",
-  "calendar.chosen.added": "When news in your market fits what you sell, we add a page for it. It takes the next open day, and a planned page moves to make room.",
+  "calendar.chosen.added": "When news fits what you sell, we add a page the next day we write. The page planned there moves to the next free day.",
   "calendar.chosen.stored": "Each reason is the one saved when the page was chosen.",
   "calendar.pane.body.unread": "We couldn’t load the page here. Read the Full Page to see it.",
   "calendar.sources.summary": "In its paragraphs: {n} sentences. {a} from your site · {b} from {m} public pages · {c} with no source linked",

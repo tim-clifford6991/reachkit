@@ -173,8 +173,9 @@ export interface ContextPack {
   neverClaim: string[];
   /** Business facts: passages of the site's own pages, word for word. */
   facts: PackFact[];
-  /** The business passage a new topic's fit was judged on (§6), which its answer box and business section state; `url` is `null` for the founder's. */
-  fitFact?: { passage: string; url: string | null };
+  /** The business passage a new topic's fit was judged on (§6), which its answer box and business section state; `url` is `null` for the founder's. A
+   *  page on a dated event in the market (`src/lib/hot`) is `hot`, and its title never says news words. */
+  fitFact?: { passage: string; url: string | null }; hot?: true;
   /** Market facts: claims read off public pages, word for word. */
   claims: PackClaim[];
   /** The rivals whose own pages yielded a claim. */
@@ -708,7 +709,7 @@ export function buildPack(a: PackInputs): ContextPack {
     profile: a.profile,
     neverClaim: [...a.site.doNotClaim],
     facts,
-    ...(fit == null ? {} : { fitFact: { passage: fit.text, url: fit.source.kind === "page" ? fit.source.url : null } }),
+    ...(fit == null ? {} : { fitFact: { passage: fit.text, url: fit.source.kind === "page" ? fit.source.url : null } }), ...(hotFacts(a.opportunity).length === 0 ? {} : { hot: true as const }),
     claims,
     products,
     ...(a.research.baseline === undefined || a.type !== "listicle" ? {} : { baseline: a.research.baseline }),

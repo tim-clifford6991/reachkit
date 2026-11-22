@@ -155,6 +155,7 @@ export const DE: LanguagePack = {
     free: "kostenlos|kostenfrei|gratis",
     serial: "folge|episode|ep|ausgabe|heft|band|bd|kapitel|staffel|teil",
     // Drafted (issue 759): the German counterparts of D51's banned patterns.
+    news: ["eilmeldung", "neu", "neueste", "jetzt", "diese woche", "gerade erschienen"],
     banned: [
       "fragen, beantwortet",
       "fragen beantwortet",
