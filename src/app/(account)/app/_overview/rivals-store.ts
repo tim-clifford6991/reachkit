@@ -37,11 +37,10 @@ export async function readRivalFacts(site: RivalsSite, at: Date): Promise<Rivals
   const store = opportunityStore();
 
   const [rivals, report, statuses] = await Promise.all([
-    // A site whose row could not be read tracks nobody we can name; the
-    // cards then draw the customer alone rather than refusing the screen.
-    trackedRivals(site.siteId).catch(() => null),
-    store.currentReport(site.siteId).catch(() => null),
-    readStatuses(site.siteId).catch(() => new Map<string, RivalSearchStatus>()),
+    // A failed read throws to the app's error screen: an empty answer here would be a false "not checked" or "none".
+    trackedRivals(site.siteId),
+    store.currentReport(site.siteId),
+    readStatuses(site.siteId),
   ]);
 
   const tracked = rivals ?? [];
@@ -121,10 +120,12 @@ export function holdersOf(
     .map(([domain]) => domain);
 }
 
-/** Best organic place of a domain in the top ten, or `null`. Competitors are read no deeper: the pass buys ten (`VENDOR.serpDepth`). */
-function placeIn(organic: readonly { domain: string; position: number }[], domain: string): number | null {
+/** A domain's first-page place, decided by `onFirstPage`: its best organic place 1–10, else "map" for the local pack alone.
+ *  Competitors are read no deeper: the pass buys ten (`VENDOR.serpDepth`). */
+function placeIn(serp: SerpResult, organic: readonly { domain: string; position: number }[], domain: string): number | "map" | null {
+  if (!onFirstPage(serp, domain)) return null;
   const places = organic.filter((row) => row.position <= FIRST_PAGE && isTheirs(domain, [row.domain])).map((row) => row.position);
-  return places.length === 0 ? null : Math.min(...places);
+  return places.length === 0 ? "map" : Math.min(...places);
 }
 
 /** One row per search of the twelve whose top ten was read; a search not read is left out, never shown as an absence. */
@@ -145,16 +146,17 @@ export function rowsOf(
   const rows: RivalSearchRow[] = [];
   questions.value.forEach((question, i) => {
     const serp = report.serps[i];
-    const organic = serp === undefined || serp.kind === "unmeasured" ? null : resolvedRows(serp.value.organic);
+    if (serp === undefined || serp.kind === "unmeasured") return;
+    const organic = resolvedRows(serp.value.organic);
     if (organic === null) return;
     const key = question.search.keyword.trim().toLowerCase();
-    const you = placeIn(organic, ownDomain) ?? ranked.get(key) ?? null;
-    const places: Record<string, number> = {};
+    const you = placeIn(serp.value, organic, ownDomain) ?? ranked.get(key) ?? null;
+    const places: Record<string, number | "map"> = {};
     for (const rival of tracked) {
-      const place = placeIn(organic, rival);
+      const place = placeIn(serp.value, organic, rival);
       if (place !== null) places[rival] = place;
     }
-    const status = statuses.get(key) ?? (you !== null && you <= FIRST_PAGE ? "live" : "needs_page");
+    const status = statuses.get(key) ?? (you !== null && (you === "map" || you <= FIRST_PAGE) ? "live" : "needs_page");
     rows.push({ search: question.search.keyword, volume: question.search.volume, you, places, status });
   });
   return rows;

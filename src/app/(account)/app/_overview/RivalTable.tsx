@@ -23,13 +23,29 @@ function Dash(p: { sr: string }): React.JSX.Element {
 }
 
 /** Bold is Google's first page: a weight, never a colour. */
-function You(p: { place: number | null }): React.JSX.Element {
+function You(p: { place: number | "map" | null }): React.JSX.Element {
   if (p.place === null) return <Dash sr={copy("overview.rivals.off-top.sr")} />;
+  if (p.place === "map") return <span className="font-semibold">{copy("overview.rivals.map")}</span>;
   return <span className={p.place <= FIRST_PAGE ? "font-semibold" : ""}>{formatCount(p.place)}</span>;
 }
 
-function Theirs(p: { place: number | undefined }): React.JSX.Element {
-  return p.place === undefined ? <Dash sr={copy("overview.rivals.off-page.sr")} /> : <span className="font-semibold">{formatCount(p.place)}</span>;
+function Theirs(p: { place: number | "map" | undefined }): React.JSX.Element {
+  if (p.place === undefined) return <Dash sr={copy("overview.rivals.off-page.sr")} />;
+  return <span className="font-semibold">{p.place === "map" ? copy("overview.rivals.map") : formatCount(p.place)}</span>;
+}
+
+/** A domain that wraps only at its dots and hyphens, never mid-word. */
+function Domain(p: { domain: string }): React.JSX.Element {
+  return (
+    <>
+      {p.domain.split(/(?<=[.-])/).map((part, i) => (
+        <Fragment key={i}>
+          {i === 0 ? null : <wbr />}
+          {part}
+        </Fragment>
+      ))}
+    </>
+  );
 }
 
 function doing(row: RivalSearchRow, planned: ReadonlyMap<string, Planned>): string {
@@ -76,7 +92,7 @@ export function RivalTable(p: {
     <section className="card card-border min-w-0 bg-base-100" data-testid="rivals-table">
       {/* Five competitors can scroll this box between md and lg, so a keyboard can reach it (axe scrollable-region-focusable). */}
       <div className="hidden min-w-0 overflow-x-auto md:block" tabIndex={0} role="region" aria-label={copy("overview.tab.rivals")}>
-        <table className="table">
+        <table className="table table-sm">
           <caption className="sr-only">{copy("overview.tab.rivals")}</caption>
           <thead className={INK}>
             <tr>
@@ -85,7 +101,9 @@ export function RivalTable(p: {
               <th scope="col">{you}</th>
               {columns.map((rival) => (
                 <th key={rival.domain} scope="col" title={rival.domain}>
-                  <span className="line-clamp-2 break-words">{rival.domain}</span>
+                  <span className="line-clamp-2">
+                    <Domain domain={rival.domain} />
+                  </span>
                 </th>
               ))}
               <th scope="col">{copy("overview.rivals.col.doing")}</th>
@@ -156,6 +174,9 @@ export function RivalTable(p: {
       </ul>
       <div className="flex min-w-0 flex-col gap-2 p-3">
         <p className={`text-xs ${INK}`}>{copy("overview.rivals.caption")}</p>
+        {rows.some((row) => row.you === "map" || Object.values(row.places).includes("map")) ? (
+          <p className={`text-xs ${INK}`}>{copy("overview.rivals.caption.map")}</p>
+        ) : null}
         {p.holders === null ? null : <p className={`text-sm ${INK}`} data-testid="rivals-holders">{p.holders}</p>}
         <div className="flex min-w-0 flex-col items-center gap-2 sm:flex-row sm:justify-between">
           {p.ai === null ? null : (

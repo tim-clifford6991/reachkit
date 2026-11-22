@@ -227,6 +227,8 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.rivals.col.doing": "What We’re Doing",
   "overview.rivals.off-page.sr": "Not on page 1",
   "overview.rivals.off-top.sr": "Not in the top 100",
+  "overview.rivals.map": "Map",
+  "overview.rivals.caption.map": "Map means Google’s map listings at the top of the page.",
   "overview.rivals.caption": "We read Google’s first page for competitors, and your place down to 100. A dash means not on page 1.",
   // Questions with the business's own name are answered about it, so they are not counted.
   "overview.rivals.ai": "AI answers that mentioned each, last {w} weeks: {list}, of {m}. Questions with your business name are left out.",

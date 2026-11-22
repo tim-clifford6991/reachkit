@@ -27,10 +27,10 @@ export type RivalSearchStatus = "in_review" | "up_next" | "needs_page" | "too_bi
 export interface RivalSearchRow {
   search: string;
   volume: number;
-  /** The site's place, 1–100; `null` where it is not in the top 100. */
-  you: number | null;
-  /** Each tracked competitor's place, 1–10, by domain; absent is not on page 1. */
-  places: Readonly<Record<string, number>>;
+  /** The site's place, 1–100, or "map" for Google's map listings alone; `null` where it is not in the top 100. */
+  you: number | "map" | null;
+  /** Each tracked competitor's place, 1–10 or "map", by domain; absent is not on page 1. */
+  places: Readonly<Record<string, number | "map">>;
   status: RivalSearchStatus;
 }
 
