@@ -95,7 +95,7 @@ export async function replanSites(
     if (state === plan.from) told.push(plan);
     (state === "empty" ? empty : state === "held" ? held : replanned).push(id);
   }
-  if (told.length === 0 && due.length > 0) console.log(JSON.stringify({ event: "week_replan_unchanged", fingerprint, sites: due.length }));
+  if (told.length === 0 && due.length > 0) await inStep("replan-unchanged", async () => console.log(JSON.stringify({ event: "week_replan_unchanged", fingerprint, sites: due.length })));
   if (told.length > 0 && !events.some((e) => e.kind === TOLD)) await inStep("replan-told", () => tellOwner(told, fingerprint));
   return { replanned, held, empty };
 }
