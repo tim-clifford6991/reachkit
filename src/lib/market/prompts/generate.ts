@@ -32,12 +32,14 @@ export function panelOf(a: {
 }): GeneratedPrompt[] {
   const names = [a.siteName, ...a.rivals.flatMap((rival) => [rival.name, brandOf(rival.domain)])].filter((name) => clean(name).length > 1);
   const free = (text: string): boolean => text !== "" && !namesAnyOf(text, names, a.language);
-  const questions = [...new Set(a.questions.map(clean))].filter(free).map((text) => ({ id: text, text }));
+  let questions = [...new Set(a.questions.map(clean))].filter(free).map((text) => ({ id: text, text }));
   const out: GeneratedPrompt[] = [];
   for (const text of [...new Set(a.searches.map((search) => clean(search).toLowerCase()))]) {
     if (out.length >= TRACKED_PROMPTS.PANEL) break;
     if (!free(text)) continue;
+    // A question goes to one item only, so one answer is never counted as two.
     const question = closestPrompt(text, questions)?.text;
+    questions = questions.filter((each) => each.text !== question);
     out.push({ kind: "search", text, ...(question === undefined ? {} : { question: askedIn(question, a.place) }) });
   }
   return out;
