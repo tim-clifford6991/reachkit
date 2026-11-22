@@ -22,7 +22,7 @@ const vendor = vi.hoisted(() => ({
 }));
 // The one record public DNS answers for the host: where it points.
 const cname = vi.hoisted(() => ({ target: "" }));
-vi.mock("node:dns", () => ({ default: { promises: { resolveCname: async () => [cname.target] } } }));
+vi.mock("node:dns", () => ({ default: { promises: { resolveCname: async () => [cname.target], lookup: async () => ({ address: "76.76.21.21", family: 4 }) } } }));
 vi.mock("@/lib/vendors/vercel/domains", () => ({
   addProjectDomain: async (hostname: string) => {
     vendor.asked.push(hostname);
@@ -218,5 +218,17 @@ describe("the migration this module reads and writes through", () => {
     // handed its path back to its caller is the advisor finding that
     // migration closed.
     expect(source).toMatch(/set search_path = ''/);
+  });
+});
+
+describe("the job that refreshes hosted health, run twice", () => {
+  it("a waiting host that resolves is never healthy, and stays due at the short clock", async () => {
+    seedDestination({ last_checked_at: AGES_AGO, health_changed_at: AGES_AGO });
+    db.seed("sites", [{ id: "site-1", domain: "example.com" }]);
+    const { checkHealth } = await import("@/lib/publish/destinations/health/check");
+    const { hostedDestinationsDueHealth } = await import("@/lib/publish/destinations/health/due");
+    await checkHealth("dest-1");
+    await expect(checkHealth("dest-1")).resolves.toMatchObject({ health: "expired", reason: "dns_elsewhere" });
+    await expect(hostedDestinationsDueHealth(new Date(Date.now() + 3_600_000))).resolves.toEqual(["dest-1"]);
   });
 });

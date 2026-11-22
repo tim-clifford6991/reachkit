@@ -33,11 +33,12 @@ async function siteDomain(siteId: string): Promise<string | null> {
   return data.domain;
 }
 
-/** The hosted destination's state. A name that does not resolve is a record never set, so nothing is delivered there.
+/** The hosted destination's state. Only a live host is `ok`: a waiting one serves nothing, so it stays off the healthy
+ *  clock and is re-checked at the short one. A name that does not resolve is a record never set; one that resolves while
+ *  waiting points somewhere other than the record it was given.
  *  The name is the customer's chosen host off the row, else the default label, never an empty first label.
  *  The host is attached to the project again here, throttled by `syncHostname`, so a save made while the vendor was down
- *  is repaired; the customer's word is the domain list's answer, never the resolution's.
- *  A name that resolves is the adapter's to judge. No domain yet is `never_connected`, nobody's DNS failure. */
+ *  is repaired. No domain yet is `never_connected`, nobody's DNS failure. */
 async function hostedHealth(row: DestinationRecord): Promise<{ health: DestinationHealth; reason: HealthReason | null }> {
   const domain = await siteDomain(row.site_id);
   if (domain === null || domain.trim() === "") {
@@ -48,13 +49,7 @@ async function hostedHealth(row: DestinationRecord): Promise<{ health: Destinati
   const state = await syncHostname({ destinationId: row.id, hostname: host });
   // A host the domain list verified is `ok` whatever this resolver sees: the record points here and the certificate exists.
   if (state === "live") return { health: "ok", reason: null };
-  const resolves = await resolvesInDns(host);
-  if (!resolves) {
-    return { health: "expired", reason: "dns_unset" };
-  }
-  const adapter = adapterFor("hosted");
-  if (adapter === null) return { health: "error", reason: "destination_rejected" };
-  return adapter.health({});
+  return { health: "expired", reason: (await resolvesInDns(host)) ? "dns_elsewhere" : "dns_unset" };
 }
 
 /** A credential-bearing destination's state. No credential is `never_connected`, `expired` not `error`, since the
