@@ -49,7 +49,7 @@ export async function angleFor(
   if (a.market === null && a.profile === null) return null;
   const answer = await llm(c, {
     site: "generate.hot_angle",
-    tier: "sonnet",
+    tier: "research",
     locale: a.locale,
     schema: ANGLE_SCHEMA,
     instructions: ["task", "locale"],
