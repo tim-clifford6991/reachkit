@@ -144,6 +144,9 @@ export function fakeDb(): FakeDb {
         const single = db.singles.get(table) ?? (db.rows.get(table) ?? [])[0] ?? null;
         return Promise.resolve({ data: single, error: null });
       },
+      maybeSingle() {
+        return Promise.resolve({ data: db.singles.get(table) ?? null, error: null });
+      },
       then(resolve: (value: { data: unknown[]; error: null }) => unknown) {
         const answered = db.answer === null ? null : db.answer(query);
         const data = answered ?? (query.verb === "select" ? (db.rows.get(table) ?? []) : []);

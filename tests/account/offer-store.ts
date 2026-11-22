@@ -8,4 +8,5 @@ export const memoryOfferStore = (rows: { place: number; user_id: string; subscri
     : rows.some((r) => r.place === row.place && r.freed_at === null) ? "place"
     : (rows.push({ ...row, taken_at: new Date(), freed_at: null }), "taken"),
   free: async (userId, since, at) => (rows.forEach((r) => r.user_id === userId && !r.freed_at && r.taken_at >= since && (r.freed_at = at)), true),
+  heldBy: async (userId) => rows.filter((r) => r.user_id === userId && r.freed_at === null).map((r) => ({ place: r.place, takenAt: r.taken_at }))[0] ?? null,
 });

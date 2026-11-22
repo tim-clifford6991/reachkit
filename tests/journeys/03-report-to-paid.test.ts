@@ -155,9 +155,7 @@ function joinedAccountStore(): AccountStore {
     async insertAccount(a) {
       const result = await inner.insertAccount(a);
       if (result.ok) {
-        // #468: the real store creates the `auth.users` row first and
-        // inserts `users` under its id; the memory store mints the id, so
-        // the Supabase double is told about it here — one id, two tables.
+        // #468: the real store inserts `users` under the `auth.users` id; here the double is told the minted one.
         addAuthUser(auth, { id: result.id, email: a.email });
         addAccount(identity, { id: result.id, email: a.email });
         billing.users.push(
@@ -169,9 +167,7 @@ function joinedAccountStore(): AccountStore {
     async insertSite(a) {
       const result = await inner.insertSite(a);
       if (result.ok) {
-        // The site row the other two views carry, under the id the store
-        // minted — so the session cookie, the access gate and the account
-        // all name one site.
+        // The site row the other two views carry, under the minted id, so cookie, gate and account name one site.
         identity.sites = identity.sites.map((s) =>
           s.user_id === a.userId ? { ...s, id: result.id } : s
         );
@@ -238,16 +234,13 @@ beforeEach(async () => {
 
   accounts = newMemoryAccounts();
   accounts.scans.set(SCAN_ID, { status: "done", domain: DOMAIN });
-  // The `leads` row §13 stamps `converted_at` on, as the account store
-  // reads it. Its twin in the leads store below is the same row seen by
-  // the feature that owns the sequence.
+  // The `leads` row §13 stamps `converted_at` on; its twin in the leads store below is the same row.
   accounts.leads.push({ email: NORMALISED, converted_at: null });
   identity = newMemoryIdentity();
   auth = newFakeAuth();
   billing = newMemoryBilling();
 
-  // The founder already traded their address for the free page (journey
-  // 02) and is three days into the follow-up. Buying is what stops it.
+  // The founder traded their address for the free page (journey 02); buying stops the follow-up.
   leads = newMemoryState();
   leads.scans.set(SCAN_ID, DOMAIN);
   leads.leads.push(
@@ -495,7 +488,12 @@ describe("Start → Checkout → webhook → magic link → /setup (JN-002 steps
   });
 
   it("step 2 — one payment becomes one account, one site on the report's domain, and one open subscription", async () => {
+    db.singles.set("offer_spots", { place: 7, taken_at: "2026-11-02T10:00:00.000Z" });
     await untilTheAccountIsOpen();
+    // The owner is told once: the domain, the spot, and the founder's due days from the spot's own day.
+    const told = inbox.filter((m) => m.subject === "ops.paid.subject");
+    expect(told.map((m) => m.to)).toEqual(env.OWNER_EMAILS.map((owner) => [owner]));
+    for (const due of ["ops.paid.spot(acme.com,7,50)", "Tue, 3 Nov 2026", "Mon, 16 Nov 2026", "Wed, 2 Dec 2026"]) expect(told[0]?.text).toContain(due);
 
     expect(accounts.users).toHaveLength(1);
     const user = accounts.users[0];
@@ -506,15 +504,13 @@ describe("Start → Checkout → webhook → magic link → /setup (JN-002 steps
     expect(user?.billing_country).toBe("IE");
     expect(user?.vat_number).toBe("IE1234567X");
 
-    // The site's domain is the report's, read from the scan the metadata
-    // named — never anything derived from how the buyer paid.
+    // The site's domain is the report's scan, never anything derived from how the buyer paid.
     expect(accounts.sites).toHaveLength(1);
     const site = accounts.sites[0];
     expect(site?.domain).toBe(DOMAIN);
     expect(site?.provisioned_from_scan_id).toBe(SCAN_ID);
 
-    // The gate: shut on the column's default, opened by the subscription's
-    // own period end and by nothing else (ADR-050).
+    // The gate: shut on the column's default, opened by the subscription's period end alone (ADR-050).
     expect(await hasActiveAccess(site?.id as string)).toBe(true);
     expect(billing.users[0]?.paid_through).toBe(PAID_THROUGH.toISOString());
     expect(billing.users[0]?.stripe_subscription_id).toBe(SUBSCRIPTION_ID);
@@ -563,10 +559,7 @@ describe("Start → Checkout → webhook → magic link → /setup (JN-002 steps
     const response = await followTheLink(link);
     expect(response.headers.get("location")).toBe(`https://app.example.com${SETUP_PATH}`);
 
-    // The cookie rides on the redirect itself, so there is no version in
-    // which the browser follows it and arrives signed out.
-    // It is Supabase's session (#468), written by `verifyOtp`, for this
-    // account's user.
+    // The cookie rides on the redirect itself: Supabase's session (#468), written by `verifyOtp`, for this user.
     const cookie = response.cookies.get(FAKE_AUTH_COOKIE);
     expect(cookie).toBeDefined();
     const session = auth.sessions.find((s) => s.accessToken === cookie?.value);
@@ -618,7 +611,14 @@ describe("Start → Checkout → webhook → magic link → /setup (JN-002 steps
     expect(accounts.sites).toHaveLength(1);
     expect(auth.generated).toHaveLength(1);
     expect(inbox).toHaveLength(mailsAfterFirst);
+    expect(inbox.filter((m) => m.subject === "ops.paid.subject")).toHaveLength(env.OWNER_EMAILS.length);
     // Nothing was charged by anything on this path, either time.
     expect(vendor.chargesCreated).toBe(0);
+  });
+
+  it("an owner mail the transport refuses leaves the account open all the same", async () => {
+    __setVendorTransportForTesting(async () => Promise.reject(new Error("refused")));
+    await untilTheAccountIsOpen();
+    expect(await hasActiveAccess(accounts.sites[0]?.id as string)).toBe(true);
   });
 });
