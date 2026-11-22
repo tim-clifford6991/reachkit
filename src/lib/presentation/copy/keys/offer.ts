@@ -46,6 +46,7 @@ export const OFFER_COPY = Object.freeze({
    *  than composed beside them, so the control cannot say one price while
    *  the card above it says another. */
   "offer.start.priced": "Start ReachKit €49",
+  "offer.cadence.visits": "See the visits your new pages bring, every Monday.",
 
   // ── The same four terms, in S4's own words (issue #369) ──────────────
   //
