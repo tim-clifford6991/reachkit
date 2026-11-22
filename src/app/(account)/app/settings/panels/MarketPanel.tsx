@@ -155,7 +155,7 @@ export function MarketPanel(p: {
           ))}
         </div>
         {p.market.checked === null ? null : (
-          <p className={CARD_LEAD} data-testid="market-sets">
+          <p className="text-xs text-base-content/70 wrap-anywhere" data-testid="market-sets">
             {p.market.checked}
           </p>
         )}

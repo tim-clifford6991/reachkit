@@ -54,7 +54,7 @@ export function CompetitorsPanel(p: { competitors: Competitors }): React.JSX.Ele
   const byDomain = new Map(c.rows.map((row) => [row.domain, row]));
   const head = (
     // daisyUI's head text is 60%: too faint to read; the card's quiet 70% is the floor.
-    <tr className="text-base-content/70">
+    <tr className="whitespace-nowrap text-base-content/70">
       <th scope="col">{copy("settings.competitors.title")}</th>
       <th scope="col">{copy("settings.competitors.google")}</th>
       <th scope="col">{copy("settings.competitors.ai")}</th>
@@ -93,7 +93,7 @@ export function CompetitorsPanel(p: { competitors: Competitors }): React.JSX.Ele
           </table>
         </div>
         {c.leaders === null ? null : (
-          <p className={CARD_LEAD} data-testid="competitors-leaders">
+          <p className="text-xs text-base-content/70 wrap-anywhere" data-testid="competitors-leaders">
             {c.leaders}
           </p>
         )}

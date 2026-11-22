@@ -193,10 +193,8 @@ describe("/app/settings: a dialog holds its line's second field (plate F1a)", ()
         async (page) => {
           await page.goto(urlFor(SETTINGS_TAB_HREF.business));
           const out: Record<string, { second: boolean; kept: boolean }> = {};
-          for (const [dialog, field] of [
-            ["voice-dialog-writing", "textarea[name=voice_text]"],
-            ["setting-category-dialog", "select[name=market_locale]"],
-          ] as const) {
+          const pairs = [["voice-dialog-writing", "textarea[name=voice_text]"], ["setting-category-dialog", "select[name=market_locale]"]] as const;
+          for (const [dialog, field] of pairs) {
             const open = async (): Promise<void> => {
               // A press before hydration is lost, so it is repeated until the dialog opens.
               for (let tries = 0; tries < 30; tries++) {
@@ -225,10 +223,7 @@ describe("/app/settings: a dialog holds its line's second field (plate F1a)", ()
         },
         { extraHTTPHeaders: { Cookie: getAccountCookie() } }
       );
-      expect(seen).toEqual({
-        "voice-dialog-writing": { second: true, kept: true },
-        "setting-category-dialog": { second: true, kept: true },
-      });
+      expect(seen).toEqual({ "voice-dialog-writing": { second: true, kept: true }, "setting-category-dialog": { second: true, kept: true } });
     },
     PER_CASE_MS
   );
