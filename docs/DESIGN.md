@@ -60,6 +60,24 @@ The current look of every screen, drawn on board [`Calm`](design/boards/R12-0-Ca
 - 2026-10-07  **A long section starts closed too** (owner, #1328; `docs/SPEC.md` §2 of this date). On the report the same daisyUI `collapse collapse-arrow` on a `details` closes a list under its own name inside a result card, and closes *What holds you back* and the first page under theirs. The Report boards still draw every section open and the offer last; the screen draws the offer under the two result cards.
 - 2026-10-20  **The report's missing-pages list starts open** (owner, Q3, #1716; `docs/SPEC.md` §0 Report lists every missing page). Pages 6–14 show under *All 14, nothing hidden*, as the PubReport board draws them. This amends the line above for that list only.
 
+## Results
+
+2026-11-22  Owner rulings 72 and 78 ([#2722](https://github.com/tim-clifford6991/reachkit/issues/2722#issuecomment-7079785958)). The SPEC rows this changes are edited by the builds that change the behaviour: §4 *The three totals* and §8 *The Monday mail's running totals* by #3227, §4 *Overview's four tiles* by #3225.
+
+**Results: one set of figures, one week.**
+- The app, the Monday mail and the landing's picture state the same four results under the tile names: Pages Live, Pages on Google, AI Answers Mentioning You, and Visits to Your Pages. Each has its figure; "of {m} {plain noun}"; and one change line against **last Monday's check**. A fall is shown as words in `text-base-content/70`, never red.
+- A figure on two surfaces is read by one function. The mail never computes a figure of its own.
+- A window other than "this week" is named in the "of" line, and nowhere else. Every visit figure uses one 28-day window.
+- A week runs from one site-local Monday check to the next. "Week {n}" is one function (`serviceWeek`) on every surface.
+- Nothing is drawn as "+n" on its first count, as 0 when it was not read, or as "of 0". At most one zero per tile.
+- Counts are visits and clicks, never "people".
+
+**One word per state.**
+- Day and page states come only from `calendar/stages.ts`. That one map serves Overview's cells, This Week, both mails and the landing picture.
+- Publishing paused is one key everywhere: "Publishing is paused. Nothing goes live until you turn it on in Settings › Pages."
+- Every absence is one sentence: what is missing, and when it comes or what brings it.
+- "Couldn't check" is never "none".
+
 ## Layout that cannot overflow
 
 - No element is wider than its container and no text is clipped by its card at 390, 768 and 1280 pixels, in light and dark. CI renders every route at those widths and fails on either; `@axe-core/playwright` runs in the same pass.
