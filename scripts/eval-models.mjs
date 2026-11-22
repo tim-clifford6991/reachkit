@@ -32,7 +32,7 @@ const flag = (name, fallback) => {
   const at = argv.indexOf(name);
   return at === -1 || at + 1 >= argv.length ? fallback : argv[at + 1];
 };
-const MODES = ["live", "fake", "plan", "report", "prove-isolation", "rescore"];
+const MODES = ["live", "fake", "plan", "report", "prove-isolation", "rescore", "fetch"];
 
 const PLACEHOLDERS = {
   SUPABASE_URL: "https://eval.invalid",
@@ -75,7 +75,7 @@ async function main() {
   // The $60 is one total, so a live run books into the one ledger and cannot be pointed at a fresh one.
   if (mode === "live" && argv.includes("--ledger")) throw new Error("A live run always books into the one ledger; --ledger is refused with --live.");
   const driver = flag("--driver", "probe");
-  if (!["probe", "writer", "setup"].includes(driver)) throw new Error("--driver is probe, writer or setup.");
+  if (!["probe", "writer", "setup", "research"].includes(driver)) throw new Error("--driver is probe, writer, setup or research.");
   const ledgerFile = evalFile("--ledger", path.resolve(flag("--ledger", path.join(EVAL_DIR, mode === "fake" ? "fake-ledger.jsonl" : "ledger.jsonl"))));
   const cases = path.resolve(flag("--cases", path.join(EVAL_DIR, "cases/writer")));
   const results = evalFile("--results", path.resolve(flag("--results", path.join(EVAL_DIR, "results", mode === "live" ? `${driver}.jsonl` : `${driver}-${mode}.jsonl`))));

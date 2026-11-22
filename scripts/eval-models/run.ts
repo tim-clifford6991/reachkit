@@ -11,18 +11,19 @@ import { HARD_CAP_CENTS, Ledger } from "./ledger";
 import { rescorePass } from "./pass-site";
 import { report } from "./report";
 import { configure, type Mode, type Run } from "./transport";
+import { fetchSet, runResearch } from "./research";
 import { runSetup } from "./setup";
 import { readCases, runWriter } from "./writer";
 
 export interface Options {
-  mode: Mode | "report" | "prove-isolation" | "rescore";
+  mode: Mode | "report" | "prove-isolation" | "rescore" | "fetch";
   ledgerFile: string;
   capCents: number;
   site: LlmCallSite;
   tier: Tier;
   model: string | null;
   repeat: number;
-  driver: "probe" | "writer" | "setup";
+  driver: "probe" | "writer" | "setup" | "research";
   /** The writer's case folder, and the file its scored lines are appended to; both outside the repository. */
   cases: string;
   results: string;
@@ -65,6 +66,8 @@ export async function main(o: Options): Promise<number> {
   if (o.mode === "report") return console.log(report(o.ledgerFile)), 0;
   if (o.mode === "prove-isolation") return proveIsolation();
   if (o.mode === "rescore") return rescorePass(o.answers), 0;
+  // The research set's one polite read of public pages: no model call, no key, no ledger.
+  if (o.mode === "fetch") return fetchSet();
   isolate(o.mode === "live");
   const run: Run = {
     mode: o.mode,
@@ -85,6 +88,7 @@ export async function main(o: Options): Promise<number> {
   };
   if (o.driver !== "probe") mkdirSync(path.dirname(o.results), { recursive: true });
   if (o.driver === "writer") await runWriter(run, readCases(o.cases, o.root), o.repeat, (line) => emit(line, (line as { outcome: string }).outcome));
+  if (o.driver === "research") await runResearch(run, o.model, o.repeat, (line) => emit(line, (line as { parsed: boolean }).parsed ? "answered" : "unparsed"));
   if (o.driver === "setup") await runSetup(run, o.root, o.model, o.repeat, (line) => emit(line, (line as { answered: boolean }).answered ? "answered" : "unmeasured"));
   for (let i = 0; o.driver === "probe" && i < o.repeat && run.halted === null; i++) {
     const answer = await llm(passThrough(), { site: o.site, tier: o.tier, schema: z.object({ ok: z.boolean() }), input: { probe: "eval harness self-check", i } });
