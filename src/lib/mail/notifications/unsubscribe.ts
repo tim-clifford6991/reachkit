@@ -2,18 +2,13 @@
 // Signed over `(userId, kind)`, ADR-042's `/unsubscribe/{token}`, a separate format from the lead opt-out's address-signed token.
 // No expiry, so a link never stops working. Reading is pure, so a scanner's prefetch switches nothing off; `applyUnsubscribeToken`,
 // reached by the page's button and RFC 8058's POST, is the only writer and is idempotent.
-// The key is derived by HKDF from an existing server-only secret with a unique label; a dedicated binding would be one line here.
-import { createHmac, hkdfSync, timingSafeEqual } from "node:crypto";
-import { env } from "@/lib/config/env";
+// The key is `keyFor` a label no other token uses.
+import { timingSafeEqual } from "node:crypto";
+import { macFor } from "@/lib/crypto/keys";
 import { TOGGLABLE_KINDS, setNotifyPref, type NotifyKind } from "./index";
 
 const HKDF_INFO = "reachkit/unsubscribe-token/v1";
-const KEY_BYTES = 32;
 const SEPARATOR = ".";
-
-function signingKey(): Buffer {
-  return Buffer.from(hkdfSync("sha256", env.IP_HASH_SALT, "", HKDF_INFO, KEY_BYTES));
-}
 
 function base64url(value: Buffer | string): string {
   return Buffer.from(value).toString("base64url");
@@ -25,7 +20,7 @@ function payloadOf(a: { userId: string; kind: NotifyKind }): string {
 }
 
 function macOf(payload: string): Buffer {
-  return createHmac("sha256", signingKey()).update(payload).digest();
+  return macFor(HKDF_INFO, payload);
 }
 
 export function unsubscribeTokenFor(a: { userId: string; kind: NotifyKind }): string {

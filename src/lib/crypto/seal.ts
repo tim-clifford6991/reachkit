@@ -1,10 +1,9 @@
 // AES-256-GCM at rest, whose tag makes a tampered ciphertext an error rather than a plausible value.
-// Each caller derives its key from `IP_HASH_SALT` under its own HKDF label, so one purpose's key never opens another's.
+// Each caller's key is `keyFor` its own label, so one purpose's key never opens another's.
 // Nothing here logs, throws with or returns any part of the plaintext: every failure is the caller's fixed error.
-import { createCipheriv, createDecipheriv, hkdfSync, randomBytes } from "node:crypto";
-import { env } from "@/lib/config/env";
+import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
+import { keyFor } from "./keys";
 
-const KEY_BYTES = 32;
 const IV_BYTES = 12;
 const TAG_BYTES = 16;
 
@@ -18,7 +17,7 @@ export interface Sealer {
 
 /** `label` is a literal, never composed: changing it makes every value sealed under it undecryptable. */
 export function sealer(label: string, fail: (operation: "seal" | "unseal") => Error): Sealer {
-  const key = (): Buffer => Buffer.from(hkdfSync("sha256", env.IP_HASH_SALT, "", label, KEY_BYTES));
+  const key = (): Buffer => keyFor(label);
   return {
     seal(value) {
       try {
