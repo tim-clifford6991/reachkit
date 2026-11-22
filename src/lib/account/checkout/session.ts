@@ -26,16 +26,23 @@
 // REQ-022 criterion 7 — no check against VIES or any other registry stands
 // between a buyer and their purchase. `tests/account/checkout/no-vies.test.ts`
 // asserts it over the whole directory.
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { stripe, type Stripe } from "../stripe/client";
 import {
   CHECKOUT_RETURN_PATH,
   CHECKOUT_SESSION_PLACEHOLDER,
   CHECKOUT_SESSION_QUERY_KEY,
+  CHECKOUT_QUERY_KEY,
+  LIMITED_MARKER,
+  REFUSED_MARKER,
 } from "../identity/addresses";
 import { env } from "@/lib/config/env";
 import { checkoutParams, type CheckoutParams } from "./params";
 import { resolveOrigin, type CheckoutOrigin } from "./origin";
 import { checkoutEvent } from "./redaction";
+import { takeLimits } from "@/lib/limits";
+import { networkKeyOf } from "@/lib/scan/admission";
 import { checkReturnTo } from "./return-to";
 
 export type { CheckoutOrigin } from "./origin";
@@ -116,4 +123,12 @@ export async function createCheckoutSession(a: {
     checkoutEvent({ sessionId: "", originKind: a.origin.kind, outcome: "vendor" });
     return { ok: false, reason: "vendor" };
   }
+}
+
+/** Every surface's Start: the per-network limit, then the session, landing on the vendor or back on `returnPath` with a marker. */
+export async function startCheckoutFrom(origin: CheckoutOrigin, returnPath: string): Promise<never> {
+  // Outside any `try`: `redirect` throws its own control-flow error, which a catch would swallow.
+  if (!(await takeLimits("checkout", { network: networkKeyOf(await headers()) }))) redirect(`${returnPath}?${CHECKOUT_QUERY_KEY}=${LIMITED_MARKER}`);
+  const result = await createCheckoutSession({ origin, returnTo: new URL(returnPath, env.NEXT_PUBLIC_APP_URL).toString() });
+  redirect(result.ok ? result.url : `${returnPath}?${CHECKOUT_QUERY_KEY}=${REFUSED_MARKER}`);
 }

@@ -48,6 +48,11 @@ export const CHECKOUT_SESSION_PLACEHOLDER = "{CHECKOUT_SESSION_ID}";
 /** The query key Stripe's session id rides on at `CHECKOUT_RETURN_PATH`. */
 export const CHECKOUT_SESSION_QUERY_KEY = "session_id";
 
+/** The query key and values a checkout that never reached the vendor comes back with: wire names, not copy. */
+export const CHECKOUT_QUERY_KEY = "checkout";
+export const REFUSED_MARKER = "refused";
+export const LIMITED_MARKER = "limited";
+
 /** The two verification types a link of ours is ever issued as. */
 export type ConfirmType = "magiclink" | "email_change";
 
