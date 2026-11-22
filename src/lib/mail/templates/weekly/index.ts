@@ -126,11 +126,12 @@ export interface WeeklyResults {
   readonly tiles: readonly Tile[];
   /** When the rows were read: the send. */
   readonly at: Date;
-  /** `YYYY-MM-DD`: the next pass, and the first planned page's day, `null` where none is planned. */
+  /** `YYYY-MM-DD`: the next pass. */
   readonly due: string;
+  /** `YYYY-MM-DD`: the first planned page's day; `null` where none is planned. */
   readonly goLive: string | null;
   readonly zone: string;
-  /** A live page reached Google's first page for the first time since the pass before. */
+  /** This week's pass read the site's first page on Google's first page, ever. */
   readonly firstPage: boolean;
 }
 
