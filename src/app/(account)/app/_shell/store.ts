@@ -36,6 +36,7 @@ import { nextDueOn } from "@/lib/scan/weekly";
 import { lastPass } from "@/lib/scan/deep/pass-end";
 import { measuredWeeksOf } from "./week-rows";
 import { localDate } from "./format";
+import { pageTitle } from "@/lib/presentation/page-title";
 import type { ComingDay, NextPage, ShellFacts, WaitingPage } from "./model";
 
 /** One site's account, as the shell needs it. Declared by the caller
@@ -96,6 +97,8 @@ interface DraftStateRow {
 /** A page that will go live, with the three places its moment is stored. */
 interface ScheduledDraftRow extends DraftStateRow {
   title: string;
+  /** The site's language, which its titles are cased in. */
+  sites?: { language: string | null } | null;
   veto_deadline: string | null;
   told?: { publishesAt?: string | null } | null;
 }
@@ -106,6 +109,8 @@ interface ScheduledDraftRow extends DraftStateRow {
  *  `scheduled_for` is the day it otherwise carries. */
 interface WaitingDraftRow extends DraftStateRow {
   title: string;
+  /** The site's language, which its titles are cased in. */
+  sites?: { language: string | null } | null;
   veto_deadline: string | null;
   /** What the customer was last told (`drafts.told`): its `publishesAt` is
    *  the moment the mail named, so the card names the same one (issue 1337). */
@@ -137,7 +142,7 @@ interface BlogDestinationRow {
 async function waiting(siteId: string): Promise<{ count: number; review: WaitingPage | null }> {
   const { data, error } = await client()
     .from<WaitingDraftRow>("drafts")
-    .select("id, state, scheduled_for, title, veto_deadline, told, transitions, meta")
+    .select("id, state, scheduled_for, title, veto_deadline, told, transitions, meta, sites(language)")
     .eq("site_id", siteId)
     .in("state", WAITING_STATES);
   if (error !== null || data === null) return { count: 0, review: null };
@@ -161,7 +166,7 @@ function waitingPage(row: WaitingDraftRow): WaitingPage {
   const goesLiveAt = at === null ? null : new Date(at);
   return {
     draftId: row.id,
-    title: row.title,
+    title: pageTitle(row.title, row.sites?.language),
     goesLiveAt: goesLiveAt !== null && Number.isNaN(goesLiveAt.getTime()) ? null : goesLiveAt,
   };
 }
@@ -194,7 +199,7 @@ async function blogAddress(siteId: string): Promise<string | null> {
 async function pagesOnTheirWay(siteId: string): Promise<ScheduledDraftRow[] | null> {
   const { data, error } = await client()
     .from<ScheduledDraftRow>("drafts")
-    .select("id, state, scheduled_for, veto_deadline, told, title")
+    .select("id, state, scheduled_for, veto_deadline, told, title, sites(language)")
     .eq("site_id", siteId)
     .in("state", COMING_STATES);
   return error === null ? data : null;
@@ -221,7 +226,7 @@ function nextScheduled(rows: readonly ScheduledDraftRow[], publishingOn: boolean
   const pages = rows
     .flatMap((row) => {
       const at = SCHEDULED_STATES.includes(row.state) ? goesLiveAtOf(row) : null;
-      return at === null ? [] : [{ at, title: row.title }];
+      return at === null ? [] : [{ at, title: pageTitle(row.title, row.sites?.language) }];
     })
     .sort((a, b) => a.at.getTime() - b.at.getTime());
   return pages[0] ?? null;
@@ -235,7 +240,7 @@ function comingPage(row: ScheduledDraftRow, today: string, timeZone: string): Co
   if (on === null || (on < today && at === null)) return [];
   return row.state === "planned"
     ? [{ kind: "topic", on, topic: row.title }]
-    : [{ kind: "page", on, title: row.title, at, writing: row.state === "generating" }];
+    : [{ kind: "page", on, title: pageTitle(row.title, row.sites?.language), at, writing: row.state === "generating" }];
 }
 
 function goesLiveAtOf(row: ScheduledDraftRow): Date | null {

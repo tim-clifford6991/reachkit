@@ -281,22 +281,20 @@ export const NO_RULE_FACTS: RuleFacts = Object.freeze({
 
 export interface DraftView extends Required<Standing> {
   draftId: string;
+  /** The stored title, which the editor edits; `shownTitle` is how the page reads it, in Title Case. */
   title: string;
-  /** The meta description (`drafts.meta.description`), which the founder
-   *  edits beside the title and the body (#789). */
+  shownTitle: string;
+  /** The meta description (`drafts.meta.description`), which the founder edits beside the title and the body (#789). */
   description: string;
-  /** UI-SPEC S16's provenance line: the day and time the page was written.
-   *  It is the `drafts` row's own `created_at` — the moment §8 wrote the
-   *  page — and never the last save, which is a different fact and is
-   *  stated in its own place (S17's save line). `null` only where the facts
-   *  carry none. */
+  /** UI-SPEC S16's provenance line: the day and time the page was written. It is the `drafts` row's own `created_at`
+   *  — the moment §8 wrote the page — and never the last save, which is a different fact and is stated in its own
+   *  place (S17's save line). `null` only where the facts carry none. */
   writtenAt: Date | null;
   /** When the page-ready mail left; `null` where no mail did. */
   emailedAt: Date | null;
   /** Every word that would publish. Never truncated, never summarised. */
   bodyMd: string;
-  /** The text as generated, before any edit — what makes the authorship
-   *  label truthful and what an unedited page's copy-out is identical to. */
+  /** The text as generated, before any edit — what makes the authorship label truthful and what an unedited page's copy-out is identical to. */
   bodyMdGenerated: string;
   state: State;
   authorship: Authorship;
@@ -421,6 +419,7 @@ export interface KnownCheck {
 export interface DraftFacts extends Standing {
   draftId: string;
   title: string;
+  shownTitle?: string;
   description: string;
   /** The `drafts` row's `created_at` — when the page was written. */
   writtenAt: Date | null;
@@ -526,6 +525,7 @@ export function assembleDraft(facts: DraftFacts): DraftView {
   return {
     draftId: facts.draftId,
     title: facts.title,
+    shownTitle: facts.shownTitle ?? facts.title,
     description: facts.description,
     writtenAt: facts.writtenAt,
     emailedAt: facts.emailedAt ?? null,

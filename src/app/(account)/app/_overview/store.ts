@@ -102,6 +102,7 @@ import { issuesReading, waitingIssues, type IssuesReading, type WaitingItem } fr
 import type { WaitingPageFacts, WaitingTarget } from "./waiting";
 import { enginesAsked } from "./ai-mark";
 import type { CopyKey } from "@/lib/presentation/copy";
+import { pageTitle } from "@/lib/presentation/page-title";
 import { STAGE_FILTER_COPY_KEY, stageOf } from "../calendar/stages";
 
 export interface OverviewSite {
@@ -397,8 +398,9 @@ async function waitingPageFacts(
       veto_deadline: string | null;
       told?: { publishesAt?: string | null } | null;
       created_at: string;
+      sites?: { language: string | null } | null;
     }>("drafts")
-    .select("id, title, body_md, opportunity_id, veto_deadline, told, created_at")
+    .select("id, title, body_md, opportunity_id, veto_deadline, told, created_at, sites(language)")
     .eq("site_id", site.siteId)
     .eq("state", "in_review")
     .order("created_at", { ascending: true })
@@ -414,14 +416,12 @@ async function waitingPageFacts(
 
   return {
     draftId: row.id,
-    // The customer's own words for their page, never a sentence composed
-    // here.
-    title: row.title,
+    // The customer's own words for their page, cased as the page reads, never a sentence composed here.
+    title: pageTitle(row.title, row.sites?.language),
     stage: "your_review",
-    // The moment the customer was told (`told.publishesAt`, issue 1337), so
-    // the card and the mail name one time; else the window the publish sweep
-    // itself closes at, stamped from the site's own `veto_hours` (issue 794)
-    // — never a default counted here.
+    // The moment the customer was told (`told.publishesAt`, issue 1337), so the card and the mail name one time;
+    // else the window the publish sweep itself closes at, stamped from the site's own `veto_hours` (issue 794) —
+    // never a default counted here.
     goesLiveAt: goesLiveAtOf(row),
     target,
     // SPEC §7 (2026-09-20)'s known-content rule decides update-or-new at

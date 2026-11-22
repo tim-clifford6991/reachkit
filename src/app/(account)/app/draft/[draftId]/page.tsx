@@ -59,7 +59,7 @@ export async function generateMetadata(p: {
 }): Promise<Metadata> {
   const { draftId } = await p.params;
   const view = await readDraft(draftId);
-  const title = view === null ? "" : view.title.trim();
+  const title = view === null ? "" : view.shownTitle.trim();
   return {
     title: title === "" ? copy("meta.app.draft.title") : copy("meta.app.draft.title.page", { title }),
   };
