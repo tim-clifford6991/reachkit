@@ -1,6 +1,6 @@
 # The weekly review's timer
 
-The orchestrator installs it on the box. The run is `SKILL.md`, six lenses in one run; this page is only how it is started. `docs/RUNBOOK.md` names it in one line beside `rk-hygiene.timer`:
+The orchestrator installs it on the box. The run is `SKILL.md`; this page is only how it is started. `docs/RUNBOOK.md` names it in one line beside `rk-hygiene.timer`:
 
 > **The weekly review runs on Mondays** (owner, C7). `rk-weekly.timer` at 07:00 UTC, after the weekly pass, runs `/root/ops/reachkit/bin/weekly.sh`, which starts `claude -p "/weekly-review"` on the box's Claude subscription with read-only tools. Its report is `.review/weekly/<date>.md` in the main checkout; the log is `/root/ops/reachkit/log/weekly.log`.
 
@@ -23,7 +23,7 @@ exec /root/.local/bin/claude -p "/weekly-review ${1:-}" \
   --disallowedTools "NotebookEdit Bash(git push:*) Bash(git commit:*) Bash(gh pr merge:*) Bash(npm run panel:*) Bash(gh api -X:*) Bash(gh api --method:*)"
 ```
 
-Every allowed command is read-only and written exactly as `SKILL.md` runs it. A prefix (`:*`) stays only where no option of that command writes a file or runs another program: `gh issue list`, `gh issue view`, `gh pr list` and `gh run list` only read, and the runs call takes a date in its `--jq` filter and that path has no write method. A command the skill does not run is not on the list. Lens 6 reads files outside the checkout (`/root/.claude`, `/root/ops`, `/root/projects`) with the bare `Read`, `Grep` and `Glob` grants already on the list, so it needs no new tool.
+Every allowed command is read-only and written exactly as `SKILL.md` runs it. A prefix (`:*`) stays only where no option of that command writes a file or runs another program: `gh issue list`, `gh issue view`, `gh pr list` and `gh run list` only read, and the runs call takes a date in its `--jq` filter and that path has no write method. A command the skill does not run is not on the list.
 
 A dry run by hand: `bash /root/ops/reachkit/bin/weekly.sh dry-run`. It writes the report and the page and files nothing.
 
