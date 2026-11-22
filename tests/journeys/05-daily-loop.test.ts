@@ -711,7 +711,7 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
   });
 
   it(
-    "pick → generate: one page, grounded in the customer's own measured text, inside CAP_DRAFT",
+    "pick → generate: one page, grounded in the customer's own measured text, inside CAP_DRAFT, and one when run twice",
     async () => {
       const draftId = await generateTonightsPage();
 
@@ -719,20 +719,16 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
       expect(row.id).toBe(draftId);
       expect(row.state).toBe("generating");
       expect(String(row.body_md)).toContain("Teams on the starter plan get 25 seats");
-      // §8 hard rule 1: the fact is the customer's own, carried with the
-      // page it was read from — never re-fetched at draft time.
+      // §8 hard rule 1: the fact is the customer's own, carried with the page it was read from — never re-fetched.
       const stored = generateStore.rows.get(draftId);
       expect((stored?.grounded_fact as { url: string } | null)?.url).toBe(
         `https://${SITE_DOMAIN}/pricing`
       );
-      // The battery's own record, written on every run: an empty list is
-      // "a battery ran and found nothing", which is what the draft view's
-      // Checks list draws its rows from (#424).
+      // The battery's own record, written on every run: an empty list is "a battery ran and found nothing".
       expect(stored?.rule_failures).toEqual([]);
       expect(row.hard_rules_passed).toBe(true);
 
-      // One model call writes the page (SPEC §7, D41), ledgered against the
-      // scan that grounds it, and the whole day inside §8's cap.
+      // One model call writes the page, ledgered against the scan that grounds it, and the day inside §8's cap.
       expect(modelCalls).toHaveLength(1);
       const rows = ledger();
       // The research step is stood in for here (no test reaches a vendor),
@@ -741,22 +737,17 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
       const spent = rows.reduce((total, r) => total + r.costCents, 0);
       expect(spent).toBeGreaterThan(0);
       expect(spent).toBeLessThanOrEqual(CAPS.DRAFT_C);
-      // The draft's own spend stays the draft's: the context is opened with
-      // the roll-up off, so nothing wrote to the scan at all.
+      // The draft's own spend stays the draft's: the roll-up is off, so nothing wrote to the scan at all.
       expect(db.queries.filter((q) => q.table === "scans" && q.verb === "update")).toEqual([]);
       expect(Number(generateStore.rows.get(draftId)?.cost_cents)).toBeCloseTo(spent, 10);
+      // Run twice for one date: one page, and one meta.citations, the same both times.
+      const citations = (stored?.meta as { citations?: { sentences: unknown[] } }).citations;
+      expect(citations?.sentences.length).toBeGreaterThan(0);
+      expect(await generateDayPage({ siteId: SITE_ID, publishDate: nextPublishDate(EVENING, SITE_CLOCK) })).toEqual({ ok: false, because: "already_drafted" });
+      expect([db.rows("drafts").length, (generateStore.rows.get(draftId)?.meta as { citations?: unknown }).citations]).toEqual([1, citations]);
     },
     JOURNEY_TIMEOUT_MS
   );
-
-  it("the daily write run twice for one date leaves one page and one meta.citations, the same both times", async () => {
-    const draftId = await generateTonightsPage();
-    const citations = (generateStore.rows.get(draftId)?.meta as { citations?: { sentences: unknown[] } }).citations;
-    expect(citations?.sentences.length).toBeGreaterThan(0);
-    expect(await generateDayPage({ siteId: SITE_ID, publishDate: nextPublishDate(EVENING, SITE_CLOCK) })).toEqual({ ok: false, because: "already_drafted" });
-    expect(db.rows("drafts")).toHaveLength(1);
-    expect((generateStore.rows.get(draftId)?.meta as { citations?: unknown }).citations).toEqual(citations);
-  }, JOURNEY_TIMEOUT_MS);
 
   it(
     "the veto window: the page enters review and the customer is told",
