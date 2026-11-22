@@ -37,6 +37,7 @@ import type { CopyPartition } from "../registry.ts";
 
 export const META_COPY = Object.freeze({
   /* ── The two screens a stranger arrives at ────────────────────────── */
+  "chrome.wordmark": "ReachKit",
   "meta.landing.title": "Get found on Google and ChatGPT · ReachKit",
   /** Spent twice: the landing's `<meta name="description">` and the web
    *  manifest's `description`, which describe the same product to two
