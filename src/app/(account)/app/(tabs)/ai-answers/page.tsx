@@ -24,7 +24,9 @@ export const metadata: Metadata = { title: copy("meta.app.ai-answers.title") };
 
 export default async function AiAnswersTabPage(p: { searchParams: Promise<Record<string, string | string[] | undefined>> }): Promise<React.JSX.Element> {
   const [shell, tiles, { all }] = await Promise.all([readShell(), readTiles(0, false), p.searchParams.then(loadShowAll)]);
-  const model = tiles?.questions ?? null;
+  // Unread rows are an error, never the first-check line.
+  if (tiles === null) throw new Error("ai-answers: tiles unreadable");
+  const model = tiles.questions;
   const shown = model !== null && model.rows.length > 0 && model.engines.length > 0 ? model : null;
 
   return (
