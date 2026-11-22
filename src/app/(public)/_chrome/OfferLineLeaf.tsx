@@ -1,10 +1,10 @@
 "use client";
 // The offer line's drawing; it holds no copy key, so the registry stays out of the public bundle.
 import type React from "react";
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Clock } from "lucide-react";
 import type { Said } from "./offer-sentence";
+import { useSpots } from "./use-spots";
 
 export type OfferWords = { label: string; pitch: readonly string[]; see: string | null };
 
@@ -42,15 +42,8 @@ function Line(p: { said: Said; words: OfferWords; urgent: boolean }): React.JSX.
 
 /** `said` is the server's read; with `read`, `/offer/spots` fills the count in the browser and corrects a state that moved since the build. */
 export function OfferLineLeaf(p: { read: boolean; said: Said | null; words: OfferWords }): React.JSX.Element {
-  const [said, setSaid] = useState<Said | null>(p.said);
-  useEffect(() => {
-    if (!p.read) return;
-    // A failed read keeps the build's line; the route itself answers an unread count with a line that has no number.
-    fetch("/offer/spots")
-      .then((r) => (r.ok ? (r.json() as Promise<{ line: Said | null }>) : null))
-      .then((body) => body?.line && setSaid(body.line))
-      .catch(() => undefined);
-  }, [p.read]);
+  // A route that did not answer keeps the build's line; the route itself answers an unread count with a line that has no number.
+  const said = useSpots(p.read)?.line ?? p.said;
 
   // A paid reader in setup cannot act on few-left, so only a selling page draws its style.
   const urgent = p.words.see !== null || p.words.pitch.length > 0;

@@ -4,10 +4,9 @@ import type React from "react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal, useFormStatus } from "react-dom";
 import { Clock } from "lucide-react";
-import type { SpotsLeft } from "@/lib/account/offer/spots";
+import { offerOpen, type Offer } from "@/lib/account/offer/open";
+import { useSpots } from "../../../_chrome/use-spots";
 import { CHECKOUT_QUERY_KEY, refusalIn, type CheckoutRefusal } from "../../../pricing/state";
-
-type Read = Pick<SpotsLeft, "state" | "left"> | { state: "unknown"; left?: undefined };
 
 /** The page's solid buttons: the bar is one too, so it shows only once one has scrolled away and while none is on screen. */
 const SOLID = "main .btn-primary:not(.btn-soft, .btn-outline, .btn-ghost, .btn-link)";
@@ -24,34 +23,24 @@ export function BarStart(p: { label: string }): React.JSX.Element {
   );
 }
 
-/** The bar's one line: from the end date no state, read or not, makes a first-50 claim. */
-export function barLine(spots: Read, ended: boolean, words: { before: string; left: string; promise: string }): string {
-  const open = !ended && (spots.state === "open" || spots.state === "few" || spots.state === "unknown");
-  if (!open) return words.promise;
-  return spots.left === undefined ? words.before : words.left.replace("{left}", String(spots.left));
-}
-
 /**
  * Drawn after the footer once the page has loaded, below `md`; `start` is the card's own action in a second form.
- * With `read`, `/offer/spots` fills the count a static page was built without.
+ * With `read`, the page's read of `/offer/spots` replaces the build's answer.
  */
 export function OfferBar(p: {
   read: boolean;
-  spots: SpotsLeft | null;
-  endsAt: string;
-  words: { before: string; left: string; promise: string; refused: Record<CheckoutRefusal, string> };
+  offer: Offer;
+  words: { before: string; promise: string; refused: Record<CheckoutRefusal, string> };
   /** A refusal's line is drawn in place of the spots line, so it never makes the bar taller; `query` reads it from the address. */
   refused: CheckoutRefusal | null | "query" | undefined;
   start: React.ReactNode;
 }): React.JSX.Element {
-  // A static page drops the count it would keep until the next deploy.
-  const [spots, setSpots] = useState<Read>(p.spots === null ? { state: "unknown" } : p.read ? { state: p.spots.state } : p.spots);
-  const [at, setAt] = useState<{ body: HTMLElement; ended: boolean; refused: CheckoutRefusal | null } | null>(null);
+  const offer = useSpots(p.read) ?? p.offer;
+  const [at, setAt] = useState<{ body: HTMLElement; refused: CheckoutRefusal | null } | null>(null);
   const [shown, setShown] = useState(false);
   const bar = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const ended = Date.now() >= Date.parse(p.endsAt);
     const refused = p.refused === "query" ? refusalIn(new URLSearchParams(location.search).get(CHECKOUT_QUERY_KEY)) : (p.refused ?? null);
     // Read on each scroll rather than observed: a solid button that hydration or a later step swaps in is counted too.
     let frame = 0;
@@ -61,7 +50,7 @@ export function OfferBar(p: {
       // Once the page's own action has scrolled away above, and while no solid button is on screen.
       const passed = boxes.some((box) => box.bottom <= 0);
       const onScreen = boxes.some((box) => box.bottom > 0 && box.top < window.innerHeight);
-      setAt((was) => was ?? { body: document.body, ended, refused });
+      setAt((was) => was ?? { body: document.body, refused });
       setShown(passed && !onScreen);
     };
     const soon = (): void => {
@@ -75,7 +64,7 @@ export function OfferBar(p: {
       window.removeEventListener("scroll", soon);
       window.removeEventListener("resize", soon);
     };
-  }, [p.endsAt, p.refused]);
+  }, [p.refused]);
 
   // The page's foot reserve is the tallest the bar has been, so it never covers the footer or a focused link.
   // Measured before paint as the bar shows, since the observer reports a frame after the bar already covers the foot.
@@ -93,16 +82,9 @@ export function OfferBar(p: {
     return () => sized.disconnect();
   }, [at, shown]);
 
-  useEffect(() => {
-    if (!p.read) return;
-    fetch("/offer/spots")
-      .then((r) => (r.ok ? (r.json() as Promise<Read>) : null))
-      .then((body) => body !== null && setSpots(body))
-      .catch(() => undefined);
-  }, [p.read]);
-
-  const ended = at?.ended !== false;
-  const few = !ended && spots.state === "few" && spots.left !== undefined;
+  // Drawn only once mounted, so the browser's clock decides: from the end date no state makes a first-50 claim.
+  const open = offerOpen(offer.state);
+  const few = open && offer.state === "few" && offer.count !== null;
 
   return (
     <>
@@ -122,7 +104,7 @@ export function OfferBar(p: {
             ) : (
               <p className={`flex min-w-0 items-center gap-1.5 text-sm ${few ? "font-semibold" : ""}`}>
                 {few && <Clock size={16} strokeWidth={1.75} aria-hidden className="shrink-0" />}
-                {barLine(spots, ended, p.words)}
+                {open ? (offer.count ?? p.words.before) : p.words.promise}
               </p>
             )}
             {p.start}
