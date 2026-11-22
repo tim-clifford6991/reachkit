@@ -32,6 +32,7 @@ const APPLIED = [
   "20260922120000_publications_reads.sql",
   "20261019170000_publications_search_ladder.sql",
   "20261122160000_publications_reads_visits_clicks.sql",
+  "20261122180000_publications_reads_own_fetch.sql",
 ];
 
 function raises(sql: string): boolean {
@@ -199,6 +200,14 @@ describe("the roll-up: one cell per site, page, day, engine and reason", () => {
     count(OWNED.siteId, OWNED.pageId, "2026-09-21");
     expect(hits(OWNED.pageId, "2026-09-20", "claude")).toBe(1);
     expect(hits(OWNED.pageId, "2026-09-21")).toBe(1);
+  });
+
+  it("an AI fetch on the day a pass asked about the site is filed as our own, and on another day as the customer's", () => {
+    const asked = one(`select (min(created_at) at time zone 'UTC')::date from scans where site_id = '${OWNED.siteId}';`);
+    count(OWNED.siteId, OWNED.pageId, asked, "claude", "answer_fetch", 100_000);
+    count(OWNED.siteId, OWNED.pageId, "2026-09-24", "claude", "answer_fetch", 100_000);
+    expect([hits(OWNED.pageId, asked, "claude", "own_fetch"), hits(OWNED.pageId, asked, "claude")]).toEqual([1, 0]);
+    expect(hits(OWNED.pageId, "2026-09-24", "claude")).toBe(1);
   });
 });
 
