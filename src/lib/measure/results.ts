@@ -122,8 +122,6 @@ export function marketOf(model: TilesModel | null): { top10: number; of: number 
 export interface TilesModel {
   tiles: readonly Tile[];
   bars: RivalBars | null;
-  /** On a hosted site: its live pages an AI app fetched to answer someone in the days kept; absent off one. */
-  aiRead?: number | null;
 }
 
 /** What Competitors reads from the Competitors screen's own selector. */

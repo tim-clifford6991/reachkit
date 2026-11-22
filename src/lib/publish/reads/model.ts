@@ -30,8 +30,6 @@ export interface BlogReadsModel {
   fetches: Measured<number>;
   /** Visitors from an AI answer, always "at least": most AI apps send no referrer or tag, so this is a floor. */
   referrals: Measured<number>;
-  /** The pages an answer engine fetched in the window, once each. */
-  readPages: readonly string[];
   byEngine: readonly BlogEngineCount[];
   /** The window the figures are read over, in days. */
   windowDays: number;
@@ -96,7 +94,6 @@ export function assembleBlogReads(
     return {
       fetches: unmeasured("undeterminable", at),
       referrals: unmeasured("undeterminable", at),
-      readPages: [],
       byEngine: engineCounts([]),
       windowDays,
       weekly: [],
@@ -117,7 +114,6 @@ export function assembleBlogReads(
   return {
     fetches: asMeasured(fetches),
     referrals: asMeasured(referrals),
-    readPages: [...new Set(current.filter((row) => row.kind === "answer_fetch" && row.hits > 0).map((row) => row.publicationId))],
     byEngine: engineCounts(current),
     windowDays,
     weekly: weeklyFetches(rows, at),

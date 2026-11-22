@@ -54,9 +54,6 @@ function Figure(p: { tile: Tile; className: string }): React.JSX.Element {
   );
 }
 
-/** The AI tile's hosted-site line: the live pages an AI app read, never merged with mentions or visits. */
-const readLine = (x: number): string => (x === 0 ? copy("overview.tile.ai.read.none") : copy("overview.tile.ai.read", { x: formatCount(x) }));
-
 /** On Google's line beneath the of-line; `null` on every other tile. */
 function shownLine(tile: Tile, d: TileDates): string | null {
   const s = tile.shown;
@@ -113,7 +110,6 @@ export function Tiles(p: { model: TilesModel; dates: TileDates }): React.JSX.Ele
                   <Figure tile={tile} className="text-3xl leading-snug font-semibold tabular-nums" />
                   <span className={`${INK} break-words`}>{ofLine(tile)}</span>
                   {shown === null ? null : <span className={`${INK} break-words`}>{shown}</span>}
-                  {tile.key === "ai" && p.model.aiRead != null ? <span className={INK}>{readLine(p.model.aiRead)}</span> : null}
                   {change === null ? null : (
                     <span className={`text-sm ${tile.change?.kind === "up" ? "text-success" : "text-base-content/70"}`}>{change}</span>
                   )}
@@ -198,7 +194,7 @@ export function DetailTilesSkeleton(): React.JSX.Element {
 }
 
 /** The closed account of what each tile counts. */
-export function TilesHow(p: { hosted: boolean; noConsole: boolean }): React.JSX.Element {
+export function TilesHow(p: { noConsole: boolean }): React.JSX.Element {
   return (
     <details className="collapse collapse-arrow card-border min-w-0 bg-base-100" data-testid="overview-tiles-how">
       <summary className="collapse-title font-semibold">{copy("overview.tiles.how.title")}</summary>
@@ -207,7 +203,6 @@ export function TilesHow(p: { hosted: boolean; noConsole: boolean }): React.JSX.
         <p>{copy("overview.tiles.how.google")}</p>
         {p.noConsole ? <p>{copy("overview.tiles.how.google.no-console")}</p> : null}
         <p>{copy("overview.tiles.how.ai", { weeks: formatCount(AI_WINDOW_WEEKS) })}</p>
-        {p.hosted ? <p>{copy("overview.tiles.how.ai.read")}</p> : null}
         <p>{copy("overview.tiles.how.rivals")}</p>
         <p>{copy("overview.tiles.how.change")}</p>
       </div>
