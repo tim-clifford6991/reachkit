@@ -37,15 +37,16 @@ export function weekListOf(week: WeekModel, time: string | null = null): WeekLis
   const last = week.cells.at(-1);
   if (first === undefined || last === undefined) return null;
   const today = week.cells.find((cell) => cell.day === week.today);
-  // Edit and Stop sit on the next page to go live only, as on Plan.
-  const next = week.cells.find((cell) => cell.page !== null && stoppable(cell, week))?.day ?? null;
+  // Edit and Stop sit on the next page to go live only, as on Plan; a past day is never it.
+  const next = week.cells.find((cell) => cell.day >= week.today && cell.page !== null && stoppable(cell, week))?.day ?? null;
   return {
+    weekStart: week.weekStart,
     first: first.day,
     last: last.day,
     timeZone: week.timeZone,
     today: week.today,
     skippedToday: today !== undefined && dayStateOf(today) === "skipped",
-    firstSkip: week.cells.find((cell) => dayStateOf(cell) === "skipped")?.day ?? null,
+    firstSkip: week.cells.find((cell) => cell.day >= week.today && dayStateOf(cell) === "skipped")?.day ?? null,
     pages: pagesThisWeek(week),
     coming: pagesToComeThisWeek(week),
     days: week.cells.map((cell) => dayOf(cell, week, cell.day === next, time)),

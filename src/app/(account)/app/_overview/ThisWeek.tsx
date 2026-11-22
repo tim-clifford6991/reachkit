@@ -6,6 +6,7 @@ import type React from "react";
 import Link from "next/link";
 import { RefreshCw } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
+import { WEEK_PLAN } from "@/lib/config/constants";
 import { formatShortDay, formatTime, SHELL_LOCALE } from "../_shell/format";
 import { addDays, dayNumber, weekdayShort, type DayKey } from "../calendar/dates";
 import { DayStateBadge, KindChip, cardLineFor, stateLineOf } from "../calendar/DayCard";
@@ -34,7 +35,9 @@ export interface WeekDay {
 }
 
 export interface WeekList {
-  /** The week's first and last day, Monday to Sunday. */
+  /** The first day of the site's own week, which a first week drawn from setup does not start on. */
+  weekStart: DayKey;
+  /** The week's first and last day drawn. */
   first: DayKey;
   last: DayKey;
   /** Today, in the site's zone. */
@@ -168,7 +171,7 @@ export function ThisWeek(p: { week: WeekList; scheduled: boolean }): React.JSX.E
   const { week } = p;
   if (week.pages === 0) return null;
   const title = copy("overview.week.pages", { n: String(week.pages) });
-  const next = addDays(week.first, 7);
+  const next = addDays(week.weekStart, 7);
   const words = stopWords();
   return (
     <section className="card card-border min-w-0 bg-base-100" aria-labelledby="overview-week-title" data-testid="overview-week">
@@ -189,7 +192,7 @@ export function ThisWeek(p: { week: WeekList; scheduled: boolean }): React.JSX.E
         </ol>
         <p className="flex min-w-0 items-center gap-2 text-sm text-base-content/70" data-testid="overview-week-next">
           <RefreshCw size={16} strokeWidth={1.75} aria-hidden className="shrink-0" />
-          {copy("overview.week.next", { date: `${dayNumber(next)} ${monthShort(next)}`, n: String(week.days.length) })}
+          {copy("overview.week.next", { date: `${dayNumber(next)} ${monthShort(next)}`, n: String(WEEK_PLAN.days) })}
         </p>
       </div>
     </section>

@@ -25,7 +25,7 @@ import { accountFor, isLawCause, isSupplyCause, type EmptyAccount, type EmptyFac
 import type { PageStanding } from "./day-number";
 import type { WorkStop } from "@/lib/presentation/stopped";
 import { stageOf, type DayState, type State, type Stage, type StageFilter } from "./stages";
-import { commitDays, dayKeyOf, gridDays, monthOf, planHorizonEnd, type DayKey, type MonthKey } from "./dates";
+import { addDays, dayKeyOf, gridDays, monthOf, planHorizonEnd, type DayKey, type MonthKey } from "./dates";
 
 /** REQ-043 criterion 8's evidence, and §7's day-panel rows.
  *
@@ -312,7 +312,11 @@ export function assembleMonth(facts: CalendarFacts, month: MonthKey, planEnd?: D
     const found = byDay.get(day);
     // A page that is only planned past the horizon is not drawn: the pass
     // that decides that date has not run. A written draft is a fact and is.
-    const draft = found !== undefined && when === "after" && found.draftId === null ? undefined : found;
+    // A past date that was only ever planned was never written: it is no page, and its account says so.
+    const draft =
+      found !== undefined && ((when === "after" && found.draftId === null) || (when === "past" && found.state === "planned" && found.startedAt == null))
+        ? undefined
+        : found;
     const stage = draft === undefined ? null : stageOf(draft, facts.now);
     if (draft !== undefined && stage !== null) {
       return { ...base, page: { ...draft, stage }, empty: null };
@@ -372,58 +376,58 @@ function countsOf(cells: readonly DayCell[]): Record<StageFilter, number> {
   return counts;
 }
 
-/** Plan (SPEC §7, E5): this week's seven days, the counts the stage filter
- *  shows beside them, and the week's spares. */
+/** Plan (SPEC §7, E5): the site's week that holds today, the counts the stage filter shows beside them, and the week's
+ *  spares. */
 export interface WeekModel extends Pick<MonthModel, "timeZone" | "stopped" | "destination" | "held" | "today" | "spares"> {
   cells: readonly DayCell[];
-  /** The committed week's days; a cell outside them is today's page from the commit before. */
-  commit: readonly DayKey[];
+  /** The days drawn: the site's week from setup on, ending at its last day with something to say. */
+  days: readonly DayKey[];
+  /** The first day of the site's own week (`weekStartFor`), which a first week drawn from setup does not start on. */
+  weekStart: DayKey;
   counts: Readonly<Record<StageFilter, number>>;
 }
 
+/** A day to come that holds no page and no stored account, which the screen does not draw at the week's end. */
+const bare = (cell: DayCell, today: DayKey): boolean =>
+  cell.day > today && cell.page === null && (cell.empty === null || cell.empty.cause === "unattributed");
+
 /**
- * This week's days, taken from the months that hold them.
+ * This week's days, taken from the months that hold them: the site's own week that holds today (SPEC §7, owner
+ * 2026-11-21), from the day the account was set up where that falls inside it.
  *
- * A week can lie across two months, and a month's model speaks only for
- * its own dates — so the caller hands in the model of every month the week
- * touches, and a date none of them holds is left out rather than invented.
- * Nothing is assembled a second time: a day here is the very cell its month
- * drew, so the list and the grid cannot disagree about a date.
- *
- * A law cause is stated once per plan (issue 857), and each month states
- * its own first — so across a month's end the second is dropped here.
+ * A week can lie across two months, and a month's model speaks only for its own dates, so the caller hands in the
+ * model of every month the week touches. A day here is the very cell its month drew. A law cause is stated once per
+ * plan, and each month states its own first, so across a month's end the second is dropped here.
  */
-export function weekOf(months: readonly MonthModel[], today: DayKey, commitStart: DayKey | null): WeekModel {
+export function weekOf(months: readonly MonthModel[], a: { today: DayKey; weekStart: DayKey; setupDay: DayKey | null }): WeekModel {
+  const { today, weekStart } = a;
+  const from = [weekStart, a.setupDay ?? weekStart].sort().at(-1)!;
+  const start = from > today ? today : from;
   let lawStated = false;
   const cells: DayCell[] = [];
-  const shown = commitDays(today, commitStart);
-  for (const day of [...(shown.today === null ? [] : [shown.today]), ...shown.days]) {
+  for (let day = start; day <= addDays(weekStart, 6); day = addDays(day, 1)) {
     const cell = months.map((model) => cellFor(model, day)).find((found) => found !== undefined);
     if (cell === undefined) continue;
-    // Today before the commit shows only for the page the last commit put on it.
-    if (day === shown.today && cell.page === null) continue;
     const law = cell.statesLine && cell.when === "plan" && cell.empty !== null && isLawCause(cell.empty.cause);
     cells.push(law && lawStated ? { ...cell, statesLine: false } : cell);
     lawStated ||= law;
   }
-  // The month today falls in carries the site's facts; the first week of a
-  // month starts in the month before it.
+  // No run of empty cards waits at the week's end for a pass that has not run.
+  while (cells.length > 0 && bare(cells.at(-1)!, today)) cells.pop();
+  // The month today falls in carries the site's facts; the first week of a month starts in the month before it.
   const home = months.find((model) => cellFor(model, today) !== undefined) ?? months[0]!;
   const { timeZone, stopped, destination, held, spares } = home;
-  return { cells, commit: shown.days, counts: countsOf(cells), timeZone, stopped, destination, held, today, spares };
+  return { cells, days: cells.map((cell) => cell.day), weekStart, counts: countsOf(cells), timeZone, stopped, destination, held, today, spares };
 }
 
-/** "Pages this week", as This Week and Overview both state it: the commit's days that hold a page. Today's page from
- *  the commit before is drawn and never counted. */
-export function pagesThisWeek(week: Pick<WeekModel, "cells" | "commit">): number {
-  const commit = new Set(week.commit);
-  return week.cells.filter((cell) => cell.page !== null && commit.has(cell.day)).length;
+/** "Pages this week", as This Week and Overview both state it: the drawn days that hold a page. */
+export function pagesThisWeek(week: Pick<WeekModel, "cells">): number {
+  return week.cells.filter((cell) => cell.page !== null).length;
 }
 
 /** Of those, the ones still to go live: from today on, and not live yet. Overview's "Up to {n} more this week". */
-export function pagesToComeThisWeek(week: Pick<WeekModel, "cells" | "commit" | "today">): number {
-  const commit = new Set(week.commit);
-  return week.cells.filter((cell) => cell.page !== null && commit.has(cell.day) && cell.day >= week.today && cell.page.stage !== "live").length;
+export function pagesToComeThisWeek(week: Pick<WeekModel, "cells" | "today">): number {
+  return week.cells.filter((cell) => cell.page !== null && cell.day >= week.today && cell.page.stage !== "live").length;
 }
 
 /** The cell a day panel is opened on. `undefined` only for a day outside
@@ -433,9 +437,9 @@ export function cellFor(model: MonthModel, day: DayKey): DayCell | undefined {
 }
 
 /** A day's state, or `null` where its own line says more (a page held, a
- *  day waiting on the customer's fix, a day no commit covers yet, a past day
- *  with nothing on it). A page someone stopped, and a day ReachKit stopped, is `stopped`; a
- *  day supply had nothing worth writing for is `skipped`. */
+ *  day waiting on the customer's fix, a day no commit covers yet). A page someone stopped, and a day ReachKit
+ *  stopped, is `stopped`; a day supply had nothing worth writing for is `skipped`. A past day always has one: held
+ *  is stopped, and nothing recorded is skipped. */
 export function dayStateOf(cell: DayCell): DayState | null {
   if (cell.page !== null) {
     // A day whose write has started reads as being written, with or without its draft row yet.
@@ -445,7 +449,8 @@ export function dayStateOf(cell: DayCell): DayState | null {
   }
   const cause = cell.empty?.cause;
   if (cause === "page_set_aside") return "set_aside";
-  if (cause === "page_cannot_go_live" || cause === "reachkit_stopped") return "stopped";
-  if (cause === "supply_exhausted" || cause === "supply_unmeasured") return "skipped";
+  const past = cell.when === "past" && cell.inMonth;
+  if (cause === "page_cannot_go_live" || cause === "reachkit_stopped" || (past && cause === "page_held")) return "stopped";
+  if (cause === "supply_exhausted" || cause === "supply_unmeasured" || past) return "skipped";
   return null;
 }

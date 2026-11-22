@@ -16,13 +16,14 @@ import React from "react";
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { weekOf, type MonthModel, type WeekModel } from "@/app/(account)/app/calendar/month";
 import { FIXTURE_PLAN_HEAD } from "@/app/(account)/app/calendar/fixture";
+import { addDays, weekdayIndex } from "@/app/(account)/app/calendar/dates";
 import { weekScreen, type WeekScreen } from "@/app/(account)/app/calendar/week-screen";
 
 /** What the page hands `CalendarView`: this week as the month holds it.
  *  The fixture's week lies inside its month, so one model is every month
  *  the week touches. */
 export function shown(model: MonthModel): { week: WeekModel; screen: WeekScreen } {
-  const week = weekOf([model], model.today, null);
+  const week = weekOf([model], { today: model.today, weekStart: addDays(model.today, -weekdayIndex(model.today)), setupDay: null });
   return { week, screen: weekScreen({ week, head: FIXTURE_PLAN_HEAD, published: null }) };
 }
 

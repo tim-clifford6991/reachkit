@@ -90,8 +90,10 @@ export function cardLabel(a: {
   /** The line the card is actually drawing, where it draws one — so the
    *  label says what is on the card and never a reason the card withheld. */
   line: string | null;
+  /** The date as the card names it, where that is not the bare date (today's). */
+  date?: string;
 }): string {
-  const date = cardDate(a.cell.day);
+  const date = a.date ?? cardDate(a.cell.day);
   const page = a.page;
   if (page !== null) {
     const stage = copy(STAGE_FILTER_COPY_KEY[page.stage]);
