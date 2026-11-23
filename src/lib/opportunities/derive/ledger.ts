@@ -42,9 +42,9 @@ export function ledgerSourceOf(topic: {
 }
 
 /** Holds readiness stored that no pass clears, so a held row is not supply. */
-const HELD: ReadonlySet<string> = new Set(["resting", "out_of_reach"]);
+const HELD: ReadonlySet<string> = new Set(["resting"]);
 
-/** A row a day may be written from: an open Write or Earn at or above readiness's fit floor, not resting or out of reach. */
+/** A row a day may be written from: an open Write or Earn at or above readiness's fit floor, not resting. */
 export function writable(row: Pick<Opportunity, "family" | "status" | "businessFit"> & Partial<Pick<Opportunity, "ready" | "unreadyReason">>): boolean {
   const fit = row.businessFit ?? null;
   const held = row.ready === false && HELD.has(row.unreadyReason ?? "");

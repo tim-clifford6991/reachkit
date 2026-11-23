@@ -17,14 +17,14 @@ const DAY_MS = 86_400_000;
 async function ranked(siteId: string, a: { now: Date; from?: string; record?: boolean; keepLater?: boolean; days?: number }) {
   // On demand, the week starts at the date being written; on Monday, at the first date with no page.
   const store = opportunityStore(), from = a.from ?? new Date(firstOpenDay(await store.draftedPages(siteId, 1), a.now) * DAY_MS).toISOString().slice(0, 10);
-  await assessReadiness(siteId, { at: a.now, now: a.now, record: a.record === true, plannedFrom: from });
+  await assessReadiness(siteId, { at: a.now, now: a.now });
   await assessFixPages(siteId, { report: null, now: a.now });
   // Before the first weekly pass, the dated days stop where that Monday's pass opens the next week: a Wednesday 5, a Monday 7.
   const days = a.days ?? (a.keepLater ? 1 : (await store.weeklyCommit(siteId)) === null ? (8 - new Date(`${from}T00:00:00Z`).getUTCDay()) % 7 || WEEK_PLAN.days : WEEK_PLAN.days);
   // A recommit fills its own date and the spares: the days after it stay as committed.
   const kept = a.keepLater ? (await store.plannedRows(siteId)).filter((r) => r.planned_for != null && r.planned_for > from) : [];
   const later = new Set(kept.map((r) => r.id)), top = Math.max(0, ...kept.map((r) => r.plan_place ?? 0));
-  const load = await loadRanking(siteId, a.now), free = (r: OpportunityRow) => !later.has(r.id);
+  const load = await loadRanking(siteId, a.now, undefined, a.record === true), free = (r: OpportunityRow) => !later.has(r.id);
   const input = { ...load, rows: load.rows.filter(free), fixRows: load.fixRows.filter(free), at: a.now, from, days };
   const order = choose(input), best = new Set([...order.committed, ...order.rejected.filter((r) => r.reason === "after_the_week")].slice(0, WEEK_RESEARCH.rowsMax).map((r) => r.opportunityId));
   return { input, order, best: [...best].flatMap((id) => input.rows.filter((r) => r.id === id)), later, top, from, days };
@@ -71,7 +71,7 @@ export async function pageForDay(siteId: string, date: string, now: Date = new D
   } else {
     // The 0¢ evening check, on the week's rows alone.
     const only = new Set(held.map((row) => row.id));
-    await assessReadiness(siteId, { at: now, now, only, plannedFrom: date });
+    await assessReadiness(siteId, { at: now, now, only });
     await assessFixPages(siteId, { report: null, now, only });
   }
   const open = (await store.plannedRows(siteId)).filter((row) => row.status === "open" && row.ready);

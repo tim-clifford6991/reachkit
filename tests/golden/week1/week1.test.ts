@@ -144,7 +144,7 @@ it("each panel site's first week ends each day in a writable pack or a named rea
     "# Week 1 at 0¢, from the stored panel supply",
     "",
     "Seeded from each site's last stored panel topics and market, banded from their stored volume at a site that ranks for nothing. The pass that derives the supply needs the model and the site's pages, which the evidence does not store, so only today's asked topics are added: the People-also-ask and related searches of the stored SERPs. The pass's one fit call scores every question it writes and every unscored row it holds; this golden asks no model, so each such row stands at the fit gate. That asked-beside evidence is read by readiness too.",
-    "Ready is today's readiness over those rows (`asked` of them are asked topics), with the reasons the rest are held; the gate is the market footprint read from the stored SERPs with the site's own profile. `research runs live` and `no site facts stored` are days decided inside the live run, not blocked ones.",
+    "Ready is today's readiness over those rows (`asked` of them are asked topics), with the reasons the rest are held; the market footprint is read from the stored SERPs with the site's own profile, and while it is closed a new list or comparison ranks 2 lower (`no_footprint`). `research runs live` and `no site facts stored` are days decided inside the live run, not blocked ones.",
     "",
   ];
   const head = Array.from({ length: DAYS }, (_, n) => `Day ${n + 1}`);

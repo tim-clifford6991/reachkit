@@ -165,7 +165,7 @@ export interface OpportunityStore {
   weeklyCommit(siteId: string): Promise<string | null>;
   /** Records the one recommit `date` allows; `false` where it is held. */
   claimRecommit(siteId: string, date: string): Promise<boolean>;
-  /** Whether the site's market footprint was recorded open (SPEC §7 `out_of_reach`; absent: never), and its one record. */
+  /** Whether the site's market footprint was recorded open (SPEC §7 `no_footprint`; absent: never), and its one record. */
   footprintOpened?(siteId: string): Promise<boolean>;
   openFootprint?(siteId: string, row: string): Promise<void>;
   /** Each row's research as the cache holds it, at 0¢; absent, none is read and the week keeps the ranking's order. */

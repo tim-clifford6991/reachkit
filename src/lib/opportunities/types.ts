@@ -314,9 +314,9 @@ export type UnreadyReason =
   | "destination_cannot_address"
   /** The business is not the answer: a stored fit below the gate. */
   | "low_fit"
-  /** Not measured, never low: a new page no fit call has scored yet, which the next pass scores. */
+  /** No longer assigned: an unscored row is ready and ranks as a 2. */
   | "fit_unscored"
-  /** A new comparison or listicle while the site holds no unbranded place on its market (SPEC §7). */
+  /** No longer assigned: a closed footprint is the `no_footprint` points part. */
   | "out_of_reach"
   /** No longer assigned: a site whose pages ground no fact is written from research (owner, #2511). */
   | "no_grounding_fact";
@@ -410,7 +410,7 @@ export type PlaceRule =
   | "linked by AI: one more in its cluster";
 
 /** One part of a row's points, as the plan stores it. */
-export type PointPart = "fit" | "demand" | "ai_gap" | "rising" | "near_page_one" | "linked_by_ai" | "not_moving" | "shown_no_visits" | "new_site" | "outsized" | "no_demand";
+export type PointPart = "fit" | "demand" | "ai_gap" | "rising" | "near_page_one" | "linked_by_ai" | "not_moving" | "shown_no_visits" | "new_site" | "outsized" | "no_demand" | "no_footprint";
 
 /** `opportunities.plan_reason`: the points a committed row ranked by, the
  *  parts they sum from, and the rule that placed it. */

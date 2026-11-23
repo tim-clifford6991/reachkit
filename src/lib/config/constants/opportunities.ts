@@ -211,12 +211,7 @@ export const SNIPPET_REFRESH_IMPRESSIONS = 100 as const;
 export const CONTENT_MIX = Object.freeze({
   /** How many of the next ranked topics a brief names as planned. */
   WINDOW_DAYS: 7,
-  /** SPEC §7: the fewest of the site's last `NON_COMMERCIAL_OF` new pages
-   *  (refreshes not counted) that answer rather than sell — a Q&A, a how-to
-   *  or documentation — where a topic of one is ready. Drafted; the owner may
-   *  correct it. */
-  NON_COMMERCIAL_MIN: 3,
-  NON_COMMERCIAL_OF: 7,
+  /** The types that answer rather than sell: a Q&A, a how-to or documentation. */
   NON_COMMERCIAL_TYPES: Object.freeze(["qa", "how_to", "documentation"] as const),
   /** How many of the site's own published and planned pages a brief is
    *  handed, newest first. */

@@ -649,7 +649,7 @@ export const writeTypeOf = (query: string) => (SHAPES.comparison.test(query) ? "
  * its rival's address and position are `unmeasured`, its volume is the
  * market set's reading or `unmeasured`, and its acceptance is the plain
  * top-20 test. It never claims an AI-answer gap. `null` where the search is
- * outsized for the site, or the site has no rival to point it at.
+ * outsized for the site; with no rival to point at, it names none.
  */
 export function candidateFor(
   topic: ProposedTopic,
@@ -657,7 +657,6 @@ export function candidateFor(
 ): Candidate | null {
   const at = a.report.verdict.measuredAt;
   const rival = rivalFor(topic, a);
-  if (rival === null) return null;
   const band = topic.volume === null ? "winnable" : demandBand({ volume: topic.volume, ownRanked: a.ownRanked });
   if (band === "not-yet") return null;
 
@@ -668,11 +667,10 @@ export function candidateFor(
     family: "write",
     query: topic.query,
     volume,
-    rival: {
-      domain: rival,
-      url: topic.cited === undefined ? unmeasured<string>("not_attempted", at) : measured(topic.cited, at),
-      position: unmeasured<number>("not_attempted", at),
-    },
+    rival:
+      rival === null
+        ? null
+        : { domain: rival, url: topic.cited === undefined ? unmeasured<string>("not_attempted", at) : measured(topic.cited, at), position: unmeasured<number>("not_attempted", at) },
     ...(topic.asked === undefined ? {} : { askedBeside: topic.asked }),
     ...trendRead(topic.trend, at),
     ...(topic.composed === undefined ? {} : { composed: true as const }), ...("topUp" in topic ? { topUp: true as const } : {}),

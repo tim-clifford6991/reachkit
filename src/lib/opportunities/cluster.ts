@@ -6,7 +6,7 @@ import { SAME_TOPIC_SHARED_ADDRESSES, TOPIC_FIT } from "@/lib/config/constants";
 import { marketTokens, type MarketWords } from "@/lib/market/infer/terms";
 import { contentTokens, GENERIC_TOKENS, ownBrandTokens, stemKey } from "@/lib/market/questions/select";
 import { googleWrapper, registrableDomain, resolvedOf } from "@/lib/market/rivals/domains";
-import { canonicalUrl, EARNING, type EarnedSearch } from "@/lib/measure/page-reading";
+import { canonicalUrl } from "@/lib/measure/page-reading";
 import type { StoredReport } from "@/lib/scan/report";
 import type { Candidate } from "./derive/candidate";
 import { isOwnRefresh, qualifiesForADay, type Family, type Opportunity, type OpportunityType, type Winnability } from "./types";
@@ -62,14 +62,6 @@ export function sameTopic(a: TopicOf, b: TopicOf, topTens: ReadonlyMap<string, r
   if (a.absorbedQueries.some((q) => queryKey(q) === qb) || b.absorbedQueries.some((q) => queryKey(q) === qa)) return true;
   const [ta, tb] = [topTens.get(qa), topTens.get(qb)];
   return ta !== undefined && tb !== undefined && shareATopTen(ta, tb);
-}
-
-/** The search Search Console measured the site at `EARNING.reach` or better on that a row's search, an absorbed one or its cluster is. */
-export function reachedBy(searches: readonly EarnedSearch[], brandTokens: readonly string[], market?: MarketWords | null): (o: TopicOf) => string | null {
-  const reached = searches.filter((row) => row.position <= EARNING.reach);
-  const byKey = new Map(reached.map((row) => [queryKey(row.query), row.query]));
-  const byCluster = new Map(reached.flatMap((row) => [[clusterKey(row.query, brandTokens, market) ?? "", row.query] as const]).filter(([key]) => key !== ""));
-  return (o) => [o.targetQuery ?? "", ...o.absorbedQueries].map((query) => byKey.get(queryKey(query))).find((query) => query !== undefined) ?? [o.clusterKey, clusterKey(o.targetQuery, brandTokens, market)].map((key) => byCluster.get(key ?? "")).find((query) => query !== undefined) ?? null;
 }
 
 /** The searches a refresh of `own`'s page answers, less any another open, queued or live topic of the site holds. */
