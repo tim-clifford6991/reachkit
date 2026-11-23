@@ -63,6 +63,7 @@ import type { MarketResearch } from "./pipeline/research";
 import { REWRITTEN, owedToRow, withFirstAsk } from "./interrupted";
 import { DraftDateTaken, PageStopped, generateStore, pageOf, type RestartedDraft, type SiteFacts } from "./store";
 import { inTest } from "./test-draft";
+import { recordWrittenAnyway } from "@/lib/ops/events";
 
 export type { GroundedFact, HardRule, RuleFailure, ComparisonSet, SiteRuleInputs } from "./rules/types";
 
@@ -540,7 +541,11 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number; 
       ...(draftId === undefined ? {} : { draftId }), ...(a.completeness === undefined ? {} : { completeness: a.completeness }), ...(a.fixStep === undefined ? {} : { fixStep: a.fixStep }), ...(shorter ? { shorter: true as const } : {}),
     });
     if (last.draftId !== null) draftId = last.draftId;
-    if (last.ok) return { ok: true, draftId: last.draftId };
+    if (last.ok) {
+      // A list or comparison with no independent source is written anyway, never stopped, and says so; the last step says its own.
+      if (built.pack.type === "listicle" && built.pack.mix?.independent === 0 && a.completeness === undefined) await recordWrittenAnyway(a.siteId, last.draftId, "outside_sources");
+      return { ok: true, draftId: last.draftId };
+    }
     if ("owed" in last && last.draftId !== null) return { ok: false, because: "fix_owed", draftId: last.draftId };
     if (last.reason === "rules") {
       return { ok: false, because: "rules", draftId: draftId ?? null, attempts: last.attempt, ...(last.fix === undefined ? {} : { stopped: last.fix }), ...(last.stop === undefined ? {} : { stop: last.stop }) };

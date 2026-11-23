@@ -24,3 +24,11 @@ From `scripts/panel/evidence/clearleft.com.json`: 12 stored searches, 5 rivals.
 | ux service | — | — |
 | ux consultancy | answer_page | uxconsultancy.com |
 | design thinking consultancy | — | — |
+
+| Absent from | Who's first |
+|---|---|
+| ux design agency | ineedsocial.co.uk |
+| user experience consultancy | tomstarley.co.uk |
+| user research agency | madebyunfold.co |
+| user experience research agency | zeeframes.com |
+| best ux design agency | interface-design.co.uk |

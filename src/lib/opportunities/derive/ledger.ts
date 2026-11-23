@@ -41,14 +41,16 @@ export function ledgerSourceOf(topic: {
   return topic.source ?? "category";
 }
 
-/** Holds readiness stored that no pass clears, so a held row is not supply. */
-const HELD: ReadonlySet<string> = new Set(["resting"]);
-
-/** A row a day may be written from: an open Write or Earn at or above readiness's fit floor, not resting. */
+/** A row a day may be written from: an open Write or Earn at or above readiness's fit floor that readiness, once it has run, does not hold. */
 export function writable(row: Pick<Opportunity, "family" | "status" | "businessFit"> & Partial<Pick<Opportunity, "ready" | "unreadyReason">>): boolean {
-  const fit = row.businessFit ?? null;
-  const held = row.ready === false && HELD.has(row.unreadyReason ?? "");
-  return (row.family === "write" || row.family === "earn") && row.status === "open" && (fit === null || fit >= TOPIC_FIT.gate) && !held;
+  const held = row.ready === false && row.unreadyReason !== "not_assessed";
+  return (row.family === "write" || row.family === "earn") && row.status === "open" && (row.businessFit ?? TOPIC_FIT.gate) >= TOPIC_FIT.gate && !held;
+}
+
+/** The ledger with `have` and `short` read again from rows readiness has just assessed. */
+export function afterReadiness(ledger: SupplyLedger, rows: readonly Parameters<typeof writable>[0][]): SupplyLedger {
+  const have = rows.filter(writable).length;
+  return { ...ledger, have, short: Math.max(0, PLAN_DEPTH - have) };
 }
 
 /** Pure. `stages` lists each topic's class at every stage it reached; `rows` is what the site holds after the pass. */
@@ -58,19 +60,10 @@ export function supplyLedger(a: {
   unworded?: number;
   topUp?: TopUpRecord;
 }): SupplyLedger {
-  const sources = Object.fromEntries(
-    LEDGER_SOURCES.map((source) => [source, Object.fromEntries(LEDGER_STAGES.map((stage) => [stage, 0]))])
-  ) as Record<LedgerSource, SourceCounts>;
+  const sources = Object.fromEntries(LEDGER_SOURCES.map((source) => [source, Object.fromEntries(LEDGER_STAGES.map((stage) => [stage, 0]))])) as Record<LedgerSource, SourceCounts>;
   for (const stage of LEDGER_STAGES) {
     for (const source of a.stages[stage] ?? []) sources[source][stage] += 1;
   }
-  const have = a.rows.filter(writable).length;
-  return {
-    sources,
-    have,
-    short: Math.max(0, PLAN_DEPTH - have),
-    dry: LEDGER_SOURCES.filter((source) => sources[source].added === 0),
-    unworded: a.unworded ?? 0,
-    ...(a.topUp === undefined ? {} : { topUp: a.topUp }),
-  };
+  const dry = LEDGER_SOURCES.filter((source) => sources[source].added === 0);
+  return afterReadiness({ sources, have: 0, short: 0, dry, unworded: a.unworded ?? 0, ...(a.topUp === undefined ? {} : { topUp: a.topUp }) }, a.rows);
 }

@@ -28,6 +28,8 @@ import { measured, measuredZero, unmeasured } from "@/lib/measure/measured";
 import { whyLineOf, whySentenceOf } from "./card-lines";
 import type { CalendarFacts, DraftOnDay, WhyThisPage } from "./month";
 import type { DayKey } from "./dates";
+import type { ContentType } from "@/lib/opportunities/content-type";
+import { generatedLabel } from "@/lib/presentation/generated";
 import type { State } from "./stages";
 import { CONTENT_FIXTURE_NOW, FIXTURE_PUBLISHED } from "../_overview/content-fixture";
 
@@ -150,8 +152,8 @@ const SCHEDULE: Readonly<Record<DayKey, State>> = {
   "2026-09-18": "planned",
   // 2026-09-19 holds an instruction.
   "2026-09-20": "planned", // Sunday
-  // Nothing after 2026-09-20: the plan stops the day before the next weekly
-  // pass (issue 857).
+  // The commit's last date, the next Monday, when the weekly check runs: drawn under Next Week.
+  "2026-09-21": "planned",
 };
 
 /**
@@ -195,7 +197,11 @@ const TITLES: Readonly<Record<DayKey, string>> = {
   "2026-09-17": "Free CRMs and what they leave out",
   "2026-09-18": "Getting the team to use the CRM",
   "2026-09-20": "Connecting your CRM to Gmail",
+  "2026-09-21": "Choosing a CRM your sales team will use",
 };
+
+/** The type each new page is written as, in turn, so the chip says each. */
+const TYPES: readonly ContentType[] = ["listicle", "how_to", "qa", "documentation", "research", "offering", "insights"];
 
 // A page placed for something new in the market, written and planned, a page it moved, and one it moved out of the week.
 const NEWS = { points: 0, parts: [{ part: "rising" as const, n: 2 }], rule: null, hot: { signal: "news" as const, event: "Acme CRM 5.2 adds shared inbox rules and team routing to CRM", date: "2026-09-11", a: "TechCrunch", b: "The Verge", key: "news:fixture", detectedOn: "2026-09-15" } };
@@ -260,6 +266,9 @@ const DRAFTS: readonly DraftOnDay[] = Object.entries(SCHEDULE).map(([day, state]
     // Every third specimen is an update of a page the site already has, so
     // the mark and its absence are both on the owner's own preview.
     update: index % 3 === 2,
+    type: index % 3 === 2 ? "update" : (TYPES[index % TYPES.length] ?? null),
+    // A new page still planned carries its proposed title; an update has none, so it keeps its search.
+    ...(state === "planned" && index % 3 !== 2 ? { proposed: { title: TITLES[day] ?? specimen.title, label: generatedLabel({ pageTitle: whyOf(index).search, written: false }).label } } : {}),
     // Every page states why the week holds it, as the store does for every chosen draft.
     whyLine: whySentenceOf({ points: 5, parts: [{ part: "fit", n: 3 }, { part: index % 2 === 0 ? "demand" : "ai_gap", n: 2 }], rule: "best" }),
     ...HOT[day],

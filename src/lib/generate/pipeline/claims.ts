@@ -87,15 +87,16 @@ function aboutRival(passage: string, named: string | null, rivals: readonly stri
 }
 
 /**
- * Issue 1485: **a rival's own page outranks a third party's** for a claim
- * about that rival. Where a rival's own pages yielded a claim, what another
- * page says about it — a reviewer's "$99", a listicle's plan names — is not
- * kept. Where its own pages yielded nothing, a third party's claim stays,
- * cited to that third party.
+ * **A rival's own page outranks a third party's** on its price and plans: where its own pages yielded a
+ * claim, another page's claim about it that states a price or names a plan its own claims name is not kept. Anything
+ * else a third party says about it stays, ranked as that page's tier, so an independent comparison reaches the page.
  */
 export function ownPagesFirst(facts: readonly MarketFact[]): MarketFact[] {
-  const own = new Set(facts.flatMap((fact) => (fact.product === undefined ? [] : [fact.product])));
-  return facts.filter((fact) => fact.product !== undefined || fact.about === undefined || !own.has(fact.about));
+  const plans = new Map<string, string[]>();
+  for (const fact of facts) if (fact.product !== undefined) plans.set(fact.product, [...(plans.get(fact.product) ?? []), ...(fact.plan ? [fact.plan] : [])]);
+  const named = (passage: string, plan: string): boolean => new RegExp(`(?<![\\p{L}\\p{N}])${plan.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\p{L}\\p{N}])`, "iu").test(passage);
+  const priced = (fact: MarketFact): boolean => PRICE_RE.test(fact.passage) || (plans.get(fact.about!) ?? []).some((plan) => named(fact.passage, plan));
+  return facts.filter((fact) => fact.product !== undefined || fact.about === undefined || !plans.has(fact.about) || !priced(fact));
 }
 
 const PRICE_RE = /[$€£¥]\s?\d|\d\s?(?:usd|eur|gbp)\b/i;

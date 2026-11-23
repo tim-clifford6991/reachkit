@@ -26,3 +26,11 @@ From `scripts/panel/evidence/alexander.co.uk.json`: 14 stored searches, 5 rivals
 | taxes near me | — | — |
 | property accountants near me | — | — |
 | tax planning manchester | — | — |
+
+| Absent from | Who's first |
+|---|---|
+| accountancy firm manchester | professional-accountants.co.uk |
+| financial accountant manchester | accountsandlegal.co.uk |
+| tax accountant manchester | ahaccountant.co.uk |
+| best accountant manchester | accountsandlegal.co.uk |
+| small business accountant manchester | a-wise.co.uk |

@@ -40,7 +40,7 @@ export interface MarketSerpOrganic {
 }
 
 /** One organic row, as the leaves that need a *rank* read it — the
- *  presence card's `topHolder` is "the domain at position 1". */
+ *  presence card's `topHolder` is the first business on the first page, never a source. */
 export interface MarketOrganicRow {
   position: number;
   domain: string;

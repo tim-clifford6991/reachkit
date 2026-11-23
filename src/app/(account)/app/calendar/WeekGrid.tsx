@@ -6,7 +6,7 @@
 import type React from "react";
 import Link from "next/link";
 import { copy } from "@/lib/presentation/copy";
-import { Quote } from "lucide-react";
+import { Quote, RefreshCw } from "lucide-react";
 import { DayStateBadge, KindChip } from "./DayCard";
 import type { DayKey } from "./dates";
 import { DAY_ROW, REGION, WEEK_LIST } from "./frame";
@@ -39,13 +39,13 @@ function DayRow(p: { card: CardModel; selected: boolean; onSelect: (day: DayKey)
           <span className="num text-xs font-semibold whitespace-nowrap" data-testid="cell-date">
             {card.dayLabel}
           </span>
-          {card.kind === null ? null : <KindChip update={card.kind === "update"} />}
+          {card.kind === null ? null : <KindChip update={card.kind === "update"} {...(card.chip === null ? {} : { label: card.chip })} />}
           <span className="ms-auto">
             <DayStateBadge cell={card.cell} filter={ALL} />
           </span>
         </span>
         {card.title === null ? null : (
-          <span className={`min-w-0 text-sm font-semibold leading-snug wrap-anywhere ${card.search ? "num" : "rk-cal-label line-clamp-2"}`} data-testid="cell-label">
+          <span className={`min-w-0 text-sm font-semibold leading-snug wrap-anywhere ${card.search ? "num" : ""}`} data-testid="cell-label">
             {card.title}
           </span>
         )}
@@ -53,6 +53,11 @@ function DayRow(p: { card: CardModel; selected: boolean; onSelect: (day: DayKey)
         {card.lines.length === 0 ? null : (
           <span className="min-w-0 text-sm text-base-content/70 wrap-anywhere" data-testid="cell-lines">
             {card.lines.join(" · ")}
+          </span>
+        )}
+        {card.afterCheck === null ? null : (
+          <span className="min-w-0 text-sm text-base-content/70 wrap-anywhere" data-testid="cell-after-check">
+            {card.afterCheck}
           </span>
         )}
         {card.sources === null ? null : (
@@ -72,6 +77,12 @@ function DayRow(p: { card: CardModel; selected: boolean; onSelect: (day: DayKey)
           </span>
         )}
       </button>
+      {card.check === null ? null : (
+        <p className="flex min-w-0 items-start gap-2 rounded-box bg-base-200 p-2 text-sm" data-testid="cell-check">
+          <RefreshCw aria-hidden className="mt-0.5 size-4 shrink-0 text-primary" />
+          <span className="min-w-0">{card.check}</span>
+        </p>
+      )}
       {card.fix === null ? null : (
         <Link href={`/app/issues?fix=${card.fix}`} className="link link-primary link-hover inline-flex min-h-11 items-center text-sm" data-testid="cell-fix-link">
           {copy("calendar.day.held-for-fix.link")}
@@ -83,15 +94,26 @@ function DayRow(p: { card: CardModel; selected: boolean; onSelect: (day: DayKey)
 
 export function WeekGrid(p: {
   cards: readonly CardModel[];
+  /** The days after Sunday, under Next Week. */
+  nextWeek: readonly CardModel[];
   /** The day the pane shows, where it shows one. */
   selected: DayKey | null;
   onSelect: (day: DayKey) => void;
 }): React.JSX.Element {
+  const rows = (cards: readonly CardModel[]) => cards.map((card) => <DayRow key={card.day} card={card} selected={card.day === p.selected} onSelect={p.onSelect} />);
   return (
-    <ol className={WEEK_LIST} data-testid="calendar-week" data-frame={REGION.week}>
-      {p.cards.map((card) => (
-        <DayRow key={card.day} card={card} selected={card.day === p.selected} onSelect={p.onSelect} />
-      ))}
-    </ol>
+    <>
+      <ol className={WEEK_LIST} data-testid="calendar-week" data-frame={REGION.week}>
+        {rows(p.cards)}
+      </ol>
+      {p.nextWeek.length === 0 ? null : (
+        <>
+          <h2 className="divider my-0 text-sm font-semibold">{copy("calendar.week.next")}</h2>
+          <ol className={WEEK_LIST} data-testid="calendar-next-week">
+            {rows(p.nextWeek)}
+          </ol>
+        </>
+      )}
+    </>
   );
 }

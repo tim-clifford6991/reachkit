@@ -34,3 +34,11 @@ From `scripts/panel/evidence/wesbos.com.json`: 22 stored searches, 5 rivals.
 | full stack web development course | — | — |
 | web development course | — | — |
 | coding course for beginners | — | — |
+
+| Absent from | Who's first |
+|---|---|
+| javascript tutorial | w3schools.com |
+| online web development course | coursera.org |
+| javascript is what | skillcrush.com |
+| web developer developer | w3schools.com |
+| css what is | mozilla.org |

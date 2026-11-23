@@ -26,8 +26,7 @@ import { whyOf } from "@/lib/opportunities/why";
 import { writtenLine } from "../_shell/written";
 import { cardDate } from "./dates";
 import type { EmptyCause } from "./empty";
-import { STAGE_FILTER_COPY_KEY } from "./stages";
-import type { DayCell, PageOnDay } from "./month";
+import type { DayCell } from "./month";
 
 /**
  * The ≤2-word form of every cause, total over the union.
@@ -76,17 +75,12 @@ export function horizonShortFor(cell: DayCell): string | null {
 }
 
 /**
- * The whole label of one card.
- *
- * Three shapes, because a card has three. A date the screen has nothing to
- * say about still gets its date read out — a button with no accessible
- * name is a button nobody can reach.
+ * The whole label of a card with no page; a page's card labels itself with its stage and kind (`week-screen.ts`).
+ * A date the screen has nothing to say about still gets its date read out — a button with no accessible name is a
+ * button nobody can reach.
  */
 export function cardLabel(a: {
   cell: DayCell;
-  /** The page the card is actually drawing — the cell's, unless a stage
-   *  filter has hidden it. */
-  page: PageOnDay | null;
   /** The line the card is actually drawing, where it draws one — so the
    *  label says what is on the card and never a reason the card withheld. */
   line: string | null;
@@ -94,13 +88,6 @@ export function cardLabel(a: {
   date?: string;
 }): string {
   const date = a.date ?? cardDate(a.cell.day);
-  const page = a.page;
-  if (page !== null) {
-    const stage = copy(STAGE_FILTER_COPY_KEY[page.stage]);
-    return page.titleLabel === undefined
-      ? copy("calendar.card.aria.page", { date, stage, title: page.title })
-      : copy("calendar.card.aria.written", { date, stage, title: page.title, label: page.titleLabel });
-  }
   if (a.line !== null) return copy("calendar.card.aria.empty", { date, reason: a.line });
   return copy("calendar.card.aria.date", { date });
 }

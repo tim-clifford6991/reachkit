@@ -29,3 +29,11 @@ From `scripts/panel/evidence/tattly.com.json`: 17 stored searches, 5 rivals.
 | fake sleeve tattoos | — | — |
 | temporary tattoos near me | — | — |
 | best temporary tattoos for adults | keyword_page | inkbox.com |
+
+| Absent from | Who's first |
+|---|---|
+| custom temporary tattoos | easytatt.com |
+| fake tattoos | inkbox.com |
+| semi permanent tattoos | inkbox.com |
+| fake tattoos near me | walmart.com |
+| temporary tattoos near me | ephemeral.tattoo |

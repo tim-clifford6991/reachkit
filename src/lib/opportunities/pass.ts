@@ -12,8 +12,9 @@ import type { InventoryRow } from "@/lib/site-profile/types";
 import { assessFixPages } from "./fix-page";
 import type { KnownMatch } from "@/lib/known-content/types";
 import { deriveOpportunities, type DeriveInput } from "./derive";
-import { canUpdateFrom } from "./readiness";
-import { opportunityStore } from "./store";
+import { afterReadiness } from "./derive/ledger";
+import { assessReadiness, canUpdateFrom } from "./readiness";
+import { opportunityStore, readOpportunity } from "./store";
 import { rankedCountsFromSizes, type RankedCounts } from "./winnability/counts";
 
 /** Which pass is asking; a free scan has no site to hold supply for. */
@@ -77,13 +78,11 @@ async function knownGateFor(a: { siteId: string; report: StoredReport; market: D
     a.report.questions.kind === "unmeasured"
       ? []
       : a.report.questions.value.map((question) => question.search.keyword);
-  for (const query of new Set(queries)) {
-    if (query.trim() === "") continue;
-    const near = await store.knownContentNear({ siteId: a.siteId, query });
-    topics.set(query.trim().toLowerCase(), alreadyCovered({ query }, near, a.market));
-  }
+  const read = async (query: string, title?: string | null) => alreadyCovered({ query, title }, await store.knownContentNear({ siteId: a.siteId, query }), a.market);
+  for (const query of new Set(queries)) if (query.trim() !== "") topics.set(query.trim().toLowerCase(), await read(query));
   return {
     covered: (candidate) => topics.get((candidate.targetQuery ?? "").trim().toLowerCase()) ?? null,
+    read: async (candidate) => (candidate.targetQuery === null ? null : read(candidate.targetQuery, candidate.title)),
     canUpdate,
     at: a.report.verdict.measuredAt,
   };
@@ -131,15 +130,18 @@ export async function deriveForPass(
   // A deep pass changed what the site holds, so its next evening commits the week again.
   if (a.tier === "deep") await store.commitPlan(a.siteId, []);
   const added = derived?.created.length ?? 0;
+  // Supply is what can fill a day: readiness decides it before it is counted, so a row a live page covers is not supply.
+  if (derived !== null) await assessReadiness(a.siteId, { at: a.report.verdict.measuredAt });
+  const supply = derived === null ? null : afterReadiness(derived.supply, (await store.openRankable(a.siteId)).map(readOpportunity));
   // `spentCents` tells a spent reserve (at the cap) from a day or site ceiling (below it), which `capHit()` lumps.
   const derivation =
-    derived === null
+    supply === null
       ? { derived: "not_run" as const, because: "spend_ceiling" as const, spentCents: c.spentCents() }
-      : { derived: derived.created.length, ...derived.supply };
+      : { derived: added, ...supply };
   // Rows, not log lines: the runtime log drops a long request's tail, and the daily check tells a thin pass from a dry source.
   await recordOpsEvent("supply_pass", JSON.stringify({ tier: a.tier, added, ...derivation }), a.report.scanId, a.siteId);
-  if (derived !== null && derived.supply.have < SUPPLY_SHORT_BELOW) {
-    await recordOpsEvent("supply_short", derived.supply.dry.join(",") || "none", String(SUPPLY_SHORT_BELOW - derived.supply.have), a.siteId);
+  if (supply !== null && supply.have < SUPPLY_SHORT_BELOW) {
+    await recordOpsEvent("supply_short", supply.dry.join(",") || "none", String(SUPPLY_SHORT_BELOW - supply.have), a.siteId);
   }
   return { tier: a.tier, added };
 }

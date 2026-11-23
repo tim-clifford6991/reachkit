@@ -2,7 +2,7 @@
 // comparison_page before keyword_page (strongest evidence first). format_page is never derived: no measurement states a page type.
 import { WRITE_VOLUME_FLOOR_PER_MONTH } from "@/lib/config/constants";
 import { EFFORT_BY_TYPE } from "@/lib/config/constants";
-import { isJobSearch, isOwnDomain, isSourceRow, ownPlaceIn, registrableDomain, resolvedOf, resolvedRows, type SourceReading } from "@/lib/market/rivals/domains";
+import { firstBusinessRow, isJobSearch, isOwnDomain, ownPlaceIn, registrableDomain, resolvedOf, type SourceReading } from "@/lib/market/rivals/domains";
 import { measured } from "@/lib/measure/measured";
 import { measuredLocale } from "@/lib/locale/locales";
 import { localOfReport } from "@/lib/scan/cards";
@@ -37,11 +37,9 @@ export function sourceReadingOf(report: Omit<StoredReport, "freePage">, rivals: 
   return { local: localOfReport(report), sources: report.sources, rivals: [...rivals] };
 }
 
-/** Who holds a search: the first organic row, in Google's order, that is
- *  not the customer's own and no source (`isSourceRow`); `null` where only
- *  sources hold it. */
+/** Who holds a search (`firstBusinessRow`); `null` where only the customer and sources hold it. */
 export function holderOf(serp: SerpResult, ownDomain: string, reading: SourceReading, at: Date): WriteRival | null {
-  const row = resolvedRows(serp.organic)?.find((each) => !isOwnDomain(each.domain, ownDomain) && !isSourceRow(each, reading));
+  const row = firstBusinessRow(serp.organic, ownDomain, reading);
   return row === undefined ? null : { domain: registrableDomain(row.domain) ?? row.domain, url: measured(row.url, at), position: measured(row.position, at) };
 }
 

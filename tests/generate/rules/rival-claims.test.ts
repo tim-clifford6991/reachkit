@@ -123,6 +123,10 @@ describe.each(PANEL)("rival claims for $kind", (c) => {
     expect(ownPagesFirst(read).some((fact) => fact.url === c.review.url)).toBe(false);
     // Where its own page yielded nothing, the review stays, cited to itself.
     expect(ownPagesFirst(read.filter((fact) => fact.product === undefined)).map((fact) => fact.url)).toEqual([c.review.url]);
+    // Beyond its price and plans, what the review says of it stays beside its own claims.
+    const said = (passage: string) => ({ ...read.find((fact) => fact.url === c.review.url)!, passage });
+    expect(ownPagesFirst([...read, said(`${c.rival.name} was the easiest of the options to set up.`)])).toHaveLength(read.length);
+    expect(ownPagesFirst([...read, said(`${c.rival.name}'s ${c.scoped.plan} was the easiest to set up.`)])).toHaveLength(read.length - 1);
   });
 
   it("a claim of one plan is stated with that plan's name, and a rival is cited to its own page", () => {
