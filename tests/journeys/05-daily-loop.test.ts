@@ -46,13 +46,8 @@ import { fakeDb, installTransitionRpc, type FakeDb, type Row, installSiteSpendRp
 
 const db: FakeDb = fakeDb();
 
-/** `fetches` needs a builder the §9 harness's double does not carry: the
- *  cost seam's cache read chains `.gt().order().limit()`, and §8's
- *  grounding read chains `.eq().in()`. This is that one table, with the
- *  chain those two reads use and rows stored in the same `db.tables` the
- *  rest of the journey reads — so the ledger below is the ledger the
- *  product would have written, and every cache read is the miss it is
- *  (this journey spends fresh: nothing it asks for was asked before). */
+/** `fetches` with the chains the cost seam's cache read and §8's grounding read use, stored in the journey's own
+ *  `db.tables`: the ledger below is the product's, and every cache read misses, since this journey spends fresh. */
 function fetchesBuilder() {
   const filters: { op: string; column: string; value: unknown }[] = [];
   let verb: "select" | "insert" = "select";

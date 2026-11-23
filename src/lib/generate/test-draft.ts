@@ -45,9 +45,8 @@ async function end(draftId: string): Promise<string> {
   const row = await generateStore().draftById(draftId);
   if (row === null || row.state !== "generating") return row?.state ?? "no_draft";
   const via = row.hard_rules_passed === true ? "in_review" : "needs_attention";
-  for (const to of [via, "skipped"] as const) {
-    const moved = await transition(draftId, to, BY, { reason: "test" });
-    if (!moved.ok) throw new Error(`draft/test: ${draftId} not moved to ${to}: ${moved.refused}`);
-  }
+  const into = await transition(draftId, via, BY);
+  const ended = into.ok ? await transition(draftId, "skipped", BY, { reason: "test" }) : into;
+  if (!ended.ok) throw new Error(`draft/test: ${draftId} not ended from ${row.state}: ${ended.refused}`);
   return via;
 }
