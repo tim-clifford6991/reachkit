@@ -80,6 +80,6 @@ export async function keepWeeks(a: { siteId: string; rows: readonly WeekRow[]; n
   const kept = newest.length > 0 ? await upsert(newest, true) : { error: null };
   const added = rest.length > 0 ? await upsert(rest, false) : { error: null };
   const trimmed = await db.from("publication_weeks").delete().eq("site_id", a.siteId).lt("week_start", weeksKeptFrom(a.now));
-  const dropped = await Promise.all((a.superseded ?? []).map((page) => db.from("publication_weeks").delete().eq("publication_id", page.id).gt("week_start", dayOf(Date.parse(page.until) - WEEK_MS))));
+  const dropped = await Promise.all((a.superseded ?? []).map((page) => db.from("publication_weeks").delete().eq("publication_id", page.id).gte("week_start", dayOf(Date.parse(page.until) - WEEK_MS + DAY_MS))));
   for (const { error } of [kept, added, trimmed, ...dropped]) if (error !== null) console.log(JSON.stringify({ event: "publication_weeks_unwritten", siteId: a.siteId, message: error.message }));
 }
