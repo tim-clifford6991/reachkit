@@ -86,7 +86,7 @@ import { googleWrapper, isPlatformDomain, nameLetters, registrableDomain } from 
 import type { Locale } from "@/lib/locale/locales";
 import type { NewsRow, SerpOrganicRow } from "@/lib/vendors/dataforseo/types";
 import { inTurn, newestCredible, ownPagesFirst } from "./claims";
-import { byTier, cappedSites, compares, hostOf, mixOf, namedIn, primaryAddress, rivalsInScope, sameSite, tiered, type SourceMix, type SourceTier } from "./source-tier";
+import { byTier, cappedSites, compares, hostOf, mixOf, namedIn, pressWire, primaryAddress, rivalsInScope, sameSite, studySubject, tiered, withRoom, type SourceMix, type SourceTier } from "./source-tier";
 import { readClaims } from "./claims-read";
 import { sourcedBlocks, toOriginals, type SourcedBlock } from "./original";
 import { datedOf, datesOf, type ClaimDates, type PageDates } from "./dated";
@@ -535,10 +535,9 @@ type SerpRead = Parameters<typeof serpOrganic>[1];
 
 /** The target's SERP and its study or guidance search, named with the market so a brand that is also a word finds the product (an
  *  update's one SERP is its target's): on the normal queue, whose links are not `goto` redirects. A draft's earlier job step posts the same reads. */
-export function researchSerps(a: { siteId: string; locale: Locale; target: string; market?: string; guidance?: boolean; recent?: unknown; study?: boolean }, waitMs: number): SerpRead[] {
+export function researchSerps(a: { siteId: string; locale: Locale; target: string; market?: string; guidance?: boolean; recent?: unknown; study?: boolean; options?: boolean }, waitMs: number): SerpRead[] {
   const base = { locale: a.locale, mode: "std", untilMs: Date.now() + waitMs, loadAsyncAiOverview: false, scope: { site: a.siteId }, freshnessDays: CACHE_WINDOWS_D.serp } as const;
-  const language = languagePack(a.locale.language), market = (a.market ?? "").trim();
-  const subject = market === "" || a.target.toLowerCase().includes(market.toLowerCase()) ? a.target : `${a.target} ${market}`;
+  const language = languagePack(a.locale.language), subject = studySubject(a);
   // The study search asks Google for the past year at the same price; the guidance and the target's own SERP are not filtered.
   const study = a.guidance === true ? { query: language.guidanceSearch(subject) } : { query: language.studySearch(subject), searchParam: "&tbs=qdr:y" };
   return [{ ...base, query: a.target }, ...(a.recent === undefined && a.study !== false ? [{ ...base, ...study }] : [])];
@@ -703,10 +702,10 @@ export async function researchMarket(
     const serp = await serpOrganic(c, studyRead);
     if (serp.kind !== "unmeasured") {
       for (const row of serp.value.organic) {
-        // Nobody's sales page, and no site the week already cites enough.
+        // Nobody's sales page, no paid press-release wire, and no site the week already cites enough.
         const host = hostOf(row.url), site = registrableDomain(row.url) ?? host;
         if (capped.has(site)) skipped.add(site);
-        if (!notOurs(row.url) || googleWrapper(row.url) !== null || taken.has(row.url) || [...inForce, ...rivalDomains, ...capped].some((rival) => sameSite(host, rival))) continue;
+        if (!notOurs(row.url) || googleWrapper(row.url) !== null || pressWire(row.url) || taken.has(row.url) || [...inForce, ...rivalDomains, ...capped].some((rival) => sameSite(host, rival))) continue;
         studyRows.push(row);
       }
     }
@@ -732,12 +731,11 @@ export async function researchMarket(
   // written from, and the claim calls read the first pages only.
   const prefetched: (ReadPage & Wanted)[] = [
     ...(a.recent === undefined ? [] : found),
-    // Issue 1486: a primary source is read before the top results, so its
-    // claims lead the pack.
+    // A primary source is read before the top results, so its claims lead the pack; the studies before the rivals' own pages.
     ...found.filter((page) => page.kind === "primary"),
     ...topReads.filter((read) => read !== null).slice(0, RESEARCH.topResults).map((read) => ({ ...read.page, kind: "top_result" as const })),
-    ...rivalReads.flatMap((row) => (row.read === null ? [] : [{ ...row.read.page, kind: row.kind, product: row.domain }])),
     ...(a.recent === undefined ? found.filter((page) => page.kind !== "primary") : []),
+    ...rivalReads.flatMap((row) => (row.read === null ? [] : [{ ...row.read.page, kind: row.kind, product: row.domain }])),
   ];
 
   // 3. The ledger, one row at a time. A page already read inside the window
@@ -759,9 +757,9 @@ export async function researchMarket(
   // 4. The claims, a few pages a call, each kept only where its page says it.
   const facts = await readClaims(c, pages, { locale: a.locale, search: target, rivals: rivalDomains, today: a.today, siteId: a.siteId, page: a.page });
 
-  // Best tier first, newest credible first and one claim a page in turn inside each; a statistic is then cited to the original its page links, read at 0¢.
-  const tiers = { rivals: inForce, products: [...inForce, ...named.map((product) => product.domain)], language: a.locale.language, pages, capped };
-  const dealt = byTier(newestCredible(tiered(ownPagesFirst(facts), tiers), a.today), (tier) => inTurn(tier, pages)).slice(0, RESEARCH.briefFacts);
+  // Best tier first, newest credible first and one claim a page in turn inside each, own pages leaving room; originals then read at 0¢.
+  const tiers = { rivals: inForce, products: [...inForce, ...named.map((product) => product.domain)], names: [...(a.rivalNames ?? []), ...named], language: a.locale.language, pages, capped };
+  const dealt = withRoom(byTier(newestCredible(tiered(ownPagesFirst(facts), tiers), a.today), (tier) => inTurn(tier, pages)), RESEARCH.briefFacts, RESEARCH.outsideRoom);
   const ordered = byTier(tiered(await toOriginals(dealt, pages, (url) => readFresh(c, url)), tiers));
   for (const fact of ordered) if (fact.capped === true) skipped.add(registrableDomain(fact.url) ?? hostOf(fact.url));
   const minimum = compares({ target, options: a.options }) ? 1 : 2;

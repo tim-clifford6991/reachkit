@@ -49,7 +49,7 @@ export const listicle: Template = {
     // D52: the page says how it compared, and the line under `table` dates it.
     {
       key: "how_we_compared",
-      task: "Say in a few sentences how these options were compared: from each option's own pricing and product pages, read on the dates the sources list gives, and on the criteria above. Say plainly that the products were not tried or tested. This section is short and may run under the length asked of the others.",
+      task: "Say in a few sentences how these options were compared: from each option's own pricing and product pages, read on the dates the sources list gives, and on the criteria above. Say plainly that the products were not tried or tested, and, in one sentence naming this business, that it publishes this page and is one of the options compared. This section is short and may run under the length asked of the others.",
     },
     // Issue 1508: on a page of alternatives to one product, that product is
     // the baseline. It has this section and no `option`.

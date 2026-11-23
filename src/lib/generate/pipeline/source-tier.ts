@@ -6,9 +6,9 @@ import { brandOf } from "@/lib/market/questions/select";
 import { nameLetters, registrableDomain } from "@/lib/market/rivals/domains";
 import type { MarketFact } from "./research";
 
-export type SourceTier = "primary" | "original" | "publication" | "vendor" | "other";
-/** Best first: the order a pack deals its claims in. */
-export const TIERS: readonly SourceTier[] = ["primary", "original", "publication", "vendor", "other"];
+export type SourceTier = "primary" | "original" | "publication" | "review" | "vendor" | "other" | "wire";
+/** Best first: the order a pack deals its claims in. Every tier above `vendor` is independent. */
+export const TIERS: readonly SourceTier[] = ["primary", "original", "publication", "review", "vendor", "other", "wire"];
 /** No outside site is cited on more of a site's pages in one committed week. */
 const WEEK_PAGES_PER_SITE = 3;
 
@@ -45,6 +45,10 @@ export function primaryAddress(url: string, rivals: readonly string[] = []): boo
   return DOCS_SEGMENT_RE.test(parsed.pathname.split("/").filter(Boolean)[0]?.toLowerCase() ?? "");
 }
 
+// A paid press-release wire, by its name in the address or the syndicated text: the seller's own word, never independent.
+const WIRE_RE = /(?<![a-z])(?:pr ?newswire|business ?wire|globe ?newswire|accesswire|ein ?presswire|einnews|ab ?newswire|getnews|newsfile ?corp|prweb|openpr|prlog|issuewire|marketersmedia|send2press|24-7pressrelease|presswire)(?![a-z])/i;
+export const pressWire = (url: string, text = ""): boolean => WIRE_RE.test(url) || WIRE_RE.test(text);
+
 const said = (search: string): string => search.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
 
 /** The products a search names, in their order: a run of up to four of its words that spells the product's stored
@@ -75,20 +79,34 @@ export function rivalsInScope(inForce: readonly string[], a: { searches: readonl
   return inForce.filter((domain) => named.has(domain) || (listed !== null && !listed.has(domain)));
 }
 
-/** Each claim with its tier, and `capped` where its site already fills the week; a rival's own page is never capped. */
-export function tiered(facts: readonly MarketFact[], a: { rivals: readonly string[]; products: readonly string[]; language: Language; pages: readonly { url: string; text: string }[]; capped: ReadonlySet<string> }): MarketFact[] {
+/** What the study search is about: on a page that compares, its market alone, else with no market the target with its product's name
+ *  quoted so a name that is also words ("analyze ai") is searched as a name; on any other page the target, named with its market. */
+export function studySubject(a: { target: string; market?: string; options?: boolean }): string {
+  const market = (a.market ?? "").trim(), [name = "", ...rest] = a.target.toLowerCase().split(SHAPES.comparison);
+  if (!compares(a)) return market === "" || a.target.toLowerCase().includes(market.toLowerCase()) ? a.target : `${a.target} ${market}`;
+  return market || (rest.length === 0 || name.trim() === "" ? a.target : [`"${name.trim()}"`, ...rest.map((part) => part.trim())].filter(Boolean).join(" "));
+}
+
+/** Each claim with its tier, and `capped` where its site already fills the week; a rival's own page is never capped. `names` are the
+ *  products' names, so a third party's page that names two of them is a review or comparison site. */
+export function tiered(facts: readonly MarketFact[], a: { rivals: readonly string[]; products: readonly string[]; names?: readonly { domain: string; name?: string | null }[]; language: Language; pages: readonly { url: string; text: string }[]; capped: ReadonlySet<string> }): MarketFact[] {
   const pack = languagePack(a.language);
   const method = new Set(a.pages.filter((page) => pack.studyMethod.test(page.text)).map((page) => page.url));
+  const wire = new Set(a.pages.filter((page) => pressWire(page.url, page.text)).map((page) => page.url));
+  const products = [...a.products.map((domain) => ({ domain })), ...(a.names ?? [])];
+  const review = new Set(a.pages.filter((page) => new Set(namedIn(page.text, products)).size >= 2).map((page) => page.url));
   // A site two or more other sites cite as their original is a publisher.
   const citers = new Map<string, Set<string>>();
   for (const fact of facts) if (fact.via !== undefined) citers.set(siteOf(fact.url), (citers.get(siteOf(fact.url)) ?? new Set()).add(siteOf(fact.via)));
   const tierOf = (fact: MarketFact): SourceTier => {
     const host = hostOf(fact.url);
     if (fact.product !== undefined || a.rivals.some((rival) => sameSite(host, rival))) return "vendor";
+    if (wire.has(fact.url) || pressWire(fact.url)) return "wire";
     if (fact.kind === "primary" || primaryAddress(fact.url) || pack.officialHosts.test(host)) return "primary";
     if (fact.via !== undefined || (method.has(fact.url) && fact.secondHand !== true)) return "original";
     if (fact.kind === "recent" || (citers.get(siteOf(fact.url))?.size ?? 0) >= 2) return "publication";
-    return a.products.some((product) => sameSite(host, product)) ? "vendor" : "other";
+    if (a.products.some((product) => sameSite(host, product))) return "vendor";
+    return review.has(fact.url) ? "review" : "other";
   };
   return facts.map((fact) => ({ ...fact, tier: tierOf(fact), ...(fact.product === undefined && a.capped.has(siteOf(fact.url)) ? { capped: true as const } : {}) }));
 }
@@ -97,6 +115,14 @@ export function tiered(facts: readonly MarketFact[], a: { rivals: readonly strin
 export function byTier<T extends { tier?: SourceTier; capped?: true }>(facts: readonly T[], within: (facts: T[]) => T[] = (same) => same): T[] {
   const at = (fact: T): number => (fact.capped === true ? TIERS.length : TIERS.indexOf(fact.tier ?? "other"));
   return [...TIERS.keys(), TIERS.length].flatMap((rank) => within(facts.filter((fact) => at(fact) === rank)));
+}
+
+/** The first `limit` claims, best first, where rivals' and products' own pages leave `room` slots to the other claims there are:
+ *  an own page backs claims about its product only, and never fills the pack. */
+export function withRoom<T extends { tier?: SourceTier }>(facts: readonly T[], limit: number, room: number): T[] {
+  const others = facts.filter((fact) => fact.tier !== "vendor" && fact.tier !== "wire").length;
+  let vendors = limit - Math.min(room, others);
+  return facts.filter((fact) => fact.tier !== "vendor" || vendors-- > 0).slice(0, limit);
 }
 
 /** The outside sites already cited on `WEEK_PAGES_PER_SITE` of the site's other pages in the Monday-to-Sunday week of
@@ -119,7 +145,7 @@ export async function cappedSites(siteId: string, own: string, day: string): Pro
 export interface SourceMix {
   tiers: Record<SourceTier, number>;
   domains: number;
-  /** Distinct sites at `publication` or better. */
+  /** Distinct sites at `review` or better. */
   independent: number;
   rivalClaims: number;
   cappedSkipped: number;
@@ -128,7 +154,7 @@ export interface SourceMix {
 /** The mix of `facts`, warned on (never stopped on) below the page's minimum of independent sites. */
 export function mixOf(facts: readonly MarketFact[], a: { siteId: string; cappedSkipped: number; minimum: number }): SourceMix {
   const tiers = Object.fromEntries(TIERS.map((tier) => [tier, facts.filter((fact) => (fact.tier ?? "other") === tier).length])) as Record<SourceTier, number>;
-  const independent = new Set(facts.filter((fact) => TIERS.indexOf(fact.tier ?? "other") <= TIERS.indexOf("publication")).map((fact) => siteOf(fact.url))).size;
+  const independent = new Set(facts.filter((fact) => TIERS.indexOf(fact.tier ?? "other") <= TIERS.indexOf("review")).map((fact) => siteOf(fact.url))).size;
   const mix = { tiers, domains: new Set(facts.map((fact) => siteOf(fact.url))).size, independent, rivalClaims: facts.filter((fact) => fact.product !== undefined).length, cappedSkipped: a.cappedSkipped };
   if (independent < a.minimum) console.warn(JSON.stringify({ event: "draft_sources_few", siteId: a.siteId, independent, minimum: a.minimum }));
   return mix;

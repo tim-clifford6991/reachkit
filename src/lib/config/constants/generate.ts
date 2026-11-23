@@ -293,6 +293,8 @@ export const RESEARCH = Object.freeze({
   claimsPerPage: 5,
   /** The market facts a context pack carries. */
   briefFacts: 24,
+  /** Of `briefFacts`, the slots rivals' and products' own pages leave to the other claims there are (SPEC §7). */
+  outsideRoom: 6,
   /** *Current insights* (D48): the news searches it buys — the market's
    *  category, then its synonyms in their stored order — and, of the results
    *  they date inside `recentDays`, how many are read and how many kept. */
