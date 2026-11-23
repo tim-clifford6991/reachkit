@@ -111,7 +111,7 @@ export const OFFER_COPY = Object.freeze({
   "offer.billing.since": "Customer since",
   "offer.billing.checkin": "Next check-in",
   "offer.founder": "Email the Founder",
-  "offer.setup.lock": "You’re one of our first {of} customers: {price} a month for as long as you stay.",
+  "offer.setup.lock": "One of our first {of} customers: {price} a month for as long as you stay.",
   "offer.setup.help": "Stuck? We’ll do it with you on a call, at no cost.",
   "offer.setup.book": "Book 15 Minutes",
 }) satisfies CopyPartition;
