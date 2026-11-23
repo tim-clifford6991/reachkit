@@ -11,7 +11,7 @@
 // each screen can hold, and the live arm is whatever the database has.
 // Both have to fit. Dropping either would leave a real arm unmeasured, so
 // the four addresses are swept twice and the rest of the route tree once —
-// `layout.test.ts` still owns that.
+// `no-overflow.test.ts` owns that.
 //
 // **Every read here is bounded, and that is asserted rather than assumed**
 // (DECISIONS 2026-09-07). A provider that hangs is indistinguishable from
@@ -171,7 +171,7 @@ describe(`live-branch sweep — ${routes.length} route(s) × ${sweepWidths().len
     // The premise the whole file rests on, asserted rather than assumed:
     // `isReservedFixtureAccount` keys on the domain, so a change to either
     // constant that made these equal would silently turn this suite into a
-    // second copy of `layout.test.ts`.
+    // second copy of `no-overflow.test.ts`.
     expect(LIVE_ACCOUNT.domain).not.toBe("example.com");
   });
 
